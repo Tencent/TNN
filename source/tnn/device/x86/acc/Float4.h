@@ -24,6 +24,9 @@ struct Float4 {
     Float4(const float v) {
         value = _mm_set1_ps(v);
     }
+    Float4(const float *addr) {
+        value = _mm_set1_ps(*addr);
+    }
     Float4(const __m128& v) {
         value = v;
     }

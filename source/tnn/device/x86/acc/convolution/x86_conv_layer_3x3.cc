@@ -13,10 +13,13 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_3x3.h"
+#include "tnn/device/x86/acc/Float4.h"
+#include "tnn/device/x86/acc/Float8.h"
 #include "tnn/device/x86/acc/compute/x86_compute.h"
 #include "tnn/device/x86/x86_common.h"
 #include "tnn/device/x86/x86_context.h"
 #include "tnn/device/x86/x86_util.h"
+
 #include "tnn/interpreter/raw_buffer.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
@@ -25,20 +28,20 @@
 namespace TNN_NS {
 
 static void weight_transform(const float *src, float *dst, int kernel_size, int unit, int in_channel, int out_channel,
-                             const float (*G)[3]) {
+                             int CH_PACK, const float (*G)[3]) {
 #define UNIT_MAX 8
     float M[UNIT_MAX][3];
     float K_trans[UNIT_MAX * UNIT_MAX];
 
-    int ic_8        = UP_DIV(in_channel, 8);
-    int oc_8        = UP_DIV(out_channel, 8);
-    int unit_stride = ic_8 * oc_8 * 8 * 8;
-    int oc_stride   = ic_8 * 8 * 8;
-    int ic_stride   = 8 * 8;
+    int ic_pack     = UP_DIV(in_channel, CH_PACK);
+    int oc_pack     = UP_DIV(out_channel, CH_PACK);
+    int unit_stride = ic_pack * oc_pack * CH_PACK * CH_PACK;
+    int oc_stride   = ic_pack * CH_PACK * CH_PACK;
+    int ic_stride   = CH_PACK * CH_PACK;
 
     for (int oc = 0; oc < out_channel; oc++) {
-        int zo        = oc / 8;
-        int ro        = oc % 8;
+        int zo        = oc / CH_PACK;
+        int ro        = oc % CH_PACK;
         float *dst_oz = dst + zo * oc_stride + ro;
         for (int ic = 0; ic < in_channel; ic++) {
             const float *src_z = src + (oc * in_channel + ic) * 3 * 3;
@@ -46,8 +49,8 @@ static void weight_transform(const float *src, float *dst, int kernel_size, int 
             const float *k1    = k0 + 3;
             const float *k2    = k1 + 3;
 
-            int zi = ic / 8;
-            int ri = ic % 8;
+            int zi = ic / CH_PACK;
+            int ri = ic % CH_PACK;
 
             // M=G*g
             for (int i = 0; i < unit; i++) {
@@ -64,7 +67,7 @@ static void weight_transform(const float *src, float *dst, int kernel_size, int 
                 }
             }
 
-            auto dst_sz = dst_oz + zi * ic_stride + 8 * ri;
+            auto dst_sz = dst_oz + zi * ic_stride + CH_PACK * ri;
 
             for (int i = 0; i < unit; i++) {
                 for (int j = 0; j < unit; j++) {
@@ -139,6 +142,53 @@ static void pack_input_c8(const float *din, float *dout, int cs, int hs, int he,
     }
 }
 
+static void pack_input_c4(const float *din, float *dout, int cs, int hs, int he, int ws, int we, int channel, int width,
+                          int height, float *zero_ptr) {
+    int size_w = we - ws;
+    int size_c = width * height;
+    int pad_l  = ws < 0 ? -ws : 0;
+    int pad_r  = we > width ? we - width : 0;
+    auto dst   = dout;
+
+    for (int h = hs; h < he; h++) {
+        dst         = dout + (h - hs) * 4 * size_w;
+        auto ptr_c0 = din + cs * size_c + h * width;
+        auto ptr_c1 = ptr_c0 + size_c;
+        auto ptr_c2 = ptr_c1 + size_c;
+        auto ptr_c3 = ptr_c2 + size_c;
+
+        if (h < 0 || h >= height) {
+            memset(dst, 0, sizeof(float) * 4 * size_w);
+            continue;
+        } else if (cs + 4 > channel) {
+            switch (cs + 4 - channel) {
+                case 3:
+                    ptr_c1 = zero_ptr;
+                case 2:
+                    ptr_c2 = zero_ptr;
+                case 1:
+                    ptr_c3 = zero_ptr;
+                default:
+                    break;
+            }
+        }
+
+        for (int w = ws; w < we; w++) {
+            if (w < 0 || w >= width) {
+                memset(dst, 0, 4 * sizeof(float));
+                dst += 4;
+                continue;
+            }
+
+            dst[0] = ptr_c0[w];
+            dst[1] = ptr_c1[w];
+            dst[2] = ptr_c2[w];
+            dst[3] = ptr_c3[w];
+            dst += 4;
+        }
+    }
+}
+
 // unpack c8
 static void unpack_output_c8(const float *din, float *dout, int cs, int ce, int hs, int he, int ws, int we, int channel,
                              int height, int width, bool flag_relu, float *trash_ptr) {
@@ -201,32 +251,71 @@ static void unpack_output_c8(const float *din, float *dout, int cs, int ce, int 
     }
 }
 
+static void unpack_output_c4(const float *din, float *dout, int cs, int ce, int hs, int he, int ws, int we, int channel,
+                             int height, int width, bool flag_relu, float *trash_ptr) {
+    int size_c_out = width * height;
+
+    float *doutc0r0 = dout + cs * size_c_out + hs * width + ws;
+    float *doutc1r0 = doutc0r0 + size_c_out;
+    float *doutc2r0 = doutc1r0 + size_c_out;
+    float *doutc3r0 = doutc2r0 + size_c_out;
+
+    const float *ptr_din = din;
+
+    int size_h  = (he > height ? height : he) - hs;
+    int size_w  = (we > width ? width : we) - ws;
+    int valid_w = we - ws;
+
+    for (int h = 0; h < size_h; h++) {
+        float *doutc0_ptr = doutc0r0 + h * width;  // doutc0r0 + width;
+        float *doutc1_ptr = doutc1r0 + h * width;
+        float *doutc2_ptr = doutc2r0 + h * width;
+        float *doutc3_ptr = doutc3r0 + h * width;
+        if (ce > channel) {
+            switch (ce - channel) {
+                case 3:
+                    doutc1_ptr = trash_ptr;
+                case 2:
+                    doutc2_ptr = trash_ptr;
+                case 1:
+                    doutc3_ptr = trash_ptr;
+                default:
+                    break;
+            }
+        }
+        for (int w = 0; w < size_w; w++) {
+            doutc0_ptr[w] = ptr_din[(h * valid_w + w) * 4 + 0];
+            doutc1_ptr[w] = ptr_din[(h * valid_w + w) * 4 + 1];
+            doutc2_ptr[w] = ptr_din[(h * valid_w + w) * 4 + 2];
+            doutc3_ptr[w] = ptr_din[(h * valid_w + w) * 4 + 3];
+        }
+    }
+}
+
 #define COMPUTE_UNIT(c)                                                                                                \
-    wgt  = _mm256_loadu_ps(weight_z + c * N);                                                                          \
-    data = _mm256_broadcast_ss(src_z + K * 0 + c);                                                                     \
-    acc0 = _mm256_fmadd_ps(data, wgt, acc0);                                                                           \
-    data = _mm256_broadcast_ss(src_z + K * 1 + c);                                                                     \
-    acc1 = _mm256_fmadd_ps(data, wgt, acc1);                                                                           \
-    data = _mm256_broadcast_ss(src_z + K * 2 + c);                                                                     \
-    acc2 = _mm256_fmadd_ps(data, wgt, acc2);                                                                           \
-    data = _mm256_broadcast_ss(src_z + K * 3 + c);                                                                     \
-    acc3 = _mm256_fmadd_ps(data, wgt, acc3);                                                                           \
-    data = _mm256_broadcast_ss(src_z + K * 4 + c);                                                                     \
-    acc4 = _mm256_fmadd_ps(data, wgt, acc4);                                                                           \
-    data = _mm256_broadcast_ss(src_z + K * 5 + c);                                                                     \
-    acc5 = _mm256_fmadd_ps(data, wgt, acc5);
+    wgt  = VEC::loadu(weight_z + c * N);                                                                               \
+    data = VEC(src_z + K * 0 + c);                                                                                     \
+    VEC::mla(acc0, data, wgt);                                                                                         \
+    data = VEC(src_z + K * 1 + c);                                                                                     \
+    VEC::mla(acc1, data, wgt);                                                                                         \
+    data = VEC(src_z + K * 2 + c);                                                                                     \
+    VEC::mla(acc2, data, wgt);                                                                                         \
+    data = VEC(src_z + K * 3 + c);                                                                                     \
+    VEC::mla(acc3, data, wgt);                                                                                         \
+    data = VEC(src_z + K * 4 + c);                                                                                     \
+    VEC::mla(acc4, data, wgt);                                                                                         \
+    data = VEC(src_z + K * 5 + c);                                                                                     \
+    VEC::mla(acc5, data, wgt);
 
 #define COMPUTE_VEC(c)                                                                                                 \
-    data = _mm256_broadcast_ss(src_z + c);                                                                             \
-    wgt  = _mm256_loadu_ps(weight_z + c * N);                                                                          \
-    acc  = _mm256_fmadd_ps(data, wgt, acc);
+    data = VEC(src_z + c);                                                                                             \
+    wgt  = VEC::loadu(weight_z + c * N);                                                                               \
+    VEC::mla(acc, data, wgt);
 
 // A=6x8, B=8x8, C=6x8
-static void gemm_kernel(float *dst, float *src, const float *weight, const float *bias, int ic_8, int oc_8, int width) {
-    const int M = 6;
-    const int K = 8;
-    const int N = 8;
-
+template <typename VEC, int M, int K, int N>
+static void gemm_kernel_avx(float *dst, float *src, const float *weight, const float *bias, int ic_8, int oc_8,
+                            int width) {
     auto w_unit         = width / M;
     auto w_unit_end     = M * w_unit;
     auto src_depth_step = width * K;
@@ -241,60 +330,73 @@ static void gemm_kernel(float *dst, float *src, const float *weight, const float
             auto dst_x = dst_z + dx * N * M;
             auto src_x = src + dx * K * M;
 
-            register __m256 acc0 = (bias) ? _mm256_loadu_ps(bias) : _mm256_set1_ps(0.0f);
-            register __m256 acc1 = acc0;
-            register __m256 acc2 = acc0;
-            register __m256 acc3 = acc0;
-            register __m256 acc4 = acc0;
-            register __m256 acc5 = acc0;
-            register __m256 data;
-            register __m256 wgt;
+            VEC acc0 = (bias) ? VEC::loadu(bias) : VEC(0.0f);
+            VEC acc1 = acc0;
+            VEC acc2 = acc0;
+            VEC acc3 = acc0;
+            VEC acc4 = acc0;
+            VEC acc5 = acc0;
+            VEC data;
+            VEC wgt;
 
             for (int ci = 0; ci < ic_8; ci++) {
                 auto src_z    = src_x + ci * src_depth_step;
                 auto weight_z = weight_dz + ci * weight_unit_step;
-
-                COMPUTE_UNIT(0);
-                COMPUTE_UNIT(1);
-                COMPUTE_UNIT(2);
-                COMPUTE_UNIT(3);
-                COMPUTE_UNIT(4);
-                COMPUTE_UNIT(5);
-                COMPUTE_UNIT(6);
-                COMPUTE_UNIT(7);
+                if (K == 8) {
+                    COMPUTE_UNIT(0);
+                    COMPUTE_UNIT(1);
+                    COMPUTE_UNIT(2);
+                    COMPUTE_UNIT(3);
+                    COMPUTE_UNIT(4);
+                    COMPUTE_UNIT(5);
+                    COMPUTE_UNIT(6);
+                    COMPUTE_UNIT(7);
+                } else if (K == 4) {
+                    COMPUTE_UNIT(0);
+                    COMPUTE_UNIT(1);
+                    COMPUTE_UNIT(2);
+                    COMPUTE_UNIT(3);
+                }
             }
 
-            _mm256_storeu_ps(dst_x + N * 0, acc0);
-            _mm256_storeu_ps(dst_x + N * 1, acc1);
-            _mm256_storeu_ps(dst_x + N * 2, acc2);
-            _mm256_storeu_ps(dst_x + N * 3, acc3);
-            _mm256_storeu_ps(dst_x + N * 4, acc4);
-            _mm256_storeu_ps(dst_x + N * 5, acc5);
+            VEC::saveu(dst_x + N * 0, acc0);
+            VEC::saveu(dst_x + N * 1, acc1);
+            VEC::saveu(dst_x + N * 2, acc2);
+            VEC::saveu(dst_x + N * 3, acc3);
+            VEC::saveu(dst_x + N * 4, acc4);
+            VEC::saveu(dst_x + N * 5, acc5);
         }
 
         for (int dx = w_unit_end; dx < width; dx++) {
             auto dst_x = dst_z + dx * N;
             auto src_x = src + dx * K;
 
-            register __m256 acc = (bias) ? _mm256_loadu_ps(bias) : _mm256_set1_ps(0.0f);
-            register __m256 data;
-            register __m256 wgt;
+            VEC acc = (bias) ? VEC::loadu(bias) : VEC(0.0f);
+            VEC data;
+            VEC wgt;
 
             for (int ci = 0; ci < ic_8; ci++) {
                 auto src_z    = src_x + ci * src_depth_step;
                 auto weight_z = weight_dz + ci * weight_unit_step;
 
-                COMPUTE_VEC(0);
-                COMPUTE_VEC(1);
-                COMPUTE_VEC(2);
-                COMPUTE_VEC(3);
-                COMPUTE_VEC(4);
-                COMPUTE_VEC(5);
-                COMPUTE_VEC(6);
-                COMPUTE_VEC(7);
+                if (K == 8) {
+                    COMPUTE_VEC(0);
+                    COMPUTE_VEC(1);
+                    COMPUTE_VEC(2);
+                    COMPUTE_VEC(3);
+                    COMPUTE_VEC(4);
+                    COMPUTE_VEC(5);
+                    COMPUTE_VEC(6);
+                    COMPUTE_VEC(7);
+                } else if (K == 4) {
+                    COMPUTE_VEC(0);
+                    COMPUTE_VEC(1);
+                    COMPUTE_VEC(2);
+                    COMPUTE_VEC(3);
+                }
             }
 
-            _mm256_storeu_ps(dst_x, acc);
+            VEC::saveu(dst_x, acc);
         }
     }
 }
@@ -303,149 +405,159 @@ static void gemm_kernel(float *dst, float *src, const float *weight, const float
 //    0, 1,  1, 0,
 //    0, -1, 1, 0,
 //    0, 1,  0, -1]
-static void input_trans_c8_4x4(const float *src, int src_stride, int src_h_stride, float *dest, int dest_stride,
-                               int dest_h_stride) {
-    __m256 src00 = _mm256_loadu_ps(src);
-    __m256 src01 = _mm256_loadu_ps(src + src_stride);
-    __m256 src02 = _mm256_loadu_ps(src + src_stride + src_stride);
-    __m256 src03 = _mm256_loadu_ps(src + src_stride + src_stride + src_stride);
+template <typename VEC>
+static void input_trans_4x4(const float *src, int src_stride, int src_h_stride, float *dest, int dest_stride,
+                            int dest_h_stride) {
+    VEC src00 = VEC::loadu(src);
+    VEC src01 = VEC::loadu(src + src_stride);
+    VEC src02 = VEC::loadu(src + src_stride + src_stride);
+    VEC src03 = VEC::loadu(src + src_stride + src_stride + src_stride);
     src += src_h_stride;
-    __m256 src10 = _mm256_loadu_ps(src);
-    __m256 src11 = _mm256_loadu_ps(src + src_stride);
-    __m256 src12 = _mm256_loadu_ps(src + src_stride + src_stride);
-    __m256 src13 = _mm256_loadu_ps(src + src_stride + src_stride + src_stride);
+    VEC src10 = VEC::loadu(src);
+    VEC src11 = VEC::loadu(src + src_stride);
+    VEC src12 = VEC::loadu(src + src_stride + src_stride);
+    VEC src13 = VEC::loadu(src + src_stride + src_stride + src_stride);
     src += src_h_stride;
-    __m256 src20 = _mm256_loadu_ps(src);
-    __m256 src21 = _mm256_loadu_ps(src + src_stride);
-    __m256 src22 = _mm256_loadu_ps(src + src_stride + src_stride);
-    __m256 src23 = _mm256_loadu_ps(src + src_stride + src_stride + src_stride);
+    VEC src20 = VEC::loadu(src);
+    VEC src21 = VEC::loadu(src + src_stride);
+    VEC src22 = VEC::loadu(src + src_stride + src_stride);
+    VEC src23 = VEC::loadu(src + src_stride + src_stride + src_stride);
     src += src_h_stride;
-    __m256 src30 = _mm256_loadu_ps(src);
-    __m256 src31 = _mm256_loadu_ps(src + src_stride);
-    __m256 src32 = _mm256_loadu_ps(src + src_stride + src_stride);
-    __m256 src33 = _mm256_loadu_ps(src + src_stride + src_stride + src_stride);
+    VEC src30 = VEC::loadu(src);
+    VEC src31 = VEC::loadu(src + src_stride);
+    VEC src32 = VEC::loadu(src + src_stride + src_stride);
+    VEC src33 = VEC::loadu(src + src_stride + src_stride + src_stride);
 
-    __m256 dst00 = _mm256_sub_ps(src00, src02);
-    __m256 dst10 = _mm256_add_ps(src01, src02);
-    __m256 dst20 = _mm256_sub_ps(src02, src01);
-    __m256 dst30 = _mm256_sub_ps(src01, src03);
+    VEC dst00 = (src00 - src02);
+    VEC dst10 = (src01 + src02);
+    VEC dst20 = (src02 - src01);
+    VEC dst30 = (src01 - src03);
 
-    __m256 dst01 = _mm256_sub_ps(src10, src12);
-    __m256 dst11 = _mm256_add_ps(src11, src12);
-    __m256 dst21 = _mm256_sub_ps(src12, src11);
-    __m256 dst31 = _mm256_sub_ps(src11, src13);
+    VEC dst01 = (src10 - src12);
+    VEC dst11 = (src11 + src12);
+    VEC dst21 = (src12 - src11);
+    VEC dst31 = (src11 - src13);
 
-    __m256 dst02 = _mm256_sub_ps(src20, src22);
-    __m256 dst12 = _mm256_add_ps(src21, src22);
-    __m256 dst22 = _mm256_sub_ps(src22, src21);
-    __m256 dst32 = _mm256_sub_ps(src21, src23);
+    VEC dst02 = (src20 - src22);
+    VEC dst12 = (src21 + src22);
+    VEC dst22 = (src22 - src21);
+    VEC dst32 = (src21 - src23);
 
-    __m256 dst03 = _mm256_sub_ps(src30, src32);
-    __m256 dst13 = _mm256_add_ps(src31, src32);
-    __m256 dst23 = _mm256_sub_ps(src32, src31);
-    __m256 dst33 = _mm256_sub_ps(src31, src33);
+    VEC dst03 = (src30 - src32);
+    VEC dst13 = (src31 + src32);
+    VEC dst23 = (src32 - src31);
+    VEC dst33 = (src31 - src33);
 
-    __m256 dest00 = _mm256_sub_ps(dst00, dst02);
-    __m256 dest10 = _mm256_add_ps(dst01, dst02);
-    __m256 dest20 = _mm256_sub_ps(dst02, dst01);
-    __m256 dest30 = _mm256_sub_ps(dst01, dst03);
+    VEC dest00 = (dst00 - dst02);
+    VEC dest10 = (dst01 + dst02);
+    VEC dest20 = (dst02 - dst01);
+    VEC dest30 = (dst01 - dst03);
 
-    __m256 dest01 = _mm256_sub_ps(dst10, dst12);
-    __m256 dest11 = _mm256_add_ps(dst11, dst12);
-    __m256 dest21 = _mm256_sub_ps(dst12, dst11);
-    __m256 dest31 = _mm256_sub_ps(dst11, dst13);
+    VEC dest01 = (dst10 - dst12);
+    VEC dest11 = (dst11 + dst12);
+    VEC dest21 = (dst12 - dst11);
+    VEC dest31 = (dst11 - dst13);
 
-    __m256 dest02 = _mm256_sub_ps(dst20, dst22);
-    __m256 dest12 = _mm256_add_ps(dst21, dst22);
-    __m256 dest22 = _mm256_sub_ps(dst22, dst21);
-    __m256 dest32 = _mm256_sub_ps(dst21, dst23);
+    VEC dest02 = (dst20 - dst22);
+    VEC dest12 = (dst21 + dst22);
+    VEC dest22 = (dst22 - dst21);
+    VEC dest32 = (dst21 - dst23);
 
-    __m256 dest03 = _mm256_sub_ps(dst30, dst32);
-    __m256 dest13 = _mm256_add_ps(dst31, dst32);
-    __m256 dest23 = _mm256_sub_ps(dst32, dst31);
-    __m256 dest33 = _mm256_sub_ps(dst31, dst33);
+    VEC dest03 = (dst30 - dst32);
+    VEC dest13 = (dst31 + dst32);
+    VEC dest23 = (dst32 - dst31);
+    VEC dest33 = (dst31 - dst33);
 
-    _mm256_storeu_ps(dest, dest00);
-    _mm256_storeu_ps(dest + dest_stride, dest10);
-    _mm256_storeu_ps(dest + dest_stride + dest_stride, dest20);
-    _mm256_storeu_ps(dest + dest_stride + dest_stride + dest_stride, dest30);
+    VEC::saveu(dest, dest00);
+    VEC::saveu(dest + dest_stride, dest10);
+    VEC::saveu(dest + dest_stride + dest_stride, dest20);
+    VEC::saveu(dest + dest_stride + dest_stride + dest_stride, dest30);
     dest += dest_h_stride;
-    _mm256_storeu_ps(dest, dest01);
-    _mm256_storeu_ps(dest + dest_stride, dest11);
-    _mm256_storeu_ps(dest + dest_stride + dest_stride, dest21);
-    _mm256_storeu_ps(dest + dest_stride + dest_stride + dest_stride, dest31);
+    VEC::saveu(dest, dest01);
+    VEC::saveu(dest + dest_stride, dest11);
+    VEC::saveu(dest + dest_stride + dest_stride, dest21);
+    VEC::saveu(dest + dest_stride + dest_stride + dest_stride, dest31);
     dest += dest_h_stride;
-    _mm256_storeu_ps(dest, dest02);
-    _mm256_storeu_ps(dest + dest_stride, dest12);
-    _mm256_storeu_ps(dest + dest_stride + dest_stride, dest22);
-    _mm256_storeu_ps(dest + dest_stride + dest_stride + dest_stride, dest32);
+    VEC::saveu(dest, dest02);
+    VEC::saveu(dest + dest_stride, dest12);
+    VEC::saveu(dest + dest_stride + dest_stride, dest22);
+    VEC::saveu(dest + dest_stride + dest_stride + dest_stride, dest32);
     dest += dest_h_stride;
-    _mm256_storeu_ps(dest, dest03);
-    _mm256_storeu_ps(dest + dest_stride, dest13);
-    _mm256_storeu_ps(dest + dest_stride + dest_stride, dest23);
-    _mm256_storeu_ps(dest + dest_stride + dest_stride + dest_stride, dest33);
+    VEC::saveu(dest, dest03);
+    VEC::saveu(dest + dest_stride, dest13);
+    VEC::saveu(dest + dest_stride + dest_stride, dest23);
+    VEC::saveu(dest + dest_stride + dest_stride + dest_stride, dest33);
 }
+template void input_trans_4x4<Float8>(const float *src, int src_stride, int src_h_stride, float *dest, int dest_stride,
+                                      int dest_h_stride);
+template void input_trans_4x4<Float4>(const float *src, int src_stride, int src_h_stride, float *dest, int dest_stride,
+                                      int dest_h_stride);
 
 // AT=[1, 1,  1,  0,
 //    0, 1, -1, -1
-static void output_trans_c8_post_2x4(const float *src, int src_stride, int src_h_stride, float *dest, int dest_stride,
-                                     int dest_h_stride, float *bias_value, bool has_relu) {
-    __m256 src00 = _mm256_loadu_ps(src);
-    __m256 src01 = _mm256_loadu_ps(src + src_stride);
-    __m256 src02 = _mm256_loadu_ps(src + src_stride + src_stride);
-    __m256 src03 = _mm256_loadu_ps(src + src_stride + src_stride + src_stride);
+template <typename VEC>
+static void output_trans_post_2x4(const float *src, int src_stride, int src_h_stride, float *dest, int dest_stride,
+                                  int dest_h_stride, float *bias_value, bool has_relu) {
+    VEC src00 = VEC::loadu(src);
+    VEC src01 = VEC::loadu(src + src_stride);
+    VEC src02 = VEC::loadu(src + src_stride + src_stride);
+    VEC src03 = VEC::loadu(src + src_stride + src_stride + src_stride);
     src += src_h_stride;
-    __m256 src10 = _mm256_loadu_ps(src);
-    __m256 src11 = _mm256_loadu_ps(src + src_stride);
-    __m256 src12 = _mm256_loadu_ps(src + src_stride + src_stride);
-    __m256 src13 = _mm256_loadu_ps(src + src_stride + src_stride + src_stride);
+    VEC src10 = VEC::loadu(src);
+    VEC src11 = VEC::loadu(src + src_stride);
+    VEC src12 = VEC::loadu(src + src_stride + src_stride);
+    VEC src13 = VEC::loadu(src + src_stride + src_stride + src_stride);
     src += src_h_stride;
-    __m256 src20 = _mm256_loadu_ps(src);
-    __m256 src21 = _mm256_loadu_ps(src + src_stride);
-    __m256 src22 = _mm256_loadu_ps(src + src_stride + src_stride);
-    __m256 src23 = _mm256_loadu_ps(src + src_stride + src_stride + src_stride);
+    VEC src20 = VEC::loadu(src);
+    VEC src21 = VEC::loadu(src + src_stride);
+    VEC src22 = VEC::loadu(src + src_stride + src_stride);
+    VEC src23 = VEC::loadu(src + src_stride + src_stride + src_stride);
     src += src_h_stride;
-    __m256 src30 = _mm256_loadu_ps(src);
-    __m256 src31 = _mm256_loadu_ps(src + src_stride);
-    __m256 src32 = _mm256_loadu_ps(src + src_stride + src_stride);
-    __m256 src33 = _mm256_loadu_ps(src + src_stride + src_stride + src_stride);
+    VEC src30 = VEC::loadu(src);
+    VEC src31 = VEC::loadu(src + src_stride);
+    VEC src32 = VEC::loadu(src + src_stride + src_stride);
+    VEC src33 = VEC::loadu(src + src_stride + src_stride + src_stride);
 
-    __m256 dst00 = _mm256_add_ps(_mm256_add_ps(src00, src01), src02);
-    __m256 dst10 = _mm256_sub_ps(_mm256_sub_ps(src01, src02), src03);
-    __m256 dst01 = _mm256_add_ps(_mm256_add_ps(src10, src11), src12);
-    __m256 dst11 = _mm256_sub_ps(_mm256_sub_ps(src11, src12), src13);
-    __m256 dst02 = _mm256_add_ps(_mm256_add_ps(src20, src21), src22);
-    __m256 dst12 = _mm256_sub_ps(_mm256_sub_ps(src21, src22), src23);
-    __m256 dst03 = _mm256_add_ps(_mm256_add_ps(src30, src31), src32);
-    __m256 dst13 = _mm256_sub_ps(_mm256_sub_ps(src31, src32), src33);
+    VEC dst00 = (src00 + src01 + src02);
+    VEC dst10 = (src01 - src02 - src03);
+    VEC dst01 = (src10 + src11 + src12);
+    VEC dst11 = (src11 - src12 - src13);
+    VEC dst02 = (src20 + src21 + src22);
+    VEC dst12 = (src21 - src22 - src23);
+    VEC dst03 = (src30 + src31 + src32);
+    VEC dst13 = (src31 - src32 - src33);
 
-    __m256 dest00 = _mm256_add_ps(_mm256_add_ps(dst00, dst01), dst02);
-    __m256 dest10 = _mm256_sub_ps(_mm256_sub_ps(dst01, dst02), dst03);
-    __m256 dest01 = _mm256_add_ps(_mm256_add_ps(dst10, dst11), dst12);
-    __m256 dest11 = _mm256_sub_ps(_mm256_sub_ps(dst11, dst12), dst13);
+    VEC dest00 = (dst00 + dst01 + dst02);
+    VEC dest10 = (dst01 - dst02 - dst03);
+    VEC dest01 = (dst10 + dst11 + dst12);
+    VEC dest11 = (dst11 - dst12 - dst13);
 
     if (bias_value) {
-        __m256 bias = _mm256_loadu_ps(bias_value);
-        dest00      = _mm256_add_ps(dest00, bias);
-        dest10      = _mm256_add_ps(dest10, bias);
-        dest01      = _mm256_add_ps(dest01, bias);
-        dest11      = _mm256_add_ps(dest11, bias);
+        VEC bias = VEC::loadu(bias_value);
+        dest00   = (dest00 + bias);
+        dest10   = (dest10 + bias);
+        dest01   = (dest01 + bias);
+        dest11   = (dest11 + bias);
     }
 
     if (has_relu) {
-        __m256 zeros = _mm256_set1_ps(0);
-        dest00       = _mm256_max_ps(dest00, zeros);
-        dest10       = _mm256_max_ps(dest10, zeros);
-        dest01       = _mm256_max_ps(dest01, zeros);
-        dest11       = _mm256_max_ps(dest11, zeros);
+        VEC zeros = VEC(0.f);
+        dest00    = VEC::max(dest00, zeros);
+        dest10    = VEC::max(dest10, zeros);
+        dest01    = VEC::max(dest01, zeros);
+        dest11    = VEC::max(dest11, zeros);
     }
 
-    _mm256_storeu_ps(dest, dest00);
-    _mm256_storeu_ps(dest + dest_stride, dest10);
+    VEC::saveu(dest, dest00);
+    VEC::saveu(dest + dest_stride, dest10);
     dest += dest_h_stride;
-    _mm256_storeu_ps(dest, dest01);
-    _mm256_storeu_ps(dest + dest_stride, dest11);
+    VEC::saveu(dest, dest01);
+    VEC::saveu(dest + dest_stride, dest11);
 }
+template void output_trans_post_2x4<Float8>(const float *src, int src_stride, int src_h_stride, float *dest,
+                                            int dest_stride, int dest_h_stride, float *bias_value, bool has_relu);
+template void output_trans_post_2x4<Float4>(const float *src, int src_stride, int src_h_stride, float *dest,
+                                            int dest_stride, int dest_h_stride, float *bias_value, bool has_relu);
 
 bool X86ConvLayer3x3::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                  const std::vector<Blob *> &outputs) {
@@ -481,10 +593,13 @@ Status X86ConvLayer3x3::allocateBufferWeight(const std::vector<Blob *> &inputs, 
 
     if (!buffer_weight_.GetBytesSize()) {
         const float *src = conv_res->filter_handle.force_to<float *>();
+        auto CH_PACK     = 4;
+        if (arch_ == avx2)
+            CH_PACK = 8;
 
         const int input_channel  = dims_input[1];
         const int output_channel = dims_output[1];
-        const int weight_count   = ROUND_UP(input_channel, 8) * ROUND_UP(output_channel, 8) * 4 * 4;
+        const int weight_count   = ROUND_UP(input_channel, CH_PACK) * ROUND_UP(output_channel, CH_PACK) * 4 * 4;
         const int data_byte_size = DataTypeUtils::GetBytesSize(conv_res->filter_handle.GetDataType());
 
         if (conv_res->filter_handle.GetDataType() == DATA_TYPE_FLOAT) {
@@ -492,7 +607,7 @@ Status X86ConvLayer3x3::allocateBufferWeight(const std::vector<Blob *> &inputs, 
             float *dst = pack_buffer.force_to<float *>();
 
             const float G[4][3] = {{1.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.5f}, {0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}};
-            weight_transform(src, dst, 3, 4, input_channel, output_channel, G);
+            weight_transform(src, dst, 3, 4, input_channel, output_channel, CH_PACK, G);
 
             pack_buffer.SetDataType(DATA_TYPE_FLOAT);
             buffer_weight_ = pack_buffer;
@@ -512,7 +627,7 @@ Status X86ConvLayer3x3::allocateBufferWeight(const std::vector<Blob *> &inputs, 
 // write c8 to nchw
 
 #define TILE_NUM 6
-#define CH_PACK 8
+// #define CH_PACK 8
 
 Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     ConvLayerParam *param = dynamic_cast<ConvLayerParam *>(param_);
@@ -546,6 +661,21 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
     int ic_stride    = width_in * height_in;
     int oc_stride    = width_out * height_out;
 
+    auto input_trans_func  = input_trans_4x4<Float4>;
+    auto output_trans_func = output_trans_post_2x4<Float4>;
+    auto pack_func         = pack_input_c4;
+    auto unpack_func       = unpack_output_c4;
+    auto gemm_func         = gemm_kernel_avx<Float4, 6, 4, 4>;
+    auto CH_PACK           = 4;
+    if (arch_ == avx2) {
+        input_trans_func  = input_trans_4x4<Float8>;
+        output_trans_func = output_trans_post_2x4<Float8>;
+        pack_func         = pack_input_c8;
+        unpack_func       = unpack_output_c8;
+        gemm_func         = gemm_kernel_avx<Float8, 6, 8, 8>;
+        CH_PACK           = 8;
+    }
+
     int ic_8 = UP_DIV(channel_in, CH_PACK);
     int oc_8 = UP_DIV(channel_out, CH_PACK);
 
@@ -578,8 +708,8 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
         auto output_ptr = dst_origin + ni * out_n_stride;
 
         for (int i = 0; i < ic_8; ++i) {
-            pack_input_c8(input_ptr, input_c8 + i * new_c_stride, i * CH_PACK, -pad_top, height_in + pad_bottom,
-                          -pad_left, width_in + pad_right, channel_in, width_in, height_in, zero_ptr);
+            pack_func(input_ptr, input_c8 + i * new_c_stride, i * CH_PACK, -pad_top, height_in + pad_bottom, -pad_left,
+                      width_in + pad_right, channel_in, width_in, height_in, zero_ptr);
         }
         const float *weight_ptr = buffer_weight_.force_to<float *>();
         const float *bias_ptr   = buffer_bias_.force_to<float *>();
@@ -611,15 +741,14 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
                     for (int ci = 0; ci < ic_8; ++ci) {
                         const float *src_ci = src_ptr + ci * ic_8_stride;
                         float *dst_ci       = dst_ptr + ci * tile_count * CH_PACK;
-                        input_trans_c8_4x4(src_ci, CH_PACK, w_pad * CH_PACK, dst_ci, b_gi_stride,
-                                           b_gi_stride * src_unit);
+                        input_trans_func(src_ci, CH_PACK, w_pad * CH_PACK, dst_ci, b_gi_stride, b_gi_stride * src_unit);
                     }
                 } else {
                     int x_size = ex;
                     for (int ci = 0; ci < ic_8; ++ci) {
                         const float *src_ci = src_ptr + ci * ic_8_stride;
                         // pad
-                        memset(src_trans_tmp_data, 0, 128 * sizeof(float));  // src_unit * src_unit * ch_pack
+                        memset(src_trans_tmp_data, 0, 16 * CH_PACK * sizeof(float));  // src_unit * src_unit * ch_pack
                         if (x_size > 0) {
                             for (int yi = 0; yi < ey; ++yi) {
                                 float *dst_yi       = src_trans_tmp_data + yi * src_unit * CH_PACK;
@@ -630,15 +759,15 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
 
                         // trans
                         float *dst_ci = dst_ptr + ci * tile_count * CH_PACK;
-                        input_trans_c8_4x4(src_trans_tmp_data, CH_PACK, src_unit * CH_PACK, dst_ci, b_gi_stride,
-                                           b_gi_stride * src_unit);
+                        input_trans_func(src_trans_tmp_data, CH_PACK, src_unit * CH_PACK, dst_ci, b_gi_stride,
+                                         b_gi_stride * src_unit);
                     }
                 }
             }
 
             // ---------------------------------------- gemm func ----------------------------------------
             // gemm
-            float *dst_temp_data = tmp_data + TILE_NUM * ic_8 * 128;  // src_unit * src_unit * ch_pack
+            float *dst_temp_data = tmp_data + TILE_NUM * ic_8 * 16 * CH_PACK;  // src_unit * src_unit * ch_pack
             float *b_ptr         = tmp_data;
             int w_gi_stride      = ic_8 * oc_8 * CH_PACK * CH_PACK;
             for (int gi = 0; gi < src_unit * src_unit; ++gi) {
@@ -646,11 +775,11 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
                 float *trans_src          = b_ptr + gi * b_gi_stride;
                 const float *trans_weight = weight_ptr + gi * w_gi_stride;
 
-                gemm_kernel(trans_dst, trans_src, trans_weight, nullptr, ic_8, oc_8, tile_count);
+                gemm_func(trans_dst, trans_src, trans_weight, nullptr, ic_8, oc_8, tile_count);
             }
 
             // ---------------------------------------- output trans --------------------------------------
-            float bias_value[CH_PACK];
+            float bias_value[8];
             memset(bias_value, 0, CH_PACK * sizeof(float));
 
             for (int ti = 0; ti < tile_count; ++ti) {
@@ -677,11 +806,10 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
 
                         float *dst_ci = dst_ptr + ci * oc_8_stride;
                         float *src_ci = src_ptr + ci * tile_count * CH_PACK;
-                        output_trans_c8_post_2x4(src_ci, c_gi_stride, c_gi_stride * src_unit, src_trans_tmp_data,
-                                                 CH_PACK, dst_unit * CH_PACK, bias_value, param->activation_type);
-                        unpack_output_c8(src_trans_tmp_data, output_ptr, ci * CH_PACK, ci * CH_PACK + CH_PACK, dst_y,
-                                         dst_y + ey, dst_x, dst_x + ex, channel_out, height_out, width_out, false,
-                                         zero_ptr);
+                        output_trans_func(src_ci, c_gi_stride, c_gi_stride * src_unit, src_trans_tmp_data, CH_PACK,
+                                          dst_unit * CH_PACK, bias_value, param->activation_type);
+                        unpack_func(src_trans_tmp_data, output_ptr, ci * CH_PACK, ci * CH_PACK + CH_PACK, dst_y,
+                                    dst_y + ey, dst_x, dst_x + ex, channel_out, height_out, width_out, false, zero_ptr);
                     }
                 } else {
                     for (int ci = 0; ci < oc_8; ++ci) {
@@ -691,17 +819,16 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
                         // trans output
                         float *dst_ci = dst_ptr + ci * oc_8_stride;
                         float *src_ci = src_ptr + ci * tile_count * CH_PACK;
-                        output_trans_c8_post_2x4(src_ci, c_gi_stride, c_gi_stride * src_unit, src_trans_tmp_data,
-                                                 CH_PACK, dst_unit * CH_PACK, bias_value, param->activation_type);
+                        output_trans_func(src_ci, c_gi_stride, c_gi_stride * src_unit, src_trans_tmp_data, CH_PACK,
+                                          dst_unit * CH_PACK, bias_value, param->activation_type);
                         // copy to dest
-                        memset(dst_trans_tmp_data, 0, 32 * sizeof(float));  // dst_unit * dst_unit * ch_pack
+                        memset(dst_trans_tmp_data, 0, 4 * CH_PACK * sizeof(float));  // dst_unit * dst_unit * ch_pack
                         for (int i = 0; i < ey; ++i) {
                             memcpy(dst_trans_tmp_data + i * ex * CH_PACK, src_trans_tmp_data + i * CH_PACK * dst_unit,
                                    ex * sizeof(float) * CH_PACK);
                         }
-                        unpack_output_c8(dst_trans_tmp_data, output_ptr, ci * CH_PACK, ci * CH_PACK + CH_PACK, dst_y,
-                                         dst_y + ey, dst_x, dst_x + ex, channel_out, height_out, width_out, false,
-                                         zero_ptr);
+                        unpack_func(dst_trans_tmp_data, output_ptr, ci * CH_PACK, ci * CH_PACK + CH_PACK, dst_y,
+                                    dst_y + ey, dst_x, dst_x + ex, channel_out, height_out, width_out, false, zero_ptr);
                     }
                 }
             }

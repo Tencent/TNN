@@ -24,6 +24,9 @@ struct Float8 {
     Float8(const float v) {
         value = _mm256_set1_ps(v);
     }
+    Float8(const float *addr) {
+        value = _mm256_broadcast_ss(addr);
+    }
     Float8(const __m256& v) {
         value = v;
     }
