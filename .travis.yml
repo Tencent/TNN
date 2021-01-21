@@ -14,12 +14,16 @@ matrix:
     - name: "Linux | Arm64 | build"
       os: linux
       arch: arm64
+      before_install:
+        - ./scripts/.ci/preflight.sh arm || travis_terminate 0
       script:
         - ./scripts/build_aarch64_linux.sh
 
     - name: "Linux | Arm32 | build"
       os: linux
       arch: arm64
+      before_install:
+        - ./scripts/.ci/preflight.sh arm || travis_terminate 0
       before_script:
         - sudo dpkg --add-architecture armhf
         - sudo apt-get update
@@ -31,6 +35,8 @@ matrix:
       os: linux
       compiler: clang
       arch: arm64
+      before_install:
+        - ./scripts/.ci/preflight.sh arm || travis_terminate 0
       script:
         - ./scripts/build_test.sh
       after_success:

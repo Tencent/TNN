@@ -28,6 +28,7 @@ set(TNNInclude ${TNNRoot}/include)
 
 include_directories(${TNNInclude})
 include_directories(${CMAKE_SOURCE_DIR}/../base)
+include_directories(${CMAKE_SOURCE_DIR}/../utils)
 link_directories(${TNN_LIB_PATH})
 if (${TNN_OPENVINO_ENABLE})
     link_directories(${TNN_OPENVINO_LIB_PATH})
@@ -38,8 +39,11 @@ link_libraries(TNN)
 file(GLOB_RECURSE BASE_SRC 
                     "${CMAKE_SOURCE_DIR}/../base/*.cc")
 
-add_executable(demo_x86_imageclassify src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC})
-add_executable(demo_x86_facedetector src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC})
+file(GLOB_RECURSE UTIL_SRC 
+                    "${CMAKE_SOURCE_DIR}/../utils/*.cc")
+
+add_executable(demo_x86_imageclassify src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC} ${UTIL_SRC})
+add_executable(demo_x86_facedetector src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC} ${UTIL_SRC})
 
 if (TNN_DEMO_WITH_WEBCAM) 
     file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/src/TNNWebCamBasedDemo/*.cc")

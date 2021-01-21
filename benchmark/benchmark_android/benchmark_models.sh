@@ -203,7 +203,11 @@ function bench_android_app() {
     build_android_bench
     build_android_bench_app
 
-    adb install -r benchmark-release.apk 
+    if [ "$ABI" = "armeabi-v7a with NEON" ];then
+        adb install -r --abi armeabi-v7a benchmark-release.apk 
+    else
+        adb install -r --abi $ABI benchmark-release.apk
+    fi
 
     $ADB shell "mkdir -p $ANDROID_DIR/benchmark-model"
     $ADB push ${BENCHMARK_MODEL_DIR} $ANDROID_DIR

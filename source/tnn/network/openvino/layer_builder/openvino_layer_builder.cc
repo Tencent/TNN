@@ -85,11 +85,6 @@ Status OpenVINOLayerBuilder::SetOutputTensors(ngraph::NodeVector nodes) {
         auto tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
         auto openvino_tensor = std::dynamic_pointer_cast<OpenvinoTensor>(tensor);
         openvino_tensor->SetNode(nodes[index]);
-        if (_x86_map.find(type_) == _x86_map.end()) {
-            for (auto dim :nodes[index]->get_output_shape(0)) {
-                blob->GetBlobDesc().dims.push_back(dim);
-            }
-        }
         index++;
     }
 
