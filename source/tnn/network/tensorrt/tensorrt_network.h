@@ -116,6 +116,7 @@ private:
     void** m_trt_bindings;
     void* m_context_memory;
     NetResource *net_resource_;
+    int device_id_;
 };
 
 }  //  namespace TNN_NS

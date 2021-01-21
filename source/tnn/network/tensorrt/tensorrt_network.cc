@@ -24,6 +24,7 @@
 #include "tnn/network/tensorrt/utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/md5.h"
+#include "tnn/device/cuda/cuda_macro.h"
 
 namespace TNN_NS {
 
@@ -66,7 +67,8 @@ TensorRTNetwork_::~TensorRTNetwork_() {
 Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
         AbstractModelInterpreter* interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     std::unique_lock<std::mutex> lck(network_mutex);
-    cudaSetDevice(net_config.device_id);
+    device_id_ = net_config.device_id;
+    CUDA_CHECK(cudaSetDevice(net_config.device_id));
     config_ = net_config;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
@@ -221,6 +223,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
 }
 
 Status TensorRTNetwork_::Forward() {
+    CUDA_CHECK(cudaSetDevice(device_id_));
     bool ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
         dynamic_cast<CudaContext*>(context_)->GetStream(), nullptr);
     if (ret != true) {
