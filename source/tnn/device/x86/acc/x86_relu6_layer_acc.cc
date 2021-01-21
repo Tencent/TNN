@@ -25,7 +25,6 @@ typedef struct x86_relu6_operator : x86_unary2_operator {
         return tmp;
     }
 
-    using Float4 = TNNVector<float, 4>;
     virtual Float4 operator()(const Float4 &v) {
         return Float4::min(Float4::max(v, Float4(0.f)), Float4(6.f));
     }
@@ -35,7 +34,8 @@ typedef struct x86_relu6_operator : x86_unary2_operator {
     }
 } X86_RELU6_OP;
 
-X86_REGISTER_UNARY2_KERNEL(LAYER_RELU6, unary2_kernel_avx<X86_RELU6_OP>);
+X86_REGISTER_UNARY2_KERNEL(LAYER_RELU6, avx2, unary2_kernel_avx<X86_RELU6_OP>);
+X86_REGISTER_UNARY2_KERNEL(LAYER_RELU6, sse42, unary2_kernel_sse<X86_RELU6_OP>);
 DECLARE_X86_UNARY2_ACC(Relu6, LAYER_RELU6);
 REGISTER_X86_ACC(Relu6, LAYER_RELU6);
 
