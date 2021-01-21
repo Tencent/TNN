@@ -58,6 +58,10 @@ void X86AvgPooling(const float* src, long iw, long ih, float* dst, long ow, long
                 long stride_h, long pad_w, long pad_h);
 
 template <int activation_type>
+void DepthwiseConvSSE(float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
+                   long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
+
+template <int activation_type>
 void DepthwiseConvAVX2(float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
                    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
 }   // namespace TNN_NS

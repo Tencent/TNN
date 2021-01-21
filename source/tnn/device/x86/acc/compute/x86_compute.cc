@@ -622,6 +622,93 @@ Status X86_REDUCE_CALCULATE(float *input, float *output, std::vector<int> axes,
 }
 
 template <int activation_type>
+void DepthwiseConvSSE(float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
+                   long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep) {
+    long dx, fx, fy;
+    Float4 bias_v = Float4::loadu(bias);
+    Float4 v_zero = Float4(0.f);
+    Float4 v_6    = Float4(6.f);
+    for (long y = 0; y < height; ++y) {
+        auto srcY = src + y * srcHStep;
+        auto dstY = dst + y * dstHStep;
+        dx        = 0;
+        for (; dx + 3 < width; dx += 4) {
+            Float4 dst_v[4];
+            for (long i = 0; i < 4; i++)
+                dst_v[i] = bias_v;
+            const auto* src_z    = srcY + src_w_step * dx;
+            const auto* weight_z = weight;
+            for (fy = 0; fy < fh; ++fy) {
+                const auto* src_y    = src_z + fy * dilate_y_step;
+                const auto* weight_y = weight_z + fy * fw * 4;
+                for (fx = 0; fx < fw; ++fx) {
+                    Float4 weight_v = Float4::loadu(weight_y + 4 * fx);
+                    Float4 src_v0   = Float4::load(src_y + fx * dilate_x_step);
+                    Float4 src_v1 = Float4::load(src_y + fx * dilate_x_step + src_w_step);
+                    Float4 src_v2 = Float4::load(src_y + fx * dilate_x_step + 2 * src_w_step);
+                    Float4 src_v3 = Float4::load(src_y + fx * dilate_x_step + 3 * src_w_step);
+                    Float4::mla(dst_v[0], src_v0, weight_v);
+                    Float4::mla(dst_v[1], src_v1, weight_v);
+                    Float4::mla(dst_v[2], src_v2, weight_v);
+                    Float4::mla(dst_v[3], src_v3, weight_v);
+                }
+            }
+            if (activation_type == ActivationType_ReLU || 
+                activation_type == ActivationType_ReLU6) {
+                dst_v[0] = Float4::max(dst_v[0], v_zero);
+                dst_v[1] = Float4::max(dst_v[1], v_zero);
+                dst_v[2] = Float4::max(dst_v[2], v_zero);
+                dst_v[3] = Float4::max(dst_v[3], v_zero);
+            }
+            if (activation_type == ActivationType_ReLU6) {
+                dst_v[0] = Float4::min(dst_v[0], v_6);
+                dst_v[1] = Float4::min(dst_v[1], v_6);
+                dst_v[2] = Float4::min(dst_v[2], v_6);
+                dst_v[3] = Float4::min(dst_v[3], v_6);
+            }
+            Float4::save(dstY + (dx + 0) * 4, dst_v[0]);
+            Float4::save(dstY + (dx + 1) * 4, dst_v[1]);
+            Float4::save(dstY + (dx + 2) * 4, dst_v[2]);
+            Float4::save(dstY + (dx + 3) * 4, dst_v[3]);
+        }
+        for (; dx < width; ++dx) {
+            Float4 dst_v = bias_v;
+            const auto* src_z    = srcY + src_w_step * dx;
+            const auto* weight_z = weight;
+            for (fy = 0; fy < fh; ++fy) {
+                const auto* src_y    = src_z + fy * dilate_y_step;
+                const auto* weight_y = weight_z + fy * fw * 4;
+                for (fx = 0; fx < fw; ++fx) {
+                    Float4 src_v    = Float4::load(src_y + fx * dilate_x_step);
+                    Float4 weight_v = Float4::loadu(weight_y + 4 * fx);
+                    Float4::mla(dst_v, src_v, weight_v);
+                }
+            }
+            if (activation_type == ActivationType_ReLU || 
+                activation_type == ActivationType_ReLU6) {
+                dst_v = Float4::max(dst_v, v_zero);
+            }
+            if (activation_type == ActivationType_ReLU6) {
+                dst_v = Float4::min(dst_v, v_6);
+            }
+            Float4::save(dstY + dx * 4, dst_v);
+        }
+    }
+}
+
+template void DepthwiseConvSSE<ActivationType_None>(
+    float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
+    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
+
+template void DepthwiseConvSSE<ActivationType_ReLU>(
+    float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
+    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
+
+template void DepthwiseConvSSE<ActivationType_ReLU6>(
+    float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
+    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
+
+template <int activation_type>
 void DepthwiseConvAVX2(float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
                    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep) {
     long dx, fx, fy;

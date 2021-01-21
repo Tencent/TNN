@@ -50,10 +50,10 @@ inline void PackC4_Left(float *dst, const float *src, size_t hw, size_t src_hw_s
         if (left_c > 1) v1 = _mm_loadu_ps(src1 + cur_hw);
         if (left_c > 2) v2 = _mm_loadu_ps(src2 + cur_hw);
         _MM_TRANSPOSE4_LEFT(v0, v1, v2, v3);
-        _mm_store_ps(dst_hw, t0);
-        _mm_store_ps(dst_hw + 4, t1);
-        _mm_store_ps(dst_hw + 8, t2);
-        _mm_store_ps(dst_hw + 12, t3);
+        _mm_storeu_ps(dst_hw, t0);
+        _mm_storeu_ps(dst_hw + 4, t1);
+        _mm_storeu_ps(dst_hw + 8, t2);
+        _mm_storeu_ps(dst_hw + 12, t3);
     }
     for (; cur_hw < hw; cur_hw++) {
         dst[cur_hw * 4 + 0] = src0[cur_hw];
