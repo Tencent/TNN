@@ -86,6 +86,10 @@ Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config, 
         return Status(TNNERR_NET_ERR, "tnn init falied");
     }
 
+    if(net_config.device_type == DEVICE_CUDA) {
+        net_config.network_type = NETWORK_TYPE_TENSORRT; 
+    }
+
     instance_device_ = tnn_device_->CreateInst(net_config, status);
     if (status != TNN_OK) {
         LOGE("create device instance falied: %s\n", status.description().c_str());
@@ -209,10 +213,16 @@ Status ModelChecker::RunModelCheckerOutput() {
         }
         auto cpu_blob_dims    = cpu_output_blobs[blob_name]->GetBlobDesc().dims;
         auto device_blob_dims = device_output_blobs[blob_name]->GetBlobDesc().dims;
-        if (!DimsVectorUtils::Equal(cpu_blob_dims, device_blob_dims)) {
-            LOGE("the output dims of cpu and device are not same! (blob name: %s)\n", blob_name.c_str());
+        //check for dims count
+        if(DimsVectorUtils::Count(cpu_blob_dims) != DimsVectorUtils::Count(device_blob_dims)) {
+            LOGE("the output dims count of cpu and device are not equal! (blob name: %s)\n", blob_name.c_str());
             return Status(TNNERR_COMMON_ERROR, "the output dims of cpu and device are not same!");
         }
+
+        if (!DimsVectorUtils::Equal(cpu_blob_dims, device_blob_dims)) {
+            LOGI("the output dims count of cpu and device are equal, but dims are not same! (blob name: %s)\n", blob_name.c_str());
+        }
+
         printf("\n---- blob (%s) ----\n", blob_name.c_str());
         check_pass &= CompareData(device_output_map[blob_name].get(), output_ref_data_map_[blob_name].get(),
                                   cpu_blob_dims, COSINE);
@@ -272,7 +282,13 @@ Status ModelChecker::FeedInputData() {
     for (auto item : input_blobs_device) {
         MatConvertParam param;
         BlobConverter blob_converter(item.second);
-        TNN_NS::Mat cpu_mat(DEVICE_NAIVE, NCHW_FLOAT, input_blobs_cpu[item.first]->GetHandle().base);
+        MatType mat_type = NCHW_FLOAT;
+        if(input_blobs_cpu[item.first]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+            mat_type = NC_INT32;
+        }
+
+        auto dims = input_blobs_cpu[item.first]->GetBlobDesc().dims;
+        TNN_NS::Mat cpu_mat(DEVICE_NAIVE, mat_type, dims, input_blobs_cpu[item.first]->GetHandle().base);
         //NOTE: 待解决，devicve = NAIVE的时候， ConvertFromMat会 crash
         status = blob_converter.ConvertFromMat(cpu_mat, param, command_queue);
         RETURN_ON_NEQ(status, TNN_OK);

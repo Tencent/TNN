@@ -72,7 +72,7 @@ public:
     bool IsOutputConstant();
     
     // @brief set constant resource
-    virtual void SetConstantResource(ConstantResource* consts);
+    void SetConstantResource(ConstantResource* consts);
     
     // @brief set runtime mode
     void SetRuntimeMode(RuntimeMode mode);

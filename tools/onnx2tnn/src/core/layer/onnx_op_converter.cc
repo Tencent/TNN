@@ -22,7 +22,18 @@ inline int saturate_cast(int64_t data) {
     return (int)((uint64_t)(data - INT_MIN) <= (uint64_t)UINT_MAX ? data : data > 0 ? INT_MAX : INT_MIN);
 }
 
-std::vector<std::string> OnnxOpConverter::GetInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+std::vector<std::string> OnnxOpConverter::GetAllInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+    std::vector<std::string> inputs;
+    for (int j = 0; j < (int)node.input_size(); j++) {
+        const std::string &input_name = node.input(j);
+        if (input_name.length() > 0) {
+            inputs.push_back(input_name);
+        }
+    }
+    return inputs;
+}
+
+std::vector<std::string> OnnxOpConverter::GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info) {
     std::vector<std::string> inputs;
     
     int input_size  = node.input_size();
@@ -37,22 +48,30 @@ std::vector<std::string> OnnxOpConverter::GetInputNames(NodeProto &node, OnnxNet
         }
     }
     
+    bool all_inputs_const = (!has_another_variable_input) &&
+    net_info.weights_map.find(node.input(0)) != net_info.weights_map.end();
+    
     for (int j = 0; j < (int)node.input_size(); j++) {
         const auto input_name = node.input(j);
         if (input_name.length() <= 0) {
             continue;
         } else {
-            if (HasLayerResource(node, net_info)) {
-                if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
-                net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
-                    continue;
-                }
+            //if all inputs are const, it is a const layer which is only excuted on NAIVE
+            if (all_inputs_const) {
+                
             } else {
-                if (j == 0 && node.input_size() == 1) {
-                    
-                } else {
-                    if (!has_another_variable_input && net_info.weights_map.find(input_name) != net_info.weights_map.end()) {
+                if (HasLayerResource(node, net_info)) {
+                    if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
+                    net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
                         continue;
+                    }
+                } else {
+                    if (j == 0 && node.input_size() == 1) {
+                        
+                    } else {
+                        if (!has_another_variable_input && net_info.weights_map.find(input_name) != net_info.weights_map.end()) {
+                            continue;
+                        }
                     }
                 }
             }
@@ -64,7 +83,7 @@ std::vector<std::string> OnnxOpConverter::GetInputNames(NodeProto &node, OnnxNet
     return inputs;
 }
 
-std::vector<std::string> OnnxOpConverter::GetOutputNames(NodeProto &node, OnnxNetInfo &net_info) {
+std::vector<std::string> OnnxOpConverter::GetValidOutputNames(NodeProto &node, OnnxNetInfo &net_info) {
     std::vector<std::string> outputs;
     int output_size = node.output_size();
     
@@ -89,8 +108,8 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
     proto_layer << name << " ";
     ProcessConstantNode(node, net_info);
     
-    auto inputs = GetInputNames(node, net_info);
-    auto outputs = GetOutputNames(node, net_info);
+    auto inputs = GetValidInputNames(node, net_info);
+    auto outputs = GetValidOutputNames(node, net_info);
     
     proto_layer << inputs.size() << " " << outputs.size() << " ";
 

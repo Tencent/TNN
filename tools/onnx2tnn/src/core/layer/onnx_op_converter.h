@@ -60,8 +60,9 @@ public:
         return onnx_op_type_;
     };
     virtual string TNNOpType(NodeProto &node, OnnxNetInfo &net_info) = 0;
-    virtual std::vector<std::string> GetInputNames(NodeProto &node, OnnxNetInfo &net_info);
-    virtual std::vector<std::string> GetOutputNames(NodeProto &node, OnnxNetInfo &net_info);
+    std::vector<std::string> GetAllInputNames(NodeProto &node, OnnxNetInfo &net_info);
+    virtual std::vector<std::string> GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info);
+    virtual std::vector<std::string> GetValidOutputNames(NodeProto &node, OnnxNetInfo &net_info);
     string TNNLayerProto(NodeProto &node, OnnxNetInfo &net_info);
     virtual string TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
         return "";

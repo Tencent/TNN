@@ -21,6 +21,51 @@ namespace TNN_NS {
 DECLARE_LAYER_WITH_FUNC(Upsample, LAYER_UPSAMPLE,
                         virtual Status FillLayerParamWithConstantResource(););
 
+Status UpsampleLayer::InferOutputDataType() {
+    BaseLayer::InferOutputDataType();
+    auto layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
+
+    if (layer_param->scales.empty() && runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
+        for (auto &iter : output_blobs_) {
+            int allocat_status = DATA_FLAG_ALLOCATE_IN_FORWARD;
+            iter->flag         = iter->flag | allocat_status;
+        }
+    }
+    return TNN_OK;
+}
+
+Status UpsampleLayer::InferOutputShape(bool ignore_error) {
+    auto status = BaseLayer::InferOutputShape(ignore_error);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
+    auto layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    auto scales = layer_param->scales;
+    auto sizes = layer_param->dims;
+    
+    if (sizes.size() <= 0 && scales.size() >= 2) {
+        // width_scale height_scale
+        float w_scale = scales[scales.size() - 1];
+        float h_scale = scales[scales.size() - 2];
+        
+        if (layer_param->align_corners < 0) {
+            if (w_scale >= 1.0f && h_scale >= 1.0f) {
+                layer_param->align_corners = 0;
+            } else {
+                layer_param->align_corners = 1;
+            }
+        }
+    }
+    
+    auto input_dims = input_blobs_[0]->GetBlobDesc().dims;
+    auto output_dims = DimsVectorUtils::Upsample(input_dims, scales, sizes, layer_param->mode, &status);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
+    output_blobs_[0]->GetBlobDesc().dims = output_dims;
+    return TNN_OK;
+}
+
 Status UpsampleLayer::FillLayerParamWithConstantResource() {
     Status status = TNN_OK;
     auto *layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
@@ -84,51 +129,6 @@ Status UpsampleLayer::FillLayerParamWithConstantResource() {
         }
     }
     return status;
-}
-
-Status UpsampleLayer::InferOutputDataType() {
-    BaseLayer::InferOutputDataType();
-    auto layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
-
-    if (layer_param->scales.empty() && runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
-        for (auto &iter : output_blobs_) {
-            int allocat_status = DATA_FLAG_ALLOCATE_IN_FORWARD;
-            iter->flag         = iter->flag | allocat_status;
-        }
-    }
-    return TNN_OK;
-}
-
-Status UpsampleLayer::InferOutputShape(bool ignore_error) {
-    auto status = BaseLayer::InferOutputShape(ignore_error);
-    RETURN_ON_NEQ(status, TNN_OK);
-    
-    auto *layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
-    CHECK_PARAM_NULL(layer_param);
-    
-    auto scales = layer_param->scales;
-    auto sizes = layer_param->dims;
-    
-    if (sizes.size() <= 0 && scales.size() >= 2) {
-        // width_scale height_scale
-        float w_scale = scales[scales.size() - 1];
-        float h_scale = scales[scales.size() - 2];
-        
-        if (layer_param->align_corners < 0) {
-            if (w_scale >= 1.0f && h_scale >= 1.0f) {
-                layer_param->align_corners = 0;
-            } else {
-                layer_param->align_corners = 1;
-            }
-        }
-    }
-    
-    auto input_dims = input_blobs_[0]->GetBlobDesc().dims;
-    auto output_dims = DimsVectorUtils::Upsample(input_dims, scales, sizes, layer_param->mode, &status);
-    RETURN_ON_NEQ(status, TNN_OK);
-    
-    output_blobs_[0]->GetBlobDesc().dims = output_dims;
-    return TNN_OK;
 }
 
 REGISTER_LAYER(Upsample, LAYER_UPSAMPLE);
