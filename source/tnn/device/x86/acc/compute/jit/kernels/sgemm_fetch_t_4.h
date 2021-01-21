@@ -115,13 +115,13 @@ public:
             //read 
             for(int i=0;i<4;i++) {
                 v[i].aquire();
-                vmovups(v[i].xmm(), xword[a_r[i]]);
+                movups(v[i].xmm(), xword[a_r[i]]);
             }
 
             ldax16.restore();
             for(int i=0;i<4;i++) {
                 v[i+4].aquire();
-                vmovups(v[i+4].xmm(), xword[a_r[i] + ldax16]);
+                movups(v[i+4].xmm(), xword[a_r[i] + ldax16]);
                 lea(a_r[i], byte[a_r[i] + ldax16 * 2]);
             }
             ldax16.release();
@@ -130,7 +130,7 @@ public:
             block_size_x4.restore();
             mov(tmp.aquire(), b_stack);
             for(int i=0;i<8;i++) {
-                vmovups(yword[tmp], v[i].xmm());
+                movups(yword[tmp], v[i].xmm());
                 v[i].release();
                 lea(tmp, byte[tmp + block_size_x4]);
             }
@@ -142,13 +142,13 @@ public:
         {
             //read
             v[0].aquire();
-            vmovups(v[0].xmm(), yword[a_r[0]]);
+            movups(v[0].xmm(), yword[a_r[0]]);
 
             lea(a_r[0], byte[a_r[0] + ldax4.restore()]);
             ldax4.release();
 
             mov(tmp, b_stack);
-            vmovups(yword[tmp], v[0].xmm());
+            movups(yword[tmp], v[0].xmm());
             v[0].release();
             add(b_stack, block_size_x4.restore());
             block_size_x4.release();

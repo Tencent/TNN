@@ -126,7 +126,7 @@ public:
         LOOP_STACK_VAR(K, SGEMM_AVX_8X6_K) 
         {
             a_data.aquire();
-            vmovups(a_data.xmm(), xword[src_a]);
+            movups(a_data.xmm(), xword[src_a]);
             for(int i=0;i<N_r;i++) {
                 b_data.aquire();
                 vbroadcastss_sse(b_data.xmm(), xword[src_b + i * 4]);
@@ -146,9 +146,9 @@ public:
         cmp(act_type, 0);
         je("L_post_end");
             v_zero.aquire();
-            vxorps(v_zero.xmm(), v_zero.xmm(), v_zero.xmm());
+            xorps(v_zero.xmm(), v_zero.xmm());
             for(int i=0;i<N_r;i++) {
-                vmaxps(c_data[i].xmm(), c_data[i].xmm(), v_zero.xmm());
+                maxps(c_data[i].xmm(), v_zero.xmm());
             }
             v_zero.release();
         L("L_post_end");

@@ -377,8 +377,8 @@ public:
         } else if (cpu_with_isa(sse42)) {
             // v2 * v3 -> v3
             // v1 + v3 -> v1
-            vmulps(v3, v2, v3);
-            vaddps(v1, v1, v3);
+            mulps(v3, v2);
+            addps(v1, v3);
         }
     }
 
