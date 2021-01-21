@@ -30,7 +30,6 @@ namespace TNN_NS {
         _message << std::string(err) + "\n"                                \
                  << __FILE__ << ':' << __LINE__ << "\nAborting... \n";     \
         LOGE("%s", _message.str().c_str());                                \
-        cudaDeviceReset();                                                 \
         exit(EXIT_FAILURE);                                                \
 }
 
