@@ -47,6 +47,7 @@ TensorRTNetwork_::TensorRTNetwork_() {
 }
 
 TensorRTNetwork_::~TensorRTNetwork_() {
+    CUDA_CHECK(cudaSetDevice(device_id_));
     if (m_context_memory) {
         Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemFree(m_context_memory);
         if (ret != TNN_OK) {
@@ -237,6 +238,7 @@ Status TensorRTNetwork_::Forward() {
 }
 
 Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
+    CUDA_CHECK(cudaSetDevice(device_id_));
     Status ret = TNN_OK;
     bool do_reshape = false;
     for (auto iter : inputs) {
@@ -323,6 +325,7 @@ Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
 }
 
 Status TensorRTNetwork_::ForwardAsync(Callback call_back) {
+    CUDA_CHECK(cudaSetDevice(device_id_));
     bool ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
         dynamic_cast<CudaContext*>(context_)->GetStream(), nullptr);
     if (ret != true) {
