@@ -100,4 +100,23 @@ Status ConstFolder::Forward() {
     return TNN_OK;
 }
 
+std::shared_ptr<NetStructure> ConstFolder::GetOptimizeNetStructure(DataFlag  flag) {
+    auto net_structure = net_structure_;
+    
+    auto constant_layers = net_resource_->constant_layers;
+    
+    auto const_fold_struct = std::make_shared<NetStructure>();
+    *const_fold_struct = *net_structure;
+    
+    std::vector<std::shared_ptr<LayerInfo>> layers;
+    for (auto iter : net_structure->layers) {
+        if (constant_layers.find(iter->name) == constant_layers.end()) {
+            layers.push_back(iter);
+        }
+    }
+    const_fold_struct->layers = layers;
+    
+    return const_fold_struct;
+}
+
 }  // namespace TNN_NS
