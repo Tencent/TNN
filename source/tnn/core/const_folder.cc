@@ -70,6 +70,7 @@ Status ConstFolder::Forward() {
     RETURN_ON_NEQ(status, TNN_OK);
     
     std::set<std::string> constant_layers;
+    std::set<std::string> shape_differ_layers;
     //将计算好的常量放入NetResource中，保留模型原有的常量
     ConstantResource constant_map = net_resource_->constant_map;
     BlobShapesMap shapes_map;
@@ -77,6 +78,10 @@ Status ConstFolder::Forward() {
     for (auto layer : layers_) {
         if (layer->IsOutputConstant()) {
             constant_layers.insert(layer->GetLayerName());
+            if (layer->IsOutputShapeDifferent()) {
+                shape_differ_layers.insert(layer->GetLayerName());
+                continue;
+            }
             continue;
         }
         
@@ -129,24 +134,36 @@ Status ConstFolder::Forward() {
 
     }
     net_resource_->constant_layers = constant_layers;
+    net_resource_->shape_differ_layers = shape_differ_layers;
     net_resource_->constant_map = constant_map;
     net_resource_->blob_shapes_map = shapes_map;
     
     return TNN_OK;
 }
 
-std::shared_ptr<NetStructure> ConstFolder::GetOptimizeNetStructure(DataFlag  flag) {
+std::shared_ptr<NetStructure> ConstFolder::GetOptimizeNetStructure(int  flag) {
+    flag = DataFlagUtils::ChangeStatus(flag);
+    
     auto net_structure = net_structure_;
     
     auto constant_layers = net_resource_->constant_layers;
+    auto shape_differ_layers = net_resource_->shape_differ_layers;
     
     auto const_fold_struct = std::make_shared<NetStructure>();
     *const_fold_struct = *net_structure;
     
     std::vector<std::shared_ptr<LayerInfo>> layers;
     for (auto iter : net_structure->layers) {
-        if (constant_layers.find(iter->name) == constant_layers.end()) {
-            layers.push_back(iter);
+        if (flag == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER) {
+            //layers with output flag DATA_FLAG_CHANGE_NEVER or DATA_FLAG_CHANGE_IF_SHAPE_DIFFER will be removed
+            if (constant_layers.find(iter->name) == constant_layers.end()) {
+                layers.push_back(iter);
+            }
+        } else {
+            //only layers with output flag DATA_FLAG_CHANGE_NEVER will be removed
+            if (!(constant_layers.find(iter->name) != constant_layers.end() && shape_differ_layers.find(iter->name) == shape_differ_layers.end())) {
+                layers.push_back(iter);
+            }
         }
     }
     const_fold_struct->layers = layers;

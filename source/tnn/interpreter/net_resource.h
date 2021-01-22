@@ -24,8 +24,11 @@ namespace TNN_NS {
 struct NetResource {
     std::map<std::string, std::shared_ptr<LayerResource>> resource_map;
     ConstantResource constant_map;
-    //constant layer names
+    //names of constant layer whose output blob data flag is DATA_FLAG_CHANGE_NEVER or DATA_FLAG_CHANGE_IF_SHAPE_DIFFER
     std::set<std::string> constant_layers;
+    
+    //names of constant layer whose output blob data flag is DATA_FLAG_CHANGE_IF_SHAPE_DIFFER
+    std::set<std::string> shape_differ_layers;
     
     //default shape map, also it is max shape map corresponding to max_inputs_shape in Instance.Init
     BlobShapesMap blob_shapes_map;

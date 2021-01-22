@@ -68,8 +68,11 @@ public:
     // @brief set runtime bolob pool
     void SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_pool);
     
-    // @brief check if the layer's output is constant
+    // @brief check if the layer's output is const with flag DATA_FLAG_CHANGE_NEVER or DATA_FLAG_CHANGE_IF_SHAPE_DIFFER
     bool IsOutputConstant();
+    
+    // @brief check if the layer's output is const with flag DATA_FLAG_CHANGE_IF_SHAPE_DIFFER
+    bool IsOutputShapeDifferent();
     
     // @brief set constant resource
     void SetConstantResource(ConstantResource* consts);
