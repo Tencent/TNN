@@ -101,11 +101,29 @@ Status ConstFolder::Forward() {
         {
             auto inputs = layer->GetInputBlobs();
             for (auto blob : inputs) {
-                shapes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().dims;
+                if (blob->GetBlobDesc().dims.size() == 1) {
+                    DimsVector dims;
+                    int count = DimsVectorUtils::Count(blob->GetBlobDesc().dims);
+                    for (int i = 0; i < count; i++) {
+                        dims.push_back(((int*)(blob->GetHandle().base))[i]);
+                    }
+                    shapes_map[blob->GetBlobDesc().name]  = dims;
+                } else {
+                    shapes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().dims;
+                }
             }
             auto outputs = layer->GetOutputBlobs();
             for (auto blob : outputs) {
-                shapes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().dims;
+                if (blob->GetBlobDesc().dims.size() == 1) {
+                    DimsVector dims;
+                    int count = DimsVectorUtils::Count(blob->GetBlobDesc().dims);
+                    for (int i = 0; i < count; i++) {
+                        dims.push_back(((int*)(blob->GetHandle().base))[i]);
+                    }
+                    shapes_map[blob->GetBlobDesc().name]  = dims;
+                } else {
+                    shapes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().dims;
+                }
             }
         }
 
