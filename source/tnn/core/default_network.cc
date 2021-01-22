@@ -60,7 +60,7 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
  * Those object is initialized in this function.
  */
 Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                            InputShapesMap inputs_shape) {
+                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     config_                                      = net_config;
     Status ret                                   = TNN_OK;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
@@ -109,7 +109,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 
     blob_manager_ = new BlobManager(device_);
 
-    ret = blob_manager_->Init(net_config, net_structure, inputs_shape, GetNetResourceDataType(net_resource));
+    ret = blob_manager_->Init(net_config, net_structure, max_inputs_shape, GetNetResourceDataType(net_resource));
     RETURN_ON_NEQ(ret, TNN_OK);
 
     ret = InitLayers(net_structure, net_resource);
@@ -381,8 +381,8 @@ Status DefaultNetwork::Reshape(const InputShapesMap &inputs) {
     for (auto iter : inputs) {
         Blob *blob = blob_manager_->GetBlob(iter.first);
         if (blob == nullptr) {
-            LOGE("DefaultNetwork reshape blob is empty\n");
-            return Status(TNNERR_PARAM_ERR, "DefaultNetwork reshape blob is empty");
+            LOGE("DefaultNetwork reshape blob is empty, maybe the blob name is wrong\n");
+            return Status(TNNERR_PARAM_ERR, "DefaultNetwork reshape blob is empty, maybe the blob name is wrong");
         }
         if(!DimsVectorUtils::Equal(blob->GetBlobDesc().dims, iter.second)) {
             blob->GetBlobDesc().dims = iter.second;
@@ -504,8 +504,8 @@ Status DefaultNetwork::Forward() {
 #endif  // DUMP_INPUT_BLOB
             
             status = layer->Forward();
-            
             LOGD("layer name: %s, forward result: %d \n", layer->GetLayerName().c_str(), (int)status);
+            LOGD("Output Shape: [%s]\n", layer->GetOutputBlobs()[0]->GetBlobDesc().description().c_str());
             if (status != TNN_OK) {
                 LOGE("Forward error %s, exit\n", status.description().c_str());
                 return status;
@@ -611,10 +611,10 @@ std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config) {
 
 Status DefaultNetwork::ReshapeLayers() {
     for (auto cur_layer : layers_) {
-        Status ret = cur_layer->Reshape();
-        if (ret != TNN_OK) {
-            return ret;
-        }
+        auto status = cur_layer->Reshape();
+        RETURN_ON_NEQ(status, TNN_OK);
+        //Note output shape may not change after reshape for const folder, but will do change after forword because shape may be determined at rumtime
+        LOGD("ReshapeLayers Output Shape: [%s]\n", cur_layer->GetOutputBlobs()[0]->GetBlobDesc().description().c_str());
     }
     return TNN_OK;
 }

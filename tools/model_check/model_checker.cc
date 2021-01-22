@@ -213,10 +213,16 @@ Status ModelChecker::RunModelCheckerOutput() {
         }
         auto cpu_blob_dims    = cpu_output_blobs[blob_name]->GetBlobDesc().dims;
         auto device_blob_dims = device_output_blobs[blob_name]->GetBlobDesc().dims;
-        if (!DimsVectorUtils::Equal(cpu_blob_dims, device_blob_dims)) {
-            LOGE("the output dims of cpu and device are not same! (blob name: %s)\n", blob_name.c_str());
+        //check for dims count
+        if(DimsVectorUtils::Count(cpu_blob_dims) != DimsVectorUtils::Count(device_blob_dims)) {
+            LOGE("the output dims count of cpu and device are not equal! (blob name: %s)\n", blob_name.c_str());
             return Status(TNNERR_COMMON_ERROR, "the output dims of cpu and device are not same!");
         }
+
+        if (!DimsVectorUtils::Equal(cpu_blob_dims, device_blob_dims)) {
+            LOGI("the output dims count of cpu and device are equal, but dims are not same! (blob name: %s)\n", blob_name.c_str());
+        }
+
         printf("\n---- blob (%s) ----\n", blob_name.c_str());
         check_pass &= CompareData(device_output_map[blob_name].get(), output_ref_data_map_[blob_name].get(),
                                   cpu_blob_dims, COSINE);

@@ -35,15 +35,15 @@ public:
     // @brief different interpreter has different order param
     virtual Status Interpret(std::vector<std::string> &params) = 0;
 
-    //@brief GetNetStruture return network build info
+    // @brief GetNetStruture return network build info
     virtual NetStructure *GetNetStructure();
 
-    //@brief GetNetResource return network weights data
+    // @brief GetNetResource return network weights data
     virtual NetResource *GetNetResource();
 
-private:
-    NetStructure *net_structure_;
-    NetResource *net_resource_;
+protected:
+    NetStructure *net_structure_ = nullptr;
+    NetResource *net_resource_   = nullptr;
 };
 
 }  // namespace TNN_NS

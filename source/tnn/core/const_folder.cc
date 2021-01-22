@@ -43,14 +43,14 @@ ConstFolder::~ConstFolder() {
  * Those object is initialized in this function.
  */
 Status ConstFolder::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                            InputShapesMap inputs_shape) {
+                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     config_ = net_config;
     config_.device_type = DEVICE_NAIVE;
     runtime_blob_pool_ = BlobMemoryPoolFactory::CreateBlobMemoryPool(GetDevice(DEVICE_NAIVE));
     
     runtime_model_ = RUNTIME_MODE_CONST_FOLD;
     
-    return DefaultNetwork::Init(config_, model_config, interpreter, inputs_shape);
+    return DefaultNetwork::Init(config_, model_config, interpreter, min_inputs_shape, max_inputs_shape);
 }
 
 Status ConstFolder::AllocateBlobMemory() {
@@ -72,12 +72,15 @@ Status ConstFolder::Forward() {
     std::set<std::string> constant_layers;
     //将计算好的常量放入NetResource中，保留模型原有的常量
     ConstantResource constant_map = net_resource_->constant_map;
+    BlobShapesMap shapes_map;
+    
     for (auto layer : layers_) {
         if (layer->IsOutputConstant()) {
             constant_layers.insert(layer->GetLayerName());
             continue;
         }
         
+        //save const input blob
         auto inputs = layer->GetInputBlobs();
         for (auto blob : inputs) {
             if (!blob->IsConstant()) {
@@ -93,9 +96,41 @@ Status ConstFolder::Forward() {
             
             constant_map[blob->GetBlobDesc().name] = buffer;
         }
+        
+        //save all input and output blob shapes
+        {
+            auto inputs = layer->GetInputBlobs();
+            for (auto blob : inputs) {
+                if (blob->GetBlobDesc().dims.size() == 1) {
+                    DimsVector dims;
+                    int count = DimsVectorUtils::Count(blob->GetBlobDesc().dims);
+                    for (int i = 0; i < count; i++) {
+                        dims.push_back(((int*)(blob->GetHandle().base))[i]);
+                    }
+                    shapes_map[blob->GetBlobDesc().name]  = dims;
+                } else {
+                    shapes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().dims;
+                }
+            }
+            auto outputs = layer->GetOutputBlobs();
+            for (auto blob : outputs) {
+                if (blob->GetBlobDesc().dims.size() == 1) {
+                    DimsVector dims;
+                    int count = DimsVectorUtils::Count(blob->GetBlobDesc().dims);
+                    for (int i = 0; i < count; i++) {
+                        dims.push_back(((int*)(blob->GetHandle().base))[i]);
+                    }
+                    shapes_map[blob->GetBlobDesc().name]  = dims;
+                } else {
+                    shapes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().dims;
+                }
+            }
+        }
+
     }
     net_resource_->constant_layers = constant_layers;
     net_resource_->constant_map = constant_map;
+    net_resource_->blob_shapes_map = shapes_map;
     
     return TNN_OK;
 }

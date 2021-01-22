@@ -24,6 +24,7 @@
 
 namespace TNN_NS {
 
+typedef std::map<std::string, DimsVector> BlobShapesMap;
 typedef std::map<std::string, std::shared_ptr<RawBuffer> > ConstantResource;
 
 struct LayerResource {

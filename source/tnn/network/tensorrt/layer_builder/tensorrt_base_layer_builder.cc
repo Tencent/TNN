@@ -56,6 +56,11 @@ void TensorRTBaseLayerBuilder::SetBatchSize(int value) {
     this->trt_batchsize = value;
 }
 
+void TensorRTBaseLayerBuilder::SetConstantResource(ConstantResource* consts) {
+    BaseLayer::SetConstantResource(consts);
+    this->m_layer->SetConstantResource(consts);
+}
+
 std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTLayerBuilderCreatorMap() {
     // static shared_ptr of LayerCreatorMap.
     static std::once_flag once;

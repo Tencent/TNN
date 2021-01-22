@@ -48,6 +48,12 @@ Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, Lay
     resource_ = resource;
     context_ = context;
 
+    if (type_ == LayerType::LAYER_RESHAPE && input_blobs.size() > 1) {
+        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
+        auto name = input_blobs_[0]->GetBlobDesc().name;
+        std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetRelatedBlobName(name);
+    }
+
     plugin_layer_acc_ = std::shared_ptr<AbstractLayerAcc>(device->CreateLayerAcc(type_));
     if (plugin_layer_acc_ != NULL) {
         return plugin_layer_acc_->Init(context, param, resource, input_blobs_, output_blobs_);
@@ -72,7 +78,7 @@ int TensorRTPluginLayerBuilder::getNbOutputs() const {
 
 DimsExprs TensorRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputs,
         nvinfer1::IExprBuilder& exprBuilder) {
-    nvinfer1::DimsExprs output(inputs[index]);
+    nvinfer1::DimsExprs output(inputs[0]);
     return output;
 }
 
@@ -106,14 +112,14 @@ int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputD
         input_handle.base = const_cast<void *>(inputs[i]);
         input_handle.bytes_offset = input_blob->GetHandle().bytes_offset;
         input_blob->SetHandle(input_handle);
-        if (false == dims_equal(input_blob->GetBlobDesc().dims, inputDesc[i].dims)) {
+        /*if (false == dims_equal(input_blob->GetBlobDesc().dims, inputDesc[i].dims)) {
             std::stringstream tnn_dims, trt_dims; 
             for( int d =0; d < inputDesc[i].dims.nbDims;d++) trt_dims << inputDesc[i].dims.d[d] << ",";
             for( int d :input_blob->GetBlobDesc().dims) tnn_dims << d << ",";
             LOGE("TensorRT input dims differs from TNN input dims. tnn shape:%s trt shape:%s\n", 
                     tnn_dims.str().c_str(), trt_dims.str().c_str());
             return -1;
-        }
+        }*/
     }
 
     for (int i = 0; i < output_blobs_.size(); i++) {
@@ -122,14 +128,14 @@ int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputD
         output_handle.base = const_cast<void *>(outputs[i]);
         output_handle.bytes_offset = output_blob->GetHandle().bytes_offset;
         output_blob->SetHandle(output_handle);
-        if (false == dims_equal(output_blob->GetBlobDesc().dims, outputDesc[i].dims)) {
+        /*if (false == dims_equal(output_blob->GetBlobDesc().dims, outputDesc[i].dims)) {
             std::stringstream tnn_dims, trt_dims; 
             for( int d =0; d < outputDesc[i].dims.nbDims;d++) trt_dims << outputDesc[i].dims.d[d] << ",";
             for( int d :output_blob->GetBlobDesc().dims) tnn_dims << d << ",";
             LOGE("TensorRT output dims differs from TNN output dims. tnn shape:%s trt shape:%s\n", 
                     tnn_dims.str().c_str(), trt_dims.str().c_str());
             return -1;
-        }
+        }*/
     }
 
     if (plugin_layer_acc_ != NULL) {

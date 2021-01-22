@@ -42,18 +42,45 @@ Instance::~Instance() {
 }
 
 Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape) {
-    interpreter_ = interpreter;
+    return Init(interpreter, inputs_shape, inputs_shape);
+}
+
+Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+    interpreter_ = interpreter->Copy();
+    if (nullptr == interpreter_) {
+        // The ModelInterpreter not implement Copy API, just use interpreter
+        LOGI("Interpreter Copy failed, use interpreter in params instead\n");
+        interpreter_ = interpreter;
+    }
     
-    auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter.get());
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter_.get());
     if (default_interpreter && default_interpreter->GetNetStructure() &&
-        NeedDoConstantFolding(default_interpreter->GetNetStructure())) {
+        (NeedDoConstantFolding(default_interpreter->GetNetStructure()) || net_config_.device_type == DEVICE_CUDA)) {
         auto const_folder = std::make_shared<ConstFolder>();
-        auto status = const_folder->Init(net_config_, model_config_, interpreter.get(), inputs_shape);
+        auto status = const_folder->Init(net_config_, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape);
         RETURN_ON_NEQ(status, TNN_OK);
-        
-        status = const_folder->Forward();
-        RETURN_ON_NEQ(status, TNN_OK);
-        
+
+        if(min_inputs_shape.size() != 0) {
+             status = const_folder->Reshape(min_inputs_shape);
+             RETURN_ON_NEQ(status, TNN_OK);
+             status = const_folder->Forward();
+             RETURN_ON_NEQ(status, TNN_OK);
+             auto min_blob_shapes_map = default_interpreter->GetNetResource()->blob_shapes_map;
+            
+            //Note output shape may not change after reshape for const folder, but will do change after forword because shape may be determined at rumtime
+             status = const_folder->Reshape(max_inputs_shape);
+             RETURN_ON_NEQ(status, TNN_OK);
+             status = const_folder->Forward();
+             RETURN_ON_NEQ(status, TNN_OK);
+            
+            default_interpreter->GetNetResource()->min_blob_shapes_map = min_blob_shapes_map;
+        } else {
+            status = const_folder->Forward();
+            RETURN_ON_NEQ(status, TNN_OK);
+            auto max_constant_map = default_interpreter->GetNetResource()->blob_shapes_map;
+            default_interpreter->GetNetResource()->min_blob_shapes_map = max_constant_map;
+        }       
+ 
         const_folder_ = const_folder;
     }
 
@@ -67,7 +94,7 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
         LOGE("ERROR: network_ is nil, network_type may not support\n");
         return Status(TNNERR_NET_ERR, "network_ is nil, network_type may not support");
     }
-    auto ret = network_->Init(net_config_, model_config_, interpreter.get(), inputs_shape);
+    auto ret = network_->Init(net_config_, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape);
     RETURN_ON_NEQ(ret, TNN_OK);
 
     // release string, this will not be used
@@ -232,7 +259,7 @@ Status Instance::GetOutputMat(std::shared_ptr<Mat> &mat, MatConvertParam param, 
 
     if (need_allocate) {
         auto dims                 = output_blobs[output_name]->GetBlobDesc().dims;
-        auto output_mat           = std::make_shared<TNN_NS::Mat>(device, mat_type, dims);
+        std::shared_ptr<TNN_NS::Mat> output_mat(new TNN_NS::Mat(device, mat_type, dims));
         output_mats_[output_name] = output_mat;
     }
 

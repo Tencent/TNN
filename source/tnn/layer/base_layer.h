@@ -76,6 +76,7 @@ public:
     
     // @brief set runtime mode
     void SetRuntimeMode(RuntimeMode mode);
+
 protected:
     LayerType type_;
 

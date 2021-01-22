@@ -135,6 +135,19 @@ nvinfer1::Dims ConvertToTRTDynamicDims(DimsVector dims) {
     return trt_dims;
 }
 
+nvinfer1::Dims ConvertToTRTDynamicDims(nvinfer1::Dims max_dims, nvinfer1::Dims min_dims) {
+    int dims_size = max_dims.nbDims;
+    nvinfer1::Dims trt_dims;
+    trt_dims.nbDims = dims_size;
+    for(int i = 0; i < dims_size; ++i) {
+        if (i == 1)
+            trt_dims.d[i] = (max_dims.d[i] != min_dims.d[i]) ? -1 : max_dims.d[i];
+        else
+            trt_dims.d[i] = -1;
+    }
+    return trt_dims;
+}
+
 nvinfer1::DataType ConvertToTRTDataType(DataType type) {
     switch (type) {
         case DATA_TYPE_FLOAT:

@@ -71,6 +71,9 @@ public:
     // @brief set tensorRT batchsize
     void SetBatchSize(int value);
 
+    // @brief set constant resource
+    virtual void SetConstantResource(ConstantResource* consts);
+
 protected:
     // @brief Build the foreign network
     virtual Status Build();
