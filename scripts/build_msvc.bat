@@ -142,16 +142,16 @@ goto :eof
             rd /s /Q openvino
             goto :returnError
         )
-        git submodule update --init --recursive
-        if !errorlevel! == 1 (
-            echo Openvino Clone Failed!
-            rd /s /Q openvino
-            goto :returnError
-        )
-    ) 
+    )
 
     cd !OPENVINO_DIR!
     git reset --hard 9df6a8f
+    git submodule update --init --recursive
+    if !errorlevel! == 1 (
+        echo Openvino Submodule Update Failed!
+        rd /s /Q openvino
+        goto :returnError
+    )
 
     set "sed=!OPENVINO_DIR!\sed\sed.exe"
     if %OPENVINO_BUILD_SHARED% == "OFF" (
