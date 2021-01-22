@@ -61,6 +61,14 @@ template<> float binary_op<X86BinaryOpType::kDIV>(const float a, const float b) 
     return a / b;
 }
 
+template<> float binary_op<X86BinaryOpType::kMAX>(const float a, const float b) {
+    return a > b ? a : b;
+}
+
+template<> float binary_op<X86BinaryOpType::kMIN>(const float a, const float b) {
+    return a < b ? a : b;
+}
+
 
 template<X86BinaryOpType type>
 void binary_kernel(std::vector<int> output_dims, const float * a, std::vector<int> steps_a, const float * b, std::vector<int> steps_b, 
@@ -145,6 +153,13 @@ Status X86_BINARY_CALCULATE(const std::vector<void *> &input_ptrs, const std::ve
         case X86BinaryOpType::kDIV :
             binary_kernel_function = binary_kernel<X86BinaryOpType::kDIV>;
             break;
+        case X86BinaryOpType::kMAX :
+            binary_kernel_function = binary_kernel<X86BinaryOpType::kMAX>;
+            break;
+        case X86BinaryOpType::kMIN :
+            binary_kernel_function = binary_kernel<X86BinaryOpType::kMIN>;
+            break;
+
         default :
             LOGE("Error, unknown binary op_type\n");
             return TNNERR_LAYER_ERR;
@@ -618,6 +633,37 @@ Status X86_REDUCE_CALCULATE(float *input, float *output, std::vector<int> axes,
 
     reduce_kernel_ptr(input, output, outer_size, inner_size, reduce_size);
 
+    return TNN_OK;
+}
+
+Status X86_NORMALIZE_CALCULATE(float *input, float *output, int axis,
+                               DimsVector input_dim, DimsVector output_dim, int mode, float epsilon) {
+    int outer_size = DimsVectorUtils::Count(input_dim, 0, axis);
+    int reduce_size = input_dim[axis];
+    int inner_size = DimsVectorUtils::Count(input_dim, axis + 1);
+
+    float* tmp = (float*)malloc(outer_size * inner_size * sizeof(float));
+    if (mode == 2) { // L2
+        reduce_kernel<X86ReduceOpType::kL2>(input, tmp, outer_size, inner_size, reduce_size);
+    } else if (mode == 1) { // L1
+        reduce_kernel<X86ReduceOpType::kL1>(input, tmp, outer_size, inner_size, reduce_size);
+    } else if (mode == INT_MAX) { // MAX
+        reduce_kernel<X86ReduceOpType::kMAX>(input, tmp, outer_size, inner_size, reduce_size);
+    } else if (mode == INT_MIN) { // MIN
+        reduce_kernel<X86ReduceOpType::kMIN>(input, tmp, outer_size, inner_size, reduce_size);
+    }
+
+    for (int o = 0; o < outer_size; o++) {
+        for (int i = 0; i < inner_size; i++) {
+            tmp[o * inner_size + i] = std::max(epsilon, tmp[o * inner_size + i]);
+            for (int r = 0; r < reduce_size; r++) {
+                output[o * inner_size * reduce_size + r * inner_size + i] = \
+                input[o * inner_size * reduce_size + r * inner_size + i] / tmp[o * inner_size + i];
+            }
+        }
+    }
+
+    if(tmp) free(tmp);
     return TNN_OK;
 }
 
