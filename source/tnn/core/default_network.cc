@@ -381,8 +381,8 @@ Status DefaultNetwork::Reshape(const InputShapesMap &inputs) {
     for (auto iter : inputs) {
         Blob *blob = blob_manager_->GetBlob(iter.first);
         if (blob == nullptr) {
-            LOGE("DefaultNetwork reshape blob is empty\n");
-            return Status(TNNERR_PARAM_ERR, "DefaultNetwork reshape blob is empty");
+            LOGE("DefaultNetwork reshape blob is empty, maybe the blob name is wrong\n");
+            return Status(TNNERR_PARAM_ERR, "DefaultNetwork reshape blob is empty, maybe the blob name is wrong");
         }
         if(!DimsVectorUtils::Equal(blob->GetBlobDesc().dims, iter.second)) {
             blob->GetBlobDesc().dims = iter.second;
