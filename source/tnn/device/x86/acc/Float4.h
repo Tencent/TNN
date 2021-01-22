@@ -17,8 +17,19 @@
 #include "tnn/core/macro.h"
 #include "tnn/device/x86/x86_common.h"
 #include "tnn/device/x86/acc/sse_mathfun.h"
+
+#ifdef __GNUC__
+#if __GNUC__ < 5
+#include "tnn/device/arm/acc/TNNVector.h"
+#define VEC_NAIVE_IMPL
+#endif
+#endif
+
 namespace TNN_NS {
 
+#ifdef VEC_NAIVE_IMPL
+using Float4 = TNNVector<float, 4>;
+#else
 struct Float4 {
     __m128 value;
     Float4() {}
@@ -138,6 +149,7 @@ struct Float4 {
         return dst;
     }
 };
+#endif
 
 }  // namespace TNN_NS
 
