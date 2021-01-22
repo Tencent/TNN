@@ -526,6 +526,8 @@ struct GatherLayerParam : public LayerParam {
 struct LSTMONNXLayerParam : public LayerParam {
     float clip_threshold = 0;
     int hidden_size      = 0;
+    //0: forword 1:reverse 2:bidirection
+    int direction                        = 0;
 
     PARAM_COPY(LSTMONNXLayerParam)
 };
