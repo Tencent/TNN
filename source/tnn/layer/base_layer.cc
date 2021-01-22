@@ -252,6 +252,14 @@ bool BaseLayer::IsOutputConstant() {
     return true;
 }
 
+bool BaseLayer::IsOutputShapeDifferent() {
+    int flag = DATA_FLAG_CHANGE_NEVER;
+    for (auto iter : output_blobs_) {
+        flag = DataFlagUtils::ChangeStatus(DataFlagUtils::MinChangeStatus(flag, iter->flag));
+    }
+    return flag == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER;
+}
+
 void BaseLayer::SetConstantResource(ConstantResource* consts) {
     const_resource_ = consts;
 }
