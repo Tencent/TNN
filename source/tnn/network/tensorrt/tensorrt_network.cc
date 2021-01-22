@@ -193,21 +193,25 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
             int index = m_trt_engine->getBindingIndex(iter.first.c_str());
             if (index < 0) continue;
             this->m_trt_bindings[index] = tmp_buffer;
-            auto dim_count = iter.second->GetDataCount();
-            auto dim_data = (int *)iter.second->force_to<int *>();
             DimsVector dims;
-            int dims_prod = 1;
-            int rewrite_index = -1;
-            for (int i = 0; i < dim_count; i++) {
-                if (dim_data[i] == -1) rewrite_index = i;
-                else dims_prod *= dim_data[i];
-                dims.push_back(dim_data[i]);
-            }
-            if (rewrite_index >= 0) {
-                auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
-                auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetRelatedBlobName();
-                auto related_blob = blob_manager_->GetBlob(name);
-                dims[rewrite_index] = DimsVectorUtils::Count(related_blob->GetBlobDesc().dims) / dims_prod;
+            if (iter.second->GetBufferDims().size() == 1) {
+                auto dim_count = iter.second->GetDataCount();
+                auto dim_data = (int *)iter.second->force_to<int *>();
+                int dims_prod = 1;
+                int rewrite_index = -1;
+                for (int i = 0; i < dim_count; i++) {
+                    if (dim_data[i] == -1) rewrite_index = i;
+                    else dims_prod *= dim_data[i];
+                    dims.push_back(dim_data[i]);
+                }
+                if (rewrite_index >= 0) {
+                    auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
+                    auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetRelatedBlobName();
+                    auto related_blob = blob_manager_->GetBlob(name);
+                    dims[rewrite_index] = DimsVectorUtils::Count(related_blob->GetBlobDesc().dims) / dims_prod;
+                }
+            } else {
+                dims = iter.second->GetBufferDims();
             }
             nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
             m_trt_context->setBindingDimensions(index, inputDims);
@@ -274,21 +278,25 @@ Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
             cudaMemcpy(const_input_map[iter.first], iter.second->force_to<void*>(), iter.second->GetBytesSize(), cudaMemcpyHostToDevice);
             int index = m_trt_engine->getBindingIndex(iter.first.c_str());
             if (index < 0) continue;
-            auto dim_count = iter.second->GetDataCount();
-            auto dim_data = (int *)iter.second->force_to<int *>();
             DimsVector dims;
-            int dims_prod = 1;
-            int rewrite_index = -1;
-            for (int i = 0; i < dim_count; i++) {
-                if (dim_data[i] == -1) rewrite_index = i;
-                else dims_prod *= dim_data[i];
-                dims.push_back(dim_data[i]);
-            }
-            if (rewrite_index >= 0) {
-                auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
-                auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetRelatedBlobName();
-                auto related_blob = blob_manager_->GetBlob(name);
-                dims[rewrite_index] = DimsVectorUtils::Count(related_blob->GetBlobDesc().dims) / dims_prod;
+            if (iter.second->GetBufferDims().size() == 1) {
+                auto dim_count = iter.second->GetDataCount();
+                auto dim_data = (int *)iter.second->force_to<int *>();
+                int dims_prod = 1;
+                int rewrite_index = -1;
+                for (int i = 0; i < dim_count; i++) {
+                    if (dim_data[i] == -1) rewrite_index = i;
+                    else dims_prod *= dim_data[i];
+                    dims.push_back(dim_data[i]);
+                }
+                if (rewrite_index >= 0) {
+                    auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
+                    auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetRelatedBlobName();
+                    auto related_blob = blob_manager_->GetBlob(name);
+                    dims[rewrite_index] = DimsVectorUtils::Count(related_blob->GetBlobDesc().dims) / dims_prod;
+                }
+            } else {
+                dims = iter.second->GetBufferDims();
             }
             nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
             auto ret = m_trt_context->setBindingDimensions(index, inputDims);
@@ -521,61 +529,48 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     for (auto iter : net_resource->constant_map) {
         Blob *blob = blob_manager_->GetBlob(iter.first);
         if (IsBlobUsed(blob)) {
-            auto dim_count = iter.second->GetDataCount();
-            auto max_dim_data = (int *)iter.second->force_to<int *>();
-            int max_dims_prod = 1;
-            int max_rewrite_index = -1;
-            DimsVector max_dims;
-            for (int i = 0; i < dim_count; i++) {
-                if (max_dim_data[i] == -1) max_rewrite_index = i;
-                else max_dims_prod *= max_dim_data[i];
-                max_dims.push_back(max_dim_data[i]);
-            }
-            if (max_rewrite_index >= 0) {
-                auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
-                auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetRelatedBlobName();
-                auto related_blob = blob_manager_->GetBlob(name);
-                max_dims[max_rewrite_index] = DimsVectorUtils::Count(related_blob->GetBlobDesc().dims) / max_dims_prod;
-            }
-            auto nv_max_dims = ConvertToTRTDims(max_dims);
-            auto nv_min_dims = nv_max_dims;
-
-            if (net_resource->min_constant_map.count(iter.first) > 0) {
-                auto min_dim_data = (int *)net_resource->min_constant_map[iter.first]->force_to<int *>();
-                DimsVector min_dims;
-                int min_dims_prod = 1;
-                int min_rewrite_index = -1;
-                for (int i = 0; i < dim_count; i++) {
-                    if (min_dim_data[i] == -1) min_rewrite_index = i;
-                    else min_dims_prod *= min_dim_data[i];
-                    min_dims.push_back(min_dim_data[i]);
-                }
-                if (min_rewrite_index >= 0) {
-                    auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
-                    auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetRelatedBlobName();
-                    auto related_blob = blob_manager_->GetBlob(name);
-                    min_dims[min_rewrite_index] = DimsVectorUtils::Count(related_blob->GetBlobDesc().dims) / min_dims_prod;
-                }
-                nv_min_dims = ConvertToTRTDims(min_dims);
-            }
-            auto nv_dims = ConvertToTRTDynamicDims(nv_max_dims, nv_min_dims);
-            auto nv_opt_dims = nv_max_dims;
-            auto const_tensor = m_trt_network->addInput(blob->GetBlobDesc().name.c_str(),
-                ConvertToTRTDataType(iter.second->GetDataType()), nv_dims);
-            profile->setDimensions(iter.first.c_str(), OptProfileSelector::kMIN, nv_min_dims);
-            profile->setDimensions(iter.first.c_str(), OptProfileSelector::kOPT, nv_opt_dims);
-            profile->setDimensions(iter.first.c_str(), OptProfileSelector::kMAX, nv_max_dims);
-/*            auto dims = ConvertToTRTDims(blob->GetBlobDesc().dims);
-            nvinfer1::Weights const_buffer;
-            const_buffer.type = nvinfer1::DataType::kFLOAT;
-            const_buffer.values = iter.second->force_to<void*>();
-            const_buffer.count = iter.second->GetDataCount();
-            auto layer = m_trt_network->addConstant(dims, const_buffer);
-            auto const_tensor = layer->getOutput(0);*/
             auto foreign_blob = dynamic_cast<ForeignBlob*>(blob);
             auto foreign_tensor = foreign_blob->GetForeignTensor();
             auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
-            tensorrt_tensor->SetTensor(const_tensor);
+            if (net_resource->blob_shapes_map[iter.first].size() != 1) {
+                auto nv_max_dims = ConvertToTRTDims(net_resource->blob_shapes_map[iter.first]);
+                auto nv_min_dims = ConvertToTRTDims(net_resource->min_blob_shapes_map[iter.first]);
+                auto nv_input_dims = ConvertToTRTDynamicDims(nv_max_dims, nv_min_dims);
+                auto const_tensor = m_trt_network->addInput(blob->GetBlobDesc().name.c_str(),
+                    ConvertToTRTDataType(iter.second->GetDataType()), nv_input_dims);
+                profile->setDimensions(iter.first.c_str(), OptProfileSelector::kMIN, nv_min_dims);
+                profile->setDimensions(iter.first.c_str(), OptProfileSelector::kOPT, nv_max_dims);
+                profile->setDimensions(iter.first.c_str(), OptProfileSelector::kMAX, nv_max_dims);
+                tensorrt_tensor->SetTensor(const_tensor);
+            } else {
+                auto dim_count = iter.second->GetDataCount();
+                auto dim_data = (int *)iter.second->force_to<int *>();
+                int dims_prod = 1;
+                int rewrite_index = -1;
+                DimsVector max_dims;
+                for (int i = 0; i < dim_count; i++) {
+                    if (dim_data[i] == -1) rewrite_index = i;
+                    else dims_prod *= dim_data[i];
+                    max_dims.push_back(dim_data[i]);
+                }
+
+                DimsVector min_dims = max_dims;
+                if (rewrite_index >= 0) {
+                    auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
+                    auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetRelatedBlobName();
+                    max_dims[rewrite_index] = DimsVectorUtils::Count(net_resource->blob_shapes_map[name]) / dims_prod;
+                    min_dims[rewrite_index] = DimsVectorUtils::Count(net_resource->min_blob_shapes_map[name]) / dims_prod;
+                }
+                auto nv_max_dims = ConvertToTRTDims(max_dims);
+                auto nv_min_dims = ConvertToTRTDims(min_dims);
+                auto nv_input_dims = ConvertToTRTDynamicDims(nv_max_dims, nv_min_dims);
+                auto const_tensor = m_trt_network->addInput(blob->GetBlobDesc().name.c_str(),
+                    ConvertToTRTDataType(iter.second->GetDataType()), nv_input_dims);
+                profile->setDimensions(iter.first.c_str(), OptProfileSelector::kMIN, nv_min_dims);
+                profile->setDimensions(iter.first.c_str(), OptProfileSelector::kOPT, nv_max_dims);
+                profile->setDimensions(iter.first.c_str(), OptProfileSelector::kMAX, nv_max_dims);
+                tensorrt_tensor->SetTensor(const_tensor);
+            }
         }
     }
     m_trt_config->addOptimizationProfile(profile);
