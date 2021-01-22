@@ -57,7 +57,7 @@ string OnnxOpConverterLSTM::TNNLayerParam(NodeProto& node,
     }
 
     ostringstream layer_param;
-    layer_param <<0<<" "<<hidden_size<<" ";
+    layer_param <<0<<" "<<hidden_size<<" "<<direction<<" ";
     
     return layer_param.str();
 }

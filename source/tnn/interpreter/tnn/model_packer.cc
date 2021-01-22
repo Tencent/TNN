@@ -206,7 +206,7 @@ Status ModelPacker::PackModel(std::string file_path) {
     }
 
     header.layer_cnt_ = resource_count;
-    if (header.layer_cnt_ <= 0) {
+    if (header.layer_cnt_ < 0) {
         return Status(TNNERR_INVALID_MODEL, "invalid model: layer count is less than 1");
     }
     header.serialize(*serializer);
