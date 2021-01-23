@@ -27,10 +27,14 @@ int Onnx2TNN::FuseLSTM(onnx::GraphProto* mutable_graph,
     for (int i = 0; i < node_count; i++) {
         auto node = index_nodes[i].node;
 
-        // LSTM <= LSTM - Squeeze(axis = 1)
+        // LSTM <= LSTM(direction=forward) - Squeeze(axis = 1)
         do {
             if (node->op_type() == "LSTM" && i + 1 < node_count) {
                 onnx::NodeProto* node_lstm = node;
+                auto direction = get_node_attr_s(*node_lstm, "direction", "forward");
+                if (direction != "forward" && direction != "reverse") {
+                    break;
+                }
                 
                 std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
                 if (next_indexes.size() != 1) {
@@ -57,10 +61,14 @@ int Onnx2TNN::FuseLSTM(onnx::GraphProto* mutable_graph,
             }
         } while (0);
         
-        // LSTM <= LSTM - Transpose - Reshape
+        // LSTM <= LSTM(direction=bidirectional) - Transpose - Reshape
         do {
             if (node->op_type() == "LSTM" && i + 2 < node_count) {
                 onnx::NodeProto* node_lstm = node;
+                auto direction = get_node_attr_s(*node_lstm, "direction", "forward");
+                if (direction != "bidirectional") {
+                    break;
+                }
                 
                 std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
                 if (next_indexes.size() != 1) {
