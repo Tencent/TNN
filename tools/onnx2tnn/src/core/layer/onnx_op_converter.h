@@ -23,13 +23,13 @@
 #include <string>
 #include <vector>
 
-#include "objseri.h"
+#include "tnn/interpreter/tnn/objseri.h"
 #include "onnx.pb.h"
 #include "onnx2tnn_prefix.h"
 
 using namespace std;
 using namespace onnx;
-using namespace parser;
+using namespace TNN_NS;
 
 #ifdef __fp16
 typedef __fp16 float16;
@@ -79,22 +79,22 @@ public:
     };
     
     //有权值写入的返回1， 没有的返回0
-    virtual int WriteTNNModel(serializer *writer, NodeProto &node,
+    virtual int WriteTNNModel(Serializer *writer, NodeProto &node,
                                    OnnxNetInfo &net_info) {
         return 0;
     };
     
     //write will write the shape and data of tensor
-    static int WriteTensorData(const onnx::TensorProto &tensor, serializer *writer,
+    static int WriteTensorData(const onnx::TensorProto &tensor, Serializer *writer,
                         DataType dst_data_type);
     
-    static int WriteRawData(const void *raw_data, int data_count, int src_data_type, serializer *writer,
+    static int WriteRawData(const void *raw_data, int data_count, int src_data_type, Serializer *writer,
                      DataType dst_data_type, std::vector<int32_t> dims);
     //depreceted
-    static int WriteRawData(const float *raw_data, int data_count, serializer *writer,
+    static int WriteRawData(const float *raw_data, int data_count, Serializer *writer,
                      DataType dst_data_type, std::vector<int32_t> dims);
 
-    static int WriteIntTensorData(const onnx::TensorProto& tensor, serializer* writer);
+    static int WriteIntTensorData(const onnx::TensorProto& tensor, Serializer* writer);
 
 protected:
     string onnx_op_type_;
@@ -140,7 +140,7 @@ private:
         virtual string TNNOpType(NodeProto &, OnnxNetInfo &net_info);     \
         virtual string TNNLayerParam(NodeProto &, OnnxNetInfo &);         \
         virtual bool HasLayerResource(NodeProto &node, OnnxNetInfo &net_info);  \
-        virtual int WriteTNNModel(serializer *, NodeProto &,              \
+        virtual int WriteTNNModel(Serializer *, NodeProto &,              \
                                        OnnxNetInfo &);                         \
     }
 
@@ -152,7 +152,7 @@ private:
         virtual string TNNOpType(NodeProto &, OnnxNetInfo &net_info);     \
         virtual string TNNLayerParam(NodeProto &, OnnxNetInfo &);         \
         virtual bool HasLayerResource(NodeProto &node, OnnxNetInfo &net_info);  \
-        virtual int WriteTNNModel(serializer *, NodeProto &,              \
+        virtual int WriteTNNModel(Serializer *, NodeProto &,              \
                                        OnnxNetInfo &);                         \
         extra_func \
     }
@@ -164,7 +164,7 @@ private:
         virtual ~OnnxOpConverter##onnx_type(){};                                                                       \
         virtual string TNNOpType(NodeProto &, OnnxNetInfo &net_info);                                                  \
         virtual string TNNLayerParam(NodeProto &, OnnxNetInfo &);                                                      \
-        virtual int WriteTNNModel(serializer *, NodeProto &, OnnxNetInfo &);                                           \
+        virtual int WriteTNNModel(Serializer *, NodeProto &, OnnxNetInfo &);                                           \
         virtual void ProcessConstantNode(NodeProto &node, OnnxNetInfo &net_info);                                      \
     }
 
@@ -187,7 +187,7 @@ public:
     virtual string TNNLayerParam(NodeProto &, OnnxNetInfo &) {
         return "";
     };
-    virtual int WriteTNNModel(serializer *, NodeProto &, OnnxNetInfo &) {
+    virtual int WriteTNNModel(Serializer *, NodeProto &, OnnxNetInfo &) {
         return 0;
     };
 

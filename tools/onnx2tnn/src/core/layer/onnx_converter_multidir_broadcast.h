@@ -26,7 +26,7 @@ public:
     virtual string TNNOpType(NodeProto &, OnnxNetInfo &) = 0;
     virtual string TNNLayerParam(NodeProto &, OnnxNetInfo &);
     virtual bool HasLayerResource(NodeProto &node, OnnxNetInfo &net_info);
-    virtual int WriteTNNModel(serializer *, NodeProto &, OnnxNetInfo &);
+    virtual int WriteTNNModel(Serializer *, NodeProto &, OnnxNetInfo &);
 
 protected:
     std::tuple<int, std::string> GetWeightInputIndexName(NodeProto &, OnnxNetInfo &);
@@ -40,7 +40,7 @@ protected:
         virtual string TNNOpType(NodeProto &, OnnxNetInfo &net_info);                                                  \
         virtual string TNNLayerParam(NodeProto &, OnnxNetInfo &);                                                      \
         virtual bool HasLayerResource(NodeProto &, OnnxNetInfo &); \
-        virtual int WriteTNNModel(serializer *, NodeProto &, OnnxNetInfo &);                                           \
+        virtual int WriteTNNModel(Serializer *, NodeProto &, OnnxNetInfo &);                                           \
     }
 
 #define REGISTER_MULTI_BROADCASR_OP_CONVERTER(converter_suffix, onnx_type)                                             \

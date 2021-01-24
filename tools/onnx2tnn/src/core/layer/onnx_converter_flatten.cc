@@ -99,7 +99,7 @@ bool OnnxOpConverterFlatten::HasLayerResource(NodeProto &node, OnnxNetInfo &net_
     return false;
 }
 
-int OnnxOpConverterFlatten::WriteTNNModel(serializer *net_writer,
+int OnnxOpConverterFlatten::WriteTNNModel(Serializer *net_writer,
                                                NodeProto &node,
                                                OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

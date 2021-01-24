@@ -37,7 +37,7 @@ bool OnnxOpConverterShuffleChannel::HasLayerResource(NodeProto &node, OnnxNetInf
     return false;
 }
 
-int OnnxOpConverterShuffleChannel::WriteTNNModel(serializer *net_writer,
+int OnnxOpConverterShuffleChannel::WriteTNNModel(Serializer *net_writer,
                                                       NodeProto &node,
                                                       OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

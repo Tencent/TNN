@@ -125,7 +125,8 @@ def main():
     status = 0
 
     try:
-        status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time, 0 if model_half == '0' else 1)
+        status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time, 0 if model_half == '0' else 1,
+                                  0 if algo_optimize == '0' else 1)
     except Exception as err:
         status = -1
         traceback.print_exc()

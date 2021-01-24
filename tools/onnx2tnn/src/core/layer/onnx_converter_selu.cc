@@ -36,7 +36,7 @@ bool OnnxOpConverterSelu::HasLayerResource(NodeProto &node, OnnxNetInfo &net_inf
     return false;
 }
 
-int OnnxOpConverterSelu::WriteTNNModel(serializer *net_writer,
+int OnnxOpConverterSelu::WriteTNNModel(Serializer *net_writer,
                                        NodeProto &node,
                                        OnnxNetInfo &net_info) {
     return 0;

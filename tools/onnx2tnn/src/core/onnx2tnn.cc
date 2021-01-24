@@ -98,7 +98,7 @@ int Onnx2TNN::Convert(DataType dataType) {
     //加载onnx模型
     if (!onnx_model_) {
         onnx::ModelProto* onnx_model = new onnx::ModelProto();
-        ret                          = read_proto_from_binary(onnx_model_path_.c_str(), onnx_model);
+        ret                          = read_proto_from_binary(onnx_model_path_.c_str(), (google::protobuf::Message*)onnx_model);
 
         if (ret != 0) {
             delete onnx_model;
@@ -152,7 +152,7 @@ int Onnx2TNN::TNNWriteProto() {
         ostringstream proto_net_info;
         {
             // line 1
-            proto_net_info << "\"1 " << (int)onnx_blob_names_.size() << " 1 " << g_version_magic_number_tnn_v2 << " ,\""
+            proto_net_info << "\"1 " << (int)onnx_blob_names_.size() << " 1 " << g_version_magic_number_v2 << " ,\""
                            << endl;
 
             // line 2, 输入blob

@@ -71,7 +71,7 @@ bool OnnxOpConverterSlice::HasLayerResource(NodeProto &node, OnnxNetInfo &net_in
     return false;
 }
 
-int OnnxOpConverterSlice::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
+int OnnxOpConverterSlice::WriteTNNModel(Serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0
     return 0;
 }

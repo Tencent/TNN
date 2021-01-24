@@ -16,7 +16,6 @@
 #include <iostream>
 #include <sstream>
 
-#include "half_utils.h"
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
@@ -84,7 +83,7 @@ bool OnnxOpConverterPriorBox::HasLayerResource(NodeProto &node, OnnxNetInfo &net
     return false;
 };
 
-int OnnxOpConverterPriorBox::WriteTNNModel(serializer *net_writer,
+int OnnxOpConverterPriorBox::WriteTNNModel(Serializer *net_writer,
                                                 NodeProto &node,
                                                 OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

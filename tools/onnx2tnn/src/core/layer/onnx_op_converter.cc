@@ -14,7 +14,6 @@
 
 #include "onnx_op_converter.h"
 #include <mutex>
-#include "half_utils.h"
 #include "onnx_utility.h"
 #include "onnx.pb.h"
 
@@ -126,7 +125,7 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
     return proto_layer.str();
 }
 
-int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto &tensor, serializer *writer) {
+int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto &tensor, Serializer *writer) {
     if (tensor.data_type() == onnx::TensorProto_DataType_INT64) {
         int item_size = get_tensor_proto_data_size(tensor);
         if (item_size == 0) {
@@ -140,7 +139,7 @@ int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto &tensor, seriali
             for (int i = 0; i < item_size; ++i) {
                 tmp[i] = raw_data[i];
             }
-            writer->put_raw(sizeof(int32_t) * item_size, (char *)tmp, dims, DATA_TYPE_INT32);
+            writer->PutRaw(sizeof(int32_t) * item_size, (char *)tmp, dims, DATA_TYPE_INT32);
             delete[] tmp;
         }
         // cast from int64 to int32
@@ -149,7 +148,7 @@ int OnnxOpConverter::WriteIntTensorData(const onnx::TensorProto &tensor, seriali
 }
 
 int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
-                                     serializer *writer, DataType dst_data_type) {
+                                     Serializer *writer, DataType dst_data_type) {
     int ret = 0;
     do {
         int item_size = get_tensor_proto_data_size(tensor);
@@ -198,7 +197,7 @@ int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
     return ret;
 }
 
-int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_data_type, serializer *writer,
+int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_data_type, Serializer *writer,
                  DataType dst_data_type, std::vector<int32_t> dims) {
     int ret = 0;
     do {
@@ -211,15 +210,15 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
         if (src_data_type == 1) {//float
             if (dst_data_type == DATA_TYPE_AUTO ||
                 dst_data_type == DATA_TYPE_FLOAT) {
-                writer->put_raw(data_count * sizeof(float), (char *)raw_data, dims,DATA_TYPE_FLOAT);
+                writer->PutRaw(data_count * sizeof(float), (char *)raw_data, dims,DATA_TYPE_FLOAT);
             } else if (dst_data_type == DATA_TYPE_HALF) {
                 if (data_count > 0) {
                     float16 *half_data = new float16[data_count];
                     ret = TNN_NS::ConvertFromFloatToHalf((float *)raw_data, (void *)half_data, data_count);
-                    writer->put_raw(data_count * sizeof(float16), (char *)half_data, dims , DATA_TYPE_HALF);
+                    writer->PutRaw(data_count * sizeof(float16), (char *)half_data, dims , DATA_TYPE_HALF);
                     delete[] half_data;
                 } else {
-                    writer->put_raw(data_count * sizeof(float16), (char *)NULL, dims , DATA_TYPE_HALF);
+                    writer->PutRaw(data_count * sizeof(float16), (char *)NULL, dims , DATA_TYPE_HALF);
                 }
             } else{
                 DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
@@ -235,10 +234,10 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                         //此处一定用saturate_cast，避免int64最大值转换为-1导致出差
                         int32_data[ii] = saturate_cast(int64_data[ii]);
                     }
-                    writer->put_raw(data_count * sizeof(int32_t), (char *)int32_data, dims, DATA_TYPE_INT32);
+                    writer->PutRaw(data_count * sizeof(int32_t), (char *)int32_data, dims, DATA_TYPE_INT32);
                     delete[] int32_data;
                 } else {
-                    writer->put_raw(data_count * sizeof(int32_t), (char *)NULL, dims, DATA_TYPE_INT32);
+                    writer->PutRaw(data_count * sizeof(int32_t), (char *)NULL, dims, DATA_TYPE_INT32);
                 }
             } else{
                 DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
@@ -255,7 +254,7 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
 }
 
 int OnnxOpConverter::WriteRawData(const float *raw_data, int data_count,
-                                  serializer *writer, DataType dst_data_type, std::vector<int> dims) {
+                                  Serializer *writer, DataType dst_data_type, std::vector<int> dims) {
     return WriteRawData((const void *)raw_data, data_count, 1, writer, dst_data_type, dims);
 }
 

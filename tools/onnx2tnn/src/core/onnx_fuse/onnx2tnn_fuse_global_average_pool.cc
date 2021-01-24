@@ -14,7 +14,6 @@
 
 #include <math.h>
 
-#include "objseri.h"
 #include "onnx2tnn.h"
 #include "onnx_utility.h"
 

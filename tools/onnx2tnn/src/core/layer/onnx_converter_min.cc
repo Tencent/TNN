@@ -18,7 +18,7 @@
 #include "onnx_converter_multidir_broadcast.h"
 #include "onnx_utility.h"
 
-#include "half_utils.h"
+
 
 DECLARE_MULTI_BROADCASR_OP_CONVERTER(Min);
 
@@ -36,7 +36,7 @@ bool OnnxOpConverterMin::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info
     return OnnxOpConverterMultiBrodcast::HasLayerResource(node, net_info);
 };
 
-int OnnxOpConverterMin::WriteTNNModel(serializer* net_writer,
+int OnnxOpConverterMin::WriteTNNModel(Serializer* net_writer,
                                                  NodeProto& node,
                                                  OnnxNetInfo& net_info) {
     return OnnxOpConverterMultiBrodcast::WriteTNNModel(net_writer, node, net_info);

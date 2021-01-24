@@ -46,29 +46,29 @@ bool OnnxOpConverterGather::HasLayerResource(NodeProto &node, OnnxNetInfo &net_i
     return true;
 }
 
-int OnnxOpConverterGather::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
+int OnnxOpConverterGather::WriteTNNModel(Serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     std::string name                  = !node.name().empty() ? node.name() : node.output(0);
     const std::string &tnn_layer_type = TNNOpType(node, net_info);
 
     //写头信息
-    net_writer->put_int(0);  //触发type from string
-    net_writer->put_string(tnn_layer_type);
-    net_writer->put_string(name);
+    net_writer->PutInt(0);  //触发type from string
+    net_writer->PutString(tnn_layer_type);
+    net_writer->PutString(name);
 
     //写数据
     auto data_iter    = net_info.weights_map.find(node.input(0));
     auto indices_iter = net_info.weights_map.find(node.input(1));
     if (data_iter != net_info.weights_map.end()) {
-        net_writer->put_int(1);
+        net_writer->PutInt(1);
         WriteTensorData(data_iter->second, net_writer, net_info.data_type);
     } else {
-        net_writer->put_int(0);
+        net_writer->PutInt(0);
     }
     if (indices_iter != net_info.weights_map.end()) {
-        net_writer->put_int(1);
+        net_writer->PutInt(1);
         WriteTensorData(indices_iter->second, net_writer, DATA_TYPE_INT32);
     } else {
-        net_writer->put_int(0);
+        net_writer->PutInt(0);
     }
     return 1;
 }

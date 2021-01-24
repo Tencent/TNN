@@ -36,6 +36,7 @@ option(TNN_MODEL_CHECK_ENABLE "Enable Test" OFF)
 option(TNN_BENCHMARK_MODE "Enable Benchmark" OFF)
 option(TNN_UNIT_TEST_BENCHMARK "Enable Benchmark Layer" OFF)
 option(TNN_CONVERTER_ENABLE "Enable Model Converter" OFF)
+option(TNN_ONNX2TNN_ENABLE "Enable ONNX2TNN Converter" OFF)
 option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
 option(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE "Enable Build Benchmark Test Lib" OFF)
 
@@ -103,7 +104,7 @@ if(TNN_UNIT_TEST_ENABLE)
     add_definitions(-DGENERATE_RESOURCE)
 endif()
 
-if(TNN_CONVERTER_ENABLE)
+if(TNN_CONVERTER_ENABLE OR TNN_ONNX2TNN_ENABLE)
     set(TNN_SYMBOL_HIDE OFF)
 endif()
 
@@ -191,6 +192,7 @@ message(STATUS "\tPROFILE:\t${TNN_PROFILER_ENABLE}")
 message(STATUS "\tBENCHMARK:\t${TNN_BENCHMARK_MODE}")
 message(STATUS "\tBENCHMARK Layer:\t${TNN_UNIT_TEST_BENCHMARK}")
 message(STATUS "\tModel Converter:\t${TNN_CONVERTER_ENABLE}")
+message(STATUS "\tONNX2TNN Converter:\t${TNN_ONNX2TNN_ENABLE}")
 message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
 message(STATUS "\tBENCHMARK Test Lib:\t${TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE}")
 
@@ -214,6 +216,10 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
 
 if(TNN_SYMBOL_HIDE AND UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+endif()
+
+if(TNN_CONVERTER_ENABLE OR TNN_ONNX2TNN_ENABLE)
+    add_definitions(-DTNN_V2=1)
 endif()
 
 if(TNN_X86_ENABLE)
@@ -346,6 +352,10 @@ endif()
 if(TNN_CONVERTER_ENABLE)
     add_subdirectory(third_party/flatbuffers)
     add_subdirectory(tools/converter)
+endif()
+
+if(TNN_ONNX2TNN_ENABLE)
+    add_subdirectory(tools/onnx2tnn/onnx-converter)
 endif()
 
 if(TNN_COVERAGE)

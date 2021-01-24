@@ -31,16 +31,16 @@ bool OnnxOpConverterConstantOfShape::HasLayerResource(NodeProto &node, OnnxNetIn
     return true;
 };
 
-int OnnxOpConverterConstantOfShape::WriteTNNModel(serializer *net_writer,
+int OnnxOpConverterConstantOfShape::WriteTNNModel(Serializer *net_writer,
                                             NodeProto &node,
                                             OnnxNetInfo &net_info) {
     std::string name = !node.name().empty() ? node.name() : node.output(0);
     const std::string& tnn_layer_type = TNNOpType(node, net_info);
 
     //写头信息
-    net_writer->put_int(0);  //触发type from string
-    net_writer->put_string(tnn_layer_type);
-    net_writer->put_string(name);
+    net_writer->PutInt(0);  //触发type from string
+    net_writer->PutString(tnn_layer_type);
+    net_writer->PutString(name);
 
     //写数据
     // 数据可能是任意类型
