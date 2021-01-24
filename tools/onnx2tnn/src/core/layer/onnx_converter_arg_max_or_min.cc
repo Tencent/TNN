@@ -12,8 +12,6 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <half/macro.h>
-
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
@@ -34,7 +32,7 @@ string OnnxOpConverterArgMaxOrMin::TNNLayerParam(NodeProto &node, OnnxNetInfo &n
         select_last_index = get_node_attr_i(node, "select_last_index", 0);
     }
     if (select_last_index != 0) {
-        LOGE("ArgMaxOrMin: do not support select last index for now.\n");
+        DLog("ArgMaxOrMin: do not support select last index for now.\n");
         assert(0);
     }
     if (onnx_op == "ArgMin"){
@@ -42,7 +40,7 @@ string OnnxOpConverterArgMaxOrMin::TNNLayerParam(NodeProto &node, OnnxNetInfo &n
     } else if (onnx_op == "ArgMax") {
         layer_param << 1 << " ";
     } else {
-        LOGE("ArgMaxOrMin: do not support type.\n");
+        DLog("ArgMaxOrMin: do not support type.\n");
         assert(0);
     }
     layer_param << axis << " ";
@@ -56,7 +54,7 @@ bool OnnxOpConverterArgMaxOrMin::HasLayerResource(NodeProto &node, OnnxNetInfo &
     return false;
 }
 
-int OnnxOpConverterArgMaxOrMin::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
+int OnnxOpConverterArgMaxOrMin::WriteTNNModel(Serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     return 0;
 }
 

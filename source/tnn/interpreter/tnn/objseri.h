@@ -51,6 +51,11 @@ namespace TNN_NS {
             auto data_type = (TNN_NS::DataType)value.GetDataType();
             DimsVector  dims  = value.GetBufferDims();
             char *buffer = value.force_to<char *>();
+            PutRaw(length, buffer, dims, data_type);
+        }
+        
+        void PutRaw(int length, char* buffer, std::vector<int> dims, DataType data_type = DATA_TYPE_FLOAT)
+        {
 #ifdef TNN_V2
             PutInt(g_version_magic_number_v2);
             PutInt(data_type);
@@ -76,6 +81,7 @@ namespace TNN_NS {
                            static_cast<std::streamsize>(length));
             return;
         }
+
 
     protected:
         std::ostream &_ostream;

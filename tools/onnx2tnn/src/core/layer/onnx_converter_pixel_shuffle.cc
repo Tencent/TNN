@@ -32,7 +32,7 @@ bool OnnxOpConverterPixelShuffle::HasLayerResource(NodeProto &node, OnnxNetInfo 
     return false;
 }
 
-int OnnxOpConverterPixelShuffle::WriteTNNModel(serializer *, NodeProto &, OnnxNetInfo &) {
+int OnnxOpConverterPixelShuffle::WriteTNNModel(Serializer *, NodeProto &, OnnxNetInfo &) {
     return 0;
 }
 

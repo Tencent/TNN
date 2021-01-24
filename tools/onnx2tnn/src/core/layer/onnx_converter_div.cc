@@ -18,7 +18,7 @@
 #include "onnx_converter_multidir_broadcast.h"
 #include "onnx_utility.h"
 
-#include "half_utils.h"
+
 
 DECLARE_MULTI_BROADCASR_OP_CONVERTER(Div);
 
@@ -58,7 +58,7 @@ bool OnnxOpConverterDiv::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info
    }
 }
 
-int OnnxOpConverterDiv::WriteTNNModel(serializer* net_writer,
+int OnnxOpConverterDiv::WriteTNNModel(Serializer* net_writer,
                                                  NodeProto& node,
                                                  OnnxNetInfo& net_info) {
     const std::string &onnx_op = node.op_type();
@@ -76,9 +76,9 @@ int OnnxOpConverterDiv::WriteTNNModel(serializer* net_writer,
                    weight.data_type() == onnx::TensorProto_DataType_DOUBLE));
         
         //写头信息
-        net_writer->put_int(0);  //触发type from string
-        net_writer->put_string(tnn_layer_type);
-        net_writer->put_string(name);
+        net_writer->PutInt(0);  //触发type from string
+        net_writer->PutString(tnn_layer_type);
+        net_writer->PutString(name);
         
         int size         = get_tensor_proto_data_size(weight);
         const float *mul = get_tensor_proto_data(weight);

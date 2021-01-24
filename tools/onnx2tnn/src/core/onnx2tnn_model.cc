@@ -13,8 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include <math.h>
-#include "half_utils.h"
-#include "objseri.h"
+
 #include "onnx2tnn.h"
 #ifdef __fp16
 typedef __fp16 float16;
@@ -27,8 +26,8 @@ int Onnx2TNN::TNNWriteModel() {
 
     std::ofstream file_model;
     file_model.open(tnn_model_path_, std::ios::binary);
-    file_model.write((char *)(&g_version_magic_number_tnn_v2), sizeof(g_version_magic_number_tnn));
-    int model_pos = sizeof(g_version_magic_number_tnn_v2);
+    file_model.write((char *)(&g_version_magic_number_v2), sizeof(g_version_magic_number_v2));
+    int model_pos = sizeof(g_version_magic_number_v2);
 
     do {
         if (!file_model || !file_model.is_open() || !file_model.good()) {
@@ -38,14 +37,14 @@ int Onnx2TNN::TNNWriteModel() {
             break;
         }
 
-        serializer net_writer(file_model);
+        Serializer net_writer(file_model);
 
         const onnx::GraphProto& graph = onnx_model_->graph();
 
         //统计含有权值的层数
         int weight_layer_count = 0;
         //层数 含有权值的层数 先占位后更正
-        net_writer.put_int(weight_layer_count);
+        net_writer.PutInt(weight_layer_count);
         //        file_model.write(reinterpret_cast<char*>(&weight_layer_count),
         //        sizeof(int));
 
@@ -70,7 +69,7 @@ int Onnx2TNN::TNNWriteModel() {
 
         //更正含有权值的层数
         file_model.seekp(model_pos, ios::beg);
-        net_writer.put_int(weight_layer_count);
+        net_writer.PutInt(weight_layer_count);
         file_model.seekp(0, ios::end);
         
         //写入constant_map
@@ -108,12 +107,12 @@ int Onnx2TNN::TNNWriteModel() {
             }
             
             //写入版本号
-            net_writer.put_int(g_version_magic_number_tnn_v2);
+            net_writer.PutInt(g_version_magic_number_v2);
             //写入个数
-            net_writer.put_int((int)const_id_set.size());
+            net_writer.PutInt((int)const_id_set.size());
             for (auto id : const_id_set) {
                 auto const_tensor = onnx_net_info_.weights_map[id];
-                net_writer.put_string(id);
+                net_writer.PutString(id);
                 OnnxOpConverter::WriteTensorData(const_tensor, &net_writer, DATA_TYPE_AUTO);
             }
         }

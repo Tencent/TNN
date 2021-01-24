@@ -18,7 +18,7 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-#include "half_utils.h"
+
 
 DECLARE_OP_CONVERTER(Conv);
 
@@ -163,7 +163,7 @@ bool OnnxOpConverterConv::HasLayerResource(NodeProto &node, OnnxNetInfo &net_inf
     return true;
 }
 
-int OnnxOpConverterConv::WriteTNNModel(serializer* net_writer,
+int OnnxOpConverterConv::WriteTNNModel(Serializer* net_writer,
                                             NodeProto& node,
                                             OnnxNetInfo& net_info) {
     const std::string& onnx_op = node.op_type();
@@ -171,17 +171,17 @@ int OnnxOpConverterConv::WriteTNNModel(serializer* net_writer,
     const std::string& tnn_layer_type = TNNOpType(node, net_info);
 
     //写头信息
-    net_writer->put_int(0);  //触发type from string
-    net_writer->put_string(tnn_layer_type);
-    net_writer->put_string(name);
+    net_writer->PutInt(0);  //触发type from string
+    net_writer->PutString(tnn_layer_type);
+    net_writer->PutString(name);
 
     //写数据
     //对应conv_layer_datad的反序列化
-    net_writer->put_string(name);
+    net_writer->PutString(name);
 
     int has_bias = node.input_size() == 3 ? 1 : 0;
     //                has_bias = 0;
-    net_writer->put_int(has_bias);
+    net_writer->PutInt(has_bias);
 
     const onnx::TensorProto& weights = net_info.weights_map[node.input(1)];
     WriteTensorData(weights, net_writer, net_info.data_type);

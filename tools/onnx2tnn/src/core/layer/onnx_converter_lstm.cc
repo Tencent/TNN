@@ -18,7 +18,7 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-#include "half_utils.h"
+
 
 DECLARE_OP_CONVERTER(LSTM);
 
@@ -46,7 +46,7 @@ bool OnnxOpConverterLSTM::HasLayerResource(NodeProto &node, OnnxNetInfo &net_inf
     return false;
 };
 
-int OnnxOpConverterLSTM::WriteTNNModel(serializer* net_writer,
+int OnnxOpConverterLSTM::WriteTNNModel(Serializer* net_writer,
                                                  NodeProto& node,
                                                  OnnxNetInfo& net_info) {
     //write weights in constant resource from now on

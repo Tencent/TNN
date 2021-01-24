@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_utility.h"
-#include "half/macro.h"
+#include "onnx2tnn_prefix.h"
 #include "onnx_op_converter.h"
 
 std::vector<int64_t> get_tensor_proto_reshape_shape(
@@ -521,7 +521,7 @@ int get_tensor_proto_data_size(const onnx::TensorProto& tp) {
                 break;
             }
             default: {
-                LOGE("Onnx Converter: do not support tensor proto data type\n");
+                DLog("Onnx Converter: do not support tensor proto data type\n");
                 size = -1;
             }
         }
@@ -544,7 +544,7 @@ int get_tensor_proto_data_size(const onnx::TensorProto& tp) {
                 break;
             }
             default: {
-                LOGE("Onnx Converter: do not support tensor proto data type\n");
+                DLog("Onnx Converter: do not support tensor proto data type\n");
                 size = -1;
             }
         }
@@ -662,7 +662,7 @@ DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type) {
             return DATA_TYPE_BFP16;
         }
         default:{
-            LOGE("Not support onnx TypeProto type: %d", onnx_type.tensor_type().elem_type());
+            DLog("Not support onnx TypeProto type: %d", onnx_type.tensor_type().elem_type());
             assert(0);
         }
     }

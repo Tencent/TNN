@@ -18,7 +18,7 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-#include "half_utils.h"
+
 
 DECLARE_OP_CONVERTER(InstNorm);
 
@@ -44,7 +44,7 @@ bool OnnxOpConverterInstNorm::HasLayerResource(NodeProto &node, OnnxNetInfo &net
     return true;
 }
 
-int OnnxOpConverterInstNorm::WriteTNNModel(serializer* net_writer,
+int OnnxOpConverterInstNorm::WriteTNNModel(Serializer* net_writer,
                                                  NodeProto& node,
                                                  OnnxNetInfo& net_info) {
     const std::string& onnx_op = node.op_type();
@@ -52,9 +52,9 @@ int OnnxOpConverterInstNorm::WriteTNNModel(serializer* net_writer,
     const std::string& tnn_layer_type = TNNOpType(node,net_info);
 
     //写头信息
-    net_writer->put_int(0);  //触发type from string
-    net_writer->put_string(tnn_layer_type);
-    net_writer->put_string(name);
+    net_writer->PutInt(0);  //触发type from string
+    net_writer->PutString(tnn_layer_type);
+    net_writer->PutString(name);
 
     //写数据
     const onnx::TensorProto& scale = net_info.weights_map[node.input(1)];

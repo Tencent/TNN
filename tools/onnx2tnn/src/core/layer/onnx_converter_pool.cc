@@ -18,7 +18,6 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-#include "half_utils.h"
 
 DECLARE_OP_CONVERTER(Pool);
 
@@ -166,7 +165,7 @@ bool OnnxOpConverterPool::HasLayerResource(NodeProto &node, OnnxNetInfo &net_inf
     return false;
 }
 
-int OnnxOpConverterPool::WriteTNNModel(serializer *net_writer,
+int OnnxOpConverterPool::WriteTNNModel(Serializer *net_writer,
                                             NodeProto &node,
                                             OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

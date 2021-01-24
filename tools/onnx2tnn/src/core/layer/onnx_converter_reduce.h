@@ -28,7 +28,7 @@ public:
         return tnn_type_;
     };
     string TNNLayerParam(NodeProto &, OnnxNetInfo &);
-    virtual int WriteTNNModel(serializer *, NodeProto &, OnnxNetInfo &) {
+    virtual int WriteTNNModel(Serializer *, NodeProto &, OnnxNetInfo &) {
         return 0;
     };
 

@@ -17,6 +17,10 @@
 #include <sys/types.h>
 
 #include "onnx2tnn.h"
+#include "tnn/core/const_folder.h"
+#include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/interpreter/tnn/model_packer.h"
+using namespace TNN_NS;
 
 #include <pybind11/pybind11.h>
 
@@ -100,7 +104,8 @@ int onnx2tnn_set_version(std::string file_path, std::string file_version)
 }
 
 //data_type: 0:float 1:half 2:int8 not support now
-int onnx2tnn_convert(std::string onnx_model_path, std::string output_dir, std::string algo_version, std::string file_time, int data_type)
+int onnx2tnn_convert(std::string onnx_model_path, std::string output_dir, std::string algo_version,
+                     std::string file_time, int data_type, int fixed_input_shape)
 {
     std::string onnx_model_name;
     std::string onnx_suffix  = ".onnx";
@@ -115,9 +120,77 @@ int onnx2tnn_convert(std::string onnx_model_path, std::string output_dir, std::s
     int ret = converter.Convert((DataType)data_type);
     if(ret != 0) {
         DLog("tnn converter error:(%d)\n", ret);
-        assert(0);
+        return -1;
     }
 
+    //do net const folding
+    {
+        //网络初始化
+        NetworkConfig network_config;
+        {
+            network_config.network_type = NETWORK_TYPE_DEFAULT;
+            network_config.device_type =  DEVICE_NAIVE;
+        }
+
+        ModelConfig model_config;
+        {
+            model_config.model_type = MODEL_TYPE_TNN;
+            {
+                std::ifstream proto_stream(tnn_proto);
+                if (!proto_stream.is_open() || !proto_stream.good()) {
+                    DLog("read proto_file failed!\n");
+                    return -1;
+                }
+                auto buffer = std::string((std::istreambuf_iterator<char>(proto_stream)),
+                                          std::istreambuf_iterator<char>());
+                model_config.params.push_back(buffer);
+            }
+
+            {
+                std::ifstream model_stream(tnn_model);
+                if (!model_stream.is_open() || !model_stream.good()) {
+                    DLog("read model_file failed!\n");
+                    return -1;
+                }
+                auto buffer = std::string((std::istreambuf_iterator<char>(model_stream)),
+                                          std::istreambuf_iterator<char>());
+                model_config.params.push_back(buffer);
+            }
+        }
+        
+        auto interpreter = dynamic_cast<DefaultModelInterpreter *>(CreateModelInterpreter(model_config.model_type));
+        if (!interpreter) {
+            return Status(TNNERR_NET_ERR, "interpreter is nil");
+        }
+        auto status = interpreter->Interpret(model_config.params);
+        if (status != TNN_OK) {
+            DLog("Interpret Error: %s\n", status.description().c_str());
+            return status;
+        }
+
+        auto const_folder = std::make_shared<ConstFolder>();
+        status = const_folder->Init(network_config, model_config, interpreter, {}, {});
+        if (status != TNN_OK) {
+            DLog("ConstFolder Init Error: %s\n", status.description().c_str());
+            return status;
+        }
+
+        status = const_folder->Forward();
+        if (status != TNN_OK) {
+            DLog("ConstFolder Forward Error: %s\n", status.description().c_str());
+            return status;
+        }
+
+        auto fold_net_struct = const_folder->GetOptimizeNetStructure(
+                                                                     fixed_input_shape ? DATA_FLAG_CHANGE_IF_SHAPE_DIFFER : DATA_FLAG_CHANGE_NEVER);
+
+        auto packer = std::make_shared<ModelPacker>(fold_net_struct.get(), interpreter->GetNetResource());
+        if (packer->Pack(tnn_proto, tnn_model) != 0) {
+            DLog("ModelPacker Pack failed!\n");
+            return -1;
+        }
+    }
+    
     //添加版本信息到文件属性
     onnx2tnn_set_version(tnn_proto, algo_version);
     onnx2tnn_set_version(tnn_model, algo_version);
