@@ -92,6 +92,7 @@ private:
     T read(const char*& buffer) const {
         T val = *reinterpret_cast<const T*>(buffer);
         buffer += sizeof(T);
+        return val;
     }
 };
 

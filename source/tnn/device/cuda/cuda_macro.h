@@ -22,7 +22,7 @@
 namespace TNN_NS {
 
 // Interface visibility
-#define PUBLIC __attribute__((visibility("default")))
+// #define PUBLIC __attribute__((visibility("default")))
 
 #define FatalError(err) {                                                  \
     std::stringstream _where, _message;                                    \
