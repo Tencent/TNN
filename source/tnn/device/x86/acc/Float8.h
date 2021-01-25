@@ -16,9 +16,16 @@
 #define Float8_hpp
 #include "tnn/core/macro.h"
 #include "tnn/device/x86/x86_common.h"
+#ifdef __AVX2__
 #include "tnn/device/x86/acc/avx_mathfun.h"
-namespace TNN_NS {
+#else
+#include "tnn/device/arm/acc/TNNVector.h"
+#endif
 
+namespace TNN_NS {
+#ifndef __AVX2__
+using Float8 = TNNVector<float, 8>;
+#else
 struct Float8 {
     __m256 value;
     Float8() {}
@@ -138,7 +145,7 @@ struct Float8 {
         return dst;
     }
 };
-
+#endif
 }  // namespace TNN_NS
 
 #endif /* Float8_hpp */

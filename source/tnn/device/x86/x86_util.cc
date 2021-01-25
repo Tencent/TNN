@@ -169,6 +169,7 @@ inline void PackC8_Left(float *dst, const float *src, size_t hw, size_t src_hw_s
     auto src5 = src + src_hw_stride * 5;
     auto src6 = src + src_hw_stride * 6;
     int cur_hw = 0;
+#ifdef __AVX2__
     __m256 v1 = _mm256_setzero_ps();
     __m256 v2 = _mm256_setzero_ps();
     __m256 v3 = _mm256_setzero_ps();
@@ -176,6 +177,7 @@ inline void PackC8_Left(float *dst, const float *src, size_t hw, size_t src_hw_s
     __m256 v5 = _mm256_setzero_ps();
     __m256 v6 = _mm256_setzero_ps();
     __m256 v7 = _mm256_setzero_ps();
+
     for (; cur_hw + 7 < hw; cur_hw += 8) {
         auto dst_hw = dst + cur_hw * 8;
         __m256 v0 = _mm256_loadu_ps(src0 + cur_hw);
@@ -195,6 +197,7 @@ inline void PackC8_Left(float *dst, const float *src, size_t hw, size_t src_hw_s
         _mm256_storeu_ps(dst_hw + 48, t6);
         _mm256_storeu_ps(dst_hw + 56, t7);
     }
+#endif
     for (; cur_hw < hw; cur_hw++) {
         dst[cur_hw * 8 + 0] = src0[cur_hw];
         if (left_c > 1) {
@@ -243,6 +246,7 @@ int PackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t
         auto src7 = src0 + src_hw_stride * 7;
         auto dst_c = dst + c * dst_hw_stride;
         int cur_hw = 0;
+#ifdef __AVX2__
         for (; cur_hw + 7 < hw; cur_hw += 8) {
             auto dst_hw = dst_c + cur_hw * 8;
             __m256 v0 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_loadu_ps(src0 + cur_hw)),     _mm_loadu_ps(src4 + cur_hw), 1);
@@ -263,6 +267,7 @@ int PackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t
             _mm256_storeu_ps(dst_hw + 48, v6);
             _mm256_storeu_ps(dst_hw + 56, v7);
         }
+#endif
         for (; cur_hw < hw; cur_hw++) {
             dst_c[cur_hw * 8 + 0] = src0[cur_hw];
             dst_c[cur_hw * 8 + 1] = src1[cur_hw];
@@ -366,6 +371,7 @@ inline void UnpackC8_Left(float *dst, const float *src, size_t hw, size_t dst_hw
     auto dst5 = dst + dst_hw_stride * 5;
     auto dst6 = dst + dst_hw_stride * 6;
     int cur_hw = 0;
+#ifdef __AVX2__
     for (; cur_hw + 7 < hw; cur_hw += 8) {
         auto src_hw = src + cur_hw * 8;
         __m256 v0 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_load_ps(src_hw)),      _mm_load_ps(src_hw + 32), 1);
@@ -385,6 +391,7 @@ inline void UnpackC8_Left(float *dst, const float *src, size_t hw, size_t dst_hw
         if(left_c > 5) _mm256_storeu_ps(dst5 + cur_hw, v5);
         if(left_c > 6) _mm256_storeu_ps(dst6 + cur_hw, v6);
     }
+#endif
     for (; cur_hw < hw; cur_hw++) {
         dst0[cur_hw] = src[cur_hw * 8 + 0];
         if (left_c > 1) dst1[cur_hw] = src[cur_hw * 8 + 1];
@@ -409,6 +416,7 @@ int UnpackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size
         auto dst6 = dst0 + dst_hw_stride * 6;
         auto dst7 = dst0 + dst_hw_stride * 7;
         int cur_hw = 0;
+#ifdef __AVX2__
         for (; cur_hw + 7 < hw; cur_hw += 8) {
             auto src_hw = src_c + cur_hw * 8;
             __m256 v0 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_load_ps(src_hw)),      _mm_load_ps(src_hw + 32), 1);
@@ -429,6 +437,7 @@ int UnpackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size
             _mm256_storeu_ps(dst6 + cur_hw, v6);
             _mm256_storeu_ps(dst7 + cur_hw, v7);
         }
+#endif
         for (; cur_hw < hw; cur_hw++) {
             dst0[cur_hw] = src_c[cur_hw * 8 + 0];
             dst1[cur_hw] = src_c[cur_hw * 8 + 1];
