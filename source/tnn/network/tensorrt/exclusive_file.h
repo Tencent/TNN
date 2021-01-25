@@ -21,6 +21,8 @@
 #if defined _WIN32 
 #include <windows.h>
 #include <winbase.h>
+// Do not remove following statement.
+// windows.h replace LoadLibrary with LoadLibraryA, which cause compiling issue of TNN.
 #undef LoadLibrary
 #else
 #include <sys/time.h>
