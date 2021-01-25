@@ -132,7 +132,11 @@ namespace test {
                         return ret;
                     }
                 }
+#if DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB
+                ret = instance->Forward();
+#else
                 ret = instance->ForwardAsync(nullptr);
+#endif
                 if (!CheckResult("Forward", ret)) {
                     return ret;
                 }
