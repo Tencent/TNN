@@ -77,6 +77,9 @@ public:
 #ifdef FORWARD_CALLBACK_ENABLE
     // tnn instance network infer with callback to get blob info
     Status ForwardWithCallback(BlobStatisticCallback before, BlobStatisticCallback after);
+
+    // get model interpreter
+    std::shared_ptr<AbstractModelInterpreter> GetInterpreter();
 #endif  // end of FORWARD_CALLBACK_ENABLE
 
     // tnn instance network infer async.
@@ -91,6 +94,7 @@ public:
 
     // set threads run on cpu
     virtual Status SetCpuNumThreads(int num_threads);
+
 #if TNN_PROFILE
 public:
     /**start to profile each layer, dont call this func if you only want to profile the whole mode*/
