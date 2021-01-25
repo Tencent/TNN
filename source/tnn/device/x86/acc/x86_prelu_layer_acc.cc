@@ -46,6 +46,15 @@ static void prelu_func(float *input, float *output, const float *slope, DimsVect
                 VEC v_data = VEC::loadu(input_c + i);
                 VEC v_res  = VEC::bsl_clt(v_data, v_zero, v_data * v_slope, v_data);
                 VEC::saveu(output_c + i, v_res);
+                i = plane;
+            }
+
+            for (; i < plane; i++) {
+                if (input_c[i] < 0) {
+                    output_c[i] = input_c[i] * coef;
+                } else {
+                    output_c[i] = input_c[i];
+                }
             }
         }
     }
