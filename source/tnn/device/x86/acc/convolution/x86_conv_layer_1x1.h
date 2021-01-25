@@ -27,8 +27,6 @@ public:
 
     static bool isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                            const std::vector<Blob *> &outputs);
-
-    virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 };
 
 }  // namespace TNN_NS

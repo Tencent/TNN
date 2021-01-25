@@ -50,34 +50,6 @@ bool X86ConvLayer1x1::isPrefered(ConvLayerParam *param, const std::vector<Blob *
 
 X86ConvLayer1x1::~X86ConvLayer1x1() {}
 
-Status X86ConvLayer1x1::allocateBufferWeight(const std::vector<Blob *> &inputs,
-                                                   const std::vector<Blob *> &outputs) {
-    ConvLayerParam *param = dynamic_cast<ConvLayerParam *>(param_);
-    CHECK_PARAM_NULL(param);
-    ConvLayerResource *conv_res = dynamic_cast<ConvLayerResource *>(resource_);
-    CHECK_PARAM_NULL(conv_res);
-
-    if (!buffer_weight_.GetBytesSize()) {
-
-        const float *src = conv_res->filter_handle.force_to<float *>();
-        int weight_count   = conv_res->filter_handle.GetDataCount();
-        int data_byte_size = DataTypeUtils::GetBytesSize(conv_res->filter_handle.GetDataType());
-
-        if (conv_res->filter_handle.GetDataType() == DATA_TYPE_FLOAT) {
-            RawBuffer temp_buffer(weight_count * data_byte_size);
-            float *dst = temp_buffer.force_to<float *>();
-
-            memcpy(dst, src, data_byte_size * weight_count);
-            temp_buffer.SetDataType(DATA_TYPE_FLOAT);
-            buffer_weight_ = temp_buffer;
-        } else {
-            LOGE("Error: DataType %d not support\n", conv_res->filter_handle.GetDataType());
-            return Status(TNNERR_MODEL_ERR, "conv_res DataType is not supported");
-        }
-    }
-    return TNN_OK;
-}
-
 Status X86ConvLayer1x1::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     ConvLayerParam *param = dynamic_cast<ConvLayerParam *>(param_);
     ConvLayerResource *resource = dynamic_cast<ConvLayerResource *>(resource_);
@@ -103,13 +75,20 @@ Status X86ConvLayer1x1::DoForward(const std::vector<Blob *> &inputs, const std::
     int n = src_z_step;
     int k = dims_input[1];
 
+    int m_c = conv_gemm_conf_.M_c_;
+    int k_c = conv_gemm_conf_.K_c_;
+    float *src_buf = (float*)_mm_malloc(m_c * k_c * sizeof(float), 32);
+
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
         const float * B = src_origin + batch_idx * k * n;
         const float * A = weights_data;
         float * C = dst_origin + batch_idx * m * n;
-        X86_matrixMul(m, n, k, A, B, C, 1, bias_data, param->activation_type);
+
+        conv_sgemm_nn_col_major(n, m, k, B, n, A, k, C, n,
+            bias_data, param->activation_type, src_buf, conv_gemm_conf_);
     }
 
+    _mm_free(src_buf);
     return TNN_OK;
 }
 

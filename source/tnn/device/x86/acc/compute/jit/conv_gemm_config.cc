@@ -28,13 +28,8 @@
 namespace TNN_NS {
 
 template<typename a_t, typename b_t, typename c_t>
-conv_gemm_config<a_t, b_t, c_t>::conv_gemm_config(const char * trans_a, const char * trans_b, 
-                const dim_t m, const dim_t n, const dim_t k,
-                const a_t * a, const dim_t lda, const b_t * b, const dim_t ldb, 
-                c_t * c, const dim_t ldc, const b_t * bias, dim_t first, dim_t act_type,
-                const dim_t m_block, const dim_t n_block)  :
-                a_(a), b_(b), c_(c), m_(m), n_(n), k_(k), lda_(lda), ldb_(ldb), ldc_(ldc), 
-                bias_(bias), first_(first), act_type_(act_type), m_block_(m_block), n_block_(n_block)
+conv_gemm_config<a_t, b_t, c_t>::conv_gemm_config(
+    const dim_t m_block, const dim_t n_block) : m_block_(m_block), n_block_(n_block)
 {
     std::vector<int> supported_m_block = {4, 8, 16};
     std::vector<int> supported_n_block = {6};
@@ -50,6 +45,7 @@ conv_gemm_config<a_t, b_t, c_t>::conv_gemm_config(const char * trans_a, const ch
 
     if (cpu_with_isa(avx2)) {
 #ifdef XBYAK64
+        m_block_ = 16;
         kernel_m_r_ = 16; 
 #else 
         m_block_ = 8;
@@ -63,14 +59,10 @@ conv_gemm_config<a_t, b_t, c_t>::conv_gemm_config(const char * trans_a, const ch
     this->init_jit_kernel();
 }
 
-template conv_gemm_config<float, float, float>::conv_gemm_config(const char * trans_a, const char * trans_b, 
-                const dim_t m, const dim_t n, const dim_t k,
-                const float * a, const dim_t lda, const float * b, const dim_t ldb, 
-                float * c, const dim_t ldc, const float * bias, dim_t first, dim_t act_type,
-                const dim_t m_block, const dim_t n_block);
+template conv_gemm_config<float, float, float>::conv_gemm_config(const dim_t m_block, const dim_t n_block);
 
 template<typename a_t, typename b_t, typename c_t>
-void conv_gemm_config<a_t, b_t, c_t>::init_jit_kernel() 
+void conv_gemm_config<a_t, b_t, c_t>::init_jit_kernel()
 {
     static std::shared_ptr<jit::base_jit_kernel> g_pack_t_ker[nb_kernels_m + 1];
     static std::shared_ptr<jit::base_jit_kernel> g_pack_t_4x16_ker;
@@ -83,7 +75,7 @@ void conv_gemm_config<a_t, b_t, c_t>::init_jit_kernel()
     std::call_once(initialized, [] {
 
         // initialize the pack t kernels
-        for(int i=1;i<=nb_kernels_n;i++) {
+        for(int i = 1; i <= nb_kernels_n; i++) {
             switch (i) {
                 case 1:
                     g_pack_n_ker[i] = std::make_shared<jit::sgemm_fetch_n_1_ker_t>();
@@ -114,7 +106,7 @@ void conv_gemm_config<a_t, b_t, c_t>::init_jit_kernel()
         }
 
         // initialize the pack t kernels
-        for(int i=1;i<=nb_kernels_m;i++) {
+        for(int i = 1; i <= nb_kernels_m; i++) {
             switch (i) {
                 case 0:
                     break;
@@ -130,15 +122,6 @@ void conv_gemm_config<a_t, b_t, c_t>::init_jit_kernel()
                 case 4:
                     g_pack_t_ker[i] = std::make_shared<jit::sgemm_fetch_t_4_ker_t>();
                     break;
-                // case 5:
-                //     g_pack_t_ker[i] = std::make_shared<jit::sgemm_fetch_t_5_ker_t>();
-                //     break;
-                // case 6:
-                //     g_pack_t_ker[i] = std::make_shared<jit::sgemm_fetch_t_6_ker_t>();
-                //     break;
-                // case 7:
-                //     g_pack_t_ker[i] = std::make_shared<jit::sgemm_fetch_t_7_ker_t>();
-                //     break;
                 case 8:
                     g_pack_t_ker[i] = std::make_shared<jit::sgemm_fetch_t_8_ker_t>();
                     break;
@@ -203,29 +186,27 @@ void conv_gemm_config<a_t, b_t, c_t>::init_jit_kernel()
         }
 #endif
 
-    });
+    }); // end of initialized
 
-
-    for(int i=1;i<=nb_kernels_m;i++) {
-        if (g_pack_t_ker[i]){
+    for(int i = 1; i <= nb_kernels_m; i++) {
+        if (g_pack_t_ker[i]) {
             pack_t_ker_[i] = jit::get_func_ptr<jit::sgemm_fetch_t_1_ker_t>(g_pack_t_ker[i].get());
         } else {
             pack_t_ker_[i] = nullptr;
         }
     }
 
-    if (g_pack_t_4x16_ker){
+    if (g_pack_t_4x16_ker) {
         pack_t_4x16_ker_ = jit::get_func_ptr<jit::sgemm_fetch_t_1_ker_t>(g_pack_t_4x16_ker.get());
     }
 
-    for(int i=1;i<=nb_kernels_n;i++) {
-        if (g_pack_n_ker[i]){
+    for(int i = 1; i <= nb_kernels_n; i++) {
+        if (g_pack_n_ker[i]) {
             pack_n_ker_[i] = jit::get_func_ptr<jit::sgemm_fetch_n_1_ker_t>(g_pack_n_ker[i].get());
         } else {
             pack_n_ker_[i] = nullptr;
         }
     }
-
 
     using kernel_array_ptr = decltype(&g_kernel_16);
     kernel_array_ptr kernel_array;
@@ -233,14 +214,14 @@ void conv_gemm_config<a_t, b_t, c_t>::init_jit_kernel()
         kernel_array = &g_kernel_4;
     } else if (m_block_ == 8) {
         kernel_array = &g_kernel_8;
-    } else if (m_block_ == 16)  {
+    } else if (m_block_ == 16) {
         kernel_array = &g_kernel_16;
     } else {
         throw std::runtime_error("unsupported m_block value."); 
     }
 
-    for(int m=1;m<=nb_kernels_m;m++) {
-        for(int n=1;n<=nb_kernels_n;n++) {
+    for(int m = 1; m <= nb_kernels_m; m++) {
+        for(int n = 1; n <= nb_kernels_n; n++) {
             if ((*kernel_array)[m][n]){
                 kernels_[m][n] = jit::get_func_ptr<jit::conv_sgemm_avx_kernel<0, 0>>((*kernel_array)[m][n].get());
             } else {
@@ -248,7 +229,6 @@ void conv_gemm_config<a_t, b_t, c_t>::init_jit_kernel()
             }
         }
     }
-    
 }
 
 template void conv_gemm_config<float, float, float>::init_jit_kernel();

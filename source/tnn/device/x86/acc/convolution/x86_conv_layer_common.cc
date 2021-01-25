@@ -34,6 +34,43 @@ Status X86ConvLayerCommon::Reshape(const std::vector<Blob *> &inputs, const std:
 }
 
 Status X86ConvLayerCommon::allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    ConvLayerParam *param = dynamic_cast<ConvLayerParam *>(param_);
+    CHECK_PARAM_NULL(param);
+    ConvLayerResource *conv_res = dynamic_cast<ConvLayerResource *>(resource_);
+    CHECK_PARAM_NULL(conv_res);
+
+    auto input       = inputs[0];
+    auto output      = outputs[0];
+    auto dims_input  = input->GetBlobDesc().dims;
+    auto dims_output = output->GetBlobDesc().dims;
+
+    if (!buffer_weight_.GetBytesSize()) {
+        int k_c = conv_gemm_conf_.K_c_;
+        int m_c = conv_gemm_conf_.M_c_;
+        int n_block = conv_gemm_conf_.n_block_;
+        int K = dims_input[1] * param->kernels[0] * param->kernels[1] / param->group;
+        int M = dims_output[1] / param->group;
+        size_t weight_pack_per_group = ROUND_UP(K, k_c) * ROUND_UP(M, n_block);
+
+        const float *src = conv_res->filter_handle.force_to<float *>();
+
+        if (conv_res->filter_handle.GetDataType() == DATA_TYPE_FLOAT) {
+            RawBuffer temp_buffer(weight_pack_per_group * param->group * sizeof(float));
+            float *dst = temp_buffer.force_to<float *>();
+
+            for (int g = 0; g < param->group; g++) {
+                auto src_g = src + K * M * g;
+                auto dst_g = dst + weight_pack_per_group * g;
+                conv_pack_weights(M, K, src_g, K, dst_g, conv_gemm_conf_);
+            }
+
+            temp_buffer.SetDataType(DATA_TYPE_FLOAT);
+            buffer_weight_ = temp_buffer;
+        } else {
+            LOGE("Error: DataType %d not support\n", conv_res->filter_handle.GetDataType());
+            return Status(TNNERR_MODEL_ERR, "conv_res DataType is not supported");
+        }
+    }
     return TNN_OK;
 }
 
@@ -63,6 +100,8 @@ Status X86ConvLayerCommon::Init(Context *context, LayerParam *param, LayerResour
     if (status != TNN_OK) {
         return status;
     }
+    conv_gemm_conf_ = conv_gemm_config<float, float, float>();
+
     RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
     RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
 
@@ -81,12 +120,6 @@ Status X86ConvLayerCommon::Init(Context *context, LayerParam *param, LayerResour
         conv_param->pads[0] == 0 && conv_param->pads[2] == 0) {
         do_im2col_ = false;
     }
-    int height_out = outputs[0]->GetBlobDesc().dims[2];
-    int width_out  = outputs[0]->GetBlobDesc().dims[3];
-
-    size_t col_offset_ = kernel_h * kernel_w * height_out * width_out * (channel / group);
-    col_buffer_ = RawBuffer(col_offset_ * group * sizeof(float));
-    col_buffer_.SetDataType(DATA_TYPE_FLOAT);
 
     return TNN_OK;
 }
@@ -104,18 +137,32 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
     int conv_in_offset_ = input_dims[2] * input_dims[3] * input_dims[1];
     int conv_out_spatial_dim_ = output_dims[2] * output_dims[3];
     int output_offset_ = output_dims[1] * conv_out_spatial_dim_ / param->group;
-    size_t weight_offset_ = param->kernels[0] * param->kernels[1] * input_dims[1] * output_dims[1] / param->group / param->group;
     size_t col_offset_ = param->kernels[0] * param->kernels[1] * output_dims[2] * output_dims[3] * (input_dims[1] / param->group);
+
+    int m_c = conv_gemm_conf_.M_c_;
+    int k_c = conv_gemm_conf_.K_c_;
+    int n_block = conv_gemm_conf_.n_block_;
+    size_t src_trans_size = m_c * k_c;
+    float *im2col_workspace;
+    if (do_im2col_) {
+         im2col_workspace = (float*)_mm_malloc(col_offset_ * param->group * sizeof(float), 32);
+    }
+    float *src_trans_workspace = (float*)_mm_malloc(src_trans_size * sizeof(float), 32);
+
+    int K = input_dims[1] * param->kernels[0] * param->kernels[1] / param->group;
+    int M = output_dims[1] / param->group;
+    int N = conv_out_spatial_dim_;
+    size_t weight_offset_per_group = ROUND_UP(K, k_c) * ROUND_UP(M, n_block);
 
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         auto input_data = static_cast<float*>(input_ptr);
         auto output_data = static_cast<float*>(output_ptr);
-        auto weights_data = resource->filter_handle.force_to<float*>();
+        auto weights_data = buffer_weight_.force_to<float*>();
         float *bias_data  = buffer_bias_.force_to<float*>();
         float *col_buff;
         for (size_t b = 0; b < outputs[0]->GetBlobDesc().dims[0]; b++) {
             if (do_im2col_) {
-                col_buff = col_buffer_.force_to<float*>();
+                col_buff = im2col_workspace;
                 X86_IM2COL(input_data + b * conv_in_offset_, input_dims[1],
                            input_dims[2], input_dims[3],
                            param->kernels[1], param->kernels[0], 
@@ -126,19 +173,25 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
             } else {
                 col_buff = input_data + b * conv_in_offset_;
             }
+
             for (int g = 0; g < param->group; g++) {
-                X86_matrixMul(param->output_channel / param->group,
-                              conv_out_spatial_dim_,
-                              input_dims[1] * param->kernels[0] * param->kernels[1] / param->group,
-                              weights_data + weight_offset_ * g,
-                              col_buff + col_offset_ * g,
-                              output_data + (b * param->group + g) * output_offset_,
-                              param->bias, bias_data + g * param->output_channel / param->group, param->activation_type);
+                conv_sgemm_nn_col_major(N, M, K,
+                    col_buff + col_offset_ * g, N,
+                    weights_data + weight_offset_per_group * g, K,
+                    output_data + (b * param->group + g) * output_offset_, N,
+                    bias_data + g * param->output_channel / param->group,
+                    param->activation_type, src_trans_workspace, conv_gemm_conf_);
             }
         }
     } else {
         return Status(TNNERR_DEVICE_ACC_DATA_FORMAT_NOT_SUPPORT, "Error: x86 device not support this data type");
     }
+
+    if (do_im2col_) {
+         _mm_free(im2col_workspace);
+    }
+    _mm_free(src_trans_workspace);
+
     return TNN_OK;
 }
 }  // namespace TNN_NS

@@ -17,6 +17,7 @@
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/device/x86/acc/compute/jit/conv_sgemm_driver.h"
 
 namespace TNN_NS {
 
@@ -45,9 +46,9 @@ public:
 
 protected:
     bool do_im2col_ = true;
-    RawBuffer col_buffer_;
     RawBuffer buffer_weight_;
     RawBuffer buffer_bias_;
+    conv_gemm_config<float, float, float> conv_gemm_conf_;
 };
 
 }  // namespace TNN_NS

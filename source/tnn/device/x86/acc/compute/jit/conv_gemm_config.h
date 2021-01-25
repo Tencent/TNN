@@ -30,20 +30,7 @@ typedef void (*conv_sgemm_ker_func_t)(const dim_t K,
                                  c_t * dst, dim_t ldc,
                                  const b_t * bias, dim_t first, dim_t act_type);
 
-    conv_gemm_config(const char * trans_a, const char * trans_b, const dim_t m, const dim_t n, const dim_t k,
-                     const a_t * a, const dim_t lda, const b_t * b, const dim_t ldb, 
-                     c_t * c, const dim_t ldc, const b_t * bias, dim_t first, dim_t act_type,
-                     const dim_t m_block = 16, const dim_t n_block = 6);
-
-    const a_t * a_;
-    const b_t * b_;
-    c_t * c_;
-    const b_t * bias_;
-    dim_t first_;
-    dim_t act_type_;
-
-    const dim_t m_, n_, k_;
-    const dim_t lda_, ldb_, ldc_;
+    conv_gemm_config(const dim_t m_block = 16, const dim_t n_block = 6);
 
     // block size for data packing
     dim_t m_block_;
@@ -65,12 +52,11 @@ typedef void (*conv_sgemm_ker_func_t)(const dim_t K,
     fetch_t_func_t pack_t_4x8_ker_;
 
     fetch_n_func_t pack_n_ker_[nb_kernels_n + 1];
-    
+
     conv_sgemm_ker_func_t kernels_[nb_kernels_m + 1][nb_kernels_n + 1];
 
 private:
     void init_jit_kernel();
-
 };
 
 } // namespace tnn
