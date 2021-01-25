@@ -16,9 +16,40 @@
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
 
+#include "tnn/device/x86/acc/Float4.h"
+#include "tnn/device/x86/acc/Float8.h"
+
 namespace TNN_NS {
 
 DECLARE_X86_ACC(PRelu, X86_PRELU_OP);
+
+template <typename VEC, int pack>
+static void prelu_func(float *input, float *output, const float *slope, DimsVector dims, bool is_channel_shared) {
+    auto plane = DimsVectorUtils::Count(dims, 2);
+
+    for (int b = 0; b < dims[0]; b++) {
+        for (int c = 0; c < dims[1]; c++) {
+            float coef    = is_channel_shared ? slope[0] : slope[c];
+            auto input_c  = input + b * DimsVectorUtils::Count(dims, 1) + c * plane;
+            auto output_c = output + b * DimsVectorUtils::Count(dims, 1) + c * plane;
+            int i         = 0;
+            VEC v_zero(0.f);
+            VEC v_slope(coef);
+            for (; i + pack - 1 < plane; i += pack) {
+                VEC v_data = VEC::loadu(input_c + i);
+                VEC v_res  = VEC::bsl_clt(v_data, v_zero, v_data * v_slope, v_data);
+                VEC::saveu(output_c + i, v_res);
+            }
+
+            if (i > 0 && i < plane) {
+                i = plane - pack;
+                VEC v_data = VEC::loadu(input_c + i);
+                VEC v_res  = VEC::bsl_clt(v_data, v_zero, v_data * v_slope, v_data);
+                VEC::saveu(output_c + i, v_res);
+            }
+        }
+    }
+}
 
 Status X86PReluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
@@ -50,31 +81,19 @@ Status X86PReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
         return Status(TNNERR_COMMON_ERROR, "Error: blob count is zero");
     }
 
-    if (output_blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
+    auto calc = prelu_func<Float8, 8>;
+    if (arch_ == sse42) {
+        calc = prelu_func<Float4, 4>;
+    }
+
+    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         const float *slope_data = layer_res->slope_handle.force_to<float *>();
 
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
-        if (layer_param->channel_shared) {
-            for (int index = 0; index < count; ++index) {
-                if (input_data[index] < 0) {
-                    output_data[index] = input_data[index] * slope_data[0];
-                } else {
-                    output_data[index] = input_data[index];
-                }
-            }
-        } else {
-            for (int index = 0; index < count; ++index) {
-                if (input_data[index] < 0) {
-                    int channel_index  = (index / channel_size) % channel;
-                    output_data[index] = input_data[index] * slope_data[channel_index];
-                } else {
-                    output_data[index] = input_data[index];
-                }
-            }
-        }
+        calc(input_data, output_data, slope_data, output_blob->GetBlobDesc().dims, layer_param->channel_shared);
     } else {
-        ASSERT(0);
+        return Status(TNNERR_DEVICE_ACC_DATA_FORMAT_NOT_SUPPORT, "Error: this data type not supported in prelu layer");
     }
     return TNN_OK;
 }
