@@ -170,3 +170,7 @@ if [  "$HUAWEI_NPU" == "ON" ]; then
     cp ${TNN_ROOT_PATH}/third_party/huawei_npu/hiai_ddk_latest/arm64-v8a/* release/arm64-v8a/
 fi
 echo "build done!"
+
+if [ "$SHARED_LIB" != "ON" ]; then
+    echo -e "\033[31m[WARNING] TNN is built as a static library, link it with option -Wl,--whole-archive tnn -Wl,--no-whole-archive\033[0m"
+fi
