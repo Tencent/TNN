@@ -112,6 +112,26 @@ struct Float4 {
         dst.value = _mm_min_ps(v1.value, v2.value);
         return dst;
     }
+    static Float4 add(const Float4& v1, const Float4& v2) {
+        Float4 dst;
+        dst.value = _mm_add_ps(v1.value, v2.value);
+        return dst;
+    }
+    static Float4 sub(const Float4& v1, const Float4& v2) {
+        Float4 dst;
+        dst.value = _mm_sub_ps(v1.value, v2.value);
+        return dst;
+    }
+    static Float4 mul(const Float4& v1, const Float4& v2) {
+        Float4 dst;
+        dst.value = _mm_mul_ps(v1.value, v2.value);
+        return dst;
+    }
+    static Float4 div(const Float4& v1, const Float4& v2) {
+        Float4 dst;
+        dst.value = _mm_div_ps(v1.value, v2.value);
+        return dst;
+    }
     static Float4 neg(const Float4 &v) {
         Float4 dst;
         _PS_CONST_TYPE(mask, uint32_t, 0x80000000);

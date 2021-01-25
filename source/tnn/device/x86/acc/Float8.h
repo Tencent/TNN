@@ -108,6 +108,26 @@ struct Float8 {
         dst.value = _mm256_min_ps(v1.value, v2.value);
         return dst;
     }
+    static Float8 add(const Float8& v1, const Float8& v2) {
+        Float8 dst;
+        dst.value = _mm256_add_ps(v1.value, v2.value);
+        return dst;
+    }
+    static Float8 sub(const Float8& v1, const Float8& v2) {
+        Float8 dst;
+        dst.value = _mm256_sub_ps(v1.value, v2.value);
+        return dst;
+    }
+    static Float8 mul(const Float8& v1, const Float8& v2) {
+        Float8 dst;
+        dst.value = _mm256_mul_ps(v1.value, v2.value);
+        return dst;
+    }
+    static Float8 div(const Float8& v1, const Float8& v2) {
+        Float8 dst;
+        dst.value = _mm256_div_ps(v1.value, v2.value);
+        return dst;
+    }
     static Float8 neg(const Float8 &v) {
         Float8 dst;
         _PS256_CONST_TYPE(mask, uint32_t, 0x80000000);

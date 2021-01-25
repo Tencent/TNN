@@ -18,16 +18,11 @@
 #include "tnn/core/common.h"
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
-#include "tnn/device/x86/acc/x86_binary_op_layer_acc.h"
 #include "tnn/device/x86/acc/x86_reduce_op_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/interpreter/layer_param.h"
 
 namespace TNN_NS {
-
-// binary
-Status X86_BINARY_CALCULATE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, 
-                            void *output, DimsVector output_shape, X86BinaryOpType op_type);
 
 // @brief store by row
 Status X86_IM2COL(float *src, int channel, int height, int width, int kernelh, int kernelw, 

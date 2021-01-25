@@ -195,6 +195,27 @@ struct TNNVector {
         }
         return dst;
     }
+    static TNNVector<T, len> add(const TNNVector<T, len>& v1, const TNNVector<T, len>& v2) {
+        TNNVector<T, len> dst;
+        for (int i = 0; i < len; ++i) {
+            dst.value[i] = v1.value[i] + v2.value[i];
+        }
+        return dst;
+    }
+    static TNNVector<T, len> sub(const TNNVector<T, len>& v1, const TNNVector<T, len>& v2) {
+        TNNVector<T, len> dst;
+        for (int i = 0; i < len; ++i) {
+            dst.value[i] = v1.value[i] - v2.value[i];
+        }
+        return dst;
+    }
+    static TNNVector<T, len> mul(const TNNVector<T, len>& v1, const TNNVector<T, len>& v2) {
+        TNNVector<T, len> dst;
+        for (int i = 0; i < len; ++i) {
+            dst.value[i] = v1.value[i] * v2.value[i];
+        }
+        return dst;
+    }
 
     // the following functions only work for fp32 and fp16, int8 need to override these functions
     static TNNVector<T, len> floor(const TNNVector<T, len>& v) {
