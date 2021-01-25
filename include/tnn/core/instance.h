@@ -106,7 +106,10 @@ private:
     ModelConfig model_config_;
     
     AbstractNetwork *GetNetwork();
-    
+
+    // Reshape instance if input blob shapes are changed
+    Status AutoReshapeByInputBlobs();
+
     //Mat interface for simple use
 public:
     // set input Mat, if input_name is not set, take the first input as default
@@ -123,6 +126,9 @@ public:
 private:
     // input converter
     std::map<std::string, std::shared_ptr<BlobConverter>> input_converters_ = {};
+
+    // input shapes
+    InputShapesMap cached_input_shapes_ = {};
 
     // output converter
     std::map<std::string, std::shared_ptr<BlobConverter>> output_converters_ = {};

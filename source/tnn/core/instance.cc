@@ -89,19 +89,56 @@ AbstractNetwork *Instance::GetNetwork() {
     return network_.get();
 }
 
+Status Instance::AutoReshapeByInputBlobs() {
+    // get input blobs
+    BlobMap input_blobs;
+    auto status = network_->GetAllInputBlobs(input_blobs);
+    if (status != TNN_OK || input_blobs.size() <= 0) {
+        LOGE("Instance::AutoReshapeByInputBlobs GetAllInputBlobs Error: %s\n", status.description().c_str());
+        return status;
+    }
+
+    // if input blob shape does not equal to cached shape, call Reshape and cache the new shape
+    bool need_reshape = false;
+    for (auto iter : input_blobs) {
+        const auto &input_name  = iter.first;
+        const auto &input_shape = iter.second->GetBlobDesc().dims;
+        if (cached_input_shapes_.find(input_name) != cached_input_shapes_.end()) {
+            auto &cached_shape = cached_input_shapes_[input_name];
+            if (!DimsVectorUtils::Equal(cached_shape, input_shape)) {
+                need_reshape = true;
+                cached_shape = input_shape;
+            }
+        } else {
+            need_reshape                     = true;
+            cached_input_shapes_[input_name] = input_shape;
+        }
+    }
+
+    if (need_reshape) {
+        LOGD("Instance::AutoReshapeByInputBlobs, first run or input shapes changed, reshape the instance.\n");
+        return Reshape(cached_input_shapes_);
+    }
+    LOGD("Instance::AutoReshapeByInputBlobs, input shapes not changed, skip.\n");
+    return TNN_OK;
+}
+
 Status Instance::Forward() {
+    RETURN_ON_NEQ(AutoReshapeByInputBlobs(), TNN_OK);
     output_mats_convert_status_.clear();
     return (Status)network_->Forward();
 }
 
 #ifdef FORWARD_CALLBACK_ENABLE
 Status Instance::ForwardWithCallback(BlobStatisticCallback before, BlobStatisticCallback after) {
+    RETURN_ON_NEQ(AutoReshapeByInputBlobs(), TNN_OK);
     output_mats_convert_status_.clear();
     return (Status)network_->ForwardWithCallback(before, after);
 }
 #endif  // end of FORWARD_CALLBACK_ENABLE
 
 Status Instance::ForwardAsync(Callback call_back) {
+    RETURN_ON_NEQ(AutoReshapeByInputBlobs(), TNN_OK);
     output_mats_convert_status_.clear();
     return (Status)network_->ForwardAsync(call_back);
 }
@@ -143,12 +180,15 @@ Status Instance::SetInputMat(std::shared_ptr<Mat> mat, MatConvertParam param, st
         }
     }
 
+    // update input blob shape
+    auto input_blob                = input_blobs[input_name];
+    input_blob->GetBlobDesc().dims = mat->GetDims();
+
     // check blob convert
     std::shared_ptr<BlobConverter> blob_converter = nullptr;
     if (input_converters_.size() > 0 && input_converters_.find(input_name) != input_converters_.end()) {
         blob_converter = input_converters_[input_name];
     } else {
-        auto input_blob               = input_blobs[input_name];
         blob_converter                = std::make_shared<BlobConverter>(input_blob);
         input_converters_[input_name] = blob_converter;
     }
