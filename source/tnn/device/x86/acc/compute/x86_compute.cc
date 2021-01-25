@@ -867,6 +867,119 @@ template void DepthwiseConvAVX2<ActivationType_ReLU6>(
     float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
     long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
 
+template <int left, int oc_>
+void X86SgemvLeft(float* dst, const float* src, const float* weight, float *bias, size_t batch_stride) {
+    float acc[8];
+    for (int i = 0; i < left; i++) {
+        acc[i] = bias[i];
+    }
+    for (size_t ic = 0; ic < batch_stride; ic++) {
+        auto weight_ic = weight + ic * oc_;
+        for (int i = 0; i < left; i++) {
+            acc[i] += weight_ic[i] * src[ic];
+        }
+    }
+    for (int i = 0; i < left; i++) {
+        dst[i] = acc[i];
+    }
+}
+
+void X86SgemvSSE(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output) {
+    size_t batch_stride = dims_input[3] * dims_input[2] * dims_input[1];
+    for (int b = 0; b < dims_output[0]; ++b) {
+        const float *src_batch = src + b * batch_stride;
+        float *dst_batch = dst + b * dims_output[1];
+
+        int oc = 0;
+        for (; oc + 3 < dims_output[1]; oc += 4) {
+            auto weight_oc = weight + oc * batch_stride;
+            Float4 acc = Float4::loadu(bias + oc);
+            size_t ic = 0;
+            for (; ic + 3 < batch_stride; ic += 4) {
+                auto weight_ic   = weight_oc + ic * 4;
+                Float4 src_v0    = Float4(src_batch[ic]);
+                Float4 src_v1    = Float4(src_batch[ic + 1]);
+                Float4 src_v2    = Float4(src_batch[ic + 2]);
+                Float4 src_v3    = Float4(src_batch[ic + 3]);
+                Float4 weight_v0 = Float4::load(weight_ic);
+                Float4 weight_v1 = Float4::load(weight_ic + 4);
+                Float4 weight_v2 = Float4::load(weight_ic + 8);
+                Float4 weight_v3 = Float4::load(weight_ic + 12);
+                Float4::mla(acc, weight_v0, src_v0);
+                Float4::mla(acc, weight_v1, src_v1);
+                Float4::mla(acc, weight_v2, src_v2);
+                Float4::mla(acc, weight_v3, src_v3);
+            }
+            for (; ic < batch_stride; ic++) {
+                Float4 src_v    = Float4(src_batch[ic]);
+                Float4 weight_v = Float4::load(weight_oc + ic * 4); 
+                Float4::mla(acc, weight_v, src_v);
+            }
+            Float4::saveu(dst_batch + oc, acc);
+        }
+        int left = dims_output[1] - oc;
+        if (left == 3) {
+            X86SgemvLeft<3, 4>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+        } else if (left == 2) {
+            X86SgemvLeft<2, 4>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+        } else if (left == 1) {
+            X86SgemvLeft<1, 4>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+        }
+    }
+}
+
+void X86SgemvAVX2(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output) {
+    size_t batch_stride = dims_input[3] * dims_input[2] * dims_input[1];
+    for (int b = 0; b < dims_output[0]; ++b) {
+        const float *src_batch = src + b * batch_stride;
+        float *dst_batch = dst + b * dims_output[1];
+
+        int oc = 0;
+        for (; oc + 7 < dims_output[1]; oc += 8) {
+            auto weight_oc = weight + oc * batch_stride;
+            Float8 acc = Float8::loadu(bias + oc);
+            size_t ic = 0;
+            for (; ic + 3 < batch_stride; ic += 4) {
+                auto weight_ic   = weight_oc + ic * 8;
+                Float8 src_v0    = Float8(src_batch + ic);
+                Float8 src_v1    = Float8(src_batch + ic + 1);
+                Float8 src_v2    = Float8(src_batch + ic + 2);
+                Float8 src_v3    = Float8(src_batch + ic + 3);
+                Float8 weight_v0 = Float8::load(weight_ic);
+                Float8 weight_v1 = Float8::load(weight_ic + 8);
+                Float8 weight_v2 = Float8::load(weight_ic + 16);
+                Float8 weight_v3 = Float8::load(weight_ic + 24);
+                Float8::mla(acc, weight_v0, src_v0);
+                Float8::mla(acc, weight_v1, src_v1);
+                Float8::mla(acc, weight_v2, src_v2);
+                Float8::mla(acc, weight_v3, src_v3);
+            }
+            for (; ic < batch_stride; ic++) {
+                Float8 src_v    = Float8(src_batch + ic);
+                Float8 weight_v = Float8::load(weight_oc + ic * 8); 
+                Float8::mla(acc, weight_v, src_v);
+            }
+            Float8::saveu(dst_batch + oc, acc);
+        }
+        int left = dims_output[1] - oc;
+        if (left == 7) {
+            X86SgemvLeft<7, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+        } else if (left == 6) {
+            X86SgemvLeft<6, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+        } else if (left == 5) {
+            X86SgemvLeft<5, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+        } else if (left == 4) {
+            X86SgemvLeft<4, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+        }else if (left == 3) {
+            X86SgemvLeft<3, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+        } else if (left == 2) {
+            X86SgemvLeft<2, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+        } else if (left == 1) {
+            X86SgemvLeft<1, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+        }
+    }
+}
+
 //ActivationType_SIGMOID_MUL TBD
 
 }

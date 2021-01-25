@@ -64,6 +64,9 @@ void DepthwiseConvSSE(float* dst, const float* src, const float* weight, const f
 template <int activation_type>
 void DepthwiseConvAVX2(float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
                    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
+
+void X86SgemvSSE(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output);
+void X86SgemvAVX2(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output);
 }   // namespace TNN_NS
 
 #endif
