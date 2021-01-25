@@ -6,8 +6,23 @@ on:
   pull_request:
     branches:
       - master
+
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      CONDITION: ${{ steps.preflight.outputs.CONDITION }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Preflight
+      id: preflight
+      run: |
+        echo ::set-output name=CONDITION::0
+        ./scripts/.ci/preflight.sh x86 || ret=$? && echo $ret && echo ::set-output name=CONDITION::$ret
+
   macos-clang:
+    needs: [setup]
+    if: ${{ needs.setup.outputs.CONDITION != '11' }}
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
