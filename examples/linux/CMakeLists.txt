@@ -20,11 +20,13 @@ include_directories(${TNNInclude})
 include_directories(${TNNRoot}/third_party/stb)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/../base)
+include_directories(${CMAKE_SOURCE_DIR}/../utils)
 link_directories(${TNN_LIB_PATH})
 
 link_libraries(-Wl,--whole-archive TNN -Wl,--no-whole-archive)
 
-file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/../base/*.cc")
+file(GLOB_RECURSE BASE_SRC "${CMAKE_SOURCE_DIR}/../base/*.cc")
+file(GLOB_RECURSE UTIL_SRC "${CMAKE_SOURCE_DIR}/../utils/*.cc")
 
-add_executable(demo_arm_linux_imageclassify src/image_classify.cc ${SRC})
-add_executable(demo_arm_linux_facedetector src/face_detector.cc ${SRC})
+add_executable(demo_arm_linux_imageclassify src/image_classify.cc ${BASE_SRC} ${UTIL_SRC})
+add_executable(demo_arm_linux_facedetector src/face_detector.cc ${BASE_SRC} ${UTIL_SRC})
