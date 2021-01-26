@@ -12,9 +12,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn/device/cuda/cuda_mat_util.cuh"
+
+#include <algorithm>
+
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/mat_converter_utils.h"
-#include "tnn/device/cuda/cuda_mat_util.cuh"
 
 namespace TNN_NS {
 
