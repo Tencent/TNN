@@ -206,7 +206,7 @@ static bool file_exists(const char * fname) {
 }
 
 static void create_file(const char * fname) {
-    int fd = open(this->m_lock_name.c_str(), O_RDWR | O_CREAT, 0666);
+    int fd = open(fname, O_RDWR | O_CREAT, 0666);
     close(fd);
 }
 
