@@ -252,6 +252,33 @@ DimsVector DimsVectorUtils::StrideSlice(const DimsVector input_dims,
     return output_dims;
 }
 
+DimsVector DimsVectorUtils::Pad(const DimsVector output_index, DimsVector input_dims, DimsVector pads,
+                      int type, Status *status) {
+    DimsVector input_index(output_index.size(), 0);
+    if (type != 0) {
+        if (status) {
+            *status = Status(TNNERR_PARAM_ERR, "PadV2 type is not supported");
+        }
+        return input_index;
+    }
+    
+    for (int i=0; i<input_dims.size(); i++) {
+        input_index[i] = output_index[i] - pads[i];
+    }
+    
+    return input_index;
+}
+
+bool DimsVectorUtils::IsInBox(const DimsVector index, const DimsVector shape) {
+    for (int i=0; i<index.size(); i++) {
+        if (index[i] < 0 || index[i] >= shape[i]) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 DimsVector DimsVectorUtils::NCHW2NHWC(DimsVector dims) {
     ASSERT(dims.size() == 4);
     const int n           = dims[0];

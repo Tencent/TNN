@@ -197,6 +197,12 @@ enum LayerType {
     LAYER_CONSTANT_OF_SHAPE                                 = 308,
     LAYER_NONZERO                                           = 309,
     LAYER_LSTMONNX                                           = 310,
+    LAYER_RANGE                                                  = 311,
+    LAYER_SIZE                                                  = 312,
+    LAYER_BITSHIFT                                                  = 313,
+    LAYER_HISTOGRAM                                                  = 314,
+    LAYER_GATHERND                                                  = 315,
+    LAYER_PADV2                                                  = 316,
 
     LAYER_BLOB_SCALE                                        = 600,
 

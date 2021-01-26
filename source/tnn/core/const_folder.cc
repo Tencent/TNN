@@ -78,7 +78,7 @@ Status ConstFolder::Forward() {
     for (auto layer : layers_) {
         if (layer->IsOutputConstant()) {
             constant_layers.insert(layer->GetLayerName());
-            if (layer->IsOutputShapeDifferent()) {
+            if (layer->GetLayerChangeFlag() == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER) {
                 shape_differ_layers.insert(layer->GetLayerName());
                 continue;
             }
@@ -131,7 +131,6 @@ Status ConstFolder::Forward() {
                 }
             }
         }
-
     }
     net_resource_->constant_layers = constant_layers;
     net_resource_->shape_differ_layers = shape_differ_layers;

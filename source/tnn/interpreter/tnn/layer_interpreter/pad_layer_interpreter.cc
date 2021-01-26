@@ -84,7 +84,7 @@ Status PadLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* 
 
     output_stream << "0 0 " << layer_param->pads[2] << " " << layer_param->pads[3] << " " << layer_param->pads[0] << " "
                   << layer_param->pads[1] << " " << layer_param->pads[4] << " " << layer_param->pads[5] << " "
-                  << layer_param->type << " ";
+                  << layer_param->type << " "<< layer_param->value << " ";
 
     return TNN_OK;
 }
