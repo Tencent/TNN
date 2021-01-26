@@ -124,9 +124,9 @@ Status X86InnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
     auto dims_input  = input_blob->GetBlobDesc().dims;
     auto dims_output = output_blob->GetBlobDesc().dims;
 
-    auto X86SgemvFunc = X86SgemvSSE;
+    auto X86SgemvFunc = X86Sgemv<Float4, 4>;
     if (arch_ == avx2) {
-        X86SgemvFunc = X86SgemvAVX2;
+        X86SgemvFunc = X86Sgemv<Float8, 8>;
     }
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         X86SgemvFunc(output_data, input_data, weight_data, bias_data, input_dims, output_dims);

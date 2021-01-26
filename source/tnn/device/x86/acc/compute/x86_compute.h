@@ -21,6 +21,8 @@
 #include "tnn/device/x86/acc/x86_reduce_op_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/interpreter/layer_param.h"
+#include "tnn/device/x86/acc/Float4.h"
+#include "tnn/device/x86/acc/Float8.h"
 
 namespace TNN_NS {
 
@@ -52,16 +54,12 @@ template <class T, int pack_c>
 void X86AvgPooling(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
                 long stride_h, long pad_w, long pad_h);
 
-template <int activation_type>
-void DepthwiseConvSSE(float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
+template <int activation_type, typename VEC, int pack>
+void DepthwiseConv(float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
                    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
 
-template <int activation_type>
-void DepthwiseConvAVX2(float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
-                   long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
-
-void X86SgemvSSE(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output);
-void X86SgemvAVX2(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output);
+template <typename VEC, int pack>
+void X86Sgemv(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output);
 }   // namespace TNN_NS
 
 #endif

@@ -549,177 +549,102 @@ Status X86_NORMALIZE_CALCULATE(float *input, float *output, int axis,
     return TNN_OK;
 }
 
-template <int activation_type>
-void DepthwiseConvSSE(float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
+template <int activation_type, typename VEC, int pack>
+void DepthwiseConv(float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
                    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep) {
     long dx, fx, fy;
-    Float4 bias_v = Float4::loadu(bias);
-    Float4 v_zero = Float4(0.f);
-    Float4 v_6    = Float4(6.f);
+    VEC bias_v = VEC::loadu(bias);
+    VEC v_zero = VEC(0.f);
+    VEC v_6    = VEC(6.f);
     for (long y = 0; y < height; ++y) {
         auto srcY = src + y * srcHStep;
         auto dstY = dst + y * dstHStep;
         dx        = 0;
         for (; dx + 3 < width; dx += 4) {
-            Float4 dst_v[4];
+            VEC dst_v[4];
             for (long i = 0; i < 4; i++)
                 dst_v[i] = bias_v;
             const auto* src_z    = srcY + src_w_step * dx;
             const auto* weight_z = weight;
             for (fy = 0; fy < fh; ++fy) {
                 const auto* src_y    = src_z + fy * dilate_y_step;
-                const auto* weight_y = weight_z + fy * fw * 4;
+                const auto* weight_y = weight_z + fy * fw * pack;
                 for (fx = 0; fx < fw; ++fx) {
-                    Float4 weight_v = Float4::loadu(weight_y + 4 * fx);
-                    Float4 src_v0   = Float4::load(src_y + fx * dilate_x_step);
-                    Float4 src_v1 = Float4::load(src_y + fx * dilate_x_step + src_w_step);
-                    Float4 src_v2 = Float4::load(src_y + fx * dilate_x_step + 2 * src_w_step);
-                    Float4 src_v3 = Float4::load(src_y + fx * dilate_x_step + 3 * src_w_step);
-                    Float4::mla(dst_v[0], src_v0, weight_v);
-                    Float4::mla(dst_v[1], src_v1, weight_v);
-                    Float4::mla(dst_v[2], src_v2, weight_v);
-                    Float4::mla(dst_v[3], src_v3, weight_v);
+                    VEC weight_v = VEC::loadu(weight_y + pack * fx);
+                    VEC src_v0   = VEC::load(src_y + fx * dilate_x_step);
+                    VEC src_v1   = VEC::load(src_y + fx * dilate_x_step + src_w_step);
+                    VEC src_v2   = VEC::load(src_y + fx * dilate_x_step + 2 * src_w_step);
+                    VEC src_v3   = VEC::load(src_y + fx * dilate_x_step + 3 * src_w_step);
+                    VEC::mla(dst_v[0], src_v0, weight_v);
+                    VEC::mla(dst_v[1], src_v1, weight_v);
+                    VEC::mla(dst_v[2], src_v2, weight_v);
+                    VEC::mla(dst_v[3], src_v3, weight_v);
                 }
             }
             if (activation_type == ActivationType_ReLU || 
                 activation_type == ActivationType_ReLU6) {
-                dst_v[0] = Float4::max(dst_v[0], v_zero);
-                dst_v[1] = Float4::max(dst_v[1], v_zero);
-                dst_v[2] = Float4::max(dst_v[2], v_zero);
-                dst_v[3] = Float4::max(dst_v[3], v_zero);
+                dst_v[0] = VEC::max(dst_v[0], v_zero);
+                dst_v[1] = VEC::max(dst_v[1], v_zero);
+                dst_v[2] = VEC::max(dst_v[2], v_zero);
+                dst_v[3] = VEC::max(dst_v[3], v_zero);
             }
             if (activation_type == ActivationType_ReLU6) {
-                dst_v[0] = Float4::min(dst_v[0], v_6);
-                dst_v[1] = Float4::min(dst_v[1], v_6);
-                dst_v[2] = Float4::min(dst_v[2], v_6);
-                dst_v[3] = Float4::min(dst_v[3], v_6);
+                dst_v[0] = VEC::min(dst_v[0], v_6);
+                dst_v[1] = VEC::min(dst_v[1], v_6);
+                dst_v[2] = VEC::min(dst_v[2], v_6);
+                dst_v[3] = VEC::min(dst_v[3], v_6);
             }
-            Float4::save(dstY + (dx + 0) * 4, dst_v[0]);
-            Float4::save(dstY + (dx + 1) * 4, dst_v[1]);
-            Float4::save(dstY + (dx + 2) * 4, dst_v[2]);
-            Float4::save(dstY + (dx + 3) * 4, dst_v[3]);
+            VEC::save(dstY + (dx + 0) * pack, dst_v[0]);
+            VEC::save(dstY + (dx + 1) * pack, dst_v[1]);
+            VEC::save(dstY + (dx + 2) * pack, dst_v[2]);
+            VEC::save(dstY + (dx + 3) * pack, dst_v[3]);
         }
         for (; dx < width; ++dx) {
-            Float4 dst_v = bias_v;
+            VEC dst_v = bias_v;
             const auto* src_z    = srcY + src_w_step * dx;
             const auto* weight_z = weight;
             for (fy = 0; fy < fh; ++fy) {
                 const auto* src_y    = src_z + fy * dilate_y_step;
-                const auto* weight_y = weight_z + fy * fw * 4;
+                const auto* weight_y = weight_z + fy * fw * pack;
                 for (fx = 0; fx < fw; ++fx) {
-                    Float4 src_v    = Float4::load(src_y + fx * dilate_x_step);
-                    Float4 weight_v = Float4::loadu(weight_y + 4 * fx);
-                    Float4::mla(dst_v, src_v, weight_v);
+                    VEC src_v    = VEC::load(src_y + fx * dilate_x_step);
+                    VEC weight_v = VEC::loadu(weight_y + pack * fx);
+                    VEC::mla(dst_v, src_v, weight_v);
                 }
             }
             if (activation_type == ActivationType_ReLU || 
                 activation_type == ActivationType_ReLU6) {
-                dst_v = Float4::max(dst_v, v_zero);
+                dst_v = VEC::max(dst_v, v_zero);
             }
             if (activation_type == ActivationType_ReLU6) {
-                dst_v = Float4::min(dst_v, v_6);
+                dst_v = VEC::min(dst_v, v_6);
             }
-            Float4::save(dstY + dx * 4, dst_v);
+            VEC::save(dstY + dx * pack, dst_v);
         }
     }
 }
 
-template void DepthwiseConvSSE<ActivationType_None>(
+template void DepthwiseConv<ActivationType_None, Float4, 4>(
     float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
     long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
 
-template void DepthwiseConvSSE<ActivationType_ReLU>(
+template void DepthwiseConv<ActivationType_ReLU, Float4, 4>(
     float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
     long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
 
-template void DepthwiseConvSSE<ActivationType_ReLU6>(
+template void DepthwiseConv<ActivationType_ReLU6, Float4, 4>(
     float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
     long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
 
-template <int activation_type>
-void DepthwiseConvAVX2(float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
-                   long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep) {
-    long dx, fx, fy;
-    Float8 bias_v = Float8::loadu(bias);
-    Float8 v_zero = Float8(0.f);
-    Float8 v_6    = Float8(6.f);
-    for (long y = 0; y < height; ++y) {
-        auto srcY = src + y * srcHStep;
-        auto dstY = dst + y * dstHStep;
-        dx        = 0;
-        for (; dx + 3 < width; dx += 4) {
-            Float8 dst_v[4];
-            for (long i = 0; i < 4; i++)
-                dst_v[i] = bias_v;
-            const auto* src_z    = srcY + src_w_step * dx;
-            const auto* weight_z = weight;
-            for (fy = 0; fy < fh; ++fy) {
-                const auto* src_y    = src_z + fy * dilate_y_step;
-                const auto* weight_y = weight_z + fy * fw * 8;
-                for (fx = 0; fx < fw; ++fx) {
-                    Float8 weight_v = Float8::loadu(weight_y + 8 * fx);
-                    Float8 src_v0   = Float8::load(src_y + fx * dilate_x_step);
-                    Float8 src_v1 = Float8::load(src_y + fx * dilate_x_step + src_w_step);
-                    Float8 src_v2 = Float8::load(src_y + fx * dilate_x_step + 2 * src_w_step);
-                    Float8 src_v3 = Float8::load(src_y + fx * dilate_x_step + 3 * src_w_step);
-                    Float8::mla(dst_v[0], src_v0, weight_v);
-                    Float8::mla(dst_v[1], src_v1, weight_v);
-                    Float8::mla(dst_v[2], src_v2, weight_v);
-                    Float8::mla(dst_v[3], src_v3, weight_v);
-                }
-            }
-            if (activation_type == ActivationType_ReLU || 
-                activation_type == ActivationType_ReLU6) {
-                dst_v[0] = Float8::max(dst_v[0], v_zero);
-                dst_v[1] = Float8::max(dst_v[1], v_zero);
-                dst_v[2] = Float8::max(dst_v[2], v_zero);
-                dst_v[3] = Float8::max(dst_v[3], v_zero);
-            }
-            if (activation_type == ActivationType_ReLU6) {
-                dst_v[0] = Float8::min(dst_v[0], v_6);
-                dst_v[1] = Float8::min(dst_v[1], v_6);
-                dst_v[2] = Float8::min(dst_v[2], v_6);
-                dst_v[3] = Float8::min(dst_v[3], v_6);
-            }
-            Float8::save(dstY + (dx + 0) * 8, dst_v[0]);
-            Float8::save(dstY + (dx + 1) * 8, dst_v[1]);
-            Float8::save(dstY + (dx + 2) * 8, dst_v[2]);
-            Float8::save(dstY + (dx + 3) * 8, dst_v[3]);
-        }
-        for (; dx < width; ++dx) {
-            Float8 dst_v = bias_v;
-            const auto* src_z    = srcY + src_w_step * dx;
-            const auto* weight_z = weight;
-            for (fy = 0; fy < fh; ++fy) {
-                const auto* src_y    = src_z + fy * dilate_y_step;
-                const auto* weight_y = weight_z + fy * fw * 8;
-                for (fx = 0; fx < fw; ++fx) {
-                    Float8 src_v    = Float8::load(src_y + fx * dilate_x_step);
-                    Float8 weight_v = Float8::loadu(weight_y + 8 * fx);
-                    Float8::mla(dst_v, src_v, weight_v);
-                }
-            }
-            if (activation_type == ActivationType_ReLU || 
-                activation_type == ActivationType_ReLU6) {
-                dst_v = Float8::max(dst_v, v_zero);
-            }
-            if (activation_type == ActivationType_ReLU6) {
-                dst_v = Float8::min(dst_v, v_6);
-            }
-            Float8::save(dstY + dx * 8, dst_v);
-        }
-    }
-}
-
-template void DepthwiseConvAVX2<ActivationType_None>(
+template void DepthwiseConv<ActivationType_None, Float8, 8>(
     float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
     long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
 
-template void DepthwiseConvAVX2<ActivationType_ReLU>(
+template void DepthwiseConv<ActivationType_ReLU, Float8, 8>(
     float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
     long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
 
-template void DepthwiseConvAVX2<ActivationType_ReLU6>(
+template void DepthwiseConv<ActivationType_ReLU6, Float8, 8>(
     float* dst, const float* src, const float* weight, const float* bias, long width, long src_w_step, long fw, long fh,
     long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
 
@@ -740,101 +665,63 @@ void X86SgemvLeft(float* dst, const float* src, const float* weight, float *bias
     }
 }
 
-void X86SgemvSSE(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output) {
+template <typename VEC, int pack>
+void X86Sgemv(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output) {
     size_t batch_stride = dims_input[3] * dims_input[2] * dims_input[1];
     for (int b = 0; b < dims_output[0]; ++b) {
         const float *src_batch = src + b * batch_stride;
         float *dst_batch = dst + b * dims_output[1];
 
         int oc = 0;
-        for (; oc + 3 < dims_output[1]; oc += 4) {
+        for (; oc + pack - 1 < dims_output[1]; oc += pack) {
             auto weight_oc = weight + oc * batch_stride;
-            Float4 acc = Float4::loadu(bias + oc);
+            VEC acc = VEC::loadu(bias + oc);
             size_t ic = 0;
             for (; ic + 3 < batch_stride; ic += 4) {
-                auto weight_ic   = weight_oc + ic * 4;
-                Float4 src_v0    = Float4(src_batch[ic]);
-                Float4 src_v1    = Float4(src_batch[ic + 1]);
-                Float4 src_v2    = Float4(src_batch[ic + 2]);
-                Float4 src_v3    = Float4(src_batch[ic + 3]);
-                Float4 weight_v0 = Float4::load(weight_ic);
-                Float4 weight_v1 = Float4::load(weight_ic + 4);
-                Float4 weight_v2 = Float4::load(weight_ic + 8);
-                Float4 weight_v3 = Float4::load(weight_ic + 12);
-                Float4::mla(acc, weight_v0, src_v0);
-                Float4::mla(acc, weight_v1, src_v1);
-                Float4::mla(acc, weight_v2, src_v2);
-                Float4::mla(acc, weight_v3, src_v3);
+                auto weight_ic   = weight_oc + ic * pack;
+                VEC src_v0    = VEC(src_batch[ic]);
+                VEC src_v1    = VEC(src_batch[ic + 1]);
+                VEC src_v2    = VEC(src_batch[ic + 2]);
+                VEC src_v3    = VEC(src_batch[ic + 3]);
+                VEC weight_v0 = VEC::load(weight_ic);
+                VEC weight_v1 = VEC::load(weight_ic + pack * 1);
+                VEC weight_v2 = VEC::load(weight_ic + pack * 2);
+                VEC weight_v3 = VEC::load(weight_ic + pack * 3);
+                VEC::mla(acc, weight_v0, src_v0);
+                VEC::mla(acc, weight_v1, src_v1);
+                VEC::mla(acc, weight_v2, src_v2);
+                VEC::mla(acc, weight_v3, src_v3);
             }
             for (; ic < batch_stride; ic++) {
-                Float4 src_v    = Float4(src_batch[ic]);
-                Float4 weight_v = Float4::load(weight_oc + ic * 4); 
-                Float4::mla(acc, weight_v, src_v);
+                VEC src_v    = VEC(src_batch[ic]);
+                VEC weight_v = VEC::load(weight_oc + ic * pack);
+                VEC::mla(acc, weight_v, src_v);
             }
-            Float4::saveu(dst_batch + oc, acc);
+            VEC::saveu(dst_batch + oc, acc);
         }
         int left = dims_output[1] - oc;
+        if (pack == 8) {
+            if (left == 7) {
+                X86SgemvLeft<7, pack>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+            } else if (left == 6) {
+                X86SgemvLeft<6, pack>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+            } else if (left == 5) {
+                X86SgemvLeft<5, pack>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+            } else if (left == 4) {
+                X86SgemvLeft<4, pack>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+            }
+        }
         if (left == 3) {
-            X86SgemvLeft<3, 4>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+            X86SgemvLeft<3, pack>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
         } else if (left == 2) {
-            X86SgemvLeft<2, 4>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+            X86SgemvLeft<2, pack>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
         } else if (left == 1) {
-            X86SgemvLeft<1, 4>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
+            X86SgemvLeft<1, pack>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
         }
     }
 }
-
-void X86SgemvAVX2(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output) {
-    size_t batch_stride = dims_input[3] * dims_input[2] * dims_input[1];
-    for (int b = 0; b < dims_output[0]; ++b) {
-        const float *src_batch = src + b * batch_stride;
-        float *dst_batch = dst + b * dims_output[1];
-
-        int oc = 0;
-        for (; oc + 7 < dims_output[1]; oc += 8) {
-            auto weight_oc = weight + oc * batch_stride;
-            Float8 acc = Float8::loadu(bias + oc);
-            size_t ic = 0;
-            for (; ic + 3 < batch_stride; ic += 4) {
-                auto weight_ic   = weight_oc + ic * 8;
-                Float8 src_v0    = Float8(src_batch + ic);
-                Float8 src_v1    = Float8(src_batch + ic + 1);
-                Float8 src_v2    = Float8(src_batch + ic + 2);
-                Float8 src_v3    = Float8(src_batch + ic + 3);
-                Float8 weight_v0 = Float8::load(weight_ic);
-                Float8 weight_v1 = Float8::load(weight_ic + 8);
-                Float8 weight_v2 = Float8::load(weight_ic + 16);
-                Float8 weight_v3 = Float8::load(weight_ic + 24);
-                Float8::mla(acc, weight_v0, src_v0);
-                Float8::mla(acc, weight_v1, src_v1);
-                Float8::mla(acc, weight_v2, src_v2);
-                Float8::mla(acc, weight_v3, src_v3);
-            }
-            for (; ic < batch_stride; ic++) {
-                Float8 src_v    = Float8(src_batch + ic);
-                Float8 weight_v = Float8::load(weight_oc + ic * 8); 
-                Float8::mla(acc, weight_v, src_v);
-            }
-            Float8::saveu(dst_batch + oc, acc);
-        }
-        int left = dims_output[1] - oc;
-        if (left == 7) {
-            X86SgemvLeft<7, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
-        } else if (left == 6) {
-            X86SgemvLeft<6, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
-        } else if (left == 5) {
-            X86SgemvLeft<5, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
-        } else if (left == 4) {
-            X86SgemvLeft<4, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
-        }else if (left == 3) {
-            X86SgemvLeft<3, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
-        } else if (left == 2) {
-            X86SgemvLeft<2, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
-        } else if (left == 1) {
-            X86SgemvLeft<1, 8>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
-        }
-    }
-}
+template void X86Sgemv<Float4, 4>(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output);
+template void X86Sgemv<Float8, 8>(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output);
 
 //ActivationType_SIGMOID_MUL TBD
 

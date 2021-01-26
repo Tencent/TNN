@@ -19,6 +19,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/device/x86/acc/Float4.h"
+#include "tnn/device/x86/acc/Float8.h"
 
 namespace TNN_NS {
 
@@ -45,27 +46,45 @@ template<> float binary_op<X86BinaryOpType::kMIN>(const float a, const float b) 
     return a < b ? a : b;
 }
 
-template<X86BinaryOpType type>
-Float4 binary_op(const Float4 a, const Float4 b) {
+template<X86BinaryOpType type, typename VEC>
+VEC binary_op(const VEC a, const VEC b) {
     return a;
 }
-template<> Float4 binary_op<X86BinaryOpType::kADD>(const Float4 a, const Float4 b) {
+template<> Float4 binary_op<X86BinaryOpType::kADD, Float4>(const Float4 a, const Float4 b) {
     return Float4::add(a, b);
 }
-template<> Float4 binary_op<X86BinaryOpType::kSUB>(const Float4 a, const Float4 b) {
+template<> Float4 binary_op<X86BinaryOpType::kSUB, Float4>(const Float4 a, const Float4 b) {
     return Float4::sub(a, b);
 }
-template<> Float4 binary_op<X86BinaryOpType::kMUL>(const Float4 a, const Float4 b) {
+template<> Float4 binary_op<X86BinaryOpType::kMUL, Float4>(const Float4 a, const Float4 b) {
     return Float4::mul(a, b);
 }
-template<> Float4 binary_op<X86BinaryOpType::kDIV>(const Float4 a, const Float4 b) {
+template<> Float4 binary_op<X86BinaryOpType::kDIV, Float4>(const Float4 a, const Float4 b) {
     return Float4::div(a, b);
 }
-template<> Float4 binary_op<X86BinaryOpType::kMAX>(const Float4 a, const Float4 b) {
+template<> Float4 binary_op<X86BinaryOpType::kMAX, Float4>(const Float4 a, const Float4 b) {
     return Float4::max(a, b);
 }
-template<> Float4 binary_op<X86BinaryOpType::kMIN>(const Float4 a, const Float4 b) {
+template<> Float4 binary_op<X86BinaryOpType::kMIN, Float4>(const Float4 a, const Float4 b) {
     return Float4::min(a, b);
+}
+template<> Float8 binary_op<X86BinaryOpType::kADD, Float8>(const Float8 a, const Float8 b) {
+    return Float8::add(a, b);
+}
+template<> Float8 binary_op<X86BinaryOpType::kSUB, Float8>(const Float8 a, const Float8 b) {
+    return Float8::sub(a, b);
+}
+template<> Float8 binary_op<X86BinaryOpType::kMUL, Float8>(const Float8 a, const Float8 b) {
+    return Float8::mul(a, b);
+}
+template<> Float8 binary_op<X86BinaryOpType::kDIV, Float8>(const Float8 a, const Float8 b) {
+    return Float8::div(a, b);
+}
+template<> Float8 binary_op<X86BinaryOpType::kMAX, Float8>(const Float8 a, const Float8 b) {
+    return Float8::max(a, b);
+}
+template<> Float8 binary_op<X86BinaryOpType::kMIN, Float8>(const Float8 a, const Float8 b) {
+    return Float8::min(a, b);
 }
 
 static void BroadCastInit(const DimsVector &dims, const DimsVector &dims0, const DimsVector &dims1, BroadcastType &type,
@@ -100,7 +119,7 @@ static void BroadCastInit(const DimsVector &dims, const DimsVector &dims0, const
 Binary func with different opreator,
 set dims0 full shape, dims1 broadcast shape, so we need to swap input ptrs
 */
-template <X86BinaryOpType op_type>
+template <X86BinaryOpType op_type, typename VEC, int pack>
 Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input1_ptr, DimsVector &dims0, DimsVector &dims1) {
     DimsVector dims = DimsVectorUtils::Max(dims0, dims1);
     DimsVector dims_broadcast;
@@ -125,10 +144,10 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
 
     if (type == BroadcastTypeNormal) {
         size_t n = 0;
-        for (; n + 3 < count; n += 4) {
-            Float4 v1 = Float4::loadu(_input0 + n);
-            Float4 v2 = Float4::loadu(_input1 + n);
-            Float4::saveu(output_ptr + n, binary_op<op_type>(v1, v2));
+        for (; n + pack - 1 < count; n += pack) {
+            VEC v1 = VEC::loadu(_input0 + n);
+            VEC v2 = VEC::loadu(_input1 + n);
+            VEC::saveu(output_ptr + n, binary_op<op_type, VEC>(v1, v2));
         }
         for (; n < count; n++) {
             output_ptr[n] = binary_op<op_type>(_input0[n], _input1[n]);
@@ -139,11 +158,11 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
     if (swap_flag) {
         if (type == BroadcastTypeSingle) {
             // broadcast single
-            Float4 v2 = Float4(_input1[0]);
+            VEC v2 = VEC(_input1[0]);
             size_t n = 0;
-            for (; n + 3 < count; n += 4) {
-                Float4 v1 = Float4::loadu(_input0 + n);
-                Float4::saveu(output_ptr + n, binary_op<op_type>(v2, v1));
+            for (; n + pack - 1 < count; n += pack) {
+                VEC v1 = VEC::loadu(_input0 + n);
+                VEC::saveu(output_ptr + n, binary_op<op_type, VEC>(v2, v1));
             }
             for (; n < count; n++) {
                 output_ptr[n] = binary_op<op_type>(_input1[0], _input0[n]);
@@ -152,13 +171,13 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
             // broadcast channel
             for (int b = 0; b < dims[0]; b++) {
                 for (int c = 0; c < dims[1]; c++) {
-                    Float4 v2 = Float4(_input1[c]);
+                    VEC v2 = VEC(_input1[c]);
                     auto _input0_c = _input0 + b * batch_stride + c * channel_stride;
                     auto _output_c = output_ptr + b * batch_stride + c * channel_stride;
                     int hw = 0;
-                    for (; hw + 3 < channel_stride; hw += 4) {
-                        Float4 v1 = Float4::loadu(_input0_c + hw);
-                        Float4::saveu(_output_c + hw, binary_op<op_type>(v2, v1));
+                    for (; hw + pack - 1 < channel_stride; hw += pack) {
+                        VEC v1 = VEC::loadu(_input0_c + hw);
+                        VEC::saveu(_output_c + hw, binary_op<op_type, VEC>(v2, v1));
                     }
                     for (; hw < channel_stride; hw++) {
                         _output_c[hw] = binary_op<op_type>(_input1[c], _input0_c[hw]);
@@ -171,10 +190,10 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
                 auto _input0_b = _input0 + b * batch_stride;
                 auto _output_b = output_ptr + b * batch_stride;
                 int chw = 0;
-                for (; chw + 3 < batch_stride; chw += 4) {
-                    Float4 v2 = Float4::loadu(_input1 + chw);
-                    Float4 v1 = Float4::loadu(_input0_b + chw);
-                    Float4::saveu(_output_b + chw, binary_op<op_type>(v2, v1));
+                for (; chw + pack - 1 < batch_stride; chw += pack) {
+                    VEC v2 = VEC::loadu(_input1 + chw);
+                    VEC v1 = VEC::loadu(_input0_b + chw);
+                    VEC::saveu(_output_b + chw, binary_op<op_type, VEC>(v2, v1));
                 }
                 for (; chw < batch_stride; chw++) {
                     _output_b[chw] = binary_op<op_type>(_input1[chw], _input0_b[chw]);
@@ -187,10 +206,10 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
                     auto _input0_c = _input0 + b * batch_stride + c * channel_stride;
                     auto _output_c = output_ptr + b * batch_stride + c * channel_stride;
                     int hw = 0;
-                    for (; hw + 3 < channel_stride; hw += 4) {
-                        Float4 v2 = Float4::loadu(_input1 + hw);
-                        Float4 v1 = Float4::loadu(_input0_c + hw);
-                        Float4::saveu(_output_c + hw, binary_op<op_type>(v2, v1));
+                    for (; hw + pack - 1 < channel_stride; hw += pack) {
+                        VEC v2 = VEC::loadu(_input1 + hw);
+                        VEC v1 = VEC::loadu(_input0_c + hw);
+                        VEC::saveu(_output_c + hw, binary_op<op_type, VEC>(v2, v1));
                     }
                     for (; hw < channel_stride; hw++) {
                         _output_c[hw] = binary_op<op_type>(_input1[hw], _input0_c[hw]);
@@ -207,10 +226,10 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
                         auto _input0_h = _input0_c + h * dims[3];
                         auto _output_h = _output_c + h * dims[3];
                         int w = 0;
-                        for (; w + 3 < dims[3]; w += 4) {
-                            Float4 v2 = Float4::loadu(_input1 + w);
-                            Float4 v1 = Float4::loadu(_input0_h + w);
-                            Float4::saveu(_output_h + h, binary_op<op_type>(v2, v1));
+                        for (; w + pack - 1 < dims[3]; w += pack) {
+                            VEC v2 = VEC::loadu(_input1 + w);
+                            VEC v1 = VEC::loadu(_input0_h + w);
+                            VEC::saveu(_output_h + h, binary_op<op_type, VEC>(v2, v1));
                         }
                         for (; w < dims[3]; w++) {
                             _output_h[w] = binary_op<op_type>(_input1[w], _input0_h[w]);
@@ -225,11 +244,11 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
     } else {
         if (type == BroadcastTypeSingle) {
             // broadcast single
-            Float4 v2 = Float4(_input1[0]);
+            VEC v2 = VEC(_input1[0]);
             size_t n = 0;
-            for (; n + 3 < count; n += 4) {
-                Float4 v1 = Float4::loadu(_input0 + n);
-                Float4::saveu(output_ptr + n, binary_op<op_type>(v1, v2));
+            for (; n + pack - 1 < count; n += pack) {
+                VEC v1 = VEC::loadu(_input0 + n);
+                VEC::saveu(output_ptr + n, binary_op<op_type, VEC>(v1, v2));
             }
             for (; n < count; n++) {
                 output_ptr[n] = binary_op<op_type>(_input0[n], _input1[0]);
@@ -238,13 +257,13 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
             // broadcast channel
             for (int b = 0; b < dims[0]; b++) {
                 for (int c = 0; c < dims[1]; c++) {
-                    Float4 v2 = Float4(_input1[c]);
+                    VEC v2 = VEC(_input1[c]);
                     auto _input0_c = _input0 + b * batch_stride + c * channel_stride;
                     auto _output_c = output_ptr + b * batch_stride + c * channel_stride;
                     int hw = 0;
-                    for (; hw + 3 < channel_stride; hw += 4) {
-                        Float4 v1 = Float4::loadu(_input0_c + hw);
-                        Float4::saveu(_output_c + hw, binary_op<op_type>(v1, v2));
+                    for (; hw + pack - 1 < channel_stride; hw += pack) {
+                        VEC v1 = VEC::loadu(_input0_c + hw);
+                        VEC::saveu(_output_c + hw, binary_op<op_type, VEC>(v1, v2));
                     }
                     for (; hw < channel_stride; hw++) {
                         _output_c[hw] = binary_op<op_type>(_input0_c[hw], _input1[c]);
@@ -257,10 +276,10 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
                 auto _input0_b = _input0 + b * batch_stride;
                 auto _output_b = output_ptr + b * batch_stride;
                 int chw = 0;
-                for (; chw + 3 < batch_stride; chw += 4) {
-                    Float4 v2 = Float4::loadu(_input1 + chw);
-                    Float4 v1 = Float4::loadu(_input0_b + chw);
-                    Float4::saveu(_output_b + chw, binary_op<op_type>(v1, v2));
+                for (; chw + pack - 1 < batch_stride; chw += pack) {
+                    VEC v2 = VEC::loadu(_input1 + chw);
+                    VEC v1 = VEC::loadu(_input0_b + chw);
+                    VEC::saveu(_output_b + chw, binary_op<op_type, VEC>(v1, v2));
                 }
                 for (; chw < batch_stride; chw++) {
                     _output_b[chw] = binary_op<op_type>(_input0_b[chw], _input1[chw]);
@@ -273,10 +292,10 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
                     auto _input0_c = _input0 + b * batch_stride + c * channel_stride;
                     auto _output_c = output_ptr + b * batch_stride + c * channel_stride;
                     int hw = 0;
-                    for (; hw + 3 < channel_stride; hw += 4) {
-                        Float4 v2 = Float4::loadu(_input1 + hw);
-                        Float4 v1 = Float4::loadu(_input0_c + hw);
-                        Float4::saveu(_output_c + hw, binary_op<op_type>(v1, v2));
+                    for (; hw + pack - 1 < channel_stride; hw += pack) {
+                        VEC v2 = VEC::loadu(_input1 + hw);
+                        VEC v1 = VEC::loadu(_input0_c + hw);
+                        VEC::saveu(_output_c + hw, binary_op<op_type, VEC>(v1, v2));
                     }
                     for (; hw < channel_stride; hw++) {
                         _output_c[hw] = binary_op<op_type>(_input0_c[hw], _input1[hw]);
@@ -293,10 +312,10 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
                         auto _input0_h = _input0_c + h * dims[3];
                         auto _output_h = _output_c + h * dims[3];
                         int w = 0;
-                        for (; w + 3 < dims[3]; w += 4) {
-                            Float4 v2 = Float4::loadu(_input1 + w);
-                            Float4 v1 = Float4::loadu(_input0_h + w);
-                            Float4::saveu(_output_h + h, binary_op<op_type>(v1, v2));
+                        for (; w + pack - 1 < dims[3]; w += pack) {
+                            VEC v2 = VEC::loadu(_input1 + w);
+                            VEC v1 = VEC::loadu(_input0_h + w);
+                            VEC::saveu(_output_h + h, binary_op<op_type, VEC>(v1, v2));
                         }
                         for (; w < dims[3]; w++) {
                             _output_h[w] = binary_op<op_type>(_input0_h[w], _input1[w]);
@@ -375,31 +394,58 @@ Status X86BinaryOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     auto input0_ptr = reinterpret_cast<float *>(input_ptrs[0]);
     auto input1_ptr = reinterpret_cast<float *>(input_ptrs[1]);
 
-    auto binary_func = BinaryFunc<X86BinaryOpType::kADD>;
+    auto binary_func = BinaryFunc<X86BinaryOpType::kADD, Float4, 4>;
 
-    switch(op_type_) {
-        case X86BinaryOpType::kADD :
-            binary_func = BinaryFunc<X86BinaryOpType::kADD>;
-            break;
-        case X86BinaryOpType::kSUB :
-            binary_func = BinaryFunc<X86BinaryOpType::kSUB>;
-            break;
-        case X86BinaryOpType::kMUL :
-            binary_func = BinaryFunc<X86BinaryOpType::kMUL>;
-            break;
-        case X86BinaryOpType::kDIV :
-            binary_func = BinaryFunc<X86BinaryOpType::kDIV>;
-            break;
-        case X86BinaryOpType::kMAX :
-            binary_func = BinaryFunc<X86BinaryOpType::kMAX>;
-            break;
-        case X86BinaryOpType::kMIN :
-            binary_func = BinaryFunc<X86BinaryOpType::kMIN>;
-            break;
+    if (arch_ == avx2) {
+        switch(op_type_) {
+            case X86BinaryOpType::kADD :
+                binary_func = BinaryFunc<X86BinaryOpType::kADD, Float8, 8>;
+                break;
+            case X86BinaryOpType::kSUB :
+                binary_func = BinaryFunc<X86BinaryOpType::kSUB, Float8, 8>;
+                break;
+            case X86BinaryOpType::kMUL :
+                binary_func = BinaryFunc<X86BinaryOpType::kMUL, Float8, 8>;
+                break;
+            case X86BinaryOpType::kDIV :
+                binary_func = BinaryFunc<X86BinaryOpType::kDIV, Float8, 8>;
+                break;
+            case X86BinaryOpType::kMAX :
+                binary_func = BinaryFunc<X86BinaryOpType::kMAX, Float8, 8>;
+                break;
+            case X86BinaryOpType::kMIN :
+                binary_func = BinaryFunc<X86BinaryOpType::kMIN, Float8, 8>;
+                break;
 
-        default :
-            LOGE("Error, unknown binary op_type\n");
-            return TNNERR_LAYER_ERR;
+            default :
+                LOGE("Error, unknown binary op_type\n");
+                return TNNERR_LAYER_ERR;
+        }
+    } else if (arch_ == sse42) {
+        switch(op_type_) {
+            case X86BinaryOpType::kADD :
+                binary_func = BinaryFunc<X86BinaryOpType::kADD, Float4, 4>;
+                break;
+            case X86BinaryOpType::kSUB :
+                binary_func = BinaryFunc<X86BinaryOpType::kSUB, Float4, 4>;
+                break;
+            case X86BinaryOpType::kMUL :
+                binary_func = BinaryFunc<X86BinaryOpType::kMUL, Float4, 4>;
+                break;
+            case X86BinaryOpType::kDIV :
+                binary_func = BinaryFunc<X86BinaryOpType::kDIV, Float4, 4>;
+                break;
+            case X86BinaryOpType::kMAX :
+                binary_func = BinaryFunc<X86BinaryOpType::kMAX, Float4, 4>;
+                break;
+            case X86BinaryOpType::kMIN :
+                binary_func = BinaryFunc<X86BinaryOpType::kMIN, Float4, 4>;
+                break;
+
+            default :
+                LOGE("Error, unknown binary op_type\n");
+                return TNNERR_LAYER_ERR;
+        }
     }
 
     binary_func(output_ptr, input0_ptr, input1_ptr, input_shapes[0], input_shapes[1]);

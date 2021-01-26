@@ -134,18 +134,18 @@ Status X86ConvLayerDepthwise::DoForward(const std::vector<Blob *> &inputs, const
     const float *src_origin = reinterpret_cast<const float *>(input->GetHandle().base);
     float *dst_origin = reinterpret_cast<float *>(output->GetHandle().base);
 
-    auto dw_full = DepthwiseConvAVX2<ActivationType_None>;
+    auto dw_full = DepthwiseConv<ActivationType_None, Float8, 8>;
     if (param->activation_type == ActivationType_ReLU) {
-        dw_full  = DepthwiseConvAVX2<ActivationType_ReLU>;
+        dw_full  = DepthwiseConv<ActivationType_ReLU, Float8, 8>;
     } else if (param->activation_type == ActivationType_ReLU6) {
-        dw_full  = DepthwiseConvAVX2<ActivationType_ReLU6>;
+        dw_full  = DepthwiseConv<ActivationType_ReLU6, Float8, 8>;
     }
     if (arch_ == sse42) {
-        dw_full = DepthwiseConvSSE<ActivationType_None>;
+        dw_full = DepthwiseConv<ActivationType_None, Float4, 4>;
         if (param->activation_type == ActivationType_ReLU) {
-            dw_full  = DepthwiseConvSSE<ActivationType_ReLU>;
+            dw_full  = DepthwiseConv<ActivationType_ReLU, Float4, 4>;
         } else if (param->activation_type == ActivationType_ReLU6) {
-            dw_full  = DepthwiseConvSSE<ActivationType_ReLU6>;
+            dw_full  = DepthwiseConv<ActivationType_ReLU6, Float4, 4>;
         }
     }
 
