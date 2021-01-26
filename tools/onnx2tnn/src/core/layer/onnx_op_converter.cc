@@ -201,6 +201,24 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                  DataType dst_data_type, std::vector<int32_t> dims) {
     int ret = 0;
     do {
+        //    TensorProto_DataType_UNDEFINED = 0,
+        //    TensorProto_DataType_FLOAT = 1,
+        //    TensorProto_DataType_UINT8 = 2,
+        //    TensorProto_DataType_INT8 = 3,
+        //    TensorProto_DataType_UINT16 = 4,
+        //    TensorProto_DataType_INT16 = 5,
+        //    TensorProto_DataType_INT32 = 6,
+        //    TensorProto_DataType_INT64 = 7,
+        //    TensorProto_DataType_STRING = 8,
+        //    TensorProto_DataType_BOOL = 9,
+        //    TensorProto_DataType_FLOAT16 = 10,
+        //    TensorProto_DataType_DOUBLE = 11,
+        //    TensorProto_DataType_UINT32 = 12,
+        //    TensorProto_DataType_UINT64 = 13,
+        //    TensorProto_DataType_COMPLEX64 = 14,
+        //    TensorProto_DataType_COMPLEX128 = 15,
+        //    TensorProto_DataType_BFLOAT16 = 16
+        
         if (!raw_data && data_count > 0) {
             DLog("invalid data or size\n");
             assert(0);
@@ -224,6 +242,14 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                 DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
                 assert(0);
             }
+        } else if (src_data_type == 6){//int32
+            if (dst_data_type == DATA_TYPE_AUTO ||
+                dst_data_type == DATA_TYPE_INT32) {
+                writer->PutRaw(data_count * sizeof(int32_t), (char *)raw_data, dims, DATA_TYPE_INT32);
+            } else{
+                DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
+                assert(0);
+            }
         } else if (src_data_type == 7){//int_64
             if (dst_data_type == DATA_TYPE_AUTO ||
                 dst_data_type == DATA_TYPE_INT32) {
@@ -233,6 +259,25 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                     for (int ii=0; ii<data_count; ii++) {
                         //此处一定用saturate_cast，避免int64最大值转换为-1导致出差
                         int32_data[ii] = saturate_cast(int64_data[ii]);
+                    }
+                    writer->PutRaw(data_count * sizeof(int32_t), (char *)int32_data, dims, DATA_TYPE_INT32);
+                    delete[] int32_data;
+                } else {
+                    writer->PutRaw(data_count * sizeof(int32_t), (char *)NULL, dims, DATA_TYPE_INT32);
+                }
+            } else{
+                DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
+                assert(0);
+            }
+        } else if (src_data_type == 13){//uint_64
+            if (dst_data_type == DATA_TYPE_AUTO ||
+                dst_data_type == DATA_TYPE_INT32) {
+                if (data_count > 0) {
+                    auto uint64_data = (uint64_t *)raw_data;
+                    auto int32_data = new int32_t[data_count];
+                    for (int ii=0; ii<data_count; ii++) {
+                        //此处一定用saturate_cast，避免int64最大值转换为-1导致出差
+                        int32_data[ii] = saturate_cast(uint64_data[ii]);
                     }
                     writer->PutRaw(data_count * sizeof(int32_t), (char *)int32_data, dims, DATA_TYPE_INT32);
                     delete[] int32_data;

@@ -63,6 +63,10 @@ string OnnxOpConverterCast::TNNLayerParam(NodeProto &node,
         case 10:
             data_type = DATA_TYPE_HALF;
             break;
+        case 12:
+        case 13:
+            data_type = DATA_TYPE_UINT32;
+            break;
         case 16:
             data_type = DATA_TYPE_BFP16;
             break;

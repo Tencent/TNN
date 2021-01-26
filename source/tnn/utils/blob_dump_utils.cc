@@ -111,6 +111,11 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
         for (int n = 0; n < count; ++n) {
             fprintf(fp, "%d\n", ptr[n]);
         }
+    } else if (data_type == DATA_TYPE_UINT32) {
+        auto ptr = (unsigned int *)data_ptr;
+        for (int n = 0; n < count; ++n) {
+            fprintf(fp, "%d\n", ptr[n]);
+        }
     } else {
         LOGE("unsupport data type to dump\n");
     }

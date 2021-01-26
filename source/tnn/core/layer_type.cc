@@ -222,6 +222,11 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"StridedSliceV2", LAYER_STRIDED_SLICE_V2},
     {"Erf", LAYER_ERF},
     {"Range", LAYER_RANGE},
+    {"Size", LAYER_SIZE},
+    {"Histogram", LAYER_HISTOGRAM},
+    {"GatherND", LAYER_GATHERND},
+    {"BitShift", LAYER_BITSHIFT},
+    {"PadV2", LAYER_PADV2},
 
     {"CbamFusedReduce", LAYER_CBAM_FUSED_REDUCE},
     {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING}

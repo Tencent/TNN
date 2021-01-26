@@ -70,6 +70,9 @@ public:
     // @brief upsample/resize op to resize input dims
     static DimsVector Upsample(const DimsVector input_dims,
                                   std::vector<float> scales, std::vector<int> sizes, int mode, Status *status);
+    // @brief PadV2 to calc input dims index
+    static DimsVector Pad(const DimsVector output_index, DimsVector input_dims, DimsVector pads,
+                          int type, Status *status);
     
     // @brief range op to infer output dims
     static DimsVector Range(const RangeData start, const RangeData limit,
@@ -80,6 +83,8 @@ public:
 
     // @brief NHWC dims vector to NCHW
     static DimsVector NHWC2NCHW(DimsVector dims);
+    
+    static bool IsInBox(const DimsVector index, const DimsVector box);
     
     // @brief Increase index by offset, bounded by shape
     // @param index
