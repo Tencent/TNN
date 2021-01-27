@@ -38,7 +38,10 @@ Status ConstantOfShapeLayer::InferOutputDataType() {
 }
 
 Status ConstantOfShapeLayer::InferOutputShape(bool ignore_error) {
-    BaseLayer::InferOutputShape(ignore_error);
+    //NOTE: This layer should not be excuted on device which is not NAIVE. see RangeLayer
+    
+    auto status = BaseLayer::InferOutputShape(ignore_error);
+    RETURN_ON_NEQ(status, TNN_OK);
     
     auto input_dims = input_blobs_[0]->GetBlobDesc().dims;
     auto data_type = input_blobs_[0]->GetBlobDesc().data_type;

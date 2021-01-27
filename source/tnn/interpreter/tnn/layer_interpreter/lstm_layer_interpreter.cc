@@ -22,6 +22,7 @@ Status LSTMONNXLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index
     auto layer_param = CreateLayerParam<LSTMONNXLayerParam>(param);
     GET_FLOAT_1_OR_DEFAULT(layer_param->clip_threshold, 0);
     GET_INT_1_OR_DEFAULT(layer_param->hidden_size, 0);
+    GET_INT_1_OR_DEFAULT(layer_param->direction, 0);
     return TNN_OK;
 }
 
@@ -35,7 +36,7 @@ Status LSTMONNXLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerPa
         LOGE("invalid layer param to save\n");
         return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
-    output_stream << layer_param->clip_threshold << " " << layer_param->hidden_size << " ";
+    output_stream << layer_param->clip_threshold << " " << layer_param->hidden_size << " " << layer_param->direction << " ";
 
     return TNN_OK;
 }

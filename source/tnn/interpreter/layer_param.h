@@ -158,6 +158,15 @@ struct UpsampleLayerParam : public LayerParam {
     PARAM_COPY(UpsampleLayerParam)
 };
 
+struct RangeLayerParam : public LayerParam {
+    DataType type = DATA_TYPE_FLOAT;
+    RangeData start = {0};
+    RangeData limit = {0};
+    RangeData delta = { .i = 1};
+    
+    PARAM_COPY(RangeLayerParam)
+};
+
 struct SoftmaxLayerParam : public LayerParam {
     int axis = 1;
 
@@ -535,6 +544,8 @@ struct GatherNDLayerParam : public LayerParam {
 struct LSTMONNXLayerParam : public LayerParam {
     float clip_threshold = 0;
     int hidden_size      = 0;
+    //0: forword 1:reverse 2:bidirection
+    int direction                        = 0;
 
     PARAM_COPY(LSTMONNXLayerParam)
 };

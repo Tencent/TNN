@@ -344,10 +344,11 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
     res_header header;
     auto deserializer = GetDeserializer(content_stream);
     header.deserialize(*deserializer);
-    if (header.layer_cnt_ <= 0 || header.layer_cnt_ >= 10000) {
+    if (header.layer_cnt_ < 0 || header.layer_cnt_ >= 10000) {
+        LOGE("tnnmodel is invalid, maybe you should upgrade TNN\n");
         return Status(TNNERR_INVALID_MODEL, "Error: model is illegal");
     }
-
+    
     auto &layer_interpreter_map = GetLayerInterpreterMap();
     for (int index = 0; index < header.layer_cnt_; ++index) {
         layer_header ly_head;

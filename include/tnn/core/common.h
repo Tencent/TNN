@@ -195,6 +195,11 @@ struct PUBLIC ModelConfig {
     std::vector<std::string> params = {};
 };
 
+typedef union {
+    float f;
+    int i;
+} RangeData;
+
 }  // namespace TNN_NS
 
 #pragma warning(pop)

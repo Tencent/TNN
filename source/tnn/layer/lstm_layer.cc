@@ -27,15 +27,23 @@ Status LSTMONNXLayer::InferOutputShape(bool ignore_error) {
     
     auto layer_param = dynamic_cast<LSTMONNXLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);
+    int num_directions = layer_param->direction >=2 ? 2 : 1;
     
     auto input_dims = input_blobs_[0]->GetBlobDesc().dims;
     auto sequence_len = input_dims[0]; // length of sequence
     auto batch = input_dims[1];  // batch_size
     auto input_size = DimsVectorUtils::Count(input_dims, 2); // input dimension
+    auto output_size = layer_param->hidden_size;
     
-    DimsVector output_dims = {sequence_len, batch, input_size};
-    output_dims[2] = layer_param->hidden_size;
+    //[seq_length, batch_size, num_directions*hidden_size], shape after transpose and reshape
+    DimsVector output_dims = {sequence_len, batch, num_directions*output_size};
     output_blobs_[0]->GetBlobDesc().dims = output_dims;
+    if (output_blobs_.size() >= 3) {
+        //[num_directions, batch_size, output_size]
+        output_dims = {num_directions, batch, output_size};
+        output_blobs_[1]->GetBlobDesc().dims = output_dims;
+        output_blobs_[2]->GetBlobDesc().dims = output_dims;
+    }
     return TNN_OK;
 }
 
