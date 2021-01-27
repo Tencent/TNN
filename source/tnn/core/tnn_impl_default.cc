@@ -77,9 +77,12 @@ std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, 
         return nullptr;
     }
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
-    status = AddAllLayersOutput();
-    if(status != TNN_OK) {
-        return nullptr;
+    //todo: refactor later
+    if(net_config.device_type == DEVICE_CUDA) {
+        status = AddAllLayersOutput();
+        if(status != TNN_OK) {
+            return nullptr;
+        }
     }
 #endif
 
@@ -99,9 +102,12 @@ std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, 
         return nullptr;
     }
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
-    status = AddAllLayersOutput();
-    if(status != TNN_OK) {
-        return nullptr;
+    //todo: refactor later
+    if(net_config.device_type == DEVICE_CUDA) {
+        status = AddAllLayersOutput();
+        if(status != TNN_OK) {
+            return nullptr;
+        }
     }
 #endif
 
