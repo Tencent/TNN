@@ -16,41 +16,35 @@
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(GatherND, LAYER_GATHERND);
+DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Histogram, LAYER_HISTOGRAM);
 
-bool GatherNDTRTPluginLayerBuilder::supportsFormatCombination(
+bool HistogramTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return inOut[0].type == nvinfer1::DataType::kFLOAT;
+    return (inOut[pos].type == nvinfer1::DataType::kINT32);
 }
 
-const char* GatherNDTRTPluginLayerBuilder::getPluginType() const {
-    return "GatherND";
+const char* HistogramTRTPluginLayerBuilder::getPluginType() const {
+    return "Histogram";
 }
 
-nvinfer1::DataType GatherNDTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+nvinfer1::DataType HistogramTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
         int nbInputs) const {
     return inputTypes[0];
 }
 
-ILayer* GatherNDTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* HistogramTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
-DimsExprs GatherNDTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInput, nvinfer1::IExprBuilder& exprBuilder) {
-    DimsExprs output;
-
-    output.nbDims = output_blobs_[0]->GetBlobDesc().dims.size();
-    for (int i = 0; i < output.nbDims; i++) {
-        output.d[i] = exprBuilder.constant(output_blobs_[0]->GetBlobDesc().dims[i]);
-    }
-    return output;
+DimsExprs HistogramTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
 }
 
-const char* GatherNDPluginCreator::getPluginName() const {
-    return "GatherND";
+const char* HistogramPluginCreator::getPluginName() const {
+    return "Histogram";
 }
 
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(GatherND, LAYER_GATHERND);
+REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Histogram, LAYER_HISTOGRAM);
 
 }  //  namespace TNN_NS

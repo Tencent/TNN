@@ -20,8 +20,7 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
 
 bool StrideSliceV2TRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
-        && inOut[pos].type == inOut[0].type);
+    return inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32;
 }
 
 const char* StrideSliceV2TRTPluginLayerBuilder::getPluginType() const {
