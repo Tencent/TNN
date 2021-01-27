@@ -38,7 +38,11 @@ ILayer* HistogramTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network
 
 DimsExprs HistogramTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
         int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
-    return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
+    auto layer_param = dynamic_cast<HistogramLayerParam*>(param_);
+    DimsExprs output;
+    output.nbDims = 1;
+    output.d[0] = exprBuilder.constant(layer_param->depth);
+    return output;
 }
 
 const char* HistogramPluginCreator::getPluginName() const {
