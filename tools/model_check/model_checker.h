@@ -30,7 +30,7 @@ struct ModelCheckerParam {
     std::vector<float> input_bias;
     std::vector<float> input_scale;
     bool dump_output       = false;
-    bool only_check_output = false;
+    bool only_check_output = true;
     std::pair<std::string, FileFormat> ref_file;
 };
 

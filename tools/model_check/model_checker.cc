@@ -38,6 +38,7 @@ ModelChecker::ModelChecker() {
     model_checker_params_.input_bias  = {0, 0, 0, 0};
     model_checker_params_.input_scale = {1.0f, 1.0f, 1.0f, 1.0f};
     model_checker_params_.dump_output = false;
+    model_checker_params_.only_check_output = true;
     output_ref_data_map_.clear();
     cpu_blobdata_map.clear();
     check_results.clear();
@@ -94,8 +95,10 @@ Status ModelChecker::RunModelChecker() {
     Status ret = TNN_OK;
 
     if (model_checker_params_.only_check_output) {
+        std::cerr << "only checkoutout" << std::endl;
         ret = RunModelCheckerOutput();
     } else {
+        std::cerr << "check all layer" << std::endl;
         ret = RunModelCheckerPerLayer();
     }
 
@@ -381,7 +384,7 @@ Status ModelChecker::CompareDeviceAndCpu() {
             char* output_data_ptr = device_output_map[blob_name].get();
 
             // compare device data with default data
-            is_pass &= CompareData(output_data_ptr, cpu_blobdata_map[blob_name].get(), blob_desc.dims);
+            is_pass &= CompareData(output_data_ptr, cpu_blobdata_map[blob_name].get(), blob_desc.dims, COSINE);
 
             // compare data with reference file
             if (!output_ref_data_map_.empty()) {
