@@ -48,7 +48,7 @@ DimsExprs GatherNDTRTPluginLayerBuilder::getOutputDimensions(int index, const nv
         dim_index++;
     }
 
-    dim_index  = indices.d[indices.nbDims -1];
+//    dim_index  = indices.d[indices.nbDims -1];
     while (dim_index < data.nbDims) {
         output.d[dim_index] = data.d[dim_index];
         dim_index++;
