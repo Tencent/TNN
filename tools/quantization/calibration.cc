@@ -296,6 +296,7 @@ int Calibration::UpdateBlobRange(DataSet& dataset) {
     FileReader file_reader;
     file_reader.SetBiasValue(cali_params_.input_bias);
     file_reader.SetScaleValue(cali_params_.input_scale);
+    file_reader.SetReverseChannel(cali_params_.reverse_channel);
     for (auto file_pack : dataset.file_list) {
         for (auto item : feature_map_) {
             item.second->ClearRangeFlag();
@@ -336,6 +337,7 @@ int Calibration::UpdateBlobDistribute(DataSet& dataset) {
     FileReader file_reader;
     file_reader.SetBiasValue(cali_params_.input_bias);
     file_reader.SetScaleValue(cali_params_.input_scale);
+    file_reader.SetReverseChannel(cali_params_.reverse_channel);
     for (auto file_pack : dataset.file_list) {
         for (auto& item : feature_map_) {
             item.second->ClearDistributeFlag();

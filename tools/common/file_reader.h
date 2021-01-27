@@ -59,12 +59,17 @@ public:
     // param 0 : scale val
     void SetScaleValue(std::vector<float> scale);
 
+    // @brief set reverse_channel_ value
+    // param 0 : reverse_channel val
+    void SetReverseChannel(bool reverse_channel);
+
 private:
     Status PreProcessImage(unsigned char* img_data, Blob* blob, int width,
                            int height, int channel);
 
     std::vector<float> bias_;
     std::vector<float> scale_;
+    bool reverse_channel_;
 
     size_t length_in_elements_;
 };
