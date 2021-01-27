@@ -125,7 +125,7 @@ AbstractLayerAcc* CudaDevice::CreateLayerAcc(LayerType type) {
 Context* CudaDevice::CreateContext(int device_id) {
     auto context = new CudaContext();
     Status ret = context->Setup(device_id);
-    if (TNN_OK != ret) {
+    if (ret != TNN_OK) {
         LOGE("Cuda context setup failed.");
         delete context;
         return NULL;
