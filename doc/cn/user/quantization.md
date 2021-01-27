@@ -18,7 +18,7 @@ cd <path_to_tnn>/platforms/linux/
 ## 三、量化工具的使用  
 ### 1. 命令  
 ```
-./quantization_cmd [-h] [-p] [-m] [-i] [-b] [-w] [-n] [-s] [-c] <param>
+./quantization_cmd [-h] [-p] [-m] [-i] [-b] [-w] [-n] [-s] [-r] [-t] <param>
 ```
 ### 2. 参数说明  
 
@@ -32,6 +32,7 @@ cd <path_to_tnn>/platforms/linux/
 |-w, --weight_method|        |✅|指定weights的量化方法：<br>&bull; 0 Min-Max方法（默认）<br>&bull; 1 ADMM方法|
 |-n, --bias         |        |✅|预处理，仅对输入为图片时起作用。对输入数据各通道进行bias操作，参数格式为：0.0,0.0,0.0|
 |-s, --scale        |        |✅|预处理，仅对输入为图片时起作用。对输入数据各通道进行scale操作，参数格式为：1.0,1.0,1.0|
+|-r, --reverse_channel|        |✅|预处理，仅对输入为图片时起作用：<br>&bull; 0 使用RGB顺序（默认）<br>&bull; 1 使用BGR顺序|
 |-t, --merge_type|        |✅|在量化的时候采用Per-Tensor还是Per-Channel的方式。<br>&bull; 0 Per-Channel方法（默认）<br>&bull; 1 混合方法，weights采用Per-Channel，blob采用Per-Tensor。<br>&bull; 2 Per-Tensor方法|  
   
 ### 3. 量化输入   
