@@ -25,6 +25,7 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/md5.h"
 #include "tnn/device/cuda/cuda_macro.h"
+#include "tnn/utils/blob_dump_utils.h"
 
 namespace TNN_NS {
 
@@ -234,7 +235,14 @@ Status TensorRTNetwork_::Forward() {
     if (ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
     }
-    return context_->Synchronize();
+    Status status = context_->Synchronize();
+    if(status != TNN_OK) {
+        return status;
+    }
+#if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
+    status = DumpAllOutputBlob();
+#endif
+    return status;
 }
 
 Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
@@ -331,7 +339,15 @@ Status TensorRTNetwork_::ForwardAsync(Callback call_back) {
     if (ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
     }
-    return TNN_OK;
+    Status status = TNN_OK;
+#if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
+    status = context_->Synchronize();
+    if(status != TNN_OK) {
+        return status;
+    }
+    status = DumpAllOutputBlob();
+#endif
+    return status;
 }
 
 std::unordered_map<std::string, TensorRTPluginLayerBuilder*> TensorRTNetwork_::GetPluginLayerNameMap() {
@@ -672,6 +688,20 @@ std::string TensorRTNetwork_::GetCacheFileName(std::string cfg, std::string mode
         + "-" + GetGpuType(device_id) + "-" + GetTrtVersion() + GetCudaVersion()
         + ".cache";
     return cache_file_name;
+}
+
+
+Status TensorRTNetwork_::DumpAllOutputBlob() {
+    BlobMap outputs;
+    Status ret = blob_manager_->GetAllOutputBlobs(outputs);
+    if (ret != TNN_OK) {
+        LOGE("ERROR: get output blobs failed");
+        return ret;
+    }
+    for(auto output : outputs) {
+        ret = DumpDeviceBlob(output.second, context_, output.first); 
+    }
+    return TNN_OK;
 }
 
 }  //  namespace  TNN_NS
