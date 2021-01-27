@@ -684,6 +684,13 @@ int Calibration::MergeBlobScale() {
 
 void Calibration::MergeBlobScaleRecursion(LayerInfo* layer_info, NetStructure* net_struct, NetResource* net_resource) {
     LayerType layer_type = layer_info->type;
+    // Skip average pooling
+    if (layer_type == LAYER_POOLING) {
+        auto param = dynamic_cast<PoolingLayerParam *>(layer_info->param.get());
+        if (param->pool_type == 1) {
+            return;
+        }
+    }
     if (kBlobScaleMergeLayerTypeStr.find(layer_type) != kBlobScaleMergeLayerTypeStr.end()) {
         ASSERT(layer_info->inputs.size() == 1 && layer_info->outputs.size() == 1)
         LayerInfo* pre_layer_info = GetLayerInfoFromOutpubBlobName(layer_info->inputs[0], net_struct);
