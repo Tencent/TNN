@@ -31,22 +31,17 @@ static void ProcessNHWC2NCHW(unsigned char* img_data, float* blob_data,
     ASSERT(bias.size() >= channel)
     ASSERT(scale.size() >= channel)
     // only reverse B and R channel for color images
-    bool reverse_bgr  = false;
-    bool reverse_bgra = false;
+    bool need_do_reverse = false;
     if (reverse_channel) {
-        if (channel == 3) {
-            reverse_bgr = true;
-        } else if (channel == 4) {
-            reverse_bgra = true;
+        if (channel == 3 || channel == 4) {
+            need_do_reverse = true;
         }
     }
     for (int h = 0; h < height; ++h) {
         for (int w = 0; w < width; ++w) {
             for (int c = 0; c < channel; ++c) {
                 int c_src  = c;
-                if (reverse_bgr) {
-                    c_src = 2 - c;
-                } else if (reverse_bgra) {
+                if (need_do_reverse) {
                     c_src = (c < 3) ? (2 - c) : c;
                 }
                 int idx_src = h * width * channel + w * channel + c_src;
