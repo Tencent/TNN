@@ -142,9 +142,9 @@ Here are the explanations for each parameter:
 - align parameter (optional)
     You can optimize the model with the "-align" parameter. Compare TNN model and Original model to determine whether TNN model is correct.
 - input_file parameter (optional)
-    Specify the input file's name which will be used by model_check through the "-input_file" parameter. This is [input format](#Input). You can refer this [code](#The Code Used to Generate Input or Output File) to generate input file.
+    Specify the input file's name which will be used by model_check through the "-input_file" parameter. This is [input format](#Input).
 - ref_file parameter (optional)
-    Specify the reference file's name which will be used by model_check through the "-ref_file" parameter. This is [output format](#Output). You can refer this [code](#The Code Used to Generate Input or Output File) to generate output file.
+    Specify the reference file's name which will be used by model_check through the "-ref_file" parameter. This is [output format](#Output). 
 
 
 **Current convert2tnn input model only supports graphdef format，does not support checkpoint or saved_model format. Refer to [tf2tnn](./tf2tnn_en.md) to transfer checkpoint or saved_model models.**
