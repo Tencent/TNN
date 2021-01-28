@@ -20,7 +20,7 @@ namespace TNN_NS {
 DECLARE_CUDA_ACC(PadV2, LAYER_PADV2);
 
 __global__ void pad_default_kernel_v2(const float* src, float* dst, int count, int input_channel, int output_channel,
-        int pad_c, int output_d, int output_h, int output_w, int input_d, int input_h, int input_w, int pad_d, int pad_w, int pad_h, float value) {
+        int pad_c, int output_d, int output_h, int output_w, int input_d, int input_h, int input_w, int pad_d, int pad_h, int pad_w, float value) {
     CUDA_KERNEL_LOOP(idx, count) {
         int dst_n = idx / (output_channel * output_d * output_h * output_w);
         int dst_c = (idx / (output_d * output_h * output_w)) % output_channel;
@@ -60,14 +60,14 @@ Status CudaPadV2LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     auto output_dims = output_blob->GetBlobDesc().dims;
     auto input_dims = input_blob->GetBlobDesc().dims;
 
-    int pad_c = 1, pad_d = 1, pad_h =1, pad_w = 1;
+    int pad_c = 0, pad_d = 0, pad_h = 0, pad_w = 0;
     int output_c = 1, output_d = 1, output_h = 1, output_w = 1;
     int input_c = 1, input_d = 1, input_h = 1, input_w = 1;
 
     pad_c = params->pads[1];  
     output_c = output_dims[1];
     input_c = input_dims[1];
-
+    
     if(output_dims.size() > 2) {
         pad_d = params->pads[2];  
         output_d = output_dims[2];
