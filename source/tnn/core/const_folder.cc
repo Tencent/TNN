@@ -79,10 +79,11 @@ Status ConstFolder::Forward() {
         if (layer->IsOutputConstant()) {
             constant_layers.insert(layer->GetLayerName());
             if (layer->GetLayerChangeFlag() == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER) {
+                // const input of layers SHAPE_DIFFER must be saved
                 shape_differ_layers.insert(layer->GetLayerName());
+            } else {
                 continue;
             }
-            continue;
         }
         
         //save const input blob
