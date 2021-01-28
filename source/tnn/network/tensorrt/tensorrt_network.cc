@@ -699,7 +699,10 @@ Status TensorRTNetwork_::DumpAllOutputBlob() {
         return ret;
     }
     for(auto output : outputs) {
-        ret = DumpDeviceBlob(output.second, context_, output.first); 
+        ret = DumpDeviceBlob(output.second, context_, "cuda");
+        if(ret != TNN_OK) {
+            LOGE("DumpDeviceBlob failed error code: %d, msg: %s \n", (int)ret, ret.description().c_str());
+        }
     }
     return TNN_OK;
 }
