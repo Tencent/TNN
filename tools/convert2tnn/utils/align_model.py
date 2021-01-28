@@ -37,7 +37,7 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
     model_check_path = parse_path.parse_path(relative_path)
     checker.check_file_exist(model_check_path)
     command = model_check_path + " -p  " + proto_path + " -m " + \
-        model_path + " -i " + input_path + " -f " + reference_output_path + " -d NAIVE"
+        model_path + " -i " + input_path + " -f " + reference_output_path + " -d NAIVE -e"
 
     logging.debug(command)
     ret = cmd.run(command)
