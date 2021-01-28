@@ -143,11 +143,16 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
     int k_c = conv_gemm_conf_.K_c_;
     int n_block = conv_gemm_conf_.n_block_;
     size_t src_trans_size = m_c * k_c;
-    float *im2col_workspace;
+
+    size_t im2col_size = 0;
     if (do_im2col_) {
-         im2col_workspace = (float*)_mm_malloc(col_offset_ * param->group * sizeof(float), 32);
+        im2col_size = ROUND_UP(col_offset_ * param->group * sizeof(float), 32);
     }
-    float *src_trans_workspace = (float*)_mm_malloc(src_trans_size * sizeof(float), 32);
+    size_t workspace_size = (im2col_size + ROUND_UP(src_trans_size * sizeof(float), 32));
+    float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(workspace_size));
+
+    float *im2col_workspace = workspace;
+    float *src_trans_workspace = workspace + im2col_size / sizeof(float);
 
     int K = input_dims[1] * param->kernels[0] * param->kernels[1] / param->group;
     int M = output_dims[1] / param->group;
@@ -186,11 +191,6 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
     } else {
         return Status(TNNERR_DEVICE_ACC_DATA_FORMAT_NOT_SUPPORT, "Error: x86 device not support this data type");
     }
-
-    if (do_im2col_) {
-         _mm_free(im2col_workspace);
-    }
-    _mm_free(src_trans_workspace);
 
     return TNN_OK;
 }

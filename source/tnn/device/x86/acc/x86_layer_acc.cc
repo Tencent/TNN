@@ -21,7 +21,7 @@ X86LayerAcc::~X86LayerAcc() {}
 Status X86LayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                          const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
-    context_ = context;
+    context_ = reinterpret_cast<X86Context *>(context);
 
     param_    = param;
     resource_ = resource;

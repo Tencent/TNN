@@ -77,7 +77,9 @@ Status X86ConvLayer1x1::DoForward(const std::vector<Blob *> &inputs, const std::
 
     int m_c = conv_gemm_conf_.M_c_;
     int k_c = conv_gemm_conf_.K_c_;
-    float *src_buf = (float*)_mm_malloc(m_c * k_c * sizeof(float), 32);
+
+    float *src_buf = reinterpret_cast<float *>(
+        context_->GetSharedWorkSpace(m_c * k_c * sizeof(float)));
 
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
         const float * B = src_origin + batch_idx * k * n;
@@ -88,7 +90,6 @@ Status X86ConvLayer1x1::DoForward(const std::vector<Blob *> &inputs, const std::
             bias_data, param->activation_type, src_buf, conv_gemm_conf_);
     }
 
-    _mm_free(src_buf);
     return TNN_OK;
 }
 

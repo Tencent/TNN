@@ -127,9 +127,9 @@ Status X86ConvLayerDepthwise::DoForward(const std::vector<Blob *> &inputs, const
     int dilate_x_step  = c_pack * param->dialations[0];
     int weight_z_step  = param->kernels[0] * param->kernels[1];
 
-    size_t src_pad_size = src_pad_w * (dims_input[2] + param->pads[2] + param->pads[3]) * c_pack * sizeof(float);
-    size_t dst_tmp_size = dst_z_step * c_pack * sizeof(float);
-    float *workspace = (float*)_mm_malloc(src_pad_size + dst_tmp_size, 32);
+    size_t src_pad_size = ROUND_UP(src_pad_w * (dims_input[2] + param->pads[2] + param->pads[3]) * c_pack * sizeof(float), 32);
+    size_t dst_tmp_size = ROUND_UP(dst_z_step * c_pack * sizeof(float), 32);
+    float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(src_pad_size + dst_tmp_size));
 
     const float *src_origin = reinterpret_cast<const float *>(input->GetHandle().base);
     float *dst_origin = reinterpret_cast<float *>(output->GetHandle().base);
@@ -183,7 +183,6 @@ Status X86ConvLayerDepthwise::DoForward(const std::vector<Blob *> &inputs, const
             UnpackAcc(dst_z, dst_buf, dst_z_step, dst_z_step, dst_z_step, real_dz);
         }
     }
-    _mm_free(workspace);
     return TNN_OK;
 }
 

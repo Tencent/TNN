@@ -688,20 +688,26 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
     int w_pad = width_in + pad_left + pad_right;
     int h_pad = height_in + pad_top + pad_bottom;
 
-    const int zero_len = w_pad;
-    float *zero_ptr    = (float *)_mm_malloc(zero_len * sizeof(float), 32);
-    memset(zero_ptr, 0, sizeof(float) * zero_len);
-    float *pack_input = (float *)_mm_malloc(w_pad * h_pad * ROUND_UP(channel_in, CH_PACK) * sizeof(float), 32);
-    float *input_c8   = pack_input;
-
     int new_h_stride = w_pad * CH_PACK;
     int new_c_stride = new_h_stride * h_pad;
     int ic_8_stride  = w_pad * h_pad * CH_PACK;
     int oc_8_stride  = width_out * height_out * CH_PACK;
 
-    float *tmp_data = (float *)_mm_malloc((ic_8 + oc_8) * src_unit * src_unit * CH_PACK * TILE_NUM * sizeof(float), 32);
-    float *src_trans_tmp_data = (float *)_mm_malloc(src_unit * src_unit * CH_PACK * sizeof(float), 32);
-    float *dst_trans_tmp_data = (float *)_mm_malloc(dst_unit * dst_unit * CH_PACK * sizeof(float), 32);
+    size_t zero_size = ROUND_UP(w_pad * sizeof(float), 32);
+    size_t pack_input_size = ROUND_UP(w_pad * h_pad * ROUND_UP(channel_in, CH_PACK) * sizeof(float), 32);
+    size_t tmp_size = ROUND_UP((ic_8 + oc_8) * src_unit * src_unit * CH_PACK * TILE_NUM * sizeof(float), 32);
+    size_t src_trans_size = ROUND_UP(src_unit * src_unit * CH_PACK * sizeof(float), 32);
+    size_t dst_trans_size = ROUND_UP(dst_unit * dst_unit * CH_PACK * sizeof(float), 32);
+    float *workspace = reinterpret_cast<float *>(
+        context_->GetSharedWorkSpace(zero_size + pack_input_size + tmp_size + src_trans_size + dst_trans_size));
+
+    float *zero_ptr = workspace;
+    memset(zero_ptr, 0, sizeof(float) * w_pad);
+    float *pack_input = zero_ptr + zero_size / sizeof(float);
+    float *input_c8 = pack_input;
+    float *tmp_data = pack_input + pack_input_size / sizeof(float);
+    float *src_trans_tmp_data = tmp_data + tmp_size / sizeof(float);
+    float *dst_trans_tmp_data = src_trans_tmp_data + src_trans_size / sizeof(float);
 
     for (int ni = 0; ni < batch; ni++) {
         auto input_ptr  = src_origin + ni * in_n_stride;
@@ -834,12 +840,6 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
             }
         }
     }
-
-    _mm_free(zero_ptr);
-    _mm_free(pack_input);
-    _mm_free(tmp_data);
-    _mm_free(src_trans_tmp_data);
-    _mm_free(dst_trans_tmp_data);
 
     return TNN_OK;
 }
