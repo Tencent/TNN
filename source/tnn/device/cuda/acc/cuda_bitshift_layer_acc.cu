@@ -19,7 +19,7 @@ namespace TNN_NS {
 
 DECLARE_CUDA_ACC(BitShift, LAYER_BITSHIFT);
 
-__global__ void bitshift_kernel(const unsigned int* input, unsigned int* output, int count, int bits, int direction) {
+__global__ void bitshift_kernel(const int* input, int* output, int count, int bits, int direction) {
     CUDA_KERNEL_LOOP(index, count) {
         if (direction == 0) {
             output[index] = input[index] >> bits;
@@ -43,8 +43,8 @@ Status CudaBitShiftLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     CHECK_PARAM_NULL(layer_param);
     
     auto input_data_type  = inputs[0]->GetBlobDesc().data_type;
-    auto input_data = (unsigned int *)(inputs[0]->GetHandle().base);
-    auto output_data = (unsigned int *)(outputs[0]->GetHandle().base);
+    auto input_data = (int*)(inputs[0]->GetHandle().base);
+    auto output_data = (int *)(outputs[0]->GetHandle().base);
 
     const int count = DimsVectorUtils::Count(inputs[0]->GetBlobDesc().dims);
     bitshift_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
