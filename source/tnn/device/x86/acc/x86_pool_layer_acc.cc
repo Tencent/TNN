@@ -84,9 +84,9 @@ Status X86PoolLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 
     size_t src_hw        = dims_input[3] * dims_input[2];
     size_t dst_hw        = dims_output[3] * dims_output[2];
-    size_t src_pack_size = src_hw * c_pack * sizeof(float);
-    size_t dst_pack_size = dst_hw * c_pack * sizeof(float);
-    float *workspace = (float*)_mm_malloc(src_pack_size + dst_pack_size, 32);
+    size_t src_pack_size = ROUND_UP(src_hw * c_pack * sizeof(float), 32);
+    size_t dst_pack_size = ROUND_UP(dst_hw * c_pack * sizeof(float), 32);
+    float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(src_pack_size + dst_pack_size));
     auto src_pack_ptr = workspace;
     auto dst_pack_ptr = workspace + src_pack_size / sizeof(float);
 
@@ -115,7 +115,6 @@ Status X86PoolLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
         return Status(TNNERR_DEVICE_ACC_DATA_FORMAT_NOT_SUPPORT, "Error: this data type not supported in pooling layer");
     }
 
-    _mm_free(workspace);
     return TNN_OK;
 }
 

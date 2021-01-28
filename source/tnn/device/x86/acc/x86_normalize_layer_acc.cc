@@ -66,7 +66,7 @@ Status X86NormalizeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
 
-        float *denominator = new float[channel_size];
+        float *denominator = reinterpret_cast<float *>(context_->GetSharedWorkSpace(channel_size * sizeof(float)));
         memset(denominator, 0, channel_size * sizeof(float));
 
         for (int b = 0; b < batch; b++) {
@@ -111,7 +111,6 @@ Status X86NormalizeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
                 }
             }
         }
-        delete[] denominator;
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
         return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
