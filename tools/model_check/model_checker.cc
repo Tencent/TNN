@@ -356,7 +356,7 @@ Status ModelChecker::FeedInputData() {
     // get mat map
     std::map<std::string, std::shared_ptr<Mat>> input_mat_map;
     std::string input_name = model_checker_params_.input_file.first;
-    if (input_blobs_cpu.size() == 1 && input_name != "") {
+    if (input_name != "") {
         FileReader file_reader;
         file_reader.SetBiasValue(model_checker_params_.input_bias);
         file_reader.SetScaleValue(model_checker_params_.input_scale);
