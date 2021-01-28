@@ -50,13 +50,6 @@ Status CudaGatherNDLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 }
    
 Status CudaGatherNDLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto input_data_dims = (*(inputs.begin()))->GetBlobDesc().dims;
-    auto input_stride = DimsVectorUtils::StrideOfShape(input_data_dims);
-    auto indices_dims = (*(inputs.rbegin()))->GetBlobDesc().dims;
-    if (indices_dims[indices_dims.size()-1] != input_data_dims.size()) {
-        return Status(TNNERR_PARAM_ERR, "GatherNDLayerParam has invalid param indices_dims");
-    }
-    cudaMemcpyAsync(tempbufs_[0].ptr, input_stride.data(), input_stride.size() * sizeof(int), cudaMemcpyHostToDevice, context_->GetStream());
     return TNN_OK;
 }
 
@@ -65,9 +58,17 @@ Status CudaGatherNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     Blob *indices_blob  = inputs[1];
     Blob *output_blob = outputs[0];
 
+
+    auto input_data_dims = input_data_blob->GetBlobDesc().dims;
     auto indices_dims = indices_blob->GetBlobDesc().dims;
     auto output_dims = output_blob->GetBlobDesc().dims;
     int count = DimsVectorUtils::Count(output_dims);
+    auto input_stride = DimsVectorUtils::StrideOfShape(input_data_dims);
+    if (indices_dims[indices_dims.size()-1] != input_data_dims.size()) {
+        return Status(TNNERR_PARAM_ERR, "GatherNDLayerParam has invalid param indices_dims");
+    }
+    cudaMemcpyAsync(tempbufs_[0].ptr, input_stride.data(), input_stride.size() * sizeof(int), cudaMemcpyHostToDevice, context_->GetStream());
+
     const int slice_size = indices_dims[indices_dims.size()-1];
     float* input_data = static_cast<float*>(input_data_blob->GetHandle().base);
     int* indices_data = static_cast<int*>(indices_blob->GetHandle().base);
