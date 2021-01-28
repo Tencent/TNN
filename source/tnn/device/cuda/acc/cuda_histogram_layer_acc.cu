@@ -29,7 +29,7 @@ __global__ void histogram_kernel(const int* input, int* output, int count) {
 
 Status CudaHistogramLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);;
 }
 
 Status CudaHistogramLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -45,8 +45,8 @@ Status CudaHistogramLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     const int count = DimsVectorUtils::Count(inputs[0]->GetBlobDesc().dims);
     
     cudaMemset(output_data, 0, ele_size * DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims));
-//    histogram_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
-//        input_data, output_data, count);
+    histogram_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+        input_data, output_data, count);
 
     return TNN_OK;
 }
