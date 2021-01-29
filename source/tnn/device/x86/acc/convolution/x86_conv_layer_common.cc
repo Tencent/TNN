@@ -105,22 +105,6 @@ Status X86ConvLayerCommon::Init(Context *context, LayerParam *param, LayerResour
     RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
     RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
 
-    auto conv_param    = dynamic_cast<ConvLayerParam *>(param);
-    CHECK_PARAM_NULL(conv_param);
-    auto conv_resource = dynamic_cast<ConvLayerResource *>(resource);
-    CHECK_PARAM_NULL(conv_resource);
-
-    int channel    = inputs[0]->GetBlobDesc().dims[1];
-    int kernel_w   = conv_param->kernels[0];
-    int kernel_h   = conv_param->kernels[1];
-    int group      = conv_param->group;
-
-    if (conv_param->kernels[0] == 1 && conv_param->kernels[1] == 1 &&
-        conv_param->strides[0] == 1 && conv_param->strides[1] == 1 &&
-        conv_param->pads[0] == 0 && conv_param->pads[2] == 0) {
-        do_im2col_ = false;
-    }
-
     return TNN_OK;
 }
 
@@ -144,10 +128,7 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
     int n_block = conv_gemm_conf_.n_block_;
     size_t src_trans_size = m_c * k_c;
 
-    size_t im2col_size = 0;
-    if (do_im2col_) {
-        im2col_size = ROUND_UP(col_offset_ * param->group * sizeof(float), 32);
-    }
+    size_t im2col_size = ROUND_UP(col_offset_ * param->group * sizeof(float), 32);
     size_t workspace_size = (im2col_size + ROUND_UP(src_trans_size * sizeof(float), 32));
     float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(workspace_size));
 
@@ -164,24 +145,18 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
         auto output_data = static_cast<float*>(output_ptr);
         auto weights_data = buffer_weight_.force_to<float*>();
         float *bias_data  = buffer_bias_.force_to<float*>();
-        float *col_buff;
         for (size_t b = 0; b < outputs[0]->GetBlobDesc().dims[0]; b++) {
-            if (do_im2col_) {
-                col_buff = im2col_workspace;
-                X86_IM2COL(input_data + b * conv_in_offset_, input_dims[1],
-                           input_dims[2], input_dims[3],
-                           param->kernels[1], param->kernels[0], 
-                           param->pads[2], param->pads[0], 
-                           param->strides[1], param->strides[0], 
-                           param->dialations[1], param->dialations[0],
-                           col_buff);
-            } else {
-                col_buff = input_data + b * conv_in_offset_;
-            }
+            X86_IM2COL(input_data + b * conv_in_offset_, input_dims[1],
+                        input_dims[2], input_dims[3],
+                        param->kernels[1], param->kernels[0], 
+                        param->pads[2], param->pads[0], 
+                        param->strides[1], param->strides[0], 
+                        param->dialations[1], param->dialations[0],
+                        im2col_workspace);
 
             for (int g = 0; g < param->group; g++) {
                 conv_sgemm_nn_col_major(N, M, K,
-                    col_buff + col_offset_ * g, N,
+                    im2col_workspace + col_offset_ * g, N,
                     weights_data + weight_offset_per_group * g, K,
                     output_data + (b * param->group + g) * output_offset_, N,
                     bias_data + g * param->output_channel / param->group,

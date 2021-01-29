@@ -37,16 +37,38 @@ Status X86_IM2COL(float* src, int channel, int height, int width, int kernelh, i
         int w_offset = c % kernelw;
         int h_offset = (c / kernelw) % kernelh;
         int c_im = c / kernelh / kernelw;
-        for (int h = 0; h < height_col; h++) {
-            for (int w = 0; w < width_col; w++) {
-                int h_pad = h * strideh - padh + h_offset * dilationh;
-                int w_pad = w * stridew - padw + w_offset * dilationw;
-                if (h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width)
-                    dst[(c * height_col + h) * width_col + w] = src[(c_im * height + h_pad) * width + w_pad];
-                else
-                    dst[(c * height_col + h) * width_col + w] = 0;
+
+        int h_base = h_offset * dilationh - padh;
+        int w_base = w_offset * dilationw - padw;
+
+        int h_base_start = MAX(0, (UP_DIV(-h_base, strideh)));
+        int h_base_end = MIN(height_col, UP_DIV(height - h_base, strideh));
+        int w_base_start = MAX(0, (UP_DIV(-w_base, stridew)));
+        int w_base_end = MIN(width_col, UP_DIV(width - w_base, stridew));
+
+        auto src_c = src + c_im * height * width;
+        auto dst_c = dst + c * height_col * width_col;
+
+        memset(dst_c, 0, h_base_start * width_col * sizeof(float));
+        for (int h = h_base_start; h < h_base_end; h++) {
+            int h_pad = h_base + h * strideh;
+
+            auto src_h = src_c + h_pad * width;
+            auto dst_h = dst_c + h * width_col;
+
+            for (int w = 0; w < w_base_start; w++) {
+                dst_h[w] = 0;
+            }
+            for (int w = w_base_start; w < w_base_end; w++) {
+                int w_pad = w_base + w * stridew;
+                dst_h[w] = src_h[w_pad];
+            }
+            for (int w = w_base_end; w < width_col; w++) {
+                dst_h[w] = 0;
             }
         }
+        memset(dst_c + h_base_end * width_col, 0,
+            (height_col - h_base_end) * width_col * sizeof(float));
     }
 
     return TNN_OK;
