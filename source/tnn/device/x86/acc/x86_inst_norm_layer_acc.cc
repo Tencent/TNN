@@ -119,7 +119,7 @@ Status X86InstanceNormLayerAcc::DoForward(const std::vector<Blob*> &inputs, cons
                     for (size_t i = head; i < tail; i += 4) {
                         _temp = _mm_loadu_ps(input_data + i);
                         _sum_x = _mm_add_ps(_sum_x, _temp);
-                        _sum_x2 = _mm_fmadd_ps(_temp, _temp, _sum_x2);
+                        _sum_x2 = _mm_add_ps(_mm_mul_ps(_temp, _temp), _sum_x2);
                     }
 
                     float sum_x, sum_x2;
@@ -150,7 +150,7 @@ Status X86InstanceNormLayerAcc::DoForward(const std::vector<Blob*> &inputs, cons
                     for (; output_data < tail_p; output_data += 4, input_data += 4) {
                         // std::cout << i << std::endl;
                         _temp = _mm_loadu_ps(input_data);
-                        _temp = _mm_fmadd_ps(_temp, _sum_x, _sum_x2);
+                        _temp = _mm_add_ps(_mm_mul_ps(_temp, _sum_x), _sum_x2);
                         _mm_storeu_ps(output_data, _temp);
                     }
                     for (size_t i = tail; i < area; i++, output_data++, input_data++) {
@@ -301,7 +301,10 @@ Status X86InstanceNormLayerAcc::DoForward(const std::vector<Blob*> &inputs, cons
                         _sum1_x = _mm_add_ps(_sum1_x, _temp1);    _sum2_x = _mm_add_ps(_sum2_x, _temp2);    _sum3_x = _mm_add_ps(_sum3_x, _temp3);    _sum4_x = _mm_add_ps(_sum4_x, _temp4);
                         // _temp1 = _mm_mul_ps(_temp1, _temp1);      _temp2 = _mm_mul_ps(_temp2, _temp2);      _temp3 = _mm_mul_ps(_temp3, _temp3);      _temp4 = _mm_mul_ps(_temp4, _temp4);
                         // _sum1_x2 = _mm_add_ps(_temp1, _sum1_x2);  _sum2_x2 = _mm_add_ps(_temp2, _sum2_x2);  _sum3_x2 = _mm_add_ps( _temp3, _sum3_x2); _sum4_x2 = _mm_add_ps(_temp4, _sum4_x2);
-                        _sum1_x2 = _mm_fmadd_ps(_temp1, _temp1, _sum1_x2); _sum2_x2 = _mm_fmadd_ps(_temp2, _temp2, _sum2_x2); _sum3_x2 = _mm_fmadd_ps(_temp3, _temp3, _sum3_x2); _sum4_x2 = _mm_fmadd_ps(_temp4, _temp4, _sum4_x2);
+                        _sum1_x2 = _mm_add_ps(_mm_mul_ps(_temp1, _temp1), _sum1_x2);
+                        _sum2_x2 = _mm_add_ps(_mm_mul_ps(_temp2, _temp2), _sum2_x2);
+                        _sum3_x2 = _mm_add_ps(_mm_mul_ps(_temp3, _temp3), _sum3_x2);
+                        _sum4_x2 = _mm_add_ps(_mm_mul_ps(_temp4, _temp4), _sum4_x2);
                         // #pragma unroll(4)
                         // for (int j = 0; j < 4; j++) _temp[j] = _mm256_loadu_ps(input_data_[j] + i);
                         // #pragma unroll(4)
@@ -380,7 +383,10 @@ Status X86InstanceNormLayerAcc::DoForward(const std::vector<Blob*> &inputs, cons
                         _temp1 = _mm_loadu_ps(input_data1 + i);  _temp2 = _mm_loadu_ps(input_data2 + i);  _temp3 = _mm_loadu_ps(input_data3 + i);  _temp4 = _mm_loadu_ps(input_data4 + i);
                         // _temp1 = _mm_mul_ps(_temp1, _sum1_x);    _temp2 = _mm_mul_ps(_temp2, _sum2_x);    _temp3 = _mm_mul_ps(_temp3, _sum3_x);    _temp4 = _mm_mul_ps(_temp4, _sum4_x);
                         // _temp1 = _mm_add_ps(_temp1, _sum1_x2);   _temp2 = _mm_add_ps(_temp2, _sum2_x2);   _temp3 = _mm_add_ps(_temp3, _sum3_x2);   _temp4 = _mm_add_ps(_temp4, _sum4_x2);
-                        _temp1 = _mm_fmadd_ps(_temp1, _sum1_x, _sum1_x2); _temp2 = _mm_fmadd_ps(_temp2, _sum2_x, _sum2_x2); _temp3 = _mm_fmadd_ps(_temp3, _sum3_x, _sum3_x2); _temp4 = _mm_fmadd_ps(_temp4, _sum4_x, _sum4_x2);
+                        _temp1 = _mm_add_ps(_mm_mul_ps(_temp1, _sum1_x), _sum1_x2);
+                        _temp2 = _mm_add_ps(_mm_mul_ps(_temp2, _sum2_x), _sum2_x2);
+                        _temp3 = _mm_add_ps(_mm_mul_ps(_temp3, _sum3_x), _sum3_x2);
+                        _temp4 = _mm_add_ps(_mm_mul_ps(_temp4, _sum4_x), _sum4_x2);
                         _mm_storeu_ps(output_data1 + i, _temp1); _mm_storeu_ps(output_data2 + i, _temp2); _mm_storeu_ps(output_data3 + i, _temp3); _mm_storeu_ps(output_data4 + i, _temp4);
                         // #pragma unroll(4)
                         // for (int j = 0; j < 4; j++) _temp[j] = _mm256_loadu_ps(input_data_[j] + i);
