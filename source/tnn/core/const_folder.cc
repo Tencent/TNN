@@ -98,7 +98,8 @@ Status ConstFolder::Forward() {
             status= Blob2RawBuffer(blob, buffer);
             RETURN_ON_NEQ(status, TNN_OK);
             
-            LOGD("ConstFolder save const with name: %s\n", blob->GetBlobDesc().name.c_str());
+            LOGD("ConstFolder save const with name: %s from layer:%s\n", 
+                        blob->GetBlobDesc().name.c_str(), layer->GetLayerName().c_str());
             
             constant_map[blob->GetBlobDesc().name] = buffer;
         }
