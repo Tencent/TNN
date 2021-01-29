@@ -82,7 +82,10 @@ Status BaseLayer::InferOutputDataType() {
 }
 
 Status BaseLayer::Reshape() {
-    InferOutputShape();
+    auto status = InferOutputShape();
+    if (status != TNN_OK) {
+        return status;
+    }
     auto dims = output_blobs_[0]->GetBlobDesc().dims;
     for (auto item : dims) {
         if (item <= 0) {
