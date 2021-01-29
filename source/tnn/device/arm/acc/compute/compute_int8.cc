@@ -686,6 +686,8 @@ void DepthwiseI8General(int8_t* dst, const int8_t* src, const int8_t* weight, co
 /*
 convdw 3x3 int8 func
 */
+#ifdef __aarch64__
+
 void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
                            long src_y_step, long src_w_step, long dst_depth, long fw, long fh, const float* scale_z,
                            long dx, long dc) {
@@ -733,6 +735,21 @@ void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight,
         vst1_s8(dst_x + ww * dst_depth, acc_s8);
     }
 }
+
+#else   // __aarch64__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
+                           long src_y_step, long src_w_step, long dst_depth, long fw, long fh, const float* scale_z,
+                           long dx, long dc);
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // __aarch64__
 
 void DepthwiseI8K3Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
                          long src_y_step, long src_w_step, long dst_depth, long fw, long fh, const float* scale_z,
