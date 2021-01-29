@@ -52,6 +52,8 @@ private:
     std::shared_ptr<cl::Buffer> buffer_ = nullptr;
     std::shared_ptr<cl::Buffer> scale_buffer_ = nullptr;
     std::shared_ptr<cl::Buffer> bias_buffer_ = nullptr;
+    std::vector<float> host_scale_buffer_;
+    std::vector<float> host_bias_buffer_;
     int buffer_size_ = 0;
     int scale_bias_buffer_size_ = 0;
     bool do_scale_bias_ = true;
