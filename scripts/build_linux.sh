@@ -71,7 +71,7 @@ build_openvino() {
         -DENABLE_OPENCV=OFF \
         -DCMAKE_INSTALL_PREFIX=${OPENVINO_INSTALL_PATH} \
         -DENABLE_TBB_RELEASE_ONLY=OFF \
-        -DTHREADING=SEQ \
+        -DTHREADING=TBB_AUTO \
         -DNGRAPH_COMPONENT_PREFIX="deployment_tools/ngraph/" \
         -DENABLE_MYRIAD=OFF \
         -DENABLE_CLDNN=OFF \
@@ -130,6 +130,7 @@ copy_openvino_libraries() {
     cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${TNN_INSTALL_DIR}/lib
     cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${BUILD_DIR}/
     cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libMKLDNNPlugin.so ${TNN_INSTALL_DIR}/lib/
+    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/external/tbb/lib/* ${TNN_INSTALL_DIR}/lib/
 
 
     if [ "${OPENVINO_BUILD_SHARED}" = "ON" ]
@@ -140,6 +141,11 @@ copy_openvino_libraries() {
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_lp_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib/libngraph${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
     fi
+
+    LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}
+    PYTHONPATH=${PYTHONPATH:-}
+    python_version=${python_version:-}
+    source ${OPENVINO_INSTALL_PATH}/bin/setupvars.sh
 }
 
 pack_tnn() {
