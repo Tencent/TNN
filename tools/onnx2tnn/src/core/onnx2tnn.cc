@@ -221,7 +221,7 @@ int Onnx2TNN::TNNWriteProto() {
                     for (const auto& dim : shape) {
                         proto_net_info << dim << " ";
                     }
-                    LOGD("input_blob_shape dim_size: %d\n", shape.size());
+                    LOGD("input_blob_shape dim_size: %d\n", (int)shape.size());
                         
                     DataType input_data_type = GetTnnDataTypeFromOnnx(input_blob->type());
                     proto_net_info << input_data_type << " ";
