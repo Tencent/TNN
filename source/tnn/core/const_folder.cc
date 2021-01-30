@@ -176,7 +176,7 @@ Status ConstFolder::GetOptimizedNet(std::shared_ptr<NetStructure> &const_fold_st
                     break;
                 }
             }
-            RETURN_VALUE_ON_NEQ(!layer, true, Status(TNNERR_LAYER_ERR, "layer is nil, internal error"));
+            RETURN_VALUE_ON_NEQ(!layer, false, Status(TNNERR_LAYER_ERR, "layer is nil, internal error"));
             
             if (resource_map.find(layer_info->name) != resource_map.end()) {
                 optmized_resource_map[layer_info->name] = resource_map[layer_info->name];
