@@ -641,8 +641,16 @@ std::vector<int> GetDimsFromTensor(const onnx::TensorProto& tensor) {
     return dims;
 }
 
-DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type) {
+std::vector<int> GetDimsFromTensorShape(const onnx::TensorShapeProto& shape) {
+    std::vector<int> dims = {};
+    for (const auto &item : shape.dim()) {
+        dims.push_back((int)item.dim_value());
+    }
+    return dims;
+}
 
+DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type) {
+    //keep the same as cast op
     switch (onnx_type.tensor_type().elem_type()) {
         case onnx::TensorProto_DataType_FLOAT:{
             return DATA_TYPE_FLOAT;
@@ -655,7 +663,9 @@ DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type) {
             return DATA_TYPE_INT8;
         }
         case onnx::TensorProto_DataType_INT64:
-        case onnx::TensorProto_DataType_INT32: {
+        case onnx::TensorProto_DataType_INT32:
+        case onnx::TensorProto_DataType_UINT32:
+        case onnx::TensorProto_DataType_UINT64: {
             return DATA_TYPE_INT32;
         }
         case onnx::TensorProto_DataType_BFLOAT16: {

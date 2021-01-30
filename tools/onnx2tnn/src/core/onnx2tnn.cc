@@ -65,11 +65,13 @@ int RemoveIndexNode(std::vector<IndexNode>& index_nodes, int index) {
     return 0;
 }
 
-Onnx2TNN::Onnx2TNN(std::string onnx_model_path, std::string tnn_proto_path, std::string tnn_model_path) {
+Onnx2TNN::Onnx2TNN(std::string onnx_model_path, std::string tnn_proto_path,
+                   std::string tnn_model_path, InputShapesMap shapes_map) {
     tnn_proto_path_ = tnn_proto_path;
     tnn_model_path_ = tnn_model_path;
 
     onnx_model_path_ = onnx_model_path;
+    target_inputs_shape_map_ = shapes_map;
 }
 
 Onnx2TNN::~Onnx2TNN() {
@@ -205,54 +207,22 @@ int Onnx2TNN::TNNWriteProto() {
                 proto_net_info << "\"";
                 for (int ii = 0; ii < intput_blob_count; ii++) {
                     onnx::ValueInfoProto* input_blob = input_blobs[ii];
-                    int shape_n = 0, shape_c = 0, shape_d = 0, shape_h = 0, shape_w = 0;
-                    const ::onnx::TensorShapeProto& input_blob_shape = input_blob->type().tensor_type().shape();
-                    if (input_blob_shape.dim_size() == 4) {
-                        shape_n = (int)input_blob_shape.dim(0).dim_value();
-                        shape_c = (int)input_blob_shape.dim(1).dim_value();
-                        shape_h = (int)input_blob_shape.dim(2).dim_value();
-                        shape_w = (int)input_blob_shape.dim(3).dim_value();
-                        shape_n = std::max(shape_n, 1);
-
-                        LOGD(
-                            "input_blob %d(%s) channel order:%d(%s) %d(%s) "
-                            "%d(%s) %d(%s)\n",
-                            ii, input_blob->name().c_str(), shape_n, input_blob_shape.dim(0).denotation().c_str(),
-                            shape_c, input_blob_shape.dim(1).denotation().c_str(), shape_h,
-                            input_blob_shape.dim(2).denotation().c_str(), shape_w,
-                            input_blob_shape.dim(3).denotation().c_str());
-
-                        if (shape_c <= 0 || shape_h <= 0 || shape_w <= 0) {
-                            LOGE("intput shape is invalid\n");
-                            assert(0);
-                        }
-
-                        proto_net_info << input_blob->name() << " " << "4" << " " << shape_n << " " << shape_c << " " << shape_h
-                                       << " " << shape_w << " ";
-                    } else if (input_blob_shape.dim_size() == 5) {
-                        shape_n = (int)input_blob_shape.dim(0).dim_value();
-                        shape_c = (int)input_blob_shape.dim(1).dim_value();
-                        shape_d = (int)input_blob_shape.dim(2).dim_value();
-                        shape_h = (int)input_blob_shape.dim(3).dim_value();
-                        shape_w = (int)input_blob_shape.dim(4).dim_value();
-                        LOGD(
-                            "input_blob %d(%s) channel order:%d(%s) %d(%s) "
-                            "%d(%s) %d(%s) %d(%s)\n",
-                            ii, input_blob->name().c_str(), shape_n, input_blob_shape.dim(0).denotation().c_str(),
-                            shape_c, input_blob_shape.dim(1).denotation().c_str(), shape_d,
-                            input_blob_shape.dim(2).denotation().c_str(), shape_h,
-                            input_blob_shape.dim(3).denotation().c_str(), shape_w,
-                            input_blob_shape.dim(4).denotation().c_str());
-
-                        proto_net_info << input_blob->name() << " " << "5" << " " << shape_n << " " << shape_c << " " << shape_d
-                                       << " " << shape_h << " " << shape_w << " ";
-                    } else {
-                        proto_net_info << input_blob->name() << " " << input_blob_shape.dim().size() << " ";
-                        for (const auto& dim : input_blob_shape.dim()) {
-                            proto_net_info << dim.dim_value() << " ";
-                        }
-                        LOGD("input_blob_shape dim_size: %d\n", input_blob_shape.dim_size());
+                    auto shape = GetDimsFromTensorShape(input_blob->type().tensor_type().shape());
+                    
+                    if (target_inputs_shape_map_.find(input_blob->name()) != target_inputs_shape_map_.end()) {
+                        shape = target_inputs_shape_map_[input_blob->name()];
                     }
+                    
+                    if (shape.size() > 0 && shape[0] <= 0) {
+                        shape[0] = 1;
+                    }
+                    
+                    proto_net_info << input_blob->name() << " " << shape.size() << " ";
+                    for (const auto& dim : shape) {
+                        proto_net_info << dim << " ";
+                    }
+                    LOGD("input_blob_shape dim_size: %d\n", shape.size());
+                        
                     DataType input_data_type = GetTnnDataTypeFromOnnx(input_blob->type());
                     proto_net_info << input_data_type << " ";
                     if (intput_blob_count > 1 && ii != intput_blob_count - 1) {
