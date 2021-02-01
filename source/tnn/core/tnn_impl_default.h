@@ -80,6 +80,7 @@ public:
 
 
 private:
+    Status AddAllLayersOutput();
     std::shared_ptr<AbstractModelInterpreter> interpreter_;
 };
 

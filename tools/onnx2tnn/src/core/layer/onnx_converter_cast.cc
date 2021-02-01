@@ -65,7 +65,8 @@ string OnnxOpConverterCast::TNNLayerParam(NodeProto &node,
             break;
         case 12:
         case 13:
-            data_type = DATA_TYPE_UINT32;
+            //trt has no uint32, so cast to int32, BitShit op may overflow, Be careful
+            data_type = DATA_TYPE_INT32;
             break;
         case 16:
             data_type = DATA_TYPE_BFP16;

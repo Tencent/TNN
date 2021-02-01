@@ -59,7 +59,6 @@ int Onnx2TNN::FuseLSTM(onnx::GraphProto* mutable_graph,
                 i += 1;
             }
         } while (0);
-        
         // LSTM <= LSTM(direction=bidirectional) - Transpose - Reshape
         do {
             if (node->op_type() == "LSTM" && i + 2 < node_count) {

@@ -65,18 +65,27 @@ public:
         quantized = true;
     }
 
-    void SetRelatedBlobName(std::string name) {
-        related_blob_name = name;
+    bool IsShapeTensor() {
+        return shape_tensor;
     }
 
-    std::string GetRelatedBlobName() {
-        return related_blob_name;
+    void SetShapeTensor() {
+        shape_tensor = true;
+    }
+
+    void SetShapeBlobName(std::string name) {
+        shape_blob_name = name;
+    }
+
+    std::string GetShapeBlobName() {
+        return shape_blob_name;
     }
 
 private:
-    std::string related_blob_name;
     bool int8_mode = false;
     bool quantized = false;
+    bool shape_tensor = false;
+    std::string shape_blob_name;
     IntScaleResource *resource_ = nullptr;
     nvinfer1::ITensor* m_trt_tensor = nullptr;
 };

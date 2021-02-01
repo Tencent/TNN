@@ -23,6 +23,10 @@ Status RunStrideSlice(int size, const float * src_data, int input_c, int input_h
         int input_w, const int* begin, const int* strides, float* dst_data,
         int output_c, int output_h, int output_w, int div_c, int div_n, cudaStream_t stream);
 
+Status RunStrideSlice(int size, const float * src_data, int input_c, int input_d, int input_h,
+        int input_w, const int* begin, const int* strides, float* dst_data,
+        int output_c, int output_d, int output_h, int output_w, int div_d, int div_c, int div_n, cudaStream_t stream);
+
 }  //  namespace TNN_NS
 
 #endif  //  TNN_SOURCE_TNN_DEVICE_CUDA_ACC_CUDA_STRIDED_SLICE_LAYER_ACC_KERNEL_CUH_

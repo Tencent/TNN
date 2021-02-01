@@ -61,8 +61,10 @@ typedef enum {
     DATA_TYPE_INT32 = 3,
     // brain float 16
     DATA_TYPE_BFP16 = 4,
+    // int64
+    DATA_TYPE_INT64 = 5,
     // uint32
-    DATA_TYPE_UINT32 = 5,
+    DATA_TYPE_UINT32 = 6
 } DataType;
 
 typedef enum {
