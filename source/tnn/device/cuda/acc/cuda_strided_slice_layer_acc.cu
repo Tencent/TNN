@@ -20,35 +20,6 @@ namespace TNN_NS {
 
 DECLARE_CUDA_ACC(StrideSlice, LAYER_STRIDED_SLICE);
 
-template<int THREAD_PER_BLOCK, int ELE_PER_THREAD>
-__global__ void strided_slice_kernel(int size, const float * __restrict__ srcData, int input_c, int input_h,
-        int input_w, const int* __restrict__ begin, const int* __restrict__ strides, float* __restrict__ dstData, 
-        int output_c, int output_h, int output_w, int div_c, int div_n) {
-    int block_offset = blockIdx.x * THREAD_PER_BLOCK * ELE_PER_THREAD;
-
-    const int mul_n = input_c * input_h * input_w * strides[3];
-    const int mul_c = input_h * input_w * strides[2];
-    const int mul_h = input_w * strides[1];
-    const int mul_w = strides[0];
-    const int offset = begin[3] * input_c * input_h * input_w +
-                   + begin[2] * input_h * input_w +
-                   + begin[1] * input_w 
-                   + begin[0];
-
-    #pragma unroll
-    for(int i =0;i < ELE_PER_THREAD ;i++) {
-        int index = block_offset + i * THREAD_PER_BLOCK + threadIdx.x;
-        if (index < size) {
-            int w = index % output_w;
-            int h = index / output_w % output_h;
-            int c = index / div_c % output_c;
-            int n = index / div_n ;
-            int input_index = n * mul_n + c * mul_c + h * mul_h + w * mul_w + offset;
-            dstData[index] = srcData[input_index];
-        }
-    }
-}
-
 Status CudaStrideSliceLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status ret = CudaLayerAcc::Init(context, param, resource, inputs, outputs);

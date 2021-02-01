@@ -1,4 +1,13 @@
 ##!/usr/bin/env bash
+#After brew install python@3.7, maybe you should set it as default, or pybind11 will raise error of symbol not found
+#If you need to have python@3.7 first in your PATH run:
+#  echo 'export PATH="/usr/local/opt/python@3.7/bin:$PATH"' >> ~/.zshrc
+#
+#For compilers to find python@3.7 you may need to set:
+#  export LDFLAGS="-L/usr/local/opt/python@3.7/lib"
+#
+#For pkg-config to find python@3.7 you may need to set:
+#  export PKG_CONFIG_PATH="/usr/local/opt/python@3.7/lib/pkgconfig"
 
 export CMAKE=cmake
 export CPP_COMPILER=g++

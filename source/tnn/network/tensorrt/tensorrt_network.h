@@ -102,6 +102,8 @@ private:
 
     Status CreateExecuteContext();
 
+    Status DumpAllOutputBlob();
+
     bool int8_mode;
     bool test_mode;
     int m_max_batchsize;

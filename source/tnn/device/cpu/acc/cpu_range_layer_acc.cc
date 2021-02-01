@@ -50,9 +50,9 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
         {
             auto limit_data = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
             auto limit = layer_param->limit;
-            if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+            if (inputs[1]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
                 limit.f = *limit_data;
-            } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+            } else if (inputs[1]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
                 limit.i = *((int *)limit_data);
             } else {
                 return Status(TNNERR_PARAM_ERR, "RangeLayer has invalid limit data type");
@@ -64,9 +64,9 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
         {
             auto delta_data = (int *)((char *)inputs[2]->GetHandle().base + inputs[2]->GetHandle().bytes_offset);
             auto delta = layer_param->delta;
-            if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+            if (inputs[2]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
                 delta.f = *delta_data;
-            } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+            } else if (inputs[2]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
                 delta.i = *((int *)delta_data);
             } else {
                 return Status(TNNERR_PARAM_ERR, "RangeLayer has invalid delta data type");

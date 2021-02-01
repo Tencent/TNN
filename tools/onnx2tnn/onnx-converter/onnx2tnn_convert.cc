@@ -181,10 +181,16 @@ int onnx2tnn_convert(std::string onnx_model_path, std::string output_dir, std::s
             return status;
         }
 
-        auto fold_net_struct = const_folder->GetOptimizeNetStructure(
-                                                                     fixed_input_shape ? DATA_FLAG_CHANGE_IF_SHAPE_DIFFER : DATA_FLAG_CHANGE_NEVER);
-
-        auto packer = std::make_shared<ModelPacker>(fold_net_struct.get(), interpreter->GetNetResource());
+        std::shared_ptr<NetStructure> opt_structure = nullptr;
+        std::shared_ptr<NetResource> opt_resource = nullptr;
+        status = const_folder->GetOptimizedNet(opt_structure, opt_resource,
+                                        fixed_input_shape ? DATA_FLAG_CHANGE_IF_SHAPE_DIFFER : DATA_FLAG_CHANGE_NEVER);
+        if (status != TNN_OK) {
+            DLog("GetOptimizedNet Error: %s\n", status.description().c_str());
+            return status;
+        }
+        
+        auto packer = std::make_shared<ModelPacker>(opt_structure.get(), opt_resource.get());
         if (packer->Pack(tnn_proto, tnn_model) != 0) {
             DLog("ModelPacker Pack failed!\n");
             return -1;

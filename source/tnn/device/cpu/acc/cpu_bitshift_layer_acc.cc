@@ -34,7 +34,7 @@ Status CpuBitShiftLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     
     const int count = DimsVectorUtils::Count(inputs[0]->GetBlobDesc().dims);
     
-    if (input_data_type == DATA_TYPE_UINT32) {
+    if (input_data_type == DATA_TYPE_INT32 || input_data_type == DATA_TYPE_UINT32) {
         if (layer_param->direction == 0) {
             for (int index = 0; index < count; ++index) {
                 output_data[index] = input_data[index] >> layer_param->bits;
