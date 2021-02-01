@@ -46,7 +46,7 @@ namespace optimizer {
             kLayerActivationMap[LAYER_RELU] = ActivationType_ReLU;
             return true;
         }
-        if (device == DEVICE_X86) {
+        if (device == DEVICE_X86 && net_config.network_type != NETWORK_TYPE_OPENVINO) {
             kLayerActivationMap[LAYER_RELU] = ActivationType_ReLU;
             return true;
         }

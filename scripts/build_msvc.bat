@@ -70,6 +70,7 @@ goto :eof
     xcopy /s/e/y %TNN_DIR%\include %TNN_INSTALL_DIR%\include
     copy %OPENVINO_INSTALL_DIR%\deployment_tools\inference_engine\bin\intel64\Release\MKLDNNPlugin.dll %TNN_INSTALL_DIR%\bin\
     copy %OPENVINO_INSTALL_DIR%\deployment_tools\inference_engine\bin\intel64\Release\plugins.xml  %TNN_INSTALL_DIR%\lib\
+    copy %OPENVINO_INSTALL_DIR%\deployment_tools\inference_engine\bin\intel64\Release\plugins.xml  %TNN_INSTALL_DIR%\bin\
     copy %OPENVINO_INSTALL_DIR%\deployment_tools\inference_engine\bin\intel64\Release\plugins.xml  %BUILD_DIR%\
 
     if %OPENVINO_BUILD_SHARED% == "ON" (
