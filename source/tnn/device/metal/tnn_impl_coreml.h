@@ -65,7 +65,7 @@ public:
     // @param status code: If successful, returns zero. Otherwise, returns
     // error code.
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
-                                                 InputShapesMap min_inputs_shape, max_inputs_shape) = 0;
+                                                 InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
 
 
 };
