@@ -36,7 +36,9 @@ namespace optimizer {
     }
 
     bool NetOptimizerFuseConvAdd::IsSupported(const NetworkConfig &net_config) {
-        //return false;
+#ifdef TNN_CONVERTER_RUNTIME
+        return false;
+#else
         auto device = net_config.device_type;
         if (device == DEVICE_ARM || device == DEVICE_NAIVE) {
             auto conv_post_optimizer = NetOptimizerManager::GetNetOptimizerByName(kNetOptimizerFuseConvPost);
@@ -48,6 +50,7 @@ namespace optimizer {
             return true;
         }
         return false;
+#endif
     }
 
     static bool IsPreviousLayerSupportFusion(std::shared_ptr<LayerInfo> layer_info) {
