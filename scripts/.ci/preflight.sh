@@ -23,6 +23,7 @@ PATTERNS=("CMakeLists.txt"
           "source/tnn/network/"
           "source/tnn/optimizer/"
           "source/tnn/utils/"
+          "test/"
           )
 
 if [[ ${ci_type} == 'android' ]]; then

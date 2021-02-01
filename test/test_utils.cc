@@ -14,6 +14,8 @@
 
 #include <math.h>
 
+#include <algorithm>
+
 #include "tnn/core/common.h"
 #include "tnn/utils/bfp16.h"
 
