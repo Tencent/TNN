@@ -78,64 +78,64 @@ add     src,    src,    r3
     vld1.8  {d30}, [r3], dst_depth
     vld1.8  {d26}, [weight], dst_depth
     vld1.8  {d6},  [r3], dst_depth
-    vmovl.s8        q13, d26
-    vmovl.s8        q3,  d6
-    vmovl.s8        q15, d30
+    vmovl.s8        q13, d26            // b0
+    vmovl.s8        q3,  d6             // a2
+    vmovl.s8        q15, d30            // a1
     vld1.8  {d12}, [r3], dst_depth
     vstr    d22, [sp]
-    vmovl.s8        q6, d12
-    vmov    d22, d27
-    vmov    d27, d6
-    vmov    d6,  d30
+    vmovl.s8        q6, d12             // a3
+    vmov    d22, d27    // b0 h
+    vmov    d27, d6     // a2 l
+    vmov    d6,  d30    // a1 l
     vldr    d30, [sp]
-    vmov    d29, d12
-    vmov    d28, d13
+    vmov    d29, d12    // a3 l
+    vmov    d28, d13    // a3 h
     vld1.8  {d14}, [weight], dst_depth
-    vmovl.s8        q6, d30
+    vmovl.s8        q6, d30             // a0
     vld1.8  {d24}, [r3], dst_depth
-    vmov    d23, d26
-    vmovl.s8        q12, d24
-    vmovl.s8        q7, d14
-    vmov    d26, d7
-    vmlal.s16       q10, d13, d22
+    vmov    d23, d26    // b0 l
+    vmovl.s8        q12, d24            // a4
+    vmovl.s8        q7, d14             // b1
+    vmov    d26, d7     // a2 h
+    vmlal.s16       q10, d13, d22       // a0 h, b0 h -> acc01
     vld1.8  {d7}, [weight], dst_depth
-    vmlal.s16       q2,  d12, d23
+    vmlal.s16       q2,  d12, d23       // a0 l, b0 l -> acc00
     vstr    d7, [sp, #8]
     vmov    q6,  q10
-    vmov    d7,  d31
-    vmov    d31, d24
-    vmov    d24, d15
-    vmov    d30, d25
+    vmov    d7,  d31    // a1 h
+    vmov    d31, d24    // a4 l
+    vmov    d24, d15    // b1 h
+    vmov    d30, d25    // a4 h
     vld1.8  {d21}, [r3]
-    vmov    d25, d14
-    vmlal.s16       q6, d7,  d24
-    vmlal.s16       q4, d29, d23
-    vmlal.s16       q5, d28, d22
-    vmlal.s16       q8, d27, d23
-    vmlal.s16       q1, d26, d22
+    vmov    d25, d14    // b1 l
+    vmlal.s16       q6, d7,  d24        // a1 h, b1 h -> acc01
+    vmlal.s16       q4, d29, d23        // a3 l, b0 l -> acc30
+    vmlal.s16       q5, d28, d22        // a3 h, b0 h -> acc31
+    vmlal.s16       q8, d27, d23        // a2 l, b0 l -> acc20
+    vmlal.s16       q1, d26, d22        // a2 h, b0 h -> acc21
     vldr    d14, [sp, #8]
-    vmlal.s16       q9, d6, d23
-    vmlal.s16       q0, d7, d22
-    vmovl.s8        q7, d14
-    vmlal.s16       q4, d31, d25
-    vmlal.s16       q5, d30, d24
-    vmlal.s16       q8, d29, d25
-    vmlal.s16       q1, d28, d24
-    vmlal.s16       q9, d27, d25
-    vmlal.s16       q0, d26, d24
-    vmlal.s16       q2, d6, d25
-    vmovl.s8        q12, d21
+    vmlal.s16       q9, d6, d23         // a1 l, b0 l -> acc10
+    vmlal.s16       q0, d7, d22         // a1 h, b0 h -> acc11
+    vmovl.s8        q7, d14             // b2
+    vmlal.s16       q4, d31, d25        // a4 l, b1 l -> acc30
+    vmlal.s16       q5, d30, d24        // a4 h, b1 h -> acc31
+    vmlal.s16       q8, d29, d25        // a3 l, b1 l -> acc20
+    vmlal.s16       q1, d28, d24        // a3 h, b1 h -> acc21
+    vmlal.s16       q9, d27, d25        // a2 l, b1 l -> acc10
+    vmlal.s16       q0, d26, d24        // a2 h, b1 h -> acc11
+    vmlal.s16       q2, d6, d25         // a1 l, b1 l -> acc00
+    vmovl.s8        q12, d21            // a5
     vmov    q10, q6
     subs    r14, r14, #1
     add     src, src, src_y_step
-    vmlal.s16       q8, d31, d14
-    vmlal.s16       q1, d30, d15
-    vmlal.s16       q9, d29, d14
-    vmlal.s16       q0, d28, d15
-    vmlal.s16       q2, d27, d14
-    vmlal.s16       q10, d26, d15
-    vmlal.s16       q4, d24, d14
-    vmlal.s16       q5, d25, d15
+    vmlal.s16       q8, d31, d14        // a4 l, b2 l -> acc20
+    vmlal.s16       q1, d30, d15        // a4 h, b2 h -> acc21
+    vmlal.s16       q9, d29, d14        // a3 l, b2 l -> acc10
+    vmlal.s16       q0, d28, d15        // a3 h, b2 h -> acc11
+    vmlal.s16       q2, d27, d14        // a2 l, b2 l -> acc00
+    vmlal.s16       q10, d26, d15       // a2 h, b2 h -> acc01
+    vmlal.s16       q4, d24, d14        // a5 l, b2 l -> acc30
+    vmlal.s16       q5, d25, d15        // a4 h, b2 h -> acc31
     bne     .L2
 
 add     r9, r10, #16
