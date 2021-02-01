@@ -43,6 +43,7 @@ bool CheckResult(std::string desc, int ret) {
 }
 
 DeviceType ConvertDeviceType(std::string device_type) {
+    std::transform(device_type.begin(), device_type.end(), device_type.begin(), ::toupper);
     if ("METAL" == device_type) {
         return DEVICE_METAL;
     } else if ("OPENCL" == device_type) {
