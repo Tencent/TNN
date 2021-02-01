@@ -104,6 +104,8 @@ private:
 
     Status DumpAllOutputBlob();
 
+    Status CheckConstBlobs();
+
     bool int8_mode;
     bool test_mode;
     int m_max_batchsize;
@@ -119,6 +121,9 @@ private:
     void* m_context_memory;
     NetResource *net_resource_;
     int device_id_;
+
+    std::vector<std::string> const_input_blobs_;
+    std::vector<std::string> const_weight_blobs_;
 };
 
 }  //  namespace TNN_NS

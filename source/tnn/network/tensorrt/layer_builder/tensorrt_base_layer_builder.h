@@ -85,8 +85,6 @@ protected:
         nvinfer1::Weights kernelWeights, RawBuffer* bias, nvinfer1::Weights biasWeights,
         float scale, std::vector<int> dims);
 
-    ILayer* ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* network, RawBuffer *buf, DimsVector recommend_dims=DimsVector(), int expand_dims = 0);
-
     std::vector<ITensor*> GetInputITensors();
 
     std::vector<ITensor*> GetOutputITensors();
