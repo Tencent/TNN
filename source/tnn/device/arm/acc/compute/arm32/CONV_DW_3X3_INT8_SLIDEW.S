@@ -57,8 +57,8 @@ lsl     r10, dc,  #2
 add     r11, r10, #16
 add     r12, bias_z, r11
 add     r3,  bias_z, r10
-vld1.32 q10, [r12]
-vld1.32 q2,  [r3]
+vld1.32 {d20-d21}, [r12]
+vld1.32 {d4-d5},   [r3]
 vmov    q5,  q10
 vmov    q1,  q10
 vmov    q0,  q10
