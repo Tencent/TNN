@@ -578,6 +578,14 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             profile->setDimensions(blob_name.c_str(), OptProfileSelector::kOPT, nv_max_dims);
             profile->setDimensions(blob_name.c_str(), OptProfileSelector::kMAX, nv_max_dims);
             tensorrt_tensor->SetTensor(const_tensor);
+
+            {
+                std::stringstream ss;
+                ss << "<" << blob->GetBlobDesc().name << "> shape:[";
+                for(int i: blob->GetBlobDesc().dims) {ss <<  i << ","; }
+                ss << "]";
+                LOGD("Add %s as input from constant_map to trt network\n", ss.str().c_str());
+            }
         } else {
             LOGE("Input blob [%s] expects dims.size() > 1 .", blob_name.c_str());
         }
@@ -599,6 +607,14 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             LOGE("Add Const [%s] as weights to trt network failed\n", blob_name.c_str());
             return TNNERR_LAYER_ERR;
         }
+
+        {
+            std::stringstream ss;
+            ss << "<" << blob->GetBlobDesc().name << "> shape:[";
+            for(int i: blob->GetBlobDesc().dims) {ss <<  i << ","; }
+            ss << "]";
+            LOGD("Add %s as weights from constant_map to trt network\n", ss.str().c_str());
+        }            
     }
 
     for (int layer_id = 0; layer_id < this->layers_.size(); layer_id++) {
@@ -622,7 +638,6 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
                 LOGE("build trt layer for \"%s\" failed, tensor shape error.\n", cur_layer->GetLayerName().c_str());
                 return TNNERR_LAYER_ERR;
             }
-
             {
                 std::stringstream ss;
                 for( int d=0;d<nbDims;d++) ss << output_tensor->getDimensions().d[d] << ","; 
@@ -630,6 +645,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
                 for(auto d:output->GetBlobDesc().dims) ss << d << ","; 
                 LOGD("build trt layer for \"%s\", tensor shape %s\n", cur_layer->GetLayerName().c_str(), ss.str().c_str());
             }
+
         }
     }
 

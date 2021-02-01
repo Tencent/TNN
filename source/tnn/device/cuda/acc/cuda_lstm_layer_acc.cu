@@ -16,48 +16,124 @@
 
 #include <memory>
 
+#include "tnn/core/macro.h"
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
-#include "tnn/core/macro.h"
 
 namespace TNN_NS {
 
-using perf_t = cudnnConvolutionFwdAlgoPerf_t;
+/* 
+    CUDNN LSTM Weight Storage Format:
+        Concat(
+            [4, hidden_size, input_size],   // ifco Weight For input 
+            [4, hidden_size, hidden_size],  // ifco Weight For reccurent 
+            *[4, hidden_size, input_size],  // ifco Backward Weight For input, only exists in bidirection mode
+            *[4, hidden_size, hidden_size], // ifco Backward Weight For reccurent, only exists in bidirection mode
+            [4, hidden_size],               // ifco Bias for input
+            [4, hidden_size],               // ifco Bias for reccurent
+            *[4, hidden_size],               // ifco Backward Bias for input, only exists in bidirection mode
+            *[4, hidden_size],               // ifco Backward Bias for recurent, only exists in bidirection mode
+        )
+*/
+Status PackONNXWeightsToCUDNNFormat(Blob * W, Blob * R, Blob* B, 
+                                    const int directions, const int hidden_size, const int input_size, 
+                                    float * cudnn_weight_ptr)
+{
+    // 1. Check blob volumn
+    if (DimsVectorUtils::Count(W->GetBlobDesc().dims) != directions * 4 * hidden_size * input_size) {
+        LOGE("Blob W has invalid volumn\n");
+        return  TNNERR_LAYER_ERR;
+    }
+
+    if (DimsVectorUtils::Count(R->GetBlobDesc().dims) != directions * 4 * hidden_size * hidden_size) {
+        LOGE("Blob R has invalid volumn\n");
+        return  TNNERR_LAYER_ERR;
+    }
+
+    if (DimsVectorUtils::Count(B->GetBlobDesc().dims) != directions * 8 * hidden_size) {
+        LOGE("Blob B has invalid volumn\n");
+        return  TNNERR_LAYER_ERR;
+    }
+
+    const int gate_offset[4] = {0, 2, 3, 1}; // IOFC -> IFCO
+
+    // [num_directions, 4*hidden_size, input_size].
+    float * W_ptr = (float*)(((char*)W->GetHandle().base) + W->GetHandle().bytes_offset);
+    // [num_directions, 4*hidden_size, hidden_size].
+    float * R_ptr = (float*)(((char*)R->GetHandle().base) + R->GetHandle().bytes_offset);
+    // [num_directions, 8*hidden_size].
+    float * B_ptr = (float*)(((char*)B->GetHandle().base) + B->GetHandle().bytes_offset);
+
+    size_t offset = 0;
+    for(int dire = 0; dire < directions; dire++) {
+        // W
+        for(int g=0;g<4;g++) {
+            CUDA_CHECK(cudaMemcpy(cudnn_weight_ptr + offset, 
+                                  W_ptr + (dire * 4 + gate_offset[g]) * hidden_size * input_size,
+                                  hidden_size * input_size * sizeof(float),
+                                  cudaMemcpyDeviceToDevice));
+            offset += hidden_size * input_size;
+        }
+        // R
+        for(int g=0;g<4;g++) {
+            CUDA_CHECK(cudaMemcpy(cudnn_weight_ptr + offset, 
+                                  R_ptr + (dire * 4 + gate_offset[g]) * hidden_size * hidden_size,
+                                  hidden_size * hidden_size * sizeof(float),
+                                  cudaMemcpyDeviceToDevice));
+            offset += hidden_size * hidden_size;
+        }
+    }
+
+    for(int dire = 0; dire < directions; dire++) {
+        // WB
+        for(int g=0;g<4;g++) {
+            CUDA_CHECK(cudaMemcpy(cudnn_weight_ptr + offset, 
+                                  B_ptr + (dire * 8 + gate_offset[g]) * hidden_size,
+                                  hidden_size * sizeof(float),
+                                  cudaMemcpyDeviceToDevice));
+            offset += hidden_size;
+        }
+        // RB
+        for(int g=0;g<4;g++) {
+            CUDA_CHECK(cudaMemcpy(cudnn_weight_ptr + offset, 
+                                  B_ptr + (dire * 8 + 4 + gate_offset[g]) * hidden_size,
+                                  hidden_size * sizeof(float),
+                                  cudaMemcpyDeviceToDevice));
+            offset += hidden_size;
+        }
+    }
+
+    return TNN_OK;
+}
 
 Status CudaLSTMONNXLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
     CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 
-    LSTMONNXLayerParam * lstm_param = dynamic_cast<LSTMONNXLayerParam *>(param_);
-    printf("Init lstm hidden_size:%d direction:%d\n", lstm_param->hidden_size, lstm_param->direction);
+    rnn_algo_ = CUDNN_RNN_ALGO_STANDARD;
+    // rnn_algo_ = CUDNN_RNN_ALGO_PERSIST_DYNAMIC;
+    // rnn_algo_ = CUDNN_RNN_ALGO_PERSIST_STATIC;
 
-    DimsVector input_dims  = inputs[0]->GetBlobDesc().dims;
-    DimsVector output_dims = outputs[0]->GetBlobDesc().dims;
+    CUDNN_CHECK(cudnnCreateRNNDescriptor(&rnn_desc_));
+    CUDNN_CHECK(cudnnCreateFilterDescriptor(&w_desc_));
+    CUDNN_CHECK(cudnnCreateDropoutDescriptor(&dropout_desc_));
 
-    this->m_rnn_algo = CUDNN_RNN_ALGO_STANDARD;
-    // this->m_rnn_algo = CUDNN_RNN_ALGO_PERSIST_DYNAMIC;
-    // this->m_rnn_algo = CUDNN_RNN_ALGO_PERSIST_STATIC;
-
-    CUDNN_CHECK(cudnnCreateRNNDescriptor(&this->m_rnn_desc));
-    CUDNN_CHECK(cudnnCreateFilterDescriptor(&this->m_w_desc));
-    CUDNN_CHECK(cudnnCreateDropoutDescriptor(&this->m_dropout_desc));
-
-    CUDNN_CHECK(cudnnCreateTensorDescriptor(&this->m_hx_desc));
-    CUDNN_CHECK(cudnnCreateTensorDescriptor(&this->m_cx_desc));
-    CUDNN_CHECK(cudnnCreateTensorDescriptor(&this->m_hy_desc));
-    CUDNN_CHECK(cudnnCreateTensorDescriptor(&this->m_cy_desc));
+    CUDNN_CHECK(cudnnCreateTensorDescriptor(&hx_desc_));
+    CUDNN_CHECK(cudnnCreateTensorDescriptor(&cx_desc_));
+    CUDNN_CHECK(cudnnCreateTensorDescriptor(&hy_desc_));
+    CUDNN_CHECK(cudnnCreateTensorDescriptor(&cy_desc_));
    
     unsigned long long seed = 1337ull; // Pick a seed.
     float dropout = 0;
     size_t stateSize;
 
     CUDNN_CHECK(cudnnDropoutGetStatesSize(context_->cudnn_handle_, &stateSize));
-    RETURN_ON_NEQ(device_->Allocate(&m_dropout_state, stateSize), TNN_OK);
-    CUDNN_CHECK(cudnnSetDropoutDescriptor(this->m_dropout_desc, 
+    RETURN_ON_NEQ(device_->Allocate(&dropout_state_, stateSize), TNN_OK);
+    CUDNN_CHECK(cudnnSetDropoutDescriptor(dropout_desc_, 
                                context_->cudnn_handle_,
                                dropout, 
-                               m_dropout_state, 
+                               dropout_state_, 
                                stateSize, 
                                seed));
 
@@ -65,162 +141,225 @@ Status CudaLSTMONNXLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 }
 
 CudaLSTMONNXLayerAcc::~CudaLSTMONNXLayerAcc(){
-    if (m_dropout_state) {
-        device_->Free(m_dropout_state);
+    CUDNN_CHECK(cudnnDestroyRNNDescriptor(rnn_desc_));
+    CUDNN_CHECK(cudnnDestroyFilterDescriptor(w_desc_));
+    CUDNN_CHECK(cudnnDestroyDropoutDescriptor(dropout_desc_));
+
+    CUDNN_CHECK(cudnnDestroyTensorDescriptor(hx_desc_));
+    CUDNN_CHECK(cudnnDestroyTensorDescriptor(cx_desc_));
+    CUDNN_CHECK(cudnnDestroyTensorDescriptor(hy_desc_));
+    CUDNN_CHECK(cudnnDestroyTensorDescriptor(cy_desc_));
+
+    if (dropout_state_) {
+        device_->Free(dropout_state_);
+        dropout_state_ = nullptr;
+    }
+
+    if (x_desc_ && seq_length_ > 0) {
+        for (int i = 0; i < seq_length_; i++) {CUDNN_CHECK(cudnnDestroyTensorDescriptor(x_desc_[i])); }
+        free(x_desc_);
+        x_desc_ = nullptr;
+    }
+    if (y_desc_ && seq_length_ > 0) {
+        for (int i = 0; i < seq_length_; i++) {CUDNN_CHECK(cudnnDestroyTensorDescriptor(y_desc_[i])); }
+        free(y_desc_);
+        y_desc_ = nullptr;
+    }
+
+    if (hx_) {
+        device_->Free(hx_);
+        hx_ = nullptr;
+    }
+    if (hy_) {
+        device_->Free(hy_);
+        hy_ = nullptr;
+    }
+    if (cx_) {
+        device_->Free(cx_);
+        cx_ = nullptr;
+    }
+    if (cy_) {
+        device_->Free(cy_);
+        cy_ = nullptr;
+    }
+    if (workspace_) {
+        device_->Free(workspace_);
+        workspace_= nullptr;
+        workspace_size_ = 0;
+    }
+
+    if (rnn_algo_ == CUDNN_RNN_ALGO_PERSIST_DYNAMIC) {
+        cudnnDestroyPersistentRNNPlan(rnn_plan_);
     }
 }
 
 Status CudaLSTMONNXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
     DimsVector input_dims  = inputs[0]->GetBlobDesc().dims;
-    DimsVector output_dims = outputs[0]->GetBlobDesc().dims;
     LSTMONNXLayerParam * lstm_param = dynamic_cast<LSTMONNXLayerParam *>(param_);
-    printf("reshape lstm hidden_size:%d direction:%d\n", lstm_param->hidden_size, lstm_param->direction);
+
+    if (inputs.size() < 4) {
+        return Status(TNNERR_LAYER_ERR, "LSTM has invalid inputs");
+    }
 
     // free the last init resources 
-    if (m_x_desc && m_seq_length > 0) {
-        for (int i = 0; i < this->m_seq_length; i++) {CUDNN_CHECK(cudnnDestroyTensorDescriptor(this->m_x_desc[i])); }
-        free(m_x_desc);
-        m_x_desc = nullptr;
+    if (x_desc_ && seq_length_ > 0) {
+        for (int i = 0; i < seq_length_; i++) {CUDNN_CHECK(cudnnDestroyTensorDescriptor(x_desc_[i])); }
+        free(x_desc_);
+        x_desc_ = nullptr;
     }
-    if (m_y_desc && m_seq_length > 0) {
-        for (int i = 0; i < this->m_seq_length; i++) {CUDNN_CHECK(cudnnDestroyTensorDescriptor(this->m_y_desc[i])); }
-        free(m_y_desc);
-        m_y_desc = nullptr;
+    if (y_desc_ && seq_length_ > 0) {
+        for (int i = 0; i < seq_length_; i++) {CUDNN_CHECK(cudnnDestroyTensorDescriptor(y_desc_[i])); }
+        free(y_desc_);
+        y_desc_ = nullptr;
     }
 
-    this->m_hidden_size = lstm_param->hidden_size;
-    this->m_num_layers = 1;
-    this->m_input_size = DimsVectorUtils::Count(input_dims, 2); // input dimension
-    this->m_bidirectional = lstm_param->direction >= 2 ? true : false;
+    hidden_size_ = lstm_param->hidden_size;
+    num_layers_ = 1;
+    input_size_ = DimsVectorUtils::Count(input_dims, 2); // input dimension
+    bidirectional_ = lstm_param->direction >= 2 ? true : false;
 
     // currently one onnx lstm layer only compute one time, so num_layers = 1
-    this->m_seq_length = input_dims[0];
+    seq_length_ = input_dims[0];
     int batch_size = input_dims[1];
 
-    printf("Reshape batchsize:%d seq_length:%d num_layers:%d input_size:%d hidden_size:%d, direction:%d\n", 
-                batch_size, m_seq_length, m_num_layers, m_input_size, m_hidden_size, lstm_param->direction);
-
     CUDNN_CHECK(cudnnSetRNNDescriptor_v6(context_->cudnn_handle_,
-                                       this->m_rnn_desc,
-                                       this->m_hidden_size, 
-                                       this->m_num_layers, 
-                                       this->m_dropout_desc,
+                                       rnn_desc_,
+                                       hidden_size_, 
+                                       num_layers_, 
+                                       dropout_desc_,
                                        CUDNN_LINEAR_INPUT, 
-                                       this->m_bidirectional ? CUDNN_BIDIRECTIONAL : CUDNN_UNIDIRECTIONAL, 
+                                       bidirectional_ ? CUDNN_BIDIRECTIONAL : CUDNN_UNIDIRECTIONAL, 
                                        CUDNN_LSTM, 
-                                       this->m_rnn_algo,
+                                       rnn_algo_,
                                        CUDNN_DATA_FLOAT));
 
-    this->m_x_desc = (cudnnTensorDescriptor_t*)malloc(this->m_seq_length * sizeof(cudnnTensorDescriptor_t));
-    this->m_y_desc = (cudnnTensorDescriptor_t*)malloc(this->m_seq_length * sizeof(cudnnTensorDescriptor_t));
+    // xy initialize
+    x_desc_ = (cudnnTensorDescriptor_t*)malloc(seq_length_ * sizeof(cudnnTensorDescriptor_t));
+    y_desc_ = (cudnnTensorDescriptor_t*)malloc(seq_length_ * sizeof(cudnnTensorDescriptor_t));
 
     
     int dimA[3];
     int strideA[3];
 
-    for (int i = 0; i < this->m_seq_length; i++) {
-        CUDNN_CHECK( cudnnCreateTensorDescriptor(&(this->m_x_desc[i])) );
-        CUDNN_CHECK( cudnnCreateTensorDescriptor(&(this->m_y_desc[i])) );
+    for (int i = 0; i < seq_length_; i++) {
+        CUDNN_CHECK( cudnnCreateTensorDescriptor(&(x_desc_[i])) );
+        CUDNN_CHECK( cudnnCreateTensorDescriptor(&(y_desc_[i])) );
 
         dimA[0] = batch_size;
-        dimA[1] = this->m_input_size;
+        dimA[1] = input_size_;
         dimA[2] = 1;
 
         strideA[0] = dimA[2] * dimA[1];
         strideA[1] = dimA[2];
         strideA[2] = 1;
 
-        CUDNN_CHECK(cudnnSetTensorNdDescriptor(this->m_x_desc[i], CUDNN_DATA_FLOAT, 3, dimA, strideA));
+        CUDNN_CHECK(cudnnSetTensorNdDescriptor(x_desc_[i], CUDNN_DATA_FLOAT, 3, dimA, strideA));
 
         dimA[0] = batch_size;
-        dimA[1] = this->m_hidden_size * (this->m_bidirectional ? 2 : 1);
+        dimA[1] = hidden_size_ * (bidirectional_ ? 2 : 1);
         dimA[2] = 1;
 
         strideA[0] = dimA[2] * dimA[1];
         strideA[1] = dimA[2];
         strideA[2] = 1;
 
-        CUDNN_CHECK(cudnnSetTensorNdDescriptor(this->m_y_desc[i], CUDNN_DATA_FLOAT, 3, dimA, strideA));
+        CUDNN_CHECK(cudnnSetTensorNdDescriptor(y_desc_[i], CUDNN_DATA_FLOAT, 3, dimA, strideA));
     }
    
    
-    dimA[0] = m_num_layers * (m_bidirectional ? 2 : 1);
+    // hc initialize
+    dimA[0] = num_layers_ * (bidirectional_ ? 2 : 1);
     dimA[1] = batch_size;
-    dimA[2] = m_hidden_size;
+    dimA[2] = hidden_size_;
 
     strideA[0] = dimA[2] * dimA[1];
     strideA[1] = dimA[2];
     strideA[2] = 1;
 
-    CUDNN_CHECK(cudnnSetTensorNdDescriptor(m_hx_desc, CUDNN_DATA_FLOAT, 3, dimA, strideA));
-    CUDNN_CHECK(cudnnSetTensorNdDescriptor(m_cx_desc, CUDNN_DATA_FLOAT, 3, dimA, strideA));
-    CUDNN_CHECK(cudnnSetTensorNdDescriptor(m_hy_desc, CUDNN_DATA_FLOAT, 3, dimA, strideA));
-    CUDNN_CHECK(cudnnSetTensorNdDescriptor(m_cy_desc, CUDNN_DATA_FLOAT, 3, dimA, strideA));
+    CUDNN_CHECK(cudnnSetTensorNdDescriptor(hx_desc_, CUDNN_DATA_FLOAT, 3, dimA, strideA));
+    CUDNN_CHECK(cudnnSetTensorNdDescriptor(cx_desc_, CUDNN_DATA_FLOAT, 3, dimA, strideA));
+    CUDNN_CHECK(cudnnSetTensorNdDescriptor(hy_desc_, CUDNN_DATA_FLOAT, 3, dimA, strideA));
+    CUDNN_CHECK(cudnnSetTensorNdDescriptor(cy_desc_, CUDNN_DATA_FLOAT, 3, dimA, strideA));
 
+
+    size_t hc_size_in_bytes = (bidirectional_ ? 2 : 1) * batch_size * hidden_size_ * sizeof(float);
+    RETURN_ON_NEQ(device_->ReAllocate((void **)&hx_, hc_size_in_bytes), TNN_OK);
+    RETURN_ON_NEQ(device_->ReAllocate((void **)&hy_, hc_size_in_bytes), TNN_OK);
+    RETURN_ON_NEQ(device_->ReAllocate((void **)&cx_, hc_size_in_bytes), TNN_OK);
+    RETURN_ON_NEQ(device_->ReAllocate((void **)&cy_, hc_size_in_bytes), TNN_OK);
+
+    CUDA_CHECK(cudaMemset(hy_, 0, hc_size_in_bytes));
+    CUDA_CHECK(cudaMemset(cy_, 0, hc_size_in_bytes));
+
+    if (inputs.size() >= 6) {
+        // [num_directions, batch_size, hidden_size].
+        float * h0_ptr = (float*)(((char*)inputs[4]->GetHandle().base) + inputs[4]->GetHandle().bytes_offset);
+        float * c0_ptr = (float*)(((char*)inputs[5]->GetHandle().base) + inputs[5]->GetHandle().bytes_offset);
+        CUDA_CHECK(cudaMemcpy(hx_, h0_ptr, hc_size_in_bytes, cudaMemcpyDeviceToDevice));
+        CUDA_CHECK(cudaMemcpy(cx_, c0_ptr, hc_size_in_bytes, cudaMemcpyDeviceToDevice));
+    } else {
+        CUDA_CHECK(cudaMemset(hx_, 0, hc_size_in_bytes));
+        CUDA_CHECK(cudaMemset(cx_, 0, hc_size_in_bytes));
+    }
    
+    // weight initialize
     size_t weightsSize;
-    CUDNN_CHECK(cudnnGetRNNParamsSize(context_->cudnn_handle_, m_rnn_desc, m_x_desc[0], &weightsSize, CUDNN_DATA_FLOAT));
+    CUDNN_CHECK(cudnnGetRNNParamsSize(context_->cudnn_handle_, rnn_desc_, x_desc_[0], &weightsSize, CUDNN_DATA_FLOAT));
 
     int dimW[3];   
     dimW[0] =  weightsSize / sizeof(float);
     dimW[1] = 1;
     dimW[2] = 1;
 
-    printf("lstm weightsSize:%lu\n", weightsSize);
-      
-    CUDNN_CHECK(cudnnSetFilterNdDescriptor(m_w_desc, CUDNN_DATA_FLOAT, CUDNN_TENSOR_NCHW, 3, dimW));   
+    CUDNN_CHECK(cudnnSetFilterNdDescriptor(w_desc_, CUDNN_DATA_FLOAT, CUDNN_TENSOR_NCHW, 3, dimW));   
 
-    CUDNN_CHECK(cudnnGetRNNWorkspaceSize(context_->cudnn_handle_, m_rnn_desc, m_seq_length, m_x_desc, &m_workspace_size));
+    RETURN_ON_NEQ(device_->ReAllocate((void **)&weights_, weightsSize), TNN_OK);
+    RETURN_ON_NEQ(PackONNXWeightsToCUDNNFormat(inputs[1], inputs[2], inputs[3], 
+                                               num_layers_ * (bidirectional_ ? 2 : 1), hidden_size_, input_size_,
+                                               (float*)weights_), 
+                  TNN_OK);
 
-    if (this->m_workspace_size > 0) {
-        RETURN_ON_NEQ(device_->Allocate(&m_workspace, m_workspace_size), TNN_OK);
+    CUDNN_CHECK(cudnnGetRNNWorkspaceSize(context_->cudnn_handle_, rnn_desc_, seq_length_, x_desc_, &workspace_size_));
+
+    if (workspace_size_ > 0) {
+        RETURN_ON_NEQ(device_->ReAllocate(&workspace_, workspace_size_), TNN_OK);
     }
-    if (this->m_workspace == NULL) {
-        return Status(TNNERR_LAYER_ERR, "LSTM allocate workspace failed.");
-    }
-
-    if (inputs.size() < 4) {
-        return Status(TNNERR_LAYER_ERR, "LSTM has invalid inputs");
-    }
-
-    // h,c initialize according to batch_size
-    size_t h_size = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
-    size_t c_size = DimsVectorUtils::Count(inputs[2]->GetBlobDesc().dims); 
-    // float* h = inputs[1]->GetHandle().base +  inputs[1]->GetHandle().bytes_offset;
-    // float* c = inputs[2]->GetHandle().base +  inputs[2]->GetHandle().bytes_offset;
-
-    // h_size = this->m_input_nodes[1]->count();
-    // c_size = this->m_input_nodes[2]->count();
-    // h = this->m_input_nodes[1]->data();
-    // c = this->m_input_nodes[2]->data();
-    // m_weights = this->m_input_nodes[3]->data();
-
-
-    // this->m_hx = (float *)(this->m_mngr->myalloc(h_size * sizeof(float) * batch_size , false));
-    // this->m_hy = (float *)(this->m_mngr->myalloc(h_size * sizeof(float) * batch_size , false));
-    // this->m_cx = (float *)(this->m_mngr->myalloc(c_size * sizeof(float) * batch_size , false));
-    // this->m_cy = (float *)(this->m_mngr->myalloc(c_size * sizeof(float) * batch_size , false));
-
-    // CUDA_CHECK(cudaMemset(this->m_hx , 0, batch_size * h_size * sizeof(float)));
-    // CUDA_CHECK(cudaMemset(this->m_hy , 0, batch_size * h_size * sizeof(float)));
-    // CUDA_CHECK(cudaMemset(this->m_cx , 0, batch_size * c_size * sizeof(float)));
-    // CUDA_CHECK(cudaMemset(this->m_cy , 0, batch_size * c_size * sizeof(float)));
-
 
     // set lstm algo persist plan 
-    if (this->m_rnn_algo == CUDNN_RNN_ALGO_PERSIST_DYNAMIC) {
+    if (rnn_algo_ == CUDNN_RNN_ALGO_PERSIST_DYNAMIC) {
       // Note: This step is expensive. Once completed the plan can be reused so long as the descriptor
-      //       batchsize or datatype don't change.
-      CUDNN_CHECK(cudnnCreatePersistentRNNPlan(this->m_rnn_desc, batch_size, CUDNN_DATA_FLOAT, &this->m_rnn_plan));
-      CUDNN_CHECK(cudnnSetPersistentRNNPlan(this->m_rnn_desc, this->m_rnn_plan));
+      CUDNN_CHECK(cudnnCreatePersistentRNNPlan(rnn_desc_, batch_size, CUDNN_DATA_FLOAT, &rnn_plan_));
+      CUDNN_CHECK(cudnnSetPersistentRNNPlan(rnn_desc_, rnn_plan_));
     }
-   
 
     return TNN_OK;
 }
 
 Status CudaLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+
+    float * bottom_data = (float*)(((char*)inputs[0]->GetHandle().base) + inputs[0]->GetHandle().bytes_offset);
+    float * top_data    = (float*)(((char*)outputs[0]->GetHandle().base) + outputs[0]->GetHandle().bytes_offset);
+
+    CUDNN_CHECK(cudnnRNNForwardInference(context_->cudnn_handle_,
+                                         rnn_desc_, 
+                                         seq_length_,
+                                         x_desc_, 
+                                         bottom_data, 
+                                         hx_desc_,
+                                         hx_, 
+                                         cx_desc_,
+                                         cx_, 
+                                         w_desc_,
+                                         weights_,
+                                         y_desc_,
+                                         top_data,
+                                         hy_desc_, 
+                                         hy_,
+                                         cy_desc_, 
+                                         cy_,
+                                         workspace_,
+                                         workspace_size_));
     return TNN_OK;
 }
 
