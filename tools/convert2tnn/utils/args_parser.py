@@ -34,7 +34,7 @@ def parse_args():
                                  nargs='+',
                                  type=str,
                                  help="specify the input name and shape of the model. e.g., " +
-                                      "-in input1_name:1,3,8,8 input2_name:1,8")
+                                      "-in input1_name:1,3,128,128 input2_name:1,3,256,256")
     onnx2tnn_parser.add_argument('-optimize',
                                  dest='optimize',
                                  default=False,

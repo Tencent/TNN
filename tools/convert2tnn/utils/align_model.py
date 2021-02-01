@@ -142,6 +142,26 @@ def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
     return output_path
 
 
+def squeeze_data(data: np.ndarray, num_axes):
+    for i in range(num_axes):
+        data = data.squeeze(-2)
+
+    return data
+
+
+NCHW_TO_NHWC_AXES = (0, 2, 3, 1)
+def nchw_data_to_nhwc(data_dict: dict, input_details: dict):
+    for item in input_details:
+        name = item["name"]
+        src_shape_size = len(item["shape"])
+        data = data_dict[name]
+        data = data.transpose(NCHW_TO_NHWC_AXES)
+        data = squeeze_data(data, len(data.shape) - src_shape_size)
+        data_dict[name] = data
+
+    return data_dict
+
+
 def run_tflite(model_path: str, input_path: str, input_info: dict) -> str:
     import tensorflow as tf
 
@@ -158,10 +178,12 @@ def run_tflite(model_path: str, input_path: str, input_info: dict) -> str:
     interpreter.allocate_tensors()
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
+
+    input_data_dict = nchw_data_to_nhwc(input_data_dict, input_details)
     for item in input_details:
         name = item["name"]
         index = item["index"]
-        input_data = input_data_dict[name].transpose((0, 2, 3, 1))
+        input_data = input_data_dict[name]
         interpreter.set_tensor(index, input_data)
 
     interpreter.invoke()
@@ -225,6 +247,19 @@ def get_input_shape_from_onnx(onnx_path) -> dict:
     return input_info
 
 
+def nhwc_shape_to_nchw(shape: list):
+    shape_size = len(shape)
+    if shape_size > 4:
+        raise RuntimeError("Do not support 5-dimensional input!")
+
+    while len(shape) < 4:
+        shape.insert(-1, 1)
+    channels = shape.pop()
+    shape.insert(1, channels)
+
+    return shape
+
+
 def get_input_shape_from_tflite(tflite_path)->dict:
     import tensorflow as tf
     input_info: dict={}
@@ -234,10 +269,7 @@ def get_input_shape_from_tflite(tflite_path)->dict:
     for item in input_details:
         name = item["name"]
         shape = list(item["shape"])
-        if (len(shape)) == 4:
-            shape = [shape[0], shape[3], shape[1], shape[2]]
-        elif (len(shape)) == 3:
-            shape = [shape[0], shape[2], shape[1]]
+        shape = nhwc_shape_to_nchw(shape)
 
         if item["dtype"] == np.float32:
             data_type = 0
@@ -345,17 +377,27 @@ def check_input_lite_info(onnx_input_info: dict, tnn_input_info: dict):
                                                                                       str(tnn_info)))
     logging.info("Check tflite input shape and tnn input shape align!\n")
 
+
 def parse_input_names(input_names: str) -> dict:
     input_info = {}
     for x in input_names.split(" "):
         if ':' not in x:
-            input_info[None] = list(map(int, x.split(',')))
+            shape = list(map(int, x.split(',')))
+            input_info[None] = {'shape': shape, 'data_type': 0}
         else:
             pieces = x.split(':')
             # for the input name like input:0
             name, shape = ':'.join(
                 pieces[:-1]), list(map(int, pieces[-1].split(',')))
-            input_info[name] = shape
+            input_shape_info = {'shape': shape, 'data_type': 0}
+            input_info[name] = input_shape_info
+
+    for name, input_shape_info in input_info.items():
+        if ":" not in name:
+            continue
+        tnn_name = convert_name.onnx_name2tnn_name(name)
+        input_info[tnn_name] = input_shape_info
+        del input_info[name]
 
     return input_info
 
