@@ -27,15 +27,23 @@ def gene_random_data(input_info: dict) -> str:
     command = "mkdir -p " + data_dir
     
     logging.debug(command)
-    
-    cmd.run("pwd")
+
     cmd.run(command)
     checker.check_file_exist(data_dir)
     data_path = os.path.join(data_dir, "input.txt")
     data_file = open(data_path, "w")
-    for name, shape in input_info.items():
-        data[name] = np.random.rand(*shape)
-        np.savetxt(data_file, data[name].reshape(-1), fmt="%0.18f")
+    data_file.write(str(len(input_info)) + '\n')
+    for name, info in input_info.items():
+        shape = info['shape']
+        data_type = info['data_type']
+        data_file.write(name + ' ' + str(len(shape)) + ' ' + ' '.join([str(dim) for dim in shape]) + ' ' + str(data_type) + '\n')
+        if data_type == 0:
+            data[name] = np.random.rand(*shape)
+            np.savetxt(data_file, data[name].reshape(-1), fmt="%0.6f")
+        elif data_type == 3:
+            data[name] = np.random.randint(low=0,high=1
+                                           , size=shape)
+            np.savetxt(data_file, data[name].reshape(-1), fmt="%i")
     data_file.close()
     return data_path
 
