@@ -18,7 +18,7 @@
 #include <string.h>
 #include <cstdlib>
 #if TNN_PROFILE
-#include <sys/time.h>
+#include <chrono>
 #endif
 
 #include "tnn/core/blob.h"
@@ -26,20 +26,24 @@
 
 namespace TNN_NS {
 #if TNN_PROFILE
+using std::chrono::duration_cast;
+using std::chrono::microseconds;
+using std::chrono::time_point;
+using std::chrono::system_clock;
 struct Timer {
 public:
     void Start() {
-        gettimeofday(&start, NULL);
+        start_ = system_clock::now();
     }
     float TimeEclapsed() {
-        struct timeval end;
-        gettimeofday(&end, NULL);
-        float delta = (end.tv_sec - start.tv_sec) * 1000.f + (end.tv_usec - start.tv_usec) / 1000.f;
-        gettimeofday(&start, NULL);
-        return delta;
+        stop_ = system_clock::now();
+        float elapsed = duration_cast<microseconds>(stop_ - start_).count() / 1000.0f;
+        start_ = system_clock::now();
+        return elapsed;
     }
 private:
-    struct timeval start;
+    time_point<system_clock> start_;
+    time_point<system_clock> stop_;
 };
 #endif
 
