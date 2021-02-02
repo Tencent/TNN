@@ -69,7 +69,7 @@ enum LayerType {
     LAYER_QUANTIZEDRESHAPE                                  = 51,
     LAYER_CONVOLUTION_DEPTHWISE                             = 52,
     LAYER_QUANTIZEDBIASADD                                  = 53,
-    LAYER_BIASADD                                           = 54,
+    LAYER_BIAS_ADD                                          = 54,
     LAYER_CONTINUATION_INDICATOR                            = 55,
     LAYER_QUANTIZEDRELU                                     = 56,
     LAYER_STRIDED_SLICE                                     = 57,
@@ -196,12 +196,21 @@ enum LayerType {
     LAYER_ERF                                               = 307,
     LAYER_CONSTANT_OF_SHAPE                                 = 308,
     LAYER_NONZERO                                           = 309,
+    LAYER_LSTMONNX                                          = 310,
+    LAYER_RANGE                                             = 311,
+    LAYER_SIZE                                              = 312,
+    LAYER_BITSHIFT                                          = 313,
+    LAYER_HISTOGRAM                                         = 314,
+    LAYER_GATHERND                                          = 315,
+    LAYER_PADV2                                             = 316,
 
     LAYER_BLOB_SCALE                                        = 600,
 
     LAYER_INT8_RANGE                                        = 700,
     LAYER_TRT_ENGINE                                        = 701,
 
+    LAYER_CBAM_FUSED_REDUCE                                 = 800,
+    LAYER_CBAM_FUSED_POOLING                                = 801
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str);

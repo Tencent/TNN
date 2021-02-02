@@ -24,6 +24,7 @@
 
 namespace TNN_NS {
 
+typedef std::map<std::string, DimsVector> BlobShapesMap;
 typedef std::map<std::string, std::shared_ptr<RawBuffer> > ConstantResource;
 
 struct LayerResource {
@@ -143,6 +144,11 @@ struct UnsqueezeLayerResource : public SqueezeLayerResource {};
 struct MatMulLayerResource : public LayerResource {
     RawBuffer weight;
 };
+
+struct BiasAddLayerResource : public LayerResource {
+    RawBuffer bias_handle;
+};
+
 
 }  // namespace TNN_NS
 

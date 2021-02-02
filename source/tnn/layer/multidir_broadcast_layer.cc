@@ -73,8 +73,8 @@ bool SupportBroadcast(DimsVector dim0, DimsVector dim1) {
     return true;
 }
 
-Status MultidirBroadcastLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status MultidirBroadcastLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
 
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
@@ -83,7 +83,7 @@ Status MultidirBroadcastLayer::InferOutputShape() {
     if (layer_res) {
         const int weight_input_index = layer_param->weight_input_index;
         if (weight_input_index != 0 && weight_input_index != 1) {
-            LOGE("Error: unsupported weight_input_index\n");
+            LOGE_IF(!ignore_error, "Error: unsupported weight_input_index\n");
             return Status(TNNERR_LAYER_ERR, "Error: unsupported weight_input_index");
         }
 
@@ -116,7 +116,7 @@ Status MultidirBroadcastLayer::InferOutputShape() {
                     weight_shape[i] = input_shape[i];
                 }
             } else {
-                LOGE("Error: unsupported broadcast type\n");
+                LOGE_IF(!ignore_error, "Error: unsupported broadcast type\n");
                 return Status(TNNERR_LAYER_ERR, "Error: unsupported broadcast type");
             }
             layer_res->element_shape = weight_shape;
@@ -153,9 +153,9 @@ Status MultidirBroadcastLayer::InferOutputShape() {
         }
 
         if (!SupportBroadcast(dim0, dim1)) {
-            LOGE(
+            LOGE_IF(!ignore_error, 
                 "Error: operands could not be broadcast together with wrong "
-                "shape\n");
+                "shape (name: %s)\n", layer_param->name.c_str());
             return Status(TNNERR_LAYER_ERR,
                           "Error: operands could not be broadcast together "
                           "with wrong shape");

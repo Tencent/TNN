@@ -42,7 +42,7 @@ protected:
     RawBuffer buffer_bias_;
     int tile_blk_size;
 
-    std::function<void(__fp16 *, const __fp16 *, const ConvLayerParam *, 
+    std::function<void(fp16_t *, const fp16_t *, const ConvLayerParam *, 
                        size_t, size_t, const ArmKernelParam *kparam)> img2col_func;
 
     PostFunc post_func_ = nullptr;

@@ -27,8 +27,8 @@ Status CastLayer::InferOutputDataType() {
     return TNN_OK;
 }
 
-Status CastLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status CastLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];

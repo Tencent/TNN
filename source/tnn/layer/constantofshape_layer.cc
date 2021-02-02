@@ -27,7 +27,7 @@ Status ConstantOfShapeLayer::InferOutputDataType() {
     for (auto& iter : output_blobs_) {
         int allocate_status = DATA_FLAG_ALLOCATE_IN_FORWARD;
         if (runtime_model_ == RUNTIME_MODE_NORMAL &&
-            const_resource_.find(iter->GetBlobDesc().name) != const_resource_.end()) {
+            const_resource_ != nullptr && const_resource_->find(iter->GetBlobDesc().name) != const_resource_->end()) {
             allocate_status = 0;
         }
         iter->flag = DATA_FLAG_CHANGE_IF_SHAPE_DIFFER | allocate_status;
@@ -37,8 +37,11 @@ Status ConstantOfShapeLayer::InferOutputDataType() {
     return TNN_OK;
 }
 
-Status ConstantOfShapeLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status ConstantOfShapeLayer::InferOutputShape(bool ignore_error) {
+    //NOTE: This layer should not be excuted on device which is not NAIVE. see RangeLayer
+    
+    auto status = BaseLayer::InferOutputShape(ignore_error);
+    RETURN_ON_NEQ(status, TNN_OK);
     
     auto input_dims = input_blobs_[0]->GetBlobDesc().dims;
     auto data_type = input_blobs_[0]->GetBlobDesc().data_type;

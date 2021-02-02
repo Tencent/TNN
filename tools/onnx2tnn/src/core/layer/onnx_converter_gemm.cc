@@ -18,7 +18,7 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-#include "half_utils.h"
+
 
 template <class T>
 onnx::TensorProto MakeTensor(const std::string &name, const std::vector<T> &v,
@@ -97,7 +97,7 @@ string OnnxOpConverterGemm::TNNLayerParam(NodeProto& node,
     return layer_param.str();
 }
 
-int OnnxOpConverterGemm::WriteTNNModel(serializer* net_writer,
+int OnnxOpConverterGemm::WriteTNNModel(Serializer* net_writer,
                                        NodeProto& node,
                                        OnnxNetInfo& net_info) {
     const std::string& onnx_op = node.op_type();
@@ -114,13 +114,13 @@ int OnnxOpConverterGemm::WriteTNNModel(serializer* net_writer,
             int axis = 1;  // Fix TODO
 
             //写头信息
-            net_writer->put_int(0);  //触发type from string
-            net_writer->put_string(tnn_layer_type);
-            net_writer->put_string(name);
+            net_writer->PutInt(0);  //触发type from string
+            net_writer->PutString(tnn_layer_type);
+            net_writer->PutString(name);
 
             //写数据
             //对应innerproduct_data的反序列化
-            net_writer->put_string(name);
+            net_writer->PutString(name);
             auto B = get_node_attr_tensor(node, "B", net_info, 1);
             if (transB == 1) {
                 WriteTensorData(B, net_writer, net_info.data_type);

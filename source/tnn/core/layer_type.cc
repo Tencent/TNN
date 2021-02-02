@@ -81,9 +81,9 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"Dequantize", LAYER_DEQUANTIZE},
     {"QuantizedReshapeTensorflow", LAYER_RESHAPE},
     {"ConvolutionDepthwise", LAYER_CONVOLUTION_DEPTHWISE},
-    {"QuantizedBiasAdd", LAYER_BIASADD},
-    {"QuantizedSum", LAYER_BIASADD},
-    {"BiasAdd", LAYER_BIASADD},
+    {"QuantizedBiasAdd", LAYER_BIAS_ADD},
+    {"QuantizedSum", LAYER_BIAS_ADD},
+    {"BiasAdd", LAYER_BIAS_ADD},
     {"ContinuationIndicator", LAYER_CONTINUATION_INDICATOR},
     {"QuantizedReLU", LAYER_RELU},
     {"QuantizedAdd", LAYER_ADD},
@@ -217,9 +217,18 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"ScatterND", LAYER_SCATTER_ND},
     {"ConstantOfShape", LAYER_CONSTANT_OF_SHAPE},
     {"NonZero", LAYER_NONZERO},
+    {"LSTMONNX", LAYER_LSTMONNX},
     {"QuantizedSigmoid", LAYER_SIGMOID},
     {"StridedSliceV2", LAYER_STRIDED_SLICE_V2},
     {"Erf", LAYER_ERF},
+    {"Range", LAYER_RANGE},
+    {"Size", LAYER_SIZE},
+    {"Histogram", LAYER_HISTOGRAM},
+    {"GatherND", LAYER_GATHERND},
+    {"BitShift", LAYER_BITSHIFT},
+    {"PadV2", LAYER_PADV2},
+    {"CbamFusedReduce", LAYER_CBAM_FUSED_REDUCE},
+    {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING}
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

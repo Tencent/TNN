@@ -73,7 +73,7 @@ Status CopyFromDevice(Blob* dst, Blob* src, void* command_queue) {
 }
 
 Status Blob2RawBuffer(Blob *blob, std::shared_ptr<RawBuffer> &buffer) {
-    if (!blob || !blob->GetHandle().base) {
+    if (!blob) {
         return Status(TNNERR_PARAM_ERR, "blob is null");
     }
     if (blob->GetBlobDesc().device_type != DEVICE_NAIVE) {
@@ -81,7 +81,12 @@ Status Blob2RawBuffer(Blob *blob, std::shared_ptr<RawBuffer> &buffer) {
         return Status(TNNERR_PARAM_ERR, "Blob2RawBuffer dont support device type");
     }
     
-    const int count = DimsVectorUtils::Count(blob->GetBlobDesc().dims);
+    const auto dims = blob->GetBlobDesc().dims;
+    
+    int count = DimsVectorUtils::Count(dims);
+    if (dims.size() == 0 && !blob->GetHandle().base) {
+        count = 0;
+    }
     const int ele_size = DataTypeUtils::GetBytesSize(blob->GetBlobDesc().data_type);
     
     //处理原来buffer已有分配内存的情况
@@ -91,12 +96,15 @@ Status Blob2RawBuffer(Blob *blob, std::shared_ptr<RawBuffer> &buffer) {
     buffer->SetDataType(blob->GetBlobDesc().data_type);
     buffer->SetBufferDims(blob->GetBlobDesc().dims);
     
-    memcpy(buffer->force_to<void *>(), blob->GetHandle().base, count*ele_size);
+    if (count > 0) {
+        memcpy(buffer->force_to<void *>(), blob->GetHandle().base, count*ele_size);
+    }
+    
     return TNN_OK;
 }
 
 Status RawBuffer2Blob(RawBuffer *buffer, std::shared_ptr<Blob> &blob) {
-    if (!buffer || buffer->GetBytesSize() <= 0) {
+    if (!buffer) {
         return Status(TNNERR_PARAM_ERR, "buffer is null");
     }
     
@@ -110,10 +118,17 @@ Status RawBuffer2Blob(RawBuffer *buffer, std::shared_ptr<Blob> &blob) {
             desc.data_type = buffer->GetDataType();
             desc.dims = buffer->GetBufferDims();
         }
-        blob = std::make_shared<Blob>(desc, true);
+        if (buffer->GetBytesSize() > 0) {
+            blob = std::make_shared<Blob>(desc, true);
+        } else {
+            blob = std::make_shared<Blob>(desc, false);
+        }
     }
     
-    memcpy(blob->GetHandle().base, buffer->force_to<void *>(), buffer->GetBytesSize());
+    if (buffer->GetBytesSize() > 0) {
+        memcpy(blob->GetHandle().base, buffer->force_to<void *>(), buffer->GetBytesSize());
+    }
+    
     return TNN_OK;
 }
 

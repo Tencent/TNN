@@ -52,6 +52,7 @@ string OnnxOpConverterCast::TNNLayerParam(NodeProto &node,
         case 1:
             data_type = DATA_TYPE_FLOAT;
             break;
+        case 9://INT8 BOOL(sizeof(bool) == sizeof(char))
         case 3:
             data_type = DATA_TYPE_INT8;
             break;
@@ -61,6 +62,11 @@ string OnnxOpConverterCast::TNNLayerParam(NodeProto &node,
             break;
         case 10:
             data_type = DATA_TYPE_HALF;
+            break;
+        case 12:
+        case 13:
+            //trt has no uint32, so cast to int32, BitShit op may overflow, Be careful
+            data_type = DATA_TYPE_INT32;
             break;
         case 16:
             data_type = DATA_TYPE_BFP16;
@@ -79,7 +85,7 @@ bool OnnxOpConverterCast::HasLayerResource(NodeProto &node, OnnxNetInfo &net_inf
     return false;
 }
 
-int OnnxOpConverterCast::WriteTNNModel(serializer *net_writer,
+int OnnxOpConverterCast::WriteTNNModel(Serializer *net_writer,
                                             NodeProto &node,
                                             OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

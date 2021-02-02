@@ -29,10 +29,20 @@ string OnnxOpConverterResize::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_in
 
     std::vector<float> scales;
     std::vector<int64_t> sizes;
+    string scales_name = "";
+    string sizes_name = "";
     if (net_info.opset >= 11) {
-        scales = get_node_attr_af(node, "scales", net_info, 2);
-        sizes  = get_node_attr_ai(node, "sizes", net_info, 3);
+        if (node.input_size() > 2) {
+            scales_name = node.input(2);
+            scales = get_node_attr_af(node, "scales", net_info, 2);
+        }
+
+        if (node.input_size() > 3) {
+            sizes_name = node.input(3);
+            sizes  = get_node_attr_ai(node, "sizes", net_info, 3);
+        }
     } else {
+        scales_name = node.input(1);
         scales = get_node_attr_af(node, "scales", net_info, 1);
     }
     float h_scale = 0;
@@ -57,8 +67,33 @@ string OnnxOpConverterResize::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_in
         DLog("resize: coordinate_transformation_mode(%s) is not supported, result may be different.\n",
              coordinate_transformation_mode.c_str());
     }
+    
+    
+    if (sizes_name.length() > 0) {
+        if (net_info.weights_map.find(sizes_name) == net_info.weights_map.end()) {
+            //sizes is input blob(not constant)
+            layer_param << resize_type << " " << h_scale << " " << w_scale << " " << align_corners << " " << 0
+                            << " " << 0 << " ";
+        } else {
+            h_scale = 0.0;
+            w_scale = 0.0;
 
-    if (sizes.size() <= 0) {
+            int target_height = 0;
+            int target_width  = 0;
+
+            if (sizes.size() == 4) {
+                target_height = (int)sizes[2];
+                target_width  = (int)sizes[3];
+            }
+
+            if (target_height <= 0 || target_width <= 0) {
+                DLog("resize to smaller hw not implemented.\n");
+                assert(0);
+            }
+            layer_param << resize_type << " " << h_scale << " " << w_scale << " " << align_corners << " " << target_height
+                        << " " << target_width << " ";
+        }
+    } else {
         if (scales.size() == 2) {
             w_scale = scales[1];
         } else if (scales.size() == 3) {
@@ -81,31 +116,7 @@ string OnnxOpConverterResize::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_in
                 assert(0);
             }
         }
-
-        //        if (h_scale <= 1.f || w_scale <= 1.f) {
-        //            DLog("resize to smaller hw not implemented.\n");
-        //            assert(0);
-        //        }
-
         layer_param << resize_type << " " << h_scale << " " << w_scale << " " << align_corners << " ";
-    } else {
-        h_scale = 0.0;
-        w_scale = 0.0;
-
-        int target_height = 0;
-        int target_width  = 0;
-
-        if (sizes.size() == 4) {
-            target_height = (int)sizes[2];
-            target_width  = (int)sizes[3];
-        }
-
-        if (target_height <= 0 || target_width <= 0) {
-            DLog("resize to smaller hw not implemented.\n");
-            assert(0);
-        }
-        layer_param << resize_type << " " << h_scale << " " << w_scale << " " << align_corners << " " << target_height
-                    << " " << target_width << " ";
     }
 
     return layer_param.str();
@@ -115,7 +126,7 @@ bool OnnxOpConverterResize::HasLayerResource(NodeProto &node, OnnxNetInfo &net_i
     return false;
 }
 
-int OnnxOpConverterResize::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
+int OnnxOpConverterResize::WriteTNNModel(Serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0
     return 0;
 }

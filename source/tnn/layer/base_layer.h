@@ -40,7 +40,7 @@ public:
 
     // @brief layer init
     // @param ...
-    Status Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& inputs,
+    virtual Status Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& inputs,
                 std::vector<Blob*>& outputs, AbstractDevice* device);
 
     //@brief Reshape recalculate the output tensor dims
@@ -68,14 +68,18 @@ public:
     // @brief set runtime bolob pool
     void SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_pool);
     
-    // @brief check if the layer's output is constant
+    // @brief check if the layer's output is const with flag DATA_FLAG_CHANGE_NEVER or DATA_FLAG_CHANGE_IF_SHAPE_DIFFER
     bool IsOutputConstant();
     
+    // @brief check if the layer's output is const with flag DATA_FLAG_CHANGE_IF_SHAPE_DIFFER
+    int GetLayerChangeFlag();
+    
     // @brief set constant resource
-    void SetConstantResource(ConstantResource consts);
+    void SetConstantResource(ConstantResource* consts);
     
     // @brief set runtime mode
     void SetRuntimeMode(RuntimeMode mode);
+
 protected:
     LayerType type_;
 
@@ -86,13 +90,15 @@ protected:
 
     LayerParam* param_;
     LayerResource* resource_;
-    ConstantResource const_resource_;
+    ConstantResource* const_resource_ = nullptr;
     RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;
 
     //@brief calculate the output tensor dims
-    virtual Status InferOutputShape();
+    virtual Status InferOutputShape(bool ignore_error = false);
     //@brief infer the output data type, by default it is the same as input. Meanwhile, it will updata the daat flag of output blobs
     virtual Status InferOutputDataType();
+    //@brief fill layer param with constant resource
+    virtual Status FillLayerParamWithConstantResource();
 };
 
 //@brief LayerCreator define the create layer interface
@@ -132,15 +138,27 @@ public:
 
 BaseLayer* CreateLayer(LayerType type);
 
-#define DECLARE_LAYER(type_string, layer_type)                                                                         \
-    class type_string##Layer : public BaseLayer {                                                                      \
-    public:                                                                                                            \
-        type_string##Layer(LayerType ignore) : BaseLayer(layer_type){};                                                \
-        virtual ~type_string##Layer(){};                                                                               \
-                                                                                                                       \
-    protected:                                                                                                         \
-        virtual Status InferOutputShape();                                                                             \
-        virtual Status InferOutputDataType();                                                                          \
+#define DECLARE_LAYER_WITH_FUNC(type_string, layer_type, extra_funcs)    \
+    class type_string##Layer : public BaseLayer {                                                     \
+    public:                                                                                                                   \
+        type_string##Layer(LayerType ignore) : BaseLayer(layer_type){};                  \
+        virtual ~type_string##Layer(){};                                                                         \
+                                                                                                                                  \
+    protected:                                                                                                              \
+        virtual Status InferOutputShape(bool ignore_error = false);                             \
+        virtual Status InferOutputDataType();                                                               \
+        extra_funcs \
+    }
+
+#define DECLARE_LAYER(type_string, layer_type)                                                 \
+    class type_string##Layer : public BaseLayer {                                                      \
+    public:                                                                                                                    \
+        type_string##Layer(LayerType ignore) : BaseLayer(layer_type){};                   \
+        virtual ~type_string##Layer(){};                                                                         \
+                                                                                                                                   \
+    protected:                                                                                                               \
+        virtual Status InferOutputShape(bool ignore_error = false);                              \
+        virtual Status InferOutputDataType();                                                                \
     }
 
 #define REGISTER_LAYER(type_string, layer_type)                                                                        \

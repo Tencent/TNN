@@ -21,8 +21,8 @@ Status ArgMaxOrMinLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status ArgMaxOrMinLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status ArgMaxOrMinLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     auto param                      = dynamic_cast<ArgMaxOrMinLayerParam*>(param_);
     CHECK_PARAM_NULL(param);

@@ -40,7 +40,7 @@ bool OnnxOpConverterSqueeze::HasLayerResource(NodeProto &node, OnnxNetInfo &net_
     return false;
 }
 
-int OnnxOpConverterSqueeze::WriteTNNModel(serializer *net_writer,
+int OnnxOpConverterSqueeze::WriteTNNModel(Serializer *net_writer,
                                             NodeProto &node,
                                             OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

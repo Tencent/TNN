@@ -59,9 +59,6 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
 
     auto blob_desc = blob->GetBlobDesc();
     MatType mat_type = NCHW_FLOAT;
-    if(blob_desc.dims.size() == 5) {
-        mat_type = NCDHW_FLOAT;
-    }
     auto data_type = blob_desc.data_type;
 
 #ifdef DUMP_RAW_INT8
@@ -69,6 +66,9 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
         mat_type = RESERVED_INT8_TEST;
     }
 #endif
+    if(blob_desc.data_type == DATA_TYPE_INT32) {
+        mat_type = NC_INT32;
+    }
 
     Mat cpu_mat(DEVICE_NAIVE, mat_type, blob_desc.dims);
     void *data_ptr = cpu_mat.GetData();
@@ -108,6 +108,11 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
         }
     } else if (data_type == DATA_TYPE_INT32) {
         auto ptr = (int *)data_ptr;
+        for (int n = 0; n < count; ++n) {
+            fprintf(fp, "%d\n", ptr[n]);
+        }
+    } else if (data_type == DATA_TYPE_UINT32) {
+        auto ptr = (unsigned int *)data_ptr;
         for (int n = 0; n < count; ++n) {
             fprintf(fp, "%d\n", ptr[n]);
         }

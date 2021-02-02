@@ -35,7 +35,7 @@ typedef enum {
     RUNTIME_MODE_CONST_FOLD = 1,
 } RuntimeMode;
 
-typedef enum : int {
+typedef enum {
     //data always change
     DATA_FLAG_CHANGE_ALWAYS   = 0x00000000,
     //data change if shape differ
@@ -60,19 +60,25 @@ typedef enum {
     // int32
     DATA_TYPE_INT32 = 3,
     // brain float 16
-    DATA_TYPE_BFP16 = 4
+    DATA_TYPE_BFP16 = 4,
+    // int64
+    DATA_TYPE_INT64 = 5,
+    // uint32
+    DATA_TYPE_UINT32 = 6
 } DataType;
 
 typedef enum {
     // decided by device
-    DATA_FORMAT_AUTO   = -1,
-    DATA_FORMAT_NCHW   = 0,
-    DATA_FORMAT_NHWC   = 1,
-    DATA_FORMAT_NHWC4  = 2,
-    DATA_FORMAT_NC4HW4 = 3,
-    DATA_FORMAT_NCDHW  = 4,
-    DATA_FORMAT_NHC4W4 = 5,
-    DATA_FORMAT_NC8HW8 = 6,
+    DATA_FORMAT_AUTO     = -1,
+    DATA_FORMAT_NCHW     = 0,
+    DATA_FORMAT_NHWC     = 1,
+    DATA_FORMAT_NHWC4    = 2,
+    DATA_FORMAT_NC2HW2   = 3,
+    DATA_FORMAT_NC4HW4   = 4,
+    DATA_FORMAT_NC8HW8   = 5,
+    DATA_FORMAT_NC16HW16 = 6,
+    DATA_FORMAT_NCDHW    = 7,
+    DATA_FORMAT_NHC4W4   = 8,
 } DataFormat;
 
 typedef enum {
@@ -106,7 +112,8 @@ typedef enum {
     NETWORK_TYPE_HIAI       = 0x4000,
     NETWORK_TYPE_ATLAS      = 0x5000,
     NETWORK_TYPE_HUAWEI_NPU = 0x6000,
-    NETWORK_TYPE_RK_NPU     = 0x7000
+    NETWORK_TYPE_RK_NPU     = 0x7000,
+    NETWORK_TYPE_TENSORRT   = 0x8000,
 } NetworkType;
 
 typedef enum {
@@ -139,7 +146,8 @@ typedef enum {
     MODEL_TYPE_COREML   = 0x2000,
     MODEL_TYPE_SNPE     = 0x3000,
     MODEL_TYPE_HIAI     = 0x4000,
-    MODEL_TYPE_ATLAS    = 0x5000
+    MODEL_TYPE_ATLAS    = 0x5000,
+    MODEL_TYPE_RKCACHE  = 0x6000
 } ModelType;
 
 using DimsVector = std::vector<int>;
@@ -188,6 +196,11 @@ struct PUBLIC ModelConfig {
     // atlas model need one param: config string.
     std::vector<std::string> params = {};
 };
+
+typedef union {
+    float f;
+    int i;
+} RangeData;
 
 }  // namespace TNN_NS
 

@@ -38,6 +38,45 @@ std::shared_ptr<Deserializer> ModelInterpreter::GetDeserializer(std::istream &is
     return std::make_shared<Deserializer>(is);
 }
 
+ModelInterpreter::ModelInterpreter() {}
+
+ModelInterpreter::ModelInterpreter(const ModelInterpreter &interp) {
+    this->version_magic_number = interp.version_magic_number;
+
+    if (nullptr != this->net_structure_) {
+        delete this->net_structure_;
+        this->net_structure_ = nullptr;
+    }
+    this->net_structure_ = interp.net_structure_->CreateNew();
+
+    if (nullptr == this->net_resource_) {
+        this->net_resource_ = new NetResource();
+    }
+
+    *(this->net_resource_) = *interp.net_resource_;
+}
+
+ModelInterpreter &ModelInterpreter::operator=(ModelInterpreter interp) {
+    if (this == &interp) {
+        return *this;
+    }
+
+    this->version_magic_number = interp.version_magic_number;
+
+    if (nullptr != this->net_structure_) {
+        delete this->net_structure_;
+        this->net_structure_ = nullptr;
+    }
+    this->net_structure_ = interp.net_structure_->CreateNew();
+
+    if (nullptr == this->net_resource_) {
+        this->net_resource_ = new NetResource();
+    }
+    *(this->net_resource_) = *interp.net_resource_;
+
+    return *this;
+}
+
 // Interpret the proto and model.
 Status ModelInterpreter::Interpret(std::vector<std::string> &params) {
     std::string empty_content = "";
@@ -51,6 +90,12 @@ Status ModelInterpreter::Interpret(std::vector<std::string> &params) {
     auto &model_content = params.size() > 1 ? params[1] : empty_content;
     status              = InterpretModel(model_content);
     return status;
+}
+
+// Copy Interpreter
+std::shared_ptr<AbstractModelInterpreter> ModelInterpreter::Copy() {
+    std::shared_ptr<AbstractModelInterpreter> interp(new ModelInterpreter(*this));
+    return interp;
 }
 
 Status ModelInterpreter::InterpretProto(std::string &content) {
@@ -146,7 +191,7 @@ Status ModelInterpreter::InterpretInput(const std::string &inputs_content) {
             }
             DimsVector &input_shape = structure->inputs_shape_map[input_cfg_vec[0]];
             // input_shape.set_name(input_cfg_vec[0]);
-            for (int dim_i=1; dim_i<input_cfg_vec.size(); dim_i++) {
+            for (int dim_i = 1; dim_i < input_cfg_vec.size(); dim_i++) {
                 input_shape.push_back(atoi(input_cfg_vec[dim_i].c_str()));
             }
         }
@@ -156,21 +201,21 @@ Status ModelInterpreter::InterpretInput(const std::string &inputs_content) {
          * eg:
          *  input_name size n c h w date_type : input_name size n c h w data_type
          */
-        for (const auto& config: inputs_cfg_vec) {
+        for (const auto &config : inputs_cfg_vec) {
             str_arr input_cfg;
             ret = SplitUtils::SplitStr(config.c_str(), input_cfg, " ", true, false);
             if (ret != TNN_OK || input_cfg.size() < input_layer_cfg_count) {
                 return Status(TNNERR_INVALID_NETCFG, "split input line error");
             }
             DimsVector &input_shape = structure->inputs_shape_map[input_cfg[0]];
-            int dims_size = atoi(input_cfg[1].c_str());
+            int dims_size           = atoi(input_cfg[1].c_str());
             for (int i = 2; i < dims_size + 2; ++i) {
                 if (i >= input_cfg.size()) {
                     return Status(TNNERR_INVALID_NETCFG, "get input dims error");
                 }
                 input_shape.push_back(atoi(input_cfg[i].c_str()));
             }
-            DataType data_type = (DataType)atoi(input_cfg[input_cfg.size()-1].c_str());
+            DataType data_type                           = (DataType)atoi(input_cfg[input_cfg.size() - 1].c_str());
             structure->input_data_type_map[input_cfg[0]] = data_type;
         }
     } else {
@@ -299,10 +344,11 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
     res_header header;
     auto deserializer = GetDeserializer(content_stream);
     header.deserialize(*deserializer);
-    if (header.layer_cnt_ <= 0 || header.layer_cnt_ >= 10000) {
+    if (header.layer_cnt_ < 0 || header.layer_cnt_ >= 10000) {
+        LOGE("tnnmodel is invalid, maybe you should upgrade TNN\n");
         return Status(TNNERR_INVALID_MODEL, "Error: model is illegal");
     }
-
+    
     auto &layer_interpreter_map = GetLayerInterpreterMap();
     for (int index = 0; index < header.layer_cnt_; ++index) {
         layer_header ly_head;
@@ -325,7 +371,7 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
             return Status(TNNERR_LOAD_MODEL, "Error: layer_interpreter is nil");
         }
     }
-    
+
     //解析constant_map
     const auto pos_cur = content_stream.tellg();
     content_stream.seekg(0, std::ios::end);
@@ -334,19 +380,19 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
     if (pos_diff < 4) {
         return TNN_OK;
     }
-    
+
     uint32_t magic_number_ignore = deserializer->GetInt();
-    int const_map_size = deserializer->GetInt();
+    int const_map_size           = deserializer->GetInt();
     ConstantResource const_map;
-    for (int ii=0; ii<const_map_size; ii++) {
-        auto key = deserializer->GetString();
+    for (int ii = 0; ii < const_map_size; ii++) {
+        auto key    = deserializer->GetString();
         auto buffer = std::make_shared<RawBuffer>();
         deserializer->GetRaw(*(buffer.get()));
-        
+
         const_map[key] = buffer;
     }
     net_resource->constant_map = const_map;
-    
+
     return TNN_OK;
 }
 

@@ -13,8 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include <math.h>
-#include "half_utils.h"
-#include "objseri.h"
+
 #include "onnx2tnn.h"
 
 int Onnx2TNN::RemoveReshapeWhere(onnx::GraphProto* mutable_graph,
@@ -27,7 +26,7 @@ int Onnx2TNN::RemoveReshapeWhere(onnx::GraphProto* mutable_graph,
     for (int i = 0; i < node_count; i++) {
         auto node = index_nodes[i].node;
 
-        //x <= x - Reshape(-1) - Shape - ConstantOfShape - Mul - Equal - Where
+        //x <= x - Reshape(-1) - Shape - ConstantOfShape - Mul - Equal - (Cast) - Where
         do {
             std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
             if (next_indexes.size() != 1) {
@@ -41,6 +40,7 @@ int Onnx2TNN::RemoveReshapeWhere(onnx::GraphProto* mutable_graph,
             onnx::NodeProto *node_constantofshape = nullptr;
             onnx::NodeProto *node_mul = nullptr;
             onnx::NodeProto *node_equal = nullptr;
+            onnx::NodeProto *node_cast = nullptr;
             onnx::NodeProto *node_where = nullptr;
             int node_where_index = 0;
             
@@ -62,6 +62,17 @@ int Onnx2TNN::RemoveReshapeWhere(onnx::GraphProto* mutable_graph,
                 if (node_shape->op_type() != "Shape" || node_equal->op_type() != "Equal" ||
                     node_where->op_type() != "Where")
                     break;
+                
+                {
+                    auto equal_next_indexes = GetNextIndexNode(index_nodes, next_indexes[1]);
+                    if (equal_next_indexes.size() != 1) {
+                        break;
+                    }
+                    node_cast = index_nodes[equal_next_indexes[0]].node;
+                    if (node_cast->op_type() != "Cast" && node_cast->op_type() != "Where")
+                        break;
+                }
+
             }
             
             {
@@ -92,6 +103,7 @@ int Onnx2TNN::RemoveReshapeWhere(onnx::GraphProto* mutable_graph,
             node_constantofshape->set_op_type(k_tnn_noop_type);
             node_mul->set_op_type(k_tnn_noop_type);
             node_equal->set_op_type(k_tnn_noop_type);
+            node_cast->set_op_type(k_tnn_noop_type);
             node_where->set_op_type(k_tnn_noop_type);
 
             node_reference.erase(node_reference.find(node_x->output(0)));
@@ -106,6 +118,10 @@ int Onnx2TNN::RemoveReshapeWhere(onnx::GraphProto* mutable_graph,
             blob_names.erase(node_mul->output(0));
             node_reference.erase(node_reference.find(node_equal->output(0)));
             blob_names.erase(node_equal->output(0));
+            if (node_cast != node_where) {
+                node_reference.erase(node_reference.find(node_cast->output(0)));
+                blob_names.erase(node_cast->output(0));
+            }
 
             {
                 auto node_where_output = node_where->output(0);

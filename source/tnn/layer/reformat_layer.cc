@@ -27,8 +27,8 @@ Status ReformatLayer::InferOutputDataType() {
     return TNN_OK;
 }
 
-Status ReformatLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status ReformatLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     for (int idx = 0; idx < input_blobs_.size(); idx++) {
         Blob* input_blob  = input_blobs_[idx];

@@ -31,11 +31,12 @@ Status CpuReshapeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &in
     auto *layer_param = dynamic_cast<ReshapeLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
     
+    Status status = TNN_OK;
+    auto input_dims = inputs[0]->GetBlobDesc().dims;
     if (inputs.size() >= 2) {
         if (inputs[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
             return Status(TNNERR_PARAM_ERR, "Reshape input(shape) has invalid data type");
         }
-        auto input_dims = inputs[0]->GetBlobDesc().dims;
         
         auto dim_count = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
         auto dim_data = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
@@ -45,11 +46,47 @@ Status CpuReshapeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &in
         }
         layer_param->shape = dims;
         layer_param->num_axes = dim_count;
-        Status status = TNN_OK;
         auto output_dims = DimsVectorUtils::Reshape(input_dims, dims, layer_param->axis, dim_count, &status);
         RETURN_ON_NEQ(status, TNN_OK);
         
         outputs[0]->GetBlobDesc().dims = output_dims;
+    }
+    
+    //Adjust params to diffrent batch\height\width with 0 and -1
+    auto shape = layer_param->shape;
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+    if (shape.size() == output_dims.size()) {
+        const auto count = MIN(output_dims.size(), input_dims.size());
+        
+        //reset 0
+        {
+            for (auto i=0; i<count; i++) {
+                if (output_dims[i]> 0 && input_dims[i] == output_dims[i] && shape[i] != -1) {
+                    shape[i] = 0;
+                }
+            }
+        }
+        
+        //reset -1
+        {
+            int non_zero_index = -1;
+            int non_zero_count = 0;
+            for (auto i=0; i<shape.size(); i++) {
+                if (shape[i] != 0) {
+                    non_zero_index = i;
+                    non_zero_count++;
+                }
+            }
+            
+            if (non_zero_count == 1) {
+                shape[non_zero_index] = -1;
+            }
+        }
+        
+        auto infer_output_dims = DimsVectorUtils::Reshape(input_dims, shape, layer_param->axis, (int)shape.size(), &status);
+        if (status == TNN_OK && DimsVectorUtils::Equal(infer_output_dims, output_dims)) {
+            layer_param->shape = shape;
+        }
     }
     
     return TNN_OK;

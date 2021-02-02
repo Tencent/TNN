@@ -43,14 +43,14 @@ ConstFolder::~ConstFolder() {
  * Those object is initialized in this function.
  */
 Status ConstFolder::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                            InputShapesMap inputs_shape) {
+                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     config_ = net_config;
     config_.device_type = DEVICE_NAIVE;
     runtime_blob_pool_ = BlobMemoryPoolFactory::CreateBlobMemoryPool(GetDevice(DEVICE_NAIVE));
     
     runtime_model_ = RUNTIME_MODE_CONST_FOLD;
     
-    return DefaultNetwork::Init(config_, model_config, interpreter, inputs_shape);
+    return DefaultNetwork::Init(config_, model_config, interpreter, min_inputs_shape, max_inputs_shape);
 }
 
 Status ConstFolder::AllocateBlobMemory() {
@@ -69,33 +69,144 @@ Status ConstFolder::Forward() {
     auto status = DefaultNetwork::Forward();
     RETURN_ON_NEQ(status, TNN_OK);
     
-    std::set<std::string> constant_layers;
-    //将计算好的常量放入NetResource中，保留模型原有的常量
-    ConstantResource constant_map = net_resource_->constant_map;
-    for (auto layer : layers_) {
-        if (layer->IsOutputConstant()) {
-            constant_layers.insert(layer->GetLayerName());
-            continue;
-        }
-        
+    BlobShapesMap shapes_map;
+    //save all input and output blob shapes, better for cuda device
+    for (auto layer : layers_){
         auto inputs = layer->GetInputBlobs();
         for (auto blob : inputs) {
-            if (!blob->IsConstant()) {
+            shapes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().dims;
+        }
+        auto outputs = layer->GetOutputBlobs();
+        for (auto blob : outputs) {
+            shapes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().dims;
+        }
+    }
+    
+    std::set<std::string> constant_layers;
+    std::set<std::string> shape_differ_layers;
+    //In Forword, keep old const resource for reuse, save new const blobs to ConstantResource
+    //In GetOptimizeNetStructure, remove redundant constants of layer NEVER CHANGE
+    ConstantResource constant_map = net_resource_->constant_map;
+
+    for (auto layer : layers_) {
+        auto layer_flag = layer->GetLayerChangeFlag();
+        if (layer_flag == DATA_FLAG_CHANGE_NEVER) {
+            constant_layers.insert(layer->GetLayerName());
+            if (layer->GetLayerChangeFlag() == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER) {
+                shape_differ_layers.insert(layer->GetLayerName());
                 continue;
             }
-            
-            //save constant resource
-            std::shared_ptr<RawBuffer> buffer = nullptr;
-            status= Blob2RawBuffer(blob, buffer);
-            RETURN_ON_NEQ(status, TNN_OK);
-            
-            LOGD("ConstFolder save const with name: %s\n", blob->GetBlobDesc().name.c_str());
-            
-            constant_map[blob->GetBlobDesc().name] = buffer;
+            continue;
+        } else if (layer_flag == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER) {
+            constant_layers.insert(layer->GetLayerName());
+            // never change input of layers SHAPE_DIFFER must be saved
+            shape_differ_layers.insert(layer->GetLayerName());
+        }
+        
+        //save const input blob
+        auto inputs = layer->GetInputBlobs();
+        for (auto blob : inputs) {
+            auto blob_flag = DataFlagUtils::ChangeStatus(blob->flag);
+            if ((layer_flag == DATA_FLAG_CHANGE_ALWAYS && blob_flag > 0) ||
+                (layer_flag == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER && blob_flag == DATA_FLAG_CHANGE_NEVER)) {
+                //save constant resource
+                std::shared_ptr<RawBuffer> buffer = nullptr;
+                status= Blob2RawBuffer(blob, buffer);
+                RETURN_ON_NEQ(status, TNN_OK);
+                
+                LOGD("ConstFolder save const with name: %s\n", blob->GetBlobDesc().name.c_str());
+                
+                constant_map[blob->GetBlobDesc().name] = buffer;
+            }
         }
     }
     net_resource_->constant_layers = constant_layers;
+    net_resource_->shape_differ_layers = shape_differ_layers;
     net_resource_->constant_map = constant_map;
+    net_resource_->blob_shapes_map = shapes_map;
+    
+    return TNN_OK;
+}
+
+Status ConstFolder::GetOptimizedNet(std::shared_ptr<NetStructure> &const_fold_struct,
+                               std::shared_ptr<NetResource> &const_fold_resource,
+                               int  target_flag) {
+    target_flag = DataFlagUtils::ChangeStatus(target_flag);
+    
+    auto net_structure = net_structure_;
+    auto net_resource = net_resource_;
+    
+    auto constant_layers = net_resource_->constant_layers;
+    auto shape_differ_layers = net_resource_->shape_differ_layers;
+    
+    //optimized layers, remove redundant layer
+    std::vector<std::shared_ptr<LayerInfo>> optmized_layers;
+    
+    const_fold_struct = std::make_shared<NetStructure>();
+    *const_fold_struct = *net_structure;
+    {
+        
+        for (auto iter : net_structure->layers) {
+            if (target_flag == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER) {
+                //layers with output flag DATA_FLAG_CHANGE_NEVER or DATA_FLAG_CHANGE_IF_SHAPE_DIFFER will be removed
+                if (constant_layers.find(iter->name) == constant_layers.end()) {
+                    optmized_layers.push_back(iter);
+                }
+            } else {
+                //only layers with output flag DATA_FLAG_CHANGE_NEVER will be removed
+                if (!(constant_layers.find(iter->name) != constant_layers.end() && shape_differ_layers.find(iter->name) == shape_differ_layers.end())) {
+                    optmized_layers.push_back(iter);
+                }
+            }
+        }
+        const_fold_struct->layers = optmized_layers;
+    }
+    
+    const_fold_resource = std::make_shared<NetResource>();
+    *const_fold_resource = *net_resource;
+    {
+        //In GetOptimizeNetStructure,  remove redundant constants of layer NEVER CHANGE
+        std::map<std::string, std::shared_ptr<LayerResource>> optmized_resource_map;
+        ConstantResource optmized_constant_map;
+        
+        auto resource_map = net_resource->resource_map;
+        auto constant_map = net_resource->constant_map;
+        
+        for (auto layer_info : optmized_layers) {
+            BaseLayer * layer = nullptr;
+            for (auto item : layers_) {
+                if (item->GetLayerName() == layer_info->name) {
+                    layer = item;
+                    break;
+                }
+            }
+            RETURN_VALUE_ON_NEQ(!layer, false, Status(TNNERR_LAYER_ERR, "layer is nil, internal error"));
+            
+            if (resource_map.find(layer_info->name) != resource_map.end()) {
+                optmized_resource_map[layer_info->name] = resource_map[layer_info->name];
+            }
+            
+            auto layer_flag = layer->GetLayerChangeFlag();
+            for (auto blob : layer->GetInputBlobs()) {
+                auto blob_name = blob->GetBlobDesc().name;
+                if (constant_map.find(blob_name) == constant_map.end()) {
+                    continue;
+                }
+                
+                auto blob_flag = DataFlagUtils::ChangeStatus(blob->flag);
+   
+                if ((target_flag == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER && blob_flag > 0) ||
+                    (target_flag == DATA_FLAG_CHANGE_NEVER && blob_flag == DATA_FLAG_CHANGE_NEVER)) {
+                    optmized_constant_map[blob_name] = constant_map[blob_name];
+                    LOGD("GetOptimizedNet save const with name: %s\n", blob_name.c_str());
+                }
+            }
+        }
+        
+        const_fold_resource->resource_map = optmized_resource_map;
+        const_fold_resource->constant_map = optmized_constant_map;
+    }
+
     
     return TNN_OK;
 }

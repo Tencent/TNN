@@ -15,10 +15,19 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-DECLARE_OP_CONVERTER(Reshape);
+DECLARE_OP_CONVERTER_WITH_FUNC(Reshape,
+                               virtual std::vector<std::string> GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info););
 
 string OnnxOpConverterReshape::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
     return "Reshape";
+}
+
+std::vector<std::string> OnnxOpConverterReshape::GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+    std::vector<std::string> inputs = {node.input(0)};
+    if (node.input_size() == 2 && net_info.weights_map.find(node.input(1)) == net_info.weights_map.end()) {
+        inputs.push_back(node.input(1));
+    }
+    return inputs;
 }
 
 string OnnxOpConverterReshape::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
@@ -65,7 +74,7 @@ bool OnnxOpConverterReshape::HasLayerResource(NodeProto &node, OnnxNetInfo &net_
     return false;
 }
 
-int OnnxOpConverterReshape::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
+int OnnxOpConverterReshape::WriteTNNModel(Serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0
     return 0;
 }

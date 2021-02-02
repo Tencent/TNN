@@ -55,8 +55,8 @@ Status PoolingLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status PoolingLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status PoolingLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     Blob* input_blob = input_blobs_[0];
 
@@ -123,7 +123,7 @@ Status PoolingLayer::InferOutputShape() {
             }
 
             if (rectify_height_out != height_out || rectify_width_out != width_out) {
-                LOGE("Error: PoolingLayer, maybe it is the case for global pooling\n");
+                LOGE_IF(!ignore_error, "Error: PoolingLayer, maybe it is the case for global pooling\n");
                 return Status(TNNERR_PARAM_ERR, "Error: Pooling3DLayer, maybe it is the case for global pooling");
             }
         }
@@ -142,7 +142,7 @@ Status PoolingLayer::InferOutputShape() {
             height_out = static_cast<int>(std::ceil(float(height - kernel_h + 1) / float(stride_h)));
             width_out  = static_cast<int>(std::ceil(float(width - kernel_w + 1) / float(stride_w)));
         } else {
-            LOGE("Error: PoolingLayer %s, maybe it is the case for global pooling\n", GetLayerName().c_str());
+            LOGE_IF(!ignore_error, "Error: PoolingLayer %s, maybe it is the case for global pooling\n", GetLayerName().c_str());
             return Status(TNNERR_PARAM_ERR, "Error: PoolingLayer, maybe it is the case for global pooling");
         }
 

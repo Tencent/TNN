@@ -18,8 +18,8 @@
 
 namespace TNN_NS {
 
-Status ElementwiseLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status ElementwiseLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     Blob* input_blob = input_blobs_[0];
 

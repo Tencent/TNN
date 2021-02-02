@@ -11,12 +11,14 @@ cmake_minimum_required(VERSION 3.4.1)
 
 set(TNN_ROOT ../../..)
 set(BASE_SRC ../../base)
+set(UTILS_SRC ../../utils)
 include_directories(${TNN_ROOT}/include)
 include_directories(${TNN_ROOT}/third_party/opencl/include)
 include_directories(../demo/src/main/jni/thirdparty)
 include_directories(../demo/src/main/jni/thirdparty/kannarotate-android-lib/include)
 include_directories(../demo/src/main/jni/thirdparty/kannarotate-android-lib/src)
 include_directories(${BASE_SRC}/)
+include_directories(${UTILS_SRC}/)
 include_directories(../demo/src/main/jni/cc/)
 include_directories(${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/include)
 
@@ -24,6 +26,9 @@ set(CMAKE_BUILD_TYPE Release)
 
 set(TNN_OPENCL_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_ARM_ENABLE ON CACHE BOOL "" FORCE)
+if(ANDROID_ABI STREQUAL "arm64-v8a")
+    set(TNN_ARM82_ENABLE ON CACHE BOOL "" FORCE)
+endif()
 set(TNN_BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(TNN_HUAWEI_NPU_ENABLE OFF CACHE BOOL "" FORCE)
 
@@ -31,8 +36,9 @@ add_subdirectory(${TNN_ROOT}/ ../build)
 
 file(GLOB_RECURSE WRAPPER_SRCS ../demo/src/main/jni/cc/*.cc)
 file(GLOB_RECURSE BASE_SRC ${BASE_SRC}/*.cc)
+file(GLOB_RECURSE UTILS_SRC ${UTILS_SRC}/*.cc)
 file(GLOB_RECURSE THIRDPARTY_SRCS ../demo/src/main/jni/thirdparty/kannarotate-android-lib/src/*.c)
-add_library(tnn_wrapper SHARED ${WRAPPER_SRCS} ${BASE_SRC} ${THIRDPARTY_SRCS})
+add_library(tnn_wrapper SHARED ${WRAPPER_SRCS} ${BASE_SRC} ${THIRDPARTY_SRCS} ${UTILS_SRC})
 
 if(TNN_HUAWEI_NPU_ENABLE)
     add_library(hiai

@@ -24,8 +24,8 @@ Status SplitVLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status SplitVLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status SplitVLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     auto layer_param = dynamic_cast<SplitVLayerParam*>(param_);
     if (!layer_param) {

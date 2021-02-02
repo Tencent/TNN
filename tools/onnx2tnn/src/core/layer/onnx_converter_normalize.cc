@@ -18,7 +18,6 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-#include "half_utils.h"
 
 DECLARE_OP_CONVERTER(Normalize);
 
@@ -52,7 +51,7 @@ bool OnnxOpConverterNormalize::HasLayerResource(NodeProto &node, OnnxNetInfo &ne
     }
 };
 
-int OnnxOpConverterNormalize::WriteTNNModel(serializer* net_writer,
+int OnnxOpConverterNormalize::WriteTNNModel(Serializer* net_writer,
                                                  NodeProto& node,
                                                  OnnxNetInfo& net_info) {
     bool convert_for_old_model = false;
@@ -64,9 +63,9 @@ int OnnxOpConverterNormalize::WriteTNNModel(serializer* net_writer,
         const std::string& tnn_layer_type = TNNOpType(node, net_info);
 
         //写头信息
-        net_writer->put_int(0);  //触发type from string
-        net_writer->put_string(tnn_layer_type);
-        net_writer->put_string(name);
+        net_writer->PutInt(0);  //触发type from string
+        net_writer->PutString(tnn_layer_type);
+        net_writer->PutString(name);
 
         //写数据
         // TNN 默认需要scale 作为weights, 长度是channel数量。

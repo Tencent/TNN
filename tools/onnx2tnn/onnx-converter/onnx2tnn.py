@@ -40,6 +40,8 @@ def do_optimize(onnx_net_path, input_shape):
     try:
         import onnx2tnn.onnx_optimizer.onnx_optimizer as opt
     except ImportError:
+        import onnx_optimizer.onnx_optimizer as opt
+    else:
         print("\n\n t fail")
         os.system(sys.executable + " onnx_optimizer " + onnx_net_path)
         return
@@ -67,6 +69,7 @@ def main():
     parser.add_argument('-input_shape', 
                         required=False, 
                         action='store',
+                        nargs='+',
                         help='manually-set static input shape, useful when the input shape is dynamic')
     args = parser.parse_args()
     onnx_net_path = args.onnx_model_path
@@ -74,7 +77,11 @@ def main():
     algo_optimize = args.optimize
     model_half = args.half
     output_dir = args.output_dir
-    input_shape = args.input_shape
+    input_shape = None
+    if args.input_shape is not None:
+        input_shape = ""
+        for item in args.input_shape:
+            input_shape += (item + " ")
 
     if onnx_net_path is None:
         print('Please make sure the onnx model path is correct!')
@@ -118,7 +125,7 @@ def main():
     status = 0
 
     try:
-        status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time, 0 if model_half == '0' else 1)
+        status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time, 0 if model_half == '0' else 1, 0, input_shape)
     except Exception as err:
         status = -1
         traceback.print_exc()

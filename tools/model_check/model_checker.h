@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #ifndef TNN_TOOLS_MODEL_CHECK_MODEL_CHECKER_H_
@@ -29,9 +29,12 @@ struct ModelCheckerParam {
     std::pair<std::string, FileFormat> input_file;
     std::vector<float> input_bias;
     std::vector<float> input_scale;
-    bool dump_output;
+    bool dump_output       = false;
+    bool only_check_output = false;
     std::pair<std::string, FileFormat> ref_file;
 };
+
+enum CompareType { DEFAULT = 0, COSINE = 1 };
 
 class ModelChecker {
 public:
@@ -46,8 +49,7 @@ public:
     // @param config network config info
     // @param inputs_shape_map modify input shape, if empty, it will use the
     // shape in proto
-    Status Init(NetworkConfig& net_config, ModelConfig& model_config,
-                InputShapesMap inputs_shape = InputShapesMap());
+    Status Init(NetworkConfig& net_config, ModelConfig& model_config, InputShapesMap inputs_shape = InputShapesMap());
 
     // @brief set model checker param
     // @param params the params of model checker
@@ -57,19 +59,23 @@ public:
     Status RunModelChecker();
 
 private:
+    Status RunModelCheckerPerLayer();
+    Status RunModelCheckerOutput();
     Status FeedInputData();
     Status GetOutputRefData();
     Status GetCpuBlobData();
+    Status GetOutputData(Instance* instance, std::map<std::string, std::shared_ptr<char>>& output_map);
+    Status GetBlobData(Instance* instance, Blob* blob, std::map<std::string, std::shared_ptr<char>>& output_map);
     Status CompareDeviceAndCpu();
-    bool CompareData(void* device_data, void* cpu_data, DimsVector blob_dims);
-    void DumpBlobData(void* blob_data, DimsVector blob_dims,
-                      std::string output_name);
+    bool CompareData(void* device_data, void* cpu_data, DimsVector blob_dims, CompareType type = DEFAULT);
+    void DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name);
 
     ModelCheckerParam model_checker_params_;
-    std::shared_ptr<TNN> tnn_;
-    std::shared_ptr<Instance> instance_cpu_;
-    std::shared_ptr<Instance> instance_device_;
-    std::map<std::string, std::shared_ptr<float>> output_ref_data_map_;
+    std::shared_ptr<TNN> tnn_cpu_ = nullptr;
+    std::shared_ptr<TNN> tnn_device_ = nullptr;
+    std::shared_ptr<Instance> instance_cpu_ = nullptr;
+    std::shared_ptr<Instance> instance_device_ = nullptr;
+    std::map<std::string, std::shared_ptr<char>> output_ref_data_map_;
     std::map<std::string, std::shared_ptr<char>> cpu_blobdata_map;
     std::vector<std::pair<LayerInfo*, bool>> check_results;
 };

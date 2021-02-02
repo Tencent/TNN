@@ -24,14 +24,15 @@ Status ShapeLayer::InferOutputDataType() {
     
     output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_INT32;
     
+    //insure no blob reuse in const forword, so set alloc status DATA_FLAG_ALLOCATE_IN_FORWARD
     for (auto& iter : output_blobs_) {
-        iter->flag = iter->flag | DATA_FLAG_CHANGE_IF_SHAPE_DIFFER;
+        iter->flag = iter->flag | DATA_FLAG_CHANGE_IF_SHAPE_DIFFER | DATA_FLAG_ALLOCATE_IN_FORWARD;
     }
     return TNN_OK;
 }
 
-Status ShapeLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status ShapeLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     ASSERT(input_blobs_.size() == 1);
     const auto& input_blob = input_blobs_[0];

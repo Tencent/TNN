@@ -40,11 +40,11 @@ Status CpuLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
     auto const_blob_map = const_blob_map_;
     for (auto iter : inputs) {
         auto name = iter->GetBlobDesc().name;
-        if (const_resource.find(name) == const_resource.end()) {
+        if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
             continue;
         }
         
-        auto buffer = const_resource[name];
+        auto buffer = (*const_resource)[name];
         std::shared_ptr<Blob> blob = nullptr;
         if (const_blob_map.find(name) != const_blob_map.end()) {
             blob = const_blob_map[name];
@@ -63,10 +63,10 @@ Status CpuLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
 
 std::vector<DataFormat> CpuLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
     std::vector<DataFormat> support_list;
-    if (dims_size >= 0 ) {
-        support_list.push_back(DATA_FORMAT_NCHW);
-    } else if(dims_size == 5) {
+    if (dims_size == 5) {
         support_list.push_back(DATA_FORMAT_NCDHW);
+    } else if (dims_size >= 0) {
+        support_list.push_back(DATA_FORMAT_NCHW);
     }
     return support_list;
 }

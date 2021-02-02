@@ -1,0 +1,73 @@
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+
+#include "test/unit_test/layer_test/layer_test.h"
+#include "test/unit_test/unit_test_common.h"
+#include "tnn/utils/cpu_utils.h"
+
+namespace TNN_NS {
+
+class Pooling3DLayerTest : public LayerTest,
+                         public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, DataType>> {};
+
+INSTANTIATE_TEST_SUITE_P(LayerTest, Pooling3DLayerTest,
+                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                                            // depth
+                                            testing::Values(5, 7),
+                                            // kernel
+                                            testing::Values(2, 3),
+                                            // stride
+                                            testing::Values(1, 2),
+                                            // pool type
+                                            testing::Values(0, 1),
+                                            // datatype
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16, DATA_TYPE_INT8)));
+
+TEST_P(Pooling3DLayerTest, Pooling3DLayer) {
+    // get param
+    int batch          = std::get<0>(GetParam());
+    int channel        = std::get<1>(GetParam());
+    int input_size     = std::get<2>(GetParam());
+    int input_depth    = std::get<3>(GetParam());
+    int kernel         = std::get<4>(GetParam());
+    int stride         = std::get<5>(GetParam());
+    int pool_type      = std::get<6>(GetParam());
+    DataType data_type = std::get<7>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+    if (dev != DEVICE_NAIVE) {
+        GTEST_SKIP();
+    }
+
+    // param
+    std::shared_ptr<PoolingLayerParam> param(new PoolingLayerParam());
+    param->name           = "Pooling3D";
+    param->kernels_params = {kernel, kernel, kernel};
+    param->kernels        = {kernel, kernel, kernel};
+    param->strides        = {stride, stride, stride};
+    if (kernel == 3)
+        param->pads = {1, 1, 1, 1, 1, 1};
+    else
+        param->pads = {0, 0, 0, 0, 0, 0};
+    param->pad_type  = -1;
+    param->pool_type = pool_type;
+    param->kernel_indexs = {-1, -1, -1};
+
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_depth, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Pooling3D", {input_dims}, param);
+    Precision precision         = SetPrecision(dev, data_type);
+    Run(interpreter, precision);
+}
+
+}  // namespace TNN_NS

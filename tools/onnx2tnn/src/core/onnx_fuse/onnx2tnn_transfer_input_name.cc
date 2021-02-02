@@ -15,7 +15,6 @@
 
 #include <math.h>
 
-#include "objseri.h"
 #include "onnx2tnn.h"
 
 int Onnx2TNN::TransferInputName(onnx::GraphProto* mutable_graph) {

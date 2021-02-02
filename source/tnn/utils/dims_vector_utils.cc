@@ -14,6 +14,9 @@
 
 #include "tnn/utils/dims_vector_utils.h"
 
+#include <cmath>
+#include <climits>
+
 namespace TNN_NS {
 
 int DimsVectorUtils::Count(DimsVector dims, int start_index, int end_index) {
@@ -93,8 +96,10 @@ DimsVector DimsVectorUtils::Expand(DimsVector dims0, DimsVector dims1, Status *s
     auto output_dims = max_dims;
     const int offset = (int)(max_dims.size() - min_dims.size());
     for(int i = 0; i < min_dims.size(); ++i) {
-        if(max_dims[offset + i] == 1) {
-            output_dims[offset + i] = min_dims[i];
+        if(max_dims[offset + i] == 1 || max_dims[offset + i] == -1) {
+            if (min_dims[i] > output_dims[offset + i]) {
+                output_dims[offset + i] = min_dims[i];
+            }
         } else if (max_dims[offset + i] != min_dims[i]) {
             if (status) {
                 *status = Status(TNNERR_PARAM_ERR, "expand param dims error");
@@ -103,6 +108,61 @@ DimsVector DimsVectorUtils::Expand(DimsVector dims0, DimsVector dims1, Status *s
     }
 
     return output_dims;
+}
+
+DimsVector DimsVectorUtils::Upsample(const DimsVector input_dims,
+                                     std::vector<float> scales, std::vector<int> sizes, int mode, Status *status) {
+    int num          = input_dims[0];
+    int channels   = input_dims[1];
+    int height       = input_dims[2];
+    int width        = input_dims[3];
+    
+    int width_out    = 0;
+    int height_out   = 0;
+    
+    if (sizes.size() <= 0) {
+        if (mode == 1 || mode == 2 || mode == 3) {
+            //floor is wrong for some model
+            width_out  = int(round(width * scales[0]));
+            height_out = int(round(height * scales[1]));
+        } else {
+            LOGE("Error: unsupport upsample type:%d", mode);
+            if (status) {
+                *status = Status(TNNERR_PARAM_ERR, "unsupport upsample type");
+            }
+            return DimsVector();
+        }
+    } else {
+        width_out  = sizes[0];
+        height_out = sizes[1];
+    }
+
+    if (width_out <= 0 || height_out <= 0) {
+        LOGE("Error: UpsampleLayer invalid output shape: height(%d) width(%d)", height_out, width_out);
+        if (status) {
+            *status = Status(TNNERR_PARAM_ERR, "UpsampleLayer invalid output shape");
+        }
+    }
+    
+    return {num, channels, height_out, width_out};
+}
+
+DimsVector DimsVectorUtils::Range(const RangeData start, const RangeData limit,
+                        const RangeData delta, DataType type, Status *status) {
+    int count = 0;
+    if (type == DATA_TYPE_FLOAT) {
+        count = ceil((limit.f - start.f) / delta.f);
+    } else if (type == DATA_TYPE_INT32) {
+        count = ceil((limit.i - start.i) / delta.i);
+    } else {
+        if (status) {
+            *status = Status(TNNERR_PARAM_ERR, "RangeLayer has invalid type");
+        }
+    }
+    
+    count = count >= 0 ? count : 0;
+    
+    return {count};
 }
 
 DimsVector DimsVectorUtils::Reshape(const DimsVector input_dims, const DimsVector shape,
@@ -160,6 +220,81 @@ DimsVector DimsVectorUtils::Reshape(const DimsVector input_dims, const DimsVecto
     }
     output_dims[infer_dim_pos] = infer_dim_v;
     return output_dims;
+}
+
+DimsVector DimsVectorUtils::StrideSlice(const DimsVector input_dims,
+                                        DimsVector& begins, DimsVector& ends, const DimsVector strides,
+                                        const DimsVector axes, Status *status) {
+    if (axes.size() != begins.size() || axes.size() != ends.size() || axes.size() != strides.size()) {
+        LOGE("StrideSliceV2Layer param of axes, ends, strides size is invalid\n");
+        if (status) {
+            *status = Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param of axes, ends, strides size is invalid");
+            return DimsVector();
+        }
+    }
+
+    auto output_dims = input_dims;
+
+    //前闭后开区间
+    for (int i = 0; i < axes.size(); i++) {
+        int index = axes[i];
+        if (begins[i] < 0) {
+            begins[i] += input_dims[index];
+        }
+
+        if (ends[i] == INT_MAX) {
+            ends[i] = input_dims[index];
+        }
+
+        if (ends[i] < 0) {
+            ends[i] += input_dims[index];
+        }
+
+        if (begins[i] >= ends[i]) {
+            LOGE("StrideSliceV2Layer param is invalid\n");
+            if (status) {
+                *status = Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is invalid");
+            }
+        }
+
+        output_dims[index] = (ends[i] - begins[i] - 1) / strides[i] + 1;
+
+        if (output_dims[index] <= 0) {
+            LOGE("StrideSliceV2Layer param is invalid\n");
+            if (status) {
+                *status = Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is invalid");
+            }
+        }
+    }
+    
+    return output_dims;
+}
+
+DimsVector DimsVectorUtils::Pad(const DimsVector output_index, DimsVector input_dims, DimsVector pads,
+                      int type, Status *status) {
+    DimsVector input_index(output_index.size(), 0);
+    if (type != 0) {
+        if (status) {
+            *status = Status(TNNERR_PARAM_ERR, "PadV2 type is not supported");
+        }
+        return input_index;
+    }
+    
+    for (int i=0; i<input_dims.size(); i++) {
+        input_index[i] = output_index[i] - pads[i];
+    }
+    
+    return input_index;
+}
+
+bool DimsVectorUtils::IsInBox(const DimsVector index, const DimsVector shape) {
+    for (int i=0; i<index.size(); i++) {
+        if (index[i] < 0 || index[i] >= shape[i]) {
+            return false;
+        }
+    }
+    
+    return true;
 }
 
 DimsVector DimsVectorUtils::NCHW2NHWC(DimsVector dims) {

@@ -98,7 +98,10 @@ DimsVector CalculateOutputDim(DimsVector matrix_a_dims, DimsVector matrix_b_dims
     return output_dims;
 }
 
-Status MatMulLayer::InferOutputShape() {
+Status MatMulLayer::InferOutputShape(bool ignore_error) {
+    auto status = BaseLayer::InferOutputShape(ignore_error);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
     auto param    = dynamic_cast<MatMulLayerParam*>(param_);
     auto resource = dynamic_cast<MatMulLayerResource*>(resource_);
     DimsVector matrix_a_dims;

@@ -16,7 +16,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "half_utils.h"
+
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
@@ -59,7 +59,7 @@ bool OnnxOpConverterDetectionOutput::HasLayerResource(NodeProto &node, OnnxNetIn
     return false;
 }
 
-int OnnxOpConverterDetectionOutput::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
+int OnnxOpConverterDetectionOutput::WriteTNNModel(Serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0
     return 0;
 }

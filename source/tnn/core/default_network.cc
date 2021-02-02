@@ -60,7 +60,7 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
  * Those object is initialized in this function.
  */
 Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                            InputShapesMap inputs_shape) {
+                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     config_                                      = net_config;
     Status ret                                   = TNN_OK;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
@@ -80,6 +80,12 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     context_ = device_->CreateContext(net_config.device_id);
     RETURN_VALUE_ON_NEQ(context_ != NULL, true, TNNERR_DEVICE_CONTEXT_CREATE);
 
+#ifdef DEBUG
+    {
+        static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
+        LOGD("support fp 16: %d\n", cpu_support_fp16 ? 1 : 0);
+    }
+#endif
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
     if(!net_config.cache_path.empty()) {
@@ -94,7 +100,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
      * The optimization process may change the network structure accoundingly.
      * eg. fuse conv+bn, conv+relu.
      */
-    {
+    if (runtime_model_ == RUNTIME_MODE_NORMAL) {
         // use mutex to protect net_resource and net_structure in multi-thread
         std::unique_lock<std::mutex> lck(optimize_mtx_);
         ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config);
@@ -103,7 +109,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 
     blob_manager_ = new BlobManager(device_);
 
-    ret = blob_manager_->Init(net_config, net_structure, inputs_shape, GetNetResourceDataType(net_resource));
+    ret = blob_manager_->Init(net_config, net_structure, max_inputs_shape, GetNetResourceDataType(net_resource));
     RETURN_ON_NEQ(ret, TNN_OK);
 
     ret = InitLayers(net_structure, net_resource);
@@ -115,8 +121,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     net_structure_ = net_structure;
     net_resource_ = net_resource;
     
-    InputShapesMap input_shape_map;
-    return Reshape(input_shape_map);
+    return ReshapeLayers();
 }
 
 /*
@@ -130,8 +135,25 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
     Status ret            = TNN_OK;
     bool is_quantized_net = GetQuantizedInfoFromNetStructure(net_structure);
     
-    auto const_layers = net_resource->constant_layers;
+    // mark const blobs and blob data type
+    auto const_blobs = net_resource->constant_map;
+    for (auto layer_info : net_structure->layers) {
+        std::vector<std::string> &input_names  = layer_info->inputs;
+        for (auto name : input_names) {
+            auto blob = blob_manager_->GetBlob(name);
+            if (const_blobs.find(name) != const_blobs.end()) {
+                if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+                    blob->flag = DATA_FLAG_CHANGE_NEVER;
+                }
+                blob->GetBlobDesc().data_type = const_blobs[name]->GetDataType();
+            }
+        }
+    }
     
+
+    auto const_layers = net_resource->constant_layers;
+
+    // update blob precision, alloc new blob required
     for (auto layer_info : net_structure->layers) {
         if (runtime_model_ == RUNTIME_MODE_NORMAL && const_layers.find(layer_info->name) != const_layers.end()) {
             continue;
@@ -156,6 +178,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         }
         std::string layer_name = layer_info->name;
         cur_layer->SetLayerName(layer_name);
+        cur_layer->SetConstantResource(&net_resource->constant_map);
 
         std::vector<Blob *> inputs;
         std::vector<Blob *> outputs_for_shape;
@@ -190,6 +213,10 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
     // init layer
     for (auto layer_info : net_structure->layers) {
+        if (runtime_model_ == RUNTIME_MODE_NORMAL && const_layers.find(layer_info->name) != const_layers.end()) {
+            continue;
+        }
+        
         LayerType type       = layer_info->type;
         BaseLayer *cur_layer = CreateLayer(type);
         if (cur_layer == NULL) {
@@ -221,7 +248,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         }
         
         cur_layer->SetRuntimeMode(runtime_model_);
-        cur_layer->SetConstantResource(net_resource->constant_map);
+        cur_layer->SetConstantResource(&net_resource->constant_map);
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {
             LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
@@ -271,7 +298,6 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
         return TNN_OK;
     }
     static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
-    LOGD("support fp 16: %d\n", cpu_support_fp16 ? 1 : 0);
 
     auto &desc      = (*blob)->GetBlobDesc();
     auto layer_type = layer_info->type;
@@ -351,28 +377,32 @@ Status DefaultNetwork::GetAllOutputBlobs(BlobMap &blobs) {
  */
 Status DefaultNetwork::Reshape(const InputShapesMap &inputs) {
     Status ret = TNN_OK;
-    ret = context_->OnInstanceReshapeBegin();
-    if (ret != TNN_OK) {
-        return ret;
-    }
+    bool do_reshape = false;
     for (auto iter : inputs) {
         Blob *blob = blob_manager_->GetBlob(iter.first);
         if (blob == nullptr) {
-            LOGE("DefaultNetwork reshape blob is empty\n");
-            return Status(TNNERR_PARAM_ERR, "DefaultNetwork reshape blob is empty");
+            LOGE("DefaultNetwork reshape blob is empty, maybe the blob name is wrong\n");
+            return Status(TNNERR_PARAM_ERR, "DefaultNetwork reshape blob is empty, maybe the blob name is wrong");
         }
-        blob->GetBlobDesc().dims = iter.second;
+        if(!DimsVectorUtils::Equal(blob->GetBlobDesc().dims, iter.second)) {
+            blob->GetBlobDesc().dims = iter.second;
+            do_reshape = true;
+        }
     }
 
-    for (auto cur_layer : layers_) {
-        ret = cur_layer->Reshape();
+    if(do_reshape) {
+        ret = context_->OnInstanceReshapeBegin();
         if (ret != TNN_OK) {
             return ret;
         }
+
+        ret = ReshapeLayers();
+        if (ret != TNN_OK) {
+            return ret;
+        }
+ 
+        ret = context_->OnInstanceReshapeEnd();
     }
-
-    ret = context_->OnInstanceReshapeEnd();
-
     return ret;
 }
 
@@ -428,7 +458,7 @@ Status DefaultNetwork::ShareCommandQueue(AbstractNetwork *network) {
     return context_->ShareCommandQueue(network_target->GetContext());
 }
 
-Context *DefaultNetwork::GetContext() {
+Context* DefaultNetwork::GetContext() {
     return context_;
 }
 
@@ -449,55 +479,56 @@ Status DefaultNetwork::Forward() {
         std::vector<Blob *> inputs  = layer->GetInputBlobs();
         std::vector<Blob *> outputs = layer->GetOutputBlobs();
 
-//        if ((runtime_model_ == RUNTIME_MODE_NORMAL && !layer->IsOutputConstant()) ||
-//            (runtime_model_ == RUNTIME_MODE_CONST_FOLD && layer->IsOutputConstant()))
-
         {
             
 #if DUMP_INPUT_BLOB
-            // InputBlob data in dumped into files in NCHW_FLOAT format as default
-            std::string filename = layer->GetLayerName();
-            std::replace(filename.begin(), filename.end(), '/', '_');
-            for (int i = 0; i < inputs.size(); i++) {
-                char ss[1000];
-                if (g_tnn_dump_directory.length() > 0) {
-                    snprintf(ss, 1000, "%s/%05d-%s-in-%d", g_tnn_dump_directory.c_str(), cnt, filename.c_str(), i);
-                } else {
-                    snprintf(ss, 1000, "%05d-%s-in-%d", cnt, filename.c_str(), i);
-                }
+            if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+                // InputBlob data in dumped into files in NCHW_FLOAT format as default
+                std::string filename = layer->GetLayerName();
+                std::replace(filename.begin(), filename.end(), '/', '_');
+                for (int i = 0; i < inputs.size(); i++) {
+                    char ss[1000];
+                    if (g_tnn_dump_directory.length() > 0) {
+                        snprintf(ss, 1000, "%s/%05d-%s-in-%d", g_tnn_dump_directory.c_str(), cnt, filename.c_str(), i);
+                    } else {
+                        snprintf(ss, 1000, "%05d-%s-in-%d", cnt, filename.c_str(), i);
+                    }
 
-                auto ret = DumpDeviceBlob(inputs[i], context_, std::string(ss));
-                if (ret != TNN_OK) {
-                    LOGE("dump blob failed\n");
-                    return ret;
+                    auto ret = DumpDeviceBlob(inputs[i], context_, std::string(ss));
+                    if (ret != TNN_OK) {
+                        LOGE("dump blob failed\n");
+                        return ret;
+                    }
                 }
             }
 #endif  // DUMP_INPUT_BLOB
             
             status = layer->Forward();
-            
             LOGD("layer name: %s, forward result: %d \n", layer->GetLayerName().c_str(), (int)status);
+            LOGD("Output Shape: [%s]\n", layer->GetOutputBlobs()[0]->GetBlobDesc().description().c_str());
             if (status != TNN_OK) {
                 LOGE("Forward error %s, exit\n", status.description().c_str());
                 return status;
             }
 
 #if DUMP_OUTPUT_BLOB
-            // OutBlob data in dumped into files in NCHW_FLOAT format as default
-            std::string out_file_name = layer->GetLayerName();
-            std::replace(out_file_name.begin(), out_file_name.end(), '/', '_');
-            for (int i = 0; i < outputs.size(); i++) {
-                char ss[1000];
-                if (g_tnn_dump_directory.length() > 0) {
-                    snprintf(ss, 1000, "%s/%05d-%s-out-%d", g_tnn_dump_directory.c_str(), cnt, out_file_name.c_str(), i);
-                } else {
-                    snprintf(ss, 1000, "%05d-%s-out-%d", cnt, out_file_name.c_str(), i);
-                }
+            if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+                // OutBlob data in dumped into files in NCHW_FLOAT format as default
+                std::string out_file_name = layer->GetLayerName();
+                std::replace(out_file_name.begin(), out_file_name.end(), '/', '_');
+                for (int i = 0; i < outputs.size(); i++) {
+                    char ss[1000];
+                    if (g_tnn_dump_directory.length() > 0) {
+                        snprintf(ss, 1000, "%s/%05d-%s-out-%d", g_tnn_dump_directory.c_str(), cnt, out_file_name.c_str(), i);
+                    } else {
+                        snprintf(ss, 1000, "%05d-%s-out-%d", cnt, out_file_name.c_str(), i);
+                    }
 
-                auto ret = DumpDeviceBlob(outputs[i], context_, std::string(ss));
-                if (ret != TNN_OK) {
-                    LOGE("dump blob failed\n");
-                    return ret;
+                    auto ret = DumpDeviceBlob(outputs[i], context_, std::string(ss));
+                    if (ret != TNN_OK) {
+                        LOGE("dump blob failed\n");
+                        return ret;
+                    }
                 }
             }
 #endif  // DUMP_OUTPUT_BLOB
@@ -557,10 +588,7 @@ Status DefaultNetwork::ForwardAsync(Callback call_back) {
     context_->OnInstanceForwardBegin();
     for (auto layer : layers_) {
         result = layer->Forward();
-        if (result != TNN_OK) {
-            LOGE("Forward error %s, exit\n", result.description().c_str());
-            return result;
-        }
+        RETURN_ON_NEQ(result, TNN_OK);
     }
     context_->OnInstanceForwardEnd();
     return result;
@@ -581,5 +609,14 @@ std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config) {
     + "_" + ToString(model_config.model_type) + "_" + md5(model_config.params[0]);
 }
 
+Status DefaultNetwork::ReshapeLayers() {
+    for (auto cur_layer : layers_) {
+        auto status = cur_layer->Reshape();
+        RETURN_ON_NEQ(status, TNN_OK);
+        //Note output shape may not change after reshape for const folder, but will do change after forword because shape may be determined at rumtime
+        LOGD("ReshapeLayers Output Shape: [%s]\n", cur_layer->GetOutputBlobs()[0]->GetBlobDesc().description().c_str());
+    }
+    return TNN_OK;
+}
 
 }  // namespace TNN_NS

@@ -186,7 +186,8 @@ tags
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
@@ -488,6 +489,10 @@ lint/outputs/
 lint/tmp/
 # lint/reports/
 
+source/tnn/network/tensorrt/thirdparty/TensorRT*
+model/
 # opencl generated code
 opencl_program.cc
 
+# opencl generated code
+opencl_program.cc

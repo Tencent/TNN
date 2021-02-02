@@ -90,32 +90,36 @@ namespace optimizer {
         std::vector<std::shared_ptr<LayerInfo>> layers_fused;
 
         // if model input is used for multiple layers with different data types,
-        // reformat layers is inserted at beginning
-        int need_fp16_input = 0;
-        int need_fp32_input = 0;
-        const auto &model_input = layers_orig[0]->inputs[0];
-        for (const auto &cur_layer : layers_orig) {
-            for (const auto &layer_input : cur_layer->inputs) {
-                if (layer_input == model_input) {
-                    if (device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented) {
-                        ++need_fp16_input;
-                    } else {
-                        ++need_fp32_input;
+        // reformat layers are inserted at beginning.
+        // support multi inputs/outputs.
+        for (const auto &iter : structure->inputs_shape_map) {
+            const auto &model_input = iter.first;
+            LOGD("NetOptimizerInsertFp16Reformat::Optimize, process model input: %s\n", model_input.c_str());
+            int need_fp16_input = 0;
+            int need_fp32_input = 0;
+            for (const auto &cur_layer : layers_orig) {
+                for (const auto &layer_input : cur_layer->inputs) {
+                    if (layer_input == model_input) {
+                        if (device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented) {
+                            ++need_fp16_input;
+                        } else {
+                            ++need_fp32_input;
+                        }
+                        break;
                     }
-                    break;
                 }
             }
-        }
-        if (need_fp16_input > 0 && need_fp32_input > 0) {
-            std::vector<std::string> reformat_outs = {model_input};
-            // create fp16 -> fp32 reformat layer
-            std::shared_ptr<LayerInfo> new_layer =
-                CreateReformat(model_input + reformat_name_suffix + "__from_model_input", true);
+            if (need_fp16_input > 0 && need_fp32_input > 0) {
+                std::vector<std::string> reformat_outs = {model_input};
+                // create fp16 -> fp32 reformat layer
+                std::shared_ptr<LayerInfo> new_layer =
+                    CreateReformat(model_input + reformat_name_suffix + "__from_model_input__", true);
 
-            AdjustLayer(layers_orig, structure, true, new_layer, reformat_outs, reformat_name_suffix, -1, count);
+                AdjustLayer(layers_orig, structure, true, new_layer, reformat_outs, reformat_name_suffix, -1, count);
 
-            LOGD("Insert fp16 refomat layer : src %s dst %s\n", new_layer->inputs[0].c_str(), new_layer->outputs[0].c_str());
-            layers_fused.push_back(new_layer);
+                LOGD("Insert fp16 refomat layer : src %s dst %s\n", new_layer->inputs[0].c_str(), new_layer->outputs[0].c_str());
+                layers_fused.push_back(new_layer);
+            }
         }
 
         for (int index = 0; index < count; index++) {

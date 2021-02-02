@@ -28,9 +28,8 @@
 #include <sstream>
 #include <exception>
 
-#include "macro.h"
-
-#include "objseri/objseri.h"
+#include "tnn/core/blob.h"
+#include "tnn/interpreter/tnn/objseri.h"
 #include "onnx2tnn_prefix.h"
 #include "onnx_op_converter.h"
 
@@ -38,7 +37,7 @@
 #include "onnx_utility.h"
 
 using namespace std;
-using namespace parser;
+using namespace TNN_NS;
 
 const std::string tag = "converter";
 
@@ -59,7 +58,7 @@ int RemoveIndexNode(std::vector<IndexNode> &index_nodes, int index);
 class Onnx2TNN {
 public:
     Onnx2TNN(std::string onnx_model_path, std::string tnn_proto_path,
-                  std::string tnn_model_path);
+             std::string tnn_model_path, InputShapesMap shapes_map = {});
     ~Onnx2TNN();
 
     int Convert(DataType dataType = DATA_TYPE_FLOAT);
@@ -69,6 +68,8 @@ private:
     std::string tnn_model_path_;
     std::string onnx_model_path_;
     onnx::ModelProto* onnx_model_ = nullptr;
+    InputShapesMap target_inputs_shape_map_ = {};
+    
     int OnnxExtractBlobWeights();
     bool CheckIs3DModel();
 
@@ -201,6 +202,16 @@ protected:
                   std::map<std::string, onnx::TensorProto>& weights,
                   std::map<std::string, int>& node_reference,
                   std::set<std::string>& blob_names);
+    int FuseLSTM(onnx::GraphProto* mutable_graph,
+                  std::vector<IndexNode> & index_nodes,
+                  std::map<std::string, onnx::TensorProto>& weights,
+                  std::map<std::string, int>& node_reference,
+                  std::set<std::string>& blob_names);
+    int FuseArgMaxOrMin(onnx::GraphProto* mutable_graph,
+                  std::vector<IndexNode> & index_nodes,
+                  std::map<std::string, onnx::TensorProto>& weights,
+                  std::map<std::string, int>& node_reference,
+                  std::set<std::string>& blob_names);
     int FuseBatchNorm(onnx::GraphProto* mutable_graph,
                       std::vector<IndexNode> & index_nodes,
                       std::map<std::string, onnx::TensorProto>& weights,
@@ -258,7 +269,10 @@ protected:
     int FuseSpaceToDepth(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
                          std::map<std::string, onnx::TensorProto>& weights,
                          std::map<std::string, int>& node_reference, std::set<std::string>& blob_names);
-
+    int FuseHistogram(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
+                    std::map<std::string, onnx::TensorProto>& weights, std::map<std::string, int>& node_reference,
+                    std::set<std::string>& blob_names);
+    
 protected:
     //transfer
     int TransferReduceMax(onnx::GraphProto* mutable_graph,

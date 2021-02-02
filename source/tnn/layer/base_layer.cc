@@ -85,30 +85,44 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
     return TNN_OK;
 }
 
+Status BaseLayer::FillLayerParamWithConstantResource() {
+    return TNN_OK;
+}
 
-Status BaseLayer::InferOutputShape() {
-    //从const中获取常量的dims
+Status BaseLayer::InferOutputShape(bool ignore_error) {
+    //get dims from const for input
     auto const_resource = const_resource_;
     for (auto iter : input_blobs_) {
         auto name = iter->GetBlobDesc().name;
-        if (const_resource.find(name) == const_resource.end()) {
+        if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
             continue;
         }
+        iter->GetBlobDesc().data_type = (*const_resource)[name]->GetDataType();
         
-        iter->GetBlobDesc().dims = const_resource[name]->GetBufferDims();
-        iter->GetBlobDesc().data_type = const_resource[name]->GetDataType();
+        //only DATA_FLAG_CHANGE_NEVER read dims and type from const resource
+        //blob with flag DATA_FLAG_CHANGE_IF_SHAPE_DIFFER may change dims in runtime
+        if (DataFlagUtils::ChangeStatus(iter->flag) == DATA_FLAG_CHANGE_NEVER) {
+            iter->GetBlobDesc().dims = (*const_resource)[name]->GetBufferDims();
+        }
+    }
+    
+    //
+    if (runtime_model_ == RUNTIME_MODE_NORMAL || GetLayerChangeFlag() == DATA_FLAG_CHANGE_NEVER) {
+        return FillLayerParamWithConstantResource();
     }
     return TNN_OK;
 }
 
 Status BaseLayer::InferOutputDataType() {
+    auto const_resource = const_resource_;
+    
     // Init base type, will re write in different device acc
     // output data_type = input_data_tyep as default.
     
     //find first blob which is not const
     auto input_blob_not_const = input_blobs_[0];
     for (auto input_blob : input_blobs_) {
-        if (const_resource_.find(input_blob->GetBlobDesc().name) == const_resource_.end()) {
+        if (const_resource == nullptr || const_resource->find(input_blob->GetBlobDesc().name) == const_resource->end()) {
             input_blob_not_const = input_blob;
             break;
         }
@@ -120,17 +134,24 @@ Status BaseLayer::InferOutputDataType() {
     
     int flag = DATA_FLAG_CHANGE_NEVER;
     for (auto iter : input_blobs_) {
-        if (const_resource_.find(iter->GetBlobDesc().name) != const_resource_.end()) {
+        if (const_resource != nullptr && const_resource->find(iter->GetBlobDesc().name) != const_resource->end()) {
             iter->flag |= DATA_FLAG_CHANGE_NEVER;
         }
         flag = DataFlagUtils::MinChangeStatus(flag, iter->flag);
     }
     
     for (auto iter : output_blobs_) {
-        if (runtime_model_ == RUNTIME_MODE_NORMAL &&
-            const_resource_.find(iter->GetBlobDesc().name) != const_resource_.end()) {
-            flag = flag & 0x0000FFFF;
+        if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+            if (const_resource != nullptr && const_resource->find(iter->GetBlobDesc().name) != const_resource->end()) {
+                flag = flag & 0x0000FFFF;
+            }
+        } else {
+            //allocate output blob of const layer in const folding
+            if (DataFlagUtils::ChangeStatus(flag) != DATA_FLAG_CHANGE_ALWAYS) {
+                flag = flag | DATA_FLAG_ALLOCATE_IN_FORWARD;
+            }
         }
+
         iter->flag = flag;
     }
     return TNN_OK;
@@ -170,7 +191,7 @@ Status BaseLayer::Forward() {
             }
         } else {
             //dont check the status of InferOutputShape in constant folding
-            auto status = InferOutputShape();
+            auto status = InferOutputShape(true);
             
             status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
             RETURN_ON_NEQ(status, TNN_OK);
@@ -232,7 +253,15 @@ bool BaseLayer::IsOutputConstant() {
     return true;
 }
 
-void BaseLayer::SetConstantResource(ConstantResource consts) {
+int BaseLayer::GetLayerChangeFlag() {
+    int flag = DATA_FLAG_CHANGE_NEVER;
+    for (auto iter : output_blobs_) {
+        flag = DataFlagUtils::ChangeStatus(DataFlagUtils::MinChangeStatus(flag, iter->flag));
+    }
+    return flag;
+}
+
+void BaseLayer::SetConstantResource(ConstantResource* consts) {
     const_resource_ = consts;
 }
 

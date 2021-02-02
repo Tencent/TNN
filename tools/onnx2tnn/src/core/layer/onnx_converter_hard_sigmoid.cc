@@ -38,7 +38,7 @@ bool OnnxOpConverterHardSigmoid::HasLayerResource(NodeProto &node, OnnxNetInfo &
     return false;
 }
 
-int OnnxOpConverterHardSigmoid::WriteTNNModel(serializer *net_writer,
+int OnnxOpConverterHardSigmoid::WriteTNNModel(Serializer *net_writer,
                                                       NodeProto &node,
                                                       OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

@@ -15,7 +15,8 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-DECLARE_OP_CONVERTER(Range);
+DECLARE_OP_CONVERTER_WITH_FUNC(Range,
+                               virtual std::vector<std::string> GetInputNames(NodeProto &node, OnnxNetInfo &net_info););
 
 //void OnnxOpConverterRange::ProcessConstantNode(NodeProto &node, OnnxNetInfo &net_info) {
 //    for (const auto &input_node_name : node.input()) {
@@ -29,6 +30,11 @@ string OnnxOpConverterRange::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
     return "Range";
 }
 
+std::vector<std::string> OnnxOpConverterRange::GetInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+    //start, limit, delta
+    return {node.input(0), node.input(1), node.input(2)};
+}
+
 string OnnxOpConverterRange::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
     return "";
 }
@@ -37,7 +43,7 @@ bool OnnxOpConverterRange::HasLayerResource(NodeProto &node, OnnxNetInfo &net_in
     return false;
 }
 
-int OnnxOpConverterRange::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
+int OnnxOpConverterRange::WriteTNNModel(Serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     return 0;
 }
 

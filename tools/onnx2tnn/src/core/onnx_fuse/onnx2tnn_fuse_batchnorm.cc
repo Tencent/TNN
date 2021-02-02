@@ -13,8 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include <math.h>
-#include "half_utils.h"
-#include "objseri.h"
+
 #include "onnx2tnn.h"
 
 int Onnx2TNN::FuseBatchNorm(onnx::GraphProto* mutable_graph,

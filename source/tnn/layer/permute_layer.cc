@@ -25,8 +25,8 @@ Status PermuteLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status PermuteLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status PermuteLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     auto permute_param = dynamic_cast<PermuteLayerParam*>(param_);
     CHECK_PARAM_NULL(permute_param);
@@ -44,14 +44,14 @@ Status PermuteLayer::InferOutputShape() {
         }
     }
     if (permute_param->orders.size() != input_dims.size()) {
-        LOGE("Permute param got wrong size.\n");
+        LOGE_IF(!ignore_error, "Permute param got wrong size.\n");
         return Status(TNNERR_PARAM_ERR, "Permute param got wrong size");
     }
 
     for (int i = 0; i < permute_param->orders.size(); ++i) {
         int order = permute_param->orders[i];
         if (order < 0 || order > input_dims.size() - 1) {
-            LOGE("Permute param out of range.\n");
+            LOGE_IF(!ignore_error, "Permute param out of range.\n");
             return Status(TNNERR_PARAM_ERR, "Permute param out of range");
         }
         output_dims.push_back(input_dims[order]);

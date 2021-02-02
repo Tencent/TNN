@@ -15,28 +15,27 @@
 #include <algorithm>
 
 #include "tnn/layer/base_layer.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_LAYER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
+DECLARE_LAYER_WITH_FUNC(StrideSliceV2, LAYER_STRIDED_SLICE_V2,
+                        virtual Status FillLayerParamWithConstantResource(););
 
 Status StrideSliceV2Layer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status StrideSliceV2Layer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status StrideSliceV2Layer::InferOutputShape(bool ignore_error) {
+    auto status = BaseLayer::InferOutputShape(ignore_error);
+    RETURN_ON_NEQ(status, TNN_OK);
     
-    StrideSliceV2LayerParam* layer_param = dynamic_cast<StrideSliceV2LayerParam*>(param_);
-    if (!layer_param) {
-        LOGE("StrideSliceV2Layer param is nil\n");
-        return Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is nil");
-    }
+    auto layer_param = dynamic_cast<StrideSliceV2LayerParam*>(param_);
+    CHECK_PARAM_NULL(layer_param);
 
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
 
-    output_blob->GetBlobDesc().dims.clear();
     auto input_dims = input_blob->GetBlobDesc().dims;
 
     auto begins = layer_param->begins;
@@ -44,41 +43,52 @@ Status StrideSliceV2Layer::InferOutputShape() {
     auto axes = layer_param->axes;
     auto strides = layer_param->strides;
 
-    auto sizes = input_dims;
-
     //前闭后开区间
-    for (int i = 0; i < axes.size(); i++) {
-        int index = axes[i];
-        if (begins[i] < 0) {
-            begins[i] += input_blob->GetBlobDesc().dims[index];
-        }
-
-        if (ends[i] == INT_MAX) {
-            ends[i] = input_dims[index];
-        }
-
-        if (ends[i] < 0) {
-            ends[i] += input_dims[index];
-        }
-
-        if (begins[i] >= ends[i]) {
-            LOGE("StrideSliceV2Layer param is invalid\n");
-            return Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is invalid");
-        }
-
-        sizes[index] = (ends[i] - begins[i] - 1) / strides[i] + 1;
-
-        if (sizes[index] <= 0) {
-            LOGE("StrideSliceV2Layer param is invalid\n");
-            return Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is invalid");
-        }
-    }
-
-    layer_param->begins = begins;
-    layer_param->ends = ends;
-    output_blob->GetBlobDesc().dims = sizes;
+    auto output_dims = DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
+    RETURN_ON_NEQ(status, TNN_OK);
+  
+    //dont rectify begins and ends here, input shape may change, do it in runtime forword see cpu_stride_slice_v2_layer_acc.cc Forword
+//    layer_param->begins = begins;
+//    layer_param->ends = ends;
+    output_blob->GetBlobDesc().dims = output_dims;
 
     return TNN_OK;
+}
+
+Status StrideSliceV2Layer::FillLayerParamWithConstantResource() {
+    Status status = TNN_OK;
+    auto *layer_param = dynamic_cast<StrideSliceV2LayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    if (input_blobs_.size() >= 2) {
+        auto begins_blob_name = input_blobs_[1]->GetBlobDesc().name;
+        if (const_resource_ != nullptr && const_resource_->find(begins_blob_name) != const_resource_->end()) {
+            auto begins_buffer =  (*const_resource_)[begins_blob_name];
+            auto dim_count = begins_buffer->GetDataCount();
+            auto dim_data = (int *)begins_buffer->force_to<int *>();
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(dim_data[i]);
+            }
+            layer_param->begins = dims;
+        }
+    }
+    
+    if (input_blobs_.size() >= 3) {
+        auto ends_blob_name = input_blobs_[2]->GetBlobDesc().name;
+        if (const_resource_ != nullptr && const_resource_->find(ends_blob_name) != const_resource_->end()) {
+            auto ends_buffer =  (*const_resource_)[ends_blob_name];
+            auto dim_count = ends_buffer->GetDataCount();
+            auto dim_data = (int *)ends_buffer->force_to<int *>();
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(dim_data[i]);
+            }
+            layer_param->ends = dims;
+        }
+    }
+    
+    return status;
 }
 
 REGISTER_LAYER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);

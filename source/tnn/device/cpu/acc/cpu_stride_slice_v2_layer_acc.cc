@@ -20,11 +20,64 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
+DECLARE_CPU_ACC_WITH_FUNC(StrideSliceV2, LAYER_STRIDED_SLICE_V2,
+                          virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                                                                      const std::vector<Blob *> &outputs););
 
 Status CpuStrideSliceV2LayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
+
+Status CpuStrideSliceV2LayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                         const std::vector<Blob *> &outputs) {
+    auto *layer_param = dynamic_cast<StrideSliceV2LayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    if (inputs.size() >= 2) {
+        if (inputs[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
+            return Status(TNNERR_PARAM_ERR, "stride slice input(begins) has invalid data type");
+        }
+        auto dim_count = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
+        auto dim_data = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
+        DimsVector dims;
+        for (int i=0; i<dim_count; i++) {
+            dims.push_back(dim_data[i]);
+        }
+        layer_param->begins = dims;
+    }
+    
+    if (inputs.size() >= 3) {
+        if (inputs[2]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
+            return Status(TNNERR_PARAM_ERR, "stride slice input(ends) has invalid data type");
+        }
+        auto input_dims = inputs[2]->GetBlobDesc().dims;
+        
+        auto dim_count = DimsVectorUtils::Count(inputs[2]->GetBlobDesc().dims);
+        auto dim_data = (int *)((char *)inputs[2]->GetHandle().base + inputs[2]->GetHandle().bytes_offset);
+        DimsVector dims;
+        for (int i=0; i<dim_count; i++) {
+            dims.push_back(dim_data[i]);
+        }
+        layer_param->ends = dims;
+    }
+    
+    auto input_dims = inputs[0]->GetBlobDesc().dims;
+    
+    auto begins = layer_param->begins;
+    auto ends = layer_param->ends;
+    auto axes = layer_param->axes;
+    auto strides = layer_param->strides;
+    
+    //前闭后开区间
+    Status status = TNN_OK;
+    auto output_dims = DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
+    outputs[0]->GetBlobDesc().dims = output_dims;
+    
+    return TNN_OK;
+}
+
 
 Status CpuStrideSliceV2LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<StrideSliceV2LayerParam *>(param_);
@@ -40,10 +93,15 @@ Status CpuStrideSliceV2LayerAcc::Forward(const std::vector<Blob *> &inputs, cons
     auto ends = layer_param->ends;
     auto strides = layer_param->strides;
     auto axes = layer_param->axes;
-
+    
     DimsVector input_dims = input_blob->GetBlobDesc().dims;
     DimsVector output_dims = output_blob->GetBlobDesc().dims;
     int output_count = DimsVectorUtils::Count(output_dims);
+    
+    //rectify begins and ends here for value < 0 or = INT_MAX
+    Status status = TNN_OK;
+    DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
+    RETURN_ON_NEQ(status, TNN_OK);
 
     if (output_blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);

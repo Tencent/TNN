@@ -24,7 +24,7 @@ Status NonZeroLayer::InferOutputDataType() {
     for (auto& iter : output_blobs_) {
         int allocate_status = DATA_FLAG_ALLOCATE_IN_FORWARD;
         if (runtime_model_ == RUNTIME_MODE_NORMAL &&
-            const_resource_.find(iter->GetBlobDesc().name) != const_resource_.end()) {
+            const_resource_ != nullptr && const_resource_->find(iter->GetBlobDesc().name) != const_resource_->end()) {
             allocate_status = 0;
         }
         iter->flag = iter->flag | allocate_status;
@@ -33,8 +33,8 @@ Status NonZeroLayer::InferOutputDataType() {
     return TNN_OK;
 }
 
-Status NonZeroLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status NonZeroLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     auto input_dims  = input_blobs_[0]->GetBlobDesc().dims;
     int input_dim_size = (int)input_dims.size();

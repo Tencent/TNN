@@ -44,7 +44,7 @@ bool OnnxOpConverterPRelu::HasLayerResource(NodeProto &node, OnnxNetInfo &net_in
     return true;
 }
 
-int OnnxOpConverterPRelu::WriteTNNModel(serializer *net_writer,
+int OnnxOpConverterPRelu::WriteTNNModel(Serializer *net_writer,
                                             NodeProto &node,
                                             OnnxNetInfo &net_info) {
     const std::string &onnx_op = node.op_type();
@@ -52,15 +52,15 @@ int OnnxOpConverterPRelu::WriteTNNModel(serializer *net_writer,
     const std::string &tnn_layer_type = TNNOpType(node, net_info);
 
     //写头信息
-    net_writer->put_int(0);  //触发type from string
-    net_writer->put_string(tnn_layer_type);
-    net_writer->put_string(name);
+    net_writer->PutInt(0);  //触发type from string
+    net_writer->PutString(tnn_layer_type);
+    net_writer->PutString(name);
 
     //写数据
     const onnx::TensorProto &slope = net_info.weights_map[node.input(1)];
     int num_slope                  = get_tensor_proto_data_size(slope);
 
-    net_writer->put_string(name);
+    net_writer->PutString(name);
     WriteTensorData(slope, net_writer, DATA_TYPE_FLOAT);
     
     //有权值写入的返回1， 没有的返回0

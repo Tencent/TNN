@@ -33,8 +33,13 @@ RawBuffer::RawBuffer() :
   data_type_(DATA_TYPE_FLOAT) {}
 
 RawBuffer::RawBuffer(int bytes_size) {
-    buff_ = shared_ptr<char>(new char[bytes_size], [](char *p) { delete[] p; });
-    memset(buff_.get(), 0, bytes_size);
+    if (bytes_size > 0) {
+        buff_ = shared_ptr<char>(new char[bytes_size], [](char *p) { delete[] p; });
+        memset(buff_.get(), 0, bytes_size);
+    } else {
+        buff_ = nullptr;
+    }
+
     bytes_size_ = bytes_size;
 }
 
@@ -43,8 +48,13 @@ RawBuffer::RawBuffer(int bytes_size, DimsVector dims) : RawBuffer(bytes_size){
 }
 
 RawBuffer::RawBuffer(int bytes_size, char *buffer) {
-    buff_ = shared_ptr<char>(new char[bytes_size], [](char *p) { delete[] p; });
-    memcpy(buff_.get(), buffer, bytes_size);
+    if (bytes_size > 0) {
+        buff_ = shared_ptr<char>(new char[bytes_size], [](char *p) { delete[] p; });
+        memcpy(buff_.get(), buffer, bytes_size);
+    } else {
+        buff_ = nullptr;
+    }
+    
     bytes_size_ = bytes_size;
 }
 

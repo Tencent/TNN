@@ -61,12 +61,30 @@ public:
     // @brief reshape op to reshape input dims
     static DimsVector Reshape(const DimsVector input_dims, const DimsVector shape,
                               const int axis, const int num_axes, Status *status);
+    
+    // @brief strideslice op to slice input dims, it also rectify begins and ends in case value < 0 or = INT_MAX
+    static DimsVector StrideSlice(const DimsVector input_dims,
+                                  DimsVector& begins, DimsVector& ends, const DimsVector strides,
+                                  const DimsVector axes, Status *status);
+    
+    // @brief upsample/resize op to resize input dims
+    static DimsVector Upsample(const DimsVector input_dims,
+                                  std::vector<float> scales, std::vector<int> sizes, int mode, Status *status);
+    // @brief PadV2 to calc input dims index
+    static DimsVector Pad(const DimsVector output_index, DimsVector input_dims, DimsVector pads,
+                          int type, Status *status);
+    
+    // @brief range op to infer output dims
+    static DimsVector Range(const RangeData start, const RangeData limit,
+                            const RangeData delta, DataType type, Status *status);
 
     // @brief NCHW dims vector to NHWC dims vector
     static DimsVector NCHW2NHWC(DimsVector dims);
 
     // @brief NHWC dims vector to NCHW
     static DimsVector NHWC2NCHW(DimsVector dims);
+    
+    static bool IsInBox(const DimsVector index, const DimsVector box);
     
     // @brief Increase index by offset, bounded by shape
     // @param index

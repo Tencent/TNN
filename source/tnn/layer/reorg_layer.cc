@@ -24,8 +24,8 @@ Status ReorgLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status ReorgLayer::InferOutputShape() {
-    BaseLayer::InferOutputShape();
+Status ReorgLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
     Blob* input_blob = input_blobs_[0];
 

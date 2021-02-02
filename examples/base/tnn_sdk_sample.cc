@@ -86,6 +86,7 @@ ObjectInfo ObjectInfo::FlipX() {
     info.class_id = this->class_id;
     info.image_width = this->image_width;
     info.image_height = this->image_width;
+    info.lines = this->lines;
     
     info.x1 = this->image_width - this->x2;
     info.x2 = this->image_width - this->x1;
@@ -199,6 +200,7 @@ ObjectInfo ObjectInfo::AdjustToImageSize(int orig_image_height, int orig_image_w
                                                                      std::get<2>(item)));
     }
     info_orig.key_points_3d = key_points_3d;
+    info_orig.lines = lines;
     
     return info_orig;
 }
@@ -209,6 +211,7 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
     info.class_id = this->class_id;
     info.image_width = view_width;
     info.image_height = view_height;
+    info.lines = lines;
     
     float view_aspect = view_height/(float)(view_width + FLT_EPSILON);
     float object_aspect = this->image_height/(float)(this->image_width + FLT_EPSILON);
@@ -305,6 +308,25 @@ std::string BenchResult::Description() {
     ostr << std::endl;
 
     return ostr.str();
+}
+
+DeviceType TNNSDKUtils::GetFallBackDeviceType(DeviceType dev) {
+    switch (dev) {
+        case DEVICE_CUDA:
+            return DEVICE_X86;
+        case DEVICE_RK_NPU:
+        case DEVICE_HUAWEI_NPU:
+        case DEVICE_METAL:
+        case DEVICE_OPENCL:
+        case DEVICE_ATLAS:
+        case DEVICE_DSP:
+            return DEVICE_ARM;
+        case DEVICE_X86:
+        case DEVICE_ARM:
+        case DEVICE_NAIVE:
+            return dev;
+    }
+    return DEVICE_NAIVE;
 }
 
 #pragma mark - TNNSDKInput
@@ -486,6 +508,39 @@ Status TNNSDKSample::Copy(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_
     return status;
 }
 
+Status TNNSDKSample::CopyMakeBorder(std::shared_ptr<TNN_NS::Mat> src,
+                      std::shared_ptr<TNN_NS::Mat> dst,
+                      int top, int bottom, int left, int right,
+                                    TNNBorderType border_type, uint8_t border_value) {
+    Status status = TNN_OK;
+    
+    void *command_queue = nullptr;
+    status = GetCommandQueue(&command_queue);
+    if (status != TNN_NS::TNN_OK) {
+        LOGE("getCommandQueue failed with:%s\n", status.description().c_str());
+        return status;
+    }
+    
+    CopyMakeBorderParam param;
+    param.border_val = border_value;
+    param.top = top;
+    param.bottom = bottom;
+    param.left = left;
+    param.right = right;
+    param.border_type = BORDER_TYPE_CONSTANT;
+    if (border_type == TNNBorderEdge)
+        param.border_type = BORDER_TYPE_EDGE;
+    else if (border_type == TNNBorderReflect)
+        param.border_type = BORDER_TYPE_REFLECT;
+    
+    status = MatUtils::CopyMakeBorder(*(src.get()), *(dst.get()), param, command_queue);
+    if (status != TNN_NS::TNN_OK){
+        LOGE("copy failed with:%s\n", status.description().c_str());
+    }
+    
+    return status;
+}
+
 void TNNSDKSample::setNpuModelPath(std::string stored_path)
 {
     model_path_str_ = stored_path;
@@ -529,6 +584,10 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 #else
         device_type_      = TNN_NS::DEVICE_HUAWEI_NPU;
 #endif
+    } else if (option->compute_units == TNNComputeUnitsOpenvino) {
+        device_type_ = TNN_NS::DEVICE_X86;
+    } else if (option->compute_units == TNNComputeUnitsTensorRT) {
+        device_type_ = TNN_NS::DEVICE_CUDA;
     }
     
     //创建实例instance
@@ -536,8 +595,13 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         TNN_NS::NetworkConfig network_config;
         network_config.library_path = {option->library_path};
         network_config.device_type  = device_type_;
+        network_config.precision = option->precision;
         if(device_type_ == TNN_NS::DEVICE_HUAWEI_NPU){
             network_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
+        } else if (device_type_ == TNN_NS::DEVICE_X86) {
+            network_config.network_type = NETWORK_TYPE_OPENVINO;
+        } else if (device_type_ == TNN_NS::DEVICE_CUDA) {
+            network_config.network_type = NETWORK_TYPE_TENSORRT;
         }
         auto instance               = net_->CreateInst(network_config, status, option->input_shapes);
 
@@ -698,22 +762,38 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
         }
 
         // step 3. get output mat
+        auto input_device_type = input->GetMat()->GetDeviceType();
         output = CreateSDKOutput();
         auto output_names = GetOutputNames();
         if (output_names.size() == 1) {
             auto output_convert_param = GetConvertParamForOutput();
             std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
+<<<<<<< HEAD
             status = instance_->GetOutputMat(output_mat, output_convert_param);
+=======
+            status = instance_->GetOutputMat(output_mat, output_convert_param, "",
+                                             TNNSDKUtils::GetFallBackDeviceType(input_device_type));
+>>>>>>> master
             RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             output->AddMat(output_mat, output_names[0]);
         } else {
             for (auto name : output_names) {
+<<<<<<< HEAD
                   auto output_convert_param = GetConvertParamForOutput(name);
                   std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
                   status = instance_->GetOutputMat(output_mat, output_convert_param, name);
                   RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
                   output->AddMat(output_mat, name);
               }
+=======
+                auto output_convert_param = GetConvertParamForOutput(name);
+                std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
+                status = instance_->GetOutputMat(output_mat, output_convert_param, name,
+                                                 TNNSDKUtils::GetFallBackDeviceType(input_device_type));
+                RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
+                output->AddMat(output_mat, name);
+            }
+>>>>>>> master
         }
   
         
@@ -773,7 +853,7 @@ TNN_NS::Status TNNSDKComposeSample::Predict(std::shared_ptr<TNNSDKInput> input,
 }
 
 /*
-* NMS, supporting hard-nms and blending-nms
+* NMS, supporting hard-nms, blending-nms and weighted-nms
 */
 void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float iou_threshold, TNNNMSType type) {
     std::sort(input.begin(), input.end(), [](const ObjectInfo &a, const ObjectInfo &b) { return a.score > b.score; });
@@ -843,6 +923,31 @@ void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float 
                 rects.key_points.resize(buf[0].key_points.size());
                 for (int i = 0; i < buf.size(); i++) {
                     float rate = exp(buf[i].score) / total;
+                    rects.x1 += buf[i].x1 * rate;
+                    rects.y1 += buf[i].y1 * rate;
+                    rects.x2 += buf[i].x2 * rate;
+                    rects.y2 += buf[i].y2 * rate;
+                    rects.score += buf[i].score * rate;
+                    for(int j = 0; j < buf[i].key_points.size(); ++j) {
+                        rects.key_points[j].first += buf[i].key_points[j].first * rate;
+                        rects.key_points[j].second += buf[i].key_points[j].second * rate;
+                    }
+                    rects.image_height = buf[0].image_height;
+                    rects.image_width  = buf[0].image_width;
+                }
+                output.push_back(rects);
+                break;
+            }
+            case TNNWeightedNMS: {
+                float total = 0;
+                for (int i = 0; i < buf.size(); i++) {
+                    total += buf[i].score;
+                }
+                ObjectInfo rects;
+                memset(&rects, 0, sizeof(rects));
+                rects.key_points.resize(buf[0].key_points.size());
+                for (int i = 0; i < buf.size(); i++) {
+                    float rate = buf[i].score / total;
                     rects.x1 += buf[i].x1 * rate;
                     rects.y1 += buf[i].y1 * rate;
                     rects.x2 += buf[i].x2 * rate;
