@@ -289,6 +289,11 @@ Status Instance::GetOutputMat(std::shared_ptr<Mat> &mat, MatConvertParam param, 
     return status;
 }
 
+// Get Model Interpreter
+std::shared_ptr<AbstractModelInterpreter> Instance::GetInterpreter() {
+    return interpreter_;
+}
+
 #if TNN_PROFILE
 void Instance::StartProfile() {
     network_->StartProfile();
