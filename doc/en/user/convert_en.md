@@ -141,15 +141,13 @@ Here are the explanations for each parameter:
    You can optimize the model with the "-half" parameter. The model data will be stored in FP16 to reduce the size of the model by setting this parameter. By default, the model data is stored in FP32.
 - align parameter (optional)
     You can optimize the model with the "-align" parameter. Compare TNN model and Original model to determine whether TNN model is correct.
-- fold_const parameter (optional)
-    You can optimize the model with the "-fold_const" parameter. Enable tf constant_folding transformation before conversion.
 - input_file parameter (optional)
-    Specify the input file's name which will be used by model_check through the "-input_file" parameter.
+    Specify the input file's name which will be used by model_check through the "-input_file" parameter. This is [input format](#Input).
 - ref_file parameter (optional)
-    Specify the reference file's name which will be used by model_check through the "-ref_file" parameter. 
+    Specify the reference file's name which will be used by model_check through the "-ref_file" parameter. This is [output format](#Output). 
 
 
-**Current convert2tnn input model only supports graphdef format，does not support checkpoint or saved_model format. Refer to [tf2tnn](./tf2tnn_en.md) to transfer checkpoint or saved_model models.
+**Current convert2tnn input model only supports graphdef format，does not support checkpoint or saved_model format. Refer to [tf2tnn](./tf2tnn_en.md) to transfer checkpoint or saved_model models.**
 
 Here is an example of converting a TF model in a TNN model
 
@@ -198,9 +196,6 @@ brew install protobuf
 export http_proxy=http://{addr}:{port}
 export https_proxy=http://{addr}:{port}
 ## Compile
-cd <path-to-tnn>/tools/onnx2tnn/onnx-converter
-./build.sh 
-```
 
 - install python (version >=3.6)  
 
@@ -320,8 +315,10 @@ python3 converter.py onnx2tnn -h
 ```
 usage information：
 ```text
-usage: convert onnx2tnn [-h] [-in input_info [input_info ...]] [-optimize] [-half] [-v v1.0.0] [-o OUTPUT_DIR] [-align]
-                        [-input_file INPUT_FILE_PATH] [-ref_file REFER_FILE_PATH]
+usage: convert onnx2tnn [-h] [-in input_info [input_info ...]] [-optimize]
+                        [-half] [-v v1.0.0] [-o OUTPUT_DIR] [-align]
+                        [-input_file INPUT_FILE_PATH]
+                        [-ref_file REFER_FILE_PATH] [-debug]
                         onnx_path
 
 positional arguments:
@@ -330,16 +327,20 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -in input_info [input_info ...]
-                        specify the input name and shape of the model. e.g., -in input1_name:1,3,8,8 input2_name:1,8
+                        specify the input name and shape of the model. e.g.,
+                        -in input1_name:1,3,128,128 input2_name:1,3,256,256
   -optimize             optimize the model
   -half                 save model using half
   -v v1.0.0             the version for model
   -o OUTPUT_DIR         the output tnn directory
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH
-                        the input file path which contains the input data for the inference model.
+                        the input file path which contains the input data for
+                        the inference model.
   -ref_file REFER_FILE_PATH
-                        the reference file path which contains the reference data to compare the results.
+                        the reference file path which contains the reference
+                        data to compare the results.
+  -debug                Turn on the switch to debug the model.
 ```
 Example:
 ```shell script
@@ -453,6 +454,125 @@ optional arguments:
 Example：
 ```shell script
 python3 converter.py tflite2tnn  ~/tf-model/test.tflite  -o ~/tf-model/
+```
+
+## Input and Output File Example
+### Input
+```text
+
+The number of input 
+input_name input_shape_size input_info input_data_type
+input_data 
+input_name input_shape_size input_info input_data_type
+input_data
+......
+
+Example
+ 2 
+ in0 4 1 3 1 1 3
+ 2 
+ 4 
+ 3 
+ in1 4 1 2 2 1 0
+ 0.1 
+ 0.2 
+ 0.3 
+ 0.4 
+
+
+Tips：
+If input data type is float, you can use 0 to specify input_data_type.
+If input data type is int,   you can use 3 to specify input_data_type.
+
+```
+
+### Output
+```text
+
+
+The number of output 
+output_name output_shape_size output_info output_data_type
+output_data 
+output_name output_shape_size output_info output_data_type
+output_data
+......
+
+Example
+ 2 
+ out0 2 1 3 0
+ 0.1 
+ 0.2 
+ 0.3 
+ out1 4 1 2 2 1 0
+ 0.1 
+ 0.2 
+ 0.3 
+ 0.4 
+
+
+Tips：
+If output data type is float, you can use 0 to specify output_data_type.
+If output data type is int,   you can use 3 to specify output_data_type.
+
+```
+
+### The Code Used to Generate Input or Output File
+```python
+"""
+
+Input or output consists of the following three parts：
+name -> type：str. The name of input.
+shape -> type：list. The shape of input.
+tensor -> type：numpy.ndarray. Input data.
+
+Tips：
+For output file, if shape's dimension less than 4, you should use 1 to expansion. For example, (n, c) => (n, c, 1, 1).
+Input file is not required.
+
+If there are two outputs, they are as follows:
+Output 1:
+name_1
+shape_1
+tensor_1
+
+Output 2:
+name_2
+shape_2
+tensor_2
+
+You can refer to the following code to write the output to a file.
+
+"""
+
+# The number of output.
+num_output = 2
+
+# Output file save path
+output_path = "output.txt"
+
+with open(output_path, "w") as f:
+    # save the number of output
+    f.write("{}\n" .format(num_output))
+
+    # save output 1
+    description_1 = "{} {} " .format(name_1, len(shape_1))
+    for dim in shape_1:
+        description_1 += "{} " .format(dim)
+    data_type_1 = 0 if tensor.dtype == np.float else 3
+    description_1 += "{}" .format(data_type)
+    f.write(description_1 + "\n")
+    np.savetxt(f, tensor_1.reshape(-1), fmt="%0.18f")
+
+    # save output 2
+    description_2 = "{} {} " .format(name_2, len(shape_2))
+    for dim in shape_2:
+        description_2 += "{} " .format(dim)
+    data_type_2 = 0 if tensor.dtype == np.float else 3
+    description_2 += "{}" .format(data_type)
+    f.write(description_2 + "\n")
+    np.savetxt(f, tensor_2.reshape(-1), fmt="%0.18f")
+
+
 ```
 
 ## Model Conversion Details
