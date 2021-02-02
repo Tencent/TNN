@@ -28,10 +28,6 @@ bool X86CheckNormalizeLayerParam(const int p, const int axis, const int across_s
     return (p != 1 && p != 2 && p != INT_MAX && p != INT_MIN) || axis != 1 || across_spatial != 0;
 }
 
-Status X86NormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 Status X86NormalizeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs.size() < 1) {
         LOGE("Error: invalid inputs count\n");

@@ -23,10 +23,6 @@ namespace TNN_NS {
 
 DECLARE_X86_ACC(HardSwish, X86_HARDSWISH_OP);
 
-Status X86HardSwishLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 Status X86HardSwishLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     
     auto param = dynamic_cast<HardSwishLayerParam *>(param_);

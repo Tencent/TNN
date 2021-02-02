@@ -40,10 +40,6 @@ Status X86ConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     return TNN_OK;
 }
 
-Status X86ConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 Status X86ConvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (conv_acc_impl_) {
         return conv_acc_impl_->DoForward(inputs, outputs);

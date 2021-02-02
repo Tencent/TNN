@@ -32,10 +32,6 @@ Status X86ArgMaxOrMinLayerAcc::Init(Context *context, LayerParam *param, LayerRe
     return TNN_OK;
 }
 
-Status X86ArgMaxOrMinLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 Status X86ArgMaxOrMinLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
     auto input_blob     = inputs[0];

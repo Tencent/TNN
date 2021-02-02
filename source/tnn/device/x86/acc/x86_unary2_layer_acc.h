@@ -84,12 +84,7 @@ class X86Unary2LayerAcc : public X86LayerAcc {
 public:
     virtual ~X86Unary2LayerAcc();
 
-    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-                        const std::vector<Blob *> &outputs) override;
-
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
-
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
     static Status RegisterUnary2Kernel(LayerType type, x86_isa_t arch, unary2_kernel_avx_func_t kernel);
     static Status GetUnary2Kernel(LayerType type, x86_isa_t arch, unary2_kernel_avx_func_t &kernel);

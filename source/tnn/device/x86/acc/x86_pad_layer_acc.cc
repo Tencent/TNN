@@ -19,10 +19,6 @@ namespace TNN_NS {
 
 DECLARE_X86_ACC(Pad, LAYER_PAD);
 
-Status X86PadLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 #define GetPadCommonParams                                          \
     int pad_l = layer_param->pads[0];                               \
     int pad_r = layer_param->pads[1];                               \

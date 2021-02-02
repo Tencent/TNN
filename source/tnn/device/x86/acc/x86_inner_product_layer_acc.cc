@@ -94,10 +94,6 @@ Status X86InnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
     return TNN_OK;
 }
 
-Status X86InnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 Status X86InnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param    = dynamic_cast<InnerProductLayerParam *>(param_);
     auto resource = dynamic_cast<InnerProductLayerResource *>(resource_);

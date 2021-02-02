@@ -63,6 +63,10 @@ Status X86LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector
     return TNN_OK;
 }
 
+Status X86LayerAcc::Reshape(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs) {
+    return TNN_OK;
+}
+
 Status X86LayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return Status(TNNERR_LAYER_ERR, "DoForward not implement");
 }

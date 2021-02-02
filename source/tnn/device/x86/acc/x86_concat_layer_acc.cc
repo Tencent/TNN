@@ -21,10 +21,6 @@ namespace TNN_NS {
 
 DECLARE_X86_ACC(Concat, LAYER_CONCAT);
 
-Status X86ConcatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 Status X86ConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<ConcatLayerParam *>(param_);
     if (!param) {

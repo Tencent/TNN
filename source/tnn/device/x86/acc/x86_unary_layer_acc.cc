@@ -43,8 +43,4 @@ Status X86UnaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     return TNN_OK;
 }
 
-Status X86UnaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 }   // namespace TNN_NS

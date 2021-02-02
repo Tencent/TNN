@@ -28,10 +28,9 @@ public:
     virtual ~X86DeconvLayerAcc(){};
     
     Status Init(Context *context, LayerParam *param, LayerResource *resource,
-                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 protected:
     bool do_im2col_ = true;

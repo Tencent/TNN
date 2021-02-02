@@ -22,10 +22,6 @@ namespace TNN_NS {
 
 DECLARE_X86_ACC(BatchNorm, LAYER_BATCH_NORM);
 
-Status X86BatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 Status X86BatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     
     auto resource = dynamic_cast<BatchNormLayerResource *>(resource_);

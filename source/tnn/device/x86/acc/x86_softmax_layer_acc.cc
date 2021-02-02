@@ -23,10 +23,6 @@ namespace TNN_NS {
 
 DECLARE_X86_ACC(SoftMax, LAYER_SOFTMAX);
 
-Status X86SoftMaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 Status X86SoftMaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto params = dynamic_cast<SoftmaxLayerParam *>(param_);
 

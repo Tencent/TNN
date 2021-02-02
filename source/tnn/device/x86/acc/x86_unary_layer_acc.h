@@ -42,8 +42,6 @@ public:
                         const std::vector<Blob *> &outputs) override;
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
-
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 protected:
     std::shared_ptr<X86_UNARY_OP> op_;
 };

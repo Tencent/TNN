@@ -34,7 +34,7 @@ public:
     virtual Status Init(Context* context, LayerParam* param, LayerResource* resource,
                         const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs);
     
-    virtual Status Reshape(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs) = 0;
+    virtual Status Reshape(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs);
 
     virtual Status Forward(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs);
 
@@ -55,12 +55,11 @@ private:
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size);
 };
 
-#define DECLARE_X86_ACC(type_string, layer_type)                                                                \
-    class X86##type_string##LayerAcc : public X86LayerAcc {                                                     \
-    public:                                                                                                     \
-        virtual ~X86##type_string##LayerAcc(){};                                                                \
-        virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);          \
-        virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);        \
+#define DECLARE_X86_ACC(type_string, layer_type)                                                                   \
+    class X86##type_string##LayerAcc : public X86LayerAcc {                                                        \
+    public:                                                                                                        \
+        virtual ~X86##type_string##LayerAcc(){};                                                                   \
+        virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;  \
     }
 
 #define REGISTER_X86_ACC(type_string, layer_type)                                                               \

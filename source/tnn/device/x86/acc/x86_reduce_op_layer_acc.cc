@@ -19,16 +19,6 @@ namespace TNN_NS {
 
 X86ReduceOpLayerAcc::~X86ReduceOpLayerAcc() {}
 
-Status X86ReduceOpLayerAcc::Init(Context *context, LayerParam *param, LayerResource* resource, const std::vector<Blob*> &inputs,
-                          const std::vector<Blob *> &outputs) {
-    RETURN_ON_NEQ(X86LayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
-    return TNN_OK;
-}
-
-Status X86ReduceOpLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 Status X86ReduceOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     
     auto input_blob = inputs[0];

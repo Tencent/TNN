@@ -332,16 +332,6 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
     return TNN_OK;
 }
 
-Status X86BinaryOpLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-                              const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    RETURN_ON_NEQ(X86LayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
-    return TNN_OK;
-}
-
-Status X86BinaryOpLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 X86BinaryOpLayerAcc::~X86BinaryOpLayerAcc() {}
 
 Status X86BinaryOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

@@ -21,10 +21,6 @@ namespace TNN_NS {
 
 DECLARE_X86_ACC(StrideSlice, LAYER_STRIDED_SLICE);
 
-Status X86StrideSliceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 Status X86StrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<StrideSliceLayerParam *>(param_);
     if (!layer_param) {

@@ -20,10 +20,6 @@ Status X86DeconvLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     return TNN_OK;
 }
 
-Status X86DeconvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 Status X86DeconvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }

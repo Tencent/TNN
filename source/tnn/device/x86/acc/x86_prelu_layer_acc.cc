@@ -60,10 +60,6 @@ static void prelu_func(float *input, float *output, const float *slope, DimsVect
     }
 }
 
-Status X86PReluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 Status X86PReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PReluLayerParam *>(param_);
     if (!layer_param) {
