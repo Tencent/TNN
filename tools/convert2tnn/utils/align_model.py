@@ -319,17 +319,27 @@ def check_input_lite_info(onnx_input_info: dict, tnn_input_info: dict):
                                                                                       str(tnn_shape)))
     logging.info("Check tflite input shape and tnn input shape align!\n")
 
+
 def parse_input_names(input_names: str) -> dict:
     input_info = {}
     for x in input_names.split(" "):
         if ':' not in x:
-            input_info[None] = list(map(int, x.split(',')))
+            shape = list(map(int, x.split(',')))
+            input_info[None] = {'shape': shape, 'data_type': 0}
         else:
             pieces = x.split(':')
             # for the input name like input:0
             name, shape = ':'.join(
                 pieces[:-1]), list(map(int, pieces[-1].split(',')))
-            input_info[name] = shape
+            input_shape_info = {'shape': shape, 'data_type': 0}
+            input_info[name] = input_shape_info
+
+    for name, input_shape_info in input_info.items():
+        if ":" not in name:
+            continue
+        tnn_name = convert_name.onnx_name2tnn_name(name)
+        input_info[tnn_name] = input_shape_info
+        del input_info[name]
 
     return input_info
 
