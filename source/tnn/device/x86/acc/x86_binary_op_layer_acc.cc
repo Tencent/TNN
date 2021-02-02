@@ -24,66 +24,66 @@
 namespace TNN_NS {
 
 template<X86BinaryOpType type>
-float binary_op(const float a, const float b) {
+float binary_op(const float &a, const float &b) {
     return a;
 }
-template<> float binary_op<X86BinaryOpType::kADD>(const float a, const float b) {
+template<> float binary_op<X86BinaryOpType::kADD>(const float &a, const float &b) {
     return a + b;
 }
-template<> float binary_op<X86BinaryOpType::kSUB>(const float a, const float b) {
+template<> float binary_op<X86BinaryOpType::kSUB>(const float &a, const float &b) {
     return a - b;
 }
-template<> float binary_op<X86BinaryOpType::kMUL>(const float a, const float b) {
+template<> float binary_op<X86BinaryOpType::kMUL>(const float &a, const float &b) {
     return a * b;
 }
-template<> float binary_op<X86BinaryOpType::kDIV>(const float a, const float b) {
+template<> float binary_op<X86BinaryOpType::kDIV>(const float &a, const float &b) {
     return a / b;
 }
-template<> float binary_op<X86BinaryOpType::kMAX>(const float a, const float b) {
+template<> float binary_op<X86BinaryOpType::kMAX>(const float &a, const float &b) {
     return a > b ? a : b;
 }
-template<> float binary_op<X86BinaryOpType::kMIN>(const float a, const float b) {
+template<> float binary_op<X86BinaryOpType::kMIN>(const float &a, const float &b) {
     return a < b ? a : b;
 }
 
 template<X86BinaryOpType type, typename VEC>
-VEC binary_op(const VEC a, const VEC b) {
+VEC binary_op(const VEC &a, const VEC &b) {
     return a;
 }
-template<> Float4 binary_op<X86BinaryOpType::kADD, Float4>(const Float4 a, const Float4 b) {
+template<> Float4 binary_op<X86BinaryOpType::kADD, Float4>(const Float4 &a, const Float4 &b) {
     return Float4::add(a, b);
 }
-template<> Float4 binary_op<X86BinaryOpType::kSUB, Float4>(const Float4 a, const Float4 b) {
+template<> Float4 binary_op<X86BinaryOpType::kSUB, Float4>(const Float4 &a, const Float4 &b) {
     return Float4::sub(a, b);
 }
-template<> Float4 binary_op<X86BinaryOpType::kMUL, Float4>(const Float4 a, const Float4 b) {
+template<> Float4 binary_op<X86BinaryOpType::kMUL, Float4>(const Float4 &a, const Float4 &b) {
     return Float4::mul(a, b);
 }
-template<> Float4 binary_op<X86BinaryOpType::kDIV, Float4>(const Float4 a, const Float4 b) {
+template<> Float4 binary_op<X86BinaryOpType::kDIV, Float4>(const Float4 &a, const Float4 &b) {
     return Float4::div(a, b);
 }
-template<> Float4 binary_op<X86BinaryOpType::kMAX, Float4>(const Float4 a, const Float4 b) {
+template<> Float4 binary_op<X86BinaryOpType::kMAX, Float4>(const Float4 &a, const Float4 &b) {
     return Float4::max(a, b);
 }
-template<> Float4 binary_op<X86BinaryOpType::kMIN, Float4>(const Float4 a, const Float4 b) {
+template<> Float4 binary_op<X86BinaryOpType::kMIN, Float4>(const Float4 &a, const Float4 &b) {
     return Float4::min(a, b);
 }
-template<> Float8 binary_op<X86BinaryOpType::kADD, Float8>(const Float8 a, const Float8 b) {
+template<> Float8 binary_op<X86BinaryOpType::kADD, Float8>(const Float8 &a, const Float8 &b) {
     return Float8::add(a, b);
 }
-template<> Float8 binary_op<X86BinaryOpType::kSUB, Float8>(const Float8 a, const Float8 b) {
+template<> Float8 binary_op<X86BinaryOpType::kSUB, Float8>(const Float8 &a, const Float8 &b) {
     return Float8::sub(a, b);
 }
-template<> Float8 binary_op<X86BinaryOpType::kMUL, Float8>(const Float8 a, const Float8 b) {
+template<> Float8 binary_op<X86BinaryOpType::kMUL, Float8>(const Float8 &a, const Float8 &b) {
     return Float8::mul(a, b);
 }
-template<> Float8 binary_op<X86BinaryOpType::kDIV, Float8>(const Float8 a, const Float8 b) {
+template<> Float8 binary_op<X86BinaryOpType::kDIV, Float8>(const Float8 &a, const Float8 &b) {
     return Float8::div(a, b);
 }
-template<> Float8 binary_op<X86BinaryOpType::kMAX, Float8>(const Float8 a, const Float8 b) {
+template<> Float8 binary_op<X86BinaryOpType::kMAX, Float8>(const Float8 &a, const Float8 &b) {
     return Float8::max(a, b);
 }
-template<> Float8 binary_op<X86BinaryOpType::kMIN, Float8>(const Float8 a, const Float8 b) {
+template<> Float8 binary_op<X86BinaryOpType::kMIN, Float8>(const Float8 &a, const Float8 &b) {
     return Float8::min(a, b);
 }
 
