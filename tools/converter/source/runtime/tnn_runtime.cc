@@ -14,10 +14,11 @@
 
 #include "tnn_runtime.h"
 
-#include<iomanip>
+#include <iomanip>
 
 #include "include/tnn/core/common.h"
 #include "include/tnn/core/instance.h"
+#include "tnn/core/const_folder.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
@@ -45,12 +46,23 @@ TNN_NS::Status TnnRuntime::run(std::shared_ptr<TNN_NS::AbstractModelInterpreter>
     TNN_NS::DefaultModelInterpreter* tnn_interpreter =
         (dynamic_cast<TNN_NS::DefaultModelInterpreter*>(interpreter.get()));
     TNN_NS::InputShapesMap& input_shapes_map = tnn_interpreter->GetNetStructure()->inputs_shape_map;
-    auto instance                            = std::make_shared<TNN_NS::Instance>(network_config_, model_config_);
-    auto status                              = instance->Init(interpreter, input_shapes_map);
+//    auto instance                            = std::make_shared<TNN_NS::Instance>(network_config_, model_config_);
+//    auto status                              = instance->Init(interpreter, input_shapes_map);
+    auto const_folder = std::make_shared<TNN_NS::ConstFolder>();
+    auto status = const_folder->Init(network_config_, model_config_, tnn_interpreter, {}, {});
     if (status != TNN_NS::TNN_OK) {
         LOGE("Converter Runtime: instance init failed!\n");
         return status;
     }
+    status = const_folder->Forward();
+    if (status != TNN_NS::TNN_OK) {
+        LOGE("ConstFolder Forward Error: %s\n", status.description().c_str());
+        return status;
+    }
+//    std::shared_ptr<TNN_NS::NetStructure> opt_structure = nullptr;
+//    std::shared_ptr<TNN_NS::NetResource> opt_resource = nullptr;
+//    status = const_folder->GetOptimizedNet(opt_structure, opt_resource,TNN_NS::DATA_FLAG_CHANGE_NEVER);
+#if 0
     TNN_NS::BlobMap input_blob_map;
     TNN_NS::BlobMap output_blob_map;
     void* command_queue;
@@ -109,7 +121,7 @@ TNN_NS::Status TnnRuntime::run(std::shared_ptr<TNN_NS::AbstractModelInterpreter>
         }
         output_file.close();
     }
-
+#endif
     return TNN_NS::TNN_OK;
 }
 

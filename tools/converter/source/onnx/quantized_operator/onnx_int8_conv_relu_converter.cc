@@ -53,7 +53,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structu
     const int kw            = weight_shape[2];
     const int ci            = weight_shape[3];
     const int weight_count  = co * kw * kw * ci;
-    param->input_channel    = ci * group;
+    param->input_channel    = ci;
     param->output_channel   = co;
     param->kernels.push_back(kw);
     param->kernels.push_back(kh);
