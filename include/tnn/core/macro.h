@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// disable Warning 4003 in MSVC: warning C4003: param not enough to call “TNN_NS_”
+#pragma warning(disable:4003)
 // TNN namespcae
 #define TNN_NS__(x) tnn##x
 #define TNN_NS_(x) TNN_NS__(x)
@@ -32,18 +34,18 @@
 #ifdef BUILDING_DLL
 #ifdef __GNUC__
 #define PUBLIC __attribute__((dllexport))
-#else
+#else  // __GNUC__
 #define PUBLIC __declspec(dllexport)
-#endif
-#else
+#endif // __GNUC__
+#else // BUILDING_DLL
 #ifdef __GNUC__
 #define PUBLIC __attribute__((dllimport))
 #else
 #define PUBLIC __declspec(dllimport)
-#endif
-#endif
+#endif // __GNUC__
+#endif // BUILDING_DLL
 #define LOCAL
-#else
+#else // _WIN32 || __CYGWIN__
 #if __GNUC__ >= 4
 #define PUBLIC __attribute__((visibility("default")))
 #define LOCAL __attribute__((visibility("hidden")))

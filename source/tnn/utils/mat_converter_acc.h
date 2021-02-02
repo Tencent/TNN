@@ -22,12 +22,15 @@
 #include "tnn/core/common.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/mat_utils.h"
+#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
 class MatConverterAcc {
 public:
-    MatConverterAcc(){};
+    MatConverterAcc() {
+        OMP_SET_THREADS_(1);
+    };
     virtual ~MatConverterAcc(){};
     virtual Status Copy(Mat& src, Mat& dst, void* command_queue = NULL)                                      = 0;
     virtual Status Resize(Mat& src, Mat& dst, ResizeParam param, void* command_queue = NULL)                 = 0;

@@ -4,7 +4,7 @@
 
 The onnx2tnn is the most important converter in TNN, which converts the ONNX model to a TNN model. The onnx2tnn tool mainly supports CNN common network structure. Because the Pytorch officially supports exporting to ONNX format, we only need to ensure that the ONNX model can be converted into a TNN model so that we could directly guarantee the Pytorch model can be directly converted into a TNN model.
 
-onnx2tnn has an out-of-the-box web version available at https://convertmodel.com. Skip the "Environment requirements and Compile" step if you use the web version. The web version converts the model locally, so there is no need to warry about the mode security.
+onnx2tnn has an out-of-the-box web version available at https://convertmodel.com/#outputFormat=tnn. Skip the "Environment requirements and Compile" step if you use the web version. The web version converts the model locally, so there is no need to warry about the mode security.
 
 ## 1. Environment requirements and Compile
 ### Environment requirements

@@ -9,7 +9,6 @@ import sys
 from typing import *
 import onnx
 
-
 class Caffe2Onnx():
     def __init__(self, net, model, onnxname):
         # 初始化一个c2oGraph对象
@@ -76,10 +75,17 @@ class Caffe2Onnx():
 
         # 如果存在net.input
         elif net.input != []:
-            in_tvi = helper.make_tensor_value_info("input", TensorProto.FLOAT,
-                                                   net.input_dim)
+
+            if bool(net.input_dim):
+                input_dim = net.input_dim
+            elif bool(net.input_shape):
+                input_dim = net.input_shape[0].dim
+            else:
+                raise RuntimeError("Input shape missing!")
+
+            in_tvi = helper.make_tensor_value_info("input", TensorProto.FLOAT, input_dim)
             self.model_input_name.append("input")
-            self.model_input_shape.append(net.input_dim)
+            self.model_input_shape.append(input_dim)
             self.onnxmodel.addInputsTVI(in_tvi)
             return self.netLayerCaffe
 

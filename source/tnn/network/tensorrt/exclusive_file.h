@@ -15,12 +15,22 @@
 #ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_EXCLUSIVE_FILE_H_
 #define TNN_SOURCE_TNN_NETWORK_TENSORRT_EXCLUSIVE_FILE_H_
 
-#include <fcntl.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <string>
+
+#if defined _WIN32 
+#include <windows.h>
+#include <winbase.h>
+// Do not remove following statement.
+// windows.h replace LoadLibrary with LoadLibraryA, which cause compiling issue of TNN.
+#undef LoadLibrary
+#else
+#include <sys/time.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <pthread.h>
+#endif
 
 #include "tnn/core/macro.h"
 
@@ -28,18 +38,19 @@ namespace TNN_NS {
 
 const int TNN_NAME_MAX = 128;
 
-typedef struct shared_mutex_t {
-    pthread_mutex_t *ptr; // Pointer to the pthread mutex and share memory segment.
+typedef struct shared_mutex_struct {
+    // Pointer to the pthread mutex and share memory segment.
+#if defined _WIN32 
+    HANDLE ptr;
+#else
+    pthread_mutex_t * ptr;
+#endif
     int shm_fd;           // Descriptor of shared memory object.
     char* name;           // Name of the mutex and associated shared memory object.
     int created;          // Equals 1 (true) if initialization of this structure caused creation of 
                           // a new shared mutex.
                           // Equals 0 (false) false if this mutex was just retrieved from shared memory. 
 } shared_mutex_t;
-
-shared_mutex_t shared_mutex_init(char *name);
-
-int shared_mutex_close(shared_mutex_t mutex);
 
 class ExclFile {
 public:

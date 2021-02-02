@@ -260,7 +260,7 @@ Status ModelChecker::FeedInputData() {
     for (auto item : input_blobs_device) {
         MatConvertParam param;
         BlobConverter blob_converter(item.second);
-        TNN_NS::Mat cpu_mat(DEVICE_NAIVE, NCHW_FLOAT, input_blobs_cpu[item.first]->GetHandle().base);
+        TNN_NS::Mat cpu_mat(DEVICE_NAIVE, NCHW_FLOAT, input_blobs_cpu[item.first]->GetBlobDesc().dims, input_blobs_cpu[item.first]->GetHandle().base);
         Status ret = blob_converter.ConvertFromMat(cpu_mat, param, command_queue);
         if (ret != TNN_OK) {
             LOGE("input blob_converter failed (%s)\n", ret.description().c_str());

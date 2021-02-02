@@ -90,4 +90,6 @@ private:
  
 std::string md5(const std::string str);
  
+void xor_encode(char * value, const size_t value_size, const char * key, const size_t key_size);
+
 #endif

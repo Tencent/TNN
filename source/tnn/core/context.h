@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+#include "tnn/core/macro.h"
 #include "tnn/core/status.h"
 #include "tnn/core/profile.h"
 #include "tnn/core/common.h"
