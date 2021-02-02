@@ -31,6 +31,7 @@ struct ModelCheckerParam {
     std::vector<float> input_scale;
     bool dump_output       = false;
     bool only_check_output = false;
+    bool check_batch       = false;
     std::pair<std::string, FileFormat> ref_file;
 };
 
@@ -49,33 +50,54 @@ public:
     // @param config network config info
     // @param inputs_shape_map modify input shape, if empty, it will use the
     // shape in proto
-    Status Init(NetworkConfig& net_config, ModelConfig& model_config, InputShapesMap inputs_shape = InputShapesMap());
+    Status Init(NetworkConfig& net_config, ModelConfig& model_config);
 
     // @brief set model checker param
     // @param params the params of model checker
-    int SetModelCheckerParams(ModelCheckerParam params);
+    Status SetModelCheckerParams(ModelCheckerParam params);
 
     // @brief run model checker
     Status RunModelChecker();
 
 private:
-    Status RunModelCheckerPerLayer();
-    Status RunModelCheckerOutput();
-    Status FeedInputData();
-    Status GetOutputRefData();
-    Status GetCpuBlobData();
-    Status GetOutputData(Instance* instance, std::map<std::string, std::shared_ptr<char>>& output_map);
-    Status GetBlobData(Instance* instance, Blob* blob, std::map<std::string, std::shared_ptr<char>>& output_map);
+    // @brief change batch size to check multi batch
+    Status ChangeBatchOfInputShapes(InputShapesMap& input_shapes);
+
+    // @brief compare all blobs data between device and cpu
     Status CompareDeviceAndCpu();
+    // @brief per channel compare
+    Status RunModelCheckerPerLayer();
+
+    // @brief just compare output
+    Status RunModelCheckerOutput();
+
+    // @brief judge whether src_dims can be extended to dst_dims
+    bool IsDimsCanBeExtend(std::vector<int> src_dims, std::vector<int> dst_dims);
+    // @brief extend mat map due to multi batch
+    Status ExtendMatMap(const BlobMap& blobs_map, std::map<std::string, std::shared_ptr<Mat>>& mat_map);
+    // @brief feed input data of instance
+    Status FeedInputData();
+
+    // @brief get output mat map form instance
+    Status GetOutputData(Instance* instance, std::map<std::string, std::shared_ptr<Mat>>& output_map);
+    // @brief get output mat map form file
+    Status GetOutputRefData();
+    // @brief convert blob data to nchw float data
+    Status GetBlobData(Instance* instance, Blob* blob, std::map<std::string, std::shared_ptr<char>>& output_map);
+    // @brief get all blobs data
+    Status GetCpuBlobData();
+
+    // @brief compare raw
     bool CompareData(void* device_data, void* cpu_data, DimsVector blob_dims, CompareType type = DEFAULT);
+    // @brief dump blob data
     void DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name);
 
     ModelCheckerParam model_checker_params_;
-    std::shared_ptr<TNN> tnn_cpu_;
-    std::shared_ptr<TNN> tnn_device_;
-    std::shared_ptr<Instance> instance_cpu_;
-    std::shared_ptr<Instance> instance_device_;
-    std::map<std::string, std::shared_ptr<char>> output_ref_data_map_;
+    std::shared_ptr<TNN> tnn_cpu_              = nullptr;
+    std::shared_ptr<TNN> tnn_device_           = nullptr;
+    std::shared_ptr<Instance> instance_cpu_    = nullptr;
+    std::shared_ptr<Instance> instance_device_ = nullptr;
+    std::map<std::string, std::shared_ptr<Mat>> output_ref_mat_map_;
     std::map<std::string, std::shared_ptr<char>> cpu_blobdata_map;
     std::vector<std::pair<LayerInfo*, bool>> check_results;
 };
