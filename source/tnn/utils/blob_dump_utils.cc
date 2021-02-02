@@ -114,7 +114,7 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
             fprintf(fp, "%d\n", ptr[n]);
         }
     } else {
-        LOGE("unsupport data type to dump\n");
+        LOGE("unsupport data type to dump: %d\n", data_type);
     }
 #endif
 

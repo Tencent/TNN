@@ -17,6 +17,8 @@ ARMV82="OFF"
 TEST_PROTO_PATH=
 INPUT_PATH=
 OPTION_DUMP_OUTPUT=
+OPTION_CHECK_BATCH=
+OPTION_CHECK_OUTPUT=
 
 function usage() {
     echo "usage: ./model_check_android.sh  [-32] [-v82] [-c] [-b] [-d] <device-id> [-t] <CPU/GPU> [-m] <tnnproto> [-i] <input_file> [-p] [-o]"
@@ -31,6 +33,8 @@ function usage() {
     echo "        -i    input file (NCHW Float)"
     echo "        -p    Push models to device"
     echo "        -o    dump output"
+    echo "        -a    check multi batch"
+    echo "        -e    only check output"
 }
 function die() {
     echo $1
@@ -133,16 +137,16 @@ function run_android() {
 
         if [ -n "$INPUT_PATH" ]
         then
-            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR:${ANDROID_DIR}/lib ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel -i $ANDROID_DATA_DIR/input.txt $OPTION_DUMP_OUTPUT >> $ANDROID_DIR/test_log.txt"
+            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR:${ANDROID_DIR}/lib ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel -i $ANDROID_DATA_DIR/input.txt $OPTION_DUMP_OUTPUT $OPTION_CHECK_BATCH $OPTION_CHECK_OUTPUT >> $ANDROID_DIR/test_log.txt"
         else
-            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR:${ANDROID_DIR}/lib ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel $OPTION_DUMP_OUTPUT >> $ANDROID_DIR/test_log.txt"
+            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR:${ANDROID_DIR}/lib ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel $OPTION_DUMP_OUTPUT $OPTION_CHECK_BATCH $OPTION_CHECK_OUTPUT >> $ANDROID_DIR/test_log.txt"
         fi
     else
         if [ -n "$INPUT_PATH" ]
         then
-            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel -i $ANDROID_DATA_DIR/input.txt $OPTION_DUMP_OUTPUT >> $ANDROID_DIR/test_log.txt"
+            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel -i $ANDROID_DATA_DIR/input.txt $OPTION_DUMP_OUTPUT $OPTION_CHECK_BATCH $OPTION_CHECK_OUTPUT  >> $ANDROID_DIR/test_log.txt"
         else
-            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel $OPTION_DUMP_OUTPUT >> $ANDROID_DIR/test_log.txt"
+            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel $OPTION_DUMP_OUTPUT $OPTION_CHECK_BATCH $OPTION_CHECK_OUTPUT  >> $ANDROID_DIR/test_log.txt"
         fi
     fi
 
@@ -197,6 +201,14 @@ while [ "$1" != "" ]; do
         -o)
             shift
             OPTION_DUMP_OUTPUT=-o
+            ;;
+        -a)
+            shift
+            OPTION_CHECK_BATCH=-b
+            ;;
+        -e)
+            shift
+            OPTION_CHECK_OUTPUT=-e
             ;;
         *)
             usage

@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #ifndef TNN_TOOLS_COMMON_FILE_READER_H_
@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "tnn/core/blob.h"
+#include "tnn/core/mat.h"
 #include "tnn/core/status.h"
 
 namespace TNN_NS {
@@ -48,15 +49,13 @@ public:
     // param 0 : output_blob
     // param 1 : file_path, the file_path of the input
     // param 2 : format, the format of the input file. txt or npy
-    Status Read(Blob* output_blob, const std::string file_path,
-                const FileFormat format);
+    Status Read(Blob* output_blob, const std::string file_path, const FileFormat format);
 
-    // Todo: refactor later
-    // @brief Read the file into blob Map
-    // param 0 : blob_map
+    // @brief Read the file into Mat Map
+    // param 0 : mat_map
     // param 1 : file_path, the file_path of the input
     // param 2 : format, the format of the input file. txt or npy
-    Status Read(BlobMap blob_map, const std::string file_path,
+    Status Read(std::map<std::string, std::shared_ptr<Mat>>& mat_map, const std::string file_path,
                 const FileFormat format);
 
     // @brief set bias_ value
@@ -68,8 +67,7 @@ public:
     void SetScaleValue(std::vector<float> scale);
 
 private:
-    Status PreProcessImage(unsigned char* img_data, Blob* blob, int width,
-                           int height, int channel);
+    Status PreProcessImage(unsigned char* img_data, Blob* blob, int width, int height, int channel);
 
     std::vector<float> bias_;
     std::vector<float> scale_;
