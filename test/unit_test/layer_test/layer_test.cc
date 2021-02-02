@@ -131,7 +131,7 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
         LOGE("tnn init cpu instance falied (%s)\n", ret.description().c_str());
         return ret;
     }
-    ret = instance_device_->Init(interp, input_shape);
+    ret = instance_device_->Init(instance_cpu_->GetInterpreter(), input_shape);
     if (ret != TNN_OK) {
         LOGE("tnn init device instance falied (%s)\n", ret.description().c_str());
         return ret;
