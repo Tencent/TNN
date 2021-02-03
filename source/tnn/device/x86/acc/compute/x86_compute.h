@@ -30,6 +30,9 @@ namespace TNN_NS {
 Status X86_IM2COL(float *src, int channel, int height, int width, int kernelh, int kernelw, 
                   int padh, int padw, int strideh, int stridew, int dilationh, int dilationw, float *dst);
 
+Status X86_COL2IM(float *src, int channel, int height, int width, int kernelh, int kernelw, int padh, int padw,
+                  int strideh, int stridew, int dilationh, int dilationw, int output_height, int output_width,
+                  float *dst);
 // @brief C = A * B with B tranposed, (m * k) * (k * n), NAIVE
 Status X86_matrixMul(int m, int n, int k, const float *A, const float *B, float *C, 
                      int has_bias = 0, const float *bias = nullptr, int activation_type = ActivationType_None);
@@ -60,6 +63,9 @@ void DepthwiseConv(float* dst, const float* src, const float* weight, const floa
 
 template <typename VEC, int pack>
 void X86Sgemv(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output);
+
+template <int activation_type, typename VEC, int pack>
+void X86_Post_Exec(float *dst, const float *bias, long channel, long area);
 }   // namespace TNN_NS
 
 #endif

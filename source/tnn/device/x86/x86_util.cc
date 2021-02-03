@@ -468,4 +468,16 @@ int UnpackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size
     return 0;
 }
 
+template<typename T>
+int MatTranspose(T *dst, const T *src, size_t M, size_t N) {
+    for (size_t m = 0; m < M; m++) {
+        for (size_t n = 0; n < N; n++) {
+            dst[n * M + m] = src[m * N + n];
+        }
+    }
+
+    return 0;
+}
+template int MatTranspose(float *dst, const float *src, size_t M, size_t N);
+
 }

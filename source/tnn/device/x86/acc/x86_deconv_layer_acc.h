@@ -23,6 +23,32 @@
 
 namespace TNN_NS {
 
+// class X86DeconvLayerAcc : public X86LayerAcc {
+// public:
+//     virtual ~X86DeconvLayerAcc(){};
+    
+//     Status Init(Context *context, LayerParam *param, LayerResource *resource,
+//                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    
+//     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+//     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+// protected:
+//     bool do_im2col_ = true;
+//     RawBuffer col_buffer_;
+// private:
+//     size_t col_offset_;
+//     size_t weight_offset_;
+//     size_t conv_in_width_;
+//     size_t conv_in_height_;
+//     size_t conv_in_channels_;
+//     size_t conv_out_channles_;
+//     size_t conv_out_spatial_dim_;
+//     size_t kernel_dim_;
+//     size_t conv_in_offset_;
+//     size_t output_offset_;
+// };
+
 class X86DeconvLayerAcc : public X86LayerAcc {
 public:
     virtual ~X86DeconvLayerAcc(){};
@@ -33,19 +59,7 @@ public:
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 protected:
-    bool do_im2col_ = true;
-    RawBuffer col_buffer_;
-private:
-    size_t col_offset_;
-    size_t weight_offset_;
-    size_t conv_in_width_;
-    size_t conv_in_height_;
-    size_t conv_in_channels_;
-    size_t conv_out_channles_;
-    size_t conv_out_spatial_dim_;
-    size_t kernel_dim_;
-    size_t conv_in_offset_;
-    size_t output_offset_;
+    std::shared_ptr<X86LayerAcc> conv_acc_impl_ = nullptr;
 };
 
 }   // namespace TNN_NS

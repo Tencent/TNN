@@ -55,6 +55,9 @@ int UnpackC4(float *dst, const float *src, size_t hw, size_t src_hw_stride, size
 
 int UnpackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel);
 
+template<typename T>
+int MatTranspose(T *dst, const T *src, size_t M, size_t N);
+
 }  // namespace TNN_NS
 
 #endif

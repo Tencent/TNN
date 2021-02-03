@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "x86_compute.h"
+#include "tnn/device/x86/acc/compute/x86_compute.h"
 #include "tnn/device/x86/acc/Float8.h"
 #include "tnn/device/x86/acc/Float4.h"
 
@@ -26,25 +26,25 @@
 
 namespace TNN_NS {
 
-Status X86_IM2COL(float* src, int channel, int height, int width, int kernelh, int kernelw, 
-              int padh, int padw, int strideh, int stridew, int dilationh, int dilationw, float* dst) {
-    int height_col = (height + 2 * padh - dilationh * (kernelh - 1) - 1) / strideh + 1;
-    int width_col  = (width + 2 * padw - dilationw * (kernelw - 1) - 1) / stridew + 1;
+Status X86_IM2COL(float* src, int channel, int height, int width, int kernelh, int kernelw, int padh, int padw,
+                  int strideh, int stridew, int dilationh, int dilationw, float* dst) {
+    int height_col   = (height + 2 * padh - dilationh * (kernelh - 1) - 1) / strideh + 1;
+    int width_col    = (width + 2 * padw - dilationw * (kernelw - 1) - 1) / stridew + 1;
     int channels_col = channel * kernelh * kernelw;
 
     // im2col
     for (int c = 0; c < channels_col; c++) {
         int w_offset = c % kernelw;
         int h_offset = (c / kernelw) % kernelh;
-        int c_im = c / kernelh / kernelw;
+        int c_im     = c / kernelh / kernelw;
 
         int h_base = h_offset * dilationh - padh;
         int w_base = w_offset * dilationw - padw;
 
         int h_base_start = MAX(0, (UP_DIV(-h_base, strideh)));
-        int h_base_end = MIN(height_col, UP_DIV(height - h_base, strideh));
+        int h_base_end   = MIN(height_col, UP_DIV(height - h_base, strideh));
         int w_base_start = MAX(0, (UP_DIV(-w_base, stridew)));
-        int w_base_end = MIN(width_col, UP_DIV(width - w_base, stridew));
+        int w_base_end   = MIN(width_col, UP_DIV(width - w_base, stridew));
 
         auto src_c = src + c_im * height * width;
         auto dst_c = dst + c * height_col * width_col;
@@ -61,14 +61,45 @@ Status X86_IM2COL(float* src, int channel, int height, int width, int kernelh, i
             }
             for (int w = w_base_start; w < w_base_end; w++) {
                 int w_pad = w_base + w * stridew;
-                dst_h[w] = src_h[w_pad];
+                dst_h[w]  = src_h[w_pad];
             }
             for (int w = w_base_end; w < width_col; w++) {
                 dst_h[w] = 0;
             }
         }
-        memset(dst_c + h_base_end * width_col, 0,
-            (height_col - h_base_end) * width_col * sizeof(float));
+        memset(dst_c + h_base_end * width_col, 0, (height_col - h_base_end) * width_col * sizeof(float));
+    }
+
+    return TNN_OK;
+}
+
+Status X86_COL2IM(float* src, int channels, int height, int width, int kernelh, int kernelw, int padh, int padw,
+                  int strideh, int stridew, int dilationh, int dilationw, int output_height, int output_width, float* dst) {
+    for (int c = 0; c < channels; ++c) {
+        auto dst_c = dst + c * output_height * output_width;
+        auto src_c = src + c * kernelh * kernelw * width * height;
+        memset(dst_c, 0, output_height * output_width * 4);
+        for (int dh = 0; dh < height; ++dh) {
+            for (int dw = 0; dw < width; ++dw) {
+                int src_start_y = dh * strideh - padh;
+                int src_start_x = dw * stridew - padw;
+                int sfy = MAX(0, UP_DIV(-src_start_y, dilationh));
+                int efy = MIN(kernelh, UP_DIV(output_height - src_start_y, dilationh));
+                int sfx = MAX(0, UP_DIV(-src_start_x, dilationw));
+                int efx = MIN(kernelw, UP_DIV(output_width - src_start_x, dilationw));
+
+                auto dst_start = dst_c + src_start_y * output_width + src_start_x;
+                auto src_start = src_c + dh * width + dw;
+
+                for (int fy = sfy; fy < efy; ++fy) {
+                    auto dst_y = dst_start + fy * dilationh * output_width;
+                    auto src_y = src_start + fy * kernelw * height * width;
+                    for (int fx = sfx; fx < efx; ++fx) {
+                        dst_y[fx * dilationw] += src_y[fx * width * height];
+                    }
+                }
+            }
+        }
     }
 
     return TNN_OK;
@@ -744,6 +775,48 @@ void X86Sgemv(float* dst, const float* src, const float* weight, float *bias, Di
 }
 template void X86Sgemv<Float4, 4>(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output);
 template void X86Sgemv<Float8, 8>(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output);
+
+template <int activation_type, typename VEC, int pack>
+void X86_Post_Exec(float *dst, const float *bias, long channel, long area) {
+    for (long c = 0; c < channel; c++) {
+        auto dst_c = dst + c * area;
+        VEC bias_v = VEC(bias + c);
+        VEC zero_v = VEC(0.f);
+        VEC six_v = VEC(6.f);
+        long i = 0;
+        for (; i + pack - 1 < area; i += pack) {
+            VEC src_v = VEC::loadu(dst_c + i);
+            VEC dst_v = VEC::add(src_v, bias_v);
+
+            if (activation_type == ActivationType_ReLU || 
+                activation_type == ActivationType_ReLU6) {
+                dst_v = VEC::max(dst_v, zero_v);
+            }
+            if (activation_type == ActivationType_ReLU6) {
+                dst_v = VEC::min(dst_v, six_v);
+            }
+            VEC::saveu(dst_c + i, dst_v);
+        }
+
+        for (; i < area; i++) {
+            float dst_value = dst_c[i] + bias[c];
+            if (activation_type == ActivationType_ReLU || 
+                activation_type == ActivationType_ReLU6) {
+                dst_value = std::max(dst_value, 0.f);
+            }
+            if (activation_type == ActivationType_ReLU6) {
+                dst_value = std::min(dst_value, 6.f);
+            }
+            dst_c[i] = dst_value;
+        }
+    }
+}
+template void X86_Post_Exec<ActivationType_None, Float4, 4>(float *dst, const float *bias, long channel, long area);
+template void X86_Post_Exec<ActivationType_ReLU, Float4, 4>(float *dst, const float *bias, long channel, long area);
+template void X86_Post_Exec<ActivationType_ReLU6, Float4, 4>(float *dst, const float *bias, long channel, long area);
+template void X86_Post_Exec<ActivationType_None, Float8, 8>(float *dst, const float *bias, long channel, long area);
+template void X86_Post_Exec<ActivationType_ReLU, Float8, 8>(float *dst, const float *bias, long channel, long area);
+template void X86_Post_Exec<ActivationType_ReLU6, Float8, 8>(float *dst, const float *bias, long channel, long area);
 
 //ActivationType_SIGMOID_MUL TBD
 
