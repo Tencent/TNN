@@ -103,6 +103,8 @@ private:
 
     Status CreateExecuteContext();
 
+    Status ReshapeLayers();
+
     Status DumpAllOutputBlob();
 
     bool int8_mode;
