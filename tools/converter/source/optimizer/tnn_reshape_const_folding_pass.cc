@@ -39,6 +39,7 @@ TNN_NS::Status TnnOptimizeAdjustLayerInputsPass::exec(TNN_NS::NetStructure& net_
             while (param->shape.size() < 4) {
                 param->shape.push_back(1);
             }
+            param->num_axes = param->shape.size();
             ASSERT(cur_layer->inputs.size() == 2);
             std::string input_name = cur_layer->inputs[0];
             cur_layer->inputs.resize(1);
