@@ -50,8 +50,17 @@ Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, Lay
 
     if (type_ == LayerType::LAYER_RESHAPE && input_blobs.size() > 1) {
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
-        auto name = input_blobs_[0]->GetBlobDesc().name;
-        std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetRelatedBlobName(name);
+        auto name = output_blobs_[0]->GetBlobDesc().name;
+        std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetShapeBlobName(name);
+        std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetShapeTensor();
+    }
+
+    plugin_layer_acc_ = std::shared_ptr<AbstractLayerAcc>(device->CreateLayerAcc(type_));
+    if (plugin_layer_acc_ != NULL) {
+        return plugin_layer_acc_->Init(context, param, resource, input_blobs_, output_blobs_);
+    } else {
+        LOGE("layer acc of type(%d) is nil\n", type_);
+        return Status(TNNERR_LAYER_ERR, "layer acc is nil");
     }
 
     m_format = nvinfer1::TensorFormat::kLINEAR;
@@ -130,8 +139,13 @@ int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputD
         }
     }
 
-    Status ret = m_layer->Forward();
-    if (ret != TNN_OK) return -1;
+    if (plugin_layer_acc_ != NULL) {
+        Status ret = plugin_layer_acc_->Forward(input_blobs_, output_blobs_);
+        if (ret != TNN_OK) return -1;
+    } else {
+        LOGE("layer acc is nil\n");
+        return -1;
+    }
 
     return 0;
 }
@@ -200,4 +214,3 @@ ILayer* TensorRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 }
 
 }  //  namespace TNN_NS
-

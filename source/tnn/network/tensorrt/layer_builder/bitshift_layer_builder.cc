@@ -20,7 +20,7 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(BitShift, LAYER_BITSHIFT);
 
 bool BitShiftTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return (inOut[pos].type == nvinfer1::DataType::kFLOAT);
+    return (inOut[pos].type == nvinfer1::DataType::kINT32);
 }
 
 const char* BitShiftTRTPluginLayerBuilder::getPluginType() const {

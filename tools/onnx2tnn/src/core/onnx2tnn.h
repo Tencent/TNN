@@ -28,6 +28,7 @@
 #include <sstream>
 #include <exception>
 
+#include "tnn/core/blob.h"
 #include "tnn/interpreter/tnn/objseri.h"
 #include "onnx2tnn_prefix.h"
 #include "onnx_op_converter.h"
@@ -57,7 +58,7 @@ int RemoveIndexNode(std::vector<IndexNode> &index_nodes, int index);
 class Onnx2TNN {
 public:
     Onnx2TNN(std::string onnx_model_path, std::string tnn_proto_path,
-                  std::string tnn_model_path);
+             std::string tnn_model_path, InputShapesMap shapes_map = {});
     ~Onnx2TNN();
 
     int Convert(DataType dataType = DATA_TYPE_FLOAT);
@@ -67,6 +68,8 @@ private:
     std::string tnn_model_path_;
     std::string onnx_model_path_;
     onnx::ModelProto* onnx_model_ = nullptr;
+    InputShapesMap target_inputs_shape_map_ = {};
+    
     int OnnxExtractBlobWeights();
     bool CheckIs3DModel();
 
