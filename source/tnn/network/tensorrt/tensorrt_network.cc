@@ -142,7 +142,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         deploy_input.seekg(0, deploy_input.end);
         size = deploy_input.tellg();
         deploy_input.seekg(0, deploy_input.beg);
-        char *model_stream = new char[size];
+        char *model_stream = new char[size + 1];
         deploy_input.read(model_stream, size);
         IRuntime* runtime = createInferRuntime(m_trt_logger);
         m_trt_engine = runtime->deserializeCudaEngine(model_stream, size);
@@ -451,7 +451,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     if (!test_mode) {
         IHostMemory *model_stream = nullptr;
         model_stream = m_trt_engine->serialize();
-        std::ofstream deploy_output(cache_file_name);
+        std::ofstream deploy_output(cache_file_name, std::ofstream::binary);
         char *model_stream_ptr = reinterpret_cast<char*>(model_stream->data());
         deploy_output.write(model_stream_ptr, model_stream->size());
         deploy_output.close();

@@ -97,12 +97,6 @@ Status StrideSliceLayer::InferOutputShape() {
 
     output_blob->GetBlobDesc().dims = sizes;
 
-    std::reverse(begins.begin(), begins.end());
-    std::reverse(ends.begin(), ends.end());
-
-    layer_param->begins = begins;
-    layer_param->ends   = ends;
-
     return TNN_OK;
 }
 
