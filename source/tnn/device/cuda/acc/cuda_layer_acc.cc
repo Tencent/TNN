@@ -57,6 +57,10 @@ Status CudaLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         }
         
         auto buffer = (*const_resource)[name];
+        if (buffer->GetBytesSize() == 0 ) {
+            continue;
+        }
+
         std::shared_ptr<Blob> blob = nullptr;
         auto status = RawBuffer2Blob(buffer.get(), blob);
         RETURN_ON_NEQ(status, TNN_OK);
