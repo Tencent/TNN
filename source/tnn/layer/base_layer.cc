@@ -151,6 +151,7 @@ Status BaseLayer::InferOutputDataType() {
                 flag = flag | DATA_FLAG_ALLOCATE_IN_FORWARD;
             }
         }
+
         iter->flag = flag;
     }
     return TNN_OK;

@@ -90,7 +90,8 @@ public:
     static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> GetPluginLayerNameMap();
 
     std::string GetCacheFileName(std::string cfg, std::string model, BlobMap input_map,
-        BlobMap output_map, int device_id, int batchsize, bool int8_mode, bool use_fp16);
+        BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, int batchsize,
+        bool int8_mode, bool use_fp16);
 
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);

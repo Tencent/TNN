@@ -160,7 +160,7 @@ static void upsample_cubic2d_impl(float *dst, const float *src, int sh, int sw,
 #define Clip(x,X) ( (x) >=0 ? ((x)<(X)?(x):((X)-1)) : 0 )
 #define SrcValueAt(c, h, w) (src[c*sh*sw+(Clip(h,sh))*sw+(Clip(w,sw))])
 
-        _Pragma("omp parallel for")
+        OMP_PARALLEL_FOR_
         for (int h2 = 0; h2 < dh; ++h2) {
             float h1 = static_cast<float>(align_corners ? h_scale * h2 : h_scale * (h2 + 0.5) - 0.5);
             int hh = std::floor(h1);

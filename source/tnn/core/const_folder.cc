@@ -92,6 +92,10 @@ Status ConstFolder::Forward() {
         auto layer_flag = layer->GetLayerChangeFlag();
         if (layer_flag == DATA_FLAG_CHANGE_NEVER) {
             constant_layers.insert(layer->GetLayerName());
+            if (layer->GetLayerChangeFlag() == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER) {
+                shape_differ_layers.insert(layer->GetLayerName());
+                continue;
+            }
             continue;
         } else if (layer_flag == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER) {
             constant_layers.insert(layer->GetLayerName());

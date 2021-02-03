@@ -32,6 +32,9 @@ OpenVINOLayerBuilder::OpenVINOLayerBuilder(LayerType type): BaseLayerBuilder(typ
 }
 
 OpenVINOLayerBuilder::~OpenVINOLayerBuilder() {
+    if (base_layer_) {
+        delete base_layer_;
+    }
 }
 
 Status OpenVINOLayerBuilder::Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& input_blobs,
