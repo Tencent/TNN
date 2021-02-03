@@ -249,6 +249,9 @@ Status ArmInnerProductLayerAcc::Exec<int8_t>(const std::vector<Blob *> &inputs, 
     auto oc_r4 = ROUND_UP(dims_output[1], 4);
 
     int8_t *tmp_ptr = (int8_t *)context_->GetSharedWorkSpace(ik_r8);
+    for (int k = ik; k < ik_r8; ++k) {
+        tmp_ptr[k] = 0;
+    }
 
     for (int n = 0; n < dims_output[0]; n++) {
         auto input_ptr  = input_origin + n * ic_r4 * hw;
