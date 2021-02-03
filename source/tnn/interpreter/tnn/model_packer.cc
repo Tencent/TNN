@@ -25,7 +25,11 @@ std::string ModelPacker::Transfer(std::string content) {
 }
 
 uint32_t ModelPacker::GetMagicNumber() {
+#ifdef TNN_V2
     return g_version_magic_number_v2;
+#else
+    return g_version_magic_number;
+#endif
 }
 
 std::shared_ptr<Serializer> ModelPacker::GetSerializer(std::ostream &os) {
