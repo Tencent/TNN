@@ -15,14 +15,14 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/cpu_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
 class ConvLayerTest : public LayerTest,
                       public ::testing::WithParamInterface<
-                          std::tuple<int, int, int, int, int, int, int, int, DataType, ActivationType>> {};
+                          std::tuple<int, int, int, int, int, int, int, int, int, DataType, ActivationType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                          ::testing::Combine(  // batch
@@ -41,6 +41,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                              testing::Values(1, 2),
                              // pads
                              testing::Values(0, 1),
+                             // pad type
+                             testing::Values(-1, 0, 1),
                              // data_type
                              testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF),
                              // activation_type
@@ -58,8 +60,9 @@ TEST_P(ConvLayerTest, ConvLayer) {
     int dilation          = std::get<5>(GetParam());
     int stride            = std::get<6>(GetParam());
     int pad               = std::get<7>(GetParam());
-    auto dtype            = std::get<8>(GetParam());
-    int activation_type   = std::get<9>(GetParam());
+    int pad_type          = std::get<8>(GetParam());
+    auto dtype            = std::get<9>(GetParam());
+    int activation_type   = std::get<10>(GetParam());
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
 
     if (((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
@@ -97,11 +100,12 @@ TEST_P(ConvLayerTest, ConvLayer) {
     param->dialations      = {dilation, dilation};
     param->strides         = {stride, stride};
     param->pads            = {pad, pad, pad, pad};
+    param->pad_type        = pad_type;
     param->bias            = 1;
     param->activation_type = activation_type;
 
     // generate interpreter
-    Precision precision = SetPrecision(dev, dtype);
+    Precision precision         = SetPrecision(dev, dtype);
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
     auto interpreter            = GenerateInterpreter("Convolution", {input_dims}, param);
     Run(interpreter, precision);
