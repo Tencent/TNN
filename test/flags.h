@@ -63,6 +63,8 @@ static const char network_type_message[] = "network type: NAIVE, NPU, COREML, SN
 
 static const char enable_tune_message[] = "enable tune kernel(default false)";
 
+static const char enable_cache_program_message[] = "enable cache program(default false)";
+
 DECLARE_bool(h);
 
 DECLARE_string(mt);
@@ -100,6 +102,8 @@ DECLARE_string(pr);
 DECLARE_string(is);
 
 DECLARE_bool(et);
+
+DECLARE_bool(ec);
 
 }  // namespace TNN_NS
 

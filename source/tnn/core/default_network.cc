@@ -84,7 +84,9 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
+    context_->SetEnableCacheProgram(net_config.enable_cache_program);
     if(!net_config.cache_path.empty()) {
+        context_->SetCachePath(net_config.cache_path);
         context_->SetCacheFilePath(GenerateCacheFileName(model_config));
     }
 

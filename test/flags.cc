@@ -54,4 +54,6 @@ DEFINE_string(is, "", input_shape_message);
 
 DEFINE_bool(et, false, enable_tune_message);
 
+DEFINE_bool(ec, false, enable_cache_program_message);
+
 }  // namespace TNN_NS

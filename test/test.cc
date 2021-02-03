@@ -204,6 +204,7 @@ namespace test {
         printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
         printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
         printf("    -et \"<enable tune>\t%s \n", enable_tune_message);
+        printf("    -ec \"<enable cache program>\t%s \n", enable_cache_program_message);
     }
 
     void SetCpuAffinity() {
@@ -305,6 +306,7 @@ namespace test {
         config.precision = ConvertPrecision(FLAGS_pr);
 
         config.enable_tune_kernel = FLAGS_et;
+        config.enable_cache_program = FLAGS_ec;
         config.cache_path = "/data/local/tmp/";
 
         // Device Type: ARM, OPENECL, ...
