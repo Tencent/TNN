@@ -296,6 +296,7 @@ int Calibration::UpdateBlobRange(DataSet& dataset) {
     FileReader file_reader;
     file_reader.SetBiasValue(cali_params_.input_bias);
     file_reader.SetScaleValue(cali_params_.input_scale);
+    file_reader.SetReverseChannel(cali_params_.reverse_channel);
     for (auto file_pack : dataset.file_list) {
         for (auto item : feature_map_) {
             item.second->ClearRangeFlag();
@@ -336,6 +337,7 @@ int Calibration::UpdateBlobDistribute(DataSet& dataset) {
     FileReader file_reader;
     file_reader.SetBiasValue(cali_params_.input_bias);
     file_reader.SetScaleValue(cali_params_.input_scale);
+    file_reader.SetReverseChannel(cali_params_.reverse_channel);
     for (auto file_pack : dataset.file_list) {
         for (auto& item : feature_map_) {
             item.second->ClearDistributeFlag();
@@ -682,6 +684,13 @@ int Calibration::MergeBlobScale() {
 
 void Calibration::MergeBlobScaleRecursion(LayerInfo* layer_info, NetStructure* net_struct, NetResource* net_resource) {
     LayerType layer_type = layer_info->type;
+    // Skip average pooling
+    if (layer_type == LAYER_POOLING) {
+        auto param = dynamic_cast<PoolingLayerParam *>(layer_info->param.get());
+        if (param->pool_type == 1) {
+            return;
+        }
+    }
     if (kBlobScaleMergeLayerTypeStr.find(layer_type) != kBlobScaleMergeLayerTypeStr.end()) {
         ASSERT(layer_info->inputs.size() == 1 && layer_info->outputs.size() == 1)
         LayerInfo* pre_layer_info = GetLayerInfoFromOutpubBlobName(layer_info->inputs[0], net_struct);

@@ -23,14 +23,26 @@
 
 namespace TNN_NS {
 
+
 static void ProcessNHWC2NCHW(unsigned char* img_data, float* blob_data, int channel, int height, int width,
-                             std::vector<float> bias, std::vector<float> scale) {
+                             std::vector<float> bias, std::vector<float> scale, bool reverse_channel) {
     ASSERT(bias.size() >= channel)
     ASSERT(scale.size() >= channel)
+    // only reverse B and R channel for color images
+    bool need_do_reverse = false;
+    if (reverse_channel) {
+        if (channel == 3 || channel == 4) {
+            need_do_reverse = true;
+        }
+    }
     for (int h = 0; h < height; ++h) {
         for (int w = 0; w < width; ++w) {
             for (int c = 0; c < channel; ++c) {
-                int idx_src        = h * width * channel + w * channel + c;
+                int c_src = c;
+                if (need_do_reverse) {
+                    c_src = (c < 3) ? (2 - c) : c;
+                }
+                int idx_src        = h * width * channel + w * channel + c_src;
                 int idx_dst        = c * height * width + h * width + w;
                 blob_data[idx_dst] = ((float)img_data[idx_src] - bias[c]) * scale[c];
             }
@@ -39,8 +51,9 @@ static void ProcessNHWC2NCHW(unsigned char* img_data, float* blob_data, int chan
 }
 
 FileReader::FileReader() {
-    bias_  = {0.0f, 0.0f, 0.0f, 0.0f};
-    scale_ = {1.0f, 1.0f, 1.0f, 1.0f};
+    bias_            = {0.0f, 0.0f, 0.0f, 0.0f};
+    scale_           = {1.0f, 1.0f, 1.0f, 1.0f};
+    reverse_channel_ = false;
 }
 
 FileReader::~FileReader() {}
@@ -164,6 +177,10 @@ void FileReader::SetScaleValue(std::vector<float> scale) {
     scale_ = scale;
 }
 
+void FileReader::SetReverseChannel(bool reverse_channel) {
+    reverse_channel_ = reverse_channel;
+}
+
 Status FileReader::PreProcessImage(unsigned char* img_data, Blob* blob, int width, int height, int channel) {
     float* data_ptr = static_cast<float*>(blob->GetHandle().base);
     if (blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
@@ -186,10 +203,10 @@ Status FileReader::PreProcessImage(unsigned char* img_data, Blob* blob, int widt
                 LOGE("resize image falied!\n");
                 return TNNERR_INVALID_INPUT;
             }
-            ProcessNHWC2NCHW(img_resized, data_ptr, blob_c, blob_h, blob_w, bias_, scale_);
+            ProcessNHWC2NCHW(img_resized, data_ptr, blob_c, blob_h, blob_w, bias_, scale_, reverse_channel_);
             free(img_resized);
         } else {
-            ProcessNHWC2NCHW(img_data, data_ptr, blob_c, blob_h, blob_w, bias_, scale_);
+            ProcessNHWC2NCHW(img_data, data_ptr, blob_c, blob_h, blob_w, bias_, scale_, reverse_channel_);
         }
 
     } else {
