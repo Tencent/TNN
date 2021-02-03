@@ -612,10 +612,12 @@ std::string TensorRTNetwork_::GetCacheFileName(std::string cfg, std::string mode
         for (int d : iter.second->GetBlobDesc().dims) {
             ss << d << ",";
         }
-        ss << "min_dims:";
-        auto min_dims = min_inputs_shape.at(iter.first);
-        for (int i = 0; i < min_dims.size(); i++) {
-            ss << min_dims[i] << ",";
+        if (min_inputs_shape.count(iter.first) != 0) {
+            ss << "min_dims:";
+            auto min_dims = min_inputs_shape.at(iter.first);
+            for (int i = 0; i < min_dims.size(); i++) {
+                ss << min_dims[i] << ",";
+            }
         }
         md5_source += ss.str();
     }
