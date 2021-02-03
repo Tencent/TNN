@@ -144,7 +144,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     std::string cache_file_name = GetCacheFileName(model_config.params[0], model_config.params[1], inputs, outputs,
-        net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
+        min_inputs_shape, net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
     ExclFile *file_lock = new ExclFile(cache_file_name);
 
     if (test_mode || false == file_lock->Ready()) {
@@ -615,14 +615,20 @@ bool TensorRTNetwork_::IsBlobUsed(Blob* blob) {
 }
 
 std::string TensorRTNetwork_::GetCacheFileName(std::string cfg, std::string model, BlobMap input_map,
-        BlobMap output_map, int device_id, int batchsize, bool int8_mode, bool use_fp16) {
+        BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, int batchsize,
+        bool int8_mode, bool use_fp16) {
     std::string md5_source = md5(cfg) + md5(model);
 
     for (auto iter : input_map) {
         std::stringstream ss;
-        ss << "chw:";
-        for( int d :iter.second->GetBlobDesc().dims) {
+        ss << "dims:";
+        for (int d : iter.second->GetBlobDesc().dims) {
             ss << d << ",";
+        }
+        ss << "min_dims:";
+        auto min_dims = min_inputs_shape.at(iter.first);
+        for (int i = 0; i < min_dims.size(); i++) {
+            ss << min_dims[i] << ",";
         }
         md5_source += ss.str();
     }

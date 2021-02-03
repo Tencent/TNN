@@ -153,6 +153,13 @@ Status Instance::ForwardWithCallback(BlobStatisticCallback before, BlobStatistic
 }
 #endif  // end of FORWARD_CALLBACK_ENABLE
 
+#ifdef GET_INTERP_ENABLE
+// Get Model Interpreter
+std::shared_ptr<AbstractModelInterpreter> Instance::GetInterpreter() {
+    return interpreter_;
+}
+#endif  // end of GET_INTERP_ENABLE
+
 Status Instance::ForwardAsync(Callback call_back) {
     output_mats_convert_status_.clear();
     return (Status)network_->ForwardAsync(call_back);

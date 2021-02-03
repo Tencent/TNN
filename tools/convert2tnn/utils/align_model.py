@@ -31,7 +31,7 @@ import sys
 import numpy as np
 
 
-def run_tnn_model_check(proto_path, model_path, input_path, reference_output_path, is_tflite=False):
+def run_tnn_model_check(proto_path, model_path, input_path, reference_output_path, is_tflite=False, align_batch=False):
     cmd.run("pwd")
     relative_path = "bin/model_check"
     model_check_path = parse_path.parse_path(relative_path)
@@ -39,6 +39,9 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
     # 注意参数-e只比较模型输出，不比较每层的输出
     command = model_check_path + " -e -p  " + proto_path + " -m " + \
         model_path + " -i " + input_path + " -f " + reference_output_path + " -d NAIVE"
+
+    if align_batch:
+        command += " -b "
 
     logging.debug(command)
     ret = cmd.run(command)
@@ -354,7 +357,7 @@ def replace_tnn_input_name(input_info: dict):
 
 
 def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str = None,
-                refer_path: str = None, input_names: str = None, is_tflite: bool = False, debug_mode: bool = False) -> bool:
+        refer_path: str = None, input_names: str = None, is_tflite: bool = False, debug_mode: bool = False, align_batch: bool = False) -> bool:
     """
     对 onnx 模型和 tnn 模型进行对齐.
     当前支持模型: 单输入,单输出;单输入,多输出;
@@ -415,7 +418,7 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
             sys.exit(return_code.ALIGN_FAILED)
 
     logging.info("Run tnn model_check...")
-    run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path, is_tflite)
+    run_tnn_model_check(tnn_proto_path, tnn_model_path, input_path, reference_output_path, is_tflite, align_batch)
     if debug_mode is False:
         if input_file_path is None and os.path.exists(input_path):
             data.clean_temp_data(os.path.dirname(input_path))

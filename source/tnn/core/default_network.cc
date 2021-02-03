@@ -297,37 +297,37 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
     if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE) {
         return TNN_OK;
     }
-    static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
 
     auto &desc      = (*blob)->GetBlobDesc();
     auto layer_type = layer_info->type;
 
     if (layer_type != LAYER_REFORMAT) {
-        // update blob of quantized network by layer info
+        // non-reformat layer
         if (is_quantized_net) {
+            // update blob of quantized network by layer info
             if (layer_info->param->quantized && desc.data_type != DATA_TYPE_INT8) {
                 RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
             }
         } else {
-            bool layer_implemented_fp16 = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
-            // update blob of non-quantized network by config precision and enabled precision
-            if (config_.precision == PRECISION_NORMAL || config_.precision == PRECISION_AUTO) {
-                if (desc.data_type == DATA_TYPE_FLOAT || desc.data_type == DATA_TYPE_HALF ||
-                    desc.data_type == DATA_TYPE_BFP16) {
+            // update blob of non-quantized network by precision
+            auto original_data_type = desc.data_type;
+            if (original_data_type == DATA_TYPE_FLOAT || original_data_type == DATA_TYPE_HALF ||
+                original_data_type == DATA_TYPE_BFP16) {
+                if (config_.precision == PRECISION_NORMAL || config_.precision == PRECISION_AUTO) {
+                    static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
+                    bool layer_implemented_fp16  = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
                     desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
+                } else if (config_.precision == PRECISION_LOW) {
+                    desc.data_type = DATA_TYPE_BFP16;
+                } else if (config_.precision == PRECISION_HIGH) {
+                    desc.data_type = DATA_TYPE_FLOAT;
+                } else {
+                    return Status(TNNERR_PARAM_ERR, "invalid precision");
                 }
-            } else if (config_.precision == PRECISION_LOW) {
-                desc.data_type = DATA_TYPE_BFP16;
-            } else if (config_.precision == PRECISION_HIGH) {
-                if (desc.data_type == DATA_TYPE_FLOAT || desc.data_type == DATA_TYPE_HALF ||
-                    desc.data_type == DATA_TYPE_BFP16) {
-                    desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
-                }
-            } else {
-                return Status(TNNERR_PARAM_ERR, "invalid precision");
             }
         }
     } else {
+        // reformat layer, update blob by layer param
         if (is_input) {
             auto src_type = reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->src_type;
             if (src_type == DATA_TYPE_INT8) {
