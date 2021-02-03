@@ -16,6 +16,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/utils/md5.h"
 
+#include <stdio.h>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -37,6 +38,17 @@ const std::string CACHE_TAG = "d1_tnn_ocl";
 static std::map<int, int> AdrenoSubGroup{
     {640, 128}, {630, 128}, {616, 128}, {612, 64}, {610, 64}, {540, 32}, {530, 32},
     {512, 32},  {510, 32},  {509, 32},  {506, 32}, {505, 32}, {405, 32}, {330, 16},
+};
+
+#define PROGRAM_NAME_MAX_LEN 30
+#define BUILD_OPTION_MAX_LEN 300
+#define KERNEL_KEY_LIST_MAX_LEN 300
+
+struct ProgramCacheInfo {
+    char program_name[PROGRAM_NAME_MAX_LEN];
+    char build_option[BUILD_OPTION_MAX_LEN];
+    char kernel_key_list[KERNEL_KEY_LIST_MAX_LEN];
+    size_t buffer_size;
 };
 
 std::shared_ptr<OpenCLRuntime> OpenCLRuntime::opencl_runtime_singleton_ = nullptr;
@@ -434,65 +446,72 @@ bool OpenCLRuntime::BuildProgram(const std::string &build_options, cl::Program *
 
 Status OpenCLRuntime::LoadProgramCache() {
     if (!program_cache_file_path_.empty() && enable_cache_program_) {
-        std::ifstream program_cache_stream(program_cache_file_path_);
-        if (program_cache_stream.is_open() && program_cache_stream.good()) {
-            std::string program_name, build_option, kernel_info_line, program_binary;
-            while (std::getline(program_cache_stream, program_name)) {
-                if (!std::getline(program_cache_stream, build_option)) {
-                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "get build option failed");
-                }
-                if (!std::getline(program_cache_stream, kernel_info_line)) {
-                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "get program cache failed");
-                }
-                std::pair<std::string, std::string> key = std::make_pair(program_name, build_option);
-                std::stringstream kernel_info_stream(kernel_info_line);
-                auto device_id = device_->get();
-                size_t kernel_name_list_size, buffer_size;
-                std::vector<std::string> kernel_name_list;
-                kernel_info_stream >> kernel_name_list_size;
-                kernel_name_list.resize(kernel_name_list_size);
-                for (int i = 0; i < kernel_name_list_size; i++) {
-                    kernel_info_stream >> kernel_name_list[i];
-                }
-                kernel_info_stream >> buffer_size;
+        FILE* program_cache_fin = fopen(program_cache_file_path_.c_str(), "rb");
+        if (!program_cache_fin) {
+            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                          "open program cache file failed, input path: " + program_cache_file_path_);
+        }
+        do {
+            auto device_id = device_->get();
+            struct ProgramCacheInfo info;
+            int frsize = fread(&info, sizeof(struct ProgramCacheInfo), 1, program_cache_fin);
+            if (feof(program_cache_fin)) break;
+            if (!frsize) {
+                return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                              "read program cache file failed, path: " + program_cache_file_path_);
+            }
+            std::pair<std::string, std::string> key = std::make_pair(info.program_name, info.build_option);
+            std::stringstream kernel_key_list_stream(info.kernel_key_list);
+            std::vector<std::string> kernel_name_list;
+            std::string kernel_name;
+            while (std::getline(kernel_key_list_stream, kernel_name, ' ')) {
+                kernel_name_list.push_back(kernel_name);
+            }
+            size_t buffer_size = info.buffer_size;
 
-                std::vector<int8_t> buffer;
-                buffer.resize(buffer_size);
-                auto buffer_data = buffer.data();
-                std::string program_cache_bin_file_path = program_cache_file_path_ + "_" + program_name +
-                                                          "_" + md5(build_option);
-                std::ifstream program_binary_stream(program_cache_bin_file_path,
-                                                    std::ios::binary | std::ios::in);
-                if (program_binary_stream.is_open() && program_binary_stream.good()) {
-                    program_binary_stream.read((char *)buffer_data, buffer_size);
-                }
-                program_binary_stream.close();
-
-                if (program_cache_stream.good()) {
-                    kernel_name_map_.emplace(key, kernel_name_list);
-
-                    // create program from binary
-                    auto program_raw = clCreateProgramWithBinary(Context()->get(), 1, &device_id, &buffer_size,
-                                                         (const unsigned char**)(&buffer_data), nullptr, nullptr);
-                    if (!program_raw) {
-                        LOGE("Create program with binary failed, program name: %s\n", program_name.c_str());
-                        return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "create program falied");
-                    }
-                    cl::Program program(program_raw);
-                    auto status = this->BuildProgram(build_option, &program);
-                    if (!status) {
-                        LOGE("%s build failed!\n", program_name.c_str());
-                        return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "build program falied");
-                    }
-                    program_map_.emplace(key, program);
-                } else {
-                    kernel_name_map_.clear();
-                    program_map_.clear();
-                    break;
+            std::vector<int8_t> buffer;
+            buffer.resize(buffer_size);
+            auto buffer_data = buffer.data();
+            std::string program_cache_bin_file_path = program_cache_file_path_ + "_" + info.program_name +
+                                                        "_" + md5(info.build_option);
+            FILE* program_binary_stream_fin = fopen(program_cache_bin_file_path.c_str(), "r");
+            if (!program_binary_stream_fin) {
+                return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                              "open program cache binary file failed, input path: " + program_cache_bin_file_path);
+            }
+            size_t block_size = 4096;
+            size_t block_count = UP_DIV(buffer_size, block_size);
+            for (size_t i = 0; i < block_count; i++) {
+                size_t start_loc = block_size * i;
+                size_t cur_block_size = std::min(block_size, buffer_size - start_loc);
+                frsize = fread((char *)buffer_data + start_loc, sizeof(char),
+                               cur_block_size, program_binary_stream_fin);
+                if (frsize != cur_block_size) {
+                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                  "read program cache binary file failed, path: " +
+                                  program_cache_bin_file_path);
                 }
             }
-            program_cache_stream.close();
-        }
+            fclose(program_binary_stream_fin);
+
+            kernel_name_map_.emplace(key, kernel_name_list);
+
+            // create program from binary
+            auto program_raw = clCreateProgramWithBinary(Context()->get(), 1, &device_id, &buffer_size,
+                                                    (const unsigned char**)(&buffer_data), nullptr, nullptr);
+            if (!program_raw) {
+                LOGE("Create program with binary failed, program name: %s\n", info.program_name);
+                return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "create program falied");
+            }
+            cl::Program program(program_raw);
+            auto status = this->BuildProgram(info.build_option, &program);
+            if (!status) {
+                LOGE("%s build failed!\n", info.program_name);
+                return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "build program falied");
+            }
+            program_map_.emplace(key, program);
+        } while (false);
+        fclose(program_cache_fin);
     }
 
     return TNN_OK;
@@ -500,51 +519,76 @@ Status OpenCLRuntime::LoadProgramCache() {
 
 Status OpenCLRuntime::SaveProgramCache() {
     if (!program_cache_file_path_.empty() && enable_cache_program_ && is_program_cache_changed_) {
-        std::ofstream program_cache_stream(program_cache_file_path_);
-        if (program_cache_stream.is_open()) {
-            for (auto element : program_map_) {
-                const std::pair<std::string, std::string>& key = element.first;
-                const cl::Program& program = element.second;
-                auto program_raw = program.get();
-                auto binSizes = program.getInfo<CL_PROGRAM_BINARY_SIZES>();
-                auto device_id = device_->get();
-                // use first one
-                size_t buffer_size = binSizes[0];
-                auto program_name = key.first;
-                auto build_option = key.second;
-                program_cache_stream << program_name << std::endl;
-                program_cache_stream << build_option << std::endl;
-
-                // save compiled kernel name
-                auto kernel_name_it = kernel_name_map_.find(key);
-                if (kernel_name_it != kernel_name_map_.end()) {
-                    const std::vector<std::string>& kernel_name_list = kernel_name_it->second;
-                    program_cache_stream << kernel_name_list.size();
-                    for (auto kernel_name : kernel_name_list) {
-                        program_cache_stream << " " << kernel_name;
-                    }
-                }
-                program_cache_stream << " " << buffer_size << std::endl;
-                if (!program_cache_stream.good()) break;
-
-                // save compiled program binary
-                std::vector<int8_t> buffer;
-                buffer.resize(buffer_size);
-                auto buffer_data = buffer.data();
-                clGetProgramInfo(program_raw, CL_PROGRAM_BINARIES, sizeof(unsigned char *),
-                                 &buffer_data, nullptr);
-
-                std::string program_cache_bin_file_path = program_cache_file_path_ + "_" + program_name +
-                                                          "_" + md5(build_option);
-                std::ofstream program_cache_binary_stream(program_cache_bin_file_path,
-                                                          std::ios::binary | std::ios::out);
-                if (program_cache_binary_stream.is_open()) {
-                    program_cache_binary_stream.write((const char*)buffer_data, buffer_size);
-                }
-                program_cache_binary_stream.close();
-            }
-            program_cache_stream.close();
+        FILE *program_cache_fout = fopen(program_cache_file_path_.c_str(), "wb");
+        if (!program_cache_fout) {
+            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                          "open program cache file failed, output path: " + program_cache_file_path_);
         }
+        for (auto element : program_map_) {
+            const std::pair<std::string, std::string>& key = element.first;
+            const cl::Program& program = element.second;
+            auto program_raw = program.get();
+            auto binSizes = program.getInfo<CL_PROGRAM_BINARY_SIZES>();
+            auto device_id = device_->get();
+            // use first one
+            size_t buffer_size = binSizes[0];
+            auto program_name = key.first;
+            auto build_option = key.second;
+            struct ProgramCacheInfo info;
+            ASSERT(program_name.size() < PROGRAM_NAME_MAX_LEN);
+            ASSERT(build_option.size() < BUILD_OPTION_MAX_LEN);
+            strcpy(info.program_name, program_name.c_str());
+            strcpy(info.build_option, build_option.c_str());
+
+            // save compiled kernel name
+            std::stringstream kernel_key_list_stream;
+            auto kernel_name_it = kernel_name_map_.find(key);
+            if (kernel_name_it != kernel_name_map_.end()) {
+                const std::vector<std::string>& kernel_name_list = kernel_name_it->second;
+                for (auto kernel_name : kernel_name_list) {
+                    kernel_key_list_stream << kernel_name << " ";
+                }
+            }
+            ASSERT(kernel_info_stream.str().size() < KERNEL_KEY_LIST_MAX_LEN);
+            strcpy(info.kernel_key_list, kernel_key_list_stream.str().c_str());
+            info.buffer_size = buffer_size;
+            int fwsize = fwrite(&info, sizeof(struct ProgramCacheInfo), 1, program_cache_fout);
+            if (!fwsize) {
+                return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                              "write program cache file failed, path: " + program_cache_file_path_);
+            }
+
+            // save compiled program binary
+            std::vector<int8_t> buffer;
+            buffer.resize(buffer_size);
+            auto buffer_data = buffer.data();
+            clGetProgramInfo(program_raw, CL_PROGRAM_BINARIES, sizeof(unsigned char *),
+                                &buffer_data, nullptr);
+
+            std::string program_cache_bin_file_path = program_cache_file_path_ + "_" + program_name +
+                                                      "_" + md5(build_option);
+            FILE* program_cache_binary_stream = fopen(program_cache_bin_file_path.c_str(), "wb");
+            if (!program_cache_binary_stream) {
+                return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                          "open program cache binary file failed, path: " + program_cache_bin_file_path);
+            }
+
+            size_t block_size = 4096;
+            size_t block_count = UP_DIV(buffer_size, block_size);
+            for (size_t i = 0; i < block_count; i++) {
+                size_t start_loc = block_size * i;
+                size_t cur_block_size = std::min(block_size, buffer_size - start_loc);
+                fwsize = fwrite((const char*)buffer_data + start_loc, sizeof(char),
+                                cur_block_size, program_cache_binary_stream);
+                if (fwsize != cur_block_size) {
+                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                  "write program cache binary file failed, path: " +
+                                  program_cache_bin_file_path);
+                }
+            }
+            fclose(program_cache_binary_stream);
+        }
+        fclose(program_cache_fout);
     }
     return TNN_OK;
 }
