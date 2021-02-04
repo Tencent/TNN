@@ -28,8 +28,14 @@ ILayer* UpsampleTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     IResizeLayer* layer = network->addResize(*input_tensor);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
-        nvinfer1::Dims4 dims(output_dims[0], output_dims[1], output_dims[2], output_dims[3]);
-        layer->setOutputDimensions(dims);
+        if (input_blobs_.size() == 1) {
+            nvinfer1::Dims4 dims(output_dims[0], output_dims[1], output_dims[2], output_dims[3]);
+            layer->setOutputDimensions(dims);
+        } else {
+            auto input_foreign_tensor2 = dynamic_cast<ForeignBlob*>(input_blobs_[input_blobs_.size()-1])->GetForeignTensor();
+            auto input_tensor2 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor2)->GetTensor();
+            layer->setInput(1, *(network->addShape(*input_tensor2)->getOutput(0)));
+        }
         layer->setResizeMode(paramlist->mode == 1 ? ResizeMode::kNEAREST : ResizeMode::kLINEAR);
         layer->setAlignCorners(paramlist->align_corners);
     }
