@@ -39,6 +39,7 @@ option(TNN_CONVERTER_ENABLE "Enable Model Converter" OFF)
 option(TNN_ONNX2TNN_ENABLE "Enable ONNX2TNN Converter" OFF)
 option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
 option(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE "Enable Build Benchmark Test Lib" OFF)
+option(TNN_ALIGN_TOOL_ENABLE "Enable Align Model" OFF)
 
 message(${CMAKE_SOURCE_DIR})
 message(${CMAKE_CURRENT_SOURCE_DIR})
@@ -199,6 +200,7 @@ message(STATUS "\tModel Converter:\t${TNN_CONVERTER_ENABLE}")
 message(STATUS "\tONNX2TNN Converter:\t${TNN_ONNX2TNN_ENABLE}")
 message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
 message(STATUS "\tBENCHMARK Test Lib:\t${TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE}")
+message(STATUS "\tALIGNTOOL:\t${TNN_ALIGN_TOOL_ENABLE}")
 
 include_directories(include)
 include_directories(source)
@@ -360,6 +362,12 @@ endif()
 
 if(TNN_ONNX2TNN_ENABLE)
     add_subdirectory(tools/onnx2tnn/onnx-converter)
+endif()
+
+if (TNN_ALIGN_TOOL_ENABLE)
+    set(TNN_SYMBOL_HIDE OFF)
+    add_definitions(-DFORWARD_CALLBACK_ENABLE)
+    add_subdirectory(tools/convert2tnn/align_tool/run_tnn_model)
 endif()
 
 if(TNN_COVERAGE)

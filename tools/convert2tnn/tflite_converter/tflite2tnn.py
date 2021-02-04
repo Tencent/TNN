@@ -58,7 +58,7 @@ def convert(tf_path,  output_dir, version,  align=False,
 
     if version is None:
         version = "v1.0"
-    if align is True:
+    if align == 'output':
         proto_suffix = '.tnnproto'
         model_suffix = '.tnnmodel'
         tnn_proto_name = model_name + proto_suffix
