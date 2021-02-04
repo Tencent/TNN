@@ -678,7 +678,7 @@ DataType GetTnnDataTypeFromOnnx(long long int onnx_data_type) {
             return DATA_TYPE_BFP16;
         }
         default:{
-            DLog("Not support onnx TypeProto type: %d", onnx_data_type);
+            DLog("Not support onnx TypeProto type: %d",(int) onnx_data_type);
             assert(0);
         }
     }
