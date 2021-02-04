@@ -26,8 +26,8 @@ Status CudaStrideSliceV2LayerAcc::Init(Context *context, LayerParam *param, Laye
     if (ret != TNN_OK) {
         return ret;
     }    
-    CreateTempBuf(4 * sizeof(int));
-    CreateTempBuf(4 * sizeof(int));
+    CreateTempBuf(5 * sizeof(int));
+    CreateTempBuf(5 * sizeof(int));
     auto params = dynamic_cast<StrideSliceV2LayerParam *>(param);
     if (!params) {
         LOGE("Error: ShuffleLayerParam is nil\n");
@@ -39,7 +39,7 @@ Status CudaStrideSliceV2LayerAcc::Init(Context *context, LayerParam *param, Laye
     auto param_begins = params->begins;
     auto param_strides = params->strides;
     auto axes = params->axes;
-    std::vector<int> begins(4, 0), strides(4, 1);
+    std::vector<int> begins(5, 0), strides(5, 1);
     for(int i = 0; i < axes.size(); ++i) {
         int axis = axes[i];
         int begin = param_begins[i];
@@ -49,8 +49,8 @@ Status CudaStrideSliceV2LayerAcc::Init(Context *context, LayerParam *param, Laye
     std::reverse(begins.begin(), begins.end());
     std::reverse(strides.begin(), strides.end());
 
-    cudaMemcpy(tempbufs_[0].ptr, &(begins[0]), 4 * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(tempbufs_[1].ptr, &(strides[0]), 4 * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(tempbufs_[0].ptr, &(begins[0]), 5 * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(tempbufs_[1].ptr, &(strides[0]), 5 * sizeof(int), cudaMemcpyHostToDevice);
 
     return TNN_OK;
 }
@@ -68,27 +68,32 @@ Status CudaStrideSliceV2LayerAcc::Forward(const std::vector<Blob *> &inputs, con
     int input_n = input_dims[0];
     int input_c = input_dims[1];
     int output_c = output_dims[1];
-    int input_h = 1, output_h = 1;
+    int input_d = 1, output_d = 1;
     if(input_dims.size() > 2) {
-        input_h = input_dims[2];
-        output_h = output_dims[2];
+        input_d = input_dims[2];
+        output_d = output_dims[2];
+    }
+    int input_h = 1, output_h = 1;
+    if(input_dims.size() > 3) {
+        input_h = input_dims[3];
+        output_h = output_dims[3];
     }
     int input_w = 1, output_w = 1;
-    if(input_dims.size() > 3) {
-        input_w = input_dims[3];
-        output_w = output_dims[3];
+    if(input_dims.size() > 4) {
+        input_w = input_dims[4];
+        output_w = output_dims[4];
     }
 
-    int div_c = output_w * output_h;
-    int div_n = output_w * output_h * output_c;
-
+    int div_d = output_w * output_h;
+    int div_c = output_w * output_h * output_d;
+    int div_n = output_w * output_h * output_d * output_c;
     int count = DimsVectorUtils::Count(output_dims);
 
     float* input_data = static_cast<float*>(input_blob->GetHandle().base);
     float* output_data = static_cast<float*>(output_blob->GetHandle().base);
 
-    return RunStrideSlice(count, input_data, input_c, input_h, input_w, (const int*)tempbufs_[0].ptr,
-                (const int*)tempbufs_[1].ptr, output_data, output_c, output_h, output_w, div_c, div_n, context_->GetStream());
+    return RunStrideSlice(count, input_data, input_c, input_d, input_h, input_w, (const int*)tempbufs_[0].ptr,
+                (const int*)tempbufs_[1].ptr, output_data, output_c, output_d, output_h, output_w, div_d, div_c, div_n, context_->GetStream());
 }
 
 REGISTER_CUDA_ACC(StrideSliceV2, LAYER_STRIDED_SLICE_V2);

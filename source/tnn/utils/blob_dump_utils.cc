@@ -59,9 +59,6 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
 
     auto blob_desc = blob->GetBlobDesc();
     MatType mat_type = NCHW_FLOAT;
-    if(blob_desc.dims.size() == 5) {
-        mat_type = NCDHW_FLOAT;
-    }
     auto data_type = blob_desc.data_type;
 
 #ifdef DUMP_RAW_INT8
@@ -117,7 +114,7 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
             fprintf(fp, "%d\n", ptr[n]);
         }
     } else {
-        LOGE("unsupport data type to dump\n");
+        LOGE("unsupport data type to dump: %d\n", data_type);
     }
 #endif
 

@@ -12,55 +12,32 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Upsample, LAYER_UPSAMPLE);
+DECLARE_TENSORRT_LAYER_BUILDER(Upsample, LAYER_UPSAMPLE);
 
-bool UpsampleTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
-        && inOut[pos].type == inOut[0].type);
-}
-
-const char* UpsampleTRTPluginLayerBuilder::getPluginType() const {
-    return "Upsample";
-}
-
-nvinfer1::DataType UpsampleTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
-    return inputTypes[0];
-}
-
-ILayer* UpsampleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
-}
-
-DimsExprs UpsampleTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
-    UpsampleLayerParam* param = dynamic_cast<UpsampleLayerParam *>(param_);
-    DimsExprs output(inputs[0]);
-    auto scales = param->scales;
-    auto sizes = param->dims;
-    if (sizes.size() <= 0) {
-        if (param->mode == 1 || param->mode == 2 || param->mode == 3) {
-            auto scale_0 = exprBuilder.constant(scales[0]);
-            auto scale_1 = exprBuilder.constant(scales[1]);
-            output.d[2] = exprBuilder.operation(DimensionOperation::kPROD, *inputs[0].d[2], *scale_0);
-            output.d[3] = exprBuilder.operation(DimensionOperation::kPROD, *inputs[0].d[3], *scale_1);
-        }
-    } else {
-        output.d[2] = exprBuilder.constant(sizes[1]);
-        output.d[3] = exprBuilder.constant(sizes[0]);
+ILayer* UpsampleTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto paramlist = dynamic_cast<UpsampleLayerParam*>(param_);
+    Blob* output_blob  = output_blobs_[0];
+    auto output_dims = output_blob->GetBlobDesc().dims;
+    auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
+    auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
+    IResizeLayer* layer = network->addResize(*input_tensor);
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
+        nvinfer1::Dims4 dims(output_dims[0], output_dims[1], output_dims[2], output_dims[3]);
+        layer->setOutputDimensions(dims);
+        layer->setResizeMode(paramlist->mode == 1 ? ResizeMode::kNEAREST : ResizeMode::kLINEAR);
+        layer->setAlignCorners(paramlist->align_corners);
     }
-    return output;
+
+    return layer;
 }
 
-const char* UpsamplePluginCreator::getPluginName() const {
-    return "Upsample";
-}
-
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Upsample, LAYER_UPSAMPLE);
+REGISTER_TENSORRT_LAYER_BUILDER(Upsample, LAYER_UPSAMPLE);
 
 }  //  namespace TNN_NS
+

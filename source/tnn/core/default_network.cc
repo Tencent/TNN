@@ -170,38 +170,41 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         }
 
 #ifdef GENERATE_RESOURCE
-        LayerType type       = layer_info->type;
-        BaseLayer *cur_layer = CreateLayer(type);
-        if (cur_layer == NULL) {
-            LOGE("Error: CreateLayer failed, type:%d\n", type);
-            return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
+        if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+            LayerType type       = layer_info->type;
+            BaseLayer *cur_layer = CreateLayer(type);
+            if (cur_layer == NULL) {
+                LOGE("Error: CreateLayer failed, type:%d\n", type);
+                return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
+            }
+            std::string layer_name = layer_info->name;
+            cur_layer->SetLayerName(layer_name);
+            cur_layer->SetConstantResource(&net_resource->constant_map);
+
+            std::vector<Blob *> inputs;
+            std::vector<Blob *> outputs_for_shape;
+            for (auto name : input_names) {
+                inputs.push_back(blob_manager_->GetBlob(name));
+            }
+
+            for (auto name : output_names) {
+                outputs_for_shape.push_back(blob_manager_->GetBlob(name));
+            }
+
+            // generate resource if null
+            if (net_resource->resource_map.count(layer_name) == 0) {
+                LayerParam *layer_param  = layer_info->param.get();
+                LayerResource *layer_res = nullptr;
+                GenerateRandomResource(type, layer_param, &layer_res, inputs);
+                net_resource->resource_map[layer_name] = std::shared_ptr<LayerResource>(layer_res);
+            }
+            
+            LOGE("InferShapeAhead\n");
+            cur_layer->InferShapeAhead(inputs, outputs_for_shape, layer_info->param.get(),
+                                       net_resource->resource_map[layer_name].get());
+
+            delete cur_layer;
         }
-        std::string layer_name = layer_info->name;
-        cur_layer->SetLayerName(layer_name);
-        cur_layer->SetConstantResource(&net_resource->constant_map);
-
-        std::vector<Blob *> inputs;
-        std::vector<Blob *> outputs_for_shape;
-        for (auto name : input_names) {
-            inputs.push_back(blob_manager_->GetBlob(name));
-        }
-
-        for (auto name : output_names) {
-            outputs_for_shape.push_back(blob_manager_->GetBlob(name));
-        }
-
-        // generate resource if null
-        if (net_resource->resource_map.count(layer_name) == 0) {
-            LayerParam *layer_param  = layer_info->param.get();
-            LayerResource *layer_res = nullptr;
-            GenerateRandomResource(type, layer_param, &layer_res, inputs);
-            net_resource->resource_map[layer_name] = std::shared_ptr<LayerResource>(layer_res);
-        }
-
-        cur_layer->InferShapeAhead(inputs, outputs_for_shape, layer_info->param.get(),
-                                   net_resource->resource_map[layer_name].get());
-
-        delete cur_layer;
 #endif
 
         for (auto name : output_names) {
@@ -273,11 +276,13 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
 
     std::string blob_scale_name = name + "_scale_data_";
 #ifdef GENERATE_RESOURCE
-    if (net_resource->resource_map.count(blob_scale_name) == 0) {
-        LayerResource *layer_res  = nullptr;
-        std::vector<Blob *> blobs = {*blob};
-        GenerateRandomResource(LAYER_BLOB_SCALE, nullptr, &layer_res, blobs);
-        net_resource->resource_map[blob_scale_name] = std::shared_ptr<LayerResource>(layer_res);
+    if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+        if (net_resource->resource_map.count(blob_scale_name) == 0) {
+            LayerResource *layer_res  = nullptr;
+            std::vector<Blob *> blobs = {*blob};
+            GenerateRandomResource(LAYER_BLOB_SCALE, nullptr, &layer_res, blobs);
+            net_resource->resource_map[blob_scale_name] = std::shared_ptr<LayerResource>(layer_res);
+        }
     }
 #endif
     if (net_resource->resource_map.find(blob_scale_name) == net_resource->resource_map.end()) {
@@ -294,40 +299,43 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
 
 Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info, bool is_input, bool is_quantized_net,
                                            const std::string &name, NetResource *net_resource, Blob **blob) {
+    if (runtime_model_ != RUNTIME_MODE_NORMAL) {
+        return TNN_OK;
+    }
     if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE) {
         return TNN_OK;
     }
-    static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
 
     auto &desc      = (*blob)->GetBlobDesc();
     auto layer_type = layer_info->type;
 
     if (layer_type != LAYER_REFORMAT) {
-        // update blob of quantized network by layer info
+        // non-reformat layer
         if (is_quantized_net) {
+            // update blob of quantized network by layer info
             if (layer_info->param->quantized && desc.data_type != DATA_TYPE_INT8) {
                 RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
             }
         } else {
-            bool layer_implemented_fp16 = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
-            // update blob of non-quantized network by config precision and enabled precision
-            if (config_.precision == PRECISION_NORMAL || config_.precision == PRECISION_AUTO) {
-                if (desc.data_type == DATA_TYPE_FLOAT || desc.data_type == DATA_TYPE_HALF ||
-                    desc.data_type == DATA_TYPE_BFP16) {
+            // update blob of non-quantized network by precision
+            auto original_data_type = desc.data_type;
+            if (original_data_type == DATA_TYPE_FLOAT || original_data_type == DATA_TYPE_HALF ||
+                original_data_type == DATA_TYPE_BFP16) {
+                if (config_.precision == PRECISION_NORMAL || config_.precision == PRECISION_AUTO) {
+                    static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
+                    bool layer_implemented_fp16  = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
                     desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
+                } else if (config_.precision == PRECISION_LOW) {
+                    desc.data_type = DATA_TYPE_BFP16;
+                } else if (config_.precision == PRECISION_HIGH) {
+                    desc.data_type = DATA_TYPE_FLOAT;
+                } else {
+                    return Status(TNNERR_PARAM_ERR, "invalid precision");
                 }
-            } else if (config_.precision == PRECISION_LOW) {
-                desc.data_type = DATA_TYPE_BFP16;
-            } else if (config_.precision == PRECISION_HIGH) {
-                if (desc.data_type == DATA_TYPE_FLOAT || desc.data_type == DATA_TYPE_HALF ||
-                    desc.data_type == DATA_TYPE_BFP16) {
-                    desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
-                }
-            } else {
-                return Status(TNNERR_PARAM_ERR, "invalid precision");
             }
         }
     } else {
+        // reformat layer, update blob by layer param
         if (is_input) {
             auto src_type = reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->src_type;
             if (src_type == DATA_TYPE_INT8) {

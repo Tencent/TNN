@@ -67,6 +67,12 @@ def parse_args():
                                  help='align the onnx model with tnn model. '
                                       'e.g., if you want to align the final output, you can use -align output'
                                       'if you want to align whole model, you can use -align all')
+    onnx2tnn_parser.add_argument('-align_batch',
+                                 dest='align_batch',
+                                 default=False,
+                                 action='store_true',
+                                 required=False,
+                                 help='align the onnx model with tnn model and check mutli batch')
     onnx2tnn_parser.add_argument('-input_file',
                                  dest='input_file_path',
                                  action='store',

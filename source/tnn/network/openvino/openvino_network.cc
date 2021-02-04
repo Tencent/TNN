@@ -15,6 +15,7 @@
 #include "tnn/utils/blob_dump_utils.h"
 #include "tnn/utils/blob_transfer_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 #include "tnn/extern_wrapper/foreign_blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
@@ -347,6 +348,31 @@ Status OpenVINONetwork_::ForwardAsync(Callback call_back) {
     Status result = TNN_OK;
     infer_request_.Infer();
     return result;
+}
+
+Status OpenVINONetwork_::SetCpuNumThreads(int num_threads) {
+    // alloc new ie, can't set thread num to old ie after init
+    ie_ = InferenceEngine::Core();
+
+    std::map<std::string, std::string> config = {
+        {CONFIG_KEY(CPU_THREADS_NUM), ToString(num_threads)},
+        {CONFIG_KEY(CPU_THROUGHPUT_STREAMS), "0"},
+        {CONFIG_KEY(CPU_BIND_THREAD), "NO"},
+    };
+
+    ie_.SetConfig(config, "CPU");
+    InferenceEngine::IExtensionPtr extensionPtr;
+    extensionPtr = std::make_shared<CustomOpenvinoLayerManager>();
+    ie_.AddExtension(extensionPtr, "CPU");
+
+    BlobMap input_blobs;
+    blob_manager_->GetAllInputBlobs(input_blobs);
+    InputShapesMap network_shapes;
+    for (auto &iter : input_blobs) {
+        network_shapes[iter.first] = iter.second->GetBlobDesc().dims;
+    }
+
+    return Reshape(network_shapes);
 }
 
 }  // namespace TNN_NS
