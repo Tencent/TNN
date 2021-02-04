@@ -122,7 +122,7 @@ cd <path_to_tnn>/scripts
 ```
 cd <path_to_tnn>/scripts
 ```
-1) 执行编译脚本
+2) 执行编译脚本
   - 编译不带openvino的版本
 ```
 ./build_linux_naive.sh

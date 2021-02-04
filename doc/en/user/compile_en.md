@@ -119,6 +119,11 @@ cd <path_to_tnn>/scripts
 cd <path_to_tnn>/scripts
 ```
 2) execute the building scripts
+  - compile without openvino
+```
+./build_linux_naive.sh
+```
+  - compile with openvino
 ```
 ./build_linux.sh
 ```
