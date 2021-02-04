@@ -126,7 +126,6 @@ DimsVector DimsVectorUtils::Upsample(const DimsVector input_dims,
             width_out  = int(round(width * scales[0]));
             height_out = int(round(height * scales[1]));
         } else {
-            LOGE("Error: unsupport upsample type:%d", mode);
             if (status) {
                 *status = Status(TNNERR_PARAM_ERR, "unsupport upsample type");
             }
@@ -138,9 +137,8 @@ DimsVector DimsVectorUtils::Upsample(const DimsVector input_dims,
     }
 
     if (width_out <= 0 || height_out <= 0) {
-        LOGE("Error: UpsampleLayer invalid output shape: height(%d) width(%d)", height_out, width_out);
         if (status) {
-            *status = Status(TNNERR_PARAM_ERR, "UpsampleLayer invalid output shape");
+            *status = Status(TNNERR_PARAM_ERR, "UpsampleLayer has invalid output shape");
         }
     }
     
@@ -195,7 +193,6 @@ DimsVector DimsVectorUtils::Reshape(const DimsVector input_dims, const DimsVecto
     }
 
     if (infer_dim_count != 1 || infer_dim_pos == -1) {
-        LOGE("reshape param size error\n");
         if (status) {
             *status = Status(TNNERR_PARAM_ERR, "reshape param size error");
         }
@@ -205,7 +202,6 @@ DimsVector DimsVectorUtils::Reshape(const DimsVector input_dims, const DimsVecto
     int in_cnt  = DimsVectorUtils::Count(input_dims);
     int out_cnt = DimsVectorUtils::Count(output_dims);
     if (0 == out_cnt) {
-        LOGE("Error: blob count is zero\n");
         if (status) {
             *status = Status(TNNERR_COMMON_ERROR, "Error: blob count is zero");
         }
@@ -213,7 +209,6 @@ DimsVector DimsVectorUtils::Reshape(const DimsVector input_dims, const DimsVecto
     
     int infer_dim_v = in_cnt / out_cnt;
     if (infer_dim_v <= 0) {
-        LOGE("Error: blob shape is zero\n");
         if (status) {
             *status = Status(TNNERR_COMMON_ERROR, "Error: blob shape is zero");
         }
@@ -226,7 +221,6 @@ DimsVector DimsVectorUtils::StrideSlice(const DimsVector input_dims,
                                         DimsVector& begins, DimsVector& ends, const DimsVector strides,
                                         const DimsVector axes, Status *status) {
     if (axes.size() != begins.size() || axes.size() != ends.size() || axes.size() != strides.size()) {
-        LOGE("StrideSliceV2Layer param of axes, ends, strides size is invalid\n");
         if (status) {
             *status = Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param of axes, ends, strides size is invalid");
             return DimsVector();
@@ -251,7 +245,6 @@ DimsVector DimsVectorUtils::StrideSlice(const DimsVector input_dims,
         }
 
         if (begins[i] >= ends[i]) {
-            LOGE("StrideSliceV2Layer param is invalid\n");
             if (status) {
                 *status = Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is invalid");
             }
@@ -260,7 +253,6 @@ DimsVector DimsVectorUtils::StrideSlice(const DimsVector input_dims,
         output_dims[index] = (ends[i] - begins[i] - 1) / strides[i] + 1;
 
         if (output_dims[index] <= 0) {
-            LOGE("StrideSliceV2Layer param is invalid\n");
             if (status) {
                 *status = Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is invalid");
             }

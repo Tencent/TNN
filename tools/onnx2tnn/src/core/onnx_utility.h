@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #ifndef onnx_utility_hpp
@@ -114,6 +114,7 @@ std::vector<int> GetDimsFromTensor(const onnx::TensorProto& tensor);
 std::vector<int> GetDimsFromTensorShape(const onnx::TensorShapeProto& tensor);
 
 DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type);
+DataType GetTnnDataTypeFromOnnx(long long int onnx_data_type);
 
 std::vector<int> CreateDimsVectorFromTensor(const onnx::TensorProto& tensor);
 

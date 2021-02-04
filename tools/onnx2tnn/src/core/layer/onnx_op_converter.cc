@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_op_converter.h"
@@ -225,14 +225,25 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
             break;
         }
         
-        if (src_data_type == 1) {//float
+        if (src_data_type == onnx::TensorProto_DataType_FLOAT ||
+            src_data_type == onnx::TensorProto_DataType_DOUBLE) {//float double
+            //double to float
+            auto float_data = (float *)raw_data;
+            if (src_data_type == onnx::TensorProto_DataType_DOUBLE) {
+                float_data = new float [data_count];
+                auto double_data = (double *)raw_data;
+                for (int ii=0; ii<data_count; ii++) {
+                    float_data[ii] = double_data[ii];
+                }
+            }
+            
             if (dst_data_type == DATA_TYPE_AUTO ||
                 dst_data_type == DATA_TYPE_FLOAT) {
-                writer->PutRaw(data_count * sizeof(float), (char *)raw_data, dims,DATA_TYPE_FLOAT);
+                writer->PutRaw(data_count * sizeof(float), (char *)float_data, dims,DATA_TYPE_FLOAT);
             } else if (dst_data_type == DATA_TYPE_HALF) {
                 if (data_count > 0) {
                     float16 *half_data = new float16[data_count];
-                    ret = TNN_NS::ConvertFromFloatToHalf((float *)raw_data, (void *)half_data, data_count);
+                    ret = TNN_NS::ConvertFromFloatToHalf((float *)float_data, (void *)half_data, data_count);
                     writer->PutRaw(data_count * sizeof(float16), (char *)half_data, dims , DATA_TYPE_HALF);
                     delete[] half_data;
                 } else {
@@ -242,7 +253,10 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                 DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
                 assert(0);
             }
-        } else if (src_data_type == 6){//int32
+            if (float_data != raw_data) {
+                delete [] float_data;
+            }
+        } else if (src_data_type == onnx::TensorProto_DataType_INT32){//int32
             if (dst_data_type == DATA_TYPE_AUTO ||
                 dst_data_type == DATA_TYPE_INT32) {
                 writer->PutRaw(data_count * sizeof(int32_t), (char *)raw_data, dims, DATA_TYPE_INT32);
@@ -250,7 +264,7 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                 DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
                 assert(0);
             }
-        } else if (src_data_type == 7){//int_64
+        } else if (src_data_type == onnx::TensorProto_DataType_INT64){//int_64
             if (dst_data_type == DATA_TYPE_AUTO ||
                 dst_data_type == DATA_TYPE_INT32) {
                 if (data_count > 0) {
@@ -269,7 +283,7 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                 DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
                 assert(0);
             }
-        } else if (src_data_type == 13){//uint_64
+        } else if (src_data_type == onnx::TensorProto_DataType_UINT64){//uint_64
             if (dst_data_type == DATA_TYPE_AUTO ||
                 dst_data_type == DATA_TYPE_INT32) {
                 if (data_count > 0) {
