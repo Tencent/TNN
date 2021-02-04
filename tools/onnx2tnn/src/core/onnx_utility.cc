@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_utility.h"
@@ -650,14 +650,20 @@ std::vector<int> GetDimsFromTensorShape(const onnx::TensorShapeProto& shape) {
 }
 
 DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type) {
+    return GetTnnDataTypeFromOnnx(onnx_type.tensor_type().elem_type());
+}
+
+DataType GetTnnDataTypeFromOnnx(long long int onnx_data_type) {
     //keep the same as cast op
-    switch (onnx_type.tensor_type().elem_type()) {
-        case onnx::TensorProto_DataType_FLOAT:{
+    switch (onnx_data_type) {
+        case onnx::TensorProto_DataType_FLOAT:
+        case onnx::TensorProto_DataType_DOUBLE:{
             return DATA_TYPE_FLOAT;
         }
         case onnx::TensorProto_DataType_FLOAT16: {
             return DATA_TYPE_HALF;
         }
+        case onnx::TensorProto_DataType_BOOL: //INT8 BOOL(sizeof(bool) == sizeof(char))
         case onnx::TensorProto_DataType_UINT8:
         case onnx::TensorProto_DataType_INT8: {
             return DATA_TYPE_INT8;
@@ -672,10 +678,11 @@ DataType GetTnnDataTypeFromOnnx(const onnx::TypeProto& onnx_type) {
             return DATA_TYPE_BFP16;
         }
         default:{
-            DLog("Not support onnx TypeProto type: %d", onnx_type.tensor_type().elem_type());
+            DLog("Not support onnx TypeProto type: %d", onnx_data_type);
             assert(0);
         }
     }
+    return DATA_TYPE_AUTO;
 }
 
 std::vector<int> CreateDimsVectorFromTensor(const onnx::TensorProto& tensor) {
