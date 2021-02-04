@@ -44,6 +44,10 @@ private:
     void DumpBlobData(void* blob_data, TNN_NS::DimsVector blob_dims, std::string output_name);
     TNN_NS::Status GetDumpData(const std::string& file_path, std::vector<float>& data);
 
+    bool IsDimsCanBeExtend(std::vector<int> src_dims, std::vector<int> dst_dims);
+    TNN_NS::Status ExtendMatMap(const TNN_NS::BlobMap& blobs_map,
+                                std::map<std::string, std::shared_ptr<TNN_NS::Mat>>& mat_map);
+
     bool is_align_                                  = true;
     std::shared_ptr<TNN_NS::TNN> tnn_cpu_           = nullptr;
     std::shared_ptr<TNN_NS::Instance> instance_cpu_ = nullptr;
