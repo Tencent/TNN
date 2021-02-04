@@ -36,7 +36,7 @@ public:
     }
 
     // DimensionExpr with DimensionExpr
-    DimensionExpr& operator=(const tnn::DimensionExpr& other)
+    DimensionExpr& operator=(const DimensionExpr& other)
     {
         expr_ = other.expr_;  
         builder_ = other.builder_;
