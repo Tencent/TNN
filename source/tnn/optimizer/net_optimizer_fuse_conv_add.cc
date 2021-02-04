@@ -88,19 +88,21 @@ namespace optimizer {
         if (!is_quantized_net) {
             return TNN_OK;
         }
-
-        std::vector<std::shared_ptr<LayerInfo>> layers_orig = structure->layers;
-        const int count                                     = (const int)layers_orig.size();
-        if (count <= 1) {
+        if (structure->layers.size() <= 1) {
             return TNN_OK;
         }
-
         // step1: do conv_post fusion before conv_add fusion
         if (conv_post_opt_) {
             ret = conv_post_opt_->Optimize(structure, resource);
             if (ret != TNN_OK) {
                 return ret;
             }
+        }
+
+        std::vector<std::shared_ptr<LayerInfo>> layers_orig = structure->layers;
+        const int count                                     = (const int)layers_orig.size();
+        if (count <= 1) {
+            return TNN_OK;
         }
 
         std::vector<std::shared_ptr<LayerInfo>> layers_fused;
