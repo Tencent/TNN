@@ -117,12 +117,96 @@ TNN_NS::Status AlignTNNModel::Init() {
     return TNN_NS::TNN_OK;
 }
 
+int GetMatElementSize(TNN_NS::Mat* mat) {
+    TNN_NS::MatType mat_type = mat->GetMatType();
+    if (TNN_NS::NCHW_FLOAT == mat_type || TNN_NS::NCDHW_FLOAT == mat_type) {
+        return 4;
+    } else if (TNN_NS::NC_INT32 == mat_type) {
+        return 4;
+    } else if (TNN_NS::N8UC3 == mat_type || TNN_NS::N8UC4 == mat_type || TNN_NS::NGRAY == mat_type ||
+               TNN_NS::NNV21 == mat_type || TNN_NS::NNV12 == mat_type) {
+        return 1;
+    } else if (TNN_NS::RESERVED_BFP16_TEST == mat_type || TNN_NS::RESERVED_FP16_TEST == mat_type) {
+        return 2;
+    } else if (TNN_NS::RESERVED_INT8_TEST == mat_type) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+bool AlignTNNModel::IsDimsCanBeExtend(std::vector<int> src_dims, std::vector<int> dst_dims) {
+    if (src_dims.size() != dst_dims.size()) {
+        return false;
+    }
+
+    if (dst_dims[0] < src_dims[0]) {
+        return false;
+    }
+
+    if (dst_dims[0] % src_dims[0] != 0) {
+        return false;
+    }
+
+    for (int i = 1; i < dst_dims.size(); ++i) {
+        if (src_dims[i] != dst_dims[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+TNN_NS::Status AlignTNNModel::ExtendMatMap(const TNN_NS::BlobMap& blobs_map,
+                                           std::map<std::string, std::shared_ptr<TNN_NS::Mat>>& mat_map) {
+    for (auto item : blobs_map) {
+        auto blob_name = item.first;
+        if (mat_map.count(blob_name) <= 0) {
+            LOGE("mat map don't has blob data (name: %s)\n", blob_name.c_str());
+            return TNN_NS::Status(TNN_NS::TNNERR_COMMON_ERROR, "extend falied: mat map is not match with blobs map");
+        }
+
+        auto mat      = mat_map[blob_name];
+        auto src_dims = mat->GetDims();
+        auto dst_dims = item.second->GetBlobDesc().dims;
+
+        if (TNN_NS::DimsVectorUtils::Equal(src_dims, dst_dims)) {
+            continue;
+        }
+
+        printf("Warning: mat map (name: %s) will try to be extended due to dims not match\n", blob_name.c_str());
+        if (!IsDimsCanBeExtend(src_dims, dst_dims)) {
+            return TNN_NS::Status(TNN_NS::TNNERR_COMMON_ERROR, "extend falied: dims can't be extend");
+        }
+
+        int bytesize_perbatch = TNN_NS::DimsVectorUtils::Count(src_dims, 1) * GetMatElementSize(mat.get());
+        int src_batch_size    = src_dims[0];
+        int dst_batch_size    = dst_dims[0];
+        int src_bytesize      = bytesize_perbatch * src_batch_size;
+
+        printf("batch extrend form %d to %d\n", src_batch_size, dst_batch_size);
+        std::shared_ptr<TNN_NS::Mat> mat_new(new TNN_NS::Mat(mat->GetDeviceType(), mat->GetMatType(), dst_dims));
+        int batch_idx = 0;
+        for (; batch_idx < dst_batch_size - src_batch_size; batch_idx += src_batch_size) {
+            memcpy((char*)mat_new->GetData() + batch_idx * bytesize_perbatch, mat->GetData(), src_bytesize);
+        }
+        int batch_left = dst_batch_size - batch_idx;
+        memcpy((char*)mat_new->GetData() + batch_idx * bytesize_perbatch, mat->GetData(),
+               batch_left * bytesize_perbatch);
+
+        mat_map[blob_name] = mat_new;
+    }
+
+    return TNN_NS::TNN_OK;
+}
+
 TNN_NS::Status AlignTNNModel::FeedInputData() {
     std::vector<float> bias  = {0, 0, 0, 0};
     std::vector<float> scale = {1.0f, 1.0f, 1.0f, 1.0f};
     const auto file_format   = TNN_NS::TEXT;
 
     TNN_NS::BlobMap input_blobs_cpu;
+    std::map<std::string, std::shared_ptr<TNN_NS::Mat>> input_mat_map;
     auto status = instance_cpu_->GetAllInputBlobs(input_blobs_cpu);
     RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
 
@@ -134,11 +218,13 @@ TNN_NS::Status AlignTNNModel::FeedInputData() {
     TNN_NS::FileReader file_reader;
     file_reader.SetBiasValue(bias);
     file_reader.SetScaleValue(scale);
-    status = file_reader.Read(input_blobs_cpu, input_file_path_, file_format);
+    status = file_reader.Read(input_mat_map, input_file_path_, file_format);
     if (status != TNN_NS::TNN_OK) {
         LOGE("read input file (%s) falied!\n", input_file_path_.c_str());
         return TNN_NS::Status(TNN_NS::TNNERR_COMMON_ERROR, "read input failed");
     }
+    status = ExtendMatMap(input_blobs_cpu, input_mat_map);
+    RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
 
     return TNN_NS::TNN_OK;
 }
