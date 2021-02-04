@@ -140,7 +140,7 @@ optional arguments:
 - half 参数（可选）
     可以通过 -half 参数指定，模型数据通过 FP16 进行存储，减少模型的大小，默认是通过 FP32 的方式进行存储模型数据的。
 - align 参数（可选）
-    可以通过 -align 参数指定转换得到的 TNN 模型和原模型对齐的模式，确定 TNN 模型是否转换成功。例如：不使用 “-align” 参数，默认不进行对齐；如果只对比 TNN 模型和原模型最后一层的输出，可以使用命令 “-align output”; 如果要对比 TNN 模型和原始模型的所有层，可以使用命令 “-align all”（TensorFlow Lite 模型暂时不支持 “-align all”）。__当前仅支持单输入单输出模型和单输入多输出模型。 align 只支持 FP32 模型的校验，所以使用 align 的时候不能使用 half__
+    可以通过 -align 参数指定转换得到的 TNN 模型和原模型对齐的模式，确定 TNN 模型是否转换成功。例如：不使用 “-align” 参数，默认不进行对齐；如果只对比 TNN 模型和原模型最后一层的输出，可以使用命令 “-align” 或 “-align output”; 如果模型不对齐，可以使用命令 “-align all” 进行逐层对齐，并输出第一层不对齐层的信息。（TensorFlow Lite 模型暂时不支持 “-align all”）。__当前仅支持单输入单输出模型和单输入多输出模型。 align 只支持 FP32 模型的校验，所以使用 align 的时候不能使用 half__
 - input_file 参数（可选）
     可以通过 -input_file 参数指定模型对齐所需要的输入文件的名称，输入需要遵循如下[格式](#输入)。
 - ref_file 参数（可选）

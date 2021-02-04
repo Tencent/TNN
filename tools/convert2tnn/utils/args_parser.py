@@ -64,9 +64,14 @@ def parse_args():
                                  default='',
                                  action='store',
                                  required=False,
+                                 choices=[None, 'output', 'all'],
+                                 nargs='?',
+                                 type=str,
                                  help='align the onnx model with tnn model. '
-                                      'e.g., if you want to align the final output, you can use -align output'
-                                      'if you want to align whole model, you can use -align all')
+                                      'e.g., if you want to align the last output, you can use \'-align\' '
+                                      'or \'-align output\'; '
+                                      'if the model is not align, you can use \'-align all\' to align layer by layer, '
+                                      'and the information of the first unaligned layer will be output')
     onnx2tnn_parser.add_argument('-align_batch',
                                  dest='align_batch',
                                  default=False,
