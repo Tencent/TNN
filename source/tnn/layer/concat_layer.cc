@@ -60,9 +60,6 @@ Status ConcatLayer::InferOutputShape(bool ignore_error) {
     int out_concat_dim_size = 0;
     for (; i < input_blobs_.size(); i++) {
         auto input_blob = input_blobs_[i];
-        LOGE_IF(!ignore_error,
-            "blob name: %s addr:%p\n",
-                input_blob->GetBlobDesc().name.c_str(), input_blob->GetHandle().base);
         auto cur_shape  = input_blob->GetBlobDesc().dims;
         if (!ConcatLayerCheckShape(last_shape, cur_shape, axis)) {
             LOGE_IF(!ignore_error,
