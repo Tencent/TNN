@@ -498,6 +498,11 @@ void reduce_kernel(float * input, float * output, size_t outer_size, size_t inne
     for(size_t outer_idx=0;outer_idx<outer_size;outer_idx++) {
         for(size_t inner_idx=0;inner_idx<inner_size;inner_idx++) {
             float acc = 0;
+            if (type == X86ReduceOpType::kMIN) {
+                acc = FLT_MAX;
+            } else if (type == X86ReduceOpType::kMAX) {
+                acc = -FLT_MAX;
+            }
             for(int i=0;i<reduce_size;i++) {
                 acc = reduce_iter_op<type>(acc, input[i * inner_size + inner_idx]);
             }
@@ -516,18 +521,26 @@ Status X86_REDUCE_CALCULATE(float *input, float *output, std::vector<int> axes,
     int outer_begin = 0;
     int outer_end = input_dim.size() - 1;
     int inner_begin = 0;
-    int inner_end = input_dim.size() - 1;
+    int inner_end = input_dim.size();
     for(int axis : axes) {
-        inner_begin = std::max(inner_begin, axis);
+        inner_begin = std::max(inner_begin, axis + 1);
         outer_end = std::min(outer_end, axis);
     }
 
     size_t outer_size = DimsVectorUtils::Count(input_dim, outer_begin, outer_end);
     size_t inner_size = DimsVectorUtils::Count(input_dim, inner_begin, inner_end);
+    inner_size = inner_size == 0 ? 1 : inner_size;
     size_t reduce_size = 1;
     for(int axis : axes) {
         reduce_size *= input_dim[axis];
     }
+
+    printf("outer_size = %d, inner_size = %d, reduce_size = %d\n", outer_size, inner_size, reduce_size);
+    printf("axis = ");
+    for(int axis : axes) {
+        printf("%d, ", axis);
+    }
+    printf("\n");
 
     reduce_kernel_ptr_t reduce_kernel_ptr = nullptr;
     switch (op_type) {
