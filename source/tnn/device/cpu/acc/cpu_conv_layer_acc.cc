@@ -15,6 +15,7 @@
 #include "tnn/device/cpu/acc/cpu_conv_layer_acc.h"
 
 #include "tnn/core/blob_int8.h"
+#include "tnn/interpreter/layer_resource_generator.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
@@ -23,14 +24,18 @@ CpuConvLayerAcc::~CpuConvLayerAcc() {}
 
 Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                              const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto status = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
+    LayerResource *fp32_res = nullptr;
+    RETURN_ON_NEQ(ConvertHalfResource(LAYER_CONVOLUTION, resource, &fp32_res), TNN_OK);
+    fp32_resource_ = std::shared_ptr<LayerResource>(fp32_res);
+    auto status    = CpuLayerAcc::Init(context, param, fp32_resource_.get(), inputs, outputs);
+
     if (status != TNN_OK) {
         return status;
     }
 
     auto conv_param = dynamic_cast<ConvLayerParam *>(param);
     CHECK_PARAM_NULL(conv_param);
-    auto conv_res = dynamic_cast<ConvLayerResource *>(resource);
+    auto conv_res = dynamic_cast<ConvLayerResource *>(resource_);
     CHECK_PARAM_NULL(conv_res);
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         if (!buffer_scale_.GetBytesSize()) {
@@ -63,7 +68,7 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
         }
 
         if (conv_param->fusion_type != FusionType_None && !buffer_add_scale_.GetBytesSize()) {
-            auto dims_output = outputs[0]->GetBlobDesc().dims;
+            auto dims_output    = outputs[0]->GetBlobDesc().dims;
             int total_byte_size = dims_output[1] * sizeof(float);
 
             auto add_input_resource  = reinterpret_cast<BlobInt8 *>(inputs[1])->GetIntResource();
@@ -88,7 +93,6 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
             }
             buffer_add_scale_ = temp_buffer;
         }
-
     }
     return TNN_OK;
 }
@@ -119,22 +123,22 @@ Status CpuConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
 
     if (data_type == DATA_TYPE_FLOAT) {
         NaiveConv<float, float, float, float>(input_ptr, output_ptr, weight_ptr, bias_ptr, input_dims, output_dims,
-                                            param->strides[1], param->strides[0], param->kernels[1], param->kernels[0],
-                                            param->pads[2], param->pads[0], param->group, param->dialations[1],
-                                            param->activation_type, NULL, 0);
+                                              param->strides[1], param->strides[0], param->kernels[1],
+                                              param->kernels[0], param->pads[2], param->pads[0], param->group,
+                                              param->dialations[1], param->activation_type, NULL, 0);
     } else if (data_type == DATA_TYPE_BFP16) {
         NaiveConv<bfp16_t, float, float, bfp16_t>(input_ptr, output_ptr, weight_ptr, bias_ptr, input_dims, output_dims,
-                                                param->strides[1], param->strides[0], param->kernels[1],
-                                                param->kernels[0], param->pads[2], param->pads[0], param->group,
-                                                param->dialations[1], param->activation_type, NULL, 0);
+                                                  param->strides[1], param->strides[0], param->kernels[1],
+                                                  param->kernels[0], param->pads[2], param->pads[0], param->group,
+                                                  param->dialations[1], param->activation_type, NULL, 0);
     } else if (data_type == DATA_TYPE_INT8) {
         float *scale_ptr = buffer_scale_.force_to<float *>();
         void *add_input  = (param->fusion_type == FusionType_None) ? nullptr : inputs[1]->GetHandle().base;
         NaiveConv<int8_t, int8_t, int32_t, int8_t>(
             input_ptr, output_ptr, weight_ptr, bias_ptr, input_dims, output_dims, param->strides[1], param->strides[0],
             param->kernels[1], param->kernels[0], param->pads[2], param->pads[0], param->group, param->dialations[1],
-            param->activation_type, scale_ptr, buffer_scale_.GetDataCount(), param->fusion_type,
-            add_input, buffer_add_scale_.force_to<float *>());
+            param->activation_type, scale_ptr, buffer_scale_.GetDataCount(), param->fusion_type, add_input,
+            buffer_add_scale_.force_to<float *>());
     } else {
         return Status(TNNERR_LAYER_ERR, "data type not support in conv");
     }
