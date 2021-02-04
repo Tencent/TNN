@@ -88,7 +88,9 @@ namespace optimizer {
         if (!is_quantized_net) {
             return TNN_OK;
         }
-
+        if (structure->layers.size() <= 1) {
+            return TNN_OK;
+        }
         // step1: do conv_post fusion before conv_add fusion
         if (conv_post_opt_) {
             ret = conv_post_opt_->Optimize(structure, resource);
