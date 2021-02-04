@@ -15,12 +15,14 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_CPU_CPU_LAYER_ACC_H_
 #define TNN_SOURCE_TNN_DEVICE_CPU_CPU_LAYER_ACC_H_
 
+#include <memory>
 #include <vector>
 
 #include "tnn/core/abstract_layer_acc.h"
 #include "tnn/device/cpu/acc/compute/compute_elewise.h"
 #include "tnn/device/cpu/acc/compute/compute_int8.h"
 #include "tnn/device/cpu/cpu_device.h"
+#include "tnn/interpreter/layer_resource_generator.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/bfp16_utils.h"
 
@@ -54,6 +56,30 @@ private:
         virtual ~Cpu##type_string##LayerAcc(){};                                                                       \
         virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
         virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
+    }
+
+#define CPU_CONVERT_HALF_RESOURCE(layer_type)                                                                          \
+    {                                                                                                                  \
+        LayerResource *fp32_res = nullptr;                                                                             \
+        RETURN_ON_NEQ(ConvertHalfResource(layer_type, resource, &fp32_res), TNN_OK);                                   \
+        fp32_resource_ = std::shared_ptr<LayerResource>(fp32_res);                                                     \
+        RETURN_ON_NEQ(CpuLayerAcc::Init(context, param, fp32_resource_.get(), inputs, outputs), TNN_OK);               \
+    }
+
+#define DECLARE_CPU_ACC_WITH_FP32_RESOURCE(type_string, layer_type)                                                    \
+    class Cpu##type_string##LayerAcc : public CpuLayerAcc {                                                            \
+    public:                                                                                                            \
+        virtual ~Cpu##type_string##LayerAcc(){};                                                                       \
+        virtual Status Init(Context *context, LayerParam *param, LayerResource *resource,                              \
+                            const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {                   \
+            CPU_CONVERT_HALF_RESOURCE(layer_type);                                                                     \
+            return TNN_OK;                                                                                             \
+        }                                                                                                              \
+        virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
+        virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
+                                                                                                                       \
+    protected:                                                                                                         \
+        std::shared_ptr<LayerResource> fp32_resource_ = nullptr;                                                       \
     }
 
 #define REGISTER_CPU_ACC(type_string, layer_type)                                                                      \

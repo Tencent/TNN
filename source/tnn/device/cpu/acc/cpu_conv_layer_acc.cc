@@ -24,14 +24,7 @@ CpuConvLayerAcc::~CpuConvLayerAcc() {}
 
 Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                              const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    LayerResource *fp32_res = nullptr;
-    RETURN_ON_NEQ(ConvertHalfResource(LAYER_CONVOLUTION, resource, &fp32_res), TNN_OK);
-    fp32_resource_ = std::shared_ptr<LayerResource>(fp32_res);
-    auto status    = CpuLayerAcc::Init(context, param, fp32_resource_.get(), inputs, outputs);
-
-    if (status != TNN_OK) {
-        return status;
-    }
+    CPU_CONVERT_HALF_RESOURCE(LAYER_CONVOLUTION);
 
     auto conv_param = dynamic_cast<ConvLayerParam *>(param);
     CHECK_PARAM_NULL(conv_param);

@@ -37,14 +37,7 @@ CpuDeconvLayerAcc::~CpuDeconvLayerAcc() {}
 
 Status CpuDeconvLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    LayerResource *fp32_res = nullptr;
-    RETURN_ON_NEQ(ConvertHalfResource(LAYER_DECONVOLUTION, resource, &fp32_res), TNN_OK);
-    fp32_resource_ = std::shared_ptr<LayerResource>(fp32_res);
-    auto status    = CpuLayerAcc::Init(context, param, fp32_resource_.get(), inputs, outputs);
-
-    if (status != TNN_OK) {
-        return status;
-    }
+    CPU_CONVERT_HALF_RESOURCE(LAYER_DECONVOLUTION);
 
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("CpuDeconvLayerAcc dont support DATA_TYPE_INT8");
