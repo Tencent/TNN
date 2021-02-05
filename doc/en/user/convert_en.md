@@ -140,7 +140,7 @@ Here are the explanations for each parameter:
 - half parameter (optional)
    You can optimize the model with the "-half" parameter. The model data will be stored in FP16 to reduce the size of the model by setting this parameter. By default, the model data is stored in FP32.
 - align parameter (optional)
-    You can optimize the model with the "-align" parameter. Compare TNN model and original model to determine whether TNN model is correct. If you remove "-align", model align will not run; if you use "-align" or "-align output", this tool will compare the last output of TNN model and original model; if the model is not align, you can use '-align all' to align layer by layer, and the information of the first unaligned layer will be output.
+    You can optimize the model with the "-align" parameter. Compare TNN model and original model to determine whether TNN model is correct. If you remove "-align", model align will not run; if you use "-align" or "-align output", this tool will compare the last output of TNN model and original model; if the model is not align, you can use '-align all' to address the first unaligned layer.
 - fold_const parameter (optional)
     You can optimize the model with the "-fold_const" parameter. Enable tf constant_folding transformation before conversion.
 - input_file parameter (optional)
