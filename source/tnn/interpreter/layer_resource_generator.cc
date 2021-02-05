@@ -334,6 +334,7 @@ class BinaryLayerResourceGenerator : public LayerResourceGenerator {
         auto dst_res = new EltwiseLayerResource();
 
         dst_res->element_handle = ConvertHalfHandle(src_res->element_handle);
+        dst_res->element_shape  = src_res->element_shape;
 
         *fp32_res = dst_res;
         return TNN_OK;
@@ -346,6 +347,7 @@ class MaxLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class MinLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class DivLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class MulLayerResourceGenerator : public BinaryLayerResourceGenerator {};
+class SquaredDifferenceLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 
 /*
  * Generate Hdr resource
@@ -406,5 +408,6 @@ REGISTER_LAYER_RESOURCE(Max, LAYER_MAXIMUM);
 REGISTER_LAYER_RESOURCE(Min, LAYER_MINIMUM);
 REGISTER_LAYER_RESOURCE(Div, LAYER_DIV);
 REGISTER_LAYER_RESOURCE(Mul, LAYER_MUL);
+REGISTER_LAYER_RESOURCE(SquaredDifference, LAYER_SQUARED_DIFFERENCE);
 REGISTER_LAYER_RESOURCE(HdrGuide, LAYER_HDRGUIDE);
 }  // namespace TNN_NS

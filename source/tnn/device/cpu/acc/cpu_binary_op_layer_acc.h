@@ -41,7 +41,11 @@ private:
         virtual ~Cpu##type_string##LayerAcc(){};                                                                       \
         virtual Status Init(Context *context, LayerParam *param, LayerResource *resource,                              \
                             const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {                   \
-            CPU_CONVERT_HALF_RESOURCE(layer_type);                                                                     \
+            if (inputs.size() == 1) {                                                                                  \
+                CPU_CONVERT_HALF_RESOURCE(layer_type);                                                                 \
+            } else {                                                                                                   \
+                RETURN_ON_NEQ(CpuLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);                   \
+            }                                                                                                          \
             return TNN_OK;                                                                                             \
         }                                                                                                              \
                                                                                                                        \
