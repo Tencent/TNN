@@ -12,22 +12,6 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-// #include "tnn/device/cpu/acc/cpu_unary_layer_acc.h"
-
-// #include <math.h>
-
-// namespace TNN_NS {
-
-// typedef struct softplus_operator : unary_operator {
-//     virtual float operator()(float in) {
-//         return log(exp(in) + 1.0f);
-//     }
-// } SOFTPLUS_OP;
-
-// DECLARE_UNARY_ACC(Softplus, LAYER_SOFTPLUS, SOFTPLUS_OP);
-
-// REGISTER_CPU_ACC(Softplus, LAYER_SOFTPLUS);
-
 #include "tnn/device/x86/acc/x86_unary2_layer_acc.h"
 
 #include <cmath>
