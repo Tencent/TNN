@@ -70,7 +70,7 @@ cd <path_to_tnn>/scripts
 ```
 ./build_android.sh
 ```
-After the compilation is completed, the corresponding `armeabi-v7a` library, the` arm64-v8a` library and the `include` header file are generated in the` release` directory of the current directory.
+After the compilation is completed, the corresponding `armeabi-v7a` library, the` arm64-v8a` library and the `include` header file are generated in the` release` directory of the current directory. <font color="#dd0000">Notice that add `-Wl,--whole-archive tnn -Wl,--no-whole-archive` to the project, if tnn static library is compiled</font>.
 
 ## III. Cross-Compile in Linux
 

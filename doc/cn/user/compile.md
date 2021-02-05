@@ -75,7 +75,7 @@ cd <path_to_tnn>/scripts
 ./build_android.sh
 ```
 
-编译完成后，在当前目录的`release`目录下生成对应的`armeabi-v7a`库，`arm64-v8a`库和`include`头文件。
+编译完成后，在当前目录的`release`目录下生成对应的`armeabi-v7a`库，`arm64-v8a`库和`include`头文件。<font color="#dd0000">如果是编译成静态库，集成链接需添加`-Wl,--whole-archive tnn -Wl,--no-whole-archive`</font>。
 
 ## 三、ARM Linux跨平台交叉编译
 
@@ -122,7 +122,7 @@ cd <path_to_tnn>/scripts
 ```
 cd <path_to_tnn>/scripts
 ```
-2) 执行编译脚本
+1) 执行编译脚本
   - 编译不带openvino的版本
 ```
 ./build_linux_naive.sh
