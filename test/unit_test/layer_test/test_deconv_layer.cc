@@ -28,14 +28,14 @@ class DeconvLayerTest : public LayerTest,
                         public ::testing::WithParamInterface<
                             std::tuple<int, int, int, int, int, int, int, int, int, int, int, DataType, int>> {};
 INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
-                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 2, 3, 4, 13),
-                                            testing::Values(1, 2, 3, 4, 16),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 2, 5, 13),
+                                            testing::Values(1, 3, 4, 16),
                                             // input_size
                                             testing::Values(2, 3, 8, 15),
                                             // group
                                             testing::Values(1, 2, 5),
                                             // kernel
-                                            testing::Values(1, 2, 3, 4),
+                                            testing::Values(2, 3, 4),
                                             // dilation
                                             testing::Values(1),
                                             // stride
@@ -69,6 +69,10 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     int activation_type          = std::get<12>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    if (stride > kernel) {
+        GTEST_SKIP();
+    }
 
     if (input_size == 2 && kernel == 4 && pad_type == 2) {
         GTEST_SKIP();
