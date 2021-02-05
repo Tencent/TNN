@@ -226,6 +226,16 @@ TNN_NS::Status AlignTNNModel::FeedInputData() {
     status = ExtendMatMap(input_blobs_cpu, input_mat_map);
     RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
 
+    for (auto item : input_blobs_cpu) {
+        if (input_mat_map.count(item.first) == 0) {
+            LOGE("input mat map not found blob data (name: %s)\n", item.first.c_str());
+            return TNN_NS::Status(TNN_NS::TNNERR_COMMON_ERROR, "input mat not match with blobs");
+        }
+        TNN_NS::MatConvertParam param;
+        status = instance_cpu_->SetInputMat(input_mat_map[item.first], param, item.first);
+        RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
+    }
+
     return TNN_NS::TNN_OK;
 }
 

@@ -39,7 +39,9 @@ def main():
         version = args.version
         optimize = args.optimize
         half = args.half
-        align = args.align.lower()
+        align = args.align
+        if align is None:
+            align = 'output'
         align_batch = args.align_batch
         input_file = args.input_file_path
         ref_file = args.refer_file_path
