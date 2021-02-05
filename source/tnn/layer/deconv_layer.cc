@@ -58,8 +58,8 @@ Status DeconvLayer::InferOutputShape() {
     // Refactored the code to support tensorflow models
     if (pad_type == -1)  // default padding following the proto setting
     {
-        height_out          = stride_h * (height - 1) + kernel_extent_h - 2 * pad_h_begin;
-        width_out           = stride_w * (width - 1) + kernel_extent_w - 2 * pad_w_begin;
+        height_out = stride_h * (height - 1) + kernel_extent_h - 2 * pad_h_begin;
+        width_out  = stride_w * (width - 1) + kernel_extent_w - 2 * pad_w_begin;
     } else if (pad_type == 0 || pad_type == 1 || pad_type == 2 || pad_type == 3) {
         // The code below is based on the logic from tensorflow
         height_out = height * stride_h;
