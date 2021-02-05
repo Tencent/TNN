@@ -12,18 +12,29 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/x86/acc/x86_unary_layer_acc.h"
-#include <math.h>
+#include "tnn/device/x86/acc/x86_unary2_layer_acc.h"
+
+#include <cmath>
+#include <algorithm>
 
 namespace TNN_NS {
-typedef struct x86_log_sigmoid_operator : x86_unary_operator {
+typedef struct x86_log_sigmoid_operator : x86_unary2_operator {
     virtual float operator()(const float v) {
         return log(1.0f / (1.0f + exp(-v)));
     }
+
+    virtual Float4 operator()(const Float4 &v) {
+        return Float4::log(Float4::sigmoid(v));
+    }
+
+    virtual Float8 operator()(const Float8 &v) {
+        return Float8::log(Float8::sigmoid(v));
+    }
 } X86_LOGSIGMOID_OP;
 
-DECLARE_X86_UNARY_ACC(LogSigmoid, X86_LOGSIGMOID_OP);
-
+X86_REGISTER_UNARY2_KERNEL(LAYER_LOGSIGMOID, avx2, unary2_kernel_avx<X86_LOGSIGMOID_OP>);
+X86_REGISTER_UNARY2_KERNEL(LAYER_LOGSIGMOID, sse42, unary2_kernel_sse<X86_LOGSIGMOID_OP>);
+DECLARE_X86_UNARY2_ACC(LogSigmoid, LAYER_LOGSIGMOID);
 REGISTER_X86_ACC(LogSigmoid, LAYER_LOGSIGMOID);
 
 }   // namespace TNN_NS

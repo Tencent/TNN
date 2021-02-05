@@ -154,6 +154,16 @@ struct Float4 {
         dst.value = _mm_div_ps(one, _mm_add_ps(one, exp_ps(_mm_sub_ps(_mm_setzero_ps(), v.value))));
         return dst;
     }
+    static Float4 exp(const Float4 &v) {
+        Float4 dst;
+        dst.value = exp_ps(v.value);
+        return dst;
+    }
+    static Float4 log(const Float4 &v) {
+        Float4 dst;
+        dst.value = log_ps(v.value);
+        return dst;
+    }
     Float4 operator+(const Float4& lr) {
         Float4 dst;
         dst.value = _mm_add_ps(value, lr.value);
