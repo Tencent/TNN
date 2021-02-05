@@ -186,14 +186,8 @@ nvinfer1::IPluginV2DynamicExt* TensorRTPluginLayerBuilder::CreatePlugin(const vo
 }
 
 ILayer* TensorRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    std::vector<ITensor*> tensors;
-    int size = input_blobs_.size();
-    for (int i = 0; i < size; ++i) {
-        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[i])->GetForeignTensor();
-        auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-        tensors.push_back(tensor);
-    }
-    ILayer* layer = network->addPluginV2(tensors.data(), size, *this);
+    std::vector<ITensor*> tensors = GetInputITensors();
+    ILayer* layer = network->addPluginV2(tensors.data(), tensors.size(), *this);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
     }

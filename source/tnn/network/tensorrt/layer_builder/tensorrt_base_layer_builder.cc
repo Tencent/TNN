@@ -239,6 +239,10 @@ std::vector<ITensor*> TensorRTBaseLayerBuilder::GetInputITensors() {
         if (foreign_tensor) {
             auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
             if (tensorrt_tensor) {
+                if (nullptr == tensorrt_tensor->GetTensor()) {
+                    LOGE("InputITensors[%d]:%s got nullptr for layer %s\n", 
+                                        inputs.size(), blob->GetBlobDesc().name.c_str(), GetLayerName().c_str());
+                }
                 inputs.push_back(tensorrt_tensor->GetTensor());
             } else {
                 LOGE("GetInputITensors got non-TensorRTTensor\n");

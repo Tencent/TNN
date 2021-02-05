@@ -177,9 +177,14 @@ nvinfer1::ILayer* ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* networ
         buf_dims = recommend_dims;
     }
 
-    if (buf_dims.size() == 0 && buf->GetDataCount() != 1) {
-        LOGE("ConvertWeightToConstLayer got empty shapes\n");
-        return nullptr;
+    if (buf_dims.size() == 0) {
+        if (buf->GetDataCount() == 0) {
+            LOGE("Warning: ConvertWeightToConstLayer got empty buffer\n");
+            return nullptr;
+        } else if (buf->GetDataCount() > 1) {
+            LOGE("ConvertWeightToConstLayer got empty shapes\n");
+            return nullptr;
+        }
     }
 
     auto weightDims = ConvertToTRTDims(buf_dims);
@@ -191,7 +196,7 @@ nvinfer1::ILayer* ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* networ
             weightDims.d[i] = weightDims.d[i-diff];
         }
         for(int i = 0; i < diff; ++i) {
-             weightDims.d[i] = 1;
+            weightDims.d[i] = 1;
         }
     }
 

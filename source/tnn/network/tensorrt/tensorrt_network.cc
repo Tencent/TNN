@@ -26,6 +26,7 @@
 #include "tnn/utils/md5.h"
 #include "tnn/device/cuda/cuda_macro.h"
 #include "tnn/utils/blob_dump_utils.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
@@ -530,23 +531,26 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         auto foreign_blob = dynamic_cast<ForeignBlob*>(blob);
         auto foreign_tensor = foreign_blob->GetForeignTensor();
         auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
+        auto buf = net_resource_->constant_map[blob_name];
 
-        auto const_layer = ConvertWeightToConstLayer(m_trt_network, net_resource_->constant_map[blob_name].get());
-        const_layer->setName(blob_name.c_str());
+        {
+            std::stringstream ss;
+            ss << "<" << blob->GetBlobDesc().name << "> count:" << buf->GetDataCount();
+            ss << " DataType:" << buf->GetDataType() << " shape:[";
+            for(int i: blob->GetBlobDesc().dims) {ss <<  i << ","; }
+            ss << "]";
+            LOGD("Adding %s as weights from constant_map to trt network\n", ss.str().c_str());
+        }            
+        
+        auto const_layer = ConvertWeightToConstLayer(m_trt_network, buf.get());
         if (const_layer != nullptr) {
+            const_layer->setName(blob_name.c_str());
             tensorrt_tensor->SetTensor(const_layer->getOutput(0));
         } else {
             LOGE("Add Const [%s] as weights to trt network failed\n", blob_name.c_str());
             return TNNERR_LAYER_ERR;
         }
 
-        {
-            std::stringstream ss;
-            ss << "<" << blob->GetBlobDesc().name << "> shape:[";
-            for(int i: blob->GetBlobDesc().dims) {ss <<  i << ","; }
-            ss << "]";
-            LOGD("Add %s as weights from constant_map to trt network\n", ss.str().c_str());
-        }            
     }
 
     for (int layer_id = 0; layer_id < this->layers_.size(); layer_id++) {
@@ -703,10 +707,18 @@ Status TensorRTNetwork_::CheckConstBlobs() {
         if (false == IsBlobUsed(blob)) {
             continue;
         }
+
         if (shape_differ_layers.find(blob_name) != shape_differ_layers.end()) {
             const_input_blobs.push_back(blob_name);
         } else {
             const_weight_blobs.push_back(blob_name);
+            if (iter.second->GetDataCount() == 0) {
+                auto data_type = iter.second->GetDataType();
+                size_t ele_size = DataTypeUtils::GetBytesSize(data_type);
+                net_resource_->constant_map[iter.first] = std::make_shared<RawBuffer>(ele_size);
+                net_resource_->constant_map[iter.first]->SetDataType(data_type);
+                LOGD("Updating empty buffer [%s], so trt won't crash\n", blob_name.c_str());
+            }
         }
     }
 
