@@ -121,6 +121,14 @@ std::shared_ptr<const ImplementedPrecision> ArmDevice::GetImplementedPrecision(L
     return std::make_shared<ImplementedPrecision>();
 }
 
+std::shared_ptr<const ImplementedLayout> ArmDevice::GetImplementedLayout(LayerType type) {
+    auto &layer_layout_map = GetLayerLayoutMap();
+    if (layer_layout_map.count(type) > 0) {
+        return layer_layout_map[type];
+    }
+    return std::make_shared<ImplementedLayout>();
+}
+
 Context *ArmDevice::CreateContext(int device_id) {
     return new ArmContext();
 }
@@ -140,10 +148,20 @@ Status ArmDevice::RegisterLayerPrecision(LayerType type, std::shared_ptr<Impleme
     return TNN_OK;
 }
 
+Status ArmDevice::RegisterLayerLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+    GetLayerLayoutMap()[type] = layout;
+    return TNN_OK;
+}
+
 std::map<LayerType, std::shared_ptr<ImplementedPrecision>> &ArmDevice::GetLayerPrecisionMap() {
     static std::map<LayerType, std::shared_ptr<ImplementedPrecision>> layer_precision_map;
     return layer_precision_map;
-};
+}
+
+std::map<LayerType, std::shared_ptr<ImplementedLayout>> &ArmDevice::GetLayerLayoutMap() {
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
+    return layer_layout_map;
+}
 
 TypeDeviceRegister<ArmDevice> g_arm_device_register(DEVICE_ARM);
 
