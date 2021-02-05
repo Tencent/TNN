@@ -48,6 +48,8 @@ matrix:
     - name: "Windows | x64 | build"
       os: windows
       language: cpp
+      before_install:
+        - ./scripts/.ci/preflight.sh x86 || travis_terminate 0
       install:
         - PowerShell -Command 'Set-ExecutionPolicy -ExecutionPolicy RemoteSigned'
         - choco install ninja
@@ -62,6 +64,8 @@ matrix:
     - name: "Windows | x86 | build"
       os: windows
       language: cpp
+      before_install:
+        - ./scripts/.ci/preflight.sh x86 || travis_terminate 0
       install:
         - PowerShell -Command 'Set-ExecutionPolicy -ExecutionPolicy RemoteSigned'
         - choco install ninja
