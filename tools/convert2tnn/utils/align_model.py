@@ -268,7 +268,7 @@ def get_input_shape_from_tflite(tflite_path)->dict:
     input_details = interpreter.get_input_details()
     for item in input_details:
         name = item["name"]
-        shape = list(item["shape"])
+        shape = item["shape"].tolist()
         shape = nhwc_shape_to_nchw(shape)
 
         if item["dtype"] == np.float32:

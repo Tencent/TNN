@@ -88,14 +88,20 @@ public:
     template <class T>
     static Status ConvertFromNCHWToNHWC(Blob *src, Blob *dst) {
         ASSERT(src != nullptr);
-        const int num     = src->GetBlobDesc().dims[0];
-        const int channel = src->GetBlobDesc().dims[1];
-        const int height  = src->GetBlobDesc().dims[2];
-        const int width   = src->GetBlobDesc().dims[3];
-        T *src_data_ptr   = (T *)src->GetHandle().base;
-        T *dst_data_ptr = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
+        const int num           = src->GetBlobDesc().dims[0];
+        const int channel       = src->GetBlobDesc().dims[1];
+        const int height        = src->GetBlobDesc().dims[2];
+        const int width         = src->GetBlobDesc().dims[3];
+        T *src_data_ptr         = (T *)src->GetHandle().base;
+        T *dst_data_ptr         = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
+        auto *copy_src_data_ptr = new T[num * channel * height * width]();
+        std::memcpy(copy_src_data_ptr, src_data_ptr, num * channel * height * width * sizeof(T));
 
-        auto status = ConvertBetweenNHWCAndNCHW<T>(src_data_ptr, dst_data_ptr, num, channel, height, width, NCHW2NHWC);
+        auto status =
+            ConvertBetweenNHWCAndNCHW<T>(copy_src_data_ptr, dst_data_ptr, num, channel, height, width, NCHW2NHWC);
+
+        delete[] copy_src_data_ptr;
+
         return status;
     }
 
