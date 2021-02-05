@@ -46,7 +46,8 @@ Status X86_AVERAGE_POOLING(float *input, float *output, DimsVector input_dim, Di
 Status X86_FMA(float *input, float *output, float *scale, float *bias,
                bool shared_channel, bool has_bias, DimsVector output_dim);
 
-Status X86_REDUCE_CALCULATE(float *input, float *output, std::vector<int> axes,
+Status X86_REDUCE_CALCULATE(float *input, float *output, float *workspace,
+                            std::vector<std::tuple<int, int, int>> &reduce_dims,
                             DimsVector input_dim, DimsVector output_dim, X86ReduceOpType op_type);
 
 template <class T, int pack_c>

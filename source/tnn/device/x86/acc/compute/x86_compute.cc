@@ -461,7 +461,7 @@ Status X86_FMA(float *input_data, float *output_data, float *scale_data, float *
 
 template<X86ReduceOpType type>
 float reduce_iter_op(const float acc, const float v) {
-    return acc;
+    return acc + v;
 }
 
 template<X86ReduceOpType type>
@@ -469,28 +469,61 @@ float reduce_final_op(const float acc, const float num) {
     return acc;
 }
 
-template<> float reduce_iter_op<X86ReduceOpType::kMEAN>(const float acc, const float v) {return acc + v; }
 template<> float reduce_iter_op<X86ReduceOpType::kL1>(const float acc, const float v) {return acc + std::abs(v); }
-template<> float reduce_iter_op<X86ReduceOpType::kL2>(const float acc, const float v) {return acc + v * v; }
 template<> float reduce_iter_op<X86ReduceOpType::kMIN>(const float acc, const float v) {return std::min(acc, v); }
 template<> float reduce_iter_op<X86ReduceOpType::kMAX>(const float acc, const float v) {return std::max(acc, v); }
-template<> float reduce_iter_op<X86ReduceOpType::kSUM>(const float acc, const float v) {return acc + v; }
 template<> float reduce_iter_op<X86ReduceOpType::kPROD>(const float acc, const float v) {return acc * v; }
-template<> float reduce_iter_op<X86ReduceOpType::kLOGSUM>(const float acc, const float v) {return acc + v; }
-template<> float reduce_iter_op<X86ReduceOpType::kLOGSUMEXP>(const float acc, const float v) {return acc + std::exp(v); }
-template<> float reduce_iter_op<X86ReduceOpType::kSUMSQUARE>(const float acc, const float v) {return acc + v * v; }
 
 template<> float reduce_final_op<X86ReduceOpType::kMEAN>(const float acc, const float num) {return acc / num; }
-template<> float reduce_final_op<X86ReduceOpType::kL1>(const float acc, const float num) {return acc; }
-template<> float reduce_final_op<X86ReduceOpType::kL2>(const float acc, const float num) {return sqrt(acc); }
-template<> float reduce_final_op<X86ReduceOpType::kMIN>(const float acc, const float num) {return acc; }
-template<> float reduce_final_op<X86ReduceOpType::kMAX>(const float acc, const float num) {return acc; }
-template<> float reduce_final_op<X86ReduceOpType::kSUM>(const float acc, const float num) {return acc; }
-template<> float reduce_final_op<X86ReduceOpType::kPROD>(const float acc, const float num) {return acc; }
-template<> float reduce_final_op<X86ReduceOpType::kLOGSUM>(const float acc, const float num) {return std::log(acc); }
-template<> float reduce_final_op<X86ReduceOpType::kLOGSUMEXP>(const float acc, const float num) {return std::log(acc); }
-template<> float reduce_final_op<X86ReduceOpType::kSUMSQUARE>(const float acc, const float num) {return acc; }
 
+template<X86ReduceOpType type>
+void reduce_preprocess(float* input, float*& output, float* workspace, size_t count) {
+    output = input;
+}
+
+template<X86ReduceOpType type>
+void reduce_postprocess(float* input, float* output, size_t count) {
+    memcpy(output, input, count * sizeof(float));
+}
+
+template<> void reduce_preprocess<X86ReduceOpType::kL2>(float* input, float*& output, float* workspace, size_t count) {
+    for (size_t i = 0; i < count; ++i) {
+        workspace[i] = std::pow(input[i], 2);
+    }
+    output = workspace;
+}
+
+template<> void reduce_postprocess<X86ReduceOpType::kL2>(float* input, float* output, size_t count) {
+    for (size_t i = 0; i < count; ++i) {
+        output[i] = std::sqrt(input[i]);
+    }
+}
+
+template<> void reduce_preprocess<X86ReduceOpType::kLOGSUMEXP>(float* input, float*& output, float* workspace, size_t count) {
+    for (size_t i = 0; i < count; ++i) {
+        workspace[i] = std::exp(input[i]);
+    }
+    output = workspace;
+}
+
+template<> void reduce_postprocess<X86ReduceOpType::kLOGSUMEXP>(float* input, float* output, size_t count) {
+    for (size_t i = 0; i < count; ++i) {
+        output[i] = std::log(input[i]);
+    }
+}
+
+template<> void reduce_preprocess<X86ReduceOpType::kSUMSQUARE>(float* input, float*& output, float* workspace, size_t count) {
+    for (size_t i = 0; i < count; ++i) {
+        workspace[i] = std::pow(input[i], 2);
+    }
+    output = workspace;
+}
+
+template<> void reduce_postprocess<X86ReduceOpType::kLOGSUM>(float* input, float* output, size_t count) {
+    for (size_t i = 0; i < count; ++i) {
+        output[i] = std::log(input[i]);
+    }
+}
 
 template<X86ReduceOpType type>
 void reduce_kernel(float * input, float * output, size_t outer_size, size_t inner_size, size_t reduce_size) 
@@ -513,74 +546,98 @@ void reduce_kernel(float * input, float * output, size_t outer_size, size_t inne
     }
 }
 
-using reduce_kernel_ptr_t  = decltype(&reduce_kernel<X86ReduceOpType::kMEAN>);
+using reduce_kernel_ptr_t = decltype(&reduce_kernel<X86ReduceOpType::kMEAN>);
+using reduce_preprocess_ptr_t = decltype(&reduce_preprocess<X86ReduceOpType::kMEAN>);
+using reduce_postprocess_ptr_t = decltype(&reduce_postprocess<X86ReduceOpType::kMEAN>);
 
-Status X86_REDUCE_CALCULATE(float *input, float *output, std::vector<int> axes,
-                            DimsVector input_dim, DimsVector output_dim, X86ReduceOpType op_type) 
+Status X86_REDUCE_CALCULATE(float *input, float *output, float *workspace,
+                            std::vector<std::tuple<int, int, int>> &reduce_dims,
+                            DimsVector input_dim, DimsVector output_dim, X86ReduceOpType op_type)
 {
-    int outer_begin = 0;
-    int outer_end = input_dim.size() - 1;
-    int inner_begin = 0;
-    int inner_end = input_dim.size();
-    for(int axis : axes) {
-        inner_begin = std::max(inner_begin, axis + 1);
-        outer_end = std::min(outer_end, axis);
-    }
-
-    size_t outer_size = DimsVectorUtils::Count(input_dim, outer_begin, outer_end);
-    size_t inner_size = DimsVectorUtils::Count(input_dim, inner_begin, inner_end);
-    inner_size = inner_size == 0 ? 1 : inner_size;
-    size_t reduce_size = 1;
-    for(int axis : axes) {
-        reduce_size *= input_dim[axis];
-    }
-
-    printf("outer_size = %d, inner_size = %d, reduce_size = %d\n", outer_size, inner_size, reduce_size);
-    printf("axis = ");
-    for(int axis : axes) {
-        printf("%d, ", axis);
-    }
-    printf("\n");
-
     reduce_kernel_ptr_t reduce_kernel_ptr = nullptr;
+    reduce_preprocess_ptr_t reduce_preprocess_ptr = nullptr;
+    reduce_postprocess_ptr_t reduce_postprocess_ptr = nullptr;
     switch (op_type) {
         case X86ReduceOpType::kMEAN:
             reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kMEAN>;
+            reduce_preprocess_ptr = reduce_preprocess<X86ReduceOpType::kMEAN>;
+            reduce_postprocess_ptr = reduce_postprocess<X86ReduceOpType::kMEAN>;
             break;
         case X86ReduceOpType::kL1:
             reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kL1>;
+            reduce_preprocess_ptr = reduce_preprocess<X86ReduceOpType::kL1>;
+            reduce_postprocess_ptr = reduce_postprocess<X86ReduceOpType::kL1>;
             break;
         case X86ReduceOpType::kL2:
             reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kL2>;
+            reduce_preprocess_ptr = reduce_preprocess<X86ReduceOpType::kL2>;
+            reduce_postprocess_ptr = reduce_postprocess<X86ReduceOpType::kL2>;
             break;
         case X86ReduceOpType::kMIN:
             reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kMIN>;
+            reduce_preprocess_ptr = reduce_preprocess<X86ReduceOpType::kMIN>;
+            reduce_postprocess_ptr = reduce_postprocess<X86ReduceOpType::kMIN>;
             break;
         case X86ReduceOpType::kMAX:
             reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kMAX>;
+            reduce_preprocess_ptr = reduce_preprocess<X86ReduceOpType::kMAX>;
+            reduce_postprocess_ptr = reduce_postprocess<X86ReduceOpType::kMAX>;
             break;
         case X86ReduceOpType::kSUM:
             reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kSUM>;
+            reduce_preprocess_ptr = reduce_preprocess<X86ReduceOpType::kSUM>;
+            reduce_postprocess_ptr = reduce_postprocess<X86ReduceOpType::kSUM>;
             break;
         case X86ReduceOpType::kPROD:
             reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kPROD>;
+            reduce_preprocess_ptr = reduce_preprocess<X86ReduceOpType::kPROD>;
+            reduce_postprocess_ptr = reduce_postprocess<X86ReduceOpType::kPROD>;
             break;
         case X86ReduceOpType::kLOGSUM:
             reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kLOGSUM>;
+            reduce_preprocess_ptr = reduce_preprocess<X86ReduceOpType::kLOGSUM>;
+            reduce_postprocess_ptr = reduce_postprocess<X86ReduceOpType::kLOGSUM>;
             break;
         case X86ReduceOpType::kLOGSUMEXP:
             reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kLOGSUMEXP>;
+            reduce_preprocess_ptr = reduce_preprocess<X86ReduceOpType::kLOGSUMEXP>;
+            reduce_postprocess_ptr = reduce_postprocess<X86ReduceOpType::kLOGSUMEXP>;
             break;
         case X86ReduceOpType::kSUMSQUARE:
             reduce_kernel_ptr = reduce_kernel<X86ReduceOpType::kSUMSQUARE>;
+            reduce_preprocess_ptr = reduce_preprocess<X86ReduceOpType::kSUMSQUARE>;
+            reduce_postprocess_ptr = reduce_postprocess<X86ReduceOpType::kSUMSQUARE>;
             break;
         default:
             LOGE("Error, unknown binary op_type\n");
             return TNNERR_LAYER_ERR;
     }
 
-    reduce_kernel_ptr(input, output, outer_size, inner_size, reduce_size);
+    size_t input_count  = DimsVectorUtils::Count(input_dim);
+    size_t output_count = DimsVectorUtils::Count(output_dim);
 
+    float *ping_buf = nullptr;
+    float *pong_buf = workspace + input_count;
+    reduce_preprocess_ptr(input, ping_buf, workspace, input_count);
+    int first = 1;
+    for (int i = 0; i < reduce_dims.size(); ++i) {
+        auto reduce_dim   = reduce_dims[i];
+        auto outer_count  = std::get<0>(reduce_dim);
+        auto reduce_count = std::get<1>(reduce_dim);
+        auto inner_count  = std::get<2>(reduce_dim);
+
+        reduce_kernel_ptr(ping_buf, pong_buf, outer_count, inner_count, reduce_count);
+        if (first) {
+            first = 0;
+            ping_buf = workspace + input_count;
+            pong_buf = workspace;
+        } else {
+            float *tmp = pong_buf;
+            pong_buf = ping_buf;
+            ping_buf = tmp;
+        }
+    }
+    reduce_postprocess_ptr(ping_buf, output, output_count);
     return TNN_OK;
 }
 
