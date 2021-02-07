@@ -12,30 +12,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/dimension_expr.h"
-
-#include <string.h>
-#include <string>
-#include <stdio.h>
-
-#include "NvInfer.h"
-
-#include "tnn/network/tensorrt/utils.h"
-#include "tnn/core/macro.h"
+#include "tnn/network/tensorrt/layer_builder/activation_layer_builder.h"
 
 namespace TNN_NS {
 
-DimensionExpr::DimensionExpr(const nvinfer1::IDimensionExpr * idimexpr, nvinfer1::IExprBuilder &builder) :
-                    expr_(idimexpr), builder_(builder)
-{}
+DECLARE_TRT_ACTIVATION_LAYER_BUILDER(Softplus);
 
-DimensionExpr::DimensionExpr(const int v, nvinfer1::IExprBuilder &builder) :
-                    builder_(builder)
-{
-    expr_ = builder.constant(v);
+SoftplusTRTLayerBuilder::SoftplusTRTLayerBuilder(LayerType ignore) : ActivationTRTLayerBuilder(ignore) {
+    m_type = nvinfer1::ActivationType::kSOFTPLUS;
 }
 
-// @brief virtual destructor
-DimensionExpr::~DimensionExpr() {}
+REGISTER_TENSORRT_LAYER_BUILDER(Softplus, LAYER_SOFTPLUS);
 
-}
+}  //  namespace TNN_NS

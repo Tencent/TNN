@@ -34,16 +34,13 @@ nvinfer1::DataType ReshapeTRTPluginLayerBuilder::getOutputDataType(int index, co
 }
 
 ILayer* ReshapeTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    if (input_blobs_.size() == 1) {
+    auto input_tensors = GetInputITensors();
+    if (input_tensors.size() == 1) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     } else {
-        auto input_foreign_tensor1 = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
-        auto input_foreign_tensor2 = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
-        auto input_tensor1 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor1)->GetTensor();
-        auto input_tensor2 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor2)->GetTensor();
-        IShuffleLayer* layer = network->addShuffle(*input_tensor1);
+        IShuffleLayer* layer = network->addShuffle(*input_tensors[0]);
         if (layer != nullptr) {
-            layer->setInput(1, *(network->addShape(*input_tensor2)->getOutput(0)));
+            layer->setInput(1, *input_tensors[1]);
             layer->setName(layer_name_.c_str());
         }
         return layer;

@@ -15,6 +15,7 @@
 #include "tnn/core/const_folder.h"
 
 #include <string.h>
+#include <sstream>
 
 #include "tnn/core/blob_int8.h"
 #include "tnn/core/profile.h"
@@ -102,7 +103,7 @@ Status ConstFolder::Forward() {
             // never change input of layers SHAPE_DIFFER must be saved
             shape_differ_layers.insert(layer->GetLayerName());
         }
-        
+
         //save const input blob
         auto inputs = layer->GetInputBlobs();
         for (auto blob : inputs) {
@@ -114,7 +115,12 @@ Status ConstFolder::Forward() {
                 status= Blob2RawBuffer(blob, buffer);
                 RETURN_ON_NEQ(status, TNN_OK);
                 
-                LOGD("ConstFolder save const with name: %s\n", blob->GetBlobDesc().name.c_str());
+                {
+                    std::stringstream ss;
+                    ss << "<" << blob->GetBlobDesc().name << "> shape:[";
+                    for(int i: blob->GetBlobDesc().dims) {ss <<  i << ","; } ss << "]";
+                    LOGD("ConstFolder save const with name: %s\n", ss.str().c_str());
+                }
                 
                 constant_map[blob->GetBlobDesc().name] = buffer;
             }

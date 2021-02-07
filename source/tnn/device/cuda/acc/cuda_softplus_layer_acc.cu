@@ -12,30 +12,26 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/dimension_expr.h"
-
-#include <string.h>
-#include <string>
-#include <stdio.h>
-
-#include "NvInfer.h"
-
-#include "tnn/network/tensorrt/utils.h"
-#include "tnn/core/macro.h"
+#include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
-DimensionExpr::DimensionExpr(const nvinfer1::IDimensionExpr * idimexpr, nvinfer1::IExprBuilder &builder) :
-                    expr_(idimexpr), builder_(builder)
-{}
+DECLARE_CUDA_ACC(Softplus, LAYER_SOFTPLUS);
 
-DimensionExpr::DimensionExpr(const int v, nvinfer1::IExprBuilder &builder) :
-                    builder_(builder)
-{
-    expr_ = builder.constant(v);
+Status CudaSoftplusLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
 }
 
-// @brief virtual destructor
-DimensionExpr::~DimensionExpr() {}
-
+Status CudaSoftplusLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
 }
+
+Status CudaSoftplusLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+REGISTER_CUDA_ACC(Softplus, LAYER_SOFTPLUS);
+
+}  // namespace TNN_NS

@@ -35,6 +35,8 @@ public:
 
     Status Allocate(void** handle, size_t size);
 
+    Status ReAllocate(void** handle, size_t size);
+
     virtual Status Free(void* handle);
 
     virtual Status CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobDesc& desc, void* command_queue);
