@@ -43,6 +43,7 @@ bool CheckResult(std::string desc, int ret) {
 }
 
 DeviceType ConvertDeviceType(std::string device_type) {
+    std::transform(device_type.begin(), device_type.end(), device_type.begin(), ::toupper);
     if ("METAL" == device_type) {
         return DEVICE_METAL;
     } else if ("OPENCL" == device_type) {
@@ -128,15 +129,15 @@ void PrintConfig() {
         "\t-d, --device   \t(require) the device to run to check results, ie, "
         "OPENCL, METAL, ARM, CUDA, HUAWEI_NPU, NAIVE\n"
         "\t-i, --input    \t(optional) input file\n"
-        "\t-o, --output   \t(optional) dump output\n"
-        "\t-e, --end      \t(optional) compare output only\n"
         "\t-f, --ref      \t(optional) the reference output to compare\n"
-        "\t-n, --bias     \t(optional) bias val when preprocess image "
-        "input, ie, "
+        "\t-e, --end      \t(optional) compare output only\n"
+        "\t-n, --bias     \t(optional) bias val when preprocess image input, ie, "
         "0.0,0.0,0.0 \n"
-        "\t-s, --scale    \t(optional) scale val when preprocess image "
-        "input, ie, "
-        "1.0,1.0,1.0 \n");
+        "\t-s, --scale    \t(optional) scale val when preprocess image input, ie, "
+        "1.0,1.0,1.0 \n"
+        "\t\tformula: y = (x - bias) * scale\n"
+        "\t-o, --output   \t(optional) dump output\n"
+        "\t-b, --batch    \t(optional) check result of multi batch\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -154,19 +155,14 @@ int main(int argc, char* argv[]) {
     model_checker_param.dump_output = false;
     model_checker_param.ref_file    = std::make_pair("", NOTSUPPORT);
 
-    struct option long_options[] = {{"proto", required_argument, 0, 'p'},
-                                    {"model", required_argument, 0, 'm'},
-                                    {"device", required_argument, 0, 'd'},
-                                    {"input", required_argument, 0, 'i'},
-                                    {"output", no_argument, 0, 'o'},
-                                    {"end", no_argument, 0, 'e'},
-                                    {"ref", required_argument, 0, 'f'},
-                                    {"bias", required_argument, 0, 'n'},
-                                    {"scale", required_argument, 0, 's'},
-                                    {"help", no_argument, 0, 'h'},
-                                    {0, 0, 0, 0}};
+    struct option long_options[] = {{"proto", required_argument, 0, 'p'},  {"model", required_argument, 0, 'm'},
+                                    {"device", required_argument, 0, 'd'}, {"input", required_argument, 0, 'i'},
+                                    {"ref", required_argument, 0, 'f'},    {"end", no_argument, 0, 'e'},
+                                    {"bias", required_argument, 0, 'n'},   {"scale", required_argument, 0, 's'},
+                                    {"output", no_argument, 0, 'o'},       {"batch", no_argument, 0, 'b'},
+                                    {"help", no_argument, 0, 'h'},         {0, 0, 0, 0}};
 
-    const char* optstring = "p:m:d:i:oef:n:s:h";
+    const char* optstring = "p:m:d:i:f:en:s:obh";
 
     if (argc == 1) {
         PrintConfig();
@@ -225,6 +221,10 @@ int main(int argc, char* argv[]) {
                     model_checker_param.input_scale.push_back(atof(s.c_str()));
                 }
             } break;
+            case 'b':
+                printf("check result of multi batch\n");
+                model_checker_param.check_batch = true;
+                break;
             case 'h':
             case '?':
                 PrintConfig();
@@ -246,6 +246,11 @@ int main(int argc, char* argv[]) {
         net_config.network_type               = NETWORK_TYPE_HUAWEI_NPU;
     }
 
+    // for NAIVE only check output
+    if (net_config.device_type == DEVICE_NAIVE) {
+        model_checker_param.only_check_output = true;
+    }
+
     // only for metal device
     if (net_config.device_type == DEVICE_METAL) {
         //获取当前目录绝对路径
@@ -263,26 +268,26 @@ int main(int argc, char* argv[]) {
         return -1;
 
     ModelChecker model_checker;
+    auto status = model_checker.SetModelCheckerParams(model_checker_param);
+    if (status != TNN_OK) {
+        printf("set model_checker params failed! (error: %s)\n", status.description().c_str());
+        return -1;
+    }
+
     if (model_checker_param.only_check_output) {
         net_config.precision = PRECISION_AUTO;
     } else {
         net_config.precision = PRECISION_HIGH;
     }
-    Status status = model_checker.Init(net_config, model_config);
+    status = model_checker.Init(net_config, model_config);
     if (status != TNN_OK) {
-        printf("model_checker init failed!\n");
-        return -1;
-    }
-
-    ret = model_checker.SetModelCheckerParams(model_checker_param);
-    if (ret != 0) {
-        printf("set model_checker params failed!\n");
+        printf("model_checker init failed! (error: %s)\n", status.description().c_str());
         return -1;
     }
 
     status = model_checker.RunModelChecker();
     if (status != TNN_OK) {
-        printf("model check failed!\n");
+        printf("model check failed! (error: %s)\n", status.description().c_str());
         return -1;
     }
     printf("model check pass!\n");

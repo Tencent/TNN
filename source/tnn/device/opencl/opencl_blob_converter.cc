@@ -151,7 +151,7 @@ Status OpenCLBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam par
     std::string from_mat_key = ToString(mat.GetDeviceType()) + "_" + ToString(mat.GetMatType()) + "_" +
                                 ToString(param.reverse_channel) + "_" + ToString(do_scale_bias_);
     //create convert unit only once for every key
-    if (convert_to_mat_map_.count(from_mat_key) == 0) {
+    if (convert_from_mat_map_.count(from_mat_key) == 0) {
         OpenCLExecuteUnit unit;
         ret = CreateConvertUnit(unit, mat, param, false);
         if (ret != TNN_OK) {
@@ -416,20 +416,19 @@ Status OpenCLBlobConverterAcc::CopyMatToBufferData(Mat &mat, cl::CommandQueue *c
 
 Status OpenCLBlobConverterAcc::CopyScaleBiasToBuffer(MatConvertParam param, cl::CommandQueue *cl_command_queue) {
     cl_int cl_ret;
-    // Copy scale and bias to buffer
-    auto scale_buffer_ptr =
-        cl_command_queue->enqueueMapBuffer(*scale_buffer_, true, CL_MAP_WRITE, 0, scale_bias_buffer_size_, nullptr, nullptr, &cl_ret);
-    CHECK_CL_SUCCESS(cl_ret);
-    memcpy(scale_buffer_ptr, param.scale.data(), scale_bias_buffer_size_);
-    cl_ret = cl_command_queue->enqueueUnmapMemObject(*scale_buffer_, scale_buffer_ptr);
-    CHECK_CL_SUCCESS(cl_ret);
+    if (param.scale != host_scale_buffer_) {
+        // Copy scale to buffer
+        cl_ret = cl_command_queue->enqueueWriteBuffer(*scale_buffer_, CL_TRUE, 0, scale_bias_buffer_size_, param.scale.data());
+        CHECK_CL_SUCCESS(cl_ret);
+        host_scale_buffer_.assign(param.scale.begin(), param.scale.end());
+    }
 
-    auto bias_buffer_ptr =
-        cl_command_queue->enqueueMapBuffer(*bias_buffer_, true, CL_MAP_WRITE, 0, scale_bias_buffer_size_, nullptr, nullptr, &cl_ret);
-    CHECK_CL_SUCCESS(cl_ret);
-    memcpy(bias_buffer_ptr, param.bias.data(), scale_bias_buffer_size_);
-    cl_ret = cl_command_queue->enqueueUnmapMemObject(*bias_buffer_, bias_buffer_ptr);
-    CHECK_CL_SUCCESS(cl_ret);
+    if (param.bias != host_bias_buffer_) {
+        // Copy bias to buffer
+        cl_ret = cl_command_queue->enqueueWriteBuffer(*bias_buffer_, CL_TRUE, 0, scale_bias_buffer_size_, param.bias.data());
+        CHECK_CL_SUCCESS(cl_ret);
+        host_bias_buffer_.assign(param.bias.begin(), param.bias.end());
+    }
 
     return TNN_OK;
 }
