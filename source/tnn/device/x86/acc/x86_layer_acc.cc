@@ -30,6 +30,8 @@ Status X86LayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
         arch_ = avx2;
     } else if (cpu_with_isa(sse42)) {
         arch_ = sse42;
+    } else {
+        return Status(TNNERR_DEVICE_NOT_SUPPORT, "Cat not support X86 arch before SSE4.2");
     }
 
     return Reshape(inputs, outputs);
