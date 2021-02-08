@@ -106,5 +106,6 @@ Status ArmReshapeLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
 };
 
 REGISTER_ARM_ACC(Reshape, LAYER_RESHAPE);
+REGISTER_ARM_LAYOUT(LAYER_RESHAPE, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

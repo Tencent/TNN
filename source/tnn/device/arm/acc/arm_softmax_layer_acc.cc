@@ -134,5 +134,6 @@ Status ArmSoftmaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
 
 REGISTER_ARM_ACC(Softmax, LAYER_SOFTMAX)
 REGISTER_ARM_PRECISION_FP16(LAYER_SOFTMAX)
+REGISTER_ARM_LAYOUT(LAYER_SOFTMAX, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

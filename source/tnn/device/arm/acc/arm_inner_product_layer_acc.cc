@@ -273,5 +273,6 @@ Status ArmInnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
 }
 
 REGISTER_ARM_ACC(InnerProduct, LAYER_INNER_PRODUCT)
+REGISTER_ARM_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

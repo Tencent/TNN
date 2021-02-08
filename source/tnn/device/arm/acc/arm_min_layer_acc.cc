@@ -33,5 +33,6 @@ Status ArmMinLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 ArmMinLayerAcc::~ArmMinLayerAcc() {}
 
 REGISTER_ARM_ACC(Min, LAYER_MINIMUM)
+REGISTER_ARM_LAYOUT(LAYER_MINIMUM, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

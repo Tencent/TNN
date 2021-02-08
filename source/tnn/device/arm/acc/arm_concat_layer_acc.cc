@@ -416,5 +416,6 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 
 REGISTER_ARM_ACC(Concat, LAYER_CONCAT)
 REGISTER_ARM_PRECISION_FP16(LAYER_CONCAT)
+REGISTER_ARM_LAYOUT(LAYER_CONCAT, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

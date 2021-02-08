@@ -163,10 +163,17 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         std::vector<std::string> &input_names  = layer_info->inputs;
         std::vector<std::string> &output_names = layer_info->outputs;
 
+        DataFormat input_fmt = DATA_FORMAT_AUTO;
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
+            input_fmt = blob->GetBlobDesc().data_format;
             auto ret  = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
             RETURN_ON_NEQ(ret, TNN_OK);
+        }
+
+        DataFormat output_fmt = input_fmt;
+        if (layer_info->type == LAYER_REFORMAT) {
+            output_fmt = dynamic_cast<ReformatLayerParam *>(layer_info->param.get())->dst_format;
         }
 
 #ifdef GENERATE_RESOURCE
@@ -206,6 +213,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
+            blob->GetBlobDesc().data_format = output_fmt;
             auto ret  = UpdateBlobPrecision(layer_info, false, is_quantized_net, name, net_resource, &blob);
             RETURN_ON_NEQ(ret, TNN_OK);
         }

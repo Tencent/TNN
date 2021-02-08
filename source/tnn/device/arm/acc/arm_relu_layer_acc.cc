@@ -60,5 +60,6 @@ Status ArmReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 
 REGISTER_ARM_ACC(Relu, LAYER_RELU)
 REGISTER_ARM_PRECISION_FP16(LAYER_RELU)
+REGISTER_ARM_LAYOUT(LAYER_RELU, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

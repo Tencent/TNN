@@ -99,7 +99,7 @@ namespace optimizer {
             return TNN_OK;
         }
 
-        std::vector<std::shared_ptr<LayerInfo>> layers_fused;
+        std::vector<std::shared_ptr<LayerInfo>> layers_modified;
         layer_choosed_layout.clear();
 
         // reformat input layers if needed.
@@ -116,7 +116,8 @@ namespace optimizer {
                         // get implemented layouts
                         auto implemented_layouts = device_->GetImplementedLayout(cur_layer->type);
                         if (!implemented_layouts || implemented_layouts->layouts.size() < 1) {
-                            LOGE("NetOptimizerInsertLayoutReformat Error: empty implemented_layouts\n");
+                            LOGE("NetOptimizerInsertLayoutReformat Error: empty implemented_layouts of layer %d\n",
+                                 cur_layer->type);
                             return Status(TNNERR_LAYER_ERR,
                                           "NetOptimizerInsertLayoutReformat Error: empty implemented_layouts");
                         }
@@ -149,15 +150,16 @@ namespace optimizer {
 
                 LOGD("Insert layout refomat layer : src %s dst %s\n", new_layer->inputs[0].c_str(),
                      new_layer->outputs[0].c_str());
-                layers_fused.push_back(new_layer);
+                layers_modified.push_back(new_layer);
             }
         }
 
         for (int index = 0; index < count; index++) {
             auto cur_layer = layers_orig[index];
-            layers_fused.push_back(cur_layer);
+            layers_modified.push_back(cur_layer);
             if (layer_choosed_layout.find(cur_layer->name) == layer_choosed_layout.end()) {
-                LOGE("NetOptimizerInsertLayoutReformat Error: layout of cur layer not choosen\n");
+                LOGE("NetOptimizerInsertLayoutReformat Error: layout of cur layer not choosen, index: %d, layer: %s\n",
+                     index, cur_layer->name.c_str());
                 return Status(TNNERR_LAYER_ERR,
                               "NetOptimizerInsertLayoutReformat Error: layout of cur layer not choosen");
             }
@@ -172,7 +174,8 @@ namespace optimizer {
                     auto next_layer         = layers_orig[next_id];
                     auto next_layer_layouts = device_->GetImplementedLayout(next_layer->type);
                     if (!next_layer_layouts || next_layer_layouts->layouts.size() < 1) {
-                        LOGE("NetOptimizerInsertLayoutReformat Error: empty implemented_layouts\n");
+                        LOGE("NetOptimizerInsertLayoutReformat Error: empty implemented_layouts of layer %d\n",
+                             next_layer->type);
                         return Status(TNNERR_LAYER_ERR,
                                       "NetOptimizerInsertLayoutReformat Error: empty implemented_layouts");
                     }
@@ -180,15 +183,15 @@ namespace optimizer {
                         if (next_in == cur_out) {
                             if (NeedDoReformat(cur_layer_layout, next_layer_layouts)) {
                                 // choose first implemented layout
-                                auto reformat_layout                  = next_layer_layouts->layouts[0];
-                                layer_choosed_layout[cur_layer->name] = reformat_layout;
-                                auto &reformat_outs                   = layout_reformat_outs[reformat_layout];
+                                auto reformat_layout                   = next_layer_layouts->layouts[0];
+                                layer_choosed_layout[next_layer->name] = reformat_layout;
+                                auto &reformat_outs                    = layout_reformat_outs[reformat_layout];
                                 if (std::find(reformat_outs.begin(), reformat_outs.end(), cur_out) ==
                                     reformat_outs.end()) {
                                     reformat_outs.push_back(cur_out);
                                 }
                             } else {
-                                layer_choosed_layout[cur_layer->name] = cur_layer_layout;
+                                layer_choosed_layout[next_layer->name] = cur_layer_layout;
                             }
                             break;
                         }
@@ -209,10 +212,11 @@ namespace optimizer {
 
                 LOGD("Insert layout refomat layer : src %s dst %s\n", new_layer->inputs[0].c_str(),
                      new_layer->outputs[0].c_str());
-                layers_fused.push_back(new_layer);
+                layers_modified.push_back(new_layer);
             }
         }
-        structure->layers = layers_fused;
+        structure->layers = layers_modified;
+        layer_choosed_layout.clear();
 
         return TNN_OK;
     }

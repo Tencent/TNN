@@ -120,6 +120,7 @@ Status ArmReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     return TNN_OK;
 }
 
-ArmTypeLayerAccRegister<TypeLayerAccCreator<ArmReformatLayerAcc>> g_arm_reformat_layer_acc_register(LAYER_REFORMAT);
+REGISTER_ARM_ACC(Reformat, LAYER_REFORMAT)
+REGISTER_ARM_LAYOUT(LAYER_REFORMAT, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

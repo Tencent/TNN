@@ -95,5 +95,6 @@ Status ArmInstanceNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
 }
 
 REGISTER_ARM_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
+REGISTER_ARM_LAYOUT(LAYER_INST_BATCH_NORM, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS
