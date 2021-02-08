@@ -15,10 +15,12 @@
 #ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_
 #define TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_
 
-#include "tnn/core/common.h"
-
 #include <cuda_runtime_api.h>
 #include <NvInfer.h>
+
+#include "tnn/core/macro.h"
+#include "tnn/core/common.h"
+#include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
 
@@ -47,6 +49,9 @@ nvinfer1::Dims ConvertToTRTDimsReverse(DimsVector dims);
 nvinfer1::DataType ConvertToTRTDataType(DataType type);
 
 nvinfer1::ILayer* AddReshapeToNetwork(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor* input_tensor, DimsVector reshape_dims, const char* layer_name);
+
+nvinfer1::ILayer* ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* network, RawBuffer *buf, DimsVector recommend_dims=DimsVector(), int expand_dims = 0);
+
 
 }  //  namespace TNN_NS
 

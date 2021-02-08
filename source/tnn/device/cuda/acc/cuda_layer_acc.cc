@@ -12,8 +12,10 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/core/abstract_device.h"
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
+
+#include "tnn/core/abstract_device.h"
+#include "tnn/utils/blob_transfer_utils.h"
 
 namespace TNN_NS {
 
@@ -34,8 +36,48 @@ Status CudaLayerAcc::Init(Context *context, LayerParam *param, LayerResource *re
     param_    = param;
     resource_ = resource;
     context_ = dynamic_cast<CudaContext*>(context);
+
+    auto status = ReloadConstantBlobs(inputs);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    return CudaLayerAcc::Reshape(inputs, outputs);
+}
+
+
+Status CudaLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
+    void *command_queue = nullptr;
+    context_->GetCommandQueue(&command_queue);
+
+    auto const_resource = const_resource_;
+    auto const_blob_map = const_blob_map_;
+    for (auto iter : inputs) {
+        auto name = iter->GetBlobDesc().name;
+        if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
+            continue;
+        }
+        
+        auto buffer = (*const_resource)[name];
+        if (buffer->GetBytesSize() == 0 ) {
+            continue;
+        }
+
+        std::shared_ptr<Blob> blob = nullptr;
+        auto status = RawBuffer2Blob(buffer.get(), blob);
+        RETURN_ON_NEQ(status, TNN_OK);
+
+        BlobDesc desc = blob->GetBlobDesc();
+        desc.device_type = DEVICE_CUDA;
+        auto cuda_blob = std::make_shared<Blob>(desc, true);
+        CopyToDevice(cuda_blob.get(), blob.get(), command_queue);
+        cuda_blob->flag = DATA_FLAG_CHANGE_NEVER;
+        const_blob_map[name] = cuda_blob;
+        iter->SetHandle(cuda_blob->GetHandle());
+        LOGD("CUDA Reload constant blob: %s\n", name.c_str());
+    }
+    const_blob_map_ = const_blob_map;
     return TNN_OK;
 }
+
 
 Status CudaLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;

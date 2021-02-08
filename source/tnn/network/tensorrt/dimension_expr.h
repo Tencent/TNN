@@ -28,6 +28,8 @@ class DimensionExpr {
 public:
     explicit DimensionExpr(const nvinfer1::IDimensionExpr * idimexpr, nvinfer1::IExprBuilder &builder);
 
+    explicit DimensionExpr(const int v, nvinfer1::IExprBuilder &builder);
+
     // @brief virtual destructor
     virtual ~DimensionExpr();
 
