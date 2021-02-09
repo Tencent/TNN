@@ -42,11 +42,16 @@ Status InnerProductOVLayerBuilder::Build() {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
-    auto input_node = GetInputNodes()[0];\
+    auto input_node = GetInputNodes()[0];
 
+    auto get_shape_count = [&](const ngraph::Shape &shape, int axis) -> size_t {
+        size_t res = 1;
+        for (int i=axis; i < shape.size();i++)
+            res *= shape[i];
+        return res;
+    };
     size_t m = input_node->get_output_shape(0)[0];
-    size_t n = input_node->get_output_shape(0)[1] * input_node->get_output_shape(0)[2] * \
-            input_node->get_output_shape(0)[3];
+    size_t n = get_shape_count(input_node->get_output_shape(0), 1);
     size_t k = paramlist->num_output;
 
     std::vector<int> matShape;
