@@ -26,16 +26,16 @@ namespace TNN_NS {
 
 class DeconvLayerTest : public LayerTest,
                         public ::testing::WithParamInterface<
-                            std::tuple<int, int, int, int, int, int, int, int, int, int, DataType, int>> {};
+                            std::tuple<int, int, int, int, int, int, int, int, int, int, int, DataType, int>> {};
 INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
-                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 2, 3, 4, 13),
-                                            testing::Values(1, 2, 3, 4, 16),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 2, 5, 13),
+                                            testing::Values(1, 3, 4, 16),
                                             // input_size
                                             testing::Values(2, 3, 8, 15),
                                             // group
                                             testing::Values(1, 2, 5),
                                             // kernel
-                                            testing::Values(1, 2, 3, 4),
+                                            testing::Values(2, 3, 4),
                                             // dilation
                                             testing::Values(1),
                                             // stride
@@ -44,6 +44,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
                                             testing::Values(1),
                                             // output_pads
                                             testing::Values(0),
+                                            // pad type
+                                            testing::Values(-1, 1, 2),
                                             // data_type
                                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16, DATA_TYPE_HALF),
                                             // activation_type
@@ -62,10 +64,19 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     int stride                   = std::get<7>(GetParam());
     int pad                      = std::get<8>(GetParam());
     int output_pad               = std::get<9>(GetParam());
-    auto data_type               = std::get<10>(GetParam());
-    int activation_type          = std::get<11>(GetParam());
+    int pad_type                 = std::get<10>(GetParam());
+    auto data_type               = std::get<11>(GetParam());
+    int activation_type          = std::get<12>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    if (stride > kernel) {
+        GTEST_SKIP();
+    }
+
+    if (input_size == 2 && kernel == 4 && pad_type == 2) {
+        GTEST_SKIP();
+    }
 
     if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
         GTEST_SKIP();
@@ -119,6 +130,8 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
 
     if (output_pad > 0) {
         param->pad_type = 3;
+    } else {
+        param->pad_type = pad_type;
     }
 
     Precision precision = SetPrecision(dev, data_type);
