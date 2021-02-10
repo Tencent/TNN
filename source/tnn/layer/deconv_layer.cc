@@ -52,13 +52,14 @@ Status DeconvLayer::InferOutputShape() {
 
     const int pad_type = deconv_param->pad_type;
 
+    int kernel_extent_h = dilation_h * (kernel_h - 1) + 1;
+    int kernel_extent_w = dilation_w * (kernel_w - 1) + 1;
+
     // Refactored the code to support tensorflow models
     if (pad_type == -1)  // default padding following the proto setting
     {
-        int kernel_extent_h = dilation_h * (kernel_h - 1) + 1;
-        int kernel_extent_w = dilation_w * (kernel_w - 1) + 1;
-        height_out          = stride_h * (height - 1) + kernel_extent_h - 2 * pad_h_begin;
-        width_out           = stride_w * (width - 1) + kernel_extent_w - 2 * pad_w_begin;
+        height_out = stride_h * (height - 1) + kernel_extent_h - 2 * pad_h_begin;
+        width_out  = stride_w * (width - 1) + kernel_extent_w - 2 * pad_w_begin;
     } else if (pad_type == 0 || pad_type == 1 || pad_type == 2 || pad_type == 3) {
         // The code below is based on the logic from tensorflow
         height_out = height * stride_h;
@@ -69,19 +70,19 @@ Status DeconvLayer::InferOutputShape() {
             width_out  = width * stride_w;
         } else if (pad_type == 1)  // VALID type
         {
-            height_out = height * stride_h + std::max(kernel_h - stride_h, 0);
-            width_out  = width * stride_w + std::max(kernel_w - stride_w, 0);
+            height_out = height * stride_h + std::max(kernel_extent_h - stride_h, 0);
+            width_out  = width * stride_w + std::max(kernel_extent_w - stride_w, 0);
         } else if (pad_type == 2)  // FULL type
         {
-            height_out = height * stride_h - (stride_h + kernel_h - 2);
-            width_out  = width * stride_w - (stride_w + kernel_w - 2);
+            height_out = height * stride_h - (stride_h + kernel_extent_h - 2);
+            width_out  = width * stride_w - (stride_w + kernel_extent_w - 2);
         } else {
             LOGE("Error: DeconvLayer dont support pad type: %d\n", pad_type);
             return Status(TNNERR_PARAM_ERR, "Error: DeconvLayer dont support pad type");
         }
 
-        int pad_along_height = ((height - 1) * stride_h + kernel_h - height_out);
-        int pad_along_width  = ((width - 1) * stride_w + kernel_w - width_out);
+        int pad_along_height = ((height - 1) * stride_h + kernel_extent_h - height_out);
+        int pad_along_width  = ((width - 1) * stride_w + kernel_extent_w - width_out);
         if (pad_type == 3) {
             pad_along_height = std::max(pad_along_height, 0);
             pad_along_width  = std::max(pad_along_width, 0);
