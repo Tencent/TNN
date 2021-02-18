@@ -23,7 +23,6 @@ from converter import logging
 import os
 import sys
 import time
-import align_tool
 
 
 def caffe2onnx(proto_path, model_path, output_path):
@@ -67,26 +66,23 @@ def convert(proto_path, model_path, output_dir, version, optimize, half, align,
         align = False
         optimize = False
 
+    proto_suffix = '.tnnproto'
+    model_suffix = '.tnnmodel'
+    onnx_base_name = os.path.basename(onnx_path)
+    if optimize is True:
+        tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
+        tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
+    else:
+        tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
+        tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
+    tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
+    tnn_model_path = os.path.join(output_dir, tnn_model_name)
+
     if align == 'output':
-        proto_suffix = '.tnnproto'
-        model_suffix = '.tnnmodel'
-        onnx_base_name = os.path.basename(onnx_path)
-        if optimize is True:
-            tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
-            tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
-        else:
-            tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
-            tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
-        tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
-        tnn_model_path = os.path.join(output_dir, tnn_model_name)
         align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, debug_mode=debug_mode)
     elif align == 'all':
         is_opt = '.opt' if optimize else ''
         onnx_base_name = os.path.basename(onnx_path)
-        src_model_name = onnx_base_name[:-len('.onnx')] + is_opt + '.onnx'
-        tnn_proto_name = onnx_base_name[:-len('.onnx')] + is_opt + '.tnnproto'
-        src_model_path = os.path.join(output_dir, src_model_name)
-        tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
         is_align_all = (align == 'all')
-        align_tool.align_model.align_tool(src_model_path, tnn_proto_path,
-                                          is_align_all, None, input_path, refer_path)
+        align_model.align_all(onnx_path, tnn_proto_path,
+                              is_align_all, None, input_path, refer_path)

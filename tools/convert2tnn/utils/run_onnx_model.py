@@ -20,7 +20,7 @@ import os
 import numpy as np
 
 from collections import OrderedDict
-from align_tool.run_src_model.run_src_model import BaseRunner
+from utils.run_src_model import BaseRunner
 
 
 class OnnxRunner(BaseRunner):
