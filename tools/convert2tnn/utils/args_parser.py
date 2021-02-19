@@ -135,9 +135,14 @@ def parse_args():
                                   default='',
                                   action='store',
                                   required=False,
+                                  choices=[None, 'output', 'all'],
+                                  nargs='?',
+                                  type=str,
                                   help='align the onnx model with tnn model. '
-                                       'e.g., if you want to align the final output, you can use -align output'
-                                       'if you want to align whole model, you can use -align all')
+                                       'e.g., if you want to align the last output, you can use \'-align\' '
+                                       'or \'-align output\'; '
+                                       'if the model is not align, you can use \'-align all\' '
+                                       'to address the first unaligned layer')
     caffe2tnn_parser.add_argument('-input_file',
                                   dest='input_file_path',
                                   action='store',
@@ -211,9 +216,14 @@ def parse_args():
                                default='',
                                action='store',
                                required=False,
+                               choices=[None, 'output', 'all'],
+                               nargs='?',
+                               type=str,
                                help='align the onnx model with tnn model. '
-                                    'e.g., if you want to align the final output, you can use -align output'
-                                    'if you want to align whole model, you can use -align all')
+                                    'e.g., if you want to align the last output, you can use \'-align\' '
+                                    'or \'-align output\'; '
+                                    'if the model is not align, you can use \'-align all\' '
+                                    'to address the first unaligned layer')
     tf2tnn_parser.add_argument('-not_fold_const',
                                dest='not_fold_const',
                                default=False,

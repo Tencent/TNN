@@ -38,7 +38,6 @@ function build_model_check_and_tnn_converter_and_onnx2tnn() {
         -DTNN_MODEL_CHECK_ENABLE:BOOL="ON" \
         -DTNN_CONVERTER_ENABLE:BOOL="ON" \
         -DTNN_ONNX2TNN_ENABLE:BOOL="ON" \
-        -DTNN_ALIGN_TOOL_ENABLE="ON" \
         -DTNN_BUILD_SHARED="OFF"
 
     make -j4
@@ -57,13 +56,6 @@ function build_model_check_and_tnn_converter_and_onnx2tnn() {
     else
         echo "Compiled TNNConverter failed !!!"
     fi
-
-    if [ -f "align_tool" ]; then
-        cp align_tool ../${BIN_DIR}/
-        echo "Compiled align_tool successfully !"
-    else
-        echo "Compiled align tool failed !!!"
-    fi 
 
     #From the date 20210123 on, onnx2tnn is compiled by default with Cmake option DTNN_CONVERTER_ENABLE
     onnx2nn_files=$(ls -U tools/onnx2tnn/onnx-converter/onnx2tnn*.so);

@@ -15,21 +15,29 @@
 import linecache
 import logging
 import os
+import pathlib
 import sys
 
 import numpy as np
 
 from multiprocessing import Pool
-from align_tool.run_src_model.utils import cmd
-from align_tool.run_src_model.utils.run_src_model_utils import convert_to_tnn_name
-from align_tool.run_src_model.utils.run_src_model_utils import get_dump_dir_path
-from align_tool.run_src_model.utils.run_src_model_utils import print_align_message
-from align_tool.run_src_model.utils.run_src_model_utils import print_not_align_message
+from utils import cmd
+
 
 TNN_MAGIC_NUMBER = 0x0FABC0002
 TNN_MAGIC_NUMBER_V2 = 0x0FABC0004
 
 np.random.seed(0)
+
+
+def print_align_message(is_tflite: bool = False):
+    logging.info("{}  Congratulations!   {}".format("-" * 10, "-" * 10))
+    logging.info("The {} model is aligned with tnn model\n" .format("tflite" if is_tflite else "onnx"))
+
+
+def print_not_align_message(is_tflite=False):
+    logging.error("{}   Unfortunately   {}" .format("-" * 10, "-" * 10))
+    logging.error("The {} model is not aligned with tnn model\n" .format("tflite" if is_tflite else "onnx"))
 
 
 class BaseRunner:
@@ -49,8 +57,21 @@ class BaseRunner:
         self.input_data = {}
         self.dump_data = {}
 
+    def get_dump_dir_path(self) -> str:
+        convert2tnn_path = pathlib.Path(__file__).parent.parent
+        data_dir = os.path.join(convert2tnn_path, "temp_data/")
+
+        if os.path.exists(data_dir):
+            command = "rm -rf {}".format(data_dir)
+            cmd.run(command)
+
+        command = "mkdir {}".format(data_dir)
+        cmd.run(command)
+
+        return data_dir
+
     def create_dump_dir(self):
-        self.dump_dir_path = get_dump_dir_path()
+        self.dump_dir_path = self.get_dump_dir_path()
 
     def get_src_model_input_information(self) -> dict:
         pass
@@ -105,7 +126,7 @@ class BaseRunner:
             logging.info("input is not algin 186\n")
             # print_not_align_message("onnx input size != tnn input size")
         for name, onnx_info in src_model_input_information.items():
-            tnn_name = convert_to_tnn_name(name)
+            tnn_name = name.replace(":", "_")
             tnn_info = tnn_model_input_information[tnn_name]
             if self.check_shape_information(onnx_info, tnn_info):
                 logging.info("Input shape of onnx and tnn is aligned!\n")
@@ -153,21 +174,15 @@ class BaseRunner:
         with Pool(4) as p:
             p.starmap(self.dump_single_output, param_list)
 
-    def run_align_tool(self) -> bool:
-        align_tool_path = os.path.join(self.dump_dir_path[:-9], "bin/align_tool")
+    def run_model_check(self) -> bool:
+        model_check_path = os.path.join(self.dump_dir_path[:-10], "bin/model_check")
         tnn_model_path = self.tnn_proto_path[:-9] + ".tnnmodel"
-        command = "{} -p {} -m {} -u {}".format(
-            align_tool_path, self.tnn_proto_path, tnn_model_path, self.dump_dir_path)
+        input_path = os.path.join(self.dump_dir_path, "input.txt")
+        command = "{} -p {} -m {} -i {} -a {} -d NAIVE".format(
+            model_check_path, self.tnn_proto_path, tnn_model_path, input_path, self.dump_dir_path)
+        logging.debug(command)
 
         return cmd.run(command, log_level="error")
-
-    def generate_dump_file_list(self, dump_data: dict):
-        dump_file_list_path = os.path.join(self.dump_dir_path, "dump_file_list.txt")
-        data_file = open(dump_file_list_path, "w")
-        data_file.write("{}\n" .format(len(dump_data)))
-        for name in dump_data.keys():
-            data_file.write(name + "\n")
-        data_file.close()
 
     def remove_dump_file(self) -> bool:
         command = "rm -rf {}" .format(self.dump_dir_path)
@@ -187,14 +202,13 @@ class BaseRunner:
 
         dump_data = self.inference()
 
-        self.generate_dump_file_list(dump_data)
-
         self.dump_all_output(dump_data)
 
-        status = self.run_align_tool()
+        status = self.run_model_check()
         if status == 0:
             self.remove_dump_file()
             print_align_message(self.is_tflite)
             return
         print_not_align_message(self.is_tflite)
+
         return
