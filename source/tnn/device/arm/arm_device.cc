@@ -44,11 +44,16 @@ ArmDevice::~ArmDevice() {}
 BlobMemorySizeInfo ArmDevice::Calculate1DMemorySize(BlobDesc &desc) {
     BlobMemorySizeInfo info;
     info.data_type = desc.data_type;
-    int count      = 0;
-    if (desc.data_type == DATA_TYPE_HALF) {
-        count = desc.dims[0] * ROUND_UP(desc.dims[1], 8) * desc.dims[2] * desc.dims[3];
+    int count      = 1;
+    if (desc.data_format == DATA_FORMAT_NCHW) {
+        for (auto d : desc.dims)
+            count *= d;
     } else {
-        count = desc.dims[0] * ROUND_UP(desc.dims[1], 4) * desc.dims[2] * desc.dims[3];
+        if (desc.data_type == DATA_TYPE_HALF) {
+            count = desc.dims[0] * ROUND_UP(desc.dims[1], 8) * DimsVectorUtils::Count(desc.dims, 2);
+        } else {
+            count = desc.dims[0] * ROUND_UP(desc.dims[1], 4) * DimsVectorUtils::Count(desc.dims, 2);
+        }
     }
     info.dims.push_back(count);
     return info;

@@ -72,7 +72,7 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
     }
     auto desc       = blob_->GetBlobDesc();
     auto dims       = desc.dims;
-    auto hw         = dims[2] * dims[3];
+    auto hw         = DimsVectorUtils::Count(dims, 2);
     auto c_r4       = ROUND_UP(dims[1], 4);
     auto handle_ptr = GetBlobHandlePtr(blob_->GetHandle());
     if (desc.data_type == DATA_TYPE_INT8) {
@@ -98,7 +98,7 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
         // In aarch32 or armv7, first reformat half blob to float blob.
         tmp_float_blob = RawBuffer(dims[0] * c_r4 * hw * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT));
         HalfC8ToFloatC4(tmp_float_blob.force_to<float *>(), reinterpret_cast<fp16_t *>(handle_ptr),
-                        dims[0], dims[1], dims[2] * dims[3]);
+                        dims[0], dims[1], DimsVectorUtils::Count(dims, 2));
         // In aarch32 or armv7, then convert from float blob.
         cvt_data_type  = DATA_TYPE_FLOAT;
         cvt_handle_ptr = tmp_float_blob.force_to<char *>();
@@ -120,7 +120,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
     }
     auto desc       = blob_->GetBlobDesc();
     auto dims       = desc.dims;
-    auto hw         = dims[2] * dims[3];
+    auto hw         = DimsVectorUtils::Count(dims, 2);
     auto handle_ptr = GetBlobHandlePtr(blob_->GetHandle());
     auto c_r4       = ROUND_UP(dims[1], 4);
     if (desc.data_type == DATA_TYPE_INT8) {
@@ -169,7 +169,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
     if (desc.data_type == DATA_TYPE_HALF) {
         // In aarch32 or armv7, then reformat float blob to half blob.
         FloatC4ToHalfC8(reinterpret_cast<fp16_t *>(handle_ptr), reinterpret_cast<float *>(cvt_handle_ptr),
-                        dims[0], dims[1], dims[2] * dims[3]);
+                        dims[0], dims[1], DimsVectorUtils::Count(dims, 2));
     }
 #endif
 */
