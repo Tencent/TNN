@@ -18,19 +18,10 @@
 
 #include "tnn/device/arm/acc/convolution/arm_conv_layer_acc_factory.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_layer_group.h"
+#include "tnn/interpreter/layer_resource_generator.h"
 #include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
-
-static std::shared_ptr<LayerResource> CreateFp32ConvResource(ConvLayerResource *conv_f16) {
-    ConvLayerResource *conv_f32 = new ConvLayerResource();
-
-    conv_f32->filter_handle = ConvertHalfHandle(conv_f16->filter_handle);
-    conv_f32->scale_handle  = ConvertHalfHandle(conv_f16->scale_handle);
-    conv_f32->bias_handle   = ConvertHalfHandle(conv_f16->bias_handle);
-
-    return std::shared_ptr<LayerResource>(conv_f32);
-}
 
 Status ArmConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                              const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -41,7 +32,9 @@ Status ArmConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     CHECK_PARAM_NULL(conv_res);
 
     if (conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF) {
-        conv_acc_f32_resource_ = CreateFp32ConvResource(conv_res);
+        LayerResource *fp32_res = nullptr;
+        RETURN_ON_NEQ(ConvertHalfResource(LAYER_CONVOLUTION, conv_res, &fp32_res), TNN_OK);
+        conv_acc_f32_resource_ = std::shared_ptr<LayerResource>(fp32_res);
         ret                    = ArmLayerAcc::Init(context, param, conv_acc_f32_resource_.get(), inputs, outputs);
     } else {
         ret = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
@@ -79,6 +72,11 @@ Status ArmConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
 }
 
 Status ArmConvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    // converted weights are assumed to be packed, and can be freed now
+    if (conv_acc_f32_resource_) {
+        conv_acc_f32_resource_.reset();
+    }
+
     if (conv_acc_impl_) {
         return conv_acc_impl_->DoForward(inputs, outputs);
     } else {
