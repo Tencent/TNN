@@ -27,37 +27,9 @@
 #include "tnn/layer/base_layer.h"
 #include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
 #include "tnn/network/openvino/openvino_types.h"
+#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
-
-ngraph::element::Type_t ConvertToOVDataType(DataType type) {
-    switch (type) {
-        case DATA_TYPE_FLOAT:
-            return ngraph::element::Type_t::f32;
-        case DATA_TYPE_HALF:
-            return ngraph::element::Type_t::f16;
-        case DATA_TYPE_INT32:
-            return ngraph::element::Type_t::i32;
-        case DATA_TYPE_INT64:
-            return ngraph::element::Type_t::i64;
-        default:
-            return ngraph::element::Type_t::f32;
-    }
-}
-
-std::shared_ptr<ngraph::op::Constant> ConvertToConstNode(RawBuffer *buffer) {
-    ngraph::Shape constShape;
-    if (buffer->GetBufferDims().size() > 0) {
-        for (auto &iter : buffer->GetBufferDims()) {
-            constShape.push_back(iter);
-        }
-    } else {
-        constShape.push_back(1);
-    }
-    
-    return std::make_shared<ngraph::op::Constant>(ConvertToOVDataType(buffer->GetDataType()), constShape,
-                                                  buffer->force_to<int32_t *>());
-}
 
 DECLARE_OPENVINO_LAYER_BUILDER(Gather, LAYER_GATHER);
 

@@ -22,6 +22,7 @@
 #include "tnn/network/openvino/openvino_types.h"
 
 #include "tnn/network/openvino/custom_layer/custom_implementation.h"
+#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
 
@@ -268,13 +269,7 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
                     // printf("const blob name %s\n", name.c_str());
                     blob->flag = DATA_FLAG_CHANGE_NEVER;
 
-                    ngraph::Shape ngraph_const_shape;
-                    for (auto d : const_blobs[name]->GetBufferDims()) {
-                        ngraph_const_shape.push_back(d);
-                    }
-
-                    std::shared_ptr<ngraph::op::Constant> const_node =
-                        std::make_shared<ngraph::op::Constant>(ngraph::element::i32, ngraph::Shape(ngraph_const_shape));
+                    auto const_node = ConvertToConstNode(const_blobs[name].get());
                     const_node->set_friendly_name(name);
 
                     auto foreign_blob = new ForeignBlob(blob);
