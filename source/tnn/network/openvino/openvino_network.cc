@@ -257,7 +257,42 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
 Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *net_resource) {
     Status ret = TNN_OK;
 
+    auto const_blobs = net_resource->constant_map;
     for (auto layer_info : net_structure->layers) {
+        std::vector<std::string> &input_names = layer_info->inputs;
+        for (auto name : input_names) {
+            auto blob = blob_manager_->GetBlob(name);
+            if (const_blobs.find(name) != const_blobs.end()) {
+                blob->GetBlobDesc().data_type = const_blobs[name]->GetDataType();
+                if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+                    // printf("const blob name %s\n", name.c_str());
+                    blob->flag = DATA_FLAG_CHANGE_NEVER;
+
+                    ngraph::Shape ngraph_const_shape;
+                    for (auto d : const_blobs[name]->GetBufferDims()) {
+                        ngraph_const_shape.push_back(d);
+                    }
+
+                    std::shared_ptr<ngraph::op::Constant> const_node =
+                        std::make_shared<ngraph::op::Constant>(ngraph::element::i32, ngraph::Shape(ngraph_const_shape));
+                    const_node->set_friendly_name(name);
+
+                    auto foreign_blob = new ForeignBlob(blob);
+                    foreign_blob->SetForeignTensor(std::make_shared<OpenvinoTensor>(const_node));
+
+                    blob_manager_->ReplaceBlob(name, foreign_blob);
+                }
+            }
+        }
+    }
+
+    auto const_layers = net_resource->constant_layers;
+
+    for (auto layer_info : net_structure->layers) {
+        if (runtime_model_ == RUNTIME_MODE_NORMAL && const_layers.find(layer_info->name) != const_layers.end()) {
+            continue;
+        }
+
         LayerType type       = layer_info->type;
         OpenVINOLayerBuilder *cur_layer = CreateOpenVINOLayerBuilder(type);
         
