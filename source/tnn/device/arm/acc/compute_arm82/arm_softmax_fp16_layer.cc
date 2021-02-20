@@ -24,7 +24,7 @@ Status ArmSoftmaxLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std
     int data_byte_size = sizeof(fp16_t);
     SoftmaxPreparation();
 
-    size_t reorder_size   = dims[1] * dims[2] * dims[3];
+    size_t reorder_size   = dims[1] * hw;
     size_t max_value_size = inside;
     size_t sum_value_size = inside;
 
@@ -39,10 +39,10 @@ Status ArmSoftmaxLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std
     fp16_t *output_origin = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
-        auto input_ptr  = input_origin + batch_idx * width * height * ROUND_UP(dims[1], 8);
-        auto output_ptr = output_origin + batch_idx * width * height * ROUND_UP(dims[1], 8);
+        auto input_ptr  = input_origin + batch_idx * hw * ROUND_UP(dims[1], 8);
+        auto output_ptr = output_origin + batch_idx * hw * ROUND_UP(dims[1], 8);
 
-        UnpackC8(output_ptr, input_ptr, width * height, dims[1]);
+        UnpackC8(output_ptr, input_ptr, hw, dims[1]);
 
         for (int y = 0; y < outside; y++) {
             auto src_y = output_ptr + y * step_y;
@@ -106,7 +106,7 @@ Status ArmSoftmaxLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std
             }
         }
 
-        PackC8(output_ptr, reorder_buffer_ptr, width * height, dims[1]);
+        PackC8(output_ptr, reorder_buffer_ptr, hw, dims[1]);
     }
     return TNN_OK;
 }
