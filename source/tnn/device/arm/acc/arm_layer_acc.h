@@ -131,6 +131,7 @@ public:
     }
 };
 
+// DATA_FORMAT_NC4HW4 represents packed layouts for both fp32 and fp16
 #define REGISTER_ARM_LAYOUT(layer_type, layout)                                                                        \
     ArmTypeLayerLayoutRegister g_arm_##layer_type##_##layout##_layout_register(                                        \
         layer_type, ArmTypeLayerLayoutCreator::UpdateImplementedLayout(layer_type, layout));

@@ -31,24 +31,12 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     if (reformat_param->src_format == reformat_param->dst_format) {
         if (reformat_param->src_type == DATA_TYPE_INT8 && reformat_param->dst_type == DATA_TYPE_FLOAT) {
             reformat_param->type = DEQUANT_ONLY;
-            for (auto blob : outputs) {
-                blob->GetBlobDesc().data_format = DATA_FORMAT_NC4HW4;
-            }
         } else if (reformat_param->src_type == DATA_TYPE_FLOAT && reformat_param->dst_type == DATA_TYPE_INT8) {
             reformat_param->type = QUANT_ONLY;
-            for (auto blob : outputs) {
-                blob->GetBlobDesc().data_format = DATA_FORMAT_NHWC4;
-            }
         } else if (reformat_param->src_type == DATA_TYPE_FLOAT && reformat_param->dst_type == DATA_TYPE_HALF) {
             reformat_param->type = NC4HW4FP32_2_NC8HW8FP16;
-            for (auto blob : outputs) {
-                blob->GetBlobDesc().data_format = DATA_FORMAT_NC8HW8;
-            }
         } else if (reformat_param->src_type == DATA_TYPE_HALF && reformat_param->dst_type == DATA_TYPE_FLOAT) {
             reformat_param->type = NC8HW8FP16_2_NC4HW4FP32;
-            for (auto blob : outputs) {
-                blob->GetBlobDesc().data_format = DATA_FORMAT_NC4HW4;
-            }
         } else {
             if (reformat_param->src_type == DATA_TYPE_BFP16 || reformat_param->dst_type == DATA_TYPE_BFP16) {
                 LOGE("unsupport precision mode, please dont use precision = low for int8");
@@ -58,6 +46,8 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     } else if (reformat_param->src_format == DATA_FORMAT_NC4HW4 && reformat_param->dst_format == DATA_FORMAT_NCHW) {
         if (reformat_param->src_type == DATA_TYPE_FLOAT && reformat_param->dst_type == DATA_TYPE_FLOAT) {
             reformat_param->type = NC4HW4FP32_2_NCHWFP32;
+        } else if (reformat_param->src_type == DATA_TYPE_HALF && reformat_param->dst_type == DATA_TYPE_HALF) {
+            reformat_param->type = NC8HW8FP16_2_NCHWFP16;
         } else {
             LOGE("ArmReformatLayerAcc::Init Error: src_fmt: %d, dst_fmt: %d, src_type: %d, dst_type: %d\n",
                  reformat_param->src_format, reformat_param->dst_format, reformat_param->src_type,
@@ -67,6 +57,8 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     } else if (reformat_param->src_format == DATA_FORMAT_NCHW && reformat_param->dst_format == DATA_FORMAT_NC4HW4) {
         if (reformat_param->src_type == DATA_TYPE_FLOAT && reformat_param->dst_type == DATA_TYPE_FLOAT) {
             reformat_param->type = NCHWFP32_2_NC4HW4FP32;
+        } else if (reformat_param->src_type == DATA_TYPE_HALF && reformat_param->dst_type == DATA_TYPE_HALF) {
+            reformat_param->type = NCHWFP16_2_NC8HW8FP16;
         } else {
             LOGE("ArmReformatLayerAcc::Init Error: src_fmt: %d, dst_fmt: %d, src_type: %d, dst_type: %d\n",
                  reformat_param->src_format, reformat_param->dst_format, reformat_param->src_type,
@@ -118,53 +110,65 @@ Status ArmReformatLayerAcc::allocateBufferParam(const std::vector<Blob *> &input
 }
 
 Status ArmReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto dims = outputs[0]->GetBlobDesc().dims;
-
     auto param = dynamic_cast<ReformatLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
 
-    if (param->type == DEQUANT_ONLY) {
-        Int8ToFloat(reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle())),
-                    reinterpret_cast<int8_t *>(GetBlobHandlePtr(inputs[0]->GetHandle())),
-                    scale_buffer_.force_to<float *>(), dims[0], dims[1], dims[2] * dims[3]);
-    } else if (param->type == QUANT_ONLY) {
-        FloatToInt8(reinterpret_cast<int8_t *>(GetBlobHandlePtr(outputs[0]->GetHandle())),
-                    reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle())),
-                    scale_buffer_.force_to<float *>(), dims[0], dims[1], dims[2] * dims[3]);
-    } else if (param->type == NC4HW4FP32_2_NCHWFP32) {
-        int batch    = dims[0];
-        int channel  = dims[1];
-        int hw       = DimsVectorUtils::Count(dims, 2);
-        auto dst_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
-        auto src_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
-        for (int n = 0; n < batch; ++n) {
-            auto dst_ptr_n = dst_ptr + n * channel * hw;
-            auto src_ptr_n = src_ptr + n * ROUND_UP(channel, 4) * hw;
-            UnpackC4(dst_ptr_n, src_ptr_n, hw, channel);
+    for (int i = 0; i < inputs.size(); ++i) {
+        auto dims   = outputs[i]->GetBlobDesc().dims;
+        int batch   = dims[0];
+        int channel = dims[1];
+        int hw      = DimsVectorUtils::Count(dims, 2);
+        if (param->type == DEQUANT_ONLY) {
+            Int8ToFloat(reinterpret_cast<float *>(GetBlobHandlePtr(outputs[i]->GetHandle())),
+                        reinterpret_cast<int8_t *>(GetBlobHandlePtr(inputs[i]->GetHandle())),
+                        scale_buffer_.force_to<float *>(), batch, channel, hw);
+        } else if (param->type == QUANT_ONLY) {
+            FloatToInt8(reinterpret_cast<int8_t *>(GetBlobHandlePtr(outputs[i]->GetHandle())),
+                        reinterpret_cast<float *>(GetBlobHandlePtr(inputs[i]->GetHandle())),
+                        scale_buffer_.force_to<float *>(), batch, channel, hw);
+        } else if (param->type == NC4HW4FP32_2_NCHWFP32) {
+            auto dst_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[i]->GetHandle()));
+            auto src_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[i]->GetHandle()));
+            for (int n = 0; n < batch; ++n) {
+                auto dst_ptr_n = dst_ptr + n * channel * hw;
+                auto src_ptr_n = src_ptr + n * ROUND_UP(channel, 4) * hw;
+                UnpackC4(dst_ptr_n, src_ptr_n, hw, channel);
+            }
+        } else if (param->type == NCHWFP32_2_NC4HW4FP32) {
+            auto dst_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[i]->GetHandle()));
+            auto src_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[i]->GetHandle()));
+            for (int n = 0; n < batch; ++n) {
+                auto dst_ptr_n = dst_ptr + n * ROUND_UP(channel, 4) * hw;
+                auto src_ptr_n = src_ptr + n * channel * hw;
+                PackC4(dst_ptr_n, src_ptr_n, hw, channel);
+            }
         }
-    } else if (param->type == NCHWFP32_2_NC4HW4FP32) {
-        int batch    = dims[0];
-        int channel  = dims[1];
-        int hw       = DimsVectorUtils::Count(dims, 2);
-        auto dst_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
-        auto src_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
-        for (int n = 0; n < batch; ++n) {
-            auto dst_ptr_n = dst_ptr + n * ROUND_UP(channel, 4) * hw;
-            auto src_ptr_n = src_ptr + n * channel * hw;
-            PackC4(dst_ptr_n, src_ptr_n, hw, channel);
-        }
-    }
 #if TNN_ARM82
-    else if (param->type == NC4HW4FP32_2_NC8HW8FP16) {
-        FloatC4ToHalfC8(reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle())),
-                        reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle())), dims[0], dims[1],
-                        dims[2] * dims[3]);
-    } else if (param->type == NC8HW8FP16_2_NC4HW4FP32) {
-        HalfC8ToFloatC4(reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle())),
-                        reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[0]->GetHandle())), dims[0], dims[1],
-                        dims[2] * dims[3]);
-    }
+        else if (param->type == NC4HW4FP32_2_NC8HW8FP16) {
+            FloatC4ToHalfC8(reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[i]->GetHandle())),
+                            reinterpret_cast<float *>(GetBlobHandlePtr(inputs[i]->GetHandle())), batch, channel, hw);
+        } else if (param->type == NC8HW8FP16_2_NC4HW4FP32) {
+            HalfC8ToFloatC4(reinterpret_cast<float *>(GetBlobHandlePtr(outputs[i]->GetHandle())),
+                            reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[i]->GetHandle())), batch, channel, hw);
+        } else if (param->type == NC8HW8FP16_2_NCHWFP16) {
+            auto dst_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[i]->GetHandle()));
+            auto src_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[i]->GetHandle()));
+            for (int n = 0; n < batch; ++n) {
+                auto dst_ptr_n = dst_ptr + n * channel * hw;
+                auto src_ptr_n = src_ptr + n * ROUND_UP(channel, 8) * hw;
+                UnpackC8(dst_ptr_n, src_ptr_n, hw, channel);
+            }
+        } else if (param->type == NCHWFP16_2_NC8HW8FP16) {
+            auto dst_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[i]->GetHandle()));
+            auto src_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[i]->GetHandle()));
+            for (int n = 0; n < batch; ++n) {
+                auto dst_ptr_n = dst_ptr + n * ROUND_UP(channel, 8) * hw;
+                auto src_ptr_n = src_ptr + n * channel * hw;
+                PackC8(dst_ptr_n, src_ptr_n, hw, channel);
+            }
+        }
 #endif  // TNN_ARM82
+    }
     return TNN_OK;
 }
 
