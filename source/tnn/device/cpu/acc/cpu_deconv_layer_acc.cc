@@ -12,11 +12,13 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn/device/cpu/acc/cpu_deconv_layer_acc.h"
+
 #include <algorithm>
 
-#include "tnn/utils/naive_compute.h"
-#include "tnn/device/cpu/acc/cpu_deconv_layer_acc.h"
+#include "tnn/interpreter/layer_resource_generator.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
 static int LeastCommonMultiple(int m, int n) {
@@ -35,10 +37,7 @@ CpuDeconvLayerAcc::~CpuDeconvLayerAcc() {}
 
 Status CpuDeconvLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto status = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != TNN_OK) {
-        return status;
-    }
+    CPU_CONVERT_HALF_RESOURCE(LAYER_DECONVOLUTION);
 
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("CpuDeconvLayerAcc dont support DATA_TYPE_INT8");
@@ -60,7 +59,7 @@ Status CpuDeconvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     return Status(TNNERR_LAYER_ERR, "data type not support in deconv");
 }
 
-void CpuDeconvLayerAcc::ActiveOutput(ConvLayerParam * param, float& sum) {
+void CpuDeconvLayerAcc::ActiveOutput(ConvLayerParam *param, float &sum) {
     if (param->activation_type == ActivationType_ReLU) {
         sum = sum > 0.0f ? sum : 0.0f;
     } else if (param->activation_type == ActivationType_ReLU6) {
@@ -70,7 +69,7 @@ void CpuDeconvLayerAcc::ActiveOutput(ConvLayerParam * param, float& sum) {
             sum = 0.0f;
         }
 
-    } else if(param->activation_type == ActivationType_SIGMOID_MUL) {
+    } else if (param->activation_type == ActivationType_SIGMOID_MUL) {
         sum = 1.0f / (1.0f + exp(-sum)) * sum;
     }
 }
@@ -90,7 +89,7 @@ Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
     // NOTE: weight is format [n][i][o][h][w]
     // different form conv weight layout [n][o][i][h][w]
     void *weight_ptr   = resource->filter_handle.force_to<void *>();
-    void *bias_ptr     = param->bias? resource->bias_handle.force_to<void *>() : nullptr;
+    void *bias_ptr     = param->bias ? resource->bias_handle.force_to<void *>() : nullptr;
     DataType data_type = output_blob->GetBlobDesc().data_type;
 
     DimsVector output_dims = output_blob->GetBlobDesc().dims;
@@ -133,7 +132,7 @@ Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
         // #pragma omp parallel
         for (int b = 0; b < batch; b++) {
             T *output_ptr_base = (T *)output_ptr + b * group * output_channel_per_group * output_size;
-            T *input_ptr_base = (T *)input_ptr + b * group * input_channel_per_group * input_size;
+            T *input_ptr_base  = (T *)input_ptr + b * group * input_channel_per_group * input_size;
             for (int g = 0; g < group; g++) {
                 const float *weight_ptr_g =
                     (float *)weight_ptr + g * input_channel_per_group * output_channel_per_group * kernel_size;
@@ -156,7 +155,8 @@ Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
                             int max_sx = std::min((input_width - 1) * stride_w, ox / stride_w * stride_w);
                             int min_ky = UP_DIV(oy - max_sy, dilation_h);
                             int min_kx = UP_DIV(ox - max_sx, dilation_w);
-                            if ((oy - min_ky * dilation_h) % stride_h == 0 && (ox - min_kx * dilation_w) % stride_w == 0) {
+                            if ((oy - min_ky * dilation_h) % stride_h == 0 &&
+                                (ox - min_kx * dilation_w) % stride_w == 0) {
                                 int min_sy = std::max(0, ROUND_UP(oy + dilation_h - kernel_h * dilation_h, stride_h));
                                 int min_sx = std::max(0, ROUND_UP(ox + dilation_w - kernel_w * dilation_w, stride_w));
                                 int max_ky = (oy - min_sy) / dilation_h;
@@ -168,9 +168,10 @@ Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
                                 auto input_data  = (T *)input_ptr_g;
                                 for (auto ic = 0; ic < input_channel_per_group; ic++) {
                                     for (auto ky = max_ky, iy = min_iy; ky >= min_ky; ky -= delta_ky, iy += delta_iy) {
-                                        for (auto kx = max_kx, ix = min_ix; kx >= min_kx; kx -= delta_kx, ix += delta_ix) {
+                                        for (auto kx = max_kx, ix = min_ix; kx >= min_kx;
+                                             kx -= delta_kx, ix += delta_ix) {
                                             auto wt4 = weight_data[ic * output_channel_per_group * kernel_size +
-                                                                ky * kernel_w + kx];
+                                                                   ky * kernel_w + kx];
                                             auto in4 = input_data[ic * input_size + iy * input_width + ix];
                                             sum += float(in4) * wt4;
                                         }

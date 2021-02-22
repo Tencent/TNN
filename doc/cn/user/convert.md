@@ -140,11 +140,11 @@ optional arguments:
 - half 参数（可选）
     可以通过 -half 参数指定，模型数据通过 FP16 进行存储，减少模型的大小，默认是通过 FP32 的方式进行存储模型数据的。
 - align 参数（可选）
-    可以通过 -align 参数指定，将 转换得到的 TNN 模型和原模型进行对齐，确定 TNN 模型是否转换成功。__当前仅支持单输入单输出模型和单输入多输出模型。 align 只支持 FP32 模型的校验，所以使用 align 的时候不能使用 half__
+    可以通过 -align 参数指定，将 转换得到的 TNN 模型和原模型进行对齐，确定 TNN 模型是否转换成功。__align 只支持 FP32 模型的校验，所以使用 align 的时候不能使用 half__
 - input_file 参数（可选）
-    可以通过 -input_file 参数指定模型对齐所需要的输入文件的名称，输入需要遵循如下[格式](#输入)。
+    可以通过 -input_file 参数指定模型对齐所需要的输入文件的名称，输入需要遵循如下[格式](#输入)。生成输入的代码可以[参考](#生成输入或输出文件示例代码)。
 - ref_file 参数（可选）
-    可以通过 -ref_file 参数指定待对齐的输出文件的名称，输出需遵循如下[格式](#输出)。生成输出的代码可以[参考](#生成输出示例代码)。
+    可以通过 -ref_file 参数指定待对齐的输出文件的名称，输出需遵循如下[格式](#输出)。生成输出的代码可以[参考](#生成输入或输出文件示例代码)。
 
 
 **当前 convert2tnn 的模型只支持 graphdef 模型，不支持 checkpoint 以及 saved_model 格式的文件，如果想将 checkpoint 或者 saved_model 的模型进行转换，可以参看下面[tf2tnn](./tf2tnn.md)的部分，自行进行转换。**
@@ -330,8 +330,10 @@ python3 converter.py onnx2tnn -h
 ```
 usage 信息如下：
 ```text
-usage: convert onnx2tnn [-h] [-in input_info [input_info ...]] [-optimize] [-half] [-v v1.0.0] [-o OUTPUT_DIR] [-align]
-                        [-input_file INPUT_FILE_PATH] [-ref_file REFER_FILE_PATH]
+usage: convert onnx2tnn [-h] [-in input_info [input_info ...]] [-optimize]
+                        [-half] [-v v1.0.0] [-o OUTPUT_DIR] [-align]
+                        [-input_file INPUT_FILE_PATH]
+                        [-ref_file REFER_FILE_PATH] [-debug]
                         onnx_path
 
 positional arguments:
@@ -340,16 +342,20 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -in input_info [input_info ...]
-                        specify the input name and shape of the model. e.g., -in input1_name:1,3,8,8 input2_name:1,8
+                        specify the input name and shape of the model. e.g.,
+                        -in input1_name:1,3,128,128 input2_name:1,3,256,256
   -optimize             optimize the model
   -half                 save model using half
   -v v1.0.0             the version for model
   -o OUTPUT_DIR         the output tnn directory
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH
-                        the input file path which contains the input data for the inference model.
+                        the input file path which contains the input data for
+                        the inference model.
   -ref_file REFER_FILE_PATH
-                        the reference file path which contains the reference data to compare the results.
+                        the reference file path which contains the reference
+                        data to compare the results.
+  -debug                Turn on the switch to debug the model.
 ```
 示例：
 ```shell script
@@ -490,12 +496,30 @@ python3 converter.py tflite2tnn \
 ## 输入输出文件格式示例
 ### 输入
 ```text
-输入数据按一维排列
+
+输入数量 
+输入名称 shape维度个数 具体shape信息 输入数据类型
+输入数据 
+输入名称 shape维度个数 具体shape信息 输入数据类型
+输入数据 
+......
 
 例如
-0.1
-0.2
-0.3
+ 2 
+ in0 4 1 3 1 1 3
+ 2 
+ 4 
+ 3 
+ in1 4 1 2 2 1 0
+ 0.1 
+ 0.2 
+ 0.3 
+ 0.4 
+
+
+提示：
+如果输入数据是 float, 输入数据类型可以用 0 表示
+如果输入数据是 int  , 输入数据类型可以用 3 表示
 
 ```
 
@@ -503,35 +527,43 @@ python3 converter.py tflite2tnn \
 ```text
 
 输出数量 
-输出名称 shape维度个数 具体shape信息 
-输出 
-输出名称 shape维度个数 具体shape信息 
-输出 
+输出名称 shape维度个数 具体shape信息 输出数据类型
+输出数据 
+输出名称 shape维度个数 具体shape信息 输出数据类型
+输出数据
 ......
 
 例如
  2 
- out0 2 1 3 
+ out0 2 1 3 0
  0.1 
  0.2 
  0.3 
- out1 4 1 2 2 1 
+ out1 4 1 2 2 1 0
  0.1 
  0.2 
  0.3 
  0.4 
 
 
+提示：
+如果输出数据是 float, 输出数据类型可以用 0 表示
+如果输出数据是 int  , 输出数据类型可以用 3 表示
+
 ```
 
-### 生成输出示例代码
+### 生成输入或输出文件示例代码
 ```python
 """
 
-模型推理得到的输出至少包含以下三个部分：
+输入或输出至少包含以下三个部分：
 name -> 类型：str。用于标识该输出的名称。
 shape -> 类型：list。用于描述输出的维数。
 tensor -> 类型：numpy.ndarray。存放输出数据。
+
+提示：
+对于输出文件，如果 shape 维度不足四维的，需要使用 1 进行填充。例如：(n, c) => (n, c, 1, 1)。
+输入则没有这项要求。
 
 假设有两个输出，它们分别如下：
 输出一组成部分：
@@ -562,6 +594,8 @@ with open(output_path, "w") as f:
     description_1 = "{} {} " .format(name_1, len(shape_1))
     for dim in shape_1:
         description_1 += "{} " .format(dim)
+    data_type_1 = 0 if tensor.dtype == np.float else 3
+    description_1 += "{}" .format(data_type)
     f.write(description_1 + "\n")
     np.savetxt(f, tensor_1.reshape(-1), fmt="%0.18f")
 
@@ -569,6 +603,8 @@ with open(output_path, "w") as f:
     description_2 = "{} {} " .format(name_2, len(shape_2))
     for dim in shape_2:
         description_2 += "{} " .format(dim)
+    data_type_2 = 0 if tensor.dtype == np.float else 3
+    description_2 += "{}" .format(data_type)
     f.write(description_2 + "\n")
     np.savetxt(f, tensor_2.reshape(-1), fmt="%0.18f")
 

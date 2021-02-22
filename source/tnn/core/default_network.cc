@@ -274,8 +274,6 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
     if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE) {
         return TNN_OK;
     }
-    static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
-    LOGD("support fp 16: %d\n", cpu_support_fp16 ? 1 : 0);
 
     auto &desc      = (*blob)->GetBlobDesc();
     auto layer_type = layer_info->type;
@@ -287,9 +285,10 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
                 RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
             }
         } else {
-            bool layer_implemented_fp16 = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
             // update blob of non-quantized network by config precision and enabled precision
             if (config_.precision == PRECISION_NORMAL || config_.precision == PRECISION_AUTO) {
+                static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
+                bool layer_implemented_fp16  = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
                 desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
             } else if (config_.precision == PRECISION_LOW) {
                 desc.data_type = DATA_TYPE_BFP16;
@@ -560,7 +559,8 @@ std::shared_ptr<ProfileResult> DefaultNetwork::FinishProfile() {
 
 std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config) {
     return CACHE_TAG + "_" + ToString(config_.device_type) + "_" + ToString(config_.device_id)
-    + "_" + ToString(model_config.model_type) + "_" + md5(model_config.params[0]);
+        + "_" + ToString(config_.precision) + "_" + ToString(model_config.model_type) +
+        "_" + md5(model_config.params[0]);
 }
 
 
