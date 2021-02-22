@@ -13,12 +13,13 @@
 // specific language governing permissions and limitations under the License.
 
 #include <cmath>
+
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(PRelu, LAYER_PRELU);
+DECLARE_CPU_ACC_WITH_FP32_RESOURCE(PRelu, LAYER_PRELU);
 
 Status CpuPReluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
