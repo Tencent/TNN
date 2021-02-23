@@ -62,13 +62,7 @@ protected:
         output->set_attr_groups(group_);
         output->set_attr_pads(ge::AttrValue::LIST_INT({pad_h_begin_, pad_h_end_, pad_w_begin_, pad_w_end_}));
 
-        if (0 == pad_type_) {
-            output->set_attr_pad_mode("SAME");
-        } else if (1 == pad_type_) {
-            output->set_attr_pad_mode("VALID");
-        } else {
-            output->set_attr_pad_mode("SPECIFIC");
-        }
+        output->set_attr_pad_mode("SPECIFIC");
 
         ADD_OUTPUT_OP(output)
     }

@@ -559,7 +559,8 @@ std::shared_ptr<ProfileResult> DefaultNetwork::FinishProfile() {
 
 std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config) {
     return CACHE_TAG + "_" + ToString(config_.device_type) + "_" + ToString(config_.device_id)
-    + "_" + ToString(model_config.model_type) + "_" + md5(model_config.params[0]);
+        + "_" + ToString(config_.precision) + "_" + ToString(model_config.model_type) +
+        "_" + md5(model_config.params[0]);
 }
 
 
