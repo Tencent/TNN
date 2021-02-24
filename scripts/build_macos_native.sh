@@ -14,7 +14,7 @@ cd build_macos_native
 cmake ${TNN_ROOT_PATH} \
     -DTNN_TEST_ENABLE=ON \
     -DTNN_CPU_ENABLE=ON \
-    -DTNN_x86_ENABLE=ON \
+    -DTNN_X86_ENABLE=ON \
     -DTNN_METAL_ENABLE:BOOL=$METAL \
     -DTNN_UNIT_TEST_ENABLE=ON \
     -DTNN_COVERAGE=ON \
