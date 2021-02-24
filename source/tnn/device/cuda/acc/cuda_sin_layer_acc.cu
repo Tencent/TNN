@@ -21,7 +21,7 @@ DECLARE_CUDA_ACC(Sin, LAYER_SIN);
 
 Status CudaSinLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
 Status CudaSinLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

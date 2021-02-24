@@ -21,7 +21,7 @@ DECLARE_CUDA_ACC(BatchNorm, LAYER_BATCH_NORM);
 
 Status CudaBatchNormLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
 Status CudaBatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

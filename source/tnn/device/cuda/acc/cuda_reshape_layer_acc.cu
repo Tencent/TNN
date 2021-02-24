@@ -21,11 +21,7 @@ DECLARE_CUDA_ACC(Reshape, LAYER_RESHAPE);
 
 Status CudaReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Status ret = CudaLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (ret != TNN_OK) {
-        return ret;
-    }
-    return TNN_OK;
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
 Status CudaReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

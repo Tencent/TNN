@@ -144,7 +144,7 @@ __global__ void cbam_fused_reduce_packed_kernel(__half *in, T *out,
 
 
 Status CudaCbamFusedReduceLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 

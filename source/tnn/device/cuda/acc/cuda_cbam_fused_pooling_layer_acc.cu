@@ -153,7 +153,7 @@ __global__ void cbam_fused_pooling_half_kernel(const __half *input, __half* outp
 }
 
 Status CudaCbamFusedPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
