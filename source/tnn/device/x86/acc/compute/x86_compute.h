@@ -27,8 +27,8 @@
 namespace TNN_NS {
 
 // @brief store by row
-Status X86_IM2COL(float *src, int channel, int height, int width, int kernelh, int kernelw, 
-                  int padh, int padw, int strideh, int stridew, int dilationh, int dilationw, float *dst);
+Status X86_IM2COL(float *src, int channel, int height, int width, int kernelh, int kernelw, int padl, int padr,
+                  int padt, int padb, int strideh, int stridew, int dilationh, int dilationw, float *dst);
 
 Status X86_COL2IM(float *src, int channel, int height, int width, int kernelh, int kernelw, int padh, int padw,
                   int strideh, int stridew, int dilationh, int dilationw, int output_height, int output_width,

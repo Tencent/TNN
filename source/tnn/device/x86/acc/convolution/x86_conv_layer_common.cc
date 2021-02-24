@@ -148,9 +148,10 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
         for (size_t b = 0; b < outputs[0]->GetBlobDesc().dims[0]; b++) {
             X86_IM2COL(input_data + b * conv_in_offset_, input_dims[1],
                         input_dims[2], input_dims[3],
-                        param->kernels[1], param->kernels[0], 
-                        param->pads[2], param->pads[0], 
-                        param->strides[1], param->strides[0], 
+                        param->kernels[1], param->kernels[0],
+                        param->pads[0], param->pads[1],
+                        param->pads[2], param->pads[3],
+                        param->strides[1], param->strides[0],
                         param->dialations[1], param->dialations[0],
                         im2col_workspace);
 

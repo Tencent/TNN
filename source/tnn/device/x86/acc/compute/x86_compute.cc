@@ -26,10 +26,10 @@
 
 namespace TNN_NS {
 
-Status X86_IM2COL(float* src, int channel, int height, int width, int kernelh, int kernelw, int padh, int padw,
-                  int strideh, int stridew, int dilationh, int dilationw, float* dst) {
-    int height_col   = (height + 2 * padh - dilationh * (kernelh - 1) - 1) / strideh + 1;
-    int width_col    = (width + 2 * padw - dilationw * (kernelw - 1) - 1) / stridew + 1;
+Status X86_IM2COL(float* src, int channel, int height, int width, int kernelh, int kernelw, int padl, int padr,
+                  int padt, int padb, int strideh, int stridew, int dilationh, int dilationw, float* dst) {
+    int height_col   = (height + padt + padb - dilationh * (kernelh - 1) - 1) / strideh + 1;
+    int width_col    = (width + padl + padr - dilationw * (kernelw - 1) - 1) / stridew + 1;
     int channels_col = channel * kernelh * kernelw;
 
     // im2col
@@ -38,8 +38,8 @@ Status X86_IM2COL(float* src, int channel, int height, int width, int kernelh, i
         int h_offset = (c / kernelw) % kernelh;
         int c_im     = c / kernelh / kernelw;
 
-        int h_base = h_offset * dilationh - padh;
-        int w_base = w_offset * dilationw - padw;
+        int h_base = h_offset * dilationh - padt;
+        int w_base = w_offset * dilationw - padl;
 
         int h_base_start = MAX(0, (UP_DIV(-h_base, strideh)));
         int h_base_end   = MIN(height_col, UP_DIV(height - h_base, strideh));
