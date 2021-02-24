@@ -19,6 +19,7 @@
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/metal_device.h"
 #include "tnn/device/metal/metal_macro.h"
+#include "tnn/utils/blob_transfer_utils.h"
 
 TNN_OBJC_CLASS(TNNMMetalContextImpl);
 
@@ -40,6 +41,8 @@ public:
                                        const std::vector<Blob *> &outputs);
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs);
     
 
 public:
