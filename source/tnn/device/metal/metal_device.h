@@ -44,6 +44,7 @@ public:
     static Status RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator);
 
 private:
+    static BlobMemorySizeInfo Calculate1DMemorySize(BlobDesc& desc);
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>>& GetLayerCreatorMap();
 };
 
