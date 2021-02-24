@@ -134,8 +134,7 @@ struct Float4 {
     }
     static Float4 neg(const Float4 &v) {
         Float4 dst;
-        _PS_CONST_TYPE(mask, uint32_t, 0x80000000);
-        dst.value = _mm_xor_ps (v.value, *(__m128*) _ps_mask);
+        dst.value = _mm_xor_ps (v.value, *(__m128*) _ps_sign_mask);
         return dst;
     }
     static Float4 abs(const Float4 &v) {

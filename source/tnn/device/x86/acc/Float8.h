@@ -130,8 +130,7 @@ struct Float8 {
     }
     static Float8 neg(const Float8 &v) {
         Float8 dst;
-        _PS256_CONST_TYPE(mask, uint32_t, 0x80000000);
-        dst.value = _mm256_xor_ps (v.value, *(__m256*) _ps256_mask);
+        dst.value = _mm256_xor_ps (v.value, *(__m256*) _ps256_sign_mask);
         return dst;
     }
     static Float8 abs(const Float8 &v) {
