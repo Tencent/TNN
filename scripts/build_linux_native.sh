@@ -12,8 +12,8 @@ then
     TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
 fi
 
-mkdir build_linux_naive
-cd build_linux_naive
+mkdir build_linux_native
+cd build_linux_native
 
 cmake ${TNN_ROOT_PATH} \
     -DCMAKE_SYSTEM_NAME=Linux  \

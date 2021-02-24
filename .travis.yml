@@ -54,7 +54,7 @@ matrix:
         - PowerShell -Command 'Set-ExecutionPolicy -ExecutionPolicy RemoteSigned'
         - choco install ninja
       script:
-        - scripts/build_msvc_naive.bat x64 ci
+        - scripts/build_msvc_native.bat x64 ci
       env:
         - CXX=cl.exe
         - CXX_FOR_BUILD=cl.exe
@@ -70,7 +70,7 @@ matrix:
         - PowerShell -Command 'Set-ExecutionPolicy -ExecutionPolicy RemoteSigned'
         - choco install ninja
       script:
-        - scripts/build_msvc_naive.bat x86 ci
+        - scripts/build_msvc_native.bat x86 ci
       env:
         - CXX=cl.exe
         - CXX_FOR_BUILD=cl.exe
