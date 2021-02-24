@@ -33,7 +33,7 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
     auto dims_output = outputs[0]->GetBlobDesc().dims;
     for (int i = 0; i < layer_param->axis.size(); ++i) {
         int axis = layer_param->axis[i];
-        axis = axis >= 0 ? axis : axis + 4;
+        axis = axis >= 0 ? axis : axis + layer_param->axis.size();
         layer_param->axis[i] = axis;
     }
 
@@ -99,8 +99,8 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto output = outputs[0];
 
     auto dims_output   = output->GetBlobDesc().dims;
-    auto output_width  = dims_output[3];
-    auto output_height = dims_output[2];
+    auto output_width  = dims_output.size() > 3 ? dims_output[3] : 1;
+    auto output_height = dims_output.size() > 2 ? dims_output[2] : 1;
     auto output_slice = UP_DIV(dims_output[1], 4);
     auto batch         = dims_output[0];
 

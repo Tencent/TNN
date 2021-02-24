@@ -182,13 +182,15 @@ std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
         support_list.push_back(DATA_FORMAT_NC4HW4);
+    } else {
+        support_list.push_back(DATA_FORMAT_NC4HW4);
     }
     return support_list;
 }
 
 MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
-    auto output_height  = dims[2];
-    auto output_width  = dims[3];
+    auto output_height  = GetBlobDim(dims, 2);
+    auto output_width   = GetBlobDim(dims, 3);
     auto output_size  = output_width * output_height;
     auto output_slice = UP_DIV(dims[1], 4);
     auto output_batch = dims[0];

@@ -59,8 +59,8 @@ MetalBlobConverterAcc::MetalBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob
 Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *mat, Blob *blob, bool is_mat_to_blob) {
     auto dims = blob->GetBlobDesc().dims;
     MetalImageConverterParams metal_param;
-    metal_param.width        = dims[3];
-    metal_param.height       = dims[2];
+    metal_param.width        = GetBlobDim(dims, 3);
+    metal_param.height       = GetBlobDim(dims, 2);
     metal_param.size         = metal_param.height * metal_param.width;
     metal_param.channel      = dims[1];
     metal_param.slice        = UP_DIV(metal_param.channel, 4);
@@ -253,12 +253,12 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
     id<MTLCommandBuffer> command_buffer = nil;
     if (mat_type == N8UC4 && output_mat_device == DEVICE_METAL) {
         MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
-        MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2],
+        MTLSize groups = {(NSUInteger)((GetBlobDim(dims, 3) + group_threads.width - 1) / group_threads.width), (NSUInteger)GetBlobDim(dims, 2),
                           (NSUInteger)1};
 
         auto output_texture       = (__bridge id<MTLTexture>)(output_mat.GetData());
         Blob *input_buffer_blob = (Blob *)(input_blob);
-        if (output_texture.height != dims[2] || output_texture.width != dims[3] ||
+        if (output_texture.height != GetBlobDim(dims, 2) || output_texture.width != GetBlobDim(dims, 3) ||
             (output_texture.pixelFormat != MTLPixelFormatBGRA8Unorm &&
              output_texture.pixelFormat != MTLPixelFormatRGBA8Unorm)) {
             return Status(TNNERR_INST_ERR, "output mat's texture is invalid, wrong size or pixel format");
@@ -296,7 +296,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
                                                                        options:MTLResourceCPUCacheModeDefaultCache];
         }
 
-        NSUInteger image_size  = dims[2] * dims[3];
+        NSUInteger image_size  = GetBlobDim(dims, 2) * GetBlobDim(dims, 3);
         NSUInteger image_slice = UP_DIV(dims[1], 4);
 
         auto group_threads = MTLSizeMake(pipeline_process_.threadExecutionWidth, 1, 1);
@@ -395,8 +395,8 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
         if (mat_type == N8UC4) {
             // For Texture input
             MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
-            MTLSize groups        = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width),
-                              (NSUInteger)dims[2], (NSUInteger)1};
+            MTLSize groups        = {(NSUInteger)((GetBlobDim(dims, 3) + group_threads.width - 1) / group_threads.width),
+                              (NSUInteger)GetBlobDim(dims, 2), (NSUInteger)1};
 
             id<MTLTexture> input_texture = nil;
             if (mat_device_type == DEVICE_METAL) {
@@ -409,16 +409,16 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                     return Status(TNNERR_INST_ERR, "newTextureWithDescriptor return nil");
                 }
 
-                [input_texture replaceRegion:MTLRegionMake2D(0, 0, dims[3], dims[2])
+                [input_texture replaceRegion:MTLRegionMake2D(0, 0, GetBlobDim(dims, 3), GetBlobDim(dims, 2))
                                  mipmapLevel:0
                                    withBytes:input_mat.GetData()
-                                 bytesPerRow:dims[3] * 4];
+                                 bytesPerRow:GetBlobDim(dims, 3) * 4];
             } else {
                 break;
             }
 
             Blob *output_buffer_blob = (Blob *)(output_blob);
-            if (input_texture.height != dims[2] || input_texture.width != dims[3] ||
+            if (input_texture.height != GetBlobDim(dims, 2) || input_texture.width != GetBlobDim(dims, 3) ||
                 (input_texture.pixelFormat != MTLPixelFormatBGRA8Unorm &&
                  input_texture.pixelFormat != MTLPixelFormatRGBA8Unorm)) {
                 return Status(TNNERR_INST_ERR, "input mat's texture is invalid, wrong size or pixel format");
@@ -460,7 +460,7 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                 break;
             }
 
-            NSUInteger image_size  = dims[2] * dims[3];
+            NSUInteger image_size  = GetBlobDim(dims, 2) * GetBlobDim(dims, 3);
             NSUInteger image_slice = UP_DIV(dims[1], 4);
 
             auto group_threads = MTLSizeMake(pipeline_process_.threadExecutionWidth, 1, 1);
