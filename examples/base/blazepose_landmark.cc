@@ -14,7 +14,6 @@
 
 #include "blazepose_landmark.h"
 #include "time_stamp.h"
-#include <sys/time.h>
 #include <cmath>
 #include <fstream>
 #include <cstring>
