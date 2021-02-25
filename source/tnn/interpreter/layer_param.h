@@ -572,6 +572,9 @@ struct RoiAlignLayerParam : public LayerParam {
     int output_width;
     int sampling_ratio;
     float spatial_scale;
+
+    PARAM_COPY(RoiAlignLayerParam)
+
 };
 
 }  // namespace TNN_NS
