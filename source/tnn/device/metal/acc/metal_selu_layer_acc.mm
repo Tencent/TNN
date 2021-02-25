@@ -53,5 +53,6 @@ Status MetalSeluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_METAL_UNARY_ACC(Selu, LAYER_SELU);
+REGISTER_METAL_LAYOUT(LAYER_SELU, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

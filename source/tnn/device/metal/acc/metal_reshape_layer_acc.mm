@@ -84,5 +84,6 @@ Status MetalReshapeLayerAcc::SetKernelEncoderParam(
 }
 
 REGISTER_METAL_ACC(Reshape, LAYER_RESHAPE);
+REGISTER_METAL_LAYOUT(LAYER_RESHAPE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

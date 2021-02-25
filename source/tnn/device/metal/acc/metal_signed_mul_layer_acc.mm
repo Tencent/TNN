@@ -99,5 +99,6 @@ Status MetalSignedMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
 }
 
 REGISTER_METAL_UNARY_ACC(SignedMul, LAYER_SIGNED_MUL);
+REGISTER_METAL_LAYOUT(LAYER_SIGNED_MUL, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

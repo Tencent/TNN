@@ -112,5 +112,6 @@ Status MetalPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_METAL_ACC(Permute, LAYER_PERMUTE);
+REGISTER_METAL_LAYOUT(LAYER_PERMUTE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

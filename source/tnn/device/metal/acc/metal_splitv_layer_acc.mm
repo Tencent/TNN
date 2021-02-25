@@ -107,5 +107,6 @@ Status MetalSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
 }
 
 REGISTER_METAL_ACC(SplitV, LAYER_SPLITV);
+REGISTER_METAL_LAYOUT(LAYER_SPLITV, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

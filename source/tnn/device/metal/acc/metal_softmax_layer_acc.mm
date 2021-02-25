@@ -132,5 +132,6 @@ Status MetalSoftmaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_METAL_ACC(Softmax, LAYER_SOFTMAX);
+REGISTER_METAL_LAYOUT(LAYER_SOFTMAX, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

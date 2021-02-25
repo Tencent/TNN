@@ -280,5 +280,6 @@ Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
 }
 
 REGISTER_METAL_ACC(Concat, LAYER_CONCAT);
+REGISTER_METAL_LAYOUT(LAYER_CONCAT, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

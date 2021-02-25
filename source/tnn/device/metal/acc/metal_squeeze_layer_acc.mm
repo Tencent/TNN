@@ -66,6 +66,7 @@ Status MetalSqueezeLayerAcc::SetKernelEncoderParam(id<MTLComputeCommandEncoder> 
 }
 
 REGISTER_METAL_ACC(Squeeze, LAYER_SQUEEZE);
+REGISTER_METAL_LAYOUT(LAYER_SQUEEZE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS
 

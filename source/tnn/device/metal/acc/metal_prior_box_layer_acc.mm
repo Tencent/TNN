@@ -83,5 +83,6 @@ Status MetalPriorBoxLayerAcc::SetKernelEncoderParam(
 }
 
 REGISTER_METAL_ACC(PriorBox, LAYER_PRIOR_BOX);
+REGISTER_METAL_LAYOUT(LAYER_PRIOR_BOX, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS
