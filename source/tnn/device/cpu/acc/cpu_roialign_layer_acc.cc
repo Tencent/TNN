@@ -126,7 +126,7 @@ void pre_calc_for_bilinear_interpolate(const int64_t height, const int64_t width
 template <typename T>
 void CalculateRoiAlign(const DimsVector &output_shape, const T *bottom_data, float spatial_scale, int height, int width,
                        int sampling_ratio, const T *bottom_rois, int64_t num_roi_cols, T *top_data, int mode,
-                       const int64_t *batch_indices_ptr) {
+                       const int *batch_indices_ptr) {
     int n_rois        = output_shape[0];
     int channels      = output_shape[1];
     int pooled_height = output_shape[2];
@@ -250,7 +250,7 @@ Status CpuRoiAlignLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto num_roi_cols       = rois_dims[1];
     auto *input_ptr         = static_cast<float *>(input_blob->GetHandle().base);
     auto *rois_ptr          = static_cast<float *>(rois->GetHandle().base);
-    auto *batch_indices_ptr = static_cast<int64_t *>(batch_indices->GetHandle().base);
+    auto *batch_indices_ptr = static_cast<int *>(batch_indices->GetHandle().base);
     auto *output_ptr        = static_cast<float *>(output_blob->GetHandle().base);
     auto mode               = param->mode;
     auto output_height      = param->output_height;
