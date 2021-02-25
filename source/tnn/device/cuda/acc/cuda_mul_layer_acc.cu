@@ -21,7 +21,7 @@ DECLARE_CUDA_ACC(Mul, LAYER_MUL);
 
 Status CudaMulLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
 Status CudaMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
