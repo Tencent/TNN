@@ -150,14 +150,32 @@ Context *MetalDevice::CreateContext(int device_id) {
     return new MetalContext();
 }
 
+std::shared_ptr<const ImplementedLayout> MetalDevice::GetImplementedLayout(LayerType type) {
+    auto &layer_layout_map = GetLayerLayoutMap();
+    if (layer_layout_map.count(type) > 0) {
+        return layer_layout_map[type];
+    }
+    return std::make_shared<ImplementedLayout>();
+}
+
 std::map<LayerType, std::shared_ptr<LayerAccCreator>> &MetalDevice::GetLayerCreatorMap() {
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
     return layer_creator_map;
 }
 
+std::map<LayerType, std::shared_ptr<ImplementedLayout>> &MetalDevice::GetLayerLayoutMap() {
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
+    return layer_layout_map;
+}
+
 Status MetalDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator *creator) {
     std::map<LayerType, std::shared_ptr<LayerAccCreator>> &layer_creator_map = GetLayerCreatorMap();
     layer_creator_map[type]                                   = std::shared_ptr<LayerAccCreator>(creator);
+    return TNN_OK;
+}
+
+Status MetalDevice::RegisterLayerLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+    GetLayerLayoutMap()[type] = layout;
     return TNN_OK;
 }
 
