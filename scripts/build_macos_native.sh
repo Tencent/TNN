@@ -8,12 +8,13 @@ then
     TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
 fi
 
-mkdir build_macos_naive
-cd build_macos_naive
+mkdir build_macos_native
+cd build_macos_native
 
 cmake ${TNN_ROOT_PATH} \
     -DTNN_TEST_ENABLE=ON \
     -DTNN_CPU_ENABLE=ON \
+    -DTNN_X86_ENABLE=ON \
     -DTNN_METAL_ENABLE:BOOL=$METAL \
     -DTNN_UNIT_TEST_ENABLE=ON \
     -DTNN_COVERAGE=ON \

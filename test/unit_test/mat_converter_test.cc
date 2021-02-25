@@ -64,6 +64,10 @@ int MatConverterTest::CreateTestData(int batch, int channel, int input_size, Mat
         mat_out_dev_data_ = malloc(out_size_ * sizeof(uint8_t));
     }
 
+    if (mat_type == NNV12 || mat_type == NNV21) {
+        out_size_ /= 2;
+    }
+
     return 0;
 }
 
@@ -101,10 +105,11 @@ bool MatConverterTest::MetalTestFilter(const DeviceType& device_type, const MatT
     return false;
 }
 
-bool MatConverterTest::MatChannelCheck(const MatType& mat_type, const int channel) {
+bool MatConverterTest::MatChannelCheck(const MatType& mat_type, const int channel, const int input_size) {
     return (mat_type == NGRAY && channel != 1) ||
            (mat_type == N8UC3 && channel != 3) ||
-           (mat_type == N8UC4 && channel != 4);
+           (mat_type == N8UC4 && channel != 4) ||
+           ((mat_type == NNV12 || mat_type == NNV21) && (channel != 3 || input_size % 2 != 0));
 }
 
 bool MatConverterTest::CvtColorCheck(const DeviceType& device_type, const MatType& mat_type,
@@ -112,7 +117,7 @@ bool MatConverterTest::CvtColorCheck(const DeviceType& device_type, const MatTyp
                                      const ColorConversionType& cvt_type,
                                      const int input_size) {
     if (mat_converter_type == MatConverterType::CvtColor) {
-        if (device_type != DEVICE_ARM) {
+        if (device_type != DEVICE_ARM && device_type != DEVICE_X86) {
             return true;
         }
         if (cvt_type == COLOR_CONVERT_BGRTOGRAY && mat_type != N8UC3) {
@@ -134,6 +139,30 @@ bool MatConverterTest::CvtColorCheck(const DeviceType& device_type, const MatTyp
         if ((cvt_type == COLOR_CONVERT_NV12TOBGRA || cvt_type == COLOR_CONVERT_NV21TOBGRA) &&
             (mat_type != N8UC4 || input_size % 2 != 0)) {
             return true;
+        }
+    }
+    return false;
+}
+
+bool MatConverterTest::CopyMakeBorderCheck(const DeviceType& device_type, const MatType& mat_type,
+                                           const MatConverterType& mat_converter_type) {
+    if (mat_converter_type == MatConverterType::CopyMakeBorder) {
+        if (mat_type == NNV12 || mat_type == NNV21) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool MatConverterTest::CropYUVCheck(const MatConverterTestParam& mat_converter_test_param,
+                                    const MatConverterType& mat_converter_type,
+                                    const MatType& mat_type) {
+    if (mat_converter_type == MatConverterType::Crop) {
+        auto param = mat_converter_test_param.crop_param;
+        if (mat_type == NNV12 || mat_type == NNV21) {
+            if (param.top_left_x % 2 || param.top_left_y % 2 || param.height % 2 || param.width % 2) {
+                return true;
+            }
         }
     }
     return false;
@@ -162,9 +191,9 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                             // channel
                             testing::Values(1, 3, 4), 
                             // inputsize
-                            testing::Values(20, 21, 26, 27),
+                            testing::Values(20, 23, 27, 150, 320),
                             // mat type
-                            testing::Values(N8UC4, N8UC3, NGRAY),
+                            testing::Values(N8UC4, N8UC3, NGRAY, NNV12, NNV21),
                             // converter test param
                             testing::Values(
                                 // Copy
@@ -242,8 +271,10 @@ TEST_P(MatConverterTest, MatConverterTest) {
         MetalTestFilter(device_type, mat_type, mat_converter_type, batch)) {
         GTEST_SKIP();
     }
-    if (MatChannelCheck(mat_type, channel) ||
-        CvtColorCheck(device_type, mat_type, mat_converter_type, cvt_type, input_size)) {
+    if (MatChannelCheck(mat_type, channel, input_size) ||
+        CvtColorCheck(device_type, mat_type, mat_converter_type, cvt_type, input_size) ||
+        CopyMakeBorderCheck(device_type, mat_type, mat_converter_type) ||
+        CropYUVCheck(mat_converter_test_param, mat_converter_type, mat_type)) {
         GTEST_SKIP();
     }
     if (device_type == DEVICE_HUAWEI_NPU) {
@@ -252,6 +283,12 @@ TEST_P(MatConverterTest, MatConverterTest) {
 
     int output_size;
     GetOutputSize(mat_converter_test_param, mat_converter_type, input_size, output_size);
+
+    if (mat_type == NNV12 || mat_type == NNV21) {
+        if (output_size % 2 != 0) {
+            GTEST_SKIP();
+        }
+    }
 
     DimsVector dims         = {batch, channel, input_size, input_size};
     DimsVector dims_out     = {batch, channel, output_size, output_size};;

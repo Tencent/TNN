@@ -570,7 +570,11 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
     }
 
     // network init
+#if defined(TNN_USE_NEON)
     device_type_ = TNN_NS::DEVICE_ARM;
+#else
+    device_type_ = TNN_NS::DEVICE_X86;
+#endif
     if(option->compute_units == TNNComputeUnitsGPU) {
 #if defined(__APPLE__) && TARGET_OS_IPHONE
         device_type_ = TNN_NS::DEVICE_METAL;
@@ -584,8 +588,6 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 #else
         device_type_      = TNN_NS::DEVICE_HUAWEI_NPU;
 #endif
-    } else if (option->compute_units == TNNComputeUnitsOpenvino) {
-        device_type_ = TNN_NS::DEVICE_X86;
     } else if (option->compute_units == TNNComputeUnitsTensorRT) {
         device_type_ = TNN_NS::DEVICE_CUDA;
     }
@@ -597,7 +599,7 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         network_config.precision = option->precision;
         if(device_type_ == TNN_NS::DEVICE_HUAWEI_NPU){
             network_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
-        } else if (device_type_ == TNN_NS::DEVICE_X86) {
+        } else if (option->compute_units == TNNComputeUnitsOpenvino) {
             network_config.network_type = NETWORK_TYPE_OPENVINO;
         } else if (device_type_ == TNN_NS::DEVICE_CUDA) {
             network_config.network_type = NETWORK_TYPE_TENSORRT;

@@ -48,7 +48,8 @@ int main(int argc, char** argv) {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = "";
-        option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+        // if enable openvino, set option compute_units to openvino
+        // option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
     
         option->input_width = w;
         option->input_height = h;
