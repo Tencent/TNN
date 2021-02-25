@@ -163,7 +163,7 @@ struct RangeLayerParam : public LayerParam {
     RangeData start = {0};
     RangeData limit = {0};
     RangeData delta = { .i = 1};
-    
+
     PARAM_COPY(RangeLayerParam)
 };
 
@@ -563,6 +563,15 @@ struct MatMulLayerParam : public LayerParam {
     int axis = 0;
 
     PARAM_COPY(MatMulLayerParam)
+};
+
+struct RoiAlignLayerParam : public LayerParam {
+    // 0: max, 1: avg
+    int mode = 1;
+    int output_height;
+    int output_width;
+    int sampling_ratio;
+    float spatial_scale;
 };
 
 }  // namespace TNN_NS

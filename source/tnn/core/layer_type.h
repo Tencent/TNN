@@ -203,6 +203,7 @@ enum LayerType {
     LAYER_HISTOGRAM                                         = 314,
     LAYER_GATHERND                                          = 315,
     LAYER_PADV2                                             = 316,
+    LAYER_ROIALIGN                                          = 317,
 
     LAYER_BLOB_SCALE                                        = 600,
 

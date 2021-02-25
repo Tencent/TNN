@@ -205,6 +205,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"ReduceProd", LAYER_REDUCE_PROD},
     {"ReduceSum", LAYER_REDUCE_SUM},
     {"ReduceSumSquare", LAYER_REDUCE_SUM_SQUARE},
+    {"RoiAlign", LAYER_ROIALIGN},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 
