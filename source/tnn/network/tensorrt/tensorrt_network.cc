@@ -153,7 +153,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         if (ret != TNN_OK) {
             return ret;
         }
-    } else {
+    }
+    {
         size_t size = 0;
         std::ifstream deploy_input(cache_file_name, std::ios::binary);
         deploy_input.seekg(0, deploy_input.end);
@@ -620,9 +621,9 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         LOGE("create tensorrt engine failed\n");
         return TNNERR_CUDA_TENSORRT_ERROR;
     }
-    Status ret = CreateExecuteContext();
-    if (ret != TNN_OK)
-        return ret;
+//    Status ret = CreateExecuteContext();
+//    if (ret != TNN_OK)
+//        return ret;
     m_trt_builder->destroy();
     m_trt_config->destroy();
     m_trt_network->destroy();
