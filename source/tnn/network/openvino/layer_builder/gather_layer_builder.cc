@@ -56,14 +56,15 @@ Status GatherOVLayerBuilder::Build() {
         return TNNERR_INIT_LAYER;
     }
     auto input_node = GetInputNodes()[0];
+    auto axis_node  = std::make_shared<ngraph::op::Constant>(ngraph::element::i32, ngraph::Shape(), paramlist->axis);
 
-    std::shared_ptr<ngraph::op::Gather> gatherNode = nullptr;
+    std::shared_ptr<ngraph::op::v1::Gather> gatherNode = nullptr;
     if (paramlist->data_in_resource) {
-        gatherNode =
-            std::make_shared<ngraph::op::Gather>(const_node->output(0), input_node->output(0), paramlist->axis);
+        gatherNode = std::make_shared<ngraph::op::v1::Gather>(const_node->output(0), input_node->output(0),
+                                                              axis_node->output(0));
     } else {
-        gatherNode =
-            std::make_shared<ngraph::op::Gather>(input_node->output(0), const_node->output(0), paramlist->axis);
+        gatherNode = std::make_shared<ngraph::op::v1::Gather>(input_node->output(0), const_node->output(0),
+                                                              axis_node->output(0));
     }
 
     gatherNode->validate_and_infer_types();

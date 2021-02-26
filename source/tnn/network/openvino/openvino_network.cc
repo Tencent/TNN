@@ -113,7 +113,7 @@ Status OpenVINONetwork_::SetNetInputNode() {
         }
 
         std::shared_ptr<ngraph::op::Parameter> input_node = 
-                std::make_shared<ngraph::op::Parameter>(ngraph::element::f32, ngraph::Shape(ngraph_input_shape));
+                std::make_shared<ngraph::op::Parameter>(ConvertToOVDataType(blob_desc.data_type), ngraph::Shape(ngraph_input_shape));
         input_node->set_friendly_name(input_name);
 
         auto foreign_blob = new ForeignBlob(it.second);
