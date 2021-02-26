@@ -167,6 +167,10 @@ Status ArmInnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
         if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
             auto o_scale        = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource()->scale_handle;
             auto w_scale        = fc_res->scale_handle;
+
+            if (w_scale.GetDataType() == DATA_TYPE_HALF)
+                w_scale = ConvertHalfHandle(w_scale);
+
             int total_byte_size = ROUND_UP(dims_output[1], 4) * sizeof(float);
             buffer_scale_       = RawBuffer(total_byte_size);
             auto w_scale_ptr    = w_scale.force_to<float *>();

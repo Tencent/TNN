@@ -35,7 +35,10 @@ documentation and/or software.
  
 #include <cstring>
 #include <iostream>
+
+#include "tnn/core/macro.h"
  
+namespace TNN_NS {
  
 // a small class for calculating MD5 hashes of strings or byte arrays
 // it is not meant to be fast or secure
@@ -91,5 +94,7 @@ private:
 std::string md5(const std::string str);
  
 void xor_encode(char * value, const size_t value_size, const char * key, const size_t key_size);
+
+} // namespace TNN_NS
 
 #endif

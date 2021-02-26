@@ -33,6 +33,7 @@ public:
     explicit RawBuffer(int bytes_size);
     RawBuffer(int bytes_size, char *buffer);
     RawBuffer(const RawBuffer &buf);
+    RawBuffer(int bytes_size, int alignment);
     RawBuffer &operator=(RawBuffer buf);
     ~RawBuffer();
 

@@ -49,6 +49,27 @@ RawBuffer::RawBuffer(const RawBuffer &buf) {
     this->buff_       = buf.buff_;
 }
 
+void* aligned_malloc(size_t bytes_size, size_t alignment) {
+    void* origin_ptr;
+    void** align_ptr;
+    int offset = alignment - 1 + sizeof(void*);
+
+    origin_ptr = (void*)malloc(bytes_size + offset);
+    align_ptr = (void**)(((size_t)(origin_ptr) + offset) & ~(alignment - 1));
+    align_ptr[-1] = origin_ptr;
+    return align_ptr;
+}
+
+void aligned_free(void *align_ptr) {
+    free(((void**)align_ptr)[-1]);
+}
+
+RawBuffer::RawBuffer(int bytes_size, int alignment) {
+    buff_ = shared_ptr<char>(static_cast<char*>(aligned_malloc(bytes_size, alignment)), &aligned_free);
+    memset(buff_.get(), 0, bytes_size);
+    bytes_size_ = bytes_size;
+}
+
 template <typename T>
 void permute(void *in, void *out, size_t outter, size_t inner) {
     T *in_ptr  = static_cast<T *>(in);

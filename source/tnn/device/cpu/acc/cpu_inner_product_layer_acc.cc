@@ -14,6 +14,7 @@
 
 #include "tnn/core/blob_int8.h"
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
+#include "tnn/interpreter/layer_resource_generator.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/bfp16_utils.h"
 #include "tnn/utils/naive_compute.h"
@@ -32,16 +33,16 @@ public:
 
 private:
     RawBuffer buffer_scale_;
+    std::shared_ptr<LayerResource> fp32_resource_ = nullptr;
 };
 
 Status CpuInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                      const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto status = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
-    RETURN_ON_NEQ(status, TNN_OK);
+    CPU_CONVERT_HALF_RESOURCE(LAYER_INNER_PRODUCT);
 
     auto layer_param = dynamic_cast<InnerProductLayerParam *>(param);
     CHECK_PARAM_NULL(layer_param);
-    auto layer_res = dynamic_cast<InnerProductLayerResource *>(resource);
+    auto layer_res = dynamic_cast<InnerProductLayerResource *>(resource_);
     CHECK_PARAM_NULL(layer_res);
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         if (!buffer_scale_.GetBytesSize()) {
@@ -107,8 +108,8 @@ Status CpuInnerProductLayerAcc::Forward(const std::vector<Blob *> &inputs, const
         NaiveFC((float *)input_data, (float *)output_data, (float *)weight_data, (float *)bias_data, dims_input,
                 dims_output);
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        NaiveFC(input_data, output_data, weight_data, buffer_scale_.force_to<float *>(),
-                dims_output[1], bias_data, dims_input, dims_output);
+        NaiveFC(input_data, output_data, weight_data, buffer_scale_.force_to<float *>(), dims_output[1], bias_data,
+                dims_input, dims_output);
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         RawBuffer weight_bf16 = RawBuffer(resource->weight_handle.GetDataCount() * sizeof(bfp16_t));
         ConvertFromFloatToBFP16((float *)weight_data, weight_bf16.force_to<void *>(),

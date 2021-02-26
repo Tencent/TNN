@@ -35,7 +35,8 @@ documentation and/or software.
  
 /* system implementation headers */
 #include <cstdio>
- 
+
+namespace TNN_NS {
  
 // Constants for MD5Transform routine.
 #define S11 7
@@ -372,3 +373,5 @@ void xor_encode(char * value, const size_t value_size, const char * key, const s
       }
   }
 }
+
+} // namespace TNN_NS
