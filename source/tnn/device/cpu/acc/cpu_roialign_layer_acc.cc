@@ -36,7 +36,7 @@ struct PreCalc {
 };
 
 template <typename T>
-void pre_calc_for_bilinear_interpolate(const int64_t height, const int64_t width, const int64_t pooled_height,
+void PreCalcForBilinearInterpolate(const int64_t height, const int64_t width, const int64_t pooled_height,
                                        const int64_t pooled_width, const int64_t iy_upper, const int64_t ix_upper,
                                        T roi_start_h, T roi_start_w, T bin_size_h, T bin_size_w, int64_t roi_bin_grid_h,
                                        int64_t roi_bin_grid_w, std::vector<PreCalc<T>> &pre_calc) {
@@ -166,7 +166,7 @@ void CalculateRoiAlign(const DimsVector &output_shape, const T *bottom_data, flo
         // we want to precalculate indices and weights shared by all channels,
         // this is the key point of optimization
         std::vector<PreCalc<T>> pre_calc(roi_bin_grid_h * roi_bin_grid_w * pooled_width * pooled_height);
-        pre_calc_for_bilinear_interpolate(height, width, pooled_height, pooled_width, roi_bin_grid_h, roi_bin_grid_w,
+        PreCalcForBilinearInterpolate(height, width, pooled_height, pooled_width, roi_bin_grid_h, roi_bin_grid_w,
                                           roi_start_h, roi_start_w, bin_size_h, bin_size_w, roi_bin_grid_h,
                                           roi_bin_grid_w, pre_calc);
 
