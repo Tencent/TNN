@@ -362,6 +362,7 @@ class PUBLIC TNN {
 public:
     ...
 
+    // init tnn implement, interpret model.
     Status Init(ModelConfig& config);
 
     // denit tnn implement, release model interpreter.
@@ -371,11 +372,20 @@ public:
     // if output_name of blob not found, then search output_index of layer.
     Status AddOutput(const std::string& output_name, int output_index = 0);
 
+    // return input shapes map from model
+    Status GetModelInputShapesMap(InputShapesMap& shapes_map);
+
     // create tnn network instance with network config and inputs shape.
     // if inputs shape not set, use default from model.
     std::shared_ptr<Instance> CreateInst(
         NetworkConfig& config, Status& status,
         InputShapesMap inputs_shape = InputShapesMap());
+
+    // create tnn network instance with network config and min max inputs shape,
+    // instance reshape can support range from min inputs shape to max inputs shape.
+    std::shared_ptr<Instance> CreateInst(
+        NetworkConfig& config, Status& status,
+        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
 
     ...
 };
@@ -384,8 +394,9 @@ public:
 TNN接口说明：  
 - Init接口：负责模型数据传入并解析，需配置并传入ModelConfig。  
 - DeInit接口: 负责tnn implement释放，默认析构函数可自动释放。  
-- AddOutput接口：支持增加模型输出，可将网络任意一层输出定义为模型输出。  
-- CreateInst接口：负责网络实例Instance构建。
+- AddOutput接口：支持增加模型输出，可将网络任意一层输出定义为模型输出。
+- GetModelInputShapesMap： 获取模型解析出的模型输入尺寸。  
+- CreateInst接口：负责网络实例Instance构建，如果过程中支持维度可变，需要配置min_inputs_shape和max_inputs_shape指定输入支持的最大最小维度。
 
 ### 7. utils/bfp16\_utils.h
 接口提供了cpu内存fp32和bfp16转换工具。
