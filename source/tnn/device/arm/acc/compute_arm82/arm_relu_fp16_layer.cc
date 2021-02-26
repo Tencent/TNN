@@ -12,8 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_relu_layer_acc.h"
 #include "tnn/device/arm/acc/Half8.h"
+#include "tnn/device/arm/acc/arm_relu_layer_acc.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -23,7 +24,7 @@ Status ArmReluLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std::v
     auto output = outputs[0];
     auto dims   = output->GetBlobDesc().dims;
 
-    auto count  = dims[0] * ROUND_UP(dims[1], 8) * dims[2] * dims[3];
+    auto count  = dims[0] * ROUND_UP(dims[1], 8) * DimsVectorUtils::Count(dims, 2);
     fp16_t *dst = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
     fp16_t *src = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));
     Half8 vzero = Half8((fp16_t)0.f);
