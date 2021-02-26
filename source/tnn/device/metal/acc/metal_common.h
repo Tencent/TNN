@@ -32,6 +32,9 @@
 #define ROUND_UP(x, y) (((x) + (y)-1) / (y) * (y))
 #endif
 
+#define GetBlobDim(d, i) \
+    (((d).size()) > (i) ? ((d)[i]) : 1)
+
 /**Base Param Struct **/
 struct MetalParams {
     int input_width;
@@ -591,14 +594,45 @@ struct MetalReorgParams {
     int mode; // DCR: 0  CRD: 1
 };
 
+/** MetalPermute Param Struct **/
+struct MetalPermuteParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+    int input_batch;
+
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int share_channel = 0;
+    int batch;
+};
+
+/** MetalRecurrent Param Struct **/
+struct MetalRecurrentParams {
+    int seq_len;
+    int batch;
+    int input_width;
+    int hidden_size;
+    int direction;
+
+    bool reverse;
+    bool has_init_h;
+    bool has_init_c;
+
+    int activation;
+};
+
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
-        metal_params.input_width   = dims_input[3];                                                                    \
-        metal_params.input_height  = dims_input[2];                                                                    \
+        metal_params.input_width   = GetBlobDim(dims_input, 3);                                                        \
+        metal_params.input_height  = GetBlobDim(dims_input, 2);                                                        \
         metal_params.input_size    = metal_params.input_height * metal_params.input_width;                             \
         metal_params.input_slice   = UP_DIV(dims_input[1], 4);                                                         \
-        metal_params.output_width  = dims_output[3];                                                                   \
-        metal_params.output_height = dims_output[2];                                                                   \
+        metal_params.output_width  = GetBlobDim(dims_output, 3);                                                       \
+        metal_params.output_height = GetBlobDim(dims_output, 2);                                                       \
         metal_params.output_size   = metal_params.output_height * metal_params.output_width;                           \
         metal_params.output_slice  = UP_DIV(dims_output[1], 4);                                                        \
         metal_params.batch         = dims_output[0];                                                                   \

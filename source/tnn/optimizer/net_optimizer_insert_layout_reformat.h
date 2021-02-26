@@ -36,9 +36,10 @@ namespace optimizer {
         virtual Status Optimize(NetStructure* structure, NetResource* resource);
 
         Status AdjustLayer(std::vector<std::shared_ptr<LayerInfo>>& layers_orig, NetStructure* structure,
-                           DataFormat cur_layer_layout, DataFormat reformat_layout,
-                           std::shared_ptr<LayerInfo>& new_layer, std::vector<std::string>& reformat_outs,
-                           const std::string& reformat_name_suffix, const int index, const int count);
+                           const std::set<std::string> &constant_layers, DataFormat cur_layer_layout,
+                           DataFormat reformat_layout, std::shared_ptr<LayerInfo>& new_layer,
+                           std::vector<std::string>& reformat_outs, const std::string& reformat_name_suffix,
+                           const int index, const int count);
 
     private:
         AbstractDevice* device_;

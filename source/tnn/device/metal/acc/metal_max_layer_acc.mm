@@ -43,5 +43,6 @@ Status MetalMaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
 }
 
 REGISTER_METAL_MULTIDIR_BROADCAST_ACC(Max, LAYER_MAXIMUM);
+REGISTER_METAL_LAYOUT(LAYER_MAXIMUM, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

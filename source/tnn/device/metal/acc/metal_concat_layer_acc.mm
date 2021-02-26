@@ -103,18 +103,18 @@ Status MetalConcatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
     for (int ii = 0; ii < inputs.size(); ii++) {
         auto dims_input_0 = inputs[ii]->GetBlobDesc().dims;
         MetalConcatParams metal_params;
-        metal_params.input_width   = dims_input_0[3];
-        metal_params.input_height  = dims_input_0[2];
-        metal_params.input_size      = dims_input_0[2] * dims_input_0[3];
+        metal_params.input_width   = GetBlobDim(dims_input_0, 3);
+        metal_params.input_height  = GetBlobDim(dims_input_0, 2);
+        metal_params.input_size      = metal_params.input_height * metal_params.input_width;
         metal_params.input_channel_0 = dims_input_0[1];
         metal_params.input_slice_0   = UP_DIV(dims_input_0[1], 4);
 
         metal_params.input_channel_offset = channel_offset;
         channel_offset += dims_input_0[1];
 
-        metal_params.output_width   = dims_output[3];
+        metal_params.output_width   = GetBlobDim(dims_output, 3);
         metal_params.output_channel = dims_output[1];
-        metal_params.output_size    = dims_output[2] * dims_output[3];
+        metal_params.output_size    = GetBlobDim(dims_output, 2) * GetBlobDim(dims_output, 3);
         metal_params.output_slice   = UP_DIV(dims_output[1], 4);
 
         metal_params.batch = dims_output[0];
@@ -146,8 +146,8 @@ Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto output = outputs[0];
 
     auto dims_output   = output->GetBlobDesc().dims;
-    auto output_width  = dims_output[3];
-    auto output_height = dims_output[2];
+    auto output_width  = GetBlobDim(dims_output, 3);
+    auto output_height = GetBlobDim(dims_output, 2);
     auto output_slice  = UP_DIV(dims_output[1], 4);
     auto batch         = dims_output[0];
 
@@ -193,8 +193,8 @@ Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         } else {
             for (int i = 0; i < inputs.size(); i++) {
                 auto dims_input    = inputs[i]->GetBlobDesc().dims;
-                auto input_width   = dims_input[3];
-                auto input_height  = dims_input[2];
+                auto input_width   = GetBlobDim(dims_input, 3);
+                auto input_height  = GetBlobDim(dims_input, 2);
                 auto input_channel = dims_input[1];
                 auto input_slice   = UP_DIV(input_channel, 4);
                 auto batch         = dims_input[0];
@@ -232,8 +232,8 @@ Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         int offset[2] = {0, 0};
         for (int i = 0; i < inputs.size(); i++) {
             auto dims_input    = inputs[i]->GetBlobDesc().dims;
-            auto input_width   = dims_input[3];
-            auto input_height  = dims_input[2];
+            auto input_width   = GetBlobDim(dims_input, 3);
+            auto input_height  = GetBlobDim(dims_input, 2);
             auto input_channel = dims_input[1];
             auto input_slice   = UP_DIV(input_channel, 4);
             auto batch         = dims_input[0];
@@ -280,5 +280,6 @@ Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
 }
 
 REGISTER_METAL_ACC(Concat, LAYER_CONCAT);
+REGISTER_METAL_LAYOUT(LAYER_CONCAT, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS
