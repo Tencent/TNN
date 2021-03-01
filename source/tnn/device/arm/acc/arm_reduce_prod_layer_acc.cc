@@ -25,7 +25,7 @@ typedef struct arm_reduce_prod_operator : arm_reduce_operator {
     };
 
     virtual Float4 DataInit() {
-        return Float4(1);
+        return Float4(1.f);
     };
 
     virtual Float4 Calculate(Float4 &v, Float4 &t) {
