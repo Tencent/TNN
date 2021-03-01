@@ -516,6 +516,10 @@ Status ModelChecker::CompareDeviceAndCpu() {
             char* output_data_ptr = device_output_map[blob_name].get();
 
             // compare device data with default data
+            if (cpu_blobdata_map.count(blob_name) <= 0 && info->type == LAYER_REFORMAT) {
+                printf("Skip reformat laye:%s\n", info->name.c_str());
+                return;
+            }
             is_pass &= CompareData(output_data_ptr, cpu_blobdata_map[blob_name].get(), blob_desc.dims);
 
             // compare data with reference file
