@@ -591,7 +591,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
                 int nbDims = output_tensor->getDimensions().nbDims;
                 for( int d=0;d<nbDims;d++) ss << output_tensor->getDimensions().d[d] << ","; 
                 ss << " blob shape:";
-                for(auto d:output->GetBlobDesc().dims) ss << d << ","; 
+                for(auto d:output->GetBlobDesc().dims) ss << d << ",";
                 LOGD("build trt layer for \"%s\", tensor shape %s\n", cur_layer->GetLayerName().c_str(), ss.str().c_str());
             }
         }
