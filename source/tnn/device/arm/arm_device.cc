@@ -45,7 +45,7 @@ BlobMemorySizeInfo ArmDevice::Calculate1DMemorySize(BlobDesc &desc) {
     BlobMemorySizeInfo info;
     info.data_type = desc.data_type;
     int count      = 1;
-    if (desc.data_format == DATA_FORMAT_NCHW) {
+    if (desc.data_format == DATA_FORMAT_NCHW || desc.data_format == DATA_FORMAT_AUTO) {
         for (auto d : desc.dims)
             count *= d;
     } else {
