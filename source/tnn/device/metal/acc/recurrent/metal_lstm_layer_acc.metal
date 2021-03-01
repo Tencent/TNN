@@ -67,7 +67,7 @@ kernel void lstm_forward(const device ftype4 *gates      [[buffer(0)]],
     short n = gid.y;
     short o = gid.x;
 
-    float cell = params.has_init_c? c_0[(d * params.batch + n) * params.hidden_size + o] : 0;
+    ftype cell = params.has_init_c? c_0[(d * params.batch + n) * params.hidden_size + o] : 0;
     ftype4 bias = b[(d * params.hidden_size + o) * 2] + b[(d * params.hidden_size + o) * 2 + 1];
 
     auto wh = w + (d * params.hidden_size + o) * params.hidden_size;
@@ -86,19 +86,19 @@ kernel void lstm_forward(const device ftype4 *gates      [[buffer(0)]],
         for(short i=0; i<params.hidden_size; ++i) {
             IOFC += float4(wh[i] * h_local[i]);
         }
-        
-        float3 IOF = IOFC.xyz;
-        float C = IOFC.w;
-        IOF = 1.f / (1.f + exp(-IOF));
-        C = tanh(C);
+
+        float3 IOF = 1.f / (1.f + exp(-IOFC.xyz));
+        float C   = IOFC.w;
+        C = sinh(C) / cosh(C);
+
         float cell2 = IOF.z * cell + IOF.x * C;
-        ftype H = IOF.y * tanh(cell2);
-        h_local[o] = H;
+        float H = IOF.y * (sinh(cell2) / cosh(cell2));
+        h_local[o] = ftype(H);
         threadgroup_barrier(mem_flags::mem_threadgroup);
-        output[t * params.hidden_size * params.direction * params.batch] = H;
+        output[t * params.hidden_size * params.direction * params.batch] = ftype(H);
         cell = cell2;
     }
     // write final hidden and cell to output
     c[(d* params.batch + n) * params.hidden_size + o] = ftype(cell);
-    h[(d* params.batch + n) * params.hidden_size + o] = h_local[o];
+    h[(d* params.batch + n) * params.hidden_size + o] = ftype(h_local[o]);
 }
