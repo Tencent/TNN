@@ -25,7 +25,7 @@ string OnnxOpConverterRoiAlign::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_
     ostringstream layer_param;
 
     auto mode_str       = get_node_attr_s(node, "mode");
-    int mode            = mode_str == "avg" ? 1 : 0;
+    int mode            = mode_str != "max" ? 1 : 0;
     int output_height   = get_node_attr_i(node, "output_height", 1);
     int output_width    = get_node_attr_i(node, "output_width", 1);
     int sampling_ratio  = get_node_attr_i(node, "sampling_ratio", 0);
