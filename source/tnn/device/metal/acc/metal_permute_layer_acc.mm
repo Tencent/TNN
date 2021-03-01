@@ -31,7 +31,7 @@ const static std::map<unsigned int, std::string> kernels = {
     {0x3012, "permute_to_wnch"},
     {0x0123, "permute_copy"},
     // NCHW
-    {0x4000, "permute_nchw"}
+    //{0x4000, "permute_nchw"}
 };
 
 unsigned int GetPermuteKernelKey(DataFormat format, const std::vector<int>& orders) {
@@ -41,21 +41,55 @@ unsigned int GetPermuteKernelKey(DataFormat format, const std::vector<int>& orde
             0x1000, 0x0100, 0x010, 0x0001};
         kid = orders[0]*keys[0] + orders[1]*keys[1] + \
                              orders[2]*keys[2] + orders[3]*keys[3];
-    } else if (format == DATA_FORMAT_NCHW) {
+    }
+    /*
+    else if (format == DATA_FORMAT_NCHW) {
         kid = 0x4000;
     }
+    */
     return kid;
 }
 
-bool isPermuteOrderSupported(Blob *input, const std::vector<int>& orders) {
+bool hasKernelFor(Blob *input, const std::vector<int>& orders) {
     const auto blob_format = input->GetBlobDesc().data_format;
     const auto kernel_id = GetPermuteKernelKey(blob_format, orders);
     return kernels.count(kernel_id) != 0;
 }
 
+std::string GetPermuteKernel(Blob *input, const std::vector<int>& orders) {
+    const auto blob_format = input->GetBlobDesc().data_format;
+    if (orders.size() == 4) {
+        auto kernel_key = GetPermuteKernelKey(blob_format, orders);
+        if (kernels.count(kernel_key) > 0)
+            return kernels.at(kernel_key);
+        return "";
+    } else if (orders.size() == 3) {
+        auto new_orders = orders;
+        new_orders.push_back(3);
+        if (hasKernelFor(input, new_orders)) return GetPermuteKernel(input, new_orders);
+        new_orders.clear();
+        for(const auto& i : orders) {
+            if (i == 2) new_orders.push_back(3);
+            else new_orders.push_back(i);
+        }
+        new_orders.push_back(2);
+        if (hasKernelFor(input, new_orders)) return GetPermuteKernel(input, new_orders);
+    } else if (orders.size() == 2) {
+        auto new_orders = orders;
+        new_orders.push_back(2);
+        new_orders.push_back(3);
+        if (hasKernelFor(input, new_orders)) return GetPermuteKernel(input, new_orders);
+        new_orders = orders;
+        new_orders.push_back(3);
+        new_orders.push_back(2);
+        if (hasKernelFor(input, new_orders)) return GetPermuteKernel(input, new_orders);
+    }
+    return "";
+}
+
 Status MetalPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PermuteLayerParam *>(param_);
-    if (!isPermuteOrderSupported(inputs[0], layer_param->orders)) {
+    if (GetPermuteKernel(inputs[0], layer_param->orders) == "") {
         return Status(TNNERR_PARAM_ERR, "permute orders not supported!");
     }
     return MetalLayerAcc::Reshape(inputs, outputs);
@@ -87,11 +121,8 @@ Status MetalPermuteLayerAcc::SetKernelEncoderParam(
 
 std::string MetalPermuteLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PermuteLayerParam *>(param_);
-    const auto blob_format = inputs[0]->GetBlobDesc().data_format;
-    const auto kernel_id = GetPermuteKernelKey(blob_format, layer_param->orders);
-    if (kernels.count(kernel_id))
-        return kernels.at(kernel_id);
-    return "";
+    const auto &kernel_name = GetPermuteKernel(inputs[0], layer_param->orders);
+    return kernel_name;
 }
 
 Status MetalPermuteLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
@@ -103,11 +134,6 @@ Status MetalPermuteLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs
 }
 
 Status MetalPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto layer_param = dynamic_cast<PermuteLayerParam *>(param_);
-    if (!layer_param || layer_param->orders.size() < 4) {
-        return Status(TNNERR_PARAM_ERR, "PermuteLayerParam is nil");
-    }
-    
     return MetalLayerAcc::Forward(inputs, outputs);
 }
 
