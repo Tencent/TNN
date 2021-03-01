@@ -208,21 +208,21 @@ int Onnx2TNN::TNNWriteProto() {
                 for (int ii = 0; ii < intput_blob_count; ii++) {
                     onnx::ValueInfoProto* input_blob = input_blobs[ii];
                     auto shape = GetDimsFromTensorShape(input_blob->type().tensor_type().shape());
-
+                    
                     if (target_inputs_shape_map_.find(input_blob->name()) != target_inputs_shape_map_.end()) {
                         shape = target_inputs_shape_map_[input_blob->name()];
                     }
-
+                    
                     if (shape.size() > 0 && shape[0] <= 0) {
                         shape[0] = 1;
                     }
-
+                    
                     proto_net_info << input_blob->name() << " " << shape.size() << " ";
                     for (const auto& dim : shape) {
                         proto_net_info << dim << " ";
                     }
                     LOGD("input_blob_shape dim_size: %d\n", (int)shape.size());
-
+                        
                     DataType input_data_type = GetTnnDataTypeFromOnnx(input_blob->type());
                     proto_net_info << input_data_type << " ";
                     if (intput_blob_count > 1 && ii != intput_blob_count - 1) {
@@ -531,7 +531,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     FuseLSTM(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseArgMaxOrMin(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHistogram(mutable_graph, index_nodes, weights, node_reference, blob_names);
-
+    
 #ifdef PROCESS_TF
     TransferSplit(mutable_graph, index_nodes, weights, node_reference, blob_names);
     TransferConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
