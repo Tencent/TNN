@@ -206,6 +206,7 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
         desc.data_format = DATA_FORMAT_NCHW;
         desc.name = key;
         desc.device_type = DEVICE_X86;
+        desc.data_type = ConvertOVPrecisionToDataType(blob_ptr->getTensorDesc().getPrecision());
         auto dims = blob_ptr->getTensorDesc().getDims();
         for(int index = 0; index<dims.size(); index++) {
             desc.dims.push_back(dims[index]);
@@ -230,6 +231,7 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
         desc.data_format = DATA_FORMAT_NCHW;
         desc.name = key;
         desc.device_type = DEVICE_X86;
+        desc.data_type = ConvertOVPrecisionToDataType(blob_ptr->getTensorDesc().getPrecision());
         auto dims = blob_ptr->getTensorDesc().getDims();
         for(int index = 0; index<dims.size(); index++) {
             desc.dims.push_back(dims[index]);

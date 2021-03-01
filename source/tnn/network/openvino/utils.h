@@ -20,6 +20,7 @@
 #include <ngraph/op/op.hpp>
 #include <ngraph/opsets/opset.hpp>
 #include <ngraph/opsets/opset1.hpp>
+#include <ie_precision.hpp>
 
 #include "tnn/core/common.h"
 #include "tnn/core/macro.h"
@@ -29,6 +30,7 @@ namespace TNN_NS {
 
 ngraph::element::Type_t ConvertToOVDataType(DataType type);
 std::shared_ptr<ngraph::op::Constant> ConvertToConstNode(RawBuffer *buffer);
+DataType ConvertOVPrecisionToDataType(const InferenceEngine::Precision &precision);
 
 }  //  namespace TNN_NS
 
