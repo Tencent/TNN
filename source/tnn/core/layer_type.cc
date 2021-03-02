@@ -23,6 +23,7 @@ static const std::string int8_prefix = "Int8";
 
 static std::map<std::string, LayerType> global_layer_type_map = {
     // LAYER_Convolution, including depthwise convolution
+    {"Convolution1D", LAYER_CONVOLUTION_1D},
     {"Convolution", LAYER_CONVOLUTION},
     {"Convolution3D", LAYER_CONVOLUTION_3D},
     {"BatchNormalization", LAYER_BATCH_NORM},

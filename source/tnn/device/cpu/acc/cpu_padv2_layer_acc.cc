@@ -42,6 +42,21 @@ void ConstPadV2(float* input_data, float* output_data, DimsVector input_dims, Di
     }
 }
 
+void ReflectPadV2(float *input_data, float *output_data, DimsVector input_dims, DimsVector output_dims,
+                  PadLayerParam *layer_param) {
+    const int pad_start = (output_dims[2] - input_dims[2]) / 2;
+    const int pad_end   = output_dims[2] - pad_start;
+    for (int i = 0; i < input_dims[2]; i++) {
+        output_data[i + pad_start] = input_data[i];
+    }
+    for (int i = 0; i < pad_start; i++) {
+        output_data[i] = output_data[pad_start * 2 - i];
+    }
+    for (int i = 0; i < pad_end; i++) {
+        output_data[pad_start + input_dims[2] + i] = output_data[pad_start + input_dims[2] - 2 - i];
+    }
+}
+
 Status CpuPadV2LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<PadLayerParam *>(param_);
     if (!layer_param) {
@@ -63,6 +78,8 @@ Status CpuPadV2LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
         if (layer_param->type == 0) {
             // mode: const
             ConstPadV2(input_data, output_data, input_dims, output_dims, layer_param);
+        } else if (layer_param->type == 1) {
+            ReflectPadV2(input_data, output_data, input_dims, output_dims, layer_param);
         } else {
             LOGE("Error: layer param is not supported: type:%d\n", layer_param->type);
             return Status(TNNERR_PARAM_ERR, "Error: layer param is not supported");

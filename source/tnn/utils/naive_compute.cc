@@ -278,6 +278,85 @@ void FloatActivate(Tacc &result, const int activation_type) {
     }
 }
 
+template <typename Tin, typename Tw, typename Tacc, typename Tout>
+void NaiveConv1D(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
+                 DimsVector dims_output, int stride, int kernel_size, int pad, int group, int dilation,
+                 int activation_type, float *scale, int scale_len, int fusion_type, void *add_input, float *add_scale) {
+    Tin *input_data               = static_cast<Tin *>(input_ptr);
+    Tw *weight_data               = static_cast<Tw *>(weight_ptr);
+    Tout *output_data             = static_cast<Tout *>(output_ptr);
+    Tacc *bias_data               = static_cast<Tacc *>(bias);
+    int number                    = dims_output[0];
+    int output_channel            = dims_output[1];
+    int output_height             = dims_output[2];
+    int input_channel             = dims_input[1];
+    int input_height              = dims_input[2];
+    int output_channels_per_group = output_channel / group;
+    int input_channels_per_group  = input_channel / group;
+
+    // #pragma omp parallel for
+    for (int n = 0; n < number; ++n) {
+        for (int g = 0; g < group; ++g) {
+            int output_c_start = g * output_channels_per_group;
+            int output_c_end   = (g + 1) * output_channels_per_group;
+            int input_c_start  = g * input_channels_per_group;
+            int input_c_end    = (g + 1) * input_channels_per_group;
+            int weights_start  = g * output_channels_per_group * input_channels_per_group * kernel_size;
+            for (int output_c = output_c_start; output_c < output_c_end; ++output_c) {
+                for (int h = 0; h < output_height; ++h) {
+                    int input_h_start = h * stride - pad;
+                    Tacc result       = static_cast<Tacc>(0.0f);
+                    for (int kernel_h = 0; kernel_h < kernel_size; ++kernel_h) {
+                        int input_h = input_h_start + kernel_h * dilation;
+                        if (input_h < 0 || input_h >= input_height) {
+                            continue;
+                        }
+                        for (int input_c = input_c_start; input_c < input_c_end; ++input_c) {
+                            int input_position = (n * input_channel + input_c) * input_height + input_h;
+                            int weight_position =
+                                weights_start +
+                                ((output_c - output_c_start) * input_channels_per_group + input_c - input_c_start) *
+                                kernel_size +
+                                kernel_h;
+                            auto ip = input_data[input_position];
+                            auto wd = weight_data[weight_position];
+                            result += input_data[input_position] * weight_data[weight_position];
+                        }
+                    }
+
+                    int output_position = (n * output_channel + output_c) * output_height + h;
+                    if (bias_data) {
+                        result += bias_data[output_c];
+                    }
+                    if (sizeof(Tin) > 1) {  // float
+                        FloatActivate(result, activation_type);
+                        output_data[output_position] = result;
+                    } else {
+                        int scaleidx = scale_len == 1 ? 0 : output_c;
+                        float val    = result * scale[scaleidx];
+                        if (fusion_type == FusionType_Conv_Add_Activation) {
+                            val += static_cast<Tin *>(add_input)[output_position] * add_scale[output_c];
+                        }
+                        if (activation_type == ActivationType_ReLU) {
+                            val = std::max(0.0f, val);
+                        }
+                        if (fusion_type == FusionType_Conv_Activation_Add) {
+                            val += static_cast<Tin *>(add_input)[output_position] * add_scale[output_c];
+                        }
+                        output_data[output_position] = float2int8(val);
+                    }
+                }
+            }
+        }
+    }
+}
+
+template void NaiveConv1D<float, float, float, float>(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias,
+                                                      DimsVector dims_input, DimsVector dims_output, int stride,
+                                                      int kernel_size, int pad, int group, int dilation,
+                                                      int activation_type, float *scale, int scale_len, int fusion_type,
+                                                      void *add_input, float *add_scale);
+
 /*
  * convolution funtion
  * input & output data_format is NCHW
