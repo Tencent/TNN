@@ -25,5 +25,6 @@ typedef struct arm_abs_operator : arm_unary_operator {
 DECLARE_ARM_UNARY_ACC(Abs, ARM_ABS_OP);
 
 REGISTER_ARM_ACC(Abs, LAYER_ABS)
+REGISTER_ARM_LAYOUT(LAYER_ABS, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

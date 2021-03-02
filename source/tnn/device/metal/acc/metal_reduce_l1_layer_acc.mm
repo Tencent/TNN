@@ -42,5 +42,6 @@ Status MetalReduceL1LayerAcc::Forward(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_METAL_REDUCE_ACC(ReduceL1, LAYER_REDUCE_L1);
+REGISTER_METAL_LAYOUT(LAYER_REDUCE_L1, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

@@ -78,5 +78,6 @@ Status MetalPixelShuffleLayerAcc::Forward(const std::vector<Blob *> &inputs, con
 }
 
 REGISTER_METAL_ACC(PixelShuffle, LAYER_PIXEL_SHUFFLE);
+REGISTER_METAL_LAYOUT(LAYER_PIXEL_SHUFFLE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

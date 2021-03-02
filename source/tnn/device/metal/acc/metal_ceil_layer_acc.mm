@@ -33,5 +33,6 @@ Status MetalCeilLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_METAL_UNARY_ACC(Ceil, LAYER_CEIL);
+REGISTER_METAL_LAYOUT(LAYER_CEIL, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

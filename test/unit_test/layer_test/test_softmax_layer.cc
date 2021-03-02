@@ -15,8 +15,8 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/cpu_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -29,7 +29,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, SoftmaxLayerTest,
                                             // axis
                                             testing::Values(1, 2),
                                             // dtype
-                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_BFP16)));
 
 TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     // get param
@@ -61,8 +61,7 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
-    if ((channel == 512 && input_height == 512) ||
-        (input_width == 512 && input_height == 512) ||
+    if ((channel == 512 && input_height == 512) || (input_width == 512 && input_height == 512) ||
         (channel == 512 && input_width == 512)) {
         GTEST_SKIP();
     }
@@ -72,12 +71,12 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     param->name = "Softmax";
     param->axis = axis;
 
-    auto precision = SetPrecision(dev, data_type); 
+    auto precision = SetPrecision(dev, data_type);
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_height, input_width};
     auto interpreter            = GenerateInterpreter("Softmax", {input_dims}, param);
-    Run(interpreter);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

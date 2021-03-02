@@ -113,5 +113,6 @@ Status MetalStrideSliceLayerAcc::ComputeThreadSize(const std::vector<Blob *> &in
 }
 
 REGISTER_METAL_ACC(StrideSlice, LAYER_STRIDED_SLICE);
+REGISTER_METAL_LAYOUT(LAYER_STRIDED_SLICE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

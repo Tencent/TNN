@@ -33,5 +33,6 @@ Status ArmMaxLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 ArmMaxLayerAcc::~ArmMaxLayerAcc() {}
 
 REGISTER_ARM_ACC(Max, LAYER_MAXIMUM)
+REGISTER_ARM_LAYOUT(LAYER_MAXIMUM, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

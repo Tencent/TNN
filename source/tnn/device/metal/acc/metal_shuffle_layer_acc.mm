@@ -103,5 +103,6 @@ Status MetalShuffleLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_METAL_ACC(Shuffle, LAYER_SHUFFLE_CHANNEL);
+REGISTER_METAL_LAYOUT(LAYER_SHUFFLE_CHANNEL, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

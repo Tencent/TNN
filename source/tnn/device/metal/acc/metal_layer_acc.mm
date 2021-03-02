@@ -18,6 +18,7 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/half_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -39,6 +40,9 @@ Status MetalLayerAcc::Init(Context *context, LayerParam *param, LayerResource *r
     outputs[0]->GetBlobDesc().data_type = DATA_TYPE_HALF;
 #endif
 
+    auto status = ReloadConstantBlobs(inputs);
+    RETURN_ON_NEQ(status, TNN_OK);
+
     return Reshape(inputs, outputs);
     //    return Reshape(inputs, outputs);
 }
@@ -49,6 +53,35 @@ MetalLayerAcc::~MetalLayerAcc() {
 
 Status MetalLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return AllocateBufferParam(inputs, outputs);
+}
+
+Status MetalLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
+    auto const_resource = const_resource_;
+    auto const_blob_map = const_blob_map_;
+    for (auto iter : inputs) {
+        auto name = iter->GetBlobDesc().name;
+        if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
+            continue;
+        }
+
+        auto buffer = (*const_resource)[name];
+        std::shared_ptr<Blob> blob = nullptr;
+        if (const_blob_map.find(name) != const_blob_map.end()) {
+            blob = const_blob_map[name];
+        }
+        auto status = RawBuffer2Blob(buffer.get(), blob);
+        RETURN_ON_NEQ(status, TNN_OK);
+
+        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        auto dims = iter->GetBlobDesc().dims;
+        auto data_type_size = DataTypeUtils::GetBytesSize(iter->GetBlobDesc().data_type);
+        const_blob_map[name] = blob;
+        iter->SetHandle(blob->GetHandle());
+        iter->GetBlobDesc() = blob->GetBlobDesc();
+        LOGD("Reload constant blob: %s\n", name.c_str());
+    }
+    const_blob_map_ = const_blob_map;
+    return TNN_OK;
 }
 
 Status MetalLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -182,13 +215,15 @@ std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
         support_list.push_back(DATA_FORMAT_NC4HW4);
+    } else {
+        support_list.push_back(DATA_FORMAT_NC4HW4);
     }
     return support_list;
 }
 
 MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
-    auto output_height  = dims[2];
-    auto output_width  = dims[3];
+    auto output_height  = GetBlobDim(dims, 2);
+    auto output_width   = GetBlobDim(dims, 3);
     auto output_size  = output_width * output_height;
     auto output_slice = UP_DIV(dims[1], 4);
     auto output_batch = dims[0];

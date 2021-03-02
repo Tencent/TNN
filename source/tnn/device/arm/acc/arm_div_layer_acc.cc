@@ -33,5 +33,6 @@ Status ArmDivLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 ArmDivLayerAcc::~ArmDivLayerAcc() {}
 
 REGISTER_ARM_ACC(Div, LAYER_DIV)
+REGISTER_ARM_LAYOUT(LAYER_DIV, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

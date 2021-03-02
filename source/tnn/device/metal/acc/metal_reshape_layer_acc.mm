@@ -33,14 +33,14 @@ Status MetalReshapeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
     // buffer_param_
     {
         MetalReshapeParams metal_params;
-        metal_params.input_width   = dims_input[3];
-        metal_params.input_height  = dims_input[2];
+        metal_params.input_width   = GetBlobDim(dims_input, 3);
+        metal_params.input_height  = GetBlobDim(dims_input, 2);
         metal_params.input_size    = metal_params.input_height * metal_params.input_width;
         metal_params.input_slice   = UP_DIV(dims_input[1], 4);
         metal_params.input_channel = dims_input[1];
 
-        metal_params.output_width   = dims_output[3];
-        metal_params.output_height  = dims_output[2];
+        metal_params.output_width   = GetBlobDim(dims_output, 3);
+        metal_params.output_height  = GetBlobDim(dims_output, 2);
         metal_params.output_size    = metal_params.output_height * metal_params.output_width;
         metal_params.output_slice   = UP_DIV(dims_output[1], 4);
         metal_params.output_channel = dims_output[1];
@@ -84,5 +84,6 @@ Status MetalReshapeLayerAcc::SetKernelEncoderParam(
 }
 
 REGISTER_METAL_ACC(Reshape, LAYER_RESHAPE);
+REGISTER_METAL_LAYOUT(LAYER_RESHAPE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

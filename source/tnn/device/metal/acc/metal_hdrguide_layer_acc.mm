@@ -532,5 +532,6 @@ Status MetalHDRGuideLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_METAL_ACC(HDRGuide, LAYER_HDRGUIDE);
+REGISTER_METAL_LAYOUT(LAYER_HDRGUIDE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

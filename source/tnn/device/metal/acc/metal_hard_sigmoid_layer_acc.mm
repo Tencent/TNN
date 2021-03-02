@@ -57,5 +57,6 @@ Status MetalHardSigmoidLayerAcc::Forward(const std::vector<Blob *> &inputs, cons
 }
 
 REGISTER_METAL_UNARY_ACC(HardSigmoid, LAYER_HARDSIGMOID);
+REGISTER_METAL_LAYOUT(LAYER_HARDSIGMOID, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

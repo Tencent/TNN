@@ -156,5 +156,6 @@ Status MetalInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, con
 }
 
 REGISTER_METAL_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
+REGISTER_METAL_LAYOUT(LAYER_INST_BATCH_NORM, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

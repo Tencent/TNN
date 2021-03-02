@@ -34,8 +34,8 @@ Status MetalSoftmaxLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
     // buffer_param_
     {
         MetalSoftmaxParams metal_params;
-        metal_params.output_width   = output_dims[3];
-        metal_params.output_height  = output_dims[2];
+        metal_params.output_width   = GetBlobDim(output_dims, 3);
+        metal_params.output_height  = GetBlobDim(output_dims, 2);
         metal_params.output_size    = metal_params.output_height * metal_params.output_width;
         metal_params.output_slice   = UP_DIV(output_dims[1], 4);
         metal_params.channel_remain = output_dims[1] % 4;
@@ -78,8 +78,8 @@ Status MetalSoftmaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     auto output_dims    = output->GetBlobDesc().dims;
     auto batch          = output_dims[0];
     auto output_channel = output_dims[1];
-    auto output_height  = output_dims[2];
-    auto output_width   = output_dims[3];
+    auto output_height  = GetBlobDim(output_dims, 2);
+    auto output_width   = GetBlobDim(output_dims, 3);
     auto output_slice   = UP_DIV(output_dims[1], 4);
     auto mode           = output_dims[1] % 4;
 
@@ -132,5 +132,6 @@ Status MetalSoftmaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_METAL_ACC(Softmax, LAYER_SOFTMAX);
+REGISTER_METAL_LAYOUT(LAYER_SOFTMAX, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

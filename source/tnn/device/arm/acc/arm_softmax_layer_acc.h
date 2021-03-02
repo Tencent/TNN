@@ -16,6 +16,7 @@
 #define TNN_SOURCE_TNN_DEVICE_ARM_ARM_SOFTMAX_LAYER_ACC_H_
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -27,10 +28,10 @@ DECLARE_ARM_ACC(Softmax, LAYER_SOFTMAX);
     auto input        = inputs[0];                                                                                     \
     auto output       = outputs[0];                                                                                    \
     auto dims         = output->GetBlobDesc().dims;                                                                    \
-    auto width        = dims[3];                                                                                       \
-    auto height       = dims[2];                                                                                       \
+    auto hw           = DimsVectorUtils::Count(dims, 2);                                                               \
     auto batch        = dims[0];                                                                                       \
-    size_t count      = width * height * batch * dims[1];                                                              \
+    bool packed       = input->GetBlobDesc().data_format != DATA_FORMAT_NCHW;                                          \
+    size_t count      = hw * batch * ROUND_UP(dims[1], packed ? 4 : 1);                                                \
     int inside        = 1;                                                                                             \
     int outside       = 1;                                                                                             \
     int channel       = 1;                                                                                             \

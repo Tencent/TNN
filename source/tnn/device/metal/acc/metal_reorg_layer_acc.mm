@@ -86,6 +86,7 @@ Status MetalReorgLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 }
 
 REGISTER_METAL_ACC(Reorg, LAYER_REORG);
+REGISTER_METAL_LAYOUT(LAYER_REORG, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS
 

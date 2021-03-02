@@ -31,7 +31,7 @@ namespace TNN_NS {
 namespace optimizer {
 
     // Plast priority: reformat after all fuse
-    NetOptimizerRegister<NetOptimizerInsertFp16Reformat> g_net_optimizer_insert_fp16_reformat(OptPriority::PLAST);
+    NetOptimizerRegister<NetOptimizerInsertFp16Reformat> g_net_optimizer_insert_fp16_reformat(OptPriority::P2);
     static const std::string reformat_name_suffix = "_fp16_reformat";
 
     std::string NetOptimizerInsertFp16Reformat::Strategy() {

@@ -56,5 +56,6 @@ Status MetalPowLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
 }
 
 REGISTER_METAL_UNARY_ACC(Pow, LAYER_POWER);
+REGISTER_METAL_LAYOUT(LAYER_POWER, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS
