@@ -577,6 +577,12 @@ struct RoiAlignLayerParam : public LayerParam {
 
 };
 
+struct FlattenLayerParam : public LayerParam {
+    int axis = 1;
+
+    PARAM_COPY(FlattenLayerParam)
+};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H
