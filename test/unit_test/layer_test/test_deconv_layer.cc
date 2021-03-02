@@ -94,6 +94,13 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
         GTEST_SKIP();
     }
 
+    if (activation_type == ActivationType_ReLU6 && DEVICE_X86 == dev) {
+        GTEST_SKIP();
+    }
+    if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_X86 == dev) {
+        GTEST_SKIP();
+    }
+
     if (kernel <= 1) {
         pad = 0;
     } else if (kernel == 2) {

@@ -21,11 +21,7 @@ namespace TNN_NS {
 
 DECLARE_X86_ACC(Reshape, LAYER_RESHAPE);
 
-Status X86ReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
-Status X86ReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86ReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto &input  = inputs[0];
     auto &output = outputs[0];
     auto param   = (ReshapeLayerParam *)param_;

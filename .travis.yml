@@ -44,3 +44,31 @@ matrix:
         - lcov --remove coverage.info '/usr/*' "${HOME}"'/.cache/*' --output-file coverage.info
         - lcov --list coverage.info
         - bash <(curl -s https://codecov.io/bash) -f coverage.info || echo "Codecov did not collect coverage reports"
+
+    - name: "Windows | x64 | build"
+      os: windows
+      language: cpp
+      install:
+        - PowerShell -Command 'Set-ExecutionPolicy -ExecutionPolicy RemoteSigned'
+        - choco install ninja
+      script:
+        - scripts/build_msvc_naive.bat x64 ci
+      env:
+        - CXX=cl.exe
+        - CXX_FOR_BUILD=cl.exe
+        - CC=cl.exe
+        - CC_FOR_BUILD=cl.exe
+
+    - name: "Windows | x86 | build"
+      os: windows
+      language: cpp
+      install:
+        - PowerShell -Command 'Set-ExecutionPolicy -ExecutionPolicy RemoteSigned'
+        - choco install ninja
+      script:
+        - scripts/build_msvc_naive.bat x86 ci
+      env:
+        - CXX=cl.exe
+        - CXX_FOR_BUILD=cl.exe
+        - CC=cl.exe
+        - CC_FOR_BUILD=cl.exe

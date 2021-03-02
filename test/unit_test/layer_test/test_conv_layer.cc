@@ -87,6 +87,13 @@ TEST_P(ConvLayerTest, ConvLayer) {
         GTEST_SKIP();
     }
 
+    if (activation_type == ActivationType_ReLU6 && DEVICE_X86 == dev) {
+        GTEST_SKIP();
+    }
+    if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_X86 == dev) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<ConvLayerParam> param(new ConvLayerParam());
     param->name            = "Conv";

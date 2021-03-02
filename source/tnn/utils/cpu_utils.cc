@@ -69,6 +69,15 @@
 #endif  // TARGET_OS_IPHONE
 #endif  // __APPLE__
 
+// X86 CPU
+#if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
+#if defined(_MSC_VER)
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#endif
+#endif
+
 #include "tnn/core/macro.h"
 
 namespace TNN_NS {
@@ -435,6 +444,22 @@ bool CpuUtils::CpuSupportFp16() {
 #endif
 
 #endif  // TNN_ARM82
+}
+
+void CpuUtils::SetCpuDenormal(int denormal) {
+#if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
+    if (denormal == 1) {
+        // _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+        // _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
+        _mm_setcsr((_mm_getcsr() & ~0x8000) | (0x8000));
+        _mm_setcsr((_mm_getcsr() & ~0x0040) | (0x0040));
+    } else if (denormal == 0) {
+        // _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_OFF);
+        // _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_OFF);
+        _mm_setcsr((_mm_getcsr() & ~0x8000) | (0x8000));
+        _mm_setcsr((_mm_getcsr() & ~0x0040) | (0x0000));
+    }
+#endif
 }
 
 }  // namespace TNN_NS

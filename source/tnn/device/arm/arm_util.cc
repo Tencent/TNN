@@ -780,6 +780,10 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
         unsigned char* rgb1 = bgr + w * 3;
 #if __aarch64__
         int64_t nn = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain = w - (nn << 3);
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
@@ -866,6 +870,10 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
         }
 #else
         int nn         = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);
@@ -968,6 +976,10 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
         unsigned char* rgb1 = bgr + w * 3;
 #if __aarch64__
         int64_t nn = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain = w - (nn << 3);
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
@@ -1054,6 +1066,10 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
         }
 #else
         int nn         = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);
@@ -1156,6 +1172,10 @@ void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
         unsigned char* rgb1 = bgra + w * 4;
 #if __aarch64__
         int64_t nn = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain = w - (nn << 3);
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
@@ -1246,6 +1266,10 @@ void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
         }
 #else
         int nn         = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);
@@ -1350,6 +1374,10 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
         unsigned char* rgb1 = bgra + w * 4;
 #if __aarch64__
         int64_t nn = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain = w - (nn << 3);
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
@@ -1440,6 +1468,10 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
         }
 #else
         int nn         = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);
