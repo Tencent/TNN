@@ -790,7 +790,7 @@ void X86SgemvLeft(float* dst, const float* src, const float* weight, float *bias
 
 template <typename VEC, int pack>
 void X86Sgemv(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output) {
-    size_t batch_stride = dims_input[3] * dims_input[2] * dims_input[1];
+    size_t batch_stride = DimsVectorUtils::Count(dims_input, 1);
     for (int b = 0; b < dims_output[0]; ++b) {
         const float *src_batch = src + b * batch_stride;
         float *dst_batch = dst + b * dims_output[1];

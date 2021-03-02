@@ -25,6 +25,18 @@ Status X86InnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerR
                                      const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto status = X86LayerAcc::Init(context, param, resource, inputs, outputs);
     RETURN_ON_NEQ(status, TNN_OK);
+
+    auto input_dims   = inputs[0]->GetBlobDesc().dims;
+    auto output_dims  = outputs[0]->GetBlobDesc().dims;
+    if (input_dims.size() < 2) {
+        LOGE("Error: input dim size must >= 2, but it is %lu\n", input_dims.size());
+        return Status(TNNERR_MODEL_ERR, "input dim size is not supported");
+    }
+    if (output_dims.size() < 2) {
+        LOGE("Error: output dim size must >= 2, but it is %lu\n", output_dims.size());
+        return Status(TNNERR_MODEL_ERR, "output dim size is not supported");
+    }
+
     RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
     RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
 
@@ -50,7 +62,7 @@ Status X86InnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
             oc_rup = 4;
         }
         const float *src = res->weight_handle.force_to<float *>();
-        size_t input_stride = input_dims[1] * input_dims[2] * input_dims[3];
+        size_t input_stride = DimsVectorUtils::Count(input_dims, 1);
         size_t weight_count = ROUND_UP(output_dims[1], oc_rup) * input_stride;
         int data_byte_size = DataTypeUtils::GetBytesSize(res->weight_handle.GetDataType());
 

@@ -134,13 +134,21 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
         std::swap(_input0, _input1);
     }
 
-    if (dims_broadcast.size()) {
+    if (dims_broadcast.size() == 1) {
+        type = BroadcastTypeSingle; // dims_broadcast[0] == 1
+    } else if (dims_broadcast.size() >= 2) {
         type = (dims_broadcast[1] == 1) ? BroadcastTypeSingle : BroadcastTypeChannel;
     }
 
-    size_t count = dims[0] * dims[1] * dims[2] * dims[3];
-    size_t batch_stride = dims[1] * dims[2] * dims[3];
-    size_t channel_stride = dims[2] * dims[3];
+    size_t count = DimsVectorUtils::Count(dims);
+    size_t batch_stride = 1;
+    size_t channel_stride = 1;
+    if (dims.size() > 1) {
+        batch_stride = DimsVectorUtils::Count(dims, 1);
+    }
+    if (dims.size() > 2) {
+        channel_stride = DimsVectorUtils::Count(dims, 2);
+    }
 
     if (type == BroadcastTypeNormal) {
         size_t n = 0;
