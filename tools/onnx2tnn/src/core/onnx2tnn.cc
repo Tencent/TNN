@@ -208,21 +208,21 @@ int Onnx2TNN::TNNWriteProto() {
                 for (int ii = 0; ii < intput_blob_count; ii++) {
                     onnx::ValueInfoProto* input_blob = input_blobs[ii];
                     auto shape = GetDimsFromTensorShape(input_blob->type().tensor_type().shape());
-
+                    
                     if (target_inputs_shape_map_.find(input_blob->name()) != target_inputs_shape_map_.end()) {
                         shape = target_inputs_shape_map_[input_blob->name()];
                     }
-
+                    
                     if (shape.size() > 0 && shape[0] <= 0) {
                         shape[0] = 1;
                     }
-
+                    
                     proto_net_info << input_blob->name() << " " << shape.size() << " ";
                     for (const auto& dim : shape) {
                         proto_net_info << dim << " ";
                     }
                     LOGD("input_blob_shape dim_size: %d\n", (int)shape.size());
-
+                        
                     DataType input_data_type = GetTnnDataTypeFromOnnx(input_blob->type());
                     proto_net_info << input_data_type << " ";
                     if (intput_blob_count > 1 && ii != intput_blob_count - 1) {
@@ -378,22 +378,6 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
         }
     }
 
-    std::set<std::string> maintain_constant;
-    for (int i = 0; i < node_count; i++) {
-        const auto& node    = graph.node(i);
-        const auto& op_type = node.op_type();
-        if (op_type != "Mul" && op_type != "Sub" && op_type != "Add" && op_type != "Div") {
-            continue;
-        }
-        const auto& input1 = onnx_net_info_.proxy_node_map[node.input(0)];
-        const auto& input2 = onnx_net_info_.proxy_node_map[node.input(1)];
-        if (input1.op_type() != "Constant" || input2.op_type() != "Constant") {
-            continue;
-        }
-        maintain_constant.insert(node.input(0));
-        maintain_constant.insert(node.input(1));
-    }
-
     // global definition line
     // [layer count] [blob count]
     std::set<std::string> blob_names;
@@ -409,9 +393,6 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
 
         if (onnx_op == "Constant" &&
             onnx_net_info_.used_const_node.find(node.output(0)) == onnx_net_info_.used_const_node.end()) {
-            if (maintain_constant.find(node.output(0)) != maintain_constant.end()) {
-                continue;
-            }
             // Constant
             onnx::TensorProto tensor = get_node_attr_tensor(node, "value");
             weights[node.output(0)]  = tensor;
@@ -531,7 +512,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     FuseLSTM(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseArgMaxOrMin(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHistogram(mutable_graph, index_nodes, weights, node_reference, blob_names);
-
+    
 #ifdef PROCESS_TF
     TransferSplit(mutable_graph, index_nodes, weights, node_reference, blob_names);
     TransferConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
