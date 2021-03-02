@@ -39,6 +39,22 @@ __global__ void pad_default_kernel_v2(const float* src, float* dst, int count, i
     }
 }
 
+__global__ void pad_reflect_kernel_v2(const float* src, float* dst, int count, int channels, int output_d, int output_h, int output_w, \
+int input_d, int input_h, int input_w, int pad_d, int pad_h, int pad_w) {
+  CUDA_KERNEL_LOOP(idx, count) {
+    int dst_n = idx / (channels * output_d * output_h * output_w);
+    int dst_c = (idx / (output_d * output_h * output_w)) % channels;
+    int dst_d = (idx / (output_h * output_w)) % output_d;
+    int dst_h = (idx / output_w) % output_h;
+    int dst_w = idx % output_w;
+
+    int d = dst_d >= pad_d? (dst_d < pad_d + input_d? dst_d - pad_d : pad_d - 2 - dst_d + 2 * input_d) : pad_d - dst_d;
+    int h = dst_h >= pad_h? (dst_h < pad_h + input_h? dst_h - pad_h : pad_h - 2 - dst_h + 2 * input_h) : pad_h - dst_h;
+    int w = dst_w >= pad_w? (dst_w < pad_w + input_w? dst_w - pad_w : pad_w - 2 - dst_w + 2 * input_w) : pad_w - dst_w;
+    dst[idx] = src[dst_n * channels * input_d * input_h * input_w + dst_c * input_d * input_h * input_w + d * input_h * input_w + h * input_w + w];
+  }
+}
+
 Status CudaPadV2LayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
@@ -97,6 +113,10 @@ Status CudaPadV2LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
             pad_default_kernel_v2<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
                 input_data, output_data, count, input_c, output_c, pad_c, output_d, output_h, output_w,
                 input_d, input_h, input_w, pad_d, pad_h, pad_w, value);
+        } else if(params->type == 1) {
+            pad_reflect_kernel_v2<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+                input_data, output_data, count, output_c, output_d, output_h, output_w, input_d, 
+                input_h, input_w, pad_d, pad_h, pad_w);
         } else {
             LOGE("Error: layer acc dont support pad type: %d\n", params->type);
             return Status(TNNERR_MODEL_ERR, "Error: layer acc don't support pad type");
