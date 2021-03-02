@@ -14,6 +14,7 @@
 
 #include "base_layer.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/data_flag_utils.h"
 
 namespace TNN_NS {
 DECLARE_LAYER(ConstantOfShape, LAYER_CONSTANT_OF_SHAPE);
@@ -24,13 +25,18 @@ Status ConstantOfShapeLayer::InferOutputDataType() {
     auto layer_resource = dynamic_cast<ConstantOfShapeLayerResource*>(resource_);
     CHECK_PARAM_NULL(layer_resource);
     
+    auto flag = DataFlagUtils::ChangeStatus(input_blobs_[0]->flag);
+    if (flag < DATA_FLAG_CHANGE_NEVER) {
+        flag = DATA_FLAG_CHANGE_IF_SHAPE_DIFFER;
+    }
+    
     for (auto& iter : output_blobs_) {
         int allocate_status = DATA_FLAG_ALLOCATE_IN_FORWARD;
         if (runtime_model_ == RUNTIME_MODE_NORMAL &&
             const_resource_ != nullptr && const_resource_->find(iter->GetBlobDesc().name) != const_resource_->end()) {
             allocate_status = 0;
         }
-        iter->flag = DATA_FLAG_CHANGE_IF_SHAPE_DIFFER | allocate_status;
+        iter->flag = flag | allocate_status;
         iter->GetBlobDesc().data_type = layer_resource->value.GetDataType();
     }
     

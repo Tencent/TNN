@@ -238,19 +238,18 @@ DimsVector DimsVectorUtils::StrideSlice(const DimsVector input_dims,
 
         if (ends[i] == INT_MAX) {
             ends[i] = input_dims[index];
-        }
-
-        if (ends[i] < 0) {
+        } else if (ends[i] == INT_MIN) {
+            ends[i] = -1;
+        } else if (ends[i] < 0) {
             ends[i] += input_dims[index];
         }
-
-        if (begins[i] >= ends[i]) {
-            if (status) {
-                *status = Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is invalid");
-            }
+        
+        if (strides[i] > 0) {
+            output_dims[index] = (ends[i] - begins[i] - 1) / strides[i] + 1;
+        } else {
+            output_dims[index] = (ends[i] - begins[i] + 1) / strides[i] + 1;
         }
-
-        output_dims[index] = (ends[i] - begins[i] - 1) / strides[i] + 1;
+        
 
         if (output_dims[index] <= 0) {
             if (status) {

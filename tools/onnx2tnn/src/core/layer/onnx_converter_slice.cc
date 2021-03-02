@@ -40,10 +40,8 @@ string OnnxOpConverterSlice::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_inf
     for (const auto &end : ends) {
         if (end == LLONG_MAX) {
             layer_param << INT_MAX << " ";
-        } else if (end == LLONG_MAX) {
+        } else if (end == LLONG_MIN || end == -LLONG_MAX) {
             layer_param << INT_MIN << " ";
-        } else {
-            layer_param << end << " ";
         }
     }
     // pad axes size to starts.size

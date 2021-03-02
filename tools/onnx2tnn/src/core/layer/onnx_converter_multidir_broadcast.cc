@@ -19,6 +19,7 @@
 std::tuple<int, std::string> OnnxOpConverterMultiBrodcast::GetWeightInputIndexName(NodeProto &node,
                                                                                    OnnxNetInfo &net_info) {
     int weight_input_index = -1;
+    int weight_input_count = 0;
     string weight_name     = "";
 
     std::map<std::string, onnx::TensorProto>::iterator it;
@@ -26,13 +27,14 @@ std::tuple<int, std::string> OnnxOpConverterMultiBrodcast::GetWeightInputIndexNa
         const std::string &input_name = node.input(j);
         it                            = net_info.weights_map.find(input_name);
         if (it != net_info.weights_map.end()) {
-            if (weight_input_index < 0) {
+            if (weight_input_count <= 0) {
                 weight_input_index = j;
-                weight_name        = input_name;
+                weight_name = input_name;
             } else {
-                DLog("error::OnnxOpConverter MultiBrodcast only support one weight input index\n");
-                assert(0);
+                weight_input_index = -1;
+                weight_name     = "";
             }
+            weight_input_count++;
         }
     }
 

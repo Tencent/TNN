@@ -17,9 +17,49 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(PadV2, LAYER_PADV2);
+DECLARE_CPU_ACC_WITH_FUNC(PadV2, LAYER_PADV2,
+                          virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                                 const std::vector<Blob *> &outputs););
 
 Status CpuPadV2LayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+Status CpuPadV2LayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                         const std::vector<Blob *> &outputs) {
+    auto *layer_param = dynamic_cast<PadLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    if (inputs.size() >= 2) {
+        auto data_type = inputs[1]->GetBlobDesc().data_type;
+        auto dim_count = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
+        auto dim_data_ptr = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
+        DimsVector dims;
+        if (data_type == DATA_TYPE_INT32) {
+            auto dim_data = (int *)dim_data_ptr;
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(dim_data[i]);
+            }
+            layer_param->pads = dims;
+        } else if(data_type == DATA_TYPE_INT64){
+            auto dim_data = (long long int *)dim_data_ptr;
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(DataTypeUtils::SaturateCast(dim_data[i]));
+            }
+            layer_param->pads = dims;
+        }
+    }
+    
+    auto output_dims = inputs[0]->GetBlobDesc().dims;
+    auto dim_size = layer_param->pads.size()/2;
+    dim_size = dim_size <= output_dims.size() ? dim_size : output_dims.size();
+    for (int i = 0; i<dim_size; i++) {
+        output_dims[i] += layer_param->pads[i] + layer_param->pads[i+dim_size];
+    }
+    outputs[0]->GetBlobDesc().dims = output_dims;
+    
     return TNN_OK;
 }
 

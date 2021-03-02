@@ -16,10 +16,11 @@
 
 #include "tnn/layer/base_layer.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
-DECLARE_LAYER(PadV2, LAYER_PADV2);
-
+DECLARE_LAYER_WITH_FUNC(PadV2, LAYER_PADV2,
+                        virtual Status FillLayerParamWithConstantResource(););
 Status PadV2Layer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
@@ -36,13 +37,45 @@ Status PadV2Layer::InferOutputShape(bool ignore_error) {
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
     auto output_dims = input_blob->GetBlobDesc().dims;
-    int dim_size = (int)output_dims.size();
+    auto dim_size = layer_param->pads.size()/2;
+    dim_size = dim_size <= output_dims.size() ? dim_size : output_dims.size();
     for (int i = 0; i<dim_size; i++) {
         output_dims[i] += layer_param->pads[i] + layer_param->pads[i+dim_size];
     }
     
     output_blob->GetBlobDesc().dims = output_dims;
     return TNN_OK;
+}
+
+Status PadV2Layer::FillLayerParamWithConstantResource() {
+    Status status = TNN_OK;
+    auto *layer_param = dynamic_cast<PadLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    if (input_blobs_.size() >= 2) {
+        auto pads_blob_name = input_blobs_[1]->GetBlobDesc().name;
+        if (const_resource_ != nullptr && const_resource_->find(pads_blob_name) != const_resource_->end()) {
+            auto begins_buffer =  (*const_resource_)[pads_blob_name];
+            auto dim_count = begins_buffer->GetDataCount();
+            if (begins_buffer->GetDataType() == DATA_TYPE_INT32) {
+                auto dim_data = (int *)begins_buffer->force_to<int *>();
+                DimsVector dims;
+                for (int i=0; i<dim_count; i++) {
+                    dims.push_back(dim_data[i]);
+                }
+                layer_param->pads = dims;
+            } else if(begins_buffer->GetDataType() == DATA_TYPE_INT64){
+                auto dim_data = (long long int *)begins_buffer->force_to<long long int *>();
+                DimsVector dims;
+                for (int i=0; i<dim_count; i++) {
+                    dims.push_back(DataTypeUtils::SaturateCast(dim_data[i]));
+                }
+                layer_param->pads = dims;
+            }
+        }
+    }
+    
+    return status;
 }
 
 REGISTER_LAYER(PadV2, LAYER_PADV2);
