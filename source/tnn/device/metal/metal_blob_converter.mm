@@ -482,16 +482,21 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
 
             NSUInteger image_size  = GetBlobDim(dims, 2) * GetBlobDim(dims, 3);
             NSUInteger image_slice = UP_DIV(dims[1], 4);
+            bool is_blob_nchw = output_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
 
             auto group_threads = MTLSizeMake(pipeline_process_.threadExecutionWidth, 1, 1);
             auto groups = MTLSizeMake((image_size + group_threads.width - 1) / group_threads.width,
                                       image_slice, dims[0]);
+            if (is_blob_nchw)
+                groups.height = dims[1];
 
             if (image_size <= image_slice) {
                 group_threads = MTLSizeMake(1, pipeline_process_.threadExecutionWidth, 1);
                 groups = MTLSizeMake(image_size,
                                      (image_slice + group_threads.height - 1) / group_threads.height,
                                      dims[0]);
+                if (is_blob_nchw)
+                    groups.height = (dims[1] + group_threads.height - 1) / group_threads.height;
             }
 
             Blob *output_buffer_blob = (Blob *)(output_blob);
