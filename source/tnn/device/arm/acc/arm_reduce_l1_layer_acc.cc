@@ -22,7 +22,7 @@ typedef struct arm_reduce_l1_operator : arm_reduce_operator {
     };
 
     virtual Float4 DataInit() {
-        return Float4(0);
+        return Float4(0.f);
     };
 
     virtual Float4 Calculate(Float4 &v, Float4 &t) {

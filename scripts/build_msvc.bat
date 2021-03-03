@@ -31,7 +31,7 @@ if not %return% == 0 (
 
 echo Building TNN ...
 cd %BUILD_DIR%
-cmake -G Ninja ^
+cmake ^
 -DCMAKE_BUILD_TYPE=Release ^
 -DCMAKE_SYSTEM_NAME=Windows ^
 -DTNN_CPU_ENABLE=ON ^
@@ -96,7 +96,7 @@ goto :eof
     cd %OPENVINO_DIR%/build
     echo Configuring Openvino ...
 
-    cmake -G Ninja ^
+    cmake ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_SYSTEM_NAME=Windows ^
     -DCMAKE_SYSTEM_PROCESSOR=AMD64 ^
@@ -137,19 +137,19 @@ goto :eof
 :clone_openvino
     cd !BUILD_DIR!
     if not exist !OPENVINO_DIR! (
-        git clone https://github.com/openvinotoolkit/openvino.git
+        git clone --recursive https://github.com/openvinotoolkit/openvino.git
         if !errorlevel! == 1 (
             echo Openvino Clone Failed!
             rd /s /Q openvino
             goto :returnError
         )
-    )
+    ) 
 
     cd !OPENVINO_DIR!
     git reset --hard 9df6a8f
-    git submodule update --init --recursive
+    git submodule update
     if !errorlevel! == 1 (
-        echo Openvino Submodule Update Failed!
+        echo Openvino Clone Failed!
         rd /s /Q openvino
         goto :returnError
     )
