@@ -31,20 +31,20 @@ static std::string GenerateReduceProto(std::string op_type, ReduceLayerParam par
 
 class ReduceOpLayerTest
     : public LayerTest,
-      public ::testing::WithParamInterface<std::tuple<int, int, int, int, std::vector<int>, int, DataType>> {};
+      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, std::vector<int>, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                          ::testing::Combine(testing::Values(1, 2),
                                             testing::Values(2, 3, 9, 128),
                                             testing::Values(9, 10, 19, 128),
                                             testing::Values(9, 10, 19, 128),
+                                            // keep_dim
+                                            testing::Values(0, 1),
                                             // axis
                                             testing::Values(std::vector<int>({1}), std::vector<int>({2}),
                                                             std::vector<int>({3}), std::vector<int>({1, 2}),
                                                             std::vector<int>({1, -1}), std::vector<int>({3, -2}),
                                                             std::vector<int>({1, -2, -1})),
-                                            // keep_dim
-                                            testing::Values(0, 1),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT)));
 
@@ -54,8 +54,8 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     int channel        = std::get<1>(GetParam());
     int input_height   = std::get<2>(GetParam());
     int input_width    = std::get<3>(GetParam());
-    auto& axis         = std::get<4>(GetParam());
-    int keep_dims      = std::get<5>(GetParam());
+    int keep_dims      = std::get<4>(GetParam());
+    auto& axis         = std::get<5>(GetParam());
     DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 

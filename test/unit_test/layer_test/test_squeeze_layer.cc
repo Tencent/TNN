@@ -31,14 +31,19 @@ static bool TestFilter(DeviceType device_type, DataType data_type) {
 }
 
 class SqueezeLayerTest : public LayerTest,
-                              public ::testing::WithParamInterface<std::tuple<int, int, int, int, DataType>> {};
+                              public ::testing::WithParamInterface<std::tuple<int, int, int, int, std::vector<int>, DataType>> {};
 // seq_len, batch, input, output
 // direction: 0, 1, 2
 INSTANTIATE_TEST_SUITE_P(LayerTest, SqueezeLayerTest,
-                         ::testing::Combine(testing::Values(1, 4, 16),    // dim0
-                                            testing::Values(1, 2, 3, 10), //dim1
-                                            testing::Values(1, 3, 10),    // dim2
-                                            testing::Values(0, 1, 2, 3),  // axis
+                         ::testing::Combine(testing::Values(1, 16, 27),    // dim0
+                                            testing::Values(1, 4 ,16), //dim1
+                                            testing::Values(1, 3, 11),    // dim2
+                                            testing::Values(1, 9, 22),   // dim3
+                                            // axis
+                                            testing::Values(std::vector<int>({0}), std::vector<int>({1}),
+                                                            std::vector<int>({2}), std::vector<int>({3}),
+                                                            std::vector<int>({0, 1}), std::vector<int>({0, 2}),
+                                                            std::vector<int>({1, -2}),std::vector<int>({0, -1})),
                                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(SqueezeLayerTest, SqueezeLayer) {
@@ -46,30 +51,26 @@ TEST_P(SqueezeLayerTest, SqueezeLayer) {
     int dim0         = std::get<0>(GetParam());
     int dim1         = std::get<1>(GetParam());
     int dim2         = std::get<2>(GetParam());
-    int axis         = std::get<3>(GetParam());
-    DataType dtype   = std::get<4>(GetParam());
+    int dim3         = std::get<3>(GetParam());
+    auto axes        = std::get<4>(GetParam());
+    DataType dtype   = std::get<5>(GetParam());
     DeviceType dev   = ConvertDeviceType(FLAGS_dt);
     if (!TestFilter(dev, dtype)) {
         GTEST_SKIP();
     }
 
     // param
-    /*
-    struct SqueezeLayerParam : public LayerParam {
-    std::vector<int> axes;
-    bool data_in_resource = false;
-
-    PARAM_COPY(SqueezeLayerParam)
-};
-*/
     std::shared_ptr<SqueezeLayerParam> param(new SqueezeLayerParam());
     param->name        = "Squeeze";
-    std::vector<int> axes = {axis};
     param->axes = axes;
 
     // generate interpreter
-    std::vector<int> input_dims = {dim0, dim1, dim2};
-    input_dims.insert(input_dims.begin()+axis, 1);
+    std::vector<int> input_dims = {dim0, dim1, dim2, dim3};
+    for(int i=0; i<axes.size(); ++i) {
+        int axis = axes[i];
+        axis = axis >= 0 ? axis + i : axis + input_dims.size();
+        input_dims[axis] = 1;
+    }
     auto interpreter            = GenerateInterpreter("Squeeze", {input_dims}, param);
 
     Precision precision = PRECISION_AUTO;

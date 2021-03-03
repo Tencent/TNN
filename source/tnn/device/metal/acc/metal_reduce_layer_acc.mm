@@ -33,10 +33,8 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
     auto dims_output = outputs[0]->GetBlobDesc().dims;
     for (int i = 0; i < layer_param->axis.size(); ++i) {
-        int axis = layer_param->axis[i];
-        axis = axis >= 0 ? axis : axis + layer_param->axis.size();
+        auto axis = layer_param->axis[i];
         need_reformat_ = need_reformat_ || axis == 0 || axis == 1;
-        layer_param->axis[i] = axis;
     }
     need_reformat_ = need_reformat_ && (layer_param->keep_dims==0);
 
@@ -96,12 +94,13 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
         SetDefaultMetalParams(metal_params, reformat_dims_input, reformat_dims_output);
         metal_params.input_channel  = reformat_dims_input[1];
         metal_params.output_channel = reformat_dims_output[1];
+        metal_params.input_batch    = reformat_dims_input[0];
         buffer_reformat_   = [device newBufferWithBytes:(const void *)(&metal_params)
                                                 length:sizeof(metal_params)
                                                 options:MTLResourceCPUCacheModeWriteCombined];
         
         auto data_type_byte_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
-        auto buffer_bytes = data_type_byte_size * DimsVectorUtils::Count(reformat_dims_input, 2) * reformat_dims_input[0] * UP_DIV(reformat_dims_input[1], 4);
+        auto buffer_bytes = data_type_byte_size * DimsVectorUtils::Count(reformat_dims_input, 2) * reformat_dims_input[0] * ROUND_UP(reformat_dims_input[1], 4);
         buffer_output_ = [device newBufferWithLength:buffer_bytes
                                              options:MTLResourceStorageModePrivate];
     }
@@ -128,6 +127,13 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto output = outputs[0];
 
     auto dims_output   = output->GetBlobDesc().dims;
+    if (need_reformat_) {
+        DimsVector keep_dims_output = inputs[0]->GetBlobDesc().dims;
+        for(const auto& axis : layer_param->axis) {
+            keep_dims_output[axis] = 1;
+        }
+        dims_output = keep_dims_output;
+    }
     auto output_width  = dims_output.size() > 3 ? dims_output[3] : 1;
     auto output_height = dims_output.size() > 2 ? dims_output[2] : 1;
     auto output_slice = UP_DIV(dims_output[1], 4);
@@ -171,7 +177,7 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         BREAK_IF(status != TNN_OK);
         
         if (need_reformat_) {
-            threads = GetDefaultThreadSize(dims_output, true);
+            threads = GetDefaultThreadSize(outputs[0]->GetBlobDesc().dims, true);
             status = [context_impl load: @"squeeze_common"
                             encoder:encoder
                             bandwidth:bandwidth];
