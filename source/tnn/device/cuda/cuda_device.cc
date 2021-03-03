@@ -149,6 +149,10 @@ Context* CudaDevice::CreateContext(int device_id) {
     return context;
 }
 
+NetworkType CudaDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_TENSORRT;
+}
+
 Status CudaDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator *creator) {
     GetLayerCreatorMap()[type] = std::shared_ptr<LayerAccCreator>(creator);
     return TNN_OK;

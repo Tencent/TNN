@@ -46,6 +46,8 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
 }
 
 Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+    auto device = GetDevice(net_config_.device_type);
+    RETURN_VALUE_ON_NEQ(device != NULL, true, TNNERR_DEVICE_NOT_SUPPORT);
     interpreter_ = interpreter->Copy();
     if (nullptr == interpreter_) {
         // The ModelInterpreter not implement Copy API, just use interpreter
@@ -83,13 +85,14 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
  
         const_folder_ = const_folder;
     }
-
     
-    /*
-     * NetworkImpl is register by each Impl.
-     * TNN model runs with the default_network.
-     */
-    network_ = NetworkImplManager::GetNetworkImpl(net_config_.network_type);
+    auto network_type = net_config_.network_type;
+    if(network_type == NETWORK_TYPE_AUTO) {
+        network_type = device->ConvertAutoNetworkType();
+    }
+    //NetworkImpl is register by each Impl.
+    //TNN model runs with the default_network.
+    network_ = NetworkImplManager::GetNetworkImpl(network_type);
     if (!network_) {
         LOGE("ERROR: network_ is nil, network_type may not support\n");
         return Status(TNNERR_NET_ERR, "network_ is nil, network_type may not support");

@@ -132,6 +132,10 @@ AbstractLayerAcc *MetalDevice::CreateLayerAcc(LayerType type) {
     return NULL;
 }
 
+NetworkType MetalDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT;
+}
+
 Context *MetalDevice::CreateContext(int device_id) {
     return new MetalContext();
 }

@@ -121,6 +121,10 @@ std::shared_ptr<const ImplementedPrecision> ArmDevice::GetImplementedPrecision(L
     return std::make_shared<ImplementedPrecision>();
 }
 
+NetworkType ArmDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT; 
+}
+
 Context *ArmDevice::CreateContext(int device_id) {
     return new ArmContext();
 }

@@ -106,6 +106,10 @@ Context* CpuDevice::CreateContext(int device_id) {
     return new CpuContext();
 }
 
+NetworkType CpuDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT; 
+}
+
 Status CpuDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator) {
     GetLayerCreatorMap()[type] = std::shared_ptr<LayerAccCreator>(creator);
     return TNN_OK;
