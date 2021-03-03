@@ -121,6 +121,24 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
                                      const std::vector<Blob *> &outputs);\
     }
 
+#define DECLARE_METAL_ACC_WITH_EXTRA_MENBER(type_string, layer_type, extra)                                            \
+    class Metal##type_string##LayerAcc : public MetalLayerAcc {                                                        \
+    public:                                                                                                            \
+        virtual ~Metal##type_string##LayerAcc(){};                                                                     \
+        virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
+        virtual Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);     \
+        virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
+        virtual std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs); \
+        virtual Status ComputeThreadSize(const std::vector<Blob *> &inputs, \
+                                 const std::vector<Blob *> &outputs, \
+                                 MTLSize &size); \
+        virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder, \
+                                     const std::vector<Blob *> &inputs, \
+                                     const std::vector<Blob *> &outputs);\
+    private:                                                                                                          \
+        extra; \
+    }
+
 #define REGISTER_METAL_ACC(type_string, layer_type)                                                                    \
     MetalTypeLayerAccRegister<TypeLayerAccCreator<Metal##type_string##LayerAcc>> g_metal_##layer_type##_acc_register(  \
         layer_type);

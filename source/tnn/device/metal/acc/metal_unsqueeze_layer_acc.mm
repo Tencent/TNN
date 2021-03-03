@@ -19,13 +19,13 @@
 
 namespace TNN_NS {
 
-DECLARE_METAL_ACC_WITH_EXTRA_MENBER(Squeeze, LAYER_SQUEEZE, bool need_reformat_=false);
+DECLARE_METAL_ACC_WITH_EXTRA_MENBER(Unsqueeze, LAYER_UNSQUEEZE, bool need_reformat_=false);
 
-Status MetalSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status MetalUnsqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Reshape(inputs, outputs);
 }
     
-Status MetalSqueezeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
+Status MetalUnsqueezeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                                  const std::vector<Blob *> &outputs) {
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     auto dims_input      = inputs[0]->GetBlobDesc().dims;
@@ -60,7 +60,7 @@ Status MetalSqueezeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
     return TNN_OK;
 }
     
-Status MetalSqueezeLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
+Status MetalUnsqueezeLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
                                             const std::vector<Blob *> &outputs,
                                             MTLSize &size) {
     auto dims_output = outputs[0]->GetBlobDesc().dims;
@@ -68,25 +68,26 @@ Status MetalSqueezeLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs
     return TNN_OK;
 }
 
-std::string MetalSqueezeLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+std::string MetalUnsqueezeLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (need_reformat_)
         return "squeeze_common";
     return "permute_copy";
 }
 
-Status MetalSqueezeLayerAcc::Forward(const std::vector<Blob *> &inputs,
+Status MetalUnsqueezeLayerAcc::Forward(const std::vector<Blob *> &inputs,
                                          const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Forward(inputs, outputs);
 }
 
-Status MetalSqueezeLayerAcc::SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder,
+Status MetalUnsqueezeLayerAcc::SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder,
                                                 const std::vector<Blob *> &inputs,
                                                 const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::SetKernelEncoderParam(encoder, inputs, outputs);
 }
 
-REGISTER_METAL_ACC(Squeeze, LAYER_SQUEEZE);
-REGISTER_METAL_LAYOUT(LAYER_SQUEEZE, DATA_FORMAT_NC4HW4);
+REGISTER_METAL_ACC(Unsqueeze, LAYER_UNSQUEEZE);
+REGISTER_METAL_LAYOUT(LAYER_UNSQUEEZE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS
+
 
