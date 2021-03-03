@@ -632,6 +632,7 @@ struct MetalSqueezeParams {
     int input_size;
     int input_slice;
     int input_channel;
+    int input_batch;
 
     int output_width;
     int output_height;

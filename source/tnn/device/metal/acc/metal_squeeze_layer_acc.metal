@@ -37,13 +37,19 @@ kernel void squeeze_common(const device ftype4 *src                  [[buffer(0)
     int4 input_i = input_channel % 4;
     
     int4 index_in = input_batch * params.input_slice * params.input_size + input_slice * params.input_size + input_x;
+    
+    bool4 valid = input_batch < params.input_batch;
+    index_in = select(int4(0), index_in, valid);
+    input_i  = select(int4(0), input_i,  valid);
 
-    ftype4 val = ftype4(
+    ftype4 val = select(
+        ftype4(0),
+        ftype4(
             src[index_in[0]][input_i[0]],
             src[index_in[1]][input_i[1]],
             src[index_in[2]][input_i[2]],
-            src[index_in[3]][input_i[3]]
-        );
+            src[index_in[3]][input_i[3]]),
+        valid);
     
     dst[index_out] = val;
 }

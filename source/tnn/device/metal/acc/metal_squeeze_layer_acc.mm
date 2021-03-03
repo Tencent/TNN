@@ -45,6 +45,7 @@ Status MetalSqueezeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
             SetDefaultMetalParams(metal_params, dims_input, dims_output);
             metal_params.input_channel = dims_input[1];
             metal_params.output_channel = dims_output[1];
+            metal_params.input_batch = dims_input[0];
             buffer_param_     = [device newBufferWithBytes:(const void *)(&metal_params)
                                                     length:sizeof(metal_params)
                                                    options:MTLResourceCPUCacheModeWriteCombined];
