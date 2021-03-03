@@ -150,5 +150,6 @@ Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
 }
 
 REGISTER_OPENCL_ACC(Upsample, LAYER_UPSAMPLE)
+REGISTER_OPENCL_LAYOUT(LAYER_UPSAMPLE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

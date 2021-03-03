@@ -39,5 +39,6 @@ std::set<std::string> OpenCLAtanLayerAcc::CreateBuildOptions() {
 OpenCLAtanLayerAcc::~OpenCLAtanLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Atan, LAYER_ATAN)
+REGISTER_OPENCL_LAYOUT(LAYER_ATAN, DATA_FORMAT_NC4HW4);
 
 }  // namespace TNN_NS

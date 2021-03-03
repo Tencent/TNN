@@ -342,4 +342,8 @@ DimsVector DimsVectorUtils::StrideOfShape(DimsVector shape) {
     return stride;
 }
 
+int DimsVectorUtils::GetDim(const DimsVector dims, const int index) {
+    return dims.size() > index ? dims[index] : 1;
+}
+
 }  // namespace TNN_NS

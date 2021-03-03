@@ -75,5 +75,6 @@ Status OpenCLSignedMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 }
 
 REGISTER_OPENCL_ACC(SignedMul, LAYER_SIGNED_MUL)
+REGISTER_OPENCL_LAYOUT(LAYER_SIGNED_MUL, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

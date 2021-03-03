@@ -50,4 +50,10 @@ Status OpenCLUnaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     return TNN_OK;
 }
 
+std::vector<DataFormat> OpenCLUnaryLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+    std::vector<DataFormat> support_list;
+    support_list.push_back(DATA_FORMAT_NHC4W4);
+    return support_list;
+}
+
 }  // namespace TNN_NS

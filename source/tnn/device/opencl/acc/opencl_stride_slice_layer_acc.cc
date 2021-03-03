@@ -209,5 +209,6 @@ Status OpenCLStrideSliceLayerAcc::Reshape(const std::vector<Blob *> &inputs, con
 }
 
 REGISTER_OPENCL_ACC(StrideSlice, LAYER_STRIDED_SLICE)
+REGISTER_OPENCL_LAYOUT(LAYER_STRIDED_SLICE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

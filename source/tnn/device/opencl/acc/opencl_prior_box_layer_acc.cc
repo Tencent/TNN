@@ -136,5 +136,6 @@ Status OpenCLPriorBoxLayerAcc::ConvertPriorBox(std::vector<float> &priorbox, Dim
 }
 
 REGISTER_OPENCL_ACC(PriorBox, LAYER_PRIOR_BOX)
+REGISTER_OPENCL_LAYOUT(LAYER_PRIOR_BOX, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

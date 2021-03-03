@@ -35,6 +35,7 @@ public:
 private:
     Status InitReshapeLayer(const std::vector<Blob *> &inputs);
     Status ConvertWeights(float *weights_data_ptr, int weight_w, int weight_h);
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size) override;
 
 private:
     int num_output_ = 0;
@@ -116,16 +117,20 @@ Status OpenCLInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
     LOGD("InnerProduct Layer Reshape\n");
     ASSERT(inputs.size() == 1);
 
-    auto input_dims  = inputs[0]->GetBlobDesc().dims;
-    auto output_dims = outputs[0]->GetBlobDesc().dims;
+    auto input_dims     = inputs[0]->GetBlobDesc().dims;
+    auto output_dims    = outputs[0]->GetBlobDesc().dims;
+    auto output_height  = DimsVectorUtils::GetDim(output_dims, 2);
+    auto output_width   = DimsVectorUtils::GetDim(output_dims, 3);
+    auto input_height   = DimsVectorUtils::GetDim(input_dims, 2);
+    auto input_width    = DimsVectorUtils::GetDim(input_dims, 3);
     // now only support axis is channel, output width and output height is 1.
-    if (axis_ != 1 || output_dims[2] != 1 || output_dims[3] != 1) {
+    if (axis_ != 1 || output_height != 1 || output_width != 1) {
         LOGE("Invalid InnerParameter param or input/output size!\n");
         return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "Invalid InnerParameter param or input/output size!");
     }
 
     // if input width and input height is not 1, need reshape first.
-    if (input_dims[2] != 1 || input_dims[3] != 1) {
+    if (input_height != 1 || input_width != 1) {
         need_reshape_ = true;
     }
 
@@ -200,8 +205,8 @@ Status OpenCLInnerProductLayerAcc::InitReshapeLayer(const std::vector<Blob *> &i
     BlobDesc output_desc    = inputs[0]->GetBlobDesc();
     output_desc.data_format = DATA_FORMAT_NCHW;
     auto dims               = inputs[0]->GetBlobDesc().dims;
-    output_desc.dims[0]     = dims[0];
-    output_desc.dims[1]     = dims[1] * dims[2] * dims[3];
+    output_desc.dims[0]     = DimsVectorUtils::GetDim(dims, 0);
+    output_desc.dims[1]     = DimsVectorUtils::GetDim(dims, 1) * DimsVectorUtils::GetDim(dims, 2) * DimsVectorUtils::GetDim(dims, 3);
     output_desc.dims[2]     = 1;
     output_desc.dims[3]     = 1;
     reshape_output_blob_    = std::make_shared<Blob>(output_desc);
@@ -298,6 +303,13 @@ Status OpenCLInnerProductLayerAcc::ConvertWeights(float *weights_data_ptr, int w
     return convertor.ConvertBufferToImage(weight_buffer.get(), NHWC_BUFFER, weight_shape, ocl_weights_.get(), true);
 }
 
+std::vector<DataFormat> OpenCLInnerProductLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+    std::vector<DataFormat> support_list;
+    support_list.push_back(DATA_FORMAT_NHC4W4);
+    return support_list;
+}
+
 REGISTER_OPENCL_ACC(InnerProduct, LAYER_INNER_PRODUCT)
+REGISTER_OPENCL_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

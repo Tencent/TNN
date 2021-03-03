@@ -205,5 +205,6 @@ Status OpenCLPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_OPENCL_ACC(Pooling, LAYER_POOLING)
+REGISTER_OPENCL_LAYOUT(LAYER_POOLING, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

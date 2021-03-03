@@ -68,5 +68,6 @@ Status OpenCLShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_OPENCL_ACC(Shuffle, LAYER_SHUFFLE_CHANNEL)
+REGISTER_OPENCL_LAYOUT(LAYER_SHUFFLE_CHANNEL, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

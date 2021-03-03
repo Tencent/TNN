@@ -70,5 +70,6 @@ Status OpenCLPixelShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
 }
 
 REGISTER_OPENCL_ACC(PixelShuffle, LAYER_PIXEL_SHUFFLE)
+REGISTER_OPENCL_LAYOUT(LAYER_PIXEL_SHUFFLE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

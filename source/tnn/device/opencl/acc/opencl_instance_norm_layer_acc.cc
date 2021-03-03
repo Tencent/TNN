@@ -243,5 +243,6 @@ double OpenCLInstanceNormLayerAcc::GetBandwidth() {
 #endif
 
 REGISTER_OPENCL_ACC(InstanceNorm, LAYER_INST_BATCH_NORM)
+REGISTER_OPENCL_LAYOUT(LAYER_INST_BATCH_NORM, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

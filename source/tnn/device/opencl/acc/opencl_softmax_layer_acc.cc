@@ -170,5 +170,6 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_OPENCL_ACC(Softmax, LAYER_SOFTMAX)
+REGISTER_OPENCL_LAYOUT(LAYER_SOFTMAX, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

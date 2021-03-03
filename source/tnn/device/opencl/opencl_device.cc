@@ -171,6 +171,14 @@ AbstractLayerAcc* OpenCLDevice::CreateLayerAcc(LayerType type) {
     }
 }
 
+std::shared_ptr<const ImplementedLayout> OpenCLDevice::GetImplementedLayout(LayerType type) {
+    auto &layer_layout_map = GetLayerLayoutMap();
+    if (layer_layout_map.count(type) > 0) {
+        return layer_layout_map[type];
+    }
+    return std::make_shared<ImplementedLayout>();
+}
+
 Context* OpenCLDevice::CreateContext(int device_id) {
     return new OpenCLContext();
 }
@@ -183,6 +191,16 @@ std::map<LayerType, std::shared_ptr<LayerAccCreator>>& OpenCLDevice::GetLayerCre
 Status OpenCLDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator) {
     GetLayerCreatorMap()[type] = std::shared_ptr<LayerAccCreator>(creator);
     return TNN_OK;
+}
+
+Status OpenCLDevice::RegisterLayerLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+    GetLayerLayoutMap()[type] = layout;
+    return TNN_OK;
+}
+
+std::map<LayerType, std::shared_ptr<ImplementedLayout>> &OpenCLDevice::GetLayerLayoutMap() {
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
+    return layer_layout_map;
 }
 
 TypeDeviceRegister<OpenCLDevice> g_opencl_device_register(DEVICE_OPENCL);

@@ -140,5 +140,6 @@ Status OpenCLReorgLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
 }
 
 REGISTER_OPENCL_ACC(Reorg, LAYER_REORG)
+REGISTER_OPENCL_LAYOUT(LAYER_REORG, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

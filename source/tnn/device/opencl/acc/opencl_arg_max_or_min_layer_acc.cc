@@ -107,5 +107,6 @@ Status OpenCLArgMaxOrMinLayerAcc::Reshape(const std::vector<Blob *> &inputs, con
 }
 
 REGISTER_OPENCL_ACC(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN)
+REGISTER_OPENCL_LAYOUT(LAYER_ARG_MAX_OR_MIN, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

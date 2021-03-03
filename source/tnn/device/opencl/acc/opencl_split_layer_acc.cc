@@ -76,5 +76,6 @@ Status OpenCLSplitLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
 }
 
 REGISTER_OPENCL_ACC(Split, LAYER_SPLITING)
+REGISTER_OPENCL_LAYOUT(LAYER_SPLITING, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

@@ -328,5 +328,6 @@ Status OpenCLConcatLayerAcc::ReshapeTwoInputsConcat(const std::vector<Blob *> &i
 }
 
 REGISTER_OPENCL_ACC(Concat, LAYER_CONCAT)
+REGISTER_OPENCL_LAYOUT(LAYER_CONCAT, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

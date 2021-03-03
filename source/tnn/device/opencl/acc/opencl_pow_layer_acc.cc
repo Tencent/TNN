@@ -57,5 +57,6 @@ Status OpenCLPowLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_OPENCL_ACC(Pow, LAYER_POWER)
+REGISTER_OPENCL_LAYOUT(LAYER_POWER, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

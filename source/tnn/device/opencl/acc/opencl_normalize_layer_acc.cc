@@ -95,5 +95,6 @@ Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 }
 
 REGISTER_OPENCL_ACC(Normalize, LAYER_NORMALIZE)
+REGISTER_OPENCL_LAYOUT(LAYER_NORMALIZE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

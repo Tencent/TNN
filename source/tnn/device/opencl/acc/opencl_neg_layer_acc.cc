@@ -39,5 +39,6 @@ std::set<std::string> OpenCLNegLayerAcc::CreateBuildOptions() {
 OpenCLNegLayerAcc::~OpenCLNegLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Neg, LAYER_NEG)
+REGISTER_OPENCL_LAYOUT(LAYER_NEG, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

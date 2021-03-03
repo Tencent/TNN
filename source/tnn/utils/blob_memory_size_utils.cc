@@ -38,15 +38,20 @@ BlobMemorySizeInfo Calculate1DMemorySize(BlobDesc& desc) {
 BlobMemorySizeInfo Calculate2DCLImageMemorySize(BlobDesc& desc) {
     BlobMemorySizeInfo info;
     info.data_type = desc.data_type;
-    int batch, channel, height, width;
-    batch            = desc.dims[0];
-    channel          = desc.dims[1];
-    height           = desc.dims[2];
-    width            = desc.dims[3];
-    int image_width  = UP_DIV(channel, 4) * width;
-    int image_height = batch * height;
-    info.dims.push_back(image_width);
-    info.dims.push_back(image_height);
+    if (desc.data_format == DATA_FORMAT_NHC4W4) {
+        int batch, channel, height, width;
+        auto dims        = desc.dims;
+        batch            = DimsVectorUtils::GetDim(dims, 0);
+        channel          = DimsVectorUtils::GetDim(dims, 1);
+        height           = DimsVectorUtils::GetDim(dims, 2);
+        width            = DimsVectorUtils::GetDim(dims, 3);
+        int image_width  = UP_DIV(channel, 4) * width;
+        int image_height = batch * height;
+        info.dims.push_back(image_width);
+        info.dims.push_back(image_height);
+    } else {
+        LOGE("TNN Blob format(%d) not support on CLImage\n", desc.data_format);
+    }
     return info;
 }
 

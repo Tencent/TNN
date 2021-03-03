@@ -76,5 +76,6 @@ Status OpenCLPadLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_OPENCL_ACC(Pad, LAYER_PAD)
+REGISTER_OPENCL_LAYOUT(LAYER_PAD, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

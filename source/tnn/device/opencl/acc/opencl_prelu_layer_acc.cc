@@ -118,5 +118,6 @@ double OpenCLPReluLayerAcc::GetBandwidth() {
 #endif
 
 REGISTER_OPENCL_ACC(PRelu, LAYER_PRELU)
+REGISTER_OPENCL_LAYOUT(LAYER_PRELU, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

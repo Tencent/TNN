@@ -85,6 +85,22 @@ private:
     OpenCLTypeLayerAccRegister<TypeLayerAccCreator<OpenCL##type_string##LayerAcc>>                                     \
         g_opencl_##layer_type##_acc_register(layer_type);
 
+class OpenCLTypeLayerLayoutCreator {
+public:
+    static std::shared_ptr<ImplementedLayout> UpdateImplementedLayout(LayerType layer_type, DataFormat layout) {
+        // make sure opencl device has been registered
+        TypeDeviceRegister<OpenCLDevice> metal_device_register(DEVICE_OPENCL);
+        auto implemented_layout = GetDevice(DEVICE_OPENCL)->GetImplementedLayout(layer_type);
+        auto updated_layout     = std::make_shared<ImplementedLayout>(*implemented_layout);
+        updated_layout->layouts.push_back(layout);
+        return updated_layout;
+    }
+};
+
+#define REGISTER_OPENCL_LAYOUT(layer_type, layout)                                                                        \
+    OpenCLTypeLayerLayoutRegister g_metal_##layer_type##_##layout##_layout_register(                                      \
+             layer_type, OpenCLTypeLayerLayoutCreator::UpdateImplementedLayout(layer_type, layout));
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_LAYER_ACC_H_

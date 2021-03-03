@@ -41,7 +41,7 @@ OpenCLBlobConverterAcc::OpenCLBlobConverterAcc(Blob *blob) : BlobConverterAcc(bl
         buffer_.reset(cl_buffer);
     }
 
-    int channel = blob->GetBlobDesc().dims[1];
+    int channel = DimsVectorUtils::GetDim(blob->GetBlobDesc().dims, 1);
     scale_bias_buffer_size_ = channel * sizeof(float);
     cl::Buffer* scale_buffer = new cl::Buffer(*opencl_runtime->Context(),
                                               CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
@@ -327,14 +327,14 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
         cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
         CHECK_CL_SUCCESS(cl_ret);
         //height
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[2]); 
+        cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 2));
         CHECK_CL_SUCCESS(cl_ret);
         //width
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[3]);
+        cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 3));
         CHECK_CL_SUCCESS(cl_ret);
         if (NCHW_FLOAT == mat.GetMatType()) {
             //special for NCHW_FLOAT, need channel parameter
-            cl_ret = unit.ocl_kernel.setArg(idx++, dims[1]);
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 1));
             CHECK_CL_SUCCESS(cl_ret);
             cl_ret = unit.ocl_kernel.setArg(idx++, *scale_buffer_);
             CHECK_CL_SUCCESS(cl_ret);
@@ -343,7 +343,7 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
         } else {
             // N8UC4 need channel parameter
             if (N8UC4 == mat.GetMatType() && !convert_to_mat) {
-                cl_ret = unit.ocl_kernel.setArg(idx++, dims[1]);
+                cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 1));
                 CHECK_CL_SUCCESS(cl_ret);
             }
             // pad scale && bias for vectors in opencl kernel
@@ -365,7 +365,7 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
         cl_ret = unit.ocl_kernel.setArg(idx++, *image);
         CHECK_CL_SUCCESS(cl_ret);
         if (!convert_to_mat) {
-            cl_ret = unit.ocl_kernel.setArg(idx++, dims[1]);
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 1));
             CHECK_CL_SUCCESS(cl_ret);
         }
         cl_ret = unit.ocl_kernel.setArg(idx++, sizeof(float) * param.scale.size(), param.scale.data());
