@@ -55,7 +55,7 @@ Status CpuPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 
     std::vector<int> input_step;
     std::vector<int> output_step;
-    int num_dims = int(input_blob->GetBlobDesc().dims.size());
+    int num_dims = int(input_dims.size());
     ASSERT(input_dims.size() == output_dims.size());
     for (int i = 0; i < input_dims.size(); ++i) {
         input_step.push_back(CpuPermuteLayerAcc::count(input_dims, i + 1));
