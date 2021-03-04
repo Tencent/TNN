@@ -14,7 +14,12 @@
 
 #ifdef TNN_USE_OPENCL_WRAPPER
 
+#ifdef WIN32
+#include <windows.h>
+#include <libloaderapi.h>
+#else
 #include <dlfcn.h>
+#endif
 #include <memory>
 #include <string>
 #include <vector>
@@ -55,6 +60,10 @@ static const std::vector<std::string> g_opencl_library_paths = {
     "/usr/lib64/libOpenCL.so",
     "/usr/lib32/libOpenCL.so",
     "libOpenCL.so"
+#elif defined(_WIN32)
+    "C:/Windows/System32/OpenCL.dll"
+#elif defined(_WIN64)
+    "C:/Windows/System32/OpenCL.dll"
 #endif
 };
 
@@ -94,7 +103,11 @@ bool OpenCLSymbols::LoadOpenCLLibrary() {
 
 bool OpenCLSymbols::UnLoadOpenCLLibrary() {
     if (handle_ != nullptr) {
+#ifdef WIN32
+        if (FreeLibrary(handle_) == 0) {
+#else
         if (dlclose(handle_) != 0) {
+#endif
             return false;
         }
         handle_ = nullptr;
@@ -104,6 +117,20 @@ bool OpenCLSymbols::UnLoadOpenCLLibrary() {
 }
 
 bool OpenCLSymbols::LoadLibraryFromPath(const std::string &library_path) {
+#ifdef WIN32
+    handle_ = LoadLibraryA(library_path.c_str());
+    if (handle_ == nullptr) {
+        return false;
+    }
+
+#define TNN_LOAD_FUNCTION_PTR(func_name)                                                                               \
+    func_name = reinterpret_cast<func_name##Func>(GetProcAddress(handle_, #func_name));                                         \
+    if (func_name == nullptr) {                                                                                        \
+        LOGE("load func (%s) from (%s) failed!\n", #func_name, library_path.c_str());                                  \
+        return false;                                                                                                  \
+    }
+
+#else  // WIN32
     handle_ = dlopen(library_path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (handle_ == nullptr) {
         return false;
@@ -135,6 +162,8 @@ bool OpenCLSymbols::LoadLibraryFromPath(const std::string &library_path) {
         LOGE("load func (%s) from (%s) failed!\n", #func_name, library_path.c_str());                                  \
         return false;                                                                                                  \
     }
+
+#endif // end of WIN32
 
     TNN_LOAD_FUNCTION_PTR(clGetPlatformIDs);
     TNN_LOAD_FUNCTION_PTR(clGetPlatformInfo);

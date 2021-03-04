@@ -15,6 +15,14 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_WRAPPER_H_
 #define TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_WRAPPER_H_
 
+#ifdef WIN32
+#define NOMINMAX
+#include <windows.h>
+// Do not remove following statement.
+// windows.h replace LoadLibrary with LoadLibraryA, which cause compiling issue of TNN.
+#undef LoadLibrary
+#endif
+
 #include <memory>
 #include "tnn/core/macro.h"
 
@@ -287,7 +295,11 @@ private:
 
 private:
     static std::shared_ptr<OpenCLSymbols> opencl_symbols_singleton_;
+#ifdef WIN32
+    HMODULE handle_ = nullptr;
+#else
     void *handle_ = nullptr;
+#endif
 };
 
 }  // namespace TNN_NS
