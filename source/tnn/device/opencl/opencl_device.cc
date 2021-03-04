@@ -175,6 +175,10 @@ Context* OpenCLDevice::CreateContext(int device_id) {
     return new OpenCLContext();
 }
 
+NetworkType OpenCLDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT;
+}
+
 std::map<LayerType, std::shared_ptr<LayerAccCreator>>& OpenCLDevice::GetLayerCreatorMap() {
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
     return layer_creator_map;
