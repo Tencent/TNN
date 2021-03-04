@@ -48,6 +48,11 @@ Status PoolingLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index,
 
     GET_INT_2(p->pad_type, p->ceil_mode);
 
+    GET_INT_1(p->is_is_adaptive_pool);
+    int output_h = 0, output_w = 0;
+    GET_INT_2(output_h, output_w);
+    p->output_shape = {output_w, output_h};
+
     return TNN_OK;
 }
 
