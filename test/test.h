@@ -48,7 +48,7 @@ namespace test {
 
     std::map<std::string, std::shared_ptr<BlobConverter>> CreateBlobConverterMap(BlobMap& blob_map);
 
-    std::map<std::string, MatConvertParam> CreateConvertParamMap(MatMap& mat_map); 
+    std::map<std::string, MatConvertParam> CreateConvertParamMap(MatMap& mat_map, bool is_input);
 
     void WriteOutput(MatMap& outputs);
 

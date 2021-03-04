@@ -27,19 +27,19 @@ class PUBLIC DimsVectorUtils {
 public:
     // @brief all dims product, [start_index, end_index)
     // @param dims
-    static int Count(DimsVector dims, int start_index = 0, int end_index = -1);
+    static int Count(const DimsVector &dims, int start_index = 0, int end_index = -1);
 
     // @brief max of dims0 and dims1, [start_index, end_index)
-    static DimsVector Max(DimsVector dims0, DimsVector dims1, int start_index = 0, int end_index = -1);
+    static DimsVector Max(const DimsVector &dims0, const DimsVector &dims1, int start_index = 0, int end_index = -1);
 
     // @brief equal of dims0 and dims1, [start_index, end_index)
-    static bool Equal(DimsVector dims0, DimsVector dims1, int start_index = 0, int end_index = -1);
+    static bool Equal(const DimsVector &dims0, const DimsVector &dims1, int start_index = 0, int end_index = -1);
 
     // @brief NCHW dims vector to NHWC dims vector
-    static DimsVector NCHW2NHWC(DimsVector dims);
+    static DimsVector NCHW2NHWC(const DimsVector &dims);
 
     // @brief NHWC dims vector to NCHW
-    static DimsVector NHWC2NCHW(DimsVector dims);
+    static DimsVector NHWC2NCHW(const DimsVector &dims);
 };
 
 }  // namespace TNN_NS

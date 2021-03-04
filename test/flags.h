@@ -67,6 +67,10 @@ static const char model_path_directory_message[] = "model path directory";
 
 static const char enable_tune_message[] = "enable tune kernel(default false)";
 
+static const char scale_message[] = "input scale: s0,s1,s2,...)";
+
+static const char bias_message[] = "input bias: b0,b1,b2,...)";
+
 DECLARE_bool(h);
 
 DECLARE_string(mt);
@@ -108,6 +112,10 @@ DECLARE_bool(js);
 DECLARE_string(pd);
 
 DECLARE_bool(et);
+
+DECLARE_string(sc);
+
+DECLARE_string(bi);
 
 }  // namespace TNN_NS
 

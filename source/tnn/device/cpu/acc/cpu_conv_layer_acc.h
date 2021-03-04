@@ -39,6 +39,7 @@ private:
     RawBuffer buffer_scale_;
     // @brief for conv add fusion
     RawBuffer buffer_add_scale_;
+    std::shared_ptr<LayerResource> fp32_resource_ = nullptr;
 };
 
 }  // namespace TNN_NS

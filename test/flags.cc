@@ -58,4 +58,8 @@ DEFINE_bool(js, false, tnn_test_json_message);
 
 DEFINE_string(pd, "", model_path_directory_message);
 
+DEFINE_string(sc, "", scale_message);
+
+DEFINE_string(bi, "", bias_message);
+
 }  // namespace TNN_NS
