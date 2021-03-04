@@ -484,6 +484,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     // op transfer
     TransferReduceMax(mutable_graph, index_nodes, weights, node_reference, blob_names);
     TransferGlobalMaxPool(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    TransferGroupNormalization(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
     // onnx_op chain fusion
     // FuseMatMul(mutable_graph, index_nodes, weights, node_reference, blob_names);
