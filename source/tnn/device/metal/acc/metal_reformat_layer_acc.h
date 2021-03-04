@@ -37,6 +37,8 @@ public:
     
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 private:
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size);
+
     RawBuffer scale_buffer_;
 };
 
