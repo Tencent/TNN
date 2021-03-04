@@ -50,11 +50,14 @@ string OnnxOpConverterAdaptivePool::TNNLayerParam(NodeProto &node, OnnxNetInfo &
     const auto output_shape      = net_info.weights_map[output_shape_name];
     auto shape_data              = (const int64_t *)get_tensor_proto_data(output_shape);
     int data_size                = get_tensor_proto_data_size(output_shape);
-    if (data_size != 2) {
+    if (data_size == 1) {
+        layer_param << shape_data[0] << " " << shape_data[0] << " ";
+    } else if (data_size == 2) {
+        layer_param << shape_data[0] << " " << shape_data[1] << " ";
+    } else {
         DLog("output shape's size = %d, it's unsuported \n", data_size);
         assert(0);
     }
-    layer_param << shape_data[0] << " " << shape_data[1] << " ";
 
     return layer_param.str();
 }

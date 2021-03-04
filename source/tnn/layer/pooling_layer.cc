@@ -57,7 +57,7 @@ Status PoolingLayer::InferOutputDataType() {
 
 Status PoolingLayer::InferOutputShape(bool ignore_error) {
     BaseLayer::InferOutputShape(ignore_error);
-    
+
     Blob* input_blob = input_blobs_[0];
 
     PoolingLayerParam* pool_param = dynamic_cast<PoolingLayerParam*>(param_);
@@ -71,17 +71,19 @@ Status PoolingLayer::InferOutputShape(bool ignore_error) {
 
     if (pool_param->is_is_adaptive_pool) {
         const int output_blobs_size = output_blobs_.size();
+        // output_w = output_shape[0]
+        // output_h = output_shape[1]
         const auto output_shape     = pool_param->output_shape;
         const int stride_w          = std::floor(width / output_shape[0]);
         const int stride_h          = std::floor(height / output_shape[1]);
         const int kernel_w          = width - (output_shape[0] - 1) * stride_w;
-        const int kernel_h          = width - (output_shape[0] - 1) * stride_h;
+        const int kernel_h          = height - (output_shape[1] - 1) * stride_h;
         pool_param->strides[0]      = stride_w;
         pool_param->strides[1]      = stride_h;
         pool_param->kernels[0]      = kernel_w;
         pool_param->kernels[1]      = kernel_h;
         for (int i = 0; i < output_blobs_size; i++) {
-            output_blobs_[i]->GetBlobDesc().dims = {num, channels, output_shape[0], output_shape[1]};
+            output_blobs_[i]->GetBlobDesc().dims = {num, channels, output_shape[1], output_shape[0]};
         }
 
         return TNN_OK;
@@ -160,7 +162,8 @@ Status PoolingLayer::InferOutputShape(bool ignore_error) {
             height_out = static_cast<int>(std::ceil(float(height - kernel_h + 1) / float(stride_h)));
             width_out  = static_cast<int>(std::ceil(float(width - kernel_w + 1) / float(stride_w)));
         } else {
-            LOGE_IF(!ignore_error, "Error: PoolingLayer %s, maybe it is the case for global pooling\n", GetLayerName().c_str());
+            LOGE_IF(!ignore_error, "Error: PoolingLayer %s, maybe it is the case for global pooling\n",
+                    GetLayerName().c_str());
             return Status(TNNERR_PARAM_ERR, "Error: PoolingLayer, maybe it is the case for global pooling");
         }
 
