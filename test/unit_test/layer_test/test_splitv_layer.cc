@@ -45,16 +45,15 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
         GTEST_SKIP();
     }
 
-    if (channel <= 1) {
-        GTEST_SKIP();
-    }
-
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
 
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
-    
+    if (input_dims[axis] <= 1) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<SplitVLayerParam> param(new SplitVLayerParam());
     param->name   = "SplitV";
