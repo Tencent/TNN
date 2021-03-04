@@ -156,6 +156,11 @@ string OnnxOpConverterPool::TNNLayerParam(NodeProto &node,
         }
 
         layer_param << ceil_mode << " ";
+
+        const int is_adaptive_pool = 0;
+        const int output_h         = -1;
+        const int output_w         = -1;
+        layer_param << is_adaptive_pool << " " << output_h << " " << output_w << " ";
     }
 
     return layer_param.str();

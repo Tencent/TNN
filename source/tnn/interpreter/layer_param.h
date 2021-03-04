@@ -129,6 +129,9 @@ struct PoolingLayerParam : public LayerParam {
     // order [w h d] for adaptive pool
     std::vector<int> kernel_indexs;
 
+    int is_is_adaptive_pool = 0;
+    std::vector<int> output_shape;
+
     PARAM_COPY(PoolingLayerParam)
 };
 

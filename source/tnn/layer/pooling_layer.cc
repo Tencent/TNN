@@ -69,6 +69,24 @@ Status PoolingLayer::InferOutputShape(bool ignore_error) {
     int height      = dims_input[2];
     int width       = dims_input[3];
 
+    if (pool_param->is_is_adaptive_pool) {
+        const int output_blobs_size = output_blobs_.size();
+        const auto output_shape     = pool_param->output_shape;
+        const int stride_w          = std::floor(width / output_shape[0]);
+        const int stride_h          = std::floor(height / output_shape[1]);
+        const int kernel_w          = width - (output_shape[0] - 1) * stride_w;
+        const int kernel_h          = width - (output_shape[0] - 1) * stride_h;
+        pool_param->strides[0]      = stride_w;
+        pool_param->strides[1]      = stride_h;
+        pool_param->kernels[0]      = kernel_w;
+        pool_param->kernels[1]      = kernel_h;
+        for (int i = 0; i < output_blobs_size; i++) {
+            output_blobs_[i]->GetBlobDesc().dims = {num, channels, output_shape[0], output_shape[1]};
+        }
+
+        return TNN_OK;
+    }
+
     const int kernel_w = PoolingLayerRuntimeKernelWidth(pool_param, dims_input);
     const int kernel_h = PoolingLayerRuntimeKernelHeight(pool_param, dims_input);
     int stride_w       = pool_param->strides[0];
