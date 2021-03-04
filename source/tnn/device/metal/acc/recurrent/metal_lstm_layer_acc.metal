@@ -17,6 +17,8 @@
 
 using namespace metal;
 
+#define SAFE_TANH 1
+
 // x: [seq, batch, input]
 // w: [dir, output, input, 4]
 // gates: [dir, seq, batch, output, 4(IOFC)]
@@ -89,10 +91,19 @@ kernel void lstm_forward(const device ftype4 *gates      [[buffer(0)]],
 
         float3 IOF = 1.f / (1.f + exp(-IOFC.xyz));
         float C   = IOFC.w;
+#if SAFE_TANH
+        // metal compute tanh in a different way than CPU
         C = sinh(C) / cosh(C);
+#else
+        C = tanh(C);
+#endif
 
         float cell2 = IOF.z * cell + IOF.x * C;
+#if SAFE_TANH
         float H = IOF.y * (sinh(cell2) / cosh(cell2));
+#else
+        float H = IOF.y * tanh(cell2);
+#endif
         h_local[o] = ftype(H);
         threadgroup_barrier(mem_flags::mem_threadgroup);
         output[t * params.hidden_size * params.direction * params.batch] = ftype(H);
