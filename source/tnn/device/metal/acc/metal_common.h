@@ -35,6 +35,9 @@
 #define GetBlobDim(d, i) \
     (((d).size()) > (i) ? ((d)[i]) : 1)
 
+#define GetBlobCount(d, i) \
+    ( (DimsVectorUtils::Count((d), (i))) > 0? (DimsVectorUtils::Count((d), (i))) : (GetBlobDim(d, i)) )
+
 /**Base Param Struct **/
 struct MetalParams {
     int input_width;

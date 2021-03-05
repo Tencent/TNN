@@ -16,6 +16,7 @@
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -33,13 +34,13 @@ Status MetalReshapeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
     // buffer_param_
     {
         MetalReshapeParams metal_params;
-        metal_params.input_width   = DimsVectorUtils::Count(dims_input, 3);
+        metal_params.input_width   = GetBlobCount(dims_input, 3);
         metal_params.input_height  = GetBlobDim(dims_input, 2);
         metal_params.input_size    = metal_params.input_height * metal_params.input_width;
         metal_params.input_slice   = UP_DIV(dims_input[1], 4);
         metal_params.input_channel = dims_input[1];
 
-        metal_params.output_width   = DimsVectorUtils::Count(dims_output, 3);
+        metal_params.output_width   = GetBlobCount(dims_output, 3);
         metal_params.output_height  = GetBlobDim(dims_output, 2);
         metal_params.output_size    = metal_params.output_height * metal_params.output_width;
         metal_params.output_slice   = UP_DIV(dims_output[1], 4);
