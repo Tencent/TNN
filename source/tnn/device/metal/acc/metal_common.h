@@ -70,6 +70,9 @@ struct MetalBroadcastParams {
     int broadcast_input0;
     int broadcast_input1;
     int batch;
+
+    int input0_size;
+    int input1_size;
 };
 
 /**Pow Param Struct **/
