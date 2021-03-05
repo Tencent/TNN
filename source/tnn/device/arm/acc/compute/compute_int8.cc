@@ -12,12 +12,13 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/compute/compute.h"
-
 #include <string.h>
 
 #include "tnn/core/macro.h"
 #include "tnn/device/arm/acc/Float4.h"
+#include "tnn/device/arm/acc/compute/compute.h"
+#include "tnn/device/arm/acc/compute/indirect_conv_int8_8x8.h"
+#include "tnn/device/arm/acc/compute/indirect_conv_int8_4x8.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_util.h"
 #include "tnn/utils/bfp16.h"
@@ -106,36 +107,81 @@ void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_
     }
 }
 
-extern void ConvInt8Unit8x8(long mr, long nr, long kc, long ks, const int8_t** a, 
-                    const void* w, int8_t* c, long c_stride, const float* scales,
-                    long relu, const int8_t* add_input, const float* add_scale);
+void IndirectConvInt8UnitN8Naive(long mr, long nr, long input_channel, long kernel_size, const int32_t* indirect,
+                             const void* weight, int8_t* output, long channel_stride, const float* scales, long relu,
+                             const int8_t* add_input, const float* add_scale, const int8_t* zero, const int8_t* real_input) {
+    union {
+        const void* as_void_ptr;
+        int8_t* as_int8_ptr;
+        int32_t* as_int32_ptr;
+    } packed = {weight};
 
-
-static void ComputeQ8ConvTile(const Q8ConvContext* context, long mr_block_start, long nr_block_start, 
-                                long mr_block_size, long nr_block_size) {
-    const long ks = context->ks;
-    const long kc = context->kc;
-    const long kc_stride = context->kc_stride;
-    const int8_t** indirect_a = context->indirect_a;
-    const void* packed_w = context->packed_w;
-    int8_t* c = context->c;
-    const long c_stride = context->c_stride;
-
-    ConvInt8Unit8x8(mr_block_size, nr_block_size, kc, ks, indirect_a + mr_block_start * ks, 
-                    (const void*)((intptr_t)packed_w + nr_block_start * (kc_stride * sizeof(int8_t) + sizeof(int32_t))),
-                    c + mr_block_start * c_stride + nr_block_start,
-                    c_stride,
-                    context->scales + nr_block_start,
-                    context->relu,
-                    context->add_input ? (context->add_input + mr_block_start * c_stride + nr_block_start) : nullptr,
-                    context->add_scale ? (context->add_scale + nr_block_start) : nullptr);
+#ifdef __aarch64__
+    const int indirect_buffer_size = 8;
+#else
+    const int indirect_buffer_size = 4;
+#endif
+    for (int m = 0; m < mr; m++) {
+        for (int n = 0; n < nr; n++) {
+            int acc          = packed.as_int32_ptr[n];
+            int8_t* packed_w = reinterpret_cast<int8_t*>(packed.as_int32_ptr + 8);  // jump bias value
+            for (int s = 0; s < kernel_size; s++) {
+                for (int c = 0; c < input_channel; ++c) {
+                    int32_t temp_offset = indirect[s * indirect_buffer_size + m];
+                    int32_t temp_a = temp_offset == -1 ? zero[c] : (temp_offset + real_input)[c];
+                    int32_t temp_w = packed_w[(s * input_channel + c) * 8 + n];
+                    acc += temp_a * temp_w;
+                }
+            }
+            float res = acc * scales[n];
+            if (relu < 0) {
+                res = MAX(0, res);
+            }
+            if (add_input) {
+                res += add_input[m * channel_stride + n] * add_scale[n];
+            }
+            if (relu > 0) {
+                res = MAX(0, res);
+            }
+            output[m * channel_stride + n] = float2int8(res);
+        }
+    }
 }
 
-void ComputeQ8Conv(const Q8ConvContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l) {
-    OMP_PARALLEL_FOR_GUIDED_
-    for (int32_t k = 0; k < range_k; k += tile_k) {
-        for (int32_t l = 0; l < range_l; l += tile_l) {
-            ComputeQ8ConvTile(context, k, l, std::min(range_k - k, tile_k), std::min(range_l - l, tile_l));
+static void ComputeQ8ConvTile(const Q8ConvContext* context, long mr_block_start, long nr_block_start,
+                              long mr_block_size, long nr_block_size) {
+    const long ks             = context->ks;
+    const long kc             = context->kc;
+    const long kc_stride      = context->kc_stride;
+    const int32_t* indirect_a  = context->indirect_a;
+    const void* packed_w      = context->packed_w;
+    int8_t* output            = context->c;
+    const long c_stride       = context->c_stride;
+
+#ifndef TNN_USE_NEON
+    IndirectConvInt8N8Func indirect_conv_int8_func = IndirectConvInt8UnitN8Naive;
+#elif defined(__aarch64__)
+    IndirectConvInt8N8Func indirect_conv_int8_func = IndirectConvInt8Unit8x8;
+#else
+    IndirectConvInt8N8Func indirect_conv_int8_func = IndirectConvInt8Unit4x8;
+#endif
+
+    indirect_conv_int8_func(
+        mr_block_size, nr_block_size, kc, ks, indirect_a + mr_block_start * ks,
+        (const void*)((intptr_t)packed_w + nr_block_start * (kc_stride * sizeof(int8_t) + sizeof(int32_t))),
+        output + mr_block_start * c_stride + nr_block_start,
+        c_stride,  // ROUND(oc, 4)
+        context->scales + nr_block_start, context->relu,
+        context->add_input ? (context->add_input + mr_block_start * c_stride + nr_block_start) : nullptr,
+        context->add_scale ? (context->add_scale + nr_block_start) : nullptr,
+        context->zero, context->real_input);
+}
+
+void ComputeQ8Conv(const Q8ConvContext* context, int32_t range_k, int32_t range_l, int32_t mr_block_size, int32_t nr_block_size) {
+    OMP_PARALLEL_FOR_DYNAMIC_
+    for (int32_t k = 0; k < range_k; k += mr_block_size) {
+        for (int32_t l = 0; l < range_l; l += nr_block_size) {
+            ComputeQ8ConvTile(context, k, l, std::min(range_k - k, mr_block_size), std::min(range_l - l, nr_block_size));
         }
     }
 }

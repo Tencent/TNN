@@ -1,18 +1,37 @@
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+
+#if __aarch64__
+#include "indirect_conv_int8_8x8.h"
+
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/naive_compute.h"
-#define ASMCONVINT8UNIT8X8
+#include "tnn/utils/omp_utils.h"
+
+//#define ASMCONVINT8UNIT8X8
 #ifdef ASMCONVINT8UNIT8X8
 extern "C" {
-void ASMConvInt8Unit8x8(long mr, long nr, long kc, long ks, const int8_t** a,
-                    const void* w, int8_t* c, long c_stride, const float* scales, 
-                    long relu, const int8_t* add_input, const float* add_scale);
+void ASMConvInt8Unit8x8(long mr, long nr, long kc, long ks, const int32_t* a, const void* w, int8_t* c, long c_stride,
+                        const float* scales, long relu, const int8_t* add_input, const float* add_scale,
+                        const int8_t* zero, const int8_t* real_input);
 }
 #endif
 namespace TNN_NS {
 #define COMPUTE_UNIT_LOW(i) \
     {                                                                                               \
-        const int16x8_t vb01234567 = vmovl_s8(vld1_s8((const int8_t*)w));                           \
-        w = (void*)((uintptr_t)w + 8);                                                              \
+        const int16x8_t vb01234567 = vmovl_s8(vld1_s8((const int8_t*)weight));                      \
+        weight = (void*)((uintptr_t)weight + 8);                                                    \
         vacc0x0123 = vmlal_lane_s16(vacc0x0123, vget_low_s16(vb01234567), vget_low_s16(va0), i);    \
         vacc0x4567 = vmlal_lane_s16(vacc0x4567, vget_high_s16(vb01234567), vget_low_s16(va0), i);   \
         vacc1x0123 = vmlal_lane_s16(vacc1x0123, vget_low_s16(vb01234567), vget_low_s16(va1), i);    \
@@ -36,8 +55,8 @@ namespace TNN_NS {
 
 #define COMPUTE_UNIT_HIGH(i) \
     {                                                                                                \
-        const int16x8_t vb01234567 = vmovl_s8(vld1_s8((const int8_t*)w));                            \
-        w = (void*)((uintptr_t)w + 8);                                                               \
+        const int16x8_t vb01234567 = vmovl_s8(vld1_s8((const int8_t*)weight));                       \
+        weight = (void*)((uintptr_t)weight + 8);                                                     \
         vacc0x0123 = vmlal_lane_s16(vacc0x0123, vget_low_s16(vb01234567), vget_high_s16(va0), i);    \
         vacc0x4567 = vmlal_lane_s16(vacc0x4567, vget_high_s16(vb01234567), vget_high_s16(va0), i);   \
         vacc1x0123 = vmlal_lane_s16(vacc1x0123, vget_low_s16(vb01234567), vget_high_s16(va1), i);    \
@@ -56,44 +75,20 @@ namespace TNN_NS {
         vacc7x4567 = vmlal_lane_s16(vacc7x4567, vget_high_s16(vb01234567), vget_high_s16(va7), i);   \
     }
 
-void ConvInt8Unit8x8(long mr, long nr, long kc, long ks, const int8_t** a,
-                    const void* w, int8_t* c, long c_stride, const float* scales,
-                    long relu, const int8_t* add_input, const float* add_scale) {
-#if !defined(TNN_USE_NEON) || !defined(__aarch64__)
+void IndirectConvInt8Unit8x8(long mr, long nr, long input_channel, long kernel_size, const int32_t* indirect,
+                     const void* weight, int8_t* output, long channel_stride, const float* scales,
+                     long relu, const int8_t* add_input, const float* add_scale, const int8_t* zero, const int8_t* real_input) {
     union {
         const void* as_void_ptr;
         int8_t* as_int8_ptr;
         int32_t* as_int32_ptr;
-    } packed = {w};
-    for (int m = 0; m < mr; m++) {
-        for (int n = 0; n < nr; n++) {
-            int acc          = packed.as_int32_ptr[n];
-            int8_t* packed_w = reinterpret_cast<int8_t*>(packed.as_int32_ptr + 8);
-            for (int s = 0; s < ks; s++) {
-                for (int c = 0; c < kc; ++c) {
-                    int32_t temp_a = a[s * 8 + m][c];
-                    int32_t temp_w = packed_w[s * 8 * kc + c * 8 + n];
-                    acc += temp_a * temp_w;
-                }
-            }
-            float res = acc * scales[n];
-            if (relu < 0) {
-                res = MAX(0, res);
-            }
-            if (add_input) {
-                res += add_input[m * c_stride + n] * add_scale[n];
-            }
-            if (relu > 0) {
-                res = MAX(0, res);
-            }
-            c[m * c_stride + n] = float2int8(res);
-        }
-    }
-#elif !defined(ASMCONVINT8UNIT8X8)
-    int32x4_t vacc0x0123 = vld1q_s32((const int32_t*)w);
-    w = (void*)((uintptr_t)w + 16);
-    int32x4_t vacc0x4567 = vld1q_s32((const int32_t*)w);
-    w = (void*)((uintptr_t)w + 16);
+    } packed = {weight};
+
+#if !defined(ASMCONVINT8UNIT8X8)
+    int32x4_t vacc0x0123 = vld1q_s32((const int32_t*)weight);
+    weight = (void*)((uintptr_t)weight + 16);
+    int32x4_t vacc0x4567 = vld1q_s32((const int32_t*)weight);
+    weight = (void*)((uintptr_t)weight + 16);
     int32x4_t vacc1x0123 = vacc0x0123;
     int32x4_t vacc1x4567 = vacc0x4567;
     int32x4_t vacc2x0123 = vacc0x0123;
@@ -110,15 +105,23 @@ void ConvInt8Unit8x8(long mr, long nr, long kc, long ks, const int8_t** a,
     int32x4_t vacc7x4567 = vacc0x4567;
     do {
         
-        const int8_t* a0 = *a++;
-        const int8_t* a1 = *a++;
-        const int8_t* a2 = *a++;
-        const int8_t* a3 = *a++;
-        const int8_t* a4 = *a++;
-        const int8_t* a5 = *a++;
-        const int8_t* a6 = *a++;
-        const int8_t* a7 = *a++;
-        long k = kc;
+        const int8_t* a0 = *indirect == -1 ? zero : (real_input + *indirect);
+        indirect++;
+        const int8_t* a1 = *indirect == -1 ? zero : (real_input + *indirect);
+        indirect++;
+        const int8_t* a2 = *indirect == -1 ? zero : (real_input + *indirect);
+        indirect++;
+        const int8_t* a3 = *indirect == -1 ? zero : (real_input + *indirect);
+        indirect++;
+        const int8_t* a4 = *indirect == -1 ? zero : (real_input + *indirect);
+        indirect++;
+        const int8_t* a5 = *indirect == -1 ? zero : (real_input + *indirect);
+        indirect++;
+        const int8_t* a6 = *indirect == -1 ? zero : (real_input + *indirect);
+        indirect++;
+        const int8_t* a7 = *indirect == -1 ? zero : (real_input + *indirect);
+        indirect++;
+        long k = input_channel;
         for (; k >= 8; k -= 8) {
             const int16x8_t va0 = vmovl_s8(vld1_s8(a0));
             a0 += 8;
@@ -178,7 +181,7 @@ void ConvInt8Unit8x8(long mr, long nr, long kc, long ks, const int8_t** a,
             }
         }
         
-    } while (--ks != 0);
+    } while (--kernel_size != 0);
     const float32x4_t vscale0123 = vld1q_f32(scales);
     const float32x4_t vscale4567 = nr > 4 ? vld1q_f32(scales + 4) : vdupq_n_f32(0.f);
     float32x4_t vfacc0x0123 = vmulq_f32(vcvtq_f32_s32(vacc0x0123), vscale0123);
@@ -220,31 +223,31 @@ void ConvInt8Unit8x8(long mr, long nr, long kc, long ks, const int8_t** a,
     if (add_input) {
         const float32x4_t vaddscale0123 = vld1q_f32(add_scale);
         const float32x4_t vaddscale4567 = nr > 4 ? vld1q_f32(add_scale + 4) : vdupq_n_f32(0.f);
-        const int8_t* add_input1 = (const int8_t*)((uintptr_t)add_input + c_stride);
+        const int8_t* add_input1 = (const int8_t*)((uintptr_t)add_input + channel_stride);
         if (mr < 2) {
             add_input1 = add_input;
         }
-        const int8_t* add_input2 = (const int8_t*)((uintptr_t)add_input1 + c_stride);
+        const int8_t* add_input2 = (const int8_t*)((uintptr_t)add_input1 + channel_stride);
         if (mr <= 2) {
             add_input2 = add_input1;
         }
-        const int8_t* add_input3 = (const int8_t*)((uintptr_t)add_input2 + c_stride);
+        const int8_t* add_input3 = (const int8_t*)((uintptr_t)add_input2 + channel_stride);
         if (mr < 4) {
             add_input3 = add_input2;
         }
-        const int8_t* add_input4 = (const int8_t*)((uintptr_t)add_input3 + c_stride);
+        const int8_t* add_input4 = (const int8_t*)((uintptr_t)add_input3 + channel_stride);
         if (mr <= 4) {
             add_input4 = add_input3;
         }
-        const int8_t* add_input5 = (const int8_t*)((uintptr_t)add_input4 + c_stride);
+        const int8_t* add_input5 = (const int8_t*)((uintptr_t)add_input4 + channel_stride);
         if (mr < 6) {
             add_input5 = add_input4;
         }
-        const int8_t* add_input6 = (const int8_t*)((uintptr_t)add_input5 + c_stride);
+        const int8_t* add_input6 = (const int8_t*)((uintptr_t)add_input5 + channel_stride);
         if (mr <= 6) {
             add_input6 = add_input5;
         }
-        const int8_t* add_input7 = (const int8_t*)((uintptr_t)add_input6 + c_stride);
+        const int8_t* add_input7 = (const int8_t*)((uintptr_t)add_input6 + channel_stride);
         if (mr != 8) {
             add_input7 = add_input6;
         }
@@ -313,32 +316,32 @@ void ConvInt8Unit8x8(long mr, long nr, long kc, long ks, const int8_t** a,
         vacc7x01234567 = vmax_s8(vacc7x01234567, vzero);
     }
 
-    int8_t* c0 = c;
-    int8_t* c1 = (int8_t*)((uintptr_t)c0 + c_stride);
+    int8_t* c0 = output;
+    int8_t* c1 = (int8_t*)((uintptr_t)c0 + channel_stride);
     if (mr < 2) {
         c1 = c0;
     }
-    int8_t* c2 = (int8_t*)((uintptr_t)c1 + c_stride);
+    int8_t* c2 = (int8_t*)((uintptr_t)c1 + channel_stride);
     if (mr <= 2) {
         c2 = c1;
     }
-    int8_t* c3 = (int8_t*)((uintptr_t)c2 + c_stride);
+    int8_t* c3 = (int8_t*)((uintptr_t)c2 + channel_stride);
     if (mr < 4) {
         c3 = c2;
     }
-    int8_t* c4 = (int8_t*)((uintptr_t)c3 + c_stride);
+    int8_t* c4 = (int8_t*)((uintptr_t)c3 + channel_stride);
     if (mr <= 4) {
         c4 = c3;
     }
-    int8_t* c5 = (int8_t*)((uintptr_t)c4 + c_stride);
+    int8_t* c5 = (int8_t*)((uintptr_t)c4 + channel_stride);
     if (mr < 6) {
         c5 = c4;
     }
-    int8_t* c6 = (int8_t*)((uintptr_t)c5 + c_stride);
+    int8_t* c6 = (int8_t*)((uintptr_t)c5 + channel_stride);
     if (mr <= 6) {
         c6 = c5;
     }
-    int8_t* c7 = (int8_t*)((uintptr_t)c6 + c_stride);
+    int8_t* c7 = (int8_t*)((uintptr_t)c6 + channel_stride);
     if (mr != 8) {
         c7 = c6;
     }
@@ -418,7 +421,9 @@ void ConvInt8Unit8x8(long mr, long nr, long kc, long ks, const int8_t** a,
         }
     }
 #else
-    ASMConvInt8Unit8x8(mr, nr, kc, ks, a, w, c, c_stride, scales, relu, add_input, add_scale);
+    ASMConvInt8Unit8x8(mr, nr, input_channel, kernel_size, indirect, weight, output, channel_stride, scales, relu, add_input, add_scale);
 #endif
 }
 } //namespace TNN_NS
+
+#endif

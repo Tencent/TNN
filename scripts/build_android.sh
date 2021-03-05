@@ -6,7 +6,7 @@ DEBUG="OFF"
 ARM="ON"
 OPENMP="OFF"
 
-ABIA32="armeabi-v7a"
+#ABIA32="armeabi-v7a"
 ABIA64="arm64-v8a"
 STL="c++_static"
 #STL="gnustl_static"

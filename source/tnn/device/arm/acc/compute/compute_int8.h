@@ -64,19 +64,21 @@ struct Q8GemmContext {
 struct Q8ConvContext {
     int32_t ks; //kernel_size
     int32_t kc; //kernel_channel: input_channels
-    int32_t kc_stride;
-    int32_t m;
-    int32_t m_stride;
-    int32_t n;
-    int32_t n_stride;
-    const int8_t** indirect_a;
+    int32_t kc_stride; // ic*kh*kw
+    int32_t m; // oh*ow
+    int32_t m_stride; // ROUND_UP(m, mr); mr = 8
+    int32_t n; // oc
+    int32_t n_stride; // ROUND_UP(m, mr); mr = 8
+    const int32_t* indirect_a;
     const int8_t* packed_w;
-    int8_t* c;
-    int32_t c_stride;
+    int8_t* c; // output_addr
+    int32_t c_stride; // ROUND_UP(oc, 4);
     float* scales;
     long   relu;
     const int8_t* add_input;
     float* add_scale;
+    const int8_t* zero;
+    const int8_t* real_input;
 };
 
 typedef void (*GemmInt8N8Func)(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c,
@@ -85,7 +87,12 @@ typedef void (*GemmInt8N8Func)(long mr, long nr, long k, const int8_t* a, long a
 
 void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l);
 
-void ComputeQ8Conv(const Q8ConvContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l);
+typedef void (*IndirectConvInt8N8Func)(long mr, long nr, long input_channel, long kernel_size, const int32_t* indirect,
+                                       const void* weight, int8_t* output, long channel_stride, const float* scales,
+                                       long relu, const int8_t* add_input, const float* add_scale, const int8_t* zero,
+                                       const int8_t* real_input);
+
+void ComputeQ8Conv(const Q8ConvContext* context, int32_t range_k, int32_t range_l, int32_t mr_block_size, int32_t nr_block_size);
 
 void DepthwiseConvI8(const int8_t* src, int8_t* dst, long dst_depth, long src_y_step, long dst_y_step, long dst_height,
                      long dst_width, long src_height, long src_width, long l, long r, long t, long b, long kernel,
