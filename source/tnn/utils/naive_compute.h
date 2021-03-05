@@ -35,6 +35,9 @@ int8_t half2int8(fp16_t val);
 uint8_t half2uint8(fp16_t val);
 
 template <typename T, typename Tacc>
+void NaiveAdaptivePooling(T *input_data, T *output_data, DimsVector dims_input, DimsVector dims_output, int pool_type);
+
+template <typename T, typename Tacc>
 void NaivePooling(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector dims_output, 
                 int stride_y, int stride_x, int kernel_y, int kernel_x, int pad_y, int pad_x, int pool_type);
 
