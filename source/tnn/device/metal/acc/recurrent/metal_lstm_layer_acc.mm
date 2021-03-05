@@ -283,8 +283,8 @@ Status MetalLSTMLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
 
 std::vector<DataFormat> MetalLSTMLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
     std::vector<DataFormat> support_list;
-    if (dims_size >= 3) {
-        // support_list.push_back(DATA_FORMAT_NC4HW4);
+    if (dims_size >= 2) {
+        // inputs to lstm layer should at least has two dimensions
         support_list.push_back(DATA_FORMAT_NCHW);
     }
     return support_list;

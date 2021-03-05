@@ -213,7 +213,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         if (net_resource->resource_map.count(layer_name) == 0) {
             LayerParam *layer_param  = layer_info->param.get();
             LayerResource *layer_res = nullptr;
-            GenerateRandomResource(type, layer_param, &layer_res, inputs);
+            GenerateRandomResource(type, layer_param, &layer_res, inputs, &net_resource->constant_map);
             net_resource->resource_map[layer_name] = std::shared_ptr<LayerResource>(layer_res);
         }
 

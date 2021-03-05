@@ -30,12 +30,17 @@ namespace TNN_NS {
 //@brief random gen layer resource in benchmark mode, save upload model time
 class LayerResourceGenerator {
 public:
-    virtual Status GenLayerResource(LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs) = 0;
+    virtual Status GenLayerResource(LayerParam* param, LayerResource** resource,
+                                    std::vector<Blob*>& inputs) { return TNN_OK;}
+    virtual Status GenLayerConstantResource(LayerParam* param, LayerResource** resource,
+                                            std::vector<Blob*>& inputs, ConstantResource* consts) {return TNN_OK;}
 };
 
 std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerResourceGeneratorMap();
+std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerConstantResourceGeneratorMap();
 
-Status GenerateRandomResource(LayerType type, LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs);
+Status GenerateRandomResource(LayerType type, LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs,
+                              ConstantResource* consts=nullptr);
 
 template <typename T>
 class TypeLayerResourceRegister {
@@ -45,8 +50,19 @@ public:
     }
 };
 
+template <typename T>
+class TypeLayerConstantResourceRegister {
+public:
+    explicit TypeLayerConstantResourceRegister(LayerType type) {
+        GetGlobalLayerConstantResourceGeneratorMap()[type] = shared_ptr<T>(new T);
+    }
+};
+
 #define REGISTER_LAYER_RESOURCE(type_string, layer_type)                                                               \
     TypeLayerResourceRegister<type_string##LayerResourceGenerator> g_##layer_type##_resource_register(layer_type);
+
+#define REGISTER_LAYER_CONSTANT_RESOURCE(type_string, layer_type)                                                               \
+TypeLayerConstantResourceRegister<type_string##LayerResourceGenerator> g_##layer_type##_constant_resource_register(layer_type);
 
 #endif
 }

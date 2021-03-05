@@ -23,7 +23,10 @@ static bool TestFilter(DeviceType device_type, DataType data_type) {
     if (device_type == DEVICE_NAIVE)
         return true;
     
-    if (device_type == DEVICE_METAL && data_type == DATA_TYPE_FLOAT)
+    if (device_type == DEVICE_ARM)
+        return true;
+
+    if (device_type == DEVICE_METAL)
         return true;
     
     return false;
@@ -72,7 +75,8 @@ TEST_P(LSTMLayerTest, LSTMONNXLayer) {
     if (DATA_TYPE_BFP16 == dtype) {
         precision = PRECISION_LOW;
     }
-    Run(interpreter);
+    //Run(interpreter, precision);
+    Run(interpreter, precision, DATA_FORMAT_NCHW);
 }
 
 }  // namespace TNN_NS
