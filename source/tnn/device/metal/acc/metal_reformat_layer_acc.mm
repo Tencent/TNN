@@ -42,6 +42,11 @@ Status MetalReformatLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     return AllocateBufferParam(inputs, outputs);
 }
 
+std::vector<DataFormat> MetalReformatLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+    std::vector<DataFormat> support_list{DATA_FORMAT_NC4HW4, DATA_FORMAT_NCHW};
+    return support_list;
+}
+
 Status MetalReformatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                                   const std::vector<Blob *> &outputs) {
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];

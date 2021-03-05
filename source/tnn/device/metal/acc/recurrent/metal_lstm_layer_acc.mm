@@ -179,7 +179,7 @@ Status MetalLSTMLayerAcc::AllocateBufferStates(const std::vector<Blob *> &inputs
     auto layer_param = dynamic_cast<LSTMONNXLayerParam *>(param_);
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     // get input shape
-    int num_directions = layer_param->direction >=2 ? 2 : 1;
+    int num_directions = layer_param->direction >= 2 ? 2 : 1;
     const auto input_dims = inputs[0]->GetBlobDesc().dims;
     const auto seq_len = input_dims[0];
     const auto batch = input_dims[1];

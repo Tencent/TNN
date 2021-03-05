@@ -232,6 +232,14 @@ DimsVector DimsVectorUtils::StrideSlice(const DimsVector input_dims,
     //前闭后开区间
     for (int i = 0; i < axes.size(); i++) {
         int index = axes[i];
+        if (index >= input_dims.size()) {
+            LOGE("StrideSliceV2Layer param of axes is invalid\n");
+            if (status) {
+                *status = Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param of axes is invalid");
+            }
+            return DimsVector();
+        }
+
         if (begins[i] < 0) {
             begins[i] += input_dims[index];
         }
