@@ -68,15 +68,22 @@ enum FusionType {
 
 struct BatchNormLayerParam : public LayerParam {
     int channels = 0;
-    float eps    = 0.f;
+    float eps    = 1e-5f;
 
     PARAM_COPY(BatchNormLayerParam)
 };
 struct InstanceNormLayerParam : public LayerParam {
     int channels = 0;
-    float eps    = 0.01f;
+    float eps    = 1e-5f;
 
     PARAM_COPY(InstanceNormLayerParam)
+};
+
+struct GroupNormLayerParam : public LayerParam {
+    int group = 0;
+    float eps = 1e-5f;
+
+    PARAM_COPY(GroupNormLayerParam)
 };
 
 struct ConvLayerParam : public LayerParam {

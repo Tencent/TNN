@@ -205,6 +205,7 @@ enum LayerType {
     LAYER_GATHERND                                          = 315,
     LAYER_PADV2                                             = 316,
     LAYER_ROIALIGN                                          = 317,
+    LAYER_GROUP_NORM                                 = 318,
 
     LAYER_BLOB_SCALE                                        = 600,
 
