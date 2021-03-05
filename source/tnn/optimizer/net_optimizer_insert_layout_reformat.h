@@ -44,6 +44,7 @@ namespace optimizer {
     private:
         AbstractDevice* device_;
         std::map<std::string, DataFormat> layer_choosed_layout;
+        const NetworkConfig *net_config_;
     };
 
 }  // namespace optimizer

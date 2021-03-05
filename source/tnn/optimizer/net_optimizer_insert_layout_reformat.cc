@@ -42,6 +42,8 @@ namespace optimizer {
     }
 
     bool NetOptimizerInsertLayoutReformat::IsSupported(const NetworkConfig &net_config) {
+        // save net_config
+        net_config_ = &net_config;
         auto device    = net_config.device_type;
         auto precision = net_config.precision;
         device_        = GetDevice(device);
@@ -62,7 +64,9 @@ namespace optimizer {
         return new_layer;
     }
 
-    static DataFormat GetInputLayout(const DeviceType &type) {
+    static DataFormat GetInputLayout(const NetworkConfig *config, const DeviceType &type) {
+        if (config != nullptr && config->data_format != DATA_FORMAT_AUTO)
+            return config->data_format;
         if (type == DEVICE_ARM || type == DEVICE_METAL) {
             return DATA_FORMAT_NC4HW4;
         } else if (type == DEVICE_OPENCL) {
@@ -89,9 +93,6 @@ namespace optimizer {
 
         std::vector<std::shared_ptr<LayerInfo>> layers_orig = structure->layers;
         const int count                                     = (const int)layers_orig.size();
-        if (count <= 1) {
-            return TNN_OK;
-        }
 
         // skip if network is quantized
         auto is_quantized_net = GetQuantizedInfoFromNetStructure(structure);
@@ -113,7 +114,7 @@ namespace optimizer {
             if (constant_blobs.count(model_input) > 0)
                 continue;
             std::vector<DataFormat> reformat_layouts;
-            DataFormat input_layout = GetInputLayout(device_->GetDeviceType());
+            DataFormat input_layout = GetInputLayout(net_config_, device_->GetDeviceType());
             for (const auto &cur_layer : layers_orig) {
                 for (const auto &layer_input : cur_layer->inputs) {
                     if (layer_input == model_input) {
@@ -235,7 +236,7 @@ namespace optimizer {
             LOGD("NetOptimizerInsertLayoutReformat::Optimize, process model output: %s\n", model_output.c_str());
             bool need_reformat                      = false;
             std::shared_ptr<LayerInfo> output_layer = layers_orig[0];
-            DataFormat output_layout                = GetInputLayout(device_->GetDeviceType());
+            DataFormat output_layout                = GetInputLayout(net_config_, device_->GetDeviceType());
             for (const auto &layer : layers_orig) {
                 for (const auto &output : layer->outputs) {
                     if (output == model_output) {

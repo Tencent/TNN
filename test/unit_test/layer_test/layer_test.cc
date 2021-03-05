@@ -35,13 +35,13 @@ std::shared_ptr<Instance> LayerTest::instance_ocl_cache_ = nullptr;
 
 void LayerTest::SetUpTestCase() {}
 
-void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision) {
+void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision, DataFormat input_data_format) {
 #if defined(__OBJC__) && defined(__APPLE__)
     @autoreleasepool{
 #endif
     TNN_NS::Status ret = TNN_NS::TNN_OK;
 
-    ret = Init(interp, precision);
+    ret = Init(interp, precision, input_data_format);
     if (ret != TNN_OK) {
         EXPECT_EQ((int)ret, TNN_OK);
         DeInit();
@@ -82,7 +82,7 @@ void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision 
 #endif
 }
 
-Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision) {
+Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision, DataFormat input_data_format) {
     TNN_NS::Status ret = TNN_NS::TNN_OK;
 
     ModelConfig model_config;
@@ -91,6 +91,7 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
 
     NetworkConfig config_cpu;
     config_cpu.device_type = DEVICE_NAIVE;
+    config_cpu.data_format = input_data_format;
 
     NetworkConfig config_device;
     config_device.device_type = ConvertDeviceType(FLAGS_dt);
@@ -112,6 +113,7 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
     if (FLAGS_lp.length() > 0) {
         config_device.library_path = {FLAGS_lp};
     }
+    config_device.data_format = input_data_format;
 
     instance_cpu_ = std::make_shared<Instance>(config_cpu, model_config);
     if (nullptr == instance_cpu_) {
@@ -406,6 +408,9 @@ Status LayerTest::InitInputBlobsDataRandom() {
 
     int index = 0;
     for (auto blob_item : input_blobs_cpu) {
+        if (blob_item.second->IsConstant()) {
+            continue;
+        }
         ret = GenerateRandomBlob(input_blobs_cpu[blob_item.first], input_blobs_device[blob_item.first], command_queue,
                                  index);
         if (ret != TNN_OK) {
