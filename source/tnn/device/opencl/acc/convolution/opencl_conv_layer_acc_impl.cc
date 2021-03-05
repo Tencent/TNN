@@ -52,8 +52,8 @@ Status OpenCLConvLayerAccImpl::Init(Context *context, LayerParam *param, LayerRe
     conv_params_.has_bias        = conv_param->bias;
     conv_params_.activation_type = conv_param->activation_type;
 
-    conv_params_.input_channel  = inputs[0]->GetBlobDesc().dims[1];
-    conv_params_.output_channel = outputs[0]->GetBlobDesc().dims[1];
+    conv_params_.input_channel  = DimsVectorUtils::GetDim(inputs[0]->GetBlobDesc().dims, 1);
+    conv_params_.output_channel = DimsVectorUtils::GetDim(outputs[0]->GetBlobDesc().dims, 1);
 
     if ((conv_params_.group <= 0 || conv_params_.input_channel % conv_params_.group != 0)) {
         LOGE("invalid group size in Conv layer!\n");

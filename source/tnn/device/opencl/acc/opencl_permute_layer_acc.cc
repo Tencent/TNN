@@ -27,8 +27,6 @@ public:
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 private:
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size) override;
-
     std::shared_ptr<cl::Buffer> inter_buffer_ = nullptr;
     std::vector<int> dims_                    = {};
 };
@@ -138,12 +136,6 @@ Status OpenCLPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     }
 
     return TNN_OK;
-}
-
-std::vector<DataFormat> OpenCLPermuteLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
-    std::vector<DataFormat> support_list;
-    support_list.push_back(DATA_FORMAT_NHC4W4);
-    return support_list;
 }
 
 REGISTER_OPENCL_ACC(Permute, LAYER_PERMUTE)

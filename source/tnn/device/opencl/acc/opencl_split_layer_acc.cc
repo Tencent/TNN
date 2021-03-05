@@ -49,12 +49,12 @@ Status OpenCLSplitLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
 
-    const int batch         = output_dims[0];
-    const int channels      = output_dims[1];
-    const int output_height = output_dims[2];
-    const int output_width  = output_dims[3];
+    const int batch         = DimsVectorUtils::GetDim(output_dims, 0);
+    const int channels      = DimsVectorUtils::GetDim(output_dims, 1);
+    const int output_height = DimsVectorUtils::GetDim(output_dims, 2);
+    const int output_width  = DimsVectorUtils::GetDim(output_dims, 3);
 
-    int inputWH[]      = {input_dims[3], input_dims[2]};
+    int inputWH[]      = {DimsVectorUtils::GetDim(input_dims, 3), DimsVectorUtils::GetDim(input_dims, 2)};
     int inputOffset[]  = {0, 0, 0, 0};
     int outputOffset[] = {0, 0, 0, 0};
     for (int i = 0; i < execute_units_.size(); ++i) {

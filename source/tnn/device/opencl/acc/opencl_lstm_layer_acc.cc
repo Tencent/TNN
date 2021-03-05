@@ -78,11 +78,11 @@ Status OpenCLLSTMONNXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
 
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
-    const auto sequence = input_dims[0];
-    const auto batch    = input_dims[1];
-    const int input_size = input_dims[2];
+    const auto sequence = DimsVectorUtils::GetDim(input_dims, 0);
+    const auto batch    = DimsVectorUtils::GetDim(input_dims, 1);
+    const int input_size = DimsVectorUtils::GetDim(input_dims, 2);
     const int input_size_updiv_4 = UP_DIV(input_size, 4);
-    const int hidden_size = output_dims[2];
+    const int hidden_size = DimsVectorUtils::GetDim(output_dims, 2);
     const int hidden_size_updiv_4 = UP_DIV(hidden_size, 4);
     int num_directions  = layer_param->direction >=2 ? 2 : 1;
     int reverse         = layer_param->direction == 1;

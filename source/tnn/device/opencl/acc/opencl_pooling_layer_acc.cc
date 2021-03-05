@@ -53,10 +53,10 @@ Status OpenCLPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
 
-    const int batch         = output_dims[0];
-    const int output_height = output_dims[2];
-    const int output_width  = output_dims[3];
-    const int channels      = output_dims[1];
+    const int batch         = DimsVectorUtils::GetDim(output_dims, 0);
+    const int output_height = DimsVectorUtils::GetDim(output_dims, 2);
+    const int output_width  = DimsVectorUtils::GetDim(output_dims, 3);
+    const int channels      = DimsVectorUtils::GetDim(output_dims, 1);
 
     const int kernel_height = pooling_param->kernels[1];
     const int kernel_width  = pooling_param->kernels[0];
@@ -96,13 +96,13 @@ Status OpenCLPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
 
-    const int batch         = output_dims[0];
-    const int output_height = output_dims[2];
-    const int output_width  = output_dims[3];
-    const int channels      = output_dims[1];
+    const int batch         = DimsVectorUtils::GetDim(output_dims, 0);
+    const int output_height = DimsVectorUtils::GetDim(output_dims, 2);
+    const int output_width  = DimsVectorUtils::GetDim(output_dims, 3);
+    const int channels      = DimsVectorUtils::GetDim(output_dims, 1);
 
-    const int input_height = input_dims[2];
-    const int input_width  = input_dims[3];
+    const int input_height = DimsVectorUtils::GetDim(input_dims, 2);
+    const int input_width  = DimsVectorUtils::GetDim(input_dims, 3);
 
     const int channel_blocks    = UP_DIV(channels, 4);
     uint32_t workgroup_size     = 0;

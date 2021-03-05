@@ -17,18 +17,7 @@
 
 namespace TNN_NS {
 
-class OpenCLHardSigmoidLayerAcc : public OpenCLLayerAcc {
-public:
-    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-                        const std::vector<Blob *> &outputs) override;
-
-    virtual ~OpenCLHardSigmoidLayerAcc() {};
-
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
-
-private:
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size) override;
-};
+DECLARE_OPENCL_ACC(HardSigmoid);
 
 Status OpenCLHardSigmoidLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -68,12 +57,6 @@ Status OpenCLHardSigmoidLayerAcc::Reshape(const std::vector<Blob *> &inputs, con
     execute_units_[0].ocl_kernel.setArg(idx++, min_value);
     execute_units_[0].ocl_kernel.setArg(idx++, max_value);
     return TNN_OK;
-}
-
-std::vector<DataFormat> OpenCLHardSigmoidLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
-    std::vector<DataFormat> support_list;
-    support_list.push_back(DATA_FORMAT_NHC4W4);
-    return support_list;
 }
 
 REGISTER_OPENCL_ACC(HardSigmoid, LAYER_HARDSIGMOID)

@@ -59,10 +59,10 @@ Status OpenCLPixelShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
     uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], output_dims);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-    execute_units_[0].ocl_kernel.setArg(idx++, output_dims[2]);
-    execute_units_[0].ocl_kernel.setArg(idx++, output_dims[3]);
-    execute_units_[0].ocl_kernel.setArg(idx++, input_dims[2]);
-    execute_units_[0].ocl_kernel.setArg(idx++, input_dims[3]);
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(output_dims, 2));
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(output_dims, 3));
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(input_dims, 2));
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(input_dims, 3));
     execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(upscale_factor));
     execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(upscale_factor * upscale_factor));
 

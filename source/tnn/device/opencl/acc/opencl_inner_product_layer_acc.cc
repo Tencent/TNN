@@ -35,7 +35,6 @@ public:
 private:
     Status InitReshapeLayer(const std::vector<Blob *> &inputs);
     Status ConvertWeights(float *weights_data_ptr, int weight_w, int weight_h);
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size) override;
 
 private:
     int num_output_ = 0;
@@ -219,7 +218,8 @@ Status OpenCLInnerProductLayerAcc::InitReshapeLayer(const std::vector<Blob *> &i
 
     // create output_image
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-    DimsVector imageshape{(int)(UP_DIV(output_desc.dims[1], 4)), output_desc.dims[0]};
+    DimsVector imageshape{(int)(UP_DIV(DimsVectorUtils::GetDim(output_desc.dims, 1), 4)),
+        DimsVectorUtils::GetDim(output_desc.dims, 0)};
     cl_channel_type data_type = CL_FLOAT;
     if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
@@ -301,12 +301,6 @@ Status OpenCLInnerProductLayerAcc::ConvertWeights(float *weights_data_ptr, int w
     // transfer from clBuffer to clImage
     ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
     return convertor.ConvertBufferToImage(weight_buffer.get(), NHWC_BUFFER, weight_shape, ocl_weights_.get(), true);
-}
-
-std::vector<DataFormat> OpenCLInnerProductLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
-    std::vector<DataFormat> support_list;
-    support_list.push_back(DATA_FORMAT_NHC4W4);
-    return support_list;
 }
 
 REGISTER_OPENCL_ACC(InnerProduct, LAYER_INNER_PRODUCT)

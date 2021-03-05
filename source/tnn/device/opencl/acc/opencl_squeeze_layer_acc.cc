@@ -12,45 +12,35 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/opencl/acc/opencl_reshape_layer_acc.h"
-#include "tnn/device/opencl/imagebuffer_convertor.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/device/opencl/acc/opencl_layer_acc.h"
 
 namespace TNN_NS {
+class OpenCLSqueezeLayerAcc : public OpenCLLayerAcc {
+public:
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                        const std::vector<Blob *> &outputs) override;
 
-Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+    virtual ~OpenCLSqueezeLayerAcc() override;
+
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+private:
+    std::shared_ptr<cl::Buffer> inter_buffer_ = nullptr;
+};
+
+Status OpenCLSqueezeLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    LOGD("Init Reshape Acc\n");
+    LOGD("Init Squeeze Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
 
-    ReshapeLayerParam *reshape_param = dynamic_cast<ReshapeLayerParam *>(param_);
-    if (!reshape_param) {
-        LOGE("Error: layer param is null\n");
-        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
-    }
-
     run_3d_ndrange_ = false;
-    op_name_        = "Reshape";
-
-    std::string im_to_bf_func_name, bf_to_im_func_name;
-    if (reshape_param->reshape_type == 0)
-    {
-        im_to_bf_func_name      = "ImageToNCHWBuffer";
-        bf_to_im_func_name      = "NCHWBufferToImage";
-    } else if (reshape_param->reshape_type == 1) {
-        // tensorflow reshape 对应的数据格式是 NHWC
-        im_to_bf_func_name      = "ImageToNHWCBuffer";
-        bf_to_im_func_name      = "NHWCBufferToImage";
-    } else {
-        LOGE("Error: Unsupport reshape type(%d)", reshape_param->reshape_type);
-        return Status(TNNERR_MODEL_ERR, "Error: OpenCLReshapeLayerAcc failed!\n");
-    }
+    op_name_        = "Squeeze";
 
     execute_units_.resize(2);
     // image->buffer
     {
-        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", im_to_bf_func_name);
+        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", "ImageToNCHWBuffer");
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -59,7 +49,7 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
     // buffer->image
     {
-        ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", bf_to_im_func_name);
+        ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", "NCHWBufferToImage");
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -69,10 +59,10 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     return TNN_OK;
 }
 
-OpenCLReshapeLayerAcc::~OpenCLReshapeLayerAcc() {}
+OpenCLSqueezeLayerAcc::~OpenCLSqueezeLayerAcc() {}
 
-Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    LOGD("Reshape Acc Reshape\n");
+Status OpenCLSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    LOGD("Squeeze Acc Reshape\n");
     auto input  = inputs[0];
     auto output = outputs[0];
 
@@ -80,9 +70,14 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     auto output_dims = output->GetBlobDesc().dims;
 
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-    int blob_size                 = sizeof(float) * DimsVectorUtils::Count(input_dims);
 
-    inter_buffer_ = std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, blob_size);
+    int size0          = UP_DIV(DimsVectorUtils::GetDim(output_dims, 1), 4) * 4 * DimsVectorUtils::GetDim(output_dims, 0) *
+                                DimsVectorUtils::GetDim(output_dims, 2) * DimsVectorUtils::GetDim(output_dims, 3);
+    int size1          = UP_DIV(DimsVectorUtils::GetDim(input_dims, 1), 4) * 4 * DimsVectorUtils::GetDim(input_dims, 0) *
+                                DimsVectorUtils::GetDim(input_dims, 2) * DimsVectorUtils::GetDim(input_dims, 3);
+    int blob_size      = std::max(size0, size1) * sizeof(float);
+
+    inter_buffer_      = std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, blob_size);
 
     // image->buffer
     {
@@ -107,9 +102,7 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     return TNN_OK;
 }
 
-REGISTER_OPENCL_ACC(Reshape, LAYER_RESHAPE)
-REGISTER_OPENCL_ACC(Reshape, LAYER_FLATTEN)
-REGISTER_OPENCL_LAYOUT(LAYER_RESHAPE, DATA_FORMAT_NHC4W4);
-REGISTER_OPENCL_LAYOUT(LAYER_FLATTEN, DATA_FORMAT_NHC4W4);
+REGISTER_OPENCL_ACC(Squeeze, LAYER_SQUEEZE)
+REGISTER_OPENCL_LAYOUT(LAYER_SQUEEZE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS
