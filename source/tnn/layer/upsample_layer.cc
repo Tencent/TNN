@@ -48,8 +48,8 @@ Status UpsampleLayer::InferOutputShape(bool ignore_error) {
     auto scales = layer_param->scales;
     auto sizes = layer_param->dims;
     if (scales.empty()) {
-        LOGE_IF(!ignore_error, "Reshape has no shape param. layer name: %s\n", layer_param->name.c_str());
-        return Status(TNNERR_PARAM_ERR, "Reshape has no shape param");
+        LOGE_IF(!ignore_error, "Upsample has no scale param. layer name: %s\n", layer_param->name.c_str());
+        return Status(TNNERR_PARAM_ERR, "Upsample has no scale param");
     }
     
     if (sizes.size() <= 0 && scales.size() >= 2) {
