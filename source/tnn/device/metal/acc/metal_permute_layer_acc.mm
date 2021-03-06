@@ -42,11 +42,6 @@ unsigned int GetPermuteKernelKey(DataFormat format, const std::vector<int>& orde
         kid = orders[0]*keys[0] + orders[1]*keys[1] + \
                              orders[2]*keys[2] + orders[3]*keys[3];
     }
-    /*
-    else if (format == DATA_FORMAT_NCHW) {
-        kid = 0x4000;
-    }
-    */
     return kid;
 }
 
@@ -58,11 +53,13 @@ bool hasKernelFor(Blob *input, const std::vector<int>& orders) {
 
 std::string GetPermuteKernel(Blob *input, const std::vector<int>& orders) {
     const auto blob_format = input->GetBlobDesc().data_format;
+    /*
+    // try specialized kernels first
     if (orders.size() == 4) {
         auto kernel_key = GetPermuteKernelKey(blob_format, orders);
         if (kernels.count(kernel_key) > 0)
             return kernels.at(kernel_key);
-        return "";
+        return "permute_common4";
     } else if (orders.size() == 3) {
         auto new_orders = orders;
         new_orders.push_back(3);
@@ -84,7 +81,8 @@ std::string GetPermuteKernel(Blob *input, const std::vector<int>& orders) {
         new_orders.push_back(2);
         if (hasKernelFor(input, new_orders)) return GetPermuteKernel(input, new_orders);
     }
-    return "";
+    */
+    return "permute_common";
 }
 
 Status MetalPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -98,13 +96,60 @@ Status MetalPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 Status MetalPermuteLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                                  const std::vector<Blob *> &outputs) {
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
+    PermuteLayerParam *params = dynamic_cast<PermuteLayerParam *>(param_);
     auto dims_input      = inputs[0]->GetBlobDesc().dims;
     auto dims_output     = outputs[0]->GetBlobDesc().dims;
     // buffer_param_
     {
-        MetalPermuteParams metal_params;
-        SetDefaultMetalParams(metal_params, dims_input, dims_output);
+        MetalDynamicPermuteParams metal_params;
+        if (dims_input.size() > MAX_DIM_COUNT) {
+            LOGE("too many dimensions in inputs to permute layer!");
+            return Status(TNNERR_PARAM_ERR, "too many dimensions in inputs to permute layer!");
+        }
+
+        const int dim_count = dims_input.size();
+        metal_params.dim_count = dim_count;
+        const int input_slice  = UP_DIV(dims_input[1], 4);
+        const int output_slice = UP_DIV(dims_output[1], 4);
+        metal_params.input_slice = input_slice;
+        metal_params.output_slice = output_slice;
         metal_params.input_batch = dims_input[0];
+        metal_params.batch = dims_output[0];
+
+        int input_strides[MAX_DIM_COUNT] = {0};
+        int stride = 1;
+        int input_size = 1;
+        int output_size = 1;
+        for(int i=dim_count-1; i>=0; --i) {
+            input_strides[i] = stride;
+            if (i == 1) {
+                stride *= input_slice;
+            } else {
+                stride *= dims_input[i];
+            }
+            metal_params.input_sizes[i] = dims_input[i];
+            metal_params.output_sizes[i] = dims_output[i];
+            if (i > 1) {
+                input_size *= dims_input[i];
+                output_size *= dims_output[i];
+            }
+        }
+        metal_params.input_size = input_size;
+        metal_params.output_size = output_size;
+
+        int output_strides[MAX_DIM_COUNT] = {0};
+        const auto& orders = params->orders;
+        for(int i=0; i<dim_count; ++i) {
+            output_strides[i] = input_strides[orders[i]];
+            if (orders[i] == 1) {
+                metal_params.channel_dim = i;
+            }
+            if (i == 1) {
+                metal_params.channel_dim_size = dims_input[orders[i]];
+            }
+            metal_params.strides[i] = output_strides[i];
+        }
+
         buffer_param_     = [device newBufferWithBytes:(const void *)(&metal_params)
                                             length:sizeof(metal_params)
                                            options:MTLResourceCPUCacheModeWriteCombined];
@@ -129,7 +174,9 @@ Status MetalPermuteLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs
                                         const std::vector<Blob *> &outputs,
                                         MTLSize &size) {
     auto dims_output = outputs[0]->GetBlobDesc().dims;
-    size = GetDefaultThreadSize(dims_output, false);
+    size = MTLSizeMake(GetBlobCount(dims_output, 2),
+                        UP_DIV(dims_output[1], 4),
+                        dims_output[0]);
     return TNN_OK;
 }
 
