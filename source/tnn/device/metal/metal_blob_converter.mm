@@ -59,7 +59,7 @@ MetalBlobConverterAcc::MetalBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob
 Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *mat, Blob *blob, bool is_mat_to_blob) {
     auto dims = blob->GetBlobDesc().dims;
     MetalImageConverterParams metal_param;
-    metal_param.width        = GetBlobDim(dims, 3);
+    metal_param.width        = GetBlobCount(dims, 3);
     metal_param.height       = GetBlobDim(dims, 2);
     metal_param.size         = metal_param.height * metal_param.width;
     metal_param.channel      = dims[1];
@@ -306,7 +306,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
                                                                        options:MTLResourceCPUCacheModeDefaultCache];
         }
 
-        NSUInteger image_size  = GetBlobDim(dims, 2) * GetBlobDim(dims, 3);
+        NSUInteger image_size  = GetBlobCount(dims, 2);
         NSUInteger image_slice = UP_DIV(dims[1], 4);
         bool is_blob_nchw = input_buffer_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
 
@@ -480,7 +480,7 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                 break;
             }
 
-            NSUInteger image_size  = GetBlobDim(dims, 2) * GetBlobDim(dims, 3);
+            NSUInteger image_size  = GetBlobCount(dims, 2);
             NSUInteger image_slice = UP_DIV(dims[1], 4);
             bool is_blob_nchw = output_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
 

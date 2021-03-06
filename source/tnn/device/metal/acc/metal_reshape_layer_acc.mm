@@ -69,7 +69,15 @@ std::string MetalReshapeLayerAcc::KernelName(const std::vector<Blob *> &inputs, 
 Status MetalReshapeLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
                                         const std::vector<Blob *> &outputs,
                                         MTLSize &size) {
-    return MetalLayerAcc::ComputeThreadSize(inputs, outputs, size);
+    auto dims_output = outputs[0]->GetBlobDesc().dims;
+    auto output_width   = GetBlobCount(dims_output, 3);
+    auto output_height  = GetBlobDim(dims_output, 2);
+    auto output_size    = output_height * output_width;
+    auto output_slice   = UP_DIV(dims_output[1], 4);
+    auto batch          = dims_output[0];
+    size = MTLSizeMake(output_size, output_slice, batch);
+
+    return TNN_OK;
 }
 
 Status MetalReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs,
