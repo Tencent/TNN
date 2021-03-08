@@ -12,233 +12,257 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "arm_layer_acc.h"
+#include "tnn/device/arm/acc/arm_lstm_layer_acc.h"
+
+#include "tnn/device/arm/acc/compute/compute.h"
+#include "tnn/device/arm/acc/compute/gemm_function.h"
+#include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(LSTMONNX, LAYER_LSTMONNX);
+static void LstmActivate(const int count, const float *g_ptr, float *c_ptr, float *h_ptr, float *o_ptr) {
+    for (int q = 0; q < count / 4; ++q) {
+        Float4x4 gates_iofc = Float4x4::ld4(g_ptr);
+        Float4 I, O, F, C;
+        gates_iofc.get_lane(I, 0);
+        gates_iofc.get_lane(O, 1);
+        gates_iofc.get_lane(F, 2);
+        gates_iofc.get_lane(C, 3);
 
-static Status LstmSingle(const float *x, float *y, const float *w, const float *r, const float *b, float *h_t,
-                         float *c_t, const int seq_len, const int batch_size, const int input_size,
-                         const int hidden_size, int reverse) {
-    // num_directions = 1 for all below
-    // X shape [sequence batch_size input_size]
-    const int x_page_size = batch_size * input_size;
+        I = Float4::sigmoid(I);
+        F = Float4::sigmoid(F);
+        O = Float4::sigmoid(O);
+        C = Float4::tanh(C);
 
-    // Y shape [sequence batch_size num_directions * hidden_size]
-    const int y_page_size = batch_size * hidden_size;
+        Float4 cell2 = F * Float4::load(c_ptr) + I * C;
+        Float4 H     = O * Float4::tanh(cell2);
+        Float4::save(c_ptr, cell2);
+        Float4::save(h_ptr, H);
+        Float4::save(o_ptr, H);
+        c_ptr += 4;
+        h_ptr += 4;
+        o_ptr += 4;
+        g_ptr += 16;
+    }
+    int remain = count % 4;
+    if (remain) {
+        int offset          = 4 - remain;
+        Float4x4 gates_iofc = Float4x4::ld4(g_ptr - 4 * offset);
+        Float4 I, O, F, C;
+        gates_iofc.get_lane(I, 0);
+        gates_iofc.get_lane(O, 1);
+        gates_iofc.get_lane(F, 2);
+        gates_iofc.get_lane(C, 3);
 
-    // W[iofc], weight tensor for the gates, shape [num_directions, 4*hidden_size, input_size]
-    const int w_page_size = hidden_size * input_size;
-    auto w_x_I            = w;
-    auto w_x_O            = w_x_I + w_page_size;
-    auto w_x_F            = w_x_O + w_page_size;
-    auto w_x_C            = w_x_F + w_page_size;
+        I = Float4::sigmoid(I);
+        F = Float4::sigmoid(F);
+        O = Float4::sigmoid(O);
+        C = Float4::tanh(C);
 
-    // R[iofc], recurrence weight tensor, shape [num_directions, 4*hidden_size, hidden_size]
-    int r_page_size = hidden_size * hidden_size;
-    auto r_x_I      = r;
-    auto r_x_O      = r_x_I + r_page_size;
-    auto r_x_F      = r_x_O + r_page_size;
-    auto r_x_C      = r_x_F + r_page_size;
-
-    // B[iofc] Concatenation of [Wb[iofc], Rb[iofc]], [num_directions, 8*hidden_size]
-    int b_page_size = hidden_size;
-    auto b_w_I      = b;
-    auto b_w_O      = b_w_I + b_page_size;
-    auto b_w_F      = b_w_O + b_page_size;
-    auto b_w_C      = b_w_F + b_page_size;
-
-    auto b_r_I = b_w_C + b_page_size;
-    auto b_r_O = b_r_I + b_page_size;
-    auto b_r_F = b_r_O + b_page_size;
-    auto b_r_C = b_r_F + b_page_size;
-
-    // temp gates, shape [hidden_size, 4]
-    RawBuffer gates = RawBuffer(seq_len * batch_size * hidden_size * 4 * sizeof(float));
-    auto gates_ptr  = gates.force_to<float *>();
-
-    for (int t = 0; t < seq_len * batch_size; t++) {
-        const float *x_t = x + t * input_size;
-        float *gates_t   = gates_ptr + t * hidden_size * 4;
-        for (int q = 0; q < hidden_size; q++) {
-            auto gates_data = gates_t + q * 4;
-
-            // W weights
-            auto w_x_I_o = w_x_I + q * input_size;
-            auto w_x_O_o = w_x_O + q * input_size;
-            auto w_x_F_o = w_x_F + q * input_size;
-            auto w_x_C_o = w_x_C + q * input_size;
-
-            // bias
-            float I = b_w_I[q] + b_r_I[q];
-            float O = b_w_O[q] + b_r_O[q];
-            float F = b_w_F[q] + b_r_F[q];
-            float C = b_w_C[q] + b_r_C[q];
-
-            for (int i = 0; i < input_size; i++) {
-                I += w_x_I_o[i] * x_t[i];
-                O += w_x_O_o[i] * x_t[i];
-                F += w_x_F_o[i] * x_t[i];
-                C += w_x_C_o[i] * x_t[i];
-            }
-
-            gates_data[0] = I;
-            gates_data[1] = O;
-            gates_data[2] = F;
-            gates_data[3] = C;
+        Float4 cell2 = F * Float4::load(c_ptr - offset) + I * C;
+        Float4 H     = O * Float4::tanh(cell2);
+        for (int r = 0; r < remain; ++r) {
+            c_ptr[r] = cell2[r + offset];
+            h_ptr[r] = H[r + offset];
+            o_ptr[r] = H[r + offset];
         }
     }
+}
 
-    for (int t = 0; t < seq_len; t++) {
-        int ti = reverse ? seq_len - 1 - t : t;
+Status ArmLSTMONNXLayerAcc::LstmSingleDirection(const float *x, float *y, const float *w, const float *r,
+                                                const float *b, float *h_t, float *c_t, const int batch_size,
+                                                int reverse) {
+    const int input_size  = input_size_;
+    const int hidden_size = hidden_size_;
+    const int seq_len     = seq_len_;
 
-        float *y_t     = y + ti * y_page_size;
+    RawBuffer gates             = RawBuffer(seq_len * batch_size * hidden_size * 4 * sizeof(float));
+    auto gates_ptr              = gates.force_to<float *>();
+    RawBuffer buffer_input_pack = RawBuffer(seq_len * batch_size * input_size * sizeof(float));
+    auto input_pack_ptr         = buffer_input_pack.force_to<float *>();
+    GemmFloatPackA(seq_len * batch_size, hidden_size * 4, input_size, x, input_pack_ptr, input_size, w, hidden_size * 4,
+                   gates_ptr, hidden_size * 4);
+
+    for (int t = 0; t < seq_len; ++t) {
+        int ti         = reverse ? seq_len - 1 - t : t;
+        float *y_t     = y + ti * batch_size * hidden_size;
         float *gates_t = gates_ptr + ti * batch_size * hidden_size * 4;
 
-        for (int b = 0; b < batch_size; b++) {
-            float *h_t_b   = h_t + b * hidden_size;
-            float *gates_b = gates_t + b * hidden_size * 4;
-
-            for (int q = 0; q < hidden_size; q++) {
-                auto gates_data = gates_b + q * 4;
-
-                // R weights
-                auto r_x_I_o = r_x_I + q * hidden_size;
-                auto r_x_O_o = r_x_O + q * hidden_size;
-                auto r_x_F_o = r_x_F + q * hidden_size;
-                auto r_x_C_o = r_x_C + q * hidden_size;
-
-                // bias
-                float I = gates_data[0];
-                float O = gates_data[1];
-                float F = gates_data[2];
-                float C = gates_data[3];
-
-                for (int i = 0; i < hidden_size; i++) {
-                    I += r_x_I_o[i] * h_t_b[i];
-                    O += r_x_O_o[i] * h_t_b[i];
-                    F += r_x_F_o[i] * h_t_b[i];
-                    C += r_x_C_o[i] * h_t_b[i];
-                }
-
-                gates_data[0] = I;
-                gates_data[1] = O;
-                gates_data[2] = F;
-                gates_data[3] = C;
+        for (int i = 0; i < batch_size; ++i) {
+            float *gates_b    = gates_t + i * hidden_size * 4;
+            const float *bias = b;
+            for (int q = 0; q < hidden_size_; ++q) {
+                Float4::save(gates_b, Float4::load(gates_b) + Float4::load(bias));
+                gates_b += 4;
+                bias += 4;
             }
         }
 
-        for (int b = 0; b < batch_size; b++) {
-            float *h_t_b       = h_t + b * hidden_size;
-            float *c_t_b       = c_t + b * hidden_size;
-            float *output_data = y_t + b * hidden_size;
-            float *gates_b     = gates_t + b * hidden_size * 4;
-            for (int q = 0; q < hidden_size; q++) {
-                const auto gates_data = gates_b + q * 4;
+        GemmFloatPackA(batch_size, hidden_size * 4, hidden_size, h_t, input_pack_ptr, hidden_size, r, hidden_size * 4,
+                       gates_t, hidden_size * 4);
 
-                float I = gates_data[0];
-                float O = gates_data[1];
-                float F = gates_data[2];
-                float C = gates_data[3];
+        LstmActivate(batch_size * hidden_size, gates_t, c_t, h_t, y_t);
+    }
 
-                I = 1.f / (1.f + exp(-I));
-                F = 1.f / (1.f + exp(-F));
-                O = 1.f / (1.f + exp(-O));
-                C = tanh(C);
+    return TNN_OK;
+}
 
-                float cell2    = F * c_t_b[q] + I * C;
-                float H        = O * tanh(cell2);
-                c_t_b[q]       = cell2;
-                h_t_b[q]       = H;
-                output_data[q] = H;
-            }
+// [4, hidden_size, input_size] -> transpose -> [input_size, hidden_size, 4]
+// [input_size, hidden_size * 4] -> PackB_8 -> [hidden_size * 4 / 8, input_size, 8]
+static void TransposeAndPackWeight(const float *src, float *dst, int input_size, int hidden_size) {
+    RawBuffer tmp_transpose = RawBuffer(input_size * hidden_size * 4 * sizeof(float));
+    float *src_transpose    = tmp_transpose.force_to<float *>();
+    const float *vsrc[4];
+    vsrc[0]   = src;
+    vsrc[1]   = vsrc[0] + input_size * hidden_size;
+    vsrc[2]   = vsrc[1] + input_size * hidden_size;
+    vsrc[3]   = vsrc[2] + input_size * hidden_size;
+    int count = 0;
+    for (int i = 0; i < input_size; ++i) {
+        for (int h = 0; h < hidden_size; ++h) {
+            src_transpose[count++] = vsrc[0][h * input_size + i];
+            src_transpose[count++] = vsrc[1][h * input_size + i];
+            src_transpose[count++] = vsrc[2][h * input_size + i];
+            src_transpose[count++] = vsrc[3][h * input_size + i];
+        }
+    }
+    PackB_8(input_size, hidden_size * 4, src_transpose, hidden_size * 4, dst);
+}
+
+ArmLSTMONNXLayerAcc::~ArmLSTMONNXLayerAcc() {}
+
+Status ArmLSTMONNXLayerAcc::AllocateBufferWeightInput(Blob *weight_i) {
+    // W[iofc], weight tensor for the gates, shape [num_directions, 4*hidden_size, input_size]
+    float *weight_i_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(weight_i->GetHandle()));
+
+    int weight_page       = input_size_ * ROUND_UP(4 * hidden_size_, 8);
+    int data_byte         = DataTypeUtils::GetBytesSize(weight_i->GetBlobDesc().data_type);
+    int weight_byte_count = num_directions_ * weight_page * data_byte;
+    buffer_weight_input_  = RawBuffer(weight_byte_count + NEON_KERNEL_EXTRA_LOAD);
+    for (int dir = 0; dir < num_directions_; ++dir) {
+        float *buffer_ptr = buffer_weight_input_.force_to<float *>() + dir * weight_page;
+        TransposeAndPackWeight(weight_i_ptr, buffer_ptr, input_size_, hidden_size_);
+        weight_i_ptr += 4 * hidden_size_ * input_size_;
+    }
+
+    return TNN_OK;
+}
+
+Status ArmLSTMONNXLayerAcc::AllocateBufferWeightRecurrent(Blob *weight_r) {
+    // R[iofc], recurrence weight tensor, shape [num_directions, 4*hidden_size, hidden_size]
+    float *weight_r_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(weight_r->GetHandle()));
+
+    int weight_page          = hidden_size_ * ROUND_UP(4 * hidden_size_, 8);
+    int data_byte            = DataTypeUtils::GetBytesSize(weight_r->GetBlobDesc().data_type);
+    int weight_byte_count    = num_directions_ * weight_page * data_byte;
+    buffer_weight_recurrent_ = RawBuffer(weight_byte_count + NEON_KERNEL_EXTRA_LOAD);
+    for (int dir = 0; dir < num_directions_; ++dir) {
+        float *buffer_ptr = buffer_weight_recurrent_.force_to<float *>() + dir * weight_page;
+        TransposeAndPackWeight(weight_r_ptr, buffer_ptr, hidden_size_, hidden_size_);
+        weight_r_ptr += 4 * hidden_size_ * hidden_size_;
+    }
+
+    return TNN_OK;
+}
+
+Status ArmLSTMONNXLayerAcc::AllocateBufferBias(Blob *bias) {
+    // B[iofc] Concatenation of [Wb[iofc], Rb[iofc]], [num_directions, 8*hidden_size]
+    float *bias_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(bias->GetHandle()));
+
+    int bias_count       = num_directions_ * 4 * hidden_size_;
+    int data_byte        = DataTypeUtils::GetBytesSize(bias->GetBlobDesc().data_type);
+    int bias_byte_count  = bias_count * data_byte;
+    buffer_bias_         = RawBuffer(bias_byte_count);
+    auto buffer_bias_ptr = buffer_bias_.force_to<float *>();
+    for (int d = 0; d < num_directions_; ++d) {
+        auto src_d = bias_ptr + d * 8 * hidden_size_;
+        auto dst_d = buffer_bias_ptr + d * 4 * hidden_size_;
+        for (int i = 0; i < hidden_size_; ++i) {
+            dst_d[i * 4 + 0] = src_d[i + 0 * hidden_size_] + src_d[i + 4 * hidden_size_];
+            dst_d[i * 4 + 1] = src_d[i + 1 * hidden_size_] + src_d[i + 5 * hidden_size_];
+            dst_d[i * 4 + 2] = src_d[i + 2 * hidden_size_] + src_d[i + 6 * hidden_size_];
+            dst_d[i * 4 + 3] = src_d[i + 3 * hidden_size_] + src_d[i + 7 * hidden_size_];
         }
     }
 
     return TNN_OK;
 }
 
-Status ArmLSTMONNXLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status ArmLSTMONNXLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
     auto layer_param = dynamic_cast<LSTMONNXLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
-    int num_directions = layer_param->direction >= 2 ? 2 : 1;
+    direction_      = layer_param->direction;
+    num_directions_ = direction_ >= 2 ? 2 : 1;
+    hidden_size_    = layer_param->hidden_size;
 
     if (inputs.size() < 4) {
         return Status(TNNERR_LAYER_ERR, "LSTM has invalid inputs");
     }
-    Blob *blob_input = inputs[0];
-    Blob *blob_W     = inputs[1];
-    Blob *blob_R     = inputs[2];
-    Blob *blob_B     = inputs[3];
-    Blob *blob_h0    = (inputs.size() >= 6) ? inputs[4] : nullptr;
-    Blob *blob_c0    = (inputs.size() >= 6) ? inputs[5] : nullptr;
-
     if (outputs.size() < 3) {
         return Status(TNNERR_LAYER_ERR, "LSTM has invalid outputs");
     }
-    Blob *blob_output = outputs[0];
-    Blob *blob_ht     = outputs[1];
-    Blob *blob_ct     = outputs[2];
+    seq_len_    = inputs[0]->GetBlobDesc().dims[0];
+    input_size_ = DimsVectorUtils::Count(inputs[0]->GetBlobDesc().dims, 2);
+    RETURN_ON_NEQ(AllocateBufferWeightInput(inputs[1]), TNN_OK);
+    RETURN_ON_NEQ(AllocateBufferWeightRecurrent(inputs[2]), TNN_OK);
+    RETURN_ON_NEQ(AllocateBufferBias(inputs[3]), TNN_OK);
 
-    const auto input_dims = blob_input->GetBlobDesc().dims;
-    const auto seq_len    = input_dims[0];
-    const auto batch      = input_dims[1];
-    const auto input_size = DimsVectorUtils::Count(input_dims, 2);
+    return TNN_OK;
+}
 
-    const auto output_dims = blob_output->GetBlobDesc().dims;
-    const auto hidden_size = layer_param->hidden_size;
+Status ArmLSTMONNXLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    const auto batch          = inputs[0]->GetBlobDesc().dims[1];
+    const auto direction      = direction_;
+    const auto num_directions = num_directions_;
+    const auto seq_len        = seq_len_;
+    const auto input_size     = input_size_;
+    const auto hidden_size    = hidden_size_;
 
     // X shape [sequence batch_size input_size]
-    float *x = reinterpret_cast<float *>(GetBlobHandlePtr(blob_input->GetHandle()));
+    float *x = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
 
     // Y shape [sequence batch_size num_directions *hidden_size]
-    float *y = reinterpret_cast<float *>(GetBlobHandlePtr(blob_output->GetHandle()));
+    float *y = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
 
-    // W[iofc], weight tensor for the gates, shape [num_directions, 4*hidden_size, input_size]
-    float *w = reinterpret_cast<float *>(GetBlobHandlePtr(blob_W->GetHandle()));
-
-    // R[iofc], recurrence weight tensor, shape [num_directions, 4*hidden_size, hidden_size]
-    float *r = reinterpret_cast<float *>(GetBlobHandlePtr(blob_R->GetHandle()));
-
-    // B[iofc] Concatenation of [Wb[iofc], Rb[iofc]], [num_directions, 8*hidden_size]
-    float *b = reinterpret_cast<float *>(GetBlobHandlePtr(blob_B->GetHandle()));
-
-    // Initial value of the hidden. If not specified, assumed to be 0.
+    // Initial states. If not specified, assumed to be 0.
     // shape [num_directions, batch_size, hidden_size]
-    auto h_t = reinterpret_cast<float *>(GetBlobHandlePtr(blob_ht->GetHandle()));
-    if (blob_h0) {
-        auto h_0 = reinterpret_cast<float *>(GetBlobHandlePtr(blob_h0->GetHandle()));
-        memcpy((void *)h_t, h_0, num_directions * batch * hidden_size * sizeof(float));
+    auto h_t = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[1]->GetHandle()));
+    auto c_t = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[2]->GetHandle()));
+    if (inputs.size() >= 6) {
+        if (inputs.size() >= 6) {
+            auto h_0 = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[4]->GetHandle()));
+            memcpy((void *)h_t, h_0, num_directions * batch * hidden_size * sizeof(float));
+            auto c_0 = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[5]->GetHandle()));
+            memcpy((void *)c_t, c_0, num_directions * batch * hidden_size * sizeof(float));
+        } else {
+            memset((void *)h_t, 0, num_directions * batch * hidden_size * sizeof(float));
+            memset((void *)c_t, 0, num_directions * batch * hidden_size * sizeof(float));
+        }
     }
 
-    // Initial value of the cell. If not specified, assumed to be 0.
-    // shape [num_directions, batch_size, hidden_size]
-    auto c_t = reinterpret_cast<float *>(GetBlobHandlePtr(blob_ct->GetHandle()));
-    if (blob_c0) {
-        auto c_0 = reinterpret_cast<float *>(GetBlobHandlePtr(blob_c0->GetHandle()));
-        memcpy((void *)c_t, c_0, num_directions * batch * hidden_size * sizeof(float));
-    } else {
-        memset((void *)c_t, 0, num_directions * batch * hidden_size * sizeof(float));
-    }
+    float *w = buffer_weight_input_.force_to<float *>();
+    float *r = buffer_weight_recurrent_.force_to<float *>();
+    float *b = buffer_bias_.force_to<float *>();
 
-    if (layer_param->direction == 0 || layer_param->direction == 1) {
-        return LstmSingle(x, y, w, r, b, h_t, c_t, seq_len, batch, input_size, hidden_size, layer_param->direction);
-    } else if (layer_param->direction == 2) {
+    if (direction == 0 || direction == 1) {
+        return LstmSingleDirection(x, y, w, r, b, h_t, c_t, batch, direction);
+    } else if (direction == 2) {
         // Y shape [num_directions sequence batch_size hidden_size]
         RawBuffer y_temp = RawBuffer(num_directions * seq_len * batch * hidden_size * sizeof(float));
         auto y0          = y_temp.force_to<float *>();
         auto y1          = y0 + seq_len * batch * hidden_size;
-        LstmSingle(x, y0, w, r, b, h_t, c_t, seq_len, batch, input_size, hidden_size, 0);
+        LstmSingleDirection(x, y0, w, r, b, h_t, c_t, batch, 0);
 
-        auto w1   = w + 4 * hidden_size * input_size;
-        auto r1   = r + 4 * hidden_size * hidden_size;
-        auto b1   = b + 8 * hidden_size;
+        auto w1   = w + ROUND_UP(4 * hidden_size, 8) * input_size;
+        auto r1   = r + ROUND_UP(4 * hidden_size, 8) * hidden_size;
+        auto b1   = b + 4 * hidden_size;
         auto h_t1 = h_t + batch * hidden_size;
         auto c_t1 = c_t + batch * hidden_size;
-        LstmSingle(x, y1, w1, r1, b1, h_t1, c_t1, seq_len, batch, input_size, hidden_size, 1);
+        LstmSingleDirection(x, y1, w1, r1, b1, h_t1, c_t1, batch, 1);
 
         // transpose [num_directions sequence batch_size hidden_size] to [sequence batch_size
         // num_directions*hidden_size]
