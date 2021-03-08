@@ -194,7 +194,7 @@ void sgemm_repack_lhs(T *dst, T *src, float *weight, int ic4, int oc4, int plane
     int loop                 = plane_num / a_block;
     int remain               = plane_num % a_block;
     int workspace_per_thread = a_block * ic4 * 4;
-    int do_relu = act_type == 1 || act_type == 2;
+    int do_relu              = act_type == 1 || act_type == 2;
 
     OMP_PARALLEL_FOR_
     for (int db = 0; db <= loop; db++) {
@@ -240,14 +240,14 @@ template void sgemm_repack_lhs(float *dst, float *src, float *weight, int ic4, i
                                int a_block, int b_block, float *work_space, float *bias, int act_type, bool fast_post);
 
 template void sgemm_repack_lhs(bfp16_t *dst, bfp16_t *src, float *weight, int ic4, int oc4, int plane_num,
-                               int dst_z_step, int a_block, int b_block, bfp16_t *work_space, float *bias,
-                               int act_type, bool fast_post);
+                               int dst_z_step, int a_block, int b_block, bfp16_t *work_space, float *bias, int act_type,
+                               bool fast_post);
 
 template <typename T>
 void sgemm_repack_rhs(T *dst, T *src, float *weight, int ic4, int oc4, int plane_num, int dst_z_step, int a_block,
                       int b_block, T *work_space, float *bias, int act_type, bool fast_post) {
-    int loop   = plane_num / a_block;
-    int remain = plane_num % a_block;
+    int loop    = plane_num / a_block;
+    int remain  = plane_num % a_block;
     int do_relu = act_type == 1 || act_type == 2;
 
     for (int db = 0; db <= loop; db++) {
@@ -293,7 +293,614 @@ template void sgemm_repack_rhs(float *dst, float *src, float *weight, int ic4, i
                                int a_block, int b_block, float *work_space, float *bias, int act_type, bool fast_post);
 
 template void sgemm_repack_rhs(bfp16_t *dst, bfp16_t *src, float *weight, int ic4, int oc4, int plane_num,
-                               int dst_z_step, int a_block, int b_block, bfp16_t *work_space, float *bias,
-                               int act_type, bool fast_post);
+                               int dst_z_step, int a_block, int b_block, bfp16_t *work_space, float *bias, int act_type,
+                               bool fast_post);
+
+template <int mr, int nr>
+void NaiveKernel(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc) {
+    const float *a = sa;
+    const float *b = sb;
+    float *c       = sc;
+    for (int i = 0; i < m - mr + 1; i += mr) {
+        for (int j = 0; j < n - nr + 1; j += nr) {
+            for (int p = 0; p < k; ++p) {
+                for (int ir = 0; ir < mr; ++ir) {
+                    for (int jr = 0; jr < nr; ++jr) {
+                        c[ir * ldc + jr] += a[ir] * b[jr];
+                    }
+                }
+                a += mr;
+                b += nr;
+            }
+            c += nr;
+            a -= mr * k;
+        }
+        int remain = n % nr;
+        if (remain) {
+            for (int p = 0; p < k; ++p) {
+                for (int ir = 0; ir < mr; ++ir) {
+                    for (int jr = 0; jr < remain; ++jr) {
+                        c[ir * ldc + jr] += a[ir] * b[jr];
+                    }
+                }
+                a += mr;
+                b += nr;
+            }
+            a -= mr * k;
+        }
+        sc += ldc * mr;
+        c = sc;
+        a += mr * k;
+        b = sb;
+    }
+}
+
+void Kernel_12x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc) {
+#if defined(__aarch64__) && defined(TNN_USE_NEON)
+    const float *a     = sa;
+    const float *b     = sb;
+    float *c           = sc;
+    int64_t ldc_offset = ldc * sizeof(float) - 16;
+    int64_t k_64       = k;
+    for (int i = 0; i < m - 11; i += 12) {
+        for (int j = 0; j < n - 7; j += 8) {
+            asm volatile(
+                ".macro INIT12x8                    \n"
+                "   mov x9,        %2               \n"
+                "   ld1 {v8.4s},  [x9], #16         \n"
+                "   ld1 {v20.4s}, [x9], %3          \n"
+                "   ld1 {v9.4s},  [x9], #16         \n"
+                "   ld1 {v21.4s}, [x9], %3          \n"
+                "   ld1 {v10.4s}, [x9], #16         \n"
+                "   ld1 {v22.4s}, [x9], %3          \n"
+                "   ld1 {v11.4s}, [x9], #16         \n"
+                "   ld1 {v23.4s}, [x9], %3          \n"
+                "   ld1 {v12.4s}, [x9], #16         \n"
+                "   ld1 {v24.4s}, [x9], %3          \n"
+                "   ld1 {v13.4s}, [x9], #16         \n"
+                "   ld1 {v25.4s}, [x9], %3          \n"
+                "   ld1 {v14.4s}, [x9], #16         \n"
+                "   ld1 {v26.4s}, [x9], %3          \n"
+                "   ld1 {v15.4s}, [x9], #16         \n"
+                "   ld1 {v27.4s}, [x9], %3          \n"
+                "   ld1 {v16.4s}, [x9], #16         \n"
+                "   ld1 {v28.4s}, [x9], %3          \n"
+                "   ld1 {v17.4s}, [x9], #16         \n"
+                "   ld1 {v29.4s}, [x9], %3          \n"
+                "   ld1 {v18.4s}, [x9], #16         \n"
+                "   ld1 {v30.4s}, [x9], %3          \n"
+                "   ld1 {v19.4s}, [x9], #16         \n"
+                "   ld1 {v31.4s}, [x9]              \n"
+                ".endm                              \n"
+                "                                   \n"
+                ".macro SAVE12x8                    \n"
+                "   mov x9,        %2               \n"
+                "   st1 {v8.4s},  [x9], #16         \n"
+                "   st1 {v20.4s}, [x9], %3          \n"
+                "   st1 {v9.4s},  [x9], #16         \n"
+                "   st1 {v21.4s}, [x9], %3          \n"
+                "   st1 {v10.4s}, [x9], #16         \n"
+                "   st1 {v22.4s}, [x9], %3          \n"
+                "   st1 {v11.4s}, [x9], #16         \n"
+                "   st1 {v23.4s}, [x9], %3          \n"
+                "   st1 {v12.4s}, [x9], #16         \n"
+                "   st1 {v24.4s}, [x9], %3          \n"
+                "   st1 {v13.4s}, [x9], #16         \n"
+                "   st1 {v25.4s}, [x9], %3          \n"
+                "   st1 {v14.4s}, [x9], #16         \n"
+                "   st1 {v26.4s}, [x9], %3          \n"
+                "   st1 {v15.4s}, [x9], #16         \n"
+                "   st1 {v27.4s}, [x9], %3          \n"
+                "   st1 {v16.4s}, [x9], #16         \n"
+                "   st1 {v28.4s}, [x9], %3          \n"
+                "   st1 {v17.4s}, [x9], #16         \n"
+                "   st1 {v29.4s}, [x9], %3          \n"
+                "   st1 {v18.4s}, [x9], #16         \n"
+                "   st1 {v30.4s}, [x9], %3          \n"
+                "   st1 {v19.4s}, [x9], #16         \n"
+                "   st1 {v31.4s}, [x9]              \n"
+                ".endm                              \n"
+                "                                   \n"
+                "   ld1 {v0.4s}, [%0], #16          \n"
+                "   ld1 {v2.4s}, [%1], #16          \n"
+                "INIT12x8                           \n"
+                "mov x8,%4                          \n"
+                "run12x8:                           \n"
+
+                "   fmla v8.4s , v0.4s, v2.s[0]     \n"
+                "   ld1 {v3.4s}, [%1], #16          \n"
+                "   fmla v9.4s , v0.4s, v2.s[1]     \n"
+                "   fmla v10.4s, v0.4s, v2.s[2]     \n"
+                "   ld1 {v4.4s}, [%1], #16          \n"
+                "   fmla v11.4s, v0.4s, v2.s[3]     \n"
+
+                "   fmla v12.4s, v0.4s, v3.s[0]     \n"
+                "   ld1 {v1.4s}, [%0], #16          \n"
+                "   fmla v13.4s, v0.4s, v3.s[1]     \n"
+                "   fmla v14.4s, v0.4s, v3.s[2]     \n"
+                "   prfm pldl1keep, [%1, #64]       \n"
+                "   fmla v15.4s, v0.4s, v3.s[3]     \n"
+
+                "   fmla v16.4s, v0.4s, v4.s[0]     \n"
+                "   prfm pldl1keep, [%0, #64]       \n"
+                "   fmla v17.4s, v0.4s, v4.s[1]     \n"
+                "   fmla v18.4s, v0.4s, v4.s[2]     \n"
+                "   prfm pldl1keep, [%1, #128]      \n"
+                "   fmla v19.4s, v0.4s, v4.s[3]     \n"
+
+                "   fmla v20.4s, v1.4s, v2.s[0]     \n"
+                "   ld1 {v0.4s}, [%0], #16          \n"
+                "   fmla v21.4s, v1.4s, v2.s[1]     \n"
+                "   fmla v22.4s, v1.4s, v2.s[2]     \n"
+                "   prfm pldl1keep, [%0, #128]      \n"
+                "   fmla v23.4s, v1.4s, v2.s[3]     \n"
+                "   subs x8, x8, #1                 \n"
+
+                "   fmla v24.4s, v1.4s, v3.s[0]     \n"
+                "   ld1 {v2.4s}, [%1], #16          \n"
+                "   fmla v25.4s, v1.4s, v3.s[1]     \n"
+                "   fmla v26.4s, v1.4s, v3.s[2]     \n"
+                "   prfm pldl1keep, [%1, #192]      \n"
+                "   fmla v27.4s, v1.4s, v3.s[3]     \n"
+
+                "   fmla v28.4s, v1.4s, v4.s[0]     \n"
+                "   prfm pldl1keep, [%0, #192]      \n"
+                "   fmla v29.4s, v1.4s, v4.s[1]     \n"
+                "   fmla v30.4s, v1.4s, v4.s[2]     \n"
+                "   prfm pldl1keep, [%1, #256]      \n"
+                "   fmla v31.4s, v1.4s, v4.s[3]     \n"
+                "   bne run12x8                     \n"
+                "SAVE12x8                           \n"
+                "                                   \n"
+                : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k_64)
+                : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k_64)
+                : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v3", "v4", "v8", "v9", "v10", "v11", "v12", "v13",
+                  "v14", "v15", "v16", "v17", "v18", "v19", "v20", "v21", "v22", "v23", "v24", "v25", "v26", "v27",
+                  "v28", "v29", "v30", "v31");
+
+            c += 8;
+            a -= 12 * k + 4;
+            b -= 4;
+        }
+        int remain = n % 8;
+        if (remain) {
+            float32x4_t c0[12] = {vdupq_n_f32(0)};
+            float32x4_t c1[12] = {vdupq_n_f32(0)};
+            float32x4_t b0, b1, av, a0, a1, a2, a3;
+            for (int kk = 0; kk < k; ++kk) {
+                b0    = vld1q_f32(b);
+                b1    = vld1q_f32(b + 4);
+                av    = vld1q_f32(a);
+                a0    = vdupq_n_f32(av[0]);
+                a1    = vdupq_n_f32(av[1]);
+                a2    = vdupq_n_f32(av[2]);
+                a3    = vdupq_n_f32(av[3]);
+                c0[0] = vmlaq_f32(c0[0], a0, b0);
+                c1[0] = vmlaq_f32(c1[0], a0, b1);
+                c0[1] = vmlaq_f32(c0[1], a1, b0);
+                c1[1] = vmlaq_f32(c1[1], a1, b1);
+                c0[2] = vmlaq_f32(c0[2], a2, b0);
+                c1[2] = vmlaq_f32(c1[2], a2, b1);
+                c0[3] = vmlaq_f32(c0[3], a3, b0);
+                c1[3] = vmlaq_f32(c1[3], a3, b1);
+
+                av    = vld1q_f32(a + 4);
+                a0    = vdupq_n_f32(av[0]);
+                a1    = vdupq_n_f32(av[1]);
+                a2    = vdupq_n_f32(av[2]);
+                a3    = vdupq_n_f32(av[3]);
+                c0[4] = vmlaq_f32(c0[4], a0, b0);
+                c1[4] = vmlaq_f32(c1[4], a0, b1);
+                c0[5] = vmlaq_f32(c0[5], a1, b0);
+                c1[5] = vmlaq_f32(c1[5], a1, b1);
+                c0[6] = vmlaq_f32(c0[6], a2, b0);
+                c1[6] = vmlaq_f32(c1[6], a2, b1);
+                c0[7] = vmlaq_f32(c0[7], a3, b0);
+                c1[7] = vmlaq_f32(c1[7], a3, b1);
+
+                av     = vld1q_f32(a + 8);
+                a0     = vdupq_n_f32(av[0]);
+                a1     = vdupq_n_f32(av[1]);
+                a2     = vdupq_n_f32(av[2]);
+                a3     = vdupq_n_f32(av[3]);
+                c0[8]  = vmlaq_f32(c0[8], a0, b0);
+                c1[8]  = vmlaq_f32(c1[8], a0, b1);
+                c0[9]  = vmlaq_f32(c0[9], a1, b0);
+                c1[9]  = vmlaq_f32(c1[9], a1, b1);
+                c0[10] = vmlaq_f32(c0[10], a2, b0);
+                c1[10] = vmlaq_f32(c1[10], a2, b1);
+                c0[11] = vmlaq_f32(c0[11], a3, b0);
+                c1[11] = vmlaq_f32(c1[11], a3, b1);
+
+                b += 8;
+                a += 12;
+            }
+            a -= 12 * k;
+            for (int ms = 0; ms < 12; ++ms) {
+                for (int rr = 0; rr < remain; ++rr) {
+                    c[rr] += rr < 4 ? c0[ms][rr] : c1[ms][rr - 4];
+                }
+                c += ldc;
+            }
+        }
+        sc += ldc * 12;
+        c = sc;
+        a += 12 * k;
+        b = sb;
+    }
+#else
+    NaiveKernel<12, 8>(m, n, k, sa, sb, sc, ldc);
+#endif
+}
+
+void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc) {
+#if defined(__aarch64__) && defined(TNN_USE_NEON)
+    const float *a     = sa;
+    const float *b     = sb;
+    float *c           = sc;
+    int64_t ldc_offset = ldc * sizeof(float) - 16;
+    int64_t k_64       = k;
+
+    for (int i = 0; i < m - 3; i += 4) {
+        for (int j = 0; j < n - 7; j += 8) {
+            asm volatile(
+                ".macro INIT4x8                     \n"
+                "   mov x9,        %2               \n"
+                "   ld1 {v8.4s},  [x9], #16         \n"
+                "   ld1 {v20.4s}, [x9], %3          \n"
+                "   ld1 {v9.4s},  [x9], #16         \n"
+                "   ld1 {v21.4s}, [x9], %3          \n"
+                "   ld1 {v10.4s}, [x9], #16         \n"
+                "   ld1 {v22.4s}, [x9], %3          \n"
+                "   ld1 {v11.4s}, [x9], #16         \n"
+                "   ld1 {v23.4s}, [x9], %3          \n"
+                ".endm                              \n"
+                "                                   \n"
+                ".macro SAVE4x8                     \n"
+                "   mov x9,        %2               \n"
+                "   st1 {v8.4s},  [x9], #16         \n"
+                "   st1 {v20.4s}, [x9], %3          \n"
+                "   st1 {v9.4s},  [x9], #16         \n"
+                "   st1 {v21.4s}, [x9], %3          \n"
+                "   st1 {v10.4s}, [x9], #16         \n"
+                "   st1 {v22.4s}, [x9], %3          \n"
+                "   st1 {v11.4s}, [x9], #16         \n"
+                "   st1 {v23.4s}, [x9], %3          \n"
+                ".endm                              \n"
+                "                                   \n"
+                "   ld1 {v0.4s}, [%0], #16          \n"
+                "   ld1 {v2.4s}, [%1], #16          \n"
+                "INIT4x8                            \n"
+                "mov x8,%4                          \n"
+                "run4x8:                            \n"
+
+                "   fmla v8.4s , v0.4s, v2.s[0]     \n"
+                "   fmla v9.4s , v0.4s, v2.s[1]     \n"
+                "   fmla v10.4s, v0.4s, v2.s[2]     \n"
+                "   fmla v11.4s, v0.4s, v2.s[3]     \n"
+
+                "   ld1 {v1.4s}, [%0], #16          \n"
+                "   prfm pldl1keep, [%1, #64]       \n"
+                "   prfm pldl1keep, [%0, #64]       \n"
+
+                "   fmla v20.4s, v1.4s, v2.s[0]     \n"
+                "   ld1 {v0.4s}, [%0], #16          \n"
+                "   fmla v21.4s, v1.4s, v2.s[1]     \n"
+                "   fmla v22.4s, v1.4s, v2.s[2]     \n"
+                "   prfm pldl1keep, [%0, #128]      \n"
+                "   fmla v23.4s, v1.4s, v2.s[3]     \n"
+                "   subs x8, x8, #1                 \n"
+                "   ld1 {v2.4s}, [%1], #16          \n"
+                "   bne run4x8                      \n"
+                "SAVE4x8                            \n"
+                "                                   \n"
+                : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k_64)
+                : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k_64)
+                : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v8", "v9", "v10", "v11", "v20", "v21", "v22", "v23");
+
+            c += 8;
+            a -= 4 * k + 4;
+            b -= 4;
+        }
+        int remain = n % 8;
+        if (remain) {
+            float32x4_t c0[4] = {vdupq_n_f32(0)};
+            float32x4_t c1[4] = {vdupq_n_f32(0)};
+            float32x4_t b0, b1, av, a0, a1, a2, a3;
+            for (int kk = 0; kk < k; ++kk) {
+                b0    = vld1q_f32(b);
+                b1    = vld1q_f32(b + 4);
+                av    = vld1q_f32(a);
+                a0    = vdupq_n_f32(av[0]);
+                a1    = vdupq_n_f32(av[1]);
+                a2    = vdupq_n_f32(av[2]);
+                a3    = vdupq_n_f32(av[3]);
+                c0[0] = vmlaq_f32(c0[0], a0, b0);
+                c1[0] = vmlaq_f32(c1[0], a0, b1);
+                c0[1] = vmlaq_f32(c0[1], a1, b0);
+                c1[1] = vmlaq_f32(c1[1], a1, b1);
+                c0[2] = vmlaq_f32(c0[2], a2, b0);
+                c1[2] = vmlaq_f32(c1[2], a2, b1);
+                c0[3] = vmlaq_f32(c0[3], a3, b0);
+                c1[3] = vmlaq_f32(c1[3], a3, b1);
+                b += 8;
+                a += 4;
+            }
+            a -= 4 * k;
+            for (int ms = 0; ms < 4; ++ms) {
+                for (int rr = 0; rr < remain; ++rr) {
+                    c[rr] += rr < 4 ? c0[ms][rr] : c1[ms][rr - 4];
+                }
+                c += ldc;
+            }
+        }
+        sc += ldc * 4;
+        c = sc;
+        a += 4 * k;
+        b = sb;
+    }
+#else
+    return NaiveKernel<4, 8>(m, n, k, sa, sb, sc, ldc);
+#endif
+}
+
+void Kernel_1x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc) {
+#if defined(__aarch64__) && defined(TNN_USE_NEON)
+    const float *a     = sa;
+    const float *b     = sb;
+    float *c           = sc;
+    int64_t ldc_offset = ldc * sizeof(float) - 16;
+    int64_t k_64       = k;
+
+    for (int i = 0; i < m; ++i) {
+        for (int j = 0; j < n - 7; j += 8) {
+            asm volatile(
+                ".macro INIT1x8                     \n"
+                "   mov x9,        %2               \n"
+                "   ld1 {v8.4s},  [x9], #16         \n"
+                "   ld1 {v20.4s}, [x9], %3          \n"
+                ".endm                              \n"
+                "                                   \n"
+                ".macro SAVE1x8                     \n"
+                "   mov x9,        %2               \n"
+                "   st1 {v8.4s},  [x9], #16         \n"
+                "   st1 {v20.4s}, [x9], %3          \n"
+                ".endm                              \n"
+                "                                   \n"
+                "   ld1 {v0.4s}, [%0], #16          \n"
+                "   ld1 {v2.4s}, [%1]               \n"
+                "   add %1, %1, #4                  \n"
+                "INIT1x8                            \n"
+                "mov x8,%4                          \n"
+                "run1x8:                            \n"
+                "   fmla v8.4s , v0.4s, v2.s[0]     \n"
+                "   ld1 {v1.4s}, [%0], #16          \n"
+                "   fmla v20.4s, v1.4s, v2.s[0]     \n"
+                "   ld1 {v0.4s}, [%0], #16          \n"
+                "   subs x8, x8, #1                 \n"
+                "   ld1 {v2.4s}, [%1]               \n"
+                "   add %1, %1, #4                  \n"
+                "   bne run1x8                      \n"
+                "SAVE1x8                            \n"
+                "                                   \n"
+                : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k_64)
+                : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k_64)
+                : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v8", "v20");
+            c += 8;
+            a -= k + 1;
+            b -= 4;
+        }
+        int remain = n % 8;
+        if (remain) {
+            float32x4_t c0 = vdupq_n_f32(0);
+            float32x4_t c1 = vdupq_n_f32(0);
+            for (int kk = 0; kk < k; ++kk) {
+                float32x4_t b0 = vld1q_f32(b);
+                float32x4_t b1 = vld1q_f32(b + 4);
+                float32x4_t a0 = vdupq_n_f32(a[kk]);
+                c0             = vmlaq_f32(c0, a0, b0);
+                c1             = vmlaq_f32(c1, a0, b1);
+                b += 8;
+            }
+            for (int rr = 0; rr < remain; ++rr) {
+                c[rr] += rr < 4 ? c0[rr] : c1[rr - 4];
+            }
+        }
+        sc += ldc;
+        c = sc;
+        a += k;
+        b = sb;
+    }
+#else
+    return NaiveKernel<1, 8>(m, n, k, sa, sb, sc, ldc);
+#endif
+}
+
+template <int nr>
+void NaivePackB(int k, int n, const float *from, int ldb, float *to) {
+    const float *src = from;
+    float *dst;
+
+    for (int j = 0; j < k; ++j) {
+        dst = to + j * nr;
+        src = from + j * ldb;
+        for (int i = 0; i < n / nr; i++) {
+            for (int r = 0; r < nr; ++r) {
+                dst[r] = src[r];
+            }
+            src += nr;
+            dst += k * nr;
+        }
+        int remain = n % nr;
+        if (remain) {
+            for (int r = 0; r < remain; ++r) {
+                dst[r] = src[r];
+            }
+            for (int r = remain; r < nr; ++r) {
+                dst[r] = 0;
+            }
+        }
+    }
+}
+
+void PackB_8(int k, int n, const float *from, int ldb, float *to) {
+#ifndef TNN_USE_NEON
+    return NaivePackB<8>(k, n, from, ldb, to);
+#endif
+    int j = 0;
+
+    const float *src[4];
+    float *dst;
+    float32x4_t val[8];
+    for (int loop = 0; loop < k / 4; ++loop, j += 4) {
+        dst    = to + j * 8;
+        src[0] = from + j * ldb;
+        src[1] = src[0] + ldb;
+        src[2] = src[1] + ldb;
+        src[3] = src[2] + ldb;
+        for (int i = 0; i < n / 8; i++) {
+            val[0] = vld1q_f32(src[0]);
+            val[1] = vld1q_f32(src[0] + 4);
+            src[0] += 8;
+
+            val[2] = vld1q_f32(src[1]);
+            val[3] = vld1q_f32(src[1] + 4);
+            src[1] += 8;
+
+            val[4] = vld1q_f32(src[2]);
+            val[5] = vld1q_f32(src[2] + 4);
+            src[2] += 8;
+
+            val[6] = vld1q_f32(src[3]);
+            val[7] = vld1q_f32(src[3] + 4);
+            src[3] += 8;
+
+            vst1q_f32(dst, val[0]);
+            vst1q_f32(dst + 4, val[1]);
+            vst1q_f32(dst + 8, val[2]);
+            vst1q_f32(dst + 12, val[3]);
+            vst1q_f32(dst + 16, val[4]);
+            vst1q_f32(dst + 20, val[5]);
+            vst1q_f32(dst + 24, val[6]);
+            vst1q_f32(dst + 28, val[7]);
+            dst += k * 8;
+        }
+        int remain = n % 8;
+        if (remain) {
+            for (int kr = 0; kr < 4; ++kr) {
+                for (int r = 0; r < remain; ++r) {
+                    dst[r] = src[kr][r];
+                }
+                for (int r = remain; r < 8; ++r) {
+                    dst[r] = 0;
+                }
+                dst += 8;
+            }
+        }
+    }
+
+    for (; j < k; ++j) {
+        dst    = to + j * 8;
+        src[0] = from + j * ldb;
+        for (int i = 0; i < n / 8; i++) {
+            val[0] = vld1q_f32(src[0]);
+            val[1] = vld1q_f32(src[0] + 4);
+            src[0] += 8;
+
+            vst1q_f32(dst, val[0]);
+            vst1q_f32(dst + 4, val[1]);
+            dst += k * 8;
+        }
+        int remain = n % 8;
+        if (remain) {
+            for (int r = 0; r < remain; ++r) {
+                dst[r] = src[0][r];
+            }
+            for (int r = remain; r < 8; ++r) {
+                dst[r] = 0;
+            }
+        }
+    }
+}
+
+void PackA_12(int m, int k, const float *src, int lda, float *dst) {
+    const float *src_offset[12];
+    for (int j = 0; j < m - 11; j += 12) {
+        src_offset[0]  = src;
+        src_offset[1]  = src_offset[0] + lda;
+        src_offset[2]  = src_offset[1] + lda;
+        src_offset[3]  = src_offset[2] + lda;
+        src_offset[4]  = src_offset[3] + lda;
+        src_offset[5]  = src_offset[4] + lda;
+        src_offset[6]  = src_offset[5] + lda;
+        src_offset[7]  = src_offset[6] + lda;
+        src_offset[8]  = src_offset[7] + lda;
+        src_offset[9]  = src_offset[8] + lda;
+        src_offset[10] = src_offset[9] + lda;
+        src_offset[11] = src_offset[10] + lda;
+        src += 12 * lda;
+
+        for (int i = 0; i < k; ++i) {
+            *(dst + 0)  = *(src_offset[0]);
+            *(dst + 1)  = *(src_offset[1]);
+            *(dst + 2)  = *(src_offset[2]);
+            *(dst + 3)  = *(src_offset[3]);
+            *(dst + 4)  = *(src_offset[4]);
+            *(dst + 5)  = *(src_offset[5]);
+            *(dst + 6)  = *(src_offset[6]);
+            *(dst + 7)  = *(src_offset[7]);
+            *(dst + 8)  = *(src_offset[8]);
+            *(dst + 9)  = *(src_offset[9]);
+            *(dst + 10) = *(src_offset[10]);
+            *(dst + 11) = *(src_offset[11]);
+            dst += 12;
+
+            src_offset[0] += 1;
+            src_offset[1] += 1;
+            src_offset[2] += 1;
+            src_offset[3] += 1;
+            src_offset[4] += 1;
+            src_offset[5] += 1;
+            src_offset[6] += 1;
+            src_offset[7] += 1;
+            src_offset[8] += 1;
+            src_offset[9] += 1;
+            src_offset[10] += 1;
+            src_offset[11] += 1;
+        }
+    }
+}
+
+void PackA_4(int m, int k, const float *src, int lda, float *dst) {
+    const float *src_offset[4];
+    for (int j = 0; j < m - 3; j += 4) {
+        src_offset[0] = src;
+        src_offset[1] = src_offset[0] + lda;
+        src_offset[2] = src_offset[1] + lda;
+        src_offset[3] = src_offset[2] + lda;
+        src += 4 * lda;
+
+        for (int i = 0; i < k; ++i) {
+            *(dst + 0) = *(src_offset[0]);
+            *(dst + 1) = *(src_offset[1]);
+            *(dst + 2) = *(src_offset[2]);
+            *(dst + 3) = *(src_offset[3]);
+            dst += 4;
+
+            src_offset[0] += 1;
+            src_offset[1] += 1;
+            src_offset[2] += 1;
+            src_offset[3] += 1;
+        }
+    }
+}
+
+void PackA_1(int m, int k, const float *src, int lda, float *dst) {
+    for (int j = 0; j < m; ++j) {
+        memcpy(dst, src, k * sizeof(float));
+        src += lda;
+        dst += k;
+    }
+}
 
 }  // namespace TNN_NS

@@ -40,6 +40,15 @@ template <typename T>
 void sgemm_repack_rhs(T *dst, T *src, float *weight, int ic4, int oc4, int width, int dst_z_step, int a_block,
                       int b_block, T *work_space, float *bias, int act_type, bool fast_post);
 
+void Kernel_12x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc);
+void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc);
+void Kernel_1x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc);
+
+void PackB_8(int k, int n, const float *src, int ldb, float *dst);
+void PackA_12(int m, int k, const float *src, int lda, float *dst);
+void PackA_4(int m, int k, const float *src, int lda, float *dst);
+void PackA_1(int m, int k, const float *src, int lda, float *dst);
+
 }  // namespace TNN_NS
 
 #endif
