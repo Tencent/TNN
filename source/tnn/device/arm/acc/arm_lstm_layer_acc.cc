@@ -80,7 +80,7 @@ Status ArmLSTMONNXLayerAcc::LstmSingleDirection(const float *x, float *y, const 
 
     RawBuffer gates             = RawBuffer(seq_len * batch_size * hidden_size * 4 * sizeof(float));
     auto gates_ptr              = gates.force_to<float *>();
-    RawBuffer buffer_input_pack = RawBuffer(seq_len * batch_size * input_size * sizeof(float));
+    RawBuffer buffer_input_pack = RawBuffer(seq_len * batch_size * input_size * sizeof(float) + NEON_KERNEL_EXTRA_LOAD);
     auto input_pack_ptr         = buffer_input_pack.force_to<float *>();
     GemmFloatPackA(seq_len * batch_size, hidden_size * 4, input_size, x, input_pack_ptr, input_size, w, hidden_size * 4,
                    gates_ptr, hidden_size * 4);
