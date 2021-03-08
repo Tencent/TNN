@@ -106,7 +106,7 @@ Status MetalLSTMLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
         metal_params.hidden_size = hidden_size;
         metal_params.input_width = DimsVectorUtils::Count(dims_input, 2);
         metal_params.reverse = lstm_param->direction==1;
-        metal_params.direction = lstm_param->direction / 2 + 1;
+        metal_params.direction = num_direction;
         metal_params.has_init_h = inputs.size() > 4;
         metal_params.has_init_c = inputs.size() > 5;
         
@@ -179,7 +179,7 @@ Status MetalLSTMLayerAcc::AllocateBufferStates(const std::vector<Blob *> &inputs
     auto layer_param = dynamic_cast<LSTMONNXLayerParam *>(param_);
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     // get input shape
-    int num_directions = layer_param->direction >=2 ? 2 : 1;
+    int num_directions = layer_param->direction >= 2 ? 2 : 1;
     const auto input_dims = inputs[0]->GetBlobDesc().dims;
     const auto seq_len = input_dims[0];
     const auto batch = input_dims[1];
@@ -205,7 +205,7 @@ Status MetalLSTMLayerAcc::AllocateBufferStates(const std::vector<Blob *> &inputs
 #else
     auto metal_state_buffer_bytes = num_directions * batch * hidden_size * sizeof(uint16_t);
 #endif
-    if (inputs.size() > 5 && buffer_c0_ == nil) {
+    if (inputs.size() > 5) {
         Blob *c0 = inputs[5];
         auto data_type = c0->GetBlobDesc().data_type;
         void *ptr = static_cast<char *>(c0->GetHandle().base) + c0->GetHandle().bytes_offset;
@@ -224,14 +224,14 @@ Status MetalLSTMLayerAcc::AllocateBufferStates(const std::vector<Blob *> &inputs
             if (ConvertFromFloatToHalf((float *)ptr, buffer_type.get(), num_directions * batch * hidden_size) < 0) {
                 return Status(TNNERR_MODEL_ERR, "lstm initial state DataType is not supported");
             }
-            ptr =buffer_type.get();
+            ptr = buffer_type.get();
         }
 #endif
         buffer_c0_ = [device newBufferWithBytes:ptr
                                          length:metal_state_buffer_bytes
                                         options:MTLResourceOptionCPUCacheModeWriteCombined];
     }
-    if (inputs.size() > 4 && buffer_h0_ == nil) {
+    if (inputs.size() > 4) {
         Blob *h0 = inputs[4];
         auto data_type = h0->GetBlobDesc().data_type;
         void *ptr = static_cast<char *>(h0->GetHandle().base) + h0->GetHandle().bytes_offset;
@@ -250,7 +250,7 @@ Status MetalLSTMLayerAcc::AllocateBufferStates(const std::vector<Blob *> &inputs
             if (ConvertFromFloatToHalf((float *)ptr, buffer_type.get(), num_directions * batch * hidden_size) < 0) {
                 return Status(TNNERR_MODEL_ERR, "lstm initial state DataType is not supported");
             }
-            ptr =buffer_type.get();
+            ptr = buffer_type.get();
         }
 #endif
         buffer_h0_ = [device newBufferWithBytes:ptr
@@ -283,8 +283,8 @@ Status MetalLSTMLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
 
 std::vector<DataFormat> MetalLSTMLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
     std::vector<DataFormat> support_list;
-    if (dims_size >= 3) {
-        // support_list.push_back(DATA_FORMAT_NC4HW4);
+    if (dims_size >= 2) {
+        // inputs to lstm layer should at least has two dimensions
         support_list.push_back(DATA_FORMAT_NCHW);
     }
     return support_list;
@@ -316,7 +316,6 @@ Status MetalLSTMLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     Status status = TNN_OK;
     MetalBandwidth bandwidth;
     do {
-        
         {
             // lstm_gates
             status = [context_impl load:@"lstm_gates" encoder:encoder bandwidth:bandwidth];

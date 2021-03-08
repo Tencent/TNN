@@ -14,6 +14,9 @@
 
 #include "tnn/interpreter/layer_resource_generator.h"
 #include "tnn/utils/random_data_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/bfp16.h"
+#include "tnn/utils/half_utils.h"
 
 #include <mutex>
 
@@ -26,10 +29,20 @@ std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerReso
     return *creators;
 }
 
-Status GenerateRandomResource(LayerType type, LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs) {
+std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerConstantResourceGeneratorMap() {
+    static std::once_flag once;
+    static std::shared_ptr<std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>> creators;
+    std::call_once(once, []() { creators.reset(new std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>); });
+    return *creators;
+}
+
+Status GenerateRandomResource(LayerType type, LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs, ConstantResource* consts) {
     auto& layer_resource_generator_map = GetGlobalLayerResourceGeneratorMap();
+    auto& layer_constant_resource_generator_map = GetGlobalLayerConstantResourceGeneratorMap();
     if (layer_resource_generator_map.count(type) > 0) {
         layer_resource_generator_map[type]->GenLayerResource(param, resource, inputs);
+    } else if (layer_constant_resource_generator_map.count(type) > 0) {
+        layer_constant_resource_generator_map[type]->GenLayerConstantResource(param, resource, inputs, consts);
     }
     return TNN_OK;
 }
@@ -277,6 +290,48 @@ class HdrGuideLayerResourceGenerator : public LayerResourceGenerator {
     }
 };
 
+class LSTMONNXLayerResourceGenerator : public LayerResourceGenerator {
+    virtual Status GenLayerConstantResource(LayerParam* param, LayerResource** resource,
+                                            std::vector<Blob*>& inputs, ConstantResource* consts) {
+        LOGD("LSTMONNXLayerResourceGenerator\n");
+        auto layer_param = dynamic_cast<LSTMONNXLayerParam*>(param);
+        CHECK_PARAM_NULL(layer_param);
+        auto hidden_size = layer_param->hidden_size;
+        auto num_directions = layer_param->direction == 2? 2: 1;
+        auto input_size  = DimsVectorUtils::Count(inputs[0]->GetBlobDesc().dims, 2);
+
+        auto fill_map_for_blob = [&](Blob *blob) {
+            if (blob == nullptr)
+                return;
+            auto blob_name = blob->GetBlobDesc().name;
+            auto data_type = blob->GetBlobDesc().data_type;
+            auto count = DimsVectorUtils::Count(blob->GetBlobDesc().dims);
+            if (consts->count(blob_name) > 0) {
+                return;
+            }
+            if (data_type == DATA_TYPE_FLOAT) {
+                auto buffer = std::make_shared<RawBuffer>(count * sizeof(float));
+                buffer->SetBufferDims(blob->GetBlobDesc().dims);
+                buffer->SetDataType(DATA_TYPE_FLOAT);
+                InitRandom(buffer->force_to<float *>(), count, 1.0f);
+                (*consts)[blob_name] = buffer;
+            } else if (data_type == DATA_TYPE_HALF) {
+                auto buffer = std::make_shared<RawBuffer>(count * sizeof(fp16_t));
+                buffer->SetBufferDims(blob->GetBlobDesc().dims);
+                buffer->SetDataType(DATA_TYPE_HALF);
+                InitRandom(buffer->force_to<fp16_t *>(), count, fp16_t(1));
+                (*consts)[blob_name] = buffer;
+            }
+        };
+
+        fill_map_for_blob(inputs[1]);
+        fill_map_for_blob(inputs[2]);
+        fill_map_for_blob(inputs[3]);
+
+        return TNN_OK;
+    }
+};
+
 REGISTER_LAYER_RESOURCE(Convolution, LAYER_CONVOLUTION);
 REGISTER_LAYER_RESOURCE(Deconvolution, LAYER_DECONVOLUTION);
 REGISTER_LAYER_RESOURCE(Convolution3D, LAYER_CONVOLUTION_3D);
@@ -293,4 +348,7 @@ REGISTER_LAYER_RESOURCE(Min, LAYER_MINIMUM);
 REGISTER_LAYER_RESOURCE(Div, LAYER_DIV);
 REGISTER_LAYER_RESOURCE(Mul, LAYER_MUL);
 REGISTER_LAYER_RESOURCE(HdrGuide, LAYER_HDRGUIDE);
+
+REGISTER_LAYER_CONSTANT_RESOURCE(LSTMONNX, LAYER_LSTMONNX);
+
 }  // namespace TNN_NS

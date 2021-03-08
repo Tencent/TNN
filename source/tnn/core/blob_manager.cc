@@ -44,7 +44,9 @@ BlobManager::~BlobManager() {
     }
 }
 
-static void UpdateDeviceInputDataFormat(Blob *input, const DeviceType &type) {
+static void UpdateDeviceInputDataFormat(NetworkConfig &config, Blob *input, const DeviceType &type) {
+    if (config.data_format != DATA_FORMAT_AUTO)
+        return;
     if (type == DEVICE_ARM || type == DEVICE_METAL) {
         input->GetBlobDesc().data_format = DATA_FORMAT_NC4HW4;
     } else if (type == DEVICE_OPENCL) {
@@ -113,7 +115,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
         } else {
             current_blob->GetBlobDesc().data_type = input_data_type;
         }
-        UpdateDeviceInputDataFormat(current_blob, device_->GetDeviceType());
+        UpdateDeviceInputDataFormat(config, current_blob, device_->GetDeviceType());
         input_blobs_[current_blob_name]         = current_blob;
     }
 
@@ -139,6 +141,10 @@ Status BlobManager::AllocateBlobMemory(int flag) {
     for (auto iter : input_shapes_map) {
         std::string current_blob_name = iter.first;
         Blob *current_blob            = blobs_[current_blob_name];
+        if (current_blob->NeedAllocateInForward() ||
+            DataFlagUtils::ChangeStatus(current_blob->flag) != DataFlagUtils::ChangeStatus(flag)) {
+            continue;
+        }
         // todo. need refactor
         BlobMemorySizeInfo info = device_->Calculate(current_blob->GetBlobDesc());
         if (info.dims.size() > 1 && config_.share_memory_mode != SHARE_MEMORY_MODE_DEFAULT) {

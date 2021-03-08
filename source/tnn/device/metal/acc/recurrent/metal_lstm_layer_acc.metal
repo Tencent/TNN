@@ -17,6 +17,8 @@
 
 using namespace metal;
 
+#define SAFE_TANH 1
+
 // x: [seq, batch, input]
 // w: [dir, output, input, 4]
 // gates: [dir, seq, batch, output, 4(IOFC)]
@@ -35,12 +37,12 @@ kernel void lstm_gates(const device ftype *x                    [[buffer(0)]],
     auto weight = w + (d * params.hidden_size + o) * params.input_width;
     auto input  = x + (t * params.batch + n ) * params.input_width;
     auto output = gates + ((d * params.seq_len + t) * params.batch + n) * params.hidden_size + o;
-    
-    ftype4 result = 0;
+
+    float4 result = 0;
     for(short i = 0; i<params.input_width; ++i) {
-        result += weight[i] * input[i];
+        result += float4(weight[i]) * float4(input[i]);
     }
-    *output = result;
+    *output = ftype4(result);
 }
 
 // gates: [dir, seq, batch, output, 4(IOFC)]
@@ -66,40 +68,48 @@ kernel void lstm_forward(const device ftype4 *gates      [[buffer(0)]],
     short d = gid.z;
     short n = gid.y;
     short o = gid.x;
-    
-    //threadgroup ftype h_local[256];
-    
-    auto cell   = params.has_init_c? c_0[(d* params.batch + n) * params.hidden_size + o] : 0;
-    auto wh     = w + (d * params.hidden_size + o) * params.hidden_size;
-    gates       = gates + (d * params.seq_len * params.batch + n) * params.hidden_size + o;
-    ftype4 bias  = b[(d * params.hidden_size + o) * 2] + b[(d * params.hidden_size + o) * 2 + 1];
-    
+
+    ftype cell = params.has_init_c? c_0[(d * params.batch + n) * params.hidden_size + o] : 0;
+    ftype4 bias = b[(d * params.hidden_size + o) * 2] + b[(d * params.hidden_size + o) * 2 + 1];
+
+    auto wh = w + (d * params.hidden_size + o) * params.hidden_size;
+    gates   = gates + (d * params.seq_len * params.batch + n) * params.hidden_size + o;
+
     // load initial cell and hidden state to local memory
-    h_local[o] = params.has_init_h? h_0[(d* params.batch + n) * params.hidden_size + o] : 0;
+    h_local[o] = params.has_init_h? h_0[(d * params.batch + n) * params.hidden_size + o] : 0;
     threadgroup_barrier(mem_flags::mem_threadgroup);
     
     auto output = y + (n * params.direction + d) * params.hidden_size + o;
     bool forward = (params.direction == 1 && !params.reverse) || (params.direction == 2 && d == 0);
     
-    for(short s=0; s<params.seq_len; ++s) {
-        short t = forward? s : params.seq_len-1-s;
-        ftype4 IOFC = gates[t * params.hidden_size * params.batch] + bias;
+    for(ushort s=0; s<params.seq_len; ++s) {
+        ushort t = forward? s : params.seq_len-1-s;
+        float4 IOFC = float4(gates[t * params.hidden_size * params.batch] + bias);
         for(short i=0; i<params.hidden_size; ++i) {
-            IOFC += wh[i] * h_local[i];
+            IOFC += float4(wh[i] * h_local[i]);
         }
-        
-        ftype4 IOFF = IOFC.xyzz;
-        ftype4 CCCC = IOFC.wwww;
-        IOFF = 1.f / (1.f + exp(-IOFF));
-        CCCC = tanh(CCCC);
 
-        cell = IOFF.z * cell + IOFF.x * CCCC.x;
-        ftype H = IOFF.y * tanh(cell);
-        h_local[o] = H;
-        output[t * params.hidden_size * params.direction * params.batch] = H;
+        float3 IOF = 1.f / (1.f + exp(-IOFC.xyz));
+        float C   = IOFC.w;
+#if SAFE_TANH
+        // metal compute tanh in a different way than CPU
+        C = sinh(C) / cosh(C);
+#else
+        C = tanh(C);
+#endif
+
+        float cell2 = IOF.z * cell + IOF.x * C;
+#if SAFE_TANH
+        float H = IOF.y * (sinh(cell2) / cosh(cell2));
+#else
+        float H = IOF.y * tanh(cell2);
+#endif
+        h_local[o] = ftype(H);
         threadgroup_barrier(mem_flags::mem_threadgroup);
+        output[t * params.hidden_size * params.direction * params.batch] = ftype(H);
+        cell = cell2;
     }
     // write final hidden and cell to output
-    c[(d* params.batch + n) * params.hidden_size + o] = cell;
-    h[(d* params.batch + n) * params.hidden_size + o] = h_local[o];
+    c[(d* params.batch + n) * params.hidden_size + o] = ftype(cell);
+    h[(d* params.batch + n) * params.hidden_size + o] = ftype(h_local[o]);
 }

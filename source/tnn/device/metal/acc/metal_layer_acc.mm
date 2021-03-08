@@ -24,7 +24,9 @@ namespace TNN_NS {
 
 Status MetalLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                            const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
+    auto status = AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
+    RETURN_ON_NEQ(status, TNN_OK);
+
     context_ = dynamic_cast<MetalContext *>(context);
 
     param_    = param;
@@ -40,7 +42,7 @@ Status MetalLayerAcc::Init(Context *context, LayerParam *param, LayerResource *r
     outputs[0]->GetBlobDesc().data_type = DATA_TYPE_HALF;
 #endif
 
-    auto status = ReloadConstantBlobs(inputs);
+    status = ReloadConstantBlobs(inputs);
     RETURN_ON_NEQ(status, TNN_OK);
 
     return Reshape(inputs, outputs);

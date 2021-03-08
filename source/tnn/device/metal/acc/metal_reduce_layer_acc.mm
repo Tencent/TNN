@@ -16,6 +16,7 @@
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 MetalReduceLayerAcc::~MetalReduceLayerAcc() {}
@@ -32,9 +33,17 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
     auto dims_output = outputs[0]->GetBlobDesc().dims;
     for (int i = 0; i < layer_param->axis.size(); ++i) {
-        int axis = layer_param->axis[i];
-        axis = axis >= 0 ? axis : axis + layer_param->axis.size();
-        layer_param->axis[i] = axis;
+        auto axis = layer_param->axis[i];
+        need_reformat_ = need_reformat_ || axis == 0 || axis == 1;
+    }
+    need_reformat_ = need_reformat_ && (layer_param->keep_dims==0);
+
+    if (need_reformat_) {
+        auto keep_dims_output = dims_input;
+        for(const auto& axis : layer_param->axis) {
+            keep_dims_output[axis] = 1;
+        }
+        dims_output = keep_dims_output;
     }
 
     if (layer_param->axis.size() == 1) {
@@ -77,6 +86,25 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
         }
     }
 
+    if (need_reformat_) {
+        MetalSqueezeParams metal_params;
+        auto reformat_dims_input = dims_output;
+        auto reformat_dims_output = outputs[0]->GetBlobDesc().dims;
+
+        SetDefaultMetalParams(metal_params, reformat_dims_input, reformat_dims_output);
+        metal_params.input_channel  = reformat_dims_input[1];
+        metal_params.output_channel = reformat_dims_output[1];
+        metal_params.input_batch    = reformat_dims_input[0];
+        buffer_reformat_   = [device newBufferWithBytes:(const void *)(&metal_params)
+                                                length:sizeof(metal_params)
+                                                options:MTLResourceCPUCacheModeWriteCombined];
+        
+        auto data_type_byte_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
+        auto buffer_bytes = data_type_byte_size * DimsVectorUtils::Count(reformat_dims_input, 2) * reformat_dims_input[0] * ROUND_UP(reformat_dims_input[1], 4);
+        buffer_output_ = [device newBufferWithLength:buffer_bytes
+                                             options:MTLResourceStorageModePrivate];
+    }
+
     return TNN_OK;
 }
 
@@ -99,6 +127,13 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto output = outputs[0];
 
     auto dims_output   = output->GetBlobDesc().dims;
+    if (need_reformat_) {
+        DimsVector keep_dims_output = inputs[0]->GetBlobDesc().dims;
+        for(const auto& axis : layer_param->axis) {
+            keep_dims_output[axis] = 1;
+        }
+        dims_output = keep_dims_output;
+    }
     auto output_width  = dims_output.size() > 3 ? dims_output[3] : 1;
     auto output_height = dims_output.size() > 2 ? dims_output[2] : 1;
     auto output_slice = UP_DIV(dims_output[1], 4);
@@ -127,13 +162,37 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
                     offset:(NSUInteger)(NSUInteger)input->GetHandle().bytes_offset
                    atIndex:0];
-        [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
-                    offset:(NSUInteger)(NSUInteger)output->GetHandle().bytes_offset
-                   atIndex:1];
+        if (need_reformat_) {
+            [encoder setBuffer:buffer_output_
+                        offset:0
+                       atIndex:1];
+        } else {
+            [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
+                        offset:(NSUInteger)(NSUInteger)output->GetHandle().bytes_offset
+                       atIndex:1];
+        }
         [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
 
         status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
         BREAK_IF(status != TNN_OK);
+        
+        if (need_reformat_) {
+            threads = GetDefaultThreadSize(outputs[0]->GetBlobDesc().dims, true);
+            status = [context_impl load: @"squeeze_common"
+                            encoder:encoder
+                            bandwidth:bandwidth];
+            [encoder setBuffer:buffer_output_
+                        offset:0
+                       atIndex:0];
+            [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
+                        offset:(NSUInteger)(NSUInteger)output->GetHandle().bytes_offset
+                       atIndex:1];
+            [encoder setBuffer:buffer_reformat_ offset:0 atIndex:2];
+            
+            status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
+            BREAK_IF(status != TNN_OK);
+        }
+        
     } while (0);
 
     [encoder endEncoding];

@@ -19,17 +19,22 @@
 
 namespace TNN_NS {
 
-class ReshapeLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
+class ReshapeLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int, int>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReshapeLayerTest,
-                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(0, 1)));
+                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                         //dimensions
+                         testing::Values(4, 5, 6),
+                         // reshape type
+                         testing::Values(0, 1)));
 
 TEST_P(ReshapeLayerTest, ReshapeLayer) {
     // get param
     int batch        = std::get<0>(GetParam());
     int channel      = std::get<1>(GetParam());
     int input_size   = std::get<2>(GetParam());
-    int reshape_type = std::get<3>(GetParam());
+    int dim_size     = std::get<3>(GetParam());
+    int reshape_type = std::get<4>(GetParam());
     DeviceType dev   = ConvertDeviceType(FLAGS_dt);
 
     if (0 != reshape_type && DEVICE_HUAWEI_NPU == dev) {
@@ -40,16 +45,19 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
         GTEST_SKIP();
     }
 
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    while(input_dims.size() < dim_size) input_dims.push_back(input_size);
+
     // param
     std::shared_ptr<ReshapeLayerParam> param(new ReshapeLayerParam());
     param->name         = "Reshape";
     param->reshape_type = reshape_type;
     param->axis         = 0;
-    param->num_axes     = 4;
-    param->shape        = {0, -1, 1, 1};
-
+    param->num_axes     = dim_size;
+    param->shape        = {0, -1};
+    while(param->shape.size() < dim_size) param->shape.push_back(1);
+ 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
     auto interpreter            = GenerateInterpreter("Reshape", {input_dims}, param);
     Run(interpreter);
 }
