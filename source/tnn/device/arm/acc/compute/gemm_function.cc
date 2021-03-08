@@ -337,13 +337,17 @@ void NaiveKernel(int m, int n, int k, const float *sa, const float *sb, float *s
 
 void Kernel_12x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc) {
 #if defined(__aarch64__) && defined(TNN_USE_NEON)
-    const float *a     = sa;
-    const float *b     = sb;
-    float *c           = sc;
-    int64_t ldc_offset = ldc * sizeof(float) - 16;
-    int64_t k_64       = k;
     for (int i = 0; i < m - 11; i += 12) {
+        const float *ar = sa + i * k;
+        const float *br = sb;
+        float *cr       = sc + i * ldc;
+        OMP_PARALLEL_FOR_
         for (int j = 0; j < n - 7; j += 8) {
+            const float *a     = ar;
+            const float *b     = br + j * k;
+            float *c           = cr + j;
+            int64_t ldc_offset = ldc * sizeof(float) - 16;
+            int64_t k_64       = k;
             asm volatile(
                 ".macro INIT12x8                    \n"
                 "   mov x9,        %2               \n"
@@ -457,13 +461,12 @@ void Kernel_12x8(int m, int n, int k, const float *sa, const float *sb, float *s
                 : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v3", "v4", "v8", "v9", "v10", "v11", "v12", "v13",
                   "v14", "v15", "v16", "v17", "v18", "v19", "v20", "v21", "v22", "v23", "v24", "v25", "v26", "v27",
                   "v28", "v29", "v30", "v31");
-
-            c += 8;
-            a -= 12 * k + 4;
-            b -= 4;
         }
         int remain = n % 8;
         if (remain) {
+            const float *a     = ar;
+            const float *b     = br + (n / 8) * 8 * k;
+            float *c           = cr + (n / 8) * 8;
             float32x4_t c0[12] = {vdupq_n_f32(0)};
             float32x4_t c1[12] = {vdupq_n_f32(0)};
             float32x4_t b0, b1, av, a0, a1, a2, a3;
@@ -515,7 +518,6 @@ void Kernel_12x8(int m, int n, int k, const float *sa, const float *sb, float *s
                 b += 8;
                 a += 12;
             }
-            a -= 12 * k;
             for (int ms = 0; ms < 12; ++ms) {
                 for (int rr = 0; rr < remain; ++rr) {
                     c[rr] += rr < 4 ? c0[ms][rr] : c1[ms][rr - 4];
@@ -523,26 +525,25 @@ void Kernel_12x8(int m, int n, int k, const float *sa, const float *sb, float *s
                 c += ldc;
             }
         }
-        sc += ldc * 12;
-        c = sc;
-        a += 12 * k;
-        b = sb;
     }
 #else
-    NaiveKernel<12, 8>(m, n, k, sa, sb, sc, ldc);
+    return NaiveKernel<12, 8>(m, n, k, sa, sb, sc, ldc);
 #endif
 }
 
 void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc) {
 #if defined(__aarch64__) && defined(TNN_USE_NEON)
-    const float *a     = sa;
-    const float *b     = sb;
-    float *c           = sc;
-    int64_t ldc_offset = ldc * sizeof(float) - 16;
-    int64_t k_64       = k;
-
     for (int i = 0; i < m - 3; i += 4) {
+        const float *ar = sa + i * k;
+        const float *br = sb;
+        float *cr       = sc + i * ldc;
+        OMP_PARALLEL_FOR_
         for (int j = 0; j < n - 7; j += 8) {
+            const float *a     = ar;
+            const float *b     = br + j * k;
+            float *c           = cr + j;
+            int64_t ldc_offset = ldc * sizeof(float) - 16;
+            int64_t k_64       = k;
             asm volatile(
                 ".macro INIT4x8                     \n"
                 "   mov x9,        %2               \n"
@@ -597,13 +598,12 @@ void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k_64)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k_64)
                 : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v8", "v9", "v10", "v11", "v20", "v21", "v22", "v23");
-
-            c += 8;
-            a -= 4 * k + 4;
-            b -= 4;
         }
         int remain = n % 8;
         if (remain) {
+            const float *a    = ar;
+            const float *b    = br + (n / 8) * 8 * k;
+            float *c          = cr + (n / 8) * 8;
             float32x4_t c0[4] = {vdupq_n_f32(0)};
             float32x4_t c1[4] = {vdupq_n_f32(0)};
             float32x4_t b0, b1, av, a0, a1, a2, a3;
@@ -626,7 +626,6 @@ void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc
                 b += 8;
                 a += 4;
             }
-            a -= 4 * k;
             for (int ms = 0; ms < 4; ++ms) {
                 for (int rr = 0; rr < remain; ++rr) {
                     c[rr] += rr < 4 ? c0[ms][rr] : c1[ms][rr - 4];
@@ -634,10 +633,6 @@ void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc
                 c += ldc;
             }
         }
-        sc += ldc * 4;
-        c = sc;
-        a += 4 * k;
-        b = sb;
     }
 #else
     return NaiveKernel<4, 8>(m, n, k, sa, sb, sc, ldc);
@@ -646,14 +641,17 @@ void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc
 
 void Kernel_1x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc) {
 #if defined(__aarch64__) && defined(TNN_USE_NEON)
-    const float *a     = sa;
-    const float *b     = sb;
-    float *c           = sc;
-    int64_t ldc_offset = ldc * sizeof(float) - 16;
-    int64_t k_64       = k;
-
     for (int i = 0; i < m; ++i) {
+        const float *ar = sa + i * k;
+        const float *br = sb;
+        float *cr       = sc + i * ldc;
+        OMP_PARALLEL_FOR_
         for (int j = 0; j < n - 7; j += 8) {
+            const float *a     = ar;
+            const float *b     = br + j * k;
+            float *c           = cr + j;
+            int64_t ldc_offset = ldc * sizeof(float) - 16;
+            int64_t k_64       = k;
             asm volatile(
                 ".macro INIT1x8                     \n"
                 "   mov x9,        %2               \n"
@@ -686,12 +684,12 @@ void Kernel_1x8(int m, int n, int k, const float *sa, const float *sb, float *sc
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k_64)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k_64)
                 : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v8", "v20");
-            c += 8;
-            a -= k + 1;
-            b -= 4;
         }
         int remain = n % 8;
         if (remain) {
+            const float *a = ar;
+            const float *b = br + (n / 8) * 8 * k;
+            float *c       = cr + (n / 8) * 8;
             float32x4_t c0 = vdupq_n_f32(0);
             float32x4_t c1 = vdupq_n_f32(0);
             for (int kk = 0; kk < k; ++kk) {
@@ -706,10 +704,6 @@ void Kernel_1x8(int m, int n, int k, const float *sa, const float *sb, float *sc
                 c[rr] += rr < 4 ? c0[rr] : c1[rr - 4];
             }
         }
-        sc += ldc;
-        c = sc;
-        a += k;
-        b = sb;
     }
 #else
     return NaiveKernel<1, 8>(m, n, k, sa, sb, sc, ldc);
@@ -826,6 +820,7 @@ void PackB_8(int k, int n, const float *from, int ldb, float *to) {
 void PackA_12(int m, int k, const float *src, int lda, float *dst) {
     const float *src_offset[12];
     for (int j = 0; j < m - 11; j += 12) {
+        float *dst_r   = dst + j * k;
         src_offset[0]  = src;
         src_offset[1]  = src_offset[0] + lda;
         src_offset[2]  = src_offset[1] + lda;
@@ -840,33 +835,21 @@ void PackA_12(int m, int k, const float *src, int lda, float *dst) {
         src_offset[11] = src_offset[10] + lda;
         src += 12 * lda;
 
+        OMP_PARALLEL_FOR_
         for (int i = 0; i < k; ++i) {
-            *(dst + 0)  = *(src_offset[0]);
-            *(dst + 1)  = *(src_offset[1]);
-            *(dst + 2)  = *(src_offset[2]);
-            *(dst + 3)  = *(src_offset[3]);
-            *(dst + 4)  = *(src_offset[4]);
-            *(dst + 5)  = *(src_offset[5]);
-            *(dst + 6)  = *(src_offset[6]);
-            *(dst + 7)  = *(src_offset[7]);
-            *(dst + 8)  = *(src_offset[8]);
-            *(dst + 9)  = *(src_offset[9]);
-            *(dst + 10) = *(src_offset[10]);
-            *(dst + 11) = *(src_offset[11]);
-            dst += 12;
-
-            src_offset[0] += 1;
-            src_offset[1] += 1;
-            src_offset[2] += 1;
-            src_offset[3] += 1;
-            src_offset[4] += 1;
-            src_offset[5] += 1;
-            src_offset[6] += 1;
-            src_offset[7] += 1;
-            src_offset[8] += 1;
-            src_offset[9] += 1;
-            src_offset[10] += 1;
-            src_offset[11] += 1;
+            float *dst_t  = dst_r + i * 12;
+            *(dst_t + 0)  = *(src_offset[0] + i);
+            *(dst_t + 1)  = *(src_offset[1] + i);
+            *(dst_t + 2)  = *(src_offset[2] + i);
+            *(dst_t + 3)  = *(src_offset[3] + i);
+            *(dst_t + 4)  = *(src_offset[4] + i);
+            *(dst_t + 5)  = *(src_offset[5] + i);
+            *(dst_t + 6)  = *(src_offset[6] + i);
+            *(dst_t + 7)  = *(src_offset[7] + i);
+            *(dst_t + 8)  = *(src_offset[8] + i);
+            *(dst_t + 9)  = *(src_offset[9] + i);
+            *(dst_t + 10) = *(src_offset[10] + i);
+            *(dst_t + 11) = *(src_offset[11] + i);
         }
     }
 }
@@ -874,32 +857,28 @@ void PackA_12(int m, int k, const float *src, int lda, float *dst) {
 void PackA_4(int m, int k, const float *src, int lda, float *dst) {
     const float *src_offset[4];
     for (int j = 0; j < m - 3; j += 4) {
+        float *dst_r  = dst + j * k;
         src_offset[0] = src;
         src_offset[1] = src_offset[0] + lda;
         src_offset[2] = src_offset[1] + lda;
         src_offset[3] = src_offset[2] + lda;
         src += 4 * lda;
 
+        OMP_PARALLEL_FOR_
         for (int i = 0; i < k; ++i) {
-            *(dst + 0) = *(src_offset[0]);
-            *(dst + 1) = *(src_offset[1]);
-            *(dst + 2) = *(src_offset[2]);
-            *(dst + 3) = *(src_offset[3]);
-            dst += 4;
-
-            src_offset[0] += 1;
-            src_offset[1] += 1;
-            src_offset[2] += 1;
-            src_offset[3] += 1;
+            float *dst_t = dst_r + i * 4;
+            *(dst_t + 0) = *(src_offset[0] + i);
+            *(dst_t + 1) = *(src_offset[1] + i);
+            *(dst_t + 2) = *(src_offset[2] + i);
+            *(dst_t + 3) = *(src_offset[3] + i);
         }
     }
 }
 
 void PackA_1(int m, int k, const float *src, int lda, float *dst) {
+    OMP_PARALLEL_FOR_
     for (int j = 0; j < m; ++j) {
-        memcpy(dst, src, k * sizeof(float));
-        src += lda;
-        dst += k;
+        memcpy(dst + j * k, src + j * lda, k * sizeof(float));
     }
 }
 
