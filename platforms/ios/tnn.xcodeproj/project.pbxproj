@@ -615,7 +615,6 @@
 		9DF54450258B162F006CEC97 /* random_data_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DF54449258B162F006CEC97 /* random_data_utils.cc */; };
 		9EC524C725CA76CD00CA7A51 /* CONV_INT8_8X8.S in Sources */ = {isa = PBXBuildFile; fileRef = 9EC524C625CA76CD00CA7A51 /* CONV_INT8_8X8.S */; };
 		9EC524CC25CA76FC00CA7A51 /* winograd_function_int8.h in Headers */ = {isa = PBXBuildFile; fileRef = 9EC524C925CA76FC00CA7A51 /* winograd_function_int8.h */; };
-		9EC524CD25CA76FC00CA7A51 /* conv_int8_8x8.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9EC524CA25CA76FC00CA7A51 /* conv_int8_8x8.cc */; };
 		9EC524CE25CA76FC00CA7A51 /* winograd_function_int8.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9EC524CB25CA76FC00CA7A51 /* winograd_function_int8.cc */; };
 		9EC524D425CA771500CA7A51 /* arm_conv_int8_layer_indirect.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9EC524D025CA771400CA7A51 /* arm_conv_int8_layer_indirect.cc */; };
 		9EC524D525CA771500CA7A51 /* arm_conv_int8_layer_winograd.h in Headers */ = {isa = PBXBuildFile; fileRef = 9EC524D125CA771400CA7A51 /* arm_conv_int8_layer_winograd.h */; };
@@ -623,6 +622,11 @@
 		9EC524D725CA771500CA7A51 /* arm_conv_int8_layer_indirect.h in Headers */ = {isa = PBXBuildFile; fileRef = 9EC524D325CA771400CA7A51 /* arm_conv_int8_layer_indirect.h */; };
 		9EC524DB25CA776A00CA7A51 /* metal_reorg_layer_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9EC524D925CA776900CA7A51 /* metal_reorg_layer_acc.mm */; };
 		9EC524DC25CA776A00CA7A51 /* metal_reorg_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = 9EC524DA25CA776900CA7A51 /* metal_reorg_layer_acc.metal */; };
+		9EF007DB25F605FE006BEC98 /* indirect_conv_int8_4x8.h in Headers */ = {isa = PBXBuildFile; fileRef = 9EF007D725F605FD006BEC98 /* indirect_conv_int8_4x8.h */; };
+		9EF007DC25F605FE006BEC98 /* indirect_conv_int8_4x8.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9EF007D825F605FD006BEC98 /* indirect_conv_int8_4x8.cc */; };
+		9EF007DD25F605FE006BEC98 /* indirect_conv_int8_8x8.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9EF007D925F605FE006BEC98 /* indirect_conv_int8_8x8.cc */; };
+		9EF007DE25F605FE006BEC98 /* indirect_conv_int8_8x8.h in Headers */ = {isa = PBXBuildFile; fileRef = 9EF007DA25F605FE006BEC98 /* indirect_conv_int8_8x8.h */; };
+		9EF007E125F6060B006BEC98 /* CONV_INT8_4X8.S in Sources */ = {isa = PBXBuildFile; fileRef = 9EF007E025F6060B006BEC98 /* CONV_INT8_4X8.S */; };
 		E43D68B525C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S in Sources */ = {isa = PBXBuildFile; fileRef = E43D68B425C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S */; };
 		E4D05BEC259F15C700921502 /* arm_relu_layer_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = E4D05BE4259F15C600921502 /* arm_relu_layer_acc.h */; };
 		E4D05BED259F15C700921502 /* arm_batch_norm_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = E4D05BE5259F15C600921502 /* arm_batch_norm_layer_acc.cc */; };
@@ -1343,7 +1347,6 @@
 		9DF54449258B162F006CEC97 /* random_data_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = random_data_utils.cc; sourceTree = "<group>"; };
 		9EC524C625CA76CD00CA7A51 /* CONV_INT8_8X8.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = CONV_INT8_8X8.S; sourceTree = "<group>"; };
 		9EC524C925CA76FC00CA7A51 /* winograd_function_int8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = winograd_function_int8.h; sourceTree = "<group>"; };
-		9EC524CA25CA76FC00CA7A51 /* conv_int8_8x8.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = conv_int8_8x8.cc; sourceTree = "<group>"; };
 		9EC524CB25CA76FC00CA7A51 /* winograd_function_int8.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = winograd_function_int8.cc; sourceTree = "<group>"; };
 		9EC524D025CA771400CA7A51 /* arm_conv_int8_layer_indirect.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_conv_int8_layer_indirect.cc; sourceTree = "<group>"; };
 		9EC524D125CA771400CA7A51 /* arm_conv_int8_layer_winograd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_conv_int8_layer_winograd.h; sourceTree = "<group>"; };
@@ -1351,6 +1354,11 @@
 		9EC524D325CA771400CA7A51 /* arm_conv_int8_layer_indirect.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_conv_int8_layer_indirect.h; sourceTree = "<group>"; };
 		9EC524D925CA776900CA7A51 /* metal_reorg_layer_acc.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_reorg_layer_acc.mm; sourceTree = "<group>"; };
 		9EC524DA25CA776900CA7A51 /* metal_reorg_layer_acc.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_reorg_layer_acc.metal; sourceTree = "<group>"; };
+		9EF007D725F605FD006BEC98 /* indirect_conv_int8_4x8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = indirect_conv_int8_4x8.h; sourceTree = "<group>"; };
+		9EF007D825F605FD006BEC98 /* indirect_conv_int8_4x8.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indirect_conv_int8_4x8.cc; sourceTree = "<group>"; };
+		9EF007D925F605FE006BEC98 /* indirect_conv_int8_8x8.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indirect_conv_int8_8x8.cc; sourceTree = "<group>"; };
+		9EF007DA25F605FE006BEC98 /* indirect_conv_int8_8x8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = indirect_conv_int8_8x8.h; sourceTree = "<group>"; };
+		9EF007E025F6060B006BEC98 /* CONV_INT8_4X8.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = CONV_INT8_4X8.S; sourceTree = "<group>"; };
 		E43D68B425C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = CONV_DW_3X3_INT8_SLIDEW.S; sourceTree = "<group>"; };
 		E4D05BE4259F15C600921502 /* arm_relu_layer_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_relu_layer_acc.h; sourceTree = "<group>"; };
 		E4D05BE5259F15C600921502 /* arm_batch_norm_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_batch_norm_layer_acc.cc; sourceTree = "<group>"; };
@@ -2308,11 +2316,14 @@
 		9DF5431A258B1364006CEC97 /* compute */ = {
 			isa = PBXGroup;
 			children = (
+				9EF007D825F605FD006BEC98 /* indirect_conv_int8_4x8.cc */,
+				9EF007D725F605FD006BEC98 /* indirect_conv_int8_4x8.h */,
+				9EF007D925F605FE006BEC98 /* indirect_conv_int8_8x8.cc */,
+				9EF007DA25F605FE006BEC98 /* indirect_conv_int8_8x8.h */,
 				9DF5431B258B1364006CEC97 /* compute.cc */,
 				9DF5431C258B1364006CEC97 /* winograd_function.cc */,
 				9DF5431D258B1364006CEC97 /* compute.h */,
 				9DF5431E258B1364006CEC97 /* compute_int8.cc */,
-				9EC524CA25CA76FC00CA7A51 /* conv_int8_8x8.cc */,
 				9EC524CB25CA76FC00CA7A51 /* winograd_function_int8.cc */,
 				9EC524C925CA76FC00CA7A51 /* winograd_function_int8.h */,
 				9DF5431F258B1364006CEC97 /* arm32 */,
@@ -2329,6 +2340,7 @@
 		9DF5431F258B1364006CEC97 /* arm32 */ = {
 			isa = PBXGroup;
 			children = (
+				9EF007E025F6060B006BEC98 /* CONV_INT8_4X8.S */,
 				9DF54320258B1364006CEC97 /* CONV_BFP16_O4.S */,
 				9DF54321258B1364006CEC97 /* GEMM_INT8_4X8.S */,
 				9DF54322258B1364006CEC97 /* GEMM_BFP16_N4.S */,
@@ -2565,6 +2577,7 @@
 				9DD1FB3F247CE9BE00800139 /* metal_context.h in Headers */,
 				9D32FF0624557EED002DCDAB /* model_interpreter.h in Headers */,
 				9D32FF6924557EED002DCDAB /* abstract_layer_acc.h in Headers */,
+				9EF007DE25F605FE006BEC98 /* indirect_conv_int8_8x8.h in Headers */,
 				9DF543BB258B1366006CEC97 /* arm_deconv_fp16_layer_depthwise.h in Headers */,
 				9D32FC8724557EEC002DCDAB /* blob_2d_memory_pool.h in Headers */,
 				9DF19EA224A200AC00E1376D /* metal_cpu_adapter_acc.h in Headers */,
@@ -2630,6 +2643,7 @@
 				9D32FCA124557EEC002DCDAB /* share_one_thread_memory_mode_state.h in Headers */,
 				9D32FC9124557EEC002DCDAB /* blob_memory_pool_factory.h in Headers */,
 				9D32FCA724557EEC002DCDAB /* omp_utils.h in Headers */,
+				9EF007DB25F605FE006BEC98 /* indirect_conv_int8_4x8.h in Headers */,
 				E4D05BEC259F15C700921502 /* arm_relu_layer_acc.h in Headers */,
 				9D32FF6C24557EED002DCDAB /* tnn_impl_default.h in Headers */,
 				9DF543BD258B1366006CEC97 /* arm_deconv_layer_common.h in Headers */,
@@ -2839,6 +2853,7 @@
 				E4D05EBA25A093D000921502 /* arm_prelu_fp16_layer.cc in Sources */,
 				9DD1FB95247CE9BE00800139 /* metal_min_layer_acc.mm in Sources */,
 				9D32FF5F24557EED002DCDAB /* inner_product_layer_interpreter.cc in Sources */,
+				9EF007E125F6060B006BEC98 /* CONV_INT8_4X8.S in Sources */,
 				9DD1FB84247CE9BE00800139 /* metal_reduce_prod_layer_acc.mm in Sources */,
 				9D32FC9024557EEC002DCDAB /* blob_2d_memory_pool.cc in Sources */,
 				9EC524D625CA771500CA7A51 /* arm_conv_int8_layer_winograd.cc in Sources */,
@@ -3185,7 +3200,6 @@
 				9D32FCE724557EEC002DCDAB /* reduce_mean_layer.cc in Sources */,
 				EC0BE17925144C10009BD69A /* reorg_layer_interpreter.cc in Sources */,
 				9DD1FB45247CE9BE00800139 /* metal_hard_swish_layer_acc.metal in Sources */,
-				9EC524CD25CA76FC00CA7A51 /* conv_int8_8x8.cc in Sources */,
 				9D32FCEB24557EEC002DCDAB /* min_layer.cc in Sources */,
 				9DD1FB4C247CE9BE00800139 /* metal_reduce_mean_layer_acc.mm in Sources */,
 				9DD1FB69247CE9BE00800139 /* metal_prelu_layer_acc.mm in Sources */,
@@ -3226,12 +3240,14 @@
 				9DF543D2258B1366006CEC97 /* CONV_FLOAT_SLIDEW_C3.S in Sources */,
 				9D32FF1424557EED002DCDAB /* div_layer_interpreter.cc in Sources */,
 				9D32FCA324557EEC002DCDAB /* blob_memory_pool_factory.cc in Sources */,
+				9EF007DD25F605FE006BEC98 /* indirect_conv_int8_8x8.cc in Sources */,
 				9D32FF6224557EED002DCDAB /* shuffle_channel_layer_interpreter.cc in Sources */,
 				9D32FF3124557EED002DCDAB /* inner_product_layer_interpreter.cc in Sources */,
 				9D32FD0024557EEC002DCDAB /* relu_layer.cc in Sources */,
 				9DF54392258B1366006CEC97 /* arm_sqrt_layer_acc.cc in Sources */,
 				9DF5439C258B1366006CEC97 /* arm_scale_layer_acc.cc in Sources */,
 				9DD1FB7E247CE9BE00800139 /* metal_reciprocal_layer_acc.metal in Sources */,
+				9EF007DC25F605FE006BEC98 /* indirect_conv_int8_4x8.cc in Sources */,
 				9DD1FB80247CE9BE00800139 /* metal_shuffle_layer_acc.metal in Sources */,
 				EC0BE17625144C10009BD69A /* scale_layer_interpreter.cc in Sources */,
 				9D32FF5524557EED002DCDAB /* binary_op_interpreter.cc in Sources */,
