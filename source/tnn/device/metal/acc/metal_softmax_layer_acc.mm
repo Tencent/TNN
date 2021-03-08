@@ -22,6 +22,10 @@ namespace TNN_NS {
 DECLARE_METAL_ACC(Softmax, LAYER_SOFTMAX);
 
 Status MetalSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto layer_param = dynamic_cast<SoftmaxLayerParam *>(param_);
+    const auto& input_dims = inputs[0]->GetBlobDesc().dims;
+    layer_param->axis = (layer_param->axis + input_dims.size()) % input_dims.size();
+
     return MetalLayerAcc::Reshape(inputs, outputs);
 }
 
