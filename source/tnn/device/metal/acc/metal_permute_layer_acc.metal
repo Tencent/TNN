@@ -256,3 +256,57 @@ kernel void permute_copy(const device ftype4 *src                  [[buffer(0)]]
     int index_in_out = (int)gid.z * params.output_size + (int)gid.y * params.output_width + (int)gid.x;
     dst[index_in_out] = src[index_in_out];
 }
+
+kernel void permute_common(const device ftype4 *src                  [[buffer(0)]],
+                           device ftype4 *dst                        [[buffer(1)]],
+                           constant MetalDynamicPermuteParams &params       [[buffer(2)]],
+                           uint3 gid                                 [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.output_size, params.output_slice, params.batch)))
+        return;
+
+    int index_out = ((int)gid.z * params.output_slice + (int)gid.y) * params.output_size + (int)gid.x;
+
+    int batch  = (int)gid.z;
+    int slice  = (int)gid.y;
+    int4 channel = slice * 4 + int4(0, 1, 2, 3);
+    int size  = (int)gid.x;
+    bool4 valid_position = channel < params.channel_dim_size;
+    channel = clamp(channel, 0, params.channel_dim_size-1);
+
+    int4 input_i  = int4(0);
+    int input_slice = 0;
+    int4 index_in = 0;
+
+    if (params.channel_dim == 0) {
+        input_slice = batch / 4;
+        input_i = batch % 4;
+        index_in = input_slice*params.strides[0] + channel*params.strides[1];
+    } else if (params.channel_dim == 1) {
+        input_slice = slice;
+        input_i = channel % 4;
+        index_in = batch*params.strides[0] + input_slice*params.strides[1];
+    } else {
+        index_in = batch*params.strides[0] + channel*params.strides[1];
+    }
+    for(int i=params.dim_count-1; i>=2; --i) {
+        int axis_size = size % params.output_sizes[i];
+        if (i == params.channel_dim) {
+            input_slice = axis_size / 4;
+            input_i     = axis_size % 4;
+            index_in += input_slice * params.strides[i];
+        } else {
+            index_in += axis_size * params.strides[i];
+        }
+        size = size / params.output_sizes[i];
+    }
+
+    ftype4 val = ftype4(
+        src[index_in[0]][input_i[0]],
+        src[index_in[1]][input_i[1]],
+        src[index_in[2]][input_i[2]],
+        src[index_in[3]][input_i[3]]
+    );
+    val = select(ftype4(0), val, valid_position);
+
+    dst[index_out] = val;
+}

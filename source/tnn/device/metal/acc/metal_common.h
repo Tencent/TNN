@@ -32,8 +32,11 @@
 #define ROUND_UP(x, y) (((x) + (y)-1) / (y) * (y))
 #endif
 
-#define GetBlobDim(d, i) \
+//#define GetBlobDim(d, i) \
     (((d).size()) > (i) ? ((d)[i]) : 1)
+
+//#define GetBlobCount(d, i) \
+    ( (DimsVectorUtils::Count((d), (i))) > 0? (DimsVectorUtils::Count((d), (i))) : (GetBlobDim(d, i)) )
 
 /**Base Param Struct **/
 struct MetalParams {
@@ -70,6 +73,9 @@ struct MetalBroadcastParams {
     int broadcast_input0;
     int broadcast_input1;
     int batch;
+
+    int input0_size;
+    int input1_size;
 };
 
 /**Pow Param Struct **/
@@ -608,6 +614,33 @@ struct MetalPermuteParams {
     int output_slice;
     int share_channel = 0;
     int batch;
+
+    int dim_count;
+
+    int strides[4];
+    int orders[4];
+    int channel_dim_size; // the input size alongside the new chanel dimension
+    int channel_dim; // which axis of the output corresponds the input channel
+};
+
+#define MAX_DIM_COUNT 8
+struct MetalDynamicPermuteParams {
+    int input_sizes[MAX_DIM_COUNT];
+    int input_size;
+    int input_slice;
+    int input_batch;
+
+    int output_sizes[MAX_DIM_COUNT];
+    int output_size;
+    int output_slice;
+    int batch;
+
+    int dim_count;
+
+    int strides[MAX_DIM_COUNT];
+
+    int channel_dim_size; // the input size alongside the new chanel dimension
+    int channel_dim; // which axis of the output corresponds the input channel
 };
 
 /** MetalRecurrent Param Struct **/
