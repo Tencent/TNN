@@ -28,6 +28,9 @@
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/network/openvino/openvino_types.h"
 
+#include "tnn/network/openvino/custom_layer/custom_softsign.h"
+#include <iostream>
+
 namespace TNN_NS {
 
 DECLARE_OPENVINO_LAYER_BUILDER(Softsign, LAYER_SOFTSIGN);
@@ -38,24 +41,45 @@ Status SoftsignOVLayerBuilder::Build() {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
-    auto input_node = GetInputNodes()[0];
 
+// old version 
+/*
+    auto input_node = GetInputNodes()[0];
     auto absNode = std::make_shared<ngraph::op::Abs>(input_node->output(0));
     absNode->validate_and_infer_types();
 
     auto oneConst = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, ngraph::Shape(input_node->get_output_shape(0).size(), 1), std::vector<float>{1.0f});
+         ngraph::element::Type_t::f32, ngraph::Shape(input_node->get_output_shape(0).size(), 1), std::vector<float>{1.0f});
     auto addNode = std::make_shared<ngraph::op::v1::Add>(
-        absNode->output(0), oneConst);
+         absNode->output(0), oneConst);
     addNode->validate_and_infer_types();
 
     auto divNode = std::make_shared<ngraph::op::v1::Divide>(
         input_node->output(0), addNode->output(0));
-    divNode->validate_and_infer_types();
 
+    divNode->validate_and_infer_types();
     divNode->set_friendly_name(param_->name);
+
     ngraph::NodeVector outputNodes;
     outputNodes.push_back(divNode);
+    SetOutputTensors(outputNodes);
+*/
+// new version
+
+     auto input_node = GetInputNodes();
+     ngraph::OutputVector inputs;
+     for (auto item : input_node) {
+        inputs.push_back(item->output(0));
+     }
+   
+     auto softsignNode = std::make_shared<CustomSoftsignOp>(
+        inputs, base_layer_, GetInputBlobs(), GetOutputBlobs());
+
+    softsignNode->validate_and_infer_types();
+    softsignNode->set_friendly_name(param_->name);
+
+    ngraph::NodeVector outputNodes;
+    outputNodes.push_back(softsignNode);
     SetOutputTensors(outputNodes);
 
     return TNN_OK;
