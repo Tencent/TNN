@@ -740,7 +740,7 @@ void NaivePackB(int k, int n, const float *from, int ldb, float *to) {
 void PackB_8(int k, int n, const float *from, int ldb, float *to) {
 #ifndef TNN_USE_NEON
     return NaivePackB<8>(k, n, from, ldb, to);
-#endif
+#else
     int j = 0;
 
     const float *src[4];
@@ -815,6 +815,7 @@ void PackB_8(int k, int n, const float *from, int ldb, float *to) {
             }
         }
     }
+#endif
 }
 
 void PackA_12(int m, int k, const float *src, int lda, float *dst) {
