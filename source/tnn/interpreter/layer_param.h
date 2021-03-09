@@ -170,7 +170,7 @@ struct UpsampleLayerParam : public LayerParam {
 };
 
 struct RangeLayerParam : public LayerParam {
-    DataType type = DATA_TYPE_FLOAT;
+    DataType data_type = DATA_TYPE_FLOAT;
     RangeData start = {0};
     RangeData limit = {0};
     RangeData delta = { .i = 1};
@@ -230,6 +230,15 @@ struct CastLayerParam : public LayerParam {
 struct HistogramLayerParam : public LayerParam {
     int depth;
     PARAM_COPY(HistogramLayerParam)
+};
+
+struct OneHotLayerParam : public LayerParam {
+    int axis = -1;
+    int depth = -1;
+    float value_off = 0;
+    float value_on = 1;
+    
+    PARAM_COPY(OneHotLayerParam)
 };
 
 struct BitShiftLayerParam : public LayerParam {
