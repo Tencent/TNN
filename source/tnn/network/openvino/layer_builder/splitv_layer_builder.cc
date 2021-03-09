@@ -54,6 +54,7 @@ Status SplitvOVLayerBuilder::Build() {
         return true;
     };
 
+    // if (0) {
     if (get_split_flag()) {
         LOGD("SplitV: use split operation");
         // use split instead of splitV
@@ -74,7 +75,7 @@ Status SplitvOVLayerBuilder::Build() {
         // use stride slice instead of splitV
         std::vector<int> begins, ends;
         std::vector<int64_t> begin_mask, end_mask;
-        size_t input_dims = input_node->get_input_shape(0).size();
+        size_t input_dims = input_node->get_output_shape(0).size();
         ngraph::Shape dims_shape({input_dims});
 
         for (int i = 0; i < input_dims; i++) {
