@@ -42,13 +42,13 @@ Status SoftsignOVLayerBuilder::Build() {
         return TNNERR_INIT_LAYER;
     }
 
-     auto input_node = GetInputNodes();
-     ngraph::OutputVector inputs;
-     for (auto item : input_node) {
+    auto input_node = GetInputNodes();
+    ngraph::OutputVector inputs;
+    for (auto item : input_node) {
         inputs.push_back(item->output(0));
-     }
+    }
    
-     auto softsignNode = std::make_shared<CustomSoftsignOp>(
+    auto softsignNode = std::make_shared<CustomSoftsignOp>(
         inputs, base_layer_, GetInputBlobs(), GetOutputBlobs());
 
     softsignNode->validate_and_infer_types();
