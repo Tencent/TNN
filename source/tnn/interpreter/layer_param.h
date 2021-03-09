@@ -232,6 +232,15 @@ struct HistogramLayerParam : public LayerParam {
     PARAM_COPY(HistogramLayerParam)
 };
 
+struct OneHotLayerParam : public LayerParam {
+    int axis = -1;
+    int depth = -1;
+    float value_off = 0;
+    float value_on = 1;
+    
+    PARAM_COPY(OneHotLayerParam)
+};
+
 struct BitShiftLayerParam : public LayerParam {
     //0: rigth 1:left
     int direction = 0;
