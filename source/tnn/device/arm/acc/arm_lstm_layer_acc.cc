@@ -19,12 +19,14 @@
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
 static void LstmActivate(const int count, const float *g_ptr, float *c_ptr, float *h_ptr, float *o_ptr) {
-    for (int q = 0; q < count / 4; ++q) {
-        Float4x4 gates_iofc = Float4x4::ld4(g_ptr);
+    OMP_PARALLEL_FOR_
+    for (int q = 0; q < count - 3; q += 4) {
+        Float4x4 gates_iofc = Float4x4::ld4(g_ptr + q * 4);
         Float4 I, O, F, C;
         gates_iofc.get_lane(I, 0);
         gates_iofc.get_lane(O, 1);
@@ -36,15 +38,11 @@ static void LstmActivate(const int count, const float *g_ptr, float *c_ptr, floa
         O = Float4::sigmoid(O);
         C = Float4::tanh(C);
 
-        Float4 cell2 = F * Float4::load(c_ptr) + I * C;
+        Float4 cell2 = F * Float4::load(c_ptr + q) + I * C;
         Float4 H     = O * Float4::tanh(cell2);
-        Float4::save(c_ptr, cell2);
-        Float4::save(h_ptr, H);
-        Float4::save(o_ptr, H);
-        c_ptr += 4;
-        h_ptr += 4;
-        o_ptr += 4;
-        g_ptr += 16;
+        Float4::save(c_ptr + q, cell2);
+        Float4::save(h_ptr + q, H);
+        Float4::save(o_ptr + q, H);
     }
     int remain = count % 4;
     if (remain) {
