@@ -68,15 +68,22 @@ enum FusionType {
 
 struct BatchNormLayerParam : public LayerParam {
     int channels = 0;
-    float eps    = 0.f;
+    float eps    = 1e-5f;
 
     PARAM_COPY(BatchNormLayerParam)
 };
 struct InstanceNormLayerParam : public LayerParam {
     int channels = 0;
-    float eps    = 0.01f;
+    float eps    = 1e-5f;
 
     PARAM_COPY(InstanceNormLayerParam)
+};
+
+struct GroupNormLayerParam : public LayerParam {
+    int group = 0;
+    float eps = 1e-5f;
+
+    PARAM_COPY(GroupNormLayerParam)
 };
 
 struct ConvLayerParam : public LayerParam {
@@ -129,6 +136,10 @@ struct PoolingLayerParam : public LayerParam {
     // order [w h d] for adaptive pool
     std::vector<int> kernel_indexs;
 
+    int is_adaptive_pool = 0;
+    // order [w h d]
+    std::vector<int> output_shape;
+
     PARAM_COPY(PoolingLayerParam)
 };
 
@@ -159,7 +170,7 @@ struct UpsampleLayerParam : public LayerParam {
 };
 
 struct RangeLayerParam : public LayerParam {
-    DataType type = DATA_TYPE_FLOAT;
+    DataType data_type = DATA_TYPE_FLOAT;
     RangeData start = {0};
     RangeData limit = {0};
     RangeData delta = { .i = 1};
@@ -219,6 +230,15 @@ struct CastLayerParam : public LayerParam {
 struct HistogramLayerParam : public LayerParam {
     int depth;
     PARAM_COPY(HistogramLayerParam)
+};
+
+struct OneHotLayerParam : public LayerParam {
+    int axis = -1;
+    int depth = -1;
+    float value_off = 0;
+    float value_on = 1;
+    
+    PARAM_COPY(OneHotLayerParam)
 };
 
 struct BitShiftLayerParam : public LayerParam {

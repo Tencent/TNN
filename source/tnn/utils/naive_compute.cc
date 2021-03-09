@@ -44,6 +44,56 @@ uint8_t half2uint8(fp16_t val) {
     return static_cast<uint8_t>(MAX(MIN(val + (val >= 0.f ? 0.5f : -0.5f), 255.0f), 0.0f));
 }
 
+static inline int start_index(int a, int b, int c) {
+    return (int)std::floor((float)(a * c) / b);
+}
+
+static inline int end_index(int a, int b, int c) {
+    return (int)std::ceil((float)((a + 1) * c) / b);
+}
+
+template <typename T, typename Tacc>
+void NaiveAdaptivePooling(T *input_data, T *output_data, DimsVector dims_input, DimsVector dims_output, int pool_type) {
+    bool is_1d             = dims_input.size() == 3;
+    const int channels     = is_1d ? dims_input[0] : dims_input[0] * dims_input[1];
+    const int input_height = is_1d ? dims_input[1] : dims_input[2];
+    const int input_width  = is_1d ? dims_input[2] : dims_input[3];
+    int64_t output_height  = is_1d ? dims_output[1] : dims_output[2];
+    int64_t output_width   = is_1d ? dims_output[2] : dims_output[3];
+
+    for (int c = 0; c < channels; c++) {
+        T *input_ptr  = input_data + c * input_height * input_width;
+        T *output_ptr = output_data + c * output_height * output_width;
+
+        for (int oh = 0; oh < output_height; oh++) {
+            int ih0 = start_index(oh, output_height, input_height);
+            int ih1 = end_index(oh, output_height, input_height);
+            int kh  = ih1 - ih0;
+
+            for (int ow = 0; ow < output_width; ow++) {
+                int iw0 = start_index(ow, output_width, input_width);
+                int iw1 = end_index(ow, output_width, input_width);
+                int kw  = iw1 - iw0;
+
+                // compute local average
+                if (pool_type == 1) {
+                    T sum = 0;
+                    for (int ih = ih0; ih < ih1; ih++) {
+                        for (int iw = iw0; iw < iw1; iw++) {
+                            sum += input_ptr[ih * input_width + iw];
+                        }
+                    }
+                    output_ptr[oh * output_width + ow] = sum / kh / kw;
+                }
+            }
+        }
+    }
+}
+
+// initialize the NaiveAdaptivePooling FUNTION with float
+template void NaiveAdaptivePooling<float, float>(float *input_data, float *output_data, DimsVector dims_input,
+                                                 DimsVector dims_output, int pool_type);
+
 /*
  * Computes max pooling or average pooling
  * blob data format must be NCHW
