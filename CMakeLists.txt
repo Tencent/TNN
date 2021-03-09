@@ -38,6 +38,8 @@ option(TNN_UNIT_TEST_BENCHMARK "Enable Benchmark Layer" OFF)
 option(TNN_CONVERTER_ENABLE "Enable Model Converter" OFF)
 option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
 option(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE "Enable Build Benchmark Test Lib" OFF)
+   
+set(TNN_USE_GFLAGS OFF)
 
 message(${CMAKE_SOURCE_DIR})
 message(${CMAKE_CURRENT_SOURCE_DIR})
@@ -332,17 +334,19 @@ elseif(SYSTEM.Windows)
     include(platforms/windows/CMakeLists.txt)
 endif()
 
-if(TNN_MODEL_CHECK_ENABLE)
-    add_subdirectory(tools/model_check)
-endif()
+if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE OR TNN_MODEL_CHECK_ENABLE)
+    set(TNN_USE_GFLAGS ON)
+endif ()
 
-
-if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE)
+if (TNN_USE_GFLAGS)
     add_subdirectory(third_party/gflags)
     get_target_property(GFLAGS_INCLUDE_DIRS gflags INTERFACE_INCLUDE_DIRECTORIES)
     include_directories(BEFORE "${GFLAGS_INCLUDE_DIRS}")
 endif ()
 
+if(TNN_MODEL_CHECK_ENABLE)
+    add_subdirectory(tools/model_check)
+endif()
 
 if(TNN_TEST_ENABLE)
     add_subdirectory(test)
