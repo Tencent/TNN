@@ -58,7 +58,6 @@ Status CpuStrideSliceLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
         }
     }
    
-    DimsVector input_dims = input_blob->GetBlobDesc().dims;
     DimsVector output_dims = output_blob->GetBlobDesc().dims;
     int output_count = DimsVectorUtils::Count(output_dims);
 

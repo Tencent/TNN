@@ -104,8 +104,6 @@ namespace test {
                     blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
                 }
                 ret = instance->ForwardAsync(nullptr);
-                output_converters_map = CreateBlobConverterMap(output_blob_map);
-                output_params_map = CreateConvertParamMap(output_mat_map);
                 for(auto element : output_converters_map) {
                     auto name = element.first;
                     auto blob_converter = element.second;
