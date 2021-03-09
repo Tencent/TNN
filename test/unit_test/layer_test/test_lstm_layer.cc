@@ -66,9 +66,9 @@ TEST_P(LSTMLayerTest, LSTMONNXLayer) {
     // generate interpreter
     const int num_directions = param->direction==2? 2: 1;
     std::vector<int> input_dims = {seq_len, batch, input_size};
-    std::vector<int> wi_dims    = {num_directions, 4, output_size, input_size};
-    std::vector<int> wh_dims    = {num_directions, 4, output_size, output_size};
-    std::vector<int> bias_dims  = {num_directions, 8, output_size};
+    std::vector<int> wi_dims    = {num_directions, 4*output_size, input_size};
+    std::vector<int> wh_dims    = {num_directions, 4*output_size, output_size};
+    std::vector<int> bias_dims  = {num_directions, 8*output_size};
     auto interpreter            = GenerateInterpreter("LSTMONNX", {input_dims, wi_dims, wh_dims, bias_dims}, param, nullptr, 3);
 
     Precision precision = PRECISION_AUTO;

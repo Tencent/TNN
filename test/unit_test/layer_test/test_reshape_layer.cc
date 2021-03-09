@@ -24,7 +24,7 @@ class ReshapeLayerTest : public LayerTest, public ::testing::WithParamInterface<
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReshapeLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
                          //dimensions
-                         testing::Values(4, 5, 6),
+                         testing::Values(2, 3, 4, 5, 6),
                          // reshape type
                          testing::Values(0, 1)));
 
@@ -45,7 +45,7 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
         GTEST_SKIP();
     }
 
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::vector<int> input_dims = {batch, channel};
     while(input_dims.size() < dim_size) input_dims.push_back(input_size);
 
     // param
@@ -58,7 +58,7 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
     while(param->shape.size() < dim_size) param->shape.push_back(1);
  
     // generate interpreter
-    auto interpreter            = GenerateInterpreter("Reshape", {input_dims}, param);
+    auto interpreter    = GenerateInterpreter("Reshape", {input_dims}, param);
     Run(interpreter);
 }
 
