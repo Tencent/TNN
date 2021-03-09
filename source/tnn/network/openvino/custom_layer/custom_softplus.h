@@ -18,7 +18,7 @@
 #include <chrono>
 
 namespace TNN_NS {
-
+    
 DECLARE_CUSTOM_OP(Softplus);
 REGISTER_CUSTOM_OP(Softplus);
 
@@ -26,4 +26,3 @@ DECLARE_CUSTOM_IMPLEMENTATION(Softplus);
 REGISTER_CUSTOM_IMPLEMENTATION(Softplus, CustomSoftplus);
 
 }
-~                                   

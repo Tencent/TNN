@@ -18,7 +18,7 @@
 #include <chrono>
 
 namespace TNN_NS {
-
+    
 DECLARE_CUSTOM_OP(Softsign);
 REGISTER_CUSTOM_OP(Softsign);
 
