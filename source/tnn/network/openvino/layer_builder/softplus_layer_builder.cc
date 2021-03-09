@@ -42,13 +42,13 @@ Status SoftplusOVLayerBuilder::Build() {
         return TNNERR_INIT_LAYER;
     }
 
-     auto input_node = GetInputNodes();
-     ngraph::OutputVector inputs;
-     for (auto item : input_node) {
+    auto input_node = GetInputNodes();
+    ngraph::OutputVector inputs;
+    for (auto item : input_node) {
         inputs.push_back(item->output(0));
-     }
+    }
    
-     auto softplusNode = std::make_shared<CustomSoftplusOp>(
+    auto softplusNode = std::make_shared<CustomSoftplusOp>(
         inputs, base_layer_, GetInputBlobs(), GetOutputBlobs());
 
     softplusNode->validate_and_infer_types();
