@@ -161,7 +161,6 @@ public:
         }
 
         auto base_layer = node->getBaseLayer();
-        printf("Call base layer!");
         base_layer->Forward();
         
         return InferenceEngine::OK; 
