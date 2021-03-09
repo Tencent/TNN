@@ -42,30 +42,6 @@ Status SoftsignOVLayerBuilder::Build() {
         return TNNERR_INIT_LAYER;
     }
 
-// old version 
-/*
-    auto input_node = GetInputNodes()[0];
-    auto absNode = std::make_shared<ngraph::op::Abs>(input_node->output(0));
-    absNode->validate_and_infer_types();
-
-    auto oneConst = std::make_shared<ngraph::op::Constant>(
-         ngraph::element::Type_t::f32, ngraph::Shape(input_node->get_output_shape(0).size(), 1), std::vector<float>{1.0f});
-    auto addNode = std::make_shared<ngraph::op::v1::Add>(
-         absNode->output(0), oneConst);
-    addNode->validate_and_infer_types();
-
-    auto divNode = std::make_shared<ngraph::op::v1::Divide>(
-        input_node->output(0), addNode->output(0));
-
-    divNode->validate_and_infer_types();
-    divNode->set_friendly_name(param_->name);
-
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(divNode);
-    SetOutputTensors(outputNodes);
-*/
-// new version
-
      auto input_node = GetInputNodes();
      ngraph::OutputVector inputs;
      for (auto item : input_node) {
