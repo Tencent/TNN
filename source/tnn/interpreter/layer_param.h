@@ -170,7 +170,7 @@ struct UpsampleLayerParam : public LayerParam {
 };
 
 struct RangeLayerParam : public LayerParam {
-    DataType type = DATA_TYPE_FLOAT;
+    DataType data_type = DATA_TYPE_FLOAT;
     RangeData start = {0};
     RangeData limit = {0};
     RangeData delta = { .i = 1};
