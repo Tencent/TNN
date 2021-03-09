@@ -28,7 +28,7 @@ public:
     };
 
     virtual Float4 DataInit() {
-        return Float4(0);
+        return Float4(0.f);
     };
 
     virtual Float4 PreCalculate(Float4 &v) {

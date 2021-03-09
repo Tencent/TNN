@@ -38,7 +38,7 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
     op_name_   = "Conv_" + ToString(conv_params_.kernel_x) + "x" + ToString(conv_params_.kernel_y);
 
     if (!run_3d_ndrange_) {
-        if (MALI_T == gpu_info_.type || (MALI_G == gpu_info_.type && gpu_info_.model_num < 76)) {
+        if (MALI_T == gpu_info_.type || MALI_G == gpu_info_.type) {
             use_buffer_ = true;
         }
     }

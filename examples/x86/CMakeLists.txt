@@ -36,7 +36,7 @@ endif()
 
 link_libraries(TNN)
 
-file(GLOB_RECURSE BASE_SRC 
+file(GLOB_RECURSE BASE_SRC
                     "${CMAKE_SOURCE_DIR}/../base/*.cc")
 
 file(GLOB_RECURSE UTIL_SRC 
@@ -47,6 +47,6 @@ add_executable(demo_x86_facedetector src/TNNFaceDetector/TNNFaceDetector.cc ${BA
 
 if (TNN_DEMO_WITH_WEBCAM) 
     file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/src/TNNWebCamBasedDemo/*.cc")
-    add_executable(demo_x86_webcam ${SRC} ${BASE_SRC})
+    add_executable(demo_x86_webcam ${SRC} ${BASE_SRC} ${UTIL_SRC})
     target_link_libraries(demo_x86_webcam ${OpenCV_LIBS})
 endif()

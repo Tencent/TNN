@@ -55,7 +55,7 @@ static void PackLine(T *dst, T *src, int ih, int iw, int oh, int ow, int c_r4, i
                 }
             }
         } else {
-            Float4 zeros(0);
+            Float4 zeros(0.f);
             for (int h = 0; h < oh; h++) {
                 int sh = h * stride_h - pad_h;
                 if (sh >= 0 && sh < ih) {

@@ -47,6 +47,7 @@ struct CalibrationParam {
     bool merge_weights_channel                = false;
     std::vector<float> input_bias             = {0, 0, 0, 0};
     std::vector<float> input_scale            = {1.0f, 1.0f, 1.0f, 1.0f};
+    bool reverse_channel                      = false;
 };
 
 }  // namespace TNN_NS

@@ -145,7 +145,7 @@ static Status ExecImpl(const std::vector<Blob *> &inputs, const std::vector<Blob
         for (int o = 0; o < outer_dim; o += 4) {
             auto *input_ptr_o  = input_ptr_i + o;
             auto *output_ptr_o = output_ptr_i + o;
-            Float4 guard_index(0);
+            Float4 guard_index(0.f);
             Float4 guard_value = GetOneValue<T, mode>(input_ptr_o, reduce_dim, outer_dim, guard_index);
             Float4::save(output_ptr_o, guard_index);
         }
@@ -187,7 +187,7 @@ static Float4 CompareC4(const Float4 &guard_value, const Float4 &guard_index,
         Float4 cur_value = Float4::load(input_ptr_r);
         CompareC4Impl<mode>(cur_value, cur_index, 0, reduce_dim_r4, final_value, final_index);
     }
-    Float4 result(0);
+    Float4 result(0.f);
     result.set_lane(final_index, 0);
     return result;
 }
@@ -211,7 +211,7 @@ static Status ExecImplC(const std::vector<Blob *> &inputs, const std::vector<Blo
             auto *input_ptr_o  = input_ptr_i + o;
             auto *output_ptr_o = output_ptr_i + o;
 
-            Float4 guard_index(0);
+            Float4 guard_index(0.f);
             Float4 guard_value = GetOneValue<T, mode>(input_ptr_o, reduce_dim_c4, outer_dim, guard_index);
 
             auto *input_ptr_r  = input_ptr_o + reduce_dim_c4 * outer_dim;

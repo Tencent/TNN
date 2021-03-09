@@ -18,7 +18,7 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(Scale, LAYER_SCALE);
+DECLARE_CPU_ACC_WITH_FP32_RESOURCE(Scale, LAYER_SCALE);
 
 Status CpuScaleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;

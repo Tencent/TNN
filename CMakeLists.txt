@@ -58,6 +58,11 @@ if(TNN_BENCHMARK_MODE)
     add_definitions(-DGENERATE_RESOURCE)
 endif()
 
+if(MSVC)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4003 /wd4819 /wd4244 /wd4018")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4003 /wd4819 /wd4244 /wd4018")
+endif()
+
 # ignore loop-vectorize warning
 if(SYSTEM.Windows)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
@@ -106,6 +111,7 @@ endif()
 
 if(TNN_CONVERTER_ENABLE OR TNN_ONNX2TNN_ENABLE)
     set(TNN_SYMBOL_HIDE OFF)
+    add_definitions(-DTNN_CONVERTER_RUNTIME)
 endif()
 
 if(TNN_QUANTIZATION_ENABLE OR TNN_MODEL_CHECK_ENABLE)
@@ -229,7 +235,6 @@ endif()
 if(TNN_X86_ENABLE)
     add_subdirectory(source/tnn/device/x86)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNX86>")
-    set(TNN_CPU_ENABLE ON)
 endif()
 
 if(TNN_CPU_ENABLE)

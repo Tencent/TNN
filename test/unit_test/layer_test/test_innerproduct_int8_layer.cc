@@ -19,10 +19,11 @@
 
 namespace TNN_NS {
 
-class InnerProductInt8LayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int>> {};
+class InnerProductInt8LayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, InnerProductInt8LayerTest,
-                         ::testing::Combine(testing::Values(1, 2), testing::Values(3, 4, 8, 9, 16),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 8, 9, 16),
+                                            testing::Values(1, 9, 16, 19),
                                             // output channel
                                             testing::Values(1, 4, 8, 16, 32)));
 
@@ -30,8 +31,8 @@ TEST_P(InnerProductInt8LayerTest, InnerProductLayer) {
     // get param
     int batch          = std::get<0>(GetParam());
     int input_channel  = std::get<1>(GetParam());
-    int output_channel = std::get<2>(GetParam());
-    int input_size     = 1;
+    int input_size     = std::get<2>(GetParam());
+    int output_channel = std::get<3>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
     if (DEVICE_ARM != dev) {
         GTEST_SKIP();

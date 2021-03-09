@@ -37,7 +37,6 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
     relative_path = "bin/model_check"
     model_check_path = parse_path.parse_path(relative_path)
     checker.check_file_exist(model_check_path)
-    # 注意参数-e只比较模型输出，不比较每层的输出
     command = model_check_path + " -e -p  " + proto_path + " -m " + \
         model_path + " -i " + input_path + " -f " + reference_output_path + " -d NAIVE"
 
@@ -51,6 +50,7 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
         print_align_message(is_tflite)
     else:
         print_not_align_message(None, is_tflite)
+
     return
 
 
@@ -91,16 +91,14 @@ def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
     output_path = deli.join(output_path.split("/")[:-1])
     output_path += "/output-onnx.txt"
 
-    input_name, input_shape = list(input_info.items())[0]
-
     input_info_list = session.get_inputs()
     input_data_dict: dict = get_input_from_file(input_path)
-
-    # if type(input_shape[0]) is not int:
-    #     input_shape[0] = 1
-    # input_data = np.loadtxt(input_path)
-    # input_data = input_data.astype(np.float32)
-    # input_data = np.reshape(input_data, input_shape)
+    for item in input_info_list:
+        name = item.name
+        if ":" in name:
+            tnn_name = name.replace(":", "_")
+            input_data_dict[name] = input_data_dict[tnn_name]
+            del input_data_dict[tnn_name]
 
     output_info = session.get_outputs()
     pred = session.run([], input_data_dict)
@@ -126,6 +124,27 @@ def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
 
     return output_path
 
+
+def squeeze_data(data: np.ndarray, num_axes):
+    for i in range(num_axes):
+        data = data.squeeze(-2)
+
+    return data
+
+
+NCHW_TO_NHWC_AXES = (0, 2, 3, 1)
+def nchw_data_to_nhwc(data_dict: dict, input_details: dict):
+    for item in input_details:
+        name = item["name"]
+        src_shape_size = len(item["shape"])
+        data = data_dict[name]
+        data = data.transpose(NCHW_TO_NHWC_AXES)
+        data = squeeze_data(data, len(data.shape) - src_shape_size)
+        data_dict[name] = data
+
+    return data_dict
+
+
 def run_tflite(model_path: str, input_path: str, input_info: dict) -> str:
     import tensorflow as tf
 
@@ -135,46 +154,46 @@ def run_tflite(model_path: str, input_path: str, input_info: dict) -> str:
         output_path = output_path[:-1]
     output_path = deli.join(output_path.split("/")[:-1])
     output_path += "/output-onnx.txt"
-    input_name, input_shape = list(input_info.items())[0]
-    if type(input_shape[0]) is not int:
-        input_shape[0] = 1
-    nchw = [1,1,1,1]
-    nchw[0] = input_shape[0]
-    nchw[1] = input_shape[3]
-    nchw[2] = input_shape[1]
-    nchw[3] = input_shape[2]
-    input_data = np.loadtxt(input_path)
-    input_data = input_data.astype(np.float32)
-    input_data = np.reshape(input_data, nchw) # input_shape is nchw
-    input_data = np.transpose(input_data, (0, 2, 3, 1)) # transpose to nhwc
+
+    input_data_dict: dict = get_input_from_file(input_path)
+
     interpreter = tf.lite.Interpreter(model_path)
     interpreter.allocate_tensors()
-    # Get input and output tensors.
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
-    interpreter.set_tensor(input_details[0]['index'], input_data)
+    input_data_dict = nchw_data_to_nhwc(input_data_dict, input_details)
+    for item in input_details:
+        name = item["name"]
+        index = item["index"]
+        input_data = input_data_dict[name]
+        interpreter.set_tensor(index, input_data)
+
     interpreter.invoke()
 
     with open(output_path, "w") as f:
         f.write("{}\n" .format(len(output_details)))
         for item in output_details:
-           output_name = item["name"]
-           index = item["index"]
-           output_data = interpreter.get_tensor(index)
-
-           shape = list(output_data.shape)
-           while len(shape) < 4:
+            output_name = item["name"]
+            index = item["index"]
+            output_data = interpreter.get_tensor(index)
+            if item["dtype"] == np.float32:
+                data_type = 0
+            elif item["dtype"] == np.int64:
+                data_type = 3
+            shape = list(output_data.shape)
+            while len(shape) < 4:
                shape.insert(-1, 1)
                output_data = output_data.reshape(*shape)
 
-           output_data = np.transpose(output_data, (0, 3, 1, 2)) # transpose result from nhwc to nchw
-           output_shape = output_data.shape
-           description = "{} {} " .format(output_name, len(output_shape))
-           for dim in output_shape:
-             description += "{} " .format(dim)
-           f.write(description + "\n")
-           np.savetxt(f, output_data.reshape(-1), fmt="%0.18f")
+            output_data = np.transpose(output_data, (0, 3, 1, 2)) # transpose result from nhwc to nchw
+            output_shape = output_data.shape
+            description = "{} {} " .format(output_name, len(output_shape))
+            for dim in output_shape:
+                description += "{} " .format(dim)
+            description += "{}".format(str(data_type))
+            f.write(description + "\n")
+            np.savetxt(f, output_data.reshape(-1), fmt="%0.18f")
     return output_path
 
 
@@ -194,6 +213,7 @@ def get_input_shape_from_onnx(onnx_path) -> dict:
     input_info: dict = {}
     for ip in session.get_inputs():
         name = ip.name
+        name = name.replace(":", "_")
         shape = ip.shape
         data_type = 0
         if ip.type == 'tensor(float)':
@@ -209,17 +229,39 @@ def get_input_shape_from_onnx(onnx_path) -> dict:
         input_info.update({name: shape_information})
     return input_info
 
+
+def nhwc_shape_to_nchw(shape: list):
+    shape_size = len(shape)
+    if shape_size > 4:
+        raise RuntimeError("Do not support 5-dimensional input!")
+
+    while len(shape) < 4:
+        shape.insert(-1, 1)
+    channels = shape.pop()
+    shape.insert(1, channels)
+
+    return shape
+
+
 def get_input_shape_from_tflite(tflite_path)->dict:
     import tensorflow as tf
     input_info: dict={}
     interpreter = tf.lite.Interpreter(tflite_path)
     interpreter.allocate_tensors()
     input_details = interpreter.get_input_details()
-    input_details = interpreter.get_input_details()
     for item in input_details:
-       name = item["name"]
-       n,c,h,w = item["shape"]
-       input_info.update({name: [int(n), int(c), int(h), int(w)]})
+        name = item["name"]
+        shape = list(item["shape"])
+        shape = nhwc_shape_to_nchw(shape)
+
+        if item["dtype"] == np.float32:
+            data_type = 0
+        elif item["dtype"] == np.int64:
+            data_type = 3
+        else:
+            logging.error("Do not support input date type")
+        shape_infomation = {"shape": shape, "data_type": data_type}
+        input_info.update({name: shape_infomation})
     return input_info
 
 
@@ -287,6 +329,19 @@ def check_shape_info(onnx_info: dict, tnn_info: dict) -> bool:
         return False
 
 
+def check_shape_info(onnx_info: dict, tnn_info: dict) -> bool:
+    onnx_shape = onnx_info['shape']
+    onnx_data_type = onnx_info['data_type']
+    tnn_shape = tnn_info['shape']
+    tnn_data_type = onnx_info['data_type']
+    if type(onnx_shape[0]) is not int:
+        onnx_shape[0] = 1
+    if onnx_data_type == tnn_data_type and onnx_shape == tnn_shape:
+        return True
+    else:
+        return False
+
+
 def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
     if len(onnx_input_info) != len(tnn_input_info):
         logging.info("input is not algin 186\n")
@@ -295,7 +350,11 @@ def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
         tnn_name = convert_name.onnx_name2tnn_name(name)
         tnn_info = tnn_input_info[tnn_name]
         if check_shape_info(onnx_info, tnn_info) == True:
+<<<<<<< HEAD
             logging.info("Input shape of onnx and tnn is aligned!\n")
+=======
+            logging.info("Check onnx input shape and tnn input shape align!\n")
+>>>>>>> master
         else:
             logging.error("input is not algin 194\n")
             print_not_align_message(
@@ -306,21 +365,16 @@ def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
 def check_input_lite_info(onnx_input_info: dict, tnn_input_info: dict):
     if len(onnx_input_info) != len(tnn_input_info):
         print_not_align_message("tflite input size != tnn input size")
-    for name, onnx_shape in onnx_input_info.items():
+    for name, onnx_info in onnx_input_info.items():
         tnn_name = convert_name.onnx_name2tnn_name(name)
-        tnn_shape = tnn_input_info[tnn_name]
-        if type(onnx_shape[0]) is not int:
-            onnx_shape[0] = 1
-        nchw = [1, 1, 1, 1]
-        nchw[0] = onnx_shape[0]
-        nchw[1] = onnx_shape[3]
-        nchw[2] = onnx_shape[1]
-        nchw[3] = onnx_shape[2]
-        if tnn_shape != nchw:
+        tnn_info = tnn_input_info[tnn_name]
+        if check_shape_info(onnx_info, tnn_info):
+            logging.info("Check tflite input shape and tnn input shape align!\n")
+        else:
             logging.info("input is not algin 216\n")
             print_not_align_message(
-                "The {}'s shape not equal! the onnx shape:{}, tnn shape: {}\n".format(name, str(onnx_shape),
-                                                                                      str(tnn_shape)))
+                "The {}'s shape not equal! the onnx shape:{}, tnn shape: {}\n".format(name, str(onnx_info),
+                                                                                      str(tnn_info)))
     logging.info("Check tflite input shape and tnn input shape align!\n")
 
 
