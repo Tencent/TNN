@@ -80,7 +80,8 @@ Status ArmLSTMONNXLayerAcc::LstmSingleDirection(const float *x, float *y, const 
 
     RawBuffer gates             = RawBuffer(seq_len * batch_size * hidden_size * 4 * sizeof(float));
     auto gates_ptr              = gates.force_to<float *>();
-    RawBuffer buffer_input_pack = RawBuffer(seq_len * batch_size * input_size * sizeof(float) + NEON_KERNEL_EXTRA_LOAD);
+    int input_pack_count        = MAX(seq_len * batch_size * input_size, batch_size * hidden_size);
+    RawBuffer buffer_input_pack = RawBuffer(input_pack_count * sizeof(float) + NEON_KERNEL_EXTRA_LOAD);
     auto input_pack_ptr         = buffer_input_pack.force_to<float *>();
     GemmFloatPackA(seq_len * batch_size, hidden_size * 4, input_size, x, input_pack_ptr, input_size, w, hidden_size * 4,
                    gates_ptr, hidden_size * 4);
@@ -233,15 +234,13 @@ Status ArmLSTMONNXLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     auto h_t = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[1]->GetHandle()));
     auto c_t = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[2]->GetHandle()));
     if (inputs.size() >= 6) {
-        if (inputs.size() >= 6) {
-            auto h_0 = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[4]->GetHandle()));
-            memcpy((void *)h_t, h_0, num_directions * batch * hidden_size * sizeof(float));
-            auto c_0 = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[5]->GetHandle()));
-            memcpy((void *)c_t, c_0, num_directions * batch * hidden_size * sizeof(float));
-        } else {
-            memset((void *)h_t, 0, num_directions * batch * hidden_size * sizeof(float));
-            memset((void *)c_t, 0, num_directions * batch * hidden_size * sizeof(float));
-        }
+        auto h_0 = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[4]->GetHandle()));
+        memcpy((void *)h_t, h_0, num_directions * batch * hidden_size * sizeof(float));
+        auto c_0 = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[5]->GetHandle()));
+        memcpy((void *)c_t, c_0, num_directions * batch * hidden_size * sizeof(float));
+    } else {
+        memset((void *)h_t, 0, num_directions * batch * hidden_size * sizeof(float));
+        memset((void *)c_t, 0, num_directions * batch * hidden_size * sizeof(float));
     }
 
     float *w = buffer_weight_input_.force_to<float *>();
