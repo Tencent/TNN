@@ -86,7 +86,7 @@ Status X86ConvLayer1x1::DoForward(const std::vector<Blob *> &inputs, const std::
         const float * A = weights_data;
         float * C = dst_origin + batch_idx * m * n;
 
-        conv_sgemm_nn_col_major(n, m, k, B, n, A, k, C, n,
+        conv_sgemm_nn_col_major_prepack_b(n, m, k, B, n, A, k, C, n,
             bias_data, param->activation_type, src_buf, conv_gemm_conf_);
     }
 

@@ -67,6 +67,13 @@ void X86Sgemv(float* dst, const float* src, const float* weight, float *bias, Di
 
 template <int activation_type, typename VEC, int pack>
 void X86_Post_Exec(float *dst, const float *bias, long channel, long area);
+
+template <typename VEC, int pack>
+void X86_VectorAdd(float *dst, const float *src_a, const float *src_b, long len);
+
+template <typename VEC, int pack>
+void X86_VectorAdd(float *dst, const float *src, long len);
+
 }   // namespace TNN_NS
 
 #endif

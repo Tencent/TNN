@@ -890,4 +890,36 @@ template void X86_Post_Exec<ActivationType_ReLU6, Float8, 8>(float *dst, const f
 
 //ActivationType_SIGMOID_MUL TBD
 
+template <typename VEC, int pack>
+void X86_VectorAdd(float *dst, const float *src_a, const float *src_b, long len) {
+    long i = 0;
+    for (; i + pack - 1 < len; i += pack) {
+        VEC a_vec = VEC::loadu(src_a + i);
+        VEC b_vec = VEC::loadu(src_b + i);
+        VEC c_vec = VEC::add(a_vec, b_vec);
+        VEC::saveu(dst + i, c_vec);
+    }
+    for (; i < len; i++) {
+        dst[i] = src_a[i] + src_b[i];
+    }
+}
+template void X86_VectorAdd<Float4, 4>(float *dst, const float *src_a, const float *src_b, long len);
+template void X86_VectorAdd<Float8, 8>(float *dst, const float *src_a, const float *src_b, long len);
+
+template <typename VEC, int pack>
+void X86_VectorAdd(float *dst, const float *src, long len) {
+    long i = 0;
+    for (; i + pack - 1 < len; i += pack) {
+        VEC a_vec = VEC::loadu(src + i);
+        VEC b_vec = VEC::loadu(dst + i);
+        VEC c_vec = VEC::add(a_vec, b_vec);
+        VEC::saveu(dst + i, c_vec);
+    }
+    for (; i < len; i++) {
+        dst[i] += src[i];
+    }
+}
+template void X86_VectorAdd<Float4, 4>(float *dst, const float *src, long len);
+template void X86_VectorAdd<Float8, 8>(float *dst, const float *src, long len);
+
 }
