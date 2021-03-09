@@ -19,6 +19,14 @@
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
+static DimsVector GetKeepDimOutput(const DimsVector& dims_input, ReduceLayerParam *param) {
+    DimsVector dims_output(dims_input);
+    for(const auto& axis : param->axis) {
+        dims_output[axis] = 1;
+    }
+    return dims_output;
+}
+
 MetalReduceLayerAcc::~MetalReduceLayerAcc() {}
 
 Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -39,11 +47,7 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
     need_reformat_ = need_reformat_ && (layer_param->keep_dims==0);
 
     if (need_reformat_) {
-        auto keep_dims_output = dims_input;
-        for(const auto& axis : layer_param->axis) {
-            keep_dims_output[axis] = 1;
-        }
-        dims_output = keep_dims_output;
+        dims_output = GetKeepDimOutput(dims_input, layer_param);
     }
 
     if (layer_param->axis.size() == 1) {
@@ -128,16 +132,8 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
 
     auto dims_output   = output->GetBlobDesc().dims;
     if (need_reformat_) {
-        DimsVector keep_dims_output = inputs[0]->GetBlobDesc().dims;
-        for(const auto& axis : layer_param->axis) {
-            keep_dims_output[axis] = 1;
-        }
-        dims_output = keep_dims_output;
+        dims_output = GetKeepDimOutput(input->GetBlobDesc().dims, layer_param);
     }
-    auto output_width  = dims_output.size() > 3 ? dims_output[3] : 1;
-    auto output_height = dims_output.size() > 2 ? dims_output[2] : 1;
-    auto output_slice = UP_DIV(dims_output[1], 4);
-    auto batch         = dims_output[0];
 
     MetalBandwidth bandwidth;
     Status status        = TNN_OK;
@@ -157,6 +153,10 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
                             bandwidth:bandwidth];
         BREAK_IF(status != TNN_OK);
 
+        auto output_width  = GetBlobDim(dims_output, 3);
+        auto output_height = GetBlobDim(dims_output, 2);
+        auto output_slice = UP_DIV(dims_output[1], 4);
+        auto batch         = dims_output[0];
         MTLSize threads = {(NSUInteger)output_width * output_height, (NSUInteger)output_slice, (NSUInteger)batch};
 
         [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base

@@ -80,7 +80,7 @@ Status MetalConcatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
         auto dims_input_1 = inputs[1]->GetBlobDesc().dims;
         MetalConcatParams metal_params;
 
-        metal_params.input_size      = dims_input_0[2] * dims_input_0[3];
+        metal_params.input_size      = GetBlobDim(dims_input_0, 2) * GetBlobDim(dims_input_0, 3);
         metal_params.input_channel_0 = dims_input_0[1];
         metal_params.input_slice_0   = UP_DIV(dims_input_0[1], 4);
 
@@ -88,7 +88,7 @@ Status MetalConcatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
         metal_params.input_slice_1   = UP_DIV(dims_input_1[1], 4);
 
         metal_params.output_channel = dims_output[1];
-        metal_params.output_size    = dims_output[2] * dims_output[3];
+        metal_params.output_size    = GetBlobDim(dims_output, 2) * GetBlobDim(dims_output, 3);
         metal_params.output_slice   = UP_DIV(dims_output[1], 4);
 
         metal_params.batch = dims_output[0];

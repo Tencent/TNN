@@ -35,8 +35,8 @@ Status MetalNormalizeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &in
     // buffer_param_
     {
         MetalNormalizeParams metal_params;
-        metal_params.output_width  = dims_output[3];
-        metal_params.output_height = dims_output[2];
+        metal_params.output_width  = GetBlobDim(dims_output, 3);
+        metal_params.output_height = GetBlobDim(dims_output, 2);
         metal_params.output_size   = metal_params.output_height * metal_params.output_width;
         metal_params.output_slice  = UP_DIV(dims_output[1], 4);
 
@@ -78,8 +78,8 @@ Status MetalNormalizeLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     auto output = outputs[0];
 
     auto dims_output    = output->GetBlobDesc().dims;
-    auto output_width   = dims_output[3];
-    auto output_height  = dims_output[2];
+    auto output_width   = GetBlobDim(dims_output, 3);
+    auto output_height  = GetBlobDim(dims_output, 2);
     auto output_channel = dims_output[1];
     auto output_slice   = UP_DIV(dims_output[1], 4);
     auto batch          = dims_output[0];

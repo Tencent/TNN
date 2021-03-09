@@ -117,7 +117,7 @@ Status MetalSoftmaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
             threads = {(NSUInteger)output_width, 1, (NSUInteger)batch * output_slice};
             status  = [context_impl load:@"softmax_axis_2_common" encoder:encoder bandwidth:bandwidth];
         } else {
-            LOGE("Softmax do not support axis!=1 \n");
+            LOGE("Softmax supports axis=1 or axis=2 \n");
             status = Status(TNNERR_LAYER_ERR, "Softmax type is not supported");
         }
         BREAK_IF(status != TNN_OK);
