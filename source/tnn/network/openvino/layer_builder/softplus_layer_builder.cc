@@ -42,28 +42,6 @@ Status SoftplusOVLayerBuilder::Build() {
         return TNNERR_INIT_LAYER;
     }
 
-// Three op version 
-/*   
-    auto input_node = GetInputNodes()[0];
-    auto expNode = std::make_shared<ngraph::op::Exp>(input_node->output(0));
-    expNode->validate_and_infer_types();
-
-    auto oneConst = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, ngraph::Shape(input_node->get_output_shape(0).size(), 1), std::vector<float>{1.0f});
-    auto addNode = std::make_shared<ngraph::op::v1::Add>(
-        expNode->output(0), oneConst);
-    addNode->validate_and_infer_types();
-
-    auto logNode = std::make_shared<ngraph::op::Log>(addNode->output(0));
-    logNode->validate_and_infer_types();
-
-    logNode->set_friendly_name(param_->name);
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(logNode);
-    SetOutputTensors(outputNodes);
-*/
-// One kernel version
-
      auto input_node = GetInputNodes();
      ngraph::OutputVector inputs;
      for (auto item : input_node) {
