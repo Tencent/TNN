@@ -9,29 +9,12 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-#include <cmath>
-#include <memory>
+#include "onnx_op_converter.h"
+#include "onnx_utility.h"
 
-#include <ngraph/node.hpp>
-#include <ngraph/ngraph.hpp>
-#include <ngraph/op/op.hpp>
-#include <ngraph/opsets/opset.hpp>
-#include <ngraph/opsets/opset1.hpp>
-#include <inference_engine.hpp>
-
-#include "tnn/layer/base_layer.h"
-#include "tnn/network/openvino/layer_builder/binary_layer_builder.h"
-
-namespace TNN_NS {
-namespace openvino {
+REGISTER_OP_CONVERTER_NoParamNoWeight(Softsign, Softsign);
 
 
-DECLARE_BINARY_LAYER_BUILDER(Divide, LAYER_DIV);
-
-REGISTER_BINARY_LAYER_BUILDER(Divide, LAYER_DIV);
-
-}
-}
