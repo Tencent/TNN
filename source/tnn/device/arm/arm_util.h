@@ -16,8 +16,9 @@
 #define TNN_ARM_UTIL_H_
 
 #include <string.h>
-#include <cstdlib>
 #include <sys/time.h>
+
+#include <cstdlib>
 
 #include "tnn/core/blob.h"
 #include "tnn/core/macro.h"
@@ -37,12 +38,13 @@ public:
         gettimeofday(&start, NULL);
         return delta;
     }
+
 private:
     struct timeval start;
 };
 #endif
 
-char* GetBlobHandlePtr(BlobHandle handle);
+char *GetBlobHandlePtr(BlobHandle handle);
 
 template <typename Tin, typename Tout>
 int PackC4(Tout *dst, const Tin *src, size_t hw, size_t channel);
@@ -60,6 +62,10 @@ int PackCAndQuant(int8_t *dst, const float *src, size_t hw, size_t channel, floa
 
 template <typename Tin, typename Tout>
 int UnpackC4(Tout *dst, const Tin *src, size_t hw, size_t channel);
+
+bool FloatBlobCanIgnorePack(size_t channel, size_t hw);
+int PackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw);
+int UnpackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw);
 
 template <typename Tin, typename Tout>
 int UnpackC8(Tout *dst, const Tin *src, size_t hw, size_t channel);
@@ -101,21 +107,21 @@ int ConvertWeightsFromGOIHWToGOIHW64(const T *src, T *dst, int group, int input_
 
 int PackINT8Weight(int8_t *src, int8_t *dst, int group, int input_channel, int output_channel, int height, int width);
 
-void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int height, int width);
+void NV12ToBGR(const unsigned char *nv12, unsigned char *bgr, int height, int width);
 
-void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int height, int width);
+void NV21ToBGR(const unsigned char *nv21, unsigned char *bgr, int height, int width);
 
-void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int height, int width);
+void NV12ToBGRA(const unsigned char *nv12, unsigned char *bgra, int height, int width);
 
-void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int height, int width);
+void NV21ToBGRA(const unsigned char *nv21, unsigned char *bgra, int height, int width);
 
-void BGRToGray(const unsigned char* bgr, unsigned char* gray, int height, int width);
+void BGRToGray(const unsigned char *bgr, unsigned char *gray, int height, int width);
 
-void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int height, int width);
+void BGRAToGray(const unsigned char *bgra, unsigned char *gray, int height, int width);
 
-void RGBToGray(const unsigned char* rgb, unsigned char* gray, int height, int width);
+void RGBToGray(const unsigned char *rgb, unsigned char *gray, int height, int width);
 
-void RGBAToGray(const unsigned char* rgba, unsigned char* gray, int height, int width);
+void RGBAToGray(const unsigned char *rgba, unsigned char *gray, int height, int width);
 
 }  // namespace TNN_NS
 
