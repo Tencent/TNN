@@ -105,6 +105,8 @@ id<MTLBuffer> AllocatePackedGOIHW16MetalBufferFormRawBuffer(RawBuffer buffer, Di
 id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
                                                            Status &status);
 
+void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, bool reduce_on_axis);
+
 #define DECLARE_METAL_ACC(type_string, layer_type)                                                                     \
     class Metal##type_string##LayerAcc : public MetalLayerAcc {                                                        \
     public:                                                                                                            \
@@ -121,7 +123,7 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
                                      const std::vector<Blob *> &outputs);\
     }
 
-#define DECLARE_METAL_ACC_WITH_EXTRA_MENBER(type_string, layer_type, extra)                                            \
+#define DECLARE_METAL_ACC_WITH_EXTRA(type_string, layer_type, extra)                                            \
     class Metal##type_string##LayerAcc : public MetalLayerAcc {                                                        \
     public:                                                                                                            \
         virtual ~Metal##type_string##LayerAcc(){};                                                                     \

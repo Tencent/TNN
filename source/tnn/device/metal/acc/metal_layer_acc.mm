@@ -237,6 +237,15 @@ MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
     }
 }
 
+void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, bool reduce_on_axis) {
+    auto axis_size = GetBlobDim(dims, axis);
+    auto dims_copy = dims;
+    dims_copy[1] = UP_DIV(dims[1], 4);
+    size = MTLSizeMake(DimsVectorUtils::Count(dims_copy, axis+1),
+                        reduce_on_axis? 1 : (axis == 1? UP_DIV(axis_size, 4) : axis_size),
+                        DimsVectorUtils::Count(dims_copy, 0, axis));
+}
+
 struct MetalParams GetDefaultMetalParams(DimsVector dims_input, DimsVector dims_output) {
     MetalParams metal_params;
     SetDefaultMetalParams(metal_params, dims_input, dims_output);

@@ -58,6 +58,7 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
         {
             MetalReduceParams metal_params;
             SetDefaultMetalParams(metal_params, dims_input, dims_output);
+            FixDefaultMetalParams(metal_params, dims_input, dims_output);
             metal_params.input_batch = dims_input[0];
             metal_params.input_channel = dims_input[1];
             metal_params.output_batch = dims_output[0];
@@ -73,6 +74,7 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
         {
             MetalMultiAxisReduceParams metal_params;
             SetDefaultMetalParams(metal_params, dims_input, dims_output);
+            FixDefaultMetalParams(metal_params, dims_input, dims_output);
             metal_params.input_batch = dims_input[0];
             metal_params.input_channel = dims_input[1];
             metal_params.output_batch = dims_output[0];
@@ -104,7 +106,7 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
                                                 options:MTLResourceCPUCacheModeWriteCombined];
         
         auto data_type_byte_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
-        auto buffer_bytes = data_type_byte_size * DimsVectorUtils::Count(reformat_dims_input, 2) * reformat_dims_input[0] * ROUND_UP(reformat_dims_input[1], 4);
+        auto buffer_bytes = data_type_byte_size * GetBlobCount(reformat_dims_input, 2) * reformat_dims_input[0] * ROUND_UP(reformat_dims_input[1], 4);
         buffer_output_ = [device newBufferWithLength:buffer_bytes
                                              options:MTLResourceStorageModePrivate];
     }
@@ -153,7 +155,7 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
                             bandwidth:bandwidth];
         BREAK_IF(status != TNN_OK);
 
-        auto output_width  = GetBlobDim(dims_output, 3);
+        auto output_width  = GetBlobCount(dims_output, 3);
         auto output_height = GetBlobDim(dims_output, 2);
         auto output_slice = UP_DIV(dims_output[1], 4);
         auto batch         = dims_output[0];

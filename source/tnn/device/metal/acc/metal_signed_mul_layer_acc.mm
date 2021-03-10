@@ -43,6 +43,7 @@ Status MetalSignedMulLayerAcc::AllocateBufferParam(const std::vector<Blob *> &in
     if (buffer_param_ == nil) {
         MetalSignedMulParams metal_params;
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
+        FixDefaultMetalParams(metal_params, dims_input, dims_output);
 
         metal_params.alpha = layer_param->alpha;
         metal_params.beta  = layer_param->beta;
