@@ -27,9 +27,9 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, SoftmaxLayerTest,
                          ::testing::Combine(testing::Values(1, 2), testing::Values(10, 12, 10, 12, 512),
                                             testing::Values(10, 512), testing::Values(10, 512),
                                             // axis
-                                            testing::Values(1, 2),
+                                            testing::Values(0, 1, 2, 3, 4),
                                             // dim count
-                                            testing::Values(2, 3, 4),
+                                            testing::Values(2, 3, 4, 5),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_BFP16)));
 
