@@ -157,7 +157,7 @@ int Onnx2TNN::TNNWriteProto() {
             proto_net_info << "\"1 " << (int)onnx_blob_names_.size() << " 1 " << g_version_magic_number_v2 << " ,\""
                            << endl;
 
-            // line 2, 输入blob
+            // line 2, input blobs
             {
                 int intput_blob_count                          = 0;
                 std::vector<onnx::ValueInfoProto*> input_blobs = std::vector<onnx::ValueInfoProto*>();
@@ -178,12 +178,12 @@ int Onnx2TNN::TNNWriteProto() {
                         }
                     }
 
-                    // check is unused input
+                    // check it is an used input
                     bool is_used_input = false;
                     for (int iz = 0; iz < graph.node_size() && !is_used_input; iz++) {
                         const onnx::NodeProto& node = graph.node(iz);
                         for (int nz = 0; nz < node.input_size(); nz++) {
-                            if (input_name == node.input(nz)) {
+                            if (input_name == node.input(nz) && node.op_type() != k_tnn_noop_type) {
                                 is_used_input = true;
                                 break;
                             }
@@ -232,7 +232,7 @@ int Onnx2TNN::TNNWriteProto() {
                 proto_net_info << ",\"" << endl;
             }
 
-            // line 3, 所有blob
+            // line 3, all blobs
             {
                 proto_net_info << "\" ";
                 for (auto item = onnx_blob_names_.begin(); item != onnx_blob_names_.end(); item++) {
@@ -241,7 +241,7 @@ int Onnx2TNN::TNNWriteProto() {
                 proto_net_info << ",\"" << endl;
             }
 
-            // line 4, 输出blob
+            // line 4, output blobs
             {
                 int output_blob_count             = 0;
                 onnx::ValueInfoProto* output_blob = nullptr;
@@ -253,6 +253,22 @@ int Onnx2TNN::TNNWriteProto() {
                     // check weight
                     if (onnx_net_info_.weights_map.find(output_name) != onnx_net_info_.weights_map.end())
                         continue;
+                    
+                    // check it is an used output
+                    bool is_used_output = false;
+                    for (int iz = 0; iz < graph.node_size() && !is_used_output; iz++) {
+                        const onnx::NodeProto& node = graph.node(iz);
+                        for (int nz = 0; nz < node.output_size(); nz++) {
+                            if (output_name == node.output(nz) && node.op_type() != k_tnn_noop_type) {
+                                is_used_output = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (!is_used_output) {
+                        continue;
+                    }
 
                     output_blob_count++;
                     output_blob = (onnx::ValueInfoProto*)(&(graph.output(j)));
@@ -467,6 +483,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     onnx_net_info_.weights_shape_map = weight_shapes;
 
     // onnx_op remove
+    RemoveIdentity(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemovePad(mutable_graph, index_nodes, weights, node_reference, blob_names);
     // RemoveExpand(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemovePool(mutable_graph, index_nodes, weights, node_reference, blob_names);

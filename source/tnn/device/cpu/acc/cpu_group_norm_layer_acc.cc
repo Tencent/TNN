@@ -39,8 +39,9 @@ Status CpuGroupNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     const int group = layer_param->group;
     const int batch_time_group = output_blob->GetBlobDesc().dims[0] * group;
     const int channels_per_group = output_blob->GetBlobDesc().dims[1] / group;
-    const int area = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);
-    if (0 == area || 0 == channels_per_group) {
+    const int channel_area = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);
+    const int group_area = channel_area * channels_per_group;
+    if (0 == group_area || 0 == channels_per_group) {
         LOGE("Error: blob count is zero\n");
         return Status(TNNERR_COMMON_ERROR, "Error: blob count is zero");
     }
@@ -60,29 +61,32 @@ Status CpuGroupNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         //利用方差计算公式减少读次数
         // https://baike.baidu.com/item/方差计算公式/5318566?fr=aladdin
         for (int b = 0; b < batch_time_group; b++) {
-            int output_channel = (b % group) * channels_per_group;
-            for (int c = 0; c < channels_per_group; ++c, ++output_channel) {
+            //sum_x sum_x2
+            double mean_x = 0;
+            double variance = 1;
+            {
                 double sum_x  = 0;
                 double sum_x2 = 0;
-                for (int hw = 0; hw < area; ++hw) {
+                for (int hw = 0; hw < group_area; ++hw) {
                     auto temp = input_data[hw];
                     sum_x += temp;
                     sum_x2 += temp * temp;
                     ;
                 }
-                auto mean_x  = sum_x / area;
-                auto mean_x2 = sum_x2 / area;
+                mean_x  = sum_x / group_area;
+                auto mean_x2 = sum_x2 / group_area;
 
-                auto variance = mean_x2 - mean_x * mean_x;
-                variance      = variance > 0 ? variance : 0;
-                variance      = 1.0f / sqrt(variance + epsilon);
+                variance = mean_x2 - mean_x * mean_x;
+                variance = 1.0f / sqrt(variance + epsilon);
+            }
 
-                double k = k_data[output_channel];
-                variance *= k;
-                double b = b_data == NULL ? 0.0f : b_data[output_channel];
-                b -= mean_x * variance;
-                for (int hw = 0; hw < area; ++hw, ++output_data, ++input_data) {
-                    *output_data = (float)((*input_data) * variance + b);
+            int output_channel = (b % group) * channels_per_group;
+            for (int c = 0; c < channels_per_group; ++c, ++output_channel) {
+                float k = k_data[output_channel];
+                float bias = b_data == NULL ? 0.0f : b_data[output_channel];
+                bias -= mean_x * variance * k;
+                for (int hw = 0; hw < channel_area; ++hw, ++output_data, ++input_data) {
+                    *output_data = (float)((*input_data) * variance * k + bias);
                 }
             }
         }

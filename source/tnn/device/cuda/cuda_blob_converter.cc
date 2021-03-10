@@ -209,8 +209,13 @@ void CudaBlobConverterAcc::prepareParamPtr(MatConvertParam param, MatType type, 
         c_reserve = 4;
         c_copy = 3;
     }
-    if (!scale_ptr_) cudaMalloc((void**)&scale_ptr_, c_reserve * sizeof(float));
-    if (!bias_ptr_) cudaMalloc((void**)&bias_ptr_, c_reserve * sizeof(float));
+    if(c_reserve > c_reserve_) {
+        c_reserve_ = c_reserve;
+        if(scale_ptr_) cudaFree(scale_ptr_);
+        if(bias_ptr_) cudaFree(bias_ptr_);
+        cudaMalloc((void**)&scale_ptr_, c_reserve * sizeof(float));
+        cudaMalloc((void**)&bias_ptr_, c_reserve * sizeof(float));
+    }
     cudaMemcpyAsync(scale_ptr_, param.scale.data(), c_copy * sizeof(float), cudaMemcpyHostToDevice, stream);
     cudaMemcpyAsync(bias_ptr_, param.bias.data(), c_copy * sizeof(float), cudaMemcpyHostToDevice, stream);
 }
