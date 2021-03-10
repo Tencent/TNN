@@ -31,7 +31,7 @@
 namespace TNN_NS {
 
 #define MAX_SCRATCH_MEMORY (1<<31 - 1)
-#define TENSORRT_SERIALIZE_VERSION "v1.0"
+#define TENSORRT_SERIALIZE_VERSION "v1.1"
 
 NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
     g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
@@ -343,9 +343,6 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
-            if (config_.precision == PRECISION_LOW) {
-                blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
-            }
             if (is_int8_blob) {
                 auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
                 auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
