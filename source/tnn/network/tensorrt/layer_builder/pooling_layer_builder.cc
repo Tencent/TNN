@@ -22,8 +22,7 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Pooling, LAYER_POOLING);
 
 bool PoolingTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kHALF || inOut[pos].type == nvinfer1::DataType::kFLOAT) &&
-        inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
+    return (inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
 }
 
 const char* PoolingTRTPluginLayerBuilder::getPluginType() const {
