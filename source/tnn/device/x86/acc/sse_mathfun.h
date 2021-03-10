@@ -720,4 +720,14 @@ static inline void sincos_ps(v4sf x, v4sf* s, v4sf* c)
     *c = _mm_xor_ps(xmm2, sign_bit_cos);
 }
 
+static inline v4sf tanh_ps(v4sf a)
+{
+    float tmp[4];
+    _mm_storeu_ps(tmp, a);
+    for (int i = 0; i < 4; i++) {
+        tmp[i] = tanh(tmp[i]);
+    }
+    return _mm_loadu_ps(tmp);
+}
+
 #endif // SSE_MATHFUN_H

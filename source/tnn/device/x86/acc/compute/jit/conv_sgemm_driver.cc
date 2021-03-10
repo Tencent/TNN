@@ -101,16 +101,15 @@ void conv_sgemm_nn_col_major_prepack_b(
     dim_t i, j, k;
     i = j = k = 0;
 
-    dim_t first;
+    dim_t first = 0;
     dim_t post_type;
 
-    for (k = 0; k < K; k += K_c)  {
-        if (k == 0) {
-            first = 0;
-        } else {
-            first = 1;
-        }
+    // if no bias, first set to 1, load c from dst
+    if (bias == nullptr) {
+        first = 1;
+    }
 
+    for (k = 0; k < K; k += K_c)  {
         if (k + K_c >= K) {
             post_type = act_type;
         } else {
@@ -137,6 +136,8 @@ void conv_sgemm_nn_col_major_prepack_b(
                 j += cur_n;
             }
         }
+        // if k != 0, first = 1
+        first = 1;
     }
 }
 
@@ -161,16 +162,15 @@ void conv_sgemm_tn_col_major_prepack_b(
     dim_t i, j, k;
     i = j = k = 0;
 
-    dim_t first;
+    dim_t first = 0;
     dim_t post_type;
 
-    for (k = 0; k < K; k += K_c)  {
-        if (k == 0) {
-            first = 0;
-        } else {
-            first = 1;
-        }
+    // if no bias, first set to 1, load c from dst
+    if (bias == nullptr) {
+        first = 1;
+    }
 
+    for (k = 0; k < K; k += K_c)  {
         if (k + K_c >= K) {
             post_type = act_type;
         } else {
@@ -197,6 +197,8 @@ void conv_sgemm_tn_col_major_prepack_b(
                 j += cur_n;
             }
         }
+        // if k != 0, first = 1
+        first = 1;
     }
 }
 
@@ -221,18 +223,15 @@ void conv_sgemm_tn_col_major_prepack_a(
     dim_t i, j, k;
     i = j = k = 0;
 
-    dim_t first;
+    dim_t first = 0;
     dim_t post_type;
 
-    // float *pack_b_k = (float*)_mm_malloc(K_c * divUp(N, n_block) * sizeof(float), 32);
+    // if no bias, first set to 1, load c from dst
+    if (bias == nullptr) {
+        first = 1;
+    }
 
     for (k = 0; k < K; k += K_c)  {
-        if (k == 0) {
-            first = 0;
-        } else {
-            first = 1;
-        }
-
         if (k + K_c >= K) {
             post_type = act_type;
         } else {
@@ -259,8 +258,9 @@ void conv_sgemm_tn_col_major_prepack_a(
                 j += cur_n;
             }
         }
+        // if k != 0, first = 1
+        first = 1;
     }
-    // _mm_free(pack_b_k);
 }
 
 // pack col major B no_trans [K x N]

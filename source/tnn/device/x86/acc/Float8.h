@@ -160,6 +160,11 @@ struct Float8 {
         dst.value = log256_ps(v.value);
         return dst;
     }
+    static Float8 tanh(const Float8& v) {
+        Float8 dst;
+        dst.value = tanh256_ps(v.value);
+        return dst;
+    }
     Float8 operator+(const Float8& lr) {
         Float8 dst;
         dst.value = _mm256_add_ps(value, lr.value);
