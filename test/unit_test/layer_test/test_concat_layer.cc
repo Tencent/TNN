@@ -26,11 +26,11 @@ class ConcatLayerTest : public LayerTest,
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConcatLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
                                             // axis
-                                            testing::Values(1, 2, 3),
+                                            testing::Values(1, 2, 3, 4, 5),
                                             // input cnt
                                             testing::Values(2, 3),
-                                            // dim_count
-                                            testing::Values(2, 3, 4),
+                                            // dim count
+                                            testing::Values(2, 3, 4, 5, 6),
                                             // dtype
                                             testing::Values(DATA_TYPE_INT8, DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
