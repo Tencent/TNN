@@ -49,7 +49,11 @@ Status ConcatLayer::InferOutputShape(bool ignore_error) {
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
 
-    const int axis = concat_param->axis;
+    int axis = concat_param->axis;
+    if (axis < 0) {
+        axis += input_blob->GetBlobDesc().dims.size();
+        concat_param->axis = axis;
+    }
     if (axis < 0 || axis > input_blob->GetBlobDesc().dims.size()) {
         LOGE_IF(!ignore_error, "Error: ConcatLayer axis(%d) is invalid\n", axis);
         return Status(TNNERR_PARAM_ERR, "ConcatLayer axis is invalid");
