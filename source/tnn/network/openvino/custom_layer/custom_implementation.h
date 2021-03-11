@@ -289,11 +289,8 @@ public:
         Custom##type##Op(const ngraph::OutputVector input_nodes, TNN_NS::BaseLayer* baselayer,                         \
                          const std::vector<TNN_NS::Blob*> input_blobs, const std::vector<TNN_NS::Blob*> output_blobs)  \
             : TNN_NS::CustomOpenvinoOp(input_nodes, baselayer, input_blobs, output_blobs){};                           \
-        std::shared_ptr<ngraph::Node> copy_with_new_args(const ngraph::NodeVector& new_args) const override {          \
-            ngraph::OutputVector inputs;                                                                               \
-            for (auto input : new_args)                                                                                \
-                inputs.push_back(input->output(0));                                                                    \
-            return std::make_shared<Custom##type##Op>(inputs, base_layer_, input_blobs_, output_blobs_);               \
+        std::shared_ptr<ngraph::Node> clone_with_new_inputs(const ngraph::OutputVector& new_args) const override {     \
+            return std::make_shared<Custom##type##Op>(new_args, base_layer_, input_blobs_, output_blobs_);             \
         }                                                                                                              \
     }
 
