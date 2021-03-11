@@ -47,6 +47,9 @@ Status OpenCLPixelShuffleLayerAcc::Init(Context *context, LayerParam *param, Lay
 
 Status OpenCLPixelShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("PixelShuffle Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     PixelShuffleLayerParam *pixel_shuffle_param = dynamic_cast<PixelShuffleLayerParam *>(param_);
     if (!pixel_shuffle_param) {
         LOGE("Error: layer param is null\n");

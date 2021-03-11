@@ -41,6 +41,9 @@ Status OpenCLHardSigmoidLayerAcc::Init(Context *context, LayerParam *param, Laye
 
 Status OpenCLHardSigmoidLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("HardSigmoid Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     HardSigmoidLayerParam *hs_param = dynamic_cast<HardSigmoidLayerParam *>(param_);
     if (!hs_param) {
         LOGE("Error: layer param is null\n");

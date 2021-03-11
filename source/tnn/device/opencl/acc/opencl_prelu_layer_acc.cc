@@ -88,6 +88,9 @@ OpenCLPReluLayerAcc::~OpenCLPReluLayerAcc() {}
 Status OpenCLPReluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("PRelu Acc Reshape\n");
     ASSERT(inputs.size() == 1);
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     uint32_t idx = 0;
     if (run_3d_ndrange_) {

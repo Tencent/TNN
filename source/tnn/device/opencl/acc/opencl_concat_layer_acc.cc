@@ -162,6 +162,9 @@ OpenCLConcatLayerAcc::~OpenCLConcatLayerAcc() {}
 
 Status OpenCLConcatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Concat Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
 
     if (IMAGE_COPY == concat_type_) {
         return ReshapeImageConcat(inputs, outputs);
