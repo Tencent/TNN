@@ -17,6 +17,7 @@
 #include "tnn/utils/string_utils_inner.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/blob_transfer_utils.h"
 
 namespace TNN_NS {
 
@@ -157,8 +158,9 @@ void OpenCLLayerAcc::ConfigKernelStrategy() {
 
 std::vector<DataFormat> OpenCLLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
     std::vector<DataFormat> support_list;
-    // Dims must contain N and C for OpenCL Layer
-    if (dims_size >= 2) {
+    if (data_type == DATA_TYPE_INT32) {
+        support_list.push_back(DATA_FORMAT_NCHW);
+    } else if (dims_size >= 2) {
         support_list.push_back(DATA_FORMAT_NHC4W4);
     }
     return support_list;
@@ -294,8 +296,21 @@ Status OpenCLLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
             continue;
         }
 
-        LOGE("OpenCL Layer not support reload blob from resource for now\n");
-        return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL Layer not support reload blob from resource for now");
+        auto buffer = (*const_resource)[name];
+        std::shared_ptr<Blob> blob = nullptr;
+        if (const_blob_map.find(name) != const_blob_map.end()) {
+            blob = const_blob_map[name];
+        }
+        auto status = RawBuffer2Blob(buffer.get(), blob);
+        RETURN_ON_NEQ(status, TNN_OK);
+
+        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        auto dims = iter->GetBlobDesc().dims;
+        auto data_type_size = DataTypeUtils::GetBytesSize(iter->GetBlobDesc().data_type);
+        const_blob_map[name] = blob;
+        iter->SetHandle(blob->GetHandle());
+        iter->GetBlobDesc() = blob->GetBlobDesc();
+        LOGD("Reload constant blob: %s\n", name.c_str());
     }
     const_blob_map_ = const_blob_map;
     return TNN_OK;

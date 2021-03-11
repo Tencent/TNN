@@ -92,24 +92,32 @@ Status OpenCLPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
 
-    int size0          = UP_DIV(DimsVectorUtils::GetDim(output_dims, 1), 4) * 4 * DimsVectorUtils::GetDim(output_dims, 0) *
-                                DimsVectorUtils::GetDim(output_dims, 2) * DimsVectorUtils::GetDim(output_dims, 3);
-    int size1          = UP_DIV(DimsVectorUtils::GetDim(input_dims, 1), 4) * 4 * DimsVectorUtils::GetDim(input_dims, 0) *
-                                DimsVectorUtils::GetDim(input_dims, 2) * DimsVectorUtils::GetDim(input_dims, 3);
+    int output_n = DimsVectorUtils::GetDim(output_dims, 0);
+    int output_c = DimsVectorUtils::GetDim(output_dims, 1);
+    int output_h = DimsVectorUtils::GetDim(output_dims, 2);
+    int output_w = DimsVectorUtils::GetDim(output_dims, 3);
+
+    int input_n = DimsVectorUtils::GetDim(input_dims, 0);
+    int input_c = DimsVectorUtils::GetDim(input_dims, 1);
+    int input_h = DimsVectorUtils::GetDim(input_dims, 2);
+    int input_w = DimsVectorUtils::GetDim(input_dims, 3);
+
+    int size0          = UP_DIV(output_c, 4) * 4 * output_n * output_h * output_w;
+    int size1          = UP_DIV(input_c, 4) * 4 * input_n * input_h * input_w;
     int blob_elem_size = opencl_runtime->GetPrecision() != PRECISION_HIGH ? 2 : 4;
     int blob_size      = std::max(size0, size1) * blob_elem_size;
 
     inter_buffer_        = std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, blob_size);
     int offset[4]        = {0, 0, 0, 0};
-    int output_stride[4] = {DimsVectorUtils::Count(output_dims, 1), DimsVectorUtils::Count(output_dims, 2),
-                            DimsVectorUtils::Count(output_dims, 3), 1};
+    int output_stride[4] = {output_c * output_h * output_w, output_h * output_w, output_w, 1};
     int permute_input_stride[4];
     for (int i = 0; i < dims_.size(); ++i) {
         permute_input_stride[i] = output_stride[dims_[i]];
     }
-    int input_wh[2]  = {DimsVectorUtils::GetDim(input_dims, 3), DimsVectorUtils::GetDim(input_dims, 2)};
-    int output_wh[2] = {DimsVectorUtils::GetDim(output_dims, 3), DimsVectorUtils::GetDim(output_dims, 2)};
+    int input_wh[2]  = {input_w, input_h};
+    int output_wh[2] = {output_w, output_h};
 
+    DimsVector buffer_output_size = {input_n, input_c, input_h, input_w};
     // image->buffer
     {
         int idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], input_dims);
@@ -119,7 +127,7 @@ Status OpenCLPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(offset), offset);
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(input_wh), input_wh);
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(permute_input_stride), permute_input_stride);
-        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(int) * 4, input_dims.data());
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(int) * 4, buffer_output_size.data());
     }
 
     // buffer->image

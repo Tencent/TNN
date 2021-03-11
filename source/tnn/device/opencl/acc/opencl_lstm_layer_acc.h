@@ -34,9 +34,13 @@ private:
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size) override;
     Status ConvertWeights(std::shared_ptr<RawBuffer> buffer, std::shared_ptr<Blob>& blob);
     Status ConvertBias(std::shared_ptr<RawBuffer> buffer, std::shared_ptr<Blob>& blob);
+    Status ConvertInitialState(std::shared_ptr<RawBuffer> buffer, std::shared_ptr<Blob>& blob);
+    Status CreateDefaultState(int num_directions, int batch_size, int hidden_size, std::shared_ptr<Blob>& blob);
+    Status AllocateGates(int num_directions, int hidden_size, int batch, int sequence, std::shared_ptr<Blob>& blob);
 
 private:
-    std::shared_ptr<OpenCLMemory> ocl_gates_ = nullptr;
+    std::shared_ptr<Blob> ocl_gates_;
+    std::shared_ptr<Blob> ocl_zero_state_blob_; // default state blob
 };
 
 }  // namespace TNN_NS
