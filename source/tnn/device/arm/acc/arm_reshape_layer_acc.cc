@@ -36,7 +36,7 @@ Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     auto size_in_bytes = DimsVectorUtils::Count(input->GetBlobDesc().dims) * data_byte_size;
     workspace_         = context_->GetSharedWorkSpace(size_in_bytes);
 
-    auto param    = (ReshapeLayerParam *)param_;
+    auto param = (ReshapeLayerParam *)param_;
     ASSERT(param != nullptr);
 
     if (DATA_FORMAT_NC4HW4 == input->GetBlobDesc().data_format) {
@@ -54,50 +54,44 @@ Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
 
 template <typename T>
 Status ArmReshapeLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto dims_input   = inputs[0]->GetBlobDesc().dims;
-    auto dims_output  = outputs[0]->GetBlobDesc().dims;
+    auto dims_input  = inputs[0]->GetBlobDesc().dims;
+    auto dims_output = outputs[0]->GetBlobDesc().dims;
 
     char *input_origin  = GetBlobHandlePtr(inputs[0]->GetHandle());
     char *output_origin = GetBlobHandlePtr(outputs[0]->GetHandle());
 
-    auto param    = (ReshapeLayerParam *)param_;
+    auto param = (ReshapeLayerParam *)param_;
     ASSERT(param != nullptr);
 
     auto ic    = dims_input[1];
     auto ic_r4 = ROUND_UP(dims_input[1], 4);
-    auto ih    = dims_input[2];
-    auto iw    = dims_input[3];
+    auto ihw   = DimsVectorUtils::Count(dims_input, 2);
     auto oc    = dims_output[1];
     auto oc_r4 = ROUND_UP(dims_output[1], 4);
-    auto oh    = dims_output[2];
-    auto ow    = dims_output[3];
+    auto ohw   = DimsVectorUtils::Count(dims_output, 2);
 
-    auto input_plane     = ic * ih * iw;
-    auto input_plane_r4  = ic_r4 * ih * iw;
-    auto output_plane    = oc * oh * ow;
-    auto output_plane_r4 = oc_r4 * oh * ow;
+    auto input_plane     = ic * ihw;
+    auto input_plane_r4  = ic_r4 * ihw;
+    auto output_plane    = oc * ohw;
+    auto output_plane_r4 = oc_r4 * ohw;
 
     for (int b = 0; b < dims_input[0]; b++) {
-        auto input_data =
-            reinterpret_cast<float *>(input_origin) + b * input_plane_r4;
-        auto workspace_data =
-            reinterpret_cast<float *>(workspace_) + b * input_plane;
+        auto input_data     = reinterpret_cast<float *>(input_origin) + b * input_plane_r4;
+        auto workspace_data = reinterpret_cast<float *>(workspace_) + b * input_plane;
         if (param->reshape_type == 0)
-            UnpackC4(workspace_data, input_data, ih * iw, ic);
+            UnpackC4(workspace_data, input_data, ihw, ic);
         else if (param->reshape_type == 1)
-            UnpackC4ToNHWC(workspace_data, input_data, ih * iw, ic);
+            UnpackC4ToNHWC(workspace_data, input_data, ihw, ic);
         else
             return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
     }
     for (int b = 0; b < dims_output[0]; b++) {
-        auto workspace_data =
-            reinterpret_cast<float *>(workspace_) + b * output_plane;
-        auto output_data =
-            reinterpret_cast<float *>(output_origin) + b * output_plane_r4;
+        auto workspace_data = reinterpret_cast<float *>(workspace_) + b * output_plane;
+        auto output_data    = reinterpret_cast<float *>(output_origin) + b * output_plane_r4;
         if (param->reshape_type == 0)
-            PackC4(output_data, workspace_data, oh * ow, oc);
+            PackC4(output_data, workspace_data, ohw, oc);
         else if (param->reshape_type == 1)
-            PackC4FromNHWC(output_data, workspace_data, oh * ow, oc);
+            PackC4FromNHWC(output_data, workspace_data, ohw, oc);
         else
             return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
     }
@@ -106,5 +100,6 @@ Status ArmReshapeLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
 };
 
 REGISTER_ARM_ACC(Reshape, LAYER_RESHAPE);
+REGISTER_ARM_LAYOUT(LAYER_RESHAPE, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

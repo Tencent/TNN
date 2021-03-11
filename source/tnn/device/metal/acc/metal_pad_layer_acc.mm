@@ -148,5 +148,6 @@ Status MetalPadLayerAcc::Forward(const std::vector<Blob *> &inputs,
 }
 
 REGISTER_METAL_ACC(Pad, LAYER_PAD);
+REGISTER_METAL_LAYOUT(LAYER_PAD, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

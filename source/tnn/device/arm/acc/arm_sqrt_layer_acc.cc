@@ -33,5 +33,6 @@ typedef struct arm_rsqrt_operator : arm_unary_operator {
 
 DECLARE_ARM_UNARY_ACC(Rsqrt, ARM_RSQRT_OP);
 REGISTER_ARM_ACC(Rsqrt, LAYER_RSQRT)
+REGISTER_ARM_LAYOUT(LAYER_RSQRT, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

@@ -62,5 +62,6 @@ Status ArmReorgLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
 }
 
 REGISTER_ARM_ACC(Reorg, LAYER_REORG)
+REGISTER_ARM_LAYOUT(LAYER_REORG, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

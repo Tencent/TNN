@@ -139,10 +139,59 @@ kernel void concat_axis_23_common_x(const device ftype4 *src                    
     if (any(gid >= uint3(params.input_width, params.input_height,
                          params.input_slice_0*params.batch)))
         return;
-    
+
     int index_in = (int)gid.z*params.input_size + (int)gid.y*params.input_width + (int)gid.x;
     auto data_in = src[index_in];
-    
+
     int index_out = (int)gid.z*params.output_size + ((int)gid.y + offset_xy.y)*params.output_width + (int)gid.x + offset_xy.x;
     dst[index_out] = data_in;
+}
+
+kernel void concat_common(const device ftype4 *src                          [[buffer(0)]],
+                                device ftype4 *dst                                        [[buffer(1)]],
+                                constant MetalConcatParamV2 &params      [[buffer(2)]],
+                                constant int &axis_offset                           [[buffer(3)]],
+                                constant int &axis_size                         [[buffer(4)]],
+                                uint3 gid                                                       [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.inner_size, axis_size, params.outer_size)))
+        return;
+
+    int index_in = (int)gid.z*axis_size*params.inner_size + (int)gid.y*params.inner_size + (int)gid.x;
+
+    int output_axis_offset = axis_offset + (int)gid.y;    
+    int index_out = (int)gid.z*params.axis_size*params.inner_size + output_axis_offset*params.inner_size + (int)gid.x;
+
+    dst[index_out] = src[index_in];
+}
+
+kernel void concat_axis_1(const device ftype4 *src                          [[buffer(0)]],
+                                device ftype4 *dst                                        [[buffer(1)]],
+                                constant MetalConcatParamV2 &params      [[buffer(2)]],
+                                constant int &axis_offset                           [[buffer(3)]],
+                                constant int &input_slice                         [[buffer(4)]],
+                                constant int &input_channel                         [[buffer(5)]],
+                                uint3 gid                                                       [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.inner_size, input_slice, params.outer_size)))
+        return;
+
+    int index_in = (int)gid.z*input_slice*params.inner_size + (int)gid.y*params.inner_size + (int)gid.x;
+    int4 input_channel_offset = (int)gid.y*4 + int4(0, 1, 2, 3);
+    bool4 valid = input_channel_offset < input_channel;
+    int4 channel_offset = input_channel_offset + axis_offset;
+
+    int4 output_slices = channel_offset / 4;
+    int4 output_i = channel_offset % 4;
+    int4 index_out = (int)gid.z*params.axis_size*params.inner_size + output_slices*params.inner_size + (int)gid.x;
+
+    ftype4 val = src[index_in];
+
+    if (axis_offset % 4 == 0 && all(valid == bool4(true))) {
+        dst[index_out.x] = val;
+    } else {
+        auto dst1 = (device ftype*)dst;
+        dst1[index_out.x * 4 + output_i.x] = val.x;
+        if (valid.y == true) dst1[index_out.y * 4 + output_i.y] = val.y;
+        if (valid.z == true) dst1[index_out.z * 4 + output_i.z] = val.z;
+        if (valid.w == true) dst1[index_out.w * 4 + output_i.w] = val.w;
+    }
 }

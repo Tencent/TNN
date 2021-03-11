@@ -59,8 +59,8 @@ MetalBlobConverterAcc::MetalBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob
 Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *mat, Blob *blob, bool is_mat_to_blob) {
     auto dims = blob->GetBlobDesc().dims;
     MetalImageConverterParams metal_param;
-    metal_param.width        = dims[3];
-    metal_param.height       = dims[2];
+    metal_param.width        = GetBlobCount(dims, 3);
+    metal_param.height       = GetBlobDim(dims, 2);
     metal_param.size         = metal_param.height * metal_param.width;
     metal_param.channel      = dims[1];
     metal_param.slice        = UP_DIV(metal_param.channel, 4);
@@ -181,11 +181,21 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
         }
     } else if (mat_type == NCHW_FLOAT) {
         if (is_mat_to_blob) {
-            func_process = [library newFunctionWithName:@"data_converter_nchw_2_nc4hw4_float_v2"];
-            LOGD("data_converter_nchw_2_nc4hw4_float_v2\n");
+            if (blob_data_format == DATA_FORMAT_NCHW) {
+                func_process = [library newFunctionWithName:@"data_converter_nchw_mat2blob"];
+                LOGD("data_converter_nchw_2_nchw\n");
+            } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
+                func_process = [library newFunctionWithName:@"data_converter_nchw_2_nc4hw4_float_v2"];
+                LOGD("data_converter_nchw_2_nc4hw4_float_v2\n");
+            }
         } else {
-            func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_float_v2"];
-            LOGD("data_converter_nc4hw4_2_nchw_float_v2\n");
+            if (blob_data_format == DATA_FORMAT_NCHW) {
+                func_process = [library newFunctionWithName:@"data_converter_nchw_blob2mat"];
+                LOGD("data_converter_nchw_2_nchw\n");
+            } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
+                func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_float_v2"];
+                LOGD("data_converter_nc4hw4_2_nchw_float_v2\n");
+            }
         }
     }
 
@@ -253,12 +263,12 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
     id<MTLCommandBuffer> command_buffer = nil;
     if (mat_type == N8UC4 && output_mat_device == DEVICE_METAL) {
         MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
-        MTLSize groups = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width), (NSUInteger)dims[2],
+        MTLSize groups = {(NSUInteger)((GetBlobDim(dims, 3) + group_threads.width - 1) / group_threads.width), (NSUInteger)GetBlobDim(dims, 2),
                           (NSUInteger)1};
 
         auto output_texture       = (__bridge id<MTLTexture>)(output_mat.GetData());
         Blob *input_buffer_blob = (Blob *)(input_blob);
-        if (output_texture.height != dims[2] || output_texture.width != dims[3] ||
+        if (output_texture.height != GetBlobDim(dims, 2) || output_texture.width != GetBlobDim(dims, 3) ||
             (output_texture.pixelFormat != MTLPixelFormatBGRA8Unorm &&
              output_texture.pixelFormat != MTLPixelFormatRGBA8Unorm)) {
             return Status(TNNERR_INST_ERR, "output mat's texture is invalid, wrong size or pixel format");
@@ -296,18 +306,28 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
                                                                        options:MTLResourceCPUCacheModeDefaultCache];
         }
 
-        NSUInteger image_size  = dims[2] * dims[3];
+        NSUInteger image_size  = GetBlobCount(dims, 2);
         NSUInteger image_slice = UP_DIV(dims[1], 4);
+        bool is_blob_nchw = input_buffer_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
 
         auto group_threads = MTLSizeMake(pipeline_process_.threadExecutionWidth, 1, 1);
         auto groups = MTLSizeMake((image_size + group_threads.width - 1) / group_threads.width,
                                   image_slice, dims[0]);
+        if (is_blob_nchw) {
+            groups = MTLSizeMake((image_size + group_threads.width - 1) / group_threads.width,
+                                 dims[1], dims[0]);
+        }
 
         if (image_size <= image_slice) {
             group_threads = MTLSizeMake(1, pipeline_process_.threadExecutionWidth, 1);
             groups = MTLSizeMake(image_size,
                                  (image_slice + group_threads.height - 1) / group_threads.height,
                                  dims[0]);
+            if (is_blob_nchw) {
+                groups = MTLSizeMake(image_size,
+                                     (dims[1] + group_threads.height - 1) / group_threads.height,
+                                     dims[0]);
+            }
         }
 
         command_buffer = [command_queue_impl commandBuffer];
@@ -395,8 +415,8 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
         if (mat_type == N8UC4) {
             // For Texture input
             MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
-            MTLSize groups        = {(NSUInteger)((dims[3] + group_threads.width - 1) / group_threads.width),
-                              (NSUInteger)dims[2], (NSUInteger)1};
+            MTLSize groups        = {(NSUInteger)((GetBlobDim(dims, 3) + group_threads.width - 1) / group_threads.width),
+                              (NSUInteger)GetBlobDim(dims, 2), (NSUInteger)1};
 
             id<MTLTexture> input_texture = nil;
             if (mat_device_type == DEVICE_METAL) {
@@ -409,16 +429,16 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                     return Status(TNNERR_INST_ERR, "newTextureWithDescriptor return nil");
                 }
 
-                [input_texture replaceRegion:MTLRegionMake2D(0, 0, dims[3], dims[2])
+                [input_texture replaceRegion:MTLRegionMake2D(0, 0, GetBlobDim(dims, 3), GetBlobDim(dims, 2))
                                  mipmapLevel:0
                                    withBytes:input_mat.GetData()
-                                 bytesPerRow:dims[3] * 4];
+                                 bytesPerRow:GetBlobDim(dims, 3) * 4];
             } else {
                 break;
             }
 
             Blob *output_buffer_blob = (Blob *)(output_blob);
-            if (input_texture.height != dims[2] || input_texture.width != dims[3] ||
+            if (input_texture.height != GetBlobDim(dims, 2) || input_texture.width != GetBlobDim(dims, 3) ||
                 (input_texture.pixelFormat != MTLPixelFormatBGRA8Unorm &&
                  input_texture.pixelFormat != MTLPixelFormatRGBA8Unorm)) {
                 return Status(TNNERR_INST_ERR, "input mat's texture is invalid, wrong size or pixel format");
@@ -460,18 +480,23 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                 break;
             }
 
-            NSUInteger image_size  = dims[2] * dims[3];
+            NSUInteger image_size  = GetBlobCount(dims, 2);
             NSUInteger image_slice = UP_DIV(dims[1], 4);
+            bool is_blob_nchw = output_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
 
             auto group_threads = MTLSizeMake(pipeline_process_.threadExecutionWidth, 1, 1);
             auto groups = MTLSizeMake((image_size + group_threads.width - 1) / group_threads.width,
                                       image_slice, dims[0]);
+            if (is_blob_nchw)
+                groups.height = dims[1];
 
             if (image_size <= image_slice) {
                 group_threads = MTLSizeMake(1, pipeline_process_.threadExecutionWidth, 1);
                 groups = MTLSizeMake(image_size,
                                      (image_slice + group_threads.height - 1) / group_threads.height,
                                      dims[0]);
+                if (is_blob_nchw)
+                    groups.height = (dims[1] + group_threads.height - 1) / group_threads.height;
             }
 
             Blob *output_buffer_blob = (Blob *)(output_blob);

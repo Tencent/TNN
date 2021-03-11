@@ -306,5 +306,6 @@ Status ArmArgMaxOrMinLayerAcc::Exec(const std::vector<Blob *> &inputs, const std
 }
 
 REGISTER_ARM_ACC(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN);
+REGISTER_ARM_LAYOUT(LAYER_ARG_MAX_OR_MIN, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

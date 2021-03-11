@@ -124,6 +124,16 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     return ReshapeLayers();
 }
 
+static inline bool IsLayoutReformatLayer(std::shared_ptr<LayerInfo> layer) {
+    if (layer->type == LAYER_REFORMAT) {
+        auto param = dynamic_cast<ReformatLayerParam *>(layer->param.get());
+        if (param->src_format != param->dst_format) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /*
  * InitLayer funcion does the following things:
  *  1. Set Blob type accordingly.
@@ -163,11 +173,20 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         std::vector<std::string> &input_names  = layer_info->inputs;
         std::vector<std::string> &output_names = layer_info->outputs;
 
+        DataFormat input_fmt = DATA_FORMAT_AUTO;
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
+            // skip const blobs
+            if (const_blobs.count(name) == 0) {
+                input_fmt = blob->GetBlobDesc().data_format;
+            }
             auto ret  = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
             RETURN_ON_NEQ(ret, TNN_OK);
         }
+
+        // output layout equals to input layout except for layout_reformat layer
+        DataFormat output_fmt = IsLayoutReformatLayer(layer_info) ?
+            dynamic_cast<ReformatLayerParam *>(layer_info->param.get())->dst_format : input_fmt;
 
 #ifdef GENERATE_RESOURCE
         if (runtime_model_ == RUNTIME_MODE_NORMAL) {
@@ -183,7 +202,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             if (net_resource->resource_map.count(layer_name) == 0) {
                 LayerParam *layer_param  = layer_info->param.get();
                 LayerResource *layer_res = nullptr;
-                GenerateRandomResource(type, layer_param, &layer_res, inputs);
+                GenerateRandomResource(type, layer_param, &layer_res, inputs, &net_resource->constant_map);
                 net_resource->resource_map[layer_name] = std::shared_ptr<LayerResource>(layer_res);
             }
         }
@@ -191,6 +210,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
+            blob->GetBlobDesc().data_format = output_fmt;
             auto ret  = UpdateBlobPrecision(layer_info, false, is_quantized_net, name, net_resource, &blob);
             RETURN_ON_NEQ(ret, TNN_OK);
         }
@@ -216,6 +236,20 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
+            // update layout reformat layer's param and blob datatype
+            if (IsLayoutReformatLayer(layer_info)) {
+                // only need to update model's input blob datatype
+                // others are already updated in UpdateBlobPrecision method
+                if (net_structure->inputs_shape_map.find(name) != net_structure->inputs_shape_map.end()) {
+                    auto dtype = blob_manager_->GetBlob(layer_info->outputs[0])->GetBlobDesc().data_type;
+                    LOGD("DefaultNetwork::InitLayers LayoutReformat set input: %s datatype as: %d\n",
+                         name.c_str(), dtype);
+                    blob->GetBlobDesc().data_type = dtype;
+                }
+                auto param      = dynamic_cast<ReformatLayerParam *>(layer_info->param.get());
+                param->src_type = blob->GetBlobDesc().data_type;
+                param->dst_type = param->src_type;
+            }
             inputs.push_back(blob);
         }
 
@@ -325,7 +359,11 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
             }
         }
     } else {
-        // reformat layer, update blob by layer param
+        // layout reformat, update later
+        if (IsLayoutReformatLayer(layer_info)) {
+            return TNN_OK;
+        }
+        // datatype reformat, update by layer param
         if (is_input) {
             auto src_type = reinterpret_cast<ReformatLayerParam *>(layer_info->param.get())->src_type;
             if (src_type == DATA_TYPE_INT8) {

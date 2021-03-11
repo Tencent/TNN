@@ -165,5 +165,6 @@ Status ArmNormalizeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
 }
 
 REGISTER_ARM_ACC(Normalize, LAYER_NORMALIZE);
+REGISTER_ARM_LAYOUT(LAYER_NORMALIZE, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

@@ -21,9 +21,16 @@
 
 #include "tnn/core/common.h"
 #include "tnn/core/macro.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
+
+#define GetBlobDim(d, i) \
+    (((d).size()) > (i) ? ((d)[i]) : 1)
+
+#define GetBlobCount(d, i) \
+    ( (DimsVectorUtils::Count((d), (i))) > 0? (DimsVectorUtils::Count((d), (i))) : (GetBlobDim(d, i)) )
 
 namespace TNN_NS {
 

@@ -19,6 +19,7 @@
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
@@ -95,22 +96,22 @@ Status ArmInnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
             w_handle = ConvertHalfHandle(w_handle);
 
         auto weight_data_type = w_handle.GetDataType();
-        int ic                = dims_input[1] * dims_input[2] * dims_input[3];
+        int ic                = dims_input[1] * DimsVectorUtils::Count(dims_input, 2);
         const int oc          = fc_param->num_output;
         auto data_byte_size   = DataTypeUtils::GetBytesSize(weight_data_type);
         if (weight_data_type == DATA_TYPE_FLOAT) {
             // transform weight dims from 4 to 2
-            if (dims_input[2] != 1 || dims_input[3] != 1) {
+            if (DimsVectorUtils::Count(dims_input, 2) > 1) {
                 RawBuffer reorder_buffer =
-                    RawBuffer(dims_input[3] * dims_input[2] * ROUND_UP(dims_input[1], 4) * oc * data_byte_size);
+                    RawBuffer(DimsVectorUtils::Count(dims_input, 2) * ROUND_UP(dims_input[1], 4) * oc * data_byte_size);
                 for (int i = 0; i < oc; i++) {
                     auto dst_ptr = reorder_buffer.force_to<float *>() +
-                                   i * dims_input[3] * dims_input[2] * ROUND_UP(dims_input[1], 4);
+                                   i * DimsVectorUtils::Count(dims_input, 2) * ROUND_UP(dims_input[1], 4);
                     auto src_ptr = w_handle.force_to<float *>() + i * ic;
-                    PackC4(dst_ptr, src_ptr, dims_input[2] * dims_input[3], dims_input[1]);
+                    PackC4(dst_ptr, src_ptr, DimsVectorUtils::Count(dims_input, 2), dims_input[1]);
                 }
 
-                ic       = dims_input[3] * dims_input[2] * ROUND_UP(dims_input[1], 4);
+                ic       = DimsVectorUtils::Count(dims_input, 2) * ROUND_UP(dims_input[1], 4);
                 w_handle = reorder_buffer;
             }
 
@@ -210,7 +211,7 @@ Status ArmInnerProductLayerAcc::Exec(const std::vector<Blob *> &inputs, const st
 
     auto dims_input  = input->GetBlobDesc().dims;
     auto dims_output = output->GetBlobDesc().dims;
-    auto ic          = dims_input[3] * dims_input[2] * ROUND_UP(dims_input[1], 4);
+    auto ic          = DimsVectorUtils::Count(dims_input, 2) * ROUND_UP(dims_input[1], 4);
     auto oc_r4       = ROUND_UP(dims_output[1], 4);
 
     auto input_origin  = reinterpret_cast<T *>(GetBlobHandlePtr(input->GetHandle()));
@@ -238,7 +239,7 @@ Status ArmInnerProductLayerAcc::Exec<int8_t>(const std::vector<Blob *> &inputs, 
     InnerProductLayerParam *fc_param = dynamic_cast<InnerProductLayerParam *>(param_);
     auto dims_input                  = inputs[0]->GetBlobDesc().dims;
     auto dims_output                 = outputs[0]->GetBlobDesc().dims;
-    auto ic                          = dims_input[3] * dims_input[2] * ROUND_UP(dims_input[1], 4);
+    auto ic                          = DimsVectorUtils::Count(dims_input, 2) * ROUND_UP(dims_input[1], 4);
     auto ic_r4                       = ROUND_UP(ic, 4);
     auto oc_r4                       = ROUND_UP(dims_output[1], 4);
 
@@ -273,5 +274,6 @@ Status ArmInnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
 }
 
 REGISTER_ARM_ACC(InnerProduct, LAYER_INNER_PRODUCT)
+REGISTER_ARM_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

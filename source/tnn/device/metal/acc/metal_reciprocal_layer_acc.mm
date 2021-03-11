@@ -34,5 +34,6 @@ Status MetalReciprocalLayerAcc::Forward(const std::vector<Blob *> &inputs, const
 }
 
 REGISTER_METAL_UNARY_ACC(Reciprocal, LAYER_RECIPROCAL);
+REGISTER_METAL_LAYOUT(LAYER_RECIPROCAL, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

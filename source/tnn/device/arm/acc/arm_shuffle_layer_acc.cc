@@ -95,5 +95,6 @@ Status ArmShuffleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_ARM_ACC(Shuffle, LAYER_SHUFFLE_CHANNEL)
+REGISTER_ARM_LAYOUT(LAYER_SHUFFLE_CHANNEL, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

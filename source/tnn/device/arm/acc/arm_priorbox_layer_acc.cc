@@ -44,5 +44,6 @@ Status ArmPriorBoxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_ARM_ACC(PriorBox, LAYER_PRIOR_BOX)
+REGISTER_ARM_LAYOUT(LAYER_PRIOR_BOX, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS
