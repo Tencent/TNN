@@ -108,7 +108,7 @@ Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
         }
     } else {
         char error_str[128];
-        sprintf(error_str, "OpenCL not support Allocate (dims=%d)", desc.dims.size());
+        sprintf(error_str, "OpenCL not support Allocate (dims=%d)", (int)desc.dims.size());
         return Status(TNNERR_PARAM_ERR, error_str);
     }
     return TNN_OK;
