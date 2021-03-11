@@ -210,6 +210,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"RoiAlign", LAYER_ROIALIGN},
     {"GroupNorm", LAYER_GROUP_NORM},
     {"Inverse", LAYER_INVERSE},
+    {"GridSample", LAYER_GRIDSAMPLE},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 

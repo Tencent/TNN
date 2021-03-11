@@ -86,6 +86,16 @@ struct GroupNormLayerParam : public LayerParam {
     PARAM_COPY(GroupNormLayerParam)
 };
 
+struct GridSampleLayerParam : public LayerParam {
+    // 1: nereast 2: bilinear/linear 3: cubic
+    int mode = 2;
+    // 0:const 1:reflect 2:edge
+    int pad_type = 0;
+    int align_corners = 0;
+
+    PARAM_COPY(GridSampleLayerParam)
+};
+
 struct TileLayerParam : public LayerParam {
     //nchw order
     std::vector<int> reps;
