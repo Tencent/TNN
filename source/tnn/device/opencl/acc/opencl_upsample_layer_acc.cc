@@ -101,13 +101,13 @@ Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
 
-    const int batch        = input_dims[0];
-    const int channels     = input_dims[1];
-    const int input_height = input_dims[2];
-    const int input_width  = input_dims[3];
+    const int batch        = DimsVectorUtils::GetDim(input_dims, 0);
+    const int channels     = DimsVectorUtils::GetDim(input_dims, 1);
+    const int input_height = DimsVectorUtils::GetDim(input_dims, 2);
+    const int input_width  = DimsVectorUtils::GetDim(input_dims, 3);
 
-    const int output_height = output_dims[2];
-    const int output_width  = output_dims[3];
+    const int output_height = DimsVectorUtils::GetDim(output_dims, 2);
+    const int output_width  = DimsVectorUtils::GetDim(output_dims, 3);
 
     const int channel_blocks = UP_DIV(channels, 4);
 
@@ -150,5 +150,6 @@ Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
 }
 
 REGISTER_OPENCL_ACC(Upsample, LAYER_UPSAMPLE)
+REGISTER_OPENCL_LAYOUT(LAYER_UPSAMPLE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

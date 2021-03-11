@@ -541,11 +541,11 @@ Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_nam
 uint32_t SetExecuteUnit3DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims) {
     unit.global_work_size = {
         // width
-        static_cast<uint32_t>(dims[3]),
+        static_cast<uint32_t>(DimsVectorUtils::GetDim(dims, 3)),
         // channel-blocks/4
-        static_cast<uint32_t>(UP_DIV(dims[1], 4)),
+        static_cast<uint32_t>(UP_DIV(DimsVectorUtils::GetDim(dims, 1), 4)),
         // batch * height
-        static_cast<uint32_t>(dims[0] * dims[2]),
+        static_cast<uint32_t>(DimsVectorUtils::GetDim(dims, 0) * DimsVectorUtils::GetDim(dims, 2)),
     };
 
     // change the order temporarily to get the local size
@@ -569,9 +569,9 @@ uint32_t SetExecuteUnit3DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dim
 uint32_t SetExecuteUnit2DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims) {
     unit.global_work_size = {
         // channel-blocks * [width]
-        static_cast<uint32_t>(UP_DIV(dims[1], 4) * dims[3]),
+        static_cast<uint32_t>(UP_DIV(DimsVectorUtils::GetDim(dims, 1), 4) * DimsVectorUtils::GetDim(dims, 3)),
         // batch * height
-        static_cast<uint32_t>(dims[0] * dims[2]),
+        static_cast<uint32_t>(DimsVectorUtils::GetDim(dims, 0) * DimsVectorUtils::GetDim(dims, 2)),
     };
     unit.local_work_size = LocalWS2DDefault(unit);
     uint32_t idx         = 0;

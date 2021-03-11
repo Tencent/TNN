@@ -60,5 +60,6 @@ Status OpenCLSeluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
 }
 
 REGISTER_OPENCL_ACC(Selu, LAYER_SELU)
+REGISTER_OPENCL_LAYOUT(LAYER_SELU, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

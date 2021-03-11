@@ -40,5 +40,6 @@ std::set<std::string> OpenCLTanLayerAcc::CreateBuildOptions() {
 OpenCLTanLayerAcc::~OpenCLTanLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Tan, LAYER_TAN)
+REGISTER_OPENCL_LAYOUT(LAYER_TAN, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

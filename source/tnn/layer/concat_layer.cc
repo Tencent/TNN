@@ -67,7 +67,7 @@ Status ConcatLayer::InferOutputShape(bool ignore_error) {
         auto input_blob = input_blobs_[i];
         auto cur_shape  = input_blob->GetBlobDesc().dims;
         if (!ConcatLayerCheckShape(last_shape, cur_shape, axis)) {
-            LOGE_IF(!ignore_error, 
+            LOGE_IF(!ignore_error,
                 "Error: ConcatLayer's (layer name: %s) inputs can not be "
                 "concatenated with "
                 "axis=%d\n",

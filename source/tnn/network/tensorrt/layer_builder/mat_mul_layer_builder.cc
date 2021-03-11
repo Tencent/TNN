@@ -14,9 +14,22 @@
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
+#include "tnn/core/macro.h"
+#include "tnn/network/tensorrt/utils.h"
+
 namespace TNN_NS {
 
 DECLARE_TENSORRT_LAYER_BUILDER(MatMul, LAYER_MATMUL);
+
+nvinfer1::Dims unsqueeze_trt_dims(const nvinfer1::Dims &input_dims, int unsqueeze_len)  {
+    nvinfer1::Dims ret;
+    ret.nbDims = std::min(input_dims.nbDims + unsqueeze_len, 5);
+    int insert_num = ret.nbDims - input_dims.nbDims;
+    int i=0;
+    for(;i<insert_num;i++) ret.d[i] = 1;
+    for(;i<ret.nbDims;i++) ret.d[i] = input_dims.d[i - insert_num];
+    return ret;
+}
 
 ILayer* MatMulTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto paramlist = dynamic_cast<MatMulLayerParam *>(param_);
@@ -51,6 +64,28 @@ ILayer* MatMulTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     if (matrix_a == nullptr || matrix_b == nullptr) {
         LOGE("MatMulTRTLayerBuilder got null inputs");
         return nullptr;
+    }
+
+    // TRT Restrict that : dimsA.nbDims == dimsB.nbDims , when nbDims >= 2
+    auto dims_a = matrix_a->getDimensions();
+    auto dims_b = matrix_b->getDimensions();
+    int nbDimsDiff = std::abs(dims_a.nbDims - dims_b.nbDims);
+    if (dims_a.nbDims > dims_b.nbDims)
+    {
+        nvinfer1::Dims new_dims = unsqueeze_trt_dims(dims_b, nbDimsDiff);
+        nvinfer1::IShuffleLayer* unsqueeze = network->addShuffle(*matrix_b);
+        unsqueeze->setReshapeDimensions(new_dims);
+        unsqueeze->setName((GetLayerName()+"_unqueeze_b").c_str());
+        matrix_b = unsqueeze->getOutput(0);
+    }
+
+    if (dims_b.nbDims > dims_a.nbDims)
+    {
+        nvinfer1::Dims new_dims = unsqueeze_trt_dims(dims_a, nbDimsDiff);
+        nvinfer1::IShuffleLayer* unsqueeze = network->addShuffle(*matrix_a);
+        unsqueeze->setReshapeDimensions(new_dims);
+        unsqueeze->setName((GetLayerName()+"_unqueeze_a").c_str());
+        matrix_a = unsqueeze->getOutput(0);
     }
 
     const auto getMatrixOp = [](const nvinfer1::ITensor* input) {

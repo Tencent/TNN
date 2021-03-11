@@ -39,5 +39,6 @@ std::set<std::string> OpenCLTanhLayerAcc::CreateBuildOptions() {
 OpenCLTanhLayerAcc::~OpenCLTanhLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Tanh, LAYER_TANH)
+REGISTER_OPENCL_LAYOUT(LAYER_TANH, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

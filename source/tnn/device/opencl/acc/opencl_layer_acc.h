@@ -38,6 +38,8 @@ public:
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs) override;
+
 #if TNN_PROFILE
     virtual void UpdateProfilingData(OpenCLProfilingData *pdata, std::vector<uint32_t> gws, std::vector<uint32_t> lws,
                                      int idx = 0);
@@ -84,6 +86,22 @@ private:
 #define REGISTER_OPENCL_ACC(type_string, layer_type)                                                                   \
     OpenCLTypeLayerAccRegister<TypeLayerAccCreator<OpenCL##type_string##LayerAcc>>                                     \
         g_opencl_##layer_type##_acc_register(layer_type);
+
+class OpenCLTypeLayerLayoutCreator {
+public:
+    static std::shared_ptr<ImplementedLayout> UpdateImplementedLayout(LayerType layer_type, DataFormat layout) {
+        // make sure opencl device has been registered
+        TypeDeviceRegister<OpenCLDevice> metal_device_register(DEVICE_OPENCL);
+        auto implemented_layout = GetDevice(DEVICE_OPENCL)->GetImplementedLayout(layer_type);
+        auto updated_layout     = std::make_shared<ImplementedLayout>(*implemented_layout);
+        updated_layout->layouts.push_back(layout);
+        return updated_layout;
+    }
+};
+
+#define REGISTER_OPENCL_LAYOUT(layer_type, layout)                                                                        \
+    OpenCLTypeLayerLayoutRegister g_metal_##layer_type##_##layout##_layout_register(                                      \
+             layer_type, OpenCLTypeLayerLayoutCreator::UpdateImplementedLayout(layer_type, layout));
 
 }  // namespace TNN_NS
 

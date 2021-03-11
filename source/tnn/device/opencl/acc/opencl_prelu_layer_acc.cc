@@ -51,7 +51,7 @@ Status OpenCLPReluLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     op_name_        = "PRelu";
 
     auto input_dims = inputs[0]->GetBlobDesc().dims;
-    int channels    = input_dims[1];
+    int channels    = DimsVectorUtils::GetDim(input_dims, 1);
 
     auto layer_param = dynamic_cast<PReluLayerParam *>(param);
     if (layer_param == nullptr) {
@@ -98,7 +98,7 @@ Status OpenCLPReluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
     if (!run_3d_ndrange_) {
         //set output width
-        execute_units_[0].ocl_kernel.setArg(idx++, output_dims[3]);
+        execute_units_[0].ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(output_dims, 3));
     }
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_scope_->GetData()));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
@@ -118,5 +118,6 @@ double OpenCLPReluLayerAcc::GetBandwidth() {
 #endif
 
 REGISTER_OPENCL_ACC(PRelu, LAYER_PRELU)
+REGISTER_OPENCL_LAYOUT(LAYER_PRELU, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

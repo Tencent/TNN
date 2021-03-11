@@ -74,5 +74,6 @@ Status OpenCLConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 }
 
 REGISTER_OPENCL_ACC(Conv, LAYER_CONVOLUTION)
+REGISTER_OPENCL_LAYOUT(LAYER_CONVOLUTION, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

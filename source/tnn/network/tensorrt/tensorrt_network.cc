@@ -26,6 +26,7 @@
 #include "tnn/utils/md5.h"
 #include "tnn/device/cuda/cuda_macro.h"
 #include "tnn/utils/blob_dump_utils.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
@@ -59,10 +60,6 @@ TensorRTNetwork_::~TensorRTNetwork_() {
         m_trt_context->destroy();
     }
 
-    for (auto iter : const_input_map) {
-        if (iter.second) cudaFree(iter.second);
-    }
-
     if (m_trt_engine) m_trt_engine->destroy();
 }
 
@@ -80,6 +77,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     net_resource_ = net_resource;
     CHECK_PARAM_NULL(net_structure);
     CHECK_PARAM_NULL(net_resource);
+    net_structure_ = net_structure;
+    net_resource_ = net_resource;
 
     device_ = GetDevice(net_config.device_type);
     CHECK_PARAM_NULL(device_);
@@ -126,6 +125,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     if (ret != TNN_OK) {
         return ret;
     }
+
+    RETURN_ON_NEQ(CheckConstBlobs(), TNN_OK);
 
     BlobMap outputs;
     ret = blob_manager_->GetAllOutputBlobs(outputs);
@@ -229,33 +230,27 @@ Status TensorRTNetwork_::ReshapeLayers() {
         m_trt_context->setBindingDimensions(index, inputDims);
     }
 
-    for (auto iter : net_resource_->constant_map) {
-        Blob *blob = blob_manager_->GetBlob(iter.first);
-        if (IsBlobUsed(blob)) {
-            int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-            if (index < 0) continue;
-            if (const_input_map.count(iter.first) == 0) {
-                void* tmp_buffer;
-                cudaMalloc(&tmp_buffer, iter.second->GetBytesSize());
-                const_input_map[iter.first] = tmp_buffer;
-                this->m_trt_bindings[index] = tmp_buffer;
-            }
-            cudaMemcpy(const_input_map[iter.first], iter.second->force_to<void*>(),
-                iter.second->GetBytesSize(), cudaMemcpyHostToDevice);
-            DimsVector dims;
-            auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
-            if (std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->IsShapeTensor()) {
-                auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetShapeBlobName();
-                auto shape_blob = blob_manager_->GetBlob(name);
-                dims = shape_blob->GetBlobDesc().dims;
-            } else {
-                dims = iter.second->GetBufferDims();
-            }
-            nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
-            auto ret = m_trt_context->setBindingDimensions(index, inputDims);
-            if (!ret) {
-                return Status(TNNERR_PARAM_ERR, "Reshape failed\n");
-            }
+    for (auto blob_name : const_input_blobs_) {
+        Blob *blob = blob_manager_->GetBlob(blob_name);
+        auto buf = net_resource_->constant_map[blob_name];
+        int index = m_trt_engine->getBindingIndex(blob_name.c_str());
+        if (index < 0) continue;
+        // Data is reload from const_map to blob in CudaLayerAcc::ReloadConstantBlobs
+        m_trt_bindings[index] = blob->GetHandle().base;
+
+        bool ret;
+        auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
+        if (std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->IsShapeTensor()) {
+            auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetShapeBlobName();
+            auto dims = blob_manager_->GetBlob(name)->GetBlobDesc().dims;
+            ret = m_trt_context->setInputShapeBinding(index, dims.data());
+        } else {
+            nvinfer1::Dims inputDims = ConvertToTRTDims(buf->GetBufferDims());
+            ret = m_trt_context->setBindingDimensions(index, inputDims);
+        }
+
+        if (!ret) {
+            return Status(TNNERR_PARAM_ERR, "Reshape failed\n");
         }
     }
     return TNN_OK;
@@ -497,31 +492,82 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         }
     }
 
-    for (auto iter : net_resource->constant_map) {
-        Blob *blob = blob_manager_->GetBlob(iter.first);
-        if (IsBlobUsed(blob)) {
-            auto foreign_blob = dynamic_cast<ForeignBlob*>(blob);
-            auto foreign_tensor = foreign_blob->GetForeignTensor();
-            DimsVector max_dims, min_dims;
-            auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
-            auto name = iter.first;
-            if (std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->IsShapeTensor()) {
-                name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetShapeBlobName();
-            }
-            max_dims = net_resource->blob_shapes_map[name];
-            min_dims = net_resource->min_blob_shapes_map[name];
+    // Add Const_resources as inputs to tensorrt network
+    for (auto blob_name : const_input_blobs_) {
+        Blob *blob = blob_manager_->GetBlob(blob_name);
+        auto buf = net_resource->constant_map[blob_name];
+        auto foreign_blob = dynamic_cast<ForeignBlob*>(blob);
+        auto foreign_tensor = foreign_blob->GetForeignTensor();
+
+        ITensor * const_tensor = nullptr;
+        DimsVector max_dims, min_dims;
+        if (std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->IsShapeTensor()){
+            auto shape_dims = ConvertToTRTDims(buf->GetBufferDims());
+            const_tensor = m_trt_network->addInput(blob_name.c_str(),
+                                            ConvertToTRTDataType(buf->GetDataType()), shape_dims);
+
+            auto dims_blob_name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetShapeBlobName();
+            max_dims = net_resource->blob_shapes_map[dims_blob_name];
+            min_dims = net_resource->min_blob_shapes_map[dims_blob_name];
+            profile->setShapeValues(blob_name.c_str(), OptProfileSelector::kMIN, min_dims.data(), min_dims.size());
+            profile->setShapeValues(blob_name.c_str(), OptProfileSelector::kMAX, max_dims.data(), max_dims.size());
+            profile->setShapeValues(blob_name.c_str(), OptProfileSelector::kOPT, max_dims.data(), max_dims.size());
+        } else {
+            max_dims = net_resource->blob_shapes_map[blob_name];
+            min_dims = net_resource->min_blob_shapes_map[blob_name];
             auto nv_max_dims = ConvertToTRTDims(max_dims);
             auto nv_min_dims = ConvertToTRTDims(min_dims);
             auto nv_input_dims = ConvertToTRTDynamicDims(nv_max_dims, nv_min_dims);
-            auto const_tensor = m_trt_network->addInput(iter.first.c_str(),
-                ConvertToTRTDataType(iter.second->GetDataType()), nv_input_dims);
-            profile->setDimensions(iter.first.c_str(), OptProfileSelector::kMIN, nv_min_dims);
-            profile->setDimensions(iter.first.c_str(), OptProfileSelector::kOPT, nv_max_dims);
-            profile->setDimensions(iter.first.c_str(), OptProfileSelector::kMAX, nv_max_dims);
-            tensorrt_tensor->SetTensor(const_tensor);
+            const_tensor = m_trt_network->addInput(blob_name.c_str(),
+                                            ConvertToTRTDataType(buf->GetDataType()), nv_input_dims);
+            profile->setDimensions(blob_name.c_str(), OptProfileSelector::kMIN, nv_min_dims);
+            profile->setDimensions(blob_name.c_str(), OptProfileSelector::kOPT, nv_max_dims);
+            profile->setDimensions(blob_name.c_str(), OptProfileSelector::kMAX, nv_max_dims);
+        }
+
+        auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
+        tensorrt_tensor->SetTensor(const_tensor);
+
+        {
+            std::stringstream ss;
+            if (std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->IsShapeTensor()){
+                 ss << "shape tensor ";
+            }
+            ss << "<" << blob->GetBlobDesc().name << "> max_shape:[";
+            for(int i: max_dims) {ss <<  i << ","; } ss << "] min_shape: [";
+            for(int i: min_dims) {ss <<  i << ","; } ss << "]";
+            LOGD("Add %s as input from constant_map to trt network\n", ss.str().c_str());
         }
     }
     m_trt_config->addOptimizationProfile(profile);
+
+    // Add Const_resources as weights to tensorrt network
+    for (auto blob_name : const_weight_blobs_) {
+        Blob *blob = blob_manager_->GetBlob(blob_name);
+        auto foreign_blob = dynamic_cast<ForeignBlob*>(blob);
+        auto foreign_tensor = foreign_blob->GetForeignTensor();
+        auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
+        auto buf = net_resource_->constant_map[blob_name];
+
+        {
+            std::stringstream ss;
+            ss << "<" << blob->GetBlobDesc().name << "> count:" << buf->GetDataCount();
+            ss << " DataType:" << buf->GetDataType() << " shape:[";
+            for(int i: blob->GetBlobDesc().dims) {ss <<  i << ","; }
+            ss << "]";
+            LOGD("Adding %s as weights from constant_map to trt network\n", ss.str().c_str());
+        }            
+        
+        auto const_layer = ConvertWeightToConstLayer(m_trt_network, buf.get());
+        if (const_layer != nullptr) {
+            const_layer->setName(blob_name.c_str());
+            tensorrt_tensor->SetTensor(const_layer->getOutput(0));
+        } else {
+            LOGE("Add Const [%s] as weights to trt network failed\n", blob_name.c_str());
+            return TNNERR_LAYER_ERR;
+        }
+
+    }
 
     for (int layer_id = 0; layer_id < this->layers_.size(); layer_id++) {
         BaseLayer* cur_layer = this->layers_[layer_id];
@@ -539,11 +585,14 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             auto foreign_tensor = foreign_blob->GetForeignTensor();
             auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
             tensorrt_tensor->SetTensor(output_tensor);
-            int nbDims = output_tensor->getDimensions().nbDims;
-            LOGD("build trt layer for \"%s\", tensor shape size: %d \n", cur_layer->GetLayerName().c_str(), nbDims);
-            if (nbDims <= 0) {
-                LOGE("build trt layer for \"%s\" failed, tensor shape error.\n", cur_layer->GetLayerName().c_str());
-                return TNNERR_LAYER_ERR;
+
+            {
+                std::stringstream ss;
+                int nbDims = output_tensor->getDimensions().nbDims;
+                for( int d=0;d<nbDims;d++) ss << output_tensor->getDimensions().d[d] << ","; 
+                ss << " blob shape:";
+                for(auto d:output->GetBlobDesc().dims) ss << d << ","; 
+                LOGD("build trt layer for \"%s\", tensor shape %s\n", cur_layer->GetLayerName().c_str(), ss.str().c_str());
             }
         }
     }
@@ -655,6 +704,49 @@ Status TensorRTNetwork_::DumpAllOutputBlob() {
             LOGE("DumpDeviceBlob failed error code: %d, msg: %s \n", (int)ret, ret.description().c_str());
         }
     }
+    return TNN_OK;
+}
+
+Status TensorRTNetwork_::CheckConstBlobs() {
+    auto shape_differ_layers = net_resource_->shape_differ_layers;
+    std::set<std::string> shape_differ_blobs;
+
+    for (auto layer_info : net_structure_->layers) {
+        if (shape_differ_layers.find(layer_info->name) != shape_differ_layers.end()) {
+            for (auto name : layer_info->outputs) {
+                shape_differ_blobs.insert(name);
+            }
+        }
+    }
+
+    std::vector<std::string> const_input_blobs;
+    std::vector<std::string> const_weight_blobs;
+
+    
+    for (auto iter : net_resource_->constant_map) {
+        auto blob_name = iter.first;
+        Blob *blob = blob_manager_->GetBlob(blob_name);
+        if (false == IsBlobUsed(blob)) {
+            continue;
+        }
+
+        if (shape_differ_blobs.find(blob_name) != shape_differ_blobs.end()) {
+            const_input_blobs.push_back(blob_name);
+        } else {
+            const_weight_blobs.push_back(blob_name);
+            if (iter.second->GetDataCount() == 0) {
+                auto data_type = iter.second->GetDataType();
+                size_t ele_size = DataTypeUtils::GetBytesSize(data_type);
+                net_resource_->constant_map[iter.first] = std::make_shared<RawBuffer>(ele_size);
+                net_resource_->constant_map[iter.first]->SetDataType(data_type);
+                LOGD("Updating empty buffer [%s], so trt won't crash\n", blob_name.c_str());
+            }
+        }
+    }
+
+    const_input_blobs_  = const_input_blobs;
+    const_weight_blobs_ = const_weight_blobs;
+
     return TNN_OK;
 }
 

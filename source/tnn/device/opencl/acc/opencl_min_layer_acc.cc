@@ -43,5 +43,6 @@ Status OpenCLMinLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 OpenCLMinLayerAcc::~OpenCLMinLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Min, LAYER_MINIMUM)
+REGISTER_OPENCL_LAYOUT(LAYER_MINIMUM, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

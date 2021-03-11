@@ -88,9 +88,9 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     {
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], input_dims);
         execute_units_[0].ocl_kernel.setArg(idx++, *inter_buffer_.get());
-        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(input_dims[2]));
-        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(input_dims[3]));
-        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(input_dims[1]));
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 2)));
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 3)));
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 1)));
         execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
     }
 
@@ -98,9 +98,9 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     {
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[1], output_dims);
         execute_units_[1].ocl_kernel.setArg(idx++, *inter_buffer_.get());
-        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(output_dims[2]));
-        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(output_dims[3]));
-        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(output_dims[1]));
+        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 2)));
+        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 3)));
+        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 1)));
         execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
     }
 
@@ -109,5 +109,7 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 
 REGISTER_OPENCL_ACC(Reshape, LAYER_RESHAPE)
 REGISTER_OPENCL_ACC(Reshape, LAYER_FLATTEN)
+REGISTER_OPENCL_LAYOUT(LAYER_RESHAPE, DATA_FORMAT_NHC4W4);
+REGISTER_OPENCL_LAYOUT(LAYER_FLATTEN, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

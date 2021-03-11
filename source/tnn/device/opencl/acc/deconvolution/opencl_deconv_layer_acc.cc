@@ -67,5 +67,6 @@ Status OpenCLDeconvLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_OPENCL_ACC(Deconv, LAYER_DECONVOLUTION)
+REGISTER_OPENCL_LAYOUT(LAYER_DECONVOLUTION, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

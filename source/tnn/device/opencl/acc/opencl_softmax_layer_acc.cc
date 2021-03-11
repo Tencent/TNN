@@ -49,11 +49,11 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     }
 
     auto output_dims    = outputs[0]->GetBlobDesc().dims;
-    const int batch     = output_dims[0];
-    int cw              = output_dims[3] * UP_DIV(output_dims[1], 4);
+    const int batch     = DimsVectorUtils::GetDim(output_dims, 0);
+    int cw              = DimsVectorUtils::GetDim(output_dims, 3) * UP_DIV(DimsVectorUtils::GetDim(output_dims, 1), 4);
 
     auto input_dims     = inputs[0]->GetBlobDesc().dims;
-    int axis_n          = input_dims[softmax_param->axis];
+    int axis_n          = DimsVectorUtils::GetDim(input_dims, softmax_param->axis);
 
     // only support fine-grained parallelism in softmax height
     bool run_local_work = softmax_param->axis == 2 && axis_n >= HighOpIntensityThre;
@@ -86,17 +86,17 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
-    const int batch     = output_dims[0];
-    const int channels  = output_dims[1];
-    const int height    = output_dims[2];
-    const int width     = output_dims[3];
-    int c4_n            = input_dims[1] / 4;
+    const int batch     = DimsVectorUtils::GetDim(output_dims, 0);
+    const int channels  = DimsVectorUtils::GetDim(output_dims, 1);
+    const int height    = DimsVectorUtils::GetDim(output_dims, 2);
+    const int width     = DimsVectorUtils::GetDim(output_dims, 3);
+    int c4_n            = DimsVectorUtils::GetDim(input_dims, 1) / 4;
 
     const int channelBlocks  = UP_DIV(channels, 4);
     const int remainChannels = channelBlocks * 4 - channels;
 
-    int cw      = output_dims[3] * channelBlocks;
-    int axis_n  = input_dims[softmax_param->axis];
+    int cw      = DimsVectorUtils::GetDim(output_dims, 3) * channelBlocks;
+    int axis_n  = DimsVectorUtils::GetDim(input_dims, softmax_param->axis);
 
     uint32_t idx = 0;
 
@@ -170,5 +170,6 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_OPENCL_ACC(Softmax, LAYER_SOFTMAX)
+REGISTER_OPENCL_LAYOUT(LAYER_SOFTMAX, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

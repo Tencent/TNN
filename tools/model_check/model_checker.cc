@@ -112,8 +112,12 @@ Status ModelChecker::RunModelChecker() {
     Status ret = TNN_OK;
 
     if (model_checker_params_.only_check_output) {
-        LOGE("ModelChecker::RunModelChecker only check output of network\n");
-        ret = RunModelCheckerOutput();
+        if (!model_checker_params_.dump_dir_path.empty()) {
+            ret = RunModelCheckerFromDumpFile();
+        } else {
+            LOGE("ModelChecker::RunModelChecker only check output of network\n");
+            ret = RunModelCheckerOutput();
+        }
     } else {
         LOGE("ModelChecker::RunModelChecker check output of all layer\n");
         ret = RunModelCheckerPerLayer();
@@ -193,6 +197,63 @@ Status ModelChecker::RunModelCheckerPerLayer() {
     }
 }
 
+Status ModelChecker::RunModelCheckerFromDumpFile() {
+    Status status = FeedInputData();
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    check_results.clear();
+
+    TNN_NS::BlobStatisticCallback cpu_func_after = [&](std::vector<TNN_NS::Blob*>& blobs, TNN_NS::LayerInfo* info) {
+        if (!check_results.empty()) {
+            return;
+        }
+
+        bool check_pass = true;
+        for (auto blob : blobs) {
+            const auto blob_name = blob->GetBlobDesc().name;
+            auto replace_name    = blob_name;
+
+            std::replace(replace_name.begin(), replace_name.end(), '/', '_');
+            const auto dump_data_path = model_checker_params_.dump_dir_path + replace_name + ".txt";
+
+            FileReader file_reader;
+            auto status = file_reader.Read(output_ref_mat_map_, dump_data_path, TEXT);
+            if (status != TNN_OK) {
+                LOGE("read input file (%s) falied!\n", dump_data_path.c_str());
+                return;
+            }
+
+            auto* dump_data_ptr = output_ref_mat_map_[replace_name]->GetData();
+            auto* tnn_data_ptr  = blob->GetHandle().base;
+            auto data_dims      = blob->GetBlobDesc().dims;
+
+            check_pass &= CompareData(dump_data_ptr, tnn_data_ptr, data_dims);
+            if (!check_pass) {
+                check_results.push_back(std::make_pair(info, check_pass));
+
+                const auto dump_path = model_checker_params_.dump_dir_path + "tnn-" + replace_name + ".txt";
+                DumpBlobData(tnn_data_ptr, data_dims, dump_path);
+                printf("TNN model and src model not aligned at %s\n", blob_name.c_str());
+                printf("You can find the output of %s of TNN at %s\n", blob_name.c_str(), dump_path.c_str());
+                printf("You can find the output of %s of source model at %s\n", blob_name.c_str(),
+                       (model_checker_params_.dump_dir_path + replace_name + ".txt").c_str());
+                return;
+            }
+        }
+    };
+
+    status = instance_cpu_->ForwardWithCallback(nullptr, cpu_func_after);
+
+    if (check_results.empty()) {
+        return TNN_OK;
+    }
+
+    LOGE("layer is not aligned! (layer name: %s,  layer type: %s)\n", check_results[0].first->name.c_str(),
+         check_results[0].first->type_str.c_str());
+
+    return Status(TNNERR_COMMON_ERROR, "model check failed");
+}
+
 Status ModelChecker::RunModelCheckerOutput() {
     // feed instance input
     auto status = FeedInputData();
@@ -265,10 +326,8 @@ Status ModelChecker::RunModelCheckerOutput() {
 
         if (model_checker_params_.dump_output) {
             printf("\ndump blob (%s) data\n", blob_name.c_str());
-            DumpBlobData(output_ref_mat_map_[blob_name]->GetData(), cpu_blob_dims,
-                         "cpu_" + blob_name + ".txt");
-            DumpBlobData(device_output_mat_map[blob_name]->GetData(), device_blob_dims,
-                         "device_" + blob_name + ".txt");
+            DumpBlobData(output_ref_mat_map_[blob_name]->GetData(), cpu_blob_dims, "cpu_" + blob_name + ".txt");
+            DumpBlobData(device_output_mat_map[blob_name]->GetData(), device_blob_dims, "device_" + blob_name + ".txt");
         }
     }
     if (check_pass) {

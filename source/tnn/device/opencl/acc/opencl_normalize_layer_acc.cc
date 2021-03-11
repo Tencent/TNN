@@ -56,7 +56,7 @@ Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
         build_options.emplace("-DNORMALIZE_P2");
     }
     std::string kernel_name;
-    if (input_dims[1] % 4 == 0) {
+    if (DimsVectorUtils::GetDim(input_dims, 1) % 4 == 0) {
         kernel_name = "NormalizeCommon0";
     } else {
         kernel_name = "NormalizeCommon";
@@ -68,10 +68,10 @@ Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
         return ret;
     }
 
-    const int batch    = input_dims[0];
-    const int height   = input_dims[2];
-    const int width    = input_dims[3];
-    const int channels = input_dims[1];
+    const int batch    = DimsVectorUtils::GetDim(input_dims, 0);
+    const int height   = DimsVectorUtils::GetDim(input_dims, 2);
+    const int width    = DimsVectorUtils::GetDim(input_dims, 3);
+    const int channels = DimsVectorUtils::GetDim(input_dims, 1);
 
     const int channel_blocks = UP_DIV(channels, 4);
     const int channel_remain = channels % 4;
@@ -95,5 +95,6 @@ Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 }
 
 REGISTER_OPENCL_ACC(Normalize, LAYER_NORMALIZE)
+REGISTER_OPENCL_LAYOUT(LAYER_NORMALIZE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

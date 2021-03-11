@@ -15,6 +15,8 @@
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 #include "tnn/utils/string_utils_inner.h"
+#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
@@ -22,7 +24,8 @@ namespace TNN_NS {
 
 Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                             const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
+    Status status = AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
+    RETURN_ON_NEQ(status, TNN_OK);
 
     param_       = param;
     resource_    = resource;
@@ -55,6 +58,9 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
     output_dims_ = outputs[0]->GetBlobDesc().dims;
 
     ConfigKernelStrategy();
+
+    status = ReloadConstantBlobs(inputs);
+    RETURN_ON_NEQ(status, TNN_OK);
 
     return TNN_OK;
 }
@@ -151,7 +157,8 @@ void OpenCLLayerAcc::ConfigKernelStrategy() {
 
 std::vector<DataFormat> OpenCLLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
     std::vector<DataFormat> support_list;
-    if (dims_size == 4) {
+    // Dims must contain N and C for OpenCL Layer
+    if (dims_size >= 2) {
         support_list.push_back(DATA_FORMAT_NHC4W4);
     }
     return support_list;
@@ -276,6 +283,22 @@ Status OpenCLLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<
         ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
         return convertor.ConvertBufferToImage(input_blob.get(), ARGUMENT, {output_channel}, ocl_handle.get(), true);
     }
+}
+
+Status OpenCLLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
+    auto const_resource = const_resource_;
+    auto const_blob_map = const_blob_map_;
+    for (auto iter : inputs) {
+        auto name = iter->GetBlobDesc().name;
+        if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
+            continue;
+        }
+
+        LOGE("OpenCL Layer not support reload blob from resource for now\n");
+        return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL Layer not support reload blob from resource for now");
+    }
+    const_blob_map_ = const_blob_map;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

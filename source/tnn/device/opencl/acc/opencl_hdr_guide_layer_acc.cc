@@ -289,5 +289,6 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
 }
 
 REGISTER_OPENCL_ACC(HdrGuide, LAYER_HDRGUIDE)
+REGISTER_OPENCL_LAYOUT(LAYER_HDRGUIDE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS
