@@ -38,7 +38,7 @@ BlobMemorySizeInfo Calculate1DMemorySize(BlobDesc& desc) {
 BlobMemorySizeInfo Calculate2DCLImageMemorySize(BlobDesc& desc) {
     BlobMemorySizeInfo info;
     info.data_type = desc.data_type;
-    if (desc.data_format == DATA_FORMAT_NHC4W4) {
+    if (desc.data_format == DATA_FORMAT_NHC4W4 || desc.data_format == DATA_FORMAT_AUTO) {
         int batch, channel, height, width;
         auto dims        = desc.dims;
         batch            = DimsVectorUtils::GetDim(dims, 0);
@@ -47,6 +47,16 @@ BlobMemorySizeInfo Calculate2DCLImageMemorySize(BlobDesc& desc) {
         width            = DimsVectorUtils::GetDim(dims, 3);
         int image_width  = UP_DIV(channel, 4) * width;
         int image_height = batch * height;
+        info.dims.push_back(image_width);
+        info.dims.push_back(image_height);
+    } else if (desc.data_format == DATA_FORMAT_CNH4) {
+        int batch, channel, height;
+        auto dims        = desc.dims;
+        batch            = DimsVectorUtils::GetDim(dims, 0);
+        channel          = DimsVectorUtils::GetDim(dims, 1);
+        height           = DimsVectorUtils::GetDim(dims, 2);
+        int image_width  = UP_DIV(height, 4);
+        int image_height = channel * batch;
         info.dims.push_back(image_width);
         info.dims.push_back(image_height);
     } else {

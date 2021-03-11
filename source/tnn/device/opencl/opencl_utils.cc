@@ -580,4 +580,19 @@ uint32_t SetExecuteUnit2DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dim
     return idx;
 }
 
+// set execute unit 2d global size for cnh4, local size and kernel arguments.
+uint32_t SetExecuteUnit2DSizeInfoCNH4(OpenCLExecuteUnit &unit, DimsVector dims) {
+    unit.global_work_size = {
+        // height-blocks
+        static_cast<uint32_t>(UP_DIV(DimsVectorUtils::GetDim(dims, 2), 4)),
+        // channel * batch
+        static_cast<uint32_t>(DimsVectorUtils::GetDim(dims, 1) * DimsVectorUtils::GetDim(dims, 0)),
+    };
+    unit.local_work_size = LocalWS2DDefault(unit);
+    uint32_t idx         = 0;
+    unit.ocl_kernel.setArg(idx++, unit.global_work_size[0]);
+    unit.ocl_kernel.setArg(idx++, unit.global_work_size[1]);
+    return idx;
+}
+
 }  // namespace TNN_NS

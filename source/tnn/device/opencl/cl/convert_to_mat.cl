@@ -70,6 +70,49 @@ __kernel void ConvertToNCHW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input_ptr,
     }
 }
 
+__kernel void CNH4BlobConvertToNCHW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input_ptr,
+                                    __global float *output, __private const int height,
+                                    __private const int batch,
+                                    __private const int channels,
+                                    __constant float* scale,
+                                    __constant float* bias) {
+    int image_width_idx  = get_global_id(0);
+    int image_height_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(image_width_idx, image_height_idx);
+
+    const int batch_idx     = image_height_idx / batch;
+    const int channel_idx   = image_height_idx % batch;
+    const int height_4_idx  = image_width_idx << 2;
+
+    int buffer_offset =
+        (batch_idx * channels + channel_idx) * height + height_4_idx;
+    float4 values = read_imagef(input_ptr, SAMPLER,
+                                (int2)(image_width_idx, image_height_idx));
+
+    const int remain_height = height - height_4_idx;
+
+    if (remain_height >= 4) {
+        int offset     = buffer_offset;
+        output[offset++] = values.x;
+        output[offset++] = values.y;
+        output[offset++] = values.z;
+        output[offset]   = values.w;
+    } else if (remain_height == 3) {
+        int offset     = buffer_offset;
+        output[offset++] = values.x;
+        output[offset++] = values.y;
+        output[offset] = values.z;
+    } else if (remain_height == 2) {
+        int offset     = buffer_offset;
+        output[offset++] = values.x;
+        output[offset] = values.y;
+    } else if (remain_height == 1) {
+        int offset     = buffer_offset;
+        output[offset] = values.x;
+    }
+}
+
 __kernel void ConvertToN8UC4(GLOBAL_SIZE_2_DIMS __read_only image2d_t input_ptr,
                              __global uchar *output, __private const int height,
                              __private const int width,
