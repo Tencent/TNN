@@ -350,11 +350,7 @@ def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
         tnn_name = convert_name.onnx_name2tnn_name(name)
         tnn_info = tnn_input_info[tnn_name]
         if check_shape_info(onnx_info, tnn_info) == True:
-<<<<<<< HEAD
             logging.info("Input shape of onnx and tnn is aligned!\n")
-=======
-            logging.info("Check onnx input shape and tnn input shape align!\n")
->>>>>>> master
         else:
             logging.error("input is not algin 194\n")
             print_not_align_message(
