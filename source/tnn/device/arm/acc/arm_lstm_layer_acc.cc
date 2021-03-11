@@ -19,12 +19,14 @@
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
 static void LstmActivate(const int count, const float *g_ptr, float *c_ptr, float *h_ptr, float *o_ptr) {
-    for (int q = 0; q < count / 4; ++q) {
-        Float4x4 gates_iofc = Float4x4::ld4(g_ptr);
+    OMP_PARALLEL_FOR_
+    for (int q = 0; q < count - 3; q += 4) {
+        Float4x4 gates_iofc = Float4x4::ld4(g_ptr + q * 4);
         Float4 I, O, F, C;
         gates_iofc.get_lane(I, 0);
         gates_iofc.get_lane(O, 1);
@@ -36,15 +38,11 @@ static void LstmActivate(const int count, const float *g_ptr, float *c_ptr, floa
         O = Float4::sigmoid(O);
         C = Float4::tanh(C);
 
-        Float4 cell2 = F * Float4::load(c_ptr) + I * C;
+        Float4 cell2 = F * Float4::load(c_ptr + q) + I * C;
         Float4 H     = O * Float4::tanh(cell2);
-        Float4::save(c_ptr, cell2);
-        Float4::save(h_ptr, H);
-        Float4::save(o_ptr, H);
-        c_ptr += 4;
-        h_ptr += 4;
-        o_ptr += 4;
-        g_ptr += 16;
+        Float4::save(c_ptr + q, cell2);
+        Float4::save(h_ptr + q, H);
+        Float4::save(o_ptr + q, H);
     }
     int remain = count % 4;
     if (remain) {
@@ -80,7 +78,8 @@ Status ArmLSTMONNXLayerAcc::LstmSingleDirection(const float *x, float *y, const 
 
     RawBuffer gates             = RawBuffer(seq_len * batch_size * hidden_size * 4 * sizeof(float));
     auto gates_ptr              = gates.force_to<float *>();
-    RawBuffer buffer_input_pack = RawBuffer(seq_len * batch_size * input_size * sizeof(float) + NEON_KERNEL_EXTRA_LOAD);
+    int input_pack_count        = MAX(seq_len * batch_size * input_size, batch_size * hidden_size);
+    RawBuffer buffer_input_pack = RawBuffer(input_pack_count * sizeof(float) + NEON_KERNEL_EXTRA_LOAD);
     auto input_pack_ptr         = buffer_input_pack.force_to<float *>();
     GemmFloatPackA(seq_len * batch_size, hidden_size * 4, input_size, x, input_pack_ptr, input_size, w, hidden_size * 4,
                    gates_ptr, hidden_size * 4);
@@ -233,15 +232,13 @@ Status ArmLSTMONNXLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     auto h_t = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[1]->GetHandle()));
     auto c_t = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[2]->GetHandle()));
     if (inputs.size() >= 6) {
-        if (inputs.size() >= 6) {
-            auto h_0 = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[4]->GetHandle()));
-            memcpy((void *)h_t, h_0, num_directions * batch * hidden_size * sizeof(float));
-            auto c_0 = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[5]->GetHandle()));
-            memcpy((void *)c_t, c_0, num_directions * batch * hidden_size * sizeof(float));
-        } else {
-            memset((void *)h_t, 0, num_directions * batch * hidden_size * sizeof(float));
-            memset((void *)c_t, 0, num_directions * batch * hidden_size * sizeof(float));
-        }
+        auto h_0 = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[4]->GetHandle()));
+        memcpy((void *)h_t, h_0, num_directions * batch * hidden_size * sizeof(float));
+        auto c_0 = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[5]->GetHandle()));
+        memcpy((void *)c_t, c_0, num_directions * batch * hidden_size * sizeof(float));
+    } else {
+        memset((void *)h_t, 0, num_directions * batch * hidden_size * sizeof(float));
+        memset((void *)c_t, 0, num_directions * batch * hidden_size * sizeof(float));
     }
 
     float *w = buffer_weight_input_.force_to<float *>();
