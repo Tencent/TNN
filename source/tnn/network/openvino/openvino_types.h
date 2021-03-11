@@ -29,14 +29,6 @@
 
 namespace TNN_NS {
 
-//@brief Empty op 
-class EmptyNode: public ngraph::Node {
-    using NodeTypeInfo = Node::type_info_t;
-public:
-    static NodeTypeInfo type_info;
-    const NodeTypeInfo& get_type_info() const override { return type_info; }
-};
-
 //@brief Base Type of a OpenvinoTensor 
 class OpenvinoTensor: public ForeignTensor {
 public:
