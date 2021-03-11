@@ -61,9 +61,12 @@ static const std::vector<std::string> g_opencl_library_paths = {
     "/usr/lib32/libOpenCL.so",
     "libOpenCL.so"
 #elif defined(_WIN32)
+    // SysWOW64/OpenCL.dll is 32-bit 
+    "C:/Windows/SysWOW64/OpenCL.dll",
     "C:/Windows/System32/OpenCL.dll"
 #elif defined(_WIN64)
-    "C:/Windows/System32/OpenCL.dll"
+    "C:/Windows/System32/OpenCL.dll",
+    "C:/Windows/SysWOW64/OpenCL.dll"
 #endif
 };
 
@@ -95,6 +98,7 @@ bool OpenCLSymbols::LoadOpenCLLibrary() {
     }
     for (const auto &opencl_lib : g_opencl_library_paths) {
         if (LoadLibraryFromPath(opencl_lib)) {
+            LOGD("OpenCL Lib Path: %s\n", opencl_lib.c_str());
             return true;
         }
     }
