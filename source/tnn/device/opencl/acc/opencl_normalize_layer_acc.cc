@@ -35,6 +35,9 @@ Status OpenCLNormalizeLayerAcc::Init(Context *context, LayerParam *param, LayerR
 
 Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Normalize Layer Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     auto norm_param = dynamic_cast<NormalizeLayerParam *>(param_);
     if (!norm_param) {
         LOGE("Error: layer param is null\n");
@@ -62,7 +65,7 @@ Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
         kernel_name = "NormalizeCommon";
     }
 
-    Status ret = CreateExecuteUnit(execute_units_[0], "normalize", kernel_name, build_options);
+    ret = CreateExecuteUnit(execute_units_[0], "normalize", kernel_name, build_options);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

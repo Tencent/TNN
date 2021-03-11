@@ -41,6 +41,9 @@ Status OpenCLPowLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 
 Status OpenCLPowLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Pow Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     PowLayerParam *pow_param = dynamic_cast<PowLayerParam *>(param_);
     if (!pow_param) {
         LOGE("Error: layer param is null\n");

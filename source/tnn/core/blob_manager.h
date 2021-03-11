@@ -85,7 +85,8 @@ protected:
 
     NetworkConfig config_;
     NetStructure *net_structure_;
-    BlobMemoryPool *blob_memory_pool_;
+    // dimension-memory pool
+    std::map<int, BlobMemoryPool *> blob_memory_pool_map_;
     AbstractDevice *device_;
     BlobMap input_blobs_;
     BlobMap output_blobs_;

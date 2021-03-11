@@ -89,6 +89,9 @@ OpenCLReduceLayerAcc::~OpenCLReduceLayerAcc() {}
 
 Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Reduce Layer Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     auto reduce_param = dynamic_cast<ReduceLayerParam *>(param_);
     if (!reduce_param) {
         LOGE("Error: layer param is null\n");

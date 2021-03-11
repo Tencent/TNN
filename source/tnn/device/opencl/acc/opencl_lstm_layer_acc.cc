@@ -52,6 +52,9 @@ OpenCLLSTMONNXLayerAcc::~OpenCLLSTMONNXLayerAcc() {}
 
 Status OpenCLLSTMONNXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("LSTMONNX Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     auto layer_param = dynamic_cast<LSTMONNXLayerParam *>(param_);
     if (!layer_param) {
         LOGE("Error: LSTMONNX layer param is null\n");
@@ -91,7 +94,7 @@ Status OpenCLLSTMONNXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
         blob_c0 = ocl_zero_state_blob_.get();
     }
 
-    Status ret = AllocateGates(num_directions, hidden_size, batch, sequence, ocl_gates_);
+    ret = AllocateGates(num_directions, hidden_size, batch, sequence, ocl_gates_);
     if (ret != TNN_OK) {
         return Status(TNNERR_LAYER_ERR, "Allocate gates failed");
     }
@@ -577,7 +580,7 @@ Status OpenCLLSTMONNXLayerAcc::AllocateGates(int num_directions,
     return TNN_OK;
 }
 
-std::vector<DataFormat> OpenCLLSTMONNXLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> OpenCLLSTMONNXLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (dims_size >= 2) {
         support_list.push_back(DATA_FORMAT_CNH4);

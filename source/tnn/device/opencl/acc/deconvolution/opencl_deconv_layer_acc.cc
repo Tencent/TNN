@@ -53,6 +53,9 @@ Status OpenCLDeconvLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 OpenCLDeconvLayerAcc::~OpenCLDeconvLayerAcc() {}
 
 Status OpenCLDeconvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     if (deconv_acc_implement_ == nullptr)
         return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "this type deconv is not implemented");
 

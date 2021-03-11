@@ -75,6 +75,9 @@ Status OpenCLArgMaxOrMinLayerAcc::Init(Context *context, LayerParam *param, Laye
 
 Status OpenCLArgMaxOrMinLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("ArgMaxOrMin Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     ArgMaxOrMinLayerParam *arg_max_or_min_param = dynamic_cast<ArgMaxOrMinLayerParam *>(param_);
     if (!arg_max_or_min_param) {
         LOGE("Error: layer param is null\n");

@@ -83,6 +83,9 @@ Status OpenCLPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
 Status OpenCLPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Pooling Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     PoolingLayerParam *pooling_param = dynamic_cast<PoolingLayerParam *>(param_);
     if (!pooling_param) {
         LOGE("Error: layer param is null\n");

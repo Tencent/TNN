@@ -51,6 +51,9 @@ Status OpenCLPadLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 
 Status OpenCLPadLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Pad Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     PadLayerParam *pad_param = dynamic_cast<PadLayerParam *>(param_);
     if (!pad_param) {
         LOGE("Error: layer param is null\n");

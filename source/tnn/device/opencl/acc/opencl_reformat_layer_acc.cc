@@ -55,6 +55,9 @@ OpenCLReformatLayerAcc::~OpenCLReformatLayerAcc() {}
 Status OpenCLReformatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Reformat Layer Reshape\n");
     ASSERT(inputs.size() == 1);
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
 
     auto input_dims = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
@@ -86,7 +89,7 @@ Status OpenCLReformatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
     return TNN_OK;
 }
 
-std::vector<DataFormat> OpenCLReformatLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> OpenCLReformatLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list{DATA_FORMAT_NHC4W4, DATA_FORMAT_CNH4};
     return support_list;
 }

@@ -161,6 +161,8 @@ OpenCLHdrGuideLayerAcc::~OpenCLHdrGuideLayerAcc() {}
 Status OpenCLHdrGuideLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("HDRGuide Layer Reshape\n");
     ASSERT(inputs.size() == 1);
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
 
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;

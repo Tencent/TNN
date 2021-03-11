@@ -210,7 +210,7 @@ Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std
     return status;
 }
 
-std::vector<DataFormat> OpenCLCpuAdapterAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> OpenCLCpuAdapterAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (dims_size >= 2) {
         support_list.push_back(DATA_FORMAT_NHC4W4);

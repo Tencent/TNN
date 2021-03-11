@@ -27,7 +27,7 @@ Status X86LayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
     return Reshape(inputs, outputs);
 }
 
-std::vector<DataFormat> X86LayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> X86LayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
         support_list.push_back(DATA_FORMAT_NCHW);

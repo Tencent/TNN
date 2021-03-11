@@ -46,7 +46,7 @@ protected:
     // gates buffer
     id<MTLBuffer> buffer_gates_ = nil;
 private:
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size);
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);
 
 };
 

@@ -52,7 +52,7 @@ Status ArmLayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
     return TNN_OK;
 }
 
-std::vector<DataFormat> ArmLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> ArmLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
         if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16)

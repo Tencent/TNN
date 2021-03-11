@@ -152,5 +152,7 @@ uint32_t SetExecuteUnit2DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dim
 
 uint32_t SetExecuteUnit2DSizeInfoCNH4(OpenCLExecuteUnit &unit, DimsVector dims);
 
+uint32_t SetExecuteUnit2DSizeInfoNCHW(OpenCLExecuteUnit &unit, DimsVector dims);
+
 }  // namespace TNN_NS
 #endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILES_H_

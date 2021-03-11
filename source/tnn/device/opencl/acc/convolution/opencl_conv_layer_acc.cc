@@ -60,6 +60,9 @@ Status OpenCLConvLayerAcc::Init(Context *context, LayerParam *param, LayerResour
 OpenCLConvLayerAcc::~OpenCLConvLayerAcc() {}
 
 Status OpenCLConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     if (conv_acc_implement_ == nullptr)
         return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "this type conv acc is not implemented");
 

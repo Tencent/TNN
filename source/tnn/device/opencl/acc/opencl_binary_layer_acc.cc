@@ -88,6 +88,8 @@ OpenCLBinaryLayerAcc::~OpenCLBinaryLayerAcc() {}
 
 Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Binary Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
 
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 

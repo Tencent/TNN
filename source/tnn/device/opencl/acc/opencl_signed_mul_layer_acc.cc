@@ -46,6 +46,9 @@ Status OpenCLSignedMulLayerAcc::Init(Context *context, LayerParam *param, LayerR
 
 Status OpenCLSignedMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("SignedMul Layer Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     SignedMulLayerParam *signed_mul_param = dynamic_cast<SignedMulLayerParam *>(param_);
     if (!signed_mul_param) {
         LOGE("Error: layer param is null\n");
