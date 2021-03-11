@@ -31,7 +31,7 @@ static std::string GenerateReduceProto(std::string op_type, ReduceLayerParam par
 
 class ReduceOpLayerTest
     : public LayerTest,
-      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, std::vector<int>, DataType>> {};
+      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, std::vector<int>, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                          ::testing::Combine(testing::Values(1, 2),
@@ -40,6 +40,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                                             testing::Values(9, 10, 19, 128),
                                             // keep_dim
                                             testing::Values(0, 1),
+                                            // dim count
+                                            testing::Values(2, 3, 4),
                                             // axis
                                             testing::Values(std::vector<int>({1}), std::vector<int>({2}),
                                                             std::vector<int>({3}), std::vector<int>({1, 2}),
@@ -55,8 +57,9 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     int input_height   = std::get<2>(GetParam());
     int input_width    = std::get<3>(GetParam());
     int keep_dims      = std::get<4>(GetParam());
-    auto& axis         = std::get<5>(GetParam());
-    DataType data_type = std::get<6>(GetParam());
+    int dim_count      = std::get<5>(GetParam());
+    auto& axis         = std::get<6>(GetParam());
+    DataType data_type = std::get<7>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
     // only test one case for large inputs
@@ -67,8 +70,14 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     }
 
     // blobconverter cannot handle 1-dimensional blob, skip it for now
-    if (axis.size() >= 3) {
+    if (dim_count <= axis.size()+1 && keep_dims == 0) {
         GTEST_SKIP();
+    }
+
+    for(const auto& d: axis) {
+        if (d >= dim_count || d + dim_count < 0) {
+            GTEST_SKIP();
+        }
     }
 
     // param
@@ -78,7 +87,13 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     param->keep_dims = keep_dims;
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_height, input_width};
+    //std::vector<int> input_dims = {batch, channel, input_height, input_width};
+    std::vector<int> input_dims = {batch, channel};
+    for(int i=input_dims.size(); i<dim_count; ++i) {
+        if (i % 2 == 0) input_dims.push_back(input_height);
+        else input_dims.push_back(input_width);
+    }
+
 
     if (DEVICE_HUAWEI_NPU != dev) {
         auto interpreter1 = GenerateInterpreter("ReduceMax", {input_dims}, param);

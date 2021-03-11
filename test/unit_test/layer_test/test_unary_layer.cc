@@ -26,7 +26,8 @@ void UnaryLayerTest::RunUnaryTest(std::string type_str) {
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
     int input_size     = std::get<2>(GetParam());
-    DataType data_type = std::get<3>(GetParam());
+    int dim_count      = std::get<3>(GetParam());
+    DataType data_type = std::get<4>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
     if ((type_str == "Reciprocal" || type_str == "Softplus") && DEVICE_CUDA == dev) {
@@ -54,7 +55,8 @@ void UnaryLayerTest::RunUnaryTest(std::string type_str) {
     Precision precision = SetPrecision(dev, data_type);
     
     // generate proto string
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
     if (DATA_TYPE_INT8 == data_type) {
         param->quantized = true;
     }

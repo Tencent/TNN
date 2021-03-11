@@ -39,6 +39,7 @@ Status MetalPowLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, 
     {
         MetalPowParams metal_params;
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
+        FixDefaultMetalParams(metal_params, dims_input, dims_output);
 
         metal_params.scale    = layer_param->scale;
         metal_params.shift    = layer_param->shift;

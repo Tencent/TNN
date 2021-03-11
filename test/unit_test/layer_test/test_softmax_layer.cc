@@ -21,13 +21,15 @@
 namespace TNN_NS {
 
 class SoftmaxLayerTest : public LayerTest,
-                         public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
+                         public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, SoftmaxLayerTest,
                          ::testing::Combine(testing::Values(1, 2), testing::Values(10, 12, 10, 12, 512),
                                             testing::Values(10, 512), testing::Values(10, 512),
                                             // axis
-                                            testing::Values(1, 2),
+                                            testing::Values(0, 1, 2, 3, 4),
+                                            // dim count
+                                            testing::Values(2, 3, 4, 5),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_BFP16)));
 
@@ -38,7 +40,8 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     int input_height   = std::get<2>(GetParam());
     int input_width    = std::get<3>(GetParam());
     int axis           = std::get<4>(GetParam());
-    DataType data_type = std::get<5>(GetParam());
+    int dim_count      = std::get<5>(GetParam());
+    DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
     if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
@@ -61,6 +64,10 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
+    if (axis >= dim_count) {
+        GTEST_SKIP();
+    }
+
     if ((channel == 512 && input_height == 512) || (input_width == 512 && input_height == 512) ||
         (channel == 512 && input_width == 512)) {
         GTEST_SKIP();
@@ -74,7 +81,13 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     auto precision = SetPrecision(dev, data_type);
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_height, input_width};
+    std::vector<int> input_dims = {batch, channel};
+    std::vector<int> input_sizes = {input_height, input_width};
+    auto idx = 0;
+    while(input_dims.size() < dim_count) {
+        input_dims.push_back(input_sizes[idx]);
+        idx  = (idx + 1) % 2;
+    }
     auto interpreter            = GenerateInterpreter("Softmax", {input_dims}, param);
     Run(interpreter, precision);
 }

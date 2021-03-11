@@ -103,3 +103,55 @@ kernel void splitv_axis_3(const device ftype4 *src                 [[buffer(0)]]
 
     dst[index_out] = src[index_in];
 }
+
+
+kernel void splitv_axis_1_common(const device ftype4 *src                       [[buffer(0)]],
+                                    device ftype4 *dst                            [[buffer(1)]],
+                                    constant MetalSplitVParamV2 &params     [[buffer(2)]],
+                                    constant int &axis_offset           [[buffer(3)]],
+                                    constant int &axis_size               [[buffer(4)]],
+                                    uint3 gid                                          [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.inner_size, axis_size, params.outer_size)))
+        return;
+    
+    int index_out = (int)gid.z*axis_size*params.inner_size + (int)gid.y*params.inner_size + (int)gid.x;
+    
+    const int input_channel_count = params.axis_size*4;
+    int4 input_channeles = (int)gid.y*4 + int4(0, 1, 2, 3) + axis_offset;
+    int4 input_slice = input_channeles / 4;
+    input_slice = min(input_slice, params.axis_size-1);
+    int4 input_i = input_channeles % 4;
+    
+    int4 index_in = (int)gid.z*params.axis_size*params.inner_size + input_slice*params.inner_size + (int)gid.x;
+    
+    if (all( index_in == index_in.yzwx) &&
+        all( input_i == int4(0, 1, 2, 3)) &&
+        all( input_channeles < int4(input_channel_count)) ) {
+        dst[index_out] = src[index_in[0]];
+    } else {
+        dst[index_out] = ftype4(
+            src[index_in[0]][input_i[0]],
+            src[index_in[1]][input_i[1]],
+            src[index_in[2]][input_i[2]],
+            src[index_in[3]][input_i[3]]
+        );
+    }
+}
+
+kernel void splitv_common(const device ftype4 *src                       [[buffer(0)]],
+                            device ftype4 *dst                            [[buffer(1)]],
+                            constant MetalSplitVParamV2 &params     [[buffer(2)]],
+                            constant int &axis_offset           [[buffer(3)]],
+                            constant int &axis_size               [[buffer(4)]],
+                            uint3 gid                                          [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.inner_size, axis_size, params.outer_size)))
+        return;
+    
+    int index_out = (int)gid.z*axis_size*params.inner_size + (int)gid.y*params.inner_size + (int)gid.x;
+    
+    int input_axis_offset = axis_offset + (int)gid.y;
+    
+    int index_in = (int)gid.z*params.axis_size*params.inner_size + input_axis_offset*params.inner_size + (int)gid.x;
+    
+    dst[index_out] = src[index_in];
+}

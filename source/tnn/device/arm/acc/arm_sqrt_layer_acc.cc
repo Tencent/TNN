@@ -24,6 +24,7 @@ typedef struct arm_sqrt_operator : arm_unary_operator {
 
 DECLARE_ARM_UNARY_ACC(Sqrt, ARM_SQRT_OP);
 REGISTER_ARM_ACC(Sqrt, LAYER_SQRT)
+REGISTER_ARM_LAYOUT(LAYER_SQRT, DATA_FORMAT_NC4HW4)
 
 typedef struct arm_rsqrt_operator : arm_unary_operator {
     virtual Float4 operator()(const Float4& v) {

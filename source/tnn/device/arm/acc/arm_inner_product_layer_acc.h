@@ -34,6 +34,8 @@ public:
     template <typename T>
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+    Status ExecGemmFloat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
     // alloc for fc bias and pack c4
     virtual Status allocateBufferBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
@@ -41,6 +43,9 @@ protected:
     RawBuffer buffer_weight_;
     RawBuffer buffer_bias_;
     RawBuffer buffer_scale_;
+
+    RawBuffer buffer_gemm_weight_;
+    int support_gemm_ = 0;
 };
 
 }  // namespace TNN_NS

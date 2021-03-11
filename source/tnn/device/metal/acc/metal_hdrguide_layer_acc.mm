@@ -495,9 +495,10 @@ Status MetalHDRGuideLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     auto input  = inputs[0];
     auto output = outputs[0];
 
-    auto dims_output  = output->GetBlobDesc().dims;
-    auto output_width = dims_output[3], output_height = dims_output[2],
-         output_slice = UP_DIV(dims_output[1], 4) * dims_output[0];
+    auto dims_output   = output->GetBlobDesc().dims;
+    auto output_width  = GetBlobDim(dims_output, 3),
+         output_height = GetBlobDim(dims_output, 2),
+         output_slice  = UP_DIV(dims_output[1], 4) * dims_output[0];
 
     Status status = TNN_OK;
     MetalBandwidth bandwidth;

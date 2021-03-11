@@ -22,6 +22,10 @@ namespace TNN_NS {
 DECLARE_METAL_ACC(Softmax, LAYER_SOFTMAX);
 
 Status MetalSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto layer_param = dynamic_cast<SoftmaxLayerParam *>(param_);
+    const auto& input_dims = inputs[0]->GetBlobDesc().dims;
+    layer_param->axis = (layer_param->axis + input_dims.size()) % input_dims.size();
+
     return MetalLayerAcc::Reshape(inputs, outputs);
 }
 
@@ -31,10 +35,27 @@ Status MetalSoftmaxLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
 
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
+    auto layer_param = dynamic_cast<SoftmaxLayerParam *>(param_);
+    if (layer_param->axis != 1) {
+        auto dims_input  = inputs[0]->GetBlobDesc().dims;
+        auto input_channel = dims_input[1];
+        dims_input[1] = UP_DIV(input_channel, 4);
+        MetalArgMaxOrMinParams metal_params;
+        metal_params.input_channel = input_channel;
+        auto axis = layer_param->axis;
+        metal_params.reduce_size = dims_input[axis];
+        metal_params.outer_size  = DimsVectorUtils::Count(dims_input, 0, axis);
+        metal_params.inner_size  = DimsVectorUtils::Count(dims_input, axis+1);
+
+        buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
+                                            length:sizeof(MetalArgMaxOrMinParams)
+                                           options:MTLResourceCPUCacheModeWriteCombined];
+        return TNN_OK;
+    }
     // buffer_param_
     {
         MetalSoftmaxParams metal_params;
-        metal_params.output_width   = GetBlobDim(output_dims, 3);
+        metal_params.output_width   = GetBlobCount(output_dims, 3);
         metal_params.output_height  = GetBlobDim(output_dims, 2);
         metal_params.output_size    = metal_params.output_height * metal_params.output_width;
         metal_params.output_slice   = UP_DIV(output_dims[1], 4);
@@ -75,14 +96,6 @@ Status MetalSoftmaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     auto input  = inputs[0];
     auto output = outputs[0];
 
-    auto output_dims    = output->GetBlobDesc().dims;
-    auto batch          = output_dims[0];
-    auto output_channel = output_dims[1];
-    auto output_height  = GetBlobDim(output_dims, 2);
-    auto output_width   = GetBlobDim(output_dims, 3);
-    auto output_slice   = UP_DIV(output_dims[1], 4);
-    auto mode           = output_dims[1] % 4;
-
     MetalBandwidth bandwidth;
     Status status      = TNN_OK;
     DataType data_type = output->GetBlobDesc().data_type;
@@ -93,6 +106,13 @@ Status MetalSoftmaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
             status = Status(TNNERR_LAYER_ERR, "data type is unsupported");
         }
         BREAK_IF(status != TNN_OK);
+        auto output_dims    = output->GetBlobDesc().dims;
+        auto batch          = output_dims[0];
+        auto output_channel = output_dims[1];
+        auto output_height  = GetBlobDim(output_dims, 2);
+        auto output_width   = GetBlobCount(output_dims, 3);
+        auto output_slice   = UP_DIV(output_dims[1], 4);
+        auto mode           = output_dims[1] % 4;
 
         MTLSize threads;
         if (layer_param->axis == 1) {
@@ -109,12 +129,9 @@ Status MetalSoftmaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
                     status = [context_impl load:@"softmax_axis_1_common" encoder:encoder bandwidth:bandwidth];
                 }
             }
-        } else if (layer_param->axis == 2) {
-            threads = {(NSUInteger)output_width, 1, (NSUInteger)batch * output_slice};
-            status  = [context_impl load:@"softmax_axis_2_common" encoder:encoder bandwidth:bandwidth];
         } else {
-            LOGE("Softmax do not support axis!=1 \n");
-            status = Status(TNNERR_LAYER_ERR, "Softmax type is not supported");
+            GetSingleAxisSplitSize(output_dims, layer_param->axis, threads, true);
+            status  = [context_impl load:@"softmax_common" encoder:encoder bandwidth:bandwidth];
         }
         BREAK_IF(status != TNN_OK);
 
