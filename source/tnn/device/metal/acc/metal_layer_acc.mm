@@ -237,6 +237,20 @@ MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
     }
 }
 
+MTLSize GetDefaultThreadSizeFusedLast(DimsVector dims, bool combineHeightWidth) {
+    auto output_height  = GetBlobDim(dims, 2);
+    auto output_width   = GetBlobCount(dims, 3);
+    auto output_size  = output_width * output_height;
+    auto output_slice = UP_DIV(dims[1], 4);
+    auto output_batch = dims[0];
+    
+    if (combineHeightWidth) {
+        return MTLSizeMake(output_size, output_slice, output_batch);
+    } else {
+        return MTLSizeMake(output_width, output_height, output_batch*output_slice);
+    }
+}
+
 void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, bool reduce_on_axis) {
     auto axis_size = GetBlobDim(dims, axis);
     auto dims_copy = dims;

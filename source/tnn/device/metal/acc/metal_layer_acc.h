@@ -77,6 +77,8 @@ private:
 
 MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth);
 
+MTLSize GetDefaultThreadSizeFusedLast(DimsVector dims, bool combineHeightWidth);
+
 struct MetalParams GetDefaultMetalParams(DimsVector input, DimsVector output);
 
 // @brief allocate metal buffer form RawBuffer, like conv bias
