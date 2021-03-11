@@ -67,6 +67,9 @@ public:
                                   DimsVector& begins, DimsVector& ends, const DimsVector strides,
                                   const DimsVector axes, Status *status);
     
+    // @brief Tile op to repeat input dims
+    static DimsVector Tile(const DimsVector input_dims, const DimsVector reps);
+    
     // @brief upsample/resize op to resize input dims
     static DimsVector Upsample(const DimsVector input_dims,
                                   std::vector<float> scales, std::vector<int> sizes, int mode, Status *status);
@@ -89,6 +92,10 @@ public:
     // @brief Increase index by offset, bounded by shape
     // @param index
     static DimsVector IncreaseIndex(DimsVector index, const DimsVector shape, int offset = 1);
+    
+    // @brief Mod index by shape
+    // @param index
+    static DimsVector ModIndex(DimsVector index, const DimsVector shape);
     
     // @brief compute stride of shape index by offset, bounded by shape
     // @param shape

@@ -86,6 +86,13 @@ struct GroupNormLayerParam : public LayerParam {
     PARAM_COPY(GroupNormLayerParam)
 };
 
+struct TileLayerParam : public LayerParam {
+    //nchw order
+    std::vector<int> reps;
+
+    PARAM_COPY(TileLayerParam)
+};
+
 struct ConvLayerParam : public LayerParam {
     int pad_type = -1;
     // input channels of blob, devide by group
