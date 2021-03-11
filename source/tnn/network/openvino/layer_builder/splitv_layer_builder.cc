@@ -54,9 +54,9 @@ Status SplitvOVLayerBuilder::Build() {
         return true;
     };
 
-    // if (0) {
-    if (get_split_flag()) {
-        LOGD("SplitV: use split operation");
+    if (0) {
+    // if (get_split_flag()) {
+        LOGD("SplitV: use split operation\n");
         // use split instead of splitV
         auto axis_node = std::make_shared<ngraph::op::Constant>(ngraph::element::i32, ngraph::Shape(), param->axis);
         auto splitNode = std::make_shared<ngraph::op::v1::Split>(input_node->output(0), axis_node->output(0), param->slices.size());
@@ -71,12 +71,14 @@ Status SplitvOVLayerBuilder::Build() {
 
         SetOutputTensors(outputNodes);
     } else {
-        LOGD("SplitV: use strideslice operation");
+        LOGD("SplitV: use strideslice operation\n");
         // use stride slice instead of splitV
         std::vector<int> begins, ends;
         std::vector<int64_t> begin_mask, end_mask;
         size_t input_dims = input_node->get_output_shape(0).size();
         ngraph::Shape dims_shape({input_dims});
+
+        auto output_blobs = GetOutputBlobs();
 
         for (int i = 0; i < input_dims; i++) {
             if (i == param->axis) {
@@ -104,6 +106,8 @@ Status SplitvOVLayerBuilder::Build() {
             auto strideSliceNode = std::make_shared<ngraph::op::v1::StridedSlice>(
                 input_node->output(0), beginNode, endNode, begin_mask, end_mask);
             
+            strideSliceNode->set_friendly_name(output_blobs[i]->GetBlobDesc().name);
+            strideSliceNode->validate_and_infer_types();
             outputNodes.push_back(strideSliceNode);
         }
 
