@@ -207,6 +207,7 @@ enum LayerType {
     LAYER_ROIALIGN                                          = 317,
     LAYER_GROUP_NORM                                 = 318,
     LAYER_ONEHOT                                            = 319,
+    LAYER_INVERSE                                            = 320,
 
     LAYER_BLOB_SCALE                                        = 600,
 
