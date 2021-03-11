@@ -138,7 +138,7 @@ __global__ void cbam_fused_pooling_half_kernel(const __half *input, __half* outp
         sum = ssum[threadIdx.x];
     } else {
         thread_max = 0;
-        sum = {0, 0};
+        sum = __halves2half2(0, 0);
     }
 
     thread_max = fmaxf(thread_max, __shfl_down_sync(0x0000000f, thread_max, 2, 4));

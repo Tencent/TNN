@@ -613,6 +613,7 @@
 		9DF5444D258B162F006CEC97 /* npu_common_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DF54446258B162F006CEC97 /* npu_common_utils.cc */; };
 		9DF5444F258B162F006CEC97 /* random_data_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DF54448258B162F006CEC97 /* random_data_utils.h */; };
 		9DF54450258B162F006CEC97 /* random_data_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DF54449258B162F006CEC97 /* random_data_utils.cc */; };
+		E43D68B525C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S in Sources */ = {isa = PBXBuildFile; fileRef = E43D68B425C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S */; };
 		E4D05BA5259DCB2E00921502 /* arm_conv_fp16_layer_depthwise.cc in Sources */ = {isa = PBXBuildFile; fileRef = E4D05B7C259DCB2D00921502 /* arm_conv_fp16_layer_depthwise.cc */; };
 		E4D05BA6259DCB2E00921502 /* compute_half.h in Headers */ = {isa = PBXBuildFile; fileRef = E4D05B7D259DCB2D00921502 /* compute_half.h */; };
 		E4D05BA7259DCB2E00921502 /* arm_deconv_fp16_layer_common.cc in Sources */ = {isa = PBXBuildFile; fileRef = E4D05B7E259DCB2D00921502 /* arm_deconv_fp16_layer_common.cc */; };
@@ -1322,6 +1323,7 @@
 		9DF54446258B162F006CEC97 /* npu_common_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = npu_common_utils.cc; sourceTree = "<group>"; };
 		9DF54448258B162F006CEC97 /* random_data_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = random_data_utils.h; sourceTree = "<group>"; };
 		9DF54449258B162F006CEC97 /* random_data_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = random_data_utils.cc; sourceTree = "<group>"; };
+		E43D68B425C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = CONV_DW_3X3_INT8_SLIDEW.S; sourceTree = "<group>"; };
 		E4D05B7C259DCB2D00921502 /* arm_conv_fp16_layer_depthwise.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_conv_fp16_layer_depthwise.cc; sourceTree = "<group>"; };
 		E4D05B7D259DCB2D00921502 /* compute_half.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = compute_half.h; sourceTree = "<group>"; };
 		E4D05B7E259DCB2D00921502 /* arm_deconv_fp16_layer_common.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_deconv_fp16_layer_common.cc; sourceTree = "<group>"; };
@@ -2287,6 +2289,7 @@
 				9DF54320258B1364006CEC97 /* CONV_BFP16_O4.S */,
 				9DF54321258B1364006CEC97 /* GEMM_INT8_4X8.S */,
 				9DF54322258B1364006CEC97 /* GEMM_BFP16_N4.S */,
+				E43D68B425C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S */,
 				9DF54323258B1364006CEC97 /* CONV_FLOAT_SLIDEW_C3.S */,
 				9DF54324258B1364006CEC97 /* CONV_DW_5X5_BFP16_SLIDEW.S */,
 				9DF54325258B1364006CEC97 /* DECONV_FLOAT_O4.S */,
@@ -2743,6 +2746,7 @@
 				9D32FCD124557EEC002DCDAB /* elementwise_layer.cc in Sources */,
 				EC0BE16125144BE4009BD69A /* squeeze_layer_interpreter.cc in Sources */,
 				9DD1FB67247CE9BE00800139 /* metal_elu_layer_acc.metal in Sources */,
+				E43D68B525C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S in Sources */,
 				9DD1FBC0247CE9BE00800139 /* metal_conv_layer_1x1.metal in Sources */,
 				9D32FCFC24557EEC002DCDAB /* upsample_layer.cc in Sources */,
 				9D32FC9F24557EEC002DCDAB /* memory_mode_state_factory.cc in Sources */,

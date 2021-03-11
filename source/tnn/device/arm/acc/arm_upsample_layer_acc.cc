@@ -340,17 +340,17 @@ static inline int upsample_cubic2d(float *output_data, const float *input_data, 
         auto input_b  = input_data + b * src_plane;
         auto output_b = output_data + b * dst_plane;
 
-        for (int t = 0; t < max_num_threads; ++t) {
-            prev_h1[t] = INT_MIN;
-            rows0_t[t] = rows0 + t * (ow * 4);
-            rows1_t[t] = rows1 + t * (ow * 4);
-            rows2_t[t] = rows2 + t * (ow * 4);
-            rows3_t[t] = rows3 + t * (ow * 4);
-        }
-
         for (int z = 0; z < c_4; z++) {
             auto input_z  = input_b + z * src_z_step;
             auto output_z = output_b + z * dst_z_step;
+
+            for (int t = 0; t < max_num_threads; ++t) {
+                prev_h1[t] = INT_MIN;
+                rows0_t[t] = rows0 + t * (ow * 4);
+                rows1_t[t] = rows1 + t * (ow * 4);
+                rows2_t[t] = rows2 + t * (ow * 4);
+                rows3_t[t] = rows3 + t * (ow * 4);
+            }
 
             OMP_PARALLEL_FOR_
             for (int h2 = 0; h2 < oh; ++h2) {

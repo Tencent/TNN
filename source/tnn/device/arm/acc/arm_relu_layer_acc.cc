@@ -34,14 +34,14 @@ Status ArmReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
     } else if (data_type == DATA_TYPE_FLOAT) {
         auto dst = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
         auto src = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
-        Float4 vzero(0);
+        Float4 vzero(0.f);
         for (long i = 0; i < count; i += 4) {
             Float4::save(dst + i, Float4::max(Float4::load(src + i), vzero));
         }
     } else if (data_type == DATA_TYPE_BFP16) {
         auto dst = reinterpret_cast<bfp16_t *>(GetBlobHandlePtr(output->GetHandle()));
         auto src = reinterpret_cast<bfp16_t *>(GetBlobHandlePtr(input->GetHandle()));
-        Float4 vzero(0);
+        Float4 vzero(0.f);
         for (long i = 0; i < count; i += 4) {
             Float4::save(dst + i, Float4::max(Float4::load(src + i), vzero));
         }

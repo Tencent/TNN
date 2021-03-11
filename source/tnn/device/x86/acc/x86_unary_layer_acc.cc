@@ -26,7 +26,7 @@ Status X86UnaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource
     return op_->Init(param);
 }
 
-Status X86UnaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86UnaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input  = inputs[0];
     auto output = outputs[0];
 
@@ -40,10 +40,6 @@ Status X86UnaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
         output_data[n] = (*op_)(input_data[n]);
     }
 
-    return TNN_OK;
-}
-
-Status X86UnaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 

@@ -82,6 +82,21 @@ Status CpuMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
+    } else if ((src.GetMatType() == NNV12) || (src.GetMatType() == NNV21)) {
+        if (param.type == INTERP_TYPE_LINEAR) {
+            for (int batch = 0; batch < src.GetBatch(); batch++)
+            {
+                uint8_t* src_ptr = (uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * 3 / 2;
+                uint8_t* dst_ptr = (uint8_t*)dst.GetData() + batch * dst_width * dst_height * 3 / 2;
+                ResizeBilinearYUV(src_ptr, src.GetWidth(), src.GetHeight(),
+                                  dst_ptr, dst_width, dst_height);
+            }
+        } else if(param.type == INTERP_TYPE_NEAREST) {
+            ResizeNearestYUV((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
+                             (uint8_t*)dst.GetData(), dst_width, dst_height);
+        } else {
+            return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
+        }
     } else if (src.GetMatType() == RESERVED_BFP16_TEST) {
         ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
     } else {
@@ -110,15 +125,20 @@ Status CpuMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comma
         if (param.top_left_x % 2 || param.top_left_y % 2 || param.width % 2 || param.height % 2) {
             return Status(TNNERR_PARAM_ERR, "corp param can not be odd");
         }
-        // crop y
-        auto src_ptr = GET_OFFSET_PTR(src.GetData(), param.top_left_x + param.top_left_y * param.width);
-        auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), 0);
-        MatMemcpy2D(src_ptr, dst_ptr, param.width, param.height, src.GetWidth(), dst.GetWidth());
-        // crop uv
-        src_ptr = GET_OFFSET_PTR(
-            src.GetData(), src.GetWidth() * src.GetHeight() + param.top_left_x + param.top_left_y * src.GetWidth() / 2);
-        dst_ptr = GET_OFFSET_PTR(dst.GetData(), dst.GetWidth() * dst.GetHeight());
-        MatMemcpy2D(src_ptr, dst_ptr, param.width, param.height / 2, src.GetWidth(), dst.GetWidth());
+        for (int b = 0; b < src.GetBatch(); ++b) {
+            // crop y
+            auto src_ptr = GET_OFFSET_PTR(src.GetData(), param.top_left_x + param.top_left_y * src.GetWidth() +
+                                                         b * src.GetHeight() * src.GetWidth() * 3 / 2);
+            auto dst_ptr = GET_OFFSET_PTR(dst.GetData(), b * dst.GetHeight() * dst.GetWidth() * 3 / 2);
+            MatMemcpy2D(src_ptr, dst_ptr, param.width, param.height, src.GetWidth(), dst.GetWidth());
+            // crop uv
+            src_ptr = GET_OFFSET_PTR(
+                src.GetData(), src.GetWidth() * src.GetHeight() + param.top_left_x + param.top_left_y * src.GetWidth() / 2 +
+                               b * src.GetHeight() * src.GetWidth() * 3 / 2);
+            dst_ptr = GET_OFFSET_PTR(dst.GetData(), dst.GetWidth() * dst.GetHeight() +
+                                                    b * dst.GetHeight() * dst.GetWidth() * 3 / 2);
+            MatMemcpy2D(src_ptr, dst_ptr, param.width, param.height / 2, src.GetWidth(), dst.GetWidth());
+        }
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
@@ -155,6 +175,19 @@ Status CpuMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
                                   dst_ptr, dst.GetWidth(), dst.GetHeight(),
                                   param.transform, param.border_val);
             }
+        } else {
+            return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
+        }
+    } else if (src.GetMatType() == NNV12 || src.GetMatType() == NNV21) {
+        auto mat_type = src.GetMatType();
+        if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
+            WarpAffineBilinearYUV((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
+                                  (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                  param.transform, param.border_val);
+        } else if (param.interp_type == INTERP_TYPE_NEAREST && param.border_type == BORDER_TYPE_CONSTANT) {
+            WarpAffineNearestYUV((uint8_t*)src.GetData(), src.GetBatch(), src.GetWidth(), src.GetHeight(),
+                                 (uint8_t*)dst.GetData(), dst.GetWidth(), dst.GetHeight(),
+                                 param.transform, param.border_val);
         } else {
             return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
         }

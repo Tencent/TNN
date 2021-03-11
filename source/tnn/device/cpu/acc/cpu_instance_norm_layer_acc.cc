@@ -19,7 +19,7 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
+DECLARE_CPU_ACC_WITH_FP32_RESOURCE(InstanceNorm, LAYER_INST_BATCH_NORM);
 
 Status CpuInstanceNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
