@@ -76,19 +76,17 @@ Status CpuGroupNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
                 mean_x  = sum_x / group_area;
                 auto mean_x2 = sum_x2 / group_area;
 
-                auto variance = mean_x2 - mean_x * mean_x;
-                variance = variance > 0 ? variance : 0;
+                variance = mean_x2 - mean_x * mean_x;
                 variance = 1.0f / sqrt(variance + epsilon);
             }
 
             int output_channel = (b % group) * channels_per_group;
             for (int c = 0; c < channels_per_group; ++c, ++output_channel) {
-                double k = k_data[output_channel];
-                variance *= k;
-                double b = b_data == NULL ? 0.0f : b_data[output_channel];
-                b -= mean_x * variance;
+                float k = k_data[output_channel];
+                float bias = b_data == NULL ? 0.0f : b_data[output_channel];
+                bias -= mean_x * variance * k;
                 for (int hw = 0; hw < channel_area; ++hw, ++output_data, ++input_data) {
-                    *output_data = (float)((*input_data) * variance + b);
+                    *output_data = (float)((*input_data) * variance * k + bias);
                 }
             }
         }
