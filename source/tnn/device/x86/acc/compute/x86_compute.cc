@@ -922,4 +922,50 @@ void X86_VectorAdd(float *dst, const float *src, long len) {
 template void X86_VectorAdd<Float4, 4>(float *dst, const float *src, long len);
 template void X86_VectorAdd<Float8, 8>(float *dst, const float *src, long len);
 
+void X86StrideSliceImpl(DimsVector begins, DimsVector strides, DimsVector dims_output,
+                        DimsVector input_strides, DimsVector output_strides,
+                        const float* input_data, float* output_data) {
+    if (dims_output.size() == 4) {
+        for (int n = 0, n_idx = begins[0]; n < dims_output[0]; n++, n_idx += strides[0]) {
+            auto input_n = input_data + n_idx * input_strides[0];
+            auto output_n = output_data + n * output_strides[0];
+            for (int c = 0, c_idx = begins[1]; c < dims_output[1]; c++, c_idx += strides[1]) {
+                auto input_c = input_n + c_idx * input_strides[1];
+                auto output_c = output_n + c * output_strides[1];
+                for (int h = 0, h_idx = begins[2]; h < dims_output[2]; h++, h_idx += strides[2]) {
+                    auto input_h = input_c + h_idx * input_strides[2];
+                    auto output_h = output_c + h * output_strides[2];
+                    for (int w = 0, w_idx = begins[3]; w < dims_output[3]; w++, w_idx += strides[3]) {
+                        output_h[w] = input_h[w_idx];
+                    }
+                }
+            }
+        }
+    } else if (dims_output.size() == 3) {
+        for (int n = 0, n_idx = begins[0]; n < dims_output[0]; n++, n_idx += strides[0]) {
+            auto input_n = input_data + n_idx * input_strides[0];
+            auto output_n = output_data + n * output_strides[0];
+            for (int c = 0, c_idx = begins[1]; c < dims_output[1]; c++, c_idx += strides[1]) {
+                auto input_c = input_n + c_idx * input_strides[1];
+                auto output_c = output_n + c * output_strides[1];
+                for (int h = 0, h_idx = begins[2]; h < dims_output[2]; h++, h_idx += strides[2]) {
+                    output_c[h] = input_c[h_idx];
+                }
+            }
+        }
+    } else if (dims_output.size() == 2) {
+        for (int n = 0, n_idx = begins[0]; n < dims_output[0]; n++, n_idx += strides[0]) {
+            auto input_n = input_data + n_idx * input_strides[0];
+            auto output_n = output_data + n * output_strides[0];
+            for (int c = 0, c_idx = begins[1]; c < dims_output[1]; c++, c_idx += strides[1]) {
+                output_n[c] = input_n[c_idx];
+            }
+        }
+    } else if (dims_output.size() == 1) {
+        for (int n = 0, n_idx = begins[0]; n < dims_output[0]; n++, n_idx += strides[0]) {
+            output_data[n] = input_data[n_idx];
+        }
+    }
+}
+
 }
