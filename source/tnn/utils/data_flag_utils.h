@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_INCLUDE_TNN_UTILS_DATA_FLAG_UTILS_H_
-#define TNN_INCLUDE_TNN_UTILS_DATA_FLAG_UTILS_H_
+#ifndef TNN_SOURCE_TNN_UTILS_DATA_FLAG_UTILS_H_
+#define TNN_SOURCE_TNN_UTILS_DATA_FLAG_UTILS_H_
 
 #include <string>
 
@@ -22,7 +22,7 @@
 
 namespace TNN_NS {
 
-class PUBLIC DataFlagUtils {
+class DataFlagUtils {
 public:
     // @brief to check wether the data is allocated in forword
     // @param flag data flag
@@ -39,4 +39,4 @@ public:
 
 }  // namespace TNN_NS
 
-#endif  // TNN_INCLUDE_TNN_UTILS_DATA_TYPE_UTILS_H_
+#endif  // TNN_SOURCE_TNN_UTILS_DATA_TYPE_UTILS_H_
