@@ -20,7 +20,7 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/core/profile.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 #include "tnn/utils/string_utils.h"
 
 #if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
