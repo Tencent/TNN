@@ -93,7 +93,6 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     {
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], input_dims);
         if (output->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
-            LOGE("TNNDebug: opencl reshape layer set output blob to buffer\n");
             execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Buffer *)output->GetHandle().base));
         } else {
             execute_units_[0].ocl_kernel.setArg(idx++, *inter_buffer_.get());
