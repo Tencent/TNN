@@ -14,9 +14,11 @@
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/device/x86/acc/x86_mat_mul_layer_acc.h"
 
 namespace TNN_NS {
-DECLARE_X86_ACC(MatMul, LAYER_MATMUL);
+
+X86MatMulLayerAcc::~X86MatMulLayerAcc() {}
 
 Status X86MatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param               = dynamic_cast<MatMulLayerParam *>(param_);
@@ -44,28 +46,41 @@ Status X86MatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             matrix_b    = param->weight_position == 1 ? weight : static_cast<float *>(inputs[0]->GetHandle().base);
         }
         auto matrix_c = static_cast<float *>(outputs[0]->GetHandle().base);
-        int M         = matrix_a_dims[matrix_a_dims.size() - 2];
-        int N         = matrix_a_dims[matrix_a_dims.size() - 1];
-        int K         = matrix_b_dims[matrix_b_dims.size() - 1];
+
+        int k_c = conv_gemm_conf_.K_c_;
+        int m_c = conv_gemm_conf_.M_c_;
+        int n_block = conv_gemm_conf_.n_block_;
+
+        int M = matrix_b_dims[matrix_b_dims.size() - 1];
+        int K = matrix_a_dims[matrix_a_dims.size() - 1];
+        int N = matrix_a_dims[matrix_a_dims.size() - 2];
+
+        size_t pack_a_size = ROUND_UP(m_c * k_c * sizeof(float), 32);
+        size_t pack_b_size = k_c * ROUND_UP(N, n_block) * sizeof(float);
+        size_t workspace_size = pack_a_size + pack_b_size;
+        float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(workspace_size));
+
+        RawBuffer fake_bias(N * sizeof(float));
+        float *fake_bias_ptr = fake_bias.force_to<float *>();
+
         int count_a     = DimsVectorUtils::Count(matrix_a_dims);
         int count_b     = DimsVectorUtils::Count(matrix_b_dims);
         int count_c     = DimsVectorUtils::Count(matrix_c_dims);
-        int batch_a   = count_a / (M * N);
-        int batch_b   = count_b / (N * K);
-        int batch_c   = count_c / (M * K);
+        int batch_a   = count_a / (K * N);
+        int batch_b   = count_b / (M * K);
+        int batch_c   = count_c / (M * N);
         for (int bc = 0; bc < batch_c; ++bc) {
             int ba = bc < batch_a ? bc : 0;
             int bb = bc < batch_b ? bc : 0;
-            
-            for (int m = 0; m < M; ++m) {
-                for (int k = 0; k < K; ++k) {
-                    float sum = 0;
-                    for (int n = 0; n < N; ++n) {
-                        sum += matrix_a[ba * M * N + m * N + n] * matrix_b[bb * N * K + n * K + k];
-                    }
-                    matrix_c[bc * M * K + m * K + k] = sum;
-                }
-            }
+            auto a_ptr = matrix_a + ba * K * N;
+            auto b_ptr = matrix_b + bb * M * K;
+            auto c_ptr = matrix_c + bc * M * N;
+
+            // row major A[N * K] * B[K * M] = C[N * M]
+            // equals to
+            // col major B[M * K] * A[K * N] = C[M * N]
+            conv_sgemm_nn_col_major(M, N, K, b_ptr, M, a_ptr, K, c_ptr, M,
+                fake_bias_ptr, ActivationType_None, workspace, conv_gemm_conf_);
         }
     }
 
