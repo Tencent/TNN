@@ -20,7 +20,7 @@
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 #include "tnn/network/tensorrt/tensorrt_tensor.h"
 #include "tnn/network/tensorrt/utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 

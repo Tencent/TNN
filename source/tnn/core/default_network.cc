@@ -27,7 +27,7 @@
 #include "tnn/utils/blob_transfer_utils.h"
 #include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/data_flag_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/md5.h"
 #include "tnn/utils/string_utils_inner.h"
 

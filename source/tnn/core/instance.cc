@@ -24,7 +24,7 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/abstract_model_interpreter.h"
 #include "tnn/interpreter/default_model_interpreter.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 

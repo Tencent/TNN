@@ -17,7 +17,7 @@
 #include <algorithm>
 
 #include "tnn/interpreter/layer_resource_generator.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {

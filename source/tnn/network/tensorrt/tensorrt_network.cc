@@ -22,7 +22,7 @@
 #include "tnn/network/tensorrt/exclusive_file.h"
 #include "tnn/network/tensorrt/tensorrt_network.h"
 #include "tnn/network/tensorrt/utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/md5.h"
 #include "tnn/device/cuda/cuda_macro.h"
 #include "tnn/utils/blob_dump_utils.h"

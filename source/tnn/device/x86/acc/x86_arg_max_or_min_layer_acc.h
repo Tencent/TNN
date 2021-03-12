@@ -19,7 +19,7 @@
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/device/x86/x86_device.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 

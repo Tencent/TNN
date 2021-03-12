@@ -14,7 +14,7 @@
 
 #include "tnn/device/opencl/acc/opencl_binary_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 

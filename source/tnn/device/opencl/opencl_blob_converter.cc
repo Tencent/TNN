@@ -17,7 +17,7 @@
 #include "tnn/device/opencl/opencl_utils.h"
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/utils/blob_memory_size_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {

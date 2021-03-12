@@ -17,7 +17,7 @@
 #include "tnn/core/blob_int8.h"
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -279,7 +279,7 @@ Status CpuUpsampleLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &i
         
         //infer output shape
         Status status = TNN_OK;
-        auto output_dims = DimsVectorUtils::Upsample(input_dims, scales, sizes, layer_param->mode, &status);
+        auto output_dims = DimsFunctionUtils::Upsample(input_dims, scales, sizes, layer_param->mode, &status);
         RETURN_ON_NEQ(status, TNN_OK);
         
         outputs[0]->GetBlobDesc().dims = output_dims;

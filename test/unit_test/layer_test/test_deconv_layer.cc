@@ -20,7 +20,7 @@
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/interpreter/tnn/model_interpreter.h"
 #include "tnn/utils/cpu_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 

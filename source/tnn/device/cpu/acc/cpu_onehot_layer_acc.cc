@@ -14,7 +14,7 @@
 
 #include "cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -106,7 +106,7 @@ Status CpuOneHotLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         auto output_offset = DimsOffsetUtils::ConvertIndexToOffset(output_dims, output_index);
         output_data[output_offset] = value_on;
         
-        input_index = DimsVectorUtils::IncreaseIndex(input_index, input_dims);
+        input_index = DimsFunctionUtils::IncreaseIndex(input_index, input_dims);
     }
     
     return TNN_OK;

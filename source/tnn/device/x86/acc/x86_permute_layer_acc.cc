@@ -14,7 +14,7 @@
 
 #include "tnn/device/x86/acc/x86_permute_layer_acc.h"
 
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {

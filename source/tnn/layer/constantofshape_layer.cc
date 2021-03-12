@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "base_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/data_flag_utils.h"
 
 namespace TNN_NS {

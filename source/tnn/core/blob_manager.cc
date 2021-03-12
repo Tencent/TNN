@@ -23,7 +23,7 @@
 #include "tnn/memory_manager/memory_mode_state_factory.h"
 #include "tnn/memory_manager/memory_seperate_assign_strategy.h"
 #include "tnn/memory_manager/memory_unify_assign_strategy.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/data_flag_utils.h"
 
 namespace TNN_NS {

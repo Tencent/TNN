@@ -16,7 +16,7 @@
 #include "tnn/device/arm/acc/Float4.h"
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/device/arm/arm_device.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
