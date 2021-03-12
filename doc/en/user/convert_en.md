@@ -518,32 +518,42 @@ If output data type is int,   you can use 3 to specify output_data_type.
 
 ### The Code Used to Generate Input or Output File
 ```python
-import torch
 
-import numpy as np
-
-
-def write_data(output_path, data, data_name_list, is_tf_input=False):
+def write_pytorch_data(output_path, data, data_name_list):
     """
-    Save the data needed to align TNN model.
-    Example: If we have a pytorch model, which is ResNet50, we can generate the onnx model by the following method,
-    and save the input and output data.
-
-    >>> from torchvision.models.resnet import resnet50
-    >>> model = resnet50(pretrained=False).eval()
-    >>> input_data = torch.randn(1, 3, 224, 224)
-    >>> input_names, output_names = ["input"], ["output"]
-    >>> torch.onnx.export(model, input_data, "ResNet50.onnx", input_names=input_names, output_names=output_names)
-    >>> with torch.no_grad():
-    ...     output_data = model(input_data)
-    ...
-    >>> write_data("input.txt", input_data, input_names)
-    >>> write_data("output.txt", output_data, output_names)
+    Save the data of Pytorch needed to align TNN model.
 
     :param output_path: Path to save data.
     :param data: Saved data.
     :param data_name_list: The name of input or output data. You can get it after visualization through Netron.
-    :param is_tf_input: Whether it is the input data of tensorflow.
+    :return:
+    """
+
+    if type(data) is not list and type(data) is not tuple:
+        data = [data, ]
+    assert len(data) == len(data_name_list), "The number of data and data_name_list are not equal!"
+    with open(output_path, "w") as f:
+        f.write("{}\n" .format(len(data)))
+        for name, data in zip(data_name_list, data):
+            data = data.numpy()
+            shape = data.shape
+            description = "{} {} ".format(name, len(shape))
+            for dim in shape:
+                description += "{} ".format(dim)
+            data_type = 0 if data.dtype == np.float32 else 3
+            fmt = "%0.6f" if data_type == 0 else "%i"
+            description += "{}".format(data_type)
+            f.write(description + "\n")
+            np.savetxt(f, data.reshape(-1), fmt=fmt)
+
+
+def write_tensorflow_data(output_path, data, data_name_list):
+    """
+    Save the data of TensoFlow needed to align TNN model.
+
+    :param output_path: Path to save data. "You should use input.txt or output.txt to name input or output data"
+    :param data: Saved data.
+    :param data_name_list: The name of input or output data. You can get it after visualization through Netron.
     :return:
     """
     def convert_nhwc(data):
@@ -552,15 +562,17 @@ def write_data(output_path, data, data_name_list, is_tf_input=False):
             return data
         orders = (0, 2, 1) if len(data.shape) == 3 else (0, 2, 3, 1)
         return data.transpose(orders)
-    
+
+    assert "input" in output_path or "output" in output_path, \
+        "You should use \"input.txt\" or \"output.txt\" to name input or output data"
+
     if type(data) is not list and type(data) is not tuple:
         data = [data, ]
     assert len(data) == len(data_name_list), "The number of data and data_name_list are not equal!"
     with open(output_path, "w") as f:
         f.write("{}\n" .format(len(data)))
         for name, data in zip(data_name_list, data):
-            data = convert_nhwc(data) if is_tf_input else data
-            data = data.numpy() if type(data) == torch.Tensor else data
+            data = convert_nhwc(data) if "input" in output_path else data
             shape = data.shape
             description = "{} {} ".format(name, len(shape))
             for dim in shape:
