@@ -554,32 +554,57 @@ python3 converter.py tflite2tnn \
 
 ### 生成输入或输出文件示例代码
 ```python
-def write_data(output_path: str, data_dict: dict):
+import torch
+
+import numpy as np
+
+
+def write_data(output_path, data, data_name_list, is_tf_input=False):
     """
     Save the data needed to align TNN model.
+    Example: If we have a pytorch model, which is ResNet50, we can generate the onnx model by the following method,
+    and save the input and output data.
+
+    >>> from torchvision.models.resnet import resnet50
+    >>> model = resnet50(pretrained=False).eval()
+    >>> input_data = torch.randn(1, 3, 224, 224)
+    >>> input_names, output_names = ["input"], ["output"]
+    >>> torch.onnx.export(model, input_data, "ResNet50.onnx", input_names=input_names, output_names=output_names)
+    >>> with torch.no_grad():
+    ...     output_data = model(input_data)
+    ...
+    >>> write_data("input.txt", input_data, input_names)
+    >>> write_data("output.txt", output_data, output_names)
 
     :param output_path: Path to save data.
-    :param data_dict: A dictionary to save input or output data.
-                      -KEY: the name of input or output data. You can get it after visualization through Netron.
-                      -VALUE: saved data.
-
-                      Example:
-                        name = "input"
-                        data = np.random.randn(1, 3, 224, 224)
-                        data_dict = {name: data}
+    :param data: Saved data.
+    :param data_name_list: The name of input or output data. You can get it after visualization through Netron.
+    :param is_tf_input: Whether it is the input data of tensorflow.
     :return:
     """
+    def convert_nhwc(data):
+        assert len(data.shape) <= 4
+        if len(data.shape) == 2:
+            return data
+        orders = (0, 2, 1) if len(data.shape) == 3 else (0, 2, 3, 1)
+        return data.transpose(orders)
+    
+    if type(data) is not list and type(data) is not tuple:
+        data = [data, ]
+    assert len(data) == len(data_name_list), "The number of data and data_name_list are not equal!"
     with open(output_path, "w") as f:
-        f.write("{}\n" .format(len(data_dict)))
-        for name, data in data_dict.items():
+        f.write("{}\n" .format(len(data)))
+        for name, data in zip(data_name_list, data):
+            data = convert_nhwc(data) if is_tf_input else data
+            data = data.numpy() if type(data) == torch.Tensor else data
             shape = data.shape
-            description_1 = "{} {} " .format(name, len(shape))
+            description = "{} {} ".format(name, len(shape))
             for dim in shape:
-                description_1 += "{} " .format(dim)
+                description += "{} ".format(dim)
             data_type = 0 if data.dtype == np.float32 else 3
             fmt = "%0.6f" if data_type == 0 else "%i"
-            description_1 += "{}" .format(data_type)
-            f.write(description_1 + "\n")
+            description += "{}".format(data_type)
+            f.write(description + "\n")
             np.savetxt(f, data.reshape(-1), fmt=fmt)
 
 
