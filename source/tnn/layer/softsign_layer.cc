@@ -12,26 +12,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <cmath>
-#include <memory>
-
-#include <ngraph/node.hpp>
-#include <ngraph/ngraph.hpp>
-#include <ngraph/op/op.hpp>
-#include <ngraph/opsets/opset.hpp>
-#include <ngraph/opsets/opset1.hpp>
-#include <inference_engine.hpp>
-
-#include "tnn/layer/base_layer.h"
-#include "tnn/network/openvino/layer_builder/binary_layer_builder.h"
+#include "tnn/layer/elementwise_layer.h"
 
 namespace TNN_NS {
-namespace openvino {
 
+DECLARE_ELEMENTWISE_LAYER(Softsign, LAYER_SOFTSIGN);
 
-DECLARE_BINARY_LAYER_BUILDER(Divide, LAYER_DIV);
+REGISTER_ELEMENTWISE_LAYER(Softsign, LAYER_SOFTSIGN);
 
-REGISTER_BINARY_LAYER_BUILDER(Divide, LAYER_DIV);
-
-}
-}
+}  // namespace TNN_NS

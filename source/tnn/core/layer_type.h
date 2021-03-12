@@ -190,6 +190,7 @@ enum LayerType {
 
     LAYER_HDRGUIDE                                          = 302,
     LAYER_PIXEL_SHUFFLE                                     = 303,
+    LAYER_SOFTSIGN                                          = 304,
 
     LAYER_BLOB_SCALE                                        = 600,
 
