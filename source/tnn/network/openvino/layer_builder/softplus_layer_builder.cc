@@ -28,6 +28,9 @@
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/network/openvino/openvino_types.h"
 
+#include "tnn/network/openvino/custom_layer/custom_softplus.h"
+#include <iostream>
+
 namespace TNN_NS {
 
 DECLARE_OPENVINO_LAYER_BUILDER(Softplus, LAYER_SOFTPLUS);
@@ -38,23 +41,21 @@ Status SoftplusOVLayerBuilder::Build() {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
-    auto input_node = GetInputNodes()[0];
 
-    auto expNode = std::make_shared<ngraph::op::Exp>(input_node->output(0));
-    expNode->validate_and_infer_types();
+    auto input_node = GetInputNodes();
+    ngraph::OutputVector inputs;
+    for (auto item : input_node) {
+        inputs.push_back(item->output(0));
+    }
+   
+    auto softplusNode = std::make_shared<CustomSoftplusOp>(
+        inputs, base_layer_, GetInputBlobs(), GetOutputBlobs());
 
-    auto oneConst = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, ngraph::Shape(input_node->get_output_shape(0).size(), 1), std::vector<float>{1.0f});
-    auto addNode = std::make_shared<ngraph::op::v1::Add>(
-        expNode->output(0), oneConst);
-    addNode->validate_and_infer_types();
+    softplusNode->validate_and_infer_types();
+    softplusNode->set_friendly_name(param_->name);
 
-    auto logNode = std::make_shared<ngraph::op::Log>(addNode->output(0));
-    logNode->validate_and_infer_types();
-
-    logNode->set_friendly_name(param_->name);
     ngraph::NodeVector outputNodes;
-    outputNodes.push_back(logNode);
+    outputNodes.push_back(softplusNode);
     SetOutputTensors(outputNodes);
 
     return TNN_OK;
