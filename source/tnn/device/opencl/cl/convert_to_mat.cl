@@ -113,8 +113,8 @@ __kernel void CNH4BlobConvertToNCHW(GLOBAL_SIZE_2_DIMS __read_only image2d_t inp
 
     DEAL_NON_UNIFORM_DIM2(image_width_idx, image_height_idx);
 
-    const int batch_idx     = image_height_idx / batch;
-    const int channel_idx   = image_height_idx % batch;
+    const int batch_idx     = image_height_idx % batch;
+    const int channel_idx   = image_height_idx / batch;
     const int height_4_idx  = image_width_idx << 2;
 
     int buffer_offset =
