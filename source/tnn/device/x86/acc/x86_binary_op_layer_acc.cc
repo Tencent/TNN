@@ -125,7 +125,7 @@ void BinaryGeneral(float *output_ptr, const float *input0_ptr, const float *inpu
     // out = input0 x input1
     if (output_ptr != input0_ptr) {
         input_shapes[0] = input0_dims;
-        input_shapes[0] = input1_dims;
+        input_shapes[1] = input1_dims;
         input_ptrs[0] = input0_ptr;
         input_ptrs[1] = input1_ptr;
     }
