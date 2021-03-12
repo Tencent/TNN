@@ -150,7 +150,8 @@ Status X86LSTMONNXLayerAcc::allocateBufferWeight(const std::vector<Blob *> &inpu
     int K = w_dims[2];
     int M = w_dims[1];
     size_t w_pack_size = ROUND_UP(K, k_c) * ROUND_UP(M, m_block);
-    RawBuffer w_temp_buffer(w_dims[0] * w_pack_size * sizeof(float));
+    // align pointer of packed weights, since gemm use aligned load for input A
+    RawBuffer w_temp_buffer(w_dims[0] * w_pack_size * sizeof(float), 32);
     
     // before conv_pack, trans from 4 * hidden_size to hidden_size * 4
     size_t trans_size = MAX(w_direction_size, r_direction_size);
@@ -178,7 +179,7 @@ Status X86LSTMONNXLayerAcc::allocateBufferWeight(const std::vector<Blob *> &inpu
     K = r_dims[2];
     M = r_dims[1];
     size_t r_pack_size = ROUND_UP(K, k_c) * ROUND_UP(M, m_block);
-    RawBuffer r_temp_buffer(r_dims[0] * r_pack_size * sizeof(float));
+    RawBuffer r_temp_buffer(r_dims[0] * r_pack_size * sizeof(float), 32);
     for (int d = 0; d < r_dims[0]; d++) {
         float *r_src = r_ptr + d * r_direction_size;
         float *r_dst = r_temp_buffer.force_to<float *>() + d * r_pack_size;

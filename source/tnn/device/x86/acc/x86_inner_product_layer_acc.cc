@@ -106,7 +106,8 @@ Status X86InnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
             const float *src = res->weight_handle.force_to<float *>();
 
             if (res->weight_handle.GetDataType() == DATA_TYPE_FLOAT) {
-                RawBuffer temp_buffer(weight_pack_size * sizeof(float));
+                // align pointer of packed weights, since gemm use aligned load for input A
+                RawBuffer temp_buffer(weight_pack_size * sizeof(float), 32);
                 float *dst = temp_buffer.force_to<float *>();
 
                 conv_pack_col_a_t(M, K, src, K, dst, conv_gemm_conf_);
