@@ -518,60 +518,33 @@ If output data type is int,   you can use 3 to specify output_data_type.
 
 ### The Code Used to Generate Input or Output File
 ```python
-"""
+def write_data(output_path: str, data_dict: dict):
+    """
+    Save the data needed to align TNN model.
 
-Input or output consists of the following three parts：
-name -> type：str. The name of input.
-shape -> type：list. The shape of input.
-tensor -> type：numpy.ndarray. Input data.
+    :param output_path: Path to save data.
+    :param data_dict: A dictionary to save input or output data.
+                      -KEY: the name of input or output data. You can get it after visualization through Netron.
+                      -VALUE: saved data.
 
-Tips：
-For output file, if shape's dimension less than 4, you should use 1 to expansion. For example, (n, c) => (n, c, 1, 1).
-Input file is not required.
-
-If there are two outputs, they are as follows:
-Output 1:
-name_1
-shape_1
-tensor_1
-
-Output 2:
-name_2
-shape_2
-tensor_2
-
-You can refer to the following code to write the output to a file.
-
-"""
-
-# The number of output.
-num_output = 2
-
-# Output file save path
-output_path = "output.txt"
-
-with open(output_path, "w") as f:
-    # save the number of output
-    f.write("{}\n" .format(num_output))
-
-    # save output 1
-    description_1 = "{} {} " .format(name_1, len(shape_1))
-    for dim in shape_1:
-        description_1 += "{} " .format(dim)
-    data_type_1 = 0 if tensor.dtype == np.float else 3
-    description_1 += "{}" .format(data_type)
-    f.write(description_1 + "\n")
-    np.savetxt(f, tensor_1.reshape(-1), fmt="%0.18f")
-
-    # save output 2
-    description_2 = "{} {} " .format(name_2, len(shape_2))
-    for dim in shape_2:
-        description_2 += "{} " .format(dim)
-    data_type_2 = 0 if tensor.dtype == np.float else 3
-    description_2 += "{}" .format(data_type)
-    f.write(description_2 + "\n")
-    np.savetxt(f, tensor_2.reshape(-1), fmt="%0.18f")
-
+                      Example:
+                        name = "input"
+                        data = np.random.randn(1, 3, 224, 224)
+                        data_dict = {name: data}
+    :return:
+    """
+    with open(output_path, "w") as f:
+        f.write("{}\n" .format(len(data_dict)))
+        for name, data in data_dict.items():
+            shape = data.shape
+            description_1 = "{} {} " .format(name, len(shape))
+            for dim in shape:
+                description_1 += "{} " .format(dim)
+            data_type = 0 if data.dtype == np.float32 else 3
+            fmt = "%0.6f" if data_type == 0 else "%i"
+            description_1 += "{}" .format(data_type)
+            f.write(description_1 + "\n")
+            np.savetxt(f, data.reshape(-1), fmt=fmt)
 
 ```
 
