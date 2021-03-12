@@ -148,6 +148,13 @@ void BinaryGeneral(float *output_ptr, const float *input0_ptr, const float *inpu
             input_shape_pad[input_shape_pad.size() - 1 - j] = 
                 input_shape[input_shape.size() - 1 - j];
         }
+        int broadcast_single = 1;
+        for (int j = 0; j < input_shape_pad.size(); j++) {
+            if (input_shape_pad[j] != 1) {
+                broadcast_single = 0;
+                break;
+            }
+        }
 
         int outer_size = 1;
         int inner_size = 1;
@@ -160,11 +167,14 @@ void BinaryGeneral(float *output_ptr, const float *input0_ptr, const float *inpu
                 break;
             }
         }
-        for (int j = 0; j < input_shape_pad.size(); j++) {
-            if (input_shape_pad[input_shape_pad.size() - 1 - j] == 1) {
-                inner_size *= output_dims[output_dims.size() - 1 - j];
-            } else {
-                break;
+
+        if (!broadcast_single) {
+            for (int j = 0; j < input_shape_pad.size(); j++) {
+                if (input_shape_pad[input_shape_pad.size() - 1 - j] == 1) {
+                    inner_size *= output_dims[output_dims.size() - 1 - j];
+                } else {
+                    break;
+                }
             }
         }
 
@@ -344,7 +354,7 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
                         for (; w + pack - 1 < dims[3]; w += pack) {
                             VEC v2 = VEC::loadu(_input1 + w);
                             VEC v1 = VEC::loadu(_input0_h + w);
-                            VEC::saveu(_output_h + h, binary_op<op_type, VEC>(v2, v1));
+                            VEC::saveu(_output_h + w, binary_op<op_type, VEC>(v2, v1));
                         }
                         for (; w < dims[3]; w++) {
                             _output_h[w] = binary_op<op_type>(_input1[w], _input0_h[w]);
@@ -430,7 +440,7 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
                         for (; w + pack - 1 < dims[3]; w += pack) {
                             VEC v2 = VEC::loadu(_input1 + w);
                             VEC v1 = VEC::loadu(_input0_h + w);
-                            VEC::saveu(_output_h + h, binary_op<op_type, VEC>(v1, v2));
+                            VEC::saveu(_output_h + w, binary_op<op_type, VEC>(v1, v2));
                         }
                         for (; w < dims[3]; w++) {
                             _output_h[w] = binary_op<op_type>(_input0_h[w], _input1[w]);
