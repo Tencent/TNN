@@ -68,6 +68,13 @@
 		ECAD84F924D7F01E0074EA95 /* TNNFacemeshController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECAD84F824D7F01E0074EA95 /* TNNFacemeshController.mm */; };
 		ECAD84FD24D7F0AE0074EA95 /* face_mesh.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECAD84FB24D7F0AE0074EA95 /* face_mesh.cc */; };
 		ECAD84FF24D801690074EA95 /* test_facemesh.jpg in Resources */ = {isa = PBXBuildFile; fileRef = ECAD84FE24D801690074EA95 /* test_facemesh.jpg */; };
+		ECB077DE25FA0A2F007B1498 /* ocr_textbox_detector.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB077DC25FA0A2F007B1498 /* ocr_textbox_detector.cc */; };
+		ECB077E125FA0A5B007B1498 /* ocr_angle_predictor.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB077DF25FA0A5B007B1498 /* ocr_angle_predictor.cc */; };
+		ECB077E425FA0ABD007B1498 /* ocr_text_recognizer.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB077E225FA0ABD007B1498 /* ocr_text_recognizer.cc */; };
+		ECB077E725FA0AFA007B1498 /* ocr_driver.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB077E525FA0AFA007B1498 /* ocr_driver.cc */; };
+		ECB077E925FA1C09007B1498 /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ECB077E825FA1C09007B1498 /* opencv2.framework */; };
+		ECB077EC25FA3BC2007B1498 /* clipper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ECB077EA25FA3BC1007B1498 /* clipper.cpp */; };
+		ECB077EE25FA4547007B1498 /* ocr_imgs in Resources */ = {isa = PBXBuildFile; fileRef = ECB077ED25FA4547007B1498 /* ocr_imgs */; };
 		ECBA3C6225920A37001BC0A7 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = ECBA3C6125920A37001BC0A7 /* assets */; };
 		ECD14A022505F88C00271443 /* face_detect_mesh.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A002505F88C00271443 /* face_detect_mesh.cc */; };
 		ECD14A042505FE1700271443 /* TNNFaceDetectMeshViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */; };
@@ -100,6 +107,19 @@
 			remoteInfo = tnn;
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		ECB077DB25FA0013007B1498 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		9D449863241D2D3A003FBAA2 /* UIImage+Utility.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UIImage+Utility.h"; sourceTree = "<group>"; };
@@ -207,6 +227,18 @@
 		ECAD84FB24D7F0AE0074EA95 /* face_mesh.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = face_mesh.cc; sourceTree = "<group>"; };
 		ECAD84FC24D7F0AE0074EA95 /* face_mesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = face_mesh.h; sourceTree = "<group>"; };
 		ECAD84FE24D801690074EA95 /* test_facemesh.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = test_facemesh.jpg; sourceTree = "<group>"; };
+		ECB077DC25FA0A2F007B1498 /* ocr_textbox_detector.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ocr_textbox_detector.cc; sourceTree = "<group>"; };
+		ECB077DD25FA0A2F007B1498 /* ocr_textbox_detector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ocr_textbox_detector.h; sourceTree = "<group>"; };
+		ECB077DF25FA0A5B007B1498 /* ocr_angle_predictor.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ocr_angle_predictor.cc; sourceTree = "<group>"; };
+		ECB077E025FA0A5B007B1498 /* ocr_angle_predictor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ocr_angle_predictor.h; sourceTree = "<group>"; };
+		ECB077E225FA0ABD007B1498 /* ocr_text_recognizer.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ocr_text_recognizer.cc; sourceTree = "<group>"; };
+		ECB077E325FA0ABD007B1498 /* ocr_text_recognizer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ocr_text_recognizer.h; sourceTree = "<group>"; };
+		ECB077E525FA0AFA007B1498 /* ocr_driver.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ocr_driver.cc; sourceTree = "<group>"; };
+		ECB077E625FA0AFA007B1498 /* ocr_driver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ocr_driver.h; sourceTree = "<group>"; };
+		ECB077E825FA1C09007B1498 /* opencv2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = opencv2.framework; path = ../../third_party/opencv/iOS/opencv2.framework; sourceTree = "<group>"; };
+		ECB077EA25FA3BC1007B1498 /* clipper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = clipper.cpp; sourceTree = "<group>"; };
+		ECB077EB25FA3BC1007B1498 /* clipper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = clipper.hpp; sourceTree = "<group>"; };
+		ECB077ED25FA4547007B1498 /* ocr_imgs */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ocr_imgs; path = ../../ocr_imgs; sourceTree = "<group>"; };
 		ECBA3C6125920A37001BC0A7 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../../assets; sourceTree = "<group>"; };
 		ECD14A002505F88C00271443 /* face_detect_mesh.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = face_detect_mesh.cc; sourceTree = "<group>"; };
 		ECD14A012505F88C00271443 /* face_detect_mesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = face_detect_mesh.h; sourceTree = "<group>"; };
@@ -240,6 +272,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ECB077E925FA1C09007B1498 /* opencv2.framework in Frameworks */,
 				D1330F4E244AFBFF00CEBF29 /* AVFoundation.framework in Frameworks */,
 				9D6A9F5F24268DD3000A5417 /* CoreMedia.framework in Frameworks */,
 				9DD57A1923B5AD0100A96E63 /* Accelerate.framework in Frameworks */,
@@ -363,6 +396,7 @@
 		9DD579EC23B5A20500A96E63 /* TNNExamples */ = {
 			isa = PBXGroup;
 			children = (
+				ECB077ED25FA4547007B1498 /* ocr_imgs */,
 				ECBA3C6125920A37001BC0A7 /* assets */,
 				EC9EC4F42583948F0090AEEA /* utils */,
 				ECD9467B2559306700BF9214 /* logo@2x.png */,
@@ -408,6 +442,7 @@
 		9DD57A1023B5A8D000A96E63 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				ECB077E825FA1C09007B1498 /* opencv2.framework */,
 				D1330F4D244AFBFF00CEBF29 /* AVFoundation.framework */,
 				9D6A9F5E24268DD3000A5417 /* CoreMedia.framework */,
 				9D6A9F5C24268DBF000A5417 /* CoreImage.framework */,
@@ -457,6 +492,14 @@
 				EC2F9CDE25371536005A5F28 /* blazepose_landmark.h */,
 				EC2F9CE325371769005A5F28 /* pose_detect_landmark.cc */,
 				EC2F9CE425371769005A5F28 /* pose_detect_landmark.h */,
+				ECB077DC25FA0A2F007B1498 /* ocr_textbox_detector.cc */,
+				ECB077DD25FA0A2F007B1498 /* ocr_textbox_detector.h */,
+				ECB077DF25FA0A5B007B1498 /* ocr_angle_predictor.cc */,
+				ECB077E025FA0A5B007B1498 /* ocr_angle_predictor.h */,
+				ECB077E225FA0ABD007B1498 /* ocr_text_recognizer.cc */,
+				ECB077E325FA0ABD007B1498 /* ocr_text_recognizer.h */,
+				ECB077E525FA0AFA007B1498 /* ocr_driver.cc */,
+				ECB077E625FA0AFA007B1498 /* ocr_driver.h */,
 			);
 			name = base;
 			path = ../../base;
@@ -500,6 +543,8 @@
 		EC9EC4F42583948F0090AEEA /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				ECB077EA25FA3BC1007B1498 /* clipper.cpp */,
+				ECB077EB25FA3BC1007B1498 /* clipper.hpp */,
 				EC9EC4F52583948F0090AEEA /* time_stamp.h */,
 				EC9EC4F62583948F0090AEEA /* relative_velocity_filter.cc */,
 				EC9EC4F72583948F0090AEEA /* low_pass_filter.cc */,
@@ -554,6 +599,7 @@
 				9DD579E723B5A20500A96E63 /* Frameworks */,
 				9DD579E823B5A20500A96E63 /* Resources */,
 				9DD57A1323B5A91700A96E63 /* ShellScript */,
+				ECB077DB25FA0013007B1498 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -629,6 +675,7 @@
 				ECAD84FF24D801690074EA95 /* test_facemesh.jpg in Resources */,
 				9D71E7BC24C5685F00074C1A /* dog_cropped.jpg in Resources */,
 				9D71E79C24C4E92A00074C1A /* synset.txt in Resources */,
+				ECB077EE25FA4547007B1498 /* ocr_imgs in Resources */,
 				9DD579FA23B5A20E00A96E63 /* Assets.xcassets in Resources */,
 				ECD9467C2559306800BF9214 /* logo@2x.png in Resources */,
 				9D71E79E24C4E92A00074C1A /* tiger_cat.jpg in Resources */,
@@ -672,10 +719,13 @@
 				ECEC5DB224FFCC6C0044DDF1 /* youtu_face_align.cc in Sources */,
 				9DC7116224D0189D00FA71FA /* TNNBlazeFaceDetectorViewModel.mm in Sources */,
 				9DD579EF23B5A20500A96E63 /* AppDelegate.mm in Sources */,
+				ECB077E425FA0ABD007B1498 /* ocr_text_recognizer.cc in Sources */,
 				EC2CF731250797C800EE3899 /* image_classifier.cc in Sources */,
 				9D8493C52510B4A400869EEF /* TNNExamplesListController.mm in Sources */,
 				ECD9465B2559266D00BF9214 /* hair_segmentation.cc in Sources */,
 				ECD946682559295A00BF9214 /* DYFlatButton.m in Sources */,
+				ECB077E725FA0AFA007B1498 /* ocr_driver.cc in Sources */,
+				ECB077E125FA0A5B007B1498 /* ocr_angle_predictor.cc in Sources */,
 				ECD14A022505F88C00271443 /* face_detect_mesh.cc in Sources */,
 				ECF121D62574E408006F79AC /* skeleton_detector.cc in Sources */,
 				9D71E7C924C5D1A600074C1A /* TNNSSDObjectDetectorViewModel.mm in Sources */,
@@ -687,9 +737,11 @@
 				9D449865241D2D56003FBAA2 /* UIImage+Utility.mm in Sources */,
 				EC9EC5002583948F0090AEEA /* landmark_smoothing_filter.cc in Sources */,
 				9D71E7C624C5BE7000074C1A /* TNNFaceDetectorViewModel.mm in Sources */,
+				ECB077DE25FA0A2F007B1498 /* ocr_textbox_detector.cc in Sources */,
 				9D49E7A12504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm in Sources */,
 				ECD14A042505FE1700271443 /* TNNFaceDetectMeshViewModel.mm in Sources */,
 				EC9EC4FD2583948F0090AEEA /* relative_velocity_filter.cc in Sources */,
+				ECB077EC25FA3BC2007B1498 /* clipper.cpp in Sources */,
 				9D71E7AF24C560C900074C1A /* TNNObjectDetectorController.mm in Sources */,
 				EC9EC4FE2583948F0090AEEA /* low_pass_filter.cc in Sources */,
 				ECD946692559295A00BF9214 /* UIColor+Utility.m in Sources */,
@@ -870,6 +922,7 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/TNNExamples",
+					"$(PROJECT_DIR)/../../third_party/opencv/iOS",
 				);
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = TNNExamples/Info.plist;
@@ -882,7 +935,7 @@
 					"-force_load",
 					"$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/tnn.framework/tnn",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.tencent.youtu.devan.TNNExmaples;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tencent.youtu.devandong.TNNExmaples;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
@@ -899,6 +952,7 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/TNNExamples",
+					"$(PROJECT_DIR)/../../third_party/opencv/iOS",
 				);
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = TNNExamples/Info.plist;
@@ -911,7 +965,7 @@
 					"-force_load",
 					"$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/tnn.framework/tnn",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.tencent.youtu.devan.TNNExmaples;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tencent.youtu.devandong.TNNExmaples;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
