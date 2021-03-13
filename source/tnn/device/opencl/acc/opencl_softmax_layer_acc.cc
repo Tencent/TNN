@@ -75,6 +75,9 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
 Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("SoftMax Layer Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     SoftmaxLayerParam *softmax_param = dynamic_cast<SoftmaxLayerParam *>(param_);
     if (!softmax_param) {
         LOGE("Error: layer param is null\n");

@@ -44,6 +44,9 @@ Status OpenCLSeluLayerAcc::Init(Context *context, LayerParam *param, LayerResour
 
 Status OpenCLSeluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Selu Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     SeluLayerParam *selu_param = dynamic_cast<SeluLayerParam *>(param_);
     if (!selu_param) {
         LOGE("Error: layer param is null\n");

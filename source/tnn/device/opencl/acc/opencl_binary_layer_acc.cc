@@ -88,6 +88,8 @@ OpenCLBinaryLayerAcc::~OpenCLBinaryLayerAcc() {}
 
 Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Binary Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
 
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
@@ -106,24 +108,18 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         }
     }
     // set optional param
-    if (broadcast_param_.input0_broadcast_type == BroadcastTypeChannel ||
-        broadcast_param_.input1_broadcast_type == BroadcastTypeChannel) {
-        // kernel: BinaryChannel
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, DimsVectorUtils::GetDim(output_dims, 3));
-    } else if (broadcast_param_.input0_broadcast_type == BroadcastTypeElement ||
-               broadcast_param_.input1_broadcast_type == BroadcastTypeElement) {
-        // kernel: BinaryCHW
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, DimsVectorUtils::GetDim(output_dims, 2));
-    } else if (broadcast_param_.input0_broadcast_type == BroadcastTypeHeightWidth ||
-               broadcast_param_.input1_broadcast_type == BroadcastTypeHeightWidth) {
-        // kernel: BinaryHW
+    if (kernel_name_ == "BinaryChannel" || kernel_name_ == "BinaryCHW" ||
+        kernel_name_ == "BinaryHW" || kernel_name_ == "BinaryWidth") {
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, DimsVectorUtils::GetDim(output_dims, 2));
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, DimsVectorUtils::GetDim(output_dims, 3));
-    } else if (broadcast_param_.input0_broadcast_type == BroadcastTypeWidth ||
-               broadcast_param_.input1_broadcast_type == BroadcastTypeWidth) {
-        // kernel: BinaryWidth
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, DimsVectorUtils::GetDim(output_dims, 3));
+        int param_batch = 1;
+        if (inputs.size() == 2) {
+            auto param_dims = inputs[param_idx_]->GetBlobDesc().dims;
+            param_batch = DimsVectorUtils::GetDim(param_dims, 0);
+        }
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, param_batch);
     }
+
     // set output
     execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)outputs[0]->GetHandle().base));
 

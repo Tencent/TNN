@@ -89,6 +89,9 @@ Status OpenCLUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerRe
 
 Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Upsample Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     UpsampleLayerParam *upsample_param = dynamic_cast<UpsampleLayerParam *>(param_);
     if (!upsample_param) {
         LOGE("Error: layer param is null\n");

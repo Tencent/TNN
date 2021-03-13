@@ -41,6 +41,9 @@ Status OpenCLShuffleLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
 Status OpenCLShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("ShuffleChannel Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     auto shuffle_param = dynamic_cast<ShuffleLayerParam *>(param_);
     if (shuffle_param == nullptr) {
         LOGE("ShuffleChannelLayerParam is null!\n");

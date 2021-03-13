@@ -59,9 +59,12 @@ Status OpenCLPriorBoxLayerAcc::Init(Context *context, LayerParam *param, LayerRe
 }
 
 Status OpenCLPriorBoxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     std::vector<float> priorbox = GeneratePriorBox(inputs, outputs, param_);
     auto dims = outputs[0]->GetBlobDesc().dims;
-    Status ret                  = ConvertPriorBox(priorbox, dims);
+    ret = ConvertPriorBox(priorbox, dims);
     return ret;
 }
 

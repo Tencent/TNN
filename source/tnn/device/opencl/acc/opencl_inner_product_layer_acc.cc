@@ -115,6 +115,8 @@ OpenCLInnerProductLayerAcc::~OpenCLInnerProductLayerAcc() {}
 Status OpenCLInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("InnerProduct Layer Reshape\n");
     ASSERT(inputs.size() == 1);
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
 
     auto input_dims     = inputs[0]->GetBlobDesc().dims;
     auto output_dims    = outputs[0]->GetBlobDesc().dims;
@@ -134,7 +136,6 @@ Status OpenCLInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
     }
 
     // init
-    Status ret = TNN_OK;
     if (need_reshape_) {
         ret = InitReshapeLayer(inputs);
         CHECK_TNN_OK(ret)

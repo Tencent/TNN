@@ -70,6 +70,38 @@ __kernel void ConvertToNCHW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input_ptr,
     }
 }
 
+__kernel void NCHWBlobConvertToNCHW(GLOBAL_SIZE_2_DIMS __global const FLOAT *input_ptr,
+                                    __global float *output, __private const int height,
+                                    __private const int width,
+                                    __private const int channels,
+                                    __constant float* scale,
+                                    __constant float* bias) {
+    int image_width_idx  = get_global_id(0);
+    int image_height_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(image_width_idx, image_height_idx);
+
+    const int batch_idx     = image_height_idx / height;
+    const int height_idx    = image_height_idx % height;
+    const int width_idx     = image_width_idx % width;
+    const int channel_idx   = image_width_idx / width;
+    int buffer_offset =
+        ((batch_idx * channels + channel_idx) * height + height_idx) * width +
+        width_idx;
+    float value = input_ptr[buffer_offset];
+
+    const int height_width_size = height * width;
+
+#ifdef ENABLE_SCALE_BIAS
+    float scale_data = scale[channel_idx];
+    float bias_data  = bias[channel_idx];
+
+    value = value * scale_data + bias_data;
+#endif
+
+    output[buffer_offset] = value;
+}
+
 __kernel void CNH4BlobConvertToNCHW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input_ptr,
                                     __global float *output, __private const int height,
                                     __private const int batch,
@@ -81,8 +113,8 @@ __kernel void CNH4BlobConvertToNCHW(GLOBAL_SIZE_2_DIMS __read_only image2d_t inp
 
     DEAL_NON_UNIFORM_DIM2(image_width_idx, image_height_idx);
 
-    const int batch_idx     = image_height_idx / batch;
-    const int channel_idx   = image_height_idx % batch;
+    const int batch_idx     = image_height_idx % batch;
+    const int channel_idx   = image_height_idx / batch;
     const int height_4_idx  = image_width_idx << 2;
 
     int buffer_offset =

@@ -25,7 +25,12 @@ namespace TNN_NS {
 
 //default contructor will create convert buffer
 OpenCLBlobConverterAcc::OpenCLBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {
-    BlobMemorySizeInfo size_info = Calculate2DCLImageMemorySize(blob->GetBlobDesc());
+    BlobMemorySizeInfo size_info;
+    if (blob->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
+        size_info = Calculate2DCLImageMemorySize(blob->GetBlobDesc());
+    } else {
+        size_info = Calculate1DMemorySize(blob->GetBlobDesc());
+    }
     // force float to get the max memeory
     size_info.data_type   = DATA_TYPE_FLOAT;  
     auto opencl_runtime   = OpenCLRuntime::GetInstance();
@@ -153,7 +158,7 @@ Status OpenCLBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam par
             ToString(blob_->GetBlobDesc().data_format) + "_" + ToString(param.reverse_channel) + "_" +
             ToString(do_scale_bias_);
     //create convert unit only once for every key
-    if (convert_to_mat_map_.count(from_mat_key) == 0) {
+    if (convert_from_mat_map_.count(from_mat_key) == 0) {
         OpenCLExecuteUnit unit;
         ret = CreateConvertUnit(unit, mat, param, false);
         if (ret != TNN_OK) {
@@ -249,6 +254,14 @@ Status OpenCLBlobConverterAcc::GetConvertToMatKernelName(Mat &mat, std::string& 
         }
     }
 
+    if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
+        if (NCHW_FLOAT == mat.GetMatType()) {
+            kernel_name = "NCHWBlobConvertToNCHW";
+        } else {
+            return Status(TNNERR_PARAM_ERR, "NCHW blob convert to mat not support yet");
+        }
+    }
+
     return TNN_OK;
 }
 
@@ -267,8 +280,10 @@ Status OpenCLBlobConverterAcc::GetConvertFromMatKernelName(Mat &mat, std::string
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
 
-    if (blob_->GetBlobDesc().data_format == DATA_FORMAT_CNH4) {
-        return Status(TNNERR_PARAM_ERR, "CNH4 blob convert from mat not support yet");
+    if (blob_->GetBlobDesc().data_format != DATA_FORMAT_NHC4W4) {
+        char error_str[128];
+        sprintf(error_str, "blob convert from mat not support format: %d", blob_->GetBlobDesc().data_format);
+        return Status(TNNERR_PARAM_ERR, error_str);
     }
 
     return TNN_OK;
@@ -337,23 +352,39 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
     uint32_t idx     = 0;
     if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
         idx = SetExecuteUnit2DSizeInfoDefault(unit, dims);
-    } else if (blob_->GetBlobDesc().data_format == DATA_FORMAT_CNH4) {
+    } else if (blob_->GetBlobDesc().data_format == DATA_FORMAT_CNH4 &&
+               (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType())) {
         idx = SetExecuteUnit2DSizeInfoCNH4(unit, dims);
+    } else if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NCHW &&
+               (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType())) {
+        idx = SetExecuteUnit2DSizeInfoNCHW(unit, dims);
     } else {
         return Status(TNNERR_PARAM_ERR, "blob data format not support yet");
     }
-    cl::Image *image = static_cast<cl::Image *>(blob_->GetHandle().base);
+    cl::Image *image;
+    cl::Buffer *buffer;
+    if (blob_->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
+        image = static_cast<cl::Image *>(blob_->GetHandle().base);
+    } else {
+        buffer = static_cast<cl::Buffer *>(blob_->GetHandle().base);
+    }
 
     cl_int cl_ret;
     if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType()) {
-        cl_ret = unit.ocl_kernel.setArg(idx++, *image);
-        CHECK_CL_SUCCESS(cl_ret);
+        if (blob_->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
+            cl_ret = unit.ocl_kernel.setArg(idx++, *image);
+            CHECK_CL_SUCCESS(cl_ret);
+        } else {
+            cl_ret = unit.ocl_kernel.setArg(idx++, *buffer);
+            CHECK_CL_SUCCESS(cl_ret);
+        }
         cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
         CHECK_CL_SUCCESS(cl_ret);
         //height
         cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 2));
         CHECK_CL_SUCCESS(cl_ret);
-        if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
+        if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4 ||
+            blob_->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
             //width
             cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 3));
             CHECK_CL_SUCCESS(cl_ret);

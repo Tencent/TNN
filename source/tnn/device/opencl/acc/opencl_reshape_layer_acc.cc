@@ -73,6 +73,8 @@ OpenCLReshapeLayerAcc::~OpenCLReshapeLayerAcc() {}
 
 Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Reshape Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
     auto input  = inputs[0];
     auto output = outputs[0];
 
@@ -82,12 +84,19 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
     int blob_size                 = sizeof(float) * DimsVectorUtils::Count(input_dims);
 
-    inter_buffer_ = std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, blob_size);
+    if (output->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
+        inter_buffer_ = std::make_shared<cl::Buffer>(*opencl_runtime->Context(),
+                                                     CL_MEM_READ_WRITE, blob_size);
+    }
 
     // image->buffer
     {
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], input_dims);
-        execute_units_[0].ocl_kernel.setArg(idx++, *inter_buffer_.get());
+        if (output->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
+            execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Buffer *)output->GetHandle().base));
+        } else {
+            execute_units_[0].ocl_kernel.setArg(idx++, *inter_buffer_.get());
+        }
         execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 2)));
         execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 3)));
         execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 1)));
@@ -95,7 +104,9 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     }
 
     // buffer->image
-    {
+    if (output->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
+        InsertUnactiveUnitId(1);
+    } else {
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[1], output_dims);
         execute_units_[1].ocl_kernel.setArg(idx++, *inter_buffer_.get());
         execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 2)));
@@ -105,6 +116,22 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     }
 
     return TNN_OK;
+}
+
+std::vector<DataFormat> OpenCLReshapeLayerAcc::SupportDataFormat(DataType data_type,
+                                                                 int dims_size,
+                                                                 BlobType blob_type) {
+    std::vector<DataFormat> support_list;
+    if (data_type == DATA_TYPE_INT32) {
+        support_list.push_back(DATA_FORMAT_NCHW);
+    } else if (dims_size >= 2) {
+        support_list.push_back(DATA_FORMAT_NHC4W4);
+        // output blob support nchw
+        if (blob_type == BLOB_OUTPUT) {
+            support_list.push_back(DATA_FORMAT_NCHW);
+        }
+    }
+    return support_list;
 }
 
 REGISTER_OPENCL_ACC(Reshape, LAYER_RESHAPE)

@@ -153,7 +153,7 @@ __kernel void ImageToNHWCBufferFLOAT(GLOBAL_SIZE_2_DIMS __global FLOAT *output, 
 }
 
 // convert data from image(b h, ic/4 w ic4) to buffer(nchw)
-__kernel void ImageToNCHWBuffer(GLOBAL_SIZE_2_DIMS __global float *output, /* nchw */
+__kernel void ImageToNCHWBuffer(GLOBAL_SIZE_2_DIMS __global FLOAT *output, /* nchw */
                                    __private const int height, __private const int width, __private const int channels,
                                    __read_only image2d_t input_ptr) {
     int image_width_idx  = get_global_id(0);
@@ -166,7 +166,7 @@ __kernel void ImageToNCHWBuffer(GLOBAL_SIZE_2_DIMS __global float *output, /* nc
     const int width_idx  = image_width_idx % width;
     int channel_4_idx    = (image_width_idx / width) * 4;
     int buffer_offset    = ((batch_idx * channels + channel_4_idx) * height + height_idx) * width + width_idx;
-    float4 values    = read_imagef(input_ptr, SAMPLER, (int2)(image_width_idx, image_height_idx));
+    FLOAT4 values    = RI_F(input_ptr, SAMPLER, (int2)(image_width_idx, image_height_idx));
 
     const int height_width_size = height * width;
 

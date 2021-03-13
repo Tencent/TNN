@@ -125,6 +125,9 @@ OpenCLSplitVLayerAcc::~OpenCLSplitVLayerAcc() {}
 
 Status OpenCLSplitVLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("StrideSlice Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
 
     auto input           = inputs[0];

@@ -31,7 +31,7 @@ public:
     virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs) override;
 
 private:
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size) override;
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) override;
     Status ConvertWeights(std::shared_ptr<RawBuffer> buffer, std::shared_ptr<Blob>& blob);
     Status ConvertBias(std::shared_ptr<RawBuffer> buffer, std::shared_ptr<Blob>& blob);
     Status ConvertInitialState(std::shared_ptr<RawBuffer> buffer, std::shared_ptr<Blob>& blob);

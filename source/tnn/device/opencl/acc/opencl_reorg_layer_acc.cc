@@ -88,6 +88,8 @@ OpenCLReorgLayerAcc::~OpenCLReorgLayerAcc() {}
 Status OpenCLReorgLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Reorg Acc Reshape\n");
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
 
     auto input  = inputs[0];
     auto output = outputs[0];

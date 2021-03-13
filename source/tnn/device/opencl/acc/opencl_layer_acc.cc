@@ -68,6 +68,10 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 
 OpenCLLayerAcc::~OpenCLLayerAcc() {}
 
+Status OpenCLLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return CheckBlobFormat(inputs, outputs);
+}
+
 Status OpenCLLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 #if defined(LOCAL_SIZE_FINE_TUNE) && TNN_PROFILE
     auto execute_unit_org                                 = execute_units_[0];
@@ -111,6 +115,10 @@ Status OpenCLLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
     Status ret   = TNN_OK;
     int unit_idx = 0;
     for (auto execute_unit : execute_units_) {
+        if (unactive_unit_ids_.find(unit_idx) != unactive_unit_ids_.end()) {
+            unit_idx++;
+            continue;
+        }
 #if TNN_PROFILE
         std::shared_ptr<OpenCLProfilingData> pdata(new OpenCLProfilingData());
         UpdateProfilingData(pdata.get(), execute_unit.global_work_size, execute_unit.local_work_size, unit_idx);
@@ -156,7 +164,7 @@ void OpenCLLayerAcc::ConfigKernelStrategy() {
     }
 }
 
-std::vector<DataFormat> OpenCLLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> OpenCLLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (data_type == DATA_TYPE_INT32) {
         support_list.push_back(DATA_FORMAT_NCHW);
@@ -314,6 +322,33 @@ Status OpenCLLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
     }
     const_blob_map_ = const_blob_map;
     return TNN_OK;
+}
+
+Status OpenCLLayerAcc::CheckBlobFormat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    /*
+     * Check whether the format is supported by OpenCLLayerAcc or not.
+     * The supported format of each layer is given by LayerAcc.
+     * OpenCL Blob may change format after allocate.
+     */
+    for (auto blob : outputs) {
+        Status ret = ResolveBlobDataFormat(blob, BLOB_OUTPUT);
+        if (ret != TNN_OK) {
+            return ret;
+        }
+    }
+
+    for (auto blob : inputs) {
+        Status ret = ResolveBlobDataFormat(blob, BLOB_INPUT);
+        if (ret != TNN_OK) {
+            return ret;
+        }
+    }
+
+    return TNN_OK;
+}
+
+void OpenCLLayerAcc::InsertUnactiveUnitId(int id) {
+    unactive_unit_ids_.insert(id);
 }
 
 }  // namespace TNN_NS

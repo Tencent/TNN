@@ -34,7 +34,7 @@ public:
 
     virtual ~OpenCLLayerAcc() override;
 
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override = 0;
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
@@ -48,6 +48,8 @@ protected:
     virtual bool NeedFlush();
 
     void ConfigKernelStrategy();
+
+    void InsertUnactiveUnitId(int id);
 
     Status ConvertChannelWeights(RawBuffer &raw_handle, shared_ptr<OpenCLMemory> &ocl_handle, int output_channel,
                                  bool has_value = true, bool share_channel = false, bool use_buffer = false);
@@ -70,8 +72,11 @@ private:
     Status ConvertChannelWeights(float *handle_data_ptr, shared_ptr<OpenCLMemory> &ocl_handle, int output_channel,
                                  bool has_handle = true, bool share_channel = false, bool use_buffer = false);
 
+    Status CheckBlobFormat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     // @brief return device layer acc support data format
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size) override;
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) override;
+
+    std::set<int> unactive_unit_ids_ = {};
 };
 
 #define DECLARE_OPENCL_ACC(type_string)                                                                                \
