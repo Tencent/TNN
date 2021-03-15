@@ -194,10 +194,10 @@ typedef enum {
 } ShareMemoryMode;
 ```
 
-ShareMemoryMode参数说明:
-`SHARED_MEMORY_MODE_DEFAULT`: 仅支持同一instance不同blob间内存共享
-`SHARE_MEMORY_MODE_SHARE_ONE_THREAD`: 支持同一线程的不同Instance内存共享
-`SHARE_MEMORY_MODE_SET_FROM_EXTERNAL`: 支持instance内存由外部传入，共享方式由调用侧决定，线程间共享需处理同步问题，内存分配释放均需调用侧维护。
+ShareMemoryMode参数说明:  
+`SHARED_MEMORY_MODE_DEFAULT`: 仅支持同一instance不同blob间内存共享。  
+`SHARE_MEMORY_MODE_SHARE_ONE_THREAD`: 支持同一线程的不同Instance内存共享。  
+`SHARE_MEMORY_MODE_SET_FROM_EXTERNAL`: 支持instance内存由外部传入，共享方式由调用侧决定，线程间共享需处理同步问题，内存分配释放均需调用侧维护。  
 
 ### 2. core/tnn.h
 
@@ -307,7 +307,7 @@ public:
 ```
 
 Instance接口说明：  
-- `Instance`和`Init`接口均有TNN CreateInst接口实现调用，用于生成Instance网络实例。  
+- `Instance`和`Init`接口均由TNN CreateInst接口实现调用，用于生成Instance网络实例。  
 - `GetForwardMemorySize`可获取Instance所有Blob所需内存大小，`SetForwardMemory`用于传入外部内存。对于`SHARE_MEMORY_MODE_SET_FROM_EXTERNAL`内存模式构建的Instance，内存需由外部传入， 传入内存实际大小不得小于`GetForwardMemorySize`返回值大小。  
 - `Reshape`接口支持网络构建成功后重新设定输入尺寸，仅通过`min_inputs_shape`和`max_inputs_shape` 构建的网络可在运行过程中改变输入尺寸，可变尺寸范围由`min_inputs_shape`和`max_inputs_shape` 指定。  
 - `GetCommandQueue`接口支持获取网络运行对应的command queue，同一command queue消息顺序执行。  
@@ -448,7 +448,7 @@ dims描述blob维度信息，dims存储尺寸与data_format无关：
 - `ARM`：CPU内存， NC4HW4.  
 - `OPENCL`: GPU显存（clImage）， NHC4W4. 其中NH为clImage高，C4W4为clImage宽。  
 - `METAL`: GPU显存（metal)， NC4HW4.  
-- `HUAWEI_NPU: CPU内存, NCHW.  
+- `HUAWEI_NPU`: CPU内存, NCHW.
 - `X86`： CPU内存，NCHW。  
 - `CUDA`： GPU内存， NCHW。  
 
