@@ -25,6 +25,7 @@ Status CpuConstantOfShapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
 Status CpuConstantOfShapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_resource = dynamic_cast<ConstantOfShapeLayerResource*>(resource_);
     CHECK_PARAM_NULL(layer_resource);
+    auto data_value_count = layer_resource->value.GetDataCount();
     auto data_value_size = layer_resource->value.GetBytesSize();
     auto data_value_ptr = layer_resource->value.force_to<char *>();
     
