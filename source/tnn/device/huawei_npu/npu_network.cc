@@ -77,9 +77,10 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
 
     // init the path to store/read om
     auto params_md5 = default_interpreter->GetParamsMd5();
-    model_name_ = "";
+    model_name_     = "";
     for (auto item : params_md5) {
-        model_name_ += item + "_";
+        auto str = item.substr(0, item.length() > 6 ? 6 : item.length());
+        model_name_ += str + "_";
     }
     model_name_            = model_name_ + model_suffix + "_" + version_str_;
     std::string model_path = use_path_ ? net_config.cache_path + "/" + model_name_ + ".om" : "";
