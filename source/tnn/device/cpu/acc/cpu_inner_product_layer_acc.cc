@@ -38,6 +38,8 @@ private:
 
 Status CpuInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                      const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    CPU_CONVERT_HALF_RESOURCE(LAYER_INNER_PRODUCT);
+
     if (runtime_model_ != RUNTIME_MODE_NORMAL) {
         return TNN_OK;
     }
