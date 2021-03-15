@@ -15,6 +15,7 @@
 #include "tnn/device/cuda/cuda_blob_converter.h"
 #include "tnn/device/cuda/cuda_context.h"
 #include "tnn/device/cuda/cuda_device.h"
+#include "tnn/device/cuda/cuda_macro.h"
 #include "tnn/device/cuda/cuda_blob_converter_kernel.cuh"
 #include "tnn/utils/dims_utils.h"
 
@@ -27,9 +28,9 @@ CudaBlobConverterAcc::CudaBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) 
 }
 
 CudaBlobConverterAcc::~CudaBlobConverterAcc() {
-    if (scale_ptr_) cudaFree(scale_ptr_);
-    if (bias_ptr_) cudaFree(bias_ptr_);
-    if (image_ptr_) cudaFree(image_ptr_);
+    if (scale_ptr_) CUDA_CHECK(cudaFree(scale_ptr_));
+    if (bias_ptr_) CUDA_CHECK(cudaFree(bias_ptr_));
+    if (image_ptr_) CUDA_CHECK(cudaFree(image_ptr_));
 }
 
 Status CudaBlobConverterAcc::ConvertToMat(Mat& image, MatConvertParam param, void* command_queue) {
@@ -188,8 +189,8 @@ void CudaBlobConverterAcc::prepareImagePtr(Mat& image, MatConvertParam param, Di
     int current_image_size = image.GetMatType() == N8UC4 ? hw * 4 * n : DimsVectorUtils::Count(dims);
     current_image_size *= unitBytes;
     if (!image_ptr_ || current_image_size > image_size_) {
-        if (image_ptr_) cudaFree(image_ptr_);
-        cudaMalloc((void**)&image_ptr_, current_image_size);
+        if (image_ptr_) CUDA_CHECK(cudaFree(image_ptr_));
+        CUDA_CHECK(cudaMalloc((void**)&image_ptr_, current_image_size));
         image_size_ = current_image_size;
     }
 }
@@ -209,8 +210,13 @@ void CudaBlobConverterAcc::prepareParamPtr(MatConvertParam param, MatType type, 
         c_reserve = 4;
         c_copy = 3;
     }
-    if (!scale_ptr_) cudaMalloc((void**)&scale_ptr_, c_reserve * sizeof(float));
-    if (!bias_ptr_) cudaMalloc((void**)&bias_ptr_, c_reserve * sizeof(float));
+    if(c_reserve > c_reserve_) {
+        c_reserve_ = c_reserve;
+        if(scale_ptr_) CUDA_CHECK(cudaFree(scale_ptr_));
+        if(bias_ptr_) CUDA_CHECK(cudaFree(bias_ptr_));
+        CUDA_CHECK(cudaMalloc((void**)&scale_ptr_, c_reserve * sizeof(float)));
+        CUDA_CHECK(cudaMalloc((void**)&bias_ptr_, c_reserve * sizeof(float)));
+    }
     cudaMemcpyAsync(scale_ptr_, param.scale.data(), c_copy * sizeof(float), cudaMemcpyHostToDevice, stream);
     cudaMemcpyAsync(bias_ptr_, param.bias.data(), c_copy * sizeof(float), cudaMemcpyHostToDevice, stream);
 }

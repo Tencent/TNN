@@ -502,7 +502,9 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     TransferReduceMax(mutable_graph, index_nodes, weights, node_reference, blob_names);
     TransferGlobalMaxPool(mutable_graph, index_nodes, weights, node_reference, blob_names);
     TransferGroupNormalization(mutable_graph, index_nodes, weights, node_reference, blob_names);
-
+    TransferInverse(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    TransferGridSample(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    
     // onnx_op chain fusion
     // FuseMatMul(mutable_graph, index_nodes, weights, node_reference, blob_names);
     // FuseShuffleChannel(mutable_graph, index_nodes, weights, node_reference, blob_names);

@@ -40,13 +40,12 @@ int Onnx2TNN::RemovePad(onnx::GraphProto* mutable_graph,
                 break;
 
             bool need_remove = true;
-            std::vector<int64_t> pads =
-                get_node_attr_ai(*node_pad, "pads", weights, 1);
+            std::vector<int64_t> pads = get_node_attr_ai(*node_pad, "pads", weights, 1);
             for (auto item : pads) {
                 need_remove = need_remove && (item == 0);
             }
 
-            if (!need_remove) {
+            if (pads.size()==0 || !need_remove) {
                 break;
             }
             // reduce

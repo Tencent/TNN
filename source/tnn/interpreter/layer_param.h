@@ -86,6 +86,23 @@ struct GroupNormLayerParam : public LayerParam {
     PARAM_COPY(GroupNormLayerParam)
 };
 
+struct GridSampleLayerParam : public LayerParam {
+    // 1: nereast 2: bilinear/linear 3: cubic
+    int mode = 2;
+    // 0:const 1:reflect 2:edge
+    int pad_type = 0;
+    int align_corners = 0;
+
+    PARAM_COPY(GridSampleLayerParam)
+};
+
+struct TileLayerParam : public LayerParam {
+    //nchw order
+    std::vector<int> reps;
+
+    PARAM_COPY(TileLayerParam)
+};
+
 struct ConvLayerParam : public LayerParam {
     int pad_type = -1;
     // input channels of blob, devide by group
@@ -603,6 +620,12 @@ struct FlattenLayerParam : public LayerParam {
     PARAM_COPY(FlattenLayerParam)
 };
 
-}  // namespace TNN_NS
+struct EinsumLayerParam : public LayerParam {
+    std::string equation;
+
+    PARAM_COPY(EinsumLayerParam)
+};
+
+};  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H

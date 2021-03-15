@@ -15,38 +15,55 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-DECLARE_OP_CONVERTER(Tile);
+DECLARE_OP_CONVERTER(GridSample);
 
-string OnnxOpConverterTile::TNNOpType(NodeProto &node,
+string OnnxOpConverterGridSample::TNNOpType(NodeProto &node,
                                            OnnxNetInfo &net_info) {
-    return "Tile";
+    return "GridSample";
 }
 
-string OnnxOpConverterTile::TNNLayerParam(NodeProto &node,
+string OnnxOpConverterGridSample::TNNLayerParam(NodeProto &node,
                                                OnnxNetInfo &net_info) {
-    const std::string &onnx_op = node.op_type();
     ostringstream layer_param;
-    
-    if (net_info.weights_map.find(node.input(1)) !=  net_info.weights_map.end()) {
-        const onnx::TensorProto &repeats = net_info.weights_map[node.input(1)];
-        int num_repeats = (int)get_tensor_proto_data_size(repeats);
-        auto repeats_data  = get_tensor_proto_data_vector<long long int>(repeats);
-        for (int ii = 0; ii < num_repeats; ii++) {
-            layer_param << repeats_data[ii] << " ";
-        }
+    auto mode = get_node_attr_ai(node, "mode", net_info, 2);
+    if (mode.size() > 0 && mode[0] == 0) {
+        //bilinear
+        layer_param << "2 ";
+    } else {
+        LOGE("GridSample dont support mode");
+        return "";
     }
+    
+    auto pade_type = get_node_attr_ai(node, "padding_mode", net_info, 3);
+    if (pade_type.size() > 0 && pade_type[0] == 0) {
+        //padding zeros
+        layer_param << "0 ";
+    } else {
+        LOGE("GridSample dont support pade_type");
+        return "";
+    }
+    
+    auto align_corners = get_node_attr_ai(node, "align_corners", net_info, 4);
+    if (align_corners.size() > 0 && align_corners[0] == 0) {
+        //false
+        layer_param << "0 ";
+    } else {
+        LOGE("GridSample dont support align_corners");
+        return "";
+    }
+    
     return layer_param.str();
 }
 
-bool OnnxOpConverterTile::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+bool OnnxOpConverterGridSample::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
     return false;
 }
 
-int OnnxOpConverterTile::WriteTNNModel(Serializer *net_writer,
+int OnnxOpConverterGridSample::WriteTNNModel(Serializer *net_writer,
                                             NodeProto &node,
                                             OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0
     return 0;
 }
 
-REGISTER_OP_CONVERTER(Tile, Tile);
+REGISTER_OP_CONVERTER(GridSample, GridSample);

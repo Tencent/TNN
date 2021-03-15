@@ -77,6 +77,10 @@ public:
     // @brief compute stride of shape index by offset, bounded by shape
     // @param shape
     static DimsVector StrideOfShape(DimsVector shape);
+
+    static DimsVector Tile(const DimsVector input_dims, const DimsVector reps);
+
+    static DimsVector ModIndex(DimsVector index, const DimsVector shape);
 };
 
 }  // namespace TNN_NS

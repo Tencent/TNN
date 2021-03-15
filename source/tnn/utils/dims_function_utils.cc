@@ -260,4 +260,25 @@ DimsVector DimsFunctionUtils::StrideOfShape(DimsVector shape) {
     return stride;
 }
 
+DimsVector DimsFunctionUtils::Tile(const DimsVector input_dims, const DimsVector reps) {
+    DimsVector output_dims = input_dims;
+    if (reps.size() > input_dims.size()) {
+        output_dims = reps;
+    }
+    for (auto index_i=(int)input_dims.size()-1, index_o=(int)output_dims.size()-1, index_r=(int)reps.size()-1;
+         index_i>=0 && index_r>=0;
+         index_i--,index_o--,index_r--) {
+        output_dims[index_o] = input_dims[index_i] * reps[index_r];
+    }
+    return output_dims;
+}
+
+
+DimsVector DimsFunctionUtils::ModIndex(DimsVector index, const DimsVector shape) {
+    for (int i=0; i<index.size() && i< shape.size(); i++) {
+        index[i] %= shape[i];
+    }
+    return index;
+}
+
 }  // namespace TNN_NS

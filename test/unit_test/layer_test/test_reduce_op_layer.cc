@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "layer_test.h"
-#include "tnn/utils/dims_utils.h
+#include "tnn/utils/dims_utils.h"
 #include "unit_test_common.h"
 #include "utils/network_helpers.h"
 

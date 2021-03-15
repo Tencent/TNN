@@ -21,7 +21,7 @@ namespace TNN_NS {
 
 DECLARE_CPU_ACC_WITH_FUNC(StrideSliceV2, LAYER_STRIDED_SLICE_V2,
                           virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
-                                                                                                      const std::vector<Blob *> &outputs););
+                                                                 const std::vector<Blob *> &outputs););
 
 Status CpuStrideSliceV2LayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
