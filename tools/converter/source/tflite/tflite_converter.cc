@@ -59,10 +59,6 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
     const auto& tf_lite_model_buffer = tf_lite_model_->buffers;
     bool quantized_model             = IsQuantized();
     auto& buffer                     = tf_lite_model_->buffers;
-    if (quantized_model) {
-        LOGE("TNN do not support TFLite quantized mode\n");
-        return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
-    }
     for (int i = 0; i < sub_graphs_size; ++i) {
         const auto& operators = tf_lite_model_->subgraphs[i]->operators;
         const auto& tensors   = tf_lite_model_->subgraphs[i]->tensors;

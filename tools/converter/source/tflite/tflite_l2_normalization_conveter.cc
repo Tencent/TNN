@@ -19,6 +19,9 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(L2Normalization);
 
 std::string TFLiteL2NormalizationConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
+    if (quantized_model) {
+        return "QuantizedNormalize";
+    }
     return "Normalize";
 }
 
@@ -40,7 +43,7 @@ TNN_NS::Status TFLiteL2NormalizationConverter::exec(
     cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->name      = cur_layer->name;
     param->type      = cur_layer->type_str;
-    param->quantized = false;
+    param->quantized = quantized_model;
     // l2 normalize
     param->p = 2;
     return TNN_NS::TNN_CONVERT_OK;
