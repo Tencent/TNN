@@ -12,31 +12,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_INCLUDE_TNN_UTILS_DATA_FLAG_UTILS_H_
-#define TNN_INCLUDE_TNN_UTILS_DATA_FLAG_UTILS_H_
-
-#include <string>
-
-#include "tnn/core/common.h"
-#include "tnn/core/macro.h"
+#include "tnn/device/x86/acc/x86_binary_op_layer_acc.h"
 
 namespace TNN_NS {
 
-class PUBLIC DataFlagUtils {
-public:
-    // @brief to check wether the data is allocated in forword
-    // @param flag data flag
-    static bool AllocateInForward(int flag);
+DECLARE_X86_BINARY_OP_ACC(Min, X86BinaryOpType::kMIN);
 
-    // @brief to check the data change flag
-    // @param flag data flag
-    static int ChangeStatus(int flag);
-    
-    // @brief get the minimal change flag, ignore allocate flag
-    // @param flag data flag
-    static int MinChangeStatus(int flag0, int  flag1);
-};
+REGISTER_X86_ACC(Min, LAYER_MINIMUM);
 
-}  // namespace TNN_NS
-
-#endif  // TNN_INCLUDE_TNN_UTILS_DATA_TYPE_UTILS_H_
+}   // namespace TNN_NS

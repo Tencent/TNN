@@ -24,4 +24,4 @@ SoftplusTRTLayerBuilder::SoftplusTRTLayerBuilder(LayerType ignore) : ActivationT
 
 REGISTER_TENSORRT_LAYER_BUILDER(Softplus, LAYER_SOFTPLUS);
 
-}  //  namespace TNN_NS
+} // namespace TNN_NS

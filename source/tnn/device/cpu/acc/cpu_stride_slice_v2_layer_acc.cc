@@ -15,8 +15,7 @@
 #include <algorithm>
 #include <cmath>
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
-#include "tnn/utils/dims_offset_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -70,7 +69,7 @@ Status CpuStrideSliceV2LayerAcc::InferRuntimeOutputShape(const std::vector<Blob 
     
     //前闭后开区间
     Status status = TNN_OK;
-    auto output_dims = DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
+    auto output_dims = DimsFunctionUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
     //support empty blob for yolov5 Slice_507, only in device cpu
     if (status != TNN_OK && !(output_dims.size() == input_dims.size() &&  runtime_model_ == RUNTIME_MODE_CONST_FOLD)) {
         return status;
@@ -103,7 +102,7 @@ Status CpuStrideSliceV2LayerAcc::Forward(const std::vector<Blob *> &inputs, cons
     
     //rectify begins and ends here for value < 0 or = INT_MAX
     Status status = TNN_OK;
-    DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
+    DimsFunctionUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
     //support empty blob for yolov5 Slice_507, only in device cpu
     if (status != TNN_OK && !(output_dims.size() == input_dims.size() &&  runtime_model_ == RUNTIME_MODE_CONST_FOLD)) {
         return status;

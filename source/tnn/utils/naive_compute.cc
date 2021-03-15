@@ -22,9 +22,9 @@
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/utils/bbox_util.h"
 #include "tnn/utils/bfp16.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/omp_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 

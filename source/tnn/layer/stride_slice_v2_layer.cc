@@ -15,7 +15,7 @@
 #include <algorithm>
 
 #include "tnn/layer/base_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -44,12 +44,11 @@ Status StrideSliceV2Layer::InferOutputShape(bool ignore_error) {
     auto strides = layer_param->strides;
 
     //[begin end)
-    auto output_dims = DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
+    auto output_dims = DimsFunctionUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
     //support empty blob for yolov5 Slice_507, only in device cpu
     if (status != TNN_OK && !(output_dims.size() == input_dims.size() &&  runtime_model_ == RUNTIME_MODE_CONST_FOLD)) {
         return status;
     }
-//    RETURN_ON_NEQ(status, TNN_OK);
   
     //dont rectify begins and ends here, input shape may change, do it in runtime forword see cpu_stride_slice_v2_layer_acc.cc Forword
 //    layer_param->begins = begins;

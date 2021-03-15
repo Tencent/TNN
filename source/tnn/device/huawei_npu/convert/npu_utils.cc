@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <sstream>
 #include "tnn/core/macro.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/split_utils.h"
 
 namespace TNN_NS {

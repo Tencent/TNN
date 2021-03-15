@@ -15,8 +15,7 @@
 #include <cmath>
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
-#include "tnn/utils/dims_offset_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -50,7 +49,7 @@ Status CpuTileLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &input
     auto input_dims = inputs[0]->GetBlobDesc().dims;
     auto reps = layer_param->reps;
     
-    auto output_dims = DimsVectorUtils::Tile(input_dims, reps);
+    auto output_dims = DimsFunctionUtils::Tile(input_dims, reps);
     
     outputs[0]->GetBlobDesc().dims = output_dims;
     
@@ -77,12 +76,12 @@ Status CpuTileLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
         DimsVector output_index(output_dims.size(), 0);
         for (int i=0; i<count; i++) {
-            auto input_index = DimsVectorUtils::ModIndex(output_index, input_dims);
+            auto input_index = DimsFunctionUtils::ModIndex(output_index, input_dims);
             int input_offset = DimsOffsetUtils::ConvertIndexToOffset(input_dims, input_index);
             
             output_data[i] = input_data[input_offset];
             
-            output_index = DimsVectorUtils::IncreaseIndex(output_index, output_dims);
+            output_index = DimsFunctionUtils::IncreaseIndex(output_index, output_dims);
         }
     } else {
         return Status(Status(TNNERR_MODEL_ERR, "CpuTileLayerAcc input has invalid data type"));

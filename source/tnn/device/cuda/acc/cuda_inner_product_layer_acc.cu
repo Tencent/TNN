@@ -17,7 +17,7 @@
 #include <cublas_v2.h>
 
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/core/status.h"
 
 namespace TNN_NS {

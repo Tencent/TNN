@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/layer/elementwise_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -36,7 +36,7 @@ Status TileLayer::InferOutputShape(bool ignore_error) {
     
     auto input_dims = input_blob->GetBlobDesc().dims;
     auto reps = layer_param->reps;
-    auto output_dims = DimsVectorUtils::Tile(input_dims, reps);
+    auto output_dims = DimsFunctionUtils::Tile(input_dims, reps);
 
     output_blob->GetBlobDesc().dims = output_dims;
     return TNN_OK;

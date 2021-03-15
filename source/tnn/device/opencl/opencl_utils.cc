@@ -20,7 +20,7 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/core/profile.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 #include "tnn/utils/string_utils.h"
 
 #if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
@@ -461,17 +461,10 @@ Status CopyBufferToMat(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int
         return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL buffer is smaller than the need!");
     }
     cl_int ret = CL_SUCCESS;
-    auto output_buffer_ptr =
-        command_queue->enqueueMapBuffer(buffer, true, CL_MAP_WRITE, 0, buffer_size, nullptr, nullptr, &ret);
+    ret = command_queue->enqueueReadBuffer(buffer, CL_TRUE, 0, size_in_bytes, mat.GetData());
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
-    }
-    memcpy(mat.GetData(), output_buffer_ptr, size_in_bytes);
-    ret = command_queue->enqueueUnmapMemObject(buffer, output_buffer_ptr);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL enqueueReadBuffer falied");
     }
 
     return TNN_OK;
@@ -491,17 +484,10 @@ Status CopyMatToBuffer(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int
         return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL buffer is smaller than the need!");
     }
     cl_int ret = CL_SUCCESS;
-    auto output_buffer_ptr =
-        command_queue->enqueueMapBuffer(buffer, true, CL_MAP_WRITE, 0, buffer_size, nullptr, nullptr, &ret);
+    ret = command_queue->enqueueWriteBuffer(buffer, CL_TRUE, 0, size_in_bytes, mat.GetData());
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
-    }
-    memcpy(output_buffer_ptr, mat.GetData(), size_in_bytes);
-    ret = command_queue->enqueueUnmapMemObject(buffer, output_buffer_ptr);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL enqueueWriteBuffer falied");
     }
 
     return TNN_OK;

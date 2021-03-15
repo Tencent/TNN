@@ -50,9 +50,11 @@ Status ConcatLayer::InferOutputShape(bool ignore_error) {
 
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
+
     int axis = layer_param->axis;
     if (axis < 0) {
         axis += (int)input_blob->GetBlobDesc().dims.size();
+        layer_param->axis = axis;
     }
     if (axis < 0 || axis > input_blob->GetBlobDesc().dims.size()) {
         LOGE_IF(!ignore_error, "Error: ConcatLayer axis(%d) is invalid\n", axis);

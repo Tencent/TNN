@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "base_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 DECLARE_LAYER_WITH_FUNC(Range, LAYER_RANGE,
@@ -45,7 +45,7 @@ Status RangeLayer::InferOutputShape(bool ignore_error) {
         return Status(TNNERR_MODEL_ERR, "RangeLayer input blob has invalid device type");
     }
     
-    auto output_dims = DimsVectorUtils::Range(layer_param->start, layer_param->limit,
+    auto output_dims = DimsFunctionUtils::Range(layer_param->start, layer_param->limit,
                                               layer_param->delta, layer_param->data_type, &status);
     RETURN_ON_NEQ(status, TNN_OK);
     

@@ -14,7 +14,7 @@
 
 #include "cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 namespace TNN_NS {
 
 DECLARE_CPU_ACC_WITH_FUNC(Ragne, LAYER_RANGE,
@@ -76,7 +76,7 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
         
         //infer output shape
         Status status = TNN_OK;
-        auto output_dims = DimsVectorUtils::Range(layer_param->start, layer_param->limit,
+        auto output_dims = DimsFunctionUtils::Range(layer_param->start, layer_param->limit,
                                                   layer_param->delta, layer_param->data_type, &status);
         RETURN_ON_NEQ(status, TNN_OK);
         

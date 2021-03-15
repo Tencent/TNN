@@ -15,7 +15,7 @@
 #include <cmath>
 
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {

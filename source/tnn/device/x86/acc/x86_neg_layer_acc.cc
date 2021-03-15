@@ -12,17 +12,29 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/x86/acc/x86_unary_layer_acc.h"
+#include "tnn/device/x86/acc/x86_unary2_layer_acc.h"
+
+#include <cmath>
+#include <algorithm>
 
 namespace TNN_NS {
-typedef struct x86_neg_operator : x86_unary_operator {
+typedef struct x86_neg_operator : x86_unary2_operator {
     virtual float operator()(const float v) {
         return -v;
     }
+
+    virtual Float4 operator()(const Float4 &v) {
+        return Float4::neg(v);
+    }
+
+    virtual Float8 operator()(const Float8 &v) {
+        return Float8::neg(v);
+    }
 } X86_NEG_OP;
 
-DECLARE_X86_UNARY_ACC(Neg, X86_NEG_OP);
-
+X86_REGISTER_UNARY2_KERNEL(LAYER_NEG, avx2, unary2_kernel_avx<X86_NEG_OP>);
+X86_REGISTER_UNARY2_KERNEL(LAYER_NEG, sse42, unary2_kernel_sse<X86_NEG_OP>);
+DECLARE_X86_UNARY2_ACC(Neg, LAYER_NEG);
 REGISTER_X86_ACC(Neg, LAYER_NEG);
 
 }   // namespace TNN_NS

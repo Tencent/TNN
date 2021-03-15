@@ -70,15 +70,15 @@ void ConstPadV2(float* input_data, float* output_data, DimsVector input_dims, Di
     const int count = DimsVectorUtils::Count(output_dims);
     DimsVector output_dim_index(output_dims.size(), 0);
     for (int i = 0; i<count; i++) {
-        auto input_index = DimsVectorUtils::Pad(output_dim_index, input_dims, layer_param->pads, layer_param->type, nullptr);
-        if (DimsVectorUtils::IsInBox(input_index, input_dims)) {
+        auto input_index = DimsFunctionUtils::Pad(output_dim_index, input_dims, layer_param->pads, layer_param->type, nullptr);
+        if (DimsFunctionUtils::IsInBox(input_index, input_dims)) {
             int input_offset = DimsOffsetUtils::ConvertIndexToOffset(input_dims, input_index);
             output_data[i] = input_data[input_offset];
         } else {
             output_data[i] = value;
         }
         
-        output_dim_index = DimsVectorUtils::IncreaseIndex(output_dim_index, output_dims);
+        output_dim_index = DimsFunctionUtils::IncreaseIndex(output_dim_index, output_dims);
     }
 }
 
