@@ -569,7 +569,7 @@ def write_tensorflow_data(output_path, data, data_name_list, data_usage=1):
     :param data: The input or output data of TensorFlow model.
     :param data_name_list: The name of input or output data. You can get it after visualization through Netron.
     :param data_usage: Specify the data usage. If the data is input data, data_usage=0;
-                       if the data if outptu data, data_usave=1.
+                       if the data if outptu data, data_usage=1.
     :return:
     """
     def convert_nhwc(data):
