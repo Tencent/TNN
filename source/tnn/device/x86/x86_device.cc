@@ -93,7 +93,7 @@ Context* X86Device::CreateContext(int device_id) {
 }
 
 NetworkType X86Device::ConvertAutoNetworkType() {
-    return NETWORK_TYPE_OPENVINO;
+    return NETWORK_TYPE_DEFAULT;
 }
 
 Status X86Device::RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator) {
