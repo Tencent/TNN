@@ -27,6 +27,7 @@ Status CpuInverseLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
 
 Status CpuInverseLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     //see https://en.wikipedia.org/wiki/Invertible_matrix#Inversion_of_2.C3.972_matrices
+    //http://rodolphe-vaillant.fr/?e=7
 
     auto input_dims = inputs[0]->GetBlobDesc().dims;
     if (input_dims.size()<2) {

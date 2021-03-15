@@ -211,6 +211,8 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"GroupNorm", LAYER_GROUP_NORM},
     {"Inverse", LAYER_INVERSE},
     {"GridSample", LAYER_GRIDSAMPLE},
+    {"Equal", LAYER_EQUAL},
+    {"Where", LAYER_WHERE},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 
