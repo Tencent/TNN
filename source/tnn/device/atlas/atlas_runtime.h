@@ -28,14 +28,13 @@ namespace TNN_NS {
 class AtlasRuntime {
 public:
     static AtlasRuntime *GetInstance();
-    static void IncreaseRef();
+    static Status Init();
     static void DecreaseRef();
 
     ~AtlasRuntime();
     AtlasRuntime(const AtlasRuntime &) = delete;
     AtlasRuntime &operator=(const AtlasRuntime &) = delete;
 
-    Status Init();
     Status SetDevice(int device_id);
     Status AddModelInfo(Blob *blob, AtlasModelInfo model_info);
     Status DelModelInfo(Blob *blob);
@@ -49,7 +48,6 @@ private:
     std::map<Blob *, AtlasModelInfo> model_info_map_;
 
     static std::shared_ptr<AtlasRuntime> atlas_runtime_singleton_;
-    static bool enable_increase_count_;
     static int ref_count_;
     static bool init_done_;
 };

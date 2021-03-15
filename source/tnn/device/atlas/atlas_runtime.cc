@@ -21,37 +21,27 @@ namespace TNN_NS {
 static std::mutex g_mtx;
 
 std::shared_ptr<AtlasRuntime> AtlasRuntime::atlas_runtime_singleton_ = nullptr;
-bool AtlasRuntime::enable_increase_count_                            = false;
 int AtlasRuntime::ref_count_                                         = 0;
 bool AtlasRuntime::init_done_                                        = false;
 
 AtlasRuntime* AtlasRuntime::GetInstance() {
-    // don't use DCL
-    std::unique_lock<std::mutex> lck(g_mtx);
     if (nullptr == atlas_runtime_singleton_.get()) {
-        atlas_runtime_singleton_.reset(new AtlasRuntime());
-        ref_count_++;
-        enable_increase_count_ = false;
+        std::unique_lock<std::mutex> lck(g_mtx);
+        if (nullptr == atlas_runtime_singleton_.get()) {
+            atlas_runtime_singleton_.reset(new AtlasRuntime());
+        }
     }
 
     return atlas_runtime_singleton_.get();
-}
-
-void AtlasRuntime::IncreaseRef() {
-    std::unique_lock<std::mutex> lck(g_mtx);
-    if (enable_increase_count_) {
-        ref_count_++;
-    }
-    enable_increase_count_ = true;
-    LOGD("AtlasRuntime::IncreaseRef() count=%d\n", ref_count_);
 }
 
 void AtlasRuntime::DecreaseRef() {
     std::unique_lock<std::mutex> lck(g_mtx);
     ref_count_--;
     LOGD("AtlasRuntime::DecreaseRef() count=%d\n", ref_count_);
-    if (0 == ref_count_) {
+    if (ref_count_ <= 0) {
         atlas_runtime_singleton_.reset();
+        ref_count_ = 0;
     }
 }
 
@@ -59,9 +49,12 @@ AtlasRuntime::AtlasRuntime() {
     device_list_.clear();
 }
 
-// Init will get platforms info, get devices info, create opencl context.
+// Init Atlas Runtime and increase reference count
 Status AtlasRuntime::Init() {
     std::unique_lock<std::mutex> lck(g_mtx);
+
+    ref_count_++;
+    LOGD("AtlasRuntime::Init() reference count=%d\n", ref_count_);
 
     // only init once.
     if (!init_done_) {
