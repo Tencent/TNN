@@ -28,7 +28,9 @@ static bool TestFilter(DeviceType device_type, DataType data_type) {
 
     if (device_type == DEVICE_METAL)
         return true;
-    
+
+    if (device_type == DEVICE_OPENCL)
+        return true;
     return false;
 }
 
@@ -75,8 +77,13 @@ TEST_P(LSTMLayerTest, LSTMONNXLayer) {
     if (DATA_TYPE_BFP16 == dtype) {
         precision = PRECISION_LOW;
     }
+
+    DataFormat format = DATA_FORMAT_NCHW, device_format = DATA_FORMAT_NCHW;
+    if (dev == DEVICE_OPENCL) {
+        device_format = DATA_FORMAT_CNH4;
+    }
     //Run(interpreter, precision);
-    Run(interpreter, precision, DATA_FORMAT_NCHW);
+    Run(interpreter, precision, format, device_format);
 }
 
 }  // namespace TNN_NS

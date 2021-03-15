@@ -37,6 +37,8 @@ enum OpenCLBufferFormat {
     DW_CONV2D_FILTER = 3,
     NCHW_BUFFER      = 4,
     NHWC4_BUFFER     = 5,
+    LSTM_FILTER      = 6,
+    LSTM_BIAS        = 7,
 };
 
 template <typename T, typename Dim>

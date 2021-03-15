@@ -281,9 +281,17 @@ Status OpenCLBlobConverterAcc::GetConvertFromMatKernelName(Mat &mat, std::string
     }
 
     if (blob_->GetBlobDesc().data_format != DATA_FORMAT_NHC4W4) {
-        char error_str[128];
-        sprintf(error_str, "blob convert from mat not support format: %d", blob_->GetBlobDesc().data_format);
-        return Status(TNNERR_PARAM_ERR, error_str);
+        if (blob_->GetBlobDesc().data_format == DATA_FORMAT_CNH4) {
+            if (NCHW_FLOAT == mat.GetMatType()) {
+                kernel_name = "CNH4BlobConvertFromNCHW";
+            } else {
+                return Status(TNNERR_PARAM_ERR, "CNH4 blob convert from mat not support yet");
+            }
+        } else {
+            char error_str[128];
+            sprintf(error_str, "blob convert from mat not support format: %d", blob_->GetBlobDesc().data_format);
+            return Status(TNNERR_PARAM_ERR, error_str);
+        }
     }
 
     return TNN_OK;

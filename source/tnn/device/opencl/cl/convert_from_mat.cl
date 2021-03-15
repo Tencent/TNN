@@ -72,6 +72,41 @@ __kernel void ConvertFromNCHW(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
                  output_values);
 }
 
+__kernel void CNH4BlobConvertFromNCHW(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
+                                      __global const float *input_ptr,
+                                      __private const int height,
+                                      __private const int batch,
+                                      __private const int channels,
+                                      __constant float* scale,
+                                      __constant float* bias) {
+    int image_width_idx  = get_global_id(0);
+    int image_height_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(image_width_idx, image_height_idx);
+
+    const int batch_idx     = image_height_idx % batch;
+    const int channel_idx   = image_height_idx / batch;
+    const int height_4_idx  = image_width_idx << 2;
+    int buffer_offset =
+        (batch_idx * channels + channel_idx) * height + height_4_idx;
+
+    const int remain_height = height - height_4_idx;
+    float4 output_values        = 0;
+    int offset      = buffer_offset;
+    if (remain_height >= 4) {
+        output_values = vload4(0, input_ptr + offset);
+    } else if (remain_height == 3) {
+        output_values.xyz = vload3(0, input_ptr + offset);
+    } else if (remain_height == 2) {
+        output_values.xy = vload2(0, input_ptr + offset);
+    } else if (remain_height == 1) {
+        output_values.x = input_ptr[offset];
+    }
+
+    write_imagef(output, (int2)(image_width_idx, image_height_idx),
+                 output_values);
+}
+
 __kernel void ConvertFromN8UC4(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
                                __global const uchar *input_ptr,
                                __private const int height,
