@@ -14,7 +14,7 @@
 
 #include <cmath>
 #include "tnn/device/arm/acc/arm_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 #include "tnn/device/arm/acc/Float4.h"
 

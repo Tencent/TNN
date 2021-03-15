@@ -15,8 +15,8 @@
 #include <algorithm>
 #include <cmath>
 #include "tnn/device/x86/acc/x86_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/device/x86/acc/compute/x86_compute.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 

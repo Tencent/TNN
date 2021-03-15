@@ -62,7 +62,7 @@ Status X86StrideSliceV2LayerAcc::InferRuntimeOutputShape(const std::vector<Blob 
     auto strides = layer_param->strides;
     
     Status status = TNN_OK;
-    auto output_dims = DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
+    auto output_dims = DimsFunctionUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
     RETURN_ON_NEQ(status, TNN_OK);
     
     outputs[0]->GetBlobDesc().dims = output_dims;
@@ -92,7 +92,7 @@ Status X86StrideSliceV2LayerAcc::DoForward(const std::vector<Blob *> &inputs, co
     
     //rectify begins and ends here for value < 0 or = INT_MAX
     Status status = TNN_OK;
-    DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
+    DimsFunctionUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
     RETURN_ON_NEQ(status, TNN_OK);
 
     DimsVector begins_compute;

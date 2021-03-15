@@ -17,7 +17,7 @@
 #include "tnn/device/x86/x86_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/device/x86/acc/Float4.h"
 #include "tnn/device/x86/acc/Float8.h"
 

@@ -62,15 +62,8 @@ TNN_NS::Status error;
 auto net_instance = tnn.CreateInst(config, error);
 ```
 
-TNN网络构建需配置NetworkConfig，device_type可配置ARM， OPENCL， METAL等多种加速方式，通过CreateInst接口完成网络的构建。
-华为NPU需要特殊指定network类型以及一个可选的cache路径。cache路径为存om文件的path,如("/data/local/tmp/")，空则表示不存om文件，每次运行都使用IR翻译并从内存读入模型。
+TNN网络构建需配置NetworkConfig，device_type可配置ARM， OPENCL， METAL， X86， CUDA等多种加速方式，通过CreateInst接口完成网络的构建。
 
-```cpp
-config.network_type = TNN_NS::NETWORK_TYPE_HUAWEI_NPU;
-//Huawei_NPU可选：存om的Cache路径
-//add for cache; When using NPU, it is the path to store the om i.e. config.cache_path = "/data/local/tmp/npu_test/";
-config.cache_path = "";
-```
 
 ### 步骤3. 输入设定
 
@@ -96,20 +89,23 @@ TNN输出获取通过调用GetOutputMat接口完成，输出结果将按照特�
 .
 └── tnn
     ├── core
-    │   ├── macro.h             # 常用宏定义
-    │   ├── common.h            # 定义常用结构
-    │   ├── status.h            # 接口状态
-    │   ├── blob.h              # 负责数据传递
-    │   ├── instance.h          # 网络实例
-    │   └── tnn.h               # 模型解析
+    │   ├── blob.h                  # 负责数据传递
+    │   ├── common.h                # 定义常用结构
+    │   ├── instance.h              # 网络实例
+    │   ├── macro.h                 # 常用宏定义
+    │   ├── mat.h                   # 输入接口，类cv::Mat
+    │   ├── status.h                # 接口状态
+    │   └── tnn.h                   # 模型解析
     ├── utils
-    │   ├── bfp16_utils.h       # bfp16转换工具
-    │   ├── blob_converter.h    # blob输入输出数据工具
-    │   ├── cpu_utils.h         # CPU性能特定优化工具
-    │   ├── data_type_utils.h   # 网络数据类型解析工具
-    │   ├── dims_vector_utils.h # blob尺寸计算工具
-    │   └── half_utils.h        # fp16转换工具
-    └── version.h               # 编译构建信息
+    │   ├── bfp16_utils.h           # bfp16转换工具
+    │   ├── blob_converter.h        # blob输入输出转换工具
+    │   ├── cpu_utils.h             # CPU性能特定优化工具
+    │   ├── data_type_utils.h       # 数据类型转换工具
+    │   ├── dims_vector_utils.h。      #  尺寸计算工具
+    │   ├── half_utils.h            # fp16转换工具
+    │   ├── mat_utils.h             # Mat转换工具
+    │   └── string_utils.h          # 字符串转换工具
+    └── version.h                   # 编译构建信息
 ```
 
 ### 1. core/macro.h
@@ -171,7 +167,8 @@ NetworkConfig参数说明：
 - `data_format`: 默认为tnn自动选择blob数据排布方式进行加速，可通过此参数设定特定blob数据排布进行加速。  
 - `network_type`: 支持构建tnn自定义网络以及第三方网络，当前开源版本仅支持构建tnn网络。  
 - `share_memory_mode`: tnn instance内存共享方式。  
-- `library_path`: 支持外部依赖库加载，iOS metal kernel库放在app非默认路径需配置此参数。  
+- `library_path`: 支持外部依赖库加载，iOS metal kernel库放在app非默认路径需配置此参数。
+-  `cache_path`： 华为NPU指定cache路径用于存放运行过程中转出的om文件，后续运行可通过cache路径om文件加载。OpenCL enable_tune_kernel 打开，可指定cache路径存放tune参数，后续运行直接加载tune参数。  
 
 
 ```cpp
@@ -362,6 +359,7 @@ class PUBLIC TNN {
 public:
     ...
 
+    // init tnn implement, interpret model.
     Status Init(ModelConfig& config);
 
     // denit tnn implement, release model interpreter.
@@ -371,11 +369,20 @@ public:
     // if output_name of blob not found, then search output_index of layer.
     Status AddOutput(const std::string& output_name, int output_index = 0);
 
+    // return input shapes map from model
+    Status GetModelInputShapesMap(InputShapesMap& shapes_map);
+
     // create tnn network instance with network config and inputs shape.
     // if inputs shape not set, use default from model.
     std::shared_ptr<Instance> CreateInst(
         NetworkConfig& config, Status& status,
         InputShapesMap inputs_shape = InputShapesMap());
+
+    // create tnn network instance with network config and min max inputs shape,
+    // instance reshape can support range from min inputs shape to max inputs shape.
+    std::shared_ptr<Instance> CreateInst(
+        NetworkConfig& config, Status& status,
+        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
 
     ...
 };
@@ -384,8 +391,9 @@ public:
 TNN接口说明：  
 - Init接口：负责模型数据传入并解析，需配置并传入ModelConfig。  
 - DeInit接口: 负责tnn implement释放，默认析构函数可自动释放。  
-- AddOutput接口：支持增加模型输出，可将网络任意一层输出定义为模型输出。  
-- CreateInst接口：负责网络实例Instance构建。
+- AddOutput接口：支持增加模型输出，可将网络任意一层输出定义为模型输出。
+- GetModelInputShapesMap： 获取模型解析出的模型输入尺寸。  
+- CreateInst接口：负责网络实例Instance构建，如果过程中支持维度可变，需要配置min_inputs_shape和max_inputs_shape指定输入支持的最大最小维度。
 
 ### 7. utils/bfp16\_utils.h
 接口提供了cpu内存fp32和bfp16转换工具。

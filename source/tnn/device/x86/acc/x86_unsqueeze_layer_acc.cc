@@ -13,8 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 

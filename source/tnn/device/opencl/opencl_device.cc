@@ -20,7 +20,7 @@
 #include "tnn/device/opencl/opencl_memory.h"
 #include "tnn/device/opencl/opencl_runtime.h"
 #include "tnn/utils/blob_memory_size_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -173,6 +173,10 @@ AbstractLayerAcc* OpenCLDevice::CreateLayerAcc(LayerType type) {
 
 Context* OpenCLDevice::CreateContext(int device_id) {
     return new OpenCLContext();
+}
+
+NetworkType OpenCLDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT;
 }
 
 std::map<LayerType, std::shared_ptr<LayerAccCreator>>& OpenCLDevice::GetLayerCreatorMap() {

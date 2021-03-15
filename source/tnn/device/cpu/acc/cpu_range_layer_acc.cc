@@ -14,7 +14,7 @@
 
 #include "cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 namespace TNN_NS {
 
 DECLARE_CPU_ACC_WITH_FUNC(Ragne, LAYER_RANGE,
@@ -32,7 +32,7 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
     if (inputs.size() >= 3) {
         //start
         {
-            layer_param->type = inputs[0]->GetBlobDesc().data_type;
+            layer_param->data_type = inputs[0]->GetBlobDesc().data_type;
             
             auto start_data = (int *)((char *)inputs[0]->GetHandle().base + inputs[0]->GetHandle().bytes_offset);
             auto start = layer_param->start;
@@ -76,8 +76,8 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
         
         //infer output shape
         Status status = TNN_OK;
-        auto output_dims = DimsVectorUtils::Range(layer_param->start, layer_param->limit,
-                                                  layer_param->delta, layer_param->type, &status);
+        auto output_dims = DimsFunctionUtils::Range(layer_param->start, layer_param->limit,
+                                                  layer_param->delta, layer_param->data_type, &status);
         RETURN_ON_NEQ(status, TNN_OK);
         
         outputs[0]->GetBlobDesc().dims = output_dims;

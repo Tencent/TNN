@@ -19,7 +19,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
 #include "tnn/device/x86/acc/x86_reduce_op_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/device/x86/acc/Float4.h"
 #include "tnn/device/x86/acc/Float8.h"
@@ -27,8 +27,8 @@
 namespace TNN_NS {
 
 // @brief store by row
-Status X86_IM2COL(float *src, int channel, int height, int width, int kernelh, int kernelw, 
-                  int padh, int padw, int strideh, int stridew, int dilationh, int dilationw, float *dst);
+Status X86_IM2COL(float *src, int channel, int height, int width, int kernelh, int kernelw, int padl, int padr,
+                  int padt, int padb, int strideh, int stridew, int dilationh, int dilationw, float *dst);
 
 Status X86_COL2IM(float *src, int channel, int height, int width, int kernelh, int kernelw, int padh, int padw,
                   int strideh, int stridew, int dilationh, int dilationw, int output_height, int output_width,

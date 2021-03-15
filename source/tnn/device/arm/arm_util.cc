@@ -437,6 +437,20 @@ int UnpackC4WithStride(float *dst, const float *src, size_t ih, size_t iw, size_
     return 0;
 }
 
+int UnpackHWC4ToCHW(int8_t *dst, const int8_t *src, size_t channel, size_t hw) {
+    auto c_r4 = ROUND_UP(channel, 4);
+
+    for (int c = 0; c < channel; ++c) {
+        auto src_c = src + c;
+        auto dst_c = dst + c * hw;
+        for (int z = 0; z < hw; ++z) {
+            dst_c[z] = src_c[z * c_r4];
+        }
+    }
+
+    return 0;
+}
+
 #define ConvertWeightsPreparation                                        \
     const int goc       = output_channel / group;                        \
     const int gic       = input_channel / group;                         \

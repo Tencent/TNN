@@ -15,7 +15,7 @@
 #include <algorithm>
 
 #include "tnn/layer/base_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -44,7 +44,7 @@ Status StrideSliceV2Layer::InferOutputShape(bool ignore_error) {
     auto strides = layer_param->strides;
 
     //前闭后开区间
-    auto output_dims = DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
+    auto output_dims = DimsFunctionUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
     RETURN_ON_NEQ(status, TNN_OK);
   
     //dont rectify begins and ends here, input shape may change, do it in runtime forword see cpu_stride_slice_v2_layer_acc.cc Forword

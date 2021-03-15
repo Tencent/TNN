@@ -23,6 +23,7 @@ static const std::string int8_prefix = "Int8";
 
 static std::map<std::string, LayerType> global_layer_type_map = {
     // LAYER_Convolution, including depthwise convolution
+    {"Convolution1D", LAYER_CONVOLUTION_1D},
     {"Convolution", LAYER_CONVOLUTION},
     {"Convolution3D", LAYER_CONVOLUTION_3D},
     {"BatchNormalization", LAYER_BATCH_NORM},
@@ -156,6 +157,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"QuantizedReluSignedInput", LAYER_QUANTIZED_RELU_SIGNED_INPUT},
     {"LogSigmoid", LAYER_LOGSIGMOID},
     {"Repeat", LAYER_REPEAT},
+    {"Tile", LAYER_REPEAT},
     {"Upsample", LAYER_UPSAMPLE},
     {"QuantizedUpsample", LAYER_UPSAMPLE},
     // 150
@@ -205,6 +207,11 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"ReduceProd", LAYER_REDUCE_PROD},
     {"ReduceSum", LAYER_REDUCE_SUM},
     {"ReduceSumSquare", LAYER_REDUCE_SUM_SQUARE},
+    {"RoiAlign", LAYER_ROIALIGN},
+    {"GroupNorm", LAYER_GROUP_NORM},
+    {"Einsum", LAYER_EINSUM},
+    {"Inverse", LAYER_INVERSE},
+    {"GridSample", LAYER_GRIDSAMPLE},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 
@@ -227,8 +234,10 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"GatherND", LAYER_GATHERND},
     {"BitShift", LAYER_BITSHIFT},
     {"PadV2", LAYER_PADV2},
+    {"OneHot", LAYER_ONEHOT},
     {"CbamFusedReduce", LAYER_CBAM_FUSED_REDUCE},
-    {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING}
+    {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING},
+    {"Softsign", LAYER_SOFTSIGN}
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

@@ -20,7 +20,7 @@
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/blob_memory_size_utils.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -132,6 +132,10 @@ std::shared_ptr<const ImplementedLayout> ArmDevice::GetImplementedLayout(LayerTy
         return layer_layout_map[type];
     }
     return std::make_shared<ImplementedLayout>();
+}
+
+NetworkType ArmDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT; 
 }
 
 Context *ArmDevice::CreateContext(int device_id) {

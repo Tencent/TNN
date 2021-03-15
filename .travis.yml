@@ -48,11 +48,13 @@ matrix:
     - name: "Windows | x64 | build"
       os: windows
       language: cpp
+      before_install:
+        - ./scripts/.ci/preflight.sh x86 || travis_terminate 0
       install:
         - PowerShell -Command 'Set-ExecutionPolicy -ExecutionPolicy RemoteSigned'
         - choco install ninja
       script:
-        - scripts/build_msvc_naive.bat x64 ci
+        - scripts/build_msvc_native.bat x64 ci
       env:
         - CXX=cl.exe
         - CXX_FOR_BUILD=cl.exe
@@ -62,11 +64,13 @@ matrix:
     - name: "Windows | x86 | build"
       os: windows
       language: cpp
+      before_install:
+        - ./scripts/.ci/preflight.sh x86 || travis_terminate 0
       install:
         - PowerShell -Command 'Set-ExecutionPolicy -ExecutionPolicy RemoteSigned'
         - choco install ninja
       script:
-        - scripts/build_msvc_naive.bat x86 ci
+        - scripts/build_msvc_native.bat x86 ci
       env:
         - CXX=cl.exe
         - CXX_FOR_BUILD=cl.exe

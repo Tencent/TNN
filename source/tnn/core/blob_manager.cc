@@ -23,7 +23,7 @@
 #include "tnn/memory_manager/memory_mode_state_factory.h"
 #include "tnn/memory_manager/memory_seperate_assign_strategy.h"
 #include "tnn/memory_manager/memory_unify_assign_strategy.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/data_flag_utils.h"
 
 namespace TNN_NS {
@@ -108,8 +108,11 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
     // intput blobs
     const auto& input_data_type_map = net_structure->input_data_type_map;
     for (auto iter : instance_input_shapes_map) {
-        std::string current_blob_name         = iter.first;
-        Blob *current_blob                    = blobs_[current_blob_name];
+        auto current_blob_name = iter.first;
+        if (blobs_.find(current_blob_name) == blobs_.end()) {
+            continue;
+        }
+        auto current_blob = blobs_[current_blob_name];
         if (input_data_type_map.find(current_blob_name) != input_data_type_map.end()) {
             current_blob->GetBlobDesc().data_type = input_data_type_map.find(current_blob_name)->second;
         } else {

@@ -105,6 +105,7 @@ typedef enum {
 } Precision;
 
 typedef enum {
+    NETWORK_TYPE_AUTO       = -1,
     NETWORK_TYPE_DEFAULT    = 0,
     NETWORK_TYPE_OPENVINO   = 0x1000,
     NETWORK_TYPE_COREML     = 0x2000,
@@ -161,11 +162,11 @@ struct PUBLIC NetworkConfig {
     // device id default 0
     int device_id = 0;
 
-    // blob data format decided by device
+    // blob data format, auto decided by device
     DataFormat data_format = DATA_FORMAT_AUTO;
 
-    // network type default internal
-    NetworkType network_type = NETWORK_TYPE_DEFAULT;
+    // network type, auto decided by device
+    NetworkType network_type = NETWORK_TYPE_AUTO;
 
     // raidnet instances not share memory with others
     ShareMemoryMode share_memory_mode = SHARE_MEMORY_MODE_DEFAULT;

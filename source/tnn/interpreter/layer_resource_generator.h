@@ -34,6 +34,7 @@ public:
                                     std::vector<Blob*>& inputs) { return TNN_OK;}
     virtual Status GenLayerConstantResource(LayerParam* param, LayerResource** resource,
                                             std::vector<Blob*>& inputs, ConstantResource* consts) {return TNN_OK;}
+    virtual Status ConvertHalfLayerResource(LayerResource* src_res, LayerResource** dst_res)                 = 0;
 };
 
 std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerResourceGeneratorMap();
@@ -41,6 +42,9 @@ std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerCons
 
 Status GenerateRandomResource(LayerType type, LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs,
                               ConstantResource* consts=nullptr);
+
+//@brief only convert iterms of half data type to fp32 data type
+Status ConvertHalfResource(LayerType type, LayerResource* src_res, LayerResource** dst_res);
 
 template <typename T>
 class TypeLayerResourceRegister {
@@ -64,5 +68,5 @@ public:
 #define REGISTER_LAYER_CONSTANT_RESOURCE(type_string, layer_type)                                                               \
 TypeLayerConstantResourceRegister<type_string##LayerResourceGenerator> g_##layer_type##_constant_resource_register(layer_type);
 
-#endif
 }
+#endif

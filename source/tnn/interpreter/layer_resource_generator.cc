@@ -20,6 +20,8 @@
 
 #include <mutex>
 
+#include "tnn/utils/random_data_utils.h"
+
 namespace TNN_NS {
 
 std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerResourceGeneratorMap() {
@@ -45,6 +47,14 @@ Status GenerateRandomResource(LayerType type, LayerParam* param, LayerResource**
         layer_constant_resource_generator_map[type]->GenLayerConstantResource(param, resource, inputs, consts);
     }
     return TNN_OK;
+}
+
+Status ConvertHalfResource(LayerType type, LayerResource* src_res, LayerResource** dst_res) {
+    auto& layer_resource_generator_map = GetGlobalLayerResourceGeneratorMap();
+    if (layer_resource_generator_map.count(type) > 0) {
+        return layer_resource_generator_map[type]->ConvertHalfLayerResource(src_res, dst_res);
+    }
+    return Status(TNNERR_PARAM_ERR, "ConvertHalfResource, layer type not supported yet.");
 }
 
 /*
@@ -88,6 +98,21 @@ class ConvolutionLayerResourceGenerator : public LayerResourceGenerator {
         }
 
         *resource = layer_res;
+        return TNN_OK;
+    }
+
+    virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
+        LOGD("ConvolutionLayerResource convert from fp16 to fp32\n");
+        auto src_res = dynamic_cast<ConvLayerResource*>(fp16_res);
+        CHECK_PARAM_NULL(src_res);
+
+        auto dst_res = new ConvLayerResource();
+
+        dst_res->filter_handle = ConvertHalfHandle(src_res->filter_handle);
+        dst_res->scale_handle  = ConvertHalfHandle(src_res->scale_handle);
+        dst_res->bias_handle   = ConvertHalfHandle(src_res->bias_handle);
+
+        *fp32_res = dst_res;
         return TNN_OK;
     }
 };
@@ -139,6 +164,21 @@ class InnerProductLayerResourceGenerator : public LayerResourceGenerator {
         *resource = layer_res;
         return TNN_OK;
     }
+
+    virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
+        LOGD("InnerProductLayerResource convert from fp16 to fp32\n");
+        auto src_res = dynamic_cast<InnerProductLayerResource*>(fp16_res);
+        CHECK_PARAM_NULL(src_res);
+
+        auto dst_res = new InnerProductLayerResource();
+
+        dst_res->weight_handle = ConvertHalfHandle(src_res->weight_handle);
+        dst_res->scale_handle  = ConvertHalfHandle(src_res->scale_handle);
+        dst_res->bias_handle   = ConvertHalfHandle(src_res->bias_handle);
+
+        *fp32_res = dst_res;
+        return TNN_OK;
+    }
 };
 
 /*
@@ -157,6 +197,20 @@ class BatchnormLayerResourceGenerator : public LayerResourceGenerator {
         InitRandom(layer_res->bias_handle.force_to<float*>(), dims[1], 1.0f);
 
         *resource = layer_res;
+        return TNN_OK;
+    }
+
+    virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
+        LOGD("BatchnormLayerResource convert from fp16 to fp32\n");
+        auto src_res = dynamic_cast<BatchNormLayerResource*>(fp16_res);
+        CHECK_PARAM_NULL(src_res);
+
+        auto dst_res = new BatchNormLayerResource();
+
+        dst_res->scale_handle = ConvertHalfHandle(src_res->scale_handle);
+        dst_res->bias_handle  = ConvertHalfHandle(src_res->bias_handle);
+
+        *fp32_res = dst_res;
         return TNN_OK;
     }
 };
@@ -184,6 +238,20 @@ class InstanceNormLayerResourceGenerator : public LayerResourceGenerator {
         *resource = layer_res;
         return TNN_OK;
     }
+
+    virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
+        LOGD("InstanceNormLayerResource convert from fp16 to fp32\n");
+        auto src_res = dynamic_cast<InstanceNormLayerResource*>(fp16_res);
+        CHECK_PARAM_NULL(src_res);
+
+        auto dst_res = new InstanceNormLayerResource();
+
+        dst_res->scale_handle = ConvertHalfHandle(src_res->scale_handle);
+        dst_res->bias_handle  = ConvertHalfHandle(src_res->bias_handle);
+
+        *fp32_res = dst_res;
+        return TNN_OK;
+    }
 };
 
 /*
@@ -200,6 +268,19 @@ class PReluLayerResourceGenerator : public LayerResourceGenerator {
         InitRandom(layer_res->slope_handle.force_to<float*>(), dims[1], 1.0f);
 
         *resource = layer_res;
+        return TNN_OK;
+    }
+
+    virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
+        LOGD("PReluLayerResource convert from fp16 to fp32\n");
+        auto src_res = dynamic_cast<PReluLayerResource*>(fp16_res);
+        CHECK_PARAM_NULL(src_res);
+
+        auto dst_res = new PReluLayerResource();
+
+        dst_res->slope_handle = ConvertHalfHandle(src_res->slope_handle);
+
+        *fp32_res = dst_res;
         return TNN_OK;
     }
 };
@@ -228,6 +309,20 @@ class BlobScaleLayerResourceGenerator : public LayerResourceGenerator {
         *resource = layer_res;
         return TNN_OK;
     }
+
+    virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
+        LOGD("BlobScaleLayerResource convert from fp16 to fp32\n");
+        auto src_res = dynamic_cast<IntScaleResource*>(fp16_res);
+        CHECK_PARAM_NULL(src_res);
+
+        auto dst_res = new IntScaleResource();
+
+        dst_res->scale_handle = ConvertHalfHandle(src_res->scale_handle);
+        dst_res->bias_handle  = ConvertHalfHandle(src_res->bias_handle);
+
+        *fp32_res = dst_res;
+        return TNN_OK;
+    }
 };
 
 /*
@@ -254,6 +349,20 @@ class BinaryLayerResourceGenerator : public LayerResourceGenerator {
 
         return TNN_OK;
     }
+
+    virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
+        LOGD("BinaryLayerResource convert from fp16 to fp32\n");
+        auto src_res = dynamic_cast<EltwiseLayerResource*>(fp16_res);
+        CHECK_PARAM_NULL(src_res);
+
+        auto dst_res = new EltwiseLayerResource();
+
+        dst_res->element_handle = ConvertHalfHandle(src_res->element_handle);
+        dst_res->element_shape  = src_res->element_shape;
+
+        *fp32_res = dst_res;
+        return TNN_OK;
+    }
 };
 
 class AddLayerResourceGenerator : public BinaryLayerResourceGenerator {};
@@ -262,6 +371,7 @@ class MaxLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class MinLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class DivLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class MulLayerResourceGenerator : public BinaryLayerResourceGenerator {};
+class SquaredDifferenceLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 
 /*
  * Generate Hdr resource
@@ -286,6 +396,24 @@ class HdrGuideLayerResourceGenerator : public LayerResourceGenerator {
 
         *resource = layer_res;
 
+        return TNN_OK;
+    }
+
+    virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
+        LOGD("HdrGuideLayerResource convert from fp16 to fp32\n");
+        auto src_res = dynamic_cast<HdrGuideLayerResource*>(fp16_res);
+        CHECK_PARAM_NULL(src_res);
+
+        auto dst_res = new HdrGuideLayerResource();
+
+        dst_res->ccm_weight_handle        = ConvertHalfHandle(src_res->ccm_weight_handle);
+        dst_res->ccm_bias_handle          = ConvertHalfHandle(src_res->ccm_bias_handle);
+        dst_res->shifts_handle            = ConvertHalfHandle(src_res->shifts_handle);
+        dst_res->slopes_handle            = ConvertHalfHandle(src_res->slopes_handle);
+        dst_res->projection_weight_handle = ConvertHalfHandle(src_res->projection_weight_handle);
+        dst_res->projection_bias_handle   = ConvertHalfHandle(src_res->projection_bias_handle);
+
+        *fp32_res = dst_res;
         return TNN_OK;
     }
 };
@@ -330,6 +458,10 @@ class LSTMONNXLayerResourceGenerator : public LayerResourceGenerator {
 
         return TNN_OK;
     }
+
+    virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
+        return TNN_OK;
+    }
 };
 
 REGISTER_LAYER_RESOURCE(Convolution, LAYER_CONVOLUTION);
@@ -347,6 +479,7 @@ REGISTER_LAYER_RESOURCE(Max, LAYER_MAXIMUM);
 REGISTER_LAYER_RESOURCE(Min, LAYER_MINIMUM);
 REGISTER_LAYER_RESOURCE(Div, LAYER_DIV);
 REGISTER_LAYER_RESOURCE(Mul, LAYER_MUL);
+REGISTER_LAYER_RESOURCE(SquaredDifference, LAYER_SQUARED_DIFFERENCE);
 REGISTER_LAYER_RESOURCE(HdrGuide, LAYER_HDRGUIDE);
 
 REGISTER_LAYER_CONSTANT_RESOURCE(LSTMONNX, LAYER_LSTMONNX);

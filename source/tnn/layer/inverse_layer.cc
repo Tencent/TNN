@@ -12,31 +12,26 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_INCLUDE_TNN_UTILS_DATA_FLAG_UTILS_H_
-#define TNN_INCLUDE_TNN_UTILS_DATA_FLAG_UTILS_H_
-
-#include <string>
-
-#include "tnn/core/common.h"
-#include "tnn/core/macro.h"
+#include "tnn/layer/elementwise_layer.h"
 
 namespace TNN_NS {
 
-class PUBLIC DataFlagUtils {
-public:
-    // @brief to check wether the data is allocated in forword
-    // @param flag data flag
-    static bool AllocateInForward(int flag);
+DECLARE_LAYER(Inverse, LAYER_INVERSE);
 
-    // @brief to check the data change flag
-    // @param flag data flag
-    static int ChangeStatus(int flag);
+Status InverseLayer::InferOutputDataType() {
+    return BaseLayer::InferOutputDataType();
+}
+
+Status InverseLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
     
-    // @brief get the minimal change flag, ignore allocate flag
-    // @param flag data flag
-    static int MinChangeStatus(int flag0, int  flag1);
-};
+    Blob* input_blob  = input_blobs_[0];
+    Blob* output_blob = output_blobs_[0];
+
+    output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
+    return TNN_OK;
+}
+
+REGISTER_LAYER(Inverse, LAYER_INVERSE);
 
 }  // namespace TNN_NS
-
-#endif  // TNN_INCLUDE_TNN_UTILS_DATA_TYPE_UTILS_H_

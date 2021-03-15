@@ -29,9 +29,9 @@ Status ArmSignLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
         float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
-        Float4 zero        = Float4(0);
-        Float4 one         = Float4(1);
-        Float4 neg_one     = Float4(-1);
+        Float4 zero        = Float4(0.f);
+        Float4 one         = Float4(1.f);
+        Float4 neg_one     = Float4(-1.f);
         for (int n = 0; n < count_quad; n++) {
             Float4 val = Float4::load(input_data + n * 4);
             Float4 res = Float4::bsl_clt(val, zero, neg_one, val);

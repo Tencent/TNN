@@ -23,8 +23,7 @@
 #include <cmath>
 
 #include "tnn/core/common.h"
-#include "tnn/utils/dims_offset_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
