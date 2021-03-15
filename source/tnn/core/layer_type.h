@@ -193,7 +193,7 @@ enum LayerType {
     LAYER_PIXEL_SHUFFLE                                     = 303,
     LAYER_EXPAND                                            = 304,
     LAYER_SCATTER_ND                                        = 305,
-    LAYER_STRIDED_SLICE_V2                                   = 306,
+    LAYER_STRIDED_SLICE_V2                                  = 306,
     LAYER_ERF                                               = 307,
     LAYER_CONSTANT_OF_SHAPE                                 = 308,
     LAYER_NONZERO                                           = 309,
@@ -205,9 +205,11 @@ enum LayerType {
     LAYER_GATHERND                                          = 315,
     LAYER_PADV2                                             = 316,
     LAYER_ROIALIGN                                          = 317,
-    LAYER_GROUP_NORM                                 = 318,
+    LAYER_GROUP_NORM                                        = 318,
     LAYER_ONEHOT                                            = 319,
     LAYER_EINSUM                                            = 320,
+    LAYER_INVERSE                                           = 321,
+    LAYER_GRIDSAMPLE                                        = 322,
 
     LAYER_BLOB_SCALE                                        = 600,
 

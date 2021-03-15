@@ -157,6 +157,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"QuantizedReluSignedInput", LAYER_QUANTIZED_RELU_SIGNED_INPUT},
     {"LogSigmoid", LAYER_LOGSIGMOID},
     {"Repeat", LAYER_REPEAT},
+    {"Tile", LAYER_REPEAT},
     {"Upsample", LAYER_UPSAMPLE},
     {"QuantizedUpsample", LAYER_UPSAMPLE},
     // 150
@@ -209,6 +210,8 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"RoiAlign", LAYER_ROIALIGN},
     {"GroupNorm", LAYER_GROUP_NORM},
     {"Einsum", LAYER_EINSUM},
+    {"Inverse", LAYER_INVERSE},
+    {"GridSample", LAYER_GRIDSAMPLE},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 

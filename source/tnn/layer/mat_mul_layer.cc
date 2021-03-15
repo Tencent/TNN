@@ -39,7 +39,7 @@ Status MatMulLayer::InferOutputDataType() {
 //    If the first argument is 2-dimensional and the second argument is 1-dimensional, the matrix-vector product is returned.
 //
 //    If both arguments are at least 1-dimensional and at least one argument is N-dimensional (where N > 2), then a batched matrix multiply is returned. If the first argument is 1-dimensional, a 1 is prepended to its dimension for the purpose of the batched matrix multiply and removed after. If the second argument is 1-dimensional, a 1 is appended to its dimension for the purpose of the batched matrix multiple and removed after. The non-matrix (i.e. batch) dimensions are broadcasted (and thus must be broadcastable). For example, if input is a (j \times 1 \times n \times m)(j×1×n×m) tensor and other is a (k \times m \times p)(k×m×p) tensor, out will be an (j \times k \times n \times p)(j×k×n×p) tensor.
-DimsVector CalculateOutputDim(DimsVector matrix_a_dims, DimsVector matrix_b_dims) {
+DimsVector CalculateOutputDim(DimsVector matrix_a_dims, DimsVector matrix_b_dims, Status *status) {
     DimsVector output_dims;
     bool squeeze_matrix_a = false;
     bool squeeze_matrix_b = false;
@@ -59,7 +59,10 @@ DimsVector CalculateOutputDim(DimsVector matrix_a_dims, DimsVector matrix_b_dims
             output_dims[matrix_b_dims.size() - 2] = matrix_a_dims[matrix_a_dims.size() - 2];
         } else {
             LOGE("MatMul get wrong matrix_a or matrix_b\n");
-            assert(-1);
+            if (status) {
+                *status = Status(TNNERR_PARAM_ERR, "MatMul has wrong shape of matrix_a or matrix_b");
+            }
+            return output_dims;
         }
     } else if (matrix_a_dims.size() > 2 && matrix_b_dims.size() == 2) {
         if (matrix_a_dims.back() == matrix_b_dims[matrix_b_dims.size() - 2]) {
@@ -67,13 +70,19 @@ DimsVector CalculateOutputDim(DimsVector matrix_a_dims, DimsVector matrix_b_dims
             output_dims[matrix_a_dims.size() - 1] = matrix_b_dims.back();
         } else {
             LOGE("MatMul get wrong matrix_a or matrix_b\n");
-            assert(-1);
+            if (status) {
+                *status = Status(TNNERR_PARAM_ERR, "MatMul has wrong shape of matrix_a or matrix_b");
+            }
+            return output_dims;
         }
     } else if (matrix_a_dims.size() > 2 && matrix_b_dims.size() > 2) {
         // check matrix_a and matrix_b
         if (matrix_a_dims.back() != matrix_b_dims[matrix_b_dims.size() - 2]) {
             LOGE("MatMul get wrong matrix_a or matrix_b\n");
-            assert(-1);
+            if (status) {
+                *status = Status(TNNERR_PARAM_ERR, "MatMul has wrong shape of matrix_a or matrix_b");
+            }
+            return output_dims;
         }
         output_dims = matrix_a_dims.size() >= matrix_b_dims.size() ? matrix_a_dims : matrix_b_dims;
         output_dims[output_dims.size() - 2] = matrix_a_dims[matrix_a_dims.size() - 2];
@@ -83,7 +92,10 @@ DimsVector CalculateOutputDim(DimsVector matrix_a_dims, DimsVector matrix_b_dims
         for (int i = count - 1 - 2; i >= 0; --i) {
             if (matrix_a_dims[i] != 1 && matrix_b_dims[i] != 1 && matrix_a_dims[i] != matrix_b_dims[i]) {
                 LOGE("MatMul get wrong matrix_a or matrix_b\n");
-                assert(-1);
+                if (status) {
+                    *status = Status(TNNERR_PARAM_ERR, "MatMul has wrong shape of matrix_a or matrix_b");
+                }
+                return output_dims;
             } else {
                 output_dims[i] = matrix_a_dims[i] >= matrix_b_dims[i] ? matrix_a_dims[i] : matrix_b_dims[i];
             }
@@ -125,7 +137,8 @@ Status MatMulLayer::InferOutputShape(bool ignore_error) {
     param->matrix_a_dims = matrix_a_dims;
     param->matrix_b_dims = matrix_b_dims;
 
-    auto output_dims = CalculateOutputDim(matrix_a_dims, matrix_b_dims);
+    auto output_dims = CalculateOutputDim(matrix_a_dims, matrix_b_dims, &status);
+    LOGE_IF(!ignore_error && status != TNN_OK, "MatMulLayer: %s", status.description().c_str());
     output_blobs_[0]->GetBlobDesc().dims = output_dims;
     return TNN_OK;
 }
