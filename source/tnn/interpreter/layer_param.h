@@ -620,6 +620,12 @@ struct FlattenLayerParam : public LayerParam {
     PARAM_COPY(FlattenLayerParam)
 };
 
-}  // namespace TNN_NS
+struct EinsumLayerParam : public LayerParam {
+    std::string equation;
+
+    PARAM_COPY(EinsumLayerParam)
+};
+
+};  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H
