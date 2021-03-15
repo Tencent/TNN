@@ -54,11 +54,7 @@ private:
 namespace TNN_NS {
 DECLARE_X86_ACC(MatMul, LAYER_MATMUL);
 
-Status X86MatMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
-Status X86MatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86MatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Timer t;
     float time_ms = 0;
     t.Start();
@@ -113,7 +109,7 @@ Status X86MatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
             FINTEGER lda = m;
             FINTEGER ldb = k;
             FINTEGER ldc = m;
-            sgemm_opt1("N", "N", &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, dst, &ldc);
+            // sgemm_opt1("N", "N", &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, dst, &ldc);
         }
         printf("x86 matmul C:%d M:%d K:%d N:%d cost:%.2fms\n", channel, K, N, M, t.TimeEclapsed());
     }

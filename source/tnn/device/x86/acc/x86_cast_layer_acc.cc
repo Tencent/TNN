@@ -20,11 +20,7 @@ namespace TNN_NS {
 
 DECLARE_X86_ACC(Cast, LAYER_CAST);
 
-Status X86CastLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
-Status X86CastLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86CastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     const auto param = dynamic_cast<CastLayerParam*>(param_);
     void *input_data = inputs[0]->GetHandle().base;
     auto input_data_type = inputs[0]->GetBlobDesc().data_type;

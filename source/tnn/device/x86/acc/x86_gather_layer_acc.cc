@@ -20,11 +20,7 @@ namespace TNN_NS {
 
 DECLARE_X86_ACC(Gather, LAYER_GATHER);
 
-Status X86GatherLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
-Status X86GatherLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86GatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);
     int axis = layer_param->axis;

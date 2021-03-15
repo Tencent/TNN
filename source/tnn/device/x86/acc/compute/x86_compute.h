@@ -19,7 +19,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
 #include "tnn/device/x86/acc/x86_reduce_op_layer_acc.h"
-#include "tnn/utils/dims_utils.h
+#include "tnn/utils/dims_utils.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/device/x86/acc/Float4.h"
 #include "tnn/device/x86/acc/Float8.h"
