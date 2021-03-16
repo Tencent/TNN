@@ -149,12 +149,16 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 
 # 支持硬件
 
-| device | support |
-|--------|---------|
-| ARMv7  | Yes     |
-| ARMv8  | Yes     |
-| OpenCL | Yes     |
-| Metal  | Yes     |
-| 华为Npu | Yes     |
+| device  | support |
+|-------- |---------|
+| ARMv7   |  Yes    |
+| ARMv8   |  Yes    |
+| OpenCL  |  Yes    |
+| Metal   |  Yes    |
+| 华为Npu |  Yes    |
+| RK NPU  |  Yes    |
+| X86     |  Yes    |
+| CUDA    |  Yes    |
+
 
 1. 华为NPU仅支持达芬奇架构NPU，目前有：麒麟810，麒麟820，麒麟985，麒麟990，麒麟990 5G，麒麟990E，麒麟9000，麒麟9000E等。

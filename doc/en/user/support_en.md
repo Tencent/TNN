@@ -149,12 +149,15 @@ TNN currently support main-stream CNN networks：
 
 ## TNN supported devices
 
-| device | support |
-|--------|---------|
-| ARMv7  | Yes     |
-| ARMv8  | Yes     |
-| OpenCL | Yes     |
-| Metal  | Yes     |
-| HuaweiNPU | Yes     |
+| device     | support |
+|------------|---------|
+| ARMv7      |  Yes    |
+| ARMv8      |  Yes    |
+| OpenCL     |  Yes    |
+| Metal      |  Yes    |
+| HuaweiNPU  |  Yes    |
+| RKNPU      |  Yes    |
+| X86        |  Yes    |
+| CUDA       |  Yes    |
 
 1. HuaweiNPU is DaVinci NPU of Huawei, as follows: Kirin810, Kirin820, Kirin985, Kirin990, Kirin990 5G, Kirin990E, Kirin9000, Kirin9000E etc.
