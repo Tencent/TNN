@@ -55,7 +55,7 @@ static TNN_NS::Status CreateResource(TNN_NS::NetResource &net_resource,
         int c              = input_dims[3];
         int output_channel = weight_dims[0];
         int feature_size   = weight_dims[1];
-        auto tensor_data   = static_cast<uint8_t*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
+        auto tensor_data   = static_cast<uint8_t *>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
         auto tmp_buffer    = new uint8_t[weight_count]();
         for (int i = 0; i < output_channel; ++i) {
             auto data_ptr = &tensor_data[i * feature_size];
@@ -89,12 +89,12 @@ static TNN_NS::Status CreateResource(TNN_NS::NetResource &net_resource,
     }
     if (tf_lite_operator->inputs.size() == 3) {
         // bias
-        auto &bias_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
-        auto bias_ptr     = reinterpret_cast<const float *>(tf_lite_model_buffer[bias_tensor->buffer]->data.data());
-        auto bias_shape   = bias_tensor->shape;
-        int bias_size     = Count(bias_shape);
-        TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(bias_size * sizeof(int32_t));
-        ::memcpy(bias_handle.force_to<int32_t *>(), bias_ptr, bias_size * sizeof(int32_t));
+        auto &bias_tensor             = tf_lite_tensors[tf_lite_operator->inputs[2]];
+        auto bias_ptr                 = (int32_t *)(tf_lite_model_buffer[bias_tensor->buffer]->data.data());
+        auto bias_dims                = bias_tensor->shape;
+        int bias_count                = Count(bias_dims);
+        TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(bias_count * sizeof(int32_t));
+        ::memcpy(bias_handle.force_to<int32_t *>(), bias_ptr, bias_count * sizeof(int32_t));
         resource->bias_handle = bias_handle;
     }
     return TNN_NS::TNN_CONVERT_OK;
@@ -133,7 +133,7 @@ TNN_NS::Status TFLiteFullyConnectedConverter::exec(
         int input_tensor_index = tf_lite_operator->inputs[0];
         auto status            = CreateIntScaleResource(net_resource, tf_lite_tensors, input_tensor_index);
         ASSERT(status == TNN_NS::TNN_CONVERT_OK);
-        // crate InnerProduct layer resouce
+        // crate InnerProduct layer resource
         status = CreateResource(net_resource, tf_lite_operator, tf_lite_tensors, tf_lite_model_buffer, cur_layer->name);
         ASSERT(status == TNN_NS::TNN_CONVERT_OK);
         // create IntScaleResource for output

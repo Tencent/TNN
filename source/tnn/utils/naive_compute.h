@@ -40,9 +40,10 @@ void NaivePooling(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector
 
 template <typename Tin, typename Tw, typename Tacc, typename Tout>
 void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
-            DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
-            int pad_x, int group, int dilation, int activation_type, float *scale, int scale_len,
-            int fusion_type = FusionType_None, void *add_input = nullptr, float *add_scale = nullptr);
+               DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
+               int pad_x, int group, int dilation, int activation_type, float *weight_scale, int weight_scale_len,
+               int8_t *relu6_max, int relu6_max_len, int fusion_type = FusionType_None, void *add_input = nullptr,
+               float *add_scale = nullptr);
 
 // float fc
 template <typename T>
