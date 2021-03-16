@@ -143,7 +143,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             auto blob = blob_manager_->GetBlob(name);
             if (const_blobs.find(name) != const_blobs.end()) {
                 if (runtime_model_ == RUNTIME_MODE_NORMAL) {
-                    blob->flag = DATA_FLAG_CHANGE_NEVER;
+                    blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
                 }
                 blob->GetBlobDesc().data_type = const_blobs[name]->GetDataType();
             }

@@ -154,7 +154,7 @@ Status BlobManager::AllocateBlobMemory(int flag) {
         for (auto current_blob_name : layer_info->outputs) {
             Blob *current_blob = blobs_[current_blob_name];
             if (current_blob->NeedAllocateInForward() ||
-                DataFlagUtils::ChangeStatus(current_blob->flag) != DataFlagUtils::ChangeStatus(flag)) {
+                DataFlagUtils::ChangeStatus(current_blob->GetFlag()) != DataFlagUtils::ChangeStatus(flag)) {
                 continue;
             }
             
@@ -179,7 +179,7 @@ Status BlobManager::AllocateBlobMemory(int flag) {
         for (auto current_blob_name : layer_info->inputs) {
             Blob *current_blob = blobs_[current_blob_name];
             if (current_blob->NeedAllocateInForward() ||
-                DataFlagUtils::ChangeStatus(current_blob->flag) != DataFlagUtils::ChangeStatus(flag)) {
+                DataFlagUtils::ChangeStatus(current_blob->GetFlag()) != DataFlagUtils::ChangeStatus(flag)) {
                 continue;
             }
             

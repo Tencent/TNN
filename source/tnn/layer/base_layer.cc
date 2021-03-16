@@ -101,7 +101,7 @@ Status BaseLayer::InferOutputShape(bool ignore_error) {
         
         //only DATA_FLAG_CHANGE_NEVER read dims and type from const resource
         //blob with flag DATA_FLAG_CHANGE_IF_SHAPE_DIFFER may change dims in runtime
-        if (DataFlagUtils::ChangeStatus(iter->flag) == DATA_FLAG_CHANGE_NEVER) {
+        if (DataFlagUtils::ChangeStatus(iter->GetFlag()) == DATA_FLAG_CHANGE_NEVER) {
             iter->GetBlobDesc().dims = (*const_resource)[name]->GetBufferDims();
         }
     }
@@ -124,11 +124,11 @@ Status BaseLayer::InferOutputDataType() {
         if (const_resource) {
             auto res = const_resource->find(iter->GetBlobDesc().name);
             if (res!= const_resource->end()) {
-                iter->flag |= DATA_FLAG_CHANGE_NEVER;
+                iter->SetFlag(iter->GetFlag() | DATA_FLAG_CHANGE_NEVER);
                 iter->GetBlobDesc().data_type = res->second->GetDataType();
             }
         }
-        flag = DataFlagUtils::MinChangeStatus(flag, iter->flag);
+        flag = DataFlagUtils::MinChangeStatus(flag, iter->GetFlag());
     }
     
     //find first blob which is not const
@@ -156,7 +156,7 @@ Status BaseLayer::InferOutputDataType() {
             }
         }
 
-        iter->flag = flag;
+        iter->SetFlag(flag);
     }
     return TNN_OK;
 }
@@ -260,7 +260,7 @@ bool BaseLayer::IsOutputConstant() {
 int BaseLayer::GetLayerChangeFlag() {
     int flag = DATA_FLAG_CHANGE_NEVER;
     for (auto iter : output_blobs_) {
-        flag = DataFlagUtils::ChangeStatus(DataFlagUtils::MinChangeStatus(flag, iter->flag));
+        flag = DataFlagUtils::ChangeStatus(DataFlagUtils::MinChangeStatus(flag, iter->GetFlag()));
     }
     return flag;
 }

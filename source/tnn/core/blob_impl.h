@@ -12,13 +12,14 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_INCLUDE_TNN_CORE_BLOB_H_
-#define TNN_INCLUDE_TNN_CORE_BLOB_H_
+#ifndef TNN_INCLUDE_TNN_CORE_BLOB_IMPL_H_
+#define TNN_INCLUDE_TNN_CORE_BLOB_IMPL_H_
 
 #include <cstdint>
 #include <map>
 #include <string>
 
+#include "tnn/core/blob.h"
 #include "tnn/core/common.h"
 #include "tnn/core/macro.h"
 
@@ -27,41 +28,18 @@
 
 namespace TNN_NS {
 
-//@brief BlobDesc blob data info
-struct PUBLIC BlobDesc {
-    // deivce_type describes device cpu, gpu, ...
-    DeviceType device_type = DEVICE_NAIVE;
-    // data_type describes data precision fp32, in8, ...
-    DataType data_type = DATA_TYPE_FLOAT;
-    // data_format describes data order nchw, nhwc, ...
-    DataFormat data_format = DATA_FORMAT_AUTO;
-    // DimsVector describes data dims
-    DimsVector dims;
-    // name describes the blob name
-    std::string name = "";
-    
-    std::string description(bool all_messgae = false);
-};
-
-struct PUBLIC BlobHandle {
-    void *base            = NULL;
-    uint64_t bytes_offset = 0;
-};
-
-class BlobImpl;
-
-// @brief Blob tnn data store and transfer interface.
-class PUBLIC Blob {
+// @brief BlobImpl tnn data store and transfer interface.
+class PUBLIC BlobImpl {
 public:
     //@brief create blob with blob descript
-    explicit Blob(BlobDesc desc);
+    explicit BlobImpl(BlobDesc desc);
 
-    Blob(BlobDesc desc, bool alloc_memory);
+    BlobImpl(BlobDesc desc, bool alloc_memory);
 
     //@brief create Blob with blob descript and data handle
-    Blob(BlobDesc desc, BlobHandle handle);
+    BlobImpl(BlobDesc desc, BlobHandle handle);
 
-    virtual ~Blob();
+    virtual ~BlobImpl();
 
     //@brief return blob desc
     BlobDesc &GetBlobDesc();
@@ -83,21 +61,24 @@ public:
     //@brief check if it is constant
     bool IsConstant();
 
+    //@brief get blob flag
     int GetFlag();
-
+  
+    //@brief set blob flag
     void SetFlag(int flag);
-private: 
-    BlobImpl* impl_;
+
+private:
+    BlobDesc desc_;
+    BlobHandle handle_;
+    bool alloc_memory_;
+    //0: data alwalys change
+    //1: data change if shape differ
+    //2: data never change
+    int flag_ = DATA_FLAG_CHANGE_ALWAYS;
 };
-
-// InputShapeMap input reshape info
-using InputShapesMap   = std::map<std::string, DimsVector>;
-using InputDataTypeMap = std::map<std::string, DataType>;
-
-using BlobMap = std::map<std::string, Blob *>;
 
 }  // namespace TNN_NS
 
 #pragma warning(pop)
 
-#endif  // TNN_INCLUDE_TNN_CORE_BLOB_H_
+#endif  // TNN_INCLUDE_TNN_CORE_BLOB_IMPL_H_

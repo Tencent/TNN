@@ -28,7 +28,7 @@ Status UpsampleLayer::InferOutputDataType() {
     if (layer_param->scales.empty() && runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
         for (auto &iter : output_blobs_) {
             int allocat_status = DATA_FLAG_ALLOCATE_IN_FORWARD;
-            iter->flag         = iter->flag | allocat_status;
+            iter->SetFlag(iter->GetFlag() | allocat_status);
         }
     }
     return TNN_OK;
