@@ -91,12 +91,13 @@ cd <path_to_tnn>/scripts
 ```
 cd <path_to_tnn>/scripts
 ```
-2）编辑`build_aarch_linux.sh` 或 `build_arm32hf_linux.sh` 修改配置选项 
+2）编辑`build_aarch_linux.sh` 或 `build_armhf_linux.sh` 修改配置选项 
 ```
  SHARED_LIB="ON"                # ON表示编译动态库，OFF表示编译静态库
  ARM="ON"                       # ON表示编译带有Arm CPU版本的库
  OPENMP="ON"                    # ON表示打开OpenMP
  OPENCL="OFF"                   # ON表示编译带有Arm GPU版本的库
+ RKNPU="OFF"                    # ON表示编译带有RKNPU版本的库
  #ARM64:
  CC=aarch64-linux-gnu-gcc       # 指定C编译器
  CXX=aarch64-linux-gnu-g++      # 指定C++编译器
@@ -108,8 +109,10 @@ cd <path_to_tnn>/scripts
 ```
 3）执行编译脚本
 ```
-./build_arm_linux.sh
+./build_aarch_linux.sh
 ```
+RKNPU : 运行前需要下载DDK, 并放到指定文件夹。具体请参考:
+[FAQ](../faq.md#如何创建rknpu编译环境)如何创建RKNPU编译环境?
 
 ## 四、Linux 环境编译
 ### 1.环境要求
@@ -214,6 +217,7 @@ cd <path_to_tnn>/scripts
 |TNN_DSP_ENABLE| OFF | 代码source/device/dsp编译开关，当前适配snpe实现。|
 |TNN_ATLAS_ENABLE| OFF | 代码source/device/atlas编译开关，当前适配华为atlas加速框架。|
 |TNN_HUAWEI_NPU_ENABLE| OFF | 代码source/device/huawei_npu编译开关，当前适配HiAI加速框架。|
+|TNN_RK_NPU_ENABLE| OFF | 代码source/device/rknpu编译开关，当前适配rknpu_ddk加速框架。|
 |TNN_SYMBOL_HIDE| ON | 加速库符号隐藏，release发布默认非public接口符号不可见。|
 |TNN_OPENMP_ENABLE| OFF | OpenMP开关，控制是否打开openmp加速。|
 |TNN_BUILD_SHARED| ON | 动态库编译开关，关闭则编译静态库。|
