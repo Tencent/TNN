@@ -198,6 +198,18 @@ public:
         return custom_openvino_layer_map;
     }
 
+    static std::set<LayerType> &GetCustomLayerTypeSet() {
+        static std::set<LayerType> custom_layer_type_set;
+        return custom_layer_type_set;
+    }
+
+    static void RegisterCustomLayerType(LayerType &type) {
+        auto layer_type_set = GetCustomLayerTypeSet();
+        if (layer_type_set.find(type) == layer_type_set.end()) {
+            layer_type_set.insert(type);
+        }
+    }
+
     void GetVersion(const InferenceEngine::Version*& versionInfo) const noexcept override {}
 
     void Unload() noexcept override {}
@@ -262,6 +274,13 @@ public:
     }
 };
 
+class CustomTypeRegister {
+public:
+    explicit CustomTypeRegister(LayerType type) {
+        CustomOpenvinoLayerManager::RegisterCustomLayerType(type);
+    }
+};
+
 }  // namespace TNN_NS
 
 #define DECLARE_CUSTOM_IMPLEMENTATION(type)                                                                            \
@@ -273,6 +292,8 @@ public:
 // 注册到一起，方便一次导入，一个 getmap 函数把这些都 get 过来
 #define REGISTER_CUSTOM_IMPLEMENTATION(type, type_string)                                                              \
     CustomImplementationRegister<Custom##type##Impl> g_custom_##type##_impl_register(#type_string);
+
+#define REGISTER_CUSTOM_TYPE(type) CustomTypeRegister g_custom_##type##_register(type);
 
 #define REGISTER_CUSTOM_OP(type)                                                                                       \
     CustomOpRegister<Custom##type##Op> g_custom_##type##_op_register();                                                \

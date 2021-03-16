@@ -80,7 +80,7 @@ Status LSTMONNXOVLayerBuilder::Build() {
     // auto cellStateNode   = std::make_shared<ngraph::op::Transpose>(input_nodes[5]->output(0), orderNode);
     // auto sliceNode       = std::make_shared<ngraph::op::v1::Split>(input_nodes[3]->output(0), splitNode, 2);
     // auto addNode         = std::make_shared<ngraph::op::v0::Add>(sliceNode->output(0), sliceNode->output(1));
-    // auto lstmNode        = std::make_shared<ngraph::op::v0::LSTMSequence>(inputNode->output(0), //input
+    // auto lstmNode        = std::make_shared<ngraph::op::v5::LSTMSequence>(inputNode->output(0), //input
     //                                                                       hiddenStateNode->output(0), //hiddenstate
     //                                                                       cellStateNode->output(0), //cellstate
     //                                                                       sequenceNode->output(0),
@@ -89,12 +89,9 @@ Status LSTMONNXOVLayerBuilder::Build() {
     //                                                                       addNode->output(0), //B
     //                                                                       paramlist->hidden_size,
     //                                                                       directions,
-    //                                                                       ngraph::op::LSTMWeightsFormat::IOFC,
     //                                                                       activations_alpha,
     //                                                                       activations_beta,
-    //                                                                       activations,
-    //                                                                       0,
-    //                                                                       false);
+    //                                                                       activations);
     
     // auto lstmOrderNode =
     //     std::make_shared<ngraph::op::Constant>(ngraph::element::Type_t::i32, ngraph::Shape{4}, lstm_permute);
@@ -117,8 +114,7 @@ Status LSTMONNXOVLayerBuilder::Build() {
 
 
 
-    // build to openvino lstm sequence node failed, use custom lstm op instead
-    // Error message: "Error of validate layer: LSTMSequence_10823 with type: LSTMSequence. Layer is not instance of RNNLayer class"
+    // build to openvino lstm sequence node success, but crc wrong, use custom lstm op instead
 
     ngraph::OutputVector inputs;
     for (auto item : input_nodes) {
@@ -140,4 +136,5 @@ Status LSTMONNXOVLayerBuilder::Build() {
 }
 
 REGISTER_OPENVINO_LAYER_BUILDER(LSTMONNX, LAYER_LSTMONNX);
+REGISTER_CUSTOM_TYPE(LAYER_LSTMONNX);
 }  // namespace TNN_NS
