@@ -134,7 +134,8 @@ struct PUBLIC ModelConfig {
 };
 ```
 
-ModelConfig参数说明：  
+ModelConfig参数说明：
+
 - `model_type`: TNN当前开源版本仅支持传入`MODEL_TYPE_TNN`， `MODEL_TYPE_NCNN`, `MODEL_TYPE_COREML` 模型格式。  
 - `params`: TNN模型需传入proto文件内容以及model文件路径。NCNN模型需传入param文件内容以及bin文件路径, COREML模型需传入coreml 模型所在目录路径。
 
@@ -172,13 +173,14 @@ struct PUBLIC NetworkConfig {
 ```
 
 NetworkConfig参数说明：  
+
 - `device_type`: 默认为`DEVICE_ARM`。 当前已支持 `DEVICE_NAIVE`、`DEVICE_ARM`、`DEVICE_X86`、`DEVICE_OPENCL`、`DEVICE_METAL`、`DEVICE_CUDA`、`DEVICE_HUAWEI_NPU`、`DEVICE_RK_NPU`。  
 - `device_id`: 默认为0，多个设备支持通过`device_id`选择，当前仅`DEVICE_CUDA`需配置此参数指定gpu id。  
 - `data_format`: 默认为tnn自动选择blob数据排布方式进行加速，可通过此参数设定特定blob数据排布进行加速。  
 - `network_type`: 默认根据`device_type`自动选择网络类型，可指定构建网络类型。  
 - `share_memory_mode`: tnn instance 内存共享方式。  
 - `library_path`: 支持外部依赖库加载，iOS metal kernel库放在app非默认路径需配置此参数。    
--  ` precision`:  网络精度类型，默认根据不同的`device_type`自动选择精度。  
+- `precision`:  网络精度类型，默认根据不同的`device_type`自动选择精度。  
 - `cache_path`： 华为NPU指定cache路径可存放运行过程中转出的om文件，后续运行可直接通过加载cache路径对应om文件。OpenCL `enable_tune_kernel` 打开，可通过指定cache路径存放tune参数，后续可直接加载tune参数而无需每次运行都tune kernel。
 
 
@@ -195,9 +197,10 @@ typedef enum {
 ```
 
 ShareMemoryMode参数说明:  
-`SHARED_MEMORY_MODE_DEFAULT`: 仅支持同一instance不同blob间内存共享。  
-`SHARE_MEMORY_MODE_SHARE_ONE_THREAD`: 支持同一线程的不同Instance内存共享。  
-`SHARE_MEMORY_MODE_SET_FROM_EXTERNAL`: 支持instance内存由外部传入，共享方式由调用侧决定，线程间共享需处理同步问题，内存分配释放均需调用侧维护。  
+
+- `SHARED_MEMORY_MODE_DEFAULT`: 仅支持同一instance不同blob间内存共享。  
+- `SHARE_MEMORY_MODE_SHARE_ONE_THREAD`: 支持同一线程的不同Instance内存共享。  
+- `SHARE_MEMORY_MODE_SET_FROM_EXTERNAL`: 支持instance内存由外部传入，共享方式由调用侧决定，线程间共享需处理同步问题，内存分配释放均需调用侧维护。  
 
 ### 2. core/tnn.h
 
@@ -236,10 +239,11 @@ public:
 ```
 
 TNN接口说明：  
+
 - Init接口：负责模型数据传入并解析，需配置并传入ModelConfig。  
 - DeInit接口: 负责tnn implement释放，默认析构函数可自动释放。  
 - AddOutput接口：支持增加模型输出，可将网络任意一层输出定义为模型输出。
-- GetModelInputShapesMap： 获取模型解析出的模型输入尺寸。  
+- GetModelInputShapesMap接口： 获取模型解析出的模型输入尺寸。  
 - CreateInst接口：负责网络实例Instance构建，如果运行过程中支持输入维度可变，需配置`min_inputs_shape`和`max_inputs_shape`指定输入每个维度支持的最大最小尺寸。
 
 ### 3. core/instance.h
@@ -307,6 +311,7 @@ public:
 ```
 
 Instance接口说明：  
+
 - `Instance`和`Init`接口均由TNN CreateInst接口实现调用，用于生成Instance网络实例。  
 - `GetForwardMemorySize`可获取Instance所有Blob所需内存大小，`SetForwardMemory`用于传入外部内存。对于`SHARE_MEMORY_MODE_SET_FROM_EXTERNAL`内存模式构建的Instance，内存需由外部传入， 传入内存实际大小不得小于`GetForwardMemorySize`返回值大小。  
 - `Reshape`接口支持网络构建成功后重新设定输入尺寸，仅通过`min_inputs_shape`和`max_inputs_shape` 构建的网络可在运行过程中改变输入尺寸，可变尺寸范围由`min_inputs_shape`和`max_inputs_shape` 指定。  
@@ -482,8 +487,9 @@ public:
 ```
 
 接口参数说明:
+
 - `Copy`: 支持不同DEVICE与CPU Mat数据拷贝，以及相同DEVICE间Mat数据拷贝。
--  `Resize `、`Crop`、`WarpAffine `、`CvtColor `、`CopyMakeBorder` 接口行为类似OpenCV，CPU与GPU均支持，`src` 和  `dst` 需拥有相同的`DEVICE_TYPE`。
+- `Resize `、`Crop`、`WarpAffine `、`CvtColor `、`CopyMakeBorder` 接口行为类似OpenCV，CPU与GPU均支持，`src` 和  `dst` 需拥有相同的`DEVICE_TYPE`。
 
 
 ### 9. utils/bfp16\_utils.h
@@ -543,5 +549,5 @@ struct PUBLIC MatConvertParam {
 ### 15. utils/string\_utils.h
 接口提供uchar string 到std::string的转换，主要用于TNN模型内存输入。
 
-### 16 version.h
+### 16. version.h
 构建版本信息
