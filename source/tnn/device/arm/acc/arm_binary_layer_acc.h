@@ -39,6 +39,9 @@ protected:
     template <typename Tout, typename Tin1, typename Tin2>
     Status BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *input1_ptr, DimsVector &dims0, DimsVector &dims1);
 
+    template <typename T>
+    Status BinaryGeneralFunc(T *output_ptr, std::vector<T*> &input_ptrs, DimsVector output_shape, std::vector<DimsVector> &input_shapes);
+
     virtual bool DataTypeSupported(DataType data_type) override;
     
     std::function<Float4(const Float4 &v1, const Float4 &v2)> _Operator = nullptr;
