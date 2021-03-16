@@ -20,37 +20,10 @@
 
 namespace TNN_NS {
 
-// @brief conv layer cpu acc
 class X86PermuteLayerAcc : public X86LayerAcc {
-    // @brief virtual destrcutor
     virtual ~X86PermuteLayerAcc();
 
-    /**
-     * @brief init layer with param, resouce, intput blobs and output blobs.
-     * @param context cpu context
-     * @param param    layer param
-     * @param resource  layer resouce
-     * @param inputs    input blobs
-     * @param outputs   output blobs
-     */
-    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-                const std::vector<Blob *> &outputs);
-
-    /**
-     * @brief input or output blobs reshape.
-     * @param inputs    input blobs
-     * @param outputs   output blobs
-     * @return reshape result
-     */
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
-    /**
-     * @brief layer forward
-     * @param inputs    input blobs
-     * @param outputs   output blobs
-     * @return execution result
-     */
-    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 private:
     /**

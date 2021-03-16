@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "base_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 DECLARE_LAYER(Unsqueeze, LAYER_UNSQUEEZE);
@@ -32,21 +32,27 @@ Status UnsqueezeLayer::InferOutputDataType() {
 }
 
 Status UnsqueezeLayer::InferOutputShape(bool ignore_error) {
-    BaseLayer::InferOutputShape(ignore_error);
-    ASSERT(input_blobs_.size() == 1);
-    const auto& input_blob  = input_blobs_[0];
-    const auto& input_dims  = input_blob->GetBlobDesc().dims;
-    const auto& output_blob = output_blobs_[0];
-    auto& output_dims       = output_blob->GetBlobDesc().dims;
+    auto status = BaseLayer::InferOutputShape(ignore_error);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
+    auto *layer_param = dynamic_cast<UnsqueezeLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    const auto input_dims  = input_blobs_[0]->GetBlobDesc().dims;
     // the output blob has only one dim, the value is the size of input blob dims
-    auto layer_param      = dynamic_cast<UnsqueezeLayerParam*>(param_);
-    auto axes             = layer_param->axes;
-    auto output_dims_size = axes.size() + input_dims.size();
-    output_dims           = input_dims;
+    
+    auto axes = layer_param->axes;
+    auto output_dims = input_dims;
     for (auto axis : axes) {
-        axis = axis < 0 ? axis + output_dims.size() : axis;
+        //Note: here it is diffreent from SqueezeLayer
+        axis = axis < 0 ? axis + (int)output_dims.size() + 1 : axis;
+        if (axis < 0 || axis > output_dims.size()) {
+            return Status(TNNERR_PARAM_ERR, "UnsqueezeLayer has invalid input axes");
+        }
         output_dims.insert(output_dims.begin() + axis, 1);
     }
+    
+    output_blobs_[0]->GetBlobDesc().dims = output_dims;
     return TNN_OK;
 }
 

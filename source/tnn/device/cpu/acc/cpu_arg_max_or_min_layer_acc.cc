@@ -14,7 +14,7 @@
 #include <limits>
 
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include <iostream>
 
 namespace TNN_NS {

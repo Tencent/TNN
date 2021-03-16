@@ -14,7 +14,7 @@
 
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
 #include "cuda_strided_slice_layer_acc_kernel.cuh"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h
 
 namespace TNN_NS {
 

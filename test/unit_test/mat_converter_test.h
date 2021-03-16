@@ -127,11 +127,16 @@ protected:
     bool OpenCLTestFilter(const DeviceType& device_type, const MatType& mat_type);
     bool MetalTestFilter(const DeviceType& device_type, const MatType& mat_type,
                          const MatConverterType& mat_converter_type, const int batch);
-    bool MatChannelCheck(const MatType& mat_type, const int channel);
+    bool MatChannelCheck(const MatType& mat_type, const int channel, const int input_size);
+    bool CropYUVCheck(const MatConverterTestParam& mat_converter_test_param,
+                      const MatConverterType& mat_converter_type,
+                      const MatType& mat_type);
     bool CvtColorCheck(const DeviceType& device_type, const MatType& mat_type,
                        const MatConverterType& mat_converter_type,
                        const ColorConversionType& cvt_type,
                        const int input_size);
+    bool CopyMakeBorderCheck(const DeviceType& device_type, const MatType& mat_type,
+                             const MatConverterType& mat_converter_type);
     void GetOutputSize(const MatConverterTestParam& mat_converter_test_param,
                        const MatConverterType& mat_converter_type,
                        const int input_size,

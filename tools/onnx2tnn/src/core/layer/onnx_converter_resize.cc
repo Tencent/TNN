@@ -111,7 +111,7 @@ string OnnxOpConverterResize::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_in
             h_scale = get_node_attr_f(node, "height_scale", -1.0f);
             w_scale = get_node_attr_f(node, "width_scale", -1.0f);
 
-            if (h_scale <= 0 || w_scale <= 0) {
+            if ((h_scale <= 0 || w_scale <= 0) && scales_name.length() <= 0) {
                 DLog("resize invalid scale\n");
                 assert(0);
             }

@@ -68,7 +68,9 @@ def main():
         version = args.version
         optimize = args.optimize
         half = args.half
-        align = args.align.lower()
+        align = args.align
+        if align is None:
+            align = 'output'
         input_file = args.input_file_path
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)
@@ -88,7 +90,9 @@ def main():
         version = args.version
         optimize = args.optimize
         half = args.half
-        align = args.align.lower()
+        align = args.align
+        if align is None:
+            align = 'output'
         not_fold_const = args.not_fold_const
         input_file = args.input_file_path
         ref_file = args.refer_file_path

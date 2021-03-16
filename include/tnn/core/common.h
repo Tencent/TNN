@@ -29,25 +29,6 @@ namespace TNN_NS {
 typedef std::function<void(void)> Callback;
 
 typedef enum {
-    //normal runtime forword, only layers with varing output in tnn proto will be executed
-    RUNTIME_MODE_NORMAL = 0,
-    //normal runtime forword, only layers with constant output (eg. ShapeLayer) will be executed to do constant folding
-    RUNTIME_MODE_CONST_FOLD = 1,
-} RuntimeMode;
-
-typedef enum {
-    //data always change
-    DATA_FLAG_CHANGE_ALWAYS   = 0x00000000,
-    //data change if shape differ
-    DATA_FLAG_CHANGE_IF_SHAPE_DIFFER  = 0x00000001,
-    //data never change
-    DATA_FLAG_CHANGE_NEVER   = 0x00000002,
-
-    //data allocate in forward
-    DATA_FLAG_ALLOCATE_IN_FORWARD   = 0x00010000
-} DataFlag;
-
-typedef enum {
     //auto
     //针对算子输入类型多变的情况，如二元算子中某个输入是权值，其可以为浮点也可以为整数
     DATA_TYPE_AUTO = -1,
@@ -105,6 +86,7 @@ typedef enum {
 } Precision;
 
 typedef enum {
+    NETWORK_TYPE_AUTO       = -1,
     NETWORK_TYPE_DEFAULT    = 0,
     NETWORK_TYPE_OPENVINO   = 0x1000,
     NETWORK_TYPE_COREML     = 0x2000,
@@ -161,11 +143,11 @@ struct PUBLIC NetworkConfig {
     // device id default 0
     int device_id = 0;
 
-    // blob data format decided by device
+    // blob data format, auto decided by device
     DataFormat data_format = DATA_FORMAT_AUTO;
 
-    // network type default internal
-    NetworkType network_type = NETWORK_TYPE_DEFAULT;
+    // network type, auto decided by device
+    NetworkType network_type = NETWORK_TYPE_AUTO;
 
     // raidnet instances not share memory with others
     ShareMemoryMode share_memory_mode = SHARE_MEMORY_MODE_DEFAULT;
@@ -196,6 +178,25 @@ struct PUBLIC ModelConfig {
     // atlas model need one param: config string.
     std::vector<std::string> params = {};
 };
+
+typedef enum {
+    //normal runtime forword, only layers with varing output in tnn proto will be executed
+    RUNTIME_MODE_NORMAL = 0,
+    //normal runtime forword, only layers with constant output (eg. ShapeLayer) will be executed to do constant folding
+    RUNTIME_MODE_CONST_FOLD = 1,
+} RuntimeMode;
+
+typedef enum {
+    //data always change
+    DATA_FLAG_CHANGE_ALWAYS   = 0x00000000,
+    //data change if shape differ
+    DATA_FLAG_CHANGE_IF_SHAPE_DIFFER  = 0x00000001,
+    //data never change
+    DATA_FLAG_CHANGE_NEVER   = 0x00000002,
+
+    //data allocate in forward
+    DATA_FLAG_ALLOCATE_IN_FORWARD   = 0x00010000
+} DataFlag;
 
 typedef union {
     float f;

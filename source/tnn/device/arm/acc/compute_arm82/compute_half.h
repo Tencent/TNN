@@ -22,7 +22,7 @@
 #include <algorithm>
 
 #include "tnn/core/macro.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 

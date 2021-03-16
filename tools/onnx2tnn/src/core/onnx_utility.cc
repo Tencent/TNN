@@ -363,7 +363,6 @@ float get_node_attr_f(const onnx::NodeProto& node, const char* key,
     const string& name = node.input(number);
     if (net_info.weights_map.find(name) == net_info.weights_map.end()) {
         LOGD("invalid name for input: %s\n", name.c_str());
-        assert(0);
         return def;
     }
     const onnx::TensorProto& tensorProto = net_info.weights_map.at(name);

@@ -22,8 +22,6 @@ from converter import logging
 import os
 import sys
 
-import align_tool
-
 
 def throw_exception(current_shape):
     message = "Current shape: "
@@ -73,17 +71,25 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
     logging.info("Converter ONNX to TNN Model...\n")
 
     checker.check_file_exist(onnx_path)
-    if not is_ssd:
-        ret, current_shape = checker.check_onnx_dim(onnx_path)
-        if ret is False and current_shape is not None:
-            if input_names is None:
-                throw_exception(current_shape)
-        if input_names is not None:
-            input_names = input_names.strip()
-            if ":" not in input_names and " " not in input_names:
-                input_names = list(current_shape.keys())[0] + ":" + input_names
-            check_input_names(input_names, current_shape)
 
+    try:
+        if not is_ssd:
+            logging.info("Converter ONNX to TNN check_onnx_dim...\n")
+            ret, current_shape = checker.check_onnx_dim(onnx_path)
+            logging.info("Converter ONNX to TNN check_onnx_dim...\n")
+            if ret is False and current_shape is not None:
+                if input_names is None:
+                    logging.info("Converter ONNX to TNN current_shape...\n")
+                    throw_exception(current_shape)
+            if input_names is not None:
+                input_names = input_names.strip()
+                if ":" not in input_names and " " not in input_names:
+                    input_names = list(current_shape.keys())[0] + ":" + input_names
+                check_input_names(input_names, current_shape)
+    except Exception as e:
+        print(e)
+        logging.error("check_onnx_dim failed, next stage of convertion may failed too\n")
+        
     proto_suffix = '.tnnproto'
     model_suffix = '.tnnmodel'
     command = "python3 onnx2tnn.py " + onnx_path
@@ -117,16 +123,16 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         sys.exit(return_code.CONVERT_FAILED)
     onnx_base_name = os.path.basename(onnx_path)
 
-    if align == 'output' or align_batch is True:
-        if optimize is True:
-            tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
-            tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
-        else:
-            tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
-            tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
-        tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
-        tnn_model_path = os.path.join(output_dir, tnn_model_name)
+    if optimize is True:
+        tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
+        tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
+    else:
+        tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
+        tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
+    tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
+    tnn_model_path = os.path.join(output_dir, tnn_model_name)
 
+    if align == 'output' or align_batch is True:
         if input_names is None:
             align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path,
                                     debug_mode=debug_mode, align_batch=align_batch)
@@ -134,11 +140,6 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
             align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, input_names,
                                     debug_mode=debug_mode, align_batch=align_batch)
     elif align == 'all':
-        is_opt = '.opt' if optimize else ''
-        src_model_name = onnx_base_name[:-len('.onnx')] + is_opt + '.onnx'
-        tnn_proto_name = onnx_base_name[:-len('.onnx')] + is_opt + proto_suffix
-        src_model_path = os.path.join(output_dir, src_model_name)
-        tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
         is_align_all = (align == 'all')
-        align_tool.align_model.align_tool(src_model_path, tnn_proto_path,
+        align_model.align_all(onnx_path, tnn_proto_path,
                                           is_align_all, input_names, input_path, refer_path)

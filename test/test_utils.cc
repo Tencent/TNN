@@ -11,8 +11,11 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
+#include "test_utils.h"
 
 #include <math.h>
+
+#include <algorithm>
 
 #include "tnn/core/common.h"
 #include "tnn/utils/bfp16.h"
@@ -20,6 +23,7 @@
 namespace TNN_NS {
 
 DeviceType ConvertDeviceType(std::string device_type) {
+    std::transform(device_type.begin(), device_type.end(), device_type.begin(), ::toupper);
     if ("METAL" == device_type) {
         return DEVICE_METAL;
     } else if ("OPENCL" == device_type) {

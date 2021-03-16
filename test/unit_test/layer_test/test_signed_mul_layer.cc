@@ -57,6 +57,11 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
     if (DEVICE_CUDA == dev) {
         GTEST_SKIP();
     }
+
+    if (DEVICE_X86 == dev) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<SignedMulLayerParam> param(new SignedMulLayerParam());
     param->alpha = alpha;

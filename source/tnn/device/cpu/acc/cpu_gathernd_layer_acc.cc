@@ -14,7 +14,7 @@
 
 #include "cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -36,7 +36,7 @@ Status CpuGatherNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto input_data_dims = (*(inputs.begin()))->GetBlobDesc().dims;
     auto input_data_ptr = (char*)(*(inputs.begin()))->GetHandle().base + (*(inputs.begin()))->GetHandle().bytes_offset;
     auto output_data_ptr = (char*)(*(outputs.begin()))->GetHandle().base + (*(outputs.begin()))->GetHandle().bytes_offset;
-    auto input_stride = DimsVectorUtils::StrideOfShape(input_data_dims);
+    auto input_stride = DimsFunctionUtils::StrideOfShape(input_data_dims);
     
     auto indices_dims = (*(inputs.rbegin()))->GetBlobDesc().dims;
     int *indices_data_ptr = (int *)(*(inputs.rbegin()))->GetHandle().base;

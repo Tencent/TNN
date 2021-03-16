@@ -6,7 +6,7 @@
 ### Linux
 CMake(>=3.7.2)
 ### Windows
-Visual Studio(>=2015) <br>
+Visual Studio(>=2017) <br>
 CMake(>=3.7.2) 或使用 Visual Studio 的 CMake 工具
 ## 编译方法
     
@@ -14,11 +14,11 @@ CMake(>=3.7.2) 或使用 Visual Studio 的 CMake 工具
 ```
 Linux:
 $ cd scripts/
-$ sh build_x86_linux.sh
+$ sh build_linux.sh
 
 Windows:
 cd scripts\
-.\build_x86_msvc.bat [VS2015/VS2017/VS2019]
+.\build_msvc.bat
 ```  
 如编译失败，请参考[常见问题](#常见问题)
 
@@ -104,6 +104,7 @@ $ ./TNNTest -mp PATH_TO_MODEL -dt X86 -ip PATH_TO_INPUT -op PATH_TO_OUTPUT
 参考 [API 调用](api.md)，需要在初始化网络时设置 config.device_type 为 DEVICE_X86，config.network_type 为 NETWORK_TYPE_OPENVINO
 ```cpp
 config.device_type  = TNN_NS::DEVICE_X86
+// 如果network_type不设的话，则运行的是原生的X86优化
 config.network_type = TNN_NS::NETWORK_TYPE_OPENVINO
 ```
 

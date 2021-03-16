@@ -40,7 +40,7 @@ clone_openvino() {
 
     if [ ! -d openvino ]
     then
-        git clone https://github.com/openvinotoolkit/openvino.git
+        git clone --recursive https://github.com/openvinotoolkit/openvino.git
     fi
     cd openvino
     git reset --hard 4795391

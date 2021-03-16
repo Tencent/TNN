@@ -32,6 +32,7 @@ public:
     virtual Status ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue = nullptr);
 
 private:
+    int c_reserve_ = 0;
     float* scale_ptr_;
     float* bias_ptr_;
     void* image_ptr_;
