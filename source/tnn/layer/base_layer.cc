@@ -119,6 +119,18 @@ Status BaseLayer::InferOutputDataType() {
     // Init base type, will re write in different device acc
     // output data_type = input_data_tyep as default.
     
+    int flag = DATA_FLAG_CHANGE_NEVER;
+    for (auto iter : input_blobs_) {
+        if (const_resource) {
+            auto res = const_resource->find(iter->GetBlobDesc().name);
+            if (res!= const_resource->end()) {
+                iter->flag |= DATA_FLAG_CHANGE_NEVER;
+                iter->GetBlobDesc().data_type = res->second->GetDataType();
+            }
+        }
+        flag = DataFlagUtils::MinChangeStatus(flag, iter->flag);
+    }
+    
     //find first blob which is not const
     auto input_blob_not_const = input_blobs_[0];
     for (auto input_blob : input_blobs_) {
@@ -130,14 +142,6 @@ Status BaseLayer::InferOutputDataType() {
     
     for (auto output_blob : output_blobs_) {
         output_blob->GetBlobDesc().data_type = input_blob_not_const->GetBlobDesc().data_type;
-    }
-    
-    int flag = DATA_FLAG_CHANGE_NEVER;
-    for (auto iter : input_blobs_) {
-        if (const_resource != nullptr && const_resource->find(iter->GetBlobDesc().name) != const_resource->end()) {
-            iter->flag |= DATA_FLAG_CHANGE_NEVER;
-        }
-        flag = DataFlagUtils::MinChangeStatus(flag, iter->flag);
     }
     
     for (auto iter : output_blobs_) {

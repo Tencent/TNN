@@ -160,10 +160,14 @@ Status MultidirBroadcastLayer::InferOutputShape(bool ignore_error) {
                           "Error: operands could not be broadcast together "
                           "with wrong shape");
         }
+
         auto dims_output = dim0;
         for (auto iter : input_blobs_) {
-            auto tmp    = iter->GetBlobDesc().dims;
-            dims_output = DimsVectorUtils::Max(tmp, dims_output);
+            auto tmp = iter->GetBlobDesc().dims;
+            if (dims_output.size() != tmp.size()) {
+                EXPAND(dims_output, tmp);
+            }
+            dims_output = DimsVectorUtils::Max(dims_output, tmp);
         }
         output_blobs_[0]->GetBlobDesc().dims = dims_output;
 

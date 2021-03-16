@@ -212,6 +212,8 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"Einsum", LAYER_EINSUM},
     {"Inverse", LAYER_INVERSE},
     {"GridSample", LAYER_GRIDSAMPLE},
+    {"Equal", LAYER_EQUAL},
+    {"Where", LAYER_WHERE},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 

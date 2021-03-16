@@ -28,7 +28,9 @@ inline bool ConcatLayerCheckShape(DimsVector shape1, DimsVector shape2, int excl
 
     int i = 0;
     for (; i < shape1.size(); i++) {
-        if (i != exclude_axis && shape1[i] != shape2[i]) {
+        //support shape1[i] == 0 for empty blob in yolov5
+        if ((i != exclude_axis && shape1[i] != shape2[i]) ||
+            (shape1[i] < 0 || shape2[i] < 0)) {
             LOGE("dim[%d] not match (shape1:%d, shape2:%d)\n", i, shape1[i], shape2[i]);
             return false;
         }
@@ -51,7 +53,7 @@ Status ConcatLayer::InferOutputShape(bool ignore_error) {
 
     int axis = layer_param->axis;
     if (axis < 0) {
-        axis += input_blob->GetBlobDesc().dims.size();
+        axis += (int)input_blob->GetBlobDesc().dims.size();
         layer_param->axis = axis;
     }
     if (axis < 0 || axis > input_blob->GetBlobDesc().dims.size()) {
