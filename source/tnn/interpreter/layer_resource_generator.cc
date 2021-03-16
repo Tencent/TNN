@@ -88,7 +88,6 @@ class ConvolutionLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("ConvolutionLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<ConvLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -152,7 +151,6 @@ class InnerProductLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("InnerProductLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<InnerProductLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -187,7 +185,6 @@ class BatchnormLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("BatchnormLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<BatchNormLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -226,7 +223,6 @@ class InstanceNormLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("InstanceNormLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<InstanceNormLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -258,7 +254,6 @@ class PReluLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("PReluLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<PReluLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -297,7 +292,6 @@ class BlobScaleLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("BlobScaleLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<IntScaleResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -337,7 +331,6 @@ class BinaryLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("BinaryLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<EltwiseLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -386,7 +379,6 @@ class HdrGuideLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("HdrGuideLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<HdrGuideLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
