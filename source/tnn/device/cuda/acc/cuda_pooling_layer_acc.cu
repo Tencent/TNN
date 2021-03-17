@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cuda/acc/cuda_pooling_layer_acc.h"
-#include "tnn/utils/dims_utils.h
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
