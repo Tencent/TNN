@@ -39,7 +39,10 @@ Status ScatterNDLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerP
 
 Status ScatterNDLayerInterpreter::SaveResource(Serializer &serializer, LayerParam *param, LayerResource *resource) {
     CAST_OR_RET_ERROR(layer_param, LayerParam, "invalid layer param", param);
-    CAST_OR_RET_ERROR(layer_resource, ScatterNDLayerResource, "invalid layer res to save", resource);
+    auto layer_resource = dynamic_cast<ScatterNDLayerResource *>(resource);
+    if (!layer_resource) {
+        return TNN_OK;
+    }
     const auto &indices_dims = layer_resource->indices.GetBufferDims();
     bool has_indices         = !indices_dims.empty();
     if (has_indices) {
