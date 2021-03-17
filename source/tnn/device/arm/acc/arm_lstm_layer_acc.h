@@ -32,6 +32,11 @@ protected:
     Status AllocateBufferWeightInput(Blob *weight_i);
     Status AllocateBufferWeightRecurrent(Blob *weight_r);
     Status AllocateBufferBias(Blob *bias);
+#if TNN_ARM82
+    Status AllocateBufferWeightInputHalf(Blob *weight_i);
+    Status AllocateBufferWeightRecurrentHalf(Blob *weight_r);
+    Status AllocateBufferBiasHalf(Blob *bias);
+#endif  // TNN_ARM82
 
     RawBuffer buffer_weight_input_;
     RawBuffer buffer_weight_recurrent_;
@@ -44,8 +49,15 @@ protected:
     int seq_len_;
 
 private:
+    template <typename T>
+    Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     Status LstmSingleDirection(const float *x, float *y, const float *w, const float *r, const float *b, float *h_t,
                                float *c_t, const int batch_size, int reverse);
+#if TNN_ARM82
+    Status ExecFp16(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    Status LstmSingleDirection(const fp16_t *x, fp16_t *y, const fp16_t *w, const fp16_t *r, const fp16_t *b,
+                               fp16_t *h_t, fp16_t *c_t, const int batch_size, int reverse);
+#endif  // TNN_ARM82
 };
 
 }  // namespace TNN_NS

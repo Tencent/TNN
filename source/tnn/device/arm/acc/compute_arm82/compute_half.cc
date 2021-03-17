@@ -18,6 +18,7 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/device/arm/acc/compute/compute.h"
+#include "tnn/device/arm/acc/compute/gemm_function.h"
 #include "tnn/device/arm/acc/Half8.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_util.h"
@@ -824,6 +825,25 @@ void BlobToBGRImpl(const fp16_t *src, uint8_t *dst, const float *scale, const fl
 template void BlobToBGRImpl<true>(const fp16_t *src, uint8_t *dst, const float *scale, const float *bias, int hw);
 template void BlobToBGRImpl<false>(const fp16_t *src, uint8_t *dst, const float *scale, const float *bias, int hw);
 
+void GemmHalfPackA(int m, int n, int k, const fp16_t* a, fp16_t* pack_a, int lda, const fp16_t* b, int ldb, fp16_t* c,
+                   int ldc) {
+#ifdef __aarch64__
+    PackA_8(m, k, a, lda, pack_a);
+    Kernel_8x16(m, n, k, pack_a, b, c, ldc);
+    a += (m / 8) * 8 * lda;
+    c += (m / 8) * 8 * ldc;
+    m = m % 8;
+#endif
+
+    PackA_4(m, k, a, lda, pack_a);
+    Kernel_4x16(m, n, k, pack_a, b, c, ldc);
+    a += (m / 4) * 4 * lda;
+    c += (m / 4) * 4 * ldc;
+    m = m % 4;
+
+    PackA_1(m, k, a, lda, pack_a);
+    Kernel_1x16(m, n, k, pack_a, b, c, ldc);
+}
 #endif  // TNN_ARM82
 
 /*
