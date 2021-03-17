@@ -357,6 +357,8 @@ namespace test {
                 mat_type = N8UC3;
             } else if (format_type == 2) {
                 mat_type = NGRAY;
+            } else if (format_type == 4) {
+                mat_type = RESERVED_INT8_TEST;
             }
            
             int bytes = DimsVectorUtils::Count(blob_desc.dims) * DataTypeUtils::GetBytesSize(data_type); 
@@ -444,7 +446,9 @@ namespace test {
             if(is_input && !FLAGS_sc.empty()) {
                 SetScaleOrBias(param.scale, FLAGS_sc);
             } else {
-                if(mat_type != NCHW_FLOAT) {
+                if (mat_type == RESERVED_INT8_TEST) {
+                    std::fill(param.scale.begin(), param.scale.end(), 1.0f);
+                } else if(mat_type != NCHW_FLOAT) {
                     std::fill(param.scale.begin(), param.scale.end(), 1.0f / 255.0f);
                 } else if(dims[1] > 4) {
                     param.scale = std::vector<float>(dims[1], 1);
@@ -455,7 +459,9 @@ namespace test {
             if(is_input && !FLAGS_bi.empty()) {
                 SetScaleOrBias(param.bias, FLAGS_bi);
             } else {
-                if(mat_type != NCHW_FLOAT) {
+                if (mat_type == RESERVED_INT8_TEST) {
+                    std::fill(param.bias.begin(), param.bias.end(), 0);
+                } else if(mat_type != NCHW_FLOAT) {
                     std::fill(param.bias.begin(), param.bias.end(), 0);
                 } else if(dims[1] > 4) {
                     param.bias  = std::vector<float>(dims[1], 0);
