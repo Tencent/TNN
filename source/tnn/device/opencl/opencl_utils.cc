@@ -567,12 +567,27 @@ uint32_t SetExecuteUnit3DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dim
 
 // set execute unit 2d default global size, local size and kernel arguments.
 uint32_t SetExecuteUnit2DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims) {
-    unit.global_work_size = {
+    uint32_t image_width = 0, image_height = 0;
+    if (dims.size() == 5) {
+        // channel-blocks * dim4
+        image_width = UP_DIV(DimsVectorUtils::GetDim(dims, 1), 4) * DimsVectorUtils::GetDim(dims, 4);
+        // batch * dim2 * dim3
+        image_height = DimsVectorUtils::GetDim(dims, 0) * DimsVectorUtils::GetDim(dims, 2) *
+                       DimsVectorUtils::GetDim(dims, 3);
+    } else if (dims.size() == 6) {
+        // channel-blocks * dim4 * dim5
+        image_width = UP_DIV(DimsVectorUtils::GetDim(dims, 1), 4) * DimsVectorUtils::GetDim(dims, 4) *
+                      DimsVectorUtils::GetDim(dims, 5);
+        // batch * dim2 * dim3
+        image_height = DimsVectorUtils::GetDim(dims, 0) * DimsVectorUtils::GetDim(dims, 2) *
+                       DimsVectorUtils::GetDim(dims, 3);
+    } else {
         // channel-blocks * [width]
-        static_cast<uint32_t>(UP_DIV(DimsVectorUtils::GetDim(dims, 1), 4) * DimsVectorUtils::GetDim(dims, 3)),
+        image_width = UP_DIV(DimsVectorUtils::GetDim(dims, 1), 4) * DimsVectorUtils::GetDim(dims, 3);
         // batch * height
-        static_cast<uint32_t>(DimsVectorUtils::GetDim(dims, 0) * DimsVectorUtils::GetDim(dims, 2)),
-    };
+        image_height = DimsVectorUtils::GetDim(dims, 0) * DimsVectorUtils::GetDim(dims, 2);
+    }
+    unit.global_work_size = {image_width, image_height};
     unit.local_work_size = LocalWS2DDefault(unit);
     uint32_t idx         = 0;
     unit.ocl_kernel.setArg(idx++, unit.global_work_size[0]);
@@ -597,11 +612,13 @@ uint32_t SetExecuteUnit2DSizeInfoCNH4(OpenCLExecuteUnit &unit, DimsVector dims) 
 
 // set execute unit 2d global size for nchw, local size and kernel arguments.
 uint32_t SetExecuteUnit2DSizeInfoNCHW(OpenCLExecuteUnit &unit, DimsVector dims) {
+    int count = DimsVectorUtils::Count(dims, 2);
+    uint32_t gws0 = count == 0 ? 1 : count;
     unit.global_work_size = {
-        // channel * width
-        static_cast<uint32_t>(DimsVectorUtils::GetDim(dims, 1) * DimsVectorUtils::GetDim(dims, 3)),
-        // batch * height
-        static_cast<uint32_t>(DimsVectorUtils::GetDim(dims, 0) * DimsVectorUtils::GetDim(dims, 2)),
+        // [dim2 * dim3 ...]
+        gws0,
+        // batch * channel
+        static_cast<uint32_t>(DimsVectorUtils::GetDim(dims, 0) * DimsVectorUtils::GetDim(dims, 1)),
     };
     unit.local_work_size = LocalWS2DDefault(unit);
     uint32_t idx         = 0;

@@ -168,7 +168,7 @@ std::vector<DataFormat> OpenCLLayerAcc::SupportDataFormat(DataType data_type, in
     std::vector<DataFormat> support_list;
     if (data_type == DATA_TYPE_INT32) {
         support_list.push_back(DATA_FORMAT_NCHW);
-    } else if (dims_size >= 2) {
+    } else if (dims_size <= 4) {
         support_list.push_back(DATA_FORMAT_NHC4W4);
     }
     return support_list;
