@@ -53,6 +53,7 @@ private:
     std::vector<std::string> vocabulary_;
     constexpr static int vocab_size_ = 5531;
     int dst_height_ = 32;
+    int max_width_ = 4096;
 };
 
 }

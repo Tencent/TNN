@@ -172,7 +172,6 @@ Status OCRTextboxDetector::Init(std::shared_ptr<TNNSDKOption> option) {
         max_size = (max_size + 31 ) / 32 * 32;
     }
     option->input_shapes.insert( {"input0", DimsVector({1, 3, max_size, max_size})} );
-    option->precision = PRECISION_HIGH;
     return TNNSDKSample::Init(option);
 }
 
@@ -182,15 +181,17 @@ MatConvertParam OCRTextboxDetector::GetConvertParamForInput(std::string name) {
     input_convert_param.bias  = {-0.485 / 0.229,      -0.456 / 0.224,      -0.406 / 0.225,      0.0};
     // model requires RGB input
     input_convert_param.reverse_channel = false;
-    
+
     return input_convert_param;
 }
 
 std::shared_ptr<Mat> OCRTextboxDetector::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat,
                                                                    std::string name) {
     Status status = TNN_OK;
+
     // 0) copy if necessary
     bool need_copy = false;
+    DeviceType origin_dev = input_mat->GetDeviceType();
     if (input_mat->GetDeviceType() != DEVICE_ARM) {
         need_copy = true;
         auto input_arm_mat = std::make_shared<Mat>(DEVICE_ARM, input_mat->GetMatType(),
@@ -231,7 +232,7 @@ std::shared_ptr<Mat> OCRTextboxDetector::ProcessSDKInputMat(std::shared_ptr<Mat>
     if (need_copy) {
         auto input_arm_mat = std::make_shared<Mat>(DEVICE_ARM, input_mat->GetMatType(),
                                                    input_shape, resized_src.data);
-        result_mat = std::make_shared<Mat>(input_mat->GetDeviceType(), input_mat->GetMatType(), input_shape);
+        result_mat = std::make_shared<Mat>(origin_dev, input_mat->GetMatType(), input_shape);
         status = Copy(input_arm_mat, result_mat);
         RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
     } else {

@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <numeric>
 #include <algorithm>
 #include <string>
 #include <unordered_set>
@@ -31,8 +32,7 @@ namespace TNN_NS {
 OCRTextRecognizerOutput::~OCRTextRecognizerOutput() {}
 
 Status OCRTextRecognizer::Init(std::shared_ptr<TNNSDKOption> option) {
-    int max_width = 1024;
-    option->input_shapes.insert( {"input", DimsVector({1, 3, dst_height_, max_width})} );
+    option->input_shapes.insert( {"input", DimsVector({1, 3, dst_height_, max_width_})} );
     // load vocabulary
     const auto& vocab_file_path = dynamic_cast<OCRTextRecognizerOption *>(option.get())->vocab_path;
     std::ifstream in(vocab_file_path.c_str());
@@ -64,6 +64,7 @@ std::shared_ptr<Mat> OCRTextRecognizer::ProcessSDKInputMat(std::shared_ptr<Mat> 
     Status status = TNN_OK;
     // 0) copy if necessary
     bool need_copy = false;
+    DeviceType origin_dev = input_mat->GetDeviceType();
     if (input_mat->GetDeviceType() != DEVICE_ARM) {
         need_copy = true;
         auto input_arm_mat = std::make_shared<Mat>(DEVICE_ARM, input_mat->GetMatType(),
@@ -97,7 +98,7 @@ std::shared_ptr<Mat> OCRTextRecognizer::ProcessSDKInputMat(std::shared_ptr<Mat> 
     if (need_copy) {
         auto input_arm_mat = std::make_shared<Mat>(DEVICE_ARM, input_mat->GetMatType(),
                                                    input_shape, cv_src.data);
-        result_mat = std::make_shared<Mat>(input_mat->GetDeviceType(), input_mat->GetMatType(), input_shape);
+        result_mat = std::make_shared<Mat>(origin_dev, input_mat->GetMatType(), input_shape);
         status = Copy(input_arm_mat, result_mat);
         RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
     } else {
@@ -109,6 +110,10 @@ std::shared_ptr<Mat> OCRTextRecognizer::ProcessSDKInputMat(std::shared_ptr<Mat> 
     InputShapesMap input_shape_map;
     const auto input_name = GetInputNames()[0];
     input_shape[1] = 3;
+    if (input_shape[3] > max_width_) {
+        LOGE("invalid input: input width:%d is too large!\n", input_shape[3]);
+        return nullptr;
+    }
     input_shape_map.insert({input_name, input_shape});
     instance_->Reshape(input_shape_map);
 
@@ -117,6 +122,11 @@ std::shared_ptr<Mat> OCRTextRecognizer::ProcessSDKInputMat(std::shared_ptr<Mat> 
 
 std::shared_ptr<TNNSDKOutput> OCRTextRecognizer::CreateSDKOutput() {
     return std::make_shared<OCRTextRecognizerOutput>();
+}
+
+template<class ForwardIterator>
+inline static size_t argmax(ForwardIterator first, ForwardIterator last) {
+    return std::distance(first, std::max_element(first, last));
 }
 
 Status OCRTextRecognizer::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
@@ -135,22 +145,37 @@ Status OCRTextRecognizer::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
     std::vector<float> scores;
     std::string result;
     
+    std::vector<float> exps(seq_len*vocab_len, 0);
     int last_idx = 0;
     // TODO: move this search into model
     for(int s=0; s<seq_len; ++s) {
-        float sum = 0.f;
+        double sum = 0.f;
         float max_score = -INFINITY;
+        float max_score_pre_exp = -INFINITY;
         int max_idx = 0;
         for(int i=0; i<vocab_len; ++i) {
-            float score = std::exp(output_data[s * vocab_len + i]);
+            float score = output_data[s * vocab_len + i];
+            if (score > max_score_pre_exp) {
+                max_score_pre_exp = score;
+            }
+        }
+        for(int i=0; i<vocab_len; ++i) {
+            float score = std::exp(output_data[s * vocab_len + i] - max_score_pre_exp);
+            //output_data[s * vocab_len + i] = score;
+            exps[s * vocab_len + i] = score;
             if (score > max_score) {
                 max_score = score;
                 max_idx = i;
             }
             sum += score;
         }
+        /*
+        float partition = std::accumulate(&(exps[s * vocab_len]), &(exps[(s+1) * vocab_len]), 0.0);//row sum
+        max_idx = int(argmax(&(exps[s * vocab_len]), &(exps[(s+1) * vocab_len])));
+        max_score = float(*std::max_element(&(exps[s * vocab_len]), &(exps[(s+1) * vocab_len]))) / partition;
+        */
         if (max_idx > 0 && !(s > 0 && max_idx == last_idx)) {
-            scores.emplace_back(max_score / sum);
+            scores.emplace_back(max_score / static_cast<float>(sum));
             result.append(vocabulary_[max_idx - 1]);
         }
         last_idx = max_idx;
