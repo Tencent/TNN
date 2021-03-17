@@ -38,7 +38,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
                                             // data_type
                                             testing::Values(DATA_TYPE_INT8, DATA_TYPE_BFP16),
                                             // activation_type
-                                            testing::Values(ActivationType_None, ActivationType_ReLU),
+                                            testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6),
                                             // fusion_type
                                             testing::Values(FusionType_None, FusionType_Conv_Add_Activation,
                                                             FusionType_Conv_Activation_Add)));
