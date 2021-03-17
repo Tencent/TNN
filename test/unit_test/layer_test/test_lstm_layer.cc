@@ -39,8 +39,8 @@ class LSTMLayerTest : public LayerTest,
 INSTANTIATE_TEST_SUITE_P(LayerTest, LSTMLayerTest,
                          ::testing::Combine(testing::Values(1, 4, 16),  // seq_len
                                             testing::Values(1, 2, 4),   // batch_size
-                                            testing::Values(1, 8, 32),  // input_size
-                                            testing::Values(1, 16, 32), // hidden_size
+                                            testing::Values(1, 3, 7, 13, 8, 32),  // input_size
+                                            testing::Values(1, 3, 7, 15, 16, 32), // hidden_size
                                             testing::Values(0, 1, 2),   // direction, 0:forward, 1:backward, 2:bi-direction
                                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
@@ -71,10 +71,7 @@ TEST_P(LSTMLayerTest, LSTMONNXLayer) {
     std::vector<int> bias_dims  = {num_directions, 8*output_size};
     auto interpreter            = GenerateInterpreter("LSTMONNX", {input_dims, wi_dims, wh_dims, bias_dims}, param, nullptr, 3);
 
-    Precision precision = PRECISION_AUTO;
-    if (DATA_TYPE_BFP16 == dtype) {
-        precision = PRECISION_LOW;
-    }
+    Precision precision = SetPrecision(dev, dtype);
     //Run(interpreter, precision);
     Run(interpreter, precision, DATA_FORMAT_NCHW);
 }
