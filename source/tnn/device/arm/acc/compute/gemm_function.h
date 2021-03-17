@@ -49,6 +49,21 @@ void PackA_12(int m, int k, const float *src, int lda, float *dst);
 void PackA_4(int m, int k, const float *src, int lda, float *dst);
 void PackA_1(int m, int k, const float *src, int lda, float *dst);
 
+#if TNN_ARM82
+template <int mr, int nr, typename T>
+void NaiveKernel(int m, int n, int k, const T *sa, const T *sb, T *sc, int ldc);
+void Kernel_8x16(int m, int n, int k, const fp16_t* sa, const fp16_t* sb, fp16_t* sc, int ldc);
+void Kernel_4x16(int m, int n, int k, const fp16_t* sa, const fp16_t* sb, fp16_t* sc, int ldc);
+void Kernel_1x16(int m, int n, int k, const fp16_t* sa, const fp16_t* sb, fp16_t* sc, int ldc);
+
+template <int nr, typename T>
+void NaivePackB(int k, int n, const T *from, int ldb, T *to);
+void PackB_16(int k, int n, const fp16_t* src, int ldb, fp16_t* dst);
+void PackA_8(int m, int k, const fp16_t* src, int lda, fp16_t* dst);
+void PackA_4(int m, int k, const fp16_t* src, int lda, fp16_t* dst);
+void PackA_1(int m, int k, const fp16_t* src, int lda, fp16_t* dst);
+#endif
+
 }  // namespace TNN_NS
 
 #endif

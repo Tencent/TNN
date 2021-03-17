@@ -296,11 +296,11 @@ template void sgemm_repack_rhs(bfp16_t *dst, bfp16_t *src, float *weight, int ic
                                int dst_z_step, int a_block, int b_block, bfp16_t *work_space, float *bias, int act_type,
                                bool fast_post);
 
-template <int mr, int nr>
-void NaiveKernel(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc) {
-    const float *a = sa;
-    const float *b = sb;
-    float *c       = sc;
+template <int mr, int nr, typename T>
+void NaiveKernel(int m, int n, int k, const T *sa, const T *sb, T *sc, int ldc) {
+    const T *a = sa;
+    const T *b = sb;
+    T *c       = sc;
     for (int i = 0; i < m - mr + 1; i += mr) {
         for (int j = 0; j < n - nr + 1; j += nr) {
             for (int p = 0; p < k; ++p) {
@@ -334,6 +334,12 @@ void NaiveKernel(int m, int n, int k, const float *sa, const float *sb, float *s
         b = sb;
     }
 }
+
+#if TNN_ARM82
+template void NaiveKernel<8, 16, fp16_t>(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t *sc, int ldc);
+template void NaiveKernel<4, 16, fp16_t>(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t *sc, int ldc);
+template void NaiveKernel<1, 16, fp16_t>(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t *sc, int ldc);
+#endif  // TNN_ARM82
 
 void Kernel_12x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc) {
 #if defined(TNN_USE_NEON) && defined(__aarch64__)
@@ -861,10 +867,10 @@ void Kernel_1x8(int m, int n, int k, const float *sa, const float *sb, float *sc
 #endif  // TNN_USE_NEON
 }
 
-template <int nr>
-void NaivePackB(int k, int n, const float *from, int ldb, float *to) {
-    const float *src = from;
-    float *dst;
+template <int nr, typename T>
+void NaivePackB(int k, int n, const T *from, int ldb, T *to) {
+    const T *src = from;
+    T *dst;
 
     for (int j = 0; j < k; ++j) {
         dst = to + j * nr;
@@ -887,6 +893,10 @@ void NaivePackB(int k, int n, const float *from, int ldb, float *to) {
         }
     }
 }
+
+#if TNN_ARM82
+template void NaivePackB<16, fp16_t>(int k, int n, const fp16_t *from, int ldb, fp16_t *to);
+#endif  // TNN_ARM82
 
 void PackB_8(int k, int n, const float *from, int ldb, float *to) {
 #ifdef TNN_USE_NEON
