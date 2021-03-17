@@ -32,6 +32,7 @@ public:
 protected:
     RawBuffer buffer_weight_;
     RawBuffer buffer_bias_;
+    std::shared_ptr<LayerResource> fc_acc_f32_resource_ = nullptr;
 };
 
 }  // namespace TNN_NS
