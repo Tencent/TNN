@@ -257,6 +257,11 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
         out_stream << text->text;
     }
 
+    {
+        // fill output
+        sdk_output = textbox_det;
+    }
+
     return TNN_OK;
 }
 
