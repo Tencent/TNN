@@ -14,7 +14,7 @@
 
 #include "tnn/memory_manager/blob_2d_memory_pool.h"
 #include "tnn/memory_manager/blob_2d_memory.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 

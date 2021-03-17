@@ -20,7 +20,7 @@
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 #include "tnn/network/tensorrt/tensorrt_tensor.h"
 #include "tnn/network/tensorrt/utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -53,14 +53,6 @@ Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, Lay
         auto name = output_blobs_[0]->GetBlobDesc().name;
         std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetShapeBlobName(name);
         std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetShapeTensor();
-    }
-
-    plugin_layer_acc_ = std::shared_ptr<AbstractLayerAcc>(device->CreateLayerAcc(type_));
-    if (plugin_layer_acc_ != NULL) {
-        return plugin_layer_acc_->Init(context, param, resource, input_blobs_, output_blobs_);
-    } else {
-        LOGE("layer acc of type(%d) is nil\n", type_);
-        return Status(TNNERR_LAYER_ERR, "layer acc is nil");
     }
 
     m_format = nvinfer1::TensorFormat::kLINEAR;
@@ -113,14 +105,14 @@ int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputD
         input_handle.base = const_cast<void *>(inputs[i]);
         input_handle.bytes_offset = input_blob->GetHandle().bytes_offset;
         input_blob->SetHandle(input_handle);
-        /*if (false == dims_equal(input_blob->GetBlobDesc().dims, inputDesc[i].dims)) {
+        if (false == dims_equal(input_blob->GetBlobDesc().dims, inputDesc[i].dims)) {
             std::stringstream tnn_dims, trt_dims; 
             for( int d =0; d < inputDesc[i].dims.nbDims;d++) trt_dims << inputDesc[i].dims.d[d] << ",";
             for( int d :input_blob->GetBlobDesc().dims) tnn_dims << d << ",";
             LOGE("TensorRT input dims differs from TNN input dims. tnn shape:%s trt shape:%s\n", 
                     tnn_dims.str().c_str(), trt_dims.str().c_str());
             return -1;
-        }*/
+        }
     }
 
     for (int i = 0; i < output_blobs_.size(); i++) {
@@ -129,23 +121,18 @@ int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputD
         output_handle.base = const_cast<void *>(outputs[i]);
         output_handle.bytes_offset = output_blob->GetHandle().bytes_offset;
         output_blob->SetHandle(output_handle);
-        /*if (false == dims_equal(output_blob->GetBlobDesc().dims, outputDesc[i].dims)) {
+        if (false == dims_equal(output_blob->GetBlobDesc().dims, outputDesc[i].dims)) {
             std::stringstream tnn_dims, trt_dims; 
             for( int d =0; d < outputDesc[i].dims.nbDims;d++) trt_dims << outputDesc[i].dims.d[d] << ",";
             for( int d :output_blob->GetBlobDesc().dims) tnn_dims << d << ",";
             LOGE("TensorRT output dims differs from TNN output dims. tnn shape:%s trt shape:%s\n", 
                     tnn_dims.str().c_str(), trt_dims.str().c_str());
             return -1;
-        }*/
+        }
     }
 
-    if (plugin_layer_acc_ != NULL) {
-        Status ret = plugin_layer_acc_->Forward(input_blobs_, output_blobs_);
-        if (ret != TNN_OK) return -1;
-    } else {
-        LOGE("layer acc is nil\n");
-        return -1;
-    }
+    Status ret = m_layer->Forward();
+    if (ret != TNN_OK) return -1;
 
     return 0;
 }
@@ -199,14 +186,8 @@ nvinfer1::IPluginV2DynamicExt* TensorRTPluginLayerBuilder::CreatePlugin(const vo
 }
 
 ILayer* TensorRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    std::vector<ITensor*> tensors;
-    int size = input_blobs_.size();
-    for (int i = 0; i < size; ++i) {
-        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[i])->GetForeignTensor();
-        auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-        tensors.push_back(tensor);
-    }
-    ILayer* layer = network->addPluginV2(tensors.data(), size, *this);
+    std::vector<ITensor*> tensors = GetInputITensors();
+    ILayer* layer = network->addPluginV2(tensors.data(), tensors.size(), *this);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
     }
@@ -214,3 +195,4 @@ ILayer* TensorRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 }
 
 }  //  namespace TNN_NS
+

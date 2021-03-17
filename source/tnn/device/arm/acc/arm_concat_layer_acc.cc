@@ -15,7 +15,7 @@
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/device/arm/arm_util.h"
 #include "tnn/utils/bfp16.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {

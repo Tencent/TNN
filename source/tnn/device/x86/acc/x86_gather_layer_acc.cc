@@ -14,17 +14,13 @@
 
 #include "x86_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 DECLARE_X86_ACC(Gather, LAYER_GATHER);
 
-Status X86GatherLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
-Status X86GatherLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86GatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);
     int axis = layer_param->axis;

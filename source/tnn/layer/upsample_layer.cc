@@ -18,7 +18,7 @@
 #include <cmath>
 
 #include "tnn/layer/base_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -32,7 +32,7 @@ Status UpsampleLayer::InferOutputDataType() {
     if (layer_param->scales.empty() && runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
         for (auto &iter : output_blobs_) {
             int allocat_status = DATA_FLAG_ALLOCATE_IN_FORWARD;
-            iter->flag         = iter->flag | allocat_status;
+            iter->SetFlag(iter->GetFlag() | allocat_status);
         }
     }
     return TNN_OK;
@@ -67,7 +67,7 @@ Status UpsampleLayer::InferOutputShape(bool ignore_error) {
     }
     
     auto input_dims = input_blobs_[0]->GetBlobDesc().dims;
-    auto output_dims = DimsVectorUtils::Upsample(input_dims, scales, sizes, layer_param->mode, &status);
+    auto output_dims = DimsFunctionUtils::Upsample(input_dims, scales, sizes, layer_param->mode, &status);
     RETURN_ON_NEQ(status, TNN_OK);
     
     output_blobs_[0]->GetBlobDesc().dims = output_dims;

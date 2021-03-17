@@ -15,7 +15,7 @@
 #include <cmath>
 
 #include "tnn/layer/base_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -35,7 +35,7 @@ Status ExpandLayer::InferOutputShape(bool ignore_error) {
     Blob* output_blob = output_blobs_[0];
     auto input_dims = input_blob->GetBlobDesc().dims;
     auto shape_dims = layer_param->shape;
-    auto output_dims = DimsVectorUtils::Expand(input_dims, shape_dims, nullptr);
+    auto output_dims = DimsFunctionUtils::Expand(input_dims, shape_dims, nullptr);
     output_blob->GetBlobDesc().dims = output_dims;
     return TNN_OK;
 }

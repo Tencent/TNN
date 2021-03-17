@@ -41,6 +41,8 @@ public:
 
     virtual Context* CreateContext(int device_id);
 
+    virtual NetworkType ConvertAutoNetworkType();
+
     static Status RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator);
 
 private:

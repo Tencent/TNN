@@ -103,7 +103,11 @@ private:
 
     Status CreateExecuteContext();
 
+    Status ReshapeLayers();
+
     Status DumpAllOutputBlob();
+
+    Status CheckConstBlobs();
 
     bool int8_mode;
     bool test_mode;
@@ -112,14 +116,17 @@ private:
     nvinfer1::IExecutionContext* m_trt_context;
     TRTLogger m_trt_logger;
     std::unordered_map<std::string, std::shared_ptr<nvinfer1::ITensor>> m_blob_tensor_map;
-    std::unordered_map<std::string, void*> const_input_map;
-    static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> m_plugin_layer_name_map;
-    static std::mutex network_mutex;
     std::unordered_set<nvinfer1::ITensor *> m_tensor_set;
     void** m_trt_bindings;
     void* m_context_memory;
     NetResource *net_resource_;
     int device_id_;
+
+    std::vector<std::string> const_input_blobs_;
+    std::vector<std::string> const_weight_blobs_;
+
+    static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> m_plugin_layer_name_map;
+    static std::mutex network_mutex;
 };
 
 }  //  namespace TNN_NS

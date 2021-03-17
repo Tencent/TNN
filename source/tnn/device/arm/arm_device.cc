@@ -20,7 +20,7 @@
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/blob_memory_size_utils.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -119,6 +119,10 @@ std::shared_ptr<const ImplementedPrecision> ArmDevice::GetImplementedPrecision(L
         return layer_precision_map[type];
     }
     return std::make_shared<ImplementedPrecision>();
+}
+
+NetworkType ArmDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT; 
 }
 
 Context *ArmDevice::CreateContext(int device_id) {

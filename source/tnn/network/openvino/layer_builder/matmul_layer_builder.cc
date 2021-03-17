@@ -27,7 +27,7 @@
 #include "tnn/layer/base_layer.h"
 #include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
 #include "tnn/network/openvino/openvino_types.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h
 
 namespace TNN_NS {
 

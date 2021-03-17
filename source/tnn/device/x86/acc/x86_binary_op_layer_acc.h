@@ -27,18 +27,15 @@ enum class X86BinaryOpType : int {
     kSUB = 1,
     kMUL = 2,
     kDIV = 3,
+    kMAX = 4,
+    kMIN = 5,
 };
 
 class X86BinaryOpLayerAcc : public X86LayerAcc {
 public:
     virtual ~X86BinaryOpLayerAcc();
 
-    virtual Status Init(Context *context, LayerParam *param, LayerResource* resource, const std::vector<Blob*> &inputs,
-                        const std::vector<Blob *> &outputs) override;
-
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
-    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 protected:
     // Calculate Function

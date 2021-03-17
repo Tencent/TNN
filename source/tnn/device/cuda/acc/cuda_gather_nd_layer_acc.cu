@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -63,7 +63,7 @@ Status CudaGatherNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     auto indices_dims = indices_blob->GetBlobDesc().dims;
     auto output_dims = output_blob->GetBlobDesc().dims;
     int count = DimsVectorUtils::Count(output_dims);
-    auto input_stride = DimsVectorUtils::StrideOfShape(input_data_dims);
+    auto input_stride = DimsFunctionUtils::StrideOfShape(input_data_dims);
     if (indices_dims[indices_dims.size()-1] != input_data_dims.size()) {
         return Status(TNNERR_PARAM_ERR, "GatherNDLayerParam has invalid param indices_dims");
     }

@@ -17,7 +17,7 @@
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 #include "tnn/device/opencl/opencl_context.h"
 #include "tnn/device/opencl/opencl_runtime.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 

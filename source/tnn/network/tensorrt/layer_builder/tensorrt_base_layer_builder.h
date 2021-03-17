@@ -24,6 +24,7 @@
 #include "NvUtils.h"
 #include "NvInferPlugin.h"
 
+#include "tnn/core/macro.h"
 #include "tnn/layer/base_layer.h"
 #include "tnn/core/abstract_device.h"
 #include "tnn/core/blob.h"
@@ -84,8 +85,6 @@ protected:
     ILayer* AddInt8WeightQDQLayers(nvinfer1::INetworkDefinition* network, RawBuffer* weight,
         nvinfer1::Weights kernelWeights, RawBuffer* bias, nvinfer1::Weights biasWeights,
         float scale, std::vector<int> dims);
-
-    ILayer* ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* network, RawBuffer *buf, DimsVector recommend_dims=DimsVector(), int expand_dims = 0);
 
     std::vector<ITensor*> GetInputITensors();
 

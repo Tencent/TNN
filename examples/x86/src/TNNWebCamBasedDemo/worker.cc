@@ -78,13 +78,15 @@ Status Worker::Init(std::string model_path) {
     // Init FaceDetector
     auto proto_content = fdLoadFile(model_path+"/face_detector/version-slim-320_simplified.tnnproto");
     auto model_content = fdLoadFile(model_path+"/face_detector/version-slim-320_simplified.tnnmodel");
+    // if enable openvino, set computUnitType to TNNComputeUnitsOpenvino
+    TNN_NS::TNNComputeUnits computUnitType = TNN_NS::TNNComputeUnitsCPU;
 
     auto option = std::make_shared<TNN_NS::UltraFaceDetectorOption>();
     {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = "";
-        option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+        option->compute_units = computUnitType;
         option->score_threshold = 0.95;
         option->iou_threshold = 0.15;
     }
@@ -104,7 +106,7 @@ Status Worker::Init(std::string model_path) {
         blaze_detector_option->proto_content = blaze_detector_proto_content;
         blaze_detector_option->model_content = blaze_detector_model_content;
         blaze_detector_option->library_path = "";
-        blaze_detector_option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+        blaze_detector_option->compute_units = computUnitType;
         blaze_detector_option->min_suppression_threshold = 0.3;
         blaze_detector_option->anchor_path = model_path + "/blazeface/blazeface_anchors.txt";
     }
@@ -118,7 +120,7 @@ Status Worker::Init(std::string model_path) {
 
     auto predictor_phase1 = CreateBlazeFaceAlign(model_path + "/youtu_face_alignment",
                                                  width, height, topk,
-                                                 TNN_NS::TNNComputeUnitsOpenvino, 1);
+                                                 computUnitType, 1);
     if(predictor_phase1 == nullptr) {
         LOGE("create align phase1 failed \n");
         return -1;
@@ -126,7 +128,7 @@ Status Worker::Init(std::string model_path) {
 
     auto predictor_phase2 = CreateBlazeFaceAlign(model_path + "/youtu_face_alignment",
                                                  width, height, topk,
-                                                 TNN_NS::TNNComputeUnitsOpenvino, 2);
+                                                 computUnitType, 2);
     if(predictor_phase2 == nullptr) {
         LOGE("create align phase2 failed \n");
         return -1;

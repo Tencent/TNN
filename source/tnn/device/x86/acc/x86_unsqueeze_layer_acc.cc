@@ -13,18 +13,14 @@
 // specific language governing permissions and limitations under the License.
 
 #include "x86_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
 DECLARE_X86_ACC(Unsqueeze, LAYER_UNSQUEEZE);
 
-Status X86UnsqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
-Status X86UnsqueezeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86UnsqueezeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     const auto param = dynamic_cast<UnsqueezeLayerParam*>(param_);
     void *input_data = nullptr;
     if (param->data_in_resource) {

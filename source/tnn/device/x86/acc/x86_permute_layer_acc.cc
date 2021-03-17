@@ -14,27 +14,14 @@
 
 #include "tnn/device/x86/acc/x86_permute_layer_acc.h"
 
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
 
 X86PermuteLayerAcc::~X86PermuteLayerAcc(){};
 
-Status X86PermuteLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto status = X86LayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != TNN_OK) {
-        return status;
-    }
-    return TNN_OK;
-}
-
-Status X86PermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
-Status X86PermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86PermuteLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<PermuteLayerParam *>(param_);
     if (!param) {
         return Status(TNNERR_MODEL_ERR, "Error: PermuteLayerParam is empyt");

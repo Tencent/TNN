@@ -31,11 +31,15 @@ namespace TNN_NS {
 class LayerResourceGenerator {
 public:
     virtual Status GenLayerResource(LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs) = 0;
+    virtual Status ConvertHalfLayerResource(LayerResource* src_res, LayerResource** dst_res)                 = 0;
 };
 
 std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerResourceGeneratorMap();
 
 Status GenerateRandomResource(LayerType type, LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs);
+
+//@brief only convert iterms of half data type to fp32 data type
+Status ConvertHalfResource(LayerType type, LayerResource* src_res, LayerResource** dst_res);
 
 template <typename T>
 class TypeLayerResourceRegister {
@@ -48,5 +52,6 @@ public:
 #define REGISTER_LAYER_RESOURCE(type_string, layer_type)                                                               \
     TypeLayerResourceRegister<type_string##LayerResourceGenerator> g_##layer_type##_resource_register(layer_type);
 
-#endif
-}
+}  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_RESOURCE_GENERATOR_H_

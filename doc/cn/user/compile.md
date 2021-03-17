@@ -75,7 +75,7 @@ cd <path_to_tnn>/scripts
 ./build_android.sh
 ```
 
-编译完成后，在当前目录的`release`目录下生成对应的`armeabi-v7a`库，`arm64-v8a`库和`include`头文件。
+编译完成后，在当前目录的`release`目录下生成对应的`armeabi-v7a`库，`arm64-v8a`库和`include`头文件。<font color="#dd0000">如果是编译成静态库，集成链接需添加`-Wl,--whole-archive tnn -Wl,--no-whole-archive`</font>。
 
 ## 三、ARM Linux跨平台交叉编译
 
@@ -122,10 +122,16 @@ cd <path_to_tnn>/scripts
 ```
 cd <path_to_tnn>/scripts
 ```
-2）执行编译脚本
+1) 执行编译脚本
+  - 编译不带openvino的版本
+```
+./build_linux_naive.sh
+```
+  - 编译带openvino的版本
 ```
 ./build_linux.sh
 ```
+注意：openvino只能编译成64位的库
 
 ## 五、Linux CUDA库编译
 ### 1.环境要求
@@ -156,20 +162,24 @@ cd <path_to_tnn>/scripts
 依赖库
   - Visual Studio (2017 及更高版本)
   - cmake (把3.11及以上版本cmake加入环境变量或使用 Visual Studio 自带cmake)
-  - 网络访问
+  - ninja (编译速度更快，可以使用choco安装)
 
 ### 2.编译步骤
-打开 `x64 Native Tools Command Prompt for VS 2017/2019`.
-1）切换到脚本目录
+打开 `x64 Native Tools Command Prompt for VS 2017/2019`，如果想要编译32位的库，打开 `x86 Native Tools Command Prompt for VS 2017/2019`
+1) 切换到脚本目录
 ```
 cd <path_to_tnn>/scripts
 ```
-2）执行编译脚本
+2) 执行编译脚本
+  - 编译不带openvino的版本
 ```
-.\build_msvc.bat [VS2017/VS2019]
+.\build_msvc_naive.bat
 ```
-如遇不能识别 Visual Studio 请手动指定版本
-更多编译问题请参考 [FAQ](openvino.md)
+  - 编译带openvino的版本
+```
+.\build_msvc.bat
+```
+openvino只能编译成64位的库，更多编译问题请参考 [FAQ](openvino.md)
 
 
 ## 七、Macos 环境编译
