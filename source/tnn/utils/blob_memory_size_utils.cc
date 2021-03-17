@@ -39,16 +39,46 @@ BlobMemorySizeInfo Calculate2DCLImageMemorySize(BlobDesc& desc) {
     BlobMemorySizeInfo info;
     info.data_type = desc.data_type;
     if (desc.data_format == DATA_FORMAT_NHC4W4 || desc.data_format == DATA_FORMAT_AUTO) {
-        int batch, channel, height, width;
-        auto dims        = desc.dims;
-        batch            = DimsVectorUtils::GetDim(dims, 0);
-        channel          = DimsVectorUtils::GetDim(dims, 1);
-        height           = DimsVectorUtils::GetDim(dims, 2);
-        width            = DimsVectorUtils::GetDim(dims, 3);
-        int image_width  = UP_DIV(channel, 4) * width;
-        int image_height = batch * height;
-        info.dims.push_back(image_width);
-        info.dims.push_back(image_height);
+        if (desc.dims.size() <= 4) {
+            int batch, channel, height, width;
+            auto dims        = desc.dims;
+            batch            = DimsVectorUtils::GetDim(dims, 0);
+            channel          = DimsVectorUtils::GetDim(dims, 1);
+            height           = DimsVectorUtils::GetDim(dims, 2);
+            width            = DimsVectorUtils::GetDim(dims, 3);
+            int image_width  = UP_DIV(channel, 4) * width;
+            int image_height = batch * height;
+            info.dims.push_back(image_width);
+            info.dims.push_back(image_height);
+        } else if (desc.dims.size() == 5) {
+            int batch, channel, dim2, dim3, dim4;
+            auto dims       = desc.dims;
+            batch = DimsVectorUtils::GetDim(dims, 0);
+            channel = DimsVectorUtils::GetDim(dims, 1);
+            dim2 = DimsVectorUtils::GetDim(dims, 2);
+            dim3 = DimsVectorUtils::GetDim(dims, 3);
+            dim4 = DimsVectorUtils::GetDim(dims, 4);
+            int image_width  = UP_DIV(channel, 4) * dim4;
+            int image_height = batch * dim2 * dim3;
+            info.dims.push_back(image_width);
+            info.dims.push_back(image_height);
+        } else if (desc.dims.size() == 6) {
+            int batch, channel, dim2, dim3, dim4, dim5;
+            auto dims       = desc.dims;
+            batch = DimsVectorUtils::GetDim(dims, 0);
+            channel = DimsVectorUtils::GetDim(dims, 1);
+            dim2 = DimsVectorUtils::GetDim(dims, 2);
+            dim3 = DimsVectorUtils::GetDim(dims, 3);
+            dim4 = DimsVectorUtils::GetDim(dims, 4);
+            dim5 = DimsVectorUtils::GetDim(dims, 5);
+            int image_width  = UP_DIV(channel, 4) * dim4 * dim5;
+            int image_height = batch * dim2 * dim3;
+            info.dims.push_back(image_width);
+            info.dims.push_back(image_height);
+        } else {
+            LOGE("TNN Blob not support dims(%d)\n", (int)desc.dims.size());
+            return info;
+        }
     } else if (desc.data_format == DATA_FORMAT_CNH4) {
         int batch, channel, height;
         auto dims        = desc.dims;
@@ -61,6 +91,7 @@ BlobMemorySizeInfo Calculate2DCLImageMemorySize(BlobDesc& desc) {
         info.dims.push_back(image_height);
     } else {
         LOGE("TNN Blob format(%d) not support on CLImage\n", desc.data_format);
+        return info;
     }
     return info;
 }
