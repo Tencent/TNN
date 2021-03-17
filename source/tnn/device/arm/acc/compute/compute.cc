@@ -882,4 +882,25 @@ void GemmFloatPackA(int m, int n, int k, const float* a, float* pack_a, int lda,
     Kernel_1x8(m, n, k, pack_a, b, c, ldc);
 }
 
+void GemmFloatPackAB(int m, int n, int k, const float* a, float* pack_a, int lda, const float* b, float* pack_b, int ldb, float* c,
+                    int ldc) {
+    PackB_8(k, n, b, ldb, pack_b);
+#ifdef __aarch64__
+    PackA_12(m, k, a, lda, pack_a);
+    Kernel_12x8(m, n, k, pack_a, pack_b, c, ldc);
+    a += (m / 12) * 12 * lda;
+    c += (m / 12) * 12 * ldc;
+    m = m % 12;
+#endif
+
+    PackA_4(m, k, a, lda, pack_a);
+    Kernel_4x8(m, n, k, pack_a, pack_b, c, ldc);
+    a += (m / 4) * 4 * lda;
+    c += (m / 4) * 4 * ldc;
+    m = m % 4;
+
+    PackA_1(m, k, a, lda, pack_a);
+    Kernel_1x8(m, n, k, pack_a, pack_b, c, ldc);
+}
+
 }  // namespace TNN_NS
