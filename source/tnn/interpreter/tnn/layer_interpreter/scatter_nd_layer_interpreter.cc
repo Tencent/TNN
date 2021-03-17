@@ -54,7 +54,7 @@ Status ScatterNDLayerInterpreter::SaveResource(Serializer &serializer, LayerPara
         serializer.PutBool(true);
         serializer.PutRaw(layer_resource->updates);
     } else {
-        serializer.PutInt(false);
+        serializer.PutBool(false);
     }
     return TNN_OK;
 }
