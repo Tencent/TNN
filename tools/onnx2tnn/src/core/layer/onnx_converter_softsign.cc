@@ -12,18 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_INCLUDE_TNN_UTILS_HALF_UTILS_H_
-#define TNN_INCLUDE_TNN_UTILS_HALF_UTILS_H_
+#include "onnx_op_converter.h"
+#include "onnx_utility.h"
 
-#include "tnn/core/macro.h"
+REGISTER_OP_CONVERTER_NoParamNoWeight(Softsign, Softsign);
 
-namespace TNN_NS {
 
-// @brief convert float to half
-extern PUBLIC int ConvertFromFloatToHalf(float *fp32, void *fp16, int count);
-// @brief convert half to float
-extern PUBLIC int ConvertFromHalfToFloat(void *fp16, float *fp32, int count);
-
-}  // namespace TNN_NS
-
-#endif  // TNN_INCLUDE_TNN_UTILS_HALF_UTILS_H_

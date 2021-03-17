@@ -21,7 +21,7 @@
 #include "tnn/device/arm/acc/Half8.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_util.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -383,6 +383,24 @@ void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, lo
 #else
                 for (long idx = 0; idx < 4; idx++) {
                     dst_c[cnt * 8 + idx] = src_c[cnt * 4 + idx];
+                }
+#endif
+            }
+        }
+
+        if (c_r4 * 4 < c_r8 * 8) {
+            long co         = c_r4 / 2;
+            long dst_offset = (c_r4 % 2) ? 4 : 0;
+            auto dst_c      = dst_n + co * hw * 8 + dst_offset;
+            for (long cnt = 0; cnt < hw; cnt++) {
+                // nchw4 to nchw8
+#ifdef TNN_ARM82_A64
+                vst1_f16(dst_c + cnt * 8, vdup_n_f16(0.f));
+#elif defined(TNN_ARM82_A32)
+                vst1_u16((unsigned short*)(dst_c + cnt * 8), vdup_n_u16(0));
+#else
+                for (long idx = 0; idx < 4; idx++) {
+                    dst_c[cnt * 8 + idx] = 0.f;
                 }
 #endif
             }

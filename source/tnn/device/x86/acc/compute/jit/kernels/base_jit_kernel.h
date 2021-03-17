@@ -239,6 +239,16 @@ protected:
         */
         abi_bp_offset_ = -abi::register_width_in_bytes; 
         /* 2. save the regs that abi require callee to save */
+        /* only windows x64 need to save xmm6 - xmm15 regs */
+#ifdef XBYAK64
+        if (xmm_to_preserve) {
+            sub(rsp, xmm_to_preserve * xmm_len);
+            for (size_t i = 0; i < xmm_to_preserve; ++i) {
+                movdqu(ptr[rsp + i * xmm_len], Xbyak::Xmm(xmm_to_preserve_start + i));
+            }
+        }
+        abi_bp_offset_ -= xmm_to_preserve * xmm_len;
+#endif
         for(int i=0;i<abi::abi_nb_regs_callee_save;i++) {
             push(rf_t(abi::abi_regs_callee_save[i]));
             abi_bp_offset_ -= abi::register_width_in_bytes;
@@ -272,7 +282,14 @@ protected:
         for(int i=abi::abi_nb_regs_callee_save-1;i>=0;i--){
             pop(rf_t(abi::abi_regs_callee_save[i]));
         }
-
+#ifdef XBYAK64
+        if (xmm_to_preserve) {
+            for (size_t i = 0; i < xmm_to_preserve; ++i) {
+                movdqu(Xbyak::Xmm(xmm_to_preserve_start + i), ptr[rsp + i * xmm_len]);
+            }
+            add(rsp, xmm_to_preserve * xmm_len);
+        }
+#endif
         /* 3. restore the base stack pointer */
         leave(); // mov(sp, bp); pop(bp);
     }
@@ -406,6 +423,16 @@ protected:
     std::queue<int> free_vregs_;
 
     const Xbyak::AddressFrame rword;
+
+    /* xmm regs need to be preserve */
+    const size_t xmm_len = 16;
+#ifdef _WIN32
+    const size_t xmm_to_preserve_start = 6;
+    const size_t xmm_to_preserve = 10;
+#else
+    const size_t xmm_to_preserve_start = 0;
+    const size_t xmm_to_preserve = 0;
+#endif
 };
 
 } // namespace jit
