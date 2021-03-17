@@ -45,9 +45,13 @@ static void LstmActivate(const int count, const float *g_ptr, float *c_ptr, floa
         Float4::save(o_ptr + q, H);
     }
     int remain = count % 4;
+    int offset = count / 4 * 4;
+    g_ptr += offset * 4;
+    c_ptr += offset;
+    h_ptr += offset;
+    o_ptr += offset;
     if (remain) {
-        int offset          = 4 - remain;
-        Float4x4 gates_iofc = Float4x4::ld4(g_ptr - 4 * offset);
+        Float4x4 gates_iofc = Float4x4::ld4(g_ptr);
         Float4 I, O, F, C;
         gates_iofc.get_lane(I, 0);
         gates_iofc.get_lane(O, 1);
@@ -59,12 +63,16 @@ static void LstmActivate(const int count, const float *g_ptr, float *c_ptr, floa
         O = Float4::sigmoid(O);
         C = Float4::tanh(C);
 
-        Float4 cell2 = F * Float4::load(c_ptr - offset) + I * C;
+        Float4 c_old;
+        for (int r = 0; r < remain; ++r) {
+            c_old.set_lane(c_ptr[r], r);
+        }
+        Float4 cell2 = F * c_old + I * C;
         Float4 H     = O * Float4::tanh(cell2);
         for (int r = 0; r < remain; ++r) {
-            c_ptr[r] = cell2[r + offset];
-            h_ptr[r] = H[r + offset];
-            o_ptr[r] = H[r + offset];
+            c_ptr[r] = cell2[r];
+            h_ptr[r] = H[r];
+            o_ptr[r] = H[r];
         }
     }
 }
@@ -76,9 +84,11 @@ Status ArmLSTMONNXLayerAcc::LstmSingleDirection(const float *x, float *y, const 
     const int hidden_size = hidden_size_;
     const int seq_len     = seq_len_;
 
-    RawBuffer gates             = RawBuffer(seq_len * batch_size * hidden_size * 4 * sizeof(float));
-    auto gates_ptr              = gates.force_to<float *>();
-    int input_pack_count        = MAX(seq_len * batch_size * input_size, batch_size * hidden_size);
+    // extra load for LstmActivate
+    RawBuffer gates      = RawBuffer(seq_len * batch_size * hidden_size * 4 * sizeof(float) + NEON_KERNEL_EXTRA_LOAD);
+    auto gates_ptr       = gates.force_to<float *>();
+    int input_pack_count = MAX(seq_len * batch_size * input_size, batch_size * hidden_size);
+    // extra load for GemmFloatPackA
     RawBuffer buffer_input_pack = RawBuffer(input_pack_count * sizeof(float) + NEON_KERNEL_EXTRA_LOAD);
     auto input_pack_ptr         = buffer_input_pack.force_to<float *>();
     GemmFloatPackA(seq_len * batch_size, hidden_size * 4, input_size, x, input_pack_ptr, input_size, w, hidden_size * 4,
@@ -137,8 +147,7 @@ Status ArmLSTMONNXLayerAcc::AllocateBufferWeightInput(Blob *weight_i) {
     float *weight_i_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(weight_i->GetHandle()));
 
     int weight_page       = input_size_ * ROUND_UP(4 * hidden_size_, 8);
-    int data_byte         = DataTypeUtils::GetBytesSize(weight_i->GetBlobDesc().data_type);
-    int weight_byte_count = num_directions_ * weight_page * data_byte;
+    int weight_byte_count = num_directions_ * weight_page * sizeof(float);
     buffer_weight_input_  = RawBuffer(weight_byte_count + NEON_KERNEL_EXTRA_LOAD);
     for (int dir = 0; dir < num_directions_; ++dir) {
         float *buffer_ptr = buffer_weight_input_.force_to<float *>() + dir * weight_page;
@@ -154,8 +163,7 @@ Status ArmLSTMONNXLayerAcc::AllocateBufferWeightRecurrent(Blob *weight_r) {
     float *weight_r_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(weight_r->GetHandle()));
 
     int weight_page          = hidden_size_ * ROUND_UP(4 * hidden_size_, 8);
-    int data_byte            = DataTypeUtils::GetBytesSize(weight_r->GetBlobDesc().data_type);
-    int weight_byte_count    = num_directions_ * weight_page * data_byte;
+    int weight_byte_count    = num_directions_ * weight_page * sizeof(float);
     buffer_weight_recurrent_ = RawBuffer(weight_byte_count + NEON_KERNEL_EXTRA_LOAD);
     for (int dir = 0; dir < num_directions_; ++dir) {
         float *buffer_ptr = buffer_weight_recurrent_.force_to<float *>() + dir * weight_page;
@@ -171,8 +179,7 @@ Status ArmLSTMONNXLayerAcc::AllocateBufferBias(Blob *bias) {
     float *bias_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(bias->GetHandle()));
 
     int bias_count       = num_directions_ * 4 * hidden_size_;
-    int data_byte        = DataTypeUtils::GetBytesSize(bias->GetBlobDesc().data_type);
-    int bias_byte_count  = bias_count * data_byte;
+    int bias_byte_count  = bias_count * sizeof(float);
     buffer_bias_         = RawBuffer(bias_byte_count);
     auto buffer_bias_ptr = buffer_bias_.force_to<float *>();
     for (int d = 0; d < num_directions_; ++d) {
@@ -206,14 +213,29 @@ Status ArmLSTMONNXLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     }
     seq_len_    = inputs[0]->GetBlobDesc().dims[0];
     input_size_ = DimsVectorUtils::Count(inputs[0]->GetBlobDesc().dims, 2);
-    RETURN_ON_NEQ(AllocateBufferWeightInput(inputs[1]), TNN_OK);
-    RETURN_ON_NEQ(AllocateBufferWeightRecurrent(inputs[2]), TNN_OK);
-    RETURN_ON_NEQ(AllocateBufferBias(inputs[3]), TNN_OK);
 
+    auto input_data_type = inputs[0]->GetBlobDesc().data_type;
+    if (input_data_type == DATA_TYPE_FLOAT) {
+        RETURN_ON_NEQ((AllocateBufferWeightInput(inputs[1])), TNN_OK);
+        RETURN_ON_NEQ((AllocateBufferWeightRecurrent(inputs[2])), TNN_OK);
+        RETURN_ON_NEQ(AllocateBufferBias(inputs[3]), TNN_OK);
+    }
+#if TNN_ARM82
+    else if (input_data_type == DATA_TYPE_HALF) {
+        RETURN_ON_NEQ((AllocateBufferWeightInputHalf(inputs[1])), TNN_OK);
+        RETURN_ON_NEQ((AllocateBufferWeightRecurrentHalf(inputs[2])), TNN_OK);
+        RETURN_ON_NEQ(AllocateBufferBiasHalf(inputs[3]), TNN_OK);
+    }
+#endif  // TNN_ARM82
+    else {
+        LOGE("ARM LSTM not support data type: %d\n", input_data_type);
+        return Status(TNNERR_LAYER_ERR, "ARM LSTM not support data type");
+    }
     return TNN_OK;
 }
 
-Status ArmLSTMONNXLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+template <typename T>
+Status ArmLSTMONNXLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     const auto batch          = inputs[0]->GetBlobDesc().dims[1];
     const auto direction      = direction_;
     const auto num_directions = num_directions_;
@@ -222,35 +244,35 @@ Status ArmLSTMONNXLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     const auto hidden_size    = hidden_size_;
 
     // X shape [sequence batch_size input_size]
-    float *x = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    T *x = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
 
     // Y shape [sequence batch_size num_directions *hidden_size]
-    float *y = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    T *y = reinterpret_cast<T *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
 
     // Initial states. If not specified, assumed to be 0.
     // shape [num_directions, batch_size, hidden_size]
-    auto h_t = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[1]->GetHandle()));
-    auto c_t = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[2]->GetHandle()));
+    auto h_t = reinterpret_cast<T *>(GetBlobHandlePtr(outputs[1]->GetHandle()));
+    auto c_t = reinterpret_cast<T *>(GetBlobHandlePtr(outputs[2]->GetHandle()));
     if (inputs.size() >= 6) {
-        auto h_0 = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[4]->GetHandle()));
-        memcpy((void *)h_t, h_0, num_directions * batch * hidden_size * sizeof(float));
-        auto c_0 = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[5]->GetHandle()));
-        memcpy((void *)c_t, c_0, num_directions * batch * hidden_size * sizeof(float));
+        auto h_0 = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[4]->GetHandle()));
+        memcpy((void *)h_t, h_0, num_directions * batch * hidden_size * sizeof(T));
+        auto c_0 = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[5]->GetHandle()));
+        memcpy((void *)c_t, c_0, num_directions * batch * hidden_size * sizeof(T));
     } else {
-        memset((void *)h_t, 0, num_directions * batch * hidden_size * sizeof(float));
-        memset((void *)c_t, 0, num_directions * batch * hidden_size * sizeof(float));
+        memset((void *)h_t, 0, num_directions * batch * hidden_size * sizeof(T));
+        memset((void *)c_t, 0, num_directions * batch * hidden_size * sizeof(T));
     }
 
-    float *w = buffer_weight_input_.force_to<float *>();
-    float *r = buffer_weight_recurrent_.force_to<float *>();
-    float *b = buffer_bias_.force_to<float *>();
+    T *w = buffer_weight_input_.force_to<T *>();
+    T *r = buffer_weight_recurrent_.force_to<T *>();
+    T *b = buffer_bias_.force_to<T *>();
 
     if (direction == 0 || direction == 1) {
         return LstmSingleDirection(x, y, w, r, b, h_t, c_t, batch, direction);
     } else if (direction == 2) {
         // Y shape [num_directions sequence batch_size hidden_size]
-        RawBuffer y_temp = RawBuffer(num_directions * seq_len * batch * hidden_size * sizeof(float));
-        auto y0          = y_temp.force_to<float *>();
+        RawBuffer y_temp = RawBuffer(num_directions * seq_len * batch * hidden_size * sizeof(T));
+        auto y0          = y_temp.force_to<T *>();
         auto y1          = y0 + seq_len * batch * hidden_size;
         LstmSingleDirection(x, y0, w, r, b, h_t, c_t, batch, 0);
 
@@ -268,8 +290,8 @@ Status ArmLSTMONNXLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
             auto y1_data = y1 + i * hidden_size;
             auto y_data  = y + i * num_directions * hidden_size;
 
-            memcpy(y_data, y0_data, hidden_size * sizeof(float));
-            memcpy(y_data + hidden_size, y1_data, hidden_size * sizeof(float));
+            memcpy(y_data, y0_data, hidden_size * sizeof(T));
+            memcpy(y_data + hidden_size, y1_data, hidden_size * sizeof(T));
         }
     } else {
         return Status(TNNERR_PARAM_ERR, "LSTMONNX has invalid direction param");
@@ -278,7 +300,25 @@ Status ArmLSTMONNXLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     return TNN_OK;
 }
 
+Status ArmLSTMONNXLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto input_data_type = inputs[0]->GetBlobDesc().data_type;
+    if (input_data_type == DATA_TYPE_FLOAT) {
+        return Exec<float>(inputs, outputs);
+    }
+#if TNN_ARM82
+    else if (input_data_type == DATA_TYPE_HALF) {
+        return ExecFp16(inputs, outputs);
+    }
+#endif  // TNN_ARM82
+    else {
+        LOGE("ARM LSTM not support data type: %d\n", input_data_type);
+        return Status(TNNERR_LAYER_ERR, "ARM LSTM not support data type");
+    }
+    return TNN_OK;
+}
+
 REGISTER_ARM_ACC(LSTMONNX, LAYER_LSTMONNX);
+REGISTER_ARM_PRECISION_FP16(LAYER_LSTMONNX)
 REGISTER_ARM_LAYOUT(LAYER_LSTMONNX, DATA_FORMAT_NCHW)
 
 }  // namespace TNN_NS

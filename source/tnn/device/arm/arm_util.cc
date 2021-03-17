@@ -349,6 +349,24 @@ int UnpackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t
     return 0;
 }
 
+int PackFloatBlob(bfp16_t *dst, bfp16_t *src, size_t batch, size_t channel, size_t hw) {
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * ROUND_UP(channel, 4) * hw;
+        auto src_ptr_n = src + n * channel * hw;
+        PackC4(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
+int UnpackFloatBlob(bfp16_t *dst, bfp16_t *src, size_t batch, size_t channel, size_t hw) {
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * channel * hw;
+        auto src_ptr_n = src + n * ROUND_UP(channel, 4) * hw;
+        UnpackC4(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
 template <typename Tin, typename Tout>
 int UnpackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
     int cur_hw;
