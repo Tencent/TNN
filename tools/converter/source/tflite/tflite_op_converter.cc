@@ -81,4 +81,16 @@ TNN_NS::Status TFLiteOpConverter::SeparateActivation(TNN_NS::NetStructure& net_s
     }
     return TNN_NS::TNN_CONVERT_OK;
 }
+
+void TFLiteOpConverter::InsertBlobs(TNN_NS::NetStructure& net_structure) {
+    auto& cur_layer = net_structure.layers.back();
+    auto& inputs    = cur_layer->inputs;
+    auto& outputs   = cur_layer->outputs;
+    for (const auto& input_name : inputs) {
+        net_structure.blobs.insert(input_name);
+    }
+    for (const auto& output_name : outputs) {
+        net_structure.blobs.insert(output_name);
+    }
+}
 }  // namespace TNN_CONVERTER

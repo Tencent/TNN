@@ -31,7 +31,7 @@ TNN_NS::ActivationType OnnxGatherConverter::ActivationType(const onnx::NodeProto
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxGatherConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+TNN_NS::Status OnnxGatherConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                          const onnx::NodeProto &node,
                                          std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
                                          std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
@@ -51,9 +51,9 @@ TNN_NS::Status OnnxGatherConverter::exec(tnn::NetStructure &net_structure, tnn::
     // parse indices
     const auto &indices_name = node.input(1);
     if (proxy_initializers_map.find(indices_name) != proxy_initializers_map.end()) {
-        param->indices_in_resource = true;
-        auto indices_tensor        = proxy_initializers_map[indices_name];
-        TNN_NS::RawBuffer* indices_raw_buffer = nullptr;
+        param->indices_in_resource            = true;
+        auto indices_tensor                   = proxy_initializers_map[indices_name];
+        TNN_NS::RawBuffer *indices_raw_buffer = nullptr;
         CreateRawBufferFromTensor(*indices_tensor, &indices_raw_buffer);
         resource->indices = *indices_raw_buffer;
     } else if (proxy_nodes.find(indices_name) != proxy_nodes.end() &&

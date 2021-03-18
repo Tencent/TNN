@@ -26,7 +26,7 @@ std::string TnnOptimizeAdjustLayerInputsPass::PassName() {
 }
 
 TNN_NS::Status TnnOptimizeAdjustLayerInputsPass::exec(TNN_NS::NetStructure& net_structure,
-                                                        TNN_NS::NetResource& net_resource) {
+                                                      TNN_NS::NetResource& net_resource) {
     auto& layers = net_structure.layers;
     for (auto iter = layers.begin(); iter < layers.end();) {
         auto cur_layer = *iter;

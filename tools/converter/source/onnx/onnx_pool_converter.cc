@@ -32,8 +32,8 @@ TNN_NS::ActivationType OnnxPoolingConverter::ActivationType(const onnx::NodeProt
 
 TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                           const onnx::NodeProto &node,
-                                          std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
-                                          std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
+                                          std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                          std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                           bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
     auto param                 = new TNN_NS::PoolingLayerParam;
@@ -43,8 +43,8 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
     param->name                = cur_layer->name;
     param->quantized           = false;
     // do not support adaptive pool for now
-    param->is_adaptive_pool    = 0;
-    param->output_shape        = {-1, -1};
+    param->is_adaptive_pool = 0;
+    param->output_shape     = {-1, -1};
     if (onnx_op == "AveragePool" || onnx_op == "MaxPool") {
         auto auto_pad     = GetAttributeString(node, "auto_pad", "NOTSET");
         auto kernel_shape = GetAttributeIntVector(node, "kernel_shape");

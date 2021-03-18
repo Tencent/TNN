@@ -140,6 +140,7 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
                 LOGE("TFLite converter %s failed!\n", cur_layer->type_str.c_str());
                 return status;
             }
+            converter->InsertBlobs(net_structure);
         }
     }
     return TNN_NS::TNN_CONVERT_OK;

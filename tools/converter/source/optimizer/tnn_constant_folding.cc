@@ -42,7 +42,7 @@ TNN_NS::Status TnnOptimizeConstantFoldingPass::exec(TNN_NS::NetStructure& net_st
         const auto& pre_node_name = layer->inputs[0];
         for (auto sub_iter = iter; sub_iter < net_layers.end(); sub_iter++) {
             auto sub_layer = *sub_iter;
-            for (auto & input_name : sub_layer->inputs) {
+            for (auto& input_name : sub_layer->inputs) {
                 if (std::find(layer_output_names.begin(), layer_output_names.end(), input_name) !=
                     layer_output_names.end()) {
                     input_name = pre_node_name;

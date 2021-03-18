@@ -27,8 +27,8 @@ TNN_NS::ActivationType OnnxReshapeConverter::ActivationType(const onnx::NodeProt
 }
 TNN_NS::Status OnnxReshapeConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                           const onnx::NodeProto &node,
-                                          std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
-                                          std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
+                                          std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                          std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                           bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
     auto param                 = new TNN_NS::ReshapeLayerParam;

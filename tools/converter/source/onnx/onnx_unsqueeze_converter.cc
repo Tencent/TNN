@@ -27,7 +27,7 @@ TNN_NS::ActivationType OnnxUnsqueezeConverter::ActivationType(const onnx::NodePr
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxUnsqueezeConverter::exec(tnn::NetStructure& net_structure, tnn::NetResource& net_resource,
+TNN_NS::Status OnnxUnsqueezeConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                             const onnx::NodeProto& node,
                                             std::map<std::string, const onnx::TensorProto*>& proxy_initializers_map,
                                             std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
@@ -41,10 +41,10 @@ TNN_NS::Status OnnxUnsqueezeConverter::exec(tnn::NetStructure& net_structure, tn
     param->axes      = GetAttributeIntVector(node, "axes");
     auto& data_name  = node.input(0);
     const auto& iter = proxy_initializers_map.find(data_name);
-    for (const auto &input : node.input()) {
+    for (const auto& input : node.input()) {
         if (proxy_initializers_map.find(input) != proxy_initializers_map.end()) {
             auto const_tensor                   = proxy_initializers_map[input];
-            TNN_NS::RawBuffer *const_raw_buffer = nullptr;
+            TNN_NS::RawBuffer* const_raw_buffer = nullptr;
             CreateRawBufferFromTensor(*const_tensor, &const_raw_buffer);
             net_resource.constant_map[input] = std::shared_ptr<TNN_NS::RawBuffer>(const_raw_buffer);
         }

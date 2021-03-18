@@ -61,7 +61,7 @@ TNN_NS::Status TnnOptimizeEliminateReformatNodePass::exec(TNN_NS::NetStructure& 
                     sub_iter->inputs[i]   = pre_node_name;
                     if (sub_iter->param->quantized) {
                         auto older_input_scale_name = older_input_name + BLOB_SCALE_SUFFIX;
-                        auto new_input_scale_name = pre_node_name + BLOB_SCALE_SUFFIX;
+                        auto new_input_scale_name   = pre_node_name + BLOB_SCALE_SUFFIX;
                         if (resource_map.find(older_input_scale_name) != resource_map.end()) {
                             resource_map[new_input_scale_name] = resource_map[older_input_scale_name];
                         } else {

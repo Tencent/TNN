@@ -94,15 +94,15 @@ const onnx::NodeProto* OnnxBaseConverter::FindNodeProto(
     }
     return nullptr;
 }
-void OnnxBaseConverter::InsertBlobs(tnn::NetStructure& net_structure) {
-    auto& cur_layer = net_structure.layers.back();
-    const auto& inputs = cur_layer->inputs;
+void OnnxBaseConverter::InsertBlobs(TNN_NS::NetStructure& net_structure) {
+    auto& cur_layer     = net_structure.layers.back();
+    const auto& inputs  = cur_layer->inputs;
     const auto& outputs = cur_layer->outputs;
     for (const auto& input_name : inputs) {
         const auto& blob_name = input_name;
         net_structure.blobs.insert(blob_name);
     }
-    for (const auto& output_name: outputs) {
+    for (const auto& output_name : outputs) {
         const auto& blob_name = output_name;
         net_structure.blobs.insert(blob_name);
     }
