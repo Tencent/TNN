@@ -19,7 +19,7 @@
 
 namespace TNN_NS {
 
-DECLARE_METAL_ACC_WITH_EXTRA_MENBER(Squeeze, LAYER_SQUEEZE, bool need_reformat_=false);
+DECLARE_METAL_ACC_WITH_EXTRA(Squeeze, LAYER_SQUEEZE, bool need_reformat_=false);
 
 Status MetalSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Reshape(inputs, outputs);
@@ -35,23 +35,24 @@ Status MetalSqueezeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
     auto axes = layer_param->axes;
     for (auto axis : axes) {
         axis = axis < 0 ? axis + dims_output.size() : axis;
-        if (axis ==0 || axis == 1)
-            need_reformat_ = true;
+        need_reformat_ = need_reformat_ || axis == 0 || axis == 1;
     }
     // buffer_param_
     {
         if (need_reformat_) {
             MetalSqueezeParams metal_params;
             SetDefaultMetalParams(metal_params, dims_input, dims_output);
-            metal_params.input_channel = dims_input[1];
+            FixDefaultMetalParams(metal_params, dims_input, dims_output);
+            metal_params.input_channel  = dims_input[1];
             metal_params.output_channel = dims_output[1];
             metal_params.input_batch = dims_input[0];
-            buffer_param_     = [device newBufferWithBytes:(const void *)(&metal_params)
+            buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
                                                     length:sizeof(metal_params)
                                                    options:MTLResourceCPUCacheModeWriteCombined];
         } else {
             MetalPermuteParams metal_params;
             SetDefaultMetalParams(metal_params, dims_input, dims_output);
+            FixDefaultMetalParams(metal_params, dims_input, dims_output);
             metal_params.input_batch = dims_input[0];
             buffer_param_     = [device newBufferWithBytes:(const void *)(&metal_params)
                                                     length:sizeof(metal_params)
@@ -65,7 +66,7 @@ Status MetalSqueezeLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs
                                             const std::vector<Blob *> &outputs,
                                             MTLSize &size) {
     auto dims_output = outputs[0]->GetBlobDesc().dims;
-    size = GetDefaultThreadSize(dims_output, need_reformat_);
+    size = GetDefaultThreadSizeFusedLast(dims_output, need_reformat_);
     return TNN_OK;
 }
 
@@ -87,7 +88,10 @@ Status MetalSqueezeLayerAcc::SetKernelEncoderParam(id<MTLComputeCommandEncoder> 
 }
 
 REGISTER_METAL_ACC(Squeeze, LAYER_SQUEEZE);
+REGISTER_METAL_ACC(Squeeze, LAYER_UNSQUEEZE);
+
 REGISTER_METAL_LAYOUT(LAYER_SQUEEZE, DATA_FORMAT_NC4HW4);
+REGISTER_METAL_LAYOUT(LAYER_UNSQUEEZE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS
 

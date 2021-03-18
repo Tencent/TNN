@@ -40,8 +40,8 @@ kernel void sub_broadcast(const device ftype4 *src0                             
     
     const int index_size = (int)gid.y * params.input_size + (int)gid.x;
     const int index = (int)gid.z * params.input_slice * params.input_size  + index_size;
-    const int batch_offset0 = (int)gid.z * params.input0_size;
-    const int batch_offset1 = (int)gid.z * params.input1_size;
+    const int batch_offset0 = params.weight_index == 0? 0 : (int)gid.z * params.input0_size;
+    const int batch_offset1 = params.weight_index == 1? 0 : (int)gid.z * params.input1_size;
     
     ftype4 data0;
     if (params.broadcast_input0 == kBroadcastTypeChannel) {

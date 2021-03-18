@@ -844,6 +844,27 @@ void GemmHalfPackA(int m, int n, int k, const fp16_t* a, fp16_t* pack_a, int lda
     PackA_1(m, k, a, lda, pack_a);
     Kernel_1x16(m, n, k, pack_a, b, c, ldc);
 }
+
+void GemmFloatPackAB(int m, int n, int k, const fp16_t* a, fp16_t* pack_a, int lda, const fp16_t* b, fp16_t* pack_b, int ldb, fp16_t* c,
+                   int ldc) {
+    PackB_16(k, n, b, ldb, pack_b);
+#ifdef __aarch64__
+    PackA_8(m, k, a, lda, pack_a);
+    Kernel_8x16(m, n, k, pack_a, pack_b, c, ldc);
+    a += (m / 8) * 8 * lda;
+    c += (m / 8) * 8 * ldc;
+    m = m % 8;
+#endif
+
+    PackA_4(m, k, a, lda, pack_a);
+    Kernel_4x16(m, n, k, pack_a, pack_b, c, ldc);
+    a += (m / 4) * 4 * lda;
+    c += (m / 4) * 4 * ldc;
+    m = m % 4;
+
+    PackA_1(m, k, a, lda, pack_a);
+    Kernel_1x16(m, n, k, pack_a, pack_b, c, ldc);
+}
 #endif  // TNN_ARM82
 
 /*
