@@ -1127,7 +1127,7 @@ static Status ConvertInt8MatToInt8Blob(Mat& image, char* handle_ptr,
                                        std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
     return DataFormatConverter::ConvertFromNCHWToNHWC4Int8(reinterpret_cast<int8_t *>(image.GetData()),
                                                            reinterpret_cast<int8_t *>(handle_ptr),
-                                                           dims[0], dims[1], dims[2], dims[3]);
+                                                           dims[0], dims[1], hw);
 }
 
 // convert from mat to blob
@@ -1320,7 +1320,7 @@ static Status ConvertInt8BlobToInt8Mat(Mat& image, char* handle_ptr,
                                        std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
     return DataFormatConverter::ConvertFromNHWC4ToNCHWInt8(reinterpret_cast<int8_t *>(handle_ptr),
                                                            reinterpret_cast<int8_t *>(image.GetData()),
-                                                           dims[0], dims[1], dims[2], dims[3]);
+                                                           dims[0], dims[1], hw);
 
 }
 
