@@ -23,7 +23,7 @@ DECLARE_ARM_ACC(Sign, LAYER_SIGN);
 
 Status ArmSignLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto dims      = outputs[0]->GetBlobDesc().dims;
-    int count      = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+    int count      = dims[0] * ROUND_UP(dims[1], 4) * DimsVectorUtils::Count(dims, 2);
     int count_quad = UP_DIV(count, 4);
 
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
