@@ -121,8 +121,8 @@ function run_android() {
             $ADB push $WORK_DIR/${INPUT_PATH} ${ANDROID_DATA_DIR}/input.txt
         fi
         TEST_MODEL_PATH=${TEST_PROTO_PATH/proto/model}
-        $ADB push $WORK_DIR/${TEST_PROTO_PATH} ${ANDROID_DATA_DIR}/test.tnnproto
-        $ADB push $WORK_DIR/${TEST_MODEL_PATH} ${ANDROID_DATA_DIR}/test.tnnmodel
+        $ADB push ${TEST_PROTO_PATH} ${ANDROID_DATA_DIR}/test.tnnproto
+        $ADB push ${TEST_MODEL_PATH} ${ANDROID_DATA_DIR}/test.tnnmodel
     fi
 
     $ADB shell "echo \"${DEVICE}\" > $ANDROID_DIR/test_log.txt"
