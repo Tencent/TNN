@@ -38,6 +38,7 @@ Status MetalClipLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
     {
         MetalClipParams metal_params;
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
+        FixDefaultMetalParams(metal_params, dims_input, dims_output);
 
         metal_params.min = layer_param->min;
         metal_params.max = layer_param->max;

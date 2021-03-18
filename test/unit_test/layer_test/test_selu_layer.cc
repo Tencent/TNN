@@ -19,15 +19,17 @@
 
 namespace TNN_NS {
 
-class SeluLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int>> {};
+class SeluLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
 
-INSTANTIATE_TEST_SUITE_P(LayerTest, SeluLayerTest, ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE));
+INSTANTIATE_TEST_SUITE_P(LayerTest, SeluLayerTest, ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                                                        testing::Values(2, 3, 4, 5, 6)));
 
 TEST_P(SeluLayerTest, SeluLayer) {
     // get param
     int batch      = std::get<0>(GetParam());
     int channel    = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam());
+    int dim_count  = std::get<3>(GetParam());
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     if (DEVICE_CUDA == dev) {
@@ -40,7 +42,8 @@ TEST_P(SeluLayerTest, SeluLayer) {
     param->gamma = 1.0507;
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
     auto interpreter            = GenerateInterpreter("Selu", {input_dims}, param);
     Run(interpreter);
 }

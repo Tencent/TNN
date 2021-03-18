@@ -53,6 +53,18 @@ struct MetalParams {
     int batch;
 };
 
+struct MetalSplitVParamV2 {
+    int inner_size;
+    int axis_size;
+    int outer_size;
+};
+
+struct MetalConcatParamV2 {
+    int inner_size;
+    int axis_size;
+    int outer_size;
+};
+
 // keep as same as BroadcastType in layer_param.h
 #define kBroadcastTypeNormal 0x0000
 #define kBroadcastTypeSingle 0x0001
@@ -73,6 +85,8 @@ struct MetalBroadcastParams {
     int broadcast_input0;
     int broadcast_input1;
     int batch;
+
+    int weight_index;
 
     int input0_size;
     int input1_size;
@@ -688,6 +702,14 @@ struct MetalSqueezeParams {
         metal_params.output_slice  = UP_DIV(dims_output[1], 4);                                                        \
         metal_params.batch         = dims_output[0];                                                                   \
     } while (0)
+
+#define FixDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
+    do {                                                                                                               \
+        metal_params.input_width   = GetBlobCount(dims_input, 3);                                                      \
+        metal_params.input_size    = metal_params.input_height * metal_params.input_width;                             \
+        metal_params.output_width  = GetBlobCount(dims_output, 3);                                                     \
+        metal_params.output_size   = metal_params.output_height * metal_params.output_width;                           \
+    } while(0)
 
 #define SetDefaultMetalConvParams(metal_params, conv_param)                                                            \
     do {                                                                                                               \

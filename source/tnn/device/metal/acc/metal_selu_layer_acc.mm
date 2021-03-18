@@ -37,6 +37,7 @@ Status MetalSeluLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
     {
         MetalSeluParams metal_params;
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
+        FixDefaultMetalParams(metal_params, dims_input, dims_output);
 
         metal_params.alpha = layer_param->alpha;
         metal_params.gamma = layer_param->gamma;

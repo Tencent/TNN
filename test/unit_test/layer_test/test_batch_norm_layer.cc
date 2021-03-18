@@ -20,10 +20,12 @@
 namespace TNN_NS {
 
 class BatchNormScaleLayerTest : public LayerTest,
-                                public ::testing::WithParamInterface<std::tuple<int, int, int, bool, bool>> {};
+                                public ::testing::WithParamInterface<std::tuple<int, int, int, int, bool, bool>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, BatchNormScaleLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                                            // dim count
+                                            testing::Values(2, 3, 4, 5, 6),
                                             // share channel
                                             testing::Values(false, true),
                                             // has bias
@@ -34,8 +36,9 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
     int input_size     = std::get<2>(GetParam());
-    bool share_channel = std::get<3>(GetParam());
-    bool has_bias      = std::get<4>(GetParam());
+    int dim_count      = std::get<3>(GetParam());
+    bool share_channel = std::get<4>(GetParam());
+    bool has_bias      = std::get<5>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
@@ -58,7 +61,9 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
     }
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    //std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
     auto interpreter1           = GenerateInterpreter("BatchNormCxx", {input_dims}, param, resource);
     auto interpreter2           = GenerateInterpreter("Scale", {input_dims}, param, resource);
     Run(interpreter1);

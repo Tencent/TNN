@@ -58,6 +58,7 @@ Status MetalBatchNormLayerAcc::AllocateBufferParam(const std::vector<Blob *> &in
     // buffer_param_
     {
         auto metal_params          = GetDefaultMetalParams(dims_input, dims_output);
+        FixDefaultMetalParams(metal_params, dims_input, dims_output);
         metal_params.share_channel = (layer_res->scale_handle.GetDataCount() == 1) ? 1 : 0;
         buffer_param_              = [device newBufferWithBytes:(const void *)(&metal_params)
                                             length:sizeof(metal_params)
@@ -102,10 +103,11 @@ Status MetalBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     auto input  = inputs[0];
     auto output = outputs[0];
 
-    auto dims_output  = output->GetBlobDesc().dims;
-    auto output_width = dims_output[3], output_height = dims_output[2];
-    auto output_slice = UP_DIV(dims_output[1], 4);
-    auto batch        = dims_output[0];
+    auto dims_output   = output->GetBlobDesc().dims;
+    auto output_width  = GetBlobCount(dims_output, 3);
+    auto output_height = GetBlobDim(dims_output, 2);
+    auto output_slice  = UP_DIV(dims_output[1], 4);
+    auto batch         = dims_output[0];
 
     Status status = TNN_OK;
     MetalBandwidth bandwidth;

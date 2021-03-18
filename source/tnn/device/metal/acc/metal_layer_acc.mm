@@ -237,6 +237,29 @@ MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
     }
 }
 
+MTLSize GetDefaultThreadSizeFusedLast(DimsVector dims, bool combineHeightWidth) {
+    auto output_height  = GetBlobDim(dims, 2);
+    auto output_width   = GetBlobCount(dims, 3);
+    auto output_size  = output_width * output_height;
+    auto output_slice = UP_DIV(dims[1], 4);
+    auto output_batch = dims[0];
+    
+    if (combineHeightWidth) {
+        return MTLSizeMake(output_size, output_slice, output_batch);
+    } else {
+        return MTLSizeMake(output_width, output_height, output_batch*output_slice);
+    }
+}
+
+void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, bool reduce_on_axis) {
+    auto axis_size = GetBlobDim(dims, axis);
+    auto dims_copy = dims;
+    dims_copy[1] = UP_DIV(dims[1], 4);
+    size = MTLSizeMake(DimsVectorUtils::Count(dims_copy, axis+1),
+                        reduce_on_axis? 1 : (axis == 1? UP_DIV(axis_size, 4) : axis_size),
+                        DimsVectorUtils::Count(dims_copy, 0, axis));
+}
+
 struct MetalParams GetDefaultMetalParams(DimsVector dims_input, DimsVector dims_output) {
     MetalParams metal_params;
     SetDefaultMetalParams(metal_params, dims_input, dims_output);
@@ -464,9 +487,9 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
     id<MTLDevice> device     = [TNNMetalDeviceImpl sharedDevice];
     id<MTLBuffer> mtl_buffer = nil;
 
-    const int channel = buffer_shape[1];
-    const int kh      = buffer_shape[2];
-    const int kw      = buffer_shape[3];
+    const int channel = GetBlobDim(buffer_shape, 1);
+    const int kh      = GetBlobDim(buffer_shape, 2);
+    const int kw      = GetBlobDim(buffer_shape, 3);
 
     const int channel4 = UP_DIV(channel, 4) * 4;
 
