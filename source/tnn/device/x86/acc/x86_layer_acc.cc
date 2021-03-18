@@ -40,7 +40,7 @@ Status X86LayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
     return Reshape(inputs, outputs);
 }
 
-std::vector<DataFormat> X86LayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> X86LayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
         support_list.push_back(DATA_FORMAT_NCHW);
@@ -93,7 +93,7 @@ Status X86LayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         auto status = RawBuffer2Blob(buffer.get(), blob);
         RETURN_ON_NEQ(status, TNN_OK);
 
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map[name] = blob;
         iter->SetHandle(blob->GetHandle());
         LOGD("Reload constant blob: %s\n", name.c_str());

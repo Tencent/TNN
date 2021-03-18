@@ -17,8 +17,8 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -74,7 +74,7 @@ Status MetalLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         auto status = RawBuffer2Blob(buffer.get(), blob);
         RETURN_ON_NEQ(status, TNN_OK);
 
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         auto dims = iter->GetBlobDesc().dims;
         auto data_type_size = DataTypeUtils::GetBytesSize(iter->GetBlobDesc().data_type);
         const_blob_map[name] = blob;
@@ -213,7 +213,7 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
     return status;
 }
 
-std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
         support_list.push_back(DATA_FORMAT_NC4HW4);
@@ -226,6 +226,20 @@ std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int
 MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
     auto output_height  = GetBlobDim(dims, 2);
     auto output_width   = GetBlobDim(dims, 3);
+    auto output_size  = output_width * output_height;
+    auto output_slice = UP_DIV(dims[1], 4);
+    auto output_batch = dims[0];
+    
+    if (combineHeightWidth) {
+        return MTLSizeMake(output_size, output_slice, output_batch);
+    } else {
+        return MTLSizeMake(output_width, output_height, output_batch*output_slice);
+    }
+}
+
+MTLSize GetDefaultThreadSizeFusedLast(DimsVector dims, bool combineHeightWidth) {
+    auto output_height  = GetBlobDim(dims, 2);
+    auto output_width   = GetBlobCount(dims, 3);
     auto output_size  = output_width * output_height;
     auto output_slice = UP_DIV(dims[1], 4);
     auto output_batch = dims[0];
@@ -473,9 +487,9 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
     id<MTLDevice> device     = [TNNMetalDeviceImpl sharedDevice];
     id<MTLBuffer> mtl_buffer = nil;
 
-    const int channel = buffer_shape[1];
-    const int kh      = buffer_shape[2];
-    const int kw      = buffer_shape[3];
+    const int channel = GetBlobDim(buffer_shape, 1);
+    const int kh      = GetBlobDim(buffer_shape, 2);
+    const int kw      = GetBlobDim(buffer_shape, 3);
 
     const int channel4 = UP_DIV(channel, 4) * 4;
 

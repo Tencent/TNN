@@ -52,7 +52,7 @@ Status ArmLayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
     return TNN_OK;
 }
 
-std::vector<DataFormat> ArmLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> ArmLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
         if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16)
@@ -99,7 +99,7 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         auto status = RawBuffer2Blob(buffer.get(), blob);
         RETURN_ON_NEQ(status, TNN_OK);
 
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map[name] = blob;
         iter->SetHandle(blob->GetHandle());
         iter->GetBlobDesc() = blob->GetBlobDesc();

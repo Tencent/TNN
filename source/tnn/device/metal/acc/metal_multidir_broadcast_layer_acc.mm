@@ -32,6 +32,7 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
 
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
+    bool has_resource = layer_res && (layer_res->element_handle.force_to<void *>());
 
     Status status = TNN_OK;
     if (layer_res && !buffer_weight_) {
@@ -66,6 +67,10 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
 
         metal_params.broadcast_input0 = layer_param->input0_broadcast_type;
         metal_params.broadcast_input1 = layer_param->input1_broadcast_type;
+
+        metal_params.weight_index = has_resource? layer_param->weight_input_index : -1;
+        // for passing unit_test
+        //metal_params.weight_index = layer_param->weight_input_index;
 
         buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
                                             length:sizeof(MetalBroadcastParams)

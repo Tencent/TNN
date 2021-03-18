@@ -39,34 +39,6 @@ ILayer* StrideSliceV2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* net
 DimsExprs StrideSliceV2TRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
         int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
     StrideSliceV2LayerParam* param = dynamic_cast<StrideSliceV2LayerParam*>(param_);
-    if (input_blobs_.size() >= 2) {
-        auto begins_blob_name = input_blobs_[1]->GetBlobDesc().name;
-        if (const_resource_ == nullptr || const_resource_->find(begins_blob_name) != const_resource_->end()) {
-            auto begins_buffer = (*const_resource_)[begins_blob_name];
-            auto dim_count = begins_buffer->GetDataCount();
-            auto dim_data = (int *)begins_buffer->force_to<int *>();
-            DimsVector dims;
-            for (int i=0; i<dim_count; i++) {
-                dims.push_back(dim_data[i]);
-            }
-            param->begins = dims;
-        }
-    }
-
-    if (input_blobs_.size() >= 3) {
-        auto ends_blob_name = input_blobs_[2]->GetBlobDesc().name;
-        if (const_resource_ == nullptr || const_resource_->find(ends_blob_name) != const_resource_->end()) {
-            auto ends_buffer = (*const_resource_)[ends_blob_name];
-            auto dim_count = ends_buffer->GetDataCount();
-            auto dim_data = (int *)ends_buffer->force_to<int *>();
-            DimsVector dims;
-            for (int i=0; i<dim_count; i++) {
-                dims.push_back(dim_data[i]);
-            }
-            param->ends = dims;
-        }
-    }
-
     DimsExprs output(inputs[0]);
     for (int i = 0; i < param->axes.size(); i++) {
         int index = param->axes[i];
@@ -88,8 +60,8 @@ DimsExprs StrideSliceV2TRTPluginLayerBuilder::getOutputDimensions(int index, con
         auto one = exprBuilder.constant(1);
         auto diff = exprBuilder.operation(DimensionOperation::kSUB, *end, *begin);
         diff = exprBuilder.operation(DimensionOperation::kSUB, *diff, *one);
-        output.d[index] = exprBuilder.constant(1);
-        output.d[index] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[index], *diff);
+        output.d[index] = exprBuilder.operation(DimensionOperation::kFLOOR_DIV, *diff, *stride);
+        output.d[index] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[index], *one);
     }
     return output;
 }

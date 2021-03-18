@@ -70,7 +70,10 @@ Status CpuStrideSliceV2LayerAcc::InferRuntimeOutputShape(const std::vector<Blob 
     //前闭后开区间
     Status status = TNN_OK;
     auto output_dims = DimsFunctionUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
-    RETURN_ON_NEQ(status, TNN_OK);
+    //support empty blob for yolov5 Slice_507, only in device cpu
+    if (status != TNN_OK && !(output_dims.size() == input_dims.size() &&  runtime_model_ == RUNTIME_MODE_CONST_FOLD)) {
+        return status;
+    }
     
     outputs[0]->GetBlobDesc().dims = output_dims;
     
@@ -100,7 +103,10 @@ Status CpuStrideSliceV2LayerAcc::Forward(const std::vector<Blob *> &inputs, cons
     //rectify begins and ends here for value < 0 or = INT_MAX
     Status status = TNN_OK;
     DimsFunctionUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
-    RETURN_ON_NEQ(status, TNN_OK);
+    //support empty blob for yolov5 Slice_507, only in device cpu
+    if (status != TNN_OK && !(output_dims.size() == input_dims.size() &&  runtime_model_ == RUNTIME_MODE_CONST_FOLD)) {
+        return status;
+    }
 
     if (output_blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);

@@ -49,7 +49,7 @@ Status OpenCLBatchNormLayerAcc::Init(Context *context, LayerParam *param, LayerR
     op_name_        = "BatchNorm";
 
     auto input_dims = inputs[0]->GetBlobDesc().dims;
-    int channels    = input_dims[1];
+    int channels    = DimsFunctionUtils::GetDim(input_dims, 1);
 
     BatchNormLayerResource *batchnorm_resource = dynamic_cast<BatchNormLayerResource *>(resource);
     if (batchnorm_resource == nullptr) {
@@ -87,6 +87,9 @@ OpenCLBatchNormLayerAcc::~OpenCLBatchNormLayerAcc() {}
 Status OpenCLBatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("BatchNorm Layer Reshape\n");
     ASSERT(inputs.size() == 1);
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     uint32_t idx = SetExecuteUnit3DSizeInfoDefault(execute_units_[0], output_dims);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
@@ -98,5 +101,7 @@ Status OpenCLBatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 
 REGISTER_OPENCL_ACC(BatchNorm, LAYER_BATCH_NORM)
 REGISTER_OPENCL_ACC(BatchNorm, LAYER_SCALE)
+REGISTER_OPENCL_LAYOUT(LAYER_BATCH_NORM, DATA_FORMAT_NHC4W4);
+REGISTER_OPENCL_LAYOUT(LAYER_SCALE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

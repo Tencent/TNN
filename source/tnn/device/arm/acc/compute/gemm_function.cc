@@ -296,11 +296,11 @@ template void sgemm_repack_rhs(bfp16_t *dst, bfp16_t *src, float *weight, int ic
                                int dst_z_step, int a_block, int b_block, bfp16_t *work_space, float *bias, int act_type,
                                bool fast_post);
 
-template <int mr, int nr>
-void NaiveKernel(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc) {
-    const float *a = sa;
-    const float *b = sb;
-    float *c       = sc;
+template <int mr, int nr, typename T>
+void NaiveKernel(int m, int n, int k, const T *sa, const T *sb, T *sc, int ldc) {
+    const T *a = sa;
+    const T *b = sb;
+    T *c       = sc;
     for (int i = 0; i < m - mr + 1; i += mr) {
         for (int j = 0; j < n - nr + 1; j += nr) {
             for (int p = 0; p < k; ++p) {
@@ -335,8 +335,14 @@ void NaiveKernel(int m, int n, int k, const float *sa, const float *sb, float *s
     }
 }
 
+#if TNN_ARM82
+template void NaiveKernel<8, 16, fp16_t>(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t *sc, int ldc);
+template void NaiveKernel<4, 16, fp16_t>(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t *sc, int ldc);
+template void NaiveKernel<1, 16, fp16_t>(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t *sc, int ldc);
+#endif  // TNN_ARM82
+
 void Kernel_12x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc) {
-#if defined(__aarch64__) && defined(TNN_USE_NEON)
+#if defined(TNN_USE_NEON) && defined(__aarch64__)
     for (int i = 0; i < m - 11; i += 12) {
         const float *ar = sa + i * k;
         const float *br = sb;
@@ -532,16 +538,17 @@ void Kernel_12x8(int m, int n, int k, const float *sa, const float *sb, float *s
 }
 
 void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc) {
-#if defined(__aarch64__) && defined(TNN_USE_NEON)
+#ifdef TNN_USE_NEON
     for (int i = 0; i < m - 3; i += 4) {
         const float *ar = sa + i * k;
         const float *br = sb;
         float *cr       = sc + i * ldc;
         OMP_PARALLEL_FOR_
         for (int j = 0; j < n - 7; j += 8) {
-            const float *a     = ar;
-            const float *b     = br + j * k;
-            float *c           = cr + j;
+            const float *a = ar;
+            const float *b = br + j * k;
+            float *c       = cr + j;
+#ifdef __aarch64__
             int64_t ldc_offset = ldc * sizeof(float) - 16;
             int64_t k_64       = k;
             asm volatile(
@@ -598,6 +605,64 @@ void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k_64)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k_64)
                 : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v8", "v9", "v10", "v11", "v20", "v21", "v22", "v23");
+#else
+            int ldc_offset = ldc * sizeof(float) - 16;
+            asm volatile(
+                ".macro INIT4x8                     \n"
+                "   mov r9,        %2               \n"
+                "   vld1.f32 {d16,d17},  [r9]!      \n"
+                "   vld1.f32 {d18,d19},  [r9]       \n"
+                "   add      r9,   r9, %3           \n"
+                "   vld1.f32 {d20,d21}, [r9]!       \n"
+                "   vld1.f32 {d22,d23}, [r9]        \n"
+                "   add      r9,   r9, %3           \n"
+                "   vld1.f32 {d24,d25}, [r9]!       \n"
+                "   vld1.f32 {d26,d27}, [r9]        \n"
+                "   add      r9,   r9, %3           \n"
+                "   vld1.f32 {d28,d29}, [r9]!       \n"
+                "   vld1.f32 {d30,d31}, [r9]        \n"
+                ".endm                              \n"
+                "                                   \n"
+                ".macro SAVE4x8                     \n"
+                "   mov r9,        %2               \n"
+                "   vst1.f32 {d16,d17},  [r9]!      \n"
+                "   vst1.f32 {d18,d19},  [r9]       \n"
+                "   add      r9,   r9, %3           \n"
+                "   vst1.f32 {d20,d21}, [r9]!       \n"
+                "   vst1.f32 {d22,d23}, [r9]        \n"
+                "   add      r9,   r9, %3           \n"
+                "   vst1.f32 {d24,d25}, [r9]!       \n"
+                "   vst1.f32 {d26,d27}, [r9]        \n"
+                "   add      r9,   r9, %3           \n"
+                "   vst1.f32 {d28,d29}, [r9]!       \n"
+                "   vst1.f32 {d30,d31}, [r9]        \n"
+                ".endm                              \n"
+                "                                   \n"
+                "   vld1.f32 {d0,d1},  [%0]!        \n"
+                "   vld1.f32 {d4,d5},  [%1]!        \n"
+                "INIT4x8                            \n"
+                "mov r8,%4                          \n"
+                "run4x8:                            \n"
+                "   vmla.f32 q8,  q0, d4[0]         \n"
+                "   vld1.f32 {d2,d3},  [%0]!        \n"
+                "   vmla.f32 q10, q0, d4[1]         \n"
+                "   vmla.f32 q12, q0, d5[0]         \n"
+                "   vmla.f32 q14, q0, d5[1]         \n"
+                "   subs r8, r8, #1                 \n"
+
+                "   vmla.f32 q9,  q1, d4[0]         \n"
+                "   vmla.f32 q11, q1, d4[1]         \n"
+                "   vmla.f32 q13, q1, d5[0]         \n"
+                "   vld1.f32 {d0,d1},  [%0]!        \n"
+                "   vmla.f32 q15, q1, d5[1]         \n"
+                "   vld1.f32 {d4,d5},  [%1]!        \n"
+                "   bne run4x8                      \n"
+                "SAVE4x8                            \n"
+                "                                   \n"
+                : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k)
+                : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k)
+                : "memory", "cc", "r8", "r9", "q0", "q1", "q2", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15");
+#endif  // __aarch64__
         }
         int remain = n % 8;
         if (remain) {
@@ -636,20 +701,21 @@ void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc
     }
 #else
     return NaiveKernel<4, 8>(m, n, k, sa, sb, sc, ldc);
-#endif
+#endif  // TNN_USE_NEON
 }
 
 void Kernel_1x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc) {
-#if defined(__aarch64__) && defined(TNN_USE_NEON)
+#ifdef TNN_USE_NEON
     for (int i = 0; i < m; ++i) {
         const float *ar = sa + i * k;
         const float *br = sb;
         float *cr       = sc + i * ldc;
         OMP_PARALLEL_FOR_
         for (int j = 0; j < n - 7; j += 8) {
-            const float *a     = ar;
-            const float *b     = br + j * k;
-            float *c           = cr + j;
+            const float *a = ar;
+            const float *b = br + j * k;
+            float *c       = cr + j;
+#ifdef __aarch64__
             int64_t ldc_offset = ldc * sizeof(float) - 16;
             int64_t k_64       = k;
             asm volatile(
@@ -657,33 +723,124 @@ void Kernel_1x8(int m, int n, int k, const float *sa, const float *sb, float *sc
                 "   mov x9,        %2               \n"
                 "   ld1 {v8.4s},  [x9], #16         \n"
                 "   ld1 {v20.4s}, [x9], %3          \n"
+                "   movi v9.4s,    #0               \n"
+                "   movi v21.4s,   #0               \n"
                 ".endm                              \n"
                 "                                   \n"
                 ".macro SAVE1x8                     \n"
                 "   mov x9,        %2               \n"
+                "   fadd v8.4s,  v8.4s,  v9.4s      \n"
+                "   fadd v20.4s, v20.4s, v21.4s     \n"
                 "   st1 {v8.4s},  [x9], #16         \n"
                 "   st1 {v20.4s}, [x9], %3          \n"
                 ".endm                              \n"
                 "                                   \n"
                 "   ld1 {v0.4s}, [%0], #16          \n"
-                "   ld1 {v2.4s}, [%1]               \n"
-                "   add %1, %1, #4                  \n"
+                "   ld1 {v2.4s}, [%1], #16          \n"
                 "INIT1x8                            \n"
                 "mov x8,%4                          \n"
-                "run1x8:                            \n"
-                "   fmla v8.4s , v0.4s, v2.s[0]     \n"
+                "run1x8x4:                          \n"
+                "   subs x9, x8, #4                 \n"
+                "   blt 1f                          \n"
                 "   ld1 {v1.4s}, [%0], #16          \n"
+                "   fmla v8.4s , v0.4s, v2.s[0]     \n"
+                "   ld1 {v3.4s}, [%0], #16          \n"
                 "   fmla v20.4s, v1.4s, v2.s[0]     \n"
+                "   ld1 {v4.4s}, [%0], #16          \n"
+                "   fmla v9.4s , v3.4s, v2.s[1]     \n"
                 "   ld1 {v0.4s}, [%0], #16          \n"
+                "   fmla v21.4s, v4.4s, v2.s[1]     \n"
+                "   subs x8, x8, #4                 \n"
+
+                "   ld1 {v1.4s}, [%0], #16          \n"
+                "   fmla v8.4s , v0.4s, v2.s[2]     \n"
+                "   ld1 {v3.4s}, [%0], #16          \n"
+                "   fmla v20.4s, v1.4s, v2.s[2]     \n"
+                "   ld1 {v4.4s}, [%0], #16          \n"
+                "   fmla v9.4s , v3.4s, v2.s[3]     \n"
+                "   ld1 {v0.4s}, [%0], #16          \n"
+                "   fmla v21.4s, v4.4s, v2.s[3]     \n"
+                "   ld1 {v2.4s}, [%1], #16          \n"
+                "   bgt run1x8x4                    \n"
+                "1:                                 \n"
                 "   subs x8, x8, #1                 \n"
-                "   ld1 {v2.4s}, [%1]               \n"
-                "   add %1, %1, #4                  \n"
-                "   bne run1x8                      \n"
-                "SAVE1x8                            \n"
+                "   ld1 {v1.4s}, [%0], #16          \n"
+                "   blt 2f                          \n"
+                "   fmla v8.4s , v0.4s, v2.s[0]     \n"
+                "   fmla v20.4s, v1.4s, v2.s[0]     \n"
+                "   sub %1, %1, #12                 \n"
+                "   ld1 {v0.4s}, [%0], #16          \n"
+                "   ld1 {v2.4s}, [%1], #16          \n"
+                "   bne 1b                          \n"
+                "2:                                 \n"
+                "   SAVE1x8                         \n"
                 "                                   \n"
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k_64)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k_64)
-                : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v8", "v20");
+                : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v3", "v4", "v8", "v9", "v20", "v21");
+#else
+            int ldc_offset = ldc * sizeof(float) - 16;
+            asm volatile(
+                ".macro INIT1x8                     \n"
+                "   mov r9,        %2               \n"
+                "   vld1.f32 {d16,d17}, [r9]!       \n"
+                "   vld1.f32 {d20,d21}, [r9]        \n"
+                "   vmov.u32 q9,   #0               \n"
+                "   vmov.u32 q11,  #0               \n"
+                ".endm                              \n"
+                "                                   \n"
+                ".macro SAVE1x8                     \n"
+                "   mov r9,       %2                \n"
+                "   vadd.f32 q8,  q8,  q9           \n"
+                "   vadd.f32 q10, q10, q11          \n"
+                "   vst1.f32 {d16,d17}, [r9]!       \n"
+                "   vst1.f32 {d20,d21}, [r9]        \n"
+                ".endm                              \n"
+                "                                   \n"
+                "   vld1.f32 {d0,d1}, [%0]!         \n"
+                "   vld1.f32 {d4,d5}, [%1]!         \n"
+                "INIT1x8                            \n"
+                "mov r8,%4                          \n"
+                "run1x8x4:                          \n"
+                "   subs r9, r8,  #4                \n"
+                "   blt 1f                          \n"
+                "   vld1.f32 {d2,d3},  [%0]!        \n"
+                "   vmla.f32 q8,  q0, d4[0]         \n"
+                "   vld1.f32 {d6,d7},  [%0]!        \n"
+                "   vmla.f32 q10, q1, d4[0]         \n"
+                "   vld1.f32 {d8,d9},  [%0]!        \n"
+                "   vmla.f32 q9,  q3, d4[1]         \n"
+                "   vld1.f32 {d0,d1},  [%0]!        \n"
+                "   vmla.f32 q11, q4, d4[1]         \n"
+                "   subs r8, r8,  #4                \n"
+
+                "   vld1.f32 {d2,d3},  [%0]!        \n"
+                "   vmla.f32 q8,  q0, d5[0]         \n"
+                "   vld1.f32 {d6,d7},  [%0]!        \n"
+                "   vmla.f32 q10, q1, d5[0]         \n"
+                "   vld1.f32 {d8,d9},  [%0]!        \n"
+                "   vmla.f32 q9,  q3, d5[1]         \n"
+                "   vld1.f32 {d0,d1},  [%0]!        \n"
+                "   vmla.f32 q11, q4, d5[1]         \n"
+                "   vld1.f32 {d4,d5},  [%1]!        \n"
+                "   bgt run1x8x4                    \n"
+                "1:                                 \n"
+                "   subs r8, r8,  #1                \n"
+                "   vld1.f32 {d2,d3},  [%0]!        \n"
+                "   blt 2f                          \n"
+                "   vmla.f32 q8,  q0, d4[0]         \n"
+                "   vmla.f32 q10, q1, d4[0]         \n"
+                "   sub %1, %1,   #12               \n"
+                "   vld1.f32 {d0,d1},  [%0]!        \n"
+                "   vld1.f32 {d4,d5},  [%1]!        \n"
+                "   bne 1b                          \n"
+                "2:                                 \n"
+                "   SAVE1x8                         \n"
+                "                                   \n"
+                : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k)
+                : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k)
+                : "memory", "cc", "r8", "r9", "q0", "q1", "q2", "q3", "q4", "q8", "q9", "q10", "q11");
+#endif  // __aarch64__
         }
         int remain = n % 8;
         if (remain) {
@@ -707,13 +864,13 @@ void Kernel_1x8(int m, int n, int k, const float *sa, const float *sb, float *sc
     }
 #else
     return NaiveKernel<1, 8>(m, n, k, sa, sb, sc, ldc);
-#endif
+#endif  // TNN_USE_NEON
 }
 
-template <int nr>
-void NaivePackB(int k, int n, const float *from, int ldb, float *to) {
-    const float *src = from;
-    float *dst;
+template <int nr, typename T>
+void NaivePackB(int k, int n, const T *from, int ldb, T *to) {
+    const T *src = from;
+    T *dst;
 
     for (int j = 0; j < k; ++j) {
         dst = to + j * nr;
@@ -737,10 +894,12 @@ void NaivePackB(int k, int n, const float *from, int ldb, float *to) {
     }
 }
 
+#if TNN_ARM82
+template void NaivePackB<16, fp16_t>(int k, int n, const fp16_t *from, int ldb, fp16_t *to);
+#endif  // TNN_ARM82
+
 void PackB_8(int k, int n, const float *from, int ldb, float *to) {
-#ifndef TNN_USE_NEON
-    return NaivePackB<8>(k, n, from, ldb, to);
-#else
+#ifdef TNN_USE_NEON
     int j = 0;
 
     const float *src[4];
@@ -815,6 +974,8 @@ void PackB_8(int k, int n, const float *from, int ldb, float *to) {
             }
         }
     }
+#else
+    return NaivePackB<8>(k, n, from, ldb, to);
 #endif
 }
 

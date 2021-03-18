@@ -45,9 +45,9 @@ public:
 
     virtual std::shared_ptr<const ImplementedPrecision> GetImplementedPrecision(LayerType type);
 
-    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type);
-
     virtual NetworkType ConvertAutoNetworkType();
+
+    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type);
 
     static Status RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator);
 

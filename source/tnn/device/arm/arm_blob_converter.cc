@@ -99,25 +99,14 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
 
     auto cvt_data_type  = desc.data_type;
     auto cvt_handle_ptr = handle_ptr;
-#ifdef TNN_ARM82_A32
-    RawBuffer tmp_float_blob;
-    if (desc.data_type == DATA_TYPE_HALF) {
-        // In aarch32 or armv7, first reformat half blob to float blob.
-        tmp_float_blob = RawBuffer(dims[0] * c_r4 * hw * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT));
-        HalfC8ToFloatC4(tmp_float_blob.force_to<float *>(), reinterpret_cast<fp16_t *>(handle_ptr),
-                        dims[0], dims[1], DimsVectorUtils::Count(dims, 2));
-        // In aarch32 or armv7, then convert from float blob.
-        cvt_data_type  = DATA_TYPE_FLOAT;
-        cvt_handle_ptr = tmp_float_blob.force_to<char *>();
-    }
-#endif
 
+    // pack if data format is nchw
     RawBuffer tmp_packed_blob;
     if (desc.data_format == DATA_FORMAT_NCHW) {
         if (desc.data_type == DATA_TYPE_FLOAT) {
             tmp_packed_blob = RawBuffer(dims[0] * c_r4 * hw * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT));
             auto dst_ptr    = tmp_packed_blob.force_to<float *>();
-            auto src_ptr    = reinterpret_cast<float *>(handle_ptr);
+            auto src_ptr    = reinterpret_cast<float *>(cvt_handle_ptr);
             for (int n = 0; n < dims[0]; ++n) {
                 auto dst_ptr_n = dst_ptr + n * c_r4 * hw;
                 auto src_ptr_n = src_ptr + n * dims[1] * hw;
@@ -128,7 +117,7 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
         else if (desc.data_type == DATA_TYPE_HALF) {
             tmp_packed_blob = RawBuffer(dims[0] * ROUND_UP(c_r4, 8) * hw * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
             auto dst_ptr    = tmp_packed_blob.force_to<fp16_t *>();
-            auto src_ptr    = reinterpret_cast<fp16_t *>(handle_ptr);
+            auto src_ptr    = reinterpret_cast<fp16_t *>(cvt_handle_ptr);
             for (int n = 0; n < dims[0]; ++n) {
                 auto dst_ptr_n = dst_ptr + n * ROUND_UP(c_r4, 8) * hw;
                 auto src_ptr_n = src_ptr + n * dims[1] * hw;
@@ -142,6 +131,19 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
         }
         cvt_handle_ptr = tmp_packed_blob.force_to<char *>();
     }
+
+#ifdef TNN_ARM82_A32
+    RawBuffer tmp_float_blob;
+    if (desc.data_type == DATA_TYPE_HALF) {
+        // In aarch32 or armv7, first reformat half blob to float blob.
+        tmp_float_blob = RawBuffer(dims[0] * c_r4 * hw * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT));
+        HalfC8ToFloatC4(tmp_float_blob.force_to<float *>(), reinterpret_cast<fp16_t *>(cvt_handle_ptr),
+                        dims[0], dims[1], DimsVectorUtils::Count(dims, 2));
+        // In aarch32 or armv7, then convert from float blob.
+        cvt_data_type  = DATA_TYPE_FLOAT;
+        cvt_handle_ptr = tmp_float_blob.force_to<char *>();
+    }
+#endif
 
     ret = GetBlobConvertFunc(image.GetMatType(), cvt_data_type, CVT_DIR_BLOB2MAT, cvt_func_);
     if (ret == TNN_OK) {
@@ -183,17 +185,24 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
 
     auto cvt_data_type  = desc.data_type;
     auto cvt_handle_ptr = handle_ptr;
-/*
-#ifdef TNN_ARM82_A32
-    RawBuffer tmp_float_blob;
-    if (desc.data_type == DATA_TYPE_HALF) {
-        // In aarch32 or armv7, first convert to float blob.
-        cvt_data_type  = DATA_TYPE_FLOAT;
-        tmp_float_blob = RawBuffer(dims[0] * c_r4 * hw * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT));
-        cvt_handle_ptr = tmp_float_blob.force_to<char *>();
-    }
+
+    // frist convert to packed buffer if data format is nchw
+    RawBuffer tmp_packed_blob;
+    if (desc.data_format == DATA_FORMAT_NCHW) {
+        if (desc.data_type == DATA_TYPE_FLOAT) {
+            tmp_packed_blob = RawBuffer(dims[0] * c_r4 * hw * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT));
+        }
+#if TNN_ARM82
+        else if (desc.data_type == DATA_TYPE_HALF) {
+            tmp_packed_blob = RawBuffer(dims[0] * ROUND_UP(c_r4, 8) * hw * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
+        }
 #endif
-*/
+        else {
+            LOGE("ArmBlobConverterAcc::ConvertFromMatAsync, not support data type for nchw blob, %d\n", desc.data_type);
+            return Status(TNNERR_PARAM_ERR, "ArmBlobConverterAcc::ConvertFromMatAsync not support data type for nchw blob");
+        }
+        cvt_handle_ptr = tmp_packed_blob.force_to<char *>();
+    }
 
     ret = GetBlobConvertFunc(image.GetMatType(), cvt_data_type, CVT_DIR_MAT2BLOB, cvt_func_);
     if (ret == TNN_OK) {
@@ -202,15 +211,29 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
         return ret;
     }
 
-/*
-#ifdef TNN_ARM82_A32
-    if (desc.data_type == DATA_TYPE_HALF) {
-        // In aarch32 or armv7, then reformat float blob to half blob.
-        FloatC4ToHalfC8(reinterpret_cast<fp16_t *>(handle_ptr), reinterpret_cast<float *>(cvt_handle_ptr),
-                        dims[0], dims[1], DimsVectorUtils::Count(dims, 2));
-    }
+    // then unpack if data format is nchw
+    if (desc.data_format == DATA_FORMAT_NCHW) {
+        if (desc.data_type == DATA_TYPE_FLOAT) {
+            auto dst_ptr    = reinterpret_cast<float *>(handle_ptr);
+            auto src_ptr    = reinterpret_cast<float *>(cvt_handle_ptr);
+            for (int n = 0; n < dims[0]; ++n) {
+                auto dst_ptr_n = dst_ptr + n * dims[1] * hw;
+                auto src_ptr_n = src_ptr + n * c_r4 * hw;
+                UnpackC4(dst_ptr_n, src_ptr_n, hw, dims[1]);
+            }
+        }
+#if TNN_ARM82
+        else if (desc.data_type == DATA_TYPE_HALF) {
+            auto dst_ptr    = reinterpret_cast<fp16_t *>(handle_ptr);
+            auto src_ptr    = reinterpret_cast<fp16_t *>(cvt_handle_ptr);
+            for (int n = 0; n < dims[0]; ++n) {
+                auto dst_ptr_n = dst_ptr + n * dims[1] * hw;
+                auto src_ptr_n = src_ptr + n * ROUND_UP(c_r4, 8) * hw;
+                UnpackC8(dst_ptr_n, src_ptr_n, hw, dims[1]);
+            }
+        }
 #endif
-*/
+    }
 
     return ret;
 }

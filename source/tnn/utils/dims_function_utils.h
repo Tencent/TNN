@@ -81,6 +81,10 @@ public:
     static DimsVector Tile(const DimsVector input_dims, const DimsVector reps);
 
     static DimsVector ModIndex(DimsVector index, const DimsVector shape);
+
+    // @brief Get dim in dims vector, if index is larger than dims size, return 1
+    static int GetDim(const DimsVector dims, const int index); 
+
 };
 
 }  // namespace TNN_NS

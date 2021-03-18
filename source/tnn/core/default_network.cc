@@ -153,7 +153,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             auto blob = blob_manager_->GetBlob(name);
             if (const_blobs.find(name) != const_blobs.end()) {
                 if (runtime_model_ == RUNTIME_MODE_NORMAL) {
-                    blob->flag = DATA_FLAG_CHANGE_NEVER;
+                    blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
                 }
                 blob->GetBlobDesc().data_type = const_blobs[name]->GetDataType();
             }
@@ -189,23 +189,38 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             dynamic_cast<ReformatLayerParam *>(layer_info->param.get())->dst_format : input_fmt;
 
 #ifdef GENERATE_RESOURCE
-        if (runtime_model_ == RUNTIME_MODE_NORMAL) {
-            LayerType type         = layer_info->type;
-            std::string layer_name = layer_info->name;
-
-            std::vector<Blob *> inputs;
-            for (auto name : input_names) {
-                inputs.push_back(blob_manager_->GetBlob(name));
-            }
-
-            // generate resource if null
-            if (net_resource->resource_map.count(layer_name) == 0) {
-                LayerParam *layer_param  = layer_info->param.get();
-                LayerResource *layer_res = nullptr;
-                GenerateRandomResource(type, layer_param, &layer_res, inputs, &net_resource->constant_map);
-                net_resource->resource_map[layer_name] = std::shared_ptr<LayerResource>(layer_res);
-            }
+        LayerType type       = layer_info->type;
+        BaseLayer *cur_layer = CreateLayer(type);
+        if (cur_layer == NULL) {
+            LOGE("Error: CreateLayer failed, type:%d\n", type);
+            return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
         }
+        std::string layer_name = layer_info->name;
+        cur_layer->SetLayerName(layer_name);
+        cur_layer->SetConstantResource(&net_resource->constant_map);
+
+        std::vector<Blob *> inputs;
+        std::vector<Blob *> outputs_for_shape;
+        for (auto name : input_names) {
+            inputs.push_back(blob_manager_->GetBlob(name));
+        }
+
+        for (auto name : output_names) {
+            outputs_for_shape.push_back(blob_manager_->GetBlob(name));
+        }
+
+        // generate resource if null
+        if (net_resource->resource_map.count(layer_name) == 0) {
+            LayerParam *layer_param  = layer_info->param.get();
+            LayerResource *layer_res = nullptr;
+            GenerateRandomResource(type, layer_param, &layer_res, inputs, &net_resource->constant_map);
+            net_resource->resource_map[layer_name] = std::shared_ptr<LayerResource>(layer_res);
+        }
+
+        cur_layer->InferShapeAhead(inputs, outputs_for_shape, layer_info->param.get(),
+                                   net_resource->resource_map[layer_name].get());
+
+        delete cur_layer;
 #endif
 
         for (auto name : output_names) {
@@ -236,6 +251,11 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
+            if (blob == nullptr) {
+                delete cur_layer;
+                LOGE("Input of layer(%s) are invalid", layer_name.c_str());
+                return Status(TNNERR_PARAM_ERR, "Input of layer are invalid");
+           }
             // update layout reformat layer's param and blob datatype
             if (IsLayoutReformatLayer(layer_info)) {
                 // only need to update model's input blob datatype
@@ -258,6 +278,11 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
+            if (blob == nullptr) {
+                delete cur_layer;
+                LOGE("Output of layer(%s) are invalid", layer_name.c_str());
+                return Status(TNNERR_PARAM_ERR, "Output of layer are invalid");
+            }
             outputs.push_back(blob);
         }
 
@@ -292,24 +317,14 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
 
     std::string blob_scale_name = name + "_scale_data_";
 #ifdef GENERATE_RESOURCE
-    if (runtime_model_ == RUNTIME_MODE_NORMAL) {
-        if (new_blob->GetBlobDesc().dims.size() == 0) {
-            auto blob_desc = new_blob->GetBlobDesc();
-            blob_desc.dims = net_resource->blob_shapes_map[name];
-            new_blob->SetBlobDesc(blob_desc);
-        }
-
-        if (net_resource->resource_map.count(blob_scale_name) == 0) {
-            LayerResource *layer_res  = nullptr;
-            std::vector<Blob *> blobs = {new_blob};
-
-            GenerateRandomResource(LAYER_BLOB_SCALE, nullptr, &layer_res, blobs);
-            net_resource->resource_map[blob_scale_name] = std::shared_ptr<LayerResource>(layer_res);
-        }
+    if (net_resource->resource_map.count(blob_scale_name) == 0) {
+        LayerResource *layer_res  = nullptr;
+        std::vector<Blob *> blobs = {*blob};
+        GenerateRandomResource(LAYER_BLOB_SCALE, nullptr, &layer_res, blobs);
+        net_resource->resource_map[blob_scale_name] = std::shared_ptr<LayerResource>(layer_res);
     }
 #endif
     if (net_resource->resource_map.find(blob_scale_name) == net_resource->resource_map.end()) {
-        delete new_blob;
         LOGE("Error Init layer, can not get output blob scale %s \n", blob_scale_name.c_str());
         return TNNERR_NULL_PARAM;
     }
@@ -323,9 +338,6 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
 
 Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info, bool is_input, bool is_quantized_net,
                                            const std::string &name, NetResource *net_resource, Blob **blob) {
-    if (runtime_model_ != RUNTIME_MODE_NORMAL) {
-        return TNN_OK;
-    }
     if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE) {
         return TNN_OK;
     }

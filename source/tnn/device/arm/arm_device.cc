@@ -126,16 +126,16 @@ std::shared_ptr<const ImplementedPrecision> ArmDevice::GetImplementedPrecision(L
     return std::make_shared<ImplementedPrecision>();
 }
 
+NetworkType ArmDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT; 
+}
+
 std::shared_ptr<const ImplementedLayout> ArmDevice::GetImplementedLayout(LayerType type) {
     auto &layer_layout_map = GetLayerLayoutMap();
     if (layer_layout_map.count(type) > 0) {
         return layer_layout_map[type];
     }
     return std::make_shared<ImplementedLayout>();
-}
-
-NetworkType ArmDevice::ConvertAutoNetworkType() {
-    return NETWORK_TYPE_DEFAULT; 
 }
 
 Context *ArmDevice::CreateContext(int device_id) {

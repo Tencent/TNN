@@ -211,6 +211,8 @@ enum LayerType {
     LAYER_EINSUM                                            = 321,
     LAYER_INVERSE                                           = 322,
     LAYER_GRIDSAMPLE                                        = 323,
+    LAYER_EQUAL                                             = 324,
+    LAYER_WHERE                                             = 325,
 
     LAYER_BLOB_SCALE                                        = 600,
 

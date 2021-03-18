@@ -34,7 +34,7 @@ public:
                                     std::vector<Blob*>& inputs) { return TNN_OK;}
     virtual Status GenLayerConstantResource(LayerParam* param, LayerResource** resource,
                                             std::vector<Blob*>& inputs, ConstantResource* consts) {return TNN_OK;}
-    virtual Status ConvertHalfLayerResource(LayerResource* src_res, LayerResource** dst_res)                 = 0;
+    virtual Status ConvertHalfLayerResource(LayerResource* src_res, LayerResource** dst_res) {return TNN_OK;};
 };
 
 std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerResourceGeneratorMap();
@@ -68,5 +68,6 @@ public:
 #define REGISTER_LAYER_CONSTANT_RESOURCE(type_string, layer_type)                                                               \
 TypeLayerConstantResourceRegister<type_string##LayerResourceGenerator> g_##layer_type##_constant_resource_register(layer_type);
 
-}
-#endif
+}  // TNN_NS
+
+#endif // TNN_SOURCE_TNN_INTERPRETER_LAYER_RESOURCE_GENERATOR_H_

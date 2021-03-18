@@ -39,5 +39,6 @@ std::set<std::string> OpenCLAsinLayerAcc::CreateBuildOptions() {
 OpenCLAsinLayerAcc::~OpenCLAsinLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Asin, LAYER_ASIN)
+REGISTER_OPENCL_LAYOUT(LAYER_ASIN, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

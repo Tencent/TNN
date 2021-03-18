@@ -105,7 +105,8 @@ Status Blob2RawBuffer(Blob *blob, std::shared_ptr<RawBuffer> &buffer) {
 
 Status RawBuffer2Blob(RawBuffer *buffer, std::shared_ptr<Blob> &blob) {
     if (!buffer) {
-        return Status(TNNERR_PARAM_ERR, "buffer is null");
+        LOGE("RawBuffer2Blob:: buffer is null \n");
+        return Status(TNNERR_PARAM_ERR, "RawBuffer2Blob:: buffer is null");
     }
     
     const int count = blob ? DimsVectorUtils::Count(blob->GetBlobDesc().dims) : 0;
@@ -125,7 +126,7 @@ Status RawBuffer2Blob(RawBuffer *buffer, std::shared_ptr<Blob> &blob) {
         }
     }
     
-    if (buffer->GetBytesSize() > 0) {
+    if (blob->GetHandle().base && buffer->GetBytesSize() > 0) {
         memcpy(blob->GetHandle().base, buffer->force_to<void *>(), buffer->GetBytesSize());
     }
     

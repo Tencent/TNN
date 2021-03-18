@@ -43,9 +43,12 @@ Status StrideSliceV2Layer::InferOutputShape(bool ignore_error) {
     auto axes = layer_param->axes;
     auto strides = layer_param->strides;
 
-    //前闭后开区间
+    //[begin end)
     auto output_dims = DimsFunctionUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
-    RETURN_ON_NEQ(status, TNN_OK);
+    //support empty blob for yolov5 Slice_507, only in device cpu
+    if (status != TNN_OK && !(output_dims.size() == input_dims.size() &&  runtime_model_ == RUNTIME_MODE_CONST_FOLD)) {
+        return status;
+    }
   
     //dont rectify begins and ends here, input shape may change, do it in runtime forword see cpu_stride_slice_v2_layer_acc.cc Forword
 //    layer_param->begins = begins;

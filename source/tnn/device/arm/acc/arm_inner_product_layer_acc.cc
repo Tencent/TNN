@@ -15,6 +15,8 @@
 #include "tnn/device/arm/acc/arm_inner_product_layer_acc.h"
 
 #include "tnn/core/blob_int8.h"
+#include "tnn/device/arm/acc/compute/compute.h"
+#include "tnn/device/arm/acc/compute/gemm_function.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/data_format_converter.h"
@@ -100,6 +102,22 @@ Status ArmInnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
         const int oc          = fc_param->num_output;
         auto data_byte_size   = DataTypeUtils::GetBytesSize(weight_data_type);
         if (weight_data_type == DATA_TYPE_FLOAT) {
+            // pack weight for gemm
+            if (inputs[0]->GetBlobDesc().dims[0] >= 4) {
+                // weight [oc, ic] -> transpose -> [ic, oc]
+                RawBuffer tmp_transpose = RawBuffer(ic * oc * data_byte_size);
+                float *transpose_ptr    = tmp_transpose.force_to<float *>();
+                for (int i = 0; i < ic; ++i) {
+                    for (int o = 0; o < oc; ++o) {
+                        transpose_ptr[i * oc + o] = w_handle.force_to<float *>()[o * ic + i];
+                    }
+                }
+                // weight [ic, oc] -> [oc/8, ic, 8]
+                buffer_gemm_weight_ = RawBuffer(ic * ROUND_UP(oc, 8) * data_byte_size + NEON_KERNEL_EXTRA_LOAD);
+                PackB_8(ic, oc, transpose_ptr, oc, buffer_gemm_weight_.force_to<float *>());
+                support_gemm_ = 1;
+            }
+
             // transform weight dims from 4 to 2
             if (DimsVectorUtils::Count(dims_input, 2) > 1) {
                 RawBuffer reorder_buffer =
@@ -195,13 +213,25 @@ Status ArmInnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
 Status ArmInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                      const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
-    RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
-    RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
-
+    auto input_data_type = inputs[0]->GetBlobDesc().data_type;
+    if (input_data_type == DATA_TYPE_FLOAT || input_data_type == DATA_TYPE_BFP16 || input_data_type == DATA_TYPE_INT8) {
+        RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
+        RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
+    }
+#if TNN_ARM82
+    else if (input_data_type == DATA_TYPE_HALF) {
+        RETURN_ON_NEQ(allocateBufferWeightHalf(inputs, outputs), TNN_OK);
+        RETURN_ON_NEQ(allocateBufferBiasHalf(inputs, outputs), TNN_OK);
+    }
+#endif  // TNN_ARM82
+    else {
+        LOGE("ARM InnerProduct not support data type: %d\n", input_data_type);
+        return Status(TNNERR_LAYER_ERR, "ARM InnerProduct not support data type");
+    }
     return TNN_OK;
 }
 
-/* 
+/*
 general template function for float and bfp16
 in bfp16 mode, both data and weight data type are bfp16, is there any precision problem
 */
@@ -234,7 +264,63 @@ Status ArmInnerProductLayerAcc::Exec(const std::vector<Blob *> &inputs, const st
     return TNN_OK;
 }
 
-/* 
+Status ArmInnerProductLayerAcc::ExecGemmFloat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    InnerProductLayerParam *fc_param = reinterpret_cast<InnerProductLayerParam *>(param_);
+    CHECK_PARAM_NULL(fc_param);
+
+    DimsVector dims_input = inputs[0]->GetBlobDesc().dims;
+    int batch             = dims_input[0];
+    int channel           = dims_input[1];
+    int hw                = DimsVectorUtils::Count(dims_input, 2);
+    int ic                = dims_input[1] * DimsVectorUtils::Count(dims_input, 2);
+    const int oc          = fc_param->num_output;
+    auto data_byte_size   = DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
+
+    float *input_ptr  = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    float *output_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+
+    // input: nc4hw4 -> nchw if needed
+    RawBuffer input_reordered;
+    if (!FloatBlobCanIgnorePack(channel, hw)) {
+        input_reordered      = RawBuffer(batch * ic * data_byte_size);
+        float *reordered_ptr = input_reordered.force_to<float *>();
+        UnpackFloatBlob(reordered_ptr, input_ptr, batch, channel, hw);
+        input_ptr = reordered_ptr;
+    }
+
+    // output: nchw -> nc4hw4 if needed
+    float *tmp_output_ptr = output_ptr;
+    RawBuffer output_reordered;
+    if (!FloatBlobCanIgnorePack(oc, 1)) {
+        output_reordered = RawBuffer(batch * oc * data_byte_size);
+        tmp_output_ptr   = output_reordered.force_to<float *>();
+    } else {
+        memset(tmp_output_ptr, 0, batch * oc * data_byte_size);
+    }
+
+    // buffer for PackA in gemm
+    RawBuffer buffer_input = RawBuffer(batch * ic * data_byte_size + NEON_KERNEL_EXTRA_LOAD);
+    auto input_pack_ptr    = buffer_input.force_to<float *>();
+
+    GemmFloatPackA(batch, oc, ic, input_ptr, input_pack_ptr, ic, buffer_gemm_weight_.force_to<float *>(), oc,
+                   tmp_output_ptr, oc);
+
+    if (!FloatBlobCanIgnorePack(oc, 1)) {
+        PackFloatBlob(output_ptr, tmp_output_ptr, batch, oc, 1);
+    }
+
+    OMP_PARALLEL_FOR_
+    for (int n = 0; n < batch; n++) {
+        auto output_ptr_b = output_ptr + n * ROUND_UP(oc, 4);
+        if (fc_param->has_bias) {
+            PostAddBias<float>(output_ptr_b, buffer_bias_.force_to<float *>(), 1, ROUND_UP(oc, 4) / 4);
+        }
+    }
+
+    return TNN_OK;
+}
+
+/*
 template specification for int8
 in int8 mode, weight has been packed to oc8
 */
@@ -248,7 +334,7 @@ Status ArmInnerProductLayerAcc::Exec<int8_t>(const std::vector<Blob *> &inputs, 
 
     auto ic    = dims_input[1];
     auto ic_r4 = ROUND_UP(ic, 4);
-    auto hw    = dims_input[2] * dims_input[3];
+    auto hw    = DimsVectorUtils::Count(dims_input, 2);
     auto ik    = ic * hw;
     auto ik_r8 = ROUND_UP(ik, 8);
     auto oc_r4 = ROUND_UP(dims_output[1], 4);
@@ -285,16 +371,25 @@ Status ArmInnerProductLayerAcc::Exec<int8_t>(const std::vector<Blob *> &inputs, 
 
 Status ArmInnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        if (inputs[0]->GetBlobDesc().dims[0] >= 4 && support_gemm_) {
+            return ExecGemmFloat(inputs, outputs);
+        }
         return Exec<float>(inputs, outputs);
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
     } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         return Exec<int8_t>(inputs, outputs);
     }
+#if TNN_ARM82
+    else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        return ExecFp16(inputs, outputs);
+    }
+#endif  // TNN_ARM82
     return TNNERR_LAYER_ERR;
 }
 
 REGISTER_ARM_ACC(InnerProduct, LAYER_INNER_PRODUCT)
+REGISTER_ARM_PRECISION_FP16(LAYER_INNER_PRODUCT)
 REGISTER_ARM_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

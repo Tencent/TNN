@@ -32,17 +32,17 @@ static bool TestFilter(DeviceType device_type, DataType data_type) {
 
 class UnsqueezeLayerTest : public LayerTest,
                               public ::testing::WithParamInterface<std::tuple<int, int, int, int, std::vector<int>, DataType>> {};
-// seq_len, batch, input, output
-// direction: 0, 1, 2
+
 INSTANTIATE_TEST_SUITE_P(LayerTest, UnsqueezeLayerTest,
-                         ::testing::Combine(testing::Values(1, 7, 32),    // dim0
-                                            testing::Values(1, 11, 20), //dim1
-                                            testing::Values(1, 2, 8),    // dim2
-                                            testing::Values(1, 4, 32), //dim3
+                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                                            // dim count
+                                            testing::Values(2, 3, 4, 5, 6),
                                             testing::Values(std::vector<int>({0}), std::vector<int>({1}),
                                                             std::vector<int>({2}), std::vector<int>({3}),
                                                             std::vector<int>({0, 1}), std::vector<int>({0, 2}),
-                                                            std::vector<int>({1, -2}),std::vector<int>({0, -1})),  // axis
+                                                            std::vector<int>({1, -2}),std::vector<int>({0, -1}),
+                                                            std::vector<int>({0, 3}), std::vector<int>({1, 2}),
+                                                            std::vector<int>({0, 1, -2})),  // axis
                                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(UnsqueezeLayerTest, UnsqueezeLayer) {
@@ -50,7 +50,7 @@ TEST_P(UnsqueezeLayerTest, UnsqueezeLayer) {
     int dim0         = std::get<0>(GetParam());
     int dim1         = std::get<1>(GetParam());
     int dim2         = std::get<2>(GetParam());
-    int dim3         = std::get<3>(GetParam());
+    int dim_count    = std::get<3>(GetParam());
     auto axes        = std::get<4>(GetParam());
     DataType dtype   = std::get<5>(GetParam());
     DeviceType dev   = ConvertDeviceType(FLAGS_dt);
@@ -64,11 +64,16 @@ TEST_P(UnsqueezeLayerTest, UnsqueezeLayer) {
     param->axes = axes;
 
     // generate interpreter
-    std::vector<int> input_dims = {dim0, dim1, dim2, dim3};
+    std::vector<int> input_dims = {dim0, dim1};
+    while(input_dims.size() < dim_count) input_dims.push_back(dim2);
+
+    int input_dim_size = input_dims.size();
     for(int i=0; i<axes.size(); ++i) {
         int axis = axes[i];
-        axis = axis >= 0 ? axis : axis + input_dims.size()-axes.size()+i;
-        input_dims.erase(input_dims.begin() + axis);
+        axis = axis >= 0 ? axis : axis + input_dims.size()+i;
+        if (axis < 0 || axis > input_dims.size()) {
+            GTEST_SKIP();
+        }
     }
     auto interpreter            = GenerateInterpreter("Unsqueeze", {input_dims}, param);
 
