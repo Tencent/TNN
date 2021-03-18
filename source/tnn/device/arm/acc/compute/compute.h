@@ -120,6 +120,9 @@ void Float2Half(fp16_t* dst, const float* src, const size_t length);
 void GemmFloatPackA(int m, int n, int k, const float* a, float* pack_a, int lda, const float* b, int ldb, float* c,
                     int ldc);
 
+void GemmFloatPackAB(int m, int n, int k, const float* a, float* pack_a, int lda, const float* b, float* pack_b, int ldb, float* c,
+                    int ldc);
+
 #ifdef __cplusplus
 extern "C" {
 #endif
