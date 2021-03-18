@@ -23,6 +23,8 @@ using namespace std;
 @interface TNNOCRViewModel ()
 @property (nonatomic, strong) UILabel *label;
 @property (nonatomic, assign) std::array<std::shared_ptr<TNNSDKSample>, 3> ocrPredictors;
+@property (nonatomic, assign) std::vector<std::string> texts;
+@property (nonatomic, assign) int text_idx;
 @end
 
 @implementation TNNOCRViewModel
@@ -163,7 +165,7 @@ using namespace std;
         NSLog(@"Error: %s", status.description().c_str());
         return nullptr;
     }
-    
+
     return predictor;
 }
 
@@ -191,44 +193,39 @@ using namespace std;
     auto predictor = std::make_shared<OCRDriver>();
     status = predictor->Init({textbox_detector, angle_predictor, text_recognizer});
     RETURN_ON_NEQ(status, TNN_OK);
-    
+
     self.predictor = predictor;
 
     return status;
 }
 
 -(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)sdk_output {
-    std::vector<std::shared_ptr<ObjectInfo> > textbox_list;
-    if (sdk_output && dynamic_cast<OCRTextboxDetectorOutput *>(sdk_output.get())) {
-        auto textbox_output = dynamic_cast<OCRTextboxDetectorOutput *>(sdk_output.get());
-        for(const auto& box:textbox_output->text_boxes) {
+    std::vector<std::shared_ptr<ObjectInfo> > text_list;
+    if (sdk_output && dynamic_cast<OCROutput *>(sdk_output.get())) {
+        _texts.clear();
+        _text_idx = 0;
+        auto ocr_output = dynamic_cast<OCROutput *>(sdk_output.get());
+        for(int i=0; i<ocr_output->texts.size(); ++i) {
             auto textbox = std::make_shared<ObjectInfo>();
-            int min_x = box.box_points[0].x;
-            int min_y = box.box_points[0].y;
-            int max_x = min_x;
-            int max_y = min_y;
-            for(const auto&p : box.box_points) {
-                min_x = std::min(p.x, min_x);
-                min_x = std::min(p.y, min_y);
-                max_x = std::max(p.x, max_x);
-                max_y = std::max(p.y, max_y);
-            }
-            textbox->x1 = min_x;
-            textbox->y1 = min_y;
-            textbox->x2 = max_x;
-            textbox->y2 = max_y;
-            textbox->image_width = box.image_width;
-            textbox->image_height = box.image_height;
-            textbox_list.push_back(textbox);
+
+            textbox->x1 = ocr_output->box[i].at(0);
+            textbox->y1 = ocr_output->box[i].at(1);
+            textbox->x2 = ocr_output->box[i].at(2);
+            textbox->y2 = ocr_output->box[i].at(3);
+
+            textbox->image_width = ocr_output->image_width;
+            textbox->image_height = ocr_output->image_height;
+            text_list.push_back(textbox);
+            _texts.push_back(ocr_output->texts[i]);
         }
     }
 
-    return textbox_list;
+    return text_list;
 }
 
 -(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object {
-    if (object) {
-        return [NSString stringWithUTF8String:"textbox"];
+    if (object && _text_idx < _texts.size()) {
+        return [NSString stringWithUTF8String:_texts[_text_idx++].c_str()];
     }
     return nil;
 }

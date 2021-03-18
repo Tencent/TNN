@@ -26,6 +26,8 @@ namespace TNN_NS {
 
 struct TextBox {
     std::vector<cv::Point> box_points;
+    // box points coresponding to sdk input
+    std::vector<cv::Point> box_points_input;
     float score;
     int image_width;
     int image_height;

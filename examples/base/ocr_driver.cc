@@ -111,6 +111,10 @@ Status OCRDriver::Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks) {
     return TNNSDKComposeSample::Init(sdks);
 }
 
+void OCRDriver::SetBlobDumpDir(const char *dump_dir) {
+    //SetDumpDir(std::string(dump_dir));
+}
+
 Status OCRDriver::MatToTNNMat(const cv::Mat& mat, std::shared_ptr<Mat>& tnn_mat, bool try_share_data) {
     const auto device = tnn_mat->GetDeviceType();
     Status status = TNN_OK;
@@ -258,8 +262,30 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
     }
 
     {
+        auto ocr_output = std::make_shared<OCROutput>();
+        for(int i=0; i<texts.size(); ++i) {
+            const auto& o = texts[i];
+            const auto& box = text_boxes[i];
+            auto text_output = dynamic_cast<OCRTextRecognizerOutput *>(o.get());
+            const auto& text = text_output->text;
+            ocr_output->texts.push_back(text);
+
+            int min_x = box.box_points_input[0].x;
+            int min_y = box.box_points_input[0].y;
+            int max_x = min_x;
+            int max_y = min_y;
+            for(const auto&p : box.box_points_input) {
+                min_x = std::min(p.x, min_x);
+                min_y = std::min(p.y, min_y);
+                max_x = std::max(p.x, max_x);
+                max_y = std::max(p.y, max_y);
+            }
+            ocr_output->box.push_back({min_x, min_y, max_x, max_y});
+            ocr_output->image_height = sdk_input->GetMat()->GetHeight();
+            ocr_output->image_width = sdk_input->GetMat()->GetWidth();
+        }
         // fill output
-        sdk_output = textbox_det;
+        sdk_output = ocr_output;
     }
 
     return TNN_OK;
