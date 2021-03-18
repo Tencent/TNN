@@ -55,6 +55,10 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
+    if (dev == DEVICE_ARM && axis == 0) {
+        // arm do not support axis == 0 now
+        GTEST_SKIP();
+    }
 
     if (1 != axis && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
