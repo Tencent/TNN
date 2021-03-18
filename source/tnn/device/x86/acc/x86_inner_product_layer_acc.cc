@@ -114,12 +114,8 @@ Status X86InnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
 
 Status X86InnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param    = dynamic_cast<InnerProductLayerParam *>(param_);
-    auto resource = dynamic_cast<InnerProductLayerResource *>(resource_);
     if (!param) {
         return Status(TNNERR_MODEL_ERR, "Error: InnerProductLayerParam is nil");
-    }
-    if (!resource) {
-        return Status(TNNERR_MODEL_ERR, "Error: InnerProductLayerResource is nil");
     }
 
     Blob *input_blob  = inputs[0];
