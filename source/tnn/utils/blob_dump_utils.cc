@@ -98,7 +98,8 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
         fprintf(fp, "%d\n", int(ptr[n]));
     }
 #else
-    if (data_type == DATA_TYPE_FLOAT) {
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_BFP16
+        || data_type == DATA_TYPE_INT8) {
         auto ptr = (float *)data_ptr;
         for (int n = 0; n < count; ++n) {
             fprintf(fp, "%.9f\n", ptr[n]);

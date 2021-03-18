@@ -38,13 +38,13 @@ Status MetalReorgLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs
         metal_params.batch          = dims_input[0];
         metal_params.input_channel  = dims_input[1];
         metal_params.input_slice    = UP_DIV(dims_input[1], 4);
-        metal_params.input_height   = dims_input[2];
-        metal_params.input_width    = dims_input[3];
+        metal_params.input_height   = GetBlobDim(dims_input, 2);
+        metal_params.input_width    = GetBlobDim(dims_input, 3);
 
         metal_params.output_channel  = dims_output[1];
         metal_params.output_slice   = UP_DIV(dims_output[1], 4);
-        metal_params.output_height   = dims_output[2];
-        metal_params.output_width    = dims_output[3];
+        metal_params.output_height   = GetBlobDim(dims_output, 2);
+        metal_params.output_width    = GetBlobDim(dims_output, 3);
 
         metal_params.stride  = layer_param->stride;
         metal_params.mode    = layer_param->mode;
@@ -86,6 +86,7 @@ Status MetalReorgLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 }
 
 REGISTER_METAL_ACC(Reorg, LAYER_REORG);
+REGISTER_METAL_LAYOUT(LAYER_REORG, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS
 

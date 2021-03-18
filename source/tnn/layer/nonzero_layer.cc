@@ -27,7 +27,7 @@ Status NonZeroLayer::InferOutputDataType() {
             const_resource_ != nullptr && const_resource_->find(iter->GetBlobDesc().name) != const_resource_->end()) {
             allocate_status = 0;
         }
-        iter->flag = iter->flag | allocate_status;
+        iter->SetFlag(iter->GetFlag() | allocate_status);
         iter->GetBlobDesc().data_type = DATA_TYPE_INT32;
     }
     return TNN_OK;

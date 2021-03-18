@@ -30,7 +30,7 @@ Status ReshapeLayer::InferOutputDataType() {
     if (runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
         for (auto& iter : output_blobs_) {
             int allocate_status = DATA_FLAG_ALLOCATE_IN_FORWARD;
-            iter->flag = iter->flag | allocate_status;
+            iter->SetFlag(iter->GetFlag() | allocate_status);
         }
     }
     

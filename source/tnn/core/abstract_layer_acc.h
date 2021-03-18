@@ -30,6 +30,11 @@
 namespace TNN_NS {
 class BlobMemoryPool;
 
+enum BlobType {
+    BLOB_INPUT  = 0,
+    BLOB_OUTPUT = 1
+};
+
 // @brief AbstractLayerAcc define the layer acc interface
 class AbstractLayerAcc {
 public:
@@ -84,6 +89,9 @@ public:
     // @param outputs   output blobs
     // @return execution result
     virtual Status AfterForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+    // @brief decide Blob Data Format based on support data format list
+    virtual Status ResolveBlobDataFormat(Blob *blob, BlobType blob_type);
     
     // @brief set runtime bolob pool
     void SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_pool);
@@ -103,10 +111,7 @@ public:
 
 private:
     // @brief return device layer acc support data format
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size) = 0;
-
-    // @brief decide Blob Data Format based on support data format list
-    Status ResolveBlobDataFormat(Blob *blob);
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) = 0;
     
 protected:
     BlobMemoryPool *runtime_blob_pool_ = nullptr;

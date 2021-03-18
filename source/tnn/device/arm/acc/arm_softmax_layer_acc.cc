@@ -30,11 +30,14 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
     int data_byte_size = sizeof(float);
     SoftmaxPreparation();
 
-    RawBuffer reorder_buffer(dims[1] * dims[2] * dims[3] * data_byte_size);
+    RawBuffer reorder_buffer;
+    if (packed) {
+        reorder_buffer = RawBuffer(dims[1] * hw * data_byte_size);
+    }
     RawBuffer max_value_buffer(inside * data_byte_size);
     RawBuffer sum_value_buffer(inside * data_byte_size);
-    RawBuffer input_buffer(count * sizeof(float));
-    RawBuffer output_buffer(count * sizeof(float));
+    RawBuffer input_buffer;
+    RawBuffer output_buffer;
 
     float *input_orign  = nullptr;
     float *output_orign = nullptr;
@@ -43,6 +46,8 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
         output_orign = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
     } else if (in_data_type == DATA_TYPE_BFP16) {
         bfp16_t *in_ptr = reinterpret_cast<bfp16_t *>(GetBlobHandlePtr(input->GetHandle()));
+        input_buffer    = RawBuffer(count * sizeof(float));
+        output_buffer   = RawBuffer(count * sizeof(float));
         input_orign     = input_buffer.force_to<float *>();
         output_orign    = output_buffer.force_to<float *>();
         ConvertFromBFP16ToFloat(in_ptr, input_orign, count);
@@ -54,14 +59,19 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
     auto *sum_value_ptr = sum_value_buffer.force_to<float *>();
 
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
-        auto input_ptr  = input_orign + batch_idx * width * height * ROUND_UP(dims[1], 4);
-        auto output_ptr = output_orign + batch_idx * width * height * ROUND_UP(dims[1], 4);
+        auto input_ptr          = input_orign + batch_idx * hw * ROUND_UP(dims[1], packed ? 4 : 1);
+        auto output_ptr         = output_orign + batch_idx * hw * ROUND_UP(dims[1], packed ? 4 : 1);
+        auto reorder_buffer_ptr = output_ptr;
 
-        UnpackC4(output_ptr, input_ptr, width * height, dims[1]);
+        if (packed) {
+            UnpackC4(output_ptr, input_ptr, hw, dims[1]);
+            input_ptr          = output_ptr;
+            reorder_buffer_ptr = reorder_buffer.force_to<float *>();
+        }
 
         for (int y = 0; y < outside; y++) {
-            auto src_y = output_ptr + y * step_y;
-            auto dst_y = reorder_buffer.force_to<float *>() + y * step_y;
+            auto src_y = input_ptr + y * step_y;
+            auto dst_y = reorder_buffer_ptr + y * step_y;
             memcpy(max_value_ptr, src_y, sizeof(float) * inside);
 
             auto src = src_y + inside;
@@ -78,12 +88,6 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
             for (int c = 0; c < channel; ++c, src += inside, dst += inside) {
                 for (int x = 0; x < inside; ++x) {
                     dst[x] = std::exp(src[x] - max_value_ptr[x]);
-                }
-            }
-
-            dst = dst_y;
-            for (int c = 0; c < channel; ++c, src += inside, dst += inside) {
-                for (int x = 0; x < inside; ++x) {
                     sum_value_ptr[x] += dst[x];
                 }
             }
@@ -96,7 +100,9 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
             }
         }
 
-        PackC4(output_ptr, reorder_buffer.force_to<float *>(), width * height, dims[1]);
+        if (packed) {
+            PackC4(output_ptr, reorder_buffer_ptr, hw, dims[1]);
+        }
     }
 
     if (in_data_type == DATA_TYPE_BFP16) {
@@ -134,5 +140,7 @@ Status ArmSoftmaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
 
 REGISTER_ARM_ACC(Softmax, LAYER_SOFTMAX)
 REGISTER_ARM_PRECISION_FP16(LAYER_SOFTMAX)
+REGISTER_ARM_LAYOUT(LAYER_SOFTMAX, DATA_FORMAT_NC4HW4)
+REGISTER_ARM_LAYOUT(LAYER_SOFTMAX, DATA_FORMAT_NCHW)
 
 }  // namespace TNN_NS

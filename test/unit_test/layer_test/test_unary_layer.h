@@ -22,7 +22,7 @@
 
 namespace TNN_NS {
 
-class UnaryLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, DataType>> {
+class UnaryLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int, DataType>> {
 public:
     explicit UnaryLayerTest(LayerType type);
     void RunUnaryTest(std::string type_str);

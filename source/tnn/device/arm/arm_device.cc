@@ -44,11 +44,16 @@ ArmDevice::~ArmDevice() {}
 BlobMemorySizeInfo ArmDevice::Calculate1DMemorySize(BlobDesc &desc) {
     BlobMemorySizeInfo info;
     info.data_type = desc.data_type;
-    int count      = 0;
-    if (desc.data_type == DATA_TYPE_HALF) {
-        count = desc.dims[0] * ROUND_UP(desc.dims[1], 8) * desc.dims[2] * desc.dims[3];
+    int count      = 1;
+    if (desc.data_format == DATA_FORMAT_NCHW || desc.data_format == DATA_FORMAT_AUTO) {
+        for (auto d : desc.dims)
+            count *= d;
     } else {
-        count = desc.dims[0] * ROUND_UP(desc.dims[1], 4) * desc.dims[2] * desc.dims[3];
+        if (desc.data_type == DATA_TYPE_HALF) {
+            count = desc.dims[0] * ROUND_UP(desc.dims[1], 8) * DimsVectorUtils::Count(desc.dims, 2);
+        } else {
+            count = desc.dims[0] * ROUND_UP(desc.dims[1], 4) * DimsVectorUtils::Count(desc.dims, 2);
+        }
     }
     info.dims.push_back(count);
     return info;
@@ -125,6 +130,14 @@ NetworkType ArmDevice::ConvertAutoNetworkType() {
     return NETWORK_TYPE_DEFAULT; 
 }
 
+std::shared_ptr<const ImplementedLayout> ArmDevice::GetImplementedLayout(LayerType type) {
+    auto &layer_layout_map = GetLayerLayoutMap();
+    if (layer_layout_map.count(type) > 0) {
+        return layer_layout_map[type];
+    }
+    return std::make_shared<ImplementedLayout>();
+}
+
 Context *ArmDevice::CreateContext(int device_id) {
     return new ArmContext();
 }
@@ -144,10 +157,20 @@ Status ArmDevice::RegisterLayerPrecision(LayerType type, std::shared_ptr<Impleme
     return TNN_OK;
 }
 
+Status ArmDevice::RegisterLayerLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+    GetLayerLayoutMap()[type] = layout;
+    return TNN_OK;
+}
+
 std::map<LayerType, std::shared_ptr<ImplementedPrecision>> &ArmDevice::GetLayerPrecisionMap() {
     static std::map<LayerType, std::shared_ptr<ImplementedPrecision>> layer_precision_map;
     return layer_precision_map;
-};
+}
+
+std::map<LayerType, std::shared_ptr<ImplementedLayout>> &ArmDevice::GetLayerLayoutMap() {
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
+    return layer_layout_map;
+}
 
 TypeDeviceRegister<ArmDevice> g_arm_device_register(DEVICE_ARM);
 

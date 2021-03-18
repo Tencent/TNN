@@ -52,96 +52,115 @@ TNN currently support main-stream CNN networks：
 
 ## TNN supported operators
 
-| TNN Operators            | ONNX Operators                                 | Naive | armv7 | armv8 | opencl | metal | huawei npu | rknpu |
-|--------------------------|------------------------------------------------|-----|-------|-------|--------|-------|-------|----- |
-| Abs                      | Abs                                            | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Acos                     | Acos                                           | yes |       |       | yes    | yes   | yes   |      |
-| Add                      | Add                                            | yes | yes   | yes   | yes    | yes   | yes   |      |
-| Asin                     | Asin                                           | yes |       |       | yes    | yes   | yes   |      |
-| Atan                     | Atan                                           | yes |       |       | yes    | yes   |       |      |
-| BatchNormCxx             | BatchNormalization                             | yes | yes   | yes   | yes    | yes   |       | yes  |
-| Cast                     | Cast                                           |     |       |       |        |       |       |      |
-| Ceil                     | Ceil                                           | yes |       |       |        | yes   |       |      |
-| Clip                     | Clip                                           | yes | yes   | yes   | yes    | yes   |       |      |
-| Concat                   | Concat                                         | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Const                    | Constant                                       |     |       |       |        |       |       |      |
-| Convolution              | Conv                                           | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Convolution(depthwise)   | Conv                                           | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Convolution(group)       | Conv                                           | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Cos                      | Cos                                            | yes |       |       | yes    | yes   | yes   |      |
-| Deconvolution            | ConvTranspose                                  | yes | yes   | yes   | yes    | yes   |       |      |
-| Deconvolution(depthwise) | ConvTranspose                                  | yes | yes   | yes   | yes    | yes   |       |      |
-| Deconvolution(group)     | ConvTranspose                                  | yes | yes   | yes   | yes    | yes   |       |      |
-| DepthToSpace             | DepthToSpace                                   |     |       |       |        |       |       |      |
-| DetectionOutput          | DectectionOutput(custom operator)              | yes |       |       |        |       |       |      |
-| Div                      | Div                                            | yes | yes   | yes   | yes    | yes   | yes   |      |
-| Dropout                  | Dropout                                        |     |       |       |        |       |       |      | 
-| Elu                      | Elu                                            | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Exp                      | Exp                                            | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Flatten                  | Flatten                                        |     |       |       |        |       |       |      |
-| Flatten                  | Shape+Gather+Constant+Unsqueeze+Concat+Reshape |     |       |       |        |       |       |      |
-| Floor                    | Floor                                          | yes |       |       | yes    | yes   |       |      |
-| Gather                   | Gather                                         |     |       |       |        |       |       | yes  |
-| HardSigmoid              | HardSigmoid                                    | yes | yes   | yes   | yes    | yes   |       |      |
-| HardSwish                | Add + Clip + Div + Mul                         | yes | yes   | yes   | yes    | yes   |       |      |
-| HardSwish                | Add + Clip + Mul + Div                         | yes | yes   | yes   | yes    | yes   |       |      |
-| HardSwish                | HardSigmoid + Mul                              | yes | yes   | yes   | yes    | yes   |       |      |
-| InnerProduct             | Gemm                                           | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| InstBatchNormCxx         | InstanceNormalization                          | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| LRN                      | LRN                                            | yes |       |       |        |       |       |      |
-| Log                      | Log                                            | yes |       |       | yes    | yes   | yes   |      |
-| LogSigmoid               | Sigmoid + Log                                  | yes | yes   | yes   | yes    | yes   |       |      |
-| MatMul                   | Matmul                                         |     |       |       |        |       |       |      |
-| Max                      | Max                                            | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Min                      | Min                                            | yes | yes   | yes   | yes    | yes   | yes   |      |
-| Mul                      | Mul                                            | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Neg                      | Neg                                            | yes | yes   | yes   | yes    |       |       | yes  |
-| Normalize                | ReduceL2+Clip+Shape+Expand+Div                 | yes | yes   | yes   | yes    | yes   |       |      |
-| Normalize                | Reduce + Clip + Expand + Div                   | yes | yes   | yes   | yes    | yes   |       |      |
-| Normalize                | Mul(square)+Reduce+Max+Sqrt+Mul                | yes | yes   | yes   | yes    | yes   |       |      |
-| PRelu                    | LeakyRelu / PRelu                              | yes | yes   | yes   | yes    | yes   |       | yes  |
-| Pad                      | Pad                                            | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Permute                  | Transpose                                      | yes | yes   | yes   | yes    |       |       |      |
-| Pooling (Avg)            | AveragePool                                    | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Pooling (GlobalAverage)  | GlobalAveragePool                              | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Pooling (GlobalMax)      | GlobalMaxPool                                  | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Pooling (Max)            | MaxPool                                        | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Power                    | Pow                                            | yes | yes   | yes   | yes    | yes   |       |      |
-| PriorBox                 | PriorBox(custom operator)                      | yes |       |       | yes    |       |  yes  |      |
-| Reciprocal               | Reciprocal                                     | yes |       |       | yes    | yes   |       |      |
-| ReduceL1                 | ReduceL1                                       | yes |       |       |        |       |       |      |
-| ReduceL2                 | ReduceL2                                       | yes |       |       |        | yes   |       |      |
-| ReduceLogSum             | ReduceLogSum                                   | yes |       |       |        | yes   |       |      |
-| ReduceLogSumExp          | ReduceLogSumExp                                | yes |       |       |        | yes   |       |      |
-| ReduceMax                | ReduceMax                                      | yes |       |       | yes    | yes   |       |      |
-| ReduceMean               | ReduceMean                                     | yes | yes   | yes   | yes    | yes   |       | yes  |
-| ReduceMin                | ReduceMin                                      | yes |       |       |        | yes   |       |      |
-| ReduceProd               | ReduceProd                                     | yes |       |       |        | yes   |       | yes  |
-| ReduceSum                | ReduceSum                                      | yes | yes   | yes   | yes    | yes   |       | yes  |
-| ReduceSumSquare          | ReduceSumSquare                                | yes |       |       |        | yes   |       |      |
-| Relu                     | Relu                                           | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Relu6                    | Clip                                           | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Reorg                    | DepthToSpace                                   | yes |       |       | yes    |       |       |      |
-| Repeat                   | Tile                                           |     |       |       |        |       |       |      |
-| Reshape                  | Reshape                                        | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Selu                     | Selu                                           | yes |       |       | yes    | yes   | yes   |      |
-| ShuffleChannel           | Reshape + Transpose + Reshape                  | yes | yes   | yes   | yes    | yes   | yes   |      |
-| Sigmoid                  | Sigmoid                                        | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Sign                     | Sign                                           | yes | yes   | yes   | yes    | yes   |       |      |
-| SignedMul                | Sub+Sign+Add+Div+Gather+Slice+Mul              |     |       |       |        |       |       |      |
-| Sin                      | Sin                                            | yes |       |       | yes    | yes   | yes   |      |
-| Slice(StrideSlice)       | Slice                                          | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Softmax                  | Softmax                                        | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Softplus                 | Softplus                                       | yes | yes   | yes   | yes    | yes   | yes   |      |
-| Split                    | Split                                          |     |       |       | yes    |       | yes   |      |
-| Sqrt                     | Sqrt                                           | yes | yes   | yes   | yes    | yes   |       | yes  |
-| Squeeze                  | Squeeze                                        |     |       |       |        |       |       |      |
-| Sub                      | Sub                                            | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Sum                      |                                                |     |       |       |        |       |       |      |
-| Tan                      | Tan                                            | yes |       |       | yes    | yes   | yes   |      |
-| Tanh                     | Tanh                                           | yes | yes   | yes   | yes    | yes   | yes   | yes  |
-| Unsqueeze                | Unsqueeze                                      | no  |       |       |        |       |       |      |
-| Upsample                 | Upsample / Resize                              | yes | yes   | yes   | yes    | yes   | yes   |      |
+| TNN Operators            | ONNX Operators                                 | Naive | armv7 | armv8 | opencl | metal | Huawei_Npu | RKNPU |
+|--------------------------|------------------------------------------------|-----|-------|-------|--------|-------|----- |----- |
+| Abs                      | Abs                                            | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Acos                     | Acos                                           | yes |       |       | yes    | yes   | yes  |      |
+| Add                      | Add                                            | yes | yes   | yes   | yes    | yes   | yes  |      |
+| ArgMaxOrMin(ArgMax)      | ArgMax                                         | yes |       |       |        |       |      |      |
+| ArgMaxOrMin(ArgMin)      | ArgMin                                         | yes |       |       |        |       |      |      |
+| Asin                     | Asin                                           | yes |       |       | yes    | yes   | yes  |      |
+| Atan                     | Atan                                           | yes |       |       | yes    | yes   |      |      |
+| BatchNormCxx             | BatchNormalization                             | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| BitShift                 | BitShift                                       | yes |       |       |        |       |      |      |
+| Cast                     | Cast                                           |     |       |       |        |       |      |      |
+| Ceil                     | Ceil                                           | yes |       |       |        | yes   | yes  |      |
+| Clip                     | Clip                                           | yes | yes   | yes   | yes    | yes   |      |      |
+| Concat                   | Concat                                         | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Const                    | Constant                                       |     |       |       |        |       |      |      |
+| ConstantOfShape          | ConstantOfShape                                | yes |       |       |        |       |      |      |
+| Convolution              | Conv                                           | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Convolution(depthwise)   | Conv                                           | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Convolution(group)       | Conv                                           | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Cos                      | Cos                                            | yes |       |       | yes    | yes   | yes  |      |
+| Deconvolution            | ConvTranspose                                  | yes | yes   | yes   | yes    | yes   |      |      |
+| Deconvolution(depthwise) | ConvTranspose                                  | yes | yes   | yes   | yes    | yes   |      |      |
+| Deconvolution(group)     | ConvTranspose                                  | yes | yes   | yes   | yes    | yes   |      |      |
+| DepthToSpace             | DepthToSpace                                   |     |       |       |        |       |      |      |
+| DetectionOutput          | DectectionOutput(custom operator)              | yes |       |       |        |       |      |      |
+| Div                      | Div                                            | yes | yes   | yes   | yes    | yes   | yes  |      |
+| Dropout                  | Dropout                                        |     |       |       |        |       |      |      |
+| Einsum                   | Einsum                                         | yes |       |       |        |       |      |      |
+| Elu                      | Elu                                            | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Equal                    | Equal                                          | yes |       |       |        |       |      |      |
+| Erf                      | Erf                                            | yes |       |       |        |       |      |      |
+| Exp                      | Exp                                            | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Expand                   | Expand                                         | yes |       |       |        |       |      |      |
+| Flatten                  | Flatten                                        |     |       |       |        |       |      |      |
+| Flatten                  | Shape+Gather+Constant+Unsqueeze+Concat+Reshape |     |       |       |        |       |      |      |
+| Floor                    | Floor                                          | yes |       |       | yes    | yes   | yes  |      |
+| Gather                   | Gather                                         |     |       |       |        |       |      | yes  |
+| GatherND                 | GatherND                                       | yes |       |       |        |       |      |      |
+| HardSigmoid              | HardSigmoid                                    | yes | yes   | yes   | yes    | yes   | yes  |      |
+| HardSwish                | Add + Clip + Div + Mul                         | yes | yes   | yes   | yes    | yes   |      |      |
+| HardSwish                | Add + Clip + Mul + Div                         | yes | yes   | yes   | yes    | yes   |      |      |
+| HardSwish                | HardSigmoid + Mul                              | yes | yes   | yes   | yes    | yes   |      |      |
+| InnerProduct             | Gemm                                           | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| InstBatchNormCxx         | InstanceNormalization                          | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| LSTMONNX                 | LSTM                                           | yes |       |       |        |       |      |      |
+| LRN                      | LRN                                            | yes |       |       |        |       | yes  |      |
+| Log                      | Log                                            | yes |       |       | yes    | yes   | yes  |      |
+| LogSigmoid               | Sigmoid + Log                                  | yes | yes   | yes   | yes    | yes   |      |      |
+| MatMul                   | Matmul                                         |     |       |       |        |       |      |      |
+| Max                      | Max                                            | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Min                      | Min                                            | yes | yes   | yes   | yes    | yes   | yes  |      |
+| Mul                      | Mul                                            | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Neg                      | Neg                                            | yes | yes   | yes   | yes    |       | yes  | yes  |
+| NonZero                  | NonZero                                        | yes |       |       |        |       |      |      |
+| Normalize                | ReduceL2+Clip+Shape+Expand+Div                 | yes | yes   | yes   | yes    | yes   |      |      |
+| Normalize                | Reduce + Clip + Expand + Div                   | yes | yes   | yes   | yes    | yes   |      |      |
+| Normalize                | Mul(square)+Reduce+Max+Sqrt+Mul                | yes | yes   | yes   | yes    | yes   |      |      |
+| OneHot                   | OneHot                                         | yes |       |       |        |       |      |      |
+| PRelu                    | LeakyRelu / PRelu                              | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Pad                      | Pad                                            | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Permute                  | Transpose                                      | yes | yes   | yes   | yes    |       |      |      |
+| Pooling (Avg)            | AveragePool                                    | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Pooling (GlobalAverage)  | GlobalAveragePool                              | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Pooling (GlobalMax)      | GlobalMaxPool                                  | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Pooling (Max)            | MaxPool                                        | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Power                    | Pow                                            | yes | yes   | yes   | yes    | yes   |      |      |
+| PriorBox                 | PriorBox(custom operator)                      | yes |       |       | yes    |       | yes  |      |
+| Range                    | Range                                          | yes |       |       |        |       |      |      |
+| Reciprocal               | Reciprocal                                     | yes |       |       | yes    | yes   | yes  |      |
+| ReduceL1                 | ReduceL1                                       | yes |       |       |        |       |      |      |
+| ReduceL2                 | ReduceL2                                       | yes |       |       |        | yes   |      |      |
+| ReduceLogSum             | ReduceLogSum                                   | yes |       |       |        | yes   |      |      |
+| ReduceLogSumExp          | ReduceLogSumExp                                | yes |       |       |        | yes   |      |      |
+| ReduceMax                | ReduceMax                                      | yes |       |       | yes    | yes   |      |      |
+| ReduceMean               | ReduceMean                                     | yes | yes   | yes   | yes    | yes   |      | yes  |
+| ReduceMin                | ReduceMin                                      | yes |       |       |        | yes   |      |      |
+| ReduceProd               | ReduceProd                                     | yes |       |       |        | yes   | yes  | yes  |
+| ReduceSum                | ReduceSum                                      | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| ReduceSumSquare          | ReduceSumSquare                                | yes |       |       |        | yes   |      |      |
+| Relu                     | Relu                                           | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Relu6                    | Clip                                           | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Reorg                    | DepthToSpace                                   | yes |       |       | yes    |       |      |      |
+| Repeat                   | Tile                                           |     |       |       |        |       |      |      |
+| Reshape                  | Reshape                                        | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| RoiAlign                 | RoiAlign                                       | yes |       |       |        |       |      |      |
+| ScatterND                | ScatterND                                      | yes |       |       |        |       |      |      |
+| Selu                     | Selu                                           | yes |       |       | yes    | yes   | yes  |      |
+| Shape                    | Shape                                          | yes |       |       |        |       |      |      |
+| ShuffleChannel           | Reshape + Transpose + Reshape                  | yes | yes   | yes   | yes    | yes   | yes  |      |
+| Sigmoid                  | Sigmoid                                        | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Sign                     | Sign                                           | yes | yes   | yes   | yes    | yes   | yes  |      |
+| SignedMul                | Sub+Sign+Add+Div+Gather+Slice+Mul              |     |       |       |        |       |      |      |
+| Sin                      | Sin                                            | yes |       |       | yes    | yes   |  yes |      |
+| Size                     | Size                                           | yes |       |       |        |       |      |      |
+| Slice(StrideSlice)       | Slice                                          | yes | yes   | yes   | yes    | yes   |  yes | yes  |
+| Softmax                  | Softmax                                        | yes | yes   | yes   | yes    | yes   |  yes | yes  |
+| Softplus                 | Softplus                                       | yes | yes   | yes   | yes    | yes   |  yes |      |
+| Softsign                 | Softsign                                       | yes |       |       |        |       |      |      |
+| Split                    | Split                                          |     |       |       | yes    |       |      |      |
+| Sqrt                     | Sqrt                                           | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Squeeze                  | Squeeze                                        |     |       |       |        |       |      |      |
+| Sub                      | Sub                                            | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Sum                      |                                                |     |       |       |        |       |      |      |
+| Tan                      | Tan                                            | yes |       |       | yes    | yes   | yes  |      |
+| Tanh                     | Tanh                                           | yes | yes   | yes   | yes    | yes   | yes  | yes  |
+| Unsqueeze                | Unsqueeze                                      | yes |       |       |        |       |      |      |
+| Upsample                 | Upsample / Resize                              | yes | yes   | yes   | yes    | yes   | yes  |      |
+| Where                    | Where                                          | yes |       |       |        |       |      |      |
 
 
 1. In the above table, the TNN HardSwish operator maps to "Add + Clip + Div + Mul" in ONNX, which means that the four operators of ONNX are combined into the HardSwsh operator in TNN. The "+" symbol in the table represents the combination of operators. This applies to other similar operators.
@@ -149,14 +168,16 @@ TNN currently support main-stream CNN networks：
 
 ## TNN supported devices
 
-| device | support |
-|--------|---------|
-| ARMv7  | Yes     |
-| ARMv8  | Yes     |
-| OpenCL | Yes     |
-| Metal  | Yes     |
-| HuaweiNPU | Yes     |
-| RockchipNPU | Yes   |
+| device     | support |
+|------------|---------|
+| ARMv7      |  Yes    |
+| ARMv8      |  Yes    |
+| OpenCL     |  Yes    |
+| Metal      |  Yes    |
+| HuaweiNPU  |  Yes    |
+| RKNPU      |  Yes    |
+| X86        |  Yes    |
+| CUDA       |  Yes    |
 
 1. HuaweiNPU is DaVinci NPU of Huawei, as follows: Kirin810, Kirin820, Kirin985, Kirin990, Kirin990 5G, Kirin990E, Kirin9000, Kirin9000E etc.
 2. RockchipNPU only support fp16 mode of rk1808

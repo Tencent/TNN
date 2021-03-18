@@ -20,6 +20,7 @@
 
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -90,8 +91,9 @@ public:
         ASSERT(src != nullptr);
         const int num     = src->GetBlobDesc().dims[0];
         const int channel = src->GetBlobDesc().dims[1];
-        const int height  = src->GetBlobDesc().dims[2];
-        const int width   = src->GetBlobDesc().dims[3];
+        // refactor later
+        const int height  = GetBlobDim(src->GetBlobDesc().dims, 2);
+        const int width   = GetBlobCount(src->GetBlobDesc().dims, 3);
         T *src_data_ptr   = (T *)src->GetHandle().base;
         T *dst_data_ptr = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
 
@@ -103,8 +105,9 @@ public:
     static Status ConvertFromNHWCToNCHW(Blob *src, Blob *dst) {
         ASSERT(src != nullptr);
         const int num     = src->GetBlobDesc().dims[0];
-        const int height  = src->GetBlobDesc().dims[2];
-        const int width   = src->GetBlobDesc().dims[3];
+        // refactor later
+        const int height  = GetBlobDim(src->GetBlobDesc().dims, 2);
+        const int width   = GetBlobCount(src->GetBlobDesc().dims, 3);
         const int channel = src->GetBlobDesc().dims[1];
         T *src_data_ptr   = (T *)src->GetHandle().base;
         T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;

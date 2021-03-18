@@ -67,5 +67,6 @@ Status ArmHardSwishLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
 }
 
 REGISTER_ARM_ACC(HardSwish, LAYER_HARDSWISH);
+REGISTER_ARM_LAYOUT(LAYER_HARDSWISH, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

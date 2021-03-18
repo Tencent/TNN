@@ -107,6 +107,10 @@ Status ImageBufferConvertor::ConvertBufferToImage(const OpenCLMemory *buffer, co
         kernel_name = "NCHWBufferToImage";
     } else if (type == ARGUMENT) {
         kernel_name = "ArgBufferToImage";
+    } else if (type == LSTM_FILTER) {
+        kernel_name = "LstmFilterBufferToImage";
+    } else if (type == LSTM_BIAS) {
+        kernel_name = "LstmBiasBufferToImage";
     } else {
         LOGE("not support such type !!! \n");
         return Status(TNNERR_OPENCL_API_ERROR, "type not support");
@@ -122,7 +126,7 @@ Status ImageBufferConvertor::ConvertBufferToImage(const OpenCLMemory *buffer, co
     }
 
     buffer_to_image_unit_.global_work_size = {static_cast<uint32_t>(image_shape[0]),
-                                            static_cast<uint32_t>(image_shape[1])};
+                                              static_cast<uint32_t>(image_shape[1])};
 
     uint32_t idx = 0;
     buffer_to_image_unit_.ocl_kernel.setArg(idx++, buffer_to_image_unit_.global_work_size[0]);
@@ -148,6 +152,28 @@ Status ImageBufferConvertor::ConvertBufferToImage(const OpenCLMemory *buffer, co
     } else if (type == ARGUMENT) {
         //batch
         buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[0]));
+    } else if (type == LSTM_FILTER) {
+        // num_directions
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[0]));
+        // hidden_size
+        int hidden_size = dims[1] / 4;
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(hidden_size));
+        // weights_width
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[2]));
+        // hidden_updiv_4_size
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(UP_DIV(hidden_size, 4)));
+        // hidden_mul_4_size
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[1]));
+    } else if (type == LSTM_BIAS) {
+        // num_directions
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[0]));
+        // hidden_size
+        int hidden_size = dims[1] / 8;
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(hidden_size));
+        // hidden_updiv_4_size
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(UP_DIV(hidden_size, 4)));
+        // hidden_mul_8_size
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[1]));
     } else {
         //height
         buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[2]));

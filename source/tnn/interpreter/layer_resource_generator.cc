@@ -13,6 +13,10 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/interpreter/layer_resource_generator.h"
+#include "tnn/utils/random_data_utils.h"
+#include "tnn/utils/dims_utils.h"
+#include "tnn/utils/bfp16.h"
+#include "tnn/utils/half_utils_inner.h"
 
 #include <mutex>
 
@@ -27,10 +31,20 @@ std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerReso
     return *creators;
 }
 
-Status GenerateRandomResource(LayerType type, LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs) {
+std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerConstantResourceGeneratorMap() {
+    static std::once_flag once;
+    static std::shared_ptr<std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>> creators;
+    std::call_once(once, []() { creators.reset(new std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>); });
+    return *creators;
+}
+
+Status GenerateRandomResource(LayerType type, LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs, ConstantResource* consts) {
     auto& layer_resource_generator_map = GetGlobalLayerResourceGeneratorMap();
+    auto& layer_constant_resource_generator_map = GetGlobalLayerConstantResourceGeneratorMap();
     if (layer_resource_generator_map.count(type) > 0) {
         layer_resource_generator_map[type]->GenLayerResource(param, resource, inputs);
+    } else if (layer_constant_resource_generator_map.count(type) > 0) {
+        layer_constant_resource_generator_map[type]->GenLayerConstantResource(param, resource, inputs, consts);
     }
     return TNN_OK;
 }
@@ -88,7 +102,6 @@ class ConvolutionLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("ConvolutionLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<ConvLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -125,7 +138,7 @@ class InnerProductLayerResourceGenerator : public LayerResourceGenerator {
 
         auto dims = inputs[0]->GetBlobDesc().dims;
 
-        int weight_handle_size = layer_param->num_output * dims[1] * dims[2] * dims[3];
+        int weight_handle_size = layer_param->num_output * GetBlobCount(dims, 1);
         if (param->quantized) {
             layer_res->weight_handle = RawBuffer(weight_handle_size * sizeof(int8_t));
             layer_res->bias_handle   = RawBuffer(layer_param->num_output * sizeof(int32_t));
@@ -152,7 +165,6 @@ class InnerProductLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("InnerProductLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<InnerProductLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -187,7 +199,6 @@ class BatchnormLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("BatchnormLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<BatchNormLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -226,7 +237,6 @@ class InstanceNormLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("InstanceNormLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<InstanceNormLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -258,7 +268,6 @@ class PReluLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("PReluLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<PReluLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -297,7 +306,6 @@ class BlobScaleLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("BlobScaleLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<IntScaleResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -337,7 +345,6 @@ class BinaryLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("BinaryLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<EltwiseLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -386,7 +393,6 @@ class HdrGuideLayerResourceGenerator : public LayerResourceGenerator {
     }
 
     virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
-        LOGD("HdrGuideLayerResource convert from fp16 to fp32\n");
         auto src_res = dynamic_cast<HdrGuideLayerResource*>(fp16_res);
         CHECK_PARAM_NULL(src_res);
 
@@ -400,6 +406,48 @@ class HdrGuideLayerResourceGenerator : public LayerResourceGenerator {
         dst_res->projection_bias_handle   = ConvertHalfHandle(src_res->projection_bias_handle);
 
         *fp32_res = dst_res;
+        return TNN_OK;
+    }
+};
+
+class LSTMONNXLayerResourceGenerator : public LayerResourceGenerator {
+    virtual Status GenLayerConstantResource(LayerParam* param, LayerResource** resource,
+                                            std::vector<Blob*>& inputs, ConstantResource* consts) {
+        LOGD("LSTMONNXLayerResourceGenerator\n");
+        auto layer_param = dynamic_cast<LSTMONNXLayerParam*>(param);
+        CHECK_PARAM_NULL(layer_param);
+        auto hidden_size = layer_param->hidden_size;
+        auto num_directions = layer_param->direction == 2? 2: 1;
+        auto input_size  = DimsVectorUtils::Count(inputs[0]->GetBlobDesc().dims, 2);
+
+        auto fill_map_for_blob = [&](Blob *blob) {
+            if (blob == nullptr)
+                return;
+            auto blob_name = blob->GetBlobDesc().name;
+            auto data_type = blob->GetBlobDesc().data_type;
+            auto count = DimsVectorUtils::Count(blob->GetBlobDesc().dims);
+            if (consts->count(blob_name) > 0) {
+                return;
+            }
+            if (data_type == DATA_TYPE_FLOAT) {
+                auto buffer = std::make_shared<RawBuffer>(count * sizeof(float));
+                buffer->SetBufferDims(blob->GetBlobDesc().dims);
+                buffer->SetDataType(DATA_TYPE_FLOAT);
+                InitRandom(buffer->force_to<float *>(), count, 1.0f);
+                (*consts)[blob_name] = buffer;
+            } else if (data_type == DATA_TYPE_HALF) {
+                auto buffer = std::make_shared<RawBuffer>(count * sizeof(fp16_t));
+                buffer->SetBufferDims(blob->GetBlobDesc().dims);
+                buffer->SetDataType(DATA_TYPE_HALF);
+                InitRandom(buffer->force_to<fp16_t *>(), count, fp16_t(1));
+                (*consts)[blob_name] = buffer;
+            }
+        };
+
+        fill_map_for_blob(inputs[1]);
+        fill_map_for_blob(inputs[2]);
+        fill_map_for_blob(inputs[3]);
+
         return TNN_OK;
     }
 };
@@ -421,4 +469,7 @@ REGISTER_LAYER_RESOURCE(Div, LAYER_DIV);
 REGISTER_LAYER_RESOURCE(Mul, LAYER_MUL);
 REGISTER_LAYER_RESOURCE(SquaredDifference, LAYER_SQUARED_DIFFERENCE);
 REGISTER_LAYER_RESOURCE(HdrGuide, LAYER_HDRGUIDE);
+
+REGISTER_LAYER_CONSTANT_RESOURCE(LSTMONNX, LAYER_LSTMONNX);
+
 }  // namespace TNN_NS
