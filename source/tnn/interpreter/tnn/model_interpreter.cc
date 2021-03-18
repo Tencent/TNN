@@ -51,6 +51,9 @@ Status ModelInterpreter::Interpret(std::vector<std::string> &params) {
 
     auto &model_content = params.size() > 1 ? params[1] : empty_content;
     status              = InterpretModel(model_content);
+    if (status != TNN_OK) {
+        return status;
+    }
 
     for (auto item : params) {
         params_md5_.push_back(md5(item));
