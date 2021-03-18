@@ -41,6 +41,9 @@ public:
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void** command_queue) override;
 
+    // @brief share tnn command queue to another context
+    virtual Status ShareCommandQueue(Context* context);
+
     // @brief befor instace forword
     virtual Status OnInstanceForwardBegin() override;
 
@@ -58,6 +61,7 @@ public:
     cublasHandle_t cublas_handle_;
     cudaStream_t stream_;
     int device_id_;
+    bool own_stream_ = false;
 };
 
 }  //  namespace TNN_NS;
