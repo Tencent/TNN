@@ -331,6 +331,10 @@ bool FloatBlobCanIgnorePack(size_t channel, size_t hw) {
     return (hw == 1) && (channel % 4 == 0);
 }
 
+bool HalfBlobCanIgnorePack(size_t channel, size_t hw) {
+    return (hw == 1) && (channel % 8 == 0);
+}
+
 int PackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw) {
     for (int n = 0; n < batch; ++n) {
         auto dst_ptr_n = dst + n * ROUND_UP(channel, 4) * hw;
@@ -363,6 +367,24 @@ int UnpackFloatBlob(bfp16_t *dst, bfp16_t *src, size_t batch, size_t channel, si
         auto dst_ptr_n = dst + n * channel * hw;
         auto src_ptr_n = src + n * ROUND_UP(channel, 4) * hw;
         UnpackC4(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
+int PackHalfBlob(fp16_t *dst, fp16_t *src, size_t batch, size_t channel, size_t hw) {
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * ROUND_UP(channel, 8) * hw;
+        auto src_ptr_n = src + n * channel * hw;
+        PackC8(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
+int UnpackHalfBlob(fp16_t *dst, fp16_t *src, size_t batch, size_t channel, size_t hw) {
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * channel * hw;
+        auto src_ptr_n = src + n * ROUND_UP(channel, 8) * hw;
+        UnpackC8(dst_ptr_n, src_ptr_n, hw, channel);
     }
     return 0;
 }
