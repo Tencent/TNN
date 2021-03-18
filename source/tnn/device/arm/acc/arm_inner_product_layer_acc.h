@@ -31,16 +31,27 @@ public:
     // alloc for fc weights and pack GOIHW16
     virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+    // alloc for fc bias and pack c4
+    virtual Status allocateBufferBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
     template <typename T>
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
-    // alloc for fc bias and pack c4
-    virtual Status allocateBufferBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    Status ExecGemmFloat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+#if TNN_ARM82
+    virtual Status allocateBufferWeightHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status allocateBufferBiasHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    Status ExecFp16(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+#endif  // TNN_ARM82
 
 protected:
     RawBuffer buffer_weight_;
     RawBuffer buffer_bias_;
     RawBuffer buffer_scale_;
+
+    RawBuffer buffer_gemm_weight_;
+    int support_gemm_ = 0;
 };
 
 }  // namespace TNN_NS

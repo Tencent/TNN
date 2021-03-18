@@ -129,5 +129,6 @@ Status MetalPoolingLayerAcc::ComputeThreadgroupSize(const std::vector<Blob *> &i
 }
 
 REGISTER_METAL_ACC(Pooling, LAYER_POOLING);
+REGISTER_METAL_LAYOUT(LAYER_POOLING, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

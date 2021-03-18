@@ -25,5 +25,6 @@ typedef struct arm_log_operator : arm_unary_operator {
 DECLARE_ARM_UNARY_ACC(Log, ARM_LOG_OP);
 
 REGISTER_ARM_ACC(Log, LAYER_LOG)
+REGISTER_ARM_LAYOUT(LAYER_LOG, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

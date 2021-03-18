@@ -66,5 +66,6 @@ Status MetalLRNLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
 }
 
 REGISTER_METAL_ACC(LRN, LAYER_LRN);
+REGISTER_METAL_LAYOUT(LAYER_LRN, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

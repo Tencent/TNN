@@ -45,5 +45,6 @@ Status ArmSignLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_ARM_ACC(Sign, LAYER_SIGN);
+REGISTER_ARM_LAYOUT(LAYER_SIGN, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

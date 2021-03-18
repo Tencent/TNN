@@ -43,5 +43,6 @@ Status OpenCLMulLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 OpenCLMulLayerAcc::~OpenCLMulLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Mul, LAYER_MUL)
+REGISTER_OPENCL_LAYOUT(LAYER_MUL, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

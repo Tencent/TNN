@@ -60,6 +60,8 @@ typedef enum {
     DATA_FORMAT_NC16HW16 = 6,
     DATA_FORMAT_NCDHW    = 7,
     DATA_FORMAT_NHC4W4   = 8,
+    // special for LSTM ONNX
+    DATA_FORMAT_CNH4     = 1000,
 } DataFormat;
 
 typedef enum {

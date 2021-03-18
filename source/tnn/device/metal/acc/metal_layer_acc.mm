@@ -18,12 +18,15 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 Status MetalLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                            const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
+    auto status = AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
+    RETURN_ON_NEQ(status, TNN_OK);
+
     context_ = dynamic_cast<MetalContext *>(context);
 
     param_    = param;
@@ -39,6 +42,9 @@ Status MetalLayerAcc::Init(Context *context, LayerParam *param, LayerResource *r
     outputs[0]->GetBlobDesc().data_type = DATA_TYPE_HALF;
 #endif
 
+    status = ReloadConstantBlobs(inputs);
+    RETURN_ON_NEQ(status, TNN_OK);
+
     return Reshape(inputs, outputs);
     //    return Reshape(inputs, outputs);
 }
@@ -49,6 +55,35 @@ MetalLayerAcc::~MetalLayerAcc() {
 
 Status MetalLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return AllocateBufferParam(inputs, outputs);
+}
+
+Status MetalLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
+    auto const_resource = const_resource_;
+    auto const_blob_map = const_blob_map_;
+    for (auto iter : inputs) {
+        auto name = iter->GetBlobDesc().name;
+        if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
+            continue;
+        }
+
+        auto buffer = (*const_resource)[name];
+        std::shared_ptr<Blob> blob = nullptr;
+        if (const_blob_map.find(name) != const_blob_map.end()) {
+            blob = const_blob_map[name];
+        }
+        auto status = RawBuffer2Blob(buffer.get(), blob);
+        RETURN_ON_NEQ(status, TNN_OK);
+
+        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        auto dims = iter->GetBlobDesc().dims;
+        auto data_type_size = DataTypeUtils::GetBytesSize(iter->GetBlobDesc().data_type);
+        const_blob_map[name] = blob;
+        iter->SetHandle(blob->GetHandle());
+        iter->GetBlobDesc() = blob->GetBlobDesc();
+        LOGD("Reload constant blob: %s\n", name.c_str());
+    }
+    const_blob_map_ = const_blob_map;
+    return TNN_OK;
 }
 
 Status MetalLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -178,17 +213,19 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
     return status;
 }
 
-std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
+        support_list.push_back(DATA_FORMAT_NC4HW4);
+    } else {
         support_list.push_back(DATA_FORMAT_NC4HW4);
     }
     return support_list;
 }
 
 MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
-    auto output_height  = dims[2];
-    auto output_width  = dims[3];
+    auto output_height  = GetBlobDim(dims, 2);
+    auto output_width   = GetBlobDim(dims, 3);
     auto output_size  = output_width * output_height;
     auto output_slice = UP_DIV(dims[1], 4);
     auto output_batch = dims[0];
@@ -198,6 +235,29 @@ MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
     } else {
         return MTLSizeMake(output_width, output_height, output_batch*output_slice);
     }
+}
+
+MTLSize GetDefaultThreadSizeFusedLast(DimsVector dims, bool combineHeightWidth) {
+    auto output_height  = GetBlobDim(dims, 2);
+    auto output_width   = GetBlobCount(dims, 3);
+    auto output_size  = output_width * output_height;
+    auto output_slice = UP_DIV(dims[1], 4);
+    auto output_batch = dims[0];
+    
+    if (combineHeightWidth) {
+        return MTLSizeMake(output_size, output_slice, output_batch);
+    } else {
+        return MTLSizeMake(output_width, output_height, output_batch*output_slice);
+    }
+}
+
+void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, bool reduce_on_axis) {
+    auto axis_size = GetBlobDim(dims, axis);
+    auto dims_copy = dims;
+    dims_copy[1] = UP_DIV(dims[1], 4);
+    size = MTLSizeMake(DimsVectorUtils::Count(dims_copy, axis+1),
+                        reduce_on_axis? 1 : (axis == 1? UP_DIV(axis_size, 4) : axis_size),
+                        DimsVectorUtils::Count(dims_copy, 0, axis));
 }
 
 struct MetalParams GetDefaultMetalParams(DimsVector dims_input, DimsVector dims_output) {
@@ -427,9 +487,9 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
     id<MTLDevice> device     = [TNNMetalDeviceImpl sharedDevice];
     id<MTLBuffer> mtl_buffer = nil;
 
-    const int channel = buffer_shape[1];
-    const int kh      = buffer_shape[2];
-    const int kw      = buffer_shape[3];
+    const int channel = GetBlobDim(buffer_shape, 1);
+    const int kh      = GetBlobDim(buffer_shape, 2);
+    const int kw      = GetBlobDim(buffer_shape, 3);
 
     const int channel4 = UP_DIV(channel, 4) * 4;
 

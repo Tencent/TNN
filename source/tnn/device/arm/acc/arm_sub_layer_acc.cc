@@ -33,5 +33,6 @@ Status ArmSubLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 ArmSubLayerAcc::~ArmSubLayerAcc() {}
 
 REGISTER_ARM_ACC(Sub, LAYER_SUB)
+REGISTER_ARM_LAYOUT(LAYER_SUB, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

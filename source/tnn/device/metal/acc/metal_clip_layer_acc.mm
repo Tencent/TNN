@@ -38,6 +38,7 @@ Status MetalClipLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
     {
         MetalClipParams metal_params;
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
+        FixDefaultMetalParams(metal_params, dims_input, dims_output);
 
         metal_params.min = layer_param->min;
         metal_params.max = layer_param->max;
@@ -54,5 +55,6 @@ Status MetalClipLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_METAL_UNARY_ACC(Clip, LAYER_CLIP);
+REGISTER_METAL_LAYOUT(LAYER_CLIP, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS
