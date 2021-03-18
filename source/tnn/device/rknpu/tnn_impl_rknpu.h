@@ -47,6 +47,9 @@ public:
     // code.
     virtual Status AddOutput(const std::string& output_name, int output_index = 0);
 
+    //@brief get input shapes map from model
+    virtual Status GetModelInputShapesMap(InputShapesMap& shapes_map);
+
     // @brief create an instance
     // @param instance: The instance to be created.
     // @param inputs_shape: modify input shape, or it will use the shape in the
@@ -64,7 +67,7 @@ public:
     // @param status code: If successful, returns zero. Otherwise, returns
     // error code.
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
-                                                 InputShapesMap min_inputs_shape, max_inputs_shape);
+                                                 InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
 
 
 private:
