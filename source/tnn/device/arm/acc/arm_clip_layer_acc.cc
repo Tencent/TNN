@@ -55,5 +55,6 @@ Status ArmClipLayerAcc::DoForward(const std::vector<Blob *> &input_blobs, const 
 }
 
 REGISTER_ARM_ACC(Clip, LAYER_CLIP);
+REGISTER_ARM_LAYOUT(LAYER_CLIP, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

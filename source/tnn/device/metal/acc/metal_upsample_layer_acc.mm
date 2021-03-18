@@ -109,5 +109,6 @@ Status MetalUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs,
 }
 
 REGISTER_METAL_ACC(Upsample, LAYER_UPSAMPLE);
+REGISTER_METAL_LAYOUT(LAYER_UPSAMPLE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

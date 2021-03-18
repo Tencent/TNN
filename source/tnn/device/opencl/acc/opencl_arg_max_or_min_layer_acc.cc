@@ -75,6 +75,9 @@ Status OpenCLArgMaxOrMinLayerAcc::Init(Context *context, LayerParam *param, Laye
 
 Status OpenCLArgMaxOrMinLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("ArgMaxOrMin Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     ArgMaxOrMinLayerParam *arg_max_or_min_param = dynamic_cast<ArgMaxOrMinLayerParam *>(param_);
     if (!arg_max_or_min_param) {
         LOGE("Error: layer param is null\n");
@@ -95,17 +98,18 @@ Status OpenCLArgMaxOrMinLayerAcc::Reshape(const std::vector<Blob *> &inputs, con
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
     for (int i = 0; i < output_dims.size(); i++) {
         if (i != axis)
-            execute_units_[0].ocl_kernel.setArg(idx++, output_dims[i]);
+            execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, i));
     }
-    execute_units_[0].ocl_kernel.setArg(idx++, input_dims[axis]);
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, axis));
     // channel arg op
     if (axis == 1) {
-        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(input_dims[axis], 4));
+        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(DimsFunctionUtils::GetDim(input_dims, axis), 4));
     }
 
     return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN)
+REGISTER_OPENCL_LAYOUT(LAYER_ARG_MAX_OR_MIN, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

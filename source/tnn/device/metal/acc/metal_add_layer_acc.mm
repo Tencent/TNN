@@ -42,5 +42,6 @@ Status MetalAddLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
 }
 
 REGISTER_METAL_MULTIDIR_BROADCAST_ACC(Add, LAYER_ADD);
+REGISTER_METAL_LAYOUT(LAYER_ADD, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

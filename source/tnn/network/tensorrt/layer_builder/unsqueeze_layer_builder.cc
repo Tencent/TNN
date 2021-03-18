@@ -44,7 +44,7 @@ DimsExprs UnsqueezeTRTPluginLayerBuilder::getOutputDimensions(int index, const n
     DimsExprs output;
     output.nbDims = axes.size() + inputs[0].nbDims;
     for (auto& axis : axes) {
-        axis = axis < 0 ? axis + inputs[0].nbDims : axis;
+        axis = axis < 0 ? axis + inputs[0].nbDims + 1 : axis;
     }
 
     int in_index = 0;

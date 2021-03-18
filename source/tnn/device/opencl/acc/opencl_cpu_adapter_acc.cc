@@ -17,6 +17,7 @@
 #include "tnn/core/abstract_device.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/data_format_converter.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -161,7 +162,11 @@ Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std
             }
             float* src_data = reinterpret_cast<float*>(mat.GetData());
             float* dst_data = reinterpret_cast<float*>(cpu_input->GetHandle().base);
-            DataFormatConverter::ConvertFromNCHWToNCHW4Float(src_data, dst_data, dims[0], dims[1], dims[2], dims[3]);
+            DataFormatConverter::ConvertFromNCHWToNCHW4Float(src_data, dst_data,
+                    DimsFunctionUtils::GetDim(dims, 0),
+                    DimsFunctionUtils::GetDim(dims, 1),
+                    DimsFunctionUtils::GetDim(dims, 2),
+                    DimsFunctionUtils::GetDim(dims, 3));
         }
     }
 
@@ -190,7 +195,11 @@ Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std
             Mat mat(impl_device_type_, NCHW_FLOAT, cpu_output->GetBlobDesc().dims);
             float* src_data = reinterpret_cast<float*>(cpu_output->GetHandle().base);
             float* dst_data = reinterpret_cast<float*>(mat.GetData());
-            DataFormatConverter::ConvertFromNCHW4ToNCHWFloat(src_data, dst_data, dims[0], dims[1], dims[2], dims[3]);
+            DataFormatConverter::ConvertFromNCHW4ToNCHWFloat(src_data, dst_data,
+                    DimsFunctionUtils::GetDim(dims, 0),
+                    DimsFunctionUtils::GetDim(dims, 1),
+                    DimsFunctionUtils::GetDim(dims, 2),
+                    DimsFunctionUtils::GetDim(dims, 3));
             status = blob_converter.ConvertFromMat(mat, param, command_queue);
             if (status != TNN_OK) {
                 return status;
@@ -201,9 +210,9 @@ Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std
     return status;
 }
 
-std::vector<DataFormat> OpenCLCpuAdapterAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> OpenCLCpuAdapterAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
-    if (dims_size == 4) {
+    if (dims_size >= 2) {
         support_list.push_back(DATA_FORMAT_NHC4W4);
     }
     return support_list;

@@ -43,5 +43,6 @@ std::set<std::string> OpenCLReduceMinLayerAcc::CreateBuildOptions() {
 OpenCLReduceMinLayerAcc::~OpenCLReduceMinLayerAcc() {}
 
 REGISTER_OPENCL_ACC(ReduceMin, LAYER_REDUCE_MIN)
+REGISTER_OPENCL_LAYOUT(LAYER_REDUCE_MIN, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

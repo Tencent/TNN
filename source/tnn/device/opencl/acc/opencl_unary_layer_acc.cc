@@ -43,6 +43,9 @@ OpenCLUnaryLayerAcc::~OpenCLUnaryLayerAcc() {
 
 Status OpenCLUnaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Unary Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     uint32_t idx = SetExecuteUnit3DSizeInfoDefault(execute_units_[0], output_dims);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));

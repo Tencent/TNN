@@ -50,7 +50,7 @@ private:
     virtual BlobMemory *CreateBlobMemory(int use_count, BlobMemorySizeInfo &size_info)              = 0;
     virtual BlobMemoryNode *GetBlobMemoryNodeListHeader(DataType data_type)                         = 0;
     virtual void SetBlobMemoryNodeListHeader(DataType data_type, BlobMemoryNode *new_header)        = 0;
-    virtual int ResolveBlobMemoryNodeBytesDiff(BlobMemorySizeInfo &size_info, BlobMemoryNode *node) = 0;
+    virtual int64_t ResolveBlobMemoryNodeBytesDiff(BlobMemorySizeInfo &size_info, BlobMemoryNode *node) = 0;
 
     void CalculateAllBlobMemorySize();
     // extract the closest BlobMemoryNode from BlobMemoryNode list

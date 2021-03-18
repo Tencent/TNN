@@ -15,22 +15,48 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-DECLARE_OP_CONVERTER(ScatterND);
+DECLARE_OP_CONVERTER_WITH_FUNC(ScatterND,
+                               virtual std::vector<std::string> GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info););
 
 string OnnxOpConverterScatterND::TNNOpType(NodeProto& node, OnnxNetInfo& net_info) {
     return "ScatterND";
 }
 
 string OnnxOpConverterScatterND::TNNLayerParam(NodeProto& node, OnnxNetInfo& net_info) {
-    ostringstream layer_param;
-    return layer_param.str();
+    return "";
+}
+
+std::vector<std::string> OnnxOpConverterScatterND::GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+    auto iter_indices = net_info.weights_map.find(node.input(1));
+    auto iter_updates = net_info.weights_map.find(node.input(2));
+    if (iter_indices == net_info.weights_map.end() && iter_updates == net_info.weights_map.end()) {
+        //X, Y, condition order for input
+        return {node.input(0), node.input(1), node.input(2)};
+    } else if (iter_updates == net_info.weights_map.end()){
+        return {node.input(0), node.input(2)};
+    } else {
+        return {node.input(0), node.input(1)};
+    }
+
 }
 
 bool OnnxOpConverterScatterND::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
-    return true;
+    //support indices input is not const, move layer resource to const blob
+    auto iter_indices = net_info.weights_map.find(node.input(1));
+    auto iter_updates = net_info.weights_map.find(node.input(2));
+    if (iter_indices == net_info.weights_map.end() && iter_updates == net_info.weights_map.end()) {
+        return false;
+    } else {
+        return true;
+    }
 };
 
 int OnnxOpConverterScatterND::WriteTNNModel(Serializer* net_writer, NodeProto& node, OnnxNetInfo& net_info) {
+    //support indices input is not const, move layer resource to const blob
+    if (!HasLayerResource(node, net_info)) {
+        return 0;
+    }
+    
     const std::string& onnx_op        = node.op_type();
     std::string name                  = !node.name().empty() ? node.name() : node.output(0);
     const std::string& tnn_layer_type = TNNOpType(node, net_info);

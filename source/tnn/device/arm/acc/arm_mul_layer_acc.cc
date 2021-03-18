@@ -33,5 +33,6 @@ Status ArmMulLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 ArmMulLayerAcc::~ArmMulLayerAcc() {}
 
 REGISTER_ARM_ACC(Mul, LAYER_MUL)
+REGISTER_ARM_LAYOUT(LAYER_MUL, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

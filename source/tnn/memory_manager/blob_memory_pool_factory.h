@@ -21,7 +21,7 @@ namespace TNN_NS {
 
 class BlobMemoryPoolFactory {
 public:
-    static BlobMemoryPool* CreateBlobMemoryPool(AbstractDevice* device);
+    static BlobMemoryPool* CreateBlobMemoryPool(AbstractDevice* device, int dimensions = 1);
 };
 
 }  // namespace TNN_NS

@@ -52,7 +52,7 @@ protected:
 
 private:
     // @brief return device layer acc support data format
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size);
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);
 };
 
 #define DECLARE_X86_ACC(type_string, layer_type)                                                                   \

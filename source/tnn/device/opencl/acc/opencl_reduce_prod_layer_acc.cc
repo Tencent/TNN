@@ -43,5 +43,6 @@ std::set<std::string> OpenCLReduceProdLayerAcc::CreateBuildOptions() {
 OpenCLReduceProdLayerAcc::~OpenCLReduceProdLayerAcc() {}
 
 REGISTER_OPENCL_ACC(ReduceProd, LAYER_REDUCE_PROD)
+REGISTER_OPENCL_LAYOUT(LAYER_REDUCE_PROD, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

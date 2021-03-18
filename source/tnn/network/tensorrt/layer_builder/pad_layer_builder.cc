@@ -43,9 +43,13 @@ DimsExprs PadTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer
         int nbInput, nvinfer1::IExprBuilder& exprBuilder) {
     DimsExprs output(inputs[0]);
     auto param = dynamic_cast<PadLayerParam*>(param_);
-    output.d[3] = exprBuilder.constant(param->pads[0] + param->pads[1]);
-    output.d[2] = exprBuilder.constant(param->pads[2] + param->pads[3]);
-    output.d[1] = exprBuilder.constant(param->pads[4] + param->pads[5]);
+    auto pads0 = exprBuilder.constant(param->pads[0] + param->pads[1]);
+    auto pads1 = exprBuilder.constant(param->pads[2] + param->pads[3]);
+    auto pads2 = exprBuilder.constant(param->pads[4] + param->pads[5]);
+
+    output.d[3] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[3], *pads0);
+    output.d[2] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[2], *pads1);
+    output.d[1] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[1], *pads2);
     return output;
 }
 

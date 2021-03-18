@@ -41,5 +41,6 @@ Status MetalReduceLogSumLayerAcc::Forward(const std::vector<Blob *> &inputs, con
 }
 
 REGISTER_METAL_REDUCE_ACC(ReduceLogSum, LAYER_REDUCE_LOG_SUM);
+REGISTER_METAL_LAYOUT(LAYER_REDUCE_LOG_SUM, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

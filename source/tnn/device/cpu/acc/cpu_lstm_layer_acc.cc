@@ -184,18 +184,25 @@ Status CpuLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     
     //initial_h, initial value of the hidden, If not specified - assumed to be 0. shape [num_directions, batch_size, hidden_size]
     auto h_t = (float *)((char*)(outputs[1]->GetHandle().base) + outputs[1]->GetHandle().bytes_offset);
-    auto h_0 = (float *)((char*)(blob_h0->GetHandle().base) + blob_h0->GetHandle().bytes_offset);
-    if (h_0) {
-        memcpy((void *)h_t, h_0, num_directions * batch * hidden_size * sizeof(float));
+    if (blob_h0 != nullptr){
+        auto h_0 = (float *)((char*)(blob_h0->GetHandle().base) + blob_h0->GetHandle().bytes_offset);
+        if (h_0) {
+            memcpy((void *)h_t, h_0, num_directions * batch * hidden_size * sizeof(float));
+        }
+    } else {
+        memset(h_t, 0, num_directions * batch * hidden_size * sizeof(float));
     }
     
     //initial_c, initial value of the cell, If not specified - assumed to be 0. shape [num_directions, batch_size, hidden_size]
     auto c_t = (float *)((char*)(outputs[2]->GetHandle().base) + outputs[2]->GetHandle().bytes_offset);
-    auto c_0 = (float *)((char*)(blob_c0->GetHandle().base) + blob_c0->GetHandle().bytes_offset);
-    if (c_0) {
-        memcpy((void *)c_t, c_0, num_directions * batch * hidden_size * sizeof(float));
+    if (blob_c0 != nullptr){
+        auto c_0 = (float *)((char*)(blob_c0->GetHandle().base) + blob_c0->GetHandle().bytes_offset);
+        if (c_0) {
+            memcpy((void *)c_t, c_0, num_directions * batch * hidden_size * sizeof(float));
+        }
+    } else {
+        memset(c_t, 0, num_directions * batch * hidden_size * sizeof(float));
     }
-    
     
     if (layer_param->direction == 0 || layer_param->direction == 1) {
         return LSTM_Single(x, y, w, r, b, h_t, c_t, T, batch, input_size, hidden_size, layer_param->direction);
