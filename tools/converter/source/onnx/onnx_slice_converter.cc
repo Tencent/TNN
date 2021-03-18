@@ -52,11 +52,11 @@ TNN_NS::Status OnnxSliceConverter::exec(TNN_NS::NetStructure &net_structure, TNN
 
     auto starts     = GetAttributeInt64Vector(node, "starts", proxy_initializers_map, 1);
     auto ends       = GetAttributeInt64Vector(node, "ends", proxy_initializers_map, 2);
-    auto axis       = GetAttributeInt64Vector(node, "axes", proxy_initializers_map, 3);
+    auto axes       = GetAttributeInt64Vector(node, "axes", proxy_initializers_map, 3);
     auto steps      = GetAttributeInt64Vector(node, "steps", proxy_initializers_map, 4);
     int starts_size = starts.size();
     int ends_size   = ends.size();
-    int axis_size   = axis.size();
+    int axis_size   = axes.size();
     int steps_size  = steps.size();
 
     for (int i = 0; i < starts_size; i++) {
@@ -66,20 +66,9 @@ TNN_NS::Status OnnxSliceConverter::exec(TNN_NS::NetStructure &net_structure, TNN
     for (int i = 0; i < ends_size; i++) {
         param->ends.push_back(Int64ToInt32(ends[i]));
     }
-    for (const auto &axis : axes) {
-        param->axes.push_back(axis);
-    }
-    auto steps = GetAttributeIntVector(node, "steps");
-    if (steps.empty()) {
-        param->strides = std::vector<int>(starts.size(), 1);
-    } else {
-        for (const auto &step : steps) {
-            param->strides.push_back(step);
-        }
-    }
 
     for (int i = 0; i < axis_size; i++) {
-        param->axes.push_back(axis[i]);
+        param->axes.push_back(axes[i]);
     }
 
     for (int i = 0; i < steps_size; i++) {
