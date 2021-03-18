@@ -351,7 +351,11 @@ Status BlobManager::GetAllOutputBlobs(BlobMap &blobs) {
 }
 
 Blob *BlobManager::GetBlob(std::string name) {
-    return blobs_[name];
+    auto iter = blobs_.find(name);
+    if (iter != blobs_.end()) {
+        return iter->second;
+    }
+    return nullptr;
 }
 
 void BlobManager::ReplaceBlob(std::string name, Blob *new_blob) {

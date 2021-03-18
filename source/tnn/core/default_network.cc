@@ -251,6 +251,11 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
+            if (blob == nullptr) {
+                delete cur_layer;
+                LOGE("Input of layer(%s) are invalid", layer_name.c_str());
+                return Status(TNNERR_PARAM_ERR, "Input of layer are invalid");
+           }
             // update layout reformat layer's param and blob datatype
             if (IsLayoutReformatLayer(layer_info)) {
                 // only need to update model's input blob datatype
@@ -273,6 +278,11 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
+            if (blob == nullptr) {
+                delete cur_layer;
+                LOGE("Output of layer(%s) are invalid", layer_name.c_str());
+                return Status(TNNERR_PARAM_ERR, "Output of layer are invalid");
+            }
             outputs.push_back(blob);
         }
 

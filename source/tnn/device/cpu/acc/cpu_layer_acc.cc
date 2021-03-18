@@ -55,7 +55,7 @@ Status CpuLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map[name] = blob;
         iter->SetHandle(blob->GetHandle());
-        LOGD("Reload constant blob: %s\n", name.c_str());
+        LOGD("Reload constant blob: %s %p\n", name.c_str(), &blob);
     }
     const_blob_map_ = const_blob_map;
     return TNN_OK;
