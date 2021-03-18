@@ -124,7 +124,7 @@ Status ArmStrideSliceV2LayerAcc::DoForward(const std::vector<Blob *> &inputs, co
     auto axes    = layer_param->axes;
 
     Status status = TNN_OK;
-    DimsVectorUtils::StrideSlice(dims_input, begins, ends, strides, axes, &status);
+    DimsFunctionUtils::StrideSlice(dims_input, begins, ends, strides, axes, &status);
     RETURN_ON_NEQ(status, TNN_OK);
 
     std::vector<int> rectified_begins(dim_size, 0);

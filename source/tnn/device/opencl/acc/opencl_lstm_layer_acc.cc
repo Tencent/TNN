@@ -203,7 +203,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
     } else {
         auto status = ConvertWeights(buffer, blob);
         RETURN_ON_NEQ(status, TNN_OK);
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map_[name] = blob;
     }
     w->SetHandle(blob->GetHandle());
@@ -222,7 +222,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
     } else {
         auto status = ConvertWeights(buffer, blob);
         RETURN_ON_NEQ(status, TNN_OK);
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map_[name] = blob;
     }
     r->SetHandle(blob->GetHandle());
@@ -241,7 +241,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
     } else {
         auto status = ConvertBias(buffer, blob);
         RETURN_ON_NEQ(status, TNN_OK);
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map_[name] = blob;
     }
     b->SetHandle(blob->GetHandle());
@@ -257,7 +257,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
             } else {
                 auto status = ConvertInitialState(buffer, blob);
                 RETURN_ON_NEQ(status, TNN_OK);
-                blob->flag = DATA_FLAG_CHANGE_NEVER;
+                blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
                 const_blob_map_[name] = blob;
             }
             h0->SetHandle(blob->GetHandle());
@@ -273,7 +273,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
             } else {
                 auto status = ConvertInitialState(buffer, blob);
                 RETURN_ON_NEQ(status, TNN_OK);
-                blob->flag = DATA_FLAG_CHANGE_NEVER;
+                blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
                 const_blob_map_[name] = blob;
             }
             c0->SetHandle(blob->GetHandle());

@@ -23,7 +23,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/macro.h"
 #include "tnn/utils/bfp16.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 #if TNN_PROFILE
