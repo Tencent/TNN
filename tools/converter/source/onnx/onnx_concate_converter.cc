@@ -12,11 +12,11 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "onnx_base_converter.h"
-#include "onnx_utils.h"
+#include "onnx/onnx_utils.h"
+#include "tnn/interpreter/tnn/objseri.h"
+#include "tools/converter/source/onnx/onnx_base_converter.h"
 
 namespace TNN_CONVERTER {
-
 DECLARE_OP_CONVERTER(Concat);
 
 std::string OnnxConcatConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {

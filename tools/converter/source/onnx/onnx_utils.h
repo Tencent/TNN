@@ -14,11 +14,14 @@
 
 #ifndef TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_UTILS_H_
 #define TNN_TOOLS_CONVERTER_SOURCE_ONNX_ONNX_UTILS_H_
+
 #include <cassert>
 #include <vector>
 
 #include "onnx.pb.h"
+#include "onnx_proxy_graph.h"
 #include "tnn/core/common.h"
+#include "tnn/core/status.h"
 #include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_CONVERTER {
@@ -32,6 +35,9 @@ int GetAttributeInt(const onnx::NodeProto& node, const std::string& name, int de
 std::vector<int32_t> GetAttributeIntVector(const onnx::NodeProto& node, const std::string& name);
 
 float GetAttributeFloat(const onnx::NodeProto& node, const std::string& name, float default_value);
+
+float GetAttributeFloat(const onnx::NodeProto& node, const std::string& name, int location, float default_value,
+                        std::map<std::string, const onnx::TensorProto*> proxy_initializers_map);
 
 std::string GetAttributeString(const onnx::NodeProto& node, const std::string& name, std::string default_value);
 
@@ -54,6 +60,10 @@ void* GetDataFromTensor(const onnx::TensorProto& tensor, onnx::TensorProto_DataT
 void CreateRawBufferFromConstant(const onnx::NodeProto& constant_node, TNN_NS::RawBuffer** raw_buffer);
 
 std::vector<int64_t> GetAttributeInt64Vector(const onnx::NodeProto& node, const std::string& name);
+
+std::vector<int64_t> GetAttributeInt64Vector(const onnx::NodeProto& node, const std::string& name,
+                                             std::map<std::string, const onnx::TensorProto*>& proxy_initializers_map,
+                                             int location);
 
 const onnx::TensorProto* GetTensorFromConstantNode(const onnx::NodeProto& constant_node);
 
@@ -81,6 +91,15 @@ bool OHWI2OIHW(T* src, T* dst, int CO, int KH, int KW, int CI) {
     }
     return true;
 }
+
+TNN_NS::DataType GetTnnDataTypeFromOnnx(const onnx::TensorProto_DataType& onnx_type);
+
+template <class T>
+std::vector<T> GetTensorProtoDataVector(const onnx::TensorProto& tp);
+
+TNN_NS::Status GetWeightInputIndexName(int& weight_input_index, std::string& weight_name, const onnx::NodeProto& node,
+                                       std::map<std::string, const onnx::TensorProto*> proxy_initializers_map,
+                                       std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes);
 
 }  // namespace TNN_CONVERTER
 

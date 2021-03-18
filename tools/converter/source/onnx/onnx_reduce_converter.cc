@@ -17,37 +17,34 @@
 #include "tools/converter/source/onnx/onnx_base_converter.h"
 
 namespace TNN_CONVERTER {
-DECLARE_OP_CONVERTER(Transpose);
+DECLARE_OP_CONVERTER(Reduce);
 
-std::string OnnxTransposeConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    return "Permute";
+std::string OnnxReduceConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
+    return node.op_type();
 }
 
-TNN_NS::ActivationType OnnxTransposeConverter::ActivationType(const onnx::NodeProto &node) {
+TNN_NS::ActivationType OnnxReduceConverter::ActivationType(const onnx::NodeProto &node) {
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxTransposeConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
-                                            const onnx::NodeProto &node,
-                                            std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
-                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
-                                            bool &quantized_model) {
+TNN_NS::Status OnnxReduceConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
+                                         const onnx::NodeProto &node,
+                                         std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
+                                         bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
-    auto param                 = new TNN_NS::PermuteLayerParam;
+    auto param                 = new TNN_NS::ReduceLayerParam;
     auto cur_layer             = net_structure.layers.back();
     cur_layer->param           = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->type                = cur_layer->type_str;
     param->name                = cur_layer->name;
     param->quantized           = false;
-    param->orders              = GetAttributeIntVector(node, "perm");
-
-    if (param->orders.empty()) {
-        param->orders = {0, 1, 2, 3};
-    }
+    param->axis                = GetAttributeIntVector(node, "axes");
+    param->keep_dims           = GetAttributeInt(node, "keep_dims", 1);
 
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-REGISTER_CONVERTER(Transpose, Transpose);
+REGISTER_CONVERTER(Reduce, ReduceMean);
 
 }  // namespace TNN_CONVERTER

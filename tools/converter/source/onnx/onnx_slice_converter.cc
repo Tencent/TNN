@@ -19,6 +19,16 @@
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Slice);
 
+int Int64ToInt32(const int64_t number) {
+    if (number < INT_MIN) {
+        return INT_MIN;
+    } else if (number > INT_MAX) {
+        return INT_MAX;
+    }
+
+    return (int)number;
+}
+
 std::string OnnxSliceConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
     return "StridedSliceV2";
 }
@@ -40,27 +50,21 @@ TNN_NS::Status OnnxSliceConverter::exec(TNN_NS::NetStructure &net_structure, TNN
     param->name                = cur_layer->name;
     param->quantized           = false;
 
-    auto starts = GetAttributeInt64Vector(node, "starts");
-    for (const auto &start : starts) {
-        param->begins.push_back(start);
+    auto starts     = GetAttributeInt64Vector(node, "starts", proxy_initializers_map, 1);
+    auto ends       = GetAttributeInt64Vector(node, "ends", proxy_initializers_map, 2);
+    auto axis       = GetAttributeInt64Vector(node, "axes", proxy_initializers_map, 3);
+    auto steps      = GetAttributeInt64Vector(node, "steps", proxy_initializers_map, 4);
+    int starts_size = starts.size();
+    int ends_size   = ends.size();
+    int axis_size   = axis.size();
+    int steps_size  = steps.size();
+
+    for (int i = 0; i < starts_size; i++) {
+        param->begins.push_back(Int64ToInt32(starts[i]));
     }
 
-    auto ends = GetAttributeInt64Vector(node, "ends");
-    for (const auto end : ends) {
-        if (end == LLONG_MAX) {
-            param->ends.push_back(INT_MAX);
-        } else if (end == LLONG_MIN) {
-            param->ends.push_back(INT_MIN);
-        } else {
-            param->ends.push_back(end);
-        }
-    }
-
-    auto axes = GetAttributeInt64Vector(node, "axes");
-    if (axes.empty()) {
-        for (int i = 0; i < starts.size(); i++) {
-            axes.push_back(i);
-        }
+    for (int i = 0; i < ends_size; i++) {
+        param->ends.push_back(Int64ToInt32(ends[i]));
     }
     for (const auto &axis : axes) {
         param->axes.push_back(axis);
@@ -74,6 +78,15 @@ TNN_NS::Status OnnxSliceConverter::exec(TNN_NS::NetStructure &net_structure, TNN
         }
     }
 
+    for (int i = 0; i < axis_size; i++) {
+        param->axes.push_back(axis[i]);
+    }
+
+    for (int i = 0; i < steps_size; i++) {
+        param->strides.push_back(steps[i]);
+    }
+
+    cur_layer->inputs.resize(1);
     cur_layer->inputs[0] = node.input(0);
 
     return TNN_NS::TNN_CONVERT_OK;

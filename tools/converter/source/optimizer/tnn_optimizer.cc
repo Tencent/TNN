@@ -21,7 +21,11 @@ namespace TNN_CONVERTER {
 
 TNN_NS::Status TnnOptimizer::PreOptimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
     // pre optimize
-    std::vector<std::string> pre_optimize_pass = {"EliminateUnusefulNode", "TransformReduceMean"};
+    std::vector<std::string> pre_optimize_pass = {
+        "EliminateUnusefulNode",
+        "TransformReduceMean",
+        "FuseShuffleChannel",
+    };
     for (const auto& pass_name : pre_optimize_pass) {
         auto pass = TnnOptimizePassManager::get()->search(pass_name);
         if (pass == nullptr) {

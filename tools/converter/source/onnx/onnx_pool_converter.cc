@@ -96,8 +96,12 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
         if (pads.size() == 1) {
             param->pads.push_back(pads[0]);
             param->pads.push_back(pads[0]);
+            param->pads.push_back(pads[0]);
+            param->pads.push_back(pads[0]);
         } else if (pads.size() == 2) {
             param->pads.push_back(pads[0]);
+            param->pads.push_back(pads[0]);
+            param->pads.push_back(pads[1]);
             param->pads.push_back(pads[1]);
         } else if (pads.size() == 4) {
             if (pads[0] == pads[2] && pads[1] == pads[3]) {
@@ -108,6 +112,8 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
             } else if (pads[0] < pads[2] && pads[1] < pads[3]) {
                 pad_type = 0;  // SAME UPPER
                 param->pads.push_back(pads[0]);
+                param->pads.push_back(pads[0]);
+                param->pads.push_back(pads[1]);
                 param->pads.push_back(pads[1]);
             } else {
                 LOGE("SAME_LOWER is unsuported, change toSAME_UPPER \n");
@@ -128,7 +134,7 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
                 return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
             }
         } else {
-            if (auto_pad == "" || auto_pad == "SAME_LOWER" || auto_pad == "SAME_UPPER" || auto_pad == "VALID") {
+            if (auto_pad == "NOTSET" || auto_pad == "SAME_LOWER" || auto_pad == "SAME_UPPER" || auto_pad == "VALID") {
                 if (kernel_shape.size() == 3) {
                     param->pads.push_back(0);
                     param->pads.push_back(0);

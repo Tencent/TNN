@@ -49,7 +49,8 @@ TNN_NS::Status Onnx2Tnn::Converter2Tnn(TNN_NS::NetStructure& net_structure, TNN_
 
     bool quantized_mode = IsQuantized();
     // convert onnx graph input
-    TNN_NS::InputShapesMap& input_shapes_map = net_structure.inputs_shape_map;
+    TNN_NS::InputShapesMap& input_shapes_map      = net_structure.inputs_shape_map;
+    TNN_NS::InputDataTypeMap& input_data_type_map = net_structure.input_data_type_map;
     for (const auto iter : proxy_inputs) {
         // input in initializers
         if (proxy_initializers.find(iter.first) != proxy_initializers.end()) {
@@ -67,6 +68,9 @@ TNN_NS::Status Onnx2Tnn::Converter2Tnn(TNN_NS::NetStructure& net_structure, TNN_
         }
         if (input_shapes_map.find(input_name) == input_shapes_map.end()) {
             input_shapes_map[input_name] = dims_vector;
+            const auto& input_data_type =
+                static_cast<onnx::TensorProto_DataType>(input->type().tensor_type().elem_type());
+            input_data_type_map[input_name] = GetTnnDataTypeFromOnnx(input_data_type);
         }
     }
     // convert onnx graph output

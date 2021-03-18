@@ -17,39 +17,46 @@
 #include "tools/converter/source/onnx/onnx_base_converter.h"
 
 namespace TNN_CONVERTER {
-DECLARE_OP_CONVERTER(Cast);
+DECLARE_OP_CONVERTER(Clip);
 
-std::string OnnxCastConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    return "Cast";
+std::string OnnxClipConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
+    return "Clip";
 }
 
-TNN_NS::ActivationType OnnxCastConverter::ActivationType(const onnx::NodeProto &node) {
+TNN_NS::ActivationType OnnxClipConverter::ActivationType(const onnx::NodeProto &node) {
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxCastConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
+TNN_NS::Status OnnxClipConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                        const onnx::NodeProto &node,
                                        std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
                                        std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                        bool &quantized_model) {
+    const auto min = GetAttributeFloat(node, "min", 1, -DBL_MAX, proxy_initializers_map);
+    const auto max = GetAttributeFloat(node, "max", 2, DBL_MAX, proxy_initializers_map);
+    auto cur_layer = net_structure.layers.back();
+    if (std::fabs(min) <= DBL_EPSILON && std::fabs(max - 6) <= DBL_EPSILON) {
+        cur_layer->type_str = "ReLU6";
+        cur_layer->type     = TNN_NS::LAYER_RELU6;
+        cur_layer->param    = std::shared_ptr<TNN_NS::LayerParam>(new TNN_NS::LayerParam);
+        return TNN_NS::TNN_CONVERT_OK;
+    }
+
     const std::string &onnx_op = node.op_type();
-    auto param                 = new TNN_NS::CastLayerParam;
-    auto cur_layer             = net_structure.layers.back();
+    auto param                 = new TNN_NS::ClipLayerParam;
     cur_layer->param           = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->type                = cur_layer->type_str;
     param->name                = cur_layer->name;
     param->quantized           = false;
+    param->min                 = min;
+    param->max                 = max;
 
-    auto to_type         = GetAttributeInt(node, "to", 0);
-    const auto onnx_type = static_cast<onnx::TensorProto_DataType>(to_type);
-    const auto tnn_type  = GetTnnDataTypeFromOnnx(onnx_type);
-    param->to            = tnn_type;
-
+    cur_layer->inputs.resize(1);
     cur_layer->inputs[0] = node.input(0);
 
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-REGISTER_CONVERTER(Cast, Cast);
+REGISTER_CONVERTER(Clip, Clip);
 
 }  // namespace TNN_CONVERTER

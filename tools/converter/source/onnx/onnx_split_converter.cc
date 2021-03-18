@@ -12,44 +12,38 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "onnx_base_converter.h"
-#include "onnx_utils.h"
+#include "onnx/onnx_utils.h"
+#include "tools/converter/source/onnx/onnx_base_converter.h"
 
 namespace TNN_CONVERTER {
+DECLARE_OP_CONVERTER(Split);
 
-DECLARE_OP_CONVERTER(Unary);
-
-std::string OnnxUnaryConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    if (node.op_type() == "Relu") {
-        return "ReLU";
-    } else {
-        return node.op_type();
-    }
+std::string OnnxSplitConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
+    return "SplitV";
 }
 
-TNN_NS::ActivationType OnnxUnaryConverter::ActivationType(const onnx::NodeProto &node) {
+TNN_NS::ActivationType OnnxSplitConverter::ActivationType(const onnx::NodeProto &node) {
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxUnaryConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
+TNN_NS::Status OnnxSplitConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                         const onnx::NodeProto &node,
                                         std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                         bool &quantized_model) {
-    auto param       = new TNN_NS::LayerParam;
-    auto cur_layer   = net_structure.layers.back();
-    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
-    param->type      = cur_layer->type_str;
-    param->name      = cur_layer->name;
-    param->quantized = false;
+    const std::string &onnx_op = node.op_type();
+    auto param                 = new TNN_NS::SplitVLayerParam;
+    auto cur_layer             = net_structure.layers.back();
+    cur_layer->param           = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->type                = cur_layer->type_str;
+    param->name                = cur_layer->name;
+    param->quantized           = false;
+    param->axis                = GetAttributeInt(node, "axis", 1);
+    param->slices              = GetAttributeIntVector(node, "split");
+
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-REGISTER_CONVERTER(Unary, Shape);
-REGISTER_CONVERTER(Unary, Erf);
-REGISTER_CONVERTER(Unary, Floor);
-REGISTER_CONVERTER(Unary, Relu);
-REGISTER_CONVERTER(Unary, Tanh);
-REGISTER_CONVERTER(Unary, Sqrt);
+REGISTER_CONVERTER(Split, Split);
 
 }  // namespace TNN_CONVERTER
