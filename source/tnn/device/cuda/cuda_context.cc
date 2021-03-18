@@ -22,9 +22,11 @@
 namespace TNN_NS {
 
 CudaContext::~CudaContext() {
-    cudaError_t status = cudaStreamDestroy(stream_);
-    if (cudaSuccess != status) {
-        LOGE("destroy cuda stream failed");
+    if (own_stream_) {
+        cudaError_t status = cudaStreamDestroy(stream_);
+        if (cudaSuccess != status) {
+            LOGE("destroy cuda stream failed");
+        }
     }
 
     cudnnStatus_t cudnn_status = cudnnDestroy(cudnn_handle_);
@@ -43,6 +45,7 @@ Status CudaContext::Setup(int device_id) {
 
     CUDA_CHECK(cudaSetDevice(device_id));
     CUDA_CHECK(cudaStreamCreate(&stream_));
+    own_stream_ = true;
 
     cudnnStatus_t cudnn_status = cudnnCreate(&cudnn_handle_);
     if (cudnn_status != CUDNN_STATUS_SUCCESS) {
@@ -78,6 +81,34 @@ Status CudaContext::LoadLibrary(std::vector<std::string> path) {
 Status CudaContext::GetCommandQueue(void** command_queue) {
     CUDA_CHECK(cudaSetDevice(device_id_));
     *command_queue = stream_;
+    return TNN_OK;
+}
+
+Status CudaContext::ShareCommandQueue(Context* context) {
+
+    if (context == nullptr)
+        return TNNERR_NULL_PARAM;
+
+    CudaContext* cuda_ctx = dynamic_cast<CudaContext*>(context);
+
+    if (own_stream_) {
+        CUDA_CHECK(cudaStreamDestroy(stream_));
+    }
+    own_stream_ = false;
+    stream_ = cuda_ctx->GetStream();
+
+    cudnnStatus_t cudnn_status = cudnnSetStream(cudnn_handle_, stream_);
+    if (cudnn_status != CUDNN_STATUS_SUCCESS) {
+        LOGE("cudnn handle set stream failed");
+        return TNNERR_INST_ERR;
+    }
+
+    cublasStatus_t cublas_status = cublasSetStream(cublas_handle_, stream_);
+    if (cublas_status != CUBLAS_STATUS_SUCCESS) {
+        LOGE("cublas handle set stream failed");
+        return TNNERR_INST_ERR;
+    }
+
     return TNN_OK;
 }
 
