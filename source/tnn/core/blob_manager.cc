@@ -23,7 +23,7 @@
 #include "tnn/memory_manager/memory_mode_state_factory.h"
 #include "tnn/memory_manager/memory_seperate_assign_strategy.h"
 #include "tnn/memory_manager/memory_unify_assign_strategy.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/data_flag_utils.h"
 
 namespace TNN_NS {
@@ -98,8 +98,11 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
     // intput blobs
     const auto& input_data_type_map = net_structure->input_data_type_map;
     for (auto iter : instance_input_shapes_map) {
-        std::string current_blob_name         = iter.first;
-        Blob *current_blob                    = blobs_[current_blob_name];
+        auto current_blob_name = iter.first;
+        if (blobs_.find(current_blob_name) == blobs_.end()) {
+            continue;
+        }
+        auto current_blob = blobs_[current_blob_name];
         if (input_data_type_map.find(current_blob_name) != input_data_type_map.end()) {
             current_blob->GetBlobDesc().data_type = input_data_type_map.find(current_blob_name)->second;
         } else {
@@ -151,7 +154,7 @@ Status BlobManager::AllocateBlobMemory(int flag) {
         for (auto current_blob_name : layer_info->outputs) {
             Blob *current_blob = blobs_[current_blob_name];
             if (current_blob->NeedAllocateInForward() ||
-                DataFlagUtils::ChangeStatus(current_blob->flag) != DataFlagUtils::ChangeStatus(flag)) {
+                DataFlagUtils::ChangeStatus(current_blob->GetFlag()) != DataFlagUtils::ChangeStatus(flag)) {
                 continue;
             }
             
@@ -176,7 +179,7 @@ Status BlobManager::AllocateBlobMemory(int flag) {
         for (auto current_blob_name : layer_info->inputs) {
             Blob *current_blob = blobs_[current_blob_name];
             if (current_blob->NeedAllocateInForward() ||
-                DataFlagUtils::ChangeStatus(current_blob->flag) != DataFlagUtils::ChangeStatus(flag)) {
+                DataFlagUtils::ChangeStatus(current_blob->GetFlag()) != DataFlagUtils::ChangeStatus(flag)) {
                 continue;
             }
             
@@ -302,7 +305,11 @@ Status BlobManager::GetAllOutputBlobs(BlobMap &blobs) {
 }
 
 Blob *BlobManager::GetBlob(std::string name) {
-    return blobs_[name];
+    auto iter = blobs_.find(name);
+    if (iter != blobs_.end()) {
+        return iter->second;
+    }
+    return nullptr;
 }
 
 void BlobManager::ReplaceBlob(std::string name, Blob *new_blob) {

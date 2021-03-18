@@ -9,17 +9,14 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_op_converter.h"
+#include "tnn/utils/data_type_utils.h"
 #include <mutex>
 #include "onnx_utility.h"
 #include "onnx.pb.h"
-
-inline int saturate_cast(int64_t data) {
-    return (int)((uint64_t)(data - INT_MIN) <= (uint64_t)UINT_MAX ? data : data > 0 ? INT_MAX : INT_MIN);
-}
 
 std::vector<std::string> OnnxOpConverter::GetAllInputNames(NodeProto &node, OnnxNetInfo &net_info) {
     std::vector<std::string> inputs;
@@ -201,20 +198,49 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                  DataType dst_data_type, std::vector<int32_t> dims) {
     int ret = 0;
     do {
+        //    TensorProto_DataType_UNDEFINED = 0,
+        //    TensorProto_DataType_FLOAT = 1,
+        //    TensorProto_DataType_UINT8 = 2,
+        //    TensorProto_DataType_INT8 = 3,
+        //    TensorProto_DataType_UINT16 = 4,
+        //    TensorProto_DataType_INT16 = 5,
+        //    TensorProto_DataType_INT32 = 6,
+        //    TensorProto_DataType_INT64 = 7,
+        //    TensorProto_DataType_STRING = 8,
+        //    TensorProto_DataType_BOOL = 9,
+        //    TensorProto_DataType_FLOAT16 = 10,
+        //    TensorProto_DataType_DOUBLE = 11,
+        //    TensorProto_DataType_UINT32 = 12,
+        //    TensorProto_DataType_UINT64 = 13,
+        //    TensorProto_DataType_COMPLEX64 = 14,
+        //    TensorProto_DataType_COMPLEX128 = 15,
+        //    TensorProto_DataType_BFLOAT16 = 16
+        
         if (!raw_data && data_count > 0) {
             DLog("invalid data or size\n");
             assert(0);
             break;
         }
         
-        if (src_data_type == 1) {//float
+        if (src_data_type == onnx::TensorProto_DataType_FLOAT ||
+            src_data_type == onnx::TensorProto_DataType_DOUBLE) {//float double
+            //double to float
+            auto float_data = (float *)raw_data;
+            if (src_data_type == onnx::TensorProto_DataType_DOUBLE) {
+                float_data = new float [data_count];
+                auto double_data = (double *)raw_data;
+                for (int ii=0; ii<data_count; ii++) {
+                    float_data[ii] = double_data[ii];
+                }
+            }
+            
             if (dst_data_type == DATA_TYPE_AUTO ||
                 dst_data_type == DATA_TYPE_FLOAT) {
-                writer->PutRaw(data_count * sizeof(float), (char *)raw_data, dims,DATA_TYPE_FLOAT);
+                writer->PutRaw(data_count * sizeof(float), (char *)float_data, dims,DATA_TYPE_FLOAT);
             } else if (dst_data_type == DATA_TYPE_HALF) {
                 if (data_count > 0) {
                     float16 *half_data = new float16[data_count];
-                    ret = TNN_NS::ConvertFromFloatToHalf((float *)raw_data, (void *)half_data, data_count);
+                    ret = TNN_NS::ConvertFromFloatToHalf((float *)float_data, (void *)half_data, data_count);
                     writer->PutRaw(data_count * sizeof(float16), (char *)half_data, dims , DATA_TYPE_HALF);
                     delete[] half_data;
                 } else {
@@ -224,7 +250,18 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                 DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
                 assert(0);
             }
-        } else if (src_data_type == 7){//int_64
+            if (float_data != raw_data) {
+                delete [] float_data;
+            }
+        } else if (src_data_type == onnx::TensorProto_DataType_INT32){//int32
+            if (dst_data_type == DATA_TYPE_AUTO ||
+                dst_data_type == DATA_TYPE_INT32) {
+                writer->PutRaw(data_count * sizeof(int32_t), (char *)raw_data, dims, DATA_TYPE_INT32);
+            } else{
+                DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
+                assert(0);
+            }
+        } else if (src_data_type == onnx::TensorProto_DataType_INT64){//int_64
             if (dst_data_type == DATA_TYPE_AUTO ||
                 dst_data_type == DATA_TYPE_INT32) {
                 if (data_count > 0) {
@@ -232,7 +269,26 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                     auto int32_data = new int32_t[data_count];
                     for (int ii=0; ii<data_count; ii++) {
                         //此处一定用saturate_cast，避免int64最大值转换为-1导致出差
-                        int32_data[ii] = saturate_cast(int64_data[ii]);
+                        int32_data[ii] = DataTypeUtils::SaturateCast(int64_data[ii]);
+                    }
+                    writer->PutRaw(data_count * sizeof(int32_t), (char *)int32_data, dims, DATA_TYPE_INT32);
+                    delete[] int32_data;
+                } else {
+                    writer->PutRaw(data_count * sizeof(int32_t), (char *)NULL, dims, DATA_TYPE_INT32);
+                }
+            } else{
+                DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
+                assert(0);
+            }
+        } else if (src_data_type == onnx::TensorProto_DataType_UINT64){//uint_64
+            if (dst_data_type == DATA_TYPE_AUTO ||
+                dst_data_type == DATA_TYPE_INT32) {
+                if (data_count > 0) {
+                    auto uint64_data = (uint64_t *)raw_data;
+                    auto int32_data = new int32_t[data_count];
+                    for (int ii=0; ii<data_count; ii++) {
+                        //此处一定用saturate_cast，避免int64最大值转换为-1导致出差
+                        int32_data[ii] = DataTypeUtils::SaturateCast(uint64_data[ii]);
                     }
                     writer->PutRaw(data_count * sizeof(int32_t), (char *)int32_data, dims, DATA_TYPE_INT32);
                     delete[] int32_data;

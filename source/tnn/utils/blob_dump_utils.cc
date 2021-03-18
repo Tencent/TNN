@@ -21,7 +21,7 @@
 #include "tnn/core/mat.h"
 #include "tnn/interpreter/layer_resource.h"
 #include "tnn/utils/blob_converter.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
@@ -59,9 +59,6 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
 
     auto blob_desc = blob->GetBlobDesc();
     MatType mat_type = NCHW_FLOAT;
-    if(blob_desc.dims.size() == 5) {
-        mat_type = NCDHW_FLOAT;
-    }
     auto data_type = blob_desc.data_type;
 
 #ifdef DUMP_RAW_INT8
@@ -111,8 +108,13 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
         for (int n = 0; n < count; ++n) {
             fprintf(fp, "%d\n", ptr[n]);
         }
+    } else if (data_type == DATA_TYPE_UINT32) {
+        auto ptr = (unsigned int *)data_ptr;
+        for (int n = 0; n < count; ++n) {
+            fprintf(fp, "%d\n", ptr[n]);
+        }
     } else {
-        LOGE("unsupport data type to dump\n");
+        LOGE("unsupport data type to dump: %d\n", data_type);
     }
 #endif
 

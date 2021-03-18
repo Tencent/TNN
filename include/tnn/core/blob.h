@@ -48,6 +48,8 @@ struct PUBLIC BlobHandle {
     uint64_t bytes_offset = 0;
 };
 
+class BlobImpl;
+
 // @brief Blob tnn data store and transfer interface.
 class PUBLIC Blob {
 public:
@@ -80,15 +82,12 @@ public:
     
     //@brief check if it is constant
     bool IsConstant();
-private:
-    BlobDesc desc_;
-    BlobHandle handle_;
-    bool alloc_memory_;
-public:
-    //0: data alwalys change
-    //1: data change if shape differ
-    //2: data never change
-    int flag = DATA_FLAG_CHANGE_ALWAYS;
+
+    int GetFlag();
+
+    void SetFlag(int flag);
+private: 
+    BlobImpl* impl_;
 };
 
 // InputShapeMap input reshape info

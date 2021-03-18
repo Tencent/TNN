@@ -14,27 +14,14 @@
 
 #include "tnn/device/x86/acc/x86_permute_layer_acc.h"
 
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
 
 X86PermuteLayerAcc::~X86PermuteLayerAcc(){};
 
-Status X86PermuteLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto status = X86LayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != TNN_OK) {
-        return status;
-    }
-    return TNN_OK;
-}
-
-Status X86PermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
-Status X86PermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86PermuteLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<PermuteLayerParam *>(param_);
     if (!param) {
         return Status(TNNERR_MODEL_ERR, "Error: PermuteLayerParam is empyt");
@@ -58,12 +45,12 @@ Status X86PermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
     if (data_type != DATA_TYPE_INT8) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
-        NaivePermute<float>(output_count, input_data, param->orders, input_step, output_step, num_dims, output_data);
+        NaivePermute<float>(output_count, output_dims, input_data, param->orders, input_step, output_step, num_dims, output_data);
     } else {
         // DATA_TYPE_INT8
         int8_t *input_data  = static_cast<int8_t *>(input_blob->GetHandle().base);
         int8_t *output_data = static_cast<int8_t *>(output_blob->GetHandle().base);
-        NaivePermute<int8_t>(output_count, input_data, param->orders, input_step, output_step, num_dims, output_data);
+        NaivePermute<int8_t>(output_count, output_dims, input_data, param->orders, input_step, output_step, num_dims, output_data);
     }
     return TNN_OK;
 }

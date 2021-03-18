@@ -26,45 +26,39 @@ import sys
 import time
 
 
-def hack_name(names: str):
+def hack_name(names: list):
     hacked_names = ""
-    name_list = names.split(';')
-    for name in name_list:
+    for name in names:
         if name.endswith(":0"):
             hacked_names = hacked_names + name + ","
         else:
             hacked_names = hacked_names + name + ":0,"
     return hacked_names[:-1]
 
-def process_input_names(input_names : str):
-    split = input_names.split(";")
-    name_list = []
-    shape_list = []
-    for item in split:
-        temp = item.split("[")
-        if not temp[0].endswith(":0"):
-            temp[0] += ":0"
-        name_list.append(temp[0])
-        if len(temp) > 1:
-            shape_list.append("[" + temp[1])
-        else:
-            shape_list.append("")
 
-    inputs = ""
-    inputs_as_nchw = ""
-    for name, shape in zip(name_list, shape_list):
-        inputs += (name + shape + ",")
-        inputs_as_nchw += (name + ",")
+def format_input(arguments: list) -> dict:
+    format_input_info: dict = {}
+    for item in arguments:
+        position = item.rfind(':')
+        name, dims = item[0:position], item[position+1:]
+        if not name.endswith(':0'):
+            name += ':0'
+        dims = '[' + dims + ']'
+        format_input_info.update({name: dims})
+    return format_input_info
 
-    return inputs[:-1], inputs_as_nchw[:-1]
 
 def tf2onnx(tf_path, input_names, output_name, onnx_path, not_fold_const=False):
     work_dir = "./"
-    inputs, inputs_as_nchw = process_input_names(input_names)
+    input_info: dict = format_input(input_names)
+    input_info_str: str = ""
+    input_nchw_names: str = ""
+    for item in input_info.items():
+        input_info_str += item[0] + item[1] + ","
+        input_nchw_names += item[0] + ","
     command = "python3 -m tf2onnx.convert  --graphdef " + tf_path
-
-    command = command + " --inputs " + inputs
-    command = command + " --inputs-as-nchw " + inputs_as_nchw
+    command = command + " --inputs " + input_info_str
+    command = command + " --inputs-as-nchw " + input_nchw_names
 
     command = command + " --outputs " + hack_name(output_name)
     command = command + " --output " + onnx_path
@@ -99,19 +93,25 @@ def convert(tf_path, input_names, output_names, output_dir, version, optimize, h
         version = time.strftime('%Y%m%d%H%M', time.localtime())
     checker.check_file_exist(onnx_path)
     onnx2tnn.convert(onnx_path, output_dir, version, optimize, half)
-    if align is True:
-        proto_suffix = '.tnnproto'
-        model_suffix = '.tnnmodel'
-        onnx_base_name = os.path.basename(onnx_path)
-        if optimize is True:
-            tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
-            tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
-        else:
-            tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
-            tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
-        tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
-        tnn_model_path = os.path.join(output_dir, tnn_model_name)
+
+    proto_suffix = '.tnnproto'
+    model_suffix = '.tnnmodel'
+    onnx_base_name = os.path.basename(onnx_path)
+    if optimize is True:
+        tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
+        tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
+    else:
+        tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
+        tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
+    tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
+    tnn_model_path = os.path.join(output_dir, tnn_model_name)
+
+    if align == 'output':
         align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, debug_mode=debug_mode)
+    elif align == 'all':
+        is_align_all = (align == 'all')
+        align_model.align_all(onnx_path, tnn_proto_path,
+                              is_align_all, input_names, input_path, refer_path)
 
     onnx_base_name = os.path.basename(onnx_path)
     tnn_proto_name = onnx_base_name[:-len('.onnx')] + ('.opt.tnnproto' if optimize else ".tnnproto")

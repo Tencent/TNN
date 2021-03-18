@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cpu/acc/cpu_unary_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 DECLARE_CPU_ACC(MatMul, LAYER_MATMUL);

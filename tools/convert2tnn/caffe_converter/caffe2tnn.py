@@ -35,7 +35,7 @@ def caffe2onnx(proto_path, model_path, output_path):
         return False
 
 
-def convert(proto_path, model_path, output_dir, version, optimize, half, align=False,
+def convert(proto_path, model_path, output_dir, version, optimize, half, align,
             input_path=None, refer_path=None, debug_mode: bool = False):
     logging.info("Converter Caffe to ONNX Model\n")
     checker.check_file_exist(proto_path)
@@ -66,16 +66,23 @@ def convert(proto_path, model_path, output_dir, version, optimize, half, align=F
         align = False
         optimize = False
 
-    if align is True:
-        proto_suffix = '.tnnproto'
-        model_suffix = '.tnnmodel'
-        onnx_base_name = os.path.basename(onnx_path)
-        if optimize is True:
-            tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
-            tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
-        else:
-            tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
-            tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
-        tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
-        tnn_model_path = os.path.join(output_dir, tnn_model_name)
+    proto_suffix = '.tnnproto'
+    model_suffix = '.tnnmodel'
+    onnx_base_name = os.path.basename(onnx_path)
+    if optimize is True:
+        tnn_proto_name = onnx_base_name[:-len('.onnx')] + '.opt' + proto_suffix
+        tnn_model_name = onnx_base_name[:-len('.onnx')] + '.opt' + model_suffix
+    else:
+        tnn_proto_name = onnx_base_name[:-len('.onnx')] + proto_suffix
+        tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
+    tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
+    tnn_model_path = os.path.join(output_dir, tnn_model_name)
+
+    if align == 'output':
         align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, debug_mode=debug_mode)
+    elif align == 'all':
+        is_opt = '.opt' if optimize else ''
+        onnx_base_name = os.path.basename(onnx_path)
+        is_align_all = (align == 'all')
+        align_model.align_all(onnx_path, tnn_proto_path,
+                              is_align_all, None, input_path, refer_path)

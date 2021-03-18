@@ -14,7 +14,7 @@
 
 #include "cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -49,6 +49,18 @@ Status CpuCastLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
         auto *output_data_ptr = (float *)output_data;
         for (int i = 0; i < count; ++i) {
             output_data_ptr[i] = static_cast<float>(input_data_ptr[i]);
+        }
+    } else if (input_data_type == DATA_TYPE_INT32 && output_data_type == DATA_TYPE_UINT32) {
+        auto *input_data_ptr  = (int *)input_data;
+        auto *output_data_ptr = (unsigned int *)output_data;
+        for (int i = 0; i < count; ++i) {
+            output_data_ptr[i] = static_cast<unsigned int>(input_data_ptr[i]);
+        }
+    } else if (input_data_type == DATA_TYPE_UINT32 && output_data_type == DATA_TYPE_INT32) {
+        auto *input_data_ptr  = (unsigned int *)input_data;
+        auto *output_data_ptr = (int *)output_data;
+        for (int i = 0; i < count; ++i) {
+            output_data_ptr[i] = static_cast<int>(input_data_ptr[i]);
         }
     } else {
         LOGE("unsupport data type to cast\n");

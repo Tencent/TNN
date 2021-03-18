@@ -70,7 +70,7 @@ cd <path_to_tnn>/scripts
 ```
 ./build_android.sh
 ```
-After the compilation is completed, the corresponding `armeabi-v7a` library, the` arm64-v8a` library and the `include` header file are generated in the` release` directory of the current directory.
+After the compilation is completed, the corresponding `armeabi-v7a` library, the` arm64-v8a` library and the `include` header file are generated in the` release` directory of the current directory. <font color="#dd0000">Notice that add `-Wl,--whole-archive tnn -Wl,--no-whole-archive` to the project, if tnn static library is compiled</font>.
 
 ## III. Cross-Compile in Linux
 
@@ -119,6 +119,11 @@ cd <path_to_tnn>/scripts
 cd <path_to_tnn>/scripts
 ```
 2) execute the building scripts
+  - compile without openvino
+```
+./build_linux_naive.sh
+```
+  - compile with openvino
 ```
 ./build_linux.sh
 ```
@@ -152,19 +157,24 @@ cd <path_to_tnn>/scripts
 #### Dependencies
   - Visual Studio (version 2015 or higher)
   - cmake (vsrsion 3.11 or higher; Or use build-in cmake in Visual Studio)
+  - ninja (faster compilation, installed with chocolatey)
 
 ### 2. Compilation Steps
-Open `x64 Native Tools Command Prompt for VS 2017/2019`.
+Open `x64 Native Tools Command Prompt for VS 2017/2019`. Or open `x86 Native Tools Command Prompt for VS 2017/2019` to compile 32-bit version
 1) switch to 'scripts' directory
 ```
 cd <path_to_tnn>/scripts
 ```
 2) execute the building scripts
+  - compile without openvino
 ```
-.\build_msvc.bat [VS2015/VS2017/VS2019]
+.\build_msvc_naive.bat
 ```
-If Visual Studio cannot be recognized, please refer to a version manually
-More problems refer to [FAQ](openvino_en.md)
+  - compile with openvino
+```
+.\build_msvc.bat
+```
+Openvino can only be compiled to 64-bit version. More problems refer to [FAQ](openvino_en.md)
 
 
 ## VII. Compile(Macos)

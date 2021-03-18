@@ -14,7 +14,7 @@
 
 #include "cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 namespace TNN_NS {
 
 DECLARE_CPU_ACC_WITH_FUNC(Ragne, LAYER_RANGE,
@@ -32,7 +32,7 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
     if (inputs.size() >= 3) {
         //start
         {
-            layer_param->type = inputs[0]->GetBlobDesc().data_type;
+            layer_param->data_type = inputs[0]->GetBlobDesc().data_type;
             
             auto start_data = (int *)((char *)inputs[0]->GetHandle().base + inputs[0]->GetHandle().bytes_offset);
             auto start = layer_param->start;
@@ -50,9 +50,9 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
         {
             auto limit_data = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
             auto limit = layer_param->limit;
-            if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+            if (inputs[1]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
                 limit.f = *limit_data;
-            } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+            } else if (inputs[1]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
                 limit.i = *((int *)limit_data);
             } else {
                 return Status(TNNERR_PARAM_ERR, "RangeLayer has invalid limit data type");
@@ -64,9 +64,9 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
         {
             auto delta_data = (int *)((char *)inputs[2]->GetHandle().base + inputs[2]->GetHandle().bytes_offset);
             auto delta = layer_param->delta;
-            if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+            if (inputs[2]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
                 delta.f = *delta_data;
-            } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+            } else if (inputs[2]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
                 delta.i = *((int *)delta_data);
             } else {
                 return Status(TNNERR_PARAM_ERR, "RangeLayer has invalid delta data type");
@@ -76,8 +76,8 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
         
         //infer output shape
         Status status = TNN_OK;
-        auto output_dims = DimsVectorUtils::Range(layer_param->start, layer_param->limit,
-                                                  layer_param->delta, layer_param->type, &status);
+        auto output_dims = DimsFunctionUtils::Range(layer_param->start, layer_param->limit,
+                                                  layer_param->delta, layer_param->data_type, &status);
         RETURN_ON_NEQ(status, TNN_OK);
         
         outputs[0]->GetBlobDesc().dims = output_dims;

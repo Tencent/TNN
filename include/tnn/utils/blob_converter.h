@@ -40,11 +40,11 @@ class BlobConverterAcc;
 class PUBLIC BlobConverter {
 public:
     explicit BlobConverter(Blob* blob);
-    virtual Status ConvertToMat(Mat& image, MatConvertParam param, void* command_queue);
-    virtual Status ConvertFromMat(Mat& image, MatConvertParam param, void* command_queue);
+    Status ConvertToMat(Mat& image, MatConvertParam param, void* command_queue);
+    Status ConvertFromMat(Mat& image, MatConvertParam param, void* command_queue);
 
-    virtual Status ConvertToMatAsync(Mat& image, MatConvertParam param, void* command_queue);
-    virtual Status ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue);
+    Status ConvertToMatAsync(Mat& image, MatConvertParam param, void* command_queue);
+    Status ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue);
 
 private:
     Blob* blob_ = nullptr;

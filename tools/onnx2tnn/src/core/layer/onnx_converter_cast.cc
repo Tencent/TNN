@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_op_converter.h"
@@ -47,30 +47,7 @@ string OnnxOpConverterCast::TNNLayerParam(NodeProto &node,
     
     //转成common.h里面的DataType值
     int64_t to = get_node_attr_i(node, "to");
-    DataType data_type = DATA_TYPE_AUTO;
-    switch (to) {
-        case 1:
-            data_type = DATA_TYPE_FLOAT;
-            break;
-        case 9://INT8 BOOL(sizeof(bool) == sizeof(char))
-        case 3:
-            data_type = DATA_TYPE_INT8;
-            break;
-        case 6:
-        case 7:
-            data_type = DATA_TYPE_INT32;
-            break;
-        case 10:
-            data_type = DATA_TYPE_HALF;
-            break;
-        case 16:
-            data_type = DATA_TYPE_BFP16;
-            break;
-        default:
-            DLog("unsupport data type");
-            assert(0);
-            break;
-    }
+    DataType data_type = GetTnnDataTypeFromOnnx(to);
     layer_param << data_type << " ";
 
     return layer_param.str();

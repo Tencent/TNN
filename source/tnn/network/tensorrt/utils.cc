@@ -18,6 +18,7 @@
 
 #include "tnn/network/tensorrt/utils.h"
 #include "tnn/core/macro.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
@@ -159,6 +160,48 @@ nvinfer1::DataType ConvertToTRTDataType(DataType type) {
         default:
             return nvinfer1::DataType::kFLOAT;
     } 
+}
+
+nvinfer1::ILayer* ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* network, RawBuffer *buf,
+                                                            DimsVector recommend_dims, int expand_dims) {
+
+    size_t buf_size_in_bytes = buf->GetDataCount() * DataTypeUtils::GetBytesSize(buf->GetDataType());
+    
+    nvinfer1::Weights const_weight;
+    const_weight.type = ConvertToTRTDataType(buf->GetDataType());
+    const_weight.values = buf->force_to<void*>();
+    const_weight.count = buf->GetDataCount();
+
+    DimsVector buf_dims = buf->GetBufferDims();
+    if (recommend_dims.size() > 0 ) {
+        buf_dims = recommend_dims;
+    }
+
+    if (buf_dims.size() == 0) {
+        if (buf->GetDataCount() == 0) {
+            LOGE("Warning: ConvertWeightToConstLayer got empty buffer\n");
+            return nullptr;
+        } else if (buf->GetDataCount() > 1) {
+            LOGE("ConvertWeightToConstLayer got empty shapes\n");
+            return nullptr;
+        }
+    }
+
+    auto weightDims = ConvertToTRTDims(buf_dims);
+    int origin_dims = weightDims.nbDims;
+    if(expand_dims > origin_dims) {
+        weightDims.nbDims = expand_dims;
+        int diff = expand_dims - origin_dims;
+        for(int i = expand_dims - 1; i >= diff; --i) {
+            weightDims.d[i] = weightDims.d[i-diff];
+        }
+        for(int i = 0; i < diff; ++i) {
+            weightDims.d[i] = 1;
+        }
+    }
+
+    nvinfer1::ILayer* constant_layer = network->addConstant(weightDims, const_weight); 
+    return constant_layer;
 }
 
 nvinfer1::ILayer* AddReshapeToNetwork(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor* input_tensor, DimsVector reshape_dims, const char* layer_name) {

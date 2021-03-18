@@ -61,6 +61,10 @@ public:
      */
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+    // @brief allocate or update constant blobs if constant resource change。
+    // Note: this func may cost much time, call this func only when necessary。
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs);
+
 protected:
     void CreateTempBuf(size_t size);
 
@@ -74,6 +78,18 @@ private:
     // @brief retrun device layer acc support data format
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size);
 };
+
+
+#define DECLARE_CUDA_ACC_WITH_FUNC(type_string, layer_type, extra_funcs)                                              \
+    class Cuda##type_string##LayerAcc : public CudaLayerAcc {                                                         \
+    public:                                                                                                           \
+        virtual Status Init(Context *context, LayerParam *param, LayerResource *resource,                             \
+            const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                                   \
+        virtual ~Cuda##type_string##LayerAcc() {};                                                                    \
+        virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                \
+        virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                \
+        extra_funcs                                                                                                   \
+    }
 
 #define DECLARE_CUDA_ACC(type_string, layer_type)                                                                     \
     class Cuda##type_string##LayerAcc : public CudaLayerAcc {                                                         \

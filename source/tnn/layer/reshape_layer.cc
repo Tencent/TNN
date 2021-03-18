@@ -15,7 +15,7 @@
 #include <cmath>
 
 #include "tnn/layer/base_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 DECLARE_LAYER_WITH_FUNC(Reshape, LAYER_RESHAPE,
@@ -30,7 +30,7 @@ Status ReshapeLayer::InferOutputDataType() {
     if (runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
         for (auto& iter : output_blobs_) {
             int allocate_status = DATA_FLAG_ALLOCATE_IN_FORWARD;
-            iter->flag = iter->flag | allocate_status;
+            iter->SetFlag(iter->GetFlag() | allocate_status);
         }
     }
     
@@ -51,7 +51,7 @@ Status ReshapeLayer::InferOutputShape(bool ignore_error) {
         auto input_dims = input_blob->GetBlobDesc().dims;
         
         Status status = TNN_OK;
-        auto output_dims = DimsVectorUtils::Reshape(input_dims, layer_param->shape, layer_param->axis, layer_param->num_axes, &status);
+        auto output_dims = DimsFunctionUtils::Reshape(input_dims, layer_param->shape, layer_param->axis, layer_param->num_axes, &status);
         RETURN_ON_NEQ(status, TNN_OK);
         
         output_blob->GetBlobDesc().dims = output_dims;

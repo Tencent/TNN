@@ -284,7 +284,7 @@ Status NpuNetwork::InitSubNetwork(NetworkConfig &net_config, ModelConfig &model_
         return Status(TNNERR_LAYER_ERR,
                       "ERROR: When split the network,  the arm can not find input in the huawei_npu visited layers");
     }
-    Status ret = sub_network_->Init(cpu_net_config, model_config, interpreter, cpu_inputs_shape);
+    Status ret = sub_network_->Init(cpu_net_config, model_config, interpreter, cpu_inputs_shape, cpu_inputs_shape);
     if (ret != TNN_OK) {
         return ret;
     }

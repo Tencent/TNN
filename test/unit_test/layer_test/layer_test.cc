@@ -25,7 +25,7 @@
 #include "tnn/utils/blob_memory_size_utils.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -101,9 +101,6 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
     if (DEVICE_CUDA == config_device.device_type) {
         config_device.network_type = NETWORK_TYPE_TENSORRT;
     }
-    if (DEVICE_X86 == config_device.device_type) {
-        config_device.network_type = NETWORK_TYPE_OPENVINO;
-    }
     if (!FLAGS_ub && (DEVICE_OPENCL == config_device.device_type || DEVICE_METAL == config_device.device_type)) {
         config_device.precision = PRECISION_HIGH;
     } else {
@@ -131,7 +128,7 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
         LOGE("tnn init cpu instance falied (%s)\n", ret.description().c_str());
         return ret;
     }
-    ret = instance_device_->Init(interp, input_shape);
+    ret = instance_device_->Init(instance_cpu_->GetInterpreter(), input_shape);
     if (ret != TNN_OK) {
         LOGE("tnn init device instance falied (%s)\n", ret.description().c_str());
         return ret;

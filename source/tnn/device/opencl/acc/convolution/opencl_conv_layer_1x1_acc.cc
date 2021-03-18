@@ -48,7 +48,7 @@ Status OpenCLConvLayer1x1Acc::Init(Context *context, LayerParam *param, LayerRes
     }
 
     if (stride_is_1_ && !run_3d_ndrange_) {
-        if (MALI_T == gpu_info_.type || (MALI_G == gpu_info_.type && gpu_info_.model_num < 76)) {
+        if (MALI_T == gpu_info_.type || MALI_G == gpu_info_.type) {
             use_buffer_ = true;
         }
     }

@@ -24,7 +24,7 @@ ILayer* ConcatTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
     bool int8 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetInt8Mode();
     size_t nbInputs = input_blobs_.size();
-    ITensor * input_tensors[nbInputs];
+    ITensor ** input_tensors = new ITensor*[nbInputs];
     for (int i = 0; i < nbInputs; i++) {
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[i])->GetForeignTensor();
         auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
@@ -38,6 +38,7 @@ ILayer* ConcatTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         layer->setAxis(paramlist->axis);
         last_layer = layer;
     }
+    delete [] input_tensors;
 
     if (int8) {
         float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];

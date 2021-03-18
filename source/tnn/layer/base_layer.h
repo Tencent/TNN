@@ -72,7 +72,7 @@ public:
     bool IsOutputConstant();
     
     // @brief check if the layer's output is const with flag DATA_FLAG_CHANGE_IF_SHAPE_DIFFER
-    bool IsOutputShapeDifferent();
+    int GetLayerChangeFlag();
     
     // @brief set constant resource
     void SetConstantResource(ConstantResource* consts);

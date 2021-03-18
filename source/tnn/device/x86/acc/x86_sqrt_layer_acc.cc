@@ -12,20 +12,29 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/x86/acc/x86_unary_layer_acc.h"
+#include "tnn/device/x86/acc/x86_unary2_layer_acc.h"
 
 #include <cmath>
+#include <algorithm>
 
 namespace TNN_NS {
-
-typedef struct x86_sqrt_operator : x86_unary_operator {
+typedef struct x86_sqrt_operator : x86_unary2_operator {
     virtual float operator()(const float v) {
         return sqrt(v);
     }
+
+    virtual Float4 operator()(const Float4 &v) {
+        return Float4::sqrt(v);
+    }
+
+    virtual Float8 operator()(const Float8 &v) {
+        return Float8::sqrt(v);
+    }
 } X86_SQRT_OP;
 
-DECLARE_X86_UNARY_ACC(Sqrt, X86_SQRT_OP);
-
+X86_REGISTER_UNARY2_KERNEL(LAYER_SQRT, avx2, unary2_kernel_avx<X86_SQRT_OP>);
+X86_REGISTER_UNARY2_KERNEL(LAYER_SQRT, sse42, unary2_kernel_sse<X86_SQRT_OP>);
+DECLARE_X86_UNARY2_ACC(Sqrt, LAYER_SQRT);
 REGISTER_X86_ACC(Sqrt, LAYER_SQRT);
 
 }   // namespace TNN_NS

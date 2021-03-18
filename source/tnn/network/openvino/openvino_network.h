@@ -81,6 +81,9 @@ public:
 
     virtual Status BuildNgraphNetwork(NetStructure *net_structure);
 
+    // @brief set threads run on device
+    virtual Status SetCpuNumThreads(int num_threads);
+
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
   

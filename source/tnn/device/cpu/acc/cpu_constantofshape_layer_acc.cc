@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "cpu_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 namespace TNN_NS {
 
 DECLARE_CPU_ACC(ConstantOfShape, LAYER_CONSTANT_OF_SHAPE);
@@ -25,6 +25,7 @@ Status CpuConstantOfShapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
 Status CpuConstantOfShapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_resource = dynamic_cast<ConstantOfShapeLayerResource*>(resource_);
     CHECK_PARAM_NULL(layer_resource);
+    auto data_value_count = layer_resource->value.GetDataCount();
     auto data_value_size = layer_resource->value.GetBytesSize();
     auto data_value_ptr = layer_resource->value.force_to<char *>();
     
