@@ -68,7 +68,7 @@ Status OpenCLStrideSliceV2LayerAcc::Init(Context *context, LayerParam *param, La
     DimsVector input_dims = input_blob->GetBlobDesc().dims;
     DimsVector output_dims = output_blob->GetBlobDesc().dims;
 
-    DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &ret);
+    DimsFunctionUtils::StrideSlice(input_dims, begins, ends, strides, axes, &ret);
     CHECK_TNN_OK(ret)
 
     for (int i = 0, axes_idx = 0; i < output_dims.size(); ++i) {

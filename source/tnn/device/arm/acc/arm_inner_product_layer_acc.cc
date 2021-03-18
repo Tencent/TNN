@@ -329,16 +329,13 @@ Status ArmInnerProductLayerAcc::Exec<int8_t>(const std::vector<Blob *> &inputs, 
     InnerProductLayerParam *fc_param = dynamic_cast<InnerProductLayerParam *>(param_);
     auto dims_input                  = inputs[0]->GetBlobDesc().dims;
     auto dims_output                 = outputs[0]->GetBlobDesc().dims;
-    auto ic                          = DimsVectorUtils::Count(dims_input, 2) * ROUND_UP(dims_input[1], 4);
-    auto ic_r4                       = ROUND_UP(ic, 4);
-    auto oc_r4                       = ROUND_UP(dims_output[1], 4);
 
     auto input_origin  = reinterpret_cast<int8_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
     auto output_origin = reinterpret_cast<int8_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
 
     auto ic    = dims_input[1];
     auto ic_r4 = ROUND_UP(ic, 4);
-    auto hw    = dims_input[2] * dims_input[3];
+    auto hw    = DimsVectorUtils::Count(dims_input, 2);
     auto ik    = ic * hw;
     auto ik_r8 = ROUND_UP(ik, 8);
     auto oc_r4 = ROUND_UP(dims_output[1], 4);
