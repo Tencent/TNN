@@ -17,39 +17,38 @@
 #include "tools/converter/source/onnx/onnx_base_converter.h"
 
 namespace TNN_CONVERTER {
-DECLARE_OP_CONVERTER(Cast);
+DECLARE_OP_CONVERTER(Power);
 
-std::string OnnxCastConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    return "Cast";
+std::string OnnxPowerConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
+    return "Power";
 }
 
-TNN_NS::ActivationType OnnxCastConverter::ActivationType(const onnx::NodeProto &node) {
+TNN_NS::ActivationType OnnxPowerConverter::ActivationType(const onnx::NodeProto &node) {
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxCastConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
-                                       const onnx::NodeProto &node,
-                                       std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
-                                       std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
-                                       bool &quantized_model) {
+TNN_NS::Status OnnxPowerConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
+                                        const onnx::NodeProto &node,
+                                        std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                        std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
+                                        bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
-    auto param                 = new TNN_NS::CastLayerParam;
+    auto param                 = new TNN_NS::PowLayerParam;
     auto cur_layer             = net_structure.layers.back();
     cur_layer->param           = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->type                = cur_layer->type_str;
     param->name                = cur_layer->name;
     param->quantized           = false;
+    param->scale               = 1.0;
+    param->shift               = 0.0;
+    param->exponent            = GetAttributeFloat(node, "exponent", 1, 0.0, proxy_initializers_map);
 
-    auto to_type         = GetAttributeInt(node, "to", 0);
-    const auto onnx_type = static_cast<onnx::TensorProto_DataType>(to_type);
-    const auto tnn_type  = GetTnnDataTypeFromOnnx(onnx_type);
-    param->to            = tnn_type;
-
+    cur_layer->inputs.resize(1);
     cur_layer->inputs[0] = node.input(0);
 
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-REGISTER_CONVERTER(Cast, Cast);
+REGISTER_CONVERTER(Power, Pow);
 
 }  // namespace TNN_CONVERTER

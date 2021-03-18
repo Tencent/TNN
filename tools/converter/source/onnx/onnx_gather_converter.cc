@@ -89,8 +89,8 @@ TNN_NS::Status OnnxGatherConverter::exec(tnn::NetStructure &net_structure, tnn::
         auto &data_dims         = data_tensor->dims();
         auto dims               = std::vector<int>(data_dims.begin(), data_dims.end());
         auto data_count         = TNN_NS::DimsVectorUtils::Count(dims);
-        auto data_raw_buffer    = TNN_NS::RawBuffer(data_count * sizeof(int32_t), dims);
-        data_raw_buffer.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        auto data_raw_buffer    = TNN_NS::RawBuffer(data_count * sizeof(float), dims);
+        data_raw_buffer.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
         void *data_ptr = GetDataFromTensor(*data_tensor, onnx::TensorProto_DataType_FLOAT);
         if (data_ptr == nullptr) {
             LOGE("Gather: can not get data from onnx model, please check the model\n");
@@ -100,7 +100,8 @@ TNN_NS::Status OnnxGatherConverter::exec(tnn::NetStructure &net_structure, tnn::
         for (int i = 0; i < data_count; ++i) {
             tmp[i] = *((float *)data_ptr + i);
         }
-        memcpy(data_raw_buffer.force_to<int32_t *>(), tmp, data_count);
+        memcpy(data_raw_buffer.force_to<float *>(), tmp, data_count * sizeof(float));
+        resource->data = data_raw_buffer;
         delete[] tmp;
     } else {
         param->data_in_resource = false;

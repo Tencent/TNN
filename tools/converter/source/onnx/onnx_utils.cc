@@ -94,6 +94,31 @@ std::vector<int64_t> GetAttributeInt64Vector(const onnx::NodeProto &node, const 
     return attributes;
 }
 
+std::vector<int64_t> GetAttributeInt64Vector(const onnx::NodeProto &node, const std::string &name,
+                                             std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                             int location) {
+    auto attributes = GetAttributeInt64Vector(node, name);
+    if (attributes.empty()) {
+        const int node_input_size = node.input_size();
+        if (location < 0) {
+            location += node_input_size;
+        }
+        assert(location >= 0);
+        if (location > node_input_size - 1) {
+            return attributes;
+        }
+        const auto &attributes_name = node.input(location);
+        if (proxy_initializers_map.find(attributes_name) == proxy_initializers_map.end()) {
+            return attributes;
+        }
+        const auto attributes_data = GetTensorProtoDataVector<int64_t>(*proxy_initializers_map[attributes_name]);
+        for (const auto &item : attributes_data) {
+            attributes.push_back(item);
+        }
+    }
+    return attributes;
+}
+
 float GetAttributeFloat(const onnx::NodeProto &node, const std::string &name, float default_value) {
     for (const auto &iter : node.attribute()) {
         if (iter.name() != name) {
@@ -102,6 +127,28 @@ float GetAttributeFloat(const onnx::NodeProto &node, const std::string &name, fl
         assert(iter.type() == onnx::AttributeProto_AttributeType_FLOAT);
         return iter.f();
     }
+    return default_value;
+}
+
+float GetAttributeFloat(const onnx::NodeProto &node, const std::string &name, int location, float default_value,
+                        std::map<std::string, const onnx::TensorProto *> proxy_initializers_map) {
+    auto value = GetAttributeFloat(node, name, default_value);
+    if (std::fabs(value - default_value) > 1e-6) {
+        return value;
+    }
+
+    const auto node_input_size = node.input_size();
+    assert(location >= 0 && location < node_input_size);
+
+    const auto &target_name = node.input(location);
+    assert(proxy_initializers_map.find(target_name) != proxy_initializers_map.end());
+    const auto &tensor      = proxy_initializers_map[target_name];
+    const int tensor_size   = GetTensorProtoDataSize(*tensor);
+    const auto *tensor_data = GetTensorProtoData(*tensor);
+    if (tensor_size > 0) {
+        return tensor_data[0];
+    }
+
     return default_value;
 }
 
@@ -348,4 +395,82 @@ void CreateRawBufferFromConstant(const onnx::NodeProto &constant_node, TNN_NS::R
         }
     }
 }
+
+TNN_NS::DataType GetTnnDataTypeFromOnnx(const onnx::TensorProto_DataType &onnx_type) {
+    switch (onnx_type) {
+        case onnx::TensorProto_DataType_FLOAT: {
+            return TNN_NS::DATA_TYPE_FLOAT;
+        }
+        case onnx::TensorProto_DataType_FLOAT16: {
+            return TNN_NS::DATA_TYPE_HALF;
+        }
+        case onnx::TensorProto_DataType_UINT8:
+        case onnx::TensorProto_DataType_INT8: {
+            return TNN_NS::DATA_TYPE_INT8;
+        }
+        case onnx::TensorProto_DataType_INT64:
+        case onnx::TensorProto_DataType_INT32: {
+            return TNN_NS::DATA_TYPE_INT32;
+        }
+        case onnx::TensorProto_DataType_BFLOAT16: {
+            return TNN_NS::DATA_TYPE_BFP16;
+        }
+        default: {
+            LOGE("Not support onnx TypeProto type: %d", onnx_type);
+            assert(0);
+        }
+    }
+}
+
+template <class T>
+std::vector<T> GetTensorProtoDataVector(const onnx::TensorProto &tp) {
+    std::vector<T> data_vec;
+    //    TensorProto_DataType_FLOAT = 1,
+    int size  = GetTensorProtoDataSize(tp);
+    T *data_T = nullptr;
+    if (tp.has_raw_data()) {
+        const std::string &raw_data = tp.raw_data();
+        data_T                      = (T *)raw_data.data();
+    } else if (tp.data_type() == 1) {
+        data_T = (T *)tp.float_data().data();
+    } else if (tp.data_type() == 6) {
+        data_T = (T *)tp.int32_data().data();
+    } else if (tp.data_type() == 7) {
+        data_T = (T *)tp.int64_data().data();
+    } else if (tp.data_type() == 11) {
+        data_T = (T *)tp.double_data().data();
+    } else {
+        LOGE("name:%s data_type :%d\n", tp.name().c_str(), tp.data_type());
+        assert(0);
+        return data_vec;
+    }
+
+    for (int i = 0; i < size; i++) {
+        data_vec.push_back(data_T[i]);
+    }
+    return data_vec;
+}
+
+TNN_NS::Status GetWeightInputIndexName(int &weight_input_index, std::string &weight_name, const onnx::NodeProto &node,
+                                       std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
+                                       std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes) {
+    weight_input_index        = -1;
+    weight_name               = "";
+    const int node_input_size = node.input_size();
+    for (int i = 0; i < node_input_size; i++) {
+        const auto &input_name = node.input(i);
+        if (proxy_initializers_map.find(input_name) == proxy_initializers_map.end()) {
+            continue;
+        }
+        if (weight_input_index != -1) {
+            LOGE("Binary: Only support one weight input index\n");
+            return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
+        }
+        weight_input_index = i;
+        weight_name        = input_name;
+    }
+
+    return TNN_NS::TNN_CONVERT_OK;
+}
+
 }  // namespace TNN_CONVERTER

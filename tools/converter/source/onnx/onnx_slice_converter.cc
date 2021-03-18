@@ -19,8 +19,18 @@
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Slice);
 
+int Int64ToInt32(const int64_t number) {
+    if (number < INT_MIN) {
+        return INT_MIN;
+    } else if (number > INT_MAX) {
+        return INT_MAX;
+    }
+
+    return (int)number;
+}
+
 std::string OnnxSliceConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    return "Slice";
+    return "StridedSliceV2";
 }
 
 TNN_NS::ActivationType OnnxSliceConverter::ActivationType(const onnx::NodeProto &node) {
@@ -28,39 +38,44 @@ TNN_NS::ActivationType OnnxSliceConverter::ActivationType(const onnx::NodeProto 
 }
 
 TNN_NS::Status OnnxSliceConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
-                                            const onnx::NodeProto &node,
-                                            std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
-                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
-                                            bool &quantized_model) {
+                                        const onnx::NodeProto &node,
+                                        std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                        std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
+                                        bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
-    auto param                 = new TNN_NS::StrideSliceLayerParam;
+    auto param                 = new TNN_NS::StrideSliceV2LayerParam;
     auto cur_layer             = net_structure.layers.back();
     cur_layer->param           = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->type                = cur_layer->type_str;
     param->name                = cur_layer->name;
     param->quantized           = false;
 
-    auto axis     = GetAttributeInt64Vector(node, "axes");
-    int axis_size = axis.size();
-
-    for (int i = 0; i < axis_size; i++) {
-        param->strides.push_back(axis[i]);
-    }
-
-    auto starts     = GetAttributeInt64Vector(node, "starts");
+    auto starts     = GetAttributeInt64Vector(node, "starts", proxy_initializers_map, 1);
+    auto ends       = GetAttributeInt64Vector(node, "ends", proxy_initializers_map, 2);
+    auto axis       = GetAttributeInt64Vector(node, "axes", proxy_initializers_map, 3);
+    auto steps      = GetAttributeInt64Vector(node, "steps", proxy_initializers_map, 4);
     int starts_size = starts.size();
+    int ends_size   = ends.size();
+    int axis_size   = axis.size();
+    int steps_size  = steps.size();
 
     for (int i = 0; i < starts_size; i++) {
-        param->begins.push_back(starts[i]);
+        param->begins.push_back(Int64ToInt32(starts[i]));
     }
-
-    auto ends     = GetAttributeInt64Vector(node, "ends");
-    int ends_size = ends.size();
 
     for (int i = 0; i < ends_size; i++) {
-        param->ends.push_back(ends[i]);
+        param->ends.push_back(Int64ToInt32(ends[i]));
     }
 
+    for (int i = 0; i < axis_size; i++) {
+        param->axes.push_back(axis[i]);
+    }
+
+    for (int i = 0; i < steps_size; i++) {
+        param->strides.push_back(steps[i]);
+    }
+
+    cur_layer->inputs.resize(1);
     cur_layer->inputs[0] = node.input(0);
 
     return TNN_NS::TNN_CONVERT_OK;
