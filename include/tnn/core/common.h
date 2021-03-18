@@ -199,8 +199,8 @@ struct PUBLIC ModelConfig {
 };
 
 typedef union {
-    float f;
     int i;
+    float f;
 } RangeData;
 
 }  // namespace TNN_NS
