@@ -38,39 +38,39 @@ Status ArmArgMaxOrMinLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     }
 }
 
-#define ExecWithoutWorkspace                                                                    \
-    if (param->mode == 0) {                                                                     \
-        return ExecImpl<T, 0>(inputs, outputs, inner_dim, reduce_dim, outer_dim);               \
-    } else {                                                                                    \
-        return ExecImpl<T, 1>(inputs, outputs, inner_dim, reduce_dim, outer_dim);               \
-    }                                                                                           \
+#define ExecWithoutWorkspace                                                                                           \
+    if (param->mode == 0) {                                                                                            \
+        return ExecImpl<T, 0>(inputs, outputs, inner_dim, reduce_dim, outer_dim);                                      \
+    } else {                                                                                                           \
+        return ExecImpl<T, 1>(inputs, outputs, inner_dim, reduce_dim, outer_dim);                                      \
+    }
 
-#define ExecWithWorkspace                                                                       \
-    size_in_bytes = outer_dim * input_byte_size;                                                \
-    workspace     = context_->GetSharedWorkSpace(size_in_bytes);                                \
-    if (param->mode == 0) {                                                                     \
-        return ExecImpl<T, 0>(inputs, outputs, workspace, inner_dim, reduce_dim, outer_dim);    \
-    } else {                                                                                    \
-        return ExecImpl<T, 1>(inputs, outputs, workspace, inner_dim, reduce_dim, outer_dim);    \
-    }                                                                                           \
+#define ExecWithWorkspace                                                                                              \
+    size_in_bytes = outer_dim * input_byte_size;                                                                       \
+    workspace     = context_->GetSharedWorkSpace(size_in_bytes);                                                       \
+    if (param->mode == 0) {                                                                                            \
+        return ExecImpl<T, 0>(inputs, outputs, workspace, inner_dim, reduce_dim, outer_dim);                           \
+    } else {                                                                                                           \
+        return ExecImpl<T, 1>(inputs, outputs, workspace, inner_dim, reduce_dim, outer_dim);                           \
+    }
 
-#define ExecDimCWithoutWorkspace                                                                \
-    if (param->mode == 0) {                                                                     \
-        return ExecImplC<T, 0>(inputs, outputs, inner_dim, ic, outer_dim);                      \
-    } else {                                                                                    \
-        return ExecImplC<T, 1>(inputs, outputs, inner_dim, ic, outer_dim);                      \
-    }                                                                                           \
+#define ExecDimCWithoutWorkspace                                                                                       \
+    if (param->mode == 0) {                                                                                            \
+        return ExecImplC<T, 0>(inputs, outputs, inner_dim, ic, outer_dim);                                             \
+    } else {                                                                                                           \
+        return ExecImplC<T, 1>(inputs, outputs, inner_dim, ic, outer_dim);                                             \
+    }
 
-#define ExecDimCWithWorkspace                                                                   \
-    size_in_bytes = outer_dim * input_byte_size;                                                \
-    workspace     = context_->GetSharedWorkSpace(size_in_bytes);                                \
-    if (param->mode == 0) {                                                                     \
-        return ExecImplC<T, 0>(inputs, outputs, workspace, inner_dim, ic, outer_dim);           \
-    } else {                                                                                    \
-        return ExecImplC<T, 1>(inputs, outputs, workspace, inner_dim, ic, outer_dim);           \
-    }                                                                                           \
+#define ExecDimCWithWorkspace                                                                                          \
+    size_in_bytes = outer_dim * input_byte_size;                                                                       \
+    workspace     = context_->GetSharedWorkSpace(size_in_bytes);                                                       \
+    if (param->mode == 0) {                                                                                            \
+        return ExecImplC<T, 0>(inputs, outputs, workspace, inner_dim, ic, outer_dim);                                  \
+    } else {                                                                                                           \
+        return ExecImplC<T, 1>(inputs, outputs, workspace, inner_dim, ic, outer_dim);                                  \
+    }
 
-template<typename T, int mode>
+template <typename T, int mode>
 static void UpdateOnePlane(T *input_ptr_base, float *output_ptr_base, T *workspace_ptr, int reduce_dim, int outer_dim) {
     memcpy(workspace_ptr, input_ptr_base, outer_dim * sizeof(T));
     memset(output_ptr_base, 0, outer_dim * sizeof(float));
@@ -97,8 +97,8 @@ static void UpdateOnePlane(T *input_ptr_base, float *output_ptr_base, T *workspa
 // loop order: inner_dim -> reduce_dim -> outer_dim
 // cache outer result with workspace
 template <typename T, int mode>
-static Status ExecImpl(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                       void *workspace, int inner_dim, int reduce_dim, int outer_dim) {
+static Status ExecImpl(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, void *workspace,
+                       int inner_dim, int reduce_dim, int outer_dim) {
     auto *input_ptr     = static_cast<T *>(inputs[0]->GetHandle().base);
     auto *output_ptr    = static_cast<float *>(outputs[0]->GetHandle().base);
     auto *workspace_ptr = static_cast<T *>(workspace);
@@ -133,8 +133,8 @@ static Float4 GetOneValue(T *input_ptr_base, int reduce_dim, int outer_dim, Floa
 // loop order: inner_dim -> outer_dim -> reduce_dim
 // no need for workspace
 template <typename T, int mode>
-static Status ExecImpl(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                       int inner_dim, int reduce_dim, int outer_dim) {
+static Status ExecImpl(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, int inner_dim,
+                       int reduce_dim, int outer_dim) {
     auto *input_ptr  = static_cast<T *>(inputs[0]->GetHandle().base);
     auto *output_ptr = static_cast<float *>(outputs[0]->GetHandle().base);
 
@@ -155,26 +155,24 @@ static Status ExecImpl(const std::vector<Blob *> &inputs, const std::vector<Blob
 }
 
 template <int mode>
-static void CompareC4Impl(const Float4 &guard_value, const Float4 &guard_index, int start, int end,
-                          float &final_value, float &final_index) {
+static void CompareC4Impl(const Float4 &guard_value, const Float4 &guard_index, int start, int end, float &final_value,
+                          float &final_index) {
     for (int c = start; c < end; ++c) {
         float cur_value = guard_value[c];
         float cur_index = guard_index[c] * 4 + c;
-        if ((mode == 0 && cur_value < final_value) ||
-            (mode == 1 && cur_value > final_value)) {
+        if ((mode == 0 && cur_value < final_value) || (mode == 1 && cur_value > final_value)) {
             final_value = cur_value;
             final_index = cur_index;
         }
-        if (cur_value == final_value &&
-            cur_index < final_index) {
+        if (cur_value == final_value && cur_index < final_index) {
             final_index = cur_index;
         }
     }
 }
 
 template <typename T, int mode>
-static Float4 CompareC4(const Float4 &guard_value, const Float4 &guard_index,
-                        int reduce_dim_c4, int reduce_dim_r4, T *input_ptr_r) {
+static Float4 CompareC4(const Float4 &guard_value, const Float4 &guard_index, int reduce_dim_c4, int reduce_dim_r4,
+                        T *input_ptr_r) {
     float final_value = guard_value[0];
     float final_index = guard_index[0] * 4;
     // compare 4 channels
@@ -193,10 +191,10 @@ static Float4 CompareC4(const Float4 &guard_value, const Float4 &guard_index,
 }
 
 template <typename T, int mode>
-static Status ExecImplC(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                        int inner_dim, int ic, int outer_dim) {
-    auto *input_ptr   = static_cast<T *>(inputs[0]->GetHandle().base);
-    auto *output_ptr  = static_cast<float *>(outputs[0]->GetHandle().base);
+static Status ExecImplC(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, int inner_dim, int ic,
+                        int outer_dim) {
+    auto *input_ptr  = static_cast<T *>(inputs[0]->GetHandle().base);
+    auto *output_ptr = static_cast<float *>(outputs[0]->GetHandle().base);
 
     int reduce_dim    = UP_DIV(ic, 4);
     int reduce_dim_r4 = ic % 4;
@@ -214,9 +212,8 @@ static Status ExecImplC(const std::vector<Blob *> &inputs, const std::vector<Blo
             Float4 guard_index(0);
             Float4 guard_value = GetOneValue<T, mode>(input_ptr_o, reduce_dim_c4, outer_dim, guard_index);
 
-            auto *input_ptr_r  = input_ptr_o + reduce_dim_c4 * outer_dim;
-            Float4 result      = CompareC4<T, mode>(guard_value, guard_index, reduce_dim_c4,
-                                                    reduce_dim_r4, input_ptr_r);
+            auto *input_ptr_r = input_ptr_o + reduce_dim_c4 * outer_dim;
+            Float4 result     = CompareC4<T, mode>(guard_value, guard_index, reduce_dim_c4, reduce_dim_r4, input_ptr_r);
 
             Float4::save(output_ptr_o, result);
         }
@@ -226,8 +223,8 @@ static Status ExecImplC(const std::vector<Blob *> &inputs, const std::vector<Blo
 }
 
 template <typename T, int mode>
-static Status ExecImplC(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                        void *workspace, int inner_dim, int ic, int outer_dim) {
+static Status ExecImplC(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, void *workspace,
+                        int inner_dim, int ic, int outer_dim) {
     auto *input_ptr     = static_cast<T *>(inputs[0]->GetHandle().base);
     auto *output_ptr    = static_cast<float *>(outputs[0]->GetHandle().base);
     auto *workspace_ptr = static_cast<T *>(workspace);
@@ -249,9 +246,8 @@ static Status ExecImplC(const std::vector<Blob *> &inputs, const std::vector<Blo
             Float4 guard_value = Float4::load(workspace_ptr_o);
             Float4 guard_index = Float4::load(output_ptr_o);
 
-            auto *input_ptr_r  = input_ptr_o + reduce_dim_c4 * outer_dim;
-            Float4 result      = CompareC4<T, mode>(guard_value, guard_index, reduce_dim_c4,
-                                                    reduce_dim_r4, input_ptr_r);
+            auto *input_ptr_r = input_ptr_o + reduce_dim_c4 * outer_dim;
+            Float4 result     = CompareC4<T, mode>(guard_value, guard_index, reduce_dim_c4, reduce_dim_r4, input_ptr_r);
 
             Float4::save(output_ptr_o, result);
         }
@@ -266,8 +262,7 @@ Status ArmArgMaxOrMinLayerAcc::Exec(const std::vector<Blob *> &inputs, const std
     auto in         = dims_input[0];
     auto ic         = dims_input[1];
     auto ic_r4      = ROUND_UP(dims_input[1], 4);
-    auto ih         = dims_input[2];
-    auto iw         = dims_input[3];
+    auto hw         = DimsVectorUtils::Count(dims_input, 2);
 
     int input_byte_size = DataTypeUtils::GetBytesSize(inputs[0]->GetBlobDesc().data_type);
     int size_in_bytes   = 0;
@@ -275,33 +270,26 @@ Status ArmArgMaxOrMinLayerAcc::Exec(const std::vector<Blob *> &inputs, const std
 
     auto param = dynamic_cast<ArgMaxOrMinLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
-    int axis   = param->axis;
+    int axis = param->axis;
 
     if (axis == 0) {
         int inner_dim  = 1;
         int reduce_dim = in;
-        int outer_dim  = ic_r4 * ih * iw;
+        int outer_dim  = ic_r4 * hw;
         ExecWithWorkspace;
-        // ExecWithoutWorkspace;
     } else if (axis == 1) {
-        int inner_dim     = in;
-        int outer_dim     = ih * iw * 4;
+        int inner_dim = in;
+        int outer_dim = hw * 4;
         ExecDimCWithWorkspace;
-        // ExecDimCWithoutWorkspace;
-    } else if (axis == 2) {
-        int inner_dim  = in * ic_r4 / 4;
-        int reduce_dim = ih;
-        int outer_dim  = iw * 4;
-        ExecWithWorkspace;
-        // ExecWithoutWorkspace;
-    } else if (axis == 3) {
-        int inner_dim  = in * ic_r4 / 4 * ih;
-        int reduce_dim = iw;
-        int outer_dim  = 4;
-        // ExecWithWorkspace;
-        ExecWithoutWorkspace;
     } else {
-        return Status(TNNERR_PARAM_ERR, "argmax or argmin axis not support");
+        int inner_dim  = in * ic_r4 / 4 * DimsVectorUtils::Count(dims_input, 2, axis);
+        int reduce_dim = dims_input[axis];
+        int outer_dim  = DimsVectorUtils::Count(dims_input, axis + 1) * 4;
+        if (axis == dims_input.size() - 1) {
+            ExecWithoutWorkspace;
+        } else {
+            ExecWithWorkspace;
+        }
     }
 }
 
