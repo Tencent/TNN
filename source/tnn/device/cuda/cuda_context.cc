@@ -90,8 +90,11 @@ Status CudaContext::ShareCommandQueue(Context* context) {
         return TNNERR_NULL_PARAM;
 
     CudaContext* cuda_ctx = dynamic_cast<CudaContext*>(context);
+    if (cuda_ctx == nullptr)
+        return TNNERR_DEVICE_INVALID_COMMAND_QUEUE;
 
     if (own_stream_) {
+        CUDA_CHECK(cudaStreamSynchronize(stream_))
         CUDA_CHECK(cudaStreamDestroy(stream_));
     }
     own_stream_ = false;
