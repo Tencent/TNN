@@ -40,6 +40,8 @@ def main():
         optimize = args.optimize
         half = args.half
         align = args.align
+        if align is None:
+            align = 'output'
         align_batch = args.align_batch
         input_file = args.input_file_path
         ref_file = args.refer_file_path
@@ -67,6 +69,8 @@ def main():
         optimize = args.optimize
         half = args.half
         align = args.align
+        if align is None:
+            align = 'output'
         input_file = args.input_file_path
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)
@@ -87,6 +91,8 @@ def main():
         optimize = args.optimize
         half = args.half
         align = args.align
+        if align is None:
+            align = 'output'
         not_fold_const = args.not_fold_const
         input_file = args.input_file_path
         ref_file = args.refer_file_path
@@ -102,7 +108,7 @@ def main():
         tf_path = parse_path.parse_path(args.tf_path)
         output_dir = parse_path.parse_path(args.output_dir)
         version = args.version
-        align = args.align
+        align = args.align.lower()
         input_file = args.input_file_path
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)

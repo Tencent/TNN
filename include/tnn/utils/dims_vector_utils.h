@@ -93,6 +93,9 @@ public:
     // @brief compute stride of shape index by offset, bounded by shape
     // @param shape
     static DimsVector StrideOfShape(DimsVector shape);
+
+    // @brief Get dim in dims vector, if index is larger than dims size, return 1
+    static int GetDim(const DimsVector dims, const int index);
 };
 
 }  // namespace TNN_NS

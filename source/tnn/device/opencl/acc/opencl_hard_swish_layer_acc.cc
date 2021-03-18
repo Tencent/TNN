@@ -101,5 +101,6 @@ void OpenCLHardSwishLayerAcc::ExtendInputs(const std::vector<Blob *> &inputs) {
 }
 
 REGISTER_OPENCL_ACC(HardSwish, LAYER_HARDSWISH)
+REGISTER_OPENCL_LAYOUT(LAYER_HARDSWISH, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

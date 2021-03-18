@@ -27,14 +27,14 @@ Status AbstractLayerAcc::Init(Context *context, LayerParam *param, LayerResource
      * The supported format of each layer is given by LayerAcc.
      */
     for (auto blob : outputs) {
-        Status ret = ResolveBlobDataFormat(blob);
+        Status ret = ResolveBlobDataFormat(blob, BLOB_OUTPUT);
         if (ret != TNN_OK) {
             return ret;
         }
     }
 
     for (auto blob : inputs) {
-        Status ret = ResolveBlobDataFormat(blob);
+        Status ret = ResolveBlobDataFormat(blob, BLOB_INPUT);
         if (ret != TNN_OK) {
             return ret;
         }
@@ -159,9 +159,9 @@ double AbstractLayerAcc::GetBandwidth() {
 }
 #endif
 
-Status AbstractLayerAcc::ResolveBlobDataFormat(Blob *blob) {
+Status AbstractLayerAcc::ResolveBlobDataFormat(Blob *blob, BlobType blob_type) {
     auto desc = blob->GetBlobDesc();
-    auto support_list = SupportDataFormat(desc.data_type, static_cast<int>(desc.dims.size()));
+    auto support_list = SupportDataFormat(desc.data_type, static_cast<int>(desc.dims.size()), blob_type);
     if (support_list.size() <= 0) {
         return Status(TNNERR_DEVICE_ACC_DATA_FORMAT_NOT_SUPPORT,
                       "unsupported data format for device acc");

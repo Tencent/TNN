@@ -41,9 +41,11 @@ int Onnx2TNN::FuseArgMaxOrMin(onnx::GraphProto* mutable_graph,
                 if (!(node_unsuqeeze->op_type() == "Unsqueeze"))
                     break;
                 
-                auto keepdims = get_node_attr_i(*node_unsuqeeze, "keepdims");
-                auto axes = get_node_attr_ai(*node_unsuqeeze, "axes");
-                if (keepdims !=0 || axes.size() != 1 || axes[0] != 0)
+                auto keepdims = get_node_attr_i(*node_arg, "keepdims");
+                auto axis_arg = get_node_attr_i(*node_arg, "axis", 0);
+                auto axes_unsuqeeze = get_node_attr_ai(*node_unsuqeeze, "axes");
+                if (keepdims !=0 || axes_unsuqeeze.size() != 1 ||
+                    axis_arg != axes_unsuqeeze[0])
                         break;
                 
                 node_unsuqeeze->set_op_type(k_tnn_noop_type);

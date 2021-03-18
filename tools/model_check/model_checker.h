@@ -33,6 +33,7 @@ struct ModelCheckerParam {
     bool only_check_output = false;
     bool check_batch       = false;
     std::pair<std::string, FileFormat> ref_file;
+    std::string dump_dir_path;
 };
 
 enum CompareType { DEFAULT = 0, COSINE = 1 };
@@ -70,6 +71,9 @@ private:
 
     // @brief just compare output
     Status RunModelCheckerOutput();
+
+    // @brief per layer compare dump file
+    Status RunModelCheckerFromDumpFile();
 
     // @brief judge whether src_dims can be extended to dst_dims
     bool IsDimsCanBeExtend(std::vector<int> src_dims, std::vector<int> dst_dims);

@@ -75,7 +75,6 @@ public:
     nvinfer1::IPluginV2DynamicExt* CreatePlugin(const void* data, size_t length);
 
 protected:
-    std::shared_ptr<AbstractLayerAcc> plugin_layer_acc_;
     std::string m_plugin_namespace;
     nvinfer1::DataType m_type;
     TensorFormat m_format;

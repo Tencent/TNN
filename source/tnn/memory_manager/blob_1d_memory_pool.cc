@@ -45,10 +45,10 @@ void Blob1DMemoryPool::SetBlobMemoryNodeListHeader(DataType data_type, BlobMemor
     blob_memory_list_header_ = new_header;
 }
 
-int Blob1DMemoryPool::ResolveBlobMemoryNodeBytesDiff(BlobMemorySizeInfo& size_info, BlobMemoryNode* node) {
-    int target_bytes_size = GetBlobMemoryBytesSize(size_info);
+int64_t Blob1DMemoryPool::ResolveBlobMemoryNodeBytesDiff(BlobMemorySizeInfo& size_info, BlobMemoryNode* node) {
+    int64_t target_bytes_size = GetBlobMemoryBytesSize(size_info);
     auto node_cur_info    = node->blob_memory->GetBlobMemorySizeInfo();
-    int node_bytes_size   = GetBlobMemoryBytesSize(node_cur_info);
+    int64_t node_bytes_size   = GetBlobMemoryBytesSize(node_cur_info);
     return std::abs(target_bytes_size - node_bytes_size);
 }
 

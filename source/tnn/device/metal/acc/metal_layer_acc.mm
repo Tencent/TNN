@@ -213,7 +213,7 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
     return status;
 }
 
-std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
         support_list.push_back(DATA_FORMAT_NC4HW4);

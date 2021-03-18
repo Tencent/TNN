@@ -17,6 +17,7 @@ from utils import cmd
 from utils import data
 from utils import convert_name
 from utils import return_code
+from utils.run_onnx_model import OnnxRunner
 from types import *
 from converter import logging
 from functools import reduce
@@ -424,4 +425,15 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
             data.clean_temp_data(os.path.dirname(input_path))
         if refer_path is None and os.path.exists(reference_output_path):
             data.clean_temp_data(reference_output_path)
+    return True
+
+
+def align_all(src_model_path: str, tnn_proto_path: str, align_all: bool,
+               input_names: str = None, input_file_path: str = None, refer_file_path: str = None,
+               is_tflite: bool = False) -> bool:
+    runner = OnnxRunner(src_model_path, tnn_proto_path, align_all, input_names,
+                        input_file_path, refer_file_path, is_tflite)
+
+    runner.run()
+
     return True

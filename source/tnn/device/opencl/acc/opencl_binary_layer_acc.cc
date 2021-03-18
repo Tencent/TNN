@@ -88,6 +88,8 @@ OpenCLBinaryLayerAcc::~OpenCLBinaryLayerAcc() {}
 
 Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Binary Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
 
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
@@ -106,24 +108,18 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         }
     }
     // set optional param
-    if (broadcast_param_.input0_broadcast_type == BroadcastTypeChannel ||
-        broadcast_param_.input1_broadcast_type == BroadcastTypeChannel) {
-        // kernel: BinaryChannel
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, output_dims[3]);
-    } else if (broadcast_param_.input0_broadcast_type == BroadcastTypeElement ||
-               broadcast_param_.input1_broadcast_type == BroadcastTypeElement) {
-        // kernel: BinaryCHW
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, output_dims[2]);
-    } else if (broadcast_param_.input0_broadcast_type == BroadcastTypeHeightWidth ||
-               broadcast_param_.input1_broadcast_type == BroadcastTypeHeightWidth) {
-        // kernel: BinaryHW
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, output_dims[2]);
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, output_dims[3]);
-    } else if (broadcast_param_.input0_broadcast_type == BroadcastTypeWidth ||
-               broadcast_param_.input1_broadcast_type == BroadcastTypeWidth) {
-        // kernel: BinaryWidth
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, output_dims[3]);
+    if (kernel_name_ == "BinaryChannel" || kernel_name_ == "BinaryCHW" ||
+        kernel_name_ == "BinaryHW" || kernel_name_ == "BinaryWidth") {
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, DimsVectorUtils::GetDim(output_dims, 2));
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, DimsVectorUtils::GetDim(output_dims, 3));
+        int param_batch = 1;
+        if (inputs.size() == 2) {
+            auto param_dims = inputs[param_idx_]->GetBlobDesc().dims;
+            param_batch = DimsVectorUtils::GetDim(param_dims, 0);
+        }
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, param_batch);
     }
+
     // set output
     execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)outputs[0]->GetHandle().base));
 
@@ -155,7 +151,9 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
     // copy param data into clBuffer
     shared_ptr<OpenCLMemory> param_buffer(new OpenCLMemory(TNN_CL_BUFFER));
     int param_size  = DimsVectorUtils::Count(param_dims);
-    int buffer_size = param_dims[0] * ROUND_UP(param_dims[1], 4) * param_dims[2] * param_dims[3];
+    int buffer_size = DimsVectorUtils::GetDim(param_dims, 0) *
+                      ROUND_UP(DimsVectorUtils::GetDim(param_dims, 1), 4) *
+                      DimsVectorUtils::GetDim(param_dims, 2) * DimsVectorUtils::GetDim(param_dims, 3);
     cl_int ret      = CL_SUCCESS;
     cl::Buffer param_clbuffer(*opencl_runtime->Context(), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
                               buffer_size * sizeof(float), nullptr, &ret);
@@ -179,8 +177,8 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
     }
 
     // create binary_param_
-    int climage_w             = UP_DIV(param_dims[1], 4) * param_dims[3];
-    int climage_h             = param_dims[0] * param_dims[2];
+    int climage_w             = UP_DIV(DimsVectorUtils::GetDim(param_dims, 1), 4) * DimsVectorUtils::GetDim(param_dims, 3);
+    int climage_h             = DimsVectorUtils::GetDim(param_dims, 0) * DimsVectorUtils::GetDim(param_dims, 2);
     cl_channel_type data_type = CL_FLOAT;
     if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;

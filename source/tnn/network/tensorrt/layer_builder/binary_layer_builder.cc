@@ -14,6 +14,9 @@
 
 #include "tnn/network/tensorrt/layer_builder/binary_layer_builder.h"
 
+#include "tnn/core/macro.h"
+#include "tnn/network/tensorrt/utils.h"
+
 namespace TNN_NS {
 
 BinaryTRTLayerBuilder::BinaryTRTLayerBuilder(LayerType ignore) : TensorRTLayerBuilder(ignore) {

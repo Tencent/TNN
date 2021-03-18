@@ -72,7 +72,7 @@ protected:
     NSString * GetKernelLabel();
 
 private:
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size);
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);
 };
 
 MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth);

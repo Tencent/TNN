@@ -15,6 +15,9 @@
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 #include "tnn/utils/string_utils_inner.h"
+#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/blob_transfer_utils.h"
 
 namespace TNN_NS {
 
@@ -22,7 +25,8 @@ namespace TNN_NS {
 
 Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                             const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
+    Status status = AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
+    RETURN_ON_NEQ(status, TNN_OK);
 
     param_       = param;
     resource_    = resource;
@@ -56,10 +60,17 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 
     ConfigKernelStrategy();
 
+    status = ReloadConstantBlobs(inputs);
+    RETURN_ON_NEQ(status, TNN_OK);
+
     return TNN_OK;
 }
 
 OpenCLLayerAcc::~OpenCLLayerAcc() {}
+
+Status OpenCLLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return CheckBlobFormat(inputs, outputs);
+}
 
 Status OpenCLLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 #if defined(LOCAL_SIZE_FINE_TUNE) && TNN_PROFILE
@@ -104,6 +115,10 @@ Status OpenCLLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
     Status ret   = TNN_OK;
     int unit_idx = 0;
     for (auto execute_unit : execute_units_) {
+        if (unactive_unit_ids_.find(unit_idx) != unactive_unit_ids_.end()) {
+            unit_idx++;
+            continue;
+        }
 #if TNN_PROFILE
         std::shared_ptr<OpenCLProfilingData> pdata(new OpenCLProfilingData());
         UpdateProfilingData(pdata.get(), execute_unit.global_work_size, execute_unit.local_work_size, unit_idx);
@@ -149,9 +164,11 @@ void OpenCLLayerAcc::ConfigKernelStrategy() {
     }
 }
 
-std::vector<DataFormat> OpenCLLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> OpenCLLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
-    if (dims_size == 4) {
+    if (data_type == DATA_TYPE_INT32) {
+        support_list.push_back(DATA_FORMAT_NCHW);
+    } else if (dims_size <= 4) {
         support_list.push_back(DATA_FORMAT_NHC4W4);
     }
     return support_list;
@@ -276,6 +293,62 @@ Status OpenCLLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<
         ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
         return convertor.ConvertBufferToImage(input_blob.get(), ARGUMENT, {output_channel}, ocl_handle.get(), true);
     }
+}
+
+Status OpenCLLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
+    auto const_resource = const_resource_;
+    auto const_blob_map = const_blob_map_;
+    for (auto iter : inputs) {
+        auto name = iter->GetBlobDesc().name;
+        if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
+            continue;
+        }
+
+        auto buffer = (*const_resource)[name];
+        std::shared_ptr<Blob> blob = nullptr;
+        if (const_blob_map.find(name) != const_blob_map.end()) {
+            blob = const_blob_map[name];
+        }
+        auto status = RawBuffer2Blob(buffer.get(), blob);
+        RETURN_ON_NEQ(status, TNN_OK);
+
+        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        auto dims = iter->GetBlobDesc().dims;
+        auto data_type_size = DataTypeUtils::GetBytesSize(iter->GetBlobDesc().data_type);
+        const_blob_map[name] = blob;
+        iter->SetHandle(blob->GetHandle());
+        iter->GetBlobDesc() = blob->GetBlobDesc();
+        LOGD("Reload constant blob: %s\n", name.c_str());
+    }
+    const_blob_map_ = const_blob_map;
+    return TNN_OK;
+}
+
+Status OpenCLLayerAcc::CheckBlobFormat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    /*
+     * Check whether the format is supported by OpenCLLayerAcc or not.
+     * The supported format of each layer is given by LayerAcc.
+     * OpenCL Blob may change format after allocate.
+     */
+    for (auto blob : outputs) {
+        Status ret = ResolveBlobDataFormat(blob, BLOB_OUTPUT);
+        if (ret != TNN_OK) {
+            return ret;
+        }
+    }
+
+    for (auto blob : inputs) {
+        Status ret = ResolveBlobDataFormat(blob, BLOB_INPUT);
+        if (ret != TNN_OK) {
+            return ret;
+        }
+    }
+
+    return TNN_OK;
+}
+
+void OpenCLLayerAcc::InsertUnactiveUnitId(int id) {
+    unactive_unit_ids_.insert(id);
 }
 
 }  // namespace TNN_NS

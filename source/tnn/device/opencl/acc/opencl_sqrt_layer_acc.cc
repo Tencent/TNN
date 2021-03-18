@@ -39,5 +39,6 @@ std::set<std::string> OpenCLSqrtLayerAcc::CreateBuildOptions() {
 OpenCLSqrtLayerAcc::~OpenCLSqrtLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Sqrt, LAYER_SQRT)
+REGISTER_OPENCL_LAYOUT(LAYER_SQRT, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS
