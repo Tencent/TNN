@@ -50,7 +50,7 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
         param->axis         = 0;
         param->num_axes     = 4;
 
-        const auto option     = tf_lite_operator->builtin_options.AsReshapeOptions();
+        const auto option = tf_lite_operator->builtin_options.AsReshapeOptions();
         std::vector<int> reshape_dim;
         if (tf_lite_operator->inputs.size() == 2) {
             const auto& shape_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];

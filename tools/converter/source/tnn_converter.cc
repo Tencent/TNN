@@ -15,6 +15,7 @@
 #include "include/tnn/core/tnn.h"
 #include "onnx/onnx_converter.h"
 #include "optimizer/tnn_optimizer.h"
+#include "runtime/tnn_runtime.h"
 #include "tflite/tflite_converter.h"
 #include "tnn/interpreter/abstract_model_interpreter.h"
 #include "tnn/interpreter/default_model_interpreter.h"
@@ -24,7 +25,6 @@
 #include "utils/flags.h"
 #include "utils/generate_model.h"
 #include "utils/model_config.h"
-#include "runtime/tnn_runtime.h"
 
 namespace TNN_CONVERTER {
 int Run(int argc, char* argv[]) {
@@ -58,7 +58,7 @@ int Run(int argc, char* argv[]) {
     }
     // tnn run time
     TnnRuntime tnn_runtime;
-    status =tnn_runtime.run(interpreter);
+    status = tnn_runtime.run(interpreter);
     if (status != TNN_NS::TNN_OK) {
         LOGE("Converter: tnn runtime failed\n");
         return status;

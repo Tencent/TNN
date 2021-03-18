@@ -29,8 +29,8 @@ TNN_NS::ActivationType OnnxConcatConverter::ActivationType(const onnx::NodeProto
 
 TNN_NS::Status OnnxConcatConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                          const onnx::NodeProto &node,
-                                         std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
-                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
+                                         std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                          bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
     auto param                 = new TNN_NS::ConcatLayerParam;

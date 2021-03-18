@@ -31,7 +31,7 @@ TNN_NS::ActivationType OnnxGatherConverter::ActivationType(const onnx::NodeProto
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxGatherConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+TNN_NS::Status OnnxGatherConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                          const onnx::NodeProto &node,
                                          std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
                                          std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
