@@ -36,7 +36,10 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
 
     Status status = TNN_OK;
     if (layer_res && !buffer_weight_) {
-        const auto element_shape = layer_res->element_shape;
+        // TODO: how to handle non-4-dimensional resource
+        auto element_shape = layer_res->element_shape;
+        while(element_shape.size() < inputs[0]->GetBlobDesc().dims.size())
+            element_shape.insert(element_shape.begin(), 1);
         buffer_weight_ =
             AllocatePackedNC4HW4MetalBufferFormRawBuffer(layer_res->element_handle, element_shape, 1, status);
     }
