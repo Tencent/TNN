@@ -145,19 +145,11 @@ Status ArmReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         } else if (param->type == NC8HW8FP16_2_NCHWFP16) {
             auto dst_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[i]->GetHandle()));
             auto src_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[i]->GetHandle()));
-            for (int n = 0; n < batch; ++n) {
-                auto dst_ptr_n = dst_ptr + n * channel * hw;
-                auto src_ptr_n = src_ptr + n * ROUND_UP(channel, 8) * hw;
-                UnpackC8(dst_ptr_n, src_ptr_n, hw, channel);
-            }
+            UnpackHalfBlob(dst_ptr, src_ptr, batch, channel, hw);
         } else if (param->type == NCHWFP16_2_NC8HW8FP16) {
             auto dst_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[i]->GetHandle()));
             auto src_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[i]->GetHandle()));
-            for (int n = 0; n < batch; ++n) {
-                auto dst_ptr_n = dst_ptr + n * ROUND_UP(channel, 8) * hw;
-                auto src_ptr_n = src_ptr + n * channel * hw;
-                PackC8(dst_ptr_n, src_ptr_n, hw, channel);
-            }
+            PackHalfBlob(dst_ptr, src_ptr, batch, channel, hw);
         }
 #endif  // TNN_ARM82
     }

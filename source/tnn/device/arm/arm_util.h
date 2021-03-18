@@ -23,6 +23,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/macro.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/half_utils.h"
 
 namespace TNN_NS {
 #if TNN_PROFILE
@@ -64,10 +65,13 @@ template <typename Tin, typename Tout>
 int UnpackC4(Tout *dst, const Tin *src, size_t hw, size_t channel);
 
 bool FloatBlobCanIgnorePack(size_t channel, size_t hw);
+bool HalfBlobCanIgnorePack(size_t channel, size_t hw);
 int PackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw);
 int UnpackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw);
 int PackFloatBlob(bfp16_t *dst, bfp16_t *src, size_t batch, size_t channel, size_t hw);
 int UnpackFloatBlob(bfp16_t *dst, bfp16_t *src, size_t batch, size_t channel, size_t hw);
+int PackHalfBlob(fp16_t *dst, fp16_t *src, size_t batch, size_t channel, size_t hw);
+int UnpackHalfBlob(fp16_t *dst, fp16_t *src, size_t batch, size_t channel, size_t hw);
 
 template <typename Tin, typename Tout>
 int UnpackC8(Tout *dst, const Tin *src, size_t hw, size_t channel);

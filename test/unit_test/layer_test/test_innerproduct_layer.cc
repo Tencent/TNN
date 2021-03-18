@@ -26,9 +26,10 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, InnerProductLayerTest,
                          ::testing::Combine(testing::Values(1, 2, 8, 11), testing::Values(1, 3, 10, 32),
                                             testing::Values(9, 10, 16, 19),
                                             // output channel
-                                            testing::Values(21, 50),
+                                            testing::Values(4, 8, 21, 50),
                                             // has bias Values(0, 1)));
-                                            testing::Values(0, 1), testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16)));
+                                            testing::Values(0, 1),
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_BFP16)));
 
 TEST_P(InnerProductLayerTest, InnerProductLayer) {
     // get param
@@ -54,11 +55,8 @@ TEST_P(InnerProductLayerTest, InnerProductLayer) {
     std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
     auto interpreter            = GenerateInterpreter("InnerProduct", {input_dims}, param);
 
-    Precision precision = PRECISION_AUTO;
-    if (DATA_TYPE_BFP16 == dtype) {
-        precision = PRECISION_LOW;
-    }
-    Run(interpreter);
+    Precision precision = SetPrecision(dev, dtype);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS
