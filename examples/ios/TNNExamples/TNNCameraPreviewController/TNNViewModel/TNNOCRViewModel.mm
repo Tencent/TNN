@@ -23,8 +23,6 @@ using namespace std;
 @interface TNNOCRViewModel ()
 @property (nonatomic, strong) UILabel *label;
 @property (nonatomic, assign) std::array<std::shared_ptr<TNNSDKSample>, 3> ocrPredictors;
-@property (nonatomic, assign) std::vector<std::string> texts;
-@property (nonatomic, assign) int text_idx;
 @end
 
 @implementation TNNOCRViewModel
@@ -202,8 +200,6 @@ using namespace std;
 -(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)sdk_output {
     std::vector<std::shared_ptr<ObjectInfo> > text_list;
     if (sdk_output && dynamic_cast<OCROutput *>(sdk_output.get())) {
-        _texts.clear();
-        _text_idx = 0;
         auto ocr_output = dynamic_cast<OCROutput *>(sdk_output.get());
         for(int i=0; i<ocr_output->texts.size(); ++i) {
             auto textbox = std::make_shared<ObjectInfo>();
@@ -215,8 +211,9 @@ using namespace std;
 
             textbox->image_width = ocr_output->image_width;
             textbox->image_height = ocr_output->image_height;
+
+            textbox->label = ocr_output->texts[i].c_str();
             text_list.push_back(textbox);
-            _texts.push_back(ocr_output->texts[i]);
         }
     }
 
@@ -224,9 +221,6 @@ using namespace std;
 }
 
 -(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object {
-    if (object && _text_idx < _texts.size()) {
-        return [NSString stringWithUTF8String:_texts[_text_idx++].c_str()];
-    }
     return nil;
 }
 

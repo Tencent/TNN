@@ -288,6 +288,9 @@ typedef void(^CommonCallback)(Status);
                 auto view_width = self.cameraPreview.bounds.size.width;
                 auto view_height = self.cameraPreview.bounds.size.height;
                 auto label = [self.viewModel labelForObject:object];
+                if (!label && object->label) {
+                    label = [NSString stringWithUTF8String:object->label];
+                }
                 auto view_face = object->AdjustToImageSize(origin_size.height, origin_size.width);
                 view_face = view_face.AdjustToViewSize(view_height, view_width, video_gravity);
                 if (camera_pos == AVCaptureDevicePositionFront) {
