@@ -20,7 +20,7 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(PadV2, LAYER_PADV2);
 
 bool PadV2TRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return inOut[pos].type == nvinfer1::DataType::kFLOAT;
+    return inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32;
 }
 
 const char* PadV2TRTPluginLayerBuilder::getPluginType() const {
@@ -40,8 +40,10 @@ DimsExprs PadV2TRTPluginLayerBuilder::getOutputDimensions(int index, const nvinf
         int nbInput, nvinfer1::IExprBuilder& exprBuilder) {
     DimsExprs output(inputs[0]);
     auto param = dynamic_cast<PadLayerParam*>(param_);
-    int dim_size = output.nbDims;
-    for(int i = 0; i < dim_size; ++i) {
+    auto output_dims = input_blobs_[0]->GetBlobDesc().dims;
+    int dim_size = param->pads.size()/2;
+    dim_size = dim_size <= output_dims.size() ? dim_size : output_dims.size();
+    for (int i = 0; i < dim_size; ++i) {
         auto sum = exprBuilder.constant(param->pads[i] + param->pads[dim_size + i]);
         output.d[i] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[i], *sum);
     }
