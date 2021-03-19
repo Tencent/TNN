@@ -87,6 +87,10 @@ Context* RknpuDevice::CreateContext(int device_id) {
     return new RknpuContext();
 }
 
+NetworkType RknpuDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_RK_NPU;
+}
+
 std::map<LayerType, std::shared_ptr<LayerAccCreator>>& RknpuDevice::GetLayerCreatorMap() {
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
     return layer_creator_map;

@@ -18,7 +18,7 @@
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/bfp16_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 

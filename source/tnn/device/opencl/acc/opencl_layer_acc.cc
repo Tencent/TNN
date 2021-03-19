@@ -168,7 +168,7 @@ std::vector<DataFormat> OpenCLLayerAcc::SupportDataFormat(DataType data_type, in
     std::vector<DataFormat> support_list;
     if (data_type == DATA_TYPE_INT32) {
         support_list.push_back(DATA_FORMAT_NCHW);
-    } else if (dims_size >= 2) {
+    } else if (dims_size <= 4) {
         support_list.push_back(DATA_FORMAT_NHC4W4);
     }
     return support_list;
@@ -312,7 +312,7 @@ Status OpenCLLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         auto status = RawBuffer2Blob(buffer.get(), blob);
         RETURN_ON_NEQ(status, TNN_OK);
 
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         auto dims = iter->GetBlobDesc().dims;
         auto data_type_size = DataTypeUtils::GetBytesSize(iter->GetBlobDesc().data_type);
         const_blob_map[name] = blob;

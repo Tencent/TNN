@@ -15,7 +15,7 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
@@ -79,7 +79,7 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
     for (int i = 0; i < input_count; ++i)
         input_dims_vec.push_back(input_dims);
     auto interpreter = GenerateInterpreter("Concat", input_dims_vec, param);
-    Run(interpreter);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

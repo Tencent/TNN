@@ -17,7 +17,7 @@
 
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -29,13 +29,31 @@ Status CpuScatterNDLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 
 Status CpuScatterNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto resource = dynamic_cast<ScatterNDLayerResource *>(resource_);
-    CHECK_PARAM_NULL(resource);
+    if (!resource && inputs.size() < 3) {
+        LOGE("CpuScatterNDLayerAcc has not layer resource\n");
+        return Status(TNNERR_PARAM_ERR, "CpuScatterNDLayerAcc has not layer resource");
+    }
+    
+    DimsVector indices_dims;
+    int* indice_offset = nullptr;
+    Blob* update_data_blob = nullptr;
+    if (inputs.size() >= 3) {
+        if (inputs[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
+            LOGE("CpuScatterNDLayerAcc indice input has invalid data type\n");
+            return Status(TNNERR_PARAM_ERR, "CpuScatterNDLayerAcc indice input has invalid data type");
+        }
+        indice_offset = (int *)((char*)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
+        indices_dims = inputs[1]->GetBlobDesc().dims;
+        update_data_blob = inputs[2];
+    } else {
+        indice_offset = resource->indices.force_to<int*>();
+        indices_dims = resource->indices.GetBufferDims();
+        update_data_blob = inputs[1];
+    }
+    
     Blob *output_blob = outputs[0];
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        auto indices_dims = resource->indices.GetBufferDims();
-        auto indices = resource->indices;
         Blob* input_data_blob = inputs[0];
-        Blob* update_data_blob = inputs[1];
         float* input_data = reinterpret_cast<float*>(input_data_blob->GetHandle().base);
         float* update_data = reinterpret_cast<float*>(update_data_blob->GetHandle().base);
         float* output_data = reinterpret_cast<float*>(output_blob->GetHandle().base);
@@ -81,7 +99,6 @@ Status CpuScatterNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         }
 
         int element_to_copy = DimsVectorUtils::Count(input_dims, last_indice_dimension);
-        int* indice_offset = indices.force_to<int*>();
         int offset_count = DimsVectorUtils::Count(indices_dims, 0, indice_rank - 1);
  
         for(int i = 0; i < offset_count; ++i) {

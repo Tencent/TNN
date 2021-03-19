@@ -18,7 +18,7 @@
 #include <cmath>
 #include "tnn/core/macro.h"
 #include "tnn/utils/half.hpp"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 #include "tnn/device/arm/acc/TNNVector.h"
 #ifdef TNN_USE_NEON
 #include <arm_neon.h>

@@ -17,7 +17,7 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(HdrGuide, LAYER_HDRGUIDE);
+DECLARE_CPU_ACC_WITH_FP32_RESOURCE(HdrGuide, LAYER_HDRGUIDE);
 
 Status CpuHdrGuideLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;

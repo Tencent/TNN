@@ -20,7 +20,7 @@
 #include "tnn/device/opencl/opencl_memory.h"
 #include "tnn/device/opencl/opencl_runtime.h"
 #include "tnn/utils/blob_memory_size_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -35,6 +35,7 @@ BlobMemorySizeInfo OpenCLDevice::Calculate(BlobDesc& desc) {
     BlobMemorySizeInfo info = Calculate2DCLImageMemorySize(desc);
     ASSERT(info.dims.size() == 2);
     if (info.dims[0] > image_2d_max_size[0] || info.dims[1] > image_2d_max_size[1]) {
+        LOGD("Exceed clImage limit, dims: [%d, %d]\n", info.dims[0], info.dims[1]);
         desc.data_format = DATA_FORMAT_NCHW;
         info = Calculate1DMemorySize(desc);
     }
@@ -214,6 +215,10 @@ std::shared_ptr<const ImplementedLayout> OpenCLDevice::GetImplementedLayout(Laye
 
 Context* OpenCLDevice::CreateContext(int device_id) {
     return new OpenCLContext();
+}
+
+NetworkType OpenCLDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT;
 }
 
 std::map<LayerType, std::shared_ptr<LayerAccCreator>>& OpenCLDevice::GetLayerCreatorMap() {

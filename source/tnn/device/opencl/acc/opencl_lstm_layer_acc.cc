@@ -25,7 +25,7 @@ Status OpenCLLSTMONNXLayerAcc::Init(Context *context, LayerParam *param, LayerRe
     run_3d_ndrange_ = false;
     op_name_        = "LSTMONNX";
 
-    execute_units_.resize(2);
+    execute_units_.resize(3);
 
     {
         std::string kernel_name = "LSTMONNXGates";
@@ -39,6 +39,15 @@ Status OpenCLLSTMONNXLayerAcc::Init(Context *context, LayerParam *param, LayerRe
     {
         std::string kernel_name = "LSTMONNXForward";
         ret                     = CreateExecuteUnit(execute_units_[1], "lstm", kernel_name);
+        if (ret != TNN_OK) {
+            LOGE("create execute unit failed!\n");
+            return ret;
+        }
+    }
+
+    {
+        std::string kernel_name = "LSTMONNXResultConvert";
+        ret                     = CreateExecuteUnit(execute_units_[2], "lstm", kernel_name);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -73,12 +82,12 @@ Status OpenCLLSTMONNXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
 
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
-    const auto sequence = DimsVectorUtils::GetDim(input_dims, 0);
-    const auto batch    = DimsVectorUtils::GetDim(input_dims, 1);
-    const int input_size = DimsVectorUtils::GetDim(input_dims, 2);
+    const auto sequence = DimsFunctionUtils::GetDim(input_dims, 0);
+    const auto batch    = DimsFunctionUtils::GetDim(input_dims, 1);
+    const int input_size = DimsFunctionUtils::GetDim(input_dims, 2);
     const int input_size_updiv_4 = UP_DIV(input_size, 4);
     int num_directions  = layer_param->direction >=2 ? 2 : 1;
-    const int hidden_size = DimsVectorUtils::GetDim(output_dims, 2) / num_directions;
+    const int hidden_size = DimsFunctionUtils::GetDim(output_dims, 2) / num_directions;
     const int hidden_size_updiv_4 = UP_DIV(hidden_size, 4);
     int reverse         = layer_param->direction == 1;
 
@@ -94,9 +103,18 @@ Status OpenCLLSTMONNXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
         blob_c0 = ocl_zero_state_blob_.get();
     }
 
-    ret = AllocateGates(num_directions, hidden_size, batch, sequence, ocl_gates_);
+    ret = AllocateTempBlob(num_directions, hidden_size, batch, sequence, ocl_gates_);
     if (ret != TNN_OK) {
         return Status(TNNERR_LAYER_ERR, "Allocate gates failed");
+    }
+
+    // special case, reverse output is stored after forward output
+    bool need_temp_out = (hidden_size % 4 != 0 && num_directions == 2);
+    if (need_temp_out) {
+        ret = AllocateTempBlob(num_directions, hidden_size, batch, sequence, ocl_temp_out_);
+        if (ret != TNN_OK) {
+            return Status(TNNERR_LAYER_ERR, "Allocate gates failed");
+        }
     }
 
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
@@ -136,9 +154,29 @@ Status OpenCLLSTMONNXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
         execute_units_[1].ocl_kernel.setArg(idx++, reverse);
         int h_local_size = batch * num_directions * hidden_size_updiv_4 * 4 * type_size;
         execute_units_[1].ocl_kernel.setArg(idx++, h_local_size, nullptr);
-        execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
+        if (need_temp_out) {
+            execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_temp_out_->GetHandle().base));
+        } else {
+            execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
+        }
         execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output_hidden->GetHandle().base));
         execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output_cell->GetHandle().base));
+    }
+
+    if (need_temp_out) {
+        execute_units_[2].global_work_size = {
+            static_cast<uint32_t>(UP_DIV(DimsFunctionUtils::GetDim(output_dims, 2), 4)),
+            static_cast<uint32_t>(sequence * batch)};
+        execute_units_[2].local_work_size = LocalWS2DDefault(execute_units_[2]);
+        uint32_t idx = 0;
+        execute_units_[2].ocl_kernel.setArg(idx++, execute_units_[2].global_work_size[0]);
+        execute_units_[2].ocl_kernel.setArg(idx++, execute_units_[2].global_work_size[1]);
+        execute_units_[2].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_temp_out_->GetHandle().base));
+        execute_units_[2].ocl_kernel.setArg(idx++, hidden_size);
+        execute_units_[2].ocl_kernel.setArg(idx++, hidden_size_updiv_4);
+        execute_units_[2].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
+    } else {
+        InsertUnactiveUnitId(2);
     }
 
     return TNN_OK;
@@ -165,7 +203,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
     } else {
         auto status = ConvertWeights(buffer, blob);
         RETURN_ON_NEQ(status, TNN_OK);
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map_[name] = blob;
     }
     w->SetHandle(blob->GetHandle());
@@ -184,7 +222,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
     } else {
         auto status = ConvertWeights(buffer, blob);
         RETURN_ON_NEQ(status, TNN_OK);
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map_[name] = blob;
     }
     r->SetHandle(blob->GetHandle());
@@ -203,7 +241,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
     } else {
         auto status = ConvertBias(buffer, blob);
         RETURN_ON_NEQ(status, TNN_OK);
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map_[name] = blob;
     }
     b->SetHandle(blob->GetHandle());
@@ -219,7 +257,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
             } else {
                 auto status = ConvertInitialState(buffer, blob);
                 RETURN_ON_NEQ(status, TNN_OK);
-                blob->flag = DATA_FLAG_CHANGE_NEVER;
+                blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
                 const_blob_map_[name] = blob;
             }
             h0->SetHandle(blob->GetHandle());
@@ -235,7 +273,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
             } else {
                 auto status = ConvertInitialState(buffer, blob);
                 RETURN_ON_NEQ(status, TNN_OK);
-                blob->flag = DATA_FLAG_CHANGE_NEVER;
+                blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
                 const_blob_map_[name] = blob;
             }
             c0->SetHandle(blob->GetHandle());
@@ -266,37 +304,25 @@ Status OpenCLLSTMONNXLayerAcc::ConvertWeights(std::shared_ptr<RawBuffer> buffer,
         weights_data_ptr = float_data_ptr.get();
     }
 
+    // weights: [num_directions, 4 * hidden_size, weights_width]
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
     int num_directions = buffer->GetBufferDims()[0];
     int gates_hidden_size = buffer->GetBufferDims()[1];
     int weights_width = buffer->GetBufferDims()[2];
-    int weights_w = num_directions * gates_hidden_size, weights_h = weights_width;
+    int weights_w = num_directions * ALIGN_UP4(gates_hidden_size / 4) * 4, weights_h = weights_width;
 
-    // weights: [num_directions, 4 * hidden_size, weights_width]
-    // transpose
-    DimsVector weights_shape = {weights_h, weights_w, 1, 1};
-    std::shared_ptr<float> weights_data_ptr_trans(new float[weights_w * weights_h]);
-    for (size_t i = 0; i < weights_h; i++) {
-        for (size_t j = 0; j < weights_w; j++) {
-            weights_data_ptr_trans.get()[j + i * weights_w] = weights_data_ptr[i + j * weights_h];
-        }
-    }
-
-    DimsVector weights_trans_shape = {weights_w, weights_h, 1, 1};
-
-    // transposed weights: [weights_width, 4*hidden_size*num_directions]
     // copy weights data into clBuffer
     std::shared_ptr<OpenCLMemory> weights_buffer(new OpenCLMemory(TNN_CL_BUFFER));
     cl_int ret = CL_SUCCESS;
     cl::Buffer cl_buffer(*opencl_runtime->Context(), CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
-                         DimsVectorUtils::Count(weights_shape) * sizeof(float), nullptr, &ret);
+                         DimsVectorUtils::Count(buffer->GetBufferDims()) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
         return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     weights_buffer->SetData(&cl_buffer);
     ret = ocl_context_->CommandQueue()->enqueueWriteBuffer(cl_buffer, CL_TRUE, 0,
-            DimsVectorUtils::Count(weights_shape) * sizeof(float), weights_data_ptr_trans.get());
+            DimsVectorUtils::Count(buffer->GetBufferDims()) * sizeof(float), weights_data_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
         return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL enqueueWriteBuffer falied");
@@ -304,10 +330,10 @@ Status OpenCLLSTMONNXLayerAcc::ConvertWeights(std::shared_ptr<RawBuffer> buffer,
 
     BlobDesc desc;
     // use CNH4 format to desc weights blob
-    DimsVector weights_cnh4_shape = {1, weights_h, weights_w};
+    DimsVector weights_image_shape = {1, weights_h, weights_w};
     desc.device_type = DEVICE_OPENCL;
     desc.data_type = opencl_runtime->GetPrecision() == PRECISION_HIGH ? DATA_TYPE_FLOAT : DATA_TYPE_HALF;
-    desc.dims = weights_cnh4_shape;
+    desc.dims = weights_image_shape;
     desc.data_format = DATA_FORMAT_CNH4;
     if (buffer->GetBytesSize() > 0) {
         blob = std::make_shared<Blob>(desc, true);
@@ -321,7 +347,7 @@ Status OpenCLLSTMONNXLayerAcc::ConvertWeights(std::shared_ptr<RawBuffer> buffer,
     weights_memory.reset(new OpenCLMemory(TNN_CL_IMAGE));
     weights_memory->SetData(blob->GetHandle().base, false);
     Status ret_convert = convertor.ConvertBufferToImage(
-            weights_buffer.get(), NHWC_BUFFER, weights_shape, weights_memory.get(), true);
+            weights_buffer.get(), LSTM_FILTER, buffer->GetBufferDims(), weights_memory.get(), true);
     CHECK_TNN_OK(ret_convert)
 
     return TNN_OK;
@@ -351,23 +377,22 @@ Status OpenCLLSTMONNXLayerAcc::ConvertBias(std::shared_ptr<RawBuffer> buffer, st
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
     int num_directions = buffer->GetBufferDims()[0];
     int gates_hidden_size = buffer->GetBufferDims()[1];
-    int bias_w = num_directions, bias_h = gates_hidden_size;
+    int hidden_size = gates_hidden_size / 8;
+    int bias_w = ALIGN_UP4(hidden_size) * 8, bias_h = num_directions;
 
     // bias: [num_directions, 8 * hidden_size]
-    DimsVector bias_shape = {bias_w, bias_h, 1, 1};
-
     // copy bias data into clBuffer
     std::shared_ptr<OpenCLMemory> bias_buffer(new OpenCLMemory(TNN_CL_BUFFER));
     cl_int ret = CL_SUCCESS;
     cl::Buffer cl_buffer(*opencl_runtime->Context(), CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
-                         DimsVectorUtils::Count(bias_shape) * sizeof(float), nullptr, &ret);
+                         DimsVectorUtils::Count(buffer->GetBufferDims()) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
         return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     bias_buffer->SetData(&cl_buffer);
     ret = ocl_context_->CommandQueue()->enqueueWriteBuffer(cl_buffer, CL_TRUE, 0,
-            DimsVectorUtils::Count(bias_shape) * sizeof(float), bias_data_ptr);
+            DimsVectorUtils::Count(buffer->GetBufferDims()) * sizeof(float), bias_data_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
         return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL enqueueWriteBuffer falied");
@@ -375,10 +400,10 @@ Status OpenCLLSTMONNXLayerAcc::ConvertBias(std::shared_ptr<RawBuffer> buffer, st
 
     BlobDesc desc;
     // use CNH4 format to desc bias blob
-    DimsVector bias_cnh4_shape = {1, bias_w, bias_h};
+    DimsVector bias_image_shape = {1, bias_h, bias_w};
     desc.device_type = DEVICE_OPENCL;
     desc.data_type = opencl_runtime->GetPrecision() == PRECISION_HIGH ? DATA_TYPE_FLOAT : DATA_TYPE_HALF;
-    desc.dims = bias_cnh4_shape;
+    desc.dims = bias_image_shape;
     desc.data_format = DATA_FORMAT_CNH4;
     if (buffer->GetBytesSize() > 0) {
         blob = std::make_shared<Blob>(desc, true);
@@ -392,7 +417,7 @@ Status OpenCLLSTMONNXLayerAcc::ConvertBias(std::shared_ptr<RawBuffer> buffer, st
     bias_memory.reset(new OpenCLMemory(TNN_CL_IMAGE));
     bias_memory->SetData(blob->GetHandle().base, false);
     Status ret_convert = convertor.ConvertBufferToImage(
-            bias_buffer.get(), NHWC_BUFFER, bias_shape, bias_memory.get(), true);
+            bias_buffer.get(), LSTM_BIAS, buffer->GetBufferDims(), bias_memory.get(), true);
     CHECK_TNN_OK(ret_convert)
 
     return TNN_OK;
@@ -499,20 +524,20 @@ Status OpenCLLSTMONNXLayerAcc::CreateDefaultState(int num_directions,
     desc.dims = shape;
     desc.data_format = DATA_FORMAT_CNH4;
     blob = std::make_shared<Blob>(desc, true);
-    int image_width = UP_DIV(hidden_size, 4), image_height = num_directions * batch;
+    int image_width = ALIGN_UP4(hidden_size), image_height = num_directions * batch;
 
-    std::vector<float> zero_buffer_data(image_width * 4 * image_height, 0);
+    std::vector<float> zero_buffer_data(image_width * image_height, 0);
     std::shared_ptr<OpenCLMemory> state_buffer(new OpenCLMemory(TNN_CL_BUFFER));
     cl_int ret = CL_SUCCESS;
     cl::Buffer cl_buffer(*opencl_runtime->Context(), CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
-                         image_width * 4 * image_height * sizeof(float), nullptr, &ret);
+                         image_width * image_height * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
         return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
     }
     state_buffer->SetData(&cl_buffer);
     ret = ocl_context_->CommandQueue()->enqueueWriteBuffer(cl_buffer, CL_TRUE, 0,
-            image_width * 4 * image_height * sizeof(float), zero_buffer_data.data());
+            image_width * image_height * sizeof(float), zero_buffer_data.data());
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
         return Status(TNNERR_OPENCL_API_ERROR, "OpenCL enqueueWriteBuffer falied");
@@ -523,7 +548,7 @@ Status OpenCLLSTMONNXLayerAcc::CreateDefaultState(int num_directions,
     std::shared_ptr<OpenCLMemory> state_memory;
     state_memory.reset(new OpenCLMemory(TNN_CL_IMAGE));
     state_memory->SetData(blob->GetHandle().base, false);
-    DimsVector nhwc_buffer_shape = {image_height, image_width * 4, 1, 1};
+    DimsVector nhwc_buffer_shape = {image_height, image_width, 1, 1};
     Status ret_convert = convertor.ConvertBufferToImage(
             state_buffer.get(), NHWC_BUFFER, nhwc_buffer_shape, state_memory.get(), true);
     CHECK_TNN_OK(ret_convert)
@@ -531,13 +556,13 @@ Status OpenCLLSTMONNXLayerAcc::CreateDefaultState(int num_directions,
     return TNN_OK;
 }
 
-// gates: [hidden_size * 4 * num_directions, sequence * batch]
-Status OpenCLLSTMONNXLayerAcc::AllocateGates(int num_directions,
-                                             int hidden_size,
-                                             int batch,
-                                             int sequence,
-                                             std::shared_ptr<Blob>& blob) {
-    DimsVector shape = {sequence, batch, UP_DIV(hidden_size, 4) * 4 * 4 * num_directions};
+// temp blob: [hidden_size * 4 * num_directions, sequence * batch]
+Status OpenCLLSTMONNXLayerAcc::AllocateTempBlob(int num_directions,
+                                                int hidden_size,
+                                                int batch,
+                                                int sequence,
+                                                std::shared_ptr<Blob>& blob) {
+    DimsVector shape = {sequence, batch, ALIGN_UP4(hidden_size) * 4 * num_directions};
     if (blob) {
         auto dims = blob->GetBlobDesc().dims;
         if (dims == shape) return TNN_OK;
@@ -572,7 +597,7 @@ Status OpenCLLSTMONNXLayerAcc::AllocateGates(int num_directions,
     std::shared_ptr<OpenCLMemory> state_memory;
     state_memory.reset(new OpenCLMemory(TNN_CL_IMAGE));
     state_memory->SetData(blob->GetHandle().base, false);
-    DimsVector nhwc_buffer_shape = {sequence * batch, UP_DIV(hidden_size, 4) * 4 * 4 * num_directions, 1, 1};
+    DimsVector nhwc_buffer_shape = {sequence * batch, ALIGN_UP4(hidden_size) * 4 * num_directions, 1, 1};
     Status ret_convert = convertor.ConvertBufferToImage(
             state_buffer.get(), NHWC_BUFFER, nhwc_buffer_shape, state_memory.get(), true);
     CHECK_TNN_OK(ret_convert)

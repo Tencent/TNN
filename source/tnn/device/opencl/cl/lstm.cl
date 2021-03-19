@@ -161,3 +161,39 @@ __kernel void LSTMONNXForward(GLOBAL_SIZE_2_DIMS __read_only image2d_t gates,
     WI_F(output_cell, (int2)(hid_4_idx, state_h_idx), cell);
     WI_F(output_hidden, (int2)(hid_4_idx, state_h_idx), h_local[hid_4_idx]);
 }
+
+// input: [hidden_size / 4 * num_directions, sequence * batch]
+// output: [(hidden_size * num_directions) / 4, sequence * batch]
+__kernel void LSTMONNXResultConvert(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
+                                    __private const int hidden_size,
+                                    __private const int hidden_size_updiv_4,
+                                    __write_only image2d_t output) {
+    const int hid_dir_4_idx  = get_global_id(0);
+    const int image_height_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(hid_dir_4_idx, image_height_idx);
+
+    const int hid_dir_idx = hid_dir_4_idx << 2;
+
+    FLOAT out_val[4];
+    for (int i = hid_dir_idx; i < hid_dir_idx + 4; i++) {
+        int hid_idx   = i % hidden_size;
+        int hid_4_idx = hid_idx / 4;
+        int dir_idx   = i / hidden_size;
+
+        FLOAT4 in = RI_F(input, SAMPLER, (int2)(hid_4_idx + dir_idx * hidden_size_updiv_4, image_height_idx));
+        if (hid_idx % 4 == 0) {
+            out_val[i - hid_dir_idx] = in.x;
+        } else if (hid_idx % 4 == 1) {
+            out_val[i - hid_dir_idx] = in.y;
+        } else if (hid_idx % 4 == 2) {
+            out_val[i - hid_dir_idx] = in.z;
+        } else {
+            out_val[i - hid_dir_idx] = in.w;
+        }
+    }
+
+    FLOAT4 out = {out_val[0], out_val[1], out_val[2], out_val[3]};
+
+    WI_F(output, (int2)(hid_dir_4_idx, image_height_idx), out);
+}

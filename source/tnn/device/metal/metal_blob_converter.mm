@@ -20,7 +20,7 @@
 #import "tnn/device//metal/metal_context.h"
 #import "tnn/utils/blob_converter_internal.h"
 #import "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 class MetalBlobConverterAcc : public BlobConverterAcc {

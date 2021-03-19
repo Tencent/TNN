@@ -22,7 +22,7 @@
 #include "tnn/network/tensorrt/exclusive_file.h"
 #include "tnn/network/tensorrt/tensorrt_network.h"
 #include "tnn/network/tensorrt/utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/md5.h"
 #include "tnn/device/cuda/cuda_macro.h"
 #include "tnn/utils/blob_dump_utils.h"
@@ -31,7 +31,7 @@
 namespace TNN_NS {
 
 #define MAX_SCRATCH_MEMORY (1<<31 - 1)
-#define TENSORRT_SERIALIZE_VERSION "v1.0"
+#define TENSORRT_SERIALIZE_VERSION "v1.1"
 
 NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
     g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
@@ -153,13 +153,14 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         if (ret != TNN_OK) {
             return ret;
         }
-    } else {
+    }
+    {
         size_t size = 0;
         std::ifstream deploy_input(cache_file_name, std::ios::binary);
         deploy_input.seekg(0, deploy_input.end);
         size = deploy_input.tellg();
         deploy_input.seekg(0, deploy_input.beg);
-        char *model_stream = new char[size];
+        char *model_stream = new char[size + 1];
         deploy_input.read(model_stream, size);
         IRuntime* runtime = createInferRuntime(m_trt_logger);
         m_trt_engine = runtime->deserializeCudaEngine(model_stream, size);
@@ -342,9 +343,6 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
-            if (config_.precision == PRECISION_LOW) {
-                blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
-            }
             if (is_int8_blob) {
                 auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
                 auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
@@ -591,7 +589,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
                 int nbDims = output_tensor->getDimensions().nbDims;
                 for( int d=0;d<nbDims;d++) ss << output_tensor->getDimensions().d[d] << ","; 
                 ss << " blob shape:";
-                for(auto d:output->GetBlobDesc().dims) ss << d << ","; 
+                for(auto d:output->GetBlobDesc().dims) ss << d << ",";
                 LOGD("build trt layer for \"%s\", tensor shape %s\n", cur_layer->GetLayerName().c_str(), ss.str().c_str());
             }
         }
@@ -620,9 +618,9 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         LOGE("create tensorrt engine failed\n");
         return TNNERR_CUDA_TENSORRT_ERROR;
     }
-    Status ret = CreateExecuteContext();
-    if (ret != TNN_OK)
-        return ret;
+//    Status ret = CreateExecuteContext();
+//    if (ret != TNN_OK)
+//        return ret;
     m_trt_builder->destroy();
     m_trt_config->destroy();
     m_trt_network->destroy();
@@ -630,7 +628,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     if (!test_mode) {
         IHostMemory *model_stream = nullptr;
         model_stream = m_trt_engine->serialize();
-        std::ofstream deploy_output(cache_file_name);
+        std::ofstream deploy_output(cache_file_name, std::ofstream::binary);
         char *model_stream_ptr = reinterpret_cast<char*>(model_stream->data());
         deploy_output.write(model_stream_ptr, model_stream->size());
         deploy_output.close();

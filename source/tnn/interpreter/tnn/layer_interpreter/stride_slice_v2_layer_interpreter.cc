@@ -33,7 +33,7 @@ Status StrideSliceV2LayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int 
             begins.push_back(atoi(layer_cfg_arr[index++].c_str()));
         } else {
             LOGE("StrideSliceV2LayerInterpreter param is invalid\n");
-            return TNNERR_PARAM_ERR;
+            return Status(TNNERR_PARAM_ERR, "StrideSliceV2LayerInterpreter param is invalid");
         }
     }
     layer_param->begins = begins;
@@ -45,7 +45,7 @@ Status StrideSliceV2LayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int 
             ends.push_back(atoi(layer_cfg_arr[index++].c_str()));
         } else {
             LOGE("StrideSliceV2LayerInterpreter param is invalid\n");
-            return TNNERR_PARAM_ERR;
+            return Status(TNNERR_PARAM_ERR, "StrideSliceV2LayerInterpreter param is invalid");
         }
     }
     layer_param->ends = ends;
@@ -57,7 +57,7 @@ Status StrideSliceV2LayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int 
             axes.push_back(atoi(layer_cfg_arr[index++].c_str()));
         } else {
             LOGE("StrideSliceV2LayerInterpreter param is invalid\n");
-            return TNNERR_PARAM_ERR;
+            return Status(TNNERR_PARAM_ERR, "StrideSliceV2LayerInterpreter param is invalid");
         }
     }
     layer_param->axes = axes;
@@ -69,7 +69,7 @@ Status StrideSliceV2LayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int 
             strides.push_back(atoi(layer_cfg_arr[index++].c_str()));
         } else {
             LOGE("StrideSliceV2LayerInterpreter param is invalid\n");
-            return TNNERR_PARAM_ERR;
+            return Status(TNNERR_PARAM_ERR, "StrideSliceV2LayerInterpreter param is invalid");
         }
     }
     layer_param->strides = strides;

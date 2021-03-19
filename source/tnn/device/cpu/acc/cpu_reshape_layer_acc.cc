@@ -15,7 +15,7 @@
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -46,7 +46,7 @@ Status CpuReshapeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &in
         }
         layer_param->shape = dims;
         layer_param->num_axes = dim_count;
-        auto output_dims = DimsVectorUtils::Reshape(input_dims, dims, layer_param->axis, dim_count, &status);
+        auto output_dims = DimsFunctionUtils::Reshape(input_dims, dims, layer_param->axis, dim_count, &status);
         RETURN_ON_NEQ(status, TNN_OK);
         
         outputs[0]->GetBlobDesc().dims = output_dims;
@@ -83,7 +83,7 @@ Status CpuReshapeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &in
             }
         }
         
-        auto infer_output_dims = DimsVectorUtils::Reshape(input_dims, shape, layer_param->axis, (int)shape.size(), &status);
+        auto infer_output_dims = DimsFunctionUtils::Reshape(input_dims, shape, layer_param->axis, (int)shape.size(), &status);
         if (status == TNN_OK && DimsVectorUtils::Equal(infer_output_dims, output_dims)) {
             layer_param->shape = shape;
         }

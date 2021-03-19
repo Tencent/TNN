@@ -21,7 +21,7 @@
 #include <string>
 #include <typeinfo>
 #include "tnn/core/common.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -35,6 +35,7 @@ public:
     RawBuffer(int bytes_size, char *buffer);
     RawBuffer(int bytes_size, char* buffer, DimsVector dims);
     RawBuffer(const RawBuffer &buf);
+    RawBuffer(int bytes_size, int alignment);
     RawBuffer &operator=(RawBuffer buf);
     ~RawBuffer();
 

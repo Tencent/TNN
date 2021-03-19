@@ -16,8 +16,13 @@ set(TARGET_ARCH "-gencode arch=compute_75,code=sm_75 \
 
 message(${TARGET_ARCH})
 
-set(CMAKE_CUDA_FLAGS "${CUDA_NVCC_FLAGS} ${CUDA_OPT_FLAG} -Xcompiler -fPIC --compiler-options -fno-strict-aliasing \
-    -lineinfo -Xptxas -dlcm=cg -use_fast_math ${TARGET_ARCH}")
+if(TNN_GLIBCXX_USE_CXX11_ABI_ENABLE)
+    set(CMAKE_CUDA_FLAGS "${CUDA_NVCC_FLAGS} ${CUDA_OPT_FLAG} -Xcompiler -fPIC --compiler-options -fno-strict-aliasing \
+        -lineinfo -Xptxas -dlcm=cg -use_fast_math -D_GLIBCXX_USE_CXX11_ABI=1 ${TARGET_ARCH}")
+else()
+    set(CMAKE_CUDA_FLAGS "${CUDA_NVCC_FLAGS} ${CUDA_OPT_FLAG} -Xcompiler -fPIC --compiler-options -fno-strict-aliasing \
+        -lineinfo -Xptxas -dlcm=cg -use_fast_math -D_GLIBCXX_USE_CXX11_ABI=0 ${TARGET_ARCH}")
+endif()
 
 file(GLOB CUDA_SRCS *.cc *.h *.cu acc/*.cc acc/*.h acc/*.cu)
 message(${CUDA_SRCS})

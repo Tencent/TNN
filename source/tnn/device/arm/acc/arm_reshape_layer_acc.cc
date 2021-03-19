@@ -17,7 +17,7 @@
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 

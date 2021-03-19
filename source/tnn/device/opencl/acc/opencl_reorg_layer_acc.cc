@@ -17,7 +17,7 @@
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 #include "tnn/device/opencl/opencl_context.h"
 #include "tnn/device/opencl/opencl_runtime.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -109,9 +109,9 @@ Status OpenCLReorgLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     auto &unit0              = execute_units_[0];
     uint32_t idx = SetExecuteUnit2DSizeInfoDefault(unit0, input_dims);
     unit0.ocl_kernel.setArg(idx++, *input_buffer_);
-    unit0.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 2))); //input height
-    unit0.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 3))); //input width
-    unit0.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 1))); //input channel
+    unit0.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2))); //input height
+    unit0.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3))); //input width
+    unit0.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1))); //input channel
     unit0.ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
 
     idx = 0;
@@ -121,10 +121,10 @@ Status OpenCLReorgLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     unit1.ocl_kernel.setArg(idx++, unit1.global_work_size[0]);
     unit1.ocl_kernel.setArg(idx++, *input_buffer_);
     unit1.ocl_kernel.setArg(idx++, *output_buffer_);
-    unit1.ocl_kernel.setArg(idx++, forward_ ? DimsVectorUtils::GetDim(input_dims, 3) : DimsVectorUtils::GetDim(output_dims, 3)); // input width
-    unit1.ocl_kernel.setArg(idx++, forward_ ? DimsVectorUtils::GetDim(input_dims, 2) : DimsVectorUtils::GetDim(output_dims, 2)); // input height
-    unit1.ocl_kernel.setArg(idx++, forward_ ? DimsVectorUtils::GetDim(input_dims, 1) : DimsVectorUtils::GetDim(output_dims, 1)); // input channel
-    unit1.ocl_kernel.setArg(idx++, forward_ ? DimsVectorUtils::GetDim(input_dims, 0) : DimsVectorUtils::GetDim(output_dims, 0)); // batch
+    unit1.ocl_kernel.setArg(idx++, forward_ ? DimsFunctionUtils::GetDim(input_dims, 3) : DimsFunctionUtils::GetDim(output_dims, 3)); // input width
+    unit1.ocl_kernel.setArg(idx++, forward_ ? DimsFunctionUtils::GetDim(input_dims, 2) : DimsFunctionUtils::GetDim(output_dims, 2)); // input height
+    unit1.ocl_kernel.setArg(idx++, forward_ ? DimsFunctionUtils::GetDim(input_dims, 1) : DimsFunctionUtils::GetDim(output_dims, 1)); // input channel
+    unit1.ocl_kernel.setArg(idx++, forward_ ? DimsFunctionUtils::GetDim(input_dims, 0) : DimsFunctionUtils::GetDim(output_dims, 0)); // batch
     unit1.ocl_kernel.setArg(idx++, stride_);
     unit1.ocl_kernel.setArg(idx++, stride_ * stride_);
     unit1.ocl_kernel.setArg(idx++, forward_);
@@ -133,9 +133,9 @@ Status OpenCLReorgLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     auto &unit2            = execute_units_[2];
     idx = SetExecuteUnit2DSizeInfoDefault(unit2, output_dims);
     unit2.ocl_kernel.setArg(idx++, *output_buffer_);
-    unit2.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 2)));   // output height
-    unit2.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 3)));    // output width
-    unit2.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 1)));  // output channel
+    unit2.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));   // output height
+    unit2.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));    // output width
+    unit2.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));  // output channel
     unit2.ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
 
     return TNN_OK;

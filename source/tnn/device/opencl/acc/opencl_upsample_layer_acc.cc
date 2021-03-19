@@ -104,13 +104,13 @@ Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
 
-    const int batch        = DimsVectorUtils::GetDim(input_dims, 0);
-    const int channels     = DimsVectorUtils::GetDim(input_dims, 1);
-    const int input_height = DimsVectorUtils::GetDim(input_dims, 2);
-    const int input_width  = DimsVectorUtils::GetDim(input_dims, 3);
+    const int batch        = DimsFunctionUtils::GetDim(input_dims, 0);
+    const int channels     = DimsFunctionUtils::GetDim(input_dims, 1);
+    const int input_height = DimsFunctionUtils::GetDim(input_dims, 2);
+    const int input_width  = DimsFunctionUtils::GetDim(input_dims, 3);
 
-    const int output_height = DimsVectorUtils::GetDim(output_dims, 2);
-    const int output_width  = DimsVectorUtils::GetDim(output_dims, 3);
+    const int output_height = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int output_width  = DimsFunctionUtils::GetDim(output_dims, 3);
 
     const int channel_blocks = UP_DIV(channels, 4);
 

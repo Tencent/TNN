@@ -24,10 +24,10 @@ Status CpuDivLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, const s
     void *output_data       = output->GetHandle().base;
     const auto &output_dims = output->GetBlobDesc().dims;
     if (output->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        CPU_ELEMENT_WISE<float>(input_ptrs, input_shapes, output_data, output_dims,
+        CPU_ELEMENT_WISE<float, float>(input_ptrs, input_shapes, output_data, output_dims,
                                 [](float a, float b) -> float { return a / b; });
     } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT32) {
-        CPU_ELEMENT_WISE<int32_t>(input_ptrs, input_shapes, output_data, output_dims,
+        CPU_ELEMENT_WISE<int, int>(input_ptrs, input_shapes, output_data, output_dims,
                                   [](int a, int b) -> int { return a / b; });
     } else {
         LOGE("Error: CpuDivLayerAcc don't support data type: %d\n", output->GetBlobDesc().data_type);

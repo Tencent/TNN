@@ -17,7 +17,7 @@
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 #include "tnn/device/opencl/opencl_memory.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -120,10 +120,10 @@ Status OpenCLInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
 
     auto input_dims     = inputs[0]->GetBlobDesc().dims;
     auto output_dims    = outputs[0]->GetBlobDesc().dims;
-    auto output_height  = DimsVectorUtils::GetDim(output_dims, 2);
-    auto output_width   = DimsVectorUtils::GetDim(output_dims, 3);
-    auto input_height   = DimsVectorUtils::GetDim(input_dims, 2);
-    auto input_width    = DimsVectorUtils::GetDim(input_dims, 3);
+    auto output_height  = DimsFunctionUtils::GetDim(output_dims, 2);
+    auto output_width   = DimsFunctionUtils::GetDim(output_dims, 3);
+    auto input_height   = DimsFunctionUtils::GetDim(input_dims, 2);
+    auto input_width    = DimsFunctionUtils::GetDim(input_dims, 3);
     // now only support axis is channel, output width and output height is 1.
     if (axis_ != 1 || output_height != 1 || output_width != 1) {
         LOGE("Invalid InnerParameter param or input/output size!\n");
@@ -205,8 +205,8 @@ Status OpenCLInnerProductLayerAcc::InitReshapeLayer(const std::vector<Blob *> &i
     BlobDesc output_desc    = inputs[0]->GetBlobDesc();
     output_desc.data_format = DATA_FORMAT_NCHW;
     auto dims               = inputs[0]->GetBlobDesc().dims;
-    output_desc.dims[0]     = DimsVectorUtils::GetDim(dims, 0);
-    output_desc.dims[1]     = DimsVectorUtils::GetDim(dims, 1) * DimsVectorUtils::GetDim(dims, 2) * DimsVectorUtils::GetDim(dims, 3);
+    output_desc.dims[0]     = DimsFunctionUtils::GetDim(dims, 0);
+    output_desc.dims[1]     = DimsFunctionUtils::GetDim(dims, 1) * DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
     output_desc.dims[2]     = 1;
     output_desc.dims[3]     = 1;
     reshape_output_blob_    = std::make_shared<Blob>(output_desc);
@@ -219,8 +219,8 @@ Status OpenCLInnerProductLayerAcc::InitReshapeLayer(const std::vector<Blob *> &i
 
     // create output_image
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-    DimsVector imageshape{(int)(UP_DIV(DimsVectorUtils::GetDim(output_desc.dims, 1), 4)),
-        DimsVectorUtils::GetDim(output_desc.dims, 0)};
+    DimsVector imageshape{(int)(UP_DIV(DimsFunctionUtils::GetDim(output_desc.dims, 1), 4)),
+        DimsFunctionUtils::GetDim(output_desc.dims, 0)};
     cl_channel_type data_type = CL_FLOAT;
     if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;

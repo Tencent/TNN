@@ -49,7 +49,7 @@ Status OpenCLBatchNormLayerAcc::Init(Context *context, LayerParam *param, LayerR
     op_name_        = "BatchNorm";
 
     auto input_dims = inputs[0]->GetBlobDesc().dims;
-    int channels    = DimsVectorUtils::GetDim(input_dims, 1);
+    int channels    = DimsFunctionUtils::GetDim(input_dims, 1);
 
     BatchNormLayerResource *batchnorm_resource = dynamic_cast<BatchNormLayerResource *>(resource);
     if (batchnorm_resource == nullptr) {

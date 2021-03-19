@@ -74,10 +74,10 @@ Status OpenCLSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
 
-    int size0          = UP_DIV(DimsVectorUtils::GetDim(output_dims, 1), 4) * 4 * DimsVectorUtils::GetDim(output_dims, 0) *
-                                DimsVectorUtils::GetDim(output_dims, 2) * DimsVectorUtils::GetDim(output_dims, 3);
-    int size1          = UP_DIV(DimsVectorUtils::GetDim(input_dims, 1), 4) * 4 * DimsVectorUtils::GetDim(input_dims, 0) *
-                                DimsVectorUtils::GetDim(input_dims, 2) * DimsVectorUtils::GetDim(input_dims, 3);
+    int size0          = UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(output_dims, 0) *
+                                DimsFunctionUtils::GetDim(output_dims, 2) * DimsFunctionUtils::GetDim(output_dims, 3);
+    int size1          = UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(input_dims, 0) *
+                                DimsFunctionUtils::GetDim(input_dims, 2) * DimsFunctionUtils::GetDim(input_dims, 3);
     int blob_size      = std::max(size0, size1) * sizeof(float);
 
     inter_buffer_      = std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, blob_size);
@@ -86,9 +86,9 @@ Status OpenCLSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     {
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], input_dims);
         execute_units_[0].ocl_kernel.setArg(idx++, *inter_buffer_.get());
-        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 2)));
-        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 3)));
-        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 1)));
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
         execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
     }
 
@@ -96,9 +96,9 @@ Status OpenCLSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     {
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[1], output_dims);
         execute_units_[1].ocl_kernel.setArg(idx++, *inter_buffer_.get());
-        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 2)));
-        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 3)));
-        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 1)));
+        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
+        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
+        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
         execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
     }
 

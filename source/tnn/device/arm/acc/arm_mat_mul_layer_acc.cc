@@ -86,6 +86,7 @@ Status ArmMatMulLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
         auto b_ptr = matrix_b + bb * K * N;
         auto c_ptr = matrix_c + bc * M * N;
 
+        memset(c_ptr, 0, M * N * data_byte_size);
         // row major A[M * K] * B[K * N] = C[M * n]
         GemmFloatPackAB(M, N, K, a_ptr, pack_a_ptr, K, b_ptr, pack_b_ptr, N, c_ptr, N);
     }

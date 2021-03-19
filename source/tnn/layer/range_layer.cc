@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "base_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 DECLARE_LAYER_WITH_FUNC(Range, LAYER_RANGE,
@@ -27,7 +27,7 @@ Status RangeLayer::InferOutputDataType() {
     const auto& input_name = input_blobs_[0]->GetBlobDesc().name;
     const auto& const_res  = const_resource_;
     if (const_res != nullptr && const_res->find(input_name) != const_res->end()) {
-        output_blobs_[0]->flag = output_blobs_[0]->flag | DATA_FLAG_ALLOCATE_IN_FORWARD;
+        output_blobs_[0]->SetFlag(output_blobs_[0]->GetFlag() | DATA_FLAG_ALLOCATE_IN_FORWARD);
     }
     return status;
 }
@@ -45,8 +45,8 @@ Status RangeLayer::InferOutputShape(bool ignore_error) {
         return Status(TNNERR_MODEL_ERR, "RangeLayer input blob has invalid device type");
     }
     
-    auto output_dims = DimsVectorUtils::Range(layer_param->start, layer_param->limit,
-                                              layer_param->delta, layer_param->type, &status);
+    auto output_dims = DimsFunctionUtils::Range(layer_param->start, layer_param->limit,
+                                              layer_param->delta, layer_param->data_type, &status);
     RETURN_ON_NEQ(status, TNN_OK);
     
     output_blobs_[0]->GetBlobDesc().dims = output_dims;
@@ -68,7 +68,7 @@ Status RangeLayer::FillLayerParamWithConstantResource() {
         const auto start_name = input_blobs_[0]->GetBlobDesc().name;
         if (const_resource_ != nullptr && const_resource_->find(start_name) != const_resource_->end()) {
             auto start_buffer = (*const_resource_)[start_name];
-            layer_param->type = start_buffer->GetDataType();
+            layer_param->data_type = start_buffer->GetDataType();
             auto start_data   = start_buffer->force_to<float *>();
             auto start = layer_param->start;
             if (start_buffer->GetDataType() == DATA_TYPE_FLOAT) {
@@ -87,7 +87,7 @@ Status RangeLayer::FillLayerParamWithConstantResource() {
         const auto limit_name = input_blobs_[1]->GetBlobDesc().name;
         if (const_resource_ != nullptr && const_resource_->find(limit_name) != const_resource_->end()) {
             auto limit_buffer = (*const_resource_)[limit_name];
-            layer_param->type = limit_buffer->GetDataType();
+            layer_param->data_type = limit_buffer->GetDataType();
             auto limit_data   = limit_buffer->force_to<float *>();
             auto limit = layer_param->limit;
             if (limit_buffer->GetDataType() == DATA_TYPE_FLOAT) {
@@ -106,7 +106,7 @@ Status RangeLayer::FillLayerParamWithConstantResource() {
         const auto delta_name = input_blobs_[2]->GetBlobDesc().name;
         if (const_resource_ != nullptr && const_resource_->find(delta_name) != const_resource_->end()) {
             auto delta_buffer = (*const_resource_)[delta_name];
-            layer_param->type = delta_buffer->GetDataType();
+            layer_param->data_type = delta_buffer->GetDataType();
             auto delta_data   = delta_buffer->force_to<float *>();
             auto delta = layer_param->delta;
             if (delta_buffer->GetDataType() == DATA_TYPE_FLOAT) {
