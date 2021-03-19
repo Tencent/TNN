@@ -119,6 +119,10 @@ def main():
         print("1.----onnx_optimizer: " + onnx_net_path)
         do_optimize(onnx_net_path, input_shape)
 
+        if os.path.exists(onnx_net_opt_path) is False:
+            print("1.----onnx_optimizer:  onnx_simplifier.py failed, onnx2tnn will try to convert the orignal onnx model")
+            onnx_net_opt_path = onnx_net_path
+
     # os.access('/python/test.py',os.F_OK)
     print("2.----onnx2tnn: " + onnx_net_opt_path)
     file_time = time.strftime("%Y%m%d %H:%M:%S", time.localtime())
