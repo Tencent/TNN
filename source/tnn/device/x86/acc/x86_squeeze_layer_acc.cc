@@ -13,18 +13,18 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
-#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_X86_ACC(Unsqueeze, LAYER_UNSQUEEZE);
+DECLARE_X86_ACC(Squeeze, LAYER_SQUEEZE);
 
-Status X86UnsqueezeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86SqueezeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     void *input_data  = inputs[0]->GetHandle().base;
     void *output_data = outputs[0]->GetHandle().base;
-    auto dims         = outputs[0]->GetBlobDesc().dims;
-    auto count        = DimsVectorUtils::Count(dims);
+    auto input_dims   = outputs[0]->GetBlobDesc().dims;
+    auto count        = DimsVectorUtils::Count(input_dims);
     auto ele_size     = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
 
     if (input_data != output_data) {
@@ -34,5 +34,5 @@ Status X86UnsqueezeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
     return TNN_OK;
 }
 
-REGISTER_X86_ACC(Unsqueeze, LAYER_UNSQUEEZE);
+REGISTER_X86_ACC(Squeeze, LAYER_SQUEEZE);
 }  // namespace TNN_NS

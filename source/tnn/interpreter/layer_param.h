@@ -190,7 +190,10 @@ struct RangeLayerParam : public LayerParam {
     DataType data_type = DATA_TYPE_FLOAT;
     RangeData start = {0};
     RangeData limit = {0};
-    RangeData delta = { .i = 1};
+
+    // designated initializer may cause compile error in msvc
+    RangeData delta = {1};
+    // RangeData delta = { .i = 1};
 
     PARAM_COPY(RangeLayerParam)
 };

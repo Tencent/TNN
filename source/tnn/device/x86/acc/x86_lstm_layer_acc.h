@@ -12,35 +12,34 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_X86_X86_INNER_PRODUCT_LAYER_ACC_H_
-#define TNN_SOURCE_TNN_DEVICE_X86_X86_INNER_PRODUCT_LAYER_ACC_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_X86_X86_LSTM_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_X86_X86_LSTM_LAYER_ACC_H_
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/device/x86/acc/compute/jit/conv_sgemm_driver.h"
 
-enum InnerProductCompute {
-    InnerProductSgemv = 0x0000,
-    InnerProductSgemm = 0x0001,
-};
-
 namespace TNN_NS {
-class X86InnerProductLayerAcc : public X86LayerAcc {
+
+class X86LSTMONNXLayerAcc : public X86LayerAcc {
 public:
-    virtual ~X86InnerProductLayerAcc();
+    virtual ~X86LSTMONNXLayerAcc();
 
     Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
                 const std::vector<Blob *> &outputs) override;
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
     virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     virtual Status allocateBufferBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
 protected:
-    RawBuffer buffer_weight_;
-    RawBuffer buffer_bias_;
+    Status LSTMOneDirection(const float *x, float *y, const float *w, const float *r,
+                           const float *b, float *h_t, float *c_t, int seq_len, int batch_size,
+                           int input_size, int hidden_size, int reverse);
+
+    RawBuffer buffer_w_;
+    RawBuffer buffer_r_;
+    RawBuffer buffer_b_;
     conv_gemm_config<float, float, float> conv_gemm_conf_;
-    InnerProductCompute impl_;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_X86_X86_INNER_PRODUCT_LAYER_ACC_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_X86_X86_LSTM_LAYER_ACC_H_

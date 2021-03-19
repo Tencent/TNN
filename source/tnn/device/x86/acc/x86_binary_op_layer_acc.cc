@@ -115,12 +115,113 @@ static void BroadCastInit(const DimsVector &dims, const DimsVector &dims0, const
     }
 }
 
+template <X86BinaryOpType op_type, typename VEC, int pack>
+void BinaryGeneral(float *output_ptr, const float *input0_ptr, const float *input1_ptr, 
+                DimsVector input0_dims, DimsVector input1_dims, DimsVector output_dims) {
+    DimsVector input_shapes[2];
+    const float *input_ptrs[2];
+    int input_num = 2;
+
+    // out = input0 x input1
+    if (output_ptr != input0_ptr) {
+        input_shapes[0] = input0_dims;
+        input_shapes[1] = input1_dims;
+        input_ptrs[0] = input0_ptr;
+        input_ptrs[1] = input1_ptr;
+    }
+    // out = out x input1
+    else if (output_ptr == input0_ptr) {
+        input_num = 1;
+        input_shapes[0] = input1_dims;
+        input_ptrs[0] = input1_ptr;
+    }
+
+    for (int i = 0; i < input_num; i++) {
+        auto input_shape = input_shapes[i];
+        auto *input_data = input_ptrs[i];
+
+        DimsVector input_shape_pad;
+        for (int j = 0; j < output_dims.size(); j++) {
+            input_shape_pad.push_back(1);
+        }
+        for (int j = 0; j < input_shape.size(); j++) {
+            input_shape_pad[input_shape_pad.size() - 1 - j] = 
+                input_shape[input_shape.size() - 1 - j];
+        }
+        int broadcast_single = 1;
+        for (int j = 0; j < input_shape_pad.size(); j++) {
+            if (input_shape_pad[j] != 1) {
+                broadcast_single = 0;
+                break;
+            }
+        }
+
+        int outer_size = 1;
+        int inner_size = 1;
+        int broad_size = DimsVectorUtils::Count(input_shape);
+
+        for (int j = 0; j < input_shape_pad.size(); j++) {
+            if (input_shape_pad[j] == 1) {
+                outer_size *= output_dims[j];
+            } else {
+                break;
+            }
+        }
+
+        if (!broadcast_single) {
+            for (int j = 0; j < input_shape_pad.size(); j++) {
+                if (input_shape_pad[input_shape_pad.size() - 1 - j] == 1) {
+                    inner_size *= output_dims[output_dims.size() - 1 - j];
+                } else {
+                    break;
+                }
+            }
+        }
+
+        // out = input0 x input1, first loop set out = input0
+        if (i == 0 && output_ptr != input0_ptr) {
+            for (int o = 0; o < outer_size; o++) {
+                auto output_outer = output_ptr + o * broad_size * inner_size;
+                for (int b = 0; b < broad_size; b++) {
+                    auto output_broad = output_outer + b * inner_size;
+                    float input_broad = input_data[b];
+                    VEC input_vec = VEC(input_broad);
+                    int j = 0;
+                    for (; j + pack - 1 < inner_size; j += pack) {
+                        VEC::saveu(output_broad + j, input_vec);
+                    }
+                    for (; j < inner_size; j++) {
+                        output_broad[j] = input_broad;
+                    }
+                }
+            }
+        } else {
+            for (int o = 0; o < outer_size; o++) {
+                auto output_outer = output_ptr + o * broad_size * inner_size;
+                for (int b = 0; b < broad_size; b++) {
+                    auto output_broad = output_outer + b * inner_size;
+                    float input_broad = input_data[b];
+                    VEC input_vec = VEC(input_broad);
+                    int j = 0;
+                    for (; j + pack - 1 < inner_size; j += pack) {
+                        VEC output_vec = VEC::loadu(output_broad + j);
+                        VEC::saveu(output_broad + j, binary_op<op_type, VEC>(output_vec, input_vec));
+                    }
+                    for (; j < inner_size; j++) {
+                        output_broad[j] = binary_op<op_type>(output_broad[j], input_broad);
+                    }
+                }
+            }
+        }
+    }
+}
+
 /*
 Binary func with different opreator,
 set dims0 full shape, dims1 broadcast shape, so we need to swap input ptrs
 */
 template <X86BinaryOpType op_type, typename VEC, int pack>
-Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input1_ptr, DimsVector &dims0, DimsVector &dims1) {
+Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input1_ptr, DimsVector &dims0, DimsVector &dims1, DimsVector &output_dims) {
     DimsVector dims = DimsVectorUtils::Max(dims0, dims1);
     DimsVector dims_broadcast;
     BroadcastType type = BroadcastTypeUnknown;
@@ -130,17 +231,41 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
 
     BroadCastInit(dims, dims0, dims1, type, dims_broadcast, swap_flag);
 
+    if (dims_broadcast.size() > 0) {
+        int broadcast_count = DimsVectorUtils::Count(dims_broadcast);
+        if (broadcast_count == 1) {
+            type = BroadcastTypeSingle;
+        } else if (broadcast_count == output_dims[1]) {
+            // broadcast dim = [1, channel, 1, 1] or [channel, 1, 1]
+            int dims_size = dims_broadcast.size();
+            if (dims_size >= 3 && dims_broadcast[dims_size - 3] == output_dims[1]) {
+                type = BroadcastTypeChannel;
+            } else {
+                type = BroadcastTypeGeneral;
+            }
+        } else {
+            type = BroadcastTypeGeneral;
+        }
+    }
+
+    if (type == BroadcastTypeGeneral) {
+        BinaryGeneral<op_type, VEC, pack>(output_ptr, input0_ptr, input1_ptr, dims0, dims1, output_dims);
+        return TNN_OK;
+    }
+
     if (swap_flag) {
         std::swap(_input0, _input1);
     }
 
-    if (dims_broadcast.size()) {
-        type = (dims_broadcast[1] == 1) ? BroadcastTypeSingle : BroadcastTypeChannel;
+    size_t count = DimsVectorUtils::Count(dims);
+    size_t batch_stride = 1;
+    size_t channel_stride = 1;
+    if (dims.size() > 1) {
+        batch_stride = DimsVectorUtils::Count(dims, 1);
     }
-
-    size_t count = dims[0] * dims[1] * dims[2] * dims[3];
-    size_t batch_stride = dims[1] * dims[2] * dims[3];
-    size_t channel_stride = dims[2] * dims[3];
+    if (dims.size() > 2) {
+        channel_stride = DimsVectorUtils::Count(dims, 2);
+    }
 
     if (type == BroadcastTypeNormal) {
         size_t n = 0;
@@ -229,7 +354,7 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
                         for (; w + pack - 1 < dims[3]; w += pack) {
                             VEC v2 = VEC::loadu(_input1 + w);
                             VEC v1 = VEC::loadu(_input0_h + w);
-                            VEC::saveu(_output_h + h, binary_op<op_type, VEC>(v2, v1));
+                            VEC::saveu(_output_h + w, binary_op<op_type, VEC>(v2, v1));
                         }
                         for (; w < dims[3]; w++) {
                             _output_h[w] = binary_op<op_type>(_input1[w], _input0_h[w]);
@@ -315,7 +440,7 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
                         for (; w + pack - 1 < dims[3]; w += pack) {
                             VEC v2 = VEC::loadu(_input1 + w);
                             VEC v1 = VEC::loadu(_input0_h + w);
-                            VEC::saveu(_output_h + h, binary_op<op_type, VEC>(v1, v2));
+                            VEC::saveu(_output_h + w, binary_op<op_type, VEC>(v1, v2));
                         }
                         for (; w < dims[3]; w++) {
                             _output_h[w] = binary_op<op_type>(_input0_h[w], _input1[w]);
@@ -438,11 +563,11 @@ Status X86BinaryOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         }
     }
 
-    binary_func(output_ptr, input0_ptr, input1_ptr, input_shapes[0], input_shapes[1]);
+    binary_func(output_ptr, input0_ptr, input1_ptr, input_shapes[0], input_shapes[1], output->GetBlobDesc().dims);
 
     for (int i = 2; i < input_ptrs.size(); i++) {
         auto input_ptr = reinterpret_cast<float *>(input_ptrs[i]);
-        binary_func(output_ptr, output_ptr, input_ptr, dims, input_shapes[i]);
+        binary_func(output_ptr, output_ptr, input_ptr, dims, input_shapes[i], output->GetBlobDesc().dims);
     }
 
     return TNN_OK;

@@ -12,27 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#ifndef TNN_SOURCE_TNN_DEVICE_X86_X86_MAT_MUL_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_X86_X86_MAT_MUL_LAYER_ACC_H_
+
 #include "tnn/device/x86/acc/x86_layer_acc.h"
-#include "tnn/utils/dims_utils.h"
-#include "tnn/utils/data_type_utils.h"
+#include "tnn/device/x86/acc/compute/jit/conv_sgemm_driver.h"
 
 namespace TNN_NS {
+class X86MatMulLayerAcc : public X86LayerAcc {
+public:
+    virtual ~X86MatMulLayerAcc();
 
-DECLARE_X86_ACC(Unsqueeze, LAYER_UNSQUEEZE);
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
-Status X86UnsqueezeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    void *input_data  = inputs[0]->GetHandle().base;
-    void *output_data = outputs[0]->GetHandle().base;
-    auto dims         = outputs[0]->GetBlobDesc().dims;
-    auto count        = DimsVectorUtils::Count(dims);
-    auto ele_size     = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
+protected:
+    conv_gemm_config<float, float, float> conv_gemm_conf_;
+};
 
-    if (input_data != output_data) {
-        memcpy(output_data, input_data, count * ele_size);
-    }
-
-    return TNN_OK;
-}
-
-REGISTER_X86_ACC(Unsqueeze, LAYER_UNSQUEEZE);
 }  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_TNN_DEVICE_X86_X86_MAT_MUL_LAYER_ACC_H_

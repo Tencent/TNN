@@ -329,7 +329,6 @@ Status ArmInnerProductLayerAcc::Exec<int8_t>(const std::vector<Blob *> &inputs, 
     InnerProductLayerParam *fc_param = dynamic_cast<InnerProductLayerParam *>(param_);
     auto dims_input                  = inputs[0]->GetBlobDesc().dims;
     auto dims_output                 = outputs[0]->GetBlobDesc().dims;
-
     auto input_origin  = reinterpret_cast<int8_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
     auto output_origin = reinterpret_cast<int8_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
 
