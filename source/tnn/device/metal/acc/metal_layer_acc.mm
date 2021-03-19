@@ -487,9 +487,9 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
     id<MTLDevice> device     = [TNNMetalDeviceImpl sharedDevice];
     id<MTLBuffer> mtl_buffer = nil;
 
-    const int channel = buffer_shape[1];
-    const int kh      = buffer_shape[2];
-    const int kw      = buffer_shape[3];
+    const int channel = GetBlobDim(buffer_shape, 1);
+    const int kh      = GetBlobDim(buffer_shape, 2);
+    const int kw      = GetBlobDim(buffer_shape, 3);
 
     const int channel4 = UP_DIV(channel, 4) * 4;
 

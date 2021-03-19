@@ -42,6 +42,10 @@ void BlobToBGRAImpl(const fp16_t* src, uint8_t* dst, const float* scale, const f
 template <bool reverse_channel>
 void BlobToBGRImpl(const fp16_t* src, uint8_t* dst, const float* scale, const float* bias, int hw);
 
+void GemmHalfPackA(int m, int n, int k, const fp16_t* a, fp16_t* pack_a, int lda, const fp16_t* b, int ldb, fp16_t* c,
+                   int ldc);
+void GemmFloatPackAB(int m, int n, int k, const fp16_t* a, fp16_t* pack_a, int lda, const fp16_t* b, fp16_t* pack_b, int ldb, fp16_t* c,
+                   int ldc);
 #endif
 
 #ifdef TNN_ARM82_USE_NEON
