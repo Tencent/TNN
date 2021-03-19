@@ -12,30 +12,20 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_REDUCE_LAYER_BUILDER_H_
-#define TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_REDUCE_LAYER_BUILDER_H_
+#ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_REDUCE_LOG_SUM_EXP_LAYER_BUILDER_H_
+#define TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_REDUCE_LOG_SUM_EXP_LAYER_BUILDER_H_
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/reduce_layer_builder.h"
 
 namespace TNN_NS {
 
-class ReduceTRTLayerBuilder : public TensorRTLayerBuilder {
+class ReduceLogSumExpTRTLayerBuilder : public ReduceTRTLayerBuilder {
 public:
-    ReduceTRTLayerBuilder(LayerType ignore);
+    ReduceLogSumExpTRTLayerBuilder(LayerType ignore);
     virtual ILayer* AddToNetwork(INetworkDefinition* network);
-
-protected:
-    uint32_t GetReduceAxis();
-
-    ReduceOperation m_op;
 };
 
-#define DECLARE_TRT_REDUCE_LAYER_BUILDER(type_string)                     \
-    class type_string##TRTLayerBuilder : public ReduceTRTLayerBuilder {   \
-    public:                                                               \
-        type_string##TRTLayerBuilder(LayerType ignore);                   \
-    }
 
 }  //  namespace TNN_NS
 
-#endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_REDUCE_LAYER_BUILDER_H_
+#endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_REDUCE_LOG_SUM_EXP_LAYER_BUILDER_H_
