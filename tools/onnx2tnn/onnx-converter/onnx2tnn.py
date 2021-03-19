@@ -131,7 +131,10 @@ def main():
     try:
         if input_shape is None:
             input_shape = ""
-        status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time, 0 if model_half == '0' else 1, 0, input_shape)
+        status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time,
+                                  0 if model_half == '0' else 1,
+                                  1 if algo_optimize != '0' else 0,
+                                  input_shape)
     except Exception as err:
         status = -1
         traceback.print_exc()
