@@ -73,7 +73,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
 
     // modify the inputShapeMap. if reshape, add a suffix to the model name to create a new model
     InputShapesMap input_shapes_map_temp = net_structure_->inputs_shape_map;
-    std::string model_suffix             = NpuCommonUtils::modifyModelInputSize(max_inputs_shape, input_shapes_map_temp);
+    std::string model_suffix = NpuCommonUtils::modifyModelInputSize(max_inputs_shape, input_shapes_map_temp);
 
     // init the path to store/read om
     model_name_            = NpuCommonUtils::GetFileHash(model_config);
@@ -315,6 +315,10 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
         BlobDesc blob_desc;
 #endif
         for (std::string &name : layer_info->inputs) {
+            if (global_operator_map_.count(name) <= 0) {
+                LOGE("The input op of layer is not found, may switch to arm\n");
+                return Status(TNNERR_LAYER_ERR, "The input op of layer is not found");
+            }
             input_ops.push_back(global_operator_map_[name]);
 #ifdef GENERATE_RESOURCE
             blob_desc.dims = global_operator_map_[name]->GetShape();
