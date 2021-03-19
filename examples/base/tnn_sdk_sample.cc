@@ -770,24 +770,12 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
         if (output_names.size() == 1) {
             auto output_convert_param = GetConvertParamForOutput();
             std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
-<<<<<<< HEAD
-            status = instance_->GetOutputMat(output_mat, output_convert_param);
-=======
             status = instance_->GetOutputMat(output_mat, output_convert_param, "",
                                              TNNSDKUtils::GetFallBackDeviceType(input_device_type));
->>>>>>> master
             RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             output->AddMat(output_mat, output_names[0]);
         } else {
             for (auto name : output_names) {
-<<<<<<< HEAD
-                  auto output_convert_param = GetConvertParamForOutput(name);
-                  std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
-                  status = instance_->GetOutputMat(output_mat, output_convert_param, name);
-                  RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
-                  output->AddMat(output_mat, name);
-              }
-=======
                 auto output_convert_param = GetConvertParamForOutput(name);
                 std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
                 status = instance_->GetOutputMat(output_mat, output_convert_param, name,
@@ -795,7 +783,6 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
                 RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
                 output->AddMat(output_mat, name);
             }
->>>>>>> master
         }
   
         
