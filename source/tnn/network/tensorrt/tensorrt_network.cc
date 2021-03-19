@@ -154,7 +154,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
             return ret;
         }
     }
-    {
+
+    if (!test_mode) {
         size_t size = 0;
         std::ifstream deploy_input(cache_file_name, std::ios::binary);
         deploy_input.seekg(0, deploy_input.end);
@@ -172,6 +173,11 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         runtime->destroy();
         delete[] model_stream;
         deploy_input.close();
+    } else {
+        ret = CreateExecuteContext();
+        if (ret != TNN_OK)
+            return ret;
+
     }
 
     delete file_lock;

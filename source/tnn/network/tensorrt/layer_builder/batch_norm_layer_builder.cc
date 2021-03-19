@@ -44,8 +44,14 @@ ILayer* BatchNormTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
     // unsqueeze 
     ILayer* layer;
-    if(input_dims.size() == 2) {
-        DimsVector unsqueeze_dims = {input_dims[0], input_dims[1], 1, 1};
+    if (input_dims.size() == 2 || input_dims.size() == 3) {
+        DimsVector unsqueeze_dims;
+        for (int i = 0; i < input_dims.size(); i++) {
+            unsqueeze_dims.push_back(input_dims[i]);
+        }
+        for (int i = 0; i < 4-input_dims.size(); i++) {
+            unsqueeze_dims.push_back(1);
+        }
         layer = AddReshapeToNetwork(network, tensor, unsqueeze_dims, (layer_name_ + "squeeze").c_str());
         tensor = layer->getOutput(0);
     }
@@ -62,7 +68,7 @@ ILayer* BatchNormTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     }
 
     //squeeze
-    if(input_dims.size() == 2) {
+    if(input_dims.size() == 2 || input_dims.size() == 3) {
        layer = AddReshapeToNetwork(network, tensor, input_dims, (layer_name_ + "unsqueeze").c_str());
     }
 
@@ -73,3 +79,4 @@ REGISTER_TENSORRT_LAYER_BUILDER(BatchNorm, LAYER_BATCH_NORM);
 REGISTER_TENSORRT_LAYER_BUILDER(BatchNorm, LAYER_SCALE);
 
 }  //  namespace TNN_NS
+
