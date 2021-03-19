@@ -14,7 +14,7 @@
 
 #include "tnn/device/opencl/acc/convolution/opencl_conv_layer_acc_impl.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
@@ -52,8 +52,8 @@ Status OpenCLConvLayerAccImpl::Init(Context *context, LayerParam *param, LayerRe
     conv_params_.has_bias        = conv_param->bias;
     conv_params_.activation_type = conv_param->activation_type;
 
-    conv_params_.input_channel  = inputs[0]->GetBlobDesc().dims[1];
-    conv_params_.output_channel = outputs[0]->GetBlobDesc().dims[1];
+    conv_params_.input_channel  = DimsFunctionUtils::GetDim(inputs[0]->GetBlobDesc().dims, 1);
+    conv_params_.output_channel = DimsFunctionUtils::GetDim(outputs[0]->GetBlobDesc().dims, 1);
 
     if ((conv_params_.group <= 0 || conv_params_.input_channel % conv_params_.group != 0)) {
         LOGE("invalid group size in Conv layer!\n");

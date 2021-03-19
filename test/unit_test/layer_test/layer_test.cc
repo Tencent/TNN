@@ -25,7 +25,7 @@
 #include "tnn/utils/blob_memory_size_utils.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -35,13 +35,13 @@ std::shared_ptr<Instance> LayerTest::instance_ocl_cache_ = nullptr;
 
 void LayerTest::SetUpTestCase() {}
 
-void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision, DataFormat input_data_format) {
+void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision, DataFormat cpu_input_data_format, DataFormat device_input_data_format) {
 #if defined(__OBJC__) && defined(__APPLE__)
     @autoreleasepool{
 #endif
     TNN_NS::Status ret = TNN_NS::TNN_OK;
 
-    ret = Init(interp, precision, input_data_format);
+    ret = Init(interp, precision, cpu_input_data_format, device_input_data_format);
     if (ret != TNN_OK) {
         EXPECT_EQ((int)ret, TNN_OK);
         DeInit();
@@ -82,7 +82,7 @@ void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision 
 #endif
 }
 
-Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision, DataFormat input_data_format) {
+Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision, DataFormat cpu_input_data_format, DataFormat device_input_data_format) {
     TNN_NS::Status ret = TNN_NS::TNN_OK;
 
     ModelConfig model_config;
@@ -91,7 +91,7 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
 
     NetworkConfig config_cpu;
     config_cpu.device_type = DEVICE_NAIVE;
-    config_cpu.data_format = input_data_format;
+    config_cpu.data_format = cpu_input_data_format;
 
     NetworkConfig config_device;
     config_device.device_type = ConvertDeviceType(FLAGS_dt);
@@ -102,9 +102,6 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
     if (DEVICE_CUDA == config_device.device_type) {
         config_device.network_type = NETWORK_TYPE_TENSORRT;
     }
-    if (DEVICE_X86 == config_device.device_type) {
-        config_device.network_type = NETWORK_TYPE_OPENVINO;
-    }
     if (!FLAGS_ub && (DEVICE_OPENCL == config_device.device_type || DEVICE_METAL == config_device.device_type)) {
         config_device.precision = PRECISION_HIGH;
     } else {
@@ -113,7 +110,7 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
     if (FLAGS_lp.length() > 0) {
         config_device.library_path = {FLAGS_lp};
     }
-    config_device.data_format = input_data_format;
+    config_device.data_format = device_input_data_format;
 
     instance_cpu_ = std::make_shared<Instance>(config_cpu, model_config);
     if (nullptr == instance_cpu_) {
@@ -236,6 +233,7 @@ Status LayerTest::Compare() {
 Status LayerTest::DeInit() {
     instance_cpu_.reset();
     instance_device_.reset();
+    instance_ocl_cache_.reset();
 
     return TNN_OK;
 }
@@ -243,6 +241,7 @@ Status LayerTest::DeInit() {
 void LayerTest::TearDownTestCase() {
     instance_cpu_.reset();
     instance_device_.reset();
+    instance_ocl_cache_.reset();
 }
 
 Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev, int magic_num) {

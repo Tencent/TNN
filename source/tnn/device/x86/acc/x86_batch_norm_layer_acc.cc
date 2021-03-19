@@ -14,7 +14,7 @@
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "immintrin.h"
 #include "tnn/device/x86/acc/compute/x86_compute.h"
 
@@ -22,11 +22,7 @@ namespace TNN_NS {
 
 DECLARE_X86_ACC(BatchNorm, LAYER_BATCH_NORM);
 
-Status X86BatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
-Status X86BatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86BatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     
     auto resource = dynamic_cast<BatchNormLayerResource *>(resource_);
     if (!resource) {

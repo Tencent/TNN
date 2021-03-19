@@ -47,5 +47,6 @@ std::set<std::string> OpenCLEluLayerAcc::CreateBuildOptions() {
 OpenCLEluLayerAcc::~OpenCLEluLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Elu, LAYER_ELU)
+REGISTER_OPENCL_LAYOUT(LAYER_ELU, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

@@ -60,6 +60,9 @@ Status OpenCLConvLayerAcc::Init(Context *context, LayerParam *param, LayerResour
 OpenCLConvLayerAcc::~OpenCLConvLayerAcc() {}
 
 Status OpenCLConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     if (conv_acc_implement_ == nullptr)
         return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "this type conv acc is not implemented");
 
@@ -74,5 +77,6 @@ Status OpenCLConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 }
 
 REGISTER_OPENCL_ACC(Conv, LAYER_CONVOLUTION)
+REGISTER_OPENCL_LAYOUT(LAYER_CONVOLUTION, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

@@ -44,6 +44,7 @@ bool CheckResult(std::string desc, int ret) {
 }
 
 DeviceType ConvertDeviceType(std::string device_type) {
+    std::transform(device_type.begin(), device_type.end(), device_type.begin(), ::toupper);
     if ("METAL" == device_type) {
         return DEVICE_METAL;
     } else if ("OPENCL" == device_type) {
@@ -122,7 +123,7 @@ std::pair<std::string, FileFormat> GetFileInfo(std::string input_path) {
 void PrintConfig() {
     printf(
         "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-o] [-e] [-f] "
-        "<refernece> [-n] <val> [-s] <val>\n"
+        "<refernece> [-n] <val> [-s] <val> [-a] <align>\n"
         "\t-h, --help     \t show this message\n"
         "\t-p, --proto    \t(require) tnn proto file path\n"
         "\t-m, --model    \t(require) tnn model file path\n"
@@ -137,7 +138,8 @@ void PrintConfig() {
         "1.0,1.0,1.0 \n"
         "\t\tformula: y = (x - bias) * scale\n"
         "\t-o, --output   \t(optional) dump output\n"
-        "\t-b, --batch    \t(optional) check result of multi batch\n");
+        "\t-b, --batch    \t(optional) check result of multi batch\n"
+        "\t-a, --align_all\t(optional) dump folder path to compare the all model\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -160,9 +162,10 @@ int main(int argc, char* argv[]) {
                                     {"ref", required_argument, 0, 'f'},    {"end", no_argument, 0, 'e'},
                                     {"bias", required_argument, 0, 'n'},   {"scale", required_argument, 0, 's'},
                                     {"output", no_argument, 0, 'o'},       {"batch", no_argument, 0, 'b'},
-                                    {"help", no_argument, 0, 'h'},         {0, 0, 0, 0}};
+                                    {"help", no_argument, 0, 'h'},         {"align_all", required_argument, 0, 'a'},
+                                    {0, 0, 0, 0}};
 
-    const char* optstring = "p:m:d:i:f:en:s:obh";
+    const char* optstring = "p:m:d:i:f:a:en:s:obh";
 
     if (argc == 1) {
         PrintConfig();
@@ -203,6 +206,9 @@ int main(int argc, char* argv[]) {
                 printf("reference output file: %s\n", optarg);
                 model_checker_param.ref_file = GetFileInfo(optarg);
                 break;
+            case 'a':
+                printf("align all folder: %s\n", optarg);
+                model_checker_param.dump_dir_path = optarg;
             case 'n': {
                 printf("bias: %s\n", optarg);
                 std::vector<std::string> array;

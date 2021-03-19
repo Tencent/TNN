@@ -15,12 +15,12 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 class BatchNormScaleLayerTest : public LayerTest,
-                                public ::testing::WithParamInterface<std::tuple<int, int, int, int, bool, bool>> {};
+                                public ::testing::WithParamInterface<std::tuple<int, int, int, int, bool, bool, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, BatchNormScaleLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
@@ -29,7 +29,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, BatchNormScaleLayerTest,
                                             // share channel
                                             testing::Values(false, true),
                                             // has bias
-                                            testing::Values(true, false)));
+                                            testing::Values(true, false),
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
     // get param
@@ -39,6 +40,7 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
     int dim_count      = std::get<3>(GetParam());
     bool share_channel = std::get<4>(GetParam());
     bool has_bias      = std::get<5>(GetParam());
+    auto dtype         = std::get<6>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
@@ -66,8 +68,9 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
     while(input_dims.size() < dim_count) input_dims.push_back(input_size);
     auto interpreter1           = GenerateInterpreter("BatchNormCxx", {input_dims}, param, resource);
     auto interpreter2           = GenerateInterpreter("Scale", {input_dims}, param, resource);
-    Run(interpreter1);
-    Run(interpreter2);
+    Precision precision = SetPrecision(dev, dtype);
+    Run(interpreter1, precision);
+    Run(interpreter2, precision);
 }
 
 }  // namespace TNN_NS

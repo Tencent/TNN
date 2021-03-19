@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "cpu_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
@@ -71,7 +71,7 @@ Status CpuNonZeroLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
     
     auto output_blob  = outputs[0];
     auto output_dims = output_blob->GetBlobDesc().dims;
-    auto output_shtride = DimsVectorUtils::StrideOfShape(output_dims);
+    auto output_shtride = DimsFunctionUtils::StrideOfShape(output_dims);
     
     auto input_data_ptr = (char *)inputs[0]->GetHandle().base;
     int *output_data_ptr = (int *)outputs[0]->GetHandle().base;
@@ -92,7 +92,7 @@ Status CpuNonZeroLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
         }
         
         input_data_ptr += ele_size;
-        dim_index = DimsVectorUtils::IncreaseIndex(dim_index, input_dims);
+        dim_index = DimsFunctionUtils::IncreaseIndex(dim_index, input_dims);
     }
     
     

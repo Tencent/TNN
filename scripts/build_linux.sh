@@ -40,11 +40,11 @@ clone_openvino() {
 
     if [ ! -d openvino ]
     then
-        git clone https://github.com/openvinotoolkit/openvino.git
+        git clone --recursive https://github.com/openvinotoolkit/openvino.git
     fi
     cd openvino
     git reset --hard 9df6a8f
-    git submodule update --init --recursive
+    git submodule update
     sed -i '152 i /*' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
     sed -i '157 i */' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
 

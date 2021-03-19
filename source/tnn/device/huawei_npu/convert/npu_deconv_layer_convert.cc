@@ -80,16 +80,15 @@ protected:
         }
         output->set_input_x(*input_ops_[0]->GetOperator());
         output->set_attr_groups(group_);
-        output->set_attr_pads(ge::AttrValue::LIST_INT({
-            pad_h_begin_,
-            pad_h_end_,
-            pad_w_begin_,
-            pad_w_end_,
-        }));
         if (0 == pad_type_ || 3 == pad_type_) {
             output->set_attr_pad_mode("SAME");
+            output->set_attr_pads(ge::AttrValue::LIST_INT({0, 0, 0, 0}));
         } else if (1 == pad_type_) {
             output->set_attr_pad_mode("VALID");
+            output->set_attr_pads(ge::AttrValue::LIST_INT({0, 0, 0, 0}));
+        } else {
+            output->set_attr_pad_mode("SPECIFIC");
+            output->set_attr_pads(ge::AttrValue::LIST_INT({pad_h_begin_, pad_h_end_, pad_w_begin_, pad_w_end_}));
         }
         output->set_attr_strides(ge::AttrValue::LIST_INT({stride_h_, stride_w_}));
         output->set_attr_dilations(ge::AttrValue::LIST_INT({dilation_h_, dilation_w_}));

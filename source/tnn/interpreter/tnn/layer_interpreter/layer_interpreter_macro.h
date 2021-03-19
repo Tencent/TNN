@@ -68,7 +68,7 @@
     do {                                                                                                               \
         for (int _ii = 0; _ii < n; _ii++) {                                                                            \
             int var = default_value;                                                                                   \
-            GET_INT_1(var);                                                                                            \
+            GET_INT_1_OR_DEFAULT(var, default_value);                                                                  \
             vec.push_back(var);                                                                                        \
         }                                                                                                              \
     } while (0)
@@ -78,7 +78,7 @@
         vec.resize(n);                                                                                                 \
         for (int _ii = n-1; _ii >= 0; _ii--) {                                                                         \
             int var = default_value;                                                                                   \
-            GET_INT_1(var);                                                                                            \
+            GET_INT_1_OR_DEFAULT(var, default_value);                                                                  \
             vec[_ii] = var;                                                                                            \
         }                                                                                                              \
     } while (0)
@@ -91,13 +91,7 @@
 
 #define GET_INT_2_INTO_VEC(vec) GET_INT_2_INTO_VEC_DEFAULT(vec, 0)
 
-#define GET_INT_2_INTO_VEC_REVERSE_DEFAULT(vec, default_value)                                                         \
-    do {                                                                                                               \
-        int var1 = default_value, var2 = default_value;                                                                \
-        GET_INT_2(var1, var2);                                                                                         \
-        vec.push_back(var2);                                                                                           \
-        vec.push_back(var1);                                                                                           \
-    } while (0)
+#define GET_INT_2_INTO_VEC_REVERSE_DEFAULT(vec, default_value) GET_INT_N_INTO_VEC_REVERSE_DEFAULT(vec, 2, default_value)
 
 #define GET_INT_2_INTO_VEC_REVERSE(vec) GET_INT_2_INTO_VEC_REVERSE_DEFAULT(vec, 0)
 

@@ -68,15 +68,39 @@ enum FusionType {
 
 struct BatchNormLayerParam : public LayerParam {
     int channels = 0;
-    float eps    = 0.f;
+    float eps    = 1e-5f;
 
     PARAM_COPY(BatchNormLayerParam)
 };
 struct InstanceNormLayerParam : public LayerParam {
     int channels = 0;
-    float eps    = 0.01f;
+    float eps    = 1e-5f;
 
     PARAM_COPY(InstanceNormLayerParam)
+};
+
+struct GroupNormLayerParam : public LayerParam {
+    int group = 0;
+    float eps = 1e-5f;
+
+    PARAM_COPY(GroupNormLayerParam)
+};
+
+struct GridSampleLayerParam : public LayerParam {
+    // 1: nereast 2: bilinear/linear 3: cubic
+    int mode = 2;
+    // 0:const 1:reflect 2:edge
+    int pad_type = 0;
+    int align_corners = 0;
+
+    PARAM_COPY(GridSampleLayerParam)
+};
+
+struct TileLayerParam : public LayerParam {
+    //nchw order
+    std::vector<int> reps;
+
+    PARAM_COPY(TileLayerParam)
 };
 
 struct ConvLayerParam : public LayerParam {
@@ -129,6 +153,10 @@ struct PoolingLayerParam : public LayerParam {
     // order [w h d] for adaptive pool
     std::vector<int> kernel_indexs;
 
+    int is_adaptive_pool = 0;
+    // order [w h d]
+    std::vector<int> output_shape;
+
     PARAM_COPY(PoolingLayerParam)
 };
 
@@ -159,11 +187,11 @@ struct UpsampleLayerParam : public LayerParam {
 };
 
 struct RangeLayerParam : public LayerParam {
-    DataType type = DATA_TYPE_FLOAT;
+    DataType data_type = DATA_TYPE_FLOAT;
     RangeData start = {0};
     RangeData limit = {0};
     RangeData delta = { .i = 1};
-    
+
     PARAM_COPY(RangeLayerParam)
 };
 
@@ -219,6 +247,15 @@ struct CastLayerParam : public LayerParam {
 struct HistogramLayerParam : public LayerParam {
     int depth;
     PARAM_COPY(HistogramLayerParam)
+};
+
+struct OneHotLayerParam : public LayerParam {
+    int axis = -1;
+    int depth = -1;
+    float value_off = 0;
+    float value_on = 1;
+    
+    PARAM_COPY(OneHotLayerParam)
 };
 
 struct BitShiftLayerParam : public LayerParam {
@@ -571,6 +608,30 @@ struct MatMulLayerParam : public LayerParam {
     PARAM_COPY(MatMulLayerParam)
 };
 
-}  // namespace TNN_NS
+struct RoiAlignLayerParam : public LayerParam {
+    // 0: max, 1: avg
+    int mode = 1;
+    int output_height;
+    int output_width;
+    int sampling_ratio;
+    float spatial_scale;
+
+    PARAM_COPY(RoiAlignLayerParam)
+
+};
+
+struct FlattenLayerParam : public LayerParam {
+    int axis = 1;
+
+    PARAM_COPY(FlattenLayerParam)
+};
+
+struct EinsumLayerParam : public LayerParam {
+    std::string equation;
+
+    PARAM_COPY(EinsumLayerParam)
+};
+
+};  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H

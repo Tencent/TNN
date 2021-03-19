@@ -14,18 +14,14 @@
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/device/x86/x86_device.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
 DECLARE_X86_ACC(Concat, LAYER_CONCAT);
 
-Status X86ConcatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
-Status X86ConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86ConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<ConcatLayerParam *>(param_);
     if (!param) {
         LOGE("Error: ConcatLayerParam is nil\n");

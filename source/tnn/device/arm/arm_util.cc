@@ -331,6 +331,10 @@ bool FloatBlobCanIgnorePack(size_t channel, size_t hw) {
     return (hw == 1) && (channel % 4 == 0);
 }
 
+bool HalfBlobCanIgnorePack(size_t channel, size_t hw) {
+    return (hw == 1) && (channel % 8 == 0);
+}
+
 int PackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw) {
     for (int n = 0; n < batch; ++n) {
         auto dst_ptr_n = dst + n * ROUND_UP(channel, 4) * hw;
@@ -363,6 +367,24 @@ int UnpackFloatBlob(bfp16_t *dst, bfp16_t *src, size_t batch, size_t channel, si
         auto dst_ptr_n = dst + n * channel * hw;
         auto src_ptr_n = src + n * ROUND_UP(channel, 4) * hw;
         UnpackC4(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
+int PackHalfBlob(fp16_t *dst, fp16_t *src, size_t batch, size_t channel, size_t hw) {
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * ROUND_UP(channel, 8) * hw;
+        auto src_ptr_n = src + n * channel * hw;
+        PackC8(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
+int UnpackHalfBlob(fp16_t *dst, fp16_t *src, size_t batch, size_t channel, size_t hw) {
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * channel * hw;
+        auto src_ptr_n = src + n * ROUND_UP(channel, 8) * hw;
+        UnpackC8(dst_ptr_n, src_ptr_n, hw, channel);
     }
     return 0;
 }
@@ -471,6 +493,20 @@ int UnpackC4WithStride(float *dst, const float *src, size_t ih, size_t iw, size_
             for (int w = 0; w < iw; w++) {
                 *dst_x_start++ = src_c[4 * (h * iw + w) + offset];
             }
+        }
+    }
+
+    return 0;
+}
+
+int UnpackHWC4ToCHW(int8_t *dst, const int8_t *src, size_t channel, size_t hw) {
+    auto c_r4 = ROUND_UP(channel, 4);
+
+    for (int c = 0; c < channel; ++c) {
+        auto src_c = src + c;
+        auto dst_c = dst + c * hw;
+        for (int z = 0; z < hw; ++z) {
+            dst_c[z] = src_c[z * c_r4];
         }
     }
 
@@ -820,6 +856,10 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
         unsigned char* rgb1 = bgr + w * 3;
 #if __aarch64__
         int64_t nn = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain = w - (nn << 3);
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
@@ -906,6 +946,10 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
         }
 #else
         int nn         = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);
@@ -1008,6 +1052,10 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
         unsigned char* rgb1 = bgr + w * 3;
 #if __aarch64__
         int64_t nn = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain = w - (nn << 3);
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
@@ -1094,6 +1142,10 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
         }
 #else
         int nn         = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);
@@ -1196,6 +1248,10 @@ void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
         unsigned char* rgb1 = bgra + w * 4;
 #if __aarch64__
         int64_t nn = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain = w - (nn << 3);
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
@@ -1286,6 +1342,10 @@ void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
         }
 #else
         int nn         = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);
@@ -1390,6 +1450,10 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
         unsigned char* rgb1 = bgra + w * 4;
 #if __aarch64__
         int64_t nn = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain = w - (nn << 3);
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
@@ -1480,6 +1544,10 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
         }
 #else
         int nn         = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);

@@ -26,7 +26,7 @@ Status CpuAddLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, const s
     } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT32) {
         void *output_data = output->GetHandle().base;
         const auto &output_dims = output->GetBlobDesc().dims;
-        CPU_ELEMENT_WISE<int>(input_ptrs, input_shapes, output_data, output_dims,
+        CPU_ELEMENT_WISE<int, int>(input_ptrs, input_shapes, output_data, output_dims,
                                   [](int a, int b) -> int { return a + b; });
     } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         std::vector<float *> scale_ptrs;

@@ -14,9 +14,9 @@
 
 #include "tnn/device/metal/acc/recurrent/metal_lstm_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 // [outer, axis, inner] => [outer, inner, axis]
 template <typename T>
@@ -281,7 +281,7 @@ Status MetalLSTMLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     return TNN_OK;
 }
 
-std::vector<DataFormat> MetalLSTMLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> MetalLSTMLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (dims_size >= 2) {
         // inputs to lstm layer should at least has two dimensions
