@@ -47,6 +47,9 @@ Status OpenCLPixelShuffleLayerAcc::Init(Context *context, LayerParam *param, Lay
 
 Status OpenCLPixelShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("PixelShuffle Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     PixelShuffleLayerParam *pixel_shuffle_param = dynamic_cast<PixelShuffleLayerParam *>(param_);
     if (!pixel_shuffle_param) {
         LOGE("Error: layer param is null\n");
@@ -59,10 +62,10 @@ Status OpenCLPixelShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
     uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], output_dims);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-    execute_units_[0].ocl_kernel.setArg(idx++, output_dims[2]);
-    execute_units_[0].ocl_kernel.setArg(idx++, output_dims[3]);
-    execute_units_[0].ocl_kernel.setArg(idx++, input_dims[2]);
-    execute_units_[0].ocl_kernel.setArg(idx++, input_dims[3]);
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, 2));
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, 3));
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 2));
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 3));
     execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(upscale_factor));
     execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(upscale_factor * upscale_factor));
 
@@ -70,5 +73,6 @@ Status OpenCLPixelShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
 }
 
 REGISTER_OPENCL_ACC(PixelShuffle, LAYER_PIXEL_SHUFFLE)
+REGISTER_OPENCL_LAYOUT(LAYER_PIXEL_SHUFFLE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

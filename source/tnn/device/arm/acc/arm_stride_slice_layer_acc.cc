@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cmath>
+
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/utils/dims_utils.h"
 
@@ -21,18 +22,10 @@ namespace TNN_NS {
 
 DECLARE_ARM_ACC(StrideSlice, LAYER_STRIDED_SLICE);
 
-Status ArmStrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto layer_param = dynamic_cast<StrideSliceLayerParam *>(param_);
-    if (!layer_param) {
-        LOGE("Error: StrideSliceLayerParam is nil\n");
-        return Status(TNNERR_MODEL_ERR, "Error: StrideSliceLayerParam is nil");
-    }
-
-    Blob *input_blob  = inputs[0];
-    Blob *output_blob = outputs[0];
+static Status ExecStrideSlice(Blob *input_blob, Blob *output_blob, const std::vector<int> &begins,
+                              const std::vector<int> &ends, const std::vector<int> &strides) {
     auto dims_input   = input_blob->GetBlobDesc().dims;
     auto dims_output  = output_blob->GetBlobDesc().dims;
-    int input_channel = dims_input[1];
     int input_height  = dims_input[2];
     int input_width   = dims_input[3];
     int output_height = dims_output[2];
@@ -41,18 +34,6 @@ Status ArmStrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     int input_slice  = UP_DIV(dims_input[1], 4);
     int output_slice = UP_DIV(dims_output[1], 4);
 
-    auto begins  = layer_param->begins;
-    auto ends    = layer_param->ends;
-    auto strides = layer_param->strides;
-    std::reverse(begins.begin(), begins.end());
-    std::reverse(ends.begin(), ends.end());
-    std::reverse(strides.begin(), strides.end());
-
-    for (int i = 0; i < ends.size(); ++i) {
-        if (ends[i] == 0) {
-            ends[i] = input_blob->GetBlobDesc().dims[i];
-        }
-    }
     int nn = 0, nc = 0, nh = 0, nw = 0;
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
@@ -84,6 +65,88 @@ Status ArmStrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     return TNN_OK;
 }
 
+Status ArmStrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto layer_param = dynamic_cast<StrideSliceLayerParam *>(param_);
+    if (!layer_param) {
+        LOGE("Error: StrideSliceLayerParam is nil\n");
+        return Status(TNNERR_MODEL_ERR, "Error: StrideSliceLayerParam is nil");
+    }
+
+    Blob *input_blob  = inputs[0];
+    Blob *output_blob = outputs[0];
+    auto dims_input   = input_blob->GetBlobDesc().dims;
+    auto dims_output  = output_blob->GetBlobDesc().dims;
+    auto dim_size     = dims_output.size();
+    if (dim_size != 4 || dim_size != dims_input.size()) {
+        return Status(TNNERR_MODEL_ERR, "Error: StrideSliceLayerParam not support!");
+    }
+
+    auto begins  = layer_param->begins;
+    auto ends    = layer_param->ends;
+    auto strides = layer_param->strides;
+    std::reverse(begins.begin(), begins.end());
+    std::reverse(ends.begin(), ends.end());
+    std::reverse(strides.begin(), strides.end());
+
+    for (int i = 0; i < ends.size(); ++i) {
+        if (ends[i] == 0) {
+            ends[i] = input_blob->GetBlobDesc().dims[i];
+        }
+    }
+
+    return ExecStrideSlice(input_blob, output_blob, begins, ends, strides);
+}
+
 REGISTER_ARM_ACC(StrideSlice, LAYER_STRIDED_SLICE)
+REGISTER_ARM_LAYOUT(LAYER_STRIDED_SLICE, DATA_FORMAT_NC4HW4)
+
+DECLARE_ARM_ACC(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
+
+Status ArmStrideSliceV2LayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto layer_param = dynamic_cast<StrideSliceV2LayerParam *>(param_);
+    if (!layer_param) {
+        LOGE("Error: StrideSliceV2LayerParam is nil\n");
+        return Status(TNNERR_MODEL_ERR, "Error: StrideSliceV2LayerParam is nil");
+    }
+
+    Blob *input_blob  = inputs[0];
+    Blob *output_blob = outputs[0];
+    auto dims_input   = input_blob->GetBlobDesc().dims;
+    auto dims_output  = output_blob->GetBlobDesc().dims;
+    auto dim_size     = dims_output.size();
+    if (dim_size != 4 || dim_size != dims_input.size()) {
+        return Status(TNNERR_MODEL_ERR, "Error: StrideSliceV2LayerParam not support!");
+    }
+
+    auto begins  = layer_param->begins;
+    auto ends    = layer_param->ends;
+    auto strides = layer_param->strides;
+    auto axes    = layer_param->axes;
+
+    Status status = TNN_OK;
+    DimsFunctionUtils::StrideSlice(dims_input, begins, ends, strides, axes, &status);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    std::vector<int> rectified_begins(dim_size, 0);
+    std::vector<int> rectified_ends(dim_size, 0);
+    std::vector<int> rectified_strides(dim_size, 0);
+    for (int i = 0, axes_idx = 0; i < dim_size; ++i) {
+        if (axes_idx >= axes.size() || i != axes[axes_idx]) {
+            rectified_begins[i]  = 0;
+            rectified_ends[i]    = dims_input[i];
+            rectified_strides[i] = 1;
+        } else {
+            rectified_begins[i]  = begins[axes_idx];
+            rectified_ends[i]    = ends[axes_idx];
+            rectified_strides[i] = strides[axes_idx];
+            axes_idx += 1;
+        }
+    }
+
+    return ExecStrideSlice(input_blob, output_blob, rectified_begins, rectified_ends, rectified_strides);
+}
+
+REGISTER_ARM_ACC(StrideSliceV2, LAYER_STRIDED_SLICE_V2)
+REGISTER_ARM_LAYOUT(LAYER_STRIDED_SLICE_V2, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

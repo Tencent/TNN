@@ -17,7 +17,7 @@
 #include <memory>
 
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
-#include "tnn/utils/dims_utils.h
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 

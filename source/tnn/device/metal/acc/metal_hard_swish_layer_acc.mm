@@ -91,5 +91,6 @@ Status MetalHardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
 }
 
 REGISTER_METAL_ACC(HardSwish, LAYER_HARDSWISH);
+REGISTER_METAL_LAYOUT(LAYER_HARDSWISH, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

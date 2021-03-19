@@ -57,11 +57,11 @@ Status MetalShuffleLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
         auto dims_input = inputs[0]->GetBlobDesc().dims;
         MetalShuffleParams metal_params;
 
-        metal_params.input_size    = dims_input[2] * dims_input[3];
+        metal_params.input_size    = GetBlobCount(dims_input, 2);
         metal_params.input_channel = dims_input[1];
         metal_params.input_slice   = UP_DIV(dims_input[1], 4);
 
-        metal_params.output_size  = dims_output[2] * dims_output[3];
+        metal_params.output_size  = GetBlobCount(dims_output, 2);
         metal_params.output_slice = UP_DIV(dims_output[1], 4);
 
         metal_params.group             = layer_param->group;
@@ -84,7 +84,13 @@ std::string MetalShuffleLayerAcc::KernelName(const std::vector<Blob *> &inputs, 
 Status MetalShuffleLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
                                         const std::vector<Blob *> &outputs,
                                         MTLSize &size) {
-    return MetalLayerAcc::ComputeThreadSize(inputs, outputs, size);
+    const auto& output_dims = outputs[0]->GetBlobDesc().dims;
+    auto hw = DimsVectorUtils::Count(output_dims, 2);
+    auto slice = UP_DIV(output_dims[1], 4);
+    size = MTLSizeMake(hw, slice, output_dims[0]);
+
+    return TNN_OK;
+    //return MetalLayerAcc::ComputeThreadSize(inputs, outputs, size);
 }
 
 Status MetalShuffleLayerAcc::SetKernelEncoderParam(
@@ -103,5 +109,6 @@ Status MetalShuffleLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_METAL_ACC(Shuffle, LAYER_SHUFFLE_CHANNEL);
+REGISTER_METAL_LAYOUT(LAYER_SHUFFLE_CHANNEL, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

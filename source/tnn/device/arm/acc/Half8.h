@@ -419,6 +419,18 @@ struct Half8 {
     }
 };
 
+struct Half8x4 {
+    float16x8x4_t value;
+    static Half8x4 ld4(const __fp16* addr) {
+        Half8x4 v;
+        v.value = vld4q_f16(addr);
+        return v;
+    }
+    void get_lane(Half8& v, int index) {
+        v.value = value.val[index];
+    }
+};
+
 #elif defined(TNN_ARM82_A32)
 
 struct Half4 {
@@ -1059,6 +1071,15 @@ struct Half8 {
 struct Half8x4 {
     int16x8x4_t value;
     Half8x4() {}
+
+    static Half8x4 ld4(const fp16_t* addr) {
+        Half8x4 v;
+        v.value = vld4q_s16((int16_t*)addr);
+        return v;
+    }
+    void get_lane(Half8& v, int index) {
+        v.value = value.val[index];
+    }
 
     void set_value0(const Half8& lr) {
         value.val[0] = lr.value;

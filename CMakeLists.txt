@@ -39,7 +39,7 @@ option(TNN_CONVERTER_ENABLE "Enable Model Converter" OFF)
 option(TNN_ONNX2TNN_ENABLE "Enable ONNX2TNN Converter" OFF)
 option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
 option(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE "Enable Build Benchmark Test Lib" OFF)
-option(TNN_GLIBCXX_USE_CXX11_ABI_ENABLE "Enable Use CXX11 ABI" OFF)
+option(TNN_GLIBCXX_USE_CXX11_ABI_ENABLE "Enable Use CXX11 ABI" ON)
 
 message(${CMAKE_SOURCE_DIR})
 message(${CMAKE_CURRENT_SOURCE_DIR})

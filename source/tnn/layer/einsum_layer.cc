@@ -349,13 +349,10 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
     // Fast path for when an operand has zero sized dim
     if (has_zero_size_dim) {
         std::vector<int> out_shape(out_size);
-        int output_shape_count = 1;
         for (int i = 0; i < out_size; i++) {
             out_shape[i] = permuted_operands_dims[dim_last_op[i]][i];
-            output_shape_count *= out_shape[i];
         }
-        float *output_ptr = static_cast<float *>(outputs[0]->GetHandle().base);
-        memset(output_ptr, 0, sizeof(float) * output_shape_count);
+        output_blobs_[0]->GetBlobDesc().dims = out_shape;
 
         return TNN_OK;
     }
@@ -404,10 +401,6 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
                 result = CalSumOutputShape(result, axis);
             }
         }
-    }
-
-    if (output_blobs_[0]->GetBlobDesc().name == "2541") {
-        int x = 0;
     }
 
     output_blobs_[0]->GetBlobDesc().dims = result;

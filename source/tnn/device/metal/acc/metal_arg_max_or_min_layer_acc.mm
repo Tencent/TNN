@@ -91,5 +91,6 @@ Status MetalArgMaxOrMinLayerAcc::Forward(const std::vector<Blob *> &inputs, cons
 }
 
 REGISTER_METAL_ACC(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN);
+REGISTER_METAL_LAYOUT(LAYER_ARG_MAX_OR_MIN, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

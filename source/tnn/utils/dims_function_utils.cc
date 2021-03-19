@@ -281,4 +281,8 @@ DimsVector DimsFunctionUtils::ModIndex(DimsVector index, const DimsVector shape)
     return index;
 }
 
+int DimsFunctionUtils::GetDim(const DimsVector dims, const int index) {
+    return dims.size() > index ? dims[index] : 1;
+}
+
 }  // namespace TNN_NS

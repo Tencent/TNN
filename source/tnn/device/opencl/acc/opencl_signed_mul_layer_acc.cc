@@ -46,6 +46,9 @@ Status OpenCLSignedMulLayerAcc::Init(Context *context, LayerParam *param, LayerR
 
 Status OpenCLSignedMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("SignedMul Layer Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     SignedMulLayerParam *signed_mul_param = dynamic_cast<SignedMulLayerParam *>(param_);
     if (!signed_mul_param) {
         LOGE("Error: layer param is null\n");
@@ -54,10 +57,10 @@ Status OpenCLSignedMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
-    const int batch    = output_dims[0];
-    const int channels = output_dims[1];
-    const int height   = output_dims[2];
-    const int width    = output_dims[3];
+    const int batch    = DimsFunctionUtils::GetDim(output_dims, 0);
+    const int channels = DimsFunctionUtils::GetDim(output_dims, 1);
+    const int height   = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int width    = DimsFunctionUtils::GetDim(output_dims, 3);
 
     uint32_t idx = 0;
     execute_units_[0].global_work_size = {static_cast<uint32_t>(width), static_cast<uint32_t>(UP_DIV(channels, 4)),
@@ -75,5 +78,6 @@ Status OpenCLSignedMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 }
 
 REGISTER_OPENCL_ACC(SignedMul, LAYER_SIGNED_MUL)
+REGISTER_OPENCL_LAYOUT(LAYER_SIGNED_MUL, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

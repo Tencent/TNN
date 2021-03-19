@@ -27,7 +27,7 @@ struct BlobMemorySizeInfo {
     std::vector<int> dims = {};
 };
 
-int GetBlobMemoryBytesSize(BlobMemorySizeInfo& size_info);
+int64_t GetBlobMemoryBytesSize(BlobMemorySizeInfo& size_info);
 
 }  // namespace TNN_NS
 

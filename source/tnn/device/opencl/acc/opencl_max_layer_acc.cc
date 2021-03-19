@@ -43,5 +43,6 @@ Status OpenCLMaxLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 OpenCLMaxLayerAcc::~OpenCLMaxLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Max, LAYER_MAXIMUM)
+REGISTER_OPENCL_LAYOUT(LAYER_MAXIMUM, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

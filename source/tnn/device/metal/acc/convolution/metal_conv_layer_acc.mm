@@ -93,5 +93,6 @@ Status MetalConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_METAL_ACC(Conv, LAYER_CONVOLUTION);
+REGISTER_METAL_LAYOUT(LAYER_CONVOLUTION, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS
