@@ -29,6 +29,54 @@ namespace TNN_NS {
 
 #ifdef VEC_NAIVE_IMPL
 using Float4 = TNNVector<float, 4>;
+
+struct Float4x4 {
+    Float4 value[4];
+
+    static Float4x4 ld4u(const float* addr) {
+        Float4x4 v;
+        for (int i = 0; i < 4; i++) {
+            v.value[0].value[i] = addr[i*4 + 0];
+            v.value[1].value[i] = addr[i*4 + 1];
+            v.value[2].value[i] = addr[i*4 + 2];
+            v.value[3].value[i] = addr[i*4 + 3];
+        }
+        return v;
+    }
+    static Float4x4 loadu(const float* addr) {
+        Float4x4 v;
+        for (int i = 0; i < 4; i++) {
+            v.value[i].value[0] = addr[i*4 + 0];
+            v.value[i].value[1] = addr[i*4 + 1];
+            v.value[i].value[2] = addr[i*4 + 2];
+            v.value[i].value[3] = addr[i*4 + 3];
+        }
+        return v;
+    }
+    static Float4x4 ld4(const float* addr) {
+        Float4x4 v;
+        for (int i = 0; i < 4; i++) {
+            v.value[0].value[i] = addr[i*4 + 0];
+            v.value[1].value[i] = addr[i*4 + 1];
+            v.value[2].value[i] = addr[i*4 + 2];
+            v.value[3].value[i] = addr[i*4 + 3];
+        }
+        return v;
+    }
+    static Float4x4 load(const float* addr) {
+        Float4x4 v;
+        for (int i = 0; i < 4; i++) {
+            v.value[i].value[0] = addr[i*4 + 0];
+            v.value[i].value[1] = addr[i*4 + 1];
+            v.value[i].value[2] = addr[i*4 + 2];
+            v.value[i].value[3] = addr[i*4 + 3];
+        }
+        return v;
+    }
+    void get_lane(Float4& v, int index) {
+        v = value[index];
+    }
+};
 #else
 struct Float4 {
     __m128 value;
