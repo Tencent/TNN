@@ -162,8 +162,8 @@ struct Float8 {
     }
     static Float8 tanh(const Float8& v) {
         Float8 dst;
-        __m128 low = _mm256_extracti128_si256(v.value, 0);
-        __m128 high = _mm256_extracti128_si256(v.value, 1);
+        __m128 low = _mm256_extractf128_ps(v.value, 0);
+        __m128 high = _mm256_extractf128_ps(v.value, 1);
         low = tanh_ps(low);
         high = tanh_ps(high);
         dst.value = _mm256_castps128_ps256(low);
