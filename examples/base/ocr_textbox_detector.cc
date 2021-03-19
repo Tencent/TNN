@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "ocr_textbox_detector.h"
-#include "clipper.hpp"
+#include "clipper.h"
 
 #include "opencv2/core/mat.hpp"
 #include "opencv2/core/core.hpp"
