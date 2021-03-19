@@ -84,6 +84,9 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
         return Status(TNNERR_MODEL_ERR, "Error: EinsumLayerParam is nil");
     }
 
+    param->perm_shapes.clear();
+    param->dim_last_op.clear();
+    param->has_zero_size_dim = false;
     const auto equation    = param->equation;
     constexpr int ELLIPSIS = '.';
 
@@ -250,6 +253,7 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
 
     // Save output size before adding contraction dims (dims to sum out)
     const int out_size = perm_index;
+    param->out_size = out_size;
 
     // If ellipsis is not part of the output, add to contraction dimensions
     if (!found_ell) {
@@ -318,8 +322,10 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
                 index        = j++;
             }
         }
-
+        param->operand_dims.push_back(operand_dims);
+        param->perm_shapes.push_back(perm_shape);
         permuted_operands_dims.push_back(CalPermuteOutputShape(operand_dims, perm_shape));
+
     }
 
     // Check if operands broadcast and keep track of last operand with
@@ -342,6 +348,8 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
         }
         has_zero_size_dim |= broadcast_size == 0;
     }
+    param->has_zero_size_dim = has_zero_size_dim;
+    param->dim_last_op = dim_last_op;
 
     // Compute result
     auto result = permuted_operands_dims[0];
@@ -349,13 +357,10 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
     // Fast path for when an operand has zero sized dim
     if (has_zero_size_dim) {
         std::vector<int> out_shape(out_size);
-        int output_shape_count = 1;
         for (int i = 0; i < out_size; i++) {
             out_shape[i] = permuted_operands_dims[dim_last_op[i]][i];
-            output_shape_count *= out_shape[i];
         }
-        float *output_ptr = static_cast<float *>(outputs[0]->GetHandle().base);
-        memset(output_ptr, 0, sizeof(float) * output_shape_count);
+        output_blobs_[0]->GetBlobDesc().dims = out_shape;
 
         return TNN_OK;
     }
@@ -406,10 +411,6 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
         }
     }
 
-    if (output_blobs_[0]->GetBlobDesc().name == "2541") {
-        int x = 0;
-    }
-
     output_blobs_[0]->GetBlobDesc().dims = result;
 
     return TNN_OK;
@@ -418,3 +419,4 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
 REGISTER_LAYER(Einsum, LAYER_EINSUM);
 
 }  // namespace TNN_NS
+
