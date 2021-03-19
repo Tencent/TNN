@@ -733,14 +733,4 @@ static inline __m256 pow_ps(__m256 a, __m256 b)
     return exp256_ps(_mm256_mul_ps(b, log256_ps(a)));
 }
 
-static inline __m256 tanh256_ps(__m256 a)
-{
-    float tmp[8];
-    _mm256_storeu_ps(tmp, a);
-    for (int i = 0; i < 8; i++) {
-        tmp[i] = tanh(tmp[i]);
-    }
-    return _mm256_loadu_ps(tmp);
-}
-
 #endif // AVX_MATHFUN_H

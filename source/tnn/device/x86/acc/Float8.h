@@ -18,6 +18,7 @@
 #include "tnn/device/x86/x86_common.h"
 #ifdef __AVX2__
 #include "tnn/device/x86/acc/avx_mathfun.h"
+#include "tnn/device/x86/acc/sse_mathfun.h"
 #else
 #include "tnn/device/arm/acc/TNNVector.h"
 #endif
@@ -161,7 +162,12 @@ struct Float8 {
     }
     static Float8 tanh(const Float8& v) {
         Float8 dst;
-        dst.value = tanh256_ps(v.value);
+        __m128 low = _mm256_extracti128_si256(v.value, 0);
+        __m128 high = _mm256_extracti128_si256(v.value, 1);
+        low = tanh_ps(low);
+        high = tanh_ps(high);
+        dst.value = _mm256_castps128_ps256(low);
+        dst.value = _mm256_insertf128_ps(dst.value, high, 1);
         return dst;
     }
     Float8 operator+(const Float8& lr) {
