@@ -204,10 +204,23 @@ using namespace std;
         for(int i=0; i<ocr_output->texts.size(); ++i) {
             auto textbox = std::make_shared<ObjectInfo>();
 
-            textbox->x1 = ocr_output->box[i].at(0);
-            textbox->y1 = ocr_output->box[i].at(1);
-            textbox->x2 = ocr_output->box[i].at(2);
-            textbox->y2 = ocr_output->box[i].at(3);
+            // fill ObjectInfo lines to support angles
+            auto box_offset = ocr_output->box.begin() + i * 4;
+            auto box_end    = box_offset + 4;
+            textbox->key_points.insert(textbox->key_points.begin(),
+                                       box_offset, box_end);
+            textbox->lines = {{0, 1}, {1, 2}, {2, 3}, {3, 0}};
+
+            textbox->x1 = box_offset->first;
+            textbox->x2 = box_offset->first;
+            textbox->y1 = box_offset->second;
+            textbox->y2 = box_offset->second;
+            for(const auto&p:textbox->key_points) {
+                textbox->x1 = std::min(textbox->x1, p.first);
+                textbox->x2 = std::max(textbox->x2, p.first);
+                textbox->y1 = std::min(textbox->y1, p.second);
+                textbox->y2 = std::max(textbox->y2, p.second);
+            }
 
             textbox->image_width = ocr_output->image_width;
             textbox->image_height = ocr_output->image_height;
