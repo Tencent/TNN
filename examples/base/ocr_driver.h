@@ -28,6 +28,18 @@
 
 namespace TNN_NS{
 
+class OCROutput : public TNNSDKOutput {
+public:
+    OCROutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
+    virtual ~OCROutput() {};
+    //std::vector<float> scores;
+    int image_height;
+    int image_width;
+    std::vector<std::string> texts;
+    std::vector<std::array<int, 4>> box;
+    float angle;
+};
+
 class OCRDriver : public TNN_NS::TNNSDKComposeSample {
 public:
     virtual ~OCRDriver() {}
@@ -36,6 +48,8 @@ public:
     
     virtual Status Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks);
     
+    void SetBlobDumpDir(const char *dump_dir);
+
 protected:
     Status MatToTNNMat(const cv::Mat& mat, std::shared_ptr<Mat>& tnn_mat, bool try_share_data);
     std::shared_ptr<TNNSDKSample> textbox_detector_;

@@ -26,7 +26,11 @@ namespace TNN_NS {
 
 struct TextBox {
     std::vector<cv::Point> box_points;
+    // box points coresponding to sdk input
+    std::vector<cv::Point> box_points_input;
     float score;
+    int image_width;
+    int image_height;
 };
 
 struct ScaleParam {
@@ -63,6 +67,8 @@ private:
     float box_score_thresh_ = 0.6f;
     float box_thresh_ = 0.3f;
     float un_clip_ratio_ = 2.0f;
+    int input_height_;
+    int input_width_;
     cv::Mat padded_input_;
     ScaleParam scale_;
 };

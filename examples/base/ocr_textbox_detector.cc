@@ -227,6 +227,8 @@ std::shared_ptr<Mat> OCRTextboxDetector::ProcessSDKInputMat(std::shared_ptr<Mat>
     input_shape[1] = 4;
     input_shape[2] = input_height;
     input_shape[3] = input_width;
+    input_height_ = input_height;
+    input_width_ = input_width;
     
     std::shared_ptr<Mat> result_mat = nullptr;
     if (need_copy) {
@@ -294,8 +296,14 @@ Status OCRTextboxDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output
             clipMinBox[j].y = (clipMinBox[j].y / scale_.ratioHeight);
             clipMinBox[j].y = (std::min)((std::max)(clipMinBox[j].y, 0), scale_.srcHeight);
         }
-
-        text_boxes.emplace_back(TextBox{clipMinBox, score});
+        std::vector<cv::Point> box_to_input(clipMinBox.size());
+        for (int j = 0; j < clipMinBox.size(); ++j) {
+            if (padding_ > 0) {
+                box_to_input[j].x = clipMinBox[j].x - padding_;
+                box_to_input[j].y = clipMinBox[j].y - padding_;
+            }
+        }
+        text_boxes.emplace_back(TextBox{clipMinBox, box_to_input, score, scale_.srcWidth - 2*padding_, scale_.srcHeight - 2*padding_});
     }
     reverse(text_boxes.begin(), text_boxes.end());
     output->text_boxes = text_boxes;
