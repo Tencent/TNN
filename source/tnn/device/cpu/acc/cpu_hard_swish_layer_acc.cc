@@ -48,6 +48,14 @@ Status CpuHardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     auto shape_input_0     = input_blob_0->GetBlobDesc().dims;
     auto shape_input_1     = input_blob_1->GetBlobDesc().dims;
     auto shape_output      = output_blob->GetBlobDesc().dims;
+    // TODO: refactor later
+    while(shape_input_0.size() < 4)
+        shape_input_0.push_back(1);
+    while(shape_input_1.size() < 4)
+        shape_input_1.push_back(1);
+    while(shape_output.size() < 4)
+        shape_output.push_back(1);
+
     const int batch        = shape_output[0];
     const int channel      = shape_output[1];
     const int height       = shape_output[2];
