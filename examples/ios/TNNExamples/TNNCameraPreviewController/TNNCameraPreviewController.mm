@@ -305,7 +305,7 @@ typedef void(^CommonCallback)(Status);
                 // When we need to draw lines connecting key points, we draw key points with circle.
                 // Otherwise, we draw cross-shaped points.
                 [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor greenColor] circle:view_face.lines.size()!=0];
-                [_boundingBoxes[i] showLines:view_face.key_points lines:view_face.lines withColor:[UIColor redColor]];
+                [_boundingBoxes[i] showLines:view_face.key_points lines:view_face.lines withColor:self.colors[i]];
             } else {
                 [_boundingBoxes[i] hide];
             }
