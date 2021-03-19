@@ -36,7 +36,7 @@ public:
     int image_height;
     int image_width;
     std::vector<std::string> texts;
-    std::vector<std::array<int, 4>> box;
+    std::vector<std::pair<float, float>> box;
     float angle;
 };
 
