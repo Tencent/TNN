@@ -269,7 +269,7 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
                 blob->GetBlobDesc().data_type = const_blobs[name]->GetDataType();
                 if (runtime_model_ == RUNTIME_MODE_NORMAL) {
                     // printf("const blob name %s\n", name.c_str());
-                    blob->flag = DATA_FLAG_CHANGE_NEVER;
+                    blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
 
                     auto const_node = ConvertToConstNode(const_blobs[name].get());
                     const_node->set_friendly_name(name);
