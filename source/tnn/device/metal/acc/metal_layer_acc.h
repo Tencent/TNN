@@ -88,6 +88,16 @@ struct MetalParams GetDefaultMetalParams(DimsVector input, DimsVector output);
 // @param status   output status
 id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, Status &status);
 
+// @brief allocate packed metal buffer with format GOIHW4 form RawBuffer, like conv weight(gic or gic is not 4x)
+// @context tnn instance device context
+// @param buffer    input raw buffer
+// @param buffer_shape  format OIHW
+// @param group    group
+// @param status   output status
+// @param status   transpose transpose weght for deconv
+id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
+                                                            Status &status);
+
 // @brief allocate packed metal buffer with format GOIHW16 form RawBuffer, like conv weight
 // @context tnn instance device context
 // @param buffer    input raw buffer
