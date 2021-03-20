@@ -65,10 +65,6 @@ TEST_P(ConvLayerTest, ConvLayer) {
     int activation_type   = std::get<10>(GetParam());
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
 
-    if (((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
-        GTEST_SKIP();
-    }
-
     if (dtype == DATA_TYPE_HALF && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
@@ -77,10 +73,6 @@ TEST_P(ConvLayerTest, ConvLayer) {
         GTEST_SKIP();
     }
 #endif
-    bool is_depthwise = (group == channel);
-    if (!is_depthwise && ((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
-        GTEST_SKIP();
-    }
 
     if (activation_type != ActivationType_None && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
