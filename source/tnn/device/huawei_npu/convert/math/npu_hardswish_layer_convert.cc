@@ -13,25 +13,28 @@
 // specific language governing permissions and limitations under the License.
 
 #include <graph/op/all_ops.h>
-#include <tnn/core/status.h>
-#include "npu_binary_layer_convert.h"
+#include "npu_unary_operator.h"
 #include "tnn/device/huawei_npu/convert/npu_base_layer_convert.h"
 #include "tnn/device/huawei_npu/convert/npu_utils.h"
-#include "tnn/utils/npu_common_utils.h"
 
 namespace TNN_NS {
 
-class NpuMulLayer : public NpuBinaryLayer {
+class NpuHardswishLayer : public NpuUnaryLayer {
 public:
-    NpuMulLayer(LayerType ignore) : NpuBinaryLayer(LAYER_MUL) {}
-    ~NpuMulLayer() {}
+    NpuHardswishLayer(LayerType ignore) : NpuUnaryLayer(LAYER_HARDSWISH) {}
+    ~NpuHardswishLayer() {}
 
 protected:
     Status Convert() {
-        return NpuBinaryLayer::BinaryConvert<hiai::op::Mul>();
+        auto param = dynamic_cast<HardSwishLayerParam *>(param_);
+        if (!(param->alpha >= 0.1666f && param->alpha <= 0.1667f && param->beta >= 0.4999f && param->beta <= 0.5001f)) {
+            LOGE("hardswish only support alpha=1/6 beta=0.5, but in fact, alpha=%f beta=%f\n", param->alpha, param->beta);
+            return Status(TNNERR_LAYER_ERR, "Error: Npu currently only supports hardswish (alpha=1/6, beta=0.5)");
+        }
+        return NpuUnaryLayer::UnaryConvert<hiai::op::HardSwish>();
     }
 };
 
-REGISTER_NPU_LAYER(Mul, LAYER_MUL)
+REGISTER_NPU_LAYER(Hardswish, LAYER_HARDSWISH);
 
 }  // namespace TNN_NS
