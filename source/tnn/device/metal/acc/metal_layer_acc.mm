@@ -233,11 +233,6 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
         status = Status(TNNERR_MODEL_ERR,  "Error: Invalid model, buffer has wrong byte size");
         return mtl_buffer;
     }
-    if (total_byte_size < b_handle_size) {
-        LOGE("Error: Invalid model, buffer has wrong byte size\n");
-        status = Status(TNNERR_MODEL_ERR,  "Error: Invalid model, buffer has wrong byte size");
-        return mtl_buffer;
-    }
 
 #if TNN_METAL_FULL_PRECISION
     if (data_type == DATA_TYPE_FLOAT) {
@@ -267,7 +262,11 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
 
         // convert to float
         float *data_fp32_data = new float[data_count_4];
-        ConvertFromHalfToFloat((void *)data_fill_4, data_fp32_data, data_count_4);
+        if (ConvertFromHalfToFloat((void *)data_fill_4, data_fp32_data, data_count_4) != 0) {
+            LOGE("Error: DataType %d not support\n", data_type);
+            status = Status(TNNERR_MODEL_ERR, "Convert LayerRerouece from half to float failed!");
+            return nil;
+        }
 
         mtl_buffer = [device newBufferWithBytes:(const void *)data_fp32_data
                                          length:data_count_4*sizeof(float)
@@ -316,6 +315,110 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
         if (total_byte_size != b_handle_size) {
             delete[] data_fill_4;
         }
+    }
+#endif
+    return mtl_buffer;
+}
+
+id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
+                                                            Status &status) {
+    id<MTLDevice> device     = [TNNMetalDeviceImpl sharedDevice];
+    id<MTLBuffer> mtl_buffer = nil;
+
+    const int output_channel = buffer_shape[0];
+    const int input_channel  = buffer_shape[1];
+    const int kh             = buffer_shape[2];
+    const int kw             = buffer_shape[3];
+
+    const int goc   = output_channel / group;
+    const int gic   = input_channel / group;
+    const int goc_4 = UP_DIV(goc, 4);
+
+    int weight_count_nopack  = group * goc * gic * kh * kw;
+    int weight_count_pack    = group * goc_4 * gic * kh * kw * 4;
+    const DataType data_type = buffer.GetDataType();
+
+    if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
+        LOGE("Error: DataType %d not support\n", data_type);
+        status = Status(TNNERR_MODEL_ERR, "conv_res DataType is not supported");
+        return nil;
+    }
+
+#if TNN_METAL_FULL_PRECISION
+    if (data_type == DATA_TYPE_FLOAT) {
+        // convert to float
+        float *weight_fp32_data = buffer.force_to<float *>();
+
+        // pack
+        float *weight_pack_fp32_data = new float[weight_count_pack];
+        memset((void *)weight_pack_fp32_data, 0, weight_count_pack * sizeof(float));
+
+        DataFormatConverter::ConvertFromNCHWToNCHW4Float(weight_fp32_data, weight_pack_fp32_data, group,
+                                                            goc, gic, kh*kw);
+
+        mtl_buffer = [device newBufferWithBytes:(const void *)weight_pack_fp32_data
+                                         length:weight_count_pack * sizeof(float)
+                                        options:MTLResourceCPUCacheModeWriteCombined];
+        delete[] weight_pack_fp32_data;
+    } else if (data_type == DATA_TYPE_HALF) {
+        uint16_t *weight_fp16_data = buffer.force_to<uint16_t *>();
+
+        // convert to float
+        float *weight_fp32_data = new float[weight_count_nopack];
+        if (ConvertFromHalfToFloat((void *)weight_fp16_data, (float *)weight_fp32_data, weight_count_nopack) != 0) {
+            LOGE("Error: DataType %d not support\n", data_type);
+            status = Status(TNNERR_MODEL_ERR, "Convert LayerRerouece from half to float failed!");
+            return nil;
+        }
+
+        // pack
+        float *weight_pack_fp32_data = new float[weight_count_pack];
+        memset((void *)weight_pack_fp32_data, 0, weight_count_pack * sizeof(float));
+
+        DataFormatConverter::ConvertFromNCHWToNCHW4Float(weight_fp32_data, weight_pack_fp32_data, group,
+                                                            goc, gic, kh*kw);
+
+        mtl_buffer = [device newBufferWithBytes:(const void *)weight_pack_fp32_data
+                                         length:weight_count_pack * sizeof(float)
+                                        options:MTLResourceCPUCacheModeWriteCombined];
+        delete[] weight_fp32_data;
+        delete[] weight_pack_fp32_data;
+    }
+#else
+    if (data_type == DATA_TYPE_FLOAT) {
+        float *weight_fp32_data = buffer.force_to<float *>();
+
+        // convert to half
+        uint16_t *weight_fp16_data = new uint16_t[weight_count_nopack];
+        ConvertFromFloatToHalf((float *)weight_fp32_data, (void *)weight_fp16_data, weight_count_nopack);
+
+        // pack
+        uint16_t *weight_pack_fp16_data = new uint16_t[weight_count_pack];
+        memset((void *)weight_pack_fp16_data, 0, weight_count_pack * sizeof(uint16_t));
+
+        DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)weight_fp16_data, (short *)weight_pack_fp16_data,
+                                                           group, goc, gic, kh*kw);
+
+        mtl_buffer = [device newBufferWithBytes:(const void *)weight_pack_fp16_data
+                                         length:weight_count_pack * sizeof(uint16_t)
+                                        options:MTLResourceCPUCacheModeWriteCombined];
+        delete[] weight_fp16_data;
+        delete[] weight_pack_fp16_data;
+    } else if (data_type == DATA_TYPE_HALF) {
+        // convert to half
+        uint16_t *weight_fp16_data = buffer.force_to<uint16_t *>();
+
+        // pack
+        uint16_t *weight_pack_fp16_data = new uint16_t[weight_count_pack];
+        memset((void *)weight_pack_fp16_data, 0, weight_count_pack * sizeof(uint16_t));
+
+        DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)weight_fp16_data, (short *)weight_pack_fp16_data,
+                                                           group, goc, gic, kh*kw);
+
+        mtl_buffer = [device newBufferWithBytes:(const void *)weight_pack_fp16_data
+                                         length:weight_count_pack * sizeof(uint16_t)
+                                        options:MTLResourceCPUCacheModeWriteCombined];
+        delete[] weight_pack_fp16_data;
     }
 #endif
     return mtl_buffer;

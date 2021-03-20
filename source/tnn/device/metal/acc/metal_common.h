@@ -248,6 +248,7 @@ struct MetalConvParams {
     int input_delta_y;
     int has_bias;
     int activation = -1;
+    int group;
 };
 
 /** Winograd Param Struct **/
@@ -617,6 +618,7 @@ struct MetalReorgParams {
         metal_params.pad_y       = conv_param->pads[2];                                                                \
         metal_params.dilation_x  = conv_param->dialations[0];                                                          \
         metal_params.dilation_y  = conv_param->dialations[1];                                                          \
+        metal_params.group       = conv_param->group;                                                                  \
     } while (0)
 
 #endif  // TNN_METAL_COMMON_H_
