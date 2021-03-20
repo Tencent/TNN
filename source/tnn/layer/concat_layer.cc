@@ -45,7 +45,7 @@ Status ConcatLayer::InferOutputDataType() {
 Status ConcatLayer::InferOutputShape(bool ignore_error) {
     BaseLayer::InferOutputShape(ignore_error);
     
-    ConcatLayerParam* layer_param = dynamic_cast<ConcatLayerParam*>(param_);
+    auto layer_param = dynamic_cast<ConcatLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);
 
     Blob* input_blob  = input_blobs_[0];
