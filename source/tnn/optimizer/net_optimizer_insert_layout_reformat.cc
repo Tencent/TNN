@@ -64,6 +64,7 @@ namespace optimizer {
         return new_layer;
     }
 
+    // only support all inputs with the same layout now
     static DataFormat GetInputLayout(const NetworkConfig *config, const DeviceType &type) {
         if (config != nullptr && config->data_format != DATA_FORMAT_AUTO)
             return config->data_format;
@@ -116,6 +117,9 @@ namespace optimizer {
             std::vector<DataFormat> reformat_layouts;
             DataFormat input_layout = GetInputLayout(net_config_, device_->GetDeviceType());
             for (const auto &cur_layer : layers_orig) {
+                if (constant_layers.count(cur_layer->name) > 0) {
+                    continue;
+                }
                 for (const auto &layer_input : cur_layer->inputs) {
                     if (layer_input == model_input) {
                         // get implemented layouts
