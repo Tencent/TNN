@@ -276,7 +276,7 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
     for (int i = 0; i < num_ops; i++) {
         std::vector<int> perm_shape(perm_index, -1);
         std::vector<int> label_dim(TOTAL_LABELS, -1);
-        auto operand_dims         = inputs[i]->GetBlobDesc().dims;
+        TNN_NS::DimsVector operand_dims(inputs[i]->GetBlobDesc().dims);
         const auto labels         = op_labels[i];
         const auto original_sizes = operand_dims;
 
