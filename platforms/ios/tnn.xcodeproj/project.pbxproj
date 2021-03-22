@@ -612,6 +612,8 @@
 		9DF5444D258B162F006CEC97 /* npu_common_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DF54446258B162F006CEC97 /* npu_common_utils.cc */; };
 		9DF5444F258B162F006CEC97 /* random_data_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DF54448258B162F006CEC97 /* random_data_utils.h */; };
 		9DF54450258B162F006CEC97 /* random_data_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DF54449258B162F006CEC97 /* random_data_utils.cc */; };
+		E42DE7232605F8DA00444BB1 /* net_optimizer_insert_layout_reformat.cc in Sources */ = {isa = PBXBuildFile; fileRef = E42DE7212605F8DA00444BB1 /* net_optimizer_insert_layout_reformat.cc */; };
+		E42DE7242605F8DA00444BB1 /* net_optimizer_insert_layout_reformat.h in Headers */ = {isa = PBXBuildFile; fileRef = E42DE7222605F8DA00444BB1 /* net_optimizer_insert_layout_reformat.h */; };
 		E43D68B525C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S in Sources */ = {isa = PBXBuildFile; fileRef = E43D68B425C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S */; };
 		E44D945926048B7F003FE4A3 /* blob_impl.cc in Sources */ = {isa = PBXBuildFile; fileRef = E44D945526048B7F003FE4A3 /* blob_impl.cc */; };
 		E44D945A26048B7F003FE4A3 /* blob_impl.h in Headers */ = {isa = PBXBuildFile; fileRef = E44D945626048B7F003FE4A3 /* blob_impl.h */; };
@@ -1541,6 +1543,8 @@
 		9DF54446258B162F006CEC97 /* npu_common_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = npu_common_utils.cc; sourceTree = "<group>"; };
 		9DF54448258B162F006CEC97 /* random_data_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = random_data_utils.h; sourceTree = "<group>"; };
 		9DF54449258B162F006CEC97 /* random_data_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = random_data_utils.cc; sourceTree = "<group>"; };
+		E42DE7212605F8DA00444BB1 /* net_optimizer_insert_layout_reformat.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_insert_layout_reformat.cc; sourceTree = "<group>"; };
+		E42DE7222605F8DA00444BB1 /* net_optimizer_insert_layout_reformat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_optimizer_insert_layout_reformat.h; sourceTree = "<group>"; };
 		E43D68B425C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = CONV_DW_3X3_INT8_SLIDEW.S; sourceTree = "<group>"; };
 		E44D945526048B7F003FE4A3 /* blob_impl.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = blob_impl.cc; sourceTree = "<group>"; };
 		E44D945626048B7F003FE4A3 /* blob_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = blob_impl.h; sourceTree = "<group>"; };
@@ -1945,6 +1949,8 @@
 				EC12EC7D25E67549007ADDE4 /* net_optimizer_insert_layout_reformat.h */,
 				EC39A40925FB667D00891D9A /* net_optimizer_fuse_conv_add.cc */,
 				EC39A40A25FB667D00891D9A /* net_optimizer_fuse_conv_add.h */,
+				E42DE7212605F8DA00444BB1 /* net_optimizer_insert_layout_reformat.cc */,
+				E42DE7222605F8DA00444BB1 /* net_optimizer_insert_layout_reformat.h */,
 				EC880549255FE59D00BC4EDD /* net_optimizer_fuse_conv_post.cc */,
 				EC880548255FE59D00BC4EDD /* net_optimizer_fuse_conv_post.h */,
 				ECD9464C2558F4CD00BF9214 /* net_optimizer_insert_fp16_reformat.cc */,
@@ -3131,6 +3137,7 @@
 				9D32FCA424557EEC002DCDAB /* memory_seperate_assign_strategy.h in Headers */,
 				9D32FF3A24557EED002DCDAB /* layer_resource.h in Headers */,
 				ECCDCE9525DF536000D7D297 /* cpu_conv_layer_acc.h in Headers */,
+				E42DE7242605F8DA00444BB1 /* net_optimizer_insert_layout_reformat.h in Headers */,
 				E44D947126048C1A003FE4A3 /* dims_offset_utils.h in Headers */,
 				9D32FCA424557EEC002DCDAB /* memory_seperate_assign_strategy.h in Headers */,
 				9D32FF3A24557EED002DCDAB /* layer_resource.h in Headers */,
@@ -3576,6 +3583,7 @@
 				E4D05BFA259F161000921502 /* arm_relu_fp16_layer.cc in Sources */,
 				9DF543FE258B1366006CEC97 /* arm_binary_layer_acc.cc in Sources */,
 				ECCDCF5125E10B9D00D7D297 /* histogram_layer_interpreter.cc in Sources */,
+				E42DE7232605F8DA00444BB1 /* net_optimizer_insert_layout_reformat.cc in Sources */,
 				EC0BE17B25144C10009BD69A /* reduce_op_layer_interpreter.cc in Sources */,
 				ECCDCF4D25E10B9D00D7D297 /* mat_mul_layer_interpreter.cc in Sources */,
 				EC0BE15125144BB8009BD69A /* signed_mul_layer.cc in Sources */,
