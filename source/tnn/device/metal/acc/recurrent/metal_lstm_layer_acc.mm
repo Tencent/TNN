@@ -307,7 +307,7 @@ Status MetalLSTMLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     const auto input_size  = DimsVectorUtils::Count(input_dims, 2); // input dimension
     const auto output_dims = blob_y->GetBlobDesc().dims;
     auto layer_param = dynamic_cast<LSTMONNXLayerParam *>(param_);
-    const int num_directions = layer_param->direction >=2 ? 2 : 1;
+    const int num_directions = layer_param->direction >= 2 ? 2 : 1;
     const auto hidden_size = layer_param->hidden_size; // output dimension
     
     auto context_impl = context_->getMetalContextImpl();
