@@ -89,6 +89,7 @@
 		ECEF96DD24AED66D0094CB8B /* object_detector_ssd.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEF96DC24AED66C0094CB8B /* object_detector_ssd.cc */; };
 		ECF121D02574E391006F79AC /* TNNSkeletonDetectorViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECF121CE2574E391006F79AC /* TNNSkeletonDetectorViewModel.mm */; };
 		ECF121D62574E408006F79AC /* skeleton_detector.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECF121D42574E408006F79AC /* skeleton_detector.cc */; };
+		ECFA85412603404200CF5233 /* TNNOCRViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECFA85402603404100CF5233 /* TNNOCRViewModel.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -265,6 +266,8 @@
 		ECF121CF2574E391006F79AC /* TNNSkeletonDetectorViewModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNSkeletonDetectorViewModel.h; sourceTree = "<group>"; };
 		ECF121D42574E408006F79AC /* skeleton_detector.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = skeleton_detector.cc; sourceTree = "<group>"; };
 		ECF121D52574E408006F79AC /* skeleton_detector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = skeleton_detector.h; sourceTree = "<group>"; };
+		ECFA853F2603404100CF5233 /* TNNOCRViewModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNOCRViewModel.h; sourceTree = "<group>"; };
+		ECFA85402603404100CF5233 /* TNNOCRViewModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNOCRViewModel.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -329,6 +332,8 @@
 		9D71E7C024C5BE1200074C1A /* TNNViewModel */ = {
 			isa = PBXGroup;
 			children = (
+				ECFA853F2603404100CF5233 /* TNNOCRViewModel.h */,
+				ECFA85402603404100CF5233 /* TNNOCRViewModel.mm */,
 				ECF121CF2574E391006F79AC /* TNNSkeletonDetectorViewModel.h */,
 				ECF121CE2574E391006F79AC /* TNNSkeletonDetectorViewModel.mm */,
 				ECD9466B2559296C00BF9214 /* TNNHairSegmentationViewModel.h */,
@@ -744,6 +749,7 @@
 				ECB077EC25FA3BC2007B1498 /* clipper.cpp in Sources */,
 				9D71E7AF24C560C900074C1A /* TNNObjectDetectorController.mm in Sources */,
 				EC9EC4FE2583948F0090AEEA /* low_pass_filter.cc in Sources */,
+				ECFA85412603404200CF5233 /* TNNOCRViewModel.mm in Sources */,
 				ECD946692559295A00BF9214 /* UIColor+Utility.m in Sources */,
 				ECEF96DD24AED66D0094CB8B /* object_detector_ssd.cc in Sources */,
 				9D49E7A42504BB5D00DD81D7 /* face_detect_aligner.cc in Sources */,

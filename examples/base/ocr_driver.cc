@@ -270,17 +270,10 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
             const auto& text = text_output->text;
             ocr_output->texts.push_back(text);
 
-            int min_x = box.box_points_input[0].x;
-            int min_y = box.box_points_input[0].y;
-            int max_x = min_x;
-            int max_y = min_y;
             for(const auto&p : box.box_points_input) {
-                min_x = std::min(p.x, min_x);
-                min_y = std::min(p.y, min_y);
-                max_x = std::max(p.x, max_x);
-                max_y = std::max(p.y, max_y);
+                ocr_output->box.push_back({p.x, p.y});
             }
-            ocr_output->box.push_back({min_x, min_y, max_x, max_y});
+
             ocr_output->image_height = sdk_input->GetMat()->GetHeight();
             ocr_output->image_width = sdk_input->GetMat()->GetWidth();
         }

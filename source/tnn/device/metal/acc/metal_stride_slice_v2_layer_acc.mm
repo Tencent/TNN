@@ -40,7 +40,7 @@ Status MetalStrideSliceV2LayerAcc::AllocateBufferParam(const std::vector<Blob *>
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
     auto dims_output = outputs[0]->GetBlobDesc().dims;
     auto dim_size    = dims_output.size();
-    if (dim_size != 4 || dim_size != dims_input.size()) {
+    if (dim_size > 4 || dim_size != dims_input.size()) {
         return Status(TNNERR_MODEL_ERR, "Error: StrideSliceLayerParamV2 not support!");
     }
 
@@ -59,6 +59,7 @@ Status MetalStrideSliceV2LayerAcc::AllocateBufferParam(const std::vector<Blob *>
 
         std::vector<int> rectified_begins(dim_size, 0);
         std::vector<int> rectified_strides(dim_size, 0);
+
         for(int i=0, axes_idx=0; i<dims_output.size(); ++i) {
             if (axes_idx >= axes.size() || i != axes[axes_idx]) {
                 rectified_begins[i]  = 0;
@@ -68,6 +69,11 @@ Status MetalStrideSliceV2LayerAcc::AllocateBufferParam(const std::vector<Blob *>
                 rectified_strides[i] = strides[axes_idx];
                 axes_idx += 1;
             }
+        }
+        // pad to size 4
+        for(int i=dims_output.size(); i<4; ++i) {
+            rectified_begins.push_back(0);
+            rectified_strides.push_back(1);
         }
 
         metal_params.begin_n = rectified_begins[0];
@@ -79,6 +85,7 @@ Status MetalStrideSliceV2LayerAcc::AllocateBufferParam(const std::vector<Blob *>
         metal_params.stride_c = rectified_strides[1];
         metal_params.stride_h = rectified_strides[2];
         metal_params.stride_w = rectified_strides[3];
+
         buffer_param_         = [device newBufferWithBytes:(const void *)(&metal_params)
                                             length:sizeof(MetalStrideSliceParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
