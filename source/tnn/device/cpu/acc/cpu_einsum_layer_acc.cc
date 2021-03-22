@@ -250,7 +250,8 @@ Status CpuEinsumLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     for (int i = 0; i < num_ops; i++) {
         std::vector<int> perm_shape(perm_index, -1);
         std::vector<int> label_dim(TOTAL_LABELS, -1);
-        auto operand              = inputs[i];
+        auto operand_ptr          = std::make_shared<Blob>(inputs[i]->GetBlobDesc(), inputs[i]->GetHandle());
+        auto *operand             = operand_ptr.get();
         const auto labels         = op_labels[i];
         const auto original_sizes = operand->GetBlobDesc().dims;
 
