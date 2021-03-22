@@ -539,14 +539,32 @@ Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_nam
 
 // set execute unit 3d default global size, local size and kernel arguments.
 uint32_t SetExecuteUnit3DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims) {
-    unit.global_work_size = {
-        // width
-        static_cast<uint32_t>(DimsVectorUtils::GetDim(dims, 3)),
+    uint32_t gws0 = 0, gws1 = 0, gws2;
+    if (dims.size() == 5) {
+        // dim4
+        gws0 = DimsVectorUtils::GetDim(dims, 4);
         // channel-blocks/4
-        static_cast<uint32_t>(UP_DIV(DimsVectorUtils::GetDim(dims, 1), 4)),
+        gws1 = UP_DIV(DimsVectorUtils::GetDim(dims, 1), 4);
+        // batch * dim2 * dim3
+        gws2 = DimsVectorUtils::GetDim(dims, 0) * DimsVectorUtils::GetDim(dims, 2) *
+               DimsVectorUtils::GetDim(dims, 3);
+    } else if (dims.size() == 6) {
+        // dim4 * dim5
+        gws0 = DimsVectorUtils::GetDim(dims, 4) * DimsVectorUtils::GetDim(dims, 5);
+        // channel-blocks/4
+        gws1 = UP_DIV(DimsVectorUtils::GetDim(dims, 1), 4);
+        // batch * dim2 * dim3
+        gws2 = DimsVectorUtils::GetDim(dims, 0) * DimsVectorUtils::GetDim(dims, 2) *
+               DimsVectorUtils::GetDim(dims, 3);
+    } else {
+        // width
+        gws0 = DimsVectorUtils::GetDim(dims, 3);
+        // channel-blocks/4
+        gws1 = UP_DIV(DimsVectorUtils::GetDim(dims, 1), 4);
         // batch * height
-        static_cast<uint32_t>(DimsVectorUtils::GetDim(dims, 0) * DimsVectorUtils::GetDim(dims, 2)),
-    };
+        gws2 = DimsVectorUtils::GetDim(dims, 0) * DimsVectorUtils::GetDim(dims, 2);
+    }
+    unit.global_work_size = {gws0, gws1, gws2};
 
     // change the order temporarily to get the local size
     std::vector<uint32_t> temp_gws = {unit.global_work_size[1], unit.global_work_size[0], unit.global_work_size[2]};
