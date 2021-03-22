@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "base_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 DECLARE_LAYER(NonZero, LAYER_NONZERO);
@@ -27,7 +27,7 @@ Status NonZeroLayer::InferOutputDataType() {
             const_resource_ != nullptr && const_resource_->find(iter->GetBlobDesc().name) != const_resource_->end()) {
             allocate_status = 0;
         }
-        iter->flag = iter->flag | allocate_status;
+        iter->SetFlag(iter->GetFlag() | allocate_status);
         iter->GetBlobDesc().data_type = DATA_TYPE_INT32;
     }
     return TNN_OK;

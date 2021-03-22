@@ -17,7 +17,7 @@
 #include "tnn/core/abstract_device.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/data_format_converter.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -163,10 +163,10 @@ Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std
             float* src_data = reinterpret_cast<float*>(mat.GetData());
             float* dst_data = reinterpret_cast<float*>(cpu_input->GetHandle().base);
             DataFormatConverter::ConvertFromNCHWToNCHW4Float(src_data, dst_data,
-                    DimsVectorUtils::GetDim(dims, 0),
-                    DimsVectorUtils::GetDim(dims, 1),
-                    DimsVectorUtils::GetDim(dims, 2),
-                    DimsVectorUtils::GetDim(dims, 3));
+                    DimsFunctionUtils::GetDim(dims, 0),
+                    DimsFunctionUtils::GetDim(dims, 1),
+                    DimsFunctionUtils::GetDim(dims, 2),
+                    DimsFunctionUtils::GetDim(dims, 3));
         }
     }
 
@@ -196,10 +196,10 @@ Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std
             float* src_data = reinterpret_cast<float*>(cpu_output->GetHandle().base);
             float* dst_data = reinterpret_cast<float*>(mat.GetData());
             DataFormatConverter::ConvertFromNCHW4ToNCHWFloat(src_data, dst_data,
-                    DimsVectorUtils::GetDim(dims, 0),
-                    DimsVectorUtils::GetDim(dims, 1),
-                    DimsVectorUtils::GetDim(dims, 2),
-                    DimsVectorUtils::GetDim(dims, 3));
+                    DimsFunctionUtils::GetDim(dims, 0),
+                    DimsFunctionUtils::GetDim(dims, 1),
+                    DimsFunctionUtils::GetDim(dims, 2),
+                    DimsFunctionUtils::GetDim(dims, 3));
             status = blob_converter.ConvertFromMat(mat, param, command_queue);
             if (status != TNN_OK) {
                 return status;

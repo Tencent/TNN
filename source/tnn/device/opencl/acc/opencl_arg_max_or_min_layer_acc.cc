@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -98,12 +98,12 @@ Status OpenCLArgMaxOrMinLayerAcc::Reshape(const std::vector<Blob *> &inputs, con
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
     for (int i = 0; i < output_dims.size(); i++) {
         if (i != axis)
-            execute_units_[0].ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(output_dims, i));
+            execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, i));
     }
-    execute_units_[0].ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(input_dims, axis));
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, axis));
     // channel arg op
     if (axis == 1) {
-        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(DimsVectorUtils::GetDim(input_dims, axis), 4));
+        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(DimsFunctionUtils::GetDim(input_dims, axis), 4));
     }
 
     return TNN_OK;

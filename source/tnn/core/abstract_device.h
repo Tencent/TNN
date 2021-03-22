@@ -89,6 +89,9 @@ public:
     // @brief get factory device type
     DeviceType GetDeviceType();
 
+    // @brief auto network type decided by device.
+    virtual NetworkType ConvertAutoNetworkType() = 0;
+
 private:
     DeviceType device_type_;
 };

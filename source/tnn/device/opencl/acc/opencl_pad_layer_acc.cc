@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -64,10 +64,10 @@ Status OpenCLPadLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     uint32_t idx = SetExecuteUnit3DSizeInfoDefault(execute_units_[0], output_dims);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-    execute_units_[0].ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(output_dims, 2));
-    execute_units_[0].ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(input_dims, 1));
-    execute_units_[0].ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(input_dims, 2));
-    execute_units_[0].ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(input_dims, 3));
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, 2));
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 1));
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 2));
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 3));
     execute_units_[0].ocl_kernel.setArg(idx++, pad_param->pads[0]);
     execute_units_[0].ocl_kernel.setArg(idx++, pad_param->pads[2]);
     execute_units_[0].ocl_kernel.setArg(idx++, pad_param->pads[4]);

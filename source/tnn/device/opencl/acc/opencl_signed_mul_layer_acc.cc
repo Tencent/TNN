@@ -57,10 +57,10 @@ Status OpenCLSignedMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
-    const int batch    = DimsVectorUtils::GetDim(output_dims, 0);
-    const int channels = DimsVectorUtils::GetDim(output_dims, 1);
-    const int height   = DimsVectorUtils::GetDim(output_dims, 2);
-    const int width    = DimsVectorUtils::GetDim(output_dims, 3);
+    const int batch    = DimsFunctionUtils::GetDim(output_dims, 0);
+    const int channels = DimsFunctionUtils::GetDim(output_dims, 1);
+    const int height   = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int width    = DimsFunctionUtils::GetDim(output_dims, 3);
 
     uint32_t idx = 0;
     execute_units_[0].global_work_size = {static_cast<uint32_t>(width), static_cast<uint32_t>(UP_DIV(channels, 4)),

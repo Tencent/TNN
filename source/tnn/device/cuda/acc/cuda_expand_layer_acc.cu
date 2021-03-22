@@ -15,7 +15,7 @@
 
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/device/cuda/cuda_macro.h"
 
 namespace TNN_NS {
@@ -44,7 +44,7 @@ Status CudaExpandLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &in
         expand_param->shape = shape_dims;
         
         auto data_dims = inputs[0]->GetBlobDesc().dims;
-        auto output_dims = DimsVectorUtils::Expand(data_dims, shape_dims, nullptr);
+        auto output_dims = DimsFunctionUtils::Expand(data_dims, shape_dims, nullptr);
         outputs[0]->GetBlobDesc().dims = output_dims;
     }
     

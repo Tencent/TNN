@@ -15,8 +15,8 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/cpu_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -53,6 +53,10 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     }
 #endif
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+    if (dev == DEVICE_ARM && axis == 0) {
+        // arm do not support axis == 0 now
         GTEST_SKIP();
     }
 

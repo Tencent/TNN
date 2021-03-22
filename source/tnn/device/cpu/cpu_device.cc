@@ -60,10 +60,14 @@ Status CpuDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
 Status CpuDevice::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
     if (handle) {
         auto size = GetBlobMemoryBytesSize(size_info);
-        if (size <= 0) {
-            return Status(TNNERR_PARAM_ERR, "CpuDevice::Allocate malloc bytes size <= 0");
+        if (size > 0) {
+            *handle = malloc(size);
+        } else if (size == 0) {
+            //support empty blob for yolov5 Slice_507, only in device cpu
+            *handle = NULL;
+        } else {
+            return Status(TNNERR_PARAM_ERR, "CpuDevice::Allocate malloc bytes size < 0");
         }
-        *handle = malloc(size);
     }
     return TNN_OK;
 }
@@ -104,6 +108,10 @@ AbstractLayerAcc* CpuDevice::CreateLayerAcc(LayerType type) {
 
 Context* CpuDevice::CreateContext(int device_id) {
     return new CpuContext();
+}
+
+NetworkType CpuDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT; 
 }
 
 Status CpuDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator) {

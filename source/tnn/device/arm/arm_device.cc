@@ -20,7 +20,7 @@
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/blob_memory_size_utils.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -49,6 +49,7 @@ BlobMemorySizeInfo ArmDevice::Calculate1DMemorySize(BlobDesc &desc) {
         for (auto d : desc.dims)
             count *= d;
     } else {
+        // packed format
         if (desc.data_type == DATA_TYPE_HALF) {
             count = desc.dims[0] * ROUND_UP(desc.dims[1], 8) * DimsVectorUtils::Count(desc.dims, 2);
         } else {
@@ -70,8 +71,17 @@ Status ArmDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
     desc.data_format = DATA_FORMAT_NCHW;
     if (mat_type == NCHW_FLOAT) {
         desc.data_type = DATA_TYPE_FLOAT;
-    } else {
+    } else if (mat_type == RESERVED_BFP16_TEST) {
+        desc.data_type == DATA_TYPE_BFP16;
+    } else if (mat_type == RESERVED_FP16_TEST) {
+        desc.data_type == DATA_TYPE_HALF;
+    } else if (mat_type == N8UC3 || mat_type == N8UC4 || mat_type == NGRAY || mat_type == NNV21 || mat_type == NNV12 ||
+               mat_type == RESERVED_INT8_TEST) {
+        // round up to support special case like: N8UC4 with dims[1] = 3
+        desc.dims[1]   = ROUND_UP(desc.dims[1], 4);
         desc.data_type = DATA_TYPE_INT8;
+    } else if (mat_type == NC_INT32) {
+        desc.data_type == DATA_TYPE_INT32;
     }
     auto size_info = Calculate(desc);
     return Allocate(handle, size_info);
@@ -124,6 +134,10 @@ std::shared_ptr<const ImplementedPrecision> ArmDevice::GetImplementedPrecision(L
         return layer_precision_map[type];
     }
     return std::make_shared<ImplementedPrecision>();
+}
+
+NetworkType ArmDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT;
 }
 
 std::shared_ptr<const ImplementedLayout> ArmDevice::GetImplementedLayout(LayerType type) {

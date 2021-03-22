@@ -19,7 +19,7 @@
 #include "tnn/device/opencl/opencl_execute_unit.h"
 #include "tnn/device/opencl/opencl_memory.h"
 #include "tnn/device/opencl/opencl_runtime.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -68,7 +68,7 @@ Status OpenCLStrideSliceV2LayerAcc::Init(Context *context, LayerParam *param, La
     DimsVector input_dims = input_blob->GetBlobDesc().dims;
     DimsVector output_dims = output_blob->GetBlobDesc().dims;
 
-    DimsVectorUtils::StrideSlice(input_dims, begins, ends, strides, axes, &ret);
+    DimsFunctionUtils::StrideSlice(input_dims, begins, ends, strides, axes, &ret);
     CHECK_TNN_OK(ret)
 
     for (int i = 0, axes_idx = 0; i < output_dims.size(); ++i) {
@@ -144,8 +144,8 @@ Status OpenCLStrideSliceV2LayerAcc::Reshape(const std::vector<Blob *> &inputs, c
     auto output                   = outputs[0];
     auto input_dims               = input->GetBlobDesc().dims;
     auto output_dims              = output->GetBlobDesc().dims;
-    int inputWH[]                 = {DimsVectorUtils::GetDim(input_dims, 3), DimsVectorUtils::GetDim(input_dims, 2)};
-    int outputWH[]                = {DimsVectorUtils::GetDim(output_dims, 3), DimsVectorUtils::GetDim(output_dims, 2)};
+    int inputWH[]                 = {DimsFunctionUtils::GetDim(input_dims, 3), DimsFunctionUtils::GetDim(input_dims, 2)};
+    int outputWH[]                = {DimsFunctionUtils::GetDim(output_dims, 3), DimsFunctionUtils::GetDim(output_dims, 2)};
 
     if (type_ == STRIDE_SLICE_IMAGE) {
         auto &unit0          = execute_units_[0];
@@ -163,11 +163,11 @@ Status OpenCLStrideSliceV2LayerAcc::Reshape(const std::vector<Blob *> &inputs, c
         unit0.ocl_kernel.setArg(idx++, outputWH);
     } else if (type_ == STRIDE_SLICE_C4_UNITE) {
         auto &unit0               = execute_units_[0];
-        int output_channel_blocks = UP_DIV(DimsVectorUtils::GetDim(output_dims, 1), 4);
+        int output_channel_blocks = UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4);
         // output_width * output_channel_blocks, output_batch * output_height
-        unit0.global_work_size = {(uint32_t)DimsVectorUtils::GetDim(output_dims, 3) * output_channel_blocks,
-                                  (uint32_t)DimsVectorUtils::GetDim(output_dims, 0) *
-                                  DimsVectorUtils::GetDim(output_dims, 2)};
+        unit0.global_work_size = {(uint32_t)DimsFunctionUtils::GetDim(output_dims, 3) * output_channel_blocks,
+                                  (uint32_t)DimsFunctionUtils::GetDim(output_dims, 0) *
+                                  DimsFunctionUtils::GetDim(output_dims, 2)};
         unit0.local_work_size  = LocalWS2DDefault(unit0);
         unit0.ocl_kernel.setArg(0, *((cl::Image *)input->GetHandle().base));
         unit0.ocl_kernel.setArg(1, *((cl::Image *)output->GetHandle().base));
@@ -184,27 +184,27 @@ Status OpenCLStrideSliceV2LayerAcc::Reshape(const std::vector<Blob *> &inputs, c
         buffer_ = std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, dims_count * type_size);
 
         auto &unit0              = execute_units_[0];
-        int input_channel_blocks = UP_DIV(DimsVectorUtils::GetDim(input_dims, 1), 4);
+        int input_channel_blocks = UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4);
         // input_width * input_channel_blocks, input_batch * input_height
-        unit0.global_work_size = {(uint32_t)DimsVectorUtils::GetDim(input_dims, 3) * input_channel_blocks,
-                                  (uint32_t)DimsVectorUtils::GetDim(input_dims, 0) * DimsVectorUtils::GetDim(input_dims, 2)};
+        unit0.global_work_size = {(uint32_t)DimsFunctionUtils::GetDim(input_dims, 3) * input_channel_blocks,
+                                  (uint32_t)DimsFunctionUtils::GetDim(input_dims, 0) * DimsFunctionUtils::GetDim(input_dims, 2)};
         unit0.local_work_size  = LocalWS2DDefault(unit0);
         unit0.ocl_kernel.setArg(0, unit0.global_work_size[0]);
         unit0.ocl_kernel.setArg(1, unit0.global_work_size[1]);
         unit0.ocl_kernel.setArg(2, *buffer_);
         // input height
-        unit0.ocl_kernel.setArg(3, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 2)));
+        unit0.ocl_kernel.setArg(3, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
         // input width
-        unit0.ocl_kernel.setArg(4, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 3)));
+        unit0.ocl_kernel.setArg(4, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
         // input channel
-        unit0.ocl_kernel.setArg(5, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 1)));
+        unit0.ocl_kernel.setArg(5, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
         unit0.ocl_kernel.setArg(6, *((cl::Image *)input->GetHandle().base));
 
         auto &unit1               = execute_units_[1];
-        int output_channel_blocks = UP_DIV(DimsVectorUtils::GetDim(output_dims, 1), 4);
-        unit1.global_work_size    = {(uint32_t)DimsVectorUtils::GetDim(output_dims, 3) * output_channel_blocks,
-                                     (uint32_t)DimsVectorUtils::GetDim(output_dims, 0) *
-                                     DimsVectorUtils::GetDim(output_dims, 2)};
+        int output_channel_blocks = UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4);
+        unit1.global_work_size    = {(uint32_t)DimsFunctionUtils::GetDim(output_dims, 3) * output_channel_blocks,
+                                     (uint32_t)DimsFunctionUtils::GetDim(output_dims, 0) *
+                                     DimsFunctionUtils::GetDim(output_dims, 2)};
         unit1.local_work_size     = LocalWS2DDefault(unit1);
         unit1.ocl_kernel.setArg(0, unit1.global_work_size[0]);
         unit1.ocl_kernel.setArg(1, unit1.global_work_size[1]);
@@ -213,19 +213,19 @@ Status OpenCLStrideSliceV2LayerAcc::Reshape(const std::vector<Blob *> &inputs, c
         unit1.ocl_kernel.setArg(4, 4 * sizeof(int), begins_.data());
         unit1.ocl_kernel.setArg(5, 4 * sizeof(int), strides_.data());
         // input_width
-        unit1.ocl_kernel.setArg(6, DimsVectorUtils::GetDim(input_dims, 3));
+        unit1.ocl_kernel.setArg(6, DimsFunctionUtils::GetDim(input_dims, 3));
         // input_width * input_height
-        unit1.ocl_kernel.setArg(7, DimsVectorUtils::GetDim(input_dims, 3) *
-                                   DimsVectorUtils::GetDim(input_dims, 2));
+        unit1.ocl_kernel.setArg(7, DimsFunctionUtils::GetDim(input_dims, 3) *
+                                   DimsFunctionUtils::GetDim(input_dims, 2));
         // input_width * input_height * input_channel
-        unit1.ocl_kernel.setArg(8, DimsVectorUtils::GetDim(input_dims, 3) *
-                                   DimsVectorUtils::GetDim(input_dims, 2) *
-                                   DimsVectorUtils::GetDim(input_dims, 1));
+        unit1.ocl_kernel.setArg(8, DimsFunctionUtils::GetDim(input_dims, 3) *
+                                   DimsFunctionUtils::GetDim(input_dims, 2) *
+                                   DimsFunctionUtils::GetDim(input_dims, 1));
         // input_channel
-        unit1.ocl_kernel.setArg(9, DimsVectorUtils::GetDim(input_dims, 1));
+        unit1.ocl_kernel.setArg(9, DimsFunctionUtils::GetDim(input_dims, 1));
         unit1.ocl_kernel.setArg(10, outputWH);
         // output_channel
-        unit1.ocl_kernel.setArg(11, DimsVectorUtils::GetDim(output_dims, 1));
+        unit1.ocl_kernel.setArg(11, DimsFunctionUtils::GetDim(output_dims, 1));
     }
     return TNN_OK;
 }

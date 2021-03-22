@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "base_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 DECLARE_LAYER(Shape, LAYER_SHAPE);
@@ -26,7 +26,7 @@ Status ShapeLayer::InferOutputDataType() {
     
     //insure no blob reuse in const forword, so set alloc status DATA_FLAG_ALLOCATE_IN_FORWARD
     for (auto& iter : output_blobs_) {
-        iter->flag = iter->flag | DATA_FLAG_CHANGE_IF_SHAPE_DIFFER | DATA_FLAG_ALLOCATE_IN_FORWARD;
+        iter->SetFlag(iter->GetFlag() | DATA_FLAG_CHANGE_IF_SHAPE_DIFFER | DATA_FLAG_ALLOCATE_IN_FORWARD);
     }
     return TNN_OK;
 }

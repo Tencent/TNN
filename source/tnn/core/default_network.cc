@@ -27,7 +27,7 @@
 #include "tnn/utils/blob_transfer_utils.h"
 #include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/data_flag_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/md5.h"
 #include "tnn/utils/string_utils_inner.h"
 
@@ -153,7 +153,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             auto blob = blob_manager_->GetBlob(name);
             if (const_blobs.find(name) != const_blobs.end()) {
                 if (runtime_model_ == RUNTIME_MODE_NORMAL) {
-                    blob->flag = DATA_FLAG_CHANGE_NEVER;
+                    blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
                 }
                 blob->GetBlobDesc().data_type = const_blobs[name]->GetDataType();
             }
@@ -251,6 +251,11 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : input_names) {
             auto blob = blob_manager_->GetBlob(name);
+            if (blob == nullptr) {
+                delete cur_layer;
+                LOGE("Input of layer(%s) are invalid", layer_name.c_str());
+                return Status(TNNERR_PARAM_ERR, "Input of layer are invalid");
+           }
             // update layout reformat layer's param and blob datatype
             if (IsLayoutReformatLayer(layer_info)) {
                 // only need to update model's input blob datatype
@@ -273,6 +278,11 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
+            if (blob == nullptr) {
+                delete cur_layer;
+                LOGE("Output of layer(%s) are invalid", layer_name.c_str());
+                return Status(TNNERR_PARAM_ERR, "Output of layer are invalid");
+            }
             outputs.push_back(blob);
         }
 
@@ -644,7 +654,8 @@ std::shared_ptr<ProfileResult> DefaultNetwork::FinishProfile() {
 
 std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config) {
     return CACHE_TAG + "_" + ToString(config_.device_type) + "_" + ToString(config_.device_id)
-    + "_" + ToString(model_config.model_type) + "_" + md5(model_config.params[0]);
+        + "_" + ToString(config_.precision) + "_" + ToString(model_config.model_type) +
+        "_" + md5(model_config.params[0]);
 }
 
 Status DefaultNetwork::ReshapeLayers() {

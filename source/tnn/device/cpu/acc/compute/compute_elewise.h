@@ -23,8 +23,7 @@
 #include <cmath>
 
 #include "tnn/core/common.h"
-#include "tnn/utils/dims_offset_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
@@ -33,18 +32,18 @@ namespace TNN_NS {
  * Output[i] = input0[i] op input1[i] op ... op  input..n[i]
  * CPU_ELEMENT_WISE supports broadcast on all dimensions
  */
-template <typename T>
+template <typename T_IN, typename T_OUT>
 void CPU_ELEMENT_WISE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
-                      const DimsVector& shape_output, std::function<T(T, T)> op) {
+                      const DimsVector& shape_output, std::function<T_OUT(T_IN, T_IN)> op) {
     const int count = DimsVectorUtils::Count(shape_output);
-    T *output_data  = static_cast<T *>(output);
+    T_OUT *output_data  = static_cast<T_OUT *>(output);
 
     OMP_PARALLEL_FOR_
     for (int offset = 0; offset < count; ++offset) {
         DimsVector output_index = DimsOffsetUtils::ConvertOffsetToIndex(shape_output, offset);
-        T result;
+        T_OUT result;
         for (int i = 0; i < input_ptrs.size(); i++) {
-            T *input_data = static_cast<T *>(input_ptrs[i]);
+            T_IN *input_data = static_cast<T_IN *>(input_ptrs[i]);
             auto input_shape  = input_shapes[i];
             DimsVector input_index;
             auto diff = shape_output.size() - input_shape.size();
@@ -59,6 +58,37 @@ void CPU_ELEMENT_WISE(const std::vector<void *> &input_ptrs, const std::vector<D
             }
         }
         output_data[offset] = result;
+    }
+}
+
+template <typename T_IN_0, typename T_IN_1, typename T_IN_2, typename T_OUT>
+void CPU_ELEMENT_WISE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
+                      const DimsVector& shape_output, std::function<T_OUT(T_IN_0, T_IN_1, T_IN_2)> op) {
+    const int count = DimsVectorUtils::Count(shape_output);
+    T_OUT *output_data  = static_cast<T_OUT *>(output);
+
+    OMP_PARALLEL_FOR_
+    for (int offset = 0; offset < count; ++offset) {
+        DimsVector output_index = DimsOffsetUtils::ConvertOffsetToIndex(shape_output, offset);
+        
+        T_IN_0 *input_data_0 = static_cast<T_IN_0 *>(input_ptrs[0]);
+        T_IN_1 *input_data_1 = static_cast<T_IN_1 *>(input_ptrs[1]);
+        T_IN_2 *input_data_2 = static_cast<T_IN_2 *>(input_ptrs[2]);
+        T_OUT result;
+        
+        int input_offset[3] = {0,0,0};
+        
+        for (int ii=0; ii<3; ii++) {
+            auto input_shape  = input_shapes[ii];
+            DimsVector input_index;
+            auto diff = shape_output.size() - input_shape.size();
+            for (int i = 0; i < input_shape.size(); ++i) {
+                input_index.push_back(std::min(output_index[i + diff], input_shape[i] - 1));
+            }
+            input_offset[ii] = DimsOffsetUtils::ConvertIndexToOffset(input_shape, input_index);
+        }
+
+        output_data[offset] = op(input_data_0[input_offset[0]], input_data_1[input_offset[1]], input_data_2[input_offset[2]]);
     }
 }
 

@@ -312,7 +312,7 @@ Status OpenCLLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         auto status = RawBuffer2Blob(buffer.get(), blob);
         RETURN_ON_NEQ(status, TNN_OK);
 
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         auto dims = iter->GetBlobDesc().dims;
         auto data_type_size = DataTypeUtils::GetBytesSize(iter->GetBlobDesc().data_type);
         const_blob_map[name] = blob;

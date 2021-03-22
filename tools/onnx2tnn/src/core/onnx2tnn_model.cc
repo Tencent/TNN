@@ -92,10 +92,10 @@ int Onnx2TNN::TNNWriteModel() {
                     assert(0);
                 }
                 
-                
                 for (int j = 0; j < (int)node.input_size(); j++) {
                     const std::string &input_name = node.input(j);
-                    if ( !op_converter->HasLayerResource(node, onnx_net_info_) &&
+                    //some op like ConstantOfShape, its input(0) may be const but it is not in layer resource
+                    if ( (j==0 || !op_converter->HasLayerResource(node, onnx_net_info_)) &&
                         onnx_net_info_.weights_map.find(input_name) != onnx_net_info_.weights_map.end() ) {
                         const_id_set.insert(input_name);
                     }
@@ -106,14 +106,15 @@ int Onnx2TNN::TNNWriteModel() {
                 break;
             }
             
-            //写入版本号
+            //write version number
             net_writer.PutInt(g_version_magic_number_v2);
-            //写入个数
+            //write const count
             net_writer.PutInt((int)const_id_set.size());
             for (auto id : const_id_set) {
                 auto const_tensor = onnx_net_info_.weights_map[id];
                 net_writer.PutString(id);
                 OnnxOpConverter::WriteTensorData(const_tensor, &net_writer, DATA_TYPE_AUTO);
+                
             }
         }
     } while (0);

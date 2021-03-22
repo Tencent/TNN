@@ -82,12 +82,12 @@ Status OpenCLLSTMONNXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
 
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
-    const auto sequence = DimsVectorUtils::GetDim(input_dims, 0);
-    const auto batch    = DimsVectorUtils::GetDim(input_dims, 1);
-    const int input_size = DimsVectorUtils::GetDim(input_dims, 2);
+    const auto sequence = DimsFunctionUtils::GetDim(input_dims, 0);
+    const auto batch    = DimsFunctionUtils::GetDim(input_dims, 1);
+    const int input_size = DimsFunctionUtils::GetDim(input_dims, 2);
     const int input_size_updiv_4 = UP_DIV(input_size, 4);
     int num_directions  = layer_param->direction >=2 ? 2 : 1;
-    const int hidden_size = DimsVectorUtils::GetDim(output_dims, 2) / num_directions;
+    const int hidden_size = DimsFunctionUtils::GetDim(output_dims, 2) / num_directions;
     const int hidden_size_updiv_4 = UP_DIV(hidden_size, 4);
     int reverse         = layer_param->direction == 1;
 
@@ -165,7 +165,7 @@ Status OpenCLLSTMONNXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
 
     if (need_temp_out) {
         execute_units_[2].global_work_size = {
-            static_cast<uint32_t>(UP_DIV(DimsVectorUtils::GetDim(output_dims, 2), 4)),
+            static_cast<uint32_t>(UP_DIV(DimsFunctionUtils::GetDim(output_dims, 2), 4)),
             static_cast<uint32_t>(sequence * batch)};
         execute_units_[2].local_work_size = LocalWS2DDefault(execute_units_[2]);
         uint32_t idx = 0;
@@ -203,7 +203,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
     } else {
         auto status = ConvertWeights(buffer, blob);
         RETURN_ON_NEQ(status, TNN_OK);
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map_[name] = blob;
     }
     w->SetHandle(blob->GetHandle());
@@ -222,7 +222,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
     } else {
         auto status = ConvertWeights(buffer, blob);
         RETURN_ON_NEQ(status, TNN_OK);
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map_[name] = blob;
     }
     r->SetHandle(blob->GetHandle());
@@ -241,7 +241,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
     } else {
         auto status = ConvertBias(buffer, blob);
         RETURN_ON_NEQ(status, TNN_OK);
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map_[name] = blob;
     }
     b->SetHandle(blob->GetHandle());
@@ -257,7 +257,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
             } else {
                 auto status = ConvertInitialState(buffer, blob);
                 RETURN_ON_NEQ(status, TNN_OK);
-                blob->flag = DATA_FLAG_CHANGE_NEVER;
+                blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
                 const_blob_map_[name] = blob;
             }
             h0->SetHandle(blob->GetHandle());
@@ -273,7 +273,7 @@ Status OpenCLLSTMONNXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &in
             } else {
                 auto status = ConvertInitialState(buffer, blob);
                 RETURN_ON_NEQ(status, TNN_OK);
-                blob->flag = DATA_FLAG_CHANGE_NEVER;
+                blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
                 const_blob_map_[name] = blob;
             }
             c0->SetHandle(blob->GetHandle());

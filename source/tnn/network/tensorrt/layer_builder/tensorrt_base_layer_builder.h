@@ -24,6 +24,7 @@
 #include "NvUtils.h"
 #include "NvInferPlugin.h"
 
+#include "tnn/core/macro.h"
 #include "tnn/layer/base_layer.h"
 #include "tnn/core/abstract_device.h"
 #include "tnn/core/blob.h"

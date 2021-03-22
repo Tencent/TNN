@@ -19,8 +19,9 @@
 
 #include "tnn/core/abstract_layer_acc.h"
 #include "tnn/device/x86/x86_device.h"
-#include "tnn/utils/bfp16.h"
-#include "tnn/utils/bfp16_utils.h"
+#include "tnn/device/x86/x86_util.h"
+#include "tnn/device/x86/x86_context.h"
+#include "tnn/device/x86/acc/compute/jit/utils/cpu_isa.h"
 
 namespace TNN_NS {
 
@@ -33,25 +34,32 @@ public:
     virtual Status Init(Context* context, LayerParam* param, LayerResource* resource,
                         const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs);
     
-    virtual Status Reshape(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs) = 0;
+    virtual Status Reshape(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs);
 
-    virtual Status Forward(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs) = 0;
+    virtual Status Forward(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs);
+
+    virtual Status DoForward(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs);
+
+#if TNN_PROFILE
+    Timer timer;
+#endif
 
 protected:
     LayerParam* param_          = nullptr;
     LayerResource* resource_    = nullptr;
+    X86Context *context_           = nullptr;
+    x86_isa_t arch_;
 
 private:
     // @brief return device layer acc support data format
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);
 };
 
-#define DECLARE_X86_ACC(type_string, layer_type)                                                                \
-    class X86##type_string##LayerAcc : public X86LayerAcc {                                                     \
-    public:                                                                                                     \
-        virtual ~X86##type_string##LayerAcc(){};                                                                \
-        virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);          \
-        virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);          \
+#define DECLARE_X86_ACC(type_string, layer_type)                                                                   \
+    class X86##type_string##LayerAcc : public X86LayerAcc {                                                        \
+    public:                                                                                                        \
+        virtual ~X86##type_string##LayerAcc(){};                                                                   \
+        virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;  \
     }
 
 #define REGISTER_X86_ACC(type_string, layer_type)                                                               \

@@ -17,7 +17,7 @@
 #include "tnn/device/opencl/opencl_utils.h"
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/utils/blob_memory_size_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
@@ -46,7 +46,7 @@ OpenCLBlobConverterAcc::OpenCLBlobConverterAcc(Blob *blob) : BlobConverterAcc(bl
         buffer_.reset(cl_buffer);
     }
 
-    int channel = DimsVectorUtils::GetDim(blob->GetBlobDesc().dims, 1);
+    int channel = DimsFunctionUtils::GetDim(blob->GetBlobDesc().dims, 1);
     scale_bias_buffer_size_ = channel * sizeof(float);
     cl::Buffer* scale_buffer = new cl::Buffer(*opencl_runtime->Context(),
                                               CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
@@ -438,31 +438,31 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
         CHECK_CL_SUCCESS(cl_ret);
         auto blob_dims_size = blob_->GetBlobDesc().dims.size();
         if (blob_->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
-            cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 2));
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 2));
             CHECK_CL_SUCCESS(cl_ret);
             if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
-                cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 3));
+                cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 3));
                 CHECK_CL_SUCCESS(cl_ret);
                 // set dim4, optional
                 if (blob_dims_size >= 5) {
-                    cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 4));
+                    cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 4));
                     CHECK_CL_SUCCESS(cl_ret);
                 }
                 // set dim5, optional
                 if (blob_dims_size >= 6) {
-                    cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 5));
+                    cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 5));
                     CHECK_CL_SUCCESS(cl_ret);
                 }
             } else if (blob_->GetBlobDesc().data_format == DATA_FORMAT_CNH4) {
                 // batch
-                cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 0));
+                cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 0));
                 CHECK_CL_SUCCESS(cl_ret);
             }
         }
 
         if (NCHW_FLOAT == mat.GetMatType()) {
             //special for NCHW_FLOAT, need channel parameter
-            cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 1));
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 1));
             CHECK_CL_SUCCESS(cl_ret);
             cl_ret = unit.ocl_kernel.setArg(idx++, *scale_buffer_);
             CHECK_CL_SUCCESS(cl_ret);
@@ -471,7 +471,7 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
         } else {
             // N8UC4 need channel parameter
             if (N8UC4 == mat.GetMatType() && !convert_to_mat) {
-                cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 1));
+                cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 1));
                 CHECK_CL_SUCCESS(cl_ret);
             }
             // pad scale && bias for vectors in opencl kernel
@@ -493,7 +493,7 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
         cl_ret = unit.ocl_kernel.setArg(idx++, *image);
         CHECK_CL_SUCCESS(cl_ret);
         if (!convert_to_mat) {
-            cl_ret = unit.ocl_kernel.setArg(idx++, DimsVectorUtils::GetDim(dims, 1));
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 1));
             CHECK_CL_SUCCESS(cl_ret);
         }
         cl_ret = unit.ocl_kernel.setArg(idx++, sizeof(float) * param.scale.size(), param.scale.data());
@@ -544,20 +544,19 @@ Status OpenCLBlobConverterAcc::CopyMatToBufferData(Mat &mat, cl::CommandQueue *c
 
 Status OpenCLBlobConverterAcc::CopyScaleBiasToBuffer(MatConvertParam param, cl::CommandQueue *cl_command_queue) {
     cl_int cl_ret;
-    // Copy scale and bias to buffer
-    auto scale_buffer_ptr =
-        cl_command_queue->enqueueMapBuffer(*scale_buffer_, true, CL_MAP_WRITE, 0, scale_bias_buffer_size_, nullptr, nullptr, &cl_ret);
-    CHECK_CL_SUCCESS(cl_ret);
-    memcpy(scale_buffer_ptr, param.scale.data(), scale_bias_buffer_size_);
-    cl_ret = cl_command_queue->enqueueUnmapMemObject(*scale_buffer_, scale_buffer_ptr);
-    CHECK_CL_SUCCESS(cl_ret);
+    if (param.scale != host_scale_buffer_) {
+        // Copy scale to buffer
+        cl_ret = cl_command_queue->enqueueWriteBuffer(*scale_buffer_, CL_TRUE, 0, scale_bias_buffer_size_, param.scale.data());
+        CHECK_CL_SUCCESS(cl_ret);
+        host_scale_buffer_.assign(param.scale.begin(), param.scale.end());
+    }
 
-    auto bias_buffer_ptr =
-        cl_command_queue->enqueueMapBuffer(*bias_buffer_, true, CL_MAP_WRITE, 0, scale_bias_buffer_size_, nullptr, nullptr, &cl_ret);
-    CHECK_CL_SUCCESS(cl_ret);
-    memcpy(bias_buffer_ptr, param.bias.data(), scale_bias_buffer_size_);
-    cl_ret = cl_command_queue->enqueueUnmapMemObject(*bias_buffer_, bias_buffer_ptr);
-    CHECK_CL_SUCCESS(cl_ret);
+    if (param.bias != host_bias_buffer_) {
+        // Copy bias to buffer
+        cl_ret = cl_command_queue->enqueueWriteBuffer(*bias_buffer_, CL_TRUE, 0, scale_bias_buffer_size_, param.bias.data());
+        CHECK_CL_SUCCESS(cl_ret);
+        host_bias_buffer_.assign(param.bias.begin(), param.bias.end());
+    }
 
     return TNN_OK;
 }

@@ -17,8 +17,8 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/half_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -74,7 +74,7 @@ Status MetalLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         auto status = RawBuffer2Blob(buffer.get(), blob);
         RETURN_ON_NEQ(status, TNN_OK);
 
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         auto dims = iter->GetBlobDesc().dims;
         auto data_type_size = DataTypeUtils::GetBytesSize(iter->GetBlobDesc().data_type);
         const_blob_map[name] = blob;

@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/opencl/acc/opencl_reformat_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -67,9 +67,9 @@ Status OpenCLReformatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
         return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "Reformat Layer input dims invalid");
     }
 
-    int n = DimsVectorUtils::GetDim(input_dims, 0);
-    int c = DimsVectorUtils::GetDim(input_dims, 1);
-    int h = DimsVectorUtils::GetDim(input_dims, 2);
+    int n = DimsFunctionUtils::GetDim(input_dims, 0);
+    int c = DimsFunctionUtils::GetDim(input_dims, 1);
+    int h = DimsFunctionUtils::GetDim(input_dims, 2);
     if (kernel_name_ == "NHC4W4ImageToCNH4Image") {
         execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(h, 4)), static_cast<uint32_t>(c * n)};
         execute_units_[0].local_work_size  = {64, 1};

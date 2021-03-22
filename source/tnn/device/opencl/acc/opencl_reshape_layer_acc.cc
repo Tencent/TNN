@@ -14,7 +14,7 @@
 
 #include "tnn/device/opencl/acc/opencl_reshape_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -111,20 +111,20 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
             execute_units_[0].ocl_kernel.setArg(idx++, *inter_buffer_.get());
         }
         if (input_dims_size_ <= 4) {
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 2)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 3)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 1)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
         } else if (input_dims_size_ == 5) {
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 1)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 2)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 3)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 4)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 4)));
         } else if (input_dims_size_ == 6) {
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 1)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 2)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 3)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 4)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(input_dims, 5)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 4)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 5)));
         }
         execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
     }
@@ -136,20 +136,20 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[1], output_dims);
         execute_units_[1].ocl_kernel.setArg(idx++, *inter_buffer_.get());
         if (output_dims_size_ <= 4) {
-            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 2)));
-            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 3)));
-            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 1)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
         } else if (output_dims_size_ == 5) {
-            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 1)));
-            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 2)));
-            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 3)));
-            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 4)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 4)));
         } else if (output_dims_size_ == 6) {
-            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 1)));
-            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 2)));
-            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 3)));
-            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 4)));
-            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsVectorUtils::GetDim(output_dims, 5)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 4)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 5)));
         }
         execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
     }

@@ -99,7 +99,7 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         auto status = RawBuffer2Blob(buffer.get(), blob);
         RETURN_ON_NEQ(status, TNN_OK);
 
-        blob->flag = DATA_FLAG_CHANGE_NEVER;
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map[name] = blob;
         iter->SetHandle(blob->GetHandle());
         iter->GetBlobDesc() = blob->GetBlobDesc();

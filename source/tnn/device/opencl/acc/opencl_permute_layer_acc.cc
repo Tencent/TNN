@@ -108,18 +108,18 @@ Status OpenCLPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
 
-    int output_n    = DimsVectorUtils::GetDim(output_dims, 0);
-    int output_c    = DimsVectorUtils::GetDim(output_dims, 1);
+    int output_n    = DimsFunctionUtils::GetDim(output_dims, 0);
+    int output_c    = DimsFunctionUtils::GetDim(output_dims, 1);
     int output_count = 1;
     for (int i = 2; i < dims_.size(); ++i) {
-        output_count *= DimsVectorUtils::GetDim(output_dims, i);
+        output_count *= DimsFunctionUtils::GetDim(output_dims, i);
     }
 
-    int input_n     = DimsVectorUtils::GetDim(input_dims, 0);
-    int input_c     = DimsVectorUtils::GetDim(input_dims, 1);
+    int input_n     = DimsFunctionUtils::GetDim(input_dims, 0);
+    int input_c     = DimsFunctionUtils::GetDim(input_dims, 1);
     int input_count = 1;
     for (int i = 2; i < dims_.size(); ++i) {
-        input_count *= DimsVectorUtils::GetDim(input_dims, i);
+        input_count *= DimsFunctionUtils::GetDim(input_dims, i);
     }
 
     int size0          = UP_DIV(output_c, 4) * 4 * output_n * output_count;
@@ -133,7 +133,7 @@ Status OpenCLPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     int count = 1;
     for (int i = 0; i < dims_.size(); ++i) {
         output_stride[dims_.size() - 1 - i] = count;
-        count *= DimsVectorUtils::GetDim(output_dims, dims_.size() - 1 - i);
+        count *= DimsFunctionUtils::GetDim(output_dims, dims_.size() - 1 - i);
     }
     std::vector<int> permute_input_stride(dims_.size());
     for (int i = 0; i < dims_.size(); ++i) {
@@ -142,8 +142,8 @@ Status OpenCLPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     std::vector<int> input_size(dims_.size() - 2);
     std::vector<int> output_size(dims_.size() - 2);
     for (int i = 2; i < dims_.size(); ++i) {
-        input_size[i - 2] = DimsVectorUtils::GetDim(input_dims, i);
-        output_size[i - 2] = DimsVectorUtils::GetDim(output_dims, i);
+        input_size[i - 2] = DimsFunctionUtils::GetDim(input_dims, i);
+        output_size[i - 2] = DimsFunctionUtils::GetDim(output_dims, i);
     }
 
     if (dims_.size() == 4) {
@@ -154,7 +154,7 @@ Status OpenCLPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 
     std::vector<int> buffer_output_size(dims_.size());
     for (int i = 0; i < dims_.size(); ++i) {
-        buffer_output_size[i] = DimsVectorUtils::GetDim(input_dims, i);
+        buffer_output_size[i] = DimsFunctionUtils::GetDim(input_dims, i);
     }
     // image->buffer
     {
