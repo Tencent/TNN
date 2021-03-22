@@ -75,8 +75,6 @@ Status MetalLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         RETURN_ON_NEQ(status, TNN_OK);
 
         blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
-        auto dims = iter->GetBlobDesc().dims;
-        auto data_type_size = DataTypeUtils::GetBytesSize(iter->GetBlobDesc().data_type);
         const_blob_map[name] = blob;
         iter->SetHandle(blob->GetHandle());
         iter->GetBlobDesc() = blob->GetBlobDesc();
@@ -678,6 +676,98 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
     }
 #endif
     return mtl_buffer;
+}
+
+Status RawBuffer2MetalBlob(MetalContext *context, RawBuffer *buffer, std::shared_ptr<Blob> &blob, DataFormat format) {
+    if (!buffer || buffer->GetBytesSize() <= 0) {
+        LOGE("RawBuffer2MetalBlob: buffer is null \n");
+        return Status(TNNERR_PARAM_ERR, "RawBuffer2MetalBlob: buffer is null");
+    }
+
+    const int count = blob ? DimsVectorUtils::Count(blob->GetBlobDesc().dims) : 0;
+    const int ele_size = blob ? DataTypeUtils::GetBytesSize(blob->GetBlobDesc().data_type) : 0;
+    if (!blob || buffer->GetBytesSize() != count*ele_size) {
+        BlobDesc desc;
+        desc.device_type = DEVICE_METAL;
+#if TNN_METAL_FULL_PRECISION
+        desc.data_type  = DATA_TYPE_FLOAT;
+#else
+        desc.data_type  = DATA_TYPE_HALF;
+#endif
+        desc.dims = buffer->GetBufferDims();
+        desc.data_format = format;
+
+        blob = std::make_shared<Blob>(desc, true);
+    }
+    // convert data type if necessary
+    void *buffer_data = buffer->force_to<void *>();
+    auto buffer_size  = buffer->GetBytesSize();
+    float *buffer_float = nullptr;
+    uint16_t *buffer_half = nullptr;
+#if TNN_METAL_FULL_PRECISION
+    if (buffer->GetDataType() == DATA_TYPE_HALF) {
+        auto buffer_data_count = buffer->GetDataCount();
+        buffer_float = new float[buffer_data_count];
+        if (ConvertFromHalfToFloat(buffer_data, buffer_float, buffer_data_count) != 0) {
+            LOGE("Convert buffer from half to float failed!");
+            return Status(TNNERR_PARAM_ERR, "Convert buffer from half to float failed!");
+        }
+        buffer_data = buffer_float;
+        buffer_size = sizeof(float) * buffer_data_count;
+    }
+#else
+    if (buffer->GetDataType() == DATA_TYPE_FLOAT) {
+        auto buffer_data_count = buffer->GetDataCount();
+        buffer_half = new uint16_t[buffer_data_count];
+        if (ConvertFromFloatToHalf((float *)buffer_data, buffer_half, buffer_data_count) != 0) {
+            LOGE("Convert buffer from float to half failed!");
+            return Status(TNNERR_PARAM_ERR, "Convert buffer from float to half failed!");
+        }
+        buffer_data = buffer_half;
+        buffer_size = sizeof(uint16_t) * buffer_data_count;
+    }
+#endif
+    RETURN_VALUE_ON_NEQ(!blob, false, Status(TNNERR_COMMON_ERROR, "allocate metal blob for buffer faile!"));
+
+    Status status = TNN_OK;
+    // copy to metal blob
+    id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
+    id<MTLBuffer> tmp_buffer = nil;
+    tmp_buffer = [device newBufferWithBytes:buffer_data
+                                     length:buffer_size
+                                    options:MTLCPUCacheModeDefaultCache];
+    if (buffer_float) delete[] buffer_float;
+    if (buffer_half) delete[] buffer_half;
+
+    auto context_impl = context->getMetalContextImpl();
+    auto encoder = [context_impl encoder];
+
+    MetalImageConverterParams params;
+    const auto blob_dims = blob->GetBlobDesc().dims;
+    params.size    = DimsFunctionUtils::GetDim(blob_dims, 3)*DimsFunctionUtils::GetDim(blob_dims, 2);
+    params.channel = DimsFunctionUtils::GetDim(blob_dims, 1);
+    params.batch   = DimsFunctionUtils::GetDim(blob_dims, 0);
+
+    id<MTLBuffer> buffer_param = [device newBufferWithBytes:(const void *)(&params)
+                                        length:sizeof(params)
+                                       options:MTLResourceCPUCacheModeWriteCombined];
+
+    MTLSize threads = MTLSizeMake(params.size, params.channel, params.batch);
+    MetalBandwidth bandwidth;
+    status = [context_impl load:@"data_converter_nchw"
+                        encoder:encoder
+                        bandwidth:bandwidth];
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    [encoder setBuffer:tmp_buffer offset:0 atIndex:0];
+    [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)blob->GetHandle().base
+                offset:(NSUInteger)blob->GetHandle().bytes_offset
+                atIndex:1];
+    [encoder setBuffer:buffer_param offset:0 atIndex:2];
+
+    status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
+
+    return status;
 }
 
 } // namespace TNN_NS

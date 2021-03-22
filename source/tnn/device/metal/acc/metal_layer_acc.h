@@ -117,6 +117,13 @@ id<MTLBuffer> AllocatePackedGOIHW16MetalBufferFormRawBuffer(RawBuffer buffer, Di
 id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
                                                            Status &status);
 
+// @brief convert buffer to a metal blob
+// @context tnn instance device context
+// @param buffer    rawbuffer, memory on CPU
+// @param blob    generated metal blob
+// @param status   output status
+Status RawBuffer2MetalBlob(MetalContext *context, RawBuffer *buffer, std::shared_ptr<Blob> &blob, DataFormat format = DATA_FORMAT_NC4HW4);
+
 void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, bool reduce_on_axis);
 
 #define DECLARE_METAL_ACC(type_string, layer_type)                                                                     \
