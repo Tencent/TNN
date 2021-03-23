@@ -23,7 +23,9 @@
 #import "TNNHairSegmentationViewModel.h"
 #import "TNNPoseDetectLandmarkViewModel.h"
 #import "TNNSkeletonDetectorViewModel.h"
+#if HAS_OPENCV
 #import "TNNOCRViewModel.h"
+#endif
 
 #import "TNNExamplesListCell.h"
 
@@ -206,6 +208,7 @@ using namespace std;
         [examples addObject:data];
     }
 
+#if HAS_OPENCV
     //光学字符识别 - OCR
     {
         auto data = [TNNExampleData new];
@@ -216,10 +219,10 @@ using namespace std;
             data.viewModel = [TNNOCRViewModel new];
             data.viewModel.title = @"OCR";
             data.viewModel.preferFrontCamera = false;
-            data.viewModel.preferGPU = true;
         }
         [examples addObject:data];
     }
+#endif
 
     self.examples = examples;
 }

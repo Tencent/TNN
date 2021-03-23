@@ -73,7 +73,6 @@
 		ECB077E125FA0A5B007B1498 /* ocr_angle_predictor.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB077DF25FA0A5B007B1498 /* ocr_angle_predictor.cc */; };
 		ECB077E425FA0ABD007B1498 /* ocr_text_recognizer.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB077E225FA0ABD007B1498 /* ocr_text_recognizer.cc */; };
 		ECB077E725FA0AFA007B1498 /* ocr_driver.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB077E525FA0AFA007B1498 /* ocr_driver.cc */; };
-		ECB077E925FA1C09007B1498 /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ECB077E825FA1C09007B1498 /* opencv2.framework */; };
 		ECBA3C6225920A37001BC0A7 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = ECBA3C6125920A37001BC0A7 /* assets */; };
 		ECD14A022505F88C00271443 /* face_detect_mesh.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A002505F88C00271443 /* face_detect_mesh.cc */; };
 		ECD14A042505FE1700271443 /* TNNFaceDetectMeshViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */; };
@@ -106,19 +105,6 @@
 			remoteInfo = tnn;
 		};
 /* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		ECB077DB25FA0013007B1498 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		9D449863241D2D3A003FBAA2 /* UIImage+Utility.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UIImage+Utility.h"; sourceTree = "<group>"; };
@@ -236,7 +222,6 @@
 		ECB077E325FA0ABD007B1498 /* ocr_text_recognizer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ocr_text_recognizer.h; sourceTree = "<group>"; };
 		ECB077E525FA0AFA007B1498 /* ocr_driver.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ocr_driver.cc; sourceTree = "<group>"; };
 		ECB077E625FA0AFA007B1498 /* ocr_driver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ocr_driver.h; sourceTree = "<group>"; };
-		ECB077E825FA1C09007B1498 /* opencv2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = opencv2.framework; path = ../../third_party/opencv/iOS/opencv2.framework; sourceTree = "<group>"; };
 		ECBA3C6125920A37001BC0A7 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../../assets; sourceTree = "<group>"; };
 		ECD14A002505F88C00271443 /* face_detect_mesh.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = face_detect_mesh.cc; sourceTree = "<group>"; };
 		ECD14A012505F88C00271443 /* face_detect_mesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = face_detect_mesh.h; sourceTree = "<group>"; };
@@ -270,7 +255,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				ECB077E925FA1C09007B1498 /* opencv2.framework in Frameworks */,
 				D1330F4E244AFBFF00CEBF29 /* AVFoundation.framework in Frameworks */,
 				9D6A9F5F24268DD3000A5417 /* CoreMedia.framework in Frameworks */,
 				9DD57A1923B5AD0100A96E63 /* Accelerate.framework in Frameworks */,
@@ -440,7 +424,6 @@
 		9DD57A1023B5A8D000A96E63 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				ECB077E825FA1C09007B1498 /* opencv2.framework */,
 				D1330F4D244AFBFF00CEBF29 /* AVFoundation.framework */,
 				9D6A9F5E24268DD3000A5417 /* CoreMedia.framework */,
 				9D6A9F5C24268DBF000A5417 /* CoreImage.framework */,
@@ -584,11 +567,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9DD57A0323B5A20E00A96E63 /* Build configuration list for PBXNativeTarget "TNNExamples" */;
 			buildPhases = (
+				EC76C1AD2609D8760029FABA /* Run Script */,
 				9DD579E623B5A20500A96E63 /* Sources */,
+				EC76C1C4260A19500029FABA /* ShellScript */,
 				9DD579E723B5A20500A96E63 /* Frameworks */,
 				9DD579E823B5A20500A96E63 /* Resources */,
 				9DD57A1323B5A91700A96E63 /* ShellScript */,
-				ECB077DB25FA0013007B1498 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -690,6 +674,43 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "echo $TARGET_BUILD_DIR\ncp $TARGET_BUILD_DIR/tnn.framework/default.metallib $TARGET_BUILD_DIR/$TARGET_NAME.app/tnn.metallib\n";
+		};
+		EC76C1AD2609D8760029FABA /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 12;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path\nopencv_framework=$PROJECT_DIR/../../third_party/opencv/iOS/opencv2.framework\nmm_dir=$PROJECT_DIR/TNNExamples/TNNCameraPreviewController/TNNViewModel\nlist_dir=$PROJECT_DIR/TNNExamples/TNNExamplesController\ncc_dir=$PROJECT_DIR/../base\nmacro=\"#if HAS_OPENCV\"\ndefine=\"#if 1\"\nif [ -d \"$opencv_framework\" ]; then\n    echo \"opencv has been downloaded!\"\n    \n    grep \"$macro\" -rlZ $cc_dir | xargs sed -i '' -e \"s/$macro/$define/g\"\n    grep \"$macro\" -rlZ $mm_dir | xargs sed -i '' -e \"s/$macro/$define/g\"\n    grep \"$macro\" -rlZ $list_dir | xargs sed -i '' -e \"s/$macro/$define/g\"\nfi\n";
+		};
+		EC76C1C4260A19500029FABA /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path\nopencv_framework=$PROJECT_DIR/../../third_party/opencv/iOS/opencv2.framework\nmm_dir=$PROJECT_DIR/TNNExamples/TNNCameraPreviewController/TNNViewModel\nlist_dir=$PROJECT_DIR/TNNExamples/TNNExamplesController\ncc_dir=$PROJECT_DIR/../base\nmacro=\"#if HAS_OPENCV\"\ndefine=\"#if 1\"\nif [ -d \"$opencv_framework\" ]; then\n    echo \"remove added macro!\"\n    \n    grep \"$define\" -rlZ $cc_dir | xargs sed -i '' -e \"s/$define/$macro/g\"\n    grep \"$define\" -rlZ $mm_dir | xargs sed -i '' -e \"s/$define/$macro/g\"\n    grep \"$define\" -rlZ $list_dir | xargs sed -i '' -e \"s/$define/$macro/g\"\nfi\n\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

@@ -12,6 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#if HAS_OPENCV
+
 #import "TNNOCRViewModel.h"
 #import "ocr_textbox_detector.h"
 #import "ocr_angle_predictor.h"
@@ -239,3 +241,4 @@ using namespace std;
 
 @end
 
+#endif
