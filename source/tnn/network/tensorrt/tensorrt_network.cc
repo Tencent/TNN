@@ -154,7 +154,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
             return ret;
         }
     }
-    {
+
+    if (!test_mode) {
         size_t size = 0;
         std::ifstream deploy_input(cache_file_name, std::ios::binary);
         deploy_input.seekg(0, deploy_input.end);
@@ -172,6 +173,11 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         runtime->destroy();
         delete[] model_stream;
         deploy_input.close();
+    } else {
+        ret = CreateExecuteContext();
+        if (ret != TNN_OK)
+            return ret;
+
     }
 
     delete file_lock;
@@ -242,9 +248,8 @@ Status TensorRTNetwork_::ReshapeLayers() {
         bool ret;
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
         if (std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->IsShapeTensor()) {
-            auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetShapeBlobName();
-            auto dims = blob_manager_->GetBlob(name)->GetBlobDesc().dims;
-            ret = m_trt_context->setInputShapeBinding(index, dims.data());
+            auto map = net_resource_->constant_map;
+            ret = m_trt_context->setInputShapeBinding(index, (int*)map[blob_name]->force_to<int *>());
         } else {
             nvinfer1::Dims inputDims = ConvertToTRTDims(buf->GetBufferDims());
             ret = m_trt_context->setBindingDimensions(index, inputDims);
@@ -254,6 +259,7 @@ Status TensorRTNetwork_::ReshapeLayers() {
             return Status(TNNERR_PARAM_ERR, "Reshape failed\n");
         }
     }
+
     return TNN_OK;
 }
 
@@ -503,7 +509,6 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             auto shape_dims = ConvertToTRTDims(buf->GetBufferDims());
             const_tensor = m_trt_network->addInput(blob_name.c_str(),
                                             ConvertToTRTDataType(buf->GetDataType()), shape_dims);
-
             auto dims_blob_name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetShapeBlobName();
             max_dims = net_resource->blob_shapes_map[dims_blob_name];
             min_dims = net_resource->min_blob_shapes_map[dims_blob_name];
