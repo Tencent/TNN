@@ -36,7 +36,7 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
 
     Status status = TNN_OK;
     if (layer_res && !buffer_weight_) {
-        // TODO: how to handle non-4-dimensional resource
+        // If two inputs have different dimensions, align on the right
         auto element_shape = layer_res->element_shape;
         while(element_shape.size() < inputs[0]->GetBlobDesc().dims.size())
             element_shape.insert(element_shape.begin(), 1);
