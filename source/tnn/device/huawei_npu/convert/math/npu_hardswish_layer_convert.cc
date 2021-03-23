@@ -35,6 +35,6 @@ protected:
     }
 };
 
-REGISTER_NPU_LAYER(Hardswish, LAYER_HARDSWISH);
+//REGISTER_NPU_LAYER(Hardswish, LAYER_HARDSWISH);
 
 }  // namespace TNN_NS
