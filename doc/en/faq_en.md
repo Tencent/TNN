@@ -30,10 +30,6 @@ To support ARMv8.2 compilation, the ndk version must be at least r18b
 ### Model alignment troubleshooting
 * [Model alignment troubleshooting](./model_align_en.md) 
 
-### How to check if the result is correct?
-* Refer to [Model Test Document](./user/test_en.md)
-
-
 ## III. Runtime questions
 
 ### Does it support running on PC
