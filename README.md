@@ -183,7 +183,6 @@ TNN referenced the following projects：
 
 ## FAQ
 * [FAQ](doc/en/faq_en.md)
-* [FAQ Model Alignment](doc/en/model_align_en.md)
 
 ## Join Us
 
