@@ -173,18 +173,6 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
             return status;
         }
     }
-    {
-        // print text_boxes
-        for(int i=0; i<text_boxes.size(); ++i) {
-            const auto box = text_boxes[i];
-            float score = box.score;
-            printf("Textbox[%d], score:%f,", i, score);
-            for(const auto& p: box.box_points){
-                printf("[x:%d, y:%d], ", p.x, p.y);
-            }
-            printf("\n");
-        }
-    }
     std::vector<cv::Mat> part_images = getPartImages(predictor_textbox_detector_cast->GetPaddedInput(), text_boxes);
     auto dims = input_mat->GetDims();
     
@@ -205,21 +193,7 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
             predictor_angle_predictor_cast->Predict(input, angle);
             angles.push_back(angle);
         }
-        {
-            // print angles
-            for(int i=0; i<angles.size(); ++i) {
-                auto angle = dynamic_cast<OCRAnglePredictorOutput *>(angles[i].get());
-                printf("before DO angles[%d], index:%d, score:%f\n", i, angle->index, angle->score);
-            }
-        }
         predictor_angle_predictor_cast->ProcessAngles(angles);
-        {
-            // print angles
-            for(int i=0; i<angles.size(); ++i) {
-                auto angle = dynamic_cast<OCRAnglePredictorOutput *>(angles[i].get());
-                printf("AFTER DO angles[%d], index:%d, score:%f\n", i, angle->index, angle->score);
-            }
-        }
         for(int i=0; i<part_images.size(); ++i) {
             auto angle = dynamic_cast<OCRAnglePredictorOutput *>(angles[i].get());
             if(angle->index == 0) {
@@ -246,19 +220,6 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
                 texts.push_back(text);
             }
         }
-    }
-    // get text & score
-    std::ostringstream out_stream;
-    printf("=== text:\n");
-    for(int i=0; i<texts.size(); ++i) {
-        const auto& o = texts[i];
-        auto text = dynamic_cast<OCRTextRecognizerOutput *>(o.get());
-        printf("%s\n", text->text.c_str());
-        for(const auto&s : text->scores) {
-            printf("%f, ",s);
-        }
-        printf("\n");
-        out_stream << text->text;
     }
 
     {

@@ -266,7 +266,6 @@ Status OCRTextboxDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output
     
     std::vector<TextBox> text_boxes;
 
-    //-----boxThresh-----
     cv::Mat norfMapMat = fMapMat > box_thresh_;
     // find rs boxes
     const float minArea = 3;
@@ -281,10 +280,9 @@ Status OCRTextboxDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output
         float score = boxScoreFast(fMapMat, contours[i]);
         if (score < box_score_thresh_)
             continue;
-        //---use clipper start---
+
         std::vector<cv::Point> clipBox = unClip(minBox, perimeter, un_clip_ratio_);
         std::vector<cv::Point> clipMinBox = getMinBoxes(clipBox, minSideLen, perimeter);
-        //---use clipper end---
 
         if (minSideLen < minArea + 2)
             continue;

@@ -23,7 +23,6 @@
 #import "TNNHairSegmentationViewModel.h"
 #import "TNNPoseDetectLandmarkViewModel.h"
 #import "TNNSkeletonDetectorViewModel.h"
-#import "TNNYoutuFaceAlignController.h"
 #import "TNNOCRViewModel.h"
 
 #import "TNNExamplesListCell.h"
@@ -58,15 +57,6 @@ using namespace std;
 
 - (void)setupTNNExampleDataSource {
     auto examples = [NSMutableArray array];
-
-    //开发测试
-    {
-        auto data = [TNNExampleData new];
-        data.title = @"开发检测";
-        data.desc = @"检测-图像类";
-        data.viewControllerID = @"TNNYoutuFaceAlignController";
-        [examples addObject:data];
-    }
 
     //人脸检测 - Ultra Fast
     {

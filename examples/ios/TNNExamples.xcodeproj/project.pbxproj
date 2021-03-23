@@ -50,6 +50,7 @@
 		D1330F4E244AFBFF00CEBF29 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1330F4D244AFBFF00CEBF29 /* AVFoundation.framework */; };
 		D18F1F1C244B4689002E71CA /* camera_rotate_fill.png in Resources */ = {isa = PBXBuildFile; fileRef = D18F1F1B244B4689002E71CA /* camera_rotate_fill.png */; };
 		EC1B9AA824BC0B7B0003A742 /* object_detector_yolo.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC1B9AA724BC0B7B0003A742 /* object_detector_yolo.cc */; };
+		EC1DF1812609D1F200AB11D1 /* clipper.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC1DF1802609D1F100AB11D1 /* clipper.cc */; };
 		EC2CF731250797C800EE3899 /* image_classifier.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72B250797C800EE3899 /* image_classifier.cc */; };
 		EC2CF732250797C800EE3899 /* tnn_sdk_sample.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72C250797C800EE3899 /* tnn_sdk_sample.cc */; };
 		EC2CF733250797C800EE3899 /* sample_timer.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC2CF72E250797C800EE3899 /* sample_timer.cc */; };
@@ -73,8 +74,6 @@
 		ECB077E425FA0ABD007B1498 /* ocr_text_recognizer.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB077E225FA0ABD007B1498 /* ocr_text_recognizer.cc */; };
 		ECB077E725FA0AFA007B1498 /* ocr_driver.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECB077E525FA0AFA007B1498 /* ocr_driver.cc */; };
 		ECB077E925FA1C09007B1498 /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ECB077E825FA1C09007B1498 /* opencv2.framework */; };
-		ECB077EC25FA3BC2007B1498 /* clipper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ECB077EA25FA3BC1007B1498 /* clipper.cpp */; };
-		ECB077EE25FA4547007B1498 /* ocr_imgs in Resources */ = {isa = PBXBuildFile; fileRef = ECB077ED25FA4547007B1498 /* ocr_imgs */; };
 		ECBA3C6225920A37001BC0A7 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = ECBA3C6125920A37001BC0A7 /* assets */; };
 		ECD14A022505F88C00271443 /* face_detect_mesh.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A002505F88C00271443 /* face_detect_mesh.cc */; };
 		ECD14A042505FE1700271443 /* TNNFaceDetectMeshViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECD14A032505FE1700271443 /* TNNFaceDetectMeshViewModel.mm */; };
@@ -85,7 +84,6 @@
 		ECD946712559298F00BF9214 /* TNNMaskImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECD946702559298F00BF9214 /* TNNMaskImage.mm */; };
 		ECD9467C2559306800BF9214 /* logo@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = ECD9467B2559306700BF9214 /* logo@2x.png */; };
 		ECEC5DB224FFCC6C0044DDF1 /* youtu_face_align.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5DB124FFCC6C0044DDF1 /* youtu_face_align.cc */; };
-		ECEC65A924FFD5830044DDF1 /* TNNYoutuFaceAlignController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */; };
 		ECEF96DD24AED66D0094CB8B /* object_detector_ssd.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEF96DC24AED66C0094CB8B /* object_detector_ssd.cc */; };
 		ECF121D02574E391006F79AC /* TNNSkeletonDetectorViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = ECF121CE2574E391006F79AC /* TNNSkeletonDetectorViewModel.mm */; };
 		ECF121D62574E408006F79AC /* skeleton_detector.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECF121D42574E408006F79AC /* skeleton_detector.cc */; };
@@ -194,6 +192,8 @@
 		D18F1F1B244B4689002E71CA /* camera_rotate_fill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = camera_rotate_fill.png; sourceTree = "<group>"; };
 		EC1B9AA624BC0B4B0003A742 /* object_detector_yolo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = object_detector_yolo.h; sourceTree = "<group>"; };
 		EC1B9AA724BC0B7B0003A742 /* object_detector_yolo.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = object_detector_yolo.cc; sourceTree = "<group>"; };
+		EC1DF17F2609D1F100AB11D1 /* clipper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = clipper.h; sourceTree = "<group>"; };
+		EC1DF1802609D1F100AB11D1 /* clipper.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = clipper.cc; sourceTree = "<group>"; };
 		EC2CF729250797C800EE3899 /* sample_timer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sample_timer.h; sourceTree = "<group>"; };
 		EC2CF72A250797C800EE3899 /* tnn_sdk_sample.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tnn_sdk_sample.h; sourceTree = "<group>"; };
 		EC2CF72B250797C800EE3899 /* image_classifier.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = image_classifier.cc; sourceTree = "<group>"; };
@@ -237,9 +237,6 @@
 		ECB077E525FA0AFA007B1498 /* ocr_driver.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ocr_driver.cc; sourceTree = "<group>"; };
 		ECB077E625FA0AFA007B1498 /* ocr_driver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ocr_driver.h; sourceTree = "<group>"; };
 		ECB077E825FA1C09007B1498 /* opencv2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = opencv2.framework; path = ../../third_party/opencv/iOS/opencv2.framework; sourceTree = "<group>"; };
-		ECB077EA25FA3BC1007B1498 /* clipper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = clipper.cpp; sourceTree = "<group>"; };
-		ECB077EB25FA3BC1007B1498 /* clipper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = clipper.hpp; sourceTree = "<group>"; };
-		ECB077ED25FA4547007B1498 /* ocr_imgs */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ocr_imgs; path = ../../ocr_imgs; sourceTree = "<group>"; };
 		ECBA3C6125920A37001BC0A7 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = assets; path = ../../assets; sourceTree = "<group>"; };
 		ECD14A002505F88C00271443 /* face_detect_mesh.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = face_detect_mesh.cc; sourceTree = "<group>"; };
 		ECD14A012505F88C00271443 /* face_detect_mesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = face_detect_mesh.h; sourceTree = "<group>"; };
@@ -258,8 +255,6 @@
 		ECD9467B2559306700BF9214 /* logo@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "logo@2x.png"; sourceTree = "<group>"; };
 		ECEC5DB024FFCC6C0044DDF1 /* youtu_face_align.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = youtu_face_align.h; sourceTree = "<group>"; };
 		ECEC5DB124FFCC6C0044DDF1 /* youtu_face_align.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = youtu_face_align.cc; sourceTree = "<group>"; };
-		ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNYoutuFaceAlignController.mm; sourceTree = "<group>"; };
-		ECEC61B224FFD5820044DDF1 /* TNNYoutuFaceAlignController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TNNYoutuFaceAlignController.h; sourceTree = "<group>"; };
 		ECEF96D924AED3980094CB8B /* object_detector_ssd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = object_detector_ssd.h; sourceTree = "<group>"; };
 		ECEF96DC24AED66C0094CB8B /* object_detector_ssd.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = object_detector_ssd.cc; sourceTree = "<group>"; };
 		ECF121CE2574E391006F79AC /* TNNSkeletonDetectorViewModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNSkeletonDetectorViewModel.mm; sourceTree = "<group>"; };
@@ -401,12 +396,10 @@
 		9DD579EC23B5A20500A96E63 /* TNNExamples */ = {
 			isa = PBXGroup;
 			children = (
-				ECB077ED25FA4547007B1498 /* ocr_imgs */,
 				ECBA3C6125920A37001BC0A7 /* assets */,
 				EC9EC4F42583948F0090AEEA /* utils */,
 				ECD9467B2559306700BF9214 /* logo@2x.png */,
 				ECD946632559295A00BF9214 /* Component */,
-				ECEC5DC124FFD57E0044DDF1 /* TNNYoutuFaceAlignController */,
 				9DD57A0823B5A8C400A96E63 /* tnn.xcodeproj */,
 				9DDED30B2429A839000C09EA /* base */,
 				9DDED3092429A0BE000C09EA /* model */,
@@ -548,8 +541,8 @@
 		EC9EC4F42583948F0090AEEA /* utils */ = {
 			isa = PBXGroup;
 			children = (
-				ECB077EA25FA3BC1007B1498 /* clipper.cpp */,
-				ECB077EB25FA3BC1007B1498 /* clipper.hpp */,
+				EC1DF1802609D1F100AB11D1 /* clipper.cc */,
+				EC1DF17F2609D1F100AB11D1 /* clipper.h */,
 				EC9EC4F52583948F0090AEEA /* time_stamp.h */,
 				EC9EC4F62583948F0090AEEA /* relative_velocity_filter.cc */,
 				EC9EC4F72583948F0090AEEA /* low_pass_filter.cc */,
@@ -582,15 +575,6 @@
 				ECD946672559295A00BF9214 /* DYFlatButton.h */,
 			);
 			path = Component;
-			sourceTree = "<group>";
-		};
-		ECEC5DC124FFD57E0044DDF1 /* TNNYoutuFaceAlignController */ = {
-			isa = PBXGroup;
-			children = (
-				ECEC61B124FFD5820044DDF1 /* TNNYoutuFaceAlignController.mm */,
-				ECEC61B224FFD5820044DDF1 /* TNNYoutuFaceAlignController.h */,
-			);
-			path = TNNYoutuFaceAlignController;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -680,7 +664,6 @@
 				ECAD84FF24D801690074EA95 /* test_facemesh.jpg in Resources */,
 				9D71E7BC24C5685F00074C1A /* dog_cropped.jpg in Resources */,
 				9D71E79C24C4E92A00074C1A /* synset.txt in Resources */,
-				ECB077EE25FA4547007B1498 /* ocr_imgs in Resources */,
 				9DD579FA23B5A20E00A96E63 /* Assets.xcassets in Resources */,
 				ECD9467C2559306800BF9214 /* logo@2x.png in Resources */,
 				9D71E79E24C4E92A00074C1A /* tiger_cat.jpg in Resources */,
@@ -737,16 +720,15 @@
 				9DD57A0023B5A20E00A96E63 /* main.m in Sources */,
 				EC4E1B5124C97A0600B88179 /* TNNBlazefaceDetectorController.mm in Sources */,
 				EC2F9CC625369FE8005A5F28 /* TNNPoseDetectLandmarkViewModel.mm in Sources */,
-				ECEC65A924FFD5830044DDF1 /* TNNYoutuFaceAlignController.mm in Sources */,
 				9DD579F223B5A20500A96E63 /* SceneDelegate.mm in Sources */,
 				9D449865241D2D56003FBAA2 /* UIImage+Utility.mm in Sources */,
 				EC9EC5002583948F0090AEEA /* landmark_smoothing_filter.cc in Sources */,
 				9D71E7C624C5BE7000074C1A /* TNNFaceDetectorViewModel.mm in Sources */,
 				ECB077DE25FA0A2F007B1498 /* ocr_textbox_detector.cc in Sources */,
 				9D49E7A12504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm in Sources */,
+				EC1DF1812609D1F200AB11D1 /* clipper.cc in Sources */,
 				ECD14A042505FE1700271443 /* TNNFaceDetectMeshViewModel.mm in Sources */,
 				EC9EC4FD2583948F0090AEEA /* relative_velocity_filter.cc in Sources */,
-				ECB077EC25FA3BC2007B1498 /* clipper.cpp in Sources */,
 				9D71E7AF24C560C900074C1A /* TNNObjectDetectorController.mm in Sources */,
 				EC9EC4FE2583948F0090AEEA /* low_pass_filter.cc in Sources */,
 				ECFA85412603404200CF5233 /* TNNOCRViewModel.mm in Sources */,

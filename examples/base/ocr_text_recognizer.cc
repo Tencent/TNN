@@ -169,11 +169,7 @@ Status OCRTextRecognizer::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
             }
             sum += score;
         }
-        /*
-        float partition = std::accumulate(&(exps[s * vocab_len]), &(exps[(s+1) * vocab_len]), 0.0);//row sum
-        max_idx = int(argmax(&(exps[s * vocab_len]), &(exps[(s+1) * vocab_len])));
-        max_score = float(*std::max_element(&(exps[s * vocab_len]), &(exps[(s+1) * vocab_len]))) / partition;
-        */
+
         if (max_idx > 0 && !(s > 0 && max_idx == last_idx)) {
             scores.emplace_back(max_score / static_cast<float>(sum));
             result.append(vocabulary_[max_idx - 1]);
@@ -183,7 +179,7 @@ Status OCRTextRecognizer::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
     
     output->scores = scores;
     output->text = result;
-    
+
     return status;
 }
 
