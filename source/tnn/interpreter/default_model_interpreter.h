@@ -44,7 +44,7 @@ public:
     //@brief GetParamsMd5 return md5 string of params string
     std::vector<std::string> GetParamsMd5();
 
-private:
+protected:
     std::vector<std::string> params_md5_;
     NetStructure *net_structure_;
     NetResource *net_resource_;
