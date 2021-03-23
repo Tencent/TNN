@@ -554,59 +554,83 @@ python3 converter.py tflite2tnn \
 
 ### 生成输入或输出文件示例代码
 ```python
-"""
+def write_pytorch_data(output_path, data, data_name_list):
+    """
+    Save the data of Pytorch needed to align TNN model.
 
-输入或输出至少包含以下三个部分：
-name -> 类型：str。用于标识该输出的名称。
-shape -> 类型：list。用于描述输出的维数。
-tensor -> 类型：numpy.ndarray。存放输出数据。
+    The input and output names of pytorch model and onnx model may not match,
+    you can use Netron to visualize the onnx model to determine the data_name_list.
 
-提示：
-对于输出文件，如果 shape 维度不足四维的，需要使用 1 进行填充。例如：(n, c) => (n, c, 1, 1)。
-输入则没有这项要求。
+    The following example converts ResNet50 to onnx model and saves input and output:
+    >>> from torchvision.models.resnet import resnet50
+    >>> model = resnet50(pretrained=False).eval()
+    >>> input_data = torch.randn(1, 3, 224, 224)
+    >>> input_names, output_names = ["input"], ["output"]
+    >>> torch.onnx.export(model, input_data, "ResNet50.onnx", input_names=input_names, output_names=output_names)
+    >>> with torch.no_grad():
+    ...     output_data = model(input_data)
+    ...
+    >>> write_pytorch_data("input.txt", input_data, input_names)
+    >>> write_pytorch_data("output.txt", output_data, output_names)
 
-假设有两个输出，它们分别如下：
-输出一组成部分：
-name_1
-shape_1
-tensor_1
+    :param output_path: Path to save data.
+    :param data: The input or output data of Pytorch model.
+    :param data_name_list: The name of input or output data. You can get it after visualization through Netron.
+    :return:
+    """
 
-输出二组成部分：
-name_2
-shape_2
-tensor_2
+    if type(data) is not list and type(data) is not tuple:
+        data = [data, ]
+    assert len(data) == len(data_name_list), "The number of data and data_name_list are not equal!"
+    with open(output_path, "w") as f:
+        f.write("{}\n" .format(len(data)))
+        for name, data in zip(data_name_list, data):
+            data = data.numpy()
+            shape = data.shape
+            description = "{} {} ".format(name, len(shape))
+            for dim in shape:
+                description += "{} ".format(dim)
+            data_type = 0 if data.dtype == np.float32 else 3
+            fmt = "%0.6f" if data_type == 0 else "%i"
+            description += "{}".format(data_type)
+            f.write(description + "\n")
+            np.savetxt(f, data.reshape(-1), fmt=fmt)
 
-你可以参考以下代码将输出写到文件中
 
-"""
+def write_tensorflow_data(output_path, data, data_name_list, data_usage=1):
+    """
+    Save the data of TensoFlow needed to align TNN model.
 
-# 输出数量
-num_output = 2
+    :param output_path: Path to save data. "You should use input.txt or output.txt to name input or output data"
+    :param data: The input or output data of TensorFlow model.
+    :param data_name_list: The name of input or output data. You can get it after visualization through Netron.
+    :param data_usage: Specify the data usage. If the data is input data, data_usage=0;
+                       if the data if outptu data, data_usage=1.
+    :return:
+    """
+    def convert_nhwc(data):
+        assert len(data.shape) <= 4
+        if len(data.shape) == 2:
+            return data
+        orders = (0, 2, 1) if len(data.shape) == 3 else (0, 2, 3, 1)
+        return data.transpose(orders)
 
-# 输出文件保存路径
-output_path = "output.txt"
-
-with open(output_path, "w") as f:
-    # 保存输出数量
-    f.write("{}\n" .format(num_output))
-
-    # 保存第一个输出
-    description_1 = "{} {} " .format(name_1, len(shape_1))
-    for dim in shape_1:
-        description_1 += "{} " .format(dim)
-    data_type_1 = 0 if tensor.dtype == np.float else 3
-    description_1 += "{}" .format(data_type)
-    f.write(description_1 + "\n")
-    np.savetxt(f, tensor_1.reshape(-1), fmt="%0.18f")
-
-    # 保存第二个输出
-    description_2 = "{} {} " .format(name_2, len(shape_2))
-    for dim in shape_2:
-        description_2 += "{} " .format(dim)
-    data_type_2 = 0 if tensor.dtype == np.float else 3
-    description_2 += "{}" .format(data_type)
-    f.write(description_2 + "\n")
-    np.savetxt(f, tensor_2.reshape(-1), fmt="%0.18f")
+    if type(data) is not list and type(data) is not tuple:
+        data = [data, ]
+    assert len(data) == len(data_name_list), "The number of data and data_name_list are not equal!"
+    with open(output_path, "w") as f:
+        f.write("{}\n" .format(len(data)))
+        for name, data in zip(data_name_list, data):
+            data = convert_nhwc(data) if data_usage == 0 else data
+            shape = data.shape
+            description = "{} {} ".format(name, len(shape))
+            for dim in shape:
+                description += "{} ".format(dim)
+            data_type = 0 if data.dtype == np.float32 else 3
+            fmt = "%0.6f" if data_type == 0 else "%i"
+            description += "{}".format(data_type)
+            f.write(description + "\n")
+            np.savetxt(f, data.reshape(-1), fmt=fmt)
 
 
 ```

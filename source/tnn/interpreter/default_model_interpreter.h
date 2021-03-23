@@ -41,9 +41,13 @@ public:
     // @brief GetNetResource return network weights data
     virtual NetResource *GetNetResource();
 
-protected:
-    NetStructure *net_structure_ = nullptr;
-    NetResource *net_resource_   = nullptr;
+    //@brief GetParamsMd5 return md5 string of params string
+    std::vector<std::string> GetParamsMd5();
+
+private:
+    std::vector<std::string> params_md5_;
+    NetStructure *net_structure_;
+    NetResource *net_resource_;
 };
 
 }  // namespace TNN_NS
