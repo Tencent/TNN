@@ -310,7 +310,11 @@ namespace test {
         config.precision = ConvertPrecision(FLAGS_pr);
 
         config.enable_tune_kernel = FLAGS_et;
+#if defined(__ANDROID__)
         config.cache_path = "/data/local/tmp/";
+#else
+        config.cache_path = "";
+#endif
 
         // Device Type: ARM, OPENECL, ...
         config.device_type = ConvertDeviceType(FLAGS_dt);
