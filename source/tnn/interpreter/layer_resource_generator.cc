@@ -450,6 +450,10 @@ class LSTMONNXLayerResourceGenerator : public LayerResourceGenerator {
 
         return TNN_OK;
     }
+
+    virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
+        return TNN_OK;
+    }
 };
 
 REGISTER_LAYER_RESOURCE(Convolution, LAYER_CONVOLUTION);

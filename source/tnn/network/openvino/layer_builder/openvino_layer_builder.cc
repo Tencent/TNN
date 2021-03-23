@@ -24,11 +24,13 @@
 #include "tnn/extern_wrapper/foreign_blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/device/x86/x86_device.h"
+#include "tnn/network/openvino/custom_layer/custom_implementation.h"
 
 namespace TNN_NS {
 
 OpenVINOLayerBuilder::OpenVINOLayerBuilder(LayerType type): BaseLayerBuilder(type) {
     _x86_map = X86Device::GetLayerCreatorMap();
+    _ov_custom_type = CustomOpenvinoLayerManager::GetCustomLayerTypeSet();
 }
 
 OpenVINOLayerBuilder::~OpenVINOLayerBuilder() {
@@ -46,7 +48,7 @@ Status OpenVINOLayerBuilder::Init(Context* context, LayerParam* param, LayerReso
     resource_ = resource;
 
     base_layer_ = CreateLayer(type_);
-    if (_x86_map.find(type_) != _x86_map.end()) {
+    if (_x86_map.find(type_) != _x86_map.end() && _ov_custom_type.find(type_) != _ov_custom_type.end()) {
         base_layer_->Init(context, param, resource, input_blobs, output_blobs, device);
     } else {
         base_layer_->Init(context, param, resource, input_blobs, output_blobs, GetDevice(DEVICE_NAIVE));
