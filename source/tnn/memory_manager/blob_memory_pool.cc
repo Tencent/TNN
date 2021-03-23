@@ -91,7 +91,7 @@ BlobMemoryNode *BlobMemoryPool::ExtractNearestBlobMemoryNode(BlobMemorySizeInfo 
 
     BlobMemoryNode *node_prev                                         = nullptr;
     BlobMemoryNode *node_cur                                          = list_header;
-    std::tuple<BlobMemoryNode *, BlobMemoryNode *, int64_t> min_diff_area = std::make_tuple(nullptr, nullptr, LONG_LONG_MAX);
+    std::tuple<BlobMemoryNode *, BlobMemoryNode *, int64_t> min_diff_area = std::make_tuple(nullptr, nullptr, LLONG_MAX);
     while (node_cur) {
         int64_t bytes_diff = ResolveBlobMemoryNodeBytesDiff(size_info, node_cur);
 

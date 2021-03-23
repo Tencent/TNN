@@ -190,7 +190,10 @@ struct RangeLayerParam : public LayerParam {
     DataType data_type = DATA_TYPE_FLOAT;
     RangeData start = {0};
     RangeData limit = {0};
-    RangeData delta = { .i = 1};
+
+    // designated initializer may cause compile error in msvc
+    RangeData delta = {1};
+    // RangeData delta = { .i = 1};
 
     PARAM_COPY(RangeLayerParam)
 };
@@ -628,6 +631,11 @@ struct FlattenLayerParam : public LayerParam {
 
 struct EinsumLayerParam : public LayerParam {
     std::string equation;
+    int out_size;
+    bool has_zero_size_dim = false;
+    std::vector<std::vector<int>> perm_shapes;
+    std::vector<std::size_t> dim_last_op;
+    std::vector<DimsVector> operand_dims;
 
     PARAM_COPY(EinsumLayerParam)
 };

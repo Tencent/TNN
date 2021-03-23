@@ -214,8 +214,21 @@ Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *i
         type = (dims_broadcast[1] == 1) ? BroadcastTypeSingle : BroadcastTypeChannel;
     }
 
-    int count      = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+    int count = DimsVectorUtils::Count(dims);
+    if (dims.size() >= 2) {
+        count = count / dims[1];
+        count = count * ROUND_UP(dims[1], 4);
+    }
     int count_quad = UP_DIV(count, 4);
+
+    int hw_stride = 1;
+    if (dims.size() > 2) {
+        hw_stride = DimsVectorUtils::Count(dims, 2);
+    }
+    int w_stride = 1;
+    if (dims.size() > 3) {
+        w_stride = DimsVectorUtils::Count(dims, 3);
+    }
 
     if (type == BroadcastTypeNormal) {
         for (int n = 0; n < count_quad; n++) {
@@ -238,8 +251,8 @@ Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *i
         } else if (type == BroadcastTypeChannel) {
             // broadcast channel
             for (int n = 0; n < count_quad; n++) {
-                int b               = n / (dims[2] * dims[3] * UP_DIV(dims[1], 4));
-                int channel_4_index = n / (dims[2] * dims[3]) - b * UP_DIV(dims[1], 4);
+                int b               = n / (hw_stride * UP_DIV(dims[1], 4));
+                int channel_4_index = n / (hw_stride) - b * UP_DIV(dims[1], 4);
                 auto v1             = Float4::load(_input0 + n * 4);
                 auto v2             = Float4::load(_input1 + channel_4_index * 4);
                 Float4::save(output_ptr + n * 4, _Operator(v2, v1));
@@ -247,7 +260,7 @@ Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *i
         } else if (type == BroadcastTypeElement) {
             // broadcast chw
             for (int n = 0; n < count_quad; n++) {
-                int channel_4_index = n % (dims[2] * dims[3] * UP_DIV(dims[1], 4));
+                int channel_4_index = n % (hw_stride * UP_DIV(dims[1], 4));
                 auto v1             = Float4::load(_input0 + n * 4);
                 auto v2             = Float4::load(_input1 + channel_4_index * 4);
                 Float4::save(output_ptr + n * 4, _Operator(v2, v1));
@@ -255,7 +268,7 @@ Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *i
         } else if (type == BroadcastTypeHeightWidth) {
             // broadcast hw
             for (int n = 0; n < count_quad; n++) {
-                int hw_index = n % (dims[2] * dims[3]);
+                int hw_index = n % (hw_stride);
                 auto v1      = Float4::load(_input0 + n * 4);
                 auto v2      = Float4(_input1[hw_index * 4]);
                 Float4::save(output_ptr + n * 4, _Operator(v2, v1));
@@ -263,9 +276,9 @@ Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *i
         } else if (type == BroadcastTypeWidth) {
             // broadcast w
             for (int n = 0; n < count_quad; n++) {
-                int hw_index = n % (dims[3]);
+                int w_index = n % (w_stride);
                 auto v1      = Float4::load(_input0 + n * 4);
-                auto v2      = Float4(_input1[hw_index * 4]);
+                auto v2      = Float4(_input1[w_index * 4]);
                 Float4::save(output_ptr + n * 4, _Operator(v2, v1));
             }
         } else {
@@ -283,8 +296,8 @@ Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *i
         } else if (type == BroadcastTypeChannel) {
             // broadcast channel
             for (int n = 0; n < count_quad; n++) {
-                int b               = n / (dims[2] * dims[3] * UP_DIV(dims[1], 4));
-                int channel_4_index = n / (dims[2] * dims[3]) - b * UP_DIV(dims[1], 4);
+                int b               = n / (hw_stride * UP_DIV(dims[1], 4));
+                int channel_4_index = n / (hw_stride) - b * UP_DIV(dims[1], 4);
                 auto v1             = Float4::load(_input0 + n * 4);
                 auto v2             = Float4::load(_input1 + channel_4_index * 4);
                 Float4::save(output_ptr + n * 4, _Operator(v1, v2));
@@ -292,7 +305,7 @@ Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *i
         } else if (type == BroadcastTypeElement) {
             // broadcast chw
             for (int n = 0; n < count_quad; n++) {
-                int channel_4_index = n % (dims[2] * dims[3] * UP_DIV(dims[1], 4));
+                int channel_4_index = n % (hw_stride * UP_DIV(dims[1], 4));
                 auto v1             = Float4::load(_input0 + n * 4);
                 auto v2             = Float4::load(_input1 + channel_4_index * 4);
                 Float4::save(output_ptr + n * 4, _Operator(v1, v2));
@@ -300,7 +313,7 @@ Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *i
         } else if (type == BroadcastTypeHeightWidth) {
             // broadcast hw
             for (int n = 0; n < count_quad; n++) {
-                int hw_index = n % (dims[2] * dims[3]);
+                int hw_index = n % (hw_stride);
                 auto v1      = Float4::load(_input0 + n * 4);
                 auto v2      = Float4(_input1[hw_index * 4]);
                 Float4::save(output_ptr + n * 4, _Operator(v1, v2));
@@ -308,9 +321,9 @@ Status ArmBinaryLayerAcc::BinaryFunc(Tout *output_ptr, Tin1 *input0_ptr, Tin2 *i
         } else if (type == BroadcastTypeWidth) {
             // broadcast w
             for (int n = 0; n < count_quad; n++) {
-                int hw_index = n % (dims[3]);
+                int w_index = n % (w_stride);
                 auto v1      = Float4::load(_input0 + n * 4);
-                auto v2      = Float4(_input1[hw_index * 4]);
+                auto v2      = Float4(_input1[w_index * 4]);
                 Float4::save(output_ptr + n * 4, _Operator(v1, v2));
             }
         } else {
@@ -362,10 +375,22 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
                 broadcast_ = temp;
             } else {
                 // pack bias from nchw to nc4hw4
-                int count = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+                int count = DimsVectorUtils::Count(dims);
+                if (dims.size() >= 2) {
+                    count = count / dims[1];
+                    count = count * ROUND_UP(dims[1], 4);
+                }
+                int channel = 1;
+                if (dims.size() > 1) {
+                    channel = dims[1];
+                }
+                int hw_stride = 1;
+                if (dims.size() > 2) {
+                    hw_stride = DimsVectorUtils::Count(dims, 2);
+                }
                 RawBuffer temp(count * data_byte_size);
                 DataFormatConverter::ConvertFromNCHWToNCHW4Float(
-                    static_cast<float *>(layer_data), temp.force_to<float *>(), dims[0], dims[1], dims[2], dims[3]);
+                    static_cast<float *>(layer_data), temp.force_to<float *>(), dims[0], channel, hw_stride, 1);
                 broadcast_ = temp;
             }
 

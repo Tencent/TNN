@@ -125,7 +125,7 @@ RKNPU : 运行前需要下载DDK, 并放到指定文件夹。具体请参考:
 ```
 cd <path_to_tnn>/scripts
 ```
-1) 执行编译脚本
+2) 执行编译脚本
   - 编译不带openvino的版本
 ```
 ./build_linux_naive.sh

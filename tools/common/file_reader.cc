@@ -111,7 +111,7 @@ Status FileReader::Read(std::map<std::string, std::shared_ptr<Mat>>& mat_map, co
         int blob_count = 1;
         f_stream >> blob_count;
 
-        for (int i = 0; i < blob_count; ++i) {
+        for (int blob_i = 0; blob_i < blob_count; ++blob_i) {
             std::string blob_name;
             uint32_t dims_size;
             DimsVector dims;
@@ -143,7 +143,10 @@ Status FileReader::Read(std::map<std::string, std::shared_ptr<Mat>>& mat_map, co
             if (DATA_TYPE_FLOAT == data_type) {
                 float* data_ptr = static_cast<float*>(mat->GetData());
                 for (int i = 0; i < count; ++i) {
-                    f_stream >> data_ptr[i];
+                    //support tensor with double data type, read it with float may cause error
+                    double temp;
+                    f_stream >> temp;
+                    data_ptr[i] = temp;
                 }
             } else if (DATA_TYPE_INT32 == data_type) {
                 int* data_ptr = static_cast<int*>(mat->GetData());
