@@ -29,6 +29,7 @@ public:
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 private:
+    bool is_global;
     cudnnHandle_t m_cudnn_handle;
     cudnnTensorFormat_t m_tensor_format;
     cudnnDataType_t m_data_type;

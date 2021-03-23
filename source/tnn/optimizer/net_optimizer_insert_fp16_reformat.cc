@@ -89,15 +89,22 @@ namespace optimizer {
         std::vector<std::shared_ptr<LayerInfo>> layers_fused;
 
         const auto &constant_layers = resource->constant_layers;
+        const auto &constant_blobs  = resource->constant_map;
         // if model input is used for multiple layers with different data types,
         // reformat layers are inserted at beginning.
         // support multi inputs/outputs.
         for (const auto &iter : structure->inputs_shape_map) {
             const auto &model_input = iter.first;
             LOGD("NetOptimizerInsertFp16Reformat::Optimize, process model input: %s\n", model_input.c_str());
+            if (constant_blobs.count(model_input) > 0) {
+                continue;
+            }
             int need_fp16_input = 0;
             int need_fp32_input = 0;
             for (const auto &cur_layer : layers_orig) {
+                if (constant_layers.count(cur_layer->name) > 0) {
+                    continue;
+                }
                 for (const auto &layer_input : cur_layer->inputs) {
                     if (layer_input == model_input) {
                         if (device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented) {
@@ -115,7 +122,8 @@ namespace optimizer {
                 std::shared_ptr<LayerInfo> new_layer =
                     CreateReformat(model_input + reformat_name_suffix + "__from_model_input__", true);
 
-                AdjustLayer(layers_orig, structure, true, new_layer, reformat_outs, reformat_name_suffix, -1, count);
+                AdjustLayer(layers_orig, structure, constant_layers, true, new_layer, reformat_outs,
+                            reformat_name_suffix, -1, count);
 
                 LOGD("Insert fp16 refomat layer : src %s dst %s\n", new_layer->inputs[0].c_str(),
                      new_layer->outputs[0].c_str());
@@ -134,6 +142,9 @@ namespace optimizer {
             std::vector<std::string> reformat_outs;
             bool is_cur_layer_fp16 = device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented;
             for (auto cur_out : cur_layer->outputs) {
+                if (constant_blobs.count(cur_out) > 0) {
+                    continue;
+                }
                 bool need_reformat = false;
                 for (int next_id = index + 1; next_id < count; next_id++) {
                     auto next_layer = layers_orig[next_id];
@@ -157,8 +168,8 @@ namespace optimizer {
             std::shared_ptr<LayerInfo> new_layer =
                 CreateReformat(cur_layer->name + reformat_name_suffix, is_cur_layer_fp16);
 
-            AdjustLayer(layers_orig, structure, is_cur_layer_fp16, new_layer, reformat_outs, reformat_name_suffix,
-                        index, count);
+            AdjustLayer(layers_orig, structure, constant_layers, is_cur_layer_fp16, new_layer, reformat_outs,
+                        reformat_name_suffix, index, count);
 
             LOGD("Insert fp16 refomat layer: src %s dst %s\n", new_layer->inputs[0].c_str(),
                  new_layer->outputs[0].c_str());
@@ -170,8 +181,9 @@ namespace optimizer {
     }
 
     void NetOptimizerInsertFp16Reformat::AdjustLayer(std::vector<std::shared_ptr<LayerInfo>> &layers_orig,
-                                                     NetStructure *structure, bool is_cur_layer_fp16,
-                                                     std::shared_ptr<LayerInfo> &new_layer,
+                                                     NetStructure *structure,
+                                                     const std::set<std::string> &constant_layers,
+                                                     bool is_cur_layer_fp16, std::shared_ptr<LayerInfo> &new_layer,
                                                      std::vector<std::string> &reformat_outs,
                                                      const std::string &reformat_name_suffix, const int index,
                                                      const int count) {
@@ -183,7 +195,9 @@ namespace optimizer {
             structure->blobs.insert(new_out);
             // change the inputs of successed layers
             for (int next_id = index + 1; next_id < count; next_id++) {
-                auto next_layer         = layers_orig[next_id];
+                auto next_layer = layers_orig[next_id];
+                if (constant_layers.count(next_layer->name) > 0)
+                    continue;
                 bool is_next_layer_fp16 = device_->GetImplementedPrecision(next_layer->type)->fp16_implemented;
                 for (auto &next_in : next_layer->inputs) {
                     // only use reformat out when fp16 status diff

@@ -631,6 +631,11 @@ struct FlattenLayerParam : public LayerParam {
 
 struct EinsumLayerParam : public LayerParam {
     std::string equation;
+    int out_size;
+    bool has_zero_size_dim = false;
+    std::vector<std::vector<int>> perm_shapes;
+    std::vector<std::size_t> dim_last_op;
+    std::vector<DimsVector> operand_dims;
 
     PARAM_COPY(EinsumLayerParam)
 };

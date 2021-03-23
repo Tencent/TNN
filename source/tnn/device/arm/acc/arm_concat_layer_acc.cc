@@ -401,8 +401,7 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 return TNNERR_LAYER_ERR;
             }
             break;
-        case 2:
-        case 3:
+        default:
             if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
                 concat_common<float>(outputs[0], inputs, concat_param->axis);
             } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
@@ -418,9 +417,6 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             else {
                 return TNNERR_LAYER_ERR;
             }
-            break;
-        default:
-            LOGE("Error: Concat only support on axis 1");
             break;
     }
 

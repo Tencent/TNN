@@ -63,9 +63,9 @@ goto :eof
         mkdir %TNN_INSTALL_DIR%\include
     )
 
-    copy %BUILD_DIR%\test\TNNTest.exe %TNN_INSTALL_DIR%\bin\
-    copy %BUILD_DIR%\TNN.dll %TNN_INSTALL_DIR%\bin\
-    copy %BUILD_DIR%\TNN.lib %TNN_INSTALL_DIR%\lib\
+    copy %BUILD_DIR%\Release\test\TNNTest.exe %TNN_INSTALL_DIR%\bin\
+    copy %BUILD_DIR%\Release\TNN.dll %TNN_INSTALL_DIR%\bin\
+    copy %BUILD_DIR%\Release\TNN.lib %TNN_INSTALL_DIR%\lib\
 
     xcopy /s/e/y %TNN_DIR%\include %TNN_INSTALL_DIR%\include
     copy %OPENVINO_INSTALL_DIR%\deployment_tools\inference_engine\bin\intel64\Release\MKLDNNPlugin.dll %TNN_INSTALL_DIR%\bin\

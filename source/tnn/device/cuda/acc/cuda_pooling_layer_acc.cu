@@ -82,12 +82,12 @@ Status CudaPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     cudnnCreatePoolingDescriptor(&m_pooling_desc);
     cudnnCreateTensorDescriptor(&m_input_desc);
     cudnnCreateTensorDescriptor(&m_output_desc);
-
+    auto input_dims = inputs[0]->GetBlobDesc().dims;
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+    is_global = (params->kernels[1] == input_dims[2] && params->kernels[0] == input_dims[3]);
     cudnnSetPooling2dDescriptor(this->m_pooling_desc, this->m_pooling_mode, CUDNN_PROPAGATE_NAN,
         params->kernels[1], params->kernels[0], params->pads[2], params->pads[0], params->strides[1],
         params->strides[0]);
-    auto input_dims = inputs[0]->GetBlobDesc().dims;
-    auto output_dims = outputs[0]->GetBlobDesc().dims;
     cudnnSetTensor4dDescriptor(this->m_input_desc, this->m_tensor_format, this->m_data_type,
         input_dims[0], input_dims[1], input_dims[2], input_dims[3]);
     cudnnSetTensor4dDescriptor(this->m_output_desc, this->m_tensor_format, this->m_data_type,
@@ -96,6 +96,18 @@ Status CudaPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerResou
 }
 
 Status CudaPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto params = dynamic_cast<PoolingLayerParam *>(param_);
+    auto input_dims = inputs[0]->GetBlobDesc().dims;
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+    if (is_global) {
+        cudnnSetPooling2dDescriptor(this->m_pooling_desc, this->m_pooling_mode, CUDNN_PROPAGATE_NAN,
+            input_dims[2], input_dims[3], params->pads[2], params->pads[0], params->strides[1],
+            params->strides[0]);
+        cudnnSetTensor4dDescriptor(this->m_input_desc, this->m_tensor_format, this->m_data_type,
+            input_dims[0], input_dims[1], input_dims[2], input_dims[3]);
+        cudnnSetTensor4dDescriptor(this->m_output_desc, this->m_tensor_format, this->m_data_type,
+            output_dims[0], output_dims[1], output_dims[2], output_dims[3]);
+    }
     return TNN_OK;
 }
 
