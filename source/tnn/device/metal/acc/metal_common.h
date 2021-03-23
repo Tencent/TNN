@@ -691,6 +691,16 @@ struct MetalSqueezeParams {
     int batch;
 };
 
+/** MetalRecurrent Param Struct **/
+struct MetalMatMulParams {
+    int batch_c;
+    int batch_a;
+    int batch_b;
+    int M;
+    int N;
+    int K;
+};
+
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
         metal_params.input_width   = GetBlobDim(dims_input, 3);                                                        \
