@@ -34,23 +34,27 @@ Status SqueezeLayer::InferOutputDataType() {
 Status SqueezeLayer::InferOutputShape(bool ignore_error) {
     auto status = BaseLayer::InferOutputShape(ignore_error);
     RETURN_ON_NEQ(status, TNN_OK);
-    
-    auto *layer_param = dynamic_cast<SqueezeLayerParam *>(param_);
+
+    auto* layer_param = dynamic_cast<SqueezeLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);
-    
+
     const auto& output_blob = output_blobs_[0];
     DimsVector input_dims   = input_blobs_[0]->GetBlobDesc().dims;
-    DimsVector output_dims  = input_dims;
     RETURN_VALUE_ON_NEQ(input_dims.size() > 0, true, Status(TNNERR_PARAM_ERR, "SqueezeLayer has invalid input size"));
+    DimsVector output_dims;
     auto axes = layer_param->axes;
-    for (auto axis : axes) {
-        //Note: here it is diffreent from UnsqueezeLayer
-        axis = axis < 0 ? axis + output_dims.size() : axis;
-        if (axis < 0 || axis >= output_dims.size() || output_dims[axis] != 1) {
+    for (auto& axis : axes) {
+        axis = axis < 0 ? axis + input_dims.size() : axis;
+        if (axis < 0 || axis >= input_dims.size() || input_dims[axis] != 1) {
             return Status(TNNERR_PARAM_ERR, "SqueezeLayer has invalid input axes");
         }
-        output_dims.erase(output_dims.begin() + axis);
     }
+    for (int i = 0; i < input_dims.size(); ++i) {
+        if (std::find(axes.begin(), axes.end(), i) == axes.end()) {
+            output_dims.push_back(input_dims[i]);
+        }
+    }
+
     output_blob->GetBlobDesc().dims = output_dims;
     return status;
 }
