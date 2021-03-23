@@ -107,7 +107,7 @@ kernel void convolution_common(const device ftype *in     [[buffer(0)]],
                                 biasTerms[local_channel[3]]),
                         valid)) : float4(Zero4);
     
-    auto result = bias;
+    float4 sum = bias;
     int dilation_h = params.input_width * params.dilation_y;
     const int step_size = params.input_size * 4 - 3;
     // Todo: optimize weight layout
@@ -116,7 +116,7 @@ kernel void convolution_common(const device ftype *in     [[buffer(0)]],
             for (auto x = 0; x < kw; x++) {
                 float val_in = float(xy_in[(y * dilation_h + x * params.dilation_x)*4]);
                 float4 val_w = float4(xy_wt[y * params.kernel_x + x]);
-                result += val_in * val_w;
+                sum += val_in * val_w;
             }
         }
         start_input_c += 1;
@@ -125,7 +125,7 @@ kernel void convolution_common(const device ftype *in     [[buffer(0)]],
         start_input_c -= flag * start_input_c;
         xy_wt += params.kernel_size;
     }
-    result = activate(ftype4(result), params.activation);
+    ftype4 result = activate(ftype4(sum), params.activation);
     if (valid[3]) {
         out[out_idx[0]] = result[0];
         out[out_idx[1]] = result[1];

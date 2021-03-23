@@ -278,7 +278,7 @@ Status MetalLSTMLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     status = AllocateBufferBias(inputs, outputs);
     RETURN_ON_NEQ(status, TNN_OK);
     
-    return TNN_OK;
+    return status;
 }
 
 std::vector<DataFormat> MetalLSTMLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
