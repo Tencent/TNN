@@ -91,6 +91,12 @@ class OnnxRunner(BaseRunner):
                     description += "{} ".format(dim)
                 description += "{}".format(str(data_type))
                 f.write(description + "\n")
-            np.savetxt(f, output_data.reshape(-1), fmt="%0.6f")
+
+            if output_data.dtype == np.int64 or output_data.dtype == np.int32 or output_data.dtype == np.int8:
+                np.savetxt(f, output_data.reshape(-1), fmt="%d")
+            elif output_data.dtype == np.float32 or output_data.dtype == np.float64:
+                np.savetxt(f, output_data.reshape(-1), fmt="%0.6f")
+            else :
+                print("dump_single_output dont support data type: " + str(output_data.dtype))
 
         return True
