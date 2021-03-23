@@ -305,6 +305,10 @@ Status OpenCLLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         }
 
         auto buffer = (*const_resource)[name];
+        // int32 blob is not supported on opencl, only used on cpu
+        if (buffer->GetDataType() == DATA_TYPE_INT32) {
+            continue;
+        }
         std::shared_ptr<Blob> blob = nullptr;
         if (const_blob_map.find(name) != const_blob_map.end()) {
             blob = const_blob_map[name];
@@ -337,13 +341,15 @@ Status OpenCLLayerAcc::RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<B
         if (buffer_data_ptr == nullptr) {
             return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
-    } else {
+    } else if (buffer->GetDataType() == DATA_TYPE_HALF) {
         // if handle is half, need convert to float first.
         auto float_data_ptr = GetFloatFromRawBuffer(*buffer);
         if (float_data_ptr == nullptr) {
             return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         buffer_data_ptr = float_data_ptr.get();
+    } else {
+        return Status(TNNERR_PARAM_ERR, "data type for opencl blob is invalid");
     }
 
     if (format == DATA_FORMAT_NHC4W4) {
