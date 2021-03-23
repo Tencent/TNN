@@ -38,7 +38,7 @@
 *                                                                              *
 *******************************************************************************/
 
-#include "clipper.hpp"
+#include "clipper.h"
 #include <cmath>
 #include <vector>
 #include <algorithm>
