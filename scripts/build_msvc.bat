@@ -63,7 +63,7 @@ goto :eof
         mkdir %TNN_INSTALL_DIR%\include
     )
 
-    copy %BUILD_DIR%\Release\test\TNNTest.exe %TNN_INSTALL_DIR%\bin\
+    copy %BUILD_DIR%\test\Release\TNNTest.exe %TNN_INSTALL_DIR%\bin\
     copy %BUILD_DIR%\Release\TNN.dll %TNN_INSTALL_DIR%\bin\
     copy %BUILD_DIR%\Release\TNN.lib %TNN_INSTALL_DIR%\lib\
 
@@ -146,7 +146,7 @@ goto :eof
     ) 
 
     cd !OPENVINO_DIR!
-    git reset --hard 9df6a8f
+    git reset --hard 4795391
     git submodule update
     if !errorlevel! == 1 (
         echo Openvino Clone Failed!
