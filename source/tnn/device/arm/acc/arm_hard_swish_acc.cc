@@ -54,7 +54,7 @@ Status ArmHardSwishLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
     CHECK_PARAM_NULL(layer_param);
 
     auto dims = outputs[0]->GetBlobDesc().dims;
-    int count = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+    int count = dims[0] * ROUND_UP(dims[1], 4) * DimsVectorUtils::Count(dims, 2);
 
     float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
     float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));

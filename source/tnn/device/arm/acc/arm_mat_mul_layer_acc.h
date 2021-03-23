@@ -23,10 +23,15 @@ class ArmMatMulLayerAcc : public ArmLayerAcc {
 public:
     virtual ~ArmMatMulLayerAcc();
 
+    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                const std::vector<Blob *> &outputs);
+
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 private:
     template <typename T>
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+protected:
+    RawBuffer buffer_weight_;
 };
 
 }  // namespace TNN_NS

@@ -79,7 +79,7 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
     for (int i = 0; i < input_count; ++i)
         input_dims_vec.push_back(input_dims);
     auto interpreter = GenerateInterpreter("Concat", input_dims_vec, param);
-    Run(interpreter);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

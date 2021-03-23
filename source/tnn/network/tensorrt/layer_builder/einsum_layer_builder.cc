@@ -16,56 +16,45 @@
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(ReduceL2, LAYER_REDUCE_L2);
+DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Einsum, LAYER_EINSUM);
 
-bool ReduceL2TRTPluginLayerBuilder::supportsFormatCombination(
+bool EinsumTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
     return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
         && inOut[pos].type == inOut[0].type);
 }
 
-const char* ReduceL2TRTPluginLayerBuilder::getPluginType() const {
-    return "ReduceL2";
+const char* EinsumTRTPluginLayerBuilder::getPluginType() const {
+    return "Einsum";
 }
 
-nvinfer1::DataType ReduceL2TRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+nvinfer1::DataType EinsumTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
         int nbInputs) const {
     return inputTypes[0];
 }
 
-ILayer* ReduceL2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* EinsumTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
-DimsExprs ReduceL2TRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+DimsExprs EinsumTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
         int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
-    auto param = dynamic_cast<ReduceLayerParam*>(param_);
+    auto param = dynamic_cast<EinsumLayerParam *>(param_);
     DimsExprs output;
-    if (param->keep_dims == 0) {
-        int index = 0;
-        for (int i = 0; i < inputs[0].nbDims; i++) {
-            if (std::find(param->axis.begin(), param->axis.end(), i) == param->axis.end()) {
-                output.d[index++] = inputs[0].d[i];
-            }
-        }
-        output.nbDims = index;
-    } else {
-        for (int i = 0; i < inputs[0].nbDims; i++) {
-            output.d[i] = inputs[0].d[i];
-        }
-        output.nbDims = inputs[0].nbDims;
-        for (auto& axis : param->axis) {
-            output.d[axis] = exprBuilder.constant(1);
-        }
+    auto output_dims = output_blobs_[0]->GetBlobDesc().dims;
+    output.nbDims = output_dims.size();
+    for (int i = 1; i < output.nbDims; i++) {
+        output.d[i] = exprBuilder.constant(output_dims[i]);
     }
-
+    output.d[0] = inputs[0].d[0];
     return output;
 }
 
-const char* ReduceL2PluginCreator::getPluginName() const {
-    return "ReduceL2";
+const char* EinsumPluginCreator::getPluginName() const {
+    return "Einsum";
 }
 
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(ReduceL2, LAYER_REDUCE_L2);
+REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Einsum, LAYER_EINSUM);
 
 }  //  namespace TNN_NS
+

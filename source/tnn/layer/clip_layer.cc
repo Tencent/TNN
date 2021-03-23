@@ -15,8 +15,62 @@
 #include "tnn/layer/elementwise_layer.h"
 
 namespace TNN_NS {
+DECLARE_LAYER_WITH_FUNC(Clip, LAYER_CLIP,
+                        virtual Status FillLayerParamWithConstantResource(););
 
-DECLARE_ELEMENTWISE_LAYER(Clip, LAYER_CLIP);
+Status ClipLayer::InferOutputDataType() {
+    return BaseLayer::InferOutputDataType();
+}
+
+Status ClipLayer::InferOutputShape(bool ignore_error) {
+    auto status = BaseLayer::InferOutputShape(ignore_error);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
+    auto layer_param = dynamic_cast<ClipLayerParam*>(param_);
+    CHECK_PARAM_NULL(layer_param);
+
+    Blob* input_blob  = input_blobs_[0];
+    Blob* output_blob = output_blobs_[0];
+
+    output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
+    return TNN_OK;
+}
+
+Status ClipLayer::FillLayerParamWithConstantResource() {
+    Status status = TNN_OK;
+    auto *layer_param = dynamic_cast<ClipLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    if (input_blobs_.size() >= 2) {
+        auto min_blob_name = input_blobs_[1]->GetBlobDesc().name;
+        if (const_resource_ != nullptr && const_resource_->find(min_blob_name) != const_resource_->end()) {
+            auto min_buffer =  (*const_resource_)[min_blob_name];
+            auto dim_count = min_buffer->GetDataCount();
+            if (min_buffer->GetDataType() == DATA_TYPE_FLOAT) {
+                auto dim_data = (float *)min_buffer->force_to<float *>();
+                layer_param->min = *dim_data;
+            } else {
+                return Status(TNNERR_PARAM_ERR, "ClipLayer has invalid data type for min value");
+            }
+        }
+    }
+    
+    if (input_blobs_.size() >= 3) {
+        auto max_blob_name = input_blobs_[2]->GetBlobDesc().name;
+        if (const_resource_ != nullptr && const_resource_->find(max_blob_name) != const_resource_->end()) {
+            auto max_buffer =  (*const_resource_)[max_blob_name];
+            auto dim_count = max_buffer->GetDataCount();
+            if (max_buffer->GetDataType() == DATA_TYPE_FLOAT) {
+                auto dim_data = (float *)max_buffer->force_to<float *>();
+                layer_param->max = *dim_data;
+            } else {
+                return Status(TNNERR_PARAM_ERR, "ClipLayer has invalid data type for min value");
+            }
+        }
+    }
+    
+    return status;
+}
 
 REGISTER_ELEMENTWISE_LAYER(Clip, LAYER_CLIP);
 

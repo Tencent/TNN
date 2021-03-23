@@ -12,33 +12,26 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-DefaultModelInterpreter::DefaultModelInterpreter() {
-    net_structure_ = new NetStructure();
-    net_resource_  = new NetResource();
-    params_md5_.clear();
+DECLARE_CUDA_ACC(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP);
+
+Status CudaReduceLogSumExpLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
-DefaultModelInterpreter::~DefaultModelInterpreter() {
-    if (nullptr != net_structure_)
-        delete net_structure_;
-    if (nullptr != net_resource_)
-        delete net_resource_;
+Status CudaReduceLogSumExpLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
 }
 
-NetStructure *DefaultModelInterpreter::GetNetStructure() {
-    return net_structure_;
+Status CudaReduceLogSumExpLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
 }
 
-NetResource *DefaultModelInterpreter::GetNetResource() {
-    return net_resource_;
-}
-
-std::vector<std::string> DefaultModelInterpreter::GetParamsMd5() {
-    return params_md5_;
-}
+REGISTER_CUDA_ACC(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP);
 
 }  // namespace TNN_NS
