@@ -19,6 +19,12 @@
 namespace TNN_NS {
 
 static Status GetBroadcastType(DimsVector input, DimsVector output, int &type) {
+    // support input dims size diff with output dims
+    int diff = output.size() - input.size();
+    if (diff != 0) {
+        input.insert(input.begin(), 1);
+    }
+
     int input_count = DimsVectorUtils::Count(input, 1);
     output          = DimsVectorUtils::Max(input, output);
 

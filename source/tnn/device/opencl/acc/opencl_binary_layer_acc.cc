@@ -15,6 +15,7 @@
 #include "tnn/device/opencl/acc/opencl_binary_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
@@ -22,6 +23,7 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Binary Acc\n");
 
+    output_dims_size_ = outputs[0]->GetBlobDesc().dims.size();
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
 
@@ -63,6 +65,11 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         input_idx_      = 0;
         if (inputs.size() != 1) {
             return Status(TNNERR_PARAM_ERR, "input size should be 1");
+        }
+
+        int diff = output_dims_size_ - param_dims.size();
+        for (int i = 0; i < diff; i++) {
+            param_dims.insert(param_dims.begin(), 1);
         }
 
         if (layer_res->element_handle.GetDataType() == DATA_TYPE_FLOAT) {
@@ -196,6 +203,45 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
     // convert nchw buffer to Image
     ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
     return convertor.ConvertBufferToImage(param_buffer.get(), NCHW_BUFFER, param_dims, binary_params_.get(), true);
+}
+
+Status OpenCLBinaryLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
+    auto const_resource = const_resource_;
+    auto const_blob_map = const_blob_map_;
+    for (auto iter : inputs) {
+        auto name = iter->GetBlobDesc().name;
+        if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
+            continue;
+        }
+
+        auto buffer = (*const_resource)[name];
+        std::shared_ptr<Blob> blob = nullptr;
+        if (const_blob_map.find(name) != const_blob_map.end()) {
+            blob = const_blob_map[name];
+        }
+        auto buffer_dims = buffer->GetBufferDims();
+        if (output_dims_size_ != buffer_dims.size()) {
+            std::shared_ptr<RawBuffer> new_buffer(new RawBuffer(*buffer));
+            int diff = output_dims_size_ - buffer_dims.size();
+            for (int i = 0; i < diff; i++) {
+                buffer_dims.insert(buffer_dims.begin(), 1);
+            }
+            new_buffer->SetBufferDims(buffer_dims);
+            buffer = new_buffer;
+        }
+        auto status = RawBuffer2OpenCLBlob(buffer.get(), blob);
+        RETURN_ON_NEQ(status, TNN_OK);
+
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
+        auto dims = iter->GetBlobDesc().dims;
+        auto data_type_size = DataTypeUtils::GetBytesSize(iter->GetBlobDesc().data_type);
+        const_blob_map[name] = blob;
+        iter->SetHandle(blob->GetHandle());
+        iter->GetBlobDesc() = blob->GetBlobDesc();
+        LOGD("Reload constant blob: %s\n", name.c_str());
+    }
+    const_blob_map_ = const_blob_map;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

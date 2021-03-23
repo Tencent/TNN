@@ -309,7 +309,7 @@ Status OpenCLLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         if (const_blob_map.find(name) != const_blob_map.end()) {
             blob = const_blob_map[name];
         }
-        auto status = RawBuffer2Blob(buffer.get(), blob);
+        auto status = RawBuffer2OpenCLBlob(buffer.get(), blob);
         RETURN_ON_NEQ(status, TNN_OK);
 
         blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
@@ -324,6 +324,83 @@ Status OpenCLLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
     return TNN_OK;
 }
 
+Status OpenCLLayerAcc::RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, DataFormat format) {
+    if (!buffer || buffer->GetBufferDims().size() > 4) {
+        return Status(TNNERR_PARAM_ERR, "raw buffer for opencl blob is invalid");
+    }
+    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+
+    float *buffer_data_ptr;
+    if (buffer->GetDataType() == DATA_TYPE_FLOAT) {
+        // get float pointer from raw buffer
+        buffer_data_ptr = buffer->force_to<float *>();
+        if (buffer_data_ptr == nullptr) {
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+        }
+    } else {
+        // if handle is half, need convert to float first.
+        auto float_data_ptr = GetFloatFromRawBuffer(*buffer);
+        if (float_data_ptr == nullptr) {
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+        }
+        buffer_data_ptr = float_data_ptr.get();
+    }
+
+    if (format == DATA_FORMAT_NHC4W4) {
+        // copy raw buffer data into clBuffer
+        std::shared_ptr<OpenCLMemory> blob_buffer(new OpenCLMemory(TNN_CL_BUFFER));
+        auto dims = buffer->GetBufferDims();
+        int buffer_size  = DimsVectorUtils::Count(dims);
+        int blob_buffer_size = DimsFunctionUtils::GetDim(dims, 0) *
+                            ALIGN_UP4(DimsFunctionUtils::GetDim(dims, 1)) *
+                            DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
+        cl_int ret      = CL_SUCCESS;
+        cl::Buffer cl_buffer(*opencl_runtime->Context(), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
+                            blob_buffer_size * sizeof(float), nullptr, &ret);
+        if (ret != CL_SUCCESS) {
+            CHECK_CL_SUCCESS(ret)
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        }
+        blob_buffer->SetData(&cl_buffer);
+        auto cl_buffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
+            cl_buffer, true, CL_MAP_WRITE, 0, blob_buffer_size * sizeof(float), nullptr, nullptr, &ret);
+        if (ret != CL_SUCCESS) {
+            CHECK_CL_SUCCESS(ret)
+            return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+        }
+        memset(cl_buffer_ptr, 0, blob_buffer_size * sizeof(float));
+        memcpy(cl_buffer_ptr, buffer_data_ptr, buffer_size * sizeof(float));
+        ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(cl_buffer, cl_buffer_ptr);
+        if (ret != CL_SUCCESS) {
+            CHECK_CL_SUCCESS(ret)
+            return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        }
+
+        BlobDesc desc;
+        desc.device_type = DEVICE_OPENCL;
+        desc.data_type = opencl_runtime->GetPrecision() == PRECISION_HIGH ? DATA_TYPE_FLOAT : DATA_TYPE_HALF;
+        desc.dims = dims;
+        desc.data_format = format;
+        if (buffer_size > 0) {
+            blob = std::make_shared<Blob>(desc, true);
+        } else {
+            return Status(TNNERR_PARAM_ERR, "raw buffer for opencl blob is empty");
+        }
+
+        // transfer from clBuffer to clImage
+        ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
+        std::shared_ptr<OpenCLMemory> blob_memory;
+        blob_memory.reset(new OpenCLMemory(TNN_CL_IMAGE));
+        blob_memory->SetData(blob->GetHandle().base, false);
+        Status ret_convert = convertor.ConvertBufferToImage(
+                blob_buffer.get(), NCHW_BUFFER, dims, blob_memory.get(), true);
+        CHECK_TNN_OK(ret_convert)
+    } else {
+        return Status(TNNERR_PARAM_ERR, "only NHC4W4 blob is supported for now");
+    }
+    return TNN_OK;
+}
+
 Status OpenCLLayerAcc::CheckBlobFormat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     /*
      * Check whether the format is supported by OpenCLLayerAcc or not.
@@ -333,6 +410,8 @@ Status OpenCLLayerAcc::CheckBlobFormat(const std::vector<Blob *> &inputs, const 
     for (auto blob : outputs) {
         Status ret = ResolveBlobDataFormat(blob, BLOB_OUTPUT);
         if (ret != TNN_OK) {
+            LOGE("Resolve Layer(%s)-Output Blob(%s) Data Format(%d) failed\n",
+                 layer_name_.c_str(), blob->GetBlobDesc().name.c_str(), blob->GetBlobDesc().data_format);
             return ret;
         }
     }
@@ -340,6 +419,8 @@ Status OpenCLLayerAcc::CheckBlobFormat(const std::vector<Blob *> &inputs, const 
     for (auto blob : inputs) {
         Status ret = ResolveBlobDataFormat(blob, BLOB_INPUT);
         if (ret != TNN_OK) {
+            LOGE("Resolve Layer(%s)-Input Blob(%s) Data Format(%d) failed\n",
+                 layer_name_.c_str(), blob->GetBlobDesc().name.c_str(), blob->GetBlobDesc().data_format);
             return ret;
         }
     }
