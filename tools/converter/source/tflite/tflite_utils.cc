@@ -16,6 +16,7 @@
 
 #include <cstring>
 
+#include "tnn/core/common.h"
 #include "tnn/core/macro.h"
 
 namespace TNN_CONVERTER {
@@ -204,4 +205,28 @@ void Mask(std::vector<int> shape, int mask, int upper, std::vector<int>& v) {
             v[3] = shape[3];
     }
 }
+
+TNN_NS::DataType GetTnnDataTypeFromTFLite(const tflite::TensorType& tensor_type) {
+    switch (tensor_type) {
+        case tflite::TensorType_FLOAT32: {
+            return TNN_NS::DATA_TYPE_FLOAT;
+        }
+        case tflite::TensorType_FLOAT16: {
+            return TNN_NS::DATA_TYPE_HALF;
+        }
+        case tflite::TensorType_UINT8:
+        case tflite::TensorType_INT8: {
+            return TNN_NS::DATA_TYPE_INT8;
+        }
+        case tflite::TensorType_INT32:
+        case tflite::TensorType_INT64: {
+            return TNN_NS::DATA_TYPE_INT32;
+        }
+        default: {
+            LOGE("Not support tflite TensorType\n");
+            assert(0);
+        }
+    }
+}
+
 }  // namespace TNN_CONVERTER
