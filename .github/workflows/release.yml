@@ -89,11 +89,123 @@ jobs:
           path: ./platforms/ios/${{ env.ASSET_NAME }}.zip
           if-no-files-found: error
 
-  ubuntu-1604:
+  centos7-x86:
+    needs: [setup]
+    runs-on: ubuntu-16.04
+    container:
+      image: neiltian/tnn-cuda-build-env:centos7-cuda10.2-cudnn8-trt7.1
+    env:
+      ASSET_NAME: tnn-${{ needs.setup.outputs.VERSION }}-centos7-x86
+    outputs:
+      ASSET_NAME: ${{ env.ASSET_NAME }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        env:
+            ASSET_PATH: ${{ env.ASSET_NAME }}.tar.gz
+        run: |
+          export PATH=$PATH:/usr/local/cmake-3.18.4-Linux-x86_64/bin/
+          cd ./scripts
+          ./build_x86_linux.sh
+          cd ./x86_linux_release
+          tar -zcvf ${ASSET_PATH} lib include bin
+      - name: Upload_asset
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ASSET_NAME }}
+          path: ./scripts/x86_linux_release/${{ env.ASSET_NAME }}.tar.gz
+          if-no-files-found: error
+
+  centos7-cuda:
+    needs: [setup]
+    runs-on: ubuntu-16.04
+    container:
+      image: neiltian/tnn-cuda-build-env:centos7-cuda10.2-cudnn8-trt7.1
+    env:
+      ASSET_NAME: tnn-${{ needs.setup.outputs.VERSION }}-centos7-cuda
+    outputs:
+      ASSET_NAME: ${{ env.ASSET_NAME }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        env:
+            ASSET_PATH: ${{ env.ASSET_NAME }}.tar.gz
+        run: |
+          export PATH=$PATH:/usr/local/cmake-3.18.4-Linux-x86_64/bin/
+          export TENSORRT_ROOT_DIR=/usr/local/tensorrt/
+          export CUDNN_ROOT_DIR=/usr/local/cudnn/
+          cd ./scripts
+          ./build_cuda_linux.sh
+          cd cuda_linux_release
+          tar -zcvf ${ASSET_PATH} lib include bin
+      - name: Upload_asset
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ASSET_NAME }}
+          path: ./scripts/cuda_linux_release/${{ env.ASSET_NAME }}.tar.gz
+          if-no-files-found: error
+
+  centos7-x86-cuda:
+    needs: [setup]
+    runs-on: ubuntu-16.04
+    container:
+      image: neiltian/tnn-cuda-build-env:centos7-cuda10.2-cudnn8-trt7.1
+    env:
+      ASSET_NAME: tnn-${{ needs.setup.outputs.VERSION }}-centos7-x86-cuda
+    outputs:
+      ASSET_NAME: ${{ env.ASSET_NAME }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        env:
+            ASSET_PATH: ${{ env.ASSET_NAME }}.tar.gz
+        run: |
+          export PATH=$PATH:/usr/local/cmake-3.18.4-Linux-x86_64/bin/ 
+          export TENSORRT_ROOT_DIR=/usr/local/tensorrt/
+          export CUDNN_ROOT_DIR=/usr/local/cudnn/
+          cd ./scripts
+          ./build_linux.sh
+          cd linux_release
+          tar -zcvf ${ASSET_PATH} lib include bin
+      - name: Upload_asset
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ASSET_NAME }}
+          path: ./scripts/linux_release/${{ env.ASSET_NAME }}.tar.gz
+          if-no-files-found: error
+
+  centos8-x86:
+    needs: [setup]
+    runs-on: ubuntu-16.04
+    container:
+      image: neiltian/tnn-cuda-build-env:centos8-cuda10.2-cudnn8-trt7.1
+    env:
+      ASSET_NAME: tnn-${{ needs.setup.outputs.VERSION }}-centos8-x86
+    outputs:
+      ASSET_NAME: ${{ env.ASSET_NAME }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        env:
+            ASSET_PATH: ${{ env.ASSET_NAME }}.tar.gz
+        run: |
+          export PATH=$PATH:/usr/local/cmake-3.18.4-Linux-x86_64/bin/
+          cd ./scripts
+          ./build_x86_linux.sh
+          cd ./x86_linux_release
+          tar -zcvf ${ASSET_PATH} lib include bin
+      - name: Upload_asset
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ASSET_NAME }}
+          path: ./scripts/x86_linux_release/${{ env.ASSET_NAME }}.tar.gz
+          if-no-files-found: error
+
+  ubuntu-1604-x86:
     needs: [setup]
     runs-on: ubuntu-16.04
     env:
-      ASSET_NAME: tnn-${{ needs.setup.outputs.VERSION }}-ubuntu-16.04
+      ASSET_NAME: tnn-${{ needs.setup.outputs.VERSION }}-ubuntu-16.04-x86
     outputs:
       ASSET_NAME: ${{ env.ASSET_NAME }}
     steps:
@@ -102,24 +214,82 @@ jobs:
         run: sudo apt-get install attr
       - name: Build
         env:
-            ASSET_PATH: ${{ env.ASSET_NAME }}.zip
+            ASSET_PATH: ${{ env.ASSET_NAME }}.tar.gz
         run: |
           cd ./scripts
-          ./build_linux.sh
-          cd ./linux_release
-          zip -9r ${ASSET_PATH} .
+          ./build_x86_linux.sh
+          cd ./x86_linux_release
+          tar -zcvf ${ASSET_PATH} lib include bin
       - name: Upload_asset
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.ASSET_NAME }}
-          path: ./scripts/linux_release/${{ env.ASSET_NAME }}.zip
+          path: ./scripts/x86_linux_release/${{ env.ASSET_NAME }}.tar.gz
           if-no-files-found: error
 
-  ubuntu-1804:
+  ubuntu-1604-cuda:
+    needs: [setup]
+    runs-on: ubuntu-16.04
+    container:
+      image: neiltian/tnn-cuda-build-env:ubuntu-16.04-cuda10.2-cudnn8-trt7.1
+    env:
+      ASSET_NAME: tnn-${{ needs.setup.outputs.VERSION }}-ubuntu-16.04-cuda
+    outputs:
+      ASSET_NAME: ${{ env.ASSET_NAME }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        env:
+            ASSET_PATH: ${{ env.ASSET_NAME }}.tar.gz
+        run: |
+          export PATH=$PATH:/usr/local/cmake-3.15.3/bin/
+          export TENSORRT_ROOT_DIR=/usr/local/tensorrt/
+          export CUDNN_ROOT_DIR=/usr/local/cudnn/
+          cd ./scripts
+          ./build_cuda_linux.sh
+          cd cuda_linux_release
+          tar -zcvf ${ASSET_PATH} lib include bin
+      - name: Upload_asset
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ASSET_NAME }}
+          path: ./scripts/cuda_linux_release/${{ env.ASSET_NAME }}.tar.gz
+          if-no-files-found: error
+
+  ubuntu-1604-x86-cuda:
+    needs: [setup]
+    runs-on: ubuntu-16.04
+    container:
+      image: neiltian/tnn-cuda-build-env:ubuntu-16.04-cuda10.2-cudnn8-trt7.1
+    env:
+      ASSET_NAME: tnn-${{ needs.setup.outputs.VERSION }}-ubuntu-16.04-x86-cuda
+    outputs:
+      ASSET_NAME: ${{ env.ASSET_NAME }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        env:
+            ASSET_PATH: ${{ env.ASSET_NAME }}.tar.gz
+        run: |
+          export PATH=$PATH:/usr/local/cmake-3.15.3/bin/ 
+          export TENSORRT_ROOT_DIR=/usr/local/tensorrt/
+          export CUDNN_ROOT_DIR=/usr/local/cudnn/
+          cd ./scripts
+          ./build_linux.sh
+          cd linux_release
+          tar -zcvf ${ASSET_PATH} lib include bin
+      - name: Upload_asset
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ASSET_NAME }}
+          path: ./scripts/linux_release/${{ env.ASSET_NAME }}.tar.gz
+          if-no-files-found: error
+
+  ubuntu-1804-x86:
     needs: [setup]
     runs-on: ubuntu-18.04
     env:
-      ASSET_NAME: tnn-${{ needs.setup.outputs.VERSION }}-ubuntu-18.04
+      ASSET_NAME: tnn-${{ needs.setup.outputs.VERSION }}-ubuntu-18.04-x86
     outputs:
       ASSET_NAME: ${{ env.ASSET_NAME }}
     steps:
@@ -128,17 +298,17 @@ jobs:
         run: sudo apt-get install attr
       - name: Build
         env:
-            ASSET_PATH: ${{ env.ASSET_NAME }}.zip
+            ASSET_PATH: ${{ env.ASSET_NAME }}.tar.gz
         run: |
           cd ./scripts
-          ./build_linux.sh
-          cd ./linux_release
-          zip -9r ${ASSET_PATH} .
+          ./build_x86_linux.sh
+          cd ./x86_linux_release
+          tar -zcvf ${ASSET_PATH} lib include bin
       - name: Upload_asset
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.ASSET_NAME }}
-          path: ./scripts/linux_release/${{ env.ASSET_NAME }}.zip
+          path: ./scripts/x86_linux_release/${{ env.ASSET_NAME }}.tar.gz
           if-no-files-found: error
 
   ubuntu-1804-cuda:
@@ -166,21 +336,54 @@ jobs:
           export CUDNN_ROOT_DIR=/usr/local/cudnn/
           cd ./scripts
           ./build_cuda_linux.sh
-          cd ..
-          cd ./build_cuda_linux
-          tar -zcvf ${ASSET_PATH} libTNN*
+          cd cuda_linux_release
+          tar -zcvf ${ASSET_PATH} lib include bin
       - name: Upload_asset
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.ASSET_NAME }}
-          path: ./build_cuda_linux/${{ env.ASSET_NAME }}.tar.gz
+          path: ./scripts/cuda_linux_release/${{ env.ASSET_NAME }}.tar.gz
           if-no-files-found: error
 
-  ubuntu-2004:
+  ubuntu-1804-x86-cuda:
+    needs: [setup]
+    runs-on: ubuntu-18.04
+    container:
+      image: nvcr.io/nvidia/tensorrt:20.03-py3
+    env:
+      ASSET_NAME: tnn-${{ needs.setup.outputs.VERSION }}-ubuntu-18.04-x86-cuda
+    outputs:
+      ASSET_NAME: ${{ env.ASSET_NAME }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        env:
+            ASSET_PATH: ${{ env.ASSET_NAME }}.tar.gz
+        run: |
+          mkdir /usr/local/cudnn
+          mkdir /usr/local/tensorrt
+          ln -s /usr/include/ /usr/local/cudnn/include
+          ln -s /usr/include/ /usr/local/tensorrt/include
+          ln -s /usr/lib/x86_64-linux-gnu/ /usr/local/cudnn/lib64
+          ln -s /usr/lib/x86_64-linux-gnu/ /usr/local/tensorrt/lib
+          export TENSORRT_ROOT_DIR=/usr/local/tensorrt/
+          export CUDNN_ROOT_DIR=/usr/local/cudnn/
+          cd ./scripts
+          ./build_linux.sh
+          cd linux_release
+          tar -zcvf ${ASSET_PATH} lib include bin
+      - name: Upload_asset
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ASSET_NAME }}
+          path: ./scripts/linux_release/${{ env.ASSET_NAME }}.tar.gz
+          if-no-files-found: error
+
+  ubuntu-2004-x86:
     needs: [setup]
     runs-on: ubuntu-20.04
     env:
-      ASSET_NAME: tnn-${{ needs.setup.outputs.VERSION }}-ubuntu-20.04
+      ASSET_NAME: tnn-${{ needs.setup.outputs.VERSION }}-ubuntu-20.04-x86
     outputs:
       ASSET_NAME: ${{ env.ASSET_NAME }}
     steps:
@@ -189,17 +392,17 @@ jobs:
         run: sudo apt-get install attr
       - name: Build
         env:
-            ASSET_PATH: ${{ env.ASSET_NAME }}.zip
+            ASSET_PATH: ${{ env.ASSET_NAME }}.tar.gz
         run: |
           cd ./scripts
-          ./build_linux.sh
-          cd ./linux_release
-          zip -9r ${ASSET_PATH} .
+          ./build_x86_linux.sh
+          cd ./x86_linux_release
+          tar -zcvf ${ASSET_PATH} lib include bin
       - name: Upload_asset
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.ASSET_NAME }}
-          path: ./scripts/linux_release/${{ env.ASSET_NAME }}.zip
+          path: ./scripts/x86_linux_release/${{ env.ASSET_NAME }}.tar.gz
           if-no-files-found: error
  
   macos:
@@ -250,7 +453,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    needs: [setup, full-source, android, ios, ubuntu-1604, ubuntu-1804, ubuntu-1804-cuda, ubuntu-2004, macos, windows]
+    needs: [setup, full-source, android, ios, centos7-x86, centos7-cuda, centos7-x86-cuda, centos8-x86, ubuntu-1604-x86, ubuntu-1604-cuda, ubuntu-1604-x86-cuda, ubuntu-1804-x86, ubuntu-1804-cuda, ubuntu-1804-x86-cuda, ubuntu-2004-x86, macos, windows]
     runs-on: ubuntu-latest
     env:
       ARTIFACTS_PATH: artifacts
@@ -300,26 +503,66 @@ jobs:
         asset_path: ${{ env.ARTIFACTS_PATH }}/${{ env.ASSET_NAME }}/${{ env.ASSET_NAME }}.zip
         asset_name: ${{ env.ASSET_NAME }}.zip
         asset_content_type: application/zip
-    - name: Upload-ubuntu-16.04
+    - name: Upload-centos7-x86
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        ASSET_NAME: ${{ needs.ubuntu-1604.outputs.ASSET_NAME }}
+        ASSET_NAME: ${{ needs.centos7-x86.outputs.ASSET_NAME }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ env.ARTIFACTS_PATH }}/${{ env.ASSET_NAME }}/${{ env.ASSET_NAME }}.zip
-        asset_name: ${{ env.ASSET_NAME }}.zip
-        asset_content_type: application/zip
-    - name: Upload-ubuntu-18.04
+        asset_path: ${{ env.ARTIFACTS_PATH }}/${{ env.ASSET_NAME }}/${{ env.ASSET_NAME }}.tar.gz
+        asset_name: ${{ env.ASSET_NAME }}.tar.gz
+        asset_content_type: application/tar+gzip
+    - name: Upload-centos8-x86
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        ASSET_NAME: ${{ needs.ubuntu-1804.outputs.ASSET_NAME }}
+        ASSET_NAME: ${{ needs.centos8-x86.outputs.ASSET_NAME }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ env.ARTIFACTS_PATH }}/${{ env.ASSET_NAME }}/${{ env.ASSET_NAME }}.zip
-        asset_name: ${{ env.ASSET_NAME }}.zip
-        asset_content_type: application/zip
+        asset_path: ${{ env.ARTIFACTS_PATH }}/${{ env.ASSET_NAME }}/${{ env.ASSET_NAME }}.tar.gz
+        asset_name: ${{ env.ASSET_NAME }}.tar.gz
+        asset_content_type: application/tar+gzip
+    - name: Upload-ubuntu-16.04-x86
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ASSET_NAME: ${{ needs.ubuntu-1604-x86.outputs.ASSET_NAME }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ env.ARTIFACTS_PATH }}/${{ env.ASSET_NAME }}/${{ env.ASSET_NAME }}.tar.gz
+        asset_name: ${{ env.ASSET_NAME }}.tar.gz
+        asset_content_type: application/tar+gzip
+    - name: Upload-ubuntu-16.04-cuda
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ASSET_NAME: ${{ needs.ubuntu-1604-cuda.outputs.ASSET_NAME }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ env.ARTIFACTS_PATH }}/${{ env.ASSET_NAME }}/${{ env.ASSET_NAME }}.tar.gz
+        asset_name: ${{ env.ASSET_NAME }}.tar.gz
+        asset_content_type: application/tar+gzip
+    - name: Upload-ubuntu-16.04-x86-cuda
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ASSET_NAME: ${{ needs.ubuntu-1604-x86-cuda.outputs.ASSET_NAME }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ env.ARTIFACTS_PATH }}/${{ env.ASSET_NAME }}/${{ env.ASSET_NAME }}.tar.gz
+        asset_name: ${{ env.ASSET_NAME }}.tar.gz
+        asset_content_type: application/tar+gzip
+    - name: Upload-ubuntu-18.04-x86
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ASSET_NAME: ${{ needs.ubuntu-1804-x86.outputs.ASSET_NAME }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ env.ARTIFACTS_PATH }}/${{ env.ASSET_NAME }}/${{ env.ASSET_NAME }}.tar.gz
+        asset_name: ${{ env.ASSET_NAME }}.tar.gz
+        asset_content_type: application/tar+gzip
     - name: Upload-ubuntu-18.04-cuda
       uses: actions/upload-release-asset@v1
       env:
@@ -330,16 +573,26 @@ jobs:
         asset_path: ${{ env.ARTIFACTS_PATH }}/${{ env.ASSET_NAME }}/${{ env.ASSET_NAME }}.tar.gz
         asset_name: ${{ env.ASSET_NAME }}.tar.gz
         asset_content_type: application/tar+gzip
-    - name: Upload-ubuntu-20.04
+    - name: Upload-ubuntu-18.04-x86-cuda
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        ASSET_NAME: ${{ needs.ubuntu-2004.outputs.ASSET_NAME }}
+        ASSET_NAME: ${{ needs.ubuntu-1804-x86-cuda.outputs.ASSET_NAME }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ env.ARTIFACTS_PATH }}/${{ env.ASSET_NAME }}/${{ env.ASSET_NAME }}.zip
-        asset_name: ${{ env.ASSET_NAME }}.zip
-        asset_content_type: application/zip
+        asset_path: ${{ env.ARTIFACTS_PATH }}/${{ env.ASSET_NAME }}/${{ env.ASSET_NAME }}.tar.gz
+        asset_name: ${{ env.ASSET_NAME }}.tar.gz
+        asset_content_type: application/tar+gzip
+    - name: Upload-ubuntu-20.04-x86
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ASSET_NAME: ${{ needs.ubuntu-2004-x86.outputs.ASSET_NAME }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ env.ARTIFACTS_PATH }}/${{ env.ASSET_NAME }}/${{ env.ASSET_NAME }}.tar.gz
+        asset_name: ${{ env.ASSET_NAME }}.tar.gz
+        asset_content_type: application/tar+gzip
     - name: Upload-macos
       uses: actions/upload-release-asset@v1
       env:
