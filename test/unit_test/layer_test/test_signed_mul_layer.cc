@@ -24,7 +24,7 @@ class SignedMulLayerTest
 INSTANTIATE_TEST_SUITE_P(LayerTest, SignedMulLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
                                             // dim count
-                                            testing::Values(2, 3, 4, 5, 6),
+                                            testing::Values(2, 3, 4, 5),
                                             // alpha
                                             testing::Values(1.0f, 0.0f, -1.0f),
                                             // beta
@@ -58,10 +58,6 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
     }
 
     if (DEVICE_CUDA == dev) {
-        GTEST_SKIP();
-    }
-
-    if (DEVICE_X86 == dev) {
         GTEST_SKIP();
     }
 

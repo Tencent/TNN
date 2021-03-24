@@ -40,6 +40,10 @@ public:
 
     virtual Status DoForward(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs);
 
+    // @brief allocate or update constant blobs if constant resource change
+    // Note: this func may cost much time, call this func only when necessary.
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs);
+
 #if TNN_PROFILE
     Timer timer;
 #endif

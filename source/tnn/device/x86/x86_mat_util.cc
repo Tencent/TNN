@@ -125,8 +125,8 @@ void YUVToBGR(const unsigned char* yuv, unsigned char* bgr, int h, int w) {
     __m128i _v52   = _mm_set1_epi16(-52);
     __m128i _v25   = _mm_set1_epi16(-25);
     __m128i _v129  = _mm_set1_epi16(129);
-    __m128i _v240  = _mm_set1_epi8(240);
-    __m128i _aa    = _mm_set1_epi8(255);
+    __m128i _v240  = _mm_set1_epi8(0xf0); // 240
+    __m128i _aa    = _mm_set1_epi8(0xff); // 255
 
     const __m128i sh_vu = _mm_setr_epi8(0, 2, 4, 6, 1, 3, 5, 7, 8, 10, 12, 14, 9, 11, 13, 15);
     const __m128i sh_a  = _mm_setr_epi8(0, 11, 6, 1, 12, 7, 2, 13, 8, 3, 14, 9, 4, 15, 10, 5);

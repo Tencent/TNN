@@ -63,11 +63,13 @@ Status CpuMatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
             
             for (int m = 0; m < M; ++m) {
                 for (int k = 0; k < K; ++k) {
-                    float sum = 0;
+                    //in align with onnx, use double to compute here for decision.
+                    //or for align with bert model, use COSINE distance ??? not checked
+                    double sum = 0;
                     for (int n = 0; n < N; ++n) {
-                        sum += matrix_a[ba * M * N + m * N + n] * matrix_b[bb * N * K + n * K + k];
+                        sum += double(matrix_a[ba * M * N + m * N + n]) * double(matrix_b[bb * N * K + n * K + k]);
                     }
-                    matrix_c[bc * M * K + m * K + k] = sum;
+                    matrix_c[bc * M * K + m * K + k] = float(sum);
                 }
             }
         }

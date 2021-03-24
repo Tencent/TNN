@@ -42,9 +42,13 @@ protected:
     template <typename T>
     Status BinaryGeneralFunc(T *output_ptr, std::vector<T*> &input_ptrs, DimsVector output_shape, std::vector<DimsVector> &input_shapes);
 
+    template <typename T>
+    void BinaryCompute(const DimsVector input_offset, const DimsVector output_offset, const DimsVector output_shape, const T* input_ptr, T* output_ptr);
+
     virtual bool DataTypeSupported(DataType data_type) override;
     
     std::function<Float4(const Float4 &v1, const Float4 &v2)> _Operator = nullptr;
+    std::function<float(const float &v1, const float &v2)> _OperatorElement = nullptr;
 
 private:
     RawBuffer broadcast_;

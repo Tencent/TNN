@@ -26,6 +26,7 @@ Status ArmDivLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
     }
 
     _Operator = [=](Float4 v1, Float4 v2) -> Float4 { return Float4::div(v1, v2); };
+    _OperatorElement = [=](float v1, float v2) -> float { return v1 / v2; };
 
     return TNN_OK;
 }
