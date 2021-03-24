@@ -20,7 +20,7 @@
 
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -37,8 +37,8 @@ public:
 
     // @brief convert weights from [n][c][h][w] to [n][c/4][h][w][4]
     // @param data_tyep data type info
-    static Status ConvertFromNCHWToNCHW4Float(float *src, float *dst, int num, int channel, int height, int width);
-    static Status ConvertFromNCHWToNCHW4Half(short *src, short *dst, int num, int channel, int height, int width);
+    static Status ConvertFromNCHWToNCHW4Float(float *src, float *dst, int num, int channel, int height, int width, bool transpose = false);
+    static Status ConvertFromNCHWToNCHW4Half(short *src, short *dst, int num, int channel, int height, int width, bool transpose = false);
     static Status ConvertFromNCHWToNHWC4Int8(int8_t *src, int8_t *dst, int num, int channel, int hw);
 
     static Status ConvertFromNCHW4ToNCHWFloat(float *src, float *dst, int num, int channel, int height, int width);
@@ -92,7 +92,7 @@ public:
         const int num     = src->GetBlobDesc().dims[0];
         const int channel = src->GetBlobDesc().dims[1];
         // refactor later
-        const int height  = GetBlobDim(src->GetBlobDesc().dims, 2);
+        const int height  = DimsFunctionUtils::GetDim(src->GetBlobDesc().dims, 2);
         const int width   = GetBlobCount(src->GetBlobDesc().dims, 3);
         T *src_data_ptr   = (T *)src->GetHandle().base;
         T *dst_data_ptr = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
@@ -106,7 +106,7 @@ public:
         ASSERT(src != nullptr);
         const int num     = src->GetBlobDesc().dims[0];
         // refactor later
-        const int height  = GetBlobDim(src->GetBlobDesc().dims, 2);
+        const int height  = DimsFunctionUtils::GetDim(src->GetBlobDesc().dims, 2);
         const int width   = GetBlobCount(src->GetBlobDesc().dims, 3);
         const int channel = src->GetBlobDesc().dims[1];
         T *src_data_ptr   = (T *)src->GetHandle().base;

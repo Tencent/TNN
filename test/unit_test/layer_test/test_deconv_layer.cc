@@ -91,12 +91,6 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     }
 #endif
 
-    bool is_depthwise = (input_channel_per_group == 1) && (output_channel_per_group == 1);
-    if (DEVICE_METAL == dev && !is_depthwise && group != 1 && !(input_channel_per_group % 4 == 0 && output_channel_per_group % 4 == 0) &&
-        !(group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2)) {
-        GTEST_SKIP();
-    }
-
     if (DEVICE_HUAWEI_NPU == dev && activation_type != ActivationType_None) {
         GTEST_SKIP();
     }
