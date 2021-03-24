@@ -133,6 +133,7 @@ Status FileReader::Read(std::map<std::string, std::shared_ptr<Mat>>& mat_map, co
             } else if (DATA_TYPE_INT32 == data_type) {
                 mat_type = NC_INT32;
             } else {
+                LOGE("FileReader::Read dont support data type:%d\n", data_type);
                 f_stream.close();
                 return Status(TNNERR_INVALID_INPUT, "the data type is not support in txt in file reader");
             }
