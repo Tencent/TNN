@@ -21,6 +21,16 @@
 
 namespace TNN_NS {
 
+static inline void PadShape(const int pad_size, const int dim_size, DimsVector &pad_shape, DimsVector in_shape) {
+    int j = 0;
+    for (; j < pad_size; j++) {
+        pad_shape[j] = 1;
+    }
+    for (; j < dim_size; j++) {
+        pad_shape[j] = in_shape[j - pad_size];
+    }
+}
+
 static void BroadCastTypeFilter(const DimsVector &dims_output, const DimsVector &dims_input, BroadcastType &type) {
     if (DimsVectorUtils::Equal(dims_output, dims_input)) {
         type = BroadcastTypeNormal;
@@ -42,9 +52,8 @@ static void BroadCastTypeFilter(const DimsVector &dims_output, const DimsVector 
     if (broadcast_count == 1) {
         type = BroadcastTypeSingle;
     } else if (broadcast_count == dims_output[1]) {
-        // broadcast dim = [1, channel, 1, 1] or [channel, 1, 1]
-        int dims_size = dims_input.size();
-        if (dims_size >= 3 && dims_input[dims_size - 3] == dims_output[1]) {
+        // broadcast dim = [1, channel, 1...]
+        if (dims_input[1] == dims_output[1]) {
             type = BroadcastTypeChannel;
         } else {
             type = BroadcastTypeGeneral;
@@ -83,6 +92,138 @@ static void BroadCastInit(const DimsVector &dims, const DimsVector &dims0, const
     }
 }
 
+static void BinaryComputeOffset(DimsVector &offset, const DimsVector dims_in, const DimsVector dims_out) {
+    DimsVector dims_pad_in;
+    dims_pad_in.resize(dims_out.size());
+    int pad_size = dims_out.size() - dims_in.size();
+    PadShape(pad_size, dims_out.size(), dims_pad_in, dims_in);
+
+    offset.resize(dims_out.size());
+    int s = 1;
+    for (int i = dims_out.size() - 1; i >= 0; i--) {
+        offset[i] = (dims_pad_in[i] == dims_out[i]) ? s : 0;
+        s *= dims_pad_in[i];
+    }
+}
+
+template <typename T>
+static void BinaryComputeFirst(const DimsVector input_offset, const DimsVector output_offset,
+                               const DimsVector output_shape, const T* input_ptr, T* output_ptr) {
+#define compute_ptr(pre_idx, cur_idx, i)                              \
+    auto iptr##cur_idx = iptr##pre_idx + cur_idx * input_offset[i];   \
+    auto optr##cur_idx = optr##pre_idx + cur_idx * output_offset[i];
+
+#define compute_binary_first(cur_idx)            \
+    optr##cur_idx[0] = iptr##cur_idx[0];
+
+#define compute_loop(pre_idx, cur_idx)                                \
+    for (int i##cur_idx = 0; i##cur_idx < output_shape[cur_idx]; i##cur_idx++) {      \
+        compute_ptr(i##pre_idx, i##cur_idx, cur_idx);
+
+    auto iptris = input_ptr;
+    auto optris = output_ptr;
+
+    if (output_shape.size() == 6) {
+        compute_loop(s, 0);
+        compute_loop(0, 1);
+        compute_loop(1, 2);
+        compute_loop(2, 3);
+        compute_loop(3, 4);
+        compute_loop(4, 5);
+            compute_binary_first(i5);
+        }}}}}}
+    } else if (output_shape.size() == 5) {
+        compute_loop(s, 0);
+        compute_loop(0, 1);
+        compute_loop(1, 2);
+        compute_loop(2, 3);
+        compute_loop(3, 4);
+            compute_binary_first(i4);
+        }}}}}
+    } else if (output_shape.size() == 4) {
+        compute_loop(s, 0);
+        compute_loop(0, 1);
+        compute_loop(1, 2);
+        compute_loop(2, 3);
+            compute_binary_first(i3);
+        }}}}
+    } else if (output_shape.size() == 3) {
+        compute_loop(s, 0);
+        compute_loop(0, 1);
+        compute_loop(1, 2);
+            compute_binary_first(i2);
+        }}}
+    } else if (output_shape.size() == 2) {
+        compute_loop(s, 0);
+        compute_loop(0, 1);
+            compute_binary_first(i1);
+        }}
+    } else if (output_shape.size() == 1) {
+        compute_loop(s, 0);
+            compute_binary_first(i0);
+        }
+    }
+}
+
+template <typename T>
+void ArmBinaryLayerAcc::BinaryCompute(const DimsVector input_offset, const DimsVector output_offset,
+                          const DimsVector output_shape, const T* input_ptr, T* output_ptr) {
+#define compute_ptr(pre_idx, cur_idx, i)                              \
+    auto iptr##cur_idx = iptr##pre_idx + cur_idx * input_offset[i];   \
+    auto optr##cur_idx = optr##pre_idx + cur_idx * output_offset[i];
+
+#define compute_binary(cur_idx)            \
+    optr##cur_idx[0] = _OperatorElement(optr##cur_idx[0], iptr##cur_idx[0]);
+
+#define compute_loop(pre_idx, cur_idx)                                \
+    for (int i##cur_idx = 0; i##cur_idx < output_shape[cur_idx]; i##cur_idx++) {      \
+        compute_ptr(i##pre_idx, i##cur_idx, cur_idx);
+
+    auto iptris = input_ptr;
+    auto optris = output_ptr;
+
+    if (output_shape.size() == 6) {
+        compute_loop(s, 0);
+        compute_loop(0, 1);
+        compute_loop(1, 2);
+        compute_loop(2, 3);
+        compute_loop(3, 4);
+        compute_loop(4, 5);
+            compute_binary(i5);
+        }}}}}}
+    } else if (output_shape.size() == 5) {
+        compute_loop(s, 0);
+        compute_loop(0, 1);
+        compute_loop(1, 2);
+        compute_loop(2, 3);
+        compute_loop(3, 4);
+            compute_binary(i4);
+        }}}}}
+    } else if (output_shape.size() == 4) {
+        compute_loop(s, 0);
+        compute_loop(0, 1);
+        compute_loop(1, 2);
+        compute_loop(2, 3);
+            compute_binary(i3);
+        }}}}
+    } else if (output_shape.size() == 3) {
+        compute_loop(s, 0);
+        compute_loop(0, 1);
+        compute_loop(1, 2);
+            compute_binary(i2);
+        }}}
+    } else if (output_shape.size() == 2) {
+        compute_loop(s, 0);
+        compute_loop(0, 1);
+            compute_binary(i1);
+        }}
+    } else if (output_shape.size() == 1) {
+        compute_loop(s, 0);
+            compute_binary(i0);
+        }
+    }
+}
+
 template <typename T>
 Status ArmBinaryLayerAcc::BinaryGeneralFunc(T *output_ptr, std::vector<T*> &input_ptrs, DimsVector output_shape, std::vector<DimsVector> &input_shapes) {
     size_t output_size = DimsVectorUtils::Count(output_shape);
@@ -90,18 +231,15 @@ Status ArmBinaryLayerAcc::BinaryGeneralFunc(T *output_ptr, std::vector<T*> &inpu
     T *output_nchw = workspace;
     T *input_nchw = workspace + output_size;
 
+    DimsVector output_offset;
+    BinaryComputeOffset(output_offset, output_shape, output_shape);
     for (int i = 0; i < input_shapes.size(); i++) {
         auto input_shape = input_shapes[i];
         T *input_data = input_ptrs[i];
 
         DimsVector input_shape_pad;
-        for (int j = 0; j < output_shape.size(); j++) {
-            input_shape_pad.push_back(1);
-        }
-        for (int j = 0; j < input_shape.size(); j++) {
-            input_shape_pad[input_shape_pad.size() - 1 - j] = 
-                input_shape[input_shape.size() - 1 - j];
-        }
+        input_shape_pad.resize(output_shape.size());
+        PadShape(output_shape.size() - input_shape.size(), output_shape.size(), input_shape_pad, input_shape);
 
         int input_batch = input_shape_pad[0];
         int input_channel = input_shape_pad[1];
@@ -109,76 +247,12 @@ Status ArmBinaryLayerAcc::BinaryGeneralFunc(T *output_ptr, std::vector<T*> &inpu
         // nc4hw4 to nchw
         UnpackFloatBlob(input_nchw, input_data, input_batch, input_channel, input_hw);
 
-        int broadcast_single = 1;
-        for (int j = 0; j < input_shape_pad.size(); j++) {
-            if (input_shape_pad[j] != 1) {
-                broadcast_single = 0;
-                break;
-            }
-        }
-
-        int outer_size = 1;
-        int inner_size = 1;
-        int broad_size = DimsVectorUtils::Count(input_shape);
-
-        for (int j = 0; j < input_shape_pad.size(); j++) {
-            if (input_shape_pad[j] == 1) {
-                outer_size *= output_shape[j];
-            } else {
-                break;
-            }
-        }
-
-        if (!broadcast_single) {
-            for (int j = 0; j < input_shape_pad.size(); j++) {
-                if (input_shape_pad[input_shape_pad.size() - 1 - j] == 1) {
-                    inner_size *= output_shape[output_shape.size() - 1 - j];
-                } else {
-                    break;
-                }
-            }
-        }
-
+        DimsVector input_offset;
+        BinaryComputeOffset(input_offset, input_shape, output_shape);
         if (i == 0) {
-            for (int o = 0; o < outer_size; o++) {
-                auto output_outer = output_nchw + o * broad_size * inner_size;
-                for (int b = 0; b < broad_size; b++) {
-                    auto output_broad = output_outer + b * inner_size;
-                    T input_broad = input_nchw[b];
-                    Float4 input_vec = Float4(input_broad);
-                    int j = 0;
-                    for (; j + 3 < inner_size; j += 4) {
-                        Float4::save(output_broad + j, input_vec);
-                    }
-                    for (; j < inner_size; j++) {
-                        output_broad[j] = input_broad;
-                    }
-                }
-            }
+            BinaryComputeFirst<T>(input_offset, output_offset, output_shape, input_nchw, output_nchw);
         } else {
-            for (int o = 0; o < outer_size; o++) {
-                auto output_outer = output_nchw + o * broad_size * inner_size;
-                for (int b = 0; b < broad_size; b++) {
-                    auto output_broad = output_outer + b * inner_size;
-                    T input_broad = input_nchw[b];
-                    Float4 input_vec = Float4(input_broad);
-                    int j = 0;
-                    for (; j + 3 < inner_size; j += 4) {
-                        Float4 output_vec = Float4::load(output_broad + j);
-                        Float4::save(output_broad + j, _Operator(output_vec, input_vec));
-                    }
-
-                    int left = inner_size - j;
-                    T tmp_output[4] = {0};
-                    for (int jj = 0; jj < left; jj++) {
-                        tmp_output[jj] = output_broad[j + jj];
-                    }
-                    Float4::save(tmp_output, _Operator(Float4::load(tmp_output), input_vec));
-                    for (int jj = 0; jj < left; jj++) {
-                        output_broad[j + jj] = tmp_output[jj];
-                    }
-                }
-            }
+            BinaryCompute<T>(input_offset, output_offset, output_shape, input_nchw, output_nchw);
         }
     }
 
@@ -361,6 +435,11 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
     if (layer_res && broadcast_.GetBytesSize() == 0) {
         RawBuffer element_handle = layer_res->element_handle;
         auto dims                = layer_res->element_shape;
+        auto output_dims         = outputs[0]->GetBlobDesc().dims;
+        DimsVector dims_pad;
+        dims_pad.resize(output_dims.size());
+        PadShape(output_dims.size() - dims.size(), output_dims.size(), dims_pad, dims);
+
         if (element_handle.GetDataType() == DATA_TYPE_HALF)
             element_handle = ConvertHalfHandle(element_handle);
 
@@ -375,22 +454,22 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
                 broadcast_ = temp;
             } else {
                 // pack bias from nchw to nc4hw4
-                int count = DimsVectorUtils::Count(dims);
-                if (dims.size() >= 2) {
-                    count = count / dims[1];
-                    count = count * ROUND_UP(dims[1], 4);
+                int count = DimsVectorUtils::Count(dims_pad);
+                if (dims_pad.size() >= 2) {
+                    count = count / dims_pad[1];
+                    count = count * ROUND_UP(dims_pad[1], 4);
                 }
                 int channel = 1;
-                if (dims.size() > 1) {
-                    channel = dims[1];
+                if (dims_pad.size() > 1) {
+                    channel = dims_pad[1];
                 }
                 int hw_stride = 1;
-                if (dims.size() > 2) {
-                    hw_stride = DimsVectorUtils::Count(dims, 2);
+                if (dims_pad.size() > 2) {
+                    hw_stride = DimsVectorUtils::Count(dims_pad, 2);
                 }
                 RawBuffer temp(count * data_byte_size);
                 DataFormatConverter::ConvertFromNCHWToNCHW4Float(
-                    static_cast<float *>(layer_data), temp.force_to<float *>(), dims[0], channel, hw_stride, 1);
+                    static_cast<float *>(layer_data), temp.force_to<float *>(), dims_pad[0], channel, hw_stride, 1);
                 broadcast_ = temp;
             }
 
@@ -464,8 +543,12 @@ Status ArmBinaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
     BroadcastType btype = BroadcastTypeUnknown;
     // check broadcast type is general or other optimized ncxhwx types
     // if type is general, go to nchw general impl
+    DimsVector input_pad_shape;
+    input_pad_shape.resize(dims.size());
     for (int i = 0; i < input_shapes.size(); i++) {
-        BroadCastTypeFilter(dims, input_shapes[i], btype);
+        int pad_size = dims.size() - input_shapes[i].size();
+        PadShape(pad_size, dims.size(), input_pad_shape, input_shapes[i]);
+        BroadCastTypeFilter(dims, input_pad_shape, btype);
         if (btype == BroadcastTypeGeneral) {
             break;
         }
@@ -482,11 +565,18 @@ Status ArmBinaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
         auto input0_ptr = reinterpret_cast<T *>(input_ptrs[0]);
         auto input1_ptr = reinterpret_cast<T *>(input_ptrs[1]);
 
-        BinaryFunc(output_ptr, input0_ptr, input1_ptr, input_shapes[0], input_shapes[1]);
+        DimsVector input0_pad_shape, input1_pad_shape;
+        input0_pad_shape.resize(dims.size());
+        input1_pad_shape.resize(dims.size());
+        PadShape(dims.size() - input_shapes[0].size(), dims.size(), input0_pad_shape, input_shapes[0]);
+        PadShape(dims.size() - input_shapes[1].size(), dims.size(), input1_pad_shape, input_shapes[1]);
+
+        BinaryFunc(output_ptr, input0_ptr, input1_ptr, input0_pad_shape, input1_pad_shape);
 
         for (int i = 2; i < input_ptrs.size(); i++) {
             auto input_ptr = reinterpret_cast<T *>(input_ptrs[i]);
-            BinaryFunc(output_ptr, output_ptr, input_ptr, dims, input_shapes[i]);
+            PadShape(dims.size() - input_shapes[i].size(), dims.size(), input0_pad_shape, input_shapes[i]);
+            BinaryFunc(output_ptr, output_ptr, input_ptr, dims, input0_pad_shape);
         }
     }
 
