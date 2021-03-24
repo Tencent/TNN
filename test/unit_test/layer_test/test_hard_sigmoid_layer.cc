@@ -31,7 +31,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, HardSigmoidLayerTest,
                              // size Values(1, 6, 8, 13),
                              testing::Values(6),
                              // dim count
-                             testing::Values(2, 3, 4, 5, 6),
+                             testing::Values(2, 3, 4, 5),
                              // alpha Values(2, 1, 0.5),
                              testing::Values(2, 1, 0.5),
                              // beta Values(0, 2, 1.5, 3),
