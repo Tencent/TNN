@@ -20,6 +20,7 @@
 
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -36,9 +37,9 @@ public:
 
     // @brief convert weights from [n][c][h][w] to [n][c/4][h][w][4]
     // @param data_tyep data type info
-    static Status ConvertFromNCHWToNCHW4Float(float *src, float *dst, int num, int channel, int height, int width);
-    static Status ConvertFromNCHWToNCHW4Half(short *src, short *dst, int num, int channel, int height, int width);
-    static Status ConvertFromNCHWToNHWC4Int8(int8_t *src, int8_t *dst, int num, int channel, int height, int width);
+    static Status ConvertFromNCHWToNCHW4Float(float *src, float *dst, int num, int channel, int height, int width, bool transpose = false);
+    static Status ConvertFromNCHWToNCHW4Half(short *src, short *dst, int num, int channel, int height, int width, bool transpose = false);
+    static Status ConvertFromNCHWToNHWC4Int8(int8_t *src, int8_t *dst, int num, int channel, int hw);
 
     static Status ConvertFromNCHW4ToNCHWFloat(float *src, float *dst, int num, int channel, int height, int width);
     static Status ConvertFromNCHW4ToNCHWHalf(short *src, short *dst, int num, int channel, int height, int width);

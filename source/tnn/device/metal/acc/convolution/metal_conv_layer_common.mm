@@ -84,8 +84,8 @@ Status MetalConvLayerCommon::AllocateBufferParam(const std::vector<Blob *> &inpu
     const int group  = conv_param->group;
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
     auto dims_output = outputs[0]->GetBlobDesc().dims;
-    const int goc       = dims_output[1] / group;
-    const int gic       = dims_input[1] / group;
+    const int goc    = dims_output[1] / group;
+    const int gic    = dims_input[1] / group;
     // buffer_param_
     {
         MetalConvParams metal_params;
