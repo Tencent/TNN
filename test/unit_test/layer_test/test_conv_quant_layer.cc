@@ -25,7 +25,8 @@ class ConvQuantLayerTest : public LayerTest,
                                                                            ActivationType, FusionType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 10, 32, 64),
+                         ::testing::Combine(testing::Values(1), 
+                                            testing::Values(1, 3, 10, 64),
                                             testing::Values(9, 10, 16, 19),
                                             // kernel
                                             testing::Values(1, 3),
