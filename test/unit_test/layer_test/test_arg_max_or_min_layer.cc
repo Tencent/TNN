@@ -32,7 +32,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ArgMaxOrMinLayerTest,
                                             // keep dims
                                             testing::Values(1),
                                             // dim count
-                                            testing::Values(2, 3, 4, 5, 6),
+                                            testing::Values(2, 3, 4, 5),
                                             // select_last_index: we will support this feature in future;
                                             testing::Values(0), testing::Values(DATA_TYPE_FLOAT)));
 

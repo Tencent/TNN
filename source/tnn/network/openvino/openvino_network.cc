@@ -22,6 +22,7 @@
 #include "tnn/network/openvino/openvino_types.h"
 
 #include "tnn/network/openvino/custom_layer/custom_implementation.h"
+#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
 
@@ -112,7 +113,7 @@ Status OpenVINONetwork_::SetNetInputNode() {
         }
 
         std::shared_ptr<ngraph::op::Parameter> input_node = 
-                std::make_shared<ngraph::op::Parameter>(ngraph::element::f32, ngraph::Shape(ngraph_input_shape));
+                std::make_shared<ngraph::op::Parameter>(ConvertToOVDataType(blob_desc.data_type), ngraph::Shape(ngraph_input_shape));
         input_node->set_friendly_name(input_name);
 
         auto foreign_blob = new ForeignBlob(it.second);
@@ -205,6 +206,7 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
         desc.data_format = DATA_FORMAT_NCHW;
         desc.name = key;
         desc.device_type = DEVICE_X86;
+        desc.data_type = ConvertOVPrecisionToDataType(blob_ptr->getTensorDesc().getPrecision());
         auto dims = blob_ptr->getTensorDesc().getDims();
         for(int index = 0; index<dims.size(); index++) {
             desc.dims.push_back(dims[index]);
@@ -229,6 +231,7 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
         desc.data_format = DATA_FORMAT_NCHW;
         desc.name = key;
         desc.device_type = DEVICE_X86;
+        desc.data_type = ConvertOVPrecisionToDataType(blob_ptr->getTensorDesc().getPrecision());
         auto dims = blob_ptr->getTensorDesc().getDims();
         for(int index = 0; index<dims.size(); index++) {
             desc.dims.push_back(dims[index]);
@@ -257,7 +260,36 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
 Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *net_resource) {
     Status ret = TNN_OK;
 
+    auto const_blobs = net_resource->constant_map;
     for (auto layer_info : net_structure->layers) {
+        std::vector<std::string> &input_names = layer_info->inputs;
+        for (auto name : input_names) {
+            auto blob = blob_manager_->GetBlob(name);
+            if (const_blobs.find(name) != const_blobs.end()) {
+                blob->GetBlobDesc().data_type = const_blobs[name]->GetDataType();
+                if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+                    // printf("const blob name %s\n", name.c_str());
+                    blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
+
+                    auto const_node = ConvertToConstNode(const_blobs[name].get());
+                    const_node->set_friendly_name(name);
+
+                    auto foreign_blob = new ForeignBlob(blob);
+                    foreign_blob->SetForeignTensor(std::make_shared<OpenvinoTensor>(const_node));
+
+                    blob_manager_->ReplaceBlob(name, foreign_blob);
+                }
+            }
+        }
+    }
+
+    auto const_layers = net_resource->constant_layers;
+
+    for (auto layer_info : net_structure->layers) {
+        if (runtime_model_ == RUNTIME_MODE_NORMAL && const_layers.find(layer_info->name) != const_layers.end()) {
+            continue;
+        }
+
         LayerType type       = layer_info->type;
         OpenVINOLayerBuilder *cur_layer = CreateOpenVINOLayerBuilder(type);
         

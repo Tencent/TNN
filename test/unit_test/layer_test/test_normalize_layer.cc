@@ -29,7 +29,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, NormalizeLayerTest,
                                             // axis
                                             testing::Values(1),
                                             // dim_count
-                                            testing::Values(2, 3, 4, 5, 6),
+                                            testing::Values(2, 3, 4, 5),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT)));
 

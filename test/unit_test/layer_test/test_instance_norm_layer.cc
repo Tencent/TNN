@@ -25,7 +25,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, InstanceNormLayerTest,
                          ::testing::Combine(testing::Values(1, 2), testing::Values(1, 4, 6),
                                             testing::Values(10, 20, 65, 128),
                                             // dim count
-                                            testing::Values(2, 3, 4, 5, 6)));
+                                            testing::Values(2, 3, 4, 5)));
 
 TEST_P(InstanceNormLayerTest, InstanceNormLayer) {
     // get param

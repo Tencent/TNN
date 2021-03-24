@@ -30,7 +30,7 @@ class X86UpsampleLayerAcc : public X86LayerAcc {
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
-    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 private:
     RawBuffer buffer_input_fp32_;

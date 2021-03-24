@@ -344,7 +344,6 @@ def check_shape_info(onnx_info: dict, tnn_info: dict) -> bool:
 
 def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
     if len(onnx_input_info) != len(tnn_input_info):
-        logging.info("input is not algin 186\n")
         print_not_align_message("onnx input size != tnn input size")
     for name, onnx_info in onnx_input_info.items():
         tnn_name = convert_name.onnx_name2tnn_name(name)
@@ -374,7 +373,7 @@ def check_input_lite_info(onnx_input_info: dict, tnn_input_info: dict):
     logging.info("Check tflite input shape and tnn input shape align!\n")
 
 
-def parse_input_names(input_names: str) -> dict:
+def parse_specify_input_args(input_names: str) -> dict:
     input_info = {}
     for x in input_names.split(" "):
         if ':' not in x:
@@ -407,12 +406,19 @@ def replace_tnn_input_name(input_info: dict):
     return new_input_info
 
 
-def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str = None,
-        refer_path: str = None, input_names: str = None, is_tflite: bool = False, debug_mode: bool = False, align_batch: bool = False) -> bool:
+def update_original_input_shape(original_input_info: dict, specify_input_info:dict):
+    for name, original_shape_datatype in original_input_info.items():
+        specify_shape_datatype = specify_input_info.get(name, None)
+        if specify_shape_datatype is not None:
+            original_shape_datatype["shape"] = specify_shape_datatype["shape"]
+
+
+def align_model(original_model_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str = None,
+                refer_path: str = None, specify_input_args: str = None, is_tflite: bool = False, debug_mode: bool = False, align_batch: bool = False) -> bool:
     """
     对 onnx 模型和 tnn 模型进行对齐.
     当前支持模型: 单输入,单输出;单输入,多输出;
-    :param onnx_path:
+    :param original_model_path:
     :param tnn_proto_path:
     :param tnn_model_path:
     :return:
@@ -421,35 +427,33 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
 
     checker.check_file_exist(tnn_proto_path)
     checker.check_file_exist(tnn_model_path)
-
+    # list = {  "input name1":{
+    #                           {"shape": [n, c,...]},
+    #                           {"data_type": 0}
+    #                        },
+    #           "input name22": {
+    #                            {"shape": [n, c,...]},
+    #                            {"data_type": 0}
+    #                         }
+    # get original input info
+    if is_tflite:
+        original_input_info = get_input_shape_from_tflite(original_model_path)
+    else:
+        original_input_info = get_input_shape_from_onnx(original_model_path)
+    # get tnn input info
+    tnn_input_info = get_input_shape_from_tnn(tnn_proto_path)
     # check input
-    if input_names is not None:
-        input_info = parse_input_names(input_names)
-        tnn_input_info = replace_tnn_input_name(input_info)
-        onnx_input_info = input_info
+    if specify_input_args is not None:
+        specify_input_info = parse_specify_input_args(specify_input_args)
+        update_original_input_shape(original_input_info, specify_input_info)
+
+    if is_tflite:
+        check_input_lite_info(original_input_info, tnn_input_info)
     else:
-        # tnn_input_info: list = {  "input name":{
-        #                                           {"shape": [n, c,...]},
-        #                                           {"data_type": 0}
-        #                                       }
-        #                           ,
-        #                           "input name": {
-        #                                           {"shape": [n, c,...]},
-        #                                           {"data_type": 0}
-        #                                       }
-        #                         }
-        tnn_input_info = get_input_shape_from_tnn(tnn_proto_path)
-        if is_tflite == True:
-            onnx_input_info = get_input_shape_from_tflite(onnx_path)
-        else:
-            onnx_input_info = get_input_shape_from_onnx(onnx_path)
-    if is_tflite == True:
-        check_input_lite_info(onnx_input_info, tnn_input_info)
-    else:
-       check_input_info(onnx_input_info, tnn_input_info)
+       check_input_info(original_input_info, tnn_input_info)
     if input_file_path is None:
         # generate data
-        input_path = data.gene_random_data(onnx_input_info)
+        input_path = data.gene_random_data(original_input_info)
     else:
         if os.path.exists(input_file_path):
             input_path = input_file_path
@@ -458,9 +462,9 @@ def align_model(onnx_path: str, tnn_proto_path: str, tnn_model_path: str, input_
             sys.exit(return_code.ALIGN_FAILED)
     if refer_path is None:
         if is_tflite == True:
-            reference_output_path = run_tflite(onnx_path, input_path, onnx_input_info)
+            reference_output_path = run_tflite(original_model_path, input_path, original_input_info)
         else:
-            reference_output_path = run_onnx(onnx_path, input_path, onnx_input_info)
+            reference_output_path = run_onnx(original_model_path, input_path, original_input_info)
     else:
         if os.path.exists(refer_path):
             reference_output_path = refer_path

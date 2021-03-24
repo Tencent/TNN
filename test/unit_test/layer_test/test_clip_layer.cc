@@ -31,7 +31,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ClipLayerTest,
                              // size Values(16, 19),
                              testing::Values(1, 6, 8, 13),
                              // dim count
-                             testing::Values(2, 3, 4, 5, 6),
+                             testing::Values(2, 3, 4, 5),
                              // min
                              testing::Values(-1.234, 2.30, 0),
                              // max
