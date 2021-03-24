@@ -107,7 +107,12 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
         for (int n = 0; n < count; ++n) {
             fprintf(fp, "%.9f\n", ptr[n]);
         }
-    } else if (data_type == DATA_TYPE_INT32) {
+    } else if (data_type == DATA_TYPE_INT8) {
+        auto ptr = (char *)data_ptr;
+        for (int n = 0; n < count; ++n) {
+            fprintf(fp, "%d\n", ptr[n]);
+        }
+    }else if (data_type == DATA_TYPE_INT32) {
         auto ptr = (int *)data_ptr;
         for (int n = 0; n < count; ++n) {
             fprintf(fp, "%d\n", ptr[n]);
