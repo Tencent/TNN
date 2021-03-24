@@ -46,7 +46,7 @@ public:
     template <class T>
     static Status CreateAttrArray(std::shared_ptr<ge::op::Const> &attr_value, std::vector<T> data,
                                   ge::TensorDesc input_desc, int length) {
-        ge::AttrValue::TENSOR input_size_tensor = std::make_shared<ge::Tensor>(input_desc);
+        ge::TensorPtr input_size_tensor = std::make_shared<ge::Tensor>(input_desc);
         // since 1-d array total size = sizeof(datatype) * length
         input_size_tensor->SetData((uint8_t *)data.data(), sizeof(T) * length);
         attr_value->set_attr_value(input_size_tensor);

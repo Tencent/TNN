@@ -23,15 +23,27 @@ namespace TNN_NS {
 
 Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const> &attr_value, ge::Shape shape, RawBuffer &raw_buffer) {
     ge::TensorPtr tensor_ptr = std::make_shared<ge::Tensor>();
-    ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
-    tensor_ptr->SetTensorDesc(desc);
-    if (raw_buffer.GetDataType() != DATA_TYPE_FLOAT) {
+    if (raw_buffer.GetDataType() == DATA_TYPE_FLOAT || raw_buffer.GetDataType() == DATA_TYPE_HALF) {
+        ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
+        tensor_ptr->SetTensorDesc(desc);
+    } else if (raw_buffer.GetDataType() == DATA_TYPE_INT32) {
+        ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_INT32);
+        tensor_ptr->SetTensorDesc(desc);
+    } else {
+        LOGE("raw buffer data type is not support in CreateAttrValue");
+        return Status(TNNERR_INVALID_DATA, "raw buffer data type is not support in CreateAttrValue");
+    }
+    if (raw_buffer.GetDataType() == DATA_TYPE_HALF) {
         // if filter handle is half, need convert to float first.
         std::shared_ptr<float> float_data_ptr = GetFloatFromRawBuffer(raw_buffer);
         if (float_data_ptr == nullptr) {
             return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         tensor_ptr->SetData((uint8_t *)float_data_ptr.get(), raw_buffer.GetDataCount() * sizeof(float));
+    } else if (raw_buffer.GetDataType() == DATA_TYPE_FLOAT) {
+        tensor_ptr->SetData(raw_buffer.force_to<uint8_t *>(), raw_buffer.GetBytesSize());
+    } else if (raw_buffer.GetDataType() == DATA_TYPE_INT32) {
+        tensor_ptr->SetData(raw_buffer.force_to<uint8_t *>(), raw_buffer.GetBytesSize());
     } else {
         tensor_ptr->SetData(raw_buffer.force_to<uint8_t *>(), raw_buffer.GetBytesSize());
     }
@@ -41,13 +53,8 @@ Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const> &attr_value, ge::Shap
 
 Status NpuUtils::CreateInputData(std::shared_ptr<ge::op::Data> &input_data, std::string &input_name,
                                  DimsVector dims_vector) {
-    int n = dims_vector[0];
-    int c = dims_vector[1];
-    int h = dims_vector[2];
-    int w = dims_vector[3];
-
-    ge::Shape data_shape({n, c, h, w});
-    ge::TensorDesc desc(data_shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
+    // TO-DO: support int32 input
+    ge::TensorDesc desc(ge::Shape(NpuUtils::Int32VecToTVec<int64_t>(dims_vector)), ge::FORMAT_NCHW, ge::DT_FLOAT);
 
     input_data = std::make_shared<ge::op::Data>(input_name);
     input_data->update_input_desc_x(desc);
