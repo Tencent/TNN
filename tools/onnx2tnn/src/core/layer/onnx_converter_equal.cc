@@ -15,6 +15,28 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-REGISTER_OP_CONVERTER_NoParamNoWeight(Equal, Equal);
+DECLARE_OP_CONVERTER_WITH_FUNC(Equal,
+                               virtual std::vector<std::string> GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info););
+string OnnxOpConverterEqual::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
+    return "Equal";
+}
+
+std::vector<std::string> OnnxOpConverterEqual::GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+    return GetAllInputNames(node, net_info);
+}
+
+string OnnxOpConverterEqual::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
+    return "";
+}
+
+bool OnnxOpConverterEqual::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
+int OnnxOpConverterEqual::WriteTNNModel(Serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
+    return 0;
+}
+
+REGISTER_OP_CONVERTER(Equal, Equal);
 
 

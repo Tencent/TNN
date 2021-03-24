@@ -146,6 +146,8 @@ Status FileReader::Read(std::map<std::string, std::shared_ptr<Mat>>& mat_map, co
             if (DATA_TYPE_FLOAT == data_type) {
                 auto data_ptr = static_cast<float*>(mat->GetData());
                 for (int i = 0; i < count; ++i) {
+                    //corresponding to dump_single_output in run_onnx_model.py
+                    //np.savetxt(f, output_data.reshape(-1), fmt="%0.6f") will save data as double
                     //support tensor with double data type, read it with float may cause error
                     double temp;
                     f_stream >> temp;
@@ -159,7 +161,11 @@ Status FileReader::Read(std::map<std::string, std::shared_ptr<Mat>>& mat_map, co
             } else if (DATA_TYPE_INT8 == data_type) {
                 auto data_ptr = static_cast<char*>(mat->GetData());
                 for (int i = 0; i < count; ++i) {
-                    f_stream >> data_ptr[i];
+                    //corresponding to dump_single_output in run_onnx_model.py
+                    //np.savetxt(f, output_data.reshape(-1), fmt="%d") will save data as int
+                    int temp;
+                    f_stream >> temp;
+                    data_ptr[i] = (char) temp;
                 }
             }
 
