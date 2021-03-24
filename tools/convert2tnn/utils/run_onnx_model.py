@@ -83,8 +83,10 @@ class OnnxRunner(BaseRunner):
                 f.write("1\n")
                 output_shape = output_data.shape
                 data_type = 0
-                if output_data.dtype == np.int:
+                if output_data.dtype == np.int64 or output_data.dtype == np.int32:
                     data_type = 3
+                elif output_data.dtype == np.int8 or output_data.dtype == np.bool:
+                    data_type = 2
 
                 description = "{} {} ".format(output_name, len(output_shape))
                 for dim in output_shape:
@@ -92,11 +94,14 @@ class OnnxRunner(BaseRunner):
                 description += "{}".format(str(data_type))
                 f.write(description + "\n")
 
-            if output_data.dtype == np.int64 or output_data.dtype == np.int32 or output_data.dtype == np.int8:
+            if output_data.dtype == np.int64 or output_data.dtype == np.int32:
+                np.savetxt(f, output_data.reshape(-1), fmt="%d")
+            elif output_data.dtype == np.int8 or output_data.dtype == np.bool:
                 np.savetxt(f, output_data.reshape(-1), fmt="%d")
             elif output_data.dtype == np.float32 or output_data.dtype == np.float64:
                 np.savetxt(f, output_data.reshape(-1), fmt="%0.6f")
             else :
                 print("dump_single_output dont support data type: " + str(output_data.dtype))
+                return False
 
         return True

@@ -548,6 +548,7 @@ struct SignedMulLayerParam : public LayerParam {
 };
 
 struct SqueezeLayerParam : public LayerParam {
+    //Note the axes is ascending order,  see SqueezeLayer::InferOutputShape and UnsqueezeLayer::InferOutputShape
     std::vector<int> axes;
     bool data_in_resource = false;
 
