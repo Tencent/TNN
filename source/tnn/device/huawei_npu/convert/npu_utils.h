@@ -63,6 +63,16 @@ public:
 
     static void SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string> &visited,
                              std::map<std::string, shared_ptr<OperatorInfo>> &global_operator_map);
+
+    template <class T>
+    static std::vector<T> Int32VecToTVec(std::vector<int> vec) {
+        std::vector<T> result;
+        result.clear();
+        for (auto value : vec) {
+            result.push_back((T)value);
+        }
+        return result;
+    }
 };
 
 }  // namespace TNN_NS

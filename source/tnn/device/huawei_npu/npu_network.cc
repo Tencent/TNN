@@ -301,7 +301,8 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
         LayerType type          = layer_info->type;
         NpuBaseLayer *cur_layer = CreateNpuBaseLayer(type);
         if (cur_layer == nullptr) {
-            LOGE("Error Init layer tyep %d, huawei_npu does not support, may switch to arm\n", layer_info->type);
+            LOGE("Error Init layer tyep %d (layer name: %s), huawei_npu does not support, may switch to arm\n",
+                 layer_info->type, layer_info->name.c_str());
             return Status(TNNERR_LAYER_ERR, "CreateLayer failed");
         }
         std::string layer_name = layer_info->name;
