@@ -12,11 +12,32 @@
    cd <path_to_tnn>/model
    sh download_model.sh
    ```
-   PS: If the script cannot download the model due to network problems, please manually create the corresponding folder according to the information in the script and download it by yourself.
+   
+   Optional: If you want to run the OCR demo, you also need to download opencv framework.
+   ```
+   cd <path_to_tnn>/scripts
+   sh download_opencv.sh iOS
+   ```
+   
+   PS: If the script cannot download the model or framework due to network problems, please manually create the corresponding folder according to the information in the script and download it by yourself.
 
 2. Open the TNNExamples project
 
    Enter the directory `<path_to_tnn>/examples/ios/` and double-click to open the TNNExamples project.
+
+   Optional: If you want to run the OCR demo, you also need to add opencv as dependency.
+
+   Click the TNNExamples project as shown below, find the project setting `General`, click the `+` button under `Framworks, Libraries, and Embedded Content`.
+
+   <div align=left ><img src="../../cn/user/resource/ios_add_framework.jpg" width = "75%" height = "75%"/>
+
+   Choose `Add Other-Add Files...` in the following interface, find `opencv2.framework` located at `<path_to_tnn>/third_party/opencv/iOS` and add it.
+
+   <div align=left ><img src="../../cn/user/resource/ios_add_framework_from_files.jpg" width = "75%" height = "75%"/>
+
+   Due to the opencv2.framework includes code for real iOS devices and simulators, please set the `Embed` option to `Do Not Embed` as in the following interface.
+
+   <div align=left ><img src="../../cn/user/resource/ios_framework_notembed.jpg" width = "75%" height = "75%"/>
 
 3. Set up a developer account
 

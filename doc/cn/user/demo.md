@@ -12,12 +12,32 @@
    cd <path_to_tnn>/model
    sh download_model.sh
    ```
+   
+   可选：如果需要执行OCR demo，还需要下载opencv库。
+   ```
+   cd <path_to_tnn>/scripts
+   sh download_opencv.sh iOS
+   ```
 
-   PS: 如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载
+   PS: 如因网络问题脚本无法下载模型或依赖库，请根据脚本中的信息手动创建对应文件夹并自行下载
 
 2. 打开TNNExamples工程
 
    进入目录`<path_to_tnn>/examples/ios/`，双击打开TNNExamples工程。
+   
+   可选：如果需要执行OCR demo，需要将opencv加入TNNExamples的依赖项中。
+   
+   如下图点击TNNExamples工程，找到工程设置`General`，在`Framworks, Libraries, and Embedded Content`选项卡下点击`+`。
+
+   <div align=left ><img src="./resource/ios_add_framework.jpg" width = "75%" height = "75%"/>
+
+   在打开的界面中选择`Add Other-Add Files...`，并找到位于`<path_to_tnn>/third_party/opencv/iOS`下的`opencv2.framework`，添加。
+
+   <div align=left ><img src="./resource/ios_add_framework_from_files.jpg" width = "75%" height = "75%"/>
+
+   由于opencv2.framework中包含真机和模拟器多平台的代码，需要按下图将`Embed`选项设置为`Do Not Embed`。
+
+   <div align=left ><img src="./resource/ios_framework_notembed.jpg" width = "75%" height = "75%"/>
 
 3. 设置开发者账号
 
