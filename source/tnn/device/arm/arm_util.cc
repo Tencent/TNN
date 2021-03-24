@@ -331,6 +331,9 @@ int PackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
             return PackNeonC3((fp16_t*)dst, (const float*)src, hw, channel);
         }
     }
+    if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, fp16_t>::value) {
+        return PackNeon((fp16_t *)dst, (const fp16_t *)src, hw, channel);
+    }
 #endif
     int c, cur_hw;
     int idx = 0;
