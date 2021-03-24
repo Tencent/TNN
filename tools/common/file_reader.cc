@@ -132,6 +132,8 @@ Status FileReader::Read(std::map<std::string, std::shared_ptr<Mat>>& mat_map, co
                 mat_type = NCHW_FLOAT;
             } else if (DATA_TYPE_INT32 == data_type) {
                 mat_type = NC_INT32;
+            } else if (DATA_TYPE_INT8 == data_type) {
+                mat_type = RESERVED_INT8_TEST;
             } else {
                 LOGE("FileReader::Read dont support data type:%d\n", data_type);
                 f_stream.close();
@@ -142,7 +144,7 @@ Status FileReader::Read(std::map<std::string, std::shared_ptr<Mat>>& mat_map, co
 
             int count = DimsVectorUtils::Count(dims);
             if (DATA_TYPE_FLOAT == data_type) {
-                float* data_ptr = static_cast<float*>(mat->GetData());
+                auto data_ptr = static_cast<float*>(mat->GetData());
                 for (int i = 0; i < count; ++i) {
                     //support tensor with double data type, read it with float may cause error
                     double temp;
@@ -150,7 +152,12 @@ Status FileReader::Read(std::map<std::string, std::shared_ptr<Mat>>& mat_map, co
                     data_ptr[i] = temp;
                 }
             } else if (DATA_TYPE_INT32 == data_type) {
-                int* data_ptr = static_cast<int*>(mat->GetData());
+                auto data_ptr = static_cast<int*>(mat->GetData());
+                for (int i = 0; i < count; ++i) {
+                    f_stream >> data_ptr[i];
+                }
+            } else if (DATA_TYPE_INT8 == data_type) {
+                auto data_ptr = static_cast<char*>(mat->GetData());
                 for (int i = 0; i < count; ++i) {
                     f_stream >> data_ptr[i];
                 }

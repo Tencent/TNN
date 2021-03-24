@@ -115,11 +115,9 @@ Status ModelChecker::RunModelChecker() {
         if (!model_checker_params_.dump_dir_path.empty()) {
             ret = RunModelCheckerFromDumpFile();
         } else {
-            LOGE("ModelChecker::RunModelChecker only check output of network\n");
             ret = RunModelCheckerOutput();
         }
     } else {
-        LOGE("ModelChecker::RunModelChecker check output of all layer\n");
         ret = RunModelCheckerPerLayer();
     }
 
@@ -148,6 +146,7 @@ Status ModelChecker::ChangeBatchOfInputShapes(InputShapesMap& input_shapes) {
 }
 
 Status ModelChecker::RunModelCheckerPerLayer() {
+    LOGD("ModelChecker::RunModelCheckerPerLayer\n");
     // feed instance input
     Status ret = FeedInputData();
     if (ret != TNN_OK) {
@@ -198,6 +197,7 @@ Status ModelChecker::RunModelCheckerPerLayer() {
 }
 
 Status ModelChecker::RunModelCheckerFromDumpFile() {
+    LOGD("ModelChecker::RunModelCheckerFromDumpFile\n");
     Status status = FeedInputData();
     RETURN_ON_NEQ(status, TNN_OK);
 
@@ -207,9 +207,9 @@ Status ModelChecker::RunModelCheckerFromDumpFile() {
         if (!check_results.empty()) {
             return;
         }
-
         bool check_pass = true;
         for (auto blob : blobs) {
+            const auto data_type = blob->GetBlobDesc().data_type;
             const auto blob_name = blob->GetBlobDesc().name;
             auto replace_name    = blob_name;
 
@@ -227,7 +227,7 @@ Status ModelChecker::RunModelCheckerFromDumpFile() {
             auto* tnn_data_ptr  = blob->GetHandle().base;
             auto data_dims      = blob->GetBlobDesc().dims;
 
-            check_pass &= CompareData(dump_data_ptr, tnn_data_ptr, data_dims);
+            check_pass &= CompareData(dump_data_ptr, tnn_data_ptr, data_type, data_dims);
             if (!check_pass) {
                 check_results.push_back(std::make_pair(info, check_pass));
 
@@ -255,6 +255,7 @@ Status ModelChecker::RunModelCheckerFromDumpFile() {
 }
 
 Status ModelChecker::RunModelCheckerOutput() {
+    LOGD("ModelChecker::RunModelCheckerOutput\n");
     // feed instance input
     auto status = FeedInputData();
     RETURN_ON_NEQ(status, TNN_OK);
@@ -306,6 +307,14 @@ Status ModelChecker::RunModelCheckerOutput() {
         }
         auto cpu_blob_dims    = output_ref_mat_map_[blob_name]->GetDims();
         auto device_blob_dims = device_output_mat_map[blob_name]->GetDims();
+        const auto mat_type = device_output_mat_map[blob_name]->GetMatType();
+        DataType data_type = DATA_TYPE_FLOAT;
+        if (mat_type == NC_INT32) {
+            data_type = DATA_TYPE_INT32;
+        } else if(mat_type == RESERVED_INT8_TEST) {
+            data_type = DATA_TYPE_INT8;
+        }
+        
         // check for dims count
         if (!DimsVectorUtils::Equal(cpu_blob_dims, device_blob_dims)) {
             LOGI("the output dims of cpu and device are not same! (blob name: %s)\n", blob_name.c_str());
@@ -321,7 +330,10 @@ Status ModelChecker::RunModelCheckerOutput() {
             printf("\tbatch: %d\n", b);
             int offset = b * bytesize_perbatch;
             check_pass &= CompareData((char*)device_output_mat_map[blob_name]->GetData() + offset,
-                                      (char*)output_ref_mat_map_[blob_name]->GetData() + offset, compare_dims, COSINE);
+                                      (char*)output_ref_mat_map_[blob_name]->GetData() + offset,
+                                      data_type,
+                                      compare_dims,
+                                      COSINE);
         }
 
         if (model_checker_params_.dump_output) {
@@ -573,16 +585,17 @@ Status ModelChecker::CompareDeviceAndCpu() {
                 LOGE("get blob data failed (%s)\n", ret.description().c_str());
             }
             char* output_data_ptr = device_output_map[blob_name].get();
+            const auto data_type = blob_desc.data_type;
 
             // compare device data with default data
-            is_pass &= CompareData(output_data_ptr, cpu_blobdata_map[blob_name].get(), blob_desc.dims);
+            is_pass &= CompareData(output_data_ptr, cpu_blobdata_map[blob_name].get(), data_type, blob_desc.dims);
 
             // compare data with reference file
             if (!output_ref_mat_map_.empty()) {
                 if (output_blobs_device.find(blob_name) != output_blobs_device.end()) {
                     if (output_ref_mat_map_.find(blob_name) != output_ref_mat_map_.end()) {
                         auto compare_data = output_ref_mat_map_[blob_name]->GetData();
-                        is_pass &= CompareData(output_data_ptr, compare_data, blob_desc.dims);
+                        is_pass &= CompareData(output_data_ptr, compare_data, data_type, blob_desc.dims);
                     } else {
                         LOGE("The output layer name: %s not find in the reference file.\n", blob_name.c_str());
                         is_pass = false;
@@ -604,23 +617,56 @@ Status ModelChecker::CompareDeviceAndCpu() {
     return instance_device_->ForwardWithCallback(nullptr, device_func_after);
 }
 
-bool ModelChecker::CompareData(void* device_data, void* cpu_data, DimsVector blob_dims, CompareType type) {
-    float* result_data = reinterpret_cast<float*>(device_data);
-    float* ref_data    = reinterpret_cast<float*>(cpu_data);
+bool ModelChecker::CompareData(void* device_data, void* cpu_data, DataType data_type, DimsVector blob_dims, CompareType dist_type) {
     int data_count     = DimsVectorUtils::Count(blob_dims);
+    
+    //use COSINE only for float data
+    if (data_type != DATA_TYPE_FLOAT) {
+        dist_type = DEFAULT;
+    }
 
-    if (DEFAULT == type) {
+    if (DEFAULT == dist_type) {
         float ep = 0.005;
-        for (unsigned long long i = 0; i < data_count; i++) {
-            float diff = static_cast<float>(fabs(result_data[i] - ref_data[i]));
-            float sum  = static_cast<float>(fabs(result_data[i]) + fabs(ref_data[i]));
-            if (fabs(diff / sum) > ep && fabs(diff) > 1e-3f) {
-                LOGE("ERROR AT %llu result %.6f ref %.6f  diff/sum %f  diff %f\n", i, result_data[i], ref_data[i],
-                     fabs(diff / sum), fabs(diff));
-                return false;
+        if (data_type == DATA_TYPE_FLOAT) {
+            auto result_data  = reinterpret_cast<float*>(device_data);
+            auto ref_data    = reinterpret_cast<float*>(cpu_data);
+            for (unsigned long long i = 0; i < data_count; i++) {
+                auto diff = static_cast<float>(fabs(result_data[i] - ref_data[i]));
+                auto sum  = static_cast<float>(fabs(result_data[i]) + fabs(ref_data[i]));
+                if (fabs(diff / sum) > ep && fabs(diff) > 1e-3f) {
+                    LOGE("ERROR AT %llu result %.6f ref %.6f  diff/sum %f  diff %f\n", i, result_data[i],
+                         ref_data[i],
+                         fabs(diff / sum), fabs(diff));
+                    return false;
+                }
             }
+        } else if (data_type == DATA_TYPE_INT32) {
+            auto result_data  = reinterpret_cast<int*>(device_data);
+            auto ref_data    = reinterpret_cast<int*>(cpu_data);
+            for (unsigned long long i = 0; i < data_count; i++) {
+                if (abs(result_data[i] - ref_data[i]) > 1) {
+                    LOGE("ERROR AT %llu result %d ref %d\n", i, result_data[i], ref_data[i]);
+                    return false;
+                }
+            }
+        } else if (data_type == DATA_TYPE_INT8) {
+            auto result_data  = reinterpret_cast<char*>(device_data);
+            auto ref_data    = reinterpret_cast<char*>(cpu_data);
+            for (unsigned long long i = 0; i < data_count; i++) {
+                if (abs(result_data[i] - ref_data[i]) > 1) {
+                    LOGE("ERROR AT %llu result %d ref %d\n", i, result_data[i], ref_data[i]);
+                    return false;
+                }
+            }
+        } else {
+            LOGE("ModelChecker::CompareData dont support compare data type: %d\n", data_type);
+            return false;
         }
-    } else if (COSINE == type) {
+
+    } else if (COSINE == dist_type) {
+        auto result_data  = reinterpret_cast<float*>(device_data);
+        auto ref_data    = reinterpret_cast<float*>(cpu_data);
+        
         double max_diff     = 0;
         int max_diff_idx    = -1;
         double cos_distance = 0;
@@ -646,7 +692,7 @@ bool ModelChecker::CompareData(void* device_data, void* cpu_data, DimsVector blo
             return false;
         }
     } else {
-        LOGE("unsupport compare data type\n");
+        LOGE("ModelChecker::CompareData unsupport compare data CompareType\n");
     }
 
     return true;
