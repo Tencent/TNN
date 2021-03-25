@@ -23,7 +23,8 @@ bool OpenCLConvLayerDepthwiseAcc::IsPrefered(const ConvLayerParam *param, const 
         return false;
     }
 
-    return param->group == inputs[0]->GetBlobDesc().dims[1] && param->group == outputs[0]->GetBlobDesc().dims[1];
+    return param->group == DimsFunctionUtils::GetDim(inputs[0]->GetBlobDesc().dims, 1) &&
+           param->group == DimsFunctionUtils::GetDim(outputs[0]->GetBlobDesc().dims, 1);
 }
 
 Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -60,15 +61,18 @@ Status OpenCLConvLayerDepthwiseAcc::Reshape(const std::vector<Blob *> &inputs, c
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
-    const int output_height = output_dims[2];
-    const int output_width  = output_dims[3];
+    const int output_height = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int output_width  = DimsFunctionUtils::GetDim(output_dims, 3);
 
-    const int input_height   = input_dims[2];
-    const int input_width    = input_dims[3];
-    const int input_channels = input_dims[1];
+    const int input_height   = DimsFunctionUtils::GetDim(input_dims, 2);
+    const int input_width    = DimsFunctionUtils::GetDim(input_dims, 3);
+    const int input_channels = DimsFunctionUtils::GetDim(input_dims, 1);
 
-    execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4) * UP_DIV(output_dims[3], 4)),
-                                        static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+    execute_units_[0].global_work_size = {
+        static_cast<uint32_t>(UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4) *
+                              UP_DIV(DimsFunctionUtils::GetDim(output_dims, 3), 4)),
+        static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 0) *
+                              DimsFunctionUtils::GetDim(output_dims, 2))};
 
     int kernel_shape[2]      = {conv_params_.kernel_x, conv_params_.kernel_y};
     int stride_shape[2]      = {conv_params_.stride_x, conv_params_.stride_y};

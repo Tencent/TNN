@@ -93,10 +93,6 @@ Status ConstFolder::Forward() {
         auto layer_flag = layer->GetLayerChangeFlag();
         if (layer_flag == DATA_FLAG_CHANGE_NEVER) {
             constant_layers.insert(layer->GetLayerName());
-            if (layer->GetLayerChangeFlag() == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER) {
-                shape_differ_layers.insert(layer->GetLayerName());
-                continue;
-            }
             continue;
         } else if (layer_flag == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER) {
             constant_layers.insert(layer->GetLayerName());
@@ -107,7 +103,7 @@ Status ConstFolder::Forward() {
         //save const input blob
         auto inputs = layer->GetInputBlobs();
         for (auto blob : inputs) {
-            auto blob_flag = DataFlagUtils::ChangeStatus(blob->flag);
+            auto blob_flag = DataFlagUtils::ChangeStatus(blob->GetFlag());
             if ((layer_flag == DATA_FLAG_CHANGE_ALWAYS && blob_flag > 0) ||
                 (layer_flag == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER && blob_flag == DATA_FLAG_CHANGE_NEVER)) {
                 //save constant resource
@@ -115,12 +111,14 @@ Status ConstFolder::Forward() {
                 status= Blob2RawBuffer(blob, buffer);
                 RETURN_ON_NEQ(status, TNN_OK);
                 
+#ifdef DEBUG
                 {
                     std::stringstream ss;
                     ss << "<" << blob->GetBlobDesc().name << "> shape:[";
                     for(int i: blob->GetBlobDesc().dims) {ss <<  i << ","; } ss << "]";
                     LOGD("ConstFolder save const with name: %s\n", ss.str().c_str());
                 }
+#endif
                 
                 constant_map[blob->GetBlobDesc().name] = buffer;
             }
@@ -199,7 +197,7 @@ Status ConstFolder::GetOptimizedNet(std::shared_ptr<NetStructure> &const_fold_st
                     continue;
                 }
                 
-                auto blob_flag = DataFlagUtils::ChangeStatus(blob->flag);
+                auto blob_flag = DataFlagUtils::ChangeStatus(blob->GetFlag());
    
                 if ((target_flag == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER && blob_flag > 0) ||
                     (target_flag == DATA_FLAG_CHANGE_NEVER && blob_flag == DATA_FLAG_CHANGE_NEVER)) {

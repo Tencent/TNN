@@ -98,7 +98,7 @@ public:
     Status GetAllOutputBlobs(BlobMap& blobs);
 
     // set threads run on cpu
-    virtual Status SetCpuNumThreads(int num_threads);
+    Status SetCpuNumThreads(int num_threads);
 
 #if TNN_PROFILE
 public:

@@ -26,7 +26,7 @@ Status UnsqueezeLayer::InferOutputDataType() {
     const auto& input_name = input_blobs_[0]->GetBlobDesc().name;
     const auto& const_res  = const_resource_;
     if (const_res != nullptr && const_res->find(input_name) != const_res->end()) {
-        output_blobs_[0]->flag = output_blobs_[0]->flag | DATA_FLAG_ALLOCATE_IN_FORWARD;
+        output_blobs_[0]->SetFlag(output_blobs_[0]->GetFlag() | DATA_FLAG_ALLOCATE_IN_FORWARD);
     }
     return status;
 }
@@ -43,8 +43,9 @@ Status UnsqueezeLayer::InferOutputShape(bool ignore_error) {
     
     auto axes = layer_param->axes;
     auto output_dims = input_dims;
-    for (auto axis : axes) {
+    for (auto iter = axes.begin(); iter != axes.end(); iter++) {
         //Note: here it is diffreent from SqueezeLayer
+        int axis = *iter;
         axis = axis < 0 ? axis + (int)output_dims.size() + 1 : axis;
         if (axis < 0 || axis > output_dims.size()) {
             return Status(TNNERR_PARAM_ERR, "UnsqueezeLayer has invalid input axes");

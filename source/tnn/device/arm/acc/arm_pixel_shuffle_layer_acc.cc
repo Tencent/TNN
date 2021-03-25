@@ -209,5 +209,6 @@ Status ArmPixelShuffleLayerAcc::Exec(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_ARM_ACC(PixelShuffle, LAYER_PIXEL_SHUFFLE);
+REGISTER_ARM_LAYOUT(LAYER_PIXEL_SHUFFLE, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

@@ -59,9 +59,12 @@ Status OpenCLPriorBoxLayerAcc::Init(Context *context, LayerParam *param, LayerRe
 }
 
 Status OpenCLPriorBoxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     std::vector<float> priorbox = GeneratePriorBox(inputs, outputs, param_);
     auto dims = outputs[0]->GetBlobDesc().dims;
-    Status ret                  = ConvertPriorBox(priorbox, dims);
+    ret = ConvertPriorBox(priorbox, dims);
     return ret;
 }
 
@@ -75,11 +78,13 @@ Status OpenCLPriorBoxLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     UpdateProfilingData(pdata.get(), {}, {});
 
     ret = CopyImageToImage(opencl_runtime, ocl_context_, *((cl::Image *)ocl_priorbox_->GetData()),
-                           *((cl::Image *)outputs[0]->GetHandle().base), dims[0], dims[1], false, pdata.get());
+                           *((cl::Image *)outputs[0]->GetHandle().base), DimsFunctionUtils::GetDim(dims, 0),
+                           DimsFunctionUtils::GetDim(dims, 1), false, pdata.get());
     ocl_context_->AddProfilingData(pdata);
 #else
     ret = CopyImageToImage(opencl_runtime, ocl_context_, *((cl::Image *)ocl_priorbox_->GetData()),
-                           *((cl::Image *)outputs[0]->GetHandle().base), dims[0], dims[1], false);
+                           *((cl::Image *)outputs[0]->GetHandle().base), DimsFunctionUtils::GetDim(dims, 0),
+                           DimsFunctionUtils::GetDim(dims, 1), false);
 #endif
     return ret;
 }
@@ -136,5 +141,6 @@ Status OpenCLPriorBoxLayerAcc::ConvertPriorBox(std::vector<float> &priorbox, Dim
 }
 
 REGISTER_OPENCL_ACC(PriorBox, LAYER_PRIOR_BOX)
+REGISTER_OPENCL_LAYOUT(LAYER_PRIOR_BOX, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

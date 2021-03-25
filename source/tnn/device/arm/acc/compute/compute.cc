@@ -18,6 +18,7 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/device/arm/acc/Float4.h"
+#include "tnn/device/arm/acc/compute/gemm_function.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_util.h"
 #include "tnn/utils/bfp16.h"
@@ -101,11 +102,11 @@ template void PostAddBiasRelu6<bfp16_t>(void* dst, const void* bias, long area, 
 
 template <typename T1, typename T2, bool Fast>
 void PostAddBiasSwish(void* dst, const void* bias, long area, long oc4) {
-    auto f = Fast? Float4::fast_sigmoid : Float4::sigmoid;
+    auto f = Fast ? Float4::fast_sigmoid : Float4::sigmoid;
 
     if (!bias) {
         for (long z = oc4 - 1; z >= 0; --z) {
-            auto dst_z   = reinterpret_cast<T1*>(dst) + area * 4 * z;
+            auto dst_z = reinterpret_cast<T1*>(dst) + area * 4 * z;
             for (long p = 0; p < area; ++p) {
                 auto dst_p = dst_z + 4 * p;
                 Float4 val = Float4::load(dst_p);
@@ -624,10 +625,10 @@ void DepthwiseUnit(T1* dst, const T1* src, const T2* weight, long fw, long fh, l
     }
     Float4::save(dst, dst_v);
 }
-template void DepthwiseUnit<float>(float* dst, const float* src, const float* weight, long fw, long fh, long weight_y_step,
-                            long dilate_x_step, long dilate_y_step);
-template void DepthwiseUnit<bfp16_t>(bfp16_t* dst, const bfp16_t* src, const float* weight, long fw, long fh, long weight_y_step,
-                            long dilate_x_step, long dilate_y_step);
+template void DepthwiseUnit<float>(float* dst, const float* src, const float* weight, long fw, long fh,
+                                   long weight_y_step, long dilate_x_step, long dilate_y_step);
+template void DepthwiseUnit<bfp16_t>(bfp16_t* dst, const bfp16_t* src, const float* weight, long fw, long fh,
+                                     long weight_y_step, long dilate_x_step, long dilate_y_step);
 
 /*
 general convdw func
@@ -683,10 +684,12 @@ void DepthwiseConv(T1* dst, const T1* src, const T2* weight, long width, long sr
         }
     }
 }
-template void DepthwiseConv<float, float>(float* dst, const float* src, const float* weight, long width, long src_w_step, long fw,
-                            long fh, long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
-template void DepthwiseConv<bfp16_t, float>(bfp16_t* dst, const bfp16_t* src, const float* weight, long width, long src_w_step, long fw,
-                            long fh, long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
+template void DepthwiseConv<float, float>(float* dst, const float* src, const float* weight, long width,
+                                          long src_w_step, long fw, long fh, long dilate_x_step, long dilate_y_step,
+                                          long height, long srcHStep, long dstHStep);
+template void DepthwiseConv<bfp16_t, float>(bfp16_t* dst, const bfp16_t* src, const float* weight, long width,
+                                            long src_w_step, long fw, long fh, long dilate_x_step, long dilate_y_step,
+                                            long height, long srcHStep, long dstHStep);
 
 /*
 convdw3x3 center func
@@ -776,11 +779,11 @@ template <typename T1, typename T2>
 void DepthwiseUnitDeconv(const T1* dst, T1* src, const T2* weight, long fw, long fh, long weight_y_step,
                          long dilate_x_step, long dilate_y_step) {
     long fx, fy;
-    T1* src_z              = src;
+    T1* src_z             = src;
     const float* weight_z = weight;
     Float4 dstV           = Float4::load(dst);
     for (fy = 0; fy < fh; ++fy) {
-        T1* src_y              = src_z + fy * dilate_y_step;
+        T1* src_y             = src_z + fy * dilate_y_step;
         const float* weight_y = weight_z + fy * weight_y_step;
         for (fx = 0; fx < fw; ++fx) {
             Float4 weight_x = Float4::load(weight_y + 4 * fx);
@@ -815,16 +818,16 @@ template void DepthwiseDeconv(const bfp16_t* dst, bfp16_t* src, const float* wei
                               long fw, long fh, long dilate_x_step, long dilate_y_step);
 
 template <typename T>
-void ScaleBias(T *src, int channel, int hw, const float *scale, const float *bias, T *dst) {
+void ScaleBias(T* src, int channel, int hw, const float* scale, const float* bias, T* dst) {
     if (dst == nullptr) {
         dst = src;
     }
     RawBuffer scale_buffer(ROUND_UP(channel, 4) * sizeof(float));
     RawBuffer bias_buffer(ROUND_UP(channel, 4) * sizeof(float));
-    memcpy(scale_buffer.force_to<void *>(), scale, sizeof(float) * channel);
-    memcpy(bias_buffer.force_to<void *>(), bias, sizeof(float) * channel);
-    auto local_scale = scale_buffer.force_to<float *>();
-    auto local_bias  = bias_buffer.force_to<float *>();
+    memcpy(scale_buffer.force_to<void*>(), scale, sizeof(float) * channel);
+    memcpy(bias_buffer.force_to<void*>(), bias, sizeof(float) * channel);
+    auto local_scale = scale_buffer.force_to<float*>();
+    auto local_bias  = bias_buffer.force_to<float*>();
 
     for (int z = 0; z < UP_DIV(channel, 4); ++z) {
         auto src_z   = src + z * hw * 4;
@@ -837,8 +840,8 @@ void ScaleBias(T *src, int channel, int hw, const float *scale, const float *bia
     }
 }
 
-template void ScaleBias(float *src, int channel, int hw, const float *scale, const float *bias, float *dst);
-template void ScaleBias(bfp16_t *src, int channel, int hw, const float *scale, const float *bias, bfp16_t *dst);
+template void ScaleBias(float* src, int channel, int hw, const float* scale, const float* bias, float* dst);
+template void ScaleBias(bfp16_t* src, int channel, int hw, const float* scale, const float* bias, bfp16_t* dst);
 
 void Half2Float(float* dst, const fp16_t* src, const size_t length) {
 #ifdef TNN_ARM82_USE_NEON
@@ -857,6 +860,47 @@ void Float2Half(fp16_t* dst, const float* src, const size_t length) {
         dst[i] = src[i];
     }
 #endif
+}
+
+void GemmFloatPackA(int m, int n, int k, const float* a, float* pack_a, int lda, const float* b, int ldb, float* c,
+                    int ldc) {
+#ifdef __aarch64__
+    PackA_12(m, k, a, lda, pack_a);
+    Kernel_12x8(m, n, k, pack_a, b, c, ldc);
+    a += (m / 12) * 12 * lda;
+    c += (m / 12) * 12 * ldc;
+    m = m % 12;
+#endif
+
+    PackA_4(m, k, a, lda, pack_a);
+    Kernel_4x8(m, n, k, pack_a, b, c, ldc);
+    a += (m / 4) * 4 * lda;
+    c += (m / 4) * 4 * ldc;
+    m = m % 4;
+
+    PackA_1(m, k, a, lda, pack_a);
+    Kernel_1x8(m, n, k, pack_a, b, c, ldc);
+}
+
+void GemmFloatPackAB(int m, int n, int k, const float* a, float* pack_a, int lda, const float* b, float* pack_b, int ldb, float* c,
+                    int ldc) {
+    PackB_8(k, n, b, ldb, pack_b);
+#ifdef __aarch64__
+    PackA_12(m, k, a, lda, pack_a);
+    Kernel_12x8(m, n, k, pack_a, pack_b, c, ldc);
+    a += (m / 12) * 12 * lda;
+    c += (m / 12) * 12 * ldc;
+    m = m % 12;
+#endif
+
+    PackA_4(m, k, a, lda, pack_a);
+    Kernel_4x8(m, n, k, pack_a, pack_b, c, ldc);
+    a += (m / 4) * 4 * lda;
+    c += (m / 4) * 4 * ldc;
+    m = m % 4;
+
+    PackA_1(m, k, a, lda, pack_a);
+    Kernel_1x8(m, n, k, pack_a, pack_b, c, ldc);
 }
 
 }  // namespace TNN_NS

@@ -21,7 +21,7 @@ namespace TNN_NS {
 
 class ArgMaxOrMinLayerTest
     : public LayerTest,
-      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, DataType>> {};
+      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ArgMaxOrMinLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
@@ -31,6 +31,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ArgMaxOrMinLayerTest,
                                             testing::Values(0, 1, 2, 3),
                                             // keep dims
                                             testing::Values(1),
+                                            // dim count
+                                            testing::Values(2, 3, 4, 5),
                                             // select_last_index: we will support this feature in future;
                                             testing::Values(0), testing::Values(DATA_TYPE_FLOAT)));
 
@@ -42,8 +44,9 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayer) {
     int mode              = std::get<3>(GetParam());
     int axis              = std::get<4>(GetParam());
     int keep_dims         = std::get<5>(GetParam());
-    int select_last_index = std::get<6>(GetParam());
-    DataType dtype        = std::get<7>(GetParam());
+    int dim_count         = std::get<6>(GetParam());
+    int select_last_index = std::get<7>(GetParam());
+    DataType dtype        = std::get<8>(GetParam());
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
 
     if (DEVICE_HUAWEI_NPU == dev) {
@@ -51,6 +54,14 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayer) {
     }
 
     if (dtype != DATA_TYPE_FLOAT) {
+        GTEST_SKIP();
+    }
+
+    if (axis >= dim_count) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
         GTEST_SKIP();
     }
 
@@ -63,7 +74,8 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayer) {
     param->select_last_index = select_last_index;
 
     // generate proto string
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
     auto interpreter            = GenerateInterpreter("ArgMaxOrMin", {input_dims}, param);
     Run(interpreter);
 }

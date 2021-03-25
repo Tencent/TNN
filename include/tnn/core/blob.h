@@ -21,9 +21,16 @@
 
 #include "tnn/core/common.h"
 #include "tnn/core/macro.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
+
+#define GetBlobDim(d, i) \
+    (((d).size()) > (i) ? ((d)[i]) : 1)
+
+#define GetBlobCount(d, i) \
+    ( (DimsVectorUtils::Count((d), (i))) > 0? (DimsVectorUtils::Count((d), (i))) : (GetBlobDim(d, i)) )
 
 namespace TNN_NS {
 
@@ -47,6 +54,8 @@ struct PUBLIC BlobHandle {
     void *base            = NULL;
     uint64_t bytes_offset = 0;
 };
+
+class BlobImpl;
 
 // @brief Blob tnn data store and transfer interface.
 class PUBLIC Blob {
@@ -80,15 +89,12 @@ public:
     
     //@brief check if it is constant
     bool IsConstant();
-private:
-    BlobDesc desc_;
-    BlobHandle handle_;
-    bool alloc_memory_;
-public:
-    //0: data alwalys change
-    //1: data change if shape differ
-    //2: data never change
-    int flag = DATA_FLAG_CHANGE_ALWAYS;
+
+    int GetFlag();
+
+    void SetFlag(int flag);
+private: 
+    BlobImpl* impl_;
 };
 
 // InputShapeMap input reshape info

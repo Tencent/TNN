@@ -171,6 +171,8 @@ DimsVector DimsFunctionUtils::StrideSlice(const DimsVector input_dims,
     //前闭后开区间
     for (int i = 0; i < axes.size(); i++) {
         int index = axes[i];
+        if (input_dims.size() <= index || output_dims.size() <= index)
+            continue;
         if (begins[i] < 0) {
             begins[i] += input_dims[index];
         }
@@ -279,6 +281,10 @@ DimsVector DimsFunctionUtils::ModIndex(DimsVector index, const DimsVector shape)
         index[i] %= shape[i];
     }
     return index;
+}
+
+int DimsFunctionUtils::GetDim(const DimsVector dims, const int index) {
+    return dims.size() > index ? dims[index] : 1;
 }
 
 }  // namespace TNN_NS

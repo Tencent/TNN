@@ -33,5 +33,6 @@ typedef struct arm_reduce_log_sum_operator : arm_reduce_operator {
 DECLARE_ARM_REDUCE_ACC(ReduceLogSum, ARM_REDUCE_LOG_SUM_OP);
 
 REGISTER_ARM_ACC(ReduceLogSum, LAYER_REDUCE_LOG_SUM);
+REGISTER_ARM_LAYOUT(LAYER_REDUCE_LOG_SUM, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

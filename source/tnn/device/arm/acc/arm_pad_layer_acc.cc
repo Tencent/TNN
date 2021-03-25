@@ -304,5 +304,6 @@ Status ArmPadLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
 }
 
 REGISTER_ARM_ACC(Pad, LAYER_PAD);
+REGISTER_ARM_LAYOUT(LAYER_PAD, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

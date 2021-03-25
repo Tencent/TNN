@@ -39,5 +39,6 @@ std::set<std::string> OpenCLRelu6LayerAcc::CreateBuildOptions() {
 OpenCLRelu6LayerAcc::~OpenCLRelu6LayerAcc() {}
 
 REGISTER_OPENCL_ACC(Relu6, LAYER_RELU6)
+REGISTER_OPENCL_LAYOUT(LAYER_RELU6, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

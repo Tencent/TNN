@@ -29,7 +29,7 @@ Status ArmPowLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
 
     Blob *output_blob = outputs[0];
     auto dims         = output_blob->GetBlobDesc().dims;
-    int count         = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+    int count         = dims[0] * ROUND_UP(dims[1], 4) * DimsVectorUtils::Count(dims, 2);
     int count_quad    = UP_DIV(count, 4);
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
@@ -70,5 +70,6 @@ Status ArmPowLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
 }
 
 REGISTER_ARM_ACC(Pow, LAYER_POWER);
+REGISTER_ARM_LAYOUT(LAYER_POWER, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

@@ -177,13 +177,13 @@ class BaseRunner:
     def inference(self) -> dict:
         pass
 
-    def dump_single_output(self, output_name: str, output_data: np.ndarray):
+    def dump_single_output(self, output_name: str, output_data: np.ndarray, full_message: bool):
         pass
 
     def dump_all_output(self, dump_data: dict) -> bool:
         param_list = []
         for name, data in dump_data.items():
-            param_list.append((name, data))
+            param_list.append((name, data, True))
         with Pool(4) as p:
             p.starmap(self.dump_single_output, param_list)
 

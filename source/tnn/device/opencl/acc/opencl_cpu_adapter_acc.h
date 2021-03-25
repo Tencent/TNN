@@ -37,7 +37,7 @@ public:
 
 private:
     // @brief return device layer acc support data format
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size) override;
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) override;
 
 private:
     LayerType impl_layer_type_;

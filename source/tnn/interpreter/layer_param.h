@@ -190,7 +190,10 @@ struct RangeLayerParam : public LayerParam {
     DataType data_type = DATA_TYPE_FLOAT;
     RangeData start = {0};
     RangeData limit = {0};
-    RangeData delta = { .i = 1};
+
+    // designated initializer may cause compile error in msvc
+    RangeData delta = {1};
+    // RangeData delta = { .i = 1};
 
     PARAM_COPY(RangeLayerParam)
 };
@@ -432,15 +435,21 @@ typedef enum {
     DEQUANT_NHWC_2_NCHW4 = 3,
     // data_type + layout for half data type in armv8.2
     NC4HW4FP32_2_NC8HW8FP16 = 4,
-    NC8HW8FP16_2_NC4HW4FP32 = 5
+    NC8HW8FP16_2_NC4HW4FP32 = 5,
+    // nchw <-> nc4hw4 fp32
+    NC4HW4FP32_2_NCHWFP32 = 6,
+    NCHWFP32_2_NC4HW4FP32 = 7,
+    // nchw <-> nc8hw8 fp16
+    NC8HW8FP16_2_NCHWFP16 = 8,
+    NCHWFP16_2_NC8HW8FP16 = 9,
     // to be continued
 } ReformatType;
 
 struct ReformatLayerParam : public LayerParam {
-    DataType src_type;
-    DataType dst_type;
-    DataFormat src_format;
-    DataFormat dst_format;
+    DataType src_type     = DATA_TYPE_AUTO;
+    DataType dst_type     = DATA_TYPE_AUTO;
+    DataFormat src_format = DATA_FORMAT_AUTO;
+    DataFormat dst_format = DATA_FORMAT_AUTO;
     ReformatType type;
 
     PARAM_COPY(ReformatLayerParam)
@@ -539,6 +548,7 @@ struct SignedMulLayerParam : public LayerParam {
 };
 
 struct SqueezeLayerParam : public LayerParam {
+    //Note the axes is ascending order,  see SqueezeLayer::InferOutputShape and UnsqueezeLayer::InferOutputShape
     std::vector<int> axes;
     bool data_in_resource = false;
 

@@ -37,6 +37,7 @@ Status MetalSeluLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
     {
         MetalSeluParams metal_params;
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
+        FixDefaultMetalParams(metal_params, dims_input, dims_output);
 
         metal_params.alpha = layer_param->alpha;
         metal_params.gamma = layer_param->gamma;
@@ -53,5 +54,6 @@ Status MetalSeluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_METAL_UNARY_ACC(Selu, LAYER_SELU);
+REGISTER_METAL_LAYOUT(LAYER_SELU, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS
