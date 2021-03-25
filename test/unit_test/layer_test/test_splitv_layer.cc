@@ -52,6 +52,10 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_OPENCL == dev && (dim_count > 4 || axis != 1)) {
+        GTEST_SKIP();
+    }
+
     std::vector<int> input_dims = {batch, channel};
     while (input_dims.size() < dim_count) input_dims.push_back(input_size);
 

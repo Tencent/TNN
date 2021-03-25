@@ -44,6 +44,10 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<LayerParam> param(new LayerParam());
     param->name = "BatchNorm";

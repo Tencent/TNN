@@ -55,6 +55,10 @@ TEST_P(HardSigmoidLayerTest, HardSigmoidLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<HardSigmoidLayerParam> param(new HardSigmoidLayerParam());
     param->name  = "HardSigmoid";

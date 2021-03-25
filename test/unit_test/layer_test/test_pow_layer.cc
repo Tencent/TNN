@@ -68,6 +68,10 @@ TEST_P(PowLayerTest, PowLayer) {
         exponent = (int)exponent;
     }
 
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<PowLayerParam> param(new PowLayerParam());
     param->name     = "Pow";

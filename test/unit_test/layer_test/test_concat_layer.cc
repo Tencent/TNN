@@ -62,6 +62,10 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<ConcatLayerParam> param(new ConcatLayerParam());
     param->name = "Concat";

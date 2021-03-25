@@ -33,7 +33,12 @@ TEST_P(InstanceNormLayerTest, InstanceNormLayer) {
     int channel    = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam());
     int dim_count  = std::get<3>(GetParam());
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
     if (input_size > 64 && dim_count > 5) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL == dev & dim_count > 4) {
         GTEST_SKIP();
     }
 

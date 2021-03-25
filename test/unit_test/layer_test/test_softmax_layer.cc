@@ -60,6 +60,11 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_OPENCL == dev && (dim_count > 4 || (axis != 1 && axis != 2))) {
+        // opencl only support axis = 1 or 2 for now
+        GTEST_SKIP();
+    }
+
     if (1 != axis && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }

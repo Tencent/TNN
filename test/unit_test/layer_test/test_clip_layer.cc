@@ -53,6 +53,10 @@ TEST_P(ClipLayerTest, ClipLayer) {
     DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if (dev == DEVICE_OPENCL && dim_count > 4) {
+        GTEST_SKIP();
+    }
+
     // param
     ClipLayerParam* param = new ClipLayerParam();
     param->name           = "Clip";
