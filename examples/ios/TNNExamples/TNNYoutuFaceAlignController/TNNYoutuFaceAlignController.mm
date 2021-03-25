@@ -15,6 +15,10 @@
 #import "TNNYoutuFaceAlignController.h"
 #import "youtu_face_align.h"
 #import "blazeface_detector.h"
+#import "ocr_textbox_detector.h"
+#import "ocr_angle_predictor.h"
+#import "ocr_text_recognizer.h"
+#import "ocr_driver.h"
 #import "UIImage+Utility.h"
 #import <Metal/Metal.h>
 #import <cstdlib>
@@ -42,6 +46,9 @@ using namespace TNN_NS;
 @property std::shared_ptr<BlazeFaceDetector> face_detector;
 @property std::shared_ptr<YoutuFaceAlign> predictor_phase1;
 @property std::shared_ptr<YoutuFaceAlign> predictor_phase2;
+@property std::shared_ptr<OCRTextboxDetector> text_detector;
+@property std::shared_ptr<OCRAnglePredictor> angle_predictor;
+@property std::shared_ptr<OCRTextRecognizer> text_recognizer;
 @property bool prev_face;
 
 @property NSMutableArray *result;
@@ -60,7 +67,7 @@ using namespace TNN_NS;
     
     // Iterate all images
     self.result = [NSMutableArray array];
-    [[[NSBundle mainBundle] pathsForResourcesOfType:@".jpg" inDirectory:@"decoded_images/."] enumerateObjectsUsingBlock:^(NSString *obj, NSUInteger idx, BOOL *stop) {
+    [[[NSBundle mainBundle] pathsForResourcesOfType:@".jpg" inDirectory:@"ocr_imgs/."] enumerateObjectsUsingBlock:^(NSString *obj, NSUInteger idx, BOOL *stop) {
         NSString *path = [obj lastPathComponent];
         //printf("path:%s\n", std::string([path UTF8String]).c_str());
         if ([path hasSuffix:@"jpg"]) {
@@ -238,6 +245,158 @@ using namespace TNN_NS;
     return predictor;
 }
 
+-(std::shared_ptr<OCRTextboxDetector>)loadOCRTextboxDetector {
+    std::shared_ptr<OCRTextboxDetector> predictor = nullptr;
+    
+    auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/dbnet.onnx.pack.tnnmodel"
+                                                          ofType:nil];
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/dbnet.onnx.pack.tnnproto"
+                                                          ofType:nil];
+    if (proto_path.length <= 0 || model_path.length <= 0) {
+        self.labelResult.text = @"proto or model path is invalid";
+        NSLog(@"Error: proto or model path is invalid");
+        return predictor;
+    }
+
+    string proto_content =
+        [NSString stringWithContentsOfFile:proto_path encoding:NSUTF8StringEncoding error:nil].UTF8String;
+    NSData *data_mode    = [NSData dataWithContentsOfFile:model_path];
+    string model_content = [data_mode length] > 0 ? string((const char *)[data_mode bytes], [data_mode length]) : "";
+    if (proto_content.size() <= 0 || model_content.size() <= 0) {
+        self.labelResult.text = @"proto or model path is invalid";
+        NSLog(@"Error: proto or model path is invalid");
+        return predictor;
+    }
+    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    if(units == TNNComputeUnitsCPU) {
+        LOGE("load ARM model!\n");
+    } else {
+        LOGE("load Metal model!\n");
+    }
+    auto option = std::make_shared<TNNSDKOption>();
+    {
+        option->proto_content = proto_content;
+        option->model_content = model_content;
+        option->library_path = library_path.UTF8String;
+        option->compute_units = units;
+    }
+        
+    predictor = std::make_shared<OCRTextboxDetector>();
+    auto status = predictor->Init(option);
+    if (status != TNN_OK) {
+        self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
+        NSLog(@"Error: %s", status.description().c_str());
+        return nullptr;
+    }
+    
+    return predictor;
+}
+
+-(std::shared_ptr<OCRAnglePredictor>)loadOCRAnglePredictor {
+    std::shared_ptr<OCRAnglePredictor> predictor = nullptr;
+    
+    auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/angle_net.onnx.pack.tnnmodel"
+                                                          ofType:nil];
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/angle_net.onnx.pack.tnnproto"
+                                                          ofType:nil];
+    if (proto_path.length <= 0 || model_path.length <= 0) {
+        self.labelResult.text = @"proto or model path is invalid";
+        NSLog(@"Error: proto or model path is invalid");
+        return predictor;
+    }
+
+    string proto_content =
+        [NSString stringWithContentsOfFile:proto_path encoding:NSUTF8StringEncoding error:nil].UTF8String;
+    NSData *data_mode    = [NSData dataWithContentsOfFile:model_path];
+    string model_content = [data_mode length] > 0 ? string((const char *)[data_mode bytes], [data_mode length]) : "";
+    if (proto_content.size() <= 0 || model_content.size() <= 0) {
+        self.labelResult.text = @"proto or model path is invalid";
+        NSLog(@"Error: proto or model path is invalid");
+        return predictor;
+    }
+    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    if(units == TNNComputeUnitsCPU) {
+        LOGE("load ARM model!\n");
+    } else {
+        LOGE("load Metal model!\n");
+    }
+    auto option = std::make_shared<TNNSDKOption>();
+    {
+        option->proto_content = proto_content;
+        option->model_content = model_content;
+        option->library_path = library_path.UTF8String;
+        option->compute_units = units;
+    }
+        
+    predictor = std::make_shared<OCRAnglePredictor>();
+    auto status = predictor->Init(option);
+    if (status != TNN_OK) {
+        self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
+        NSLog(@"Error: %s", status.description().c_str());
+        return nullptr;
+    }
+    
+    return predictor;
+}
+
+-(std::shared_ptr<OCRTextRecognizer>)loadOCRTextRecognizer {
+    std::shared_ptr<OCRTextRecognizer> predictor = nullptr;
+    
+    auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/crnn_lite_lstm.onnx.pack.tnnmodel"
+                                                          ofType:nil];
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/crnn_lite_lstm.onnx.pack.tnnproto"
+                                                          ofType:nil];
+    if (proto_path.length <= 0 || model_path.length <= 0) {
+        self.labelResult.text = @"proto or model path is invalid";
+        NSLog(@"Error: proto or model path is invalid");
+        return predictor;
+    }
+    auto vocab_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/keys.txt"
+                                                      ofType:nil];
+    if (vocab_path.length <= 0) {
+        self.labelResult.text = @"vocabulary file path is invalid";
+        NSLog(@"Error: vocabulary file path is invalid");
+        return predictor;
+    }
+
+    string proto_content =
+        [NSString stringWithContentsOfFile:proto_path encoding:NSUTF8StringEncoding error:nil].UTF8String;
+    NSData *data_mode    = [NSData dataWithContentsOfFile:model_path];
+    string model_content = [data_mode length] > 0 ? string((const char *)[data_mode bytes], [data_mode length]) : "";
+    if (proto_content.size() <= 0 || model_content.size() <= 0) {
+        self.labelResult.text = @"proto or model path is invalid";
+        NSLog(@"Error: proto or model path is invalid");
+        return predictor;
+    }
+    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    if(units == TNNComputeUnitsCPU) {
+        LOGE("load ARM model!\n");
+    } else {
+        LOGE("load Metal model!\n");
+    }
+    auto option = std::make_shared<OCRTextRecognizerOption>();
+    {
+        option->proto_content = proto_content;
+        option->model_content = model_content;
+        option->library_path = library_path.UTF8String;
+        option->compute_units = units;
+        option->vocab_path = vocab_path.UTF8String;
+    }
+        
+    predictor = std::make_shared<OCRTextRecognizer>();
+    auto status = predictor->Init(option);
+    if (status != TNN_OK) {
+        self.labelResult.text = [NSString stringWithFormat:@"%s", status.description().c_str()];
+        NSLog(@"Error: %s", status.description().c_str());
+        return nullptr;
+    }
+    
+    return predictor;
+}
+
 - (IBAction)onSwitchChanged:(id)sender {
     self.imageView.image  = self.image_orig;
     self.labelResult.text = nil;
@@ -316,6 +475,49 @@ using namespace TNN_NS;
     }
 }
 
+- (IBAction)onBtnTNNExamples:(id)sender {
+    //clear result
+    self.labelResult.text = nil;
+    //load models
+    self.text_detector = [self loadOCRTextboxDetector];
+    self.angle_predictor = [self loadOCRAnglePredictor];
+    self.text_recognizer = [self loadOCRTextRecognizer];
+    std::vector<std::shared_ptr<TNNSDKSample>> ocr_models{self.text_detector, self.angle_predictor, self.text_recognizer};
+    auto ocr_driver = std::make_shared<OCRDriver>();
+    ocr_driver->Init(ocr_models);
+    
+    TNNComputeUnits compute_units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto idx = 0;
+    Status status = TNN_OK;
+
+    for (NSString * img_path in self.result) {
+        // use autoreleasepool to rease images allocated inside each loop right after each iteration completes,
+        // otherwise the memory will be released after the complete loop completes and the code will take too much memory.
+        @autoreleasepool {
+            LOGE("processing image[%d]:%s\n",idx++,  [[img_path lastPathComponent] UTF8String]);
+            //if ([img_path containsString:@"6.jpg"] == NO)
+            //    continue;
+            
+            auto input_image = [UIImage imageWithContentsOfFile:img_path];
+            auto image_data = utility::UIImageGetData(input_image);
+            
+            const int image_orig_height = (int)CGImageGetHeight(input_image.CGImage);
+            const int image_orig_width  = (int)CGImageGetWidth(input_image.CGImage);
+            TNN_NS::DimsVector orig_image_dims = {1, 4, image_orig_height, image_orig_width};
+
+            std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
+            std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
+            
+            image_mat = [self ConvertImageToMat: compute_units :orig_image_dims :image_data];
+            status = ocr_driver->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
+            [self CheckStatusSetLabel:status];
+            BREAK_IF(status != TNN_OK);
+        } // autoreleasepool
+    
+    }
+}
+
+/*
 - (IBAction)onBtnTNNExamples:(id)sender {
     //clear result
     self.labelResult.text = nil;
@@ -413,5 +615,6 @@ using namespace TNN_NS;
     // update view image
     self.imageView.image = last_frame;
 }
+*/
 
 @end

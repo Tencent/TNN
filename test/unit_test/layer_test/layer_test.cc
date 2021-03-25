@@ -233,7 +233,6 @@ Status LayerTest::Compare() {
 Status LayerTest::DeInit() {
     instance_cpu_.reset();
     instance_device_.reset();
-    instance_ocl_cache_.reset();
 
     return TNN_OK;
 }
