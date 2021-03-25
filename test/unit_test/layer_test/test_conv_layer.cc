@@ -65,14 +65,9 @@ TEST_P(ConvLayerTest, ConvLayer) {
     int activation_type   = std::get<10>(GetParam());
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
 
-    if (dtype == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(dtype)) {
         GTEST_SKIP();
     }
-#ifndef TNN_ARM82
-    if (dtype == DATA_TYPE_HALF) {
-        GTEST_SKIP();
-    }
-#endif
 
     if (activation_type != ActivationType_None && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();

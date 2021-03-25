@@ -47,7 +47,7 @@ TEST_P(EluLayerTest, EluLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 

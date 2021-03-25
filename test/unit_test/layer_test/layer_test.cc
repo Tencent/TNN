@@ -35,6 +35,20 @@ std::shared_ptr<Instance> LayerTest::instance_ocl_cache_ = nullptr;
 
 void LayerTest::SetUpTestCase() {}
 
+bool LayerTest::CheckDataTypeSkip(DataType data_type) {
+#ifndef TNN_ARM82
+    if (data_type == DATA_TYPE_HALF) {
+        return true;
+    }
+#endif
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+    if ( (data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_INT8 || data_type == DATA_TYPE_BFP16) && (DEVICE_ARM != dev &&  DEVICE_NAIVE != dev))  {
+        return true;
+    }
+    return false;
+}
+
+
 void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision, DataFormat cpu_input_data_format, DataFormat device_input_data_format) {
 #if defined(__OBJC__) && defined(__APPLE__)
     @autoreleasepool{
