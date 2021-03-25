@@ -88,6 +88,7 @@ target_link_libraries( # Specifies the target library.
                        ${log-lib})
 
 if(TNN_HUAWEI_NPU_ENABLE)
+    set(CMAKE_SHARED_LINKER_FLAGS "-fuse-ld=gold")  
     target_link_libraries( # Specifies the target library.
             tnn_wrapper hiai hiai_ir hiai_ir_build)
 endif()
