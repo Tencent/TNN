@@ -125,5 +125,26 @@ In folder`<path_to_TNN>/source/tnn/device/huawei_npu/convert`, add  the LayerCon
 （3）Implement the following function：   
 * `Convert()` -- use IR to convert the tnn operator；  
 
+### 3.6 X86 platform
+#### 3.6.1 native
+Add the LayerAcc implementation of the corresponding operator in the folder `<path_to_TNN>/source/tnn/device/x86/acc`.
+(1) Declare the LayerAcc implementation of the new operator, if there are no special parameters, you can directly use the `DECLARE_X86_ACC ()` declaration;
+(2) `REGISTER_X86_ACC ()` register LayerAcc implementation for the new operator;
+(3) Implement the following interface:
+* `Init ()` -- process LayerParam and LayerResource;
+* `Reshape ()` -- implement logic when the input blob size changes;
+* `Forward ()` -- X86 implementation of the new operator
+
+#### 3.6.2 openvino
+Add the OpenVINOLayerBuilder implementation of the corresponding operator in the folder `<path_to_TNN>/source/tnn/network/openvino/layer_builder`
+(1) Declare the OpenVINOLayerBuilder implementation of the new operator with `DECLARE_OPENVINO_LAYER_BUILDER`
+(2) Register OpenVINOLayerBuilder implementation with `REGISTER_OPENVINO_LAYER_BUILDER`
+(3) Implement the following function:
+* `Build()` -- convert the tnn operator to ngraph node；  
+
+Register custom op for those operator with poor performance or unsupported in the floder `<path_to_TNN>/source/tnn/network/openvino/custom_layer`
+(1) use `DECLARE_CUSTOM_IMPLEMENTATION`to declare the custom op and `REGISTER_CUSTOM_IMPLEMENTATION` to register
+(2) construct ngrah node with custom op in `Build()`
+
 ## 4. Add Unit Test <span id = "4"> </span>
 Add the unit test file of the corresponding layer in the folder `<path_to_TNN>/test/unit_test/layer_test`.
