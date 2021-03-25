@@ -25,7 +25,7 @@ class BatchNormScaleLayerTest : public LayerTest,
 INSTANTIATE_TEST_SUITE_P(LayerTest, BatchNormScaleLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
                                             // dim count
-                                            testing::Values(2, 3, 4, 5, 6),
+                                            testing::Values(2, 3, 4, 5),
                                             // share channel
                                             testing::Values(false, true),
                                             // has bias

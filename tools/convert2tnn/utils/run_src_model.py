@@ -116,6 +116,14 @@ class BaseRunner:
         tnn_data_type = src_model_input_information['data_type']
         if type(onnx_shape[0]) is not int:
             onnx_shape[0] = 1
+        # if tnn has valid shape and onnx model's is str, use tnn shape
+        if len(onnx_shape) == len(tnn_shape):
+            for i in range(len(onnx_shape)):
+                os = onnx_shape[i]
+                ts = tnn_shape[i]
+                if isinstance(ts, int) and not isinstance(os, int):
+                    onnx_shape[i] = ts
+                    src_model_input_information['borrow_shape'] = True
         if onnx_data_type == tnn_data_type and onnx_shape == tnn_shape:
             return True
         else:
@@ -140,13 +148,18 @@ class BaseRunner:
     def modify_src_model_output(self) -> bool:
         pass
 
-    def generate_input_data(self, input_information: dict) -> bool:
+    def generate_input_data(self, input_information: dict, tnn_model_input_information: dict) -> bool:
         self.input_data = {}
         data_path = os.path.join(self.dump_dir_path, "input.txt")
         data_file = open(data_path, "w")
         data_file.write(str(len(input_information)) + '\n')
         for name, info in input_information.items():
+            tnn_name = name.replace(":", "_")
+            tnn_info = tnn_model_input_information[tnn_name]
             shape = info['shape']
+            if "borrow_shape" in info and info["borrow_shape"]:
+                shape = tnn_info['shape']
+                logging.info("Using tnn shape:{} for input:{}".format(shape,name))
             data_type = info['data_type']
             data_file.write(name + ' ' + str(len(shape)) + ' ' + ' '.join([str(dim) for dim in shape]) + ' ' + str(
                 data_type) + '\n')
@@ -164,13 +177,13 @@ class BaseRunner:
     def inference(self) -> dict:
         pass
 
-    def dump_single_output(self, output_name: str, output_data: np.ndarray):
+    def dump_single_output(self, output_name: str, output_data: np.ndarray, full_message: bool):
         pass
 
     def dump_all_output(self, dump_data: dict) -> bool:
         param_list = []
         for name, data in dump_data.items():
-            param_list.append((name, data))
+            param_list.append((name, data, True))
         with Pool(4) as p:
             p.starmap(self.dump_single_output, param_list)
 
@@ -198,7 +211,7 @@ class BaseRunner:
 
         self.modify_src_model_output()
 
-        self.generate_input_data(src_model_input_information)
+        self.generate_input_data(src_model_input_information, tnn_model_input_information)
 
         dump_data = self.inference()
 

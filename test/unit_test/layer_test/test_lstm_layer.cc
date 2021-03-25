@@ -29,6 +29,9 @@ static bool TestFilter(DeviceType device_type, DataType data_type) {
     if (device_type == DEVICE_METAL)
         return true;
 
+    if (device_type == DEVICE_X86)
+        return true;
+    
     if (device_type == DEVICE_OPENCL)
         return true;
     return false;
