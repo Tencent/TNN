@@ -340,6 +340,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         }
 
         std::string layer_name = layer_info->name;
+        cur_layer->SetNetwork(this);
         cur_layer->SetLayerName(layer_name);
         // set layer nodes
         std::vector<Blob *> inputs;
