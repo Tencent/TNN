@@ -22,7 +22,7 @@ namespace TNN_NS {
 class SeluLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, SeluLayerTest, ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
-                                                        testing::Values(2, 3, 4, 5, 6)));
+                                                        testing::Values(2, 3, 4, 5)));
 
 TEST_P(SeluLayerTest, SeluLayer) {
     // get param
@@ -33,6 +33,10 @@ TEST_P(SeluLayerTest, SeluLayer) {
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     if (DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
         GTEST_SKIP();
     }
 

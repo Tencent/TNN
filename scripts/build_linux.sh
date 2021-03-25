@@ -1,10 +1,14 @@
 #!/bin/bash
 
+if [ -z $TNN_ROOT_PATH ]
+then
+    TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
+fi
+
 set -euo pipefail
 
-TNN_DIR=$(cd `dirname $0`; pwd)/..
-BUILD_DIR=${TNN_DIR}/scripts/build_linux
-TNN_INSTALL_DIR=${TNN_DIR}/scripts/linux_release
+BUILD_DIR=${TNN_ROOT_PATH}/scripts/build_linux
+TNN_INSTALL_DIR=${TNN_ROOT_PATH}/scripts/linux_release
 OPENVINO_BUILD_SHARED="ON"
 
 OPENVINO_INSTALL_PATH=${BUILD_DIR}/openvinoInstallShared
@@ -157,7 +161,7 @@ pack_tnn() {
         rm -rf ${TNN_INSTALL_DIR}/include
     fi 
 
-    cp -RP ${TNN_DIR}/include ${TNN_INSTALL_DIR}/
+    cp -RP ${TNN_ROOT_PATH}/include ${TNN_INSTALL_DIR}/
     cp -P libTNN.so* ${TNN_INSTALL_DIR}/lib
     cp test/TNNTest ${TNN_INSTALL_DIR}/bin
 }
@@ -175,12 +179,18 @@ copy_openvino_libraries
 # 编译 TNN
 echo "Configuring TNN ..."
 cd ${BUILD_DIR}
-cmake ${TNN_DIR} \
--DTNN_OPENVINO_ENABLE=ON \
--DTNN_X86_ENABLE=ON \
--DTNN_TEST_ENABLE=ON \
--DTNN_CPU_ENABLE=ON \
--DTNN_OPENVINO_BUILD_SHARED=${OPENVINO_BUILD_SHARED} \
+cmake ${TNN_ROOT_PATH} \
+    -DCMAKE_SYSTEM_NAME=Linux \
+    -DTNN_CPU_ENABLE=ON \
+    -DTNN_X86_ENABLE=ON \
+    -DTNN_OPENVINO_ENABLE=ON \
+    -DTNN_OPENVINO_BUILD_SHARED=${OPENVINO_BUILD_SHARED} \
+    -DTNN_CUDA_ENABLE=ON \
+    -DTNN_TENSORRT_ENABLE=ON \
+    -DTNN_TEST_ENABLE=ON \
+    -DTNN_BENCHMARK_MODE=OFF \
+    -DTNN_BUILD_SHARED=ON \
+    -DTNN_CONVERTER_ENABLE=OFF
 
 echo "Building TNN ..."
 make -j4
