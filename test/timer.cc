@@ -15,6 +15,7 @@
 #include "test/timer.h"
 
 #include <cmath>
+#include <cstring>
 
 namespace TNN_NS {
 
