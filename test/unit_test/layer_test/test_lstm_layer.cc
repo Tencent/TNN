@@ -19,21 +19,11 @@
 
 namespace TNN_NS {
 
-static bool TestFilter(DeviceType device_type, DataType data_type) {
-    if (device_type == DEVICE_NAIVE)
+static bool TestFilter(DeviceType device_type) {
+    if (device_type == DEVICE_NAIVE || device_type == DEVICE_ARM || device_type == DEVICE_METAL || 
+        device_type == DEVICE_X86 || device_type == DEVICE_OPENCL) {
         return true;
-    
-    if (device_type == DEVICE_ARM)
-        return true;
-
-    if (device_type == DEVICE_METAL)
-        return true;
-
-    if (device_type == DEVICE_X86)
-        return true;
-    
-    if (device_type == DEVICE_OPENCL)
-        return true;
+    }
     return false;
 }
 
@@ -58,7 +48,12 @@ TEST_P(LSTMLayerTest, LSTMONNXLayer) {
     int direction      = std::get<4>(GetParam());
     DataType dtype     = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    if (!TestFilter(dev, dtype)) {
+
+    if(CheckDataTypeSkip(dtype)) {
+        GTEST_SKIP();
+    }
+
+    if (!TestFilter(dev)) {
         GTEST_SKIP();
     }
 

@@ -275,6 +275,7 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
                     const_node->set_friendly_name(name);
 
                     auto foreign_blob = new ForeignBlob(blob);
+                    foreign_blob->GetBlobDesc().dims = const_blobs[name].get()->GetBufferDims();
                     foreign_blob->SetForeignTensor(std::make_shared<OpenvinoTensor>(const_node));
 
                     blob_manager_->ReplaceBlob(name, foreign_blob);

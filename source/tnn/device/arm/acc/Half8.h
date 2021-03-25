@@ -431,6 +431,52 @@ struct Half8x4 {
     }
 };
 
+struct Half8x8 {
+    float16x8x4_t value0;
+    float16x8x4_t value1;
+    Half8x8() {}
+
+    void set_value0(const Half8& lr) {
+        value0.val[0] = lr.value;
+    }
+    void set_value1(const Half8& lr) {
+        value0.val[1] = lr.value;
+    }
+    void set_value2(const Half8& lr) {
+        value0.val[2] = lr.value;
+    }
+    void set_value3(const Half8& lr) {
+        value0.val[3] = lr.value;
+    }
+    void set_value4(const Half8& lr) {
+        value1.val[0] = lr.value;
+    }
+    void set_value5(const Half8& lr) {
+        value1.val[1] = lr.value;
+    }
+    void set_value6(const Half8& lr) {
+        value1.val[2] = lr.value;
+    }
+    void set_value7(const Half8& lr) {
+        value1.val[3] = lr.value;
+    }
+
+    void save_transpose(fp16_t* addr) {
+        float16x8x4_t v_tmp0;
+        float16x8x4_t v_tmp1;
+        v_tmp0.val[0] = vzip1q_f16(value0.val[0], value1.val[0]);
+        v_tmp0.val[1] = vzip1q_f16(value0.val[1], value1.val[1]);
+        v_tmp0.val[2] = vzip1q_f16(value0.val[2], value1.val[2]);
+        v_tmp0.val[3] = vzip1q_f16(value0.val[3], value1.val[3]);
+        vst4q_f16(addr, v_tmp0);
+        v_tmp1.val[0] = vzip2q_f16(value0.val[0], value1.val[0]);
+        v_tmp1.val[1] = vzip2q_f16(value0.val[1], value1.val[1]);
+        v_tmp1.val[2] = vzip2q_f16(value0.val[2], value1.val[2]);
+        v_tmp1.val[3] = vzip2q_f16(value0.val[3], value1.val[3]);
+        vst4q_f16(addr + 32, v_tmp1);
+    }
+};
+
 #elif defined(TNN_ARM82_A32)
 
 struct Half4 {
@@ -1119,6 +1165,52 @@ struct Half8x4 {
         v_tmp1.val[2] = vzipq_s16(value.val[2], pad.value).val[1];
         v_tmp0.val[3] = vzipq_s16(value.val[3], pad.value).val[0];
         v_tmp1.val[3] = vzipq_s16(value.val[3], pad.value).val[1];
+        vst4q_s16((int16_t*)addr, v_tmp0);
+        vst4q_s16((int16_t*)addr + 32, v_tmp1);
+    }
+};
+
+struct Half8x8 {
+    int16x8x4_t value0;
+    int16x8x4_t value1;
+    Half8x8() {}
+
+    void set_value0(const Half8& lr) {
+        value0.val[0] = lr.value;
+    }
+    void set_value1(const Half8& lr) {
+        value0.val[1] = lr.value;
+    }
+    void set_value2(const Half8& lr) {
+        value0.val[2] = lr.value;
+    }
+    void set_value3(const Half8& lr) {
+        value0.val[3] = lr.value;
+    }
+    void set_value4(const Half8& lr) {
+        value1.val[0] = lr.value;
+    }
+    void set_value5(const Half8& lr) {
+        value1.val[1] = lr.value;
+    }
+    void set_value6(const Half8& lr) {
+        value1.val[2] = lr.value;
+    }
+    void set_value7(const Half8& lr) {
+        value1.val[3] = lr.value;
+    }
+
+    void save_transpose(fp16_t* addr) {
+        int16x8x4_t v_tmp0;
+        int16x8x4_t v_tmp1;
+        v_tmp0.val[0] = vzipq_s16(value0.val[0], value1.val[0]).val[0];
+        v_tmp1.val[0] = vzipq_s16(value0.val[0], value1.val[0]).val[1];
+        v_tmp0.val[1] = vzipq_s16(value0.val[1], value1.val[1]).val[0];
+        v_tmp1.val[1] = vzipq_s16(value0.val[1], value1.val[1]).val[1];
+        v_tmp0.val[2] = vzipq_s16(value0.val[2], value1.val[2]).val[0];
+        v_tmp1.val[2] = vzipq_s16(value0.val[2], value1.val[2]).val[1];
+        v_tmp0.val[3] = vzipq_s16(value0.val[3], value1.val[3]).val[0];
+        v_tmp1.val[3] = vzipq_s16(value0.val[3], value1.val[3]).val[1];
         vst4q_s16((int16_t*)addr, v_tmp0);
         vst4q_s16((int16_t*)addr + 32, v_tmp1);
     }

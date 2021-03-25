@@ -194,10 +194,8 @@ Status MetalLSTMLayerAcc::AllocateBufferStates(const std::vector<Blob *> &inputs
 #else
     state_buffer_bytes = num_directions * seq_len * batch * hidden_size * 4 * sizeof(uint16_t);
 #endif
-    if (buffer_gates_ == nil) {
-        buffer_gates_ = [device newBufferWithLength:state_buffer_bytes
+    buffer_gates_ = [device newBufferWithLength:state_buffer_bytes
                                      options:MTLResourceStorageModePrivate];  // only metal kernel writes to this
-    }
     
     // initial states buffer
 #if TNN_METAL_FULL_PRECISION
@@ -278,7 +276,7 @@ Status MetalLSTMLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     status = AllocateBufferBias(inputs, outputs);
     RETURN_ON_NEQ(status, TNN_OK);
     
-    return TNN_OK;
+    return status;
 }
 
 std::vector<DataFormat> MetalLSTMLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
@@ -307,7 +305,7 @@ Status MetalLSTMLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     const auto input_size  = DimsVectorUtils::Count(input_dims, 2); // input dimension
     const auto output_dims = blob_y->GetBlobDesc().dims;
     auto layer_param = dynamic_cast<LSTMONNXLayerParam *>(param_);
-    const int num_directions = layer_param->direction >=2 ? 2 : 1;
+    const int num_directions = layer_param->direction >= 2 ? 2 : 1;
     const auto hidden_size = layer_param->hidden_size; // output dimension
     
     auto context_impl = context_->getMetalContextImpl();
