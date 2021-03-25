@@ -61,6 +61,10 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<ArgMaxOrMinLayerParam> param(new ArgMaxOrMinLayerParam());
     param->name              = "ArgMaxOrMin";

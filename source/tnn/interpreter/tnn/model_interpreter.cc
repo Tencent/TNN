@@ -55,6 +55,8 @@ ModelInterpreter::ModelInterpreter(const ModelInterpreter &interp) {
     }
 
     *(this->net_resource_) = *interp.net_resource_;
+
+    this->params_md5_ = interp.params_md5_;
 }
 
 ModelInterpreter &ModelInterpreter::operator=(ModelInterpreter interp) {
@@ -74,6 +76,8 @@ ModelInterpreter &ModelInterpreter::operator=(ModelInterpreter interp) {
         this->net_resource_ = new NetResource();
     }
     *(this->net_resource_) = *interp.net_resource_;
+
+    this->params_md5_ = interp.params_md5_;
 
     return *this;
 }

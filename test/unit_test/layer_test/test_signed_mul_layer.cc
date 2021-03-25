@@ -45,11 +45,7 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
     float gamma        = std::get<6>(GetParam());
     DataType data_type = std::get<7>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
-    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 
@@ -58,6 +54,10 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
     }
 
     if (DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
         GTEST_SKIP();
     }
 
