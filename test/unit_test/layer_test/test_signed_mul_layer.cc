@@ -61,6 +61,10 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<SignedMulLayerParam> param(new SignedMulLayerParam());
     param->alpha = alpha;

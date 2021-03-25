@@ -60,6 +60,10 @@ TEST_P(NormalizeLayerTest, NormalizeLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<NormalizeLayerParam> param(new NormalizeLayerParam());
     param->name = "Normalize";

@@ -36,6 +36,10 @@ TEST_P(SeluLayerTest, SeluLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<SeluLayerParam> param(new SeluLayerParam());
     param->alpha = 1.67326;

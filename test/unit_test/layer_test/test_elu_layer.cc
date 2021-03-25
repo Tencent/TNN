@@ -51,6 +51,10 @@ TEST_P(EluLayerTest, EluLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_OPENCL && dim_count > 4) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<EluLayerParam> param(new EluLayerParam());
     param->name  = "Elu";
