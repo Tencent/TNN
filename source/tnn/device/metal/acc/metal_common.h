@@ -32,12 +32,6 @@
 #define ROUND_UP(x, y) (((x) + (y)-1) / (y) * (y))
 #endif
 
-//#define GetBlobDim(d, i) \
-    (((d).size()) > (i) ? ((d)[i]) : 1)
-
-//#define GetBlobCount(d, i) \
-    ( (DimsVectorUtils::Count((d), (i))) > 0? (DimsVectorUtils::Count((d), (i))) : (GetBlobDim(d, i)) )
-
 /**Base Param Struct **/
 struct MetalParams {
     int input_width;
@@ -703,12 +697,12 @@ struct MetalMatMulParams {
 
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
-        metal_params.input_width   = GetBlobDim(dims_input, 3);                                                        \
-        metal_params.input_height  = GetBlobDim(dims_input, 2);                                                        \
+        metal_params.input_width   = DimsFunctionUtils::GetDim(dims_input, 3);                                         \
+        metal_params.input_height  = DimsFunctionUtils::GetDim(dims_input, 2);                                                        \
         metal_params.input_size    = metal_params.input_height * metal_params.input_width;                             \
         metal_params.input_slice   = UP_DIV(dims_input[1], 4);                                                         \
-        metal_params.output_width  = GetBlobDim(dims_output, 3);                                                       \
-        metal_params.output_height = GetBlobDim(dims_output, 2);                                                       \
+        metal_params.output_width  = DimsFunctionUtils::GetDim(dims_output, 3);                                        \
+        metal_params.output_height = DimsFunctionUtils::GetDim(dims_output, 2);                                        \
         metal_params.output_size   = metal_params.output_height * metal_params.output_width;                           \
         metal_params.output_slice  = UP_DIV(dims_output[1], 4);                                                        \
         metal_params.batch         = dims_output[0];                                                                   \
@@ -716,9 +710,9 @@ struct MetalMatMulParams {
 
 #define FixDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
-        metal_params.input_width   = GetBlobCount(dims_input, 3);                                                      \
+        metal_params.input_width   = DimsFunctionUtils::GetDimProduct(dims_input, 3);                                   \
         metal_params.input_size    = metal_params.input_height * metal_params.input_width;                             \
-        metal_params.output_width  = GetBlobCount(dims_output, 3);                                                     \
+        metal_params.output_width  = DimsFunctionUtils::GetDimProduct(dims_output, 3);                                  \
         metal_params.output_size   = metal_params.output_height * metal_params.output_width;                           \
     } while(0)
 

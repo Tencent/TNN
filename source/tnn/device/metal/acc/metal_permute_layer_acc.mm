@@ -16,6 +16,7 @@
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -174,7 +175,7 @@ Status MetalPermuteLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs
                                         const std::vector<Blob *> &outputs,
                                         MTLSize &size) {
     auto dims_output = outputs[0]->GetBlobDesc().dims;
-    size = MTLSizeMake(GetBlobCount(dims_output, 2),
+    size = MTLSizeMake(DimsFunctionUtils::GetDimProduct(dims_output, 2),
                         UP_DIV(dims_output[1], 4),
                         dims_output[0]);
     return TNN_OK;

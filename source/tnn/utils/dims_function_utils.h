@@ -85,6 +85,8 @@ public:
     // @brief Get dim in dims vector, if index is larger than dims size, return 1
     static int GetDim(const DimsVector dims, const int index); 
 
+    // @brief Get the product of dims between [start_index, end_index), return 1 if the range is invalid
+    static int GetDimProduct(const DimsVector dims, const int start_index, const int end_index=-1);
 };
 
 }  // namespace TNN_NS

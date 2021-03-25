@@ -16,6 +16,7 @@
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 bool MetalConvLayer1x1::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,

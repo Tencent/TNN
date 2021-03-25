@@ -93,7 +93,7 @@ public:
         const int channel = src->GetBlobDesc().dims[1];
         // refactor later
         const int height  = DimsFunctionUtils::GetDim(src->GetBlobDesc().dims, 2);
-        const int width   = GetBlobCount(src->GetBlobDesc().dims, 3);
+        const int width   = DimsFunctionUtils::GetDimProduct(src->GetBlobDesc().dims, 3);
         T *src_data_ptr   = (T *)src->GetHandle().base;
         T *dst_data_ptr = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
 
@@ -107,7 +107,7 @@ public:
         const int num     = src->GetBlobDesc().dims[0];
         // refactor later
         const int height  = DimsFunctionUtils::GetDim(src->GetBlobDesc().dims, 2);
-        const int width   = GetBlobCount(src->GetBlobDesc().dims, 3);
+        const int width   = DimsFunctionUtils::GetDimProduct(src->GetBlobDesc().dims, 3);
         const int channel = src->GetBlobDesc().dims[1];
         T *src_data_ptr   = (T *)src->GetHandle().base;
         T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;

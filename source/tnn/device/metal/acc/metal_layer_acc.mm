@@ -222,8 +222,8 @@ std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int
 }
 
 MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
-    auto output_height  = GetBlobDim(dims, 2);
-    auto output_width   = GetBlobDim(dims, 3);
+    auto output_height  = DimsFunctionUtils::GetDim(dims, 2);
+    auto output_width   = DimsFunctionUtils::GetDim(dims, 3);
     auto output_size  = output_width * output_height;
     auto output_slice = UP_DIV(dims[1], 4);
     auto output_batch = dims[0];
@@ -236,8 +236,8 @@ MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
 }
 
 MTLSize GetDefaultThreadSizeFusedLast(DimsVector dims, bool combineHeightWidth) {
-    auto output_height  = GetBlobDim(dims, 2);
-    auto output_width   = GetBlobCount(dims, 3);
+    auto output_height  = DimsFunctionUtils::GetDim(dims, 2);
+    auto output_width   = DimsFunctionUtils::GetDimProduct(dims, 3);
     auto output_size  = output_width * output_height;
     auto output_slice = UP_DIV(dims[1], 4);
     auto output_batch = dims[0];
@@ -250,7 +250,7 @@ MTLSize GetDefaultThreadSizeFusedLast(DimsVector dims, bool combineHeightWidth) 
 }
 
 void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, bool reduce_on_axis) {
-    auto axis_size = GetBlobDim(dims, axis);
+    auto axis_size = DimsFunctionUtils::GetDim(dims, axis);
     auto dims_copy = dims;
     dims_copy[1] = UP_DIV(dims[1], 4);
     size = MTLSizeMake(DimsVectorUtils::Count(dims_copy, axis+1),
@@ -379,7 +379,7 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
 }
 
 id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
-                                                            Status &status) {
+                                                            Status &status, bool transpose) {
     id<MTLDevice> device     = [TNNMetalDeviceImpl sharedDevice];
     id<MTLBuffer> mtl_buffer = nil;
 
@@ -412,7 +412,7 @@ id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         memset((void *)weight_pack_fp32_data, 0, weight_count_pack * sizeof(float));
 
         DataFormatConverter::ConvertFromNCHWToNCHW4Float(weight_fp32_data, weight_pack_fp32_data, group,
-                                                            goc, gic, kh*kw);
+                                                            goc, gic, kh*kw, transpose);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)weight_pack_fp32_data
                                          length:weight_count_pack * sizeof(float)
@@ -434,7 +434,7 @@ id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         memset((void *)weight_pack_fp32_data, 0, weight_count_pack * sizeof(float));
 
         DataFormatConverter::ConvertFromNCHWToNCHW4Float(weight_fp32_data, weight_pack_fp32_data, group,
-                                                            goc, gic, kh*kw);
+                                                            goc, gic, kh*kw, transpose);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)weight_pack_fp32_data
                                          length:weight_count_pack * sizeof(float)
@@ -455,7 +455,7 @@ id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         memset((void *)weight_pack_fp16_data, 0, weight_count_pack * sizeof(uint16_t));
 
         DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)weight_fp16_data, (short *)weight_pack_fp16_data,
-                                                           group, goc, gic, kh*kw);
+                                                           group, goc, gic, kh*kw, transpose);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)weight_pack_fp16_data
                                          length:weight_count_pack * sizeof(uint16_t)
@@ -471,7 +471,7 @@ id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         memset((void *)weight_pack_fp16_data, 0, weight_count_pack * sizeof(uint16_t));
 
         DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)weight_fp16_data, (short *)weight_pack_fp16_data,
-                                                           group, goc, gic, kh*kw);
+                                                           group, goc, gic, kh*kw, transpose);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)weight_pack_fp16_data
                                          length:weight_count_pack * sizeof(uint16_t)
@@ -588,9 +588,9 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
     id<MTLDevice> device     = [TNNMetalDeviceImpl sharedDevice];
     id<MTLBuffer> mtl_buffer = nil;
 
-    const int channel = GetBlobDim(buffer_shape, 1);
-    const int kh      = GetBlobDim(buffer_shape, 2);
-    const int kw      = GetBlobDim(buffer_shape, 3);
+    const int channel = DimsFunctionUtils::GetDim(buffer_shape, 1);
+    const int kh      = DimsFunctionUtils::GetDim(buffer_shape, 2);
+    const int kw      = DimsFunctionUtils::GetDim(buffer_shape, 3);
 
     const int channel4 = UP_DIV(channel, 4) * 4;
 

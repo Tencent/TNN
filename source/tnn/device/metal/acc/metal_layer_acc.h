@@ -96,7 +96,7 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
 // @param status   output status
 // @param status   transpose transpose weght for deconv
 id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
-                                                            Status &status);
+                                                            Status &status, bool transpose = false);
 
 // @brief allocate packed metal buffer with format GOIHW16 form RawBuffer, like conv weight
 // @context tnn instance device context

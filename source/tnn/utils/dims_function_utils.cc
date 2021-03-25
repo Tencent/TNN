@@ -287,4 +287,9 @@ int DimsFunctionUtils::GetDim(const DimsVector dims, const int index) {
     return dims.size() > index ? dims[index] : 1;
 }
 
+int DimsFunctionUtils::GetDimProduct(const DimsVector dims, const int start_index, const int end_index) {
+    auto count = DimsVectorUtils::Count(dims, start_index, end_index);
+    return count > 0? count : 1;
+}
+
 }  // namespace TNN_NS
