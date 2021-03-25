@@ -21,12 +21,8 @@
 namespace TNN_NS {
 
 static bool TestFilter(DeviceType device_type, DataType data_type) {
-    if (device_type == DEVICE_NAIVE)
+    if (device_type == DEVICE_NAIVE || device_type == DEVICE_METAL)
         return true;
-    
-    if (device_type == DEVICE_METAL && data_type == DATA_TYPE_FLOAT)
-        return true;
-    
     return false;
 }
 
@@ -55,6 +51,11 @@ TEST_P(SqueezeLayerTest, SqueezeLayer) {
     auto axes        = std::get<4>(GetParam());
     DataType dtype   = std::get<5>(GetParam());
     DeviceType dev   = ConvertDeviceType(FLAGS_dt);
+
+    if(CheckDataTypeSkip(dtype)) {
+        GTEST_SKIP();
+    }
+
     if (!TestFilter(dev, dtype)) {
         GTEST_SKIP();
     }
