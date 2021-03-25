@@ -25,6 +25,9 @@ public:
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+protected:
+    virtual bool UseNaiveConstantBlobs();
+
 private:
     template <typename T>
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
