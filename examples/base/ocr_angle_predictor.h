@@ -16,7 +16,7 @@
 #define TNN_EXAMPLES_BASE_OCR_ANGLE_PREDICTOR_H_
 
 #include "tnn_sdk_sample.h"
-#include "opencv2/core/core.hpp"
+
 #include <memory>
 #include <string>
 #include <vector>

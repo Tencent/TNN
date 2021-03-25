@@ -12,9 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#if HAS_OPENCV
-
 #include "ocr_angle_predictor.h"
+
+#if HAS_OPENCV
 
 #include "opencv2/core/mat.hpp"
 #include "opencv2/core/core.hpp"
@@ -26,7 +26,6 @@
 #include <string>
 #include <unordered_set>
 #include <cmath>
-
 
 namespace TNN_NS {
 
@@ -146,4 +145,4 @@ OCRAnglePredictor::~OCRAnglePredictor() {}
 
 }
 
-#endif
+#endif// HAS_OPENCV

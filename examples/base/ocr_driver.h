@@ -15,16 +15,19 @@
 #ifndef TNN_EXAMPLES_BASE_OCR_DRIVER_H_
 #define TNN_EXAMPLES_BASE_OCR_DRIVER_H_
 
+#include "tnn_sdk_sample.h"
+
+#if HAS_OPENCV
+
+#include "tnn/utils/mat_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
+
 #include <algorithm>
 #include <memory>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <array>
-
-#include "tnn_sdk_sample.h"
-#include "tnn/utils/mat_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS{
 
@@ -58,6 +61,8 @@ protected:
 };
 
 }
+
+#endif // HAS_OPENCV
 
 #endif // TNN_EXAMPLES_BASE_OCR_DRIVER_H_
 

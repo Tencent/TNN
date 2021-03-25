@@ -12,9 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#if HAS_OPENCV
-
 #include "ocr_text_recognizer.h"
+
+#if HAS_OPENCV
 
 #include "opencv2/core/mat.hpp"
 #include "opencv2/core/core.hpp"
@@ -189,4 +189,4 @@ OCRTextRecognizer::~OCRTextRecognizer() {}
 
 }
 
-#endif
+#endif // HAS_OPENCV

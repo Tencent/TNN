@@ -13,7 +13,7 @@
    sh download_model.sh
    ```
    
-   可选：如果需要执行OCR demo，还需要下载opencv库。
+   可选：如果需要执行OCR demo，还需要准备opencv库。可以使用提供的脚本下载opencv。
    ```
    cd <path_to_tnn>/scripts
    sh download_opencv.sh iOS
@@ -31,13 +31,18 @@
 
    <div align=left ><img src="./resource/ios_add_framework.jpg" width = "75%" height = "75%"/>
 
-   在打开的界面中选择`Add Other-Add Files...`，并找到位于`<path_to_tnn>/third_party/opencv/iOS`下的`opencv2.framework`，添加。
+   在打开的界面中选择`Add Other-Add Files...`，找到opencv2.framework，并添加。使用提供的`<path_to_tnn>/scripts/download_opencv.sh`时，下载的opencv位于`<path_to_tnn>/third_party/opencv/iOS`目录下。
 
    <div align=left ><img src="./resource/ios_add_framework_from_files.jpg" width = "75%" height = "75%"/>
 
    由于opencv2.framework中包含真机和模拟器多平台的代码，需要按下图将`Embed`选项设置为`Do Not Embed`。
 
    <div align=left ><img src="./resource/ios_framework_notembed.jpg" width = "75%" height = "75%"/>
+
+   最后，为了确保编译器可以找到opencv.framework，需要确认opencv.framework所在目录被添加到`Framework Search Paths`中。如下图所示，找到工程设置`Build Settings`，在`Search Paths`选项卡下找到`Framework Search Paths`。如果opencv.framework所在的目录不存在，需要双击这一条目，并添加。
+
+    <div align=left ><img src="./resource/ios_framework_search_path.jpg" width = "75%" height = "75%"/>
+
 
 3. 设置开发者账号
 
@@ -73,11 +78,13 @@ PS：
 
 a) 由于GPU和CPU加速原理不同，具体模型的GPU性能不一定比CPU高，与具体机型、模型结构以及工程实现有关。欢迎大家参与到TNN开发中，共同进步。
 
-b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，可以设置为1来运行ncnn模型。
+b) tnn_sdk_sample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，可以设置为1来运行ncnn模型。
 
    c) 如遇到`Unable to install...`错误提示，请在真机设备上删除已有的TNNExamples，重新运行安装。
 
    d) 真机运行时，如果遇到CodeSign错误`Command CodeSign failed with a nonzero exit code`，可参看issue20 `iOS Demo运行步骤说明`
+
+c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设置为1，否则不会编译OCR demo代码。
 
 ### Demo运行效果
 

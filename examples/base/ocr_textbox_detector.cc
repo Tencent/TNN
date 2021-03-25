@@ -12,11 +12,11 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "ocr_textbox_detector.h"
+
 #if HAS_OPENCV
 
-#include "ocr_textbox_detector.h"
 #include "clipper.h"
-
 #include "opencv2/core/mat.hpp"
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc.hpp"
@@ -315,4 +315,4 @@ OCRTextboxDetector::~OCRTextboxDetector() {}
 
 }
 
-#endif
+#endif // HAS_OPENCV

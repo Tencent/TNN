@@ -567,9 +567,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9DD57A0323B5A20E00A96E63 /* Build configuration list for PBXNativeTarget "TNNExamples" */;
 			buildPhases = (
-				EC76C1AD2609D8760029FABA /* Run Script */,
 				9DD579E623B5A20500A96E63 /* Sources */,
-				EC76C1C4260A19500029FABA /* ShellScript */,
 				9DD579E723B5A20500A96E63 /* Frameworks */,
 				9DD579E823B5A20500A96E63 /* Resources */,
 				9DD57A1323B5A91700A96E63 /* ShellScript */,
@@ -674,43 +672,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "echo $TARGET_BUILD_DIR\ncp $TARGET_BUILD_DIR/tnn.framework/default.metallib $TARGET_BUILD_DIR/$TARGET_NAME.app/tnn.metallib\n";
-		};
-		EC76C1AD2609D8760029FABA /* Run Script */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 12;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Run Script";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path\nopencv_framework=$PROJECT_DIR/../../third_party/opencv/iOS/opencv2.framework\nmm_dir=$PROJECT_DIR/TNNExamples/TNNCameraPreviewController/TNNViewModel\nlist_dir=$PROJECT_DIR/TNNExamples/TNNExamplesController\ncc_dir=$PROJECT_DIR/../base\nmacro=\"#if HAS_OPENCV\"\ndefine=\"#if 1\"\nif [ -d \"$opencv_framework\" ]; then\n    echo \"opencv has been downloaded!\"\n    \n    grep \"$macro\" -rlZ $cc_dir | xargs sed -i '' -e \"s/$macro/$define/g\"\n    grep \"$macro\" -rlZ $mm_dir | xargs sed -i '' -e \"s/$macro/$define/g\"\n    grep \"$macro\" -rlZ $list_dir | xargs sed -i '' -e \"s/$macro/$define/g\"\nfi\n";
-		};
-		EC76C1C4260A19500029FABA /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path\nopencv_framework=$PROJECT_DIR/../../third_party/opencv/iOS/opencv2.framework\nmm_dir=$PROJECT_DIR/TNNExamples/TNNCameraPreviewController/TNNViewModel\nlist_dir=$PROJECT_DIR/TNNExamples/TNNExamplesController\ncc_dir=$PROJECT_DIR/../base\nmacro=\"#if HAS_OPENCV\"\ndefine=\"#if 1\"\nif [ -d \"$opencv_framework\" ]; then\n    echo \"remove added macro!\"\n    \n    grep \"$define\" -rlZ $cc_dir | xargs sed -i '' -e \"s/$define/$macro/g\"\n    grep \"$define\" -rlZ $mm_dir | xargs sed -i '' -e \"s/$define/$macro/g\"\n    grep \"$define\" -rlZ $list_dir | xargs sed -i '' -e \"s/$define/$macro/g\"\nfi\n\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

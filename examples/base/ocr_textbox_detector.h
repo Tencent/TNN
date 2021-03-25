@@ -16,7 +16,11 @@
 #define TNN_EXAMPLES_BASE_OCR_TEXTBOX_DETECTOR_H_
 
 #include "tnn_sdk_sample.h"
+
+#if HAS_OPENCV
+
 #include "opencv2/core/core.hpp"
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -74,4 +78,6 @@ private:
 };
 
 }
+#endif  // HAS_OPENCV
+
 #endif // TNN_EXAMPLES_BASE_OCR_TEXTBOX_DETECTOR_H_

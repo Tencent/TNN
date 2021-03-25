@@ -12,6 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn_sdk_sample.h"
+
 #if HAS_OPENCV
 
 #include "ocr_textbox_detector.h"
@@ -249,4 +251,4 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
 
 }
 
-#endif
+#endif // HAS_OPENCV
