@@ -317,8 +317,13 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
 #endif
         for (std::string &name : layer_info->inputs) {
             if (global_operator_map_.count(name) <= 0) {
-                LOGE("The input op of layer is not found, may switch to arm\n");
-                return Status(TNNERR_LAYER_ERR, "The input op of layer is not found");
+                std::shared_ptr<OperatorInfo> const_op;
+                ret = NpuUtils::CreateConstOpFromResource(const_op, name, net_resource);
+                if (ret != TNN_OK) {
+                    LOGE("The input op of layer is not found, may switch to arm\n");
+                    return Status(TNNERR_LAYER_ERR, "The input op of layer is not found");
+                }
+                global_operator_map_[name] = const_op;
             }
             input_ops.push_back(global_operator_map_[name]);
 #ifdef GENERATE_RESOURCE

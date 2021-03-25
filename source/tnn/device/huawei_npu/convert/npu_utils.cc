@@ -61,6 +61,27 @@ Status NpuUtils::CreateInputData(std::shared_ptr<ge::op::Data> &input_data, std:
     return TNN_OK;
 }
 
+Status NpuUtils::CreateConstOpFromResource(std::shared_ptr<OperatorInfo> &const_op, std::string name, NetResource *net_resource) {
+    if(net_resource->constant_map.count(name) > 0) {
+        auto raw_buffer = net_resource->constant_map[name];
+        auto data_const = std::make_shared<ge::op::Const>(name + "_const");
+        auto raw_buffer_dims = raw_buffer->GetBufferDims();
+        ge::Shape const_shape(NpuUtils::Int32VecToTVec<int64_t>(raw_buffer_dims ));
+        auto ret = NpuUtils::CreateAttrValue(data_const, const_shape, *raw_buffer);
+        if (ret != TNN_OK) {
+            LOGE("The input op of layer which is found in resource convert to const op failed\n");
+            return ret;
+        }
+        const_op = std::make_shared<OperatorInfo>(data_const);
+        const_op->SetShape(raw_buffer_dims);
+    } else {
+        LOGE("The input op of layer is not found in resource");
+        return Status(TNNERR_LAYER_ERR, "The input op of layer is not found in resource");
+    }
+
+    return TNN_OK;
+}
+
 Status NpuUtils::WriteModelFile(domi::ModelBufferData &model_buffer_data, std::string file_path) {
     int file_length = model_buffer_data.length;
     if (file_length == 0) {

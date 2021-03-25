@@ -18,6 +18,7 @@
 #include <tnn/core/blob.h>
 #include <tnn/interpreter/layer_resource.h>
 #include <tnn/interpreter/net_structure.h>
+#include <tnn/interpreter/net_resource.h>
 #include <tnn/interpreter/raw_buffer.h>
 
 #include "graph/compatible/all_ops.h"
@@ -52,6 +53,8 @@ public:
         attr_value->set_attr_value(input_size_tensor);
         return TNN_OK;
     }
+
+    static Status CreateConstOpFromResource(std::shared_ptr<OperatorInfo> &const_op, std::string name, NetResource *net_resource);
 
     static Status WriteModelFile(domi::ModelBufferData &model_buffer_data, std::string file_path);
 
