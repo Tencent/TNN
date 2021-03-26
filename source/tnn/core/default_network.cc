@@ -196,6 +196,14 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             RETURN_ON_NEQ(ret, TNN_OK);
         }
 
+        for (auto name : input_names) {
+            auto blob = blob_manager_->GetBlob(name);
+            // set const blobs' layout
+            if (const_blobs.count(name) != 0) {
+                blob->GetBlobDesc().data_format = input_fmt;
+            }
+        }
+
         // output layout equals to input layout except for layout_reformat layer
         DataFormat output_fmt = IsLayoutReformatLayer(layer_info) ?
             dynamic_cast<ReformatLayerParam *>(layer_info->param.get())->dst_format : input_fmt;
