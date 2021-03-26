@@ -21,7 +21,7 @@ namespace TNN_NS {
 
 // alpha and beta used for hardswish
 template<ArmBinaryOpType type, typename dtype>
-dtype binary_op(dtype &a, dtype &b, float alpha = 0, float beta = 0) {
+dtype binary_op(const dtype &a, const dtype &b, float alpha = 0, float beta = 0) {
     return a;
 }
 

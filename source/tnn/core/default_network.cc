@@ -88,8 +88,13 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 #endif
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
+
     if(!net_config.cache_path.empty()) {
-        context_->SetCacheFilePath(GenerateCacheFileName(model_config));
+        auto params_md5 = default_interpreter->GetParamsMd5();
+        if (params_md5.size() < 1) {
+            return Status(TNNERR_PARAM_ERR, "model params md5 missing");
+        }
+        context_->SetCacheFilePath(GenerateCacheFileName(model_config, params_md5[0]));
     }
 
     ret = context_->LoadLibrary(net_config.library_path);
@@ -182,6 +187,14 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             }
             auto ret  = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
             RETURN_ON_NEQ(ret, TNN_OK);
+        }
+
+        for (auto name : input_names) {
+            auto blob = blob_manager_->GetBlob(name);
+            // set const blobs' layout
+            if (const_blobs.count(name) != 0) {
+                blob->GetBlobDesc().data_format = input_fmt;
+            }
         }
 
         // output layout equals to input layout except for layout_reformat layer
@@ -652,10 +665,10 @@ std::shared_ptr<ProfileResult> DefaultNetwork::FinishProfile() {
 }
 #endif
 
-std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config) {
+std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config, std::string& md5_str) {
     return CACHE_TAG + "_" + ToString(config_.device_type) + "_" + ToString(config_.device_id)
         + "_" + ToString(config_.precision) + "_" + ToString(model_config.model_type) +
-        "_" + md5(model_config.params[0]);
+        "_" + md5_str;
 }
 
 Status DefaultNetwork::ReshapeLayers() {

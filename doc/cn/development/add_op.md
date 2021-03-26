@@ -125,7 +125,26 @@
 （3）实现以下接口：   
 * `Convert()` -- 使用ir翻译tnn模型算子；  
 
+### 3.6 X86平台  
+#### 3.6.1 native
+在文件夹`<path_to_TNN>/source/tnn/device/x86/acc`下添加对应算子的LayerAcc实现。    
+（1）声明新算子的LayerAcc实现，如果没有特殊的参数，可以直接使用`DECLARE_X86_ACC()`声明；  
+（2）`REGISTER_X86_ACC()` 注册新算子的LayerAcc实现；  
+（3）实现以下接口：  
+* `Init()` -- 对LayerParam和LayerResource进行处理；  
+* `Reshape()` -- 实现在输入blob大小改变的情况下的逻辑；  
+* `Forward()` -- 新算子的X86实现；  
 
+#### 3.6.2 openvino
+在文件夹`<path_to_TNN>/source/tnn/network/openvino/layer_builder`下添加对应算子的OpenVINOLayerBuilder实现。  
+（1）声明新算子的OpenVINOLayerBuilder实现，可以直接使用`DECLARE_OPENVINO_LAYER_BUILDER`声明；  
+（2）`REGISTER_OPENVINO_LAYER_BUILDER` 注册新算子的LayerConvert实现；  
+（3）实现以下接口：   
+* `Build()` -- 将tnn的算子转换成ngraph的node；  
+  
+对于openvino不支持或者性能较差的算子可以注册custom op来替代openvino的op。
+（1）在`<path_to_TNN>/source/tnn/network/openvino/custom_layer`下使用`DECLARE_CUSTOM_IMPLEMENTATION`和`REGISTER_CUSTOM_IMPLEMENTATION`进行声明和注册
+（2）在`Build()`函数里使用已注册的custom op来构建ngraph的node
 
 ## 4. 添加单元测试 <span id = "4"></span>  
 在文件夹 `<path_to_TNN>/test/unit_test/layer_test` 下添加对应层的单元测试文件。

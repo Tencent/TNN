@@ -74,21 +74,34 @@ class OnnxRunner(BaseRunner):
 
         return dump_data
 
-    def dump_single_output(self, output_name: str, output_data: np.ndarray):
+    def dump_single_output(self, output_name: str, output_data: np.ndarray, full_message: bool):
         output_name = output_name.replace("/", "_")
         output_path = os.path.join(self.dump_dir_path, output_name + ".txt")
         with open(output_path, "w") as f:
-            # number of output
-            f.write("1\n")
-            output_shape = output_data.shape
-            data_type = 0
-            if output_data.dtype == np.int:
-                data_type = 3
-            description = "{} {} ".format(output_name, len(output_shape))
-            for dim in output_shape:
-                description += "{} ".format(dim)
-            description += "{}".format(str(data_type))
-            f.write(description + "\n")
-            np.savetxt(f, output_data.reshape(-1), fmt="%0.6f")
+            if full_message == True:
+                # number of output
+                f.write("1\n")
+                output_shape = output_data.shape
+                data_type = 0
+                if output_data.dtype == np.int64 or output_data.dtype == np.int32:
+                    data_type = 3
+                elif output_data.dtype == np.int8 or output_data.dtype == np.bool:
+                    data_type = 2
+
+                description = "{} {} ".format(output_name, len(output_shape))
+                for dim in output_shape:
+                    description += "{} ".format(dim)
+                description += "{}".format(str(data_type))
+                f.write(description + "\n")
+
+            if output_data.dtype == np.int64 or output_data.dtype == np.int32:
+                np.savetxt(f, output_data.reshape(-1), fmt="%d")
+            elif output_data.dtype == np.int8 or output_data.dtype == np.bool:
+                np.savetxt(f, output_data.reshape(-1), fmt="%d")
+            elif output_data.dtype == np.float32 or output_data.dtype == np.float64:
+                np.savetxt(f, output_data.reshape(-1), fmt="%0.6f")
+            else :
+                print("dump_single_output dont support data type: " + str(output_data.dtype))
+                return False
 
         return True

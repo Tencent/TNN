@@ -25,7 +25,7 @@ class BatchNormScaleLayerTest : public LayerTest,
 INSTANTIATE_TEST_SUITE_P(LayerTest, BatchNormScaleLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
                                             // dim count
-                                            testing::Values(2, 3, 4, 5, 6),
+                                            testing::Values(2, 3, 4, 5),
                                             // share channel
                                             testing::Values(false, true),
                                             // has bias
@@ -43,6 +43,14 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
     auto dtype         = std::get<6>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    if(CheckDataTypeSkip(dtype)) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
 
     // param
     std::shared_ptr<LayerParam> param(new LayerParam());

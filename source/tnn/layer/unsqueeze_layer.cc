@@ -43,8 +43,9 @@ Status UnsqueezeLayer::InferOutputShape(bool ignore_error) {
     
     auto axes = layer_param->axes;
     auto output_dims = input_dims;
-    for (auto axis : axes) {
+    for (auto iter = axes.begin(); iter != axes.end(); iter++) {
         //Note: here it is diffreent from SqueezeLayer
+        int axis = *iter;
         axis = axis < 0 ? axis + (int)output_dims.size() + 1 : axis;
         if (axis < 0 || axis > output_dims.size()) {
             return Status(TNNERR_PARAM_ERR, "UnsqueezeLayer has invalid input axes");

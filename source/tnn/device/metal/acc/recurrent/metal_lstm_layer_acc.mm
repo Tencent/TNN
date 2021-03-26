@@ -194,10 +194,8 @@ Status MetalLSTMLayerAcc::AllocateBufferStates(const std::vector<Blob *> &inputs
 #else
     state_buffer_bytes = num_directions * seq_len * batch * hidden_size * 4 * sizeof(uint16_t);
 #endif
-    if (buffer_gates_ == nil) {
-        buffer_gates_ = [device newBufferWithLength:state_buffer_bytes
+    buffer_gates_ = [device newBufferWithLength:state_buffer_bytes
                                      options:MTLResourceStorageModePrivate];  // only metal kernel writes to this
-    }
     
     // initial states buffer
 #if TNN_METAL_FULL_PRECISION

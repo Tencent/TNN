@@ -33,6 +33,16 @@ Status ArmMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
     auto res = dynamic_cast<MatMulLayerResource *>(resource);
 
+    if (!res) {
+        if (inputs.size() == 2) {
+            // weights are get from inputs
+            return TNN_OK;
+        } else {
+            LOGE("ArmMatMulLayerAcc::Init resource is null\n");
+            return Status(TNNERR_PARAM_ERR, "ArmMatMulLayerAcc::Init resource is null");
+        }
+    }
+
 #if TNN_ARM82
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
         RawBuffer weight_handle = res->weight;

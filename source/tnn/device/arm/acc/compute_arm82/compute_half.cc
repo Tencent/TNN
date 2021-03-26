@@ -388,6 +388,24 @@ void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, lo
 #endif
             }
         }
+
+        if (c_r4 * 4 < c_r8 * 8) {
+            long co         = c_r4 / 2;
+            long dst_offset = (c_r4 % 2) ? 4 : 0;
+            auto dst_c      = dst_n + co * hw * 8 + dst_offset;
+            for (long cnt = 0; cnt < hw; cnt++) {
+                // nchw4 to nchw8
+#ifdef TNN_ARM82_A64
+                vst1_f16(dst_c + cnt * 8, vdup_n_f16(0.f));
+#elif defined(TNN_ARM82_A32)
+                vst1_u16((unsigned short*)(dst_c + cnt * 8), vdup_n_u16(0));
+#else
+                for (long idx = 0; idx < 4; idx++) {
+                    dst_c[cnt * 8 + idx] = 0.f;
+                }
+#endif
+            }
+        }
     }
 }
 
@@ -513,6 +531,7 @@ int PackNeon(fp16_t* dst, const fp16_t* src, size_t hw, size_t channel) {
         auto src7 = src + c * hw + hw * 7;
         auto dst_c = dst + c * hw;
         int cur_hw = 0;
+#ifdef TNN_ARM82_USE_NEON
         for (; cur_hw + 7 < hw; cur_hw += 8) {
             Half8x8 v;
             v.set_value0(Half8::load(src0 + cur_hw));
@@ -525,6 +544,7 @@ int PackNeon(fp16_t* dst, const fp16_t* src, size_t hw, size_t channel) {
             v.set_value7(Half8::load(src7 + cur_hw));
             v.save_transpose(dst_c + cur_hw * 8);
         }
+#endif
         for (; cur_hw < hw; cur_hw++) {
             dst_c[cur_hw * 8 + 0] = src0[cur_hw];
             dst_c[cur_hw * 8 + 1] = src1[cur_hw];

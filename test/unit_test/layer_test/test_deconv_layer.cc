@@ -70,6 +70,11 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
+
+    if(CheckDataTypeSkip(data_type)) {
+        GTEST_SKIP();
+    }
+
     if (stride > kernel) {
         GTEST_SKIP();
     }
@@ -77,19 +82,6 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     if (input_size == 2 && kernel == 4 && pad_type == 2) {
         GTEST_SKIP();
     }
-
-    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
-    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-#ifndef TNN_ARM82
-    if (data_type == DATA_TYPE_HALF) {
-        GTEST_SKIP();
-    }
-#endif
 
     if (DEVICE_HUAWEI_NPU == dev && activation_type != ActivationType_None) {
         GTEST_SKIP();

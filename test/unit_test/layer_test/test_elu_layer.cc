@@ -31,7 +31,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, EluLayerTest,
                              // size Values(16, 19),
                              testing::Values(1, 6, 8, 13),
                              // dim count
-                             testing::Values(2, 3, 4, 5, 6),
+                             testing::Values(2, 3, 4, 5),
                              // alpha
                              testing::Values(-1.234, 2.30, 0.564),
                              // data_type
@@ -47,7 +47,11 @@ TEST_P(EluLayerTest, EluLayer) {
     DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(data_type)) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL && dim_count > 4) {
         GTEST_SKIP();
     }
 

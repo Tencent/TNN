@@ -69,7 +69,7 @@ Status CudaLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         desc.device_type = DEVICE_CUDA;
         auto cuda_blob = std::make_shared<Blob>(desc, true);
         CopyToDevice(cuda_blob.get(), blob.get(), command_queue);
-        cuda_blob->flag = DATA_FLAG_CHANGE_NEVER;
+        cuda_blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map[name] = cuda_blob;
         iter->SetHandle(cuda_blob->GetHandle());
         LOGD("CUDA Reload constant blob: %s\n", name.c_str());
