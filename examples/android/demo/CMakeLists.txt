@@ -14,6 +14,7 @@ set(BASE_SRC ../../base)
 set(UTILS_SRC ../../utils)
 include_directories(${TNN_ROOT}/include)
 include_directories(${TNN_ROOT}/third_party/opencl/include)
+include_directories(${TNN_ROOT}/third_party/opencv/Android/OpenCV-android-sdk/sdk/native/jni/include)
 include_directories(../demo/src/main/jni/thirdparty)
 include_directories(../demo/src/main/jni/thirdparty/kannarotate-android-lib/include)
 include_directories(../demo/src/main/jni/thirdparty/kannarotate-android-lib/src)
@@ -30,15 +31,30 @@ if(ANDROID_ABI STREQUAL "arm64-v8a")
     set(TNN_ARM82_ENABLE ON CACHE BOOL "" FORCE)
 endif()
 set(TNN_BUILD_SHARED OFF CACHE BOOL "" FORCE)
-set(TNN_HUAWEI_NPU_ENABLE OFF CACHE BOOL "" FORCE)
+set(TNN_HUAWEI_NPU_ENABLE ON CACHE BOOL "" FORCE)
+set(TNN_OPENCV_ENABLE ON CACHE BOOL "" FORCE)
 
 add_subdirectory(${TNN_ROOT}/ ../build)
+
+if(TNN_OPENCV_ENABLE)
+    add_definitions(-DHAS_OPENCV)
+endif()
 
 file(GLOB_RECURSE WRAPPER_SRCS ../demo/src/main/jni/cc/*.cc)
 file(GLOB_RECURSE BASE_SRC ${BASE_SRC}/*.cc)
 file(GLOB_RECURSE UTILS_SRC ${UTILS_SRC}/*.cc)
 file(GLOB_RECURSE THIRDPARTY_SRCS ../demo/src/main/jni/thirdparty/kannarotate-android-lib/src/*.c)
 add_library(tnn_wrapper SHARED ${WRAPPER_SRCS} ${BASE_SRC} ${THIRDPARTY_SRCS} ${UTILS_SRC})
+
+if(TNN_OPENCV_ENABLE)
+    add_library(opencv
+            SHARED
+            IMPORTED)
+    set_target_properties(opencv
+            PROPERTIES
+            IMPORTED_LOCATION
+            ${CMAKE_SOURCE_DIR}/../../../third_party/opencv/Android/OpenCV-android-sdk/sdk/native/libs/${ANDROID_ABI}/libopencv_java3.so)
+endif()
 
 if(TNN_HUAWEI_NPU_ENABLE)
     add_library(hiai
@@ -86,6 +102,10 @@ target_link_libraries( # Specifies the target library.
                        # Links the target library to the log library
                        # included in the NDK.
                        ${log-lib})
+
+if(TNN_OPENCV_ENABLE)
+    target_link_libraries(tnn_wrapper opencv)
+endif()
 
 if(TNN_HUAWEI_NPU_ENABLE)
     target_link_libraries( # Specifies the target library.

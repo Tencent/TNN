@@ -26,6 +26,10 @@
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
+#if HAS_OPENCV
+#include "opencv2/core/core.hpp"
+#endif
+
 namespace TNN_NS{
 
 class OCROutput : public TNNSDKOutput {
@@ -51,7 +55,9 @@ public:
     void SetBlobDumpDir(const char *dump_dir);
 
 protected:
+#if HAS_OPENCV
     Status MatToTNNMat(const cv::Mat& mat, std::shared_ptr<Mat>& tnn_mat, bool try_share_data);
+#endif
     std::shared_ptr<TNNSDKSample> textbox_detector_;
     std::shared_ptr<TNNSDKSample> angle_predictor_;
     std::shared_ptr<TNNSDKSample> text_recognizer_;
