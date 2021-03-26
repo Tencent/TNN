@@ -41,6 +41,13 @@ TEST_P(InnerProductLayerTest, InnerProductLayer) {
     DataType dtype     = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if (dev == DEVICE_ARM && dtype == DATA_TYPE_HALF) {
+        // error of fp16 result will accumulate as input size increases
+        if (input_channel * input_size * input_size > 5000) {
+            GTEST_SKIP();
+        }
+    }
+
     if(CheckDataTypeSkip(dtype)) {
         GTEST_SKIP();
     }
