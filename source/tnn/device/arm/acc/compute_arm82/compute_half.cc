@@ -531,6 +531,7 @@ int PackNeon(fp16_t* dst, const fp16_t* src, size_t hw, size_t channel) {
         auto src7 = src + c * hw + hw * 7;
         auto dst_c = dst + c * hw;
         int cur_hw = 0;
+#ifdef TNN_ARM82_USE_NEON
         for (; cur_hw + 7 < hw; cur_hw += 8) {
             Half8x8 v;
             v.set_value0(Half8::load(src0 + cur_hw));
@@ -543,6 +544,7 @@ int PackNeon(fp16_t* dst, const fp16_t* src, size_t hw, size_t channel) {
             v.set_value7(Half8::load(src7 + cur_hw));
             v.save_transpose(dst_c + cur_hw * 8);
         }
+#endif
         for (; cur_hw < hw; cur_hw++) {
             dst_c[cur_hw * 8 + 0] = src0[cur_hw];
             dst_c[cur_hw * 8 + 1] = src1[cur_hw];
