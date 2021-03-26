@@ -138,7 +138,7 @@ Status MatMulLayer::InferOutputShape(bool ignore_error) {
     param->matrix_b_dims = matrix_b_dims;
 
     auto output_dims = CalculateOutputDim(matrix_a_dims, matrix_b_dims, &status);
-    LOGE_IF(!ignore_error && status != TNN_OK, "MatMulLayer: %s", status.description().c_str());
+    LOGE_IF(!ignore_error && status != TNN_OK, "MatMulLayer: %s\n", status.description().c_str());
     output_blobs_[0]->GetBlobDesc().dims = output_dims;
     return TNN_OK;
 }
