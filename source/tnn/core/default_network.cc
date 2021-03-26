@@ -126,7 +126,14 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     net_structure_ = net_structure;
     net_resource_ = net_resource;
     
-    return ReshapeLayers();
+    ret = context_->OnInstanceReshapeBegin();
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    ret = ReshapeLayers();
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    ret = context_->OnInstanceReshapeEnd();
+    return ret;
 }
 
 static inline bool IsLayoutReformatLayer(std::shared_ptr<LayerInfo> layer) {
@@ -187,6 +194,14 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             }
             auto ret  = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
             RETURN_ON_NEQ(ret, TNN_OK);
+        }
+
+        for (auto name : input_names) {
+            auto blob = blob_manager_->GetBlob(name);
+            // set const blobs' layout
+            if (const_blobs.count(name) != 0) {
+                blob->GetBlobDesc().data_format = input_fmt;
+            }
         }
 
         // output layout equals to input layout except for layout_reformat layer
