@@ -21,6 +21,10 @@
 
 namespace TNN_NS {
 
+bool ArmReshapeLayerAcc::UseNaiveConstantBlobs() {
+    return true;
+}
+
 Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs.size() < 1) {
         LOGE("Error: invalid inputs count\n");

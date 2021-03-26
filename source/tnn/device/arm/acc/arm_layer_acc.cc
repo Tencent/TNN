@@ -66,6 +66,10 @@ std::vector<DataFormat> ArmLayerAcc::SupportDataFormat(DataType data_type, int d
     return support_list;
 }
 
+bool ArmLayerAcc::UseNaiveConstantBlobs() {
+    return false;
+}
+
 ArmLayerAcc::~ArmLayerAcc() {}
 
 Status ArmLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -82,6 +86,70 @@ Status ArmLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector
     return TNN_OK;
 }
 
+Status RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDesc &desc) {
+    if (!buffer) {
+        LOGE("RawBuffer2ArmBlob:: buffer is null \n");
+        return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: buffer is null");
+    }
+
+    const int count = blob ? DimsVectorUtils::Count(blob->GetBlobDesc().dims) : 0;
+
+    if (!blob || buffer->GetDataCount() != count) {
+        {
+            desc.device_type = DEVICE_ARM;
+            desc.dims        = buffer->GetBufferDims();
+        }
+        if (buffer->GetBytesSize() > 0) {
+            blob = std::make_shared<Blob>(desc, true);
+        } else {
+            blob = std::make_shared<Blob>(desc, false);
+        }
+    }
+
+    if (blob->GetHandle().base && buffer->GetBytesSize() > 0) {
+        auto buff_dtype = buffer->GetDataType();
+        auto blob_dtype = blob->GetBlobDesc().data_type;
+        auto blob_fmt   = blob->GetBlobDesc().data_format;
+        auto dims       = desc.dims;
+        if (dims.size() < 2) {
+            LOGE("RawBuffer2ArmBlob:: unsupported dims size: %d\n", (int)dims.size());
+            return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: not support dims size less than 2 now");
+        }
+        int batch       = dims[0];
+        int channel     = dims[1];
+        int hw          = DimsVectorUtils::Count(dims, 2);
+        auto buff_count = batch * channel * hw;
+
+        if (buff_dtype == DATA_TYPE_FLOAT) {
+            auto src_ptr = buffer->force_to<float *>();
+            if (blob_dtype == DATA_TYPE_FLOAT) {
+                if (blob_fmt == DATA_FORMAT_NCHW) {
+                    memcpy(reinterpret_cast<float *>(blob->GetHandle().base), src_ptr, buff_count * sizeof(float));
+                } else {
+                    PackFloatBlob(reinterpret_cast<float *>(blob->GetHandle().base), src_ptr, batch, channel, hw);
+                }
+            } else if (blob_dtype == DATA_TYPE_HALF) {
+                RawBuffer tmp_fp16_buff = RawBuffer(buff_count * sizeof(fp16_t));
+                auto tmp_buff_ptr       = tmp_fp16_buff.force_to<fp16_t *>();
+                ConvertFromFloatToHalf(src_ptr, tmp_buff_ptr, buff_count);
+                if (blob_fmt == DATA_FORMAT_NCHW) {
+                    memcpy(reinterpret_cast<fp16_t *>(blob->GetHandle().base), tmp_buff_ptr, buff_count * sizeof(fp16_t));
+                } else {
+                    PackHalfBlob(reinterpret_cast<fp16_t *>(blob->GetHandle().base), tmp_buff_ptr, batch, channel, hw);
+                }
+            } else {
+                LOGE("RawBuffer2ArmBlob:: unsupported blob data type: %d\n", blob_dtype);
+                return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: unsupported blob data type");
+            }
+        } else {
+            LOGE("RawBuffer2ArmBlob:: unsupported buffer data type: %d\n", buff_dtype);
+            return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: unsupported buffer data type");
+        }
+    }
+
+    return TNN_OK;
+}
+
 Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
     auto const_resource = const_resource_;
     auto const_blob_map = const_blob_map_;
@@ -91,12 +159,17 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
             continue;
         }
 
-        auto buffer = (*const_resource)[name];
+        auto buffer                = (*const_resource)[name];
         std::shared_ptr<Blob> blob = nullptr;
         if (const_blob_map.find(name) != const_blob_map.end()) {
             blob = const_blob_map[name];
         }
-        auto status = RawBuffer2Blob(buffer.get(), blob);
+        Status status;
+        if (UseNaiveConstantBlobs()) {
+            status = RawBuffer2Blob(buffer.get(), blob);
+        } else {
+            status = RawBuffer2ArmBlob(buffer.get(), blob, iter->GetBlobDesc());
+        }
         RETURN_ON_NEQ(status, TNN_OK);
 
         blob->SetFlag(DATA_FLAG_CHANGE_NEVER);

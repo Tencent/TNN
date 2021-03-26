@@ -83,6 +83,7 @@ Status ArmBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
 
     // prepare input shapes
+    input_shapes_.clear();
     input_shapes_.reserve(4);
     auto output = outputs[0];
     auto output_dims = output->GetBlobDesc().dims;
@@ -244,6 +245,7 @@ Status ArmBinaryLayerAcc::ExecInt8(const std::vector<Blob *> &inputs, const std:
 Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     // prepare input ptrs, since blob memory is allocted after init
+    input_ptrs_.clear();
     input_ptrs_.reserve(4);
     if (broadcast_.GetBytesSize() > 0) {
         if (layer_param->weight_input_index == 0) {
