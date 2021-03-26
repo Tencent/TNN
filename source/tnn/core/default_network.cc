@@ -191,16 +191,8 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             // skip const blobs
             if (const_blobs.count(name) == 0) {
                 input_fmt = blob->GetBlobDesc().data_format;
-            }
-            auto ret  = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
-            RETURN_ON_NEQ(ret, TNN_OK);
-        }
-
-        for (auto name : input_names) {
-            auto blob = blob_manager_->GetBlob(name);
-            // set const blobs' layout
-            if (const_blobs.count(name) != 0) {
-                blob->GetBlobDesc().data_format = input_fmt;
+                auto ret  = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
+                RETURN_ON_NEQ(ret, TNN_OK);
             }
         }
 
@@ -246,9 +238,12 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
-            blob->GetBlobDesc().data_format = output_fmt;
-            auto ret  = UpdateBlobPrecision(layer_info, false, is_quantized_net, name, net_resource, &blob);
-            RETURN_ON_NEQ(ret, TNN_OK);
+            // skip const blobs
+            if (const_blobs.count(name) == 0) {
+                blob->GetBlobDesc().data_format = output_fmt;
+                auto ret = UpdateBlobPrecision(layer_info, false, is_quantized_net, name, net_resource, &blob);
+                RETURN_ON_NEQ(ret, TNN_OK);
+            }
         }
     }
 
