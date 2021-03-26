@@ -159,6 +159,7 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
             continue;
         }
 
+        LOGD("Reloading constant blob: %s\n", name.c_str());
         auto buffer                = (*const_resource)[name];
         std::shared_ptr<Blob> blob = nullptr;
         if (const_blob_map.find(name) != const_blob_map.end()) {
@@ -176,7 +177,7 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         const_blob_map[name] = blob;
         iter->SetHandle(blob->GetHandle());
         iter->GetBlobDesc() = blob->GetBlobDesc();
-        LOGD("Reload constant blob: %s\n", name.c_str());
+        LOGD("Reload constant blob: %s done\n", name.c_str());
     }
     const_blob_map_ = const_blob_map;
     return TNN_OK;
