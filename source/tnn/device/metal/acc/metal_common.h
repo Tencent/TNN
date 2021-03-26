@@ -59,6 +59,22 @@ struct MetalConcatParamV2 {
     int outer_size;
 };
 
+struct MetalGatherParams {
+    int inner_size;
+    int input_axis_size;
+    int output_axis_size;
+    int outer_size;
+
+    int input_slice;
+    int output_slice;
+};
+
+struct MetalCastParams {
+    int batch;
+    int input_slice;
+    int input_size;
+};
+
 // keep as same as BroadcastType in layer_param.h
 #define kBroadcastTypeNormal 0x0000
 #define kBroadcastTypeSingle 0x0001
@@ -203,6 +219,29 @@ struct MetalStrideSliceParams {
     int stride_c;
     int stride_h;
     int stride_w;
+};
+
+struct MetalStrideSliceParamsV2 {
+    int input_shape3d_low[3];
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+
+    int shape3d_low[3];
+    //uint3 shape3d_low;
+    // count of shape3d_low
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int batch;
+
+    // strides for h, s, b
+    int strides_high[3];
+    int strides_low[3];
+    int begins_high[3];
+    int begins_low[3];
 };
 
 /** Shuffle Param Struct **/
