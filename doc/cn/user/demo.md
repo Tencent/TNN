@@ -143,10 +143,11 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    
    4). 运行demo需要需首先下载NPU DDK。参考: [FAQ](../faq.md): 创建华为NPU编译环境。
 
-   5). 想要执行OCR demo, 打开工程后，需要手动设置打开OPENCV依赖：
-   在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 更新指令为如下，使用OPENCV。
+   5). 想要执行OCR demo, 打开工程后，需要手动设置打开OPENCV和CPU依赖：
+   在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 更新指令为如下，使用OPENCV和CPU。
    ````
         set(TNN_OPENCV_ENABLE ON CACHE BOOL "" FORCE)
+        set(TNN_CPU_ENABLE ON CACHE BOOL "" FORCE)
    ````
       
  
