@@ -170,23 +170,23 @@ struct Float8 {
         dst.value = _mm256_insertf128_ps(dst.value, high, 1);
         return dst;
     }
-    Float8 operator+(const Float8& lr) {
+    Float8 operator+(const Float8& lr) const {
         Float8 dst;
         dst.value = _mm256_add_ps(value, lr.value);
         return dst;
     }
-    Float8 operator-(const Float8& lr) {
+    Float8 operator-(const Float8& lr) const {
         Float8 dst;
         dst.value = _mm256_sub_ps(value, lr.value);
         return dst;
     }
-    Float8 operator*(float lr) {
+    Float8 operator*(float lr) const {
         Float8 dst;
         __m256 tmp = _mm256_set1_ps(lr);
         dst.value = _mm256_mul_ps(value, tmp);
         return dst;
     }
-    Float8 operator*(const Float8& lr) {
+    Float8 operator*(const Float8& lr) const {
         Float8 dst;
         dst.value = _mm256_mul_ps(value, lr.value);
         return dst;
@@ -199,7 +199,7 @@ struct Float8 {
         value = std::move(lr.value);
         return *this;
     }
-    Float8 operator-() {
+    Float8 operator-() const {
         Float8 dst;
         dst.value = _mm256_sub_ps(_mm256_setzero_ps(), value);
         return dst;

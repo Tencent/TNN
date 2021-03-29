@@ -22,52 +22,53 @@
 
 namespace TNN_NS {
 
-template<> float binary_op<ArmBinaryOpType::kADD, float>(float &a, float &b, float alpha, float beta) {
+template<> float binary_op<ArmBinaryOpType::kADD, float>(const float &a, const float &b, float alpha, float beta) {
     return a + b;
 }
-template<> float binary_op<ArmBinaryOpType::kSUB, float>(float &a, float &b, float alpha, float beta) {
+template<> float binary_op<ArmBinaryOpType::kSUB, float>(const float &a, const float &b, float alpha, float beta) {
     return a - b;
 }
-template<> float binary_op<ArmBinaryOpType::kMUL, float>(float &a, float &b, float alpha, float beta) {
+template<> float binary_op<ArmBinaryOpType::kMUL, float>(const float &a, const float &b, float alpha, float beta) {
     return a * b;
 }
-template<> float binary_op<ArmBinaryOpType::kDIV, float>(float &a, float &b, float alpha, float beta) {
+template<> float binary_op<ArmBinaryOpType::kDIV, float>(const float &a, const float &b, float alpha, float beta) {
     return a / b;
 }
-template<> float binary_op<ArmBinaryOpType::kMAX, float>(float &a, float &b, float alpha, float beta) {
+template<> float binary_op<ArmBinaryOpType::kMAX, float>(const float &a, const float &b, float alpha, float beta) {
     return a > b ? a : b;
 }
-template<> float binary_op<ArmBinaryOpType::kMIN, float>(float &a, float &b, float alpha, float beta) {
+template<> float binary_op<ArmBinaryOpType::kMIN, float>(const float &a, const float &b, float alpha, float beta) {
     return a < b ? a : b;
 }
-template<> float binary_op<ArmBinaryOpType::kHARDSWISH, float>(float &a, float &b, float alpha, float beta) {
+template<> float binary_op<ArmBinaryOpType::kHARDSWISH, float>(const float &a, const float &b, float alpha, float beta) {
     return a * MAX(MIN(b * alpha + beta, 1.0f), 0.f);
 }
 
-template<> Float4 binary_op<ArmBinaryOpType::kADD, Float4>(Float4 &a, Float4 &b, float alpha, float beta) {
+template<> Float4 binary_op<ArmBinaryOpType::kADD, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return a + b;
 }
-template<> Float4 binary_op<ArmBinaryOpType::kSUB, Float4>(Float4 &a, Float4 &b, float alpha, float beta) {
+template<> Float4 binary_op<ArmBinaryOpType::kSUB, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return a - b;
 }
-template<> Float4 binary_op<ArmBinaryOpType::kMUL, Float4>(Float4 &a, Float4 &b, float alpha, float beta) {
+template<> Float4 binary_op<ArmBinaryOpType::kMUL, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return a * b;
 }
-template<> Float4 binary_op<ArmBinaryOpType::kDIV, Float4>(Float4 &a, Float4 &b, float alpha, float beta) {
+template<> Float4 binary_op<ArmBinaryOpType::kDIV, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return Float4::div(a, b);
 }
-template<> Float4 binary_op<ArmBinaryOpType::kMAX, Float4>(Float4 &a, Float4 &b, float alpha, float beta) {
+template<> Float4 binary_op<ArmBinaryOpType::kMAX, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return Float4::max(a, b);
 }
-template<> Float4 binary_op<ArmBinaryOpType::kMIN, Float4>(Float4 &a, Float4 &b, float alpha, float beta) {
+template<> Float4 binary_op<ArmBinaryOpType::kMIN, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return Float4::min(a, b);
 }
-template<> Float4 binary_op<ArmBinaryOpType::kHARDSWISH, Float4>(Float4 &a, Float4 &b, float alpha, float beta) {
+template<> Float4 binary_op<ArmBinaryOpType::kHARDSWISH, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return a * Float4::max(Float4::min(b * alpha + beta, 1.0f), 0.f);
 }
 
 Status ArmBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    desc_for_config_const_blob_ = outputs[0]->GetBlobDesc();
     RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         RETURN_ON_NEQ(allocateBufferParam(inputs, outputs), TNN_OK);
@@ -132,6 +133,25 @@ bool ArmBinaryLayerAcc::DataTypeSupported(DataType data_type) {
         return true;
     else
         return false;
+}
+
+Status ArmBinaryLayerAcc::ConfigBuffer2ArmBlobDesc(BlobDesc &desc) {
+    DimsVector config_dims = desc_for_config_const_blob_.dims;
+    DimsVector original_dims = desc.dims;
+    DimsVector pad_dims;
+    if (config_dims.size() > 0) {
+        pad_dims.resize(config_dims.size());
+        int pad_size = config_dims.size() - original_dims.size();
+        PadShape(pad_size, config_dims.size(), pad_dims, original_dims);
+    } else {
+        pad_dims = original_dims;
+    }
+
+    desc.dims = pad_dims;
+    desc.device_type = desc_for_config_const_blob_.device_type;
+    desc.data_type = desc_for_config_const_blob_.data_type;
+    desc.data_format = desc_for_config_const_blob_.data_format;
+    return TNN_OK;
 }
 
 ArmBinaryLayerAcc::~ArmBinaryLayerAcc() {}
