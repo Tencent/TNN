@@ -177,10 +177,10 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
 
     for(auto item : inputs) {
         std::string input_name = item.first;
-        if (item.second.size() < 4) {
-            return TNNERR_PARAM_ERR; 
-        }
         if (network_shapes.find(input_name) == network_shapes.end()) {
+            return TNNERR_PARAM_ERR;
+        }
+        if (item.second.size() != network_shapes.find(input_name)->second.size()) {
             return TNNERR_PARAM_ERR;
         }
 
