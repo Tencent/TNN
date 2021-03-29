@@ -54,6 +54,8 @@ public:
 
 protected:
     virtual bool DataTypeSupported(DataType data_type) override;
+    virtual Status ConfigBuffer2ArmBlobDesc(BlobDesc &desc) override;
+
     ArmBinaryOpType op_type_;
     // used for hardswish
     float alpha_ = 0.f;
@@ -64,6 +66,7 @@ private:
     std::vector<void *> input_ptrs_;
     std::vector<DimsVector> input_shapes_;
     BroadcastType btype_;
+    BlobDesc desc_for_config_const_blob_;
 };
 
 #define DECLARE_ARM_BINARY_ACC(type_string)                                                                            \

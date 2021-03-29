@@ -86,7 +86,11 @@ Status ArmLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector
     return TNN_OK;
 }
 
-Status RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDesc &desc) {
+Status ArmLayerAcc::ConfigBuffer2ArmBlobDesc(BlobDesc &desc) {
+    return TNN_OK;
+}
+
+Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDesc &desc) {
     if (!buffer) {
         LOGE("RawBuffer2ArmBlob:: buffer is null \n");
         return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: buffer is null");
@@ -98,6 +102,7 @@ Status RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDes
         {
             desc.device_type = DEVICE_ARM;
             desc.dims        = buffer->GetBufferDims();
+            ConfigBuffer2ArmBlobDesc(desc);
         }
         if (buffer->GetBytesSize() > 0) {
             blob = std::make_shared<Blob>(desc, true);
