@@ -23,10 +23,10 @@ class ArmReshapeLayerAcc : public ArmLayerAcc {
 public:
     virtual ~ArmReshapeLayerAcc(){};
 
-    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 protected:
-    virtual bool UseNaiveConstantBlobs();
+    virtual bool UseNaiveConstantBlobs() override;
 
 private:
     template <typename T>

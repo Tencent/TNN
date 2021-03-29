@@ -24,9 +24,9 @@ public:
     virtual ~ArmLSTMONNXLayerAcc();
 
     virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-                        const std::vector<Blob *> &outputs);
+                        const std::vector<Blob *> &outputs) override;
 
-    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 protected:
     Status AllocateBufferWeightInput(Blob *weight_i);
@@ -38,7 +38,7 @@ protected:
     Status AllocateBufferBiasHalf(Blob *bias);
 #endif  // TNN_ARM82
 
-    bool UseNaiveConstantBlobs();
+    virtual bool UseNaiveConstantBlobs() override;
 
     RawBuffer buffer_weight_input_;
     RawBuffer buffer_weight_recurrent_;

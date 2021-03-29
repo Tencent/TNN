@@ -79,6 +79,10 @@ protected:
 
     // @brief if true, const blobs are loaded the same as naive device
     virtual bool UseNaiveConstantBlobs();
+    // @brief config blobdesc for reload buffer to arm blob
+    virtual Status ConfigBuffer2ArmBlobDesc(BlobDesc &desc);
+    // @brief reload buffer to arm blob using packed format
+    virtual Status RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDesc &desc);
 
 private:
     // @brief return device layer acc support data format

@@ -179,58 +179,49 @@ static void BinaryComputeOffset(DimsVector &offset, const DimsVector dims_in, co
 
 static void BinaryComputeFirst(const DimsVector input_offset, const DimsVector output_offset,
                                const DimsVector output_shape, const float* input_ptr, float* output_ptr) {
-#define compute_ptr(pre_idx, cur_idx, i)                              \
-    auto iptr##cur_idx = iptr##pre_idx + cur_idx * input_offset[i];   \
-    auto optr##cur_idx = optr##pre_idx + cur_idx * output_offset[i];
+    DimsVector out_shape;
+    DimsVector in_offset;
+    DimsVector ou_offset;
+    // support maximum 6 dimension, may be extended in furture
+    out_shape.resize(6);
+    in_offset.resize(6);
+    ou_offset.resize(6);
+    // if dim < 6, pad to 6
+    int pad_size = 6 - output_shape.size();
+    for (int i = 0; i < pad_size; i++) {
+        out_shape[i] = 1;
+        in_offset[i] = 0;
+        ou_offset[i] = 0;
+    }
+    for (int i = pad_size; i < 6; i++) {
+        out_shape[i] = output_shape[i - pad_size];
+        in_offset[i] = input_offset[i - pad_size];
+        ou_offset[i] = output_offset[i - pad_size];
+    }
 
-#define compute_binary_first(cur_idx)            \
-    optr##cur_idx[0] = iptr##cur_idx[0];
-
-#define compute_loop(pre_idx, cur_idx)                                \
-    for (int i##cur_idx = 0; i##cur_idx < output_shape[cur_idx]; i##cur_idx++) {      \
-        compute_ptr(i##pre_idx, i##cur_idx, cur_idx);
-
-    auto iptris = input_ptr;
-    auto optris = output_ptr;
-
-    if (output_shape.size() == 6) {
-        compute_loop(s, 0);
-        compute_loop(0, 1);
-        compute_loop(1, 2);
-        compute_loop(2, 3);
-        compute_loop(3, 4);
-        compute_loop(4, 5);
-            compute_binary_first(i5);
-        }}}}}}
-    } else if (output_shape.size() == 5) {
-        compute_loop(s, 0);
-        compute_loop(0, 1);
-        compute_loop(1, 2);
-        compute_loop(2, 3);
-        compute_loop(3, 4);
-            compute_binary_first(i4);
-        }}}}}
-    } else if (output_shape.size() == 4) {
-        compute_loop(s, 0);
-        compute_loop(0, 1);
-        compute_loop(1, 2);
-        compute_loop(2, 3);
-            compute_binary_first(i3);
-        }}}}
-    } else if (output_shape.size() == 3) {
-        compute_loop(s, 0);
-        compute_loop(0, 1);
-        compute_loop(1, 2);
-            compute_binary_first(i2);
-        }}}
-    } else if (output_shape.size() == 2) {
-        compute_loop(s, 0);
-        compute_loop(0, 1);
-            compute_binary_first(i1);
-        }}
-    } else if (output_shape.size() == 1) {
-        compute_loop(s, 0);
-            compute_binary_first(i0);
+    for (int i0 = 0; i0 < out_shape[0]; i0++) {
+        auto in_i0 = input_ptr + i0 * in_offset[0];
+        auto ou_i0 = output_ptr + i0 * ou_offset[0];
+        for (int i1 = 0; i1 < out_shape[1]; i1++) {
+            auto in_i1 = in_i0 + i1 * in_offset[1];
+            auto ou_i1 = ou_i0 + i1 * ou_offset[1];
+            for (int i2 = 0; i2 < out_shape[2]; i2++) {
+                auto in_i2 = in_i1 + i2 * in_offset[2];
+                auto ou_i2 = ou_i1 + i2 * ou_offset[2];
+                for (int i3 = 0; i3 < out_shape[3]; i3++) {
+                    auto in_i3 = in_i2 + i3 * in_offset[3];
+                    auto ou_i3 = ou_i2 + i3 * ou_offset[3];
+                    for (int i4 = 0; i4 < out_shape[4]; i4++) {
+                        auto in_i4 = in_i3 + i4 * in_offset[4];
+                        auto ou_i4 = ou_i3 + i4 * ou_offset[4];
+                        for (int i5 = 0; i5 < out_shape[5]; i5++) {
+                            auto in_i5 = in_i4 + i5 * in_offset[5];
+                            auto ou_i5 = ou_i4 + i5 * ou_offset[5];
+                            ou_i5[0] = in_i5[0];
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -238,58 +229,49 @@ static void BinaryComputeFirst(const DimsVector input_offset, const DimsVector o
 template <X86BinaryOpType op_type>
 void BinaryCompute(const DimsVector input_offset, const DimsVector output_offset,
                           const DimsVector output_shape, const float* input_ptr, float* output_ptr) {
-#define compute_ptr(pre_idx, cur_idx, i)                              \
-    auto iptr##cur_idx = iptr##pre_idx + cur_idx * input_offset[i];   \
-    auto optr##cur_idx = optr##pre_idx + cur_idx * output_offset[i];
+    DimsVector out_shape;
+    DimsVector in_offset;
+    DimsVector ou_offset;
+    // support maximum 6 dimension, may be extended in furture
+    out_shape.resize(6);
+    in_offset.resize(6);
+    ou_offset.resize(6);
+    // if dim < 6, pad to 6
+    int pad_size = 6 - output_shape.size();
+    for (int i = 0; i < pad_size; i++) {
+        out_shape[i] = 1;
+        in_offset[i] = 0;
+        ou_offset[i] = 0;
+    }
+    for (int i = pad_size; i < 6; i++) {
+        out_shape[i] = output_shape[i - pad_size];
+        in_offset[i] = input_offset[i - pad_size];
+        ou_offset[i] = output_offset[i - pad_size];
+    }
 
-#define compute_binary(cur_idx)            \
-    optr##cur_idx[0] = binary_op<op_type>(optr##cur_idx[0], iptr##cur_idx[0]);
-
-#define compute_loop(pre_idx, cur_idx)                                \
-    for (int i##cur_idx = 0; i##cur_idx < output_shape[cur_idx]; i##cur_idx++) {      \
-        compute_ptr(i##pre_idx, i##cur_idx, cur_idx);
-
-    auto iptris = input_ptr;
-    auto optris = output_ptr;
-
-    if (output_shape.size() == 6) {
-        compute_loop(s, 0);
-        compute_loop(0, 1);
-        compute_loop(1, 2);
-        compute_loop(2, 3);
-        compute_loop(3, 4);
-        compute_loop(4, 5);
-            compute_binary(i5);
-        }}}}}}
-    } else if (output_shape.size() == 5) {
-        compute_loop(s, 0);
-        compute_loop(0, 1);
-        compute_loop(1, 2);
-        compute_loop(2, 3);
-        compute_loop(3, 4);
-            compute_binary(i4);
-        }}}}}
-    } else if (output_shape.size() == 4) {
-        compute_loop(s, 0);
-        compute_loop(0, 1);
-        compute_loop(1, 2);
-        compute_loop(2, 3);
-            compute_binary(i3);
-        }}}}
-    } else if (output_shape.size() == 3) {
-        compute_loop(s, 0);
-        compute_loop(0, 1);
-        compute_loop(1, 2);
-            compute_binary(i2);
-        }}}
-    } else if (output_shape.size() == 2) {
-        compute_loop(s, 0);
-        compute_loop(0, 1);
-            compute_binary(i1);
-        }}
-    } else if (output_shape.size() == 1) {
-        compute_loop(s, 0);
-            compute_binary(i0);
+    for (int i0 = 0; i0 < out_shape[0]; i0++) {
+        auto in_i0 = input_ptr + i0 * in_offset[0];
+        auto ou_i0 = output_ptr + i0 * ou_offset[0];
+        for (int i1 = 0; i1 < out_shape[1]; i1++) {
+            auto in_i1 = in_i0 + i1 * in_offset[1];
+            auto ou_i1 = ou_i0 + i1 * ou_offset[1];
+            for (int i2 = 0; i2 < out_shape[2]; i2++) {
+                auto in_i2 = in_i1 + i2 * in_offset[2];
+                auto ou_i2 = ou_i1 + i2 * ou_offset[2];
+                for (int i3 = 0; i3 < out_shape[3]; i3++) {
+                    auto in_i3 = in_i2 + i3 * in_offset[3];
+                    auto ou_i3 = ou_i2 + i3 * ou_offset[3];
+                    for (int i4 = 0; i4 < out_shape[4]; i4++) {
+                        auto in_i4 = in_i3 + i4 * in_offset[4];
+                        auto ou_i4 = ou_i3 + i4 * ou_offset[4];
+                        for (int i5 = 0; i5 < out_shape[5]; i5++) {
+                            auto in_i5 = in_i4 + i5 * in_offset[5];
+                            auto ou_i5 = ou_i4 + i5 * ou_offset[5];
+                            ou_i5[0] = binary_op<op_type>(ou_i5[0], in_i5[0]);
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -542,74 +524,81 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
 
 X86BinaryOpLayerAcc::~X86BinaryOpLayerAcc() {}
 
-Status X86BinaryOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
-    if (!layer_param) {
-        LOGE("Error: layer param is nil\n");
-        return Status(TNNERR_PARAM_ERR, "Error: layer param is nil");
+Status X86BinaryOpLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                             const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret = X86LayerAcc::Init(context, param, resource, inputs, outputs);
+    if (ret != TNN_OK) {
+        return ret;
     }
+
+    auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
 
-    std::vector<float *> input_ptrs;
-    std::vector<DimsVector> input_shapes;
-    input_ptrs.reserve(4);
-    input_shapes.reserve(4);
+    // prepare input shapes
+    input_shapes_.clear();
+    input_shapes_.reserve(4);
     auto output = outputs[0];
-    auto dims   = output->GetBlobDesc().dims;
+    auto output_dims = output->GetBlobDesc().dims;
 
     if (layer_res && inputs.size() == 1) {
         DimsVector input_shape0 = inputs[0]->GetBlobDesc().dims;
-        // prepare input ptrs and shapes
         if (layer_param->weight_input_index == 0) {
             // bias as another input
-            input_ptrs.push_back(layer_res->element_handle.force_to<float *>());
-            input_shapes.push_back(layer_res->element_shape);
-
-            input_ptrs.push_back(reinterpret_cast<float *>(inputs[0]->GetHandle().base));
-            input_shapes.push_back(input_shape0);
+            input_shapes_.push_back(layer_res->element_shape);
+            input_shapes_.push_back(input_shape0);
         } else {
-            input_ptrs.push_back(reinterpret_cast<float *>(inputs[0]->GetHandle().base));
-            input_shapes.push_back(input_shape0);
-
-            input_ptrs.push_back(layer_res->element_handle.force_to<float *>());
-            input_shapes.push_back(layer_res->element_shape);
+            input_shapes_.push_back(input_shape0);
+            input_shapes_.push_back(layer_res->element_shape);
         }
     } else {
         if (inputs.size() == 1) {
-            input_ptrs.push_back(reinterpret_cast<float *>(inputs[0]->GetHandle().base));
-            input_ptrs.push_back(reinterpret_cast<float *>(inputs[0]->GetHandle().base));
-            input_shapes.push_back(inputs[0]->GetBlobDesc().dims);
-            input_shapes.push_back(inputs[0]->GetBlobDesc().dims);
+            input_shapes_.push_back(inputs[0]->GetBlobDesc().dims);
+            input_shapes_.push_back(inputs[0]->GetBlobDesc().dims);
         } else {
             for (size_t inid = 0; inid < inputs.size(); inid++) {
-                input_ptrs.push_back(reinterpret_cast<float *>(inputs[inid]->GetHandle().base));
-                input_shapes.push_back(inputs[inid]->GetBlobDesc().dims);
+                input_shapes_.push_back(inputs[inid]->GetBlobDesc().dims);
             }
         }
     }
 
-    auto binary_func = BinaryFunc<X86BinaryOpType::kADD, Float4, 4>;
-    auto binary_general_func = BinaryGeneral<X86BinaryOpType::kADD>;
+    btype_ = BroadcastTypeUnknown;
+    // check broadcast type is general or other optimized ncxhwx types
+    // if type is general, go to nchw general impl
+    DimsVector input_pad_shape;
+    input_pad_shape.resize(output_dims.size());
+    for (int i = 0; i < input_shapes_.size(); i++) {
+        int pad_size = output_dims.size() - input_shapes_[i].size();
+        PadShape(pad_size, output_dims.size(), input_pad_shape, input_shapes_[i]);
+        BroadCastTypeFilter(output_dims, input_pad_shape, btype_);
+        if (btype_ == BroadcastTypeGeneral) {
+            break;
+        }
+    }
+
+    // set binary function pointer
+    binary_func_ = BinaryFunc<X86BinaryOpType::kADD, Float4, 4>;
+    binary_general_func_ = BinaryGeneral<X86BinaryOpType::kADD>;
 
     if (arch_ == avx2) {
         switch(op_type_) {
             case X86BinaryOpType::kADD :
-                binary_func = BinaryFunc<X86BinaryOpType::kADD, Float8, 8>;
+                binary_func_ = BinaryFunc<X86BinaryOpType::kADD, Float8, 8>;
                 break;
             case X86BinaryOpType::kSUB :
-                binary_func = BinaryFunc<X86BinaryOpType::kSUB, Float8, 8>;
+                binary_func_ = BinaryFunc<X86BinaryOpType::kSUB, Float8, 8>;
                 break;
             case X86BinaryOpType::kMUL :
-                binary_func = BinaryFunc<X86BinaryOpType::kMUL, Float8, 8>;
+                binary_func_ = BinaryFunc<X86BinaryOpType::kMUL, Float8, 8>;
                 break;
             case X86BinaryOpType::kDIV :
-                binary_func = BinaryFunc<X86BinaryOpType::kDIV, Float8, 8>;
+                binary_func_ = BinaryFunc<X86BinaryOpType::kDIV, Float8, 8>;
                 break;
             case X86BinaryOpType::kMAX :
-                binary_func = BinaryFunc<X86BinaryOpType::kMAX, Float8, 8>;
+                binary_func_ = BinaryFunc<X86BinaryOpType::kMAX, Float8, 8>;
                 break;
             case X86BinaryOpType::kMIN :
-                binary_func = BinaryFunc<X86BinaryOpType::kMIN, Float8, 8>;
+                binary_func_ = BinaryFunc<X86BinaryOpType::kMIN, Float8, 8>;
                 break;
 
             default :
@@ -619,22 +608,22 @@ Status X86BinaryOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     } else if (arch_ == sse42) {
         switch(op_type_) {
             case X86BinaryOpType::kADD :
-                binary_func = BinaryFunc<X86BinaryOpType::kADD, Float4, 4>;
+                binary_func_ = BinaryFunc<X86BinaryOpType::kADD, Float4, 4>;
                 break;
             case X86BinaryOpType::kSUB :
-                binary_func = BinaryFunc<X86BinaryOpType::kSUB, Float4, 4>;
+                binary_func_ = BinaryFunc<X86BinaryOpType::kSUB, Float4, 4>;
                 break;
             case X86BinaryOpType::kMUL :
-                binary_func = BinaryFunc<X86BinaryOpType::kMUL, Float4, 4>;
+                binary_func_ = BinaryFunc<X86BinaryOpType::kMUL, Float4, 4>;
                 break;
             case X86BinaryOpType::kDIV :
-                binary_func = BinaryFunc<X86BinaryOpType::kDIV, Float4, 4>;
+                binary_func_ = BinaryFunc<X86BinaryOpType::kDIV, Float4, 4>;
                 break;
             case X86BinaryOpType::kMAX :
-                binary_func = BinaryFunc<X86BinaryOpType::kMAX, Float4, 4>;
+                binary_func_ = BinaryFunc<X86BinaryOpType::kMAX, Float4, 4>;
                 break;
             case X86BinaryOpType::kMIN :
-                binary_func = BinaryFunc<X86BinaryOpType::kMIN, Float4, 4>;
+                binary_func_ = BinaryFunc<X86BinaryOpType::kMIN, Float4, 4>;
                 break;
 
             default :
@@ -644,22 +633,22 @@ Status X86BinaryOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     }
     switch(op_type_) {
         case X86BinaryOpType::kADD :
-            binary_general_func = BinaryGeneral<X86BinaryOpType::kADD>;
+            binary_general_func_ = BinaryGeneral<X86BinaryOpType::kADD>;
             break;
         case X86BinaryOpType::kSUB :
-            binary_general_func = BinaryGeneral<X86BinaryOpType::kSUB>;
+            binary_general_func_ = BinaryGeneral<X86BinaryOpType::kSUB>;
             break;
         case X86BinaryOpType::kMUL :
-            binary_general_func = BinaryGeneral<X86BinaryOpType::kMUL>;
+            binary_general_func_ = BinaryGeneral<X86BinaryOpType::kMUL>;
             break;
         case X86BinaryOpType::kDIV :
-            binary_general_func = BinaryGeneral<X86BinaryOpType::kDIV>;
+            binary_general_func_ = BinaryGeneral<X86BinaryOpType::kDIV>;
             break;
         case X86BinaryOpType::kMAX :
-            binary_general_func = BinaryGeneral<X86BinaryOpType::kMAX>;
+            binary_general_func_ = BinaryGeneral<X86BinaryOpType::kMAX>;
             break;
         case X86BinaryOpType::kMIN :
-            binary_general_func = BinaryGeneral<X86BinaryOpType::kMIN>;
+            binary_general_func_ = BinaryGeneral<X86BinaryOpType::kMIN>;
             break;
 
         default :
@@ -667,27 +656,52 @@ Status X86BinaryOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
             return TNNERR_LAYER_ERR;
     }
 
-    BroadcastType btype = BroadcastTypeUnknown;
-    // check broadcast type is general or other optimized ncxhwx types
-    // if type is general, go to nchw general impl
-    // before check, pad left of input shape with 1
-    DimsVector input_pad_shape;
-    input_pad_shape.resize(dims.size());
-    for (int i = 0; i < input_shapes.size(); i++) {
-        int pad_size = dims.size() - input_shapes[i].size();
-        PadShape(pad_size, dims.size(), input_pad_shape, input_shapes[i]);
-        BroadCastTypeFilter(dims, input_pad_shape, btype);
-        if (btype == BroadcastTypeGeneral) {
-            break;
+    return TNN_OK;
+}
+
+Status X86BinaryOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
+    if (!layer_param) {
+        LOGE("Error: layer param is nil\n");
+        return Status(TNNERR_PARAM_ERR, "Error: layer param is nil");
+    }
+    auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
+
+    std::vector<float *> input_ptrs;
+    input_ptrs.reserve(4);
+    auto output = outputs[0];
+    auto dims   = output->GetBlobDesc().dims;
+
+    if (layer_res && inputs.size() == 1) {
+        DimsVector input_shape0 = inputs[0]->GetBlobDesc().dims;
+        // prepare input ptrs and shapes
+        if (layer_param->weight_input_index == 0) {
+            // bias as another input
+            input_ptrs.push_back(layer_res->element_handle.force_to<float *>());
+
+            input_ptrs.push_back(reinterpret_cast<float *>(inputs[0]->GetHandle().base));
+        } else {
+            input_ptrs.push_back(reinterpret_cast<float *>(inputs[0]->GetHandle().base));
+
+            input_ptrs.push_back(layer_res->element_handle.force_to<float *>());
+        }
+    } else {
+        if (inputs.size() == 1) {
+            input_ptrs.push_back(reinterpret_cast<float *>(inputs[0]->GetHandle().base));
+            input_ptrs.push_back(reinterpret_cast<float *>(inputs[0]->GetHandle().base));
+        } else {
+            for (size_t inid = 0; inid < inputs.size(); inid++) {
+                input_ptrs.push_back(reinterpret_cast<float *>(inputs[inid]->GetHandle().base));
+            }
         }
     }
 
-    if (btype == BroadcastTypeUnknown) {
+    if (btype_ == BroadcastTypeUnknown) {
         LOGE("Error: unknown broadcast type\n");
         return Status(TNNERR_LAYER_ERR, "Error: Binary layer unknown broadcast type");
-    } else if (btype == BroadcastTypeGeneral) {
+    } else if (btype_ == BroadcastTypeGeneral) {
         auto output_ptr = reinterpret_cast<float *>(output->GetHandle().base);
-        binary_general_func(dims, input_shapes, output_ptr, input_ptrs);
+        binary_general_func_(dims, input_shapes_, output_ptr, input_ptrs);
     } else {
         auto output_ptr = reinterpret_cast<float *>(output->GetHandle().base);
         auto input0_ptr = reinterpret_cast<float *>(input_ptrs[0]);
@@ -696,15 +710,15 @@ Status X86BinaryOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         DimsVector input0_pad_shape, input1_pad_shape;
         input0_pad_shape.resize(dims.size());
         input1_pad_shape.resize(dims.size());
-        PadShape(dims.size() - input_shapes[0].size(), dims.size(), input0_pad_shape, input_shapes[0]);
-        PadShape(dims.size() - input_shapes[1].size(), dims.size(), input1_pad_shape, input_shapes[1]);
+        PadShape(dims.size() - input_shapes_[0].size(), dims.size(), input0_pad_shape, input_shapes_[0]);
+        PadShape(dims.size() - input_shapes_[1].size(), dims.size(), input1_pad_shape, input_shapes_[1]);
 
-        binary_func(output_ptr, input0_ptr, input1_ptr, input0_pad_shape, input1_pad_shape, output->GetBlobDesc().dims);
+        binary_func_(output_ptr, input0_ptr, input1_ptr, input0_pad_shape, input1_pad_shape, output->GetBlobDesc().dims);
 
         for (int i = 2; i < input_ptrs.size(); i++) {
             auto input_ptr = reinterpret_cast<float *>(input_ptrs[i]);
-            PadShape(dims.size() - input_shapes[i].size(), dims.size(), input0_pad_shape, input_shapes[i]);
-            binary_func(output_ptr, output_ptr, input_ptr, dims, input0_pad_shape, output->GetBlobDesc().dims);
+            PadShape(dims.size() - input_shapes_[i].size(), dims.size(), input0_pad_shape, input_shapes_[i]);
+            binary_func_(output_ptr, output_ptr, input_ptr, dims, input0_pad_shape, output->GetBlobDesc().dims);
         }
     }
 
