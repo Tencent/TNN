@@ -23,41 +23,41 @@
 
 namespace TNN_NS {
 
-template<> fp16_t binary_op<ArmBinaryOpType::kADD, fp16_t>(fp16_t &a, fp16_t &b, float alpha, float beta) {
+template<> fp16_t binary_op<ArmBinaryOpType::kADD, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a + b;
 }
-template<> fp16_t binary_op<ArmBinaryOpType::kSUB, fp16_t>(fp16_t &a, fp16_t &b, float alpha, float beta) {
+template<> fp16_t binary_op<ArmBinaryOpType::kSUB, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a - b;
 }
-template<> fp16_t binary_op<ArmBinaryOpType::kMUL, fp16_t>(fp16_t &a, fp16_t &b, float alpha, float beta) {
+template<> fp16_t binary_op<ArmBinaryOpType::kMUL, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a * b;
 }
-template<> fp16_t binary_op<ArmBinaryOpType::kDIV, fp16_t>(fp16_t &a, fp16_t &b, float alpha, float beta) {
+template<> fp16_t binary_op<ArmBinaryOpType::kDIV, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a / b;
 }
-template<> fp16_t binary_op<ArmBinaryOpType::kMAX, fp16_t>(fp16_t &a, fp16_t &b, float alpha, float beta) {
+template<> fp16_t binary_op<ArmBinaryOpType::kMAX, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a > b ? a : b;
 }
-template<> fp16_t binary_op<ArmBinaryOpType::kMIN, fp16_t>(fp16_t &a, fp16_t &b, float alpha, float beta) {
+template<> fp16_t binary_op<ArmBinaryOpType::kMIN, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a < b ? a : b;
 }
 
-template<> Half8 binary_op<ArmBinaryOpType::kADD, Half8>(Half8 &a, Half8 &b, float alpha, float beta) {
+template<> Half8 binary_op<ArmBinaryOpType::kADD, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return a + b;
 }
-template<> Half8 binary_op<ArmBinaryOpType::kSUB, Half8>(Half8 &a, Half8 &b, float alpha, float beta) {
+template<> Half8 binary_op<ArmBinaryOpType::kSUB, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return a - b;
 }
-template<> Half8 binary_op<ArmBinaryOpType::kMUL, Half8>(Half8 &a, Half8 &b, float alpha, float beta) {
+template<> Half8 binary_op<ArmBinaryOpType::kMUL, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return a * b;
 }
-template<> Half8 binary_op<ArmBinaryOpType::kDIV, Half8>(Half8 &a, Half8 &b, float alpha, float beta) {
+template<> Half8 binary_op<ArmBinaryOpType::kDIV, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return Half8::div(a, b);
 }
-template<> Half8 binary_op<ArmBinaryOpType::kMAX, Half8>(Half8 &a, Half8 &b, float alpha, float beta) {
+template<> Half8 binary_op<ArmBinaryOpType::kMAX, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return Half8::max(a, b);
 }
-template<> Half8 binary_op<ArmBinaryOpType::kMIN, Half8>(Half8 &a, Half8 &b, float alpha, float beta) {
+template<> Half8 binary_op<ArmBinaryOpType::kMIN, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return Half8::min(a, b);
 }
 

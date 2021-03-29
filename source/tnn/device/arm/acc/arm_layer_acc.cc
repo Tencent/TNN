@@ -86,7 +86,11 @@ Status ArmLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector
     return TNN_OK;
 }
 
-Status RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDesc &desc) {
+Status ArmLayerAcc::ConfigBuffer2ArmBlobDesc(BlobDesc &desc) {
+    return TNN_OK;
+}
+
+Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDesc &desc) {
     if (!buffer) {
         LOGE("RawBuffer2ArmBlob:: buffer is null \n");
         return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: buffer is null");
@@ -98,6 +102,7 @@ Status RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDes
         {
             desc.device_type = DEVICE_ARM;
             desc.dims        = buffer->GetBufferDims();
+            ConfigBuffer2ArmBlobDesc(desc);
         }
         if (buffer->GetBytesSize() > 0) {
             blob = std::make_shared<Blob>(desc, true);
@@ -133,7 +138,8 @@ Status RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDes
                 auto tmp_buff_ptr       = tmp_fp16_buff.force_to<fp16_t *>();
                 ConvertFromFloatToHalf(src_ptr, tmp_buff_ptr, buff_count);
                 if (blob_fmt == DATA_FORMAT_NCHW) {
-                    memcpy(reinterpret_cast<fp16_t *>(blob->GetHandle().base), tmp_buff_ptr, buff_count * sizeof(fp16_t));
+                    memcpy(reinterpret_cast<fp16_t *>(blob->GetHandle().base), tmp_buff_ptr,
+                           buff_count * sizeof(fp16_t));
                 } else {
                     PackHalfBlob(reinterpret_cast<fp16_t *>(blob->GetHandle().base), tmp_buff_ptr, batch, channel, hw);
                 }
@@ -152,13 +158,33 @@ Status RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDes
 
 Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
     auto const_resource = const_resource_;
+    if (const_resource == nullptr) {
+        return TNN_OK;
+    }
     auto const_blob_map = const_blob_map_;
+
+    // The default blob desc has the same data type and data format with non-constant input blob
+    BlobDesc arm_default_desc;
     for (auto iter : inputs) {
         auto name = iter->GetBlobDesc().name;
-        if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
+        // skip const blobs
+        if (const_resource->find(name) != const_resource->end()) {
+            continue;
+        }
+        arm_default_desc.device_type = DEVICE_ARM;
+        arm_default_desc.data_type   = iter->GetBlobDesc().data_type;
+        arm_default_desc.data_format = iter->GetBlobDesc().data_format;
+    }
+
+    for (auto iter : inputs) {
+        auto name = iter->GetBlobDesc().name;
+        // deal with const blobs
+        if (const_resource->find(name) == const_resource->end()) {
             continue;
         }
 
+        LOGD("Reloading constant blob: %s, default data_type = %d, data_format = %d\n", name.c_str(),
+             arm_default_desc.data_type, arm_default_desc.data_format);
         auto buffer                = (*const_resource)[name];
         std::shared_ptr<Blob> blob = nullptr;
         if (const_blob_map.find(name) != const_blob_map.end()) {
@@ -168,7 +194,7 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         if (UseNaiveConstantBlobs()) {
             status = RawBuffer2Blob(buffer.get(), blob);
         } else {
-            status = RawBuffer2ArmBlob(buffer.get(), blob, iter->GetBlobDesc());
+            status = RawBuffer2ArmBlob(buffer.get(), blob, arm_default_desc);
         }
         RETURN_ON_NEQ(status, TNN_OK);
 
@@ -176,7 +202,7 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         const_blob_map[name] = blob;
         iter->SetHandle(blob->GetHandle());
         iter->GetBlobDesc() = blob->GetBlobDesc();
-        LOGD("Reload constant blob: %s\n", name.c_str());
+        LOGD("Reload constant blob: %s done\n", name.c_str());
     }
     const_blob_map_ = const_blob_map;
     return TNN_OK;
