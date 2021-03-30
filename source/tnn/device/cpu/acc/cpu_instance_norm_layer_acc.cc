@@ -26,6 +26,7 @@ Status CpuInstanceNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 }
 
 Status CpuInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto layer_param = dynamic_cast<InstanceNormLayerParam *>(param_);
     auto layer_res = dynamic_cast<InstanceNormLayerResource *>(resource_);
     if (!layer_res) {
         LOGE("Error: layer resource is nil\n");
@@ -47,7 +48,7 @@ Status CpuInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const
     float *k_data          = layer_res->scale_handle.force_to<float *>();
     float *b_data          = layer_res->bias_handle.force_to<float *>();
 
-    float epsilon = 0.00001f;
+    const float epsilon = layer_param->eps;
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);

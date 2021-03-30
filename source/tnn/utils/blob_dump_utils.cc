@@ -49,6 +49,7 @@ std::string BlobDescToString(BlobDesc desc) {
     char ss[1000];
     std::string name = desc.name;
     std::replace(name.begin(), name.end(), '/', '_');
+    std::replace(name.begin(), name.end(), ':', '_');
     snprintf(ss, 1000, "%s-%s", name.c_str(), dims_info.c_str());
     return std::string(ss);
 }
