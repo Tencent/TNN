@@ -76,6 +76,7 @@ class OnnxRunner(BaseRunner):
 
     def dump_single_output(self, output_name: str, output_data: np.ndarray, full_message: bool):
         output_name = output_name.replace("/", "_")
+        output_name = output_name.replace(":", "_")
         output_path = os.path.join(self.dump_dir_path, output_name + ".txt")
         with open(output_path, "w") as f:
             if full_message == True:
