@@ -33,9 +33,10 @@ string OnnxOpConverterInstNorm::TNNLayerParam(NodeProto& node,
 
     float epsilon = get_node_attr_f(node, "epsilon", 1e-5f);
     int channels = get_tensor_proto_data_size(scale);
-
+    
+    
     ostringstream layer_param;
-    layer_param << epsilon;
+    layer_param << channels << " " << epsilon;
     
     return layer_param.str();
 }

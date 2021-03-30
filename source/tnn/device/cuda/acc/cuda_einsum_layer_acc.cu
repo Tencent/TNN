@@ -12,8 +12,10 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
@@ -237,7 +239,9 @@ Status CudaEinsumLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 
     std::vector<std::shared_ptr<Blob>> permuted_operands;
     for (int i = 0; i < inputs.size(); i++) {
-        auto operand = inputs[i];
+        //auto operand = inputs[i];
+        auto operand_ptr          = std::make_shared<Blob>(inputs[i]->GetBlobDesc(), inputs[i]->GetHandle());
+        auto *operand             = operand_ptr.get();
         operand->GetBlobDesc().dims = param->operand_dims[i];
         permuted_operands.push_back(EinsumPermute(operand, param->perm_shapes[i], tempbufs_[0].ptr,
             tempbufs_[1].ptr, tempbufs_[2].ptr, context_->GetStream()));
