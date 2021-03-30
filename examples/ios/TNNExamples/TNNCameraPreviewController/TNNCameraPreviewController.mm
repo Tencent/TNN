@@ -10,6 +10,9 @@
 #include "tnn_fps_counter.h"
 #import "UIImage+Utility.h"
 #import "ultra_face_detector.h"
+#if HAS_OPENCV
+#import "ocr_driver.h"
+#endif
 
 using namespace std;
 using namespace TNN_NS;
@@ -231,6 +234,8 @@ typedef void(^CommonCallback)(Status);
             status = predictor_async_thread->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
             fps_counter_async_thread->End("detect");
         } while (0);
+        // hide the textbox, use drawinglines instead to support box with angles
+        bool isOCRSDK = dynamic_cast<OCRDriver *>(predictor_async_thread.get()) != nullptr;
         
         CVBufferRelease(image_buffer);
         CFBridgingRelease(image_texture_ref);
@@ -241,6 +246,7 @@ typedef void(^CommonCallback)(Status);
         dispatch_sync(dispatch_get_main_queue(), ^{
             [self showSDKOutput:sdk_output
             withOriginImageSize:origin_image_size
+             hideTextFrame:isOCRSDK
                      withStatus:status];
             [self showFPS:map_fps];
             //[self showTime: time];
@@ -253,15 +259,17 @@ typedef void(^CommonCallback)(Status);
 
 - (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
        withOriginImageSize:(CGSize)size
+        hideTextFrame:(bool) hideTextFrame
            withStatus:(Status)status {
     auto object_list = [self.viewModel getObjectList:output];
-    [self showObjectInfo:object_list withOriginImageSize:size withStatus:status];
+    [self showObjectInfo:object_list withOriginImageSize:size hideTextFrame:hideTextFrame withStatus:status];
     auto mask_data   = [self.viewModel getImage:output];
     [self showMask:mask_data withOriginImageSize:size withStatus:status];
 }
 
 - (void)showObjectInfo:(std::vector<std::shared_ptr<ObjectInfo> >)object_list
             withOriginImageSize:(CGSize)origin_size
+            hideTextFrame:(bool) hideTextFrame
             withStatus:(Status)status {
     //status
     if (status != TNN_OK) {
@@ -298,6 +306,7 @@ typedef void(^CommonCallback)(Status);
                 }
                 [_boundingBoxes[i] showText:label
                                   withColor:self.colors[i]
+                              hideTextFrame:hideTextFrame
                                     atFrame:CGRectMake(view_face.x1, view_face.y1,
                                                        view_face.x2-view_face.x1,
                                                        view_face.y2-view_face.y1)];
