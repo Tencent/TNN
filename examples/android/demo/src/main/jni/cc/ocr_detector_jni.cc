@@ -13,20 +13,24 @@
 // specific language governing permissions and limitations under the License.
 
 #include "ocr_detector_jni.h"
+#if HAS_OPENCV
 #include "ocr_driver.h"
 #include "ocr_textbox_detector.h"
 #include "ocr_text_recognizer.h"
 #include "ocr_angle_predictor.h"
 #include "kannarotate.h"
 #include "yuv420sp_to_rgb_fast_asm.h"
+#endif
 #include <jni.h>
 #include "helper_jni.h"
 #include <android/bitmap.h>
 
+#if HAS_OPENCV
 static std::shared_ptr<TNN_NS::OCRDriver> gOCRDriver;
 static std::shared_ptr<TNN_NS::OCRTextboxDetector> gOCRTextboxDetector;
 static std::shared_ptr<TNN_NS::OCRAnglePredictor> gOCRAnglePredictor;
 static std::shared_ptr<TNN_NS::OCRTextRecognizer> gOCRTextRecognizer;
+#endif
 static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu
 static jclass clsObjectInfo;
 static jmethodID midconstructorObjectInfo;
@@ -38,6 +42,7 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
 {
     // Reset bench description
     setBenchResult("");
+#if HAS_OPENCV
     std::vector<int> nchw = {1, 3, height, width};
     gOCRDriver = std::make_shared<TNN_NS::OCRDriver>();
     gOCRTextboxDetector = std::make_shared<TNN_NS::OCRTextboxDetector>();
@@ -155,11 +160,13 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
         fidkeypoints = env->GetFieldID(clsObjectInfo, "key_points", "[[F");
         fidlabel = env->GetFieldID(clsObjectInfo, "label" , "Ljava/lang/String;");
     }
+#endif
 
     return 0;
 }
 
 JNIEXPORT JNICALL jboolean TNN_OCR_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath) {
+#if HAS_OPENCV
     std::shared_ptr<TNN_NS::OCRDriver> tmpOCRDriver = std::make_shared<TNN_NS::OCRDriver>();
     std::shared_ptr<TNN_NS::OCRTextboxDetector> tmpOCRTextboxDetector = std::make_shared<TNN_NS::OCRTextboxDetector>();
     std::shared_ptr<TNN_NS::OCRAnglePredictor> tmpOCRAnglePredictor = std::make_shared<TNN_NS::OCRAnglePredictor>();
@@ -173,29 +180,15 @@ JNIEXPORT JNICALL jboolean TNN_OCR_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz,
     TNN_NS::Status status = TNN_NS::TNN_OK;
     auto option = std::make_shared<TNN_NS::TNNSDKOption>();
     {
-        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         option->library_path="";
         option->precision = TNN_NS::PRECISION_HIGH;
         option->proto_content = protoContent;
         option->model_content = modelContent;
-        if (gComputeUnitType == 1) {
-            option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-            status = tmpOCRTextboxDetector->Init(option);
-        } else if (gComputeUnitType == 2) {
-            //add for huawei_npu store the om file
-            option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
-            tmpOCRTextboxDetector->setNpuModelPath(modelPathStr + "/");
-            tmpOCRTextboxDetector->setCheckNpuSwitch(false);
-            status = tmpOCRTextboxDetector->Init(option);
-        } else {
-            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-            status = tmpOCRTextboxDetector->Init(option);
-        }
-
-        if (status != TNN_NS::TNN_OK) {
-            LOGE("ocr textbox detector init failed %d", (int)status);
-            return false;
-        }
+        //add for huawei_npu store the om file
+        tmpOCRTextboxDetector->setNpuModelPath(modelPathStr + "/");
+        tmpOCRTextboxDetector->setCheckNpuSwitch(false);
+        status = tmpOCRTextboxDetector->Init(option);
     }
 
     protoContent = fdLoadFile(modelPathStr + "/angle_net.onnx.pack.tnnproto");
@@ -205,24 +198,14 @@ JNIEXPORT JNICALL jboolean TNN_OCR_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz,
     status = TNN_NS::TNN_OK;
     {
         option = std::make_shared<TNN_NS::TNNSDKOption>();
-        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         option->precision = TNN_NS::PRECISION_HIGH;
         option->library_path="";
         option->proto_content = protoContent;
         option->model_content = modelContent;
-        if (gComputeUnitType == 1) {
-            option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-            status = tmpOCRAnglePredictor->Init(option);
-        } else if (gComputeUnitType == 2) {
-            //add for huawei_npu store the om file
-            option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
-            tmpOCRAnglePredictor->setNpuModelPath(modelPathStr + "/");
-            tmpOCRAnglePredictor->setCheckNpuSwitch(false);
-            status = tmpOCRAnglePredictor->Init(option);
-        } else {
-            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-            status = tmpOCRAnglePredictor->Init(option);
-        }
+        tmpOCRAnglePredictor->setNpuModelPath(modelPathStr + "/");
+        tmpOCRAnglePredictor->setCheckNpuSwitch(false);
+        status = tmpOCRAnglePredictor->Init(option);
 
         if (status != TNN_NS::TNN_OK) {
             LOGE("ocr angle predictor init failed %d", (int)status);
@@ -237,25 +220,16 @@ JNIEXPORT JNICALL jboolean TNN_OCR_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz,
     status = TNN_NS::TNN_OK;
     {
         auto recognizer_option = std::make_shared<TNN_NS::OCRTextRecognizerOption>();
-        recognizer_option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        recognizer_option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         recognizer_option->precision = TNN_NS::PRECISION_HIGH;
         recognizer_option->library_path="";
         recognizer_option->vocab_path=modelPathStr + "/keys.txt";
         recognizer_option->proto_content = protoContent;
         recognizer_option->model_content = modelContent;
-        if (gComputeUnitType == 1) {
-            recognizer_option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-            status = tmpOCRTextRecognizer->Init(recognizer_option);
-        } else if (gComputeUnitType == 2) {
-            //add for huawei_npu store the om file
-            recognizer_option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
-            tmpOCRTextRecognizer->setNpuModelPath(modelPathStr + "/");
-            tmpOCRTextRecognizer->setCheckNpuSwitch(false);
-            status = tmpOCRTextRecognizer->Init(recognizer_option);
-        } else {
-            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-            status = tmpOCRTextRecognizer->Init(recognizer_option);
-        }
+        //add for huawei_npu store the om file
+        tmpOCRTextRecognizer->setNpuModelPath(modelPathStr + "/");
+        tmpOCRTextRecognizer->setCheckNpuSwitch(false);
+        status = tmpOCRTextRecognizer->Init(recognizer_option);
 
         if (status != TNN_NS::TNN_OK) {
             LOGE("ocr text recognizer init failed %d", (int)status);
@@ -270,20 +244,26 @@ JNIEXPORT JNICALL jboolean TNN_OCR_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz,
     }
 
     return true;
+#else
+    return false;
+#endif
 }
 
 JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(deinit)(JNIEnv *env, jobject thiz)
 {
 
+#if HAS_OPENCV
     gOCRTextboxDetector = nullptr;
     gOCRAnglePredictor = nullptr;
     gOCRTextRecognizer = nullptr;
     gOCRDriver = nullptr;
+#endif
     return 0;
 }
 
 JNIEXPORT JNICALL jobjectArray TNN_OCR_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint view_width, jint view_height, jint rotate)
 {
+#if HAS_OPENCV
     jobjectArray objectInfoArray;
     auto asyncRefDetector = gOCRDriver;
     TNN_NS::OCROutput* ocrOutput;
@@ -354,5 +334,6 @@ JNIEXPORT JNICALL jobjectArray TNN_OCR_DETECTOR(detectFromStream)(JNIEnv *env, j
     } else {
         return 0;
     }
+#endif
     return 0;
 }

@@ -50,9 +50,9 @@ class OCRTextboxDetectorOption : public TNNSDKOption {
 public:
     OCRTextboxDetectorOption() {}
     virtual ~OCRTextboxDetectorOption() {}
-    int padding = 10;
+    int padding = 50;
     float box_score_threshold = 0.6f;
-    float scale_down_ratio    = 0.75f;
+    float scale_down_ratio    = 1.00f;
 };
 
 class OCRTextboxDetectorOutput : public TNNSDKOutput {

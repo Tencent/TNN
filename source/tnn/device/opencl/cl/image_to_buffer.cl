@@ -240,7 +240,7 @@ __kernel void ImageToNHWCBufferFLOAT(GLOBAL_SIZE_2_DIMS __global FLOAT *output, 
 }
 
 // convert data from image(b h, ic/4 w ic4) to buffer(nchw)
-__kernel void ImageToNCHWBuffer(GLOBAL_SIZE_2_DIMS __global FLOAT *output, /* nchw */
+__kernel void ImageToNCHWBuffer(GLOBAL_SIZE_2_DIMS __global float *output, /* nchw */
                                    __private const int height, __private const int width, __private const int channels,
                                    __read_only image2d_t input_ptr) {
     int image_width_idx  = get_global_id(0);
@@ -253,7 +253,13 @@ __kernel void ImageToNCHWBuffer(GLOBAL_SIZE_2_DIMS __global FLOAT *output, /* nc
     const int width_idx  = image_width_idx % width;
     int channel_4_idx    = (image_width_idx / width) * 4;
     int buffer_offset    = ((batch_idx * channels + channel_4_idx) * height + height_idx) * width + width_idx;
+    #ifdef ENABLE_BUFFER_PRECISION_ADJUST
+    __global FLOAT *output_ptr = (__global FLOAT *)output;
     FLOAT4 values    = RI_F(input_ptr, SAMPLER, (int2)(image_width_idx, image_height_idx));
+    #else
+    __global float *output_ptr = output;
+    float4 values    = read_imagef(input_ptr, SAMPLER, (int2)(image_width_idx, image_height_idx));
+    #endif
 
     const int height_width_size = height * width;
 
@@ -261,28 +267,28 @@ __kernel void ImageToNCHWBuffer(GLOBAL_SIZE_2_DIMS __global FLOAT *output, /* nc
 
     if (remain_channel >= 4) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
         offset += height_width_size;
-        output[offset] = values.y;
+        output_ptr[offset] = values.y;
         offset += height_width_size;
-        output[offset] = values.z;
+        output_ptr[offset] = values.z;
         offset += height_width_size;
-        output[offset] = values.w;
+        output_ptr[offset] = values.w;
     } else if (remain_channel == 3) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
         offset += height_width_size;
-        output[offset] = values.y;
+        output_ptr[offset] = values.y;
         offset += height_width_size;
-        output[offset] = values.z;
+        output_ptr[offset] = values.z;
     } else if (remain_channel == 2) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
         offset += height_width_size;
-        output[offset] = values.y;
+        output_ptr[offset] = values.y;
     } else if (remain_channel == 1) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
     }
 }
 
@@ -307,32 +313,38 @@ __kernel void Image5DToNCHWBuffer(GLOBAL_SIZE_2_DIMS __global float *output, /* 
 
     const int stride         = dim2 * dim3 * dim4;
     int2 coord               = (int2)(image_width_idx, image_height_idx);
-    float4 values            = read_imagef(input_ptr, SAMPLER, coord);
+    #ifdef ENABLE_BUFFER_PRECISION_ADJUST
+    __global FLOAT *output_ptr = (__global FLOAT *)output;
+    FLOAT4 values    = RI_F(input_ptr, SAMPLER, (int2)(image_width_idx, image_height_idx));
+    #else
+    __global float *output_ptr = output;
+    float4 values    = read_imagef(input_ptr, SAMPLER, (int2)(image_width_idx, image_height_idx));
+    #endif
     const int remain_channel = channels - channel_4_idx;
     if (remain_channel >= 4) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
         offset += stride;
-        output[offset] = values.y;
+        output_ptr[offset] = values.y;
         offset += stride;
-        output[offset] = values.z;
+        output_ptr[offset] = values.z;
         offset += stride;
-        output[offset] = values.w;
+        output_ptr[offset] = values.w;
     } else if (remain_channel == 3) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
         offset += stride;
-        output[offset] = values.y;
+        output_ptr[offset] = values.y;
         offset += stride;
-        output[offset] = values.z;
+        output_ptr[offset] = values.z;
     } else if (remain_channel == 2) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
         offset += stride;
-        output[offset] = values.y;
+        output_ptr[offset] = values.y;
     } else if (remain_channel == 1) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
     }
 }
 
@@ -360,32 +372,38 @@ __kernel void Image6DToNCHWBuffer(GLOBAL_SIZE_2_DIMS __global float *output, /* 
 
     const int stride         = dim2 * dim3 * dim4 * dim5;
     int2 coord               = (int2)(image_width_idx, image_height_idx);
-    float4 values            = read_imagef(input_ptr, SAMPLER, coord);
+    #ifdef ENABLE_BUFFER_PRECISION_ADJUST
+    __global FLOAT *output_ptr = (__global FLOAT *)output;
+    FLOAT4 values    = RI_F(input_ptr, SAMPLER, (int2)(image_width_idx, image_height_idx));
+    #else
+    __global float *output_ptr = output;
+    float4 values    = read_imagef(input_ptr, SAMPLER, (int2)(image_width_idx, image_height_idx));
+    #endif
     const int remain_channel = channels - channel_4_idx;
     if (remain_channel >= 4) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
         offset += stride;
-        output[offset] = values.y;
+        output_ptr[offset] = values.y;
         offset += stride;
-        output[offset] = values.z;
+        output_ptr[offset] = values.z;
         offset += stride;
-        output[offset] = values.w;
+        output_ptr[offset] = values.w;
     } else if (remain_channel == 3) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
         offset += stride;
-        output[offset] = values.y;
+        output_ptr[offset] = values.y;
         offset += stride;
-        output[offset] = values.z;
+        output_ptr[offset] = values.z;
     } else if (remain_channel == 2) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
         offset += stride;
-        output[offset] = values.y;
+        output_ptr[offset] = values.y;
     } else if (remain_channel == 1) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
     }
 }
 
