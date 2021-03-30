@@ -418,13 +418,11 @@ Status NpuNetwork::BuildGraph(domi::HiaiIrBuild &ir_build, domi::ModelBufferData
     ge::Model model(model_name_, model_name_ + "_v1");
     model.SetGraph(graph_);
     // build options
-    domi::BuildOptions options;
-    options.useOriginFormat = true;
     bool build_ret          = ir_build.CreateModelBuff(model, om_model_buff);
     if (!build_ret) {
         return Status(TNNERR_NPU_HIAI_API_ERROR, "HIAI build model, CreateModelBuff() failed");
     }
-    build_ret = ir_build.BuildIRModel(model, om_model_buff, options);
+    build_ret = ir_build.BuildIRModel(model, om_model_buff);
     if (!build_ret) {
         return Status(TNNERR_NPU_HIAI_API_ERROR, "HIAI build model, BuildIRModel() failed");
     }
