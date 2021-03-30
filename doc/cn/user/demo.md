@@ -120,6 +120,12 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    sh download_model.sh
    ```
 
+   可选：如果需要执行OCR demo，还需要下载opencv库。
+   ```
+   cd <path_to_tnn>/scripts
+   sh download_opencv.sh android
+   ```
+
    PS: 
    
    如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载.
@@ -143,6 +149,13 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    3). 当前只有rom版本 >= 100.320.xxx.xxxx的华为机型支持IR构建事例模型。参考：[FAQ](../faq.md): 更新到最新的ROM支持NPU。
    
    4). 运行demo需要需首先下载NPU DDK。参考: [FAQ](../faq.md): 创建华为NPU编译环境。
+
+   5). 想要执行OCR demo, 打开工程后，需要手动设置打开OPENCV和CPU依赖：
+   在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 更新指令为如下，使用OPENCV和CPU。
+   ````
+        set(TNN_OPENCV_ENABLE ON CACHE BOOL "" FORCE)
+        set(TNN_CPU_ENABLE ON CACHE BOOL "" FORCE)
+   ````
       
  
 ### 运行效果

@@ -117,6 +117,12 @@
    sh download_model.sh
    ```
 
+   Optional: If you want to run the OCR demo, you also need to download opencv framework.
+   ```
+   cd <path_to_tnn>/scripts
+   sh download_opencv.sh android
+   ```
+
    PS: If the script cannot download the model due to network problems, please manually create the corresponding folder according to the information in the script and download it yourself.
   
    PS for Huawei NPU :
@@ -140,7 +146,14 @@
   
    3). Only Huawei phones of rom version >= 100.320.xxx.xxxx supportS building the example TNN models.
   
-   To run the demo, you need to first download the ddk. Refer to ： [FAQ](../faq_en.md) to check the current NPU support and how to update the ROM.
+   4). To run the demo, you need to first download the ddk. Refer to ： [FAQ](../faq_en.md) to check the current NPU support and how to update the ROM.
+
+   5). You need to set the TNN_OPENCV_ENABLE and TNN_CPU_ENABLE switch to ON in <path_to_tnn>/examples/android/demo/CMakeList.txt below to run the OCR demo ：
+
+   ````
+        set(TNN_OPENCV_ENABLE ON CACHE BOOL "" FORCE)
+        set(TNN_CPU_ENABLE ON CACHE BOOL "" FORCE)
+   ````
 
 ### Running result
 1. Face Detection-Pictures
