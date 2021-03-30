@@ -49,6 +49,7 @@ std::string BlobDescToString(BlobDesc desc) {
     char ss[1000];
     std::string name = desc.name;
     std::replace(name.begin(), name.end(), '/', '_');
+    std::replace(name.begin(), name.end(), ':', '_');
     snprintf(ss, 1000, "%s-%s", name.c_str(), dims_info.c_str());
     return std::string(ss);
 }
@@ -101,8 +102,7 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
         fprintf(fp, "%d\n", int(ptr[n]));
     }
 #else
-    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_BFP16
-        || data_type == DATA_TYPE_INT8) {
+    if (data_type == DATA_TYPE_FLOAT) {
         auto ptr = (float *)data_ptr;
         for (int n = 0; n < count; ++n) {
             fprintf(fp, "%.9f\n", ptr[n]);

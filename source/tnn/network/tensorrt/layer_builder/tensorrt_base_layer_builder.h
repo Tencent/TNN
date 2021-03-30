@@ -42,6 +42,8 @@ using namespace plugin;
 
 namespace TNN_NS {
 
+class TensorRTNetwork_;
+
 // @brief BaseLayer Builder, defines the layer builder interface
 class TensorRTBaseLayerBuilder: public BaseLayerBuilder {
 public:
@@ -75,6 +77,9 @@ public:
     // @brief set constant resource
     virtual void SetConstantResource(ConstantResource* consts);
 
+    // @brief set tensorrt_network
+    void SetNetwork(TensorRTNetwork_ *network);
+
 protected:
     // @brief Build the foreign network
     virtual Status Build();
@@ -94,6 +99,8 @@ protected:
     std::vector<float*> int8_weight_data;
     bool is_plugin;
     int trt_batchsize;
+
+    TensorRTNetwork_* m_network;
 };
 
 class TensorRTLayerBuilder;
