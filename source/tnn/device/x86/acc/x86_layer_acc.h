@@ -25,6 +25,13 @@
 
 namespace TNN_NS {
 
+enum AccIndex {
+    AccIndex_Sgemm = 0,
+    AccIndex_InnerProduct = 1,
+    AccIndex_MatMul = 2,
+    AccIndex_Invalid = 0xFF,
+};
+
 // @brief x86 layer acc
 class X86LayerAcc : public AbstractLayerAcc {
 public:
@@ -51,6 +58,7 @@ public:
 protected:
     LayerParam* param_          = nullptr;
     LayerResource* resource_    = nullptr;
+    AccIndex acc_index          = AccIndex_Sgemm;
     X86Context *context_           = nullptr;
     x86_isa_t arch_;
 
@@ -59,11 +67,11 @@ private:
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);
 };
 
-#define DECLARE_X86_ACC(type_string, layer_type)                                                                   \
-    class X86##type_string##LayerAcc : public X86LayerAcc {                                                        \
-    public:                                                                                                        \
-        virtual ~X86##type_string##LayerAcc(){};                                                                   \
-        virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;  \
+#define DECLARE_X86_ACC(type_string, layer_type)                                                                       \
+    class X86##type_string##LayerAcc : public X86LayerAcc {                                                            \
+    public:                                                                                                            \
+        virtual ~X86##type_string##LayerAcc(){};                                                                       \
+        virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;      \
     }
 
 #define REGISTER_X86_ACC(type_string, layer_type)                                                               \

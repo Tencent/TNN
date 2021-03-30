@@ -12,7 +12,6 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
 
 #include <mutex>
 
@@ -25,6 +24,9 @@
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/device/x86/x86_device.h"
 #include "tnn/network/openvino/custom_layer/custom_implementation.h"
+#include "tnn/core/layer_type.h"
+#include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
+#include "tnn/network/openvino/layer_builder/compute/gemmbench_dnnl.h"
 
 namespace TNN_NS {
 

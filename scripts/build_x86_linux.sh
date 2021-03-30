@@ -152,6 +152,34 @@ copy_openvino_libraries() {
     source ${OPENVINO_INSTALL_PATH}/bin/setupvars.sh
 }
 
+ONEDNN_INSTALL_PATH=${BUILD_DIR}/oneDNNInstall
+export ONEDNN_ROOT_DIR=${ONEDNN_INSTALL_PATH}
+clone_oneDNN() {
+    cd ${BUILD_DIR}
+    if [ ! -d ${BUILD_DIR}/oneDNN ]
+    then
+        git clone https://github.com/oneapi-src/oneDNN.git
+        cd oneDNN
+        git checkout v1.7-rc
+    fi
+}
+
+build_oneDNN() {
+    if [ ! -d ${ONEDNN_INSTALL_PATH} ]
+    then
+        cd ${BUILD_DIR}/oneDNN
+        mkdir -p build && cd build
+        echo "Configuring oneDNN"
+        cmake ../ \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=${ONEDNN_INSTALL_PATH} \
+
+        echo "Building OneDNN"
+        make -j4
+        make install
+    fi
+}
+
 pack_tnn() {
     cd ${BUILD_DIR}
     mkdir -p ${TNN_INSTALL_DIR}/lib
@@ -175,6 +203,10 @@ clone_openvino
 build_openvino
 
 copy_openvino_libraries
+
+clone_oneDNN
+
+build_oneDNN
 
 # 编译 TNN
 echo "Configuring TNN ..."

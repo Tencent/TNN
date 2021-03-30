@@ -11,3 +11,9 @@ if (MSVC)
 else()
     add_definitions(-mavx2 -mavx -mfma -ffast-math)
 endif()
+
+if(NOT DEFINED ENV{ONEDNN_ROOT_DIR})
+    message(FALTAL_ERROR "not defined environment variable:ONEDNN_ROOT_DIR")
+endif()
+
+include_directories($ENV{ONEDNN_ROOT_DIR}/include)

@@ -26,19 +26,11 @@ enum InnerProductCompute {
 namespace TNN_NS {
 class X86InnerProductLayerAcc : public X86LayerAcc {
 public:
-    virtual ~X86InnerProductLayerAcc();
+    virtual ~X86InnerProductLayerAcc() {};
 
     Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
                 const std::vector<Blob *> &outputs) override;
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
-    virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    virtual Status allocateBufferBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
-protected:
-    RawBuffer buffer_weight_;
-    RawBuffer buffer_bias_;
-    conv_gemm_config<float, float, float> conv_gemm_conf_;
-    InnerProductCompute impl_;
 };
 
 }  // namespace TNN_NS

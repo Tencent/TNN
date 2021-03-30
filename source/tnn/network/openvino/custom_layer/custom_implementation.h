@@ -12,7 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <algorithm>
+#ifndef TNN_DEVICE_OPENVINO_CUSTOM_OPENVINO_IMPLEMENTAIO_
+#define TNN_DEVICE_OPENVINO_CUSTOM_OPENVINO_IMPLEMENTAIO_
+
 #include <map>
 #include <memory>
 #include <mutex>
@@ -27,8 +29,8 @@
 #include <ngraph/ngraph.hpp>
 #include <ngraph/opsets/opset.hpp>
 
-#ifndef TNN_DEVICE_OPENVINO_CUSTOM_OPENVINO_IMPLEMENTAIO_
-#define TNN_DEVICE_OPENVINO_CUSTOM_OPENVINO_IMPLEMENTAIO_
+#include "tnn/core/status.h"
+#include "tnn/layer/base_layer.h"
 
 namespace TNN_NS {
 
