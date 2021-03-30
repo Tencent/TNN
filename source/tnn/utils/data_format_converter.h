@@ -57,6 +57,7 @@ public:
 
     template <class T>
     static Status ConvertBetweenNHWCAndNCHW(T *src, T *dst, int num, int channel, int height, int width, CVT_DIR dir) {
+        ASSERT(dir == NHWC2NCHW || dir == NCHW2NHWC);
         bool alloc_mem = false;
         if (dst == nullptr) {
             alloc_mem = true;
@@ -111,9 +112,9 @@ public:
         const auto src_dims = src->GetBlobDesc().dims;
         ASSERT(src_dims.size() > 1);
         const int num     = src_dims[0];
-        const int height  = src_dims[1];
-        const int width   = src_dims.size() > 2 ? src_dims[2] : 1;
-        const int channel = src_dims.size() > 3 ? src_dims[3] : 1;
+        const int channel = src_dims[1];
+        const int height  = src_dims.size() > 2 ? src_dims[2] : 1;
+        const int width   = src_dims.size() > 3 ? src_dims[3] : 1;
         T *src_data_ptr   = (T *)src->GetHandle().base;
         T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
 
