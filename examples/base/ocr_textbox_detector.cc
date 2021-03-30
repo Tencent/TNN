@@ -167,14 +167,25 @@ static std::vector<cv::Point> unClip(const std::vector<cv::Point> &inBox, float 
 
 OCRTextboxDetectorOutput::~OCRTextboxDetectorOutput() {}
 
-Status OCRTextboxDetector::Init(std::shared_ptr<TNNSDKOption> option) {
+Status OCRTextboxDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
+    Status status = TNN_OK;
+
+    auto option = dynamic_cast<OCRTextboxDetectorOption *>(option_i.get());
+    RETURN_VALUE_ON_NEQ(!option, false, Status(TNNERR_PARAM_ERR, "TNNSDKOption is invalid"));
+
     int max_size = max_size_ + 2*padding_;
     // input size must be multiple of 32
     if (max_size % 32 != 0) {
         max_size = (max_size + 31 ) / 32 * 32;
     }
     option->input_shapes.insert( {"input0", DimsVector({1, 3, max_size, max_size})} );
-    return TNNSDKSample::Init(option);
+    status = TNNSDKSample::Init(option_i);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    padding_ = option->padding;
+    box_score_thresh_ = option->box_score_threshold;
+    scale_down_ratio_ = option->scale_down_ratio;
+    return status;
 }
 
 MatConvertParam OCRTextboxDetector::GetConvertParamForInput(std::string name) {
@@ -191,6 +202,10 @@ std::shared_ptr<Mat> OCRTextboxDetector::ProcessSDKInputMat(std::shared_ptr<Mat>
                                                                    std::string name) {
     Status status = TNN_OK;
 
+    auto scale_down_dims = input_mat->GetDims();
+    scale_down_dims[2] = static_cast<int>(scale_down_dims[2] * scale_down_ratio_);
+    scale_down_dims[3] = static_cast<int>(scale_down_dims[3] * scale_down_ratio_);
+
     // 0) copy if necessary
     bool need_copy = false;
     DeviceType origin_dev = input_mat->GetDeviceType();
@@ -200,7 +215,20 @@ std::shared_ptr<Mat> OCRTextboxDetector::ProcessSDKInputMat(std::shared_ptr<Mat>
                                                    input_mat->GetDims());
         status = Copy(input_mat, input_arm_mat);
         RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
-        input_mat = input_arm_mat;
+        // sacle down
+        auto scale_down_mat = std::make_shared<Mat>(DEVICE_ARM, input_arm_mat->GetMatType(),
+                                                    scale_down_dims);
+        status = Resize(input_arm_mat, scale_down_mat, TNNInterpLinear);
+        RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
+        //input_mat = input_arm_mat;
+        input_mat = scale_down_mat;
+    } else {
+        // sacle down
+        auto scale_down_mat = std::make_shared<Mat>(DEVICE_ARM, input_mat->GetMatType(),
+                                                    scale_down_dims);
+        status = Resize(input_mat, scale_down_mat, TNNInterpLinear);
+        RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
+        input_mat = scale_down_mat;
     }
     
     // 1) TNN::Mat to opencv Mat
@@ -217,6 +245,9 @@ std::shared_ptr<Mat> OCRTextboxDetector::ProcessSDKInputMat(std::shared_ptr<Mat>
         cv::copyMakeBorder(cv_src, padded_input_, padding_, padding_, padding_, padding_,
                            cv::BORDER_ISOLATED, scalar);
         cv_src = padded_input_;
+    } else {
+        // TODO: hold data 'pixel' to avoid copy
+        padded_input_ = cv_src.clone();
     }
     
     scale_ = getScaleParam(cv_src, resize_size);
@@ -230,7 +261,7 @@ std::shared_ptr<Mat> OCRTextboxDetector::ProcessSDKInputMat(std::shared_ptr<Mat>
     input_shape[2] = input_height;
     input_shape[3] = input_width;
     input_height_ = input_height;
-    input_width_ = input_width;
+    input_width_  = input_width;
     
     std::shared_ptr<Mat> result_mat = nullptr;
     if (need_copy) {
@@ -298,12 +329,12 @@ Status OCRTextboxDetector::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output
         }
         std::vector<cv::Point> box_to_input(clipMinBox.size());
         for (int j = 0; j < clipMinBox.size(); ++j) {
-            if (padding_ > 0) {
-                box_to_input[j].x = clipMinBox[j].x - padding_;
-                box_to_input[j].y = clipMinBox[j].y - padding_;
-            }
+            box_to_input[j].x = static_cast<int>((clipMinBox[j].x - padding_) / scale_down_ratio_);
+            box_to_input[j].y = static_cast<int>((clipMinBox[j].y - padding_) / scale_down_ratio_);
         }
-        text_boxes.emplace_back(TextBox{clipMinBox, box_to_input, score, scale_.srcWidth - 2*padding_, scale_.srcHeight - 2*padding_});
+        text_boxes.emplace_back(TextBox{clipMinBox, box_to_input, score,
+                                static_cast<int>((scale_.srcWidth - 2*padding_) / scale_down_ratio_),
+                                static_cast<int>((scale_.srcHeight - 2*padding_) / scale_down_ratio_)});
     }
     reverse(text_boxes.begin(), text_boxes.end());
     output->text_boxes = text_boxes;

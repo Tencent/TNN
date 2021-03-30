@@ -51,17 +51,17 @@ using namespace std;
         NSLog(@"Error: proto or model path is invalid");
         return predictor;
     }
-    if(units == TNNComputeUnitsCPU) {
-        LOGE("load ARM model!\n");
-    } else {
-        LOGE("load Metal model!\n");
-    }
-    auto option = std::make_shared<TNNSDKOption>();
+
+    auto option = std::make_shared<OCRTextboxDetectorOption>();
     {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+
+        option->padding = 10;
+        option->box_score_threshold = 0.6f;
+        option->scale_down_ratio    = 0.75f;
     }
         
     predictor = std::make_shared<OCRTextboxDetector>();
@@ -95,12 +95,7 @@ using namespace std;
         NSLog(@"Error: proto or model path is invalid");
         return predictor;
     }
-    
-    if(units == TNNComputeUnitsCPU) {
-        LOGE("load ARM model!\n");
-    } else {
-        LOGE("load Metal model!\n");
-    }
+
     auto option = std::make_shared<TNNSDKOption>();
     {
         option->proto_content = proto_content;
@@ -146,11 +141,7 @@ using namespace std;
         NSLog(@"Error: proto or model path is invalid");
         return predictor;
     }
-    if(units == TNNComputeUnitsCPU) {
-        LOGE("load ARM model!\n");
-    } else {
-        LOGE("load Metal model!\n");
-    }
+
     auto option = std::make_shared<OCRTextRecognizerOption>();
     {
         option->proto_content = proto_content;

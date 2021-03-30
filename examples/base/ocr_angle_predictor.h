@@ -48,8 +48,8 @@ public:
 private:
     bool do_angle_   = true;
     bool most_angle_ = true;
-    int dst_width_  = 192;
-    int dst_height_ = 32;
+    int dst_width_   = 192;
+    int dst_height_  = 32;
 };
 
 }

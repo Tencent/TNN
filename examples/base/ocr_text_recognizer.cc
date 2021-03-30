@@ -54,7 +54,7 @@ Status OCRTextRecognizer::Init(std::shared_ptr<TNNSDKOption> option) {
 MatConvertParam OCRTextRecognizer::GetConvertParamForInput(std::string name) {
     MatConvertParam input_convert_param;
     input_convert_param.scale = {1.0 / 127.5, 1.0 / 127.5, 1.0 / 127.5, 0.0};
-    input_convert_param.bias  = {-1.0,        -1.0,        -1.0,      -0.0};
+    input_convert_param.bias  = {-1.0,        -1.0,        -1.0,       0.0};
     // model requires RGB input
     input_convert_param.reverse_channel = false;
     
@@ -64,6 +64,7 @@ MatConvertParam OCRTextRecognizer::GetConvertParamForInput(std::string name) {
 std::shared_ptr<Mat> OCRTextRecognizer::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat,
                                                                    std::string name) {
     Status status = TNN_OK;
+
     // 0) copy if necessary
     bool need_copy = false;
     DeviceType origin_dev = input_mat->GetDeviceType();
@@ -81,6 +82,7 @@ std::shared_ptr<Mat> OCRTextRecognizer::ProcessSDKInputMat(std::shared_ptr<Mat> 
     int img_width  = input_mat->GetWidth();
     void *pixel = input_mat->GetData();
     cv::Mat cv_src(img_height, img_width, CV_8UC4, pixel);
+
     // 2) resize
     float scale = static_cast<float>(dst_height_) / img_height;
     if (scale != 1) {
@@ -89,13 +91,14 @@ std::shared_ptr<Mat> OCRTextRecognizer::ProcessSDKInputMat(std::shared_ptr<Mat> 
         cv::resize(cv_src, resized_src, cv::Size(dst_width, dst_height_));
         cv_src = resized_src;
     }
+
     // 3) cv::Mat to TNN::Mat
     int input_height = cv_src.rows;
     int input_width  = cv_src.cols;
     auto input_shape = input_mat->GetDims();
     input_shape[2] = input_height;
     input_shape[3] = input_width;
-    
+
     std::shared_ptr<Mat> result_mat = nullptr;
     if (need_copy) {
         auto input_arm_mat = std::make_shared<Mat>(DEVICE_ARM, input_mat->GetMatType(),

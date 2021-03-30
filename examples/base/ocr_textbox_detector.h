@@ -46,6 +46,15 @@ struct ScaleParam {
     float ratioHeight;
 };
 
+class OCRTextboxDetectorOption : public TNNSDKOption {
+public:
+    OCRTextboxDetectorOption() {}
+    virtual ~OCRTextboxDetectorOption() {}
+    int padding = 10;
+    float box_score_threshold = 0.6f;
+    float scale_down_ratio    = 0.75f;
+};
+
 class OCRTextboxDetectorOutput : public TNNSDKOutput {
 public:
     OCRTextboxDetectorOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
@@ -66,10 +75,12 @@ public:
     cv::Mat& GetPaddedInput() { return padded_input_; }
     
 private:
-    int max_size_ = 1024;
-    int padding_  = 50;
+    int padding_  = 10;
     float box_score_thresh_ = 0.6f;
+    float scale_down_ratio_ = 0.75f;
+
     float box_thresh_ = 0.3f;
+    int max_size_ = 1024;
     float un_clip_ratio_ = 2.0f;
     int input_height_;
     int input_width_;
