@@ -22,6 +22,8 @@
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
+#include "opencv2/core/mat.hpp"
+
 #include <algorithm>
 #include <memory>
 #include <iostream>
@@ -50,11 +52,12 @@ public:
     virtual Status Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output);
     
     virtual Status Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks);
-    
-    void SetBlobDumpDir(const char *dump_dir);
+
+    virtual bool hideTextBox();
 
 protected:
     Status MatToTNNMat(const cv::Mat& mat, std::shared_ptr<Mat>& tnn_mat, bool try_share_data);
+
     std::shared_ptr<TNNSDKSample> textbox_detector_;
     std::shared_ptr<TNNSDKSample> angle_predictor_;
     std::shared_ptr<TNNSDKSample> text_recognizer_;

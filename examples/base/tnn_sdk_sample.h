@@ -213,6 +213,7 @@ public:
                           std::shared_ptr<TNN_NS::Mat> dst,
                           int top, int bottom, int left, int right,
                           TNNBorderType border_type, uint8_t border_value = 0);
+    virtual bool hideTextBox();
 
 protected:
     BenchOption bench_option_;

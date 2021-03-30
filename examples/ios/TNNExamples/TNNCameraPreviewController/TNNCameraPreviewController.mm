@@ -10,9 +10,6 @@
 #include "tnn_fps_counter.h"
 #import "UIImage+Utility.h"
 #import "ultra_face_detector.h"
-#if HAS_OPENCV
-#import "ocr_driver.h"
-#endif
 
 using namespace std;
 using namespace TNN_NS;
@@ -235,7 +232,7 @@ typedef void(^CommonCallback)(Status);
             fps_counter_async_thread->End("detect");
         } while (0);
         // hide the textbox, use drawinglines instead to support box with angles
-        bool isOCRSDK = dynamic_cast<OCRDriver *>(predictor_async_thread.get()) != nullptr;
+        bool hideTextbox = predictor_async_thread->hideTextBox();
         
         CVBufferRelease(image_buffer);
         CFBridgingRelease(image_texture_ref);
@@ -246,7 +243,7 @@ typedef void(^CommonCallback)(Status);
         dispatch_sync(dispatch_get_main_queue(), ^{
             [self showSDKOutput:sdk_output
             withOriginImageSize:origin_image_size
-             hideTextFrame:isOCRSDK
+             hideTextFrame:hideTextbox
                      withStatus:status];
             [self showFPS:map_fps];
             //[self showTime: time];
