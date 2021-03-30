@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "x86_layer_acc.h"
+#include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
 
@@ -64,7 +64,12 @@ Status X86GatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         int input_index_b = b*input_slice_count*slice_size;
         int output_index_b = b*output_slice_count*slice_size;
         for (int i=0; i<output_slice_count; i++) {
-            int input_index = input_index_b + indices_data_ptr[i]*slice_size;
+            int slice_index = indices_data_ptr[i];
+            if (slice_index < 0 || slice_index >= input_slice_count) {
+                LOGE("X86GatherLayerAcc::Forward invalid slice_index\n");
+                return Status(TNNERR_MODEL_ERR, "X86GatherLayerAcc::Forward invalid slice_index");
+            }
+            int input_index = input_index_b + slice_index*slice_size;
             int output_index = output_index_b + i*slice_size;
             
             memcpy(output_data_ptr + output_index*ele_size,

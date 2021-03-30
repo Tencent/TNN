@@ -43,5 +43,6 @@ std::set<std::string> OpenCLReduceL2LayerAcc::CreateBuildOptions() {
 OpenCLReduceL2LayerAcc::~OpenCLReduceL2LayerAcc() {}
 
 REGISTER_OPENCL_ACC(ReduceL2, LAYER_REDUCE_L2)
+REGISTER_OPENCL_LAYOUT(LAYER_REDUCE_L2, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

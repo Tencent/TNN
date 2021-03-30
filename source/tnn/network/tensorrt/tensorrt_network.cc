@@ -72,6 +72,11 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
 
+    auto params_md5 = default_interpreter->GetParamsMd5();
+    if (params_md5.size() == 0) {
+        test_mode = true;
+    }
+
     NetStructure *net_structure = default_interpreter->GetNetStructure();
     NetResource *net_resource   = default_interpreter->GetNetResource();
     net_resource_ = net_resource;
@@ -140,12 +145,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
        return ret;
     }
 
-    if (model_config.params[0].empty() && model_config.params[1].empty()) {
-        test_mode = true;
-    }
-
-    std::string cache_file_name = GetCacheFileName(model_config.params[0], model_config.params[1], inputs, outputs,
-        min_inputs_shape, net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
+    std::string cache_file_name = GetCacheFileName(params_md5, inputs, outputs, min_inputs_shape,
+        net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
     ExclFile *file_lock = new ExclFile(cache_file_name);
 
     if (test_mode || false == file_lock->Ready()) {
@@ -319,7 +320,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
             auto blob = blob_manager_->GetBlob(name);
             if (const_blobs.find(name) != const_blobs.end()) {
                 if (runtime_model_ == RUNTIME_MODE_NORMAL) {
-                    blob->flag = DATA_FLAG_CHANGE_NEVER;
+                    blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
                 }
                 blob->GetBlobDesc().data_type = const_blobs[name]->GetDataType();
             }
@@ -340,6 +341,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         }
 
         std::string layer_name = layer_info->name;
+        cur_layer->SetNetwork(this);
         cur_layer->SetLayerName(layer_name);
         // set layer nodes
         std::vector<Blob *> inputs;
@@ -653,10 +655,14 @@ bool TensorRTNetwork_::IsBlobUsed(Blob* blob) {
     return false;
 }
 
-std::string TensorRTNetwork_::GetCacheFileName(std::string cfg, std::string model, BlobMap input_map,
+std::string TensorRTNetwork_::GetCacheFileName(std::vector<std::string> params_md5, BlobMap input_map,
         BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, int batchsize,
         bool int8_mode, bool use_fp16) {
-    std::string md5_source = md5(cfg) + md5(model);
+    std::string md5_source = "";
+
+    for (auto iter : params_md5) {
+        md5_source += iter;
+    }
 
     for (auto iter : input_map) {
         std::stringstream ss;

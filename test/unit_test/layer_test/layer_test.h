@@ -40,12 +40,14 @@ class LayerTest : public ::testing::Test {
 protected:
     static void SetUpTestCase();
 
-    void Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision = PRECISION_AUTO);
+    void Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision = PRECISION_AUTO, DataFormat cpu_input_data_format = DATA_FORMAT_AUTO, DataFormat device_input_data_format = DATA_FORMAT_AUTO);
+
+    bool CheckDataTypeSkip(DataType data_type);
 
     static void TearDownTestCase();
 
 private:
-    Status Init(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision);
+    Status Init(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision, DataFormat cpu_input_data_format, DataFormat device_input_data_format);
     Status Forward();
     Status Compare();
     Status DeInit();

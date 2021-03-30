@@ -26,7 +26,7 @@ Status SqueezeLayer::InferOutputDataType() {
     const auto& input_name = input_blobs_[0]->GetBlobDesc().name;
     const auto& const_res  = const_resource_;
     if (const_res != nullptr && const_res->find(input_name) != const_res->end()) {
-        output_blobs_[0]->flag = output_blobs_[0]->flag | DATA_FLAG_ALLOCATE_IN_FORWARD;
+        output_blobs_[0]->SetFlag(output_blobs_[0]->GetFlag() | DATA_FLAG_ALLOCATE_IN_FORWARD);
     }
     return status;
 }
@@ -34,10 +34,10 @@ Status SqueezeLayer::InferOutputDataType() {
 Status SqueezeLayer::InferOutputShape(bool ignore_error) {
     auto status = BaseLayer::InferOutputShape(ignore_error);
     RETURN_ON_NEQ(status, TNN_OK);
-    
-    auto *layer_param = dynamic_cast<SqueezeLayerParam *>(param_);
+
+    auto* layer_param = dynamic_cast<SqueezeLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);
-    
+
     const auto& output_blob = output_blobs_[0];
     DimsVector input_dims   = input_blobs_[0]->GetBlobDesc().dims;
     DimsVector output_dims  = input_dims;

@@ -20,16 +20,30 @@
 #include "tnn/device/metal/metal_device.h"
 #include "tnn/device/metal/metal_macro.h"
 #include "tnn/utils/blob_memory_size_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/device/metal/acc/metal_cpu_adapter_acc.h"
 
 namespace TNN_NS {
+
+BlobMemorySizeInfo MetalDevice::Calculate1DMemorySize(BlobDesc &desc) {
+    BlobMemorySizeInfo info;
+    info.data_type = desc.data_type;
+    int count      = 0;
+    if (desc.data_format == DATA_FORMAT_NC4HW4) {
+        count = desc.dims[0] * ROUND_UP(desc.dims[1], 4) * DimsVectorUtils::Count(desc.dims, 2);
+    } else {
+        count = DimsVectorUtils::Count(desc.dims);
+    }
+    info.dims.push_back(count);
+    return info;
+}
 
 MetalDevice::MetalDevice(DeviceType device_type) : AbstractDevice(device_type) {}
 
 MetalDevice::~MetalDevice() {}
 
 BlobMemorySizeInfo MetalDevice::Calculate(BlobDesc &desc) {
-    return Calculate1DMemorySize(desc);
+    return MetalDevice::Calculate1DMemorySize(desc);
 }
 
 Status MetalDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
@@ -140,14 +154,32 @@ Context *MetalDevice::CreateContext(int device_id) {
     return new MetalContext();
 }
 
+std::shared_ptr<const ImplementedLayout> MetalDevice::GetImplementedLayout(LayerType type) {
+    auto &layer_layout_map = GetLayerLayoutMap();
+    if (layer_layout_map.count(type) > 0) {
+        return layer_layout_map[type];
+    }
+    return std::make_shared<ImplementedLayout>();
+}
+
 std::map<LayerType, std::shared_ptr<LayerAccCreator>> &MetalDevice::GetLayerCreatorMap() {
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
     return layer_creator_map;
 }
 
+std::map<LayerType, std::shared_ptr<ImplementedLayout>> &MetalDevice::GetLayerLayoutMap() {
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
+    return layer_layout_map;
+}
+
 Status MetalDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator *creator) {
     std::map<LayerType, std::shared_ptr<LayerAccCreator>> &layer_creator_map = GetLayerCreatorMap();
     layer_creator_map[type]                                   = std::shared_ptr<LayerAccCreator>(creator);
+    return TNN_OK;
+}
+
+Status MetalDevice::RegisterLayerLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+    GetLayerLayoutMap()[type] = layout;
     return TNN_OK;
 }
 

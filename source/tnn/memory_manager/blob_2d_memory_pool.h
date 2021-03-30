@@ -31,7 +31,7 @@ private:
     virtual BlobMemory* CreateBlobMemory(int use_count, BlobMemorySizeInfo& size_info) override;
     virtual BlobMemoryNode* GetBlobMemoryNodeListHeader(DataType data_type) override;
     virtual void SetBlobMemoryNodeListHeader(DataType data_type, BlobMemoryNode* new_header) override;
-    virtual int ResolveBlobMemoryNodeBytesDiff(BlobMemorySizeInfo& size_info, BlobMemoryNode* node) override;
+    virtual int64_t ResolveBlobMemoryNodeBytesDiff(BlobMemorySizeInfo& size_info, BlobMemoryNode* node) override;
     // extract the closest BlobMemoryNode from BlobMemoryNode list for 2D memory
     virtual BlobMemoryNode* ExtractNearestBlobMemoryNode(BlobMemorySizeInfo& size_info) override;
     std::map<DataType, BlobMemoryNode*> blob_memory_list_header_map_;

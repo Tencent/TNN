@@ -50,6 +50,8 @@ struct ObjectInfo {
     std::vector<triple<float,float,float>> key_points_3d = {};
     //lines connecting key_points
     std::vector<std::pair<int, int>> lines;
+    // label
+    const char *label = nullptr;
     
     float score = 0;
     int class_id = -1;

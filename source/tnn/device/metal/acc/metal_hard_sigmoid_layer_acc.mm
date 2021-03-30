@@ -39,6 +39,7 @@ Status MetalHardSigmoidLayerAcc::AllocateBufferParam(const std::vector<Blob *> &
     {
         MetalHardSigmoidParams metal_params;
         SetDefaultMetalParams(metal_params, dims_output, dims_output);
+        FixDefaultMetalParams(metal_params, dims_output, dims_output);
 
         metal_params.alpha = layer_param->alpha;
         metal_params.beta  = layer_param->beta;
@@ -57,5 +58,6 @@ Status MetalHardSigmoidLayerAcc::Forward(const std::vector<Blob *> &inputs, cons
 }
 
 REGISTER_METAL_UNARY_ACC(HardSigmoid, LAYER_HARDSIGMOID);
+REGISTER_METAL_LAYOUT(LAYER_HARDSIGMOID, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

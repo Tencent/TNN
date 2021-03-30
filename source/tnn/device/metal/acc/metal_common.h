@@ -32,6 +32,12 @@
 #define ROUND_UP(x, y) (((x) + (y)-1) / (y) * (y))
 #endif
 
+//#define GetBlobDim(d, i) \
+    (((d).size()) > (i) ? ((d)[i]) : 1)
+
+//#define GetBlobCount(d, i) \
+    ( (DimsVectorUtils::Count((d), (i))) > 0? (DimsVectorUtils::Count((d), (i))) : (GetBlobDim(d, i)) )
+
 /**Base Param Struct **/
 struct MetalParams {
     int input_width;
@@ -45,6 +51,18 @@ struct MetalParams {
     int output_slice;
     int share_channel = 0;
     int batch;
+};
+
+struct MetalSplitVParamV2 {
+    int inner_size;
+    int axis_size;
+    int outer_size;
+};
+
+struct MetalConcatParamV2 {
+    int inner_size;
+    int axis_size;
+    int outer_size;
 };
 
 // keep as same as BroadcastType in layer_param.h
@@ -67,6 +85,11 @@ struct MetalBroadcastParams {
     int broadcast_input0;
     int broadcast_input1;
     int batch;
+
+    int weight_index;
+
+    int input0_size;
+    int input1_size;
 };
 
 /**Pow Param Struct **/
@@ -248,6 +271,7 @@ struct MetalConvParams {
     int input_delta_y;
     int has_bias;
     int activation = -1;
+    int group;
 };
 
 /** Winograd Param Struct **/
@@ -591,18 +615,112 @@ struct MetalReorgParams {
     int mode; // DCR: 0  CRD: 1
 };
 
+/** MetalPermute Param Struct **/
+struct MetalPermuteParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+    int input_batch;
+
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int share_channel = 0;
+    int batch;
+
+    int dim_count;
+
+    int strides[4];
+    int orders[4];
+    int channel_dim_size; // the input size alongside the new chanel dimension
+    int channel_dim; // which axis of the output corresponds the input channel
+};
+
+#define MAX_DIM_COUNT 8
+struct MetalDynamicPermuteParams {
+    int input_sizes[MAX_DIM_COUNT];
+    int input_size;
+    int input_slice;
+    int input_batch;
+
+    int output_sizes[MAX_DIM_COUNT];
+    int output_size;
+    int output_slice;
+    int batch;
+
+    int dim_count;
+
+    int strides[MAX_DIM_COUNT];
+
+    int channel_dim_size; // the input size alongside the new chanel dimension
+    int channel_dim; // which axis of the output corresponds the input channel
+};
+
+/** MetalRecurrent Param Struct **/
+struct MetalRecurrentParams {
+    int seq_len;
+    int batch;
+    int input_width;
+    int hidden_size;
+    int direction;
+
+    bool reverse;
+    bool has_init_h;
+    bool has_init_c;
+
+    int activation;
+};
+
+/** Squeeze Param Struct **/
+struct MetalSqueezeParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+    int input_channel;
+    int input_batch;
+
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int output_channel;
+    
+    int batch;
+};
+
+/** MetalRecurrent Param Struct **/
+struct MetalMatMulParams {
+    int batch_c;
+    int batch_a;
+    int batch_b;
+    int M;
+    int N;
+    int K;
+};
+
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
-        metal_params.input_width   = dims_input[3];                                                                    \
-        metal_params.input_height  = dims_input[2];                                                                    \
+        metal_params.input_width   = GetBlobDim(dims_input, 3);                                                        \
+        metal_params.input_height  = GetBlobDim(dims_input, 2);                                                        \
         metal_params.input_size    = metal_params.input_height * metal_params.input_width;                             \
         metal_params.input_slice   = UP_DIV(dims_input[1], 4);                                                         \
-        metal_params.output_width  = dims_output[3];                                                                   \
-        metal_params.output_height = dims_output[2];                                                                   \
+        metal_params.output_width  = GetBlobDim(dims_output, 3);                                                       \
+        metal_params.output_height = GetBlobDim(dims_output, 2);                                                       \
         metal_params.output_size   = metal_params.output_height * metal_params.output_width;                           \
         metal_params.output_slice  = UP_DIV(dims_output[1], 4);                                                        \
         metal_params.batch         = dims_output[0];                                                                   \
     } while (0)
+
+#define FixDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
+    do {                                                                                                               \
+        metal_params.input_width   = GetBlobCount(dims_input, 3);                                                      \
+        metal_params.input_size    = metal_params.input_height * metal_params.input_width;                             \
+        metal_params.output_width  = GetBlobCount(dims_output, 3);                                                     \
+        metal_params.output_size   = metal_params.output_height * metal_params.output_width;                           \
+    } while(0)
 
 #define SetDefaultMetalConvParams(metal_params, conv_param)                                                            \
     do {                                                                                                               \
@@ -617,6 +735,7 @@ struct MetalReorgParams {
         metal_params.pad_y       = conv_param->pads[2];                                                                \
         metal_params.dilation_x  = conv_param->dialations[0];                                                          \
         metal_params.dilation_y  = conv_param->dialations[1];                                                          \
+        metal_params.group       = conv_param->group;                                                                  \
     } while (0)
 
 #endif  // TNN_METAL_COMMON_H_

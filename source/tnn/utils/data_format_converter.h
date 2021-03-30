@@ -20,6 +20,7 @@
 
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -38,11 +39,11 @@ public:
     // @param data_tyep data type info
     static Status ConvertFromNCHWToNCHW4Float(float *src, float *dst, int num, int channel, int height, int width);
     static Status ConvertFromNCHWToNCHW4Half(short *src, short *dst, int num, int channel, int height, int width);
-    static Status ConvertFromNCHWToNHWC4Int8(int8_t *src, int8_t *dst, int num, int channel, int height, int width);
+    static Status ConvertFromNCHWToNHWC4Int8(int8_t *src, int8_t *dst, int num, int channel, int hw);
 
     static Status ConvertFromNCHW4ToNCHWFloat(float *src, float *dst, int num, int channel, int height, int width);
     static Status ConvertFromNCHW4ToNCHWHalf(short *src, short *dst, int num, int channel, int height, int width);
-    static Status ConvertFromNHWC4ToNCHWInt8(int8_t *src, int8_t *dst, int num, int channel, int height, int width);
+    static Status ConvertFromNHWC4ToNCHWInt8(int8_t *src, int8_t *dst, int num, int channel, int hw);
 
     static Status ConvertFromInt8ToFloatNCHW4(int8_t *src, float *dst, float *scale, int scale_len, int num,
                                               int channel, int height, int width);
@@ -90,8 +91,9 @@ public:
         ASSERT(src != nullptr);
         const int num     = src->GetBlobDesc().dims[0];
         const int channel = src->GetBlobDesc().dims[1];
-        const int height  = src->GetBlobDesc().dims[2];
-        const int width   = src->GetBlobDesc().dims[3];
+        // refactor later
+        const int height  = GetBlobDim(src->GetBlobDesc().dims, 2);
+        const int width   = GetBlobCount(src->GetBlobDesc().dims, 3);
         T *src_data_ptr   = (T *)src->GetHandle().base;
         T *dst_data_ptr = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
 
@@ -103,8 +105,9 @@ public:
     static Status ConvertFromNHWCToNCHW(Blob *src, Blob *dst) {
         ASSERT(src != nullptr);
         const int num     = src->GetBlobDesc().dims[0];
-        const int height  = src->GetBlobDesc().dims[2];
-        const int width   = src->GetBlobDesc().dims[3];
+        // refactor later
+        const int height  = GetBlobDim(src->GetBlobDesc().dims, 2);
+        const int width   = GetBlobCount(src->GetBlobDesc().dims, 3);
         const int channel = src->GetBlobDesc().dims[1];
         T *src_data_ptr   = (T *)src->GetHandle().base;
         T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;

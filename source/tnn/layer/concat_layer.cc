@@ -35,6 +35,11 @@ inline bool ConcatLayerCheckShape(DimsVector shape1, DimsVector shape2, int excl
             return false;
         }
     }
+
+    if (exclude_axis >= shape1.size()) {
+        LOGE("exclude_axis:%d out of shape size:%d\n", exclude_axis, (int)shape1.size());
+        return false;
+    }
     return true;
 }
 

@@ -25,7 +25,7 @@ Status ConstantOfShapeLayer::InferOutputDataType() {
     auto layer_resource = dynamic_cast<ConstantOfShapeLayerResource*>(resource_);
     CHECK_PARAM_NULL(layer_resource);
     
-    auto flag = DataFlagUtils::ChangeStatus(input_blobs_[0]->flag);
+    auto flag = DataFlagUtils::ChangeStatus(input_blobs_[0]->GetFlag());
     if (flag < DATA_FLAG_CHANGE_NEVER) {
         flag = DATA_FLAG_CHANGE_IF_SHAPE_DIFFER;
     }
@@ -36,7 +36,7 @@ Status ConstantOfShapeLayer::InferOutputDataType() {
             const_resource_ != nullptr && const_resource_->find(iter->GetBlobDesc().name) != const_resource_->end()) {
             allocate_status = 0;
         }
-        iter->flag = flag | allocate_status;
+        iter->SetFlag(flag | allocate_status);
         iter->GetBlobDesc().data_type = layer_resource->value.GetDataType();
     }
     

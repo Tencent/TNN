@@ -1,4 +1,3 @@
-
 // Tencent is pleased to support the open source community by making TNN available.
 //
 // Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
@@ -13,28 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_HARDSWISH_LAYER_ACC_H_
-#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_HARDSWISH_LAYER_ACC_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_X86_X86_MAT_MUL_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_X86_X86_MAT_MUL_LAYER_ACC_H_
 
-#include "tnn/device/arm/acc/arm_binary_layer_acc.h"
-#include "tnn/device/arm/arm_common.h"
-#include "tnn/device/arm/arm_device.h"
+#include "tnn/device/x86/acc/x86_layer_acc.h"
+#include "tnn/device/x86/acc/compute/jit/conv_sgemm_driver.h"
 
 namespace TNN_NS {
-
-class ArmHardSwishLayerAcc : public ArmBinaryLayerAcc {
+class X86MatMulLayerAcc : public X86LayerAcc {
 public:
-    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-                        const std::vector<Blob *> &outputs) override;
+    virtual ~X86MatMulLayerAcc();
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
-    template <typename T>
-    Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
-    virtual ~ArmHardSwishLayerAcc() override;
+protected:
+    conv_gemm_config<float, float, float> conv_gemm_conf_;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_HARDSWISH_LAYER_ACC_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_X86_X86_MAT_MUL_LAYER_ACC_H_

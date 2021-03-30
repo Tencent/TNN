@@ -103,7 +103,7 @@ Status ConstFolder::Forward() {
         //save const input blob
         auto inputs = layer->GetInputBlobs();
         for (auto blob : inputs) {
-            auto blob_flag = DataFlagUtils::ChangeStatus(blob->flag);
+            auto blob_flag = DataFlagUtils::ChangeStatus(blob->GetFlag());
             if ((layer_flag == DATA_FLAG_CHANGE_ALWAYS && blob_flag > 0) ||
                 (layer_flag == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER && blob_flag == DATA_FLAG_CHANGE_NEVER)) {
                 //save constant resource
@@ -197,7 +197,7 @@ Status ConstFolder::GetOptimizedNet(std::shared_ptr<NetStructure> &const_fold_st
                     continue;
                 }
                 
-                auto blob_flag = DataFlagUtils::ChangeStatus(blob->flag);
+                auto blob_flag = DataFlagUtils::ChangeStatus(blob->GetFlag());
    
                 if ((target_flag == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER && blob_flag > 0) ||
                     (target_flag == DATA_FLAG_CHANGE_NEVER && blob_flag == DATA_FLAG_CHANGE_NEVER)) {

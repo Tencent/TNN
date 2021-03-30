@@ -19,6 +19,7 @@
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/metal_device.h"
 #include "tnn/device/metal/metal_macro.h"
+#include "tnn/utils/blob_transfer_utils.h"
 
 TNN_OBJC_CLASS(TNNMMetalContextImpl);
 
@@ -40,6 +41,8 @@ public:
                                        const std::vector<Blob *> &outputs);
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs);
     
 
 public:
@@ -69,10 +72,12 @@ protected:
     NSString * GetKernelLabel();
 
 private:
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size);
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);
 };
 
 MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth);
+
+MTLSize GetDefaultThreadSizeFusedLast(DimsVector dims, bool combineHeightWidth);
 
 struct MetalParams GetDefaultMetalParams(DimsVector input, DimsVector output);
 
@@ -82,6 +87,16 @@ struct MetalParams GetDefaultMetalParams(DimsVector input, DimsVector output);
 // @param count  the count of elements in RawBuffer
 // @param status   output status
 id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, Status &status);
+
+// @brief allocate packed metal buffer with format GOIHW4 form RawBuffer, like conv weight(gic or gic is not 4x)
+// @context tnn instance device context
+// @param buffer    input raw buffer
+// @param buffer_shape  format OIHW
+// @param group    group
+// @param status   output status
+// @param status   transpose transpose weght for deconv
+id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
+                                                            Status &status);
 
 // @brief allocate packed metal buffer with format GOIHW16 form RawBuffer, like conv weight
 // @context tnn instance device context
@@ -102,6 +117,15 @@ id<MTLBuffer> AllocatePackedGOIHW16MetalBufferFormRawBuffer(RawBuffer buffer, Di
 id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
                                                            Status &status);
 
+// @brief convert buffer to a metal blob
+// @context tnn instance device context
+// @param buffer    rawbuffer, memory on CPU
+// @param blob    generated metal blob
+// @param status   output status
+Status RawBuffer2MetalBlob(MetalContext *context, RawBuffer *buffer, std::shared_ptr<Blob> &blob, DataFormat format = DATA_FORMAT_NC4HW4);
+
+void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, bool reduce_on_axis);
+
 #define DECLARE_METAL_ACC(type_string, layer_type)                                                                     \
     class Metal##type_string##LayerAcc : public MetalLayerAcc {                                                        \
     public:                                                                                                            \
@@ -118,9 +142,43 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
                                      const std::vector<Blob *> &outputs);\
     }
 
+#define DECLARE_METAL_ACC_WITH_EXTRA(type_string, layer_type, extra)                                            \
+    class Metal##type_string##LayerAcc : public MetalLayerAcc {                                                        \
+    public:                                                                                                            \
+        virtual ~Metal##type_string##LayerAcc(){};                                                                     \
+        virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
+        virtual Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);     \
+        virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                 \
+        virtual std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs); \
+        virtual Status ComputeThreadSize(const std::vector<Blob *> &inputs, \
+                                 const std::vector<Blob *> &outputs, \
+                                 MTLSize &size); \
+        virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder, \
+                                     const std::vector<Blob *> &inputs, \
+                                     const std::vector<Blob *> &outputs);\
+    private:                                                                                                          \
+        extra; \
+    }
+
 #define REGISTER_METAL_ACC(type_string, layer_type)                                                                    \
     MetalTypeLayerAccRegister<TypeLayerAccCreator<Metal##type_string##LayerAcc>> g_metal_##layer_type##_acc_register(  \
         layer_type);
+
+class MetalTypeLayerLayoutCreator {
+public:
+    static std::shared_ptr<ImplementedLayout> UpdateImplementedLayout(LayerType layer_type, DataFormat layout) {
+        // make sure arm device has been registered
+        TypeDeviceRegister<MetalDevice> metal_device_register(DEVICE_METAL);
+        auto implemented_layout = GetDevice(DEVICE_METAL)->GetImplementedLayout(layer_type);
+        auto updated_layout     = std::make_shared<ImplementedLayout>(*implemented_layout);
+        updated_layout->layouts.push_back(layout);
+        return updated_layout;
+    }
+};
+
+#define REGISTER_METAL_LAYOUT(layer_type, layout)                                                                        \
+    MetalTypeLayerLayoutRegister g_metal_##layer_type##_##layout##_layout_register(                                      \
+             layer_type, MetalTypeLayerLayoutCreator::UpdateImplementedLayout(layer_type, layout));
 
 }  // namespace TNN_NS
 
