@@ -80,6 +80,10 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         }
     }
 
+    if (DEVICE_OPENCL == dev && keep_dims != 1) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<ReduceLayerParam> param(new ReduceLayerParam());
     param->name = "ReduceOp";

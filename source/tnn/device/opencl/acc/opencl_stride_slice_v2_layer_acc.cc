@@ -71,16 +71,21 @@ Status OpenCLStrideSliceV2LayerAcc::Init(Context *context, LayerParam *param, La
     DimsFunctionUtils::StrideSlice(input_dims, begins, ends, strides, axes, &ret);
     CHECK_TNN_OK(ret)
 
-    for (int i = 0, axes_idx = 0; i < output_dims.size(); ++i) {
-        if (axes_idx >= axes.size() || i != axes[axes_idx]) {
-            begins_.push_back(0);
-            strides_.push_back(1);
-            ends_.push_back(output_dims[i]);
-        } else {
-            begins_.push_back(begins[axes_idx]);
-            strides_.push_back(strides[axes_idx]);
-            ends_.push_back(ends[axes_idx]);
+    if (output_dims.size() <= 4) {
+        for (int i = 0, axes_idx = 0; i < 4; i++) {
+            if (axes_idx >= axes.size() || i != axes[axes_idx]) {
+                begins_.push_back(0);
+                strides_.push_back(1);
+                ends_.push_back(DimsFunctionUtils::GetDim(output_dims, i));
+            } else {
+                begins_.push_back(begins[axes_idx]);
+                strides_.push_back(strides[axes_idx]);
+                ends_.push_back(ends[axes_idx]);
+                axes_idx += 1;
+            }
         }
+    } else {
+        return Status(TNNERR_PARAM_ERR, "output dim > 4 is not supported on Stride Slice V2");
     }
 
     int begin_channel  = begins_[1];

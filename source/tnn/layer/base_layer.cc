@@ -242,7 +242,11 @@ Status BaseLayer::InferShapeAhead(std::vector<Blob*>& input_blobs, std::vector<B
     param_        = param;
     resource_     = resource;
 
-    InferOutputShape();
+    if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+        InferOutputShape();
+    } else {
+        InferOutputShape(true);
+    }
     return TNN_OK;
 }
 

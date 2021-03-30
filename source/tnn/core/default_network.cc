@@ -126,7 +126,14 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     net_structure_ = net_structure;
     net_resource_ = net_resource;
     
-    return ReshapeLayers();
+    ret = context_->OnInstanceReshapeBegin();
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    ret = ReshapeLayers();
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    ret = context_->OnInstanceReshapeEnd();
+    return ret;
 }
 
 static inline bool IsLayoutReformatLayer(std::shared_ptr<LayerInfo> layer) {
@@ -184,9 +191,9 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             // skip const blobs
             if (const_blobs.count(name) == 0) {
                 input_fmt = blob->GetBlobDesc().data_format;
+                auto ret  = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
+                RETURN_ON_NEQ(ret, TNN_OK);
             }
-            auto ret  = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
-            RETURN_ON_NEQ(ret, TNN_OK);
         }
 
         // output layout equals to input layout except for layout_reformat layer
@@ -202,6 +209,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         }
         std::string layer_name = layer_info->name;
         cur_layer->SetLayerName(layer_name);
+        cur_layer->SetRuntimeMode(runtime_model_);
         cur_layer->SetConstantResource(&net_resource->constant_map);
 
         std::vector<Blob *> inputs;
@@ -230,9 +238,12 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
-            blob->GetBlobDesc().data_format = output_fmt;
-            auto ret  = UpdateBlobPrecision(layer_info, false, is_quantized_net, name, net_resource, &blob);
-            RETURN_ON_NEQ(ret, TNN_OK);
+            // skip const blobs
+            if (const_blobs.count(name) == 0) {
+                blob->GetBlobDesc().data_format = output_fmt;
+                auto ret = UpdateBlobPrecision(layer_info, false, is_quantized_net, name, net_resource, &blob);
+                RETURN_ON_NEQ(ret, TNN_OK);
+            }
         }
     }
 

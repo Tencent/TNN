@@ -271,6 +271,7 @@ struct MetalConvParams {
     int input_delta_y;
     int has_bias;
     int activation = -1;
+    int group;
 };
 
 /** Winograd Param Struct **/
@@ -690,6 +691,16 @@ struct MetalSqueezeParams {
     int batch;
 };
 
+/** MetalRecurrent Param Struct **/
+struct MetalMatMulParams {
+    int batch_c;
+    int batch_a;
+    int batch_b;
+    int M;
+    int N;
+    int K;
+};
+
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
         metal_params.input_width   = GetBlobDim(dims_input, 3);                                                        \
@@ -724,6 +735,7 @@ struct MetalSqueezeParams {
         metal_params.pad_y       = conv_param->pads[2];                                                                \
         metal_params.dilation_x  = conv_param->dialations[0];                                                          \
         metal_params.dilation_y  = conv_param->dialations[1];                                                          \
+        metal_params.group       = conv_param->group;                                                                  \
     } while (0)
 
 #endif  // TNN_METAL_COMMON_H_

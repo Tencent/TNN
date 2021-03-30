@@ -60,12 +60,12 @@ TEST_P(PowLayerTest, PowLayer) {
         GTEST_SKIP();
     }
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
     if (DEVICE_CUDA == dev) {
         exponent = (int)exponent;
+    }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
     }
 
     // param

@@ -21,6 +21,32 @@
 
 namespace TNN_NS {
 
+bool ArmReshapeLayerAcc::UseNaiveConstantBlobs() {
+    return true;
+}
+
+Status ArmReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    LOGD("Init Reshape Acc\n");
+    Status ret = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    ReshapeLayerParam *reshape_param = dynamic_cast<ReshapeLayerParam *>(param_);
+    if (!reshape_param) {
+        FlattenLayerParam *flatten_param = dynamic_cast<FlattenLayerParam *>(param_);
+        if(!flatten_param) {
+            LOGE("Error: layer param is null\n");
+            return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
+        } else {
+            reshape_type_ = 0;
+        }
+    } else {
+        reshape_type_ = reshape_param->reshape_type;
+    }
+
+    return TNN_OK;
+}
+
 Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs.size() < 1) {
         LOGE("Error: invalid inputs count\n");
@@ -35,9 +61,6 @@ Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     int data_byte_size = DataTypeUtils::GetBytesSize(output->GetBlobDesc().data_type);
     auto size_in_bytes = DimsVectorUtils::Count(input->GetBlobDesc().dims) * data_byte_size;
     workspace_         = context_->GetSharedWorkSpace(size_in_bytes);
-
-    auto param = (ReshapeLayerParam *)param_;
-    ASSERT(param != nullptr);
 
     if (DATA_FORMAT_NC4HW4 == input->GetBlobDesc().data_format) {
         if (DATA_TYPE_FLOAT == in_data_type) {
@@ -60,9 +83,6 @@ Status ArmReshapeLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
     char *input_origin  = GetBlobHandlePtr(inputs[0]->GetHandle());
     char *output_origin = GetBlobHandlePtr(outputs[0]->GetHandle());
 
-    auto param = (ReshapeLayerParam *)param_;
-    ASSERT(param != nullptr);
-
     auto ic    = dims_input[1];
     auto ic_r4 = ROUND_UP(dims_input[1], 4);
     auto ihw   = DimsVectorUtils::Count(dims_input, 2);
@@ -78,9 +98,9 @@ Status ArmReshapeLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
     for (int b = 0; b < dims_input[0]; b++) {
         auto input_data     = reinterpret_cast<float *>(input_origin) + b * input_plane_r4;
         auto workspace_data = reinterpret_cast<float *>(workspace_) + b * input_plane;
-        if (param->reshape_type == 0)
+        if (reshape_type_ == 0)
             UnpackC4(workspace_data, input_data, ihw, ic);
-        else if (param->reshape_type == 1)
+        else if (reshape_type_ == 1)
             UnpackC4ToNHWC(workspace_data, input_data, ihw, ic);
         else
             return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
@@ -88,9 +108,9 @@ Status ArmReshapeLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
     for (int b = 0; b < dims_output[0]; b++) {
         auto workspace_data = reinterpret_cast<float *>(workspace_) + b * output_plane;
         auto output_data    = reinterpret_cast<float *>(output_origin) + b * output_plane_r4;
-        if (param->reshape_type == 0)
+        if (reshape_type_ == 0)
             PackC4(output_data, workspace_data, ohw, oc);
-        else if (param->reshape_type == 1)
+        else if (reshape_type_ == 1)
             PackC4FromNHWC(output_data, workspace_data, ohw, oc);
         else
             return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
@@ -100,6 +120,8 @@ Status ArmReshapeLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
 };
 
 REGISTER_ARM_ACC(Reshape, LAYER_RESHAPE);
+REGISTER_ARM_ACC(Reshape, LAYER_FLATTEN);
 REGISTER_ARM_LAYOUT(LAYER_RESHAPE, DATA_FORMAT_NC4HW4)
+REGISTER_ARM_LAYOUT(LAYER_FLATTEN, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

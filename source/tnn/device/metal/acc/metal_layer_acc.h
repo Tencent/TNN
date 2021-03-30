@@ -88,6 +88,16 @@ struct MetalParams GetDefaultMetalParams(DimsVector input, DimsVector output);
 // @param status   output status
 id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, Status &status);
 
+// @brief allocate packed metal buffer with format GOIHW4 form RawBuffer, like conv weight(gic or gic is not 4x)
+// @context tnn instance device context
+// @param buffer    input raw buffer
+// @param buffer_shape  format OIHW
+// @param group    group
+// @param status   output status
+// @param status   transpose transpose weght for deconv
+id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
+                                                            Status &status);
+
 // @brief allocate packed metal buffer with format GOIHW16 form RawBuffer, like conv weight
 // @context tnn instance device context
 // @param buffer    input raw buffer
@@ -106,6 +116,13 @@ id<MTLBuffer> AllocatePackedGOIHW16MetalBufferFormRawBuffer(RawBuffer buffer, Di
 // @param status   output status
 id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
                                                            Status &status);
+
+// @brief convert buffer to a metal blob
+// @context tnn instance device context
+// @param buffer    rawbuffer, memory on CPU
+// @param blob    generated metal blob
+// @param status   output status
+Status RawBuffer2MetalBlob(MetalContext *context, RawBuffer *buffer, std::shared_ptr<Blob> &blob, DataFormat format = DATA_FORMAT_NC4HW4);
 
 void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, bool reduce_on_axis);
 

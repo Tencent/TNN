@@ -216,23 +216,23 @@ struct Float4 {
         dst.value = tanh_ps(v.value);
         return dst;
     }
-    Float4 operator+(const Float4& lr) {
+    Float4 operator+(const Float4& lr) const {
         Float4 dst;
         dst.value = _mm_add_ps(value, lr.value);
         return dst;
     }
-    Float4 operator-(const Float4& lr) {
+    Float4 operator-(const Float4& lr) const {
         Float4 dst;
         dst.value = _mm_sub_ps(value, lr.value);
         return dst;
     }
-    Float4 operator*(float lr) {
+    Float4 operator*(float lr) const {
         Float4 dst;
         __m128 tmp = _mm_set1_ps(lr);
         dst.value = _mm_mul_ps(value, tmp);
         return dst;
     }
-    Float4 operator*(const Float4& lr) {
+    Float4 operator*(const Float4& lr) const {
         Float4 dst;
         dst.value = _mm_mul_ps(value, lr.value);
         return dst;
@@ -245,7 +245,7 @@ struct Float4 {
         value = std::move(lr.value);
         return *this;
     }
-    Float4 operator-() {
+    Float4 operator-() const {
         Float4 dst;
         dst.value = _mm_sub_ps(_mm_setzero_ps(), value);
         return dst;

@@ -259,6 +259,7 @@ Status OpenCLConcatLayerAcc::ReshapeBufferConcat(const std::vector<Blob *> &inpu
         int buffer_region[] = {batch, channels, input_height, input_width};
         int input_stride[]  = {channels * input_width * input_height, 1, input_width * channels, channels};
 
+        std::vector<int> buffer_output_size = {batch, channels, input_height, input_width};
         // image to buffer (from (NH,C4W4) to NHWC)
         {
             auto &unit = execute_units_[2 * i];
@@ -269,7 +270,7 @@ Status OpenCLConcatLayerAcc::ReshapeBufferConcat(const std::vector<Blob *> &inpu
             unit.ocl_kernel.setArg(idx++, input_offset);
             unit.ocl_kernel.setArg(idx++, input_wh);
             unit.ocl_kernel.setArg(idx++, input_stride);
-            unit.ocl_kernel.setArg(idx++, 4 * sizeof(int), input_dims.data());
+            unit.ocl_kernel.setArg(idx++, 4 * sizeof(int), buffer_output_size.data());
         }
 
         // buffer to buffer
