@@ -50,7 +50,7 @@ Status NpuGatherLayer::Convert() {
         std::shared_ptr<ge::op::Const> indices_const = std::make_shared<ge::op::Const>(layer_name_ + "_indices");
         if (indices_dims.size() == 0 && length == 4) {
             std::vector<int> vec = {resource->indices.force_to<int*>()[0]};
-            ge::TensorDesc const_desc(ge::Shape({1}), ge::FORMAT_NCHW, ge::DT_INT32);
+            ge::TensorDesc const_desc(ge::Shape(), ge::FORMAT_NCHW, ge::DT_INT32);
             NpuUtils::CreateAttrArray(indices_const, vec, const_desc, 1);
         } else {
             ge::Shape indices_shape(NpuUtils::Int32VecToTVec<int64_t>(indices_dims));
