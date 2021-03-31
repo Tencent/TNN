@@ -780,7 +780,7 @@ static inline v4sf tanh_ps(v4sf x)
 
     // abs(x) > HALFMAXLOGF
     // return 1.0 or -1.0
-    v4sf mask_pos = _mm_cmpgt_ps(x2, _mm_set1_ps(0.f));
+    v4sf mask_pos = _mm_cmpgt_ps(x, _mm_set1_ps(0.f));
     v4sf y1 = _mm_blendv_ps(_mm_set1_ps(-1.f), _mm_set1_ps(1.f), mask_pos);
 
     y = _mm_blendv_ps(y, y0, mask_l);

@@ -12,27 +12,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 #include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Softmax, LAYER_SOFTMAX);
-
-bool SoftmaxTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
-        && inOut[pos].type == inOut[0].type);
-}
-
-const char* SoftmaxTRTPluginLayerBuilder::getPluginType() const {
-    return "Softmax";
-}
-
-nvinfer1::DataType SoftmaxTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
-    return inputTypes[0];
-}
+DECLARE_TENSORRT_LAYER_BUILDER(Softmax, LAYER_SOFTMAX);
 
 ILayer* SoftmaxTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto paramlist = dynamic_cast<SoftmaxLayerParam*>(param_);
@@ -62,19 +47,17 @@ ILayer* SoftmaxTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         }
         return layar;
     } else {
-        return TensorRTPluginLayerBuilder::AddToNetwork(network);
+        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+        auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+        ISoftMaxLayer* layer = network->addSoftMax(*input_tensor);
+        if (layer != nullptr) {
+            layer->setName(layer_name_.c_str());
+            layer->setAxes(1 << paramlist->axis);
+        }
+        return layer;
     }
 }
 
-DimsExprs SoftmaxTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
-    return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
-}
-
-const char* SoftmaxPluginCreator::getPluginName() const {
-    return "Softmax";
-}
-
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Softmax, LAYER_SOFTMAX);
+REGISTER_TENSORRT_LAYER_BUILDER(Softmax, LAYER_SOFTMAX);
 
 }  //  namespace TNN_NS

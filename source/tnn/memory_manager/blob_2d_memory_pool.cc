@@ -23,6 +23,7 @@ Blob2DMemoryPool::Blob2DMemoryPool(AbstractDevice *device) : BlobMemoryPool(devi
 }
 
 Blob2DMemoryPool::~Blob2DMemoryPool() {
+    ClearBlobMemoryPool();
 }
 
 void Blob2DMemoryPool::ClearBlobMemoryPool() {

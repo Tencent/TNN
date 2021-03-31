@@ -40,6 +40,9 @@ Status CudaConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource
 
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param);
 
+    // only some 7x7 conv case need run with cudnn because trt fp16 bug
+    if (conv_param->strides[1] != 7 || conv_param->strides[0] != 7) return TNN_OK;
+
     CUDNN_CHECK(cudnnCreateTensorDescriptor(&bottom_desc_));
     CUDNN_CHECK(cudnnCreateTensorDescriptor(&top_desc_));
     CUDNN_CHECK(cudnnCreateFilterDescriptor(&filter_desc_));
@@ -108,6 +111,11 @@ CudaConvLayerAcc::~CudaConvLayerAcc(){
 }
 
 Status CudaConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
+
+    // only some 7x7 conv case need run with cudnn because trt fp16 bug
+    if (conv_param->strides[1] != 7 || conv_param->strides[0] != 7) return TNN_OK;
+
     DimsVector input_dims  = inputs[0]->GetBlobDesc().dims;
     DimsVector output_dims = outputs[0]->GetBlobDesc().dims;
 

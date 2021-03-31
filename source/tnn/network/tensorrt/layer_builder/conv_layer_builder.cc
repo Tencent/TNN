@@ -110,8 +110,7 @@ ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
     bool following_a_concat_layer =
         m_network->m_concat_blob_names.find(in_blob_name) != m_network->m_concat_blob_names.end();
 
-    if ((paramlist->kernels[0] == 7 && paramlist->kernels[1] == 7 && following_a_concat_layer) ||
-        (paramlist->dialations[0] == 4 && paramlist->dialations[1] == 4)) {
+    if (paramlist->kernels[0] == 7 && paramlist->kernels[1] == 7 && following_a_concat_layer) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
 
