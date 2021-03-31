@@ -19,7 +19,7 @@ namespace TNN_NS {
 
 DECLARE_TENSORRT_LAYER_BUILDER(Softmax, LAYER_SOFTMAX);
 
-ILayer* SoftmaxTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* SoftmaxTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto paramlist = dynamic_cast<SoftmaxLayerParam*>(param_);
     if (paramlist->axis == 1) {
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
