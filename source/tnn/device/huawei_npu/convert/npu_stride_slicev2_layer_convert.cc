@@ -51,30 +51,30 @@ Status NpuStridedSliceV2Layer::Convert() {
         }
     }
 
-    ge::Shape input_shape({4});
-    ge::TensorDesc desc(input_shape, ge::FORMAT_NCHW, ge::DT_INT32);
+    ge::Shape param_shape({(int64_t)axes.size()});
+    ge::TensorDesc desc(param_shape, ge::FORMAT_NCHW, ge::DT_INT32);
 
     // begins
     std::shared_ptr<ge::op::Const> begins_op = std::make_shared<ge::op::Const>(layer_name_ + "_begin");
-    NpuUtils::CreateAttrArray(begins_op, begins, desc, 4);
+    NpuUtils::CreateAttrArray(begins_op, begins, desc, begins.size());
     weight_ops_.push_back(begins_op);
 
     // ends
     // in format nchw
     std::shared_ptr<ge::op::Const> ends_op = std::make_shared<ge::op::Const>(layer_name_ + "_end");
-    NpuUtils::CreateAttrArray(ends_op, ends, desc, 4);
+    NpuUtils::CreateAttrArray(ends_op, ends, desc, ends.size());
     weight_ops_.push_back(ends_op);
 
     // axes
     // in format nchw
     std::shared_ptr<ge::op::Const> axes_op = std::make_shared<ge::op::Const>(layer_name_ + "_axes");
-    NpuUtils::CreateAttrArray(axes_op, axes, desc, 4);
+    NpuUtils::CreateAttrArray(axes_op, axes, desc, axes.size());
     weight_ops_.push_back(axes_op);
 
     // strides
     // in format nchw
     std::shared_ptr<ge::op::Const> strides_op = std::make_shared<ge::op::Const>(layer_name_ + "_stride");
-    NpuUtils::CreateAttrArray(strides_op, strides, desc, 4);
+    NpuUtils::CreateAttrArray(strides_op, strides, desc, strides.size());
     weight_ops_.push_back(strides_op);
 
     // stride
