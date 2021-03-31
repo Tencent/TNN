@@ -35,8 +35,8 @@ public:
     //     [ 9. 10. 11. 12.]]
     // new_shape = [2,1,1, 4]
     // expanded = data * np.ones(new_shape, dtype=np.float32)
-    // print("数组形状：",expanded.shape)
-    // 数组形状： (2, 1, 3, 4)
+    // print("shape：",expanded.shape)
+    // shape： (2, 1, 3, 4)
     // print(expanded)
     //    [[[[ 1.  2.  3.  4.]
     //       [ 5.  6.  7.  8.]
@@ -87,6 +87,9 @@ public:
 
     // @brief Get the product of dims between [start_index, end_index), return 1 if the range is invalid
     static int GetDimProduct(const DimsVector dims, const int start_index, const int end_index=-1);
+    // @brief step[i]: DimsVectorUtils::Count(dims, i + 1)
+    static DimsVector GetDimsStep(const DimsVector& dims);
+
 };
 
 }  // namespace TNN_NS

@@ -292,4 +292,12 @@ int DimsFunctionUtils::GetDimProduct(const DimsVector dims, const int start_inde
     return count > 0? count : 1;
 }
 
+DimsVector DimsFunctionUtils::GetDimsStep(const DimsVector& dims) {
+    DimsVector step_dims;
+    for(int i = 0; i < dims.size(); ++i) {
+        step_dims.push_back(DimsVectorUtils::Count(dims, i+1));
+    }
+    return step_dims;
+}
+
 }  // namespace TNN_NS

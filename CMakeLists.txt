@@ -234,10 +234,6 @@ if(TNN_SYMBOL_HIDE AND UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
 endif()
 
-if(TNN_CONVERTER_ENABLE OR TNN_ONNX2TNN_ENABLE)
-    add_definitions(-DTNN_V2=1)
-endif()
-
 if(TNN_X86_ENABLE)
     add_subdirectory(source/tnn/device/x86)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNX86>")

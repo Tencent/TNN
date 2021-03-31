@@ -177,10 +177,10 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
 
     for(auto item : inputs) {
         std::string input_name = item.first;
-        if (item.second.size() < 4) {
-            return TNNERR_PARAM_ERR; 
-        }
         if (network_shapes.find(input_name) == network_shapes.end()) {
+            return TNNERR_PARAM_ERR;
+        }
+        if (item.second.size() != network_shapes.find(input_name)->second.size()) {
             return TNNERR_PARAM_ERR;
         }
 
@@ -384,19 +384,12 @@ Status OpenVINONetwork_::ForwardAsync(Callback call_back) {
 }
 
 Status OpenVINONetwork_::SetCpuNumThreads(int num_threads) {
-    // alloc new ie, can't set thread num to old ie after init
-    ie_ = InferenceEngine::Core();
-
     std::map<std::string, std::string> config = {
         {CONFIG_KEY(CPU_THREADS_NUM), ToString(num_threads)},
         {CONFIG_KEY(CPU_THROUGHPUT_STREAMS), "0"},
         {CONFIG_KEY(CPU_BIND_THREAD), "NO"},
     };
-
     ie_.SetConfig(config, "CPU");
-    InferenceEngine::IExtensionPtr extensionPtr;
-    extensionPtr = std::make_shared<CustomOpenvinoLayerManager>();
-    ie_.AddExtension(extensionPtr, "CPU");
 
     BlobMap input_blobs;
     blob_manager_->GetAllInputBlobs(input_blobs);
@@ -405,6 +398,7 @@ Status OpenVINONetwork_::SetCpuNumThreads(int num_threads) {
         network_shapes[iter.first] = iter.second->GetBlobDesc().dims;
     }
 
+    // load network again
     return Reshape(network_shapes);
 }
 

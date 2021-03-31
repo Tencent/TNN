@@ -56,7 +56,6 @@ namespace TNN_NS {
         
         void PutRaw(int length, char* buffer, std::vector<int> dims, DataType data_type = DATA_TYPE_FLOAT)
         {
-#ifdef TNN_V2
             PutInt(g_version_magic_number_v2);
             PutInt(data_type);
             PutInt(static_cast<int>(length));
@@ -69,11 +68,6 @@ namespace TNN_NS {
                 _ostream.write(reinterpret_cast<char *>(dims.data()),
                                static_cast<std::streamsize>(dims.size() * sizeof(int32_t)));
             }
-#else
-            PutInt(g_version_magic_number);
-            PutInt(data_type);
-            PutInt(static_cast<int>(length));
-#endif
             if (_ostream.bad())
                 return;
  

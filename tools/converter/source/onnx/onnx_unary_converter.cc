@@ -20,17 +20,21 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Unary);
 
 std::string OnnxUnaryConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
-    return node.op_type();
+    if (node.op_type() == "Relu") {
+        return "ReLU";
+    } else {
+        return node.op_type();
+    }
 }
 
 TNN_NS::ActivationType OnnxUnaryConverter::ActivationType(const onnx::NodeProto &node) {
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxUnaryConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+TNN_NS::Status OnnxUnaryConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                         const onnx::NodeProto &node,
-                                        std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
-                                        std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
+                                        std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                        std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                         bool &quantized_model) {
     auto param       = new TNN_NS::LayerParam;
     auto cur_layer   = net_structure.layers.back();
@@ -42,7 +46,10 @@ TNN_NS::Status OnnxUnaryConverter::exec(tnn::NetStructure &net_structure, tnn::N
 }
 
 REGISTER_CONVERTER(Unary, Shape);
+REGISTER_CONVERTER(Unary, Erf);
 REGISTER_CONVERTER(Unary, Floor);
 REGISTER_CONVERTER(Unary, Relu);
+REGISTER_CONVERTER(Unary, Tanh);
+REGISTER_CONVERTER(Unary, Sqrt);
 
 }  // namespace TNN_CONVERTER

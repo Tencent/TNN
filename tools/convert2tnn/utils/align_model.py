@@ -182,18 +182,24 @@ def run_tflite(model_path: str, input_path: str, input_info: dict) -> str:
             elif item["dtype"] == np.int64:
                 data_type = 3
             shape = list(output_data.shape)
+            original_len = len(shape)
             while len(shape) < 4:
                shape.insert(-1, 1)
-               output_data = output_data.reshape(*shape)
+            output_data = output_data.reshape(*shape)
 
             output_data = np.transpose(output_data, (0, 3, 1, 2)) # transpose result from nhwc to nchw
+            tnn_shape = output_data.shape
+            if original_len < 4:
+                expand_size = len(shape) - original_len
+                original_shape = tnn_shape[:-expand_size]
+                output_data = output_data.reshape(original_shape)
             output_shape = output_data.shape
             description = "{} {} " .format(output_name, len(output_shape))
             for dim in output_shape:
                 description += "{} " .format(dim)
             description += "{}".format(str(data_type))
             f.write(description + "\n")
-            np.savetxt(f, output_data.reshape(-1), fmt="%0.18f")
+            np.savetxt(f, output_data.reshape(-1), fmt="%0.6f")
     return output_path
 
 
@@ -366,7 +372,7 @@ def check_input_lite_info(onnx_input_info: dict, tnn_input_info: dict):
         if check_shape_info(onnx_info, tnn_info):
             logging.info("Check tflite input shape and tnn input shape align!\n")
         else:
-            logging.info("input is not algin 216\n")
+            logging.info("input is not algin\n")
             print_not_align_message(
                 "The {}'s shape not equal! the onnx shape:{}, tnn shape: {}\n".format(name, str(onnx_info),
                                                                                       str(tnn_info)))
