@@ -35,7 +35,7 @@ Status ArmCastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
         DimsVector output_dims = outputs[0]->GetBlobDesc().dims;
         int channel = 1;
         if (output_dims.size() > 1) {
-            channel = output_dims[2];
+            channel = output_dims[1];
         }
         if (output_data_type == DATA_TYPE_FLOAT ||
             output_data_type == DATA_TYPE_BFP16) {
