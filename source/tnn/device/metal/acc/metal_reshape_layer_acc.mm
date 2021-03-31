@@ -19,8 +19,8 @@
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
-
-DECLARE_METAL_ACC(Reshape, LAYER_RESHAPE);
+// ReshapeLayer has loaded constant input and set layer_param
+DECLARE_METAL_ACC_WITH_EXTRA(Reshape, LAYER_RESHAPE, protected: virtual bool UseNaiveConstantBlobs(){return true;});
 
 Status MetalReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Reshape(inputs, outputs);

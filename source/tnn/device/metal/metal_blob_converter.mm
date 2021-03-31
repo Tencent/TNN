@@ -182,7 +182,7 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
     } else if (mat_type == NCHW_FLOAT) {
         if (is_mat_to_blob) {
             if (blob_data_format == DATA_FORMAT_NCHW) {
-                func_process = [library newFunctionWithName:@"data_converter_nchw_mat2blob"];
+                func_process = [library newFunctionWithName:@"data_converter_nchw_float2ftype"];
                 LOGD("data_converter_nchw_2_nchw\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
                 func_process = [library newFunctionWithName:@"data_converter_nchw_2_nc4hw4_float_v2"];
@@ -190,7 +190,7 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
             }
         } else {
             if (blob_data_format == DATA_FORMAT_NCHW) {
-                func_process = [library newFunctionWithName:@"data_converter_nchw_blob2mat"];
+                func_process = [library newFunctionWithName:@"data_converter_nchw_ftype2float"];
                 LOGD("data_converter_nchw_2_nchw\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
                 func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_float_v2"];

@@ -42,6 +42,10 @@ public:
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+    /**
+     * @brief allocate or update constant blobs if constant resource changes.
+     * Note: this func may cost much time, call this func only when necessary.
+     */
     virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs);
     
 
@@ -70,6 +74,13 @@ protected:
     
     NSString *kernel_label_ = nil;
     NSString * GetKernelLabel();
+
+    // @brief if true, const blobs are loaded by the naive device
+    virtual bool UseNaiveConstantBlobs();
+    // @brief config blobdesc for reloading buffer to metal blob
+    virtual Status ConfigBuffer2MetalBlobDesc(BlobDesc &desc);
+    // @brief reload buffer to metal blob
+    virtual Status RawBuffer2MetalBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDesc &desc);
 
 private:
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);
@@ -117,13 +128,6 @@ id<MTLBuffer> AllocatePackedGOIHW16MetalBufferFormRawBuffer(RawBuffer buffer, Di
 id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
                                                            Status &status);
 
-// @brief convert buffer to a metal blob
-// @context tnn instance device context
-// @param buffer    rawbuffer, memory on CPU
-// @param blob    generated metal blob
-// @param status   output status
-Status RawBuffer2MetalBlob(MetalContext *context, RawBuffer *buffer, std::shared_ptr<Blob> &blob, DataFormat format = DATA_FORMAT_NC4HW4);
-
 void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, bool reduce_on_axis);
 
 #define DECLARE_METAL_ACC(type_string, layer_type)                                                                     \
@@ -156,7 +160,6 @@ void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, boo
         virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder, \
                                      const std::vector<Blob *> &inputs, \
                                      const std::vector<Blob *> &outputs);\
-    private:                                                                                                          \
         extra; \
     }
 

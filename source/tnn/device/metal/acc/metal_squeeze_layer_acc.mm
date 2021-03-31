@@ -20,7 +20,7 @@
 
 namespace TNN_NS {
 
-DECLARE_METAL_ACC_WITH_EXTRA(Squeeze, LAYER_SQUEEZE, bool need_reformat_=false);
+DECLARE_METAL_ACC_WITH_EXTRA(Squeeze, LAYER_SQUEEZE, private: bool need_reformat_ = false);
 
 Status MetalSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Reshape(inputs, outputs);

@@ -23,6 +23,23 @@
 namespace TNN_NS {
 MetalMultidirBroadcastLayerAcc::~MetalMultidirBroadcastLayerAcc() {}
 
+Status MetalMultidirBroadcastLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
+    auto max_dim_size = inputs[0]->GetBlobDesc().dims.size();
+    for(auto *blob : inputs) {
+        auto dims_input = blob->GetBlobDesc().dims;
+        max_dim_size = std::max(dims_input.size(), max_dim_size);
+    }
+    for(auto *blob : inputs) {
+        auto dims_input = blob->GetBlobDesc().dims;
+        while (dims_input.size() < max_dim_size) {
+            dims_input.insert(dims_input.begin(), 1);
+        }
+        blob->GetBlobDesc().dims = dims_input;
+    }
+
+    return MetalLayerAcc::ReloadConstantBlobs(inputs);
+}
+
 Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                                            const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
@@ -39,7 +56,7 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
     if (layer_res && !buffer_weight_) {
         // If two inputs have different dimensions, align on the right
         auto element_shape = layer_res->element_shape;
-        while(element_shape.size() < inputs[0]->GetBlobDesc().dims.size())
+        while(element_shape.size() < outputs[0]->GetBlobDesc().dims.size())
             element_shape.insert(element_shape.begin(), 1);
         buffer_weight_ =
             AllocatePackedNC4HW4MetalBufferFormRawBuffer(layer_res->element_handle, element_shape, 1, status);

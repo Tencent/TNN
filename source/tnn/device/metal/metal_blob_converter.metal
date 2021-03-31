@@ -229,12 +229,12 @@ static inline void data_converter_nchw_2_nc4hw4(device DstType4 *dst,
 
 }
 
-template<typename SrcType, typename SrcType4, typename DstType, typename DstType4>
+template<typename SrcType, typename SrcType4, typename DstType, typename DstType4, bool DoScale=true>
 static inline void data_converter_nchw_2_nc4hw4_v2(device DstType4 *dst,
                                                 const device SrcType *src,
                                                 constant MetalImageConverterParams& params,
-                                                const device SrcType *scale,
-                                                const device SrcType* bias,
+                                                const device float *scale,
+                                                const device float *bias,
                                                 uint3 gid)
 {
     if (any(gid >= uint3(params.size, params.slice, params.batch)))
@@ -245,32 +245,43 @@ static inline void data_converter_nchw_2_nc4hw4_v2(device DstType4 *dst,
 
     const int index_out =  (int)gid.z*params.slice*params.size + (int)gid.y * params.size + (int)gid.x;
 
-    float4 in_data  = float4(Zero4);
+    ftype4 in_data  = ftype4(Zero4);
     float4 scale_c  = float4(Zero4);
     float4 bias_c   = float4(Zero4);
 
     in_data.x = src[index_in];
-    scale_c.x = scale[channel_in];
-    bias_c.x  = bias[channel_in];
+    if (DoScale == true) {
+        scale_c.x = scale[channel_in];
+        bias_c.x  = bias[channel_in];
+    }
     if (channel_in + 1 < params.channel) {
         in_data.y = src[index_in + params.size];
-        scale_c.y = scale[channel_in + 1];
-        bias_c.y  = bias[channel_in + 1];
+        if (DoScale) {
+            scale_c.y = scale[channel_in + 1];
+            bias_c.y  = bias[channel_in + 1];
+        }
     }
     if (channel_in + 2 < params.channel) {
         in_data.z = src[index_in + params.size*2];
-        scale_c.z = scale[channel_in + 2];
-        bias_c.z  = bias[channel_in + 2];
+        if (DoScale) {
+            scale_c.z = scale[channel_in + 2];
+            bias_c.z  = bias[channel_in + 2];
+        }
     }
     if (channel_in + 3 < params.channel) {
         in_data.w = src[index_in + params.size*3];
-        scale_c.w = scale[channel_in + 3];
-        bias_c.w  = bias[channel_in + 3];
+        if (DoScale) {
+            scale_c.w = scale[channel_in + 3];
+            bias_c.w  = bias[channel_in + 3];
+        }
     }
 
-    in_data = in_data * scale_c + bias_c;
+    ftype4 result = in_data;
+    if (DoScale) {
+        result = ftype4(float4(in_data) * scale_c + bias_c);
+    }
 
-    dst[index_out] = DstType4(in_data);
+    dst[index_out] = DstType4(result);
 }
 
 kernel void data_converter_nchw_2_nc4hw4_float(
@@ -293,6 +304,17 @@ kernel void data_converter_nchw_2_nc4hw4_float_v2(
     data_converter_nchw_2_nc4hw4_v2<float, float4, ftype, ftype4>(dst, src, params, scale, bias, gid);
 }
 
+kernel void data_converter_nchw_2_nc4hw4_ftype_identity(
+                                             device ftype4 *dst                             [[buffer(0)]],
+                                             const device ftype *src                   [[buffer(1)]],
+                                             constant MetalImageConverterParams& params      [[buffer(2)]],
+                                             const device float *scale                  [[buffer(3)]],
+                                             const device float *bias                   [[buffer(4)]],
+                                             uint3 gid                                 [[thread_position_in_grid]])
+{
+    data_converter_nchw_2_nc4hw4_v2<ftype, ftype4, ftype, ftype4, false>(dst, src, params, nullptr, nullptr, gid);
+}
+
 template<typename SrcType, typename DstType>
 static inline void data_converter_nchw_copy_type(device DstType *dst,
                                                 const device SrcType *src,
@@ -306,7 +328,7 @@ static inline void data_converter_nchw_copy_type(device DstType *dst,
     dst[index] = DstType(src[index]);
 }
 
-kernel void data_converter_nchw_blob2mat(device float *dst      [[buffer(0)]],
+kernel void data_converter_nchw_ftype2float(device float *dst      [[buffer(0)]],
                                          const device ftype *src  [[buffer(1)]],
                                          constant MetalImageConverterParams& params      [[buffer(2)]],
                                          const device float *scale                  [[buffer(3)]],
@@ -316,7 +338,7 @@ kernel void data_converter_nchw_blob2mat(device float *dst      [[buffer(0)]],
     data_converter_nchw_copy_type<ftype, float>(dst, src, params, gid);
 }
 
-kernel void data_converter_nchw_mat2blob(device ftype *dst      [[buffer(0)]],
+kernel void data_converter_nchw_float2ftype(device ftype *dst      [[buffer(0)]],
                                          const device float *src  [[buffer(1)]],
                                          constant MetalImageConverterParams& params      [[buffer(2)]],
                                          const device float *scale                  [[buffer(3)]],
