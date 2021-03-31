@@ -321,7 +321,7 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
 }
 
 id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
-                                                            Status &status) {
+                                                            Status &status, bool transpose) {
     id<MTLDevice> device     = [TNNMetalDeviceImpl sharedDevice];
     id<MTLBuffer> mtl_buffer = nil;
 
