@@ -119,6 +119,10 @@ def main():
         print("1.----onnx_optimizer: " + onnx_net_path)
         do_optimize(onnx_net_path, input_shape)
 
+        if os.path.exists(onnx_net_opt_path) is False:
+            print("1.----onnx_optimizer:  onnx_simplifier.py failed, onnx2tnn will try to convert the orignal onnx model")
+            onnx_net_opt_path = onnx_net_path
+
     # os.access('/python/test.py',os.F_OK)
     print("2.----onnx2tnn: " + onnx_net_opt_path)
     file_time = time.strftime("%Y%m%d %H:%M:%S", time.localtime())
@@ -127,7 +131,10 @@ def main():
     try:
         if input_shape is None:
             input_shape = ""
-        status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time, 0 if model_half == '0' else 1, 0, input_shape)
+        status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time,
+                                  0 if model_half == '0' else 1,
+                                  1 if algo_optimize != '0' else 0,
+                                  input_shape)
     except Exception as err:
         status = -1
         traceback.print_exc()

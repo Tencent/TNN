@@ -388,6 +388,24 @@ void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, lo
 #endif
             }
         }
+
+        if (c_r4 * 4 < c_r8 * 8) {
+            long co         = c_r4 / 2;
+            long dst_offset = (c_r4 % 2) ? 4 : 0;
+            auto dst_c      = dst_n + co * hw * 8 + dst_offset;
+            for (long cnt = 0; cnt < hw; cnt++) {
+                // nchw4 to nchw8
+#ifdef TNN_ARM82_A64
+                vst1_f16(dst_c + cnt * 8, vdup_n_f16(0.f));
+#elif defined(TNN_ARM82_A32)
+                vst1_u16((unsigned short*)(dst_c + cnt * 8), vdup_n_u16(0));
+#else
+                for (long idx = 0; idx < 4; idx++) {
+                    dst_c[cnt * 8 + idx] = 0.f;
+                }
+#endif
+            }
+        }
     }
 }
 
@@ -479,6 +497,73 @@ int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel) {
         dst[cur_hw * 8 + 6] = 0.f;
         dst[cur_hw * 8 + 7] = 0.f;
     }
+    return 0;
+}
+
+// 0 < remain < 8
+int PackNeonRemain(fp16_t *dst, const fp16_t *src, size_t hw, int remain) {
+    const fp16_t *p_src[7];
+    for (int r = 0; r < remain; ++r) {
+        p_src[r] = src + hw * r;
+    }
+
+    for (int cur_hw = 0; cur_hw < hw; cur_hw++) {
+        for (int r = 0; r < remain; ++r) {
+            dst[cur_hw * 8 + r] = p_src[r][cur_hw];
+        }
+        for (int r = remain; r < 8; ++r) {
+            dst[cur_hw * 8 + r] = 0.f;
+        }
+    }
+
+    return 0;
+}
+
+int PackNeon(fp16_t* dst, const fp16_t* src, size_t hw, size_t channel) {
+    for (int c = 0; c + 7 < channel; c += 8) {
+        auto src0 = src + c * hw;
+        auto src1 = src + c * hw + hw;
+        auto src2 = src + c * hw + hw * 2;
+        auto src3 = src + c * hw + hw * 3;
+        auto src4 = src + c * hw + hw * 4;
+        auto src5 = src + c * hw + hw * 5;
+        auto src6 = src + c * hw + hw * 6;
+        auto src7 = src + c * hw + hw * 7;
+        auto dst_c = dst + c * hw;
+        int cur_hw = 0;
+#ifdef TNN_ARM82_USE_NEON
+        for (; cur_hw + 7 < hw; cur_hw += 8) {
+            Half8x8 v;
+            v.set_value0(Half8::load(src0 + cur_hw));
+            v.set_value1(Half8::load(src1 + cur_hw));
+            v.set_value2(Half8::load(src2 + cur_hw));
+            v.set_value3(Half8::load(src3 + cur_hw));
+            v.set_value4(Half8::load(src4 + cur_hw));
+            v.set_value5(Half8::load(src5 + cur_hw));
+            v.set_value6(Half8::load(src6 + cur_hw));
+            v.set_value7(Half8::load(src7 + cur_hw));
+            v.save_transpose(dst_c + cur_hw * 8);
+        }
+#endif
+        for (; cur_hw < hw; cur_hw++) {
+            dst_c[cur_hw * 8 + 0] = src0[cur_hw];
+            dst_c[cur_hw * 8 + 1] = src1[cur_hw];
+            dst_c[cur_hw * 8 + 2] = src2[cur_hw];
+            dst_c[cur_hw * 8 + 3] = src3[cur_hw];
+            dst_c[cur_hw * 8 + 4] = src4[cur_hw];
+            dst_c[cur_hw * 8 + 5] = src5[cur_hw];
+            dst_c[cur_hw * 8 + 6] = src6[cur_hw];
+            dst_c[cur_hw * 8 + 7] = src7[cur_hw];
+        }
+    }
+    int remain = channel % 8;
+    int offset = channel / 8 * 8;
+    src += offset * hw;
+    dst += offset * hw;
+    if (remain) {
+        PackNeonRemain(dst, src, hw, remain);
+    }
+
     return 0;
 }
 

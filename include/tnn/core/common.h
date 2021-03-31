@@ -201,8 +201,8 @@ typedef enum {
 } DataFlag;
 
 typedef union {
-    float f;
     int i;
+    float f;
 } RangeData;
 
 }  // namespace TNN_NS

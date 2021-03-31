@@ -294,7 +294,7 @@ kernel void data_converter_nchw_2_nc4hw4_float_v2(
 }
 
 template<typename SrcType, typename DstType>
-static inline void data_converter_nchw_copy(device DstType *dst,
+static inline void data_converter_nchw_copy_type(device DstType *dst,
                                                 const device SrcType *src,
                                             constant MetalImageConverterParams& params,
                                                 uint3 gid)
@@ -313,7 +313,7 @@ kernel void data_converter_nchw_blob2mat(device float *dst      [[buffer(0)]],
                                          const device float *bias                   [[buffer(4)]],
                                          uint3 gid [[thread_position_in_grid]])
 {
-    data_converter_nchw_copy<ftype, float>(dst, src, params, gid);
+    data_converter_nchw_copy_type<ftype, float>(dst, src, params, gid);
 }
 
 kernel void data_converter_nchw_mat2blob(device ftype *dst      [[buffer(0)]],
@@ -323,5 +323,15 @@ kernel void data_converter_nchw_mat2blob(device ftype *dst      [[buffer(0)]],
                                          const device float *bias                   [[buffer(4)]],
                                          uint3 gid [[thread_position_in_grid]])
 {
-    data_converter_nchw_copy<float, ftype>(dst, src, params, gid);
+    data_converter_nchw_copy_type<float, ftype>(dst, src, params, gid);
+}
+
+kernel void data_converter_nchw(device ftype *dst      [[buffer(0)]],
+                                         const device ftype *src  [[buffer(1)]],
+                                         constant MetalImageConverterParams& params      [[buffer(2)]],
+                                         const device float *scale                  [[buffer(3)]],
+                                         const device float *bias                   [[buffer(4)]],
+                                         uint3 gid [[thread_position_in_grid]])
+{
+    data_converter_nchw_copy_type<ftype, ftype>(dst, src, params, gid);
 }

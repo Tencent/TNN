@@ -49,7 +49,7 @@ Status CpuGroupNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     float *k_data = (float *)((char*)scale_blob->GetHandle().base + scale_blob->GetHandle().bytes_offset);
     float *b_data = (float *)((char*)bias_blob->GetHandle().base + bias_blob->GetHandle().bytes_offset);
 
-    float epsilon = layer_param->eps;
+    const float epsilon = layer_param->eps;
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = (float *)((char *)input_blob->GetHandle().base+ input_blob->GetHandle().bytes_offset);

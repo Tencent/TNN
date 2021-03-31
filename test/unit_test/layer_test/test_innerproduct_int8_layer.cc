@@ -34,7 +34,8 @@ TEST_P(InnerProductInt8LayerTest, InnerProductLayer) {
     int input_size     = std::get<2>(GetParam());
     int output_channel = std::get<3>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    if (DEVICE_ARM != dev) {
+
+    if(CheckDataTypeSkip(DATA_TYPE_INT8)) {
         GTEST_SKIP();
     }
 

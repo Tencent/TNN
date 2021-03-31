@@ -31,7 +31,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ClipLayerTest,
                              // size Values(16, 19),
                              testing::Values(1, 6, 8, 13),
                              // dim count
-                             testing::Values(2, 3, 4, 5, 6),
+                             testing::Values(2, 3, 4, 5),
                              // min
                              testing::Values(-1.234, 2.30, 0),
                              // max
@@ -52,6 +52,10 @@ TEST_P(ClipLayerTest, ClipLayer) {
     }
     DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+
+    if (dev == DEVICE_OPENCL && dim_count > 4) {
+        GTEST_SKIP();
+    }
 
     // param
     ClipLayerParam* param = new ClipLayerParam();

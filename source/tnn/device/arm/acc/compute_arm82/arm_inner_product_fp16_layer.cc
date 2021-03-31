@@ -30,7 +30,7 @@ Status ArmInnerProductLayerAcc::allocateBufferWeightHalf(const std::vector<Blob 
     InnerProductLayerResource *fc_res = dynamic_cast<InnerProductLayerResource *>(resource_);
     CHECK_PARAM_NULL(fc_res);
 
-    if (!buffer_gemm_weight_.GetBytesSize()) {
+    if (!buffer_weight_.GetBytesSize()) {
         DimsVector dims_input  = inputs[0]->GetBlobDesc().dims;
         DimsVector dims_output = outputs[0]->GetBlobDesc().dims;
 
@@ -52,9 +52,8 @@ Status ArmInnerProductLayerAcc::allocateBufferWeightHalf(const std::vector<Blob 
             }
         }
         // weight [ic, oc] -> [oc/16, ic, 16]
-        buffer_gemm_weight_ = RawBuffer(ic * ROUND_UP(oc, 16) * data_byte_size + NEON_KERNEL_EXTRA_LOAD);
-        PackB_16(ic, oc, transpose_ptr, oc, buffer_gemm_weight_.force_to<fp16_t *>());
-        support_gemm_ = 1;
+        buffer_weight_ = RawBuffer(ic * ROUND_UP(oc, 16) * data_byte_size + NEON_KERNEL_EXTRA_LOAD);
+        PackB_16(ic, oc, transpose_ptr, oc, buffer_weight_.force_to<fp16_t *>());
     }
 
     return TNN_OK;
@@ -94,6 +93,9 @@ Status ArmInnerProductLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, cons
     int ic                = dims_input[1] * DimsVectorUtils::Count(dims_input, 2);
     const int oc          = fc_param->num_output;
     auto data_byte_size   = DataTypeUtils::GetBytesSize(DATA_TYPE_HALF);
+    const int input_size  = batch * ic * data_byte_size;
+    const int bias_size   = oc * data_byte_size;
+    const int output_size = batch * oc * data_byte_size;
 
     fp16_t *input_ptr  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
     fp16_t *output_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
@@ -101,39 +103,39 @@ Status ArmInnerProductLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, cons
     // input: nc8hw8 -> nchw if needed
     RawBuffer input_reordered;
     if (!HalfBlobCanIgnorePack(channel, hw)) {
-        input_reordered       = RawBuffer(batch * ic * data_byte_size);
+        input_reordered       = RawBuffer(input_size);
         fp16_t *reordered_ptr = input_reordered.force_to<fp16_t *>();
         UnpackHalfBlob(reordered_ptr, input_ptr, batch, channel, hw);
         input_ptr = reordered_ptr;
     }
 
-    // output: nchw -> nc8hw8 if needed
     fp16_t *tmp_output_ptr = output_ptr;
     RawBuffer output_reordered;
     if (!HalfBlobCanIgnorePack(oc, 1)) {
-        output_reordered = RawBuffer(batch * oc * data_byte_size);
+        output_reordered = RawBuffer(output_size);
         tmp_output_ptr   = output_reordered.force_to<fp16_t *>();
+    }
+
+    if (fc_param->has_bias) {
+        OMP_PARALLEL_FOR_
+        for (int b = 0; b < batch; ++b) {
+            // output shape: [batch, oc]
+            auto dst_ptr_b = tmp_output_ptr + b * oc;
+            memcpy(dst_ptr_b, buffer_bias_.force_to<fp16_t *>(), bias_size);
+        }
     } else {
-        memset(tmp_output_ptr, 0, batch * oc * data_byte_size);
+        memset(tmp_output_ptr, 0, output_size);
     }
 
     // buffer for PackA in gemm
-    RawBuffer buffer_input = RawBuffer(batch * ic * data_byte_size + NEON_KERNEL_EXTRA_LOAD);
-    auto input_pack_ptr    = buffer_input.force_to<fp16_t *>();
+    auto input_pack_ptr = reinterpret_cast<fp16_t *>(context_->GetSharedWorkSpace(input_size + NEON_KERNEL_EXTRA_LOAD));
 
-    GemmHalfPackA(batch, oc, ic, input_ptr, input_pack_ptr, ic, buffer_gemm_weight_.force_to<fp16_t *>(), oc,
-                  tmp_output_ptr, oc);
+    GemmHalfPackA(batch, oc, ic, input_ptr, input_pack_ptr, ic, buffer_weight_.force_to<fp16_t *>(), oc, tmp_output_ptr,
+                  oc);
 
+    // output: nchw -> nc8hw8 if needed
     if (!HalfBlobCanIgnorePack(oc, 1)) {
         PackHalfBlob(output_ptr, tmp_output_ptr, batch, oc, 1);
-    }
-
-    OMP_PARALLEL_FOR_
-    for (int n = 0; n < batch; n++) {
-        auto output_ptr_b = output_ptr + n * ROUND_UP(oc, 8);
-        if (fc_param->has_bias) {
-            PostAddBias<fp16_t, fp16_t>(output_ptr_b, buffer_bias_.force_to<fp16_t *>(), 1, ROUND_UP(oc, 8) / 8);
-        }
     }
 
     return TNN_OK;

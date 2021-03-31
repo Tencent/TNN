@@ -52,15 +52,15 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
+    if(CheckDataTypeSkip(data_type)) {
+        GTEST_SKIP();
+    }
+
     if (mode == 3) {
         // skip cubic upsample for now
         if (data_type == DATA_TYPE_INT8 || DEVICE_HUAWEI_NPU == dev) {
             GTEST_SKIP();
         }
-    }
-
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
     }
 
     if (DEVICE_HUAWEI_NPU == dev && scale_x * scale_y <= 1.0f/7.0f) {

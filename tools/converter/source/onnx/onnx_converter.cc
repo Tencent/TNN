@@ -49,7 +49,8 @@ TNN_NS::Status Onnx2Tnn::Converter2Tnn(TNN_NS::NetStructure& net_structure, TNN_
 
     bool quantized_mode = IsQuantized();
     // convert onnx graph input
-    TNN_NS::InputShapesMap& input_shapes_map = net_structure.inputs_shape_map;
+    TNN_NS::InputShapesMap& input_shapes_map      = net_structure.inputs_shape_map;
+    TNN_NS::InputDataTypeMap& input_data_type_map = net_structure.input_data_type_map;
     for (const auto iter : proxy_inputs) {
         // input in initializers
         if (proxy_initializers.find(iter.first) != proxy_initializers.end()) {
@@ -60,13 +61,16 @@ TNN_NS::Status Onnx2Tnn::Converter2Tnn(TNN_NS::NetStructure& net_structure, TNN_
         auto input_shape_tensor        = input->type().tensor_type().shape();
         TNN_NS::DimsVector dims_vector = ConvertTensorShapeProtoToDimsVector(input_shape_tensor);
         if (dims_vector.size() != 4) {
-            //dims_vector.push_back(1);
+            // dims_vector.push_back(1);
             //            LOGE("The onnx have support input shape\n");
             //            return TNN_NS::TNNERR_CONVERT_INVALID_MODEL;
             continue;
         }
         if (input_shapes_map.find(input_name) == input_shapes_map.end()) {
             input_shapes_map[input_name] = dims_vector;
+            const auto& input_data_type =
+                static_cast<onnx::TensorProto_DataType>(input->type().tensor_type().elem_type());
+            input_data_type_map[input_name] = GetTnnDataTypeFromOnnx(input_data_type);
         }
     }
     // convert onnx graph output
@@ -92,6 +96,7 @@ TNN_NS::Status Onnx2Tnn::Converter2Tnn(TNN_NS::NetStructure& net_structure, TNN_
         } else if (node_op_type == "Int8GivenTensorFill" || node_op_type == "Int8GivenIntTensorFill") {
             continue;
         }
+
         if (node_op_type == "Constant") {
             continue;
         }

@@ -88,8 +88,13 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 #endif
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
+
     if(!net_config.cache_path.empty()) {
-        context_->SetCacheFilePath(GenerateCacheFileName(model_config));
+        auto params_md5 = default_interpreter->GetParamsMd5();
+        if (params_md5.size() < 1) {
+            return Status(TNNERR_PARAM_ERR, "model params md5 missing");
+        }
+        context_->SetCacheFilePath(GenerateCacheFileName(model_config, params_md5[0]));
     }
 
     ret = context_->LoadLibrary(net_config.library_path);
@@ -121,7 +126,14 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     net_structure_ = net_structure;
     net_resource_ = net_resource;
     
-    return ReshapeLayers();
+    ret = context_->OnInstanceReshapeBegin();
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    ret = ReshapeLayers();
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    ret = context_->OnInstanceReshapeEnd();
+    return ret;
 }
 
 static inline bool IsLayoutReformatLayer(std::shared_ptr<LayerInfo> layer) {
@@ -137,7 +149,7 @@ static inline bool IsLayoutReformatLayer(std::shared_ptr<LayerInfo> layer) {
 /*
  * InitLayer funcion does the following things:
  *  1. Set Blob type accordingly.
- *  2. Set data_type accordingly.
+ *  2. Set data_tyep accordingly.
  *  3. Infer the blob shapes.
  *  4. Check the weights required.
  */
@@ -179,9 +191,9 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             // skip const blobs
             if (const_blobs.count(name) == 0) {
                 input_fmt = blob->GetBlobDesc().data_format;
+                auto ret  = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
+                RETURN_ON_NEQ(ret, TNN_OK);
             }
-            auto ret  = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
-            RETURN_ON_NEQ(ret, TNN_OK);
         }
 
         // output layout equals to input layout except for layout_reformat layer
@@ -197,6 +209,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         }
         std::string layer_name = layer_info->name;
         cur_layer->SetLayerName(layer_name);
+        cur_layer->SetRuntimeMode(runtime_model_);
         cur_layer->SetConstantResource(&net_resource->constant_map);
 
         std::vector<Blob *> inputs;
@@ -225,9 +238,12 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         for (auto name : output_names) {
             auto blob = blob_manager_->GetBlob(name);
-            blob->GetBlobDesc().data_format = output_fmt;
-            auto ret  = UpdateBlobPrecision(layer_info, false, is_quantized_net, name, net_resource, &blob);
-            RETURN_ON_NEQ(ret, TNN_OK);
+            // skip const blobs
+            if (const_blobs.count(name) == 0) {
+                blob->GetBlobDesc().data_format = output_fmt;
+                auto ret = UpdateBlobPrecision(layer_info, false, is_quantized_net, name, net_resource, &blob);
+                RETURN_ON_NEQ(ret, TNN_OK);
+            }
         }
     }
 
@@ -652,10 +668,10 @@ std::shared_ptr<ProfileResult> DefaultNetwork::FinishProfile() {
 }
 #endif
 
-std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config) {
+std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config, std::string& md5_str) {
     return CACHE_TAG + "_" + ToString(config_.device_type) + "_" + ToString(config_.device_id)
         + "_" + ToString(config_.precision) + "_" + ToString(model_config.model_type) +
-        "_" + md5(model_config.params[0]);
+        "_" + md5_str;
 }
 
 Status DefaultNetwork::ReshapeLayers() {

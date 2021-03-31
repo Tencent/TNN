@@ -23,7 +23,7 @@ class PReluLayerTest : public LayerTest, public ::testing::WithParamInterface<st
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PReluLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
-                                            testing::Values(2, 3, 4, 5, 6),
+                                            testing::Values(2, 3, 4, 5),
                                             // share channel
                                             testing::Values(false, true)));
 
@@ -42,6 +42,10 @@ TEST_P(PReluLayerTest, PReluLayer) {
     }
 
     if (!share_channel && DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL && dim_count > 4) {
         GTEST_SKIP();
     }
 

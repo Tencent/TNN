@@ -29,7 +29,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, NormalizeLayerTest,
                                             // axis
                                             testing::Values(1),
                                             // dim_count
-                                            testing::Values(2, 3, 4, 5, 6),
+                                            testing::Values(2, 3, 4, 5),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT)));
 
@@ -44,11 +44,11 @@ TEST_P(NormalizeLayerTest, NormalizeLayer) {
     DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_HUAWEI_NPU == dev) {
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if (DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
@@ -57,6 +57,10 @@ TEST_P(NormalizeLayerTest, NormalizeLayer) {
     }
 
     if (channel > 4 && channel % 4 != 0) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
         GTEST_SKIP();
     }
 

@@ -288,6 +288,9 @@ typedef void(^CommonCallback)(Status);
                 auto view_width = self.cameraPreview.bounds.size.width;
                 auto view_height = self.cameraPreview.bounds.size.height;
                 auto label = [self.viewModel labelForObject:object];
+                if (!label && object->label) {
+                    label = [NSString stringWithUTF8String:object->label];
+                }
                 auto view_face = object->AdjustToImageSize(origin_size.height, origin_size.width);
                 view_face = view_face.AdjustToViewSize(view_height, view_width, video_gravity);
                 if (camera_pos == AVCaptureDevicePositionFront) {
@@ -302,7 +305,7 @@ typedef void(^CommonCallback)(Status);
                 // When we need to draw lines connecting key points, we draw key points with circle.
                 // Otherwise, we draw cross-shaped points.
                 [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor greenColor] circle:view_face.lines.size()!=0];
-                [_boundingBoxes[i] showLines:view_face.key_points lines:view_face.lines withColor:[UIColor redColor]];
+                [_boundingBoxes[i] showLines:view_face.key_points lines:view_face.lines withColor:self.colors[i]];
             } else {
                 [_boundingBoxes[i] hide];
             }

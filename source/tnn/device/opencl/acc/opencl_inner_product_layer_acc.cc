@@ -203,7 +203,7 @@ Status OpenCLInnerProductLayerAcc::InitReshapeLayer(const std::vector<Blob *> &i
 
     // create output_blob
     BlobDesc output_desc    = inputs[0]->GetBlobDesc();
-    output_desc.data_format = DATA_FORMAT_NCHW;
+    output_desc.data_format = DATA_FORMAT_NHC4W4;
     auto dims               = inputs[0]->GetBlobDesc().dims;
     output_desc.dims[0]     = DimsFunctionUtils::GetDim(dims, 0);
     output_desc.dims[1]     = DimsFunctionUtils::GetDim(dims, 1) * DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);

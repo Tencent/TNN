@@ -48,9 +48,8 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
         // tensorflow reshape(nhwc);
         param->reshape_type = 1;
         param->axis         = 0;
-        param->num_axes     = 4;
 
-        const auto option     = tf_lite_operator->builtin_options.AsReshapeOptions();
+        const auto option = tf_lite_operator->builtin_options.AsReshapeOptions();
         std::vector<int> reshape_dim;
         if (tf_lite_operator->inputs.size() == 2) {
             const auto& shape_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
@@ -75,6 +74,7 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
 
         reshape_dim[0] = 0;
         ConvertShapeFormatTFLite(reshape_dim);
+        param->num_axes = reshape_dim.size();
         param->shape = reshape_dim;
     }
 

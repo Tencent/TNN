@@ -27,8 +27,8 @@ class TnnRuntime {
 public:
     TnnRuntime();
     ~TnnRuntime();
-    TNN_NS::Status run(std::shared_ptr<TNN_NS::AbstractModelInterpreter> interpreter);
-    // TNN_NS::Status run(TNN_NS::DefaultModelInterpreter* interpreter);
+    TNN_NS::Status ConstantFolding(const std::shared_ptr<TNN_NS::AbstractModelInterpreter> interpreter);
+    TNN_NS::Status AlignModel(const std::shared_ptr<TNN_NS::AbstractModelInterpreter> interpreter);
 
 private:
     TNN_NS::MatMap CreateBlobMatMap(TNN_NS::BlobMap& blob_map, int format_type);

@@ -28,6 +28,35 @@ namespace TNN_NS {
 
 ArmMatMulLayerAcc::~ArmMatMulLayerAcc() {}
 
+Status ArmMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+            const std::vector<Blob *> &outputs) {
+    RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
+    auto res = dynamic_cast<MatMulLayerResource *>(resource);
+
+    if (!res) {
+        if (inputs.size() == 2) {
+            // weights are get from inputs
+            return TNN_OK;
+        } else {
+            LOGE("ArmMatMulLayerAcc::Init resource is null\n");
+            return Status(TNNERR_PARAM_ERR, "ArmMatMulLayerAcc::Init resource is null");
+        }
+    }
+
+#if TNN_ARM82
+    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        RawBuffer weight_handle = res->weight;
+        CHECK_PARAM_NULL(weight_handle.force_to<void *>());
+        if (weight_handle.GetDataType() == DATA_TYPE_FLOAT) {
+            buffer_weight_ = RawBuffer(weight_handle.GetDataCount() * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
+            ConvertFromFloatToHalf(weight_handle.force_to<float *>(), buffer_weight_.force_to<fp16_t *>(), weight_handle.GetDataCount());
+            buffer_weight_.SetDataType(DATA_TYPE_HALF);
+        }
+    }
+#endif
+    return TNN_OK;
+}
+
 template <typename T>
 Status ArmMatMulLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param               = dynamic_cast<MatMulLayerParam *>(param_);
@@ -51,6 +80,9 @@ Status ArmMatMulLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
         matrix_b = static_cast<T *>(inputs[1]->GetHandle().base);
     } else {
         auto weight = resource->weight.force_to<T *>();
+        if (buffer_weight_.force_to<T *>()) {
+            weight = buffer_weight_.force_to<T *>();
+        }
         matrix_a    = param->weight_position == 0 ? weight : static_cast<T *>(inputs[0]->GetHandle().base);
         matrix_b    = param->weight_position == 1 ? weight : static_cast<T *>(inputs[0]->GetHandle().base);
     }
@@ -86,6 +118,7 @@ Status ArmMatMulLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
         auto b_ptr = matrix_b + bb * K * N;
         auto c_ptr = matrix_c + bc * M * N;
 
+        memset(c_ptr, 0, M * N * data_byte_size);
         // row major A[M * K] * B[K * N] = C[M * n]
         GemmFloatPackAB(M, N, K, a_ptr, pack_a_ptr, K, b_ptr, pack_b_ptr, N, c_ptr, N);
     }

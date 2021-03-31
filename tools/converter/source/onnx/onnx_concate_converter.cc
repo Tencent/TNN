@@ -12,11 +12,11 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "onnx_base_converter.h"
-#include "onnx_utils.h"
+#include "onnx/onnx_utils.h"
+#include "tnn/interpreter/tnn/objseri.h"
+#include "tools/converter/source/onnx/onnx_base_converter.h"
 
 namespace TNN_CONVERTER {
-
 DECLARE_OP_CONVERTER(Concat);
 
 std::string OnnxConcatConverter::TNNOpType(const onnx::NodeProto &node, bool quantized_model) {
@@ -27,10 +27,10 @@ TNN_NS::ActivationType OnnxConcatConverter::ActivationType(const onnx::NodeProto
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxConcatConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+TNN_NS::Status OnnxConcatConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                          const onnx::NodeProto &node,
-                                         std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
-                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
+                                         std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                          bool &quantized_model) {
     auto param       = new TNN_NS::ConcatLayerParam;
     auto cur_layer   = net_structure.layers.back();
@@ -39,21 +39,15 @@ TNN_NS::Status OnnxConcatConverter::exec(tnn::NetStructure &net_structure, tnn::
     param->name      = cur_layer->name;
     param->quantized = false;
     param->axis      = GetAttributeInt(node, "axis", 1);
-    ASSERT(node.input_size() == 2);
-    for (int i = 0; i < node.input_size(); ++i) {
-        const auto& input = node.input(i);
+
+    for (const auto &input : node.input()) {
         if (proxy_initializers_map.find(input) != proxy_initializers_map.end()) {
-            const auto extra_tensor = proxy_initializers_map[input];
-            float* extra_data_ptr = (float*)GetDataFromTensor(*extra_tensor, onnx::TensorProto_DataType_FLOAT);
-            auto extra_data_size = GetTensorProtoDataSize(*extra_tensor);
-            for (int j = 0; j < extra_data_size; ++j) {
-                param->extra_data.push_back(extra_data_ptr[j]);
-            }
-            cur_layer->inputs.resize(1);
-            cur_layer->inputs[0] = node.input(1 -i);
+            auto const_tensor                   = proxy_initializers_map[input];
+            TNN_NS::RawBuffer *const_raw_buffer = nullptr;
+            CreateRawBufferFromTensor(*const_tensor, &const_raw_buffer);
+            net_resource.constant_map[input] = std::shared_ptr<TNN_NS::RawBuffer>(const_raw_buffer);
         }
     }
-
     return TNN_NS::TNN_CONVERT_OK;
 }
 
