@@ -54,7 +54,7 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
 
     if (mode == 3) {
         // skip cubic upsample for now
-        if (data_type == DATA_TYPE_INT8) {
+        if (data_type == DATA_TYPE_INT8 || DEVICE_HUAWEI_NPU == dev) {
             GTEST_SKIP();
         }
     }
@@ -63,7 +63,7 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_HUAWEI_NPU == dev && (mode == 2 || ((int)scale_x != scale_x || (int)scale_y != scale_y))) {
+    if (DEVICE_HUAWEI_NPU == dev && scale_x * scale_y <= 1.0f/7.0f) {
         GTEST_SKIP();
     }
 
@@ -74,7 +74,7 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
     param->align_corners = align_corners;
     param->scales        = {scale_x, scale_y};
     if (use_dims) {
-        param->dims = {(int)(scale_x * input_size), (int)(scale_y * input_size)};
+        param->dims = {(int)round(scale_x * input_size), (int)round(scale_y * input_size)};
     }
 
     // generate interpreter

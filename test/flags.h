@@ -65,6 +65,10 @@ static const char enable_tune_message[] = "enable tune kernel(default false)";
 
 static const char enable_cache_program_message[] = "enable cache program(default false)";
 
+static const char scale_message[] = "input scale: s0,s1,s2,...)";
+
+static const char bias_message[] = "input bias: b0,b1,b2,...)";
+
 DECLARE_bool(h);
 
 DECLARE_string(mt);
@@ -104,6 +108,10 @@ DECLARE_string(is);
 DECLARE_bool(et);
 
 DECLARE_bool(ec);
+
+DECLARE_string(sc);
+
+DECLARE_string(bi);
 
 }  // namespace TNN_NS
 

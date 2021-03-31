@@ -26,7 +26,6 @@
 #include "tnn/utils/blob_transfer_utils.h"
 #include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
-#include "tnn/utils/md5.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
@@ -86,8 +85,12 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
     context_->SetEnableCacheProgram(net_config.enable_cache_program);
     if(!net_config.cache_path.empty()) {
+        auto params_md5 = default_interpreter->GetParamsMd5();
+        if (params_md5.size() < 1) {
+            return Status(TNNERR_PARAM_ERR, "model params md5 missing");
+        }
         context_->SetCachePath(net_config.cache_path);
-        context_->SetCacheFilePath(GenerateCacheFileName(model_config));
+        context_->SetCacheFilePath(GenerateCacheFileName(model_config, params_md5[0]));
     }
 
     ret = context_->LoadLibrary(net_config.library_path);
@@ -276,8 +279,6 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
     if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE) {
         return TNN_OK;
     }
-    static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
-    LOGD("support fp 16: %d\n", cpu_support_fp16 ? 1 : 0);
 
     auto &desc      = (*blob)->GetBlobDesc();
     auto layer_type = layer_info->type;
@@ -289,9 +290,10 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
                 RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
             }
         } else {
-            bool layer_implemented_fp16 = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
             // update blob of non-quantized network by config precision and enabled precision
             if (config_.precision == PRECISION_NORMAL || config_.precision == PRECISION_AUTO) {
+                static bool cpu_support_fp16 = CpuUtils::CpuSupportFp16();
+                bool layer_implemented_fp16  = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
                 desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
             } else if (config_.precision == PRECISION_LOW) {
                 desc.data_type = DATA_TYPE_BFP16;
@@ -560,9 +562,10 @@ std::shared_ptr<ProfileResult> DefaultNetwork::FinishProfile() {
 }
 #endif
 
-std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config) {
+std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config, std::string& md5_str) {
     return CACHE_TAG + "_" + ToString(config_.device_type) + "_" + ToString(config_.device_id)
-    + "_" + ToString(model_config.model_type) + "_" + md5(model_config.params[0]);
+        + "_" + ToString(config_.precision) + "_" + ToString(model_config.model_type) +
+        "_" + md5_str;
 }
 
 

@@ -189,6 +189,9 @@ void PrintConfig() {
         "\t-w, --weight_method\t(optional) the method to quantize weights\n"
         "\t\t0: MIN_MAX  (default)\n"
         "\t\t1: ADMM\n"
+        "\t-r, --reverse_channel\t(optional) reverse B and R channel when preprocess image\n"
+        "\t\t0: the network uses rgb order  (default)\n"
+        "\t\t1: the network uses bgr order\n"
         "\t-n, --bias         \t(optional) bias val when preprocess image "
         "input, ie, "
         "0.0,0.0,0.0 \n"
@@ -217,14 +220,15 @@ int main(int argc, char* argv[]) {
                                     {"input_path", required_argument, 0, 'i'},
                                     {"blob_method", required_argument, 0, 'b'},
                                     {"weight_method", required_argument, 0, 'w'},
+                                    {"reverse_channel", required_argument, 0, 'r'},
                                     {"bias", required_argument, 0, 'n'},
                                     {"scale", required_argument, 0, 's'},
-                                    {"merge_type", no_argument, 0, 't'},
+                                    {"merge_type", required_argument, 0, 't'},
                                     {"output", required_argument, 0, 'o'},
                                     {"help", no_argument, 0, 'h'},
                                     {0, 0, 0, 0}};
 
-    const char* optstring = "p:m:i:b:w:n:s:t:o:h";
+    const char* optstring = "p:m:i:b:w:r:n:s:t:o:h";
 
     if (argc == 1) {
         PrintConfig();
@@ -257,6 +261,15 @@ int main(int argc, char* argv[]) {
                 printf("weight quantize method: %s\n", optarg);
                 cali_params.weights_quantize_method = (CalibrationMethod)atoi(optarg);
                 break;
+            case 'r': {
+                printf("reverse channel: %s\n", optarg);
+                int reverse_channel = atoi(optarg);
+                if (1 == reverse_channel) {
+                    cali_params.reverse_channel = true;
+                } else {
+                    cali_params.reverse_channel = false;
+                }
+            } break;
             case 'n': {
                 printf("bias: %s\n", optarg);
                 std::vector<std::string> array;

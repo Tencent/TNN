@@ -101,9 +101,6 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
     if (DEVICE_CUDA == config_device.device_type) {
         config_device.network_type = NETWORK_TYPE_TENSORRT;
     }
-    if (DEVICE_X86 == config_device.device_type) {
-        config_device.network_type = NETWORK_TYPE_OPENVINO;
-    }
     if (!FLAGS_ub && (DEVICE_OPENCL == config_device.device_type || DEVICE_METAL == config_device.device_type)) {
         config_device.precision = PRECISION_HIGH;
     } else {
@@ -241,6 +238,7 @@ Status LayerTest::DeInit() {
 void LayerTest::TearDownTestCase() {
     instance_cpu_.reset();
     instance_device_.reset();
+    instance_ocl_cache_.reset();
 }
 
 Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev, int magic_num) {

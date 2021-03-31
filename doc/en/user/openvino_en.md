@@ -6,18 +6,18 @@ This module supports TNN on x86 architecture and includes Openvino framework int
 ### Linux
 Cmake(>=3.7.2)
 ### Windows
-Visual Stuido(>=2015)<br>
+Visual Stuido(>=2017)<br>
 CMake(>=3.7.2 or use build-in CMake in Visual Studio Tools)
 
 ## Compile with scripts
 ```
 Linux:
 $ cd scripts/
-$ sh build_x86_linux.sh
+$ sh build_linux.sh
 
 Windows:
 cd scripts\
-.\build_x86_msvc.bat [VS2015/VS2017/VS2019]
+.\build_msvc.bat [VS2015/VS2017/VS2019]
 ```
 Refer to [FAQ](#FAQ) if failed.
 
@@ -34,6 +34,7 @@ $ ./TNNTest -mp PATH_TO_MODEL -dt X86 -ip PATH_TO_INPUT -op PATH_TO_OUTPUT
 Refer to [API Documentation](api_en.md), which needs to set ```config.device_type``` as ```DEVICE_X86``` and ```config.network_type``` as ```NETWORK_TYPE_OPENVINO```
 ```cpp
 config.device_type  = TNN_NS::DEVICE_X86
+// run with native x86 optimized code, if network type is not set
 config.network_type = TNN_NS::NETWORK_TYPE_OPENVINO
 ```
 
