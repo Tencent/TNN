@@ -41,6 +41,11 @@ public:
     //@brief GetNetResource return network weights data
     virtual NetResource *GetNetResource();
 
+    //@brief GetParamsMd5 return md5 string of params string
+    std::vector<std::string> GetParamsMd5();
+
+protected:
+    std::vector<std::string> params_md5_;
 private:
     NetStructure *net_structure_;
     NetResource *net_resource_;
