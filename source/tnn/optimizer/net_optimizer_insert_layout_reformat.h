@@ -36,15 +36,18 @@ namespace optimizer {
         virtual Status Optimize(NetStructure* structure, NetResource* resource);
 
         Status AdjustLayer(std::vector<std::shared_ptr<LayerInfo>>& layers_orig, NetStructure* structure,
-                           const std::set<std::string> &constant_layers, DataFormat cur_layer_layout,
+                           const std::set<std::string>& constant_layers, DataFormat cur_layer_layout,
                            DataFormat reformat_layout, std::shared_ptr<LayerInfo>& new_layer,
                            std::vector<std::string>& reformat_outs, const std::string& reformat_name_suffix,
                            const int index, const int count);
 
     private:
+        std::shared_ptr<const ImplementedLayout> GetLayoutsByLayerType(LayerType type);
+
         AbstractDevice* device_;
+        AbstractDevice* adaptor_device_;
         std::map<std::string, DataFormat> layer_choosed_layout;
-        const NetworkConfig *net_config_;
+        const NetworkConfig* net_config_;
     };
 
 }  // namespace optimizer
