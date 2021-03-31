@@ -22,17 +22,17 @@
 
 namespace TNN_NS {
 
-class NpuReduceSumLayer : public NpuReduceLayer {
+class NpuReduceMaxLayer : public NpuReduceLayer {
 public:
-    NpuReduceSumLayer(LayerType ignore) : NpuReduceLayer(LAYER_REDUCE_SUM) {}
-    ~NpuReduceSumLayer() {}
+    NpuReduceMaxLayer(LayerType ignore) : NpuReduceLayer(LAYER_REDUCE_MAX) {}
+    ~NpuReduceMaxLayer() {}
 
 protected:
     Status Convert() {
-        return NpuReduceLayer::ReduceConvert<hiai::op::ReduceSum>();
+        return NpuReduceLayer::ReduceConvert<hiai::op::ReduceMax>();
     }
 };
 
-REGISTER_NPU_LAYER(ReduceSum, LAYER_REDUCE_SUM)
+REGISTER_NPU_LAYER(ReduceMax, LAYER_REDUCE_MAX)
 
 }  // namespace TNN_NS

@@ -1,6 +1,3 @@
-//
-// Created by 李烨 on 20/7/20.
-//
 // Tencent is pleased to support the open source community by making TNN available.
 //
 // Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
@@ -17,22 +14,17 @@
 
 #include "graph/attr_value.h"
 #include "npu_base_layer_convert.h"
-#include "npu_reduce_layer_convert.h"
-#include "npu_utils.h"
 
 namespace TNN_NS {
 
-class NpuReduceSumLayer : public NpuReduceLayer {
-public:
-    NpuReduceSumLayer(LayerType ignore) : NpuReduceLayer(LAYER_REDUCE_SUM) {}
-    ~NpuReduceSumLayer() {}
+DECLARE_NPU_LAYER(Shape, LAYER_SHAPE)
 
-protected:
-    Status Convert() {
-        return NpuReduceLayer::ReduceConvert<hiai::op::ReduceSum>();
-    }
-};
+Status NpuShapeLayer::Convert() {
+    auto output = std::make_shared<hiai::op::Shape>(outputs_name_[0]);
+    output->set_input_x(*input_ops_[0]->GetOperator());
+    ADD_OUTPUT_OP(output)
+}
 
-REGISTER_NPU_LAYER(ReduceSum, LAYER_REDUCE_SUM)
+REGISTER_NPU_LAYER(Shape, LAYER_SHAPE)
 
 }  // namespace TNN_NS

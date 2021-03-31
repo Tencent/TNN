@@ -19,10 +19,15 @@
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER_WEIGHT(StridedSlice, LAYER_STRIDED_SLICE);
+DECLARE_NPU_LAYER_WEIGHT(StridedSliceV2, LAYER_STRIDED_SLICE_V2);
 
-Status NpuStridedSliceLayer::Convert() {
-    auto param = dynamic_cast<StrideSliceLayerParam *>(param_);
+Status NpuStridedSliceV2Layer::Convert() {
+    if (NpuUtils::VersionCompare(npu_version_, "100.500.010.010", VCT_SMALLER)) {
+        LOGE("StrideSliceV2 is not support in this rom version (%s)\n", npu_version_.c_str());
+        return Status(TNNERR_MODEL_ERR, "StrideSliceV2 is not support in this rom version");
+    }
+
+    auto param = dynamic_cast<StrideSliceV2LayerParam *>(param_);
     CHECK_PARAM_NULL(param);
 
     std::vector<int> input_shape_vec = input_ops_[0]->GetShape();
@@ -31,21 +36,18 @@ Status NpuStridedSliceLayer::Convert() {
     std::reverse(begins.begin(), begins.end());
     auto ends = param->ends;
     std::reverse(ends.begin(), ends.end());
+    auto axes = param->axes;
+    std::reverse(axes.begin(), axes.end());
     auto strides = param->strides;
     std::reverse(strides.begin(), strides.end());
 
-    for (int i = 0; i < begins.size(); ++i) {
-        if (begins[i] < 0) {
-            begins[i] += input_shape_vec[i];
-        }
-    }
-
     for (int i = 0; i < ends.size(); ++i) {
-        if (ends[i] == 0) {
-            ends[i] = input_shape_vec[i];
-        }
-        if (ends[i] < 0) {
-            ends[i] += input_shape_vec[i];
+        if (ends[i] == INT_MAX) {
+            ends[i] = input_shape_vec[axes[i]];
+        } else if (ends[i] == INT_MIN) {
+            ends[i] = -1;
+        } else if (ends[i] < 0) {
+            ends[i] += input_shape_vec[axes[i]];
         }
     }
 
@@ -63,6 +65,12 @@ Status NpuStridedSliceLayer::Convert() {
     NpuUtils::CreateAttrArray(ends_op, ends, desc, 4);
     weight_ops_.push_back(ends_op);
 
+    // axes
+    // in format nchw
+    std::shared_ptr<ge::op::Const> axes_op = std::make_shared<ge::op::Const>(layer_name_ + "_axes");
+    NpuUtils::CreateAttrArray(axes_op, axes, desc, 4);
+    weight_ops_.push_back(axes_op);
+
     // strides
     // in format nchw
     std::shared_ptr<ge::op::Const> strides_op = std::make_shared<ge::op::Const>(layer_name_ + "_stride");
@@ -70,10 +78,11 @@ Status NpuStridedSliceLayer::Convert() {
     weight_ops_.push_back(strides_op);
 
     // stride
-    auto output = std::make_shared<ge::op::StridedSlice>(outputs_name_[0]);
+    auto output = std::make_shared<hiai::op::StridedSliceV2>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_input_begin(*begins_op);
     output->set_input_end(*ends_op);
+    output->set_input_axes(*axes_op);
     output->set_input_strides(*strides_op);
     output->set_attr_begin_mask(0);
     output->set_attr_end_mask(0);
@@ -83,6 +92,6 @@ Status NpuStridedSliceLayer::Convert() {
     ADD_OUTPUT_OP(output);
 }
 
-REGISTER_NPU_LAYER(StridedSlice, LAYER_STRIDED_SLICE);
+REGISTER_NPU_LAYER(StridedSliceV2, LAYER_STRIDED_SLICE_V2);
 
 }  // namespace TNN_NS

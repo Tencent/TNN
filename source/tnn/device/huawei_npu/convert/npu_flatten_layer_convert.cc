@@ -1,4 +1,3 @@
-
 // Tencent is pleased to support the open source community by making TNN available.
 //
 // Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
@@ -14,31 +13,36 @@
 // specific language governing permissions and limitations under the License.
 
 #include "graph/attr_value.h"
-#include "graph/op/nn_defs.h"
 #include "npu_base_layer_convert.h"
 #include "npu_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER(Permute, LAYER_PERMUTE)
+DECLARE_NPU_LAYER(Flatten, LAYER_FLATTEN)
 
-Status NpuPermuteLayer::Convert() {
-    auto param = dynamic_cast<PermuteLayerParam *>(param_);
+Status NpuFlattenLayer::Convert() {
+    auto param = dynamic_cast<FlattenLayerParam*>(param_);
     CHECK_PARAM_NULL(param);
 
-    std::vector<int64_t> orders(param->orders.begin(), param->orders.end());
-
-    if (NpuUtils::VersionCompare(npu_version_, "100.500.010.012", VCT_BIGEQUAL)) {
-        auto output = std::make_shared<hiai::op::Permute>(outputs_name_[0]);
-        output->set_input_x(*input_ops_[0]->GetOperator());
-        output->set_attr_order(orders);
-        ADD_OUTPUT_OP(output)
+    if (NpuUtils::VersionCompare(npu_version_, "100.500.010.010", VCT_SMALLER)) {
+        // use hiai::op::Flatten
+        if (param->axis == 1) {
+            auto output = std::make_shared<hiai::op::Flatten>(outputs_name_[0]);
+            output->set_input_x(*input_ops_[0]->GetOperator());
+            ADD_OUTPUT_OP(output)
+        } else {
+            LOGE("Use hiai::op::Flatten and axis should be 1\n");
+            return Status(TNNERR_MODEL_ERR, "Use hiai::op::Flatten and axis should be 1");
+        }
     } else {
-        LOGE("Permute has bug in this rom version and is disabled\n");
-        return Status(TNNERR_MODEL_ERR, "Permute has bug in this rom version and is disabled");
+        // use hiai::op::FlattenV2
+        auto output = std::make_shared<hiai::op::FlattenV2>(outputs_name_[0]);
+        output->set_input_x(*input_ops_[0]->GetOperator());
+        output->set_attr_axis(param->axis);
+        ADD_OUTPUT_OP(output)
     }
 }
 
-REGISTER_NPU_LAYER(Permute, LAYER_PERMUTE)
+REGISTER_NPU_LAYER(Flatten, LAYER_FLATTEN)
 
 }  // namespace TNN_NS
