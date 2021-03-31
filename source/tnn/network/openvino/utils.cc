@@ -51,6 +51,10 @@ DataType ConvertOVPrecisionToDataType(const InferenceEngine::Precision &precisio
 std::shared_ptr<ngraph::op::Constant> ConvertToConstNode(RawBuffer *buffer) {
     ngraph::Shape constShape;
 
+    if (buffer->GetBufferDims().size() == 0 && buffer->GetBytesSize() == 0) {
+        return std::make_shared<ngraph::op::Constant>();
+    }
+
     for (auto &iter : buffer->GetBufferDims()) {
         constShape.push_back(iter);
     }

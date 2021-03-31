@@ -18,6 +18,7 @@
 #include <tnn/core/blob.h>
 #include <tnn/interpreter/layer_resource.h>
 #include <tnn/interpreter/net_structure.h>
+#include <tnn/interpreter/net_resource.h>
 #include <tnn/interpreter/raw_buffer.h>
 
 #include "graph/compatible/all_ops.h"
@@ -46,12 +47,14 @@ public:
     template <class T>
     static Status CreateAttrArray(std::shared_ptr<ge::op::Const> &attr_value, std::vector<T> data,
                                   ge::TensorDesc input_desc, int length) {
-        ge::AttrValue::TENSOR input_size_tensor = std::make_shared<ge::Tensor>(input_desc);
+        ge::TensorPtr input_size_tensor = std::make_shared<ge::Tensor>(input_desc);
         // since 1-d array total size = sizeof(datatype) * length
         input_size_tensor->SetData((uint8_t *)data.data(), sizeof(T) * length);
         attr_value->set_attr_value(input_size_tensor);
         return TNN_OK;
     }
+
+    static Status CreateConstOpFromResource(std::shared_ptr<OperatorInfo> &const_op, std::string name, NetResource *net_resource);
 
     static Status WriteModelFile(domi::ModelBufferData &model_buffer_data, std::string file_path);
 
@@ -63,6 +66,16 @@ public:
 
     static void SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string> &visited,
                              std::map<std::string, shared_ptr<OperatorInfo>> &global_operator_map);
+
+    template <class T>
+    static std::vector<T> Int32VecToTVec(std::vector<int> vec) {
+        std::vector<T> result;
+        result.clear();
+        for (auto value : vec) {
+            result.push_back((T)value);
+        }
+        return result;
+    }
 };
 
 }  // namespace TNN_NS

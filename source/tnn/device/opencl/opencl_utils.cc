@@ -631,4 +631,14 @@ uint32_t SetExecuteUnit2DSizeInfoNCHW(OpenCLExecuteUnit &unit, DimsVector dims) 
     return idx;
 }
 
+// set execute unit 1d default global size, local size and kernel arguments.
+uint32_t SetExecuteUnit1DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims) {
+    unit.global_work_size = {(uint32_t)DimsVectorUtils::Count(dims)};
+    unit.local_work_size = {unit.workgroupsize_max};
+    uint32_t idx         = 0;
+    unit.ocl_kernel.setArg(idx++, unit.global_work_size[0]);
+    return idx;
+}
+
+
 }  // namespace TNN_NS

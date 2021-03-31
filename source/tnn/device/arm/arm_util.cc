@@ -411,6 +411,30 @@ template int PackC4FromNHWC(bfp16_t *dst, const float *src, size_t hw, size_t ch
 template int PackC4FromNHWC(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int PackC4FromNHWC(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
 
+template <typename Tin, typename Tout>
+int PackC8FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+#ifdef TNN_ARM82_USE_NEON
+    if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, fp16_t>::value) {
+        return PackNeonNHWC((fp16_t *)dst, (const fp16_t *)src, hw, channel);
+    }
+#endif
+    int c, cur_hw;
+    int idx = 0;
+    memset(dst, 0, hw * UP_DIV(channel, 8) * 8 * sizeof(Tout));
+    for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        for (c = 0; c < channel; ++c) {
+            int plane      = c / 8;
+            auto *dstPlane = plane * hw * 8 + dst;
+            int offset     = c % 8;
+            dstPlane[8 * cur_hw + offset] = src[idx++];
+        }
+    }
+
+    return 0;
+}
+
+template int PackC8FromNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
+
 int PackCAndQuant(int8_t *dst, const float *src, size_t hw, size_t channel, float *scale) {
     int idx  = 0;
     int c_r4 = ROUND_UP(channel, 4);
@@ -595,6 +619,28 @@ template int UnpackC4ToNHWC(float *dst, const float *src, size_t hw, size_t chan
 template int UnpackC4ToNHWC(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int UnpackC4ToNHWC(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4ToNHWC(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int UnpackC8ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+#ifdef TNN_ARM82_USE_NEON
+    if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, fp16_t>::value) {
+        return UnpackNeonNHWC((fp16_t *)dst, (const fp16_t *)src, hw, channel);
+    }
+#endif
+    int cur_hw;
+    int c;
+    int idx = 0;
+    for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        for (c = 0; c < channel; ++c) {
+            int plane         = c / 8;
+            const auto *src_c = plane * hw * 8 + src;
+            int offset        = c % 8;
+            dst[idx++] = src_c[8 * cur_hw + offset];
+        }
+    }
+    return 0;
+}
+template int UnpackC8ToNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
 
 int UnpackAndDequant(float *dst, const int8_t *src, size_t hw, size_t channel, float *scale, float *bias) {
     int cur_hw;

@@ -21,12 +21,15 @@ namespace TNN_CONVERTER {
 
 TNN_NS::Status TnnOptimizer::PreOptimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
     // pre optimize
-    std::vector<std::string> pre_optimize_pass = {"EliminateUnusefulNode", "TransformReduceMean"};
+    std::vector<std::string> pre_optimize_pass = {
+        "EliminateUnusefulNode",
+        "FuseShuffleChannel",
+    };
     for (const auto& pass_name : pre_optimize_pass) {
         auto pass = TnnOptimizePassManager::get()->search(pass_name);
         if (pass == nullptr) {
             LOGE("Converter: do not support pre optimize pass %s\n", pass_name.c_str());
-            return TNN_NS::TNNERR_CONVERT_OPTIMIZE_ERROR;
+            return TNN_NS::TNNERR_CONVERT_UNSUPPORT_PASS;
         }
         TNN_NS::Status status = pass->exec(net_structure, net_resource);
         if (status != TNN_NS::TNN_CONVERT_OK) {
@@ -40,7 +43,8 @@ TNN_NS::Status TnnOptimizer::PreOptimize(TNN_NS::NetStructure& net_structure, TN
 
 TNN_NS::Status TnnOptimizer::PostOptimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
     // pre optimize
-    std::vector<std::string> pre_optimize_pass = {"ReshapeConstFolding"};
+    std::vector<std::string> pre_optimize_pass = {"ConstantFolding", "AdjustLayerInputs", "EliminateReformatNode",
+                                                  "TransformDequantized"};
     for (const auto& pass_name : pre_optimize_pass) {
         auto pass = TnnOptimizePassManager::get()->search(pass_name);
         if (pass == nullptr) {

@@ -149,7 +149,7 @@ static inline bool IsLayoutReformatLayer(std::shared_ptr<LayerInfo> layer) {
 /*
  * InitLayer funcion does the following things:
  *  1. Set Blob type accordingly.
- *  2. Set data_type accordingly.
+ *  2. Set data_tyep accordingly.
  *  3. Infer the blob shapes.
  *  4. Check the weights required.
  */
@@ -201,39 +201,41 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             dynamic_cast<ReformatLayerParam *>(layer_info->param.get())->dst_format : input_fmt;
 
 #ifdef GENERATE_RESOURCE
-        LayerType type       = layer_info->type;
-        BaseLayer *cur_layer = CreateLayer(type);
-        if (cur_layer == NULL) {
-            LOGE("Error: CreateLayer failed, type:%d\n", type);
-            return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
+        if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+            LayerType type       = layer_info->type;
+            BaseLayer *cur_layer = CreateLayer(type);
+            if (cur_layer == NULL) {
+                LOGE("Error: CreateLayer failed, type:%d\n", type);
+                return Status(TNNERR_PARAM_ERR, "CreateLayer failed");
+            }
+            std::string layer_name = layer_info->name;
+            cur_layer->SetLayerName(layer_name);
+            cur_layer->SetRuntimeMode(runtime_model_);
+            cur_layer->SetConstantResource(&net_resource->constant_map);
+
+            std::vector<Blob *> inputs;
+            std::vector<Blob *> outputs_for_shape;
+            for (auto name : input_names) {
+                inputs.push_back(blob_manager_->GetBlob(name));
+            }
+
+            for (auto name : output_names) {
+                outputs_for_shape.push_back(blob_manager_->GetBlob(name));
+            }
+
+            // generate resource if null
+            if (net_resource->resource_map.count(layer_name) == 0) {
+                LayerParam *layer_param  = layer_info->param.get();
+                LayerResource *layer_res = nullptr;
+                GenerateRandomResource(type, layer_param, &layer_res, inputs, &net_resource->constant_map);
+                net_resource->resource_map[layer_name] = std::shared_ptr<LayerResource>(layer_res);
+            }
+
+            cur_layer->InferShapeAhead(inputs, outputs_for_shape, layer_info->param.get(),
+                                       net_resource->resource_map[layer_name].get());
+
+            delete cur_layer;
         }
-        std::string layer_name = layer_info->name;
-        cur_layer->SetLayerName(layer_name);
-        cur_layer->SetRuntimeMode(runtime_model_);
-        cur_layer->SetConstantResource(&net_resource->constant_map);
-
-        std::vector<Blob *> inputs;
-        std::vector<Blob *> outputs_for_shape;
-        for (auto name : input_names) {
-            inputs.push_back(blob_manager_->GetBlob(name));
-        }
-
-        for (auto name : output_names) {
-            outputs_for_shape.push_back(blob_manager_->GetBlob(name));
-        }
-
-        // generate resource if null
-        if (net_resource->resource_map.count(layer_name) == 0) {
-            LayerParam *layer_param  = layer_info->param.get();
-            LayerResource *layer_res = nullptr;
-            GenerateRandomResource(type, layer_param, &layer_res, inputs, &net_resource->constant_map);
-            net_resource->resource_map[layer_name] = std::shared_ptr<LayerResource>(layer_res);
-        }
-
-        cur_layer->InferShapeAhead(inputs, outputs_for_shape, layer_info->param.get(),
-                                   net_resource->resource_map[layer_name].get());
-
-        delete cur_layer;
 #endif
 
         for (auto name : output_names) {

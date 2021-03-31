@@ -38,6 +38,8 @@ std::string TFLiteUnaryConverter::TNNOpType(tflite::BuiltinOperator op_code, boo
             return "Rsqrt";
         case tflite::BuiltinOperator_RELU:
             return "ReLU";
+        case tflite::BuiltinOperator_SHAPE:
+            return "Shape";
         default:
             return "";
     }
@@ -72,5 +74,6 @@ REGISTER_CONVERTER(Unary, BuiltinOperator_SIN);
 REGISTER_CONVERTER(Unary, BuiltinOperator_NEG);
 REGISTER_CONVERTER(Unary, BuiltinOperator_RSQRT);
 REGISTER_CONVERTER(Unary, BuiltinOperator_RELU);
+REGISTER_CONVERTER(Unary, BuiltinOperator_SHAPE);
 
 }  // namespace TNN_CONVERTER

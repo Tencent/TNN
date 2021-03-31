@@ -316,7 +316,6 @@ struct InnerProductLayerParam : public LayerParam {
 
 struct ConcatLayerParam : public LayerParam {
     int axis                    = 1;
-    std::vector<int> extra_data = {};
 
     PARAM_COPY(ConcatLayerParam)
 };
