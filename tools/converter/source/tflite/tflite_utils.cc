@@ -189,29 +189,14 @@ int SizeofTFLiteTensorData(tflite::TensorType type) {
 }
 
 void Mask(std::vector<int> shape, int mask, int upper, std::vector<int>& v) {
-    ASSERT(shape.size() == 4);
-    ASSERT(v.size() == 4);
-    ASSERT(mask <= 15 && mask >= 0);
-    if (upper == 0) {
-        // 处理的是 begin，取的是 0
-        if (mask & 0x1)
-            v[0] = 0;
-        if (mask & 0x2)
-            v[1] = 0;
-        if (mask & 0x4)
-            v[2] = 0;
-        if (mask & 0x8)
-            v[3] = 0;
-    } else {
-        // 处理的是 ends， 取最大值
-        if (mask & 0x1)
-            v[0] = shape[0];
-        if (mask & 0x2)
-            v[1] = shape[1];
-        if (mask & 0x4)
-            v[2] = shape[2];
-        if (mask & 0x8)
-            v[3] = shape[3];
+    int window = 0x1;
+    for (int i = 0; i < shape.size(); ++i) {
+        if (mask & window) {
+            // upper == 0: 处理的是 begin，取的是 0
+            // upper != 0: 处理的是 ends， 取最大值
+            v[i] = upper == 0? 0: shape[i];
+        }
+        window = window << 1;
     }
 }
 
