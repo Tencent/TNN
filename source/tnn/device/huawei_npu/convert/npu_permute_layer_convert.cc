@@ -28,6 +28,11 @@ Status NpuPermuteLayer::Convert() {
 
     std::vector<int64_t> orders(param->orders.begin(), param->orders.end());
 
+    if (orders.size() > 4) {
+        LOGE("(Permute) dims size bigger than 4 is not support in HUAWEI_NPU");
+        return Status(TNNERR_MODEL_ERR, "(Permute) dims size bigger than 4 is not support in HUAWEI_NPU");
+    }
+
     if (NpuUtils::VersionCompare(npu_version_, "100.500.010.012", VCT_BIGEQUAL)) {
         auto output = std::make_shared<hiai::op::Permute>(outputs_name_[0]);
         output->set_input_x(*input_ops_[0]->GetOperator());

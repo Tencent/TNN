@@ -24,6 +24,10 @@ Status NpuReshapeLayer::Convert() {
     CHECK_PARAM_NULL(param);
 
     ge::AttrValue::LIST_INT shape = std::vector<int64_t>(param->shape.begin(), param->shape.end());
+    if (shape.size() > 4) {
+        LOGE("(Reshape) dims size bigger than 4 is not support in HUAWEI_NPU");
+        return Status(TNNERR_MODEL_ERR, "(Reshape) dims size bigger than 4 is not support in HUAWEI_NPU");
+    }
 
     auto output = std::make_shared<ge::op::Reshape>(outputs_name_[0]);
     output->set_input_tensor(*input_ops_[0]->GetOperator());
