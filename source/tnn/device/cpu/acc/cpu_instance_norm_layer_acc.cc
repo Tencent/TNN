@@ -27,6 +27,7 @@ Status CpuInstanceNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 
 Status CpuInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<InstanceNormLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
     auto layer_res = dynamic_cast<InstanceNormLayerResource *>(resource_);
     if (!layer_res) {
         LOGE("Error: layer resource is nil\n");
