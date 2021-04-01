@@ -303,8 +303,9 @@ std::string BertTokenizer::StripStringASCIIWhole(const std::string str) {
 
 Status BertTokenizer::buildInput(std::string paragraph, std::string question, std::shared_ptr<BertTokenizerInput> input) {
     std::vector<size_t> code1, code2;
-    
     Status status;
+    features_.clear();
+    
     features_.push_back("[CLS]");
     code1 = Encode(question, status);
     features_.push_back("[SEP]");
