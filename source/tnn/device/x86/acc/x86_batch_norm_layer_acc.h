@@ -12,29 +12,25 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_X86_X86_INNER_PRODUCT_LAYER_ACC_H_
-#define TNN_SOURCE_TNN_DEVICE_X86_X86_INNER_PRODUCT_LAYER_ACC_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_X86_X86_BATCH_NORM_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_X86_X86_BATCH_NORM_LAYER_ACC_H_
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 
 namespace TNN_NS {
 
-class X86InnerProductLayerAcc : public X86LayerAcc {
+class X86BatchNormLayerAcc : public X86LayerAcc {
 public:
-    virtual ~X86InnerProductLayerAcc();
+    virtual ~X86BatchNormLayerAcc();
 
     Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
                 const std::vector<Blob *> &outputs) override;
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
-    virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    virtual Status allocateBufferBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
-    RawBuffer buffer_weight_;
-    RawBuffer buffer_bias_;
-    std::shared_ptr<LayerResource> fc_acc_f32_resource_ = nullptr;
+    std::shared_ptr<LayerResource> bn_acc_f32_resource_ = nullptr;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_X86_X86_INNER_PRODUCT_LAYER_ACC_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_X86_X86_BATCH_NORM_LAYER_ACC_H_
