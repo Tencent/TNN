@@ -12,16 +12,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/x86/acc/x86_layer_acc.h"
-#include "tnn/device/x86/acc/x86_expand_layer_acc.h"
+#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/acc/arm_expand_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-X86ExpandLayerAcc::~X86ExpandLayerAcc() {}
+ArmExpandLayerAcc::~ArmExpandLayerAcc() {}
 
-Status X86ExpandLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status ArmExpandLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto expand_param = dynamic_cast<ExpandLayerParam*>(param_);
     CHECK_PARAM_NULL(expand_param);
     
@@ -62,8 +62,9 @@ static void ExpandComputeOffset(DimsVector &offset, const DimsVector dims_in, co
     }
 }
 
-static void X86Expand(DimsVector output_shape, DimsVector input_shape,
-                      float *output_ptr, const float *input_ptr) {
+template <typename T>
+static void ArmExpand(DimsVector output_shape, DimsVector input_shape,
+                      T *output_ptr, const T *input_ptr) {
     DimsVector output_offset;
     ExpandComputeOffset(output_offset, output_shape, output_shape);
 
@@ -117,27 +118,41 @@ static void X86Expand(DimsVector output_shape, DimsVector input_shape,
     }
 }
 
-Status X86ExpandLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status ArmExpandLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input_blob  = inputs[0];
     auto output_blob = outputs[0];
     auto output_dims = output_blob->GetBlobDesc().dims;
     auto input_dims = input_blob->GetBlobDesc().dims;
 
     if (output_dims.size() > 6) {
-        return Status(TNNERR_MODEL_ERR, "x86 expand only support dims <= 6");
+        return Status(TNNERR_MODEL_ERR, "arm expand only support dims <= 6");
     }
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         const float *input_data = reinterpret_cast<const float *>(input_blob->GetHandle().base);
         float *output_data = reinterpret_cast<float *>(output_blob->GetHandle().base);
-
-        X86Expand(output_dims, input_dims, output_data, input_data);
-    } else {
+        ArmExpand<float>(output_dims, input_dims, output_data, input_data);
+    } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
+        const bfp16_t *input_data = reinterpret_cast<const bfp16_t *>(input_blob->GetHandle().base);
+        bfp16_t *output_data = reinterpret_cast<bfp16_t *>(output_blob->GetHandle().base);
+        ArmExpand<bfp16_t>(output_dims, input_dims, output_data, input_data);
+    }
+#ifdef TNN_ARM82
+    else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        const fp16_t *input_data = reinterpret_cast<const fp16_t *>(input_blob->GetHandle().base);
+        fp16_t *output_data = reinterpret_cast<fp16_t *>(output_blob->GetHandle().base);
+        ArmExpand<fp16_t>(output_dims, input_dims, output_data, input_data);
+    }
+#endif
+    else {
         return Status(TNNERR_MODEL_ERR, "blob type is unsupported");
     }
+
     return TNN_OK;
 }
 
-REGISTER_X86_ACC(Expand, LAYER_EXPAND);
+REGISTER_ARM_ACC(Expand, LAYER_EXPAND);
+REGISTER_ARM_PRECISION_FP16(LAYER_EXPAND)
+REGISTER_ARM_LAYOUT(LAYER_EXPAND, DATA_FORMAT_NCHW)
 
 }  // namespace TNN_NS

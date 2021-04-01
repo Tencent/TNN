@@ -57,9 +57,7 @@ Status OpenVINOLayerBuilder::Init(Context* context, LayerParam* param, LayerReso
     RETURN_ON_NEQ(Build(), TNN_OK);
     RETURN_ON_NEQ(InferOutputDataType(), TNN_OK);
 
-    LOGD("InferOutputShape: name:%s shape:%d %d %d %d \n", param->name.c_str(), output_blobs[0]->GetBlobDesc().dims[0],
-         output_blobs[0]->GetBlobDesc().dims[1], output_blobs[0]->GetBlobDesc().dims[2],
-         output_blobs[0]->GetBlobDesc().dims[3]);
+    LOGD("InferOutputShape: name:%s %s \n", param->name.c_str(), output_blobs[0]->GetBlobDesc().description().c_str());
 
     return TNN_OK;
 

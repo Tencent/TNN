@@ -12,24 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_EXPAND_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_EXPAND_LAYER_ACC_H_
+
+#include "tnn/device/arm/acc/arm_layer_acc.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_LAYER_BUILDER(ReLU6, LAYER_RELU6);
+// @brief pooling layer cpu acc
+class ArmExpandLayerAcc : public ArmLayerAcc {
+public:
+    virtual ~ArmExpandLayerAcc();
 
-ILayer* ReLU6TRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
-    auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-    IActivationLayer* layer = network->addActivation(*tensor, nvinfer1::ActivationType::kCLIP);
-    if (layer != nullptr) {
-        layer->setName(layer_name_.c_str());
-        layer->setAlpha(0.f);
-        layer->setBeta(6.f);
-    }
-    return layer;
-}
+    virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
-REGISTER_TENSORRT_LAYER_BUILDER(ReLU6, LAYER_RELU6);
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+};
 
-}  //  namespace TNN_NS
+}  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_EXPAND_LAYER_ACC_H_

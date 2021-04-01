@@ -4,7 +4,7 @@
 
 ## TNN supported models
 
-TNN currently support main-stream CNN networks：
+TNN currently support main-stream CNN, LSTM and BERT networks：
 - Classical CNN: Vgg AlexNet GoogleNet(v1,v2,v3)
 - Practical CNN: ResNet DenseNet SENet
 - Light-weight CNN: SqueezeNet MobileNet(v1,v2,v3) ShuffleNet(v1,v2) MNasNet
@@ -12,9 +12,11 @@ TNN currently support main-stream CNN networks：
 - Detection: Vgg-ssd SqueezeNet-ssd MobileNetv2-SSDLite ...
 - Detection: Yolo-v2 MobileNet-YOLOV3 ...
 - Segmentation: FCN PSPNet
+- 3D CNN: C3D T3D
+- BERT: BERT-Base BERT-Squad MobileBERT DistilBERT
+- LSTM: Crnn-LSTM
 
-
-| model name                | onnx2tnn | Naive | armv7 | armv8 | opencl | metal | Huawei Npu |
+| model name                | onnx2tnn | Naive | armv7 | armv8 | opencl | metal | Huawei_Npu |
 |---------------------------|----------|-----|-------|-------|--------|-------|------|
 | AlexNet                   | yes      | yes |       |       |        |       |      |
 | DenseNet(121)             | yes      | yes |       |       |        |       |      |
@@ -45,6 +47,14 @@ TNN currently support main-stream CNN networks：
 | Yolo-v2                   | ?        | ?   |       |       |        |       |      |
 | Yolo-v2-tiny              | yes      | yes |       |       |        |       |      |
 | Yolo-v3                   | yes      | yes |       |       |        |       |      |
+| Yolo-v5s                  | yes      | yes |       |       |        |       |      |
+| C3D                       | yes      | yes | -     | -     | -      | -     | -    |
+| T3D                       | yes      | yes | -     | -     | -      | -     | -    |
+| BERT-Base                 | yes      | yes | -     | -     | -      | -     | -    |
+| BERT-Squad                | yes      | yes | -     | -     | -      | -     | -    |
+| MobileBERT                | yes      | yes | -     | -     | -      | -     | -    |
+| DistilBERT                | yes      | yes | -     | -     | -      | -     | -    |
+| Crnn-LSTM                 | yes      | yes |       |       |        |       | -    |
 
 
 1. Regarding the upsample calculation of upsample, when the parameter mode == "bilinear" or mode == "linear", the onnx model exported by pytorch has some issues, and the calculation results of pytorch and onnx are not aligned. This is a bug of onnx itself, which deserves special attention. But don't worry about this problem. After converting the converted ONNX model to TNN, we ensure that the calculation results of TNN and Pytorch are aligned. In our testing, FCN and PSPNet have such problems.
@@ -52,7 +62,7 @@ TNN currently support main-stream CNN networks：
 
 ## TNN supported operators
 
-| TNN Operators            | ONNX Operators                                 | Naive | armv7 | armv8 | opencl | metal | npu   |
+| TNN Operators            | Original Operators                             | Naive | armv7 | armv8 | opencl | metal | Huawei_Npu   |
 |--------------------------|------------------------------------------------|-----|-------|-------|--------|-------|-------|
 | Abs                      | Abs                                            | yes | yes   | yes   | yes    | yes   | yes   |
 | Acos                     | Acos                                           | yes |       |       | yes    | yes   | yes   |
@@ -72,11 +82,16 @@ TNN currently support main-stream CNN networks：
 | Convolution              | Conv                                           | yes | yes   | yes   | yes    | yes   | yes   |
 | Convolution(depthwise)   | Conv                                           | yes | yes   | yes   | yes    | yes   | yes   |
 | Convolution(group)       | Conv                                           | yes | yes   | yes   | yes    | yes   | yes   |
+| Convolution1D            | Conv                                           | yes |       |       |        |       |       |
+| Convolution1D(depthwise) | Conv                                           | yes |       |       |        |       |       |
+| Convolution1D(group)     | Conv                                           | yes |       |       |        |       |       |
+| Convolution3D            | Conv                                           | yes |       |       |        |       |       |
+| Convolution3D(depthwise) | Conv                                           | yes |       |       |        |       |       |
+| Convolution3D(group)     | Conv                                           | yes |       |       |        |       |       |
 | Cos                      | Cos                                            | yes |       |       | yes    | yes   | yes   |
 | Deconvolution            | ConvTranspose                                  | yes | yes   | yes   | yes    | yes   |       |
 | Deconvolution(depthwise) | ConvTranspose                                  | yes | yes   | yes   | yes    | yes   |       |
 | Deconvolution(group)     | ConvTranspose                                  | yes | yes   | yes   | yes    | yes   |       |
-| DepthToSpace             | DepthToSpace                                   |     |       |       |        |       |       |
 | DetectionOutput          | DectectionOutput(custom operator)              | yes |       |       |        |       |       |
 | Div                      | Div                                            | yes | yes   | yes   | yes    | yes   | yes   |
 | Dropout                  | Dropout                                        |     |       |       |        |       |       | 
@@ -91,12 +106,15 @@ TNN currently support main-stream CNN networks：
 | Floor                    | Floor                                          | yes |       |       | yes    | yes   | yes   |
 | Gather                   | Gather                                         |     |       |       |        |       |       |
 | GatherND                 | GatherND                                       | yes |       |       |        |       |       |
+| GridSample               | GridSample(PyTorch)                            | yes |       |       |        |       |       |
+| GroupNorm                | GroupNorm(PyTorch)                             | yes |       |       |        |       |       |
 | HardSigmoid              | HardSigmoid                                    | yes | yes   | yes   | yes    | yes   | yes   |
 | HardSwish                | Add + Clip + Div + Mul                         | yes | yes   | yes   | yes    | yes   |       |
 | HardSwish                | Add + Clip + Mul + Div                         | yes | yes   | yes   | yes    | yes   |       |
 | HardSwish                | HardSigmoid + Mul                              | yes | yes   | yes   | yes    | yes   |       |
 | InnerProduct             | Gemm                                           | yes | yes   | yes   | yes    | yes   | yes   |
 | InstBatchNormCxx         | InstanceNormalization                          | yes | yes   | yes   | yes    | yes   | yes   |
+| Inverse                  | Inverse(PyTorch)                               | yes | yes   | yes   | yes    | yes   | yes   |
 | LSTMONNX                 | LSTM                                           | yes |       |       |        |       |       |
 | LRN                      | LRN                                            | yes |       |       |        |       | yes   |
 | Log                      | Log                                            | yes |       |       | yes    | yes   | yes   |
@@ -114,10 +132,15 @@ TNN currently support main-stream CNN networks：
 | PRelu                    | LeakyRelu / PRelu                              | yes | yes   | yes   | yes    | yes   | yes   |
 | Pad                      | Pad                                            | yes | yes   | yes   | yes    | yes   | yes   |
 | Permute                  | Transpose                                      | yes | yes   | yes   | yes    |       |       |
+| PixelShuffle             | PixelShuffle(PyTorch), Depth2Space(ONNX)       | yes |       |       |        |       |       |
 | Pooling (Avg)            | AveragePool                                    | yes | yes   | yes   | yes    | yes   | yes   |
 | Pooling (GlobalAverage)  | GlobalAveragePool                              | yes | yes   | yes   | yes    | yes   | yes   |
 | Pooling (GlobalMax)      | GlobalMaxPool                                  | yes | yes   | yes   | yes    | yes   | yes   |
 | Pooling (Max)            | MaxPool                                        | yes | yes   | yes   | yes    | yes   | yes   |
+| Pooling3D (Avg)          | AveragePool                                    | yes |       |       |        |       |       |
+| Pooling3D (GlobalAverage)| GlobalAveragePool                              | yes |       |       |        |       |       |
+| Pooling3D (GlobalMax)    | GlobalMaxPool                                  | yes |       |       |        |       |       |
+| Pooling3D (Max)          | MaxPool                                        | yes |       |       |        |       |       |
 | Power                    | Pow                                            | yes | yes   | yes   | yes    | yes   |       |
 | PriorBox                 | PriorBox(custom operator)                      | yes |       |       | yes    |       | yes   |
 | Range                    | Range                                          | yes |       |       |        |       |       |
@@ -135,9 +158,11 @@ TNN currently support main-stream CNN networks：
 | Relu                     | Relu                                           | yes | yes   | yes   | yes    | yes   | yes   |
 | Relu6                    | Clip                                           | yes | yes   | yes   | yes    | yes   | yes   |
 | Reorg                    | DepthToSpace                                   | yes |       |       | yes    |       |       |
+| Reorg                    | SpaceToDepth                                   | yes |       |       | yes    |       |       |
 | Repeat                   | Tile                                           |     |       |       |        |       |       |
 | Reshape                  | Reshape                                        | yes | yes   | yes   | yes    | yes   | yes   |
 | RoiAlign                 | RoiAlign                                       | yes |       |       |        |       |       |
+| Rsqrt                    | Rsqrt(TFLite)                                  | yes |       |       |        |       |       |
 | ScatterND                | ScatterND                                      | yes |       |       |        |       |       |
 | Selu                     | Selu                                           | yes |       |       | yes    | yes   | yes   |
 | Shape                    | Shape                                          | yes |       |       |        |       |       |
@@ -153,11 +178,13 @@ TNN currently support main-stream CNN networks：
 | Softsign                 | Softsign                                       | yes |       |       |        |       |       |
 | Split                    | Split                                          |     |       |       | yes    |       |       |
 | Sqrt                     | Sqrt                                           | yes | yes   | yes   | yes    | yes   | yes   |
+| SquaredDifference        | SquaredDifference(TFLite)                      | yes |       |       |        |       |       |
 | Squeeze                  | Squeeze                                        |     |       |       |        |       |       |
 | Sub                      | Sub                                            | yes | yes   | yes   | yes    | yes   | yes   |
 | Sum                      |                                                |     |       |       |        |       |       |
 | Tan                      | Tan                                            | yes |       |       | yes    | yes   | yes   |
 | Tanh                     | Tanh                                           | yes | yes   | yes   | yes    | yes   | yes   |
+| Tile                     | Tile                                           | yes |       |       |        |       |       |
 | Unsqueeze                | Unsqueeze                                      | yes |       |       |        |       |       |
 | Upsample                 | Upsample / Resize                              | yes | yes   | yes   | yes    | yes   | yes   |
 | Where                    | Where                                          | yes |       |       |        |       |       |

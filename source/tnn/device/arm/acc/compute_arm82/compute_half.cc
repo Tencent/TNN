@@ -358,6 +358,77 @@ void ScaleBias(fp16_t *src, int channel, int hw, const float *scale, const float
     }
 }
 
+int PackNeonNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel) {
+    if ((hw == 1) && (channel % 8 == 0)) {
+        memcpy(dst, src, hw * channel * sizeof(fp16_t));
+        return 0;
+    }
+
+    auto cc = (channel>>3<<3);
+    Half8 v;
+    for (int c = 0; c < cc; c += 8) {
+        auto src_c = src + c;
+        auto dst_c = dst + c * hw;
+        for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            v = Half8::load(src_c);
+            Half8::save(dst_c, v);
+            src_c += channel;
+            dst_c += 8;
+        }
+    }
+
+    int remain = channel % 8;
+    if (remain) {
+        auto src_c = src + cc;
+        auto dst_c = dst + cc * hw;
+        for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            v = Half8((fp16_t)0.f);
+            for (int r = 0; r < remain; ++r)
+                v.set_lane(src_c[r], r);
+            Half8::save(dst_c, v);
+            src_c += channel;
+            dst_c += 8;
+        }
+    }
+
+    return 0;
+}
+
+int UnpackNeonNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel) {
+    if ((hw == 1) && (channel % 8 == 0)) {
+        memcpy(dst, src, hw * channel * sizeof(fp16_t));
+        return 0;
+    }
+
+    auto cc = (channel>>3<<3);
+    Half8 v;
+    for (int c = 0; c < cc; c += 8) {
+        auto dst_c = dst + c;
+        auto src_c = src + c * hw;
+        for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            v = Half8::load(src_c);
+            Half8::save(dst_c, v);
+            src_c += 8;
+            dst_c += channel;
+        }
+    }
+
+    int remain = channel % 8;
+    if (remain) {
+        auto dst_c = dst + cc;
+        auto src_c = src + cc * hw;
+        for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            v = Half8::load(src_c);
+            for (int r = 0; r < remain; ++r)
+                *(dst_c + r) = v[r];
+            src_c += 8;
+            dst_c += channel;
+        }
+    }
+
+    return 0;
+}
+
 #endif  // TNN_ARM82
 
 

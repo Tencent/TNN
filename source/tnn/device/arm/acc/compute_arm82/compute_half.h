@@ -33,6 +33,8 @@ void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, lo
 // used for blob converter
 int PackNeon(fp16_t* dst, const fp16_t* src, size_t hw, size_t channel);
 int PackNeonC3(fp16_t* dst, const float* src, size_t hw, size_t channel);
+int PackNeonNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
+int UnpackNeonNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
 template <bool reverse_channel>
 void BGRAToBlobImpl(const uint8_t* src, fp16_t* dst, const float* scale, const float* bias, int hw, int channel);
 template <bool reverse_channel>

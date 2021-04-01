@@ -6,7 +6,7 @@ PUSH_MODEL=""
 BUILD_ONLY=""
 
 WORK_DIR=`pwd`
-BUILD_DIR=build
+BUILD_DIR=build_model_check
 ANDROID_DIR=/data/local/tmp/model_check
 ANDROID_DATA_DIR=$ANDROID_DIR/data
 DUMP_DIR=$WORK_DIR/dump_data_model_check
@@ -60,6 +60,15 @@ function build_android() {
         echo "NPU Enable"
         STL="c++_shared"
         HUAWEI_NPU="ON"
+
+        #start to cp
+        if [ ! -d ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/ ]; then
+             mkdir -p ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/
+        fi
+        mkdir -p ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/armeabi-v7a
+        mkdir -p ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/arm64-v8a
+        cp $ANDROID_NDK/sources/cxx-stl/llvm-libc++/libs/armeabi-v7a/libc++_shared.so  ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/armeabi-v7a/
+        cp $ANDROID_NDK/sources/cxx-stl/llvm-libc++/libs/arm64-v8a/libc++_shared.so ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/arm64-v8a/
     else
         HUAWEI_NPU="OFF"
     fi
