@@ -160,6 +160,15 @@ Status ArmReshapeLayerAcc::ExecNchw(const std::vector<Blob *> &inputs, const std
             DataFormatConverter::ConvertFromNCHWToNHWC<bfp16_t>(inputs[0], outputs[0]);
             DataFormatConverter::ConvertFromNHWCToNCHW<bfp16_t>(outputs[0], nullptr);
         }
+#if TNN_ARM82
+        else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+            DataFormatConverter::ConvertFromNCHWToNHWC<fp16_t>(inputs[0], outputs[0]);
+            DataFormatConverter::ConvertFromNHWCToNCHW<fp16_t>(outputs[0], nullptr);
+        }
+#endif
+        else {
+            return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8 reshape, in todo list");
+        }
     } else {
         return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
     }
