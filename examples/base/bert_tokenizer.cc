@@ -38,6 +38,54 @@ const std::set<uint16_t> kChinesePunts = {
 
 const int kMaxCharsPerWords = 100;
 const int MaxSeqCount = 256;
+const size_t maxAns = 3;
+
+bool BertTokenizer::is_punct_char(char cp) {
+  if ((cp >= 33 && cp <= 47) || (cp >= 58 && cp <= 64) ||
+      (cp >= 91 && cp <= 96) || (cp >= 123 && cp <= 126)) {
+    return true;
+  }
+  if (cp == ' ') {
+    return false;
+  }
+}
+
+std::string BertTokenizer::toLower(std::string s) {
+    for (size_t i = 0; i < s.size(); i++) {
+        if (s[i] <= 'Z' && s[i] >= 'A') s[i] += 32;
+    }
+    return s;
+}
+
+std::string BertTokenizer::basic_separate(std::string text) {
+    std::string result;
+    size_t len = text.size();
+    for (size_t i = 0; i < len; i++) {
+        char c = text[i];
+        if (is_punct_char(c)) {
+            if (!result.empty() && result.back() != ' ') {
+                result.append(1, ' ');
+                result.append(2, '#');
+                result.append(1, c);
+            } else {
+                result.append(1, c);
+            }
+        } else if (c == ' ') {
+            if (!result.empty() && result.back() != ' ')
+                result += c;
+        } else if (i > 0 && is_punct_char(text[i - 1])) {
+            result.append(1, ' ');
+            result.append(2, '#');
+            result.append(1, c);
+        } else {
+            result.append(1, c);
+        }
+    }
+    if (!result.empty() && result.back() == ' ') {
+        result.erase(result.end() - 1);
+    }
+    return result;
+}
 
 Status BertTokenizer::Init(std::string vocab_file) {
     std::ifstream ifs(vocab_file);
@@ -158,20 +206,33 @@ std::string BertTokenizer::Id2Word(size_t id) {
 }
 
 void BertTokenizer::max_seg_(std::string s, std::vector<size_t>& results) {
+  bool sep = false;
+  if (s.find("##") != std::string::npos) {
+      s.replace(s.find("##"), 2, "");
+      sep = true;
+  }
   int end = s.size();
   int start = 0;
-  // spdlog::info("now s:[{}]", s);
   bool firstOne = true;
   while (start < end) {
     std::string test(s.c_str() + start, end - start);
     if (!firstOne) {
       test = std::string("##") + test;
     }
-    auto it = token_2_id_map_.find(test);
+    std::string test_low = toLower(test);
+    auto it = token_2_id_map_.find(test_low);
+    
     if (it == token_2_id_map_.end()) {
       end -= 1;
     } else {
       // spdlog::info("now got :{}", test);
+      if (sep) {
+        std::string test1 = "##" + test;
+        features_.push_back(test1);
+        sep = false;
+      } else {
+        features_.push_back(test);
+      }
       results.push_back(it->second);
       start = end;
       end = s.size();
@@ -180,6 +241,11 @@ void BertTokenizer::max_seg_(std::string s, std::vector<size_t>& results) {
   }
   if (firstOne) {
     // not any one matched
+    if (sep) {
+        std::string test1 = "##" + s;
+        features_.push_back(s.append(2, '#'));
+    } else
+        features_.push_back(s);
     results.push_back(token_2_id_map_.at(kUnkToken));
   }
 }
@@ -187,12 +253,14 @@ void BertTokenizer::max_seg_(std::string s, std::vector<size_t>& results) {
 std::vector<size_t> BertTokenizer::Encode(std::string text, Status &status) {
     std::vector<size_t> results;
     text = StripStringASCIIWhole(text);
-    for(size_t i = 0; i < text.length(); i++) {
-        if (text[i] <= 'Z' && text[i] >= 'A') text[i] += 32;
-    }
+    text = basic_separate(text);
+    // for(size_t i = 0; i < text.length(); i++) {
+    //     if (text[i] <= 'Z' && text[i] >= 'A') text[i] += 32;
+    // }
     std::vector<std::string> tokens;
     SplitString(text.c_str(), text.size(), ' ', tokens);
     for (auto s : tokens) {
+        // features_.push_back(s);
         if (s.size() > kMaxCharsPerWords) {
             results.push_back(token_2_id_map_.at(kUnkToken));
         } else {
@@ -201,6 +269,7 @@ std::vector<size_t> BertTokenizer::Encode(std::string text, Status &status) {
     }
 
     status = TNN_OK;
+
     return results;
 
 }
@@ -236,9 +305,11 @@ Status BertTokenizer::buildInput(std::string paragraph, std::string question, st
     std::vector<size_t> code1, code2;
     
     Status status;
-
+    features_.push_back("[CLS]");
     code1 = Encode(question, status);
+    features_.push_back("[SEP]");
     code2 = Encode(paragraph, status);
+    features_.push_back("[SEP]");
 
     code1.insert(code1.begin(), ClsId());
     code1.insert(code1.end(), SepId());
@@ -249,44 +320,10 @@ Status BertTokenizer::buildInput(std::string paragraph, std::string question, st
     code1.insert(code1.end(), code2.begin(), code2.end());
     code1.insert(code1.end(), SepId());
 
-    for (int i = 0; i < code1.size(); i++) {
-        features.push_back(Id2Word(code1[i]));
-    }
-
     if (code1.size() < MaxSeqCount) {
         code1.insert(code1.end(), (MaxSeqCount - code1.size()), 0);
     }
 
-    // code1 = { 101,  2073,  2003,  1996,  5661, 10549,  2000,  2175,  1029,
-    //       102,  1999,  2049,  2220,  2086,  1010,  1996,  2047,  4680,
-    //      2415,  3478,  2000,  3113,  5270,  1998,  6599, 10908,  1012,
-    //      1031,  2260,  1033,  2011,  2526,  1010,  2116, 13773,  3028,
-    //      5661,  2020, 10549,  1996,  2172,  3469,  9587,  9363,  2638,
-    //      2415,  1999,  2624,  3799,  2058,  1996,  2624,  4560,  4680,
-    //      2415,  2349,  2000,  1996,  3732,  1005,  1055,  3132,  2686,
-    //      1012,  1037, 10428,  5468,  2000,  5446,  2019,  4935,  3081,
-    //      1037,  3309,  4171,  3478,  2000,  3362,  1996,  3223,  2048,
-    //      1011, 12263,  3484,  2000,  3413,  1012,  1999,  2238,  2384,
-    //      1010,  2136,  2624,  4560,  2328,  1996,  2148,  2534,  1010,
-    //      1037,  1002,  1020,  1012,  6255,  2454,  1010,  2630,  1998,
-    //      2317,  9311,  1010,  5815,  3770,  1010,  2199,  2675,  2519,
-    //      1006,  1021,  1010,  4278, 25525,  1007,  1997,  8327,  2686,
-    //       102,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0,     0,     0,     0,     0,     0,
-    //         0,     0,     0,     0};
-    
     for (size_t i = 0; i < MaxSeqCount; i++) {
         if (code1[i]) {
             reinterpret_cast<int*>(input->inputIds)[i] = code1[i];
@@ -360,8 +397,8 @@ Status BertTokenizer::ConvertResult(std::shared_ptr<TNNSDKOutput> output, std::s
 
     for (auto start : start_index) {
         for (auto end : end_index) {
-            if (start >= features.size()) continue;
-            if (end >= features.size()) continue;
+            if (start >= features_.size()) continue;
+            if (end >= features_.size()) continue;
             if (end < start) continue;
             int length = end - start + 1;
             if (length > 20) continue;
@@ -370,19 +407,23 @@ Status BertTokenizer::ConvertResult(std::shared_ptr<TNNSDKOutput> output, std::s
     }
 
     std::sort(prelim_predictions.begin(), prelim_predictions.end(), cmp);
+    size_t nums = 0;
     for (auto item : prelim_predictions) {
+        if (nums >= maxAns) break;
         std::string tok;
-        for (size_t i = item->start; i <= item->end; i++) {
-            if (features[i].find("##") != std::string::npos) {
-                auto s = features[i].replace(features[i].find("##"), 2, "");
-                tok += s + " ";
+        for (size_t i = item->start; i <= item->end; i++) { // [CLS] & [SEP]
+            if (features_[i].find("##") != std::string::npos) {
+                auto s = features_[i].substr(features_[i].find("##") + 2);
+                tok += s;
             } else {
-                tok += features[i] + " ";
+                if (i == item->start) tok += features_[i];
+                else tok += " " + features_[i];
             }
         }
-        std::cout << tok << std::endl;
-        // std::cout << item->start << " " << item->end << " " << item->start_logit << " " << item->end_logit << std::endl;
+        std::cout << tok << " " << item->start_logit + item->end_logit << std::endl;
+        nums++;
     }
+    
 
     return TNN_OK;
 }

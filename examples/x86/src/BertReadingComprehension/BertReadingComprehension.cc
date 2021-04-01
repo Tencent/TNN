@@ -27,7 +27,6 @@ using namespace TNN_NS;
 #define MAX_SEQ_LENGTH 256
 int main(int argc, char **argv) {
     auto tokenizer = std::make_shared<BertTokenizer>();
-    std::cout << "Initializing..." << std::endl;
     tokenizer->Init("../vocab.txt");
     Status status;
     
@@ -41,22 +40,20 @@ int main(int argc, char **argv) {
 
     std::string paragraph = "In its early years, the new convention center failed to meet attendance and revenue expectations.[12] By 2002, many Silicon Valley businesses were choosing the much larger Moscone Center in San Francisco over the San Jose Convention Center due to the latter's limited space. A ballot measure to finance an expansion via a hotel tax failed to reach the required two-thirds majority to pass. In June 2005, Team San Jose built the South Hall, a $6.77 million, blue and white tent, adding 80,000 square feet (7,400 m2) of exhibit space";
 
-    std::string question = "how may votes did the ballot measure need?";
+    std::string question = "where is the businesses choosing to go?";
 
     auto bertInput = std::make_shared<BertTokenizerInput>();
     tokenizer->buildInput(paragraph, question, bertInput);
 
     // 创建tnn实例
-    auto proto_content = fdLoadFile("bertsquad10_clean.tnnproto");
-    auto model_content = fdLoadFile("bertsquad10_clean.tnnmodel");
+    auto proto_content = fdLoadFile("/root/download/model/bert2/bertsquad10_clean.tnnproto");
+    auto model_content = fdLoadFile("/root/download/model/bert2/bertsquad10_clean.tnnmodel");
     int h = 1, w = 256;
     std::vector<int> nchw = {1, 256};
 
     // auto inputId = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::MatType::NCHW_FLOAT, nchw, bertInput->inputIds);
     // auto inputMask = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::MatType::NCHW_FLOAT, nchw, bertInput->inputMasks);
     // auto segment = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::MatType::NCHW_FLOAT, nchw, bertInput->segments);
-
-    std::cout << "Building Inputs..." << std::endl;
 
     auto option = std::make_shared<TNNSDKOption>();
     option->proto_content = proto_content;
@@ -71,7 +68,6 @@ int main(int argc, char **argv) {
 
 
     auto predictor = std::make_shared<TNNSDKSample>();
-    std::cout << "initing predictor" << std::endl;
 
     auto bertOutput = predictor->CreateSDKOutput();
     
@@ -79,16 +75,7 @@ int main(int argc, char **argv) {
     CHECK_TNN_STATUS(predictor->Predict(bertInput, bertOutput));
 
     float* data1 = reinterpret_cast<float*>(bertOutput->GetMat("unstack:0")->GetData());
-    // for (int i = 0; i < 256; i++) {
-    //     std::cout << data1[i] << ", ";
-    // }
-    // std::cout << std::endl;
-
-    // auto index = tokenizer->_get_best_indexes(data1, 256, 20);
-    // for (int i = 0; i < index.size(); i++) std::cout << index[i] << std::endl;
     std::string ans;
     tokenizer->ConvertResult(bertOutput, ans);
 
-
-    // if (paragraph) free(paragraph);
 }

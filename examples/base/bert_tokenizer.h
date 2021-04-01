@@ -18,6 +18,7 @@
 #include "tnn_sdk_sample.h"
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <memory>
 #include <vector>
@@ -61,6 +62,12 @@ public:
     // @brief get indexed
     std::vector<size_t> _get_best_indexes(float* logits, size_t size, size_t n_best_size);
 
+    bool is_punct_char(char cp);
+
+    std::string basic_separate(std::string text);
+
+    std::string toLower(std::string s);
+
     Status ConvertResult(std::shared_ptr<TNNSDKOutput> output, std::string& ans);
 private:
     void max_seg_(std::string s, std::vector<size_t>& results);
@@ -86,7 +93,9 @@ private:
     static std::string kPadToken;
     static std::string kClsToken;
 
-    std::vector<std::string> features;
+    std::vector<std::string> features_, features_low_;
+    std::vector<size_t> token_map_;
+
 };
 } // namespace TNN_NS
 
