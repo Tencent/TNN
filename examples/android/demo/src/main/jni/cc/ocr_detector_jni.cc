@@ -56,13 +56,14 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
     gComputeUnitType = computUnitType;
 
     TNN_NS::Status status = TNN_NS::TNN_OK;
-    auto option = std::make_shared<TNN_NS::TNNSDKOption>();
     {
+        auto option = std::make_shared<TNN_NS::OCRTextboxDetectorOption>();
         option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         option->library_path="";
-        option->precision = TNN_NS::PRECISION_HIGH;
         option->proto_content = protoContent;
         option->model_content = modelContent;
+        option->scale_down_ratio = 1.0f;
+        option->padding = 50;
         if (gComputeUnitType == 1) {
             option->compute_units = TNN_NS::TNNComputeUnitsGPU;
             status = gOCRTextboxDetector->Init(option);
@@ -89,9 +90,8 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
 
     status = TNN_NS::TNN_OK;
     {
-        option = std::make_shared<TNN_NS::TNNSDKOption>();
+        auto option = std::make_shared<TNN_NS::TNNSDKOption>();
         option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-        option->precision = TNN_NS::PRECISION_HIGH;
         option->library_path="";
         option->proto_content = protoContent;
         option->model_content = modelContent;
@@ -123,7 +123,6 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
     {
         auto recognizer_option = std::make_shared<TNN_NS::OCRTextRecognizerOption>();
         recognizer_option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-        recognizer_option->precision = TNN_NS::PRECISION_HIGH;
         recognizer_option->library_path="";
         recognizer_option->vocab_path=modelPathStr + "/keys.txt";
         recognizer_option->proto_content = protoContent;
@@ -138,7 +137,7 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
             gOCRTextRecognizer->setCheckNpuSwitch(false);
             status = gOCRTextRecognizer->Init(recognizer_option);
         } else {
-            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+            recognizer_option->compute_units = TNN_NS::TNNComputeUnitsCPU;
             status = gOCRTextRecognizer->Init(recognizer_option);
         }
 
