@@ -60,7 +60,6 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
     {
         option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         option->library_path="";
-        option->precision = TNN_NS::PRECISION_HIGH;
         option->proto_content = protoContent;
         option->model_content = modelContent;
         if (gComputeUnitType == 1) {
@@ -91,7 +90,6 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
     {
         option = std::make_shared<TNN_NS::TNNSDKOption>();
         option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-        option->precision = TNN_NS::PRECISION_HIGH;
         option->library_path="";
         option->proto_content = protoContent;
         option->model_content = modelContent;
@@ -123,7 +121,6 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
     {
         auto recognizer_option = std::make_shared<TNN_NS::OCRTextRecognizerOption>();
         recognizer_option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-        recognizer_option->precision = TNN_NS::PRECISION_HIGH;
         recognizer_option->library_path="";
         recognizer_option->vocab_path=modelPathStr + "/keys.txt";
         recognizer_option->proto_content = protoContent;
