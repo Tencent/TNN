@@ -141,6 +141,45 @@ Status ArmInnerProductLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, cons
     return TNN_OK;
 }
 
+Status ArmInnerProductLayerAcc::ExecNchwFp16(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    InnerProductLayerParam *fc_param = reinterpret_cast<InnerProductLayerParam *>(param_);
+    CHECK_PARAM_NULL(fc_param);
+
+    DimsVector dims_input = inputs[0]->GetBlobDesc().dims;
+    int batch             = dims_input[0];
+    int channel           = dims_input[1];
+    int hw                = DimsVectorUtils::Count(dims_input, 2);
+    int ic                = dims_input[1] * DimsVectorUtils::Count(dims_input, 2);
+    const int oc          = fc_param->num_output;
+    auto data_byte_size   = DataTypeUtils::GetBytesSize(DATA_TYPE_HALF);
+    const int input_size  = batch * ic * data_byte_size;
+    const int bias_size   = oc * data_byte_size;
+    const int output_size = batch * oc * data_byte_size;
+
+    fp16_t *input_ptr  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    fp16_t *output_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    fp16_t *tmp_output_ptr = output_ptr;
+
+    if (fc_param->has_bias) {
+        OMP_PARALLEL_FOR_
+        for (int b = 0; b < batch; ++b) {
+            // output shape: [batch, oc]
+            auto dst_ptr_b = tmp_output_ptr + b * oc;
+            memcpy(dst_ptr_b, buffer_bias_.force_to<fp16_t *>(), bias_size);
+        }
+    } else {
+        memset(tmp_output_ptr, 0, output_size);
+    }
+
+    // buffer for PackA in gemm
+    auto input_pack_ptr = reinterpret_cast<fp16_t *>(context_->GetSharedWorkSpace(input_size + NEON_KERNEL_EXTRA_LOAD));
+
+    GemmHalfPackA(batch, oc, ic, input_ptr, input_pack_ptr, ic, buffer_weight_.force_to<fp16_t *>(), oc, tmp_output_ptr,
+                  oc);
+
+    return TNN_OK;
+}
+
 #endif  // TNN_ARM82
 
 }  // namespace TNN_NS
