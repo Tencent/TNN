@@ -155,6 +155,12 @@
         set(TNN_CPU_ENABLE ON CACHE BOOL "" FORCE)
    ````
 
+   You need to set OPENCV_ANDROID_SDK_PATH to use personal OpenCV SDK:
+   在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 更新指令为如下，使用指定的OPENCV。
+   ````
+        set(OPENCV_ANDROID_SDK_PATH <path_to_opencv_android_sdk>)
+   ````
+
 ### Running result
 1. Face Detection-Pictures
    

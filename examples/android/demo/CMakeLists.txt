@@ -12,9 +12,10 @@ cmake_minimum_required(VERSION 3.4.1)
 set(TNN_ROOT ../../..)
 set(BASE_SRC ../../base)
 set(UTILS_SRC ../../utils)
+set(OPENCV_ANDROID_SDK_PATH ${CMAKE_SOURCE_DIR}/../../../third_party/opencv/Android/OpenCV-android-sdk)
 include_directories(${TNN_ROOT}/include)
 include_directories(${TNN_ROOT}/third_party/opencl/include)
-include_directories(${TNN_ROOT}/third_party/opencv/Android/OpenCV-android-sdk/sdk/native/jni/include)
+include_directories(${OPENCV_ANDROID_SDK_PATH}/sdk/native/jni/include)
 include_directories(../demo/src/main/jni/thirdparty)
 include_directories(../demo/src/main/jni/thirdparty/kannarotate-android-lib/include)
 include_directories(../demo/src/main/jni/thirdparty/kannarotate-android-lib/src)
@@ -54,7 +55,7 @@ if(TNN_OPENCV_ENABLE)
     set_target_properties(opencv
             PROPERTIES
             IMPORTED_LOCATION
-            ${CMAKE_SOURCE_DIR}/../../../third_party/opencv/Android/OpenCV-android-sdk/sdk/native/libs/${ANDROID_ABI}/libopencv_java3.so)
+            ${OPENCV_ANDROID_SDK_PATH}/sdk/native/libs/${ANDROID_ABI}/libopencv_java3.so)
 endif()
 
 if(TNN_HUAWEI_NPU_ENABLE)

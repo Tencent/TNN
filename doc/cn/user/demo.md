@@ -156,6 +156,12 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
         set(TNN_OPENCV_ENABLE ON CACHE BOOL "" FORCE)
         set(TNN_CPU_ENABLE ON CACHE BOOL "" FORCE)
    ````
+
+   如需指定自定义OPENCV Android SDK路径:
+   在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 更新指令为如下，使用指定的OPENCV。
+   ````
+        set(OPENCV_ANDROID_SDK_PATH <path_to_opencv_android_sdk>)
+   ````
       
  
 ### 运行效果
