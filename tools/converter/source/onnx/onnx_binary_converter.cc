@@ -27,23 +27,52 @@ TNN_NS::ActivationType OnnxBinaryConverter::ActivationType(const onnx::NodeProto
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxBinaryConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
-                                            const onnx::NodeProto &node,
-                                            std::map<std::string, const onnx::TensorProto *>& proxy_initializers_map,
-                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
-                                            bool &quantized_model) {
-    const std::string &onnx_op = node.op_type();
-    auto param                 = new TNN_NS::MultidirBroadcastLayerParam;
-    auto cur_layer             = net_structure.layers.back();
-    cur_layer->param           = std::shared_ptr<TNN_NS::LayerParam>(param);
-    param->type                = cur_layer->type_str;
-    param->name                = cur_layer->name;
-    param->quantized           = false;
+TNN_NS::Status OnnxBinaryConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
+                                         const onnx::NodeProto &node,
+                                         std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                         std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
+                                         bool &quantized_model) {
+    auto param       = new TNN_NS::MultidirBroadcastLayerParam;
+    auto cur_layer   = net_structure.layers.back();
+    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->type      = cur_layer->type_str;
+    param->name      = cur_layer->name;
+    param->quantized = false;
 
-    param->weight_input_index = -1;
+    int weight_input_index = -1;
+    std::string weight_name;
+    auto status = GetWeightInputIndexName(weight_input_index, weight_name, node, proxy_initializers_map, proxy_nodes);
+    if (status != TNN_NS::TNN_CONVERT_OK) {
+        return status;
+    }
 
-    cur_layer->inputs[0] = node.input(0);
-    cur_layer->inputs[1] = node.input(1);
+    param->weight_input_index = weight_input_index;
+    if (weight_input_index == -1) {
+        return TNN_NS::TNN_CONVERT_OK;
+    }
+
+    const auto *weight_tensor = proxy_initializers_map[weight_name];
+    auto *weight_tensor_data  = reinterpret_cast<const float *>(GetTensorProtoData(*weight_tensor));
+    const auto &weight_dims   = weight_tensor->dims();
+    int weight_size           = 1;
+    for (const auto dim : weight_dims) {
+        weight_size *= dim;
+    }
+
+    auto layer_resource              = new TNN_NS::EltwiseLayerResource;
+    layer_resource->name             = cur_layer->name;
+    TNN_NS::RawBuffer element_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
+    ::memcpy(element_handle.force_to<float *>(), weight_tensor_data, weight_size * sizeof(float));
+    layer_resource->element_handle             = element_handle;
+    net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
+
+    cur_layer->inputs.resize(1);
+    if (weight_input_index == 0) {
+        cur_layer->inputs[0] = node.input(1);
+    } else {
+        cur_layer->inputs[0] = node.input(0);
+    }
+
     return TNN_NS::TNN_CONVERT_OK;
 }
 

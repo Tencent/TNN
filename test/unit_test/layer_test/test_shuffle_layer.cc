@@ -39,7 +39,7 @@ TEST_P(ShuffleLayerTest, ShuffleLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_X86 == dev) {
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
         GTEST_SKIP();
     }
 

@@ -84,13 +84,17 @@ Status ArmLSTMONNXLayerAcc::LstmSingleDirection(const float *x, float *y, const 
     const int hidden_size = hidden_size_;
     const int seq_len     = seq_len_;
 
-    // extra load for LstmActivate
-    RawBuffer gates      = RawBuffer(seq_len * batch_size * hidden_size * 4 * sizeof(float) + NEON_KERNEL_EXTRA_LOAD);
-    auto gates_ptr       = gates.force_to<float *>();
+    int gates_count      = seq_len * batch_size * hidden_size * 4;
     int input_pack_count = MAX(seq_len * batch_size * input_size, batch_size * hidden_size);
-    // extra load for GemmFloatPackA
-    RawBuffer buffer_input_pack = RawBuffer(input_pack_count * sizeof(float) + NEON_KERNEL_EXTRA_LOAD);
-    auto input_pack_ptr         = buffer_input_pack.force_to<float *>();
+    auto workspace =
+        context_->GetSharedWorkSpace((gates_count + input_pack_count) * sizeof(float) + NEON_KERNEL_EXTRA_LOAD);
+    auto gates_ptr      = reinterpret_cast<float *>(workspace);
+    auto input_pack_ptr = gates_ptr + gates_count;
+    for (int i = 0; i < seq_len * batch_size; ++i) {
+        float *gates_i = gates_ptr + i * hidden_size * 4;
+        memcpy(gates_i, b, hidden_size * 4 * sizeof(float));
+    }
+
     GemmFloatPackA(seq_len * batch_size, hidden_size * 4, input_size, x, input_pack_ptr, input_size, w, hidden_size * 4,
                    gates_ptr, hidden_size * 4);
 
@@ -98,16 +102,6 @@ Status ArmLSTMONNXLayerAcc::LstmSingleDirection(const float *x, float *y, const 
         int ti         = reverse ? seq_len - 1 - t : t;
         float *y_t     = y + ti * batch_size * hidden_size;
         float *gates_t = gates_ptr + ti * batch_size * hidden_size * 4;
-
-        for (int i = 0; i < batch_size; ++i) {
-            float *gates_b    = gates_t + i * hidden_size * 4;
-            const float *bias = b;
-            for (int q = 0; q < hidden_size_; ++q) {
-                Float4::save(gates_b, Float4::load(gates_b) + Float4::load(bias));
-                gates_b += 4;
-                bias += 4;
-            }
-        }
 
         GemmFloatPackA(batch_size, hidden_size * 4, hidden_size, h_t, input_pack_ptr, hidden_size, r, hidden_size * 4,
                        gates_t, hidden_size * 4);
@@ -138,6 +132,10 @@ static void TransposeAndPackWeight(const float *src, float *dst, int input_size,
         }
     }
     PackB_8(input_size, hidden_size * 4, src_transpose, hidden_size * 4, dst);
+}
+
+bool ArmLSTMONNXLayerAcc::UseNaiveConstantBlobs() {
+    return true;
 }
 
 ArmLSTMONNXLayerAcc::~ArmLSTMONNXLayerAcc() {}

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+HIAI_DDK_VERSION=hwhiai-ddk-100.500.010.011
 #URL, local path
 download_file() { #URL, path
   if [ -e $2 ]; then return 0; fi
@@ -29,7 +30,8 @@ download_ddk() {
 
 }
 download_ddk\
-	"https://raw.githubusercontent.com/darrenyao87/tnn-models/master/ddk/hwhiai-ddk-100.320.030.010.tar"\
-  "hwhiai-ddk-100.320.030.010.tar"
-tar -xvf hwhiai-ddk-100.320.030.010.tar
-ln -sb hwhiai-ddk-100.320.030.010 hiai_ddk_latest
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/ddk/$HIAI_DDK_VERSION.tar"\
+  "$HIAI_DDK_VERSION.tar"
+tar -xvf $HIAI_DDK_VERSION.tar
+rm hiai_ddk_latest
+ln -s $HIAI_DDK_VERSION hiai_ddk_latest

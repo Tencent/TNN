@@ -77,6 +77,13 @@ protected:
 
     virtual bool DataTypeSupported(DataType data_type);
 
+    // @brief if true, const blobs are loaded the same as naive device
+    virtual bool UseNaiveConstantBlobs();
+    // @brief config blobdesc for reload buffer to arm blob
+    virtual Status ConfigBuffer2ArmBlobDesc(BlobDesc &desc);
+    // @brief reload buffer to arm blob using packed format
+    virtual Status RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDesc &desc);
+
 private:
     // @brief return device layer acc support data format
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);

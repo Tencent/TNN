@@ -45,6 +45,11 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
         GTEST_SKIP();
     }
 
+    // reshape_type 1 does not support dims>4
+    if (reshape_type == 1 && dim_size > 4) {
+        GTEST_SKIP();
+    }
+
     std::vector<int> input_dims = {batch, channel};
     while(input_dims.size() < dim_size) input_dims.push_back(input_size);
 

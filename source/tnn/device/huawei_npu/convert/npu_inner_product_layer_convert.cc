@@ -30,10 +30,19 @@ Status NpuInnerProductLayer::Convert() {
     }
 
     // weight
-    vector<int> input_shape = input_ops_[0]->GetShape();
+    vector<int> temp_shape = input_ops_[0]->GetShape();
+    temp_shape[0]          = param->num_output;
+    std::vector<int64_t> w_shape;
+    w_shape.clear();
+    for (auto dim : temp_shape) {
+        w_shape.push_back(dim);
+    }
+    for (int i = temp_shape.size(); i < 4; ++i) {
+        w_shape.push_back(1);
+    }
+    ge::Shape weight_shape(w_shape);
     std::string weight_name = layer_name_ + "_weight";
-    ge::Shape weight_shape({param->num_output, input_shape[1], input_shape[2], input_shape[3]});
-    auto weight_const = std::make_shared<ge::op::Const>(weight_name);
+    auto weight_const       = std::make_shared<ge::op::Const>(weight_name);
     NpuUtils::CreateAttrValue(weight_const, weight_shape, resource->weight_handle);
     weight_ops_.push_back(weight_const);
 
@@ -41,6 +50,7 @@ Status NpuInnerProductLayer::Convert() {
     auto output = std::make_shared<ge::op::FullConnection>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_input_w(*weight_const);
+    output->set_attr_num_output(param->num_output);
     int bias_count = resource->bias_handle.GetDataCount();
     if (param->has_bias) {
         std::string bias_name = layer_name_ + "_bias";

@@ -83,6 +83,7 @@ protected:
     };
 
     std::map<LayerType, std::shared_ptr<LayerAccCreator>> _x86_map;
+    std::set<LayerType> _ov_custom_type;
 };
 
 //@brief TypeLayerBuilderCreator register map

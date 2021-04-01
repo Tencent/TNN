@@ -23,10 +23,13 @@
 namespace TNN_NS {
 
 template<typename T>
-void pack_t(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, conv_gemm_config<T, T, T> &conv_gemm_conf);
+void pack_col_a_n(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, conv_gemm_config<T, T, T> &conv_gemm_conf);
 
 template<typename T>
-void pack_n(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, conv_gemm_config<T, T, T> &conv_gemm_conf);
+void pack_col_b_n(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, conv_gemm_config<T, T, T> &conv_gemm_conf);
+
+template<typename T>
+void pack_col_a_t(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, conv_gemm_config<T, T, T> &conv_gemm_conf);
 
 } // namespace tnn
 

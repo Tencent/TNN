@@ -27,7 +27,7 @@ TNN_NS::ActivationType OnnxUnsqueezeConverter::ActivationType(const onnx::NodePr
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxUnsqueezeConverter::exec(tnn::NetStructure& net_structure, tnn::NetResource& net_resource,
+TNN_NS::Status OnnxUnsqueezeConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                             const onnx::NodeProto& node,
                                             std::map<std::string, const onnx::TensorProto*>& proxy_initializers_map,
                                             std::map<std::string, std::shared_ptr<OnnxProxyNode>>& proxy_nodes,
@@ -41,18 +41,13 @@ TNN_NS::Status OnnxUnsqueezeConverter::exec(tnn::NetStructure& net_structure, tn
     param->axes      = GetAttributeIntVector(node, "axes");
     auto& data_name  = node.input(0);
     const auto& iter = proxy_initializers_map.find(data_name);
-    if (iter != proxy_initializers_map.end()) {
-        param->data_in_resource            = true;
-        auto& resource_map                 = net_resource.resource_map;
-        auto resource                      = std::make_shared<TNN_NS::UnsqueezeLayerResource>();
-        resource_map[cur_layer->name]      = resource;
-        auto data_tensor_proto             = iter->second;
-        TNN_NS::RawBuffer* data_raw_buffer = nullptr;
-        CreateRawBufferFromTensor(*data_tensor_proto, &data_raw_buffer);
-        resource->data = *data_raw_buffer;
-        cur_layer->inputs.clear();
-    } else {
-        param->data_in_resource = false;
+    for (const auto& input : node.input()) {
+        if (proxy_initializers_map.find(input) != proxy_initializers_map.end()) {
+            auto const_tensor                   = proxy_initializers_map[input];
+            TNN_NS::RawBuffer* const_raw_buffer = nullptr;
+            CreateRawBufferFromTensor(*const_tensor, &const_raw_buffer);
+            net_resource.constant_map[input] = std::shared_ptr<TNN_NS::RawBuffer>(const_raw_buffer);
+        }
     }
     return TNN_NS::TNN_CONVERT_OK;
 }

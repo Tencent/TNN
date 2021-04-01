@@ -20,10 +20,6 @@
 namespace TNN_NS {
 
 int DimsVectorUtils::Count(const DimsVector &dims, int start_index, int end_index) {
-    if (dims.size() < start_index) {
-        return 0;
-    }
-
     if (-1 == end_index || end_index > dims.size()) {
         end_index = static_cast<int>(dims.size());
     }

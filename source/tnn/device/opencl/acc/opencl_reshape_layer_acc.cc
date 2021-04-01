@@ -24,10 +24,18 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
 
+    int reshape_type = -1;
     ReshapeLayerParam *reshape_param = dynamic_cast<ReshapeLayerParam *>(param_);
     if (!reshape_param) {
-        LOGE("Error: layer param is null\n");
-        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
+        FlattenLayerParam *flatten_param = dynamic_cast<FlattenLayerParam *>(param_);
+        if(!flatten_param) {
+            LOGE("Error: layer param is null\n");
+            return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
+        } else {
+            reshape_type = 0;
+        }
+    } else {
+        reshape_type = reshape_param->reshape_type;
     }
 
     run_3d_ndrange_ = false;
@@ -46,17 +54,17 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     src_format = input_dims_size_ == 5 ? "Image5D" : input_dims_size_ == 6 ? "Image6D" : src_format;
     dst_format = output_dims_size_ == 5 ? "Image5D" : output_dims_size_ == 6 ? "Image6D" : dst_format;
 
-    if (reshape_param->reshape_type == 0)
+    if (reshape_type == 0)
     {
         im_to_bf_func_name      = src_format + "ToNCHWBuffer";
         bf_to_im_func_name      = "NCHWBufferTo" + dst_format;
-    } else if (reshape_param->reshape_type == 1 && outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
+    } else if (reshape_type == 1 && outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
         // tensorflow reshape data format is NHWC, only support NHC4W4 blob for now
         im_to_bf_func_name      = src_format + "ToNHWCBuffer";
         bf_to_im_func_name      = "NHWCBufferTo" + dst_format;
     } else {
         LOGE("Error: Unsupport reshape type(%d), src_format: %s, dst_format: %s\n",
-             reshape_param->reshape_type, src_format.c_str(), dst_format.c_str());
+             reshape_type, src_format.c_str(), dst_format.c_str());
         return Status(TNNERR_MODEL_ERR, "Error: OpenCLReshapeLayerAcc failed!\n");
     }
 

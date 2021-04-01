@@ -16,6 +16,7 @@
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 // @brief concat layer metal acc
@@ -55,7 +56,7 @@ Status MetalConcatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
         auto dims_input_1 = inputs[1]->GetBlobDesc().dims;
         MetalConcatParams metal_params;
 
-        metal_params.input_size      = GetBlobDim(dims_input_0, 2) * GetBlobCount(dims_input_0, 3);
+        metal_params.input_size      = DimsFunctionUtils::GetDim(dims_input_0, 2) * DimsFunctionUtils::GetDimProduct(dims_input_0, 3);
         metal_params.input_channel_0 = dims_input_0[1];
         metal_params.input_slice_0   = UP_DIV(dims_input_0[1], 4);
 
@@ -63,7 +64,7 @@ Status MetalConcatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
         metal_params.input_slice_1   = UP_DIV(dims_input_1[1], 4);
 
         metal_params.output_channel = dims_output[1];
-        metal_params.output_size    = GetBlobDim(dims_output, 2) * GetBlobCount(dims_output, 3);
+        metal_params.output_size    = DimsFunctionUtils::GetDim(dims_output, 2) * DimsFunctionUtils::GetDimProduct(dims_output, 3);
         metal_params.output_slice   = UP_DIV(dims_output[1], 4);
 
         metal_params.batch = dims_output[0];
@@ -75,8 +76,8 @@ Status MetalConcatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
         dims_output[1] = UP_DIV(dims_output[1], 4);
         MetalConcatParamV2 metal_params;
         metal_params.outer_size = DimsVectorUtils::Count(dims_output, 0, axis);
-        metal_params.inner_size = GetBlobCount(dims_output, axis+1);
-        metal_params.axis_size  = GetBlobDim(dims_output, axis);
+        metal_params.inner_size = DimsFunctionUtils::GetDimProduct(dims_output, axis+1);
+        metal_params.axis_size  = DimsFunctionUtils::GetDim(dims_output, axis);
 
         buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
                                             length:sizeof(MetalConcatParamV2)
@@ -114,8 +115,8 @@ Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
             BREAK_IF(status != TNN_OK);
             
             auto dims_output   = output->GetBlobDesc().dims;
-            auto output_width  = GetBlobCount(dims_output, 3);
-            auto output_height = GetBlobDim(dims_output, 2);
+            auto output_width  = DimsFunctionUtils::GetDimProduct(dims_output, 3);
+            auto output_height = DimsFunctionUtils::GetDim(dims_output, 2);
             auto output_slice  = UP_DIV(dims_output[1], 4);
             auto batch         = dims_output[0];
             auto threads =  MTLSizeMake(output_width * output_height, output_slice, batch);
@@ -140,11 +141,11 @@ Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
 
     for (int i = 0; i < inputs.size(); i++) {
         auto input_dims = inputs[i]->GetBlobDesc().dims;
-        int axis_size = GetBlobDim(input_dims, layer_param->axis);
+        int axis_size = DimsFunctionUtils::GetDim(input_dims, layer_param->axis);
         if (on_channel) {
             axis_size = UP_DIV(axis_size, 4);
         }
-        int channel_size = GetBlobDim(input_dims, 1);
+        int channel_size = DimsFunctionUtils::GetDim(input_dims, 1);
         do {
             if (layer_param->axis == 1) {
                 status = [context_impl load:@"concat_axis_1"
@@ -174,7 +175,7 @@ Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
             status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
             BREAK_IF(status != TNN_OK);
         } while (0);
-        offset += GetBlobDim(input_dims, layer_param->axis);;  
+        offset += DimsFunctionUtils::GetDim(input_dims, layer_param->axis);;  
     }
     [encoder endEncoding];
     [context_impl commit];

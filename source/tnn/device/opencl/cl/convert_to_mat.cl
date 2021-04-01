@@ -222,12 +222,11 @@ __kernel void NCHWBlobConvertToNCHW(GLOBAL_SIZE_2_DIMS __global const FLOAT *inp
 
     DEAL_NON_UNIFORM_DIM2(global_id0, batch_channel_idx);
 
-    const int batch_idx     = batch_channel_idx / channels;
-    const int channel_idx   = batch_channel_idx % channels;
     int buffer_offset = batch_channel_idx * global_size_dim0 + global_id0;
     float value = input_ptr[buffer_offset];
 
 #ifdef ENABLE_SCALE_BIAS
+    const int channel_idx   = batch_channel_idx % channels;
     float scale_data = scale[channel_idx];
     float bias_data  = bias[channel_idx];
 

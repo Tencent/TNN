@@ -24,6 +24,7 @@ Blob1DMemoryPool::Blob1DMemoryPool(AbstractDevice* device) : BlobMemoryPool(devi
 }
 
 Blob1DMemoryPool::~Blob1DMemoryPool() {
+    ClearBlobMemoryPool();
 }
 
 void Blob1DMemoryPool::ClearBlobMemoryPool() {

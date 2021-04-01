@@ -18,6 +18,7 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -54,7 +55,7 @@ Status MetalUnaryLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
                                         const std::vector<Blob *> &outputs,
                                         MTLSize &size) {
     const auto& output_dims = outputs[0]->GetBlobDesc().dims;
-    auto hw = GetBlobCount(output_dims, 2);
+    auto hw = DimsFunctionUtils::GetDimProduct(output_dims, 2);
     auto slice = UP_DIV(output_dims[1] ,4);
     auto batch = output_dims[0];
     size = MTLSizeMake(hw, slice, batch);

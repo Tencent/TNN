@@ -43,10 +43,11 @@ namespace optimizer {
 
     bool NetOptimizerInsertLayoutReformat::IsSupported(const NetworkConfig &net_config) {
         // save net_config
-        net_config_ = &net_config;
-        auto device    = net_config.device_type;
-        auto precision = net_config.precision;
-        device_        = GetDevice(device);
+        net_config_     = &net_config;
+        auto device     = net_config.device_type;
+        auto precision  = net_config.precision;
+        device_         = GetDevice(device);
+        adaptor_device_ = GetDevice(DEVICE_ARM);
         return device == DEVICE_ARM || device == DEVICE_OPENCL || device == DEVICE_METAL;
     }
 
@@ -77,6 +78,16 @@ namespace optimizer {
         }
     }
 
+    static std::shared_ptr<const ImplementedLayout> GetAdaptorLayouts(const DeviceType &type) {
+        auto res = std::make_shared<ImplementedLayout>();
+        if (type == DEVICE_METAL) {
+            res->layouts.push_back(DATA_FORMAT_NC4HW4);
+        } else if (type == DEVICE_OPENCL) {
+            res->layouts.push_back(DATA_FORMAT_NHC4W4);
+        }
+        return res;
+    }
+
     static bool NeedDoReformat(DataFormat src_fmt, std::shared_ptr<const ImplementedLayout> dst_fmts) {
         for (const auto &dst_fmt : dst_fmts->layouts) {
             if (dst_fmt == src_fmt) {
@@ -84,6 +95,22 @@ namespace optimizer {
             }
         }
         return true;
+    }
+
+    // metal and opencl may use adaptor layer to fall back computing on arm
+    std::shared_ptr<const ImplementedLayout> NetOptimizerInsertLayoutReformat::GetLayoutsByLayerType(LayerType type) {
+        auto device_layouts = device_->GetImplementedLayout(type);
+        if (!device_layouts || device_layouts->layouts.size() < 1) {
+            auto adaptor_device_layouts = adaptor_device_->GetImplementedLayout(type);
+            if (!adaptor_device_layouts || adaptor_device_layouts->layouts.size() < 1) {
+                LOGE("NetOptimizerInsertLayoutReformat Error: empty adaptor device layouts of %d\n", type);
+                return std::make_shared<ImplementedLayout>();
+            } else {
+                return GetAdaptorLayouts(device_->GetDeviceType());
+            }
+        } else {
+            return device_layouts;
+        }
     }
 
     Status NetOptimizerInsertLayoutReformat::Optimize(NetStructure *structure, NetResource *resource) {
@@ -123,7 +150,7 @@ namespace optimizer {
                 for (const auto &layer_input : cur_layer->inputs) {
                     if (layer_input == model_input) {
                         // get implemented layouts
-                        auto implemented_layouts = device_->GetImplementedLayout(cur_layer->type);
+                        auto implemented_layouts = GetLayoutsByLayerType(cur_layer->type);
                         if (!implemented_layouts || implemented_layouts->layouts.size() < 1) {
                             LOGE("NetOptimizerInsertLayoutReformat Error: empty implemented_layouts of layer %d\n",
                                  cur_layer->type);
@@ -153,8 +180,8 @@ namespace optimizer {
                     CreateReformat(model_input + reformat_name_suffix(reformat_layout) + "__from_model_input__",
                                    input_layout, reformat_layout);
 
-                RETURN_ON_NEQ(AdjustLayer(layers_orig, structure, constant_layers, input_layout, reformat_layout, new_layer,
-                                          reformat_outs, reformat_name_suffix(reformat_layout), -1, count),
+                RETURN_ON_NEQ(AdjustLayer(layers_orig, structure, constant_layers, input_layout, reformat_layout,
+                                          new_layer, reformat_outs, reformat_name_suffix(reformat_layout), -1, count),
                               TNN_OK);
 
                 LOGD("Insert layout refomat layer : src %s dst %s\n", new_layer->inputs[0].c_str(),
@@ -186,11 +213,11 @@ namespace optimizer {
                     continue;
                 }
                 for (int next_id = index + 1; next_id < count; next_id++) {
-                    auto next_layer         = layers_orig[next_id];
+                    auto next_layer = layers_orig[next_id];
                     if (constant_layers.count(next_layer->name) > 0) {
                         continue;
                     }
-                    auto next_layer_layouts = device_->GetImplementedLayout(next_layer->type);
+                    auto next_layer_layouts = GetLayoutsByLayerType(next_layer->type);
                     if (!next_layer_layouts || next_layer_layouts->layouts.size() < 1) {
                         LOGE("NetOptimizerInsertLayoutReformat Error: empty implemented_layouts of layer %d\n",
                              next_layer->type);
@@ -224,9 +251,10 @@ namespace optimizer {
                 std::shared_ptr<LayerInfo> new_layer = CreateReformat(
                     cur_layer->name + reformat_name_suffix(reformat_layout), cur_layer_layout, reformat_layout);
 
-                RETURN_ON_NEQ(AdjustLayer(layers_orig, structure, constant_layers, cur_layer_layout, reformat_layout, new_layer,
-                                          reformat_outs, reformat_name_suffix(reformat_layout), index, count),
-                              TNN_OK);
+                RETURN_ON_NEQ(
+                    AdjustLayer(layers_orig, structure, constant_layers, cur_layer_layout, reformat_layout, new_layer,
+                                reformat_outs, reformat_name_suffix(reformat_layout), index, count),
+                    TNN_OK);
 
                 LOGD("Insert layout refomat layer : src %s dst %s\n", new_layer->inputs[0].c_str(),
                      new_layer->outputs[0].c_str());
@@ -288,9 +316,10 @@ namespace optimizer {
     }
 
     Status NetOptimizerInsertLayoutReformat::AdjustLayer(
-        std::vector<std::shared_ptr<LayerInfo>> &layers_orig, NetStructure *structure, const std::set<std::string> &constant_layers,
-        DataFormat cur_layer_layout, DataFormat reformat_layout, std::shared_ptr<LayerInfo> &new_layer,
-        std::vector<std::string> &reformat_outs, const std::string &reformat_name_suffix, const int index, const int count) {
+        std::vector<std::shared_ptr<LayerInfo>> &layers_orig, NetStructure *structure,
+        const std::set<std::string> &constant_layers, DataFormat cur_layer_layout, DataFormat reformat_layout,
+        std::shared_ptr<LayerInfo> &new_layer, std::vector<std::string> &reformat_outs,
+        const std::string &reformat_name_suffix, const int index, const int count) {
         // change blobs for layers to read blob data correctly
         new_layer->inputs = reformat_outs;
         for (auto cur_out : reformat_outs) {
@@ -299,10 +328,10 @@ namespace optimizer {
             structure->blobs.insert(new_out);
             // change the inputs of successed layers
             for (int next_id = index + 1; next_id < count; next_id++) {
-                auto next_layer         = layers_orig[next_id];
+                auto next_layer = layers_orig[next_id];
                 if (constant_layers.count(next_layer->name) > 0)
                     continue;
-                auto next_layer_layouts = device_->GetImplementedLayout(next_layer->type);
+                auto next_layer_layouts = GetLayoutsByLayerType(next_layer->type);
                 for (auto &next_in : next_layer->inputs) {
                     // only use reformat out when cur_layer_layout not supported
                     if (next_in == cur_out && NeedDoReformat(cur_layer_layout, next_layer_layouts)) {

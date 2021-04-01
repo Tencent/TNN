@@ -1,10 +1,5 @@
 #include "base.inc"
 
-typedef struct shape_3d { int data[3];} shape_3d;
-typedef struct shape_4d { int data[4];} shape_4d;
-typedef struct shape_5d { int data[5];} shape_5d;
-typedef struct shape_6d { int data[6];} shape_6d;
-
 __kernel void CopyImage(GLOBAL_SIZE_2_DIMS  
                     __read_only image2d_t input, 
                     __write_only image2d_t output,

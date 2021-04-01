@@ -48,7 +48,7 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
         GTEST_SKIP();
     }
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if (DEVICE_OPENCL == dev && (dim_count > 4 || axis != 1)) {
         GTEST_SKIP();
     }
 
