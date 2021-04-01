@@ -72,10 +72,19 @@ namespace test {
         TNN net;
         Status ret = net.Init(model_config);
         model_config.params.clear();
+        Timer timer_create_inst("CreateInst");
         if (CheckResult("init tnn", ret)) {
+            if (FLAGS_ec) {
+                // output CreateInst time cost when enable program cache is open
+                timer_create_inst.Start();
+            }
             auto instance = net.CreateInst(network_config, ret, input_shape);
             if (!CheckResult("create instance", ret)) {
                 return ret;
+            }
+            if (FLAGS_ec) {
+                timer_create_inst.Stop();
+                timer_create_inst.Print();
             }
             instance->SetCpuNumThreads(std::max(FLAGS_th, 1));
 

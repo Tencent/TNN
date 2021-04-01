@@ -141,6 +141,7 @@ function bench_android_shell() {
             $ADB logcat -c
             $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} ${KERNEL_TUNE} ${PROGRAM_CACHE} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model} -dl 7 >> $OUTPUT_LOG_FILE"
             sleep $INTERVAL
+            $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"CreateInst\" | tail -n 1 >> $OUTPUT_LOG_FILE"
             $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"TNN Benchmark time cost\" | grep ${device} | grep -w ${benchmark_model} | tail -n 1 >> $OUTPUT_LOG_FILE"
         done
     fi
@@ -158,6 +159,7 @@ function bench_android_shell() {
             $ADB logcat -c
             $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} ${KERNEL_TUNE} ${PROGRAM_CACHE} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
             sleep $INTERVAL
+            $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"CreateInst\" | tail -n 1 >> $OUTPUT_LOG_FILE"
             $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"TNN Benchmark time cost\" | grep ${device} | grep -w ${benchmark_model} | tail -n 1 >> $OUTPUT_LOG_FILE"
         done
     fi
@@ -173,6 +175,7 @@ function bench_android_shell() {
             $ADB logcat -c
             $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} ${KERNEL_TUNE} ${PROGRAM_CACHE} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -nt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
             sleep $INTERVAL
+            $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"CreateInst\" | tail -n 1 >> $OUTPUT_LOG_FILE"
             $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"TNN Benchmark time cost\" | grep ${device} | grep -w ${benchmark_model} | tail -n 1 >> $OUTPUT_LOG_FILE"
         done
     fi
@@ -249,6 +252,7 @@ function bench_android_app() {
                 result=$($ADB logcat -d | grep "TNN Benchmark time cost" | grep -w ${benchmark_model} | tail -n 1)
             done
             echo $result
+            $ADB logcat -d | grep "CreateInst" | tail -n 1 >> $WORK_DIR/$OUTPUT_LOG_FILE
             echo $result | grep -v "failed" >> $WORK_DIR/$OUTPUT_LOG_FILE
             sleep $INTERVAL
         done
@@ -273,6 +277,7 @@ function bench_android_app() {
                 result=$($ADB logcat -d | grep "TNN Benchmark time cost" | grep -w ${benchmark_model} | tail -n 1)
             done
             echo $result
+            $ADB logcat -d | grep "CreateInst" | tail -n 1 >> $WORK_DIR/$OUTPUT_LOG_FILE
             echo $result | grep -v "failed" >> $WORK_DIR/$OUTPUT_LOG_FILE
             sleep $INTERVAL
         done
@@ -299,6 +304,7 @@ function bench_android_app() {
                 result=$($ADB logcat -d | grep "TNN Benchmark time cost" | grep -w ${benchmark_model} | tail -n 1)
             done
             echo $result
+            $ADB logcat -d | grep "CreateInst" | tail -n 1 >> $WORK_DIR/$OUTPUT_LOG_FILE
             echo $result | grep -v "failed" >> $WORK_DIR/$OUTPUT_LOG_FILE
             sleep $INTERVAL
         done
