@@ -3,7 +3,7 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 
 [English Version](../../en/user/support_en.md)
 
-目前 TNN 支持常用的 CNN 的网络：
+目前 TNN 支持常用的 CNN 、LSTM 和 BERT 等网络：
 - Classical CNN: Vgg AlexNet GoogleNet(v1,v2,v3)
 - Practical CNN: ResNet DenseNet SENet
 - Light-weight CNN: SqueezeNet MobileNet(v1,v2,v3) ShuffleNet(v1,v2) MNasNet
@@ -11,6 +11,9 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 - Detection: Vgg-ssd SqueezeNet-ssd MobileNetv2-SSDLite ...
 - Detection: Yolo-v2 MobileNet-YOLOV3 ...
 - Segmentation: FCN PSPNet
+- 3D CNN: C3D T3D
+- BERT: BERT-Base BERT-Squad MobileBERT DistilBERT
+- LSTM: Crnn-LSTM
 
 | model name                | onnx2tnn | Naive | armv7 | armv8 | opencl | metal | Huawei_Npu |
 |---------------------------|----------|-----|-------|-------|--------|-------|------|
@@ -43,6 +46,14 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | Yolo-v2                   | ?        | ?   |       |       |        |       |      |
 | Yolo-v2-tiny              | yes      | yes |       |       |        |       |      |
 | Yolo-v3                   | yes      | yes |       |       |        |       |      |
+| Yolo-v5s                  | yes      | yes |       |       |        |       |      |
+| C3D                       | yes      | yes | -     | -     | -      | -     | -    |
+| T3D                       | yes      | yes | -     | -     | -      | -     | -    |
+| BERT-Base                 | yes      | yes | -     | -     | -      | -     | -    |
+| BERT-Squad                | yes      | yes | -     | -     | -      | -     | -    |
+| MobileBERT                | yes      | yes | -     | -     | -      | -     | -    |
+| DistilBERT                | yes      | yes | -     | -     | -      | -     | -    |
+| Crnn-LSTM                 | yes      | yes |       |       |        |       | -    |
 
 
 1. 关于 upsample 的计算,当参数mode == "bilinear" 或者 mode == "linear", pytorch 转化出的 onnx 模型是有问题的，pytorch 和 onnx 的计算结果是不对齐的。这是 onnx 本身的 bug，这一点尤其需要注意。但是遇到这种情况请不要担心，将转换后的 ONNX 模型转换为 TNN 后，我们保证了 TNN 和 Pytorch 的计算结果是对齐的。经过测试发现会出现上述问题的网络模型有 FCN 以及 PSPNet。
@@ -50,7 +61,7 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 
 # 支持OP 
 
-| TNN Operators            | ONNX Operators                                 | Naive | armv7 | armv8 | opencl | metal | Huawei_Npu |
+| TNN Operators            | Original Operators                             | Naive | armv7 | armv8 | opencl | metal | Huawei_Npu |
 |--------------------------|------------------------------------------------|-----|-------|-------|--------|-------|----- |
 | Abs                      | Abs                                            | yes | yes   | yes   | yes    | yes   | yes  |
 | Acos                     | Acos                                           | yes |       |       | yes    | yes   | yes  |
@@ -70,11 +81,16 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | Convolution              | Conv                                           | yes | yes   | yes   | yes    | yes   | yes  |
 | Convolution(depthwise)   | Conv                                           | yes | yes   | yes   | yes    | yes   | yes  |
 | Convolution(group)       | Conv                                           | yes | yes   | yes   | yes    | yes   | yes  |
+| Convolution1D            | Conv                                           | yes |       |       |        |       |      |
+| Convolution1D(depthwise) | Conv                                           | yes |       |       |        |       |      |
+| Convolution1D(group)     | Conv                                           | yes |       |       |        |       |      |
+| Convolution3D            | Conv                                           | yes |       |       |        |       |      |
+| Convolution3D(depthwise) | Conv                                           | yes |       |       |        |       |      |
+| Convolution3D(group)     | Conv                                           | yes |       |       |        |       |      |
 | Cos                      | Cos                                            | yes |       |       | yes    | yes   | yes  |
 | Deconvolution            | ConvTranspose                                  | yes | yes   | yes   | yes    | yes   |      |
 | Deconvolution(depthwise) | ConvTranspose                                  | yes | yes   | yes   | yes    | yes   |      |
 | Deconvolution(group)     | ConvTranspose                                  | yes | yes   | yes   | yes    | yes   |      |
-| DepthToSpace             | DepthToSpace                                   |     |       |       |        |       |      |
 | DetectionOutput          | DectectionOutput(custom operator)              | yes |       |       |        |       |      |
 | Div                      | Div                                            | yes | yes   | yes   | yes    | yes   | yes  |
 | Dropout                  | Dropout                                        |     |       |       |        |       |      |
@@ -89,12 +105,15 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | Floor                    | Floor                                          | yes |       |       | yes    | yes   | yes  |
 | Gather                   | Gather                                         |     |       |       |        |       |      |
 | GatherND                 | GatherND                                       | yes |       |       |        |       |      |
+| GridSample               | GridSample(PyTorch)                            | yes |       |       |        |       |      |
+| GroupNorm                | GroupNorm(PyTorch)                             | yes |       |       |        |       |      |
 | HardSigmoid              | HardSigmoid                                    | yes | yes   | yes   | yes    | yes   | yes  |
 | HardSwish                | Add + Clip + Div + Mul                         | yes | yes   | yes   | yes    | yes   |      |
 | HardSwish                | Add + Clip + Mul + Div                         | yes | yes   | yes   | yes    | yes   |      |
 | HardSwish                | HardSigmoid + Mul                              | yes | yes   | yes   | yes    | yes   |      |
 | InnerProduct             | Gemm                                           | yes | yes   | yes   | yes    | yes   | yes  |
 | InstBatchNormCxx         | InstanceNormalization                          | yes | yes   | yes   | yes    | yes   | yes  |
+| Inverse                  | Inverse(PyTorch)                               | yes | yes   | yes   | yes    | yes   | yes  |
 | LSTMONNX                 | LSTM                                           | yes |       |       |        |       |      |
 | LRN                      | LRN                                            | yes |       |       |        |       | yes  |
 | Log                      | Log                                            | yes |       |       | yes    | yes   | yes  |
@@ -112,10 +131,15 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | PRelu                    | LeakyRelu / PRelu                              | yes | yes   | yes   | yes    | yes   | yes  |
 | Pad                      | Pad                                            | yes | yes   | yes   | yes    | yes   | yes  |
 | Permute                  | Transpose                                      | yes | yes   | yes   | yes    |       |      |
+| PixelShuffle             | PixelShuffle(PyTorch), Depth2Space(ONNX)       | yes |       |       |        |       |      |
 | Pooling (Avg)            | AveragePool                                    | yes | yes   | yes   | yes    | yes   | yes  |
 | Pooling (GlobalAverage)  | GlobalAveragePool                              | yes | yes   | yes   | yes    | yes   | yes  |
 | Pooling (GlobalMax)      | GlobalMaxPool                                  | yes | yes   | yes   | yes    | yes   | yes  |
 | Pooling (Max)            | MaxPool                                        | yes | yes   | yes   | yes    | yes   | yes  |
+| Pooling3D (Avg)          | AveragePool                                    | yes |       |       |        |       |      |
+| Pooling3D (GlobalAverage)| GlobalAveragePool                              | yes |       |       |        |       |      |
+| Pooling3D (GlobalMax)    | GlobalMaxPool                                  | yes |       |       |        |       |      |
+| Pooling3D (Max)          | MaxPool                                        | yes |       |       |        |       |      |
 | Power                    | Pow                                            | yes | yes   | yes   | yes    | yes   |      |
 | PriorBox                 | PriorBox(custom operator)                      | yes |       |       | yes    |       | yes  |
 | Range                    | Range                                          | yes |       |       |        |       |      |
@@ -133,9 +157,11 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | Relu                     | Relu                                           | yes | yes   | yes   | yes    | yes   | yes  |
 | Relu6                    | Clip                                           | yes | yes   | yes   | yes    | yes   | yes  |
 | Reorg                    | DepthToSpace                                   | yes |       |       | yes    |       |      |
+| Reorg                    | SpaceToDepth                                   | yes |       |       | yes    |       |      |
 | Repeat                   | Tile                                           |     |       |       |        |       |      |
 | Reshape                  | Reshape                                        | yes | yes   | yes   | yes    | yes   | yes  |
 | RoiAlign                 | RoiAlign                                       | yes |       |       |        |       |      |
+| Rsqrt                    | Rsqrt(TFLite)                                  | yes |       |       |        |       |      |
 | ScatterND                | ScatterND                                      | yes |       |       |        |       |      |
 | Selu                     | Selu                                           | yes |       |       | yes    | yes   | yes  |
 | Shape                    | Shape                                          | yes |       |       |        |       |      |
@@ -151,11 +177,13 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | Softsign                 | Softsign                                       | yes |       |       |        |       |      |
 | Split                    | Split                                          |     |       |       | yes    |       |      |
 | Sqrt                     | Sqrt                                           | yes | yes   | yes   | yes    | yes   | yes  |
+| SquaredDifference        | SquaredDifference(TFLite)                      | yes |       |       |        |       |      |
 | Squeeze                  | Squeeze                                        |     |       |       |        |       |      |
 | Sub                      | Sub                                            | yes | yes   | yes   | yes    | yes   | yes  |
 | Sum                      |                                                |     |       |       |        |       |      |
 | Tan                      | Tan                                            | yes |       |       | yes    | yes   | yes  |
 | Tanh                     | Tanh                                           | yes | yes   | yes   | yes    | yes   | yes  |
+| Tile                     | Tile                                           | yes |       |       |        |       |      |
 | Unsqueeze                | Unsqueeze                                      | yes |       |       |        |       |      |
 | Upsample                 | Upsample / Resize                              | yes | yes   | yes   | yes    | yes   | yes  |
 | Where                    | Where                                          | yes |       |       |        |       |      |
