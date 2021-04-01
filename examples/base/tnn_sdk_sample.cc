@@ -702,6 +702,10 @@ std::shared_ptr<Mat> TNNSDKSample::ResizeToInputShape(std::shared_ptr<Mat> input
     return input_mat;
 }
 
+bool TNNSDKSample::hideTextBox() {
+    return false;
+}
+
 TNN_NS::MatConvertParam TNNSDKSample::GetConvertParamForInput(std::string name) {
     return TNN_NS::MatConvertParam();
 }

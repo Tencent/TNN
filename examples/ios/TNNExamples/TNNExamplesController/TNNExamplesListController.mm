@@ -23,9 +23,7 @@
 #import "TNNHairSegmentationViewModel.h"
 #import "TNNPoseDetectLandmarkViewModel.h"
 #import "TNNSkeletonDetectorViewModel.h"
-#if HAS_OPENCV
 #import "TNNOCRViewModel.h"
-#endif
 
 #import "TNNExamplesListCell.h"
 

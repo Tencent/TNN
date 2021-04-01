@@ -15,20 +15,21 @@
 #ifndef TNN_EXAMPLES_BASE_OCR_DRIVER_H_
 #define TNN_EXAMPLES_BASE_OCR_DRIVER_H_
 
+#include "tnn_sdk_sample.h"
+
+#if HAS_OPENCV
+
+#include "tnn/utils/mat_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
+
+#include "opencv2/core/mat.hpp"
+
 #include <algorithm>
 #include <memory>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <array>
-
-#include "tnn_sdk_sample.h"
-#include "tnn/utils/mat_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
-
-#if HAS_OPENCV
-#include "opencv2/core/core.hpp"
-#endif
 
 namespace TNN_NS{
 
@@ -51,19 +52,20 @@ public:
     virtual Status Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output);
     
     virtual Status Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks);
-    
-    void SetBlobDumpDir(const char *dump_dir);
+
+    virtual bool hideTextBox();
 
 protected:
-#if HAS_OPENCV
     Status MatToTNNMat(const cv::Mat& mat, std::shared_ptr<Mat>& tnn_mat, bool try_share_data);
-#endif
+
     std::shared_ptr<TNNSDKSample> textbox_detector_;
     std::shared_ptr<TNNSDKSample> angle_predictor_;
     std::shared_ptr<TNNSDKSample> text_recognizer_;
 };
 
 }
+
+#endif // HAS_OPENCV
 
 #endif // TNN_EXAMPLES_BASE_OCR_DRIVER_H_
 

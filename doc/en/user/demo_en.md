@@ -13,7 +13,7 @@
    sh download_model.sh
    ```
    
-   Optional: If you want to run the OCR demo, you also need to download opencv framework.
+   Optional: If you want to run the OCR demo, you also need to prepare the opencv framework. We provide a script to download opencv.
    ```
    cd <path_to_tnn>/scripts
    sh download_opencv.sh iOS
@@ -31,13 +31,17 @@
 
    <div align=left ><img src="../../cn/user/resource/ios_add_framework.jpg" width = "75%" height = "75%"/>
 
-   Choose `Add Other-Add Files...` in the following interface, find `opencv2.framework` located at `<path_to_tnn>/third_party/opencv/iOS` and add it.
+   Choose `Add Other-Add Files...` in the following interface, find your `opencv2.framework` and add it. If you use the provided script, the downloaded opencv2.framework shoud be in the `<path_to_tnn>/third_party/opencv/iOS` directory.
 
    <div align=left ><img src="../../cn/user/resource/ios_add_framework_from_files.jpg" width = "75%" height = "75%"/>
 
    Due to the opencv2.framework includes code for real iOS devices and simulators, please set the `Embed` option to `Do Not Embed` as in the following interface.
 
    <div align=left ><img src="../../cn/user/resource/ios_framework_notembed.jpg" width = "75%" height = "75%"/>
+
+   Finally, to ensure xcode can find the opencv2.framework, the directory containing the opencv2.framework must be added in the `Framework Search Paths`. As shown in the followng interface, find the project setting `Build Settings`,  then find the `Framework Search Paths` item under `Search Paths`. If the directory has not been included, double-click the item and add the directory.
+
+   <div align=left ><img src="../../cn/user/resource/ios_framework_search_path.jpg" width = "75%" height = "75%"/>
 
 3. Set up a developer account
 

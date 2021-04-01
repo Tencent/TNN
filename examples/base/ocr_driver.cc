@@ -12,6 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn_sdk_sample.h"
+
 #if HAS_OPENCV
 
 #include "ocr_textbox_detector.h"
@@ -85,12 +87,6 @@ static std::vector<cv::Mat> getPartImages(cv::Mat &src, std::vector<TextBox> &te
     std::vector<cv::Mat> partImages;
     for (int i = 0; i < textBoxes.size(); ++i) {
         cv::Mat partImg = getRotateCropImage(src, textBoxes[i].box_points);
-        uint8_t* data = partImg.data;
-        auto count = partImg.channels()*partImg.cols*partImg.rows;
-        std::shared_ptr<int> data_int(new int[count]);
-        for(int i=0; i<count; ++i) {
-            (data_int.get())[i] = static_cast<int>(data[i]);
-        }
         partImages.emplace_back(partImg);
     }
     return partImages;
@@ -111,10 +107,6 @@ Status OCRDriver::Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks) {
     angle_predictor_  = sdks[1];
     text_recognizer_  = sdks[2];
     return TNNSDKComposeSample::Init(sdks);
-}
-
-void OCRDriver::SetBlobDumpDir(const char *dump_dir) {
-    //SetDumpDir(std::string(dump_dir));
 }
 
 Status OCRDriver::MatToTNNMat(const cv::Mat& mat, std::shared_ptr<Mat>& tnn_mat, bool try_share_data) {
@@ -139,6 +131,10 @@ Status OCRDriver::MatToTNNMat(const cv::Mat& mat, std::shared_ptr<Mat>& tnn_mat,
         }
     }
     return status;
+}
+
+bool OCRDriver::hideTextBox() {
+    return true;
 }
 
 Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
@@ -238,7 +234,7 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
             }
 
             ocr_output->image_height = sdk_input->GetMat()->GetHeight();
-            ocr_output->image_width = sdk_input->GetMat()->GetWidth();
+            ocr_output->image_width  = sdk_input->GetMat()->GetWidth();
         }
         // fill output
         sdk_output = ocr_output;
@@ -249,4 +245,4 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
 
 }
 
-#endif
+#endif // HAS_OPENCV

@@ -16,7 +16,7 @@
 #define TNN_EXAMPLES_BASE_OCR_TEXT_RECOGNIZER_H_
 
 #include "tnn_sdk_sample.h"
-#include "opencv2/core/core.hpp"
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -53,7 +53,7 @@ private:
     std::vector<std::string> vocabulary_;
     constexpr static int vocab_size_ = 5531;
     int dst_height_ = 32;
-    int max_width_ = 4096;
+    int max_width_  = 4096;
 };
 
 }
