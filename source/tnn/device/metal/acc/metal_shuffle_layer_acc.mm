@@ -16,6 +16,7 @@
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -57,11 +58,11 @@ Status MetalShuffleLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
         auto dims_input = inputs[0]->GetBlobDesc().dims;
         MetalShuffleParams metal_params;
 
-        metal_params.input_size    = GetBlobCount(dims_input, 2);
+        metal_params.input_size    = DimsFunctionUtils::GetDimProduct(dims_input, 2);
         metal_params.input_channel = dims_input[1];
         metal_params.input_slice   = UP_DIV(dims_input[1], 4);
 
-        metal_params.output_size  = GetBlobCount(dims_output, 2);
+        metal_params.output_size  = DimsFunctionUtils::GetDimProduct(dims_output, 2);
         metal_params.output_slice = UP_DIV(dims_output[1], 4);
 
         metal_params.group             = layer_param->group;

@@ -105,9 +105,16 @@ Status CpuReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
             memcpy(output->GetHandle().base, input->GetHandle().base, size_in_bytes);
         }
     } else if (param->reshape_type == 1) {
-        // tensorflow reshape
-        DataFormatConverter::ConvertFromNCHWToNHWC<float>(input, output);
-        DataFormatConverter::ConvertFromNHWCToNCHW<float>(output, nullptr);
+        const auto dims_output = output->GetBlobDesc().dims;
+        if (dims_output.size() <= 4) {
+            // tensorflow reshape
+            DataFormatConverter::ConvertFromNCHWToNHWC<float>(input, output);
+            DataFormatConverter::ConvertFromNHWCToNCHW<float>(output, nullptr);
+        } else {
+            // tensorflow reshape does not support dims>4
+            LOGE("Error: Unsupported dim size(%d) for reshape type(%d)", (int)dims_output.size(), param->reshape_type);
+            return Status(TNNERR_MODEL_ERR, "Error: CpuReshapeLayerAcc failed!\n");
+        }
     } else {
         LOGE("Error: Unsupport reshape type(%d)", param->reshape_type);
         return Status(TNNERR_MODEL_ERR, "Error: CpuReshapeLayerAcc failed!\n");

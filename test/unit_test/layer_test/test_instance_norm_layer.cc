@@ -43,7 +43,7 @@ TEST_P(InstanceNormLayerTest, InstanceNormLayer) {
     }
 
     // param
-    std::shared_ptr<LayerParam> param(new LayerParam());
+    std::shared_ptr<LayerParam> param(new InstanceNormLayerParam());
     param->name = "InstanceNorm";
 
     // generate interpreter

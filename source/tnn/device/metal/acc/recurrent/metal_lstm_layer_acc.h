@@ -45,6 +45,7 @@ protected:
     id<MTLBuffer> buffer_c0_ = nil;
     // gates buffer
     id<MTLBuffer> buffer_gates_ = nil;
+    virtual bool UseNaiveConstantBlobs() {return true;}
 private:
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);
 

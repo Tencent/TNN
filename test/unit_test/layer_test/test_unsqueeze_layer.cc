@@ -70,7 +70,7 @@ TEST_P(UnsqueezeLayerTest, UnsqueezeLayer) {
     int input_dim_size = input_dims.size();
     for(int i=0; i<axes.size(); ++i) {
         int axis = axes[i];
-        axis = axis >= 0 ? axis : axis + input_dims.size()+i;
+        axis = axis >= 0 ? axis : axis + input_dims.size() + i;
         if (axis < 0 || axis > input_dims.size()) {
             GTEST_SKIP();
         }

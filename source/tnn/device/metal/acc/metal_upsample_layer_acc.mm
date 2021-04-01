@@ -15,10 +15,26 @@
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/metal_context.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_METAL_ACC(Upsample, LAYER_UPSAMPLE);
+class MetalUpsampleLayerAcc : public MetalLayerAcc {
+public:
+    virtual ~MetalUpsampleLayerAcc(){};
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status ComputeThreadSize(const std::vector<Blob *> &inputs,
+                             const std::vector<Blob *> &outputs,
+                             MTLSize &size);
+    virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder,
+                                 const std::vector<Blob *> &inputs,
+                                 const std::vector<Blob *> &outputs);
+
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs) { return TNN_OK; }
+};
 
 Status MetalUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs,
                                       const std::vector<Blob *> &outputs) {
