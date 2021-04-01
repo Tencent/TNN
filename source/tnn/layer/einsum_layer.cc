@@ -84,6 +84,9 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
         return Status(TNNERR_MODEL_ERR, "Error: EinsumLayerParam is nil");
     }
 
+    param->perm_shapes.clear();
+    param->dim_last_op.clear();
+    param->has_zero_size_dim = false;
     const auto equation    = param->equation;
     constexpr int ELLIPSIS = '.';
 
@@ -250,6 +253,7 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
 
     // Save output size before adding contraction dims (dims to sum out)
     const int out_size = perm_index;
+    param->out_size = out_size;
 
     // If ellipsis is not part of the output, add to contraction dimensions
     if (!found_ell) {
@@ -272,7 +276,7 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
     for (int i = 0; i < num_ops; i++) {
         std::vector<int> perm_shape(perm_index, -1);
         std::vector<int> label_dim(TOTAL_LABELS, -1);
-        auto operand_dims         = inputs[i]->GetBlobDesc().dims;
+        TNN_NS::DimsVector operand_dims(inputs[i]->GetBlobDesc().dims);
         const auto labels         = op_labels[i];
         const auto original_sizes = operand_dims;
 
@@ -318,8 +322,10 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
                 index        = j++;
             }
         }
-
+        param->operand_dims.push_back(operand_dims);
+        param->perm_shapes.push_back(perm_shape);
         permuted_operands_dims.push_back(CalPermuteOutputShape(operand_dims, perm_shape));
+
     }
 
     // Check if operands broadcast and keep track of last operand with
@@ -342,6 +348,8 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
         }
         has_zero_size_dim |= broadcast_size == 0;
     }
+    param->has_zero_size_dim = has_zero_size_dim;
+    param->dim_last_op = dim_last_op;
 
     // Compute result
     auto result = permuted_operands_dims[0];
@@ -411,3 +419,4 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
 REGISTER_LAYER(Einsum, LAYER_EINSUM);
 
 }  // namespace TNN_NS
+

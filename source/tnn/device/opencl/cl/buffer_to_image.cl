@@ -193,7 +193,7 @@ __kernel void NHWCBufferToImage5D(GLOBAL_SIZE_2_DIMS __global const float *input
         values.z = 0;
         values.w = 0;
     }
-    write_imagef(output, (int2)(image_width_idx, image_height_idx), values);
+    write_imagef(output, coord, values);
 }
 
 // convert data from buffer(n d2 d3 d4 d5 c) to image(b d2 d3, ic/4 d4 d5 ic4)
@@ -232,7 +232,7 @@ __kernel void NHWCBufferToImage6D(GLOBAL_SIZE_2_DIMS __global const float *input
         values.z = 0;
         values.w = 0;
     }
-    write_imagef(output, (int2)(image_width_idx, image_height_idx), values);
+    write_imagef(output, coord, values);
 }
 
 __kernel void NHWCBufferToImageFLOAT(GLOBAL_SIZE_2_DIMS __global const FLOAT *input_ptr, __private const int height,

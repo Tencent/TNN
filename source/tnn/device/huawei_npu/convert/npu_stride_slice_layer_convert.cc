@@ -34,9 +34,18 @@ Status NpuStridedSliceLayer::Convert() {
     auto strides = param->strides;
     std::reverse(strides.begin(), strides.end());
 
+    for (int i = 0; i < begins.size(); ++i) {
+        if (begins[i] < 0) {
+            begins[i] += input_shape_vec[i];
+        }
+    }
+
     for (int i = 0; i < ends.size(); ++i) {
         if (ends[i] == 0) {
             ends[i] = input_shape_vec[i];
+        }
+        if (ends[i] < 0) {
+            ends[i] += input_shape_vec[i];
         }
     }
 

@@ -68,8 +68,12 @@ protected:
             case LAYER_HARDSIGMOID: {
                 auto param = dynamic_cast<HardSigmoidLayerParam *>(param_);
                 CHECK_PARAM_NULL(param);
-                if (param->alpha != 1.0f || param->beta != 0.0f) {
-                    return Status(TNNERR_LAYER_ERR, "Error: Npu currently only supports no coefficient hardsigmoid");
+                if (!(param->alpha >= 0.1666f && param->alpha <= 0.1667f && param->beta >= 0.4999f &&
+                      param->beta <= 0.5001f)) {
+                    LOGE("hardsigmoid only support alpha=1/6 beta=0.5, but in fact, alpha=%f beta=%f\n", param->alpha,
+                         param->beta);
+                    return Status(TNNERR_LAYER_ERR,
+                                  "Error: Npu currently only supports hardsigmoid (alpha=1/6, beta=0.5)");
                 }
                 mode = 10;
             } break;

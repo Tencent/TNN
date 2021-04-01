@@ -27,7 +27,7 @@ TNN_NS::ActivationType OnnxCastConverter::ActivationType(const onnx::NodeProto &
     return TNN_NS::ActivationType_None;
 }
 
-TNN_NS::Status OnnxCastConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+TNN_NS::Status OnnxCastConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                        const onnx::NodeProto &node,
                                        std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
                                        std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
@@ -40,8 +40,10 @@ TNN_NS::Status OnnxCastConverter::exec(tnn::NetStructure &net_structure, tnn::Ne
     param->name                = cur_layer->name;
     param->quantized           = false;
 
-    auto to_type = GetAttributeInt(node, "to", 0);
-    param->to    = to_type;
+    auto to_type         = GetAttributeInt(node, "to", 0);
+    const auto onnx_type = static_cast<onnx::TensorProto_DataType>(to_type);
+    const auto tnn_type  = GetTnnDataTypeFromOnnx(onnx_type);
+    param->to            = tnn_type;
 
     cur_layer->inputs[0] = node.input(0);
 

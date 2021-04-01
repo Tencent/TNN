@@ -92,7 +92,7 @@ private:
     Status GetCpuBlobData();
 
     // @brief compare raw
-    bool CompareData(void* device_data, void* cpu_data, DimsVector blob_dims, CompareType type = DEFAULT);
+    bool CompareData(void* device_data, void* cpu_data, DataType data_type, DimsVector blob_dims, CompareType type = DEFAULT);
     // @brief dump blob data
     void DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name);
 

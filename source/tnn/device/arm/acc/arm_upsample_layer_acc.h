@@ -28,6 +28,8 @@ public:
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
+    virtual bool UseNaiveConstantBlobs();
+
     RawBuffer buffer_scale_;
 
 private:

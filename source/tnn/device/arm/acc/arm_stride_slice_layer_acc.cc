@@ -26,36 +26,97 @@ static Status ExecStrideSlice(Blob *input_blob, Blob *output_blob, const std::ve
                               const std::vector<int> &ends, const std::vector<int> &strides) {
     auto dims_input   = input_blob->GetBlobDesc().dims;
     auto dims_output  = output_blob->GetBlobDesc().dims;
-    int input_height  = dims_input[2];
-    int input_width   = dims_input[3];
-    int output_height = dims_output[2];
-    int output_width  = dims_output[3];
-
     int input_slice  = UP_DIV(dims_input[1], 4);
     int output_slice = UP_DIV(dims_output[1], 4);
 
-    int nn = 0, nc = 0, nh = 0, nw = 0;
+    // support maximum dim 5
+    int input_strides[4];
+    int output_strides[4];
+    input_strides[0] = DimsVectorUtils::Count(dims_input, 2) * 4 * input_slice;
+    output_strides[0] = DimsVectorUtils::Count(dims_output, 2) * 4 * output_slice;
+    for (int i = 1; i < 4; i++) {
+        input_strides[i] = DimsVectorUtils::Count(dims_input, i + 1) * 4;
+        output_strides[i] = DimsVectorUtils::Count(dims_output, i + 1) * 4;
+    }
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(input_blob->GetHandle()));
         float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
 
-        for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
-            auto input_ptr  = input_data + n * input_slice * 4 * input_width * input_height;
-            auto output_ptr = output_data + nn * output_slice * 4 * output_width * output_height;
-            nc              = 0;
-            for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
-                auto zi = c / 4, ri = c % 4;
-                auto zo = nc / 4, ro = nc % 4;
-                nh = 0;
-                for (int h = begins[2]; h < ends[2]; h += strides[2], nh++) {
-                    nw = 0;
-                    for (int w = begins[3]; w < ends[3]; w += strides[3], nw++) {
-                        const int i_offset = zi * input_width * input_height * 4 + h * input_width * 4 + w * 4 + ri;
-                        const int o_offset =
-                            zo * output_width * output_height * 4 + nh * output_width * 4 + nw * 4 + ro;
-                        output_ptr[o_offset] = input_ptr[i_offset];
+        int nn = 0, nc = 0, nh = 0, nw = 0, nx = 0;
+        if (begins.size() == 5) {
+            for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
+                auto input_n  = input_data + n * input_strides[0];
+                auto output_n = output_data + nn * output_strides[0];
+                nc = 0;
+                for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
+                    auto zi = c / 4, ri = c % 4;
+                    auto zo = nc / 4, ro = nc % 4;
+
+                    auto input_c  = input_n + zi * input_strides[1];
+                    auto output_c = output_n + zo * output_strides[1];
+                    nh = 0;
+                    for (int h = begins[2]; h < ends[2]; h += strides[2], nh++) {
+                        auto input_h  = input_c + h * input_strides[2];
+                        auto output_h = output_c + nh * output_strides[2];
+                        nw = 0;
+                        for (int w = begins[3]; w < ends[3]; w += strides[3], nw++) {
+                            auto input_w  = input_h + w * input_strides[3];
+                            auto output_w = output_h + nw * output_strides[3];
+                            nx = 0;
+                            for (int x = begins[4]; x < ends[4]; x += strides[4], nx++) {
+                                output_w[nx * 4 + ro] = input_w[x * 4 + ri];
+                            }
+                        }
                     }
+                }
+            }
+        } else if (begins.size() == 4) {
+            for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
+                auto input_n  = input_data + n * input_strides[0];
+                auto output_n = output_data + nn * output_strides[0];
+                nc = 0;
+                for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
+                    auto zi = c / 4, ri = c % 4;
+                    auto zo = nc / 4, ro = nc % 4;
+
+                    auto input_c  = input_n + zi * input_strides[1];
+                    auto output_c = output_n + zo * output_strides[1];
+                    nh = 0;
+                    for (int h = begins[2]; h < ends[2]; h += strides[2], nh++) {
+                        auto input_h  = input_c + h * input_strides[2];
+                        auto output_h = output_c + nh * output_strides[2];
+                        nw = 0;
+                        for (int w = begins[3]; w < ends[3]; w += strides[3], nw++) {
+                            output_h[nw * 4 + ro] = input_h[w * 4 + ri];
+                        }
+                    }
+                }
+            }
+        } else if (begins.size() == 3) {
+            for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
+                auto input_n  = input_data + n * input_strides[0];
+                auto output_n = output_data + nn * output_strides[0];
+                nc = 0;
+                for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
+                    auto zi = c / 4, ri = c % 4;
+                    auto zo = nc / 4, ro = nc % 4;
+
+                    auto input_c  = input_n + zi * input_strides[1];
+                    auto output_c = output_n + zo * output_strides[1];
+                    nh = 0;
+                    for (int h = begins[2]; h < ends[2]; h += strides[2], nh++) {
+                        output_c[nh * 4 + ro] = input_c[h * 4 + ri];
+                    }
+                }
+            }
+        } else if (begins.size() == 2) {
+            for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
+                auto input_n  = input_data + n * input_strides[0];
+                auto output_n = output_data + nn * output_strides[0];
+                nc = 0;
+                for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
+                    output_n[nc] = input_n[c];
                 }
             }
         }
@@ -77,7 +138,7 @@ Status ArmStrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     auto dims_input   = input_blob->GetBlobDesc().dims;
     auto dims_output  = output_blob->GetBlobDesc().dims;
     auto dim_size     = dims_output.size();
-    if (dim_size != 4 || dim_size != dims_input.size()) {
+    if ((dim_size > 5 || dim_size < 2) || dim_size != dims_input.size()) {
         return Status(TNNERR_MODEL_ERR, "Error: StrideSliceLayerParam not support!");
     }
 
@@ -114,7 +175,7 @@ Status ArmStrideSliceV2LayerAcc::DoForward(const std::vector<Blob *> &inputs, co
     auto dims_input   = input_blob->GetBlobDesc().dims;
     auto dims_output  = output_blob->GetBlobDesc().dims;
     auto dim_size     = dims_output.size();
-    if (dim_size != 4 || dim_size != dims_input.size()) {
+    if ((dim_size > 5 || dim_size < 2) || dim_size != dims_input.size()) {
         return Status(TNNERR_MODEL_ERR, "Error: StrideSliceV2LayerParam not support!");
     }
 

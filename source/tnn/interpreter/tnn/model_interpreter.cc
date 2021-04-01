@@ -19,6 +19,7 @@
 #include "tnn/core/common.h"
 #include "tnn/interpreter/tnn/layer_interpreter/abstract_layer_interpreter.h"
 #include "tnn/interpreter/tnn/objseri.h"
+#include "tnn/utils/md5.h"
 
 namespace TNN_NS {
 
@@ -54,6 +55,8 @@ ModelInterpreter::ModelInterpreter(const ModelInterpreter &interp) {
     }
 
     *(this->net_resource_) = *interp.net_resource_;
+
+    this->params_md5_ = interp.params_md5_;
 }
 
 ModelInterpreter &ModelInterpreter::operator=(ModelInterpreter interp) {
@@ -74,6 +77,8 @@ ModelInterpreter &ModelInterpreter::operator=(ModelInterpreter interp) {
     }
     *(this->net_resource_) = *interp.net_resource_;
 
+    this->params_md5_ = interp.params_md5_;
+
     return *this;
 }
 
@@ -89,6 +94,14 @@ Status ModelInterpreter::Interpret(std::vector<std::string> &params) {
 
     auto &model_content = params.size() > 1 ? params[1] : empty_content;
     status              = InterpretModel(model_content);
+    if (status != TNN_OK) {
+        return status;
+    }
+
+    for (auto item : params) {
+        params_md5_.push_back(md5(item));
+        LOGD("model params md5: %s\n", md5(item).c_str());
+    }
     return status;
 }
 

@@ -80,6 +80,10 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         }
     }
 
+    if (DEVICE_OPENCL == dev && keep_dims != 1) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<ReduceLayerParam> param(new ReduceLayerParam());
     param->name = "ReduceOp";
@@ -104,13 +108,13 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         Run(interpreter3);
         auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param);
         Run(interpreter6);
+        auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
+        Run(interpreter8);
         if (DEVICE_CUDA != dev) {
             auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param);
             Run(interpreter5);
             auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param);
             Run(interpreter7);
-            auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
-            Run(interpreter8);
             auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param);
             Run(interpreter10);
         }
