@@ -30,8 +30,6 @@
 
 #define TNN_SDK_USE_NCNN_MODEL 0
 
-#define HAS_OPENCV 0
-
 namespace TNN_NS {
 
 template<typename T1, typename T2, typename T3>
