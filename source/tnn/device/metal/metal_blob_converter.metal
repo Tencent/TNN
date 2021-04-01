@@ -127,8 +127,8 @@ template<typename SrcType, typename SrcType4, typename DstType, typename DstType
 static inline void data_converter_nc4hw4_2_nchw_v2(device DstType *dst,
                                                 const device SrcType4 *src,
                                                 constant MetalImageConverterParams& params,
-                                                const device DstType *scale,
-                                                const device DstType* bias,
+                                                const device float *scale,
+                                                const device float * bias,
                                                 uint3 gid)
 {
     if (any(gid >= uint3(params.size, params.slice, params.batch)))
@@ -189,6 +189,17 @@ kernel void data_converter_nc4hw4_2_nchw_float_v2(
                                              uint3 gid                                 [[thread_position_in_grid]])
 {
     data_converter_nc4hw4_2_nchw_v2<ftype, ftype4, float, float4>(dst, src, params, scale, bias, gid);
+}
+
+kernel void data_converter_nc4hw4_2_nchw_half_v2(
+                                             device half *dst                             [[buffer(0)]],
+                                             const device ftype4 *src                   [[buffer(1)]],
+                                             constant MetalImageConverterParams& params      [[buffer(2)]],
+                                             const device float *scale                  [[buffer(3)]],
+                                             const device float *bias                   [[buffer(4)]],
+                                             uint3 gid                                 [[thread_position_in_grid]])
+{
+    data_converter_nc4hw4_2_nchw_v2<ftype, ftype4, half, half4>(dst, src, params, scale, bias, gid);
 }
 
 template<typename SrcType, typename SrcType4, typename DstType, typename DstType4>
@@ -304,6 +315,17 @@ kernel void data_converter_nchw_2_nc4hw4_float_v2(
     data_converter_nchw_2_nc4hw4_v2<float, float4, ftype, ftype4>(dst, src, params, scale, bias, gid);
 }
 
+kernel void data_converter_nchw_2_nc4hw4_half_v2(
+                                             device ftype4 *dst                             [[buffer(0)]],
+                                             const device half *src                   [[buffer(1)]],
+                                             constant MetalImageConverterParams& params      [[buffer(2)]],
+                                             const device float *scale                  [[buffer(3)]],
+                                             const device float *bias                   [[buffer(4)]],
+                                             uint3 gid                                 [[thread_position_in_grid]])
+{
+    data_converter_nchw_2_nc4hw4_v2<half, half4, ftype, ftype4>(dst, src, params, scale, bias, gid);
+}
+
 kernel void data_converter_nchw_2_nc4hw4_ftype_identity(
                                              device ftype4 *dst                             [[buffer(0)]],
                                              const device ftype *src                   [[buffer(1)]],
@@ -346,6 +368,26 @@ kernel void data_converter_nchw_float2ftype(device ftype *dst      [[buffer(0)]]
                                          uint3 gid [[thread_position_in_grid]])
 {
     data_converter_nchw_copy_type<float, ftype>(dst, src, params, gid);
+}
+
+kernel void data_converter_nchw_ftype2half(device half *dst      [[buffer(0)]],
+                                         const device ftype *src  [[buffer(1)]],
+                                         constant MetalImageConverterParams& params      [[buffer(2)]],
+                                         const device float *scale                  [[buffer(3)]],
+                                         const device float *bias                   [[buffer(4)]],
+                                         uint3 gid [[thread_position_in_grid]])
+{
+    data_converter_nchw_copy_type<ftype, half>(dst, src, params, gid);
+}
+
+kernel void data_converter_nchw_half2ftype(device ftype *dst      [[buffer(0)]],
+                                         const device half *src  [[buffer(1)]],
+                                         constant MetalImageConverterParams& params      [[buffer(2)]],
+                                         const device float *scale                  [[buffer(3)]],
+                                         const device float *bias                   [[buffer(4)]],
+                                         uint3 gid [[thread_position_in_grid]])
+{
+    data_converter_nchw_copy_type<half, ftype>(dst, src, params, gid);
 }
 
 kernel void data_converter_nchw(device ftype *dst      [[buffer(0)]],

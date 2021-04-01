@@ -20,7 +20,8 @@
 #import "tnn/device//metal/metal_context.h"
 #import "tnn/utils/blob_converter_internal.h"
 #import "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_utils.h"
+#import "tnn/utils/dims_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 class MetalBlobConverterAcc : public BlobConverterAcc {
@@ -77,7 +78,7 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
         bias_texture_buffer  = is_mat_to_blob ? 1.0    : 1.0 / 255.0f;
     }
 
-    if (mat->GetMatType() == NCHW_FLOAT) {
+    if (mat->GetMatType() == NCHW_FLOAT || mat->GetMatType() == RESERVED_BFP16_TEST) {
         // scale and bias should at least have channel elements, so we use another buffer instead of metal_param
         if (param.scale.size() < dims[1] || param.bias.size() < dims[1]) {
             // invalid scale and bias
@@ -197,6 +198,24 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
                 LOGD("data_converter_nc4hw4_2_nchw_float_v2\n");
             }
         }
+    } else if (mat_type == RESERVED_BFP16_TEST) {
+        if (is_mat_to_blob) {
+            if (blob_data_format == DATA_FORMAT_NCHW) {
+                func_process = [library newFunctionWithName:@"data_converter_nchw_half2ftype"];
+                LOGD("data_converter_nchw_2_nchw\n");
+            } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
+                func_process = [library newFunctionWithName:@"data_converter_nchw_2_nc4hw4_half_v2"];
+                LOGD("data_converter_nchw_2_nc4hw4_float_v2\n");
+            }
+        } else {
+            if (blob_data_format == DATA_FORMAT_NCHW) {
+                func_process = [library newFunctionWithName:@"data_converter_nchw_ftype2half"];
+                LOGD("data_converter_nchw_2_nchw\n");
+            } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
+                func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_half_v2"];
+                LOGD("data_converter_nc4hw4_2_nchw_float_v2\n");
+            }
+        }
     }
 
     if (!func_process) {
@@ -228,7 +247,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
     auto mat_device_type = output_mat.GetDeviceType();
     auto mat_type        = output_mat.GetMatType();
     if (!((mat_device_type == DEVICE_METAL || mat_device_type == DEVICE_ARM || mat_device_type == DEVICE_NAIVE) &&
-          (mat_type == N8UC4 || mat_type == NCHW_FLOAT))) {
+          (mat_type == N8UC4 || mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST))) {
         return Status(TNNERR_COMMON_ERROR, "input_mat.GetDeviceType() or.GetMatType() is invalid");
     }
 
@@ -295,15 +314,16 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         } else if (waitState == 2) {
             [command_buffer waitUntilScheduled];
         }
-    } else if (mat_type == NCHW_FLOAT) {
+    } else if (mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST) {
         auto input_buffer_blob          = dynamic_cast<Blob *>(input_blob);
         id<MTLBuffer> output_mtl_buffer = nil;
 
         int count = DimsVectorUtils::Count(dims);
+        const auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : sizeof(fp16_t);
         if (output_mat_device == DEVICE_METAL) {
             output_mtl_buffer = (__bridge id<MTLBuffer>)(output_mat.GetData());
         } else if (output_mat_device == DEVICE_ARM || output_mat_device == DEVICE_NAIVE) {
-            output_mtl_buffer = [command_queue_impl.device newBufferWithLength:count * sizeof(float)
+            output_mtl_buffer = [command_queue_impl.device newBufferWithLength:count * bytes_size
                                                                        options:MTLResourceCPUCacheModeDefaultCache];
         }
 
@@ -358,7 +378,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
             }
         } else {
             [command_buffer waitUntilCompleted];
-            memcpy(output_mat.GetData(), output_mtl_buffer.contents, count * sizeof(float));
+            memcpy(output_mat.GetData(), output_mtl_buffer.contents, count * bytes_size);
         }
     }
     return TNN_OK;
@@ -380,7 +400,7 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
     auto mat_device_type = input_mat.GetDeviceType();
     auto mat_type        = input_mat.GetMatType();
     if (!((mat_device_type == DEVICE_METAL || mat_device_type == DEVICE_ARM || mat_device_type == DEVICE_NAIVE) &&
-          (mat_type == N8UC4 || mat_type == NCHW_FLOAT))) {
+          (mat_type == N8UC4 || mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST))) {
         LOGE("GetDeviceType: %d GetMatType: %d\n", input_mat.GetDeviceType(), input_mat.GetMatType());
         return Status(TNNERR_COMMON_ERROR, "input_mat.GetDeviceType() or.GetMatType() is invalid");
     }
@@ -466,16 +486,17 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                 [command_buffer waitUntilScheduled];
             }
             return TNN_OK;
-        } else if (mat_type == NCHW_FLOAT) {
+        } else if (mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST) {
             // For Buffer input
 
             id<MTLBuffer> input_buffer = nil;
+            const auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : sizeof(fp16_t);
             if (mat_device_type == DEVICE_METAL) {
                 input_buffer = (__bridge id<MTLBuffer>)(input_mat.GetData());
             } else if (mat_device_type == DEVICE_NAIVE || mat_device_type == DEVICE_ARM) {
                 int count    = DimsVectorUtils::Count(dims);
                 input_buffer = [command_queue_impl.device newBufferWithBytes:input_mat.GetData()
-                                                                      length:count * sizeof(float)
+                                                                      length:count * bytes_size
                                                                      options:MTLCPUCacheModeDefaultCache];
             } else {
                 break;
