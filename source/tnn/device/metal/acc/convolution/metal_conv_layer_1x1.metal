@@ -81,16 +81,16 @@ kernel void convolution_1x1_common(const device ftype *in     [[buffer(0)]],
                                 biasTerms[output_channel[3]]),
                         valid)) : float4(Zero4);
     
-    auto result = bias;
+    auto sum = bias;
     const int step_size = params.input_size * 4 - 3;
     for (auto c = 0; c < params.input_slice_per_group; c++) {
-        result += float(*xy_in) * float4(xy_wt[c]);
+        sum += float(*xy_in) * float4(xy_wt[c]);
         start_input_c += 1;
         int flag = start_input_c == 4;
         xy_in += flag * step_size + (1 - flag) * 1;
         start_input_c -= flag * start_input_c;
     }
-    result = activate(ftype4(result), params.activation);
+    ftype4 result = activate(ftype4(sum), params.activation);
     if (valid[3]) {
         out[out_idx[0]] = result[0];
         out[out_idx[1]] = result[1];
