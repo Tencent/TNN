@@ -26,15 +26,20 @@ using namespace TNN_NS;
 #define LETTER_MAX_COUNT 10000
 #define MAX_SEQ_LENGTH 256
 int main(int argc, char **argv) {
+    if (argc < 3) {
+        printf("how to run: %s proto model vocabFile\n", argv[0]);
+        return -1;
+    }
+
     auto tokenizer = std::make_shared<BertTokenizer>();
 
     std::cout << "Initializing Vocabularies..." << std::endl;
-    tokenizer->Init("../vocab.txt");
+    tokenizer->Init(argv[3]);
     
     // 创建tnn实例
     std::cout << "Initializing TNN Instance..." << std::endl;
-    auto proto_content = fdLoadFile("/root/download/model/bert2/bertsquad10_clean.tnnproto");
-    auto model_content = fdLoadFile("/root/download/model/bert2/bertsquad10_clean.tnnmodel");
+    auto proto_content = fdLoadFile(argv[1]);
+    auto model_content = fdLoadFile(argv[2]);
     int h = 1, w = 256;
     std::vector<int> nchw = {1, 256};
 
