@@ -242,7 +242,8 @@ struct PermuteLayerParam : public LayerParam {
 };
 
 struct CastLayerParam : public LayerParam {
-    int to = 0;
+    int to   = 0;
+    int from = 0; // used for HUAWEI_NPU
 
     PARAM_COPY(CastLayerParam)
 };
