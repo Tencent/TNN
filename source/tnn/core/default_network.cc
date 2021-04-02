@@ -83,7 +83,6 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
-    context_->SetEnableCacheProgram(net_config.enable_cache_program);
     if(!net_config.cache_path.empty()) {
         auto params_md5 = default_interpreter->GetParamsMd5();
         if (params_md5.size() < 1) {

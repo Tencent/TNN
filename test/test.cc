@@ -74,17 +74,9 @@ namespace test {
         model_config.params.clear();
         Timer timer_create_inst("CreateInst");
         if (CheckResult("init tnn", ret)) {
-            if (FLAGS_ec) {
-                // output CreateInst time cost when enable program cache is open
-                timer_create_inst.Start();
-            }
             auto instance = net.CreateInst(network_config, ret, input_shape);
             if (!CheckResult("create instance", ret)) {
                 return ret;
-            }
-            if (FLAGS_ec) {
-                timer_create_inst.Stop();
-                timer_create_inst.Print();
             }
             instance->SetCpuNumThreads(std::max(FLAGS_th, 1));
 
@@ -218,7 +210,6 @@ namespace test {
         printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
         printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
         printf("    -et \"<enable tune>\t%s \n", enable_tune_message);
-        printf("    -ec \"<enable cache program>\t%s \n", enable_cache_program_message);
         printf("    -sc \"<input scale>\t%s \n", scale_message);
         printf("    -bi \"<input bias>\t%s \n", bias_message);
     }
@@ -322,7 +313,6 @@ namespace test {
         config.precision = ConvertPrecision(FLAGS_pr);
 
         config.enable_tune_kernel = FLAGS_et;
-        config.enable_cache_program = FLAGS_ec;
         config.cache_path = "/data/local/tmp/";
 
         // Device Type: ARM, OPENECL, ...

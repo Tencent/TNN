@@ -151,10 +151,6 @@ struct PUBLIC NetworkConfig {
     // network init or reshape may cost more time to select opt kernel implement if enable tune kernel
     // cache_path can set to store tune kernel info.
     bool enable_tune_kernel = false;
-
-    // network init cache compiled program, only support on opencl for now
-    // cache path can set to store program cache.
-    bool enable_cache_program = false;
 };
 
 struct PUBLIC ModelConfig {

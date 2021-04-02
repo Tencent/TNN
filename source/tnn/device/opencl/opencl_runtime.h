@@ -60,7 +60,6 @@ public:
     GpuInfo GetGpuInfo();
     std::vector<size_t> GetImage2dMaxSize();
     bool SetPrecision(Precision precision);
-    void SetEnableCacheProgram(bool enable_cache_program);
     void SetCachePath(const std::string &cache_path);
     Precision GetPrecision();
 
@@ -98,7 +97,6 @@ private:
     Precision precision_ = PRECISION_AUTO;
     std::string cache_path_ = "";
     std::string program_cache_file_path_ = "";
-    bool enable_cache_program_ = false;
     bool is_program_cache_changed_ = false;
     std::map<std::pair<std::string, std::string>, std::vector<std::string> > kernel_name_map_ = {};
 

@@ -264,7 +264,6 @@ Status OpenCLContext::Init() {
 
     // set cache path for opencl runtime
     opencl_runtime_->SetCachePath(cache_path_);
-    opencl_runtime_->SetEnableCacheProgram(enable_cache_program_);
 
     Status status = opencl_runtime_->Init();
     if (status != TNN_OK) {

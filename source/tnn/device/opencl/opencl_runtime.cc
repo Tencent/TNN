@@ -19,8 +19,10 @@
 #include <stdio.h>
 #include <sstream>
 #include <algorithm>
+#ifdef __ANDROID__
 #include <fcntl.h>
 #include <sys/file.h>
+#endif
 
 #ifdef SHARING_MEM_WITH_OPENGL
 #include <EGL/egl.h>
@@ -28,9 +30,11 @@
 
 namespace TNN_NS {
 
+#ifdef __ANDROID__
 #define RELEASE_AND_UNLOCK(f) \
     fclose(f); \
     flock(fileno(f), LOCK_UN);
+#endif
 
 extern const std::map<std::string, std::vector<unsigned char>> g_opencl_program_map;
 
@@ -301,10 +305,6 @@ bool OpenCLRuntime::SetPrecision(Precision precision) {
     return precision_ == precision;
 }
 
-void OpenCLRuntime::SetEnableCacheProgram(bool enable_cache_program) {
-    enable_cache_program_ = enable_cache_program;
-}
-
 void OpenCLRuntime::SetCachePath(const std::string &cache_path) {
     cache_path_ = cache_path;
 }
@@ -451,7 +451,8 @@ bool OpenCLRuntime::BuildProgram(const std::string &build_options, cl::Program *
 }
 
 Status OpenCLRuntime::LoadProgramCache() {
-    if (!program_cache_file_path_.empty() && enable_cache_program_) {
+#ifdef __ANDROID__
+    if (!program_cache_file_path_.empty()) {
         FILE* program_cache_fin = fopen(program_cache_file_path_.c_str(), "rb");
         if (!program_cache_fin) {
             return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
@@ -550,12 +551,13 @@ Status OpenCLRuntime::LoadProgramCache() {
                           "lock program cache file failed, input path: " + program_cache_file_path_);
         }
     }
-
+#endif
     return TNN_OK;
 }
 
 Status OpenCLRuntime::SaveProgramCache() {
-    if (!program_cache_file_path_.empty() && enable_cache_program_ && is_program_cache_changed_) {
+#ifdef __ANDROID__
+    if (!program_cache_file_path_.empty() && is_program_cache_changed_) {
         FILE *program_cache_fout = fopen(program_cache_file_path_.c_str(), "wb");
         if (!program_cache_fout) {
             return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
@@ -655,6 +657,7 @@ Status OpenCLRuntime::SaveProgramCache() {
                           "lock program cache file failed, output path: " + program_cache_file_path_);
         }
     }
+#endif
     return TNN_OK;
 }
 

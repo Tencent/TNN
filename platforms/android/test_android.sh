@@ -9,7 +9,6 @@ TEST_PROTO_PATH=
 DEVICE="ARM"
 WARM_UP_COUNT=0
 ITERATOR_COUNT=1
-PROGRAM_CACHE="-noec"
 NEED_CLEAN=false
 NEED_PUSH=true
 INPUT_PATH=
@@ -74,16 +73,16 @@ function android_test() {
         $ADB push $WORK_DIR/../../third_party/huawei_npu/hiai_ddk_latest/$ABI/* $ANDROID_DIR/lib
         if [ -n "$INPUT_PATH" ]
         then
-          $ADB shell "cd $ANDROID_DIR; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${ANDROID_DIR}/lib:$ANDROID_DIR; ./TNNTest ${PROGRAM_CACHE} -dt=${DEVICE} -nt=HUAWEI_NPU -mp=./test.tnnproto -ip=input.txt -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT"
+          $ADB shell "cd $ANDROID_DIR; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${ANDROID_DIR}/lib:$ANDROID_DIR; ./TNNTest -dt=${DEVICE} -nt=HUAWEI_NPU -mp=./test.tnnproto -ip=input.txt -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT"
         else
-          $ADB shell "cd $ANDROID_DIR; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${ANDROID_DIR}/lib:$ANDROID_DIR; ./TNNTest ${PROGRAM_CACHE} -dt=${DEVICE} -nt=HUAWEI_NPU -mp=./test.tnnproto -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT"
+          $ADB shell "cd $ANDROID_DIR; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${ANDROID_DIR}/lib:$ANDROID_DIR; ./TNNTest -dt=${DEVICE} -nt=HUAWEI_NPU -mp=./test.tnnproto -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT"
         fi
     else
         if [ -n "$INPUT_PATH" ]
         then
-          $ADB shell "cd $ANDROID_DIR; LD_LIBRARY_PATH=$ANDROID_DIR ./TNNTest ${PROGRAM_CACHE} -dt=${DEVICE} -mp=./test.tnnproto -ip=input.txt -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT"
+          $ADB shell "cd $ANDROID_DIR; LD_LIBRARY_PATH=$ANDROID_DIR ./TNNTest -dt=${DEVICE} -mp=./test.tnnproto -ip=input.txt -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT"
         else
-          $ADB shell "cd $ANDROID_DIR; LD_LIBRARY_PATH=$ANDROID_DIR ./TNNTest ${PROGRAM_CACHE} -dt=${DEVICE} -mp=./test.tnnproto -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT"
+          $ADB shell "cd $ANDROID_DIR; LD_LIBRARY_PATH=$ANDROID_DIR ./TNNTest -dt=${DEVICE} -mp=./test.tnnproto -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT"
         fi
     fi
     $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"TNN Benchmark time cost\" | grep ${DEVICE} | grep -w \"test.tnnproto\" | tail -n 1 >> $ANDROID_DIR/test.log"

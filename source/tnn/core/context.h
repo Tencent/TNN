@@ -67,10 +67,6 @@ public:
 
     bool GetEnableTuneKernel();
 
-    void SetEnableCacheProgram(bool enable_cache_program);
-
-    bool GetEnableCacheProgram();
-
     void SetCachePath(std::string cache_path);
 
     std::string GetCachePath();
@@ -94,7 +90,6 @@ protected:
 protected:
     Precision precision_ = PRECISION_AUTO;
     bool enable_tune_kernel_ = true;
-    bool enable_cache_program_ = true; // cache compiled program, only support on opencl for now
     std::string cache_path_ = ""; // dir to save cache files
     std::string cache_file_path_ = "";
 };
