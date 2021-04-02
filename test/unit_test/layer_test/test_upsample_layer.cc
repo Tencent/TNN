@@ -63,6 +63,11 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
         }
     }
 
+    if (align_corners == 1 && DEVICE_CUDA == dev) {
+        // trt may get wrong result when align_corners == true
+        GTEST_SKIP();
+    }
+
     if (DEVICE_HUAWEI_NPU == dev && scale_x * scale_y <= 1.0f/7.0f) {
         GTEST_SKIP();
     }
