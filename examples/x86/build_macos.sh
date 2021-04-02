@@ -2,7 +2,7 @@
 
 set -euxo pipefail
 
-TNN_LIB_PATH=../../scripts/macos_release/
+TNN_LIB_PATH=../../scripts/build_macos/
 TNN_OPENVINO_LIB_PATH=../../scripts/macos_release/lib/
 
 cd ../../scripts

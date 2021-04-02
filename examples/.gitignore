@@ -6,3 +6,4 @@
 .classpath
 x86/build_x86_linux
 x86/build_x86_windows
+x86/build_macos
