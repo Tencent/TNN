@@ -132,7 +132,7 @@ Status CudaInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, cons
     int height = dims[2];
     int width = dims[3];
     int count = DimsVectorUtils::Count(dims);
-    int hw = height * width;
+    int hw = DimsVectorUtils::Count(dims, 2);
     void* input_data = input_blob->GetHandle().base;
     void* output_data = output_blob->GetHandle().base;
 
