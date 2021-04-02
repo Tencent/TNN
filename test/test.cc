@@ -72,7 +72,6 @@ namespace test {
         TNN net;
         Status ret = net.Init(model_config);
         model_config.params.clear();
-        Timer timer_create_inst("CreateInst");
         if (CheckResult("init tnn", ret)) {
             auto instance = net.CreateInst(network_config, ret, input_shape);
             if (!CheckResult("create instance", ret)) {
