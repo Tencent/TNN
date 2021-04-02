@@ -444,7 +444,7 @@ Status BertTokenizer::ConvertResult(std::shared_ptr<TNNSDKOutput> output, std::s
                 else tok += " " + features_[i];
             }
         }
-        std::cout << tok << "\t" << "probability = " << item->prob << std::endl;
+        printf("ans%d[probability=%f]: %s\n", nums + 1, item->prob, tok.c_str());
         nums++;
     }
     
