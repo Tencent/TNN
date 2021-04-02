@@ -25,6 +25,14 @@
 
 namespace TNN_NS {
 
+typedef struct prelim_prediction {
+public:
+    prelim_prediction(size_t start, size_t end, float start_logit, float end_logit) :
+        start(start), end(end), start_logit(start_logit), end_logit(end_logit) {};
+    size_t start, end;
+    float start_logit, end_logit, prob = 1.0;
+} prelim_prediction;
+
 class BertTokenizerInput : public TNNSDKInput {
 public:
     BertTokenizerInput();
@@ -42,6 +50,7 @@ public:
     // @brief Init vocabulary with vocab content
     Status InitByFileContent(std::string content);
 
+    // @brief Encode the text to tokens and features
     std::vector<size_t> Encode(std::string text, Status &status);
 
     // @brief find vocabulary by id
@@ -55,23 +64,30 @@ public:
     size_t SepId();
     size_t ClsId();
     size_t UnkId();
-    size_t TotalSize();
 
+    // build inputBert with paragraph and question
     Status buildInput(std::string paragraph, std::string question, std::shared_ptr<BertTokenizerInput> input);
 
-    // @brief get indexed
+    // @brief get indexes from result
     std::vector<size_t> _get_best_indexes(float* logits, size_t size, size_t n_best_size);
 
+    // @brief judge if a charactor is punctuate chracter
     bool is_punct_char(char cp);
 
+    // @brief seperate text with whitespace and punctuate character
     std::string basic_separate(std::string text);
 
+    // @brief set a string to lower case
     std::string toLower(std::string s);
 
+    // @brief tokenize BertOutput to text result and probalities
     Status ConvertResult(std::shared_ptr<TNNSDKOutput> output, std::string& ans);
+
+    // @brief calculate probabilities for result
+    Status CalProbs(std::vector<std::shared_ptr<prelim_prediction>> scores);
 private:
+    // @brief seperate token to indivisible one
     void max_seg_(std::string s, std::vector<size_t>& results);
-    void load_vocab_(std::string path, std::vector<std::string>& lines);
 
     // @brief get vocabulary by lines of char
     Status InitFromLines(const std::vector<std::string>& lines);
@@ -79,23 +95,27 @@ private:
     // @brief split strings by sepChar (usually '\\n')
     Status SplitString(const char *str, size_t len, char sepChar, std::vector<std::string> &pOut);
 
+    // @brief split string ASCII
     std::string StripStringASCIIWhole(const std::string str);
 
-    // UString _basic_tokenize(UString text);
-    // UString _clean(UString text);
+    // @param map between token and id in vocabulary
     std::map<std::string, int> token_2_id_map_;
     std::vector<std::string> tokens_;
 
     // signs needed by vocabulary
+    // @param [Unk] for Unknown
     static std::string kUnkToken;
+    // @param [Mask] for Mask
     static std::string kMaskToken;
+    // @param [Sep] for Seperate
     static std::string kSepToken;
+    // @param [Pad] for Pad
     static std::string kPadToken;
+    // @param [Cls] for Cls
     static std::string kClsToken;
 
-    std::vector<std::string> features_, features_low_;
-    std::vector<size_t> token_map_;
-
+    // @param index to origin word 
+    std::vector<std::string> features_;
 };
 } // namespace TNN_NS
 

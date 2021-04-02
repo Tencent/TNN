@@ -374,16 +374,35 @@ std::vector<size_t> BertTokenizer::_get_best_indexes(float* logits, size_t size,
     return results;
 }
 
-struct prelim_prediction {
-public:
-    prelim_prediction(size_t start, size_t end, float start_logit, float end_logit) :
-        start(start), end(end), start_logit(start_logit), end_logit(end_logit) {};
-    size_t start, end;
-    float start_logit, end_logit;
-};
-
 bool cmp(const std::shared_ptr<struct prelim_prediction> &a, const std::shared_ptr<struct prelim_prediction> &b) {
     return (a->start_logit + a->end_logit) > (b->start_logit + b->end_logit);
+}
+
+Status BertTokenizer::CalProbs(std::vector<std::shared_ptr<prelim_prediction>> prelim_pres) {
+    std::vector<float> scores;
+    float max_score = -FLT_MAX;
+
+    for (auto prelim_pre : prelim_pres) {
+        scores.push_back(prelim_pre->start_logit + prelim_pre->end_logit);
+    }
+
+    for (auto score : scores) {
+        if (score > max_score) max_score = score;
+    }
+
+    std::vector<float> exp_scores;
+    float sum = 0.0;
+    for (auto score : scores) {
+        auto x = exp(score - max_score);
+        exp_scores.push_back(x);
+        sum += x;
+    }
+
+    for (size_t i = 0; i < prelim_pres.size(); i++) {
+        prelim_pres[i]->prob = exp_scores[i] / sum;
+    }
+
+    return TNN_OK;
 }
 
 Status BertTokenizer::ConvertResult(std::shared_ptr<TNNSDKOutput> output, std::string& ans) {
@@ -409,19 +428,23 @@ Status BertTokenizer::ConvertResult(std::shared_ptr<TNNSDKOutput> output, std::s
 
     std::sort(prelim_predictions.begin(), prelim_predictions.end(), cmp);
     size_t nums = 0;
+
+    // calc probabilities
+    CalProbs(prelim_predictions);
+    
     for (auto item : prelim_predictions) {
         if (nums >= maxAns) break;
         std::string tok;
-        for (size_t i = item->start; i <= item->end; i++) { // [CLS] & [SEP]
+        for (size_t i = item->start; i <= item->end; i++) { 
             if (features_[i].find("##") != std::string::npos) {
-                auto s = features_[i].substr(features_[i].find("##") + 2);
+                auto s = features_[i].substr(features_[i].find("##") + 2); // ## represent connections between tokens(no white-space)
                 tok += s;
             } else {
                 if (i == item->start) tok += features_[i];
                 else tok += " " + features_[i];
             }
         }
-        std::cout << tok << " " << item->start_logit + item->end_logit << std::endl;
+        std::cout << tok << "\t" << "probability = " << item->prob << std::endl;
         nums++;
     }
     
