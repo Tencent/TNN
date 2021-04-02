@@ -276,7 +276,8 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
 
 Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info, bool is_input, bool is_quantized_net,
                                            const std::string &name, NetResource *net_resource, Blob **blob) {
-    if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE) {
+    if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE &&
+        device_->GetDeviceType() != DEVICE_X86) {
         return TNN_OK;
     }
 
@@ -296,7 +297,12 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
                 bool layer_implemented_fp16  = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
                 desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
             } else if (config_.precision == PRECISION_LOW) {
-                desc.data_type = DATA_TYPE_BFP16;
+                if (device_->GetDeviceType() == DEVICE_ARM) {
+                    desc.data_type = DATA_TYPE_BFP16;
+                } else if (device_->GetDeviceType() == DEVICE_NAIVE ||
+                           device_->GetDeviceType() == DEVICE_X86) {
+                    desc.data_type = DATA_TYPE_FLOAT;
+                }
             } else if (config_.precision == PRECISION_HIGH) {
                 desc.data_type = DATA_TYPE_FLOAT;
             } else {
