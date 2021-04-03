@@ -215,6 +215,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"Equal", LAYER_EQUAL},
     {"Where", LAYER_WHERE},
     {"LayerNorm", LAYER_LAYER_NORM},
+    {"GELU", LAYER_GELU},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 
