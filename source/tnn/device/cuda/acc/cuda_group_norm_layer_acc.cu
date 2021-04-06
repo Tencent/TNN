@@ -31,13 +31,6 @@ inline static int getThreads(int count) {
     count |= (count >> 4);
     return count + 1;
 }
-inline static int getPass1Size(int a, int b, int c) {
-    int prod, val;
-    if (a < b && a < c) { val = a; prod = b * c; }
-    else if (b < c) { val = b; prod = a * c; }
-    else { val = c; prod = a * b; }
-    return prod > val ? prod: val;
-}
 
 template<typename T>
 struct Tuple2 {
@@ -127,15 +120,6 @@ __device__ static void reduce(const T* input, AccType* output, const int count, 
     __syncthreads();
 }
 
-template<int THREAD_PER_BLOCK, typename T, typename AccType, UFunc<AccType> ufunc = idn<AccType> >
-__global__ static void reduce_unalign(const T* input, AccType* output, const int count,
-                                      const int in_block_step, const int in_elem_step = 1,
-                                      const int out_step_T = (sizeof(AccType) + sizeof(T) - 1) / sizeof(T)) {
-    reduce<THREAD_PER_BLOCK, T, AccType, ufunc>(
-        input + in_block_step * blockIdx.x, 
-        reinterpret_cast<AccType*>(reinterpret_cast<T*>(output) + blockIdx.x * out_step_T),
-        count, in_elem_step);
-}
 
 template<typename T>
 __device__ void fuse_param_and_affine(const T *input, T *output, const float *gamma, const float *beta,
@@ -180,33 +164,6 @@ __global__ void group_norm_1pass(const T *input, T *output, const float *gamma, 
     fuse_param_and_affine<T>(input, output, gamma, beta, c_per_g, hw, eps, sums[0].v1, sums[0].v2);
 }
 
-template<int THREAD_PER_BLOCK, typename T>
-__global__ void group_norm_2pass(const T *input, T *output, const float *gamma, const float *beta,
-                                 const int c_per_g, const int hw, const int part_per_g, const int part_count,
-                                 const float eps) {
-    // 1 group per block, used when c_per_g * hw >= 4096
-    // assert (part_per_g * 2 * sizeof(AccType) <= c_per_g * hw * sizeof(T))
-    // assert (c_per_g * hw == part_per_g * part_count)
-    using AccType = typename GNAccType<T>::type;
-
-    extern __shared__ char _part_sums[];
-    __shared__ char _sums[sizeof(Tuple2<AccType>)];
-    Tuple2<AccType> *sums = reinterpret_cast<Tuple2<AccType>*>(_sums);
-
-    if (part_count % (sizeof(Tuple2<AccType>) / sizeof(T)) == 0) {
-        Tuple2<AccType> *part_sums = reinterpret_cast<Tuple2<AccType>*>(_part_sums);
-        for (int i = threadIdx.x; i < part_per_g; i += blockDim.x)
-            part_sums[i] = *reinterpret_cast<Tuple2<AccType>*>(output + blockIdx.x * c_per_g * hw + i * part_count);
-        __syncthreads();
-        reduce<THREAD_PER_BLOCK, Tuple2<AccType>, Tuple2<AccType>, idn<AccType> >(part_sums, sums, part_per_g);
-    } else {
-        reduce<THREAD_PER_BLOCK, Tuple2<AccType>, Tuple2<AccType>, idn<AccType> >(
-            reinterpret_cast<Tuple2<AccType>*>(output + blockIdx.x * c_per_g * hw), sums,
-            part_per_g, static_cast<int>(part_count * sizeof(T) / sizeof(Tuple2<AccType>)));
-    }
-    fuse_param_and_affine<T>(input, output, gamma, beta, c_per_g, hw, eps, sums[0].v1, sums[0].v2);
-}
-
 template<typename T>
 static Status group_norm_v2(const T *input, T* output, const float *gamma, const float *beta,
                             const int n, const int c, const int g, const int c_per_g, const int h, const int w,
@@ -221,144 +178,17 @@ static Status group_norm_v2(const T *input, T* output, const float *gamma, const
         {256, group_norm_1pass<256, T>},
         {512, group_norm_1pass<512, T>},
     };
-    static std::map<int, void(*)(
-        const T*, T*, const float *, const float *,
-        const int, const int, const int, const int, const float)> group_norm_2pass_funcs = {
-        {32,  group_norm_2pass<32, T>},
-        {64,  group_norm_2pass<64, T>},
-        {128, group_norm_2pass<128, T>},
-        {256, group_norm_2pass<256, T>},
-        {512, group_norm_2pass<512, T>},
-    };
-    static std::map<int, void(*)(const T*, Tuple2<AccType>*, const int,
-                                 const int, const int, const int)> reduce_funcs = {
-        {32,  reduce_unalign<32, T, Tuple2<AccType>, idn_sqr<AccType> >},
-        {64,  reduce_unalign<64, T, Tuple2<AccType>, idn_sqr<AccType> >},
-        {128, reduce_unalign<128, T, Tuple2<AccType>, idn_sqr<AccType> >},
-        {256, reduce_unalign<256, T, Tuple2<AccType>, idn_sqr<AccType> >},
-        {512, reduce_unalign<512, T, Tuple2<AccType>, idn_sqr<AccType> >},
-    };
-    const int BLOCK_MAX = 512;
     const int hw = h * w;
     auto block = getThreads(c_per_g * hw);
     auto grid = n * g;
-    if (c_per_g * hw <= 512 * BLOCK_MAX) {
+    {
         group_norm_1pass_funcs[block]<<<grid, block, 2 * c_per_g * sizeof(AccType), s>>>(
             input, output, gamma, beta, c_per_g, hw, eps);
         auto err = cudaGetLastError();
         if (err != cudaSuccess)
             return Status(TNNERR_CUDA_TENSORRT_ERROR, "GN Plugin 1pass failed: " + std::to_string(err));
-    } else {
-        // assert (part_per_g * 2 * sizeof(AccType) <= c_per_g * hw * sizeof(T))
-        auto count_pass1 = getPass1Size(h, w, c_per_g);
-        auto part_per_g = hw * c_per_g / count_pass1;
-        auto block_pass1 = getThreads(count_pass1);
-        auto grid_pass1 = n * g * part_per_g;
-        if (part_per_g * 2 * sizeof(AccType) > c_per_g * hw * sizeof(T)) {
-            group_norm_1pass_funcs[block]<<<grid, block, 2 * c_per_g * sizeof(AccType), s>>>(
-            input, output, gamma, beta, c_per_g, hw, eps);
-            auto err = cudaGetLastError();
-            if (err != cudaSuccess)
-                return Status(TNNERR_CUDA_TENSORRT_ERROR, "GN Plugin 1pass failed: " + std::to_string(err));
-        } else {
-            reduce_funcs[block_pass1]<<<grid_pass1, block_pass1, 0, s>>>(
-                input, reinterpret_cast<Tuple2<AccType>*>(output), count_pass1, count_pass1, 1,
-                count_pass1);
-            auto err = cudaGetLastError();
-            if (err != cudaSuccess)
-                return Status(TNNERR_CUDA_TENSORRT_ERROR, "GN Plugin 2pass_1 failed: " + std::to_string(err));
-
-            auto pass2_shm1 = 2 * c_per_g * sizeof(AccType);
-            auto pass2_shm2 = part_per_g * sizeof(Tuple2<AccType>);
-            group_norm_2pass_funcs[block]<<<grid, block, pass2_shm1 > pass2_shm2 ? pass2_shm1 : pass2_shm2, s>>>(
-                input, output, gamma, beta, c_per_g, hw, part_per_g, count_pass1, eps);
-            err = cudaGetLastError();
-            if (err != cudaSuccess)
-                return Status(TNNERR_CUDA_TENSORRT_ERROR, "GN Plugin 2pass_2 failed: " + std::to_string(err));
-        }
     }
     return TNN_OK;
-}
-
-template<int THREAD_PER_BLOCK, typename T>
-__global__ void group_norm_kernel(const T* input, T* output, const float * gamma,
-        const float * beta, const int size, const int batch_size, const int channels_per_group,
-        const int group, const int channels, const float eps) {
-    using AccType = typename GNAccType<T>::type;
-    __shared__ AccType ssum1[THREAD_PER_BLOCK/32];
-    __shared__ AccType ssum2[THREAD_PER_BLOCK/32];
-    __shared__ AccType k;
-    __shared__ AccType b;
-    extern __shared__ char _sm[];
-    T *sm = reinterpret_cast<T*>(_sm);
-
-    const int block_offset = (blockIdx.x * channels + blockIdx.y * channels_per_group) * size;
-    const T * ptr = input + block_offset;
-    T * dst = output + block_offset;
-
-    AccType thread_sum1 = AccType(0.);
-    AccType thread_sum2 = AccType(0.);
-
-    for (int i = threadIdx.x; i < channels_per_group * size; i+=THREAD_PER_BLOCK) {
-        AccType value = static_cast<AccType>(ptr[i]);
-        thread_sum1 += value;
-        thread_sum2 += value * value;
-    }
-
-    thread_sum1 += __shfl_down_sync(0xffffffff, thread_sum1, 16, 32);
-    thread_sum1 += __shfl_down_sync(0x0000ffff, thread_sum1, 8, 16);
-    thread_sum1 += __shfl_down_sync(0x000000ff, thread_sum1, 4, 8);
-    thread_sum1 += __shfl_down_sync(0x0000000f, thread_sum1, 2, 4);
-    thread_sum1 += __shfl_down_sync(0x00000003, thread_sum1, 1, 2);
-
-    thread_sum2 += __shfl_down_sync(0xffffffff, thread_sum2, 16, 32);
-    thread_sum2 += __shfl_down_sync(0x0000ffff, thread_sum2, 8, 16);
-    thread_sum2 += __shfl_down_sync(0x000000ff, thread_sum2, 4, 8);
-    thread_sum2 += __shfl_down_sync(0x0000000f, thread_sum2, 2, 4);
-    thread_sum2 += __shfl_down_sync(0x00000003, thread_sum2, 1, 2);
-
-    if (threadIdx.x % 32 == 0) {
-        ssum1[threadIdx.x / 32] = thread_sum1;
-        ssum2[threadIdx.x / 32] = thread_sum2;
-    }
-    __syncthreads();
-
-    if (threadIdx.x < blockDim.x / 32) {
-        thread_sum1 = ssum1[threadIdx.x];
-        thread_sum2 = ssum2[threadIdx.x];
-    } else {
-        thread_sum1 = 0;
-        thread_sum2 = 0;
-    }
-    thread_sum1 += __shfl_down_sync(0x0000000f, thread_sum1, 2, 4);
-    thread_sum1 += __shfl_down_sync(0x00000003, thread_sum1, 1, 2);
-
-    thread_sum2 += __shfl_down_sync(0x0000000f, thread_sum2, 2, 4);
-    thread_sum2 += __shfl_down_sync(0x00000003, thread_sum2, 1, 2);
-
-    if (threadIdx.x == 0) {
-        AccType mean = thread_sum1 / (size * channels_per_group) ;
-        AccType var = thread_sum2 / (size * channels_per_group) - mean * mean;
-
-        k = 1.f / sqrt(var + eps);
-        b = - mean * k;;
-    }
-
-    __syncthreads();
-    for (int c = threadIdx.x; c < channels_per_group; c+=THREAD_PER_BLOCK) {
-        float scale = gamma[blockIdx.y * channels_per_group + c];
-        float bias = beta == nullptr ? 0.f : beta[blockIdx.y * channels_per_group + c];
-        sm[c] = static_cast<T>(k * scale);
-        sm[channels_per_group+c] = static_cast<T>(bias + b * scale);
-    }
-    __syncthreads();
-    for (int c = 0; c < channels_per_group; c++) {
-        T scale = sm[c];
-        T bias = sm[channels_per_group + c];
-        for (int i = threadIdx.x; i < size; i += THREAD_PER_BLOCK) {
-             dst[c*size+i] = ptr[c*size+i] * scale + bias;
-        }
-    }
 }
 
 Status CudaGroupNormLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -386,12 +216,6 @@ Status CudaGroupNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
         float* output_data = static_cast<float*>(output_blob->GetHandle().base);
         int channels_per_group = input_dims[1] / params->group;
 
-        // dim3 grid(input_dims[0], params->group);
-        // const int THREAD_PER_BLOCK = 128;
-        // int sm_size = channels_per_group * 2 * sizeof(float);
-        // group_norm_kernel<THREAD_PER_BLOCK, float><<<grid, THREAD_PER_BLOCK, sm_size, context_->GetStream()>>>(input_data,
-        //     output_data, scale_data, bias_data, input_dims[2]*input_dims[3], input_dims[0], channels_per_group, params->group,
-        //     input_dims[1], params->eps);
         return group_norm_v2<float>(input_data, output_data, scale_data, bias_data,
                                     input_dims[0], input_dims[1], params->group, channels_per_group,
                                     input_dims[2], input_dims[3], params->eps, context_->GetStream());
@@ -402,12 +226,6 @@ Status CudaGroupNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
         __half* output_data = static_cast<__half*>(output_blob->GetHandle().base);
         int channels_per_group = input_dims[1] / params->group;
 
-        // dim3 grid(input_dims[0], params->group);
-        // const int THREAD_PER_BLOCK = 128;
-        // int sm_size = channels_per_group * 2 * sizeof(__half);
-        // group_norm_kernel<THREAD_PER_BLOCK, __half><<<grid, THREAD_PER_BLOCK, sm_size, context_->GetStream()>>>(input_data,
-        //     output_data, scale_data, bias_data, input_dims[2]*input_dims[3], input_dims[0], channels_per_group, params->group,
-        //     input_dims[1], params->eps);
         return group_norm_v2<__half>(input_data, output_data, scale_data, bias_data,
                                     input_dims[0], input_dims[1], params->group, channels_per_group,
                                     input_dims[2], input_dims[3], params->eps, context_->GetStream());
