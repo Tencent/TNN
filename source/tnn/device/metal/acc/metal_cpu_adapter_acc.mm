@@ -201,6 +201,12 @@ Status MetalCpuAdapterAcc::ConvertBlobForAdaptorAcc(const std::vector<Blob *> & 
         auto device_blob = metal_blobs[i];
         auto cpu_blob    = cpu_blobs[i];
 
+        // leave constant blobs to device layer acc
+        if (const_resource_ != nullptr &&
+            const_resource_->find(device_blob->GetBlobDesc().name) != const_resource_->end()) {
+                continue;
+        }
+
         auto dims = cpu_blob->GetBlobDesc().dims;
         if (!metal_to_cpu) {
             device_blob->GetBlobDesc().dims = dims;
