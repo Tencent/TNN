@@ -58,7 +58,7 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
 
     if (mode == 3) {
         // skip cubic upsample for now
-        if (data_type == DATA_TYPE_INT8 || DEVICE_HUAWEI_NPU == dev) {
+        if (data_type == DATA_TYPE_INT8 || DEVICE_HUAWEI_NPU == dev || DEVICE_CUDA == dev) {
             GTEST_SKIP();
         }
     }
