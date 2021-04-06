@@ -16,6 +16,7 @@
 #include "tnn/device/metal/acc/metal_unary_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/interpreter/layer_param.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 DECLARE_METAL_UNARY_ACC(SignedMul, LAYER_SIGNED_MUL);

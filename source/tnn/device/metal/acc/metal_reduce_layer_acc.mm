@@ -16,7 +16,7 @@
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 static DimsVector GetKeepDimOutput(const DimsVector& dims_input, ReduceLayerParam *param) {
@@ -106,7 +106,8 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
                                                 options:MTLResourceCPUCacheModeWriteCombined];
         
         auto data_type_byte_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
-        auto buffer_bytes = data_type_byte_size * GetBlobCount(reformat_dims_input, 2) * reformat_dims_input[0] * ROUND_UP(reformat_dims_input[1], 4);
+        auto buffer_bytes = data_type_byte_size * DimsFunctionUtils::GetDimProduct(reformat_dims_input, 2) * \
+                            reformat_dims_input[0] * ROUND_UP(reformat_dims_input[1], 4);
         buffer_output_ = [device newBufferWithLength:buffer_bytes
                                              options:MTLResourceStorageModePrivate];
     }
@@ -155,8 +156,8 @@ Status MetalReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
                             bandwidth:bandwidth];
         BREAK_IF(status != TNN_OK);
 
-        auto output_width  = GetBlobCount(dims_output, 3);
-        auto output_height = GetBlobDim(dims_output, 2);
+        auto output_width  = DimsFunctionUtils::GetDimProduct(dims_output, 3);
+        auto output_height = DimsFunctionUtils::GetDim(dims_output, 2);
         auto output_slice = UP_DIV(dims_output[1], 4);
         auto batch         = dims_output[0];
         MTLSize threads = {(NSUInteger)output_width * output_height, (NSUInteger)output_slice, (NSUInteger)batch};

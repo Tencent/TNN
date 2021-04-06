@@ -62,9 +62,13 @@ Status UpsampleOVLayerBuilder::Build() {
     }
 
     std::vector<int64_t> upsampleShape;
-    if (paramlist->dims[0] != 0 && paramlist->dims[1] != 0) {
-        upsampleShape.push_back(paramlist->dims[1]);
-        upsampleShape.push_back(paramlist->dims[0]);
+    if (paramlist->dims.size() != 0) {
+        if (paramlist->dims[0] != 0 && paramlist->dims[1] != 0) {
+            upsampleShape.push_back(paramlist->dims[1]);
+            upsampleShape.push_back(paramlist->dims[0]);
+        } else {
+            return Status(TNNERR_MODEL_ERR, "Error: Upsample size error");
+        }
     } else {
         upsampleShape.push_back(input_node->get_output_shape(0).at(2) * paramlist->scales.at(1));
         upsampleShape.push_back(input_node->get_output_shape(0).at(3) * paramlist->scales.at(0));

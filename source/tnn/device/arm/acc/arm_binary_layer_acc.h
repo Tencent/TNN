@@ -52,6 +52,8 @@ public:
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
 protected:
     virtual bool DataTypeSupported(DataType data_type) override;
     virtual Status ConfigBuffer2ArmBlobDesc(BlobDesc &desc) override;

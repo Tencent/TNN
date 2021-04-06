@@ -59,14 +59,24 @@ Status MetalDeconvLayerCommon::AllocateBufferWeight(const std::vector<Blob *> &i
     auto dims_output             = outputs[0]->GetBlobDesc().dims;
     const int input_channel      = dims_input[1];
     const int output_channel     = dims_output[1];
+    const int group = layer_param->group;
+    const int goc   = output_channel / group;
+    const int gic   = input_channel / group;
+    is_channel_4x_ = group == 1 || (group > 1 && (gic % 4 == 0) && (goc % 4 == 0));
+    is_group2_specialized_ = group == 2 && goc == 1 && gic == 2;
 
     Status status = TNN_OK;
     if (!buffer_weight_) {
         int kw = layer_param->kernels[0];
         int kh = layer_param->kernels[1];
 
-        buffer_weight_ = AllocatePackedGOIHW16MetalBufferFormRawBuffer(
-            layer_res->filter_handle, {output_channel, input_channel, kh, kw}, layer_param->group, status, true);
+        if (is_channel_4x_ || is_group2_specialized_) {
+            buffer_weight_ = AllocatePackedGOIHW16MetalBufferFormRawBuffer(
+                layer_res->filter_handle, {output_channel, input_channel, kh, kw}, layer_param->group, status, true);
+        } else {
+            buffer_weight_ = AllocatePackedGOIHW4MetalBufferFormRawBuffer(
+                layer_res->filter_handle, {output_channel, input_channel, kh, kw}, layer_param->group, status, true);
+        }
     }
     return status;
 }
@@ -85,16 +95,25 @@ Status MetalDeconvLayerCommon::AllocateBufferParam(const std::vector<Blob *> &in
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
         SetDefaultMetalConvParams(metal_params, deconv_param);
 
-        auto input_slice_per_group = UP_DIV(dims_input[1], 4) / group;
-        input_slice_per_group      = input_slice_per_group > 0 ? input_slice_per_group : 1;
-        metal_params.input_slice   = input_slice_per_group;
+        if (is_channel_4x_ || is_group2_specialized_) {
+            auto input_slice_per_group = UP_DIV(dims_input[1], 4) / group;
+            input_slice_per_group      = input_slice_per_group > 0 ? input_slice_per_group : 1;
+            metal_params.input_slice   = input_slice_per_group;
 
-        auto output_slice_per_group = UP_DIV(dims_output[1], 4) / group;
-        output_slice_per_group      = output_slice_per_group > 0 ? output_slice_per_group : 1;
-        metal_params.output_slice   = output_slice_per_group;
+            auto output_slice_per_group = UP_DIV(dims_output[1], 4) / group;
+            output_slice_per_group      = output_slice_per_group > 0 ? output_slice_per_group : 1;
+            metal_params.output_slice   = output_slice_per_group;
 
-        metal_params.threadgroup_input_slice = metal_params.input_slice;
-        //            metal_params.batch = dims_output[0];
+            metal_params.threadgroup_input_slice = metal_params.input_slice;
+            //            metal_params.batch = dims_output[0];
+        } else {
+            const int goc = dims_output[1] / group;
+            const int gic = dims_input[1] / group;
+            metal_params.input_slice            = UP_DIV(gic, 4);
+            metal_params.input_slice_per_group  = gic;
+            metal_params.output_slice           = UP_DIV(goc, 4);
+            metal_params.output_slice_per_group = goc;
+        }
         
         auto status = ComputeDeconvParam(metal_params);
         RETURN_ON_NEQ(status, TNN_OK);
@@ -153,27 +172,28 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
     MetalBandwidth bandwidth;
     MTLSize threads = {(NSUInteger)output_width, (NSUInteger)output_height, (NSUInteger)output_slice_per_group};
 
-    bool supported = false;
-    if (group == 1 || (group != 1 && (output_channel_per_group % 4) == 0 && (input_channel_per_group % 4) == 0)) {
-        supported = true;
-        status    = [context_impl load:@"deconv_common_group_channel_in4x_out4x" encoder:encoder bandwidth:bandwidth];
+    if (is_channel_4x_) {
+        status = [context_impl load:@"deconv_common_group_channel_in4x_out4x" encoder:encoder bandwidth:bandwidth];
     } else {
         //special case
-        if (group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2) {
-            supported              = true;
-            status                 = [context_impl load:@"deconv_common_group_channel_in2_out1_group2"
+        if (is_group2_specialized_) {
+            status = [context_impl load:@"deconv_common_group_channel_in2_out1_group2"
                                 encoder:encoder
                               bandwidth:bandwidth];
             input_bytes_per_group  = input_channel_per_group * output_height * output_width * data_byte_size;
             output_slice_per_group = output_channel_per_group * output_height * output_width * data_byte_size;
         } else {
-            supported = false;
+            status = [context_impl load:@"deconv_common_group_channel"
+                                encoder:encoder
+                              bandwidth:bandwidth];
+            threads = {(NSUInteger)output_width, (NSUInteger)output_height,
+                        (NSUInteger)UP_DIV(output_channel_per_group, 4)};
+            // compute offset within kernel
+            input_bytes_per_group  = 0;
+            output_bytes_per_group = 0;
+            weight_bytes_per_group = ROUND_UP(output_channel_per_group, 4) * input_channel_per_group * kernel_size * data_byte_size;
+            bias_bytes_per_group   = output_channel_per_group * data_byte_size;
         }
-    }
-    if (!supported) {
-        [encoder endEncoding];
-        LOGE("Error: deconv group != 1 is not supported\n");
-        return Status(TNNERR_LAYER_ERR, "deconv group != 1 is not supported");
     }
 
     if (status != TNN_OK) {
@@ -181,7 +201,7 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
         return status;
     }
 
-    if (!(group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2)) {
+    if (!is_group2_specialized_) {
         for(int n=0; n<batch; ++n) {
             for (int g = 0; g < group; g++) {
                 [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
@@ -193,6 +213,7 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
                 [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
                 [encoder setBuffer:buffer_weight_ offset:g * weight_bytes_per_group atIndex:3];
                 [encoder setBuffer:buffer_bias_ offset:g * bias_bytes_per_group atIndex:4];
+                [encoder setBytes :&g       length:sizeof(int) atIndex:5];
 
                 status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
 

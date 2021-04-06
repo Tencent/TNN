@@ -138,7 +138,7 @@ class InnerProductLayerResourceGenerator : public LayerResourceGenerator {
 
         auto dims = inputs[0]->GetBlobDesc().dims;
 
-        int weight_handle_size = layer_param->num_output * GetBlobCount(dims, 1);
+        int weight_handle_size = layer_param->num_output * DimsVectorUtils::Count(dims, 1);
         if (param->quantized) {
             layer_res->weight_handle = RawBuffer(weight_handle_size * sizeof(int8_t));
             layer_res->bias_handle   = RawBuffer(layer_param->num_output * sizeof(int32_t));

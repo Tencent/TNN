@@ -18,6 +18,7 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 bool MetalConvLayerCommon::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
@@ -84,8 +85,8 @@ Status MetalConvLayerCommon::AllocateBufferParam(const std::vector<Blob *> &inpu
     const int group  = conv_param->group;
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
     auto dims_output = outputs[0]->GetBlobDesc().dims;
-    const int goc       = dims_output[1] / group;
-    const int gic       = dims_input[1] / group;
+    const int goc    = dims_output[1] / group;
+    const int gic    = dims_input[1] / group;
     // buffer_param_
     {
         MetalConvParams metal_params;

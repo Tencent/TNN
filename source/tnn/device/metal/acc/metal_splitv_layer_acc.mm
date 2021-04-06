@@ -16,6 +16,7 @@
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -32,8 +33,8 @@ Status MetalSplitVLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
     {
     MetalSplitVParamV2 metal_params;
     metal_params.outer_size = DimsVectorUtils::Count(input_dims, 0, layer_param->axis);
-    metal_params.inner_size = GetBlobCount(input_dims, layer_param->axis+1);
-    metal_params.axis_size  = GetBlobDim(input_dims, layer_param->axis);
+    metal_params.inner_size = DimsFunctionUtils::GetDimProduct(input_dims, layer_param->axis+1);
+    metal_params.axis_size  = DimsFunctionUtils::GetDim(input_dims, layer_param->axis);
 
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
@@ -89,7 +90,7 @@ Status MetalSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     for (int i = 0; i < outputs.size(); i++) {
         auto dims_output    = outputs[i]->GetBlobDesc().dims;
         auto output_slice   = UP_DIV(dims_output[1], 4);
-        auto split_axis_size= GetBlobDim(dims_output, layer_param->axis); 
+        auto split_axis_size= DimsFunctionUtils::GetDim(dims_output, layer_param->axis); 
         split_axis_size = split_channel? output_slice : split_axis_size;
 
         auto encoder = [context_impl encoder];
