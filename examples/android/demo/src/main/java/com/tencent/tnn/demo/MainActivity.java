@@ -94,6 +94,7 @@ public class MainActivity extends Activity {
             }
         });
 
+        /*
         findViewById(R.id.image_ocr_detect_btn).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -106,6 +107,7 @@ public class MainActivity extends Activity {
                 }
             }
         });
+        */
 
         findViewById(R.id.stream_object_detect_btn).setOnClickListener(new View.OnClickListener() {
             @Override

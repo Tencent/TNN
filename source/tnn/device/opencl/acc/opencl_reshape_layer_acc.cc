@@ -55,12 +55,12 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
     if (reshape_type == 0)
     {
-        im_to_bf_func_name      = src_format + "ToNCHWBuffer";
-        bf_to_im_func_name      = "NCHWBufferTo" + dst_format;
+        im_to_bf_func_name_      = src_format + "ToNCHWBuffer";
+        bf_to_im_func_name_      = "NCHWBufferTo" + dst_format;
     } else if (reshape_type == 1 && outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
         // tensorflow reshape data format is NHWC, only support NHC4W4 blob for now
-        im_to_bf_func_name      = src_format + "ToNHWCBuffer";
-        bf_to_im_func_name      = "NHWCBufferTo" + dst_format;
+        im_to_bf_func_name_      = src_format + "ToNHWCBuffer";
+        bf_to_im_func_name_      = "NHWCBufferTo" + dst_format;
     } else {
         LOGE("Error: Unsupport reshape type(%d), src_format: %s, dst_format: %s\n",
              reshape_type, src_format.c_str(), dst_format.c_str());

@@ -187,6 +187,11 @@ JNIEXPORT JNICALL jboolean TNN_OCR_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz,
         tmpOCRTextboxDetector->setNpuModelPath(modelPathStr + "/");
         tmpOCRTextboxDetector->setCheckNpuSwitch(false);
         status = tmpOCRTextboxDetector->Init(option);
+
+        if (status != TNN_NS::TNN_OK) {
+            LOGE("ocr textbox detector init failed %d", (int)status);
+            return false;
+        }
     }
 
     protoContent = fdLoadFile(modelPathStr + "/angle_net.onnx.pack.tnnproto");
@@ -369,6 +374,17 @@ JNIEXPORT JNICALL jobjectArray TNN_OCR_DETECTOR(detectFromImage)(JNIEnv *env, jo
         LOGE("failed to detect %d", (int)status);
         return 0;
     }
+
+    char temp[128] = "";
+    std::string device = "arm";
+    if (gComputeUnitType == 1) {
+        device = "gpu";
+    } else if (gComputeUnitType == 2) {
+        device = "huawei_npu";
+    }
+    sprintf(temp, " device: %s \n", device.c_str());
+    std::string computeUnitTips(temp);
+    setBenchResult(computeUnitTips);
 
     asyncRefDetector->ProcessSDKOutput(output);
     AndroidBitmap_unlockPixels(env, imageSource);

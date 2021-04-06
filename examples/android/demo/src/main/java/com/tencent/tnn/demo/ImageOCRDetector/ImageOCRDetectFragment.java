@@ -188,6 +188,7 @@ public class ImageOCRDetectFragment extends BaseFragment {
             device = 1;
         }
         int result = mOCRDetector.init(modelPath, originBitmap.getWidth(), originBitmap.getHeight(), device);
+        String txt_result = "text result:\n";
         if(result == 0) {
             Log.d(TAG, "detect from image");
             ObjectInfo[] objectInfoList = mOCRDetector.detectFromImage(scaleBitmap, originBitmap.getWidth(), originBitmap.getHeight());
@@ -231,6 +232,7 @@ public class ImageOCRDetectFragment extends BaseFragment {
 
                     point_lines_list.add(point_lines);
                     labels.add(String.format("%s", objectInfoList[i].label));
+                    txt_result += objectInfoList[i].label + "\n";
                 }
                 for (int i=0; i<point_lines_list.size(); i++) {
                     float[] point_lines = point_lines_list.get(i);
@@ -244,7 +246,7 @@ public class ImageOCRDetectFragment extends BaseFragment {
                 source.draw(canvas);
 
             }
-            String benchResult = "text box count: " + objectCount + " " + Helper.getBenchResult();
+            String benchResult = "text box count: " + objectCount + " " + Helper.getBenchResult() + txt_result;
             TextView result_view = (TextView)$(R.id.result);
             result_view.setText(benchResult);
         } else {
