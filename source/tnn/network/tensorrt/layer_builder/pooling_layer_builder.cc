@@ -68,7 +68,7 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
                 layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_DOWN);
             }
         } else {
-            layer->setPaddingMode(PaddingMode::kSAME_LOWER);
+            layer->setPaddingMode(PaddingMode::kSAME_UPPER);
         }
         if (paramlist->pool_type == 1) {
             layer->setAverageCountExcludesPadding(true);

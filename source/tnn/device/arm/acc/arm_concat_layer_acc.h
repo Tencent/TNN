@@ -12,21 +12,25 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_RESHAPE_LAYER_BUILDER_H_
-#define TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_RESHAPE_LAYER_BUILDER_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONCAT_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONCAT_LAYER_ACC_H_
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/device/arm/acc/arm_layer_acc.h"
 
 namespace TNN_NS {
 
-class ReshapeTRTLayerBuilder : public TensorRTLayerBuilder {
+// @brief pooling layer cpu acc
+class ArmConcatLayerAcc : public ArmLayerAcc {
 public:
-    ReshapeTRTLayerBuilder(LayerType type);
-    virtual ~ReshapeTRTLayerBuilder();
-    virtual Status Reshape();
-    virtual ILayer* AddToNetwork(INetworkDefinition* network);
+    virtual ~ArmConcatLayerAcc();
+
+    Status ExecInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    Status ExecNchw(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 };
 
-}  //  namespace TNN_NS
+}  // namespace TNN_NS
 
-#endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_RESHAPE_LAYER_BUILDER_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONCAT_LAYER_ACC_H_

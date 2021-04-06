@@ -264,50 +264,50 @@ namespace optimizer {
 
         // reformat output layers if needed.
         // support multi outputs.
-        for (const auto &model_output : structure->outputs) {
-            LOGD("NetOptimizerInsertLayoutReformat::Optimize, process model output: %s\n", model_output.c_str());
-            bool need_reformat                      = false;
-            std::shared_ptr<LayerInfo> output_layer = layers_orig[0];
-            DataFormat output_layout                = GetInputLayout(net_config_, device_->GetDeviceType());
-            for (const auto &layer : layers_orig) {
-                for (const auto &output : layer->outputs) {
-                    if (output == model_output) {
-                        if (layer_choosed_layout.find(layer->name) == layer_choosed_layout.end()) {
-                            LOGE("NetOptimizerInsertLayoutReformat Error: layout of layer %s not choosen\n",
-                                 layer->name.c_str());
-                            return Status(TNNERR_LAYER_ERR,
-                                          "NetOptimizerInsertLayoutReformat Error: layout of layer not choosen");
-                        }
-                        if (layer_choosed_layout[layer->name] != output_layout) {
-                            need_reformat = true;
-                            output_layer  = layer;
-                            break;
-                        }
-                    }
-                }
-                if (need_reformat) {
-                    break;
-                }
-            }
+        // for (const auto &model_output : structure->outputs) {
+        //     LOGD("NetOptimizerInsertLayoutReformat::Optimize, process model output: %s\n", model_output.c_str());
+        //     bool need_reformat                      = false;
+        //     std::shared_ptr<LayerInfo> output_layer = layers_orig[0];
+        //     DataFormat output_layout                = GetInputLayout(net_config_, device_->GetDeviceType());
+        //     for (const auto &layer : layers_orig) {
+        //         for (const auto &output : layer->outputs) {
+        //             if (output == model_output) {
+        //                 if (layer_choosed_layout.find(layer->name) == layer_choosed_layout.end()) {
+        //                     LOGE("NetOptimizerInsertLayoutReformat Error: layout of layer %s not choosen\n",
+        //                          layer->name.c_str());
+        //                     return Status(TNNERR_LAYER_ERR,
+        //                                   "NetOptimizerInsertLayoutReformat Error: layout of layer not choosen");
+        //                 }
+        //                 if (layer_choosed_layout[layer->name] != output_layout) {
+        //                     need_reformat = true;
+        //                     output_layer  = layer;
+        //                     break;
+        //                 }
+        //             }
+        //         }
+        //         if (need_reformat) {
+        //             break;
+        //         }
+        //     }
 
-            if (need_reformat) {
-                auto choosed_layout = layer_choosed_layout[output_layer->name];
-                // create choosed_layout -> output_layout reformat layer
-                std::shared_ptr<LayerInfo> new_layer =
-                    CreateReformat(model_output + reformat_name_suffix(choosed_layout) + "__to_model_output__",
-                                   choosed_layout, output_layout);
+        //     if (need_reformat) {
+        //         auto choosed_layout = layer_choosed_layout[output_layer->name];
+        //         // create choosed_layout -> output_layout reformat layer
+        //         std::shared_ptr<LayerInfo> new_layer =
+        //             CreateReformat(model_output + reformat_name_suffix(choosed_layout) + "__to_model_output__",
+        //                            choosed_layout, output_layout);
 
-                auto new_blob = model_output + reformat_name_suffix(choosed_layout);
-                structure->blobs.insert(new_blob);
-                output_layer->outputs = {new_blob};
-                new_layer->inputs     = {new_blob};
-                new_layer->outputs    = {model_output};
+        //         auto new_blob = model_output + reformat_name_suffix(choosed_layout);
+        //         structure->blobs.insert(new_blob);
+        //         output_layer->outputs = {new_blob};
+        //         new_layer->inputs     = {new_blob};
+        //         new_layer->outputs    = {model_output};
 
-                LOGD("Insert layout refomat layer : src %s dst %s\n", new_layer->inputs[0].c_str(),
-                     new_layer->outputs[0].c_str());
-                layers_modified.push_back(new_layer);
-            }
-        }
+        //         LOGD("Insert layout refomat layer : src %s dst %s\n", new_layer->inputs[0].c_str(),
+        //              new_layer->outputs[0].c_str());
+        //         layers_modified.push_back(new_layer);
+        //     }
+        // }
 
         structure->layers = layers_modified;
         layer_choosed_layout.clear();

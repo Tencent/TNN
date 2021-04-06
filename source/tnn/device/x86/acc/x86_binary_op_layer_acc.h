@@ -50,6 +50,7 @@ public:
     virtual Status Init(Context *context, LayerParam *param, LayerResource *resource,
                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 protected:
     // Calculate Function
     Status Calculate(const std::vector<Blob *> &input_blobs, const std::vector<void *> &input_ptrs,
