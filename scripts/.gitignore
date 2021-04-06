@@ -7,3 +7,5 @@ build_x86_linux
 x86_linux_release
 build_macos
 macos_release
+build_msvc
+msvc_release
