@@ -12,6 +12,7 @@ import com.tencent.tnn.demo.ImageBlazeFaceDetector.ImageBlazeFaceDetectActivity;
 import com.tencent.tnn.demo.ImageClassifyDetector.ImageClassifyDetectActivity;
 import com.tencent.tnn.demo.ImageFaceDetector.ImageFaceDetectActivity;
 import com.tencent.tnn.demo.ImageObjectDetectorSSD.ImageObjectDetectSSDActivity;
+import com.tencent.tnn.demo.ImageOCRDetector.ImageOCRDetectActivity;
 import com.tencent.tnn.demo.StreamBlazeFaceAlign.StreamBlazeFaceAlignActivity;
 import com.tencent.tnn.demo.StreamBlazeFaceDetector.StreamBlazeFaceDetectActivity;
 import com.tencent.tnn.demo.StreamFaceDetector.StreamFaceDetectActivity;
@@ -88,6 +89,19 @@ public class MainActivity extends Activity {
                     Intent intent = new Intent();
                     Activity activity = MainActivity.this;
                     intent.setClass(activity, ImageObjectDetectActivity.class);
+                    activity.startActivity(intent);
+                }
+            }
+        });
+
+        findViewById(R.id.image_ocr_detect_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!isShowedActivity) {
+                    isShowedActivity = true;
+                    Intent intent = new Intent();
+                    Activity activity = MainActivity.this;
+                    intent.setClass(activity, ImageOCRDetectActivity.class);
                     activity.startActivity(intent);
                 }
             }

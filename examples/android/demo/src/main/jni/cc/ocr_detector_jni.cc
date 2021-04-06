@@ -177,11 +177,10 @@ JNIEXPORT JNICALL jboolean TNN_OCR_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz,
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
 
     TNN_NS::Status status = TNN_NS::TNN_OK;
-    auto option = std::make_shared<TNN_NS::TNNSDKOption>();
     {
+        auto option = std::make_shared<TNN_NS::OCRTextboxDetectorOption>();
         option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         option->library_path="";
-        option->precision = TNN_NS::PRECISION_HIGH;
         option->proto_content = protoContent;
         option->model_content = modelContent;
         //add for huawei_npu store the om file
@@ -196,9 +195,8 @@ JNIEXPORT JNICALL jboolean TNN_OCR_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz,
 
     status = TNN_NS::TNN_OK;
     {
-        option = std::make_shared<TNN_NS::TNNSDKOption>();
+        auto option = std::make_shared<TNN_NS::TNNSDKOption>();
         option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
-        option->precision = TNN_NS::PRECISION_HIGH;
         option->library_path="";
         option->proto_content = protoContent;
         option->model_content = modelContent;
@@ -220,7 +218,6 @@ JNIEXPORT JNICALL jboolean TNN_OCR_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz,
     {
         auto recognizer_option = std::make_shared<TNN_NS::OCRTextRecognizerOption>();
         recognizer_option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
-        recognizer_option->precision = TNN_NS::PRECISION_HIGH;
         recognizer_option->library_path="";
         recognizer_option->vocab_path=modelPathStr + "/keys.txt";
         recognizer_option->proto_content = protoContent;
@@ -286,7 +283,6 @@ JNIEXPORT JNICALL jobjectArray TNN_OCR_DETECTOR(detectFromStream)(JNIEnv *env, j
     TNN_NS::Status status = asyncRefDetector->Predict(input, output);
 
     asyncRefDetector->ProcessSDKOutput(output);
-    ocrOutput = dynamic_cast<TNN_NS::OCROutput *>(output.get());
     delete [] yuvData;
     delete [] rgbaData;
     if (status != TNN_NS::TNN_OK) {
@@ -294,9 +290,9 @@ JNIEXPORT JNICALL jobjectArray TNN_OCR_DETECTOR(detectFromStream)(JNIEnv *env, j
         return 0;
     }
 
+    ocrOutput = dynamic_cast<TNN_NS::OCROutput *>(output.get());
     if (ocrOutput && ocrOutput->texts.size() > 0) {
         objectInfoArray = env->NewObjectArray(ocrOutput->texts.size(), clsObjectInfo, NULL);
-        LOGE("TNNDebug 1948: texts size: %d, key point size: %d\n", ocrOutput->texts.size(), ocrOutput->box.size());
         for (int i = 0; i < ocrOutput->texts.size(); i++) {
             jobject objObjectInfo = env->NewObject(clsObjectInfo, midconstructorObjectInfo);
 
@@ -318,6 +314,86 @@ JNIEXPORT JNICALL jobjectArray TNN_OCR_DETECTOR(detectFromStream)(JNIEnv *env, j
             for (int j = 0; j < objectInfo.key_points.size(); j++) {
                 jfloatArray inner = env->NewFloatArray(2);
                 float temp[] = {object_orig.key_points[j].first, object_orig.key_points[j].second};
+                env->SetFloatArrayRegion(inner, 0, 2, temp);
+                env->SetObjectArrayElement(outer, j, inner);
+                env->DeleteLocalRef(inner);
+            }
+            env->SetObjectField(objObjectInfo, fidkeypoints, outer);
+            jstring str = env->NewStringUTF(objectInfo.label);
+            env->SetObjectField(objObjectInfo, fidlabel, str);
+            env->DeleteLocalRef(str);
+            env->SetObjectArrayElement(objectInfoArray, i, objObjectInfo);
+            env->DeleteLocalRef(objObjectInfo);
+        }
+        return objectInfoArray;
+    } else {
+        return 0;
+    }
+#endif
+    return 0;
+}
+
+JNIEXPORT JNICALL jobjectArray TNN_OCR_DETECTOR(detectFromImage)(JNIEnv *env, jobject thiz, jobject imageSource, jint width, jint height)
+{
+#if HAS_OPENCV
+    jobjectArray objectInfoArray;
+    TNN_NS::OCROutput* ocrOutput;
+    int ret = -1;
+    AndroidBitmapInfo  sourceInfocolor;
+    void*              sourcePixelscolor;
+
+    if (AndroidBitmap_getInfo(env, imageSource, &sourceInfocolor) < 0) {
+        return 0;
+    }
+
+    if (sourceInfocolor.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
+        return 0;
+    }
+
+    if ( AndroidBitmap_lockPixels(env, imageSource, &sourcePixelscolor) < 0) {
+        return 0;
+    }
+    TNN_NS::BenchOption bench_option;
+    bench_option.forward_count = 20;
+    gOCRDriver->SetBenchOption(bench_option);
+    TNN_NS::DeviceType dt = TNN_NS::DEVICE_ARM;
+    TNN_NS::DimsVector target_dims = {1, 4, height, width};
+    auto input_mat = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, target_dims, sourcePixelscolor);
+    auto asyncRefDetector = gOCRDriver;
+
+    std::shared_ptr<TNN_NS::TNNSDKInput> input = std::make_shared<TNN_NS::TNNSDKInput>(input_mat);
+    std::shared_ptr<TNN_NS::TNNSDKOutput> output = std::make_shared<TNN_NS::TNNSDKOutput>();
+
+    TNN_NS::Status status = asyncRefDetector->Predict(input, output);
+    if (status != TNN_NS::TNN_OK) {
+        LOGE("failed to detect %d", (int)status);
+        return 0;
+    }
+
+    asyncRefDetector->ProcessSDKOutput(output);
+    AndroidBitmap_unlockPixels(env, imageSource);
+    ocrOutput = dynamic_cast<TNN_NS::OCROutput *>(output.get());
+
+    if (ocrOutput && ocrOutput->texts.size() > 0) {
+        objectInfoArray = env->NewObjectArray(ocrOutput->texts.size(), clsObjectInfo, NULL);
+        for (int i = 0; i < ocrOutput->texts.size(); i++) {
+            jobject objObjectInfo = env->NewObject(clsObjectInfo, midconstructorObjectInfo);
+
+            TNN_NS::ObjectInfo objectInfo;
+            objectInfo.key_points.push_back(ocrOutput->box[i * 4]);
+            objectInfo.key_points.push_back(ocrOutput->box[i * 4 + 1]);
+            objectInfo.key_points.push_back(ocrOutput->box[i * 4 + 2]);
+            objectInfo.key_points.push_back(ocrOutput->box[i * 4 + 3]);
+            objectInfo.image_width = ocrOutput->image_width;
+            objectInfo.image_height = ocrOutput->image_height;
+            objectInfo.label = ocrOutput->texts[i].c_str();
+
+            jclass cls1dArr = env->FindClass("[F");
+            // Create the returnable jobjectArray with an initial value
+            jobjectArray outer = env->NewObjectArray(objectInfo.key_points.size(), cls1dArr, NULL);
+            for (int j = 0; j < objectInfo.key_points.size(); j++) {
+                jfloatArray inner = env->NewFloatArray(2);
+                float temp[] = {objectInfo.key_points[j].first, objectInfo.key_points[j].second};
                 env->SetFloatArrayRegion(inner, 0, 2, temp);
                 env->SetObjectArrayElement(outer, j, inner);
                 env->DeleteLocalRef(inner);
