@@ -513,6 +513,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     FuseHardSigmoid(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHardSwish(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseGELU(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    FuseTranspose(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseBatchNorm(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FusePRelu(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseNormalize(mutable_graph, index_nodes, weights, node_reference, blob_names);
