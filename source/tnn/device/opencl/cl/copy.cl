@@ -25,6 +25,40 @@ __kernel void CopyImage(GLOBAL_SIZE_2_DIMS
     WI_F(output, output_pos, RI_F(input, SAMPLER, input_pos));
 }
 
+__kernel void CopyImage5D(GLOBAL_SIZE_2_DIMS  
+                    __read_only image2d_t input, 
+                    __write_only image2d_t output,
+                    shape_5d input_offset,
+                    shape_3d output_inner_size, // dims2, dims3, dims4
+                    shape_3d input_inner_size // dim2, dim3, dim4
+                    ) {
+    int cw = get_global_id(0);
+    int bh = get_global_id(1);
+    DEAL_NON_UNIFORM_DIM2(cw, bh);
+
+    int dim2 = output_inner_size.data[0];
+    int dim3 = output_inner_size.data[1];
+    int dim4 = output_inner_size.data[2];
+
+    const int dim3_idx                  = bh % dim3;
+    const int batch_dim2_idx            = bh / dim3;
+    const int dim2_idx                  = batch_dim2_idx % dim2;
+    const int batch_idx                 = batch_dim2_idx / dim2;
+    const int dim4_idx                  = cw % dim4;
+    const int channel_updiv_4_idx       = cw / dim4;
+
+    const int input_batch_idx           = batch_idx + input_offset.data[0];
+    const int input_channel_updiv_4_idx = channel_updiv_4_idx + input_offset.data[1];
+    const int input_dim2_idx            = dim2_idx + input_offset.data[2];
+    const int input_dim3_idx            = dim3_idx + input_offset.data[3];
+    const int input_dim4_idx            = dim4_idx + input_offset.data[4];
+
+    int2 input_pos = (int2)(mad24(input_channel_updiv_4_idx, input_inner_size.data[2], input_dim4_idx), 
+                      mad24(mad24(input_batch_idx, input_inner_size.data[0], input_dim2_idx), input_inner_size.data[1], input_dim3_idx));
+
+    WI_F(output, (int2)(cw, bh), RI_F(input, SAMPLER, input_pos));
+}
+
 __kernel void Crop(GLOBAL_SIZE_2_DIMS  
                     __read_only image2d_t input, 
                     __write_only image2d_t output,

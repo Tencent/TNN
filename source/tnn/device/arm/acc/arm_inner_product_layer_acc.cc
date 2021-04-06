@@ -369,24 +369,133 @@ Status ArmInnerProductLayerAcc::Exec<int8_t>(const std::vector<Blob *> &inputs, 
     return TNN_OK;
 }
 
+/*
+general template function for bfp16 nchw
+use n4chw4 impl, nchw impl tbd
+*/
+template <typename T>
+Status ArmInnerProductLayerAcc::ExecNchw(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    InnerProductLayerParam *fc_param = dynamic_cast<InnerProductLayerParam *>(param_);
+    CHECK_PARAM_NULL(fc_param);
+
+    auto input  = inputs[0];
+    auto output = outputs[0];
+
+    auto dims_input  = input->GetBlobDesc().dims;
+    auto dims_output = output->GetBlobDesc().dims;
+    auto ic          = DimsVectorUtils::Count(dims_input, 1);
+    auto ic_r4       = DimsVectorUtils::Count(dims_input, 2) * ROUND_UP(dims_input[1], 4);
+    auto oc          = dims_output[1];
+    auto oc_r4       = ROUND_UP(dims_output[1], 4);
+
+    auto data_byte_size = DataTypeUtils::GetBytesSize(inputs[0]->GetBlobDesc().data_type);
+    auto *work_space = reinterpret_cast<T *>(context_->GetSharedWorkSpace((ic_r4 + oc_r4) * data_byte_size));
+
+    auto input_origin  = reinterpret_cast<T *>(GetBlobHandlePtr(input->GetHandle()));
+    auto output_origin = reinterpret_cast<T *>(GetBlobHandlePtr(output->GetHandle()));
+    auto input_pack    = work_space;
+    auto output_pack   = work_space + ic_r4;
+    for (int n = 0; n < dims_output[0]; n++) {
+        auto input_ptr  = input_origin + n * ic;
+        auto output_ptr = output_origin + n * oc;
+
+        PackC4(input_pack, input_ptr, DimsVectorUtils::Count(dims_input, 2), dims_input[1]);
+
+        SGEMV(output_pack, input_pack, buffer_weight_.force_to<T *>(), oc_r4, ic_r4);
+
+        if (fc_param->has_bias) {
+            PostAddBias<T>(output_pack, buffer_bias_.force_to<float *>(), 1, oc_r4 / 4);
+        }
+
+        UnpackC4(output_ptr, output_pack, 1, oc);
+    }
+
+    return TNN_OK;
+}
+
+template <>
+Status ArmInnerProductLayerAcc::ExecNchw<float>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    InnerProductLayerParam *fc_param = reinterpret_cast<InnerProductLayerParam *>(param_);
+    CHECK_PARAM_NULL(fc_param);
+
+    DimsVector dims_input = inputs[0]->GetBlobDesc().dims;
+    int batch             = dims_input[0];
+    int channel           = dims_input[1];
+    int hw                = DimsVectorUtils::Count(dims_input, 2);
+    int ic                = dims_input[1] * DimsVectorUtils::Count(dims_input, 2);
+    const int oc          = fc_param->num_output;
+    auto data_byte_size   = DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
+    const int input_size  = batch * ic * data_byte_size;
+    const int bias_size   = oc * data_byte_size;
+    const int output_size = batch * oc * data_byte_size;
+
+    float *input_ptr  = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    float *output_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    float *tmp_output_ptr = output_ptr;
+
+    if (fc_param->has_bias) {
+        OMP_PARALLEL_FOR_
+        for (int b = 0; b < batch; ++b) {
+            // output shape: [batch, oc]
+            auto dst_ptr_b = tmp_output_ptr + b * oc;
+            memcpy(dst_ptr_b, buffer_bias_.force_to<float *>(), bias_size);
+        }
+    } else {
+        memset(tmp_output_ptr, 0, output_size);
+    }
+
+    // buffer for PackA in gemm
+    auto input_pack_ptr = reinterpret_cast<float *>(context_->GetSharedWorkSpace(input_size + NEON_KERNEL_EXTRA_LOAD));
+
+    GemmFloatPackA(batch, oc, ic, input_ptr, input_pack_ptr, ic, buffer_weight_.force_to<float *>(), oc, tmp_output_ptr,
+                   oc);
+
+    return TNN_OK;
+}
+
 Status ArmInnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        return Exec<float>(inputs, outputs);
-    } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
-        return Exec<bfp16_t>(inputs, outputs);
-    } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         return Exec<int8_t>(inputs, outputs);
     }
+
+    if (inputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
+        if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+            return ExecNchw<float>(inputs, outputs);
+        } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
+            return ExecNchw<bfp16_t>(inputs, outputs);
+        }
 #if TNN_ARM82
-    else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        return ExecFp16(inputs, outputs);
+        else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+            return ExecNchwFp16(inputs, outputs);
+        }
+#endif
+        else {
+            return Status(TNNERR_LAYER_ERR, "Unsupported data type in innerproduct");
+        }
+    } else if (inputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NC4HW4 ||
+               inputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NC8HW8) {
+        if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+            return Exec<float>(inputs, outputs);
+        } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
+            return Exec<bfp16_t>(inputs, outputs);
+        }
+#if TNN_ARM82
+        else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+            return ExecFp16(inputs, outputs);
+        }
+#endif
+        else {
+            return Status(TNNERR_LAYER_ERR, "Unsupported data type in innerproduct");
+        }
+    } else {
+        return Status(TNNERR_LAYER_ERR, "Unsupported data format in innerproduct");
     }
-#endif  // TNN_ARM82
     return TNNERR_LAYER_ERR;
 }
 
 REGISTER_ARM_ACC(InnerProduct, LAYER_INNER_PRODUCT)
 REGISTER_ARM_PRECISION_FP16(LAYER_INNER_PRODUCT)
 REGISTER_ARM_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NC4HW4)
+REGISTER_ARM_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NCHW)
 
 }  // namespace TNN_NS

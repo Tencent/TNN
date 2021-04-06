@@ -48,13 +48,6 @@ Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, Lay
     resource_ = resource;
     context_ = context;
 
-    if (type_ == LayerType::LAYER_RESHAPE && input_blobs.size() > 1) {
-        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
-        auto name = output_blobs_[0]->GetBlobDesc().name;
-        std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetShapeBlobName(name);
-        std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetShapeTensor();
-    }
-
     m_format = nvinfer1::TensorFormat::kLINEAR;
     m_type = nvinfer1::DataType::kFLOAT;
 

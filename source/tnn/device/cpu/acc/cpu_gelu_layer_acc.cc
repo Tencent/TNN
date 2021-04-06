@@ -22,13 +22,16 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(Relu, LAYER_RELU);
+DECLARE_CPU_ACC(Gelu, LAYER_GELU);
 
-Status CpuReluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CpuGeluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CpuReluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CpuGeluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    //GELU(x) = 0.5f * x * (erf((x)/(1.4142135381698608f))+1.0f)
+    //GELU(x) = 0.5f * x * (tanh((x+x*x*x*0.0447149984538f)*0.7978845834732056f)+1.0f)
+    
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
     int count         = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
@@ -37,27 +40,16 @@ Status CpuReluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
         for (int index = 0; index < count; ++index) {
-            output_data[index] = std::max(0.0f, input_data[index]);
-        }
-    } else if (data_type == DATA_TYPE_BFP16) {
-        bfp16_t *input_data  = static_cast<bfp16_t *>(input_blob->GetHandle().base);
-        bfp16_t *output_data = static_cast<bfp16_t *>(output_blob->GetHandle().base);
-        for (int index = 0; index < count; ++index) {
-            output_data[index] = std::max(0.0f, (float)input_data[index]);
-        }
-    } else if (data_type == DATA_TYPE_INT8) {
-        int8_t *input_data  = static_cast<int8_t *>(input_blob->GetHandle().base);
-        int8_t *output_data = static_cast<int8_t *>(output_blob->GetHandle().base);
-        for (int index = 0; index < count; ++index) {
-            output_data[index] = std::max((int8_t)0, input_data[index]);
+            auto x = input_data[index];
+            output_data[index] = 0.5f * x * (tanh((x+x*x*x*0.0447149984538f)*0.7978845834732056f)+1.0f);
         }
     } else {
-        LOGE("CpuReluLayerAcc dont support data type: %d", data_type);
-        return Status(TNNERR_NO_RESULT, "CpuReluLayerAcc dont support data type");
+        LOGE("CpuGeluLayerAcc dont support data type: %d", data_type);
+        return Status(TNNERR_NO_RESULT, "CpuGeluLayerAcc dont support data type");
     }
     return TNN_OK;
 }
 
-REGISTER_CPU_ACC(Relu, LAYER_RELU);
+REGISTER_CPU_ACC(Gelu, LAYER_GELU);
 
 }  // namespace TNN_NS

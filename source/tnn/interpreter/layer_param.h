@@ -86,6 +86,13 @@ struct GroupNormLayerParam : public LayerParam {
     PARAM_COPY(GroupNormLayerParam)
 };
 
+struct LayerNormLayerParam : public LayerParam {
+    int reduce_dims_size = 0;
+    float eps = 1e-5f;
+
+    PARAM_COPY(LayerNormLayerParam)
+};
+
 struct GridSampleLayerParam : public LayerParam {
     // 1: nereast 2: bilinear/linear 3: cubic
     int mode = 2;

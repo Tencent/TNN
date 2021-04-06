@@ -77,7 +77,7 @@ def main():
     algo_optimize = args.optimize
     model_half = args.half
     output_dir = args.output_dir
-    input_shape = None
+    input_shape = ""
     if args.input_shape is not None:
         input_shape = ""
         for item in args.input_shape:

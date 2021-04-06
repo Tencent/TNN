@@ -30,35 +30,32 @@ Status ArmCastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
     const int ele_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
     
     int count = DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims);
-    if (outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NC4HW4 ||
-        outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NC8HW8) {
-        DimsVector output_dims = outputs[0]->GetBlobDesc().dims;
-        int channel = 1;
-        if (output_dims.size() > 1) {
-            channel = output_dims[1];
-        }
-        if (output_data_type == DATA_TYPE_FLOAT ||
-            output_data_type == DATA_TYPE_BFP16) {
-            count = count / channel;
-            count = count * ROUND_UP(channel, 4);
-        } else if (output_data_type == DATA_TYPE_HALF) {
-            count = count / channel;
-            count = count * ROUND_UP(channel, 8);
-        }
+
+    if (input_data_type != output_data_type) {
+        return Status(TNNERR_LAYER_ERR, "arm cast not support different data_type of input and output");
     }
 
-    if (input_data_type == output_data_type) {
+    if (output_data_type == DATA_TYPE_FLOAT ||
+        output_data_type == DATA_TYPE_BFP16) {
+        if (outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NC4HW4) {
+            DimsVector output_dims = outputs[0]->GetBlobDesc().dims;
+            int channel = 1;
+            if (output_dims.size() > 1) {
+                channel = output_dims[1];
+            }
+            count = count / channel;
+            count = count * ROUND_UP(channel, 4);
+        }
         if (output_data != input_data) {
             memcpy(output_data, input_data, count * ele_size);
         }
     } else {
-        LOGE("unsupport data type to cast\n");
+        return Status(TNNERR_LAYER_ERR, "Unsupported data type in cast");
     }
     return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Cast, LAYER_CAST);
-REGISTER_ARM_PRECISION_FP16(LAYER_CAST)
 REGISTER_ARM_LAYOUT(LAYER_CAST, DATA_FORMAT_NC4HW4)
 REGISTER_ARM_LAYOUT(LAYER_CAST, DATA_FORMAT_NCHW)
 

@@ -13,8 +13,6 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/network/tensorrt/layer_builder/binary_layer_builder.h"
-
-#include "tnn/core/macro.h"
 #include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
@@ -31,6 +29,31 @@ ILayer* BinaryTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         auto input_tensor1 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor1)->GetTensor();
         auto input_tensor2 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor2)->GetTensor();
 
+        DimsVector unsqueeze_dims;
+        if (input_tensor1->getDimensions().nbDims < input_tensor2->getDimensions().nbDims) {
+            for (int i = 0; i < input_tensor2->getDimensions().nbDims - input_tensor1->getDimensions().nbDims; i++) {
+                unsqueeze_dims.push_back(1);
+            }
+
+            for (int i = 0; i < input_tensor1->getDimensions().nbDims; i++) {
+                unsqueeze_dims.push_back(input_tensor1->getDimensions().d[i]);
+            }
+            ILayer* unsqueeze_layer = AddReshapeToNetwork(network, input_tensor1,
+                unsqueeze_dims, (layer_name_ + "_unsqueeze").c_str());
+            input_tensor1 = unsqueeze_layer->getOutput(0);
+        } else if (input_tensor1->getDimensions().nbDims > input_tensor2->getDimensions().nbDims) {
+            for (int i = 0; i < input_tensor1->getDimensions().nbDims - input_tensor2->getDimensions().nbDims; i++) {
+                unsqueeze_dims.push_back(1);
+            }
+
+            for (int i = 0; i < input_tensor2->getDimensions().nbDims; i++) {
+                unsqueeze_dims.push_back(input_tensor2->getDimensions().d[i]);
+            }
+            ILayer* unsqueeze_layer = AddReshapeToNetwork(network, input_tensor2,
+                unsqueeze_dims, (layer_name_ + "_unsqueeze").c_str());
+            input_tensor2 = unsqueeze_layer->getOutput(0);
+        }
+
         layer = network->addElementWise(*input_tensor1, *input_tensor2, m_op);
         if (layer != nullptr) {
             layer->setName(layer_name_.c_str());
@@ -42,13 +65,30 @@ ILayer* BinaryTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
         auto src_a = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
 
-        auto const_layer = ConvertWeightToConstLayer(network, &(resource->element_handle), resource->element_shape, src_a->getDimensions().nbDims);
+        auto const_layer = ConvertWeightToConstLayer(network, &(resource->element_handle),
+            resource->element_shape, src_a->getDimensions().nbDims);
+
         if (const_layer == nullptr) {
             LOGE("BinaryTRTLayerBuilder create weights node failed\n");
             return nullptr;
         }
 
         auto src_b = const_layer->getOutput(0);
+        if (src_a->getDimensions().nbDims < src_b->getDimensions().nbDims) {
+            DimsVector unsqueeze_dims;
+            for (int i = 0; i < src_b->getDimensions().nbDims - src_a->getDimensions().nbDims; i++) {
+                unsqueeze_dims.push_back(1);
+            }
+
+            auto input_dims = input_blobs_[0]->GetBlobDesc().dims;
+            for (int i = 0; i < input_dims.size(); i++) {
+                unsqueeze_dims.push_back(input_dims[i]);
+            }
+            ILayer* unsqueeze_layer = AddReshapeToNetwork(network, src_a,
+                unsqueeze_dims, (layer_name_ + "squeeze").c_str());
+            src_a = unsqueeze_layer->getOutput(0);
+        }
+
         if (paramlist->weight_input_index == 0) {
             std::swap(src_a, src_b);
         }

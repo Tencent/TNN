@@ -67,7 +67,6 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
             return TNN_NS::Status(TNN_NS::TNNERR_UNSUPPORT_NET, "TFLite do not support this type reshape!\n");
         }
     } else {
-        ASSERT(tf_lite_operator->inputs.size() == 1);
         const auto& new_shape = option->new_shape;
         reshape_dim.assign(new_shape.begin(), new_shape.end());
         reshape_dim[0] = 0;

@@ -49,7 +49,6 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     input_dims_size_ = input_dims.size();
     output_dims_size_ = output_dims.size();
 
-    std::string im_to_bf_func_name, bf_to_im_func_name;
     std::string src_format = "Image", dst_format = "Image";
     src_format = input_dims_size_ == 5 ? "Image5D" : input_dims_size_ == 6 ? "Image6D" : src_format;
     dst_format = output_dims_size_ == 5 ? "Image5D" : output_dims_size_ == 6 ? "Image6D" : dst_format;
@@ -73,9 +72,10 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     {
         std::set<std::string> build_opt;
         if (outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
+            is_nchw_output_ = true;
             build_opt.emplace("-DENABLE_BUFFER_PRECISION_ADJUST");
         }
-        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", im_to_bf_func_name, build_opt);
+        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", im_to_bf_func_name_, build_opt);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -84,7 +84,7 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
     // buffer->image
     {
-        ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", bf_to_im_func_name);
+        ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", bf_to_im_func_name_);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -102,6 +102,15 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     CHECK_TNN_OK(ret)
     auto input  = inputs[0];
     auto output = outputs[0];
+
+    // reinit opencl execute unit if data format is changed during Reshape
+    if (output->GetBlobDesc().data_format == DATA_FORMAT_NCHW && !is_nchw_output_) {
+        std::set<std::string> build_opt;
+        is_nchw_output_ = true;
+        build_opt.emplace("-DENABLE_BUFFER_PRECISION_ADJUST");
+        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", im_to_bf_func_name_, build_opt);
+        CHECK_TNN_OK(ret)
+    }
 
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
