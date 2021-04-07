@@ -31,6 +31,7 @@ namespace TNN_NS {
 OpenVINOLayerBuilder::OpenVINOLayerBuilder(LayerType type): BaseLayerBuilder(type) {
     _x86_map = X86Device::GetLayerCreatorMap();
     _ov_custom_type = CustomOpenvinoLayerManager::GetCustomLayerTypeSet();
+    base_layer_ = CreateLayer(type_);
 }
 
 OpenVINOLayerBuilder::~OpenVINOLayerBuilder() {
@@ -47,7 +48,6 @@ Status OpenVINOLayerBuilder::Init(Context* context, LayerParam* param, LayerReso
     param_    = param;
     resource_ = resource;
 
-    base_layer_ = CreateLayer(type_);
     if (_x86_map.find(type_) != _x86_map.end() && _ov_custom_type.find(type_) != _ov_custom_type.end()) {
         base_layer_->Init(context, param, resource, input_blobs, output_blobs, device);
     } else {
@@ -114,6 +114,11 @@ Status OpenVINOLayerBuilder::Reshape(){
 
 Status OpenVINOLayerBuilder::Forward(){
     return TNN_OK;
+}
+
+void OpenVINOLayerBuilder::SetConstantResource(ConstantResource* consts) {
+    BaseLayer::SetConstantResource(consts);
+    this->base_layer_->SetConstantResource(consts);
 }
 
 std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetOpenVINOLayerBuilderCreatorMap() {

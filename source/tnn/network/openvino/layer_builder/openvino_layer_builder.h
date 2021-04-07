@@ -56,6 +56,9 @@ public:
     //@brief layer infer
     virtual Status Forward();
 
+    // @brief set constant resource
+    virtual void SetConstantResource(ConstantResource* consts);
+
     ngraph::element::Type_t DataTransfer(DataType type) {
         return dataTypeTransfer[type];
     }
