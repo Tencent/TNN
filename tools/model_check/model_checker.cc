@@ -323,7 +323,7 @@ Status ModelChecker::RunModelCheckerOutput() {
         int batch = cpu_blob_dims[0];
         int bytesize_perbatch =
             DimsVectorUtils::Count(cpu_blob_dims, 1) * GetMatElementSize(output_ref_mat_map_[blob_name].get());
-        printf("\n---- blob (%s) ----\n", blob_name.c_str());
+        printf("\n---- blob (%s %d) ----\n", blob_name.c_str(), data_type);
         auto compare_dims = cpu_blob_dims;
         compare_dims[0]   = 1;
         for (int b = 0; b < batch; ++b) {

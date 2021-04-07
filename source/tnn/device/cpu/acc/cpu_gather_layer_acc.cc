@@ -69,8 +69,11 @@ Status CpuGatherLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         int output_index_b = b*output_slice_count*slice_size;
         for (int i=0; i<output_slice_count; i++) {
             int slice_index = indices_data_ptr[i];
+            if (slice_index < 0) {
+                slice_index += input_slice_count;
+            }
             if (slice_index < 0 || slice_index >= input_slice_count) {
-                LOGE("CpuGatherLayerAcc::Forward invalid slice_index\n");
+                LOGE("CpuGatherLayerAcc::Forward invalid slice_index (%d) layer name: %s\n", slice_index, layer_param->name.c_str());
                 return Status(TNNERR_MODEL_ERR, "CpuGatherLayerAcc::Forward invalid slice_index");
             }
             int input_index = input_index_b + slice_index*slice_size;
