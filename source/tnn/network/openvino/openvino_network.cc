@@ -373,14 +373,25 @@ Status OpenVINONetwork_::GetCommandQueue(void **command_queue) {
 
 Status OpenVINONetwork_::Forward() {
     infer_request_.Infer();
+#if TNN_PROFILE
+    auto perf_count = infer_request_.GetPerformanceCounts();
+    for (auto iter : perf_count) {
+        if (std::string(iter.second.layer_type).find("CustomLayer") != std::string::npos) {
+            continue;
+        }
+        auto pdata = std::make_shared<ProfilingData>();
+        pdata->layer_name = iter.first;
+        pdata->op_name = iter.second.layer_type;
+        pdata->kernel_time = iter.second.cpu_uSec / 1000.0f;
+        context_->AddProfilingData(pdata);
+    }
+#endif
     return TNN_OK;
 }
 
 // @brief openvino instance network infer, it will not wait
 Status OpenVINONetwork_::ForwardAsync(Callback call_back) {
-    Status result = TNN_OK;
-    infer_request_.Infer();
-    return result;
+    return Forward();
 }
 
 Status OpenVINONetwork_::SetCpuNumThreads(int num_threads) {
