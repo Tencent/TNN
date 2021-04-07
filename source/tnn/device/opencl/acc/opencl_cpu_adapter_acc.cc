@@ -18,7 +18,6 @@
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/dims_utils.h"
-#include "tnn/device/arm/arm_util.h"
 #include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
@@ -29,6 +28,7 @@ inline MatType MatTypeByBlob(const BlobDesc& desc) {
 }
 
 static void PackOrUnpackData(void *src, void *dst, DataType data_type, DimsVector& dims, bool pack) {
+    // TODO: PackOrUnpackData support fp16 mat
     if (DATA_TYPE_FLOAT == data_type) {
         float *src_data = reinterpret_cast<float*>(src);
         float *dst_data = reinterpret_cast<float*>(dst);
@@ -38,22 +38,6 @@ static void PackOrUnpackData(void *src, void *dst, DataType data_type, DimsVecto
         } else {
             DataFormatConverter::ConvertFromNCHW4ToNCHWFloat(src_data, dst_data, dims[0], dims[1],
                 DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3));
-        }
-    } else if (DATA_TYPE_HALF == data_type) {
-        // TODO: how to packc8 in a device-independent way?
-        const int batch   = dims[0];
-        const int channel = dims[1];
-        const int hw      = DimsFunctionUtils::GetDimProduct(dims, 2);
-        fp16_t *src_data = reinterpret_cast<fp16_t*>(src);
-        fp16_t *dst_data = reinterpret_cast<fp16_t*>(dst);
-        if (pack) {
-            for(int n=0; n<batch; ++n) {
-                PackC8(dst_data+n*channel*hw, src_data+n*channel*hw , hw, channel);
-            }
-        } else {
-            for(int n=0; n<batch; ++n) {
-                UnpackC8(dst_data+n*channel*hw, src_data+n*channel*hw , hw, channel);
-            }
         }
     }
 }
