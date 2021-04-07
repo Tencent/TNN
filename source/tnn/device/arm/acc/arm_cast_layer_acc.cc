@@ -31,26 +31,48 @@ Status ArmCastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
     
     int count = DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims);
 
-    if (input_data_type != output_data_type) {
-        return Status(TNNERR_LAYER_ERR, "arm cast not support different data_type of input and output");
+    if (outputs[0]->GetBlobDesc().data_format != inputs[0]->GetBlobDesc().data_format) {
+        return Status(TNNERR_LAYER_ERR, "Unsupported data format in cast");
     }
 
-    if (output_data_type == DATA_TYPE_FLOAT ||
-        output_data_type == DATA_TYPE_BFP16) {
-        if (outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NC4HW4) {
-            DimsVector output_dims = outputs[0]->GetBlobDesc().dims;
-            int channel = 1;
-            if (output_dims.size() > 1) {
-                channel = output_dims[1];
-            }
-            count = count / channel;
-            count = count * ROUND_UP(channel, 4);
+    if (outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NC4HW4) {
+        DimsVector output_dims = outputs[0]->GetBlobDesc().dims;
+        int channel = 1;
+        if (output_dims.size() > 1) {
+            channel = output_dims[1];
         }
-        if (output_data != input_data) {
-            memcpy(output_data, input_data, count * ele_size);
+        count = count / channel;
+        count = count * ROUND_UP(channel, 4);
+    }
+
+    if (input_data_type == output_data_type) {
+        if (output_data_type == DATA_TYPE_FLOAT ||
+            output_data_type == DATA_TYPE_BFP16 ||
+            output_data_type == DATA_TYPE_INT32) {
+            if (output_data != input_data) {
+                memcpy(output_data, input_data, count * ele_size);
+            }
+        } else {
+            return Status(TNNERR_LAYER_ERR, "Unsupported data type in cast");
         }
     } else {
-        return Status(TNNERR_LAYER_ERR, "Unsupported data type in cast");
+        if (input_data_type == DATA_TYPE_FLOAT &&
+            output_data_type == DATA_TYPE_INT32) {
+            auto *input_data_ptr = (float *)input_data;
+            auto *output_data_ptr = (int *)output_data;
+            for(int i = 0; i < count; ++i) {
+                output_data_ptr[i] = static_cast<float>(input_data_ptr[i]);
+            }
+        } else if (input_data_type == DATA_TYPE_INT32 &&
+                   output_data_type == DATA_TYPE_FLOAT) {
+            auto *input_data_ptr = (int *)input_data;
+            auto *output_data_ptr = (float *)output_data;
+            for(int i = 0; i < count; ++i) {
+                output_data_ptr[i] = static_cast<int>(input_data_ptr[i]);
+            }
+        } else {
+            return Status(TNNERR_LAYER_ERR, "Unsupported data type in cast");
+        }
     }
     return TNN_OK;
 }

@@ -29,6 +29,7 @@
 #include "tnn/interpreter/tnn/model_packer.h"
 #include "tnn/interpreter/tnn/objseri.h"
 #include "tnn/utils/blob_converter.h"
+#include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/mat_converter_utils.h"
 
@@ -307,7 +308,16 @@ Status ModelChecker::RunModelCheckerOutput() {
         }
         auto cpu_blob_dims    = output_ref_mat_map_[blob_name]->GetDims();
         auto device_blob_dims = device_output_mat_map[blob_name]->GetDims();
-        const auto mat_type = device_output_mat_map[blob_name]->GetMatType();
+        const auto mat_type = output_ref_mat_map_[blob_name]->GetMatType();
+
+        if ( mat_type != device_output_mat_map[blob_name]->GetMatType()) {
+            LOGE("output mat type is not the same. blob_name(%s) output_ref_mat_map_(%d) device_output_mat_map(%d)\n",
+                           blob_name.c_str(),
+                           output_ref_mat_map_[blob_name]->GetMatType(),
+                           device_output_mat_map[blob_name]->GetMatType());
+            return Status(TNNERR_COMMON_ERROR, "the mat type of cpu and device output  dont match");
+        }
+
         DataType data_type = DATA_TYPE_FLOAT;
         if (mat_type == NC_INT32) {
             data_type = DATA_TYPE_INT32;
@@ -458,10 +468,11 @@ Status ModelChecker::FeedInputData() {
                     data_ptr[i] = (float)(rand() % 256 - 128) / 128.0f;
                 }
             } else if (DATA_TYPE_INT32 == data_type) {
+                //ensure gather indice is valid
                 mat           = std::shared_ptr<Mat>(new Mat(DEVICE_NAIVE, NC_INT32, dims));
                 int* data_ptr = reinterpret_cast<int*>(mat->GetData());
                 for (int i = 0; i < data_count; i++) {
-                    data_ptr[i] = rand() % 256 - 128;
+                    data_ptr[i] = rand() % 2;
                 }
             } else {
                 return Status(TNNERR_COMMON_ERROR, "generate input data failed");
@@ -541,10 +552,25 @@ Status ModelChecker::GetOutputData(Instance* instance, std::map<std::string, std
     instance->GetAllOutputBlobs(output_blobs);
 
     for (auto blobs_item : output_blobs) {
+        auto data_type = blobs_item.second->GetBlobDesc().data_type;
+        
+        //keep the same as FileReader::Read
+        MatType mat_type = INVALID;
+        if (DATA_TYPE_FLOAT == data_type) {
+            mat_type = NCHW_FLOAT;
+        } else if (DATA_TYPE_INT32 == data_type) {
+            mat_type = NC_INT32;
+        } else if (DATA_TYPE_INT8 == data_type) {
+            mat_type = RESERVED_INT8_TEST;
+        } else {
+            LOGE("ModelChecker::GetOutputData dont support data type:%d\n", data_type);
+            return Status(TNNERR_INVALID_INPUT, "the data type is not support in ModelChecker::GetOutputData");
+        }
+        
         std::shared_ptr<Mat> mat;
         auto blob_name = blobs_item.first;
 
-        auto ret = instance->GetOutputMat(mat, MatConvertParam(), blob_name, DEVICE_NAIVE, NCHW_FLOAT);
+        auto ret = instance->GetOutputMat(mat, MatConvertParam(), blob_name, DEVICE_NAIVE, mat_type);
         if (ret != TNN_OK) {
             LOGE("get output mat falied (%s)\n", ret.description().c_str());
             return ret;
@@ -560,16 +586,31 @@ Status ModelChecker::GetBlobData(Instance* instance, Blob* blob,
                                  std::map<std::string, std::shared_ptr<char>>& output_map) {
     auto blob_desc        = blob->GetBlobDesc();
     std::string blob_name = blob_desc.name;
-
+    auto data_type = blob_desc.data_type;
+    
+    //keep the same as FileReader::Read
+    MatType mat_type = INVALID;
+    if (DATA_TYPE_FLOAT == data_type) {
+        mat_type = NCHW_FLOAT;
+    } else if (DATA_TYPE_INT32 == data_type) {
+        mat_type = NC_INT32;
+    } else if (DATA_TYPE_INT8 == data_type) {
+        mat_type = RESERVED_INT8_TEST;
+    } else {
+        LOGE("ModelChecker::GetBlobData dont support data type:%d\n", data_type);
+        return Status(TNNERR_INVALID_INPUT, "the data type is not support in ModelChecker::GetBlobData");
+    }
+    
+    
     // convert blob
-    int blob_data_bytes   = DimsVectorUtils::Count(blob_desc.dims) * sizeof(float);
+    int blob_data_bytes   = DimsVectorUtils::Count(blob_desc.dims) * DataTypeUtils::GetBytesSize(data_type);
     output_map[blob_name] = std::shared_ptr<char>(new char[blob_data_bytes], [](char* p) { delete[] p; });
 
     void* command_queue;
     instance->GetCommandQueue(&command_queue);
     MatConvertParam param;
     BlobConverter blob_converter(blob);
-    TNN_NS::Mat cpu_mat(DEVICE_NAIVE, NCHW_FLOAT, blob_desc.dims, output_map[blob_name].get());
+    TNN_NS::Mat cpu_mat(DEVICE_NAIVE, mat_type, blob_desc.dims, output_map[blob_name].get());
     Status ret = blob_converter.ConvertToMat(cpu_mat, param, command_queue);
     if (ret != TNN_OK) {
         LOGE("blob (name:%s) converte failed (%s)\n", blob_name.c_str(), ret.description().c_str());

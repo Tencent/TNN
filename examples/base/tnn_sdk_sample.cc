@@ -16,7 +16,6 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include <algorithm>
 #include <cstring>
-#include <sys/time.h>
 #include <float.h>
 
 #if defined(__APPLE__)
