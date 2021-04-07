@@ -2,16 +2,16 @@
 
 set -euxo pipefail
 
-TNN_LIB_PATH=../../scripts/build_linux/
-TNN_OPENVINO_LIB_PATH=../../source/tnn/network/openvino/thirdparty/openvino/lib
+TNN_LIB_PATH=../../scripts/build_x86_linux/
+TNN_OPENVINO_LIB_PATH=../../scripts/x86_linux_release/lib/
 
 cd ../../scripts
-sh build_linux.sh
+sh build_x86_linux.sh
 cd -
 
-rm -rf build_linux
-mkdir build_linux
-cd build_linux
+rm -rf build_x86_linux
+mkdir build_x86_linux
+cd build_x86_linux
 
 cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
