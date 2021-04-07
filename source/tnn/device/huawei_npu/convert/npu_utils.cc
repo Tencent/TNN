@@ -222,6 +222,15 @@ void NpuUtils::SplitNetwork(const int cpu_count, NetStructure *net_structure, st
     }
     net_structure->layers           = layers;
     net_structure->inputs_shape_map = sub_input_shapes_map;
+
+    // remove outputs which has visited
+    std::set<std::string> outputs;
+    for (auto output : net_structure->outputs) {
+        if (visited.count(output) == 0) {
+            outputs.insert(output);
+        }
+    }
+    net_structure->outputs = outputs;
 }
 
 ge::DataType NpuUtils::ConvertToHiaiDataType(TNN_NS::DataType tnn_dtype) {
@@ -236,6 +245,7 @@ ge::DataType NpuUtils::ConvertToHiaiDataType(TNN_NS::DataType tnn_dtype) {
     } else if (DATA_TYPE_BFP16 == tnn_dtype) {
         return ge::DT_UNDEFINED;
     }
+    return ge::DT_UNDEFINED;
 }
 
 }  // namespace TNN_NS

@@ -398,6 +398,7 @@ Status NpuNetwork::SetGraphInputsAndOutputs(InputShapesMap &input_shape_map, Inp
     }
     // init graph output
     if (use_subnet_) {
+        // push output first, which is the input of sub_network
         auto iterator = cpu_input_shape_map.begin();
         for (; iterator != cpu_input_shape_map.end(); iterator++) {
             if (input_shape_map.count(iterator->first) == 0) {
@@ -406,6 +407,14 @@ Status NpuNetwork::SetGraphInputsAndOutputs(InputShapesMap &input_shape_map, Inp
                 } else {
                     return Status(TNNERR_LAYER_ERR, "ERROR: When init the cpu network, some input not found\n");
                 }
+            }
+        }
+
+        // push network output later, which is not the input of sub_network.
+        // Note that: the order of set outputs must be the same as the order to init output blobs
+        for (auto &name : net_structure_->outputs) {
+            if (global_operator_map_.count(name) != 0) {
+                output_ops.push_back(*global_operator_map_[name]->GetOperator());
             }
         }
     } else {
@@ -423,7 +432,7 @@ Status NpuNetwork::BuildGraph(domi::HiaiIrBuild &ir_build, domi::ModelBufferData
     ge::Model model(model_name_, model_name_ + "_v1");
     model.SetGraph(graph_);
     // build options
-    bool build_ret          = ir_build.CreateModelBuff(model, om_model_buff);
+    bool build_ret = ir_build.CreateModelBuff(model, om_model_buff);
     if (!build_ret) {
         return Status(TNNERR_NPU_HIAI_API_ERROR, "HIAI build model, CreateModelBuff() failed");
     }
@@ -477,6 +486,7 @@ Status NpuNetwork::InitBlobs(InputShapesMap &inputs_shape, InputShapesMap &cpu_i
 
     // init output blobs
     if (use_subnet_) {
+        // Note that: the order of init output blobs must be the same as the order of setting input ops
         sub_network_->GetAllInputBlobs(cpu_inter_in_blobmap_);
         // create sub-network input blob-converter
         for (auto blob_item : cpu_inter_in_blobmap_) {
@@ -497,8 +507,17 @@ Status NpuNetwork::InitBlobs(InputShapesMap &inputs_shape, InputShapesMap &cpu_i
             }
         }
 
-        // get the final output
+        // get the sub_network_ output first
         sub_network_->GetAllOutputBlobs(output_blob_map_);
+
+        // add the output which is in npu_network
+        for (auto name : net_structure_->outputs) {
+            if (output_blob_map_.count(name) == 0) {
+                auto npu_blob = CreateNpuBlob(output_dims[output_idx], name, output_tensor_[output_idx]->GetBuffer());
+                output_blob_map_[name] = npu_blob;
+                output_idx++;
+            }
+        }
     } else {
         // get the final output
         int output_idx = 0;
