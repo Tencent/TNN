@@ -568,7 +568,7 @@ struct UnsqueezeLayerParam : public SqueezeLayerParam {
 struct ArgMaxOrMinLayerParam : public LayerParam {
     int mode;
     int axis;
-    int keep_dims;
+    int keep_dims = 1;
     int select_last_index;
 
     PARAM_COPY(ArgMaxOrMinLayerParam)

@@ -28,11 +28,16 @@ Status ArgMaxOrMinLayer::InferOutputShape(bool ignore_error) {
     CHECK_PARAM_NULL(param);
     auto input_blob                 = input_blobs_[0];
     auto output_blob                = output_blobs_[0];
-    output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
+    auto output_dims = input_blob->GetBlobDesc().dims;
     if (param->axis < 0) {
         param->axis += input_blob->GetBlobDesc().dims.size();
     }
-    output_blob->GetBlobDesc().dims[param->axis] = 1;
+    
+    if (!param->keep_dims) {
+        output_dims.erase(output_dims.begin() + param->axis);
+    }
+    
+    input_blob->GetBlobDesc().dims = output_dims;
     return TNN_OK;
 }
 
