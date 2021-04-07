@@ -95,6 +95,7 @@ class OnnxRunner(BaseRunner):
                 description += "{}".format(str(data_type))
                 f.write(description + "\n")
 
+            # keep the same as run_onnx in align_model.py
             if output_data.dtype == np.int64 or output_data.dtype == np.int32:
                 np.savetxt(f, output_data.reshape(-1), fmt="%d")
             elif output_data.dtype == np.int8 or output_data.dtype == np.bool:
@@ -102,7 +103,7 @@ class OnnxRunner(BaseRunner):
             elif output_data.dtype == np.float32 or output_data.dtype == np.float64:
                 np.savetxt(f, output_data.reshape(-1), fmt="%0.6f")
             else :
-                print("dump_single_output dont support data type: " + str(output_data.dtype))
+                print("ERROR: dump_single_output dont support data type: " + str(output_data.dtype))
                 return False
 
         return True
