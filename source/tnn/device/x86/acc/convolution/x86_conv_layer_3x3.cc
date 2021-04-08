@@ -497,7 +497,7 @@ template void input_trans_4x4<Float4>(const float *src, int src_stride, int src_
 //    0, 1, -1, -1
 template <typename VEC>
 static void output_trans_post_2x4(const float *src, int src_stride, int src_h_stride, float *dest, int dest_stride,
-                                  int dest_h_stride, float *bias_value, bool has_relu) {
+                                  int dest_h_stride, float *bias_value, int relu_type) {
     VEC src00 = VEC::loadu(src);
     VEC src01 = VEC::loadu(src + src_stride);
     VEC src02 = VEC::loadu(src + src_stride + src_stride);
@@ -540,12 +540,19 @@ static void output_trans_post_2x4(const float *src, int src_stride, int src_h_st
         dest11   = (dest11 + bias);
     }
 
-    if (has_relu) {
+    if (relu_type == ActivationType_ReLU || relu_type == ActivationType_ReLU6) {
         VEC zeros = VEC(0.f);
         dest00    = VEC::max(dest00, zeros);
         dest10    = VEC::max(dest10, zeros);
         dest01    = VEC::max(dest01, zeros);
         dest11    = VEC::max(dest11, zeros);
+    }
+    if (relu_type == ActivationType_ReLU6) {
+        VEC sixs  = VEC(6.f);
+        dest00    = VEC::min(dest00, sixs);
+        dest10    = VEC::min(dest10, sixs);
+        dest01    = VEC::min(dest01, sixs);
+        dest11    = VEC::min(dest11, sixs);
     }
 
     VEC::saveu(dest, dest00);
@@ -555,9 +562,9 @@ static void output_trans_post_2x4(const float *src, int src_stride, int src_h_st
     VEC::saveu(dest + dest_stride, dest11);
 }
 template void output_trans_post_2x4<Float8>(const float *src, int src_stride, int src_h_stride, float *dest,
-                                            int dest_stride, int dest_h_stride, float *bias_value, bool has_relu);
+                                            int dest_stride, int dest_h_stride, float *bias_value, int relu_type);
 template void output_trans_post_2x4<Float4>(const float *src, int src_stride, int src_h_stride, float *dest,
-                                            int dest_stride, int dest_h_stride, float *bias_value, bool has_relu);
+                                            int dest_stride, int dest_h_stride, float *bias_value, int relu_type);
 
 bool X86ConvLayer3x3::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                  const std::vector<Blob *> &outputs) {

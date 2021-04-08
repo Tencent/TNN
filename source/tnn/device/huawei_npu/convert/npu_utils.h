@@ -17,8 +17,8 @@
 
 #include <tnn/core/blob.h>
 #include <tnn/interpreter/layer_resource.h>
-#include <tnn/interpreter/net_structure.h>
 #include <tnn/interpreter/net_resource.h>
+#include <tnn/interpreter/net_structure.h>
 #include <tnn/interpreter/raw_buffer.h>
 
 #include "graph/compatible/all_ops.h"
@@ -54,7 +54,8 @@ public:
         return TNN_OK;
     }
 
-    static Status CreateConstOpFromResource(std::shared_ptr<OperatorInfo> &const_op, std::string name, NetResource *net_resource);
+    static Status CreateConstOpFromResource(std::shared_ptr<OperatorInfo> &const_op, std::string name,
+                                            NetResource *net_resource);
 
     static Status WriteModelFile(domi::ModelBufferData &model_buffer_data, std::string file_path);
 
@@ -76,6 +77,8 @@ public:
         }
         return result;
     }
+
+    static ge::DataType ConvertToHiaiDataType(TNN_NS::DataType tnn_dtype);
 };
 
 }  // namespace TNN_NS

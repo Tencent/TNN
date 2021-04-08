@@ -47,6 +47,8 @@ protected:
         pad_h_end_      = param->pads[3];
         pad_type_       = param->pad_type;
 
+        activation_type_ = param->activation_type;
+
         return TNN_OK;
     }
     std::vector<shared_ptr<ge::Operator>> weight_ops_;
@@ -67,6 +69,8 @@ protected:
     int group_;
     int output_channel_;
     int pad_type_;
+
+    int activation_type_;
 };
 
 }  // namespace TNN_NS

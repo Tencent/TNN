@@ -33,6 +33,9 @@ Status CastLayer::InferOutputShape(bool ignore_error) {
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
 
+    auto layer_param  = dynamic_cast<CastLayerParam*>(param_);
+    layer_param->from = (int)input_blob->GetBlobDesc().data_type; // for HUAWEI_NPU
+
     output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
     return TNN_OK;
 }

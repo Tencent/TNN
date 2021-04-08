@@ -137,7 +137,7 @@ class BaseRunner:
             tnn_name = name.replace(":", "_")
             tnn_info = tnn_model_input_information[tnn_name]
             if self.check_shape_information(onnx_info, tnn_info):
-                logging.info("Input shape of onnx and tnn is aligned!\n")
+                logging.info(name + ": input shape of onnx and tnn is aligned!\n")
             else:
                 logging.error("input is not algin 194\n")
                 # print_not_align_message(

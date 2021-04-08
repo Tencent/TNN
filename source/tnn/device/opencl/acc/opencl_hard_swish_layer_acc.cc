@@ -61,11 +61,11 @@ Status OpenCLHardSwishLayerAcc::Init(Context *context, LayerParam *param, LayerR
     std::string compute;
     if (broadcast_param_.input0_broadcast_type == BroadcastTypeNormal) {
         std::ostringstream oss;
-        oss << "in0*clamp(in1*(FLOAT)(" << hs_param->alpha << ")+(FLOAT)(" << hs_param->beta << "),(FLOAT)0.0f,(FLOAT)1.0f)";
+        oss << "in0*clamp(in1*(FLOAT)(" << hs_param->alpha << "f)+(FLOAT)(" << hs_param->beta << "f),(FLOAT)0.0f,(FLOAT)1.0f)";
         compute = oss.str();
     } else {
         std::ostringstream oss;
-        oss << "in1*clamp(in0*(FLOAT)(" << hs_param->alpha << ")+(FLOAT)(" << hs_param->beta << "),(FLOAT)0.0f,(FLOAT)1.0f)";
+        oss << "in1*clamp(in0*(FLOAT)(" << hs_param->alpha << "f)+(FLOAT)(" << hs_param->beta << "f),(FLOAT)0.0f,(FLOAT)1.0f)";
         compute = oss.str();
     }
     build_options.emplace(" -DOPERATOR=" + compute);

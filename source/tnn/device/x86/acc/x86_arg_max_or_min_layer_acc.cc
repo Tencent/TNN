@@ -31,9 +31,9 @@ Status X86ArgMaxOrMinLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     if (stride == 0) {
         stride = 1;
     }
-    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        float *input_ptr  = static_cast<float *>(input_blob->GetHandle().base);
-        float *output_ptr = static_cast<float *>(output_blob->GetHandle().base);
+    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        auto input_ptr  = static_cast<float *>(input_blob->GetHandle().base);
+        auto output_ptr = static_cast<int *>(output_blob->GetHandle().base);
         for (int n = 0; n < num; ++n) {
             for (int s = 0; s < stride; ++s) {
                 int guard_index = 0;
@@ -48,7 +48,7 @@ Status X86ArgMaxOrMinLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
                         guard_index = cur_value > guard_value ? c : guard_index;
                     }
                 };  // end for loop
-                output_ptr[n * stride + s] = (float)guard_index;
+                output_ptr[n * stride + s] = guard_index;
                 // std::cout << output_ptr[n * stride + s] << " ";
             }
         }  // end for
