@@ -17,7 +17,16 @@
 
 namespace TNN_NS {
 
-DECLARE_OPENCL_ACC(ArgMaxOrMin);
+class OpenCLArgMaxOrMinLayerAcc : public OpenCLLayerAcc {
+public:
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                        const std::vector<Blob *> &outputs) override;
+
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+private:
+    virtual std::vector<DataType> SupportDataType(int dims_size, BlobType blob_type) override;
+};
 
 Status OpenCLArgMaxOrMinLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -108,6 +117,14 @@ Status OpenCLArgMaxOrMinLayerAcc::Reshape(const std::vector<Blob *> &inputs, con
     }
 
     return TNN_OK;
+}
+
+std::vector<DataType> OpenCLArgMaxOrMinLayerAcc::SupportDataType(int dims_size, BlobType blob_type) {
+    if (blob_type == BLOB_INPUT) {
+        return {DATA_TYPE_FLOAT, DATA_TYPE_HALF};
+    } else {
+        return {DATA_TYPE_INT32};
+    }
 }
 
 REGISTER_OPENCL_ACC(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN)
