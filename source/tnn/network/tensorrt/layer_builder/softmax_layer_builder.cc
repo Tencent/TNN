@@ -21,41 +21,33 @@ DECLARE_TENSORRT_LAYER_BUILDER(Softmax, LAYER_SOFTMAX);
 
 ILayer* SoftmaxTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto paramlist = dynamic_cast<SoftmaxLayerParam*>(param_);
-    if (paramlist->axis == 1) {
-        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
-        auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-        ILayer* layer;
-        //unsqueeze 
-        if (input_tensor->getDimensions().nbDims < 4) {
-            DimsVector unsqueeze_dims = input_blobs_[0]->GetBlobDesc().dims;
-            while(unsqueeze_dims.size() < 4) {
-                unsqueeze_dims.push_back(1);
-            }
-            layer = AddReshapeToNetwork(network, input_tensor, unsqueeze_dims, (layer_name_ + "unsqueeze").c_str());        
-            input_tensor = layer->getOutput(0);
+    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+    ILayer* layer;
+    //unsqueeze
+    if (input_tensor->getDimensions().nbDims < 4) {
+        DimsVector unsqueeze_dims = input_blobs_[0]->GetBlobDesc().dims;
+        while(unsqueeze_dims.size() < 4) {
+            unsqueeze_dims.push_back(1);
         }
-
-        ISoftMaxLayer* layar = network->addSoftMax(*input_tensor);
-        if (layar != nullptr) {
-            layar->setName(layer_name_.c_str());
-        }
-
-        auto output_dims = output_blobs_[0]->GetBlobDesc().dims;
-        //squeeze
-        if(output_dims.size() < 4) {
-            layer = AddReshapeToNetwork(network, input_tensor, output_dims, (layer_name_ + "squeeze").c_str());
-        }
-        return layar;
-    } else {
-        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
-        auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-        ISoftMaxLayer* layer = network->addSoftMax(*input_tensor);
-        if (layer != nullptr) {
-            layer->setName(layer_name_.c_str());
-            layer->setAxes(1 << paramlist->axis);
-        }
-        return layer;
+        layer = AddReshapeToNetwork(network, input_tensor, unsqueeze_dims, (layer_name_ + "unsqueeze").c_str());
+        input_tensor = layer->getOutput(0);
     }
+
+    ISoftMaxLayer* softmax_layer = network->addSoftMax(*input_tensor);
+    if (softmax_layer != nullptr) {
+        softmax_layer->setName(layer_name_.c_str());
+        softmax_layer->setAxes(1 << paramlist->axis);
+        input_tensor = softmax_layer->getOutput(0);
+        layer = softmax_layer;
+    }
+
+    auto output_dims = output_blobs_[0]->GetBlobDesc().dims;
+    //squeeze
+    if(output_dims.size() < 4) {
+        layer = AddReshapeToNetwork(network, input_tensor, output_dims, (layer_name_ + "squeeze").c_str());
+    }
+    return layer;
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Softmax, LAYER_SOFTMAX);
