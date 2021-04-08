@@ -452,6 +452,8 @@ Status CopyBufferToMat(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int
     int data_type_size = 1;
     if (mat_type == NCHW_FLOAT) {
         data_type_size = sizeof(float);
+    } else if (mat_type == NC_INT32) {
+        data_type_size = sizeof(int);
     } else if (mat_type == N8UC4) {
         //special for 8UC4, blob channel <= 4.
         dims[1] = 4;
@@ -475,6 +477,8 @@ Status CopyMatToBuffer(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int
     int data_type_size = 1;
     if (mat_type == NCHW_FLOAT) {
         data_type_size = sizeof(float);
+    } else if (mat_type == NC_INT32) {
+        data_type_size = sizeof(int);
     } else if (mat_type == N8UC4) {
         //special for 8UC4, blob channel <= 4.
         dims[1] = 4;

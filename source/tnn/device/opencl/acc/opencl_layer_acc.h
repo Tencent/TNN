@@ -73,9 +73,15 @@ private:
     Status ConvertChannelWeights(float *handle_data_ptr, shared_ptr<OpenCLMemory> &ocl_handle, int output_channel,
                                  bool has_handle = true, bool share_channel = false, bool use_buffer = false);
 
-    Status CheckBlobFormat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    Status CheckBlob(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     // @brief return device layer acc support data format
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) override;
+
+    // @brief return device layer acc support data type
+    virtual std::vector<DataType> SupportDataType(int dims_size, BlobType blob_type);
+
+    // @brief decide Blob Data Type based on support data type list
+    virtual Status ResolveBlobDataType(Blob *blob, BlobType blob_type);
 
     std::set<int> unactive_unit_ids_ = {};
 };

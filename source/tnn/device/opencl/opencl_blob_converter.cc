@@ -235,6 +235,20 @@ bool OpenCLBlobConverterAcc::NeedDoScaleBias(MatConvertParam &param) {
 
 Status OpenCLBlobConverterAcc::GetConvertToMatKernelName(Mat &mat, std::string& kernel_name) {
     int dims_size = blob_->GetBlobDesc().dims.size();
+    if (blob_->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4 && dims_size <= 4) {
+            if (NC_INT32 == mat.GetMatType()) {
+                kernel_name = "IntBlobConvertToNCINT32";
+            } else if (NCHW_FLOAT == mat.GetMatType()) {
+                kernel_name = "IntBlobConvertToNCHW";
+            } else {
+                return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+            }
+            return TNN_OK;
+        } else {
+            return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        }
+    }
     if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
         if (dims_size <= 4) {
             if (N8UC3 == mat.GetMatType()) {
@@ -291,8 +305,20 @@ Status OpenCLBlobConverterAcc::GetConvertToMatKernelName(Mat &mat, std::string& 
 }
 
 Status OpenCLBlobConverterAcc::GetConvertFromMatKernelName(Mat &mat, std::string& kernel_name) {
+    int dims_size = blob_->GetBlobDesc().dims.size();
+    if (blob_->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4 && dims_size <= 4) {
+            if (NC_INT32 == mat.GetMatType()) {
+                kernel_name = "IntBlobConvertFromNCINT32";
+            } else {
+                return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+            }
+            return TNN_OK;
+        } else {
+            return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        }
+    }
     if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
-        int dims_size = blob_->GetBlobDesc().dims.size();
         if (dims_size <= 4) {
             if (N8UC3 == mat.GetMatType()) {
                 kernel_name = "ConvertFromN8UC3";
@@ -460,7 +486,7 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
             }
         }
 
-        if (NCHW_FLOAT == mat.GetMatType()) {
+        if (NCHW_FLOAT == mat.GetMatType() || NC_INT32 == mat.GetMatType()) {
             //special for NCHW_FLOAT, need channel parameter
             cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 1));
             CHECK_CL_SUCCESS(cl_ret);
