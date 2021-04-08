@@ -105,36 +105,33 @@ Status NpuReshapeLayer::Convert() {
         output->set_attr_num_axes(param->num_axes);
         ADD_OUTPUT_OP(output)
     } else {
-        if (input_ops_[0]->GetShape().size() != 4 || shape.size() != 4) {
-            LOGE("TFLite type Reshape (input/output dims != 4) is not support in HUAWEI_NPU\n");
-            return Status(TNNERR_MODEL_ERR,
-                          "TFLite type Reshape (input/output dims != 4) is not support in HUAWEI_NPU");
-        }
+        LOGE("TFLite type Reshape is not support in HUAWEI_NPU\n");
+        return Status(TNNERR_MODEL_ERR, "TFLite type Reshape is not support in HUAWEI_NPU");
 
-        std::vector<int64_t> order;
-        // Tensorflow TFLite reshape(nhwc): 1
-        // convert input form nchw to nhwc first
-        auto permute_op = std::make_shared<hiai::op::Permute>(layer_name_ + "permute");
-        permute_op->set_input_x(*input_ops_[0]->GetOperator());
-        RETURN_ON_NEQ(GetPermuteOrder(order, input_ops_[0]->GetShape().size(), true), TNN_OK);
-        permute_op->set_attr_order(order);
-        weight_ops_.push_back(permute_op);
+        //std::vector<int64_t> order;
+        //// Tensorflow TFLite reshape(nhwc): 1
+        //// convert input form nchw to nhwc first
+        //auto permute_op = std::make_shared<hiai::op::Permute>(layer_name_ + "permute");
+        //permute_op->set_input_x(*input_ops_[0]->GetOperator());
+        //RETURN_ON_NEQ(GetPermuteOrder(order, input_ops_[0]->GetShape().size(), true), TNN_OK);
+        //permute_op->set_attr_order(order);
+        //weight_ops_.push_back(permute_op);
 
-        // do reshape
-        auto reshape_op = std::make_shared<hiai::op::Reshape>(layer_name_ + "reshape");
-        reshape_op->set_input_x(*permute_op);
-        reshape_op->set_input_shape(*shape_const);
-        reshape_op->set_attr_axis(param->axis);
-        reshape_op->set_attr_num_axes(param->num_axes);
-        weight_ops_.push_back(reshape_op);
+        //// do reshape
+        //auto reshape_op = std::make_shared<hiai::op::Reshape>(layer_name_ + "reshape");
+        //reshape_op->set_input_x(*permute_op);
+        //reshape_op->set_input_shape(*shape_const);
+        //reshape_op->set_attr_axis(param->axis);
+        //reshape_op->set_attr_num_axes(param->num_axes);
+        //weight_ops_.push_back(reshape_op);
 
-        // convert input form nhwc to nchw
-        auto output = std::make_shared<hiai::op::Permute>(outputs_name_[0]);
-        output->set_input_x(*reshape_op);
-        RETURN_ON_NEQ(GetPermuteOrder(order, shape.size(), false), TNN_OK);
-        output->set_attr_order(order);
+        //// convert input form nhwc to nchw
+        //auto output = std::make_shared<hiai::op::Permute>(outputs_name_[0]);
+        //output->set_input_x(*reshape_op);
+        //RETURN_ON_NEQ(GetPermuteOrder(order, shape.size(), false), TNN_OK);
+        //output->set_attr_order(order);
 
-        ADD_OUTPUT_OP(output)
+        //ADD_OUTPUT_OP(output)
     }
 }
 
