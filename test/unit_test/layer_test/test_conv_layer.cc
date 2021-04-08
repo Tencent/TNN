@@ -69,10 +69,6 @@ TEST_P(ConvLayerTest, ConvLayer) {
         GTEST_SKIP();
     }
 
-    if (activation_type != ActivationType_None && DEVICE_HUAWEI_NPU == dev) {
-        GTEST_SKIP();
-    }
-
     if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_CUDA == dev) {
         GTEST_SKIP();
     }

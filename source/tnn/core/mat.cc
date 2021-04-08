@@ -71,10 +71,10 @@ Mat::Mat(DeviceType device_type, MatType mat_type, DimsVector dims) {
     ASSERT(device != NULL);
 
     int count = DimsVectorUtils::Count(dims);
-    if (count <= 0) {
-        LOGE("Mat::Mat has invalid dims with count <= 0\n");
+    if (count < 0) {
+        LOGE("Mat::Mat has invalid dims with count < 0\n");
     }
-    ASSERT(count > 0);
+    ASSERT(count >= 0);
 
     device_type_     = device_type;
     mat_type_        = mat_type;

@@ -58,9 +58,14 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
 
     if (mode == 3) {
         // skip cubic upsample for now
-        if (data_type == DATA_TYPE_INT8 || DEVICE_HUAWEI_NPU == dev) {
+        if (data_type == DATA_TYPE_INT8 || DEVICE_HUAWEI_NPU == dev || DEVICE_CUDA == dev) {
             GTEST_SKIP();
         }
+    }
+
+    if (align_corners == 1 && DEVICE_CUDA == dev) {
+        // trt may get wrong result when align_corners == true
+        GTEST_SKIP();
     }
 
     if (DEVICE_HUAWEI_NPU == dev && scale_x * scale_y <= 1.0f/7.0f) {
