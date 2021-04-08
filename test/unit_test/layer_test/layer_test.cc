@@ -331,15 +331,20 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
 }
 
 int LayerTest::CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev) {
-    Status ret            = TNN_OK;
+    Status ret       = TNN_OK;
     auto dims_cpu    = cpu_blob->GetBlobDesc().dims;
     auto dims_device = device_blob->GetBlobDesc().dims;
     if (this->CompareDims(dims_cpu, dims_device) != 0) {
         std::stringstream dims_cpu_stream, dims_device_stream;
         std::copy(dims_cpu.begin(),    dims_cpu.end(),    std::ostream_iterator<int>(dims_cpu_stream,    ","));
         std::copy(dims_device.begin(), dims_device.end(), std::ostream_iterator<int>(dims_device_stream, ","));
-        LOGE("blob dims not equal, cpu:%s device:%s\n", dims_cpu_stream.str().c_str(), dims_device_stream.str().c_str());
-        return -1;
+        if (device_blob->GetBlobDesc().device_type == DEVICE_HUAWEI_NPU &&
+            DimsVectorUtils::Count(dims_cpu) == DimsVectorUtils::Count(dims_device)) {
+            LOGI("blob dims not equal, cpu:%s device:%s, but count is equal\n", dims_cpu_stream.str().c_str(), dims_device_stream.str().c_str());
+        } else {
+            LOGE("blob dims not equal, cpu:%s device:%s\n", dims_cpu_stream.str().c_str(), dims_device_stream.str().c_str());
+            return -1;
+        }
     }
     auto blob_desc_device = device_blob->GetBlobDesc();
     // mat type for both

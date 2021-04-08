@@ -556,7 +556,7 @@ Status ModelChecker::GetOutputData(Instance* instance, std::map<std::string, std
         
         //keep the same as FileReader::Read
         MatType mat_type = INVALID;
-        if (DATA_TYPE_FLOAT == data_type) {
+        if (DATA_TYPE_FLOAT == data_type || DATA_TYPE_HALF == data_type) {
             mat_type = NCHW_FLOAT;
         } else if (DATA_TYPE_INT32 == data_type) {
             mat_type = NC_INT32;
@@ -590,7 +590,7 @@ Status ModelChecker::GetBlobData(Instance* instance, Blob* blob,
     
     //keep the same as FileReader::Read
     MatType mat_type = INVALID;
-    if (DATA_TYPE_FLOAT == data_type) {
+    if (DATA_TYPE_FLOAT == data_type || DATA_TYPE_HALF == data_type) {
         mat_type = NCHW_FLOAT;
     } else if (DATA_TYPE_INT32 == data_type) {
         mat_type = NC_INT32;
@@ -603,7 +603,12 @@ Status ModelChecker::GetBlobData(Instance* instance, Blob* blob,
     
     
     // convert blob
-    int blob_data_bytes   = DimsVectorUtils::Count(blob_desc.dims) * DataTypeUtils::GetBytesSize(data_type);
+    int data_bytes_size = DataTypeUtils::GetBytesSize(data_type);
+    if (DATA_TYPE_HALF == data_type) {
+        // fp16 use NCHW_FLOAT mat
+        data_bytes_size = sizeof(float);
+    }
+    int blob_data_bytes   = DimsVectorUtils::Count(blob_desc.dims) * data_bytes_size;
     output_map[blob_name] = std::shared_ptr<char>(new char[blob_data_bytes], [](char* p) { delete[] p; });
 
     void* command_queue;

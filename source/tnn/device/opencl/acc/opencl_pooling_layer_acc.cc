@@ -112,7 +112,7 @@ Status OpenCLPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 
     OpenCLRuntime * opencl_runtime = OpenCLRuntime::GetInstance();
     int type_size = sizeof(float);
-    if (opencl_runtime->GetPrecision() != PRECISION_HIGH) {
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH && pooling_param->pool_type == 0) {
         type_size = 2;
     }
 
