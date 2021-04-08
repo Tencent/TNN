@@ -33,6 +33,9 @@ private:
     std::shared_ptr<cl::Buffer> inter_buffer_ = nullptr;
     int input_dims_size_ = 0;
     int output_dims_size_ = 0;
+    bool is_nchw_output_ = false;
+    std::string im_to_bf_func_name_;
+    std::string bf_to_im_func_name_;
 };
 
 }  // namespace TNN_NS

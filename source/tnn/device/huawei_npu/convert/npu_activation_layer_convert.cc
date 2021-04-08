@@ -43,22 +43,6 @@ protected:
                 CHECK_PARAM_NULL(param);
                 output->set_attr_coef(param->alpha);
             } break;
-            case LAYER_PRELU: {
-                mode          = 5;
-                auto param    = dynamic_cast<PReluLayerParam *>(param_);
-                auto resource = dynamic_cast<PReluLayerResource *>(resource_);
-                CHECK_PARAM_NULL(param);
-                if (!resource) {
-                    return Status(TNNERR_MODEL_ERR, "Error: prelu layer resource is nil");
-                }
-                const float *slope_data = resource->slope_handle.force_to<float *>();
-                if (param->channel_shared) {
-                    // if channel shared
-                    output->set_attr_negative_slope(slope_data[0]);
-                } else {
-                    return Status(TNNERR_LAYER_ERR, "Error: huawei_npu currently only supports shared-channel prelu");
-                }
-            } break;
             case LAYER_ABS:
                 mode = 6;
                 break;
@@ -111,8 +95,6 @@ DECLARE_NPU_ACTIVATION_LAYER(Tanh, LAYER_TANH)
 REGISTER_NPU_LAYER(Tanh, LAYER_TANH)
 DECLARE_NPU_ACTIVATION_LAYER(Elu, LAYER_ELU)
 REGISTER_NPU_LAYER(Elu, LAYER_ELU)
-DECLARE_NPU_ACTIVATION_LAYER(Prelu, LAYER_PRELU)
-REGISTER_NPU_LAYER(Prelu, LAYER_PRELU)
 DECLARE_NPU_ACTIVATION_LAYER(Abs, LAYER_ABS)
 REGISTER_NPU_LAYER(Abs, LAYER_ABS)
 DECLARE_NPU_ACTIVATION_LAYER(Softplus, LAYER_SOFTPLUS)

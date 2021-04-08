@@ -29,7 +29,7 @@ Status CpuGeluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
 }
 
 Status CpuGeluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    //GELU(x) = x * (erf((x)/(1.4142135381698608))+1)*0.5
+    //GELU(x) = 0.5f * x * (erf((x)/(1.4142135381698608f))+1.0f)
     //GELU(x) = 0.5f * x * (tanh((x+x*x*x*0.0447149984538f)*0.7978845834732056f)+1.0f)
     
     Blob *input_blob  = inputs[0];
@@ -44,8 +44,8 @@ Status CpuGeluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
             output_data[index] = 0.5f * x * (tanh((x+x*x*x*0.0447149984538f)*0.7978845834732056f)+1.0f);
         }
     } else {
-        LOGE("CpuReluLayerAcc dont support data type: %d", data_type);
-        return Status(TNNERR_NO_RESULT, "CpuReluLayerAcc dont support data type");
+        LOGE("CpuGeluLayerAcc dont support data type: %d", data_type);
+        return Status(TNNERR_NO_RESULT, "CpuGeluLayerAcc dont support data type");
     }
     return TNN_OK;
 }

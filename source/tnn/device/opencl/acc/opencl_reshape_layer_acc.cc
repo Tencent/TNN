@@ -49,29 +49,33 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     input_dims_size_ = input_dims.size();
     output_dims_size_ = output_dims.size();
 
-    std::string im_to_bf_func_name, bf_to_im_func_name;
     std::string src_format = "Image", dst_format = "Image";
     src_format = input_dims_size_ == 5 ? "Image5D" : input_dims_size_ == 6 ? "Image6D" : src_format;
     dst_format = output_dims_size_ == 5 ? "Image5D" : output_dims_size_ == 6 ? "Image6D" : dst_format;
 
     if (reshape_type == 0)
     {
-        im_to_bf_func_name      = src_format + "ToNCHWBuffer";
-        bf_to_im_func_name      = "NCHWBufferTo" + dst_format;
-    } else if (reshape_type == 1) {
-        // tensorflow reshape 对应的数据格式是 NHWC
-        im_to_bf_func_name      = src_format + "ToNHWCBuffer";
-        bf_to_im_func_name      = "NHWCBufferTo" + dst_format;
+        im_to_bf_func_name_      = src_format + "ToNCHWBuffer";
+        bf_to_im_func_name_      = "NCHWBufferTo" + dst_format;
+    } else if (reshape_type == 1 && outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
+        // tensorflow reshape data format is NHWC, only support NHC4W4 blob for now
+        im_to_bf_func_name_      = src_format + "ToNHWCBuffer";
+        bf_to_im_func_name_      = "NHWCBufferTo" + dst_format;
     } else {
         LOGE("Error: Unsupport reshape type(%d), src_format: %s, dst_format: %s\n",
-             reshape_param->reshape_type, src_format.c_str(), dst_format.c_str());
+             reshape_type, src_format.c_str(), dst_format.c_str());
         return Status(TNNERR_MODEL_ERR, "Error: OpenCLReshapeLayerAcc failed!\n");
     }
 
     execute_units_.resize(2);
     // image->buffer
     {
-        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", im_to_bf_func_name);
+        std::set<std::string> build_opt;
+        if (outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
+            is_nchw_output_ = true;
+            build_opt.emplace("-DENABLE_BUFFER_PRECISION_ADJUST");
+        }
+        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", im_to_bf_func_name_, build_opt);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -80,7 +84,7 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
     // buffer->image
     {
-        ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", bf_to_im_func_name);
+        ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", bf_to_im_func_name_);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -98,6 +102,15 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     CHECK_TNN_OK(ret)
     auto input  = inputs[0];
     auto output = outputs[0];
+
+    // reinit opencl execute unit if data format is changed during Reshape
+    if (output->GetBlobDesc().data_format == DATA_FORMAT_NCHW && !is_nchw_output_) {
+        std::set<std::string> build_opt;
+        is_nchw_output_ = true;
+        build_opt.emplace("-DENABLE_BUFFER_PRECISION_ADJUST");
+        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", im_to_bf_func_name_, build_opt);
+        CHECK_TNN_OK(ret)
+    }
 
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;

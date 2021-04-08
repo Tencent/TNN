@@ -110,16 +110,28 @@ def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
             output_shape = pred[cnt].shape
             type_str = item.type
             data_type = 0
-            if type_str == "tensor(float)":
-                data_type = 0
-            elif type_str == "tensor(int64)":
+            # keep the same as dump_single_output in run_onnx_model.py
+            if type_str == "tensor(int64)" or type_str == "tensor(int32)":
                 data_type = 3
+            elif type_str == "tensor(bool)" or type_str == "tensor(int8)":
+                data_type = 2
+
             description = "{} {} ".format(output_name, len(output_shape))
             for dim in output_shape:
                 description += "{} " .format(dim)
             description += "{}".format(str(data_type))
             f.write(description + "\n")
-            np.savetxt(f, pred[cnt].reshape(-1), fmt="%0.6f")
+
+            # keep the same as dump_single_output in run_onnx_model.py
+            if type_str == "tensor(int64)" or type_str == "tensor(int32)":
+                np.savetxt(f, pred[cnt].reshape(-1), fmt="%d")
+            elif type_str == "tensor(bool)" or type_str == "tensor(int8)":
+                np.savetxt(f, pred[cnt].reshape(-1), fmt="%d")
+            elif type_str == "tensor(float)" or type_str == "tensor(double)":
+                np.savetxt(f, pred[cnt].reshape(-1), fmt="%0.6f")
+            else:
+                print("ERROR: run_onnx dump dont support data type: " + type_str)
+
             cnt += 1
 
     return output_path
@@ -355,7 +367,7 @@ def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
         tnn_name = convert_name.onnx_name2tnn_name(name)
         tnn_info = tnn_input_info[tnn_name]
         if check_shape_info(onnx_info, tnn_info) == True:
-            logging.info("Input shape of onnx and tnn is aligned!\n")
+            logging.info(name + ": input shape of onnx and tnn is aligned!\n")
         else:
             logging.error("input is not algin 194\n")
             print_not_align_message(

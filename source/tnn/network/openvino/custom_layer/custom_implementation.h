@@ -204,7 +204,7 @@ public:
     }
 
     static void RegisterCustomLayerType(LayerType &type) {
-        auto layer_type_set = GetCustomLayerTypeSet();
+        std::set<LayerType> &layer_type_set = GetCustomLayerTypeSet();
         if (layer_type_set.find(type) == layer_type_set.end()) {
             layer_type_set.insert(type);
         }

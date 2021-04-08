@@ -28,7 +28,7 @@ Status OpenCLCastLayerAcc::Init(Context *context, LayerParam *param, LayerResour
     auto input_data_type  = inputs[0]->GetBlobDesc().data_type;
     auto output_data_type = outputs[0]->GetBlobDesc().data_type;
     execute_units_.resize(1);
-    if(input_data_type != output_data_type) {
+    if(input_data_type == output_data_type) {
         ret         = CreateExecuteUnit(execute_units_[0], "copy", "CopyImage");
         if (ret != TNN_OK) {
             return ret;

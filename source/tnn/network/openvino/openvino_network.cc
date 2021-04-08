@@ -311,7 +311,7 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         std::vector<Blob *> outputs;
         std::vector<std::string> &output_names = layer_info->outputs;
 
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
         // generate resource if null
         if (net_resource->resource_map.count(layer_name) == 0) {
             LayerParam *layer_param  = layer_info->param.get();
@@ -342,7 +342,9 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         if (resouce_it != net_resource->resource_map.end()) {
             layer_resource = resouce_it->second.get();
         }
-        
+
+        cur_layer->SetRuntimeMode(runtime_model_);
+        cur_layer->SetConstantResource(&net_resource->constant_map);
         // init node
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {
@@ -373,14 +375,25 @@ Status OpenVINONetwork_::GetCommandQueue(void **command_queue) {
 
 Status OpenVINONetwork_::Forward() {
     infer_request_.Infer();
+#if TNN_PROFILE
+    auto perf_count = infer_request_.GetPerformanceCounts();
+    for (auto iter : perf_count) {
+        if (std::string(iter.second.layer_type).find("CustomLayer") != std::string::npos) {
+            continue;
+        }
+        auto pdata = std::make_shared<ProfilingData>();
+        pdata->layer_name = iter.first;
+        pdata->op_name = iter.second.layer_type;
+        pdata->kernel_time = iter.second.cpu_uSec / 1000.0f;
+        context_->AddProfilingData(pdata);
+    }
+#endif
     return TNN_OK;
 }
 
 // @brief openvino instance network infer, it will not wait
 Status OpenVINONetwork_::ForwardAsync(Callback call_back) {
-    Status result = TNN_OK;
-    infer_request_.Infer();
-    return result;
+    return Forward();
 }
 
 Status OpenVINONetwork_::SetCpuNumThreads(int num_threads) {

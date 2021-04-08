@@ -249,7 +249,8 @@ struct PermuteLayerParam : public LayerParam {
 };
 
 struct CastLayerParam : public LayerParam {
-    int to = 0;
+    int to   = 0;
+    int from = 0; // used for HUAWEI_NPU
 
     PARAM_COPY(CastLayerParam)
 };
@@ -568,7 +569,7 @@ struct UnsqueezeLayerParam : public SqueezeLayerParam {
 struct ArgMaxOrMinLayerParam : public LayerParam {
     int mode;
     int axis;
-    int keep_dims;
+    int keep_dims = 1;
     int select_last_index;
 
     PARAM_COPY(ArgMaxOrMinLayerParam)
