@@ -61,12 +61,13 @@ Status NpuUtils::CreateInputData(std::shared_ptr<ge::op::Data> &input_data, std:
     return TNN_OK;
 }
 
-Status NpuUtils::CreateConstOpFromResource(std::shared_ptr<OperatorInfo> &const_op, std::string name, NetResource *net_resource) {
-    if(net_resource->constant_map.count(name) > 0) {
-        auto raw_buffer = net_resource->constant_map[name];
-        auto data_const = std::make_shared<ge::op::Const>(name + "_const");
+Status NpuUtils::CreateConstOpFromResource(std::shared_ptr<OperatorInfo> &const_op, std::string name,
+                                           NetResource *net_resource) {
+    if (net_resource->constant_map.count(name) > 0) {
+        auto raw_buffer      = net_resource->constant_map[name];
+        auto data_const      = std::make_shared<ge::op::Const>(name + "_const");
         auto raw_buffer_dims = raw_buffer->GetBufferDims();
-        ge::Shape const_shape(NpuUtils::Int32VecToTVec<int64_t>(raw_buffer_dims ));
+        ge::Shape const_shape(NpuUtils::Int32VecToTVec<int64_t>(raw_buffer_dims));
         auto ret = NpuUtils::CreateAttrValue(data_const, const_shape, *raw_buffer);
         if (ret != TNN_OK) {
             LOGE("The input op of layer which is found in resource convert to const op failed\n");
@@ -221,6 +222,30 @@ void NpuUtils::SplitNetwork(const int cpu_count, NetStructure *net_structure, st
     }
     net_structure->layers           = layers;
     net_structure->inputs_shape_map = sub_input_shapes_map;
+
+    // remove outputs which has visited
+    std::set<std::string> outputs;
+    for (auto output : net_structure->outputs) {
+        if (visited.count(output) == 0) {
+            outputs.insert(output);
+        }
+    }
+    net_structure->outputs = outputs;
+}
+
+ge::DataType NpuUtils::ConvertToHiaiDataType(TNN_NS::DataType tnn_dtype) {
+    if (DATA_TYPE_FLOAT == tnn_dtype) {
+        return ge::DT_FLOAT;
+    } else if (DATA_TYPE_HALF == tnn_dtype) {
+        return ge::DT_FLOAT16;
+    } else if (DATA_TYPE_INT8 == tnn_dtype) {
+        return ge::DT_INT8;
+    } else if (DATA_TYPE_INT32 == tnn_dtype) {
+        return ge::DT_INT32;
+    } else if (DATA_TYPE_BFP16 == tnn_dtype) {
+        return ge::DT_UNDEFINED;
+    }
+    return ge::DT_UNDEFINED;
 }
 
 }  // namespace TNN_NS
