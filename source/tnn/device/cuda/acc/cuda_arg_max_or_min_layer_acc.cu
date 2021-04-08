@@ -81,7 +81,7 @@ Status CudaArgMaxOrMinLayerAcc::Forward(const std::vector<Blob *> &inputs, const
         stride = 1;
     }
 
-    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+    if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
         int *output_data = static_cast<int *>(output_blob->GetHandle().base);
         if (params->mode == 0) {

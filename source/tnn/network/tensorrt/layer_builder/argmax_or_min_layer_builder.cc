@@ -45,6 +45,12 @@ DimsExprs ArgMaxOrMinTRTPluginLayerBuilder::getOutputDimensions(int index, const
     auto param = dynamic_cast<ArgMaxOrMinLayerParam*>(param_);
     DimsExprs output(inputs[0]);
     output.d[param->axis] = exprBuilder.constant(1);
+    if (!param->keep_dims) {
+        for (int i = param->axis; i < output.nbDims-1; i++) {
+            output.d[i] = output.d[i+1];
+        }
+        output.nbDims = output.nbDims - 1;
+    }
     return output;
 }
 
