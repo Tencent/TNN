@@ -20,7 +20,24 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(GroupNorm, LAYER_GROUP_NORM);
 
 bool GroupNormTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return (inOut[pos].type == nvinfer1::DataType::kFLOAT && nbInputs == 3 && nbOutputs == 1);
+    const auto &desc = inOut[pos];
+    const auto common_cond = nbInputs == 3 && nbOutputs == 1;
+    switch (pos)
+    {
+    case 0:
+        return common_cond 
+            && (desc.type == nvinfer1::DataType::kFLOAT || desc.type == nvinfer1::DataType::kHALF)
+            && desc.format == nvinfer1::TensorFormat::kNCHW;
+    case 1:
+    case 2:
+        return common_cond && desc.type == nvinfer1::DataType::kFLOAT;
+    case 3:
+        return common_cond
+            && desc.type == inOut[0].type
+            && desc.format == nvinfer1::TensorFormat::kNCHW;
+    default:
+        return false;
+    }
 }
 
 const char* GroupNormTRTPluginLayerBuilder::getPluginType() const {

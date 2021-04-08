@@ -28,7 +28,12 @@ Status CudaStrideSliceV2LayerAcc::Init(Context *context, LayerParam *param, Laye
     }    
     CreateTempBuf(5 * sizeof(int));
     CreateTempBuf(5 * sizeof(int));
-    auto params = dynamic_cast<StrideSliceV2LayerParam *>(param);
+
+    return TNN_OK;
+}
+
+Status CudaStrideSliceV2LayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto params = dynamic_cast<StrideSliceV2LayerParam *>(param_);
     if (!params) {
         LOGE("Error: ShuffleLayerParam is nil\n");
         return Status(TNNERR_MODEL_ERR, "Error: ShuffleLayerParam is nil");
@@ -51,11 +56,6 @@ Status CudaStrideSliceV2LayerAcc::Init(Context *context, LayerParam *param, Laye
 
     cudaMemcpy(tempbufs_[0].ptr, &(begins[0]), 5 * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(tempbufs_[1].ptr, &(strides[0]), 5 * sizeof(int), cudaMemcpyHostToDevice);
-
-    return TNN_OK;
-}
-
-Status CudaStrideSliceV2LayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
@@ -99,3 +99,4 @@ Status CudaStrideSliceV2LayerAcc::Forward(const std::vector<Blob *> &inputs, con
 REGISTER_CUDA_ACC(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
 
 }  // namespace TNN_NS
+

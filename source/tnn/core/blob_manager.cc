@@ -181,7 +181,7 @@ Status BlobManager::AllocateBlobMemory(int flag) {
             }
             
             // ASSERT(current_blob->count() > 0);
-            if (DimsVectorUtils::Count(current_blob->GetBlobDesc().dims) <= 0) {
+            if (DimsVectorUtils::Count(current_blob->GetBlobDesc().dims) < 0) {
                 LOGE("Got empty blob, name:%s\n", current_blob_name.c_str());
                 return Status(TNNERR_LAYER_ERR, "blob dims is invaid");
             }

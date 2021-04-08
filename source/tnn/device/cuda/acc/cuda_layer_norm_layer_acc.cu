@@ -23,22 +23,20 @@
 
 namespace TNN_NS {
 
-DECLARE_CUDA_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
+DECLARE_CUDA_ACC(LayerNorm, LAYER_LAYER_NORM);
 
 template<int THREAD_PER_BLOCK, typename T>
-__global__ void instance_norm_kernel(const T * input, T* output, const float * gamma,
-        const float * beta, const int size, const int batch_size, const int C, const float eps) {
+__global__ void layer_norm_kernel(const T * input, T* output, const float *scale,
+        const float *bias, const int size, const int batch_size, const float eps) {
     __shared__ double ssum1[THREAD_PER_BLOCK/32];
     __shared__ double ssum2[THREAD_PER_BLOCK/32];
-    __shared__ float k;
-    __shared__ float b;
+    __shared__ double mean;
+    __shared__ double var;
 
-    // const int batch_offset = blockIdx.y * size;
     const int block_offset = blockIdx.x * size;
-    const T * ptr = input + block_offset;
-    T * dst = output + block_offset;
-    const int cid = blockIdx.x % C;
-    
+    const T *ptr = input + block_offset;
+    T *dst = output + block_offset;
+
     double thread_sum1 = 0.f;
     double thread_sum2 = 0.f;
 
@@ -80,72 +78,64 @@ __global__ void instance_norm_kernel(const T * input, T* output, const float * g
     thread_sum2 += __shfl_down_sync(0x00000003, thread_sum2, 1, 2);
 
     if (threadIdx.x == 0) {
-        double mean = thread_sum1 / size;
-        double var = thread_sum2 / size - mean * mean;
-
-        k = gamma[cid] / sqrt(var + eps);
-        b = - mean * k + beta[cid];
+        mean = thread_sum1 / size;
+        var = (thread_sum2 / size - mean * mean);
+        var = 1.0 / sqrt(var + eps);
     }
-    
     __syncthreads();
+
     #pragma unroll(4)
     for (int i = threadIdx.x; i < size; i += THREAD_PER_BLOCK) {
+        float k = scale[i] * var;
+        float b = - mean * k + bias[i];
         dst[i] = convert_float_value<T>((get_float_value<T>(ptr[i]) * k + b));
     }
 }
 
-Status CudaInstanceNormLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status CudaLayerNormLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status ret = CudaLayerAcc::Init(context, param, resource, inputs, outputs);
     if (ret != TNN_OK) {
         return ret;
     }
 
-    auto res = dynamic_cast<InstanceNormLayerResource *>(resource);
-    if (!res) {
-        LOGE("Error: InstanceNormLayerResource is nil\n");
-        return Status(TNNERR_MODEL_ERR, "Error: InstanceNormLayerResource is nil");
+    return TNN_OK;
+}
+
+Status CudaLayerNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+Status CudaLayerNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Blob *input_blob  = inputs[0];
+    Blob *scale_blob  = inputs[1];
+    Blob *bias_blob   = inputs[2];
+    Blob *output_blob = outputs[0];
+
+    auto layer_param = dynamic_cast<LayerNormLayerParam *>(param_);
+    auto dims_input = input_blob->GetBlobDesc().dims;
+    const int reduce_dim_size = layer_param->reduce_dims_size;
+    const int channel_dim_size = (int)dims_input.size() - reduce_dim_size;
+
+    const int channels = DimsVectorUtils::Count(dims_input, 0, channel_dim_size);
+    const int channel_area = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, channel_dim_size);
+    if (0 == channels || 0 == channel_area) {
+        LOGE("Error: blob count is zero\n");
+        return Status(TNNERR_COMMON_ERROR, "Error: blob count is zero");
     }
 
-    float *k_data = res->scale_handle.force_to<float *>();
-    int k_size = res->scale_handle.GetBytesSize();
-    float *b_data = res->bias_handle.force_to<float *>();
-    int b_size = res->bias_handle.GetBytesSize();
-
-    CreateTempBuf(k_size);
-    CreateTempBuf(b_size);
-    cudaMemcpyAsync(tempbufs_[0].ptr, k_data, k_size, cudaMemcpyHostToDevice, context_->GetStream());
-    cudaMemcpyAsync(tempbufs_[1].ptr, b_data, b_size, cudaMemcpyHostToDevice, context_->GetStream());
-    return TNN_OK;
-}
-
-Status CudaInstanceNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
-Status CudaInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Blob *input_blob  = inputs[0];
-    Blob *output_blob = outputs[0];
-    auto dims = input_blob->GetBlobDesc().dims;
-    int num = dims[0];
-    int channels = dims[1];
-    int height = dims[2];
-    int width = dims[3];
-    int count = DimsVectorUtils::Count(dims);
-    int hw = DimsVectorUtils::Count(dims, 2);
-    void* input_data = input_blob->GetHandle().base;
-    void* output_data = output_blob->GetHandle().base;
+    void *input_data  = input_blob->GetHandle().base;
+    void *output_data = output_blob->GetHandle().base;
+    void *scale_data  = scale_blob->GetHandle().base;
+    void *bias_data   = bias_blob->GetHandle().base;
 
     const int THREAD_PER_BLOCK = 128;
     dim3 griddim;
-    griddim.x = channels * num;
+    griddim.x = channels;
 
     if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        instance_norm_kernel<THREAD_PER_BLOCK, float><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>((float*)input_data,
-            (float*)output_data, (const float *)tempbufs_[0].ptr, (const float *)tempbufs_[1].ptr, hw, channels * num, channels, 1e-5);
-    } else if (input_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        instance_norm_kernel<THREAD_PER_BLOCK, __half><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>((__half*)input_data,
-            (__half*)output_data, (const float *)tempbufs_[0].ptr, (const float *)tempbufs_[1].ptr, hw, channels * num, channels, 1e-5);
+        layer_norm_kernel<THREAD_PER_BLOCK, float><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>((float*)input_data,
+            (float *)output_data, (float *)scale_data, (float *)bias_data, channel_area, channels, layer_param->eps);
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", input_blob->GetBlobDesc().data_type);
         return Status(TNNERR_MODEL_ERR, "Error: layer acc don't support datatype");
@@ -153,6 +143,6 @@ Status CudaInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, cons
     return TNN_OK;
 }
 
-REGISTER_CUDA_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
+REGISTER_CUDA_ACC(LayerNorm, LAYER_LAYER_NORM);
 
 }  // namespace TNN_NS

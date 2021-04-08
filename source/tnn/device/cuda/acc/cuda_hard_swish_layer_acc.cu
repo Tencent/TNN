@@ -71,19 +71,19 @@ Status CudaHardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     auto input_dims2 = input_blob2->GetBlobDesc().dims;
     auto output_dims = output_blob->GetBlobDesc().dims;
 
-    int in_n1 = GetBlobDim(input_dims1, 0);
-    int in_c1 = GetBlobDim(input_dims1, 1);
-    int in_h1 = GetBlobDim(input_dims1, 2);
-    int in_w1 = GetBlobDim(input_dims1, 3);
+    int in_n1 = DimsFunctionUtils::GetDim(input_dims1, 0);
+    int in_c1 = DimsFunctionUtils::GetDim(input_dims1, 1);
+    int in_h1 = DimsFunctionUtils::GetDim(input_dims1, 2);
+    int in_w1 = DimsFunctionUtils::GetDim(input_dims1, 3);
 
-    int in_n2 = GetBlobDim(input_dims2, 0);
-    int in_c2 = GetBlobDim(input_dims2, 1);
-    int in_h2 = GetBlobDim(input_dims2, 2);
-    int in_w2 = GetBlobDim(input_dims2, 3);
+    int in_n2 = DimsFunctionUtils::GetDim(input_dims2, 0);
+    int in_c2 = DimsFunctionUtils::GetDim(input_dims2, 1);
+    int in_h2 = DimsFunctionUtils::GetDim(input_dims2, 2);
+    int in_w2 = DimsFunctionUtils::GetDim(input_dims2, 3);
 
-    int out_c = GetBlobDim(output_dims, 1);
-    int out_h = GetBlobDim(output_dims, 2);
-    int out_w = GetBlobDim(output_dims, 3);
+    int out_c = DimsFunctionUtils::GetDim(output_dims, 1);
+    int out_h = DimsFunctionUtils::GetDim(output_dims, 2);
+    int out_w = DimsFunctionUtils::GetDim(output_dims, 3);
 
     hard_swish_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
         count, input_data1, input_data2, output_data, in_n1, in_c1, in_h1, in_w1, in_n2, in_c2, in_h2,

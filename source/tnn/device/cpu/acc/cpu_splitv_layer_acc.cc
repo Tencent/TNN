@@ -36,7 +36,8 @@ Status CpuSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     const int bath  = DimsVectorUtils::Count(input_dims, 0, axis);
     int slice_size  = DimsVectorUtils::Count(input_dims, axis + 1);
     if (slice_size == 0) {
-        slice_size = 1;
+        //support split empty blob such as blob with shape[12, 2, 128], axis = 0
+        return TNN_OK;
     }
     const int slice_input = input_dims[axis];
     auto input_data       = static_cast<float *>(input_blob->GetHandle().base);
