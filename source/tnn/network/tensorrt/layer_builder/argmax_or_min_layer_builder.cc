@@ -20,8 +20,11 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN);
 
 bool ArgMaxOrMinTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
-        && inOut[pos].type == inOut[0].type);
+    if (pos == 0) {
+        return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
+    } else {
+        return ((inOut[pos].type == nvinfer1::DataType::kINT32) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
+    }
 }
 
 const char* ArgMaxOrMinTRTPluginLayerBuilder::getPluginType() const {
@@ -30,7 +33,7 @@ const char* ArgMaxOrMinTRTPluginLayerBuilder::getPluginType() const {
 
 nvinfer1::DataType ArgMaxOrMinTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
         int nbInputs) const {
-    return inputTypes[0];
+    return nvinfer1::DataType::kINT32;
 }
 
 ILayer* ArgMaxOrMinTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
