@@ -74,7 +74,7 @@ struct Q8ConvContext {
     int8_t* c; // output_addr
     int32_t c_stride; // ROUND_UP(oc, 4);
     float* scales;
-    long   relu;
+    long  relu;
     const int8_t* add_input;
     float* add_scale;
     const int8_t* zero;
@@ -87,8 +87,8 @@ typedef void (*GemmInt8N8Func)(long mr, long nr, long k, const int8_t* a, long a
 
 void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l);
 
-typedef void (*IndirectConvInt8N8Func)(long mr, long nr, long input_channel, long kernel_size, const int32_t* indirect,
-                                       const void* weight, int8_t* output, long channel_stride, const float* scales,
+typedef void (*IndirectConvInt8N8Func)(int32_t mr, int32_t nr, int32_t input_channel, int32_t kernel_size, const int32_t* indirect,
+                                       const void* weight, int8_t* output, int32_t channel_stride, const float* scales,
                                        long relu, const int8_t* add_input, const float* add_scale, const int8_t* zero,
                                        const int8_t* real_input);
 

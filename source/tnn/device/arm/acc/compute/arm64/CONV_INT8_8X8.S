@@ -6,29 +6,36 @@
 .align 5
 
 asm_function ASMConvInt8Unit8x8
-//void ConvInt8Unit8x8(long mr, long nr, long kc, long ks, const int8_t** a,
-//                    const void* w, int8_t* c, long c_stride, const float* scales,
-//                    long relu, const int8_t* add_input, const float* add_scale)
-//x0(mr),
-//x1(nr),
-//x2(kc),
-//x3(ks),
-//x4(a),
-//x5(w),
-//x6(c),
-//x7(c_stride),
-//from stack(scales),
-//from stack(relu)
-
-sub sp, sp, #128
+//void ConvInt8Unit8x8(int32_t mr, int32_t nr, int32_t input_channel, int32_t kernel_size, const int32_t* indirect,
+//                                            const void* weight, int8_t* output, int32_t channel_stride,
+//                                            const float* scales, long relu, const int8_t* add_input,
+//                                            const float* add_scale, const int8_t* zero, const int8_t* real_input)
+//x0(int32_t mr), 8
+//x1(int32_t nr), 1
+//x2(int32_t input_channel),9
+//x3(int32_t kernel_size),9
+//x4(int32* indirect),
+//x5(void* weight),
+//x6(int8_t* output),
+//x7(int32_t channel_stride),
+//x8 from stack(float* scales), sp+0
+//x9 from stack(long relu), sp+8
+//x10 from stack(int8_t* add_input), sp+16
+//x11 from stack(float* add_scale),sp+24
+//x12 from stack(int8_t* zero) , sp+32
+//x13 from stack(int8_t* real_input), sp+40
+//保存堆栈信息，用于函数返回时，弹出堆栈
+sub sp, sp, #160
 st1 {v8.4s, v9.4s, v10.4s, v11.4s}, [sp], #64
 st1 {v12.4s, v13.4s, v14.4s, v15.4s}, [sp], #64
+stp x19, x20, [sp], #32
 
-ldr x8, [sp, #0]    //x8 = scales
+ldr x8, [sp, #0]    //x8 scale float
 
-//load weight bias
-ld1 {v8.4s, v9.4s}, [x5], #32
-mov v10.16b, v8.16b
+//load bias
+// 4s = int32x4_t
+ld1 {v8.4s, v9.4s}, [x5], #32   // x5 weight void*
+mov v10.16b, v8.16b             // v8: vacc0x0123 v9: vacc0x4567
 mov v11.16b, v9.16b
 mov v12.16b, v8.16b
 mov v13.16b, v9.16b
@@ -43,42 +50,88 @@ mov v21.16b, v9.16b
 mov v22.16b, v8.16b
 mov v23.16b, v9.16b
 
+ldr x18, [sp, #32] // int8* zero
+ldr x19, [sp, #40] // int8* real_input
 0:
-    ldr x9,  [x4], #8   //a0
-    ldr x10, [x4], #8   //a1
-    ldr x11, [x4], #8   //a2
-    ldr x12, [x4], #8   //a3
-    ldr x13, [x4], #8   //a4
-    ldr x14, [x4], #8   //a5
-    ldr x15, [x4], #8   //a6
-    ldr x16, [x4], #8   //a7
-    
-    subs x17, x2, #8
-    blo 2f
+    ldr w9,  [x4], #4   //a0 ,x4-> int32*
+    cmp w9,  #-1
+    sxtw x9, w9
+    add x20, x19, x9
+    csel x9, x18, x20, eq // x9 代表 a0
+
+    ldr w10, [x4], #4   //a1
+    cmp w10,  #-1
+    sxtw x10, w10
+    add x20, x19, x10
+    csel x10, x18, x20, eq
+
+    ldr w11, [x4], #4   //a2
+    cmp w11, #-1
+    sxtw x11, w11
+    add x20, x19, x11
+    csel x11, x18, x20, eq
+
+    ldr w12, [x4], #4   //a3
+    cmp w12, #-1
+    sxtw x12, w12
+    add x20, x19, x12
+    csel x12, x18, x20, eq
+
+    ldr w13, [x4], #4   //a4
+    cmp w13, #-1
+    sxtw x13, w13
+    add x20, x19, x13
+    csel x13, x18, x20, eq
+
+
+    ldr w14, [x4], #4   //a5
+    cmp w14, #-1
+    sxtw x14, w14
+    add x20, x19, x14
+    csel x14, x18, x20, eq
+
+    ldr w15, [x4], #4   //a6
+    cmp w15, #-1
+    sxtw x15, w15
+    add x20, x19, x15
+    csel x15, x18, x20, eq
+
+    ldr w16, [x4], #4   //a7
+    cmp w16, #-1
+    sxtw x16, w16
+    add x20, x19, x16
+    csel x16, x18, x20, eq
+
+    subs x17, x2, #8    // x2: input channel
+    blt 2f              // if x2 < 8, jump 2f
 1:
-    ld1 {v27.8b}, [x5], #8
-    sxtl v27.8h, v27.8b
-    ld1 {v0.8b}, [x9], #8   //a0[0:7]
+    // load input from indirect buffer
+    // x5 : weight
+    // 8b : int8x8_t
+    ld1 {v27.8b}, [x5], #8 // load weight
+    sxtl v27.8h, v27.8b     // weight int8x8_t -> int16x8_t
+    // load indirect buffer
+    ld1 {v0.8b}, [x9], #8   // va0 int8x8_t -> int16x8_t
     sxtl v0.8h, v0.8b
-    ld1 {v1.8b}, [x10], #8  //a1[0:7]
+    ld1 {v1.8b}, [x10], #8  //va1
     sxtl v1.8h, v1.8b
-    ld1 {v2.8b}, [x11], #8  //a2[0:7]
+    ld1 {v2.8b}, [x11], #8  //va2
     sxtl v2.8h, v2.8b
-    ld1 {v3.8b}, [x12], #8  //a3[0:7]
+    ld1 {v3.8b}, [x12], #8  //va3
     sxtl v3.8h, v3.8b
-    ld1 {v4.8b}, [x13], #8  //a4[0:7]
+    ld1 {v4.8b}, [x13], #8  //va4
     sxtl v4.8h, v4.8b
-    ld1 {v5.8b}, [x14], #8  //a5[0:7]
+    ld1 {v5.8b}, [x14], #8  //va5
     sxtl v5.8h, v5.8b
-    ld1 {v6.8b}, [x15], #8  //a6[0:7]
+    ld1 {v6.8b}, [x15], #8  //va6
     sxtl v6.8h, v6.8b
-    ld1 {v7.8b}, [x16], #8  //a7[0:7]
+    ld1 {v7.8b}, [x16], #8  //va7
     sxtl v7.8h, v7.8b
-    
-    //c0
+
+    // COMPUTE_UNIT_LOW(0)
     ld1 {v28.8b}, [x5], #8
-    smlal  v8.4s, v27.4h, v0.h[0]
-    smlal2 v9.4s, v27.8h, v0.h[0]
+    smlal  v8.4s, v27.4h, v0.h[0] //vacc0x0123 = vmlal_lane_s16(vacc0x0123, vget_low_s16(vb01234567), vget_low_s16(va0), i);
+    smlal2 v9.4s, v27.8h, v0.h[0] //vacc0x4567 = vmlal_lane_s16(vacc0x4567, vget_high_s16(vb01234567), vget_low_s16(va0), i);
     smlal  v10.4s, v27.4h, v1.h[0]
     smlal2 v11.4s, v27.8h, v1.h[0]
     smlal  v12.4s, v27.4h, v2.h[0]
@@ -94,8 +147,8 @@ mov v23.16b, v9.16b
     smlal2 v21.4s, v27.8h, v6.h[0]
     smlal  v22.4s, v27.4h, v7.h[0]
     smlal2 v23.4s, v27.8h, v7.h[0]
-    
-    //c1
+
+    // COMPUTE_UNIT_LOW(1)
     ld1 {v27.8b}, [x5], #8
     smlal  v8.4s, v28.4h, v0.h[1]
     smlal2 v9.4s, v28.8h, v0.h[1]
@@ -114,8 +167,8 @@ mov v23.16b, v9.16b
     smlal2 v21.4s, v28.8h, v6.h[1]
     smlal  v22.4s, v28.4h, v7.h[1]
     smlal2 v23.4s, v28.8h, v7.h[1]
-    
-    //c2
+
+    // COMPUTE_UNIT_LOW(2)
     ld1 {v28.8b}, [x5], #8
     smlal  v8.4s, v27.4h, v0.h[2]
     smlal2 v9.4s, v27.8h, v0.h[2]
@@ -134,8 +187,8 @@ mov v23.16b, v9.16b
     smlal2 v21.4s, v27.8h, v6.h[2]
     smlal  v22.4s, v27.4h, v7.h[2]
     smlal2 v23.4s, v27.8h, v7.h[2]
-    
-    //c3
+
+    // COMPUTE_UNIT_LOW(3)
     ld1 {v27.8b}, [x5], #8
     smlal  v8.4s, v28.4h, v0.h[3]
     smlal2 v9.4s, v28.8h, v0.h[3]
@@ -154,7 +207,7 @@ mov v23.16b, v9.16b
     smlal2 v21.4s, v28.8h, v6.h[3]
     smlal  v22.4s, v28.4h, v7.h[3]
     smlal2 v23.4s, v28.8h, v7.h[3]
-    
+
     //c4
     ld1 {v28.8b}, [x5], #8
     smlal  v8.4s, v27.4h, v0.h[4]
@@ -174,7 +227,7 @@ mov v23.16b, v9.16b
     smlal2 v21.4s, v27.8h, v6.h[4]
     smlal  v22.4s, v27.4h, v7.h[4]
     smlal2 v23.4s, v27.8h, v7.h[4]
-    
+
     //c5
     ld1 {v27.8b}, [x5], #8
     smlal  v8.4s, v28.4h, v0.h[5]
@@ -194,7 +247,7 @@ mov v23.16b, v9.16b
     smlal2 v21.4s, v28.8h, v6.h[5]
     smlal  v22.4s, v28.4h, v7.h[5]
     smlal2 v23.4s, v28.8h, v7.h[5]
-    
+
     //c6
     ld1 {v28.8b}, [x5], #8
     smlal  v8.4s, v27.4h, v0.h[6]
@@ -214,9 +267,9 @@ mov v23.16b, v9.16b
     smlal2 v21.4s, v27.8h, v6.h[6]
     smlal  v22.4s, v27.4h, v7.h[6]
     smlal2 v23.4s, v27.8h, v7.h[6]
-    
+
     //c7
-    subs  x17, x17, #8
+    subs  x17, x17, #8 // for(;;k-8);  1-8 = -7
     smlal  v8.4s, v28.4h, v0.h[7]
     smlal2 v9.4s, v28.8h, v0.h[7]
     smlal  v10.4s, v28.4h, v1.h[7]
@@ -233,57 +286,57 @@ mov v23.16b, v9.16b
     smlal2 v21.4s, v28.8h, v6.h[7]
     smlal  v22.4s, v28.4h, v7.h[7]
     smlal2 v23.4s, v28.8h, v7.h[7]
-    
-    bhs 1b
+
+    bge 1b // >= 0
 
 2:
     cmp x17, #-8
-    beq 3f
-    add x9, x9, x17
-    add x10, x10, x17
+    beq 3f              // IC 是 8 的倍数
+    add x9, x9, x17     // a0 - a_predecrement
+    add x10, x10, x17   // a1 - a_predecrement
     add x11, x11, x17
     add x12, x12, x17
     add x13, x13, x17
     add x14, x14, x17
     add x15, x15, x17
-    add x16, x16, x17
-    
-    lsl x17, x17, #3
-    fmov d29, x17
-    
+    add x16, x16, x17   // a7 - a_predecrement
+
+    lsl x17, x17, #3    // x17 代表:va_shift = -56, x17 = x17*8 = -56
+    fmov d29, x17       // 这一行没有问题
+
     ld1 {v0.8b}, [x9], #8
-    sshl d0, d0, d29
-    sxtl v0.8h, v0.8b
-    
+    sshl d0, d0, d29        // signed shift left;有符号左移
+    sxtl v0.8h, v0.8b       // int8x8_t -> int16x8_t
+
     ld1 {v1.8b}, [x10], #8
     sshl d1, d1, d29
     sxtl v1.8h, v1.8b
-    
+
     ld1 {v2.8b}, [x11], #8
     sshl d2, d2, d29
     sxtl v2.8h, v2.8b
-    
+
     ld1 {v3.8b}, [x12], #8
     sshl d3, d3, d29
     sxtl v3.8h, v3.8b
-    
+
     ld1 {v4.8b}, [x13], #8
     sshl d4, d4, d29
     sxtl v4.8h, v4.8b
-    
+
     ld1 {v5.8b}, [x14], #8
     sshl d5, d5, d29
     sxtl v5.8h, v5.8b
-    
+
     ld1 {v6.8b}, [x15], #8
     sshl d6, d6, d29
     sxtl v6.8h, v6.8b
-    
+
     ld1 {v7.8b}, [x16], #8
     sshl d7, d7, d29
     sxtl v7.8h, v7.8b
 
-    //c0
+    //COMPUTE_UNIT_LOW(0)
     ld1 {v27.8b}, [x5], #8
     sxtl v27.8h, v27.8b
     smlal  v8.4s, v27.4h, v0.h[0]
@@ -302,11 +355,11 @@ mov v23.16b, v9.16b
     smlal2 v21.4s, v27.8h, v6.h[0]
     smlal  v22.4s, v27.4h, v7.h[0]
     smlal2 v23.4s, v27.8h, v7.h[0]
-    
-    cmp x17, #-48
-    blo 3f
 
-    //c1
+    cmp x17, #-48
+    blt 3f
+
+    //COMPUTE_UNIT_LOW(1)
     ld1 {v28.8b}, [x5], #8
     sxtl v28.8h, v28.8b
     smlal  v8.4s, v28.4h, v0.h[1]
@@ -326,7 +379,7 @@ mov v23.16b, v9.16b
     smlal  v22.4s, v28.4h, v7.h[1]
     smlal2 v23.4s, v28.8h, v7.h[1]
 
-    bls 3f
+    ble 3f
 
     //c2
     ld1 {v27.8b}, [x5], #8
@@ -350,7 +403,7 @@ mov v23.16b, v9.16b
 
     cmp x17, #-32
     blo 3f
-    
+
     //c3
     ld1 {v28.8b}, [x5], #8
     sxtl v28.8h, v28.8b
@@ -417,7 +470,7 @@ mov v23.16b, v9.16b
     smlal2 v23.4s, v28.8h, v7.h[5]
 
     bls 3f
-    
+
     //c6
     ld1 {v27.8b}, [x5], #8
     sxtl v27.8h, v27.8b
@@ -438,20 +491,20 @@ mov v23.16b, v9.16b
     smlal  v22.4s, v27.4h, v7.h[6]
     smlal2 v23.4s, v27.8h, v7.h[6]
 
-3:  
-    subs x3, x3, #1
+3:
+    subs x3, x3, #1 // kernel size -1
     bne 0b
 
-    ld1 {v24.4s}, [x8], #16
+    ld1 {v24.4s}, [x8], #16  //v24: weight_scale
     movi v25.4s, #0
     cmp x1, #4
-    ble 4f
-    ld1 {v25.4s}, [x8]
+    ble 4f                  // nr <=4, jump 4f
+    ld1 {v25.4s}, [x8]      // v25: weight_scale
 
 4:
-    ldr x8, [sp, #8]    //relu
+    ldr x8, [sp, #8]    //lonh relu
     cmp x8, #0
-    bge 42f
+    bge 42f             // relu >=0 jump 42f
     movi v0.16b, #0
     smax v8.4s, v8.4s, v0.4s
     smax v9.4s, v9.4s, v0.4s
@@ -469,9 +522,9 @@ mov v23.16b, v9.16b
     smax v21.4s, v21.4s, v0.4s
     smax v22.4s, v22.4s, v0.4s
     smax v23.4s, v23.4s, v0.4s
- 
 
-42:
+
+42: //  vacc0x0123 = vcvtaq_s32_f32(vfacc0x0123);
     scvtf v8.4s, v8.4s
     scvtf v9.4s, v9.4s
     scvtf v10.4s, v10.4s
@@ -489,25 +542,25 @@ mov v23.16b, v9.16b
     scvtf v22.4s, v22.4s
     scvtf v23.4s, v23.4s
 
-    ldr x8, [sp, #16]   //add_input
-    fmul v8.4s, v8.4s, v24.4s    
-    fmul v10.4s, v10.4s, v24.4s    
-    fmul v12.4s, v12.4s, v24.4s    
-    fmul v14.4s, v14.4s, v24.4s    
-    fmul v16.4s, v16.4s, v24.4s    
-    fmul v18.4s, v18.4s, v24.4s    
-    fmul v20.4s, v20.4s, v24.4s    
-    fmul v22.4s, v22.4s, v24.4s    
-    fmul v9.4s, v9.4s, v25.4s    
-    fmul v11.4s, v11.4s, v25.4s    
-    fmul v13.4s, v13.4s, v25.4s    
-    fmul v15.4s, v15.4s, v25.4s    
-    fmul v17.4s, v17.4s, v25.4s    
-    fmul v19.4s, v19.4s, v25.4s    
-    fmul v21.4s, v21.4s, v25.4s    
-    fmul v23.4s, v23.4s, v25.4s    
+    ldr x8, [sp, #16]               // load add_input address
+    fmul v8.4s, v8.4s, v24.4s       // val = val * scale
+    fmul v10.4s, v10.4s, v24.4s
+    fmul v12.4s, v12.4s, v24.4s
+    fmul v14.4s, v14.4s, v24.4s
+    fmul v16.4s, v16.4s, v24.4s
+    fmul v18.4s, v18.4s, v24.4s
+    fmul v20.4s, v20.4s, v24.4s
+    fmul v22.4s, v22.4s, v24.4s
+    fmul v9.4s, v9.4s, v25.4s
+    fmul v11.4s, v11.4s, v25.4s
+    fmul v13.4s, v13.4s, v25.4s
+    fmul v15.4s, v15.4s, v25.4s
+    fmul v17.4s, v17.4s, v25.4s
+    fmul v19.4s, v19.4s, v25.4s
+    fmul v21.4s, v21.4s, v25.4s
+    fmul v23.4s, v23.4s, v25.4s
 
-    cbz x8, 44f
+    cbz x8, 44f // if x8 == 0, jump 44f, no add fuse
     add x9, x8, x7
     cmp x0, #2
     csel x9, x8, x9, lo
@@ -516,7 +569,7 @@ mov v23.16b, v9.16b
     add x11, x10, x7
     cmp x0, #4
     csel x11, x10, x11, lo
-    
+    // load add input to v0 ~ v7
     ld1 {v28.8b}, [x8]
     sxtl v28.8h, v28.8b
     sxtl v0.4s, v28.4h
@@ -549,7 +602,7 @@ mov v23.16b, v9.16b
     scvtf v5.4s, v5.4s
     scvtf v6.4s, v6.4s
     scvtf v7.4s, v7.4s
-    
+
     fmla v8.4s, v0.4s, v26.4s
     fmla v9.4s, v1.4s, v27.4s
     fmla v10.4s, v2.4s, v26.4s
@@ -560,7 +613,7 @@ mov v23.16b, v9.16b
     fmla v15.4s, v7.4s, v27.4s
 
 44:
-    cbz x8, 45f
+    cbz x8, 45f             // x8 == 0, jump 45f
     cmp x0, #4
     add  x12, x11, x7
     csel x12, x11, x12, ls
@@ -609,7 +662,7 @@ mov v23.16b, v9.16b
     fmla v23.4s, v7.4s, v27.4s
 
 45:
-    fcvtas v8.4s, v8.4s
+    fcvtas v8.4s, v8.4s         //    vacc0x0123 = vcvtaq_s32_f32(vfacc0x0123);
     fcvtas v9.4s, v9.4s
     fcvtas v10.4s, v10.4s
     fcvtas v11.4s, v11.4s
@@ -652,8 +705,8 @@ mov v23.16b, v9.16b
     sqxtn v20.8b, v20.8h
     sqxtn v22.8b, v22.8h
 
-    ldr x8, [sp, #8]
-    cmp x8, #0
+    ldr x8, [sp, #8]        // long relu
+    cmp x8, #0              // x8 <= 0, jump 5
     ble 5f
     movi v0.16b, #0
     smax v8.8b, v8.8b, v0.8b
@@ -666,10 +719,10 @@ mov v23.16b, v9.16b
     smax v22.8b, v22.8b, v0.8b
 
 5:
-    add x9, x6, x7
-    cmp x0, #2
-    csel x9, x6, x9, lo
-    
+    add x9, x6, x7          // x6: output  x7: channel_stride
+    cmp x0, #2              // x0 代表 mr: 8
+    csel x9, x6, x9, lo     // if (mr < 2) ? x9 = x6 : x9 = x6+x7
+
     add x10, x9, x7
     csel x10, x9, x10, ls
 
@@ -691,23 +744,23 @@ mov v23.16b, v9.16b
     cmp x0, #8
     csel x15, x14, x15, ne
 
-    cmp x1, #8
-    bne 6f
-    
-    st1 {v8.d}[0], [x6]   
-    st1 {v10.d}[0], [x9]   
-    st1 {v12.d}[0], [x10]   
-    st1 {v14.d}[0], [x11]   
-    st1 {v16.d}[0], [x12]   
-    st1 {v18.d}[0], [x13]   
-    st1 {v20.d}[0], [x14]   
-    st1 {v22.d}[0], [x15]  
-    b 9f
+    cmp x1, #8              // if (nr == 8) ?
+    bne 6f                  // not equal then jump f6
+
+    st1 {v8.d}[0], [x6]
+    st1 {v10.d}[0], [x9]
+    st1 {v12.d}[0], [x10]
+    st1 {v14.d}[0], [x11]
+    st1 {v16.d}[0], [x12]
+    st1 {v18.d}[0], [x13]
+    st1 {v20.d}[0], [x14]
+    st1 {v22.d}[0], [x15]
+    b 9f                    // jump return
 
 6:
-    cmp x1, #4
-    blo 7f
-    
+    cmp x1, #4              //
+    blo 7f                  // if (x1 < 4) then jump to 7f
+
     st1 {v8.s}[0], [x6], #4
     st1 {v10.s}[0], [x9], #4
     st1 {v12.s}[0], [x10], #4
@@ -729,7 +782,7 @@ mov v23.16b, v9.16b
 
 7:
     cmp x1, #2
-    blo 8f
+    blo 8f                   // if (x1 < 2) then jump to 8f
 
     st1 {v8.h}[0], [x6], #2
     st1 {v10.h}[0], [x9], #2
@@ -749,11 +802,11 @@ mov v23.16b, v9.16b
     ext v18.8b, v18.8b, v18.8b, #2
     ext v20.8b, v20.8b, v20.8b, #2
     ext v22.8b, v22.8b, v22.8b, #2
- 
+
 8:
     cmp x1, #1
-    blo 9f
-    
+    blo 9f                      // if (x1 < 1) then jump to 9f
+
     st1 {v8.b}[0], [x6]
     st1 {v10.b}[0], [x9]
     st1 {v12.b}[0], [x10]
@@ -764,9 +817,10 @@ mov v23.16b, v9.16b
     st1 {v22.b}[0], [x15]
 
 9:
-    sub sp, sp, #128
+    sub sp, sp, #160
     ld1 {v8.4s, v9.4s, v10.4s, v11.4s}, [sp], #64
     ld1 {v12.4s, v13.4s, v14.4s, v15.4s}, [sp], #64
+    ldp x19, x20, [sp], #32
     ret
 
 #endif

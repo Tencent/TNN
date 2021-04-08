@@ -107,8 +107,8 @@ void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_
     }
 }
 
-void IndirectConvInt8UnitN8Naive(long mr, long nr, long input_channel, long kernel_size, const int32_t* indirect,
-                             const void* weight, int8_t* output, long channel_stride, const float* scales, long relu,
+void IndirectConvInt8UnitN8Naive(int32_t mr, int32_t nr, int32_t input_channel, int32_t kernel_size, const int32_t* indirect,
+                             const void* weight, int8_t* output, int32_t channel_stride, const float* scales, long relu,
                              const int8_t* add_input, const float* add_scale, const int8_t* zero, const int8_t* real_input) {
     union {
         const void* as_void_ptr;
@@ -148,16 +148,17 @@ void IndirectConvInt8UnitN8Naive(long mr, long nr, long input_channel, long kern
     }
 }
 
-static void ComputeQ8ConvTile(const Q8ConvContext* context, long mr_block_start, long nr_block_start,
-                              long mr_block_size, long nr_block_size) {
-    const long ks             = context->ks;
-    const long kc             = context->kc;
-    const long kc_stride      = context->kc_stride;
-    const int32_t* indirect_a  = context->indirect_a;
+void ComputeQ8ConvTile(const Q8ConvContext* context, int32_t mr_block_start, int32_t nr_block_start,
+                       int32_t mr_block_size, int32_t nr_block_size) {
+    const int32_t ks          = context->ks;
+    const int32_t kc          = context->kc;
+    const int32_t kc_stride   = context->kc_stride;
+    const int32_t* indirect_a = context->indirect_a;
     const void* packed_w      = context->packed_w;
     int8_t* output            = context->c;
-    const long c_stride       = context->c_stride;
-
+    const int32_t c_stride    = context->c_stride;  // ROUND_UP(9, 4) -> 12
+    const void* weight_ptr =
+        (const void*)((intptr_t)packed_w + nr_block_start * (kc_stride * sizeof(int8_t) + sizeof(int32_t)));
 #ifndef TNN_USE_NEON
     IndirectConvInt8N8Func indirect_conv_int8_func = IndirectConvInt8UnitN8Naive;
 #elif defined(__aarch64__)
@@ -167,21 +168,21 @@ static void ComputeQ8ConvTile(const Q8ConvContext* context, long mr_block_start,
 #endif
 
     indirect_conv_int8_func(
-        mr_block_size, nr_block_size, kc, ks, indirect_a + mr_block_start * ks,
-        (const void*)((intptr_t)packed_w + nr_block_start * (kc_stride * sizeof(int8_t) + sizeof(int32_t))),
+        mr_block_size, nr_block_size, kc, ks, indirect_a + mr_block_start * ks, weight_ptr,
         output + mr_block_start * c_stride + nr_block_start,
         c_stride,  // ROUND(oc, 4)
         context->scales + nr_block_start, context->relu,
         context->add_input ? (context->add_input + mr_block_start * c_stride + nr_block_start) : nullptr,
-        context->add_scale ? (context->add_scale + nr_block_start) : nullptr,
-        context->zero, context->real_input);
+        context->add_scale ? (context->add_scale + nr_block_start) : nullptr, context->zero, context->real_input);
 }
 
-void ComputeQ8Conv(const Q8ConvContext* context, int32_t range_k, int32_t range_l, int32_t mr_block_size, int32_t nr_block_size) {
+void ComputeQ8Conv(const Q8ConvContext* context, int32_t range_k, int32_t range_l, int32_t mr_block_size,
+                   int32_t nr_block_size) {
     OMP_PARALLEL_FOR_DYNAMIC_
     for (int32_t k = 0; k < range_k; k += mr_block_size) {
         for (int32_t l = 0; l < range_l; l += nr_block_size) {
-            ComputeQ8ConvTile(context, k, l, std::min(range_k - k, mr_block_size), std::min(range_l - l, nr_block_size));
+            ComputeQ8ConvTile(context, k, l, std::min(range_k - k, mr_block_size),
+                              std::min(range_l - l, nr_block_size));
         }
     }
 }

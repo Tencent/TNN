@@ -17,8 +17,8 @@
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
-void IndirectConvInt8Unit4x8(long mr, long nr, long input_channel, long kernel_size, const int32_t * indirect,
-                             const void* weight, int8_t* output, long channel_stride, const float* scales, long relu,
+void IndirectConvInt8Unit4x8(int32_t mr, int32_t nr, int32_t input_channel, int32_t kernel_size, const int32_t * indirect,
+                             const void* weight, int8_t* output, int32_t channel_stride, const float* scales, long relu,
                              const int8_t* add_input, const float* add_scale, const int8_t* zero, const int8_t* real_input);
 }
 
