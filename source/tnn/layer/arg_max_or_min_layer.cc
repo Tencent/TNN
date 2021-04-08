@@ -38,6 +38,8 @@ Status ArgMaxOrMinLayer::InferOutputShape(bool ignore_error) {
     
     if (!param->keep_dims) {
         output_dims.erase(output_dims.begin() + param->axis);
+    } else {
+        output_dims[param->axis] = 1;
     }
     
     output_blob->GetBlobDesc().dims = output_dims;
