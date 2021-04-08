@@ -64,7 +64,7 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
         }
         auto dims = output_blobs[0]->GetBlobDesc().dims;
         for (auto item : dims) {
-            if (item <= 0) {
+            if (item < 0) {
                 LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
                 return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
             }
