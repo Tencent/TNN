@@ -75,6 +75,17 @@ Status MetalDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
         auto buffer      = [device newBufferWithLength:size options:MTLResourceCPUCacheModeDefaultCache];
         *handle          = (void *)CFBridgingRetain(buffer);
         return TNN_OK;
+    } else if (mat_type == NC_INT32) {
+        BlobDesc desc;
+        desc.data_type   = DATA_TYPE_INT32;
+        desc.dims        = dims;
+        desc.device_type = DEVICE_METAL;
+        desc.data_format = DATA_FORMAT_NCHW;
+        auto size_info   = Calculate(desc);
+        int size         = GetBlobMemoryBytesSize(size_info);
+        auto buffer      = [device newBufferWithLength:size options:MTLResourceCPUCacheModeDefaultCache];
+        *handle          = (void *)CFBridgingRetain(buffer);
+        return TNN_OK;
     } else {
         LOGE("unsupport mat type: %d", mat_type);
         return Status(TNNERR_PARAM_ERR, "unsupport mat type");
