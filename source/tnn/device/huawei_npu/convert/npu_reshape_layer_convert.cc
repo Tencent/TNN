@@ -21,7 +21,7 @@ namespace TNN_NS {
 DECLARE_NPU_LAYER_WEIGHT(Reshape, LAYER_RESHAPE)
 
 static Status ConvertShapeFromTNNToTFLite(std::vector<int>& shape) {
-    if (shape.empty()){
+    if (shape.empty()) {
         LOGE("(Reshape) param->shape is empty\n");
         return Status(TNNERR_PARAM_ERR, "(Reshape) param->shape is empty");
     }
@@ -29,14 +29,14 @@ static Status ConvertShapeFromTNNToTFLite(std::vector<int>& shape) {
     if (shape.size() < 3) {
         return TNN_OK;
     } else if (shape.size() == 3) {
-        auto c = shape[1];
-        auto h = shape[2];
+        auto c   = shape[1];
+        auto h   = shape[2];
         shape[1] = h;
         shape[2] = c;
     } else if (shape.size() == 4) {
-        auto c = shape[1];
-        auto h = shape[2];
-        auto w = shape[3];
+        auto c   = shape[1];
+        auto h   = shape[2];
+        auto w   = shape[3];
         shape[1] = h;
         shape[2] = w;
         shape[3] = c;
@@ -79,7 +79,7 @@ static Status GetPermuteOrder(std::vector<int64_t>& order, int dims_size, bool t
 }
 
 Status NpuReshapeLayer::Convert() {
-    auto param = dynamic_cast<ReshapeLayerParam *>(param_);
+    auto param = dynamic_cast<ReshapeLayerParam*>(param_);
     CHECK_PARAM_NULL(param);
 
     auto shape = param->shape;
@@ -105,6 +105,12 @@ Status NpuReshapeLayer::Convert() {
         output->set_attr_num_axes(param->num_axes);
         ADD_OUTPUT_OP(output)
     } else {
+        if (input_ops_[0]->GetShape().size() != 4 || shape.size() != 4) {
+            LOGE("TFLite type Reshape (input/output dims != 4) is not support in HUAWEI_NPU\n");
+            return Status(TNNERR_MODEL_ERR,
+                          "TFLite type Reshape (input/output dims != 4) is not support in HUAWEI_NPU");
+        }
+
         std::vector<int64_t> order;
         // Tensorflow TFLite reshape(nhwc): 1
         // convert input form nchw to nhwc first
