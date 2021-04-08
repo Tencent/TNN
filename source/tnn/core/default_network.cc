@@ -89,6 +89,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
         if (params_md5.size() < 1) {
             return Status(TNNERR_PARAM_ERR, "model params md5 missing");
         }
+        context_->SetCachePath(net_config.cache_path);
         context_->SetCacheFilePath(GenerateCacheFileName(model_config, params_md5[0]));
     }
 
