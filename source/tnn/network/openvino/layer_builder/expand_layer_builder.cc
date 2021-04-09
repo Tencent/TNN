@@ -29,7 +29,7 @@
 #include "tnn/network/openvino/openvino_types.h"
 
 #include "tnn/network/openvino/custom_layer/custom_expand.h"
-#include <iostream>
+#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
 
@@ -44,21 +44,7 @@ Status ExpandOVLayerBuilder::Build() {
         return TNNERR_INIT_LAYER;
     }
 
-    auto input_node = GetInputNodes();
-
-    ngraph::OutputVector inputs;
-    for (auto item : input_node) {
-        inputs.push_back(item->output(0));
-    }
-    auto expandNode = std::make_shared<CustomExpandOp>(
-        inputs, base_layer_, GetInputBlobs(), GetOutputBlobs());
-
-    expandNode->validate_and_infer_types();
-    expandNode->set_friendly_name(paramlist->name);
-
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(expandNode);
-    SetOutputTensors(outputNodes);
+    ADD_CUSTOM_NODE(Expand, paramlist->name);
 
     return TNN_OK;
 }
