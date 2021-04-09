@@ -48,7 +48,7 @@ TEST_P(GeluLayerTest, GeluLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_OPENCL && dim_count > 4) {
+    if (DEVICE_OPENCL == dev) {
         GTEST_SKIP();
     }
 
