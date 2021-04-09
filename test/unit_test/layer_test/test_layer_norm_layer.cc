@@ -42,7 +42,7 @@ TEST_P(LayerNormLayerTest, LayerNormLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_OPENCL == dev) {
+    if (DEVICE_OPENCL == dev || DEVICE_METAL == dev) {
         GTEST_SKIP();
     }
 
