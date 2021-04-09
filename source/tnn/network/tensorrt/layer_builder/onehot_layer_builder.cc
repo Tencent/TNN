@@ -45,9 +45,10 @@ DimsExprs OneHotTRTPluginLayerBuilder::getOutputDimensions(int index, const nvin
     if(axis < 0) {
         axis += output.nbDims;
     } 
-    for (int i = param->axis; i < output.nbDims - 1; i++) {
+    for (int i = axis; i < output.nbDims - 1; i++) {
             output.d[i + 1] = output.d[i];
     }
+
     output.d[axis] = exprBuilder.constant(param->depth);
     return output;
 }
