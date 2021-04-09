@@ -302,6 +302,12 @@ Status NpuNetwork::ConvertLayers(NetResource *net_resource) {
     // loop net_structure
     cpu_count_ = 0;
     for (auto layer_info : net_structure_->layers) {
+        auto const_layers = net_resource->constant_layers;
+        if (const_layers.find(layer_info->name) != const_layers.end()) {
+            LOGI("layer(name: %s) is constant layer, skip convert\n", layer_info->name.c_str());
+            cpu_count_++;
+            continue;
+        }
         LOGI("convert layer (type: %d, name: %s)\n", layer_info->type, layer_info->name.c_str());
         LayerType type          = layer_info->type;
         NpuBaseLayer *cur_layer = CreateNpuBaseLayer(type);
@@ -640,6 +646,7 @@ Status NpuNetwork::Forward() {
 #endif
     hiai::AIStatus ret = client_->Process(context, input_tensor_, output_tensor_, 1000, istamp);
     if (ret != hiai::AI_SUCCESS) {
+        LOGE("NPU Forward Failed (ret = %d)\n", (int)ret);
         return Status(TNNERR_NPU_HIAI_API_ERROR, "Forward failed!");
     }
 #if TNN_PROFILE
@@ -666,7 +673,7 @@ Status NpuNetwork::Forward() {
             MatConvertParam param;
             cpu_blob_converter_map_[name]->ConvertFromMat(input_mat, param, nullptr);
         }
-        sub_network_->Forward();
+        return sub_network_->Forward();
     }
     return TNN_OK;
 }
