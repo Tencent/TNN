@@ -25,10 +25,11 @@ asm_function ASMConvInt8Unit8x8
 //x12 from stack(int8_t* zero) , sp+32
 //x13 from stack(int8_t* real_input), sp+40
 //保存堆栈信息，用于函数返回时，弹出堆栈
-sub sp, sp, #160
+sub sp, sp, #176
 st1 {v8.4s, v9.4s, v10.4s, v11.4s}, [sp], #64
 st1 {v12.4s, v13.4s, v14.4s, v15.4s}, [sp], #64
 stp x19, x20, [sp], #32
+str x21, [sp], #16
 
 ldr x8, [sp, #0]    //x8 scale float
 
@@ -50,57 +51,57 @@ mov v21.16b, v9.16b
 mov v22.16b, v8.16b
 mov v23.16b, v9.16b
 
-ldr x18, [sp, #32] // int8* zero
-ldr x19, [sp, #40] // int8* real_input
+ldr x19, [sp, #32] // int8* zero
+ldr x20, [sp, #40] // int8* real_input
 0:
     ldr w9,  [x4], #4   //a0 ,x4-> int32*
     cmp w9,  #-1
     sxtw x9, w9
-    add x20, x19, x9
-    csel x9, x18, x20, eq // x9 代表 a0
+    add x21, x20, x9
+    csel x9, x19, x21, eq // x9 代表 a0
 
     ldr w10, [x4], #4   //a1
     cmp w10,  #-1
     sxtw x10, w10
-    add x20, x19, x10
-    csel x10, x18, x20, eq
+    add x21, x20, x10
+    csel x10, x19, x21, eq
 
     ldr w11, [x4], #4   //a2
     cmp w11, #-1
     sxtw x11, w11
-    add x20, x19, x11
-    csel x11, x18, x20, eq
+    add x21, x20, x11
+    csel x11, x19, x21, eq
 
     ldr w12, [x4], #4   //a3
     cmp w12, #-1
     sxtw x12, w12
-    add x20, x19, x12
-    csel x12, x18, x20, eq
+    add x21, x20, x12
+    csel x12, x19, x21, eq
 
     ldr w13, [x4], #4   //a4
     cmp w13, #-1
     sxtw x13, w13
-    add x20, x19, x13
-    csel x13, x18, x20, eq
+    add x21, x20, x13
+    csel x13, x19, x21, eq
 
 
     ldr w14, [x4], #4   //a5
     cmp w14, #-1
     sxtw x14, w14
-    add x20, x19, x14
-    csel x14, x18, x20, eq
+    add x21, x20, x14
+    csel x14, x19, x21, eq
 
     ldr w15, [x4], #4   //a6
     cmp w15, #-1
     sxtw x15, w15
-    add x20, x19, x15
-    csel x15, x18, x20, eq
+    add x21, x20, x15
+    csel x15, x19, x21, eq
 
     ldr w16, [x4], #4   //a7
     cmp w16, #-1
     sxtw x16, w16
-    add x20, x19, x16
-    csel x16, x18, x20, eq
+    add x21, x20, x16
+    csel x16, x19, x21, eq
 
     subs x17, x2, #8    // x2: input channel
     blt 2f              // if x2 < 8, jump 2f
@@ -817,10 +818,11 @@ ldr x19, [sp, #40] // int8* real_input
     st1 {v22.b}[0], [x15]
 
 9:
-    sub sp, sp, #160
+    sub sp, sp, #176
     ld1 {v8.4s, v9.4s, v10.4s, v11.4s}, [sp], #64
     ld1 {v12.4s, v13.4s, v14.4s, v15.4s}, [sp], #64
     ldp x19, x20, [sp], #32
+    ldr x21, [sp], #16
     ret
 
 #endif
