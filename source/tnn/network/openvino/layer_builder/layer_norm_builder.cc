@@ -29,6 +29,7 @@
 #include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
 #include "tnn/network/openvino/openvino_types.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
 
@@ -42,17 +43,7 @@ Status LayerNormOVLayerBuilder::Build() {
         return TNNERR_INIT_LAYER;
     }
 
-    auto input_nodes = GetInputNodes();
-
-    ngraph::OutputVector inputs;
-    for (auto item : input_nodes) {
-        inputs.push_back(item->output(0));
-    }
-    auto NormNode = std::make_shared<CustomLayerNormOp>(inputs, base_layer_, GetInputBlobs(), GetOutputBlobs());
-    NormNode->set_friendly_name(param_->name);
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(NormNode);
-    SetOutputTensors(outputNodes);
+    ADD_CUSTOM_NODE(LayerNorm, paramlist->name);
 
     return TNN_OK;
 }

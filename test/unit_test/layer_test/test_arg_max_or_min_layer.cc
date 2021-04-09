@@ -61,7 +61,7 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_OPENCL == dev && dim_count > 4) {
+    if (DEVICE_OPENCL == dev && (dim_count > 4 || keep_dims == 0)) {
         GTEST_SKIP();
     }
 
