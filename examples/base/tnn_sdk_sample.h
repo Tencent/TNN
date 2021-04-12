@@ -30,6 +30,7 @@
     #define TNN_SDK_ENABLE_BENCHMARK 0
 #else
     #define TNN_SDK_ENABLE_BENCHMARK 1
+    #include <sys/time.h>
 #endif
 
 #define TNN_SDK_USE_NCNN_MODEL 0
