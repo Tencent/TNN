@@ -29,7 +29,7 @@
 #include "tnn/network/openvino/openvino_types.h"
 
 #include "tnn/network/openvino/custom_layer/custom_pad_v2.h"
-#include <iostream>
+#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
 
@@ -51,8 +51,6 @@ Status PadV2OVLayerBuilder::Build() {
     if (paramlist->type != 0) {
         return Status(TNNERR_PARAM_ERR, "Error: padv2 layer param is not supported");
     }
-
-    auto input_node = GetInputNodes();
 
     // // set pad node
     // std::vector<int> beginPattern, endPattern;
@@ -88,20 +86,7 @@ Status PadV2OVLayerBuilder::Build() {
     // SetOutputTensors(outputNodes);
 
 
-    ngraph::OutputVector inputs;
-    for (auto item : input_node) {
-        inputs.push_back(item->output(0));
-    }
-    // inputs.push_back(input_node[0]);
-    auto padV2Node = std::make_shared<CustomPadV2Op>(
-        inputs, base_layer_, GetInputBlobs(), GetOutputBlobs());
-
-    padV2Node->validate_and_infer_types();
-    padV2Node->set_friendly_name(paramlist->name);
-
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(padV2Node);
-    SetOutputTensors(outputNodes);
+    ADD_CUSTOM_NODE(PadV2, paramlist->name);
 
     return TNN_OK;
 }

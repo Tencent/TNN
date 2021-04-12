@@ -1,3 +1,9 @@
+if(DEBUG)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+endif()
+
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/opencl)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/opencl/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/stb)

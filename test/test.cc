@@ -446,6 +446,14 @@ namespace test {
         }
     }
 
+    static bool IsImageMat(MatType mat_type) {
+        if (mat_type == N8UC3 || mat_type == N8UC4 || mat_type == NGRAY ||
+            mat_type == NNV12 || mat_type == NNV21) {
+                return true;
+        }
+        return false;
+    }
+
     std::map<std::string, MatConvertParam> CreateConvertParamMap(MatMap& mat_map, bool is_input) {
         std::map<std::string, MatConvertParam> param_map;
         for(auto iter : mat_map) {
@@ -458,7 +466,7 @@ namespace test {
             if(is_input && !FLAGS_sc.empty()) {
                 SetScaleOrBias(param.scale, FLAGS_sc);
             } else {
-                if(mat_type != NCHW_FLOAT) {
+                if(IsImageMat(mat_type)) {
                     std::fill(param.scale.begin(), param.scale.end(), 1.0f / 255.0f);
                 } else if(dims[1] > 4) {
                     param.scale = std::vector<float>(dims[1], 1);
@@ -469,7 +477,7 @@ namespace test {
             if(is_input && !FLAGS_bi.empty()) {
                 SetScaleOrBias(param.bias, FLAGS_bi);
             } else {
-                if(mat_type != NCHW_FLOAT) {
+                if(IsImageMat(mat_type)) {
                     std::fill(param.bias.begin(), param.bias.end(), 0);
                 } else if(dims[1] > 4) {
                     param.bias  = std::vector<float>(dims[1], 0);

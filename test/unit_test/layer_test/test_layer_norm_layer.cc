@@ -42,6 +42,10 @@ TEST_P(LayerNormLayerTest, LayerNormLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_OPENCL == dev || DEVICE_METAL == dev) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<LayerNormLayerParam> param(new LayerNormLayerParam());
     param->name = "LayerNorm";
