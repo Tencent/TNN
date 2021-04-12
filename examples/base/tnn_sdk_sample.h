@@ -210,6 +210,7 @@ public:
     void setCheckNpuSwitch(bool option);
     
     virtual Status GetCommandQueue(void **command_queue);
+    virtual Status DumpBlob(const BlobMap& blob_map, std::string output_dir);
     Status Resize(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type);
     Status Crop(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, int start_x, int start_y);
     Status WarpAffine(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type, TNNBorderType border_type, float trans_mat[2][3]);
