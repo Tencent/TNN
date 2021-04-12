@@ -189,7 +189,7 @@ std::vector<DataFormat> OpenCLPermuteLayerAcc::SupportDataFormat(DataType data_t
                                                                  BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (data_type == DATA_TYPE_INT32) {
-        support_list.push_back(DATA_FORMAT_NCHW);
+        support_list.push_back(DATA_FORMAT_NHC4W4);
     } else if (dims_size >= 2 && dims_size <= 6) { // only support up to 6 dims
         support_list.push_back(DATA_FORMAT_NHC4W4);
     }

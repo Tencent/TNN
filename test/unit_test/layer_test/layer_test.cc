@@ -398,12 +398,21 @@ int LayerTest::CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queu
     }
 
     if (cmp_result != 0) {
-        LOGE("cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(cpu_mat.GetData())[0],
-             static_cast<float*>(cpu_mat.GetData())[1], static_cast<float*>(cpu_mat.GetData())[2],
-             static_cast<float*>(cpu_mat.GetData())[3]);
-        LOGE("dev_cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(dev_cpu_mat.GetData())[0],
-             static_cast<float*>(dev_cpu_mat.GetData())[1], static_cast<float*>(dev_cpu_mat.GetData())[2],
-             static_cast<float*>(dev_cpu_mat.GetData())[3]);
+        if (blob_desc_device.data_type == DATA_TYPE_INT32) {
+            LOGE("cpu_mat.GetData(): %d %d %d %d\n", static_cast<int*>(cpu_mat.GetData())[0],
+                static_cast<int*>(cpu_mat.GetData())[1], static_cast<int*>(cpu_mat.GetData())[2],
+                static_cast<int*>(cpu_mat.GetData())[3]);
+            LOGE("dev_cpu_mat.GetData(): %d %d %d %d\n", static_cast<int*>(dev_cpu_mat.GetData())[0],
+                static_cast<int*>(dev_cpu_mat.GetData())[1], static_cast<int*>(dev_cpu_mat.GetData())[2],
+                static_cast<int*>(dev_cpu_mat.GetData())[3]);
+        } else {
+            LOGE("cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(cpu_mat.GetData())[0],
+                static_cast<float*>(cpu_mat.GetData())[1], static_cast<float*>(cpu_mat.GetData())[2],
+                static_cast<float*>(cpu_mat.GetData())[3]);
+            LOGE("dev_cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(dev_cpu_mat.GetData())[0],
+                static_cast<float*>(dev_cpu_mat.GetData())[1], static_cast<float*>(dev_cpu_mat.GetData())[2],
+                static_cast<float*>(dev_cpu_mat.GetData())[3]);
+        }
     }
 
     return cmp_result;

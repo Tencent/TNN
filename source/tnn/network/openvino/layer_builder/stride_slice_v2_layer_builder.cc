@@ -29,7 +29,7 @@
 #include "tnn/network/openvino/openvino_types.h"
 
 #include "tnn/network/openvino/custom_layer/custom_stride_slice_v2.h"
-#include <iostream>
+#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
 
@@ -43,7 +43,6 @@ Status StrideSliceV2OVLayerBuilder::Build() {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
-    auto input_node = GetInputNodes();
 
     // // Todo : build error, zero dims is not allowed???
     // ngraph::Shape strideSliceShape;
@@ -94,23 +93,8 @@ Status StrideSliceV2OVLayerBuilder::Build() {
 
     // auto input_dims = GetInputBlobs()[0]->GetBlobDesc().dims;
     // auto output_dims = GetOutputBlobs()[0]->GetBlobDesc().dims;
-    
-    
 
-    ngraph::OutputVector inputs;
-    for (auto item : input_node) {
-        inputs.push_back(item->output(0));
-    }
-    // inputs.push_back(input_node[0]);
-    auto strideSliceV2Node = std::make_shared<CustomStrideSliceV2Op>(
-        inputs, base_layer_, GetInputBlobs(), GetOutputBlobs());
-
-    strideSliceV2Node->validate_and_infer_types();
-    strideSliceV2Node->set_friendly_name(paramlist->name);
-
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(strideSliceV2Node);
-    SetOutputTensors(outputNodes);
+    ADD_CUSTOM_NODE(StrideSliceV2, paramlist->name);
 
     return TNN_OK;
 }

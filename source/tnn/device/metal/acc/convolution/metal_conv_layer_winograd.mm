@@ -42,7 +42,8 @@ bool MetalConvLayerWinograd::isPrefered(ConvLayerParam *param, const std::vector
     auto ih = inputs[0]->GetBlobDesc().dims[2];
     auto ic = ROUND_UP(inputs[0]->GetBlobDesc().dims[1], 4);
     auto oc = ROUND_UP(outputs[0]->GetBlobDesc().dims[1], 4);
-    return ic * oc * ih / iw >= 2048;
+    // skip layers with large chennels due to large numerical errors
+    return (ic * oc * ih / iw >= 2048) && (ic * oc < 512 * 4096);
 }
 
 MetalConvLayerWinograd::~MetalConvLayerWinograd() {}

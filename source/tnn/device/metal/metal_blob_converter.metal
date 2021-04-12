@@ -142,8 +142,8 @@ static inline void data_converter_nc4hw4_2_nchw_v2(device DstType *dst,
     float4 scale_c = float4(Zero4);
     float4 bias_c  = float4(Zero4);
     if (DoScale) {
-        float4 scale_c = float4(scale[channel_out], 0, 0, 0);
-        float4 bias_c  = float4(bias[channel_out], 0, 0, 0);
+        scale_c = float4(scale[channel_out], 0, 0, 0);
+        bias_c  = float4(bias[channel_out], 0, 0, 0);
         if (channel_out + 1 < params.channel) {
             scale_c.y = scale[channel_out + 1];
             bias_c.y = bias[channel_out + 1];

@@ -330,9 +330,18 @@ Status ModelChecker::RunModelCheckerOutput() {
             LOGI("the output dims of cpu and device are not same! (blob name: %s)\n", blob_name.c_str());
         }
 
-        int batch = cpu_blob_dims[0];
-        int bytesize_perbatch =
+        int batch = 0;
+        int bytesize_perbatch = 0;
+        if (cpu_blob_dims.size() == 4) {
+            batch = cpu_blob_dims[0];
+            bytesize_perbatch =
             DimsVectorUtils::Count(cpu_blob_dims, 1) * GetMatElementSize(output_ref_mat_map_[blob_name].get());
+        } else {
+            batch = 1;
+            bytesize_perbatch =
+            DimsVectorUtils::Count(cpu_blob_dims) * GetMatElementSize(output_ref_mat_map_[blob_name].get());
+        }
+
         printf("\n---- blob (name:%s  data_type:%d) ----\n", blob_name.c_str(), data_type);
         auto compare_dims = cpu_blob_dims;
         compare_dims[0]   = 1;

@@ -65,7 +65,7 @@ Status OpenCLDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) 
 Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
     OpenCLRuntime* opencl_runtime = OpenCLRuntime::GetInstance();
 
-    if (DATA_TYPE_HALF != desc.data_type && DATA_TYPE_FLOAT != desc.data_type) {
+    if (DATA_TYPE_HALF != desc.data_type && DATA_TYPE_FLOAT != desc.data_type && DATA_TYPE_INT32 != desc.data_type) {
         LOGE("opencl allocator not support this data type: %d\n", desc.data_type);
         return Status(TNNERR_PARAM_ERR, "opencl not support this data type");
     }
@@ -77,6 +77,9 @@ Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
 
         if (DATA_TYPE_HALF == desc.data_type && opencl_runtime->GetPrecision() != PRECISION_HIGH) {
             data_type = CL_HALF_FLOAT;
+        }
+        if (DATA_TYPE_INT32 == desc.data_type) {
+            data_type = CL_SIGNED_INT32;
         }
         int w = desc.dims[0];
         int h = desc.dims[1];
@@ -97,6 +100,9 @@ Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
 
         if (DATA_TYPE_HALF == desc.data_type && opencl_runtime->GetPrecision() != PRECISION_HIGH) {
             type_size = 2;
+        }
+        if (DATA_TYPE_INT32 == desc.data_type) {
+            type_size = sizeof(int);
         }
         cl_int error;
         *handle = new cl::Buffer(*opencl_runtime->Context(), mem_flag, (cl::size_type)(type_size * desc.dims[0]),

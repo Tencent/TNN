@@ -59,13 +59,22 @@ Status OpenCLHardSwishLayerAcc::Init(Context *context, LayerParam *param, LayerR
     // create kernel
     std::set<std::string> build_options;
     std::string compute;
+    std::string alpha_str = std::to_string(hs_param->alpha);
+    if (alpha_str.find('.') != std::string::npos && alpha_str.find('f') == std::string::npos) {
+        alpha_str += "f";
+    }
+    std::string beta_str = std::to_string(hs_param->beta);
+    if (beta_str.find('.') != std::string::npos && beta_str.find('f') == std::string::npos) {
+        beta_str += "f";
+    }
+
     if (broadcast_param_.input0_broadcast_type == BroadcastTypeNormal) {
         std::ostringstream oss;
-        oss << "in0*clamp(in1*(FLOAT)(" << hs_param->alpha << "f)+(FLOAT)(" << hs_param->beta << "f),(FLOAT)0.0f,(FLOAT)1.0f)";
+        oss << "in0*clamp(in1*(FLOAT)(" << alpha_str << ")+(FLOAT)(" << beta_str << "),(FLOAT)0.0f,(FLOAT)1.0f)";
         compute = oss.str();
     } else {
         std::ostringstream oss;
-        oss << "in1*clamp(in0*(FLOAT)(" << hs_param->alpha << "f)+(FLOAT)(" << hs_param->beta << "f),(FLOAT)0.0f,(FLOAT)1.0f)";
+        oss << "in1*clamp(in0*(FLOAT)(" << alpha_str << ")+(FLOAT)(" << beta_str << "),(FLOAT)0.0f,(FLOAT)1.0f)";
         compute = oss.str();
     }
     build_options.emplace(" -DOPERATOR=" + compute);
