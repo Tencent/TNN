@@ -166,6 +166,8 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
 
 JNIEXPORT JNICALL jboolean TNN_OCR_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath) {
 #if HAS_OPENCV
+    // ocr detector relys on the support of Reshape which is not supported on NPU network for now
+    return false;
     std::shared_ptr<TNN_NS::OCRDriver> tmpOCRDriver = std::make_shared<TNN_NS::OCRDriver>();
     std::shared_ptr<TNN_NS::OCRTextboxDetector> tmpOCRTextboxDetector = std::make_shared<TNN_NS::OCRTextboxDetector>();
     std::shared_ptr<TNN_NS::OCRAnglePredictor> tmpOCRAnglePredictor = std::make_shared<TNN_NS::OCRAnglePredictor>();

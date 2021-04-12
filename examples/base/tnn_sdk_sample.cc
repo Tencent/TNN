@@ -22,7 +22,7 @@
 #include "TargetConditionals.h"
 #endif
 
-#define ENABLE_DUMP_BLOB_DATA 1
+#define ENABLE_DUMP_BLOB_DATA 0
 #if ENABLE_DUMP_BLOB_DATA
 static int blob_id = 0;
 #endif
