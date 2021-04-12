@@ -63,6 +63,9 @@ Status CudaBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param
         prepareParamPtr(param, image.GetMatType(), stream);
         if (image.GetMatType() == NCHW_FLOAT) {
             ScaleBias(blob_data, (float*)image.GetData(), stream, scale_ptr_, bias_ptr_, dims[0], dims[1], hw);
+        } else if (image.GetMatType() == NC_INT32 && desc.data_type == DATA_TYPE_INT32) {
+            cudaMemcpyAsync(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * sizeof(int32_t),
+                cudaMemcpyDeviceToDevice, stream);
         } else if (image.GetMatType() == N8UC4) {
             BlobToBGR(dims[0], chw, hw, blob_data, (unsigned char*)image.GetData(), stream, 4, scale_ptr_, bias_ptr_,
                 param.reverse_channel);
