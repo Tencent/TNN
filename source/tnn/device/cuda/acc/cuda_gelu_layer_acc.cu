@@ -22,7 +22,7 @@ DECLARE_CUDA_ACC(Gelu, LAYER_GELU);
 __global__ void gelu_kernel(const int n, const float *in, float *out) {
     CUDA_KERNEL_LOOP(index, n) {
         const auto x   = in[index];
-        const auto val = tanh((x + x*x*x*0.0447149984538f) * 0.7978845834732056f);
+        const auto val = erf(x * 0.707106793288165f);
         out[index] = 0.5f * x * (val + 1.0f);
     }
 }
@@ -37,7 +37,6 @@ Status CudaGeluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::v
 }
 
 Status CudaGeluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto params = dynamic_cast<EluLayerParam *>(param_);
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
     int count = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);

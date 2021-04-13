@@ -263,6 +263,13 @@ struct TNNVector {
         }
         return dst;
     }
+    static TNNVector<T, len> erf(const TNNVector<T, len>& v) {
+        TNNVector<T, len> dst;
+        for (int i = 0; i < len; ++i) {
+            dst.value[i] = std::erff(v.value[i]);
+        }
+        return dst;
+    }
 
     static TNNVector<T, len> tan(const TNNVector<T, len>& v) {
         TNNVector<T, len> dst;
