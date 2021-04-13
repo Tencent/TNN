@@ -45,9 +45,10 @@ yum install  python3 python3-devel
 onnx=1.6.0  
 onnxruntime>=1.1.0   
 numpy>=1.17.0  
-onnx-simplifier>=0.2.4  
+onnx-simplifier>=0.2.4 
+requests
 ```shell script
-pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier
+pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier requests
 ```
 
 - cmake （version >= 3.0）

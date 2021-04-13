@@ -29,8 +29,8 @@ Status CpuGeluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
 }
 
 Status CpuGeluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    //GELU(x) = 0.5f * x * (erf((x)/(1.4142135381698608f))+1.0f)
-    //GELU(x) = 0.5f * x * (tanh((x+x*x*x*0.0447149984538f)*0.7978845834732056f)+1.0f)
+    //GELU(x) = 0.5f * x * (erf(x*0.707106793288165f) + 1.0f); use erf in math.h or see the func in cpu_erf_layer_acc.cc
+    //GELU(x) = 0.5f * x * (tanh((x+x*x*x*0.0447149984538f)*0.7978845834732056f)+1.0f), the approximation has big error if input is -2.281006575
     
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
@@ -41,7 +41,7 @@ Status CpuGeluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
         for (int index = 0; index < count; ++index) {
             auto x = input_data[index];
-            output_data[index] = 0.5f * x * (tanh((x+x*x*x*0.0447149984538f)*0.7978845834732056f)+1.0f);
+            output_data[index] = 0.5f * x * (erf(x*0.707106793288165f) + 1.0f);
         }
     } else {
         LOGE("CpuGeluLayerAcc dont support data type: %d", data_type);
