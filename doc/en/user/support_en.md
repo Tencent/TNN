@@ -19,42 +19,42 @@ TNN currently support main-stream CNN, LSTM and BERT networks：
 | model name                | onnx2tnn | Naive | armv7 | armv8 | opencl | metal | Huawei_Npu | CUDA | x86 | OpenVINO |
 |---------------------------|----------|-----|-------|-------|--------|-------|-----|------|------|------|
 | AlexNet                   | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| DenseNet(121)             | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| FCN                       | Yes      | yes |       |       |        | yes   |  -  | yes  | yes  | yes  |
+| DenseNet(121)             | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
+| FCN                       | Yes      | yes |       |       | yes    | yes   |  -  | yes  | yes  | yes  |
 | GoogleNet-v1              | yes      | yes |       |       |        |       |     |      | yes  | yes  |
 | GoogleNet-v2              | yes      | yes |       |       |        |       |     |      | yes  | yes  |
 | GoogleNet-v3(inception)   | yes      | yes |       |       |        |       |     |      | yes  | yes  |
 | MnasNet                   | yes      | yes |       |       |        |       |     |      | yes  | yes  |
 | MobileNet-v1-ssd(caffe)   | yes      | yes | -     | -     | -      | -     |  -  |  -   | yes  | yes  |
-| MobileNet-v1-ssd(pytorch) | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| MobileNet-v2-SSDLite      | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v1-ssd(pytorch) | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v2-SSDLite      | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
 | MobileNet-yolov3          | ?        | ?   |       |       |        |       |     |      |      |      |
-| MobileNet-v1              | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| MobileNet-v2              | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| MobileNet-v3(small,large) | yes      | yes |       |       |        | yes   | No  | yes  | yes  | yes  |
-| Mtcnn-v2                  | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| PSPNet                    | yes      | yes |       |       |        | yes   | No  | yes  | yes  | yes  |
-| ResNet50                  | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| SENet(154)                | yes      | yes |       |       |        | yes   |  -  | yes  | yes  | yes  |
-| ShuffleNet-v1             | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| ShuffleNet-v2             | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v1              | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v2              | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v3(small,large) | yes      | yes |       |       | yes    | yes   | No  | yes  | yes  | yes  |
+| Mtcnn-v2                  | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
+| PSPNet                    | yes      | yes |       |       | yes    | yes   | No  | yes  | yes  | yes  |
+| ResNet50                  | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
+| SENet(154)                | yes      | yes |       |       | yes    | yes   |  -  | yes  | yes  | yes  |
+| ShuffleNet-v1             | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
+| ShuffleNet-v2             | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
 | SqueezeNet-ssd            | No       | -   | -     | -     | -      | -     |  -  |  -   | -    | -    |
-| SqueezeNet-v1             | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| UNet                      | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| Vgg-ssd                   | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
+| SqueezeNet-v1             | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
+| UNet                      | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
+| Vgg-ssd                   | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
 | Vgg16                     | yes      | yes |       |       |        | yes   | yes |      |      |      |
-| Yolo-v3-tiny              | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| Yolo-v2                   | ?        | ?   |       |       |        | yes   | yes |      |      |      |
-| Yolo-v2-tiny              | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| Yolo-v3                   | yes      | yes |       |       |        | yes   | -   | yes  | yes  | yes  |
-| Yolo-v5s                  | yes      | yes |       |       |        | yes   | yes |      | yes  | yes  |
+| Yolo-v3-tiny              | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
+| Yolo-v2                   | ?        | ?   |       |       | yes    | yes   | yes |      |      |      |
+| Yolo-v2-tiny              | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
+| Yolo-v3                   | yes      | yes |       |       | yes    | yes   | -   | yes  | yes  | yes  |
+| Yolo-v5s                  | yes      | yes |       |       | yes    | yes   | yes |      | yes  | yes  |
 | C3D                       | yes      | yes | -     | -     | -      | -     | -   |      | -    | -    |
 | T3D                       | yes      | yes | -     | -     | -      | -     | -   |      | -    | -    |
 | BERT-Base                 | yes      | yes | -     | -     | -      | -     | -   |      |      |      |
 | BERT-Squad                | yes      | yes | -     | -     | -      | -     | -   |      |      |      |
 | MobileBERT                | yes      | yes | -     | -     | -      | -     | -   | yes  |      |      |
 | DistilBERT                | yes      | yes | -     | -     | -      | -     | -   |      |      |      |
-| Crnn-LSTM                 | yes      | yes |       |       |        | yes   | -   | yes  | yes  | yes  |
+| Crnn-LSTM                 | yes      | yes |       |       | yes    | yes   | -   | yes  | yes  | yes  |
 
 
 1. Regarding the upsample calculation of upsample, when the parameter mode == "bilinear" or mode == "linear", the onnx model exported by pytorch has some issues, and the calculation results of pytorch and onnx are not aligned. This is a bug of onnx itself, which deserves special attention. But don't worry about this problem. After converting the converted ONNX model to TNN, we ensure that the calculation results of TNN and Pytorch are aligned. In our testing, FCN and PSPNet have such problems.
@@ -67,14 +67,14 @@ TNN currently support main-stream CNN, LSTM and BERT networks：
 | Abs                      | Abs                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Acos                     | Acos                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Add                      | Add                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| ArgMaxOrMin(ArgMax)      | ArgMax                                         | yes | yes   | yes   |        | yes   |      | yes   | yes   | yes   |
-| ArgMaxOrMin(ArgMin)      | ArgMin                                         | yes | yes   | yes   |        | yes   |      | yes   | yes   | yes   |
+| ArgMaxOrMin(ArgMax)      | ArgMax                                         | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
+| ArgMaxOrMin(ArgMin)      | ArgMin                                         | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
 | Asin                     | Asin                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Atan                     | Atan                                           | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
 | BatchNormCxx             | BatchNormalization                             | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | BitShift                 | BitShift                                       | yes |       |       |        |       |      | yes   |       |       |
-| Cast                     | Cast                                           | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
-| Ceil                     | Ceil                                           | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| Cast                     | Cast                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
+| Ceil                     | Ceil                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Clip                     | Clip                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Concat                   | Concat                                         | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Const                    | Constant                                       |     |       |       |        |       |      |       |       |       |
@@ -101,10 +101,10 @@ TNN currently support main-stream CNN, LSTM and BERT networks：
 | Erf                      | Erf                                            | yes |       |       |        |       |      | yes   | yes   | yes   |
 | Exp                      | Exp                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Expand                   | Expand                                         | yes | yes   | yes   |        |       |      | yes   | yes   | yes   |
-| Flatten                  | Flatten                                        | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| Flatten                  | Flatten                                        | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Flatten                  | Shape+Gather+Constant+Unsqueeze+Concat+Reshape |     |       |       |        |       |      |       |       |       |
 | Floor                    | Floor                                          | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| Gather                   | Gather                                         | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| Gather                   | Gather                                         | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | GatherND                 | GatherND                                       | yes |       |       |        |       |      | yes   |       |       |
 | GridSample               | GridSample(PyTorch)                            | yes |       |       |        |       |      | yes   |       |       |
 | GroupNorm                | GroupNorm(PyTorch)                             | yes |       |       |        |       |      | yes   |       |       |
@@ -115,11 +115,11 @@ TNN currently support main-stream CNN, LSTM and BERT networks：
 | InnerProduct             | Gemm                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | InstBatchNormCxx         | InstanceNormalization                          | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Inverse                  | Inverse(PyTorch)                               | yes |       |       |        |       |      | yes   |       |       |
-| LSTMONNX                 | LSTM                                           | yes | yes   | yes   |        | yes   |      | yes   | yes   | yes   |
+| LSTMONNX                 | LSTM                                           | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
 | LRN                      | LRN                                            | yes |       |       |        | yes   | yes  | yes   | yes   | yes   |
 | Log                      | Log                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | LogSigmoid               | Sigmoid + Log                                  | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
-| MatMul                   | Matmul                                         | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| MatMul                   | Matmul                                         | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Max                      | Max                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Min                      | Min                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Mul                      | Mul                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
@@ -132,7 +132,7 @@ TNN currently support main-stream CNN, LSTM and BERT networks：
 | PRelu                    | LeakyRelu / PRelu                              | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Pad                      | Pad                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Permute                  | Transpose                                      | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| PixelShuffle             | PixelShuffle(PyTorch), Depth2Space(ONNX)       | yes | yes   | yes   |        | yes   |      | yes   | yes   |       |
+| PixelShuffle             | PixelShuffle(PyTorch), Depth2Space(ONNX)       | yes | yes   | yes   | yes    | yes   |      | yes   | yes   |       |
 | Pooling (Avg)            | AveragePool                                    | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Pooling (GlobalAverage)  | GlobalAveragePool                              | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Pooling (GlobalMax)      | GlobalMaxPool                                  | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
@@ -145,16 +145,16 @@ TNN currently support main-stream CNN, LSTM and BERT networks：
 | PriorBox                 | PriorBox(custom operator)                      | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Range                    | Range                                          | yes |       |       |        |       |      |       |       |       |
 | Reciprocal               | Reciprocal                                     | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| ReduceL1                 | ReduceL1                                       | yes | yes   | yes   |        | yes   |      |       | yes   | yes   |
-| ReduceL2                 | ReduceL2                                       | yes | yes   | yes   |        | yes   |      | yes   | yes   | yes   |
-| ReduceLogSum             | ReduceLogSum                                   | yes | yes   | yes   |        | yes   |      |       | yes   | yes   |
-| ReduceLogSumExp          | ReduceLogSumExp                                | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| ReduceL1                 | ReduceL1                                       | yes | yes   | yes   | yes    | yes   |      |       | yes   | yes   |
+| ReduceL2                 | ReduceL2                                       | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
+| ReduceLogSum             | ReduceLogSum                                   | yes | yes   | yes   | yes    | yes   |      |       | yes   | yes   |
+| ReduceLogSumExp          | ReduceLogSumExp                                | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | ReduceMax                | ReduceMax                                      | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | ReduceMean               | ReduceMean                                     | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| ReduceMin                | ReduceMin                                      | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
-| ReduceProd               | ReduceProd                                     | yes | yes   | yes   |        | yes   | yes  |       | yes   | yes   |
+| ReduceMin                | ReduceMin                                      | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
+| ReduceProd               | ReduceProd                                     | yes | yes   | yes   | yes    | yes   | yes  |       | yes   | yes   |
 | ReduceSum                | ReduceSum                                      | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| ReduceSumSquare          | ReduceSumSquare                                | yes | yes   | yes   |        | yes   |      |       | yes   | yes   |
+| ReduceSumSquare          | ReduceSumSquare                                | yes | yes   | yes   | yes    | yes   |      |       | yes   | yes   |
 | Relu                     | Relu                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Relu6                    | Clip                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Reorg                    | DepthToSpace                                   | yes | yes   | yes   | yes    | yes   |      |       | yes   | yes   |
@@ -179,13 +179,13 @@ TNN currently support main-stream CNN, LSTM and BERT networks：
 | Split                    | Split                                          |     | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Sqrt                     | Sqrt                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | SquaredDifference        | SquaredDifference(TFLite)                      | yes |       |       |        |       |      |       |       |       |
-| Squeeze                  | Squeeze                                        |     | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| Squeeze                  | Squeeze                                        |     | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Sub                      | Sub                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Sum                      |                                                |     |       |       |        |       |      |       |       |       |
 | Tan                      | Tan                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Tanh                     | Tanh                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Tile                     | Tile                                           | yes |       |       |        |       |      | yes   |       |       |
-| Unsqueeze                | Unsqueeze                                      | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| Unsqueeze                | Unsqueeze                                      | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Upsample                 | Upsample / Resize                              | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Where                    | Where                                          | yes |       |       |        |       |      |       |       |       |
 
