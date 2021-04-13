@@ -48,7 +48,7 @@ TEST_P(GeluLayerTest, GeluLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_OPENCL == dev || DEVICE_METAL == dev) {
+    if (DEVICE_OPENCL == dev || DEVICE_METAL == dev || DEVICE_ARM == dev) {
         GTEST_SKIP();
     }
 

@@ -62,8 +62,8 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
         option->library_path="";
         option->proto_content = protoContent;
         option->model_content = modelContent;
-        option->scale_down_ratio = 1.0f;
-        option->padding = 50;
+        option->scale_down_ratio = 0.75f;
+        option->padding = 10;
         if (gComputeUnitType == 1) {
             option->compute_units = TNN_NS::TNNComputeUnitsGPU;
             status = gOCRTextboxDetector->Init(option);
