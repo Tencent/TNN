@@ -45,8 +45,9 @@ onnxruntime>=1.1.0
 numpy>=1.17.0  
 onnx-simplifier>=0.2.4  
 protobuf>=3.4.0
+requests
 ```shell script
-pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier protobuf
+pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier protobuf requests
 ```
 
 - cmake （version >= 3.0）
