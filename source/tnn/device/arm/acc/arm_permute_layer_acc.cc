@@ -14,11 +14,98 @@
 
 #include "tnn/device/arm/acc/arm_nchw_layer_acc.h"
 #include "tnn/utils/dims_utils.h"
-#include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
 
 DECLARE_ARM_NCHW_ACC(Permute, LAYER_PERMUTE);
+
+template <typename T>
+void ArmPermute(const int count, DimsVector dims, T *bottom_data, const std::vector<int> &permute_order,
+                const std::vector<int> &old_steps, const std::vector<int> &new_steps, const int num_axes,
+                T *top_data) {
+    if (num_axes == 5) {
+        for (int n = 0; n < dims[0]; ++n) {
+            int idx = n * new_steps[0];
+            int old_idx = n * old_steps[permute_order[0]];
+            for (int c = 0; c < dims[1]; ++c) {
+                int idx_c     = idx + c * new_steps[1];
+                int old_idx_c = old_idx + c * old_steps[permute_order[1]];
+                for (int h = 0; h < dims[2]; ++h) {
+                    int idx_h     = idx_c + h * new_steps[2];
+                    int old_idx_h = old_idx_c + h * old_steps[permute_order[2]];
+                    for (int w = 0; w < dims[3]; ++w) {
+                        int idx_w     = idx_h + w * new_steps[3];
+                        int old_idx_w = old_idx_h + w * old_steps[permute_order[3]];
+                        for (int x = 0; x < dims[4]; ++x) {
+                            int idx_x     = idx_w + x * new_steps[4];
+                            int old_idx_x = old_idx_w + x * old_steps[permute_order[4]];
+                            top_data[idx_x] = bottom_data[old_idx_x];
+                        }
+                    }
+                }
+            }
+        }
+    } else if (num_axes == 4) {
+        for (int n = 0; n < dims[0]; ++n) {
+            int idx = n * new_steps[0];
+            int old_idx = n * old_steps[permute_order[0]];
+            for (int c = 0; c < dims[1]; ++c) {
+                int idx_c     = idx + c * new_steps[1];
+                int old_idx_c = old_idx + c * old_steps[permute_order[1]];
+                for (int h = 0; h < dims[2]; ++h) {
+                    int idx_h     = idx_c + h * new_steps[2];
+                    int old_idx_h = old_idx_c + h * old_steps[permute_order[2]];
+                    for (int w = 0; w < dims[3]; ++w) {
+                        int idx_w     = idx_h + w * new_steps[3];
+                        int old_idx_w = old_idx_h + w * old_steps[permute_order[3]];
+                        top_data[idx_w] = bottom_data[old_idx_w];
+                    }
+                }
+            }
+        }
+    } else if (num_axes == 3) {
+        for (int n = 0; n < dims[0]; ++n) {
+            int idx = n * new_steps[0];
+            int old_idx = n * old_steps[permute_order[0]];
+            for (int c = 0; c < dims[1]; ++c) {
+                int idx_c     = idx + c * new_steps[1];
+                int old_idx_c = old_idx + c * old_steps[permute_order[1]];
+                for (int h = 0; h < dims[2]; ++h) {
+                    int idx_h     = idx_c + h * new_steps[2];
+                    int old_idx_h = old_idx_c + h * old_steps[permute_order[2]];
+                    top_data[idx_h] = bottom_data[old_idx_h];
+                }
+            }
+        }
+    } else if (num_axes == 2) {
+        for (int n = 0; n < dims[0]; ++n) {
+            int idx = n * new_steps[0];
+            int old_idx = n * old_steps[permute_order[0]];
+            for (int c = 0; c < dims[1]; ++c) {
+                int idx_c     = idx + c * new_steps[1];
+                int old_idx_c = old_idx + c * old_steps[permute_order[1]];
+                top_data[idx_c] = bottom_data[old_idx_c];
+            }
+        }
+    } else if (num_axes == 1) {
+        for (int n = 0; n < dims[0]; ++n) {
+            int idx = n * new_steps[0];
+            int old_idx = n * old_steps[permute_order[0]];
+            top_data[idx] = bottom_data[old_idx];
+        }
+    } else {
+        for (int i = 0; i < count; ++i) {
+            int old_idx = 0;
+            int idx     = i;
+            for (int j = num_axes-1; j >= 0; --j) {
+                int order = permute_order[j];
+                old_idx += (idx % dims[j]) * old_steps[order];
+                idx  /= dims[j];
+            }
+            top_data[i] = bottom_data[old_idx];
+        }
+    }
+};
 
 Status ArmPermuteLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto permute_param = dynamic_cast<PermuteLayerParam *>(param_);
@@ -55,7 +142,7 @@ Status ArmPermuteLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
         }
         float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(input_blob->GetHandle()));
         float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
-        NaivePermute<float>(output_count, output_dims, input_data, permute_param->orders, input_step, output_step,
+        ArmPermute<float>(output_count, output_dims, input_data, permute_param->orders, input_step, output_step,
                             num_dims, output_data);
         if (packed) {
             PackOutputs<float>(outputs);
@@ -68,7 +155,7 @@ Status ArmPermuteLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
         }
         fp16_t *input_data  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input_blob->GetHandle()));
         fp16_t *output_data = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output_blob->GetHandle()));
-        NaivePermute<fp16_t>(output_count, output_dims, input_data, permute_param->orders, input_step, output_step,
+        ArmPermute<fp16_t>(output_count, output_dims, input_data, permute_param->orders, input_step, output_step,
                              num_dims, output_data);
         if (packed) {
             PackOutputs<fp16_t>(outputs);

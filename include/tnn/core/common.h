@@ -190,14 +190,14 @@ typedef enum {
 
 typedef enum {
     //data always change
-    DATA_FLAG_CHANGE_ALWAYS   = 0x00000000,
+    DATA_FLAG_CHANGE_ALWAYS   = 0, //0x00000000
     //data change if shape differ
-    DATA_FLAG_CHANGE_IF_SHAPE_DIFFER  = 0x00000001,
+    DATA_FLAG_CHANGE_IF_SHAPE_DIFFER  = 1, //0x00000001
     //data never change
-    DATA_FLAG_CHANGE_NEVER   = 0x00000002,
+    DATA_FLAG_CHANGE_NEVER   = 2, //0x00000002
 
     //data allocate in forward
-    DATA_FLAG_ALLOCATE_IN_FORWARD   = 0x00010000
+    DATA_FLAG_ALLOCATE_IN_FORWARD   = 65536, //0x00010000
 } DataFlag;
 
 typedef union {

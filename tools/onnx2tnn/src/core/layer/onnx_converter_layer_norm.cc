@@ -35,7 +35,7 @@ string OnnxOpConverterLayerNorm::TNNLayerParam(NodeProto& node,
                                                     OnnxNetInfo& net_info) {
     
     auto axes_size = get_node_attr_i(node, "reduce_axes_size", 0);
-    float eps = get_node_attr_f(node, "eps", 1e-5f);
+    float eps = get_node_attr_f(node, "epsilon", 1e-5f);
 
     ostringstream layer_param;
     layer_param << axes_size << " " << eps;

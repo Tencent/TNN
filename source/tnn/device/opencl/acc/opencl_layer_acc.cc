@@ -40,18 +40,18 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
     if (context->GetPrecision() != PRECISION_HIGH) {
         LOGD("OpenCL Blob Pricision is Half!\n");
         for (auto blob : inputs) {
-            blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
+            blob->GetBlobDesc().data_type = blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ? DATA_TYPE_INT32 : DATA_TYPE_HALF;
         }
         for (auto blob : outputs) {
-            blob->GetBlobDesc().data_type = DATA_TYPE_HALF;
+            blob->GetBlobDesc().data_type = blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ? DATA_TYPE_INT32 : DATA_TYPE_HALF;
         }
     } else {
         LOGD("OpenCL Blob Pricision is Float!\n");
         for (auto blob : inputs) {
-            blob->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
+            blob->GetBlobDesc().data_type = blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ? DATA_TYPE_INT32 : DATA_TYPE_FLOAT;
         }
         for (auto blob : outputs) {
-            blob->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
+            blob->GetBlobDesc().data_type = blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ? DATA_TYPE_INT32 : DATA_TYPE_FLOAT;
         }
     }
 
@@ -69,7 +69,7 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 OpenCLLayerAcc::~OpenCLLayerAcc() {}
 
 Status OpenCLLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return CheckBlobFormat(inputs, outputs);
+    return CheckBlob(inputs, outputs);
 }
 
 Status OpenCLLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -167,11 +167,16 @@ void OpenCLLayerAcc::ConfigKernelStrategy() {
 std::vector<DataFormat> OpenCLLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (data_type == DATA_TYPE_INT32) {
-        support_list.push_back(DATA_FORMAT_NCHW);
+        support_list.push_back(DATA_FORMAT_NHC4W4);
     } else {
         support_list.push_back(DATA_FORMAT_NHC4W4);
     }
     return support_list;
+}
+
+std::vector<DataType> OpenCLLayerAcc::SupportDataType(int dims_size, BlobType blob_type) {
+    std::vector<DataType> support_list;
+    return {DATA_TYPE_FLOAT, DATA_TYPE_HALF};
 }
 
 bool OpenCLLayerAcc::NeedFlush() {
@@ -407,7 +412,7 @@ Status OpenCLLayerAcc::RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<B
     return TNN_OK;
 }
 
-Status OpenCLLayerAcc::CheckBlobFormat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status OpenCLLayerAcc::CheckBlob(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     /*
      * Check whether the format is supported by OpenCLLayerAcc or not.
      * The supported format of each layer is given by LayerAcc.
@@ -420,6 +425,13 @@ Status OpenCLLayerAcc::CheckBlobFormat(const std::vector<Blob *> &inputs, const 
                  layer_name_.c_str(), blob->GetBlobDesc().name.c_str(), blob->GetBlobDesc().data_format);
             return ret;
         }
+
+        ret = ResolveBlobDataType(blob, BLOB_OUTPUT);
+        if (ret != TNN_OK) {
+            LOGE("Resolve Layer(%s)-Output Blob(%s) Data Type(%d) failed\n",
+                 layer_name_.c_str(), blob->GetBlobDesc().name.c_str(), blob->GetBlobDesc().data_type);
+            return ret;
+        }
     }
 
     for (auto blob : inputs) {
@@ -429,10 +441,44 @@ Status OpenCLLayerAcc::CheckBlobFormat(const std::vector<Blob *> &inputs, const 
                  layer_name_.c_str(), blob->GetBlobDesc().name.c_str(), blob->GetBlobDesc().data_format);
             return ret;
         }
+
+        ret = ResolveBlobDataType(blob, BLOB_INPUT);
+        if (ret != TNN_OK) {
+            LOGE("Resolve Layer(%s)-Input Blob(%s) Data Type(%d) failed\n",
+                 layer_name_.c_str(), blob->GetBlobDesc().name.c_str(), blob->GetBlobDesc().data_type);
+            return ret;
+        }
     }
 
     return TNN_OK;
 }
+
+Status OpenCLLayerAcc::ResolveBlobDataType(Blob *blob, BlobType blob_type) {
+    auto desc = blob->GetBlobDesc();
+    auto support_list = SupportDataType(static_cast<int>(desc.dims.size()), blob_type);
+    if (support_list.size() <= 0) {
+        return Status(TNNERR_DEVICE_ACC_DATA_FORMAT_NOT_SUPPORT,
+                      "unsupported data type for device acc");
+    }
+
+    /*
+     * DATA_TYPE_AUTO : first type supported by the LayerAcc
+     * Others:  return error if LayerAcc not support.
+     */
+    if (desc.data_type == DATA_TYPE_AUTO) {
+        desc.data_type = support_list[0];
+        blob->SetBlobDesc(desc);
+        return TNN_OK;
+    } else {
+        auto iter = std::find(support_list.begin(), support_list.end(), desc.data_type);
+        if (iter != support_list.end()) {
+            return TNN_OK;
+        } else {
+            return Status(TNNERR_DEVICE_ACC_DATA_FORMAT_NOT_SUPPORT, "unsupported data type for device acc");
+        }
+    }
+}
+
 
 void OpenCLLayerAcc::InsertUnactiveUnitId(int id) {
     unactive_unit_ids_.insert(id);

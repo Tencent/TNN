@@ -353,6 +353,8 @@ int LayerTest::CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queu
         mat_type = RESERVED_BFP16_TEST;
     } else if (blob_desc_device.data_type == DATA_TYPE_INT8) {
         mat_type = RESERVED_INT8_TEST;
+    } else if (blob_desc_device.data_type == DATA_TYPE_INT32) {
+        mat_type = NC_INT32;
     }
     auto dims = cpu_blob->GetBlobDesc().dims;
     int count = DimsVectorUtils::Count(dims);
@@ -388,17 +390,29 @@ int LayerTest::CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queu
     } else if (blob_desc_device.data_type == DATA_TYPE_INT8) {
         cmp_result |=
             CompareData(static_cast<int8_t*>(cpu_mat.GetData()), static_cast<int8_t*>(dev_cpu_mat.GetData()), count);
+    } else if (blob_desc_device.data_type == DATA_TYPE_INT32) {
+        cmp_result |=
+            CompareData(static_cast<int*>(cpu_mat.GetData()), static_cast<int*>(dev_cpu_mat.GetData()), count);
     } else {
         LOGE("UNKNOWN DATA TYPE!");
     }
 
     if (cmp_result != 0) {
-        LOGE("cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(cpu_mat.GetData())[0],
-             static_cast<float*>(cpu_mat.GetData())[1], static_cast<float*>(cpu_mat.GetData())[2],
-             static_cast<float*>(cpu_mat.GetData())[3]);
-        LOGE("dev_cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(dev_cpu_mat.GetData())[0],
-             static_cast<float*>(dev_cpu_mat.GetData())[1], static_cast<float*>(dev_cpu_mat.GetData())[2],
-             static_cast<float*>(dev_cpu_mat.GetData())[3]);
+        if (blob_desc_device.data_type == DATA_TYPE_INT32) {
+            LOGE("cpu_mat.GetData(): %d %d %d %d\n", static_cast<int*>(cpu_mat.GetData())[0],
+                static_cast<int*>(cpu_mat.GetData())[1], static_cast<int*>(cpu_mat.GetData())[2],
+                static_cast<int*>(cpu_mat.GetData())[3]);
+            LOGE("dev_cpu_mat.GetData(): %d %d %d %d\n", static_cast<int*>(dev_cpu_mat.GetData())[0],
+                static_cast<int*>(dev_cpu_mat.GetData())[1], static_cast<int*>(dev_cpu_mat.GetData())[2],
+                static_cast<int*>(dev_cpu_mat.GetData())[3]);
+        } else {
+            LOGE("cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(cpu_mat.GetData())[0],
+                static_cast<float*>(cpu_mat.GetData())[1], static_cast<float*>(cpu_mat.GetData())[2],
+                static_cast<float*>(cpu_mat.GetData())[3]);
+            LOGE("dev_cpu_mat.GetData(): %.6f %.6f %.6f %.6f\n", static_cast<float*>(dev_cpu_mat.GetData())[0],
+                static_cast<float*>(dev_cpu_mat.GetData())[1], static_cast<float*>(dev_cpu_mat.GetData())[2],
+                static_cast<float*>(dev_cpu_mat.GetData())[3]);
+        }
     }
 
     return cmp_result;

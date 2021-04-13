@@ -30,7 +30,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ArgMaxOrMinLayerTest,
                                             // axis
                                             testing::Values(0, 1, 2, 3),
                                             // keep dims
-                                            testing::Values(1),
+                                            testing::Values(0, 1),
                                             // dim count
                                             testing::Values(2, 3, 4, 5),
                                             // select_last_index: we will support this feature in future;
@@ -61,7 +61,15 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_OPENCL == dev && dim_count > 4) {
+    if (DEVICE_OPENCL == dev && (dim_count > 4 || keep_dims == 0)) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_METAL == dev && keep_dims == 0 && axis <= 1) {
+        GTEST_SKIP();
+    }
+
+    if (keep_dims == 0 && dim_count <= 2) {
         GTEST_SKIP();
     }
 
