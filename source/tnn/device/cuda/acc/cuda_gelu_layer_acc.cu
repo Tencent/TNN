@@ -22,8 +22,7 @@ DECLARE_CUDA_ACC(Gelu, LAYER_GELU);
 __global__ void gelu_kernel(const int n, const float *in, float *out) {
     CUDA_KERNEL_LOOP(index, n) {
         const auto x   = in[index];
-        const auto val = tanh((x + x*x*x*0.0447149984538f) * 0.7978845834732056f);
-        out[index] = 0.5f * x * (val + 1.0f);
+        out[index] = 0.5f * x * (erff(x*0.707106793288165f) + 1.0f);
     }
 }
 
