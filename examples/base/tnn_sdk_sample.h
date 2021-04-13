@@ -27,9 +27,11 @@
 #ifdef _WIN32
     #define NOMINMAX
     #include <windows.h>
+    #define TNN_SDK_ENABLE_BENCHMARK 0
+#else
+    #define TNN_SDK_ENABLE_BENCHMARK 1
+    #include <sys/time.h>
 #endif
-
-#define TNN_SDK_ENABLE_BENCHMARK 0
 
 #define TNN_SDK_USE_NCNN_MODEL 0
 

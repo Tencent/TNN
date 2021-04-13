@@ -132,7 +132,7 @@ Status MetalLayerAcc::RawBuffer2MetalBlob(RawBuffer *buffer, std::shared_ptr<Blo
     auto buffer_size  = buffer->GetBytesSize();
     float *buffer_float = nullptr;
     uint16_t *buffer_half = nullptr;
-    LOGE("ReloadConstantBlob for layer:%s\n", param_->name.c_str());
+    LOGD("ReloadConstantBlob for layer:%s\n", param_->name.c_str());
 #if TNN_METAL_FULL_PRECISION
     if (buffer->GetDataType() == DATA_TYPE_HALF) {
         auto buffer_data_count = buffer->GetDataCount();
