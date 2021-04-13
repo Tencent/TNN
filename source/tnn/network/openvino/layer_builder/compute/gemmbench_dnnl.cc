@@ -67,7 +67,7 @@ double test_dnnl_sgemm(float *A, float *B, float *C, int m, int n, int k)
     dnnl_sgemm('N', 'N', m, n, k, 1.0, A, k, B, n, 0.0, C, n);
 
     auto tag_1 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < 10; ++i) {
         dnnl_sgemm('N', 'N', m, n, k, 1.0, A, k, B, n, 0.0, C, n);
     }
 
@@ -84,7 +84,7 @@ double test_dnnl_inner_product(engine eng, stream stm, T_A* A_buf, T_B* B_buf, T
     InnerProduct(eng, stm, A_buf, B_buf, bias_buf, C_buf, m, n, k);
 
     auto tag_1 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < 10; ++i) {
         InnerProduct(eng, stm, A_buf, B_buf, bias_buf, C_buf, m, n, k);
     }
 
@@ -101,7 +101,7 @@ double test_dnnl_matmul(engine eng, stream stm, T_A* A_buf, T_B* B_buf, T_bias* 
     MatMul(eng, stm, A_buf, B_buf, bias_buf, C_buf, m, n, k);
 
     auto tag_1 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < 10; ++i) {
         MatMul(eng, stm, A_buf, B_buf, bias_buf, C_buf, m, n, k);
     }
 

@@ -15,10 +15,35 @@
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/device/x86/acc/x86_mat_mul_layer_acc.h"
+#include "tnn/network/openvino/layer_builder/compute/gemmbench_dnnl.h"
+#include "tnn/network/openvino/layer_builder/compute/dnnl_matmul.h"
 
 namespace TNN_NS {
 
 X86MatMulLayerAcc::~X86MatMulLayerAcc() {}
+
+Status X86MatMulLayerAcc::Init(Context* context, LayerParam* param, LayerResource* resource,
+                                     const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs) {
+    // int m = inputs[0]->GetBlobDesc().dims[0];
+    // int n = outputs[0]->GetBlobDesc().dims[1];
+    // int k = inputs[0]->GetBlobDesc().dims[1];
+    auto paramlist = dynamic_cast<MatMulLayerParam *>(param);
+    DimsVector matrix_a_dims = paramlist->matrix_a_dims;
+    DimsVector matrix_b_dims = paramlist->matrix_b_dims;
+    if (matrix_a_dims.size() == 1) {
+        matrix_a_dims.insert(matrix_a_dims.begin(), 1);
+    }
+    if (matrix_b_dims.size() == 1) {
+        matrix_b_dims.push_back(1);
+    }
+  
+    int m = matrix_a_dims[matrix_a_dims.size() - 2];
+    int k = matrix_a_dims[matrix_a_dims.size() - 1];
+    int n = matrix_b_dims[matrix_b_dims.size() - 1];
+    acc_index = static_cast<AccIndex>(GemmScan(m, n, k));
+
+    return X86LayerAcc::Init(context, param, resource, inputs, outputs);
+}
 
 Status X86MatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param               = dynamic_cast<MatMulLayerParam *>(param_);
@@ -47,41 +72,67 @@ Status X86MatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         }
         auto matrix_c = static_cast<float *>(outputs[0]->GetHandle().base);
 
-        int k_c = conv_gemm_conf_.K_c_;
-        int m_c = conv_gemm_conf_.M_c_;
-        int n_block = conv_gemm_conf_.n_block_;
+        // int k_c = conv_gemm_conf_.K_c_;
+        // int m_c = conv_gemm_conf_.M_c_;
+        // int n_block = conv_gemm_conf_.n_block_;
 
-        int M = matrix_b_dims[matrix_b_dims.size() - 1];
-        int K = matrix_a_dims[matrix_a_dims.size() - 1];
-        int N = matrix_a_dims[matrix_a_dims.size() - 2];
+        // int M = matrix_b_dims[matrix_b_dims.size() - 1];
+        // int K = matrix_a_dims[matrix_a_dims.size() - 1];
+        // int N = matrix_a_dims[matrix_a_dims.size() - 2];
 
-        size_t pack_a_size = ROUND_UP(m_c * k_c * sizeof(float), 32);
-        size_t pack_b_size = k_c * ROUND_UP(N, n_block) * sizeof(float);
-        size_t workspace_size = pack_a_size + pack_b_size;
-        float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(workspace_size));
+        int m = matrix_a_dims[matrix_a_dims.size() - 2];
+        int k = matrix_a_dims[matrix_a_dims.size() - 1];
+        int n = matrix_b_dims[matrix_b_dims.size() - 1];
 
-        RawBuffer fake_bias(N * sizeof(float));
+        int lda = k;
+        int ldb = n;
+        int ldc = n;
+
+        float alpha = 1.0f;
+        float beta = 0.f;
+        static engine eng(engine::kind::cpu, 0);
+        static stream stm(eng); 
+        // size_t pack_a_size = ROUND_UP(m_c * k_c * sizeof(float), 32);
+        // size_t pack_b_size = k_c * ROUND_UP(N, n_block) * sizeof(float);
+        // size_t workspace_size = pack_a_size + pack_b_size;
+        // float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(workspace_size));
+
+        RawBuffer fake_bias(n * sizeof(float));
         float *fake_bias_ptr = fake_bias.force_to<float *>();
 
         int count_a     = DimsVectorUtils::Count(matrix_a_dims);
         int count_b     = DimsVectorUtils::Count(matrix_b_dims);
         int count_c     = DimsVectorUtils::Count(matrix_c_dims);
-        int batch_a   = count_a / (K * N);
-        int batch_b   = count_b / (M * K);
-        int batch_c   = count_c / (M * N);
+        int batch_a   = count_a / (k * n);
+        int batch_b   = count_b / (m * k);
+        int batch_c   = count_c / (m * n);
         for (int bc = 0; bc < batch_c; ++bc) {
             int ba = bc < batch_a ? bc : 0;
             int bb = bc < batch_b ? bc : 0;
-            auto a_ptr = matrix_a + ba * K * N;
-            auto b_ptr = matrix_b + bb * M * K;
-            auto c_ptr = matrix_c + bc * M * N;
+            auto a_ptr = matrix_a + ba * k * n;
+            auto b_ptr = matrix_b + bb * m * k;
+            auto c_ptr = matrix_c + bc * m * n;
 
-            // row major A[N * K] * B[K * M] = C[N * M]
-            // equals to
-            // col major B[M * K] * A[K * N] = C[M * N]
-            conv_sgemm_nn_col_major(M, N, K, b_ptr, M, a_ptr, K, c_ptr, M,
-                fake_bias_ptr, ActivationType_None, workspace, conv_gemm_conf_);
+            // // row major A[N * K] * B[K * M] = C[N * M]
+            // // equals to
+            // // col major B[M * K] * A[K * N] = C[M * N]
+            // conv_sgemm_nn_col_major(M, N, K, b_ptr, M, a_ptr, K, c_ptr, M,
+            //     fake_bias_ptr, ActivationType_None, workspace, conv_gemm_conf_);
+            switch (acc_index) {
+                case AccIndex_Sgemm:
+                    dnnl_sgemm('N', 'N', m, n, k, alpha, a_ptr, lda, b_ptr, ldb, beta, c_ptr, ldc);
+                    break;
+                case AccIndex_InnerProduct:
+                    InnerProduct(eng, stm, a_ptr, b_ptr, fake_bias_ptr, c_ptr, m, n, k);
+                    break;
+                case AccIndex_MatMul:
+                    MatMul(eng, stm, a_ptr, b_ptr, fake_bias_ptr, c_ptr, m, n, k);
+                    break;
+                default:
+                    dnnl_sgemm('N', 'N', m, n, k, alpha, a_ptr, lda, b_ptr, ldb, beta, c_ptr, ldc);
+            }
         }
+        // BatchMatMul(eng, stm, matrix_a, matrix_b, matrix_c, batch_c, m , n, k);
     }
 
     return TNN_OK;
