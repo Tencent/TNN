@@ -22,7 +22,16 @@ namespace TNN_NS {
 DECLARE_LAYER(Expand, LAYER_EXPAND);
 
 Status ExpandLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    BaseLayer::InferOutputDataType();
+
+    if (const_resource_) {
+        const auto iter = const_resource_->find(input_blobs_[0]->GetBlobDesc().name);
+        if (iter != const_resource_->end()) {
+            output_blobs_[0]->GetBlobDesc().data_type = iter->second->GetDataType();
+        }
+    }
+
+    return TNN_OK;
 }
 
 Status ExpandLayer::InferOutputShape(bool ignore_error) {

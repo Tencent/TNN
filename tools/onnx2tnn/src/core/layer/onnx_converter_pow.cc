@@ -30,6 +30,12 @@ string OnnxOpConverterPower::TNNLayerParam(NodeProto &node,
     float scale = 1.0;
     float shift = 0.0;
     float exponent = get_node_attr_f(node, "exponent", net_info, 1, 0.0);
+    bool has_tensor = net_info.weights_map.find(node.input(1)) != net_info.weights_map.end();
+    if (node.input_size() > 1 && has_tensor) {
+        onnx::TensorProto exponent_tensor = net_info.weights_map[node.input(1)];
+        const double *exponent_data       = (const double *)(exponent_tensor.raw_data().data());
+        exponent                          = exponent_data[0];
+    }
 
 //    std::vector<int64_t> pads = get_node_attr_ai(node, "pads", net_info, 1);
 //    float value = get_node_attr_f(node, "value", net_info, 2,0.f);
