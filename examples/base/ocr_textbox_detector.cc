@@ -279,7 +279,11 @@ std::shared_ptr<Mat> OCRTextboxDetector::ProcessSDKInputMat(std::shared_ptr<Mat>
     const auto input_name = GetInputNames()[0];
     input_shape[1] = 3;
     input_shape_map.insert({input_name, input_shape});
-    instance_->Reshape(input_shape_map);
+    status = instance_->Reshape(input_shape_map);
+    if (status != TNN_OK) {
+        LOGE("instance Reshape failed in ocr textbox detector\n");
+        return nullptr;
+    }
     
     return result_mat;
 }

@@ -120,7 +120,11 @@ std::shared_ptr<Mat> OCRTextRecognizer::ProcessSDKInputMat(std::shared_ptr<Mat> 
         return nullptr;
     }
     input_shape_map.insert({input_name, input_shape});
-    instance_->Reshape(input_shape_map);
+    status = instance_->Reshape(input_shape_map);
+    if (status != TNN_OK) {
+        LOGE("instance Reshape failed in text recognizer\n");
+        return nullptr;
+    }
 
     return result_mat;
 }
