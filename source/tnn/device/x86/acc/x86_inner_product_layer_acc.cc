@@ -77,7 +77,6 @@ Status X86InnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
     float alpha = 1.0f;
     float beta = 0.f;
 
-    auto tag_1 = std::chrono::high_resolution_clock::now();
     switch (acc_index) {
         case AccIndex_Sgemm:
             dnnl_sgemm('N', 'N', m, n, k, alpha, input_data, lda, weight_data, ldb, beta, output_data, ldc);
@@ -91,9 +90,6 @@ Status X86InnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
         default:
             dnnl_sgemm('N', 'N', m, n, k, alpha, input_data, lda, weight_data, ldb, beta, output_data, ldc);
     }
-
-    auto tag_2 = std::chrono::high_resolution_clock::now();
-    auto tag_diff = std::chrono::duration<double>(tag_2 - tag_1).count();
 
     return TNN_OK;
 }

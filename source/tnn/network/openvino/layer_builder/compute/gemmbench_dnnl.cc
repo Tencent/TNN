@@ -26,6 +26,8 @@ int padding(int cols) {
 
 int GemmScan(int m, int n, int k)
 {
+    int result = 0;
+
     float *A = new float[m*k];
     float *B = new float[k*n];
     float *C = new float[m*n];
@@ -45,12 +47,19 @@ int GemmScan(int m, int n, int k)
         bias[i] = 1.1;
     }
 
+    double t_dnnl_ip_ffff  = test_dnnl_inner_product(cpu_engine, cpu_stream, A, B, bias, C, m, n, k);
     double t_dnnl_mm_ffff  = test_dnnl_matmul(cpu_engine, cpu_stream, A, B, bias, C, m, n, k);
 
     delete[] A;
     delete[] B;
     delete[] C;
-    return 0;
+
+    if (t_dnnl_sgemm > t_dnnl_ip_ffff)
+        result = 1;
+    else if (t_dnnl_ip_ffff > t_dnnl_mm_ffff)
+        result = 2;
+
+    return result;
 }
 
 double test_dnnl_sgemm(float *A, float *B, float *C, int m, int n, int k)
