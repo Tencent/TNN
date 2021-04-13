@@ -86,7 +86,7 @@ Status PoolingOVLayerBuilder::Build() {
 
     std::shared_ptr<ngraph::Node> poolNode;
 
-    if (ngraph::op::PadType::VALID != pad_type) {
+    if (0/*ngraph::op::PadType::Valid == pad_type*/) {
         if (paramlist->pool_type == 0) {  // max pool
             poolNode = std::make_shared<ngraph::op::v1::MaxPool>(input_node[0]->output(0), strides, pad_begin, pad_end,
                                                                  kernel_shape, rounding_type, pad_type);
@@ -95,7 +95,8 @@ Status PoolingOVLayerBuilder::Build() {
                                                                  kernel_shape, true, rounding_type, pad_type);
         }
     } else {
-        // different way shape calculation in valid mode, use tnn op instead
+        // different shape calculation in valid&same mode, use tnn op instead
+        // https://docs.openvinotoolkit.org/2021.3/openvino_docs_ops_pooling_MaxPool_1.html
         // tnn: H_out = ceil or floor((H - kernel + 1 )/ strides)
         // ov : H_out = ceil or floor((H - kernel ) / strides) + 1
         ngraph::OutputVector inputs;
