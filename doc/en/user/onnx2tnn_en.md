@@ -118,7 +118,7 @@ positional arguments:
 optional arguments:
   -h, --help              show this help message and exit
   -version VERSION        Algorithm version string
-  -optimize OPTIMIZE      Optimize model befor convert, 1:default yes, 0:no
+  -optimize OPTIMIZE      If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
   -half HALF              Save model using half, 1:yes, 0:default no
   -o OUTPUT_DIR           the output dir for tnn model
   -align                  align the onnx model with tnn model

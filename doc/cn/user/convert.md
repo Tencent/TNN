@@ -115,8 +115,8 @@ optional arguments:
                         the tensorflow model's output name. e.g. -on output_name1 output_name2
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
-  -optimize             optimize the model
-  -half                 optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -half                 save the model using half
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH
                         the input file path which contains the input data for the inference model.
@@ -134,7 +134,7 @@ optional arguments:
 - output_dir 参数：
     可以通过 “-o <path>” 参数指定输出路径，但是在 docker 中我们一般不使用这个参数，默认会将生成的 TNN 模型放在当前和 TF 模型相同的路径下。
 - optimize 参数（可选）
-    可以通过 “-optimize” 参数来对模型进行优化，**我们强烈建议你开启这个选项，只有在开启这个选项模型转换失败时，我们才建议你去掉 “-optimize” 参数进行重新尝试**。
+    可以通过 “-optimize” 参数来对模型进行优化，**对于固定输入维度的模型，我们强烈建议你开启这个选项，对于动态可变输入维度的模型则关闭这个选项，否则可能在维度变化时造成结果错误或者运行报错**。
 - v 参数（可选）
     可以通过 -v 来指定模型的版本号，以便于后期对模型进行追踪和区分。
 - half 参数（可选）
@@ -345,7 +345,7 @@ optional arguments:
   -in input_info [input_info ...]
                         specify the input name and shape of the model. e.g.,
                         -in input1_name:1,3,128,128 input2_name:1,3,256,256
-  -optimize             optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
   -half                 save model using half
   -v v1.0.0             the version for model
   -o OUTPUT_DIR         the output tnn directory
@@ -409,7 +409,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model, default v1.0
-  -optimize             optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
   -half                 save model using half
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH
@@ -452,8 +452,8 @@ optional arguments:
                         the tensorflow model's output name. e.g. -on output_name1 output_name2
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
-  -optimize             optimize the model
-  -half                 optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -half                 save the mode using half
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH
                         the input file path which contains the input data for the inference model.
