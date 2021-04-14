@@ -44,6 +44,9 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_po
     if (batch > 1 && param_size_type == 3 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
+    if (dims_size != 4 && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
 
     std::vector<int> param_dims;
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
