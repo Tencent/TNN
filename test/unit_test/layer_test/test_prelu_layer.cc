@@ -41,10 +41,6 @@ TEST_P(PReluLayerTest, PReluLayer) {
         GTEST_SKIP();
     }
 
-    if (!share_channel && DEVICE_CUDA == dev) {
-        GTEST_SKIP();
-    }
-
     if (DEVICE_OPENCL == dev && dim_count > 4) {
         GTEST_SKIP();
     }
