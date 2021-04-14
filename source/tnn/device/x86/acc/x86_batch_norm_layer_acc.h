@@ -12,30 +12,25 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_X86_ACC_X86_CONV_LAYER_ACC_H
-#define TNN_SOURCE_TNN_DEVICE_X86_ACC_X86_CONV_LAYER_ACC_H
+#ifndef TNN_SOURCE_TNN_DEVICE_X86_X86_BATCH_NORM_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_X86_X86_BATCH_NORM_LAYER_ACC_H_
 
-#include <vector>
-
-#include "tnn/core/blob.h"
 #include "tnn/device/x86/acc/x86_layer_acc.h"
-#include "tnn/device/x86/x86_device.h"
 
 namespace TNN_NS {
 
-class X86ConvLayerAcc : public X86LayerAcc {
+class X86BatchNormLayerAcc : public X86LayerAcc {
 public:
-    virtual ~X86ConvLayerAcc(){};
-    
-    Status Init(Context *context, LayerParam *param, LayerResource *resource,
-                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+    virtual ~X86BatchNormLayerAcc();
 
+    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                const std::vector<Blob *> &outputs) override;
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 protected:
-    std::shared_ptr<X86LayerAcc> conv_acc_impl_ = nullptr;
-    std::shared_ptr<LayerResource> conv_acc_f32_resource_ = nullptr;
+    std::shared_ptr<LayerResource> bn_acc_f32_resource_ = nullptr;
 };
 
-}   // namespace TNN_NS
-#endif
+}  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_TNN_DEVICE_X86_X86_BATCH_NORM_LAYER_ACC_H_
