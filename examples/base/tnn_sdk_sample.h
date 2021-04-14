@@ -35,6 +35,10 @@
 
 #define TNN_SDK_USE_NCNN_MODEL 0
 
+#ifndef HAS_OPENCV
+#define HAS_OPENCV 0
+#endif
+
 namespace TNN_NS {
 
 template<typename T1, typename T2, typename T3>
@@ -208,6 +212,7 @@ public:
     void setCheckNpuSwitch(bool option);
     
     virtual Status GetCommandQueue(void **command_queue);
+    virtual Status DumpBlob(const BlobMap& blob_map, std::string output_dir);
     Status Resize(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type);
     Status Crop(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, int start_x, int start_y);
     Status WarpAffine(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type, TNNBorderType border_type, float trans_mat[2][3]);
@@ -216,6 +221,7 @@ public:
                           std::shared_ptr<TNN_NS::Mat> dst,
                           int top, int bottom, int left, int right,
                           TNNBorderType border_type, uint8_t border_value = 0);
+    virtual bool hideTextBox();
 
 protected:
     BenchOption bench_option_;
