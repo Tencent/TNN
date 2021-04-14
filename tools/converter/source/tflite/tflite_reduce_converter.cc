@@ -20,7 +20,14 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Reduce);
 
 std::string TFLiteReduceConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
-    return "ReduceMean";
+    switch (op_code) {
+        case tflite::BuiltinOperator_MEAN:
+            return "ReduceMean";
+        case tflite::BuiltinOperator_SUM:
+            return "ReduceSum";
+        default:
+            return "";
+    }
 }
 tflite::ActivationFunctionType TFLiteReduceConverter::ActivationType(
     const std::unique_ptr<tflite::OperatorT> &tf_lite_operator, tflite::BuiltinOperator op_code) {
@@ -42,13 +49,23 @@ TNN_NS::Status TFLiteReduceConverter::exec(TNN_NS::NetStructure &net_structure, 
     auto option      = tf_lite_operator->builtin_options.AsReducerOptions();
     param->keep_dims = option->keep_dims;
     assert(cur_layer->inputs.size() == 2);
+
+    auto input_index         = tf_lite_operator->inputs[0];
+    const auto &input_tensor = tf_lite_tensors[input_index];
+    const auto input_shape   = input_tensor->shape;
+    int input_shape_size     = input_shape.size();
+
     const auto &axes_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
     int axes_size           = Count(axes_tensor->shape);
     auto axes_ptr           = reinterpret_cast<int *>(tf_lite_model_buffer[axes_tensor->buffer]->data.data());
     for (int i = 0; i < axes_size; ++i) {
-        param->axis.push_back(ConvertAxisFormatTFLite(*axes_ptr));
+        param->axis.push_back(ConvertAxisFormatTFLite(*axes_ptr, input_shape_size));
         axes_ptr++;
     }
+    if (axes_size == 0) {
+        param->axis.push_back(ConvertAxisFormatTFLite(*axes_ptr, input_shape_size));
+    }
+
     cur_layer->inputs.resize(1);
     cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
 
@@ -57,5 +74,6 @@ TNN_NS::Status TFLiteReduceConverter::exec(TNN_NS::NetStructure &net_structure, 
 
 using namespace tflite;
 REGISTER_CONVERTER(Reduce, BuiltinOperator_MEAN);
+REGISTER_CONVERTER(Reduce, BuiltinOperator_SUM);
 
 }  // namespace TNN_CONVERTER

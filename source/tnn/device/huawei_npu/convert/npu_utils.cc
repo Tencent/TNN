@@ -13,19 +13,28 @@
 // specific language governing permissions and limitations under the License.
 
 #include "npu_utils.h"
+#include <stdlib.h>
 #include <sstream>
 #include "tnn/core/macro.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/split_utils.h"
 
 namespace TNN_NS {
 
 Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const> &attr_value, ge::Shape shape, RawBuffer &raw_buffer) {
-    ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
     ge::TensorPtr tensor_ptr = std::make_shared<ge::Tensor>();
-
+    ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
     tensor_ptr->SetTensorDesc(desc);
-    tensor_ptr->SetData(raw_buffer.force_to<uint8_t *>(), raw_buffer.GetBytesSize());
-
+    if (raw_buffer.GetDataType() != DATA_TYPE_FLOAT) {
+        // if filter handle is half, need convert to float first.
+        std::shared_ptr<float> float_data_ptr = GetFloatFromRawBuffer(raw_buffer);
+        if (float_data_ptr == nullptr) {
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+        }
+        tensor_ptr->SetData((uint8_t *)float_data_ptr.get(), raw_buffer.GetDataCount() * sizeof(float));
+    } else {
+        tensor_ptr->SetData(raw_buffer.force_to<uint8_t *>(), raw_buffer.GetBytesSize());
+    }
     attr_value->set_attr_value(tensor_ptr);
     return TNN_OK;
 }
@@ -57,45 +66,6 @@ Status NpuUtils::WriteModelFile(domi::ModelBufferData &model_buffer_data, std::s
     return TNN_OK;
 }
 
-Status NpuUtils::CalculateBroadcastSize(vector<int> &weight, EltwiseLayerResource *layer_res, vector<int> &input) {
-    int input_count = DimsVectorUtils::Count(input, 1);
-    if (weight.size() < 4) {
-        weight             = {1, 1, 1, 1};
-        int layer_res_size = layer_res->element_handle.GetDataCount();
-        if (layer_res_size == 1) {
-            // single element
-            weight[1] = layer_res_size;
-        } else if (layer_res_size == input[1]) {
-            // channel broadcast
-            weight[1] = layer_res_size;
-        } else if (layer_res_size == input_count) {
-            // element broadcast
-            weight[1] = input[1];
-            weight[2] = input[2];
-            weight[3] = input[3];
-        } else if (layer_res_size == input[3]) {
-            weight[3] = input[3];
-        } else {
-            return Status(TNNERR_LAYER_ERR, "Error: unsupported broadcast type");
-        }
-        layer_res->element_shape = weight;
-    }
-    return TNN_OK;
-}
-
-std::string NpuUtils::GetFileHash(ModelConfig &model_config) {
-    std::string file_content = model_config.params[1] + model_config.params[0];
-    int hash                 = 0;
-    for (size_t i = 0; i < file_content.length(); ++i)
-        hash = 65599 * hash + file_content.at(i);
-    return std::to_string(hash ^ (hash >> 16));
-}
-
-bool NpuUtils::FileExits(std::string model_path) {
-    std::ifstream infile(model_path);
-    return infile.good();
-}
-
 Status NpuUtils::GetPadMode(int &pad_mode, int pad_type) {
     // huawei_npu pad mode
     if (pad_type == 0) {
@@ -115,39 +85,92 @@ Status NpuUtils::GetPadMode(int &pad_mode, int pad_type) {
     return TNN_OK;
 }
 
-int NpuUtils::checkNpuVersion(const char *version) {
-    // ddk version's format: xxx.xxx.xxx.xxx
-    std::string version_s(version);
-    size_t pos = std::string::npos;
-    int count = 0, update_index = 1;
-    while ((pos = version_s.find(".")) != std::string::npos) {
-        std::string curr_update = version_s.substr(0, pos);
-        if (count == update_index) {
-            return std::stoi(curr_update.c_str());
+static bool IsNumberString(std::string num_str) {
+    const char *num_char = num_str.c_str();
+
+    for (int i = 0; i < num_str.length(); ++i) {
+        if (!(num_char[i] >= '0' && num_char[i] <= '9')) {
+            return false;
         }
-        version_s.erase(0, pos + 1);
-        count++;
     }
-    return 0;
+    return true;
 }
 
-std::string NpuUtils::modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map) {
-    std::stringstream model_suffix_stream("");
-    for (auto iter : inputs_shape) {
-        if (instance_input_shapes_map.count(iter.first) > 0 && instance_input_shapes_map[iter.first] != iter.second) {
-            instance_input_shapes_map[iter.first] = iter.second;
-            model_suffix_stream << "_" << iter.first << "[";
-            DimsVector value = iter.second;
-            for (size_t i = 0; i < value.size(); ++i) {
-                if (i != 0) {
-                    model_suffix_stream << "x";
-                }
-                model_suffix_stream << value[i];
+bool NpuUtils::IsVersionValid(std::string version) {
+    str_arr version_vec;
+    auto ret = SplitUtils::SplitStr(version.c_str(), version_vec, ".");
+    if (ret != TNN_OK) {
+        LOGE("split npu version failed (str: %s)\n", version.c_str());
+        return false;
+    }
+
+    if (version_vec.size() != 4) {
+        return false;
+    }
+
+    for (auto val : version_vec) {
+        if (!IsNumberString(val) && val != "xxx")
+            return false;
+    }
+
+    return true;
+}
+
+bool NpuUtils::VersionCompare(std::string version, std::string cmp, VersionCompareType type) {
+    if (!IsVersionValid(version) || !IsVersionValid(cmp)) {
+        LOGE("invalid version(s1: %s  s2: %s)\n", version.c_str(), cmp.c_str());
+        return false;
+    }
+
+    str_arr version_vec;
+    str_arr cmp_vec;
+
+    auto ret = SplitUtils::SplitStr(version.c_str(), version_vec, ".");
+    if (ret != TNN_OK) {
+        LOGE("split npu version failed (str: %s)\n", version.c_str());
+        return false;
+    }
+
+    ret = SplitUtils::SplitStr(cmp.c_str(), cmp_vec, ".");
+    if (ret != TNN_OK) {
+        LOGE("split npu version failed (str: %s)\n", cmp.c_str());
+        return false;
+    }
+
+    for (unsigned int i = 0; i < version_vec.size(); ++i) {
+        int version_val = 0;
+        int cmp_val     = 0;
+
+        if (version_vec[i] == "xxx") {
+            version_val = -1;
+        }
+        if (cmp_vec[i] == "xxx") {
+            cmp_val = -1;
+        }
+
+        version_val = atoi(version_vec[i].c_str());
+        cmp_val     = atoi(cmp_vec[i].c_str());
+
+        if (VCT_SMALLER == type || VCT_SMALLEQUAL == type) {
+            if (version_val < cmp_val) {
+                return true;
+            } else if (version_val > cmp_val) {
+                return false;
             }
-            model_suffix_stream << "]";
+        } else if (VCT_BIGGER == type || VCT_BIGEQUAL == type) {
+            if (version_val < cmp_val) {
+                return false;
+            } else if (version_val > cmp_val) {
+                return true;
+            }
         }
     }
-    return model_suffix_stream.str();
+
+    if (VCT_SMALLEQUAL == type || VCT_BIGEQUAL == type) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 void NpuUtils::SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string> &visited,

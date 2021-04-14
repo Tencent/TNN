@@ -25,11 +25,10 @@ kernel void convolution_depthwise(const device ftype4 *in           [[buffer(0)]
                                   uint3 gid                       [[thread_position_in_grid]]) {
     if (any(gid >= uint3(params.output_width,
                            params.output_height,
-                           params.output_slice)))
+                           params.batch*params.output_slice)))
         return;
     
-//    short oz = gid.z % params.output_slice;
-    int oz = gid.z;
+    int oz = gid.z % params.output_slice;
     int offset_x = (int)gid.x * params.stride_x - params.pad_x;
     int offset_y = (int)gid.y * params.stride_y - params.pad_y;
     int sx = max(0, (UP_DIV(-offset_x, params.dilation_x)));
@@ -55,19 +54,14 @@ kernel void convolution_depthwise(const device ftype4 *in           [[buffer(0)]
     *z_out = activate(ftype4(result), params.activation);
 }
 
-
-
 kernel void convolution_depthwise5x5_h8w4(const device ftype4 *in           [[buffer(0)]],
                                           device ftype4 *out                [[buffer(1)]],
                                           constant MetalConvParams& params  [[buffer(2)]],
                                           const device ftype4 *wt           [[buffer(3)]],
                                           const device ftype4 *biasTerms    [[buffer(4)]],
-                                          ushort3 gid                       [[thread_position_in_grid]],
-                                          ushort3 group_id                  [[threadgroup_position_in_grid]],
-                                          ushort thread_index               [[thread_index_in_threadgroup]]) {
-    if ((int)gid.x >= params.output_width || (int)gid.y >= params.output_height || (int)gid.z >= params.output_slice * params.batch)
-        return;
-    
+                                          uint3 gid                       [[thread_position_in_grid]],
+                                          uint3 group_id                  [[threadgroup_position_in_grid]],
+                                          uint thread_index               [[thread_index_in_threadgroup]]) {
     threadgroup ftype4 input_data_cache[8 * 12];
     
     // compute ld offset of inputs
@@ -78,8 +72,7 @@ kernel void convolution_depthwise5x5_h8w4(const device ftype4 *in           [[bu
     const int ld_offset = ld_start_c * params.input_size;
     
     const int a_smem_st_offset = thread_index;
-    //const int a_smem_cs = 8 * 12;
-
+    
     // load data
     int ld_w = ld_start_w + thread_index % 8;
     int ld_h = ld_start_h + thread_index / 8;
@@ -98,25 +91,133 @@ kernel void convolution_depthwise5x5_h8w4(const device ftype4 *in           [[bu
     bool in_image2 =  ld_h + 8 >= 0 && ld_h + 8 < params.input_height && w_in_image;
     v = in_image2 ? in[ld_pos + 8 * params.input_width] : Zero4;
     input_data_cache[a_smem_st_offset + 64] = v;
+
+    threadgroup_barrier(mem_flags::mem_threadgroup);
     
-    threadgroup_barrier(mem_flags::mem_none);
-    
-    auto z_out = out + (int)gid.z * params.output_size + (int)gid.y * params.output_width + (int)gid.x;
-    auto result = params.has_bias ? biasTerms[gid.z] : Zero4;
-    auto z_wt  = wt  + (int)gid.z * params.kernel_size;
-    
-    int offset_x = thread_index % 4;
-    int offset_y = thread_index / 4;
+    if (!any(gid >= uint3(params.output_width, params.output_height, params.output_slice*params.batch))) {
+        auto z_out = out + (int)gid.z * params.output_size + (int)gid.y * params.output_width + (int)gid.x;
+        auto result = params.has_bias ? biasTerms[gid.z] : Zero4;
+        auto z_wt  = wt  + (int)gid.z * params.kernel_size;
+        
+        int offset_x = thread_index % 4;
+        int offset_y = thread_index / 4;
 #pragma unroll
-    for (auto ky = 0, y = offset_y; ky < 5; ky++, y ++) {
+        for (auto ky = 0, y = offset_y; ky < 5; ky++, y ++) {
+            for (auto kx = 0, x = offset_x; kx < 5; kx++, x ++) {
+                auto wt4 = z_wt[ky * 5   + kx];
+                auto in4 = input_data_cache[ y * 8 + x];
+                result += in4 * wt4;
+            }
+        }
+        
+        *z_out = activate(result, params.activation);
+    }
+}
+
+kernel void convolution_depthwise5x1_h8w4(const device ftype4 *in           [[buffer(0)]],
+                                          device ftype4 *out                [[buffer(1)]],
+                                          constant MetalConvParams& params  [[buffer(2)]],
+                                          const device ftype4 *wt           [[buffer(3)]],
+                                          const device ftype4 *biasTerms    [[buffer(4)]],
+                                          uint3 gid                       [[thread_position_in_grid]],
+                                          uint3 group_id                  [[threadgroup_position_in_grid]],
+                                          uint thread_index               [[thread_index_in_threadgroup]]) {
+    threadgroup ftype4 input_data_cache[8 * 8];
+    
+    // compute ld offset of inputs
+    const int ld_start_w = group_id.x * 4 - params.pad_x;
+    const int ld_start_h = group_id.y * 8 - params.pad_y;
+    const int ld_start_c = group_id.z;
+    
+    const int ld_offset = ld_start_c * params.input_size;
+    
+    const int a_smem_st_offset = thread_index;
+    
+    // load data
+    int ld_w = ld_start_w + thread_index % 8;
+    int ld_h = ld_start_h + thread_index / 8;
+    const int ld_pos = ld_offset + ld_h * params.input_width + ld_w;
+    
+    bool w_in_image = ld_w >=0 && ld_w < params.input_width;
+    
+    bool in_image = (ld_h >=0 && ld_h < params.input_height) && w_in_image;
+    ftype4 v = in_image ? in[ld_pos] : Zero4;
+    input_data_cache[a_smem_st_offset] = v;
+    
+    bool in_image1 =  ld_h + 4 >= 0 && ld_h + 4 < params.input_height && w_in_image ;
+    v = in_image1 ? in[ld_pos + 4 * params.input_width] : Zero4;
+    input_data_cache[a_smem_st_offset +  32] = v;
+    
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    
+    if (!any(gid >= uint3(params.output_width, params.output_height, params.output_slice*params.batch))) {
+        auto z_out = out + (int)gid.z * params.output_size + (int)gid.y * params.output_width + (int)gid.x;
+        auto result = params.has_bias ? biasTerms[gid.z] : Zero4;
+        auto z_wt  = wt  + (int)gid.z * params.kernel_size;
+        
+        int offset_x = thread_index % 4;
+        int y = thread_index / 4;
+#pragma unroll
         for (auto kx = 0, x = offset_x; kx < 5; kx++, x ++) {
-            auto wt4 = z_wt[ky * 5   + kx];
+            auto wt4 = z_wt[kx];
             auto in4 = input_data_cache[ y * 8 + x];
             result += in4 * wt4;
         }
+        
+        *z_out = activate(result, params.activation);
     }
-    
-    *z_out = activate(result, params.activation);
 }
 
-
+kernel void convolution_depthwise1x5_h4w8(const device ftype4 *in           [[buffer(0)]],
+                                          device ftype4 *out                [[buffer(1)]],
+                                          constant MetalConvParams& params  [[buffer(2)]],
+                                          const device ftype4 *wt           [[buffer(3)]],
+                                          const device ftype4 *biasTerms    [[buffer(4)]],
+                                          uint3 gid                       [[thread_position_in_grid]],
+                                          uint3 group_id                  [[threadgroup_position_in_grid]],
+                                          uint thread_index               [[thread_index_in_threadgroup]]) {
+    threadgroup ftype4 input_data_cache[8 * 8];
+    
+    // compute ld offset of inputs
+    const int ld_start_w = group_id.x * 8 - params.pad_x;
+    const int ld_start_h = group_id.y * 4 - params.pad_y;
+    const int ld_start_c = group_id.z;
+    
+    const int ld_offset = ld_start_c * params.input_size;
+    
+    const int a_smem_st_offset = thread_index;
+    
+    // load data
+    int ld_w = ld_start_w + thread_index % 8;
+    int ld_h = ld_start_h + thread_index / 8;
+    const int ld_pos = ld_offset + ld_h * params.input_width + ld_w;
+    
+    bool w_in_image = ld_w >=0 && ld_w < params.input_width;
+    
+    bool in_image = (ld_h >=0 && ld_h < params.input_height) && w_in_image;
+    ftype4 v = in_image ? in[ld_pos] : Zero4;
+    input_data_cache[a_smem_st_offset] = v;
+    
+    bool in_image1 =  ld_h + 4 >= 0 && ld_h + 4 < params.input_height && w_in_image ;
+    v = in_image1 ? in[ld_pos + 4 * params.input_width] : Zero4;
+    input_data_cache[a_smem_st_offset +  32] = v;
+    
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    
+    if (!any(gid >= uint3(params.output_width, params.output_height, params.output_slice*params.batch))) {
+        auto z_out = out + (int)gid.z * params.output_size + (int)gid.y * params.output_width + (int)gid.x;
+        auto result = params.has_bias ? biasTerms[gid.z] : Zero4;
+        auto z_wt  = wt  + (int)gid.z * params.kernel_size;
+        
+        int x = thread_index % 8;
+        int offset_y = thread_index / 8;
+#pragma unroll
+        for (auto ky = 0, y = offset_y; ky < 5; ky++, y ++) {
+            auto wt4 = z_wt[ky];
+            auto in4 = input_data_cache[ y * 8 + x];
+            result += in4 * wt4;
+        }
+        
+        *z_out = activate(result, params.activation);
+    }
+}

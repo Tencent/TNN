@@ -20,7 +20,7 @@ namespace TNN_NS {
 
 Status ReduceLayer::InferOutputShape() {
     auto layer_param = dynamic_cast<ReduceLayerParam*>(param_);
-    if (!layer_param || layer_param->axis.size() != 1) {
+    if (!layer_param) {
         LOGE("Error: Reduce may not support axes != 1, depend on device\n");
         return Status(TNNERR_MODEL_ERR, "Error: Reduce may not support axes != 1, depend on device");
     }
@@ -29,15 +29,14 @@ Status ReduceLayer::InferOutputShape() {
     Blob* output_blob = output_blobs_[0];
     auto dims         = input_blob->GetBlobDesc().dims;
 
-    int axis             = layer_param->axis[0];
-    axis                 = axis >= 0 ? axis : axis + (int)dims.size();
-    layer_param->axis[0] = axis;
-    if (axis < 0 || axis >= dims.size()) {
-        LOGE("Error: layer param axis is invalid\n");
-        return Status(TNNERR_MODEL_ERR, "Error: layer param axis is invalid");
+    for (auto& axis : layer_param->axis) {
+        axis = axis >= 0 ? axis : axis + (int)dims.size();
+        if (axis < 0 || axis >= dims.size()) {
+            LOGE("Error: layer param axis is invalid\n");
+            return Status(TNNERR_MODEL_ERR, "Error: layer param axis is invalid");
+        }
+        dims[axis] = 1;
     }
-
-    dims[layer_param->axis[0]]      = 1;
     output_blob->GetBlobDesc().dims = dims;
 
     return TNN_OK;

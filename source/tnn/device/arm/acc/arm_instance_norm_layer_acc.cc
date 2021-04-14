@@ -55,7 +55,7 @@ Status ArmInstanceNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
 
         for (int b = 0; b < batch; b++) {
             for (int c = 0; c < c_r4; c += 4) {
-                Float4 sum(0);
+                Float4 sum(0.f);
                 auto input_c  = input_data + b * c_r4 * area + c * area;
                 auto output_c = output_data + b * c_r4 * area + c * area;
                 for (int hw = 0; hw < area; ++hw) {
@@ -63,7 +63,7 @@ Status ArmInstanceNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
                     sum    = sum + v;
                 }
                 Float4 mean = Float4::div(sum, area);
-                Float4 sum2(0);
+                Float4 sum2(0.f);
                 for (int hw = 0; hw < area; ++hw) {
                     auto v = Float4::load(input_c + hw * 4) - mean;
                     sum2   = sum2 + v * v;

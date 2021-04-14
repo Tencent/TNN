@@ -13,12 +13,12 @@
 # specific language governing permissions and limitations under the License.
 
 import argparse
+import time
 
 
 def parse_args():
     parser = argparse.ArgumentParser(prog='convert',
                                      description='convert ONNX/Tensorflow/Tensorflowlite/Caffe model to TNN model')
-
     subparsers = parser.add_subparsers(dest="sub_command")
 
     onnx2tnn_parser = subparsers.add_parser('onnx2tnn',
@@ -27,11 +27,14 @@ def parse_args():
                                  action='store',
                                  help="the path for onnx file")
     onnx2tnn_parser.add_argument('-in',
-                                 metavar='input_name',
+                                 metavar='input_info',
                                  dest='input_names',
                                  action='store',
                                  required=False,
-                                 help="specify the shape of input. e.g. -in name[1,3,28,28]")
+                                 nargs='+',
+                                 type=str,
+                                 help="specify the input name and shape of the model. e.g., " +
+                                      "-in input1_name:1,3,128,128 input2_name:1,3,256,256")
     onnx2tnn_parser.add_argument('-optimize',
                                  dest='optimize',
                                  default=False,
@@ -47,7 +50,7 @@ def parse_args():
     onnx2tnn_parser.add_argument('-v',
                                  metavar="v1.0.0",
                                  dest='version',
-                                 default="v1.0.0",
+                                 default=time.strftime('%Y%m%d%H%M', time.localtime()),
                                  action='store',
                                  required=False,
                                  help="the version for model")
@@ -77,7 +80,7 @@ def parse_args():
                                 default=False,
                                 action='store_true',
                                 required=False,
-                                help=argparse.SUPPRESS)
+                                help="Turn on the switch to debug the model.")
 
     # convert caff2onnx -pp proto_path -mp model_path -o
     caffe2tnn_parser = subparsers.add_parser('caffe2tnn',
@@ -98,7 +101,7 @@ def parse_args():
     caffe2tnn_parser.add_argument('-v',
                                   metavar="v1.0",
                                   dest='version',
-                                  default="v1.0.0",
+                                  default=time.strftime('%Y%m%d%H%M', time.localtime()),
                                   action='store',
                                   required=False,
                                   help="the version for model, default v1.0")
@@ -135,7 +138,7 @@ def parse_args():
                                 default=False,
                                 action='store_true',
                                 required=False,
-                                help=argparse.SUPPRESS)
+                                help="Turn on the switch to debug the model.")
 
     tf2tnn_parser = subparsers.add_parser('tf2tnn',
                                           help="convert tensorflow model to tnn model")
@@ -146,18 +149,22 @@ def parse_args():
                                help="the path for tensorflow graphdef file")
 
     tf2tnn_parser.add_argument('-in',
-                               metavar='input_name',
+                               metavar='input_info',
                                dest='input_names',
                                action='store',
+                               nargs='+',
+                               type=str,
                                required=True,
-                               help="the tensorflow model's input names. If batch is not specified, you can add input shape after the input name, e.g. -in \"name[1,28,28,3]\"")
-
+                               help="specify the input name and shape of the model. e.g., " +
+                                      "-in input1_name:1,128,128,3 input2_name:1,256,256,3")
     tf2tnn_parser.add_argument('-on',
                                metavar='output_name',
                                dest='output_names',
                                action='store',
                                required=True,
-                               help="the tensorflow model's output name")
+                               nargs='+',
+                               type=str,
+                               help="the tensorflow model's output name. e.g. -on output_name1 output_name2")
 
     tf2tnn_parser.add_argument('-o',
                                dest='output_dir',
@@ -168,7 +175,7 @@ def parse_args():
     tf2tnn_parser.add_argument('-v',
                                metavar="v1.0",
                                dest='version',
-                               default="v1.0.0",
+                               default=time.strftime('%Y%m%d%H%M', time.localtime()),
                                action='store',
                                required=False,
                                help="the version for model")
@@ -211,7 +218,7 @@ def parse_args():
                                 default=False,
                                 action='store_true',
                                 required=False,
-                                help=argparse.SUPPRESS)
+                                help="Turn on the switch to debug the model.")
     #tflie parser
     tflite2tnn_parser = subparsers.add_parser('tflite2tnn',
                                           help="convert tensorflow-lite model to tnn model")
@@ -228,7 +235,7 @@ def parse_args():
     tflite2tnn_parser.add_argument('-v',
                            metavar="v1.0",
                            dest='version',
-                           default="v1.0.0",
+                           default=time.strftime('%Y%m%d%H%M', time.localtime()),
                            action='store',
                            required=False,
                            help="the version for model")
@@ -259,5 +266,5 @@ def parse_args():
                            default=False,
                            action='store_true',
                            required=False,
-                           help=argparse.SUPPRESS)
+                           help="Turn on the switch to debug the model.")
     return parser

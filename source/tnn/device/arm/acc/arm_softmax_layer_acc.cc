@@ -11,8 +11,11 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
+
+#include "tnn/device/arm/acc/arm_softmax_layer_acc.h"
+
 #include <cmath>
-#include "tnn/device/arm/acc/arm_layer_acc.h"
+
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/bfp16_utils.h"
@@ -20,51 +23,12 @@
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(Softmax, LAYER_SOFTMAX);
-
-Status ArmSoftmaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto in_data_type = inputs[0]->GetBlobDesc().data_type;
-    if (in_data_type == DATA_TYPE_FLOAT) {
-        return Exec<float>(inputs, outputs);
-    } else if (in_data_type == DATA_TYPE_BFP16) {
-        return Exec<bfp16_t>(inputs, outputs);
-    } else {
-        return TNNERR_LAYER_ERR;
-    }
-}
-
 template <typename T>
 Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     SoftmaxLayerParam *layer_param = dynamic_cast<SoftmaxLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
-
-    auto in_data_type = inputs[0]->GetBlobDesc().data_type;
-
-    auto axis = layer_param->axis;
-
-    auto input  = inputs[0];
-    auto output = outputs[0];
-
     int data_byte_size = sizeof(float);
-
-    auto dims    = output->GetBlobDesc().dims;
-    auto width   = dims[3];
-    auto height  = dims[2];
-    auto batch   = dims[0];
-    size_t count = width * height * batch * dims[1];
-
-    int inside  = 1;
-    int outside = 1;
-    int channel = 1;
-
-    for (int i = 1; i < axis; i++) {
-        outside *= dims[i];
-    }
-    channel = dims[axis];
-    for (int i = axis + 1; i < dims.size(); i++) {
-        inside *= dims[i];
-    }
-    auto step_y = channel * inside;
+    SoftmaxPreparation();
 
     RawBuffer reorder_buffer(dims[1] * dims[2] * dims[3] * data_byte_size);
     RawBuffer max_value_buffer(inside * data_byte_size);
@@ -143,6 +107,32 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
     return TNN_OK;
 }
 
+Status ArmSoftmaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto in_data_type              = inputs[0]->GetBlobDesc().data_type;
+    SoftmaxLayerParam *layer_param = dynamic_cast<SoftmaxLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    auto axis = layer_param->axis;
+    if (axis == 0) {
+        LOGE("ARM Softmax not support axis = 0\n");
+        return Status(TNNERR_LAYER_ERR, "ARM Softmax not support axis = 0");
+    }
+
+    if (in_data_type == DATA_TYPE_FLOAT) {
+        return Exec<float>(inputs, outputs);
+    } else if (in_data_type == DATA_TYPE_BFP16) {
+        return Exec<bfp16_t>(inputs, outputs);
+    }
+#if TNN_ARM82
+    else if (in_data_type == DATA_TYPE_HALF) {
+        return ExecFp16(inputs, outputs);
+    }
+#endif
+    else {
+        return TNNERR_LAYER_ERR;
+    }
+}
+
 REGISTER_ARM_ACC(Softmax, LAYER_SOFTMAX)
+REGISTER_ARM_PRECISION_FP16(LAYER_SOFTMAX)
 
 }  // namespace TNN_NS

@@ -20,10 +20,14 @@ typedef struct arm_sigmoid_operator : arm_unary_operator {
     virtual Float4 operator()(const Float4& v) {
         return Float4::sigmoid(v);
     }
+    virtual Float4 fast_op(const Float4& v) {
+        return Float4::fast_sigmoid(v);
+    }
 } ARM_SIGMOID_OP;
 
-DECLARE_ARM_UNARY_ACC(Sigmoid, ARM_SIGMOID_OP);
+DECLARE_ARM_UNARY_ACC_FP16(Sigmoid, ARM_SIGMOID_OP);
 
 REGISTER_ARM_ACC(Sigmoid, LAYER_SIGMOID)
+REGISTER_ARM_PRECISION_FP16(LAYER_SIGMOID)
 
 }  // namespace TNN_NS

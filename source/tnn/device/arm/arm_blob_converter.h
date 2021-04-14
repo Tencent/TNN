@@ -22,6 +22,20 @@
 
 namespace TNN_NS {
 
+typedef Status (*ArmBlobConvertFunc)(Mat& image,
+                                     char* handle_ptr,
+                                     const MatConvertParam& param,
+                                     const DimsVector& dims,
+                                     const int hw,
+                                     const int c_r4,
+                                     std::vector<float>& fused_int8_scale,
+                                     std::vector<float>& fused_int8_bias);
+
+typedef enum {
+    CVT_DIR_MAT2BLOB = 0,
+    CVT_DIR_BLOB2MAT = 1
+} BlobConvertDirection;
+
 class ArmBlobConverterAcc : public BlobConverterAcc {
 public:
     ArmBlobConverterAcc(Blob* blob);
@@ -33,10 +47,34 @@ public:
     virtual Status ConvertFromMat(Mat& image, MatConvertParam param, void* command_queue = NULL);
     virtual Status ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue = NULL);
 
+    static Status RegisterBlobConvertFunc(MatType mat_type, DataType data_type, BlobConvertDirection cvt_dir,
+                                          ArmBlobConvertFunc cvt_func);
+
 private:
+    Status ReverseInputImageChannel(Mat& image, const BlobDesc& desc, const DimsVector& dims, const int hw);
+    Status ReverseOutImageChannel(Mat& image, const BlobDesc& desc, const DimsVector& dims, const int hw);
+
     std::vector<float> fused_int8_scale;
     std::vector<float> fused_int8_bias;
+    ArmBlobConvertFunc cvt_func_;
+
+    static Status GetBlobConvertFunc(MatType mat_type, DataType data_type, BlobConvertDirection cvt_dir,
+                                     ArmBlobConvertFunc& cvt_func);
+    static std::string GetUniqueBlobConvertKey(MatType mat_type, DataType data_type, BlobConvertDirection cvt_dir);
+    static std::map<std::string, ArmBlobConvertFunc>& GetBlobConvertFuncMap();
 };
+
+class ArmBlobConvertFuncRegister {
+public:
+    explicit ArmBlobConvertFuncRegister(MatType mat_type, DataType data_type, BlobConvertDirection cvt_dir,
+                                        ArmBlobConvertFunc cvt_func) {
+        ArmBlobConverterAcc::RegisterBlobConvertFunc(mat_type, data_type, cvt_dir, cvt_func);
+    }
+};
+
+#define REGISTER_ARM_BLOB_CONVERT_FUNC(mat_type, data_type, cvt_dir, cvt_func)                                  \
+    ArmBlobConvertFuncRegister g_arm_##mat_type##_##data_type##_##cvt_dir##_register(mat_type, data_type,       \
+                                                                                     cvt_dir, cvt_func);
 
 }  // namespace TNN_NS
 

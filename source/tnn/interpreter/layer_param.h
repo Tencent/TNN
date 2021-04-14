@@ -41,6 +41,13 @@ enum ActivationType {
     ActivationType_None  = 0x0000,
     ActivationType_ReLU  = 0x0001,
     ActivationType_ReLU6 = 0x0002,
+    ActivationType_SIGMOID_MUL = 0x0100,
+};
+
+enum FusionType {
+    FusionType_None                = 0x0000,
+    FusionType_Conv_Add_Activation = 0x0001,
+    FusionType_Conv_Activation_Add = 0x0002,
 };
 
 struct BatchNormLayerParam : public LayerParam {
@@ -69,6 +76,7 @@ struct ConvLayerParam : public LayerParam {
     int group           = 1;
     int bias            = 0;
     int activation_type = ActivationType_None;
+    int fusion_type     = FusionType_None;
 };
 
 struct PadLayerParam : public LayerParam {
@@ -109,7 +117,7 @@ struct RoiPoolingLayerParam : public LayerParam {
 };
 
 struct UpsampleLayerParam : public LayerParam {
-    //1: nereast 2:bilinear/linear
+    //1: nereast 2: bilinear/linear 3: cubic
     int mode          = 0;
     int align_corners = 0;
 
@@ -239,7 +247,11 @@ typedef enum {
     // broadcast height x width
     BroadcastTypeHeightWidth = 4,
     // broadcast width
-    BroadcastTypeWidth = 5
+    BroadcastTypeWidth = 5,
+    // broadcast channel x height
+    BroadcastTypeChannelHeight = 6,
+    // broadcast channel x width
+    BroadcastTypeChannelWidth = 7
 } BroadcastType;
 
 struct MultidirBroadcastLayerParam : public ElementWiseLayerParam {
@@ -264,7 +276,10 @@ typedef enum {
     DEQUANT_ONLY = 1,
     // data_type + layout for arm
     QUANT_NCHW4_2_NHWC   = 2,
-    DEQUANT_NHWC_2_NCHW4 = 3
+    DEQUANT_NHWC_2_NCHW4 = 3,
+    // data_type + layout for half data type in armv8.2
+    NC4HW4FP32_2_NC8HW8FP16 = 4,
+    NC8HW8FP16_2_NC4HW4FP32 = 5
     // to be continued
 } ReformatType;
 
@@ -338,7 +353,8 @@ struct LRNLayerParam : public LayerParam {
 
 struct ReorgLayerParam : public LayerParam {
     int stride;
-    bool reverse;
+    bool forward;
+    int mode; // DCR: 0  CRD: 1
 };
 
 struct ConstLayerParam : public LayerParam {

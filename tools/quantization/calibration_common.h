@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #ifndef TNN_TOOLS_QUANTIZATION_CALIBRATION_COMMON_H_
@@ -41,11 +41,13 @@ struct DataSet {
 };
 
 struct CalibrationParam {
-    CalibrationMethod blob_quantize_method;
-    CalibrationMethod weights_quantize_method;
-    bool merge_blob_channel;
-    std::vector<float> input_bias;
-    std::vector<float> input_scale;
+    CalibrationMethod blob_quantize_method    = MIN_MAX;
+    CalibrationMethod weights_quantize_method = MIN_MAX;
+    bool merge_blob_channel                   = false;
+    bool merge_weights_channel                = false;
+    std::vector<float> input_bias             = {0, 0, 0, 0};
+    std::vector<float> input_scale            = {1.0f, 1.0f, 1.0f, 1.0f};
+    bool reverse_channel                      = false;
 };
 
 }  // namespace TNN_NS

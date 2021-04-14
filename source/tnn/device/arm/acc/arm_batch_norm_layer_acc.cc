@@ -13,13 +13,12 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_batch_norm_layer_acc.h"
-#include "tnn/device/arm/acc/Float4.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/interpreter/raw_buffer.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -52,21 +51,39 @@ Status ArmBatchNormLayerAcc::allocateBufferParam(const std::vector<Blob *> &inpu
     shared_channel_ = (scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(scale_handle.GetDataType()));
 
     if (!buffer_scale_.GetBytesSize()) {
-        int channel_count = shared_channel_ ? 1 : ROUND_UP(dims_output[1], 4);
-        RawBuffer temp_buffer(channel_count * data_bytes_size);
-        memcpy(temp_buffer.force_to<void *>(), scale_handle.force_to<void *>(), channel_count * data_bytes_size);
-        buffer_scale_ = temp_buffer;
+        if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+            int channel       = shared_channel_ ? 1 : dims_output[1];
+            int channel_count = shared_channel_ ? 1 : ROUND_UP(dims_output[1], 8);
+            RawBuffer temp_buffer(channel_count * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
+            Float2Half(temp_buffer.force_to<fp16_t *>(), scale_handle.force_to<float *>(), channel);
+            buffer_scale_ = temp_buffer;
+        } else {
+            int channel       = shared_channel_ ? 1 : dims_output[1];
+            int channel_count = shared_channel_ ? 1 : ROUND_UP(dims_output[1], 4);
+            RawBuffer temp_buffer(channel_count * data_bytes_size);
+            memcpy(temp_buffer.force_to<void *>(), scale_handle.force_to<void *>(), channel * data_bytes_size);
+            buffer_scale_ = temp_buffer;
+        }
     }
 
     if (!buffer_bias_.GetBytesSize()) {
-        int channel_count = shared_channel_ ? 1 : ROUND_UP(dims_output[1], 4);
-        RawBuffer temp_buffer(channel_count * data_bytes_size);
-        if (bias_handle.force_to<void *>()) {
-            memcpy(temp_buffer.force_to<void *>(), bias_handle.force_to<void *>(), channel_count * data_bytes_size);
+        if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+            int channel       = shared_channel_ ? 1 : dims_output[1];
+            int channel_count = shared_channel_ ? 1 : ROUND_UP(dims_output[1], 8);
+            RawBuffer temp_buffer(channel_count * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
+            if (bias_handle.force_to<void *>()) {
+                Float2Half(temp_buffer.force_to<fp16_t *>(), bias_handle.force_to<float *>(), channel);
+            }
+            buffer_bias_ = temp_buffer;
         } else {
-            memset(temp_buffer.force_to<void *>(), 0, channel_count * data_bytes_size);
+            int channel       = shared_channel_ ? 1 : dims_output[1];
+            int channel_count = shared_channel_ ? 1 : ROUND_UP(dims_output[1], 4);
+            RawBuffer temp_buffer(channel_count * data_bytes_size);
+            if (bias_handle.force_to<void *>()) {
+                memcpy(temp_buffer.force_to<void *>(), bias_handle.force_to<void *>(), channel * data_bytes_size);
+            }
+            buffer_bias_ = temp_buffer;
         }
-        buffer_bias_ = temp_buffer;
     }
 
     return TNN_OK;
@@ -102,16 +119,22 @@ Status ArmBatchNormLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::
         if (!shared_channel_) {
             for (int dz = 0; dz < output_slice; dz++) {
                 for (int x_i = 0; x_i < output_width * output_height; x_i++) {
-                    Float4::save(output_ptr + dz * dst_z_step + x_i * 4,
-                                 Float4::load(input_ptr + dz * src_z_step + x_i * 4) * Float4::load(k_data + dz * 4) +
-                                     Float4::load(b_data + dz * 4));
+                    Float4 input_v  = Float4::load(input_ptr + dz * src_z_step + x_i * 4);
+                    Float4 k_data_v = Float4::load(k_data + dz * 4);
+                    Float4 b_data_v = Float4::load(b_data + dz * 4);
+                    Float4::mla(b_data_v, input_v, k_data_v);
+                    Float4::save(output_ptr + dz * dst_z_step + x_i * 4, b_data_v);
                 }
             }
         } else {
+            Float4 k_data_v = Float4(k_data[0]);
+            Float4 b_data_v = Float4(b_data[0]);
             for (int dz = 0; dz < output_slice; dz++) {
                 for (int x_i = 0; x_i < output_width * output_height; x_i++) {
-                    Float4::save(output_ptr + dz * dst_z_step + x_i * 4,
-                                 Float4::load(input_ptr + dz * src_z_step + x_i * 4) * k_data[0] + b_data[0]);
+                    Float4 input_v = Float4::load(input_ptr + dz * src_z_step + x_i * 4);
+                    Float4 dst_v = b_data_v;
+                    Float4::mla(dst_v, input_v, k_data_v);
+                    Float4::save(output_ptr + dz * dst_z_step + x_i * 4, dst_v);
                 }
             }
         }
@@ -126,11 +149,18 @@ Status ArmBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
         return Exec<float>(inputs, outputs);
     } else if (in_data_type == DATA_TYPE_BFP16) {
         return Exec<bfp16_t>(inputs, outputs);
-    } else {
+    }
+#if TNN_ARM82
+    else if (in_data_type == DATA_TYPE_HALF) {
+        return ExecFp16(inputs, outputs);
+    }
+#endif
+    else {
         return TNNERR_LAYER_ERR;
     }
 }
 
 REGISTER_ARM_ACC(BatchNorm, LAYER_BATCH_NORM)
+REGISTER_ARM_PRECISION_FP16(LAYER_BATCH_NORM)
 
 }  // namespace TNN_NS

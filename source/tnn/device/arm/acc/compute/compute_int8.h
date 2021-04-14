@@ -22,8 +22,8 @@
 #include <algorithm>
 
 #include "tnn/core/macro.h"
-#include "tnn/utils/bfp16.h"
 #include "tnn/device/arm/acc/compute/compute.h"
+#include "tnn/utils/bfp16.h"
 
 namespace TNN_NS {
 
@@ -45,15 +45,44 @@ void FloatToInt8(int8_t* dst, const float* src, const float* scale, long batch, 
 #ifdef __cplusplus
 extern "C" {
 #endif
-void DepthwiseConvI8(const int8_t* src, int8_t* dst, long dst_depth, long src_y_step, long dst_y_step, long dst_height,
-                     long dst_width, long src_height, long src_width, long l, long r, long t, long b, long kernel,
-                     const int8_t* weightPtr, const int32_t* biasPtr, const float* scalePtr, long stride, long pad,
-                     ArmKernelParam* param);
+struct Q8GemmContext {
+    int32_t k;
+    int32_t k_stride;
+    int32_t n;
+    int32_t n_stride;
+    const int8_t* a;
+    int32_t a_stride;
+    const int8_t* packed_w;
+    int8_t* c;
+    int32_t c_stride;
+    float* scales;
+    long relu;
+    const int8_t* add_input;
+    float* add_scale;
+};
+
+typedef void (*GemmInt8N8Func)(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c,
+                               long c_stride, const float* scales, long relu, const int8_t* add_input,
+                               const float* add_scale);
+
+void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l);
+
+void DepthwiseI8Unit(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, long fw, long fh,
+                     long weight_y_step, long dilate_y_step, long dilate_x_step, const float* scale, long dst_depth);
+
+void DepthwiseI8General(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
+                        long dilate_y_step, long dilate_x_step, long src_w_step, long dst_depth, long fw, long fh,
+                        const float* scale_z);
+
+void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
+                   long dilate_y_step, long dilate_x_step, long src_w_step, long dst_depth, long fw, long fh,
+                   const float* scale_z);
 
 void ReluInt8(int8_t* dst, const int8_t* src, long len);
 
 void GemmInt8(int8_t* dst, const int8_t* src, int8_t* work_space, const int8_t* weight, const int32_t* bias,
-              const float* scale, long src_depth_d8, long src_w_step, long dst_depth);
+              const float* scale, long src_depth_d8, long src_w_step, long dst_depth, long relu,
+              const int8_t* add_input = nullptr, const float* add_scale = nullptr);
 
 void GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, const float* scale, long ic_r8,
               long oc_r4);

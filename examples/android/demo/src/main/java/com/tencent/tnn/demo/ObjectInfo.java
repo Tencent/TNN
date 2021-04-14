@@ -9,4 +9,6 @@ public class ObjectInfo {
     public float[] landmarks;
     public int class_id;
     public String label;
+    public float[][] key_points;
+    public int[][] lines;
 }

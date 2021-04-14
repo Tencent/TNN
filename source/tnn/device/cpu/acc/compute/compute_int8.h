@@ -35,10 +35,6 @@ void CPU_ADD(const std::vector<void *> &input_ptrs, const std::vector<float *> &
 void CPU_SUB(const std::vector<void *> &input_ptrs, const std::vector<float *> &scale_ptrs, int scale_len, void *output,
              float *scale_out, DimsVector dims);
 
-void CPU_DEQUANT(const int8_t *input_ptr, const float *scale_ptr, int scale_len, float *output, DimsVector dims);
-
-void CPU_QUANT(const float *input_ptr, const float *scale_ptr, int scale_len, int8_t *output, DimsVector dims);
-
 }  // namespace TNN_NS
 
 #endif  // TNN_CPU_COMPUTE_INT8_H_

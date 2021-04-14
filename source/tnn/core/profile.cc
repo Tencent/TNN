@@ -13,9 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/core/profile.h"
+#include <time.h>
 #include <iomanip>
 #include <sstream>
-#include <time.h>
 
 #include "tnn/core/status.h"
 #include "tnn/utils/string_format.h"
@@ -59,6 +59,10 @@ void ProfilingData::Add(ProfilingData* data) {
     if (dilation_shape.size() <= 0) {
         dilation_shape = data->dilation_shape;
     }
+
+    if (group <= 0) {
+        group = data->group;
+    }
 }
 
 #if TNN_PROFILE
@@ -88,13 +92,30 @@ void ProfileResult::AddProfilingData(std::shared_ptr<ProfilingData> pdata) {
 }
 
 /*
+call this function in network
+*/
+void ProfileResult::AddProfileResult(std::shared_ptr<ProfileResult> result) {
+    auto result_profiling_data = result->GetData();
+    for (auto pf_data : result_profiling_data) {
+        AddProfilingData(pf_data);
+    }
+}
+
+/*
+get profilint data vector
+*/
+std::vector<std::shared_ptr<ProfilingData>> ProfileResult::GetData() {
+    return profiling_data_;
+}
+
+/*
 format print profile info
 */
-std::string ProfileResult::GetProfilingData() {
+std::string ProfileResult::GetProfilingDataInfo() {
     // show the time cost of each layer
     std::string title                     = "Profiling Data";
     const std::vector<std::string> header = {"name",         "Op Type", "Kernel(ms)", "Input Dims", "Output Dims",
-                                            "Filter(OIHW)", "Stride",  "Pad",        "Dilation"};
+                                             "Filter(OIHW)", "Group", "Stride",  "Pad",        "Dilation"};
 
     std::vector<std::vector<std::string>> data;
 
@@ -110,6 +131,7 @@ std::string ProfileResult::GetProfilingData() {
         tuple.push_back(VectorToString(p->input_dims));
         tuple.push_back(VectorToString(p->output_dims));
         tuple.push_back(VectorToString(p->kernel_shape));
+        tuple.push_back(IntToStringFilter(p->group));
         tuple.push_back(VectorToString(p->stride_shape));
         tuple.push_back(VectorToString(p->pad_shape));
         tuple.push_back(VectorToString(p->dilation_shape));
@@ -120,7 +142,7 @@ std::string ProfileResult::GetProfilingData() {
     }
 
     std::string detailed_string = StringFormatter::Table(title, header, data);
-    std::string summary_string  = GetProfilingDataSummary();
+    std::string summary_string  = GetProfilingDataSummary(true);
 
     std::ostringstream ostr;
     ostr << "kernel runtime total: " << kernel_time_sum << " ms\n\n";
@@ -128,7 +150,7 @@ std::string ProfileResult::GetProfilingData() {
     return detailed_string + summary_string + ostr.str();
 }
 
-std::string ProfileResult::GetProfilingDataSummary() {
+std::string ProfileResult::GetProfilingDataSummary(bool do_average) {
     // show the time cost of each type layer
     std::string title_summary                     = "Summary";
     const std::vector<std::string> header_summary = {"Op Type", "Total Kernel Time(ms)", "Percent (%)"};
@@ -136,7 +158,10 @@ std::string ProfileResult::GetProfilingDataSummary() {
     double kernel_time_sum = 0;
     std::map<std::string, std::vector<float>> summary_map;
     for (auto p : profiling_data_) {
-        kernel_time_sum += p->kernel_time / p->count;
+        if (do_average)
+            kernel_time_sum += p->kernel_time / p->count;
+        else
+            kernel_time_sum += p->kernel_time;
         if (summary_map.find(p->op_name) == summary_map.end()) {
             std::vector<float> p_data;
             p_data.push_back(0.0f);
@@ -145,7 +170,10 @@ std::string ProfileResult::GetProfilingDataSummary() {
     }
     for (auto p : profiling_data_) {
         if (summary_map.find(p->op_name) != summary_map.end()) {
-            summary_map[p->op_name][0] += p->kernel_time / p->count;
+            if (do_average)
+                summary_map[p->op_name][0] += p->kernel_time / p->count;
+            else
+                summary_map[p->op_name][0] += p->kernel_time;
         }
     }
     auto summary_pair = SortMapByValue(summary_map);

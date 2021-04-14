@@ -15,6 +15,7 @@
 #ifndef TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_
 #define TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_
 #include <cstdint>
+#include <map>
 #include <vector>
 
 #include "tflite-schema/schema_generated.h"
@@ -27,10 +28,12 @@ bool TFLiteConvertOHWI2IOHW(const float* src, float* dst, int CO, int KH, int KW
 
 bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape);
 
+bool ConvertPermFormatTFLite(std::vector<int32_t>& perm);
+
 // template <typename T>
 bool ConvertConstFormatTFLite(int32_t const* dst, int32_t const* src, std::vector<int32_t> shape);
 
-int ConvertAxisFormatTFLite(int axis);
+int ConvertAxisFormatTFLite(int axis, int input_shape_size = 4);
 
 int Count(std::vector<int> shape);
 

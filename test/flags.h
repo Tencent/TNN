@@ -22,7 +22,7 @@ namespace TNN_NS {
 
 static const char help_message[] = "print a usage message.";
 
-static const char model_type_message[] = "specify model type: TNN, OPENVINO, COREML, SNPE, NCNN.";
+static const char model_type_message[] = "specify model type: TNN, OPENVINO, COREML, SNPE, NCNN, RKCACHE.";
 
 static const char model_path_message[] =
     "specify model path: tnn proto path, openvino xml path, coreml "
@@ -61,15 +61,21 @@ static const char input_shape_message[] = "input shape: name[n,c,h,w]";
 
 static const char network_type_message[] = "network type: NAIVE, NPU, COREML, SNPE, OPENVINO, default NAIVE";
 
+static const char enable_tune_message[] = "enable tune kernel(default false)";
+
+static const char scale_message[] = "input scale: s0,s1,s2,...)";
+
+static const char bias_message[] = "input bias: b0,b1,b2,...)";
+
 DECLARE_bool(h);
 
 DECLARE_string(mt);
 
+DECLARE_string(nt);
+
 DECLARE_string(mp);
 
 DECLARE_string(dt);
-
-DECLARE_string(nt);
 
 DECLARE_string(lp);
 
@@ -96,6 +102,12 @@ DECLARE_int32(it);
 DECLARE_string(pr);
 
 DECLARE_string(is);
+
+DECLARE_bool(et);
+
+DECLARE_string(sc);
+
+DECLARE_string(bi);
 
 }  // namespace TNN_NS
 

@@ -24,6 +24,10 @@ namespace TNN_NS {
 
 DECLARE_CPU_ACC(Normalize, LAYER_NORMALIZE);
 
+bool CheckNormalizeLayerParam(const int p, const int axis, const int across_spatial) {
+    return (p != 1 && p != 2 && p != INT_MAX && p != INT_MIN) || axis != 1 || across_spatial != 0;
+}
+
 Status CpuNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
@@ -47,7 +51,7 @@ Status CpuNormalizeLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     int channel_shared = layer_param->channel_shared;
 
     // old tnn support scale the result of normalize and only norm2
-    if ((p != 1 && p != 2 && p != INT_MAX && p != INT_MIN) || axis != 1 || across_spatial != 0) {
+    if (CheckNormalizeLayerParam(p, axis, across_spatial)) {
         LOGE("Error: layer param is not supported now\n");
         return Status(TNNERR_INST_ERR, "Error: layer param is not supported now");
     }

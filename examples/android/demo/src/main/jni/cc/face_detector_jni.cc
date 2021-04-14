@@ -116,7 +116,7 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(deinit)(JNIEnv *env, jobject thiz)
 
 //#define STB_IMAGE_WRITE_IMPLEMENTATION
 //#include "stb_image_write.h"
-JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint rotate)
+JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint view_width, jint view_height, jint rotate)
 {
     jobjectArray faceInfoArray;
     auto asyncRefDetector = gDetector;
@@ -130,10 +130,16 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromStream)(JNIEnv *env, 
     unsigned char *rgbaData = new unsigned char[height * width * 4];
     yuv420sp_to_rgba_fast_asm((const unsigned char*)yuvData, height, width, (unsigned char*)rgbaData);
     TNN_NS::DeviceType dt = TNN_NS::DEVICE_ARM;
-    TNN_NS::DimsVector target_dims = {1, 4, width, height};
+    TNN_NS::DimsVector input_dims = {1, 4, width, height};
+    TNN_NS::DimsVector resize_dims = {1, 4, 240, 320};
 
-    auto rgbTNN = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, target_dims, rgbaData);
-    std::shared_ptr<TNN_NS::TNNSDKInput> input = std::make_shared<TNN_NS::TNNSDKInput>(rgbTNN);
+    auto input_mat = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, input_dims, rgbaData);
+    auto resize_mat = std::make_shared<TNN_NS::Mat>(dt, TNN_NS::N8UC4, resize_dims);
+
+    TNN_NS::ResizeParam param;
+    TNN_NS::MatUtils::Resize(*input_mat, *resize_mat, param, NULL);
+
+    std::shared_ptr<TNN_NS::TNNSDKInput> input = std::make_shared<TNN_NS::TNNSDKInput>(resize_mat);
     std::shared_ptr<TNN_NS::TNNSDKOutput> output = std::make_shared<TNN_NS::TNNSDKOutput>();
 
     TNN_NS::Status status = asyncRefDetector->Predict(input, output);
@@ -155,11 +161,15 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromStream)(JNIEnv *env, 
             jobject objFaceInfo = env->NewObject(clsFaceInfo, midconstructorFaceInfo);
             int landmarkNum = faceInfoList[i].key_points.size();
             LOGI("face[%d] %f %f %f %f score %f landmark size %d", i, faceInfoList[i].x1, faceInfoList[i].y1, faceInfoList[i].x2, faceInfoList[i].y2, faceInfoList[i].score, landmarkNum);
-            env->SetFloatField(objFaceInfo, fidx1, faceInfoList[i].x1);
-            env->SetFloatField(objFaceInfo, fidy1, faceInfoList[i].y1);
-            env->SetFloatField(objFaceInfo, fidx2, faceInfoList[i].x2);
-            env->SetFloatField(objFaceInfo, fidy2, faceInfoList[i].y2);
-            env->SetFloatField(objFaceInfo, fidscore, faceInfoList[i].score);
+
+            auto face_preview = faceInfoList[i].AdjustToImageSize(width, height);
+            auto face_orig = face_preview.AdjustToViewSize(view_height, view_width, 2);
+
+            env->SetFloatField(objFaceInfo, fidx1, face_orig.x1);
+            env->SetFloatField(objFaceInfo, fidy1, face_orig.y1);
+            env->SetFloatField(objFaceInfo, fidx2, face_orig.x2);
+            env->SetFloatField(objFaceInfo, fidy2, face_orig.y2);
+            env->SetFloatField(objFaceInfo, fidscore, face_orig.score);
             env->SetObjectArrayElement(faceInfoArray, i, objFaceInfo);
             env->DeleteLocalRef(objFaceInfo);
         }
@@ -202,7 +212,6 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromImage)(JNIEnv *env, j
     TNN_NS::Status status = asyncRefDetector->Predict(input, output);
     AndroidBitmap_unlockPixels(env, imageSource);
 
-    asyncRefDetector->ProcessSDKOutput(output);
     faceInfoList = dynamic_cast<TNN_NS::UltraFaceDetectorOutput *>(output.get())->face_list;
 
     if (status != TNN_NS::TNN_OK) {

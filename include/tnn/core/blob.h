@@ -29,9 +29,9 @@ namespace TNN_NS {
 
 //@brief BlobDesc blob data info
 struct PUBLIC BlobDesc {
-    // deivce_type describes devie cpu, gpu, ...
+    // deivce_type describes device cpu, gpu, ...
     DeviceType device_type = DEVICE_NAIVE;
-    // data_type describes data precion fp32, in8, ...
+    // data_type describes data precision fp32, in8, ...
     DataType data_type = DATA_TYPE_FLOAT;
     // data_format describes data order nchw, nhwc, ...
     DataFormat data_format = DATA_FORMAT_AUTO;
@@ -57,9 +57,9 @@ public:
     //@brief create Blob with blob descript and data handle
     Blob(BlobDesc desc, BlobHandle handle);
 
-    ~Blob();    
+    virtual ~Blob();
 
-    //@brief retrun blob desc
+    //@brief return blob desc
     BlobDesc &GetBlobDesc();
 
     //@brief set blob description

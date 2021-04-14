@@ -217,7 +217,7 @@ TNN_BLAZEFACE_DETECTOR(detectFromImage)(JNIEnv *env, jobject thiz, jobject image
 
 JNIEXPORT JNICALL jobjectArray
 TNN_BLAZEFACE_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width,
-                                         jint height, jint rotate) {
+                                         jint height, jint view_width, jint view_height, jint rotate) {
     jobjectArray faceInfoArray;
     auto asyncRefDetector = gDetector;
     // Convert yuv to rgb
@@ -243,7 +243,6 @@ TNN_BLAZEFACE_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray y
     std::shared_ptr<TNN_NS::TNNSDKOutput> output = std::make_shared<TNN_NS::TNNSDKOutput>();
     TNN_NS::Status status = asyncRefDetector->Predict(input, output);
 
-    asyncRefDetector->ProcessSDKOutput(output);
     std::vector<TNN_NS::BlazeFaceInfo> face_info = dynamic_cast<TNN_NS::BlazeFaceDetectorOutput *>(output.get())->face_list;
     LOGI("theithilehtisize %d \n", face_info.size());
     delete[] yuvData;
@@ -259,7 +258,8 @@ TNN_BLAZEFACE_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray y
         for (int i = 0; i < face_info.size(); i++) {
             jobject objFaceInfo = env->NewObject(clsFaceInfo, midconstructorFaceInfo);
             int keypointsNum = face_info[i].key_points.size();
-            auto face_orig = face_info[i].AdjustToViewSize(width, height, 2);
+            auto face_preview = face_info[i].AdjustToImageSize(width, height);
+            auto face_orig = face_preview.AdjustToViewSize(view_height, view_width, 2);
             LOGI("face[%d] %f %f %f %f score %f landmark size %d", i, face_orig.x1, face_orig.y1,
                  face_orig.x2, face_orig.y2, face_orig.score, keypointsNum);
             env->SetFloatField(objFaceInfo, fidx1, face_orig.x1);

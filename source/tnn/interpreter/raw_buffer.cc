@@ -27,10 +27,9 @@ RawBuffer::~RawBuffer() {
     buff_ = nullptr;
 }
 
-RawBuffer::RawBuffer() {
-    bytes_size_ = 0;
-    data_type_  = DATA_TYPE_FLOAT;
-}
+RawBuffer::RawBuffer() :
+  bytes_size_(0),
+  data_type_(DATA_TYPE_FLOAT) {}
 
 RawBuffer::RawBuffer(int bytes_size) {
     buff_ = shared_ptr<char>(new char[bytes_size], [](char *p) { delete[] p; });
@@ -50,12 +49,33 @@ RawBuffer::RawBuffer(const RawBuffer &buf) {
     this->buff_       = buf.buff_;
 }
 
+void* aligned_malloc(size_t bytes_size, size_t alignment) {
+    void* origin_ptr;
+    void** align_ptr;
+    int offset = alignment - 1 + sizeof(void*);
+
+    origin_ptr = (void*)malloc(bytes_size + offset);
+    align_ptr = (void**)(((size_t)(origin_ptr) + offset) & ~(alignment - 1));
+    align_ptr[-1] = origin_ptr;
+    return align_ptr;
+}
+
+void aligned_free(void *align_ptr) {
+    free(((void**)align_ptr)[-1]);
+}
+
+RawBuffer::RawBuffer(int bytes_size, int alignment) {
+    buff_ = shared_ptr<char>(static_cast<char*>(aligned_malloc(bytes_size, alignment)), &aligned_free);
+    memset(buff_.get(), 0, bytes_size);
+    bytes_size_ = bytes_size;
+}
+
 template <typename T>
 void permute(void *in, void *out, size_t outter, size_t inner) {
     T *in_ptr  = static_cast<T *>(in);
     T *out_ptr = static_cast<T *>(out);
-    for (int i = 0; i < outter; i++) {
-        for (int j = 0; j < inner; j++) {
+    for (size_t i = 0; i < outter; i++) {
+        for (size_t j = 0; j < inner; j++) {
             out_ptr[j * outter + i] = in_ptr[i * inner + j];
         }
     }
@@ -159,6 +179,30 @@ RawBuffer ConvertHalfToBFP16(RawBuffer &buf) {
     } else {
         return buf;
     }
+}
+
+std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer) {
+    int element_size = 0;
+    DataType type    = raw_buffer.GetDataType();
+    int bytes        = raw_buffer.GetBytesSize();
+    if (0 == bytes)
+        return nullptr;
+
+    std::shared_ptr<float> float_data;
+    if (type == DATA_TYPE_FLOAT) {
+        element_size = bytes / sizeof(float);
+        float_data.reset(new float[element_size], [](float *p) { delete[] p; });
+        memcpy(float_data.get(), raw_buffer.force_to<float *>(), bytes);
+    } else if (type == DATA_TYPE_HALF) {
+        element_size = bytes / 2;
+        float_data.reset(new float[element_size], [](float *p) { delete[] p; });
+        ConvertFromHalfToFloat(raw_buffer.force_to<void *>(), float_data.get(), element_size);
+    } else if (type == DATA_TYPE_INT8) {
+        LOGE("Not support INT8 raw buffer\n");
+        return nullptr;
+    }
+
+    return float_data;
 }
 
 }  // namespace TNN_NS

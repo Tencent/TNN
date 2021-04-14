@@ -14,6 +14,7 @@
 
 #include "onnx_base_converter.h"
 #include "onnx_utils.h"
+#include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Gemm);

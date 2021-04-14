@@ -18,7 +18,7 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 bool MetalDeconvLayerDepthwise::isPrefered(ConvLayerParam *param,
@@ -46,6 +46,30 @@ Status MetalDeconvLayerDepthwise::AllocateBufferWeight(
                                                                 group, status);
     }
     return status;
+}
+
+Status MetalDeconvLayerDepthwise::AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    id<MTLDevice> device        = [TNNMetalDeviceImpl sharedDevice];
+    ConvLayerParam *layer_param = dynamic_cast<ConvLayerParam *>(param_);
+
+    auto dims_input  = inputs[0]->GetBlobDesc().dims;
+    auto dims_output = outputs[0]->GetBlobDesc().dims;
+
+    // buffer_param_
+    {
+        MetalConvParams metal_params;
+        SetDefaultMetalParams(metal_params, dims_input, dims_output);
+        SetDefaultMetalConvParams(metal_params, layer_param);
+
+        auto status = MetalDeconvLayerCommon::ComputeDeconvParam(metal_params);
+        RETURN_ON_NEQ(status, TNN_OK);
+
+        buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
+                                            length:sizeof(MetalConvParams)
+                                           options:MTLResourceCPUCacheModeWriteCombined];
+    }
+
+    return TNN_OK;
 }
 
 std::string MetalDeconvLayerDepthwise::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -81,9 +105,9 @@ Status MetalDeconvLayerDepthwise::Forward(const std::vector<Blob *> &inputs,
     auto layer_param = dynamic_cast<ConvLayerParam *>(param_);
     auto input                   = inputs[0];
     auto dims_input              = input->GetBlobDesc().dims;
-    if (!layer_param || dims_input[0] != 1 || layer_param->group != dims_input[1]) {
-        LOGE("Error: batch size or group is not support\n");
-        return Status(TNNERR_LAYER_ERR, "batch size or group is not support");
+    if (!layer_param || layer_param->group != dims_input[1]) {
+        LOGE("Error: group is not supported\n");
+        return Status(TNNERR_LAYER_ERR, "group is not supported");
     }
     
     return MetalLayerAcc::Forward(inputs, outputs);

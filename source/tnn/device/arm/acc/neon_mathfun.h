@@ -24,7 +24,8 @@
  *
  *  (this is the zlib license)
  */
-
+#ifndef neon_mathfun_h
+#define neon_mathfun_h
 #include <arm_neon.h>
 
 #define c_inv_mant_mask ~0x7f800000u
@@ -381,7 +382,7 @@ static inline float32x4_t tanh_ps(float32x4_t x)
 
     // abs(x) > HALFMAXLOGF
     // return 1.0 or -1.0
-    uint32x4_t mask_pos = vcgtq_f32(x2, vdupq_n_f32(0.f));
+    uint32x4_t mask_pos = vcgtq_f32(x, vdupq_n_f32(0.f));
     float32x4_t y1 = vreinterpretq_f32_u32(vbslq_u32(mask_pos, vreinterpretq_u32_f32(vdupq_n_f32(1.f)), vreinterpretq_u32_f32(vdupq_n_f32(-1.f))));
 
     y = vreinterpretq_f32_u32(vbslq_u32(mask_l, vreinterpretq_u32_f32(y0), vreinterpretq_u32_f32(y)));
@@ -416,25 +417,24 @@ static inline float32x4_t sqrt_ps(float32x4_t v)
 
 static inline float32x4_t sigmoid_ps(float32x4_t v)
 {
-    float32x4_t y;
-    float32x4_t one = vdupq_n_f32(1.f);
-    float32x4_t zero = vdupq_n_f32(0.f);
-
-    // 1.0f/(1.0f + std::exp(-x))
-    y = div_ps(one, vaddq_f32(one, exp_ps(vsubq_f32(zero, v))));
-
-    return y;
+    float32x4_t _one = vdupq_n_f32(1.f);
+    float32x4_t _v = vnegq_f32(v);
+    _v = exp_ps(_v);
+    _v = vaddq_f32(_v, _one);
+    float32x4_t _outp = vrecpeq_f32(_v);
+    // _outp = vmulq_f32(vrecpsq_f32(_v, _outp), _outp);
+    return vmulq_f32(vrecpsq_f32(_v, _outp), _outp);
 }
 
 //http://ybeernet.blogspot.com/2011/03/speeding-up-sigmoid-function-by.html
 /* sigmoid() computed for 4 float at once: small error*/
 static inline float32x4_t fast_sigmoid_ps(float32x4_t x)
 {
-    float32x4_t const16 = vdupq_n_f32(16.0f);
+    float32x4_t const16 = vdupq_n_f32(256.0f);
     uint32x4_t mask = vcgeq_f32(x, const16);
     
     float32x4_t const1 = vdupq_n_f32(1.0f);
-    float32x4_t const025 = vdupq_n_f32(0.25f*0.25f);
+    float32x4_t const025 = vdupq_n_f32(0.25f*0.25f*0.25f*0.25f);
     
     //y = 1-x/16
     float32x4_t temp = vmlsq_f32(const1, const025, x);
@@ -446,6 +446,12 @@ static inline float32x4_t fast_sigmoid_ps(float32x4_t x)
     temp = vmulq_f32(temp, temp);
     //y16
     temp = vmulq_f32(temp, temp);
+
+    //y256 
+    temp = vmulq_f32(temp, temp);
+    temp = vmulq_f32(temp, temp);
+    temp = vmulq_f32(temp, temp);
+    temp = vmulq_f32(temp, temp);
     
     temp = vaddq_f32(temp, const1);
     float32x4_t result = vrecpeq_f32(temp);
@@ -455,3 +461,4 @@ static inline float32x4_t fast_sigmoid_ps(float32x4_t x)
     
     return result;
 }
+#endif

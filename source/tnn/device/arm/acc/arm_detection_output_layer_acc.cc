@@ -25,14 +25,14 @@ Status ArmDetectionOutputLayerAcc::DoForward(const std::vector<Blob *> &inputs, 
 
     AllocConvertBuffer(inputs, outputs);
 
-    UnPackInputs(inputs);
     // call cpu naive prior box
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        UnPackInputs<float>(inputs);
         NaiveDetectionOutput(GetNchwBlobVector(nchw_blob_in), GetNchwBlobVector(nchw_blob_out), param);
+        PackOutputs<float>(outputs);
     } else {
         return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT data type");
     }
-    PackOutputs(outputs);
 
     return TNN_OK;
 }

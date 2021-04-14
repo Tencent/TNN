@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "test/unit_test/layer_test/test_unary_layer.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -20,7 +21,7 @@ UnaryLayerTest::UnaryLayerTest(LayerType type) {
     layer_type_ = type;
 }
 
-void UnaryLayerTest::RunUnaryTest() {
+void UnaryLayerTest::RunUnaryTest(std::string type_str) {
     // get param
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
@@ -28,6 +29,18 @@ void UnaryLayerTest::RunUnaryTest() {
     DataType data_type = std::get<3>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if ((type_str == "Reciprocal" || type_str == "Softplus") && DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
+
+    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+        GTEST_SKIP();
+    }
+#ifndef TNN_ARM82
+    if (data_type == DATA_TYPE_HALF) {
+        GTEST_SKIP();
+    }
+#endif
     if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
         GTEST_SKIP();
     }
@@ -35,13 +48,19 @@ void UnaryLayerTest::RunUnaryTest() {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
+    std::shared_ptr<LayerParam> param(new LayerParam());
+    param->name = "Unary";
 
-    LayerParam param;
-    param.name = "Unary";
-    Run(layer_type_, &param, nullptr, inputs_desc, outputs_desc);
+    Precision precision = SetPrecision(dev, data_type);
+    
+    // generate proto string
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
+    }
+
+    auto interpreter = GenerateInterpreter(type_str, {input_dims}, param);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

@@ -15,6 +15,7 @@
 #include "tnn/device/arm/arm_mat_util.h"
 
 #include "stdlib.h"
+#include <algorithm>
 #include <type_traits>
 
 #ifdef TNN_USE_NEON
@@ -24,6 +25,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/mat_converter_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -43,9 +45,9 @@ static inline void *armMalloc(size_t size) {
 }
 
 
-#define SATURATE_CAST_UCHAR(X) (unsigned char)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), 0), UCHAR_MAX)
-#define SATURATE_CAST_SHORT(X) (short)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), SHRT_MIN), SHRT_MAX)
-#define SATURATE_CAST_INT(X) (int)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), INT_MIN), INT_MAX)
+#define SATURATE_CAST_UCHAR(X) (unsigned char)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), (int)0), (int)UCHAR_MAX)
+#define SATURATE_CAST_SHORT(X) (short)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), (int)SHRT_MIN), (int)SHRT_MAX)
+#define SATURATE_CAST_INT(X) (int)::std::min(::std::max((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), (int)INT_MIN), (int)INT_MAX)
 
 void MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, int dst_stride) {
     auto src_ptr = reinterpret_cast<uint8_t*>(src);
@@ -59,58 +61,27 @@ void MatMemcpy2D(void* src, void* dst, int width, int height, int src_stride, in
 
 }
 
-static void CalculatePositionAndRatio(int length, double scale, int border, int channel,
-                                      int* position, short* ratio) {
-    const int INTER_RESIZE_COEF_BITS  = 11;
-    const int INTER_RESIZE_COEF_SCALE = 1 << INTER_RESIZE_COEF_BITS;
-    float pos_f;
-    float rat_f;
-    int pos_i;
-    for (int i = 0; i < length; i++) {
-        pos_f = (float)((i + 0.5) * scale - 0.5);
-        pos_i = static_cast<int>(floor(pos_f));
-        rat_f = pos_f - pos_i;
+void MatMemcpy2DWithPadding(void* src, void* dst, int width, int height, int src_stride, int dst_stride,
+                            int top, int bottom, int left, int right, uint8_t pad_val) {
+    auto src_ptr = reinterpret_cast<uint8_t*>(src);
+    auto dst_ptr = reinterpret_cast<uint8_t*>(dst);
 
-        if (pos_i < 0) {
-            pos_i = 0;
-            rat_f = 0.f;
-        }
-        if (pos_i >= border - 1) {
-            pos_i = border - 2;
-            rat_f = 1.f;
-        }
+    int top_plane = top * dst_stride;
+    memset(dst_ptr, pad_val, top_plane);
+    dst_ptr += top_plane;
 
-        position[i] = pos_i * channel;
-
-        float a0 = (1.f - rat_f) * INTER_RESIZE_COEF_SCALE;
-        float a1 = rat_f * INTER_RESIZE_COEF_SCALE;
-
-        ratio[i * 2]     = SATURATE_CAST_SHORT(a0);
-        ratio[i * 2 + 1] = SATURATE_CAST_SHORT(a1);
+    for (int h = 0; h < height; h++) {
+        memset(dst_ptr, pad_val, left);
+        dst_ptr += left;
+        memcpy(dst_ptr, src_ptr, width);
+        src_ptr += src_stride;
+        dst_ptr += width;
+        memset(dst_ptr, pad_val, right);
+        dst_ptr += right;
     }
-}
 
-// Meanings of xofs, yofs, ialpha, ibeta in src image:
-//                               |  ialpha[2*x]  |  ialpha[2*x+1]  |
-//     --       (xofs[x], yofs[y])                                 (xofs[x]+1, yofs[y])
-// ibeta[2*y]
-//     --                              (x*scale_x, y*scale_y)
-// ibeta[2*y+1]
-//     --       (xofs[x], yofs[y]+1)                               (xofs[x]+1, yofs[y]+1)
-static void GetResizeBuf(int src_w, int src_h, int w, int h, int c, int** buf) {
-    double scale_x = (double)src_w / w;
-    double scale_y = (double)src_h / h;
-
-    *buf = new int[w + h + w + h];
-
-    int* xofs = *buf;
-    int* yofs = *buf + w;
-
-    short* ialpha = (short*)(*buf + w + h);
-    short* ibeta  = (short*)(*buf + w + h + w);
-
-    CalculatePositionAndRatio(w, scale_x, src_w, c, xofs, ialpha);
-    CalculatePositionAndRatio(h, scale_y, src_h, 1, yofs, ibeta);
+    int bottom_plane = bottom * dst_stride;
+    memset(dst_ptr, pad_val, bottom_plane);
 }
 
 static void ResizeGetAdjacentRows(int sy, int prev_sy, short** rows0, short** rows1, int* xofs, 
@@ -399,17 +370,19 @@ void ResizeBilinearOneRow(ResizeBilinearKernelParm& param, int thread_id, short*
     ResizeCalculateOneRow(rows0_t[thread_id], rows1_t[thread_id], b0, b1, w, param.schannel, Dp);
 }
 
+#define ResizeBilinearPreparation(channel)                               \
+    int schannel  = channel;                                             \
+    int* buf      = nullptr;                                             \
+    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);                    \
+    int* xofs     = buf;                                                 \
+    int* yofs     = buf + w;                                             \
+    short* ialpha = (short*)(buf + w + h);                               \
+    short* ibeta  = (short*)(buf + w + h + w);                           \
+    int src_plane = src_h * src_stride;
+
 void ResizeBilinearC1Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                           uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 1;
-    int* buf      = nullptr;
-    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    short* ialpha = (short*)(buf + w + h);
-    short* ibeta  = (short*)(buf + w + h + w);
-
-    int src_plane = src_h * src_stride;
+    ResizeBilinearPreparation(1);
 
     ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
 
@@ -442,15 +415,7 @@ void ResizeBilinearC1Impl(const uint8_t* src, int batch, int src_w, int src_h, i
 
 void ResizeBilinearC2Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                           uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 2;
-    int* buf      = nullptr;
-    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    short* ialpha = (short*)(buf + w + h);
-    short* ibeta  = (short*)(buf + w + h + w);
-
-    int src_plane = src_h * src_stride;
+    ResizeBilinearPreparation(2);
 
     ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
 
@@ -483,15 +448,7 @@ void ResizeBilinearC2Impl(const uint8_t* src, int batch, int src_w, int src_h, i
 
 void ResizeBilinearC3Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                           uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 3;
-    int* buf      = nullptr;
-    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    short* ialpha = (short*)(buf + w + h);
-    short* ibeta  = (short*)(buf + w + h + w);
-
-    int src_plane = src_h * src_stride;
+    ResizeBilinearPreparation(3);
 
     ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
 
@@ -524,15 +481,7 @@ void ResizeBilinearC3Impl(const uint8_t* src, int batch, int src_w, int src_h, i
 
 void ResizeBilinearC4Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                           uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 4;
-    int* buf      = nullptr;
-    GetResizeBuf(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    short* ialpha = (short*)(buf + w + h);
-    short* ibeta  = (short*)(buf + w + h + w);
-
-    int src_plane = src_h * src_stride;
+    ResizeBilinearPreparation(4);
 
     ResizeBilinearKernelParm param(xofs, yofs, ialpha, ibeta, src, dst, src_plane, src_stride, schannel);
 
@@ -599,75 +548,60 @@ void ResizeBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, uint8
     return ResizeBilinearC4Impl(src, batch, src_w, src_h, src_w * 4, dst, w, h, w * 4);
 }
 
-static void CalculatePositionAndMask(int length, double scale, int border, int channel,
-                                     int* position, uint8_t* mask) {
-    float pos_f;
-    float rat_f;
-    int pos_i;
-    for (int i = 0; i < length; i++) {
-        pos_f = (float)((i + 0.5) * scale - 0.5);
-        // pos_f = i * scale;
-        pos_i = static_cast<int>(floor(pos_f));
-        rat_f = pos_f - pos_i;
+#define ResizeNearestPreparation(channel)                               \
+    int schannel  = channel;                                            \
+    int* buf      = nullptr;                                            \
+    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);            \
+    int* xofs     = buf;                                                \
+    int* yofs     = buf + w;                                            \
+    uint8_t* ialpha = (uint8_t*)(buf + w + h);                          \
+    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
 
-        if (pos_i < 0) {
-            pos_i = 0;
-            rat_f = 0.f;
-        }
-        if (pos_i >= border - 1) {
-            pos_i = border - 2;
-            rat_f = 1.f;
-        }
+#define ResizeNearestLoopPreparation()                                  \
+    int sy = (ibeta[dy] == 0) ? yofs[dy] + 1 : yofs[dy];                \
+    const uint8_t* Sp = src + src_stride * (b * src_h + sy);            \
+    uint8_t* Dp       = dst + stride * (b * h + dy);                    \
+    int dx = 0;                                                         \
 
-        position[i] = pos_i * channel;
+#ifdef TNN_USE_NEON
 
-        mask[i] = (rat_f <= 0.5) ? -1 : 0;
-    }
-}
+#define MAKE_LOAD(n)                                                    \
+    _sx = vld1q_s32(xofs_p);                                            \
+    _S0 = vld##n##_lane_u8(Sp + _sx[0], _S0, 0);                        \
+    _S0 = vld##n##_lane_u8(Sp + _sx[1], _S0, 1);                        \
+    _S0 = vld##n##_lane_u8(Sp + _sx[2], _S0, 2);                        \
+    _S0 = vld##n##_lane_u8(Sp + _sx[3], _S0, 3);                        \
+    _S1 = vld##n##_lane_u8(Sp + _sx[0] + n, _S1, 0);                    \
+    _S1 = vld##n##_lane_u8(Sp + _sx[1] + n, _S1, 1);                    \
+    _S1 = vld##n##_lane_u8(Sp + _sx[2] + n, _S1, 2);                    \
+    _S1 = vld##n##_lane_u8(Sp + _sx[3] + n, _S1, 3);                    \
+    _sx = vld1q_s32(xofs_p + 4);                                        \
+    _S0 = vld##n##_lane_u8(Sp + _sx[0], _S0, 4);                        \
+    _S0 = vld##n##_lane_u8(Sp + _sx[1], _S0, 5);                        \
+    _S0 = vld##n##_lane_u8(Sp + _sx[2], _S0, 6);                        \
+    _S0 = vld##n##_lane_u8(Sp + _sx[3], _S0, 7);                        \
+    _S1 = vld##n##_lane_u8(Sp + _sx[0] + n, _S1, 4);                    \
+    _S1 = vld##n##_lane_u8(Sp + _sx[1] + n, _S1, 5);                    \
+    _S1 = vld##n##_lane_u8(Sp + _sx[2] + n, _S1, 6);                    \
+    _S1 = vld##n##_lane_u8(Sp + _sx[3] + n, _S1, 7);                    \
+    uint8x8_t _mask = vld1_u8(ialpha_p);                                \
 
-// Meanings of xofs, yofs, ialpha, ibeta in src image:
-//                               |  ialpha[x] (1: left, 0: right)  |
-//     --       (xofs[x], yofs[y])                                 (xofs[x]+1, yofs[y])
-// ibeta[y]
-// (1: top,                            (x*scale_x, y*scale_y)
-//  0: bottom)
-//     --       (xofs[x], yofs[y]+1)                               (xofs[x]+1, yofs[y]+1)
-static void GetResizeBufNearset(int src_w, int src_h, int w, int h, int c, int** buf) {
-    double scale_x = (double)src_w / w;
-    double scale_y = (double)src_h / h;
+#define LOAD_C1() MAKE_LOAD(1)
+#define LOAD_C2() MAKE_LOAD(2)
+#define LOAD_C3() MAKE_LOAD(3)
+#define LOAD_C4() MAKE_LOAD(4)
 
-    *buf = new int[w + h + w + h];
-
-    int* xofs = *buf;
-    int* yofs = *buf + w;
-
-    uint8_t* ialpha = (uint8_t*)(*buf + w + h);
-    uint8_t* ibeta  = (uint8_t*)(*buf + w + h + w);
-
-    CalculatePositionAndMask(w, scale_x, src_w, c, xofs, ialpha);
-    CalculatePositionAndMask(h, scale_y, src_h, 1, yofs, ibeta);
-}
+#endif  // TNN_USE_NEON
 
 void ResizeNearestC1Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                          uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 1;
-    int* buf      = nullptr;
-    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    uint8_t* ialpha = (uint8_t*)(buf + w + h);
-    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+    ResizeNearestPreparation(1);
 
     // loop body
     for (int b = 0; b < batch; ++b) {
         OMP_PARALLEL_FOR_
         for (int dy = 0; dy < h; dy++) {
-            int sy = (ibeta[dy] == 0) ? yofs[dy] + 1 : yofs[dy];
-
-            const uint8_t* Sp = src + src_stride * (b * src_h + sy);
-            uint8_t* Dp       = dst + stride * (b * h + dy);
-
-            int dx = 0;
+            ResizeNearestLoopPreparation();
 #ifdef TNN_USE_NEON
             int32x4_t _sx = int32x4_t();
             uint8x8_t _S0 = uint8x8_t();
@@ -675,42 +609,18 @@ void ResizeNearestC1Impl(const uint8_t* src, int batch, int src_w, int src_h, in
             int* xofs_p       = xofs;
             uint8_t* ialpha_p = ialpha;
             uint8_t* Dp_p     = Dp;
-            for (; dx < w>>3<<3; dx += 8) {
-                _sx = vld1q_s32(xofs_p);
-
-                _S0 = vld1_lane_u8(Sp + _sx[0], _S0, 0);
-                _S0 = vld1_lane_u8(Sp + _sx[1], _S0, 1);
-                _S0 = vld1_lane_u8(Sp + _sx[2], _S0, 2);
-                _S0 = vld1_lane_u8(Sp + _sx[3], _S0, 3);
-
-                _S1 = vld1_lane_u8(Sp + _sx[0] + 1, _S1, 0);
-                _S1 = vld1_lane_u8(Sp + _sx[1] + 1, _S1, 1);
-                _S1 = vld1_lane_u8(Sp + _sx[2] + 1, _S1, 2);
-                _S1 = vld1_lane_u8(Sp + _sx[3] + 1, _S1, 3);
-
-                _sx = vld1q_s32(xofs_p + 4);
-
-                _S0 = vld1_lane_u8(Sp + _sx[0], _S0, 4);
-                _S0 = vld1_lane_u8(Sp + _sx[1], _S0, 5);
-                _S0 = vld1_lane_u8(Sp + _sx[2], _S0, 6);
-                _S0 = vld1_lane_u8(Sp + _sx[3], _S0, 7);
-
-                _S1 = vld1_lane_u8(Sp + _sx[0] + 1, _S1, 4);
-                _S1 = vld1_lane_u8(Sp + _sx[1] + 1, _S1, 5);
-                _S1 = vld1_lane_u8(Sp + _sx[2] + 1, _S1, 6);
-                _S1 = vld1_lane_u8(Sp + _sx[3] + 1, _S1, 7);
-
-                uint8x8_t _mask = vld1_u8(ialpha_p);
+            int simd_loop = 0;
+            for (int i = 0; i < w - 7; i += 8) {
+                LOAD_C1();
 
                 vst1_u8(Dp_p, vbsl_u8(_mask, _S0, _S1));
 
                 xofs_p   += 8;
                 ialpha_p += 8;
                 Dp_p     += 8;
+                ++simd_loop;
             }
-            if (w % 8) {
-                dx -= 8;
-            }
+            dx += simd_loop * 8;
 #endif
             for (; dx < w; dx++) {
                 int sx = xofs[dx];
@@ -724,24 +634,13 @@ void ResizeNearestC1Impl(const uint8_t* src, int batch, int src_w, int src_h, in
 
 void ResizeNearestC2Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                          uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 2;
-    int* buf      = nullptr;
-    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    uint8_t* ialpha = (uint8_t*)(buf + w + h);
-    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+    ResizeNearestPreparation(2);
 
     // loop body
     for (int b = 0; b < batch; ++b) {
         OMP_PARALLEL_FOR_
         for (int dy = 0; dy < h; dy++) {
-            int sy = (ibeta[dy] == 0) ? yofs[dy] + 1 : yofs[dy];
-
-            const uint8_t* Sp = src + src_stride * (b * src_h + sy);
-            uint8_t* Dp       = dst + stride * (b * h + dy);
-
-            int dx = 0;
+            ResizeNearestLoopPreparation();
 #ifdef TNN_USE_NEON
             int32x4_t _sx   = int32x4_t();
             uint8x8x2_t _S0 = uint8x8x2_t();
@@ -750,32 +649,9 @@ void ResizeNearestC2Impl(const uint8_t* src, int batch, int src_w, int src_h, in
             int* xofs_p       = xofs;
             uint8_t* ialpha_p = ialpha;
             uint8_t* Dp_p     = Dp;
-            for (; dx < w>>3<<3; dx += 8) {
-                _sx = vld1q_s32(xofs_p);
-
-                _S0 = vld2_lane_u8(Sp + _sx[0], _S0, 0);
-                _S0 = vld2_lane_u8(Sp + _sx[1], _S0, 1);
-                _S0 = vld2_lane_u8(Sp + _sx[2], _S0, 2);
-                _S0 = vld2_lane_u8(Sp + _sx[3], _S0, 3);
-
-                _S1 = vld2_lane_u8(Sp + _sx[0] + 2, _S1, 0);
-                _S1 = vld2_lane_u8(Sp + _sx[1] + 2, _S1, 1);
-                _S1 = vld2_lane_u8(Sp + _sx[2] + 2, _S1, 2);
-                _S1 = vld2_lane_u8(Sp + _sx[3] + 2, _S1, 3);
-
-                _sx = vld1q_s32(xofs_p + 4);
-
-                _S0 = vld2_lane_u8(Sp + _sx[0], _S0, 4);
-                _S0 = vld2_lane_u8(Sp + _sx[1], _S0, 5);
-                _S0 = vld2_lane_u8(Sp + _sx[2], _S0, 6);
-                _S0 = vld2_lane_u8(Sp + _sx[3], _S0, 7);
-
-                _S1 = vld2_lane_u8(Sp + _sx[0] + 2, _S1, 4);
-                _S1 = vld2_lane_u8(Sp + _sx[1] + 2, _S1, 5);
-                _S1 = vld2_lane_u8(Sp + _sx[2] + 2, _S1, 6);
-                _S1 = vld2_lane_u8(Sp + _sx[3] + 2, _S1, 7);
-
-                uint8x8_t _mask = vld1_u8(ialpha_p);
+            int simd_loop  = 0;
+            for (int i = 0; i < w - 7; i += 8) {
+                LOAD_C2();
 
                 _S2.val[0] = vbsl_u8(_mask, _S0.val[0], _S1.val[0]);
                 _S2.val[1] = vbsl_u8(_mask, _S0.val[1], _S1.val[1]);
@@ -784,10 +660,9 @@ void ResizeNearestC2Impl(const uint8_t* src, int batch, int src_w, int src_h, in
                 xofs_p   += 8;
                 ialpha_p += 8;
                 Dp_p     += 8 * 2;
+                ++simd_loop;
             }
-            if (w % 8) {
-                dx -= 8;
-            }
+            dx += simd_loop * 8;
 #endif
             for (; dx < w; dx++) {
                 int sx = xofs[dx];
@@ -802,24 +677,13 @@ void ResizeNearestC2Impl(const uint8_t* src, int batch, int src_w, int src_h, in
 
 void ResizeNearestC3Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                          uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 3;
-    int* buf      = nullptr;
-    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    uint8_t* ialpha = (uint8_t*)(buf + w + h);
-    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+    ResizeNearestPreparation(3);
 
     // loop body
     for (int b = 0; b < batch; ++b) {
         OMP_PARALLEL_FOR_
         for (int dy = 0; dy < h; dy++) {
-            int sy = (ibeta[dy] == 0) ? yofs[dy] + 1 : yofs[dy];
-
-            const uint8_t* Sp = src + src_stride * (b * src_h + sy);
-            uint8_t* Dp       = dst + stride * (b * h + dy);
-
-            int dx = 0;
+            ResizeNearestLoopPreparation();
 #ifdef TNN_USE_NEON
             int32x4_t _sx   = int32x4_t();
             uint8x8x3_t _S0 = uint8x8x3_t();
@@ -828,32 +692,9 @@ void ResizeNearestC3Impl(const uint8_t* src, int batch, int src_w, int src_h, in
             int* xofs_p       = xofs;
             uint8_t* ialpha_p = ialpha;
             uint8_t* Dp_p     = Dp;
-            for (; dx < w>>3<<3; dx += 8) {
-                _sx = vld1q_s32(xofs_p);
-
-                _S0 = vld3_lane_u8(Sp + _sx[0], _S0, 0);
-                _S0 = vld3_lane_u8(Sp + _sx[1], _S0, 1);
-                _S0 = vld3_lane_u8(Sp + _sx[2], _S0, 2);
-                _S0 = vld3_lane_u8(Sp + _sx[3], _S0, 3);
-
-                _S1 = vld3_lane_u8(Sp + _sx[0] + 3, _S1, 0);
-                _S1 = vld3_lane_u8(Sp + _sx[1] + 3, _S1, 1);
-                _S1 = vld3_lane_u8(Sp + _sx[2] + 3, _S1, 2);
-                _S1 = vld3_lane_u8(Sp + _sx[3] + 3, _S1, 3);
-
-                _sx = vld1q_s32(xofs_p + 4);
-
-                _S0 = vld3_lane_u8(Sp + _sx[0], _S0, 4);
-                _S0 = vld3_lane_u8(Sp + _sx[1], _S0, 5);
-                _S0 = vld3_lane_u8(Sp + _sx[2], _S0, 6);
-                _S0 = vld3_lane_u8(Sp + _sx[3], _S0, 7);
-
-                _S1 = vld3_lane_u8(Sp + _sx[0] + 3, _S1, 4);
-                _S1 = vld3_lane_u8(Sp + _sx[1] + 3, _S1, 5);
-                _S1 = vld3_lane_u8(Sp + _sx[2] + 3, _S1, 6);
-                _S1 = vld3_lane_u8(Sp + _sx[3] + 3, _S1, 7);
-
-                uint8x8_t _mask = vld1_u8(ialpha_p);
+            int simd_loop = 0;
+            for (int i = 0; i < w - 7; i += 8) {
+                LOAD_C3();
 
                 _S2.val[0] = vbsl_u8(_mask, _S0.val[0], _S1.val[0]);
                 _S2.val[1] = vbsl_u8(_mask, _S0.val[1], _S1.val[1]);
@@ -863,10 +704,9 @@ void ResizeNearestC3Impl(const uint8_t* src, int batch, int src_w, int src_h, in
                 xofs_p   += 8;
                 ialpha_p += 8;
                 Dp_p     += 8 * 3;
+                ++simd_loop;
             }
-            if (w % 8) {
-                dx -= 8;
-            }
+            dx += simd_loop * 8;
 #endif
             for (; dx < w; dx++) {
                 int sx = xofs[dx];
@@ -882,24 +722,13 @@ void ResizeNearestC3Impl(const uint8_t* src, int batch, int src_w, int src_h, in
 
 void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, int src_stride,
                          uint8_t* dst, int w, int h, int stride) {
-    int schannel  = 4;
-    int* buf      = nullptr;
-    GetResizeBufNearset(src_w, src_h, w, h, schannel, &buf);
-    int* xofs     = buf;
-    int* yofs     = buf + w;
-    uint8_t* ialpha = (uint8_t*)(buf + w + h);
-    uint8_t* ibeta  = (uint8_t*)(buf + w + h + w);
+    ResizeNearestPreparation(4);
 
     // loop body
     for (int b = 0; b < batch; ++b) {
         OMP_PARALLEL_FOR_
         for (int dy = 0; dy < h; dy++) {
-            int sy = (ibeta[dy] == 0) ? yofs[dy] + 1 : yofs[dy];
-
-            const uint8_t* Sp = src + src_stride * (b * src_h + sy);
-            uint8_t* Dp       = dst + stride * (b * h + dy);
-
-            int dx = 0;
+            ResizeNearestLoopPreparation();
 #ifdef TNN_USE_NEON
             int32x4_t _sx   = int32x4_t();
             uint8x8x4_t _S0 = uint8x8x4_t();
@@ -908,32 +737,9 @@ void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, in
             int* xofs_p       = xofs;
             uint8_t* ialpha_p = ialpha;
             uint8_t* Dp_p     = Dp;
-            for (; dx < w>>3<<3; dx += 8) {
-                _sx = vld1q_s32(xofs_p);
-
-                _S0 = vld4_lane_u8(Sp + _sx[0], _S0, 0);
-                _S0 = vld4_lane_u8(Sp + _sx[1], _S0, 1);
-                _S0 = vld4_lane_u8(Sp + _sx[2], _S0, 2);
-                _S0 = vld4_lane_u8(Sp + _sx[3], _S0, 3);
-
-                _S1 = vld4_lane_u8(Sp + _sx[0] + 4, _S1, 0);
-                _S1 = vld4_lane_u8(Sp + _sx[1] + 4, _S1, 1);
-                _S1 = vld4_lane_u8(Sp + _sx[2] + 4, _S1, 2);
-                _S1 = vld4_lane_u8(Sp + _sx[3] + 4, _S1, 3);
-
-                _sx = vld1q_s32(xofs_p + 4);
-
-                _S0 = vld4_lane_u8(Sp + _sx[0], _S0, 4);
-                _S0 = vld4_lane_u8(Sp + _sx[1], _S0, 5);
-                _S0 = vld4_lane_u8(Sp + _sx[2], _S0, 6);
-                _S0 = vld4_lane_u8(Sp + _sx[3], _S0, 7);
-
-                _S1 = vld4_lane_u8(Sp + _sx[0] + 4, _S1, 4);
-                _S1 = vld4_lane_u8(Sp + _sx[1] + 4, _S1, 5);
-                _S1 = vld4_lane_u8(Sp + _sx[2] + 4, _S1, 6);
-                _S1 = vld4_lane_u8(Sp + _sx[3] + 4, _S1, 7);
-
-                uint8x8_t _mask = vld1_u8(ialpha_p);
+            int simd_loop = 0;
+            for (int i = 0; i < w - 7; i += 8) {
+                LOAD_C4();
 
                 _S2.val[0] = vbsl_u8(_mask, _S0.val[0], _S1.val[0]);
                 _S2.val[1] = vbsl_u8(_mask, _S0.val[1], _S1.val[1]);
@@ -944,10 +750,9 @@ void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, in
                 xofs_p   += 8;
                 ialpha_p += 8;
                 Dp_p     += 8 * 4;
+                ++simd_loop;
             }
-            if (w % 8) {
-                dx -= 8;
-            }
+            dx += simd_loop * 8;
 #endif
             for (; dx < w; dx++) {
                 int sx = xofs[dx];
@@ -961,6 +766,16 @@ void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, in
 
     delete[] buf;
 }
+
+#ifdef TNN_USE_NEON
+
+#undef MAKE_LOAD
+#undef LOAD_C1
+#undef LOAD_C2
+#undef LOAD_C3
+#undef LOAD_C4
+
+#endif  // TNN_USE_NEON
 
 void ResizeNearestC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
     return ResizeNearestC1Impl(src, batch, src_w, src_h, src_w, dst, w, h, w);
@@ -1004,17 +819,6 @@ void ResizeNearestYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, 
 #define INTER_TAB_SIZE  (1<<INTER_BITS)
 #define KSIZE 2
 static short BilinearTab_i[INTER_TAB_SIZE*INTER_TAB_SIZE][KSIZE][KSIZE];
-
-static inline void InterpolateLinear(float x, float* coeffs) {
-    coeffs[0] = 1.f - x;
-    coeffs[1] = x;
-}
-
-static void InitInterTab1D(float* tab, int tabsz) {
-    float scale = 1.f / tabsz;
-    for (int i = 0; i < tabsz; i++, tab += 2)
-        InterpolateLinear(i * scale, tab);
-}
 
 // Interpolation table of size 32 x 32 x 4:
 // (1*1,     0*1,     1*0,     0*0)    , ... , (1/32*1,     31/32*1,     1/32*0,     31/32*0)
@@ -1073,38 +877,13 @@ static void InitInterTab2D() {
 static void WarpAffineInit(uint8_t* dst, int batch, int dst_w, int dst_h, int channel, const float border_val,
                            const float (*transform)[3], int** buffer) {
     uint8_t border_ival = (uint8_t)border_val;
-    if (border_ival) {
-        for (int i = 0; i < batch * dst_h * dst_w * channel; ++i) {
-            dst[i] = border_ival;
-        }
-    } else {
-        memset(dst, 0, batch * dst_h * dst_w * channel);
-    }
+    memset(dst, border_ival, batch * dst_h * dst_w * channel);
 
     // Init LookUp Table
     InitInterTab2D();
 
     double m[6];
-    double M[6];
-    M[0] = transform[0][0];
-    M[1] = transform[0][1];
-    M[2] = transform[0][2];
-    M[3] = transform[1][0];
-    M[4] = transform[1][1];
-    M[5] = transform[1][2];
-
-    // Inverse transform matrix
-    double D   = M[0] * M[4] - M[1] * M[3];
-    D          = D != 0 ? 1. / D : 0;
-    double A11 = M[4] * D, A22 = M[0] * D;
-    m[0]      = A11;
-    m[1]      = M[1] * (-D);
-    m[3]      = M[3] * (-D);
-    m[4]      = A22;
-    double b1 = -A11 * M[2] - m[1] * M[5];
-    double b2 = -m[3] * M[2] - A22 * M[5];
-    m[2]      = b1;
-    m[5]      = b2;
+    WarpAffineMatrixInverse(transform, m);
 
     *buffer = reinterpret_cast<int*>(armMalloc((dst_w + dst_h) * 2 * sizeof(int)));
 
@@ -1120,6 +899,16 @@ static void WarpAffineInit(uint8_t* dst, int batch, int dst_w, int dst_h, int ch
         *bdelta++ = SATURATE_CAST_INT((m[1] * y + m[2]) * 1024);
         *bdelta++ = SATURATE_CAST_INT((m[4] * y + m[5]) * 1024);
     }
+}
+
+static inline bool CheckDataIsOnBoundary(const int new_x_loc, const int new_y_loc, const int src_w, const int src_h) {
+    return new_x_loc >= -1 && new_x_loc <= (src_w - 1) &&
+           new_y_loc >= -1 && new_y_loc <= (src_h - 1);
+}
+
+static inline bool CheckDataIsInBoundary(const int new_x_loc, const int new_y_loc, const int src_w, const int src_h) {
+    return new_x_loc >= 0 && new_x_loc < (src_w - 1) &&
+           new_y_loc >= 0 && new_y_loc < (src_h - 1);
 }
 
 static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, int* bdelta, int channel,
@@ -1197,8 +986,7 @@ static void WarpAffinePrepareOneRow(int* buf_loc, short* tab_loc, int* adelta, i
             tab_loc[x] = new_xy_float;
             x_count++;
             end_x = x;
-        } else if (new_x_loc >= -1 && new_x_loc <= (src_w - 1) &&
-                   new_y_loc >= -1 && new_y_loc <= (src_h - 1)) {
+        } else if (CheckDataIsOnBoundary(new_x_loc, new_y_loc, src_w, src_h)) {
             short* wtab = BilinearTab_i[new_xy_float][0];
             int dsc_loc = x * channel;
 
@@ -1225,6 +1013,25 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
     const short* tab_loc_p = tab_loc + begin_x;
     const short* tab_p     = BilinearTab_i[0][0];
     int x                  = begin_x;
+
+#ifdef TNN_USE_NEON
+
+#define MAKE_CAL(n)                                                                 \
+    _val0    = vmull_s16(_tab0, vget_low_s16(_src16_0##n));                         \
+    _val1    = vmull_s16(_tab1, vget_high_s16(_src16_0##n));                        \
+    _val2    = vmull_s16(_tab2, vget_low_s16(_src16_1##n));                         \
+    _val3    = vmull_s16(_tab3, vget_high_s16(_src16_1##n));                        \
+    _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));      \
+    _res0123 = vaddq_s32(_res0123, _offset);                                        \
+    _res16   = vshrn_n_s32(_res0123, 15);                                           \
+    _resu8.val[n] = vqmovun_s16(vcombine_s16(_res16, _res16));                      \
+
+#define CAL_C0() MAKE_CAL(0)
+#define CAL_C1() MAKE_CAL(1)
+#define CAL_C2() MAKE_CAL(2)
+#define CAL_C3() MAKE_CAL(3)
+
+#endif
 
     if (channel == 1) {
 #ifdef TNN_USE_NEON
@@ -1335,23 +1142,8 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             int16x4_t _res16;
             uint8x8x2_t _resu8;
 
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_00));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_00));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_10));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_10));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[0] = vqmovun_s16(vcombine_s16(_res16, _res16));
-
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_01));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_01));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_11));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_11));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[1] = vqmovun_s16(vcombine_s16(_res16, _res16));
+            CAL_C0();
+            CAL_C1();
 
             vst2_lane_u8(dst_p, _resu8, 0);
             vst2_lane_u8(dst_p + 2, _resu8, 1);
@@ -1426,32 +1218,9 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             int16x4_t _res16;
             uint8x8x3_t _resu8;
 
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_00));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_00));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_10));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_10));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[0] = vqmovun_s16(vcombine_s16(_res16, _res16));
-
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_01));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_01));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_11));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_11));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[1] = vqmovun_s16(vcombine_s16(_res16, _res16));
-
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_02));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_02));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_12));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_12));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[2] = vqmovun_s16(vcombine_s16(_res16, _res16));
+            CAL_C0();
+            CAL_C1();
+            CAL_C2();
 
             vst3_lane_u8(dst_p, _resu8, 0);
             vst3_lane_u8(dst_p + 3, _resu8, 1);
@@ -1534,41 +1303,10 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             int16x4_t _res16;
             uint8x8x4_t _resu8;
 
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_00));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_00));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_10));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_10));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[0] = vqmovun_s16(vcombine_s16(_res16, _res16));
-
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_01));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_01));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_11));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_11));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[1] = vqmovun_s16(vcombine_s16(_res16, _res16));
-
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_02));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_02));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_12));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_12));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[2] = vqmovun_s16(vcombine_s16(_res16, _res16));
-
-            _val0    = vmull_s16(_tab0, vget_low_s16(_src16_03));
-            _val1    = vmull_s16(_tab1, vget_high_s16(_src16_03));
-            _val2    = vmull_s16(_tab2, vget_low_s16(_src16_13));
-            _val3    = vmull_s16(_tab3, vget_high_s16(_src16_13));
-            _res0123 = VPADDQ_S32(VPADDQ_S32(_val0, _val1), VPADDQ_S32(_val2, _val3));
-            _res0123 = vaddq_s32(_res0123, _offset);
-            _res16   = vshrn_n_s32(_res0123, 15);
-            _resu8.val[3] = vqmovun_s16(vcombine_s16(_res16, _res16));
+            CAL_C0();
+            CAL_C1();
+            CAL_C2();
+            CAL_C3();
 
             vst4_lane_u8(dst_p, _resu8, 0);
             vst4_lane_u8(dst_p + 4, _resu8, 1);
@@ -1614,150 +1352,73 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             dst[dst_loc + 3] = SATURATE_CAST_UCHAR((val_xy3 + (1 << 14)) >> 15);
         }
     }
+
+#ifdef TNN_USE_NEON
+
+#undef MAKE_CAL
+#undef CAL_C0
+#undef CAL_C1
+#undef CAL_C2
+#undef CAL_C3
+
+#endif
+
+}
+
+template <int schannel>
+static void WarpAffineBilinear(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                        const float (*transform)[3], const float border_val) {
+    int src_plane = src_h * src_w * schannel;
+
+    int* buffer = nullptr;
+    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
+    int* adelta = buffer;
+    int* bdelta = buffer + dst_w * 2;
+
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    int* buf_loc        = new int[dst_w * max_num_threads];
+    short* tab_loc      = new short[dst_w * max_num_threads];
+
+    const unsigned char* src2 = src + src_w * schannel;
+
+    OMP_PARALLEL_FOR_
+    for (int y = 0; y < dst_h * batch; ++y) {
+        int thread_id    = OMP_TID_;
+        int x_count      = 0;
+        int end_x        = 0;
+        int dst_loc_base = y * dst_w * schannel;
+        int* buf_loc_t   = buf_loc + thread_id * dst_w;
+        short* tab_loc_t = tab_loc + thread_id * dst_w;
+
+        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
+                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
+        WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
+    }
+
+    delete[] buf_loc;
+    delete[] tab_loc;
+
+    free(buffer);
 }
 
 void WarpAffineBilinearC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                           const float (*transform)[3], const float border_val) {
-    int schannel  = 1;
-    int src_plane = src_h * src_w * schannel;
-
-    int* buffer = nullptr;
-    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
-    int* adelta = buffer;
-    int* bdelta = buffer + dst_w * 2;
-
-    int max_num_threads = OMP_MAX_THREADS_NUM_;
-    int* buf_loc        = new int[dst_w * max_num_threads];
-    short* tab_loc      = new short[dst_w * max_num_threads];
-
-    const unsigned char* src2 = src + src_w * schannel;
-
-    OMP_PARALLEL_FOR_
-    for (int y = 0; y < dst_h * batch; ++y) {
-        int thread_id    = OMP_TID_;
-        int x_count      = 0;
-        int end_x        = 0;
-        int dst_loc_base = y * dst_w * schannel;
-        int* buf_loc_t   = buf_loc + thread_id * dst_w;
-        short* tab_loc_t = tab_loc + thread_id * dst_w;
-
-        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
-        WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
-    }
-
-    delete[] buf_loc;
-    delete[] tab_loc;
-
-    free(buffer);
+    WarpAffineBilinear<1>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
 }
 
 void WarpAffineBilinearC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                           const float (*transform)[3], const float border_val) {
-    int schannel  = 2;
-    int src_plane = src_h * src_w * schannel;
-
-    int* buffer = nullptr;
-    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
-    int* adelta = buffer;
-    int* bdelta = buffer + dst_w * 2;
-
-    int max_num_threads = OMP_MAX_THREADS_NUM_;
-    int* buf_loc        = new int[dst_w * max_num_threads];
-    short* tab_loc      = new short[dst_w * max_num_threads];
-
-    const unsigned char* src2 = src + src_w * schannel;
-
-    OMP_PARALLEL_FOR_
-    for (int y = 0; y < dst_h * batch; ++y) {
-        int thread_id    = OMP_TID_;
-        int x_count      = 0;
-        int end_x        = 0;
-        int dst_loc_base = y * dst_w * schannel;
-        int* buf_loc_t   = buf_loc + thread_id * dst_w;
-        short* tab_loc_t = tab_loc + thread_id * dst_w;
-
-        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
-        WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
-    }
-
-    delete[] buf_loc;
-    delete[] tab_loc;
-
-    free(buffer);
+    WarpAffineBilinear<2>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
 }
 
 void WarpAffineBilinearC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                           const float (*transform)[3], const float border_val) {
-    int schannel  = 3;
-    int src_plane = src_h * src_w * schannel;
-
-    int* buffer = nullptr;
-    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
-    int* adelta = buffer;
-    int* bdelta = buffer + dst_w * 2;
-
-    int max_num_threads = OMP_MAX_THREADS_NUM_;
-    int* buf_loc        = new int[dst_w * max_num_threads];
-    short* tab_loc      = new short[dst_w * max_num_threads];
-
-    const unsigned char* src2 = src + src_w * schannel;
-
-    OMP_PARALLEL_FOR_
-    for (int y = 0; y < dst_h * batch; ++y) {
-        int thread_id    = OMP_TID_;
-        int x_count      = 0;
-        int end_x        = 0;
-        int dst_loc_base = y * dst_w * schannel;
-        int* buf_loc_t   = buf_loc + thread_id * dst_w;
-        short* tab_loc_t = tab_loc + thread_id * dst_w;
-
-        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
-        WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
-    }
-
-    delete[] buf_loc;
-    delete[] tab_loc;
-
-    free(buffer);
+    WarpAffineBilinear<3>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
 }
 
 void WarpAffineBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                           const float (*transform)[3], const float border_val) {
-    int schannel  = 4;
-    int src_plane = src_h * src_w * schannel;
-
-    int* buffer = nullptr;
-    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
-    int* adelta = buffer;
-    int* bdelta = buffer + dst_w * 2;
-
-    int max_num_threads = OMP_MAX_THREADS_NUM_;
-    int* buf_loc        = new int[dst_w * max_num_threads];
-    short* tab_loc      = new short[dst_w * max_num_threads];
-
-    const unsigned char* src2 = src + src_w * schannel;
-
-    OMP_PARALLEL_FOR_
-    for (int y = 0; y < dst_h * batch; ++y) {
-        int thread_id    = OMP_TID_;
-        int x_count      = 0;
-        int end_x        = 0;
-        int dst_loc_base = y * dst_w * schannel;
-        int* buf_loc_t   = buf_loc + thread_id * dst_w;
-        short* tab_loc_t = tab_loc + thread_id * dst_w;
-
-        WarpAffinePrepareOneRow(buf_loc_t, tab_loc_t, adelta, bdelta, schannel, src, src_w, src_h,
-                                dst + dst_loc_base, dst_w, y % dst_h, (y / dst_h) * src_plane, x_count, end_x, border_val);
-        WarpAffineCalculateOneRow(end_x - x_count + 1, end_x, schannel, dst_loc_base, buf_loc_t, tab_loc_t, src, src2, dst);
-    }
-
-    delete[] buf_loc;
-    delete[] tab_loc;
-
-    free(buffer);
+    WarpAffineBilinear<4>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
 }
 
 void WarpAffineBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
@@ -1778,6 +1439,137 @@ void WarpAffineBilinearYUV420sp(const uint8_t* src, int batch, int src_w, int sr
         const uint8_t* srcUV = srcY + src_w * src_h;
         uint8_t* dstUV       = dstY + dst_w * dst_h;
         WarpAffineBilinearC2(srcUV, 1, src_w / 2, src_h / 2, dstUV, dst_w / 2, dst_h / 2, transform, border_val);
+    }
+}
+
+template <int schannel>
+static void WarpAffineNearest(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                              const float (*transform)[3], const float border_val) {
+    uint8_t border_ival = (uint8_t)border_val;
+    int* buffer = nullptr;
+    WarpAffineInit(dst, batch, dst_w, dst_h, schannel, border_val, transform, &buffer);
+    int* adelta = buffer;
+    int* bdelta = buffer + dst_w * 2;
+
+    int src_stride = src_w * schannel;
+    int src_plane  = src_h * src_w * schannel;
+    OMP_PARALLEL_FOR_
+    for (int y = 0; y < dst_h * batch; ++y) {
+        int y_c = y / dst_h;
+        int y_r = y % dst_h;
+
+        auto src_b = src + y_c * src_plane;
+        auto dst_y = dst + y * dst_w * schannel;
+
+        for (int x = 0; x < dst_w; ++x) {
+            int new_x     = adelta[2 * x] + bdelta[2 * y_r] + 16;
+            int new_y     = adelta[2 * x + 1] + bdelta[2 * y_r + 1] + 16;
+            int new_x_loc = new_x >> 10;
+            int new_y_loc = new_y >> 10;
+
+            bool is_left  = ((new_x >> 5) & 31) < 16;
+            bool is_top   = ((new_y >> 5) & 31) < 16;
+
+            int src_loc   = (new_x_loc + new_y_loc * src_w) * schannel;
+            auto src_y1   = src_b + src_loc;
+            auto src_y2   = src_y1 + src_stride;
+            auto dst_x    = dst_y + x * schannel;
+
+            if (CheckDataIsInBoundary(new_x_loc, new_y_loc, src_w, src_h)) {
+                int c = 0;
+#ifdef TNN_USE_NEON
+                if (schannel == 4) {
+                    uint8x8_t v_is_top = is_top ? vdup_n_u8(255) : vdup_n_u8(0);
+                    uint8x8_t v_src_1  = vld1_u8(src_y1);
+                    uint8x8_t v_src_2  = vld1_u8(src_y2);
+                    uint8x8_t v_src_h  = vbsl_u8(v_is_top, v_src_1, v_src_2);
+                    if (is_left) {
+                        vst1_lane_u8(dst_x, v_src_h, 0);
+                        vst1_lane_u8(dst_x + 1, v_src_h, 1);
+                        vst1_lane_u8(dst_x + 2, v_src_h, 2);
+                        vst1_lane_u8(dst_x + 3, v_src_h, 3);
+                    } else {
+                        vst1_lane_u8(dst_x, v_src_h, 4);
+                        vst1_lane_u8(dst_x + 1, v_src_h, 5);
+                        vst1_lane_u8(dst_x + 2, v_src_h, 6);
+                        vst1_lane_u8(dst_x + 3, v_src_h, 7);
+                    }
+                    c = 4;
+                }
+#endif
+                for (; c < schannel; c++) {
+                    uint8_t point00 = src_y1[c];
+                    uint8_t point01 = src_y1[schannel + c];
+                    uint8_t point10 = src_y2[c];
+                    uint8_t point11 = src_y2[schannel + c];
+                    if (is_top) {
+                        dst_x[c] = is_left ? point00 : point01;
+                    } else {
+                        dst_x[c] = is_left ? point10 : point11;
+                    }
+                }
+            } else if (CheckDataIsOnBoundary(new_x_loc, new_y_loc, src_w, src_h)) {
+                int mask0 = new_x_loc >= 0 && new_y_loc >= 0;
+                int mask1 = new_x_loc <= (src_w - 2) && new_y_loc >= 0;
+                int mask2 = new_x_loc >= 0 && new_y_loc <= (src_h - 2);
+                int mask3 = new_x_loc <= (src_w - 2) && new_y_loc <= (src_h - 2);
+
+                for (int c = 0; c < schannel; ++c) {
+                    uint8_t point00 = mask0 ? src_y1[c] : border_ival;
+                    uint8_t point01 = mask1 ? src_y1[schannel + c] : border_ival;
+                    uint8_t point10 = mask2 ? src_y2[c] : border_ival;
+                    uint8_t point11 = mask3 ? src_y2[schannel + c] : border_ival;
+                    if (is_top) {
+                        dst_x[c] = is_left ? point00 : point01;
+                    } else {
+                        dst_x[c] = is_left ? point10 : point11;
+                    }
+                }
+            }
+        }
+    }
+
+    free(buffer);
+}
+
+void WarpAffineNearestC1(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                         const float (*transform)[3], const float border_val) {
+    WarpAffineNearest<1>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
+}
+
+void WarpAffineNearestC2(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                         const float (*transform)[3], const float border_val) {
+    WarpAffineNearest<2>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
+}
+
+void WarpAffineNearestC3(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                         const float (*transform)[3], const float border_val) {
+    WarpAffineNearest<3>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
+}
+
+void WarpAffineNearestC4(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                         const float (*transform)[3], const float border_val) {
+    WarpAffineNearest<4>(src, batch, src_w, src_h, dst, dst_w, dst_h, transform, border_val);
+}
+
+void WarpAffineNearestYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                               const float (*transform)[3], const float border_val) {
+    // assert src_w % 2 == 0
+    // assert src_h % 2 == 0
+    // assert dst_w % 2 == 0
+    // assert dst_h % 2 == 0
+
+    int src_plane = src_w * src_h * 3 / 2;
+    int dst_plane = dst_w * dst_h * 3 / 2;
+
+    for (int b = 0; b < batch; ++b) {
+        const uint8_t* srcY  = src + b * src_plane;
+        uint8_t* dstY        = dst + b * dst_plane;
+        WarpAffineNearestC1(srcY, 1, src_w, src_h, dstY, dst_w, dst_h, transform, border_val);
+
+        const uint8_t* srcUV = srcY + src_w * src_h;
+        uint8_t* dstUV       = dstY + dst_w * dst_h;
+        WarpAffineNearestC2(srcUV, 1, src_w / 2, src_h / 2, dstUV, dst_w / 2, dst_h / 2, transform, border_val);
     }
 }
 

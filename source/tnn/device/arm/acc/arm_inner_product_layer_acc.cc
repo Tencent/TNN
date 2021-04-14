@@ -167,6 +167,10 @@ Status ArmInnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
         if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
             auto o_scale        = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource()->scale_handle;
             auto w_scale        = fc_res->scale_handle;
+
+            if (w_scale.GetDataType() == DATA_TYPE_HALF)
+                w_scale = ConvertHalfHandle(w_scale);
+
             int total_byte_size = ROUND_UP(dims_output[1], 4) * sizeof(float);
             buffer_scale_       = RawBuffer(total_byte_size);
             auto w_scale_ptr    = w_scale.force_to<float *>();
@@ -238,24 +242,41 @@ Status ArmInnerProductLayerAcc::Exec<int8_t>(const std::vector<Blob *> &inputs, 
     InnerProductLayerParam *fc_param = dynamic_cast<InnerProductLayerParam *>(param_);
     auto dims_input                  = inputs[0]->GetBlobDesc().dims;
     auto dims_output                 = outputs[0]->GetBlobDesc().dims;
-    auto ic                          = dims_input[3] * dims_input[2] * ROUND_UP(dims_input[1], 4);
-    auto ic_r4                       = ROUND_UP(ic, 4);
-    auto oc_r4                       = ROUND_UP(dims_output[1], 4);
-
     auto input_origin  = reinterpret_cast<int8_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
     auto output_origin = reinterpret_cast<int8_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+
+    auto ic    = dims_input[1];
+    auto ic_r4 = ROUND_UP(ic, 4);
+    auto hw    = dims_input[2] * dims_input[3];
+    auto ik    = ic * hw;
+    auto ik_r8 = ROUND_UP(ik, 8);
+    auto oc_r4 = ROUND_UP(dims_output[1], 4);
+
+    int8_t *tmp_ptr = (int8_t *)context_->GetSharedWorkSpace(ik_r8);
+    for (int k = ik; k < ik_r8; ++k) {
+        tmp_ptr[k] = 0;
+    }
+
     for (int n = 0; n < dims_output[0]; n++) {
-        auto input_ptr  = input_origin + n * ic_r4;
+        auto input_ptr  = input_origin + n * ic_r4 * hw;
         auto output_ptr = output_origin + n * oc_r4;
-        auto ic_r8      = ROUND_UP(ic_r4, 8);
-        if (ic_r4 != ic_r8) {
-            int8_t *tmp_ptr = (int8_t *)context_->GetSharedWorkSpace(ic_r8);
-            memcpy(tmp_ptr, input_ptr, ic_r4);
-            *(int32_t *)(tmp_ptr + ic_r4) = 0;
-            input_ptr                     = tmp_ptr;
+
+        if (hw == 1) {
+            if (ic_r4 != ik_r8) {
+                memcpy(tmp_ptr, input_ptr, ic_r4);
+            } else {
+                tmp_ptr = input_ptr;
+            }
+        } else if (ic == 1) {
+            for (int k = 0; k < ik; ++k) {
+                tmp_ptr[k] = input_ptr[k<<2];
+            }
+        } else {
+            UnpackHWC4ToCHW(tmp_ptr, input_ptr, ic, hw);
         }
-        GemvInt8(output_ptr, input_ptr, buffer_weight_.force_to<int8_t *>(), buffer_bias_.force_to<int32_t *>(),
-                 buffer_scale_.force_to<float *>(), ROUND_UP(ic_r4, 8), oc_r4);
+
+        GemvInt8(output_ptr, tmp_ptr, buffer_weight_.force_to<int8_t *>(), buffer_bias_.force_to<int32_t *>(),
+                 buffer_scale_.force_to<float *>(), ik_r8, oc_r4);
     }
 
     return TNN_OK;

@@ -27,7 +27,7 @@ Status ArmPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
     PoolingLayerParam *param = dynamic_cast<PoolingLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
 
-    int corner_l_ = 0, corner_t_ = 0, corner_r_ = k_param_->ow, corner_b_ = k_param_->oh;
+    corner_l_ = 0, corner_t_ = 0, corner_r_ = k_param_->ow, corner_b_ = k_param_->oh;
     for (; corner_l_ * param->strides[0] - param->pads[0] < 0; corner_l_++)
         ;
     for (; corner_t_ * param->strides[1] - param->pads[2] < 0; corner_t_++)
@@ -95,7 +95,29 @@ Status ArmPoolingLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
                            param->strides[1], param->pads[0], param->pads[2]);
             }
         }
-    } else {
+    }
+#if TNN_ARM82
+    else if (input->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        auto oc_8       = UP_DIV(dims_output[1], 8);
+        auto input_plane_stride  = 8 * k_param_->iw * k_param_->ih;
+        auto output_plane_stride = 8 * k_param_->ow * k_param_->oh;
+        OMP_PARALLEL_FOR_
+        for (int plane = (int)0; plane < batch * oc_8; plane++) {
+            if (param->pool_type == 0) {
+                MaxPoolingHalf(reinterpret_cast<fp16_t *>(input_ptr) + plane * input_plane_stride, k_param_->iw,
+                               k_param_->ih, reinterpret_cast<fp16_t *>(output_ptr) + output_plane_stride * plane,
+                               k_param_->ow, k_param_->oh, param->kernels[0], param->kernels[1], param->strides[0],
+                               param->strides[1], param->pads[0], param->pads[2]);
+            } else {
+                AvgPoolingHalf(reinterpret_cast<fp16_t *>(input_ptr) + plane * input_plane_stride, k_param_->iw,
+                               k_param_->ih, reinterpret_cast<fp16_t *>(output_ptr) + output_plane_stride * plane,
+                               k_param_->ow, k_param_->oh, param->kernels[0], param->kernels[1], param->strides[0],
+                               param->strides[1], param->pads[0], param->pads[2]);
+            }
+        }
+    }
+#endif
+    else if (input->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         // INT8
         for (int n = 0; n < batch; n++) {
             auto input_batch_stride  = k_param_->iw * k_param_->ih * oc_4 * 4;
@@ -112,11 +134,14 @@ Status ArmPoolingLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
                                param->strides[0], param->strides[1], param->pads[0], param->pads[2]);
             }
         }
+    } else {
+        return Status(TNNERR_LAYER_ERR, "Error: arm pooling layer got unsupported data type");
     }
 
     return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Pooling, LAYER_POOLING)
+REGISTER_ARM_PRECISION_FP16(LAYER_POOLING)
 
 }  // namespace TNN_NS

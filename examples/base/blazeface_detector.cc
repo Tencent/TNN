@@ -13,10 +13,15 @@
 // specific language governing permissions and limitations under the License.
 
 #include "blazeface_detector.h"
-#include <sys/time.h>
 #include <cmath>
 #include <fstream>
 #include <cstring>
+#include <time.h>
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <sys/time.h>
+#endif
 
 namespace TNN_NS {
 
@@ -50,22 +55,7 @@ Status BlazeFaceDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
 
 std::shared_ptr<Mat> BlazeFaceDetector::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat,
                                                                    std::string name) {
-    auto target_dims = GetInputShape(name);
-    auto input_height = input_mat->GetHeight();
-    auto input_width = input_mat->GetWidth();
-    if (target_dims.size() >= 4 &&
-        (input_height != target_dims[2] || input_width != target_dims[3])) {
-        auto target_mat = std::make_shared<TNN_NS::Mat>(input_mat->GetDeviceType(),
-                                                        input_mat->GetMatType(), target_dims);
-        auto status = Resize(input_mat, target_mat, TNNInterpLinear);
-        if (status == TNN_OK) {
-            return target_mat;
-        } else {
-            LOGE("%s\n", status.description().c_str());
-            return nullptr;
-        }
-    }
-    return input_mat;
+    return TNNSDKSample::ResizeToInputShape(input_mat, name);
 }
 
 MatConvertParam BlazeFaceDetector::GetConvertParamForInput(std::string tag) {
@@ -140,80 +130,7 @@ void BlazeFaceDetector::GenerateBBox(std::vector<BlazeFaceInfo> &detects, TNN_NS
 }
 
 void BlazeFaceDetector::BlendingNMS(std::vector<BlazeFaceInfo> &input, std::vector<BlazeFaceInfo> &output, float min_suppression_threshold) {
-    std::sort(input.begin(), input.end(), [](const BlazeFaceInfo &a, const BlazeFaceInfo &b) { return a.score > b.score; });
-    output.clear();
-
-    size_t box_num = input.size();
-
-    std::vector<int> merged(box_num, 0);
-
-    for (int i = 0; i < box_num; i++) {
-        if (merged[i])
-            continue;
-        //buffer for blending NMS
-        std::vector<BlazeFaceInfo> buf;
-        buf.push_back(input[i]);
-        merged[i] = 1;
-
-        float h0 = input[i].y2 - input[i].y1 + 1;
-        float w0 = input[i].x2 - input[i].x1 + 1;
-
-        float area0 = h0 * w0;
-
-        for (int j = i + 1; j < box_num; j++) {
-            if (merged[j])
-                continue;
-
-            float inner_x0 = input[i].x1 > input[j].x1 ? input[i].x1 : input[j].x1;
-            float inner_y0 = input[i].y1 > input[j].y1 ? input[i].y1 : input[j].y1;
-
-            float inner_x1 = input[i].x2 < input[j].x2 ? input[i].x2 : input[j].x2;
-            float inner_y1 = input[i].y2 < input[j].y2 ? input[i].y2 : input[j].y2;
-
-            float inner_h = inner_y1 - inner_y0 + 1;
-            float inner_w = inner_x1 - inner_x0 + 1;
-
-            if (inner_h <= 0 || inner_w <= 0)
-                continue;
-
-            float inner_area = inner_h * inner_w;
-
-            float h1 = input[j].y2 - input[j].y1 + 1;
-            float w1 = input[j].x2 - input[j].x1 + 1;
-
-            float area1 = h1 * w1;
-
-            float score;
-
-            score = inner_area / (area0 + area1 - inner_area);
-
-            if (score > min_suppression_threshold) {
-                merged[j] = 1;
-                buf.push_back(input[j]);
-            }
-        }
-        float total = 0;
-        for (int i = 0; i < buf.size(); i++) {
-            total += exp(buf[i].score);
-        }
-        BlazeFaceInfo rects;
-        rects.key_points.resize(num_keypoints, std::make_pair(0, 0));
-        rects.image_width = buf[0].image_width;
-        rects.image_height = buf[0].image_height;
-        for (int i = 0; i < buf.size(); i++) {
-            float rate = exp(buf[i].score) / total;
-            rects.x1 += buf[i].x1 * rate;
-            rects.y1 += buf[i].y1 * rate;
-            rects.x2 += buf[i].x2 * rate;
-            rects.y2 += buf[i].y2 * rate;
-            rects.score += buf[i].score * rate;
-            for(int j = 0; j < buf[i].key_points.size(); ++j) {
-                rects.key_points[j].first += buf[i].key_points[j].first * rate;
-                rects.key_points[j].second += buf[i].key_points[j].second * rate;
-            }
-        }
-        output.push_back(rects);
-    }
+    ::TNN_NS::NMS(input, output, min_suppression_threshold, TNNBlendingNMS);
 }
 
 }

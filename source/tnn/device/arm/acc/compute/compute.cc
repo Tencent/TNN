@@ -29,11 +29,11 @@ namespace TNN_NS {
 /*
 add bias
 */
-template <typename T>
-void PostAddBias(void* dst, const float* bias, long area, long oc4) {
+template <typename T1, typename T2>
+void PostAddBias(void* dst, const void* bias, long area, long oc4) {
     for (long z = oc4 - 1; z >= 0; --z) {
-        Float4 vbias = Float4::load(bias + 4 * z);
-        auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+        Float4 vbias = Float4::load(reinterpret_cast<const T2*>(bias) + 4 * z);
+        auto dst_z   = reinterpret_cast<T1*>(dst) + area * 4 * z;
         long p       = 0;
         for (; p < area - 3; p += 4) {
             auto dst_p = dst_z + 4 * p;
@@ -45,18 +45,18 @@ void PostAddBias(void* dst, const float* bias, long area, long oc4) {
         }
     }
 }
-template void PostAddBias<float>(void* dst, const float* bias, long area, long oc4);
-template void PostAddBias<bfp16_t>(void* dst, const float* bias, long area, long oc4);
+template void PostAddBias<float>(void* dst, const void* bias, long area, long oc4);
+template void PostAddBias<bfp16_t>(void* dst, const void* bias, long area, long oc4);
 
 /*
 bias + relu
 */
-template <typename T>
-void PostAddBiasRelu(void* dst, const float* bias, long area, long oc4) {
+template <typename T1, typename T2>
+void PostAddBiasRelu(void* dst, const void* bias, long area, long oc4) {
     Float4 vzero(0.f);
     for (long z = oc4 - 1; z >= 0; --z) {
-        Float4 vbias = Float4::load(bias + 4 * z);
-        auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+        Float4 vbias = Float4::load(reinterpret_cast<const T2*>(bias) + 4 * z);
+        auto dst_z   = reinterpret_cast<T1*>(dst) + area * 4 * z;
         long p       = 0;
         for (; p < area - 3; p += 4) {
             auto dst_p = dst_z + 4 * p;
@@ -70,19 +70,19 @@ void PostAddBiasRelu(void* dst, const float* bias, long area, long oc4) {
         }
     }
 }
-template void PostAddBiasRelu<float>(void* dst, const float* bias, long area, long oc4);
-template void PostAddBiasRelu<bfp16_t>(void* dst, const float* bias, long area, long oc4);
+template void PostAddBiasRelu<float>(void* dst, const void* bias, long area, long oc4);
+template void PostAddBiasRelu<bfp16_t>(void* dst, const void* bias, long area, long oc4);
 
 /*
 bias + relu6
 */
-template <typename T>
-void PostAddBiasRelu6(void* dst, const float* bias, long area, long oc4) {
+template <typename T1, typename T2>
+void PostAddBiasRelu6(void* dst, const void* bias, long area, long oc4) {
     Float4 vzero(0.f);
     Float4 vrelu6(6.f);
     for (long z = oc4 - 1; z >= 0; --z) {
-        Float4 vbias = Float4::load(bias + 4 * z);
-        auto dst_z   = reinterpret_cast<T*>(dst) + area * 4 * z;
+        Float4 vbias = Float4::load(reinterpret_cast<const T2*>(bias) + 4 * z);
+        auto dst_z   = reinterpret_cast<T1*>(dst) + area * 4 * z;
         long p       = 0;
         for (; p < area - 3; p += 4) {
             auto dst_p = dst_z + 4 * p;
@@ -96,8 +96,38 @@ void PostAddBiasRelu6(void* dst, const float* bias, long area, long oc4) {
         }
     }
 }
-template void PostAddBiasRelu6<float>(void* dst, const float* bias, long area, long oc4);
-template void PostAddBiasRelu6<bfp16_t>(void* dst, const float* bias, long area, long oc4);
+template void PostAddBiasRelu6<float>(void* dst, const void* bias, long area, long oc4);
+template void PostAddBiasRelu6<bfp16_t>(void* dst, const void* bias, long area, long oc4);
+
+template <typename T1, typename T2, bool Fast>
+void PostAddBiasSwish(void* dst, const void* bias, long area, long oc4) {
+    auto f = Fast? Float4::fast_sigmoid : Float4::sigmoid;
+
+    if (!bias) {
+        for (long z = oc4 - 1; z >= 0; --z) {
+            auto dst_z   = reinterpret_cast<T1*>(dst) + area * 4 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p = dst_z + 4 * p;
+                Float4 val = Float4::load(dst_p);
+                Float4::save(dst_p, val * f(val));
+            }
+        }
+    } else {
+        for (long z = oc4 - 1; z >= 0; --z) {
+            Float4 vbias = Float4::load(reinterpret_cast<const T2*>(bias) + 4 * z);
+            auto dst_z   = reinterpret_cast<T1*>(dst) + area * 4 * z;
+            for (long p = 0; p < area; ++p) {
+                auto dst_p = dst_z + 4 * p;
+                Float4 val = Float4::load(dst_p) + vbias;
+                Float4::save(dst_p, val * f(val));
+            }
+        }
+    }
+}
+template void PostAddBiasSwish<float, float, false>(void* dst, const void* bias, long area, long oc4);
+template void PostAddBiasSwish<float, float, true>(void* dst, const void* bias, long area, long oc4);
+template void PostAddBiasSwish<bfp16_t, float, false>(void* dst, const void* bias, long area, long oc4);
+template void PostAddBiasSwish<bfp16_t, float, true>(void* dst, const void* bias, long area, long oc4);
 
 /*
 min(x, clap)
@@ -280,6 +310,17 @@ void ConvDw5x5Bfp16SlideW(void* dst_z, void** cache_line, const void* weight_z, 
                  reinterpret_cast<const float*>(weight_z), dst_width, 5, 5);
 }
 
+template <typename T>
+void ActiveOutput(T* dst, const Float4* src, long relu, int num) {
+    for (long i = 0; i < num; i++) {
+        if (relu) {
+            Float4::save(dst + i * 4, Float4::max(src[i], Float4(0.f)));
+        } else {
+            Float4::save(dst + i * 4, src[i]);
+        }
+    }
+}
+
 /*
 micro kernel used in gemm like conv, such as conv1x1, conv3x3 winograd
 */
@@ -322,13 +363,7 @@ void GEMM_FLOAT_NCHW(T* dst, const T* src, const float* weight, long src_depth_q
                     v_dst[7] = v_dst[7] + v_weight[i] * v_src[i][1].value[3];
                 }
             }
-            for (long i = 0; i < 8; i++) {
-                if (relu) {
-                    Float4::save(dst_dx + i * 4, Float4::max(v_dst[i], Float4(0.f)));
-                } else {
-                    Float4::save(dst_dx + i * 4, v_dst[i]);
-                }
-            }
+            ActiveOutput(dst_dx, v_dst, relu, 8);
         }
         // process 4x4 results in one loop
         for (; dx + 3 < width; dx += 4) {
@@ -354,13 +389,7 @@ void GEMM_FLOAT_NCHW(T* dst, const T* src, const float* weight, long src_depth_q
                     v_dst[3] = v_dst[3] + v_weight[i] * v_src[i].value[3];
                 }
             }
-            for (long i = 0; i < 4; i++) {
-                if (relu) {
-                    Float4::save(dst_dx + i * 4, Float4::max(v_dst[i], Float4(0.f)));
-                } else {
-                    Float4::save(dst_dx + i * 4, v_dst[i]);
-                }
-            }
+            ActiveOutput(dst_dx, v_dst, relu, 4);
         }
         // the process 1x4 results in one loop
         for (; dx < width; ++dx) {
@@ -379,17 +408,13 @@ void GEMM_FLOAT_NCHW(T* dst, const T* src, const float* weight, long src_depth_q
                     v_dst = v_dst + v_weight[i] * v_src.value[i];
                 }
             }
-            if (relu) {
-                Float4::save(dst_dx, Float4::max(v_dst, Float4(0.f)));
-            } else {
-                Float4::save(dst_dx, v_dst);
-            }
+            ActiveOutput(dst_dx, &v_dst, relu, 1);
         }
     }
 }
 
 void GEMM_BFP16_N4(bfp16_t* dst, const bfp16_t* src, const float* weight, long src_depth_quad, long dst_step,
-                   long dst_depth_quad, long width, float* bias, int64_t relu) {
+                   long dst_depth_quad, long width, float* bias, long relu) {
     GEMM_FLOAT_NCHW(dst, src, weight, src_depth_quad, dst_step, dst_depth_quad, width, bias, relu);
 }
 
@@ -397,6 +422,7 @@ void GEMM_FLOAT_N4(float* dst, const float* src, const float* weight, long src_d
                    long dst_depth_quad, long width, float* bias, long relu) {
     GEMM_FLOAT_NCHW(dst, src, weight, src_depth_quad, dst_step, dst_depth_quad, width, bias, relu);
 }
+
 #endif
 
 #ifdef TNN_USE_NEON
@@ -580,8 +606,8 @@ template void AvgPooling(const bfp16_t* src, long iw, long ih, bfp16_t* dst, lon
 /*
 convdw unit, used in four cornels calc
 */
-template <typename T>
-void DepthwiseUnit(T* dst, const T* src, const float* weight, long fw, long fh, long weight_y_step, long dilate_x_step,
+template <typename T1, typename T2>
+void DepthwiseUnit(T1* dst, const T1* src, const T2* weight, long fw, long fh, long weight_y_step, long dilate_x_step,
                    long dilate_y_step) {
     long fx, fy;
     Float4 dst_v(0.0f);
@@ -598,16 +624,16 @@ void DepthwiseUnit(T* dst, const T* src, const float* weight, long fw, long fh, 
     }
     Float4::save(dst, dst_v);
 }
-template void DepthwiseUnit(float* dst, const float* src, const float* weight, long fw, long fh, long weight_y_step,
+template void DepthwiseUnit<float>(float* dst, const float* src, const float* weight, long fw, long fh, long weight_y_step,
                             long dilate_x_step, long dilate_y_step);
-template void DepthwiseUnit(bfp16_t* dst, const bfp16_t* src, const float* weight, long fw, long fh, long weight_y_step,
+template void DepthwiseUnit<bfp16_t>(bfp16_t* dst, const bfp16_t* src, const float* weight, long fw, long fh, long weight_y_step,
                             long dilate_x_step, long dilate_y_step);
 
 /*
 general convdw func
 */
-template <typename T>
-void DepthwiseConv(T* dst, const T* src, const float* weight, long width, long src_w_step, long fw, long fh,
+template <typename T1, typename T2>
+void DepthwiseConv(T1* dst, const T1* src, const T2* weight, long width, long src_w_step, long fw, long fh,
                    long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep) {
     long dx, fx, fy;
     for (long y = 0; y < height; ++y) {
@@ -657,9 +683,9 @@ void DepthwiseConv(T* dst, const T* src, const float* weight, long width, long s
         }
     }
 }
-template void DepthwiseConv(float* dst, const float* src, const float* weight, long width, long src_w_step, long fw,
+template void DepthwiseConv<float, float>(float* dst, const float* src, const float* weight, long width, long src_w_step, long fw,
                             long fh, long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
-template void DepthwiseConv(bfp16_t* dst, const bfp16_t* src, const float* weight, long width, long src_w_step, long fw,
+template void DepthwiseConv<bfp16_t, float>(bfp16_t* dst, const bfp16_t* src, const float* weight, long width, long src_w_step, long fw,
                             long fh, long dilate_x_step, long dilate_y_step, long height, long srcHStep, long dstHStep);
 
 /*
@@ -746,15 +772,15 @@ template void FloatConvert(const bfp16_t* src, float* dst, long area_quad);
 /*
 deconv dw unit
 */
-template <typename T>
-void DepthwiseUnitDeconv(const T* dst, T* src, const float* weight, long fw, long fh, long weight_y_step,
+template <typename T1, typename T2>
+void DepthwiseUnitDeconv(const T1* dst, T1* src, const T2* weight, long fw, long fh, long weight_y_step,
                          long dilate_x_step, long dilate_y_step) {
     long fx, fy;
-    T* src_z              = src;
+    T1* src_z              = src;
     const float* weight_z = weight;
     Float4 dstV           = Float4::load(dst);
     for (fy = 0; fy < fh; ++fy) {
-        T* src_y              = src_z + fy * dilate_y_step;
+        T1* src_y              = src_z + fy * dilate_y_step;
         const float* weight_y = weight_z + fy * weight_y_step;
         for (fx = 0; fx < fw; ++fx) {
             Float4 weight_x = Float4::load(weight_y + 4 * fx);
@@ -772,13 +798,13 @@ template void DepthwiseUnitDeconv(const bfp16_t* dst, bfp16_t* src, const float*
 /*
 general deconv dw func
 */
-template <typename T>
-void DepthwiseDeconv(const T* dst, T* src, const float* weight, long width, long src_w_setup, long fw, long fh,
+template <typename T1, typename T2>
+void DepthwiseDeconv(const T1* dst, T1* src, const T2* weight, long width, long src_w_setup, long fw, long fh,
                      long dilate_x_step, long dilate_y_step) {
     long dx;
     for (dx = 0; dx < width; ++dx) {
-        const T* dst_x = dst + dx * 4;
-        T* src_dx      = src + src_w_setup * dx;
+        const T1* dst_x = dst + dx * 4;
+        T1* src_dx      = src + src_w_setup * dx;
         DepthwiseUnitDeconv(dst_x, src_dx, weight, fw, fh, fw * 4, dilate_x_step, dilate_y_step);
     }
 }
@@ -787,5 +813,50 @@ template void DepthwiseDeconv(const float* dst, float* src, const float* weight,
                               long fh, long dilate_x_step, long dilate_y_step);
 template void DepthwiseDeconv(const bfp16_t* dst, bfp16_t* src, const float* weight, long width, long src_w_setup,
                               long fw, long fh, long dilate_x_step, long dilate_y_step);
+
+template <typename T>
+void ScaleBias(T *src, int channel, int hw, const float *scale, const float *bias, T *dst) {
+    if (dst == nullptr) {
+        dst = src;
+    }
+    RawBuffer scale_buffer(ROUND_UP(channel, 4) * sizeof(float));
+    RawBuffer bias_buffer(ROUND_UP(channel, 4) * sizeof(float));
+    memcpy(scale_buffer.force_to<void *>(), scale, sizeof(float) * channel);
+    memcpy(bias_buffer.force_to<void *>(), bias, sizeof(float) * channel);
+    auto local_scale = scale_buffer.force_to<float *>();
+    auto local_bias  = bias_buffer.force_to<float *>();
+
+    for (int z = 0; z < UP_DIV(channel, 4); ++z) {
+        auto src_z   = src + z * hw * 4;
+        auto dst_z   = dst + z * hw * 4;
+        auto v_scale = Float4::load(local_scale + z * 4);
+        auto v_bias  = Float4::load(local_bias + z * 4);
+        for (int s = 0; s < hw; ++s) {
+            Float4::save(dst_z + s * 4, Float4::load(src_z + s * 4) * v_scale + v_bias);
+        }
+    }
+}
+
+template void ScaleBias(float *src, int channel, int hw, const float *scale, const float *bias, float *dst);
+template void ScaleBias(bfp16_t *src, int channel, int hw, const float *scale, const float *bias, bfp16_t *dst);
+
+void Half2Float(float* dst, const fp16_t* src, const size_t length) {
+#ifdef TNN_ARM82_USE_NEON
+    Half2FloatKernel(dst, src, length);
+#else
+    for (auto i = 0; i < length; i++) {
+        dst[i] = src[i];
+    }
+#endif
+}
+void Float2Half(fp16_t* dst, const float* src, const size_t length) {
+#ifdef TNN_ARM82_USE_NEON
+    Float2HalfKernel(dst, src, length);
+#else
+    for (auto i = 0; i < length; i++) {
+        dst[i] = src[i];
+    }
+#endif
+}
 
 }  // namespace TNN_NS

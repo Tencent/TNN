@@ -16,7 +16,7 @@
 
 namespace TNN_NS {
 
-int DimsVectorUtils::Count(DimsVector dims, int start_index, int end_index) {
+int DimsVectorUtils::Count(const DimsVector &dims, int start_index, int end_index) {
     if (dims.size() < start_index) {
         return 0;
     }
@@ -32,7 +32,7 @@ int DimsVectorUtils::Count(DimsVector dims, int start_index, int end_index) {
     return result;
 }
 
-DimsVector DimsVectorUtils::Max(DimsVector dims0, DimsVector dims1, int start_index, int end_index) {
+DimsVector DimsVectorUtils::Max(const DimsVector &dims0, const DimsVector &dims1, int start_index, int end_index) {
     DimsVector max_dims;
     DimsVector small_dims;
     if (dims0.size() >= dims1.size()) {
@@ -58,7 +58,7 @@ DimsVector DimsVectorUtils::Max(DimsVector dims0, DimsVector dims1, int start_in
     return max_dims;
 }
 
-bool DimsVectorUtils::Equal(DimsVector dims0, DimsVector dims1, int start_index, int end_index) {
+bool DimsVectorUtils::Equal(const DimsVector &dims0, const DimsVector &dims1, int start_index, int end_index) {
     if (dims0.size() <= start_index) {
         return false;
     }
@@ -79,7 +79,7 @@ bool DimsVectorUtils::Equal(DimsVector dims0, DimsVector dims1, int start_index,
     return true;
 }
 
-DimsVector DimsVectorUtils::NCHW2NHWC(DimsVector dims) {
+DimsVector DimsVectorUtils::NCHW2NHWC(const DimsVector &dims) {
     ASSERT(dims.size() == 4);
     const int n           = dims[0];
     const int c           = dims[1];
@@ -89,7 +89,7 @@ DimsVector DimsVectorUtils::NCHW2NHWC(DimsVector dims) {
     return nhwc;
 }
 
-DimsVector DimsVectorUtils::NHWC2NCHW(DimsVector dims) {
+DimsVector DimsVectorUtils::NHWC2NCHW(const DimsVector &dims) {
     ASSERT(dims.size() == 4);
     const int n           = dims[0];
     const int h           = dims[1];

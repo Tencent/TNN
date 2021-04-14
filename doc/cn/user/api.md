@@ -78,7 +78,7 @@ config.cache_path = "";
     auto status = instance->SetInputMat(input_mat, input_cvt_param);
 ```
 
-TNN输入设定通过调用SetInputMat接口完成，需要传入的数据保存在input_mat中，input_cvt_param可设置scale和bias相关转换参数。
+TNN输入设定通过调用SetInputMat接口完成，需要传入的数据保存在input_mat中，input_cvt_param可设置scale和bias[相关转换参数](#MatConvertParam参数说明)。
 
 ### 步骤4. 输出获取
 
@@ -86,7 +86,7 @@ TNN输入设定通过调用SetInputMat接口完成，需要传入的数据保存
     auto status = instance->GetOutputMat(output_mat);
 ```
 
-TNN输出获取通过调用GetOutputMat接口完成，输出结果将按照特定格式保存在output_mat中。
+TNN输出获取通过调用GetOutputMat接口完成，输出结果将按照特定格式保存在output_mat中。输出结果同样支持scale和bias[相关转换](#MatConvertParam参数说明)。
 
 ## 二、API详解
 
@@ -104,8 +104,8 @@ TNN输出获取通过调用GetOutputMat接口完成，输出结果将按照特�
     │   └── tnn.h               # 模型解析
     ├── utils
     │   ├── bfp16_utils.h       # bfp16转换工具
-    │   ├── blob_converter.h    # blob输入输出数据工
-    │   ├── cpu_utils.h         # CPU性能特定优化工具
+    │   ├── blob_converter.h    # blob输入输出数据工具
+    │   ├── cpu_utils.h         # CPU性能特定优化工具
     │   ├── data_type_utils.h   # 网络数据类型解析工具
     │   ├── dims_vector_utils.h # blob尺寸计算工具
     │   └── half_utils.h        # fp16转换工具
@@ -447,6 +447,16 @@ struct PUBLIC MatConvertParam {
     bool reverse_channel = false;
 };
 ```
+
+#### MatConvertParam参数说明：  
+- `reverse_channel`: 默认为`false`，若需要交换图像的B和R维度，可将此参数设置为`true`。  
+    * 仅`N8UC3`和`N8UC4`类型的Mat支持reverse_channel，其他类型的Mat会忽略该参数。  
+    * `ConvertFromMat`和`ConvertToMat`过程都支持reverse_channel。  
+- `scale`和`bias`: scale默认为 `1`，bias默认为`0`，计算顺序为先乘scale，再加bias。  
+    * 所有类型的Mat都支持scale和bias。  
+    * `ConvertFromMat`和`ConvertToMat`过程都支持scale和bias。  
+    * 若指定的scale全为`1`，且bias全为`0`，或者使用默认的scale和bias值，则不做乘scale和加bias操作；否则用户需提供与channel大小对应的scale和bias值。  
+    * 对于多维数据，scale和bias中的数值顺序和推理过程使用的数据格式保持一致。例如，若模型实际使用BGR格式进行推理，则`ConvertFromMat`和`ConvertToMat`过程，无论reverse_channel与否，scale和bias都需按照BGR顺序指定。也可理解为，`ConvertFromMat`先reverse channel，再乘scale和加bias；`ConvertToMat`先乘scale和加bias，再reverse channel。  
 
 ### 9. utils/cpu\_utils.h
 提供CPU线程核绑定以及省电模式设定相关工具。

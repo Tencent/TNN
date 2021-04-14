@@ -34,21 +34,25 @@ protected:
         if (!resource) {
             return Status(TNNERR_MODEL_ERR, "Error: DeConvLayerResource is empty");
         }
-        if (resource->bias_handle.GetDataCount() > 0) {
-            LOGE("Current IR deconv does not support bias \n");
-            return Status(TNNERR_LAYER_ERR, "Error: Current IR deconv does not support bias");
+
+        if (!(NpuUtils::VersionCompare(npu_version_, "100.320.xxx.xxx", VCT_BIGEQUAL) &&
+              ((NpuUtils::VersionCompare(npu_version_, "100.320.010.023", VCT_BIGEQUAL) &&
+                NpuUtils::VersionCompare(npu_version_, "100.320.010.999", VCT_SMALLER)) ||
+               (NpuUtils::VersionCompare(npu_version_, "100.320.011.019", VCT_BIGEQUAL) &&
+                NpuUtils::VersionCompare(npu_version_, "100.320.011.999", VCT_SMALLER)) ||
+               (NpuUtils::VersionCompare(npu_version_, "100.320.012.011", VCT_BIGEQUAL) &&
+                NpuUtils::VersionCompare(npu_version_, "100.320.012.999", VCT_SMALLER))))) {
+            if (resource->bias_handle.GetDataCount() > 0) {
+                LOGE("Current IR deconv does not support bias (npu version: %s)\n", npu_version_.c_str());
+                return Status(TNNERR_LAYER_ERR, "Error: Current IR deconv does not support bias");
+            }
         }
 
-        // build now
         const int input_channel = input_ops_[0]->GetShape()[1];
-        int pad_mode            = 0;
-        ret                     = NpuUtils::GetPadMode(pad_mode, pad_type);
-        if (ret != TNN_OK)
-            return ret;
 
         // filter
-        int filter_channel = (resource->filter_handle.GetDataCount() / (kernel_h * kernel_w * input_channel));
-        ge::Shape filter_shape({input_channel, filter_channel, kernel_h, kernel_w});
+        int filter_channel = (resource->filter_handle.GetDataCount() / (kernel_h_ * kernel_w_ * input_channel));
+        ge::Shape filter_shape({input_channel, filter_channel, kernel_h_, kernel_w_});
         auto filter_const = std::make_shared<ge::op::Const>(layer_name_ + "filter");
         NpuUtils::CreateAttrValue(filter_const, filter_shape, resource->filter_handle);
         weight_ops_.push_back(filter_const);
@@ -59,26 +63,35 @@ protected:
             return ret;
         }
 
-        // input size
-        std::shared_ptr<ge::op::Const> input_size_const = std::make_shared<ge::op::Const>(layer_name_ + "_input_size");
-        ge::TensorDesc desc(ge::Shape({4}), ge::FORMAT_NCHW, ge::DT_INT32);
-        NpuUtils::CreateAttrArray(input_size_const, calculate_shape, desc, 4);
-        weight_ops_.push_back(input_size_const);
-        auto output = std::make_shared<ge::op::Deconvolution>(outputs_name_[0]);
-        output->set_input_input_sizes(*input_size_const);
+        // bias
+        int bias_count  = resource->bias_handle.GetDataCount();
+        auto bias_const = std::make_shared<ge::op::Const>(layer_name_ + "_bias");
+        if (bias_count != 0) {
+            // bias
+            ge::Shape bias_shape({1, bias_count, 1, 1});
+            NpuUtils::CreateAttrValue(bias_const, bias_shape, resource->bias_handle);
+            weight_ops_.push_back(bias_const);
+        }
+
+        auto output = std::make_shared<hiai::op::ConvTranspose>(outputs_name_[0]);
         output->set_input_filter(*filter_const);
+        if (bias_count != 0) {
+            output->set_input_bias(*bias_const);
+        }
         output->set_input_x(*input_ops_[0]->GetOperator());
-        output->set_attr_group(group);
-        output->set_attr_num_output(output_channel);
-        output->set_attr_pad(ge::AttrValue::LIST_INT({
-            pad_h_begin,
-            pad_h_end,
-            pad_w_begin,
-            pad_w_end,
-        }));
-        output->set_attr_pad_mode(pad_mode);
-        output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h, stride_w}));
-        output->set_attr_dilation(ge::AttrValue::LIST_INT({dilation_h, dilation_w}));
+        output->set_attr_groups(group_);
+        if (0 == pad_type_ || 3 == pad_type_) {
+            output->set_attr_pad_mode("SAME");
+            output->set_attr_pads(ge::AttrValue::LIST_INT({0, 0, 0, 0}));
+        } else if (1 == pad_type_) {
+            output->set_attr_pad_mode("VALID");
+            output->set_attr_pads(ge::AttrValue::LIST_INT({0, 0, 0, 0}));
+        } else {
+            output->set_attr_pad_mode("SPECIFIC");
+            output->set_attr_pads(ge::AttrValue::LIST_INT({pad_h_begin_, pad_h_end_, pad_w_begin_, pad_w_end_}));
+        }
+        output->set_attr_strides(ge::AttrValue::LIST_INT({stride_h_, stride_w_}));
+        output->set_attr_dilations(ge::AttrValue::LIST_INT({dilation_h_, dilation_w_}));
 
         std::shared_ptr<OperatorInfo> output_op = std::make_shared<OperatorInfo>(output, calculate_shape);
         output_ops_.push_back(output_op);

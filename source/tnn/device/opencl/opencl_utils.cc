@@ -16,37 +16,18 @@
 
 #include <string>
 #include <vector>
+#include <unistd.h>
 
 #include "tnn/core/macro.h"
 #include "tnn/core/profile.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/string_utils.h"
 
 #if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
 #include <sys/system_properties.h>
 #endif
 
 namespace TNN_NS {
-
-std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer) {
-    int element_size = 0;
-    DataType type    = raw_buffer.GetDataType();
-    int bytes        = raw_buffer.GetBytesSize();
-    std::shared_ptr<float> float_data;
-    if (type == DATA_TYPE_FLOAT) {
-        element_size = bytes / sizeof(float);
-        float_data.reset(new float[element_size], [](float *p) { delete[] p; });
-        memcpy(float_data.get(), raw_buffer.force_to<float *>(), bytes);
-    } else if (type == DATA_TYPE_HALF) {
-        element_size = bytes / 2;
-        float_data.reset(new float[element_size], [](float *p) { delete[] p; });
-        ConvertFromHalfToFloat(raw_buffer.force_to<void *>(), float_data.get(), element_size);
-    } else if (type == DATA_TYPE_INT8) {
-        LOGE("Not support INT8 raw buffer\n");
-        return nullptr;
-    }
-
-    return float_data;
-}
 
 // get image width and height
 std::vector<int> GetImageShape(const OpenCLMemory *image) {
@@ -59,6 +40,18 @@ std::vector<int> GetImageShape(const OpenCLMemory *image) {
     shape.push_back(width);
     shape.push_back(height);
     return shape;
+}
+
+// get kernel run time info.
+void GetKernelTime(const cl::Event *event, double &kernel_time) {
+    cl_int error = CL_SUCCESS;
+    error        = event->wait();
+    CHECK_CL_SUCCESS(error);
+    unsigned long long start_t  = event->getProfilingInfo<CL_PROFILING_COMMAND_START>(&error);
+    CHECK_CL_SUCCESS(error);
+    unsigned long long end_t    = event->getProfilingInfo<CL_PROFILING_COMMAND_END>(&error);
+    CHECK_CL_SUCCESS(error);
+    kernel_time  = (end_t - start_t) / 1000000.0;
 }
 
 // get kernel run time info.
@@ -149,13 +142,17 @@ Status RunKernel(const cl::Kernel &kernel, const std::vector<uint32_t> &gws, con
         return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
     }
 
-#if TNN_PROFILE
     if (pdata != nullptr) {
         pdata->event = event;
     }
-#endif
     LOGD("end RunKernel !\n");
     return TNN_OK;
+}
+
+bool AdrenoLocalSizeValid(const std::vector<uint32_t> &gws, std::vector<uint32_t>& lws,
+                          const uint32_t subgroup_size) {
+    return 0 == (lws[0] * lws[1]) % subgroup_size && 0 == gws[0] % lws[0] && 0 == gws[1] % lws[1] &&
+           ((lws[0] < lws[1]) == (gws[0] < gws[1]));
 }
 
 // adreno local size calculate
@@ -182,8 +179,7 @@ std::vector<uint32_t> AdrenoLocalSize2D(const std::vector<uint32_t> &gws, const 
             int min_val            = std::max<uint32_t>(min_workgroup_size / lws[1], 1);
             lws[0]                 = std::min<uint32_t>(gws[0], max_val);
             for (; lws[0] >= min_val; lws[0]--) {
-                if (0 == (lws[0] * lws[1]) % subgroup_size && 0 == gws[0] % lws[0] && 0 == gws[1] % lws[1] &&
-                    ((lws[0] < lws[1]) == (gws[0] < gws[1]))) {
+                if (AdrenoLocalSizeValid(gws, lws, subgroup_size)) {
                     return lws;
                 }
             }
@@ -236,7 +232,7 @@ Status AdjustBuildOptionForFp32(std::set<std::string>& build_options)
     char sdk[128] = "0";
     __system_property_get("ro.build.version.sdk", sdk);
     int sdk_version = atoi(sdk);
-    // Android 7.1之前版本 fp16 exp 部分机型上的速度有问题，改用fp32版本的kernel
+    // Before Android 8.0, the performance of exp fp16 is poor, so use fp32 instead
     force_fp32 = (sdk_version <= 25);
 #elif (defined __ANDROID_API__) && (__ANDROID_API__ < 21)
     force_fp32 = true;
@@ -311,6 +307,80 @@ std::vector<uint32_t> LocalWS2DDefault(const std::vector<uint32_t> &gws, const u
     return lws;
 }
 
+std::vector<uint32_t> LocalTune(OpenCLExecuteUnit &unit, OpenCLContext *context, std::string tune_key) {
+    std::map<std::string, std::vector<uint32_t>> &tune_map = context->GetLocalSizeTuneMap();
+    if (tune_map.count(tune_key) > 0) {
+        std::vector<uint32_t> lws = tune_map[tune_key];
+        return lws;
+    } else {
+        cl::CommandQueue *tune_command_queue = context->TuneCommandQueue();
+        std::vector<uint32_t> &gws           = unit.global_work_size;
+        uint32_t workgroupsize_max           = unit.workgroupsize_max;
+        cl::Kernel &kernel                   = unit.ocl_kernel;
+
+        std::vector<uint32_t> opt_lws = unit.local_work_size;
+        std::vector<uint32_t> lws(gws.size(), 1);
+
+        double kernel_min_time;
+        OpenCLProfilingData data;
+        RunKernel(unit.ocl_kernel, unit.global_work_size, unit.local_work_size, tune_command_queue, "tune", &data);
+        GetKernelTime(&data.event, kernel_min_time);
+
+        if (gws.size() == 2) {
+            for (lws[0] = 1; lws[0] < gws[0] * 2; lws[0] *= 2) {
+                for (lws[1] = 1; lws[1] < gws[1] * 2; lws[1] *= 2) {
+                    if (lws[0] * lws[1] <= workgroupsize_max) {
+                        double kernel_time;
+                        RunKernel(unit.ocl_kernel, unit.global_work_size, lws, tune_command_queue, "tune", &data);
+                        GetKernelTime(&data.event, kernel_time);
+                        if (kernel_time < kernel_min_time) {
+                            kernel_min_time = kernel_time;
+                            opt_lws.resize(2);
+                            opt_lws[0] = lws[0];
+                            opt_lws[1] = lws[1];
+                        }
+                    }
+                }
+            }
+        } else if (gws.size() == 3) {
+            for (lws[0] = 1; lws[0] < gws[0] * 2; lws[0] *= 2) {
+                for (lws[1] = 1; lws[1] < gws[1] * 2; lws[1] *= 2) {
+                    for (lws[2] = 1; lws[2] < gws[2] * 2; lws[2] *= 2) {
+                        if (lws[0] * lws[1] * lws[2] <= workgroupsize_max) {
+                            double kernel_time;
+                            RunKernel(unit.ocl_kernel, unit.global_work_size, lws, tune_command_queue, "tune", &data);
+                            GetKernelTime(&data.event, kernel_time);
+                            if (kernel_time < kernel_min_time) {
+                                kernel_min_time = kernel_time;
+                                opt_lws.resize(3);
+                                opt_lws[0] = lws[0];
+                                opt_lws[1] = lws[1];
+                                opt_lws[2] = lws[2];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // double check
+        double kernel_time;
+        RunKernel(unit.ocl_kernel, unit.global_work_size, unit.local_work_size, tune_command_queue, "tune", &data);
+        GetKernelTime(&data.event, kernel_time);
+
+        usleep(10000);
+
+        if (kernel_time < kernel_min_time) {
+            tune_map.insert(make_pair(tune_key, unit.local_work_size));
+            return unit.local_work_size;
+        } else {
+            tune_map.insert(make_pair(tune_key, opt_lws));
+            return opt_lws;
+        }
+    }
+}
+
+
 // copy data from clBuffer to clImage.
 Status CopyBufferToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl::Buffer &buffer,
                          const cl::Image &image, int w, int h, bool need_wait) {
@@ -377,6 +447,52 @@ Status CopyImageToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl
     return TNN_OK;
 }
 
+Status CopyBufferToMat(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int buffer_size,
+                       const MatType& mat_type, cl::CommandQueue *command_queue) {
+    int data_type_size = 1;
+    if (mat_type == NCHW_FLOAT) {
+        data_type_size = sizeof(float);
+    } else if (mat_type == N8UC4) {
+        //special for 8UC4, blob channel <= 4.
+        dims[1] = 4;
+    }
+    int size_in_bytes = DimsVectorUtils::Count(dims) * data_type_size;
+    if (size_in_bytes > buffer_size) {
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL buffer is smaller than the need!");
+    }
+    cl_int ret = CL_SUCCESS;
+    ret = command_queue->enqueueReadBuffer(buffer, CL_TRUE, 0, size_in_bytes, mat.GetData());
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL enqueueReadBuffer falied");
+    }
+
+    return TNN_OK;
+}
+
+Status CopyMatToBuffer(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int buffer_size,
+                       const MatType& mat_type, cl::CommandQueue *command_queue) {
+    int data_type_size = 1;
+    if (mat_type == NCHW_FLOAT) {
+        data_type_size = sizeof(float);
+    } else if (mat_type == N8UC4) {
+        //special for 8UC4, blob channel <= 4.
+        dims[1] = 4;
+    }
+    int size_in_bytes = DimsVectorUtils::Count(dims) * data_type_size;
+    if (size_in_bytes > buffer_size) {
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL buffer is smaller than the need!");
+    }
+    cl_int ret = CL_SUCCESS;
+    ret = command_queue->enqueueWriteBuffer(buffer, CL_TRUE, 0, size_in_bytes, mat.GetData());
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL enqueueWriteBuffer falied");
+    }
+
+    return TNN_OK;
+}
+
 uint32_t gcd(uint32_t number1, uint32_t number2) {
     return number2 == 0 ? number1 : gcd(number2, number1 % number2);
 }
@@ -385,6 +501,9 @@ uint32_t gcd(uint32_t number1, uint32_t number2) {
 Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_name, const std::string &kernel_name,
                          const std::set<std::string> &build_opt) {
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+
+    unit.program_name = program_name;
+    unit.kernel_name = kernel_name;
 
     Status ret = opencl_runtime->BuildKernel(unit.ocl_kernel, program_name, kernel_name, build_opt);
     if (ret != TNN_OK) {
@@ -398,6 +517,8 @@ Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_nam
     }
 
     unit.sub_group_size = static_cast<uint32_t>(opencl_runtime->GetSubGroupSize(unit.ocl_kernel));
+
+    unit.local_mem_size = opencl_runtime->DeviceLocalMemerySize();
 
     return TNN_OK;
 }

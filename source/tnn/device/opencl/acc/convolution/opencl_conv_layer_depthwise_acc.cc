@@ -39,19 +39,12 @@ Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, La
     ret = AllocateWeightsBias(resource);
     CHECK_TNN_OK(ret)
 
-    // create kernel
-    std::set<std::string> build_options;
-    if (conv_params_.activation_type == ActivationType_ReLU) {
-        build_options.emplace("-DRELU");
-    } else if (conv_params_.activation_type == ActivationType_ReLU6) {
-        build_options.emplace("-DRELU6");
-    }
     std::string kernel_name = "DepthwiseConv2D";
     if (conv_params_.stride_x == 1 && conv_params_.stride_y == 1 && conv_params_.dilation_x == 1 &&
         conv_params_.dilation_y == 1) {
         kernel_name = "DepthwiseConv2DS1";
     }
-    ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options);
+    ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
@@ -76,8 +69,6 @@ Status OpenCLConvLayerDepthwiseAcc::Reshape(const std::vector<Blob *> &inputs, c
 
     execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4) * UP_DIV(output_dims[3], 4)),
                                         static_cast<uint32_t>(output_dims[0] * output_dims[2])};
-    execute_units_[0].local_work_size  = Conv2dCommonLocalWS2D(
-        execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max, execute_units_[0].sub_group_size);
 
     int kernel_shape[2]      = {conv_params_.kernel_x, conv_params_.kernel_y};
     int stride_shape[2]      = {conv_params_.stride_x, conv_params_.stride_y};
@@ -103,6 +94,13 @@ Status OpenCLConvLayerDepthwiseAcc::Reshape(const std::vector<Blob *> &inputs, c
         conv_params_.dilation_y != 1) {
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(dilation_shape), dilation_shape);
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
+    }
+
+    execute_units_[0].local_work_size = Conv2dCommonLocalWS2D(
+            execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max, execute_units_[0].sub_group_size);
+
+    if (ocl_context_->GetEnableTuneKernel()) {
+        execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_, GenerateTuneKernelKey(execute_units_[0]));
     }
 
     return TNN_OK;

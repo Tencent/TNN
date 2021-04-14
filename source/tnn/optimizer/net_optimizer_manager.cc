@@ -30,13 +30,13 @@ namespace optimizer {
         return s_net_optimizer_seq;
     }
 
-    Status NetOptimizerManager::Optimize(NetStructure *structure, NetResource *resource, DeviceType device) {
+    Status NetOptimizerManager::Optimize(NetStructure *structure, NetResource *resource, const NetworkConfig &net_config) {
         auto &optimizer_map = NetOptimizerManager::GetNetOptimizerMap();
         std::sort(NetOptimizerManager::GetNetOptimizerSeq().begin(), NetOptimizerManager::GetNetOptimizerSeq().end());
 
         for (auto iter : NetOptimizerManager::GetNetOptimizerSeq()) {
             auto optimizer = optimizer_map[iter.second];
-            if (optimizer->SupportDevice(device)) {
+            if (optimizer->IsSupported(net_config)) {
                 auto status = optimizer->Optimize(structure, resource);
                 if (status != TNN_OK) {
                     return status;
@@ -52,6 +52,15 @@ namespace optimizer {
             auto &optimizer_map                  = NetOptimizerManager::GetNetOptimizerMap();
             optimizer_map[optimizer->Strategy()] = std::shared_ptr<NetOptimizer>(optimizer);
             NetOptimizerManager::GetNetOptimizerSeq().push_back(std::make_pair(prior, optimizer->Strategy()));
+        }
+    }
+
+    std::shared_ptr<NetOptimizer> NetOptimizerManager::GetNetOptimizerByName(const std::string &k_net_optimizer) {
+        auto &optimizer_map = NetOptimizerManager::GetNetOptimizerMap();
+        if (optimizer_map.find(k_net_optimizer) != optimizer_map.end()) {
+            return optimizer_map[k_net_optimizer];
+        } else {
+            return nullptr;
         }
     }
 

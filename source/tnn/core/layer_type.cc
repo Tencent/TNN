@@ -157,6 +157,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"LogSigmoid", LAYER_LOGSIGMOID},
     {"Repeat", LAYER_REPEAT},
     {"Upsample", LAYER_UPSAMPLE},
+    {"QuantizedUpsample", LAYER_UPSAMPLE},
     // 150
     {"Pooling_nchwc4", LAYER_POOLING_NCHWC4},
     {"QConv2DDequantizeMulAddQuantizeQRelu", LAYER_QUANTIZED_CONVOLUTION_DEQUANTIZE_BN_QUANTIZE_RELU},
@@ -212,6 +213,10 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"SquaredDifference", LAYER_SQUARED_DIFFERENCE},
     {"ArgMaxOrMin", LAYER_ARG_MAX_OR_MIN},
     {"PixelShuffle", LAYER_PIXEL_SHUFFLE},
+
+    {"CbamFusedReduce", LAYER_CBAM_FUSED_REDUCE},
+    {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING},
+    {"Softsign", LAYER_SOFTSIGN}
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

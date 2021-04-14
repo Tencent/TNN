@@ -33,7 +33,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, MinLayerTest,
                                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(MinLayerTest, BinaryLayerTest) {
-    RunBinaryTest();
+    RunBinaryTest("Minimum");
 }
 
 }  // namespace TNN_NS

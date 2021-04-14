@@ -114,7 +114,7 @@ bool OpenCLSymbols::LoadLibraryFromPath(const std::string &library_path) {
     if(is_pixel){
         typedef void (*enableOpenCL_t)();
         enableOpenCL_t enableOpenCL = reinterpret_cast<enableOpenCL_t>(dlsym(handle_, "enableOpenCL"));
-        if (loadOpenCLPointer == nullptr) {
+        if (enableOpenCL == nullptr) {
             return false;
         }
         enableOpenCL();
@@ -278,6 +278,15 @@ cl_program clCreateProgramWithSource(cl_context context, cl_uint count, const ch
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateProgramWithSource;
     CHECK_NOTNULL(func);
     return func(context, count, strings, lengths, errcode_ret);
+}
+
+//clCreateProgramWithBinary wrapper, use OpenCLSymbols function.
+cl_program clCreateProgramWithBinary(cl_context context, cl_uint count, const cl_device_id *device_list,
+                                     const size_t *length, const unsigned char **buffer,
+                                     cl_int *binary_status, cl_int *errcode_ret) {
+    auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateProgramWithBinary;
+    CHECK_NOTNULL(func);
+    return func(context, count, device_list, length, buffer, binary_status, errcode_ret);
 }
 
 //clGetProgramInfo wrapper, use OpenCLSymbols function.

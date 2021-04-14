@@ -33,7 +33,7 @@ public:
     virtual ~DefaultModelInterpreter() = 0;
 
     // @brief different interpreter has different order param
-    virtual Status Interpret(std::vector<std::string> params) = 0;
+    virtual Status Interpret(std::vector<std::string> &params) = 0;
 
     //@brief GetNetStruture return network build info
     virtual NetStructure *GetNetStructure();
@@ -41,6 +41,11 @@ public:
     //@brief GetNetResource return network weights data
     virtual NetResource *GetNetResource();
 
+    //@brief GetParamsMd5 return md5 string of params string
+    std::vector<std::string> GetParamsMd5();
+
+protected:
+    std::vector<std::string> params_md5_;
 private:
     NetStructure *net_structure_;
     NetResource *net_resource_;

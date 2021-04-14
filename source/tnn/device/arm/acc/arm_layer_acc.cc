@@ -18,8 +18,8 @@
 // specific language governing permissions and limitations under the License.
 //
 
-#include "tnn/core/profile.h"
 #include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/core/profile.h"
 #include "tnn/device/arm/arm_context.h"
 
 namespace TNN_NS {
@@ -33,25 +33,11 @@ Status ArmLayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
     resource_ = resource;
     k_param_  = std::make_shared<ArmKernelParam>();
 
-    for (auto blob : inputs) {
-        if (blob->GetBlobDesc().data_type == DATA_TYPE_HALF)
-            blob->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
-    }
-
-    for (auto blob : outputs) {
-        if (blob->GetBlobDesc().data_type == DATA_TYPE_HALF)
-            blob->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
-    }
-
     // init base k_param_
     auto input_dim  = inputs[0]->GetBlobDesc().dims;
     auto output_dim = outputs[0]->GetBlobDesc().dims;
-    k_param_->ic_r4 = ROUND_UP(input_dim[1], 4);
-    k_param_->ih    = input_dim[2];
-    k_param_->iw    = input_dim[3];
-    k_param_->oc_r4 = ROUND_UP(output_dim[1], 4);
-    k_param_->oh    = output_dim[2];
-    k_param_->ow    = output_dim[3];
+    k_param_->set_dims(ROUND_UP(input_dim[1], 4),  ROUND_UP(input_dim[1], 8),  input_dim[2],  input_dim[3],
+                       ROUND_UP(output_dim[1], 4), ROUND_UP(output_dim[1], 8), output_dim[2], output_dim[3]);
 
     return TNN_OK;
 }
@@ -59,10 +45,13 @@ Status ArmLayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
 std::vector<DataFormat> ArmLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
-        if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_HALF)
+        if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16)
             support_list.push_back(DATA_FORMAT_NC4HW4);
         else if (data_type == DATA_TYPE_INT8)
             support_list.push_back(DATA_FORMAT_NHWC4);
+        else if (data_type == DATA_TYPE_HALF) {
+            support_list.push_back(DATA_FORMAT_NC8HW8);
+        }
     }
     return support_list;
 }
@@ -73,19 +62,16 @@ Status ArmLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector
     // reinit k_param_ h,w
     auto input_dim  = inputs[0]->GetBlobDesc().dims;
     auto output_dim = outputs[0]->GetBlobDesc().dims;
-    k_param_->ic_r4 = ROUND_UP(input_dim[1], 4);
-    k_param_->ih    = input_dim[2];
-    k_param_->iw    = input_dim[3];
-    k_param_->oc_r4 = ROUND_UP(output_dim[1], 4);
-    k_param_->oh    = output_dim[2];
-    k_param_->ow    = output_dim[3];
+    k_param_->set_dims(ROUND_UP(input_dim[1], 4),  ROUND_UP(input_dim[1], 8),  input_dim[2],  input_dim[3],
+                       ROUND_UP(output_dim[1], 4), ROUND_UP(output_dim[1], 8), output_dim[2], output_dim[3]);
     return TNN_OK;
 }
 
 bool ArmLayerAcc::DataTypeSupported(DataType data_type) {
-    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8) {
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8 ||
+        data_type == DATA_TYPE_HALF) {
         return true;
-    } else { 
+    } else {
         return false;
     }
 }

@@ -31,6 +31,9 @@ public:
 private:
     Status ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memory, float *weight, float *bias, int pixel_count);
     Status ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, float *data_ptr, float default_val);
+    bool InputParamCheck(RawBuffer &ccm_weight_handle, RawBuffer &ccm_bias_handle,
+                         RawBuffer &shifts_handle, RawBuffer &slopes_handle,
+                         RawBuffer &p_weight_handle, RawBuffer &p_bias_handle);
 
 private:
     shared_ptr<OpenCLMemory> ocl_ccm_ = nullptr;
@@ -38,6 +41,15 @@ private:
     shared_ptr<OpenCLMemory> ocl_slopes_ = nullptr;
     shared_ptr<OpenCLMemory> ocl_projection_ = nullptr;
 };
+
+bool OpenCLHdrGuideLayerAcc::InputParamCheck(
+        RawBuffer &ccm_weight_handle, RawBuffer &ccm_bias_handle,
+        RawBuffer &shifts_handle, RawBuffer &slopes_handle,
+        RawBuffer &p_weight_handle, RawBuffer &p_bias_handle) {
+    return (ccm_weight_handle.GetDataCount() != 9 || ccm_bias_handle.GetDataCount() != 3 ||
+            shifts_handle.GetDataCount() != 12 || slopes_handle.GetDataCount() != 12 ||
+            p_weight_handle.GetDataCount() != 3 || p_bias_handle.GetDataCount() != 1);
+}
 
 Status OpenCLHdrGuideLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                     const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -55,9 +67,8 @@ Status OpenCLHdrGuideLayerAcc::Init(Context *context, LayerParam *param, LayerRe
     RawBuffer &slopes_handle                  = hdr_guide_resource->slopes_handle;
     RawBuffer &p_weight_handle                = hdr_guide_resource->projection_weight_handle;
     RawBuffer &p_bias_handle                  = hdr_guide_resource->projection_bias_handle;
-    if (ccm_weight_handle.GetDataCount() != 9 || ccm_bias_handle.GetDataCount() != 3 ||
-        shifts_handle.GetDataCount() != 12 || slopes_handle.GetDataCount() != 12 ||
-        p_weight_handle.GetDataCount() != 3 || p_bias_handle.GetDataCount() != 1) {
+    if (InputParamCheck(ccm_weight_handle, ccm_bias_handle, shifts_handle,
+                        slopes_handle, p_weight_handle, p_bias_handle)) {
         LOGE("Invalid data size of HDRGuide Param!\n");
         return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "Invalid data size of HDRGuide Param!");
     }
@@ -201,7 +212,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memo
     int image_w               = pixel_count;
     int image_h               = 1;
     cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetFp16Enable())
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
     cl::Image2D *image = new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
                                          cl::ImageFormat(CL_RGBA, data_type), image_w, image_h, 0, nullptr, &ret);
@@ -257,7 +268,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
     int img_width          = 4;
     int img_height         = 1;
     cl_channel_type data_t = CL_FLOAT;
-    if (ocl_runtime->GetFp16Enable())
+    if (ocl_runtime->GetPrecision() != PRECISION_HIGH)
         data_t = CL_HALF_FLOAT;
     cl::Image2D *img = new cl::Image2D(*ocl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_t),
                                        img_width, img_height, 0, nullptr, &ocl_ret);

@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cmath>
+
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
 
@@ -45,9 +46,17 @@ Status CpuStrideSliceLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     auto strides = layer_param->strides;
     std::reverse(strides.begin(), strides.end());
 
-    for (int i = 0; i < ends.size(); ++i) {
+    const auto input_dims     = input_blob->GetBlobDesc().dims;
+    const int input_dims_size = input_dims.size();
+    for (int i = 0; i < input_dims_size; ++i) {
+        if (begins[i] < 0) {
+            begins[i] += input_dims[i];
+        }
         if (ends[i] == 0) {
-            ends[i] = input_blob->GetBlobDesc().dims[i];
+            ends[i] = input_dims[i];
+        }
+        if (ends[i] < 0) {
+            ends[i] += input_dims[i];
         }
     }
     if (output_blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {

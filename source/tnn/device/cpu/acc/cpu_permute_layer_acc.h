@@ -62,7 +62,7 @@ private:
      * @param start_axis The first axis to include in the slice.
      *
      */
-    inline int count(std::vector<int> dimes, int start_axis) const {
+    inline int count(std::vector<int> &dimes, int start_axis) const {
         const int end_axis = int(dimes.size());
         ASSERT(start_axis <= end_axis);
         ASSERT(start_axis >= 0);
