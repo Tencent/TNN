@@ -22,10 +22,7 @@ DECLARE_TENSORRT_LAYER_BUILDER(Reshape, LAYER_RESHAPE);
 
 ILayer* ReshapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto paramlist = dynamic_cast<ReshapeLayerParam*>(param_);
-    if (paramlist->reshape_type != 0) {
-        LOGE("Error: Unsupport reshape type(%d)", paramlist->reshape_type);
-        return nullptr;
-    }
+
     Blob* output_blob  = output_blobs_[0];
     auto output_dims = output_blob->GetBlobDesc().dims;
     Dims reshape_dims = ConvertToTRTDynamicDims(output_dims);
@@ -38,6 +35,29 @@ ILayer* ReshapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
             layer->setReshapeDimensions(reshape_dims);
         } else {
             layer->setInput(1, *input_tensors[1]);
+        }
+        if (paramlist->reshape_type != 0 && output_dims.size() <= 4) {
+            Permutation CHW2HWC;
+            const auto& input_dims = input_blobs_[0]->GetBlobDesc().dims;
+            CHW2HWC.order[0] = 0;
+            CHW2HWC.order[input_dims.size()-1] = 1;
+            for(int i=1; i<input_dims.size()-1; ++i) {
+                CHW2HWC.order[i] = i+1;
+            }
+            layer->setFirstTranspose(CHW2HWC);
+            Permutation HWC2CHW;
+            HWC2CHW.order[0] = 0;
+            HWC2CHW.order[1] = output_dims.size()-1;
+            for(int i=2; i<output_dims.size(); ++i) {
+                HWC2CHW.order[i] = i-1;
+            }
+            auto permuted_dims = output_dims;
+            permuted_dims[output_dims.size()-1] = output_dims[1];
+            for(int i=2; i<output_dims.size(); ++i) {
+                permuted_dims[i-1] = output_dims[i];
+            }
+            layer->setReshapeDimensions(ConvertToTRTDynamicDims(permuted_dims));
+            layer->setSecondTranspose(HWC2CHW);
         }
     }
 
