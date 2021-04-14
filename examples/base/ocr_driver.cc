@@ -12,6 +12,10 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn_sdk_sample.h"
+
+#if HAS_OPENCV
+
 #include "ocr_textbox_detector.h"
 #include "ocr_angle_predictor.h"
 #include "ocr_text_recognizer.h"
@@ -83,12 +87,6 @@ static std::vector<cv::Mat> getPartImages(cv::Mat &src, std::vector<TextBox> &te
     std::vector<cv::Mat> partImages;
     for (int i = 0; i < textBoxes.size(); ++i) {
         cv::Mat partImg = getRotateCropImage(src, textBoxes[i].box_points);
-        uint8_t* data = partImg.data;
-        auto count = partImg.channels()*partImg.cols*partImg.rows;
-        std::shared_ptr<int> data_int(new int[count]);
-        for(int i=0; i<count; ++i) {
-            (data_int.get())[i] = static_cast<int>(data[i]);
-        }
         partImages.emplace_back(partImg);
     }
     return partImages;
@@ -109,10 +107,6 @@ Status OCRDriver::Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks) {
     angle_predictor_  = sdks[1];
     text_recognizer_  = sdks[2];
     return TNNSDKComposeSample::Init(sdks);
-}
-
-void OCRDriver::SetBlobDumpDir(const char *dump_dir) {
-    //SetDumpDir(std::string(dump_dir));
 }
 
 Status OCRDriver::MatToTNNMat(const cv::Mat& mat, std::shared_ptr<Mat>& tnn_mat, bool try_share_data) {
@@ -137,6 +131,10 @@ Status OCRDriver::MatToTNNMat(const cv::Mat& mat, std::shared_ptr<Mat>& tnn_mat,
         }
     }
     return status;
+}
+
+bool OCRDriver::hideTextBox() {
+    return true;
 }
 
 Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
@@ -173,18 +171,6 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
             return status;
         }
     }
-    {
-        // print text_boxes
-        for(int i=0; i<text_boxes.size(); ++i) {
-            const auto box = text_boxes[i];
-            float score = box.score;
-            printf("Textbox[%d], score:%f,", i, score);
-            for(const auto& p: box.box_points){
-                printf("[x:%d, y:%d], ", p.x, p.y);
-            }
-            printf("\n");
-        }
-    }
     std::vector<cv::Mat> part_images = getPartImages(predictor_textbox_detector_cast->GetPaddedInput(), text_boxes);
     auto dims = input_mat->GetDims();
     
@@ -205,21 +191,7 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
             predictor_angle_predictor_cast->Predict(input, angle);
             angles.push_back(angle);
         }
-        {
-            // print angles
-            for(int i=0; i<angles.size(); ++i) {
-                auto angle = dynamic_cast<OCRAnglePredictorOutput *>(angles[i].get());
-                printf("before DO angles[%d], index:%d, score:%f\n", i, angle->index, angle->score);
-            }
-        }
         predictor_angle_predictor_cast->ProcessAngles(angles);
-        {
-            // print angles
-            for(int i=0; i<angles.size(); ++i) {
-                auto angle = dynamic_cast<OCRAnglePredictorOutput *>(angles[i].get());
-                printf("AFTER DO angles[%d], index:%d, score:%f\n", i, angle->index, angle->score);
-            }
-        }
         for(int i=0; i<part_images.size(); ++i) {
             auto angle = dynamic_cast<OCRAnglePredictorOutput *>(angles[i].get());
             if(angle->index == 0) {
@@ -247,19 +219,6 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
             }
         }
     }
-    // get text & score
-    std::ostringstream out_stream;
-    printf("=== text:\n");
-    for(int i=0; i<texts.size(); ++i) {
-        const auto& o = texts[i];
-        auto text = dynamic_cast<OCRTextRecognizerOutput *>(o.get());
-        printf("%s\n", text->text.c_str());
-        for(const auto&s : text->scores) {
-            printf("%f, ",s);
-        }
-        printf("\n");
-        out_stream << text->text;
-    }
 
     {
         auto ocr_output = std::make_shared<OCROutput>();
@@ -275,7 +234,7 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
             }
 
             ocr_output->image_height = sdk_input->GetMat()->GetHeight();
-            ocr_output->image_width = sdk_input->GetMat()->GetWidth();
+            ocr_output->image_width  = sdk_input->GetMat()->GetWidth();
         }
         // fill output
         sdk_output = ocr_output;
@@ -286,3 +245,4 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
 
 }
 
+#endif // HAS_OPENCV

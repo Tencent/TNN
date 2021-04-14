@@ -14,6 +14,8 @@
 
 #include "ocr_angle_predictor.h"
 
+#if HAS_OPENCV
+
 #include "opencv2/core/mat.hpp"
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc.hpp"
@@ -25,7 +27,6 @@
 #include <unordered_set>
 #include <cmath>
 
-
 namespace TNN_NS {
 
 OCRAnglePredictorOutput::~OCRAnglePredictorOutput() {}
@@ -33,7 +34,7 @@ OCRAnglePredictorOutput::~OCRAnglePredictorOutput() {}
 MatConvertParam OCRAnglePredictor::GetConvertParamForInput(std::string name) {
     MatConvertParam input_convert_param;
     input_convert_param.scale = {1.0 / 127.5, 1.0 / 127.5, 1.0 / 127.5, 0.0};
-    input_convert_param.bias  = {-1.0,        -1.0,        -1.0,       -0.0};
+    input_convert_param.bias  = {-1.0,        -1.0,        -1.0,       0.0};
     // model requires RGB input
     input_convert_param.reverse_channel = false;
     
@@ -43,6 +44,7 @@ MatConvertParam OCRAnglePredictor::GetConvertParamForInput(std::string name) {
 std::shared_ptr<Mat> OCRAnglePredictor::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat,
                                                                    std::string name) {
     Status status = TNN_OK;
+
     // 0) copy if necessary
     bool need_copy = false;
     DeviceType origin_dev = input_mat->GetDeviceType();
@@ -60,6 +62,7 @@ std::shared_ptr<Mat> OCRAnglePredictor::ProcessSDKInputMat(std::shared_ptr<Mat> 
     int img_width  = input_mat->GetWidth();
     void *pixel = input_mat->GetData();
     cv::Mat cv_src(img_height, img_width, CV_8UC4, pixel);
+
     // 2) resize
     float scale = static_cast<float>(dst_height_) / img_height;
     int angleWidth = static_cast<int>(img_width * scale);
@@ -76,6 +79,7 @@ std::shared_ptr<Mat> OCRAnglePredictor::ProcessSDKInputMat(std::shared_ptr<Mat> 
         cv::Rect rect(0, 0, dst_width_, dst_height_);
         cv_src(rect).copyTo(srcFit);
     }
+
     // 3) cv::Mat to TNN::Mat
     int input_height = srcFit.rows;
     int input_width  = srcFit.cols;
@@ -144,3 +148,4 @@ OCRAnglePredictor::~OCRAnglePredictor() {}
 
 }
 
+#endif// HAS_OPENCV

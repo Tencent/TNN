@@ -135,8 +135,11 @@ Status MetalLSTMLayerAcc::AllocateBufferWeights(const std::vector<Blob *> &input
         auto outer = num_directions;
         // TODO: transpose to [dir, input, output, 4]
         // transpose from: [dir, 4, hidden, input] to [dir, hidden, input, 4]
-        buffer_wi_ = AllocateBufferForWeightBlob(inputs[1], weight_count, outer, inner, 4, device);
-        RETURN_VALUE_ON_NEQ(!buffer_wi_, false, Status(TNNERR_MODEL_ERR, "allocating buffer for lstm weight_input failed!"));
+        if (!buffer_wi_) {
+            buffer_wi_ = AllocateBufferForWeightBlob(inputs[1], weight_count, outer, inner, 4, device);
+            RETURN_VALUE_ON_NEQ(!buffer_wi_, false,
+                                Status(TNNERR_MODEL_ERR, "allocating buffer for lstm weight_input failed!"));
+        }
     }
     
     {
@@ -146,8 +149,11 @@ Status MetalLSTMLayerAcc::AllocateBufferWeights(const std::vector<Blob *> &input
         auto outer = num_directions;
         // TODO: transpose to [dir, hidden_in, hidden_out, 4]
         // transpose from: [dir, 4, hidden_out, hidden_in] to [dir, hidden_out, hidden_in, 4]
-        buffer_wh_ = AllocateBufferForWeightBlob(inputs[2], weight_count, outer, inner, 4, device);
-        RETURN_VALUE_ON_NEQ(!buffer_wh_, false, Status(TNNERR_MODEL_ERR, "allocating buffer for lstm weight_hidden failed!"));
+        if (!buffer_wh_) {
+            buffer_wh_ = AllocateBufferForWeightBlob(inputs[2], weight_count, outer, inner, 4, device);
+            RETURN_VALUE_ON_NEQ(!buffer_wh_, false,
+                                Status(TNNERR_MODEL_ERR, "allocating buffer for lstm weight_hidden failed!"));
+        }
     }
     
     return status;
@@ -194,8 +200,10 @@ Status MetalLSTMLayerAcc::AllocateBufferStates(const std::vector<Blob *> &inputs
 #else
     state_buffer_bytes = num_directions * seq_len * batch * hidden_size * 4 * sizeof(uint16_t);
 #endif
-    buffer_gates_ = [device newBufferWithLength:state_buffer_bytes
-                                     options:MTLResourceStorageModePrivate];  // only metal kernel writes to this
+    if (!buffer_gates_ || buffer_gates_.length != state_buffer_bytes) {
+        buffer_gates_ = [device newBufferWithLength:state_buffer_bytes
+                                            options:MTLResourceStorageModePrivate];  // only metal kernel writes to this
+    }
     
     // initial states buffer
 #if TNN_METAL_FULL_PRECISION
@@ -203,7 +211,7 @@ Status MetalLSTMLayerAcc::AllocateBufferStates(const std::vector<Blob *> &inputs
 #else
     auto metal_state_buffer_bytes = num_directions * batch * hidden_size * sizeof(uint16_t);
 #endif
-    if (inputs.size() > 5) {
+    if (inputs.size() > 5 && (!buffer_c0_ || buffer_c0_.length != metal_state_buffer_bytes)) {
         Blob *c0 = inputs[5];
         auto data_type = c0->GetBlobDesc().data_type;
         void *ptr = static_cast<char *>(c0->GetHandle().base) + c0->GetHandle().bytes_offset;
@@ -229,7 +237,7 @@ Status MetalLSTMLayerAcc::AllocateBufferStates(const std::vector<Blob *> &inputs
                                          length:metal_state_buffer_bytes
                                         options:MTLResourceOptionCPUCacheModeWriteCombined];
     }
-    if (inputs.size() > 4) {
+    if (inputs.size() > 4 && (!buffer_h0_ || buffer_h0_.length != metal_state_buffer_bytes)) {
         Blob *h0 = inputs[4];
         auto data_type = h0->GetBlobDesc().data_type;
         void *ptr = static_cast<char *>(h0->GetHandle().base) + h0->GetHandle().bytes_offset;
@@ -269,12 +277,16 @@ Status MetalLSTMLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     
     status = AllocateBufferStates(inputs, outputs);
     RETURN_ON_NEQ(status, TNN_OK);
+
+    if (!buffer_wh_ || !buffer_wi_) {
+        status = AllocateBufferWeights(inputs, outputs);
+        RETURN_ON_NEQ(status, TNN_OK);
+    }
     
-    status = AllocateBufferWeights(inputs, outputs);
-    RETURN_ON_NEQ(status, TNN_OK);
-    
-    status = AllocateBufferBias(inputs, outputs);
-    RETURN_ON_NEQ(status, TNN_OK);
+    if (!buffer_bias_) {
+        status = AllocateBufferBias(inputs, outputs);
+        RETURN_ON_NEQ(status, TNN_OK);
+    }
     
     return status;
 }

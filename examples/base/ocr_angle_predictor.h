@@ -16,7 +16,7 @@
 #define TNN_EXAMPLES_BASE_OCR_ANGLE_PREDICTOR_H_
 
 #include "tnn_sdk_sample.h"
-#include "opencv2/core/core.hpp"
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -48,8 +48,8 @@ public:
 private:
     bool do_angle_   = true;
     bool most_angle_ = true;
-    int dst_width_  = 192;
-    int dst_height_ = 32;
+    int dst_width_   = 192;
+    int dst_height_  = 32;
 };
 
 }

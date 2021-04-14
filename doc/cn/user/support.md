@@ -17,43 +17,43 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 
 | model name                | onnx2tnn | Naive | armv7 | armv8 | opencl | metal | Huawei_Npu | CUDA | x86 | OpenVINO |
 |---------------------------|----------|-----|-------|-------|--------|-------|-----|------|------|------|
-| AlexNet                   | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| DenseNet(121)             | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
-| FCN                       | Yes      | yes |       |       | yes    | yes   |  -  | yes  | yes  | yes  |
-| GoogleNet-v1              | yes      | yes |       |       |        |       |     |      | yes  | yes  |
-| GoogleNet-v2              | yes      | yes |       |       |        |       |     |      | yes  | yes  |
-| GoogleNet-v3(inception)   | yes      | yes |       |       |        |       |     |      | yes  | yes  |
+| AlexNet                   | yes      | yes | -     | -     |        | yes   | yes | yes  | yes  | yes  |
+| DenseNet(121)             | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| FCN                       | Yes      | yes | yes   | yes   | yes    | yes   |  -  | yes  | yes  | yes  |
+| GoogleNet-v1              | yes      | yes | yes   | yes   |        |       |     |      | yes  | yes  |
+| GoogleNet-v2              | yes      | yes | yes   | yes   |        |       |     |      | yes  | yes  |
+| GoogleNet-v3(inception)   | yes      | yes | yes   | yes   |        |       |     |      | yes  | yes  |
 | MnasNet                   | yes      | yes |       |       |        |       |     |      | yes  | yes  |
 | MobileNet-v1-ssd(caffe)   | yes      | yes | -     | -     | -      | -     |  -  |  -   | yes  | yes  |
-| MobileNet-v1-ssd(pytorch) | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
-| MobileNet-v2-SSDLite      | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v1-ssd(pytorch) | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v2-SSDLite      | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
 | MobileNet-yolov3          | ?        | ?   |       |       |        |       |     |      |      |      |
-| MobileNet-v1              | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
-| MobileNet-v2              | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
-| MobileNet-v3(small,large) | yes      | yes |       |       | yes    | yes   | No  | yes  | yes  | yes  |
-| Mtcnn-v2                  | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
-| PSPNet                    | yes      | yes |       |       | yes    | yes   | No  | yes  | yes  | yes  |
-| ResNet50                  | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
-| SENet(154)                | yes      | yes |       |       | yes    | yes   |  -  | yes  | yes  | yes  |
-| ShuffleNet-v1             | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
-| ShuffleNet-v2             | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v1              | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v2              | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v3(small,large) | yes      | yes | yes   | yes   | yes    | yes   | No  | yes  | yes  | yes  |
+| Mtcnn-v2                  | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| PSPNet                    | yes      | yes | yes   | yes   | yes    | yes   | No  | yes  | yes  | yes  |
+| ResNet50                  | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| SENet(154)                | yes      | yes | yes   | yes   | yes    | yes   |  -  | yes  | yes  | yes  |
+| ShuffleNet-v1             | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| ShuffleNet-v2             | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
 | SqueezeNet-ssd            | No       | -   | -     | -     | -      | -     |  -  |  -   | -    | -    |
-| SqueezeNet-v1             | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
-| UNet                      | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
-| Vgg-ssd                   | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
-| Vgg16                     | yes      | yes |       |       |        | yes   | yes |      |      |      |
-| Yolo-v3-tiny              | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
-| Yolo-v2                   | ?        | ?   |       |       | yes    | yes   | yes |      |      |      |
-| Yolo-v2-tiny              | yes      | yes |       |       | yes    | yes   | yes | yes  | yes  | yes  |
-| Yolo-v3                   | yes      | yes |       |       | yes    | yes   | -   | yes  | yes  | yes  |
-| Yolo-v5s                  | yes      | yes |       |       | yes    | yes   | yes |      | yes  | yes  |
+| SqueezeNet-v1             | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| UNet                      | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| Vgg-ssd                   | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| Vgg16                     | yes      | yes | yes   | yes   |        | yes   | yes |      |      |      |
+| Yolo-v3-tiny              | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| Yolo-v2                   | ?        | ?   | yes   | yes   | yes    | yes   | yes |      |      |      |
+| Yolo-v2-tiny              | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| Yolo-v3                   | yes      | yes | yes   | yes   | yes    | yes   | -   | yes  | yes  | yes  |
+| Yolo-v5s                  | yes      | yes | yes   | yes   | yes    | yes   | yes |      | yes  | yes  |
 | C3D                       | yes      | yes | -     | -     | -      | -     | -   |      | -    | -    |
 | T3D                       | yes      | yes | -     | -     | -      | -     | -   |      | -    | -    |
 | BERT-Base                 | yes      | yes | -     | -     | -      | -     | -   |      |      |      |
 | BERT-Squad                | yes      | yes | -     | -     | -      | -     | -   |      |      |      |
 | MobileBERT                | yes      | yes | -     | -     | -      | -     | -   | yes  |      |      |
 | DistilBERT                | yes      | yes | -     | -     | -      | -     | -   |      |      |      |
-| Crnn-LSTM                 | yes      | yes |       |       | yes    | yes   | -   | yes  | yes  | yes  |
+| Crnn-LSTM                 | yes      | yes | yes   | yes   | yes    | yes   | -   | yes  | yes  | yes  |
 
 
 1. 关于 upsample 的计算,当参数mode == "bilinear" 或者 mode == "linear", pytorch 转化出的 onnx 模型是有问题的，pytorch 和 onnx 的计算结果是不对齐的。这是 onnx 本身的 bug，这一点尤其需要注意。但是遇到这种情况请不要担心，将转换后的 ONNX 模型转换为 TNN 后，我们保证了 TNN 和 Pytorch 的计算结果是对齐的。经过测试发现会出现上述问题的网络模型有 FCN 以及 PSPNet。
