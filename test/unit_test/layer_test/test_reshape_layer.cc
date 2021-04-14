@@ -40,6 +40,9 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
     if (0 != reshape_type && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
+    if (dim_size > 4 && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
 
     if (0 != reshape_type && DEVICE_CUDA == dev) {
         GTEST_SKIP();
