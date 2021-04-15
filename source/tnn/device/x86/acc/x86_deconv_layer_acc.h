@@ -60,6 +60,7 @@ public:
 
 protected:
     std::shared_ptr<X86LayerAcc> conv_acc_impl_ = nullptr;
+    std::shared_ptr<LayerResource> conv_acc_f32_resource_ = nullptr;
 };
 
 }   // namespace TNN_NS

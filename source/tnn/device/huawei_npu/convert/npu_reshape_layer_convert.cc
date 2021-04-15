@@ -78,6 +78,24 @@ static Status GetPermuteOrder(std::vector<int64_t>& order, int dims_size, bool t
     return TNN_OK;
 }
 
+static Status InferShapeFromZero(std::vector<int> input_dims, std::vector<int>& shape) {
+    int infer_max_idx = (int)input_dims.size() - 1;
+
+    for (int i = 0; i < shape.size(); ++i) {
+        if (shape[i] == 0) {
+            if (i > infer_max_idx) {
+                LOGE("Reshape param is invalid, 0 in shape (pos: %d) can't be infered\n", i);
+                return Status(TNNERR_PARAM_ERR, "Reshape param is invalid, 0 in shape can't be infered");
+            }
+            if (input_dims[i] != 0) {
+                shape[i] = input_dims[i];
+            }
+        }
+    }
+
+    return TNN_OK;
+}
+
 Status NpuReshapeLayer::Convert() {
     auto param = dynamic_cast<ReshapeLayerParam*>(param_);
     CHECK_PARAM_NULL(param);
@@ -88,9 +106,14 @@ Status NpuReshapeLayer::Convert() {
         return Status(TNNERR_MODEL_ERR, "(Reshape) dims size bigger than 4 is not support in HUAWEI_NPU");
     }
 
+    // infer shape to avoid the suitation: 0 exist in the shape position which is bigger than input.size(),
+    // this suitation exists in TFLite type Reshape
+    RETURN_ON_NEQ(InferShapeFromZero(input_ops_[0]->GetShape(), shape), TNN_OK);
+
     if (param->reshape_type == 1) {
         RETURN_ON_NEQ(ConvertShapeFromTNNToTFLite(shape), TNN_OK);
     }
+
     std::shared_ptr<ge::op::Const> shape_const = std::make_shared<ge::op::Const>(layer_name_ + "_shape");
     ge::TensorDesc shape_desc(ge::Shape({(int64_t)shape.size()}), ge::FORMAT_NCHW, ge::DT_INT32);
     NpuUtils::CreateAttrArray(shape_const, shape, shape_desc, (int)shape.size());
@@ -102,7 +125,6 @@ Status NpuReshapeLayer::Convert() {
         output->set_input_x(*input_ops_[0]->GetOperator());
         output->set_input_shape(*shape_const);
         output->set_attr_axis(param->axis);
-        output->set_attr_num_axes(param->num_axes);
         ADD_OUTPUT_OP(output)
     } else {
         LOGE("TFLite type Reshape is not support in HUAWEI_NPU\n");
@@ -122,7 +144,6 @@ Status NpuReshapeLayer::Convert() {
         //reshape_op->set_input_x(*permute_op);
         //reshape_op->set_input_shape(*shape_const);
         //reshape_op->set_attr_axis(param->axis);
-        //reshape_op->set_attr_num_axes(param->num_axes);
         //weight_ops_.push_back(reshape_op);
 
         //// convert input form nhwc to nchw

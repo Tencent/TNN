@@ -18,6 +18,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/device/x86/acc/compute/x86_compute.h"
 #include "tnn/device/x86/acc/x86_inner_product_layer_acc.h"
+#include "tnn/interpreter/layer_resource_generator.h"
 
 namespace TNN_NS {
 
@@ -51,8 +52,27 @@ Status X86InnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerR
         impl_ = InnerProductSgemm;
     }
 
+    auto res = dynamic_cast<InnerProductLayerResource *>(resource);
+    CHECK_PARAM_NULL(res);
+
+    Status ret;
+    if (res->weight_handle.GetDataType() == DATA_TYPE_HALF) {
+        LayerResource *fp32_res = nullptr;
+        RETURN_ON_NEQ(ConvertHalfResource(LAYER_INNER_PRODUCT, res, &fp32_res), TNN_OK);
+        fc_acc_f32_resource_ = std::shared_ptr<LayerResource>(fp32_res);
+        ret = X86LayerAcc::Init(context, param, fc_acc_f32_resource_.get(), inputs, outputs);
+    } else {
+        ret = X86LayerAcc::Init(context, param, resource, inputs, outputs);
+    }
+
+    RETURN_ON_NEQ(ret, TNN_OK);
     RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
     RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
+
+    // converted weights are assumed to be packed, and can be freed now
+    if (fc_acc_f32_resource_) {
+        fc_acc_f32_resource_.reset();
+    }
 
     return TNN_OK;
 }
@@ -145,12 +165,8 @@ Status X86InnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
 
 Status X86InnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param    = dynamic_cast<InnerProductLayerParam *>(param_);
-    auto resource = dynamic_cast<InnerProductLayerResource *>(resource_);
     if (!param) {
         return Status(TNNERR_MODEL_ERR, "Error: InnerProductLayerParam is nil");
-    }
-    if (!resource) {
-        return Status(TNNERR_MODEL_ERR, "Error: InnerProductLayerResource is nil");
     }
 
     Blob *input_blob  = inputs[0];

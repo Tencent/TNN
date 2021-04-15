@@ -12,22 +12,25 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "test/unit_test/layer_test/test_unary_layer.h"
+#ifndef TNN_SOURCE_TNN_DEVICE_X86_X86_PRELU_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_X86_X86_PRELU_LAYER_ACC_H_
+
+#include "tnn/device/x86/acc/x86_layer_acc.h"
 
 namespace TNN_NS {
 
-class TanhLayerTest : public UnaryLayerTest {
+class X86PReluLayerAcc : public X86LayerAcc {
 public:
-    TanhLayerTest() : UnaryLayerTest(LAYER_TANH) {}
+    virtual ~X86PReluLayerAcc();
+
+    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                const std::vector<Blob *> &outputs) override;
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+protected:
+    std::shared_ptr<LayerResource> prelu_acc_f32_resource_ = nullptr;
 };
 
-INSTANTIATE_TEST_SUITE_P(LayerTest, TanhLayerTest,
-                         ::testing::Combine(UNARY_BATCH_CHANNEL_SIZE,
-                                            testing::Values(2, 3, 4, 5),
-                                            testing::Values(DATA_TYPE_FLOAT)));
-
-TEST_P(TanhLayerTest, UnaryLayerTest) {
-    RunUnaryTest("Tanh");
-}
-
 }  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_TNN_DEVICE_X86_X86_PRELU_LAYER_ACC_H_
