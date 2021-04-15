@@ -78,7 +78,14 @@ config.network_type = TNN_NS::NETWORK_TYPE_HUAWEI_NPU;
 
 TNN input is set by SetInputMat interface.The data to be passed in is saved to input_mat.
 
-### Step4. Output 
+### Step 4. Network Infer
+
+```cpp
+auto status = instante->Forward();
+```
+The TNN Forward interface is a synchronous call interface, and the ForwardAsync interface is an asynchronous call interface.
+
+### Step5. Output 
 
 ```cpp
     auto status = instance->GetOutputMat(output_mat);
