@@ -36,7 +36,6 @@ Status CudaGeluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::v
 }
 
 Status CudaGeluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto params = dynamic_cast<EluLayerParam *>(param_);
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
     int count = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);

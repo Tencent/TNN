@@ -50,6 +50,9 @@ Status NpuBatchNormLayer::Convert() {
     if (!resource) {
         return Status(TNNERR_MODEL_ERR, "Error: BatchNorm layer resource is nil");
     }
+    if (input_ops_[0]->GetShape().size() != 4) {
+        return Status(TNNERR_PARAM_ERR, "Error: BatchNorm layer not support dim != 4 for HUAWEI_NPU");
+    }
 
     Status ret = TNN_OK;
 

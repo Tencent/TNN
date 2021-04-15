@@ -40,7 +40,7 @@ def parse_args():
                                  default=False,
                                  action='store_true',
                                  required=False,
-                                 help="optimize the model")
+                                 help="If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result")
     onnx2tnn_parser.add_argument('-half',
                                  dest='half',
                                  default=False,
@@ -123,7 +123,7 @@ def parse_args():
                                   default=False,
                                   action='store_true',
                                   required=False,
-                                  help="optimize the model")
+                                  help="If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result")
     caffe2tnn_parser.add_argument('-half',
                                   dest='half',
                                   default=False,
@@ -204,13 +204,13 @@ def parse_args():
                                default=False,
                                action='store_true',
                                required=False,
-                               help="optimize the model")
+                               help="If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result")
     tf2tnn_parser.add_argument('-half',
                                dest='half',
                                default=False,
                                action='store_true',
                                required=False,
-                               help="optimize the model")
+                               help="save the model using half")
     tf2tnn_parser.add_argument('-align',
                                dest='align',
                                default='',

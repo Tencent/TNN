@@ -22,6 +22,11 @@
 #include "TargetConditionals.h"
 #endif
 
+#define ENABLE_DUMP_BLOB_DATA 0
+#if ENABLE_DUMP_BLOB_DATA
+static int blob_id = 0;
+#endif
+
 namespace TNN_NS {
 const std::string kTNNSDKDefaultName = "TNN.sdk.default.name";
 
@@ -701,6 +706,10 @@ std::shared_ptr<Mat> TNNSDKSample::ResizeToInputShape(std::shared_ptr<Mat> input
     return input_mat;
 }
 
+bool TNNSDKSample::hideTextBox() {
+    return false;
+}
+
 TNN_NS::MatConvertParam TNNSDKSample::GetConvertParamForInput(std::string name) {
     return TNN_NS::MatConvertParam();
 }
@@ -720,6 +729,42 @@ TNN_NS::Status TNNSDKSample::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> outp
 std::shared_ptr<TNN_NS::Mat> TNNSDKSample::ProcessSDKInputMat(std::shared_ptr<TNN_NS::Mat> mat,
                                                               std::string name) {
     return mat;
+}
+
+TNN_NS::Status TNNSDKSample::DumpBlob(const BlobMap& blob_map, std::string output_dir) {
+#if ENABLE_DUMP_BLOB_DATA
+    for (const auto& item : blob_map) {
+        std::string output_path = output_dir + "/" + item.first + "_" + std::to_string(blob_id++);
+        DeviceType device_type = DEVICE_NAIVE;
+        MatType mat_type = NCHW_FLOAT;
+
+        void* command_queue;
+        instance_->GetCommandQueue(&command_queue);
+        BlobConverter blob_converter(item.second);
+        MatConvertParam param;
+        Mat cpu_mat(device_type, mat_type, item.second->GetBlobDesc().dims);
+        Status ret = blob_converter.ConvertToMat(cpu_mat, param, command_queue);
+        if (ret != TNN_OK) {
+            LOGE("blob (name: %s) convert failed (%s)\n", item.first.c_str(), ret.description().c_str());
+            return ret;
+        }
+
+        std::ofstream out_stream(output_path);
+        if (out_stream.is_open()) {
+            out_stream << item.first << std::endl;
+            for (auto d : cpu_mat.GetDims()) {
+                out_stream << d << " ";
+            }
+            out_stream << std::endl;
+            float* data_ptr = reinterpret_cast<float*>(cpu_mat.GetData());
+            for (int index = 0; index < DimsVectorUtils::Count(cpu_mat.GetDims()); index++) {
+                out_stream << data_ptr[index] << std::endl;
+            }
+            out_stream.close();
+        }
+    }
+#endif
+    return TNN_OK;
 }
 
 TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output) {
@@ -754,6 +799,17 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
                 RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             }
         }
+
+#if ENABLE_DUMP_BLOB_DATA
+        BlobMap blob_map = {};
+        instance_->GetAllInputBlobs(blob_map);
+        std::string output_dir = "/mnt/sdcard";
+        status = DumpBlob(blob_map, output_dir);
+        if (status != TNN_NS::TNN_OK) {
+            LOGE("Dump Blob Error: %s\n", status.description().c_str());
+            return status;
+        }
+#endif
         
         // step 2. Forward
         status = instance_->ForwardAsync(nullptr);

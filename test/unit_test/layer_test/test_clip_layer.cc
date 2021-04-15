@@ -56,6 +56,9 @@ TEST_P(ClipLayerTest, ClipLayer) {
     if (dev == DEVICE_OPENCL && dim_count > 4) {
         GTEST_SKIP();
     }
+    if (DEVICE_HUAWEI_NPU == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
 
     // param
     ClipLayerParam* param = new ClipLayerParam();

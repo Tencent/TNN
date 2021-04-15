@@ -17,43 +17,43 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 
 | model name                | onnx2tnn | Naive | armv7 | armv8 | opencl | metal | Huawei_Npu | CUDA | x86 | OpenVINO |
 |---------------------------|----------|-----|-------|-------|--------|-------|-----|------|------|------|
-| AlexNet                   | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| DenseNet(121)             | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| FCN                       | Yes      | yes |       |       |        | yes   |  -  | yes  | yes  | yes  |
-| GoogleNet-v1              | yes      | yes |       |       |        |       |     |      | yes  | yes  |
-| GoogleNet-v2              | yes      | yes |       |       |        |       |     |      | yes  | yes  |
-| GoogleNet-v3(inception)   | yes      | yes |       |       |        |       |     |      | yes  | yes  |
+| AlexNet                   | yes      | yes | -     | -     |        | yes   | yes | yes  | yes  | yes  |
+| DenseNet(121)             | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| FCN                       | Yes      | yes | yes   | yes   | yes    | yes   |  -  | yes  | yes  | yes  |
+| GoogleNet-v1              | yes      | yes | yes   | yes   |        |       |     |      | yes  | yes  |
+| GoogleNet-v2              | yes      | yes | yes   | yes   |        |       |     |      | yes  | yes  |
+| GoogleNet-v3(inception)   | yes      | yes | yes   | yes   |        |       |     |      | yes  | yes  |
 | MnasNet                   | yes      | yes |       |       |        |       |     |      | yes  | yes  |
 | MobileNet-v1-ssd(caffe)   | yes      | yes | -     | -     | -      | -     |  -  |  -   | yes  | yes  |
-| MobileNet-v1-ssd(pytorch) | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| MobileNet-v2-SSDLite      | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v1-ssd(pytorch) | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v2-SSDLite      | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
 | MobileNet-yolov3          | ?        | ?   |       |       |        |       |     |      |      |      |
-| MobileNet-v1              | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| MobileNet-v2              | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| MobileNet-v3(small,large) | yes      | yes |       |       |        | yes   | No  | yes  | yes  | yes  |
-| Mtcnn-v2                  | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| PSPNet                    | yes      | yes |       |       |        | yes   | No  | yes  | yes  | yes  |
-| ResNet50                  | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| SENet(154)                | yes      | yes |       |       |        | yes   |  -  | yes  | yes  | yes  |
-| ShuffleNet-v1             | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| ShuffleNet-v2             | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v1              | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v2              | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| MobileNet-v3(small,large) | yes      | yes | yes   | yes   | yes    | yes   | No  | yes  | yes  | yes  |
+| Mtcnn-v2                  | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| PSPNet                    | yes      | yes | yes   | yes   | yes    | yes   | No  | yes  | yes  | yes  |
+| ResNet50                  | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| SENet(154)                | yes      | yes | yes   | yes   | yes    | yes   |  -  | yes  | yes  | yes  |
+| ShuffleNet-v1             | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| ShuffleNet-v2             | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
 | SqueezeNet-ssd            | No       | -   | -     | -     | -      | -     |  -  |  -   | -    | -    |
-| SqueezeNet-v1             | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| UNet                      | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| Vgg-ssd                   | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| Vgg16                     | yes      | yes |       |       |        | yes   | yes |      |      |      |
-| Yolo-v3-tiny              | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| Yolo-v2                   | ?        | ?   |       |       |        | yes   | yes |      |      |      |
-| Yolo-v2-tiny              | yes      | yes |       |       |        | yes   | yes | yes  | yes  | yes  |
-| Yolo-v3                   | yes      | yes |       |       |        | yes   | -   | yes  | yes  | yes  |
-| Yolo-v5s                  | yes      | yes |       |       |        | yes   | yes |      | yes  | yes  |
+| SqueezeNet-v1             | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| UNet                      | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| Vgg-ssd                   | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| Vgg16                     | yes      | yes | yes   | yes   |        | yes   | yes |      |      |      |
+| Yolo-v3-tiny              | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| Yolo-v2                   | ?        | ?   | yes   | yes   | yes    | yes   | yes |      |      |      |
+| Yolo-v2-tiny              | yes      | yes | yes   | yes   | yes    | yes   | yes | yes  | yes  | yes  |
+| Yolo-v3                   | yes      | yes | yes   | yes   | yes    | yes   | -   | yes  | yes  | yes  |
+| Yolo-v5s                  | yes      | yes | yes   | yes   | yes    | yes   | yes |      | yes  | yes  |
 | C3D                       | yes      | yes | -     | -     | -      | -     | -   |      | -    | -    |
 | T3D                       | yes      | yes | -     | -     | -      | -     | -   |      | -    | -    |
 | BERT-Base                 | yes      | yes | -     | -     | -      | -     | -   |      |      |      |
 | BERT-Squad                | yes      | yes | -     | -     | -      | -     | -   |      |      |      |
 | MobileBERT                | yes      | yes | -     | -     | -      | -     | -   | yes  |      |      |
 | DistilBERT                | yes      | yes | -     | -     | -      | -     | -   |      |      |      |
-| Crnn-LSTM                 | yes      | yes |       |       |        | yes   | -   | yes  | yes  | yes  |
+| Crnn-LSTM                 | yes      | yes | yes   | yes   | yes    | yes   | -   | yes  | yes  | yes  |
 
 
 1. 关于 upsample 的计算,当参数mode == "bilinear" 或者 mode == "linear", pytorch 转化出的 onnx 模型是有问题的，pytorch 和 onnx 的计算结果是不对齐的。这是 onnx 本身的 bug，这一点尤其需要注意。但是遇到这种情况请不要担心，将转换后的 ONNX 模型转换为 TNN 后，我们保证了 TNN 和 Pytorch 的计算结果是对齐的。经过测试发现会出现上述问题的网络模型有 FCN 以及 PSPNet。
@@ -66,14 +66,14 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | Abs                      | Abs                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Acos                     | Acos                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Add                      | Add                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| ArgMaxOrMin(ArgMax)      | ArgMax                                         | yes | yes   | yes   |        | yes   |      | yes   | yes   | yes   |
-| ArgMaxOrMin(ArgMin)      | ArgMin                                         | yes | yes   | yes   |        | yes   |      | yes   | yes   | yes   |
+| ArgMaxOrMin(ArgMax)      | ArgMax                                         | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
+| ArgMaxOrMin(ArgMin)      | ArgMin                                         | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
 | Asin                     | Asin                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| Atan                     | Atan                                           | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
+| Atan                     | Atan                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | BatchNormCxx             | BatchNormalization                             | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | BitShift                 | BitShift                                       | yes |       |       |        |       |      | yes   |       |       |
-| Cast                     | Cast                                           | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
-| Ceil                     | Ceil                                           | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| Cast                     | Cast                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
+| Ceil                     | Ceil                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Clip                     | Clip                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Concat                   | Concat                                         | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Const                    | Constant                                       |     |       |       |        |       |      |       |       |       |
@@ -100,10 +100,10 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | Erf                      | Erf                                            | yes |       |       |        |       |      | yes   | yes   | yes   |
 | Exp                      | Exp                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Expand                   | Expand                                         | yes | yes   | yes   |        |       |      | yes   | yes   | yes   |
-| Flatten                  | Flatten                                        | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| Flatten                  | Flatten                                        | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Flatten                  | Shape+Gather+Constant+Unsqueeze+Concat+Reshape |     |       |       |        |       |      |       |       |       |
 | Floor                    | Floor                                          | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| Gather                   | Gather                                         | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| Gather                   | Gather                                         | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | GatherND                 | GatherND                                       | yes |       |       |        |       |      | yes   |       |       |
 | GridSample               | GridSample(PyTorch)                            | yes |       |       |        |       |      | yes   |       |       |
 | GroupNorm                | GroupNorm(PyTorch)                             | yes |       |       |        |       |      | yes   |       |       |
@@ -114,11 +114,11 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | InnerProduct             | Gemm                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | InstBatchNormCxx         | InstanceNormalization                          | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Inverse                  | Inverse(PyTorch)                               | yes |       |       |        |       |      | yes   |       |       |
-| LSTMONNX                 | LSTM                                           | yes | yes   | yes   |        | yes   |      | yes   | yes   | yes   |
+| LSTMONNX                 | LSTM                                           | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
 | LRN                      | LRN                                            | yes |       |       |        | yes   | yes  | yes   | yes   | yes   |
 | Log                      | Log                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| LogSigmoid               | Sigmoid + Log                                  | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
-| MatMul                   | Matmul                                         | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| LogSigmoid               | Sigmoid + Log                                  | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
+| MatMul                   | Matmul                                         | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Max                      | Max                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Min                      | Min                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Mul                      | Mul                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
@@ -131,7 +131,7 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | PRelu                    | LeakyRelu / PRelu                              | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Pad                      | Pad                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Permute                  | Transpose                                      | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| PixelShuffle             | PixelShuffle(PyTorch), Depth2Space(ONNX)       | yes | yes   | yes   |        | yes   |      | yes   | yes   |       |
+| PixelShuffle             | PixelShuffle(PyTorch), Depth2Space(ONNX)       | yes | yes   | yes   | yes    | yes   |      | yes   | yes   |       |
 | Pooling (Avg)            | AveragePool                                    | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Pooling (GlobalAverage)  | GlobalAveragePool                              | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Pooling (GlobalMax)      | GlobalMaxPool                                  | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
@@ -140,20 +140,20 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | Pooling3D (GlobalAverage)| GlobalAveragePool                              | yes |       |       |        |       |      | yes   |       |       |
 | Pooling3D (GlobalMax)    | GlobalMaxPool                                  | yes |       |       |        |       |      | yes   |       |       |
 | Pooling3D (Max)          | MaxPool                                        | yes |       |       |        |       |      | yes   |       |       |
-| Power                    | Pow                                            | yes | yes   | yes   | yes    | yes   |      | yes   | yes   |       |
+| Power                    | Pow                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   |       |
 | PriorBox                 | PriorBox(custom operator)                      | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Range                    | Range                                          | yes |       |       |        |       |      |       |       |       |
 | Reciprocal               | Reciprocal                                     | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| ReduceL1                 | ReduceL1                                       | yes | yes   | yes   |        | yes   |      |       | yes   | yes   |
-| ReduceL2                 | ReduceL2                                       | yes | yes   | yes   |        | yes   |      | yes   | yes   | yes   |
-| ReduceLogSum             | ReduceLogSum                                   | yes | yes   | yes   |        | yes   |      |       | yes   | yes   |
-| ReduceLogSumExp          | ReduceLogSumExp                                | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| ReduceL1                 | ReduceL1                                       | yes | yes   | yes   | yes    | yes   |      |       | yes   | yes   |
+| ReduceL2                 | ReduceL2                                       | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
+| ReduceLogSum             | ReduceLogSum                                   | yes | yes   | yes   | yes    | yes   |      |       | yes   | yes   |
+| ReduceLogSumExp          | ReduceLogSumExp                                | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | ReduceMax                | ReduceMax                                      | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | ReduceMean               | ReduceMean                                     | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| ReduceMin                | ReduceMin                                      | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
-| ReduceProd               | ReduceProd                                     | yes | yes   | yes   |        | yes   | yes  |       | yes   | yes   |
+| ReduceMin                | ReduceMin                                      | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
+| ReduceProd               | ReduceProd                                     | yes | yes   | yes   | yes    | yes   | yes  |       | yes   | yes   |
 | ReduceSum                | ReduceSum                                      | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| ReduceSumSquare          | ReduceSumSquare                                | yes | yes   | yes   |        | yes   |      |       | yes   | yes   |
+| ReduceSumSquare          | ReduceSumSquare                                | yes | yes   | yes   | yes    | yes   |      |       | yes   | yes   |
 | Relu                     | Relu                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Relu6                    | Clip                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Reorg                    | DepthToSpace                                   | yes | yes   | yes   | yes    | yes   |      |       | yes   | yes   |
@@ -174,17 +174,17 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | Slice(StrideSlice)       | Slice                                          | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Softmax                  | Softmax                                        | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Softplus                 | Softplus                                       | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| Softsign                 | Softsign                                       | yes |       |       |        |       |      |       | yes   | yes   |
+| Softsign                 | Softsign                                       | yes |       |       |        |       | yes  |       | yes   | yes   |
 | Split                    | Split                                          |     | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Sqrt                     | Sqrt                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | SquaredDifference        | SquaredDifference(TFLite)                      | yes |       |       |        |       |      |       |       |       |
-| Squeeze                  | Squeeze                                        |     | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| Squeeze                  | Squeeze                                        |     | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Sub                      | Sub                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Sum                      |                                                |     |       |       |        |       |      |       |       |       |
 | Tan                      | Tan                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Tanh                     | Tanh                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Tile                     | Tile                                           | yes |       |       |        |       |      | yes   |       |       |
-| Unsqueeze                | Unsqueeze                                      | yes | yes   | yes   |        | yes   | yes  | yes   | yes   | yes   |
+| Unsqueeze                | Unsqueeze                                      | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Upsample                 | Upsample / Resize                              | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Where                    | Where                                          | yes |       |       |        |       |      |       |       |       |
 

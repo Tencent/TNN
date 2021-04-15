@@ -46,8 +46,8 @@ public:
      * @brief allocate or update constant blobs if constant resource changes.
      * Note: this func may cost much time, call this func only when necessary.
      */
-    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs);
-    
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false);
+
 
 public:
     virtual std::string KernelName(const std::vector<Blob *> &inputs,

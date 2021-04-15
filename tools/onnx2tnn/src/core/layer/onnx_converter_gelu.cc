@@ -24,7 +24,11 @@ string OnnxOpConverterGELU::TNNOpType(NodeProto &node,
 
 string OnnxOpConverterGELU::TNNLayerParam(
     NodeProto &node, OnnxNetInfo &net_info) {
-    return "";
+    auto approximation = get_node_attr_i(node, "approximation", 0);
+    
+    ostringstream layer_param;
+    layer_param << approximation;
+    return layer_param.str();
 }
 
 bool OnnxOpConverterGELU::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {

@@ -28,9 +28,6 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, SignLayerTest,
 
 TEST_P(SignLayerTest, UnaryLayerTest) {
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
-    if (DEVICE_HUAWEI_NPU == dev) {
-        GTEST_SKIP();
-    }
 
     if (DEVICE_CUDA == dev) {
         GTEST_SKIP();

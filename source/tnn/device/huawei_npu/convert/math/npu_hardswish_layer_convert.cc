@@ -22,6 +22,7 @@ DECLARE_NPU_LAYER_WEIGHT(Hardswish, LAYER_HARDSWISH)
 
 Status NpuHardswishLayer::Convert() {
     auto param = dynamic_cast<HardSwishLayerParam *>(param_);
+    CHECK_PARAM_NULL(param);
     if (!(param->alpha >= 0.1666f && param->alpha <= 0.1667f && param->beta >= 0.4999f && param->beta <= 0.5001f)) {
         LOGE("hardswish only support alpha=1/6 beta=0.5, but in fact, alpha=%f beta=%f\n", param->alpha, param->beta);
         return Status(TNNERR_LAYER_ERR, "Error: Npu currently only supports hardswish (alpha=1/6, beta=0.5)");

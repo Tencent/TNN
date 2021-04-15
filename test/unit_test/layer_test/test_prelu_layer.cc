@@ -41,11 +41,10 @@ TEST_P(PReluLayerTest, PReluLayer) {
         GTEST_SKIP();
     }
 
-    if (!share_channel && DEVICE_CUDA == dev) {
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
         GTEST_SKIP();
     }
-
-    if (DEVICE_OPENCL == dev && dim_count > 4) {
+    if (DEVICE_HUAWEI_NPU == dev && dim_count > 4) {
         GTEST_SKIP();
     }
 
