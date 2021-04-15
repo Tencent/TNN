@@ -757,15 +757,25 @@ Status X86BinaryOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         auto input0_ptr = reinterpret_cast<float *>(input_ptrs[0]);
         auto input1_ptr = reinterpret_cast<float *>(input_ptrs[1]);
 
-        DimsVector input0_pad_shape, input1_pad_shape;
-        input0_pad_shape.resize(dims.size());
-        input1_pad_shape.resize(dims.size());
-        PadShape(dims.size() - input_shapes_[0].size(), dims.size(), input0_pad_shape, input_shapes_[0]);
-        PadShape(dims.size() - input_shapes_[1].size(), dims.size(), input1_pad_shape, input_shapes_[1]);
+        // input0_shape != output_shape && input1_shape != output_shape -> general impl
+        if (!DimsVectorUtils::Equal(dims, input_shapes_[0]) &&
+            !DimsVectorUtils::Equal(dims, input_shapes_[1])) {
+            std::vector<DimsVector> shapes_tmp = {input_shapes_[0], input_shapes_[1]};
+            std::vector<float *> ptrs_tmp = {input0_ptr, input1_ptr};
 
-        binary_func_(output_ptr, input0_ptr, input1_ptr, input0_pad_shape, input1_pad_shape, output->GetBlobDesc().dims);
+            binary_general_func_(dims, shapes_tmp, output_ptr, ptrs_tmp);
+        } else {
+            DimsVector input0_pad_shape, input1_pad_shape;
+            input0_pad_shape.resize(dims.size());
+            input1_pad_shape.resize(dims.size());
+            PadShape(dims.size() - input_shapes_[0].size(), dims.size(), input0_pad_shape, input_shapes_[0]);
+            PadShape(dims.size() - input_shapes_[1].size(), dims.size(), input1_pad_shape, input_shapes_[1]);
+
+            binary_func_(output_ptr, input0_ptr, input1_ptr, input0_pad_shape, input1_pad_shape, output->GetBlobDesc().dims);
+        }
 
         for (int i = 2; i < input_ptrs.size(); i++) {
+            DimsVector input0_pad_shape;
             auto input_ptr = reinterpret_cast<float *>(input_ptrs[i]);
             PadShape(dims.size() - input_shapes_[i].size(), dims.size(), input0_pad_shape, input_shapes_[i]);
             binary_func_(output_ptr, output_ptr, input_ptr, dims, input0_pad_shape, output->GetBlobDesc().dims);

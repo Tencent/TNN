@@ -38,7 +38,7 @@ public:
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
-    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs) override;
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) override;
 
 #if TNN_PROFILE
     virtual void UpdateProfilingData(OpenCLProfilingData *pdata, std::vector<uint32_t> gws, std::vector<uint32_t> lws,

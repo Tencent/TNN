@@ -56,7 +56,7 @@ Status AbstractLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
     return TNN_OK;
 }
 
-Status AbstractLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
+Status AbstractLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob) {
     return TNN_OK;
 }
 
@@ -89,6 +89,10 @@ void AbstractLayerAcc::SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_poo
 
 void AbstractLayerAcc::SetConstantResource(ConstantResource* consts) {
     const_resource_ = consts;
+}
+
+void AbstractLayerAcc::SetConstantResourceFlag(ConstantResourceFlag *flags) {
+    const_resource_flag_ = flags;
 }
 
 // @brief set runtime mode

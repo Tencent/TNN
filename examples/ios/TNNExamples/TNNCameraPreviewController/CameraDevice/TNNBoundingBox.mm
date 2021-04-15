@@ -70,13 +70,13 @@
     }
 }
 
-- (void)showText:(NSString *)text withColor:(UIColor *)color atFrame:(CGRect)frame {
+- (void)showText:(NSString *)text withColor:(UIColor *)color hideTextFrame:(bool)hideTextFrame atFrame:(CGRect)frame {
     [CATransaction setDisableActions:YES];
     
     auto path = [UIBezierPath bezierPathWithRect:frame];
     _boxLayer.path = path.CGPath;
     _boxLayer.strokeColor = color.CGColor;
-    _boxLayer.hidden = NO;
+    _boxLayer.hidden = hideTextFrame? YES : NO;
 
     _textLayer.string = text;
     _textLayer.backgroundColor = color.CGColor;
@@ -94,48 +94,6 @@
                                   textRect.size.width + 10,
                                   textRect.size.height);
     
-    [CATransaction setDisableActions:NO];
-}
-
-- (void)showText:(NSString *)text withColor:(UIColor *)color atFrame:(CGRect)frame points:(std::vector<std::pair<float, float>>)points
-           lines:(std::vector<std::pair<int, int>>)lines {
-    [CATransaction setDisableActions:YES];
-
-    //auto path = [UIBezierPath bezierPathWithRect:frame];
-    auto path = [UIBezierPath bezierPath];
-    for(int i=0; i<lines.size(); ++i) {
-        auto line_start = lines[i].first;
-        auto line_end = lines[i].second;
-
-        if (line_start >= points.size() || line_end >= points.size())
-            continue;
-
-        auto start_point = points[line_start];
-        auto end_point = points[line_end];
-        [path moveToPoint:CGPointMake(start_point.first, start_point.second)];
-        [path addLineToPoint:CGPointMake(end_point.first, end_point.second)];
-    }
-    [path closePath];
-    _boxLayer.path = path.CGPath;
-    _boxLayer.strokeColor = color.CGColor;
-    _boxLayer.hidden = NO;
-
-    _textLayer.string = text;
-    _textLayer.backgroundColor = color.CGColor;
-    _textLayer.hidden = NO;
-
-    auto attributes = @{NSFontAttributeName:[UIFont systemFontOfSize:14]};
-
-    auto textRect = [text boundingRectWithSize:CGSizeMake(400, 100)
-                                       options:NSStringDrawingTruncatesLastVisibleLine
-                                    attributes:attributes
-                                       context:nil];
-
-    _textLayer.frame = CGRectMake(frame.origin.x - 1,
-                                  frame.origin.y - textRect.size.height,
-                                  textRect.size.width + 10,
-                                  textRect.size.height);
-
     [CATransaction setDisableActions:NO];
 }
 

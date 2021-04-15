@@ -15,6 +15,7 @@
 #include "x86_conv_layer_acc.h"
 #include "tnn/device/x86/acc/compute/x86_compute.h"
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_acc_factory.h"
+#include "tnn/interpreter/layer_resource_generator.h"
 
 namespace TNN_NS {
 
@@ -25,7 +26,16 @@ Status X86ConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     auto conv_resource = dynamic_cast<ConvLayerResource *>(resource);
     CHECK_PARAM_NULL(conv_resource);
 
-    Status ret = X86LayerAcc::Init(context, param, resource, inputs, outputs);
+    Status ret;
+    if (conv_resource->filter_handle.GetDataType() == DATA_TYPE_HALF) {
+        LayerResource *fp32_res = nullptr;
+        RETURN_ON_NEQ(ConvertHalfResource(LAYER_CONVOLUTION, conv_resource, &fp32_res), TNN_OK);
+        conv_acc_f32_resource_ = std::shared_ptr<LayerResource>(fp32_res);
+        ret = X86LayerAcc::Init(context, param, conv_acc_f32_resource_.get(), inputs, outputs);
+    } else {
+        ret = X86LayerAcc::Init(context, param, resource, inputs, outputs);
+    }
+
     if (ret != TNN_OK) {
         return ret;
     }
@@ -35,9 +45,14 @@ Status X86ConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     if (!conv_acc_impl_) {
         return Status(TNNERR_NET_ERR, "Could not create conv impl_");
     }
-    return conv_acc_impl_->Init(context_, param_, resource_, inputs, outputs);
+    ret = conv_acc_impl_->Init(context_, param_, resource_, inputs, outputs);
 
-    return TNN_OK;
+    // converted weights are assumed to be packed, and can be freed now
+    if (conv_acc_f32_resource_) {
+        conv_acc_f32_resource_.reset();
+    }
+
+    return ret;
 }
 
 Status X86ConvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

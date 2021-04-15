@@ -59,7 +59,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('onnx_model_path', help='Input ONNX model path')
     parser.add_argument('-version', help='Algorithm version string')
-    parser.add_argument('-optimize', help='Optimize model befor convert, 1:default yes, 0:no')
+    parser.add_argument('-optimize', help='If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result')
     parser.add_argument('-half', help='Save model using half, 1:yes, 0:default no')
     parser.add_argument('-o',
                         dest='output_dir',

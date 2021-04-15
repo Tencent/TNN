@@ -46,6 +46,9 @@ protected:
             case LAYER_ABS:
                 mode = 6;
                 break;
+            case LAYER_SOFTSIGN:
+                mode = 8;
+                break;
             case LAYER_SOFTPLUS:
                 mode = 9;
                 break;
@@ -66,6 +69,9 @@ protected:
                 break;
             case LAYER_RELU6:
                 mode = 14;
+                break;
+            case LAYER_GELU:
+                mode = 15;
                 break;
             default:
                 return Status(TNNERR_UNKNOWN_LAYER, "This activation is not defined in NPU");
@@ -99,12 +105,16 @@ DECLARE_NPU_ACTIVATION_LAYER(Abs, LAYER_ABS)
 REGISTER_NPU_LAYER(Abs, LAYER_ABS)
 DECLARE_NPU_ACTIVATION_LAYER(Softplus, LAYER_SOFTPLUS)
 REGISTER_NPU_LAYER(Softplus, LAYER_SOFTPLUS)
+DECLARE_NPU_ACTIVATION_LAYER(Softsign, LAYER_SOFTSIGN)
+REGISTER_NPU_LAYER(Softsign, LAYER_SOFTSIGN)
 DECLARE_NPU_ACTIVATION_LAYER(HardSigmoid, LAYER_HARDSIGMOID)
 REGISTER_NPU_LAYER(HardSigmoid, LAYER_HARDSIGMOID)
 DECLARE_NPU_ACTIVATION_LAYER(Selu, LAYER_SELU)
 REGISTER_NPU_LAYER(Selu, LAYER_SELU)
 DECLARE_NPU_ACTIVATION_LAYER(Relu6, LAYER_RELU6)
 REGISTER_NPU_LAYER(Relu6, LAYER_RELU6)
+DECLARE_NPU_ACTIVATION_LAYER(Gelu, LAYER_GELU)
+REGISTER_NPU_LAYER(Gelu, LAYER_GELU)
 
 }  // namespace TNN_NS
 

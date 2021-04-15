@@ -51,6 +51,9 @@ TEST_P(GeluLayerTest, GeluLayer) {
     if (DEVICE_OPENCL == dev || DEVICE_METAL == dev || DEVICE_ARM == dev) {
         GTEST_SKIP();
     }
+    if (dim_count > 4 && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
 
     // param
     std::shared_ptr<LayerParam> param(new LayerParam());

@@ -253,10 +253,12 @@ returns:
     the image sent to the phase2 model
  */
 std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::AlignN(std::shared_ptr<TNN_NS::Mat> image, std::shared_ptr<TNN_NS::Mat> pre_pts, std::vector<float> mean_pts, int net_h, int net_w, float net_scale, std::vector<float>&M) {
+    DimsVector dims(3, 0);
     // check shape
-    auto dims = pre_pts->GetDims();
+    const int batch = pre_pts->GetDim(0);
+    dims[0] = batch;
     if(phase == 1) {
-        auto channel = dims[1];
+        auto channel = pre_pts->GetDim(1);
         dims[1] = channel / 2;
         dims[2] = 2;
     } else if(phase == 2) {

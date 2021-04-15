@@ -27,11 +27,6 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, SigmoidLayerTest,
                                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(SigmoidLayerTest, UnaryLayerTest) {
-    DeviceType dev = ConvertDeviceType(FLAGS_dt);
-    if (DEVICE_HUAWEI_NPU == dev) {
-        GTEST_SKIP();
-    }
-
     RunUnaryTest("Sigmoid");
 }
 

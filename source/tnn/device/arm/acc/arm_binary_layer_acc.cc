@@ -290,16 +290,27 @@ Status ArmBinaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
         auto input0_ptr = input_ptrs_[0];
         auto input1_ptr = input_ptrs_[1];
 
-        DimsVector input0_pad_shape, input1_pad_shape;
-        input0_pad_shape.resize(output_dims.size());
-        input1_pad_shape.resize(output_dims.size());
-        PadShape(output_dims.size() - input_shapes_[0].size(), output_dims.size(), input0_pad_shape, input_shapes_[0]);
-        PadShape(output_dims.size() - input_shapes_[1].size(), output_dims.size(), input1_pad_shape, input_shapes_[1]);
+        // input0_shape != output_shape && input1_shape != output_shape -> general impl
+        if (!DimsVectorUtils::Equal(output_dims, input_shapes_[0]) &&
+            !DimsVectorUtils::Equal(output_dims, input_shapes_[1])) {
+            std::vector<DimsVector> shapes_tmp = {input_shapes_[0], input_shapes_[1]};
+            std::vector<void *> ptrs_tmp = {input0_ptr, input1_ptr};
+            size_t output_size = DimsVectorUtils::Count(output_dims);
+            void *workspace = context_->GetSharedWorkSpace(output_size * 2 * sizeof(T));
+            BinaryGeneralFunc<T, op_type>(output_ptr, ptrs_tmp, output_dims, shapes_tmp, workspace, alpha_, beta_);
+        } else {
+            DimsVector input0_pad_shape, input1_pad_shape;
+            input0_pad_shape.resize(output_dims.size());
+            input1_pad_shape.resize(output_dims.size());
+            PadShape(output_dims.size() - input_shapes_[0].size(), output_dims.size(), input0_pad_shape, input_shapes_[0]);
+            PadShape(output_dims.size() - input_shapes_[1].size(), output_dims.size(), input1_pad_shape, input_shapes_[1]);
 
-        BinaryFunc<T, op_type>(output_ptr, input0_ptr, input1_ptr, input0_pad_shape, input1_pad_shape, alpha_, beta_);
+            BinaryFunc<T, op_type>(output_ptr, input0_ptr, input1_ptr, input0_pad_shape, input1_pad_shape, alpha_, beta_);
+        }
 
         for (int i = 2; i < input_ptrs_.size(); i++) {
             auto input_ptr = input_ptrs_[i];
+            DimsVector input0_pad_shape;
             PadShape(output_dims.size() - input_shapes_[i].size(), output_dims.size(), input0_pad_shape, input_shapes_[i]);
             BinaryFunc<T, op_type>(output_ptr, output_ptr, input_ptr, output_dims, input0_pad_shape, alpha_, beta_);
         }

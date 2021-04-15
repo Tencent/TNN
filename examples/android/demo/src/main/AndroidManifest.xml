@@ -47,6 +47,11 @@
             android:windowSoftInputMode="stateAlwaysHidden"
             android:screenOrientation="portrait"
             android:configChanges="keyboardHidden|orientation|screenSize"/>
+        <activity android:name="com.tencent.tnn.demo.ImageOCRDetector.ImageOCRDetectActivity"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+            android:windowSoftInputMode="stateAlwaysHidden"
+            android:screenOrientation="portrait"
+            android:configChanges="keyboardHidden|orientation|screenSize"/>
         <activity android:name="com.tencent.tnn.demo.ImageObjectDetectorSSD.ImageObjectDetectSSDActivity"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
             android:windowSoftInputMode="stateAlwaysHidden"

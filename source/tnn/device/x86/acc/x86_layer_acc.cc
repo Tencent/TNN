@@ -27,7 +27,7 @@ Status X86LayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
     param_    = param;
     resource_ = resource;
 
-    RETURN_ON_NEQ(ReloadConstantBlobs(inputs), TNN_OK);
+    RETURN_ON_NEQ(ReloadConstantBlobs(inputs, false), TNN_OK);
 
     if (cpu_with_isa(avx2)) {
         arch_ = avx2;
@@ -76,12 +76,17 @@ Status X86LayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vect
     return Status(TNNERR_LAYER_ERR, "DoForward not implement");
 }
 
-Status X86LayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
+Status X86LayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob) {
     auto const_resource = const_resource_;
+    auto const_resource_flag = const_resource_flag_;
     auto const_blob_map = const_blob_map_;
     for (auto iter : inputs) {
         auto name = iter->GetBlobDesc().name;
         if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
+            continue;
+        }
+        if (only_reload_shape_differ_blob && const_resource_flag &&
+            const_resource_flag->find(name) == const_resource_flag->end()) {
             continue;
         }
 

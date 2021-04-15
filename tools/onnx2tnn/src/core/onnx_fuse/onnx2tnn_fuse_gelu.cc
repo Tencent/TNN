@@ -90,12 +90,18 @@ int Onnx2TNN::FuseGELU(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& 
                 node_mul2->set_op_type("GELU");
                 node_mul2->clear_input();
                 node_mul2->add_input(node->input(0));
+                
+                // approximation
+                onnx::AttributeProto* attr_approximation  = node_mul2->add_attribute();
+                attr_approximation->set_name("approximation");
+                attr_approximation->set_i(0);
 
                 i += 4;
             }
         } while (0);
         
-        // GELU <= Pow - Mul - Add - Mul - Tanh - Add - Mul(0.5) - Mul
+        // approximation GELU <= Pow - Mul - Add - Mul - Tanh - Add - Mul(0.5) - Mul
+        // the approximation has big error if input is -2.281006575
         do {
             if (node->op_type() == "Pow" && i + 7 < node_count) {
                 auto node1 = index_nodes[i + 1].node;
@@ -186,6 +192,11 @@ int Onnx2TNN::FuseGELU(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& 
                 node7->set_op_type("GELU");
                 node7->clear_input();
                 node7->add_input(node->input(0));
+                
+                // approximation
+                onnx::AttributeProto* attr_approximation  = node7->add_attribute();
+                attr_approximation->set_name("approximation");
+                attr_approximation->set_i(1);
 
                 i += 7;
             }
