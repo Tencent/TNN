@@ -47,23 +47,11 @@ template <>
 void transpose_4x4(Float4 *v0, Float4 *v1, Float4 *v2, Float4 *v3) {
     float32x4x2_t q01 = vtrnq_f32(v0->value, v1->value);
     float32x4x2_t q23 = vtrnq_f32(v2->value, v3->value);
-
-    float32x2_t d00 = vget_low_f32(q01.val[0]);
-    float32x2_t d01 = vget_high_f32(q01.val[0]);
-
-    float32x2_t d10 = vget_low_f32(q01.val[1]);
-    float32x2_t d11 = vget_high_f32(q01.val[1]);
-
-    float32x2_t d20 = vget_low_f32(q23.val[0]);
-    float32x2_t d21 = vget_high_f32(q23.val[0]);
-
-    float32x2_t d30 = vget_low_f32(q23.val[1]);
-    float32x2_t d31 = vget_high_f32(q23.val[1]);
-
-    v0->value = vcombine_f32(d00, d20);
-    v1->value = vcombine_f32(d10, d30);
-    v2->value = vcombine_f32(d01, d21);
-    v3->value = vcombine_f32(d11, d31);
+    
+    v0->value = (float32x4_t) vtrn1q_f64((float64x2_t)q01.val[0], (float64x2_t)q23.val[0]);
+    v2->value = (float32x4_t) vtrn2q_f64((float64x2_t)q01.val[0], (float64x2_t)q23.val[0]);
+    v1->value = (float32x4_t) vtrn1q_f64((float64x2_t)q01.val[1], (float64x2_t)q23.val[1]);
+    v3->value = (float32x4_t) vtrn2q_f64((float64x2_t)q01.val[1], (float64x2_t)q23.val[1]);
 }
 #else
 /*
