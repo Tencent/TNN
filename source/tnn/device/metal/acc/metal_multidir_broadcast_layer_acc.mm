@@ -23,7 +23,7 @@
 namespace TNN_NS {
 MetalMultidirBroadcastLayerAcc::~MetalMultidirBroadcastLayerAcc() {}
 
-Status MetalMultidirBroadcastLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
+Status MetalMultidirBroadcastLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob) {
     auto max_dim_size = inputs[0]->GetBlobDesc().dims.size();
     for(auto *blob : inputs) {
         auto dims_input = blob->GetBlobDesc().dims;
@@ -37,7 +37,7 @@ Status MetalMultidirBroadcastLayerAcc::ReloadConstantBlobs(const std::vector<Blo
         blob->GetBlobDesc().dims = dims_input;
     }
 
-    return MetalLayerAcc::ReloadConstantBlobs(inputs);
+    return MetalLayerAcc::ReloadConstantBlobs(inputs, only_reload_shape_differ_blob);
 }
 
 Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,

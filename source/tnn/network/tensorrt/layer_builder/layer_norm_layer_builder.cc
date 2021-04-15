@@ -20,8 +20,16 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(LayerNorm, LAYER_LAYER_NORM);
 
 bool LayerNormTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) &&
-        inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
+    bool layout_check = inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+
+    bool datatype_check = true;
+    if (pos == 0) {
+        datatype_check = inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF;
+    } else {
+        datatype_check = inOut[pos].type == inOut[0].type;
+    }
+
+    return layout_check && datatype_check;
 }
 
 const char* LayerNormTRTPluginLayerBuilder::getPluginType() const {

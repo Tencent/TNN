@@ -42,7 +42,7 @@ public:
 
     // @brief allocate or update constant blobs if constant resource change
     // Note: this func may cost much time, call this func only when necessary.
-    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs);
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false);
 
 #if TNN_PROFILE
     Timer timer;

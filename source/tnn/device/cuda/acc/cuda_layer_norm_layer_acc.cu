@@ -25,20 +25,20 @@ namespace TNN_NS {
 
 DECLARE_CUDA_ACC(LayerNorm, LAYER_LAYER_NORM);
 
-template<int THREAD_PER_BLOCK, typename T>
-__global__ void layer_norm_kernel(const T * input, T* output, const float *scale,
-        const float *bias, const int size, const int batch_size, const float eps) {
-    __shared__ double ssum1[THREAD_PER_BLOCK/32];
-    __shared__ double ssum2[THREAD_PER_BLOCK/32];
-    __shared__ double mean;
-    __shared__ double var;
+template<int THREAD_PER_BLOCK, typename T, typename Acc>
+__global__ void layer_norm_kernel(const T * input, T* output, const T *scale,
+        const T *bias, const int size, const int batch_size, const float eps) {
+    __shared__ Acc ssum1[THREAD_PER_BLOCK/32];
+    __shared__ Acc ssum2[THREAD_PER_BLOCK/32];
+    __shared__ Acc mean;
+    __shared__ Acc var;
 
     const int block_offset = blockIdx.x * size;
     const T *ptr = input + block_offset;
     T *dst = output + block_offset;
 
-    double thread_sum1 = 0.f;
-    double thread_sum2 = 0.f;
+    Acc thread_sum1 = 0.f;
+    Acc thread_sum2 = 0.f;
 
     for (int i = threadIdx.x; i < size; i+=THREAD_PER_BLOCK) {
         float value = get_float_value<T>(ptr[i]);
@@ -86,8 +86,8 @@ __global__ void layer_norm_kernel(const T * input, T* output, const float *scale
 
     #pragma unroll(4)
     for (int i = threadIdx.x; i < size; i += THREAD_PER_BLOCK) {
-        float k = scale[i] * var;
-        float b = - mean * k + bias[i];
+        float k = get_float_value<T>(scale[i]) * var;
+        float b = - mean * k + get_float_value<T>(bias[i]);
         dst[i] = convert_float_value<T>((get_float_value<T>(ptr[i]) * k + b));
     }
 }
@@ -134,8 +134,11 @@ Status CudaLayerNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     griddim.x = channels;
 
     if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        layer_norm_kernel<THREAD_PER_BLOCK, float><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>((float*)input_data,
+        layer_norm_kernel<THREAD_PER_BLOCK, float, float><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>((float*)input_data,
             (float *)output_data, (float *)scale_data, (float *)bias_data, channel_area, channels, layer_param->eps);
+    } else if (input_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        layer_norm_kernel<THREAD_PER_BLOCK, __half, float><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>((__half*)input_data,
+            (__half *)output_data, (__half *)scale_data, (__half *)bias_data, channel_area, channels, layer_param->eps);
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", input_blob->GetBlobDesc().data_type);
         return Status(TNNERR_MODEL_ERR, "Error: layer acc don't support datatype");
