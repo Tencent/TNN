@@ -134,10 +134,10 @@ Status CudaLayerNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     griddim.x = channels;
 
     if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        layer_norm_kernel<THREAD_PER_BLOCK, float, double><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>((float*)input_data,
+        layer_norm_kernel<THREAD_PER_BLOCK, float, float><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>((float*)input_data,
             (float *)output_data, (float *)scale_data, (float *)bias_data, channel_area, channels, layer_param->eps);
     } else if (input_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        layer_norm_kernel<THREAD_PER_BLOCK, __half, double><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>((__half*)input_data,
+        layer_norm_kernel<THREAD_PER_BLOCK, __half, float><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>((__half*)input_data,
             (__half *)output_data, (__half *)scale_data, (__half *)bias_data, channel_area, channels, layer_param->eps);
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", input_blob->GetBlobDesc().data_type);
