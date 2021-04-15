@@ -67,6 +67,9 @@ protected:
             case LAYER_RELU6:
                 mode = 14;
                 break;
+            case LAYER_GELU:
+                mode = 15;
+                break;
             default:
                 return Status(TNNERR_UNKNOWN_LAYER, "This activation is not defined in NPU");
         }
@@ -105,6 +108,8 @@ DECLARE_NPU_ACTIVATION_LAYER(Selu, LAYER_SELU)
 REGISTER_NPU_LAYER(Selu, LAYER_SELU)
 DECLARE_NPU_ACTIVATION_LAYER(Relu6, LAYER_RELU6)
 REGISTER_NPU_LAYER(Relu6, LAYER_RELU6)
+DECLARE_NPU_ACTIVATION_LAYER(Gelu, LAYER_GELU)
+REGISTER_NPU_LAYER(Gelu, LAYER_GELU)
 
 }  // namespace TNN_NS
 
