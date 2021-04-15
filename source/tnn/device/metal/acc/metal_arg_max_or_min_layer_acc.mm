@@ -50,7 +50,7 @@ Status MetalArgMaxOrMinLayerAcc::Init(Context *context, LayerParam *param, Layer
 #endif
     outputs[0]->GetBlobDesc().data_type = DATA_TYPE_INT32;
 
-    status = ReloadConstantBlobs(inputs);
+    status = ReloadConstantBlobs(inputs, false);
     RETURN_ON_NEQ(status, TNN_OK);
 
     return Reshape(inputs, outputs);

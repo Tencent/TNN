@@ -47,7 +47,7 @@ Status ArmLayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
     int ow          = output_dim.size() > 3 ? output_dim[3] : 1;
     k_param_->set_dims(ROUND_UP(ic, 4), ROUND_UP(ic, 8), ih, iw, ROUND_UP(oc, 4), ROUND_UP(oc, 8), oh, ow);
 
-    RETURN_ON_NEQ(ReloadConstantBlobs(inputs), TNN_OK);
+    RETURN_ON_NEQ(ReloadConstantBlobs(inputs, false), TNN_OK);
 
     return TNN_OK;
 }
@@ -156,11 +156,12 @@ Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &
     return TNN_OK;
 }
 
-Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
+Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob) {
     auto const_resource = const_resource_;
     if (const_resource == nullptr) {
         return TNN_OK;
     }
+    auto const_resource_flag = const_resource_flag_;
     auto const_blob_map = const_blob_map_;
 
     // The default blob desc has the same data type and data format with non-constant input blob
@@ -171,6 +172,11 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         if (const_resource->find(name) != const_resource->end()) {
             continue;
         }
+        if (only_reload_shape_differ_blob && const_resource_flag &&
+            const_resource_flag->find(name) == const_resource_flag->end()) {
+            continue;
+        }
+
         arm_default_desc.device_type = DEVICE_ARM;
         arm_default_desc.data_type   = iter->GetBlobDesc().data_type;
         arm_default_desc.data_format = iter->GetBlobDesc().data_format;
@@ -180,6 +186,10 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
         auto name = iter->GetBlobDesc().name;
         // deal with const blobs
         if (const_resource->find(name) == const_resource->end()) {
+            continue;
+        }
+        if (only_reload_shape_differ_blob && const_resource_flag &&
+            const_resource_flag->find(name) == const_resource_flag->end()) {
             continue;
         }
 

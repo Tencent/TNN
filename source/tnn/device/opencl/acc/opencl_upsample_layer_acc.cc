@@ -24,7 +24,7 @@ public:
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
-    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs) override { return TNN_OK; }
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) override { return TNN_OK; }
 };
 
 static std::vector<uint32_t> UpsampleLocalWS3D(std::vector<uint32_t> &gws, const uint32_t max_workgroup_size) {

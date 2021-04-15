@@ -24,6 +24,10 @@ namespace TNN_NS {
 struct NetResource {
     std::map<std::string, std::shared_ptr<LayerResource>> resource_map;
     ConstantResource constant_map;
+    
+    //data flag of constant blobs
+    ConstantResourceFlag constant_blob_flags;
+    
     //names of constant layer whose output blob data flag is DATA_FLAG_CHANGE_NEVER or DATA_FLAG_CHANGE_IF_SHAPE_DIFFER
     std::set<std::string> constant_layers;
     
