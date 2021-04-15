@@ -39,7 +39,10 @@ link_libraries(${CUDA_LINK_LIBS})
 file(GLOB_RECURSE BASE_SRC
     "${CMAKE_SOURCE_DIR}/../base/*.cc"
     "${CMAKE_SOURCE_DIR}/../utils/*.cc")
+file(GLOB_RECURSE WEBCAM_SRC "${CMAKE_SOURCE_DIR}/../base/ocr*.cc")
+list(REMOVE_ITEM BASE_SRC ${WEBCAM_SRC})
 
 add_executable(demo_cuda_imageclassify src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC})
 add_executable(demo_cuda_facedetector src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC})
+add_executable(demo_cuda_readingcomprehension src/BertReadingComprehension/BertReadingComprehension.cc ${BASE_SRC})
 
