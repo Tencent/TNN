@@ -612,7 +612,6 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         m_trt_network->markOutput(*tensor);
     }
 
-    m_trt_builder->setMaxBatchSize(64);
     m_trt_config->setMaxWorkspaceSize(MAX_SCRATCH_MEMORY);
     if (config_.precision == PRECISION_LOW && !this->int8_mode) {
         m_trt_config->setFlag(BuilderFlag::kFP16);
