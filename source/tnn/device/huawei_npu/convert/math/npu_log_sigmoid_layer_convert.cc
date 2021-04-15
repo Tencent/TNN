@@ -12,22 +12,24 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "test/unit_test/layer_test/test_unary_layer.h"
+#include <graph/op/all_ops.h>
+#include "tnn/device/huawei_npu/convert/npu_base_layer_convert.h"
 
 namespace TNN_NS {
 
-class TanhLayerTest : public UnaryLayerTest {
-public:
-    TanhLayerTest() : UnaryLayerTest(LAYER_TANH) {}
-};
+DECLARE_NPU_LAYER_WEIGHT(LogSigmoid, LAYER_LOGSIGMOID)
 
-INSTANTIATE_TEST_SUITE_P(LayerTest, TanhLayerTest,
-                         ::testing::Combine(UNARY_BATCH_CHANNEL_SIZE,
-                                            testing::Values(2, 3, 4, 5),
-                                            testing::Values(DATA_TYPE_FLOAT)));
+Status NpuLogSigmoidLayer::Convert() {
+    auto sigmoid_op = std::make_shared<hiai::op::Activation>(layer_name_ + "_sigmoid");
+    sigmoid_op->set_input_x(*input_ops_[0]->GetOperator());
+    sigmoid_op->set_attr_mode(0);
+    weight_ops_.push_back(sigmoid_op);
 
-TEST_P(TanhLayerTest, UnaryLayerTest) {
-    RunUnaryTest("Tanh");
+    auto output = std::make_shared<hiai::op::Log>(outputs_name_[0]);
+    output->set_input_x(*sigmoid_op);
+    ADD_OUTPUT_OP(output)
 }
+
+REGISTER_NPU_LAYER(LogSigmoid, LAYER_LOGSIGMOID);
 
 }  // namespace TNN_NS

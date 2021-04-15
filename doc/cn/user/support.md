@@ -69,7 +69,7 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | ArgMaxOrMin(ArgMax)      | ArgMax                                         | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
 | ArgMaxOrMin(ArgMin)      | ArgMin                                         | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
 | Asin                     | Asin                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| Atan                     | Atan                                           | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
+| Atan                     | Atan                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | BatchNormCxx             | BatchNormalization                             | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | BitShift                 | BitShift                                       | yes |       |       |        |       |      | yes   |       |       |
 | Cast                     | Cast                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
@@ -117,7 +117,7 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | LSTMONNX                 | LSTM                                           | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
 | LRN                      | LRN                                            | yes |       |       |        | yes   | yes  | yes   | yes   | yes   |
 | Log                      | Log                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| LogSigmoid               | Sigmoid + Log                                  | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
+| LogSigmoid               | Sigmoid + Log                                  | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | MatMul                   | Matmul                                         | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Max                      | Max                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Min                      | Min                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
@@ -140,7 +140,7 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | Pooling3D (GlobalAverage)| GlobalAveragePool                              | yes |       |       |        |       |      | yes   |       |       |
 | Pooling3D (GlobalMax)    | GlobalMaxPool                                  | yes |       |       |        |       |      | yes   |       |       |
 | Pooling3D (Max)          | MaxPool                                        | yes |       |       |        |       |      | yes   |       |       |
-| Power                    | Pow                                            | yes | yes   | yes   | yes    | yes   |      | yes   | yes   |       |
+| Power                    | Pow                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   |       |
 | PriorBox                 | PriorBox(custom operator)                      | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Range                    | Range                                          | yes |       |       |        |       |      |       |       |       |
 | Reciprocal               | Reciprocal                                     | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
@@ -174,7 +174,7 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | Slice(StrideSlice)       | Slice                                          | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Softmax                  | Softmax                                        | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Softplus                 | Softplus                                       | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| Softsign                 | Softsign                                       | yes |       |       |        |       |      |       | yes   | yes   |
+| Softsign                 | Softsign                                       | yes |       |       |        |       | yes  |       | yes   | yes   |
 | Split                    | Split                                          |     | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Sqrt                     | Sqrt                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | SquaredDifference        | SquaredDifference(TFLite)                      | yes |       |       |        |       |      |       |       |       |

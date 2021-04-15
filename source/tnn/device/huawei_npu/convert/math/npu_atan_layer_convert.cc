@@ -12,22 +12,24 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "test/unit_test/layer_test/test_unary_layer.h"
+#include <graph/op/all_ops.h>
+#include "npu_unary_operator.h"
+#include "tnn/device/huawei_npu/convert/npu_base_layer_convert.h"
+#include "tnn/device/huawei_npu/convert/npu_utils.h"
 
 namespace TNN_NS {
 
-class TanhLayerTest : public UnaryLayerTest {
+class NpuAtanLayer : public NpuUnaryLayer {
 public:
-    TanhLayerTest() : UnaryLayerTest(LAYER_TANH) {}
+    NpuAtanLayer(LayerType ignore) : NpuUnaryLayer(LAYER_ATAN) {}
+    ~NpuAtanLayer() {}
+
+protected:
+    Status Convert() {
+        return NpuUnaryLayer::UnaryConvert<hiai::op::Atan>();
+    }
 };
 
-INSTANTIATE_TEST_SUITE_P(LayerTest, TanhLayerTest,
-                         ::testing::Combine(UNARY_BATCH_CHANNEL_SIZE,
-                                            testing::Values(2, 3, 4, 5),
-                                            testing::Values(DATA_TYPE_FLOAT)));
-
-TEST_P(TanhLayerTest, UnaryLayerTest) {
-    RunUnaryTest("Tanh");
-}
+REGISTER_NPU_LAYER(Atan, LAYER_ATAN);
 
 }  // namespace TNN_NS
