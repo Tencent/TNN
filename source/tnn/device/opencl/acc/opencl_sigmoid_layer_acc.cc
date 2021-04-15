@@ -41,5 +41,6 @@ std::set<std::string> OpenCLSigmoidLayerAcc::CreateBuildOptions() {
 OpenCLSigmoidLayerAcc::~OpenCLSigmoidLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Sigmoid, LAYER_SIGMOID)
+REGISTER_OPENCL_LAYOUT(LAYER_SIGMOID, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

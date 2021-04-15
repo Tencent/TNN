@@ -231,6 +231,8 @@ typedef void(^CommonCallback)(Status);
             status = predictor_async_thread->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
             fps_counter_async_thread->End("detect");
         } while (0);
+        // hide the textbox, use drawinglines instead to support box with angles
+        bool hideTextbox = predictor_async_thread->hideTextBox();
         
         CVBufferRelease(image_buffer);
         CFBridgingRelease(image_texture_ref);
@@ -241,6 +243,7 @@ typedef void(^CommonCallback)(Status);
         dispatch_sync(dispatch_get_main_queue(), ^{
             [self showSDKOutput:sdk_output
             withOriginImageSize:origin_image_size
+             hideTextFrame:hideTextbox
                      withStatus:status];
             [self showFPS:map_fps];
             //[self showTime: time];
@@ -253,15 +256,17 @@ typedef void(^CommonCallback)(Status);
 
 - (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
        withOriginImageSize:(CGSize)size
+        hideTextFrame:(bool) hideTextFrame
            withStatus:(Status)status {
     auto object_list = [self.viewModel getObjectList:output];
-    [self showObjectInfo:object_list withOriginImageSize:size withStatus:status];
+    [self showObjectInfo:object_list withOriginImageSize:size hideTextFrame:hideTextFrame withStatus:status];
     auto mask_data   = [self.viewModel getImage:output];
     [self showMask:mask_data withOriginImageSize:size withStatus:status];
 }
 
 - (void)showObjectInfo:(std::vector<std::shared_ptr<ObjectInfo> >)object_list
             withOriginImageSize:(CGSize)origin_size
+            hideTextFrame:(bool) hideTextFrame
             withStatus:(Status)status {
     //status
     if (status != TNN_OK) {
@@ -288,6 +293,9 @@ typedef void(^CommonCallback)(Status);
                 auto view_width = self.cameraPreview.bounds.size.width;
                 auto view_height = self.cameraPreview.bounds.size.height;
                 auto label = [self.viewModel labelForObject:object];
+                if (!label && object->label) {
+                    label = [NSString stringWithUTF8String:object->label];
+                }
                 auto view_face = object->AdjustToImageSize(origin_size.height, origin_size.width);
                 view_face = view_face.AdjustToViewSize(view_height, view_width, video_gravity);
                 if (camera_pos == AVCaptureDevicePositionFront) {
@@ -295,6 +303,7 @@ typedef void(^CommonCallback)(Status);
                 }
                 [_boundingBoxes[i] showText:label
                                   withColor:self.colors[i]
+                              hideTextFrame:hideTextFrame
                                     atFrame:CGRectMake(view_face.x1, view_face.y1,
                                                        view_face.x2-view_face.x1,
                                                        view_face.y2-view_face.y1)];
@@ -302,7 +311,7 @@ typedef void(^CommonCallback)(Status);
                 // When we need to draw lines connecting key points, we draw key points with circle.
                 // Otherwise, we draw cross-shaped points.
                 [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor greenColor] circle:view_face.lines.size()!=0];
-                [_boundingBoxes[i] showLines:view_face.key_points lines:view_face.lines withColor:[UIColor redColor]];
+                [_boundingBoxes[i] showLines:view_face.key_points lines:view_face.lines withColor:self.colors[i]];
             } else {
                 [_boundingBoxes[i] hide];
             }

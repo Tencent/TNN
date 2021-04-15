@@ -13,8 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include <math.h>
-#include "half_utils.h"
-#include "objseri.h"
+
 #include "onnx2tnn.h"
 
 int Onnx2TNN::RemoveReshape(onnx::GraphProto* mutable_graph,
@@ -137,6 +136,17 @@ int Onnx2TNN::RemoveConsecutiveReshape(onnx::GraphProto* mutable_graph,
             
             if (node_reshape_0->op_type() != "Reshape" || node_reshape_1->op_type() != "Reshape")
                 break;
+            
+            //确保两个reshape前后相接，且shape是常量
+            if (node_reshape_0->input_size() > 1 && weights.find(node_reshape_0->input(1)) == weights.end()) {
+                LOGE("Onnx2TNN::RemoveConsecutiveReshape node_reshape_0 shape is not const\n");
+                break;
+            }
+            
+            if (node_reshape_1->input_size() > 1 && weights.find(node_reshape_1->input(1)) == weights.end()) {
+                LOGE("Onnx2TNN::RemoveConsecutiveReshape node_reshape_1 shape is not const\n");
+                break;
+            }
 
             node_reshape_0->set_op_type(k_tnn_noop_type);
 

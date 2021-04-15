@@ -720,4 +720,72 @@ static inline void sincos_ps(v4sf x, v4sf* s, v4sf* c)
     *c = _mm_xor_ps(xmm2, sign_bit_cos);
 }
 
+// tanh sse vector version
+// refer the scalar version from Cephes Math Library
+
+#define c_cephes_HALFMAXLOGF 44.014845935754205f
+#define c_cephes_tanh_C1 0.625f
+
+#define c_cephes_tanh_p0 - 5.70498872745E-3
+#define c_cephes_tanh_p1 + 2.06390887954E-2
+#define c_cephes_tanh_p2 - 5.37397155531E-2
+#define c_cephes_tanh_p3 + 1.33314422036E-1
+#define c_cephes_tanh_p4 - 3.33332819422E-1
+
+static inline v4sf tanh_ps(v4sf x)
+{
+    v4sf x2 = _mm_andnot_ps(_mm_set1_ps(-0.f), x); // fabs, -0.f = 1 << 31
+
+    v4sf mask_l = _mm_cmpge_ps(x2, _mm_set1_ps(c_cephes_tanh_C1));
+    v4sf mask_l2 = _mm_cmpgt_ps(x2, _mm_set1_ps(c_cephes_HALFMAXLOGF));
+
+    // abs(x) >= 0.625
+    // tanh(x) = 1 − 2 / (exp(2x) + 1)
+    v4sf _one = _mm_set1_ps(1.f);
+    v4sf _two = _mm_set1_ps(2.f);
+    v4sf exp_x_x = exp_ps(_mm_add_ps(x, x));
+    v4sf y0 = _mm_sub_ps(_one, _mm_div_ps(_two, _mm_add_ps(exp_x_x, _one)));
+
+    // abs(x) < 0.625
+    /*
+        z = x2 * x2;
+        z =
+        (((( -5.70498872745E-3 * z
+        + 2.06390887954E-2) * z
+        - 5.37397155531E-2) * z
+        + 1.33314422036E-1) * z
+        - 3.33332819422E-1) * z * x
+        + x;
+    */
+    v4sf y = _mm_set1_ps(c_cephes_tanh_p0);
+    v4sf c1 = _mm_set1_ps(c_cephes_tanh_p1);
+    v4sf c2 = _mm_set1_ps(c_cephes_tanh_p2);
+    v4sf c3 = _mm_set1_ps(c_cephes_tanh_p3);
+    v4sf c4 = _mm_set1_ps(c_cephes_tanh_p4);
+
+    v4sf z = _mm_mul_ps(x, x);
+
+    y = _mm_mul_ps(y, z);
+    y = _mm_add_ps(y, c1);
+    y = _mm_mul_ps(y, z);
+    y = _mm_add_ps(y, c2);
+    y = _mm_mul_ps(y, z);
+    y = _mm_add_ps(y, c3);
+    y = _mm_mul_ps(y, z);
+    y = _mm_add_ps(y, c4);
+
+    y = _mm_mul_ps(y, z);
+    y = _mm_mul_ps(y, x);
+    y = _mm_add_ps(y, x);
+
+    // abs(x) > HALFMAXLOGF
+    // return 1.0 or -1.0
+    v4sf mask_pos = _mm_cmpgt_ps(x, _mm_set1_ps(0.f));
+    v4sf y1 = _mm_blendv_ps(_mm_set1_ps(-1.f), _mm_set1_ps(1.f), mask_pos);
+
+    y = _mm_blendv_ps(y, y0, mask_l);
+    y = _mm_blendv_ps(y, y1, mask_l2);
+    return y;
+}
+
 #endif // SSE_MATHFUN_H

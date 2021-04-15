@@ -32,8 +32,8 @@ TNN_NS::ActivationType OnnxInt8InnerProductConverter::ActivationType(const onnx:
 
 TNN_NS::Status OnnxInt8InnerProductConverter::exec(
     TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource, const onnx::NodeProto &node,
-    std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-    std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes, bool &quantized_model) {
+    std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+    std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes, bool &quantized_model) {
     const int input_size = node.input_size();
     assert(input_size == 2 || input_size == 3);
     auto *param      = new TNN_NS::InnerProductLayerParam;

@@ -24,4 +24,6 @@ DEFINE_string(od, "", output_dir_message);
 
 DEFINE_string(mt, "", model_type_message);
 
+DEFINE_string(sp, "", save_path_message);
+
 }  // namespace TNN_CONVERTER

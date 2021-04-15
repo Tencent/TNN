@@ -19,33 +19,30 @@ DECLARE_OP_CONVERTER(Tile);
 
 string OnnxOpConverterTile::TNNOpType(NodeProto &node,
                                            OnnxNetInfo &net_info) {
-    return "Repeat";
+    return "Tile";
 }
 
 string OnnxOpConverterTile::TNNLayerParam(NodeProto &node,
                                                OnnxNetInfo &net_info) {
     const std::string &onnx_op = node.op_type();
     ostringstream layer_param;
-
-    const onnx::TensorProto &repeats = net_info.weights_map[node.input(1)];
-    int num_repeats                  = (int)get_tensor_proto_data_size(repeats);
-    const int64_t *repeats_data      = repeats.int64_data().data();
-    if (num_repeats >= 4) {
+    
+    if (net_info.weights_map.find(node.input(1)) !=  net_info.weights_map.end()) {
+        const onnx::TensorProto &repeats = net_info.weights_map[node.input(1)];
+        int num_repeats = (int)get_tensor_proto_data_size(repeats);
+        auto repeats_data  = get_tensor_proto_data_vector<long long int>(repeats);
         for (int ii = 0; ii < num_repeats; ii++) {
             layer_param << repeats_data[ii] << " ";
         }
-    } else {
-        DLog(
-            "error::Repeat convert failed onnx: unsupported num_repeats = "
-            "%d\n",
-            num_repeats);
-        assert(0);
     }
-
     return layer_param.str();
 }
 
-int OnnxOpConverterTile::WriteTNNModel(serializer *net_writer,
+bool OnnxOpConverterTile::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
+int OnnxOpConverterTile::WriteTNNModel(Serializer *net_writer,
                                             NodeProto &node,
                                             OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

@@ -7,7 +7,6 @@ fi
 
 set -euo pipefail
 
-TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
 BUILD_DIR=${TNN_ROOT_PATH}/scripts/build_x86_linux
 TNN_INSTALL_DIR=${TNN_ROOT_PATH}/scripts/x86_linux_release
 OPENVINO_BUILD_SHARED="ON"
@@ -48,10 +47,10 @@ clone_openvino() {
         git clone --recursive https://github.com/openvinotoolkit/openvino.git
     fi
     cd openvino
-    git reset --hard 9df6a8f
-    git submodule update
-    sed -i '152 i /*' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
-    sed -i '157 i */' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
+    git reset --hard 18e83a2
+    git submodule update --init --recursive
+    #sed -i '152 i /*' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
+    #sed -i '157 i */' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
 
     # 编译静态库
     if [ "${OPENVINO_BUILD_SHARED}" = "OFF" ]
@@ -76,7 +75,7 @@ build_openvino() {
         -DENABLE_OPENCV=OFF \
         -DCMAKE_INSTALL_PREFIX=${OPENVINO_INSTALL_PATH} \
         -DENABLE_TBB_RELEASE_ONLY=OFF \
-        -DTHREADING=SEQ \
+        -DTHREADING=TBB_AUTO \
         -DNGRAPH_COMPONENT_PREFIX="deployment_tools/ngraph/" \
         -DENABLE_MYRIAD=OFF \
         -DENABLE_CLDNN=OFF \
@@ -90,7 +89,7 @@ build_openvino() {
         -DTREAT_WARNING_AS_ERROR=OFF \
 
         echo "Building Openvino ..."
-        make -j4
+        make -j7
         make install
     fi
 }
@@ -111,11 +110,11 @@ copy_openvino_libraries() {
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib64/libngraph${LIB_EXT} ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib/
     fi
 
-    if [ -d ${OPENVINO_INSTALL_PATH}/lib64/ ]
-    then
-        mkdir -p ${OPENVINO_INSTALL_PATH}/lib
-        cp ${OPENVINO_INSTALL_PATH}/lib64/libpugixml.a ${OPENVINO_INSTALL_PATH}/lib/
-    fi
+    # if [ -d ${OPENVINO_INSTALL_PATH}/lib64/ ]
+    # then
+    #     mkdir -p ${OPENVINO_INSTALL_PATH}/lib
+    #     cp ${OPENVINO_INSTALL_PATH}/lib64/libpugixml.a ${OPENVINO_INSTALL_PATH}/lib/
+    # fi
 
     if [ ! -d ${TNN_INSTALL_DIR} ] 
     then
@@ -135,6 +134,7 @@ copy_openvino_libraries() {
     cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${TNN_INSTALL_DIR}/lib
     cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${BUILD_DIR}/
     cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libMKLDNNPlugin.so ${TNN_INSTALL_DIR}/lib/
+    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/external/tbb/lib/* ${TNN_INSTALL_DIR}/lib/
 
 
     if [ "${OPENVINO_BUILD_SHARED}" = "ON" ]
@@ -145,6 +145,11 @@ copy_openvino_libraries() {
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_lp_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib/libngraph${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
     fi
+
+    LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}
+    PYTHONPATH=${PYTHONPATH:-}
+    python_version=${python_version:-}
+    source ${OPENVINO_INSTALL_PATH}/bin/setupvars.sh
 }
 
 pack_tnn() {
@@ -182,7 +187,7 @@ cmake ${TNN_ROOT_PATH} \
 -DTNN_OPENVINO_BUILD_SHARED=${OPENVINO_BUILD_SHARED} \
 
 echo "Building TNN ..."
-make -j4
+make -j7
 
 if [ 0 -ne $? ]
 then
@@ -190,7 +195,6 @@ then
 fi
 
 export LD_LIBRARY_PATH='$LD_LIBRARY_PATH:'${TNN_INSTALL_DIR}/lib
-ctest --output-on-failure -j 2
 pack_tnn
 
 echo "Done"

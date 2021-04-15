@@ -49,4 +49,5 @@
         }                                                                      \
     } while (0)
 
-#endif  //  TNN_EXAMPLES_X86_UTILS_MACRO_H_
+
+#endif // TNN_EXAMPLES_X86_UTILS_MACRO_H_

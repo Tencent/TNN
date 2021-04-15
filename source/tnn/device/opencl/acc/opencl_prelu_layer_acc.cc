@@ -15,7 +15,7 @@
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 #include "tnn/device/opencl/opencl_memory.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -51,7 +51,7 @@ Status OpenCLPReluLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     op_name_        = "PRelu";
 
     auto input_dims = inputs[0]->GetBlobDesc().dims;
-    int channels    = input_dims[1];
+    int channels    = DimsFunctionUtils::GetDim(input_dims, 1);
 
     auto layer_param = dynamic_cast<PReluLayerParam *>(param);
     if (layer_param == nullptr) {
@@ -88,6 +88,9 @@ OpenCLPReluLayerAcc::~OpenCLPReluLayerAcc() {}
 Status OpenCLPReluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("PRelu Acc Reshape\n");
     ASSERT(inputs.size() == 1);
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     uint32_t idx = 0;
     if (run_3d_ndrange_) {
@@ -98,7 +101,7 @@ Status OpenCLPReluLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
     if (!run_3d_ndrange_) {
         //set output width
-        execute_units_[0].ocl_kernel.setArg(idx++, output_dims[3]);
+        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, 3));
     }
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_scope_->GetData()));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
@@ -118,5 +121,6 @@ double OpenCLPReluLayerAcc::GetBandwidth() {
 #endif
 
 REGISTER_OPENCL_ACC(PRelu, LAYER_PRELU)
+REGISTER_OPENCL_LAYOUT(LAYER_PRELU, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

@@ -67,6 +67,19 @@
             android:textSize="16sp"
             android:text="@string/tnn_od_image_btn_name"
             android:textColor="@color/white"/>
+        <!--
+        <TextView
+            android:id="@+id/image_ocr_detect_btn"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/button_bg"
+            android:gravity="center"
+            android:textSize="16sp"
+            android:text="@string/tnn_ocrdet_image_btn_name"
+            android:textColor="@color/white"/>
+         -->
 
         <TextView
             android:id="@+id/stream_object_detect_btn"
@@ -174,5 +187,16 @@
             android:text="@string/tnn_sd_stream_btn_name"
             android:textColor="@color/white"/>
 
+        <TextView
+            android:id="@+id/stream_ocr_detect_btn"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/button_bg"
+            android:gravity="center"
+            android:textSize="16sp"
+            android:text="@string/tnn_ocrdet_stream_btn_name"
+            android:textColor="@color/white"/>
     </LinearLayout>
 </ScrollView>

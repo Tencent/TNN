@@ -180,6 +180,13 @@ cmake ${TNN_DIR} \
 echo "Building TNN ..."
 make -j4
 
+# check if compiling error occurs, or ci will ignore building errors
+if [ 0 -ne $? ]
+then
+    echo 'building failed.'
+    exit -1
+fi
+
 pack_tnn
 
 echo "Done"

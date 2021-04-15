@@ -40,14 +40,16 @@ kernel void div_broadcast(const device ftype4 *src0                             
     
     const int index_size = (int)gid.y * params.input_size + (int)gid.x;
     const int index = (int)gid.z * params.input_slice * params.input_size  + index_size;
+    const int batch_offset0 = params.weight_index == 0? 0 : (int)gid.z * params.input0_size;
+    const int batch_offset1 = params.weight_index == 1? 0 : (int)gid.z * params.input1_size;
     
     ftype4 data0;
     if (params.broadcast_input0 == kBroadcastTypeChannel) {
-        data0 = src0[gid.y];
+        data0 = src0[batch_offset0 + gid.y];
     } else if (params.broadcast_input0 == kBroadcastTypeSingle) {
-        data0 = ftype4(src0[0].x);
+        data0 = ftype4(src0[batch_offset0 + 0].x);
     } else if (params.broadcast_input0 == kBroadcastTypeHeightWidth) {
-        data0 = ftype4(src0[gid.x].x);
+        data0 = ftype4(src0[batch_offset0 + gid.x].x);
     } else if (params.broadcast_input0 == kBroadcastTypeElement) {
         data0 = ftype4(src0[index_size]);
     } else {
@@ -56,11 +58,11 @@ kernel void div_broadcast(const device ftype4 *src0                             
         
     ftype4 data1;
     if (params.broadcast_input1 == kBroadcastTypeChannel) {
-        data1 = src1[gid.y];
+        data1 = src1[batch_offset1 + gid.y];
     } else if (params.broadcast_input1 == kBroadcastTypeSingle) {
-        data1 = ftype4(src1[0].x);
+        data1 = ftype4(src1[batch_offset1 + 0].x);
     } else if (params.broadcast_input1 == kBroadcastTypeHeightWidth) {
-        data1 = ftype4(src1[gid.x].x);
+        data1 = ftype4(src1[batch_offset1 + gid.x].x);
     } else if (params.broadcast_input1 == kBroadcastTypeElement) {
         data1 = ftype4(src1[index_size]);
     } else {

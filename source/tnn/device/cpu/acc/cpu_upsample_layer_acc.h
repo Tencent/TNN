@@ -32,6 +32,8 @@ class CpuUpsampleLayerAcc : public CpuLayerAcc {
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+    Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
 private:
     RawBuffer buffer_input_fp32_;
     RawBuffer buffer_output_fp32_;

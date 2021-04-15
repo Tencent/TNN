@@ -27,7 +27,7 @@ std::string TnnOptimizeEliminateUnusefulNodePass::PassName() {
 
 TNN_NS::Status TnnOptimizeEliminateUnusefulNodePass::exec(TNN_NS::NetStructure& net_structure,
                                                           TNN_NS::NetResource& net_resource) {
-    std::set<std::string> black_list = {"Squeeze", "QuantizedPermute", "Int8Quantized", "Int8Dequantized"};
+    std::set<std::string> black_list = {"QuantizedPermute", "Int8Quantized", "Int8Dequantized"};
     auto& layers                     = net_structure.layers;
     for (auto iter = layers.begin(); iter != layers.end();) {
         auto& layer = *iter;
@@ -47,33 +47,7 @@ TNN_NS::Status TnnOptimizeEliminateUnusefulNodePass::exec(TNN_NS::NetStructure& 
         }
         auto pre_node_name      = layer->inputs[0];
         auto layer_output_names = layer->outputs;
-        // erase blob scale
-        auto& resource_map = net_resource.resource_map;
-        if (layer->type_str == "Int8Quantized") {
-            const auto& output_name           = layer_output_names[0];
-            const auto& input_blob_scale_name = layer->inputs[0] + BLOB_SCALE_SUFFIX;
-            if (resource_map.find(input_blob_scale_name) != resource_map.end()) {
-                for (const auto& sub_iter : layers) {
-                    auto& inputs    = sub_iter->inputs;
-                    auto& cur_layer = *sub_iter;
-                    if (!cur_layer.param->quantized &&
-                        std::find(inputs.begin(), inputs.end(), output_name) != inputs.end()) {
-                        if (resource_map.find(input_blob_scale_name) != resource_map.end()) {
-                            resource_map.erase(input_blob_scale_name);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        // eliminate
-        for (const auto& output_name : layer_output_names) {
-            auto output_blob_scale_name = output_name + BLOB_SCALE_SUFFIX;
-            if (resource_map.find(output_blob_scale_name) != resource_map.end()) {
-                resource_map.erase(output_blob_scale_name);
-            }
-        }
-
+        // to deal with the int8 dequantize node is the model output
         auto& model_output_names = net_structure.outputs;
         for (const auto& output_name : model_output_names) {
             if (std::find(layer_output_names.begin(), layer_output_names.end(), output_name) !=

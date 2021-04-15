@@ -20,7 +20,7 @@
 #include "tnn/device/opencl/opencl_memory.h"
 #include "tnn/device/opencl/opencl_runtime.h"
 #include "tnn/utils/blob_memory_size_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -29,7 +29,17 @@ OpenCLDevice::OpenCLDevice(DeviceType device_type) : AbstractDevice(device_type)
 OpenCLDevice::~OpenCLDevice() {}
 
 BlobMemorySizeInfo OpenCLDevice::Calculate(BlobDesc& desc) {
-    return Calculate2DCLImageMemorySize(desc);
+    OpenCLRuntime* opencl_runtime = OpenCLRuntime::GetInstance();
+    std::vector<size_t> image_2d_max_size = opencl_runtime->GetImage2dMaxSize();
+    ASSERT(image_2d_max_size.size() == 2);
+    BlobMemorySizeInfo info = Calculate2DCLImageMemorySize(desc);
+    ASSERT(info.dims.size() == 2);
+    if (info.dims[0] > image_2d_max_size[0] || info.dims[1] > image_2d_max_size[1]) {
+        LOGD("Exceed clImage limit, dims: [%d, %d]\n", info.dims[0], info.dims[1]);
+        desc.data_format = DATA_FORMAT_NCHW;
+        info = Calculate1DMemorySize(desc);
+    }
+    return info;
 }
 
 Status OpenCLDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
@@ -51,32 +61,62 @@ Status OpenCLDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) 
     }
 }
 
-//allocate clImage
+//allocate clImage/clBuffer
 Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
     OpenCLRuntime* opencl_runtime = OpenCLRuntime::GetInstance();
-    ASSERT(desc.dims.size() == 2);
 
-    if (DATA_TYPE_HALF != desc.data_type && DATA_TYPE_FLOAT != desc.data_type) {
+    if (DATA_TYPE_HALF != desc.data_type && DATA_TYPE_FLOAT != desc.data_type && DATA_TYPE_INT32 != desc.data_type) {
         LOGE("opencl allocator not support this data type: %d\n", desc.data_type);
         return Status(TNNERR_PARAM_ERR, "opencl not support this data type");
     }
-    
-    cl_mem_flags mem_flag     = CL_MEM_READ_WRITE;
-    cl_channel_type data_type = CL_FLOAT;
 
-    if (DATA_TYPE_HALF == desc.data_type && opencl_runtime->GetPrecision() != PRECISION_HIGH) {
-        data_type = CL_HALF_FLOAT;
-    }
-    int w = desc.dims[0];
-    int h = desc.dims[1];
-    cl_int error;
-    *handle = new cl::Image2D(*opencl_runtime->Context(), mem_flag, cl::ImageFormat(CL_RGBA, data_type), w, h, 0,
-                              nullptr, &error);
-    if (error != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(error);
+    if (desc.dims.size() == 2) {
+        // allocate clImage
+        cl_mem_flags mem_flag     = CL_MEM_READ_WRITE;
+        cl_channel_type data_type = CL_FLOAT;
+
+        if (DATA_TYPE_HALF == desc.data_type && opencl_runtime->GetPrecision() != PRECISION_HIGH) {
+            data_type = CL_HALF_FLOAT;
+        }
+        if (DATA_TYPE_INT32 == desc.data_type) {
+            data_type = CL_SIGNED_INT32;
+        }
+        int w = desc.dims[0];
+        int h = desc.dims[1];
+        cl_int error;
+        *handle = new cl::Image2D(*opencl_runtime->Context(), mem_flag, cl::ImageFormat(CL_RGBA, data_type), w, h, 0,
+                                nullptr, &error);
+        if (error != CL_SUCCESS) {
+            CHECK_CL_SUCCESS(error);
+            char error_str[128];
+            sprintf(error_str, "OpenCL Allocate Image Failed (w=%d, h=%d)", w, h);
+            return Status(TNNERR_OPENCL_API_ERROR, error_str);
+        }
+    } else if (desc.dims.size() == 1) {
+        // allocate clBuffer
+        cl_mem_flags mem_flag     = CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR;
+        cl_channel_type data_type = CL_FLOAT;
+        int type_size = sizeof(float);
+
+        if (DATA_TYPE_HALF == desc.data_type && opencl_runtime->GetPrecision() != PRECISION_HIGH) {
+            type_size = 2;
+        }
+        if (DATA_TYPE_INT32 == desc.data_type) {
+            type_size = sizeof(int);
+        }
+        cl_int error;
+        *handle = new cl::Buffer(*opencl_runtime->Context(), mem_flag, (cl::size_type)(type_size * desc.dims[0]),
+                                 nullptr, &error);
+        if (error != CL_SUCCESS) {
+            CHECK_CL_SUCCESS(error);
+            char error_str[128];
+            sprintf(error_str, "OpenCL Allocate Buffer Failed (count=%d)", desc.dims[0]);
+            return Status(TNNERR_OPENCL_API_ERROR, error_str);
+        }
+    } else {
         char error_str[128];
-        sprintf(error_str, "OpenCL Allocate Image Failed (w=%d, h=%d)", w, h);
-        return Status(TNNERR_OPENCL_API_ERROR, error_str);
+        sprintf(error_str, "OpenCL not support Allocate (dims=%d)", (int)desc.dims.size());
+        return Status(TNNERR_PARAM_ERR, error_str);
     }
     return TNN_OK;
 }
@@ -171,8 +211,20 @@ AbstractLayerAcc* OpenCLDevice::CreateLayerAcc(LayerType type) {
     }
 }
 
+std::shared_ptr<const ImplementedLayout> OpenCLDevice::GetImplementedLayout(LayerType type) {
+    auto &layer_layout_map = GetLayerLayoutMap();
+    if (layer_layout_map.count(type) > 0) {
+        return layer_layout_map[type];
+    }
+    return std::make_shared<ImplementedLayout>();
+}
+
 Context* OpenCLDevice::CreateContext(int device_id) {
     return new OpenCLContext();
+}
+
+NetworkType OpenCLDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT;
 }
 
 std::map<LayerType, std::shared_ptr<LayerAccCreator>>& OpenCLDevice::GetLayerCreatorMap() {
@@ -183,6 +235,16 @@ std::map<LayerType, std::shared_ptr<LayerAccCreator>>& OpenCLDevice::GetLayerCre
 Status OpenCLDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator) {
     GetLayerCreatorMap()[type] = std::shared_ptr<LayerAccCreator>(creator);
     return TNN_OK;
+}
+
+Status OpenCLDevice::RegisterLayerLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+    GetLayerLayoutMap()[type] = layout;
+    return TNN_OK;
+}
+
+std::map<LayerType, std::shared_ptr<ImplementedLayout>> &OpenCLDevice::GetLayerLayoutMap() {
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
+    return layer_layout_map;
 }
 
 TypeDeviceRegister<OpenCLDevice> g_opencl_device_register(DEVICE_OPENCL);

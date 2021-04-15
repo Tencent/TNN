@@ -16,12 +16,16 @@
 #include "tnn/device/metal/acc/metal_unary_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/interpreter/layer_param.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 DECLARE_METAL_UNARY_ACC(SignedMul, LAYER_SIGNED_MUL);
 
 string MetalSignedMulLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return "signed_mul";
+    if (inputs[0]->GetBlobDesc().dims[1] == 4)
+        return "signed_mul_fused_channel4";
+
+    return "signed_mul_fused";
 }
 
 Status MetalSignedMulLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
@@ -40,6 +44,7 @@ Status MetalSignedMulLayerAcc::AllocateBufferParam(const std::vector<Blob *> &in
     if (buffer_param_ == nil) {
         MetalSignedMulParams metal_params;
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
+        FixDefaultMetalParams(metal_params, dims_input, dims_output);
 
         metal_params.alpha = layer_param->alpha;
         metal_params.beta  = layer_param->beta;
@@ -57,47 +62,10 @@ Status MetalSignedMulLayerAcc::AllocateBufferParam(const std::vector<Blob *> &in
 }
 
 Status MetalSignedMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto input  = inputs[0];
-    auto output = outputs[0];
-
-    auto context_impl = context_->getMetalContextImpl();
-    auto encoder      = [context_impl encoder];
-    if (param_) {
-        encoder.label = [NSString stringWithFormat:@"layer: %s ", param_->name.c_str()];
-    }
-
-    MTLSize threads;
-    auto status = ComputeThreadSize(inputs, outputs, threads);
-    if (status != TNN_OK) {
-        return status;
-    }
-
-    MetalBandwidth bandwidth;
-    do {
-        if (inputs[0]->GetBlobDesc().dims[1] == 4) {
-            status = [context_impl load:@"signed_mul_fused_channel4" encoder:encoder bandwidth:bandwidth];
-        } else {
-            status = [context_impl load:@"signed_mul_fused" encoder:encoder bandwidth:bandwidth];
-        }
-
-        BREAK_IF(status != TNN_OK);
-        [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
-                    offset:(NSUInteger)input->GetHandle().bytes_offset
-                   atIndex:0];
-        [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
-                    offset:(NSUInteger)output->GetHandle().bytes_offset
-                   atIndex:1];
-        [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
-        status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-        BREAK_IF(status != TNN_OK);
-    } while (0);
-
-    [encoder endEncoding];
-    [context_impl commit];
-    TNN_PRINT_ENCODER(context_, encoder, this);
-    return status;
+    return MetalUnaryLayerAcc::Forward(inputs, outputs);
 }
 
 REGISTER_METAL_UNARY_ACC(SignedMul, LAYER_SIGNED_MUL);
+REGISTER_METAL_LAYOUT(LAYER_SIGNED_MUL, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

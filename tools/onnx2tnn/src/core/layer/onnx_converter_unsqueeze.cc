@@ -15,11 +15,16 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-DECLARE_OP_CONVERTER(Unsqueeze);
+DECLARE_OP_CONVERTER_WITH_FUNC(Unsqueeze,
+                               virtual std::vector<std::string> GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info););
 
 string OnnxOpConverterUnsqueeze::TNNOpType(NodeProto &node,
                                            OnnxNetInfo &net_info) {
     return "Unsqueeze";
+}
+
+std::vector<std::string> OnnxOpConverterUnsqueeze::GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+    return {node.input(0)};
 }
 
 string OnnxOpConverterUnsqueeze::TNNLayerParam(NodeProto &node,
@@ -36,7 +41,11 @@ string OnnxOpConverterUnsqueeze::TNNLayerParam(NodeProto &node,
     return layer_param.str();
 }
 
-int OnnxOpConverterUnsqueeze::WriteTNNModel(serializer *net_writer,
+bool OnnxOpConverterUnsqueeze::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
+int OnnxOpConverterUnsqueeze::WriteTNNModel(Serializer *net_writer,
                                             NodeProto &node,
                                             OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

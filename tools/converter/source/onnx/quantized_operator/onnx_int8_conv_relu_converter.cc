@@ -32,8 +32,8 @@ TNN_NS::ActivationType OnnxInt8ConvReluConverter::ActivationType(const onnx::Nod
 
 TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                                const onnx::NodeProto &node,
-                                               std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                               std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
+                                               std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                               std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                                bool &quantized_model) {
     TNN_NS::ConvLayerParam *param = new TNN_NS::ConvLayerParam;
     auto cur_layer                = net_structure.layers.back();
@@ -47,6 +47,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structu
     const auto &weight_name = node.input(1);
     const auto &weight_node = FindNodeProto(weight_name, proxy_nodes);
     auto weight_shape       = GetAttributeIntVector(*weight_node, "shape");
+    auto group              = GetAttributeInt(node, "group", 1);
     const int co            = weight_shape[0];
     const int kh            = weight_shape[1];
     const int kw            = weight_shape[2];
@@ -65,7 +66,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structu
     auto dilations = GetAttributeIntVector(node, "dilations");
     ASSERT(dilations.size() == 2);
     param->dialations = {dilations[1], dilations[0]};
-    param->group      = GetAttributeInt(node, "group", 1);
+    param->group      = group;
     // parse pads type
     auto pads = GetAttributeIntVector(node, "pads");
     if (!pads.empty()) {
@@ -148,7 +149,7 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structu
         auto bias_value       = GetAttributeIntVector(*bias_node, "values");
         // calculate bias
         std::vector<int32_t> cal_bias_value;
-        for (const auto value : bias_value) {
+        for (const auto &value : bias_value) {
             cal_bias_value.push_back(value * bias_scale / cal_weight_scale);
         }
         assert(bias_shape.size() == 1);

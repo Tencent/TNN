@@ -65,9 +65,27 @@ public:
         quantized = true;
     }
 
+    bool IsShapeTensor() {
+        return shape_tensor;
+    }
+
+    void SetShapeTensor() {
+        shape_tensor = true;
+    }
+
+    void SetShapeBlobName(std::string name) {
+        shape_blob_name = name;
+    }
+
+    std::string GetShapeBlobName() {
+        return shape_blob_name;
+    }
+
 private:
     bool int8_mode = false;
     bool quantized = false;
+    bool shape_tensor = false;
+    std::string shape_blob_name;
     IntScaleResource *resource_ = nullptr;
     nvinfer1::ITensor* m_trt_tensor = nullptr;
 };

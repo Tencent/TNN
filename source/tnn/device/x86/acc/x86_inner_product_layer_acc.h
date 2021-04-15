@@ -16,9 +16,14 @@
 #define TNN_SOURCE_TNN_DEVICE_X86_X86_INNER_PRODUCT_LAYER_ACC_H_
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
+#include "tnn/device/x86/acc/compute/jit/conv_sgemm_driver.h"
+
+enum InnerProductCompute {
+    InnerProductSgemv = 0x0000,
+    InnerProductSgemm = 0x0001,
+};
 
 namespace TNN_NS {
-
 class X86InnerProductLayerAcc : public X86LayerAcc {
 public:
     virtual ~X86InnerProductLayerAcc();
@@ -32,6 +37,8 @@ public:
 protected:
     RawBuffer buffer_weight_;
     RawBuffer buffer_bias_;
+    conv_gemm_config<float, float, float> conv_gemm_conf_;
+    InnerProductCompute impl_;
     std::shared_ptr<LayerResource> fc_acc_f32_resource_ = nullptr;
 };
 

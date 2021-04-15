@@ -14,7 +14,7 @@
 
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -35,7 +35,7 @@ Status CpuScaleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
     float *input_data      = static_cast<float *>(input_blob->GetHandle().base);
     float *output_data     = static_cast<float *>(output_blob->GetHandle().base);
     int channel            = input_blob->GetBlobDesc().dims[1];
-    int hw                 = input_blob->GetBlobDesc().dims[2] * input_blob->GetBlobDesc().dims[3];
+    int hw                 = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, 2);
     int count              = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims);
     RawBuffer scale_handle = resource->scale_handle;
     float *k_data          = resource->scale_handle.force_to<float *>();

@@ -45,14 +45,21 @@ public:
 
     virtual std::shared_ptr<const ImplementedPrecision> GetImplementedPrecision(LayerType type);
 
+    virtual NetworkType ConvertAutoNetworkType();
+
+    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type);
+
     static Status RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator);
 
     static Status RegisterLayerPrecision(LayerType type, std::shared_ptr<ImplementedPrecision> precision);
+
+    static Status RegisterLayerLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout);
 
 private:
     BlobMemorySizeInfo Calculate1DMemorySize(BlobDesc& desc);
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>>& GetLayerCreatorMap();
     static std::map<LayerType, std::shared_ptr<ImplementedPrecision>>& GetLayerPrecisionMap();
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>>& GetLayerLayoutMap();
 };
 
 //@brief ArmTypeLayerAccRegister register ArmTypeLayerAccCreator
@@ -68,6 +75,13 @@ class ArmTypeLayerPrecisionRegister {
 public:
     explicit ArmTypeLayerPrecisionRegister(LayerType type, std::shared_ptr<ImplementedPrecision> precision) {
         ArmDevice::RegisterLayerPrecision(type, precision);
+    }
+};
+
+class ArmTypeLayerLayoutRegister {
+public:
+    explicit ArmTypeLayerLayoutRegister(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+        ArmDevice::RegisterLayerLayout(type, layout);
     }
 };
 

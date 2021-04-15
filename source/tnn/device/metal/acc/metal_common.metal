@@ -76,3 +76,15 @@ inline ftype4 activate(ftype4 value, int type) {
             return value;
     }
 }
+
+// compute tanh according to its definition
+// metal::tanh may produce nan
+inline ftype4 tanh_high_precision(ftype4 x) {
+    float4 ep = exp(float4(x));
+    float4 en = exp(float4(-x));
+    float4 numerator   = ep - en;
+    float4 denominator = ep + en;
+    float4 result = numerator / denominator;
+
+    return ftype4(result);
+}

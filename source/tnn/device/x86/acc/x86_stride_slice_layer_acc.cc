@@ -15,7 +15,8 @@
 #include <algorithm>
 #include <cmath>
 #include "tnn/device/x86/acc/x86_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/device/x86/acc/compute/x86_compute.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -32,15 +33,11 @@ Status X86StrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     Blob *output_blob  = outputs[0];
     auto dims_input    = input_blob->GetBlobDesc().dims;
     auto dims_output   = output_blob->GetBlobDesc().dims;
-    int input_channel  = dims_input[1];
-    int output_channel = dims_output[1];
-    int input_height   = dims_input[2];
-    int input_width    = dims_input[3];
-    int output_height  = dims_output[2];
-    int output_width   = dims_output[3];
 
-    int input_slice  = UP_DIV(dims_input[1], 4);
-    int output_slice = UP_DIV(dims_output[1], 4);
+    if (dims_output.size() > 4 || dims_input.size() > 4) {
+        LOGE("Error: x86 stride slice only support dimension <= 4\n");
+        return Status(TNNERR_MODEL_ERR, "Error: x86 stride slice only support dimension <= 4");
+    }
 
     auto begins  = layer_param->begins;
     auto ends    = layer_param->ends;
@@ -54,30 +51,22 @@ Status X86StrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
             ends[i] = input_blob->GetBlobDesc().dims[i];
         }
     }
-    int nn = 0, nc = 0, nh = 0, nw = 0;
+    
+    DimsVector input_strides;
+    DimsVector output_strides;
+    input_strides.reserve(dims_output.size());
+    output_strides.reserve(dims_output.size());
+
+    for (int i = 0; i < dims_output.size() - 1; i++) {
+        input_strides.push_back(DimsVectorUtils::Count(dims_input, i + 1));
+        output_strides.push_back(DimsVectorUtils::Count(dims_output, i + 1));
+    }
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = reinterpret_cast<float *>(input_blob->GetHandle().base);
         float *output_data = reinterpret_cast<float *>(output_blob->GetHandle().base);
 
-        for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
-            auto input_ptr  = input_data + n * input_channel * input_width * input_height;
-            auto output_ptr = output_data + nn * output_channel * output_width * output_height;
-            nc = 0;
-            for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
-                nh = 0;
-                auto input_c  = input_ptr + c * input_width * input_height;
-                auto output_c = output_ptr + nc * output_width * output_height;
-                for (int h = begins[2]; h < ends[2]; h += strides[2], nh++) {
-                    nw = 0;
-                    auto input_h  = input_c + h * input_width;
-                    auto output_h = output_c + nh * output_width;
-                    for (int w = begins[3]; w < ends[3]; w += strides[3], nw++) {
-                        output_h[nw] = input_h[w];
-                    }
-                }
-            }
-        }
+        X86StrideSliceImpl(begins, strides, dims_output, input_strides, output_strides, input_data, output_data);
     } else {
         return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8/bfp16 StrideSlice");
     }

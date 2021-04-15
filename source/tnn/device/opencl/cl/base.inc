@@ -1,5 +1,10 @@
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 
+typedef struct shape_3d { int data[3];} shape_3d;
+typedef struct shape_4d { int data[4];} shape_4d;
+typedef struct shape_5d { int data[5];} shape_5d;
+typedef struct shape_6d { int data[6];} shape_6d;
+
 __constant sampler_t SAMPLER = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;
 
 #define GLOBAL_SIZE_1_DIMS __private const int global_size_dim0,   

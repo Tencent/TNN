@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <tuple>
 #include <chrono>
+#include <iterator>
 
 namespace TNN_NS {
 

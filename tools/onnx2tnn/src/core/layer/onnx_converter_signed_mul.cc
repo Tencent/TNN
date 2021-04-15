@@ -35,7 +35,11 @@ string OnnxOpConverterSignedMul::TNNLayerParam(
     return layer_param.str();
 }
 
-int OnnxOpConverterSignedMul::WriteTNNModel(serializer *net_writer,
+bool OnnxOpConverterSignedMul::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
+int OnnxOpConverterSignedMul::WriteTNNModel(Serializer *net_writer,
                                                       NodeProto &node,
                                                       OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

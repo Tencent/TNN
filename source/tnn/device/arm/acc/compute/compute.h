@@ -38,17 +38,16 @@ struct ArmKernelParam {
     void* fil_ptr;
     float* scale;
     void* bias;
-    void set_dims(long ic_r4_, long ic_r8_, long ih_, long iw_,
-                  long oc_r4_, long oc_r8_, long oh_, long ow_) {
-                       this->ic_r4 = ic_r4_;
-                       this->ic_r8 = ic_r8_;
-                       this->ih    = ih_;
-                       this->iw    = iw_;
-                       this->oc_r4 = oc_r4_;
-                       this->oc_r8 = oc_r8_;
-                       this->oh    = oh_;
-                       this->ow    = ow_;
-                   }
+    void set_dims(long ic_r4_, long ic_r8_, long ih_, long iw_, long oc_r4_, long oc_r8_, long oh_, long ow_) {
+        this->ic_r4 = ic_r4_;
+        this->ic_r8 = ic_r8_;
+        this->ih    = ih_;
+        this->iw    = iw_;
+        this->oc_r4 = oc_r4_;
+        this->oc_r8 = oc_r8_;
+        this->oh    = oh_;
+        this->ow    = ow_;
+    }
 };
 
 typedef void (*PostFunc)(void* dst, const void* bias, long area, long oc4);
@@ -113,10 +112,16 @@ template <typename Tin, typename Tout>
 void FloatConvert(const Tin* src, Tout* dst, long area_quad);
 
 template <typename T>
-void ScaleBias(T *src, int channel, int hw, const float *scale, const float *bias, T *dst = nullptr);
+void ScaleBias(T* src, int channel, int hw, const float* scale, const float* bias, T* dst = nullptr);
 
 void Half2Float(float* dst, const fp16_t* src, const size_t length);
 void Float2Half(fp16_t* dst, const float* src, const size_t length);
+
+void GemmFloatPackA(int m, int n, int k, const float* a, float* pack_a, int lda, const float* b, int ldb, float* c,
+                    int ldc);
+
+void GemmFloatPackAB(int m, int n, int k, const float* a, float* pack_a, int lda, const float* b, float* pack_b, int ldb, float* c,
+                    int ldc);
 
 #ifdef __cplusplus
 extern "C" {

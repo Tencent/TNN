@@ -23,13 +23,14 @@ class Blob1DMemoryPool : public BlobMemoryPool {
 public:
     explicit Blob1DMemoryPool(AbstractDevice* device);
     virtual ~Blob1DMemoryPool();
-
+    virtual void ClearBlobMemoryPool();
+    
 private:
     virtual BlobMemory* CreateBlobMemory(int use_count, BlobMemorySizeInfo& size_info);
     virtual BlobMemoryNode* GetBlobMemoryNodeListHeader(DataType data_type);
     virtual void SetBlobMemoryNodeListHeader(DataType data_type, BlobMemoryNode* new_header);
-    virtual int ResolveBlobMemoryNodeBytesDiff(BlobMemorySizeInfo& size_info, BlobMemoryNode* node);
-    BlobMemoryNode* blob_memory_list_header_;
+    virtual int64_t ResolveBlobMemoryNodeBytesDiff(BlobMemorySizeInfo& size_info, BlobMemoryNode* node);
+    BlobMemoryNode* blob_memory_list_header_ = nullptr;
 };
 
 }  // namespace TNN_NS

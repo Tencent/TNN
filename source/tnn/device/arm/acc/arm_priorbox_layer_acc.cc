@@ -15,7 +15,7 @@
 #include "tnn/device/arm/acc/arm_nchw_layer_acc.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/pribox_generator_utils.h"
 
 namespace TNN_NS {
@@ -44,5 +44,6 @@ Status ArmPriorBoxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_ARM_ACC(PriorBox, LAYER_PRIOR_BOX)
+REGISTER_ARM_LAYOUT(LAYER_PRIOR_BOX, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

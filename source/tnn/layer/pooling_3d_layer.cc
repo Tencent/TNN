@@ -59,7 +59,7 @@ inline int Pooling3DLayerRuntimeKernelDepth(PoolingLayerParam* pool_param, DimsV
         kernel_d = input_dims[2];  // NCDHW
     }
 
-    if (pool_param->kernel_indexs[0] != -1) {
+    if (pool_param->kernel_indexs[2] != -1) {
         kernel_d = input_dims[pool_param->kernel_indexs[2]];
     }
     pool_param->kernels[2] = kernel_d;
@@ -70,7 +70,9 @@ Status Pooling3DLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status Pooling3DLayer::InferOutputShape() {
+Status Pooling3DLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
     Blob* input_blob = input_blobs_[0];
 
     PoolingLayerParam* pool_param = dynamic_cast<PoolingLayerParam*>(param_);
@@ -128,15 +130,15 @@ Status Pooling3DLayer::InferOutputShape() {
             if (pool_param->ceil_mode == 1) {
                 rectify_height_out = int(std::ceil(float(height + pad_h + pad_down - kernel_h) / (float)stride_h + 1));
                 rectify_width_out  = int(std::ceil(float(width + pad_w + pad_right - kernel_w) / (float)stride_w + 1));
-                rectify_depth_out  = int(std::ceil(float(depth + pad_d + pad_back - stride_d) / (float)stride_d + 1));
+                rectify_depth_out  = int(std::ceil(float(depth + pad_d + pad_back  - kernel_d) / (float)stride_d + 1));
             } else {
                 rectify_height_out = int(std::floor(float(height + pad_h + pad_down - kernel_h) / (float)stride_h + 1));
                 rectify_width_out  = int(std::floor(float(width + pad_w + pad_right - kernel_w) / (float)stride_w + 1));
-                rectify_depth_out  = int(std::floor(float(depth + pad_d + pad_back - stride_d) / (float)stride_d + 1));
+                rectify_depth_out  = int(std::floor(float(depth + pad_d + pad_back  - kernel_d) / (float)stride_d + 1));
             }
 
             if (rectify_height_out != height_out || rectify_width_out != width_out || rectify_depth_out != depth_out) {
-                LOGE("Error: Pooling3DLayer, maybe it is the case for global pooling\n");
+                LOGE_IF(!ignore_error, "Error: Pooling3DLayer, maybe it is the case for global pooling\n");
                 return Status(TNNERR_PARAM_ERR, "Error: Pooling3DLayer, maybe it is the case for global pooling");
             }
         }
@@ -164,7 +166,7 @@ Status Pooling3DLayer::InferOutputShape() {
             width_out  = int(std::ceil(float(width - kernel_w + 1) / float(stride_w)));
             depth_out  = int(std::ceil(float(depth - kernel_d + 1) / float(stride_d)));
         } else {
-            LOGE("Error: Pooling3DLayer, maybe it is the case for global pooling\n");
+            LOGE_IF(!ignore_error, "Error: Pooling3DLayer, maybe it is the case for global pooling\n");
             return Status(TNNERR_PARAM_ERR, "Error: Pooling3DLayer, maybe it is the case for global pooling");
         }
 

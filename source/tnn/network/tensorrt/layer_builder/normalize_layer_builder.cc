@@ -37,6 +37,11 @@ ILayer* NormalizeTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs NormalizeTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
+}
+
 const char* NormalizePluginCreator::getPluginName() const {
     return "Normalize";
 }

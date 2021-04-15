@@ -21,28 +21,6 @@ BinaryLayerTest::BinaryLayerTest(LayerType type) {
     layer_type_ = type;
 }
 
-bool BinaryLayerTest::InputParamCheck(const DataType& data_type, const DeviceType& dev, const int batch) {
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        return true;
-    }
-
-    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
-        return true;
-    }
-
-#ifndef TNN_ARM82
-    if (data_type == DATA_TYPE_HALF) {
-        return true;
-    }
-#endif
-
-    if (batch > 1 && DEVICE_METAL == dev) {
-        return true;
-    }
-
-    return false;
-}
-
 void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_positive) {
     // get param
     int batch           = std::get<0>(GetParam());
@@ -54,11 +32,13 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_po
     DataType data_type  = std::get<6>(GetParam());
     DeviceType dev      = ConvertDeviceType(FLAGS_dt);
 
-    if (InputParamCheck(data_type, dev, batch)) {
-
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 
+    if (batch > 1 && DEVICE_METAL == dev) {
+         GTEST_SKIP();
+    }
     if (batch > 1 && param_size_type == 3 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }

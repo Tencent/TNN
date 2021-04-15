@@ -18,6 +18,7 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 MetalPReluLayerAcc::~MetalPReluLayerAcc() {}
@@ -39,6 +40,7 @@ Status MetalPReluLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs
     // buffer_param_
     {
         auto metal_params          = GetDefaultMetalParams(dims_input, dims_output);
+        FixDefaultMetalParams(metal_params, dims_input, dims_output);
         metal_params.share_channel = layer_param->channel_shared;
         buffer_param_              = [device newBufferWithBytes:(const void *)(&metal_params)
                                             length:sizeof(metal_params)
@@ -60,10 +62,11 @@ Status MetalPReluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
     auto input  = inputs[0];
     auto output = outputs[0];
 
-    auto dims_output  = output->GetBlobDesc().dims;
-    auto batch        = dims_output[0];
-    auto output_width = dims_output[3], output_height = dims_output[2],
-         output_slice = UP_DIV(dims_output[1], 4) * dims_output[0];
+    auto dims_output   = output->GetBlobDesc().dims;
+    auto batch         = dims_output[0];
+    auto output_width  = DimsFunctionUtils::GetDimProduct(dims_output, 3),
+         output_height = DimsFunctionUtils::GetDim(dims_output, 2),
+         output_slice  = UP_DIV(dims_output[1], 4) * dims_output[0];
 
     Status status = TNN_OK;
     MetalBandwidth bandwidth;
@@ -93,5 +96,6 @@ Status MetalPReluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 }
 
 REGISTER_METAL_ACC(PRelu, LAYER_PRELU);
+REGISTER_METAL_LAYOUT(LAYER_PRELU, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

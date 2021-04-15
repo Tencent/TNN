@@ -22,5 +22,6 @@ typedef struct arm_reduce_sum_operator : arm_reduce_operator {
 DECLARE_ARM_REDUCE_ACC(ReduceSum, ARM_REDUCE_SUM_OP);
 
 REGISTER_ARM_ACC(ReduceSum, LAYER_REDUCE_SUM);
+REGISTER_ARM_LAYOUT(LAYER_REDUCE_SUM, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

@@ -43,10 +43,18 @@ public:
 
     virtual Context* CreateContext(int device_id);
 
+    virtual NetworkType ConvertAutoNetworkType();
+    
+    // @brief get implemented layouts on the device by layer type
+    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type);
+
     static Status RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator);
+
+    static Status RegisterLayerLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout);
 
 private:
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>>& GetLayerCreatorMap();
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>>& GetLayerLayoutMap();
 };
 
 //@brief OpenCLTypeLayerAccRegister register OpenCLTypeLayerAccCreator
@@ -55,6 +63,13 @@ class OpenCLTypeLayerAccRegister {
 public:
     explicit OpenCLTypeLayerAccRegister(LayerType type) {
         OpenCLDevice::RegisterLayerAccCreator(type, new T());
+    }
+};
+
+class OpenCLTypeLayerLayoutRegister {
+public:
+    explicit OpenCLTypeLayerLayoutRegister(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+        OpenCLDevice::RegisterLayerLayout(type, layout);
     }
 };
 

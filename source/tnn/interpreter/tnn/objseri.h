@@ -27,6 +27,7 @@
 
 namespace TNN_NS {
     static const uint32_t g_version_magic_number = 0x0FABC0002;
+    static const uint32_t g_version_magic_number_v2 = 0x0FABC0004;
 
     class Serializer {
     public:
@@ -48,21 +49,33 @@ namespace TNN_NS {
         virtual void PutRaw(TNN_NS::RawBuffer &value) {
             int length = value.GetBytesSize();
             auto data_type = (TNN_NS::DataType)value.GetDataType();
+            DimsVector  dims  = value.GetBufferDims();
             char *buffer = value.force_to<char *>();
-            
-            PutInt(g_version_magic_number);
+            PutRaw(length, buffer, dims, data_type);
+        }
+        
+        void PutRaw(int length, char* buffer, std::vector<int> dims, DataType data_type = DATA_TYPE_FLOAT)
+        {
+            PutInt(g_version_magic_number_v2);
             PutInt(data_type);
             PutInt(static_cast<int>(length));
             if (length <= 0) {
                 return;
             }
-            
-            _ostream.write(reinterpret_cast<char *>(buffer),
-                           static_cast<std::streamsize>(length));
+           
+            PutInt((int)(dims.size()));
+            if (dims.size() > 0) {
+                _ostream.write(reinterpret_cast<char *>(dims.data()),
+                               static_cast<std::streamsize>(dims.size() * sizeof(int32_t)));
+            }
             if (_ostream.bad())
                 return;
+ 
+            _ostream.write(reinterpret_cast<char *>(buffer),
+                           static_cast<std::streamsize>(length));
             return;
         }
+
 
     protected:
         std::ostream &_ostream;
@@ -113,16 +126,37 @@ namespace TNN_NS {
             return get_string_t<std::string>();
         }
 
+        virtual void GetDims(std::vector<int>& dims) {
+            auto magic_number = GetInt();
+            auto data_type = (TNN_NS::DataType)GetInt();
+            int size = GetInt();
+            if (size <= 0) {
+                return;
+            }
+            for (int i = 0; i < size; ++i) {
+                dims.push_back(GetInt());
+            }
+        }
+
         virtual void GetRaw(TNN_NS::RawBuffer &value) {
-            auto magic_number  = GetInt();
+            auto magic_number  = static_cast<uint32_t>(GetInt());
             auto data_type = (TNN_NS::DataType)GetInt();
             int length = GetInt();
             if (length <= 0) {
                 return;
             }
-            
+
+            DimsVector dims;
+            if(magic_number == g_version_magic_number_v2) {
+                int size = GetInt();
+                for (int i = 0; i < size; ++i) {
+                    dims.push_back(GetInt());
+                }
+            }
+ 
             value = TNN_NS::RawBuffer(length);
             value.SetDataType(data_type);
+            value.SetBufferDims(dims);
 
             char *buffer = value.force_to<char *>();
             if (_istream.eof())
