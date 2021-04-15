@@ -209,7 +209,7 @@ Status OpenCLRuntime::Init() {
 
         if (!cache_path_.empty()) {
             program_cache_file_path_ =
-                cache_path_ + "/" + CACHE_TAG + "_" + device_name + "_" +
+                cache_path_ + "/" + CACHE_TAG + "_" + md5(device_name) + "_" +
                 md5(device_version + "_" + opencl_version);
         }
 
