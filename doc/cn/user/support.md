@@ -66,7 +66,7 @@ Todo: 详细描述模型及OP支持情况, 包括不同加速平台的支持情�
 | Abs                      | Abs                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Acos                     | Acos                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Add                      | Add                                            | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
-| ArgMaxOrMin(ArgMax)      | ArgMax                                         | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
+| ArgMaxOrMin(ArgMax)      | ArgMax                                         | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | ArgMaxOrMin(ArgMin)      | ArgMin                                         | yes | yes   | yes   | yes    | yes   |      | yes   | yes   | yes   |
 | Asin                     | Asin                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
 | Atan                     | Atan                                           | yes | yes   | yes   | yes    | yes   | yes  | yes   | yes   | yes   |
