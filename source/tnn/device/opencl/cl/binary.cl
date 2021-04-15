@@ -30,7 +30,9 @@ __kernel void BinarySingle(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
 
 __kernel void BinaryChannel(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
                             __read_only image2d_t param,
+                            __private const int height,
                             __private const int width,
+                            __private const int param_batch,
                             __write_only image2d_t output) {
     const int cw = get_global_id(0);
     const int bh = get_global_id(1);
@@ -38,15 +40,19 @@ __kernel void BinaryChannel(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     DEAL_NON_UNIFORM_DIM2(cw, bh);
 
     const int c_idx = cw / width;
+    const int b_idx = bh / height;
+    const int param_b_idx = b_idx % param_batch;
     FLOAT4 in0      = RI_F(input, SAMPLER, (int2)(cw, bh));
-    FLOAT4 in1      = RI_F(param, SAMPLER, (int2)(c_idx, 0));
+    FLOAT4 in1      = RI_F(param, SAMPLER, (int2)(c_idx, param_b_idx));
     FLOAT4 out      = OPERATOR;
     WI_F(output, (int2)(cw, bh), out);
 }
 
 __kernel void BinaryWidth(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
                             __read_only image2d_t param,
+                            __private const int height,
                             __private const int width,
+                            __private const int param_batch,
                             __write_only image2d_t output) {
     const int cw = get_global_id(0);
     const int bh = get_global_id(1);
@@ -54,14 +60,19 @@ __kernel void BinaryWidth(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     DEAL_NON_UNIFORM_DIM2(cw, bh);
 
     const int w_idx = cw % width;
+    const int b_idx = bh / height;
+    const int param_b_idx = b_idx % param_batch;
     FLOAT4 in0      = RI_F(input, SAMPLER, (int2)(cw, bh));
-    FLOAT in1       = RI_F(param, SAMPLER, (int2)(w_idx, 0)).x;
+    FLOAT in1       = RI_F(param, SAMPLER, (int2)(w_idx, param_b_idx)).x;
     FLOAT4 out      = OPERATOR;
     WI_F(output, (int2)(cw, bh), out);
 }
 
 __kernel void BinaryCHW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
-                        __read_only image2d_t param, __private const int height,
+                        __read_only image2d_t param,
+                        __private const int height,
+                        __private const int width,
+                        __private const int param_batch,
                         __write_only image2d_t output) {
     const int cw = get_global_id(0);
     const int bh = get_global_id(1);
@@ -69,15 +80,17 @@ __kernel void BinaryCHW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     DEAL_NON_UNIFORM_DIM2(cw, bh);
 
     const int h_idx = bh % height;
+    const int b_idx = bh / height;
+    const int param_b_idx = b_idx % param_batch;
     FLOAT4 in0      = RI_F(input, SAMPLER, (int2)(cw, bh));
-    FLOAT4 in1      = RI_F(param, SAMPLER, (int2)(cw, h_idx));
+    FLOAT4 in1      = RI_F(param, SAMPLER, (int2)(cw, h_idx + param_b_idx * height));
     FLOAT4 out      = OPERATOR;
     WI_F(output, (int2)(cw, bh), out);
 }
 
 __kernel void BinaryHW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
                        __read_only image2d_t param, __private const int height,
-                       __private const int width,
+                       __private const int width, __private const int param_batch,
                        __write_only image2d_t output) {
     const int cw = get_global_id(0);
     const int bh = get_global_id(1);
@@ -85,9 +98,11 @@ __kernel void BinaryHW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     DEAL_NON_UNIFORM_DIM2(cw, bh);
 
     const int h_idx = bh % height;
+    const int b_idx = bh / height;
+    const int param_b_idx = b_idx % param_batch;
     const int w_idx = cw % width;
     FLOAT4 in0      = RI_F(input, SAMPLER, (int2)(cw, bh));
-    FLOAT in1       = RI_F(param, SAMPLER, (int2)(w_idx, h_idx)).x;
+    FLOAT in1       = RI_F(param, SAMPLER, (int2)(w_idx, h_idx + param_b_idx * height)).x;
     FLOAT4 out      = OPERATOR;
     WI_F(output, (int2)(cw, bh), out);
 }

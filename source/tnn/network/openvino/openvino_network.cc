@@ -14,13 +14,15 @@
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/utils/blob_dump_utils.h"
 #include "tnn/utils/blob_transfer_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 #include "tnn/extern_wrapper/foreign_blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
 #include "tnn/network/openvino/openvino_types.h"
 
 #include "tnn/network/openvino/custom_layer/custom_implementation.h"
+#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
 
@@ -32,7 +34,7 @@ OpenVINONetwork_::~OpenVINONetwork_() {
 
 Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
                             AbstractModelInterpreter* interpreter,
-                            InputShapesMap inputs_shape) {
+                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
 
     Status ret  = TNN_OK;
 
@@ -73,7 +75,7 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     blob_manager_ = new BlobManager(device_);
-    ret = blob_manager_->Init(net_config, net_structure, inputs_shape, GetNetResourceDataType(net_resource));
+    ret = blob_manager_->Init(net_config, net_structure, max_inputs_shape, GetNetResourceDataType(net_resource));
 
     //set inputnode
     RETURN_ON_NEQ(SetNetInputNode(), TNN_OK);
@@ -94,7 +96,7 @@ Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     extensionPtr = std::make_shared<CustomOpenvinoLayerManager>();
     ie_.AddExtension(extensionPtr, "CPU");
 
-    return Reshape(inputs_shape);
+    return Reshape(max_inputs_shape);
 }
 
 Status OpenVINONetwork_::SetNetInputNode() {
@@ -111,7 +113,7 @@ Status OpenVINONetwork_::SetNetInputNode() {
         }
 
         std::shared_ptr<ngraph::op::Parameter> input_node = 
-                std::make_shared<ngraph::op::Parameter>(ngraph::element::f32, ngraph::Shape(ngraph_input_shape));
+                std::make_shared<ngraph::op::Parameter>(ConvertToOVDataType(blob_desc.data_type), ngraph::Shape(ngraph_input_shape));
         input_node->set_friendly_name(input_name);
 
         auto foreign_blob = new ForeignBlob(it.second);
@@ -175,10 +177,10 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
 
     for(auto item : inputs) {
         std::string input_name = item.first;
-        if (item.second.size() < 4) {
-            return TNNERR_PARAM_ERR; 
-        }
         if (network_shapes.find(input_name) == network_shapes.end()) {
+            return TNNERR_PARAM_ERR;
+        }
+        if (item.second.size() != network_shapes.find(input_name)->second.size()) {
             return TNNERR_PARAM_ERR;
         }
 
@@ -204,6 +206,7 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
         desc.data_format = DATA_FORMAT_NCHW;
         desc.name = key;
         desc.device_type = DEVICE_X86;
+        desc.data_type = ConvertOVPrecisionToDataType(blob_ptr->getTensorDesc().getPrecision());
         auto dims = blob_ptr->getTensorDesc().getDims();
         for(int index = 0; index<dims.size(); index++) {
             desc.dims.push_back(dims[index]);
@@ -228,6 +231,7 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
         desc.data_format = DATA_FORMAT_NCHW;
         desc.name = key;
         desc.device_type = DEVICE_X86;
+        desc.data_type = ConvertOVPrecisionToDataType(blob_ptr->getTensorDesc().getPrecision());
         auto dims = blob_ptr->getTensorDesc().getDims();
         for(int index = 0; index<dims.size(); index++) {
             desc.dims.push_back(dims[index]);
@@ -256,7 +260,37 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
 Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *net_resource) {
     Status ret = TNN_OK;
 
+    auto const_blobs = net_resource->constant_map;
     for (auto layer_info : net_structure->layers) {
+        std::vector<std::string> &input_names = layer_info->inputs;
+        for (auto name : input_names) {
+            auto blob = blob_manager_->GetBlob(name);
+            if (const_blobs.find(name) != const_blobs.end()) {
+                blob->GetBlobDesc().data_type = const_blobs[name]->GetDataType();
+                if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+                    // printf("const blob name %s\n", name.c_str());
+                    blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
+
+                    auto const_node = ConvertToConstNode(const_blobs[name].get());
+                    const_node->set_friendly_name(name);
+
+                    auto foreign_blob = new ForeignBlob(blob);
+                    foreign_blob->GetBlobDesc().dims = const_blobs[name].get()->GetBufferDims();
+                    foreign_blob->SetForeignTensor(std::make_shared<OpenvinoTensor>(const_node));
+
+                    blob_manager_->ReplaceBlob(name, foreign_blob);
+                }
+            }
+        }
+    }
+
+    auto const_layers = net_resource->constant_layers;
+
+    for (auto layer_info : net_structure->layers) {
+        if (runtime_model_ == RUNTIME_MODE_NORMAL && const_layers.find(layer_info->name) != const_layers.end()) {
+            continue;
+        }
+
         LayerType type       = layer_info->type;
         OpenVINOLayerBuilder *cur_layer = CreateOpenVINOLayerBuilder(type);
         
@@ -277,7 +311,7 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         std::vector<Blob *> outputs;
         std::vector<std::string> &output_names = layer_info->outputs;
 
-#ifdef BENCHMARK
+#ifdef GENERATE_RESOURCE
         // generate resource if null
         if (net_resource->resource_map.count(layer_name) == 0) {
             LayerParam *layer_param  = layer_info->param.get();
@@ -308,7 +342,9 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         if (resouce_it != net_resource->resource_map.end()) {
             layer_resource = resouce_it->second.get();
         }
-        
+
+        cur_layer->SetRuntimeMode(runtime_model_);
+        cur_layer->SetConstantResource(&net_resource->constant_map);
         // init node
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {
@@ -339,14 +375,44 @@ Status OpenVINONetwork_::GetCommandQueue(void **command_queue) {
 
 Status OpenVINONetwork_::Forward() {
     infer_request_.Infer();
+#if TNN_PROFILE
+    auto perf_count = infer_request_.GetPerformanceCounts();
+    for (auto iter : perf_count) {
+        if (std::string(iter.second.layer_type).find("Custom") != std::string::npos) {
+            continue;
+        }
+        auto pdata = std::make_shared<ProfilingData>();
+        pdata->layer_name = iter.first;
+        pdata->op_name = iter.second.layer_type;
+        pdata->kernel_time = iter.second.cpu_uSec / 1000.0f;
+        context_->AddProfilingData(pdata);
+    }
+#endif
     return TNN_OK;
 }
 
 // @brief openvino instance network infer, it will not wait
 Status OpenVINONetwork_::ForwardAsync(Callback call_back) {
-    Status result = TNN_OK;
-    infer_request_.Infer();
-    return result;
+    return Forward();
+}
+
+Status OpenVINONetwork_::SetCpuNumThreads(int num_threads) {
+    std::map<std::string, std::string> config = {
+        {CONFIG_KEY(CPU_THREADS_NUM), ToString(num_threads)},
+        {CONFIG_KEY(CPU_THROUGHPUT_STREAMS), "0"},
+        {CONFIG_KEY(CPU_BIND_THREAD), "NO"},
+    };
+    ie_.SetConfig(config, "CPU");
+
+    BlobMap input_blobs;
+    blob_manager_->GetAllInputBlobs(input_blobs);
+    InputShapesMap network_shapes;
+    for (auto &iter : input_blobs) {
+        network_shapes[iter.first] = iter.second->GetBlobDesc().dims;
+    }
+
+    // load network again
+    return Reshape(network_shapes);
 }
 
 }  // namespace TNN_NS

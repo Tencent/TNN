@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "layer_test.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "unit_test_common.h"
 #include "utils/network_helpers.h"
 
@@ -31,13 +31,17 @@ static std::string GenerateReduceProto(std::string op_type, ReduceLayerParam par
 
 class ReduceOpLayerTest
     : public LayerTest,
-      public ::testing::WithParamInterface<std::tuple<int, int, int, int, std::vector<int>, DataType>> {};
+      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, std::vector<int>, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                          ::testing::Combine(testing::Values(1, 2),
                                             testing::Values(2, 3, 9, 128),
                                             testing::Values(9, 10, 19, 128),
                                             testing::Values(9, 10, 19, 128),
+                                            // keep_dim
+                                            testing::Values(0, 1),
+                                            // dim count
+                                            testing::Values(2, 3, 4),
                                             // axis
                                             testing::Values(std::vector<int>({1}), std::vector<int>({2}),
                                                             std::vector<int>({3}), std::vector<int>({1, 2}),
@@ -52,8 +56,10 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     int channel        = std::get<1>(GetParam());
     int input_height   = std::get<2>(GetParam());
     int input_width    = std::get<3>(GetParam());
-    auto& axis         = std::get<4>(GetParam());
-    DataType data_type = std::get<5>(GetParam());
+    int keep_dims      = std::get<4>(GetParam());
+    int dim_count      = std::get<5>(GetParam());
+    auto& axis         = std::get<6>(GetParam());
+    DataType data_type = std::get<7>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
     // only test one case for large inputs
@@ -63,13 +69,35 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         GTEST_SKIP();
     }
 
+    // blobconverter cannot handle 1-dimensional blob, skip it for now
+    if (dim_count <= axis.size()+1 && keep_dims == 0) {
+        GTEST_SKIP();
+    }
+
+    for(const auto& d: axis) {
+        if (d >= dim_count || d + dim_count < 0) {
+            GTEST_SKIP();
+        }
+    }
+
+    if (DEVICE_OPENCL == dev && keep_dims != 1) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<ReduceLayerParam> param(new ReduceLayerParam());
     param->name = "ReduceOp";
     param->axis = axis;
+    param->keep_dims = keep_dims;
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_height, input_width};
+    //std::vector<int> input_dims = {batch, channel, input_height, input_width};
+    std::vector<int> input_dims = {batch, channel};
+    for(int i=input_dims.size(); i<dim_count; ++i) {
+        if (i % 2 == 0) input_dims.push_back(input_height);
+        else input_dims.push_back(input_width);
+    }
+
 
     if (DEVICE_HUAWEI_NPU != dev) {
         auto interpreter1 = GenerateInterpreter("ReduceMax", {input_dims}, param);
@@ -78,15 +106,15 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         Run(interpreter2);
         auto interpreter3 = GenerateInterpreter("ReduceMean", {input_dims}, param);
         Run(interpreter3);
-        auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param);
-        Run(interpreter6);
+        auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
+        Run(interpreter8);
         if (DEVICE_CUDA != dev) {
             auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param);
             Run(interpreter5);
+            auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param);
+            Run(interpreter6);
             auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param);
             Run(interpreter7);
-            auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
-            Run(interpreter8);
             auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param);
             Run(interpreter10);
         }

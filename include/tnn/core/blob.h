@@ -21,6 +21,7 @@
 
 #include "tnn/core/common.h"
 #include "tnn/core/macro.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
@@ -39,12 +40,16 @@ struct PUBLIC BlobDesc {
     DimsVector dims;
     // name describes the blob name
     std::string name = "";
+    
+    std::string description(bool all_messgae = false);
 };
 
 struct PUBLIC BlobHandle {
     void *base            = NULL;
     uint64_t bytes_offset = 0;
 };
+
+class BlobImpl;
 
 // @brief Blob tnn data store and transfer interface.
 class PUBLIC Blob {
@@ -73,14 +78,22 @@ public:
     //@param handle to the stored data
     void SetHandle(BlobHandle handle);
 
-private:
-    BlobDesc desc_;
-    BlobHandle handle_;
-    bool alloc_memory_;
+    //@brief allocate blob handle in forward
+    bool NeedAllocateInForward();
+    
+    //@brief check if it is constant
+    bool IsConstant();
+
+    int GetFlag();
+
+    void SetFlag(int flag);
+private: 
+    BlobImpl* impl_;
 };
 
-// InputShapeMap input rereshape info
-using InputShapesMap = std::map<std::string, DimsVector>;
+// InputShapeMap input reshape info
+using InputShapesMap   = std::map<std::string, DimsVector>;
+using InputDataTypeMap = std::map<std::string, DataType>;
 
 using BlobMap = std::map<std::string, Blob *>;
 

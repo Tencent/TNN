@@ -17,7 +17,7 @@
 #include "math.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -889,6 +889,10 @@ static int upsample_bilinear2d(int8_t *output_data, const int8_t *input_data, in
 
 ArmUpsampleLayerAcc::~ArmUpsampleLayerAcc() {}
 
+bool ArmUpsampleLayerAcc::UseNaiveConstantBlobs() {
+    return true;
+}
+
 Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<UpsampleLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
@@ -992,5 +996,6 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_ARM_ACC(Upsample, LAYER_UPSAMPLE)
+REGISTER_ARM_LAYOUT(LAYER_UPSAMPLE, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

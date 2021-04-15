@@ -37,6 +37,7 @@ public:
                                                           tflite::BuiltinOperator op_code) = 0;
     TNN_NS::Status SeparateActivation(TNN_NS::NetStructure& net_structure,
                                       tflite::ActivationFunctionType activation_function_type);
+    void InsertBlobs(TNN_NS::NetStructure& net_structure);
 
 protected:
     std::string tflite_op_type_;

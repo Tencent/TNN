@@ -82,9 +82,8 @@ public:
         reg_var act_type    = get_arguement(9);
 
         reg_var c[3] = {REG_VAR_ARRAY_3};
-        // reg_var op_6f(this);
-        vreg_var v_zero(this);
-        // vreg_var v_6f(this);
+        reg_var op_6f(this);
+        vreg_var v_const(this);
         vreg_var c_data[6] = {VREG_VAR_ARRAY_6};
         vreg_var a_data(this), b_data(this);
         
@@ -141,16 +140,29 @@ public:
         src_a.release();
         src_b.release();
 
-        // fuse relu, relu6 tbd
+        // only support fuse relu, relu6
         act_type.restore();
         cmp(act_type, 0);
         je("L_post_end");
-            v_zero.aquire();
-            xorps(v_zero.xmm(), v_zero.xmm());
+            v_const.aquire();
+            xorps(v_const.xmm(), v_const.xmm());
             for(int i=0;i<N_r;i++) {
-                maxps(c_data[i].xmm(), v_zero.xmm());
+                maxps(c_data[i].xmm(), v_const.xmm());
             }
-            v_zero.release();
+            v_const.release();
+        cmp(act_type, 2);
+        jne("L_post_end");
+            op_6f.restore();
+            v_const.aquire();
+            // 6.f
+            mov(op_6f.cvt32(), 0x40C00000);
+            movd(v_const.xmm(), op_6f.cvt32());
+            shufps(v_const.xmm(), v_const.xmm(), 0);
+            for(int i=0;i<N_r;i++) {
+                minps(c_data[i].xmm(), v_const.xmm());
+            }
+            v_const.release();
+            op_6f.release();
         L("L_post_end");
         act_type.release();
 

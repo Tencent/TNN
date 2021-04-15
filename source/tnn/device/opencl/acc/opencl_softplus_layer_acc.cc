@@ -42,5 +42,6 @@ std::set<std::string> OpenCLSoftplusLayerAcc::CreateBuildOptions() {
 OpenCLSoftplusLayerAcc::~OpenCLSoftplusLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Softplus, LAYER_SOFTPLUS)
+REGISTER_OPENCL_LAYOUT(LAYER_SOFTPLUS, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

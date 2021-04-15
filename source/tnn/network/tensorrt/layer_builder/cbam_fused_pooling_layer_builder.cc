@@ -41,6 +41,14 @@ ILayer* CbamFusedPoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* 
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs CbamFusedPoolingTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    DimsExprs output(inputs[0]);
+    output.d[2] = exprBuilder.constant(1);
+    output.d[3] = exprBuilder.constant(1);
+    return output;
+}
+
 const char* CbamFusedPoolingPluginCreator::getPluginName() const {
     return "CbamFusedPooling";
 }

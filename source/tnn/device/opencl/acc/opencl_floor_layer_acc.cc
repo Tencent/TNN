@@ -39,5 +39,6 @@ std::set<std::string> OpenCLFloorLayerAcc::CreateBuildOptions() {
 OpenCLFloorLayerAcc::~OpenCLFloorLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Floor, LAYER_FLOOR)
+REGISTER_OPENCL_LAYOUT(LAYER_FLOOR, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

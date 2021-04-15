@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_op_converter.h"
@@ -26,14 +26,38 @@ string OnnxOpConverterCast::TNNLayerParam(NodeProto &node,
                                                OnnxNetInfo &net_info) {
     const std::string &onnx_op = node.op_type();
     ostringstream layer_param;
-
-    int64_t to          = get_node_attr_i(node, "to");
-    layer_param << to << " ";
+    
+    //    TensorProto_DataType_UNDEFINED = 0,
+    //    TensorProto_DataType_FLOAT = 1,
+    //    TensorProto_DataType_UINT8 = 2,
+    //    TensorProto_DataType_INT8 = 3,
+    //    TensorProto_DataType_UINT16 = 4,
+    //    TensorProto_DataType_INT16 = 5,
+    //    TensorProto_DataType_INT32 = 6,
+    //    TensorProto_DataType_INT64 = 7,
+    //    TensorProto_DataType_STRING = 8,
+    //    TensorProto_DataType_BOOL = 9,
+    //    TensorProto_DataType_FLOAT16 = 10,
+    //    TensorProto_DataType_DOUBLE = 11,
+    //    TensorProto_DataType_UINT32 = 12,
+    //    TensorProto_DataType_UINT64 = 13,
+    //    TensorProto_DataType_COMPLEX64 = 14,
+    //    TensorProto_DataType_COMPLEX128 = 15,
+    //    TensorProto_DataType_BFLOAT16 = 16
+    
+    //转成common.h里面的DataType值
+    int64_t to = get_node_attr_i(node, "to");
+    DataType data_type = GetTnnDataTypeFromOnnx(to);
+    layer_param << data_type << " ";
 
     return layer_param.str();
 }
 
-int OnnxOpConverterCast::WriteTNNModel(serializer *net_writer,
+bool OnnxOpConverterCast::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
+int OnnxOpConverterCast::WriteTNNModel(Serializer *net_writer,
                                             NodeProto &node,
                                             OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

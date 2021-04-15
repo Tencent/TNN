@@ -70,13 +70,13 @@
     }
 }
 
-- (void)showText:(NSString *)text withColor:(UIColor *)color atFrame:(CGRect)frame {
+- (void)showText:(NSString *)text withColor:(UIColor *)color hideTextFrame:(bool)hideTextFrame atFrame:(CGRect)frame {
     [CATransaction setDisableActions:YES];
     
     auto path = [UIBezierPath bezierPathWithRect:frame];
     _boxLayer.path = path.CGPath;
     _boxLayer.strokeColor = color.CGColor;
-    _boxLayer.hidden = NO;
+    _boxLayer.hidden = hideTextFrame? YES : NO;
 
     _textLayer.string = text;
     _textLayer.backgroundColor = color.CGColor;

@@ -31,7 +31,10 @@ namespace TNN_NS {
 void HalfC8ToFloatC4(float* dst, const fp16_t* src, long batch, long channel, long hw);
 void FloatC4ToHalfC8(fp16_t* dst, const float* src, long batch, long channel, long hw);
 // used for blob converter
+int PackNeon(fp16_t* dst, const fp16_t* src, size_t hw, size_t channel);
 int PackNeonC3(fp16_t* dst, const float* src, size_t hw, size_t channel);
+int PackNeonNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
+int UnpackNeonNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
 template <bool reverse_channel>
 void BGRAToBlobImpl(const uint8_t* src, fp16_t* dst, const float* scale, const float* bias, int hw, int channel);
 template <bool reverse_channel>
@@ -42,6 +45,10 @@ void BlobToBGRAImpl(const fp16_t* src, uint8_t* dst, const float* scale, const f
 template <bool reverse_channel>
 void BlobToBGRImpl(const fp16_t* src, uint8_t* dst, const float* scale, const float* bias, int hw);
 
+void GemmHalfPackA(int m, int n, int k, const fp16_t* a, fp16_t* pack_a, int lda, const fp16_t* b, int ldb, fp16_t* c,
+                   int ldc);
+void GemmFloatPackAB(int m, int n, int k, const fp16_t* a, fp16_t* pack_a, int lda, const fp16_t* b, fp16_t* pack_b, int ldb, fp16_t* c,
+                   int ldc);
 #endif
 
 #ifdef TNN_ARM82_USE_NEON

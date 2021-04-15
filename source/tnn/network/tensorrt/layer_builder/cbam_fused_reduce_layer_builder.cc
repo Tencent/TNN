@@ -41,6 +41,13 @@ ILayer* CbamFusedReduceTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* n
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs CbamFusedReduceTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    DimsExprs output(inputs[0]);
+    output.d[1] = exprBuilder.constant(2);
+    return output;
+}
+
 const char* CbamFusedReducePluginCreator::getPluginName() const {
     return "CbamFusedReduce";
 }

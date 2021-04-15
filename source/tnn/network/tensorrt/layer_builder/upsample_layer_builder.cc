@@ -12,35 +12,45 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Upsample, LAYER_UPSAMPLE);
+DECLARE_TENSORRT_LAYER_BUILDER(Upsample, LAYER_UPSAMPLE);
 
-bool UpsampleTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
-        && inOut[pos].type == inOut[0].type);
+ILayer* UpsampleTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto paramlist = dynamic_cast<UpsampleLayerParam*>(param_);
+    Blob* output_blob  = output_blobs_[0];
+    auto output_dims = output_blob->GetBlobDesc().dims;
+    auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
+    auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
+    IResizeLayer* layer = network->addResize(*input_tensor);
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
+        if (input_blobs_.size() == 1) {
+            nvinfer1::Dims4 dims(output_dims[0], output_dims[1], output_dims[2], output_dims[3]);
+            layer->setOutputDimensions(dims);
+        } else if (input_blobs_.size() == 4) {
+            auto input_foreign_tensor2 = dynamic_cast<ForeignBlob*>(input_blobs_[input_blobs_.size()-1])->GetForeignTensor();
+            auto input_tensor2 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor2)->GetTensor();
+            layer->setInput(1, *input_tensor2);
+        } else {
+            float scale[4];
+            scale[0] = 1;
+            scale[1] = 1;
+            scale[2] = paramlist->scales[1];
+            scale[3] = paramlist->scales[0];
+            layer->setScales(scale, 4);
+        }
+        layer->setResizeMode(paramlist->mode == 1 ? ResizeMode::kNEAREST : ResizeMode::kLINEAR);
+        layer->setAlignCorners(paramlist->align_corners);
+    }
+
+    return layer;
 }
 
-const char* UpsampleTRTPluginLayerBuilder::getPluginType() const {
-    return "Upsample";
-}
-
-nvinfer1::DataType UpsampleTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
-    return inputTypes[0];
-}
-
-ILayer* UpsampleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
-}
-
-const char* UpsamplePluginCreator::getPluginName() const {
-    return "Upsample";
-}
-
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Upsample, LAYER_UPSAMPLE);
+REGISTER_TENSORRT_LAYER_BUILDER(Upsample, LAYER_UPSAMPLE);
 
 }  //  namespace TNN_NS
+

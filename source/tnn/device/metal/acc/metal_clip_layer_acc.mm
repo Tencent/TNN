@@ -15,6 +15,7 @@
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/acc/metal_unary_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 DECLARE_METAL_UNARY_ACC(Clip, LAYER_CLIP);
@@ -38,6 +39,7 @@ Status MetalClipLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
     {
         MetalClipParams metal_params;
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
+        FixDefaultMetalParams(metal_params, dims_input, dims_output);
 
         metal_params.min = layer_param->min;
         metal_params.max = layer_param->max;
@@ -54,5 +56,6 @@ Status MetalClipLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_METAL_UNARY_ACC(Clip, LAYER_CLIP);
+REGISTER_METAL_LAYOUT(LAYER_CLIP, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

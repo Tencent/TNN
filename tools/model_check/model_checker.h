@@ -33,6 +33,7 @@ struct ModelCheckerParam {
     bool only_check_output = false;
     bool check_batch       = false;
     std::pair<std::string, FileFormat> ref_file;
+    std::string dump_dir_path;
 };
 
 enum CompareType { DEFAULT = 0, COSINE = 1 };
@@ -71,6 +72,9 @@ private:
     // @brief just compare output
     Status RunModelCheckerOutput();
 
+    // @brief per layer compare dump file
+    Status RunModelCheckerFromDumpFile();
+
     // @brief judge whether src_dims can be extended to dst_dims
     bool IsDimsCanBeExtend(std::vector<int> src_dims, std::vector<int> dst_dims);
     // @brief extend mat map due to multi batch
@@ -88,13 +92,12 @@ private:
     Status GetCpuBlobData();
 
     // @brief compare raw
-    bool CompareData(void* device_data, void* cpu_data, DimsVector blob_dims, CompareType type = DEFAULT);
+    bool CompareData(void* device_data, void* cpu_data, DataType data_type, DimsVector blob_dims, CompareType type = DEFAULT);
     // @brief dump blob data
     void DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name);
 
     ModelCheckerParam model_checker_params_;
-    std::shared_ptr<TNN> tnn_cpu_              = nullptr;
-    std::shared_ptr<TNN> tnn_device_           = nullptr;
+    std::shared_ptr<TNN> tnn_                  = nullptr;
     std::shared_ptr<Instance> instance_cpu_    = nullptr;
     std::shared_ptr<Instance> instance_device_ = nullptr;
     std::map<std::string, std::shared_ptr<Mat>> output_ref_mat_map_;

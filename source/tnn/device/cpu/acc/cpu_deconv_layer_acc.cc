@@ -17,7 +17,7 @@
 #include <algorithm>
 
 #include "tnn/interpreter/layer_resource_generator.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
@@ -68,8 +68,7 @@ void CpuDeconvLayerAcc::ActiveOutput(ConvLayerParam *param, float &sum) {
         } else if (sum < 0.0f) {
             sum = 0.0f;
         }
-
-    } else if (param->activation_type == ActivationType_SIGMOID_MUL) {
+    } else if(param->activation_type == ActivationType_SIGMOID_MUL) {
         sum = 1.0f / (1.0f + exp(-sum)) * sum;
     }
 }

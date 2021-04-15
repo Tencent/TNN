@@ -20,7 +20,7 @@ string OnnxConverterReduce::TNNLayerParam(NodeProto &node,
     ostringstream layer_param;
 
     std::vector<int64_t> axes = get_node_attr_ai(node, "axes");
-    int64_t keepdims          = get_node_attr_i(node, "keepdims");
+    int64_t keepdims          = get_node_attr_i(node, "keepdims", 1);
     layer_param << keepdims << " ";
 
     for (int64_t axis : axes) {

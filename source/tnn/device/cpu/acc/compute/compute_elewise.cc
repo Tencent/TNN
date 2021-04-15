@@ -23,6 +23,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
@@ -35,44 +36,31 @@ typedef std::function<float(float, float)> ELEWISE_OP;
  */
 void CPU_ELEWISE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
                  DimsVector shape_output, ELEWISE_OP op) {
-    const int batch        = shape_output[0];
-    const int channel      = shape_output[1];
-    const int height       = shape_output[2];
-    const int width        = shape_output[3];
-    const int channel_size = height * width;
-    const int count        = shape_output[0] * shape_output[1] * shape_output[2] * shape_output[3];
+    const int count        = DimsVectorUtils::Count(shape_output);
     float *output_data     = static_cast<float *>(output);
 
-    for (int i = 0; i < input_ptrs.size(); i++) {
-        float *input_data = static_cast<float *>(input_ptrs[i]);
-        auto input_shape  = input_shapes[i];
+    OMP_PARALLEL_FOR_
+    for(int offset = 0; offset< count; ++offset) {
+        DimsVector output_index = DimsOffsetUtils::ConvertOffsetToIndex(shape_output, offset);
+        float result;
+        for (int i = 0; i < input_ptrs.size(); i++) {
+            float *input_data = static_cast<float *>(input_ptrs[i]);
+            auto input_shape  = input_shapes[i];
 
-        for (int b = 0; b < batch; b++) {
-            int output_index_b = b * channel * channel_size;
-
-            int input_index_b = std::min(b, input_shape[0] - 1) * input_shape[1] * input_shape[2] * input_shape[3];
-            OMP_PARALLEL_FOR_
-            for (int c = 0; c < channel; c++) {
-                int output_index_c = c * channel_size + output_index_b;
-
-                int input_index_c = std::min(c, input_shape[1] - 1) * input_shape[2] * input_shape[3] + input_index_b;
-                for (int h = 0; h < height; h++) {
-                    int output_index_h = h * width + output_index_c;
-
-                    int input_index_h = std::min(h, input_shape[2] - 1) * input_shape[3] + input_index_c;
-                    for (int w = 0; w < width; w++) {
-                        int input_index_w = std::min(w, input_shape[3] - 1) + input_index_h;
-                        float new_value;
-                        if (i == 0) {
-                            new_value = input_data[input_index_w];
-                        } else {
-                            new_value = op(output_data[output_index_h + w], input_data[input_index_w]);
-                        }
-                        output_data[output_index_h + w] = new_value;
-                    }
-                }
+            DimsVector input_index;
+            int diff = shape_output.size() - input_shape.size();
+            for(int i = 0; i < input_shape.size(); ++i) {
+                input_index.push_back(std::min(output_index[i + diff], input_shape[i] - 1));
+            }
+             
+            int input_offset = DimsOffsetUtils::ConvertIndexToOffset(input_shape, input_index);
+            if(i == 0) {
+                result = input_data[input_offset];
+            } else {
+                result = op(result, input_data[input_offset]);
             }
         }
+        output_data[offset] = result;
     }
 }
 

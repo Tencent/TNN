@@ -13,8 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/device/x86/acc/x86_prelu_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/interpreter/layer_resource_generator.h"
 
 #include "tnn/device/x86/acc/Float4.h"

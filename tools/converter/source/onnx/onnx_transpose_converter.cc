@@ -29,8 +29,8 @@ TNN_NS::ActivationType OnnxTransposeConverter::ActivationType(const onnx::NodePr
 
 TNN_NS::Status OnnxTransposeConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                             const onnx::NodeProto &node,
-                                            std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
+                                            std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                            std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                             bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
     auto param                 = new TNN_NS::PermuteLayerParam;
@@ -39,14 +39,10 @@ TNN_NS::Status OnnxTransposeConverter::exec(TNN_NS::NetStructure &net_structure,
     param->type                = cur_layer->type_str;
     param->name                = cur_layer->name;
     param->quantized           = false;
-    param->orders              = {0, 1, 2, 3};
+    param->orders              = GetAttributeIntVector(node, "perm");
 
-    auto perm     = GetAttributeIntVector(node, "perm");
-    int perm_size = perm.size();
-    assert(perm_size <= 4);
-
-    for (int i = 0; i < perm_size; i++) {
-        param->orders[i] = perm[i];
+    if (param->orders.empty()) {
+        param->orders = {0, 1, 2, 3};
     }
 
     return TNN_NS::TNN_CONVERT_OK;

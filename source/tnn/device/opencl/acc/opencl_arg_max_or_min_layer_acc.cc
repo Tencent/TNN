@@ -13,11 +13,20 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_OPENCL_ACC(ArgMaxOrMin);
+class OpenCLArgMaxOrMinLayerAcc : public OpenCLLayerAcc {
+public:
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                        const std::vector<Blob *> &outputs) override;
+
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+private:
+    virtual std::vector<DataType> SupportDataType(int dims_size, BlobType blob_type) override;
+};
 
 Status OpenCLArgMaxOrMinLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -75,6 +84,9 @@ Status OpenCLArgMaxOrMinLayerAcc::Init(Context *context, LayerParam *param, Laye
 
 Status OpenCLArgMaxOrMinLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("ArgMaxOrMin Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     ArgMaxOrMinLayerParam *arg_max_or_min_param = dynamic_cast<ArgMaxOrMinLayerParam *>(param_);
     if (!arg_max_or_min_param) {
         LOGE("Error: layer param is null\n");
@@ -93,19 +105,29 @@ Status OpenCLArgMaxOrMinLayerAcc::Reshape(const std::vector<Blob *> &inputs, con
     uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], output_dims);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-    for (int i = 0; i < output_dims.size(); i++) {
+    // only support up to 4 dims for now
+    for (int i = 0; i < 4; i++) {
         if (i != axis)
-            execute_units_[0].ocl_kernel.setArg(idx++, output_dims[i]);
+            execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, i));
     }
-    execute_units_[0].ocl_kernel.setArg(idx++, input_dims[axis]);
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, axis));
     // channel arg op
     if (axis == 1) {
-        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(input_dims[axis], 4));
+        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(DimsFunctionUtils::GetDim(input_dims, axis), 4));
     }
 
     return TNN_OK;
 }
 
+std::vector<DataType> OpenCLArgMaxOrMinLayerAcc::SupportDataType(int dims_size, BlobType blob_type) {
+    if (blob_type == BLOB_INPUT) {
+        return {DATA_TYPE_FLOAT, DATA_TYPE_HALF};
+    } else {
+        return {DATA_TYPE_INT32};
+    }
+}
+
 REGISTER_OPENCL_ACC(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN)
+REGISTER_OPENCL_LAYOUT(LAYER_ARG_MAX_OR_MIN, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

@@ -56,6 +56,9 @@ public:
     //@brief layer infer
     virtual Status Forward();
 
+    // @brief set constant resource
+    virtual void SetConstantResource(ConstantResource* consts);
+
     ngraph::element::Type_t DataTransfer(DataType type) {
         return dataTypeTransfer[type];
     }
@@ -83,6 +86,7 @@ protected:
     };
 
     std::map<LayerType, std::shared_ptr<LayerAccCreator>> _x86_map;
+    std::set<LayerType> _ov_custom_type;
 };
 
 //@brief TypeLayerBuilderCreator register map

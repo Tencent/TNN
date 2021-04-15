@@ -37,6 +37,18 @@ ILayer* PixelShuffleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netw
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs PixelShuffleTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    auto param = dynamic_cast<PixelShuffleLayerParam*>(param_);
+    DimsExprs output(inputs[0]);
+    auto upscale_factor = exprBuilder.constant(param->upscale_factor);
+    auto upscale_factor_square = exprBuilder.constant(param->upscale_factor * param->upscale_factor);
+    output.d[1] = exprBuilder.operation(DimensionOperation::kFLOOR_DIV, *inputs[0].d[1], *upscale_factor_square);
+    output.d[2] = exprBuilder.operation(DimensionOperation::kPROD, *inputs[0].d[2], *upscale_factor);
+    output.d[3] = exprBuilder.operation(DimensionOperation::kPROD, *inputs[0].d[3], *upscale_factor);
+    return output;
+}
+
 const char* PixelShufflePluginCreator::getPluginName() const {
     return "PixelShuffle";
 }

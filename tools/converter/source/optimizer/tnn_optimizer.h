@@ -21,9 +21,10 @@
 namespace TNN_CONVERTER {
 class TnnOptimizer {
 public:
-    TnnOptimizer(){};
-    ~TnnOptimizer(){};
-    TNN_NS::Status Optimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource);
+    TnnOptimizer()  = default;
+    ~TnnOptimizer() = default;
+    TNN_NS::Status PreOptimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource);
+    TNN_NS::Status PostOptimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource);
 };
 }  // namespace TNN_CONVERTER
 

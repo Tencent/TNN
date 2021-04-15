@@ -37,6 +37,7 @@ public:
 
 protected:
     id<MTLBuffer> buffer_weight_ = nil;
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs);
 };
 
 #define DECLARE_METAL_MULTIDIR_BROADCAST_ACC(type_string, layer_type)                                                  \

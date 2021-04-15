@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/interpreter/tnn/layer_interpreter/abstract_layer_interpreter.h"
@@ -69,9 +69,12 @@ DECLARE_LAYER_INTERPRETER(Upsample, LAYER_UPSAMPLE);
 
         output_stream << layer_param->mode << " ";
 
-        ASSERT(layer_param->scales.size() == 2);
+        /*ASSERT(layer_param->scales.size() == 2);
         output_stream << layer_param->scales[1] << " ";
-        output_stream << layer_param->scales[0] << " ";
+        output_stream << layer_param->scales[0] << " ";*/
+        for(int i = layer_param->scales.size() - 1; i >= 0; i--) {
+            output_stream << layer_param->scales[i] << " ";
+        }
 
         output_stream << layer_param->align_corners << " ";
 

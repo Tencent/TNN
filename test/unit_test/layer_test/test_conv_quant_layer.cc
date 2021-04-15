@@ -16,7 +16,7 @@
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -25,7 +25,8 @@ class ConvQuantLayerTest : public LayerTest,
                                                                            ActivationType, FusionType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 10, 32, 64),
+                         ::testing::Combine(testing::Values(1), 
+                                            testing::Values(1, 3, 10, 64),
                                             testing::Values(9, 10, 16, 19),
                                             // kernel
                                             testing::Values(1, 3),
@@ -57,7 +58,8 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     auto fusion_type      = std::get<9>(GetParam());
     int channel           = group * channel_per_group;
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
-    if (DEVICE_ARM != dev) {
+
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 

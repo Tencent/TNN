@@ -44,7 +44,7 @@ Status ReduceSumSquareOVLayerBuilder::Build() {
 
     auto squareConst = std::make_shared<ngraph::op::Constant>(
         ngraph::element::Type_t::f32, ngraph::Shape(input_node->get_output_shape(0).size(), 1), std::vector<float>{2.0f});
-    auto squareNode = std::make_shared<ngraph::op::Power>(input_node->output(0), squareConst);
+    auto squareNode = std::make_shared<ngraph::op::v1::Power>(input_node->output(0), squareConst);
     squareNode->validate_and_infer_types();
 
     auto axisNode = std::make_shared<ngraph::op::Constant>(

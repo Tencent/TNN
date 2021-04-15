@@ -14,14 +14,15 @@
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 
+#include "tnn/network/tensorrt/utils.h"
+
 namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Pooling, LAYER_POOLING);
 
 bool PoolingTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kHALF || inOut[pos].type == nvinfer1::DataType::kFLOAT) &&
-        inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
+    return (inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
 }
 
 const char* PoolingTRTPluginLayerBuilder::getPluginType() const {
@@ -38,11 +39,14 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
     bool int8 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetInt8Mode();
-    if (int8 && paramlist->pool_type == 1) {
+    bool is_global = paramlist->kernels[1] == input_blobs_[0]->GetBlobDesc().dims[2] &&
+                     paramlist->kernels[0] == input_blobs_[0]->GetBlobDesc().dims[3];
+
+    if (is_global || (int8 && paramlist->pool_type == 1) || paramlist->is_adaptive_pool) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
 
-    DimsHW kernelSize(paramlist->kernels[1], paramlist->kernels[0]);
+    Dims kernelSize(ConvertToTRTDimsReverse(paramlist->kernels));
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
 
     PoolingType type;
@@ -52,11 +56,11 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         type = PoolingType::kAVERAGE;
     }
 
-    IPoolingLayer* layer = network->addPooling(*input_tensor, type, kernelSize);
+    IPoolingLayer* layer = network->addPoolingNd(*input_tensor, type, kernelSize);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
-        layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
-        layer->setPadding(DimsHW(paramlist->pads[2], paramlist->pads[0]));
+        layer->setStrideNd(ConvertToTRTDimsReverse(paramlist->strides));
+        layer->setPaddingNd(ConvertPaddingToTRTDims(paramlist->pads));
         if (paramlist->pad_type == -1) {
             if (paramlist->ceil_mode == 1) {
                 layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_UP);
@@ -64,7 +68,7 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
                 layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_DOWN);
             }
         } else {
-            layer->setPaddingMode(PaddingMode::kSAME_LOWER);
+            layer->setPaddingMode(PaddingMode::kSAME_UPPER);
         }
         if (paramlist->pool_type == 1) {
             layer->setAverageCountExcludesPadding(true);
@@ -81,10 +85,30 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     return layer;
 }
 
+DimsExprs PoolingTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) {
+    auto paramlist = dynamic_cast<PoolingLayerParam*>(param_);
+    bool is_global = paramlist->kernels[1] == input_blobs_[0]->GetBlobDesc().dims[2] &&
+                     paramlist->kernels[0] == input_blobs_[0]->GetBlobDesc().dims[3];
+    if (paramlist->is_adaptive_pool) {
+        DimsExprs output(inputs[0]);
+        output.d[2] = exprBuilder.constant(paramlist->output_shape[1]);
+        output.d[3] = exprBuilder.constant(paramlist->output_shape[0]);
+        return output;
+    } else if (is_global) {
+        DimsExprs output(inputs[0]);
+        output.d[2] = exprBuilder.constant(1);
+        output.d[3] = exprBuilder.constant(1);
+        return output;
+    }
+    return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputDims, exprBuilder);
+}
+
 const char* PoolingPluginCreator::getPluginName() const {
     return "Pooling";
 }
 
 REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Pooling, LAYER_POOLING);
+REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Pooling, LAYER_POOLING_3D);
 
 }  //  namespace TNN_NS

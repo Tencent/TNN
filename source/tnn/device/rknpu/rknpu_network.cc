@@ -40,7 +40,7 @@ RknpuNetwork::~RknpuNetwork() {
 }
 
 Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                          InputShapesMap inputs_shape) {
+                          InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     if (net_config.device_type != DEVICE_RK_NPU ||
         (model_config.model_type != MODEL_TYPE_TNN && model_config.model_type != MODEL_TYPE_RKCACHE)) {
         return Status(TNNERR_NULL_PARAM, "Rknpu not support device_type or model type");
@@ -71,7 +71,7 @@ Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
         auto instance_input_shapes_map = net_structure_->inputs_shape_map;
         // RKNPU IR Build
         bool use_path = (net_config.cache_path.compare("") != 0);
-        NpuCommonUtils::modifyModelInputSize(inputs_shape, instance_input_shapes_map);
+        NpuCommonUtils::modifyModelInputSize(max_inputs_shape, instance_input_shapes_map);
 
         std::string model_save = use_path ? net_config.cache_path : "";
 

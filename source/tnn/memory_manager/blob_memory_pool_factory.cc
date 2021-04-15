@@ -18,9 +18,15 @@
 
 namespace TNN_NS {
 
-BlobMemoryPool* BlobMemoryPoolFactory::CreateBlobMemoryPool(AbstractDevice* device) {
+BlobMemoryPool* BlobMemoryPoolFactory::CreateBlobMemoryPool(AbstractDevice* device, int dimensions) {
     if (DEVICE_OPENCL == device->GetDeviceType()) {
-        return new Blob2DMemoryPool(device);
+        if (dimensions == 2) {
+            return new Blob2DMemoryPool(device);
+        } else if (dimensions == 1) {
+            return new Blob1DMemoryPool(device);
+        } else {
+            return nullptr;
+        }
     } else {
         return new Blob1DMemoryPool(device);
     }

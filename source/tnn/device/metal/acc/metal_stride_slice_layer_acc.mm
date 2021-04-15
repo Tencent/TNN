@@ -18,6 +18,7 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -113,5 +114,6 @@ Status MetalStrideSliceLayerAcc::ComputeThreadSize(const std::vector<Blob *> &in
 }
 
 REGISTER_METAL_ACC(StrideSlice, LAYER_STRIDED_SLICE);
+REGISTER_METAL_LAYOUT(LAYER_STRIDED_SLICE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS
