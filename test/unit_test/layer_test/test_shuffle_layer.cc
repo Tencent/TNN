@@ -42,7 +42,7 @@ TEST_P(ShuffleLayerTest, ShuffleLayer) {
     if (DEVICE_OPENCL == dev && dim_count > 4) {
         GTEST_SKIP();
     }
-    if (DEVICE_HUAWEI_NPU == dev && dim_count > 4) {
+    if (DEVICE_HUAWEI_NPU == dev && dim_count != 4) {
         GTEST_SKIP();
     }
 
