@@ -30,6 +30,7 @@ public:
 
 private:
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) override;
+    virtual std::vector<DataType> SupportDataType(int dims_size, BlobType blob_type) override;
     std::shared_ptr<cl::Buffer> inter_buffer_ = nullptr;
     int input_dims_size_ = 0;
     int output_dims_size_ = 0;

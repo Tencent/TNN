@@ -183,6 +183,7 @@ std::vector<DataFormat> OpenCLReshapeLayerAcc::SupportDataFormat(DataType data_t
                                                                  BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (data_type == DATA_TYPE_INT32) {
+        // reshape layer blob may contain shape info
         support_list.push_back(DATA_FORMAT_NHC4W4);
     } else if (dims_size >= 2 && dims_size <= 6) { // only support up to 6 dims
         support_list.push_back(DATA_FORMAT_NHC4W4);
@@ -192,6 +193,15 @@ std::vector<DataFormat> OpenCLReshapeLayerAcc::SupportDataFormat(DataType data_t
         }
     }
     return support_list;
+}
+
+std::vector<DataType> OpenCLReshapeLayerAcc::SupportDataType(int dims_size, BlobType blob_type) {
+    if (blob_type == BLOB_INPUT) {
+        // reshape layer blob may contain shape info
+        return {DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_INT32};
+    } else {
+        return {DATA_TYPE_FLOAT, DATA_TYPE_HALF};
+    }
 }
 
 REGISTER_OPENCL_ACC(Reshape, LAYER_RESHAPE)
