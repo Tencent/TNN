@@ -13,6 +13,7 @@ TNN：由腾讯优图实验室开源的高性能、轻量级神经网络推理�
         <th nowrap="nowrap">人脸检测(blazeface)</th>
         <th nowrap="nowrap">物体检测(yolov5s)</th>
         <th nowrap="nowrap">人脸配准(腾讯优图)</th>
+        <th nowrap="nowrap">头发分割(腾讯光影)</th>
     </tr>
     <tr>
         <td>
@@ -27,17 +28,18 @@ TNN：由腾讯优图实验室开源的高性能、轻量级神经网络推理�
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif height=320></src> </a> <br>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment>模型链接</a>
         </td>
-    </tr>
-    <tr>
-        <th nowrap="nowrap">头发分割(腾讯光影)</th>
-        <th nowrap="nowrap">姿势估计(腾讯光流)</th>
-        <th nowrap="nowrap">姿势估计(blazepose)</th>
-    </tr>
-    <tr>
         <td>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/hair_seg_red.gif height=320></src> </a> <br>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation>模型链接</a>
         </td>
+    </tr>
+    <tr>
+        <th nowrap="nowrap">姿势估计(腾讯光流)</th>
+        <th nowrap="nowrap">姿势估计(blazepose)</th>
+        <th nowrap="nowrap">阅读理解</th>
+        <th nowrap="nowrap">中文字符识别</th>
+    </tr>
+    <tr>
         <td>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_guangliu.gif height=320></src> </a> <br>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton>模型链接</a>
@@ -46,8 +48,28 @@ TNN：由腾讯优图实验室开源的高性能、轻量级神经网络推理�
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_blazepose.gif height=320></src> </a> <br>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose>模型链接</a>
         </td>
+        <td>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/bert_squad.gif height=320></src> </a> <br>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10>模型链接</a>
+        </td>
+        <td>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/chinese-ocr.gif height=320></src> </a> <br>
+            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr>模型链接</a>
+        </td>
     </tr>
 </table>
+
+
+各个平台对demo的支持情况如下表所示，单击✅标记，便可以跳转至对应demo的入口代码。
+demo                                                                                      |   ARM    |  OpenCL  |   Metal  |    NPU   |
+:---------------------------------------------------------------------------------------- | :------: | :------: | :------: | :------: |
+[人脸检测](https://github.com/Tencent/TNN/blob/master/examples/base/blazeface_detector.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceDetector) | [✅ ](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNBlazeFaceDetectorViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceDetector) |
+[物体检测](https://github.com/Tencent/TNN/blob/master/examples/base/object_detector_yolo.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamObjectDetector) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNYoloObjectDetectorViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamObjectDetector) |
+[人脸配准](https://github.com/Tencent/TNN/blob/master/examples/base/face_detect_aligner.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceAlign) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNFaceDetectAlignerViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceAlign) |
+[头发分割](https://github.com/Tencent/TNN/blob/master/examples/base/hair_segmentation.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamHairSegmentation) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNHairSegmentationViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamHairSegmentation) |
+[姿势估计(腾讯光流)](https://github.com/Tencent/TNN/blob/master/examples/base/skeleton_detector.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamSkeletonDetector) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNSkeletonDetectorViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamSkeletonDetector) |
+[姿势估计(blazepose)](https://github.com/Tencent/TNN/blob/master/examples/base/pose_detect_landmark.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamPoseDetectLandmark) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNPoseDetectLandmarkViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamPoseDetectLandmark) |
+[中文字符识别](https://github.com/Tencent/TNN/blob/master/examples/base/ocr_driver.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamOCRDetector) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNOCRViewModel.mm) |  |
 
 ## 快速开始
 

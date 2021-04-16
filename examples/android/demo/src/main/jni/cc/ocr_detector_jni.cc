@@ -50,8 +50,8 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
     gOCRTextRecognizer = std::make_shared<TNN_NS::OCRTextRecognizer>();
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
-    protoContent = fdLoadFile(modelPathStr + "/dbnet.onnx.pack.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/dbnet.onnx.pack.tnnmodel");
+    protoContent = fdLoadFile(modelPathStr + "/dbnet.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/dbnet.tnnmodel");
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
     gComputeUnitType = computUnitType;
 
@@ -84,8 +84,8 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
         }
     }
 
-    protoContent = fdLoadFile(modelPathStr + "/angle_net.onnx.pack.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/angle_net.onnx.pack.tnnmodel");
+    protoContent = fdLoadFile(modelPathStr + "/angle_net.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/angle_net.tnnmodel");
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
 
     status = TNN_NS::TNN_OK;
@@ -115,8 +115,8 @@ JNIEXPORT JNICALL jint TNN_OCR_DETECTOR(init)(JNIEnv *env, jobject thiz, jstring
         }
     }
 
-    protoContent = fdLoadFile(modelPathStr + "/crnn_lite_lstm.onnx.pack.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/crnn_lite_lstm.onnx.pack.tnnmodel");
+    protoContent = fdLoadFile(modelPathStr + "/crnn_lite_lstm.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/crnn_lite_lstm.tnnmodel");
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
 
     status = TNN_NS::TNN_OK;
@@ -174,8 +174,8 @@ JNIEXPORT JNICALL jboolean TNN_OCR_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz,
     std::shared_ptr<TNN_NS::OCRTextRecognizer> tmpOCRTextRecognizer = std::make_shared<TNN_NS::OCRTextRecognizer>();
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
-    protoContent = fdLoadFile(modelPathStr + "/dbnet.onnx.pack.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/dbnet.onnx.pack.tnnmodel");
+    protoContent = fdLoadFile(modelPathStr + "/dbnet.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/dbnet.tnnmodel");
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
 
     TNN_NS::Status status = TNN_NS::TNN_OK;
@@ -196,8 +196,8 @@ JNIEXPORT JNICALL jboolean TNN_OCR_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz,
         }
     }
 
-    protoContent = fdLoadFile(modelPathStr + "/angle_net.onnx.pack.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/angle_net.onnx.pack.tnnmodel");
+    protoContent = fdLoadFile(modelPathStr + "/angle_net.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/angle_net.tnnmodel");
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
 
     status = TNN_NS::TNN_OK;
@@ -217,8 +217,8 @@ JNIEXPORT JNICALL jboolean TNN_OCR_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz,
         }
     }
 
-    protoContent = fdLoadFile(modelPathStr + "/crnn_lite_lstm.onnx.pack.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/crnn_lite_lstm.onnx.pack.tnnmodel");
+    protoContent = fdLoadFile(modelPathStr + "/crnn_lite_lstm.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/crnn_lite_lstm.tnnmodel");
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
 
     status = TNN_NS::TNN_OK;

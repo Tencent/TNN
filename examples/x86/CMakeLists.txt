@@ -48,6 +48,7 @@ list(REMOVE_ITEM BASE_SRC ${WEBCAM_SRC})
 add_executable(demo_x86_imageclassify src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC} ${UTIL_SRC})
 add_executable(demo_x86_facedetector src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC} ${UTIL_SRC})
 add_executable(demo_x86_readingcomprehension src/BertReadingComprehension/BertReadingComprehension.cc ${BASE_SRC} ${UTIL_SRC})
+add_executable(demo_x86_objectdetector src/TNNObjectDetector/TNNObjectDetector.cc ${BASE_SRC} ${UTIL_SRC})
 
 if (TNN_DEMO_WITH_WEBCAM) 
     file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/src/TNNWebCamBasedDemo/*.cc")
