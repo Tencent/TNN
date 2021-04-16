@@ -77,9 +77,9 @@
 
 | benchmark model | gpu time(fp32, ms) |
 |-----------------|--------------------|
-| Resnet50        | 2.68               |
-| YoloV5          | 18.80              |
-| Bert-Based      | 8.28               |
+| Resnet50        | 2.22               |
+| YoloV5          | 17.47              |
+| Bert-Based      | 8.16               |
 | Bert-Squad10    | 9.60               |
 
 
