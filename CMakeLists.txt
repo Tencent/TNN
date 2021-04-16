@@ -41,6 +41,8 @@ option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
 option(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE "Enable Build Benchmark Test Lib" OFF)
 option(TNN_GLIBCXX_USE_CXX11_ABI_ENABLE "Enable Use CXX11 ABI" ON)
 
+set(TNN_USE_GFLAGS OFF)
+
 message(${CMAKE_SOURCE_DIR})
 message(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -60,8 +62,8 @@ if(TNN_BENCHMARK_MODE)
 endif()
 
 if(MSVC)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4003 /wd4819 /wd4244 /wd4018")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4003 /wd4819 /wd4244 /wd4018")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4003 /wd4819 /wd4244 /wd4018 /utf-8")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4003 /wd4819 /wd4244 /wd4018 /utf-8")
 endif()
 
 # ignore loop-vectorize warning
@@ -344,17 +346,19 @@ elseif(SYSTEM.Windows)
     include(platforms/windows/CMakeLists.txt)
 endif()
 
-if(TNN_MODEL_CHECK_ENABLE)
-    add_subdirectory(tools/model_check)
-endif()
+if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE OR TNN_MODEL_CHECK_ENABLE)
+    set(TNN_USE_GFLAGS ON)
+endif ()
 
-
-if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE)
+if (TNN_USE_GFLAGS)
     add_subdirectory(third_party/gflags)
     get_target_property(GFLAGS_INCLUDE_DIRS gflags INTERFACE_INCLUDE_DIRECTORIES)
     include_directories(BEFORE "${GFLAGS_INCLUDE_DIRS}")
 endif ()
 
+if(TNN_MODEL_CHECK_ENABLE)
+    add_subdirectory(tools/model_check)
+endif()
 
 if(TNN_TEST_ENABLE)
     add_subdirectory(test)
