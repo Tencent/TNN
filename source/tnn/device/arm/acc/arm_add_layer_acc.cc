@@ -20,7 +20,6 @@ ArmAddLayerAcc::~ArmAddLayerAcc() {}
 
 Status ArmAddLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                             const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
         return allocateBufferParamInt8(inputs, outputs);
@@ -36,8 +35,7 @@ Status ArmAddLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 
 // SUPPORTED DATATYPES
 bool ArmAddLayerAcc::DataTypeSupported(DataType data_type) {
-    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF ||
-        data_type == DATA_TYPE_INT8)
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_INT8)
         return true;
     else
         return false;
@@ -73,8 +71,6 @@ Status ArmAddLayerAcc::allocateBufferParamInt8(const std::vector<Blob *> &inputs
         input0_int_scale_ = temp_buffer0;
         input1_int_scale_ = temp_buffer1;
         output_int_scale_ = temp_buffer2;
-    } else {
-
     }
     return TNN_OK;
 }
@@ -95,7 +91,7 @@ Status ArmAddLayerAcc::ExecInt8(const std::vector<Blob *> &inputs, const std::ve
         auto input0_scale = input0_int_scale_.force_to<float *>();
         auto input1_scale = input1_int_scale_.force_to<float *>();
         MatrixAddInt8(output_ptr, input0_ptr, input1_ptr, output_scale, input0_scale, input1_scale,
-                      ROUND_UP(dims[1], 4), dims[2], dims[3]);
+                      ROUND_UP(dims[1], 4), DimsVectorUtils::Count(dims, 2));
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", output->GetBlobDesc().data_type);
         return TNNERR_LAYER_ERR;

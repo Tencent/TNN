@@ -36,7 +36,7 @@ void AvgPoolingINT8(const int8_t* src, long inputWidth, long inputHeight, int8_t
                     long strideHeight, long padWidth, long padHeight);
 
 void MatrixAddInt8(int8_t* dst, const int8_t* A, const int8_t* B, float* dst_scale, const float* a_scale,
-                   float* b_scale, long channel, long height, long width);
+                   float* b_scale, long channel, long hw);
 
 void Int8ToFloat(float* dst, const int8_t* src, const float* scale, long batch, long channel, long hw);
 
