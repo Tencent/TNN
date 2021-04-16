@@ -314,7 +314,7 @@ cl_program CL_API_CALL clCreateProgramWithSource(cl_context context, cl_uint cou
 }
 
 //clCreateProgramWithBinary wrapper, use OpenCLSymbols function.
-cl_program clCreateProgramWithBinary(cl_context context, cl_uint count, const cl_device_id *device_list,
+cl_program CL_API_CALL clCreateProgramWithBinary(cl_context context, cl_uint count, const cl_device_id *device_list,
                                      const size_t *length, const unsigned char **buffer,
                                      cl_int *binary_status, cl_int *errcode_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateProgramWithBinary;
