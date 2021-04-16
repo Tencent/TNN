@@ -17,6 +17,7 @@
 
 #include "tnn/core/abstract_layer_acc.h"
 #include "tnn/core/context.h"
+#include "tnn/core/abstract_device.h"
 #include "tnn/device/opencl/opencl_context.h"
 
 namespace TNN_NS {
@@ -37,13 +38,20 @@ public:
 
 private:
     // @brief return device layer acc support data format
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size) override;
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) override;
+    // @brief get data_type for bolobs of cpu layer acc
+    DataType GetCpuLayerAccPrecision();
+    // @brief get data_format for blobs of cpu layer acc
+    DataFormat GetCpuLayerAccDataFormat();
+    Status ConvertBlobForAdaptorAcc(const std::vector<Blob *> & device_blobs,
+                                    const std::vector<Blob *> & cpu_blobs, bool device_to_cpu);
 
 private:
     LayerType impl_layer_type_;
     
     DeviceType impl_device_type_;
     Context* impl_device_context_;
+    AbstractDevice* impl_device_;
     AbstractLayerAcc* cpu_adapter_acc_ = nullptr;
 
     OpenCLContext *ocl_context_ = nullptr;

@@ -18,19 +18,31 @@ namespace TNN_NS {
 DECLARE_LAYER(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN);
 
 Status ArgMaxOrMinLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    BaseLayer::InferOutputDataType();
+    output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_INT32;
+    
+    return TNN_OK;
 }
 
-Status ArgMaxOrMinLayer::InferOutputShape() {
+Status ArgMaxOrMinLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
     auto param                      = dynamic_cast<ArgMaxOrMinLayerParam*>(param_);
     CHECK_PARAM_NULL(param);
     auto input_blob                 = input_blobs_[0];
     auto output_blob                = output_blobs_[0];
-    output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
+    auto output_dims = input_blob->GetBlobDesc().dims;
     if (param->axis < 0) {
         param->axis += input_blob->GetBlobDesc().dims.size();
     }
-    output_blob->GetBlobDesc().dims[param->axis] = 1;
+    
+    if (!param->keep_dims) {
+        output_dims.erase(output_dims.begin() + param->axis);
+    } else {
+        output_dims[param->axis] = 1;
+    }
+    
+    output_blob->GetBlobDesc().dims = output_dims;
     return TNN_OK;
 }
 

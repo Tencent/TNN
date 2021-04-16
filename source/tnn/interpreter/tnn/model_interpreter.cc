@@ -19,6 +19,7 @@
 #include "tnn/core/common.h"
 #include "tnn/interpreter/tnn/layer_interpreter/abstract_layer_interpreter.h"
 #include "tnn/interpreter/tnn/objseri.h"
+#include "tnn/utils/md5.h"
 
 namespace TNN_NS {
 
@@ -31,11 +32,54 @@ std::string ModelInterpreter::Transfer(std::string content) {
 
 // Check if the magic number is valid.
 bool ModelInterpreter::IsValidVersionNumber(uint32_t number) {
-    return number == g_version_magic_number;
+    return number == g_version_magic_number || number == g_version_magic_number_v2;
 }
 
 std::shared_ptr<Deserializer> ModelInterpreter::GetDeserializer(std::istream &is) {
     return std::make_shared<Deserializer>(is);
+}
+
+ModelInterpreter::ModelInterpreter() {}
+
+ModelInterpreter::ModelInterpreter(const ModelInterpreter &interp) {
+    this->version_magic_number = interp.version_magic_number;
+
+    if (nullptr != this->net_structure_) {
+        delete this->net_structure_;
+        this->net_structure_ = nullptr;
+    }
+    this->net_structure_ = interp.net_structure_->CreateNew();
+
+    if (nullptr == this->net_resource_) {
+        this->net_resource_ = new NetResource();
+    }
+
+    *(this->net_resource_) = *interp.net_resource_;
+
+    this->params_md5_ = interp.params_md5_;
+}
+
+ModelInterpreter &ModelInterpreter::operator=(ModelInterpreter interp) {
+    if (this == &interp) {
+        return *this;
+    }
+
+    this->version_magic_number = interp.version_magic_number;
+
+    if (nullptr != this->net_structure_) {
+        delete this->net_structure_;
+        this->net_structure_ = nullptr;
+    }
+    this->net_structure_ = interp.net_structure_->CreateNew();
+
+    if (nullptr == this->net_resource_) {
+        this->net_resource_ = new NetResource();
+    }
+    *(this->net_resource_) = *interp.net_resource_;
+
+    this->params_md5_ = interp.params_md5_;
+
+    return *this;
 }
 
 // Interpret the proto and model.
@@ -50,7 +94,21 @@ Status ModelInterpreter::Interpret(std::vector<std::string> &params) {
 
     auto &model_content = params.size() > 1 ? params[1] : empty_content;
     status              = InterpretModel(model_content);
+    if (status != TNN_OK) {
+        return status;
+    }
+
+    for (auto item : params) {
+        params_md5_.push_back(md5(item));
+        LOGD("model params md5: %s\n", md5(item).c_str());
+    }
     return status;
+}
+
+// Copy Interpreter
+std::shared_ptr<AbstractModelInterpreter> ModelInterpreter::Copy() {
+    std::shared_ptr<AbstractModelInterpreter> interp(new ModelInterpreter(*this));
+    return interp;
 }
 
 Status ModelInterpreter::InterpretProto(std::string &content) {
@@ -128,31 +186,56 @@ Status ModelInterpreter::InterpretProto(std::string &content) {
 Status ModelInterpreter::InterpretInput(const std::string &inputs_content) {
     NetStructure *structure = GetNetStructure();
     str_arr inputs_cfg_vec;
-    /*
-     * input list is separated by : symbol
-     * eg:
-     *  input0 1 3 384 128 : input1 1 3 64 64
-     */
     Status ret = SplitUtils::SplitStr(inputs_content.c_str(), inputs_cfg_vec, ":", true, false);
     if (ret != TNN_OK) {
         return Status(TNNERR_INVALID_NETCFG, "split input line error");
     }
-    for (int i = 0; i < inputs_cfg_vec.size(); i++) {
-        str_arr input_cfg_vec;
-        ret = SplitUtils::SplitStr(inputs_cfg_vec[i].c_str(), input_cfg_vec, " ", true, false);
-        if (ret != TNN_OK || input_cfg_vec.size() < input_layer_cfg_count) {
-            return Status(TNNERR_INVALID_NETCFG, "split input line error");
+    if (this->version_magic_number == g_version_magic_number) {
+        /*
+         * input list is separated by : symbol
+         * eg:
+         *  input0 1 3 384 128 : input1 1 3 64 64
+         */
+        for (int i = 0; i < inputs_cfg_vec.size(); i++) {
+            str_arr input_cfg_vec;
+            ret = SplitUtils::SplitStr(inputs_cfg_vec[i].c_str(), input_cfg_vec, " ", true, false);
+            if (ret != TNN_OK || input_cfg_vec.size() < input_layer_cfg_count) {
+                return Status(TNNERR_INVALID_NETCFG, "split input line error");
+            }
+            DimsVector &input_shape = structure->inputs_shape_map[input_cfg_vec[0]];
+            // input_shape.set_name(input_cfg_vec[0]);
+            for (int dim_i = 1; dim_i < input_cfg_vec.size(); dim_i++) {
+                input_shape.push_back(atoi(input_cfg_vec[dim_i].c_str()));
+            }
         }
-        DimsVector &input_shape = structure->inputs_shape_map[input_cfg_vec[0]];
-        // input_shape.set_name(input_cfg_vec[0]);
-        input_shape.push_back(atoi(input_cfg_vec[1].c_str()));
-        input_shape.push_back(atoi(input_cfg_vec[2].c_str()));
-        input_shape.push_back(atoi(input_cfg_vec[3].c_str()));
-        input_shape.push_back(atoi(input_cfg_vec[4].c_str()));
-        if (input_cfg_vec.size() > 5) {
-            input_shape.push_back(atoi(input_cfg_vec[5].c_str()));
+    } else if (this->version_magic_number == g_version_magic_number_v2) {
+        /* new tnn input format
+         * input list is separated by : symbol
+         * eg:
+         *  input_name size n c h w date_type : input_name size n c h w data_type
+         */
+        for (const auto &config : inputs_cfg_vec) {
+            str_arr input_cfg;
+            ret = SplitUtils::SplitStr(config.c_str(), input_cfg, " ", true, false);
+            if (ret != TNN_OK || input_cfg.size() < input_layer_cfg_count) {
+                return Status(TNNERR_INVALID_NETCFG, "split input line error");
+            }
+            DimsVector &input_shape = structure->inputs_shape_map[input_cfg[0]];
+            int dims_size           = atoi(input_cfg[1].c_str());
+            for (int i = 2; i < dims_size + 2; ++i) {
+                if (i >= input_cfg.size()) {
+                    return Status(TNNERR_INVALID_NETCFG, "get input dims error");
+                }
+                input_shape.push_back(atoi(input_cfg[i].c_str()));
+            }
+            DataType data_type                           = (DataType)atoi(input_cfg[input_cfg.size() - 1].c_str());
+            structure->input_data_type_map[input_cfg[0]] = data_type;
         }
+    } else {
+        LOGE("Do not support tnn proto type\n");
+        return Status(TNNERR_INVALID_MODEL, "Do not support tnn proto type");
     }
+
     return TNN_OK;
 }
 
@@ -274,10 +357,11 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
     res_header header;
     auto deserializer = GetDeserializer(content_stream);
     header.deserialize(*deserializer);
-    if (header.layer_cnt_ <= 0 || header.layer_cnt_ >= 10000) {
+    if (header.layer_cnt_ < 0 || header.layer_cnt_ >= 10000) {
+        LOGE("tnnmodel is invalid, maybe you should upgrade TNN\n");
         return Status(TNNERR_INVALID_MODEL, "Error: model is illegal");
     }
-
+    
     auto &layer_interpreter_map = GetLayerInterpreterMap();
     for (int index = 0; index < header.layer_cnt_; ++index) {
         layer_header ly_head;
@@ -300,6 +384,27 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
             return Status(TNNERR_LOAD_MODEL, "Error: layer_interpreter is nil");
         }
     }
+
+    //解析constant_map
+    const auto pos_cur = content_stream.tellg();
+    content_stream.seekg(0, std::ios::end);
+    auto pos_diff = content_stream.tellg() - pos_cur;
+    content_stream.seekg(pos_cur, std::ios::beg);
+    if (pos_diff < 4) {
+        return TNN_OK;
+    }
+
+    uint32_t magic_number_ignore = deserializer->GetInt();
+    int const_map_size           = deserializer->GetInt();
+    ConstantResource const_map;
+    for (int ii = 0; ii < const_map_size; ii++) {
+        auto key    = deserializer->GetString();
+        auto buffer = std::make_shared<RawBuffer>();
+        deserializer->GetRaw(*(buffer.get()));
+
+        const_map[key] = buffer;
+    }
+    net_resource->constant_map = const_map;
 
     return TNN_OK;
 }

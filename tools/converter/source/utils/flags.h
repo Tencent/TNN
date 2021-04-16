@@ -22,9 +22,12 @@ static const char help_message[] = "print a usage message.";
 
 static const char tf_path_message[] = "specify model path: <the>/<path>/<to>/<test.tflite>.";
 
-static const char output_dir_message[] = "specify output path: <the>/<path>/<to>/<directory>.";
+static const char output_dir_message[] =
+    "Specify the output directory of the converted model: <the>/<path>/<to>/<directory>.";
 
 static const char model_type_message[] = "specify model type: Caffe, TF, TFLite.";
+
+static const char save_path_message[] = "Specify the save path of the results after TNN inference";
 
 DECLARE_bool(h);
 
@@ -33,6 +36,8 @@ DECLARE_string(mp);
 DECLARE_string(od);
 
 DECLARE_string(mt);
+
+DECLARE_string(sp);
 
 }  // namespace TNN_CONVERTER
 

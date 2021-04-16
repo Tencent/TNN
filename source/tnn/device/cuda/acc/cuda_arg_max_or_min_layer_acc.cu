@@ -18,7 +18,7 @@
 #include <cub/block/block_radix_sort.cuh>
 
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -39,7 +39,7 @@ __global__ void argmaxmin_kernel(
     const int stride,
     const ReductionOpT reducer,
     const T init,
-    T* output) {
+    int* output) {
   __shared__ typename BlockReduce<int, T>::TempStorage temp_storage;
   for (int idx = blockIdx.x; idx < outer_size; idx += gridDim.x) {
     int i = idx / stride;
@@ -50,7 +50,7 @@ __global__ void argmaxmin_kernel(
     }
     kv = BlockReduce<int, T>(temp_storage).Reduce(kv, reducer);
     if (threadIdx.x == 0) {
-      output[idx] = static_cast<T>(kv.key);
+      output[idx] = static_cast<int>(kv.key);
     }
     __syncthreads();
   }
@@ -81,9 +81,9 @@ Status CudaArgMaxOrMinLayerAcc::Forward(const std::vector<Blob *> &inputs, const
         stride = 1;
     }
 
-    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+    if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-        float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+        int *output_data = static_cast<int *>(output_blob->GetHandle().base);
         if (params->mode == 0) {
             argmaxmin_kernel<<<num * stride, TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
                 input_data, num * stride, channels, stride, cub::ArgMin(), FLT_MAX, output_data);

@@ -37,9 +37,10 @@ public:
     void RefundBlobMemory(BlobMemory *blob_memory);
     int GetAllBlobMemorySize();
     Status AssignAllBlobMemory(MemoryAssignStrategy &strategy);
-
+    virtual void ClearBlobMemoryPool();
+    AbstractDevice *GetDevice();
 protected:
-    AbstractDevice *device_;
+    AbstractDevice *device_ = nullptr;
     void ReleaseBlobMemoryNodeList(BlobMemoryNode *list_header);
 
 private:
@@ -49,14 +50,14 @@ private:
     virtual BlobMemory *CreateBlobMemory(int use_count, BlobMemorySizeInfo &size_info)              = 0;
     virtual BlobMemoryNode *GetBlobMemoryNodeListHeader(DataType data_type)                         = 0;
     virtual void SetBlobMemoryNodeListHeader(DataType data_type, BlobMemoryNode *new_header)        = 0;
-    virtual int ResolveBlobMemoryNodeBytesDiff(BlobMemorySizeInfo &size_info, BlobMemoryNode *node) = 0;
+    virtual int64_t ResolveBlobMemoryNodeBytesDiff(BlobMemorySizeInfo &size_info, BlobMemoryNode *node) = 0;
 
     void CalculateAllBlobMemorySize();
     // extract the closest BlobMemoryNode from BlobMemoryNode list
     virtual BlobMemoryNode *ExtractNearestBlobMemoryNode(BlobMemorySizeInfo &size_info);
 
-    int all_blob_memory_size_;
-    std::set<BlobMemory *> blob_memory_library_;
+    int all_blob_memory_size_ = 0;;
+    std::set<BlobMemory *> blob_memory_library_ = {};
 };
 
 }  // namespace TNN_NS

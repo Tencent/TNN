@@ -20,8 +20,8 @@
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/dims_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -75,9 +75,8 @@ Status ArmPReluLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vect
     CHECK_PARAM_NULL(layer_param);
     auto dims              = inputs[0]->GetBlobDesc().dims;
     const int channel      = dims[1];
-    const int height       = dims[2];
-    const int width        = dims[3];
-    const int count        = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+    const int hw           = DimsVectorUtils::Count(dims, 2);
+    const int count        = dims[0] * ROUND_UP(dims[1], 4) * hw;
 
     const float *slope_data = buffer_slope_.force_to<float *>();
 
@@ -91,13 +90,13 @@ Status ArmPReluLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vect
         }
     } else {
         for (int batch_idx = 0; batch_idx < dims[0]; ++batch_idx) {
-            auto input_ptr  = input_data + batch_idx * width * height * ROUND_UP(channel, 4);
-            auto output_ptr = output_data + batch_idx * width * height * ROUND_UP(channel, 4);
+            auto input_ptr  = input_data + batch_idx * hw * ROUND_UP(channel, 4);
+            auto output_ptr = output_data + batch_idx * hw * ROUND_UP(channel, 4);
             for (int dz = 0; dz < UP_DIV(channel, 4); ++dz) {
-                T *src_z       = input_ptr + dz * width * height * 4;
-                T *dst_z       = output_ptr + dz * width * height * 4;
+                T *src_z       = input_ptr + dz * hw * 4;
+                T *dst_z       = output_ptr + dz * hw * 4;
                 Float4 v_slope = Float4::load(slope_data + dz * 4);
-                for (int p = 0; p < width * height; p++) {
+                for (int p = 0; p < hw; p++) {
                     Float4 v_data = Float4::load(src_z + p * 4);
                     Float4 v_res  = Float4::bsl_clt(v_data, Float4(0.f), v_data * v_slope, v_data);
                     Float4::save(dst_z + p * 4, v_res);
@@ -129,4 +128,6 @@ Status ArmPReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
 
 REGISTER_ARM_ACC(PRelu, LAYER_PRELU)
 REGISTER_ARM_PRECISION_FP16(LAYER_PRELU)
+REGISTER_ARM_LAYOUT(LAYER_PRELU, DATA_FORMAT_NC4HW4)
+
 }  // namespace TNN_NS

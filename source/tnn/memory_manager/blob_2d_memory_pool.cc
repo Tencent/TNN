@@ -14,7 +14,7 @@
 
 #include "tnn/memory_manager/blob_2d_memory_pool.h"
 #include "tnn/memory_manager/blob_2d_memory.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -23,7 +23,14 @@ Blob2DMemoryPool::Blob2DMemoryPool(AbstractDevice *device) : BlobMemoryPool(devi
 }
 
 Blob2DMemoryPool::~Blob2DMemoryPool() {
-    for (auto iter : blob_memory_list_header_map_) {
+    ClearBlobMemoryPool();
+}
+
+void Blob2DMemoryPool::ClearBlobMemoryPool() {
+    BlobMemoryPool::ClearBlobMemoryPool();
+    
+    auto blob_memory_list_header_map = blob_memory_list_header_map_;
+    for (auto iter : blob_memory_list_header_map) {
         auto list_header = iter.second;
         ReleaseBlobMemoryNodeList(list_header);
     }
@@ -42,16 +49,16 @@ void Blob2DMemoryPool::SetBlobMemoryNodeListHeader(DataType data_type, BlobMemor
     blob_memory_list_header_map_[data_type] = new_header;
 }
 
-int Blob2DMemoryPool::ResolveBlobMemoryNodeBytesDiff(BlobMemorySizeInfo &size_info, BlobMemoryNode *node) {
-    int target_bytes_size = GetBlobMemoryBytesSize(size_info);
+int64_t Blob2DMemoryPool::ResolveBlobMemoryNodeBytesDiff(BlobMemorySizeInfo &size_info, BlobMemoryNode *node) {
+    int64_t target_bytes_size = GetBlobMemoryBytesSize(size_info);
 
     auto node_cur_info       = node->blob_memory->GetBlobMemorySizeInfo();
-    auto node_cur_bytes_size = GetBlobMemoryBytesSize(node_cur_info);
+    int64_t node_cur_bytes_size = GetBlobMemoryBytesSize(node_cur_info);
 
     BlobMemorySizeInfo max_info;
     max_info.data_type = size_info.data_type;
     max_info.dims      = DimsVectorUtils::Max(size_info.dims, node_cur_info.dims);
-    int max_bytes_size = GetBlobMemoryBytesSize(max_info);
+    int64_t max_bytes_size = GetBlobMemoryBytesSize(max_info);
 
 
     if (size_info.dims[0] <= node_cur_info.dims[0] && size_info.dims[1] <= node_cur_info.dims[1]) {
@@ -69,10 +76,10 @@ BlobMemoryNode *Blob2DMemoryPool::ExtractNearestBlobMemoryNode(BlobMemorySizeInf
 
     BlobMemoryNode *node_prev                                           = nullptr;
     BlobMemoryNode *node_cur                                            = list_header;
-    std::tuple<BlobMemoryNode *, BlobMemoryNode *, int> min_diff_exist  = std::make_tuple(nullptr, nullptr, INT_MAX);
-    std::tuple<BlobMemoryNode *, BlobMemoryNode *, int> min_diff_extend = std::make_tuple(nullptr, nullptr, INT_MAX);
+    std::tuple<BlobMemoryNode *, BlobMemoryNode *, int64_t> min_diff_exist  = std::make_tuple(nullptr, nullptr, LLONG_MAX);
+    std::tuple<BlobMemoryNode *, BlobMemoryNode *, int64_t> min_diff_extend = std::make_tuple(nullptr, nullptr, LLONG_MAX);
     while (node_cur) {
-        int bytes_diff = ResolveBlobMemoryNodeBytesDiff(size_info, node_cur);
+        int64_t bytes_diff = ResolveBlobMemoryNodeBytesDiff(size_info, node_cur);
 
         auto node_cur_sizeinfo = node_cur->blob_memory->GetBlobMemorySizeInfo();
         ASSERT(2 == size_info.dims.size() && 2 == node_cur_sizeinfo.dims.size());

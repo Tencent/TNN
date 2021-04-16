@@ -12,7 +12,6 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "objseri.h"
 #include "onnx2tnn.h"
 /**
  *  该方法是为了处理 TF 转换为 onnx 后, onnx 模型中 Concat 的axis 的参数

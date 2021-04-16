@@ -17,7 +17,7 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -66,8 +66,8 @@ MetalInnerProductLayerAcc::AllocateBufferWeight(const std::vector<Blob *> &input
     const int input_channel = dims_input[1];
     const int output_channel = dims_output[1];
     
-    const int kh = dims_input[2];
-    const int kw = dims_input[3];
+    const int kh = DimsFunctionUtils::GetDim(dims_input, 2);
+    const int kw = DimsFunctionUtils::GetDim(dims_input, 3);
     
     if (!buffer_weight_) {
         buffer_weight_ = AllocatePackedGOIHW16MetalBufferFormRawBuffer(layer_res->weight_handle,
@@ -174,4 +174,6 @@ Status MetalInnerProductLayerAcc::Forward(const std::vector<Blob *> &inputs,
 }
 
 REGISTER_METAL_ACC(InnerProduct, LAYER_INNER_PRODUCT);
+REGISTER_METAL_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NC4HW4);
+
 } // namespace TNN_NS

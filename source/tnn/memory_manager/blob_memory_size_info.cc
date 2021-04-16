@@ -14,17 +14,22 @@
 
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-int GetBlobMemoryBytesSize(BlobMemorySizeInfo& size_info) {
+int64_t GetBlobMemoryBytesSize(BlobMemorySizeInfo& size_info) {
     if (size_info.dims.size() == 1) {
-        return DimsVectorUtils::Count(size_info.dims) * DataTypeUtils::GetBytesSize(size_info.data_type);
+        int64_t dims_count = DimsVectorUtils::Count(size_info.dims);
+        return dims_count * DataTypeUtils::GetBytesSize(size_info.data_type);
 
     } else if (size_info.dims.size() == 2) {
         // 2d blob memory with 4 channel
-        return DimsVectorUtils::Count(size_info.dims) * 4 * DataTypeUtils::GetBytesSize(size_info.data_type);
+        int64_t dims_count = 1;
+        for (auto dim : size_info.dims) {
+            dims_count *= dim;
+        }
+        return dims_count * 4 * DataTypeUtils::GetBytesSize(size_info.data_type);
     } else {
         return 0;
     }

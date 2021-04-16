@@ -15,7 +15,7 @@
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
@@ -68,7 +68,7 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     do_image_concat_ = true;
     if (axis_ == 1) {
         for (size_t i = 0; i < inputs.size() - 1; ++i) {
-            int channel = inputs[i]->GetBlobDesc().dims[1];
+            int channel = DimsFunctionUtils::GetDim(inputs[i]->GetBlobDesc().dims, 1);
             if (channel % 4 != 0) {
                 do_image_concat_ = false;
                 break;
@@ -120,7 +120,8 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         }
     } else if (TWO_INPUTS_CHANNEL_MOD_123 == concat_type_) {
         std::set<std::string> build_options;
-        build_options.emplace("-DCHANNEL0_MOD_4=" + ToString(inputs[0]->GetBlobDesc().dims[1] % 4));
+        build_options.emplace("-DCHANNEL0_MOD_4=" +
+            ToString(DimsFunctionUtils::GetDim(inputs[0]->GetBlobDesc().dims, 1) % 4));
         std::string program_name = "concat";
         kernel_name              = "ConcatChannel";
         execute_units_.resize(1);
@@ -161,6 +162,9 @@ OpenCLConcatLayerAcc::~OpenCLConcatLayerAcc() {}
 
 Status OpenCLConcatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Concat Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
 
     if (IMAGE_COPY == concat_type_) {
         return ReshapeImageConcat(inputs, outputs);
@@ -187,7 +191,7 @@ Status OpenCLConcatLayerAcc::ReshapeImageConcat(const std::vector<Blob *> &input
     auto output_dims = output->GetBlobDesc().dims;
 
     // output_width, output_height
-    int output_wh[]     = {output_dims[3], output_dims[2]};
+    int output_wh[]     = {DimsFunctionUtils::GetDim(output_dims, 3), DimsFunctionUtils::GetDim(output_dims, 2)};
     int input_offset[]  = {0, 0, 0, 0};
     int output_offset[] = {0, 0, 0, 0};
 
@@ -195,9 +199,11 @@ Status OpenCLConcatLayerAcc::ReshapeImageConcat(const std::vector<Blob *> &input
         auto input      = inputs[i];
         auto input_dims = input->GetBlobDesc().dims;
         // input_width, input_height
-        int input_wh[] = {input_dims[3], input_dims[2]};
+        int input_wh[] = {DimsFunctionUtils::GetDim(input_dims, 3), DimsFunctionUtils::GetDim(input_dims, 2)};
         // batch, input_channel/4, input_height, input_width
-        int region[] = {input_dims[0], UP_DIV(input_dims[1], 4), input_dims[2], input_dims[3]};
+        int region[] = {DimsFunctionUtils::GetDim(input_dims, 0),
+                        UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4),
+                        DimsFunctionUtils::GetDim(input_dims, 2), DimsFunctionUtils::GetDim(input_dims, 3)};
 
         auto &unit = execute_units_[i];
         int idx    = SetExecuteUnit2DSizeInfoDefault(unit, input_dims);
@@ -236,22 +242,24 @@ Status OpenCLConcatLayerAcc::ReshapeBufferConcat(const std::vector<Blob *> &inpu
     // set args
     int input_offset[]  = {0, 0, 0, 0};
     int output_offset[] = {0, 0, 0, 0};
-    int output_stride[] = {output_dims[1] * output_dims[3] * output_dims[2], 1, output_dims[3] * output_dims[1],
-                           output_dims[1]};
+    int output_stride[] = {DimsFunctionUtils::GetDim(output_dims, 1) *
+                           DimsFunctionUtils::GetDim(output_dims, 3) * DimsFunctionUtils::GetDim(output_dims, 2), 1,
+                           DimsFunctionUtils::GetDim(output_dims, 3) * DimsFunctionUtils::GetDim(output_dims, 1),
+                           DimsFunctionUtils::GetDim(output_dims, 1)};
     for (size_t i = 0; i < inputs.size(); i++) {
         auto input      = inputs[i];
         auto input_dims = input->GetBlobDesc().dims;
 
-        const int batch        = input_dims[0];
-        const int input_height = input_dims[2];
-        const int input_width  = input_dims[3];
-        const int channels     = input_dims[1];
+        const int batch        = DimsFunctionUtils::GetDim(input_dims, 0);
+        const int input_height = DimsFunctionUtils::GetDim(input_dims, 2);
+        const int input_width  = DimsFunctionUtils::GetDim(input_dims, 3);
+        const int channels     = DimsFunctionUtils::GetDim(input_dims, 1);
 
         int input_wh[]      = {input_width, input_height};
         int buffer_region[] = {batch, channels, input_height, input_width};
-        int input_stride[]  = {input_dims[1] * input_dims[3] * input_dims[2], 1, input_dims[3] * input_dims[1],
-                              input_dims[1]};
+        int input_stride[]  = {channels * input_width * input_height, 1, input_width * channels, channels};
 
+        std::vector<int> buffer_output_size = {batch, channels, input_height, input_width};
         // image to buffer (from (NH,C4W4) to NHWC)
         {
             auto &unit = execute_units_[2 * i];
@@ -262,7 +270,7 @@ Status OpenCLConcatLayerAcc::ReshapeBufferConcat(const std::vector<Blob *> &inpu
             unit.ocl_kernel.setArg(idx++, input_offset);
             unit.ocl_kernel.setArg(idx++, input_wh);
             unit.ocl_kernel.setArg(idx++, input_stride);
-            unit.ocl_kernel.setArg(idx++, 4 * sizeof(int), input_dims.data());
+            unit.ocl_kernel.setArg(idx++, 4 * sizeof(int), buffer_output_size.data());
         }
 
         // buffer to buffer
@@ -284,7 +292,7 @@ Status OpenCLConcatLayerAcc::ReshapeBufferConcat(const std::vector<Blob *> &inpu
 
     // buffer to image (from NHWC to (NH,C4W4))
     {
-        int output_wh[] = {output_dims[3], output_dims[2]};
+        int output_wh[] = {DimsFunctionUtils::GetDim(output_dims, 3), DimsFunctionUtils::GetDim(output_dims, 2)};
         auto &unit      = execute_units_[2 * inputs.size()];
         int idx         = SetExecuteUnit2DSizeInfoDefault(unit, output_dims);
         unit.ocl_kernel.setArg(idx++, *output_buffer_);
@@ -309,9 +317,10 @@ Status OpenCLConcatLayerAcc::ReshapeTwoInputsConcat(const std::vector<Blob *> &i
     auto input1      = inputs[1];
 
     // [output_channle/4, output_width, batch * output_height]
-    execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4)),
-                                          static_cast<uint32_t>(output_dims[3]),
-                                          static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+    execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4)),
+                                          static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)),
+                                          static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 0) *
+                                                                DimsFunctionUtils::GetDim(output_dims, 2))};
     execute_units_[0].local_work_size  = LocalWS3DDefault(execute_units_[0]);
     int idx                            = 0;
     execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
@@ -320,13 +329,14 @@ Status OpenCLConcatLayerAcc::ReshapeTwoInputsConcat(const std::vector<Blob *> &i
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input0->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input1->GetHandle().base));
     // input channel
-    execute_units_[0].ocl_kernel.setArg(idx++, input0->GetBlobDesc().dims[1]);
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input0->GetBlobDesc().dims, 1));
     // output channel
-    execute_units_[0].ocl_kernel.setArg(idx++, output_dims[1]);
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, 1));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
     return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Concat, LAYER_CONCAT)
+REGISTER_OPENCL_LAYOUT(LAYER_CONCAT, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

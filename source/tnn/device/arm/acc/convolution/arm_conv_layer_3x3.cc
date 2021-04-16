@@ -23,7 +23,7 @@
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {

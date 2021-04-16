@@ -16,7 +16,7 @@
 
 #include "tnn/core/blob_int8.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -221,7 +221,7 @@ Status X86UpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
     return TNN_OK;
 }
 
-Status X86UpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status X86UpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<UpsampleLayerParam *>(param_);
     if (!param) {
         return Status(TNNERR_MODEL_ERR, "Error: UpsampleLayerParam is nil");

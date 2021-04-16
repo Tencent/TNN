@@ -15,7 +15,7 @@
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -95,5 +95,6 @@ Status ArmShuffleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_ARM_ACC(Shuffle, LAYER_SHUFFLE_CHANNEL)
+REGISTER_ARM_LAYOUT(LAYER_SHUFFLE_CHANNEL, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

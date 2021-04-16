@@ -16,6 +16,7 @@
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -148,5 +149,6 @@ Status MetalPadLayerAcc::Forward(const std::vector<Blob *> &inputs,
 }
 
 REGISTER_METAL_ACC(Pad, LAYER_PAD);
+REGISTER_METAL_LAYOUT(LAYER_PAD, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

@@ -3,7 +3,7 @@
 
 ## 简介
 
-TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框架，同时拥有跨平台、高性能、模型压缩、代码裁剪等众多突出优势。TNN框架在原有Rapidnet、ncnn框架的基础上进一步加强了移动端设备的支持以及性能优化，同时也借鉴了业界主流开源框架高性能和良好拓展性的优点。目前TNN已经在手Q、微视、P图等应用中落地，欢迎大家参与协同共建，促进TNN推理框架进一步完善。
+TNN：由腾讯优图实验室开源的高性能、轻量级神经网络推理框架，同时拥有跨平台、高性能、模型压缩、代码裁剪等众多突出优势。TNN框架在原有Rapidnet、ncnn框架的基础上进一步加强了移动端设备的支持以及性能优化，同时借鉴了业界主流开源框架高性能和良好拓展性的特性，拓展了对于后台X86, NV GPU的支持。手机端 TNN已经在手Q、微视、P图等众多应用中落地，服务端TNN作为腾讯云AI基础加速框架已为众多业务落地提供加速支持。欢迎大家参与协同共建，促进TNN推理框架进一步完善。
 
 
 ## 效果示例
@@ -17,17 +17,14 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
     <tr>
         <td>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif height=320></src> </a> <br>
-            iOS ✅ Android ✅ <br>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface>模型链接</a>
         </td>
         <td>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif height=320></src> </a> <br>
-            iOS ✅ Android ✅ <br>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5>模型链接</a>
         </td>
         <td>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif height=320></src> </a> <br>
-            iOS ✅ Android ✅ <br>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment>模型链接</a>
         </td>
     </tr>
@@ -39,17 +36,14 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
     <tr>
         <td>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/hair_seg_red.gif height=320></src> </a> <br>
-            iOS ✅ Android ✅ <br>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation>模型链接</a>
         </td>
         <td>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_guangliu.gif height=320></src> </a> <br>
-            iOS ✅ Android ✅ <br>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton>模型链接</a>
         </td>
         <td>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_blazepose.gif height=320></src> </a> <br>
-            iOS ✅ Android ✅ <br>
             <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose>模型链接</a>
         </td>
     </tr>
@@ -61,7 +55,7 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
 1. 第一步是把训练好的模型转换成TNN的模型，为此我们提供了丰富的工具来帮助你完成这一步，无论你使用的是 TensorFlow、PyTorch、或者 Caffe，都可以轻松完成转换。
 详细的手把手教程可以参见这里[如何转换模型](doc/cn/user/convert.md)。
 
-2. 当你完成了模型的转换，第二步就是编译目标平台的 TNN 引擎了，你可以根据自己的目标平台的硬件支持情况，选择 CPU/ARM/OpenCL/Metal/NPU 等加速方案。
+2. 当你完成了模型的转换，第二步就是编译目标平台的 TNN 引擎了，你可以根据自己的目标平台的硬件支持情况，选择 CPU/ARM/OpenCL/Metal/NPU/X86/CUDA 等加速方案。
    对于这些平台，TNN 都提供了一键编译的脚本，使用非常方便。详细步骤可以参考这里[如何编译TNN](doc/cn/user/compile.md)。
 
 3. 最后一步就是使用编译好的 TNN 引擎进行推理，你可以在自己的应用程序中嵌入对 TNN 的调用，这方面我们提供了丰富而详实的 demo 来帮助你完成。
@@ -71,11 +65,11 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
 
 ## 技术方案
 
-目前TNN已经在手Q、微视、P图等应用中落地，其具有的以下特性获得了广泛的好评。
+目前TNN具有的以下特性获得了广泛的好评。
 
 * 计算优化
     * 针对不同架构在硬件指令发射、吞吐、延迟、缓存带宽、缓存延迟、寄存器数量等特点，深度优化底层算子，极致利用硬件算力
-    * 主流硬件平台(CPU: ARMv7， ARMv8， GPU: Mali， Adreno， Apple) 深度调优
+    * 主流硬件平台(CPU: ARMv7， ARMv8，X86 GPU: Mali， Adreno， Apple， NV GPU) 深度调优
     * CNN 核心卷积运算通过 Winograd，Tile-GEMM， Direct Conv 等多种算法实现，保证不同参数、计算尺度下高效计算
     * Op 融合：离线分析网络计算图，多个小 Op（计算量小、功能较简单）融合运算，减少反复内存读取、kernel 启动等开销
 
@@ -92,14 +86,14 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
 
     * 麒麟970：
 
-        | model                     | cpu time(单线程，ms) | gpu time(ms) | npu time(ms)|
-        |---------------------------|--------------|--------------|---------------|
-        | Mobilenet_v1              | 88           |   12         |       4.9     |                                    
-        | Mobilenet_v1_int8         | 55           |              |               |
-        | Mobilenet_v2              | 58           |   11         |       8.0     |                               
-        | Mobilenet_v2_int8         | 41           |              |               |
-        | squeezenet_v1.0           | 127          |   20         |       5.1     |                
-        | squeezenet_v1.0_int8      | 82           |              |               |      
+        | model                     | cpu time(单线程，ms) | gpu time(ms) | 
+        |---------------------------|--------------|--------------| 
+        | Mobilenet_v1              | 88           |   12         | 
+        | Mobilenet_v1_int8         | 55           |              | 
+        | Mobilenet_v2              | 58           |   11         | 
+        | Mobilenet_v2_int8         | 41           |              | 
+        | squeezenet_v1.0           | 127          |   20         | 
+        | squeezenet_v1.0_int8      | 82           |              | 
 
     * 骁龙835：
 
@@ -127,10 +121,10 @@ TNN：由腾讯优图实验室打造，移动端高性能、轻量级推理框�
 
    <div><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/tnn_architect.jpg"/>
 
-* 通过 ONNX 支持 TensorFlow， PyTorch， MXNet， Caffe 等多种训练框架，充分利用和融入不断完善的 ONNX 开源生态。当前支持 ONNX 算子55个，近期会完善到约80个，覆盖主流CNN网络
-* 支持主流安卓、iOS、Embedded Linux 操作系统，支持 ARM CPU， GPU 硬件平台（近期还会加入达芬奇 NPU 支持）
+* 通过 ONNX 支持 TensorFlow， PyTorch， MXNet， Caffe 等多种训练框架，充分利用和融入不断完善的 ONNX 开源生态。当前支持 ONNX 算子100+，覆盖主流CNN, NLP网络。
+* 支持主流安卓、iOS、Embedded Linux 操作系统, Windows, Linux，支持 ARM CPU, x86, Mali GPU, Adreno GPU, NV GPU, 达芬奇NPU，RK NPU。
 * 模块化设计，将模型解析、计算图构建、优化、底层硬件适配、高性能 kernel 实现各部分抽象隔离，通过 Factory Mode 注册、构建设备，方便接入更多的底层硬件、加速方案。
-* Runtime 无任何第三方库依赖，CPU 动态库尺寸仅约 400KB，并提供基础图像变换操作，调用简单便捷。跨平台模型统一、调用接口统一，通过单个配置参数快速切换。
+* 移动端动态库尺寸仅约 400KB，并提供基础图像变换操作，调用简单便捷。跨平台模型统一、调用接口统一，通过单个配置参数快速切换。
 
 ## 能力展示
 * [支持的算子](doc/cn/user/support.md)
@@ -174,16 +168,20 @@ TNN参考和借鉴了下列项目：
 
 * [onnx](https://github.com/onnx/onnx)
 
+* [onnxruntime](https://github.com/microsoft/onnxruntime)
+
+* [openvino](https://github.com/openvinotoolkit/openvino) 
+
 ## License
 
 * [BSD 3 Clause](LICENSE)
 
 ## FAQ
 * [FAQ 常见问题](doc/cn/faq.md)
-* [FAQ 模型对齐问题排查](doc/cn/model_align.md)
+
 ## 加入我们
 
-* 欢迎大家参与，协同共建，打造业界最好的移动端推理框架。
+* 欢迎大家参与，协同共建，打造业界最好的高性能推理框架。
 
 * 技术交流 QQ 群： 913940506 答案：TNN
 

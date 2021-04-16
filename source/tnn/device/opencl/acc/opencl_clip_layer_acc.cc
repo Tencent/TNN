@@ -46,5 +46,6 @@ std::set<std::string> OpenCLClipLayerAcc::CreateBuildOptions() {
 OpenCLClipLayerAcc::~OpenCLClipLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Clip, LAYER_CLIP)
+REGISTER_OPENCL_LAYOUT(LAYER_CLIP, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

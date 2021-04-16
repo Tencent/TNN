@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -52,8 +52,15 @@ Status CudaPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     CreateTempBuf(input_dims.size() * sizeof(int));
     CreateTempBuf(input_dims.size() * sizeof(int));
     CreateTempBuf(input_dims.size() * sizeof(int));
-    cudaMemcpyAsync(tempbufs_[0].ptr, &(params->orders[0]), 4 * sizeof(int), cudaMemcpyHostToDevice, context_->GetStream());
+    cudaMemcpyAsync(tempbufs_[0].ptr, &(params->orders[0]), input_dims.size() * sizeof(int), cudaMemcpyHostToDevice, context_->GetStream());
+    return TNN_OK;
+}
 
+Status CudaPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Blob *input_blob  = inputs[0];
+    Blob *output_blob = outputs[0];
+    auto input_dims = input_blob->GetBlobDesc().dims;
+    auto output_dims = output_blob->GetBlobDesc().dims;
     std::vector<int> input_step;
     std::vector<int> output_step;
     for (int i = 0; i < input_dims.size(); i++) {
@@ -65,18 +72,16 @@ Status CudaPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     return TNN_OK;
 }
 
-Status CudaPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
-}
-
 Status CudaPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
-    int count = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
+
+    auto dims = output_blob->GetBlobDesc().dims;
+    int count = DimsVectorUtils::Count(dims);
     float* input_data = static_cast<float*>(input_blob->GetHandle().base);
     float* output_data = static_cast<float*>(output_blob->GetHandle().base);
     permute_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
-        count, input_data, 4, (int*)tempbufs_[0].ptr, (int*)tempbufs_[1].ptr, (int*)tempbufs_[2].ptr, output_data);
+        count, input_data, dims.size(), (int*)tempbufs_[0].ptr, (int*)tempbufs_[1].ptr, (int*)tempbufs_[2].ptr, output_data);
     return TNN_OK;
 }
 

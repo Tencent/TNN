@@ -19,7 +19,7 @@
 
 #include "tnn/device/arm/acc/Float4.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -165,5 +165,6 @@ Status ArmNormalizeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
 }
 
 REGISTER_ARM_ACC(Normalize, LAYER_NORMALIZE);
+REGISTER_ARM_LAYOUT(LAYER_NORMALIZE, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

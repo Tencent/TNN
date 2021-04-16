@@ -25,6 +25,9 @@ CpuConvLayerAcc::~CpuConvLayerAcc() {}
 Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                              const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     CPU_CONVERT_HALF_RESOURCE(LAYER_CONVOLUTION);
+    if (runtime_model_ != RUNTIME_MODE_NORMAL) {
+        return TNN_OK;
+    }
 
     auto conv_param = dynamic_cast<ConvLayerParam *>(param);
     CHECK_PARAM_NULL(conv_param);

@@ -28,7 +28,7 @@
 -(void)addToLayer:(CALayer *)layer;
 -(void)removeFromSuperLayer;
 
-- (void)showText:(NSString *)text withColor:(UIColor *)color atFrame:(CGRect)frame;
+- (void)showText:(NSString *)text withColor:(UIColor *)color hideTextFrame:(bool)hideTextFrame atFrame:(CGRect)frame;
 - (void)showMarkAtPoints:(std::vector<std::pair<float, float>>)points withColor:(UIColor *)color circle:(BOOL)circle;
 - (void)showLines:(std::vector<std::pair<float, float>>)points lines:(std::vector<std::pair<int, int>>)lines
         withColor:(UIColor *)color;

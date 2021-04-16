@@ -25,5 +25,6 @@ typedef struct arm_softplus_operator : arm_unary_operator {
 DECLARE_ARM_UNARY_ACC(Softplus, ARM_SOFTPLUS_OP);
 
 REGISTER_ARM_ACC(Softplus, LAYER_SOFTPLUS);
+REGISTER_ARM_LAYOUT(LAYER_SOFTPLUS, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

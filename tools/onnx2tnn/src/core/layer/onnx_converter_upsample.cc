@@ -34,17 +34,19 @@ string OnnxOpConverterUpsample::TNNLayerParam(NodeProto &node,
     if (node.input_size() == 1) {
         scales = get_node_attr_af(node, "scales");
     } else {
-        auto &scales_tp          = net_info.weights_map[node.input(1)];
-        const float *scales_data = get_tensor_proto_data(scales_tp);
+        if (net_info.weights_map.find(node.input(1)) != net_info.weights_map.end()) {
+            auto &scales_tp = net_info.weights_map[node.input(1)];
+            const float *scales_data = get_tensor_proto_data(scales_tp);
 
-        int float_data_size = scales_tp.float_data_size();
-        // float data is None, use raw data instead
-        if (float_data_size == 0) {
-            float_data_size = (int)scales_tp.dims().Get(0);
-        }
+            int float_data_size = scales_tp.float_data_size();
+            // float data is None, use raw data instead
+            if (float_data_size == 0) {
+                float_data_size = (int)scales_tp.dims().Get(0);
+            }
 
-        for (int j = 0; j < float_data_size; j++) {
-            scales.push_back(scales_data[j]);
+            for (int j = 0; j < float_data_size; j++) {
+                scales.push_back(scales_data[j]);
+            }
         }
     }
 
@@ -74,12 +76,8 @@ string OnnxOpConverterUpsample::TNNLayerParam(NodeProto &node,
             assert(0);
         }
     } else {
-        h_scale = get_node_attr_f(node, "height_scale", -1.0f);
-        w_scale = get_node_attr_f(node, "width_scale", -1.0f);
-        if (h_scale <= 0 || w_scale <= 0) {
-            DLog("not implement\n");
-            assert(0);
-        }
+        h_scale = get_node_attr_f(node, "height_scale", 0.0f);
+        w_scale = get_node_attr_f(node, "width_scale", 0.0f);
     }
 
     if (align_corners < 0) {
@@ -95,7 +93,11 @@ string OnnxOpConverterUpsample::TNNLayerParam(NodeProto &node,
     return layer_param.str();
 }
 
-int OnnxOpConverterUpsample::WriteTNNModel(serializer *net_writer,
+bool OnnxOpConverterUpsample::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
+int OnnxOpConverterUpsample::WriteTNNModel(Serializer *net_writer,
                                                 NodeProto &node,
                                                 OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

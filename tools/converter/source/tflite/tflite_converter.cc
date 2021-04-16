@@ -72,6 +72,7 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
 
         // set input
         TNN_NS::InputShapesMap& inputs_shape_map = net_structure.inputs_shape_map;
+        TNN_NS::InputDataTypeMap& input_data_type_map = net_structure.input_data_type_map;
         for (const auto index : tf_lite_model_->subgraphs[i]->inputs) {
             const auto& input_tensor = tensors[index];
             const auto& name         = input_tensor->name;
@@ -79,6 +80,8 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             ConvertShapeFormatTFLite(shape);
             if (inputs_shape_map.find(name) == inputs_shape_map.end()) {
                 inputs_shape_map[name] = shape;
+                const auto& tflite_input_data_type = input_tensor->type;
+                input_data_type_map[name] = GetTnnDataTypeFromTFLite(tflite_input_data_type);
             } else {
                 LOGE("The model conflict between same input names %s\n", name.c_str());
                 return TNN_NS::TNNERR_CONVERT_INVALID_MODEL;
@@ -140,6 +143,7 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
                 LOGE("TFLite converter %s failed!\n", cur_layer->type_str.c_str());
                 return status;
             }
+            converter->InsertBlobs(net_structure);
         }
     }
     return TNN_NS::TNN_CONVERT_OK;

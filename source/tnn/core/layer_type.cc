@@ -23,6 +23,7 @@ static const std::string int8_prefix = "Int8";
 
 static std::map<std::string, LayerType> global_layer_type_map = {
     // LAYER_Convolution, including depthwise convolution
+    {"Convolution1D", LAYER_CONVOLUTION_1D},
     {"Convolution", LAYER_CONVOLUTION},
     {"Convolution3D", LAYER_CONVOLUTION_3D},
     {"BatchNormalization", LAYER_BATCH_NORM},
@@ -81,9 +82,9 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"Dequantize", LAYER_DEQUANTIZE},
     {"QuantizedReshapeTensorflow", LAYER_RESHAPE},
     {"ConvolutionDepthwise", LAYER_CONVOLUTION_DEPTHWISE},
-    {"QuantizedBiasAdd", LAYER_BIASADD},
-    {"QuantizedSum", LAYER_BIASADD},
-    {"BiasAdd", LAYER_BIASADD},
+    {"QuantizedBiasAdd", LAYER_BIAS_ADD},
+    {"QuantizedSum", LAYER_BIAS_ADD},
+    {"BiasAdd", LAYER_BIAS_ADD},
     {"ContinuationIndicator", LAYER_CONTINUATION_INDICATOR},
     {"QuantizedReLU", LAYER_RELU},
     {"QuantizedAdd", LAYER_ADD},
@@ -156,6 +157,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"QuantizedReluSignedInput", LAYER_QUANTIZED_RELU_SIGNED_INPUT},
     {"LogSigmoid", LAYER_LOGSIGMOID},
     {"Repeat", LAYER_REPEAT},
+    {"Tile", LAYER_REPEAT},
     {"Upsample", LAYER_UPSAMPLE},
     {"QuantizedUpsample", LAYER_UPSAMPLE},
     // 150
@@ -205,6 +207,15 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"ReduceProd", LAYER_REDUCE_PROD},
     {"ReduceSum", LAYER_REDUCE_SUM},
     {"ReduceSumSquare", LAYER_REDUCE_SUM_SQUARE},
+    {"RoiAlign", LAYER_ROIALIGN},
+    {"GroupNorm", LAYER_GROUP_NORM},
+    {"Einsum", LAYER_EINSUM},
+    {"Inverse", LAYER_INVERSE},
+    {"GridSample", LAYER_GRIDSAMPLE},
+    {"Equal", LAYER_EQUAL},
+    {"Where", LAYER_WHERE},
+    {"LayerNorm", LAYER_LAYER_NORM},
+    {"GELU", LAYER_GELU},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 
@@ -213,9 +224,24 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"SquaredDifference", LAYER_SQUARED_DIFFERENCE},
     {"ArgMaxOrMin", LAYER_ARG_MAX_OR_MIN},
     {"PixelShuffle", LAYER_PIXEL_SHUFFLE},
-
+    {"Expand", LAYER_EXPAND},
+    {"ScatterND", LAYER_SCATTER_ND},
+    {"ConstantOfShape", LAYER_CONSTANT_OF_SHAPE},
+    {"NonZero", LAYER_NONZERO},
+    {"LSTMONNX", LAYER_LSTMONNX},
+    {"QuantizedSigmoid", LAYER_SIGMOID},
+    {"StridedSliceV2", LAYER_STRIDED_SLICE_V2},
+    {"Erf", LAYER_ERF},
+    {"Range", LAYER_RANGE},
+    {"Size", LAYER_SIZE},
+    {"Histogram", LAYER_HISTOGRAM},
+    {"GatherND", LAYER_GATHERND},
+    {"BitShift", LAYER_BITSHIFT},
+    {"PadV2", LAYER_PADV2},
+    {"OneHot", LAYER_ONEHOT},
     {"CbamFusedReduce", LAYER_CBAM_FUSED_REDUCE},
-    {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING}
+    {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING},
+    {"Softsign", LAYER_SOFTSIGN}
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

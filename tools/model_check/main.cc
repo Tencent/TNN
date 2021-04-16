@@ -14,6 +14,7 @@
 
 #include "tnn/core/common.h"
 #include "tnn/core/instance.h"
+#include "tnn/core/macro.h"
 #include "tnn/core/tnn.h"
 
 #include "file_reader.h"
@@ -57,6 +58,8 @@ DeviceType ConvertDeviceType(std::string device_type) {
         return DEVICE_ARM;
     } else if ("HUAWEI_NPU" == device_type) {
         return DEVICE_HUAWEI_NPU;
+    } else if ("X86" == device_type) {
+        return DEVICE_X86;
     } else {
         return DEVICE_NAIVE;
     }
@@ -129,7 +132,7 @@ std::pair<std::string, FileFormat> GetFileInfo(std::string input_path) {
 void ShowUsage() {
     printf(
         "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-o] [-e] [-f] "
-        "<refernece> [-n] <val> [-s] <val>\n");
+        "<refernece> [-n] <val> [-s] <val> [-a] <align_folder>\n");
     printf("\t-h, <help>     \t%s\n", help_message);
     printf("\t-p, <proto>    \t%s\n", proto_path_message);
     printf("\t-m, <model>    \t%s\n", model_path_message);
@@ -142,6 +145,7 @@ void ShowUsage() {
     printf("\t\tformula: y = (x - bias) * scale\n");
     printf("\t-o, <output>   \t%s\n", output_dump_message);
     printf("\t-b, <batch>    \t%s\n", check_batch_message);
+    printf("\t-a, <align_all>\t%s\n", align_all_message);
 }
 
 bool ParseAndCheckCommandLine(int argc, char* argv[]) {
@@ -174,13 +178,14 @@ int main(int argc, char* argv[]) {
     ModelConfig model_config;
 
     ModelCheckerParam model_checker_param;
-    model_checker_param.input_file  = std::make_pair("", NOTSUPPORT);
-    model_checker_param.input_bias  = {0, 0, 0, 0};
-    model_checker_param.input_scale = {1.0f, 1.0f, 1.0f, 1.0f};
-    model_checker_param.ref_file    = std::make_pair("", NOTSUPPORT);
-    model_checker_param.dump_output = FLAGS_o;
+    model_checker_param.input_file        = std::make_pair("", NOTSUPPORT);
+    model_checker_param.input_bias        = {0, 0, 0, 0};
+    model_checker_param.input_scale       = {1.0f, 1.0f, 1.0f, 1.0f};
+    model_checker_param.ref_file          = std::make_pair("", NOTSUPPORT);
+    model_checker_param.dump_output       = FLAGS_o;
+    model_checker_param.dump_dir_path     = FLAGS_a;
     model_checker_param.only_check_output = FLAGS_e;
-    model_checker_param.check_batch = FLAGS_b;
+    model_checker_param.check_batch       = FLAGS_b;
 
     printf("proto: %s\n", proto_file_name.c_str());
     printf("model: %s\n", model_file_name.c_str());

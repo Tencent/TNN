@@ -16,7 +16,7 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/utils/bfp16.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 

@@ -17,28 +17,66 @@
 #include "tnn/device/metal/acc/metal_common.metal"
 
 using namespace metal;
+
+kernel void splitv_axis_2(const device ftype4 *src                 [[buffer(0)]],
+                                device ftype4 *dst                 [[buffer(1)]],
+                          constant MetalParams &params             [[buffer(2)]],
+                          constant int &h_offset                   [[buffer(3)]],
+                          constant int &split_axis_size               [[buffer(4)]],
+                          uint3 gid                                [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.output_width, split_axis_size, params.batch*params.output_slice)))
+        return;
+
+    auto output_size = params.output_width * split_axis_size;
+    int index_out = (int)gid.z*output_size + (int)gid.y*params.output_width + (int)gid.x;
+
+    int input_h = h_offset + int(gid.y);
+    int input_w = int(gid.x);
+    int index_in = (int)gid.z * params.input_size + input_h * params.input_width + input_w;
+
+    dst[index_out] = src[index_in];
+}
+
+kernel void splitv_axis_3(const device ftype4 *src                 [[buffer(0)]],
+                                device ftype4 *dst                 [[buffer(1)]],
+                          constant MetalParams &params             [[buffer(2)]],
+                          constant int &w_offset                   [[buffer(3)]],
+                          constant int &split_axis_size               [[buffer(4)]],
+                          uint3 gid                                [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(split_axis_size, params.output_height, params.batch*params.output_slice)))
+        return;
+
+    auto output_size = params.output_height * split_axis_size;
+    int index_out = (int)gid.z*output_size + (int)gid.y*split_axis_size + (int)gid.x;
+
+    int input_w = w_offset + int(gid.x);
+    int input_h = int(gid.y);
+    int index_in = (int)gid.z * params.input_size + input_h * params.input_width + input_w;
+
+    dst[index_out] = src[index_in];
+}
+
+
 kernel void splitv_axis_1_common(const device ftype4 *src                       [[buffer(0)]],
-                                                       device ftype4 *dst                            [[buffer(1)]],
-                                                       constant MetalParams &params     [[buffer(2)]],
-                                                       constant int &channel_offset           [[buffer(3)]],
-                                                       constant int &output_slice               [[buffer(4)]],
-                                                       uint3 gid                                          [[thread_position_in_grid]]) {
-    if (any(gid >= uint3(params.output_size, output_slice, params.batch)))
+                                    device ftype4 *dst                            [[buffer(1)]],
+                                    constant MetalSplitVParamV2 &params     [[buffer(2)]],
+                                    constant int &axis_offset           [[buffer(3)]],
+                                    constant int &axis_size               [[buffer(4)]],
+                                    uint3 gid                                          [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.inner_size, axis_size, params.outer_size)))
         return;
     
-    int index_out = (int)gid.z*output_slice*params.output_size + (int)gid.y*params.output_size + (int)gid.x;
+    int index_out = (int)gid.z*axis_size*params.inner_size + (int)gid.y*params.inner_size + (int)gid.x;
     
-    const int input_channel_count = params.input_slice*4;
-    int4 input_batch = int4(gid.z);
-    int4 input_channeles = (int)gid.y*4 + int4(0, 1, 2, 3) + channel_offset;
-    int4 input_x = int4(gid.x);
+    const int input_channel_count = params.axis_size*4;
+    int4 input_channeles = (int)gid.y*4 + int4(0, 1, 2, 3) + axis_offset;
     int4 input_slice = input_channeles / 4;
-    input_slice = min(input_slice, params.input_slice-1);
+    input_slice = min(input_slice, params.axis_size-1);
     int4 input_i = input_channeles % 4;
     
-    int4 index_in = input_batch * params.input_slice * params.input_size + input_slice * params.input_size + input_x;
+    int4 index_in = (int)gid.z*params.axis_size*params.inner_size + input_slice*params.inner_size + (int)gid.x;
     
-    if ( all( index_in == index_in.yzwx) &&
+    if (all( index_in == index_in.yzwx) &&
         all( input_i == int4(0, 1, 2, 3)) &&
         all( input_channeles < int4(input_channel_count)) ) {
         dst[index_out] = src[index_in[0]];
@@ -50,18 +88,22 @@ kernel void splitv_axis_1_common(const device ftype4 *src                       
             src[index_in[3]][input_i[3]]
         );
     }
-//    else {
-//        auto temp = ftype4(0);
-//        temp.x = src[index_in[0]][input_i[0]];
-//        if (input_channeles[1] < input_channel_count) {
-//            temp.y = src[index_in[1]][input_i[1]];
-//        }
-//        if (input_channeles[2] < input_channel_count) {
-//            temp.y = src[index_in[2]][input_i[2]];
-//        }
-//        if (input_channeles[3] < input_channel_count) {
-//            temp.y = src[index_in[3]][input_i[3]];
-//        }
-//        dst[index_out] = temp;
-//    }
+}
+
+kernel void splitv_common(const device ftype4 *src                       [[buffer(0)]],
+                            device ftype4 *dst                            [[buffer(1)]],
+                            constant MetalSplitVParamV2 &params     [[buffer(2)]],
+                            constant int &axis_offset           [[buffer(3)]],
+                            constant int &axis_size               [[buffer(4)]],
+                            uint3 gid                                          [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.inner_size, axis_size, params.outer_size)))
+        return;
+    
+    int index_out = (int)gid.z*axis_size*params.inner_size + (int)gid.y*params.inner_size + (int)gid.x;
+    
+    int input_axis_offset = axis_offset + (int)gid.y;
+    
+    int index_in = (int)gid.z*params.axis_size*params.inner_size + input_axis_offset*params.inner_size + (int)gid.x;
+    
+    dst[index_out] = src[index_in];
 }

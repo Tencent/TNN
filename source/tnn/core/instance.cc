@@ -18,11 +18,13 @@
 
 #include "tnn/core/abstract_network.h"
 #include "tnn/core/common.h"
+#include "tnn/core/const_folder.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/profile.h"
 #include "tnn/core/status.h"
 #include "tnn/interpreter/abstract_model_interpreter.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -33,29 +35,70 @@ namespace TNN_NS {
 
 Instance::Instance(NetworkConfig &net_config, ModelConfig &model_config) {
     net_config_   = net_config;
-    model_config_ = model_config;
+    model_config_ = model_config; // note that, the params in model_config is empty, don't use it
 }
 Instance::~Instance() {
     DeInit();
 }
 
 Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape) {
-    interpreter_ = interpreter;
+    return Init(interpreter, inputs_shape, inputs_shape);
+}
 
-    /*
-     * NetworkImpl is register by each Impl.
-     * TNN model runs with the default_network.
-     */
-    network_ = NetworkImplManager::GetNetworkImpl(net_config_.network_type);
+Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+    auto device = GetDevice(net_config_.device_type);
+    RETURN_VALUE_ON_NEQ(device != NULL, true, TNNERR_DEVICE_NOT_SUPPORT);
+    interpreter_ = interpreter->Copy();
+    if (nullptr == interpreter_) {
+        // The ModelInterpreter not implement Copy API, just use interpreter
+        LOGI("Interpreter Copy failed, use interpreter in params instead\n");
+        interpreter_ = interpreter;
+    }
+    
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter_.get());
+    if (default_interpreter && default_interpreter->GetNetStructure() &&
+        (NeedDoConstantFolding(default_interpreter->GetNetStructure()) || net_config_.device_type == DEVICE_CUDA)) {
+        auto const_folder = std::make_shared<ConstFolder>();
+        auto status = const_folder->Init(net_config_, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape);
+        RETURN_ON_NEQ(status, TNN_OK);
+
+        if(min_inputs_shape.size() != 0) {
+             status = const_folder->Reshape(min_inputs_shape);
+             RETURN_ON_NEQ(status, TNN_OK);
+             status = const_folder->Forward();
+             RETURN_ON_NEQ(status, TNN_OK);
+             auto min_blob_shapes_map = default_interpreter->GetNetResource()->blob_shapes_map;
+            
+            //Note output shape may not change after reshape for const folder, but will do change after forword because shape may be determined at rumtime
+             status = const_folder->Reshape(max_inputs_shape);
+             RETURN_ON_NEQ(status, TNN_OK);
+             status = const_folder->Forward();
+             RETURN_ON_NEQ(status, TNN_OK);
+            
+            default_interpreter->GetNetResource()->min_blob_shapes_map = min_blob_shapes_map;
+        } else {
+            status = const_folder->Forward();
+            RETURN_ON_NEQ(status, TNN_OK);
+            auto max_constant_map = default_interpreter->GetNetResource()->blob_shapes_map;
+            default_interpreter->GetNetResource()->min_blob_shapes_map = max_constant_map;
+        }       
+ 
+        const_folder_ = const_folder;
+    }
+    
+    auto network_type = net_config_.network_type;
+    if(network_type == NETWORK_TYPE_AUTO) {
+        network_type = device->ConvertAutoNetworkType();
+    }
+    //NetworkImpl is register by each Impl.
+    //TNN model runs with the default_network.
+    network_ = NetworkImplManager::GetNetworkImpl(network_type);
     if (!network_) {
         LOGE("ERROR: network_ is nil, network_type may not support\n");
         return Status(TNNERR_NET_ERR, "network_ is nil, network_type may not support");
     }
-    auto ret = network_->Init(net_config_, model_config_, interpreter.get(), inputs_shape);
+    auto ret = network_->Init(net_config_, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape);
     RETURN_ON_NEQ(ret, TNN_OK);
-
-    // release string, this will not be used
-    model_config_.params.clear();
 
     return TNN_OK;
 }
@@ -74,11 +117,20 @@ Status Instance::SetForwardMemory(void *memory) {
 }
 
 Status Instance::Reshape(const InputShapesMap &inputs) {
-    return (Status)network_->Reshape(inputs);
+    Status status = TNN_OK;
+    if (const_folder_) {
+        status = const_folder_->Reshape(inputs);
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        status = const_folder_->Forward();
+        RETURN_ON_NEQ(status, TNN_OK);
+    }
+    status = network_->Reshape(inputs);
+    return status;
 }
 
 Status Instance::GetCommandQueue(void **command_queue) {
-    return (Status)network_->GetCommandQueue(command_queue);
+    return network_->GetCommandQueue(command_queue);
 }
 
 Status Instance::ShareCommandQueue(Instance *instance) {
@@ -91,15 +143,22 @@ AbstractNetwork *Instance::GetNetwork() {
 
 Status Instance::Forward() {
     output_mats_convert_status_.clear();
-    return (Status)network_->Forward();
+    return network_->Forward();
 }
 
 #ifdef FORWARD_CALLBACK_ENABLE
 Status Instance::ForwardWithCallback(BlobStatisticCallback before, BlobStatisticCallback after) {
     output_mats_convert_status_.clear();
-    return (Status)network_->ForwardWithCallback(before, after);
+    return network_->ForwardWithCallback(before, after);
 }
 #endif  // end of FORWARD_CALLBACK_ENABLE
+
+#ifdef GET_INTERP_ENABLE
+// Get Model Interpreter
+std::shared_ptr<AbstractModelInterpreter> Instance::GetInterpreter() {
+    return interpreter_;
+}
+#endif  // end of GET_INTERP_ENABLE
 
 Status Instance::ForwardAsync(Callback call_back) {
     output_mats_convert_status_.clear();
@@ -207,7 +266,7 @@ Status Instance::GetOutputMat(std::shared_ptr<Mat> &mat, MatConvertParam param, 
 
     if (need_allocate) {
         auto dims                 = output_blobs[output_name]->GetBlobDesc().dims;
-        auto output_mat           = std::make_shared<TNN_NS::Mat>(device, mat_type, dims);
+        std::shared_ptr<TNN_NS::Mat> output_mat(new TNN_NS::Mat(device, mat_type, dims));
         output_mats_[output_name] = output_mat;
     }
 

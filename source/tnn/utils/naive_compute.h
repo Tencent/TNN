@@ -25,7 +25,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/common.h"
 #include "tnn/interpreter/layer_param.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -35,14 +35,38 @@ int8_t half2int8(fp16_t val);
 uint8_t half2uint8(fp16_t val);
 
 template <typename T, typename Tacc>
+void NaiveAdaptivePooling(T *input_data, T *output_data, DimsVector dims_input, DimsVector dims_output, int pool_type);
+
+template <typename T, typename Tacc>
 void NaivePooling(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector dims_output, 
                 int stride_y, int stride_x, int kernel_y, int kernel_x, int pad_y, int pad_x, int pool_type);
+
+template <typename T, typename Tacc>
+void NaivePooling3D(T *input_ptr, T *output_ptr, DimsVector dims_input, DimsVector dims_output, 
+                int stride_d, int stride_y, int stride_x,
+                int kernel_d, int kernel_y, int kernel_x,
+                int pad_d, int pad_y, int pad_x, int pool_type);
+
+template <typename Tin, typename Tw, typename Tacc, typename Tout>
+void NaiveConv1D(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
+                 DimsVector dims_output, int stride, int kernel_size, int pad, int group, int dilation,
+                 int activation_type, float *scale, int scale_len, int fusion_type = FusionType_None,
+                 void *add_input = nullptr, float *add_scale = nullptr);
 
 template <typename Tin, typename Tw, typename Tacc, typename Tout>
 void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
             DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
             int pad_x, int group, int dilation, int activation_type, float *scale, int scale_len,
             int fusion_type = FusionType_None, void *add_input = nullptr, float *add_scale = nullptr);
+
+template <typename Tin, typename Tw, typename Tacc, typename Tout>
+void NaiveConv3D(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
+               DimsVector dims_output, int stride_d, int stride_y, int stride_x,
+               int kernel_size_d, int kernel_size_y, int kernel_size_x,
+               int pad_d, int pad_y, int pad_x, int group,
+               int dilation_d, int dilation_y, int dilation_x,
+               int activation_type, float *scale, int scale_len,
+               int fusion_type = FusionType_None, void *add_input = nullptr, float *add_scale = nullptr);
 
 // float fc
 template <typename T>

@@ -86,6 +86,10 @@ Context* NpuDevice::CreateContext(int device_id) {
     return new NpuContext();
 }
 
+NetworkType NpuDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_HUAWEI_NPU;
+}
+
 std::map<LayerType, std::shared_ptr<LayerAccCreator>>& NpuDevice::GetLayerCreatorMap() {
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
     return layer_creator_map;

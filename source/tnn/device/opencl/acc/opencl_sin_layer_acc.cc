@@ -39,5 +39,6 @@ std::set<std::string> OpenCLSinLayerAcc::CreateBuildOptions() {
 OpenCLSinLayerAcc::~OpenCLSinLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Sin, LAYER_SIN)
+REGISTER_OPENCL_LAYOUT(LAYER_SIN, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

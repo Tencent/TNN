@@ -29,6 +29,10 @@ Status TNNImplCoreML::AddOutput(const std::string& layer_name, int output_index)
     return Status(TNNERR_MODEL_ERR, "Error: CoreML do not support adding output");
 }
 
+Status TNNImplCoreML::GetModelInputShapesMap(InputShapesMap& shapes_map) {
+    return Status(TNNERR_NET_ERR, "Error: CoreML do not supprt get model input shapes");
+}
+
 std::shared_ptr<Instance> TNNImplCoreML::CreateInst(NetworkConfig& net_config,
                                                Status& status,
                                                InputShapesMap inputs_shape) {
@@ -40,5 +44,19 @@ std::shared_ptr<Instance> TNNImplCoreML::CreateInst(NetworkConfig& net_config,
     }
     return instance;
 }
+
+
+std::shared_ptr<Instance> TNNImplCoreML::CreateInst(NetworkConfig& net_config,
+                                               Status& status,
+                                               InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+    auto instance = std::make_shared<Instance>(net_config, model_config_);
+    status        = instance->Init(nullptr, min_inputs_shape, max_inputs_shape);
+
+    if (status != TNN_OK) {
+        return nullptr;
+    }
+    return instance;
+}
+
     
 }  // namespace TNN_NS

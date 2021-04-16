@@ -37,6 +37,11 @@ ILayer* HardSigmoidTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs HardSigmoidTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) {
+    return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputDims, exprBuilder);
+}
+
 const char* HardSigmoidPluginCreator::getPluginName() const {
     return "HardSigmoid";
 }

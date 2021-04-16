@@ -42,6 +42,8 @@ static const char output_dump_message[] = "(optional) dump output";
 
 static const char check_batch_message[] = "(optional) check result of multi batch";
 
+static const char align_all_message[] = "(optional) dump folder path to compare the all model";
+
 DECLARE_bool(h);
 
 DECLARE_string(p);
@@ -63,6 +65,8 @@ DECLARE_string(s);
 DECLARE_bool(o);
 
 DECLARE_bool(b);
+
+DECLARE_string(a);
 
 }  // namespace TNN_NS
 

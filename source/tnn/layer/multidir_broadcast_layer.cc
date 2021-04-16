@@ -14,11 +14,17 @@
 
 #include "tnn/layer/multidir_broadcast_layer.h"
 
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 static Status GetBroadcastType(DimsVector input, DimsVector output, int &type) {
+    // support input dims size diff with output dims
+    int diff = output.size() - input.size();
+    if (diff != 0) {
+        input.insert(input.begin(), 1);
+    }
+
     int input_count = DimsVectorUtils::Count(input, 1);
     output          = DimsVectorUtils::Max(input, output);
 
@@ -35,15 +41,8 @@ static Status GetBroadcastType(DimsVector input, DimsVector output, int &type) {
             type = BroadcastTypeHeightWidth;
         } else if (input_count == DimsVectorUtils::Count(output, 3)) {
             type = BroadcastTypeWidth;
-        } else if (input_count == output[1] * output[2]) {
-            type = BroadcastTypeChannelHeight;
-        } else if (input_count == output[1] * output[3]) {
-            type = BroadcastTypeChannelWidth;
         } else {
-            LOGE("%d %d %d %d %d\n", input_count, output[0], output[1],
-                    output[2], output[3]);
-            LOGE("Error: unsupported broadcast type\n");
-            return Status(TNNERR_LAYER_ERR, "Error: unsupported broadcast type");
+            type = BroadcastTypeGeneral;
         }
     }
     return TNN_OK;
@@ -80,7 +79,9 @@ bool SupportBroadcast(DimsVector dim0, DimsVector dim1) {
     return true;
 }
 
-Status MultidirBroadcastLayer::InferOutputShape() {
+Status MultidirBroadcastLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
@@ -88,16 +89,20 @@ Status MultidirBroadcastLayer::InferOutputShape() {
     if (layer_res) {
         const int weight_input_index = layer_param->weight_input_index;
         if (weight_input_index != 0 && weight_input_index != 1) {
-            LOGE("Error: unsupported weight_input_index\n");
+            LOGE_IF(!ignore_error, "Error: unsupported weight_input_index\n");
             return Status(TNNERR_LAYER_ERR, "Error: unsupported weight_input_index");
         }
 
         DimsVector input_shape = input_blobs_[0]->GetBlobDesc().dims;
-        int input_count        = DimsVectorUtils::Count(input_shape, 1);
+        int input_count        = DimsVectorUtils::Count(input_shape,1);// 这个地方好像有问题
 
-        DimsVector weight_shape = layer_res->element_shape;
-        if (weight_shape.size() < 4) {
-            weight_shape       = {1, 1, 1, 1};
+        DimsVector weight_shape = layer_res->element_handle.GetBufferDims();
+        if (input_shape.empty() && weight_shape.empty()) {
+            output_blobs_[0]->GetBlobDesc().dims = input_shape;
+            return TNN_OK;
+        }
+        if (weight_shape.size() <= 0) {
+            weight_shape       = DimsVector(input_shape.size(), 1);
             int layer_res_size = layer_res->element_handle.GetDataCount();
             if (layer_res_size == 1) {
                 // single element
@@ -111,22 +116,20 @@ Status MultidirBroadcastLayer::InferOutputShape() {
                 weight_shape[2] = input_shape[2];
                 weight_shape[3] = input_shape[3];
             } else if (layer_res_size == input_shape[3]) {
-                weight_shape[3] = input_shape[3]; 
-            } else if (layer_res_size == input_shape[2] * input_shape[3]) {
-                weight_shape[2] = input_shape[2];
                 weight_shape[3] = input_shape[3];
-            } else if (layer_res_size == input_shape[1] * input_shape[3]) {
-                weight_shape[1] = input_shape[1];
-                weight_shape[3] = input_shape[3];
-            } else if (layer_res_size == input_shape[1] * input_shape[2]) {
-                weight_shape[1] = input_shape[1];
-                weight_shape[2] = input_shape[2];
+            } else if (layer_res_size == DimsVectorUtils::Count(input_shape, 2)) {
+                for (int i = 2; i < input_shape.size(); ++i) {
+                    weight_shape[i] = input_shape[i];
+                }
             } else {
-                LOGE("Error: unsupported broadcast type\n");
+                LOGE_IF(!ignore_error, "Error: unsupported broadcast type\n");
                 return Status(TNNERR_LAYER_ERR, "Error: unsupported broadcast type");
             }
             layer_res->element_shape = weight_shape;
+        } else {
+            layer_res->element_shape = weight_shape;
         }
+        EXPAND(input_shape, weight_shape);
         DimsVector dims_output               = DimsVectorUtils::Max(input_shape, weight_shape);
         output_blobs_[0]->GetBlobDesc().dims = dims_output;
 
@@ -154,21 +157,23 @@ Status MultidirBroadcastLayer::InferOutputShape() {
         if (input_blobs_.size() > 1) {
             dim1 = input_blobs_[1]->GetBlobDesc().dims;
         }
-        LOGD("dim0: %d %d %d %d\n", dim0[0], dim0[1], dim0[2], dim0[3]);
-        LOGD("dim1: %d %d %d %d\n", dim1[0], dim1[1], dim1[2], dim1[3]);
 
         if (!SupportBroadcast(dim0, dim1)) {
-            LOGE(
+            LOGE_IF(!ignore_error, 
                 "Error: operands could not be broadcast together with wrong "
-                "shape\n");
+                "shape (name: %s)\n", layer_param->name.c_str());
             return Status(TNNERR_LAYER_ERR,
                           "Error: operands could not be broadcast together "
                           "with wrong shape");
         }
+
         auto dims_output = dim0;
         for (auto iter : input_blobs_) {
-            auto tmp    = iter->GetBlobDesc().dims;
-            dims_output = DimsVectorUtils::Max(tmp, dims_output);
+            auto tmp = iter->GetBlobDesc().dims;
+            if (dims_output.size() != tmp.size()) {
+                EXPAND(dims_output, tmp);
+            }
+            dims_output = DimsVectorUtils::Max(dims_output, tmp);
         }
         output_blobs_[0]->GetBlobDesc().dims = dims_output;
 
@@ -187,8 +192,8 @@ Status MultidirBroadcastLayer::InferOutputShape() {
         layer_param->input1_broadcast_type = input1_broadcast_type;
     }
 
-    LOGD("broadcast_type: input0(%d) input1(%d)\n", layer_param->input0_broadcast_type,
-         layer_param->input1_broadcast_type);
+//    LOGD("broadcast_type: input0(%d) input1(%d)\n", layer_param->input0_broadcast_type,
+//         layer_param->input1_broadcast_type);
 
     return TNN_OK;
 }

@@ -24,6 +24,7 @@
 #include "NvUtils.h"
 #include "NvInferPlugin.h"
 
+#include "tnn/core/macro.h"
 #include "tnn/layer/base_layer.h"
 #include "tnn/core/abstract_device.h"
 #include "tnn/core/blob.h"
@@ -40,6 +41,8 @@ using namespace nvinfer1;
 using namespace plugin;
 
 namespace TNN_NS {
+
+class TensorRTNetwork_;
 
 // @brief BaseLayer Builder, defines the layer builder interface
 class TensorRTBaseLayerBuilder: public BaseLayerBuilder {
@@ -71,6 +74,12 @@ public:
     // @brief set tensorRT batchsize
     void SetBatchSize(int value);
 
+    // @brief set constant resource
+    virtual void SetConstantResource(ConstantResource* consts);
+
+    // @brief set tensorrt_network
+    void SetNetwork(TensorRTNetwork_ *network);
+
 protected:
     // @brief Build the foreign network
     virtual Status Build();
@@ -82,10 +91,16 @@ protected:
         nvinfer1::Weights kernelWeights, RawBuffer* bias, nvinfer1::Weights biasWeights,
         float scale, std::vector<int> dims);
 
+    std::vector<ITensor*> GetInputITensors();
+
+    std::vector<ITensor*> GetOutputITensors();
+
     std::shared_ptr<BaseLayer> m_layer;
     std::vector<float*> int8_weight_data;
     bool is_plugin;
     int trt_batchsize;
+
+    TensorRTNetwork_* m_network;
 };
 
 class TensorRTLayerBuilder;

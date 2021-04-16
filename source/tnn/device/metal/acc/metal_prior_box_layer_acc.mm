@@ -15,9 +15,9 @@
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 #include "tnn/utils/pribox_generator_utils.h"
 
 namespace TNN_NS {
@@ -83,5 +83,6 @@ Status MetalPriorBoxLayerAcc::SetKernelEncoderParam(
 }
 
 REGISTER_METAL_ACC(PriorBox, LAYER_PRIOR_BOX);
+REGISTER_METAL_LAYOUT(LAYER_PRIOR_BOX, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

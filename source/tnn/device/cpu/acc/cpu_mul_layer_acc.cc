@@ -23,9 +23,11 @@ Status CpuMulLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, const s
                                  const std::vector<DimsVector> &input_shapes, Blob *output) {
     if (output->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         CPU_MUL(input_ptrs, input_shapes, output->GetHandle().base, output->GetBlobDesc().dims);
-    } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        LOGE("Error: CpuMulLayerAcc don't support data type: %d\n", output->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: CpuMulLayerAcc don't support data type");
+    } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        void *output_data = output->GetHandle().base;
+        const auto &output_dims = output->GetBlobDesc().dims;
+        CPU_ELEMENT_WISE<int, int>(input_ptrs, input_shapes, output_data, output_dims,
+                                  [](int a, int b) -> int { return a * b; });
     } else {
         LOGE("Error: CpuMulLayerAcc don't support data type: %d\n", output->GetBlobDesc().data_type);
         return Status(TNNERR_MODEL_ERR, "Error: CpuMulLayerAcc don't support data type");

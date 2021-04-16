@@ -30,7 +30,7 @@ namespace TNN_NS {
 namespace optimizer {
 
     // Plast priority: reformat after all fuse
-    NetOptimizerRegister<NetOptimizerInsertInt8Reformat> g_net_optimizer_insert_int8_reformat(OptPriority::PLAST);
+    NetOptimizerRegister<NetOptimizerInsertInt8Reformat> g_net_optimizer_insert_int8_reformat(OptPriority::P2);
     static const std::string reformat_name_suffix = "_int8_reformat";
 
     std::string NetOptimizerInsertInt8Reformat::Strategy() {
@@ -80,6 +80,9 @@ namespace optimizer {
         for (int index = 0; index < count; index++) {
             auto cur_layer = layers_orig[index];
             layers_fused.push_back(cur_layer);
+            if (cur_layer->type == LAYER_REFORMAT) {
+                continue;
+            }
 
             // find blobs need reformat
             // support multi inputs/outputs
@@ -89,6 +92,9 @@ namespace optimizer {
                 bool need_reformat = false;
                 for (int next_id = index + 1; next_id < count; next_id++) {
                     auto next_layer = layers_orig[next_id];
+                    if (next_layer->type == LAYER_REFORMAT) {
+                        continue;
+                    }
                     for (auto next_in : next_layer->inputs) {
                         if (next_in == cur_out && next_layer->param->quantized != cur_layer->param->quantized) {
                             need_reformat = true;
@@ -105,10 +111,11 @@ namespace optimizer {
             std::shared_ptr<LayerInfo> new_layer =
                 CreateReformat(cur_layer->name + reformat_name_suffix, cur_layer->param->quantized);
 
-            AdjustLayer(layers_orig, structure, cur_layer, new_layer,
-                        reformat_outs, reformat_name_suffix, index, count);
+            AdjustLayer(layers_orig, structure, cur_layer, new_layer, reformat_outs, reformat_name_suffix, index,
+                        count);
 
-            LOGD("Insert int8 refomat layer: src %s dst %s\n", new_layer->inputs[0].c_str(), new_layer->outputs[0].c_str());
+            LOGD("Insert int8 refomat layer: src %s dst %s\n", new_layer->inputs[0].c_str(),
+                 new_layer->outputs[0].c_str());
             layers_fused.push_back(new_layer);
         }
         structure->layers = layers_fused;
@@ -116,15 +123,12 @@ namespace optimizer {
         return TNN_OK;
     }
 
-    void NetOptimizerInsertInt8Reformat::AdjustLayer(
-            std::vector<std::shared_ptr<LayerInfo>>& layers_orig,
-            NetStructure *structure,
-            std::shared_ptr<LayerInfo>& cur_layer,
-            std::shared_ptr<LayerInfo>& new_layer,
-            std::vector<std::string>& reformat_outs,
-            const std::string& reformat_name_suffix,
-            const int index,
-            const int count) {
+    void NetOptimizerInsertInt8Reformat::AdjustLayer(std::vector<std::shared_ptr<LayerInfo>> &layers_orig,
+                                                     NetStructure *structure, std::shared_ptr<LayerInfo> &cur_layer,
+                                                     std::shared_ptr<LayerInfo> &new_layer,
+                                                     std::vector<std::string> &reformat_outs,
+                                                     const std::string &reformat_name_suffix, const int index,
+                                                     const int count) {
         // change blobs for unquantized layer for layers to read
         // int8resource correctly
         // src_type int8, change dst blob
