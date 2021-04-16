@@ -1,18 +1,22 @@
-// Tencent is pleased to support the open source community by making TNN available.
+// Tencent is pleased to support the open source community by making TNN
+// available.
 //
 // Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
 //
-// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
-// in compliance with the License. You may obtain a copy of the License at
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this
+// file except in compliance with the License. You may obtain a copy of the
+// License at
 //
 // https://opensource.org/licenses/BSD-3-Clause
 //
-// Unless required by applicable law or agreed to in writing, software distributed
-// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
-// specific language governing permissions and limitations under the License.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// License for the specific language governing permissions and limitations under
+// the License.
 
 #include <cmath>
+
 #include "tnn/layer/base_layer.h"
 #include "tnn/utils/dims_utils.h"
 
@@ -43,6 +47,10 @@ Status UpsampleLayer::InferOutputShape(bool ignore_error) {
     
     auto scales = layer_param->scales;
     auto sizes = layer_param->dims;
+    if (scales.empty()) {
+        LOGE_IF(!ignore_error, "Upsample has no scale param. layer name: %s\n", layer_param->name.c_str());
+        return Status(TNNERR_PARAM_ERR, "Upsample has no scale param");
+    }
     
     if (sizes.size() <= 0 && scales.size() >= 2) {
         // width_scale height_scale

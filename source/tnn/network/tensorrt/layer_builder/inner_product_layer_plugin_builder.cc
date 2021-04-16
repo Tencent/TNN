@@ -63,6 +63,6 @@ const char* InnerProductPluginCreator::getPluginName() const {
     return "InnerProduct";
 }
 
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(InnerProduct, LAYER_INNER_PRODUCT);
+// REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(InnerProduct, LAYER_INNER_PRODUCT);
 
 }  //  namespace TNN_NS

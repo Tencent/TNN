@@ -72,6 +72,11 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
 
+    auto params_md5 = default_interpreter->GetParamsMd5();
+    if (params_md5.size() == 0) {
+        test_mode = true;
+    }
+
     NetStructure *net_structure = default_interpreter->GetNetStructure();
     NetResource *net_resource   = default_interpreter->GetNetResource();
     net_resource_ = net_resource;
@@ -140,12 +145,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
        return ret;
     }
 
-    if (model_config.params[0].empty() && model_config.params[1].empty()) {
-        test_mode = true;
-    }
-
-    std::string cache_file_name = GetCacheFileName(model_config.params[0], model_config.params[1], inputs, outputs,
-        min_inputs_shape, net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
+    std::string cache_file_name = GetCacheFileName(params_md5, inputs, outputs, min_inputs_shape,
+        net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
     ExclFile *file_lock = new ExclFile(cache_file_name);
 
     if (test_mode || false == file_lock->Ready()) {
@@ -154,7 +155,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
             return ret;
         }
     }
-    {
+
+    if (!test_mode) {
         size_t size = 0;
         std::ifstream deploy_input(cache_file_name, std::ios::binary);
         deploy_input.seekg(0, deploy_input.end);
@@ -172,17 +174,17 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         runtime->destroy();
         delete[] model_stream;
         deploy_input.close();
+    } else {
+        ret = CreateExecuteContext();
+        if (ret != TNN_OK)
+            return ret;
+
     }
 
     delete file_lock;
 
     int bind_num = m_trt_engine->getNbBindings();
     this->m_trt_bindings = new void*[bind_num];
-
-    for (auto iter : inputs) {
-        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        this->m_trt_bindings[index] = iter.second->GetHandle().base;
-    }
 
     for (auto iter : outputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
@@ -229,6 +231,7 @@ Status TensorRTNetwork_::ReshapeLayers() {
         auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
         nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
         m_trt_context->setBindingDimensions(index, inputDims);
+        this->m_trt_bindings[index] = iter.second->GetHandle().base;
     }
 
     for (auto blob_name : const_input_blobs_) {
@@ -242,9 +245,8 @@ Status TensorRTNetwork_::ReshapeLayers() {
         bool ret;
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
         if (std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->IsShapeTensor()) {
-            auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetShapeBlobName();
-            auto dims = blob_manager_->GetBlob(name)->GetBlobDesc().dims;
-            ret = m_trt_context->setInputShapeBinding(index, dims.data());
+            auto map = net_resource_->constant_map;
+            ret = m_trt_context->setInputShapeBinding(index, (int*)map[blob_name]->force_to<int *>());
         } else {
             nvinfer1::Dims inputDims = ConvertToTRTDims(buf->GetBufferDims());
             ret = m_trt_context->setBindingDimensions(index, inputDims);
@@ -254,6 +256,7 @@ Status TensorRTNetwork_::ReshapeLayers() {
             return Status(TNNERR_PARAM_ERR, "Reshape failed\n");
         }
     }
+
     return TNN_OK;
 }
 
@@ -313,7 +316,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
             auto blob = blob_manager_->GetBlob(name);
             if (const_blobs.find(name) != const_blobs.end()) {
                 if (runtime_model_ == RUNTIME_MODE_NORMAL) {
-                    blob->flag = DATA_FLAG_CHANGE_NEVER;
+                    blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
                 }
                 blob->GetBlobDesc().data_type = const_blobs[name]->GetDataType();
             }
@@ -334,6 +337,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         }
 
         std::string layer_name = layer_info->name;
+        cur_layer->SetNetwork(this);
         cur_layer->SetLayerName(layer_name);
         // set layer nodes
         std::vector<Blob *> inputs;
@@ -503,7 +507,6 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
             auto shape_dims = ConvertToTRTDims(buf->GetBufferDims());
             const_tensor = m_trt_network->addInput(blob_name.c_str(),
                                             ConvertToTRTDataType(buf->GetDataType()), shape_dims);
-
             auto dims_blob_name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetShapeBlobName();
             max_dims = net_resource->blob_shapes_map[dims_blob_name];
             min_dims = net_resource->min_blob_shapes_map[dims_blob_name];
@@ -605,7 +608,6 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         m_trt_network->markOutput(*tensor);
     }
 
-    m_trt_builder->setMaxBatchSize(64);
     m_trt_config->setMaxWorkspaceSize(MAX_SCRATCH_MEMORY);
     if (config_.precision == PRECISION_LOW && !this->int8_mode) {
         m_trt_config->setFlag(BuilderFlag::kFP16);
@@ -648,10 +650,14 @@ bool TensorRTNetwork_::IsBlobUsed(Blob* blob) {
     return false;
 }
 
-std::string TensorRTNetwork_::GetCacheFileName(std::string cfg, std::string model, BlobMap input_map,
+std::string TensorRTNetwork_::GetCacheFileName(std::vector<std::string> params_md5, BlobMap input_map,
         BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, int batchsize,
         bool int8_mode, bool use_fp16) {
-    std::string md5_source = md5(cfg) + md5(model);
+    std::string md5_source = "";
+
+    for (auto iter : params_md5) {
+        md5_source += iter;
+    }
 
     for (auto iter : input_map) {
         std::stringstream ss;

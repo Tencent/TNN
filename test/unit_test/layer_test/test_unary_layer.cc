@@ -30,22 +30,17 @@ void UnaryLayerTest::RunUnaryTest(std::string type_str) {
     DataType data_type = std::get<4>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
+    if(CheckDataTypeSkip(data_type)) {
+        GTEST_SKIP();
+    }
+
+    //special for cuda skip
     if ((type_str == "Reciprocal" || type_str == "Softplus") && DEVICE_CUDA == dev) {
         GTEST_SKIP();
     }
 
-    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-#ifndef TNN_ARM82
-    if (data_type == DATA_TYPE_HALF) {
-        GTEST_SKIP();
-    }
-#endif
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
+    // skip dims > 4 for HUAWEI_NPU
+    if (dim_count > 4 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 

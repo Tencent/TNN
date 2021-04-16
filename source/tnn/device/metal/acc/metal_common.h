@@ -32,12 +32,6 @@
 #define ROUND_UP(x, y) (((x) + (y)-1) / (y) * (y))
 #endif
 
-//#define GetBlobDim(d, i) \
-    (((d).size()) > (i) ? ((d)[i]) : 1)
-
-//#define GetBlobCount(d, i) \
-    ( (DimsVectorUtils::Count((d), (i))) > 0? (DimsVectorUtils::Count((d), (i))) : (GetBlobDim(d, i)) )
-
 /**Base Param Struct **/
 struct MetalParams {
     int input_width;
@@ -63,6 +57,22 @@ struct MetalConcatParamV2 {
     int inner_size;
     int axis_size;
     int outer_size;
+};
+
+struct MetalGatherParams {
+    int inner_size;
+    int input_axis_size;
+    int output_axis_size;
+    int outer_size;
+
+    int input_slice;
+    int output_slice;
+};
+
+struct MetalCastParams {
+    int batch;
+    int input_slice;
+    int input_size;
 };
 
 // keep as same as BroadcastType in layer_param.h
@@ -211,6 +221,29 @@ struct MetalStrideSliceParams {
     int stride_w;
 };
 
+struct MetalStrideSliceParamsV2 {
+    int input_shape3d_low[3];
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+
+    int shape3d_low[3];
+    //uint3 shape3d_low;
+    // count of shape3d_low
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int batch;
+
+    // strides for h, s, b
+    int strides_high[3];
+    int strides_low[3];
+    int begins_high[3];
+    int begins_low[3];
+};
+
 /** Shuffle Param Struct **/
 struct MetalShuffleParams {
     int input_width;
@@ -271,6 +304,7 @@ struct MetalConvParams {
     int input_delta_y;
     int has_bias;
     int activation = -1;
+    int group;
 };
 
 /** Winograd Param Struct **/
@@ -690,14 +724,24 @@ struct MetalSqueezeParams {
     int batch;
 };
 
+/** MetalRecurrent Param Struct **/
+struct MetalMatMulParams {
+    int batch_c;
+    int batch_a;
+    int batch_b;
+    int M;
+    int N;
+    int K;
+};
+
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
-        metal_params.input_width   = GetBlobDim(dims_input, 3);                                                        \
-        metal_params.input_height  = GetBlobDim(dims_input, 2);                                                        \
+        metal_params.input_width   = DimsFunctionUtils::GetDim(dims_input, 3);                                         \
+        metal_params.input_height  = DimsFunctionUtils::GetDim(dims_input, 2);                                                        \
         metal_params.input_size    = metal_params.input_height * metal_params.input_width;                             \
         metal_params.input_slice   = UP_DIV(dims_input[1], 4);                                                         \
-        metal_params.output_width  = GetBlobDim(dims_output, 3);                                                       \
-        metal_params.output_height = GetBlobDim(dims_output, 2);                                                       \
+        metal_params.output_width  = DimsFunctionUtils::GetDim(dims_output, 3);                                        \
+        metal_params.output_height = DimsFunctionUtils::GetDim(dims_output, 2);                                        \
         metal_params.output_size   = metal_params.output_height * metal_params.output_width;                           \
         metal_params.output_slice  = UP_DIV(dims_output[1], 4);                                                        \
         metal_params.batch         = dims_output[0];                                                                   \
@@ -705,9 +749,9 @@ struct MetalSqueezeParams {
 
 #define FixDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
-        metal_params.input_width   = GetBlobCount(dims_input, 3);                                                      \
+        metal_params.input_width   = DimsFunctionUtils::GetDimProduct(dims_input, 3);                                   \
         metal_params.input_size    = metal_params.input_height * metal_params.input_width;                             \
-        metal_params.output_width  = GetBlobCount(dims_output, 3);                                                     \
+        metal_params.output_width  = DimsFunctionUtils::GetDimProduct(dims_output, 3);                                  \
         metal_params.output_size   = metal_params.output_height * metal_params.output_width;                           \
     } while(0)
 
@@ -724,6 +768,7 @@ struct MetalSqueezeParams {
         metal_params.pad_y       = conv_param->pads[2];                                                                \
         metal_params.dilation_x  = conv_param->dialations[0];                                                          \
         metal_params.dilation_y  = conv_param->dialations[1];                                                          \
+        metal_params.group       = conv_param->group;                                                                  \
     } while (0)
 
 #endif  // TNN_METAL_COMMON_H_

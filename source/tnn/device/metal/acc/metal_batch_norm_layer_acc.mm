@@ -104,8 +104,8 @@ Status MetalBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     auto output = outputs[0];
 
     auto dims_output   = output->GetBlobDesc().dims;
-    auto output_width  = GetBlobCount(dims_output, 3);
-    auto output_height = GetBlobDim(dims_output, 2);
+    auto output_width  = DimsFunctionUtils::GetDimProduct(dims_output, 3);
+    auto output_height = DimsFunctionUtils::GetDim(dims_output, 2);
     auto output_slice  = UP_DIV(dims_output[1], 4);
     auto batch         = dims_output[0];
 

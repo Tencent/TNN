@@ -15,7 +15,7 @@
 #include "tnn/device/metal/acc/metal_reformat_layer_acc.h"
 
 #include "tnn/device/metal/metal_context.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
@@ -54,8 +54,8 @@ Status MetalReformatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inp
     // buffer_param_
     {
         MetalImageConverterParams metal_params;
-        metal_params.width   = GetBlobDim(dims, 3);
-        metal_params.height  = GetBlobDim(dims, 2);
+        metal_params.width   = DimsFunctionUtils::GetDimProduct(dims, 3);
+        metal_params.height  = DimsFunctionUtils::GetDim(dims, 2);
         metal_params.size    = metal_params.height * metal_params.width;
         metal_params.channel = dims[1];
         metal_params.slice   = UP_DIV(metal_params.channel, 4);
@@ -71,7 +71,7 @@ Status MetalReformatLayerAcc::ComputeThreadSize(const std::vector<Blob *> &input
                                                 const std::vector<Blob *> &outputs,
                                                 MTLSize &size) {
     auto dims_output = outputs[0]->GetBlobDesc().dims;
-    size = GetDefaultThreadSize(dims_output, true);
+    size = MTLSizeMake(DimsFunctionUtils::GetDimProduct(dims_output, 2), UP_DIV(dims_output[1], 4), dims_output[0]);
     return TNN_OK;
 }
     

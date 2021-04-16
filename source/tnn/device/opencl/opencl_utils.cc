@@ -452,6 +452,8 @@ Status CopyBufferToMat(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int
     int data_type_size = 1;
     if (mat_type == NCHW_FLOAT) {
         data_type_size = sizeof(float);
+    } else if (mat_type == NC_INT32) {
+        data_type_size = sizeof(int);
     } else if (mat_type == N8UC4) {
         //special for 8UC4, blob channel <= 4.
         dims[1] = 4;
@@ -475,6 +477,8 @@ Status CopyMatToBuffer(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int
     int data_type_size = 1;
     if (mat_type == NCHW_FLOAT) {
         data_type_size = sizeof(float);
+    } else if (mat_type == NC_INT32) {
+        data_type_size = sizeof(int);
     } else if (mat_type == N8UC4) {
         //special for 8UC4, blob channel <= 4.
         dims[1] = 4;
@@ -525,14 +529,32 @@ Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_nam
 
 // set execute unit 3d default global size, local size and kernel arguments.
 uint32_t SetExecuteUnit3DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims) {
-    unit.global_work_size = {
-        // width
-        static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 3)),
+    uint32_t gws0 = 0, gws1 = 0, gws2;
+    if (dims.size() == 5) {
+        // dim4
+        gws0 = DimsFunctionUtils::GetDim(dims, 4);
         // channel-blocks/4
-        static_cast<uint32_t>(UP_DIV(DimsFunctionUtils::GetDim(dims, 1), 4)),
+        gws1 = UP_DIV(DimsFunctionUtils::GetDim(dims, 1), 4);
+        // batch * dim2 * dim3
+        gws2 = DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 2) *
+               DimsFunctionUtils::GetDim(dims, 3);
+    } else if (dims.size() == 6) {
+        // dim4 * dim5
+        gws0 = DimsFunctionUtils::GetDim(dims, 4) * DimsFunctionUtils::GetDim(dims, 5);
+        // channel-blocks/4
+        gws1 = UP_DIV(DimsFunctionUtils::GetDim(dims, 1), 4);
+        // batch * dim2 * dim3
+        gws2 = DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 2) *
+               DimsFunctionUtils::GetDim(dims, 3);
+    } else {
+        // width
+        gws0 = DimsFunctionUtils::GetDim(dims, 3);
+        // channel-blocks/4
+        gws1 = UP_DIV(DimsFunctionUtils::GetDim(dims, 1), 4);
         // batch * height
-        static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 2)),
-    };
+        gws2 = DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 2);
+    }
+    unit.global_work_size = {gws0, gws1, gws2};
 
     // change the order temporarily to get the local size
     std::vector<uint32_t> temp_gws = {unit.global_work_size[1], unit.global_work_size[0], unit.global_work_size[2]};
@@ -612,5 +634,15 @@ uint32_t SetExecuteUnit2DSizeInfoNCHW(OpenCLExecuteUnit &unit, DimsVector dims) 
     unit.ocl_kernel.setArg(idx++, unit.global_work_size[1]);
     return idx;
 }
+
+// set execute unit 1d default global size, local size and kernel arguments.
+uint32_t SetExecuteUnit1DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims) {
+    unit.global_work_size = {(uint32_t)DimsVectorUtils::Count(dims)};
+    unit.local_work_size = {unit.workgroupsize_max};
+    uint32_t idx         = 0;
+    unit.ocl_kernel.setArg(idx++, unit.global_work_size[0]);
+    return idx;
+}
+
 
 }  // namespace TNN_NS

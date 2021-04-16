@@ -45,9 +45,10 @@ yum install  python3 python3-devel
 onnx=1.6.0  
 onnxruntime>=1.1.0   
 numpy>=1.17.0  
-onnx-simplifier>=0.2.4  
+onnx-simplifier>=0.2.4 
+requests
 ```shell script
-pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier
+pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier requests
 ```
 
 - cmake （version >= 3.0）
@@ -117,7 +118,7 @@ positional arguments:
 optional arguments:
   -h, --help              show this help message and exit
   -version VERSION        Algorithm version string
-  -optimize OPTIMIZE      Optimize model befor convert, 1:default yes, 0:no
+  -optimize OPTIMIZE      If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
   -half HALF              Save model using half, 1:yes, 0:default no
   -o OUTPUT_DIR           the output dir for tnn model
   -align                  align the onnx model with tnn model

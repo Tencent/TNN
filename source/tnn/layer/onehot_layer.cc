@@ -38,8 +38,8 @@ Status OneHotLayer::InferOutputShape(bool ignore_error) {
     BaseLayer::InferOutputShape(ignore_error);
     
     auto layer_param = dynamic_cast<OneHotLayerParam*>(param_);
-    RETURN_VALUE_ON_NEQ(Status(TNNERR_PARAM_ERR,"OneHotLayerParam is nil"),
-                        !layer_param, true);
+    RETURN_VALUE_ON_NEQ(!layer_param, false,
+                        Status(TNNERR_PARAM_ERR,"OneHotLayerParam is nil"));
     
     int axis = layer_param->axis;
     auto output_dims = input_blobs_[0]->GetBlobDesc().dims;

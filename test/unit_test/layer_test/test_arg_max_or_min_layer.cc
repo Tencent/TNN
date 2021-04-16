@@ -30,9 +30,9 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ArgMaxOrMinLayerTest,
                                             // axis
                                             testing::Values(0, 1, 2, 3),
                                             // keep dims
-                                            testing::Values(1),
+                                            testing::Values(0, 1),
                                             // dim count
-                                            testing::Values(2, 3, 4, 5, 6),
+                                            testing::Values(2, 3, 4, 5),
                                             // select_last_index: we will support this feature in future;
                                             testing::Values(0), testing::Values(DATA_TYPE_FLOAT)));
 
@@ -49,7 +49,10 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayer) {
     DataType dtype        = std::get<8>(GetParam());
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_HUAWEI_NPU == dev) {
+    if (dim_count > 4 && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+    if (mode != 1 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
@@ -58,6 +61,18 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayer) {
     }
 
     if (axis >= dim_count) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL == dev && (dim_count > 4 || keep_dims == 0)) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_METAL == dev && keep_dims == 0 && axis <= 1) {
+        GTEST_SKIP();
+    }
+
+    if (keep_dims == 0 && dim_count <= 2) {
         GTEST_SKIP();
     }
 

@@ -67,6 +67,17 @@ void X86Sgemv(float* dst, const float* src, const float* weight, float *bias, Di
 
 template <int activation_type, typename VEC, int pack>
 void X86_Post_Exec(float *dst, const float *bias, long channel, long area);
+
+template <typename VEC, int pack>
+void X86_VectorAdd(float *dst, const float *src_a, const float *src_b, long len);
+
+template <typename VEC, int pack>
+void X86_VectorAdd(float *dst, const float *src, long len);
+
+void X86StrideSliceImpl(DimsVector begins, DimsVector strides, DimsVector dims_output,
+                        DimsVector input_strides, DimsVector output_strides,
+                        const float* input_data, float* output_data);
+
 }   // namespace TNN_NS
 
 #endif

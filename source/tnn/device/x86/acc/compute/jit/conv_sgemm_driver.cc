@@ -80,7 +80,76 @@ void conv_sgemm_block_n(
     }
 }
 
+// sgemm col_major a no_trans, b no_trans
+// src_a: M * K, lda = M
+// src_b: K * N, ldb = K
+// dst  : M * N, ldc = M
 void conv_sgemm_nn_col_major(
+        dim_t M, dim_t N, dim_t K,
+        const float * src_a, dim_t lda,
+        const float * src_b, dim_t ldb,
+        float * dst, dim_t ldc,
+        const float * bias, dim_t act_type,
+        float *pack_buf,
+        conv_gemm_config<float, float, float> &conv_gemm_conf)
+{
+    dim_t M_c = conv_gemm_conf.M_c_;
+    dim_t K_c = conv_gemm_conf.K_c_;
+    dim_t m_block = conv_gemm_conf.m_block_;
+    dim_t n_block = conv_gemm_conf.n_block_;
+
+    dim_t i, j, k;
+    i = j = k = 0;
+
+    dim_t first = 0;
+    dim_t post_type;
+
+    auto pack_a_buf = pack_buf;
+    auto pack_b_buf = pack_buf + divUp(M_c * K_c * sizeof(float), 32) / sizeof(float);
+
+    // if no bias, first set to 1, load c from dst
+    if (bias == nullptr) {
+        first = 1;
+    }
+
+    for (k = 0; k < K; k += K_c)  {
+        if (k + K_c >= K) {
+            post_type = act_type;
+        } else {
+            post_type = 0;
+        }
+
+        dim_t cur_k = MIN(K - k, K_c);
+
+        // pack b -> K_c * N;
+        // const float *pack_b_k = src_b + k * divUp(N, n_block);
+        pack_col_b_n(src_b + k, ldb, pack_b_buf, K_c, cur_k, N, conv_gemm_conf);
+
+        for (i = 0; i < M; i += M_c)  {
+            dim_t cur_m = MIN(M - i, M_c);
+            // pack a -> M_c * K_c;
+            pack_col_a_n(src_a + i + k * lda, lda, pack_a_buf, K_c, cur_k, cur_m, conv_gemm_conf);
+
+            for (j = 0; j < N;)  {
+                dim_t cur_n = MIN(N - j, conv_gemm_conf.kernel_n_r_);
+                float * cur_c = dst + i + j * ldc;
+
+                const float * packed_cur_b = pack_b_buf + divDown(j, n_block) * K_c + j % n_block;
+                const float * cur_bias = bias + j;
+                conv_sgemm_block_n(cur_m, cur_n, cur_k, pack_a_buf, lda, packed_cur_b, ldb, cur_c, ldc, cur_bias, first, post_type, conv_gemm_conf);
+                j += cur_n;
+            }
+        }
+        // if k != 0, first = 1
+        first = 1;
+    }
+}
+
+// sgemm col_major a no_trans, b no_trans
+// src_a: M * K, lda = M
+// src_b: K * N, ldb = K, prepacked
+// dst  : M * N, ldc = M
+void conv_sgemm_nn_col_major_prepack_b(
         dim_t M, dim_t N, dim_t K,
         const float * src_a, dim_t lda,
         const float * src_b, dim_t ldb,
@@ -97,16 +166,15 @@ void conv_sgemm_nn_col_major(
     dim_t i, j, k;
     i = j = k = 0;
 
-    dim_t first;
+    dim_t first = 0;
     dim_t post_type;
 
-    for (k = 0; k < K; k += K_c)  {
-        if (k == 0) {
-            first = 0;
-        } else {
-            first = 1;
-        }
+    // if no bias, first set to 1, load c from dst
+    if (bias == nullptr) {
+        first = 1;
+    }
 
+    for (k = 0; k < K; k += K_c)  {
         if (k + K_c >= K) {
             post_type = act_type;
         } else {
@@ -121,7 +189,7 @@ void conv_sgemm_nn_col_major(
         for (i = 0; i < M; i += M_c)  {
             dim_t cur_m = MIN(M - i, M_c);
             // pack a -> M_c * K_c;
-            pack_t(src_a + i + k * lda, lda, src_trans_buf, K_c, cur_k, cur_m, conv_gemm_conf);
+            pack_col_a_n(src_a + i + k * lda, lda, src_trans_buf, K_c, cur_k, cur_m, conv_gemm_conf);
 
             for (j = 0; j < N;)  {
                 dim_t cur_n = MIN(N - j, conv_gemm_conf.kernel_n_r_);
@@ -133,10 +201,135 @@ void conv_sgemm_nn_col_major(
                 j += cur_n;
             }
         }
+        // if k != 0, first = 1
+        first = 1;
     }
 }
 
-void conv_pack_weights(
+// sgemm col_major a trans, b no_trans
+// src_a: K * M, lda = K
+// src_b: K * N, ldb = K, prepacked
+// dst  : M * N, ldc = M
+void conv_sgemm_tn_col_major_prepack_b(
+        dim_t M, dim_t N, dim_t K,
+        const float * src_a, dim_t lda,
+        const float * src_b, dim_t ldb,
+        float * dst, dim_t ldc,
+        const float * bias, dim_t act_type,
+        float *src_trans_buf,
+        conv_gemm_config<float, float, float> &conv_gemm_conf)
+{
+    dim_t M_c = conv_gemm_conf.M_c_;
+    dim_t K_c = conv_gemm_conf.K_c_;
+    dim_t m_block = conv_gemm_conf.m_block_;
+    dim_t n_block = conv_gemm_conf.n_block_;
+
+    dim_t i, j, k;
+    i = j = k = 0;
+
+    dim_t first = 0;
+    dim_t post_type;
+
+    // if no bias, first set to 1, load c from dst
+    if (bias == nullptr) {
+        first = 1;
+    }
+
+    for (k = 0; k < K; k += K_c)  {
+        if (k + K_c >= K) {
+            post_type = act_type;
+        } else {
+            post_type = 0;
+        }
+
+        dim_t cur_k = MIN(K - k, K_c);
+
+        // pack b -> K_c * N;
+        const float *pack_b_k = src_b + k * divUp(N, n_block);
+
+        for (i = 0; i < M; i += M_c)  {
+            dim_t cur_m = MIN(M - i, M_c);
+            // pack a -> M_c * K_c;
+            pack_col_a_t(src_a + k + i * lda, lda, src_trans_buf, K_c, cur_k, cur_m, conv_gemm_conf);
+
+            for (j = 0; j < N;)  {
+                dim_t cur_n = MIN(N - j, conv_gemm_conf.kernel_n_r_);
+                float * cur_c = dst + i + j * ldc;
+
+                const float * packed_cur_b = pack_b_k + divDown(j, n_block) * K_c + j % n_block;
+                const float * cur_bias = bias + j;
+                conv_sgemm_block_n(cur_m, cur_n, cur_k, src_trans_buf, lda, packed_cur_b, ldb, cur_c, ldc, cur_bias, first, post_type, conv_gemm_conf);
+                j += cur_n;
+            }
+        }
+        // if k != 0, first = 1
+        first = 1;
+    }
+}
+
+// sgemm col_major a trans, b no_trans
+// src_a: K * M, lda = K, prepacked
+// src_b: K * N, ldb = K
+// dst  : M * N, ldc = M
+void conv_sgemm_tn_col_major_prepack_a(
+        dim_t M, dim_t N, dim_t K,
+        const float * src_a, dim_t lda,
+        const float * src_b, dim_t ldb,
+        float * dst, dim_t ldc,
+        const float * bias, dim_t act_type,
+        float *pack_b_buf,
+        conv_gemm_config<float, float, float> &conv_gemm_conf)
+{
+    dim_t M_c = conv_gemm_conf.M_c_;
+    dim_t K_c = conv_gemm_conf.K_c_;
+    dim_t m_block = conv_gemm_conf.m_block_;
+    dim_t n_block = conv_gemm_conf.n_block_;
+
+    dim_t i, j, k;
+    i = j = k = 0;
+
+    dim_t first = 0;
+    dim_t post_type;
+
+    // if no bias, first set to 1, load c from dst
+    if (bias == nullptr) {
+        first = 1;
+    }
+
+    for (k = 0; k < K; k += K_c)  {
+        if (k + K_c >= K) {
+            post_type = act_type;
+        } else {
+            post_type = 0;
+        }
+
+        dim_t cur_k = MIN(K - k, K_c);
+
+        // pack b -> K_c * N;
+        pack_col_b_n(src_b + k, ldb, pack_b_buf, K_c, cur_k, N, conv_gemm_conf);
+
+        for (i = 0; i < M; i += M_c)  {
+            dim_t cur_m = MIN(M - i, M_c);
+            // pack a -> M_c * K_c;
+            auto src_a_i = src_a + k * divUp(M, m_block) + i * K_c;
+
+            for (j = 0; j < N;)  {
+                dim_t cur_n = MIN(N - j, conv_gemm_conf.kernel_n_r_);
+                float * cur_c = dst + i + j * ldc;
+
+                const float * packed_cur_b = pack_b_buf + divDown(j, n_block) * K_c + j % n_block;
+                const float * cur_bias = bias + j;
+                conv_sgemm_block_n(cur_m, cur_n, cur_k, src_a_i, lda, packed_cur_b, ldb, cur_c, ldc, cur_bias, first, post_type, conv_gemm_conf);
+                j += cur_n;
+            }
+        }
+        // if k != 0, first = 1
+        first = 1;
+    }
+}
+
+// pack col major B no_trans [K x N]
+void conv_pack_col_b_n(
         dim_t N, dim_t K,
         const float * src, dim_t ld_src,
         float * dst,
@@ -149,8 +342,42 @@ void conv_pack_weights(
     for (dim_t k = 0; k < K; k += K_c) {
         dim_t cur_k = MIN(K - k, K_c);
         float *pack_b = dst + k * N_round_up;
-        pack_n(src + k, ld_src, pack_b, K_c, cur_k, N, conv_gemm_conf);
+        pack_col_b_n(src + k, ld_src, pack_b, K_c, cur_k, N, conv_gemm_conf);
     }
 }
+
+// pack col major A trans [K x M]
+void conv_pack_col_a_t(
+    dim_t M, dim_t K,
+    const float * src, dim_t lda,
+    float * dst,
+    conv_gemm_config<float, float, float> &conv_gemm_conf)
+{
+    dim_t M_c = conv_gemm_conf.M_c_;
+    dim_t K_c = conv_gemm_conf.K_c_;
+    dim_t m_block = conv_gemm_conf.m_block_;
+    dim_t n_block = conv_gemm_conf.n_block_;
+
+    dim_t i, j, k;
+    i = j = k = 0;
+
+    for (k = 0; k < K; k += K_c)  {
+        dim_t cur_k = MIN(K - k, K_c);
+        auto src_k = src + k;
+        auto dst_k = dst + k * divUp(M, m_block);
+
+        for (i = 0; i < M; i += M_c)  {
+            dim_t cur_m = MIN(M - i, M_c);
+            // pack a -> M_c * K_c;
+            pack_col_a_t(src_k + i * lda, lda, dst_k + i * K_c, K_c, cur_k, cur_m, conv_gemm_conf);
+        }
+    }
+}
+
+// // pack A [K * M]
+// void conv_pack_a_n()
+// {
+
+// }
 
 } // namespace tnn

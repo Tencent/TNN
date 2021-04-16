@@ -86,6 +86,13 @@ struct GroupNormLayerParam : public LayerParam {
     PARAM_COPY(GroupNormLayerParam)
 };
 
+struct LayerNormLayerParam : public LayerParam {
+    int reduce_dims_size = 0;
+    float eps = 1e-5f;
+
+    PARAM_COPY(LayerNormLayerParam)
+};
+
 struct GridSampleLayerParam : public LayerParam {
     // 1: nereast 2: bilinear/linear 3: cubic
     int mode = 2;
@@ -190,7 +197,10 @@ struct RangeLayerParam : public LayerParam {
     DataType data_type = DATA_TYPE_FLOAT;
     RangeData start = {0};
     RangeData limit = {0};
-    RangeData delta = { .i = 1};
+
+    // designated initializer may cause compile error in msvc
+    RangeData delta = {1};
+    // RangeData delta = { .i = 1};
 
     PARAM_COPY(RangeLayerParam)
 };
@@ -239,7 +249,8 @@ struct PermuteLayerParam : public LayerParam {
 };
 
 struct CastLayerParam : public LayerParam {
-    int to = 0;
+    int to   = 0;
+    int from = 0; // used for HUAWEI_NPU
 
     PARAM_COPY(CastLayerParam)
 };
@@ -313,7 +324,6 @@ struct InnerProductLayerParam : public LayerParam {
 
 struct ConcatLayerParam : public LayerParam {
     int axis                    = 1;
-    std::vector<int> extra_data = {};
 
     PARAM_COPY(ConcatLayerParam)
 };
@@ -545,6 +555,7 @@ struct SignedMulLayerParam : public LayerParam {
 };
 
 struct SqueezeLayerParam : public LayerParam {
+    //Note the axes is ascending order,  see SqueezeLayer::InferOutputShape and UnsqueezeLayer::InferOutputShape
     std::vector<int> axes;
     bool data_in_resource = false;
 
@@ -558,7 +569,7 @@ struct UnsqueezeLayerParam : public SqueezeLayerParam {
 struct ArgMaxOrMinLayerParam : public LayerParam {
     int mode;
     int axis;
-    int keep_dims;
+    int keep_dims = 1;
     int select_last_index;
 
     PARAM_COPY(ArgMaxOrMinLayerParam)
@@ -628,6 +639,11 @@ struct FlattenLayerParam : public LayerParam {
 
 struct EinsumLayerParam : public LayerParam {
     std::string equation;
+    int out_size;
+    bool has_zero_size_dim = false;
+    std::vector<std::vector<int>> perm_shapes;
+    std::vector<std::size_t> dim_last_op;
+    std::vector<DimsVector> operand_dims;
 
     PARAM_COPY(EinsumLayerParam)
 };

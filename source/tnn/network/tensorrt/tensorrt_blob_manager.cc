@@ -121,7 +121,7 @@ Status TensorRTBlobManager::AllocateBlobMemory(int flag) {
         }
         int use_count = 1;
         BlobMemory *blob_memory = nullptr;
-        blob_memory = blob_memory_pool_map_[info.size()]->BorrowBlobMemory(use_count, info, true);
+        blob_memory = blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, true);
         blob_memory_mapping_.insert(std::make_pair(current_blob, blob_memory));
     }
 
@@ -135,7 +135,7 @@ Status TensorRTBlobManager::AllocateBlobMemory(int flag) {
         }
         int use_count = 1;
         BlobMemory *blob_memory = nullptr;
-        blob_memory = blob_memory_pool_map_[info.size()]->BorrowBlobMemory(use_count, info, true);
+        blob_memory = blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, true);
         blob_memory_mapping_.insert(std::make_pair(current_blob, blob_memory));
     }
 

@@ -16,11 +16,11 @@
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
-
-DECLARE_METAL_ACC(Reshape, LAYER_RESHAPE);
+// ReshapeLayer has loaded constant input and set layer_param
+DECLARE_METAL_ACC_WITH_EXTRA(Reshape, LAYER_RESHAPE, protected: virtual bool UseNaiveConstantBlobs(){return true;});
 
 Status MetalReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Reshape(inputs, outputs);
@@ -34,14 +34,14 @@ Status MetalReshapeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inpu
     // buffer_param_
     {
         MetalReshapeParams metal_params;
-        metal_params.input_width   = GetBlobCount(dims_input, 3);
-        metal_params.input_height  = GetBlobDim(dims_input, 2);
+        metal_params.input_width   = DimsFunctionUtils::GetDimProduct(dims_input, 3);
+        metal_params.input_height  = DimsFunctionUtils::GetDim(dims_input, 2);
         metal_params.input_size    = metal_params.input_height * metal_params.input_width;
         metal_params.input_slice   = UP_DIV(dims_input[1], 4);
         metal_params.input_channel = dims_input[1];
 
-        metal_params.output_width   = GetBlobCount(dims_output, 3);
-        metal_params.output_height  = GetBlobDim(dims_output, 2);
+        metal_params.output_width   = DimsFunctionUtils::GetDimProduct(dims_output, 3);
+        metal_params.output_height  = DimsFunctionUtils::GetDim(dims_output, 2);
         metal_params.output_size    = metal_params.output_height * metal_params.output_width;
         metal_params.output_slice   = UP_DIV(dims_output[1], 4);
         metal_params.output_channel = dims_output[1];
@@ -70,8 +70,8 @@ Status MetalReshapeLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs
                                         const std::vector<Blob *> &outputs,
                                         MTLSize &size) {
     auto dims_output = outputs[0]->GetBlobDesc().dims;
-    auto output_width   = GetBlobCount(dims_output, 3);
-    auto output_height  = GetBlobDim(dims_output, 2);
+    auto output_width   = DimsFunctionUtils::GetDimProduct(dims_output, 3);
+    auto output_height  = DimsFunctionUtils::GetDim(dims_output, 2);
     auto output_size    = output_height * output_width;
     auto output_slice   = UP_DIV(dims_output[1], 4);
     auto batch          = dims_output[0];

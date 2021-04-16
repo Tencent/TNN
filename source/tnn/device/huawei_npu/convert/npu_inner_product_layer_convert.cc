@@ -30,20 +30,48 @@ Status NpuInnerProductLayer::Convert() {
     }
 
     // weight
-    vector<int> input_shape = input_ops_[0]->GetShape();
-    std::string weight_name = layer_name_ + "_weight";
-    ge::Shape weight_shape({param->num_output, input_shape[1], input_shape[2], input_shape[3]});
-    auto weight_const = std::make_shared<ge::op::Const>(weight_name);
+    int input_dims_size = (int)input_ops_[0]->GetShape().size();
+    vector<int> w_shape = input_ops_[0]->GetShape();
+    w_shape[0]          = param->num_output;
+    for (int i = input_dims_size; i < 4; ++i) {
+        w_shape.push_back(1);
+    }
+    ge::Shape weight_shape(NpuUtils::Int32VecToTVec<int64_t>(w_shape));
+    auto weight_const = std::make_shared<ge::op::Const>(layer_name_ + "_weight");
     NpuUtils::CreateAttrValue(weight_const, weight_shape, resource->weight_handle);
     weight_ops_.push_back(weight_const);
 
-    // bias
-    auto output = std::make_shared<ge::op::FullConnection>(outputs_name_[0]);
-    output->set_input_x(*input_ops_[0]->GetOperator());
+    auto output = std::make_shared<hiai::op::FullyConnection>(outputs_name_[0]);
+    if (input_dims_size < 4) {
+        // insert Reshape layer if input dims size < 4
+        std::vector<int> shape;
+        shape.clear();
+        for (int i = 0; i < input_dims_size; ++i) {
+            shape.push_back(0);
+        }
+        for (int i = input_dims_size; i < 4; ++i) {
+            shape.push_back(1);
+        }
+        std::shared_ptr<ge::op::Const> shape_const = std::make_shared<ge::op::Const>(layer_name_ + "_reshape_shape");
+        ge::TensorDesc shape_desc(ge::Shape({(int64_t)shape.size()}), ge::FORMAT_NCHW, ge::DT_INT32);
+        NpuUtils::CreateAttrArray(shape_const, shape, shape_desc, (int)shape.size());
+        weight_ops_.push_back(shape_const);
+
+        auto reshape_op = std::make_shared<hiai::op::Reshape>(layer_name_ + "_reshape");
+        reshape_op->set_input_x(*input_ops_[0]->GetOperator());
+        reshape_op->set_input_shape(*shape_const);
+        weight_ops_.push_back(reshape_op);
+
+        output->set_input_x(*reshape_op);
+    } else {
+        output->set_input_x(*input_ops_[0]->GetOperator());
+    }
     output->set_input_w(*weight_const);
-    int bias_count = resource->bias_handle.GetDataCount();
+    output->set_attr_num_output(param->num_output);
+    // bias
     if (param->has_bias) {
         std::string bias_name = layer_name_ + "_bias";
+        int bias_count        = resource->bias_handle.GetDataCount();
         ge::Shape bias_shape({1, bias_count, 1, 1});
         auto bias_const = std::make_shared<ge::op::Const>(bias_name);
         NpuUtils::CreateAttrValue(bias_const, bias_shape, resource->bias_handle);

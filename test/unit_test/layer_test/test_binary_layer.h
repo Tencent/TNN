@@ -23,11 +23,10 @@
 namespace TNN_NS {
 
 class BinaryLayerTest : public LayerTest,
-                        public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType>> {
+                        public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, DataType>> {
 public:
     BinaryLayerTest(LayerType type);
     void RunBinaryTest(std::string layer_type_str, bool resource_positive = false);
-    bool InputParamCheck(const DataType& data_type, const DeviceType& dev, const int batch);
 
 protected:
     LayerType layer_type_;

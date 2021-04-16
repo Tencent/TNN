@@ -43,6 +43,13 @@ Status TensorRTLayerBuilder::Init(Context* context, LayerParam* param, LayerReso
         std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetShapeTensor();
     }
 
+    if (type_ == LayerType::LAYER_RESHAPE && input_blobs.size() > 1) {
+        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
+        auto name = output_blobs_[0]->GetBlobDesc().name;
+        std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetShapeBlobName(name);
+        std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetShapeTensor();
+    }
+
     param_    = param;
     resource_ = resource;
 

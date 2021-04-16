@@ -20,7 +20,7 @@
 #include "tnn/device/metal/metal_device.h"
 #include "tnn/device/metal/metal_macro.h"
 #include "tnn/utils/blob_memory_size_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/device/metal/acc/metal_cpu_adapter_acc.h"
 
 namespace TNN_NS {
@@ -67,6 +67,17 @@ Status MetalDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
     } else if (mat_type == NCHW_FLOAT) {
         BlobDesc desc;
         desc.data_type   = DATA_TYPE_FLOAT;
+        desc.dims        = dims;
+        desc.device_type = DEVICE_METAL;
+        desc.data_format = DATA_FORMAT_NCHW;
+        auto size_info   = Calculate(desc);
+        int size         = GetBlobMemoryBytesSize(size_info);
+        auto buffer      = [device newBufferWithLength:size options:MTLResourceCPUCacheModeDefaultCache];
+        *handle          = (void *)CFBridgingRetain(buffer);
+        return TNN_OK;
+    } else if (mat_type == NC_INT32) {
+        BlobDesc desc;
+        desc.data_type   = DATA_TYPE_INT32;
         desc.dims        = dims;
         desc.device_type = DEVICE_METAL;
         desc.data_format = DATA_FORMAT_NCHW;

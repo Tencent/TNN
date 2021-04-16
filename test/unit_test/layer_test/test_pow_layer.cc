@@ -31,7 +31,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, PowLayerTest,
                              // size Values(16, 19),
                              testing::Values(1, 6, 8, 13),
                              // dim count
-                             testing::Values(2, 3, 4, 5, 6),
+                             testing::Values(2, 3, 4, 5),
                              // scale
                              testing::Values(1.234, 2.30, 0),
                              // shift
@@ -56,16 +56,16 @@ TEST_P(PowLayerTest, PowLayer) {
     DataType data_type = std::get<7>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_HUAWEI_NPU == dev) {
-        GTEST_SKIP();
-    }
-
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if (dim_count > 4 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
     if (DEVICE_CUDA == dev) {
         exponent = (int)exponent;
+    }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
     }
 
     // param

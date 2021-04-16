@@ -22,21 +22,21 @@ __kernel void ArgOpN(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     DEAL_NON_UNIFORM_DIM2(out_cw_idx, out_height_idx);
 
     FLOAT4 guard_val    = RI_F(input, SAMPLER, (int2)(out_cw_idx, out_height_idx));
-    FLOAT4 out          = 0;
+    int4 out          = 0;
 
     for (int b = 1; b < input_batch; b++) {
         int2 pos    = (int2)(out_cw_idx, b * output_height + out_height_idx);
         FLOAT4 in   = RI_F(input, SAMPLER, pos);
 
-        out.x = select(out.x, (FLOAT)b, CONVERT_INT(in.x BINARY_OPERATOR guard_val.x));
-        out.y = select(out.y, (FLOAT)b, CONVERT_INT(in.y BINARY_OPERATOR guard_val.y));
-        out.z = select(out.z, (FLOAT)b, CONVERT_INT(in.z BINARY_OPERATOR guard_val.z));
-        out.w = select(out.w, (FLOAT)b, CONVERT_INT(in.w BINARY_OPERATOR guard_val.w));
+        out.x = select(out.x, b, convert_int(in.x BINARY_OPERATOR guard_val.x));
+        out.y = select(out.y, b, convert_int(in.y BINARY_OPERATOR guard_val.y));
+        out.z = select(out.z, b, convert_int(in.z BINARY_OPERATOR guard_val.z));
+        out.w = select(out.w, b, convert_int(in.w BINARY_OPERATOR guard_val.w));
 
         guard_val = OPERATOR(guard_val, in);
     }
 
-    WI_F(output, (int2)(out_cw_idx, out_height_idx), out);
+    write_imagei(output, (int2)(out_cw_idx, out_height_idx), out);
 }
 
 __kernel void ArgOpC(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
@@ -53,7 +53,7 @@ __kernel void ArgOpC(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
 
     FLOAT4 in       = RI_F(input, SAMPLER, (int2)(out_width_idx, out_bh_idx));
     FLOAT guard_val = in.x;
-    FLOAT4 out      = 0;
+    int4 out      = 0;
     
     int input_c_base, cb;
     if (input_channel >= 4) {
@@ -100,7 +100,7 @@ __kernel void ArgOpC(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
         CALCULATE_GUARD(in.y, guard_val, 1);
     }
 
-    WI_F(output, (int2)(out_width_idx, out_bh_idx), out);
+    write_imagei(output, (int2)(out_width_idx, out_bh_idx), out);
 }
 
 __kernel void ArgOpH(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
@@ -116,21 +116,21 @@ __kernel void ArgOpH(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
 
     int input_bh_idx    = out_batch_idx * input_height;
     FLOAT4 guard_val    = RI_F(input, SAMPLER, (int2)(out_cw_idx, input_bh_idx));
-    FLOAT4 out          = 0;
+    int4 out          = 0;
 
     for (int h = 1; h < input_height; h++) {
         int2 pos    = (int2)(out_cw_idx, input_bh_idx + h);
         FLOAT4 in   = RI_F(input, SAMPLER, pos);
 
-        out.x = select(out.x, (FLOAT)h, CONVERT_INT(in.x BINARY_OPERATOR guard_val.x));
-        out.y = select(out.y, (FLOAT)h, CONVERT_INT(in.y BINARY_OPERATOR guard_val.y));
-        out.z = select(out.z, (FLOAT)h, CONVERT_INT(in.z BINARY_OPERATOR guard_val.z));
-        out.w = select(out.w, (FLOAT)h, CONVERT_INT(in.w BINARY_OPERATOR guard_val.w));
+        out.x = select(out.x, h, convert_int(in.x BINARY_OPERATOR guard_val.x));
+        out.y = select(out.y, h, convert_int(in.y BINARY_OPERATOR guard_val.y));
+        out.z = select(out.z, h, convert_int(in.z BINARY_OPERATOR guard_val.z));
+        out.w = select(out.w, h, convert_int(in.w BINARY_OPERATOR guard_val.w));
 
         guard_val = OPERATOR(guard_val, in);
     }
 
-    WI_F(output, (int2)(out_cw_idx, out_batch_idx), out);
+    write_imagei(output, (int2)(out_cw_idx, out_batch_idx), out);
 }
 
 __kernel void ArgOpW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
@@ -146,19 +146,19 @@ __kernel void ArgOpW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
 
     int input_cw_idx    = out_channel_blocks_idx * input_width;
     FLOAT4 guard_val    = RI_F(input, SAMPLER, (int2)(input_cw_idx, out_bh_idx));
-    FLOAT4 out          = 0;
+    int4 out          = 0;
 
     for (int w = 1; w < input_width; w++) {
         int2 pos    = (int2)(input_cw_idx + w, out_bh_idx);
         FLOAT4 in   = RI_F(input, SAMPLER, pos);
 
-        out.x = select(out.x, (FLOAT)w, CONVERT_INT(in.x BINARY_OPERATOR guard_val.x));
-        out.y = select(out.y, (FLOAT)w, CONVERT_INT(in.y BINARY_OPERATOR guard_val.y));
-        out.z = select(out.z, (FLOAT)w, CONVERT_INT(in.z BINARY_OPERATOR guard_val.z));
-        out.w = select(out.w, (FLOAT)w, CONVERT_INT(in.w BINARY_OPERATOR guard_val.w));
+        out.x = select(out.x, w, convert_int(in.x BINARY_OPERATOR guard_val.x));
+        out.y = select(out.y, w, convert_int(in.y BINARY_OPERATOR guard_val.y));
+        out.z = select(out.z, w, convert_int(in.z BINARY_OPERATOR guard_val.z));
+        out.w = select(out.w, w, convert_int(in.w BINARY_OPERATOR guard_val.w));
 
         guard_val = OPERATOR(guard_val, in);
     }
 
-    WI_F(output, (int2)(out_channel_blocks_idx, out_bh_idx), out);
+    write_imagei(output, (int2)(out_channel_blocks_idx, out_bh_idx), out);
 }

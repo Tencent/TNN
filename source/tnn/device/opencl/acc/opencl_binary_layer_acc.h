@@ -29,6 +29,8 @@ public:
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) override;
+
 private:
     std::string GetKernelName(const MultidirBroadcastLayerParam &param);
     Status ConvertParam(float *bias_data_ptr, std::vector<int> param_dims);
@@ -42,6 +44,7 @@ private:
     std::shared_ptr<OpenCLMemory> binary_params_ = nullptr;
     int input_idx_ = 0;
     int param_idx_ = 1;
+    int output_dims_size_ = 0;
 };
 
 #define DECLARE_OPENCL_BINARY_ACC(type_string)                                                                         \

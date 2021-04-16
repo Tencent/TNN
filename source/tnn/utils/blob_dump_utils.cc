@@ -49,6 +49,7 @@ std::string BlobDescToString(BlobDesc desc) {
     char ss[1000];
     std::string name = desc.name;
     std::replace(name.begin(), name.end(), '/', '_');
+    std::replace(name.begin(), name.end(), ':', '_');
     snprintf(ss, 1000, "%s-%s", name.c_str(), dims_info.c_str());
     return std::string(ss);
 }
@@ -73,12 +74,15 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
     Mat cpu_mat(DEVICE_NAIVE, mat_type, blob_desc.dims);
     void *data_ptr = cpu_mat.GetData();
     
-    if (blob->GetBlobDesc().device_type != DEVICE_NAIVE) {
+    if (blob->GetBlobDesc().device_type != DEVICE_NAIVE || data_type == DATA_TYPE_INT8) {
         BlobConverter blob_converter_dev(blob);
         Status ret = blob_converter_dev.ConvertToMat(cpu_mat, MatConvertParam(), command_queue);
         if (ret != TNN_OK) {
             LOGE("output blob_converter failed (%s)\n", ret.description().c_str());
             return ret;
+        }
+        if (mat_type == NCHW_FLOAT || mat_type == NCDHW_FLOAT) {
+            data_type = DATA_TYPE_FLOAT;
         }
     } else {
         data_ptr = blob->GetHandle().base;
@@ -98,13 +102,17 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
         fprintf(fp, "%d\n", int(ptr[n]));
     }
 #else
-    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_BFP16
-        || data_type == DATA_TYPE_INT8) {
+    if (data_type == DATA_TYPE_FLOAT) {
         auto ptr = (float *)data_ptr;
         for (int n = 0; n < count; ++n) {
             fprintf(fp, "%.9f\n", ptr[n]);
         }
-    } else if (data_type == DATA_TYPE_INT32) {
+    } else if (data_type == DATA_TYPE_INT8) {
+        auto ptr = (char *)data_ptr;
+        for (int n = 0; n < count; ++n) {
+            fprintf(fp, "%d\n", ptr[n]);
+        }
+    }else if (data_type == DATA_TYPE_INT32) {
         auto ptr = (int *)data_ptr;
         for (int n = 0; n < count; ++n) {
             fprintf(fp, "%d\n", ptr[n]);

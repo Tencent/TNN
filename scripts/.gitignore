@@ -3,3 +3,11 @@ build64
 release
 build_x86
 build_linux
+build_x86_linux
+x86_linux_release
+build_macos
+macos_release
+build_msvc
+msvc_release
+build_cuda_linux
+cuda_linux_release

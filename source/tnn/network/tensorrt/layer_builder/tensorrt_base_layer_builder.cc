@@ -61,6 +61,10 @@ void TensorRTBaseLayerBuilder::SetConstantResource(ConstantResource* consts) {
     this->m_layer->SetConstantResource(consts);
 }
 
+void TensorRTBaseLayerBuilder::SetNetwork(TensorRTNetwork_* network) {
+    this->m_network = network;
+}
+
 std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTLayerBuilderCreatorMap() {
     // static shared_ptr of LayerCreatorMap.
     static std::once_flag once;

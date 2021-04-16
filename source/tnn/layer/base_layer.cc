@@ -64,7 +64,7 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
         }
         auto dims = output_blobs[0]->GetBlobDesc().dims;
         for (auto item : dims) {
-            if (item <= 0) {
+            if (item < 0) {
                 LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
                 return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
             }
@@ -76,6 +76,7 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
         if (layer_acc_ != NULL) {
             layer_acc_->SetRuntimeMode(runtime_model_);
             layer_acc_->SetConstantResource(const_resource_);
+            layer_acc_->SetConstantResourceFlag(const_resource_flag_);
             return layer_acc_->Init(context, param, resource, input_blobs_, output_blobs_);
         } else {
             LOGE("layer acc of type(%d) is nil\n", type_);
@@ -176,6 +177,8 @@ Status BaseLayer::Reshape() {
     }
 
     if (layer_acc_ != NULL) {
+        auto status = layer_acc_->ReloadConstantBlobs(input_blobs_, true);
+        RETURN_ON_NEQ(status, TNN_OK);
         return layer_acc_->Reshape(input_blobs_, output_blobs_);
     } else {
         LOGE("layer acc is nil\n");
@@ -197,11 +200,15 @@ Status BaseLayer::Forward() {
             //dont check the status of InferOutputShape in constant folding
             auto status = InferOutputShape(true);
             
+            //fill layer param and infer runtime output shape in BeforeForward
             status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
             RETURN_ON_NEQ(status, TNN_OK);
             
             if (IsOutputConstant()) {
                 status = layer_acc_->Forward(input_blobs_, output_blobs_);
+                RETURN_ON_NEQ(status, TNN_OK);
+            } else {
+                status = InferOutputShape(false);
                 RETURN_ON_NEQ(status, TNN_OK);
             }
         }
@@ -238,7 +245,11 @@ Status BaseLayer::InferShapeAhead(std::vector<Blob*>& input_blobs, std::vector<B
     param_        = param;
     resource_     = resource;
 
-    InferOutputShape();
+    if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+        InferOutputShape();
+    } else {
+        InferOutputShape(true);
+    }
     return TNN_OK;
 }
 
@@ -267,6 +278,10 @@ int BaseLayer::GetLayerChangeFlag() {
 
 void BaseLayer::SetConstantResource(ConstantResource* consts) {
     const_resource_ = consts;
+}
+
+void BaseLayer::SetConstantResourceFlag(ConstantResourceFlag *flags) {
+    const_resource_flag_ = flags;
 }
 
 // @brief set runtime mode

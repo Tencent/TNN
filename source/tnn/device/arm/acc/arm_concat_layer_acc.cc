@@ -12,15 +12,14 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/acc/arm_concat_layer_acc.h"
 #include "tnn/device/arm/arm_util.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
-
-DECLARE_ARM_ACC(Concat, LAYER_CONCAT);
 
 /*
 directly copy in c4 mode, nc4hw4 format
@@ -332,12 +331,64 @@ int concat_common<fp16_t>(Blob *output, const std::vector<Blob *> &inputs, int a
 }
 #endif
 
-Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    if (inputs.size() < 2) {
-        LOGE("Error: invalid inputs count\n");
-        return Status(TNNERR_LAYER_ERR, "Concat layer's inputs size must >= 2");
+ArmConcatLayerAcc::~ArmConcatLayerAcc() {}
+
+Status ArmConcatLayerAcc::ExecInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    ConcatLayerParam *concat_param = dynamic_cast<ConcatLayerParam *>(param_);
+    CHECK_PARAM_NULL(concat_param);
+
+    switch (concat_param->axis) {
+        case 1:
+            concat_channel_i8(outputs[0], inputs);
+            break;
+        default:
+            concat_common_i8(outputs[0], inputs, concat_param->axis);
+            break;
+    }
+    return TNN_OK;
+}
+
+Status ArmConcatLayerAcc::ExecNchw(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    ConcatLayerParam *concat_param = dynamic_cast<ConcatLayerParam *>(param_);
+    CHECK_PARAM_NULL(concat_param);
+
+    auto dims   = inputs[0]->GetBlobDesc().dims;
+
+    const int axis = concat_param->axis;
+    if (axis > dims.size() || axis < 0) {
+        LOGE("Error: Concat layer param invalid\n");
+        return Status(TNNERR_PARAM_ERR, "Concat layer param invalid");
     }
 
+    int num_concats = 1;
+    for (int i = 0; i < axis; i++) {
+        num_concats *= dims[i];
+    }
+
+    int concate_size = 1;
+    for (int i = axis + 1; i < dims.size(); i++) {
+        concate_size *= dims[i];
+    }
+
+    auto datasize                 = DataTypeUtils::GetBytesSize(inputs[0]->GetBlobDesc().data_type);
+    int8_t *output_data           = static_cast<int8_t *>(outputs[0]->GetHandle().base);
+    int output_concat_axis        = outputs[0]->GetBlobDesc().dims[axis];
+    int output_concat_axis_offset = 0;
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        // use int8_t for all types
+        int8_t *input_data          = static_cast<int8_t *>(inputs[i]->GetHandle().base);
+        const int input_concat_axis = inputs[i]->GetBlobDesc().dims[axis];
+        for (int n = 0; n < num_concats; ++n) {
+            memcpy(output_data + (n * output_concat_axis + output_concat_axis_offset) * concate_size * datasize,
+                input_data + n * input_concat_axis * concate_size * datasize,
+                input_concat_axis * concate_size * datasize);
+        }
+        output_concat_axis_offset += input_concat_axis;
+    }
+    return TNN_OK;
+}
+
+Status ArmConcatLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     ConcatLayerParam *concat_param = dynamic_cast<ConcatLayerParam *>(param_);
     CHECK_PARAM_NULL(concat_param);
 
@@ -371,8 +422,6 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                         static_cast<float *>(context_->GetSharedWorkSpace(output_stride * sizeof(float)));
                     concat_channel<float>(outputs[0], inputs, unpack_buf);
                 }
-            } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-                concat_channel_i8(outputs[0], inputs);
             } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
                 if (concat_c4) {
                     concat_channel_c4<bfp16_t>(outputs[0], inputs);
@@ -401,14 +450,11 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 return TNNERR_LAYER_ERR;
             }
             break;
-        case 2:
-        case 3:
+        default:
             if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
                 concat_common<float>(outputs[0], inputs, concat_param->axis);
             } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
                 concat_common<bfp16_t>(outputs[0], inputs, concat_param->axis);
-            } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-                concat_common_i8(outputs[0], inputs, concat_param->axis);
             }
 #if TNN_ARM82
             else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
@@ -419,16 +465,46 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 return TNNERR_LAYER_ERR;
             }
             break;
-        default:
-            LOGE("Error: Concat only support on axis 1");
-            break;
     }
 
     return TNN_OK;
 }
 
+Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (inputs.size() < 2) {
+        LOGE("Error: invalid inputs count\n");
+        return Status(TNNERR_LAYER_ERR, "Concat layer's inputs size must >= 2");
+    }
+
+    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+        return ExecInt8(inputs, outputs);
+    }
+
+    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT ||
+        inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
+    }
+#if TNN_ARM82
+    else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+    }
+#endif
+    else {
+        return Status(TNNERR_LAYER_ERR, "Unsupported data type in concat");
+    }
+
+    if (inputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
+        return ExecNchw(inputs, outputs);
+    } else if (inputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NC4HW4 ||
+               inputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NC8HW8) {
+        return Exec(inputs, outputs);
+    } else {
+        return Status(TNNERR_LAYER_ERR, "Unsupported data format in concat");
+    }
+    return TNNERR_LAYER_ERR;
+}
+
 REGISTER_ARM_ACC(Concat, LAYER_CONCAT)
 REGISTER_ARM_PRECISION_FP16(LAYER_CONCAT)
 REGISTER_ARM_LAYOUT(LAYER_CONCAT, DATA_FORMAT_NC4HW4)
+REGISTER_ARM_LAYOUT(LAYER_CONCAT, DATA_FORMAT_NCHW)
 
 }  // namespace TNN_NS

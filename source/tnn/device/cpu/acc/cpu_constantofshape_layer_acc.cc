@@ -33,6 +33,11 @@ Status CpuConstantOfShapeLayerAcc::Forward(const std::vector<Blob *> &inputs, co
     auto output_count = DimsVectorUtils::Count(output_dims);
     auto output_data_ptr = (char *)outputs[0]->GetHandle().base;
     
+    //support the case if constofshape has empty output blob with dims={0}
+    if (output_dims.size() == 1 || output_dims[0] == 0) {
+        return TNN_OK;
+    }
+    
     if (output_dims.size() <= 0 || output_data_ptr==nullptr || output_count <= 0) {
         return Status(TNNERR_LAYER_ERR, "ConstantOfShape has invalid param or resource");
     }

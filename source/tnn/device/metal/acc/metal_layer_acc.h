@@ -42,8 +42,12 @@ public:
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
-    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs);
-    
+    /**
+     * @brief allocate or update constant blobs if constant resource changes.
+     * Note: this func may cost much time, call this func only when necessary.
+     */
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false);
+
 
 public:
     virtual std::string KernelName(const std::vector<Blob *> &inputs,
@@ -71,6 +75,13 @@ protected:
     NSString *kernel_label_ = nil;
     NSString * GetKernelLabel();
 
+    // @brief if true, const blobs are loaded by the naive device
+    virtual bool UseNaiveConstantBlobs();
+    // @brief config blobdesc for reloading buffer to metal blob
+    virtual Status ConfigBuffer2MetalBlobDesc(BlobDesc &desc);
+    // @brief reload buffer to metal blob
+    virtual Status RawBuffer2MetalBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDesc &desc);
+
 private:
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);
 };
@@ -87,6 +98,16 @@ struct MetalParams GetDefaultMetalParams(DimsVector input, DimsVector output);
 // @param count  the count of elements in RawBuffer
 // @param status   output status
 id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, Status &status);
+
+// @brief allocate packed metal buffer with format GOIHW4 form RawBuffer, like conv weight(gic or gic is not 4x)
+// @context tnn instance device context
+// @param buffer    input raw buffer
+// @param buffer_shape  format OIHW
+// @param group    group
+// @param status   output status
+// @param status   transpose transpose weght for deconv
+id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
+                                                            Status &status, bool transpose = false);
 
 // @brief allocate packed metal buffer with format GOIHW16 form RawBuffer, like conv weight
 // @context tnn instance device context
@@ -139,7 +160,6 @@ void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, boo
         virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder, \
                                      const std::vector<Blob *> &inputs, \
                                      const std::vector<Blob *> &outputs);\
-    private:                                                                                                          \
         extra; \
     }
 

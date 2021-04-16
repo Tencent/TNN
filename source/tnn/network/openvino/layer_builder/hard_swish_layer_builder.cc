@@ -29,7 +29,7 @@
 #include "tnn/network/openvino/openvino_types.h"
 
 #include "tnn/network/openvino/custom_layer/custom_hard_swish.h"
-#include <iostream>
+#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
 
@@ -73,24 +73,12 @@ Status HardSwishOVLayerBuilder::Build() {
 
     // auto hardSwishNode = std::make_shared<ngraph::op::v1::Multiply>(
     //     input_node0->output(0), clampNode->output(0));
-    ngraph::OutputVector inputs;
-    for (auto item : input_node) {
-        inputs.push_back(item->output(0));
-    }
-    // inputs.push_back(input_node[0]);
-    auto hardSwishNode = std::make_shared<CustomHardSwishOp>(
-        inputs, base_layer_, GetInputBlobs(), GetOutputBlobs());
-
-    hardSwishNode->validate_and_infer_types();
-    hardSwishNode->set_friendly_name(paramlist->name);
-
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(hardSwishNode);
-    SetOutputTensors(outputNodes);
+    ADD_CUSTOM_NODE(HardSwish, paramlist->name);
 
     return TNN_OK;
 }
 
 REGISTER_OPENVINO_LAYER_BUILDER(HardSwish, LAYER_HARDSWISH);
+REGISTER_CUSTOM_TYPE(LAYER_HARDSWISH);
 
 }

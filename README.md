@@ -81,41 +81,7 @@ At present, TNN has been launched in various major businesses, and its following
     * Efficient "memory pool" implementation: Based on a full network DAG analysis, the implementation reuses memory between non-dependent nodes which reduces memory cost by 90%.
     * Cross-model memory reduces: This supports external real-time design for network memory so that multiple models can share mutual memory.
 
-* The performance of mainstream models on TNN: v0.1 2020.05.29
-
-    * Kirin970：
-
-        | model                     | cpu time(single thread, ms) | gpu time(ms) | npu time(ms)
-        |---------------------------|--------------|--------------|---------------|
-        | Mobilenet_v1              | 88           |   12         |       4.9     |
-        | Mobilenet_v1_int8         | 55           |              |               |
-        | Mobilenet_v2              | 58           |   11         |       8.0     |
-        | Mobilenet_v2_int8         | 41           |              |               |
-        | squeezenet_v1.0           | 127          |   20         |       5.1     |
-        | squeezenet_v1.0_int8      | 82           |              |               |
-
-    * Snapdragon 835：
-
-        | model                     | cpu time(single thread, ms) | gpu time(ms) |
-        |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 94           |   16         |
-        | Mobilenet_v1_int8         | 62           |              |
-        | Mobilenet_v2              | 61           |   14         |
-        | Mobilenet_v2_int8         | 47           |              |
-        | squeezenet_v1.0           | 122          |   28         |
-        | squeezenet_v1.0_int8      | 93           |              |
-
-    * Snapdragon 845：
-
-        | model                     | cpu time(single thread, ms) | gpu time(ms) |
-        |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 60           |   10         |
-        | Mobilenet_v1_int8         | 37           |              |
-        | Mobilenet_v2              | 39           |   8          |
-        | Mobilenet_v2_int8         | 28           |              |
-        | squeezenet_v1.0           | 74           |   14         |
-        | squeezenet_v1.0_int8      | 56           |              |
-
+* The performance of mainstream models on TNN: [benchmark data](benchmark_data.md)
 
 * TNN architecture diagram：
 
@@ -179,7 +145,6 @@ TNN referenced the following projects：
 
 ## FAQ
 * [FAQ](doc/en/faq_en.md)
-* [FAQ Model Alignment](doc/en/model_align_en.md)
 
 ## Join Us
 

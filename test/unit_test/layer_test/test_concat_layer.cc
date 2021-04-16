@@ -45,20 +45,18 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
     DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-#ifndef TNN_ARM82
-    if (data_type == DATA_TYPE_HALF) {
-        GTEST_SKIP();
-    }
-#endif
-
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 
     if (axis >= dim_count) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+    if (DEVICE_HUAWEI_NPU == dev && dim_count > 4) {
         GTEST_SKIP();
     }
 
@@ -79,7 +77,7 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
     for (int i = 0; i < input_count; ++i)
         input_dims_vec.push_back(input_dims);
     auto interpreter = GenerateInterpreter("Concat", input_dims_vec, param);
-    Run(interpreter);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

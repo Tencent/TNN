@@ -15,6 +15,7 @@
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/acc/metal_unary_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 DECLARE_METAL_UNARY_ACC(Clip, LAYER_CLIP);

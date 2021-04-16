@@ -25,7 +25,7 @@ namespace TNN_NS {
 Status CudaInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
-    CudaLayerAcc::Init(context, param, resource, inputs, outputs);
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 
     InnerProductLayerParam *ip_param =
         dynamic_cast<InnerProductLayerParam *>(param);
@@ -62,6 +62,7 @@ Status CudaInnerProductLayerAcc::Init(Context *context, LayerParam *param, Layer
 }
 
 Status CudaInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
     InnerProductLayerParam *ip_param =
         dynamic_cast<InnerProductLayerParam *>(param_);
 
