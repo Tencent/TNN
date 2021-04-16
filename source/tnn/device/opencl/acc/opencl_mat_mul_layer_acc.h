@@ -30,7 +30,7 @@ public:
 
 private:
     Status InitReshapeLayer(Blob *blob, std::shared_ptr<OpenCLReshapeLayerAcc>& layer,
-                            bool& need_reshape, std::vector<Blob *> &reshape_layer_inputs,
+                            bool &need_reshape, std::vector<Blob *> &reshape_layer_inputs,
                             std::vector<Blob *> &reshape_layer_outputs, std::shared_ptr<Blob>& reshape_blob,
                             int position);
     Status ConvertWeights(float *weights_data_ptr, int weight_w, int weight_h);
@@ -41,11 +41,11 @@ private:
     DimsVector matrix_c_dims_ = {};
     int weight_position_ = 0;
     // input0, input1, output
-    std::array<bool, 3> need_reshape_ = {false, false, false};
-    std::array<std::shared_ptr<OpenCLReshapeLayerAcc>, 3> reshape_layer_acc_ = {nullptr, nullptr, nullptr};
-    std::array<std::vector<Blob *>, 3> reshape_inputs_ = {};
-    std::array<std::vector<Blob *>, 3> reshape_outputs_ = {};
-    std::array<std::shared_ptr<Blob>, 3> reshape_blob_ = {nullptr, nullptr, nullptr};
+    std::vector<bool> need_reshape_ = {false, false, false};
+    std::vector<std::shared_ptr<OpenCLReshapeLayerAcc> > reshape_layer_acc_ = {nullptr, nullptr, nullptr};
+    std::vector<std::vector<Blob *> > reshape_inputs_ = {};
+    std::vector<std::vector<Blob *> > reshape_outputs_ = {};
+    std::vector<std::shared_ptr<Blob> > reshape_blob_ = {nullptr, nullptr, nullptr};
 };
 
 }  // namespace TNN_NS
