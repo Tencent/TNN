@@ -51,6 +51,7 @@ Status OpenCLMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     int batch_b   = count_b / (K * N);
     int batch_c   = count_c / (M * N);
 
+    // input0, input1, output
     reshape_inputs_.resize(3);
     reshape_outputs_.resize(3);
 
