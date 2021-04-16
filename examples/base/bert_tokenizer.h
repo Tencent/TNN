@@ -35,7 +35,7 @@ public:
 
 class BertTokenizerInput : public TNNSDKInput {
 public:
-    BertTokenizerInput();
+    BertTokenizerInput(DeviceType device_type);
     virtual ~BertTokenizerInput();
     void* inputIds;
     void* inputMasks;

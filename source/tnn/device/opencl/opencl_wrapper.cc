@@ -280,6 +280,15 @@ cl_program clCreateProgramWithSource(cl_context context, cl_uint count, const ch
     return func(context, count, strings, lengths, errcode_ret);
 }
 
+//clCreateProgramWithBinary wrapper, use OpenCLSymbols function.
+cl_program clCreateProgramWithBinary(cl_context context, cl_uint count, const cl_device_id *device_list,
+                                     const size_t *length, const unsigned char **buffer,
+                                     cl_int *binary_status, cl_int *errcode_ret) {
+    auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateProgramWithBinary;
+    CHECK_NOTNULL(func);
+    return func(context, count, device_list, length, buffer, binary_status, errcode_ret);
+}
+
 //clGetProgramInfo wrapper, use OpenCLSymbols function.
 cl_int clGetProgramInfo(cl_program program, cl_program_info param_name, size_t param_value_size, void *param_value,
                         size_t *param_value_size_ret) {

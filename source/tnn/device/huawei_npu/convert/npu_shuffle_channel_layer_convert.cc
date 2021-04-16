@@ -22,6 +22,9 @@ DECLARE_NPU_LAYER(ShuffleChannel, LAYER_SHUFFLE_CHANNEL)
 Status NpuShuffleChannelLayer::Convert() {
     auto param = dynamic_cast<ShuffleLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
+    if (input_ops_[0]->GetShape().size() != 4) {
+        return Status(TNNERR_PARAM_ERR, "Error: ShuffleChannel layer not support dim != 4 for HUAWEI_NPU");
+    }
 
     auto output = std::make_shared<ge::op::ShuffleChannel>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());

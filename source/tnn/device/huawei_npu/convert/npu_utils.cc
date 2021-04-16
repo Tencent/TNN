@@ -23,11 +23,17 @@ namespace TNN_NS {
 
 Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const> &attr_value, ge::Shape shape, RawBuffer &raw_buffer) {
     ge::TensorPtr tensor_ptr = std::make_shared<ge::Tensor>();
+    ge::Format format        = ge::FORMAT_RESERVED;
+    if (shape.GetDims().size() == 4) {
+        format = ge::FORMAT_NCHW;
+    } else {
+        format = ge::FORMAT_ND;
+    }
     if (raw_buffer.GetDataType() == DATA_TYPE_FLOAT || raw_buffer.GetDataType() == DATA_TYPE_HALF) {
-        ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
+        ge::TensorDesc desc(shape, format, ge::DT_FLOAT);
         tensor_ptr->SetTensorDesc(desc);
     } else if (raw_buffer.GetDataType() == DATA_TYPE_INT32) {
-        ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_INT32);
+        ge::TensorDesc desc(shape, format, ge::DT_INT32);
         tensor_ptr->SetTensorDesc(desc);
     } else {
         LOGE("raw buffer data type is not support in CreateAttrValue");

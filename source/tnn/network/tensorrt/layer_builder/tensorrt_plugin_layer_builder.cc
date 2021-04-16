@@ -158,15 +158,12 @@ const char* TensorRTPluginLayerBuilder::getPluginNamespace() const {
 
 void TensorRTPluginLayerBuilder::configurePlugin(const nvinfer1::DynamicPluginTensorDesc* in, int nbInputs,
         const nvinfer1::DynamicPluginTensorDesc* out, int nbOutputs) {
-    // skip data type update
     for (int i = 0; i < nbInputs; i++) {
-        //input_blobs_[i]->GetBlobDesc().data_type = ConvertTRTDataType(in[i].desc.type);
-        ;
+        input_blobs_[i]->GetBlobDesc().data_type = ConvertTRTDataType(in[i].desc.type);
     }
 
     for (int i = 0; i < nbOutputs; i++) {
-        //output_blobs_[i]->GetBlobDesc().data_type = ConvertTRTDataType(out[i].desc.type);
-        ;
+        output_blobs_[i]->GetBlobDesc().data_type = ConvertTRTDataType(out[i].desc.type);
     }
 }
 

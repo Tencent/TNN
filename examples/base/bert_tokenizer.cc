@@ -338,17 +338,17 @@ Status BertTokenizer::buildInput(std::string paragraph, std::string question, st
     return TNN_OK;
 }
 
-BertTokenizerInput::BertTokenizerInput() {
+BertTokenizerInput::BertTokenizerInput(DeviceType device_type) {
     inputIds = (void*)malloc(sizeof(float) * MaxSeqCount);
     inputMasks = (void*)malloc(sizeof(float) * MaxSeqCount);
     segments = (void*)malloc(sizeof(float) * MaxSeqCount);
     DimsVector nchw = {1, MaxSeqCount};
     mat_map_.insert(std::pair<std::string, std::shared_ptr<Mat>>("input_ids_0", 
-        std::make_shared<TNN_NS::Mat>(DEVICE_X86, NC_INT32, nchw, inputIds)));
+        std::make_shared<TNN_NS::Mat>(device_type, NC_INT32, nchw, inputIds)));
     mat_map_.insert(std::pair<std::string, std::shared_ptr<Mat>>("input_mask_0", 
-        std::make_shared<TNN_NS::Mat>(DEVICE_X86, NC_INT32, nchw, inputMasks)));
+        std::make_shared<TNN_NS::Mat>(device_type, NC_INT32, nchw, inputMasks)));
     mat_map_.insert(std::pair<std::string, std::shared_ptr<Mat>>("segment_ids_0", 
-        std::make_shared<TNN_NS::Mat>(DEVICE_X86, NC_INT32, nchw, segments)));
+        std::make_shared<TNN_NS::Mat>(device_type, NC_INT32, nchw, segments)));
 }
 
 BertTokenizerInput::~BertTokenizerInput() {

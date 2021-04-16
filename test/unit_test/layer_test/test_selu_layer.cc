@@ -39,6 +39,9 @@ TEST_P(SeluLayerTest, SeluLayer) {
     if (DEVICE_OPENCL == dev && dim_count > 4) {
         GTEST_SKIP();
     }
+    if (DEVICE_HUAWEI_NPU == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
 
     // param
     std::shared_ptr<SeluLayerParam> param(new SeluLayerParam());
