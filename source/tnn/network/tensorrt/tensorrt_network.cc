@@ -46,6 +46,7 @@ TensorRTNetwork_::TensorRTNetwork_() {
     m_trt_engine = nullptr;
     m_trt_context = nullptr;
     m_context_memory = nullptr;
+    m_trt_bindings = nullptr;
 }
 
 TensorRTNetwork_::~TensorRTNetwork_() {
@@ -61,6 +62,8 @@ TensorRTNetwork_::~TensorRTNetwork_() {
     }
 
     if (m_trt_engine) m_trt_engine->destroy();
+
+    if(m_trt_bindings) delete[] m_trt_bindings;
 }
 
 Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
@@ -166,13 +169,12 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         deploy_input.read(model_stream, size);
         IRuntime* runtime = createInferRuntime(m_trt_logger);
         m_trt_engine = runtime->deserializeCudaEngine(model_stream, size);
-
+        delete[] model_stream;
         ret = CreateExecuteContext();
         if (ret != TNN_OK)
             return ret;
 
         runtime->destroy();
-        delete[] model_stream;
         deploy_input.close();
     } else {
         ret = CreateExecuteContext();
