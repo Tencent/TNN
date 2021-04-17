@@ -17,6 +17,7 @@ jobs:
     - name: Preflight
       id: preflight
       run: |
+        env
         echo ::set-output name=CONDITION::0
         ./scripts/.ci/preflight.sh android || ret=$? && echo $ret && echo ::set-output name=CONDITION::$ret
 
