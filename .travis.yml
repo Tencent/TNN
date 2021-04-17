@@ -15,9 +15,9 @@ matrix:
       os: linux
       arch: arm64
       before_install:
+        - env
         - ./scripts/.ci/preflight.sh arm || travis_terminate 0
       script:
-        - env
         - ./scripts/build_aarch64_linux.sh
 
     - name: "Linux | Arm32 | build"
