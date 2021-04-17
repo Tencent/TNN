@@ -60,12 +60,12 @@ public class ImageOCRDetectFragment extends BaseFragment {
 
         // copy ocr related models to sdcard
         String[] modelPathsDetector = {
-                "angle_net.onnx.pack.tnnmodel",
-                "angle_net.onnx.pack.tnnproto",
-                "crnn_lite_lstm.onnx.pack.tnnmodel",
-                "crnn_lite_lstm.onnx.pack.tnnproto",
-                "dbnet.onnx.pack.tnnmodel",
-                "dbnet.onnx.pack.tnnproto",
+                "angle_net.tnnmodel",
+                "angle_net.tnnproto",
+                "crnn_lite_lstm.tnnmodel",
+                "crnn_lite_lstm.tnnproto",
+                "dbnet.tnnmodel",
+                "dbnet.tnnproto",
                 "keys.txt",
         };
 
