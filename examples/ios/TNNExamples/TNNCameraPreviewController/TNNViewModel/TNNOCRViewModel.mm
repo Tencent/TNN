@@ -34,9 +34,9 @@ using namespace std;
     std::shared_ptr<OCRTextboxDetector> predictor = nullptr;
     
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
-    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/dbnet.onnx.pack.tnnmodel"
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/chinese-ocr/dbnet.tnnmodel"
                                                           ofType:nil];
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/dbnet.onnx.pack.tnnproto"
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/chinese-ocr/dbnet.tnnproto"
                                                           ofType:nil];
     if (proto_path.length <= 0 || model_path.length <= 0) {
         NSLog(@"Error: proto or model path is invalid");
@@ -78,9 +78,9 @@ using namespace std;
     std::shared_ptr<OCRAnglePredictor> predictor = nullptr;
     
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
-    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/angle_net.onnx.pack.tnnmodel"
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/chinese-ocr/angle_net.tnnmodel"
                                                           ofType:nil];
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/angle_net.onnx.pack.tnnproto"
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/chinese-ocr/angle_net.tnnproto"
                                                           ofType:nil];
     if (proto_path.length <= 0 || model_path.length <= 0) {
         NSLog(@"Error: proto or model path is invalid");
@@ -118,15 +118,15 @@ using namespace std;
     std::shared_ptr<OCRTextRecognizer> predictor = nullptr;
     
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
-    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/crnn_lite_lstm.onnx.pack.tnnmodel"
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/chinese-ocr/crnn_lite_lstm.tnnmodel"
                                                           ofType:nil];
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/crnn_lite_lstm.onnx.pack.tnnproto"
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/chinese-ocr/crnn_lite_lstm.tnnproto"
                                                           ofType:nil];
     if (proto_path.length <= 0 || model_path.length <= 0) {
         NSLog(@"Error: proto or model path is invalid");
         return predictor;
     }
-    auto vocab_path = [[NSBundle mainBundle] pathForResource:@"model/ocr/keys.txt"
+    auto vocab_path = [[NSBundle mainBundle] pathForResource:@"model/chinese-ocr/keys.txt"
                                                       ofType:nil];
     if (vocab_path.length <= 0) {
         NSLog(@"Error: vocabulary file path is invalid");

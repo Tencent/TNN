@@ -112,10 +112,10 @@ Status MultidirBroadcastLayer::InferOutputShape(bool ignore_error) {
                 weight_shape[1] = layer_res_size;
             } else if (layer_res_size == input_count) {
                 // element broadcast
-                weight_shape[1] = input_shape[1];
-                weight_shape[2] = input_shape[2];
-                weight_shape[3] = input_shape[3];
-            } else if (layer_res_size == input_shape[3]) {
+                for (int i = 1; i < input_shape.size(); ++i) {
+                    weight_shape[i] = input_shape[i];
+                }
+            } else if ((input_shape.size() >= 4) && (layer_res_size == input_shape[3])) {
                 weight_shape[3] = input_shape[3];
             } else if (layer_res_size == DimsVectorUtils::Count(input_shape, 2)) {
                 for (int i = 2; i < input_shape.size(); ++i) {
