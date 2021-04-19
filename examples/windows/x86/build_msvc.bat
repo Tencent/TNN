@@ -8,7 +8,7 @@ set EXAMPLE_INSTALL_PATH=%ROOT_DIR%\build_msvc\release
 cd ..\..\..\scripts
 call build_msvc.bat
 echo !cd!
-cd ..\..\examples\x86\
+cd ..\..\examples\windows\x86\
 
 rmdir /s /q build_msvc
 mkdir build_msvc
