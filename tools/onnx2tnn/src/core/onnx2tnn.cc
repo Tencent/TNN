@@ -520,7 +520,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     RemoveExpand(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemovePool(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
-    RemoveConsecutiveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    //RemoveConsecutiveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
     // RemoveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseShuffleChannel(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveSplitUnsqueezeConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
