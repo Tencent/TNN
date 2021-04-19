@@ -51,6 +51,10 @@ Status OpenCLMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     int batch_b   = count_b / (K * N);
     int batch_c   = count_c / (M * N);
 
+    // input0, input1, output
+    reshape_inputs_.resize(3);
+    reshape_outputs_.resize(3);
+
     // Load weights from layer resource
     if (inputs.size() == 1) {
         MatMulLayerResource *matmul_resource = dynamic_cast<MatMulLayerResource *>(resource);
@@ -101,28 +105,35 @@ Status OpenCLMatMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     auto input0_dims    = inputs[0]->GetBlobDesc().dims;
     auto output_dims    = outputs[0]->GetBlobDesc().dims;
     if (inputs.size() == 2) {
-        ret = InitReshapeLayer(inputs[0], reshape_layer_acc_[0], need_reshape_[0], reshape_inputs_[0],
+        bool need_reshape = false;
+        ret = InitReshapeLayer(inputs[0], reshape_layer_acc_[0], need_reshape, reshape_inputs_[0],
                                reshape_outputs_[0], reshape_blob_[0], 0);
         CHECK_TNN_OK(ret)
+        need_reshape_[0] = need_reshape;
 
-        ret = InitReshapeLayer(inputs[1], reshape_layer_acc_[1], need_reshape_[1], reshape_inputs_[1],
+        ret = InitReshapeLayer(inputs[1], reshape_layer_acc_[1], need_reshape, reshape_inputs_[1],
                                reshape_outputs_[1], reshape_blob_[1], 1);
         CHECK_TNN_OK(ret)
+        need_reshape_[1] = need_reshape;
 
-        ret = InitReshapeLayer(outputs[0], reshape_layer_acc_[2], need_reshape_[2], reshape_inputs_[2],
+        ret = InitReshapeLayer(outputs[0], reshape_layer_acc_[2], need_reshape, reshape_inputs_[2],
                                reshape_outputs_[2], reshape_blob_[2], 2);
         CHECK_TNN_OK(ret)
+        need_reshape_[2] = need_reshape;
     } else {
         int input0_position = weight_position_ == 1 ? 0 : 1;
+        bool need_reshape = false;
         ret = InitReshapeLayer(inputs[0], reshape_layer_acc_[input0_position],
-                               need_reshape_[input0_position], reshape_inputs_[input0_position],
+                               need_reshape, reshape_inputs_[input0_position],
                                reshape_outputs_[input0_position], reshape_blob_[input0_position],
                                input0_position);
         CHECK_TNN_OK(ret)
+        need_reshape_[input0_position] = need_reshape;
 
-        ret = InitReshapeLayer(outputs[0], reshape_layer_acc_[2], need_reshape_[2], reshape_inputs_[2],
+        ret = InitReshapeLayer(outputs[0], reshape_layer_acc_[2], need_reshape, reshape_inputs_[2],
                                reshape_outputs_[2], reshape_blob_[2], 2);
         CHECK_TNN_OK(ret)
+        need_reshape_[2] = need_reshape;
     }
 
     // reshape
