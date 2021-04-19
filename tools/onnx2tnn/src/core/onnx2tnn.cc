@@ -557,6 +557,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     FusePooling(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseRelu6(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseSpaceToDepth(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    RemoveConsecutiveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
 #ifdef PROCESS_TF
     TransferSplit(mutable_graph, index_nodes, weights, node_reference, blob_names);
