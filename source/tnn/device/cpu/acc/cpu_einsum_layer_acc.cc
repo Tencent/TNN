@@ -64,7 +64,7 @@ std::shared_ptr<Blob> Permute(Blob *input_blob, const std::vector<int> &orders) 
 
 void Squeeze(Blob *input_blob, const int axis) {
     auto output_dims = input_blob->GetBlobDesc().dims;
-    output_dims.erase(output_dims.end() + axis);
+    output_dims.erase(output_dims.begin() + axis);
     input_blob->GetBlobDesc().dims = output_dims;
 }
 
@@ -148,167 +148,21 @@ Status CpuEinsumLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         return Status(TNNERR_MODEL_ERR, "Error: EinsumLayerParam is nil");
     }
 
-    const auto equation    = param->equation;
-    constexpr int ELLIPSIS = '.';
-
-    const auto arrow_pos = equation.find("->");
-    const auto lhs       = equation.substr(0, arrow_pos);
-
-    const auto num_ops = inputs.size();
-
-    std::vector<std::vector<int>> op_labels(num_ops);
-    bool found_ell      = false;
-    std::size_t curr_op = 0;
-    for (auto i = decltype(lhs.length()){0}; i < lhs.length(); ++i) {
-        switch (lhs[i]) {
-            case ' ':
-                break;
-
-            case '.':
-                op_labels[curr_op].push_back(ELLIPSIS);
-                found_ell = true;
-                break;
-
-            case ';':
-                ++curr_op;
-                found_ell = false;
-                break;
-
-            default:
-                op_labels[curr_op].push_back(lhs[i] - 'a');
-        }
-    }
-
-    constexpr int TOTAL_LABELS = 'z' - 'a' + 1;
-    std::vector<int> label_count(TOTAL_LABELS, 0);
-
-    int ell_num_dim = 0;
-
-    for (int i = 0; i < num_ops; i++) {
-        const auto operand = inputs[i];
-        const auto labels  = op_labels[i];
-        const int ndims    = operand->GetBlobDesc().dims.size();
-        int nlabels        = labels.size();
-        bool has_ellipsis  = false;
-
-        for (const auto &label : labels) {
-            if (label == ELLIPSIS) {
-                --nlabels;
-                has_ellipsis = true;
-                ell_num_dim  = std::max(ell_num_dim, ndims - nlabels);
-            } else {
-                ++label_count[label];
-            }
-        }
-    }
-    std::vector<int> label_perm_index(TOTAL_LABELS, -1);
-    int perm_index = 0;
-    int ell_index  = 0;
-    found_ell      = false;
-
-    if (arrow_pos == std::string::npos) {
-        perm_index = ell_num_dim;
-        found_ell  = true;
-        for (int label = 0; label < TOTAL_LABELS; label++) {
-            if (label_count[label] == 1) {
-                label_perm_index[label] = perm_index++;
-            }
-        }
-    } else {
-        const auto rhs = equation.substr(arrow_pos + 2);
-        for (auto i = decltype(rhs.length()){0}; i < rhs.length(); ++i) {
-            switch (rhs[i]) {
-                case ' ':
-                    break;
-
-                case '.':
-                    ell_index = perm_index;
-                    perm_index += ell_num_dim;
-                    found_ell = true;
-                    break;
-
-                default:
-                    const auto label        = rhs[i] - 'a';
-                    label_perm_index[label] = perm_index++;
-            }
-        }
-    }
-
-    const int out_size = perm_index;
-    if (!found_ell) {
-        ell_index = perm_index;
-        perm_index += ell_num_dim;
-    }
-
-    for (int label = 0; label < TOTAL_LABELS; label++) {
-        if (label_count[label] > 0 && label_perm_index[label] == -1) {
-            label_perm_index[label] = perm_index++;
-        }
-    }
-
     std::vector<std::shared_ptr<Blob>> permuted_operands;
+    const int num_ops = inputs.size();
     for (int i = 0; i < num_ops; i++) {
-        std::vector<int> perm_shape(perm_index, -1);
-        std::vector<int> label_dim(TOTAL_LABELS, -1);
-        auto operand_ptr          = std::make_shared<Blob>(inputs[i]->GetBlobDesc(), inputs[i]->GetHandle());
-        auto *operand             = operand_ptr.get();
-        const auto labels         = op_labels[i];
-        const auto original_sizes = operand->GetBlobDesc().dims;
-
-        std::size_t j = 0;
-        for (const auto &label : labels) {
-            if (label == ELLIPSIS) {
-                const int num_missing_dim = ell_num_dim - (original_sizes.size() - labels.size() + 1);
-                for (int k = 0; k < num_missing_dim; k++) {
-                    // unsqueeze
-                    auto dims = operand->GetBlobDesc().dims;
-                    dims.insert(dims.begin() + j, 1);
-                    operand->GetBlobDesc().dims = dims;
-                }
-                for (int k = 0; k < ell_num_dim; k++) {
-                    perm_shape[ell_index + k] = j++;
-                }
-            } else if (label_dim[label] != -1) {
-                // Repeated label, take diagonal
-                const auto dim = label_dim[label];
-                // diagonal is not supported
-                // TODO
-                // operand = operand.diagonal(0, dim, j).movedim(-1, dim);
-                return Status(TNNERR_MODEL_ERR, "diagonal in einsum is not supported");
-            } else {
-                // Lookup output index for label
-                label_dim[label]                    = j;
-                perm_shape[label_perm_index[label]] = j++;
-            }
-        }
-
-        for (int &index : perm_shape) {
-            if (index == -1) {
-                auto dims = operand->GetBlobDesc().dims;
-                dims.push_back(1);
-                operand->GetBlobDesc().dims = dims;
-                index                       = j++;
-            }
-        }
-        permuted_operands.push_back(Permute(operand, perm_shape));
+        auto operand_ptr            = std::make_shared<Blob>(inputs[i]->GetBlobDesc(), inputs[i]->GetHandle());
+        auto *operand               = operand_ptr.get();
+        operand->GetBlobDesc().dims = param->operand_dims[i];
+        permuted_operands.push_back(Permute(operand, param->perm_shapes[i]));
     }
 
-    std::vector<std::size_t> dim_last_op(perm_index, 0);
-    bool has_zero_size_dim = false;
-    for (int dim = 0; dim < perm_index; dim++) {
-        auto broadcast_size = permuted_operands[0].get()->GetBlobDesc().dims[dim];
-        for (int i = 1; i < num_ops; i++) {
-            const auto dim_size = permuted_operands[i].get()->GetBlobDesc().dims[dim];
-            if (dim_size != 1) {
-                broadcast_size   = dim_size;
-                dim_last_op[dim] = i;
-            }
-        }
-        has_zero_size_dim |= broadcast_size == 0;
-    }
+    int out_size     = param->out_size;
+    int perm_index   = param->dim_last_op.size();
+    auto dim_last_op = param->dim_last_op;
+    auto result      = permuted_operands[0];
 
-    auto result = permuted_operands[0];
-    if (has_zero_size_dim) {
+    if (param->has_zero_size_dim) {
         std::vector<int> out_shape(out_size);
         int output_shape_count = 1;
         for (int i = 0; i < out_size; i++) {
