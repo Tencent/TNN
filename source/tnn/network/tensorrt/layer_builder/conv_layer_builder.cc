@@ -110,7 +110,9 @@ ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
     bool following_a_concat_layer =
         m_network->m_concat_blob_names.find(in_blob_name) != m_network->m_concat_blob_names.end();
 
-    if (paramlist->kernels[0] == 7 && paramlist->kernels[1] == 7 && following_a_concat_layer) {
+    auto pads = paramlist->pads;
+    bool symmetric = (pads[0] == pads[1]) && (pads[2] == pads[3]);
+    if (symmetric && paramlist->kernels[0] == 7 && paramlist->kernels[1] == 7 && following_a_concat_layer) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
 
@@ -151,7 +153,6 @@ ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
 
     Dims kernelSize = ConvertToTRTDimsReverse(paramlist->kernels);
     IConvolutionLayer* conv_layer;
-    auto pads = paramlist->pads;
     if (paramlist->pad_type == -1 || (pads[0] == pads[1] && pads[2] == pads[3])) {
         conv_layer = network->addConvolutionNd(*input_tensor, paramlist->output_channel, kernelSize,
             kernelWeights, biasWeights);

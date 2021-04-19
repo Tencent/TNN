@@ -42,7 +42,8 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     bool is_global = paramlist->kernels[1] == input_blobs_[0]->GetBlobDesc().dims[2] &&
                      paramlist->kernels[0] == input_blobs_[0]->GetBlobDesc().dims[3];
 
-    if (is_global || (int8 && paramlist->pool_type == 1) || paramlist->is_adaptive_pool) {
+    bool symmetric = (paramlist->pads[0] == paramlist->pads[1]) && (paramlist->pads[2] == paramlist->pads[3]);
+    if (symmetric && (is_global || (int8 && paramlist->pool_type == 1) || paramlist->is_adaptive_pool)) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
 
@@ -56,25 +57,49 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         type = PoolingType::kAVERAGE;
     }
 
-    IPoolingLayer* layer = network->addPoolingNd(*input_tensor, type, kernelSize);
+    IPoolingLayer *layer;
+    auto pads = paramlist->pads;
+
+    bool padNeg = false;
+    for(const auto& p : pads)
+        padNeg |= p < 0;
+
+    if (padNeg) {
+        DimsVector postPadding{pads[3], pads[1]};
+        DimsVector  prePadding{pads[2], pads[0]};
+        IPaddingLayer* padding_layer = network->addPaddingNd(*input_tensor,
+                                                    ConvertToTRTDims(prePadding),
+                                                    ConvertToTRTDims(postPadding));
+        input_tensor = padding_layer->getOutput(0);
+        pads = {0, 0, 0, 0};
+    }
+    layer = network->addPoolingNd(*input_tensor, type, kernelSize);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
         layer->setStrideNd(ConvertToTRTDimsReverse(paramlist->strides));
-        layer->setPaddingNd(ConvertPaddingToTRTDims(paramlist->pads));
+        if (!padNeg) {
+            if (symmetric) {
+                layer->setPaddingNd(ConvertPaddingToTRTDims(pads));
+            } else {
+                DimsVector postPadding{pads[3], pads[1]};
+                DimsVector  prePadding{pads[2], pads[0]};
+                layer->setPrePadding(ConvertToTRTDims(prePadding));
+                layer->setPostPadding(ConvertToTRTDims(postPadding));
+            }
+        }
         if (paramlist->pad_type == -1) {
             if (paramlist->ceil_mode == 1) {
                 layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_UP);
             } else {
                 layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_DOWN);
             }
-        } else {
+        } else if (paramlist->pad_type == 0) {
             layer->setPaddingMode(PaddingMode::kSAME_UPPER);
+        } else if (paramlist->pad_type == 1) {
+            layer->setPaddingMode(PaddingMode::kEXPLICIT_ROUND_UP);
         }
         if (paramlist->pool_type == 1) {
             layer->setAverageCountExcludesPadding(true);
-        }
-        if (layer != nullptr) {
-            layer->setName(layer_name_.c_str());
         }
     }
     if (int8 && std::dynamic_pointer_cast<TensorRTTensor>(output_foreign_tensor)->GetInt8Mode()) {
@@ -101,6 +126,7 @@ DimsExprs PoolingTRTPluginLayerBuilder::getOutputDimensions(int index, const nvi
         output.d[3] = exprBuilder.constant(1);
         return output;
     }
+
     return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputDims, exprBuilder);
 }
 

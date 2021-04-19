@@ -18,33 +18,49 @@
 
 namespace TNN_NS {
 
-static Status GetBroadcastType(DimsVector input, DimsVector output, int &type) {
-    // support input dims size diff with output dims
-    int diff = output.size() - input.size();
-    if (diff != 0) {
-        input.insert(input.begin(), 1);
-    }
-
-    int input_count = DimsVectorUtils::Count(input, 1);
-    output          = DimsVectorUtils::Max(input, output);
-
-    if (DimsVectorUtils::Count(input) == DimsVectorUtils::Count(output)) {
+void BroadCastTypeFilter(const DimsVector &dims_output, const DimsVector &dims_input, int &type) {
+    if (DimsVectorUtils::Equal(dims_output, dims_input)) {
         type = BroadcastTypeNormal;
-    } else {
-        if (input_count == 1) {
-            type = BroadcastTypeSingle;
-        } else if (input_count == output[1]) {
+        return;
+    }
+    if (DimsVectorUtils::Equal(dims_output, dims_input, 1)) {
+        type = BroadcastTypeElement;
+        return;
+    }
+    if (DimsVectorUtils::Equal(dims_output, dims_input, 2)) {
+        type = BroadcastTypeHeightWidth;
+        return;
+    }
+    if (DimsVectorUtils::Equal(dims_output, dims_input, 3)) {
+        type = BroadcastTypeWidth;
+        return;
+    }
+    int broadcast_count = DimsVectorUtils::Count(dims_input);
+    if (broadcast_count == 1) {
+        type = BroadcastTypeSingle;
+    } else if (broadcast_count == dims_output[1]) {
+        // broadcast dim = [1, channel, 1...]
+        if (dims_input[1] == dims_output[1]) {
             type = BroadcastTypeChannel;
-        } else if (input_count == DimsVectorUtils::Count(output, 1)) {
-            type = BroadcastTypeElement;
-        } else if (input_count == DimsVectorUtils::Count(output, 2)) {
-            type = BroadcastTypeHeightWidth;
-        } else if (input_count == DimsVectorUtils::Count(output, 3)) {
-            type = BroadcastTypeWidth;
         } else {
             type = BroadcastTypeGeneral;
         }
+    } else {
+        type = BroadcastTypeGeneral;
     }
+    return;
+}
+
+static Status GetBroadcastType(DimsVector input, DimsVector output, int &type) {
+    DimsVector input_pad_shape;
+    // support input dims size diff with output dims
+    int pad_size = output.size() - input.size();
+    while (pad_size-- != 0) {
+        input_pad_shape.push_back(1);
+    }
+    input_pad_shape.insert(input_pad_shape.end(), input.begin(), input.end());
+
+    BroadCastTypeFilter(output, input_pad_shape, type);
     return TNN_OK;
 }
 
@@ -112,10 +128,10 @@ Status MultidirBroadcastLayer::InferOutputShape(bool ignore_error) {
                 weight_shape[1] = layer_res_size;
             } else if (layer_res_size == input_count) {
                 // element broadcast
-                weight_shape[1] = input_shape[1];
-                weight_shape[2] = input_shape[2];
-                weight_shape[3] = input_shape[3];
-            } else if (layer_res_size == input_shape[3]) {
+                for (int i = 1; i < input_shape.size(); ++i) {
+                    weight_shape[i] = input_shape[i];
+                }
+            } else if ((input_shape.size() >= 4) && (layer_res_size == input_shape[3])) {
                 weight_shape[3] = input_shape[3];
             } else if (layer_res_size == DimsVectorUtils::Count(input_shape, 2)) {
                 for (int i = 2; i < input_shape.size(); ++i) {
