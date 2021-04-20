@@ -45,14 +45,19 @@ int main(int argc, char **argv) {
     {
         option->proto_content = proto_content;
         option->model_content = model_content;
-        option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+        // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
+        #ifdef _CUDA_
+            option->compute_units = TNN_NS::TNNComputeUnitsGPU;
+        #else
+            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        #endif
         // option->input_shapes = nchw;
     }
 
     char img_buff[256];
     char* input_imgfn = img_buff;
     if (argc < 2) {
-        strncpy(input_imgfn, "../../assets/004545.jpg", 256);
+        strncpy(input_imgfn, "../../../assets/004545.jpg", 256);
     } else {
         strncpy(input_imgfn, argv[1], 256);
     }
