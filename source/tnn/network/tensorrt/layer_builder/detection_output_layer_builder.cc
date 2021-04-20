@@ -24,6 +24,10 @@ bool DetectionOutputTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status DetectionOutputTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* DetectionOutputTRTPluginLayerBuilder::getPluginType() const {
     return "DetectionOutput";
 }

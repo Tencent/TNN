@@ -40,6 +40,10 @@ bool GroupNormTRTPluginLayerBuilder::supportsFormatCombination(
     }
 }
 
+Status GroupNormTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* GroupNormTRTPluginLayerBuilder::getPluginType() const {
     return "GroupNorm";
 }

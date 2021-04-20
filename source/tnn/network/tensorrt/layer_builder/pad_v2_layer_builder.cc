@@ -23,6 +23,10 @@ bool PadV2TRTPluginLayerBuilder::supportsFormatCombination(
     return inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32;
 }
 
+Status PadV2TRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* PadV2TRTPluginLayerBuilder::getPluginType() const {
     return "PadV2";
 }

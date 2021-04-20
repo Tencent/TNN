@@ -25,6 +25,10 @@ bool PoolingTRTPluginLayerBuilder::supportsFormatCombination(
     return (inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
 }
 
+Status PoolingTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* PoolingTRTPluginLayerBuilder::getPluginType() const {
     return "Pooling";
 }

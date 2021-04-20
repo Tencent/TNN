@@ -24,6 +24,10 @@ bool HardSigmoidTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status HardSigmoidTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* HardSigmoidTRTPluginLayerBuilder::getPluginType() const {
     return "HardSigmoid";
 }

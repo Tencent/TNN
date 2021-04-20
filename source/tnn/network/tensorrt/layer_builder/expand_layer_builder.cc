@@ -29,6 +29,10 @@ bool ExpandTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type) || inOut[pos].type == nvinfer1::DataType::kINT32);
 }
 
+Status ExpandTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* ExpandTRTPluginLayerBuilder::getPluginType() const {
     return "Expand";
 }

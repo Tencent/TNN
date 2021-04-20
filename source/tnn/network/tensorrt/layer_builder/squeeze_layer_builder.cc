@@ -27,6 +27,10 @@ bool SqueezeTRTPluginLayerBuilder::supportsFormatCombination(
             inOut[pos].type == nvinfer1::DataType::kINT32;
 }
 
+Status SqueezeTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* SqueezeTRTPluginLayerBuilder::getPluginType() const {
     return "Squeeze";
 }

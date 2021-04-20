@@ -23,6 +23,10 @@ bool RoiAlignTRTPluginLayerBuilder::supportsFormatCombination(
     return nbInputs == 3 && nbOutputs == 1 && pos < nbInputs + nbOutputs;
 }
 
+Status RoiAlignTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* RoiAlignTRTPluginLayerBuilder::getPluginType() const {
     return "RoiAlign";
 }

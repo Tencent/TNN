@@ -24,6 +24,10 @@ bool UnsqueezeTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type) || inOut[pos].type == nvinfer1::DataType::kINT32);
 }
 
+Status UnsqueezeTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* UnsqueezeTRTPluginLayerBuilder::getPluginType() const {
     return "Unsqueeze";
 }
@@ -34,6 +38,23 @@ nvinfer1::DataType UnsqueezeTRTPluginLayerBuilder::getOutputDataType(int index, 
 }
 
 ILayer* UnsqueezeTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    if (GetInputITensors()[0]->getDimensions().nbDims == 0) {
+        auto param = dynamic_cast<UnsqueezeLayerParam*>(param_);
+        nvinfer1::Dims trt_dims;
+        trt_dims.nbDims = 1;
+        trt_dims.d[0] = 1;
+        nvinfer1::Weights const_weight;
+        const_weight.type = nvinfer1::DataType::kINT32;
+        const_weight.values = &param->axes[0];
+        const_weight.count = 1;
+        ILayer* constant_layer = network->addConstant(trt_dims, const_weight);
+        IShuffleLayer* shuffle_layer = network->addShuffle(*GetInputITensors()[0]);
+        nvinfer1::Dims d;
+        d.nbDims = 1;
+        d.d[0] = 1;
+        shuffle_layer->setReshapeDimensions(d);
+        return shuffle_layer;
+    }
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 

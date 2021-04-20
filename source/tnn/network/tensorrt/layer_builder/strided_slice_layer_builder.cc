@@ -24,6 +24,10 @@ bool StrideSliceTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status StrideSliceTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* StrideSliceTRTPluginLayerBuilder::getPluginType() const {
     return "StrideSlice";
 }
