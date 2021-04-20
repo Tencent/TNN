@@ -19,10 +19,12 @@ namespace TNN_NS {
 
 class SignedMulLayerTest
     : public LayerTest,
-      public ::testing::WithParamInterface<std::tuple<int, int, int, float, float, float, DataType>> {};
+      public ::testing::WithParamInterface<std::tuple<int, int, int, int, float, float, float, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, SignedMulLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                                            // dim count
+                                            testing::Values(2, 3, 4, 5),
                                             // alpha
                                             testing::Values(1.0f, 0.0f, -1.0f),
                                             // beta
@@ -37,16 +39,13 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
     int input_size     = std::get<2>(GetParam());
-    float alpha        = std::get<3>(GetParam());
-    float beta         = std::get<4>(GetParam());
-    float gamma        = std::get<5>(GetParam());
-    DataType data_type = std::get<6>(GetParam());
+    int dim_count      = std::get<3>(GetParam());
+    float alpha        = std::get<4>(GetParam());
+    float beta         = std::get<5>(GetParam());
+    float gamma        = std::get<6>(GetParam());
+    DataType data_type = std::get<7>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
-    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 
@@ -57,6 +56,11 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
     if (DEVICE_CUDA == dev) {
         GTEST_SKIP();
     }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<SignedMulLayerParam> param(new SignedMulLayerParam());
     param->alpha = alpha;
@@ -64,7 +68,8 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
     param->gamma = gamma;
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
     auto interpreter            = GenerateInterpreter("SignedMul", {input_dims}, param);
     Precision precision         = PRECISION_AUTO;
     if (DATA_TYPE_BFP16 == data_type) {

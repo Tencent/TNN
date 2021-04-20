@@ -43,5 +43,6 @@ std::set<std::string> OpenCLReduceSumLayerAcc::CreateBuildOptions() {
 OpenCLReduceSumLayerAcc::~OpenCLReduceSumLayerAcc() {}
 
 REGISTER_OPENCL_ACC(ReduceSum, LAYER_REDUCE_SUM)
+REGISTER_OPENCL_LAYOUT(LAYER_REDUCE_SUM, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

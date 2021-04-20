@@ -36,7 +36,7 @@ android {
 
     sourceSets {
         main {
-            jniLibs.srcDirs = ['libs', 'src/main/jni/thirdparty/hiai_ddk']
+            jniLibs.srcDirs = ['libs', 'src/main/jni/thirdparty/hiai_ddk', '../../../third_party/opencv/Android/OpenCV-android-sdk/sdk/native/libs']
             jni.srcDirs = ['src/main/jni']
             assets.srcDirs = ['src/main/assets', '../../../model']
         }

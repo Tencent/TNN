@@ -37,6 +37,11 @@ ILayer* ShuffleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs ShuffleTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
+}
+
 const char* ShufflePluginCreator::getPluginName() const {
     return "Shuffle";
 }

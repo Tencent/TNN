@@ -45,6 +45,9 @@ public:
     // code.
     virtual Status AddOutput(const std::string& output_name, int output_index = 0);
 
+    // return input shapes map from model
+    virtual Status GetModelInputShapesMap(InputShapesMap& shapes_map);
+
     // @brief create an instance
     // @param instance: The instance to be created.
     // @param inputs_shape: modify input shape, or it will use the shape in the
@@ -53,6 +56,18 @@ public:
     // error code.
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
                                                  InputShapesMap inputs_shape = InputShapesMap());
+
+
+    // @brief create an instance
+    // @param instance: The instance to be created.
+    // @param min_inputs_shape: support min shape
+    // @param max_inputs_shape: support max shape
+    // @param status code: If successful, returns zero. Otherwise, returns
+    // error code.
+    virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
+                                                 InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
+
+
 };
 
 }  // namespace TNN_NS

@@ -5,6 +5,11 @@ build32
 build64
 release
 tags
+.idea/
+tools/onnx2tnn/onnx-converter/3rdparty/
+GPATH
+GRTAGS
+GTAGS
 ### https://raw.github.com/github/gitignore/eee21bf0c397cddc39ff1c94615d135e0ad36f8c/Global/JetBrains.gitignore
 
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
@@ -483,6 +488,11 @@ lint/generated/
 lint/outputs/
 lint/tmp/
 # lint/reports/
+
+source/tnn/network/tensorrt/thirdparty/TensorRT*
+model/
+# opencl generated code
+opencl_program.cc
 
 # opencl generated code
 opencl_program.cc

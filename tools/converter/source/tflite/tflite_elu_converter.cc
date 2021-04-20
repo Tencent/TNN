@@ -39,7 +39,7 @@ TNN_NS::Status TFLiteEluConverter::exec(TNN_NS::NetStructure& net_structure, TNN
     auto param       = new TNN_NS::EluLayerParam;
     auto cur_layer   = net_structure.layers.back();
     cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
-    
+
     param->name      = cur_layer->name;
     param->type      = cur_layer->type_str;
     param->quantized = false;

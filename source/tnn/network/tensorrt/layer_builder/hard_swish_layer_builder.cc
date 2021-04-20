@@ -37,6 +37,11 @@ ILayer* HardSwishTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs HardSwishTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) {
+    return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputDims, exprBuilder);
+}
+
 const char* HardSwishPluginCreator::getPluginName() const {
     return "HardSwish";
 }

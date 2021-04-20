@@ -46,6 +46,14 @@ Status TNN::AddOutput(const std::string& layer_name, int output_index) {
     return impl_->AddOutput(layer_name, output_index);
 }
 
+Status TNN::GetModelInputShapesMap(InputShapesMap& shapes_map) {
+     if (!impl_) {
+        LOGE("Error: impl_ is nil\n");
+        return Status(TNNERR_NET_ERR, "tnn impl_ is nil");
+    }
+    return impl_->GetModelInputShapesMap(shapes_map);
+}
+
 std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status, InputShapesMap inputs_shape) {
     if (!impl_) {
         status = Status(TNNERR_NET_ERR, "tnn impl_ is nil");
@@ -53,6 +61,15 @@ std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status,
     }
 
     return impl_->CreateInst(config, status, inputs_shape);
+}
+
+std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+    if (!impl_) {
+        status = Status(TNNERR_NET_ERR, "tnn impl_ is nil");
+        return nullptr;
+    }
+
+    return impl_->CreateInst(config, status, min_inputs_shape, max_inputs_shape);
 }
 
 }  // namespace TNN_NS

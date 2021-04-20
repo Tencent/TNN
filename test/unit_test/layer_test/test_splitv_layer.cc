@@ -15,19 +15,21 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 class SplitVLayerTest : public LayerTest,
-                        public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
+                        public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, SplitVLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                                            // dim count
+                                            testing::Values(2, 3, 4, 5, 6),
                                             // axis
-                                            testing::Values(1),
+                                            testing::Values(0, 1, 2, 3, 4, 5),
                                             // output cnt
-                                            testing::Values(2),
+                                            testing::Values(2, 3),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT)));
 
@@ -36,35 +38,48 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
     int input_size     = std::get<2>(GetParam());
-    int axis           = std::get<3>(GetParam());
-    int output_count   = std::get<4>(GetParam());
-    DataType data_type = std::get<5>(GetParam());
+    int dim_count      = std::get<3>(GetParam());
+    int axis           = std::get<4>(GetParam());
+    int output_count   = std::get<5>(GetParam());
+    DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_HUAWEI_NPU == dev) {
+    if (dim_count > 4 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_CUDA == dev) {
+    if (DEVICE_OPENCL == dev && (dim_count > 4 || axis != 1)) {
         GTEST_SKIP();
     }
 
-    if (channel <= 1) {
+    std::vector<int> input_dims = {batch, channel};
+    while (input_dims.size() < dim_count) input_dims.push_back(input_size);
+
+    if (input_dims[axis] < output_count) {
         GTEST_SKIP();
     }
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if (axis >= dim_count) {
         GTEST_SKIP();
     }
 
     // param
     std::shared_ptr<SplitVLayerParam> param(new SplitVLayerParam());
     param->name   = "SplitV";
-    param->axis   = 1;
-    param->slices = {channel / 2, channel - channel / 2};
+    param->axis   = axis;
+    std::vector<int> slices;
+    int sum = 0;
+    for(int i=0; i<output_count; ++i) {
+        if (i != output_count - 1) {
+            slices.push_back(input_dims[axis] / output_count);
+            sum += input_dims[axis] / output_count;
+        } else {
+            slices.push_back(input_dims[axis] - sum);
+        }
+    }
+    param->slices = slices;
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
     auto interpreter            = GenerateInterpreter("SplitV", {input_dims}, param, nullptr, output_count);
     Run(interpreter);
 }

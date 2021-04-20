@@ -48,7 +48,7 @@ echo "$(dirname $0)"
 # download face-detector tnn model
 download_model \
   "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/face-detector/version-slim-320_simplified.tnnproto" \
-  "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/face-detector/version-slim-320_simplified.tnnmodel" \
+  "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/face-detector/version-slim-320_simplified.tnnmodel" \
   "face_detector"
 
 # download face-detector ncnn model
@@ -60,19 +60,19 @@ download_model \
 # download mobilenetv2 tnn model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/mobilenet_v2/mobilenet_v2.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/mobilenet_v2/mobilenet_v2.tnnmodel" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/mobilenet_v2/mobilenet_v2.tnnmodel" \
     "mobilenet_v2"
 
 # download shufflenet_v2 tnn model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.tnnmodel" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/shufflenet_v2/shufflenet_v2.tnnmodel" \
     "shufflenet_v2"
 
 # download blazeface tnn model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazeface/blazeface.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazeface/blazeface.tnnmodel" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/blazeface/blazeface.tnnmodel" \
     "blazeface"
 
 # download blazeface anchor file
@@ -84,31 +84,31 @@ download_model \
 # download mobilenet_v2-ssd tnn model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel" \
     "mobilenet_v2-ssd"
 
 # download yolov5 tnn model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/yolov5/yolov5s-permute.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/yolov5/yolov5s.tnnmodel" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/yolov5/yolov5s.tnnmodel" \
     "yolov5"
 
 # download facemesh tnn model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/face_mesh/face_mesh.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/face_mesh/face_mesh.tnnmodel" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/face_mesh/face_mesh.tnnmodel" \
     "face_mesh"
 
 # download YouTu face alignment phase1 tnn model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase1.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase1.tnnmodel" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase1.tnnmodel" \
     "youtu_face_alignment"
 
 # download YouTu face alignment phase2 tnn model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase2.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase2.tnnmodel" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase2.tnnmodel" \
     "youtu_face_alignment"
 
 # download YouTu face alignment pts file
@@ -120,13 +120,13 @@ download_model \
 # download hair segmentation tnn model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/hair_segmentation/segmentation.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/hair_segmentation/segmentation.tnnmodel" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/hair_segmentation/segmentation.tnnmodel" \
     "hair_segmentation"
 
 # download skeleton big tnn model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/skeleton/skeleton_big.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/skeleton/skeleton.tnnmodel" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/skeleton/skeleton.tnnmodel" \
     "skeleton"
 
 # download skeleton medium and small tnn models
@@ -138,17 +138,50 @@ download_model \
 # download blazepose detection model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazepose/pose_detection.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazepose/pose_detection.tnnmodel" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/blazepose/pose_detection.tnnmodel" \
     "blazepose"
 
 # download blazepose upper-body landmark model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazepose/pose_landmark_upper_body.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazepose/pose_landmark_upper_body.tnnmodel" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/blazepose/pose_landmark_upper_body.tnnmodel" \
     "blazepose"
 
 # download blazepose full-body landmark model
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazepose/pose_landmark_full_body.tnnproto" \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazepose/pose_landmark_full_body.tnnmodel" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/blazepose/pose_landmark_full_body.tnnmodel" \
     "blazepose"
+
+# download reading comprehension model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/bertsquad10/bertsquad10_clean.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/bertsquad10/bertsquad10_clean.tnnmodel" \
+    "bertsquad10"
+  
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/bertsquad10/vocab.txt" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/bertsquad10/vocab.txt" \
+    "bertsquad10"
+    
+
+# download ocr model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/angle_net.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/chinese-ocr/angle_net.tnnmodel" \
+    "chinese-ocr"
+  
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/crnn_lite_lstm.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/chinese-ocr/crnn_lite_lstm.tnnmodel" \
+    "chinese-ocr"
+  
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/dbnet.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/chinese-ocr/dbnet.tnnmodel" \
+    "chinese-ocr"
+  
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/keys.txt" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/keys.txt" \
+    "chinese-ocr"

@@ -20,6 +20,7 @@
 
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -36,13 +37,13 @@ public:
 
     // @brief convert weights from [n][c][h][w] to [n][c/4][h][w][4]
     // @param data_tyep data type info
-    static Status ConvertFromNCHWToNCHW4Float(float *src, float *dst, int num, int channel, int height, int width);
-    static Status ConvertFromNCHWToNCHW4Half(short *src, short *dst, int num, int channel, int height, int width);
-    static Status ConvertFromNCHWToNHWC4Int8(int8_t *src, int8_t *dst, int num, int channel, int height, int width);
+    static Status ConvertFromNCHWToNCHW4Float(float *src, float *dst, int num, int channel, int height, int width, bool transpose = false);
+    static Status ConvertFromNCHWToNCHW4Half(short *src, short *dst, int num, int channel, int height, int width, bool transpose = false);
+    static Status ConvertFromNCHWToNHWC4Int8(int8_t *src, int8_t *dst, int num, int channel, int hw);
 
     static Status ConvertFromNCHW4ToNCHWFloat(float *src, float *dst, int num, int channel, int height, int width);
     static Status ConvertFromNCHW4ToNCHWHalf(short *src, short *dst, int num, int channel, int height, int width);
-    static Status ConvertFromNHWC4ToNCHWInt8(int8_t *src, int8_t *dst, int num, int channel, int height, int width);
+    static Status ConvertFromNHWC4ToNCHWInt8(int8_t *src, int8_t *dst, int num, int channel, int hw);
 
     static Status ConvertFromInt8ToFloatNCHW4(int8_t *src, float *dst, float *scale, int scale_len, int num,
                                               int channel, int height, int width);
@@ -55,32 +56,36 @@ public:
     enum CVT_DIR { NHWC2NCHW, NCHW2NHWC };
 
     template <class T>
-    static Status ConvertBetweenNHWCAndNCHW(T *data, T *buffer, int num, int channel, int height, int width,
-                                            CVT_DIR dir) {
+    static Status ConvertBetweenNHWCAndNCHW(T *src, T *dst, int num, int channel, int height, int width, CVT_DIR dir) {
+        ASSERT(dir == NHWC2NCHW || dir == NCHW2NHWC);
         bool alloc_mem = false;
-        if (buffer == nullptr) {
+        if (dst == nullptr) {
             alloc_mem = true;
-            buffer    = new T[num * channel * height * width]();
+            dst       = new T[num * channel * height * width]();
         }
-
-        auto ptr_nchw = buffer;
-        auto ptr_nhwc = data;
-        if (NCHW2NHWC == dir)
-            std::swap(ptr_nchw, ptr_nhwc);
 
         for (int n = 0; n < num; ++n) {
             for (int c = 0; c < channel; ++c) {
                 for (int h = 0; h < height; ++h) {
                     for (int w = 0; w < width; ++w) {
-                        std::swap(ptr_nchw[n * channel * height * width + c * height * width + h * width + w],
-                                  ptr_nhwc[n * height * width * channel + h * width * channel + w * channel + c]);
+                        // n * channel * height * width + c * height * width + h * width + w
+                        // n * height * width * channel + h * width * channel + w * channel + c
+                        if (NHWC2NCHW == dir) {
+                            // nhwc -> nchw
+                            dst[n * channel * height * width + c * height * width + h * width + w] =
+                                src[n * height * width * channel + h * width * channel + w * channel + c];
+                        } else {
+                            // nchw -> nhwc
+                            dst[n * height * width * channel + h * width * channel + w * channel + c] =
+                                src[n * channel * height * width + c * height * width + h * width + w];
+                        }
                     }
                 }
             }
         }
         if (alloc_mem) {
-            memcpy(data, buffer, num * channel * height * width * sizeof(T));
-            delete[] buffer;
+            memcpy(src, dst, num * channel * height * width * sizeof(T));
+            delete[] dst;
         }
         return TNN_OK;
     }
@@ -88,12 +93,14 @@ public:
     template <class T>
     static Status ConvertFromNCHWToNHWC(Blob *src, Blob *dst) {
         ASSERT(src != nullptr);
-        const int num     = src->GetBlobDesc().dims[0];
-        const int channel = src->GetBlobDesc().dims[1];
-        const int height  = src->GetBlobDesc().dims[2];
-        const int width   = src->GetBlobDesc().dims[3];
+        const auto src_dims = src->GetBlobDesc().dims;
+        ASSERT(src_dims.size() > 1);
+        const int num     = src_dims[0];
+        const int channel = src_dims[1];
+        const int height  = src_dims.size() > 2 ? src_dims[2] : 1;
+        const int width   = src_dims.size() > 3 ? src_dims[3] : 1;
         T *src_data_ptr   = (T *)src->GetHandle().base;
-        T *dst_data_ptr = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
+        T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
 
         auto status = ConvertBetweenNHWCAndNCHW<T>(src_data_ptr, dst_data_ptr, num, channel, height, width, NCHW2NHWC);
         return status;
@@ -102,10 +109,12 @@ public:
     template <class T>
     static Status ConvertFromNHWCToNCHW(Blob *src, Blob *dst) {
         ASSERT(src != nullptr);
-        const int num     = src->GetBlobDesc().dims[0];
-        const int height  = src->GetBlobDesc().dims[2];
-        const int width   = src->GetBlobDesc().dims[3];
-        const int channel = src->GetBlobDesc().dims[1];
+        const auto src_dims = src->GetBlobDesc().dims;
+        ASSERT(src_dims.size() > 1);
+        const int num     = src_dims[0];
+        const int channel = src_dims[1];
+        const int height  = src_dims.size() > 2 ? src_dims[2] : 1;
+        const int width   = src_dims.size() > 3 ? src_dims[3] : 1;
         T *src_data_ptr   = (T *)src->GetHandle().base;
         T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
 

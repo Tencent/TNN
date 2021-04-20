@@ -43,5 +43,6 @@ std::set<std::string> OpenCLReduceMeanLayerAcc::CreateBuildOptions() {
 OpenCLReduceMeanLayerAcc::~OpenCLReduceMeanLayerAcc() {}
 
 REGISTER_OPENCL_ACC(ReduceMean, LAYER_REDUCE_MEAN)
+REGISTER_OPENCL_LAYOUT(LAYER_REDUCE_MEAN, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

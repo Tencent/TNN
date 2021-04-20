@@ -22,7 +22,10 @@
 #include "TargetConditionals.h"
 #endif
 
-#include "sample_timer.h"
+#define ENABLE_DUMP_BLOB_DATA 0
+#if ENABLE_DUMP_BLOB_DATA
+static int blob_id = 0;
+#endif
 
 namespace TNN_NS {
 const std::string kTNNSDKDefaultName = "TNN.sdk.default.name";
@@ -150,10 +153,10 @@ float ObjectInfo::IntersectionRatio(ObjectInfo *obj) {
     float area1 = std::abs((this->x2 - this->x1) * (this->y2 - this->y1));
     float area2 = std::abs((obj->x2 - obj->x1) * (obj->y2 - obj->y1));
     
-    float x1 = (std::max)(obj->x1, this->x1);
-    float x2 = (std::min)(obj->x2, this->x2);
-    float y1 = (std::max)(obj->y1, this->y1);
-    float y2 = (std::min)(obj->y2, this->y2);
+    float x1 = std::max(obj->x1, this->x1);
+    float x2 = std::min(obj->x2, this->x2);
+    float y1 = std::max(obj->y1, this->y1);
+    float y2 = std::min(obj->y2, this->y2);
     
     float area = (x2 > x1 && y2 > y1) ? std::abs((x2 - x1) * (y2 - y1)) : 0;
     
@@ -170,15 +173,15 @@ ObjectInfo ObjectInfo::AdjustToImageSize(int orig_image_height, int orig_image_w
     info_orig.image_width = orig_image_width;
     info_orig.image_height = orig_image_height;
     
-    int x_min = (std::min)(this->x1, this->x2)*scale_x;
-    int x_max = (std::max)(this->x1, this->x2)*scale_x;
-    int y_min = (std::min)(this->y1, this->y2)*scale_y;
-    int y_max = (std::max)(this->y1, this->y2)*scale_y;
+    int x_min = std::min(this->x1, this->x2)*scale_x;
+    int x_max = std::max(this->x1, this->x2)*scale_x;
+    int y_min = std::min(this->y1, this->y2)*scale_y;
+    int y_max = std::max(this->y1, this->y2)*scale_y;
     
-    x_min = (std::min)((std::max)(x_min, 0), orig_image_width-1);
-    x_max = (std::min)((std::max)(x_max, 0), orig_image_width-1);
-    y_min = (std::min)((std::max)(y_min, 0), orig_image_height-1);
-    y_max = (std::min)((std::max)(y_max, 0), orig_image_height-1);
+    x_min = std::min(std::max(x_min, 0), orig_image_width-1);
+    x_max = std::min(std::max(x_max, 0), orig_image_width-1);
+    y_min = std::min(std::max(y_min, 0), orig_image_height-1);
+    y_max = std::min(std::max(y_max, 0), orig_image_height-1);
     
     info_orig.x1 = x_min;
     info_orig.x2 = x_max;
@@ -293,8 +296,8 @@ void BenchResult::Reset() {
 int BenchResult::AddTime(float time) {
     count++;
     total += time;
-    min = (std::min)(min, time);
-    max = (std::max)(max, time);
+    min = std::min(min, time);
+    max = std::max(max, time);
     avg = total / count;
     return 0;
 }
@@ -314,7 +317,7 @@ std::string BenchResult::Description() {
 DeviceType TNNSDKUtils::GetFallBackDeviceType(DeviceType dev) {
     switch (dev) {
         case DEVICE_CUDA:
-            return DEVICE_X86;
+            return DEVICE_NAIVE;
         case DEVICE_RK_NPU:
         case DEVICE_HUAWEI_NPU:
         case DEVICE_METAL:
@@ -570,25 +573,29 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
     }
 
     // network init
+#if defined(TNN_USE_NEON)
     device_type_ = TNN_NS::DEVICE_ARM;
+#else
+    device_type_ = TNN_NS::DEVICE_X86;
+#endif
     if(option->compute_units == TNNComputeUnitsGPU) {
 #if defined(__APPLE__) && TARGET_OS_IPHONE
         device_type_ = TNN_NS::DEVICE_METAL;
 #else
         device_type_ = TNN_NS::DEVICE_OPENCL;
 #endif
-    } else if (option->compute_units == TNNComputeUnitsHuaweiNPU) {
+    }
+    else if (option->compute_units == TNNComputeUnitsHuaweiNPU) {
         device_type_      = TNN_NS::DEVICE_HUAWEI_NPU;
 #if defined(__APPLE__) && TARGET_OS_IPHONE
         device_type_ = TNN_NS::DEVICE_METAL;
 #else
         device_type_      = TNN_NS::DEVICE_HUAWEI_NPU;
 #endif
-    } else if (option->compute_units == TNNComputeUnitsOpenvino) {
-        device_type_ = TNN_NS::DEVICE_X86;
     } else if (option->compute_units == TNNComputeUnitsTensorRT) {
         device_type_ = TNN_NS::DEVICE_CUDA;
     }
+    
     //创建实例instance
     {
         TNN_NS::NetworkConfig network_config;
@@ -597,7 +604,7 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         network_config.precision = option->precision;
         if(device_type_ == TNN_NS::DEVICE_HUAWEI_NPU){
             network_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
-        } else if (device_type_ == TNN_NS::DEVICE_X86) {
+        } else if (option->compute_units == TNNComputeUnitsOpenvino) {
             network_config.network_type = NETWORK_TYPE_OPENVINO;
         } else if (device_type_ == TNN_NS::DEVICE_CUDA) {
             network_config.network_type = NETWORK_TYPE_TENSORRT;
@@ -699,6 +706,10 @@ std::shared_ptr<Mat> TNNSDKSample::ResizeToInputShape(std::shared_ptr<Mat> input
     return input_mat;
 }
 
+bool TNNSDKSample::hideTextBox() {
+    return false;
+}
+
 TNN_NS::MatConvertParam TNNSDKSample::GetConvertParamForInput(std::string name) {
     return TNN_NS::MatConvertParam();
 }
@@ -720,6 +731,42 @@ std::shared_ptr<TNN_NS::Mat> TNNSDKSample::ProcessSDKInputMat(std::shared_ptr<TN
     return mat;
 }
 
+TNN_NS::Status TNNSDKSample::DumpBlob(const BlobMap& blob_map, std::string output_dir) {
+#if ENABLE_DUMP_BLOB_DATA
+    for (const auto& item : blob_map) {
+        std::string output_path = output_dir + "/" + item.first + "_" + std::to_string(blob_id++);
+        DeviceType device_type = DEVICE_NAIVE;
+        MatType mat_type = NCHW_FLOAT;
+
+        void* command_queue;
+        instance_->GetCommandQueue(&command_queue);
+        BlobConverter blob_converter(item.second);
+        MatConvertParam param;
+        Mat cpu_mat(device_type, mat_type, item.second->GetBlobDesc().dims);
+        Status ret = blob_converter.ConvertToMat(cpu_mat, param, command_queue);
+        if (ret != TNN_OK) {
+            LOGE("blob (name: %s) convert failed (%s)\n", item.first.c_str(), ret.description().c_str());
+            return ret;
+        }
+
+        std::ofstream out_stream(output_path);
+        if (out_stream.is_open()) {
+            out_stream << item.first << std::endl;
+            for (auto d : cpu_mat.GetDims()) {
+                out_stream << d << " ";
+            }
+            out_stream << std::endl;
+            float* data_ptr = reinterpret_cast<float*>(cpu_mat.GetData());
+            for (int index = 0; index < DimsVectorUtils::Count(cpu_mat.GetDims()); index++) {
+                out_stream << data_ptr[index] << std::endl;
+            }
+            out_stream.close();
+        }
+    }
+#endif
+    return TNN_OK;
+}
+
 TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output) {
     Status status = TNN_OK;
     if (!input || input->IsEmpty()) {
@@ -731,10 +778,10 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
 #if TNN_SDK_ENABLE_BENCHMARK
     bench_result_.Reset();
     for (int fcount = 0; fcount < bench_option_.forward_count; fcount++) {
-        TNN_NS::SampleTimer sample_time;
-        sample_time.Start();
+        timeval tv_begin, tv_end;
+        gettimeofday(&tv_begin, NULL);
 #endif
-
+        
         // step 1. set input mat
         auto input_names = GetInputNames();
         if (input_names.size() == 1) {
@@ -753,6 +800,17 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
             }
         }
 
+#if ENABLE_DUMP_BLOB_DATA
+        BlobMap blob_map = {};
+        instance_->GetAllInputBlobs(blob_map);
+        std::string output_dir = "/mnt/sdcard";
+        status = DumpBlob(blob_map, output_dir);
+        if (status != TNN_NS::TNN_OK) {
+            LOGE("Dump Blob Error: %s\n", status.description().c_str());
+            return status;
+        }
+#endif
+        
         // step 2. Forward
         status = instance_->ForwardAsync(nullptr);
         if (status != TNN_NS::TNN_OK) {
@@ -784,8 +842,8 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
   
         
 #if TNN_SDK_ENABLE_BENCHMARK
-        sample_time.Stop();
-        double elapsed = sample_time.GetTime();
+        gettimeofday(&tv_end, NULL);
+        double elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
         bench_result_.AddTime(elapsed);
 #endif
         
@@ -965,15 +1023,15 @@ void Rectangle(void *data_rgba, int image_height, int image_width,
     
     RGBA *image_rgba = (RGBA *)data_rgba;
 
-    int x_min = (std::min)(x0, x1) * scale_x;
-    int x_max = (std::max)(x0, x1) * scale_x;
-    int y_min = (std::min)(y0, y1) * scale_y;
-    int y_max = (std::max)(y0, y1) * scale_y;
+    int x_min = std::min(x0, x1) * scale_x;
+    int x_max = std::max(x0, x1) * scale_x;
+    int y_min = std::min(y0, y1) * scale_y;
+    int y_max = std::max(y0, y1) * scale_y;
 
-    x_min = (std::min)((std::max)(x_min, 0), image_width - 1);
-    x_max = (std::min)((std::max)(x_max, 0), image_width - 1);
-    y_min = (std::min)((std::max)(y_min, 0), image_height - 1);
-    y_max = (std::min)((std::max)(y_max, 0), image_height - 1);
+    x_min = std::min(std::max(x_min, 0), image_width - 1);
+    x_max = std::min(std::max(x_max, 0), image_width - 1);
+    y_min = std::min(std::max(y_min, 0), image_height - 1);
+    y_max = std::min(std::max(y_max, 0), image_height - 1);
 
     // top bottom
     for (int x = x_min; x <= x_max; x++) {
@@ -1011,15 +1069,15 @@ void Point(void *data_rgba, int image_height, int image_width, int x, int y, flo
     int y_start = (y-1) * scale_y;
     int y_end   = (y+1) * scale_y;
 
-    x_center = (std::min)((std::max)(0, x_center), image_width  - 1);
-    y_center = (std::min)((std::max)(0, y_center), image_height - 1);
+    x_center = std::min(std::max(0, x_center), image_width  - 1);
+    y_center = std::min(std::max(0, y_center), image_height - 1);
     
-    x_start = (std::min)((std::max)(0, x_start), image_width - 1);
-    x_end   = (std::min)((std::max)(0, x_end), image_width - 1);
-    y_start = (std::min)((std::max)(0, y_start), image_height - 1);
-    y_end   = (std::min)((std::max)(0, y_end), image_height - 1);
+    x_start = std::min(std::max(0, x_start), image_width - 1);
+    x_end   = std::min(std::max(0, x_end), image_width - 1);
+    y_start = std::min(std::max(0, y_start), image_height - 1);
+    y_end   = std::min(std::max(0, y_end), image_height - 1);
     
-    unsigned char color = (std::min)((std::max)(0, int(175 + z*80)), 255);
+    unsigned char color = std::min(std::max(0, int(175 + z*80)), 255);
     
     for(int x = x_start; x<=x_end; ++x) {
         int offset                       = y_center * image_width + x;

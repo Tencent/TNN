@@ -23,7 +23,6 @@
 
 namespace TNN_NS {
 
-
 static void ProcessNHWC2NCHW(unsigned char* img_data, float* blob_data, int channel, int height, int width,
                              std::vector<float> bias, std::vector<float> scale, bool reverse_channel) {
     ASSERT(bias.size() >= channel)
@@ -112,7 +111,7 @@ Status FileReader::Read(std::map<std::string, std::shared_ptr<Mat>>& mat_map, co
         int blob_count = 1;
         f_stream >> blob_count;
 
-        for (int i = 0; i < blob_count; ++i) {
+        for (int blob_i = 0; blob_i < blob_count; ++blob_i) {
             std::string blob_name;
             uint32_t dims_size;
             DimsVector dims;
@@ -131,9 +130,12 @@ Status FileReader::Read(std::map<std::string, std::shared_ptr<Mat>>& mat_map, co
             MatType mat_type = INVALID;
             if (DATA_TYPE_FLOAT == data_type) {
                 mat_type = NCHW_FLOAT;
-            //} else if (DATA_TYPE_INT32 == data_type) {
-            //    mat_type = NC_INT32;
+            } else if (DATA_TYPE_INT32 == data_type) {
+                mat_type = NC_INT32;
+            } else if (DATA_TYPE_INT8 == data_type) {
+                mat_type = RESERVED_INT8_TEST;
             } else {
+                LOGE("FileReader::Read dont support data type:%d\n", data_type);
                 f_stream.close();
                 return Status(TNNERR_INVALID_INPUT, "the data type is not support in txt in file reader");
             }
@@ -142,14 +144,28 @@ Status FileReader::Read(std::map<std::string, std::shared_ptr<Mat>>& mat_map, co
 
             int count = DimsVectorUtils::Count(dims);
             if (DATA_TYPE_FLOAT == data_type) {
-                float* data_ptr = static_cast<float*>(mat->GetData());
+                auto data_ptr = static_cast<float*>(mat->GetData());
+                for (int i = 0; i < count; ++i) {
+                    //corresponding to dump_single_output in run_onnx_model.py
+                    //np.savetxt(f, output_data.reshape(-1), fmt="%0.6f") will save data as double
+                    //support tensor with double data type, read it with float may cause error
+                    double temp;
+                    f_stream >> temp;
+                    data_ptr[i] = temp;
+                }
+            } else if (DATA_TYPE_INT32 == data_type) {
+                auto data_ptr = static_cast<int*>(mat->GetData());
                 for (int i = 0; i < count; ++i) {
                     f_stream >> data_ptr[i];
                 }
-            } else if (DATA_TYPE_INT32 == data_type) {
-                int* data_ptr = static_cast<int*>(mat->GetData());
+            } else if (DATA_TYPE_INT8 == data_type) {
+                auto data_ptr = static_cast<char*>(mat->GetData());
                 for (int i = 0; i < count; ++i) {
-                    f_stream >> data_ptr[i];
+                    //corresponding to dump_single_output in run_onnx_model.py
+                    //np.savetxt(f, output_data.reshape(-1), fmt="%d") will save data as int
+                    int temp;
+                    f_stream >> temp;
+                    data_ptr[i] = (char) temp;
                 }
             }
 

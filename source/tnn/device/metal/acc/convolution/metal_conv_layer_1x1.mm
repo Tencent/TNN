@@ -16,6 +16,7 @@
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 bool MetalConvLayer1x1::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
@@ -43,10 +44,6 @@ Status MetalConvLayer1x1::AllocateBufferParam(const std::vector<Blob *> &inputs,
     const int goc = dims_output[1] / group;
     const int gic = dims_input[1] / group;
 
-    if (group > 1 && (gic % 4 != 0) && (goc % 4 != 0)) {
-        LOGD("convolution: channel per group must be 4x\n");
-        return Status(TNNERR_LAYER_ERR, "convolution: channel per group must be 4x");
-    }
     
     // buffer_param_
     {
@@ -56,6 +53,10 @@ Status MetalConvLayer1x1::AllocateBufferParam(const std::vector<Blob *> &inputs,
         
         metal_params.input_slice_per_group  = metal_params.input_slice / group;
         metal_params.output_slice_per_group = metal_params.output_slice / group;
+        if (is_channel_4x_ == false) {
+            metal_params.input_slice_per_group  = gic;
+            metal_params.output_slice_per_group = goc;
+        }
         
         
 
@@ -66,8 +67,35 @@ Status MetalConvLayer1x1::AllocateBufferParam(const std::vector<Blob *> &inputs,
     return TNN_OK;
 }
 
+Status MetalConvLayer1x1::AllocateBufferWeight(const std::vector<Blob *> &inputs,
+                                                  const std::vector<Blob *> &outputs) {
+    
+    ConvLayerParam *layer_param  = dynamic_cast<ConvLayerParam *>(param_);
+    ConvLayerResource *layer_res = dynamic_cast<ConvLayerResource *>(resource_);
+    auto dims_input              = inputs[0]->GetBlobDesc().dims;
+    auto dims_output             = outputs[0]->GetBlobDesc().dims;
+    const int input_channel      = dims_input[1];
+    const int output_channel     = dims_output[1];
+    const int group  = layer_param->group;
+    const int goc = dims_output[1] / group;
+    const int gic = dims_input[1] / group;
+
+    is_channel_4x_ = group == 1 || (group > 1 && (gic % 4 == 0) && (goc % 4 == 0));
+    if (is_channel_4x_)
+        return MetalConvLayerCommon::AllocateBufferWeight(inputs, outputs);
+
+    Status status = TNN_OK;
+    if (!buffer_weight_) {
+        buffer_weight_ = AllocatePackedGOIHW4MetalBufferFormRawBuffer(
+            layer_res->filter_handle, {output_channel, input_channel, 1, 1}, layer_param->group, status);
+    }
+    return status;
+}
+
 std::string MetalConvLayer1x1::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return "convolution_1x1";
+    if (is_channel_4x_)
+        return "convolution_1x1_4x";
+    return "convolution_1x1_common";
 }
 
 Status MetalConvLayer1x1::SetKernelEncoderParam(
@@ -91,7 +119,13 @@ Status MetalConvLayer1x1::ComputeThreadSize(const std::vector<Blob *> &inputs,
     
     auto dims_output  = outputs[0]->GetBlobDesc().dims;
     auto output_slice = UP_DIV(dims_output[1], 4);
-    size = MTLSizeMake(dims_output[3]*dims_output[2], output_slice, dims_output[0]);
+    if (is_channel_4x_) {
+        size = MTLSizeMake(dims_output[3]*dims_output[2], output_slice, dims_output[0]);
+    } else {
+        auto goc = dims_output[1] / layer_param->group;
+        auto slice_per_group = UP_DIV(goc, 4);
+        size = MTLSizeMake(dims_output[3]*dims_output[2], slice_per_group * layer_param->group, dims_output[0]);
+    }
     return TNN_OK;
 }
 

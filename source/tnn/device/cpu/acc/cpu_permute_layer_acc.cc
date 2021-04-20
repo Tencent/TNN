@@ -13,6 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cpu/acc/cpu_permute_layer_acc.h"
+
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
@@ -42,20 +44,11 @@ Status CpuPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
     DataType data_type     = output_blob->GetBlobDesc().data_type;
     DimsVector input_dims  = input_blob->GetBlobDesc().dims;
     DimsVector output_dims = output_blob->GetBlobDesc().dims;
-    int n, c, h, w;
-    if (input_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
-        n = input_dims[0];
-        c = input_dims[1];
-        h = input_dims[2];
-        w = input_dims[3];
-    } else {
-        return Status(TNNERR_MODEL_ERR, "Error: TNN only suport [n, c, h, w]");
-    }
-    const int output_count = n * c * h * w;
+    const int output_count = DimsVectorUtils::Count(output_dims);
 
     std::vector<int> input_step;
     std::vector<int> output_step;
-    int num_dims = int(input_blob->GetBlobDesc().dims.size());
+    int num_dims = int(input_dims.size());
     ASSERT(input_dims.size() == output_dims.size());
     for (int i = 0; i < input_dims.size(); ++i) {
         input_step.push_back(CpuPermuteLayerAcc::count(input_dims, i + 1));

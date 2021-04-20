@@ -36,6 +36,8 @@ Status CudaDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
     desc.data_format = DATA_FORMAT_NCHW;
     if (mat_type == NCHW_FLOAT) {
         desc.data_type = DATA_TYPE_FLOAT;
+    } else if (mat_type == NC_INT32) {
+        desc.data_type = DATA_TYPE_INT32;
     } else {
         desc.data_type = DATA_TYPE_INT8;
     }
@@ -48,7 +50,7 @@ Status CudaDevice::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
     int bytes_size = GetBlobMemoryBytesSize(size_info);
     cudaError_t status = cudaMalloc(&ptr, bytes_size);
     if (cudaSuccess != status) {
-        LOGE("cuda alloc failed with size %d for %p\n", bytes_size, ptr);
+        LOGE("cuda alloc failed with size %d for %p status:%d\n", bytes_size, ptr, status);
         return TNNERR_OUTOFMEMORY;
     }
 
@@ -57,14 +59,30 @@ Status CudaDevice::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
 }
 
 Status CudaDevice::Allocate(void** handle, size_t size) {
-    void* ptr;
+    void* ptr = nullptr;
     cudaError_t status = cudaMalloc(&ptr, size);
     if (cudaSuccess != status) {
-        LOGE("cuda alloc failed with size %lu for %p\n", size, ptr);
+        LOGE("cuda alloc failed with size %lu for %p, status:%d\n", size, ptr, status);
+        return TNNERR_OUTOFMEMORY;
+    }
+    if (ptr == nullptr) {
+        LOGE("cuda alloc got nullptr\n");
         return TNNERR_OUTOFMEMORY;
     }
     *handle = ptr;
     return TNN_OK;
+}
+
+Status CudaDevice::ReAllocate(void** handle, size_t size) {
+    Status ret;
+    if (*handle != nullptr) {
+        ret = Free(*handle);
+        if (ret != TNN_OK) {
+            return ret;
+        }
+    }
+    ret = Allocate(handle, size);
+    return ret;
 }
 
 Status CudaDevice::Free(void* handle) {
@@ -131,6 +149,10 @@ Context* CudaDevice::CreateContext(int device_id) {
         return NULL;
     }
     return context;
+}
+
+NetworkType CudaDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_TENSORRT;
 }
 
 Status CudaDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator *creator) {

@@ -95,7 +95,7 @@ def onnx_optimizer(onnx_net_path, input_shape=None):
 
         try:
             input_shapes_ = {}
-            if input_shape is not None:
+            if (input_shape is not None) and (input_shape != ""):
                 input_shape = input_shape.strip()
                 for x in input_shape.split(" "):
                     if ':' not in x:

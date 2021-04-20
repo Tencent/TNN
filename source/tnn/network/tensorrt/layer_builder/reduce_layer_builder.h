@@ -25,13 +25,15 @@ public:
     virtual ILayer* AddToNetwork(INetworkDefinition* network);
 
 protected:
+    uint32_t GetReduceAxis();
+
     ReduceOperation m_op;
 };
 
-#define DECLARE_TRT_REDUCE_LAYER_BUILDER(type_string)                                                                  \
-    class type_string##TRTLayerBuilder : public ReduceTRTLayerBuilder {                                                \
-    public:                                                                                                            \
-        type_string##TRTLayerBuilder(LayerType ignore);                                                                \
+#define DECLARE_TRT_REDUCE_LAYER_BUILDER(type_string)                     \
+    class type_string##TRTLayerBuilder : public ReduceTRTLayerBuilder {   \
+    public:                                                               \
+        type_string##TRTLayerBuilder(LayerType ignore);                   \
     }
 
 }  //  namespace TNN_NS

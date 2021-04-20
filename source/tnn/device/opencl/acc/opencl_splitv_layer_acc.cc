@@ -19,7 +19,7 @@
 #include "tnn/device/opencl/opencl_execute_unit.h"
 #include "tnn/device/opencl/opencl_memory.h"
 #include "tnn/device/opencl/opencl_runtime.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -125,6 +125,9 @@ OpenCLSplitVLayerAcc::~OpenCLSplitVLayerAcc() {}
 
 Status OpenCLSplitVLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("StrideSlice Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
 
     auto input           = inputs[0];
@@ -152,11 +155,11 @@ Status OpenCLSplitVLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(unit, dims);
         unit.ocl_kernel.setArg(idx++, *buffer_);
         // input_height
-        unit.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[2]));
+        unit.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 2)));
         // input_width
-        unit.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[3]));
+        unit.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 3)));
         // input_channel
-        unit.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[1]));
+        unit.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 1)));
         unit.ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
         exec_unit_idx++;
     }
@@ -164,8 +167,8 @@ Status OpenCLSplitVLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     int unit_idx = 0;
     for (auto output : outputs) {
         auto output_dims = output->GetBlobDesc().dims;
-        int input_wh[]   = {dims[3], dims[2]};
-        int output_wh[]  = {output_dims[3], output_dims[2]};
+        int input_wh[]   = {DimsFunctionUtils::GetDim(dims, 3), DimsFunctionUtils::GetDim(dims, 2)};
+        int output_wh[]  = {DimsFunctionUtils::GetDim(output_dims, 3), DimsFunctionUtils::GetDim(output_dims, 2)};
 
         auto &unit       = execute_units_[exec_unit_idx];
         auto splitv_unit = splitv_units_[unit_idx];
@@ -195,7 +198,11 @@ Status OpenCLSplitVLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
             input_offset[splitv_unit.axis] = splitv_unit.begin;
             int output_offset[]            = {0, 0, 0, 0};
             // stride: input_channel * input_height * input_width, input_height * input_width, input_width, 1
-            int input_stride[] = {dims[1] * dims[2] * dims[3], dims[2] * dims[3], dims[3], 1};
+            int input_channel = DimsFunctionUtils::GetDim(dims, 1);
+            int input_height = DimsFunctionUtils::GetDim(dims, 2);
+            int input_width = DimsFunctionUtils::GetDim(dims, 3);
+            int input_stride[] = {input_channel * input_height * input_width,
+                                  input_height * input_width, input_width, 1};
             int idx = SetExecuteUnit2DSizeInfoDefault(unit, output_dims);
             unit.ocl_kernel.setArg(idx++, *buffer_);
             unit.ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
@@ -213,5 +220,6 @@ Status OpenCLSplitVLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_OPENCL_ACC(SplitV, LAYER_SPLITV)
+REGISTER_OPENCL_LAYOUT(LAYER_SPLITV, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

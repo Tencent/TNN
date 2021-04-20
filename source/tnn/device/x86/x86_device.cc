@@ -92,6 +92,10 @@ Context* X86Device::CreateContext(int device_id) {
     return new X86Context();
 }
 
+NetworkType X86Device::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT;
+}
+
 Status X86Device::RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator) {
     GetLayerCreatorMap()[type] = std::shared_ptr<LayerAccCreator>(creator);
     return TNN_OK;

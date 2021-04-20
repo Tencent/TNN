@@ -19,8 +19,6 @@
 
 #include <fstream>
 
-#include "sys/time.h"
-
 namespace TNN_NS {
 
 std::mutex OpenCLContext::s_mutex_;
@@ -261,6 +259,9 @@ Status OpenCLContext::Init() {
     if (opencl_runtime_ == nullptr) {
         return Status(TNNERR_OPENCL_RUNTIME_ERROR, "opencl_runtime is nullptr");
     }
+
+    // set cache path for opencl runtime
+    opencl_runtime_->SetCachePath(cache_path_);
 
     Status status = opencl_runtime_->Init();
     if (status != TNN_OK) {

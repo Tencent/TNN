@@ -41,6 +41,9 @@ Status OpenCLShuffleLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
 Status OpenCLShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("ShuffleChannel Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     auto shuffle_param = dynamic_cast<ShuffleLayerParam *>(param_);
     if (shuffle_param == nullptr) {
         LOGE("ShuffleChannelLayerParam is null!\n");
@@ -51,22 +54,23 @@ Status OpenCLShuffleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
-    if (shuffle_param->group <= 0 || input_dims[1] % shuffle_param->group != 0) {
+    if (shuffle_param->group <= 0 || DimsFunctionUtils::GetDim(input_dims, 1) % shuffle_param->group != 0) {
         LOGE("invalid group size in Shuffle layer!\n");
         return Status(TNNERR_LAYER_ERR, "invalid group size in Shuffle layer!");
     }
 
     uint32_t idx = SetExecuteUnit3DSizeInfoDefault(execute_units_[0], outputs[0]->GetBlobDesc().dims);
-    int group_size = output_dims[1] / shuffle_param->group;
+    int group_size = DimsFunctionUtils::GetDim(output_dims, 1) / shuffle_param->group;
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, shuffle_param->group);
     execute_units_[0].ocl_kernel.setArg(idx++, group_size);
-    execute_units_[0].ocl_kernel.setArg(idx++, output_dims[1]); //output channel
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, 1)); //output channel
 
     return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Shuffle, LAYER_SHUFFLE_CHANNEL)
+REGISTER_OPENCL_LAYOUT(LAYER_SHUFFLE_CHANNEL, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

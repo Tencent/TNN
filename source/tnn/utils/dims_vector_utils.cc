@@ -12,15 +12,14 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
+
+#include <cmath>
+#include <climits>
 
 namespace TNN_NS {
 
-int DimsVectorUtils::Count(DimsVector dims, int start_index, int end_index) {
-    if (dims.size() < start_index) {
-        return 0;
-    }
-
+int DimsVectorUtils::Count(const DimsVector &dims, int start_index, int end_index) {
     if (-1 == end_index || end_index > dims.size()) {
         end_index = static_cast<int>(dims.size());
     }
@@ -32,7 +31,7 @@ int DimsVectorUtils::Count(DimsVector dims, int start_index, int end_index) {
     return result;
 }
 
-DimsVector DimsVectorUtils::Max(DimsVector dims0, DimsVector dims1, int start_index, int end_index) {
+DimsVector DimsVectorUtils::Max(const DimsVector &dims0, const DimsVector &dims1, int start_index, int end_index) {
     DimsVector max_dims;
     DimsVector small_dims;
     if (dims0.size() >= dims1.size()) {
@@ -44,7 +43,7 @@ DimsVector DimsVectorUtils::Max(DimsVector dims0, DimsVector dims1, int start_in
     }
 
     if (small_dims.size() <= start_index) {
-        return small_dims;
+        return max_dims;
     }
 
     if (-1 == end_index || end_index > small_dims.size()) {
@@ -58,7 +57,7 @@ DimsVector DimsVectorUtils::Max(DimsVector dims0, DimsVector dims1, int start_in
     return max_dims;
 }
 
-bool DimsVectorUtils::Equal(DimsVector dims0, DimsVector dims1, int start_index, int end_index) {
+bool DimsVectorUtils::Equal(const DimsVector &dims0, const DimsVector &dims1, int start_index, int end_index) {
     if (dims0.size() <= start_index) {
         return false;
     }
@@ -79,7 +78,7 @@ bool DimsVectorUtils::Equal(DimsVector dims0, DimsVector dims1, int start_index,
     return true;
 }
 
-DimsVector DimsVectorUtils::NCHW2NHWC(DimsVector dims) {
+DimsVector DimsVectorUtils::NCHW2NHWC(const DimsVector &dims) {
     ASSERT(dims.size() == 4);
     const int n           = dims[0];
     const int c           = dims[1];
@@ -89,7 +88,7 @@ DimsVector DimsVectorUtils::NCHW2NHWC(DimsVector dims) {
     return nhwc;
 }
 
-DimsVector DimsVectorUtils::NHWC2NCHW(DimsVector dims) {
+DimsVector DimsVectorUtils::NHWC2NCHW(const DimsVector &dims) {
     ASSERT(dims.size() == 4);
     const int n           = dims[0];
     const int h           = dims[1];
@@ -98,4 +97,5 @@ DimsVector DimsVectorUtils::NHWC2NCHW(DimsVector dims) {
     std::vector<int> nhwc = {n, c, h, w};
     return nhwc;
 }
+
 }  // namespace TNN_NS

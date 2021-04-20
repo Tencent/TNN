@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn/network/tensorrt/tensorrt_network.h"
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
@@ -30,6 +31,8 @@ ILayer* ConcatTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
         input_tensors[i] = tensor;
     }
+
+    m_network->m_concat_blob_names.insert(output_blobs_[0]->GetBlobDesc().name);
 
     ILayer* last_layer;
     IConcatenationLayer* layer = network->addConcatenation(input_tensors, nbInputs);

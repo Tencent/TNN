@@ -38,9 +38,36 @@ matrix:
       before_install:
         - ./scripts/.ci/preflight.sh arm || travis_terminate 0
       script:
-        - ./scripts/build_test.sh
-      after_success:
-        - lcov --directory . --capture --output-file coverage.info
-        - lcov --remove coverage.info '/usr/*' "${HOME}"'/.cache/*' --output-file coverage.info
-        - lcov --list coverage.info
-        - bash <(curl -s https://codecov.io/bash) -f coverage.info || echo "Codecov did not collect coverage reports"
+        - travis_wait 40 ./scripts/build_test.sh
+
+    - name: "Windows | x64 | build"
+      os: windows
+      language: cpp
+      before_install:
+        - ./scripts/.ci/preflight.sh x86 || travis_terminate 0
+      install:
+        - PowerShell -Command 'Set-ExecutionPolicy -ExecutionPolicy RemoteSigned'
+        - choco install ninja
+      script:
+        - scripts/build_msvc_native.bat x64 ci
+      env:
+        - CXX=cl.exe
+        - CXX_FOR_BUILD=cl.exe
+        - CC=cl.exe
+        - CC_FOR_BUILD=cl.exe
+
+    - name: "Windows | x86 | build"
+      os: windows
+      language: cpp
+      before_install:
+        - ./scripts/.ci/preflight.sh x86 || travis_terminate 0
+      install:
+        - PowerShell -Command 'Set-ExecutionPolicy -ExecutionPolicy RemoteSigned'
+        - choco install ninja
+      script:
+        - scripts/build_msvc_native.bat x86 ci
+      env:
+        - CXX=cl.exe
+        - CXX_FOR_BUILD=cl.exe
+        - CC=cl.exe
+        - CC_FOR_BUILD=cl.exe

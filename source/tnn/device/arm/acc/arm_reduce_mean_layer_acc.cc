@@ -29,5 +29,6 @@ typedef struct arm_reduce_mean_operator : arm_reduce_operator {
 DECLARE_ARM_REDUCE_ACC(ReduceMean, ARM_REDUCE_MEAN_OP);
 
 REGISTER_ARM_ACC(ReduceMean, LAYER_REDUCE_MEAN);
+REGISTER_ARM_LAYOUT(LAYER_REDUCE_MEAN, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

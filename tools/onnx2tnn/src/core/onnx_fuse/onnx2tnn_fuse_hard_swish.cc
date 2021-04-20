@@ -14,7 +14,6 @@
 
 #include <algorithm>
 
-#include "objseri.h"
 #include "onnx2tnn.h"
 
 

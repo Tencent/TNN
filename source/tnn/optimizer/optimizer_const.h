@@ -37,8 +37,15 @@ static const std::string kNetOptimizerInsertInt8Reformat =
 static const std::string kNetOptimizerInsertFp16Reformat =
     "net_optimizer_insert_fp16_reformat";
 
+static const std::string kNetOptimizerInsertLayoutReformat =
+    "net_optimizer_insert_layout_reformat";
+
 static const std::string kNetOptimizerRemoveLayers =
     "net_optimizer_remove_layers";
+
+static const std::string kNetOptimizerConvertInt8Layers =
+    "net_optimizer_convert_int8_layers";
+
 }
 
 #endif // TNN_SOURCE_TNN_OPTIMIZER_OPTIMIZER_CONST_H_

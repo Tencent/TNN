@@ -135,8 +135,43 @@ void ResizeBilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int 
     return ResizeBilinearImpl(src, src_w, src_h, src_w * channel, dst, w, h, w * channel, channel);
 }
 
+void ResizeBilinearYUV(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    // assert src_w % 2 == 0
+    // assert src_h % 2 == 0
+    // assert w % 2 == 0
+    // assert h % 2 == 0
+
+    const uint8_t* srcY  = src;
+    uint8_t* dstY        = dst;
+    ResizeBilinear(srcY, src_w, src_h, dstY, w, h, 1);
+
+    const uint8_t* srcUV = srcY + src_w * src_h;
+    uint8_t* dstUV       = dstY + w * h;
+    ResizeBilinear(srcUV, src_w / 2, src_h / 2, dstUV, w / 2, h / 2, 2);
+}
+
 void ResizeNearest(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h, int channel) {
     return ResizeNearestImpl(src, batch, src_w, src_h, src_w * channel, dst, w, h, w * channel, channel);
+}
+
+void ResizeNearestYUV(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h) {
+    // assert src_w % 2 == 0
+    // assert src_h % 2 == 0
+    // assert w % 2 == 0
+    // assert h % 2 == 0
+
+    int src_plane = src_w * src_h * 3 / 2;
+    int dst_plane = w * h * 3 / 2;
+
+    for (int b = 0; b < batch; ++b) {
+        const uint8_t* srcY  = src + b * src_plane;
+        uint8_t* dstY        = dst + b * dst_plane;
+        ResizeNearest(srcY, 1, src_w, src_h, dstY, w, h, 1);
+
+        const uint8_t* srcUV = srcY + src_w * src_h;
+        uint8_t* dstUV       = dstY + w * h;
+        ResizeNearest(srcUV, 1, src_w / 2, src_h / 2, dstUV, w / 2, h / 2, 2);
+    }
 }
 
 bool CheckDataIsOnBoundary(const int new_x_loc, const int new_y_loc, const int src_w, const int src_h) {
@@ -254,6 +289,27 @@ void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, u
     free(buffer);
 }
 
+void WarpAffineBilinearYUV(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                           const float (*transform)[3], const float border_val) {
+    // assert src_w % 2 == 0
+    // assert src_h % 2 == 0
+    // assert dst_w % 2 == 0
+    // assert dst_h % 2 == 0
+
+    int src_plane = src_w * src_h * 3 / 2;
+    int dst_plane = dst_w * dst_h * 3 / 2;
+
+    for (int b = 0; b < batch; ++b) {
+        const uint8_t* srcY  = src + b * src_plane;
+        uint8_t* dstY        = dst + b * dst_plane;
+        WarpAffineBilinear(srcY, src_w, src_h, 1, dstY, dst_w, dst_h, transform, border_val);
+
+        const uint8_t* srcUV = srcY + src_w * src_h;
+        uint8_t* dstUV       = dstY + dst_w * dst_h;
+        WarpAffineBilinear(srcUV, src_w / 2, src_h / 2, 2, dstUV, dst_w / 2, dst_h / 2, transform, border_val);
+    }
+}
+
 static void CalculateNearestOutput(const uint8_t* src, const uint8_t* src2, uint8_t* dst,
                                    int* adelta, int* bdelta, int src_h, int src_w, int channel,
                                    int x, int y, int dst_loc_base, int border_val) {
@@ -351,6 +407,27 @@ void WarpAffineNearest(const uint8_t* src, int src_w, int src_h, int channel, ui
     }
 
     free(buffer);
+}
+
+void WarpAffineNearestYUV(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                           const float (*transform)[3], const float border_val) {
+    // assert src_w % 2 == 0
+    // assert src_h % 2 == 0
+    // assert dst_w % 2 == 0
+    // assert dst_h % 2 == 0
+
+    int src_plane = src_w * src_h * 3 / 2;
+    int dst_plane = dst_w * dst_h * 3 / 2;
+
+    for (int b = 0; b < batch; ++b) {
+        const uint8_t* srcY  = src + b * src_plane;
+        uint8_t* dstY        = dst + b * dst_plane;
+        WarpAffineNearest(srcY, src_w, src_h, 1, dstY, dst_w, dst_h, transform, border_val);
+
+        const uint8_t* srcUV = srcY + src_w * src_h;
+        uint8_t* dstUV       = dstY + dst_w * dst_h;
+        WarpAffineNearest(srcUV, src_w / 2, src_h / 2, 2, dstUV, dst_w / 2, dst_h / 2, transform, border_val);
+    }
 }
 
 void BGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel) {

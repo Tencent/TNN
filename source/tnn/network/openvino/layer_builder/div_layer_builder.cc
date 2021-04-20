@@ -28,6 +28,7 @@
 namespace TNN_NS {
 namespace openvino {
 
+
 DECLARE_BINARY_LAYER_BUILDER(Divide, LAYER_DIV);
 
 REGISTER_BINARY_LAYER_BUILDER(Divide, LAYER_DIV);

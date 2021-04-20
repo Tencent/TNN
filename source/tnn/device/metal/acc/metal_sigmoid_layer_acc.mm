@@ -33,5 +33,6 @@ Status MetalSigmoidLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_METAL_UNARY_ACC(Sigmoid, LAYER_SIGMOID);
+REGISTER_METAL_LAYOUT(LAYER_SIGMOID, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

@@ -13,11 +13,12 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_common.h"
+
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
@@ -102,7 +103,7 @@ Status ArmConvInt8LayerCommon::allocateBufferBias(const std::vector<Blob *> &inp
             // int 8 kernel always add bias, if not, set zeros
             buffer_bias_ = RawBuffer(ROUND_UP(dims_output[1], 4) * sizeof(int32_t));
         }
-    } 
+    }
 
     return TNN_OK;
 }
@@ -254,8 +255,8 @@ static void im2col(int8_t *dst, const int8_t *src, const ConvLayerParam *param, 
     const int src_w_step      = kparam->ic_r4;
     const int crs_r8          = crs_div8 * 8;
     memset(dst, 0, col_buffer_size);
-    auto kh = param->kernels[1];
-    auto kw = param->kernels[0];
+    auto kh       = param->kernels[1];
+    auto kw       = param->kernels[0];
     auto dilate_y = param->dialations[1];
     auto dilate_x = param->dialations[0];
     for (int i = 0; i < dst_cnt; ++i) {
@@ -272,7 +273,6 @@ static void im2col(int8_t *dst, const int8_t *src, const ConvLayerParam *param, 
                 auto src_x = src_y + fx * dilate_x * kparam->ic_r4;
                 memcpy(dst_x, src_x, kparam->ic_r4);
             }
-
         }
     }
 }
@@ -287,8 +287,8 @@ static void im2col_smallc(int8_t *dst, const int8_t *src, const ConvLayerParam *
     const int src_w_step      = 4;
     const int crs_r8          = crs_div8 * 8;
     memset(dst, 0, col_buffer_size);
-    auto kh = param->kernels[1];
-    auto kw = param->kernels[0];
+    auto kh       = param->kernels[1];
+    auto kw       = param->kernels[0];
     auto dilate_y = param->dialations[1];
     auto dilate_x = param->dialations[0];
     for (int i = 0; i < dst_cnt; ++i) {
@@ -311,8 +311,7 @@ static void im2col_smallc(int8_t *dst, const int8_t *src, const ConvLayerParam *
     }
 }
 
-Status ArmConvInt8LayerCommon::setFusionParam(const std::vector<Blob *> &inputs,
-                                              const std::vector<Blob *> &outputs) {
+Status ArmConvInt8LayerCommon::setFusionParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
     CHECK_PARAM_NULL(conv_param);
 
@@ -376,8 +375,8 @@ Status ArmConvInt8LayerCommon::Init(Context *context, LayerParam *param, LayerRe
 Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
     CHECK_PARAM_NULL(conv_param);
-    auto input  = inputs[0];
-    auto output = outputs[0];
+    auto input     = inputs[0];
+    auto output    = outputs[0];
     auto add_input = (conv_param->fusion_type == FusionType_None) ? nullptr : inputs[1];
 
     DataType data_type = output->GetBlobDesc().data_type;
@@ -389,8 +388,8 @@ Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     auto ic          = dims_input[1];
     auto ic_calc     = ic < 4 ? ic : k_param_->ic_r4;
 
-    int8_t *input_data  = reinterpret_cast<int8_t *>(GetBlobHandlePtr(input->GetHandle()));
-    int8_t *output_data = reinterpret_cast<int8_t *>(GetBlobHandlePtr(output->GetHandle()));
+    int8_t *input_data     = reinterpret_cast<int8_t *>(GetBlobHandlePtr(input->GetHandle()));
+    int8_t *output_data    = reinterpret_cast<int8_t *>(GetBlobHandlePtr(output->GetHandle()));
     int8_t *add_input_data = add_input ? reinterpret_cast<int8_t *>(GetBlobHandlePtr(add_input->GetHandle())) : nullptr;
 
     const int crs_div8   = UP_DIV(ic_calc * conv_param->kernels[1] * conv_param->kernels[0], 8);
@@ -398,7 +397,8 @@ Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     for (int n = 0; n < batch; ++n) {
         const auto input_batch = input_data + n * k_param_->iw * k_param_->ih * k_param_->ic_r4;
         auto output_batch      = output_data + n * k_param_->ow * k_param_->oh * k_param_->oc_r4;
-        auto add_input_batch   = add_input_data ? add_input_data + n * k_param_->ow * k_param_->oh * k_param_->oc_r4 : nullptr;
+        auto add_input_batch =
+            add_input_data ? add_input_data + n * k_param_->ow * k_param_->oh * k_param_->oc_r4 : nullptr;
 
         OMP_PARALLEL_FOR_GUIDED_
         for (int t_idx = 0; t_idx < tile_count; t_idx++) {
@@ -406,15 +406,16 @@ Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
             int8_t *input_kernel   = nullptr;
             const int hw_start     = t_idx * NEON_INT8CONV_TILE_HW;
             const int real_hw_tile = MIN(k_param_->oh * k_param_->ow - hw_start, NEON_INT8CONV_TILE_HW);
-            auto gemm_work_space   = buffer_gemm_work_space_.force_to<int8_t *>();
+            const int input_count  = crs_div8 * NEON_INT8CONV_TILE_HW * 8;
+            auto gemm_work_space   = buffer_gemm_work_space_.force_to<int8_t *>() + input_count * thread_id;
             // im2col
             if (im_col_func_) {
-                input_kernel = buffer_im2col_.force_to<int8_t *>() + crs_div8 * NEON_INT8CONV_TILE_HW * 8 * thread_id;
+                input_kernel = buffer_im2col_.force_to<int8_t *>() + input_count * thread_id;
                 im_col_func_(input_kernel, input_batch, conv_param, hw_start, real_hw_tile, crs_div8, k_param_.get());
             } else {
                 input_kernel = input_batch + hw_start * ic_calc;
             }
-            auto output_kernel = output_batch + hw_start * k_param_->oc_r4;
+            auto output_kernel    = output_batch + hw_start * k_param_->oc_r4;
             auto add_input_kernel = add_input_batch ? add_input_batch + hw_start * k_param_->oc_r4 : nullptr;
             // gemm int8
             if (real_hw_tile == NEON_INT8CONV_TILE_HW) {
@@ -426,7 +427,8 @@ Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
                     buffer_tmpout_.force_to<int8_t *>() + k_param_->oc_r4 * NEON_INT8CONV_TILE_HW * thread_id;
                 int8_t *add_input_ptr_tmp = nullptr;
                 if (add_input_kernel) {
-                    add_input_ptr_tmp = buffer_add_tmpin_.force_to<int8_t *>() + k_param_->oc_r4 * NEON_INT8CONV_TILE_HW * thread_id;
+                    add_input_ptr_tmp =
+                        buffer_add_tmpin_.force_to<int8_t *>() + k_param_->oc_r4 * NEON_INT8CONV_TILE_HW * thread_id;
                     memcpy(add_input_ptr_tmp, add_input_kernel, real_hw_tile * k_param_->oc_r4);
                 }
                 GemmInt8(outptr_tmp, input_kernel, gemm_work_space, reinterpret_cast<int8_t *>(k_param_->fil_ptr),

@@ -39,5 +39,6 @@ std::set<std::string> OpenCLAcosLayerAcc::CreateBuildOptions() {
 OpenCLAcosLayerAcc::~OpenCLAcosLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Acos, LAYER_ACOS)
+REGISTER_OPENCL_LAYOUT(LAYER_ACOS, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

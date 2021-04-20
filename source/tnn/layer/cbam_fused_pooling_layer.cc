@@ -25,7 +25,7 @@ Status CbamFusedPoolingLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status CbamFusedPoolingLayer::InferOutputShape() {
+Status CbamFusedPoolingLayer::InferOutputShape(bool ignore_error) {
     Blob* input_blob = input_blobs_[0];
 
     auto dims_input = input_blob->GetBlobDesc().dims;

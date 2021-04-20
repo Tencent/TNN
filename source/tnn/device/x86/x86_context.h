@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "tnn/core/context.h"
+#include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
 
@@ -39,6 +40,13 @@ public:
 
     // @brief wait for jobs in the current context to complete
     virtual Status Synchronize() override;
+
+    void* GetSharedWorkSpace(size_t size);
+    void* GetSharedWorkSpace(size_t size, int index);
+
+private:
+    int num_threads_ = 1;
+    std::vector<RawBuffer> work_space_;
 };
 
 }  // namespace TNN_NS

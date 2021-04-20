@@ -19,7 +19,7 @@
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 #include "tnn/device/opencl/opencl_memory.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -73,9 +73,9 @@ Status OpenCLInstanceNormLayerAcc::Init(Context *context, LayerParam *param, Lay
     DataType data_type      = scale_handle.GetDataType();
 
     auto input_dims = inputs[0]->GetBlobDesc().dims;
-    int batch       = input_dims[0];
-    int channels    = input_dims[1];
-    int width       = input_dims[3];
+    int batch       = DimsFunctionUtils::GetDim(input_dims, 0);
+    int channels    = DimsFunctionUtils::GetDim(input_dims, 1);
+    int width       = DimsFunctionUtils::GetDim(input_dims, 3);
 
     share_channel_ = scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(data_type);
     bool has_bias  = bias_handle.GetBytesSize() != 0;
@@ -113,15 +113,17 @@ OpenCLInstanceNormLayerAcc::~OpenCLInstanceNormLayerAcc() {}
 Status OpenCLInstanceNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Instance Norm Layer Reshape\n");
     ASSERT(inputs.size() == 1);
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
 
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
-    const int channel_blocks = UP_DIV(input_dims[1], 4);
+    const int channel_blocks = UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4);
 
     // unit0
     execute_units_[0].global_work_size = {static_cast<uint32_t>(thread_block_w_ * thread_block_w_),
-                                        static_cast<uint32_t>(channel_blocks) * static_cast<uint32_t>(input_dims[0])};
+                                        static_cast<uint32_t>(channel_blocks) * static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 0))};
     execute_units_[0].local_work_size = GetLocalWS();
 
     uint32_t idx = 0;
@@ -132,11 +134,12 @@ Status OpenCLInstanceNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_b_->GetData()));
     execute_units_[0].ocl_kernel.setArg(idx++, channel_blocks);
     //input_height
-    execute_units_[0].ocl_kernel.setArg(idx++, input_dims[2]);
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 2));
     //input_width
-    execute_units_[0].ocl_kernel.setArg(idx++, input_dims[3]);
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 3));
     //input_height * input_width
-    execute_units_[0].ocl_kernel.setArg(idx++, input_dims[3] * input_dims[2]);
+    execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 3) *
+            DimsFunctionUtils::GetDim(input_dims, 2));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_var_->GetData()));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_bias_->GetData()));
 
@@ -146,9 +149,9 @@ Status OpenCLInstanceNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
     execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_var_->GetData()));
     execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_bias_->GetData()));
     //input_width
-    execute_units_[1].ocl_kernel.setArg(idx++, input_dims[3]);
+    execute_units_[1].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 3));
     //input_height
-    execute_units_[1].ocl_kernel.setArg(idx++, input_dims[2]);
+    execute_units_[1].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 2));
     execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
     return TNN_OK;
 }
@@ -243,5 +246,6 @@ double OpenCLInstanceNormLayerAcc::GetBandwidth() {
 #endif
 
 REGISTER_OPENCL_ACC(InstanceNorm, LAYER_INST_BATCH_NORM)
+REGISTER_OPENCL_LAYOUT(LAYER_INST_BATCH_NORM, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

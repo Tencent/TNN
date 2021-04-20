@@ -37,6 +37,18 @@ ILayer* DetectionOutputTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* n
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs DetectionOutputTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    DetectionOutputLayerParam* param = dynamic_cast<DetectionOutputLayerParam*>(param_);
+    DimsExprs output;
+    output.nbDims = 4;
+    output.d[0] = exprBuilder.constant(2);
+    output.d[1] = exprBuilder.constant(1);
+    output.d[2] = exprBuilder.constant(param->keep_top_k);
+    output.d[3] = exprBuilder.constant(7);
+    return output;
+}
+
 const char* DetectionOutputPluginCreator::getPluginName() const {
     return "DetectionOutput";
 }

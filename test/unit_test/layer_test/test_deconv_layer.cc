@@ -20,7 +20,7 @@
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/interpreter/tnn/model_interpreter.h"
 #include "tnn/utils/cpu_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -70,6 +70,11 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
+
+    if(CheckDataTypeSkip(data_type)) {
+        GTEST_SKIP();
+    }
+
     if (stride > kernel) {
         GTEST_SKIP();
     }
@@ -78,30 +83,14 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
         GTEST_SKIP();
     }
 
-    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
-    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-#ifndef TNN_ARM82
-    if (data_type == DATA_TYPE_HALF) {
-        GTEST_SKIP();
-    }
-#endif
-
-    bool is_depthwise = (input_channel_per_group == 1) && (output_channel_per_group == 1);
-    if (DEVICE_METAL == dev && !is_depthwise && group != 1 && !(input_channel_per_group % 4 == 0 && output_channel_per_group % 4 == 0) &&
-        !(group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2)) {
-        GTEST_SKIP();
-    }
-
-    if (DEVICE_HUAWEI_NPU == dev && activation_type != ActivationType_None) {
-        GTEST_SKIP();
-    }
-
     if (DEVICE_CUDA == dev && (activation_type == ActivationType_SIGMOID_MUL || dilation != 1))  {
+        GTEST_SKIP();
+    }
+
+    if (activation_type == ActivationType_ReLU6 && DEVICE_X86 == dev) {
+        GTEST_SKIP();
+    }
+    if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_X86 == dev) {
         GTEST_SKIP();
     }
 

@@ -52,12 +52,12 @@ dst_tmp      .req x15
 
 //Load from sp
 //x8:fh, x9:dilate_x_step, x10:dilate_y_step
-eor x8, x8, x8
-ldr w8, [sp, #0]
-eor x9, x9, x9
-ldr w9, [sp, #8]
-eor x10, x10, x10
-ldr w10, [sp, #16]
+// eor x8, x8, x8
+ldr x8, [sp, #0]
+// eor x9, x9, x9
+ldr x9, [sp, #8]
+// eor x10, x10, x10
+ldr x10, [sp, #16]
 
 //step multi by sizeof(__fp16)
 lsl x10, x10, #1

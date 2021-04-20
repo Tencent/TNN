@@ -41,5 +41,6 @@ std::set<std::string> OpenCLExpLayerAcc::CreateBuildOptions() {
 OpenCLExpLayerAcc::~OpenCLExpLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Exp, LAYER_EXP)
+REGISTER_OPENCL_LAYOUT(LAYER_EXP, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

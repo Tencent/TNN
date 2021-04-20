@@ -36,7 +36,7 @@ public:
                 DataType input_data_type);
 
     // @brief AllocateBlobMemory
-    Status AllocateBlobMemory() override;
+    Status AllocateBlobMemory(int flag = DATA_FLAG_CHANGE_ALWAYS) override;
 
     // @brief Allocate a memory buffer
     Status MemAlloc(void** ptr, size_t size);

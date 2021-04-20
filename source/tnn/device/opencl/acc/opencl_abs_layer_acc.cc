@@ -39,5 +39,6 @@ std::set<std::string> OpenCLAbsLayerAcc::CreateBuildOptions() {
 OpenCLAbsLayerAcc::~OpenCLAbsLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Abs, LAYER_ABS)
+REGISTER_OPENCL_LAYOUT(LAYER_ABS, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

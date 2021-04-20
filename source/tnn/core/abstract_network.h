@@ -38,7 +38,7 @@ public:
     // @param net_cfg
     // @param net_res
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                        InputShapesMap inputs_shape) = 0;
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) = 0;
 
     // @brief deinit release init create resource
     virtual Status DeInit() = 0;

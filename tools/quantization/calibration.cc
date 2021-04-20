@@ -18,6 +18,7 @@
 #include <random>
 #include "file_reader.h"
 #include "tnn/core/macro.h"
+#include "tnn/core/tnn.h"
 #include "tnn/interpreter/tnn/model_packer.h"
 #include "tnn/interpreter/tnn/objseri.h"
 #include "tnn/utils/dims_vector_utils.h"
@@ -97,23 +98,21 @@ Calibration::Calibration() {}
 Calibration::~Calibration() {}
 
 Status Calibration::Init(NetworkConfig& net_config, ModelConfig& model_config, InputShapesMap inputs_shape) {
-    DefaultModelInterpreter* interpreter =
-        dynamic_cast<DefaultModelInterpreter*>(CreateModelInterpreter(model_config.model_type));
-    if (!interpreter) {
-        return Status(TNNERR_NET_ERR, "interpreter is nil");
-    }
-    interpreter_ = std::shared_ptr<DefaultModelInterpreter>(interpreter);
-
-    Status status = interpreter_->Interpret(model_config.params);
+    TNN tnn;
+    Status status = tnn.Init(model_config);
     if (status != TNN_OK) {
-        LOGE("interpret the model falied!\n");
+        LOGE("tnn init falied!\n");
         return TNNERR_INVALID_MODEL;
     }
-
-    instance_ = std::make_shared<Instance>(net_config, model_config);
-    status    = instance_->Init(std::static_pointer_cast<AbstractModelInterpreter>(interpreter_), inputs_shape);
+    instance_ = tnn.CreateInst(net_config, status);
     if (status != TNN_OK) {
-        LOGE("create instance falied!\n");
+        LOGE("tnn create instance falied!\n");
+        return TNNERR_INST_ERR;
+    }
+
+    interpreter_ = std::dynamic_pointer_cast<DefaultModelInterpreter>(instance_->GetInterpreter());
+    if (interpreter_ == nullptr) {
+        LOGE("instance init falied!\n");
         return TNNERR_INST_ERR;
     }
 

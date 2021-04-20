@@ -32,6 +32,10 @@ struct ImplementedPrecision {
     bool bfp16_implemented = false;
 };
 
+struct ImplementedLayout {
+    std::vector<DataFormat> layouts;
+};
+
 // @brief AbstractDevice define create memory, context and layer acc interface.
 class AbstractDevice {
 public:
@@ -79,8 +83,14 @@ public:
     // @brief get implemented precisions on the device by layer type
     virtual std::shared_ptr<const ImplementedPrecision> GetImplementedPrecision(LayerType type);
 
+    // @brief get implemented layouts on the device by layer type
+    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type);
+
     // @brief get factory device type
     DeviceType GetDeviceType();
+
+    // @brief auto network type decided by device.
+    virtual NetworkType ConvertAutoNetworkType() = 0;
 
 private:
     DeviceType device_type_;
@@ -97,7 +107,7 @@ template <typename T>
 class TypeDeviceRegister {
 public:
     explicit TypeDeviceRegister(DeviceType type) {
-        auto &device_map = GetGlobalDeviceMap();
+        auto& device_map = GetGlobalDeviceMap();
         if (device_map.find(type) == device_map.end()) {
             device_map[type] = std::shared_ptr<T>(new T(type));
         }

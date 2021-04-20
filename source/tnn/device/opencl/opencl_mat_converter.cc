@@ -17,7 +17,7 @@
 #include "tnn/device/opencl/opencl_utils.h"
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/utils/blob_memory_size_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
@@ -195,10 +195,10 @@ Status OpenCLMatConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &src, 
         cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
         CHECK_CL_SUCCESS(cl_ret);
         //height
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[2]); 
+        cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 2));
         CHECK_CL_SUCCESS(cl_ret);
         //width
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[3]);
+        cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 3));
         CHECK_CL_SUCCESS(cl_ret);
     } else if (DEVICE_OPENCL == src.GetDeviceType()) {
         cl::Image *mat_image = static_cast<cl::Image *>(src.GetData());
@@ -207,10 +207,10 @@ Status OpenCLMatConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &src, 
         cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
         CHECK_CL_SUCCESS(cl_ret);
         //height
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[2]); 
+        cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 2));
         CHECK_CL_SUCCESS(cl_ret);
         //width
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[3]);
+        cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 3));
         CHECK_CL_SUCCESS(cl_ret);
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
@@ -239,19 +239,19 @@ Status OpenCLMatConverterAcc::SetWarpAffineArgs(OpenCLExecuteUnit& unit, Mat& sr
         cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, *output_mat_image);
         CHECK_CL_SUCCESS(cl_ret);
         // output height
-        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, output_dims[2]);
+        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, 2));
         CHECK_CL_SUCCESS(cl_ret);
         // output width
-        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, output_dims[3]);
+        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, 3));
         CHECK_CL_SUCCESS(cl_ret);
         // channel
-        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, UP_DIV(input_dims[1], 4));
+        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4));
         CHECK_CL_SUCCESS(cl_ret);
         // input height
-        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, input_dims[2]);
+        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 2));
         CHECK_CL_SUCCESS(cl_ret);
         // input width
-        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, input_dims[3]);
+        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 3));
         CHECK_CL_SUCCESS(cl_ret);
         // inversed transform matrix
         cl_ret = unit.ocl_kernel.setArg(idx++, *matrix_buffer_);

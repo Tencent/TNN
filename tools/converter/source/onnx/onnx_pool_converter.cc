@@ -32,8 +32,8 @@ TNN_NS::ActivationType OnnxPoolingConverter::ActivationType(const onnx::NodeProt
 
 TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                           const onnx::NodeProto &node,
-                                          std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                          std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
+                                          std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                          std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                           bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
     auto param                 = new TNN_NS::PoolingLayerParam;
@@ -42,6 +42,9 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
     param->type                = cur_layer->type_str;
     param->name                = cur_layer->name;
     param->quantized           = false;
+    // do not support adaptive pool for now
+    param->is_adaptive_pool = 0;
+    param->output_shape     = {-1, -1};
     if (onnx_op == "AveragePool" || onnx_op == "MaxPool") {
         auto auto_pad     = GetAttributeString(node, "auto_pad", "NOTSET");
         auto kernel_shape = GetAttributeIntVector(node, "kernel_shape");
@@ -93,16 +96,24 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
         if (pads.size() == 1) {
             param->pads.push_back(pads[0]);
             param->pads.push_back(pads[0]);
+            param->pads.push_back(pads[0]);
+            param->pads.push_back(pads[0]);
         } else if (pads.size() == 2) {
             param->pads.push_back(pads[0]);
+            param->pads.push_back(pads[0]);
+            param->pads.push_back(pads[1]);
             param->pads.push_back(pads[1]);
         } else if (pads.size() == 4) {
             if (pads[0] == pads[2] && pads[1] == pads[3]) {
-                param->pads.push_back(pads[0]);
                 param->pads.push_back(pads[1]);
+                param->pads.push_back(pads[1]);
+                param->pads.push_back(pads[0]);
+                param->pads.push_back(pads[0]);
             } else if (pads[0] < pads[2] && pads[1] < pads[3]) {
                 pad_type = 0;  // SAME UPPER
                 param->pads.push_back(pads[0]);
+                param->pads.push_back(pads[0]);
+                param->pads.push_back(pads[1]);
                 param->pads.push_back(pads[1]);
             } else {
                 LOGE("SAME_LOWER is unsuported, change toSAME_UPPER \n");
@@ -123,7 +134,7 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
                 return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
             }
         } else {
-            if (auto_pad == "" || auto_pad == "SAME_LOWER" || auto_pad == "SAME_UPPER" || auto_pad == "VALID") {
+            if (auto_pad == "NOTSET" || auto_pad == "SAME_LOWER" || auto_pad == "SAME_UPPER" || auto_pad == "VALID") {
                 if (kernel_shape.size() == 3) {
                     param->pads.push_back(0);
                     param->pads.push_back(0);

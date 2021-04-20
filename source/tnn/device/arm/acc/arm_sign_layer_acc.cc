@@ -23,15 +23,15 @@ DECLARE_ARM_ACC(Sign, LAYER_SIGN);
 
 Status ArmSignLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto dims      = outputs[0]->GetBlobDesc().dims;
-    int count      = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+    int count      = dims[0] * ROUND_UP(dims[1], 4) * DimsVectorUtils::Count(dims, 2);
     int count_quad = UP_DIV(count, 4);
 
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
         float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
-        Float4 zero        = Float4(0);
-        Float4 one         = Float4(1);
-        Float4 neg_one     = Float4(-1);
+        Float4 zero        = Float4(0.f);
+        Float4 one         = Float4(1.f);
+        Float4 neg_one     = Float4(-1.f);
         for (int n = 0; n < count_quad; n++) {
             Float4 val = Float4::load(input_data + n * 4);
             Float4 res = Float4::bsl_clt(val, zero, neg_one, val);
@@ -45,5 +45,6 @@ Status ArmSignLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_ARM_ACC(Sign, LAYER_SIGN);
+REGISTER_ARM_LAYOUT(LAYER_SIGN, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

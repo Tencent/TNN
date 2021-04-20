@@ -15,28 +15,28 @@
 #include <cmath>
 #include <memory>
 
-#include <ngraph/node.hpp>
+#include <inference_engine.hpp>
 #include <ngraph/ngraph.hpp>
+#include <ngraph/node.hpp>
 #include <ngraph/op/op.hpp>
 #include <ngraph/opsets/opset.hpp>
 #include <ngraph/opsets/opset1.hpp>
-#include <inference_engine.hpp>
 
-#include "tnn/layer/base_layer.h"
-#include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
 #include "tnn/extern_wrapper/foreign_blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
+#include "tnn/layer/base_layer.h"
+#include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
 #include "tnn/network/openvino/openvino_types.h"
+#include "tnn/network/openvino/custom_layer/custom_reshape.h"
+#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
-
 DECLARE_OPENVINO_LAYER_BUILDER(Reshape, LAYER_RESHAPE);
 
 Status ReshapeOVLayerBuilder::Build() {
-
     auto paramlist = dynamic_cast<ReshapeLayerParam*>(param_);
-    
-    if (GetInputNodes().size() <=0) {
+
+    if (GetInputNodes().size() <= 0) {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
@@ -49,20 +49,23 @@ Status ReshapeOVLayerBuilder::Build() {
     for (auto item : paramlist->shape) {
         shapePattern.push_back(item);
     }
-    auto patternNode = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::i32, output_shape, shapePattern);
-    
-    auto reshapeNode = std::make_shared<ngraph::op::v1::Reshape>(input_node->output(0), patternNode, true);
-    reshapeNode->set_friendly_name(paramlist->name);
-    reshapeNode->validate_and_infer_types();
+    auto patternNode = std::make_shared<ngraph::op::Constant>(ngraph::element::Type_t::i32, output_shape, shapePattern);
 
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(reshapeNode);
-    SetOutputTensors(outputNodes);
+    std::shared_ptr<ngraph::Node> reshapeNode = nullptr;
+    if (paramlist->reshape_type != 1) {
+        reshapeNode = std::make_shared<ngraph::op::v1::Reshape>(input_node->output(0), patternNode, true);
+        reshapeNode->set_friendly_name(paramlist->name);
+        reshapeNode->validate_and_infer_types();
+        ngraph::NodeVector outputNodes;
+        outputNodes.push_back(reshapeNode);
+        SetOutputTensors(outputNodes);
+    } else {
+        ADD_CUSTOM_NODE(Reshape, paramlist->name);
+    }
 
     return TNN_OK;
 }
 
 REGISTER_OPENVINO_LAYER_BUILDER(Reshape, LAYER_RESHAPE);
-
-}
+REGISTER_CUSTOM_TYPE(LAYER_RESHAPE);
+}  // namespace TNN_NS
