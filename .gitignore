@@ -496,3 +496,6 @@ opencl_program.cc
 
 # opencl generated code
 opencl_program.cc
+
+scripts/build_x86_linux/
+scripts/x86_linux_release/

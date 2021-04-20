@@ -15,3 +15,9 @@ endif()
 
 include_directories($ENV{OPENVINO_ROOT_DIR}/deployment_tools/inference_engine/include)
 include_directories($ENV{OPENVINO_ROOT_DIR}/deployment_tools/ngraph/include)
+
+if(NOT DEFINED ENV{ONEDNN_ROOT_DIR})
+    message(FALTAL_ERROR "not defined environment variable:ONEDNN_ROOT_DIR")
+endif()
+
+include_directories($ENV{ONEDNN_ROOT_DIR}/include)

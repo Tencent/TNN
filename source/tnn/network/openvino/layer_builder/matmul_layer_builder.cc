@@ -28,6 +28,8 @@
 #include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
 #include "tnn/network/openvino/openvino_types.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/network/openvino/custom_layer/custom_matmul.h"
+#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
 
@@ -42,41 +44,43 @@ Status MatMulOVLayerBuilder::Build() {
         return TNNERR_INIT_LAYER;
     }
 
-    auto input_node  = GetInputNodes()[0];
-    auto input_shape = input_node->get_output_shape(0);
+    // auto input_node  = GetInputNodes()[0];
+    // auto input_shape = input_node->get_output_shape(0);
 
-    std::shared_ptr<ngraph::Node> matmul_node;
-    auto input_nodes = GetInputNodes();
-    if (input_nodes.size() == 2) {
-        matmul_node = std::make_shared<ngraph::op::MatMul>(input_nodes[0], input_nodes[1], false, false);
-    } else {
-        auto weight_dims = paramlist->weight_position == 0 ? paramlist->matrix_a_dims : paramlist->matrix_b_dims;
-        auto reshape_const_node =
-            std::make_shared<ngraph::op::Constant>(ngraph::element::Type_t::i32, ngraph::Shape({2}), weight_dims);
+    // std::shared_ptr<ngraph::Node> matmul_node;
+    // auto input_nodes = GetInputNodes();
+    // if (input_nodes.size() == 2) {
+    //     matmul_node = std::make_shared<ngraph::op::MatMul>(input_nodes[0], input_nodes[1], false, false);
+    // } else {
+    //     auto weight_dims = paramlist->weight_position == 0 ? paramlist->matrix_a_dims : paramlist->matrix_b_dims;
+    //     auto reshape_const_node =
+    //         std::make_shared<ngraph::op::Constant>(ngraph::element::Type_t::i32, ngraph::Shape({2}), weight_dims);
 
-        auto weight_node = std::make_shared<ngraph::op::Constant>(
-            ngraph::element::Type_t::f32,
-            ngraph::Shape({1, static_cast<uint64_t>(DimsVectorUtils::Count(weight_dims))}),
-            resource->weight.force_to<float *>());
-        auto weight_reshape_node =
-            std::make_shared<ngraph::op::v1::Reshape>(weight_node->output(0), reshape_const_node, true);
+    //     auto weight_node = std::make_shared<ngraph::op::Constant>(
+    //         ngraph::element::Type_t::f32,
+    //         ngraph::Shape({1, static_cast<uint64_t>(DimsVectorUtils::Count(weight_dims))}),
+    //         resource->weight.force_to<float *>());
+    //     auto weight_reshape_node =
+    //         std::make_shared<ngraph::op::v1::Reshape>(weight_node->output(0), reshape_const_node, true);
 
-        if (paramlist->weight_position == 0) {
-            matmul_node = std::make_shared<ngraph::op::MatMul>(weight_reshape_node, input_nodes[0], false, false);
-        } else {
-            matmul_node = std::make_shared<ngraph::op::MatMul>(input_nodes[0], weight_reshape_node, false, false);
-        }
-    }
+    //     if (paramlist->weight_position == 0) {
+    //         matmul_node = std::make_shared<ngraph::op::MatMul>(weight_reshape_node, input_nodes[0], false, false);
+    //     } else {
+    //         matmul_node = std::make_shared<ngraph::op::MatMul>(input_nodes[0], weight_reshape_node, false, false);
+    //     }
+    // }
 
-    matmul_node->set_friendly_name(paramlist->name);
-    matmul_node->validate_and_infer_types();
+    // matmul_node->set_friendly_name(paramlist->name);
+    // matmul_node->validate_and_infer_types();
 
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(matmul_node);
-    SetOutputTensors(outputNodes);
+    // ngraph::NodeVector outputNodes;
+    // outputNodes.push_back(matmul_node);
+    // SetOutputTensors(outputNodes);
+    ADD_CUSTOM_NODE(MatMul, paramlist->name);
 
     return TNN_OK;
 }
 
 REGISTER_OPENVINO_LAYER_BUILDER(MatMul, LAYER_MATMUL);
+REGISTER_CUSTOM_TYPE(LAYER_MATMUL);
 }  // namespace TNN_NS
