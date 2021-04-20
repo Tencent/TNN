@@ -53,8 +53,6 @@ Status PoolingLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index,
     GET_INT_2(output_h, output_w);
     p->output_shape = {output_w, output_h};
 
-    GET_INT_1(p->is_global_pool);
-
     return TNN_OK;
 }
 
@@ -88,8 +86,6 @@ Status PoolingLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerPar
 
     output_stream << layer_param->is_adaptive_pool << " ";
     output_stream << layer_param->output_shape[0] << " " << layer_param->output_shape[1] << " ";
-
-    output_stream << layer_param->is_global_pool << " ";
 
     return TNN_OK;
 }

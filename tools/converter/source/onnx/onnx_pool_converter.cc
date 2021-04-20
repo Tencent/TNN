@@ -45,7 +45,6 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
     // do not support adaptive pool for now
     param->is_adaptive_pool = 0;
     param->output_shape     = {-1, -1};
-    param->is_global_pool   = 0;
     if (onnx_op == "AveragePool" || onnx_op == "MaxPool") {
         auto auto_pad     = GetAttributeString(node, "auto_pad", "NOTSET");
         auto kernel_shape = GetAttributeIntVector(node, "kernel_shape");
@@ -179,7 +178,6 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
         param->kernel_indexs.push_back(-1);
         param->pad_type  = -1;
         param->ceil_mode = 0;
-        param->is_global_pool = 1;
     }
 
     return TNN_NS::TNN_CONVERT_OK;

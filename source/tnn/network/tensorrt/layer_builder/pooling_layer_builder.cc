@@ -39,7 +39,7 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
     bool int8 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetInt8Mode();
-    bool is_global = paramlist->is_global_pool;
+    bool is_global = paramlist->kernels[1] == 0 && paramlist->kernels[0] == 0;
 
     bool symmetric = (paramlist->pads[0] == paramlist->pads[1]) && (paramlist->pads[2] == paramlist->pads[3]);
     if (symmetric && (is_global || (int8 && paramlist->pool_type == 1) || paramlist->is_adaptive_pool)) {
@@ -112,7 +112,7 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
 DimsExprs PoolingTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
         int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) {
     auto paramlist = dynamic_cast<PoolingLayerParam*>(param_);
-    bool is_global = paramlist->is_global_pool;
+    bool is_global = paramlist->kernels[1] == 0 && paramlist->kernels[0] == 0;
     if (paramlist->is_adaptive_pool) {
         DimsExprs output(inputs[0]);
         output.d[2] = exprBuilder.constant(paramlist->output_shape[1]);

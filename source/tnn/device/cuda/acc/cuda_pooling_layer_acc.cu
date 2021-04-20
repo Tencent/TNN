@@ -57,7 +57,7 @@ __global__ void adaptive_pooling_kernel(const float* input, float* output, int c
 
 static bool IsGlobalPooling(PoolingLayerParam *param, const std::vector<Blob *> &inputs,
     const std::vector<Blob *> &outputs) {
-    return param->is_global_pool;
+    return param->kernels[1] == 0 && param->kernels[0] == 0;
 }
 
 CudaPoolingLayerAcc::~CudaPoolingLayerAcc() {

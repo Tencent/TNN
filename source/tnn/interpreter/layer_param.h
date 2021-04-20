@@ -164,8 +164,6 @@ struct PoolingLayerParam : public LayerParam {
     // order [w h d]
     std::vector<int> output_shape;
 
-    int is_global_pool = 0;
-
     PARAM_COPY(PoolingLayerParam)
 };
 
