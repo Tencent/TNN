@@ -45,7 +45,12 @@ int main(int argc, char** argv) {
         option->model_content = model_content;
         option->library_path = "";
         // if enable openvino, set option compute_units to openvino
-        // option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+        // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
+        #ifdef _CUDA_
+            option->compute_units = TNN_NS::TNNComputeUnitsGPU;
+        #else
+            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        #endif
     }
 
     auto predictor = std::make_shared<ImageClassifier>();
@@ -53,7 +58,7 @@ int main(int argc, char** argv) {
     char* temp_p;
     char line[256];
     FILE *fp_label;
-    if((fp_label = fopen("../../assets/synset.txt", "r")) == NULL)
+    if((fp_label = fopen("../../../assets/synset.txt", "r")) == NULL)
         return -1;
     static unsigned char labels[1000][256];
     for(int i = 0; i < 1000; i++){
@@ -65,7 +70,7 @@ int main(int argc, char** argv) {
     char img_buff[256];
     char *input_imgfn = img_buff;
     if(argc < 6)
-        strncpy(input_imgfn, "../../assets/tiger_cat.jpg", 256);
+        strncpy(input_imgfn, "../../../assets/tiger_cat.jpg", 256);
     else
         strncpy(input_imgfn, argv[5], 256);
     printf("Classify is about to start, and the picture is %s\n",input_imgfn);

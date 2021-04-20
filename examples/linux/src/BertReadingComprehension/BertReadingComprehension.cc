@@ -49,14 +49,19 @@ int main(int argc, char **argv) {
         option->model_content = model_content;
         
         option->library_path = "";
-        option->compute_units = TNN_NS::TNNComputeUnits::TNNComputeUnitsTensorRT;// TNNComputeUnitsOpen;
+        // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
+        #ifdef _CUDA_
+            option->compute_units = TNN_NS::TNNComputeUnitsGPU;
+        #else
+            option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+        #endif
         
         option->input_shapes.insert(std::pair<std::string, DimsVector>("input_ids_0", nchw));
         option->input_shapes.insert(std::pair<std::string, DimsVector>("input_mask_0", nchw));
         option->input_shapes.insert(std::pair<std::string, DimsVector>("segment_ids_0", nchw));
     }
 
-    auto bertInput = std::make_shared<BertTokenizerInput>(DEVICE_NAIVE);  
+    auto bertInput = std::make_shared<BertTokenizerInput>(DEVICE_X86);  
     auto predictor = std::make_shared<TNNSDKSample>();
 
     auto bertOutput = predictor->CreateSDKOutput();
@@ -73,12 +78,11 @@ int main(int argc, char **argv) {
 
     const std::string quit("exit");
     while (quit.compare(question) != 0) {
-        // for example: paragraph = "In its early years, the new convention center failed to meet attendance and revenue expectations.[12] By 2002, many Silicon Valley businesses were choosing the much larger Moscone Center in San Francisco over the San Jose Convention Center due to the latter's limited space. A ballot measure to finance an expansion via a hotel tax failed to reach the required two-thirds majority to pass. In June 2005, Team San Jose built the South Hall, a $6.77 million, blue and white tent, adding 80,000 square feet (7,400 m2) of exhibit space";
-        // for example: question = "where is the businesses choosing to go?";
-        tokenizer->buildInput(paragraph, question, bertInput);
+        // std::string paragraph = "In its early years, the new convention center failed to meet attendance and revenue expectations.[12] By 2002, many Silicon Valley businesses were choosing the much larger Moscone Center in San Francisco over the San Jose Convention Center due to the latter's limited space. A ballot measure to finance an expansion via a hotel tax failed to reach the required two-thirds majority to pass. In June 2005, Team San Jose built the South Hall, a $6.77 million, blue and white tent, adding 80,000 square feet (7,400 m2) of exhibit space";
 
+        // std::string question = "where is the businesses choosing to go?";
+        tokenizer->buildInput(paragraph, question, bertInput);
         CHECK_TNN_STATUS(predictor->Predict(bertInput, bertOutput));
-        
         std::string ans;
         tokenizer->ConvertResult(bertOutput, ans);
 

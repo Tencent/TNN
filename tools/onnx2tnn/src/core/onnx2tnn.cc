@@ -488,7 +488,6 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     // RemoveExpand(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemovePool(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
-    RemoveConsecutiveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
     // RemoveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseShuffleChannel(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveSplitUnsqueezeConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);
@@ -536,7 +535,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     FuseLSTM(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseArgMaxOrMin(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHistogram(mutable_graph, index_nodes, weights, node_reference, blob_names);
-    
+    RemoveConsecutiveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
 #ifdef PROCESS_TF
     TransferSplit(mutable_graph, index_nodes, weights, node_reference, blob_names);
     TransferConcat(mutable_graph, index_nodes, weights, node_reference, blob_names);

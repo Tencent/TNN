@@ -2,10 +2,10 @@
 
 set -euxo pipefail
 
-TNN_LIB_PATH=../../scripts/build_x86_linux/
-TNN_OPENVINO_LIB_PATH=../../scripts/x86_linux_release/lib/
+TNN_LIB_PATH=../../../scripts/build_x86_linux/
+TNN_OPENVINO_LIB_PATH=../../../scripts/x86_linux_release/lib/
 
-cd ../../scripts
+cd ../../../scripts
 sh build_x86_linux.sh
 cd -
 
