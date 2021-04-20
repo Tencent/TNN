@@ -24,6 +24,10 @@ bool EluTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status EluTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* EluTRTPluginLayerBuilder::getPluginType() const {
     return "Elu";
 }

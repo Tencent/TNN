@@ -35,28 +35,11 @@ __global__ void permute_kernel(int n, const float *srcData, int num_axes, int *p
 
 Status CudaPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Status ret = CudaLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (ret != TNN_OK) {
-        return ret;
-    }
-    auto params = dynamic_cast<PermuteLayerParam *>(param);
-    if (!params) {
-        return Status(TNNERR_MODEL_ERR, "Error: PermuteLayerParam is empyt");
-    }
-    Blob *input_blob = inputs[0];
-    Blob *output_blob = outputs[0];
-    auto input_dims = input_blob->GetBlobDesc().dims;
-    auto output_dims = output_blob->GetBlobDesc().dims;
-    ASSERT(input_dims.size() == output_dims.size());
-
-    CreateTempBuf(input_dims.size() * sizeof(int));
-    CreateTempBuf(input_dims.size() * sizeof(int));
-    CreateTempBuf(input_dims.size() * sizeof(int));
-    cudaMemcpyAsync(tempbufs_[0].ptr, &(params->orders[0]), input_dims.size() * sizeof(int), cudaMemcpyHostToDevice, context_->GetStream());
-    return TNN_OK;
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
 Status CudaPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
     auto input_dims = input_blob->GetBlobDesc().dims;

@@ -115,7 +115,6 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     this->m_max_batchsize = 1;
-
     BlobMap inputs;
     ret = blob_manager_->GetAllInputBlobs(inputs);
     if (ret != TNN_OK) {
@@ -141,11 +140,6 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     if (ret != TNN_OK) {
         LOGE("ERROR: get output blobs failed");
         return ret;
-    }
-
-    ret = blob_manager_->AllocateBlobMemory();
-    if (ret != TNN_OK) {
-       return ret;
     }
 
     std::string cache_file_name = GetCacheFileName(params_md5, inputs, outputs, min_inputs_shape,
@@ -187,6 +181,28 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
 
     int bind_num = m_trt_engine->getNbBindings();
     this->m_trt_bindings = new void*[bind_num];
+
+    for (auto iter : inputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
+        nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
+        m_trt_context->setBindingDimensions(index, inputDims);
+    }
+
+    for (auto iter : outputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        auto trt_dims = m_trt_context->getBindingDimensions(index).d;
+        DimsVector dims;
+        for (int i = 0; i < m_trt_context->getBindingDimensions(index).nbDims; i++) {
+            dims.push_back(trt_dims[i]);
+        }
+        blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims = dims;
+    }
+
+    ret = blob_manager_->AllocateBlobMemory();
+    if (ret != TNN_OK) {
+       return ret;
+    }
 
     for (auto iter : outputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
@@ -234,6 +250,23 @@ Status TensorRTNetwork_::ReshapeLayers() {
         nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
         m_trt_context->setBindingDimensions(index, inputDims);
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
+    }
+
+    BlobMap outputs;
+    ret = blob_manager_->GetAllOutputBlobs(outputs);
+    if (ret != TNN_OK) {
+        LOGE("ERROR: get output blobs failed");
+        return ret;
+    }
+
+    for (auto iter : outputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        auto trt_dims = m_trt_context->getBindingDimensions(index).d;
+        DimsVector dims;
+        for (int i = 0; i < m_trt_context->getBindingDimensions(index).nbDims; i++) {
+            dims.push_back(trt_dims[i]);
+        }
+        blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims = dims;
     }
 
     for (auto blob_name : const_input_blobs_) {

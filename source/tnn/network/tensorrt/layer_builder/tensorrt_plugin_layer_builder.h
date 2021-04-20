@@ -122,6 +122,7 @@ public:
         virtual nvinfer1::DataType getOutputDataType(int index, const nvinfer1::DataType* inputTypes,              \
             int nbInputs) const;                                                                                   \
         virtual ILayer* AddToNetwork(INetworkDefinition* network);                                                 \
+        virtual Status Reshape();                                                                                  \
     };                                                                                                             \
     class type_string##PluginCreator : public nvinfer1::IPluginCreator {                                           \
     public:                                                                                                        \

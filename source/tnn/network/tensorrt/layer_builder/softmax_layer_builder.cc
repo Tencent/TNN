@@ -44,9 +44,9 @@ ILayer* SoftmaxTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
     auto output_dims = output_blobs_[0]->GetBlobDesc().dims;
     //squeeze
-    if(output_dims.size() < 4) {
-        layer = AddReshapeToNetwork(network, input_tensor, output_dims, (layer_name_ + "squeeze").c_str());
-    }
+    //if(output_dims.size() < 4) {
+    //    layer = AddReshapeToNetwork(network, input_tensor, output_dims, (layer_name_ + "squeeze").c_str());
+    //}
     return layer;
 }
 

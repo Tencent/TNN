@@ -56,8 +56,9 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
     }
     
     auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter_.get());
+
     if (default_interpreter && default_interpreter->GetNetStructure() &&
-        (NeedDoConstantFolding(default_interpreter->GetNetStructure()) || net_config_.device_type == DEVICE_CUDA)) {
+        (NeedDoConstantFolding(default_interpreter->GetNetStructure()) && net_config_.device_type != DEVICE_CUDA)) {
         auto const_folder = std::make_shared<ConstFolder>();
         auto status = const_folder->Init(net_config_, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape);
         RETURN_ON_NEQ(status, TNN_OK);
@@ -118,7 +119,7 @@ Status Instance::SetForwardMemory(void *memory) {
 
 Status Instance::Reshape(const InputShapesMap &inputs) {
     Status status = TNN_OK;
-    if (const_folder_) {
+    if (net_config_.device_type != DEVICE_CUDA && const_folder_) {
         status = const_folder_->Reshape(inputs);
         RETURN_ON_NEQ(status, TNN_OK);
         

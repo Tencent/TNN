@@ -26,6 +26,10 @@ bool PadTRTPluginLayerBuilder::supportsFormatCombination(
         (inOut[pos].type == nvinfer1::DataType::kHALF && inOut[pos].format == nvinfer1::TensorFormat::kNHWC8 && is_pad_8));
 }
 
+Status PadTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* PadTRTPluginLayerBuilder::getPluginType() const {
     return "Pad";
 }
