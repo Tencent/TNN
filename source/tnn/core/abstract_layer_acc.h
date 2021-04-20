@@ -81,8 +81,9 @@ public:
     virtual Status AllocateRuntimeOutputBlob(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     
     // @brief allocate or update constant blobs if constant resource change。
+    // @param only_reload_shape_differ_blob   If only_reload_shape_differ_blob is true, only reload blobs with flag DATA_FLAG_CHANGE_IF_SHAPE_DIFFER, otherwise reload blobs with flag DATA_FLAG_CHANGE_IF_SHAPE_DIFFER or DATA_FLAG_CHANGE_NEVER
     // Note: this func may cost much time, call this func only when necessary。
-    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs);
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false);
     
     // @brief after layer acc forward
     // @param inputs    input blobs
@@ -98,6 +99,9 @@ public:
     
     // @brief set constant resource
     void SetConstantResource(ConstantResource* consts);
+    
+    // @brief set constant resource flags
+    void SetConstantResourceFlag(ConstantResourceFlag* flags);
     
     // @brief set runtime mode
     void SetRuntimeMode(RuntimeMode mode);
@@ -116,6 +120,8 @@ private:
 protected:
     BlobMemoryPool *runtime_blob_pool_ = nullptr;
     ConstantResource* const_resource_ = nullptr;
+    ConstantResourceFlag *const_resource_flag_ = nullptr;
+    
     std::map<std::string, std::shared_ptr<Blob> > const_blob_map_ = {};
     RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;
 };

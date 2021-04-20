@@ -95,7 +95,7 @@ Status RunStrideSlice(int size, const float * src_data, int input_c, int input_d
         int output_c, int output_d, int output_h, int output_w, int div_d, int div_c, int div_n, cudaStream_t stream) {
      
     const int THREAD_PER_BLOCK = 128;
-    const int ELE_PER_THREAD = 64;
+    const int ELE_PER_THREAD = 1;
     int blocks = (size + THREAD_PER_BLOCK * ELE_PER_THREAD - 1) / (THREAD_PER_BLOCK * ELE_PER_THREAD);
     strided_slice_v2_kernel<THREAD_PER_BLOCK, ELE_PER_THREAD><<<blocks, THREAD_PER_BLOCK, 0, stream>>>(
         size, src_data, input_c, input_d, input_h, input_w, begin, strides,

@@ -37,25 +37,31 @@ Status CudaLayerAcc::Init(Context *context, LayerParam *param, LayerResource *re
     resource_ = resource;
     context_ = dynamic_cast<CudaContext*>(context);
 
-    auto status = ReloadConstantBlobs(inputs);
+    auto status = ReloadConstantBlobs(inputs, false);
     RETURN_ON_NEQ(status, TNN_OK);
 
     return CudaLayerAcc::Reshape(inputs, outputs);
 }
 
 
-Status CudaLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs) {
+Status CudaLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob) {
     void *command_queue = nullptr;
     context_->GetCommandQueue(&command_queue);
 
     auto const_resource = const_resource_;
+    auto const_resource_flag = const_resource_flag_;
     auto const_blob_map = const_blob_map_;
     for (auto iter : inputs) {
         auto name = iter->GetBlobDesc().name;
         if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
             continue;
         }
-        
+
+        if (only_reload_shape_differ_blob && const_resource_flag &&
+            const_resource_flag->find(name) == const_resource_flag->end()) {
+            continue;
+        }
+
         auto buffer = (*const_resource)[name];
         if (buffer->GetBytesSize() == 0 ) {
             continue;

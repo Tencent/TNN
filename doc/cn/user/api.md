@@ -74,7 +74,14 @@ auto status = instance->SetInputMat(input_mat, input_cvt_param);
 
 TNN输入设定通过调用SetInputMat接口完成，需要传入的数据保存在`input_mat`中。
 
-### 步骤4. 输出获取
+### 步骤4. 网络运行
+
+```cpp
+auto status = instante->Forward();
+```
+TNN Forward接口为同步调用接口，ForwardAsync接口为异步调用接口。
+
+### 步骤5. 输出获取
 
 ```cpp
 auto status = instance->GetOutputMat(output_mat);

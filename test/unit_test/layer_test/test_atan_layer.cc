@@ -27,11 +27,6 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, AtanLayerTest,
                                             testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(AtanLayerTest, UnaryLayerTest) {
-    DeviceType dev = ConvertDeviceType(FLAGS_dt);
-    if (DEVICE_HUAWEI_NPU == dev) {
-        GTEST_SKIP();
-    }
-
     RunUnaryTest("Atan");
 }
 

@@ -49,7 +49,10 @@ TEST_P(ArgMaxOrMinLayerTest, ArgMaxOrMinLayer) {
     DataType dtype        = std::get<8>(GetParam());
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_HUAWEI_NPU == dev) {
+    if (dim_count > 4 && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+    if (mode != 1 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 

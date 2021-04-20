@@ -88,7 +88,8 @@ Status ConstFolder::Forward() {
     //In Forword, keep old const resource for reuse, save new const blobs to ConstantResource
     //In GetOptimizeNetStructure, remove redundant constants of layer NEVER CHANGE
     ConstantResource constant_map = net_resource_->constant_map;
-
+    auto constant_blob_flags = net_resource_->constant_blob_flags;
+    
     for (auto layer : layers_) {
         auto layer_flag = layer->GetLayerChangeFlag();
         if (layer_flag == DATA_FLAG_CHANGE_NEVER) {
@@ -121,12 +122,14 @@ Status ConstFolder::Forward() {
 #endif
                 
                 constant_map[blob->GetBlobDesc().name] = buffer;
+                constant_blob_flags[blob->GetBlobDesc().name] = blob_flag;
             }
         }
     }
     net_resource_->constant_layers = constant_layers;
     net_resource_->shape_differ_layers = shape_differ_layers;
     net_resource_->constant_map = constant_map;
+    net_resource_->constant_blob_flags = constant_blob_flags;
     net_resource_->blob_shapes_map = shapes_map;
     
     return TNN_OK;

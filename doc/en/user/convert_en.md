@@ -55,7 +55,7 @@ docker rmi turandotkay/tnn-convert:latest
 #### Build Docker image (If the image is pulled through previous step, skip this part)
 
 ``` shell script
-cd <path-to-tnn>/tools/
+cd <path-to-tnn>/
 docker build -t tnn-convert:latest.
 ```
 

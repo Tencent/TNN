@@ -7,46 +7,24 @@ TNN: A high-performance, lightweight neural network inference framework open sou
 
 ## Effect Example
 
-<table>
-    <tr>
-        <th nowrap="nowrap">Face Detection(blazeface)</th>
-        <th nowrap="nowrap">Object Detection(yolov5s)</th>
-        <th nowrap="nowrap">Face Alignment<br>(from Tencent Youtu Lab)</th>
-    </tr>
-    <tr>
-        <td>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif height=320></src> </a> <br>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface>model link</a>
-        </td>
-        <td>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif height=320></src> </a> <br>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5>model link</a>
-        </td>
-        <td>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif height=320></src> </a> <br>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment>model link</a>
-        </td>
-    </tr>
-    <tr>
-        <th nowrap="nowrap">Hair Segmentation<br>(from Tencent Guangying Lab)</th>
-        <th nowrap="nowrap">Pose Estimation<br>(from Tencent Guangliu)</th>
-        <th nowrap="nowrap">Pose Estimation(blazepose)</th>
-    </tr>
-    <tr>
-        <td>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/hair_seg_red.gif height=320></src> </a> <br>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation>model link</a>
-        </td>
-        <td>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_guangliu.gif height=320></src> </a> <br>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton>model link</a>
-        </td>
-        <td>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_blazepose.gif height=320></src> </a> <br>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose>model link</a>
-        </td>
-    </tr>
-</table>
+Face Detection(blazeface)   |   Object Detection(yolov5s)    |  Face Alignment<br>(from Tencent Youtu Lab)  |   Hair Segmentation<br>(from Tencent Guangying Lab) 
+:-------------------------: | :------: | :------: | :------:
+[![face_detection](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) | [![yolov5](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) | [![youtu_face_alignment](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) | [![hair_segmentation](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/hair_seg_red.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation) <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation)
+
+Pose Estimation<br>(from Tencent Guangliu)   |   Pose Estimation<br>(blazepose)    |   Chinese OCR |  Reading Comprehension
+:--------------------------: | :------: | :------: | :------:
+[![skeleton](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_guangliu.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) | [![blazepose](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_blazepose.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) | [![chinese-ocr](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/chinese-ocr.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr) <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr) | [![bertsquad10](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/bert_squad.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10) <br> [model link](https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10)
+
+The support for each demo is shown in the following table. You can click the ✅ and find the entrance code for each demo.
+demo                                                                                      |   ARM    |  OpenCL  |   Metal  |    NPU   |
+:---------------------------------------------------------------------------------------: | :------: | :------: | :------: | :------: |
+[Face Detection](https://github.com/Tencent/TNN/blob/master/examples/base/blazeface_detector.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceDetector) | [✅ ](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNBlazeFaceDetectorViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceDetector) |
+[Object Detection](https://github.com/Tencent/TNN/blob/master/examples/base/object_detector_yolo.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamObjectDetector) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNYoloObjectDetectorViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamObjectDetector) |
+[Face Alignment](https://github.com/Tencent/TNN/blob/master/examples/base/face_detect_aligner.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceAlign) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNFaceDetectAlignerViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceAlign) |
+[Hair Segmentation](https://github.com/Tencent/TNN/blob/master/examples/base/hair_segmentation.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamHairSegmentation) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNHairSegmentationViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamHairSegmentation) |
+[Pose Estimation<br>(from Tencent Guangliu)](https://github.com/Tencent/TNN/blob/master/examples/base/skeleton_detector.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamSkeletonDetector) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNSkeletonDetectorViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamSkeletonDetector) |
+[Pose Estimation(blazepose)](https://github.com/Tencent/TNN/blob/master/examples/base/pose_detect_landmark.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamPoseDetectLandmark) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNPoseDetectLandmarkViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamPoseDetectLandmark) |
+[Chinese OCR](https://github.com/Tencent/TNN/blob/master/examples/base/ocr_driver.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamOCRDetector) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNOCRViewModel.mm) |  |
 
 ## Quick Start
 
@@ -81,41 +59,7 @@ At present, TNN has been launched in various major businesses, and its following
     * Efficient "memory pool" implementation: Based on a full network DAG analysis, the implementation reuses memory between non-dependent nodes which reduces memory cost by 90%.
     * Cross-model memory reduces: This supports external real-time design for network memory so that multiple models can share mutual memory.
 
-* The performance of mainstream models on TNN: v0.1 2020.05.29
-
-    * Kirin970：
-
-        | model                     | cpu time(single thread, ms) | gpu time(ms) | 
-        |---------------------------|--------------|--------------| 
-        | Mobilenet_v1              | 88           |   12         | 
-        | Mobilenet_v1_int8         | 55           |              | 
-        | Mobilenet_v2              | 58           |   11         | 
-        | Mobilenet_v2_int8         | 41           |              | 
-        | squeezenet_v1.0           | 127          |   20         | 
-        | squeezenet_v1.0_int8      | 82           |              | 
-
-    * Snapdragon 835：
-
-        | model                     | cpu time(single thread, ms) | gpu time(ms) |
-        |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 94           |   16         |
-        | Mobilenet_v1_int8         | 62           |              |
-        | Mobilenet_v2              | 61           |   14         |
-        | Mobilenet_v2_int8         | 47           |              |
-        | squeezenet_v1.0           | 122          |   28         |
-        | squeezenet_v1.0_int8      | 93           |              |
-
-    * Snapdragon 845：
-
-        | model                     | cpu time(single thread, ms) | gpu time(ms) |
-        |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 60           |   10         |
-        | Mobilenet_v1_int8         | 37           |              |
-        | Mobilenet_v2              | 39           |   8          |
-        | Mobilenet_v2_int8         | 28           |              |
-        | squeezenet_v1.0           | 74           |   14         |
-        | squeezenet_v1.0_int8      | 56           |              |
-
+* The performance of mainstream models on TNN: [benchmark data](benchmark_data.md)
 
 * TNN architecture diagram：
 

@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/metal/acc/metal_layer_acc.h"
@@ -32,8 +32,7 @@ public:
     virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder,
                                  const std::vector<Blob *> &inputs,
                                  const std::vector<Blob *> &outputs);
-
-    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs) { return TNN_OK; }
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) { return TNN_OK; }
 };
 
 Status MetalUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs,
