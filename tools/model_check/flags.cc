@@ -12,19 +12,32 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_batch_norm_layer_acc.h"
-#include "tnn/device/arm/arm_common.h"
-#include "tnn/utils/data_type_utils.h"
+#include "flags.h"
 
 namespace TNN_NS {
-// @brief conv layer cpu acc
-class ArmScaleLayerAcc : public ArmBatchNormLayerAcc {
-public:
-    virtual ~ArmScaleLayerAcc(){};
-};
 
-REGISTER_ARM_ACC(Scale, LAYER_SCALE)
-REGISTER_ARM_PRECISION_FP16(LAYER_SCALE)
-REGISTER_ARM_LAYOUT(LAYER_SCALE, DATA_FORMAT_NC4HW4)
+DEFINE_bool(h, false, help_message);
+
+DEFINE_string(p, "", proto_path_message);
+
+DEFINE_string(m, "", model_path_message);
+
+DEFINE_string(d, "", device_type_message);
+
+DEFINE_string(i, "", input_path_message);
+
+DEFINE_string(f, "", output_ref_path_message);
+
+DEFINE_bool(e, false, cmp_end_message);
+
+DEFINE_string(n, "", bias_message);
+
+DEFINE_string(s, "", scale_message);
+
+DEFINE_bool(o, false, output_dump_message);
+
+DEFINE_bool(b, false, check_batch_message);
+
+DEFINE_string(a, "", align_all_message);
 
 }  // namespace TNN_NS

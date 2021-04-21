@@ -26,7 +26,7 @@
 
 namespace TNN_NS {
 
-enum GpuType { OTHER = 0, ADRENO = 1, MALI = 2, MALI_T = 3, MALI_G = 4 };
+enum GpuType { OTHER = 0, ADRENO = 1, MALI = 2, MALI_T = 3, MALI_G = 4, INTEL_GPU = 5, NVIDIA_GPU = 6};
 
 struct GpuInfo {
     GpuType type = OTHER;
@@ -70,6 +70,7 @@ public:
 private:
     OpenCLRuntime();
     GpuInfo ParseGpuInfo(std::string device_name, std::string device_version);
+    Status SearchGpuDevice(std::shared_ptr<cl::Device>& device);
 
     bool LoadProgram(const std::string &program_name, cl::Program *program);
     bool BuildProgram(const std::string &build_options, cl::Program *program);

@@ -172,7 +172,7 @@ struct PUBLIC NetworkConfig {
     // compute precision
     Precision precision = PRECISION_AUTO;
 
-    // cache path to store possible cache models or opt kernel
+    // cache path to store possible cache models or opt kernel or opencl program cache
     std::string cache_path = "";
 
     // network init or reshape may cost more time to select opt kernel implement if enable tune kernel
@@ -190,7 +190,7 @@ The default is `DEVICE_ARM`. `DEVICE_NAIVE`, `DEVICE_ARM`, `DEVICE_X86`, `DEVICE
 - `share_memory_mode`: tnn instance memory sharing mode.  
 - `library_path`: support external dependent library loading, this parameter needs to be configured when the iOS metal kernel library is placed in the app non-default path.  
 - `precision`: Network precision type. The precision is automatically selected according to different `device_type` by default.  
-- `cache_path`: Huawei NPU specifies the cache path to store the om files transferred during operation, and subsequent operations can directly load the corresponding om files through the cache path. OpenCL `enable_tune_kernel` is turned on, you can store the tune parameters by specifying the cache path, and then you can load the tune parameters directly without having to tune the kernel every time you run it.  
+- `cache_path`: Huawei NPU specifies the cache path to store the om files transferred during operation, and subsequent operations can directly load the corresponding om files through the cache path. OpenCL specifies the cache path to store the compiled binary files of kernel, and subsequent initialization can directly create kernals through the binary cache files. If `enable_tune_kernel` is turned on, you can store the tune parameters by specifying the cache path, and then you can load the tune parameters directly without having to tune the kernel every time you run it.
 
 ```cpp
 typedef enum {

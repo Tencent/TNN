@@ -170,7 +170,7 @@ struct PUBLIC NetworkConfig {
     // compute precision
     Precision precision = PRECISION_AUTO;
 
-    // cache path to store possible cache models or opt kernel
+    // cache path to store possible cache models or opt kernel or opencl program cache
     std::string cache_path = "";
 
     // network init or reshape may cost more time to select opt kernel implement if enable tune kernel
@@ -188,7 +188,7 @@ NetworkConfig参数说明：
 - `share_memory_mode`: tnn instance 内存共享方式。  
 - `library_path`: 支持外部依赖库加载，iOS metal kernel库放在app非默认路径需配置此参数。    
 - `precision`:  网络精度类型，默认根据不同的`device_type`自动选择精度。  
-- `cache_path`： 华为NPU指定cache路径可存放运行过程中转出的om文件，后续运行可直接通过加载cache路径对应om文件。OpenCL `enable_tune_kernel` 打开，可通过指定cache路径存放tune参数，后续可直接加载tune参数而无需每次运行都tune kernel。
+- `cache_path`： 华为NPU指定cache路径可存放运行过程中转出的om文件，后续运行可直接通过加载cache路径对应om文件。OpenCL指定cache路径可缓存编译好的kernel二进制文件，后续初始化可直接通过二进制cache文件创建kernel， `enable_tune_kernel` 打开，可通过指定cache路径存放tune参数，后续可直接加载tune参数而无需每次运行都tune kernel。
 
 
 ```cpp
