@@ -188,6 +188,8 @@ Status ArmConvInt8LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
 
         if (conv_param->activation_type == ActivationType_ReLU) {
             ReluInt8(output_batch, output_batch, output_height * dst_y_step);
+        } else if (conv_param->activation_type == ActivationType_ReLU6) {
+            Relu6Int8(output_batch, output_batch, relu6_max_.force_to<int8_t *>(), output_height * output_width, oc_4 * 4);
         }
     }
     return TNN_OK;

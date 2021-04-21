@@ -20,6 +20,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
 /*
@@ -326,6 +327,24 @@ Status ArmConvInt8LayerCommon::setFusionParam(const std::vector<Blob *> &inputs,
         if (conv_param->fusion_type == FusionType_Conv_Activation_Add) {
             relu_ = -1;
         }
+    } else if (conv_param->activation_type == ActivationType_ReLU6) {
+        relu_ = 2;
+    }
+
+    // compute relu6 max
+    if (conv_param->activation_type == ActivationType_ReLU6) {
+        auto output_scale_resource      = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource();
+        auto output_scale_len           = output_scale_resource->scale_handle.GetDataCount();
+        auto output_scale_resource_data = output_scale_resource->scale_handle.force_to<float *>();
+        auto &dims_output               = outputs[0]->GetBlobDesc().dims;
+        auto &output_channel            = dims_output[1];
+        RawBuffer relu6_max             = RawBuffer(output_channel * sizeof(int8_t));
+        auto relu6_max_data             = relu6_max.force_to<int8_t *>();
+        for (int i = 0; i < output_channel; ++i) {
+            int scale_idx     = output_scale_len == 1 ? 0 : i;
+            relu6_max_data[i] = float2int8(6.0f / output_scale_resource_data[scale_idx]);
+        }
+        relu6_max_ = relu6_max;
     }
 
     return TNN_OK;
@@ -421,7 +440,8 @@ Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
             if (real_hw_tile == NEON_INT8CONV_TILE_HW) {
                 GemmInt8(output_kernel, input_kernel, gemm_work_space, reinterpret_cast<int8_t *>(k_param_->fil_ptr),
                          reinterpret_cast<int32_t *>(k_param_->bias), k_param_->scale, crs_div8, crs_div8 * 8,
-                         k_param_->oc_r4, relu_, add_input_kernel, buffer_add_scale_.force_to<float *>());
+                         k_param_->oc_r4, relu_, add_input_kernel, buffer_add_scale_.force_to<float *>(), 
+                         relu6_max_.force_to<int8_t *>());
             } else {
                 int8_t *outptr_tmp =
                     buffer_tmpout_.force_to<int8_t *>() + k_param_->oc_r4 * NEON_INT8CONV_TILE_HW * thread_id;
@@ -433,7 +453,8 @@ Status ArmConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
                 }
                 GemmInt8(outptr_tmp, input_kernel, gemm_work_space, reinterpret_cast<int8_t *>(k_param_->fil_ptr),
                          reinterpret_cast<int32_t *>(k_param_->bias), k_param_->scale, crs_div8, crs_div8 * 8,
-                         k_param_->oc_r4, relu_, add_input_ptr_tmp, buffer_add_scale_.force_to<float *>());
+                         k_param_->oc_r4, relu_, add_input_ptr_tmp, buffer_add_scale_.force_to<float *>(),
+                         relu6_max_.force_to<int8_t *>());
                 memcpy(output_kernel, outptr_tmp, real_hw_tile * k_param_->oc_r4);
             }
         }

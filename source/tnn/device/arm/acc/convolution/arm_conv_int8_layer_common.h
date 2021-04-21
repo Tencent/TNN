@@ -54,6 +54,8 @@ protected:
     RawBuffer buffer_gemm_work_space_;
     RawBuffer buffer_add_scale_;
     RawBuffer buffer_add_tmpin_;
+    // for conv relu6 fusion
+    RawBuffer relu6_max_;
 
     long relu_ = 0;
 
