@@ -24,6 +24,10 @@ bool ReduceLogSumExpTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status ReduceLogSumExpTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* ReduceLogSumExpTRTPluginLayerBuilder::getPluginType() const {
     return "ReduceLogSumExp";
 }
