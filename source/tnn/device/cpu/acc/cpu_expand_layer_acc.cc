@@ -77,9 +77,10 @@ Status CpuExpandLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         memcpy(output_data + i*ele_size, input_data + in_index*ele_size, ele_size);
     }
     if(diff > 0) {
-        int repeat_cnt = DimsVectorUtils::Count(output_dims, 0, diff);
+        const int data_size = output_diff_start_cnt * ele_size;
+        int repeat_cnt      = DimsVectorUtils::Count(output_dims, 0, diff);
         for(int i = 1; i < repeat_cnt; ++i) {
-            memcpy(output_data + i * output_diff_start_cnt, output_data, output_diff_start_cnt * ele_size);
+            memcpy(output_data + i * data_size, output_data, data_size);
         }
     }
     return TNN_OK;
