@@ -357,7 +357,7 @@ TNN_NS::DimsVector CreateDimsVectorFromTensor(const onnx::TensorProto &tensor) {
         return dims;
     }
     for (int i = 0; i < tensor_dims.size(); ++i) {
-        dims.push_back((int)tensor_dims.at(i));
+        dims.push_back((int)tensor.dims(i));
     }
     return dims;
 }
