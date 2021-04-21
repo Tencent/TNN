@@ -23,16 +23,16 @@
 
 namespace TNN_NS {
 
-static void SoftmaxChannelFunc(float *input_ptr, float *output_ptr, int channel) {
+static void SoftmaxChannelFunc(float *dst, float *src, int channel) {
     // max
-    Float4 max_v = Float4(input_ptr[0]);
-    float max    = input_ptr[0];
+    Float4 max_v = Float4(src[0]);
+    float max    = src[0];
     int c        = 0;
     for (; c < channel - 4; c += 4) {
-        max_v = Float4::max(Float4::load(input_ptr + c), max_v);
+        max_v = Float4::max(Float4::load(src + c), max_v);
     }
     for (; c < channel; ++c) {
-        max = std::max(max, input_ptr[c]);
+        max = std::max(max, src[c]);
     }
     for (int i = 0; i < 4; ++i) {
         max = std::max(max, max_v[i]);
@@ -40,20 +40,20 @@ static void SoftmaxChannelFunc(float *input_ptr, float *output_ptr, int channel)
     // exp
     c = 0;
     for (; c < channel - 4; c += 4) {
-        Float4::save(output_ptr + c, Float4::exp(Float4::load(input_ptr + c) - Float4(max)));
+        Float4::save(dst + c, Float4::exp(Float4::load(src + c) - Float4(max)));
     }
     for (; c < channel; ++c) {
-        output_ptr[c] = expf(input_ptr[c] - max);
+        dst[c] = expf(src[c] - max);
     }
     // sum
     c            = 0;
     Float4 sum_v = Float4(0.0f);
     float sum    = 0.0f;
     for (; c < channel - 4; c += 4) {
-        sum_v = Float4::load(output_ptr + c) + sum_v;
+        sum_v = Float4::load(dst + c) + sum_v;
     }
     for (; c < channel; ++c) {
-        sum += output_ptr[c];
+        sum += dst[c];
     }
     for (int i = 0; i < 4; ++i) {
         sum += sum_v[i];
@@ -62,10 +62,10 @@ static void SoftmaxChannelFunc(float *input_ptr, float *output_ptr, int channel)
     c                 = 0;
     float denominator = 1.0f / sum;
     for (; c < channel - 4; c += 4) {
-        Float4::save(output_ptr + c, Float4::load(output_ptr + c) * denominator);
+        Float4::save(dst + c, Float4::load(dst + c) * denominator);
     }
     for (; c < channel; ++c) {
-        output_ptr[c] *= denominator;
+        dst[c] *= denominator;
     }
 }
 
@@ -118,7 +118,7 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
             for (int y = 0; y < outside; ++y) {
                 auto src_y = input_ptr + y * step_y;
                 auto dst_y = reorder_buffer_ptr + y * step_y;
-                SoftmaxChannelFunc(src_y, dst_y, channel);
+                SoftmaxChannelFunc(dst_y, src_y, channel);
             }
         } else {
             for (int y = 0; y < outside; y++) {
