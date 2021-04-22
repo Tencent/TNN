@@ -52,6 +52,8 @@ int main(int argc, char **argv) {
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
             option->compute_units = TNN_NS::TNNComputeUnitsGPU;
+        #elif _ARM_
+            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         #else
             option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
         #endif
@@ -61,7 +63,8 @@ int main(int argc, char **argv) {
         option->input_shapes.insert(std::pair<std::string, DimsVector>("segment_ids_0", nchw));
     }
 
-    auto bertInput = std::make_shared<BertTokenizerInput>(DEVICE_X86);  
+    
+    auto bertInput = std::make_shared<BertTokenizerInput>(DEVICE_NAIVE);  
     auto predictor = std::make_shared<TNNSDKSample>();
 
     auto bertOutput = predictor->CreateSDKOutput();
