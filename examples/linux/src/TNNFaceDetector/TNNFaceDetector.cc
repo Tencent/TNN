@@ -51,6 +51,8 @@ int main(int argc, char** argv) {
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
             option->compute_units = TNN_NS::TNNComputeUnitsGPU;
+        #elif _ARM_
+            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         #else
             option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
         #endif
