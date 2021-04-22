@@ -116,7 +116,7 @@ RKNPU Compilation Prerequisite in [FAQ](../faq_en.md#rknpu-compilation-prerequis
 ## IV. Compile(x86 Linux)
 ### 1. Enviromnment requirements
 #### Dependencies
-  - cmake (version 3.7.2 or higher)
+  - cmake (version 3.11 or higher)
 
 ### 2. Compilation Steps
 1) switch to 'scripts' directory
@@ -126,12 +126,13 @@ cd <path_to_tnn>/scripts
 2) execute the building scripts
   - compile without openvino
 ```
-./build_linux_naive.sh
+./build_linux_native.sh
 ```
   - compile with openvino
 ```
-./build_linux.sh
+./build_x86_linux.sh
 ```
+Openvino can only be compiled to 64-bit version, cmake version 3.13 or higher
 
 ## V. Compile(Linux CUDA)
 ### 1. Enviromnment requirements
@@ -173,7 +174,7 @@ cd <path_to_tnn>/scripts
 2) execute the building scripts
   - compile without openvino
 ```
-.\build_msvc_naive.bat
+.\build_msvc_native.bat
 ```
   - compile with openvino
 ```
