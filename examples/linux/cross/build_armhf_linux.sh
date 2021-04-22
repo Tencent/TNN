@@ -2,9 +2,9 @@
 
 CC=arm-linux-gnueabihf-gcc
 CXX=arm-linux-gnueabihf-g++
-TNN_LIB_PATH=../../scripts/build_armhf_linux
+TNN_LIB_PATH=../../../scripts/build_armhf_linux
 
-cd ../../scripts
+cd ../../../scripts
 ./build_armhf_linux.sh
 cd -
 

@@ -39,6 +39,11 @@ void UnaryLayerTest::RunUnaryTest(std::string type_str) {
         GTEST_SKIP();
     }
 
+    // skip dims > 4 for HUAWEI_NPU
+    if (dim_count > 4 && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     std::shared_ptr<LayerParam> param(new LayerParam());
     param->name = "Unary";
 

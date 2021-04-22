@@ -2,9 +2,9 @@
 
 CC=aarch64-linux-gnu-gcc
 CXX=aarch64-linux-gnu-g++
-TNN_LIB_PATH=../../scripts/build_aarch64_linux/
+TNN_LIB_PATH=../../../scripts/build_aarch64_linux/
 
-cd ../../scripts
+cd ../../../scripts
 ./build_aarch64_linux.sh
 cd -
 

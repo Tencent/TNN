@@ -45,7 +45,7 @@ DimsVector CalPermuteOutputShape(const DimsVector &input_dims, const std::vector
 
 DimsVector CalSqueezeOutputShape(const DimsVector &input_dims, const int axis) {
     auto output_dims = input_dims;
-    output_dims.erase(output_dims.end() + axis);
+    output_dims.erase(output_dims.begin() + axis);
 
     return output_dims;
 }
@@ -86,6 +86,7 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
 
     param->perm_shapes.clear();
     param->dim_last_op.clear();
+    param->operand_dims.clear();
     param->has_zero_size_dim = false;
     const auto equation    = param->equation;
     constexpr int ELLIPSIS = '.';

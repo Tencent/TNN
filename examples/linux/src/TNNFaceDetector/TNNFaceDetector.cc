@@ -48,8 +48,14 @@ int main(int argc, char** argv) {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = "";
-        // if enable openvino, set option compute_units to openvino
-        // option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+        // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
+        #ifdef _CUDA_
+            option->compute_units = TNN_NS::TNNComputeUnitsGPU;
+        #elif _ARM_
+            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        #else
+            option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+        #endif
     
         option->input_width = w;
         option->input_height = h;
@@ -63,7 +69,7 @@ int main(int argc, char** argv) {
     char img_buff[256];
     char *input_imgfn = img_buff;
     if(argc < 6)
-        strncpy(input_imgfn, "../../assets/test_face.jpg", 256);
+        strncpy(input_imgfn, "../../../assets/test_face.jpg", 256);
     else
         strncpy(input_imgfn, argv[5], 256);
     printf("Face-detector is about to start, and the picrture is %s\n",input_imgfn);
@@ -78,7 +84,7 @@ int main(int argc, char** argv) {
     std::shared_ptr<TNNSDKOutput> sdk_output = predictor->CreateSDKOutput();
     CHECK_TNN_STATUS(predictor->Init(option));
     //Predict
-    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
     CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output));
     std::vector<FaceInfo> face_info;
     if (sdk_output && dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get())) {

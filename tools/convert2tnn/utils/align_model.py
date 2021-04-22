@@ -369,7 +369,7 @@ def check_input_info(onnx_input_info: dict, tnn_input_info: dict):
         if check_shape_info(onnx_info, tnn_info) == True:
             logging.info(name + ": input shape of onnx and tnn is aligned!\n")
         else:
-            logging.error("input is not algin 194\n")
+            logging.error("input is not align 194\n")
             print_not_align_message(
                 "The {}'s shape not equal! the onnx shape:{}, tnn shape: {}\n".format(name, str(onnx_info),
                                                                                       str(tnn_info)))
@@ -384,7 +384,7 @@ def check_input_lite_info(onnx_input_info: dict, tnn_input_info: dict):
         if check_shape_info(onnx_info, tnn_info):
             logging.info("Check tflite input shape and tnn input shape align!\n")
         else:
-            logging.info("input is not algin\n")
+            logging.info("input is not align\n")
             print_not_align_message(
                 "The {}'s shape not equal! the onnx shape:{}, tnn shape: {}\n".format(name, str(onnx_info),
                                                                                       str(tnn_info)))

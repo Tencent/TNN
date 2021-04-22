@@ -276,8 +276,8 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
         // the value is initialized as half
         mat_type = RESERVED_FP16_TEST;
     }
-    TNN_NS::Mat source(DEVICE_NAIVE, mat_type, blob_desc.dims);
-    void* input_data = source.GetData();
+    TNN_NS::Mat input_mat_cpu(DEVICE_NAIVE, mat_type, blob_desc.dims);
+    void* input_data = input_mat_cpu.GetData();
     if (mat_type == NCHW_FLOAT) {
         if (ensure_input_positive_) {
             // some layers only supports positive data as input
@@ -314,15 +314,16 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
 
     // CONVERT TO CPU BLOB
     BlobConverter blob_converter_cpu(cpu_blob);
-    ret = blob_converter_cpu.ConvertFromMat(source, param, nullptr);
+    ret = blob_converter_cpu.ConvertFromMat(input_mat_cpu, param, nullptr);
     if (ret != TNN_OK) {
         LOGE("input blob_converter failed (%s)\n", ret.description().c_str());
         return ret;
     }
 
     // CONVERT TO DEVICE BLOB
+    TNN_NS::Mat input_mat_device(DEVICE_NAIVE, mat_type, device_blob->GetBlobDesc().dims, input_data); // For HUAWEI_NPU, dim size not equal
     BlobConverter blob_converter(device_blob);
-    ret = blob_converter.ConvertFromMat(source, param, command_queue_dev);
+    ret = blob_converter.ConvertFromMat(input_mat_device, param, command_queue_dev);
     if (ret != TNN_OK) {
         LOGE("input blob_converter failed (%s)\n", ret.description().c_str());
         return ret;
@@ -356,10 +357,9 @@ int LayerTest::CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queu
     } else if (blob_desc_device.data_type == DATA_TYPE_INT32) {
         mat_type = NC_INT32;
     }
-    auto dims = cpu_blob->GetBlobDesc().dims;
-    int count = DimsVectorUtils::Count(dims);
+    int count = DimsVectorUtils::Count(dims_cpu);
     // convert cpu blob to mat
-    TNN_NS::Mat cpu_mat(DEVICE_NAIVE, mat_type, dims);
+    TNN_NS::Mat cpu_mat(DEVICE_NAIVE, mat_type, dims_cpu);
     BlobConverter blob_converter_cpu(cpu_blob);
     ret = blob_converter_cpu.ConvertToMat(cpu_mat, MatConvertParam(), nullptr);
     if (ret != TNN_OK) {
@@ -368,7 +368,7 @@ int LayerTest::CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queu
     }
 
     // convert dev blob to cpu mat nchw
-    TNN_NS::Mat dev_cpu_mat(DEVICE_NAIVE, mat_type, dims);
+    TNN_NS::Mat dev_cpu_mat(DEVICE_NAIVE, mat_type, dims_device);
     BlobConverter blob_converter_dev(device_blob);
     ret = blob_converter_dev.ConvertToMat(dev_cpu_mat, MatConvertParam(), command_queue_dev);
     if (ret != TNN_OK) {

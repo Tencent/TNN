@@ -8,46 +8,27 @@ TNN：由腾讯优图实验室开源的高性能、轻量级神经网络推理�
 
 ## 效果示例
 
-<table>
-    <tr>
-        <th nowrap="nowrap">人脸检测(blazeface)</th>
-        <th nowrap="nowrap">物体检测(yolov5s)</th>
-        <th nowrap="nowrap">人脸配准(腾讯优图)</th>
-    </tr>
-    <tr>
-        <td>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif height=320></src> </a> <br>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface>模型链接</a>
-        </td>
-        <td>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif height=320></src> </a> <br>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5>模型链接</a>
-        </td>
-        <td>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif height=320></src> </a> <br>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment>模型链接</a>
-        </td>
-    </tr>
-    <tr>
-        <th nowrap="nowrap">头发分割(腾讯光影)</th>
-        <th nowrap="nowrap">姿势估计(腾讯光流)</th>
-        <th nowrap="nowrap">姿势估计(blazepose)</th>
-    </tr>
-    <tr>
-        <td>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/hair_seg_red.gif height=320></src> </a> <br>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation>模型链接</a>
-        </td>
-        <td>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_guangliu.gif height=320></src> </a> <br>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton>模型链接</a>
-        </td>
-        <td>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose><img src=https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_blazepose.gif height=320></src> </a> <br>
-            <a href=https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose>模型链接</a>
-        </td>
-    </tr>
-</table>
+人脸检测(blazeface)   |   物体检测(yolov5s)    |  人脸配准(腾讯优图)  |   头发分割(腾讯光影)
+:-------------------------: | :------: | :------: | :------:
+[![face_detection](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) <br> 模型链接: [tflite](https://github.com/google/mediapipe/blob/master/mediapipe/models/face_detection_front.tflite) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) | [![yolov5](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) <br> 模型链接: [onnx](https://github.com/ultralytics/yolov5/blob/master/models/export.py) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) | [![youtu_face_alignment](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) <br> 模型链接: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) | [![hair_segmentation](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/hair_seg_red.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation) <br> 模型链接: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation)
+
+姿势估计(腾讯光流)   |   姿势估计(blazepose)    |  中文字符识别 |  阅读理解
+:--------------------------: | :------: | :------: | :------:
+[![skeleton](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_guangliu.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) <br> 模型链接: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) | [![blazepose](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_blazepose.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) <br> 模型链接: [tflite](https://github.com/google/mediapipe/blob/master/mediapipe/modules/pose_landmark/pose_landmark_full_body.tflite) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) | [![chinese-ocr](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/chinese-ocr.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr) <br> 模型链接: [onnx](https://github.com/DayBreak-u/chineseocr_lite/tree/onnx/models) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr) | [![bertsquad10](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/bert_squad.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10) <br> 模型链接: [onnx](https://github.com/onnx/models/blob/master/text/machine_comprehension/bert-squad/model/bertsquad-10.onnx) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10)
+
+<small>中文字符识别demo是[chineseocr_lite](https://github.com/DayBreak-u/chineseocr_lite)的TNN实现，是一个超轻量级的中文ocr，支持倾斜、旋转和竖排文字识别。</small>
+
+各个平台对demo的支持情况如下表所示，单击✅标记，便可以跳转至对应demo的入口代码。
+demo                                                                                      |   ARM    |  OpenCL  |   Metal  |    NPU   |    X86   |    CUDA   
+:---------------------------------------------------------------------------------------: | :------: | :------: | :------: | :------: | :------: | :------: 
+[人脸检测](https://github.com/Tencent/TNN/blob/master/examples/base/blazeface_detector.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceDetector) | [✅ ](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNBlazeFaceDetectorViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceDetector) | | 
+[物体检测](https://github.com/Tencent/TNN/blob/master/examples/base/object_detector_yolo.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamObjectDetector) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNYoloObjectDetectorViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamObjectDetector) | | 
+[人脸配准](https://github.com/Tencent/TNN/blob/master/examples/base/face_detect_aligner.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceAlign) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNFaceDetectAlignerViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceAlign) | | 
+[头发分割](https://github.com/Tencent/TNN/blob/master/examples/base/hair_segmentation.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamHairSegmentation) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNHairSegmentationViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamHairSegmentation) | | 
+[姿势估计(腾讯光流)](https://github.com/Tencent/TNN/blob/master/examples/base/skeleton_detector.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamSkeletonDetector) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNSkeletonDetectorViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamSkeletonDetector) | | 
+[姿势估计(blazepose)](https://github.com/Tencent/TNN/blob/master/examples/base/pose_detect_landmark.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamPoseDetectLandmark) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNPoseDetectLandmarkViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamPoseDetectLandmark) | | 
+[中文字符识别](https://github.com/Tencent/TNN/blob/master/examples/base/ocr_driver.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamOCRDetector) | [✅](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNOCRViewModel.mm) |  | | 
+[阅读理解](https://github.com/Tencent/TNN/blob/master/examples/base/bert_tokenizer.cc)  | | | | | [✅](https://github.com/Tencent/TNN/blob/master/examples/linux/src/BertReadingComprehension/BertReadingComprehension.cc) | [✅](https://github.com/Tencent/TNN/blob/master/examples/linux/src/BertReadingComprehension/BertReadingComprehension.cc)
 
 ## 快速开始
 
@@ -82,40 +63,7 @@ TNN：由腾讯优图实验室开源的高性能、轻量级神经网络推理�
     * 高效”内存池”实现：通过 DAG 网络计算图分析，实现无计算依赖的节点间复用内存，降低 90% 内存资源消耗
     * 跨模型内存复用：支持外部实时指定用于网络内存，实现“多个模型，单份内存”。
 
-* 主流模型实测性能：v0.1 2020.05.29
-
-    * 麒麟970：
-
-        | model                     | cpu time(单线程，ms) | gpu time(ms) | 
-        |---------------------------|--------------|--------------| 
-        | Mobilenet_v1              | 88           |   12         | 
-        | Mobilenet_v1_int8         | 55           |              | 
-        | Mobilenet_v2              | 58           |   11         | 
-        | Mobilenet_v2_int8         | 41           |              | 
-        | squeezenet_v1.0           | 127          |   20         | 
-        | squeezenet_v1.0_int8      | 82           |              | 
-
-    * 骁龙835：
-
-        | model                     | cpu time(单线程，ms) | gpu time(ms) |
-        |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 94           |   16         |           
-        | Mobilenet_v1_int8         | 62           |              |           
-        | Mobilenet_v2              | 61           |   14         |           
-        | Mobilenet_v2_int8         | 47           |              |           
-        | squeezenet_v1.0           | 122          |   28         |           
-        | squeezenet_v1.0_int8      | 93           |              |           
-
-    * 骁龙845：
-
-        | model                     | cpu time(单线程，ms) | gpu time(ms) |
-        |---------------------------|--------------|--------------|
-        | Mobilenet_v1              | 60           |   10         |
-        | Mobilenet_v1_int8         | 37           |              |
-        | Mobilenet_v2              | 39           |   8          |
-        | Mobilenet_v2_int8         | 28           |              |
-        | squeezenet_v1.0           | 74           |   14         |
-        | squeezenet_v1.0_int8      | 56           |              |
+* 主流模型实测性能：[评测数据](doc/benchmark_data.md)
 
 * TNN架构图：
 

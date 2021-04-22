@@ -15,7 +15,7 @@
 #include "rknpu_utils.h"
 
 #include <tnn/interpreter/layer_resource.h>
-#include <tnn/utils/dims_utils.h
+#include <tnn/utils/dims_utils.h>
 
 #include <numeric>
 #include <sstream>

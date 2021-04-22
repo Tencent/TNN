@@ -317,7 +317,7 @@ std::string BenchResult::Description() {
 DeviceType TNNSDKUtils::GetFallBackDeviceType(DeviceType dev) {
     switch (dev) {
         case DEVICE_CUDA:
-            return DEVICE_X86;
+            return DEVICE_NAIVE;
         case DEVICE_RK_NPU:
         case DEVICE_HUAWEI_NPU:
         case DEVICE_METAL:

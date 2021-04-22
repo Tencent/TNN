@@ -58,7 +58,11 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
-    if (1 != axis && DEVICE_HUAWEI_NPU == dev) {
+    if (2 == axis && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
+    if (dim_count != 4 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 

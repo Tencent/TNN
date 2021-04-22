@@ -4,7 +4,3 @@
 .settings
 .cxx
 .classpath
-x86/build_x86_linux
-x86/build_msvc
-x86/build_macos
-

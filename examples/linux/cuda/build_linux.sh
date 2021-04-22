@@ -1,8 +1,8 @@
 #!/bin/bash
 
-TNN_LIB_PATH=../../build_cuda_linux/
+TNN_LIB_PATH=../../../scripts/build_cuda_linux/
 
-cd ../../scripts
+cd ../../../scripts
 sh build_cuda_linux.sh
 cd -
 

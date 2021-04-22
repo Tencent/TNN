@@ -55,6 +55,11 @@ __global__ void adaptive_pooling_kernel(const float* input, float* output, int c
     }
 }
 
+static bool IsGlobalPooling(PoolingLayerParam *param, const std::vector<Blob *> &inputs,
+    const std::vector<Blob *> &outputs) {
+    return param->kernels[1] == 0 && param->kernels[0] == 0;
+}
+
 CudaPoolingLayerAcc::~CudaPoolingLayerAcc() {
     cudnnDestroy(this->m_cudnn_handle);
     cudnnDestroyPoolingDescriptor(this->m_pooling_desc);
@@ -84,7 +89,7 @@ Status CudaPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     cudnnCreateTensorDescriptor(&m_output_desc);
     auto input_dims = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
-    is_global = (params->kernels[1] == input_dims[2] && params->kernels[0] == input_dims[3]);
+    is_global = IsGlobalPooling(params, inputs, outputs);
     cudnnSetPooling2dDescriptor(this->m_pooling_desc, this->m_pooling_mode, CUDNN_PROPAGATE_NAN,
         params->kernels[1], params->kernels[0], params->pads[2], params->pads[0], params->strides[1],
         params->strides[0]);

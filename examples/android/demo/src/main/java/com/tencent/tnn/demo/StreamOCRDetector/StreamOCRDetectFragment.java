@@ -80,19 +80,19 @@ public class StreamOCRDetectFragment extends BaseFragment {
 
         // copy ocr related models to sdcard
         String[] modelPathsDetector = {
-                "angle_net.onnx.pack.tnnmodel",
-                "angle_net.onnx.pack.tnnproto",
-                "crnn_lite_lstm.onnx.pack.tnnmodel",
-                "crnn_lite_lstm.onnx.pack.tnnproto",
-                "dbnet.onnx.pack.tnnmodel",
-                "dbnet.onnx.pack.tnnproto",
+                "angle_net.tnnmodel",
+                "angle_net.tnnproto",
+                "crnn_lite_lstm.tnnmodel",
+                "crnn_lite_lstm.tnnproto",
+                "dbnet.tnnmodel",
+                "dbnet.tnnproto",
                 "keys.txt",
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
             String modelFilePath = modelPathsDetector[i];
             String interModelFilePath = targetDir + "/" + modelFilePath ;
-            FileUtils.copyAsset(getActivity().getAssets(), "ocr/"+modelFilePath, interModelFilePath);
+            FileUtils.copyAsset(getActivity().getAssets(), "chinese-ocr/"+modelFilePath, interModelFilePath);
         }
         return targetDir;
     }
