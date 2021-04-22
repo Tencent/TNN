@@ -12,28 +12,60 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/reduce_log_sum_exp_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 
 namespace TNN_NS {
 
-ReduceLogSumExpTRTLayerBuilder::ReduceLogSumExpTRTLayerBuilder(LayerType ignore) : ReduceTRTLayerBuilder(ignore) {
+DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP);
+
+bool ReduceLogSumExpTRTPluginLayerBuilder::supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
+        && inOut[pos].type == inOut[0].type);
 }
 
-ILayer* ReduceLogSumExpTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    auto paramlist = dynamic_cast<ReduceLayerParam*>(param_);
-    auto input_tensors = GetInputITensors();
-    ILayer* exp_layer    = network->addUnary(*input_tensors[0], UnaryOperation::kEXP);
-    ILayer* reduce_layer = network->addReduce(*exp_layer->getOutput(0), ReduceOperation::kSUM,
-                                                GetReduceAxis(), paramlist->keep_dims == 1);
-    ILayer* log_layer    = network->addUnary(*reduce_layer->getOutput(0), UnaryOperation::kLOG);
-    if (log_layer != nullptr) {
-        log_layer->setName(layer_name_.c_str());
+const char* ReduceLogSumExpTRTPluginLayerBuilder::getPluginType() const {
+    return "ReduceLogSumExp";
+}
+
+nvinfer1::DataType ReduceLogSumExpTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+        int nbInputs) const {
+    return inputTypes[0];
+}
+
+ILayer* ReduceLogSumExpTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    return TensorRTPluginLayerBuilder::AddToNetwork(network);
+}
+
+DimsExprs ReduceLogSumExpTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    auto param = dynamic_cast<ReduceLayerParam*>(param_);
+    DimsExprs output;
+    if (param->keep_dims == 0) {
+        int index = 0;
+        for (int i = 0; i < inputs[0].nbDims; i++) {
+            if (std::find(param->axis.begin(), param->axis.end(), i) == param->axis.end()) {
+                output.d[index++] = inputs[0].d[i];
+            }
+        }
+        output.nbDims = index;
+    } else {
+        for (int i = 0; i < inputs[0].nbDims; i++) {
+            output.d[i] = inputs[0].d[i];
+        }
+        output.nbDims = inputs[0].nbDims;
+        for (auto& axis : param->axis) {
+            output.d[axis] = exprBuilder.constant(1);
+        }
     }
-    
-    return log_layer;
+
+    return output;
 }
 
-REGISTER_TENSORRT_LAYER_BUILDER(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP);
+const char* ReduceLogSumExpPluginCreator::getPluginName() const {
+    return "ReduceLogSumExp";
+}
+
+REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP);
 
 }  //  namespace TNN_NS
-

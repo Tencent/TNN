@@ -147,7 +147,7 @@ std::shared_ptr<Blob> EinsumPermute(Blob *input_blob, const std::vector<int> &or
 
 void EinsumSqueeze(Blob *input_blob, const int axis) {
     auto output_dims = input_blob->GetBlobDesc().dims;
-    output_dims.erase(output_dims.end() + axis);
+    output_dims.erase(output_dims.begin() + axis);
     input_blob->GetBlobDesc().dims = output_dims;
 }
 

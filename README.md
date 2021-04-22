@@ -62,7 +62,7 @@ At present, TNN has been launched in various major businesses, and its following
     * Efficient "memory pool" implementation: Based on a full network DAG analysis, the implementation reuses memory between non-dependent nodes which reduces memory cost by 90%.
     * Cross-model memory reduces: This supports external real-time design for network memory so that multiple models can share mutual memory.
 
-* The performance of mainstream models on TNN: [benchmark data](benchmark_data.md)
+* The performance of mainstream models on TNN: [benchmark data](doc/benchmark_data.md)
 
 * TNN architecture diagram：
 
