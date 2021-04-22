@@ -206,17 +206,21 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
             memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * sizeof(int32_t));
             return TNN_OK;
         } else if (image.GetMatType() == NCHW_FLOAT) {
-            for (int n = 0; n < dims[0]; n++) {
-                NCHWConvert((int*)blob_data + n * dims[1] * hw, reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
-                        param.scale.data(), param.bias.data(), dims[1], hw);
+            int batch = DimsFunctionUtils::GetDim(dims, 0);
+            int channel = DimsFunctionUtils::GetDim(dims, 1);
+            for (int n = 0; n < batch; n++) {
+                NCHWConvert((int*)blob_data + n * channel * hw, reinterpret_cast<float *>(image.GetData()) + n * channel * hw,
+                        param.scale.data(), param.bias.data(), channel, hw);
             }
         }
     }
 
     if (image.GetMatType() == NCHW_FLOAT) {
-        for (int n = 0; n < dims[0]; n++) {
-            NCHWConvert(blob_data + n * dims[1] * hw, reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw,
-                        param.scale.data(), param.bias.data(), dims[1], hw);
+        int batch = DimsFunctionUtils::GetDim(dims, 0);
+        int channel = DimsFunctionUtils::GetDim(dims, 1);
+        for (int n = 0; n < batch; n++) {
+            NCHWConvert(blob_data + n * channel * hw, reinterpret_cast<float *>(image.GetData()) + n * channel * hw,
+                        param.scale.data(), param.bias.data(), channel, hw);
         }
     } else if (image.GetMatType() == N8UC4) {
         for (int n = 0; n < dims[0]; n++) {
@@ -270,9 +274,11 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
 Status DefaultBlobConverterAcc::ConvertFromMatFunc(Mat& image, float* blob_data,
         MatConvertParam& param, BlobDesc& desc, const DimsVector& dims, const int hw) {
     if (image.GetMatType() == NCHW_FLOAT) {
-        for (int n = 0; n < dims[0]; n++) {
-            NCHWConvert(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, blob_data + n * dims[1] * hw,
-                        param.scale.data(), param.bias.data(), dims[1], hw);
+        int batch = DimsFunctionUtils::GetDim(dims, 0);
+        int channel = DimsFunctionUtils::GetDim(dims, 1);
+        for (int n = 0; n < batch; n++) {
+            NCHWConvert(reinterpret_cast<float *>(image.GetData()) + n * channel * hw, blob_data + n * channel * hw,
+                        param.scale.data(), param.bias.data(), channel, hw);
         }
     } else if (image.GetMatType() == N8UC4) {
         for (int n = 0; n < dims[0]; n++) {
