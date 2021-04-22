@@ -1,8 +1,7 @@
 #!/bin/bash
 
 MODEL_TYPE=TNN
-NETWORK_TYPE=OPENVINO
-NUM_THREAD=4
+NETWORK_TYPE=TENSORRT
 BUILD_ONLY="OFF"
 DOWNLOAD_MODEL="OFF"
 
@@ -85,13 +84,11 @@ function download_bench_model() {
 }
 
 function usage() {
-    echo "usage: ./benchmark_models.sh  [-th] [-b] [-dl] [-mp] [-native]"
+    echo "usage: ./benchmark_models.sh  [-b] [-dl] [-mp]"
     echo "options:"
-    echo "        -th      thread num, defalut 1"
     echo "        -b       build only "
     echo "        -dl      download model from github "
     echo "        -mp      model dir path"
-    echo "        -native  bench with native optimization"
 }
 
 function exit_with_msg() {
@@ -99,18 +96,18 @@ function exit_with_msg() {
     exit 1
 }
 
-function build_x86_linux_bench() {
+function build_cuda_linux_bench() {
     cd $TNN_ROOT_PATH/scripts
-    ./build_x86_linux.sh
-    cp $TNN_ROOT_PATH/scripts/x86_linux_release $TNN_ROOT_PATH/benchmark/benchmark_x86_linux/ -r
+    ./build_cuda_linux.sh
+    cp $TNN_ROOT_PATH/scripts/cuda_linux_release $TNN_ROOT_PATH/benchmark/benchmark_cuda_linux/ -r
 }
 
-function bench_x86_linux() {
+function bench_cuda_linux() {
     if [ "OFF" != "$DOWNLOAD_MODEL" ];then
       download_bench_model
     fi
 
-    build_x86_linux_bench
+    build_cuda_linux_bench
     if [ $? != 0 ];then
         exit_with_msg "build failed"
     fi
@@ -121,7 +118,7 @@ function bench_x86_linux() {
     fi
 
     if [ ! -d ${BENCHMARK_MODEL_DIR} ]; then
-        echo "please set model dir path or exec script with option -dl"
+	echo "please set model dir path or exec script with option -dl"
         usage
         exit -1
     fi
@@ -131,13 +128,13 @@ function bench_x86_linux() {
         benchmark_model_list=`ls *.tnnproto`
     fi
 
-    if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "CPU" ];then
-        device=X86
+    if [ "$DEVICE_TYPE" = "" ] || [ "$DEVICE_TYPE" = "CUDA" ];then
+        device=CUDA
         echo "benchmark device: ${device} " >> $WORK_DIR/$OUTPUT_LOG_FILE
 
     for benchmark_model in ${benchmark_model_list[*]}
     do
-        cd ${WORK_DIR}; LD_LIBRARY_PATH=x86_linux_release/lib ./x86_linux_release/bin/TNNTest -th ${NUM_THREAD} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -nt ${NETWORK_TYPE} -mp ${BENCHMARK_MODEL_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE
+        cd ${WORK_DIR}; LD_LIBRARY_PATH=cuda_linux_release/lib ./cuda_linux_release/bin/TNNTest -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -nt ${NETWORK_TYPE} -mp ${BENCHMARK_MODEL_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE
     done
     fi
 
@@ -149,15 +146,6 @@ function bench_x86_linux() {
 
 while [ "$1" != "" ]; do
     case $1 in
-        -native)
-            shift
-            NETWORK_TYPE=DEFAULT
-            ;;
-        -th)
-            shift
-            NUM_THREAD="$1"
-            shift
-            ;;
         -b)
             shift
             BUILD_ONLY=ON
@@ -177,4 +165,4 @@ while [ "$1" != "" ]; do
     esac
 done
 
-bench_x86_linux
+bench_cuda_linux
