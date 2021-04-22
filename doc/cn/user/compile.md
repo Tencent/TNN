@@ -128,13 +128,13 @@ cd <path_to_tnn>/scripts
 2) 执行编译脚本
   - 编译不带openvino的版本
 ```
-./build_linux_naive.sh
+./build_linux_native.sh
 ```
   - 编译带openvino的版本
 ```
-./build_linux.sh
+./build_x86_linux.sh
 ```
-注意：openvino只能编译成64位的库
+注意：openvino只能编译成64位的库，且cmake版本必须要求3.13以上
 
 ## 五、Linux CUDA库编译
 ### 1.环境要求
