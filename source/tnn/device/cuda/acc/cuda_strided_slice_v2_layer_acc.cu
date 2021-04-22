@@ -33,34 +33,7 @@ Status CudaStrideSliceV2LayerAcc::Init(Context *context, LayerParam *param, Laye
 }
 
 Status CudaStrideSliceV2LayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto params = dynamic_cast<StrideSliceV2LayerParam *>(param_);
-    if (!params) {
-        LOGE("Error: ShuffleLayerParam is nil\n");
-        return Status(TNNERR_MODEL_ERR, "Error: ShuffleLayerParam is nil");
-    }
-
-    auto input_dims = inputs[0]->GetBlobDesc().dims;
-    if (input_dims.size() == 0) {
-        this->is_reshaped = false;
-        return TNN_OK;
-    }
-
-    auto param_begins = params->begins;
-    auto param_strides = params->strides;
-    auto axes = params->axes;
-    std::vector<int> begins(5, 0), strides(5, 1);
-    for(int i = 0; i < axes.size(); ++i) {
-        int axis = axes[i];
-        int begin = param_begins[i];
-        begins[axis] = begin >= 0? begin : begin + input_dims[axis];
-        strides[axis] = param_strides[i];
-    }
-    std::reverse(begins.begin(), begins.end());
-    std::reverse(strides.begin(), strides.end());
-
-    cudaMemcpy(tempbufs_[0].ptr, &(begins[0]), 5 * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(tempbufs_[1].ptr, &(strides[0]), 5 * sizeof(int), cudaMemcpyHostToDevice);
-    this->is_reshaped = true;
+    this->is_reshaped = false;
     return TNN_OK;
 }
 
