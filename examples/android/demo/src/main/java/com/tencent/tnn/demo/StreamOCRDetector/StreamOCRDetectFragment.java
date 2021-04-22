@@ -92,7 +92,7 @@ public class StreamOCRDetectFragment extends BaseFragment {
         for (int i = 0; i < modelPathsDetector.length; i++) {
             String modelFilePath = modelPathsDetector[i];
             String interModelFilePath = targetDir + "/" + modelFilePath ;
-            FileUtils.copyAsset(getActivity().getAssets(), "ocr/"+modelFilePath, interModelFilePath);
+            FileUtils.copyAsset(getActivity().getAssets(), "chinese-ocr/"+modelFilePath, interModelFilePath);
         }
         return targetDir;
     }
