@@ -271,14 +271,33 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
     return ret;
 }
 
+static bool NeedDoScaleBias(const MatConvertParam &param) {
+    for (auto s : param.scale) {
+        if (s != 1.0f) {
+            return true;
+        }
+    }
+    for (auto b : param.bias) {
+        if (b != 0.0f) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 Status DefaultBlobConverterAcc::ConvertFromMatFunc(Mat& image, float* blob_data,
         MatConvertParam& param, BlobDesc& desc, const DimsVector& dims, const int hw) {
     if (image.GetMatType() == NCHW_FLOAT) {
         int batch = DimsFunctionUtils::GetDim(dims, 0);
         int channel = DimsFunctionUtils::GetDim(dims, 1);
-        for (int n = 0; n < batch; n++) {
-            NCHWConvert(reinterpret_cast<float *>(image.GetData()) + n * channel * hw, blob_data + n * channel * hw,
-                        param.scale.data(), param.bias.data(), channel, hw);
+        if (NeedDoScaleBias(param)) {
+            for (int n = 0; n < batch; n++) {
+                NCHWConvert(reinterpret_cast<float *>(image.GetData()) + n * channel * hw, blob_data + n * channel * hw,
+                            param.scale.data(), param.bias.data(), channel, hw);
+            }
+        } else {
+            memcpy(blob_data, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(float));
         }
     } else if (image.GetMatType() == N8UC4) {
         for (int n = 0; n < dims[0]; n++) {
