@@ -267,12 +267,31 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
     return ret;
 }
 
+static bool NeedDoScaleBias(const MatConvertParam &param) {
+    for (auto s : param.scale) {
+        if (s != 1.0f) {
+            return true;
+        }
+    }
+    for (auto b : param.bias) {
+        if (b != 0.0f) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 Status DefaultBlobConverterAcc::ConvertFromMatFunc(Mat& image, float* blob_data,
         MatConvertParam& param, BlobDesc& desc, const DimsVector& dims, const int hw) {
     if (image.GetMatType() == NCHW_FLOAT) {
-        for (int n = 0; n < dims[0]; n++) {
-            NCHWConvert(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, blob_data + n * dims[1] * hw,
-                        param.scale.data(), param.bias.data(), dims[1], hw);
+        if (NeedDoScaleBias(param)) {
+            for (int n = 0; n < dims[0]; n++) {
+                NCHWConvert(reinterpret_cast<float *>(image.GetData()) + n * dims[1] * hw, blob_data + n * dims[1] * hw,
+                            param.scale.data(), param.bias.data(), dims[1], hw);
+            }
+        } else {
+            memcpy(blob_data, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(float));
         }
     } else if (image.GetMatType() == N8UC4) {
         for (int n = 0; n < dims[0]; n++) {

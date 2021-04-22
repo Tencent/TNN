@@ -309,8 +309,13 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
 
     // default param for the blob_converter
     MatConvertParam param;
-    param.scale = std::vector<float>(blob_desc.dims[1], 1);
-    param.bias  = std::vector<float>(blob_desc.dims[1], 0);
+    if (blob_desc.dims.size() >= 3) {
+        param.scale = std::vector<float>(blob_desc.dims[1], 1);
+        param.bias  = std::vector<float>(blob_desc.dims[1], 0);
+    } else {
+        param.scale = {};
+        param.bias  = {};
+    }
 
     // CONVERT TO CPU BLOB
     BlobConverter blob_converter_cpu(cpu_blob);
