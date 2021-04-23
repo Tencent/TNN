@@ -207,7 +207,7 @@ cd <path_to_tnn>/scripts
 
 |Option|默认值|说明|
 |------|:---:|----|
-|TNN_CPU_ENABLE| OFF | 代码source/device/cpu编译开关，代码仅用用于调试以及UnitTest基准测试，实现全部为c++代码，不包含特定CPU加速指令。|
+|TNN_CPU_ENABLE| ON | 代码source/device/cpu编译开关，实现全部为c++代码，不包含特定CPU加速指令。|
 |TNN_X86_ENABLE| OFF | 代码source/device/x86编译开关, 当前适配openvino实现，后续会迁入更多加速代码实现。|
 |TNN_ARM_ENABLE| OFF | 代码source/device/arm编译开关，代码包含neon加速指令, 且部分实现了int8加速。|
 |TNN_ARM82_ENABLE| OFF | 代码source/device/arm/acc/compute_arm82编译开关，代码包含fp16指令加速。|

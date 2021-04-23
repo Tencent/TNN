@@ -151,10 +151,9 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    4). 运行demo需要需首先下载NPU DDK。参考: [FAQ](../faq.md): 创建华为NPU编译环境。
 
    5). 想要执行OCR demo, 打开工程后，需要手动设置打开OPENCV和CPU依赖：
-   在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 更新指令为如下，使用OPENCV和CPU。
+   在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 更新指令为如下，使用OPENCV。
    ````
         set(TNN_OPENCV_ENABLE ON CACHE BOOL "" FORCE)
-        set(TNN_CPU_ENABLE ON CACHE BOOL "" FORCE)
    ````
 
    如需指定自定义OPENCV Android SDK路径:
