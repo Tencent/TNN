@@ -148,11 +148,10 @@
   
    4). To run the demo, you need to first download the ddk. Refer to ： [FAQ](../faq_en.md) to check the current NPU support and how to update the ROM.
 
-   5). You need to set the TNN_OPENCV_ENABLE and TNN_CPU_ENABLE switch to ON in <path_to_tnn>/examples/android/demo/CMakeList.txt below to run the OCR demo ：
+   5). You need to set the TNN_OPENCV_ENABLE switch to ON in <path_to_tnn>/examples/android/demo/CMakeList.txt below to run the OCR demo ：
 
    ````
         set(TNN_OPENCV_ENABLE ON CACHE BOOL "" FORCE)
-        set(TNN_CPU_ENABLE ON CACHE BOOL "" FORCE)
    ````
 
    You need to set OPENCV_ANDROID_SDK_PATH to use personal OpenCV SDK:
