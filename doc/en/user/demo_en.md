@@ -215,44 +215,71 @@
 * Environment Requirements  
    - Cmake (>=3.11)
    - OpenCV3, Can be imported in CMake by find_package(OpenCV 3)
-* Compile  
-   Move to `examples/x86` directory and execute `build_linux.sh`:
-   ```
-   cd <path_to_tnn>/examples/x86
-   ./build_linux.sh
-   ```
+* Compile
+   - build with openvino
+      Move to `examples/linux/x86` directory and execute `build_linux_openvino.sh`:
+      ```
+      cd <path_to_tnn>/examples/linux/x86
+      ./build_linux_openvino.sh
+      ```
+
+   - or build with x86 native
+      Move to `examples/linux/src` directory and change backend of all demos:
+      ```
+      cd <path_to_tnn>/examples/linux/src/
+      change TNN_NS::TNNComputeUnitsOpenvino to TNN_NS::TNNComputeUnitsCPU in all .cc files
+      ```
+      Move to `examples/linux/x86` directory and execute `build_linux_native.sh`:
+      ```
+      cd <path_to_tnn>/examples/linux/x86
+      ./build_linux_native.sh
+      ```
 * Execute  
-   Move to `examples/x86/build_linux` directory and execute:
+   Move to `examples/linux/x86/build_linux_openvino` or `examples/linux/x86/build_linux_native` directory and execute:
    ```
-   cd build_linux
+   cd build_linux_openvino
    
    image-classification demo
-   ./demo_x86_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+   ./demo_x86_imageclassify ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
 
    face-detector demo
-   ./demo_x86_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ./demo_x86_facedetector ../../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../../model/face_detector/version-slim-320_simplified.tnnmodel
    ```
 
 ##### MacOS
 * Environment Requirements  
    - Cmake (>=3.11)
    - OpenCV3, Can be imported in CMake by ```find_package(OpenCV 3)```. you can install opencv with brew (```brew install opencv@3 && brew link --force opencv@3```).
-* Compile  
-   Move to `examples/x86` directory and execute `build_macos.sh`:
-   ```
-   cd <path_to_tnn>/examples/x86
-   ./build_macos.sh
-   ```
+* Compile
+   - build with openvino
+      Move to `examples/mac/x86` directory and execute `build_macos_openvino.sh`:
+      ```
+      cd <path_to_tnn>/examples/mac/x86
+      ./build_macos_openvino.sh
+      ```
+
+   - or build with x86 native
+      Move to `examples/linux/src` directory and change backend of all demos:
+      ```
+      cd <path_to_tnn>/examples/linux/src/
+      change TNN_NS::TNNComputeUnitsOpenvino to TNN_NS::TNNComputeUnitsCPU in all .cc files
+      ```
+      Move to `examples/mac/x86` directory and execute `build_macos_native.sh`:
+      ```
+      cd <path_to_tnn>/examples/mac/x86
+      ./build_macos_native.sh
+      ```
+
 * Execute  
-   Move to `examples/x86/build_macos` directory and execute:
+   Move to `examples/mac/x86/build_macos_openvino` or `examples/mac/x86/build_macos_native` directory and execute:
    ```
-   cd build_macos
+   cd build_macos_openvino
    
    image-classification demo
-   ./demo_x86_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+   ./demo_x86_imageclassify ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
 
    face-detector demo
-   ./demo_x86_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ./demo_x86_facedetector ../../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../../model/face_detector/version-slim-320_simplified.tnnmodel
 
    webcam base face alignment demo
    ./demo_x86_webcam
@@ -265,22 +292,37 @@
    - OpenCV3, compiled by the same version of VC.
 * Comiple  
    Open `x64 Native Tools Command Prompt for VS 2017/2019`.
-   Move to `examples\x86` directory and execute `build_msvc.bat`:
-   ```
-   set OpenCV_DIR=`OPENCV_INSTALL_DIR`
-   cd <path_to_tnn>\examples\x86
-   .\build_msvc.bat 
-   ```
+
+   - build with openvino
+      Move to `examples\windows\x86` directory and execute `build_msvc_openvino.bat`:
+      ```
+      set OpenCV_DIR=`OPENCV_INSTALL_DIR`
+      cd <path_to_tnn>\examples\windows\x86
+      .\build_msvc_openvino.bat 
+      ```
+   
+   - or build with x86 native
+      Move to `examples\linux\src` directory and change backend of all demos:
+      ```
+      cd <path_to_tnn>\examples\linux\src\
+      change TNN_NS::TNNComputeUnitsOpenvino to TNN_NS::TNNComputeUnitsCPU in all .cc files
+      ```
+      Move to `examples\windows\x86` directory and execute `build_msvc_native.bat`:
+      ```
+      cd <path_to_tnn>\examples\windows\x86
+      ./build_msvc_native.bat
+      ```
+
 * Execute  
-   Move to `examples\x86\release` directory and execute：
+   Move to `examples\windows\x86\build_msvc_openvino\release` or `examples\windows\x86\build_msvc_native\release` directory and execute：
    ```
-   cd release
+   cd build_msvc_openvino\release
 
    image-classification demo
-   .\demo_x86_imageclassify ..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto ..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel
+   .\demo_x86_imageclassify ..\..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto ..\..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel
 
    face-detector demo
-   .\demo_x86_facedetector ..\..\..\model\face_detector\version-slim-320_simplified.tnnproto ..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel
+   .\demo_x86_facedetector ..\..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto ..\..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel
 
    webcam base face alignment demo
    .\demo_x86_webcam
@@ -295,19 +337,19 @@
       arm32hf: sudo apt-get install g++-arm-linux-gnueabihf gcc-arm-linux-gnueabihf
   - other linux: download toolchains from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads
 * Comiple  
-   Move to `examples/linux` directory:
+   Move to `examples/linux/cross` directory:
    ```
-   cd <path_to_tnn>/examples/linux
+   cd <path_to_tnn>/examples/linux/cross
    ```
-   Modify `build_aarch64.sh` or `build_armhf.sh`，take aarch64 as an example, modify building options:
+   Modify `build_aarch64_linux.sh` or `build_armhf_linux.sh`，take aarch64 as an example, modify building options:
    ```
    CC=aarch64-linux-gnu-gcc
    CXX=aarch64-linux-gnu-g++
    TNN_LIB_PATH=../../scripts/build_aarch64_linux/
    ```
-   execute `build_aarch64.sh`
+   execute `build_aarch64_linux.sh`
    ```
-   sh build_aarch64.sh
+   sh build_aarch64_linux.sh
    ```
 * Execute  
    Move to `examples/linux/build` directory and execute：
@@ -315,10 +357,10 @@
    cd build
 
    image-classification demo
-   ./demo_arm_linux_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+   ./demo_arm_linux_imageclassify ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
 
    face-detector demo
-   ./demo_arm_linux_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ./demo_arm_linux_facedetector ../../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../../model/face_detector/version-slim-320_simplified.tnnmodel
    ```
 
 ##### CudaLinux
