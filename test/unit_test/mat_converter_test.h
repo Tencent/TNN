@@ -127,6 +127,8 @@ protected:
     bool OpenCLTestFilter(const DeviceType& device_type, const MatType& mat_type);
     bool MetalTestFilter(const DeviceType& device_type, const MatType& mat_type,
                          const MatConverterType& mat_converter_type, const int batch);
+    bool CUDATestFilter(const DeviceType& device_type, const MatType& mat_type,
+                         const MatConverterType& mat_converter_type);
     bool MatChannelCheck(const MatType& mat_type, const int channel, const int input_size);
     bool CropYUVCheck(const MatConverterTestParam& mat_converter_test_param,
                       const MatConverterType& mat_converter_type,
