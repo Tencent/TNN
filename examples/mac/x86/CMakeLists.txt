@@ -10,7 +10,7 @@ option(TNN_DEMO_WITH_WEBCAM "with webcam" OFF)
 set(CMAKE_CXX_STANDARD 11)
 set(TNN_CPU_ENABLE ON)
 
-if (TNN_DEMO_WITH_WEBCAM)
+if (TNN_DEMO_WITH_WEBCAM) 
     find_package(OpenCV 3 REQUIRED)
     include_directories(${OpenCV_INCLUDE_DIRS})
 endif()
@@ -50,7 +50,7 @@ add_executable(demo_x86_facedetector ${CMAKE_SOURCE_DIR}/../../linux/src/TNNFace
 add_executable(demo_x86_readingcomprehension ${CMAKE_SOURCE_DIR}/../../linux/src/BertReadingComprehension/BertReadingComprehension.cc ${BASE_SRC} ${UTIL_SRC})
 add_executable(demo_x86_objectdetector ${CMAKE_SOURCE_DIR}/../../linux/src/TNNObjectDetector/TNNObjectDetector.cc ${BASE_SRC} ${UTIL_SRC})
 
-if (TNN_DEMO_WITH_WEBCAM)
+if (TNN_DEMO_WITH_WEBCAM) 
     file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/../../linux/src/TNNWebCamBasedDemo/*.cc")
     add_executable(demo_x86_webcam ${SRC} ${BASE_SRC} ${UTIL_SRC} ${WEBCAM_SRC})
     target_link_libraries(demo_x86_webcam ${OpenCV_LIBS})

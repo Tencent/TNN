@@ -3,12 +3,12 @@ project(TNN-demo)
 message(${CMAKE_SOURCE_DIR})
 message(${TNN_LIB_PATH})
 
+option(TNN_OPENVINO_ENABLE "with openvino lib" OFF)
 option(TNN_OPENVINO_LIB_PATH "openvino lib path" "")
 option(TNN_DEMO_WITH_WEBCAM "with webcam" OFF)
 
 set(CMAKE_CXX_STANDARD 11)
 set(TNN_CPU_ENABLE ON)
-set(TNN_OPENVINO_ENABLE ON)
 
 if (TNN_DEMO_WITH_WEBCAM) 
     find_package(OpenCV 3 REQUIRED)
