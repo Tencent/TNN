@@ -145,11 +145,6 @@ copy_openvino_libraries() {
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_lp_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib/libngraph${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
     fi
-
-    LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}
-    PYTHONPATH=${PYTHONPATH:-}
-    python_version=${python_version:-}
-    source ${OPENVINO_INSTALL_PATH}/bin/setupvars.sh
 }
 
 pack_tnn() {
