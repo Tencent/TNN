@@ -30,7 +30,7 @@ Status CpuDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
     BlobDesc desc;
     desc.dims        = dims;
     desc.device_type = DEVICE_NAIVE;
-    if (mat_type == NCHW_FLOAT || mat_type == NCDHW_FLOAT || 
+    if (mat_type == NCHW_FLOAT || 
         mat_type == RESERVED_BFP16_TEST || mat_type == RESERVED_INT8_TEST || mat_type == RESERVED_FP16_TEST) {
         desc.data_type   = DATA_TYPE_FLOAT;
         desc.data_format = DATA_FORMAT_NCHW;

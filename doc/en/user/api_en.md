@@ -366,8 +366,6 @@ typedef enum {
     NCHW_FLOAT = 0x20,
     // nchw: int32
     NC_INT32 = 0x21,
-    //ncdhw: float
-    NCDHW_FLOAT = 0x100,
     ...
 } PUBLIC MatType;
 ```

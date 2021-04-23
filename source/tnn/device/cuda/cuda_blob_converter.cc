@@ -57,12 +57,13 @@ Status CudaBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param
     auto desc = blob_->GetBlobDesc();
     auto dims = desc.dims;
     auto hw = DimsVectorUtils::Count(dims, 2);
-    auto chw = dims[1] * hw;
-    auto nchw = dims[0] * chw;
+    auto chw = DimsFunctionUtils::GetDim(dims, 1) * hw;
+    auto nchw = DimsFunctionUtils::GetDim(dims, 0) * chw;
     if (image.GetDeviceType() == DEVICE_CUDA) {
         prepareParamPtr(param, image.GetMatType(), stream);
         if (image.GetMatType() == NCHW_FLOAT) {
-            ScaleBias(blob_data, (float*)image.GetData(), stream, scale_ptr_, bias_ptr_, dims[0], dims[1], hw);
+            ScaleBias(blob_data, (float*)image.GetData(), stream, scale_ptr_, bias_ptr_, 
+                DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1), hw);
         } else if (image.GetMatType() == NC_INT32 && desc.data_type == DATA_TYPE_INT32) {
             cudaMemcpyAsync(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * sizeof(int32_t),
                 cudaMemcpyDeviceToDevice, stream);
@@ -81,7 +82,8 @@ Status CudaBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param
         prepareImagePtr(image, param, dims, stream);
         prepareParamPtr(param, image.GetMatType(), stream);
         if (image.GetMatType() == NCHW_FLOAT) {
-            ScaleBias(blob_data, (float*)image_ptr_, stream, scale_ptr_, bias_ptr_, dims[0], dims[1], hw);
+            ScaleBias(blob_data, (float*)image_ptr_, stream, scale_ptr_, bias_ptr_, 
+                DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1), hw);
             cudaMemcpyAsync(image.GetData(), image_ptr_, DimsVectorUtils::Count(dims) * sizeof(float),
                 cudaMemcpyDeviceToHost, stream);
         } else if (image.GetMatType() == NC_INT32 && desc.data_type == DATA_TYPE_INT32) {
@@ -132,13 +134,14 @@ Status CudaBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam par
     auto desc = blob_->GetBlobDesc();
     auto dims = desc.dims;
     auto hw = DimsVectorUtils::Count(dims, 2);
-    auto chw = dims[1] * hw;
-    auto nchw = dims[0] * chw;
+    auto chw = DimsFunctionUtils::GetDim(dims, 1) * hw;
+    auto nchw = DimsFunctionUtils::GetDim(dims, 0) * chw;
 
     if (image.GetDeviceType() == DEVICE_CUDA) {
         prepareParamPtr(param, image.GetMatType(), command_queue);
         if (image.GetMatType() == NCHW_FLOAT) {
-            ScaleBias((float*)image.GetData(), blob_data, stream, scale_ptr_, bias_ptr_, dims[0], dims[1], hw);
+            ScaleBias((float*)image.GetData(), blob_data, stream, scale_ptr_, bias_ptr_, 
+                DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1), hw);
         } else if (image.GetMatType() == NC_INT32) {
             desc.data_type = DATA_TYPE_INT32;
             blob_->SetBlobDesc(desc);
@@ -161,7 +164,8 @@ Status CudaBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam par
         if (image.GetMatType() == NCHW_FLOAT) {
             cudaMemcpyAsync(image_ptr_, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(float),
                 cudaMemcpyHostToDevice, stream);
-            ScaleBias((float*)image_ptr_, blob_data, stream, scale_ptr_, bias_ptr_, dims[0], dims[1], hw);
+            ScaleBias((float*)image_ptr_, blob_data, stream, scale_ptr_, bias_ptr_, 
+                DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1), hw);
         } else if (image.GetMatType() == NC_INT32) {
             desc.data_type = DATA_TYPE_INT32;
             blob_->SetBlobDesc(desc);
@@ -192,7 +196,7 @@ Status CudaBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam par
 void CudaBlobConverterAcc::prepareImagePtr(Mat& image, MatConvertParam param, DimsVector dims, void* command_queue) {
     cudaStream_t stream = static_cast<cudaStream_t>(command_queue);
     int hw = DimsVectorUtils::Count(dims, 2);
-    int n = dims[0];
+    int n = DimsFunctionUtils::GetDim(dims, 0);
     int unitBytes = image.GetMatType() == NCHW_FLOAT ? sizeof(float) : sizeof(unsigned char);
     int current_image_size = image.GetMatType() == N8UC4 ? hw * 4 * n : DimsVectorUtils::Count(dims);
     current_image_size *= unitBytes;
@@ -212,7 +216,7 @@ void CudaBlobConverterAcc::prepareParamPtr(MatConvertParam param, MatType type, 
         c_reserve = 4;
         c_copy = 4;
     } else if (type == NCHW_FLOAT) {
-        c_reserve = blob_->GetBlobDesc().dims[1];
+        c_reserve = DimsFunctionUtils::GetDim(blob_->GetBlobDesc().dims, 1);
         c_copy = c_reserve;
     } else {
         c_reserve = 4;
