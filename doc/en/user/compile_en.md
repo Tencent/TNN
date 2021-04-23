@@ -205,7 +205,7 @@ cd <path_to_tnn>/scripts
 
 |Option|Default|Description|
 |------|:---:|----|
-|TNN_CPU_ENABLE| OFF | Code source/device/cpu compilation switch, the code is only used for debugging and UnitTest benchmark test, the implementation is all c ++ code, does not contain specific CPU acceleration instructions.|
+|TNN_CPU_ENABLE| ON | Code source/device/cpu compilation switch, the implementation is all c ++ code, does not contain specific CPU acceleration instructions.|
 |TNN_X86_ENABLE| OFF | The code source/device/x86 compilation switch is currently adapted to the openvino implementation, and more accelerated code implementation will be moved in later.|
 |TNN_ARM_ENABLE| OFF | Code source/device/arm compilation switch, the code contains neon acceleration instructions, and partially implements int8 acceleration.|
 |TNN_ARM82_ENABLE| OFF | Code source/device/arm/acc/compute_arm82 compilation switch, the code implements fp16 acceleration.|
