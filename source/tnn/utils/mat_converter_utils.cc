@@ -150,7 +150,7 @@ void WarpAffineMatrixInverse(const float (*transform)[3], double* inverse) {
 
 int GetMatElementSize(Mat* mat) {
     MatType mat_type = mat->GetMatType();
-    if (NCHW_FLOAT == mat_type || NCDHW_FLOAT == mat_type) {
+    if (NCHW_FLOAT == mat_type) {
         return 4;
     } else if (NC_INT32 == mat_type) {
         return 4;
