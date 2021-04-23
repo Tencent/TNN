@@ -238,21 +238,24 @@
    - Cmake (>=3.11)
    - OpenCV3, Can be imported in CMake by ```find_package(OpenCV 3)```. you can install opencv with brew (```brew install opencv@3 && brew link --force opencv@3```).
 * Compile  
-   Move to `examples/x86` directory and execute `build_macos.sh`:
+   Move to `examples/linux/x86` directory and execute `build_macos.sh`:
    ```
-   cd <path_to_tnn>/examples/x86
+   cd <path_to_tnn>/examples/linux/x86
    ./build_macos.sh
    ```
 * Execute  
-   Move to `examples/x86/build_macos` directory and execute:
+   Move to `examples/linux/x86/build_macos` directory and execute:
    ```
    cd build_macos
    
    image-classification demo
-   ./demo_x86_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+   ./demo_x86_imageclassify ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
 
    face-detector demo
-   ./demo_x86_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ./demo_x86_facedetector ../../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../../model/face_detector/version-slim-320_simplified.tnnmodel
+
+   reading-comprehension demo
+   ./demo_x86_readingcomprehension ../../../../model/bertsquad10/bertsquad10_clean.tnnproto ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel ../../../../model/bertsquad10/vocab.txt
 
    webcam base face alignment demo
    ./demo_x86_webcam
@@ -336,21 +339,24 @@
    ```
    export CUDNN_ROOT_DIR=<CuDNN_path>
    ```
-   Move to `example/cuda` directory and execute `build_cuda_linux.sh` :
+   Move to `examples/linux/cuda` directory and execute `build_cuda_linux.sh` :
    ```
-   cd <path_to_tnn>/examples/cuda
+   cd <path_to_tnn>/examples/linux/cuda
    sh build_linux.sh
    ```
 * Execute
-    Move to `examples/cuda/build_cuda_linux` directory and execute:
+    Move to `examples/linux/cuda/build_cuda_linux` directory and execute:
     ```
     cd build_cuda_linux
 
     image-classification demo
-    ./demo_cuda_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+    ./demo_cuda_imageclassify ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
 
    face-detector demo
-   ./demo_cuda_facedetector ~/tnn-models/face-detector/version-slim-320_simplified.tnnproto ~/tnn-models/face-detector/version-slim-320_simplified.tnnmodel
+   ./demo_cuda_facedetector ../../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../../model/face_detector/version-slim-320_simplified.tnnmodel
+
+   reading-comprehension demo
+   ./demo_cuda_readingcomprehension ../../../../model/bertsquad10/bertsquad10_clean.tnnproto ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel ../../../../model/bertsquad10/vocab.txt
    ```
 
 ### Function process
@@ -366,6 +372,8 @@
    option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
    // for ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+   // for CUDA
+   option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
    ```
 * Create image_mat:  
    ```cpp
@@ -373,6 +381,8 @@
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
    // for ArmLinux
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+   // for CUDA
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
    ```
 * Run predictor:  
    ```cpp
@@ -390,6 +400,8 @@
    option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
    // for ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+   // for CUDA
+   option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
    ```
 * Create image_mat:  
    ```cpp
@@ -397,6 +409,8 @@
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
    // for ArmLinux
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+   // for CUDA
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
    ```
 * Run predictor:  
    ```cpp

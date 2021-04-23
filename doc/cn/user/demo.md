@@ -240,21 +240,24 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    - Cmake (>=3.11)
    - OpenCV3, 确保可在CMake中通过 `find_package(OpenCV 3)`找到， 可通过brew安装(```brew install opencv@3 && brew link --force opencv@3```)
 * 编译
-   进入 `examples/x86` 目录执行 `build_macos.sh`:
+   进入 `examples/linux/x86` 目录执行 `build_macos.sh`:
    ```
-   cd <path_to_tnn>/examples/x86
+   cd <path_to_tnn>/examples/linux/x86
    ./build_macos.sh
    ```
 * 运行
-   进入 `examples/x86/build_macos` 目录，然后运行Demo:
+   进入 `examples/linux/x86/build_macos` 目录，然后运行Demo:
    ```
    cd build_macos
    
    图片分类Demo
-   ./demo_x86_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+   ./demo_x86_imageclassify ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
 
    人脸检测Demo
-   ./demo_x86_facedetector ../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ./demo_x86_facedetector ../../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../../model/face_detector/version-slim-320_simplified.tnnmodel
+
+   阅读理解 demo
+   ./demo_x86_readingcomprehension ../../../../model/bertsquad10/bertsquad10_clean.tnnproto ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel ../../../../model/bertsquad10/vocab.txt
 
    摄像头人脸配准Demo
    ./demo_x86_webcam
@@ -339,21 +342,24 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    ```
    export CUDNN_ROOT_DIR = <CuDNN_path>
    ```
-   进入 `examples/cuda` 目录, 执行 `build_cuda_linux.sh`:
+   进入 `examples/linux/cuda` 目录, 执行 `build_cuda_linux.sh`:
    ```
-   cd <path_to_tnn>/examples/cuda
+   cd <path_to_tnn>/examples/linux/cuda
    sh build_linux.sh
    ```
 * 执行
-   进入 `examples/cuda/build_cuda_linux` 目录， 执行文件：
+   进入 `examples/linux/cuda/build_cuda_linux` 目录， 执行文件：
    ```
    cd build_cuda_linux
 
    图像分类 demo
-   ./demo_cuda_imageclassify ../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+   ./demo_cuda_imageclassify ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
 
    人脸检测 demo
-   ./demo_cuda_facedetector ~/tnn-models/face-detector/version-slim-320_simplified.tnnproto ~/tnn-models/face-detector/version-slim-320_simplified.tnnmodel
+   ./demo_cuda_facedetector ../../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../../model/face_detector/version-slim-320_simplified.tnnmodel
+
+   阅读理解 demo
+   ./demo_cuda_readingcomprehension ../../../../model/bertsquad10/bertsquad10_clean.tnnproto ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel ../../../../model/bertsquad10/vocab.txt
    ```
 
 ### 函数流程
@@ -369,6 +375,8 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
    // 对 ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+   // 对 CUDA
+   option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
    ```
 * 创建输入mat  
    ```cpp
@@ -376,6 +384,8 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
    // 对 ArmLinux
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+   // 对 CUDA
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
    ```
 * 执行predictor  
    ```cpp
@@ -393,6 +403,8 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
    // 对 ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+   // 对 CUDA
+   option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
    ```
 * 创建输入mat  
    ```cpp
@@ -400,6 +412,8 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
    // 对 ArmLinux
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
+   // 对 CUDA
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
    ```
 * 执行predictor  
    ```cpp
