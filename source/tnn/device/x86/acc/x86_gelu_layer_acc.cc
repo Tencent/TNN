@@ -63,7 +63,7 @@ typedef struct x86_gelu_operator : x86_unary2_operator {
 
 X86_REGISTER_UNARY2_KERNEL(LAYER_GELU, avx2, unary2_kernel_avx<X86_GELU_OP>);
 X86_REGISTER_UNARY2_KERNEL(LAYER_GELU, sse42, unary2_kernel_sse<X86_GELU_OP>);
-DECLARE_X86_UNARY2_ACC(Softplus, LAYER_GELU);
-REGISTER_X86_ACC(Softplus, LAYER_GELU);
+DECLARE_X86_UNARY2_ACC(Gelu, LAYER_GELU);
+REGISTER_X86_ACC(Gelu, LAYER_GELU);
 
 }   // namespace TNN_NS

@@ -59,10 +59,21 @@ Status CudaReduceLogSumExpLayerAcc::Forward(const std::vector<Blob *> &inputs, c
     int channels = 1;
     int first_axis = 4;
     int last_axis = 0;
-    for (int i = 0; i < params->axis.size(); i++) {
-        channels *= input_blob->GetBlobDesc().dims[params->axis[i]];
-        first_axis = std::min(params->axis[i], first_axis);
-        last_axis = std::max(params->axis[i], last_axis);
+    // remove duplicate axes
+    auto axis = params->axis;
+    std::sort(axis.begin(), axis.end());
+    axis.erase(std::unique(axis.begin(), axis.end() ), axis.end());
+    for (int i = 0; i < axis.size(); i++) {
+        channels *= input_blob->GetBlobDesc().dims[axis[i]];
+        first_axis = std::min(axis[i], first_axis);
+        last_axis = std::max(axis[i], last_axis);
+    }
+
+    for(int i=first_axis; i<=last_axis; ++i) {
+        if (std::find(axis.begin(), axis.end(), i) == axis.end()) {
+            LOGE("Error: discontinuous reduce axes!");
+            return Status(TNNERR_PARAM_ERR, "Error: discontinuous reduce axes!"); 
+        }
     }
 
     int outer_dim = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, 0, first_axis);
