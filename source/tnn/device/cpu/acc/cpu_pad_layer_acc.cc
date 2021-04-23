@@ -185,7 +185,9 @@ Status CpuPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
     int data_byte_size          = DataTypeUtils::GetBytesSize(input_blob->GetBlobDesc().data_type);
     const int input_width_bytes = input_width * data_byte_size;
 
-    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT ||
+        output_blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ||
+        output_blob->GetBlobDesc().data_type == DATA_TYPE_UINT32) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
 

@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_batch_norm_layer_acc.h"
+
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/interpreter/raw_buffer.h"
@@ -96,10 +97,10 @@ Status ArmBatchNormLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::
     auto dims_input  = input->GetBlobDesc().dims;
     auto dims_output = output->GetBlobDesc().dims;
 
-    auto input_width = dims_input[3], input_height = dims_input[2], ic = dims_input[1],
-         input_slice  = UP_DIV(dims_input[1], 4);
-    auto output_width = dims_output[3], output_height = dims_output[2], oc = dims_output[1],
-         output_slice = UP_DIV(dims_output[1], 4);
+    auto ic = dims_input[1], input_slice = UP_DIV(dims_input[1], 4);
+    auto oc = dims_output[1], output_slice = UP_DIV(dims_output[1], 4);
+    auto i_hw = DimsVectorUtils::Count(dims_input, 2);
+    auto o_hw = DimsVectorUtils::Count(dims_output, 2);
 
     auto batch = dims_output[0];
 
@@ -109,16 +110,16 @@ Status ArmBatchNormLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::
     float *k_data = buffer_scale_.force_to<float *>();
     float *b_data = buffer_bias_.force_to<float *>();
 
-    auto src_z_step = input_width * input_height * 4;
-    auto dst_z_step = output_width * output_height * 4;
+    auto src_z_step = i_hw * 4;
+    auto dst_z_step = o_hw * 4;
 
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
-        auto input_ptr  = input_orign + batch_idx * input_slice * 4 * input_width * input_height;
-        auto output_ptr = output_orign + batch_idx * output_slice * 4 * output_width * output_height;
+        auto input_ptr  = input_orign + batch_idx * input_slice * 4 * i_hw;
+        auto output_ptr = output_orign + batch_idx * output_slice * 4 * o_hw;
 
         if (!shared_channel_) {
             for (int dz = 0; dz < output_slice; dz++) {
-                for (int x_i = 0; x_i < output_width * output_height; x_i++) {
+                for (int x_i = 0; x_i < o_hw; x_i++) {
                     Float4 input_v  = Float4::load(input_ptr + dz * src_z_step + x_i * 4);
                     Float4 k_data_v = Float4::load(k_data + dz * 4);
                     Float4 b_data_v = Float4::load(b_data + dz * 4);
@@ -130,9 +131,9 @@ Status ArmBatchNormLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::
             Float4 k_data_v = Float4(k_data[0]);
             Float4 b_data_v = Float4(b_data[0]);
             for (int dz = 0; dz < output_slice; dz++) {
-                for (int x_i = 0; x_i < output_width * output_height; x_i++) {
+                for (int x_i = 0; x_i < o_hw; x_i++) {
                     Float4 input_v = Float4::load(input_ptr + dz * src_z_step + x_i * 4);
-                    Float4 dst_v = b_data_v;
+                    Float4 dst_v   = b_data_v;
                     Float4::mla(dst_v, input_v, k_data_v);
                     Float4::save(output_ptr + dz * dst_z_step + x_i * 4, dst_v);
                 }
@@ -164,5 +165,6 @@ REGISTER_ARM_ACC(BatchNorm, LAYER_BATCH_NORM)
 REGISTER_ARM_ACC(BatchNorm, LAYER_BATCH_NORM_EX)
 REGISTER_ARM_PRECISION_FP16(LAYER_BATCH_NORM)
 REGISTER_ARM_PRECISION_FP16(LAYER_BATCH_NORM_EX)
+REGISTER_ARM_LAYOUT(LAYER_BATCH_NORM, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

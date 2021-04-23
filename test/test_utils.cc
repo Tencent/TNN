@@ -184,4 +184,15 @@ int CompareData(const uint8_t* ref_data, const uint8_t* result_data, int mat_cha
     return 0;
 }
 
+int CompareData(const int* ref_data, const int* result_data, size_t n) {
+    for (unsigned long long i = 0; i < n; i++) {
+        if (result_data[i] - ref_data[i] != 0) {
+            LOGE("ERROR AT %llu result %d ref %d\n", i, result_data[i], ref_data[i]);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 }  // namespace TNN_NS

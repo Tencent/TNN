@@ -43,18 +43,21 @@ Status OpenCLSplitLayerAcc::Init(Context *context, LayerParam *param, LayerResou
 
 Status OpenCLSplitLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Split Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     auto input  = inputs[0];
     auto output = outputs[0];
 
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
 
-    const int batch         = output_dims[0];
-    const int channels      = output_dims[1];
-    const int output_height = output_dims[2];
-    const int output_width  = output_dims[3];
+    const int batch         = DimsFunctionUtils::GetDim(output_dims, 0);
+    const int channels      = DimsFunctionUtils::GetDim(output_dims, 1);
+    const int output_height = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int output_width  = DimsFunctionUtils::GetDim(output_dims, 3);
 
-    int inputWH[]      = {input_dims[3], input_dims[2]};
+    int inputWH[]      = {DimsFunctionUtils::GetDim(input_dims, 3), DimsFunctionUtils::GetDim(input_dims, 2)};
     int inputOffset[]  = {0, 0, 0, 0};
     int outputOffset[] = {0, 0, 0, 0};
     for (int i = 0; i < execute_units_.size(); ++i) {
@@ -76,5 +79,6 @@ Status OpenCLSplitLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
 }
 
 REGISTER_OPENCL_ACC(Split, LAYER_SPLITING)
+REGISTER_OPENCL_LAYOUT(LAYER_SPLITING, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

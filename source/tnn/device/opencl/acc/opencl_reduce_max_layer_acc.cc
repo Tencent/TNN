@@ -43,5 +43,6 @@ std::set<std::string> OpenCLReduceMaxLayerAcc::CreateBuildOptions() {
 OpenCLReduceMaxLayerAcc::~OpenCLReduceMaxLayerAcc() {}
 
 REGISTER_OPENCL_ACC(ReduceMax, LAYER_REDUCE_MAX)
+REGISTER_OPENCL_LAYOUT(LAYER_REDUCE_MAX, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

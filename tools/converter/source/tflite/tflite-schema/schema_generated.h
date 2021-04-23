@@ -15962,14 +15962,14 @@ inline flatbuffers::Offset<SubGraph> CreateSubGraph(flatbuffers::FlatBufferBuild
         const flatbuffers::rehasher_function_t *__rehasher;
     } _va = {&_fbb, _o, _rehasher};
     (void)_va;
-    auto _tensors = _o->tensors.size()
-                        ? _fbb.CreateVector<flatbuffers::Offset<tflite::Tensor>>(
+    auto _tensors   = _o->tensors.size()
+                          ? _fbb.CreateVector<flatbuffers::Offset<tflite::Tensor>>(
                               _o->tensors.size(),
                               [](size_t i, _VectorArgs *__va) {
                                   return CreateTensor(*__va->__fbb, __va->__o->tensors[i].get(), __va->__rehasher);
                               },
                               &_va)
-                        : 0;
+                          : 0;
     auto _inputs    = _o->inputs.size() ? _fbb.CreateVector(_o->inputs) : 0;
     auto _outputs   = _o->outputs.size() ? _fbb.CreateVector(_o->outputs) : 0;
     auto _operators = _o->operators.size() ? _fbb.CreateVector<flatbuffers::Offset<tflite::Operator>>(
@@ -15980,7 +15980,7 @@ inline flatbuffers::Offset<SubGraph> CreateSubGraph(flatbuffers::FlatBufferBuild
                                                  },
                                                  &_va)
                                            : 0;
-    auto _name = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
+    auto _name      = _o->name.empty() ? 0 : _fbb.CreateString(_o->name);
     return tflite::CreateSubGraph(_fbb, _tensors, _inputs, _outputs, _operators, _name);
 }
 
@@ -16154,32 +16154,32 @@ inline flatbuffers::Offset<Model> CreateModel(flatbuffers::FlatBufferBuilder &_f
                   },
                   &_va)
             : 0;
-    auto _subgraphs = _o->subgraphs.size() ? _fbb.CreateVector<flatbuffers::Offset<tflite::SubGraph>>(
+    auto _subgraphs       = _o->subgraphs.size() ? _fbb.CreateVector<flatbuffers::Offset<tflite::SubGraph>>(
                                                  _o->subgraphs.size(),
                                                  [](size_t i, _VectorArgs *__va) {
                                                      return CreateSubGraph(*__va->__fbb, __va->__o->subgraphs[i].get(),
                                                                            __va->__rehasher);
                                                  },
                                                  &_va)
-                                           : 0;
-    auto _description = _o->description.empty() ? 0 : _fbb.CreateString(_o->description);
-    auto _buffers     = _o->buffers.size()
-                        ? _fbb.CreateVector<flatbuffers::Offset<tflite::Buffer>>(
+                                                 : 0;
+    auto _description     = _o->description.empty() ? 0 : _fbb.CreateString(_o->description);
+    auto _buffers         = _o->buffers.size()
+                                ? _fbb.CreateVector<flatbuffers::Offset<tflite::Buffer>>(
                               _o->buffers.size(),
                               [](size_t i, _VectorArgs *__va) {
                                   return CreateBuffer(*__va->__fbb, __va->__o->buffers[i].get(), __va->__rehasher);
                               },
                               &_va)
-                        : 0;
+                                : 0;
     auto _metadata_buffer = _o->metadata_buffer.size() ? _fbb.CreateVector(_o->metadata_buffer) : 0;
     auto _metadata        = _o->metadata.size()
-                         ? _fbb.CreateVector<flatbuffers::Offset<tflite::Metadata>>(
+                                ? _fbb.CreateVector<flatbuffers::Offset<tflite::Metadata>>(
                                _o->metadata.size(),
                                [](size_t i, _VectorArgs *__va) {
                                    return CreateMetadata(*__va->__fbb, __va->__o->metadata[i].get(), __va->__rehasher);
                                },
                                &_va)
-                         : 0;
+                                : 0;
     return tflite::CreateModel(_fbb, _version, _operator_codes, _subgraphs, _description, _buffers, _metadata_buffer,
                                _metadata);
 }

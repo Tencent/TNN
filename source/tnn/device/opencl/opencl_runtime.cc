@@ -125,39 +125,8 @@ Status OpenCLRuntime::Init() {
         }
 #endif  // TNN_USE_OPENCL_WRAPPER
 
-        std::vector<cl::Platform> platforms;
-        cl::Platform::get(&platforms);
-        if (platforms.size() <= 0) {
-            LOGE("OpenCL Platform not found!\n");
-            return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL Platform not found!");
-        }
+        RETURN_ON_NEQ(SearchGpuDevice(device_), TNN_OK);
 
-        LOGD("find %lu platforms\n", platforms.size());
-
-        // search GPU
-        std::vector<cl::Device> devices;
-        for (auto it = platforms.begin(); it != platforms.end(); ++it) {
-            std::string platform_name;
-            it->getInfo(CL_PLATFORM_NAME, &platform_name);
-            it->getDevices(CL_DEVICE_TYPE_GPU, &devices);
-            LOGD("platform (%s) has %lu GPUs\n", platform_name.c_str(), devices.size());
-
-            if (devices.size() > 0) {
-                std::string device_name = devices[0].getInfo<CL_DEVICE_NAME>();
-                LOGD("find GPU: %s\n", device_name.c_str());
-                cl::Platform::setDefault(*it);
-                break;
-            }
-        }
-
-        //not found, return error code.
-        if (devices.size() <= 0) {
-            LOGE("OpenCL Device not found!\n");
-            return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL Device not found!");
-        }
-
-        device_                          = std::make_shared<cl::Device>();
-        *device_                         = devices[0];
         const std::string device_name    = device_->getInfo<CL_DEVICE_NAME>();
         const std::string device_version = device_->getInfo<CL_DEVICE_VERSION>();
         const std::string opencl_version = device_->getInfo<CL_DEVICE_OPENCL_C_VERSION>();
@@ -209,7 +178,7 @@ Status OpenCLRuntime::Init() {
 
         if (!cache_path_.empty()) {
             program_cache_file_path_ =
-                cache_path_ + "/" + CACHE_TAG + "_" + device_name + "_" +
+                cache_path_ + "/" + CACHE_TAG + "_" + md5(device_name) + "_" +
                 md5(device_version + "_" + opencl_version);
         }
 
@@ -415,10 +384,74 @@ GpuInfo OpenCLRuntime::ParseGpuInfo(std::string device_name, std::string device_
             sscanf(device_name.c_str(), "Mali-T%d", &info.model_num);
         }
         sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
+    } else if (device_name.find("Intel") != std::string::npos) {
+        LOGD("GPU type is Intel GPU\n");
+        info.type = INTEL_GPU;
+    } else if (device_name.find("GeForce") != std::string::npos) {
+        LOGD("GPU type is Nvidia GPU\n");
+        info.type = NVIDIA_GPU;
     }
     LOGD("GPU Type: %d, model_num: %d, opencl version: %f\n", info.type, info.model_num, info.opencl_version);
 
     return info;
+}
+
+Status OpenCLRuntime::SearchGpuDevice(std::shared_ptr<cl::Device>& device) {
+    struct DevicePacket {
+        cl::Platform platform;
+        cl::Device device;
+    };
+    std::map<GpuType, std::vector<DevicePacket>> gpu_map;
+    std::vector<cl::Platform> platforms;
+    cl::Platform::get(&platforms);
+    if (platforms.size() <= 0) {
+        LOGE("OpenCL Platform not found!\n");
+        return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL Platform not found!");
+    }
+
+    LOGD("find %lu platforms\n", platforms.size());
+
+    // search GPU
+    std::vector<cl::Device> devices;
+    for (auto it = platforms.begin(); it != platforms.end(); ++it) {
+        std::string platform_name;
+        it->getInfo(CL_PLATFORM_NAME, &platform_name);
+        it->getDevices(CL_DEVICE_TYPE_GPU, &devices);
+        LOGD("platform (%s) has %lu GPUs\n", platform_name.c_str(), devices.size());
+
+        for (auto dev: devices) {
+            std::string device_name    = dev.getInfo<CL_DEVICE_NAME>();
+            std::string device_version = dev.getInfo<CL_DEVICE_VERSION>();
+            LOGD("find GPU: %s\n", device_name.c_str());
+            GpuInfo gpu_info = ParseGpuInfo(device_name, device_version);
+            DevicePacket device_packet;
+            device_packet.platform = *it;
+            device_packet.device   = dev;
+            gpu_map[gpu_info.type].push_back(device_packet);
+        }
+    }
+
+    // not found, return error code.
+    if (gpu_map.size() <= 0) {
+        LOGE("OpenCL Device not found!\n");
+        return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL Device not found!");
+    }
+
+    // choose GPU
+    DevicePacket device_packet_to_use;
+    if (gpu_map.count(NVIDIA_GPU) > 0) {
+        device_packet_to_use = gpu_map[NVIDIA_GPU].front();
+    } else if (gpu_map.count(INTEL_GPU) > 0) {
+        device_packet_to_use = gpu_map[INTEL_GPU].front();
+    } else {
+        device_packet_to_use = gpu_map.begin()->second.front();
+    }
+
+    cl::Platform::setDefault(device_packet_to_use.platform);
+    device.reset(new cl::Device());
+    *device = device_packet_to_use.device;
+
+    return TNN_OK;
 }
 
 //load program with program name.

@@ -15,17 +15,17 @@
 #include <cmath>
 #include <memory>
 
-#include <ngraph/node.hpp>
+#include <inference_engine.hpp>
 #include <ngraph/ngraph.hpp>
+#include <ngraph/node.hpp>
 #include <ngraph/op/op.hpp>
 #include <ngraph/opsets/opset.hpp>
 #include <ngraph/opsets/opset1.hpp>
-#include <inference_engine.hpp>
 
-#include "tnn/layer/base_layer.h"
-#include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
 #include "tnn/extern_wrapper/foreign_blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
+#include "tnn/layer/base_layer.h"
+#include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
 #include "tnn/network/openvino/openvino_types.h"
 
 namespace TNN_NS {
@@ -33,23 +33,22 @@ namespace TNN_NS {
 DECLARE_OPENVINO_LAYER_BUILDER(HardSigmoid, LAYER_HARDSIGMOID);
 
 Status HardSigmoidOVLayerBuilder::Build() {
+    auto paramlist = dynamic_cast<HardSigmoidLayerParam*>(param_);
 
-    auto paramlist = dynamic_cast<HardSwishLayerParam*>(param_);
-
-    if (GetInputNodes().size() <=0) {
+    if (GetInputNodes().size() <= 0) {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
     auto input_node = GetInputNodes()[0];
 
-    auto alphaNode = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, ngraph::Shape{1}, paramlist->alpha);
-    
-    auto betaNode = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, ngraph::Shape{1}, paramlist->beta);
-    
-    auto hardSigmoidNode = std::make_shared<ngraph::op::HardSigmoid>(
-        input_node->output(0), alphaNode, betaNode);
+    auto alphaNode =
+        std::make_shared<ngraph::op::Constant>(ngraph::element::Type_t::f32, ngraph::Shape(), paramlist->alpha);
+
+    auto betaNode =
+        std::make_shared<ngraph::op::Constant>(ngraph::element::Type_t::f32, ngraph::Shape(), paramlist->beta);
+
+    auto hardSigmoidNode =
+        std::make_shared<ngraph::op::HardSigmoid>(input_node->output(0), alphaNode->output(0), betaNode->output(0));
 
     hardSigmoidNode->validate_and_infer_types();
     hardSigmoidNode->set_friendly_name(paramlist->name);
@@ -63,4 +62,4 @@ Status HardSigmoidOVLayerBuilder::Build() {
 
 REGISTER_OPENVINO_LAYER_BUILDER(HardSigmoid, LAYER_HARDSIGMOID);
 
-}
+}  // namespace TNN_NS

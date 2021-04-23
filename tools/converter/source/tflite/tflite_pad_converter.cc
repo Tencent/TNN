@@ -36,6 +36,9 @@ TNN_NS::Status TFLitePadConverter::exec(TNN_NS::NetStructure& net_structure, TNN
     TNN_NS::PadLayerParam* param = new TNN_NS::PadLayerParam;
     auto cur_layer               = net_structure.layers.back();
     cur_layer->param             = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->type = 0;
+    param->name = cur_layer->name;
+    param->quantized = false;
     // pad value
     const int pad_value_index    = tf_lite_operator->inputs[1];
     const auto& pad_value_tensor = tf_lite_tensors[pad_value_index];

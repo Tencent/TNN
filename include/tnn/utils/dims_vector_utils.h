@@ -34,7 +34,7 @@ public:
 
     // @brief equal of dims0 and dims1, [start_index, end_index)
     static bool Equal(const DimsVector &dims0, const DimsVector &dims1, int start_index = 0, int end_index = -1);
-
+    
     // @brief NCHW dims vector to NHWC dims vector
     static DimsVector NCHW2NHWC(const DimsVector &dims);
 

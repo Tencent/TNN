@@ -88,12 +88,13 @@ After the compilation is completed, the corresponding `armeabi-v7a` library, the
 ```
 cd <path_to_tnn>/scripts
 ```
-2）edit `build_arm_linux.sh` or `build_arm32hf_linux.sh` to config the building options  
+2）edit `build_aarch64_linux.sh` or `build_armhf_linux.sh` to config the building options  
 ```
  SHARED_LIB="ON"                # ON for dynamic lib，OFF for static lib
  ARM="ON"                       # ON to build for ARM CPU
- OPENMP="ON"                    # ON表示打开OpenMP
+ OPENMP="ON"                    # ON to enable OpenMP
  OPENCL="OFF"                   # ON to build for GPU
+ RKNPU="OFF"                    # ON to build for RKNPU 
  #for arm64:
  CC=aarch64-linux-gnu-gcc       # set compiler for aarch64 C
  CXX=aarch64-linux-gnu-g++      # set compiler for aarch64 C++
@@ -105,13 +106,17 @@ cd <path_to_tnn>/scripts
 ```
 3）execute the building script
 ```
-./build_arm_linux.sh
+./build_aarch64_linux.sh
 ```
+RKNPU: 
+You need to download the DDK library files and copy them to the specified directory. 
+Please see:
+RKNPU Compilation Prerequisite in [FAQ](../faq_en.md#rknpu-compilation-prerequisite)RKNPU Compilation Prerequisite.
 
 ## IV. Compile(x86 Linux)
 ### 1. Enviromnment requirements
 #### Dependencies
-  - cmake (version 3.7.2 or higher)
+  - cmake (version 3.11 or higher)
 
 ### 2. Compilation Steps
 1) switch to 'scripts' directory
@@ -121,12 +126,13 @@ cd <path_to_tnn>/scripts
 2) execute the building scripts
   - compile without openvino
 ```
-./build_linux_naive.sh
+./build_linux_native.sh
 ```
   - compile with openvino
 ```
-./build_linux.sh
+./build_x86_linux.sh
 ```
+Openvino can only be compiled to 64-bit version, cmake version 3.13 or higher
 
 ## V. Compile(Linux CUDA)
 ### 1. Enviromnment requirements
@@ -168,7 +174,7 @@ cd <path_to_tnn>/scripts
 2) execute the building scripts
   - compile without openvino
 ```
-.\build_msvc_naive.bat
+.\build_msvc_native.bat
 ```
   - compile with openvino
 ```
@@ -199,7 +205,7 @@ cd <path_to_tnn>/scripts
 
 |Option|Default|Description|
 |------|:---:|----|
-|TNN_CPU_ENABLE| OFF | Code source/device/cpu compilation switch, the code is only used for debugging and UnitTest benchmark test, the implementation is all c ++ code, does not contain specific CPU acceleration instructions.|
+|TNN_CPU_ENABLE| ON | Code source/device/cpu compilation switch, the implementation is all c ++ code, does not contain specific CPU acceleration instructions.|
 |TNN_X86_ENABLE| OFF | The code source/device/x86 compilation switch is currently adapted to the openvino implementation, and more accelerated code implementation will be moved in later.|
 |TNN_ARM_ENABLE| OFF | Code source/device/arm compilation switch, the code contains neon acceleration instructions, and partially implements int8 acceleration.|
 |TNN_ARM82_ENABLE| OFF | Code source/device/arm/acc/compute_arm82 compilation switch, the code implements fp16 acceleration.|
@@ -209,6 +215,7 @@ cd <path_to_tnn>/scripts
 |TNN_DSP_ENABLE| OFF | Code source/device/dsp compilation switch, currently adapted to snpe implementation.|
 |TNN_ATLAS_ENABLE| OFF | The code source/device/atlas compilation switch is currently adapted to Huawei's atlas acceleration framework.|
 |TNN_HUAWEI_NPU_ENABLE| OFF | The code source/device/huawei_npu compilation switch is currently adapted to the HiAI acceleration framework.|
+|TNN_RK_NPU_ENABLE| OFF | The code source/device/rknpu compilation switch is currently adapted to the rknpu_ddk acceleration framework.|
 |TNN_SYMBOL_HIDE| ON | The symbols of the acceleration library are hidden, and the default non-public interface symbols of release are not visible.|
 |TNN_OPENMP_ENABLE| OFF | OpenMP switch, control whether to open openmp acceleration.|
 |TNN_BUILD_SHARED| ON | The dynamic library compilation switch, close to compile the static library.|

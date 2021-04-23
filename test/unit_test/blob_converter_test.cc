@@ -21,7 +21,7 @@
 #include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/mat_utils.h"
 #include "utils/network_helpers.h"
 

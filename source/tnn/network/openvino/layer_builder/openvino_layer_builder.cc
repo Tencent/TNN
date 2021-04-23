@@ -24,14 +24,20 @@
 #include "tnn/extern_wrapper/foreign_blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/device/x86/x86_device.h"
+#include "tnn/network/openvino/custom_layer/custom_implementation.h"
 
 namespace TNN_NS {
 
 OpenVINOLayerBuilder::OpenVINOLayerBuilder(LayerType type): BaseLayerBuilder(type) {
     _x86_map = X86Device::GetLayerCreatorMap();
+    _ov_custom_type = CustomOpenvinoLayerManager::GetCustomLayerTypeSet();
+    base_layer_ = CreateLayer(type_);
 }
 
 OpenVINOLayerBuilder::~OpenVINOLayerBuilder() {
+    if (base_layer_) {
+        delete base_layer_;
+    }
 }
 
 Status OpenVINOLayerBuilder::Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& input_blobs,
@@ -42,8 +48,7 @@ Status OpenVINOLayerBuilder::Init(Context* context, LayerParam* param, LayerReso
     param_    = param;
     resource_ = resource;
 
-    base_layer_ = CreateLayer(type_);
-    if (_x86_map.find(type_) != _x86_map.end()) {
+    if (_x86_map.find(type_) != _x86_map.end() && _ov_custom_type.find(type_) != _ov_custom_type.end()) {
         base_layer_->Init(context, param, resource, input_blobs, output_blobs, device);
     } else {
         base_layer_->Init(context, param, resource, input_blobs, output_blobs, GetDevice(DEVICE_NAIVE));
@@ -52,9 +57,7 @@ Status OpenVINOLayerBuilder::Init(Context* context, LayerParam* param, LayerReso
     RETURN_ON_NEQ(Build(), TNN_OK);
     RETURN_ON_NEQ(InferOutputDataType(), TNN_OK);
 
-    LOGD("InferOutputShape: name:%s shape:%d %d %d %d \n", param->name.c_str(), output_blobs[0]->GetBlobDesc().dims[0],
-         output_blobs[0]->GetBlobDesc().dims[1], output_blobs[0]->GetBlobDesc().dims[2],
-         output_blobs[0]->GetBlobDesc().dims[3]);
+    LOGD("InferOutputShape: name:%s %s \n", param->name.c_str(), output_blobs[0]->GetBlobDesc().description().c_str());
 
     return TNN_OK;
 
@@ -111,6 +114,11 @@ Status OpenVINOLayerBuilder::Reshape(){
 
 Status OpenVINOLayerBuilder::Forward(){
     return TNN_OK;
+}
+
+void OpenVINOLayerBuilder::SetConstantResource(ConstantResource* consts) {
+    BaseLayer::SetConstantResource(consts);
+    this->base_layer_->SetConstantResource(consts);
 }
 
 std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetOpenVINOLayerBuilderCreatorMap() {

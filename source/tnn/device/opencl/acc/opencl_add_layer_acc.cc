@@ -44,5 +44,6 @@ Status OpenCLAddLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 OpenCLAddLayerAcc::~OpenCLAddLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Add, LAYER_ADD)
+REGISTER_OPENCL_LAYOUT(LAYER_ADD, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

@@ -37,7 +37,7 @@ namespace openvino {
 Status BinaryLayerBuilder::Build() {
 
     if (GetInputNodes().size() <= 0) {
-        LOGE("Error: %d input nodes\n", GetInputNodes().size());
+        LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
     auto input_node = GetInputNodes();

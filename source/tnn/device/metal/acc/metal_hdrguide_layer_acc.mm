@@ -495,9 +495,10 @@ Status MetalHDRGuideLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     auto input  = inputs[0];
     auto output = outputs[0];
 
-    auto dims_output  = output->GetBlobDesc().dims;
-    auto output_width = dims_output[3], output_height = dims_output[2],
-         output_slice = UP_DIV(dims_output[1], 4) * dims_output[0];
+    auto dims_output   = output->GetBlobDesc().dims;
+    auto output_width  = DimsFunctionUtils::GetDim(dims_output, 3),
+         output_height = DimsFunctionUtils::GetDim(dims_output, 2),
+         output_slice  = UP_DIV(dims_output[1], 4) * dims_output[0];
 
     Status status = TNN_OK;
     MetalBandwidth bandwidth;
@@ -532,5 +533,6 @@ Status MetalHDRGuideLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_METAL_ACC(HDRGuide, LAYER_HDRGUIDE);
+REGISTER_METAL_LAYOUT(LAYER_HDRGUIDE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

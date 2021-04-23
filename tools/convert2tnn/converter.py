@@ -40,6 +40,9 @@ def main():
         optimize = args.optimize
         half = args.half
         align = args.align
+        if align is None:
+            align = 'output'
+        align_batch = args.align_batch
         input_file = args.input_file_path
         ref_file = args.refer_file_path
         onnx_path = parse_path.parse_path(onnx_path)
@@ -52,12 +55,12 @@ def main():
             for item in args.input_names:
                 input_names += (item + " ")
         try:
-            onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, input_file, ref_file, input_names,
+            onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, align_batch, input_file, ref_file, input_names,
                              debug_mode=debug_mode)
         except Exception as err:
             logging.error("Conversion to  tnn failed :(\n")
             logging.error(err)
-    
+
     elif args.sub_command == 'caffe2tnn':
         proto_path = parse_path.parse_path(args.proto_path)
         model_path = parse_path.parse_path(args.model_path)
@@ -66,6 +69,8 @@ def main():
         optimize = args.optimize
         half = args.half
         align = args.align
+        if align is None:
+            align = 'output'
         input_file = args.input_file_path
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)
@@ -86,6 +91,8 @@ def main():
         optimize = args.optimize
         half = args.half
         align = args.align
+        if align is None:
+            align = 'output'
         not_fold_const = args.not_fold_const
         input_file = args.input_file_path
         ref_file = args.refer_file_path
@@ -101,7 +108,7 @@ def main():
         tf_path = parse_path.parse_path(args.tf_path)
         output_dir = parse_path.parse_path(args.output_dir)
         version = args.version
-        align = args.align
+        align = args.align.lower()
         input_file = args.input_file_path
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)

@@ -24,11 +24,20 @@
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
-#include <algorithm>
-
-#define TNN_SDK_ENABLE_BENCHMARK 1
+#ifdef _WIN32
+    #define NOMINMAX
+    #include <windows.h>
+    #define TNN_SDK_ENABLE_BENCHMARK 0
+#else
+    #define TNN_SDK_ENABLE_BENCHMARK 1
+    #include <sys/time.h>
+#endif
 
 #define TNN_SDK_USE_NCNN_MODEL 0
+
+#ifndef HAS_OPENCV
+#define HAS_OPENCV 0
+#endif
 
 namespace TNN_NS {
 
@@ -50,6 +59,8 @@ struct ObjectInfo {
     std::vector<triple<float,float,float>> key_points_3d = {};
     //lines connecting key_points
     std::vector<std::pair<int, int>> lines;
+    // label
+    const char *label = nullptr;
     
     float score = 0;
     int class_id = -1;
@@ -201,6 +212,7 @@ public:
     void setCheckNpuSwitch(bool option);
     
     virtual Status GetCommandQueue(void **command_queue);
+    virtual Status DumpBlob(const BlobMap& blob_map, std::string output_dir);
     Status Resize(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type);
     Status Crop(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, int start_x, int start_y);
     Status WarpAffine(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type, TNNBorderType border_type, float trans_mat[2][3]);
@@ -209,6 +221,7 @@ public:
                           std::shared_ptr<TNN_NS::Mat> dst,
                           int top, int bottom, int left, int right,
                           TNNBorderType border_type, uint8_t border_value = 0);
+    virtual bool hideTextBox();
 
 protected:
     BenchOption bench_option_;

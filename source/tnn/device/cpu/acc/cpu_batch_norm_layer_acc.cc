@@ -14,7 +14,7 @@
 
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -41,7 +41,7 @@ Status CpuBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     bool share_channel     = scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(scale_handle.GetDataType());
     auto *bias_data        = resource->bias_handle.force_to<float *>();
 
-    const int channel_size = input_blob->GetBlobDesc().dims[2] * input_blob->GetBlobDesc().dims[3];
+    const int channel_size = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, 2);
 
     if (share_channel) {
         for (int index = 0; index < count; ++index) {

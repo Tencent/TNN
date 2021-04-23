@@ -14,11 +14,13 @@
 
 #include "tnn/layer/elementwise_layer.h"
 
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-Status ElementwiseLayer::InferOutputShape() {
+Status ElementwiseLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
     Blob* input_blob = input_blobs_[0];
 
     auto dims0       = input_blob->GetBlobDesc().dims;

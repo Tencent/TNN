@@ -19,7 +19,7 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-#include "half_utils.h"
+
 
 DECLARE_OP_CONVERTER(BatchNorm);
 
@@ -33,7 +33,11 @@ string OnnxOpConverterBatchNorm::TNNLayerParam(NodeProto& node,
     return "";
 }
 
-int OnnxOpConverterBatchNorm::WriteTNNModel(serializer* net_writer,
+bool OnnxOpConverterBatchNorm::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return true;
+}
+
+int OnnxOpConverterBatchNorm::WriteTNNModel(Serializer* net_writer,
                                                  NodeProto& node,
                                                  OnnxNetInfo& net_info) {
     const std::string& onnx_op = node.op_type();
@@ -41,9 +45,9 @@ int OnnxOpConverterBatchNorm::WriteTNNModel(serializer* net_writer,
     const std::string& tnn_layer_type = TNNOpType(node, net_info);
 
     //写头信息
-    net_writer->put_int(0);  //触发type from string
-    net_writer->put_string(tnn_layer_type);
-    net_writer->put_string(name);
+    net_writer->PutInt(0);  //触发type from string
+    net_writer->PutString(tnn_layer_type);
+    net_writer->PutString(name);
 
     //写数据
     float epsilon = get_node_attr_f(node, "epsilon", 1e-5f);
@@ -71,8 +75,8 @@ int OnnxOpConverterBatchNorm::WriteTNNModel(serializer* net_writer,
         }
     }
 
-    WriteRawData(slope, channels, net_writer, net_info.data_type);
-    WriteRawData(bias, channels, net_writer, net_info.data_type);
+    WriteRawData(slope, channels, net_writer, net_info.data_type, {channels});
+    WriteRawData(bias, channels, net_writer, net_info.data_type, {channels});
 
     delete[] slope;
     delete[] bias;

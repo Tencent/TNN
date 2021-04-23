@@ -12,12 +12,37 @@
    cd <path_to_tnn>/model
    sh download_model.sh
    ```
+   
+   可选：如果需要执行OCR demo，还需要准备opencv库。可以使用提供的脚本下载opencv。
+   ```
+   cd <path_to_tnn>/scripts
+   sh download_opencv.sh iOS
+   ```
 
-   PS: 如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载
+   PS: 如因网络问题脚本无法下载模型或依赖库，请根据脚本中的信息手动创建对应文件夹并自行下载
 
 2. 打开TNNExamples工程
 
    进入目录`<path_to_tnn>/examples/ios/`，双击打开TNNExamples工程。
+   
+   可选：如果需要执行OCR demo，需要将opencv加入TNNExamples的依赖项中。
+   
+   如下图点击TNNExamples工程，找到工程设置`General`，在`Framworks, Libraries, and Embedded Content`选项卡下点击`+`。
+
+   <div align=left ><img src="./resource/ios_add_framework.jpg" width = "75%" height = "75%"/>
+
+   在打开的界面中选择`Add Other-Add Files...`，找到opencv2.framework，并添加。使用提供的`<path_to_tnn>/scripts/download_opencv.sh`时，下载的opencv位于`<path_to_tnn>/third_party/opencv/iOS`目录下。
+
+   <div align=left ><img src="./resource/ios_add_framework_from_files.jpg" width = "75%" height = "75%"/>
+
+   由于opencv2.framework中包含真机和模拟器多平台的代码，需要按下图将`Embed`选项设置为`Do Not Embed`。
+
+   <div align=left ><img src="./resource/ios_framework_notembed.jpg" width = "75%" height = "75%"/>
+
+   最后，为了确保编译器可以找到opencv.framework，需要确认opencv.framework所在目录被添加到`Framework Search Paths`中。如下图所示，找到工程设置`Build Settings`，在`Search Paths`选项卡下找到`Framework Search Paths`。如果opencv.framework所在的目录不存在，需要双击这一条目，并添加。
+
+    <div align=left ><img src="./resource/ios_framework_search_path.jpg" width = "75%" height = "75%"/>
+
 
 3. 设置开发者账号
 
@@ -53,11 +78,13 @@ PS：
 
 a) 由于GPU和CPU加速原理不同，具体模型的GPU性能不一定比CPU高，与具体机型、模型结构以及工程实现有关。欢迎大家参与到TNN开发中，共同进步。
 
-b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，可以设置为1来运行ncnn模型。
+b) tnn_sdk_sample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，可以设置为1来运行ncnn模型。
 
    c) 如遇到`Unable to install...`错误提示，请在真机设备上删除已有的TNNExamples，重新运行安装。
 
    d) 真机运行时，如果遇到CodeSign错误`Command CodeSign failed with a nonzero exit code`，可参看issue20 `iOS Demo运行步骤说明`
+
+c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设置为1，否则不会编译OCR demo代码。
 
 ### Demo运行效果
 
@@ -93,6 +120,12 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    sh download_model.sh
    ```
 
+   可选：如果需要执行OCR demo，还需要下载opencv库。
+   ```
+   cd <path_to_tnn>/scripts
+   sh download_opencv.sh android
+   ```
+
    PS: 
    
    如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载.
@@ -116,6 +149,18 @@ b) TNNSDKSample.h中的宏TNN_SDK_USE_NCNN_MODEL默认为0，运行TNN模型，�
    3). 当前只有rom版本 >= 100.320.xxx.xxxx的华为机型支持IR构建事例模型。参考：[FAQ](../faq.md): 更新到最新的ROM支持NPU。
    
    4). 运行demo需要需首先下载NPU DDK。参考: [FAQ](../faq.md): 创建华为NPU编译环境。
+
+   5). 想要执行OCR demo, 打开工程后，需要手动设置打开OPENCV和CPU依赖：
+   在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 更新指令为如下，使用OPENCV。
+   ````
+        set(TNN_OPENCV_ENABLE ON CACHE BOOL "" FORCE)
+   ````
+
+   如需指定自定义OPENCV Android SDK路径:
+   在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 更新指令为如下，使用指定的OPENCV。
+   ````
+        set(OPENCV_ANDROID_SDK_PATH <path_to_opencv_android_sdk>)
+   ````
       
  
 ### 运行效果

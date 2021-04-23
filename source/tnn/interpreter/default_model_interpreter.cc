@@ -23,8 +23,10 @@ DefaultModelInterpreter::DefaultModelInterpreter() {
 }
 
 DefaultModelInterpreter::~DefaultModelInterpreter() {
-    delete net_structure_;
-    delete net_resource_;
+    if (nullptr != net_structure_)
+        delete net_structure_;
+    if (nullptr != net_resource_)
+        delete net_resource_;
 }
 
 NetStructure *DefaultModelInterpreter::GetNetStructure() {

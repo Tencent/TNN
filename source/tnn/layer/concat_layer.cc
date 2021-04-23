@@ -20,18 +20,25 @@ namespace TNN_NS {
 
 DECLARE_LAYER(Concat, LAYER_CONCAT);
 
-inline bool ConcatLayerCheckShape(DimsVector shape1, DimsVector shape2, int exclude_axis) {
+inline bool ConcatLayerCheckShape(DimsVector shape1, DimsVector shape2, int exclude_axis, bool ignore_error) {
     if (shape1.size() != shape2.size()) {
-        LOGE("shape1 dim size %d  shape2 dim size %d\n", (int)shape1.size(), (int)shape2.size());
+        LOGE_IF(!ignore_error, "shape1 dim size %d  shape2 dim size %d\n", (int)shape1.size(), (int)shape2.size());
         return false;
     }
 
     int i = 0;
     for (; i < shape1.size(); i++) {
-        if (i != exclude_axis && shape1[i] != shape2[i]) {
-            LOGE("dim[%d] not match (shape1:%d, shape2:%d)\n", i, shape1[i], shape2[i]);
+        //support shape1[i] == 0 for empty blob in yolov5
+        if ((i != exclude_axis && shape1[i] != shape2[i]) ||
+            (shape1[i] < 0 || shape2[i] < 0)) {
+            LOGE_IF(!ignore_error, "dim[%d] not match (shape1:%d, shape2:%d)\n", i, shape1[i], shape2[i]);
             return false;
         }
+    }
+
+    if (exclude_axis >= shape1.size()) {
+        LOGE_IF(!ignore_error, "exclude_axis:%d out of shape size:%d\n", exclude_axis, (int)shape1.size());
+        return false;
     }
     return true;
 }
@@ -40,16 +47,22 @@ Status ConcatLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status ConcatLayer::InferOutputShape() {
-    ConcatLayerParam* concat_param = dynamic_cast<ConcatLayerParam*>(param_);
-    CHECK_PARAM_NULL(concat_param);
+Status ConcatLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
+    auto layer_param = dynamic_cast<ConcatLayerParam*>(param_);
+    CHECK_PARAM_NULL(layer_param);
 
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
 
-    const int axis = concat_param->axis;
+    int axis = layer_param->axis;
+    if (axis < 0) {
+        axis += (int)input_blob->GetBlobDesc().dims.size();
+        layer_param->axis = axis;
+    }
     if (axis < 0 || axis > input_blob->GetBlobDesc().dims.size()) {
-        LOGE("Error: ConcatLayer axis(%d) is invalid\n", axis);
+        LOGE_IF(!ignore_error, "Error: ConcatLayer axis(%d) is invalid\n", axis);
         return Status(TNNERR_PARAM_ERR, "ConcatLayer axis is invalid");
     }
 
@@ -59,8 +72,8 @@ Status ConcatLayer::InferOutputShape() {
     for (; i < input_blobs_.size(); i++) {
         auto input_blob = input_blobs_[i];
         auto cur_shape  = input_blob->GetBlobDesc().dims;
-        if (!ConcatLayerCheckShape(last_shape, cur_shape, axis)) {
-            LOGE(
+        if (!ConcatLayerCheckShape(last_shape, cur_shape, axis, ignore_error)) {
+            LOGE_IF(!ignore_error,
                 "Error: ConcatLayer's (layer name: %s) inputs can not be "
                 "concatenated with "
                 "axis=%d\n",

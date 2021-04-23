@@ -15,14 +15,15 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-class PReluLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, bool>> {};
+class PReluLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int, bool>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PReluLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                                            testing::Values(2, 3, 4, 5),
                                             // share channel
                                             testing::Values(false, true)));
 
@@ -31,7 +32,8 @@ TEST_P(PReluLayerTest, PReluLayer) {
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
     int input_size     = std::get<2>(GetParam());
-    bool share_channel = std::get<3>(GetParam());
+    int dim_count      = std::get<3>(GetParam());
+    bool share_channel = std::get<4>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
@@ -39,7 +41,10 @@ TEST_P(PReluLayerTest, PReluLayer) {
         GTEST_SKIP();
     }
 
-    if (!share_channel && DEVICE_CUDA == dev) {
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+    if (DEVICE_HUAWEI_NPU == dev && dim_count > 4) {
         GTEST_SKIP();
     }
 
@@ -49,7 +54,8 @@ TEST_P(PReluLayerTest, PReluLayer) {
     param->channel_shared = share_channel ? 1 : 0;
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
     auto interpreter            = GenerateInterpreter("PReLU", {input_dims}, param);
     Run(interpreter);
 }

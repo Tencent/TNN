@@ -37,14 +37,14 @@ bool OpenCLConvLayerWinogradAcc::IsPrefered(const ConvLayerParam *param, const s
     auto input_dims          = inputs[0]->GetBlobDesc().dims;
 
     if(UP_DIV(param->output_channel, 4) * 16 > image2d_max_height || 
-        input_dims[0] * UP_DIV(input_dims[2], 2) * 16 > image2d_max_height) {
+        DimsFunctionUtils::GetDim(input_dims, 0) * UP_DIV(DimsFunctionUtils::GetDim(input_dims, 2), 2) * 16 > image2d_max_height) {
         return false;
     }
 
     return  param->kernels[0] == 3 && param->kernels[1] == 3 && param->dialations[0] == 1 && 
             param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 && 
             param->output_channel >=32 && param->input_channel >= 32 && 
-            input_dims[3] * 1.0f / param->output_channel <= 4;
+            DimsFunctionUtils::GetDim(input_dims, 3) * 1.0f / param->output_channel <= 4;
 }
 
 Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -61,8 +61,8 @@ Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, Lay
 
     auto input_dims          = inputs[0]->GetBlobDesc().dims;
     auto output_dims         = outputs[0]->GetBlobDesc().dims;
-    const int input_channel  = input_dims[1];
-    const int output_channel = output_dims[1];
+    const int input_channel  = DimsFunctionUtils::GetDim(input_dims, 1);
+    const int output_channel = DimsFunctionUtils::GetDim(output_dims, 1);
 
     //convert filter
     ret = ConvertWinogradTransformWeigths(conv_resource->filter_handle, ocl_weights_, input_channel, output_channel);
@@ -105,14 +105,14 @@ Status OpenCLConvLayerWinogradAcc::Reshape(const std::vector<Blob *> &inputs, co
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
-    const int batch         = output_dims[0];
-    const int output_channel = output_dims[1];
-    const int output_height = output_dims[2];
-    const int output_width  = output_dims[3];
+    const int batch          = DimsFunctionUtils::GetDim(output_dims, 0);
+    const int output_channel = DimsFunctionUtils::GetDim(output_dims, 1);
+    const int output_height  = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int output_width   = DimsFunctionUtils::GetDim(output_dims, 3);
 
-    const int input_channel = input_dims[1];
-    const int input_height   = input_dims[2];
-    const int input_width    = input_dims[3];
+    const int input_channel = DimsFunctionUtils::GetDim(input_dims, 1);
+    const int input_height  = DimsFunctionUtils::GetDim(input_dims, 2);
+    const int input_width   = DimsFunctionUtils::GetDim(input_dims, 3);
 
 
     const int round_up_ouptut_width = UP_DIV(output_width, 2);
@@ -229,8 +229,8 @@ Status OpenCLConvLayerWinogradAcc::ConvertWinogradTransformWeigths(RawBuffer &ra
     cl_channel_type data_type = CL_FLOAT;
     if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
-    int image_height = dims[0] * dims[1];
-    int image_width = dims[2] * dims[3];
+    int image_height = DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 1);
+    int image_width = DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
     cl::Image2D *image =
         new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
                         image_width, image_height, 0, nullptr, &ret);
@@ -253,14 +253,14 @@ Status OpenCLConvLayerWinogradAcc::AllocateWinogradMatrixVAndM(DimsVector input_
         data_type = CL_HALF_FLOAT;
     cl_int ret = CL_SUCCESS;
 
-    const int batch =        output_dims[0];
-    const int output_channel = output_dims[1];
-    const int output_height = output_dims[2];
-    const int output_width  = output_dims[3];
+    const int batch             = DimsFunctionUtils::GetDim(output_dims, 0);
+    const int output_channel    = DimsFunctionUtils::GetDim(output_dims, 1);
+    const int output_height     = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int output_width      = DimsFunctionUtils::GetDim(output_dims, 3);
 
-    const int input_channel = input_dims[1];
+    const int input_channel         = DimsFunctionUtils::GetDim(input_dims, 1);
     const int output_channel_blocks = UP_DIV(output_channel, 4);
-    const int input_channel_blocks = UP_DIV(input_channel, 4);
+    const int input_channel_blocks  = UP_DIV(input_channel, 4);
 
     const int round_up_ouptut_width = UP_DIV(output_width, 2);
     const int round_up_output_height = UP_DIV(output_height, 2);

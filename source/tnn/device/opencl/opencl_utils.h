@@ -25,7 +25,7 @@
 
 #include "tnn/core/mat.h"
 #include "tnn/core/blob.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
@@ -37,6 +37,8 @@ enum OpenCLBufferFormat {
     DW_CONV2D_FILTER = 3,
     NCHW_BUFFER      = 4,
     NHWC4_BUFFER     = 5,
+    LSTM_FILTER      = 6,
+    LSTM_BIAS        = 7,
 };
 
 template <typename T, typename Dim>
@@ -149,6 +151,12 @@ Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_nam
 uint32_t SetExecuteUnit3DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims);
 
 uint32_t SetExecuteUnit2DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims);
+
+uint32_t SetExecuteUnit2DSizeInfoCNH4(OpenCLExecuteUnit &unit, DimsVector dims);
+
+uint32_t SetExecuteUnit2DSizeInfoNCHW(OpenCLExecuteUnit &unit, DimsVector dims);
+
+uint32_t SetExecuteUnit1DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims);
 
 }  // namespace TNN_NS
 #endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILES_H_

@@ -20,7 +20,7 @@
 #import "tnn/device//metal/metal_command_queue.h"
 #import "tnn/device//metal/acc/metal_common.h"
 #import "tnn/core/abstract_device.h"
-#import "tnn/utils/dims_vector_utils.h"
+#import "tnn/utils/dims_utils.h"
 
 #define ENABLE_PIPELINE_CACHE 1
 #define KERNEL_SYNC 0

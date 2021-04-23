@@ -29,7 +29,7 @@ namespace TNN_NS {
         auto input      = inputs[0];                                                                                   \
         auto output     = outputs[0];                                                                                  \
         auto dims       = output->GetBlobDesc().dims;                                                                  \
-        int count       = dims[0] * ROUND_UP(dims[1], 8) * dims[2] * dims[3];                                          \
+        int count       = dims[0] * ROUND_UP(dims[1], 8) * DimsVectorUtils::Count(dims, 2);                            \
         int count_div8  = UP_DIV(count, 8);                                                                            \
         auto input_ptr  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));                            \
         auto output_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));                           \

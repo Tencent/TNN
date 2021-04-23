@@ -18,6 +18,7 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 bool MetalConvLayerCommon::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
@@ -35,14 +36,23 @@ Status MetalConvLayerCommon::AllocateBufferWeight(const std::vector<Blob *> &inp
     auto dims_output             = outputs[0]->GetBlobDesc().dims;
     const int input_channel      = dims_input[1];
     const int output_channel     = dims_output[1];
+    const int group     = layer_param->group;
+    const int goc       = output_channel / group;
+    const int gic       = input_channel / group;
+    is_channel_4x_ = group == 1 || (group > 1 && (gic % 4 == 0) && (goc % 4 == 0));
 
     Status status = TNN_OK;
     if (!buffer_weight_) {
         int kw = layer_param->kernels[0];
         int kh = layer_param->kernels[1];
 
-        buffer_weight_ = AllocatePackedGOIHW16MetalBufferFormRawBuffer(
-            layer_res->filter_handle, {output_channel, input_channel, kh, kw}, layer_param->group, status);
+        if (is_channel_4x_) {
+            buffer_weight_ = AllocatePackedGOIHW16MetalBufferFormRawBuffer(
+                layer_res->filter_handle, {output_channel, input_channel, kh, kw}, layer_param->group, status);
+        } else {
+            buffer_weight_ = AllocatePackedGOIHW4MetalBufferFormRawBuffer(
+                layer_res->filter_handle, {output_channel, input_channel, kh, kw}, layer_param->group, status);
+        }
     }
     return status;
 }
@@ -56,7 +66,8 @@ Status MetalConvLayerCommon::AllocateBufferBias(const std::vector<Blob *> &input
     if (!buffer_bias_) {
         if (layer_param->bias) {
             auto dims_output = outputs[0]->GetBlobDesc().dims;
-
+            const DataType data_type  = layer_res->bias_handle.GetDataType();
+            bias_datatype_bytes_ = DataTypeUtils::GetBytesSize(data_type);
             buffer_bias_ = AllocateMetalBufferFormRawBuffer1D(layer_res->bias_handle, dims_output[1], status);
         } else {
             //防止bind时候为空
@@ -74,16 +85,25 @@ Status MetalConvLayerCommon::AllocateBufferParam(const std::vector<Blob *> &inpu
     const int group  = conv_param->group;
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
     auto dims_output = outputs[0]->GetBlobDesc().dims;
+    const int goc    = dims_output[1] / group;
+    const int gic    = dims_input[1] / group;
     // buffer_param_
     {
         MetalConvParams metal_params;
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
         SetDefaultMetalConvParams(metal_params, conv_param);
         
-        metal_params.input_slice            = UP_DIV(dims_input[1], 4) / group;
-        metal_params.input_slice_per_group  = metal_params.input_slice;
-        metal_params.output_slice           = UP_DIV(dims_output[1], 4) / group;
-        metal_params.output_slice_per_group = metal_params.output_slice;
+        if (is_channel_4x_) {
+            metal_params.input_slice            = UP_DIV(dims_input[1], 4) / group;
+            metal_params.input_slice_per_group  = metal_params.input_slice;
+            metal_params.output_slice           = UP_DIV(dims_output[1], 4) / group;
+            metal_params.output_slice_per_group = metal_params.output_slice;
+        } else {
+            metal_params.input_slice            = UP_DIV(gic, 4);
+            metal_params.input_slice_per_group  = gic;
+            metal_params.output_slice           = UP_DIV(goc, 4);
+            metal_params.output_slice_per_group = goc;
+        }
 
         metal_params.threadgroup_input_slice = metal_params.input_slice;
         //            metal_params.batch = dims_output[0];
@@ -112,6 +132,8 @@ Status MetalConvLayerCommon::Reshape(const std::vector<Blob *> &inputs, const st
 }
 
 std::string MetalConvLayerCommon::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (is_channel_4x_)
+        return "convolution_common_4x";
     return "convolution_common";
 }
 
@@ -122,27 +144,28 @@ Status MetalConvLayerCommon::ComputeThreadSize(const std::vector<Blob *> &inputs
     
     auto output = outputs[0];
     auto dims_output  = output->GetBlobDesc().dims;
+    // group = 7, output_channel = 35
     auto output_slice = UP_DIV(dims_output[1], 4);
     auto output_slice_per_group = output_slice / layer_param->group;
     output_slice_per_group = output_slice_per_group > 0 ? output_slice_per_group : 1;
+    if (is_channel_4x_ == false) {
+        auto goc = dims_output[1] / layer_param->group;
+        output_slice_per_group = UP_DIV(goc, 4);
+    }
     size = MTLSizeMake(dims_output[3], dims_output[2], output_slice_per_group);
     return TNN_OK;
 }
 
 Status MetalConvLayerCommon::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<ConvLayerParam *>(param_);
-    auto input             = inputs[0];
-    auto output           = outputs[0];
-    auto dims_input   = input->GetBlobDesc().dims;
+    auto input       = inputs[0];
+    auto output      = outputs[0];
+    auto dims_input  = input->GetBlobDesc().dims;
     auto dims_output = output->GetBlobDesc().dims;
-    const int group     = layer_param->group;
-    const int batch      = dims_output[0];
-    const int goc         = dims_output[1] / group;
-    const int gic          = dims_input[1] / group;
-    if (group > 1 && ((gic % 4 != 0) || (goc % 4 != 0))) {
-        LOGD("convolution: channel per group must be 4x\n");
-        return Status(TNNERR_LAYER_ERR, "convolution: channel per group must be 4x");
-    }
+    const int group  = layer_param->group;
+    const int batch  = dims_output[0];
+    const int goc    = dims_output[1] / group;
+    const int gic    = dims_input[1] / group;
     
     auto context_impl = context_->getMetalContextImpl();
     auto encoder = [context_impl encoder];
@@ -154,6 +177,12 @@ Status MetalConvLayerCommon::Forward(const std::vector<Blob *> &inputs, const st
     auto input_bytes_per_group = input_bytes / group;
     auto output_bytes = dims_output[3] * dims_output[2] * ROUND_UP(dims_output[1], 4) * data_byte_size;
     auto output_bytes_per_group = output_bytes / group;
+    auto bias_bytes_per_group = dims_output[1] / group * bias_datatype_bytes_;
+    if (is_channel_4x_ == false) {
+        // compute offset within kernel
+        input_bytes_per_group = 0;
+        output_bytes_per_group = 0;
+    }
 
     Status status = TNN_OK;
     
@@ -186,7 +215,9 @@ Status MetalConvLayerCommon::Forward(const std::vector<Blob *> &inputs, const st
                       atIndex:1];
                 [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
                 [encoder setBuffer:buffer_weight_ offset:g * buffer_weight_.length / group atIndex:3];
-                [encoder setBuffer:buffer_bias_ offset:g * buffer_bias_.length / group atIndex:4];
+                // bias may be padded
+                [encoder setBuffer:buffer_bias_ offset:g * bias_bytes_per_group atIndex:4];
+                [encoder setBytes :&g       length:sizeof(int) atIndex:5];
 
                 status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
 

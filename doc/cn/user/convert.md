@@ -115,8 +115,8 @@ optional arguments:
                         the tensorflow model's output name. e.g. -on output_name1 output_name2
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
-  -optimize             optimize the model
-  -half                 optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -half                 save the model using half
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH
                         the input file path which contains the input data for the inference model.
@@ -134,13 +134,13 @@ optional arguments:
 - output_dir 参数：
     可以通过 “-o <path>” 参数指定输出路径，但是在 docker 中我们一般不使用这个参数，默认会将生成的 TNN 模型放在当前和 TF 模型相同的路径下。
 - optimize 参数（可选）
-    可以通过 “-optimize” 参数来对模型进行优化，**我们强烈建议你开启这个选项，只有在开启这个选项模型转换失败时，我们才建议你去掉 “-optimize” 参数进行重新尝试**。
+    可以通过 “-optimize” 参数来对模型进行优化，**对于固定输入维度的模型，我们强烈建议你开启这个选项，对于动态可变输入维度的模型则关闭这个选项，否则可能在维度变化时造成结果错误或者运行报错**。
 - v 参数（可选）
     可以通过 -v 来指定模型的版本号，以便于后期对模型进行追踪和区分。
 - half 参数（可选）
     可以通过 -half 参数指定，模型数据通过 FP16 进行存储，减少模型的大小，默认是通过 FP32 的方式进行存储模型数据的。
 - align 参数（可选）
-    可以通过 -align 参数指定，将 转换得到的 TNN 模型和原模型进行对齐，确定 TNN 模型是否转换成功。__align 只支持 FP32 模型的校验，所以使用 align 的时候不能使用 half__
+    可以通过 -align 参数指定转换得到的 TNN 模型和原模型对齐的模式，确定 TNN 模型是否转换成功。例如：不使用 “-align” 参数，默认不进行对齐；如果只对比 TNN 模型和原模型最后一层的输出，可以使用命令 “-align” 或 “-align output”; 如果模型不对齐，可以使用命令 “-align all” 进行逐层对齐，并输出第一层不对齐层的信息。（TensorFlow Lite 模型暂时不支持 “-align all”）。__align 只支持 FP32 模型的校验，所以使用 align 的时候不能使用 half__
 - input_file 参数（可选）
     可以通过 -input_file 参数指定模型对齐所需要的输入文件的名称，输入需要遵循如下[格式](#输入)。生成输入的代码可以[参考](#生成输入或输出文件示例代码)。
 - ref_file 参数（可选）
@@ -173,7 +173,7 @@ docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter
     /workspace/mobilenetv3-small-c7eb32fe.onnx \
     -optimize \
     -v v3.0 \
-    -align  \
+    -align output \
     -input_file /workspace/in.txt \
     -ref_file /workspace/ref.txt
 
@@ -228,8 +228,9 @@ onnxruntime>=1.1.0
 numpy>=1.17.0  
 onnx-simplifier>=0.2.4  
 protobuf>=3.4.0
+requests
 ```shell script
-pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier protobuf
+pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier protobuf requests
 ```
 
 - cmake （version >= 3.0）
@@ -344,7 +345,7 @@ optional arguments:
   -in input_info [input_info ...]
                         specify the input name and shape of the model. e.g.,
                         -in input1_name:1,3,128,128 input2_name:1,3,256,256
-  -optimize             optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
   -half                 save model using half
   -v v1.0.0             the version for model
   -o OUTPUT_DIR         the output tnn directory
@@ -408,7 +409,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model, default v1.0
-  -optimize             optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
   -half                 save model using half
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH
@@ -451,8 +452,8 @@ optional arguments:
                         the tensorflow model's output name. e.g. -on output_name1 output_name2
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
-  -optimize             optimize the model
-  -half                 optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -half                 save the mode using half
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH
                         the input file path which contains the input data for the inference model.

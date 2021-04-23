@@ -55,7 +55,7 @@ docker rmi turandotkay/tnn-convert:latest
 #### Build Docker image (If the image is pulled through previous step, skip this part)
 
 ``` shell script
-cd <path-to-tnn>/tools/
+cd <path-to-tnn>/
 docker build -t tnn-convert:latest.
 ```
 
@@ -115,8 +115,8 @@ optional arguments:
                         the tensorflow model's output name. e.g. -on output_name1 output_name2
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
-  -optimize             optimize the model
-  -half                 optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -half                 save the model using half
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH
                         the input file path which contains the input data for the inference model.
@@ -134,13 +134,15 @@ Here are the explanations for each parameter:
 - output_dir parameter:
     You can specify the output path through the "-o <path>" parameter, but we generally do not apply this parameter in docker. By default, the generated TNN model will be placed in the same path as the TF model.
 - optimize parameter (optional)
-    You can optimize the model with the "-optimize" parameter. **We strongly recommend that you enable this option. Only when the model conversion fails while you enable this option, you could remove the "-opti mize" parameter and try again**.
+    You can optimize the model with the "-optimize" parameter. **If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result**.
 - v parameter (optional)
     You can use -v to specify the version number of the model to facilitate later tracking and differentiation of the model.
 - half parameter (optional)
-   You can optimize the model with the "-half" parameter. The model data will be stored in FP16 to reduce the size of the model by setting this parameter. By default, the model data is stored in FP32.
+   You can save the model with the "-half" parameter. The model data will be stored in FP16 to reduce the size of the model by setting this parameter. By default, the model data is stored in FP32.
 - align parameter (optional)
-    You can optimize the model with the "-align" parameter. Compare TNN model and Original model to determine whether TNN model is correct.
+    You can align the model with the "-align" parameter. Compare TNN model and original model to determine whether TNN model is correct. If you remove "-align", model align will not run; if you use "-align" or "-align output", this tool will compare the last output of TNN model and original model; if the model is not align, you can use '-align all' to address the first unaligned layer.
+- fold_const parameter (optional)
+    You can optimize the model with the "-fold_const" parameter. Enable tf constant_folding transformation before conversion.
 - input_file parameter (optional)
     Specify the input file's name which will be used by model_check through the "-input_file" parameter. This is [input format](#Input).
 - ref_file parameter (optional)
@@ -212,9 +214,10 @@ yum install  python3 python3-devel
 onnx=1.6.0  
 onnxruntime>=1.1.0   
 numpy>=1.17.0  
-onnx-simplifier>=0.2.4  
+onnx-simplifier>=0.2.4 
+requests
 ```shell script
-pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier
+pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier requests
 ```
 
 - cmake （version >= 3.0）
@@ -329,7 +332,7 @@ optional arguments:
   -in input_info [input_info ...]
                         specify the input name and shape of the model. e.g.,
                         -in input1_name:1,3,128,128 input2_name:1,3,256,256
-  -optimize             optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
   -half                 save model using half
   -v v1.0.0             the version for model
   -o OUTPUT_DIR         the output tnn directory
@@ -388,7 +391,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model, default v1.0
-  -optimize             optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
   -half                 save model using half
   -align                align the onnx model with tnn model
   -input_file in.txt    the input file path which contains the input data for the inference model
@@ -419,8 +422,8 @@ optional arguments:
                         the tensorflow model's output name. e.g. -on output_name1 output_name2
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
-  -optimize             optimize the model
-  -half                 optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -half                 save the model using half
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH
                         the input file path which contains the input data for the inference model.

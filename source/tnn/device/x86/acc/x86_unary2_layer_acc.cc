@@ -14,7 +14,7 @@
 
 #include "tnn/device/x86/acc/x86_unary2_layer_acc.h"
 #include "tnn/device/x86/x86_context.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {

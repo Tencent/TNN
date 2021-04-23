@@ -23,6 +23,7 @@ OnnxConverterManager::~OnnxConverterManager() {
         delete iter.second;
     }
     onnx_converter_map_.clear();
+    delete onnx_converter_manager_;
 }
 
 OnnxConverterManager* OnnxConverterManager::get() {
@@ -92,6 +93,19 @@ const onnx::NodeProto* OnnxBaseConverter::FindNodeProto(
         return proxy_nodes.find(name)->second.get()->onnx_node;
     }
     return nullptr;
+}
+void OnnxBaseConverter::InsertBlobs(TNN_NS::NetStructure& net_structure) {
+    auto& cur_layer     = net_structure.layers.back();
+    const auto& inputs  = cur_layer->inputs;
+    const auto& outputs = cur_layer->outputs;
+    for (const auto& input_name : inputs) {
+        const auto& blob_name = input_name;
+        net_structure.blobs.insert(blob_name);
+    }
+    for (const auto& output_name : outputs) {
+        const auto& blob_name = output_name;
+        net_structure.blobs.insert(blob_name);
+    }
 }
 
 }  // namespace TNN_CONVERTER

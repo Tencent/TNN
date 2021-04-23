@@ -12,15 +12,14 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
+
+#include <cmath>
+#include <climits>
 
 namespace TNN_NS {
 
 int DimsVectorUtils::Count(const DimsVector &dims, int start_index, int end_index) {
-    if (dims.size() < start_index) {
-        return 0;
-    }
-
     if (-1 == end_index || end_index > dims.size()) {
         end_index = static_cast<int>(dims.size());
     }
@@ -44,7 +43,7 @@ DimsVector DimsVectorUtils::Max(const DimsVector &dims0, const DimsVector &dims1
     }
 
     if (small_dims.size() <= start_index) {
-        return small_dims;
+        return max_dims;
     }
 
     if (-1 == end_index || end_index > small_dims.size()) {
@@ -98,4 +97,5 @@ DimsVector DimsVectorUtils::NHWC2NCHW(const DimsVector &dims) {
     std::vector<int> nhwc = {n, c, h, w};
     return nhwc;
 }
+
 }  // namespace TNN_NS

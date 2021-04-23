@@ -18,6 +18,7 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/device/arm/acc/compute/compute.h"
+#include "tnn/device/arm/acc/compute/gemm_function.h"
 #include "tnn/device/arm/acc/Half8.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_util.h"
@@ -220,7 +221,12 @@ void AvgPoolingHalf(const fp16_t* src, long iw, long ih, fp16_t* dst, long ow, l
                 const auto src_ptr_h = src_ptr + (ky * iw) * 8;
                 Half8 vavg = Half8((fp16_t)0.f);
                 for (long kx = kxs; kx < kxe; kx++) {
-                    vavg = vavg + Half8::load(src_ptr_h + kx * 8);
+                    Half4 v0, v1;
+                    Half8 v = Half8::load(src_ptr_h + kx * 8);
+                    Half8::get_low(v, v0);
+                    Half8::get_high(v, v1);
+                    Half4::add_to_f32(v0, vavg_low);
+                    Half4::add_to_f32(v1, vavg_high);
                 }
                 Half4 v0, v1;
                 Half8::get_low(vavg, v0);
@@ -365,6 +371,77 @@ void ScaleBias(fp16_t *src, int channel, int hw, const float *scale, const float
     }
 }
 
+int PackNeonNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel) {
+    if ((hw == 1) && (channel % 8 == 0)) {
+        memcpy(dst, src, hw * channel * sizeof(fp16_t));
+        return 0;
+    }
+
+    auto cc = (channel>>3<<3);
+    Half8 v;
+    for (int c = 0; c < cc; c += 8) {
+        auto src_c = src + c;
+        auto dst_c = dst + c * hw;
+        for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            v = Half8::load(src_c);
+            Half8::save(dst_c, v);
+            src_c += channel;
+            dst_c += 8;
+        }
+    }
+
+    int remain = channel % 8;
+    if (remain) {
+        auto src_c = src + cc;
+        auto dst_c = dst + cc * hw;
+        for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            v = Half8((fp16_t)0.f);
+            for (int r = 0; r < remain; ++r)
+                v.set_lane(src_c[r], r);
+            Half8::save(dst_c, v);
+            src_c += channel;
+            dst_c += 8;
+        }
+    }
+
+    return 0;
+}
+
+int UnpackNeonNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel) {
+    if ((hw == 1) && (channel % 8 == 0)) {
+        memcpy(dst, src, hw * channel * sizeof(fp16_t));
+        return 0;
+    }
+
+    auto cc = (channel>>3<<3);
+    Half8 v;
+    for (int c = 0; c < cc; c += 8) {
+        auto dst_c = dst + c;
+        auto src_c = src + c * hw;
+        for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            v = Half8::load(src_c);
+            Half8::save(dst_c, v);
+            src_c += 8;
+            dst_c += channel;
+        }
+    }
+
+    int remain = channel % 8;
+    if (remain) {
+        auto dst_c = dst + cc;
+        auto src_c = src + cc * hw;
+        for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            v = Half8::load(src_c);
+            for (int r = 0; r < remain; ++r)
+                *(dst_c + r) = v[r];
+            src_c += 8;
+            dst_c += channel;
+        }
+    }
+
+    return 0;
+}
+
 #endif  // TNN_ARM82
 
 
@@ -504,6 +581,73 @@ int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel) {
         dst[cur_hw * 8 + 6] = 0.f;
         dst[cur_hw * 8 + 7] = 0.f;
     }
+    return 0;
+}
+
+// 0 < remain < 8
+int PackNeonRemain(fp16_t *dst, const fp16_t *src, size_t hw, int remain) {
+    const fp16_t *p_src[7];
+    for (int r = 0; r < remain; ++r) {
+        p_src[r] = src + hw * r;
+    }
+
+    for (int cur_hw = 0; cur_hw < hw; cur_hw++) {
+        for (int r = 0; r < remain; ++r) {
+            dst[cur_hw * 8 + r] = p_src[r][cur_hw];
+        }
+        for (int r = remain; r < 8; ++r) {
+            dst[cur_hw * 8 + r] = 0.f;
+        }
+    }
+
+    return 0;
+}
+
+int PackNeon(fp16_t* dst, const fp16_t* src, size_t hw, size_t channel) {
+    for (int c = 0; c + 7 < channel; c += 8) {
+        auto src0 = src + c * hw;
+        auto src1 = src + c * hw + hw;
+        auto src2 = src + c * hw + hw * 2;
+        auto src3 = src + c * hw + hw * 3;
+        auto src4 = src + c * hw + hw * 4;
+        auto src5 = src + c * hw + hw * 5;
+        auto src6 = src + c * hw + hw * 6;
+        auto src7 = src + c * hw + hw * 7;
+        auto dst_c = dst + c * hw;
+        int cur_hw = 0;
+#ifdef TNN_ARM82_USE_NEON
+        for (; cur_hw + 7 < hw; cur_hw += 8) {
+            Half8x8 v;
+            v.set_value0(Half8::load(src0 + cur_hw));
+            v.set_value1(Half8::load(src1 + cur_hw));
+            v.set_value2(Half8::load(src2 + cur_hw));
+            v.set_value3(Half8::load(src3 + cur_hw));
+            v.set_value4(Half8::load(src4 + cur_hw));
+            v.set_value5(Half8::load(src5 + cur_hw));
+            v.set_value6(Half8::load(src6 + cur_hw));
+            v.set_value7(Half8::load(src7 + cur_hw));
+            v.save_transpose(dst_c + cur_hw * 8);
+        }
+#endif
+        for (; cur_hw < hw; cur_hw++) {
+            dst_c[cur_hw * 8 + 0] = src0[cur_hw];
+            dst_c[cur_hw * 8 + 1] = src1[cur_hw];
+            dst_c[cur_hw * 8 + 2] = src2[cur_hw];
+            dst_c[cur_hw * 8 + 3] = src3[cur_hw];
+            dst_c[cur_hw * 8 + 4] = src4[cur_hw];
+            dst_c[cur_hw * 8 + 5] = src5[cur_hw];
+            dst_c[cur_hw * 8 + 6] = src6[cur_hw];
+            dst_c[cur_hw * 8 + 7] = src7[cur_hw];
+        }
+    }
+    int remain = channel % 8;
+    int offset = channel / 8 * 8;
+    src += offset * hw;
+    dst += offset * hw;
+    if (remain) {
+        PackNeonRemain(dst, src, hw, remain);
+    }
+
     return 0;
 }
 
@@ -850,6 +994,46 @@ void BlobToBGRImpl(const fp16_t *src, uint8_t *dst, const float *scale, const fl
 template void BlobToBGRImpl<true>(const fp16_t *src, uint8_t *dst, const float *scale, const float *bias, int hw);
 template void BlobToBGRImpl<false>(const fp16_t *src, uint8_t *dst, const float *scale, const float *bias, int hw);
 
+void GemmHalfPackA(int m, int n, int k, const fp16_t* a, fp16_t* pack_a, int lda, const fp16_t* b, int ldb, fp16_t* c,
+                   int ldc) {
+#ifdef __aarch64__
+    PackA_8(m, k, a, lda, pack_a);
+    Kernel_8x16(m, n, k, pack_a, b, c, ldc);
+    a += (m / 8) * 8 * lda;
+    c += (m / 8) * 8 * ldc;
+    m = m % 8;
+#endif
+
+    PackA_4(m, k, a, lda, pack_a);
+    Kernel_4x16(m, n, k, pack_a, b, c, ldc);
+    a += (m / 4) * 4 * lda;
+    c += (m / 4) * 4 * ldc;
+    m = m % 4;
+
+    PackA_1(m, k, a, lda, pack_a);
+    Kernel_1x16(m, n, k, pack_a, b, c, ldc);
+}
+
+void GemmFloatPackAB(int m, int n, int k, const fp16_t* a, fp16_t* pack_a, int lda, const fp16_t* b, fp16_t* pack_b, int ldb, fp16_t* c,
+                   int ldc) {
+    PackB_16(k, n, b, ldb, pack_b);
+#ifdef __aarch64__
+    PackA_8(m, k, a, lda, pack_a);
+    Kernel_8x16(m, n, k, pack_a, pack_b, c, ldc);
+    a += (m / 8) * 8 * lda;
+    c += (m / 8) * 8 * ldc;
+    m = m % 8;
+#endif
+
+    PackA_4(m, k, a, lda, pack_a);
+    Kernel_4x16(m, n, k, pack_a, pack_b, c, ldc);
+    a += (m / 4) * 4 * lda;
+    c += (m / 4) * 4 * ldc;
+    m = m % 4;
+
+    PackA_1(m, k, a, lda, pack_a);
+    Kernel_1x16(m, n, k, pack_a, pack_b, c, ldc);
+}
 #endif  // TNN_ARM82
 
 /*

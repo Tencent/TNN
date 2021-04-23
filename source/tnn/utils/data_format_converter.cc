@@ -129,51 +129,78 @@ static Status ConvertWeightsFromGOIHWToGOIHW16(T *src, T *dst, int group, int in
 };
 
 template <class T>
-static Status ConvertFromNCHWToNCHW4(T *src, T *dst, int num, int channel, int height, int width) {
+static Status ConvertFromNCHWToNCHW4(T *src, T *dst, int num, int channel, int height, int width,
+                                     bool transpose = false) {
     int round_channel = ROUND_UP(channel, 4);
-    for (int n = 0; n < num; n++) {
-        auto n_dst = dst + n * round_channel * height * width;
-        auto n_src = src + n * channel * height * width;
-        for (int c = 0; c < round_channel; c++) {
-            auto z = c / 4, r = c % 4;
-            auto z_dst = n_dst + z * height * width * 4 + r;
-            auto z_src = n_src + c * height * width;
-#pragma clang loop vectorize(enable)
+    if (transpose) {
+        for (int n = 0; n < num; n++) {
+            auto n_dst = dst + n * round_channel * height * width;
+            auto n_src = src + n * channel * height * width;
             for (int h = 0; h < height; h++) {
+                auto h_dst = n_dst + h * width * 4;
+                auto h_src = n_src + h * channel * width;
+#pragma clang loop vectorize(enable)
+                for (int c = 0; c < round_channel; c++) {
+                    auto z = c / 4, r = c % 4;
+                    auto z_dst = h_dst + z * height * width * 4 + r;
 #pragma clang loop vectorize(enable) unroll(enable)
-                for (int w = 0; w < width; w++) {
-                    // to   [c/4][h][w][4]
-                    // from [c][h][w]
-                    // dst[(z * height * width + h * width + w) * 4 + r] =
-                    // src[ c * height * width + h * width + w];
-                    if (c < channel)
-                        z_dst[(h * width + w) * 4] = z_src[h * width + w];
-                    else
-                        z_dst[(h * width + w) * 4] = 0;
+                    for (int w = 0; w < width; w++) {
+                        // to   [c/4][h][w][4]
+                        // from [h][c][w]
+                        // dst[(z * height  * width + h * width + w) * 4 + r] =
+                        // src[ h * channel * width + c * width + w];
+                        if (c < channel)
+                            z_dst[w * 4] = h_src[c * width + w];
+                        else
+                            z_dst[w * 4] = 0;
+                    }
+                }
+            }
+        }
+    } else {
+        for (int n = 0; n < num; n++) {
+            auto n_dst = dst + n * round_channel * height * width;
+            auto n_src = src + n * channel * height * width;
+            for (int c = 0; c < round_channel; c++) {
+                auto z = c / 4, r = c % 4;
+                auto z_dst = n_dst + z * height * width * 4 + r;
+                auto z_src = n_src + c * height * width;
+#pragma clang loop vectorize(enable)
+                for (int h = 0; h < height; h++) {
+#pragma clang loop vectorize(enable) unroll(enable)
+                    for (int w = 0; w < width; w++) {
+                        // to   [c/4][h][w][4]
+                        // from [c][h][w]
+                        // dst[(z * height * width + h * width + w) * 4 + r] =
+                        // src[ c * height * width + h * width + w];
+                        if (c < channel)
+                            z_dst[(h * width + w) * 4] = z_src[h * width + w];
+                        else
+                            z_dst[(h * width + w) * 4] = 0;
+                    }
                 }
             }
         }
     }
     return TNN_OK;
 };
+
 template <class T>
-static Status ConvertFromNCHWToNHWC4(T *src, T *dst, int num, int channel, int height, int width) {
+static Status ConvertFromNCHWToNHWC4(T *src, T *dst, int num, int channel, int hw) {
     int round_channel = ROUND_UP(channel, 4);
     for (int n = 0; n < num; n++) {
-        auto n_dst = dst + n * round_channel * height * width;
-        auto n_src = src + n * channel * height * width;
-        for (int h = 0; h < height; h++) {
-            for (int w = 0; w < width; w++) {
-                auto z_dst = n_dst + (h * width + w) * round_channel;
-                auto z_src = n_src + h * width + w;
-                for (int c = 0; c < round_channel; c++) {
-                    // to   [c][h][w]
-                    // from [h][w][c4]
-                    if (c < channel)
-                        z_dst[c] = z_src[c * height * width];
-                    else
-                        z_dst[c] = 0;
-                }
+        auto n_dst = dst + n * round_channel * hw;
+        auto n_src = src + n * channel * hw;
+        for (int z = 0; z < hw; z++) {
+            auto z_dst = n_dst + z * round_channel;
+            auto z_src = n_src + z;
+            for (int c = 0; c < round_channel; c++) {
+                // to   [c][hw]
+                // from [hw][c4]
+                if (c < channel)
+                    z_dst[c] = z_src[c * hw];
+                else
+                    z_dst[c] = 0;
             }
         }
     }
@@ -205,22 +232,19 @@ static Status ConvertFromNCHW4ToNCHW(T *src, T *dst, int num, int channel, int h
 };
 
 template <class T>
-static Status ConvertFromNHWC4ToNCHW(T *src, T *dst, int num, int channel, int height, int width) {
+static Status ConvertFromNHWC4ToNCHW(T *src, T *dst, int num, int channel, int hw) {
     int round_channel = ROUND_UP(channel, 4);
     for (int n = 0; n < num; n++) {
-        auto n_src = src + n * round_channel * height * width;
-        auto n_dst = dst + n * channel * height * width;
+        auto n_src = src + n * round_channel * hw;
+        auto n_dst = dst + n * channel * hw;
         for (int c = 0; c < channel; c++) {
             auto z_src = n_src + c;
-            auto z_dst = n_dst + c * height * width;
-#pragma clang loop vectorize(enable)
-            for (int h = 0; h < height; h++) {
+            auto z_dst = n_dst + c * hw;
 #pragma clang loop vectorize(enable) unroll(enable)
-                for (int w = 0; w < width; w++) {
-                    // to [c][h][w]
-                    // from   [c/4][h][w][4]
-                    z_dst[h * width + w] = z_src[(h * width + w) * round_channel];
-                }
+            for (int z = 0; z < hw; z++) {
+                // to [c][hw]
+                // from   [c/4][hw][4]
+                z_dst[z] = z_src[z * round_channel];
             }
         }
     }
@@ -343,17 +367,16 @@ Status DataFormatConverter::ConvertFromInt64NHWCToFloatNCHW(int64_t *src, float 
 }
 
 Status DataFormatConverter::ConvertFromNCHWToNCHW4Float(float *src, float *dst, int num, int channel, int height,
-                                                        int width) {
-    return ConvertFromNCHWToNCHW4<float>(src, dst, num, channel, height, width);
+                                                        int width, bool transpose) {
+    return ConvertFromNCHWToNCHW4<float>(src, dst, num, channel, height, width, transpose);
 }
 Status DataFormatConverter::ConvertFromNCHWToNCHW4Half(short *src, short *dst, int num, int channel, int height,
-                                                       int width) {
-    return ConvertFromNCHWToNCHW4<short>(src, dst, num, channel, height, width);
+                                                       int width, bool transpose) {
+    return ConvertFromNCHWToNCHW4<short>(src, dst, num, channel, height, width, transpose);
 }
 
-Status DataFormatConverter::ConvertFromNCHWToNHWC4Int8(int8_t *src, int8_t *dst, int num, int channel, int height,
-                                                       int width) {
-    return ConvertFromNCHWToNHWC4<int8_t>(src, dst, num, channel, height, width);
+Status DataFormatConverter::ConvertFromNCHWToNHWC4Int8(int8_t *src, int8_t *dst, int num, int channel, int hw) {
+    return ConvertFromNCHWToNHWC4<int8_t>(src, dst, num, channel, hw);
 }
 Status DataFormatConverter::ConvertFromNCHW4ToNCHWFloat(float *src, float *dst, int num, int channel, int height,
                                                         int width) {
@@ -363,9 +386,8 @@ Status DataFormatConverter::ConvertFromNCHW4ToNCHWHalf(short *src, short *dst, i
                                                        int width) {
     return ConvertFromNCHW4ToNCHW<short>(src, dst, num, channel, height, width);
 }
-Status DataFormatConverter::ConvertFromNHWC4ToNCHWInt8(int8_t *src, int8_t *dst, int num, int channel, int height,
-                                                       int width) {
-    return ConvertFromNHWC4ToNCHW<int8_t>(src, dst, num, channel, height, width);
+Status DataFormatConverter::ConvertFromNHWC4ToNCHWInt8(int8_t *src, int8_t *dst, int num, int channel, int hw) {
+    return ConvertFromNHWC4ToNCHW<int8_t>(src, dst, num, channel, hw);
 }
 
 }  // namespace TNN_NS

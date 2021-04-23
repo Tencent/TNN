@@ -22,7 +22,8 @@ public:
 };
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, AbsLayerTest,
-                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                         ::testing::Combine(UNARY_BATCH_CHANNEL_SIZE,
+                                            testing::Values(2, 3, 4, 5),
                                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16)));
 
 TEST_P(AbsLayerTest, UnaryLayerTest) {

@@ -53,13 +53,26 @@ Status UpsampleOVLayerBuilder::Build() {
 
     if (paramlist->mode == 1) {
         attrs.mode = "nearest";
-    } else {
+    } else if (paramlist->mode == 2) {
         attrs.mode = "linear";
+    } else if (paramlist->mode == 3){
+        attrs.mode = "cubic";
+    } else {
+        return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize type");
     }
 
     std::vector<int64_t> upsampleShape;
-    upsampleShape.push_back(input_node->get_output_shape(0).at(2) * paramlist->scales.at(1));
-    upsampleShape.push_back(input_node->get_output_shape(0).at(3) * paramlist->scales.at(0));
+    if (paramlist->dims.size() != 0) {
+        if (paramlist->dims[0] != 0 && paramlist->dims[1] != 0) {
+            upsampleShape.push_back(paramlist->dims[1]);
+            upsampleShape.push_back(paramlist->dims[0]);
+        } else {
+            return Status(TNNERR_MODEL_ERR, "Error: Upsample size error");
+        }
+    } else {
+        upsampleShape.push_back(input_node->get_output_shape(0).at(2) * paramlist->scales.at(1));
+        upsampleShape.push_back(input_node->get_output_shape(0).at(3) * paramlist->scales.at(0));
+    }
     auto upsampleConst = std::make_shared<ngraph::op::Constant>(
         ngraph::element::Type_t::i64, ngraph::Shape{2}, upsampleShape);
 

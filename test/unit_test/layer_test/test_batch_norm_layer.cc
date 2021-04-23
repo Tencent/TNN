@@ -15,29 +15,45 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 class BatchNormScaleLayerTest : public LayerTest,
-                                public ::testing::WithParamInterface<std::tuple<int, int, int, bool, bool>> {};
+                                public ::testing::WithParamInterface<std::tuple<int, int, int, int, bool, bool, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, BatchNormScaleLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                                            // dim count
+                                            testing::Values(2, 3, 4, 5),
                                             // share channel
                                             testing::Values(false, true),
                                             // has bias
-                                            testing::Values(true, false)));
+                                            testing::Values(true, false),
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
     // get param
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
     int input_size     = std::get<2>(GetParam());
-    bool share_channel = std::get<3>(GetParam());
-    bool has_bias      = std::get<4>(GetParam());
+    int dim_count      = std::get<3>(GetParam());
+    bool share_channel = std::get<4>(GetParam());
+    bool has_bias      = std::get<5>(GetParam());
+    auto dtype         = std::get<6>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    if(CheckDataTypeSkip(dtype)) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+    if (DEVICE_HUAWEI_NPU == dev && dim_count != 4) {
+        GTEST_SKIP();
+    }
 
     // param
     std::shared_ptr<LayerParam> param(new LayerParam());
@@ -58,11 +74,14 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
     }
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    //std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
     auto interpreter1           = GenerateInterpreter("BatchNormCxx", {input_dims}, param, resource);
     auto interpreter2           = GenerateInterpreter("Scale", {input_dims}, param, resource);
-    Run(interpreter1);
-    Run(interpreter2);
+    Precision precision = SetPrecision(dev, dtype);
+    Run(interpreter1, precision);
+    Run(interpreter2, precision);
 }
 
 }  // namespace TNN_NS

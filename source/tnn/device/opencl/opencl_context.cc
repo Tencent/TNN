@@ -19,8 +19,6 @@
 
 #include <fstream>
 
-#include "sys/time.h"
-
 namespace TNN_NS {
 
 std::mutex OpenCLContext::s_mutex_;

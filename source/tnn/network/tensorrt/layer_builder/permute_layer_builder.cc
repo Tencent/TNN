@@ -12,35 +12,39 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Permute, LAYER_PERMUTE);
+DECLARE_TENSORRT_LAYER_BUILDER(Permute, LAYER_PERMUTE);
 
-bool PermuteTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
-        && inOut[pos].type == inOut[0].type);
+ILayer* PermuteTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto paramlist = dynamic_cast<PermuteLayerParam*>(param_);
+    Permutation permute;
+    for (int i = 0; i < paramlist->orders.size(); ++i) {
+        permute.order[i] = paramlist->orders[i];
+    }
+
+    Blob* input_blob  = input_blobs_[0];
+    auto input_dims = input_blob->GetBlobDesc().dims;
+    auto input_tensors = GetInputITensors();
+    IShuffleLayer* layer = network->addShuffle(*input_tensors[0]);
+    if (layer != nullptr) {
+        Dims reshape_dims;
+        reshape_dims.nbDims = input_dims.size();
+        for (int i = 0; i < input_dims.size(); i++) {
+            reshape_dims.d[i] = 0;
+        }
+        layer->setName(layer_name_.c_str());
+        layer->setReshapeDimensions(reshape_dims);
+        layer->setSecondTranspose(permute);
+    }
+
+    return layer;
 }
 
-const char* PermuteTRTPluginLayerBuilder::getPluginType() const {
-    return "Permute";
-}
-
-nvinfer1::DataType PermuteTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
-    return inputTypes[0];
-}
-
-ILayer* PermuteTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
-}
-
-const char* PermutePluginCreator::getPluginName() const {
-    return "Permute";
-}
-
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Permute, LAYER_PERMUTE);
+REGISTER_TENSORRT_LAYER_BUILDER(Permute, LAYER_PERMUTE);
 
 }  //  namespace TNN_NS
+

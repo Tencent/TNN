@@ -18,6 +18,7 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -25,7 +26,18 @@ MetalUnaryLayerAcc::~MetalUnaryLayerAcc() {}
 
 Status MetalUnaryLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                                const std::vector<Blob *> &outputs) {
-    return  MetalLayerAcc::AllocateBufferParam(inputs, outputs);
+   id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
+    auto dims_input      = inputs[0]->GetBlobDesc().dims;
+    auto dims_output     = outputs[0]->GetBlobDesc().dims;
+    // buffer_param_
+    {
+        auto metal_params = GetDefaultMetalParams(dims_input, dims_output);
+        FixDefaultMetalParams(metal_params, dims_input, dims_output);     
+        buffer_param_     = [device newBufferWithBytes:(const void *)(&metal_params)
+                                            length:sizeof(metal_params)
+                                           options:MTLResourceCPUCacheModeWriteCombined];
+    }
+    return TNN_OK;
 }
 
 std::string MetalUnaryLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -42,7 +54,13 @@ Status MetalUnaryLayerAcc::SetKernelEncoderParam(
 Status MetalUnaryLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
                                         const std::vector<Blob *> &outputs,
                                         MTLSize &size) {
-    return MetalLayerAcc::ComputeThreadSize(inputs, outputs, size);
+    const auto& output_dims = outputs[0]->GetBlobDesc().dims;
+    auto hw = DimsFunctionUtils::GetDimProduct(output_dims, 2);
+    auto slice = UP_DIV(output_dims[1] ,4);
+    auto batch = output_dims[0];
+    size = MTLSizeMake(hw, slice, batch);
+    return TNN_OK;
+    // return MetalLayerAcc::ComputeThreadSize(inputs, outputs, size);
 }
 
 Status MetalUnaryLayerAcc::Forward(const std::vector<Blob *> &inputs,

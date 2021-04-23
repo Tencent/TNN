@@ -30,7 +30,11 @@ string OnnxOpConverterSoftmax::TNNLayerParam(NodeProto &node,
     return layer_param.str();
 }
 
-int OnnxOpConverterSoftmax::WriteTNNModel(serializer *net_writer,
+bool OnnxOpConverterSoftmax::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
+int OnnxOpConverterSoftmax::WriteTNNModel(Serializer *net_writer,
                                                NodeProto &node,
                                                OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

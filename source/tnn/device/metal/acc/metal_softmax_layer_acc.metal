@@ -18,6 +18,37 @@
 
 using namespace metal;
 
+kernel void softmax_common(const device ftype4 *src     [[buffer(0)]],
+                           device       ftype4 *dst     [[buffer(1)]],
+                           constant MetalArgMaxOrMinParams &params  [[buffer(2)]],
+                           uint3 gid                                [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.inner_size, 1, params.outer_size)))
+        return;
+
+    int index_in  = (int)gid.z * params.inner_size * params.reduce_size + (int)gid.x;
+
+    ftype4 max4 = src[index_in];
+    for(int i=1; i<params.reduce_size; ++i) {
+        max4 = max(max4, src[index_in + i*params.inner_size]);
+    }
+
+    float4 sum4 = float4(Zero4);
+    for(int i=0; i<params.reduce_size; ++i) {
+        ftype4 val4 = src[index_in + i*params.inner_size];
+        float4 rst4 = exp(float4(val4 - max4));
+        dst[index_in + i*params.inner_size] = ftype4(rst4);
+        sum4 += rst4;
+    }
+
+    sum4 = 1.0f / sum4;
+
+    for(int i=0; i<params.reduce_size; ++i) {
+        float4 val4 = float4(dst[index_in + i*params.inner_size]);
+        val4 = val4 * sum4;
+        dst[index_in + i*params.inner_size] = ftype4(val4);
+    }
+}
+
 kernel void softmax_axis_2_common(
                                             const device ftype4 *src                [[buffer(0)]],
                                             device ftype4 *dst                      [[buffer(1)]],

@@ -33,5 +33,6 @@ Status MetalRelu6LayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 }
 
 REGISTER_METAL_UNARY_ACC(Relu6, LAYER_RELU6);
+REGISTER_METAL_LAYOUT(LAYER_RELU6, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

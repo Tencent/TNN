@@ -45,7 +45,7 @@ Status ReciprocalOVLayerBuilder::Build() {
     auto oneConst = std::make_shared<ngraph::op::Constant>(
         ngraph::element::Type_t::f32, ngraph::Shape(input_node->get_output_shape(0).size(), 1), std::vector<float>{1.0f});
     
-    auto divNode = std::make_shared<ngraph::op::Divide>(oneConst, input_node->output(0));
+    auto divNode = std::make_shared<ngraph::op::v1::Divide>(oneConst, input_node->output(0));
     divNode->set_friendly_name(param_->name);
     
     divNode->validate_and_infer_types();

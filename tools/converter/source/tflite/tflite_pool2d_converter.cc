@@ -82,7 +82,9 @@ TNN_NS::Status TFLitePool2DConverter::exec(TNN_NS::NetStructure& net_structure, 
 
         param->kernel_indexs.push_back(-1);
         param->kernel_indexs.push_back(-1);
-
+        // TFLite do not have adaptive pool
+        param->is_adaptive_pool = 0;
+        param->output_shape     = {-1, -1};
         // update param
         cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
     }

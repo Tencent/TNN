@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
@@ -111,7 +112,19 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         }
     }
 
-    IFullyConnectedLayer* layer = network->addFullyConnected(*input_tensor, paramlist->num_output,
+    ILayer* layer;
+    //unsqueeze 
+    if (input_tensor->getDimensions().nbDims < 4) {
+        DimsVector unsqueeze_dims = input_blobs_[0]->GetBlobDesc().dims;
+        while(unsqueeze_dims.size() < 4) {
+            unsqueeze_dims.push_back(1);
+        }
+        layer = AddReshapeToNetwork(network, input_tensor, unsqueeze_dims, (layer_name_ + "unsqueeze").c_str());        
+        input_tensor = layer->getOutput(0);
+    }
+
+    //FullyConnected
+    layer = network->addFullyConnected(*input_tensor, paramlist->num_output, 
         kernelWeights, biasWeights);
     if (int8) {
         layer->setInput(1, *(weight_layer->getOutput(0)));
@@ -120,6 +133,13 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
+        input_tensor = layer->getOutput(0);
+    }
+
+    auto output_dims = output_blobs_[0]->GetBlobDesc().dims;
+    //squeeze
+    if(output_dims.size() < 4) {
+        layer = AddReshapeToNetwork(network, input_tensor, output_dims, (layer_name_ + "squeeze").c_str());
     }
 
     if (int8) {

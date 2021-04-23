@@ -31,7 +31,20 @@ class TRTLogger : public nvinfer1::ILogger {
 public:
     void log(nvinfer1::ILogger::Severity severity, const char* msg) override {
         // suppress info-level messages
+#ifndef DEBUG
         if (severity == Severity::kINFO || severity == Severity::kVERBOSE) return;
+#endif
+        const char * skips[] = {
+            "INVALID_ARGUMENT: Cannot find binding of given name",
+            "Unused Input:",
+        };
+
+        std::string msg_str = std::string(msg);
+        for(auto skip : skips) {
+            if (msg_str.rfind(skip, 0) == 0) {
+                return;
+            }
+        }
         switch (severity) {
             case Severity::kINTERNAL_ERROR: std::cerr << "INTERNAL_ERROR: "; break;
             case Severity::kERROR: std::cerr << "ERROR: "; break;
@@ -62,7 +75,7 @@ public:
     // shape in proto
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config,
                         AbstractModelInterpreter* interpreter,
-                        InputShapesMap inputs_shape);
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
 
     // @brief network forward
     virtual Status Forward();
@@ -76,15 +89,27 @@ public:
 
     static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> GetPluginLayerNameMap();
 
-    std::string GetCacheFileName(std::string cfg, std::string model, BlobMap input_map,
-        BlobMap output_map, int device_id, int batchsize, bool int8_mode, bool use_fp16);
+    std::string GetCacheFileName(std::vector<std::string> params_md5, BlobMap input_map,
+        BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, int batchsize,
+        bool int8_mode, bool use_fp16);
+
+    std::set<std::string> m_concat_blob_names;
 
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
 
-    Status InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std::string cache_file_name);
+    bool IsBlobUsed(Blob* blob);
+
+    Status InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std::string cache_file_name,
+        NetResource *net_resource, const InputShapesMap &min_inputs_shape);
 
     Status CreateExecuteContext();
+
+    Status ReshapeLayers();
+
+    Status DumpAllOutputBlob();
+
+    Status CheckConstBlobs();
 
     bool int8_mode;
     bool test_mode;
@@ -93,10 +118,17 @@ private:
     nvinfer1::IExecutionContext* m_trt_context;
     TRTLogger m_trt_logger;
     std::unordered_map<std::string, std::shared_ptr<nvinfer1::ITensor>> m_blob_tensor_map;
-    static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> m_plugin_layer_name_map;
     std::unordered_set<nvinfer1::ITensor *> m_tensor_set;
     void** m_trt_bindings;
     void* m_context_memory;
+    NetResource *net_resource_;
+    int device_id_;
+
+    std::vector<std::string> const_input_blobs_;
+    std::vector<std::string> const_weight_blobs_;
+
+    static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> m_plugin_layer_name_map;
+    static std::mutex network_mutex;
 };
 
 }  //  namespace TNN_NS

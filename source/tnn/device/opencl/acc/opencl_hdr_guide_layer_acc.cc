@@ -161,6 +161,8 @@ OpenCLHdrGuideLayerAcc::~OpenCLHdrGuideLayerAcc() {}
 Status OpenCLHdrGuideLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("HDRGuide Layer Reshape\n");
     ASSERT(inputs.size() == 1);
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
 
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
@@ -289,5 +291,6 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
 }
 
 REGISTER_OPENCL_ACC(HdrGuide, LAYER_HDRGUIDE)
+REGISTER_OPENCL_LAYOUT(LAYER_HDRGUIDE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

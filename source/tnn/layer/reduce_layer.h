@@ -25,7 +25,7 @@ public:
     virtual ~ReduceLayer(){};
 
 protected:
-    virtual Status InferOutputShape();
+    virtual Status InferOutputShape(bool ignore_error = false);
 };
 
 #define DECLARE_REDUCE_LAYER(type_string, layer_type)                                                                  \

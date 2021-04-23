@@ -17,7 +17,7 @@
 #include "tnn/device/arm/arm_mat_util.h"
 #include "tnn/device/arm/arm_util.h"
 
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/mat_converter_utils.h"
 
 namespace TNN_NS {

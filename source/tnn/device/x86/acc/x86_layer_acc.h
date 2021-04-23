@@ -40,6 +40,10 @@ public:
 
     virtual Status DoForward(const std::vector<Blob*> &inputs, const std::vector<Blob*> &outputs);
 
+    // @brief allocate or update constant blobs if constant resource change
+    // Note: this func may cost much time, call this func only when necessary.
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false);
+
 #if TNN_PROFILE
     Timer timer;
 #endif
@@ -52,7 +56,7 @@ protected:
 
 private:
     // @brief return device layer acc support data format
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size);
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);
 };
 
 #define DECLARE_X86_ACC(type_string, layer_type)                                                                   \
