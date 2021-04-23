@@ -29,6 +29,28 @@ static std::string GenerateReduceProto(std::string op_type, ReduceLayerParam par
     return ostr.str();
 }
 
+static void UpdateReduceAxis(std::vector<int>& axes, const int dim_count) {
+    const auto f = [=](int& v){ v = v < 0? v+dim_count : v;};
+    std::for_each(axes.begin(), axes.end(), f);
+}
+
+static bool HasAxis(std::vector<int> axes, const int axis, const int dim_count) {
+    UpdateReduceAxis(axes, dim_count);
+    auto it = std::find(axes.begin(), axes.end(), axis);
+    return (it != axes.end());
+}
+
+static bool IsDiscontinuous(std::vector<int> axes, const int dim_count) {
+    UpdateReduceAxis(axes, dim_count);
+    auto min_val = *std::min_element(axes.begin(), axes.end());
+    auto max_val = *std::max_element(axes.begin(), axes.end());
+    for(auto v=min_val; v<=max_val; ++v) {
+        if (std::find(axes.begin(), axes.end(), v) == axes.end())
+            return true;
+    }
+    return false;
+}
+
 class ReduceOpLayerTest
     : public LayerTest,
       public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, std::vector<int>, DataType>> {};
@@ -81,6 +103,10 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     }
 
     if (DEVICE_OPENCL == dev && keep_dims != 1) {
+        GTEST_SKIP();
+    }
+
+    if ((HasAxis(axis, 0, dim_count) || IsDiscontinuous(axis, dim_count)) && DEVICE_CUDA == dev) {
         GTEST_SKIP();
     }
 
