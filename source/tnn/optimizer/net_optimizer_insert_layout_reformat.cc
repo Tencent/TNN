@@ -47,7 +47,18 @@ namespace optimizer {
         auto device     = net_config.device_type;
         auto precision  = net_config.precision;
         device_         = GetDevice(device);
-        adaptor_device_ = GetDevice(DEVICE_ARM);
+        // possible adapter devices
+        static DeviceType adapter_device_list[2] = {DEVICE_ARM, DEVICE_X86};
+        adaptor_device_     = nullptr;
+        auto adaptor_device = device;
+        for(const auto& dev : adapter_device_list) {
+            adaptor_device_ = GetDevice(dev);
+            if (adaptor_device_) {
+                adaptor_device = dev;
+                break;
+            }
+        }
+
         return device == DEVICE_ARM || device == DEVICE_OPENCL || device == DEVICE_METAL;
     }
 
