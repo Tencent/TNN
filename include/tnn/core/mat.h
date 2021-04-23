@@ -39,12 +39,10 @@ typedef enum {
     NNV21      = 0x11,
     //YUV420SP, YYYYUVUVUV
     NNV12      = 0x12,
-    //nchw: float
+    //NCDi[0-4]: float
     NCHW_FLOAT = 0x20,
-    // nchw: int32
+    //NCDi[0-4]: int32
     NC_INT32 = 0x21,
-    //ncdhw: float
-    NCDHW_FLOAT = 0x100,
     
     // RESERVED FOR INTERNAL TEST USE
     RESERVED_BFP16_TEST = 0x200,

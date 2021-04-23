@@ -49,12 +49,23 @@ protected:
     Status AllocateBufferParam(MatConvertParam param, Mat *mat, Blob *blob, bool is_mat_to_blob);
     Status AllocateComputePipeline(MatConvertParam param, Mat *mat, Blob *blob, bool is_mat_to_blob,
                                    void *command_queue);
+    bool CheckDeviceAndMat(DeviceType device_type, MatType mat_type);
     std::shared_ptr<Mat> buffer_mat_ = nullptr;
 };
 
 MetalBlobConverterAcc::MetalBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {
     auto buffer = (__bridge id<MTLBuffer>)(blob->GetHandle().base);
     device_     = buffer.device;
+}
+
+bool MetalBlobConverterAcc::CheckDeviceAndMat(DeviceType device_type, MatType mat_type) {
+    bool device_supported = (device_type == DEVICE_METAL || device_type == DEVICE_ARM || 
+            device_type == DEVICE_X86 || device_type == DEVICE_NAIVE);
+
+    bool mat_supported = (mat_type == N8UC4 || mat_type == NCHW_FLOAT ||
+            mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32);
+
+    return device_supported && mat_supported;
 }
 
 Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *mat, Blob *blob, bool is_mat_to_blob) {
@@ -261,8 +272,8 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
                                                  int waitState) {
     auto mat_device_type = output_mat.GetDeviceType();
     auto mat_type        = output_mat.GetMatType();
-    if (!((mat_device_type == DEVICE_METAL || mat_device_type == DEVICE_ARM || mat_device_type == DEVICE_NAIVE) &&
-          (mat_type == N8UC4 || mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32))) {
+
+    if (!CheckDeviceAndMat(mat_device_type, mat_type)) {
         return Status(TNNERR_COMMON_ERROR, "input_mat.GetDeviceType() or.GetMatType() is invalid");
     }
 
@@ -337,7 +348,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         const auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : sizeof(fp16_t);
         if (output_mat_device == DEVICE_METAL) {
             output_mtl_buffer = (__bridge id<MTLBuffer>)(output_mat.GetData());
-        } else if (output_mat_device == DEVICE_ARM || output_mat_device == DEVICE_NAIVE) {
+        } else if (output_mat_device == DEVICE_ARM || output_mat_device == DEVICE_NAIVE || mat_device_type == DEVICE_X86) {
             output_mtl_buffer = [command_queue_impl.device newBufferWithLength:count * bytes_size
                                                                        options:MTLResourceCPUCacheModeDefaultCache];
         }
@@ -403,7 +414,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         const auto bytes_size = sizeof(int);
         if (output_mat_device == DEVICE_METAL) {
             output_mtl_buffer = (__bridge id<MTLBuffer>)(output_mat.GetData());
-        } else if (output_mat_device == DEVICE_ARM || output_mat_device == DEVICE_NAIVE) {
+        } else if (output_mat_device == DEVICE_ARM || output_mat_device == DEVICE_NAIVE || mat_device_type == DEVICE_X86) {
             output_mtl_buffer = [command_queue_impl.device newBufferWithLength:count * bytes_size
                                                                        options:MTLResourceCPUCacheModeDefaultCache];
         }
@@ -470,8 +481,8 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                                                    int waitState) {
     auto mat_device_type = input_mat.GetDeviceType();
     auto mat_type        = input_mat.GetMatType();
-    if (!((mat_device_type == DEVICE_METAL || mat_device_type == DEVICE_ARM || mat_device_type == DEVICE_NAIVE) &&
-          (mat_type == N8UC4 || mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32))) {
+
+    if (!CheckDeviceAndMat(mat_device_type, mat_type)) {
         LOGE("GetDeviceType: %d GetMatType: %d\n", input_mat.GetDeviceType(), input_mat.GetMatType());
         return Status(TNNERR_COMMON_ERROR, "input_mat.GetDeviceType() or.GetMatType() is invalid");
     }
@@ -513,7 +524,7 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             id<MTLTexture> input_texture = nil;
             if (mat_device_type == DEVICE_METAL) {
                 input_texture = (__bridge id<MTLTexture>)(input_mat.GetData());
-            } else if (mat_device_type == DEVICE_NAIVE || mat_device_type == DEVICE_ARM) {
+            } else if (mat_device_type == DEVICE_NAIVE || mat_device_type == DEVICE_ARM || mat_device_type == DEVICE_X86) {
                 buffer_mat_ = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, dims);
                 input_texture = (__bridge id<MTLTexture>)buffer_mat_->GetData();
                 if (!input_texture) {
@@ -564,7 +575,7 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             const auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : sizeof(fp16_t);
             if (mat_device_type == DEVICE_METAL) {
                 input_buffer = (__bridge id<MTLBuffer>)(input_mat.GetData());
-            } else if (mat_device_type == DEVICE_NAIVE || mat_device_type == DEVICE_ARM) {
+            } else if (mat_device_type == DEVICE_NAIVE || mat_device_type == DEVICE_ARM || mat_device_type == DEVICE_X86) {
                 int count    = DimsVectorUtils::Count(dims);
                 input_buffer = [command_queue_impl.device newBufferWithBytes:input_mat.GetData()
                                                                       length:count * bytes_size

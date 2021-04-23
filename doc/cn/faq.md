@@ -132,7 +132,7 @@ hiai_ddk_latest
 
 ### 如何创建RKNPU编译环境? 
 1. 在`<path_to_tnn>/third_party`下创建rknpu文件夹并进入，然后执行： `git clone https://github.com/airockchip/rknpu_ddk.git`。
-2. 在`<path_to_tnn>/scripts/build_aarch64_linux.sh`文件中加入`-DTNN_RK_NPU_ENABLE:BOOL=ON`选项并编译即可。如编译报错，请尝试将`TNN_CPU_ENABLE`设为`ON`。
+2. 在`<path_to_tnn>/scripts/build_aarch64_linux.sh`文件中加入`-DTNN_RK_NPU_ENABLE:BOOL=ON`选项并编译即可。
 
 
 ## 五、其他

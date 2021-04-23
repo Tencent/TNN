@@ -81,7 +81,7 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
             LOGE("output blob_converter failed (%s)\n", ret.description().c_str());
             return ret;
         }
-        if (mat_type == NCHW_FLOAT || mat_type == NCDHW_FLOAT) {
+        if (mat_type == NCHW_FLOAT) {
             data_type = DATA_TYPE_FLOAT;
         }
     } else {

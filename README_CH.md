@@ -105,20 +105,15 @@ demo                                                                            
 TNN参考和借鉴了下列项目：
 
 * [ncnn](https://github.com/Tencent/ncnn)
-
 * [mace](https://github.com/XiaoMi/mace.git)
-
 * [MNN](https://github.com/alibaba/MNN)
-
 * [caffe-onnx](https://github.com/htshinichi/caffe-onnx)
-
 * [tensorflow-onnx](https://github.com/onnx/tensorflow-onnx)
-
 * [onnx](https://github.com/onnx/onnx)
-
 * [onnxruntime](https://github.com/microsoft/onnxruntime)
-
 * [openvino](https://github.com/openvinotoolkit/openvino) 
+* [xbyak](https://github.com/herumi/xbyak)
+* [TensorRT](https://developer.nvidia.com/zh-cn/tensorrt)
 
 ## License
 

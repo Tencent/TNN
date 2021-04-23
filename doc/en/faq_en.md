@@ -133,7 +133,7 @@ hiai_ddk_latest
     
 ### RKNPU Compilation Prerequisite:
 1. Make directory named by `rknpu` under `<path_to_tnn>/third_party` and enter `rknpu`, then execute: `git clone https://github.com/airockchip/rknpu_ddk.git`
-2. Add `-DTNN_RK_NPU_ENABLE:BOOL=ON` to `<path_to_tnn>/scripts/build_aarch64_linux.sh` and execute it, if the compile fail, please set `TNN_CPU_ENABLE` to `ON` and try again.
+2. Add `-DTNN_RK_NPU_ENABLE:BOOL=ON` to `<path_to_tnn>/scripts/build_aarch64_linux.sh` and execute it.
 
 
 ## V. Others questions
