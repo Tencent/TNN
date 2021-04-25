@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn_sdk_sample.h"
+#include "sample_timer.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include <algorithm>
 #include <cstring>
@@ -778,8 +779,8 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
 #if TNN_SDK_ENABLE_BENCHMARK
     bench_result_.Reset();
     for (int fcount = 0; fcount < bench_option_.forward_count; fcount++) {
-        timeval tv_begin, tv_end;
-        gettimeofday(&tv_begin, NULL);
+        SampleTimer sample_time;
+        sample_time.Start();
 #endif
         
         // step 1. set input mat
@@ -842,8 +843,8 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
   
         
 #if TNN_SDK_ENABLE_BENCHMARK
-        gettimeofday(&tv_end, NULL);
-        double elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
+        sample_time.Stop();
+        double elapsed = sample_time.GetTime();
         bench_result_.AddTime(elapsed);
 #endif
         
