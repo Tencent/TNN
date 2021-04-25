@@ -24,9 +24,18 @@ link_directories(${TNN_LIB_PATH})
 
 link_libraries(-Wl,--whole-archive TNN -Wl,--no-whole-archive)
 
+add_subdirectory(${TNNRoot}/third_party/gflags ${TNNRoot}/third_party/gflags)
+get_target_property(GFLAGS_INCLUDE_DIRS gflags INTERFACE_INCLUDE_DIRECTORIES)
+include_directories(BEFORE "${GFLAGS_INCLUDE_DIRS}")
+link_libraries(gflags)
+
+file(GLOB FLAG_SRC "${CMAKE_SOURCE_DIR}/../src/*.cc")
+
 file(GLOB_RECURSE BASE_SRC "${CMAKE_SOURCE_DIR}/../../base/*.cc")
 file(GLOB_RECURSE UTIL_SRC "${CMAKE_SOURCE_DIR}/../../utils/*.cc")
 
 add_definitions(-D_ARM_)
-add_executable(demo_arm_imageclassify ../src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC} ${UTIL_SRC})
-add_executable(demo_arm_facedetector ../src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC} ${UTIL_SRC})
+add_executable(demo_arm_imageclassify ../src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_arm_facedetector ../src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_x86_readingcomprehension ../src/BertReadingComprehension/BertReadingComprehension.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_x86_objectdetector ../src/TNNObjectDetector/TNNObjectDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
