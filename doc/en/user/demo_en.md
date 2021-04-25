@@ -437,9 +437,11 @@
 
 #### Demo Execution Questions
 1. Demo execution error: "open file xxx failed"
+
    This error indicates invalid input image file path. Please check input the input image path.
 
 2. Demo execution error: "open lable file xxx failed"
+
    This error indicates invalid classification label path. The image-classify demo requires predefined label file, and the default label file is located at: `<path_to_tnn>/examples/assets/synset.txt`.
 
 #### X86 Compilation Questions
