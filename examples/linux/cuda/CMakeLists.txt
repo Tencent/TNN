@@ -52,4 +52,5 @@ add_definitions(-D_CUDA_)
 add_executable(demo_cuda_imageclassify ../src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC} ${FLAG_SRC})
 add_executable(demo_cuda_facedetector ../src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC} ${FLAG_SRC})
 add_executable(demo_cuda_readingcomprehension ../src/BertReadingComprehension/BertReadingComprehension.cc ${BASE_SRC} ${FLAG_SRC})
+add_executable(demo_cuda_objectdetector ../src/TNNObjectDetector/TNNObjectDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 
