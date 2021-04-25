@@ -28,13 +28,82 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../../../../third_party/stb/stb_image_write.h"
 
+#ifdef _OPENCV_
+    #include <opencv2/opencv.hpp>
+#endif
 using namespace TNN_NS;
 
 int main(int argc, char** argv) {
-    if (argc < 3) {
-        printf("how to run:  %s proto model height width\n", argv[0]);
+    if (argc < 2) {
+        printf("how to run:  %s proto model [video_path]\n", argv[0]);
         return -1;
     }
+
+    printf("Please choose the source you want to detect:\n");
+    printf("1. picture;\t2. video;\t3. camera.\n");
+    
+    // detect type: 1.image; 2.video; 3.camera
+    int detect_type; 
+    scanf("%d", &detect_type);
+
+#ifdef _OPENCV_
+    if (detect_type < 1 || detect_type > 3) {
+        std::cerr << "ERROR! Invalid source type!\n";
+        return -1;
+    }
+#else
+    if (detect_type > 1) {
+        std::cerr << "ERROR! OpenCV not installed! this source is invalid\n";
+        return -1;
+    }
+#endif
+
+    char img_buff[256];
+    char *input_imgfn = img_buff;
+    int image_width, image_height, image_channel;
+#ifdef _OPENCV_
+    cv::VideoCapture cap;
+#endif
+    unsigned char *data;
+
+    // build input source
+    if (detect_type == 1) {
+        printf("Please enter the image path you want to detect:\n");
+        std::cin.getline(img_buff, 256);
+        std::cin.getline(img_buff, 256);
+        if (strlen(img_buff) == 0) {
+            strncpy(input_imgfn, "../../../assets/test_face.jpg", 256);
+        } else {
+            strncpy(input_imgfn, img_buff, 256);
+        }
+        printf("Face-detector is about to start, and the picrture is %s\n", input_imgfn);
+        data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
+        if (!data) {
+            std::cerr << "Image open failed.\n";
+            return -1;
+        }
+    } else if (detect_type == 2) {
+#ifdef _OPENCV_
+        printf("Please enter the video path you want to detect:\n");
+        std::cin.getline(img_buff, 256);
+        std::cin.getline(img_buff, 256);
+        cap.open(input_imgfn);
+        if (!cap.isOpened()) {
+            std::cerr << "ERROR! Unable to open video\n";
+            return -1;
+        }
+    } else {
+        int deviceID = 0;             // 0 = open default camera
+        int apiID = cv::CAP_ANY;      // 0 = autodetect default API
+        cap.open(deviceID, apiID);
+        if (!cap.isOpened()) {
+            std::cerr << "ERROR! Unable to open camera\n";
+            return -1;
+        }
+        printf("Enter 'q' to quit from capture.\n");
+#endif
+    }
+
     // 创建tnn实例
     auto proto_content = fdLoadFile(argv[1]);
     auto model_content = fdLoadFile(argv[2]);
@@ -66,59 +135,77 @@ int main(int argc, char** argv) {
     auto predictor = std::make_shared<UltraFaceDetector>();
     std::vector<int> nchw = {1, 3, h, w};
 
-    char img_buff[256];
-    char *input_imgfn = img_buff;
-    if(argc < 6)
-        strncpy(input_imgfn, "../../../assets/test_face.jpg", 256);
-    else
-        strncpy(input_imgfn, argv[5], 256);
-    printf("Face-detector is about to start, and the picrture is %s\n",input_imgfn);
-
-    int image_width, image_height, image_channel;
-    unsigned char *data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
-    if (!data) {
-        fprintf(stderr, "Face-detector open file %s failed.\n", input_imgfn);
-    }
-
-    //Init
+    // Init
     std::shared_ptr<TNNSDKOutput> sdk_output = predictor->CreateSDKOutput();
     CHECK_TNN_STATUS(predictor->Init(option));
-    //Predict
-    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
-    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(image_mat), sdk_output));
-    std::vector<FaceInfo> face_info;
-    if (sdk_output && dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get())) {
-        auto face_output = dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get());
-        face_info = face_output->face_list;
+
+#ifdef _OPENCV_
+    cv::Mat frame;
+    while(1) {
+        if (detect_type != 1) {
+            cap >> frame;
+            if (frame.empty()) break;
+            MatType mat_type = N8UC3;
+            image_width = frame.cols;
+            image_height = frame.rows;
+            image_channel = frame.channels();
+            cv::Mat img = frame.clone();
+            data = img.ptr();
+        }
+#endif
+        DimsVector orig_dims = {1, image_channel, image_height, image_width};
+
+        //Predict
+        auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, orig_dims, data);
+        auto resize_mat = predictor->ProcessSDKInputMat(image_mat, "data_input");
+        CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(resize_mat), sdk_output));
+        std::vector<FaceInfo> face_info;
+        if (sdk_output && dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get())) {
+            auto face_output = dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get());
+            face_info = face_output->face_list;
+        }
+
+        const int image_orig_height = int(image_height);
+        const int image_orig_width  = int(image_width);
+        float scale_x               = image_orig_width / (float)w;
+        float scale_y               = image_orig_height / (float)h;
+
+        //convert rgb to rgb-a
+        uint8_t *ifm_buf = new uint8_t[image_width*image_height*4];
+        for (int i = 0; i < image_width * image_height; ++i) {
+            ifm_buf[i*4]   = data[i*3];
+            ifm_buf[i*4+1] = data[i*3+1];
+            ifm_buf[i*4+2] = data[i*3+2];
+            ifm_buf[i*4+3] = 255;
+        }
+        for (int i = 0; i < face_info.size(); i++) {
+            auto face = face_info[i];
+            TNN_NS::Rectangle((void *)ifm_buf, image_orig_height, image_orig_width, face.x1, face.y1, face.x2,
+                    face.y2, scale_x, scale_y);
+        }
+
+#ifdef _OPENCV_
+        if (detect_type != 1) {
+            cv::Mat face_frame(image_height, image_width, CV_8UC4, ifm_buf);
+            cv::imshow("face_dectecting" ,face_frame);
+
+            auto key_num = cv::waitKey(30);
+            if (key_num == 'q') break;
+        } else {
+#endif
+            char buff[256];
+            sprintf(buff, "%s.png", "predictions");
+            int success = stbi_write_bmp(buff, image_orig_width, image_orig_height, 4, ifm_buf);
+            if(!success) 
+                return -1;
+            delete [] ifm_buf;
+            fprintf(stdout, "Face-detector done.\nNumber of faces: %d\n",int(face_info.size()));
+            free(data);
+#ifdef _OPENCV_
+            break;
+        }
     }
+#endif
 
-    const int image_orig_height = int(image_height);
-    const int image_orig_width  = int(image_width);
-    float scale_x               = image_orig_width / (float)w;
-    float scale_y               = image_orig_height / (float)h;
-
-    //convert rgb to rgb-a
-    uint8_t *ifm_buf = new uint8_t[320*240*4];
-    for (int i = 0; i < 320*240; ++i) {
-        ifm_buf[i*4]   = data[i*3];
-        ifm_buf[i*4+1] = data[i*3+1];
-        ifm_buf[i*4+2] = data[i*3+2];
-        ifm_buf[i*4+3] = 255;
-    }
-    for (int i = 0; i < face_info.size(); i++) {
-        auto face = face_info[i];
-        TNN_NS::Rectangle((void *)ifm_buf, image_orig_height, image_orig_width, face.x1, face.y1, face.x2,
-                  face.y2, scale_x, scale_y);
-    }
-
-    char buff[256];
-    sprintf(buff, "%s.png", "predictions");
-    int success = stbi_write_bmp(buff, image_orig_width, image_orig_height, 4, ifm_buf);
-    if(!success) 
-        return -1;
-
-    fprintf(stdout, "Face-detector done.\nNumber of faces: %d\n",int(face_info.size()));
-    delete [] ifm_buf;
-    free(data);
     return 0;
 }
