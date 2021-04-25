@@ -42,7 +42,7 @@ get_target_property(GFLAGS_INCLUDE_DIRS gflags INTERFACE_INCLUDE_DIRECTORIES)
 include_directories(BEFORE "${GFLAGS_INCLUDE_DIRS}")
 link_libraries(gflags)
 
-file(GLOB FLAG_SRC "${CMAKE_SOURCE_DIR}/../src/*.cc")
+file(GLOB FLAG_SRC "${CMAKE_SOURCE_DIR}/../../linux/src/*.cc")
 
 
 file(GLOB_RECURSE BASE_SRC
