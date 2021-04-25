@@ -5,12 +5,12 @@ set TNN_LIB_PATH=%ROOT_DIR%\..\..\..\scripts\msvc_release\lib\
 set TNN_BIN_PATH=%ROOT_DIR%\..\..\..\scripts\msvc_release\bin\
 set EXAMPLE_INSTALL_PATH=%ROOT_DIR%\build_msvc_openvino\release
 
-cd ..\..\..\scripts
+cd %ROOT_DIR%\..\..\..\scripts\
 call build_msvc.bat
 echo !cd!
-cd ..\..\examples\windows\x86\
+cd %ROOT_DIR%\..\..\..\examples\windows\x86\
 
-rmdir /s /q build_msvc_openvino
+:: rmdir /s /q build_msvc_openvino
 mkdir build_msvc_openvino
 cd build_msvc_openvino
 
