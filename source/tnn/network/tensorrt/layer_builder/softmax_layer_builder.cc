@@ -24,9 +24,15 @@ ILayer* SoftmaxTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
     ILayer* layer;
+
+    int dims_size = input_tensor->getDimensions().nbDims;
+
     //unsqueeze
     if (input_tensor->getDimensions().nbDims < 4) {
-        DimsVector unsqueeze_dims = input_blobs_[0]->GetBlobDesc().dims;
+        DimsVector unsqueeze_dims;
+        for (int i = 0; i < dims_size; i++) {
+            unsqueeze_dims.push_back(0);
+        }
         while(unsqueeze_dims.size() < 4) {
             unsqueeze_dims.push_back(1);
         }
@@ -44,9 +50,13 @@ ILayer* SoftmaxTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
     auto output_dims = output_blobs_[0]->GetBlobDesc().dims;
     //squeeze
-    //if(output_dims.size() < 4) {
-    //    layer = AddReshapeToNetwork(network, input_tensor, output_dims, (layer_name_ + "squeeze").c_str());
-    //}
+    if(dims_size < 4) {
+        DimsVector squeeze_dims;
+        for (int i = 0; i < dims_size; i++) {
+            squeeze_dims.push_back(0);
+        }
+        layer = AddReshapeToNetwork(network, input_tensor, squeeze_dims, (layer_name_ + "squeeze").c_str());
+    }
     return layer;
 }
 
