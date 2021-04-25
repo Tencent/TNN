@@ -35,7 +35,7 @@ using namespace TNN_NS;
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        printf("how to run:  %s proto model [video_path]\n", argv[0]);
+        printf("how to run:  %s proto model\n", argv[0]);
         return -1;
     }
 
@@ -189,6 +189,7 @@ int main(int argc, char** argv) {
             cv::Mat face_frame(image_height, image_width, CV_8UC4, ifm_buf);
             cv::imshow("face_dectecting" ,face_frame);
 
+            delete [] ifm_buf;
             auto key_num = cv::waitKey(30);
             if (key_num == 'q') break;
         } else {
