@@ -19,8 +19,9 @@ namespace TNN_NS {
 
 DECLARE_CUDA_ACC(PadV2, LAYER_PADV2);
 
-__global__ void pad_default_kernel_v2_float(const float* src, float* dst, int count, int input_channel, int output_channel,
-        int pad_c, int output_d, int output_h, int output_w, int input_d, int input_h, int input_w, int pad_d, int pad_h, int pad_w, float value) {
+template <typename T>
+__global__ void pad_default_kernel_v2(const T* src, T* dst, int count, int input_channel, int output_channel,
+        int pad_c, int output_d, int output_h, int output_w, int input_d, int input_h, int input_w, int pad_d, int pad_h, int pad_w, T value) {
     CUDA_KERNEL_LOOP(idx, count) {
         int dst_n = idx / (output_channel * output_d * output_h * output_w);
         int dst_c = (idx / (output_d * output_h * output_w)) % output_channel;
@@ -39,43 +40,8 @@ __global__ void pad_default_kernel_v2_float(const float* src, float* dst, int co
     }
 }
 
-__global__ void pad_default_kernel_v2_half(const __half* src, __half* dst, int count, int input_channel, int output_channel,
-        int pad_c, int output_d, int output_h, int output_w, int input_d, int input_h, int input_w, int pad_d, int pad_h, int pad_w, __half value) {
-    CUDA_KERNEL_LOOP(idx, count) {
-        int dst_n = idx / (output_channel * output_d * output_h * output_w);
-        int dst_c = (idx / (output_d * output_h * output_w)) % output_channel;
-        int dst_d = (idx / (output_h * output_w)) % output_d;
-        int dst_h = (idx / output_w) % output_h;
-        int dst_w = idx % output_w;
-
-        if (dst_c < pad_c || dst_c >= input_channel + pad_c || dst_d < pad_d || dst_d >= input_d + pad_d || dst_h < pad_h || dst_h >= (pad_h + input_h) ||
-                dst_w < pad_w || dst_w >= (pad_w + input_w)) {
-            dst[idx] = value;
-        } else {
-          int src_idx = dst_n * input_channel * input_d * input_h * input_w + (dst_c - pad_c) * input_d * input_h * input_w +
-            (dst_d - pad_d) * input_h * input_w + (dst_h - pad_h) * input_w + (dst_w - pad_w);
-            dst[idx] = src[src_idx];
-        }
-    }
-}
-
-__global__ void pad_reflect_kernel_v2_float(const float* src, float* dst, int count, int channels, int output_d, int output_h, int output_w, \
-int input_d, int input_h, int input_w, int pad_d, int pad_h, int pad_w) {
-  CUDA_KERNEL_LOOP(idx, count) {
-    int dst_n = idx / (channels * output_d * output_h * output_w);
-    int dst_c = (idx / (output_d * output_h * output_w)) % channels;
-    int dst_d = (idx / (output_h * output_w)) % output_d;
-    int dst_h = (idx / output_w) % output_h;
-    int dst_w = idx % output_w;
-
-    int d = dst_d >= pad_d? (dst_d < pad_d + input_d? dst_d - pad_d : pad_d - 2 - dst_d + 2 * input_d) : pad_d - dst_d;
-    int h = dst_h >= pad_h? (dst_h < pad_h + input_h? dst_h - pad_h : pad_h - 2 - dst_h + 2 * input_h) : pad_h - dst_h;
-    int w = dst_w >= pad_w? (dst_w < pad_w + input_w? dst_w - pad_w : pad_w - 2 - dst_w + 2 * input_w) : pad_w - dst_w;
-    dst[idx] = src[dst_n * channels * input_d * input_h * input_w + dst_c * input_d * input_h * input_w + d * input_h * input_w + h * input_w + w];
-  }
-}
-
-__global__ void pad_reflect_kernel_v2_half(const __half* src, __half* dst, int count, int channels, int output_d, int output_h, int output_w,
+template <typename T>
+__global__ void pad_reflect_kernel_v2(const T* src, T* dst, int count, int channels, int output_d, int output_h, int output_w,
 int input_d, int input_h, int input_w, int pad_d, int pad_h, int pad_w) {
   CUDA_KERNEL_LOOP(idx, count) {
     int dst_n = idx / (channels * output_d * output_h * output_w);
@@ -145,11 +111,11 @@ Status CudaPadV2LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     void* output_data = output_blob->GetHandle().base;
     if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         if (params->type == 0) {
-            pad_default_kernel_v2_float<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+            pad_default_kernel_v2<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
                 static_cast<float*>(input_data), static_cast<float*>(output_data), count, input_c, output_c, pad_c, output_d, output_h, output_w,
                 input_d, input_h, input_w, pad_d, pad_h, pad_w, value);
         } else if(params->type == 1) {
-            pad_reflect_kernel_v2_float<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+            pad_reflect_kernel_v2<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
                 static_cast<float*>(input_data), static_cast<float*>(output_data), count, output_c, output_d, output_h, output_w, input_d, 
                 input_h, input_w, pad_d, pad_h, pad_w);
         } else {
@@ -158,11 +124,11 @@ Status CudaPadV2LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         }
     } else if (input_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
         if (params->type == 0) {
-            pad_default_kernel_v2_half<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+            pad_default_kernel_v2<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
                 static_cast<__half*>(input_data), static_cast<__half*>(output_data), count, input_c, output_c, pad_c, output_d, output_h, output_w,
                 input_d, input_h, input_w, pad_d, pad_h, pad_w, __float2half(value));
         } else if(params->type == 1) {
-            pad_reflect_kernel_v2_half<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+            pad_reflect_kernel_v2<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
                 static_cast<__half*>(input_data), static_cast<__half*>(output_data), count, output_c, output_d, output_h, output_w, input_d, 
                 input_h, input_w, pad_d, pad_h, pad_w);
         } else {
