@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#include "object_detector_ssd.h"
+#include "object_detector_yolo.h"
 #include "macro.h"
 #include "utils/utils.h"
 #include "tnn_sdk_sample.h"
@@ -32,6 +32,17 @@
 #ifdef _OPENCV_
     #include <opencv2/opencv.hpp>
 #endif
+
+const std::string label_list[] = {
+        "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
+                "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
+                "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee",
+                "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard",
+                "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
+                "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch",
+                "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone",
+                "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear",
+                "hair drier", "toothbrush"};
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -102,14 +113,14 @@ int main(int argc, char **argv) {
 #endif
     }
 
-    auto proto_path = "../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto";
-    auto model_path = "../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel";
+    auto proto_path = "../../../../model/yolov5/yolov5s-permute.tnnproto";
+    auto model_path = "../../../../model/yolov5/yolov5s.tnnmodel";
 
     auto proto_content = fdLoadFile(proto_path);
     auto model_content = fdLoadFile(model_path);
 
-    int target_height = 300;
-    int target_width = 300;
+    int target_height = 448;
+    int target_width = 640;
     int target_channel = 3;
 
     auto option = std::make_shared<TNN_NS::TNNSDKOption>();
@@ -122,13 +133,13 @@ int main(int argc, char **argv) {
         #elif _ARM_
             option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         #else
-            option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         #endif
 
         // option->input_shapes = nchw;
     }
 
-    auto predictor = std::make_shared<TNN_NS::ObjectDetectorSSD>();
+    auto predictor = std::make_shared<TNN_NS::ObjectDetectorYolo>();
     auto status = predictor->Init(option);
     if (status != TNN_NS::TNN_OK) {
         std::cout << "Predictor Initing failed, please check the option parameters" << std::endl;
@@ -151,12 +162,12 @@ int main(int argc, char **argv) {
 
     TNN_NS::DimsVector nchw = {1, image_channel, image_height, image_width};
     auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
-    auto resize_mat = predictor->ProcessSDKInputMat(image_mat, "data_input");
+    auto resize_mat = predictor->ProcessSDKInputMat(image_mat, "images");
     CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNN_NS::TNNSDKInput>(resize_mat), sdk_output));
     CHECK_TNN_STATUS(predictor->ProcessSDKOutput(sdk_output));
     std::vector<TNN_NS::ObjectInfo> object_list;
-    if (sdk_output && dynamic_cast<TNN_NS::ObjectDetectorSSDOutput *>(sdk_output.get())) {
-        auto obj_output = dynamic_cast<TNN_NS::ObjectDetectorSSDOutput *>(sdk_output.get());
+    if (sdk_output && dynamic_cast<TNN_NS::ObjectDetectorYoloOutput *>(sdk_output.get())) {
+        auto obj_output = dynamic_cast<TNN_NS::ObjectDetectorYoloOutput *>(sdk_output.get());
         object_list = obj_output->object_list;
     }
 
@@ -182,6 +193,13 @@ int main(int argc, char **argv) {
 #ifdef _OPENCV_
         if (detect_type != 1) {
             cv::Mat face_frame(image_height, image_width, CV_8UC4, ifm_buf);
+            for (auto object : object_list) {
+                int x = (int)(std::min)(object.x1, object.x2) * scale_x;
+                int y = (int)(std::min)(object.y1, object.y2) * scale_y;
+                cv::Point point(x, y);
+                cv::Scalar color(0, 0, 255);
+                cv::putText(face_frame, label_list[object.class_id], point, cv::FONT_HERSHEY_PLAIN, 2.0, color);
+            }
             cv::imshow("object_dectecting", face_frame);
 
             auto key_num = cv::waitKey(30);
