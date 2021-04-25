@@ -33,7 +33,7 @@ static const char help_message[] = "print a usage message.";
 static const char mode_dir_message[] = "(optional) model directory path. Default is: ../../../../model";
 
 DEFINE_bool(h, false, help_message);
-DEFINE_string(dir, "../../../../model", mode_dir_message);
+DEFINE_string(d, "../../../../model", mode_dir_message);
 
 static void ShowUsage(const char *exe) {
     printf("usage:\n%s [-h] [-d] model_directory\n", exe);
@@ -67,7 +67,7 @@ int main(int argc, char** argv)
 #endif
 
     Worker worker;
-    auto status = worker.Init(FLAGS_dir.c_str());
+    auto status = worker.Init(FLAGS_d.c_str());
     if (status != TNN_OK) {
         LOGERROR(status);
         return -1;
