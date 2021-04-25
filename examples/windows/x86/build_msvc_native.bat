@@ -14,7 +14,7 @@ rmdir /s /q build_msvc_native
 mkdir build_msvc_native
 cd build_msvc_native
 
-cmake .. ^
+cmake .. -G "Ninja" ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_SYSTEM_NAME=Windows ^
     -DCMAKE_SYSTEM_PROCESSOR=AMD64 ^

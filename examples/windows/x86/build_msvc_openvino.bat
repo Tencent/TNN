@@ -14,7 +14,7 @@ rmdir /s /q build_msvc_openvino
 mkdir build_msvc_openvino
 cd build_msvc_openvino
 
-cmake .. ^
+cmake .. -G "Ninja" ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_SYSTEM_NAME=Windows ^
     -DCMAKE_SYSTEM_PROCESSOR=AMD64 ^
