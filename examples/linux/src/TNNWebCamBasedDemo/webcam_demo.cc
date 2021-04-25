@@ -32,7 +32,7 @@
 static const char help_message[] = "print a usage message.";
 static const char mode_dir_message[] = "(optional) model directory path. Default is: ../../../../model";
 
-DEFINE_bool(help, false, help_message);
+DEFINE_bool(h, false, help_message);
 DEFINE_string(dir, "../../../../model", mode_dir_message);
 
 static void ShowUsage(const char *exe) {
@@ -48,7 +48,7 @@ using namespace TNN_NS;
 int main(int argc, char** argv)
 {
     gflags::ParseCommandLineNonHelpFlags(&argc, &argv, true);
-    if (FLAGS_help) {
+    if (FLAGS_h) {
         ShowUsage(argv[0]);
         return false;
     }
