@@ -27,12 +27,31 @@
 #include "utils/utils.h"
 #include "macro.h"
 
+#include "gflags/gflags.h"
+
+static const char help_message[] = "print a usage message.";
+static const char mode_dir_message[] = "(optional) model directory path. Default is: ../../../../model";
+
+DEFINE_bool(help, false, help_message);
+DEFINE_string(dir, "../../../../model", mode_dir_message);
+
+static void ShowUsage(const char *exe) {
+    printf("usage:\n%s [-h] [-d] model_directory\n", exe);
+    printf("\t-h, <help>     \t%s\n", help_message);
+    printf("\t-d, <model_directory>     \t%s\n", mode_dir_message);
+}
+
 using namespace TNN_NS;
 
 // #define FAKE_FRAME
 
 int main(int argc, char** argv)
 {
+    gflags::ParseCommandLineNonHelpFlags(&argc, &argv, true);
+    if (FLAGS_help) {
+        ShowUsage(argv[0]);
+        return false;
+    }
     cv::Mat frame;
     
 #ifndef FAKE_FRAME
@@ -48,7 +67,7 @@ int main(int argc, char** argv)
 #endif
 
     Worker worker;
-    auto status = worker.Init("../../../model/");
+    auto status = worker.Init(FLAGS_dir.c_str());
     if (status != TNN_OK) {
         LOGERROR(status);
         return -1;
