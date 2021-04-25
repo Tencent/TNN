@@ -235,7 +235,7 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    >     -p, <proto>     (required) tnn proto file path
    >     -m, <model>     (required) tnn model file path
    >     -i, <input>     (required) input file path
-   >     -l, <label>     (optional) label file path. Default is: ./../../assets/synset.txt
+   >     -l, <label>     (optional) label file path. Default is: ../../../assets/synset.txt
 
    ```
    `-p`和`-m`选项分别用于指定demo使用的tnnproto和tnnmodel文件的路径；`-i`选项用于指定输入图片的路径；`-l`选项用于指定分类标签文件的路径。`-h`选项打印帮助信息。各个demo的示例用法如下所示:
@@ -247,6 +247,9 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
 
    人脸检测 demo
    ./demo_x86_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
+
+   物体检测 demo
+   ./demo_x86_objectdetector -p ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto -m ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel -i ../../../assets/004545.jpg
 
    阅读理解 demo
    ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
@@ -289,6 +292,9 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    人脸检测 demo
    ./demo_x86_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
 
+   物体检测 demo
+   ./demo_x86_objectdetector -p ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto -m ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel -i ../../../assets/004545.jpg
+
    阅读理解 demo
    ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
 
@@ -328,13 +334,16 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    cd build_msvc_native\release
    
    图形分类 demo
-   .\demo_x86_imageclassify -p ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto -m ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel -i ..\..\..\assets\tiger_cat.jpg
+   .\demo_x86_imageclassify -p ..\..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto -m ..\..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel -i ..\..\..\..\assets\tiger_cat.jpg
 
    人脸检测 demo
-   .\demo_x86_facedetector -p ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto -m ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel -i ..\..\..\assets\test_face.jpg
+   .\demo_x86_facedetector -p ..\..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto -m ..\..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel -i ..\..\..\..\assets\test_face.jpg
+
+   物体检测 demo
+   .\demo_x86_objectdetector -p ..\..\..\..\model\mobilenet_v2-ssd\mobilenetv2_ssd.tnnproto -m ..\..\..\..\model\mobilenet_v2-ssd\mobilenetv2_ssd.tnnmodel -i ..\..\..\assets\004545.jpg
 
    阅读理解 demo
-   .\demo_x86_readingcomprehension -p ..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnproto -m ..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnmodel -v ..\..\..\..\model\bertsquad10\ßvocab.txt
+   .\demo_x86_readingcomprehension -p ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnproto -m ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnmodel -v ..\..\..\..\..\model\bertsquad10\vocab.txt
    
    摄像头人脸检测配准 demo
    .\demo_x86_webcam
@@ -385,6 +394,9 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
 
    人脸检测 demo
    ./demo_arm_linux_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
+
+   物体检测 demo
+   ./demo_arm_linux_objectdetector -p ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto -m ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel -i ../../../assets/004545.jpg
    ```
 
 ##### CudaLinux
@@ -431,6 +443,9 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    人脸检测 demo
    ./demo_cuda_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
 
+   物体检测 demo
+   ./demo_cuda_objectdetector -p ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto -m ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel -i ../../../assets/004545.jpg
+
    阅读理解 demo
    ./demo_cuda_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
    ```
@@ -445,8 +460,6 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
 2. 执行demo时报错: "open lable file xxx failed"
 
    该错误由输入标签文件路径错误引起，图像分类demo需要预定义的标签文件，默认文件路径在`<path_to_tnn>/examples/assets/synset.txt`
-
-#### X86编译问题
 
 #### CUDA编译问题
 
