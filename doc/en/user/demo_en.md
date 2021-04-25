@@ -200,7 +200,7 @@
 ## III. Introduction to Linux/Mac/Windows/Armlinux/CudaLinux Demo
 
 ### Ability
-* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux/Mac/Windows/ArmLinux environment.
+* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux/Mac/Windows/ArmLinux/CudaLinux environment.
 
 ### Running Steps
 #### 1. Downloand demo models
@@ -215,117 +215,125 @@
 * Environment Requirements  
    - Cmake (>=3.11)
    - OpenCV3, Can be imported in CMake by find_package(OpenCV 3)
-* Compile
-   - build with openvino
-      Move to `examples/linux/x86` directory and execute `build_linux_openvino.sh`:
-      ```
-      cd <path_to_tnn>/examples/linux/x86
-      ./build_linux_openvino.sh
-      ```
-
-   - or build with x86 native
-      Move to `examples/linux/src` directory and change backend of all demos:
-      ```
-      cd <path_to_tnn>/examples/linux/src/
-      change TNN_NS::TNNComputeUnitsOpenvino to TNN_NS::TNNComputeUnitsCPU in all .cc files
-      ```
-      Move to `examples/linux/x86` directory and execute `build_linux_native.sh`:
-      ```
-      cd <path_to_tnn>/examples/linux/x86
-      ./build_linux_native.sh
-      ```
-* Execute  
-   Move to `examples/linux/x86/build_linux_openvino` or `examples/linux/x86/build_linux_native` directory and execute:
+* Compile  
+   Move to `examples/linux/x86` directory and execute `build_linux_naitve.sh` or `build_linux_openvino.sh`. In the former case, TNN uses its optimized X86 backend to execute models, while the Intel OpenVINO backend is used in forward inference in the later case. Take `build_linux_native.sh` as an example, by default, only image demos will be compiled. If you want to compile the face alignmnt camera demo, you need to change the "-DTNN_DEMO_WITH_WEBCAM=OFF to "-DTNN_DEMO_WITH_WEBCAM=ON" in `build_linux_native.sh`:
    ```
-   cd build_linux_openvino
+   cd <path_to_tnn>/examples/linux/x86
+   ./build_linux_naitve.sh
+   ```
+* Execute  
+   Move to `examples/linux/x86/build_linux_native` or `examples/linux/x86/build_linux_openvino` directory, when execued without any parameters, demo executables will print usage message:
+   ```
+   cd build_linux_native
+   ./demo_x86_imageclassify
+   >Parameter -m and -p should be set 
+   >usage:
+   >./demo_x86_imageclassify [-h] [-p] tnnproto [-m] tnnmodel [-i] <input>
+   >     -h, <help>      print a usage message.
+   >     -p, <proto>     (required) tnn proto file path
+   >     -m, <model>     (required) tnn model file path
+   >     -i, <input>     (required) input file path
+   >     -l, <label>     (optional) label file path. Default is: ../../../assets/synset.txt
+
+   ```
+   `-p` and `-m` are used for the tnnproto and tnnmodel file paths, respectively; `-i` is for specifying the classification label file path. `-h` option is for printing the usage message. Examples for executing each demo is shown below:
+   ```
+   cd build_linux_native
    
    image-classification demo
-   ./demo_x86_imageclassify ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+   ./demo_x86_imageclassify -p ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto -m ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel -i ../../../assets/tiger_cat.jpg
 
    face-detector demo
-   ./demo_x86_facedetector ../../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ./demo_x86_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
+
+   reading-comprehension demo
+   ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
+
+   face-alignment camera demo
+   ./demo_x86_webcam
    ```
 
 ##### MacOS
 * Environment Requirements  
    - Cmake (>=3.11)
    - OpenCV3, Can be imported in CMake by ```find_package(OpenCV 3)```. you can install opencv with brew (```brew install opencv@3 && brew link --force opencv@3```).
-* Compile
-   - build with openvino
-      Move to `examples/mac/x86` directory and execute `build_macos_openvino.sh`:
-      ```
-      cd <path_to_tnn>/examples/mac/x86
-      ./build_macos_openvino.sh
-      ```
-
-   - or build with x86 native
-      Move to `examples/linux/src` directory and change backend of all demos:
-      ```
-      cd <path_to_tnn>/examples/linux/src/
-      change TNN_NS::TNNComputeUnitsOpenvino to TNN_NS::TNNComputeUnitsCPU in all .cc files
-      ```
-      Move to `examples/mac/x86` directory and execute `build_macos_native.sh`:
-      ```
-      cd <path_to_tnn>/examples/mac/x86
-      ./build_macos_native.sh
-      ```
-
-* Execute  
-   Move to `examples/mac/x86/build_macos_openvino` or `examples/mac/x86/build_macos_native` directory and execute:
+* Compile  
+   Move to `examples/mac/x86` directory and execute `build_macos_native.sh` or `build_macos_openvino.sh`. In the former case, TNN uses its optimized X86 backend to execute models, while the Intel OpenVINO backend is used in forward inference in the later case. Take `build_macos_native.sh` as an example, by default, only image demos will be compiled. If you want to compile the face alignmnt camera demo, you need to change the "-DTNN_DEMO_WITH_WEBCAM=OFF to "-DTNN_DEMO_WITH_WEBCAM=ON" in `build_macos_native.sh`:
    ```
-   cd build_macos_openvino
+   cd <path_to_tnn>/examples/mac/x86
+   ./build_macos_native.sh
+   ```
+* Execute  
+   Move to `examples/mac/x86/build_macos_native` or `examples/mac/x86/build_macos_openvino` directory, when execued without any parameters, demo executables will print usage message:
+   ```
+   cd build_macos_native
+   ./demo_x86_imageclassify
+   >Parameter -m and -p should be set 
+   >usage:
+   >./demo_x86_imageclassify [-h] [-p] tnnproto [-m] tnnmodel [-i] <input>
+   >     -h, <help>      print a usage message.
+   >     -p, <proto>     (required) tnn proto file path
+   >     -m, <model>     (required) tnn model file path
+   >     -i, <input>     (required) input file path
+   >     -l, <label>     (optional) label file path. Default is: ../../../assets/synset.txt
+
+   ```
+   `-p` and `-m` are used for the tnnproto and tnnmodel file paths, respectively; `-i` is for specifying the classification label file path. `-h` option is for printing the usage message. Examples for executing each demo is shown below:
+   ```
+   cd build_macos_native
    
    image-classification demo
-   ./demo_x86_imageclassify ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+   ./demo_x86_imageclassify -p ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto -m ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel -i ../../../assets/tiger_cat.jpg
 
    face-detector demo
-   ./demo_x86_facedetector ../../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ./demo_x86_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
 
    reading-comprehension demo
-   ./demo_x86_readingcomprehension ../../../../model/bertsquad10/bertsquad10_clean.tnnproto ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel ../../../../model/bertsquad10/vocab.txt
+   ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
 
-   webcam base face alignment demo
+   face-alignment camera demo
    ./demo_x86_webcam
    ```
 
 ##### Windows
 * Environment Requirements  
-   - Visual Studio (>=2015)
+   - Visual Studio (>=2017)
    - Cmake (>=3.11; Or run scripts with Visual Studio Prompt)
    - OpenCV3, compiled by the same version of VC.
 * Comiple  
    Open `x64 Native Tools Command Prompt for VS 2017/2019`.
-
-   - build with openvino
-      Move to `examples\windows\x86` directory and execute `build_msvc_openvino.bat`:
-      ```
-      set OpenCV_DIR=`OPENCV_INSTALL_DIR`
-      cd <path_to_tnn>\examples\windows\x86
-      .\build_msvc_openvino.bat 
-      ```
-   
-   - or build with x86 native
-      Move to `examples\linux\src` directory and change backend of all demos:
-      ```
-      cd <path_to_tnn>\examples\linux\src\
-      change TNN_NS::TNNComputeUnitsOpenvino to TNN_NS::TNNComputeUnitsCPU in all .cc files
-      ```
-      Move to `examples\windows\x86` directory and execute `build_msvc_native.bat`:
-      ```
-      cd <path_to_tnn>\examples\windows\x86
-      ./build_msvc_native.bat
-      ```
-
-* Execute  
-   Move to `examples\windows\x86\build_msvc_openvino\release` or `examples\windows\x86\build_msvc_native\release` directory and execute：
+   Move to `examples\windows\x86` directory and execute `build_msvc_native.bat` or `build_msvc_openvino.bat`. In the former case, TNN uses its optimized X86 backend to execute models, while the Intel OpenVINO backend is used in forward inference in the later case. Take `build_msvc_native.bat` as an example, by default, only image demos will be compiled. If you want to compile the face alignmnt camera demo, you need to change the "-DTNN_DEMO_WITH_WEBCAM=OFF to "-DTNN_DEMO_WITH_WEBCAM=ON" in `build_msvc_native.bat`:
    ```
-   cd build_msvc_openvino\release
+   set OpenCV_DIR=`OPENCV_INSTALL_DIR`
+   cd <path_to_tnn>\examples\windows\x86
+   .\build_msvc_native.bat
+   ```
+* Execute  
+   Move to `examples\windows\x86\build_msvc_native\release` or `examples\windows\x86\build_msvc_openvino\release` directory, when execued without any parameters, demo executables will print usage message:
+   ```
+   cd build_msvc_native\release
+   .\demo_x86_imageclassify
+   >Parameter -m and -p should be set 
+   >usage:
+   >.\demo_x86_imageclassify [-h] [-p] tnnproto [-m] tnnmodel [-i] <input>
+   >     -h, <help>      print a usage message.
+   >     -p, <proto>     (required) tnn proto file path
+   >     -m, <model>     (required) tnn model file path
+   >     -i, <input>     (required) input file path
+   >     -l, <label>     (optional) label file path. Default is: ../../../assets/synset.txt
+   ```
+   `-p` and `-m` are used for the tnnproto and tnnmodel file paths, respectively; `-i` is for specifying the classification label file path. `-h` option is for printing the usage message. Examples for executing each demo is shown below:
+   ```
+   cd build_msvc_native\release
 
    image-classification demo
-   .\demo_x86_imageclassify ..\..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto ..\..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel
+   .\demo_x86_imageclassify -p ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto -m ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel -i ..\..\..\assets\tiger_cat.jpg
 
    face-detector demo
-   .\demo_x86_facedetector ..\..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto ..\..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel
+   .\demo_x86_facedetector -p ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto -m ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel -i ..\..\..\assets\test_face.jpg
+
+   reading-comprehension demo
+   .\demo_x86_readingcomprehension -p ..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnproto -m ..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnmodel -v ..\..\..\..\model\bertsquad10\ßvocab.txt
 
    webcam base face alignment demo
    .\demo_x86_webcam
@@ -348,22 +356,35 @@
    ```
    CC=aarch64-linux-gnu-gcc
    CXX=aarch64-linux-gnu-g++
-   TNN_LIB_PATH=../../scripts/build_aarch64_linux/
+   TNN_LIB_PATH=../../../scripts/build_aarch64_linux/
    ```
    execute `build_aarch64_linux.sh`
    ```
    sh build_aarch64_linux.sh
    ```
 * Execute  
-   Move to `examples/linux/build` directory and execute：
+   Move to `examples/linux/cross/build` directory, when execued without any parameters, demo executables will print usage message:
+    ```
+   cd build
+   ./demo_arm_linux_imageclassify
+   >Parameter -m and -p should be set 
+   >usage:
+   >./demo_arm_linux_imageclassify [-h] [-p] tnnproto [-m] tnnmodel [-i] <input>
+   >     -h, <help>      print a usage message.
+   >     -p, <proto>     (required) tnn proto file path
+   >     -m, <model>     (required) tnn model file path
+   >     -i, <input>     (required) input file path
+   >     -l, <label>     (optional) label file path. Default is: ../../../assets/synset.txt
+   ```
+   `-p` and `-m` are used for the tnnproto and tnnmodel file paths, respectively; `-i` is for specifying the classification label file path. `-h` option is for printing the usage message. Examples for executing each demo is shown below:
    ```
    cd build
 
    image-classification demo
-   ./demo_arm_linux_imageclassify ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+   ./demo_arm_linux_imageclassify -p ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto -m ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel -i ../../../assets/tiger_cat.jpg
 
    face-detector demo
-   ./demo_arm_linux_facedetector ../../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ./demo_arm_linux_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
    ```
 
 ##### CudaLinux
@@ -371,7 +392,6 @@
    - Cmake (>= 3.8)
    - CUDA (>= 10.2)
    - TensorRT (>= 7.1)
-
 * Compile
    Configure the TensorRT path in env
    ```
@@ -381,25 +401,52 @@
    ```
    export CUDNN_ROOT_DIR=<CuDNN_path>
    ```
-   Move to `examples/linux/cuda` directory and execute `build_cuda_linux.sh` :
+   Move to `examples/linux/cuda` directory and execute `build_linux.sh` :
    ```
    cd <path_to_tnn>/examples/linux/cuda
    sh build_linux.sh
    ```
 * Execute
-    Move to `examples/linux/cuda/build_cuda_linux` directory and execute:
+    Move to `examples/linux/cuda/build_cuda_linux` directory, when execued without any parameters, demo executables will print usage message:
     ```
-    cd build_cuda_linux
+   cd build_cuda_linux
+   ./demo_cuda_imageclassify
+   >Parameter -m and -p should be set 
+   >usage:
+   >./demo_cuda_imageclassify [-h] [-p] tnnproto [-m] tnnmodel [-i] <input>
+   >     -h, <help>      print a usage message.
+   >     -p, <proto>     (required) tnn proto file path
+   >     -m, <model>     (required) tnn model file path
+   >     -i, <input>     (required) input file path
+   >     -l, <label>     (optional) label file path. Default is: ../../../assets/synset.txt
+   ```
+   `-p` and `-m` are used for the tnnproto and tnnmodel file paths, respectively; `-i` is for specifying the classification label file path. `-h` option is for printing the usage message. Examples for executing each demo is shown below:
+   ```
+   cd build_cuda_linux
 
-    image-classification demo
-    ./demo_cuda_imageclassify ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel
+   image-classification demo
+   ./demo_cuda_imageclassify -p ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto -m ../../../../model/SqueezeNet/squeezenet_v1.1.tnnmodel -i ../../../assets/tiger_cat.jpg
 
    face-detector demo
-   ./demo_cuda_facedetector ../../../../model/face_detector/version-slim-320_simplified.tnnproto ../../../../model/face_detector/version-slim-320_simplified.tnnmodel
+   ./demo_cuda_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
 
    reading-comprehension demo
-   ./demo_cuda_readingcomprehension ../../../../model/bertsquad10/bertsquad10_clean.tnnproto ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel ../../../../model/bertsquad10/vocab.txt
+   ./demo_cuda_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
    ```
+### FAQ
+
+#### Demo Execution Questions
+1. Demo execution error: "open file xxx failed"
+   This error indicates invalid input image file path. Please check input the input image path.
+
+2. Demo execution error: "open lable file xxx failed"
+   This error indicates invalid classification label path. The image-classify demo requires predefined label file, and the default label file is located at: `<path_to_tnn>/examples/assets/synset.txt`.
+
+#### X86 Compilation Questions
+
+#### CUDA Compilation Questions
+1. Compilation Error: "not defined environment variable:CUDNN_ROOT_DIR"或"not defined environment variable:TENSORRT_ROOT_DIR"
+   Please follow the CUDA compilation steps and check if the env `CUDNN_ROOT_DIR` and `TENSORRT_ROOT_DIR` are set properly.
 
 ### Function process
 #### Image classification function process
@@ -410,8 +457,10 @@
 * Init predictor:  
    ```cpp
    CHECK_TNN_STATUS(predictor->Init(option));
-   // for Linux/Windows
+   // for Linux/Windows(OpenVINO)
    option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+   // for Linux/Windows(X86 native)
+   option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // for ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // for CUDA
@@ -419,8 +468,10 @@
    ```
 * Create image_mat:  
    ```cpp
-   // for Linux/Windows
+   // for Linux/Windows(OpenVINO)
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+   // for Linux/Windows(X86 native)
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
    // for ArmLinux
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
    // for CUDA
@@ -438,8 +489,10 @@
 * Init predictor:  
    ```cpp
    CHECK_TNN_STATUS(predictor->Init(option));
-   // for Linux/Windows
+   // for Linux/Windows(OpenVINO)
    option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+   // for Linux/Windows(X86 native)
+   option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // for ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // for CUDA
@@ -447,8 +500,10 @@
    ```
 * Create image_mat:  
    ```cpp
-   // for Linux/Windows
+   // for Linux/Window(OpenVINO)
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_X86, TNN_NS::N8UC3, nchw, data);
+   // for Linux/Windows(X86 native)
+   auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
    // for ArmLinux
    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ARM, TNN_NS::N8UC3, nchw, data);
    // for CUDA
