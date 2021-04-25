@@ -23,8 +23,6 @@
 
 #include <dnnl.hpp>
 
-#include "dnnl_inner_product.h"
-#include "dnnl_matmul.h"
 #include "dnnl_common.h"
 int GemmScan(int m, int n, int k);
 #endif

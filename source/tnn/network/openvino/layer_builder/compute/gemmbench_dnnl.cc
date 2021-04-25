@@ -20,45 +20,44 @@ int GemmScan(int m, int n, int k)
 {
     engine cpu_engine(engine::kind::cpu, 0);
     stream cpu_stream(cpu_engine);
+
+    std::vector<float> A = std::vector<float> (m*k,1);
+    std::vector<float> B = std::vector<float> (k*n,1);
+    std::vector<float> C = std::vector<float> (m*n,1);
+    std::vector<float> bias = std::vector<float> (n,1.1);
+
     TNN::openvino::GemmUnit gemmunit;
-    std::shared_ptr<std::vector<float>> A = std::make_shared<std::vector<float>> (m*k,1);
-    std::shared_ptr<std::vector<float>> B = std::make_shared<std::vector<float>> (k*n,1);
-    std::shared_ptr<std::vector<float>> C = std::make_shared<std::vector<float>> (m*n,1);
-    std::shared_ptr<std::vector<float>> bias = std::make_shared<std::vector<float>> (n,1.1);
 
     // get dnnl_sgemm time
     auto tag_1 = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < 10; ++i) {
-        dnnl_sgemm('N', 'N', m, n, k, 1.0, A->data(), k, B->data(), n, 0.0, C->data(), n);
+        dnnl_sgemm('N', 'N', m, n, k, 1.0, A.data(), k, B.data(), n, 0.0, C.data(), n);
     }
     auto tag_2    = std::chrono::high_resolution_clock::now();
     auto dnnl_sgemm_t = std::chrono::duration<double>(tag_2 - tag_1).count();
-    std::cout << (*C)[0] <<" C " << (*C)[C->size() - 1] << std::endl;
+
     // get InnerProduct time
     tag_1    = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < 10; ++i) {
-        gemmunit.InnerProduct(cpu_engine, cpu_stream, A->data(), B->data(), bias->data(), C->data(), m, n, k);
+        gemmunit.InnerProduct(cpu_engine, cpu_stream, A.data(), B.data(), bias.data(), C.data(), m, n, k);
     }
     tag_2    = std::chrono::high_resolution_clock::now();
     auto InnerProduct_t = std::chrono::duration<double>(tag_2 - tag_1).count();
-    std::cout << (*C)[0] <<" C " << (*C)[C->size() - 1] << std::endl;
 
     // get Matmul time
     tag_1 = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < 10; ++i) {
-        gemmunit.MatMul(cpu_engine, cpu_stream, A->data(), B->data(), bias->data(), C->data(), m, n, k);
+        gemmunit.MatMul(cpu_engine, cpu_stream, A.data(), B.data(), bias.data(), C.data(), m, n, k);
     }
     tag_2    = std::chrono::high_resolution_clock::now();
     auto MatMul_t = std::chrono::duration<double>(tag_2 - tag_1).count();
-    std::cout << (*C)[0] <<" C " << (*C)[C->size() - 1] << std::endl;
 
     int result = 0;
     if (dnnl_sgemm_t > InnerProduct_t)
         result = 1;
     else if (InnerProduct_t > MatMul_t)
         result = 2;
-    std::cout << "return from GemmScan, result = " << result << std::endl;
-    TNN::openvino::GemmUnit::clean();
 
+    TNN::openvino::GemmUnit::clean();
     return result;
 }

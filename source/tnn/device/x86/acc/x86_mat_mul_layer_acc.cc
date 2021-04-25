@@ -16,7 +16,6 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/device/x86/acc/x86_mat_mul_layer_acc.h"
 #include "tnn/network/openvino/layer_builder/compute/gemmbench_dnnl.h"
-#include "tnn/network/openvino/layer_builder/compute/dnnl_matmul.h"
 
 namespace TNN_NS {
 
