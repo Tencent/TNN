@@ -14,100 +14,51 @@
 *******************************************************************************/
 
 #include "tnn/network/openvino/layer_builder/compute/gemmbench_dnnl.h"
-
-int padding(int cols) {
-    int skip = (16 - cols % 16) % 16;
-    int stride = cols + skip;
-    if (stride % 256 == 0) {
-        stride += 4;
-    }
-    return stride;
-}
+#include "tnn/network/openvino/layer_builder/compute/gemm_unit.h"
 
 int GemmScan(int m, int n, int k)
 {
-    int result = 0;
+    engine cpu_engine(engine::kind::cpu, 0);
+    stream cpu_stream(cpu_engine);
+    TNN::openvino::GemmUnit gemmunit;
+    std::shared_ptr<std::vector<float>> A = std::make_shared<std::vector<float>> (m*k,1);
+    std::shared_ptr<std::vector<float>> B = std::make_shared<std::vector<float>> (k*n,1);
+    std::shared_ptr<std::vector<float>> C = std::make_shared<std::vector<float>> (m*n,1);
+    std::shared_ptr<std::vector<float>> bias = std::make_shared<std::vector<float>> (n,1.1);
 
-    float *A = new float[m*k];
-    float *B = new float[k*n];
-    float *C = new float[m*n];
-
-    double t_dnnl_sgemm = test_dnnl_sgemm(A, B, C, m, n, k);
-
-    engine eng(engine::kind::cpu, 0);
-    engine cpu_engine;
-    stream cpu_stream;
-
-    stream stream(eng);
-    cpu_engine = eng;
-    cpu_stream = stream;
-
-    float *bias = new float[n];
-    for (int i = 0; i < n; ++i) {
-        bias[i] = 1.1;
+    // get dnnl_sgemm time
+    auto tag_1 = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < 10; ++i) {
+        dnnl_sgemm('N', 'N', m, n, k, 1.0, A->data(), k, B->data(), n, 0.0, C->data(), n);
     }
+    auto tag_2    = std::chrono::high_resolution_clock::now();
+    auto dnnl_sgemm_t = std::chrono::duration<double>(tag_2 - tag_1).count();
+    std::cout << (*C)[0] <<" C " << (*C)[C->size() - 1] << std::endl;
+    // get InnerProduct time
+    tag_1    = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < 10; ++i) {
+        gemmunit.InnerProduct(cpu_engine, cpu_stream, A->data(), B->data(), bias->data(), C->data(), m, n, k);
+    }
+    tag_2    = std::chrono::high_resolution_clock::now();
+    auto InnerProduct_t = std::chrono::duration<double>(tag_2 - tag_1).count();
+    std::cout << (*C)[0] <<" C " << (*C)[C->size() - 1] << std::endl;
 
-    double t_dnnl_ip_ffff  = test_dnnl_inner_product(cpu_engine, cpu_stream, A, B, bias, C, m, n, k);
-    double t_dnnl_mm_ffff  = test_dnnl_matmul(cpu_engine, cpu_stream, A, B, bias, C, m, n, k);
+    // get Matmul time
+    tag_1 = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < 10; ++i) {
+        gemmunit.MatMul(cpu_engine, cpu_stream, A->data(), B->data(), bias->data(), C->data(), m, n, k);
+    }
+    tag_2    = std::chrono::high_resolution_clock::now();
+    auto MatMul_t = std::chrono::duration<double>(tag_2 - tag_1).count();
+    std::cout << (*C)[0] <<" C " << (*C)[C->size() - 1] << std::endl;
 
-    delete[] A;
-    delete[] B;
-    delete[] C;
-
-    if (t_dnnl_sgemm > t_dnnl_ip_ffff)
+    int result = 0;
+    if (dnnl_sgemm_t > InnerProduct_t)
         result = 1;
-    else if (t_dnnl_ip_ffff > t_dnnl_mm_ffff)
+    else if (InnerProduct_t > MatMul_t)
         result = 2;
+    std::cout << "return from GemmScan, result = " << result << std::endl;
+    TNN::openvino::GemmUnit::clean();
 
     return result;
-}
-
-double test_dnnl_sgemm(float *A, float *B, float *C, int m, int n, int k)
-{
-    dnnl_sgemm('N', 'N', m, n, k, 1.0, A, k, B, n, 0.0, C, n);
-
-    auto tag_1 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 10; ++i) {
-        dnnl_sgemm('N', 'N', m, n, k, 1.0, A, k, B, n, 0.0, C, n);
-    }
-
-    auto tag_2 = std::chrono::high_resolution_clock::now();
-    auto tag_diff = std::chrono::duration<double>(tag_2 - tag_1).count();
-    std::cout << "result: " << C[0] << "," << C[m*n-1] << std::endl;
-
-    return tag_diff;
-}
-
-template <typename T_A, typename T_B, typename T_bias, typename T_C>
-double test_dnnl_inner_product(engine eng, stream stm, T_A* A_buf, T_B* B_buf, T_bias* bias_buf, T_C* C_buf, int m, int n, int k)
-{
-    InnerProduct(eng, stm, A_buf, B_buf, bias_buf, C_buf, m, n, k);
-
-    auto tag_1 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 10; ++i) {
-        InnerProduct(eng, stm, A_buf, B_buf, bias_buf, C_buf, m, n, k);
-    }
-
-    auto tag_2 = std::chrono::high_resolution_clock::now();
-    auto tag_diff = std::chrono::duration<double>(tag_2 - tag_1).count();
-    std::cout << "result: " << C_buf[0] << "," << C_buf[m*n-1] << std::endl;
-
-    return tag_diff;
-}
-
-template <typename T_A, typename T_B, typename T_bias, typename T_C>
-double test_dnnl_matmul(engine eng, stream stm, T_A* A_buf, T_B* B_buf, T_bias* bias_buf, T_C* C_buf, int m, int n, int k)
-{
-    MatMul(eng, stm, A_buf, B_buf, bias_buf, C_buf, m, n, k);
-
-    auto tag_1 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 10; ++i) {
-        MatMul(eng, stm, A_buf, B_buf, bias_buf, C_buf, m, n, k);
-    }
-
-    auto tag_2 = std::chrono::high_resolution_clock::now();
-    auto tag_diff = std::chrono::duration<double>(tag_2 - tag_1).count();
-    std::cout << "result: " << C_buf[0] << "," << C_buf[m*n-1] << std::endl;
-
-    return tag_diff;
 }

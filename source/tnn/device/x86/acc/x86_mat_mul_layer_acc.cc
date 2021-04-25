@@ -118,15 +118,16 @@ Status X86MatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             // // col major B[M * K] * A[K * N] = C[M * N]
             // conv_sgemm_nn_col_major(M, N, K, b_ptr, M, a_ptr, K, c_ptr, M,
             //     fake_bias_ptr, ActivationType_None, workspace, conv_gemm_conf_);
+            TNN::openvino::GemmUnit gemm;
             switch (acc_index) {
                 case AccIndex_Sgemm:
                     dnnl_sgemm('N', 'N', m, n, k, alpha, a_ptr, lda, b_ptr, ldb, beta, c_ptr, ldc);
                     break;
                 case AccIndex_InnerProduct:
-                    InnerProduct(eng, stm, a_ptr, b_ptr, fake_bias_ptr, c_ptr, m, n, k);
+                    gemm.InnerProduct(eng, stm, a_ptr, b_ptr, fake_bias_ptr, c_ptr, m, n, k);
                     break;
                 case AccIndex_MatMul:
-                    MatMul(eng, stm, a_ptr, b_ptr, fake_bias_ptr, c_ptr, m, n, k);
+                    gemm.MatMul(eng, stm, a_ptr, b_ptr, fake_bias_ptr, c_ptr, m, n, k);
                     break;
                 default:
                     dnnl_sgemm('N', 'N', m, n, k, alpha, a_ptr, lda, b_ptr, ldb, beta, c_ptr, ldc);

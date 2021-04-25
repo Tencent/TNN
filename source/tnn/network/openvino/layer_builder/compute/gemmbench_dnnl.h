@@ -25,11 +25,6 @@
 
 #include "dnnl_inner_product.h"
 #include "dnnl_matmul.h"
-
+#include "dnnl_common.h"
 int GemmScan(int m, int n, int k);
-double test_dnnl_sgemm(float *A, float *B, float *C, int m, int n, int k);
-template <typename T_A, typename T_B, typename T_bias, typename T_C>
-double test_dnnl_inner_product(engine eng, stream stm, T_A* A_buf, T_B* B_buf, T_bias* bias_buf, T_C* C_buf, int m, int n, int k);
-template <typename T_A, typename T_B, typename T_bias, typename T_C>
-double test_dnnl_matmul(engine eng, stream stm, T_A* A_buf, T_B* B_buf, T_bias* bias_buf, T_C* C_buf, int m, int n, int k);
 #endif
