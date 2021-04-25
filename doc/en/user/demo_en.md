@@ -327,13 +327,13 @@
    cd build_msvc_native\release
 
    image-classification demo
-   .\demo_x86_imageclassify -p ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto -m ..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel -i ..\..\..\assets\tiger_cat.jpg
+   .\demo_x86_imageclassify -p ..\..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnproto -m ..\..\..\..\..\model\SqueezeNet\squeezenet_v1.1.tnnmodel -i ..\..\..\..\assets\tiger_cat.jpg
 
    face-detector demo
-   .\demo_x86_facedetector -p ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto -m ..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel -i ..\..\..\assets\test_face.jpg
+   .\demo_x86_facedetector -p ..\..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto -m ..\..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel -i ..\..\..\..\assets\test_face.jpg
 
    reading-comprehension demo
-   .\demo_x86_readingcomprehension -p ..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnproto -m ..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnmodel -v ..\..\..\..\model\bertsquad10\ßvocab.txt
+   .\demo_x86_readingcomprehension -p ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnproto -m ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnmodel -v ..\..\..\..\..\model\bertsquad10\vocab.txt
 
    webcam base face alignment demo
    .\demo_x86_webcam
