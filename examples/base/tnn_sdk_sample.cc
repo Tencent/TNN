@@ -1035,25 +1035,33 @@ void Rectangle(void *data_rgba, int image_height, int image_width,
     y_max = std::min(std::max(y_max, 0), image_height - 1);
 
     // top bottom
-    for (int x = x_min; x <= x_max; x++) {
-        int offset                       = y_min * image_width + x;
-        image_rgba[offset]               = {0, 255, 0, 0};
-        image_rgba[offset + image_width] = {0, 255, 0, 0};
+    if (x_max > x_min) {
+        for (int x = x_min; x <= x_max; x++) {
+            int offset                       = y_min * image_width + x;
+            image_rgba[offset]               = {0, 255, 0, 0};
+            image_rgba[offset + image_width] = {0, 255, 0, 0};
 
-        offset                           = y_max * image_width + x;
-        image_rgba[offset]               = {0, 255, 0, 0};
-        image_rgba[offset - image_width] = {0, 255, 0, 0};
+            offset                           = y_max * image_width + x;
+            image_rgba[offset]               = {0, 255, 0, 0};
+            if (offset >= image_width) {
+                image_rgba[offset - image_width] = {0, 255, 0, 0};
+            }
+        }
     }
 
     // left right
-    for (int y = y_min; y <= y_max; y++) {
-        int offset             = y * image_width + x_min;
-        image_rgba[offset]     = {0, 255, 0, 0};
-        image_rgba[offset + 1] = {0, 255, 0, 0};
+    if (y_max > y_min) {
+        for (int y = y_min; y <= y_max; y++) {
+            int offset             = y * image_width + x_min;
+            image_rgba[offset]     = {0, 255, 0, 0};
+            image_rgba[offset + 1] = {0, 255, 0, 0};
 
-        offset                 = y * image_width + x_max;
-        image_rgba[offset]     = {0, 255, 0, 0};
-        image_rgba[offset - 1] = {0, 255, 0, 0};
+            offset                 = y * image_width + x_max;
+            image_rgba[offset]     = {0, 255, 0, 0};
+            if (offset >= 1) {
+                image_rgba[offset - 1] = {0, 255, 0, 0};
+            }
+        }
     }
 }
 
