@@ -20,6 +20,8 @@
 #include "macro.h"
 #include "utils/utils.h"
 
+#include "../flags.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../../../third_party/stb/stb_image.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
@@ -29,27 +31,32 @@
 
 using namespace TNN_NS;
 
+static const char label_path_message[] = "(optional) label file path. Default is: ./../../assets/synset.txt";
+DEFINE_string(l, "../../../assets/synset.txt", label_path_message);
+
 int main(int argc, char** argv) {
-// int main(int argc, char** argv) {
-    if (argc < 3) {
-        printf("how to run:  %s proto model height width\n", argv[0]);
+    if (!ParseAndCheckCommandLine(argc, argv)) {
+        ShowUsage(argv[0]);
+        printf("\t-l, <label>    \t%s\n", label_path_message);
         return -1;
     }
+
     // 创建tnn实例
-    auto proto_content = fdLoadFile(argv[1]);
-    auto model_content = fdLoadFile(argv[2]);
+    auto proto_content = fdLoadFile(FLAGS_p.c_str());
+    auto model_content = fdLoadFile(FLAGS_m.c_str());
 
     auto option = std::make_shared<TNNSDKOption>();
     {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = "";
+        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         // if enable openvino, set option compute_units to openvino
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
             option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
-        #else
-            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        #elif _OPENVINO_
+            option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
         #endif
     }
 
@@ -58,8 +65,10 @@ int main(int argc, char** argv) {
     char* temp_p;
     char line[256];
     FILE *fp_label;
-    if((fp_label = fopen("../../../assets/synset.txt", "r")) == NULL)
+    if((fp_label = fopen(FLAGS_l.c_str(), "r")) == NULL) {
+        fprintf(stderr, "ImageClassifier open lable file %s failed.\n", FLAGS_l.c_str());
         return -1;
+    }
     static unsigned char labels[1000][256];
     for(int i = 0; i < 1000; i++){
         temp_p = fgets(line, 256 ,fp_label);
@@ -69,10 +78,7 @@ int main(int argc, char** argv) {
 
     char img_buff[256];
     char *input_imgfn = img_buff;
-    if(argc < 6)
-        strncpy(input_imgfn, "../../../assets/tiger_cat.jpg", 256);
-    else
-        strncpy(input_imgfn, argv[5], 256);
+    strncpy(input_imgfn, FLAGS_i.c_str(), 256);
     printf("Classify is about to start, and the picture is %s\n",input_imgfn);
 
     int image_width, image_height, image_channel;
@@ -96,7 +102,7 @@ int main(int argc, char** argv) {
         class_id = classfy_output->class_id;
     }
     //完成计算，获取任意输出点
-    fprintf(stdout, "Classify done. Result: %sOutput argmax %d\n",labels[class_id], class_id+1);
+    fprintf(stdout, "Classify done. Result: %sOutput argmax: %d\n", labels[class_id], class_id+1);
     fprintf(stdout, "%s\n", predictor->GetBenchResult().Description().c_str());
     free(data);
     return 0;

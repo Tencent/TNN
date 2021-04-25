@@ -36,6 +36,12 @@ set(CUDA_LINK_LIBS ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES})
 link_libraries(TNN)
 link_libraries(${CUDA_LINK_LIBS})
 
+add_subdirectory(${TNNRoot}/third_party/gflags ${TNNRoot}/third_party/gflags)
+get_target_property(GFLAGS_INCLUDE_DIRS gflags INTERFACE_INCLUDE_DIRECTORIES)
+include_directories(BEFORE "${GFLAGS_INCLUDE_DIRS}")
+link_libraries(gflags)
+
+file(GLOB FLAG_SRC "${CMAKE_SOURCE_DIR}/../src/*.cc")
 file(GLOB_RECURSE BASE_SRC
     "${CMAKE_SOURCE_DIR}/../../base/*.cc"
     "${CMAKE_SOURCE_DIR}/../../utils/*.cc")
@@ -43,7 +49,7 @@ file(GLOB_RECURSE WEBCAM_SRC "${CMAKE_SOURCE_DIR}/../../base/ocr*.cc")
 list(REMOVE_ITEM BASE_SRC ${WEBCAM_SRC})
 
 add_definitions(-D_CUDA_)
-add_executable(demo_cuda_imageclassify ../src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC})
-add_executable(demo_cuda_facedetector ../src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC})
-add_executable(demo_cuda_readingcomprehension ../src/BertReadingComprehension/BertReadingComprehension.cc ${BASE_SRC})
+add_executable(demo_cuda_imageclassify ../src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC} ${FLAG_SRC})
+add_executable(demo_cuda_facedetector ../src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC} ${FLAG_SRC})
+add_executable(demo_cuda_readingcomprehension ../src/BertReadingComprehension/BertReadingComprehension.cc ${BASE_SRC} ${FLAG_SRC})
 

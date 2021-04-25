@@ -21,25 +21,35 @@
 #include "utils/utils.h"
 #include "macro.h"
 
+#include "../flags.h"
+
 using namespace TNN_NS;
+
+static const char vocab_path_message[] = "(required) vocab file path";
+DEFINE_string(v, "", vocab_path_message);
 
 #define LETTER_MAX_COUNT 10000
 #define MAX_SEQ_LENGTH 256
 int main(int argc, char **argv) {
-    if (argc < 3) {
-        printf("how to run: %s proto model vocabFile\n", argv[0]);
+    if (!ParseAndCheckCommandLine(argc, argv, false)) {
+        ShowUsage(argv[0], false);
+        printf("\t-v, <vocab>    \t%s\n", vocab_path_message);
+        return -1;
+    }
+    if (FLAGS_v.empty()) {
+        printf("\t-v, <vocab>    \t%s\n", vocab_path_message);
         return -1;
     }
 
     auto tokenizer = std::make_shared<BertTokenizer>();
 
     std::cout << "Initializing Vocabularies..." << std::endl;
-    tokenizer->Init(argv[3]);
+    tokenizer->Init(FLAGS_v.c_str());
     
     // 创建tnn实例
     std::cout << "Initializing TNN Instance..." << std::endl;
-    auto proto_content = fdLoadFile(argv[1]);
-    auto model_content = fdLoadFile(argv[2]);
+    auto proto_content = fdLoadFile(FLAGS_p.c_str());
+    auto model_content = fdLoadFile(FLAGS_m.c_str());
     int h = 1, w = 256;
     std::vector<int> nchw = {1, 256};
 
@@ -49,12 +59,11 @@ int main(int argc, char **argv) {
         option->model_content = model_content;
         
         option->library_path = "";
+        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
             option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
-        #elif _ARM_
-            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-        #else
+        #elif _OPENVINO_
             option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
         #endif
         
