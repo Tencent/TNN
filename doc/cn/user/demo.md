@@ -222,7 +222,28 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 ##### Linux
 * 环境要求  
    - Cmake (>=3.11)
-   - OpenCV3, 可在CMake中通过find_package(OpenCV 3) 成功找到依赖项。
+   - OpenCV3 (只有webcam的demo会用), 可在CMake中通过find_package(OpenCV 3) 成功找到依赖项。
+
+   ```
+   // 手动编译OpenCV3
+   wget https://github.com/opencv/opencv/archive/3.4.13.zip
+   unzip 3.4.13.zip
+   cd opencv-3.4.13
+
+   mkdir build
+   mkdir install
+   cd build
+
+   cmake -DCMAKE_INSTALL_PREFIX=../install ..
+   make -j4
+   make install
+
+   // 在CMakeList.txt的find_packpage之前添加OpenCV路径
+   // 例如，进入examples/linux/x86，打开CMakeList.txt
+   // 在find_package(OpenCV 3 REQUIRED)之前添加
+   set(OpenCV_DIR <path_to_opencv>/opencv-3.4.13/install/share/OpenCV)
+   ```
+
 * 编译  
    进入 `examples/linux/x86` 目录，执行 `build_linux_native.sh`或`build_linux_openvino.sh`。前者使用TNN实现的优化X86后端执行，后者基于Intel OpenVINO后端执行。以`build_linux_native.sh`为例，默认仅编译处理图像的demo，如需编译基于摄像头的人脸配准demo，需要将`build_linux_native.sh`中的"-DTNN_DEMO_WITH_WEBCAM=OFF"修改为"-DTNN_DEMO_WITH_WEBCAM=ON":
    ```
@@ -267,7 +288,28 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 ##### MacOS
 * 环境要求
    - Cmake (>=3.11)
-   - OpenCV3, 确保可在CMake中通过 `find_package(OpenCV 3)`找到， 可通过brew安装(```brew install opencv@3 && brew link --force opencv@3```)。如果安装brew安装失败，尝试opencv源码编译。
+   - OpenCV3 (只有webcam的demo会用), 确保可在CMake中通过 `find_package(OpenCV 3)`找到， 可通过brew安装(```brew install opencv@3 && brew link --force opencv@3```)，如果失败可使用手动编译
+
+   ```
+   // 手动编译OpenCV3
+   wget https://github.com/opencv/opencv/archive/3.4.13.zip
+   unzip 3.4.13.zip
+   cd opencv-3.4.13
+
+   mkdir build
+   mkdir install
+   cd build
+
+   cmake -DCMAKE_INSTALL_PREFIX=../install ..
+   make -j4
+   make install
+
+   // 在CMakeList.txt的find_packpage之前添加OpenCV路径
+   // 例如，进入examples/mac/x86，打开CMakeList.txt
+   // 在find_package(OpenCV 3 REQUIRED)之前添加
+   set(OpenCV_DIR <path_to_opencv>/opencv-3.4.13/install/share/OpenCV)
+   ```
+
 * 编译  
    进入 `examples/mac/x86` 目录，执行 `build_macos_native.sh`或`build_macos_openvino.sh`。前者使用TNN实现的优化X86后端执行，后者基于Intel OpenVINO后端执行。以`build_macos_native.sh`为例，默认仅编译处理图像的demo，如需编译基于摄像头的人脸配准demo，需要将`build_macos_native.sh`中的"-DTNN_DEMO_WITH_WEBCAM=OFF"修改为"-DTNN_DEMO_WITH_WEBCAM=ON":
    ```
