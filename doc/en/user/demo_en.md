@@ -106,7 +106,7 @@
 ### Environment requirements
 
 1. Android Studio 3.5 or above
-2. NDK version >= 16
+2. NDK version >= 18
 
 ### Steps
 
@@ -131,7 +131,11 @@
 
 2. Open the TNNExamples project
 
-   Enter the directory `<path_to_tnn>/examples/android/` and double-click to open the TNN example project.
+   - Enter the directory `<path_to_tnn>/examples/android/` and double-click to open the TNN example project file `build.gradle`.
+
+   - Connect Android phone to compute, and click `Run Demo` to compile and run demo.
+
+   - TNN example only build 64bit armv8 lib by default, if you need 32bit armv7 lib, please modify `build.gradle` with `abiFilters "armeabi-v7a", "arm64-v8a"`.
    
    PS for Huawei NPU ：
    

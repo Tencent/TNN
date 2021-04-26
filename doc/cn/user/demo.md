@@ -109,7 +109,7 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
 ### 运行环境要求
 
 1. Android Studio 3.5 或以上
-2. NDK version >= 16
+2. NDK version >= 18
 
 ### 运行步骤
 
@@ -134,8 +134,12 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
 
 2. 打开TNNExamples工程
 
-   进入目录`<path_to_tnn>/examples/android/`，双击打开TNNExamples工程。
-   
+   - 进入目录`<path_to_tnn>/examples/android/`，双击打开TNNExamples工程文件`build.gradle`。
+
+   - 将手机连接到电脑，点击`Run Demo`编译和运行demo。
+
+   - 工程默认编译64位armv8库，如要添加32位armv7库，可在`build.gradle`中修改为`abiFilters "armeabi-v7a", "arm64-v8a"`。
+
    PS ：
    
    1).  想要使用NPU, 打开工程后，需要手动设置打开NPU：
@@ -150,7 +154,7 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
    
    4). 运行demo需要需首先下载NPU DDK。参考: [FAQ](../faq.md): 创建华为NPU编译环境。
 
-   5). 想要执行OCR demo, 打开工程后，需要手动设置打开OPENCV和CPU依赖：
+   5). 想要执行OCR demo, 打开工程后，需要手动设置打开OPENCV依赖：
    在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 更新指令为如下，使用OPENCV。
    ````
         set(TNN_OPENCV_ENABLE ON CACHE BOOL "" FORCE)
