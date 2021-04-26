@@ -842,30 +842,23 @@ void DealOutput(Blob *output_blob, const int num_kept, const int num,
                 std::vector<std::map<int, std::vector<float>>> &all_conf_scores,
                 std::vector<LabelBBox> &all_decode_bboxes, std::vector<std::map<int, std::vector<int>>> &all_indices,
                 DetectionOutputLayerParam *param) {
-    std::vector<int> top_shape(2, 1);
-    top_shape.push_back(num_kept);
-    top_shape.push_back(7);
-    // get all dims
-    int num_dims = 1;
-    for (int dim : output_blob->GetBlobDesc().dims) {
-        num_dims *= dim;
-    }
     float *top_data = static_cast<float *>(output_blob->GetHandle().base);
-    // update the output shape
+    // clear all output to 0
+    priorbox_set_value(DimsVectorUtils::Count(output_blob->GetBlobDesc().dims), 0, top_data);
+
+    // if no detection
     if (num_kept == 0) {
         LOGD("%s:Couldn't find any detections.", __FUNCTION__);
-        top_shape[2] = num;
-        // top[0]->Reshape(top_shape);
         output_blob->GetBlobDesc().dims[2] = num;
-        priorbox_set_value(num_dims, -1, top_data);
+        priorbox_set_value(DimsVectorUtils::Count(output_blob->GetBlobDesc().dims), -1, top_data);
 
         // Generate fake results per image.
+        float *top_data_tmp = top_data;
         for (int i = 0; i < num; ++i) {
-            top_data[0] = static_cast<float>(i);
-            top_data += 7;
+            top_data_tmp[0] = static_cast<float>(i);
+            top_data_tmp += 7;
         }
     } else {
-        // top[0]->Reshape(top_shape);
         output_blob->GetBlobDesc().dims[2] = num_kept;
     }
 

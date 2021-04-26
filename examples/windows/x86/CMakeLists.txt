@@ -3,12 +3,12 @@ project(TNN-demo)
 message(${CMAKE_SOURCE_DIR})
 message(${TNN_LIB_PATH})
 
+option(TNN_OPENVINO_ENABLE "with openvino lib" OFF)
 option(TNN_OPENVINO_LIB_PATH "openvino lib path" "")
 option(TNN_DEMO_WITH_WEBCAM "with webcam" OFF)
 
 set(CMAKE_CXX_STANDARD 11)
 set(TNN_CPU_ENABLE ON)
-set(TNN_OPENVINO_ENABLE ON)
 
 if (TNN_DEMO_WITH_WEBCAM)
     find_package(OpenCV 3 REQUIRED)
@@ -32,9 +32,17 @@ include_directories(${CMAKE_SOURCE_DIR}/../../utils)
 link_directories(${TNN_LIB_PATH})
 if (${TNN_OPENVINO_ENABLE})
     link_directories(${TNN_OPENVINO_LIB_PATH})
+    add_definitions(-D_OPENVINO_)
 endif()
 
 link_libraries(TNN)
+
+add_subdirectory(${TNNRoot}/third_party/gflags ${TNNRoot}/third_party/gflags)
+get_target_property(GFLAGS_INCLUDE_DIRS gflags INTERFACE_INCLUDE_DIRECTORIES)
+include_directories(BEFORE "${GFLAGS_INCLUDE_DIRS}")
+link_libraries(gflags)
+
+file(GLOB FLAG_SRC "${CMAKE_SOURCE_DIR}/../../linux/src/*.cc")
 
 file(GLOB_RECURSE BASE_SRC
                     "${CMAKE_SOURCE_DIR}/../../base/*.cc")
@@ -45,10 +53,10 @@ file(GLOB_RECURSE UTIL_SRC
 file(GLOB_RECURSE WEBCAM_SRC "${CMAKE_SOURCE_DIR}/../../base/ocr*.cc")
 list(REMOVE_ITEM BASE_SRC ${WEBCAM_SRC})
 
-add_executable(demo_x86_imageclassify ../../linux/src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC} ${UTIL_SRC})
-add_executable(demo_x86_facedetector ../../linux/src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC} ${UTIL_SRC})
-add_executable(demo_x86_readingcomprehension ../../linux/src/BertReadingComprehension/BertReadingComprehension.cc ${BASE_SRC} ${UTIL_SRC})
-add_executable(demo_x86_objectdetector ../../linux/src/TNNObjectDetector/TNNObjectDetector.cc ${BASE_SRC} ${UTIL_SRC})
+add_executable(demo_x86_imageclassify ${CMAKE_SOURCE_DIR}/../../linux/src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_x86_facedetector ${CMAKE_SOURCE_DIR}/../../linux/src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_x86_readingcomprehension ${CMAKE_SOURCE_DIR}/../../linux/src/BertReadingComprehension/BertReadingComprehension.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_x86_objectdetector ${CMAKE_SOURCE_DIR}/../../linux/src/TNNObjectDetector/TNNObjectDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 
 if (TNN_DEMO_WITH_WEBCAM)
     file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/../../linux/src/TNNWebCamBasedDemo/*.cc")

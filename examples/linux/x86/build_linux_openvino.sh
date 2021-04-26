@@ -9,13 +9,14 @@ cd ../../../scripts
 sh build_x86_linux.sh
 cd -
 
-rm -rf build_x86_linux
-mkdir build_x86_linux
-cd build_x86_linux
+rm -rf build_linux_openvino
+mkdir build_linux_openvino
+cd build_linux_openvino
 
 cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
     -DTNN_LIB_PATH=$TNN_LIB_PATH \
+    -DTNN_OPENVINO_ENABLE=ON \
     -DTNN_OPENVINO_LIB_PATH=$TNN_OPENVINO_LIB_PATH \
     -DTNN_DEMO_WITH_WEBCAM=OFF \
 
