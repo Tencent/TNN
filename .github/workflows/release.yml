@@ -271,6 +271,7 @@ jobs:
         env:
             ASSET_PATH: ${{ env.ASSET_NAME }}.tar.gz
         run: |
+          apt-get install wget
           export PATH=$PATH:/usr/local/cmake-3.15.3/bin/ 
           export TENSORRT_ROOT_DIR=/usr/local/tensorrt/
           export CUDNN_ROOT_DIR=/usr/local/cudnn/
@@ -438,6 +439,7 @@ jobs:
       ASSET_NAME: ${{ env.ASSET_NAME }}
     steps:
       - uses: actions/checkout@v2
+      - uses: ilammy/msvc-dev-cmd@v1
       - uses: seanmiddleditch/gha-setup-ninja@master
       - name: Build
         run: |
