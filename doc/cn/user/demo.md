@@ -267,7 +267,7 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 ##### MacOS
 * 环境要求
    - Cmake (>=3.11)
-   - OpenCV3, 确保可在CMake中通过 `find_package(OpenCV 3)`找到， 可通过brew安装(```brew install opencv@3 && brew link --force opencv@3```)
+   - OpenCV3, 确保可在CMake中通过 `find_package(OpenCV 3)`找到， 可通过brew安装(```brew install opencv@3 && brew link --force opencv@3```)。如果安装brew安装失败，尝试opencv源码编译。
 * 编译  
    进入 `examples/mac/x86` 目录，执行 `build_macos_native.sh`或`build_macos_openvino.sh`。前者使用TNN实现的优化X86后端执行，后者基于Intel OpenVINO后端执行。以`build_macos_native.sh`为例，默认仅编译处理图像的demo，如需编译基于摄像头的人脸配准demo，需要将`build_macos_native.sh`中的"-DTNN_DEMO_WITH_WEBCAM=OFF"修改为"-DTNN_DEMO_WITH_WEBCAM=ON":
    ```

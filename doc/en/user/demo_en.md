@@ -271,7 +271,7 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
 ##### MacOS
 * Environment Requirements  
    - Cmake (>=3.11)
-   - OpenCV3, Can be imported in CMake by ```find_package(OpenCV 3)```. you can install opencv with brew (```brew install opencv@3 && brew link --force opencv@3```).
+   - OpenCV3, Can be imported in CMake by ```find_package(OpenCV 3)```. you can install opencv with brew (```brew install opencv@3 && brew link --force opencv@3```). If install failed, try to compile opencv with source code.
 * Compile  
    Move to `examples/mac/x86` directory and execute `build_macos_native.sh` or `build_macos_openvino.sh`. In the former case, TNN uses its optimized X86 backend to execute models, while the Intel OpenVINO backend is used in forward inference in the later case. Take `build_macos_native.sh` as an example, by default, only image demos will be compiled. If you want to compile the face alignmnt camera demo, you need to change the "-DTNN_DEMO_WITH_WEBCAM=OFF to "-DTNN_DEMO_WITH_WEBCAM=ON" in `build_macos_native.sh`:
    ```
