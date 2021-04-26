@@ -158,8 +158,8 @@
         set(TNN_OPENCV_ENABLE ON CACHE BOOL "" FORCE)
    ````
 
-   You need to set OPENCV_ANDROID_SDK_PATH to use personal OpenCV SDK:
-   在<path_to_tnn>/examples/android/demo/CMakeList.txt中, 更新指令为如下，使用指定的OPENCV。
+   If you want to use specific OpenCV SDK instead of downloading through above `download_opencv.sh` script, you need to set OPENCV_ANDROID_SDK_PATH manually:
+   In <path_to_tnn>/examples/android/demo/CMakeList.txt, change to specific OpenCV SDK path.
    ````
         set(OPENCV_ANDROID_SDK_PATH <path_to_opencv_android_sdk>)
    ````
