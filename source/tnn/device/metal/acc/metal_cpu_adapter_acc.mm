@@ -43,7 +43,9 @@ static void PackOrUnpackData(void *src, void *dst, DataType data_type, DimsVecto
             DataFormatConverter::ConvertFromNCHW4ToNCHWFloat(src_data, dst_data, dims[0], dims[1],
                 DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3));
         }
-    } else if (DATA_TYPE_HALF == data_type) {
+    }
+#if TNN_ARM82
+    else if (DATA_TYPE_HALF == data_type) {
         // TODO: how to packc8 in a device-independent way?
         const int batch   = dims[0];
         const int channel = dims[1];
@@ -60,6 +62,7 @@ static void PackOrUnpackData(void *src, void *dst, DataType data_type, DimsVecto
             }
         }
     }
+#endif
 }
 
 MetalCpuAdapterAcc::MetalCpuAdapterAcc(LayerType impl_layer_type) {
@@ -174,8 +177,8 @@ DataType MetalCpuAdapterAcc::GetCpuLayerAccPrecision(DataType metal_blob_data_ty
 }
 
  DataFormat MetalCpuAdapterAcc::GetCpuLayerAccDataFormat() {
-     auto cpu_layouts = impl_device_->GetImplementedLayout(impl_layer_type_);
-     return cpu_layouts->layouts[0];
+    auto cpu_layouts = impl_device_->GetImplementedLayout(impl_layer_type_);
+    return cpu_layouts->layouts[0];
  }
 
 Status MetalCpuAdapterAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
