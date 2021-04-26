@@ -94,7 +94,7 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
 
    效果示例：iPhone 7, ARM 单线程 6.3206ms
 
-  <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/face_detector.jpg" width = "50%" height = "50%"/>
+  <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/face_detector.jpg" width = "33%" height = "33%"/>
 
 2. 图像分类
 
@@ -102,7 +102,7 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
 
    效果示例：iPhone 7, ARM 单线程 13.83ms
 
-  <div align =left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/image_classify.jpg" width = 50% height = "50%"/>
+  <div align =left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/image_classify.jpg" width = 33% height = "33%"/>
 
 ## 二、Android Demo 介绍
 
@@ -176,11 +176,11 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 
    效果示例：华为P30, ARM 单线程 32.2359ms
 
-   <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_image.jpg" width = "50%" height = "50%"/>
+   <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_image.jpg" width = "25%" height = "25%"/>
     
     效果示例： 华为P30, 华为NPU rom 100.320.010.022 9.04ms
     
-    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detecor_image_npu.jpg" width = "50%" height = "50%"/>
+    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detecor_image_npu.jpg" width = "25%" height = "25%"/>
     
 
 2. 人脸检测-视频
@@ -188,11 +188,11 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 
    效果示例：华为P30, ARM 单线程 122.296ms
 
-   <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_stream.jpg" width = "50%" height = "50%"/>
+   <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_stream.jpg" width = "25%" height = "25%"/>
     
     效果示例： 华为P30, 华为NPU rom 100.320.010.022 28ms
     
-    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detector_stream_npu.jpg" width = "50%" height = "50%"/>
+    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detector_stream_npu.jpg" width = "25%" height = "25%"/>
 
 3. 图像分类
 
@@ -200,11 +200,11 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 
    效果示例：华为P30, ARM 单线程 81.4047ms
 
-   <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_image_classify.jpg" width = "50%" height = "50%"/>
+   <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_image_classify.jpg" width = "25%" height = "25%"/>
     
    效果示例： 华为P30, NPU rom 100.320.010.022 2.48ms
     
-   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "50%" height = "50%"/>
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "25%" height = "25%"/>
     
 ## 三、Linux/Mac/Windows/ArmLinux/CudaLinux Demo 介绍
 ### 功能
