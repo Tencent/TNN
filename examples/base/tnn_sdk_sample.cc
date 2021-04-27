@@ -1066,6 +1066,31 @@ void Rectangle(void *data_rgba, int image_height, int image_width,
 }
 
 /*
+ * Line
+ */
+void Line(void *data_rgba, int image_height, int image_width,
+          int x0, int y0, int x1, int y1, float scale_x, float scale_y)
+{
+    RGBA *image_rgba = (RGBA *)data_rgba;
+
+    int y_start = (x0 < x1 ? y0 : y1) * scale_y;
+    int y_end   = (x0 < x1 ? y1 : y0) * scale_y;
+    int x_start = (x0 < x1 ? x0 : x1) * scale_x;
+    int x_end   = (x0 < x1 ? x1 : x0) * scale_x;
+
+    x_start = std::min(std::max(x_start, 0), image_width - 1);
+    x_end   = std::min(std::max(x_end, 0), image_width - 1);
+    y_start = std::min(std::max(y_start, 0), image_height - 1);
+    y_end   = std::min(std::max(y_end, 0), image_height - 1);
+
+    for (int x = x_start; x <= x_end; x++) {
+        int y = (float)(y_end - y_start) / (float)(x_end - x_start) * (float)(x - x_start) + y_start;
+        int offset = y * image_width + x;
+        image_rgba[offset] = {0, 255, 0, 255};
+    }
+}
+
+/*
  * Point
  */
 void Point(void *data_rgba, int image_height, int image_width, int x, int y, float z, float scale_x, float scale_y)

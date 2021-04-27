@@ -260,6 +260,9 @@ void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float 
 void Rectangle(void *data_rgba, int image_height, int image_width,
                int x0, int y0, int x1, int y1, float scale_x = 1.0, float scale_y = 1.0);
 
+void Line(void *data_rgba, int image_height, int image_width,
+          int x0, int y0, int x1, int y1, float scale_x = 1.0, float scale_y = 1.0);
+
 void Point(void *data_rgba, int image_height, int image_width,
            int x, int y, float z, float scale_x = 1.0, float scale_y = 1.0);
 }  // namespace TNN_NS
