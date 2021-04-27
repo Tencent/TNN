@@ -118,11 +118,11 @@ int main(int argc, char** argv) {
         option->model_content = model_content;
         option->library_path = "";
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
+        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
-            option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        #elif _ARM_
-            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-        #else
+            option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+        #elif _OPENVINO_
             option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
         #endif
     

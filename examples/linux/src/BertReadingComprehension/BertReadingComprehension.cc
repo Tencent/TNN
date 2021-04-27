@@ -57,6 +57,7 @@ int main(int argc, char **argv) {
     std::cout << "Initializing Vocabularies..." << std::endl;
     tokenizer->Init(FLAGS_v.c_str());
     
+    printf("%s\n%s\n%s\n", FLAGS_v.c_str(), FLAGS_p.c_str(), FLAGS_m.c_str());
     // 创建tnn实例
     std::cout << "Initializing TNN Instance..." << std::endl;
     auto proto_content = fdLoadFile(FLAGS_p.c_str());

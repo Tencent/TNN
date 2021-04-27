@@ -62,10 +62,10 @@ Status StrideSliceOVLayerBuilder::Build() {
     auto endNode = std::make_shared<ngraph::op::Constant>(
         ngraph::element::Type_t::i32, strideSliceShape, ends);
     auto strideNode = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::i32, strideSliceShape, paramlist->strides);
+        ngraph::element::Type_t::i32, strideSliceShape, strides);
 
     auto strideSliceNode = std::make_shared<ngraph::op::v1::StridedSlice>(
-        input_node->output(0), beginNode, endNode, begin_mask, end_mask);
+        input_node->output(0), beginNode, endNode, strideNode, begin_mask, end_mask);
     
     strideSliceNode->validate_and_infer_types();
     strideSliceNode->set_friendly_name(paramlist->name);

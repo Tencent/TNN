@@ -47,8 +47,9 @@ const std::string label_list[] = {
                 "hair drier", "toothbrush"};
 
 int main(int argc, char **argv) {
-    if (!ParseAndCheckCommandLine(argc, argv)) {
+    if (!ParseAndCheckCommandLine(argc, argv, false)) {
         ShowUsage(argv[0]);
+        printf("The default proto and model file could be found at ../../../../model/yolov5/\n");
         return -1;
     }
 
@@ -119,13 +120,8 @@ int main(int argc, char **argv) {
 #endif
     }
 
-    auto proto_path = "../../../../model/yolov5/yolov5s-permute.tnnproto";
-    auto model_path = "../../../../model/yolov5/yolov5s.tnnmodel";
-
-
-    int target_height = 448;
-    int target_width = 640;
-    int target_channel = 3;
+    // auto proto_path = "../../../../model/yolov'5/yolov5s-permute.tnnproto";
+    // auto model_path = "../../../../model/yolov5/yolov5s.tnnmodel";
 
     auto option = std::make_shared<TNN_NS::TNNSDKOption>();
     {
@@ -138,18 +134,6 @@ int main(int argc, char **argv) {
         #elif _OPENVINO_
             option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
         #endif
-    }
-
-    char img_buff[256];
-    char* input_imgfn = img_buff;
-    strncpy(input_imgfn, FLAGS_i.c_str(), 256);
-
-    int image_width, image_height, image_channel;
-    unsigned char *data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
-    std::vector<int> nchw = {1, 3, image_height, image_width};
-
-    if (!data) {
-        fprintf(stderr, "Object-Detector open file %s failed.\n", input_imgfn);
     }
 
     auto predictor = std::make_shared<TNN_NS::ObjectDetectorYolo>();
@@ -178,6 +162,7 @@ int main(int argc, char **argv) {
     auto resize_mat = predictor->ProcessSDKInputMat(image_mat, "images");
     CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNN_NS::TNNSDKInput>(resize_mat), sdk_output));
     CHECK_TNN_STATUS(predictor->ProcessSDKOutput(sdk_output));
+
     std::vector<TNN_NS::ObjectInfo> object_list;
     if (sdk_output && dynamic_cast<TNN_NS::ObjectDetectorYoloOutput *>(sdk_output.get())) {
         auto obj_output = dynamic_cast<TNN_NS::ObjectDetectorYoloOutput *>(sdk_output.get());
@@ -230,6 +215,7 @@ int main(int argc, char **argv) {
                 return -1;
             delete [] ifm_buf;
             fprintf(stdout, "Object-Detector Done.\nNumber of objects: %d\n", int(object_list.size()));
+            printf("The result was saved in %s.png\n", "predictions");
             free(data);
 #ifdef _OPENCV_
             break;

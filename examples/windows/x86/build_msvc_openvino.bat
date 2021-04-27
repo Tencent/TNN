@@ -21,7 +21,7 @@ cmake .. -G "Ninja" ^
     -DTNN_LIB_PATH=%TNN_LIB_PATH% ^
     -DTNN_OPENVINO_ENABLE=ON ^
     -DTNN_OPENVINO_LIB_PATH=%OPENVINO_LIB_PATH% ^
-    -DTNN_DEMO_WITH_WEBCAM=OFF
+    -DTNN_DEMO_WITH_OPENCV=OFF
     @REM -DOpenCV_DIR=%OpenCV_DIR%
 
 if !errorlevel! == 1 (

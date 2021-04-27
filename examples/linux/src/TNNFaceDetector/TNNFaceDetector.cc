@@ -36,7 +36,7 @@
 using namespace TNN_NS;
 
 int main(int argc, char** argv) {
-    if (!ParseAndCheckCommandLine(argc, argv)) {
+    if (!ParseAndCheckCommandLine(argc, argv, false)) {
         ShowUsage(argv[0]);
         return -1;
     }

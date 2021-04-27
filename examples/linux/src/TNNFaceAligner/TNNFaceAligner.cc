@@ -106,11 +106,11 @@ Status initFaceAlignPredictor(std::shared_ptr<YoutuFaceAlign>& predictor, int ar
         align_option->proto_content = align_proto_content;
         align_option->model_content = align_model_content;
         align_option->library_path = "";
+        align_option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
-            align_option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        #elif _ARM_
-            align_option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-        #else
+            align_option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+        #elif _OPENVINO_
             align_option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
         #endif
 
@@ -274,7 +274,7 @@ int main(int argc, char** argv) {
             if(!success) 
                 return -1;
             delete [] ifm_buf;
-            fprintf(stdout, "Face-detector done.\n");
+            fprintf(stdout, "Face-detector done. The result was saved in %s.png\n", "predictions");
             free(data);
 #ifdef _OPENCV_
             break;
