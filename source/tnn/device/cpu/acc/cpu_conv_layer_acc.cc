@@ -99,6 +99,7 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
                 relu6_max_data[i] = float2int8(6.0f / output_scale_resource_data[scale_idx]);
             }
             relu6_max_ = relu6_max;
+            relu6_max_.SetDataType(DATA_TYPE_INT8);
         }
     }
     return TNN_OK;

@@ -329,6 +329,9 @@ Status ArmConvInt8LayerCommon::setFusionParam(const std::vector<Blob *> &inputs,
         }
     } else if (conv_param->activation_type == ActivationType_ReLU6) {
         relu_ = 2;
+        if (conv_param->fusion_type == FusionType_Conv_Activation_Add) {
+            return Status(TNNERR_LAYER_ERR, "Conv-Activation-Add fusion does not support relu6");
+        }
     }
 
     // compute relu6 max
@@ -345,6 +348,7 @@ Status ArmConvInt8LayerCommon::setFusionParam(const std::vector<Blob *> &inputs,
             relu6_max_data[i] = float2int8(6.0f / output_scale_resource_data[scale_idx]);
         }
         relu6_max_ = relu6_max;
+        relu6_max_.SetDataType(DATA_TYPE_INT8);
     }
 
     return TNN_OK;

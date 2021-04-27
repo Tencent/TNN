@@ -68,6 +68,12 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
         }
     }
 
+    if (fusion_type == FusionType_Conv_Activation_Add) {
+        if (activation_type == ActivationType_ReLU6) {
+            GTEST_SKIP();
+        }
+    }
+
     // param
     std::shared_ptr<ConvLayerParam> param(new ConvLayerParam());
     param->name            = "Conv";
