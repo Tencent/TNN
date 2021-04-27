@@ -79,21 +79,29 @@ Status initDetectPredictor(std::shared_ptr<BlazeFaceDetector>& predictor, int ar
     return status;
 }
 
-Status initFaceAlignPredictor(std::shared_ptr<Facemesh>& predictor, int argc, char **argv) {
+Status initFaceAlignPredictor(std::shared_ptr<YoutuFaceAlign>& predictor, int argc, char **argv, int phase) {
     char align_path_buff[256];
     char *align_model_path = align_path_buff;
     if (argc < 2) {
-        strncpy(align_model_path, "../../../../model/face_mesh/", 256);
+        strncpy(align_model_path, "../../../../model/youtu_face_alignment/", 256);
     } else {
         strncpy(align_model_path, argv[1], 256);
     }
 
-    std::string align_proto = std::string(align_model_path) + "face_mesh.tnnproto";
-    std::string align_model = std::string(align_model_path) + "face_mesh.tnnmodel";
+    std::string align_proto, align_model, align_pts;
+    if (phase == 1) {
+        align_proto = std::string(align_model_path) + "youtu_face_alignment_phase1.tnnproto";
+        align_model = std::string(align_model_path) + "youtu_face_alignment_phase1.tnnmodel";
+        align_pts   = std::string(align_model_path) + "youtu_mean_pts_phase1.txt";
+    } else {
+        align_proto = std::string(align_model_path) + "youtu_face_alignment_phase2.tnnproto";
+        align_model = std::string(align_model_path) + "youtu_face_alignment_phase2.tnnmodel";
+        align_pts   = std::string(align_model_path) + "youtu_mean_pts_phase2.txt";
+    }
     auto align_proto_content = fdLoadFile(align_proto);
     auto align_model_content = fdLoadFile(align_model);
 
-    auto align_option = std::make_shared<FacemeshOption>();
+    auto align_option = std::make_shared<YoutuFaceAlignOption>();
     {
         align_option->proto_content = align_proto_content;
         align_option->model_content = align_model_content;
@@ -107,14 +115,19 @@ Status initFaceAlignPredictor(std::shared_ptr<Facemesh>& predictor, int argc, ch
         #endif
 
         // set parameters
-        align_option->face_presence_threshold = 0.1;
-        align_option->flip_vertically = false;
-        align_option->flip_horizontally = false;
-        align_option->norm_z = 1.f;
-        align_option->ignore_rotation = false;
+        const int target_height = 128;
+        const int target_width = 128;
+        const int target_channel = 1;
+        align_option->input_width = target_width;
+        align_option->input_height = target_height;
+        align_option->face_threshold = 0.5;
+        align_option->min_face_size = 20;;
+        align_option->phase = phase;
+        align_option->net_scale = phase == 1 ? 1.2 : 1.3;
+        align_option->mean_pts_path = align_pts;
     }
 
-    predictor = std::make_shared<Facemesh>();
+    predictor = std::make_shared<YoutuFaceAlign>();
     auto status = predictor->Init(align_option);
 
     return status;
@@ -124,8 +137,14 @@ int main(int argc, char** argv) {
     std::shared_ptr<BlazeFaceDetector> detect_sdk;
     CHECK_TNN_STATUS(initDetectPredictor(detect_sdk, argc, argv));
 
-    std::shared_ptr<Facemesh> align_sdk;
-    CHECK_TNN_STATUS(initFaceAlignPredictor(align_sdk, argc, argv));
+    std::shared_ptr<YoutuFaceAlign> align_sdk1;
+    CHECK_TNN_STATUS(initFaceAlignPredictor(align_sdk1, argc, argv, 1));
+
+    std::shared_ptr<YoutuFaceAlign> align_sdk2;
+    CHECK_TNN_STATUS(initFaceAlignPredictor(align_sdk2, argc, argv, 2));
+
+    auto predictor = std::make_shared<FaceDetectAligner>();
+    predictor->Init({detect_sdk, align_sdk1, align_sdk2});
 
     printf("Please choose the source you want to detect:\n");
     printf("1. picture;\t2. video;\t3. camera.\n");
@@ -215,14 +234,12 @@ int main(int argc, char** argv) {
         DimsVector nchw = {1, image_channel, image_height, image_width};
         auto image_mat = std::make_shared<Mat>(DEVICE_NAIVE, N8UC3, nchw, data);
         auto resize_mat = std::make_shared<Mat>(DEVICE_NAIVE, N8UC3, target_dims);
+        // TNN_NS::ResizeParam param;
+        // TNN_NS::MatUtils::Resize(*image_mat, *resize_mat, param, NULL);
         CHECK_TNN_STATUS(detect_sdk->Resize(image_mat, resize_mat, TNNInterpLinear));
 
-        CHECK_TNN_STATUS(detect_sdk->Predict(std::make_shared<BlazeFaceDetectorInput>(resize_mat), output));
-
-        if (output && dynamic_cast<BlazeFaceDetectorOutput *>(output.get())) {
-            auto face_output = dynamic_cast<BlazeFaceDetectorOutput *>(output.get());
-            face_info = face_output->face_list;
-        }
+        CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(resize_mat), output));
+        CHECK_TNN_STATUS(predictor->ProcessSDKOutput(output));
 
         uint8_t *ifm_buf = new uint8_t[image_width * image_height * 4];
         for (int i = 0; i < image_width * image_height; ++i) {
@@ -232,35 +249,12 @@ int main(int argc, char** argv) {
             ifm_buf[i*4+3]  = 255;
         }
 
-        for (auto face : face_info) {
-            auto face_orig = face.AdjustToViewSize(image_height, image_width, 2);
-            printf("%f %f %f %f\n", face_orig.x1, face_orig.x2, face_orig.y1, face_orig.y2);
-            int crop_h = face_orig.y2 - face_orig.y1;
-            int crop_w = face_orig.x2 - face_orig.x1;
+        if (output && dynamic_cast<YoutuFaceAlignOutput *>(output.get())) {
+            auto face = dynamic_cast<YoutuFaceAlignOutput *>(output.get())->face;
             
-            DimsVector crop_dims = {1, 3, (int)(1.5 * crop_h), (int)(1.5 * crop_w)};
-            std::shared_ptr<Mat> croped_mat = std::make_shared<Mat>(DEVICE_NAIVE, N8UC3, crop_dims);
-            CHECK_TNN_STATUS(detect_sdk->Crop(image_mat, croped_mat, (int)(face_orig.x1 - crop_w * 0.25), (int)(face_orig.y1 - crop_h * 0.25)));
-
-            DimsVector align_dims = {1, 3, 192, 192};
-            std::shared_ptr<Mat> input_mat = std::make_shared<Mat>(DEVICE_NAIVE, N8UC3, align_dims);
-            CHECK_TNN_STATUS(detect_sdk->Resize(croped_mat, input_mat, TNNInterpLinear));
-
-            std::shared_ptr<TNNSDKOutput> align_output = nullptr;
-            CHECK_TNN_STATUS(align_sdk->Predict(std::make_shared<FacemeshInput>(input_mat), align_output));
-
-            std::vector<FacemeshInfo> face_mesh_info;
-            if (align_output && dynamic_cast<FacemeshOutput*>(align_output.get())) {
-                auto face_output = dynamic_cast<FacemeshOutput*>(align_output.get());
-                face_mesh_info = face_output->face_list;
-            }
-
-            for (auto face_mesh : face_mesh_info) {
-                auto face_mesh_crop = face_mesh.AdjustToViewSize(1.5 * crop_h, 1.5 * crop_w, 2);
-                face_mesh_crop = face_mesh_crop.AddOffset((int)(face_orig.x1 - crop_w * 0.25), (int)(face_orig.y1 - crop_h * 0.25));
-                for (auto p : face_mesh_crop.key_points) {
-                    TNN_NS::Point(ifm_buf, image_height, image_width, p.first, p.second, 0.f);
-                }
+            auto face_preview = face.AdjustToImageSize(image_height, image_width);
+            for (auto point : face_preview.key_points) {
+                Point(ifm_buf, image_height, image_width, point.first, point.second, 0.f);
             }
         }
 
@@ -280,7 +274,7 @@ int main(int argc, char** argv) {
             if(!success) 
                 return -1;
             delete [] ifm_buf;
-            fprintf(stdout, "Face-detector done.\nNumber of faces: %d\n",int(face_info.size()));
+            fprintf(stdout, "Face-detector done.\n");
             free(data);
 #ifdef _OPENCV_
             break;
