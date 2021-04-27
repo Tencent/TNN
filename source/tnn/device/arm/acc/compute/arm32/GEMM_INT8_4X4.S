@@ -25,29 +25,30 @@ src          .req r0
 weight       .req r1
 dst          .req r2
 src_w_step   .req r3
-dst_depth    .req r4  // (sp, #32)
-cdiv8        .req r5  // (sp, #36)
-scale        .req r6  // (sp, #40)
-bias         .req r7  // (sp, #44)
-relu         .req r8  // (sp, #48)
-add_input    .req r9  // (sp, #52)
-add_scale    .req r10 // (sp, #56)
-// relu6_max          // (sp, #60)
+dst_depth    .req r4  // (sp, #36)
+cdiv8        .req r5  // (sp, #40)
+scale        .req r6  // (sp, #44)
+bias         .req r7  // (sp, #48)
+relu         .req r8  // (sp, #52)
+add_input    .req r9  // (sp, #56)
+add_scale    .req r10 // (sp, #60)
+relu6_max    .req r11 // (sp, #64)
 
-push {r4, r5, r6, r7, r8, r9, r10, lr}
+push {r4, r5, r6, r7, r8, r9, r10, r11, lr}
 
 //prefetch data
 //assume buffer c>=16, even c==8
 vld1.8 {q12, q13}, [weight]!
 vld1.8 {q14, q15}, [src]!
 
-ldr r4, [sp, #32]
-ldr r5, [sp, #36]
-ldr r6, [sp, #40]
-ldr r7, [sp, #44]
-ldr r8, [sp, #48]
-ldr r9, [sp, #52]
-ldr r10, [sp, #56]
+ldr r4, [sp, #36]
+ldr r5, [sp, #40]
+ldr r6, [sp, #44]
+ldr r7, [sp, #48]
+ldr r8, [sp, #52]
+ldr r9, [sp, #56]
+ldr r10, [sp, #60]
+ldr r11, [sp, #64]
 vpush {q4-q7}
 
 C8Start:
@@ -227,8 +228,7 @@ Relu:
 
     cmp relu, #2            // relu6
     bne Store
-    ldr r8, [sp, #60]       // relu6_max
-    vld1.32 {d12[]}, [r8]
+    vld1.32 {d12[]}, [r11]  // relu6_max
     vmin.s8 d4, d12
     vmin.s8 d6, d12
 
@@ -239,7 +239,7 @@ Store:
     vst1.s32 d6[1], [dst]
     
 vpop {q4-q7}
-pop {r4, r5, r6, r7, r8, r9, r10, pc}
+pop {r4, r5, r6, r7, r8, r9, r10, r11, pc}
 
 .L4:
     .word 0x4B400000

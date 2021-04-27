@@ -341,11 +341,14 @@ Status ArmConvInt8LayerCommon::setFusionParam(const std::vector<Blob *> &inputs,
         auto output_scale_resource_data = output_scale_resource->scale_handle.force_to<float *>();
         auto &dims_output               = outputs[0]->GetBlobDesc().dims;
         auto &output_channel            = dims_output[1];
-        RawBuffer relu6_max             = RawBuffer(output_channel * sizeof(int8_t));
+        RawBuffer relu6_max             = RawBuffer(ROUND_UP(output_channel, 4) * sizeof(int8_t));
         auto relu6_max_data             = relu6_max.force_to<int8_t *>();
         for (int i = 0; i < output_channel; ++i) {
             int scale_idx     = output_scale_len == 1 ? 0 : i;
             relu6_max_data[i] = float2int8(6.0f / output_scale_resource_data[scale_idx]);
+        }
+        for (int i = output_channel; i < ROUND_UP(output_channel, 4); ++i) {
+            relu6_max_data[i] = 127;
         }
         relu6_max_ = relu6_max;
         relu6_max_.SetDataType(DATA_TYPE_INT8);
