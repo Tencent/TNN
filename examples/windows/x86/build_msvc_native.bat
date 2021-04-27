@@ -1,25 +1,24 @@
 @echo off
 
 set ROOT_DIR=%~dp0
-set TNN_LIB_PATH=%ROOT_DIR%\..\..\..\scripts\msvc_release\lib\
-set TNN_BIN_PATH=%ROOT_DIR%\..\..\..\scripts\msvc_release\bin\
-set EXAMPLE_INSTALL_PATH=%ROOT_DIR%\build_msvc\release
+set TNN_LIB_PATH=%ROOT_DIR%\..\..\..\scripts\build_win\
+set TNN_BIN_PATH=%ROOT_DIR%\..\..\..\scripts\build_win\
+set EXAMPLE_INSTALL_PATH=%ROOT_DIR%\build_msvc_native\release
 
-cd ..\..\..\scripts
-call build_msvc.bat
+cd %ROOT_DIR%\..\..\..\scripts\
+call build_msvc_native.bat
 echo !cd!
-cd ..\..\examples\windows\x86\
+cd %ROOT_DIR%\..\..\..\examples\windows\x86\
 
-rmdir /s /q build_msvc
-mkdir build_msvc
-cd build_msvc
+:: rmdir /s /q build_msvc_native
+mkdir build_msvc_native
+cd build_msvc_native
 
-cmake .. ^
+cmake .. -G "Ninja" ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_SYSTEM_NAME=Windows ^
     -DCMAKE_SYSTEM_PROCESSOR=AMD64 ^
     -DTNN_LIB_PATH=%TNN_LIB_PATH% ^
-    -DTNN_OPENVINO_LIB_PATH=%OPENVINO_LIB_PATH% ^
     -DTNN_DEMO_WITH_WEBCAM=OFF
     @REM -DOpenCV_DIR=%OpenCV_DIR%
 
@@ -42,7 +41,6 @@ if not exist %EXAMPLE_INSTALL_PATH% (
 for %%e in (.\*.exe) do copy "%%e" %EXAMPLE_INSTALL_PATH%
 for %%e in (%TNN_BIN_PATH%\*.dll) do copy "%%e" %EXAMPLE_INSTALL_PATH%
 for /R %OpenCV_DIR% %%e in (*.dll) do copy "%%e" %EXAMPLE_INSTALL_PATH%
-copy %TNN_BIN_PATH%\plugins.xml  %EXAMPLE_INSTALL_PATH%
 
 cd %ROOT_DIR%
 echo Build Successfully!

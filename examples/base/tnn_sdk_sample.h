@@ -24,15 +24,8 @@
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
-#ifdef _WIN32
-    #define NOMINMAX
-    #include <windows.h>
-    #define TNN_SDK_ENABLE_BENCHMARK 0
-#else
-    #define TNN_SDK_ENABLE_BENCHMARK 1
-    #include <sys/time.h>
-#endif
 
+#define TNN_SDK_ENABLE_BENCHMARK 1
 #define TNN_SDK_USE_NCNN_MODEL 0
 
 #ifndef HAS_OPENCV

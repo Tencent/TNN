@@ -21,25 +21,46 @@
 #include "utils/utils.h"
 #include "macro.h"
 
+#include "../flags.h"
+
 using namespace TNN_NS;
+
+static const char demo_guide[] = "If you don't know how to use this demo or got an execution error.\n"
+    "step1. Check the model and vocab path (download from url: https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10)\n"
+    "step2. Enter a paragraph found in the wiki or elsewhere\n"
+    "       eg. TNN README\n"
+    "       TNN: A high-performance, lightweight neural network inference framework open sourced by Tencent Youtu Lab. It also has many outstanding advantages such as cross-platform, high performance, model compression, and code tailoring. The TNN framework further strengthens the support and performance optimization of mobile devices on the basis of the original Rapidnet and ncnn frameworks. At the same time, it refers to the high performance and good scalability characteristics of the industry's mainstream open source frameworks, and expands the support for X86 and NV GPUs. On the mobile phone, TNN has been used by many applications such as mobile QQ, weishi, and Pitu. As a basic acceleration framework for Tencent Cloud AI, TNN has provided acceleration support for the implementation of many businesses. Everyone is welcome to participate in the collaborative construction to promote the further improvement of the TNN reasoning framework.\n"
+    "step3. Enter a question about the paragraph\n"
+    "       what is TNN?\n"
+    "       where TNN has been used?\n";
+
+static const char vocab_path_message[] = "(required) vocab file path";
+DEFINE_string(v, "", vocab_path_message);
 
 #define LETTER_MAX_COUNT 10000
 #define MAX_SEQ_LENGTH 256
 int main(int argc, char **argv) {
-    if (argc < 3) {
-        printf("how to run: %s proto model vocabFile\n", argv[0]);
+    if (!ParseAndCheckCommandLine(argc, argv, false)) {
+        printf("%s\n", demo_guide);
+
+        ShowUsage(argv[0], false);
+        printf("\t-v, <vocab>    \t%s\n", vocab_path_message);
+        return -1;
+    }
+    if (FLAGS_v.empty()) {
+        printf("\t-v, <vocab>    \t%s\n", vocab_path_message);
         return -1;
     }
 
     auto tokenizer = std::make_shared<BertTokenizer>();
 
     std::cout << "Initializing Vocabularies..." << std::endl;
-    tokenizer->Init(argv[3]);
+    tokenizer->Init(FLAGS_v.c_str());
     
     // 创建tnn实例
     std::cout << "Initializing TNN Instance..." << std::endl;
-    auto proto_content = fdLoadFile(argv[1]);
-    auto model_content = fdLoadFile(argv[2]);
+    auto proto_content = fdLoadFile(FLAGS_p.c_str());
+    auto model_content = fdLoadFile(FLAGS_m.c_str());
     int h = 1, w = 256;
     std::vector<int> nchw = {1, 256};
 
@@ -49,12 +70,11 @@ int main(int argc, char **argv) {
         option->model_content = model_content;
         
         option->library_path = "";
+        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
-            option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        #elif _ARM_
-            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-        #else
+            option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+        #elif _OPENVINO_
             option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
         #endif
         
@@ -81,9 +101,6 @@ int main(int argc, char **argv) {
 
     const std::string quit("exit");
     while (quit.compare(question) != 0) {
-        // std::string paragraph = "In its early years, the new convention center failed to meet attendance and revenue expectations.[12] By 2002, many Silicon Valley businesses were choosing the much larger Moscone Center in San Francisco over the San Jose Convention Center due to the latter's limited space. A ballot measure to finance an expansion via a hotel tax failed to reach the required two-thirds majority to pass. In June 2005, Team San Jose built the South Hall, a $6.77 million, blue and white tent, adding 80,000 square feet (7,400 m2) of exhibit space";
-
-        // std::string question = "where is the businesses choosing to go?";
         tokenizer->buildInput(paragraph, question, bertInput);
         CHECK_TNN_STATUS(predictor->Predict(bertInput, bertOutput));
         std::string ans;

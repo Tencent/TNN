@@ -42,7 +42,7 @@ DimsExprs DetectionOutputTRTPluginLayerBuilder::getOutputDimensions(int index, c
     DetectionOutputLayerParam* param = dynamic_cast<DetectionOutputLayerParam*>(param_);
     DimsExprs output;
     output.nbDims = 4;
-    output.d[0] = exprBuilder.constant(2);
+    output.d[0] = exprBuilder.constant(1);
     output.d[1] = exprBuilder.constant(1);
     output.d[2] = exprBuilder.constant(param->keep_top_k);
     output.d[3] = exprBuilder.constant(7);

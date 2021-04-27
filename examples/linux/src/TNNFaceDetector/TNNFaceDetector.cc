@@ -21,6 +21,8 @@
 #include "macro.h"
 #include "utils/utils.h"
 
+#include "../flags.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../../../third_party/stb/stb_image.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
@@ -34,8 +36,8 @@
 using namespace TNN_NS;
 
 int main(int argc, char** argv) {
-    if (argc < 2) {
-        printf("how to run:  %s proto model\n", argv[0]);
+    if (!ParseAndCheckCommandLine(argc, argv)) {
+        ShowUsage(argv[0]);
         return -1;
     }
 
@@ -105,35 +107,28 @@ int main(int argc, char** argv) {
     }
 
     // 创建tnn实例
-    auto proto_content = fdLoadFile(argv[1]);
-    auto model_content = fdLoadFile(argv[2]);
-    int h = 240, w = 320;
-    if(argc >= 5) {
-        h = std::atoi(argv[3]);
-        w = std::atoi(argv[4]);
-    }
+    auto proto_content = fdLoadFile(FLAGS_p.c_str());
+    auto model_content = fdLoadFile(FLAGS_m.c_str());
+   // int h = 240, w = 320;
+
     auto option = std::make_shared<UltraFaceDetectorOption>();
     {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = "";
+        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
-            option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        #elif _ARM_
-            option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-        #else
+            option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+        #elif _OPENVINO_
             option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
         #endif
     
-        option->input_width = w;
-        option->input_height = h;
         option->score_threshold = 0.95;
         option->iou_threshold = 0.15;
     }
     
     auto predictor = std::make_shared<UltraFaceDetector>();
-    std::vector<int> nchw = {1, 3, h, w};
 
     // Init
     std::shared_ptr<TNNSDKOutput> sdk_output = predictor->CreateSDKOutput();
@@ -167,8 +162,11 @@ int main(int argc, char** argv) {
 
         const int image_orig_height = int(image_height);
         const int image_orig_width  = int(image_width);
-        float scale_x               = image_orig_width / (float)w;
-        float scale_y               = image_orig_height / (float)h;
+        const auto& target_dims     = predictor->GetInputShape();
+        const int target_height     = target_dims[2];
+        const int target_width      = target_dims[3];
+        float scale_x               = image_orig_width / (float)target_width;
+        float scale_y               = image_orig_height / (float)target_height;
 
         //convert rgb to rgb-a
         uint8_t *ifm_buf = new uint8_t[image_width*image_height*4];

@@ -9,13 +9,14 @@ cd ../../../scripts
 sh build_macos.sh
 cd -
 
-rm -rf build_x86_macos
-mkdir build_x86_macos
-cd build_x86_macos
+rm -rf build_macos_openvino
+mkdir build_macos_openvino
+cd build_macos_openvino
 
 cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
     -DTNN_LIB_PATH=$TNN_LIB_PATH \
+    -DTNN_OPENVINO_ENABLE=ON \
     -DTNN_OPENVINO_LIB_PATH=$TNN_OPENVINO_LIB_PATH  \
     -DTNN_DEMO_WITH_OPENCV=ON
 
