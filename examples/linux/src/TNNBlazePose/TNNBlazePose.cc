@@ -76,16 +76,16 @@ int main(int argc, char** argv) {
         std::cin.getline(img_buff, 256);
         std::cin.getline(img_buff, 256);
         if (strlen(img_buff) == 0) {
-            strncpy(input_imgfn, "/Users/wangshenpeng/Downloads/dance.jpeg", 256);
+            strncpy(input_imgfn, "../../../assets/skeleton_test.jpg", 256);
         } else {
             strncpy(input_imgfn, img_buff, 256);
         }
-        printf("Face-detector is about to start, and the picrture is %s\n", input_imgfn);
         data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
         if (!data) {
             std::cerr << "Image open failed.\n";
             return -1;
         }
+        printf("Pose-detector is about to start, and the picrture is %s\n", input_imgfn);
     } else if (detect_type == 2) {
 #ifdef _OPENCV_
         printf("Please enter the video path you want to detect:\n");
@@ -215,6 +215,7 @@ int main(int argc, char** argv) {
             int success = stbi_write_bmp(buff, image_orig_width, image_orig_height, 4, ifm_buf);
             if(!success) 
                 return -1;
+            printf("Pose Detect done. The result was saved in %s.png\n", "predictions");
             delete [] ifm_buf;
             free(data);
 #ifdef _OPENCV_
