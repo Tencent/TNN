@@ -70,9 +70,9 @@ void GemmInt8UnitN8Naive(long mr, long nr, long k, const int8_t* a, long a_strid
 #else
 extern "C" {
 void GemmInt8Unit4x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-                     const float* scales, long, const int8_t* add_input, const float* add_scale);
+                     const float* scales, long, const int8_t* add_input, const float* add_scale, const int8_t* relu6_max);
 void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-                     const float* scales, long, const int8_t* add_input, const float* add_scale);
+                     const float* scales, long, const int8_t* add_input, const float* add_scale, const int8_t* relu6_max);
 }
 #endif
 
@@ -478,7 +478,7 @@ assemble kernel used int gemm int8 func
 extern "C" {
 void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
                      const float* scale, const int32_t* bias, long relu, const int8_t* add_input,
-                     const float* add_scale);
+                     const float* add_scale, const int8_t* relu6_max);
 }
 #endif
 
@@ -860,10 +860,24 @@ void ReluInt8(int8_t* dst, const int8_t* src, long len) {
 void Relu6Int8(int8_t* dst, const int8_t* src, const int8_t* relu6_max, long width, long dst_depth) {
     long idx = 0;
 
+#ifdef TNN_USE_NEON
+    int8x8_t vzero = vdup_n_s8(0);
+#endif
+
+    OMP_PARALLEL_FOR_GUIDED_
     for (long dx = 0; dx < width; dx++) {
         auto src_dx = src + dx * dst_depth;
         auto dst_dx = dst + dx * dst_depth;
-        for (long dc = 0; dc < dst_depth; dc++) {
+
+        long dc = 0;
+#ifdef TNN_USE_NEON
+        for (; dc + 7 < dst_depth; dc += 8) {
+            int8x8_t src_vec   = vld1_s8(src_dx + dc);
+            int8x8_t relu6_vec = vld1_s8(relu6_max + dc);
+            vst1_s8(dst_dx + dc, vmax_s8(vzero, vmin_s8(src_vec, relu6_vec)));
+        }
+#endif
+        for (; dc < dst_depth; dc++) {
             int8_t tmp = MIN(src_dx[dc], relu6_max[dc]);
             dst_dx[dc] = MAX(0, tmp);
         }

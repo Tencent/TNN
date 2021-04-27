@@ -21,24 +21,30 @@
 .align 5
 asm_function GemmInt8Unit4x8
 //void GemmInt8Unit4x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-//                     const float* scales, long relu, const int8_t* add_input, const float* add_scale)
+//                     const float* scales, long relu, const int8_t* add_input, const float* add_scale, const int8_t* relu6_max)
 //r0(mr),
 //r1(nr),
 //r2(k),
 //r3(src),
-//4(a_stride),
-//5(weight),
-//6(dst),
-//7(c_stride)
-//8 from stack(scale)
-//9 from stack(relu)
+//4  from stack(a_stride),
+//5  from stack(weight),
+//6  from stack(dst),
+//7  from stack(c_stride)
+//8  from stack(scale)
+//9  from stack(relu)
+//10 from stack(add_input)
+//11 from stack(add_scale)
+//12 from stack(relu6_max)
 
-// |relu     |
-// |scale    |
-// |c_stride |
-// |dst      |
-// |weight   |
-// |a_stride |   <-- sp'
+// |relu6_max|   <-- sp 132
+// |add_scale|   <-- sp 128
+// |add_input|   <-- sp 124
+// |relu     |   <-- sp 120
+// |scale    |   <-- sp 116
+// |c_stride |   <-- sp 112
+// |dst      |   <-- sp 108
+// |weight   |   <-- sp 104
+// |a_stride |   <-- sp 100
 // |r4-r11,lr|   total 36
 // |q4-q7    |   total 64 <-- sp
 
@@ -317,15 +323,15 @@ blo 1f
 
 2:
 
-    vld1.32 {d12,d13}, [r10]!
+    vld1.32 {d12,d13}, [r10]!    // float scales c0, c1, c2, c3
     vmov.i32 q7, #0
     cmp r1, #4
     ble 22f
-    vld1.32 {d14,d15}, [r10]
+    vld1.32 {d14,d15}, [r10]     // float scales c4, c5, c6, c7
 
 22:
-    cmp r11, #0
-    bge 23f
+    cmp r11, #-1                 // relu (conv - relu - add, relu == -1)
+    bne 23f
     vmov.i32 q0,  #0
     vmax.s32 q8,  q0
     vmax.s32 q9,  q0
@@ -336,7 +342,7 @@ blo 1f
     vmax.s32 q14, q0
     vmax.s32 q15, q0
 23:
-    vcvt.f32.s32 q8, q8
+    vcvt.f32.s32 q8, q8          // result from int32 to float
     vcvt.f32.s32 q9, q9
     vcvt.f32.s32 q10, q10
     vcvt.f32.s32 q11, q11
@@ -345,14 +351,14 @@ blo 1f
     vcvt.f32.s32 q14, q14
     vcvt.f32.s32 q15, q15
 
-    ldr r6, [sp, #124]  // add_input
+    ldr r6, [sp, #124]           // add_input
 
-    vmul.f32 q8, q8, q6
+    vmul.f32 q8, q8, q6          // result = result * scale
     vmul.f32 q9, q9, q7
     vmul.f32 q10, q10, q6
     vmul.f32 q11, q11, q7
 
-    cmp r6, #0
+    cmp r6, #0                   // if add_input_ptr == 0, skip
     beq 25f
     add r7, r6, r9
     cmp r0, #2
@@ -367,7 +373,7 @@ blo 1f
     vmovl.s16 q4,d2
     vmovl.s16 q5,d3
 
-    ldr r10, [sp, #128]  // add_scale
+    ldr r10, [sp, #128]          // add_scale
     vld1.32 {d0,d1}, [r10]!
     vmov.i32 q1, #0
     cmp r1, #4
@@ -380,18 +386,18 @@ blo 1f
     vcvt.f32.s32 q4, q4
     vcvt.f32.s32 q5, q5
 
-    vmla.f32 q8,  q2, q0
+    vmla.f32 q8,  q2, q0         // result += add_input * add_scale
     vmla.f32 q9,  q3, q1
     vmla.f32 q10, q4, q0
     vmla.f32 q11, q5, q1
 
 25:
-    vmul.f32 q12, q12, q6
+    vmul.f32 q12, q12, q6        // result = result * scale
     vmul.f32 q13, q13, q7
     vmul.f32 q14, q14, q6
     vmul.f32 q15, q15, q7
 
-    cmp r6, #0
+    cmp r6, #0                   // if add_input_ptr == 0, skip
     beq 26f
     cmp r0, #2
     add r3, r7, r9
@@ -414,7 +420,7 @@ blo 1f
     vcvt.f32.s32 q4, q4
     vcvt.f32.s32 q5, q5
 
-    vmla.f32 q12, q2, q0
+    vmla.f32 q12, q2, q0        // result += add_input * add_scale
     vmla.f32 q13, q3, q1
     vmla.f32 q14, q4, q0
     vmla.f32 q15, q5, q1
@@ -455,13 +461,22 @@ blo 1f
     vqmovn.s16 d20, q10
     vqmovn.s16 d22, q11
 
-    cmp r11, #1
+    cmp r11, #1                // relu (conv add relu, relu == 1 or relu6 == 2)
     blt 3f
     vmov.i32 q0, #0
     vmax.s8 d16, d0
     vmax.s8 d18, d0
     vmax.s8 d20, d0
     vmax.s8 d22, d0
+
+    cmp r11, #2                // relu6
+    bne 3f
+    ldr r11, [sp, #132]        // relu6_max
+    vld1.s32 d0, [r11]
+    vmin.s8 d16, d0
+    vmin.s8 d18, d0
+    vmin.s8 d20, d0
+    vmin.s8 d22, d0
 
 3:
     add r3, r8, r9
@@ -482,9 +497,6 @@ blo 1f
     vst1.8 d18, [r3]
     vst1.8 d20, [r4]
     vst1.8 d22, [r5]
-
-    vpop {q4-q7}
-    pop {r4-r11, pc}
 
 4:
     cmp r1, #4
