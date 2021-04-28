@@ -31,8 +31,8 @@ inline float fast_exp(float x)
     return v.f;
 }
 
-template <typename T, int length>
-void fast_softmax(const T *src, T *dst) {
+template <typename T>
+void fast_softmax(const T *src, T *dst, const int length) {
     const T alpha = *std::max_element(src, src+length);
     T denominator{ 0 };
 
@@ -56,14 +56,16 @@ Status ObjectDetectorNanodet::Init(std::shared_ptr<TNNSDKOption> option_i) {
 
     status = TNNSDKSample::Init(option_i);
     RETURN_ON_NEQ(status, TNN_OK);
-
-    auto input_dims = GetInputShape();
-    option->input_height = input_dims[2];
-    option->input_width  = input_dims[3];
     
     score_threshold = option->score_threshold;
     iou_threshold   = option->iou_threshold;
-
+    if (option->model_cfg == "m") {
+        reg_max = 7;
+    } else if (option->model_cfg == "e1") {
+        reg_max = 10;
+    } else {
+        return Status(TNNERR_PARAM_ERR, "Invalid Nanodet model_cfg!");
+    }
     return status;
 }
 
@@ -84,6 +86,9 @@ std::shared_ptr<Mat> ObjectDetectorNanodet::ProcessSDKInputMat(std::shared_ptr<M
 
     auto input_height  = input_mat->GetHeight();
     auto input_width   = input_mat->GetWidth();
+    auto option = dynamic_cast<ObjectDetectorNanodetOption *>(option_.get());
+    option->input_height = input_height;
+    option->input_width  = input_width;
 
     if (input_height != target_height || input_width !=target_width) {
         const float scale = std::min(static_cast<float>(target_width) / input_width,
@@ -145,13 +150,21 @@ void ObjectDetectorNanodet::NMS(std::vector<ObjectInfo>& objs, std::vector<Objec
 }
 
 void ObjectDetectorNanodet::DecodeDetectionResult(Mat *cls_mat, Mat *dis_mat, const int stride, std::vector<ObjectInfo>& detecs) {
-    //const auto option = dynamic_cast<ObjectDetectorNanodetOption *>(option_.get());
+    const auto option = dynamic_cast<ObjectDetectorNanodetOption *>(option_.get());
+    const float input_img_height = static_cast<float>(option->input_height);
+    const float input_img_width  = static_cast<float>(option->input_width);
     const auto model_input_shape = GetInputShape();
+    const int model_input_height = model_input_shape[2];
+    const int model_input_width  = model_input_shape[3];
+    const float scale_x = input_img_width / model_input_width;
+    const float scale_y = input_img_height / model_input_height;
+    const float scale = std::max(scale_x, scale_y);
+
     int feature_height = model_input_shape[2] / stride;
     int feature_width  = model_input_shape[3] / stride;
 
-    // cls_mat shape: [1, feature_width * feature_width, num_class]
-    // dis_mat shape: [1, feature_width * feature_width, 4*(reg_max+1)]
+    // cls_mat shape: [1, feature_height * feature_width, num_class]
+    // dis_mat shape: [1, feature_height * feature_width, 4*(reg_max+1)]
     const float *cls_ptr = static_cast<float *>(cls_mat->GetData());
     const float *box_dis = static_cast<float *>(dis_mat->GetData());
     const int dis_size   = 4 * (reg_max + 1);
@@ -165,24 +178,30 @@ void ObjectDetectorNanodet::DecodeDetectionResult(Mat *cls_mat, Mat *dis_mat, co
         if (score > score_threshold) {
             float center_x = (x + 0.5f) * stride;
             float center_y = (y + 0.5f) * stride;
-            float dis[4] = {0.f};
+            float dis[4] = {0.f, 0.f, 0.f, 0.f};
             for(int i=0; i<4; ++i) {
                 float dis_activated[reg_max + 1];
-                fast_softmax<float, reg_max+1>(box_dis + i*(reg_max+1), dis_activated);
+                fast_softmax<float>(box_dis + i*(reg_max+1), dis_activated, reg_max+1);
                 for(int j=0; j<reg_max+1; ++j) {
                     dis[i] += j * dis_activated[j];
                 }
                 dis[i] *= stride;
             }
             ObjectInfo info;
-            info.image_height = model_input_shape[2];
-            info.image_width  = model_input_shape[3];
+            info.image_height = input_img_height;
+            info.image_width  = input_img_width;
             info.score = score;
             info.class_id = static_cast<int>(class_id);
-            info.x1 = std::max(center_x - dis[0], 0.f);
-            info.y1 = std::max(center_y - dis[1], 0.f);
-            info.x2 = std::min(center_x + dis[2], static_cast<float>(model_input_shape[3]));
-            info.y2 = std::min(center_y + dis[3], static_cast<float>(model_input_shape[2]));
+            info.x1 = center_x - dis[0];
+            info.y1 = center_y - dis[1];
+            info.x2 = center_x + dis[2];
+            info.y2 = center_y + dis[3];
+            // rescale to input img size
+            info.x1 = std::max((info.x1 - pads[2]) * scale, 0.f);
+            info.x2 = std::min((info.x2 - pads[2]) * scale, input_img_width);
+            info.y1 = std::max((info.y1 - pads[0]) * scale, 0.f);
+            info.y2 = std::min((info.y2 - pads[0]) * scale, input_img_height);
+
             detecs.push_back(info);
         }
         cls_ptr += num_class;

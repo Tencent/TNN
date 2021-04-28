@@ -56,8 +56,8 @@ private:
     void DecodeDetectionResult(Mat *cls_mat, Mat *dis_mat, const int stride, std::vector<ObjectInfo>& detecs);
     void NMS(std::vector<ObjectInfo>& objs, std::vector<ObjectInfo>& results);
     
-    float score_threshold = 0.4;
-    float iou_threshold   = 0.5;
+    float score_threshold = 0.4f;
+    float iou_threshold   = 0.5f;
     int pads[4];
 
     const std::vector<HeadInfo> heads{
@@ -66,7 +66,7 @@ private:
         {"cls_pred_stride_32", "dis_pred_stride_32", 32},
     };
     const static int num_class = 80; // ms-coco detection
-    const static int reg_max   = 7;
+    int reg_max   = 10;
 };
 
 }
