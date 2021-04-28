@@ -103,8 +103,8 @@ __global__ void roialign_kernel(int count, const float* input_data, float spatia
         const float* offset_input_data = input_data +
             static_cast<int64_t>((roi_batch_ind * channels + c) * height * width);
 
-        int roi_bin_grid_h = (sampling_ratio > 0) ? sampling_ratio : ceil(roi_height / pooled_height);
-        int roi_bin_grid_w = (sampling_ratio > 0) ? sampling_ratio : ceil(roi_width / pooled_width);
+        int roi_bin_grid_h = (sampling_ratio > 0) ? sampling_ratio : ceilf(roi_height / pooled_height);
+        int roi_bin_grid_w = (sampling_ratio > 0) ? sampling_ratio : ceilf(roi_width / pooled_width);
 
         const float count = roi_bin_grid_h * roi_bin_grid_w;
 
