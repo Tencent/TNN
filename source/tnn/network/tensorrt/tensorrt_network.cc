@@ -406,7 +406,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 
 Status TensorRTNetwork_::CreateExecuteContext() {
     m_trt_context = m_trt_engine->createExecutionContextWithoutDeviceMemory();
-    size_t context_memory_size = std::max(m_trt_engine->getDeviceMemorySize(), size_t(1024));
+    size_t context_memory_size = (std::max)(m_trt_engine->getDeviceMemorySize(), size_t(1024));
     Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemAlloc(&m_context_memory, context_memory_size);
     if (ret != TNN_OK) {
         LOGE("Error Create TensorRT execute context\n");

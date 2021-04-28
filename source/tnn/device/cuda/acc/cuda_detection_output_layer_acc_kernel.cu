@@ -298,7 +298,7 @@ __global__ void jaccardoverlap_batch_kernel(const int top_k, const int m_keep_to
     for(int i = 0; i < ELE_PER_THREAD; i++) {
         int gid =  block_offset + i * THREAD_PER_BLOCK + threadIdx.x;
         if (gid < num_overlaps) {
-            int a = floor(sqrtf(gid * 2));
+            int a = floorf(sqrtf(gid * 2));
             if (gid * 2 < a * (a + 1)) {
                 a -= 1;
             }
