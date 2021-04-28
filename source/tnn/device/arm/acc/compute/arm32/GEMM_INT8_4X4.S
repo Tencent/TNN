@@ -199,19 +199,28 @@ Add:
     vmla.f32 q5,  q11, q14
 
 Relu:
-    //f32 --> s8
-    // trick: magic num 12582912.0f
-    ldr r0, .L4
-    vdup.32 q7, r0
-    vadd.f32 q12, q12, q7
-    vadd.f32 q13, q13, q7
-    vadd.f32 q4,  q4,  q7
-    vadd.f32 q5,  q5,  q7
+    // f32 --> s32 --> s8
+    // val + (val >= 0.f ? 0.5f : -0.5f)
+    vmov.f32 q6, #0.5
+    vmov.f32 q7, #-0.5
 
-    vsub.s32 q12, q12, q7
-    vsub.s32 q13, q13, q7
-    vsub.s32 q4,  q4,  q7
-    vsub.s32 q5,  q5,  q7
+    vcge.f32 q0, q12, #0
+    vcge.f32 q1, q13, #0
+    vcge.f32 q2, q4,  #0
+    vcge.f32 q3, q5,  #0
+    vbsl.f32 q0, q6, q7
+    vbsl.f32 q1, q6, q7
+    vbsl.f32 q2, q6, q7
+    vbsl.f32 q3, q6, q7
+
+    vadd.f32 q12, q12, q0
+    vadd.f32 q13, q13, q1
+    vadd.f32 q4,  q4,  q2
+    vadd.f32 q5,  q5,  q3
+    vcvt.s32.f32 q12, q12
+    vcvt.s32.f32 q13, q13
+    vcvt.s32.f32 q4, q4
+    vcvt.s32.f32 q5, q5
 
     vqmovn.s32 d0,q12
     vqmovn.s32 d1,q13
@@ -240,9 +249,6 @@ Store:
     
 vpop {q4-q7}
 pop {r4, r5, r6, r7, r8, r9, r10, r11, pc}
-
-.L4:
-    .word 0x4B400000
 
 #endif
 #endif

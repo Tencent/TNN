@@ -426,26 +426,44 @@ blo 1f
     vmla.f32 q15, q5, q1
 
 26:
-    // trick: magic num 12582912.0f
-    ldr r2, .L4
-    vdup.32 q6, r2
-    vadd.f32 q8, q8, q6
-    vadd.f32 q9, q9, q6
-    vadd.f32 q10, q10, q6
-    vadd.f32 q11, q11, q6
-    vadd.f32 q12, q12, q6
-    vadd.f32 q13, q13, q6
-    vadd.f32 q14, q14, q6
-    vadd.f32 q15, q15, q6
+    // f32 --> s32 --> s8
+    // val + (val >= 0.f ? 0.5f : -0.5f)
+    vmov.f32 q0, #0.5
+    vmov.f32 q1, #-0.5
 
-    vsub.s32 q8, q8, q6
-    vsub.s32 q9, q9, q6
-    vsub.s32 q10, q10, q6
-    vsub.s32 q11, q11, q6
-    vsub.s32 q12, q12, q6
-    vsub.s32 q13, q13, q6
-    vsub.s32 q14, q14, q6
-    vsub.s32 q15, q15, q6
+    vcge.f32 q2, q8,  #0
+    vcge.f32 q3, q9,  #0
+    vcge.f32 q4, q10, #0
+    vcge.f32 q5, q11, #0
+    vcge.f32 q6, q12, #0
+    vcge.f32 q7, q13, #0
+    vbsl.f32 q2, q0, q1
+    vbsl.f32 q3, q0, q1
+    vbsl.f32 q4, q0, q1
+    vbsl.f32 q5, q0, q1
+    vbsl.f32 q6, q0, q1
+    vbsl.f32 q7, q0, q1
+    vadd.f32 q8, q8, q2
+    vadd.f32 q9, q9, q3
+    vcge.f32 q2, q14, #0
+    vcge.f32 q3, q15, #0
+    vadd.f32 q10, q10, q4
+    vadd.f32 q11, q11, q5
+    vadd.f32 q12, q12, q6
+    vadd.f32 q13, q13, q7
+    vbsl.f32 q2, q0, q1
+    vbsl.f32 q3, q0, q1
+    vadd.f32 q14, q14, q2
+    vadd.f32 q15, q15, q3
+
+    vcvt.s32.f32 q8, q8
+    vcvt.s32.f32 q9, q9
+    vcvt.s32.f32 q10, q10
+    vcvt.s32.f32 q11, q11
+    vcvt.s32.f32 q12, q12
+    vcvt.s32.f32 q13, q13
+    vcvt.s32.f32 q14, q14
+    vcvt.s32.f32 q15, q15
 
     vqmovn.s32 d16, q8
     vqmovn.s32 d17, q9
@@ -541,9 +559,6 @@ blo 1f
 
 vpop {q4-q7}
 pop {r4-r11, pc}
-
-.L4:
-    .word 0x4B400000
 
 #endif
 #endif
