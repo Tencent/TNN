@@ -64,6 +64,7 @@ add_executable(demo_x86_readingcomprehension ${CMAKE_SOURCE_DIR}/../../linux/src
 add_executable(demo_x86_objectdetector ${CMAKE_SOURCE_DIR}/../../linux/src/TNNObjectDetector/TNNObjectDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 add_executable(demo_x86_posedetector ../../linux/src/TNNBlazePose/TNNBlazePose.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 add_executable(demo_x86_facealignment ../../linux/src/TNNFaceAligner/TNNFaceAligner.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_x86_hairsegmentation ../../linux/src/TNNHairSegmentation/TNNHairSegmentation.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 
 if (TNN_DEMO_WITH_OPENCV) 
     file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/../../linux/src/TNNWebCamBasedDemo/*.cc")
@@ -73,4 +74,5 @@ if (TNN_DEMO_WITH_OPENCV)
     target_link_libraries(demo_x86_objectdetector ${OpenCV_LIBS})
     target_link_libraries(demo_x86_posedetector ${OpenCV_LIBS})
     target_link_libraries(demo_x86_facealignment ${OpenCV_LIBS})
+    target_link_libraries(demo_x86_hairsegmentation ${OpenCV_LIBS})
 endif()
