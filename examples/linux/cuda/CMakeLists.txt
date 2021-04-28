@@ -53,4 +53,4 @@ add_executable(demo_cuda_imageclassify ../src/TNNImageClassify/TNNImageClassify.
 add_executable(demo_cuda_facedetector ../src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC} ${FLAG_SRC})
 add_executable(demo_cuda_readingcomprehension ../src/BertReadingComprehension/BertReadingComprehension.cc ${BASE_SRC} ${FLAG_SRC})
 add_executable(demo_cuda_objectdetector ../src/TNNObjectDetector/TNNObjectDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
-
+add_executable(demo_cuda_nanodet ${CMAKE_SOURCE_DIR}/../../linux/src/TNNNanodetDetector/TNNNanodetDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
