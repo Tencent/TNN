@@ -57,6 +57,7 @@ add_executable(demo_x86_imageclassify ../src/TNNImageClassify/TNNImageClassify.c
 add_executable(demo_x86_facedetector ../src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 add_executable(demo_x86_readingcomprehension ../src/BertReadingComprehension/BertReadingComprehension.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 add_executable(demo_x86_objectdetector ../src/TNNObjectDetector/TNNObjectDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_x86_nanodet ${CMAKE_SOURCE_DIR}/../../linux/src/TNNNanodetDetector/TNNNanodetDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 
 if (TNN_DEMO_WITH_WEBCAM) 
     file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/../src/TNNWebCamBasedDemo/*.cc")
