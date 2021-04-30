@@ -48,13 +48,17 @@ bool BlobMemory::DecrementUseCount() {
 }
 
 Status BlobMemory::AllocateHandle() {
-    void* data = NULL;
+    void* data  = NULL;
     auto status = device_->Allocate(&data, size_info_);
     if (status != TNN_OK) {
         return status;
     }
-    handle_.base         = data;
+    handle_.base = data;
+#if (defined(__arm__) || defined(__arm64__))
+    handle_.bytes_offset = 8;
+#else
     handle_.bytes_offset = 0;
+#endif
     need_release_memory_ = true;
     return TNN_OK;
 }
