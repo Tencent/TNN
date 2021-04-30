@@ -61,11 +61,11 @@ Status initDetectPredictor(std::shared_ptr<BlazeFaceDetector>& predictor, int ar
         detect_option->model_content = detect_model_content;
         detect_option->library_path = "";
         
+        detect_option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
-            detect_option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        #elif _ARM_
-            detect_option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-        #else
+            detect_option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+        #elif _OPENVINO_
             detect_option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
         #endif
         

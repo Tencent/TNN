@@ -31,7 +31,11 @@
 #define TNN_SDK_USE_NCNN_MODEL 0
 
 #ifndef HAS_OPENCV
-#define HAS_OPENCV 0
+    #ifdef _OPENCV_
+        #define HAS_OPENCV 1
+    #else 
+        #define HAS_OPENCV 0
+    #endif
 #endif
 
 namespace TNN_NS {

@@ -209,7 +209,7 @@ std::shared_ptr<Mat> OCRTextboxDetector::ProcessSDKInputMat(std::shared_ptr<Mat>
     // 0) copy if necessary
     bool need_copy = false;
     DeviceType origin_dev = input_mat->GetDeviceType();
-    if (input_mat->GetDeviceType() != DEVICE_ARM) {
+    if (input_mat->GetDeviceType() != DEVICE_ARM && device_type_ == DEVICE_ARM) {
         need_copy = true;
         auto input_arm_mat = std::make_shared<Mat>(DEVICE_ARM, input_mat->GetMatType(),
                                                    input_mat->GetDims());
@@ -222,12 +222,17 @@ std::shared_ptr<Mat> OCRTextboxDetector::ProcessSDKInputMat(std::shared_ptr<Mat>
         RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
         //input_mat = input_arm_mat;
         input_mat = scale_down_mat;
-    } else {
+    } else if (device_type_ == DEVICE_ARM) {
         // sacle down
         auto scale_down_mat = std::make_shared<Mat>(DEVICE_ARM, input_mat->GetMatType(),
                                                     scale_down_dims);
         status = Resize(input_mat, scale_down_mat, TNNInterpLinear);
         RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
+        input_mat = scale_down_mat;
+    } else {
+        auto scale_down_mat = std::make_shared<Mat>(DEVICE_NAIVE, input_mat->GetMatType(),
+                                                    scale_down_dims);
+        status = Resize(input_mat, scale_down_mat, TNNInterpLinear);
         input_mat = scale_down_mat;
     }
     
