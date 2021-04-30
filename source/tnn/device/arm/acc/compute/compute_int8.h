@@ -79,6 +79,10 @@ void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const i
                    long dilate_y_step, long dilate_x_step, long src_w_step, long dst_depth, long fw, long fh,
                    const float* scale_z);
 
+void DepthwiseI8K5(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
+                   long dilate_y_step, long dialte_x_step, long src_w_step, long dst_depth, long fw, long fh,
+                   const float* scale_z);
+
 void ReluInt8(int8_t* dst, const int8_t* src, long len);
 void Relu6Int8(int8_t* dst, const int8_t* src, const int8_t* relu6_max, long width, long dst_depth);
 

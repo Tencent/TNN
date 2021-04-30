@@ -152,6 +152,8 @@ Status ArmConvInt8LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
 #ifdef TNN_USE_NEON
         if (kernel_x == kernel_y && kernel_x == 3 && k_param_->oc_r4 >= 8 && dilate_x == 1 && dilate_y == 1) {
             dwfunc = DepthwiseI8K3;
+        } else if (kernel_x == kernel_y && kernel_x == 5 && k_param_->oc_r4 >= 8 && dilate_x == 1 && dilate_y == 1) {
+            dwfunc = DepthwiseI8K5;
         }
 #endif
         OMP_PARALLEL_SECTIONS_ {

@@ -770,6 +770,60 @@ void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight,
 
 #endif  // __aarch64__
 
+void DepthwiseI8K5S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z,
+                           long src_y_step, long src_w_step, long dst_depth, const float* scale_z,
+                           long dx, long dc) {
+    auto dst_x       = dst + dx * dst_depth + dc;
+    const auto src_z = src + dx * src_w_step + dc;
+    int32x4_t acc[4][2];
+    int16x8_t a[8], b[5];
+    acc[0][0] = vld1q_s32(bias_z + dc);
+    acc[0][1] = vld1q_s32(bias_z + dc + 4);
+    acc[1][0] = acc[0][0];
+    acc[1][1] = acc[0][1];
+    acc[2][0] = acc[0][0];
+    acc[2][1] = acc[0][1];
+    acc[3][0] = acc[0][0];
+    acc[3][1] = acc[0][1];
+
+    for (long fy = 0; fy < 5; ++fy) {
+        const auto src_y    = src_z + fy * src_y_step;
+        const auto weight_y = weight + fy * 5 * dst_depth + dc;
+        // unroll loops
+        a[0] = vmovl_s8(vld1_s8(src_y + 0 * dst_depth));
+        a[1] = vmovl_s8(vld1_s8(src_y + 1 * dst_depth));
+        a[2] = vmovl_s8(vld1_s8(src_y + 2 * dst_depth));
+        a[3] = vmovl_s8(vld1_s8(src_y + 3 * dst_depth));
+        a[4] = vmovl_s8(vld1_s8(src_y + 4 * dst_depth));
+        a[5] = vmovl_s8(vld1_s8(src_y + 5 * dst_depth));
+        a[6] = vmovl_s8(vld1_s8(src_y + 6 * dst_depth));
+        a[7] = vmovl_s8(vld1_s8(src_y + 7 * dst_depth));
+
+        b[0] = vmovl_s8(vld1_s8(weight_y + 0 * dst_depth));
+        b[1] = vmovl_s8(vld1_s8(weight_y + 1 * dst_depth));
+        b[2] = vmovl_s8(vld1_s8(weight_y + 2 * dst_depth));
+        b[3] = vmovl_s8(vld1_s8(weight_y + 3 * dst_depth));
+        b[4] = vmovl_s8(vld1_s8(weight_y + 4 * dst_depth));
+
+        for (long fx = 0; fx < 5; fx++) {
+            acc[0][0] = vmlal_s16(acc[0][0], vget_low_s16(a[fx + 0]), vget_low_s16(b[fx]));
+            acc[0][1] = vmlal_s16(acc[0][1], vget_high_s16(a[fx + 0]), vget_high_s16(b[fx]));
+            acc[1][0] = vmlal_s16(acc[1][0], vget_low_s16(a[fx + 1]), vget_low_s16(b[fx]));
+            acc[1][1] = vmlal_s16(acc[1][1], vget_high_s16(a[fx + 1]), vget_high_s16(b[fx]));
+            acc[2][0] = vmlal_s16(acc[2][0], vget_low_s16(a[fx + 2]), vget_low_s16(b[fx]));
+            acc[2][1] = vmlal_s16(acc[2][1], vget_high_s16(a[fx + 2]), vget_high_s16(b[fx]));
+            acc[3][0] = vmlal_s16(acc[3][0], vget_low_s16(a[fx + 3]), vget_low_s16(b[fx]));
+            acc[3][1] = vmlal_s16(acc[3][1], vget_high_s16(a[fx + 3]), vget_high_s16(b[fx]));
+        }
+    }
+    float32x4_t scale0 = vld1q_f32(scale_z + dc);
+    float32x4_t scale1 = vld1q_f32(scale_z + dc + 4);
+    for (long ww = 0; ww < 4; ww++) {
+        int8x8_t acc_s8 = Float4x2ScaleTos8(vcvtq_f32_s32(acc[ww][0]), vcvtq_f32_s32(acc[ww][1]), scale0, scale1);
+        vst1_s8(dst_x + ww * dst_depth, acc_s8);
+    }
+}
+
 void DepthwiseI8K3Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z,
                          long src_y_step, long src_w_step, long dst_depth, const float* scale_z,
                          long dx, long dc) {
@@ -794,6 +848,48 @@ void DepthwiseI8K3Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, c
         acc1 = vmlal_s16(acc1, vget_high_s16(a[1]), vget_high_s16(b[1]));
         acc0 = vmlal_s16(acc0, vget_low_s16(a[2]), vget_low_s16(b[2]));
         acc1 = vmlal_s16(acc1, vget_high_s16(a[2]), vget_high_s16(b[2]));
+    }
+    float32x4_t scale0 = vld1q_f32(scale_z + dc);
+    float32x4_t scale1 = vld1q_f32(scale_z + dc + 4);
+
+    int8x8_t acc_s8 = Float4x2ScaleTos8(vcvtq_f32_s32(acc0), vcvtq_f32_s32(acc1), scale0, scale1);
+    vst1_s8(dst_x, acc_s8);
+}
+
+void DepthwiseI8K5Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z,
+                         long src_y_step, long src_w_step, long dst_depth, const float* scale_z,
+                         long dx, long dc) {
+    auto dst_x       = dst + dx * dst_depth + dc;
+    const auto src_z = src + dx * src_w_step + dc;
+    int32x4_t acc0   = vld1q_s32(bias_z + dc);
+    int32x4_t acc1   = vld1q_s32(bias_z + dc + 4);
+
+    for (long fy = 0; fy < 5; ++fy) {
+        const auto src_y    = src_z + fy * src_y_step;
+        const auto weight_y = weight + fy * 5 * dst_depth + dc;
+        int16x8_t a[5], b[5];
+        a[0] = vmovl_s8(vld1_s8(src_y + 0 * dst_depth));
+        a[1] = vmovl_s8(vld1_s8(src_y + 1 * dst_depth));
+        a[2] = vmovl_s8(vld1_s8(src_y + 2 * dst_depth));
+        a[3] = vmovl_s8(vld1_s8(src_y + 3 * dst_depth));
+        a[4] = vmovl_s8(vld1_s8(src_y + 4 * dst_depth));
+
+        b[0] = vmovl_s8(vld1_s8(weight_y + 0 * dst_depth));
+        b[1] = vmovl_s8(vld1_s8(weight_y + 1 * dst_depth));
+        b[2] = vmovl_s8(vld1_s8(weight_y + 2 * dst_depth));
+        b[3] = vmovl_s8(vld1_s8(weight_y + 3 * dst_depth));
+        b[4] = vmovl_s8(vld1_s8(weight_y + 4 * dst_depth));
+
+        acc0 = vmlal_s16(acc0, vget_low_s16(a[0]), vget_low_s16(b[0]));
+        acc1 = vmlal_s16(acc1, vget_high_s16(a[0]), vget_high_s16(b[0]));
+        acc0 = vmlal_s16(acc0, vget_low_s16(a[1]), vget_low_s16(b[1]));
+        acc1 = vmlal_s16(acc1, vget_high_s16(a[1]), vget_high_s16(b[1]));
+        acc0 = vmlal_s16(acc0, vget_low_s16(a[2]), vget_low_s16(b[2]));
+        acc1 = vmlal_s16(acc1, vget_high_s16(a[2]), vget_high_s16(b[2]));
+        acc0 = vmlal_s16(acc0, vget_low_s16(a[3]), vget_low_s16(b[3]));
+        acc1 = vmlal_s16(acc1, vget_high_s16(a[3]), vget_high_s16(b[3]));
+        acc0 = vmlal_s16(acc0, vget_low_s16(a[4]), vget_low_s16(b[4]));
+        acc1 = vmlal_s16(acc1, vget_high_s16(a[4]), vget_high_s16(b[4]));
     }
     float32x4_t scale0 = vld1q_f32(scale_z + dc);
     float32x4_t scale1 = vld1q_f32(scale_z + dc + 4);
@@ -835,6 +931,44 @@ void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const i
         if (dc < dst_depth) {
             dc = dst_depth - 8;
             DepthwiseI8K3Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z,
+                                dx, dc);
+        }
+    }
+}
+
+void DepthwiseI8K5(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
+                   long dilate_y_step, long dialte_x_step, long src_w_step, long dst_depth, long fw, long fh,
+                   const float* scale_z) {
+    long dx = 0;
+
+    // stride == 1, fully use arm registers
+    if (src_w_step == dst_depth) {
+        for (dx = 0; dx < width - 3; dx += 4) {
+            long dc = 0;
+            for (; dc < dst_depth - 7; dc += 8) {
+                DepthwiseI8K5S1Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth,
+                                      scale_z, dx, dc);
+            }
+
+            if (dc < dst_depth) {
+                dc = dst_depth - 8;
+                DepthwiseI8K5S1Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth,
+                                      scale_z, dx, dc);
+            }
+        }
+    }
+
+    // general k3 process, calc left dx
+    for (; dx < width; dx++) {
+        long dc = 0;
+        for (; dc < dst_depth - 7; dc += 8) {
+            DepthwiseI8K5Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z,
+                                dx, dc);
+        }
+
+        if (dc < dst_depth) {
+            dc = dst_depth - 8;
+            DepthwiseI8K5Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z,
                                 dx, dc);
         }
     }
