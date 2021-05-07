@@ -167,6 +167,13 @@ Status OpenVINONetwork_::GetAllInputBlobs(BlobMap &blobs) {
 
 Status OpenVINONetwork_::GetAllOutputBlobs(BlobMap &blobs) {
     blobs = output_blob_map_;
+    // if tnn blob != openvino blob dims, use min(tnn_blob, openvino_blob)
+    // eg. detection_output layer
+    for (auto iter : blobs) {
+        auto tnn_blob_dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
+        auto openvino_blob_dims = iter.second->GetBlobDesc().dims;
+        iter.second->GetBlobDesc().dims = DimsVectorUtils::Min(tnn_blob_dims, openvino_blob_dims);
+    }
     return TNN_OK;
 }
 
