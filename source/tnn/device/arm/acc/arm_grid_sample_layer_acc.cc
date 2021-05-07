@@ -28,7 +28,7 @@ static void Compute(T *input_data, T *grid_data, T *output_data, DimsVector &inp
     auto input_width         = input_dims[3];
     auto input_channel_area  = DimsVectorUtils::Count(input_dims, 2);
     auto output_channel_area = DimsVectorUtils::Count(output_dims, 2);
-    OMP_PARALLEL_FOR_DYNAMIC_
+    OMP_PARALLEL_FOR_
     for (int i = 0; i < output_channel_area; ++i) {
         auto grid_position = grid_data + 2 * i;
         T grid_x           = (grid_position[0] + 1) * input_width * 0.5 - 0.5;
