@@ -10,8 +10,8 @@ if defined CUDA_PATH (
 
 set TNN_DIR=%~dp0..\
 set BUILD_DIR=%~dp0build_cuda_msvc
-set TENSORRT_ROOT_DIR=
-set CUDNN_ROOT_DIR=
+set TENSORRT_ROOT_DIR=F:\Deps\TensorRT-7.1.3.4.Windows10.x86_64.cuda-11.0.cudnn8.0\TensorRT-7.1.3.4
+set CUDNN_ROOT_DIR=F:\Deps\cudnn-11.0-windows-x64-v8.0.5.39\cuda\
 set TNN_INSTALL_DIR=%~dp0cuda_msvc_release
 
 if not exist %BUILD_DIR% (
@@ -20,7 +20,7 @@ if not exist %BUILD_DIR% (
 
 echo Building TNN ...
 cd %BUILD_DIR%
-cmake -G Ninja ^
+cmake ^
 -DCMAKE_BUILD_TYPE=Release ^
 -DCMAKE_SYSTEM_NAME=Windows ^
 -DTNN_CUDA_ENABLE=ON ^
@@ -55,17 +55,19 @@ goto :eof
     xcopy /s/e/y %TNN_DIR%\include %TNN_INSTALL_DIR%\include
 
     :: lib
-    copy %BUILD_DIR%\TNN.lib %TNN_INSTALL_DIR%\lib\
+    copy %BUILD_DIR%\Release\TNN.lib %TNN_INSTALL_DIR%\lib\
 
     :: bin
-    copy %BUILD_DIR%\TNN.dll %TNN_INSTALL_DIR%\bin\
-    copy %BUILD_DIR%\test\TNNTest.exe %TNN_INSTALL_DIR%\bin\
+    copy %BUILD_DIR%\Release\TNN.dll %TNN_INSTALL_DIR%\bin\
+    copy %BUILD_DIR%\test\Release\TNNTest.exe %TNN_INSTALL_DIR%\bin\
 
     :: deps bin
     copy %TENSORRT_ROOT_DIR%\lib\nvinfer.dll %TNN_INSTALL_DIR%\bin\
     copy %TENSORRT_ROOT_DIR%\lib\nvinfer_plugin.dll %TNN_INSTALL_DIR%\bin\
     copy %TENSORRT_ROOT_DIR%\lib\myelin64_1.dll %TNN_INSTALL_DIR%\bin\
-    copy %CUDNN_ROOT_DIR%\bin\cudnn64_7.dll %TNN_INSTALL_DIR%\bin\
+    copy %CUDNN_ROOT_DIR%\bin\cudnn64_8.dll %TNN_INSTALL_DIR%\bin\
+    copy %CUDNN_ROOT_DIR%\bin\cudnn_ops_infer64_8.dll %TNN_INSTALL_DIR%\bin\
+    copy %CUDNN_ROOT_DIR%\bin\cudnn_cnn_infer64_8.dll %TNN_INSTALL_DIR%\bin\
 
     goto :returnOk
 

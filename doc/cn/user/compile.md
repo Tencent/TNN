@@ -184,8 +184,33 @@ cd <path_to_tnn>/scripts
 ```
 openvino只能编译成64位的库，更多编译问题请参考 [FAQ](openvino.md)
 
+## 七、Windows CUDA 环境编译
+### 1.环境要求
+依赖库
+  - Visual Studio (2017 及更高版本)
+  - cmake (把3.11及以上版本cmake加入环境变量或使用 Visual Studio 自带cmake)
+  - CUDA (使用10.2及以上版本)
 
-## 七、Macos 环境编译
+#### TensorRT配置
+  - 下载TensorRT(>=7.1) <https://developer.nvidia.com/nvidia-tensorrt-7x-download>
+  - 在脚本文件 *build_cuda_msvc.bat* 中修改 `set TENSORRT_ROOT_DIR=<TensorRT_path>`
+
+#### CuDNN配置
+  - 下载CuDNN(>=8.0) <https://developer.nvidia.com/rdp/cudnn-download>
+  - 在脚本文件 *build_cuda_msvc.bat* 中修改 `set CUDNN_ROOT_DIR=<CuDNN_path>`
+
+### 2.编译步骤
+打开 `x64 Native Tools Command Prompt for VS 2017/2019` 或配置了cmake环境变量的 `cmd`
+1) 切换到脚本目录
+```
+cd <path_to_tnn>/scripts
+```
+2) 执行编译脚本
+```
+.\build_cuda_msvc.bat
+```
+
+## 八、Macos 环境编译
 ### 1.环境要求
 依赖库
   - cmake 3.11 以上版本 
