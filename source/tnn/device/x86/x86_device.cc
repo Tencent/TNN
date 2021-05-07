@@ -15,6 +15,7 @@
 #include "tnn/device/x86/x86_device.h"
 #include "tnn/device/x86/x86_context.h"
 #include "tnn/utils/blob_memory_size_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -22,8 +23,21 @@ X86Device::X86Device(DeviceType device_type) : AbstractDevice(device_type) {}
 
 X86Device::~X86Device() {}
 
-BlobMemorySizeInfo X86Device::Calculate(BlobDesc& desc) {
-    return Calculate1DMemorySize(desc);
+BlobMemorySizeInfo X86Device::Calculate1DMemorySize(BlobDesc &desc) {
+    BlobMemorySizeInfo info;
+    info.data_type = desc.data_type;
+    int count      = 0;
+    if (desc.data_type == DATA_TYPE_INT8) {
+        count = desc.dims[0] * ROUND_UP(desc.dims[1], 4) * DimsVectorUtils::Count(desc.dims, 2);
+    } else {
+        count = DimsVectorUtils::Count(desc.dims);
+    }
+    info.dims.push_back(count);
+    return info;
+}
+
+BlobMemorySizeInfo X86Device::Calculate(BlobDesc &desc) {
+    return this->Calculate1DMemorySize(desc);
 }
 
 Status X86Device::Allocate(void** handle, MatType mat_type, DimsVector dims) {

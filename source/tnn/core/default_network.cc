@@ -271,7 +271,8 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
 
 Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info, bool is_input, bool is_quantized_net,
                                            const std::string &name, NetResource *net_resource, Blob **blob) {
-    if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE) {
+    if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE &&
+        device_->GetDeviceType() != DEVICE_X86) {
         return TNN_OK;
     }
 

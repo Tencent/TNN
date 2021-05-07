@@ -15,6 +15,7 @@
 #include "tnn/device/x86/acc/compute/x86_compute.h"
 #include "tnn/device/x86/acc/Float8.h"
 #include "tnn/device/x86/acc/Float4.h"
+#include "tnn/utils/naive_compute.h"
 
 #include <algorithm>
 #include <cstring>
@@ -889,5 +890,62 @@ template void X86_Post_Exec<ActivationType_ReLU, Float8, 8>(float *dst, const fl
 template void X86_Post_Exec<ActivationType_ReLU6, Float8, 8>(float *dst, const float *bias, long channel, long area);
 
 //ActivationType_SIGMOID_MUL TBD
+
+void X86GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
+                     const float* scale, const int32_t* bias, long relu, const int8_t* add_input,
+                     const float* add_scale, const int8_t* relu6_max) {
+    for (long w = 0; w < 4; ++w) {
+        const auto src_x   = src + w * src_w_step;
+        auto dst_x         = dst + w * dst_depth;
+        auto add_input_x   = add_input ? add_input + w * dst_depth : nullptr;
+        int32_t dstTemp[4] = {0, 0, 0, 0};
+        long sz            = 0;
+        for (; sz < cdiv8 / 2; ++sz) {
+            const auto weight_sz = weight + (4 * 16) * sz;
+            const auto src_z     = src_x + sz * 16;
+
+            for (long j = 0; j < 4; ++j) {
+                const auto weight_j = weight_sz + j * 16;
+                for (long i = 0; i < 16; ++i) {
+                    dstTemp[j] += (int32_t)src_z[i] * (int32_t)weight_j[i];
+                }
+            }
+        }
+        for (; sz < cdiv8 / 2 + cdiv8 % 2; ++sz) {
+            const auto weight_sz = weight + (4 * 16) * sz;
+            const auto src_z     = src_x + sz * 16;
+
+            for (long j = 0; j < 4; ++j) {
+                const auto weight_j = weight_sz + j * 16;
+                for (long i = 0; i < 8; ++i) {
+                    dstTemp[j] += (int32_t)src_z[i] * (int32_t)weight_j[i];
+                }
+            }
+        }
+        for (long j = 0; j < 4; ++j) {
+            auto res = static_cast<float>(dstTemp[j] + bias[j]) * scale[j];
+            // Conv-Relu-Add
+            if (relu == -1) {
+                res = MAX(0, res);
+            }
+            if (add_input_x) {
+                res += add_input_x[j] * add_scale[j];
+            }
+            // Conv-Add-Relu
+            if (relu == 1) {
+                res = MAX(0, res);
+            }
+            // Conv-Add-Relu6
+            else if (relu == 2) {
+                int8_t res_int8 = MIN(float2int8(res), relu6_max[j]);
+                res_int8 = MAX(0, res_int8);
+                dst_x[j] = res_int8;
+                continue;
+            }
+
+            dst_x[j] = float2int8(res);
+        }
+    }
+}
 
 }

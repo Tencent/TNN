@@ -480,4 +480,29 @@ int MatTranspose(T *dst, const T *src, size_t M, size_t N) {
 }
 template int MatTranspose(float *dst, const float *src, size_t M, size_t N);
 
+// from [o][i][h][w]
+// to: [o/4][h][w][i/16][o4][i16]
+int PackINT8Weight(int8_t *src, int8_t *dst, int group, int input_channel, int output_channel, int height, int width) {
+    const int oc_4        = (output_channel + 3) / 4;
+    const int ic_calc     = input_channel < 4 ? input_channel : ROUND_UP(input_channel, 4);
+    const int crs_round16 = ROUND_UP(ic_calc * height * width, 16);
+    memset(dst, 0, oc_4 * 4 * crs_round16);
+    for (int o = 0; o < output_channel; o++) {
+        auto zo = o / 4, ro = o % 4;
+        for (int h = 0; h < height; h++) {
+            for (int w = 0; w < width; w++) {
+                for (int i = 0; i < input_channel; i++) {
+                    // to: [o/4][h][w][i/16][o4][i16]
+                    auto o_dst = dst + zo * 4 * crs_round16 + ro * 16;
+                    auto ri    = ((h * width + w) * ic_calc + i) % 16;
+                    auto zi    = ((h * width + w) * ic_calc + i) / 16;
+                    o_dst[zi * 16 * 4 + ri] =
+                        src[o * input_channel * height * width + i * height * width + h * width + w];
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 }

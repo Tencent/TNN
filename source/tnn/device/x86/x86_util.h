@@ -58,6 +58,8 @@ int UnpackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size
 template<typename T>
 int MatTranspose(T *dst, const T *src, size_t M, size_t N);
 
+int PackINT8Weight(int8_t *src, int8_t *dst, int group, int input_channel, int output_channel, int height, int width);
+
 }  // namespace TNN_NS
 
 #endif
