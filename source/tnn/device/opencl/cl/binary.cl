@@ -106,3 +106,62 @@ __kernel void BinaryHW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     FLOAT4 out      = OPERATOR;
     WI_F(output, (int2)(cw, bh), out);
 }
+
+__kernel void BinaryBroadcast(GLOBAL_SIZE_2_DIMS __read_only image2d_t input0,
+                              __read_only image2d_t input1, int4 output_shape,
+                              int4 input0_shape, int4 input1_shape,
+                              __private const int input0_c_4_blocks,
+                              __private const int input1_c_4_blocks,
+                              __write_only image2d_t output) {
+    const int output_cw = get_global_id(0);
+    const int output_bh = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(output_cw, output_bh);
+
+    const int output_h_idx = output_bh % output_shape.z;
+    const int output_b_idx = output_bh / output_shape.z;
+    const int output_w_idx = output_cw % output_shape.w;
+    const int output_c_4_idx = output_cw / output_shape.w;
+
+    FLOAT4 in0, in1;
+    const int input0_h_idx = select(input0_shape.z - 1, output_h_idx, output_h_idx < input0_shape.z);
+    const int input0_b_idx = select(input0_shape.x - 1, output_b_idx, output_b_idx < input0_shape.x);
+    const int input0_w_idx = select(input0_shape.w - 1, output_w_idx, output_w_idx < input0_shape.w);
+    const int input0_c_4_idx = select(input0_c_4_blocks - 1, output_c_4_idx, output_c_4_idx < input0_c_4_blocks);
+    const int input0_c_idx0 = input0_c_4_idx << 2;
+    const int input0_c_remain = input0_shape.y - input0_c_idx0;
+    in0 = RI_F(input0, SAMPLER, (int2)(input0_c_4_idx * input0_shape.w + input0_w_idx,
+                                       input0_b_idx * input0_shape.z + input0_h_idx));
+    if (input0_c_remain == 3) {
+        in0.w = in0.z;
+    } else if (input0_c_remain == 2) {
+        in0.z = in0.y;
+        in0.w = in0.y;
+    } else if (input0_c_remain == 1) {
+        in0.y = in0.x;
+        in0.z = in0.x;
+        in0.w = in0.x;
+    }
+
+    const int input1_h_idx = select(input1_shape.z - 1, output_h_idx, output_h_idx < input1_shape.z);
+    const int input1_b_idx = select(input1_shape.x - 1, output_b_idx, output_b_idx < input1_shape.x);
+    const int input1_w_idx = select(input1_shape.w - 1, output_w_idx, output_w_idx < input1_shape.w);
+    const int input1_c_4_idx = select(input1_c_4_blocks - 1, output_c_4_idx, output_c_4_idx < input1_c_4_blocks);
+    const int input1_c_idx0 = input1_c_4_idx << 2;
+    const int input1_c_remain = input1_shape.y - input1_c_idx0;
+    in1 = RI_F(input1, SAMPLER, (int2)(input1_c_4_idx * input1_shape.w + input1_w_idx,
+                                       input1_b_idx * input1_shape.z + input1_h_idx));
+    if (input1_c_remain == 3) {
+        in1.w = in1.z;
+    } else if (input1_c_remain == 2) {
+        in1.z = in1.y;
+        in1.w = in1.y;
+    } else if (input1_c_remain == 1) {
+        in1.y = in1.x;
+        in1.z = in1.x;
+        in1.w = in1.x;
+    }
+
+    FLOAT4 out      = OPERATOR;
+    WI_F(output, (int2)(output_cw, output_bh), out);
+}
