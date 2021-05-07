@@ -30,7 +30,7 @@ Status ArmTileLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vecto
     int count        = DimsVectorUtils::Count(output_dims);
     T *input_data    = static_cast<T *>(input_blob->GetHandle().base);
     T *output_data   = static_cast<T *>(output_blob->GetHandle().base);
-    OMP_PARALLEL_FOR_DYNAMIC_
+    OMP_PARALLEL_FOR_
     for (int index = 0; index < count; ++index) {
         int offset = 0;
         int prod   = count;
