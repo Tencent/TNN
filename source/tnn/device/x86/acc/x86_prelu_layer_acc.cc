@@ -12,16 +12,15 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <cmath>
 #include "tnn/device/x86/acc/x86_layer_acc.h"
+#include "tnn/device/x86/acc/x86_prelu_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/interpreter/layer_resource_generator.h"
 
 #include "tnn/device/x86/acc/Float4.h"
 #include "tnn/device/x86/acc/Float8.h"
 
 namespace TNN_NS {
-
-DECLARE_X86_ACC(PRelu, X86_PRELU_OP);
 
 template <typename VEC, int pack>
 static void prelu_func(float *input, float *output, const float *slope, DimsVector dims, bool is_channel_shared) {
@@ -58,6 +57,27 @@ static void prelu_func(float *input, float *output, const float *slope, DimsVect
             }
         }
     }
+}
+
+X86PReluLayerAcc::~X86PReluLayerAcc() {}
+
+Status X86PReluLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                                     const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto res = dynamic_cast<PReluLayerResource *>(resource);
+    CHECK_PARAM_NULL(res);
+
+    Status ret;
+    if (res->slope_handle.GetDataType() == DATA_TYPE_HALF) {
+        LayerResource *fp32_res = nullptr;
+        RETURN_ON_NEQ(ConvertHalfResource(LAYER_PRELU, res, &fp32_res), TNN_OK);
+        prelu_acc_f32_resource_ = std::shared_ptr<LayerResource>(fp32_res);
+        ret = X86LayerAcc::Init(context, param, prelu_acc_f32_resource_.get(), inputs, outputs);
+    } else {
+        ret = X86LayerAcc::Init(context, param, resource, inputs, outputs);
+    }
+
+    RETURN_ON_NEQ(ret, TNN_OK);
+    return TNN_OK;
 }
 
 Status X86PReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

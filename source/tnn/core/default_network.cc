@@ -26,7 +26,6 @@
 #include "tnn/utils/blob_transfer_utils.h"
 #include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
-#include "tnn/utils/md5.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
@@ -98,8 +97,14 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
+
     if(!net_config.cache_path.empty()) {
-        context_->SetCacheFilePath(GenerateCacheFileName(model_config));
+        auto params_md5 = default_interpreter->GetParamsMd5();
+        if (params_md5.size() < 1) {
+            return Status(TNNERR_PARAM_ERR, "model params md5 missing");
+        }
+        context_->SetCachePath(net_config.cache_path);
+        context_->SetCacheFilePath(GenerateCacheFileName(model_config, params_md5[0]));
     }
 
     ret = context_->LoadLibrary(net_config.library_path);
@@ -285,7 +290,8 @@ Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *ne
 
 Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info, bool is_input, bool is_quantized_net,
                                            const std::string &name, NetResource *net_resource, Blob **blob) {
-    if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE) {
+    if (device_->GetDeviceType() != DEVICE_ARM && device_->GetDeviceType() != DEVICE_NAIVE &&
+        device_->GetDeviceType() != DEVICE_X86) {
         return TNN_OK;
     }
 
@@ -305,7 +311,12 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
                 bool layer_implemented_fp16  = device_->GetImplementedPrecision(layer_type)->fp16_implemented;
                 desc.data_type = (cpu_support_fp16 && layer_implemented_fp16) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
             } else if (config_.precision == PRECISION_LOW) {
-                desc.data_type = DATA_TYPE_BFP16;
+                if (device_->GetDeviceType() == DEVICE_ARM) {
+                    desc.data_type = DATA_TYPE_BFP16;
+                } else if (device_->GetDeviceType() == DEVICE_NAIVE ||
+                           device_->GetDeviceType() == DEVICE_X86) {
+                    desc.data_type = DATA_TYPE_FLOAT;
+                }
             } else if (config_.precision == PRECISION_HIGH) {
                 desc.data_type = DATA_TYPE_FLOAT;
             } else {
@@ -571,10 +582,10 @@ std::shared_ptr<ProfileResult> DefaultNetwork::FinishProfile() {
 }
 #endif
 
-std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config) {
+std::string DefaultNetwork::GenerateCacheFileName(ModelConfig &model_config, std::string& md5_str) {
     return CACHE_TAG + "_" + ToString(config_.device_type) + "_" + ToString(config_.device_id)
         + "_" + ToString(config_.precision) + "_" + ToString(model_config.model_type) +
-        "_" + md5(model_config.params[0]);
+        "_" + md5_str;
 }
 
 

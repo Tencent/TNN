@@ -81,7 +81,12 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     std::string model_suffix             = NpuCommonUtils::modifyModelInputSize(inputs_shape, input_shapes_map_temp);
 
     // init the path to store/read om
-    model_name_            = NpuCommonUtils::GetFileHash(model_config);
+    auto params_md5 = default_interpreter->GetParamsMd5();
+    model_name_     = "";
+    for (auto item : params_md5) {
+        auto str = item.substr(0, item.length() > 6 ? 6 : item.length());
+        model_name_ += str + "_";
+    }
     model_name_            = model_name_ + model_suffix + "_" + version_str_;
     std::string model_path = use_path_ ? net_config.cache_path + "/" + model_name_ + ".om" : "";
     LOGI("[TNN/NPU]The path %s\n", model_path.c_str());

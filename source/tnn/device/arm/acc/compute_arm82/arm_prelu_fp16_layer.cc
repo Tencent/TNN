@@ -15,7 +15,7 @@
 #include "tnn/device/arm/acc/arm_prelu_layer_acc.h"
 
 #include <cmath>
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 #include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {

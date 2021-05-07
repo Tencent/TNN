@@ -25,7 +25,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/common.h"
 #include "tnn/interpreter/layer_param.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 

@@ -238,6 +238,7 @@ Status LayerTest::DeInit() {
 void LayerTest::TearDownTestCase() {
     instance_cpu_.reset();
     instance_device_.reset();
+    instance_ocl_cache_.reset();
 }
 
 Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* command_queue_dev, int magic_num) {

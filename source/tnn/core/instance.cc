@@ -33,7 +33,7 @@ namespace TNN_NS {
 
 Instance::Instance(NetworkConfig &net_config, ModelConfig &model_config) {
     net_config_   = net_config;
-    model_config_ = model_config;
+    model_config_ = model_config; // note that, the params in model_config is empty, don't use it
 }
 Instance::~Instance() {
     DeInit();
@@ -53,9 +53,6 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
     }
     auto ret = network_->Init(net_config_, model_config_, interpreter.get(), inputs_shape);
     RETURN_ON_NEQ(ret, TNN_OK);
-
-    // release string, this will not be used
-    model_config_.params.clear();
 
     return TNN_OK;
 }

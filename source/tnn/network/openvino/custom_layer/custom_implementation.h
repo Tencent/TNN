@@ -161,7 +161,6 @@ public:
         }
 
         auto base_layer = node->getBaseLayer();
-
         base_layer->Forward();
         
         return InferenceEngine::OK; 

@@ -268,8 +268,17 @@ Status ModelChecker::RunModelCheckerOutput() {
         for (int b = 0; b < batch; ++b) {
             printf("\tbatch: %d\n", b);
             int offset = b * bytesize_perbatch;
-            check_pass &= CompareData((char*)device_output_mat_map[blob_name]->GetData() + offset,
-                                      (char*)output_ref_mat_map_[blob_name]->GetData() + offset, compare_dims, COSINE);
+            bool check_result = false;
+            if (CompareData((char*)device_output_mat_map[blob_name]->GetData() + offset,
+                            (char*)output_ref_mat_map_[blob_name]->GetData() + offset, compare_dims, COSINE)) {
+                check_result = true;
+            } else if (CompareData((char*)device_output_mat_map[blob_name]->GetData() + offset,
+                                   (char*)output_ref_mat_map_[blob_name]->GetData() + offset, compare_dims)) {
+                check_result = true;
+            } else {
+                check_result = false;
+            }
+            check_pass &= check_result;
         }
 
         if (model_checker_params_.dump_output) {

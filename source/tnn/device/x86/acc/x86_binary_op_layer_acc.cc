@@ -229,7 +229,7 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
                         for (; w + pack - 1 < dims[3]; w += pack) {
                             VEC v2 = VEC::loadu(_input1 + w);
                             VEC v1 = VEC::loadu(_input0_h + w);
-                            VEC::saveu(_output_h + h, binary_op<op_type, VEC>(v2, v1));
+                            VEC::saveu(_output_h + w, binary_op<op_type, VEC>(v2, v1));
                         }
                         for (; w < dims[3]; w++) {
                             _output_h[w] = binary_op<op_type>(_input1[w], _input0_h[w]);
@@ -315,7 +315,7 @@ Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input
                         for (; w + pack - 1 < dims[3]; w += pack) {
                             VEC v2 = VEC::loadu(_input1 + w);
                             VEC v1 = VEC::loadu(_input0_h + w);
-                            VEC::saveu(_output_h + h, binary_op<op_type, VEC>(v1, v2));
+                            VEC::saveu(_output_h + w, binary_op<op_type, VEC>(v1, v2));
                         }
                         for (; w < dims[3]; w++) {
                             _output_h[w] = binary_op<op_type>(_input0_h[w], _input1[w]);

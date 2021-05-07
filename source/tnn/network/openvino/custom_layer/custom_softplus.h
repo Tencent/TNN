@@ -9,21 +9,20 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_INCLUDE_TNN_UTILS_HALF_UTILS_H_
-#define TNN_INCLUDE_TNN_UTILS_HALF_UTILS_H_
-
-#include "tnn/core/macro.h"
+#include "tnn/network/openvino/custom_layer/custom_implementation.h"
+#include "immintrin.h"
+#include "time.h"
+#include <chrono>
 
 namespace TNN_NS {
+    
+DECLARE_CUSTOM_OP(Softplus);
+REGISTER_CUSTOM_OP(Softplus);
 
-// @brief convert float to half
-extern PUBLIC int ConvertFromFloatToHalf(float *fp32, void *fp16, int count);
-// @brief convert half to float
-extern PUBLIC int ConvertFromHalfToFloat(void *fp16, float *fp32, int count);
+DECLARE_CUSTOM_IMPLEMENTATION(Softplus);
+REGISTER_CUSTOM_IMPLEMENTATION(Softplus, CustomSoftplus);
 
-}  // namespace TNN_NS
-
-#endif  // TNN_INCLUDE_TNN_UTILS_HALF_UTILS_H_
+}

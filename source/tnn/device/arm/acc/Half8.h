@@ -18,8 +18,9 @@
 #include <cmath>
 #include "tnn/core/macro.h"
 #include "tnn/utils/half.hpp"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 #include "tnn/device/arm/acc/TNNVector.h"
+#include "tnn/device/arm/acc/Float4.h"
 #ifdef TNN_USE_NEON
 #include <arm_neon.h>
 #include "tnn/device/arm/acc/neon_mathfun.h"
@@ -47,6 +48,9 @@ struct Half4 {
     Half4(const Half4&& lr) {
         value = std::move(lr.value);
     }
+    Half4(const Float4& lr) {
+        value = vcvt_f16_f32(lr.value);
+    }
     static Half4 load(const __fp16* addr) {
         Half4 v;
         v.value = vld1_f16(addr);
@@ -59,6 +63,9 @@ struct Half4 {
         float16x4x2_t v = vzip_f16(v1.value, v2.value);
         v1.value = v.val[0];
         v2.value = v.val[1];
+    }
+    static void add_to_f32(Half4& v1, Float4& v2) {
+        v2.value = vaddq_f32(v2.value, vcvt_f32_f16(v1.value));
     }
     Half4& operator=(const Half4& lr) {
         value = lr.value;
@@ -456,6 +463,9 @@ struct Half4 {
     Half4(const Half4&& lr) {
         value = std::move(lr.value);
     }
+    Half4(const Float4& lr) {
+        value = vreinterpret_s16_f16(vcvt_f16_f32(lr.value));
+    }
     static Half4 load(const fp16_t* addr) {
         Half4 v;
         asm volatile(
@@ -478,6 +488,9 @@ struct Half4 {
         int16x4x2_t v = vzip_s16(v1.value, v2.value);
         v1.value = v.val[0];
         v2.value = v.val[1];
+    }
+    static void add_to_f32(Half4& v1, Float4& v2) {
+        v2.value = vaddq_f32(v2.value, vcvt_f32_f16(vreinterpret_f16_s16(v1.value)));
     }
     Half4& operator=(const Half4& lr) {
         value = lr.value;
@@ -1113,9 +1126,19 @@ struct Half4 : TNNVector<fp16_t, 4> {
             value[i] = lr.value[i];
         }
     }
+    Half4(const Float4& lr) {
+        for (int i = 0; i < 4; ++i) {
+            value[i] = (fp16_t)lr.value[i];
+        }
+    }
     Half4(const TNNVector<fp16_t, 4>& lr) {
         for (int i = 0; i < 4; ++i) {
             value[i] = lr.value[i];
+        }
+    }
+    static void add_to_f32(Half4& v1, Float4& v2) {
+        for (int i = 0; i < 4; ++i) {
+            v2.value[i] = v2.value[i] + (float)v1.value[i];
         }
     }
 };

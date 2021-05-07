@@ -21,7 +21,7 @@
 #include "tnn/device/arm/acc/Half8.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_util.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -214,16 +214,24 @@ void AvgPoolingHalf(const fp16_t* src, long iw, long ih, fp16_t* dst, long ow, l
             const auto src_ptr       = src + (srcOriginY * iw + srcOriginX) * 8;
             auto dst_ptr             = dst + (oy * ow + ox) * 8;
 
-            Half8 vavg = Half8(fp16_t(0.f));
-
+            Float4 vavg_low = Float4(0.f);
+            Float4 vavg_high = Float4(0.f);
             for (long ky = kys; ky < kye; ++ky) {
                 const auto src_ptr_h = src_ptr + (ky * iw) * 8;
+                Half8 vavg = Half8((fp16_t)0.f);
                 for (long kx = kxs; kx < kxe; kx++) {
                     vavg = vavg + Half8::load(src_ptr_h + kx * 8);
                 }
+                Half4 v0, v1;
+                Half8::get_low(vavg, v0);
+                Half8::get_high(vavg, v1);
+                Half4::add_to_f32(v0, vavg_low);
+                Half4::add_to_f32(v1, vavg_high);
             }
-
-            Half8::save(dst_ptr, vavg * Half8(fp16_t(kernel_count)));
+            vavg_low = vavg_low * Float4(kernel_count);
+            vavg_high = vavg_high * Float4(kernel_count);
+            Half4::save(dst_ptr, Half4(vavg_low));
+            Half4::save(dst_ptr + 4, Half4(vavg_high));
         }
     }
 }

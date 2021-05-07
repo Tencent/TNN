@@ -262,6 +262,9 @@ Status OpenCLContext::Init() {
         return Status(TNNERR_OPENCL_RUNTIME_ERROR, "opencl_runtime is nullptr");
     }
 
+    // set cache path for opencl runtime
+    opencl_runtime_->SetCachePath(cache_path_);
+
     Status status = opencl_runtime_->Init();
     if (status != TNN_OK) {
         LOGE("OpenCL Runtime Init() failed (ret = %d)!\n", (int)status);
