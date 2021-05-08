@@ -43,7 +43,7 @@ bool ArmConvInt8LayerDepthwise::isPrefered(ConvLayerParam *param, const std::vec
 
 ArmConvInt8LayerDepthwise::~ArmConvInt8LayerDepthwise() {}
 
-Status ArmConvInt8LayerDepthwise::allocateBufferParam(const std::vector<Blob *> &inputs,
+Status ArmConvInt8LayerDepthwise::allocateBufferWeight(const std::vector<Blob *> &inputs,
                                                       const std::vector<Blob *> &outputs) {
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
     CHECK_PARAM_NULL(conv_param);
