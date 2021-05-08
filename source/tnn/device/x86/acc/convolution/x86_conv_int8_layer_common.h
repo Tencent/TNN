@@ -52,16 +52,14 @@ public:
 protected:
     RawBuffer buffer_weight_;
     RawBuffer buffer_im2col_;
-    RawBuffer buffer_tmpout_;
     RawBuffer buffer_bias_;
     RawBuffer buffer_scale_;
-    RawBuffer buffer_gemm_work_space_;
     RawBuffer buffer_add_scale_;
-    RawBuffer buffer_add_tmpin_;
     // for conv relu6 fusion
     RawBuffer relu6_max_;
 
     long relu_ = 0;
+    int tile_blk_ = 32;
 
     std::function<void(int8_t *, const int8_t *, const ConvLayerParam *, size_t, size_t, int,
                        DimsVector, DimsVector)> im_col_func_;
