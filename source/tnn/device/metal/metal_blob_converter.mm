@@ -85,8 +85,9 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
     float scale_texture_buffer = 1.0f;
     float bias_texture_buffer  = 1.0f;
     const auto mat_type = mat->GetMatType();
-    bool is_texture = mat->GetDeviceType() == DEVICE_METAL && (mat_type == N8UC4 || mat_type == N8UC3);
-    if (is_texture) {
+    // Metal does not support N8UC3 mat, only N8UC4 metal mat uses mtltexture
+    bool need_rescale = (mat_type == N8UC4) && (is_mat_to_blob || mat->GetDeviceType() == DEVICE_METAL);
+    if (need_rescale) {
         scale_texture_buffer = is_mat_to_blob ? 255.0f : 1.0 / 255.0f;
         bias_texture_buffer  = is_mat_to_blob ? 1.0    : 1.0 / 255.0f;
     }
@@ -172,9 +173,8 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
 
     id<MTLFunction> func_process = nil;
 
-    bool is_texture = mat_device_type == DEVICE_METAL && (mat_type == N8UC4 || mat_type == N8UC3);
     // texture <-> blob
-    if (is_texture) {
+    if (mat_type == N8UC4) {
         if (is_mat_to_blob) {
             if (blob_data_format == DATA_FORMAT_NC4HW4) {
                 func_process = [library newFunctionWithName:@"image_converter_texture_bgra8888_2_buffer_nc4hw4"];
@@ -186,7 +186,10 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
                 }
             }
         } else {
-            if (blob_data_format == DATA_FORMAT_NC4HW4) {
+            if (mat_device_type != DEVICE_METAL && blob_data_format == DATA_FORMAT_NC4HW4) {
+                func_process = [library newFunctionWithName:@"image_converter_buffer_nc4hw4_2_buffer_bgra"];
+                LOGD("image_converter_buffer_nc4hw4_2_buffer_bgra\n");
+            } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
                 func_process = [library newFunctionWithName:@"image_converter_buffer_nc4hw4_2_texture_bgra8888"];
                 LOGD("image_converter_buffer_nc4hw4_2_texture_bgra8888\n");
             } else if (blob_data_format == DATA_FORMAT_NCHW) {
@@ -196,26 +199,17 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
                 }
             }
         }
-    } else if (mat_type == N8UC3 || mat_type == N8UC4) {
+    } else if (mat_type == N8UC3) {
         if (is_mat_to_blob) {
             if (blob_data_format == DATA_FORMAT_NC4HW4) {
-                if (mat_type == N8UC3) {
-                    func_process = [library newFunctionWithName:@"image_converter_buffer_bgr_2_buffer_nc4hw4"];
-                    LOGD("image_converter_buffer_bgr_2_buffer_nc4hw4\n");
-                } else {
-                    func_process = [library newFunctionWithName:@"image_converter_buffer_bgra_2_buffer_nc4hw4"];
-                    LOGD("image_converter_buffer_bgra_2_buffer_nc4hw4\n");
-                }
+                func_process = [library newFunctionWithName:@"image_converter_buffer_bgr_2_buffer_nc4hw4"];
+                LOGD("image_converter_buffer_bgr_2_buffer_nc4hw4\n");
+
             }
         } else {
             if (blob_data_format == DATA_FORMAT_NC4HW4) {
-                if (mat_type == N8UC3) {
-                    func_process = [library newFunctionWithName:@"image_converter_buffer_nc4hw4_2_buffer_bgr"];
-                    LOGD("image_converter_buffer_nc4hw4_2_buffer_bgr\n");
-                } else {
-                    func_process = [library newFunctionWithName:@"image_converter_buffer_nc4hw4_2_buffer_bgra"];
-                    LOGD("image_converter_buffer_nc4hw4_2_buffer_bgra\n");
-                }
+                func_process = [library newFunctionWithName:@"image_converter_buffer_nc4hw4_2_buffer_bgr"];
+                LOGD("image_converter_buffer_nc4hw4_2_buffer_bgr\n");
             }
         }
     } else if (mat_type == NCHW_FLOAT) {

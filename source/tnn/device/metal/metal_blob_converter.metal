@@ -91,10 +91,14 @@ kernel void image_converter_buffer_nchw_f_2_texture_bgra8888(
     dst_bgra.write(half4(in), uint2(gid));
 }
 
+static inline uchar convert_uchar_saturate(const ftype val) {
+    return val <= 0 ? uchar(0) : (val >= 255 ? uchar(255) : uchar(val));
+}
+
 #pragma mark - buffer <-> buffer
 kernel void image_converter_buffer_nc4hw4_2_buffer_bgra(
       device uchar  *dst                           [[buffer(0)]],
-      device ftype4 *src                           [[buffer(1)]],
+      const device ftype4 *src                     [[buffer(1)]],
       constant MetalImageConverterParams& params   [[buffer(2)]],
       ushort2 gid                                  [[thread_position_in_grid]])
 {
@@ -108,15 +112,15 @@ kernel void image_converter_buffer_nc4hw4_2_buffer_bgra(
     in = in*float4(params.scale_x, params.scale_y, params.scale_z, params.scale_w) + float4(params.bias_x, params.bias_y, params.bias_z, params.bias_w);
     in = params.bgra_to_rgba ? in.zyxw : in;
 
-    dst[offset*4 + 0] = uchar(in.x);
-    dst[offset*4 + 1] = uchar(in.y);
-    dst[offset*4 + 2] = uchar(in.z);
-    dst[offset*4 + 3] = uchar(in.w);
+    dst[offset*4 + 0] = convert_uchar_saturate(in.x);
+    dst[offset*4 + 1] = convert_uchar_saturate(in.y);
+    dst[offset*4 + 2] = convert_uchar_saturate(in.z);
+    dst[offset*4 + 3] = convert_uchar_saturate(in.w);
 }
 
 kernel void image_converter_buffer_nc4hw4_2_buffer_bgr(
       device uchar  *dst                           [[buffer(0)]],
-      device ftype4 *src                           [[buffer(1)]],
+      const device ftype4 *src                     [[buffer(1)]],
       constant MetalImageConverterParams& params   [[buffer(2)]],
       ushort2 gid                                  [[thread_position_in_grid]])
 {
@@ -130,14 +134,14 @@ kernel void image_converter_buffer_nc4hw4_2_buffer_bgr(
     in = in*float3(params.scale_x, params.scale_y, params.scale_z) + float3(params.bias_x, params.bias_y, params.bias_z);
     in = params.bgra_to_rgba ? in.zyx : in;
 
-    dst[offset*3 + 0] = uchar(in.x);
-    dst[offset*3 + 1] = uchar(in.y);
-    dst[offset*3 + 2] = uchar(in.z);
+    dst[offset*3 + 0] = convert_uchar_saturate(in.x);
+    dst[offset*3 + 1] = convert_uchar_saturate(in.y);
+    dst[offset*3 + 2] = convert_uchar_saturate(in.z);
 }
 
 kernel void image_converter_buffer_bgr_2_buffer_nc4hw4(
       device ftype4 *dst                          [[buffer(0)]],
-      device uchar  *src                          [[buffer(1)]],
+      const device uchar  *src                    [[buffer(1)]],
       constant MetalImageConverterParams& params  [[buffer(2)]],
       ushort2 gid                                 [[thread_position_in_grid]])
 {
@@ -157,7 +161,7 @@ kernel void image_converter_buffer_bgr_2_buffer_nc4hw4(
 
 kernel void image_converter_buffer_bgra_2_buffer_nc4hw4(
       device ftype4 *dst                          [[buffer(0)]],
-      device uchar  *src                          [[buffer(1)]],
+      const device uchar  *src                    [[buffer(1)]],
       constant MetalImageConverterParams& params  [[buffer(2)]],
       ushort2 gid                                 [[thread_position_in_grid]])
 {
