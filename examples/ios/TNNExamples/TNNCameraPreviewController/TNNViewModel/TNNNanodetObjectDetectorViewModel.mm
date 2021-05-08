@@ -36,9 +36,9 @@ using namespace std;
     auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_m.opt.tnnproto"
                                                       ofType:nil];
     // nanodet_efficient1
-    //auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_efficientnet_lite1.opt.tnnmodel"
+    //auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_e1.tnnmodel"
     //                                                ofType:nil];
-    //auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_efficientnet_lite1.opt.tnnproto"
+    //auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_e1.tnnproto"
     //                                                  ofType:nil];
     
     if (model_path.length <= 0 || proto_path.length <= 0) {

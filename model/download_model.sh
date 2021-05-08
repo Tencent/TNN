@@ -185,3 +185,14 @@ download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/keys.txt" \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/keys.txt" \
     "chinese-ocr"
+
+# download nanodet model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/nanodet_m.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/chinese-ocr/nanodet_m.tnnmodel" \
+    "nanodet"
+  
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/nanodet_e1.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/chinese-ocr/nanodet_e1.tnnmodel" \
+    "nanodet"
