@@ -25,8 +25,8 @@ static bool UseTRTPaddingND(PadLayerParam* paramlist) {
         return false;
     }
 
-    // A must have three dimensions or more.
-    if (paramlist->pads.size() < 6) {
+    // input must have 4 dimensions or more.
+    if (paramlist->pads.size() < 8) {
         return false;
     }
 
