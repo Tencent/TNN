@@ -20,7 +20,7 @@
 
 namespace TNN_NS {
 
-std::string BlobDesc::description(bool all_messgae) {
+std::string BlobDesc::description(bool all_message) {
     std::ostringstream os;
     //name
     os << "name: " <<name;

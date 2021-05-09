@@ -143,7 +143,7 @@ Status RunKernel(const cl::Kernel &kernel, const std::vector<uint32_t> &gws, con
 
     if (error != CL_SUCCESS) {
         CHECK_CL_SUCCESS(error);
-        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
+        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange failed");
     }
 
     if (pdata != nullptr) {
@@ -415,7 +415,7 @@ Status CopyBufferToImage(OpenCLRuntime *runtime, OpenCLContext *context, const c
 
     if (error != CL_SUCCESS) {
         CHECK_CL_SUCCESS(error);
-        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
+        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange failed");
     }
 
     if (need_wait) {
@@ -438,7 +438,7 @@ Status CopyImageToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl
 
     if (error != CL_SUCCESS) {
         CHECK_CL_SUCCESS(error);
-        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
+        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange failed");
     }
 
     if (need_wait) {
@@ -474,7 +474,7 @@ Status CopyBufferToMat(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int
     ret = command_queue->enqueueReadBuffer(buffer, CL_TRUE, 0, size_in_bytes, mat.GetData());
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL enqueueReadBuffer falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL enqueueReadBuffer failed");
     }
 
     return TNN_OK;
@@ -499,7 +499,7 @@ Status CopyMatToBuffer(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int
     ret = command_queue->enqueueWriteBuffer(buffer, CL_TRUE, 0, size_in_bytes, mat.GetData());
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL enqueueWriteBuffer falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL enqueueWriteBuffer failed");
     }
 
     return TNN_OK;

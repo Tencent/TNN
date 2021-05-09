@@ -24,7 +24,7 @@ namespace TNN_NS {
 
 class DataFlagUtils {
 public:
-    // @brief to check wether the data is allocated in forword
+    // @brief to check wether the data is allocated in forward
     // @param flag data flag
     static bool AllocateInForward(int flag);
 
