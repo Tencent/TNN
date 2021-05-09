@@ -230,7 +230,7 @@ Status OpenCLInnerProductLayerAcc::InitReshapeLayer(const std::vector<Blob *> &i
                                                           imageshape[1], 0, nullptr, &err);
     if (err != CL_SUCCESS) {
         CHECK_CL_SUCCESS(err)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     BlobHandle blob_handle;
     blob_handle.base = reshape_output_image_.get();
@@ -266,7 +266,7 @@ Status OpenCLInnerProductLayerAcc::ConvertWeights(float *weights_data_ptr, int w
                       DimsVectorUtils::Count(weight_shape) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     weight_buffer->SetData(&buffer);
     auto weight_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
@@ -279,7 +279,7 @@ Status OpenCLInnerProductLayerAcc::ConvertWeights(float *weights_data_ptr, int w
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(buffer, weight_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
 
     // create ocl_weights_
@@ -294,7 +294,7 @@ Status OpenCLInnerProductLayerAcc::ConvertWeights(float *weights_data_ptr, int w
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     ocl_weights_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_weights_->SetData(image, true);

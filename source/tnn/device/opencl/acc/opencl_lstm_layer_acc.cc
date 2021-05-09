@@ -318,14 +318,14 @@ Status OpenCLLSTMONNXLayerAcc::ConvertWeights(std::shared_ptr<RawBuffer> buffer,
                          DimsVectorUtils::Count(buffer->GetBufferDims()) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     weights_buffer->SetData(&cl_buffer);
     ret = ocl_context_->CommandQueue()->enqueueWriteBuffer(cl_buffer, CL_TRUE, 0,
             DimsVectorUtils::Count(buffer->GetBufferDims()) * sizeof(float), weights_data_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL enqueueWriteBuffer falied");
+        return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL enqueueWriteBuffer failed");
     }
 
     BlobDesc desc;
@@ -388,14 +388,14 @@ Status OpenCLLSTMONNXLayerAcc::ConvertBias(std::shared_ptr<RawBuffer> buffer, st
                          DimsVectorUtils::Count(buffer->GetBufferDims()) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     bias_buffer->SetData(&cl_buffer);
     ret = ocl_context_->CommandQueue()->enqueueWriteBuffer(cl_buffer, CL_TRUE, 0,
             DimsVectorUtils::Count(buffer->GetBufferDims()) * sizeof(float), bias_data_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL enqueueWriteBuffer falied");
+        return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL enqueueWriteBuffer failed");
     }
 
     BlobDesc desc;
@@ -473,14 +473,14 @@ Status OpenCLLSTMONNXLayerAcc::ConvertInitialState(std::shared_ptr<RawBuffer> bu
                          DimsVectorUtils::Count(state_shape) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     state_buffer->SetData(&cl_buffer);
     ret = ocl_context_->CommandQueue()->enqueueWriteBuffer(cl_buffer, CL_TRUE, 0,
             DimsVectorUtils::Count(state_shape) * sizeof(float), state_data_ptr_trans.get());
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL enqueueWriteBuffer falied");
+        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL enqueueWriteBuffer failed");
     }
 
     BlobDesc desc;
@@ -533,14 +533,14 @@ Status OpenCLLSTMONNXLayerAcc::CreateDefaultState(int num_directions,
                          image_width * image_height * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     state_buffer->SetData(&cl_buffer);
     ret = ocl_context_->CommandQueue()->enqueueWriteBuffer(cl_buffer, CL_TRUE, 0,
             image_width * image_height * sizeof(float), zero_buffer_data.data());
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL enqueueWriteBuffer falied");
+        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL enqueueWriteBuffer failed");
     }
 
     // transfer from clBuffer to clImage
@@ -582,14 +582,14 @@ Status OpenCLLSTMONNXLayerAcc::AllocateTempBlob(int num_directions,
                          DimsVectorUtils::Count(shape) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     state_buffer->SetData(&cl_buffer);
     ret = ocl_context_->CommandQueue()->enqueueWriteBuffer(cl_buffer, CL_TRUE, 0,
             DimsVectorUtils::Count(shape) * sizeof(float), zero_buffer_data.data());
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL enqueueWriteBuffer falied");
+        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL enqueueWriteBuffer failed");
     }
 
     // transfer from clBuffer to clImage

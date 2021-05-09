@@ -33,7 +33,7 @@ public:                                                                         
         std::shared_ptr<LayerParam> param(new param_type());                                                           \
         param_type* param_ptr = dynamic_cast<param_type*>(param.get());                                                \
         if (nullptr == param_ptr) {                                                                                    \
-            LOGE("dynamic cast to %s falied\n", #param_type);                                                          \
+            LOGE("dynamic cast to %s failed\n", #param_type);                                                          \
             return nullptr;                                                                                            \
         }                                                                                                              \
         *param_ptr = *this;                                                                                            \
@@ -598,7 +598,7 @@ struct GatherNDLayerParam : public LayerParam {
 struct LSTMONNXLayerParam : public LayerParam {
     float clip_threshold = 0;
     int hidden_size      = 0;
-    //0: forword 1:reverse 2:bidirection
+    //0: forward 1:reverse 2:bidirection
     int direction                        = 0;
 
     PARAM_COPY(LSTMONNXLayerParam)
