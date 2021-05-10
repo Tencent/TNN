@@ -20,7 +20,8 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(PadV2, LAYER_PADV2);
 
 bool PadV2TRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32;
+    return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32
+           || inOut[pos].type == nvinfer1::DataType::kHALF) && inOut[pos].type == inOut[0].type && inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
 }
 
 const char* PadV2TRTPluginLayerBuilder::getPluginType() const {

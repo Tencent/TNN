@@ -30,7 +30,7 @@ namespace TNN_NS {
 
 //@brief BlobDesc blob data info
 struct PUBLIC BlobDesc {
-    // deivce_type describes device cpu, gpu, ...
+    // device_type describes device cpu, gpu, ...
     DeviceType device_type = DEVICE_NAIVE;
     // data_type describes data precision fp32, in8, ...
     DataType data_type = DATA_TYPE_FLOAT;
@@ -41,7 +41,7 @@ struct PUBLIC BlobDesc {
     // name describes the blob name
     std::string name = "";
     
-    std::string description(bool all_messgae = false);
+    std::string description(bool all_message = false);
 };
 
 struct PUBLIC BlobHandle {

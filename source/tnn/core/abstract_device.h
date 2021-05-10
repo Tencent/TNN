@@ -102,7 +102,7 @@ std::map<DeviceType, std::shared_ptr<AbstractDevice>>& GetGlobalDeviceMap();
 // @brief Get Device
 AbstractDevice* GetDevice(DeviceType type);
 
-// @brief TypeDeviceRegister contruct register device
+// @brief TypeDeviceRegister construct register device
 template <typename T>
 class TypeDeviceRegister {
 public:

@@ -147,7 +147,7 @@ Status OpenCLSplitVLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
             CHECK_CL_SUCCESS(cl_ret)
             if (nullptr != cl_buffer)
                 delete cl_buffer;
-            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
         }
         buffer_.reset(cl_buffer);
 
