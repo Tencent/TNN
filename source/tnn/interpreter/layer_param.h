@@ -649,9 +649,10 @@ struct EinsumLayerParam : public LayerParam {
 };
 
 struct TopKLayerParam : public LayerParam {
-    int axis    = -1;
+    int axis = -1;
     int largest = 1;
-    int sorted  = 1;
+    int sorted = 1;
+    int k;
 
     PARAM_COPY(TopKLayerParam)
 };

@@ -28,6 +28,7 @@ Status TopKLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_ind
     GET_INT_1_OR_DEFAULT(layer_param->axis, -1);
     GET_INT_1_OR_DEFAULT(layer_param->largest, 1);
     GET_INT_1_OR_DEFAULT(layer_param->sorted, 1);
+    GET_INT_1_OR_DEFAULT(layer_param->k, -1);
 
     return TNN_OK;
 }
@@ -43,7 +44,8 @@ Status TopKLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam*
         return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
 
-    output_stream << layer_param->axis << " " << layer_param->largest << " " << layer_param->sorted << " ";
+    output_stream << layer_param->axis << " " << layer_param->largest << " " << 
+                     layer_param->sorted << " " << layer_param->k << " ";
 
     return TNN_OK;
 }

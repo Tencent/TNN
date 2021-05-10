@@ -248,7 +248,8 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"OneHot", LAYER_ONEHOT},
     {"CbamFusedReduce", LAYER_CBAM_FUSED_REDUCE},
     {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING},
-    {"Softsign", LAYER_SOFTSIGN}
+    {"Softsign", LAYER_SOFTSIGN},
+    {"TopK", LAYER_TOPK}
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {
