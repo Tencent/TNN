@@ -25,7 +25,7 @@ class GridSampleLayerTest
       public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, GridSampleLayerTest,
-                         ::testing::Combine(testing::Values(1),
+                         ::testing::Combine(testing::Values(1, 2),
                                             // channel
                                             testing::Values(1, 3, 4, 10),
                                             // input_height
@@ -33,9 +33,9 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, GridSampleLayerTest,
                                             // input_weight
                                             testing::Values(3, 4, 10),
                                             // output_height
-                                            testing::Values(3, 4, 10),
+                                            testing::Values(3, 4, 10, 20),
                                             // output_weight
-                                            testing::Values(3, 4, 10),
+                                            testing::Values(3, 4, 10, 20),
                                             // mode:
                                             testing::Values(2),
                                             // pad_type
