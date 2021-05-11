@@ -143,11 +143,6 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         return ret;
     }
 
-    ret = blob_manager_->AllocateBlobMemory();
-    if (ret != TNN_OK) {
-       return ret;
-    }
-
     std::string cache_file_name = GetCacheFileName(params_md5, inputs, outputs, min_inputs_shape,
         net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
     ExclFile *file_lock = new ExclFile(cache_file_name);
@@ -184,6 +179,11 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     delete file_lock;
+
+    ret = blob_manager_->AllocateBlobMemory();
+    if (ret != TNN_OK) {
+       return ret;
+    }
 
     int bind_num = m_trt_engine->getNbBindings();
     this->m_trt_bindings = new void*[bind_num];
