@@ -28,7 +28,7 @@ Status ArmExpandLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inp
     if (inputs.size() == 2) {
         auto data_dims = inputs[0]->GetBlobDesc().dims;
         DimsVector shape_dims;
-        auto shape_data = (int *)inputs[1]->GetHandle().base;
+        auto shape_data = reinterpret_cast<int *>(GetBlobHandlePtr(inputs[1]->GetHandle()));
         auto shape_data_count = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
         for (int i=0; i<shape_data_count; i++) {
             shape_dims.push_back(shape_data[i]);
@@ -129,18 +129,18 @@ Status ArmExpandLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     }
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        const float *input_data = reinterpret_cast<const float *>(input_blob->GetHandle().base);
-        float *output_data = reinterpret_cast<float *>(output_blob->GetHandle().base);
+        const float *input_data = reinterpret_cast<const float *>(GetBlobHandlePtr(input_blob->GetHandle()));
+        float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
         ArmExpand<float>(output_dims, input_dims, output_data, input_data);
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
-        const bfp16_t *input_data = reinterpret_cast<const bfp16_t *>(input_blob->GetHandle().base);
-        bfp16_t *output_data = reinterpret_cast<bfp16_t *>(output_blob->GetHandle().base);
+        const bfp16_t *input_data = reinterpret_cast<const bfp16_t *>(GetBlobHandlePtr(input_blob->GetHandle()));
+        bfp16_t *output_data = reinterpret_cast<bfp16_t *>(GetBlobHandlePtr(output_blob->GetHandle()));
         ArmExpand<bfp16_t>(output_dims, input_dims, output_data, input_data);
     }
 #ifdef TNN_ARM82
     else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        const fp16_t *input_data = reinterpret_cast<const fp16_t *>(input_blob->GetHandle().base);
-        fp16_t *output_data = reinterpret_cast<fp16_t *>(output_blob->GetHandle().base);
+        const fp16_t *input_data = reinterpret_cast<const fp16_t *>(GetBlobHandlePtr(input_blob->GetHandle()));
+        fp16_t *output_data = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output_blob->GetHandle()));
         ArmExpand<fp16_t>(output_dims, input_dims, output_data, input_data);
     }
 #endif
