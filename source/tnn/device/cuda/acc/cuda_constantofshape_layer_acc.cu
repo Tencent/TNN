@@ -13,34 +13,25 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
-#include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_CUDA_ACC(Squeeze, LAYER_SQUEEZE);
+DECLARE_CUDA_ACC(ConstantOfShape, LAYER_CONSTANT_OF_SHAPE);
 
-Status CudaSqueezeLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status CudaConstantOfShapeLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
-Status CudaSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaConstantOfShapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CudaSqueezeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Blob *input_blob  = inputs[0];
-    Blob *output_blob = outputs[0];
-    auto dims = input_blob->GetBlobDesc().dims;
-    int count = DimsVectorUtils::Count(dims);
-    void* input_data = input_blob->GetHandle().base;
-    void* output_data = output_blob->GetHandle().base;
-    cudaMemcpyAsync(output_data, input_data, count * DataTypeUtils::GetBytesSize(input_blob->GetBlobDesc().data_type),
-        cudaMemcpyDeviceToDevice, context_->GetStream());
+Status CudaConstantOfShapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-REGISTER_CUDA_ACC(Squeeze, LAYER_SQUEEZE);
+REGISTER_CUDA_ACC(ConstantOfShape, LAYER_CONSTANT_OF_SHAPE);
 
 }  // namespace TNN_NS

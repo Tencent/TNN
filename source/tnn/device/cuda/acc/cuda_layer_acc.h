@@ -74,6 +74,7 @@ protected:
     LayerResource *resource_ = nullptr;
     CudaContext *context_    = nullptr;
     std::vector<CudaTempBufUnit> tempbufs_;
+    static void* tmp_data;
 
 private:
     // @brief retrun device layer acc support data format

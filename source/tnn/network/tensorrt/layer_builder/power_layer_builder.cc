@@ -29,6 +29,22 @@ ILayer* PowTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
     auto input_dims        = input_blobs_[0]->GetBlobDesc().dims;
 
+    if (params->exponent == 0.5 && params->shift == 0 && params->scale == 1) {
+        if (tensor->getDimensions().nbDims == 0) {
+            IShuffleLayer* shuffle_layer = network->addShuffle(*GetInputITensors()[0]);
+            nvinfer1::Dims d;
+            d.nbDims = 1;
+            d.d[0] = 1;
+            shuffle_layer->setReshapeDimensions(d);
+            tensor = shuffle_layer->getOutput(0);
+        }
+        IUnaryLayer* layer = network->addUnary(*tensor, UnaryOperation::kSQRT);
+        if (layer != nullptr) {
+            layer->setName(layer_name_.c_str());
+        }
+        return layer;
+    }
+
     Weights power;
     power.type = nvinfer1::DataType::kFLOAT;
     power.count = 1;

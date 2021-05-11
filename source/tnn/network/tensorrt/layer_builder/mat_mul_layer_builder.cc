@@ -12,16 +12,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 
 #include "tnn/core/macro.h"
 #include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_LAYER_BUILDER(MatMul, LAYER_MATMUL);
+DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(MatMul, LAYER_MATMUL);
 
-nvinfer1::Dims unsqueeze_trt_dims(const nvinfer1::Dims &input_dims, int unsqueeze_len)  {
+nvinfer1::Dims unsqueeze_trt_dims(const nvinfer1::Dims &input_dims, int unsqueeze_len) {
     nvinfer1::Dims ret;
     ret.nbDims = std::min(input_dims.nbDims + unsqueeze_len, 5);
     int insert_num = ret.nbDims - input_dims.nbDims;
@@ -31,15 +31,27 @@ nvinfer1::Dims unsqueeze_trt_dims(const nvinfer1::Dims &input_dims, int unsqueez
     return ret;
 }
 
-ILayer* MatMulTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+bool MatMulTRTPluginLayerBuilder::supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+    return inOut[pos].type == nvinfer1::DataType::kFLOAT;
+}
+
+Status MatMulTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* MatMulTRTPluginLayerBuilder::getPluginType() const {
+    return "MatMul";
+}
+
+nvinfer1::DataType MatMulTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
+        int nbInputs) const {
+    return inputTypes[0];
+}
+
+ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto paramlist = dynamic_cast<MatMulLayerParam *>(param_);
     auto resource  = dynamic_cast<MatMulLayerResource *>(resource_);
-
-    auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
-    auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
-    auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
-    int batch_size = input_blobs_[0]->GetBlobDesc().dims[0];
-
     auto input_tensors = GetInputITensors();
 
     ITensor * matrix_a = nullptr;
@@ -96,6 +108,11 @@ ILayer* MatMulTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     MatrixOperation opA = getMatrixOp(matrix_a);
     MatrixOperation opB = getMatrixOp(matrix_b);
 
+    if (opA == MatrixOperation::kNONE && opB == MatrixOperation::kNONE && dims_b.d[dims_b.nbDims - 1] == 1 &&
+            input_tensors[0]->getDimensions().nbDims == input_tensors[1]->getDimensions().nbDims) {
+        //return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    }
+
     IMatrixMultiplyLayer* layer = network->addMatrixMultiply(*matrix_a, opA, *matrix_b, opB);
 
     if (layer != nullptr) {
@@ -105,7 +122,22 @@ ILayer* MatMulTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return layer;
 }
 
-REGISTER_TENSORRT_LAYER_BUILDER(MatMul, LAYER_MATMUL);
+DimsExprs MatMulTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInput, nvinfer1::IExprBuilder& exprBuilder) {
+    DimsExprs output(inputs[0]);
+    int size = inputs[0].nbDims;
+    output.d[size - 1] = inputs[1].d[size - 1];
+    output.d[size - 2] = inputs[0].d[size - 2];
+    for (int i = size - 3; i >= 0; i--) {
+        output.d[i] = exprBuilder.operation(DimensionOperation::kMAX, *inputs[0].d[i], *inputs[1].d[i]);
+    }
+    return output;
+}
+
+const char* MatMulPluginCreator::getPluginName() const {
+    return "MatMul";
+}
+
+REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(MatMul, LAYER_MATMUL);
 
 }  //  namespace TNN_NS
-

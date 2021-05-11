@@ -196,7 +196,7 @@ Status BaseLayer::Forward() {
             auto status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
             RETURN_ON_NEQ(status, TNN_OK);
             
-            if (!IsOutputConstant()) {
+            if (!IsOutputConstant() || input_blobs_[0]->GetBlobDesc().device_type == DEVICE_CUDA) {
                 status = layer_acc_->Forward(input_blobs_, output_blobs_);
                 RETURN_ON_NEQ(status, TNN_OK);
             }

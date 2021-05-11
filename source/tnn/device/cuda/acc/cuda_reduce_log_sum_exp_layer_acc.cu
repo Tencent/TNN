@@ -19,21 +19,84 @@ namespace TNN_NS {
 
 DECLARE_CUDA_ACC(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP);
 
+template <int blockSize, typename T>
 __global__ void reduce_log_sum_exp_kernel(const int num, const int channels,
-        const int spatial_dim, const float* input, float* output) {
-    CUDA_KERNEL_LOOP(index, num * spatial_dim) {
-        int n = index / spatial_dim;
-        int s = index % spatial_dim;
-        float tmp = 0;
-        float max_value = -FLT_MAX;
-        for (int c = 0; c < channels; ++c) {
-            max_value = max(input[(n * channels + c) * spatial_dim + s], max_value);
-        }
-        for (int c = 0; c < channels; ++c) {
-            float value = input[(n * channels + c) * spatial_dim + s];
-            tmp += exp(value - max_value);
-        }
-        output[n * spatial_dim + s] = log(tmp) + max_value;
+        const int spatial_dim, const T* input, T* output) {
+    int n = blockIdx.x / spatial_dim;
+    int s = blockIdx.x % spatial_dim;
+
+    __shared__ float smax[blockSize/32];
+    __shared__ float ssum[blockSize/32];
+
+    int tid = threadIdx.x;
+    float max_value = -FLT_MAX;
+    for (int c = tid; c < channels; c += blockDim.x) {
+        float value = get_float_value<T>(input[(n * channels + c) * spatial_dim + s]);
+        max_value = fmaxf(value, max_value);
+    }
+
+    float tmp = __shfl_down_sync(0xffffffff, max_value, 16, 32);
+    max_value = fmaxf(max_value, tmp);
+    tmp = __shfl_down_sync(0xffffffff, max_value, 16, 32);
+    max_value = fmaxf(max_value, tmp);
+    tmp = __shfl_down_sync(0x0000ffff, max_value, 8, 16);
+    max_value = fmaxf(max_value, tmp);
+    tmp = __shfl_down_sync(0x000000ff, max_value, 4, 8);
+    max_value = fmaxf(max_value, tmp);
+    tmp = __shfl_down_sync(0x0000000f, max_value, 2, 4);
+    max_value = fmaxf(max_value, tmp);
+    tmp = __shfl_down_sync(0x00000003, max_value, 1, 2);
+    max_value = fmaxf(max_value, tmp);
+
+    if (tid % 32 == 0) {
+        smax[tid / 32] = max_value;
+    }
+    __syncthreads();
+
+    if (tid < blockDim.x / 32) {
+        max_value = smax[tid];
+    } else {
+        max_value = -FLT_MAX;
+    }
+
+    tmp = __shfl_down_sync(0x0000000f, max_value, 2, 4);
+    max_value = fmaxf(max_value, tmp);
+    tmp = __shfl_down_sync(0x00000003, max_value, 1, 2);
+    max_value = fmaxf(max_value, tmp);
+
+    if (tid == 0) {
+        smax[0] = max_value;
+    }
+    __syncthreads();
+
+    float thread_sum = 0;
+    for (int c = tid; c < channels; c += blockDim.x) {
+        float value = get_float_value<T>(input[(n * channels + c) * spatial_dim + s]);
+        thread_sum += exp(value - smax[0]);
+    }
+
+    thread_sum += __shfl_down_sync(0xffffffff, thread_sum, 16, 32);
+    thread_sum += __shfl_down_sync(0x0000ffff, thread_sum, 8, 16);
+    thread_sum += __shfl_down_sync(0x000000ff, thread_sum, 4, 8);
+    thread_sum += __shfl_down_sync(0x0000000f, thread_sum, 2, 4);
+    thread_sum += __shfl_down_sync(0x00000003, thread_sum, 1, 2);
+
+    if (tid % 32 == 0) {
+        ssum[tid / 32] = thread_sum;
+    }
+    __syncthreads();
+
+    if (tid < blockDim.x / 32) {
+        thread_sum = ssum[tid];
+    } else {
+        thread_sum = 0;
+    }
+
+    thread_sum += __shfl_down_sync(0x0000000f, thread_sum, 2, 4);
+    thread_sum += __shfl_down_sync(0x00000003, thread_sum, 1, 2);
+
+    if (tid == 0) {
+        output[n * spatial_dim + s] = convert_float_value<T>(log(thread_sum) + smax[0]);
     }
 }
 
@@ -68,10 +131,21 @@ Status CudaReduceLogSumExpLayerAcc::Forward(const std::vector<Blob *> &inputs, c
     int outer_dim = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, 0, first_axis);
     int inner_dim = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, last_axis+1);
     int count = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
-    float* input_data = static_cast<float*>(input_blob->GetHandle().base);
-    float* output_data = static_cast<float*>(output_blob->GetHandle().base);
-    reduce_log_sum_exp_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
-        outer_dim, channels, inner_dim, input_data, output_data);
+    const int BLOCKSIZE = 128;
+    if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        float* input_data = static_cast<float*>(input_blob->GetHandle().base);
+        float* output_data = static_cast<float*>(output_blob->GetHandle().base);
+        reduce_log_sum_exp_kernel<BLOCKSIZE, float><<<count, BLOCKSIZE, BLOCKSIZE*sizeof(float), context_->GetStream()>>>(
+            outer_dim, channels, inner_dim, input_data, output_data);
+    } else if (input_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        __half* input_data = static_cast<__half*>(input_blob->GetHandle().base);
+        __half* output_data = static_cast<__half*>(output_blob->GetHandle().base);
+        reduce_log_sum_exp_kernel<BLOCKSIZE, __half><<<count, BLOCKSIZE, BLOCKSIZE*sizeof(float), context_->GetStream()>>>(
+            outer_dim, channels, inner_dim, input_data, output_data);
+    } else {
+        LOGE("Error: layer acc dont support datatype: %d\n", input_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc don't support datatype");
+    }
     return TNN_OK;
 }
 
