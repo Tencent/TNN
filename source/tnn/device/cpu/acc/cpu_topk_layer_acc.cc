@@ -144,7 +144,12 @@ Status CpuTopKLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
     void *input_data = inputs[0]->GetHandle().base;
     void *output_data = outputs[0]->GetHandle().base;
     void *output_index_data = outputs[1]->GetHandle().base;
-    
+
+    if (param->k <= 0) {
+        LOGE("Error: TopKLayer k <= 0\n");
+        return Status(TNNERR_PARAM_ERR, "Error: TopKLayer k <= 0");
+    }
+
     int topk = MIN(param->k, input_dims[param->axis]);
 
     auto data_type = inputs[0]->GetBlobDesc().data_type;
