@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4E38EF2926494D360020A4B2 /* tea.h in Headers */ = {isa = PBXBuildFile; fileRef = 4E38EF2726494D360020A4B2 /* tea.h */; };
+		4E38EF2A26494D360020A4B2 /* tea.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4E38EF2826494D360020A4B2 /* tea.cc */; };
 		6178F34B2590AA8C00B4B153 /* winograd_generator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 6178F3472590AA8C00B4B153 /* winograd_generator.cc */; };
 		6178F34C2590AA8C00B4B153 /* winograd_generator.h in Headers */ = {isa = PBXBuildFile; fileRef = 6178F3482590AA8C00B4B153 /* winograd_generator.h */; };
 		6178F34D2590AA8C00B4B153 /* md5.h in Headers */ = {isa = PBXBuildFile; fileRef = 6178F3492590AA8C00B4B153 /* md5.h */; };
@@ -742,6 +744,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		4E38EF2726494D360020A4B2 /* tea.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tea.h; sourceTree = "<group>"; };
+		4E38EF2826494D360020A4B2 /* tea.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tea.cc; sourceTree = "<group>"; };
 		6178F3472590AA8C00B4B153 /* winograd_generator.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = winograd_generator.cc; sourceTree = "<group>"; };
 		6178F3482590AA8C00B4B153 /* winograd_generator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = winograd_generator.h; sourceTree = "<group>"; };
 		6178F3492590AA8C00B4B153 /* md5.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = md5.h; sourceTree = "<group>"; };
@@ -1611,6 +1615,8 @@
 		9D32F98824557EE7002DCDAB /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				4E38EF2826494D360020A4B2 /* tea.cc */,
+				4E38EF2726494D360020A4B2 /* tea.h */,
 				EC39A3F725FB65E000891D9A /* half_utils_inner.h */,
 				EC39A3F825FB65E000891D9A /* half.hpp */,
 				6178F34A2590AA8C00B4B153 /* md5.cc */,
@@ -2701,6 +2707,7 @@
 				9DD1FBBE247CE9BE00800139 /* metal_inner_product_layer_acc.h in Headers */,
 				9D32FCAB24557EEC002DCDAB /* blob_transfer_utils.h in Headers */,
 				9DD1FCF0247CEA1500800139 /* arm_device.h in Headers */,
+				4E38EF2926494D360020A4B2 /* tea.h in Headers */,
 				9DD1FB75247CE9BE00800139 /* metal_deconv_layer_depthwise.h in Headers */,
 				9DD1FCEE247CEA1500800139 /* arm_blob_converter.h in Headers */,
 				9DF5441F258B1367006CEC97 /* arm_conv_fp16_layer_3x3.h in Headers */,
@@ -2911,6 +2918,7 @@
 				9D32FCC324557EEC002DCDAB /* sign_layer.cc in Sources */,
 				9D32FF2524557EED002DCDAB /* softmax_layer_interpreter.cc in Sources */,
 				9DF54439258B1367006CEC97 /* arm_floor_layer_acc.cc in Sources */,
+				4E38EF2A26494D360020A4B2 /* tea.cc in Sources */,
 				9DF543EE258B1366006CEC97 /* GEMM_INT8_4X4.S in Sources */,
 				9DF5444B258B162F006CEC97 /* blob_converter_default.cc in Sources */,
 				9DD1FBAC247CE9BE00800139 /* metal_sign_layer_acc.metal in Sources */,

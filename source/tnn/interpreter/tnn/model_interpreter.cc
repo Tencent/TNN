@@ -13,13 +13,16 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/interpreter/tnn/model_interpreter.h"
+
 #include <stdlib.h>
+
 #include <sstream>
 
 #include "tnn/core/common.h"
 #include "tnn/interpreter/tnn/layer_interpreter/abstract_layer_interpreter.h"
 #include "tnn/interpreter/tnn/objseri.h"
 #include "tnn/utils/md5.h"
+#include "tnn/utils/tea.h"
 
 namespace TNN_NS {
 
@@ -39,18 +42,84 @@ std::shared_ptr<Deserializer> ModelInterpreter::GetDeserializer(std::istream &is
     return std::make_shared<Deserializer>(is);
 }
 
+int DecodeData(std::string &content, std::string &key) {
+    int data_len          = content.size();
+    int cencrypt_data_len = ((data_len - 1) / 8 + 1) * 8;
+
+    std::shared_ptr<uint8_t> cencrypt_data(new uint8_t[cencrypt_data_len]);
+    std::shared_ptr<uint8_t> cdecrypt_data(new uint8_t[cencrypt_data_len]);
+
+    memcpy((void*)cencrypt_data.get(),content.c_str(),data_len);
+
+    int decrypt_len = TeaDecrypt((const uint8_t *)cencrypt_data.get(), cencrypt_data_len, (uint8_t *)key.c_str(),
+                                 (uint8_t *)cdecrypt_data.get(), cencrypt_data_len);
+    if (decrypt_len <= 0) {
+        LOGE("Decrypt data fail\n");
+        return TNNERR_INVALID_INPUT;
+    }
+
+    memcpy((void*)content.c_str(),cdecrypt_data.get(),data_len);
+
+    return TNN_OK;
+}
+
+Status DecodeEncryptionContent(std::string &proto_content,std::string &model_content,std::string &proto_encryption_status,
+                               std::string &model_encryption_status,std::string &key)
+{
+    if (proto_encryption_status == PROTO_ENCRYPTION_ENABLED) {
+        int ret = DecodeData(proto_content, key);
+        if (ret == TNNERR_INVALID_INPUT) {
+            LOGE("proto decode fail\n");
+            return TNNERR_NET_ERR;
+        }
+    } else if (proto_encryption_status == PROTO_ENCRYPTION_UNKNOWN) {
+        int ret = DecodeData(proto_content, key);
+        if (ret == TNNERR_INVALID_INPUT) {
+            LOGD("proto is not encryption\n");
+        }
+    } else {
+        LOGD("treat proto as plaintext\n");
+    }
+
+    if (model_encryption_status == MODEL_ENCRYPTION_ENABLED) {
+        int ret = DecodeData(model_content, key);
+        if (ret == TNNERR_INVALID_INPUT) {
+            LOGE("model decode fail\n");
+            return TNNERR_MODEL_ERR;
+        }
+    } else if (model_encryption_status == MODEL_ENCRYPTION_UNKNOWN) {
+        int ret = DecodeData(model_content, key);
+        if (ret == TNNERR_INVALID_MODEL) {
+            LOGD("model is not encryption\n");
+        }
+    } else {
+        LOGD("treat model as plaintext\n");
+    }
+    return TNN_OK;
+}
+
 // Interpret the proto and model.
 Status ModelInterpreter::Interpret(std::vector<std::string> &params) {
     std::string empty_content = "";
 
-    auto &proto_content = params.size() > 0 ? params[0] : empty_content;
-    Status status       = InterpretProto(proto_content);
+    auto &proto_content           = params.size() > 0 ? params[0] : empty_content;
+    auto &model_content           = params.size() > 1 ? params[1] : empty_content;
+    auto &proto_encryption_status = params.size() > 2 ? params[2] : empty_content;
+    auto &model_encryption_status = params.size() > 3 ? params[3] : empty_content;
+    auto &key                     = params.size() > 4 ? params[4] : empty_content;
+
+    Status status = DecodeEncryptionContent(proto_content,model_content,proto_encryption_status,
+                                            model_encryption_status,key);
     if (status != TNN_OK) {
         return status;
     }
 
-    auto &model_content = params.size() > 1 ? params[1] : empty_content;
-    status              = InterpretModel(model_content);
+    status = InterpretProto(proto_content);
+    if (status != TNN_OK) {
+        return status;
+    }
+
+    status = InterpretModel(model_content);
     if (status != TNN_OK) {
         return status;
     }
