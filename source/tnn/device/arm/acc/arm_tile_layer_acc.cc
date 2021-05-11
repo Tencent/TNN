@@ -28,8 +28,8 @@ Status ArmTileLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vecto
     auto input_dims  = input_blob->GetBlobDesc().dims;
     auto output_dims = output_blob->GetBlobDesc().dims;
     int count        = DimsVectorUtils::Count(output_dims);
-    T *input_data    = static_cast<T *>(input_blob->GetHandle().base);
-    T *output_data   = static_cast<T *>(output_blob->GetHandle().base);
+    T *input_data    = reinterpret_cast<T *>(GetBlobHandlePtr(input_blob->GetHandle()));
+    T *output_data   = reinterpret_cast<T *>(GetBlobHandlePtr(output_blob->GetHandle()));
     OMP_PARALLEL_FOR_
     for (int index = 0; index < count; ++index) {
         int offset = 0;
