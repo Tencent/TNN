@@ -35,9 +35,9 @@ static void ComputeNCHW(const std::vector<Blob *> &inputs, const std::vector<Blo
     auto input_channel_area  = DimsVectorUtils::Count(input_dims, 2);
     auto grid_area           = DimsVectorUtils::Count(grid_dims, 1);
     auto output_channel_area = DimsVectorUtils::Count(output_dims, 2);
-    auto input_base_ptr      = reinterpret_cast<float *>(input_blob->GetHandle().base);
-    auto grid_base_ptr       = reinterpret_cast<float *>(grid_blob->GetHandle().base);
-    auto output_base_ptr     = reinterpret_cast<float *>(output_blob->GetHandle().base);
+    auto input_base_ptr      = reinterpret_cast<float *>(GetBlobHandlePtr(input_blob->GetHandle()));
+    auto grid_base_ptr       = reinterpret_cast<float *>(GetBlobHandlePtr(grid_blob->GetHandle()));
+    auto output_base_ptr     = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
     for (int n = 0; n < batch; n++) {
         auto input_data  = input_base_ptr + n * channel * input_channel_area;
         auto grid_data   = grid_base_ptr + n * grid_area;
@@ -102,9 +102,9 @@ static void ComputeNC4HW4(const std::vector<Blob *> &inputs, const std::vector<B
     auto output_channel_area = DimsVectorUtils::Count(output_dims, 2);
     auto channel_ud4         = UP_DIV(channel, 4);
     auto grid_channel_ud4    = UP_DIV(grid_dims[1], 4);
-    auto input_base_ptr      = reinterpret_cast<float *>(input_blob->GetHandle().base);
-    auto grid_base_ptr       = reinterpret_cast<float *>(grid_blob->GetHandle().base);
-    auto output_base_ptr     = reinterpret_cast<float *>(output_blob->GetHandle().base);
+    auto input_base_ptr      = reinterpret_cast<float *>(GetBlobHandlePtr(input_blob->GetHandle()));
+    auto grid_base_ptr       = reinterpret_cast<float *>(GetBlobHandlePtr(grid_blob->GetHandle()));
+    auto output_base_ptr     = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
     bool grid_packed         = grid_blob->GetBlobDesc().data_format == DATA_FORMAT_NC4HW4;
     for (int n = 0; n < batch; n++) {
         auto input_data    = input_base_ptr + n * channel_ud4 * input_channel_area * 4;
