@@ -104,18 +104,18 @@ Status Calibration::Init(NetworkConfig& net_config, ModelConfig& model_config, I
     TNN tnn;
     Status status = tnn.Init(model_config);
     if (status != TNN_OK) {
-        LOGE("tnn init falied!\n");
+        LOGE("tnn init failed!\n");
         return TNNERR_INVALID_MODEL;
     }
     instance_ = tnn.CreateInst(net_config, status);
     if (status != TNN_OK) {
-        LOGE("tnn create instance falied!\n");
+        LOGE("tnn create instance failed!\n");
         return TNNERR_INST_ERR;
     }
 
     interpreter_ = std::dynamic_pointer_cast<DefaultModelInterpreter>(instance_->GetInterpreter());
     if (interpreter_ == nullptr) {
-        LOGE("instance init falied!\n");
+        LOGE("instance init failed!\n");
         return TNNERR_INST_ERR;
     }
 
@@ -144,21 +144,21 @@ Status Calibration::RunCalibration(DataSet& dataset) {
     // Compute Feature Scale
     int ret = CalBlobScale(dataset);
     if (ret != 0) {
-        LOGE("calcluate blob scale falied!\n");
+        LOGE("calcluate blob scale failed!\n");
         return TNNERR_QUANTIZE_ERROR;
     }
 
     // Quantize params
     ret = QuantizeParams();
     if (ret != 0) {
-        LOGE("quantize params falied!\n");
+        LOGE("quantize params failed!\n");
         return TNNERR_QUANTIZE_ERROR;
     }
 
     // Merge Blob Scale of some layers
     ret = MergeBlobScale();
     if (ret != 0) {
-        LOGE("merge blob scale falied!\n");
+        LOGE("merge blob scale failed!\n");
         return TNNERR_QUANTIZE_ERROR;
     }
 
@@ -182,7 +182,7 @@ Status Calibration::Serialize(std::string proto_path, std::string model_path) {
 
     Status status = packer.Pack(proto_path, model_path);
     if (status != TNN_OK) {
-        LOGE("pack the model falied!\n");
+        LOGE("pack the model failed!\n");
         return status;
     }
 
@@ -195,14 +195,14 @@ int Calibration::CalBlobScale(DataSet& dataset) {
 
     Status status = instance_->Reshape(dataset.input_shape);
     if (status != TNN_OK) {
-        LOGE("instance reshape falied!\n");
+        LOGE("instance reshape failed!\n");
         return -1;
     }
 
     // Init Feature map
     int ret = InitFeatureMap();
     if (ret != 0) {
-        LOGE("init feautre map for quantize falied!\n");
+        LOGE("init feautre map for quantize failed!\n");
         return ret;
     }
     printf("\tInit Feature Map done!\n");
@@ -210,7 +210,7 @@ int Calibration::CalBlobScale(DataSet& dataset) {
     // Collect the Range of Feature map
     ret = UpdateBlobRange(dataset);
     if (ret != 0) {
-        LOGE("collect feautre map range falied!\n");
+        LOGE("collect feautre map range failed!\n");
         return ret;
     }
     printf("\tCollect Blob Range done!\n");
@@ -218,7 +218,7 @@ int Calibration::CalBlobScale(DataSet& dataset) {
     // Calculate Distribute of Feature map
     ret = UpdateBlobDistribute(dataset);
     if (ret != 0) {
-        LOGE("update feautre map distribute falied!\n");
+        LOGE("update feautre map distribute failed!\n");
         return ret;
     }
     printf("\tCollect Blob Distribution done!\n");
@@ -271,7 +271,7 @@ int Calibration::InitFeatureMap() {
     BlobMap input_blobs;
     Status status = instance_->GetAllInputBlobs(input_blobs);
     if (status != TNN_OK) {
-        LOGE("instance get input blobs falied!\n");
+        LOGE("instance get input blobs failed!\n");
         return -1;
     }
     for (auto item : input_blobs) {
@@ -287,7 +287,7 @@ int Calibration::UpdateBlobRange(DataSet& dataset) {
     BlobMap input_blobs;
     Status status = instance_->GetAllInputBlobs(input_blobs);
     if (status != TNN_OK) {
-        LOGE("instance get input blobs falied!\n");
+        LOGE("instance get input blobs failed!\n");
         return -1;
     }
     Blob* input_blob = input_blobs.begin()->second;
@@ -311,7 +311,7 @@ int Calibration::UpdateBlobRange(DataSet& dataset) {
 
         status = file_reader.Read(input_blob, file_pack.first, file_pack.second);
         if (status != TNN_OK) {
-            LOGE("read input file (%s) falied!\n", file_pack.first.c_str());
+            LOGE("read input file (%s) failed!\n", file_pack.first.c_str());
             continue;
         }
         instance_->ForwardWithCallback(func, func);
@@ -328,7 +328,7 @@ int Calibration::UpdateBlobDistribute(DataSet& dataset) {
     BlobMap input_blobs;
     Status status = instance_->GetAllInputBlobs(input_blobs);
     if (status != TNN_OK) {
-        LOGE("instance get input blobs falied!\n");
+        LOGE("instance get input blobs failed!\n");
         return -1;
     }
     Blob* input_blob = input_blobs.begin()->second;
@@ -352,7 +352,7 @@ int Calibration::UpdateBlobDistribute(DataSet& dataset) {
 
         status = file_reader.Read(input_blob, file_pack.first, file_pack.second);
         if (status != TNN_OK) {
-            LOGE("read input file (%s) falied!\n", file_pack.first.c_str());
+            LOGE("read input file (%s) failed!\n", file_pack.first.c_str());
             continue;
         }
         instance_->ForwardWithCallback(func, func);
@@ -508,7 +508,7 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
     int ret                       = CalQuantizedWeights(weight_multiby_inputscale.data(), size, output_channel,
                                   cali_params_.merge_weights_channel, weight_quantized_data, weight_scale_data);
     if (ret != 0) {
-        LOGE("Calculate quantized weights falied!\n");
+        LOGE("Calculate quantized weights failed!\n");
         return ret;
     }
 
@@ -585,7 +585,7 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource, InnerProd
     int ret                       = CalQuantizedWeights(weight_multiby_inputscale.data(), size, output_channel,
                                   cali_params_.merge_weights_channel, weight_quantized_data, weight_scale_data);
     if (ret != 0) {
-        LOGE("Calculate quantized weights falied!\n");
+        LOGE("Calculate quantized weights failed!\n");
         return ret;
     }
 

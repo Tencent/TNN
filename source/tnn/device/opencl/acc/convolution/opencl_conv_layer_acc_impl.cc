@@ -143,7 +143,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
                       DimsVectorUtils::Count(filter_shape) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
     }
     weight_memory->SetData(&buffer);
     auto weight_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
@@ -156,7 +156,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(buffer, weight_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Conv MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Conv MemUnMap failed");
     }
 
     // create ocl_weights_
@@ -182,7 +182,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
             CHECK_CL_SUCCESS(ret)
             if (nullptr != weights_clbuffer)
                 delete weights_clbuffer;
-            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
         }
         ocl_weights_->SetData(weights_clbuffer, true);
 
@@ -215,7 +215,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
             CHECK_CL_SUCCESS(ret)
             if (nullptr != image)
                 delete image;
-            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
         }
         ocl_weights_.reset(new OpenCLMemory(TNN_CL_IMAGE));
         ocl_weights_->SetData(image, true);

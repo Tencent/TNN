@@ -183,9 +183,9 @@ struct PUBLIC ModelConfig {
 };
 
 typedef enum {
-    //normal runtime forword, only layers with varing output in tnn proto will be executed
+    //normal runtime forward, only layers with varing output in tnn proto will be executed
     RUNTIME_MODE_NORMAL = 0,
-    //normal runtime forword, only layers with constant output (eg. ShapeLayer) will be executed to do constant folding
+    //normal runtime forward, only layers with constant output (eg. ShapeLayer) will be executed to do constant folding
     RUNTIME_MODE_CONST_FOLD = 1,
 } RuntimeMode;
 

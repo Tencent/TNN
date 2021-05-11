@@ -1,24 +1,25 @@
 @echo off
 
 set ROOT_DIR=%~dp0
-set TNN_LIB_PATH=%ROOT_DIR%\..\..\scripts\msvc_release\lib\
-set TNN_BIN_PATH=%ROOT_DIR%\..\..\scripts\msvc_release\bin\
-set EXAMPLE_INSTALL_PATH=%ROOT_DIR%\build_msvc\release
+set TNN_LIB_PATH=%ROOT_DIR%\..\..\..\scripts\msvc_release\lib\
+set TNN_BIN_PATH=%ROOT_DIR%\..\..\..\scripts\msvc_release\bin\
+set EXAMPLE_INSTALL_PATH=%ROOT_DIR%\build_msvc_openvino\release
 
-cd ..\..\scripts
+cd %ROOT_DIR%\..\..\..\scripts\
 call build_msvc.bat
 echo !cd!
-cd ..\examples\x86\
+cd %ROOT_DIR%\..\..\..\examples\windows\x86\
 
-rmdir /s /q build_msvc
-mkdir build_msvc
-cd build_msvc
+:: rmdir /s /q build_msvc_openvino
+mkdir build_msvc_openvino
+cd build_msvc_openvino
 
-cmake .. ^
+cmake .. -G "Ninja" ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_SYSTEM_NAME=Windows ^
     -DCMAKE_SYSTEM_PROCESSOR=AMD64 ^
     -DTNN_LIB_PATH=%TNN_LIB_PATH% ^
+    -DTNN_OPENVINO_ENABLE=ON ^
     -DTNN_OPENVINO_LIB_PATH=%OPENVINO_LIB_PATH% ^
     -DTNN_DEMO_WITH_WEBCAM=OFF
     @REM -DOpenCV_DIR=%OpenCV_DIR%

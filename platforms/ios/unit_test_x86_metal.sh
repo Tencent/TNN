@@ -43,7 +43,7 @@ function build_unit_test() {
 function run_unit_test() {
     build_unit_test
     if [ $? != 0 ]; then
-        echo "build falied!"
+        echo "build failed!"
         exit 0
     fi
     if [ "" != "$BUILD_ONLY" ]; then

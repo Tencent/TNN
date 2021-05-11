@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn_sdk_sample.h"
+#include "sample_timer.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include <algorithm>
 #include <cstring>
@@ -778,8 +779,8 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
 #if TNN_SDK_ENABLE_BENCHMARK
     bench_result_.Reset();
     for (int fcount = 0; fcount < bench_option_.forward_count; fcount++) {
-        timeval tv_begin, tv_end;
-        gettimeofday(&tv_begin, NULL);
+        SampleTimer sample_time;
+        sample_time.Start();
 #endif
         
         // step 1. set input mat
@@ -842,8 +843,8 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
   
         
 #if TNN_SDK_ENABLE_BENCHMARK
-        gettimeofday(&tv_end, NULL);
-        double elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
+        sample_time.Stop();
+        double elapsed = sample_time.GetTime();
         bench_result_.AddTime(elapsed);
 #endif
         
@@ -1034,25 +1035,33 @@ void Rectangle(void *data_rgba, int image_height, int image_width,
     y_max = std::min(std::max(y_max, 0), image_height - 1);
 
     // top bottom
-    for (int x = x_min; x <= x_max; x++) {
-        int offset                       = y_min * image_width + x;
-        image_rgba[offset]               = {0, 255, 0, 0};
-        image_rgba[offset + image_width] = {0, 255, 0, 0};
+    if (x_max > x_min) {
+        for (int x = x_min; x <= x_max; x++) {
+            int offset                       = y_min * image_width + x;
+            image_rgba[offset]               = {0, 255, 0, 0};
+            image_rgba[offset + image_width] = {0, 255, 0, 0};
 
-        offset                           = y_max * image_width + x;
-        image_rgba[offset]               = {0, 255, 0, 0};
-        image_rgba[offset - image_width] = {0, 255, 0, 0};
+            offset                           = y_max * image_width + x;
+            image_rgba[offset]               = {0, 255, 0, 0};
+            if (offset >= image_width) {
+                image_rgba[offset - image_width] = {0, 255, 0, 0};
+            }
+        }
     }
 
     // left right
-    for (int y = y_min; y <= y_max; y++) {
-        int offset             = y * image_width + x_min;
-        image_rgba[offset]     = {0, 255, 0, 0};
-        image_rgba[offset + 1] = {0, 255, 0, 0};
+    if (y_max > y_min) {
+        for (int y = y_min; y <= y_max; y++) {
+            int offset             = y * image_width + x_min;
+            image_rgba[offset]     = {0, 255, 0, 0};
+            image_rgba[offset + 1] = {0, 255, 0, 0};
 
-        offset                 = y * image_width + x_max;
-        image_rgba[offset]     = {0, 255, 0, 0};
-        image_rgba[offset - 1] = {0, 255, 0, 0};
+            offset                 = y * image_width + x_max;
+            image_rgba[offset]     = {0, 255, 0, 0};
+            if (offset >= 1) {
+                image_rgba[offset - 1] = {0, 255, 0, 0};
+            }
+        }
     }
 }
 
