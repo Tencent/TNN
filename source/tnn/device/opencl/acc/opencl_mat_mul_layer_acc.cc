@@ -336,7 +336,7 @@ Status OpenCLMatMulLayerAcc::ConvertWeights(float *weights_data_ptr, int weight_
                       DimsVectorUtils::Count(weight_shape) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     weight_buffer->SetData(&buffer);
     ret = ocl_context_->CommandQueue()->enqueueWriteBuffer(

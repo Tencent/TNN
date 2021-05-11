@@ -153,7 +153,7 @@ Status OpenCLDevice::CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobDe
     cl_ret = opencl_command_queue->enqueueUnmapMemObject(buffer, clbuffer_ptr);
     if (cl_ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(cl_ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
 
     std::shared_ptr<OpenCLMemory> climage(new OpenCLMemory(TNN_CL_IMAGE));
@@ -195,7 +195,7 @@ Status OpenCLDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, Blob
     cl_ret = opencl_command_queue->enqueueUnmapMemObject(buffer, clbuffer_ptr);
     if (cl_ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(cl_ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
 
     return TNN_OK;

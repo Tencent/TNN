@@ -85,7 +85,7 @@ Status ConstFolder::Forward() {
     
     std::set<std::string> constant_layers;
     std::set<std::string> shape_differ_layers;
-    //In Forword, keep old const resource for reuse, save new const blobs to ConstantResource
+    //In Forward, keep old const resource for reuse, save new const blobs to ConstantResource
     //In GetOptimizeNetStructure, remove redundant constants of layer NEVER CHANGE
     ConstantResource constant_map = net_resource_->constant_map;
     auto constant_blob_flags = net_resource_->constant_blob_flags;

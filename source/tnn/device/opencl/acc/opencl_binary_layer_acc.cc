@@ -79,7 +79,7 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         } else {
             auto float_data_ptr = GetFloatFromRawBuffer(layer_res->element_handle);  // handle the memory
             if (float_data_ptr == nullptr) {
-                return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "convert res to float falied");
+                return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "convert res to float failed");
             }
             ret = ConvertParam(float_data_ptr.get(), param_dims);
             CHECK_TNN_OK(ret)
@@ -166,7 +166,7 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
                               buffer_size * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     param_buffer->SetData(&param_clbuffer);
     auto param_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
@@ -180,7 +180,7 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(param_clbuffer, param_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
 
     // create binary_param_
@@ -195,7 +195,7 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     binary_params_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     binary_params_->SetData(image, true);

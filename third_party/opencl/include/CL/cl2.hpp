@@ -3621,19 +3621,19 @@ cl::pointer<T, detail::Deleter<SVMAllocator<T, SVMTrait>>> allocate_svm(const cl
 }
 #endif // #if !defined(CL_HPP_NO_STD_UNIQUE_PTR)
 
-/*! \brief Vector alias to simplify contruction of coarse-grained SVM containers.
+/*! \brief Vector alias to simplify construction of coarse-grained SVM containers.
  * 
  */
 template < class T >
 using coarse_svm_vector = vector<T, cl::SVMAllocator<int, cl::SVMTraitCoarse<>>>;
 
-/*! \brief Vector alias to simplify contruction of fine-grained SVM containers.
+/*! \brief Vector alias to simplify construction of fine-grained SVM containers.
 *
 */
 template < class T >
 using fine_svm_vector = vector<T, cl::SVMAllocator<int, cl::SVMTraitFine<>>>;
 
-/*! \brief Vector alias to simplify contruction of fine-grained SVM containers that support platform atomics.
+/*! \brief Vector alias to simplify construction of fine-grained SVM containers that support platform atomics.
 *
 */
 template < class T >
