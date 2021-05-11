@@ -99,9 +99,9 @@ static void UpdateOnePlane(T *input_ptr_base, float *output_ptr_base, T *workspa
 template <typename T, int mode>
 static Status ExecImpl(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                        void *workspace, int inner_dim, int reduce_dim, int outer_dim) {
-    auto *input_ptr     = static_cast<T *>(inputs[0]->GetHandle().base);
-    auto *output_ptr    = static_cast<float *>(outputs[0]->GetHandle().base);
-    auto *workspace_ptr = static_cast<T *>(workspace);
+    auto *input_ptr     = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    auto *output_ptr    = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    auto *workspace_ptr = reinterpret_cast<T *>(workspace);
 
     for (int i = 0; i < inner_dim; ++i) {
         auto *input_ptr_i  = input_ptr + i * reduce_dim * outer_dim;
@@ -135,8 +135,8 @@ static Float4 GetOneValue(T *input_ptr_base, int reduce_dim, int outer_dim, Floa
 template <typename T, int mode>
 static Status ExecImpl(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                        int inner_dim, int reduce_dim, int outer_dim) {
-    auto *input_ptr  = static_cast<T *>(inputs[0]->GetHandle().base);
-    auto *output_ptr = static_cast<float *>(outputs[0]->GetHandle().base);
+    auto *input_ptr  = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    auto *output_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
 
     OMP_PARALLEL_FOR_
     for (int i = 0; i < inner_dim; ++i) {
@@ -195,8 +195,8 @@ static Float4 CompareC4(const Float4 &guard_value, const Float4 &guard_index,
 template <typename T, int mode>
 static Status ExecImplC(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                         int inner_dim, int ic, int outer_dim) {
-    auto *input_ptr   = static_cast<T *>(inputs[0]->GetHandle().base);
-    auto *output_ptr  = static_cast<float *>(outputs[0]->GetHandle().base);
+    auto *input_ptr   = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    auto *output_ptr  = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
 
     int reduce_dim    = UP_DIV(ic, 4);
     int reduce_dim_r4 = ic % 4;
@@ -228,9 +228,9 @@ static Status ExecImplC(const std::vector<Blob *> &inputs, const std::vector<Blo
 template <typename T, int mode>
 static Status ExecImplC(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                         void *workspace, int inner_dim, int ic, int outer_dim) {
-    auto *input_ptr     = static_cast<T *>(inputs[0]->GetHandle().base);
-    auto *output_ptr    = static_cast<float *>(outputs[0]->GetHandle().base);
-    auto *workspace_ptr = static_cast<T *>(workspace);
+    auto *input_ptr     = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    auto *output_ptr    = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    auto *workspace_ptr = reinterpret_cast<T *>(workspace);
 
     int reduce_dim    = UP_DIV(ic, 4);
     int reduce_dim_r4 = ic % 4;

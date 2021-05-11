@@ -213,8 +213,8 @@ Status ArmConvInt8LayerWinograd::DoForward(const std::vector<Blob *> &inputs,
     auto add_input = (conv_param->fusion_type == FusionType_None) ? nullptr : inputs[1];
     auto oc_r4                 = ROUND_UP(dims_output[1], 4);
     auto ic_r4                 = ROUND_UP(dims_input[1], 4);
-    auto *src    = reinterpret_cast<int8_t *>(inputs[0]->GetHandle().base);
-    auto *dst    = reinterpret_cast<int8_t *>(outputs[0]->GetHandle().base);
+    auto *src    = reinterpret_cast<int8_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    auto *dst    = reinterpret_cast<int8_t *>(GetBlobHandlePtr(outputs[0]->GetHandle());
     int8_t* add_input_data = add_input ? reinterpret_cast<int8_t *>(GetBlobHandlePtr(add_input->GetHandle())) : nullptr;
     auto *bias   = buffer_bias_.force_to<int32_t *>();
     auto *scale  = buffer_scale_.force_to<float *>();

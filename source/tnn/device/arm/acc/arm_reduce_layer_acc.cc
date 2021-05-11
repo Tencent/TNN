@@ -96,8 +96,8 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     int data_byte_size = DataTypeUtils::GetBytesSize(input->GetBlobDesc().data_type);
 
     if (input->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        auto input_data  = reinterpret_cast<float *>(input->GetHandle().base);
-        auto output_data = reinterpret_cast<float *>(output->GetHandle().base);
+        auto input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
+        auto output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
 
         if (op_->NeedPreCalculate()) {
             auto in_count = dims_in[0] * ROUND_UP(dims_in[1], 4) * dims_in[2] * dims_in[3];
