@@ -82,7 +82,7 @@ static inline __m128i load_element_c4(const uint8_t* addr) {
 }
 
 static inline __m128i load_element_c3(const uint8_t* addr) {
-    __m128i val;
+    __m128i val = {0};
     val = _mm_insert_epi32(val, *(int*)addr, 0);
     return _mm_insert_epi16(val, *(short*)(addr + 4), 2);
 }
