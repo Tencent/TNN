@@ -648,6 +648,15 @@ struct EinsumLayerParam : public LayerParam {
     PARAM_COPY(EinsumLayerParam)
 };
 
+struct TopKLayerParam : public LayerParam {
+    int axis = -1;
+    int largest = 1;
+    int sorted = 1;
+    int k;
+
+    PARAM_COPY(TopKLayerParam)
+};
+
 };  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H
