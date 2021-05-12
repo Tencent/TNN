@@ -29,6 +29,7 @@ kernel void matmul_common(const device ftype *mat_a                             
 
     auto ptr_a = mat_a + (batch_a * params.M + (int)gid.y) * params.K;
     auto ptr_b = mat_b + (batch_b * params.K * params.N) + (int)gid.x;
+    auto ptr_c = mat_c + ((int)gid.z * params.M + (int)gid.y) * params.N + (int)gid.x;
     const int step_a = 1;
     const int step_b = params.N;
 
@@ -39,5 +40,5 @@ kernel void matmul_common(const device ftype *mat_a                             
         ptr_b += step_b;
     }
     
-    mat_c[(int)gid.y * params.N + (int)gid.x] = ftype(result);
+    *ptr_c = ftype(result);
 }

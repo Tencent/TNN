@@ -20,10 +20,18 @@
 
 namespace TNN_NS {
 
-DECLARE_METAL_ACC_WITH_EXTRA(Squeeze, LAYER_SQUEEZE, private: bool need_reformat_ = false);
+DECLARE_METAL_ACC_WITH_EXTRA(Squeeze, LAYER_SQUEEZE,
+    public:  virtual Status UpdateBlobDataType(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    private: bool need_reformat_ = false);
 
 Status MetalSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Reshape(inputs, outputs);
+}
+
+Status MetalSqueezeLayerAcc::UpdateBlobDataType(const std::vector<Blob *> &inputs,
+                                   const std::vector<Blob *> &outputs) {
+    outputs[0]->GetBlobDesc().data_type = inputs[0]->GetBlobDesc().data_type;
+    return TNN_OK;
 }
     
 Status MetalSqueezeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,

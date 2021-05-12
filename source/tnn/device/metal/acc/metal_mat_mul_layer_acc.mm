@@ -26,6 +26,11 @@ Status MetalMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResou
 
 MetalMatMulLayerAcc::~MetalMatMulLayerAcc() {}
 
+Status MetalMatMulLayerAcc::ConfigBuffer2MetalBlobDesc(BlobDesc &desc) {
+    desc.data_format = DATA_FORMAT_NCHW;
+    return TNN_OK;
+}
+
 Status MetalMatMulLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     
     id<MTLDevice> device       = [TNNMetalDeviceImpl sharedDevice];
@@ -72,6 +77,10 @@ Status MetalMatMulLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
 Status MetalMatMulLayerAcc::AllocateBufferWeight(const std::vector<Blob *> &inputs,
                                              const std::vector<Blob *> &outputs) {
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
+    if (inputs.size() >= 2) {
+        //  both inputs are blobs, no layer_resource
+        return TNN_OK;
+    }
     auto layer_res = dynamic_cast<MatMulLayerResource *>(resource_);
     auto& weight   = layer_res->weight;
 
@@ -94,7 +103,7 @@ Status MetalMatMulLayerAcc::AllocateBufferWeight(const std::vector<Blob *> &inpu
     }        
 #else       
     if (data_type == DATA_TYPE_FLOAT) {
-        data_type_half = new uint16_t[uint16_t];
+        data_type_half = new uint16_t[count];
         if (ConvertFromFloatToHalf((float *)data, data_type_half, count) != 0) {
             LOGE("matmul weight DataType is not supported");
             delete[] data_type_half;

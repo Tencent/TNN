@@ -81,6 +81,7 @@ struct MetalCastParams {
 #define kBroadcastTypeChannel 0x0002
 #define kBroadcastTypeElement 0x0003
 #define kBroadcastTypeHeightWidth 0x0004
+#define kBroadcastTypeWidth 0x0005
 
 /** Broadcast Param Struct **/
 struct MetalBroadcastParams {
@@ -273,6 +274,25 @@ struct MetalInnerProductParams {
     int batch;
     int has_bias;
     int activation = -1;
+};
+
+/** LayerNorm Param Struct **/
+struct MetalLayerNormParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int share_channel = 0;
+    int batch;
+
+    int channel_area;
+    int channels;
+    float eps;
 };
 
 /** Conv Param Struct **/

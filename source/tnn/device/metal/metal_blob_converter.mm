@@ -74,7 +74,7 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
     metal_param.width        = DimsFunctionUtils::GetDimProduct(dims, 3);
     metal_param.height       = DimsFunctionUtils::GetDim(dims, 2);
     metal_param.size         = metal_param.height * metal_param.width;
-    metal_param.channel      = dims[1];
+    metal_param.channel      = DimsFunctionUtils::GetDim(dims, 1);
     metal_param.slice        = UP_DIV(metal_param.channel, 4);
     metal_param.batch        = dims[0];
     metal_param.bgra_to_rgba = param.reverse_channel;
@@ -92,18 +92,18 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
 
     if (mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32) {
         // scale and bias should at least have channel elements, so we use another buffer instead of metal_param
-        if (param.scale.size() < dims[1] || param.bias.size() < dims[1]) {
+        if (param.scale.size() < metal_param.channel || param.bias.size() < metal_param.channel) {
             // invalid scale and bias
             return Status(TNNERR_INVALID_INPUT, "invalid scale or bias shape!");
         }
         if (buffer_scale_ == nil) {
             buffer_scale_ = [device_ newBufferWithBytes:&(param.scale[0])
-                                                 length:sizeof(float)*dims[1]
+                                                 length:sizeof(float)*metal_param.channel
                                                 options:MTLResourceCPUCacheModeWriteCombined];
         }
         if (buffer_bias_ == nil) {
             buffer_bias_ = [device_ newBufferWithBytes:&(param.bias[0])
-                                                 length:sizeof(float)*dims[1]
+                                                 length:sizeof(float)*metal_param.channel
                                                 options:MTLResourceCPUCacheModeWriteCombined];
         }
         if (buffer_scale_ == nil) {
@@ -593,6 +593,64 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                                       image_slice, dims[0]);
             if (is_blob_nchw)
                 groups.height = dims[1];
+
+            if (image_size <= image_slice) {
+                group_threads = MTLSizeMake(1, pipeline_process_.threadExecutionWidth, 1);
+                groups = MTLSizeMake(image_size,
+                                     (image_slice + group_threads.height - 1) / group_threads.height,
+                                     dims[0]);
+                if (is_blob_nchw)
+                    groups.height = (dims[1] + group_threads.height - 1) / group_threads.height;
+            }
+
+            Blob *output_buffer_blob = (Blob *)(output_blob);
+
+            auto command_buffer = [command_queue_impl commandBuffer];
+            [command_buffer enqueue];
+            auto encoder = [command_buffer computeCommandEncoder];
+            [encoder setComputePipelineState:pipeline_process_];
+
+            [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output_buffer_blob->GetHandle().base
+                        offset:(NSUInteger)output_buffer_blob->GetHandle().bytes_offset
+                       atIndex:0];
+            [encoder setBuffer:input_buffer offset:0 atIndex:1];
+            [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
+            //scale and bias
+            [encoder setBuffer:buffer_scale_ offset:0 atIndex:3];
+            [encoder setBuffer:buffer_bias_  offset:0 atIndex:4];
+
+            [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
+            [encoder endEncoding];
+
+            [command_buffer commit];
+            if (waitState == 1) {
+                [command_buffer waitUntilCompleted];
+            } else if (waitState == 2) {
+                [command_buffer waitUntilScheduled];
+            }
+            return TNN_OK;
+        } else if (mat_type == NC_INT32) {
+            id<MTLBuffer> input_buffer = nil;
+            const auto bytes_size = sizeof(int);
+            if (mat_device_type == DEVICE_METAL) {
+                input_buffer = (__bridge id<MTLBuffer>)(input_mat.GetData());
+            } else if (mat_device_type == DEVICE_NAIVE || mat_device_type == DEVICE_ARM || mat_device_type == DEVICE_X86) {
+                int count    = DimsVectorUtils::Count(dims);
+                input_buffer = [command_queue_impl.device newBufferWithBytes:input_mat.GetData()
+                                                                      length:count * bytes_size
+                                                                     options:MTLCPUCacheModeDefaultCache];
+            }
+
+            NSUInteger image_size  = DimsFunctionUtils::GetDimProduct(dims, 2);
+            NSUInteger image_slice = UP_DIV(dims[1], 4);
+            bool is_blob_nchw = output_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
+
+            auto group_threads = MTLSizeMake(pipeline_process_.threadExecutionWidth, 1, 1);
+            auto groups = MTLSizeMake((image_size + group_threads.width - 1) / group_threads.width,
+                                      image_slice, dims[0]);
+            if (is_blob_nchw) {
+                return Status(TNNERR_COMMON_ERROR, "MetalBlobConverter does not support int32 mat to NCHW blob!");
+            }
 
             if (image_size <= image_slice) {
                 group_threads = MTLSizeMake(1, pipeline_process_.threadExecutionWidth, 1);
