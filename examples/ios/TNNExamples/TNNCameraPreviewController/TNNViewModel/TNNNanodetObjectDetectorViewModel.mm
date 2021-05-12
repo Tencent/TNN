@@ -31,9 +31,9 @@ using namespace std;
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
     // nanodet_m
-    auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_m.opt.tnnmodel"
+    auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_m.tnnmodel"
                                                       ofType:nil];
-    auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_m.opt.tnnproto"
+    auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_m.tnnproto"
                                                       ofType:nil];
     // nanodet_efficient1
     //auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_e1.tnnmodel"

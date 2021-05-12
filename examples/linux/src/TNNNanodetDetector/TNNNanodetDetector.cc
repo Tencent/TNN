@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
         #elif _OPENVINO_
             option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
         #endif
-        option->model_cfg = "e1";
+        option->model_cfg = "m";
     }
 
     char img_buff[256];
