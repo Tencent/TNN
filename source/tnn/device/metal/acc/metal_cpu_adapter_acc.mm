@@ -101,7 +101,7 @@ Status MetalCpuAdapterAcc::Init(Context *context, LayerParam *param, LayerResour
     for(auto input : inputs) {
         auto desc = input->GetBlobDesc();
         if (desc.data_type != DATA_TYPE_FLOAT && desc.data_type != DATA_TYPE_HALF) {
-            LOGE("layer acc with tyoe (%d) is nil\n", (int)impl_layer_type_);
+            LOGE("layer acc with type (%d) is nil\n", (int)impl_layer_type_);
             return Status(TNNERR_NULL_PARAM, "layer acc is nil");
         }
     }
@@ -109,7 +109,7 @@ Status MetalCpuAdapterAcc::Init(Context *context, LayerParam *param, LayerResour
     for(auto output : outputs) {
         auto desc = output->GetBlobDesc();
         if (desc.data_type != DATA_TYPE_FLOAT && desc.data_type != DATA_TYPE_HALF) {
-            LOGE("layer acc with tyoe (%d) is nil\n", (int)impl_layer_type_);
+            LOGE("layer acc with type (%d) is nil\n", (int)impl_layer_type_);
             return Status(TNNERR_NULL_PARAM, "layer acc is nil");
         }
     }
