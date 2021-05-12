@@ -19,7 +19,8 @@
 
 namespace TNN_NS {
 
-void* CudaLayerAcc::tmp_data = nullptr;
+void* CudaLayerAcc::workspace_ = nullptr;
+int CudaLayerAcc::workspace_size = 0;
 
 CudaLayerAcc::~CudaLayerAcc() {
     for (int i = 0; i < tempbufs_.size(); i++) {
@@ -28,8 +29,8 @@ CudaLayerAcc::~CudaLayerAcc() {
             LOGE("Error cuda free acc temp buf failed\n");
         }
     }
-    if (tmp_data) {
-        cudaFree(tmp_data);
+    if (workspace_) {
+        cudaFree(workspace_);
     }
 }
 
@@ -37,9 +38,6 @@ Status CudaLayerAcc::Init(Context *context, LayerParam *param, LayerResource *re
             const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
 
-    if (tmp_data == nullptr) {
-        cudaMalloc(&tmp_data, sizeof(float) * 1024 * 1024 * 64);
-    }
     device_   = dynamic_cast<CudaDevice*>(GetDevice(DEVICE_CUDA));
     param_    = param;
     resource_ = resource;

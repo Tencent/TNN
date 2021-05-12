@@ -33,7 +33,12 @@ nvinfer1::Dims unsqueeze_trt_dims(const nvinfer1::Dims &input_dims, int unsqueez
 
 bool MatMulTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return inOut[pos].type == nvinfer1::DataType::kFLOAT;
+    if (pos == 1) {
+        return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
+    } else {
+        return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF) &&
+        inOut[0].type == inOut[pos].type && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
+    }
 }
 
 Status MatMulTRTPluginLayerBuilder::Reshape() {
@@ -110,7 +115,7 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
     if (opA == MatrixOperation::kNONE && opB == MatrixOperation::kNONE && dims_b.d[dims_b.nbDims - 1] == 1 &&
             input_tensors[0]->getDimensions().nbDims == input_tensors[1]->getDimensions().nbDims) {
-        //return TensorRTPluginLayerBuilder::AddToNetwork(network);
+        return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
 
     IMatrixMultiplyLayer* layer = network->addMatrixMultiply(*matrix_a, opA, *matrix_b, opB);
