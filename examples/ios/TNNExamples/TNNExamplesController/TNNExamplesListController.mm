@@ -145,7 +145,7 @@ using namespace std;
         {
             data.viewModel = [TNNNanodetObjectDetectorViewModel new];
             data.viewModel.title = data.title;
-            data.viewModel.preferGPU = false;
+            data.viewModel.preferGPU = true;
         }
         [examples addObject:data];
     }

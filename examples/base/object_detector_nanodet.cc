@@ -59,7 +59,7 @@ Status ObjectDetectorNanodet::Init(std::shared_ptr<TNNSDKOption> option_i) {
     
     score_threshold = option->score_threshold;
     iou_threshold   = option->iou_threshold;
-    if (option->model_cfg == "m") {
+    if (option->model_cfg == "m" || option->model_cfg == "t") {
         reg_max = 7;
     } else if (option->model_cfg == "e1") {
         reg_max = 10;
