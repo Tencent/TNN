@@ -13,9 +13,52 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cuda/acc/cuda_pooling_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
+
+__device__ int get_start_index(int a, int b, int c) {
+    return (int)floorf((float)(a * c) / b);
+}
+
+__device__ int get_end_index(int a, int b, int c) {
+    return (int)ceilf((float)((a + 1) * c) / b);
+}
+
+__global__ void adaptive_pooling_kernel(const float* input, float* output, int channels, int input_height,
+        int input_width, int output_height, int output_width, int pool_type) {
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid >= output_height * output_width) return;
+
+    const float* input_ptr = input + blockIdx.y * input_height * input_width;
+    float* output_ptr = output + blockIdx.y * output_height * output_width;
+
+    int oh = tid / output_width;
+    int ow = tid % output_width;
+
+    int ih0 = get_start_index(oh, output_height, input_height);
+    int ih1 = get_end_index(oh, output_height, input_height);
+    int kh = ih1 - ih0;
+
+    int iw0 = get_start_index(ow, output_width, input_width);
+    int iw1 = get_end_index(ow, output_width, input_width);
+    int kw = iw1 - iw0;
+
+    if (pool_type == 1) {
+        float sum = 0;
+        for (int ih = ih0; ih < ih1; ih++) {
+            for (int iw = iw0; iw < iw1; iw++) {
+                sum += input_ptr[ih * input_width + iw];
+            }
+        }
+        output_ptr[oh * output_width + ow] = sum / kh / kw;
+    }
+}
+
+static bool IsGlobalPooling(PoolingLayerParam *param, const std::vector<Blob *> &inputs,
+    const std::vector<Blob *> &outputs) {
+    return param->kernels[1] == 0 && param->kernels[0] == 0;
+}
 
 CudaPoolingLayerAcc::~CudaPoolingLayerAcc() {
     cudnnDestroy(this->m_cudnn_handle);
@@ -44,12 +87,12 @@ Status CudaPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     cudnnCreatePoolingDescriptor(&m_pooling_desc);
     cudnnCreateTensorDescriptor(&m_input_desc);
     cudnnCreateTensorDescriptor(&m_output_desc);
-
+    auto input_dims = inputs[0]->GetBlobDesc().dims;
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+    is_global = IsGlobalPooling(params, inputs, outputs);
     cudnnSetPooling2dDescriptor(this->m_pooling_desc, this->m_pooling_mode, CUDNN_PROPAGATE_NAN,
         params->kernels[1], params->kernels[0], params->pads[2], params->pads[0], params->strides[1],
         params->strides[0]);
-    auto input_dims = inputs[0]->GetBlobDesc().dims;
-    auto output_dims = outputs[0]->GetBlobDesc().dims;
     cudnnSetTensor4dDescriptor(this->m_input_desc, this->m_tensor_format, this->m_data_type,
         input_dims[0], input_dims[1], input_dims[2], input_dims[3]);
     cudnnSetTensor4dDescriptor(this->m_output_desc, this->m_tensor_format, this->m_data_type,
@@ -58,18 +101,52 @@ Status CudaPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerResou
 }
 
 Status CudaPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto params = dynamic_cast<PoolingLayerParam *>(param_);
+    auto input_dims = inputs[0]->GetBlobDesc().dims;
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+    if (is_global) {
+        cudnnSetPooling2dDescriptor(this->m_pooling_desc, this->m_pooling_mode, CUDNN_PROPAGATE_NAN,
+            input_dims[2], input_dims[3], params->pads[2], params->pads[0], params->strides[1],
+            params->strides[0]);
+        cudnnSetTensor4dDescriptor(this->m_input_desc, this->m_tensor_format, this->m_data_type,
+            input_dims[0], input_dims[1], input_dims[2], input_dims[3]);
+        cudnnSetTensor4dDescriptor(this->m_output_desc, this->m_tensor_format, this->m_data_type,
+            output_dims[0], output_dims[1], output_dims[2], output_dims[3]);
+    }
     return TNN_OK;
 }
 
 Status CudaPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto param = dynamic_cast<PoolingLayerParam *>(param_);
+    if (!param) {
+        return Status(TNNERR_MODEL_ERR, "Error: PoolingLayerParam is nil");
+    }
+
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
     float* input_data = static_cast<float*>(input_blob->GetHandle().base);
     float* output_data = static_cast<float*>(output_blob->GetHandle().base);
-    float alpha = 1.f;
-    float beta = 0.f;
-    cudnnPoolingForward(this->m_cudnn_handle, this->m_pooling_desc, &alpha, m_input_desc,
-        input_data, &beta, m_output_desc, output_data);
+
+    if (param->is_adaptive_pool) {
+        auto input_dims = input_blob->GetBlobDesc().dims;
+        auto output_dims = output_blob->GetBlobDesc().dims;
+        bool is_1d = input_dims.size() == 3;
+        int channels = is_1d ? input_dims[0] : input_dims[0] * input_dims[1];
+        int input_height = is_1d ? input_dims[1] : input_dims[2];
+        int input_width = is_1d ? input_dims[2] : input_dims[3];
+        int output_height = is_1d ? output_dims[1] : output_dims[2];
+        int output_width = is_1d ? output_dims[2] : output_dims[3];
+        int count = output_height*output_width;
+        dim3 grid(TNN_CUDA_GET_BLOCKS(count), channels);
+        adaptive_pooling_kernel<<<grid, TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+            input_data, output_data, channels, input_height, input_width, output_height, output_width,
+            param->pool_type);
+    } else {
+        float alpha = 1.f;
+        float beta = 0.f;
+        cudnnPoolingForward(this->m_cudnn_handle, this->m_pooling_desc, &alpha, m_input_desc,
+            input_data, &beta, m_output_desc, output_data);
+    }
     return TNN_OK;
 }
 

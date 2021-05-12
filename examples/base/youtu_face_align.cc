@@ -129,18 +129,18 @@ Status YoutuFaceAlign::Predict(std::shared_ptr<TNNSDKInput> input, std::shared_p
         RETURN_VALUE_ON_NEQ(input_names.size(), 1, Status(TNNERR_PARAM_ERR, "TNNInput number is invalid"));
         
         auto input_mat = input->GetMat();
-        std::shared_ptr<Mat> input = nullptr;
+        std::shared_ptr<Mat> input1 = nullptr;
         if (phase == 1 && prev_face == false){
             // use face region from face detector
-            input = WarpByRect(input_mat, x1, y1, x2, y2, image_h, net_scale, M);
+            input1 = WarpByRect(input_mat, x1, y1, x2, y2, image_h, net_scale, M);
         } else{
-            input = AlignN(input_mat, pre_pts, mean, image_h, image_w, net_scale, M);
+            input1 = AlignN(input_mat, pre_pts, mean, image_h, image_w, net_scale, M);
         }
         // BGR2Gray
-        input = BGRToGray(input);
+        input1 = BGRToGray(input1);
         // Normalize
         auto input_convert_param = GetConvertParamForInput();
-        auto status = instance_->SetInputMat(input, input_convert_param);
+        status = instance_->SetInputMat(input1, input_convert_param);
         RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
 
         // step 2. forward phase1 model
@@ -253,10 +253,12 @@ returns:
     the image sent to the phase2 model
  */
 std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::AlignN(std::shared_ptr<TNN_NS::Mat> image, std::shared_ptr<TNN_NS::Mat> pre_pts, std::vector<float> mean_pts, int net_h, int net_w, float net_scale, std::vector<float>&M) {
+    DimsVector dims(3, 0);
     // check shape
-    auto dims = pre_pts->GetDims();
+    const int batch = pre_pts->GetDim(0);
+    dims[0] = batch;
     if(phase == 1) {
-        auto channel = dims[1];
+        auto channel = pre_pts->GetDim(1);
         dims[1] = channel / 2;
         dims[2] = 2;
     } else if(phase == 2) {

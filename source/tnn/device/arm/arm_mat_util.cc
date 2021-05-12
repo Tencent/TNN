@@ -609,7 +609,8 @@ void ResizeNearestC1Impl(const uint8_t* src, int batch, int src_w, int src_h, in
             int* xofs_p       = xofs;
             uint8_t* ialpha_p = ialpha;
             uint8_t* Dp_p     = Dp;
-            for (; dx < w>>3<<3; dx += 8) {
+            int simd_loop = 0;
+            for (int i = 0; i < w - 7; i += 8) {
                 LOAD_C1();
 
                 vst1_u8(Dp_p, vbsl_u8(_mask, _S0, _S1));
@@ -617,10 +618,9 @@ void ResizeNearestC1Impl(const uint8_t* src, int batch, int src_w, int src_h, in
                 xofs_p   += 8;
                 ialpha_p += 8;
                 Dp_p     += 8;
+                ++simd_loop;
             }
-            if (w % 8) {
-                dx -= 8;
-            }
+            dx += simd_loop * 8;
 #endif
             for (; dx < w; dx++) {
                 int sx = xofs[dx];
@@ -649,7 +649,8 @@ void ResizeNearestC2Impl(const uint8_t* src, int batch, int src_w, int src_h, in
             int* xofs_p       = xofs;
             uint8_t* ialpha_p = ialpha;
             uint8_t* Dp_p     = Dp;
-            for (; dx < w>>3<<3; dx += 8) {
+            int simd_loop  = 0;
+            for (int i = 0; i < w - 7; i += 8) {
                 LOAD_C2();
 
                 _S2.val[0] = vbsl_u8(_mask, _S0.val[0], _S1.val[0]);
@@ -659,10 +660,9 @@ void ResizeNearestC2Impl(const uint8_t* src, int batch, int src_w, int src_h, in
                 xofs_p   += 8;
                 ialpha_p += 8;
                 Dp_p     += 8 * 2;
+                ++simd_loop;
             }
-            if (w % 8) {
-                dx -= 8;
-            }
+            dx += simd_loop * 8;
 #endif
             for (; dx < w; dx++) {
                 int sx = xofs[dx];
@@ -692,7 +692,8 @@ void ResizeNearestC3Impl(const uint8_t* src, int batch, int src_w, int src_h, in
             int* xofs_p       = xofs;
             uint8_t* ialpha_p = ialpha;
             uint8_t* Dp_p     = Dp;
-            for (; dx < w>>3<<3; dx += 8) {
+            int simd_loop = 0;
+            for (int i = 0; i < w - 7; i += 8) {
                 LOAD_C3();
 
                 _S2.val[0] = vbsl_u8(_mask, _S0.val[0], _S1.val[0]);
@@ -703,10 +704,9 @@ void ResizeNearestC3Impl(const uint8_t* src, int batch, int src_w, int src_h, in
                 xofs_p   += 8;
                 ialpha_p += 8;
                 Dp_p     += 8 * 3;
+                ++simd_loop;
             }
-            if (w % 8) {
-                dx -= 8;
-            }
+            dx += simd_loop * 8;
 #endif
             for (; dx < w; dx++) {
                 int sx = xofs[dx];
@@ -737,7 +737,8 @@ void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, in
             int* xofs_p       = xofs;
             uint8_t* ialpha_p = ialpha;
             uint8_t* Dp_p     = Dp;
-            for (; dx < w>>3<<3; dx += 8) {
+            int simd_loop = 0;
+            for (int i = 0; i < w - 7; i += 8) {
                 LOAD_C4();
 
                 _S2.val[0] = vbsl_u8(_mask, _S0.val[0], _S1.val[0]);
@@ -749,10 +750,9 @@ void ResizeNearestC4Impl(const uint8_t* src, int batch, int src_w, int src_h, in
                 xofs_p   += 8;
                 ialpha_p += 8;
                 Dp_p     += 8 * 4;
+                ++simd_loop;
             }
-            if (w % 8) {
-                dx -= 8;
-            }
+            dx += simd_loop * 8;
 #endif
             for (; dx < w; dx++) {
                 int sx = xofs[dx];

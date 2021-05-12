@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/utils/data_type_utils.h"
-
+#include <limits.h>
 #include "tnn/core/macro.h"
 
 namespace TNN_NS {
@@ -28,6 +28,8 @@ int DataTypeUtils::GetBytesSize(DataType data_type) {
     } else if (data_type == DATA_TYPE_INT8) {
         return 1;
     } else if (data_type == DATA_TYPE_INT32) {
+        return 4;
+    } else if (data_type == DATA_TYPE_UINT32) {
         return 4;
     } else {
         LOGE("GetBytes Undefined \n");
@@ -49,6 +51,10 @@ std::string DataTypeUtils::GetDataTypeString(DataType data_type) {
     } else {
         return "";
     }
+}
+
+int DataTypeUtils::SaturateCast(long long int data) {
+    return (int)((uint64_t)(data - INT_MIN) <= (uint64_t)UINT_MAX ? data : data > 0 ? INT_MAX : INT_MIN);
 }
 
 }  // namespace TNN_NS

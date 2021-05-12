@@ -16,6 +16,7 @@
 #include <fstream>
 #include <string>
 #include <typeinfo>
+#include <utility>
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/bfp16_utils.h"
 #include "tnn/utils/data_type_utils.h"
@@ -32,21 +33,69 @@ RawBuffer::RawBuffer() :
   data_type_(DATA_TYPE_FLOAT) {}
 
 RawBuffer::RawBuffer(int bytes_size) {
-    buff_ = shared_ptr<char>(new char[bytes_size], [](char *p) { delete[] p; });
-    memset(buff_.get(), 0, bytes_size);
+    if (bytes_size > 0) {
+        buff_ = shared_ptr<char>(new char[bytes_size], [](char *p) { delete[] p; });
+        memset(buff_.get(), 0, bytes_size);
+    } else {
+        buff_ = nullptr;
+    }
+
     bytes_size_ = bytes_size;
 }
 
+RawBuffer::RawBuffer(int bytes_size, DimsVector dims) : RawBuffer(bytes_size){
+    this->dims_ = dims;
+}
+
 RawBuffer::RawBuffer(int bytes_size, char *buffer) {
-    buff_ = shared_ptr<char>(new char[bytes_size], [](char *p) { delete[] p; });
-    memcpy(buff_.get(), buffer, bytes_size);
+    if (bytes_size > 0) {
+        buff_ = shared_ptr<char>(new char[bytes_size], [](char *p) { delete[] p; });
+        memcpy(buff_.get(), buffer, bytes_size);
+    } else {
+        buff_ = nullptr;
+    }
+    
     bytes_size_ = bytes_size;
+}
+
+RawBuffer::RawBuffer(int bytes_size, char* buffer, DimsVector dims) : RawBuffer(bytes_size, buffer) {
+          this->dims_ = dims;
 }
 
 RawBuffer::RawBuffer(const RawBuffer &buf) {
     this->bytes_size_ = buf.bytes_size_;
     this->data_type_  = buf.data_type_;
     this->buff_       = buf.buff_;
+    this->dims_       = buf.dims_;
+}
+
+void RawBuffer::SetBufferDims(DimsVector dims) {
+    this->dims_ = dims;
+}
+
+DimsVector RawBuffer::GetBufferDims() {
+    return this->dims_;
+}
+
+void* aligned_malloc(size_t bytes_size, size_t alignment) {
+    void* origin_ptr;
+    void** align_ptr;
+    int offset = alignment - 1 + sizeof(void*);
+
+    origin_ptr = (void*)malloc(bytes_size + offset);
+    align_ptr = (void**)(((size_t)(origin_ptr) + offset) & ~(alignment - 1));
+    align_ptr[-1] = origin_ptr;
+    return align_ptr;
+}
+
+void aligned_free(void *align_ptr) {
+    free(((void**)align_ptr)[-1]);
+}
+
+RawBuffer::RawBuffer(int bytes_size, int alignment) {
+    buff_ = shared_ptr<char>(static_cast<char*>(aligned_malloc(bytes_size, alignment)), &aligned_free);
+    memset(buff_.get(), 0, bytes_size);
+    bytes_size_ = bytes_size;
 }
 
 template <typename T>
@@ -84,6 +133,7 @@ RawBuffer &RawBuffer::operator=(RawBuffer buf) {
     this->bytes_size_ = buf.bytes_size_;
     this->data_type_  = buf.data_type_;
     this->buff_       = buf.buff_;
+    this->dims_       = buf.dims_;
     return *this;
 }
 

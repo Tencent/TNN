@@ -14,8 +14,7 @@
 
 #include <math.h>
 #include <limits.h>
-#include "half_utils.h"
-#include "objseri.h"
+
 #include "onnx2tnn.h"
 
 int Onnx2TNN::FuseNormalize(onnx::GraphProto* mutable_graph,

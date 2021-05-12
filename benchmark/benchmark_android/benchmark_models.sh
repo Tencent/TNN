@@ -138,7 +138,7 @@ function bench_android_shell() {
         for benchmark_model in ${benchmark_model_list[*]}
         do
             $ADB logcat -c
-            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} ${KERNEL_TUNE} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model}  >> $OUTPUT_LOG_FILE"
+            $ADB shell "cd ${ANDROID_DIR}; LD_LIBRARY_PATH=. ./TNNTest -th ${THREAD_NUM} ${KERNEL_TUNE} -wc ${WARM_UP_COUNT} -ic ${LOOP_COUNT} -dt ${device} -mt ${MODEL_TYPE} -mp ${ANDROID_DATA_DIR}/${benchmark_model} >> $OUTPUT_LOG_FILE"
             sleep $INTERVAL
             $ADB shell "cd ${ANDROID_DIR}; logcat -d | grep \"TNN Benchmark time cost\" | grep ${device} | grep -w ${benchmark_model} | tail -n 1 >> $OUTPUT_LOG_FILE"
         done
@@ -203,7 +203,11 @@ function bench_android_app() {
     build_android_bench
     build_android_bench_app
 
-    adb install -r benchmark-release.apk 
+    if [ "$ABI" = "armeabi-v7a with NEON" ];then
+        adb install -r --abi armeabi-v7a benchmark-release.apk 
+    else
+        adb install -r --abi $ABI benchmark-release.apk
+    fi
 
     $ADB shell "mkdir -p $ANDROID_DIR/benchmark-model"
     $ADB push ${BENCHMARK_MODEL_DIR} $ANDROID_DIR

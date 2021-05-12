@@ -25,6 +25,9 @@ Status NpuInstanceNormLayer::Convert() {
     if (!resource) {
         return Status(TNNERR_MODEL_ERR, "Error: InstanceNorm layer resource is nil");
     }
+    if (input_ops_[0]->GetShape().size() != 4) {
+        return Status(TNNERR_PARAM_ERR, "Error: InstanceNorm layer not support dim != 4 for HUAWEI_NPU");
+    }
     // input shape 0.n 1.c 2.h 3.w
     int input_channel = input_ops_[0]->GetShape()[1];
     // scale

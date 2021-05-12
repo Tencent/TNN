@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "tflite-schema/schema_generated.h"
+#include "tnn/core/common.h"
 
 namespace TNN_CONVERTER {
 
@@ -33,13 +34,15 @@ bool ConvertPermFormatTFLite(std::vector<int32_t>& perm);
 // template <typename T>
 bool ConvertConstFormatTFLite(int32_t const* dst, int32_t const* src, std::vector<int32_t> shape);
 
-int ConvertAxisFormatTFLite(int axis);
+int ConvertAxisFormatTFLite(int axis, int input_shape_size = 4);
 
 int Count(std::vector<int> shape);
 
 int SizeofTFLiteTensorData(tflite::TensorType type);
 
 void Mask(std::vector<int> shape, int mask, int upper, std::vector<int>& v);
+
+TNN_NS::DataType GetTnnDataTypeFromTFLite(const tflite::TensorType& tensor_type);
 
 }  // namespace TNN_CONVERTER
 #endif  // TNN_TOOLS_CONVERTER_SOURCE_TFLITE_TFLITE_UTILS_H_

@@ -22,14 +22,23 @@ namespace TNN_NS {
 class ArmReshapeLayerAcc : public ArmLayerAcc {
 public:
     virtual ~ArmReshapeLayerAcc(){};
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                        const std::vector<Blob *> &outputs) override;
 
-    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+protected:
+    virtual bool UseNaiveConstantBlobs() override;
 
 private:
     template <typename T>
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+    template <typename T>
+    Status ExecNchw(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
     void *workspace_ = nullptr;
+    int reshape_type_ = -1;
 };
 
 }  // namespace TNN_NS

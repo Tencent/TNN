@@ -19,8 +19,6 @@
 
 #include <fstream>
 
-#include "sys/time.h"
-
 namespace TNN_NS {
 
 std::mutex OpenCLContext::s_mutex_;
@@ -240,13 +238,13 @@ Status OpenCLContext::OnInstanceReshapeEnd() {
     return TNN_OK;
 }
 
-// synchronize will wait until the comman queue finish
+// synchronize will wait until the command queue finish
 Status OpenCLContext::Synchronize() {
     cl_int result = command_queue_->finish();
     if (result == 0) {
         return TNN_OK;
     } else {
-        return Status(TNNERR_OPENCL_FINISH_ERROR, "command queue finish falied");
+        return Status(TNNERR_OPENCL_FINISH_ERROR, "command queue finish failed");
     }
 }
 
@@ -261,6 +259,9 @@ Status OpenCLContext::Init() {
     if (opencl_runtime_ == nullptr) {
         return Status(TNNERR_OPENCL_RUNTIME_ERROR, "opencl_runtime is nullptr");
     }
+
+    // set cache path for opencl runtime
+    opencl_runtime_->SetCachePath(cache_path_);
 
     Status status = opencl_runtime_->Init();
     if (status != TNN_OK) {

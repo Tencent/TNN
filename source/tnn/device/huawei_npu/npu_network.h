@@ -49,7 +49,7 @@ public:
     // @param net_cfg
     // @param net_res
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                        InputShapesMap inputs_shape);
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
 
     // @brief deinit release init create resource
     virtual Status DeInit();
@@ -105,16 +105,20 @@ public:
 private:
     // add for huawei_npu
 
-    Status InitCheck();
-
     bool InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config);
+
+    Status RomVersionCheck();
 
     Status InitContext(NetworkConfig &net_config);
 
-    Status IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter, InputShapesMap &inputs_shape);
+    Status HiAIModelInit(std::string model_path, NetworkConfig &net_config, ModelConfig &model_config,
+                         DefaultModelInterpreter *interpreter, InputShapesMap inputs_shape,
+                         InputShapesMap &cpu_inputs_shape);
 
-    Status InitSubNetwork(InputShapesMap &cpu_input_shape, NetworkConfig &net_config, ModelConfig &model_config,
-                          AbstractModelInterpreter *interpreter);
+    Status IRInitLayers(NetworkConfig &net_config, DefaultModelInterpreter *interpreter, InputShapesMap &inputs_shape);
+
+    Status InitSubNetwork(NetworkConfig &net_config, ModelConfig &model_config, DefaultModelInterpreter *interpreter,
+                          InputShapesMap &cpu_inputs_shape);
 
     Status ConvertLayers(NetResource *net_resource);
 
@@ -124,7 +128,9 @@ private:
 
     Status BuildGraph(domi::HiaiIrBuild &ir_build, domi::ModelBufferData &om_model_buff);
 
-    Status InitBlobs(InputShapesMap &instance_input_shapes_map, InputShapesMap &cpu_input_shape);
+    Status InitBlobs(InputShapesMap &inputs_shape, InputShapesMap &cpu_inputs_shape);
+
+    Blob *CreateNpuBlob(hiai::TensorDimension dims, std::string name, void *data);
 
 private:
     AbstractDevice *device_ = nullptr;

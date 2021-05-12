@@ -27,10 +27,16 @@ namespace TNN_NS {
 
 void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
                         const float (*transform)[3], const float border_val = 0.0);
+void WarpAffineBilinearYUV(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                           const float (*transform)[3], const float border_val = 0.0);
 void WarpAffineNearest(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
                        const float (*transform)[3], const float border_val = 0.0);
+void WarpAffineNearestYUV(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
+                          const float (*transform)[3], const float border_val = 0.0);
 void ResizeBilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h, int channel);
+void ResizeBilinearYUV(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h);
 void ResizeNearest(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h, int channel);
+void ResizeNearestYUV(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h);
 void BGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel);
 void RGBOrRGBAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel);
 void YUVToBGR(const unsigned char* yuv, unsigned char* bgr, int h, int w, bool is_nv12);

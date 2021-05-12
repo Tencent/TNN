@@ -181,7 +181,7 @@ kernel void winograd_transform_dest2_3_1(const device ftype4 *in            [[bu
     auto m31 = +S31 - S32 + S33;
     
     // write output
-    auto b4 = biasTerms[int(pos.z)];
+    auto b4 = params.has_bias? biasTerms[int(pos.z)] : ftype4(Zero4);
     int oy = pos.y * params.unit;
     int ox = pos.x * params.unit;
     auto z_out = out + pos.z * params.output_width * params.output_height;

@@ -36,4 +36,18 @@ Status X86Context::Synchronize() {
     return TNN_OK;
 }
 
+void* X86Context::GetSharedWorkSpace(size_t size) {
+    return GetSharedWorkSpace(size, 0);
+}
+
+void* X86Context::GetSharedWorkSpace(size_t size, int index) {
+    while(work_space_.size() < index + 1) {
+        work_space_.push_back(RawBuffer(size, 32));
+    }
+    if (work_space_[index].GetBytesSize() < size) {
+        work_space_[index] = RawBuffer(size, 32);
+    }
+    return work_space_[index].force_to<void*>();
+}
+
 }  // namespace TNN_NS

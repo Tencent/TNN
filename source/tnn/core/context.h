@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+#include "tnn/core/macro.h"
 #include "tnn/core/status.h"
 #include "tnn/core/profile.h"
 #include "tnn/core/common.h"
@@ -40,16 +41,16 @@ public:
     // @brief share tnn command queue to another context
     virtual Status ShareCommandQueue(Context* context);
     
-    // @brief before instace forword
+    // @brief before instance forward
     virtual Status OnInstanceForwardBegin();
 
-    // @brief after instace forword
+    // @brief after instance forward
     virtual Status OnInstanceForwardEnd() = 0;
 
     // @brief before instance Reshape
     virtual Status OnInstanceReshapeBegin();
 
-    // @brief after instace Reshape
+    // @brief after instance Reshape
     virtual Status OnInstanceReshapeEnd();
 
     // @brief wait for jobs in the current context to complete
@@ -62,9 +63,13 @@ public:
 
     Precision GetPrecision();
 
-    void SetEnableTuneKernel(bool enalbe_tune_kernel);
+    void SetEnableTuneKernel(bool enable_tune_kernel);
 
     bool GetEnableTuneKernel();
+
+    void SetCachePath(std::string cache_path);
+
+    std::string GetCachePath();
 
     void SetCacheFilePath(std::string cache_file_path);
 
@@ -85,6 +90,7 @@ protected:
 protected:
     Precision precision_ = PRECISION_AUTO;
     bool enable_tune_kernel_ = true;
+    std::string cache_path_ = ""; // dir to save cache files
     std::string cache_file_path_ = "";
 };
 

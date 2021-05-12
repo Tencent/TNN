@@ -15,7 +15,7 @@ To compile the model_check tool, the following macro must be set to ON:
 ## III. Usage
 ### 1. Command
 ```
-./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-o] [-e] [-f] <refernece> [-n] <val> [-s] <val>
+./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-f] <refernece> [-e] [-n] <val> [-s] <val> [-o] [-b]
 ```
 ### 2. Parameter Description
 |option           |mandatory|with value |description                                       |  
@@ -24,12 +24,13 @@ To compile the model_check tool, the following macro must be set to ON:
 |-p, --proto        |&radic; |&radic;|Specify tnnproto model description file.                   |   
 |-m, --model        |&radic; |&radic;|Specify the tnnmodel model parameter file.                   |  
 |-d, --device       |&radic; |&radic;|Specify the platform on which the model is executed, such as OPENCL, ARM, METAL, CUDA, HUAWEI_NPU etc.    |  
-|-i, --input_path   |        |&radic;|Specify the input file. The currently supported formats are:<br>&bull; Text file (the file suffix is ​​.txt)<br>&bull; Common picture format files (file suffix is ​​.jpg .jpeg .png .bmp)<br>If not specified, (-1, 1) will be used for random input|  
+|-i, --input_path   |        |&radic;|Specify the input file. The currently supported formats are:<br>&bull; Text file (the file suffix is ​​.txt). The format is the same as the input file dumped by model converter tool. <br>&bull; Common picture format files (file suffix is ​​.jpg .jpeg .png .bmp)<br>If not specified, (-1, 1) will be used for random input|  
+|-f, --ref          |        |&radic;|Use the specified output to compare the results. The currently supported formats are:<br>&bull; Text file (file suffix is ​​.txt), the format is the same as the output file dumped by model converter tool.|
+|-e, --end          |        |       |Only check output of model.                           |  
 |-n, --mean         |        |&radic;|Pre-processing, mean operation on each channel of input data, parameter format: 0.0, 0.0, 0.0|  
 |-s, --scale        |        |&radic;|Pre-processing, scale the input data channels, the parameter format is: 1.0, 1.0, 1.0|  
 |-o, --output       |        |       |Whether to save the final output.                           |  
-|-e, --end          |        |       |Only check output of model.                           |  
-|-f, --ref          |        |&radic;|Use the specified output to compare the results. The currently supported formats are:<br>&bull; Text file (file suffix is ​​.txt), data storage is in NCHW format, separated by newline.|
+|-b, --batch        |        |       |Check the result of each batch. (Not finished yet) |  
 
 
 

@@ -42,7 +42,7 @@ public:
 
     virtual int getNbOutputs() const;
 
-    virtual DimsExprs getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputDims,
+    virtual DimsExprs getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputs,
         nvinfer1::IExprBuilder& exprBuilder);
 
     virtual int initialize();
@@ -75,7 +75,6 @@ public:
     nvinfer1::IPluginV2DynamicExt* CreatePlugin(const void* data, size_t length);
 
 protected:
-    std::shared_ptr<AbstractLayerAcc> plugin_layer_acc_;
     std::string m_plugin_namespace;
     nvinfer1::DataType m_type;
     TensorFormat m_format;
@@ -92,6 +91,7 @@ private:
     T read(const char*& buffer) const {
         T val = *reinterpret_cast<const T*>(buffer);
         buffer += sizeof(T);
+        return val;
     }
 };
 
@@ -111,6 +111,8 @@ public:
         virtual ~type_string##TRTPluginLayerBuilder() {}                                                           \
         virtual bool supportsFormatCombination(int pos, const nvinfer1::PluginTensorDesc* inOut,                   \
             int nbInputs, int nbOutputs);                                                                          \
+        virtual DimsExprs getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputs,          \
+            nvinfer1::IExprBuilder& exprBuilder);                                                                  \
         virtual const char* getPluginType() const;                                                                 \
         virtual nvinfer1::IPluginV2DynamicExt* clone() const {                                                     \
             auto* plugin = new type_string##TRTPluginLayerBuilder(*this);                                          \

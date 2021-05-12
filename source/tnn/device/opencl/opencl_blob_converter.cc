@@ -17,15 +17,20 @@
 #include "tnn/device/opencl/opencl_utils.h"
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/utils/blob_memory_size_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
 
-//default contructor will create convert buffer
+//default constructor will create convert buffer
 OpenCLBlobConverterAcc::OpenCLBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {
-    BlobMemorySizeInfo size_info = Calculate2DCLImageMemorySize(blob->GetBlobDesc());
+    BlobMemorySizeInfo size_info;
+    if (blob->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
+        size_info = Calculate2DCLImageMemorySize(blob->GetBlobDesc());
+    } else {
+        size_info = Calculate1DMemorySize(blob->GetBlobDesc());
+    }
     // force float to get the max memeory
     size_info.data_type   = DATA_TYPE_FLOAT;  
     auto opencl_runtime   = OpenCLRuntime::GetInstance();
@@ -41,7 +46,7 @@ OpenCLBlobConverterAcc::OpenCLBlobConverterAcc(Blob *blob) : BlobConverterAcc(bl
         buffer_.reset(cl_buffer);
     }
 
-    int channel = blob->GetBlobDesc().dims[1];
+    int channel = DimsFunctionUtils::GetDim(blob->GetBlobDesc().dims, 1);
     scale_bias_buffer_size_ = channel * sizeof(float);
     cl::Buffer* scale_buffer = new cl::Buffer(*opencl_runtime->Context(),
                                               CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
@@ -89,7 +94,8 @@ Status OpenCLBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param
     do_scale_bias_  = NeedDoScaleBias(param);
     //create identifier
     std::string to_mat_key = ToString(mat.GetDeviceType()) + "_" + ToString(mat.GetMatType()) + "_" +
-                            ToString(param.reverse_channel) + "_" + ToString(do_scale_bias_);
+            ToString(blob_->GetBlobDesc().data_format) + "_" + ToString(param.reverse_channel) + "_" +
+            ToString(do_scale_bias_);
     //create convert unit only once for every key
     if (convert_to_mat_map_.count(to_mat_key) == 0) {
         OpenCLExecuteUnit unit;
@@ -149,9 +155,10 @@ Status OpenCLBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam par
     do_scale_bias_  = NeedDoScaleBias(param);
     //create identifier
     std::string from_mat_key = ToString(mat.GetDeviceType()) + "_" + ToString(mat.GetMatType()) + "_" +
-                                ToString(param.reverse_channel) + "_" + ToString(do_scale_bias_);
+            ToString(blob_->GetBlobDesc().data_format) + "_" + ToString(param.reverse_channel) + "_" +
+            ToString(do_scale_bias_);
     //create convert unit only once for every key
-    if (convert_to_mat_map_.count(from_mat_key) == 0) {
+    if (convert_from_mat_map_.count(from_mat_key) == 0) {
         OpenCLExecuteUnit unit;
         ret = CreateConvertUnit(unit, mat, param, false);
         if (ret != TNN_OK) {
@@ -227,34 +234,138 @@ bool OpenCLBlobConverterAcc::NeedDoScaleBias(MatConvertParam &param) {
 }
 
 Status OpenCLBlobConverterAcc::GetConvertToMatKernelName(Mat &mat, std::string& kernel_name) {
-    if (N8UC3 == mat.GetMatType()) {
-        kernel_name = "ConvertToN8UC3";
-    } else if (N8UC4 == mat.GetMatType()) {
-        kernel_name = "ConvertToN8UC4";
-    } else if (NGRAY == mat.GetMatType()) {
-        kernel_name = "ConvertToNGray";
-    } else if (NCHW_FLOAT == mat.GetMatType()) {
-        kernel_name = "ConvertToNCHW";
-    } else {
-        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+    int dims_size = blob_->GetBlobDesc().dims.size();
+    if (blob_->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4 && dims_size <= 4) {
+            if (NC_INT32 == mat.GetMatType()) {
+                kernel_name = "IntBlobConvertToNCINT32";
+            } else if (NCHW_FLOAT == mat.GetMatType()) {
+                kernel_name = "IntBlobConvertToNCHW";
+            } else {
+                return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+            }
+            return TNN_OK;
+        } else {
+            return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        }
+    }
+    if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
+        if (dims_size <= 4) {
+            if (N8UC3 == mat.GetMatType()) {
+                kernel_name = "ConvertToN8UC3";
+            } else if (N8UC4 == mat.GetMatType()) {
+                kernel_name = "ConvertToN8UC4";
+            } else if (NGRAY == mat.GetMatType()) {
+                kernel_name = "ConvertToNGray";
+            } else if (NCHW_FLOAT == mat.GetMatType()) {
+                kernel_name = "ConvertToNCHW";
+            } else {
+                return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+            }
+        } else if (dims_size == 5) {
+            if (NCHW_FLOAT == mat.GetMatType()) {
+                kernel_name = "Blob5DConvertToNCHW";
+            } else {
+                char error_str[128];
+                sprintf(error_str, "Blob-5D convert type not support mat type: %d",
+                        mat.GetMatType());
+                return Status(TNNERR_PARAM_ERR, error_str);
+            }
+        } else if (dims_size == 6) {
+            if (NCHW_FLOAT == mat.GetMatType()) {
+                kernel_name = "Blob6DConvertToNCHW";
+            } else {
+                char error_str[128];
+                sprintf(error_str, "Blob-6D convert type not support mat type: %d",
+                        mat.GetMatType());
+                return Status(TNNERR_PARAM_ERR, error_str);
+            }
+        } else {
+            return Status(TNNERR_PARAM_ERR, "convert not support dims > 6");
+        }
+    }
+
+    if (blob_->GetBlobDesc().data_format == DATA_FORMAT_CNH4) {
+        if (NCHW_FLOAT == mat.GetMatType()) {
+            kernel_name = "CNH4BlobConvertToNCHW";
+        } else {
+            return Status(TNNERR_PARAM_ERR, "CNH4 blob convert to mat not support yet");
+        }
+    }
+
+    if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
+        if (NCHW_FLOAT == mat.GetMatType()) {
+            kernel_name = "NCHWBlobConvertToNCHW";
+        } else {
+            return Status(TNNERR_PARAM_ERR, "NCHW blob convert to mat not support yet");
+        }
     }
 
     return TNN_OK;
 }
 
 Status OpenCLBlobConverterAcc::GetConvertFromMatKernelName(Mat &mat, std::string& kernel_name) {
-    if (N8UC3 == mat.GetMatType()) {
-        kernel_name = "ConvertFromN8UC3";
-    } else if (N8UC4 == mat.GetMatType()) {
-        kernel_name = "ConvertFromN8UC4";
-    } else if (NGRAY == mat.GetMatType()) {
-        kernel_name = "ConvertFromNGray";
-    } else if (NNV21 == mat.GetMatType()) {
-        kernel_name = "ConvertFromNNV21";
-    } else if (NCHW_FLOAT == mat.GetMatType()) {
-        kernel_name = "ConvertFromNCHW";
+    int dims_size = blob_->GetBlobDesc().dims.size();
+    if (blob_->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4 && dims_size <= 4) {
+            if (NC_INT32 == mat.GetMatType()) {
+                kernel_name = "IntBlobConvertFromNCINT32";
+            } else {
+                return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+            }
+            return TNN_OK;
+        } else {
+            return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        }
+    }
+    if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
+        if (dims_size <= 4) {
+            if (N8UC3 == mat.GetMatType()) {
+                kernel_name = "ConvertFromN8UC3";
+            } else if (N8UC4 == mat.GetMatType()) {
+                kernel_name = "ConvertFromN8UC4";
+            } else if (NGRAY == mat.GetMatType()) {
+                kernel_name = "ConvertFromNGray";
+            } else if (NNV21 == mat.GetMatType()) {
+                kernel_name = "ConvertFromNNV21";
+            } else if (NCHW_FLOAT == mat.GetMatType()) {
+                kernel_name = "ConvertFromNCHW";
+            } else {
+                return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+            }
+        } else if (dims_size == 5) {
+            if (NCHW_FLOAT == mat.GetMatType()) {
+                kernel_name = "Blob5DConvertFromNCHW";
+            } else {
+                char error_str[128];
+                sprintf(error_str, "Blob-5D convert type not support mat type: %d",
+                        mat.GetMatType());
+                return Status(TNNERR_PARAM_ERR, error_str);
+            }
+        } else if (dims_size == 6) {
+            if (NCHW_FLOAT == mat.GetMatType()) {
+                kernel_name = "Blob6DConvertFromNCHW";
+            } else {
+                char error_str[128];
+                sprintf(error_str, "Blob-6D convert type not support mat type: %d",
+                        mat.GetMatType());
+                return Status(TNNERR_PARAM_ERR, error_str);
+            }
+        } else {
+            return Status(TNNERR_PARAM_ERR, "convert not support dims > 6");
+        }
     } else {
-        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        if (blob_->GetBlobDesc().data_format == DATA_FORMAT_CNH4) {
+            if (NCHW_FLOAT == mat.GetMatType()) {
+                kernel_name = "CNH4BlobConvertFromNCHW";
+            } else {
+                return Status(TNNERR_PARAM_ERR, "CNH4 blob convert from mat not support yet");
+            }
+        } else {
+            char error_str[128];
+            sprintf(error_str, "blob convert from mat not support format: %d", blob_->GetBlobDesc().data_format);
+            return Status(TNNERR_PARAM_ERR, error_str);
+        }
     }
 
     return TNN_OK;
@@ -306,6 +417,9 @@ Status OpenCLBlobConverterAcc::CreateConvertUnit(OpenCLExecuteUnit &unit, Mat &m
     }
 
     if (do_scale_bias_) {
+        if (blob_->GetBlobDesc().data_format == DATA_FORMAT_CNH4) {
+            return Status(TNNERR_PARAM_ERR, "cnh4 not support scale and bias yet");
+        }
         build_options.emplace("-DENABLE_SCALE_BIAS");
     }
 
@@ -317,24 +431,64 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
     MatType mat_type = mat.GetMatType();
     auto dims        = blob_->GetBlobDesc().dims;
 
-    uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, dims);
-    cl::Image *image = static_cast<cl::Image *>(blob_->GetHandle().base);
+    uint32_t idx     = 0;
+    if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
+        idx = SetExecuteUnit2DSizeInfoDefault(unit, dims);
+    } else if (blob_->GetBlobDesc().data_format == DATA_FORMAT_CNH4 &&
+               (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType())) {
+        idx = SetExecuteUnit2DSizeInfoCNH4(unit, dims);
+    } else if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NCHW &&
+               (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType())) {
+        idx = SetExecuteUnit2DSizeInfoNCHW(unit, dims);
+    } else {
+        return Status(TNNERR_PARAM_ERR, "blob data format not support yet");
+    }
+    cl::Image *image;
+    cl::Buffer *buffer;
+    if (blob_->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
+        image = static_cast<cl::Image *>(blob_->GetHandle().base);
+    } else {
+        buffer = static_cast<cl::Buffer *>(blob_->GetHandle().base);
+    }
 
     cl_int cl_ret;
     if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType()) {
-        cl_ret = unit.ocl_kernel.setArg(idx++, *image);
-        CHECK_CL_SUCCESS(cl_ret);
+        if (blob_->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
+            cl_ret = unit.ocl_kernel.setArg(idx++, *image);
+            CHECK_CL_SUCCESS(cl_ret);
+        } else {
+            cl_ret = unit.ocl_kernel.setArg(idx++, *buffer);
+            CHECK_CL_SUCCESS(cl_ret);
+        }
         cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
         CHECK_CL_SUCCESS(cl_ret);
-        //height
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[2]); 
-        CHECK_CL_SUCCESS(cl_ret);
-        //width
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[3]);
-        CHECK_CL_SUCCESS(cl_ret);
-        if (NCHW_FLOAT == mat.GetMatType()) {
+        auto blob_dims_size = blob_->GetBlobDesc().dims.size();
+        if (blob_->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 2));
+            CHECK_CL_SUCCESS(cl_ret);
+            if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
+                cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 3));
+                CHECK_CL_SUCCESS(cl_ret);
+                // set dim4, optional
+                if (blob_dims_size >= 5) {
+                    cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 4));
+                    CHECK_CL_SUCCESS(cl_ret);
+                }
+                // set dim5, optional
+                if (blob_dims_size >= 6) {
+                    cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 5));
+                    CHECK_CL_SUCCESS(cl_ret);
+                }
+            } else if (blob_->GetBlobDesc().data_format == DATA_FORMAT_CNH4) {
+                // batch
+                cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 0));
+                CHECK_CL_SUCCESS(cl_ret);
+            }
+        }
+
+        if (NCHW_FLOAT == mat.GetMatType() || NC_INT32 == mat.GetMatType()) {
             //special for NCHW_FLOAT, need channel parameter
-            cl_ret = unit.ocl_kernel.setArg(idx++, dims[1]);
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 1));
             CHECK_CL_SUCCESS(cl_ret);
             cl_ret = unit.ocl_kernel.setArg(idx++, *scale_buffer_);
             CHECK_CL_SUCCESS(cl_ret);
@@ -343,7 +497,7 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
         } else {
             // N8UC4 need channel parameter
             if (N8UC4 == mat.GetMatType() && !convert_to_mat) {
-                cl_ret = unit.ocl_kernel.setArg(idx++, dims[1]);
+                cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 1));
                 CHECK_CL_SUCCESS(cl_ret);
             }
             // pad scale && bias for vectors in opencl kernel
@@ -365,7 +519,7 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
         cl_ret = unit.ocl_kernel.setArg(idx++, *image);
         CHECK_CL_SUCCESS(cl_ret);
         if (!convert_to_mat) {
-            cl_ret = unit.ocl_kernel.setArg(idx++, dims[1]);
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 1));
             CHECK_CL_SUCCESS(cl_ret);
         }
         cl_ret = unit.ocl_kernel.setArg(idx++, sizeof(float) * param.scale.size(), param.scale.data());
@@ -416,20 +570,19 @@ Status OpenCLBlobConverterAcc::CopyMatToBufferData(Mat &mat, cl::CommandQueue *c
 
 Status OpenCLBlobConverterAcc::CopyScaleBiasToBuffer(MatConvertParam param, cl::CommandQueue *cl_command_queue) {
     cl_int cl_ret;
-    // Copy scale and bias to buffer
-    auto scale_buffer_ptr =
-        cl_command_queue->enqueueMapBuffer(*scale_buffer_, true, CL_MAP_WRITE, 0, scale_bias_buffer_size_, nullptr, nullptr, &cl_ret);
-    CHECK_CL_SUCCESS(cl_ret);
-    memcpy(scale_buffer_ptr, param.scale.data(), scale_bias_buffer_size_);
-    cl_ret = cl_command_queue->enqueueUnmapMemObject(*scale_buffer_, scale_buffer_ptr);
-    CHECK_CL_SUCCESS(cl_ret);
+    if (param.scale != host_scale_buffer_) {
+        // Copy scale to buffer
+        cl_ret = cl_command_queue->enqueueWriteBuffer(*scale_buffer_, CL_TRUE, 0, scale_bias_buffer_size_, param.scale.data());
+        CHECK_CL_SUCCESS(cl_ret);
+        host_scale_buffer_.assign(param.scale.begin(), param.scale.end());
+    }
 
-    auto bias_buffer_ptr =
-        cl_command_queue->enqueueMapBuffer(*bias_buffer_, true, CL_MAP_WRITE, 0, scale_bias_buffer_size_, nullptr, nullptr, &cl_ret);
-    CHECK_CL_SUCCESS(cl_ret);
-    memcpy(bias_buffer_ptr, param.bias.data(), scale_bias_buffer_size_);
-    cl_ret = cl_command_queue->enqueueUnmapMemObject(*bias_buffer_, bias_buffer_ptr);
-    CHECK_CL_SUCCESS(cl_ret);
+    if (param.bias != host_bias_buffer_) {
+        // Copy bias to buffer
+        cl_ret = cl_command_queue->enqueueWriteBuffer(*bias_buffer_, CL_TRUE, 0, scale_bias_buffer_size_, param.bias.data());
+        CHECK_CL_SUCCESS(cl_ret);
+        host_bias_buffer_.assign(param.bias.begin(), param.bias.end());
+    }
 
     return TNN_OK;
 }

@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "tnn/core/context.h"
+#include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
 
@@ -31,14 +32,21 @@ public:
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void** command_queue) override;
 
-    // @brief befor instace forword
+    // @brief before instance forward
     virtual Status OnInstanceForwardBegin() override;
 
-    // @brief after instace forword
+    // @brief after instance forward
     virtual Status OnInstanceForwardEnd() override;
 
     // @brief wait for jobs in the current context to complete
     virtual Status Synchronize() override;
+
+    void* GetSharedWorkSpace(size_t size);
+    void* GetSharedWorkSpace(size_t size, int index);
+
+private:
+    int num_threads_ = 1;
+    std::vector<RawBuffer> work_space_;
 };
 
 }  // namespace TNN_NS

@@ -14,6 +14,15 @@
 
 #include "tnn/device/opencl/opencl_runtime.h"
 #include "tnn/core/macro.h"
+#include "tnn/utils/md5.h"
+
+#include <stdio.h>
+#include <sstream>
+#include <algorithm>
+#ifdef __ANDROID__
+#include <fcntl.h>
+#include <sys/file.h>
+#endif
 
 #ifdef SHARING_MEM_WITH_OPENGL
 #include <EGL/egl.h>
@@ -21,14 +30,34 @@
 
 namespace TNN_NS {
 
+#ifdef __ANDROID__
+#define RELEASE_AND_UNLOCK(f) \
+    fclose(f); \
+    flock(fileno(f), LOCK_UN);
+#endif
+
 extern const std::map<std::string, std::vector<unsigned char>> g_opencl_program_map;
 
 static std::mutex g_mtx;
+
+//reserved for incompatible
+const std::string CACHE_TAG = "d1_tnn_ocl";
 
 //magic number
 static std::map<int, int> AdrenoSubGroup{
     {640, 128}, {630, 128}, {616, 128}, {612, 64}, {610, 64}, {540, 32}, {530, 32},
     {512, 32},  {510, 32},  {509, 32},  {506, 32}, {505, 32}, {405, 32}, {330, 16},
+};
+
+#define PROGRAM_NAME_MAX_LEN 30
+#define BUILD_OPTION_MAX_LEN 300
+#define KERNEL_KEY_LIST_MAX_LEN 300
+
+struct ProgramCacheInfo {
+    char program_name[PROGRAM_NAME_MAX_LEN];
+    char build_option[BUILD_OPTION_MAX_LEN];
+    char kernel_key_list[KERNEL_KEY_LIST_MAX_LEN];
+    size_t buffer_size;
 };
 
 std::shared_ptr<OpenCLRuntime> OpenCLRuntime::opencl_runtime_singleton_ = nullptr;
@@ -92,43 +121,12 @@ Status OpenCLRuntime::Init() {
 
 #ifdef TNN_USE_OPENCL_WRAPPER
         if (false == OpenCLSymbols::GetInstance()->LoadOpenCLLibrary()) {
-            return Status(TNNERR_DEVICE_LIBRARY_LOAD, "load opencl library falied!");
+            return Status(TNNERR_DEVICE_LIBRARY_LOAD, "load opencl library failed!");
         }
 #endif  // TNN_USE_OPENCL_WRAPPER
 
-        std::vector<cl::Platform> platforms;
-        cl::Platform::get(&platforms);
-        if (platforms.size() <= 0) {
-            LOGE("OpenCL Platform not found!\n");
-            return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL Platform not found!");
-        }
+        RETURN_ON_NEQ(SearchGpuDevice(device_), TNN_OK);
 
-        LOGD("find %lu platforms\n", platforms.size());
-
-        // search GPU
-        std::vector<cl::Device> devices;
-        for (auto it = platforms.begin(); it != platforms.end(); ++it) {
-            std::string platform_name;
-            it->getInfo(CL_PLATFORM_NAME, &platform_name);
-            it->getDevices(CL_DEVICE_TYPE_GPU, &devices);
-            LOGD("platform (%s) has %lu GPUs\n", platform_name.c_str(), devices.size());
-
-            if (devices.size() > 0) {
-                std::string device_name = devices[0].getInfo<CL_DEVICE_NAME>();
-                LOGD("find GPU: %s\n", device_name.c_str());
-                cl::Platform::setDefault(*it);
-                break;
-            }
-        }
-
-        //not found, return error code.
-        if (devices.size() <= 0) {
-            LOGE("OpenCL Device not found!\n");
-            return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL Device not found!");
-        }
-
-        device_                          = std::make_shared<cl::Device>();
-        *device_                         = devices[0];
         const std::string device_name    = device_->getInfo<CL_DEVICE_NAME>();
         const std::string device_version = device_->getInfo<CL_DEVICE_VERSION>();
         const std::string opencl_version = device_->getInfo<CL_DEVICE_OPENCL_C_VERSION>();
@@ -149,7 +147,7 @@ Status OpenCLRuntime::Init() {
 
         if (err != CL_SUCCESS) {
             LOGE(
-                "Create special opencl context falied, Create common opencl "
+                "Create special opencl context failed, Create common opencl "
                 "context then.\n");
             context_ = std::shared_ptr<cl::Context>(new cl::Context(*device_, nullptr, nullptr, nullptr, &err));
         }
@@ -178,6 +176,18 @@ Status OpenCLRuntime::Init() {
         auto success  = device_->getInfo(CL_DEVICE_HALF_FP_CONFIG, &fp_config);
         support_fp16_ = CL_SUCCESS == success && fp_config > 0;
 
+        if (!cache_path_.empty()) {
+            program_cache_file_path_ =
+                cache_path_ + "/" + CACHE_TAG + "_" + md5(device_name) + "_" +
+                md5(device_version + "_" + opencl_version);
+        }
+
+        Status ret = LoadProgramCache();
+        if (ret != TNN_OK) {
+            LOGE("load program cache skipped, ret: %d, msg: %s\n", (int)ret, ret.description().c_str());
+        }
+
+        LOGD("Program cache file path: %s\n", program_cache_file_path_.c_str());
         LOGD("Global Mem Cache Size: %d\n", (int)global_memery_cachesize_);
         LOGD("Compute Unit: %d\n", (int)compute_units_);
         LOGD("Clock Frequency: %d MHz\n", (int)max_freq_);
@@ -190,6 +200,10 @@ Status OpenCLRuntime::Init() {
 
 OpenCLRuntime::~OpenCLRuntime() {
     LOGD("~OpenCLRuntime() start\n");
+    Status ret = SaveProgramCache();
+    if (ret != TNN_OK) {
+        LOGE("save program cache failed, ret: %d, msg: %s\n", (int)ret, ret.description().c_str());
+    }
     program_map_.clear();
     context_.reset();
     device_.reset();
@@ -260,6 +274,10 @@ bool OpenCLRuntime::SetPrecision(Precision precision) {
     return precision_ == precision;
 }
 
+void OpenCLRuntime::SetCachePath(const std::string &cache_path) {
+    cache_path_ = cache_path;
+}
+
 Precision OpenCLRuntime::GetPrecision() {
     return precision_;
 }
@@ -291,26 +309,29 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
     }
     build_options_str += default_build_opts_;
     //program identifier = program_name + build_options
-    std::string build_program_key = program_name + build_options_str;
+    std::pair<std::string, std::string> build_program_key =
+        std::make_pair(program_name, build_options_str);
 
     auto build_program_it = program_map_.find(build_program_key);
     cl::Program program;
     //if search program identifier exist, then use it.
     if (build_program_it != program_map_.end()) {
-        LOGD("find program: %s\n", build_program_key.c_str());
+        LOGD("find program: %s, build option: %s\n", build_program_key.first.c_str(),
+             build_program_key.second.c_str());
         program = build_program_it->second;
     } else {
         //load program and build program
-        LOGD("build program: %s\n", build_program_key.c_str());
+        LOGD("build program: %s, build option: %s\n", build_program_key.first.c_str(),
+             build_program_key.second.c_str());
         auto status = this->LoadProgram(program_name, &program);
         if (!status) {
             LOGE("load program (%s) failed!\n", program_name.c_str());
-            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "load program falied");
+            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "load program failed");
         }
         status = this->BuildProgram(build_options_str, &program);
         if (!status) {
             LOGE("%s build failed!\n", program_name.c_str());
-            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "build program falied");
+            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "build program failed");
         }
         program_map_.emplace(build_program_key, program);
     }
@@ -320,7 +341,21 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
     kernel = cl::Kernel(program, kernel_name.c_str(), &err);
     if (err != CL_SUCCESS) {
         LOGE("Kernel create failed! (ERROR CODE: %d)\n", err);
-        return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "create kernel falied");
+        return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "create kernel failed");
+    }
+
+    auto kernel_name_it = kernel_name_map_.find(build_program_key);
+    if (kernel_name_it != kernel_name_map_.end()) {
+        auto& kernel_name_list = kernel_name_it->second;
+        if (std::find(kernel_name_list.begin(), kernel_name_list.end(),
+                      kernel_name) == kernel_name_list.end()) {
+            is_program_cache_changed_ = true;
+            kernel_name_list.push_back(kernel_name);
+        }
+    } else {
+        std::vector<std::string> kernel_name_list = {kernel_name};
+        is_program_cache_changed_ = true;
+        kernel_name_map_.emplace(build_program_key, kernel_name_list);
     }
     return TNN_OK;
 }
@@ -349,10 +384,74 @@ GpuInfo OpenCLRuntime::ParseGpuInfo(std::string device_name, std::string device_
             sscanf(device_name.c_str(), "Mali-T%d", &info.model_num);
         }
         sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
+    } else if (device_name.find("Intel") != std::string::npos) {
+        LOGD("GPU type is Intel GPU\n");
+        info.type = INTEL_GPU;
+    } else if (device_name.find("GeForce") != std::string::npos) {
+        LOGD("GPU type is Nvidia GPU\n");
+        info.type = NVIDIA_GPU;
     }
     LOGD("GPU Type: %d, model_num: %d, opencl version: %f\n", info.type, info.model_num, info.opencl_version);
 
     return info;
+}
+
+Status OpenCLRuntime::SearchGpuDevice(std::shared_ptr<cl::Device>& device) {
+    struct DevicePacket {
+        cl::Platform platform;
+        cl::Device device;
+    };
+    std::map<GpuType, std::vector<DevicePacket>> gpu_map;
+    std::vector<cl::Platform> platforms;
+    cl::Platform::get(&platforms);
+    if (platforms.size() <= 0) {
+        LOGE("OpenCL Platform not found!\n");
+        return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL Platform not found!");
+    }
+
+    LOGD("find %lu platforms\n", platforms.size());
+
+    // search GPU
+    std::vector<cl::Device> devices;
+    for (auto it = platforms.begin(); it != platforms.end(); ++it) {
+        std::string platform_name;
+        it->getInfo(CL_PLATFORM_NAME, &platform_name);
+        it->getDevices(CL_DEVICE_TYPE_GPU, &devices);
+        LOGD("platform (%s) has %lu GPUs\n", platform_name.c_str(), devices.size());
+
+        for (auto dev: devices) {
+            std::string device_name    = dev.getInfo<CL_DEVICE_NAME>();
+            std::string device_version = dev.getInfo<CL_DEVICE_VERSION>();
+            LOGD("find GPU: %s\n", device_name.c_str());
+            GpuInfo gpu_info = ParseGpuInfo(device_name, device_version);
+            DevicePacket device_packet;
+            device_packet.platform = *it;
+            device_packet.device   = dev;
+            gpu_map[gpu_info.type].push_back(device_packet);
+        }
+    }
+
+    // not found, return error code.
+    if (gpu_map.size() <= 0) {
+        LOGE("OpenCL Device not found!\n");
+        return Status(TNNERR_OPENCL_RUNTIME_ERROR, "OpenCL Device not found!");
+    }
+
+    // choose GPU
+    DevicePacket device_packet_to_use;
+    if (gpu_map.count(NVIDIA_GPU) > 0) {
+        device_packet_to_use = gpu_map[NVIDIA_GPU].front();
+    } else if (gpu_map.count(INTEL_GPU) > 0) {
+        device_packet_to_use = gpu_map[INTEL_GPU].front();
+    } else {
+        device_packet_to_use = gpu_map.begin()->second.front();
+    }
+
+    cl::Platform::setDefault(device_packet_to_use.platform);
+    device.reset(new cl::Device());
+    *device = device_packet_to_use.device;
+
+    return TNN_OK;
 }
 
 //load program with program name.
@@ -384,6 +483,216 @@ bool OpenCLRuntime::BuildProgram(const std::string &build_options, cl::Program *
     return true;
 }
 
+Status OpenCLRuntime::LoadProgramCache() {
+#ifdef __ANDROID__
+    if (!program_cache_file_path_.empty()) {
+        FILE* program_cache_fin = fopen(program_cache_file_path_.c_str(), "rb");
+        if (!program_cache_fin) {
+            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                          "open program cache file failed, input path: " + program_cache_file_path_);
+        }
+        if (flock(fileno(program_cache_fin), LOCK_EX) == 0) {
+            do {
+                auto device_id = device_->get();
+                struct ProgramCacheInfo info;
+                int frsize = fread(&info, sizeof(struct ProgramCacheInfo), 1, program_cache_fin);
+                if (feof(program_cache_fin)) break;
+                if (!frsize) {
+                    RELEASE_AND_UNLOCK(program_cache_fin);
+                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                "read program cache file failed, path: " + program_cache_file_path_);
+                }
+                std::stringstream kernel_key_list_stream(info.kernel_key_list);
+                std::vector<std::string> kernel_name_list;
+                std::string kernel_name, program_name(info.program_name), build_option(info.build_option);
+                std::pair<std::string, std::string> key = std::make_pair(program_name, build_option);
+                while (std::getline(kernel_key_list_stream, kernel_name, ' ')) {
+                    kernel_name_list.push_back(kernel_name);
+                }
+                size_t buffer_size = info.buffer_size;
+
+                std::vector<int8_t> buffer;
+                buffer.resize(buffer_size);
+                auto buffer_data = buffer.data();
+                std::string program_source_md5;
+                auto it_source = g_opencl_program_map.find(program_name);
+                if (it_source != g_opencl_program_map.end()) {
+                    std::string source(it_source->second.begin(), it_source->second.end());
+                    program_source_md5 = md5(source);
+                } else {
+                    RELEASE_AND_UNLOCK(program_cache_fin);
+                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                  "get kernel source failed, program name: " + program_name);
+                }
+                std::string program_cache_bin_file_path = program_cache_file_path_ + "_" + program_name +
+                                                          "_" + md5(build_option) + "_" + program_source_md5;
+                FILE* program_binary_stream_fin = fopen(program_cache_bin_file_path.c_str(), "r");
+                if (!program_binary_stream_fin) {
+                    RELEASE_AND_UNLOCK(program_cache_fin);
+                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                "open program cache binary file failed, input path: "
+                                + program_cache_bin_file_path);
+                }
+                if (flock(fileno(program_binary_stream_fin), LOCK_EX) == 0) {
+                    size_t block_size = 4096;
+                    size_t block_count = UP_DIV(buffer_size, block_size);
+                    for (size_t i = 0; i < block_count; i++) {
+                        size_t start_loc = block_size * i;
+                        size_t cur_block_size = std::min(block_size, buffer_size - start_loc);
+                        frsize = fread((char *)buffer_data + start_loc, sizeof(char),
+                                    cur_block_size, program_binary_stream_fin);
+                        if (frsize != cur_block_size) {
+                            RELEASE_AND_UNLOCK(program_cache_fin);
+                            RELEASE_AND_UNLOCK(program_binary_stream_fin);
+                            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                        "read program cache binary file failed, path: " +
+                                        program_cache_bin_file_path);
+                        }
+                    }
+                    RELEASE_AND_UNLOCK(program_binary_stream_fin);
+                } else {
+                    RELEASE_AND_UNLOCK(program_cache_fin);
+                    fclose(program_binary_stream_fin);
+                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                  "lock program cache binary file failed, path: " +
+                                  program_cache_bin_file_path);
+                }
+
+                // create program from binary
+                auto program_raw = clCreateProgramWithBinary(
+                        Context()->get(), 1, &device_id, &buffer_size,
+                        (const unsigned char**)(&buffer_data), nullptr, nullptr);
+                if (!program_raw) {
+                    RELEASE_AND_UNLOCK(program_cache_fin);
+                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                  "Create program with binary failed, program name: " + program_name);
+                }
+                cl::Program program(program_raw);
+                auto status = this->BuildProgram(info.build_option, &program);
+                if (!status) {
+                    RELEASE_AND_UNLOCK(program_cache_fin);
+                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                  "build program failed, program name: " + program_name);
+                }
+                program_map_.emplace(key, program);
+                kernel_name_map_.emplace(key, kernel_name_list);
+            } while (true);
+            RELEASE_AND_UNLOCK(program_cache_fin);
+        } else {
+            fclose(program_cache_fin);
+            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                          "lock program cache file failed, input path: " + program_cache_file_path_);
+        }
+    }
+#endif
+    return TNN_OK;
+}
+
+Status OpenCLRuntime::SaveProgramCache() {
+#ifdef __ANDROID__
+    if (!program_cache_file_path_.empty() && is_program_cache_changed_) {
+        FILE *program_cache_fout = fopen(program_cache_file_path_.c_str(), "wb");
+        if (!program_cache_fout) {
+            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                          "open program cache file failed, output path: " + program_cache_file_path_);
+        }
+        if (flock(fileno(program_cache_fout), LOCK_EX) == 0) {
+            for (auto element : program_map_) {
+                const std::pair<std::string, std::string>& key = element.first;
+                const cl::Program& program = element.second;
+                auto program_raw = program.get();
+                auto binSizes = program.getInfo<CL_PROGRAM_BINARY_SIZES>();
+                auto device_id = device_->get();
+                // use first one
+                size_t buffer_size = binSizes[0];
+                auto program_name = key.first;
+                auto build_option = key.second;
+                struct ProgramCacheInfo info;
+                ASSERT(program_name.size() < PROGRAM_NAME_MAX_LEN);
+                ASSERT(build_option.size() < BUILD_OPTION_MAX_LEN);
+                strcpy(info.program_name, program_name.c_str());
+                strcpy(info.build_option, build_option.c_str());
+
+                // save compiled kernel name
+                std::stringstream kernel_key_list_stream;
+                auto kernel_name_it = kernel_name_map_.find(key);
+                if (kernel_name_it != kernel_name_map_.end()) {
+                    const std::vector<std::string>& kernel_name_list = kernel_name_it->second;
+                    for (auto kernel_name : kernel_name_list) {
+                        kernel_key_list_stream << kernel_name << " ";
+                    }
+                }
+                ASSERT(kernel_info_stream.str().size() < KERNEL_KEY_LIST_MAX_LEN);
+                strcpy(info.kernel_key_list, kernel_key_list_stream.str().c_str());
+                info.buffer_size = buffer_size;
+                int fwsize = fwrite(&info, sizeof(struct ProgramCacheInfo), 1, program_cache_fout);
+                if (!fwsize) {
+                    RELEASE_AND_UNLOCK(program_cache_fout);
+                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                  "write program cache file failed, path: " + program_cache_file_path_);
+                }
+
+                // save compiled program binary
+                std::vector<int8_t> buffer;
+                buffer.resize(buffer_size);
+                auto buffer_data = buffer.data();
+                clGetProgramInfo(program_raw, CL_PROGRAM_BINARIES, sizeof(unsigned char *),
+                                    &buffer_data, nullptr);
+
+                std::string program_source_md5;
+                auto it_source = g_opencl_program_map.find(program_name);
+                if (it_source != g_opencl_program_map.end()) {
+                    std::string source(it_source->second.begin(), it_source->second.end());
+                    program_source_md5 = md5(source);
+                } else {
+                    RELEASE_AND_UNLOCK(program_cache_fout);
+                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                  "get kernel source failed, program name: " + program_name);
+                }
+                std::string program_cache_bin_file_path = program_cache_file_path_ + "_" + program_name +
+                                                          "_" + md5(build_option) + "_" + program_source_md5;
+                FILE* program_cache_binary_stream = fopen(program_cache_bin_file_path.c_str(), "wb");
+                if (!program_cache_binary_stream) {
+                    RELEASE_AND_UNLOCK(program_cache_fout);
+                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                  "open program cache binary file failed, path: "
+                                  + program_cache_bin_file_path);
+                }
+
+                if (flock(fileno(program_cache_binary_stream), LOCK_EX) == 0) {
+                    size_t block_size = 4096;
+                    size_t block_count = UP_DIV(buffer_size, block_size);
+                    for (size_t i = 0; i < block_count; i++) {
+                        size_t start_loc = block_size * i;
+                        size_t cur_block_size = std::min(block_size, buffer_size - start_loc);
+                        fwsize = fwrite((const char*)buffer_data + start_loc, sizeof(char),
+                                        cur_block_size, program_cache_binary_stream);
+                        if (fwsize != cur_block_size) {
+                            RELEASE_AND_UNLOCK(program_cache_fout);
+                            RELEASE_AND_UNLOCK(program_cache_binary_stream);
+                            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                          "write program cache binary file failed, path: " +
+                                          program_cache_bin_file_path);
+                        }
+                    }
+                    RELEASE_AND_UNLOCK(program_cache_binary_stream);
+                } else {
+                    fclose(program_cache_binary_stream);
+                    return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                                  "lock program cache binary file failed, path: "
+                                  + program_cache_bin_file_path);
+                }
+            }
+            RELEASE_AND_UNLOCK(program_cache_fout);
+        } else {
+            fclose(program_cache_fout);
+            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                          "lock program cache file failed, output path: " + program_cache_file_path_);
+        }
+    }
+#endif
+    return TNN_OK;
+}
 
 std::vector<size_t> OpenCLRuntime::GetImage2dMaxSize() {
     return image_2d_max_size_;

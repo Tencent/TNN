@@ -20,22 +20,22 @@
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/interpreter/tnn/model_interpreter.h"
 #include "tnn/utils/cpu_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 class DeconvLayerTest : public LayerTest,
                         public ::testing::WithParamInterface<
-                            std::tuple<int, int, int, int, int, int, int, int, int, int, DataType, int>> {};
+                            std::tuple<int, int, int, int, int, int, int, int, int, int, int, DataType, int>> {};
 INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
-                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 2, 3, 4, 13),
-                                            testing::Values(1, 2, 3, 4, 16),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 2, 5, 13),
+                                            testing::Values(1, 3, 4, 16),
                                             // input_size
                                             testing::Values(2, 3, 8, 15),
                                             // group
                                             testing::Values(1, 2, 5),
                                             // kernel
-                                            testing::Values(1, 2, 3, 4),
+                                            testing::Values(2, 3, 4),
                                             // dilation
                                             testing::Values(1),
                                             // stride
@@ -44,6 +44,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, DeconvLayerTest,
                                             testing::Values(1),
                                             // output_pads
                                             testing::Values(0),
+                                            // pad type
+                                            testing::Values(-1, 1, 2),
                                             // data_type
                                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16, DATA_TYPE_HALF),
                                             // activation_type
@@ -62,35 +64,33 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     int stride                   = std::get<7>(GetParam());
     int pad                      = std::get<8>(GetParam());
     int output_pad               = std::get<9>(GetParam());
-    auto data_type               = std::get<10>(GetParam());
-    int activation_type          = std::get<11>(GetParam());
+    int pad_type                 = std::get<10>(GetParam());
+    auto data_type               = std::get<11>(GetParam());
+    int activation_type          = std::get<12>(GetParam());
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
+
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 
-    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-#ifndef TNN_ARM82
-    if (data_type == DATA_TYPE_HALF) {
-        GTEST_SKIP();
-    }
-#endif
-
-    bool is_depthwise = (input_channel_per_group == 1) && (output_channel_per_group == 1);
-    if (DEVICE_METAL == dev && !is_depthwise && group != 1 && !(input_channel_per_group % 4 == 0 && output_channel_per_group % 4 == 0) &&
-        !(group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2)) {
+    if (stride > kernel) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_HUAWEI_NPU == dev && activation_type != ActivationType_None) {
+    if (input_size == 2 && kernel == 4 && pad_type == 2) {
         GTEST_SKIP();
     }
 
     if (DEVICE_CUDA == dev && (activation_type == ActivationType_SIGMOID_MUL || dilation != 1))  {
+        GTEST_SKIP();
+    }
+
+    if (activation_type == ActivationType_ReLU6 && DEVICE_X86 == dev) {
+        GTEST_SKIP();
+    }
+    if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_X86 == dev) {
         GTEST_SKIP();
     }
 
@@ -119,6 +119,8 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
 
     if (output_pad > 0) {
         param->pad_type = 3;
+    } else {
+        param->pad_type = pad_type;
     }
 
     Precision precision = SetPrecision(dev, data_type);

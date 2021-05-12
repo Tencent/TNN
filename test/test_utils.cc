@@ -11,8 +11,11 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
+#include "test_utils.h"
 
 #include <math.h>
+
+#include <algorithm>
 
 #include "tnn/core/common.h"
 #include "tnn/utils/bfp16.h"
@@ -20,6 +23,7 @@
 namespace TNN_NS {
 
 DeviceType ConvertDeviceType(std::string device_type) {
+    std::transform(device_type.begin(), device_type.end(), device_type.begin(), ::toupper);
     if ("METAL" == device_type) {
         return DEVICE_METAL;
     } else if ("OPENCL" == device_type) {
@@ -170,6 +174,17 @@ int CompareData(const uint8_t* ref_data, const uint8_t* result_data, int mat_cha
         if (c >= channel)
             continue;
         if (abs(result_data[i] - ref_data[i]) > 1) {
+            LOGE("ERROR AT %llu result %d ref %d\n", i, result_data[i], ref_data[i]);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+int CompareData(const int* ref_data, const int* result_data, size_t n) {
+    for (unsigned long long i = 0; i < n; i++) {
+        if (result_data[i] - ref_data[i] != 0) {
             LOGE("ERROR AT %llu result %d ref %d\n", i, result_data[i], ref_data[i]);
             return -1;
         }

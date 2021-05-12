@@ -17,6 +17,9 @@
 #include "tnn/core/abstract_device.h"
 #include "tnn/core/blob.h"
 #include "tnn/core/common.h"
+#include "tnn/interpreter/raw_buffer.h"
+#include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -66,6 +69,67 @@ Status CopyFromDevice(Blob* dst, Blob* src, void* command_queue) {
         return ret;
     }
 
+    return TNN_OK;
+}
+
+Status Blob2RawBuffer(Blob *blob, std::shared_ptr<RawBuffer> &buffer) {
+    if (!blob) {
+        return Status(TNNERR_PARAM_ERR, "blob is null");
+    }
+    if (blob->GetBlobDesc().device_type != DEVICE_NAIVE) {
+        LOGE("Blob2RawBuffer dont support device type: %d", blob->GetBlobDesc().device_type);
+        return Status(TNNERR_PARAM_ERR, "Blob2RawBuffer dont support device type");
+    }
+    
+    const auto dims = blob->GetBlobDesc().dims;
+    
+    int count = DimsVectorUtils::Count(dims);
+    if (dims.size() == 0 && !blob->GetHandle().base) {
+        count = 0;
+    }
+    const int ele_size = DataTypeUtils::GetBytesSize(blob->GetBlobDesc().data_type);
+    
+    //处理原来buffer已有分配内存的情况
+    if (!buffer || buffer->GetBytesSize() != count*ele_size) {
+        buffer = std::make_shared<RawBuffer>(count*ele_size);
+    }
+    buffer->SetDataType(blob->GetBlobDesc().data_type);
+    buffer->SetBufferDims(blob->GetBlobDesc().dims);
+    
+    if (count > 0) {
+        memcpy(buffer->force_to<void *>(), blob->GetHandle().base, count*ele_size);
+    }
+    
+    return TNN_OK;
+}
+
+Status RawBuffer2Blob(RawBuffer *buffer, std::shared_ptr<Blob> &blob) {
+    if (!buffer) {
+        LOGE("RawBuffer2Blob:: buffer is null \n");
+        return Status(TNNERR_PARAM_ERR, "RawBuffer2Blob:: buffer is null");
+    }
+    
+    const int count = blob ? DimsVectorUtils::Count(blob->GetBlobDesc().dims) : 0;
+    const int ele_size = blob ? DataTypeUtils::GetBytesSize(blob->GetBlobDesc().data_type) : 0;
+    
+    if (!blob || buffer->GetBytesSize() != count*ele_size) {
+        BlobDesc desc;
+        {
+            desc.device_type = DEVICE_NAIVE;
+            desc.data_type = buffer->GetDataType();
+            desc.dims = buffer->GetBufferDims();
+        }
+        if (buffer->GetBytesSize() > 0) {
+            blob = std::make_shared<Blob>(desc, true);
+        } else {
+            blob = std::make_shared<Blob>(desc, false);
+        }
+    }
+    
+    if (blob->GetHandle().base && buffer->GetBytesSize() > 0) {
+        memcpy(blob->GetHandle().base, buffer->force_to<void *>(), buffer->GetBytesSize());
+    }
+    
     return TNN_OK;
 }
 

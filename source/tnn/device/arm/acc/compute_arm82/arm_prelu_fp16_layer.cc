@@ -15,7 +15,7 @@
 #include "tnn/device/arm/acc/arm_prelu_layer_acc.h"
 
 #include <cmath>
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 #include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
@@ -26,9 +26,8 @@ Status ArmPReluLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std::
     CHECK_PARAM_NULL(layer_param);
     auto dims         = inputs[0]->GetBlobDesc().dims;
     const int channel = dims[1];
-    const int height  = dims[2];
-    const int width   = dims[3];
-    const int count   = dims[0] * ROUND_UP(dims[1], 8) * dims[2] * dims[3];
+    const int hw      = DimsVectorUtils::Count(dims, 2);
+    const int count   = dims[0] * ROUND_UP(dims[1], 8) * hw;
 
     const fp16_t *slope_data = buffer_slope_.force_to<fp16_t *>();
 
@@ -45,13 +44,13 @@ Status ArmPReluLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std::
     } else {
         Half8 v_zero = Half8((fp16_t)(0.f));
         for (int batch_idx = 0; batch_idx < dims[0]; ++batch_idx) {
-            auto input_ptr  = input_data + batch_idx * width * height * ROUND_UP(channel, 8);
-            auto output_ptr = output_data + batch_idx * width * height * ROUND_UP(channel, 8);
+            auto input_ptr  = input_data + batch_idx * hw * ROUND_UP(channel, 8);
+            auto output_ptr = output_data + batch_idx * hw * ROUND_UP(channel, 8);
             for (int dz = 0; dz < UP_DIV(channel, 8); ++dz) {
-                auto *src_z         = input_ptr + dz * width * height * 8;
-                auto *dst_z         = output_ptr + dz * width * height * 8;
+                auto *src_z         = input_ptr + dz * hw * 8;
+                auto *dst_z         = output_ptr + dz * hw * 8;
                 Half8 v_slope = Half8::load(slope_data + dz * 8);
-                for (int p = 0; p < width * height; p++) {
+                for (int p = 0; p < hw; p++) {
                     Half8 v_data = Half8::load(src_z + p * 8);
                     Half8 v_res  = Half8::bsl_clt(v_data, v_zero, v_data * v_slope, v_data);
                     Half8::save(dst_z + p * 8, v_res);

@@ -19,7 +19,7 @@ cd <path_to_tnn>/platforms/linux/
 ## III. Usage
 ### 1. Command  
 ```
-./quantization_cmd [-h] [-p] [-m] [-i] [-b] [-w] [-n] [-s] [-c] <param>
+./quantization_cmd [-h] [-p] [-m] [-i] [-b] [-w] [-n] [-s] [-r] [-t] <param>
 ```
 ### 2. Parameter Description  
 
@@ -31,9 +31,9 @@ cd <path_to_tnn>/platforms/linux/
 |-i, --input_path   |&radic; |&radic;|Specify the path of the quantitative input folder. The currently supported formats are: <br>&bull; Text file (the file suffix is ​​.txt) <br>&bull; Common picture format files (file suffix is ​​.jpg .jpeg .png .bmp) <br> All files under this directory will be used as input.|
 |-b, --blob_method  |        |&radic;|Specify the feature map quantization method：<br>&bull; 0 Min-Max method (default)<br>&bull; 2 KL method|
 |-w, --weight_method|        |&radic;|Specify the quantification method of weights: <br>&bull; 0 Min-Max method (default)<br>&bull; 1 ADMM method|
-|-n, --mean         |        |&radic;|
-Pre-processing, mean operation on each channel of input data, parameter format: 0.0, 0.0, 0.0|
+|-n, --mean         |        |&radic;|Pre-processing, mean operation on each channel of input data, parameter format: 0.0, 0.0, 0.0|
 |-s, --scale        |        |&radic;|Pre-processing, scale the input data channels, the parameter format is: 1.0, 1.0, 1.0|
+|-r, --reverse_channel|        |&radic;|Pre-processing, valid for picture format files: <br>&bull; 0 use RGB order (default)<br>&bull; 1 use BGR order|
 |-t, --merge_type|        |&radic;|Whether use per-tensor or per-channel method when quantifying: <br>&bull; 0 per-channel method (default)<br>&bull; 1 mix method, weights: per-channel, blob: per-tensor.<br>&bull; 2 per-tensor method|  
   
 ### 3. Quantization Input   

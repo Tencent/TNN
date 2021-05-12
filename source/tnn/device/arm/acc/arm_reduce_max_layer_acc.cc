@@ -47,5 +47,6 @@ typedef struct arm_reduce_max_operator : arm_reduce_operator {
 
 DECLARE_ARM_REDUCE_ACC(ReduceMax, ARM_REDUCE_MAX_OP);
 REGISTER_ARM_ACC(ReduceMax, LAYER_REDUCE_MAX);
+REGISTER_ARM_LAYOUT(LAYER_REDUCE_MAX, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

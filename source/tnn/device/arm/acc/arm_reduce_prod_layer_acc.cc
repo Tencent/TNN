@@ -25,7 +25,7 @@ typedef struct arm_reduce_prod_operator : arm_reduce_operator {
     };
 
     virtual Float4 DataInit() {
-        return Float4(1);
+        return Float4(1.f);
     };
 
     virtual Float4 Calculate(Float4 &v, Float4 &t) {
@@ -48,5 +48,6 @@ typedef struct arm_reduce_prod_operator : arm_reduce_operator {
 DECLARE_ARM_REDUCE_ACC(ReduceProd, ARM_REDUCE_PROD_OP);
 
 REGISTER_ARM_ACC(ReduceProd, LAYER_REDUCE_PROD);
+REGISTER_ARM_LAYOUT(LAYER_REDUCE_PROD, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

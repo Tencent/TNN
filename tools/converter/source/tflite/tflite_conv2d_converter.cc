@@ -182,14 +182,17 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
             param->pads.push_back(0);
             param->pads.push_back(0);
         }
-        if ((param->dialations[0] != 1 || param->dialations[1] != 1 ) &&
+        if ((param->dialations[0] != 1 || param->dialations[1] != 1) &&
+            (param->strides[0] != 1 || param->strides[1] != 1)) {
+            LOGE("TFLite Converter: If any value of dilation_rate is > 1, then all values of strides must be 1.\n");
+            return TNN_NS::TNNERR_INVALID_MODEL;
+        }
+
+        if ((param->dialations[0] != 1 || param->dialations[1] != 1) &&
             (param->strides[0] == 1 && param->strides[1] == 1)) {
             param->pad_type = -1;
             TNN_CONVERTER::CalculatePadSize(tf_lite_operator, tf_lite_tensors, tf_lite_op_type,
                                             tf_lite_operator->builtin_options, kh, kw, param);
-        } else {
-            LOGE("TFLite Converter: If any value of dilation_rate is > 1, then all values of strides must be 1.\n");
-            return TNN_NS::TNNERR_INVALID_MODEL;
         }
         const auto activation = depthwise_option->fused_activation_function;
         if (activation == tflite::ActivationFunctionType_RELU) {

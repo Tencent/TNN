@@ -41,8 +41,8 @@ fh           .req x6
 dilateX_step .req x7
 dilateY_step .req x8
 dilate_y_gap .req x10
-eor x8, x8, x8
-ldr w8, [sp, #0]
+// eor x8, x8, x8
+ldr x8, [sp, #0]
 
 //step multi by sizeof(__fp16)
 lsl dilateY_step, dilateY_step, #1

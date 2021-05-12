@@ -12,16 +12,110 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn/network/tensorrt/exclusive_file.h"
+
 #include <string.h>
+#include <stdio.h>
+#include <mutex>
+
+#if defined _WIN32 
+#include <windows.h>
+#include <winbase.h>
+#else
 #include <sys/time.h>
 #include <unistd.h>
+#endif
 
-#include "tnn/network/tensorrt/exclusive_file.h"
+#include "tnn/core/macro.h"
 #include "tnn/utils/md5.h"
 
 namespace TNN_NS {
 
-static pthread_mutex_t static_mutex = PTHREAD_MUTEX_INITIALIZER;
+static std::mutex static_mutex;
+
+#if defined _WIN32 
+
+shared_mutex_t shared_mutex_init(const char* iname) {
+    shared_mutex_t mutex = {NULL, 0, NULL, 1};
+    std::string iname_md5 = md5(std::string(iname));
+
+    mutex.name = (char*)malloc(TNN_NAME_MAX + 1);
+    sprintf(mutex.name, ".%s.tnnmutex", iname_md5.c_str());
+
+    mutex.ptr = CreateMutex( 
+        NULL,              // default security attributes
+        FALSE,             // initially not owned
+        mutex.name);             
+
+    if (mutex.ptr == NULL) 
+    {
+        printf("CreateMutex error: %d\n", GetLastError());
+        exit(-1);
+    }
+
+    return mutex;
+}
+
+int shared_mutex_close(shared_mutex_t m) {
+    if (m.ptr != NULL) {
+        if (!CloseHandle(m.ptr)) {
+           printf("CloseHandle failed\n");
+           return -1;
+        }
+        m.ptr = NULL;
+    }
+    free(m.name);
+    return 0;
+}
+
+void shared_mutex_lock(shared_mutex_t * mutex) {
+    // no time-out interval
+    DWORD dwWaitResult = WaitForSingleObject(mutex->ptr, INFINITE);     
+    switch (dwWaitResult) 
+    {
+            // The thread got ownership of the mutex
+            case WAIT_OBJECT_0: 
+                break; 
+
+            // The thread got ownership of an abandoned mutex
+            // Since windows Mutex has no api to fix the mutex now,
+            // we exit(here) to avoid further undefined behavior.
+            case WAIT_ABANDONED: 
+                return; 
+    }
+}
+
+void shared_mutex_unlock(shared_mutex_t * mutex) {
+    if (! ReleaseMutex(mutex->ptr)) 
+    { 
+        // Handle error.
+    } 
+}
+
+static bool file_exists(const char * fname) {
+    auto ret = GetFileAttributes(fname); 
+    if(INVALID_FILE_ATTRIBUTES == ret && GetLastError() == ERROR_FILE_NOT_FOUND)
+    {
+        return false;
+    }
+    return true;
+}
+
+static void create_file(const char * fname) {
+    HANDLE h = CreateFile(fname,    // name of the file
+                          GENERIC_WRITE, // open for writing
+                          0,             // sharing mode, none in this case
+                          0,             // use default security descriptor
+                          CREATE_NEW, // overwrite if exists
+                          FILE_ATTRIBUTE_NORMAL,
+                          0);
+    if (h)
+    {
+        CloseHandle(h);
+    }
+}
+
+#else // _WIN32
 
 shared_mutex_t shared_mutex_init(const char* iname) {
     shared_mutex_t mutex = {NULL, 0, NULL, 1};
@@ -90,28 +184,51 @@ int shared_mutex_close(shared_mutex_t mutex) {
     return 0;
 }
 
+void shared_mutex_lock(shared_mutex_t * mutex) {
+    int ret = pthread_mutex_lock(mutex->ptr);
+    // make mutex consistent when last owner was crashed.
+    if (ret == EOWNERDEAD) {
+        pthread_mutex_consistent(mutex->ptr);
+    }
+}
+
+void shared_mutex_unlock(shared_mutex_t * mutex) {
+    pthread_mutex_unlock(mutex->ptr);
+}
+
+static bool file_exists(const char * fname) {
+    int fd = open(fname, O_RDWR | O_EXCL, 0666);
+    if (fd < 0) {
+        return false; 
+    }
+    close(fd);
+    return true;
+}
+
+static void create_file(const char * fname) {
+    int fd = open(fname, O_RDWR | O_CREAT, 0666);
+    close(fd);
+}
+
+#endif // _WIN32
+
 ExclFile::ExclFile(std::string fname) : m_fname(fname) {
-    pthread_mutex_lock(&static_mutex);
+    static_mutex.lock();
     this->m_lock_name = this->m_fname + "~";
     this->m_created = false;
     this->m_mutex = shared_mutex_init(this->m_lock_name.c_str());
     // get mutex 
-    int ret = pthread_mutex_lock(this->m_mutex.ptr);
-    // make mutex consistent when last owner was crashed.
-    if (ret == EOWNERDEAD) {
-        pthread_mutex_consistent(this->m_mutex.ptr);
-    }
+    shared_mutex_lock(&this->m_mutex);
 }
 
 ExclFile::~ExclFile() {
     if (this->m_created) {
-        int fd = open(this->m_lock_name.c_str(), O_RDWR | O_CREAT, 0666);
-        close(fd);
+        create_file(this->m_lock_name.c_str());
     }
     // release mutex
-    pthread_mutex_unlock(this->m_mutex.ptr);
+    shared_mutex_unlock(&this->m_mutex);
     shared_mutex_close(this->m_mutex);
-    pthread_mutex_unlock(&static_mutex);
+    static_mutex.unlock();
 }
 
 
@@ -127,21 +244,11 @@ bool ExclFile::Ready() {
 }
 
 bool ExclFile::IsFileExists() {
-    int fd = open(this->m_fname.c_str(), O_RDWR | O_EXCL, 0666);
-    if (fd < 0) {
-        return false; 
-    }
-    close(fd);
-    return true;
+    return file_exists(this->m_fname.c_str());
 }
 
 bool ExclFile::IsLockFileExists() {
-    int fd = open(this->m_lock_name.c_str(), O_RDWR | O_EXCL, 0666);
-    if (fd < 0) {
-        return false; 
-    }
-    close(fd);
-    return true;
+    return file_exists(this->m_lock_name.c_str());
 }
 
 }  //  namespace TNN_NS

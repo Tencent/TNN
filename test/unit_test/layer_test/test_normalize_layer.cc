@@ -15,12 +15,12 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 class NormalizeLayerTest : public LayerTest,
-                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
+                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, NormalizeLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
@@ -28,6 +28,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, NormalizeLayerTest,
                                             testing::Values(1, 2),
                                             // axis
                                             testing::Values(1),
+                                            // dim_count
+                                            testing::Values(2, 3, 4, 5),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT)));
 
@@ -38,14 +40,15 @@ TEST_P(NormalizeLayerTest, NormalizeLayer) {
     int input_size     = std::get<2>(GetParam());
     int p              = std::get<3>(GetParam());
     int axis           = std::get<4>(GetParam());
-    DataType data_type = std::get<5>(GetParam());
+    int dim_count      = std::get<5>(GetParam());
+    DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_HUAWEI_NPU == dev) {
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if (DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
@@ -57,6 +60,10 @@ TEST_P(NormalizeLayerTest, NormalizeLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<NormalizeLayerParam> param(new NormalizeLayerParam());
     param->name = "Normalize";
@@ -64,7 +71,9 @@ TEST_P(NormalizeLayerTest, NormalizeLayer) {
     param->axis = axis;
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    //std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
     auto interpreter            = GenerateInterpreter("Normalize", {input_dims}, param);
     Run(interpreter);
 }

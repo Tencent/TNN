@@ -46,7 +46,7 @@ TNN_NS::Status TFLiteFullyConnectedConverter::exec(
     param->name       = cur_layer->name;
     param->quantized  = false;
     param->axis       = 1;
-    param->transpose  = 1;
+    param->transpose  = 0;
     const int co      = weight_shape[0];
     param->num_output = co;
     if (quantized_model) {

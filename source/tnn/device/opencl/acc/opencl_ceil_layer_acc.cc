@@ -39,5 +39,6 @@ std::set<std::string> OpenCLCeilLayerAcc::CreateBuildOptions() {
 OpenCLCeilLayerAcc::~OpenCLCeilLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Ceil, LAYER_CEIL)
+REGISTER_OPENCL_LAYOUT(LAYER_CEIL, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

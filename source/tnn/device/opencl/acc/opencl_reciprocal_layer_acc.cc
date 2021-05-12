@@ -39,5 +39,6 @@ std::set<std::string> OpenCLReciprocalLayerAcc::CreateBuildOptions() {
 OpenCLReciprocalLayerAcc::~OpenCLReciprocalLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Reciprocal, LAYER_RECIPROCAL)
+REGISTER_OPENCL_LAYOUT(LAYER_RECIPROCAL, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

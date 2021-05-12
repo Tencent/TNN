@@ -21,16 +21,12 @@
 
 namespace TNN_NS {
 
-// Interface visibility
-#define PUBLIC __attribute__((visibility("default")))
-
 #define FatalError(err) {                                                  \
     std::stringstream _where, _message;                                    \
         _where << __FILE__ << ':' << __LINE__;                             \
         _message << std::string(err) + "\n"                                \
                  << __FILE__ << ':' << __LINE__ << "\nAborting... \n";     \
         LOGE("%s", _message.str().c_str());                                \
-        cudaDeviceReset();                                                 \
         exit(EXIT_FAILURE);                                                \
 }
 
@@ -42,6 +38,26 @@ namespace TNN_NS {
         FatalError(_error.str());                                          \
     }                                                                      \
 }
+
+#define CUDNN_CHECK(status)                                                    \
+    {                                                                          \
+        std::stringstream _error;                                              \
+        if (status != CUDNN_STATUS_SUCCESS) {                                  \
+            _error << "CUDNN failure: " << cudnnGetErrorString(status);        \
+            FatalError(_error.str());                                          \
+        }                                                                      \
+    }
+
+#define CUBLAS_CHECK(status)                                                   \
+    {                                                                          \
+        std::stringstream _error;                                              \
+        if (status != CUBLAS_STATUS_SUCCESS) {                                 \
+            _error << "Cublas failure: "                                       \
+                   << " " << status;                                           \
+            FatalError(_error.str());                                          \
+        }                                                                      \
+    }
+
 
 #define CUDA_KERNEL_LOOP(i, n) \
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; \

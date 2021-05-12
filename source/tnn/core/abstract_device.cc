@@ -31,6 +31,10 @@ std::shared_ptr<const ImplementedPrecision> AbstractDevice::GetImplementedPrecis
     return std::make_shared<ImplementedPrecision>();
 }
 
+std::shared_ptr<const ImplementedLayout> AbstractDevice::GetImplementedLayout(LayerType type) {
+    return std::make_shared<ImplementedLayout>();
+}
+
 AbstractDevice* GetDevice(DeviceType type) {
     return GetGlobalDeviceMap()[type].get();
 }

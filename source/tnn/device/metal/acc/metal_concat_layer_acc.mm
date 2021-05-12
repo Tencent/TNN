@@ -16,6 +16,7 @@
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 // @brief concat layer metal acc
@@ -30,57 +31,32 @@ public:
     Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
     Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
 protected:
-    NSArray<id<MTLBuffer>> *buffer_input_params_ = nil;
-    Status isSupported(LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-                       const std::vector<Blob *> &outputs);
+    bool specialized_ = false;
 };
 
 Status MetalConcatLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                  const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto status = isSupported(param, resource, inputs, outputs);
-    if (status != TNN_OK) {
-        return status;
-    }
     return MetalLayerAcc::Init(context, param, resource, inputs, outputs);
-}
-
-Status MetalConcatLayerAcc::isSupported(LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-                                        const std::vector<Blob *> &outputs) {
-
-    auto layer_param = dynamic_cast<ConcatLayerParam *>(param);
-    if (!layer_param || (layer_param->axis != 1 && layer_param->axis != 2 && layer_param->axis != 3)) {
-        LOGE("Concat do not support axis =%d\n", layer_param->axis);
-        return Status(TNNERR_LAYER_ERR, "Concat type is not supported");
-    }
-
-    if (inputs.size() < 2) {
-        LOGE("Error: Concat's input blob number must >= 2\n");
-        return Status(TNNERR_NET_ERR, "Error: Concat's input blob number must >= 2\n");
-    } else if (inputs.size() == 2) {
-        return TNN_OK;
-    }
-    return TNN_OK;
 }
 
 MetalConcatLayerAcc::~MetalConcatLayerAcc() {}
 
 Status MetalConcatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Status status = isSupported(param_, resource_, inputs, outputs);
-    if (status != TNN_OK) {
-        return status;
-    }
-
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
 
+    auto layer_param = dynamic_cast<ConcatLayerParam *>(param_);
     auto dims_output = outputs[0]->GetBlobDesc().dims;
-    {
+    auto axis = layer_param->axis;
+    specialized_ = axis == 1 && inputs.size() == 2;
+
+    if (specialized_) {
+        // specialized kernel
         auto dims_input_0 = inputs[0]->GetBlobDesc().dims;
         auto dims_input_1 = inputs[1]->GetBlobDesc().dims;
         MetalConcatParams metal_params;
 
-        metal_params.input_size      = dims_input_0[2] * dims_input_0[3];
+        metal_params.input_size      = DimsFunctionUtils::GetDim(dims_input_0, 2) * DimsFunctionUtils::GetDimProduct(dims_input_0, 3);
         metal_params.input_channel_0 = dims_input_0[1];
         metal_params.input_slice_0   = UP_DIV(dims_input_0[1], 4);
 
@@ -88,7 +64,7 @@ Status MetalConcatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
         metal_params.input_slice_1   = UP_DIV(dims_input_1[1], 4);
 
         metal_params.output_channel = dims_output[1];
-        metal_params.output_size    = dims_output[2] * dims_output[3];
+        metal_params.output_size    = DimsFunctionUtils::GetDim(dims_output, 2) * DimsFunctionUtils::GetDimProduct(dims_output, 3);
         metal_params.output_slice   = UP_DIV(dims_output[1], 4);
 
         metal_params.batch = dims_output[0];
@@ -96,189 +72,119 @@ Status MetalConcatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
         buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
                                             length:sizeof(MetalConcatParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
+    } else {
+        dims_output[1] = UP_DIV(dims_output[1], 4);
+        MetalConcatParamV2 metal_params;
+        metal_params.outer_size = DimsVectorUtils::Count(dims_output, 0, axis);
+        metal_params.inner_size = DimsFunctionUtils::GetDimProduct(dims_output, axis+1);
+        metal_params.axis_size  = DimsFunctionUtils::GetDim(dims_output, axis);
+
+        buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
+                                            length:sizeof(MetalConcatParamV2)
+                                           options:MTLResourceCPUCacheModeWriteCombined];
     }
-
-    int channel_offset = 0;
-    auto buffer_params = [NSMutableArray array];
-    for (int ii = 0; ii < inputs.size(); ii++) {
-        auto dims_input_0 = inputs[ii]->GetBlobDesc().dims;
-        MetalConcatParams metal_params;
-        metal_params.input_width   = dims_input_0[3];
-        metal_params.input_height  = dims_input_0[2];
-        metal_params.input_size      = dims_input_0[2] * dims_input_0[3];
-        metal_params.input_channel_0 = dims_input_0[1];
-        metal_params.input_slice_0   = UP_DIV(dims_input_0[1], 4);
-
-        metal_params.input_channel_offset = channel_offset;
-        channel_offset += dims_input_0[1];
-
-        metal_params.output_width   = dims_output[3];
-        metal_params.output_channel = dims_output[1];
-        metal_params.output_size    = dims_output[2] * dims_output[3];
-        metal_params.output_slice   = UP_DIV(dims_output[1], 4);
-
-        metal_params.batch = dims_output[0];
-
-        auto param = [device newBufferWithBytes:(const void *)(&metal_params)
-                                         length:sizeof(MetalConcatParams)
-                                        options:MTLResourceCPUCacheModeWriteCombined];
-        if (param) {
-            [buffer_params addObject:param];
-        } else {
-            LOGE("Error: MetalConcatLayerAcc::AllocateBufferParam failed\n");
-            return Status(TNNERR_NET_ERR, "etalConcatLayerAcc::AllocateBufferParam failed");
-        }
-    }
-    buffer_input_params_ = buffer_params;
 
     return TNN_OK;
 }
 
 Status MetalConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Status status = isSupported(param_, resource_, inputs, outputs);
-    if (status != TNN_OK) {
-        return status;
-    }
     auto layer_param = dynamic_cast<ConcatLayerParam *>(param_);
 
-    auto context_impl = context_->getMetalContextImpl();
-
     auto output = outputs[0];
-
-    auto dims_output   = output->GetBlobDesc().dims;
-    auto output_width  = dims_output[3];
-    auto output_height = dims_output[2];
-    auto output_slice  = UP_DIV(dims_output[1], 4);
-    auto batch         = dims_output[0];
-
-    MetalBandwidth bandwidth;
 
     DataType data_type       = output->GetBlobDesc().data_type;
     string data_type_str     = DataTypeUtils::GetDataTypeString(data_type);
     const int data_type_size = DataTypeUtils::GetBytesSize(data_type);
     
-    if (layer_param->axis == 1) {
-        if (inputs.size() == 2) {
+    int offset = 0;
+    bool on_channel = layer_param->axis == 1;
+    Status status = TNN_OK;
+
+    MetalBandwidth bandwidth;
+    auto context_impl = context_->getMetalContextImpl();
+    auto encoder = [context_impl encoder];
+    encoder.label = GetKernelLabel();
+
+    if (specialized_) {
+        do {
             auto input_0 = inputs[0];
             auto input_1 = inputs[1];
-
-            auto encoder = [context_impl encoder];
-            encoder.label = GetKernelLabel();
-
-            do {
-                status = [context_impl load:@"concat_axis_1_common"
-                                    encoder:encoder
-                                  bandwidth:bandwidth];
-                BREAK_IF(status != TNN_OK);
-                
-                auto threads =  MTLSizeMake(output_width * output_height, output_slice, batch);
-                [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input_0->GetHandle().base
-                            offset:(NSUInteger)input_0->GetHandle().bytes_offset
-                           atIndex:0];
-                [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input_1->GetHandle().base
-                            offset:(NSUInteger)input_1->GetHandle().bytes_offset
-                           atIndex:1];
-                [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
-                            offset:(NSUInteger)output->GetHandle().bytes_offset
-                           atIndex:2];
-                [encoder setBuffer:buffer_param_ offset:0 atIndex:3];
-
-                status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-                BREAK_IF(status != TNN_OK);
-            } while (0);
-
-            [encoder endEncoding];
-            [context_impl commit];
-            TNN_PRINT_ENCODER(context_, encoder, this);
-        } else {
-            for (int i = 0; i < inputs.size(); i++) {
-                auto dims_input    = inputs[i]->GetBlobDesc().dims;
-                auto input_width   = dims_input[3];
-                auto input_height  = dims_input[2];
-                auto input_channel = dims_input[1];
-                auto input_slice   = UP_DIV(input_channel, 4);
-                auto batch         = dims_input[0];
-
-                auto encoder = [context_impl encoder];
-                encoder.label = GetKernelLabel();
-
-                do {
-                    status = [context_impl load:@"concat_axis_1_common_x"
-                                        encoder:encoder
-                                      bandwidth:bandwidth];
-                    BREAK_IF(status != TNN_OK);
-
-                    auto threads =  MTLSizeMake(output_width * output_height, input_slice, batch);
-
-                    [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)inputs[i]->GetHandle().base
-                                offset:(NSUInteger)inputs[i]->GetHandle().bytes_offset
-                               atIndex:0];
-                    [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
-                                offset:(NSUInteger)output->GetHandle().bytes_offset
-                               atIndex:1];
-                    [encoder setBuffer:buffer_input_params_[i] offset:0 atIndex:2];
-
-                    status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-                    BREAK_IF(status != TNN_OK);
-                } while (0);
-
-                [encoder endEncoding];
-                [context_impl commit];
-                TNN_PRINT_ENCODER(context_, encoder, this);
-                BREAK_IF(status != TNN_OK);
-            }
-        }
-    } else {
-        int offset[2] = {0, 0};
-        for (int i = 0; i < inputs.size(); i++) {
-            auto dims_input    = inputs[i]->GetBlobDesc().dims;
-            auto input_width   = dims_input[3];
-            auto input_height  = dims_input[2];
-            auto input_channel = dims_input[1];
-            auto input_slice   = UP_DIV(input_channel, 4);
-            auto batch         = dims_input[0];
-
-            auto encoder = [context_impl encoder];
-            encoder.label = GetKernelLabel();
-            
-            do {
-                status = [context_impl load:@"concat_axis_23_common_x"
-                                    encoder:encoder
-                                  bandwidth:bandwidth];
-                BREAK_IF(status != TNN_OK);
-
-                auto threads =  MTLSizeMake(output_width, output_height, input_slice*batch);
-
-                [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)inputs[i]->GetHandle().base
-                            offset:(NSUInteger)inputs[i]->GetHandle().bytes_offset
-                           atIndex:0];
-                [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
-                            offset:(NSUInteger)output->GetHandle().bytes_offset
-                           atIndex:1];
-                [encoder setBuffer:buffer_input_params_[i] offset:0 atIndex:2];
-                [encoder setBytes:offset length:2*sizeof(int) atIndex:3];
-
-                status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-                BREAK_IF(status != TNN_OK);
-            } while (0);
-
-            [encoder endEncoding];
-            [context_impl commit];
-            TNN_PRINT_ENCODER(context_, encoder, this);
+            status = [context_impl load:@"concat_axis_1_common"
+                                encoder:encoder
+                              bandwidth:bandwidth];
             BREAK_IF(status != TNN_OK);
             
-            if (layer_param->axis == 2) {
-                offset[1] += input_height;
-            } else {
-                offset[0] += input_width;
-            }
-             
-        }
+            auto dims_output   = output->GetBlobDesc().dims;
+            auto output_width  = DimsFunctionUtils::GetDimProduct(dims_output, 3);
+            auto output_height = DimsFunctionUtils::GetDim(dims_output, 2);
+            auto output_slice  = UP_DIV(dims_output[1], 4);
+            auto batch         = dims_output[0];
+            auto threads =  MTLSizeMake(output_width * output_height, output_slice, batch);
+            [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input_0->GetHandle().base
+                        offset:(NSUInteger)input_0->GetHandle().bytes_offset
+                       atIndex:0];
+            [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input_1->GetHandle().base
+                        offset:(NSUInteger)input_1->GetHandle().bytes_offset
+                       atIndex:1];
+            [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
+                        offset:(NSUInteger)output->GetHandle().bytes_offset
+                       atIndex:2];
+            [encoder setBuffer:buffer_param_ offset:0 atIndex:3];
+            status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
+            BREAK_IF(status != TNN_OK);
+        } while (0);
+        [encoder endEncoding];
+        [context_impl commit];
+        TNN_PRINT_ENCODER(context_, encoder, this);
+        return status;
     }
+
+    for (int i = 0; i < inputs.size(); i++) {
+        auto input_dims = inputs[i]->GetBlobDesc().dims;
+        int axis_size = DimsFunctionUtils::GetDim(input_dims, layer_param->axis);
+        if (on_channel) {
+            axis_size = UP_DIV(axis_size, 4);
+        }
+        int channel_size = DimsFunctionUtils::GetDim(input_dims, 1);
+        do {
+            if (layer_param->axis == 1) {
+                status = [context_impl load:@"concat_axis_1"
+                                    encoder:encoder
+                                    bandwidth:bandwidth];
+            } else {
+                status = [context_impl load:@"concat_common"
+                                    encoder:encoder
+                                    bandwidth:bandwidth];
+            }
+            BREAK_IF(status != TNN_OK);
+
+            MTLSize threads;
+            GetSingleAxisSplitSize(input_dims, layer_param->axis, threads, false);
+
+            [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)inputs[i]->GetHandle().base
+                        offset:(NSUInteger)inputs[i]->GetHandle().bytes_offset
+                       atIndex:0];
+            [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
+                        offset:(NSUInteger)output->GetHandle().bytes_offset
+                       atIndex:1];
+            [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
+            [encoder setBytes:&offset       length:sizeof(int) atIndex:3];
+            [encoder setBytes:&axis_size    length:sizeof(int) atIndex:4];
+            [encoder setBytes:&channel_size length:sizeof(int) atIndex:5];
+
+            status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
+            BREAK_IF(status != TNN_OK);
+        } while (0);
+        offset += DimsFunctionUtils::GetDim(input_dims, layer_param->axis);;  
+    }
+    [encoder endEncoding];
+    [context_impl commit];
+    TNN_PRINT_ENCODER(context_, encoder, this);
 
     return status;
 }
 
 REGISTER_METAL_ACC(Concat, LAYER_CONCAT);
+REGISTER_METAL_LAYOUT(LAYER_CONCAT, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

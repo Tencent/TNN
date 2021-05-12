@@ -45,7 +45,12 @@ string OnnxOpConverterDepthToSpace::TNNLayerParam(NodeProto &node, OnnxNetInfo &
     return layer_param.str();
 }
 
-int OnnxOpConverterDepthToSpace::WriteTNNModel(serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
+
+bool OnnxOpConverterDepthToSpace::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+};
+
+int OnnxOpConverterDepthToSpace::WriteTNNModel(Serializer *net_writer, NodeProto &node, OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0
     return 0;
 }

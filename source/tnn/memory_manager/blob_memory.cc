@@ -22,6 +22,7 @@ BlobMemory::BlobMemory(AbstractDevice* device, BlobMemorySizeInfo& size_info, in
 }
 BlobMemory::~BlobMemory() {
     if (need_release_memory_) {
+        need_release_memory_ = false;
         device_->Free(handle_.base);
     }
 }

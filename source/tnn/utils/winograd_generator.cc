@@ -18,7 +18,7 @@
 #include <memory.h>
 
 #include "tnn/core/macro.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 #ifdef TNN_USE_NEON
 #include <arm_neon.h>

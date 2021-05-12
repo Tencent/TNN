@@ -62,6 +62,14 @@ bool Context::GetEnableTuneKernel() {
     return enable_tune_kernel_;
 }
 
+void Context::SetCachePath(std::string cache_path) {
+    cache_path_ = cache_path;
+}
+
+std::string Context::GetCachePath() {
+    return cache_path_;
+}
+
 void Context::SetCacheFilePath(std::string cache_file_path) {
     cache_file_path_ = cache_file_path;
 }

@@ -14,7 +14,8 @@
 
 #include "tnn/device/opencl/acc/opencl_binary_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
@@ -22,6 +23,7 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Binary Acc\n");
 
+    output_dims_size_ = outputs[0]->GetBlobDesc().dims.size();
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
 
@@ -65,6 +67,11 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
             return Status(TNNERR_PARAM_ERR, "input size should be 1");
         }
 
+        int diff = output_dims_size_ - param_dims.size();
+        for (int i = 0; i < diff; i++) {
+            param_dims.insert(param_dims.begin(), 1);
+        }
+
         if (layer_res->element_handle.GetDataType() == DATA_TYPE_FLOAT) {
             float *data_ptr = layer_res->element_handle.force_to<float *>();
             ret             = ConvertParam(data_ptr, param_dims);
@@ -72,7 +79,7 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         } else {
             auto float_data_ptr = GetFloatFromRawBuffer(layer_res->element_handle);  // handle the memory
             if (float_data_ptr == nullptr) {
-                return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "convert res to float falied");
+                return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "convert res to float failed");
             }
             ret = ConvertParam(float_data_ptr.get(), param_dims);
             CHECK_TNN_OK(ret)
@@ -88,6 +95,8 @@ OpenCLBinaryLayerAcc::~OpenCLBinaryLayerAcc() {}
 
 Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Binary Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
 
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
@@ -106,24 +115,18 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         }
     }
     // set optional param
-    if (broadcast_param_.input0_broadcast_type == BroadcastTypeChannel ||
-        broadcast_param_.input1_broadcast_type == BroadcastTypeChannel) {
-        // kernel: BinaryChannel
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, output_dims[3]);
-    } else if (broadcast_param_.input0_broadcast_type == BroadcastTypeElement ||
-               broadcast_param_.input1_broadcast_type == BroadcastTypeElement) {
-        // kernel: BinaryCHW
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, output_dims[2]);
-    } else if (broadcast_param_.input0_broadcast_type == BroadcastTypeHeightWidth ||
-               broadcast_param_.input1_broadcast_type == BroadcastTypeHeightWidth) {
-        // kernel: BinaryHW
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, output_dims[2]);
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, output_dims[3]);
-    } else if (broadcast_param_.input0_broadcast_type == BroadcastTypeWidth ||
-               broadcast_param_.input1_broadcast_type == BroadcastTypeWidth) {
-        // kernel: BinaryWidth
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, output_dims[3]);
+    if (kernel_name_ == "BinaryChannel" || kernel_name_ == "BinaryCHW" ||
+        kernel_name_ == "BinaryHW" || kernel_name_ == "BinaryWidth") {
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, DimsFunctionUtils::GetDim(output_dims, 2));
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, DimsFunctionUtils::GetDim(output_dims, 3));
+        int param_batch = 1;
+        if (inputs.size() == 2) {
+            auto param_dims = inputs[param_idx_]->GetBlobDesc().dims;
+            param_batch = DimsFunctionUtils::GetDim(param_dims, 0);
+        }
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, param_batch);
     }
+
     // set output
     execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)outputs[0]->GetHandle().base));
 
@@ -155,13 +158,15 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
     // copy param data into clBuffer
     shared_ptr<OpenCLMemory> param_buffer(new OpenCLMemory(TNN_CL_BUFFER));
     int param_size  = DimsVectorUtils::Count(param_dims);
-    int buffer_size = param_dims[0] * ROUND_UP(param_dims[1], 4) * param_dims[2] * param_dims[3];
+    int buffer_size = DimsFunctionUtils::GetDim(param_dims, 0) *
+                      ROUND_UP(DimsFunctionUtils::GetDim(param_dims, 1), 4) *
+                      DimsFunctionUtils::GetDim(param_dims, 2) * DimsFunctionUtils::GetDim(param_dims, 3);
     cl_int ret      = CL_SUCCESS;
     cl::Buffer param_clbuffer(*opencl_runtime->Context(), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
                               buffer_size * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     param_buffer->SetData(&param_clbuffer);
     auto param_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
@@ -175,12 +180,12 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(param_clbuffer, param_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
 
     // create binary_param_
-    int climage_w             = UP_DIV(param_dims[1], 4) * param_dims[3];
-    int climage_h             = param_dims[0] * param_dims[2];
+    int climage_w             = UP_DIV(DimsFunctionUtils::GetDim(param_dims, 1), 4) * DimsFunctionUtils::GetDim(param_dims, 3);
+    int climage_h             = DimsFunctionUtils::GetDim(param_dims, 0) * DimsFunctionUtils::GetDim(param_dims, 2);
     cl_channel_type data_type = CL_FLOAT;
     if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
@@ -190,7 +195,7 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     binary_params_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     binary_params_->SetData(image, true);
@@ -198,6 +203,51 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
     // convert nchw buffer to Image
     ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
     return convertor.ConvertBufferToImage(param_buffer.get(), NCHW_BUFFER, param_dims, binary_params_.get(), true);
+}
+
+Status OpenCLBinaryLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob) {
+    auto const_resource = const_resource_;
+    auto const_resource_flag = const_resource_flag_;
+    auto const_blob_map = const_blob_map_;
+    for (auto iter : inputs) {
+        auto name = iter->GetBlobDesc().name;
+        if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
+            continue;
+        }
+
+        if (only_reload_shape_differ_blob && const_resource_flag &&
+            const_resource_flag->find(name) == const_resource_flag->end()) {
+            continue;
+        }
+
+        auto buffer = (*const_resource)[name];
+        std::shared_ptr<Blob> blob = nullptr;
+        if (const_blob_map.find(name) != const_blob_map.end()) {
+            blob = const_blob_map[name];
+        }
+        auto buffer_dims = buffer->GetBufferDims();
+        if (output_dims_size_ != buffer_dims.size()) {
+            std::shared_ptr<RawBuffer> new_buffer(new RawBuffer(*buffer));
+            int diff = output_dims_size_ - buffer_dims.size();
+            for (int i = 0; i < diff; i++) {
+                buffer_dims.insert(buffer_dims.begin(), 1);
+            }
+            new_buffer->SetBufferDims(buffer_dims);
+            buffer = new_buffer;
+        }
+        auto status = RawBuffer2OpenCLBlob(buffer.get(), blob);
+        RETURN_ON_NEQ(status, TNN_OK);
+
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
+        auto dims = iter->GetBlobDesc().dims;
+        auto data_type_size = DataTypeUtils::GetBytesSize(iter->GetBlobDesc().data_type);
+        const_blob_map[name] = blob;
+        iter->SetHandle(blob->GetHandle());
+        iter->GetBlobDesc() = blob->GetBlobDesc();
+        LOGD("Reload constant blob: %s\n", name.c_str());
+    }
+    const_blob_map_ = const_blob_map;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

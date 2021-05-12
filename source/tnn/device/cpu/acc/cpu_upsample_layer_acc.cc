@@ -15,8 +15,9 @@
 #include "tnn/device/cpu/acc/cpu_upsample_layer_acc.h"
 
 #include "tnn/core/blob_int8.h"
+#include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -159,7 +160,7 @@ static void upsample_cubic2d_impl(float *dst, const float *src, int sh, int sw,
 #define Clip(x,X) ( (x) >=0 ? ((x)<(X)?(x):((X)-1)) : 0 )
 #define SrcValueAt(c, h, w) (src[c*sh*sw+(Clip(h,sh))*sw+(Clip(w,sw))])
 
-        _Pragma("omp parallel for")
+        OMP_PARALLEL_FOR_
         for (int h2 = 0; h2 < dh; ++h2) {
             float h1 = static_cast<float>(align_corners ? h_scale * h2 : h_scale * (h2 + 0.5) - 0.5);
             int hh = std::floor(h1);
@@ -219,6 +220,73 @@ Status CpuUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
         }
     }
     return TNN_OK;
+}
+
+Status CpuUpsampleLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                    const std::vector<Blob *> &outputs) {
+    auto *layer_param = dynamic_cast<UpsampleLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    if (inputs.size() > 1) {
+        auto input_dims = inputs[0]->GetBlobDesc().dims;
+        
+        //fill param with inputs
+        std::vector<float> scales;
+        std::vector<int> sizes;
+        Blob *scales_blob = nullptr;
+        Blob *sizes_blob = nullptr;
+        if (inputs.size() == 2) {
+            scales_blob = inputs[1];
+        } else if (inputs.size() == 3) {
+            scales_blob = inputs[2];
+        } else if (inputs.size() == 4) {
+            sizes_blob = inputs[3];
+        }
+        
+        if (scales_blob) {
+            auto scales_data  = (float *)scales_blob->GetHandle().base;
+            auto scales_count = DimsVectorUtils::Count(scales_blob->GetBlobDesc().dims);
+            if (scales_count < 2) {
+                LOGE("Error: Upsample has invalid scales count:%d", scales_count);
+                return Status(TNNERR_PARAM_ERR, "Error: Upsample has invalid scales count");
+            }
+            for (int i = 0; i < scales_count; ++i) {
+                scales.push_back(scales_data[i]);
+            }
+            // width_scale height_scale
+            float w_scale = scales[scales.size() - 1];
+            float h_scale = scales[scales.size() - 2];
+            scales = {w_scale, h_scale};
+            layer_param->scales = scales;
+        }
+        
+        if (sizes_blob) {
+            auto sizes_data  = (int *)sizes_blob->GetHandle().base;
+            auto sizes_count = DimsVectorUtils::Count(sizes_blob->GetBlobDesc().dims);
+            if (sizes_count < 2) {
+                LOGE("Error: Upsample has invalid sizes count:%d", sizes_count);
+                return Status(TNNERR_PARAM_ERR, "Error: Upsample has invalid scales count");
+            }
+            for (int i = 0; i < sizes_count; ++i) {
+                sizes.push_back(sizes_data[i]);
+            }
+            // width_scale height_scale
+            int w_size = sizes[sizes.size() - 1];
+            int h_size = sizes[sizes.size() - 2];
+            sizes = {w_size, h_size};
+            layer_param->dims = sizes;
+        }
+        
+        //infer output shape
+        Status status = TNN_OK;
+        auto output_dims = DimsFunctionUtils::Upsample(input_dims, scales, sizes, layer_param->mode, &status);
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        outputs[0]->GetBlobDesc().dims = output_dims;
+    }
+
+    
+    return AbstractLayerAcc::InferRuntimeOutputShape(inputs, outputs);
 }
 
 Status CpuUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

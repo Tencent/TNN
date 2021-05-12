@@ -59,12 +59,6 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
         input_dims = std::max(input_dims, dims);
     }
 
-    // only supports dims >=4 .
-    if (input_dims < 4) {
-        LOGE("invalid input shape\n");
-        return Status(TNNERR_PARAM_ERR, "invalid input shape");
-    }
-
     for (auto node_name : net_structure_->blobs) {
         BlobDesc desc;
         desc.device_type = config.device_type;
@@ -85,11 +79,22 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
         dynamic_cast<ForeignBlob*>(blobs_[node_name])->SetForeignTensor(tensorrtTensor);
     }
 
-    // intput blobs
+    // input blobs
     for (auto iter : instance_input_shapes_map) {
         std::string current_blob_name         = iter.first;
         Blob *current_blob                    = blobs_[current_blob_name];
         current_blob->GetBlobDesc().data_type = input_data_type;
+        input_blobs_[current_blob_name]       = current_blob;
+    }
+
+    // input data types
+    const auto& input_data_type_map = net_structure->input_data_type_map;
+    for (auto iter : instance_input_shapes_map) {
+        std::string current_blob_name         = iter.first;
+        Blob *current_blob                    = blobs_[current_blob_name];
+        if (input_data_type_map.find(current_blob_name) != input_data_type_map.end()) {
+            current_blob->GetBlobDesc().data_type = input_data_type_map.find(current_blob_name)->second;
+        }
         input_blobs_[current_blob_name]       = current_blob;
     }
 
@@ -105,7 +110,7 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
     return TNN_OK;
 }
 
-Status TensorRTBlobManager::AllocateBlobMemory() {
+Status TensorRTBlobManager::AllocateBlobMemory(int flag) {
     // input
     for (auto iter : input_blobs_) {
         Blob *current_blob = iter.second;
@@ -116,7 +121,7 @@ Status TensorRTBlobManager::AllocateBlobMemory() {
         }
         int use_count = 1;
         BlobMemory *blob_memory = nullptr;
-        blob_memory = blob_memory_pool_->BorrowBlobMemory(use_count, info, true);
+        blob_memory = blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, true);
         blob_memory_mapping_.insert(std::make_pair(current_blob, blob_memory));
     }
 
@@ -130,7 +135,7 @@ Status TensorRTBlobManager::AllocateBlobMemory() {
         }
         int use_count = 1;
         BlobMemory *blob_memory = nullptr;
-        blob_memory = blob_memory_pool_->BorrowBlobMemory(use_count, info, true);
+        blob_memory = blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, true);
         blob_memory_mapping_.insert(std::make_pair(current_blob, blob_memory));
     }
 
@@ -140,18 +145,25 @@ Status TensorRTBlobManager::AllocateBlobMemory() {
         if (config_.share_memory_mode == SHARE_MEMORY_MODE_DEFAULT) {
             // The default strategy allocated the blob memory seperately.
             MemorySeperateAssignStrategy strategy;
-            status = blob_memory_pool_->AssignAllBlobMemory(strategy);
+            for (auto blob_memory_pool_iter : blob_memory_pool_map_) {
+                status = blob_memory_pool_iter.second->AssignAllBlobMemory(strategy);
+                BREAK_IF(status != TNN_OK);
+            }
             BREAK_IF(status != TNN_OK);
             BindBlobMemory();
         } else if (config_.share_memory_mode == SHARE_MEMORY_MODE_SHARE_ONE_THREAD) {
             // The share_on_thread strategy may share memory of different models-
             // whithin the same thread.
-            int forward_memory_size   = blob_memory_pool_->GetAllBlobMemorySize();
-            SharedMemory share_memory = SharedMemoryManager::GetSharedMemory(forward_memory_size, init_thread_id_, device_,
-                                                                            config_.device_id, this, status);
-            BREAK_IF(status != TNN_OK);
-            MemoryUnifyAssignStrategy strategy(share_memory.shared_memory_data);
-            status = blob_memory_pool_->AssignAllBlobMemory(strategy);
+            for (auto blob_memory_pool_iter : blob_memory_pool_map_) {
+                int forward_memory_size   = blob_memory_pool_iter.second->GetAllBlobMemorySize();
+                SharedMemory share_memory = SharedMemoryManager::GetSharedMemory(
+                        forward_memory_size, init_thread_id_, device_,
+                        config_.device_id, this, status);
+                BREAK_IF(status != TNN_OK);
+                MemoryUnifyAssignStrategy strategy(share_memory.shared_memory_data);
+                status = blob_memory_pool_iter.second->AssignAllBlobMemory(strategy);
+                BREAK_IF(status != TNN_OK);
+            }
             BREAK_IF(status != TNN_OK);
             BindBlobMemory();
         }

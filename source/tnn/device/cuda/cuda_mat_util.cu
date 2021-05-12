@@ -12,8 +12,13 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn/device/cuda/cuda_mat_util.cuh"
+
+#include <algorithm>
+
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/mat_converter_utils.h"
+#include "tnn/device/cuda/cuda_macro.h"
 #include "tnn/device/cuda/cuda_mat_util.cuh"
 
 namespace TNN_NS {
@@ -216,8 +221,8 @@ __global__ void bgra_to_gray_kernel(const uint8_t* src, uint8_t* dst, int height
 
     if (w < width && h < height) {
         uint8_t b = src[(h * width + w) * channel + 0];
-        uint8_t g = src[(h * width + w) * channel + 0];
-        uint8_t r = src[(h * width + w) * channel + 0];
+        uint8_t g = src[(h * width + w) * channel + 1];
+        uint8_t r = src[(h * width + w) * channel + 2];
         float gray_color = 0.114f * b + 0.587 * g + 0.299 * r;
         dst[h * width + w] = gray_color;
     }
@@ -486,12 +491,12 @@ void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, i
     double m[6];
     WarpAffineMatrixInverse(transform, m);
     double *tm_gpu;
-    cudaMalloc((void**)&tm_gpu, 6 * sizeof(double));
-    cudaMemcpy(tm_gpu, m, 6 * sizeof(double), cudaMemcpyHostToDevice);
+    CUDA_CHECK(cudaMalloc((void**)&tm_gpu, 6 * sizeof(double)));
+    CUDA_CHECK(cudaMemcpy(tm_gpu, m, 6 * sizeof(double), cudaMemcpyHostToDevice));
     const int table_size = INTER_TAB_SIZE * INTER_TAB_SIZE * KSIZE * KSIZE;
     short table_cpu[table_size];
     short *table_gpu;
-    cudaMalloc((void**)&table_gpu, table_size * sizeof(short));
+    CUDA_CHECK(cudaMalloc((void**)&table_gpu, table_size * sizeof(short)));
     initInterTab2D(table_cpu);
     cudaMemcpy(table_gpu, table_cpu, table_size * sizeof(short), cudaMemcpyHostToDevice);
     const int THREAD_PER_BLOCK = 128;
@@ -502,8 +507,8 @@ void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, i
     griddim.y = batch;
     warp_affine_bilinear_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
         channel, dst_h, dst_w, table_gpu, tm_gpu, border_val);
-    cudaFree(tm_gpu);
-    cudaFree(table_gpu);
+    CUDA_CHECK(cudaFree(tm_gpu));
+    CUDA_CHECK(cudaFree(table_gpu));
 }
 
 void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
@@ -511,7 +516,7 @@ void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, in
     double m[6];
     WarpAffineMatrixInverse(transform, m);
     double *tm_gpu;
-    cudaMalloc((void**)&tm_gpu, 6 * sizeof(double));
+    CUDA_CHECK(cudaMalloc((void**)&tm_gpu, 6 * sizeof(double)));
     cudaMemcpy(tm_gpu, m, 6 * sizeof(double), cudaMemcpyHostToDevice);
     const int THREAD_PER_BLOCK = 128;
     const int ELE_PER_THREAD = 8;
@@ -521,7 +526,7 @@ void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, in
     griddim.y = batch;
     warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
         channel, dst_h, dst_w, tm_gpu, border_val);
-    cudaFree(tm_gpu);
+    CUDA_CHECK(cudaFree(tm_gpu));
 }
 
 void CropRGB(const uint8_t* src, uint8_t* dst, int batch, int channel, int src_width, int src_height, int dst_width, int dst_height,

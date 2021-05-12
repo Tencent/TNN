@@ -28,5 +28,6 @@ typedef struct arm_logsigmoid_operator : arm_unary_operator {
 DECLARE_ARM_UNARY_ACC(LogSigmoid, ARM_LOGSIGMOID_OP);
 
 REGISTER_ARM_ACC(LogSigmoid, LAYER_LOGSIGMOID)
+REGISTER_ARM_LAYOUT(LAYER_LOGSIGMOID, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

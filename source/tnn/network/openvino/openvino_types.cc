@@ -23,11 +23,9 @@
 
 namespace TNN_NS {
 
-EmptyNode::NodeTypeInfo EmptyNode::type_info{"EmptyNode", 0};
-
 //@brief create OpenvinoTensor
 OpenvinoTensor::OpenvinoTensor() {
-    node_ = std::make_shared<EmptyNode>();
+    node_ = nullptr;
 }
 
 //@brief create OpenvinoTensor with ngraph::Node

@@ -25,7 +25,7 @@ Status ArmMaxLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
         return status;
     }
 
-    _Operator = [=](Float4 v1, Float4 v2) -> Float4 { return Float4::max(v1, v2); };
+    op_type_ = ArmBinaryOpType::kMAX;
 
     return TNN_OK;
 }
@@ -33,5 +33,7 @@ Status ArmMaxLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 ArmMaxLayerAcc::~ArmMaxLayerAcc() {}
 
 REGISTER_ARM_ACC(Max, LAYER_MAXIMUM)
+REGISTER_ARM_PRECISION_FP16(LAYER_MAXIMUM)
+REGISTER_ARM_LAYOUT(LAYER_MAXIMUM, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

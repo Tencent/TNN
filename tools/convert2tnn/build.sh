@@ -20,7 +20,7 @@ function clean_build() {
     mkdir -p $1
 }
 
-function build_model_check_and_tnn_converter() {
+function build_model_check_and_tnn_converter_and_onnx2tnn() {
 
 	clean_build ${BIN_DIR}
 
@@ -33,11 +33,12 @@ function build_model_check_and_tnn_converter() {
 
     cmake ../../.. \
         -DCMAKE_BUILD_TYPE=DEBUG \
+        -DDEBUG:BOOL="ON" \
         -DTNN_CPU_ENABLE:BOOL="ON" \
         -DTNN_MODEL_CHECK_ENABLE:BOOL="ON" \
         -DTNN_CONVERTER_ENABLE:BOOL="ON" \
-        -DTNN_BUILD_SHARED="OFF" \
-        -DDEBUG="ON"
+        -DTNN_ONNX2TNN_ENABLE:BOOL="ON" \
+        -DTNN_BUILD_SHARED="OFF"
 
     make -j4
 
@@ -51,22 +52,22 @@ function build_model_check_and_tnn_converter() {
 
     if [ -f "tools/converter/TnnConverter" ]; then
         cp tools/converter/TnnConverter ../${BIN_DIR}/
-        echo "Compiled model_check successfully !"
+        echo "Compiled TNNConverter successfully !"
     else
         echo "Compiled TNNConverter failed !!!"
     fi
-}
 
-function build_onnx2tnn() {
-    cd ${CURRENT_DIR}
-    cd ../onnx2tnn/onnx-converter/
-
-    if [ "-c" == "${CLEAN}" ]; then
-        ./build.sh -c
+    #From the date 20210123 on, onnx2tnn is compiled by default with Cmake option DTNN_CONVERTER_ENABLE
+    onnx2nn_files=$(ls -U tools/onnx2tnn/onnx-converter/onnx2tnn*.so);
+    if [ ${#onnx2nn_files[*]} -ge 1 ]; then
+        cp ${onnx2nn_files[i]} ../../onnx2tnn/onnx-converter
+        rm ${onnx2nn_files[i]}
+        echo "Compiled onnx2tnn successfully !"
     else
-        ./build.sh
+        echo "Compiled onnx2tnn failed !!!"
     fi
 }
+
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -81,6 +82,4 @@ while [ "$1" != "" ]; do
     esac
 done
 
-build_model_check_and_tnn_converter
-
-build_onnx2tnn
+build_model_check_and_tnn_converter_and_onnx2tnn

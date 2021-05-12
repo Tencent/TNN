@@ -32,7 +32,7 @@ public:
     // @param net_res
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config,
                         AbstractModelInterpreter* interpreter,
-                        InputShapesMap inputs_shape);
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
 
     // @brief deinit release init create resource
     virtual Status DeInit();
@@ -80,6 +80,9 @@ public:
     virtual Status SetNetInputNode();
 
     virtual Status BuildNgraphNetwork(NetStructure *net_structure);
+
+    // @brief set threads run on device
+    virtual Status SetCpuNumThreads(int num_threads);
 
 private:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);

@@ -37,6 +37,25 @@ ILayer* StrideSliceTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs StrideSliceTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    StrideSliceLayerParam* param = dynamic_cast<StrideSliceLayerParam*>(param_);
+    auto begins  = param->begins;
+    auto ends    = param->ends;
+    auto strides = param->strides;
+    std::reverse(begins.begin(), begins.end());
+    std::reverse(ends.begin(), ends.end());
+    std::reverse(strides.begin(), strides.end());
+    DimsExprs output(inputs[0]);
+    if (nbInputs == 1) {
+        for (int i = 0; i < inputs[0].nbDims; i++) {
+            output.d[i] = exprBuilder.constant((ends[i] - begins[i] - 1) / strides[i] + 1);
+        }
+    }
+
+    return output;
+}
+
 const char* StrideSlicePluginCreator::getPluginName() const {
     return "StrideSlice";
 }

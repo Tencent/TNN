@@ -34,8 +34,8 @@ ILayer* ActivationTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         activation_layer->setName(layer_name_.c_str());
         if (m_type == nvinfer1::ActivationType::kCLIP) {
             auto paramlist = dynamic_cast<ClipLayerParam *>(param_);
-            activation_layer->setAlpha(paramlist->min);
-            activation_layer->setBeta(paramlist->max);
+            activation_layer->setAlpha(std::max(-FLT_MAX, paramlist->min));
+            activation_layer->setBeta(std::min(paramlist->max, FLT_MAX));
         }
         if (m_type == nvinfer1::ActivationType::kLEAKY_RELU) {
             auto resource = dynamic_cast<PReluLayerResource*>(resource_);

@@ -37,13 +37,24 @@ Status TNNImplRknpu::DeInit() {
 }
 
 Status TNNImplRknpu::AddOutput(const std::string& layer_name, int output_index) {
-    return TNN_OK;
+    return Status(TNNERR_COMMON_ERROR, "RKNPU IMPL can not add output");
+}
+
+Status TNNImplRknpu::GetModelInputShapesMap(InputShapesMap& shapes_map) {
+    return Status(TNNERR_COMMON_ERROR, "RKNPU IMPL can not get model input shapes map");
 }
 
 std::shared_ptr<Instance> TNNImplRknpu::CreateInst(NetworkConfig& net_config, Status& status,
                                                    InputShapesMap inputs_shape) {
     auto instance = std::make_shared<Instance>(net_config, model_config_);
     status        = instance->Init(interpreter_, inputs_shape);
+    return instance;
+}
+
+std::shared_ptr<Instance> TNNImplRknpu::CreateInst(NetworkConfig& net_config, Status& status,
+                                                   InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+    auto instance = std::make_shared<Instance>(net_config, model_config_);
+    status        = instance->Init(interpreter_, min_inputs_shape, max_inputs_shape);
     return instance;
 }
 

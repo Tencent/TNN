@@ -27,19 +27,20 @@ def parse_args():
                                  action='store',
                                  help="the path for onnx file")
     onnx2tnn_parser.add_argument('-in',
-                                 metavar='input_name',
+                                 metavar='input_info',
                                  dest='input_names',
                                  action='store',
                                  required=False,
                                  nargs='+',
                                  type=str,
-                                 help="specify the input name and shape of the model. e.g., -in in1:1,3,8,8 in2:1,8")
+                                 help="specify the input name and shape of the model. e.g., " +
+                                      "-in input1_name:1,3,128,128 input2_name:1,3,256,256")
     onnx2tnn_parser.add_argument('-optimize',
                                  dest='optimize',
                                  default=False,
                                  action='store_true',
                                  required=False,
-                                 help="optimize the model")
+                                 help="If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result")
     onnx2tnn_parser.add_argument('-half',
                                  dest='half',
                                  default=False,
@@ -60,10 +61,23 @@ def parse_args():
                                  help="the output tnn directory")
     onnx2tnn_parser.add_argument('-align',
                                  dest='align',
+                                 default='',
+                                 action='store',
+                                 required=False,
+                                 choices=[None, 'output', 'all'],
+                                 nargs='?',
+                                 type=str,
+                                 help='align the onnx model with tnn model. '
+                                      'e.g., if you want to align the last output, you can use \'-align\' '
+                                      'or \'-align output\'; '
+                                      'if the model is not align, you can use \'-align all\' '
+                                      'to address the first unaligned layer')
+    onnx2tnn_parser.add_argument('-align_batch',
+                                 dest='align_batch',
                                  default=False,
                                  action='store_true',
                                  required=False,
-                                 help='align the onnx model with tnn model')
+                                 help='align the onnx model with tnn model and check mutli batch')
     onnx2tnn_parser.add_argument('-input_file',
                                  dest='input_file_path',
                                  action='store',
@@ -75,11 +89,11 @@ def parse_args():
                                  required=False,
                                  help="the reference file path which contains the reference data to compare the results.")
     onnx2tnn_parser.add_argument('-debug',
-                                dest='debug',
-                                default=False,
-                                action='store_true',
-                                required=False,
-                                help="Turn on the switch to debug the model.")
+                                 dest='debug',
+                                 default=False,
+                                 action='store_true',
+                                 required=False,
+                                 help="Turn on the switch to debug the model.")
 
     # convert caff2onnx -pp proto_path -mp model_path -o
     caffe2tnn_parser = subparsers.add_parser('caffe2tnn',
@@ -109,7 +123,7 @@ def parse_args():
                                   default=False,
                                   action='store_true',
                                   required=False,
-                                  help="optimize the model")
+                                  help="If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result")
     caffe2tnn_parser.add_argument('-half',
                                   dest='half',
                                   default=False,
@@ -118,10 +132,17 @@ def parse_args():
                                   help="save model using half")
     caffe2tnn_parser.add_argument('-align',
                                   dest='align',
-                                  default=False,
-                                  action='store_true',
+                                  default='',
+                                  action='store',
                                   required=False,
-                                  help='align the onnx model with tnn model')
+                                  choices=[None, 'output', 'all'],
+                                  nargs='?',
+                                  type=str,
+                                  help='align the onnx model with tnn model. '
+                                       'e.g., if you want to align the last output, you can use \'-align\' '
+                                       'or \'-align output\'; '
+                                       'if the model is not align, you can use \'-align all\' '
+                                       'to address the first unaligned layer')
     caffe2tnn_parser.add_argument('-input_file',
                                   dest='input_file_path',
                                   action='store',
@@ -133,11 +154,11 @@ def parse_args():
                                   required=False,
                                   help="the reference file path which contains the reference data to compare the results.")
     caffe2tnn_parser.add_argument('-debug',
-                                dest='debug',
-                                default=False,
-                                action='store_true',
-                                required=False,
-                                help="Turn on the switch to debug the model.")
+                                  dest='debug',
+                                  default=False,
+                                  action='store_true',
+                                  required=False,
+                                  help="Turn on the switch to debug the model.")
 
     tf2tnn_parser = subparsers.add_parser('tf2tnn',
                                           help="convert tensorflow model to tnn model")
@@ -148,18 +169,22 @@ def parse_args():
                                help="the path for tensorflow graphdef file")
 
     tf2tnn_parser.add_argument('-in',
-                               metavar='input_name',
+                               metavar='input_info',
                                dest='input_names',
                                action='store',
+                               nargs='+',
+                               type=str,
                                required=True,
-                               help="the tensorflow model's input names. If batch is not specified, you can add input shape after the input name, e.g. -in \"name[1,28,28,3]\"")
-
+                               help="specify the input name and shape of the model. e.g., " +
+                                    "-in input1_name:1,128,128,3 input2_name:1,256,256,3")
     tf2tnn_parser.add_argument('-on',
                                metavar='output_name',
                                dest='output_names',
                                action='store',
                                required=True,
-                               help="the tensorflow model's output name")
+                               nargs='+',
+                               type=str,
+                               help="the tensorflow model's output name. e.g. -on output_name1 output_name2")
 
     tf2tnn_parser.add_argument('-o',
                                dest='output_dir',
@@ -179,25 +204,32 @@ def parse_args():
                                default=False,
                                action='store_true',
                                required=False,
-                               help="optimize the model")
+                               help="If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result")
     tf2tnn_parser.add_argument('-half',
                                dest='half',
                                default=False,
                                action='store_true',
                                required=False,
-                               help="optimize the model")
+                               help="save the model using half")
     tf2tnn_parser.add_argument('-align',
                                dest='align',
+                               default='',
+                               action='store',
+                               required=False,
+                               choices=[None, 'output', 'all'],
+                               nargs='?',
+                               type=str,
+                               help='align the onnx model with tnn model. '
+                                    'e.g., if you want to align the last output, you can use \'-align\' '
+                                    'or \'-align output\'; '
+                                    'if the model is not align, you can use \'-align all\' '
+                                    'to address the first unaligned layer')
+    tf2tnn_parser.add_argument('-not_fold_const',
+                               dest='not_fold_const',
                                default=False,
                                action='store_true',
                                required=False,
-                               help='align the onnx model with tnn model')
-    tf2tnn_parser.add_argument('-not_fold_const',
-                                dest='not_fold_const',
-                                default=False,
-                                action='store_true',
-                                required=False,
-                                help=argparse.SUPPRESS)
+                               help=argparse.SUPPRESS)
     tf2tnn_parser.add_argument('-input_file',
                                dest='input_file_path',
                                action='store',
@@ -209,57 +241,57 @@ def parse_args():
                                required=False,
                                help="the reference file path which contains the reference data to compare the results.")
     tf2tnn_parser.add_argument('-debug',
-                                dest='debug',
-                                default=False,
-                                action='store_true',
-                                required=False,
-                                help="Turn on the switch to debug the model.")
-    #tflie parser
+                               dest='debug',
+                               default=False,
+                               action='store_true',
+                               required=False,
+                               help="Turn on the switch to debug the model.")
+    # tflie parser
     tflite2tnn_parser = subparsers.add_parser('tflite2tnn',
-                                          help="convert tensorflow-lite model to tnn model")
-    tflite2tnn_parser.add_argument( dest="tf_path",
-                           action='store',
-                           help="the path for tensorflow-lite graphdef file")
+                                              help="convert tensorflow-lite model to tnn model")
+    tflite2tnn_parser.add_argument(dest="tf_path",
+                                   action='store',
+                                   help="the path for tensorflow-lite graphdef file")
 
     tflite2tnn_parser.add_argument('-o',
-                           dest='output_dir',
-                           action='store',
-                           required=False,
-                           help="the output tnn directory")
+                                   dest='output_dir',
+                                   action='store',
+                                   required=False,
+                                   help="the output tnn directory")
 
     tflite2tnn_parser.add_argument('-v',
-                           metavar="v1.0",
-                           dest='version',
-                           default=time.strftime('%Y%m%d%H%M', time.localtime()),
-                           action='store',
-                           required=False,
-                           help="the version for model")
-
+                                   metavar="v1.0",
+                                   dest='version',
+                                   default=time.strftime('%Y%m%d%H%M', time.localtime()),
+                                   action='store',
+                                   required=False,
+                                   help="the version for model")
 
     tflite2tnn_parser.add_argument('-align',
-                           dest='align',
-                           default=False,
-                           action='store_true',
-                           required=False,
-                           help='align the tf-lite model with tnn model')
-
+                                   dest='align',
+                                   default='',
+                                   action='store',
+                                   required=False,
+                                   help='align the onnx model with tnn model. '
+                                        'e.g., if you want to align the final output, you can use -align output'
+                                        'if you want to align whole model, you can use -align all')
 
     tflite2tnn_parser.add_argument('-input_file',
-                           dest='input_file_path',
-                           action='store',
-                           required=False,
-                           help="the input file path which contains the input data for the inference model.")
+                                   dest='input_file_path',
+                                   action='store',
+                                   required=False,
+                                   help="the input file path which contains the input data for the inference model.")
 
     tflite2tnn_parser.add_argument('-ref_file',
-                           dest='refer_file_path',
-                           action='store',
-                           required=False,
-                           help="the reference file path which contains the reference data to compare the results.")
+                                   dest='refer_file_path',
+                                   action='store',
+                                   required=False,
+                                   help="the reference file path which contains the reference data to compare the results.")
 
     tflite2tnn_parser.add_argument('-debug',
-                           dest='debug',
-                           default=False,
-                           action='store_true',
-                           required=False,
-                           help="Turn on the switch to debug the model.")
+                                   dest='debug',
+                                   default=False,
+                                   action='store_true',
+                                   required=False,
+                                   help="Turn on the switch to debug the model.")
     return parser

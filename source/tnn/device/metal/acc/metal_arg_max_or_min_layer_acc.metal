@@ -29,7 +29,7 @@ using namespace metal;
         op(vec.x, op(vec.y, op(vec.z, vec.w)))
 
 kernel void argmax_or_min_common(const device ftype4 *src                   [[buffer(0)]],
-                                 device       ftype4 *dst                   [[buffer(1)]],
+                                 device       int4   *dst                   [[buffer(1)]],
                                  constant MetalArgMaxOrMinParams &params    [[buffer(2)]],
                                  uint3 gid                                  [[thread_position_in_grid]]) {
     if (any(gid >= uint3(params.inner_size, params.outer_size, 1)))
@@ -50,11 +50,11 @@ kernel void argmax_or_min_common(const device ftype4 *src                   [[bu
         guard_index = select(idx, guard_index, flag);
     }
 
-    dst[index_out] = ftype4(guard_index);
+    dst[index_out] = guard_index;
 }
 
 kernel void argmax_or_min_channel(const device ftype4 *src                  [[buffer(0)]],
-                                  device       ftype4 *dst                  [[buffer(1)]],
+                                  device       int4   *dst                  [[buffer(1)]],
                                   constant MetalArgMaxOrMinParams &params   [[buffer(2)]],
                                   uint3 gid                                 [[thread_position_in_grid]]) {
     if (any(gid >= uint3(params.inner_size, params.outer_size, 1)))
@@ -104,5 +104,5 @@ kernel void argmax_or_min_channel(const device ftype4 *src                  [[bu
     idx = select(int4(params.input_channel), guard_index, eq);
     auto target_idx = REDUCE_VEC4(idx, min);
 
-    dst[index_out] = ftype4(target_idx, 0, 0, 0);
+    dst[index_out] = int4(target_idx, 0, 0, 0);
 }

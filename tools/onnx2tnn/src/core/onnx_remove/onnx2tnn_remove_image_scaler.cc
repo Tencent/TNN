@@ -14,8 +14,7 @@
 
 #include <math.h>
 
-#include "half_utils.h"
-#include "objseri.h"
+
 #include "onnx2tnn.h"
 
 int Onnx2TNN::RemoveImageScaler(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,

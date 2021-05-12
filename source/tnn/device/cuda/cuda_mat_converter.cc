@@ -19,7 +19,7 @@
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/bfp16_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/mat_converter_utils.h"
 #include "tnn/device/cuda/cuda_mat_converter.h"
 #include "tnn/device/cuda/cuda_mat_util.cuh"

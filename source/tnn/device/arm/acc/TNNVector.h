@@ -23,28 +23,28 @@ namespace TNN_NS {
 template <typename T, unsigned int len>
 struct TNNVector {
     T value[len];
-    TNNVector<T, len> operator+(const TNNVector<T, len>& lr) {
+    TNNVector<T, len> operator+(const TNNVector<T, len>& lr) const {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {
             dst.value[i] = value[i] + lr.value[i];
         }
         return dst;
     }
-    TNNVector<T, len> operator-(const TNNVector<T, len>& lr) {
+    TNNVector<T, len> operator-(const TNNVector<T, len>& lr) const {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {
             dst.value[i] = value[i] - lr.value[i];
         }
         return dst;
     }
-    TNNVector<T, len> operator*(const TNNVector<T, len>& lr) {
+    TNNVector<T, len> operator*(const TNNVector<T, len>& lr) const {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {
             dst.value[i] = value[i] * lr.value[i];
         }
         return dst;
     }
-    TNNVector<T, len> operator*(T lr) {
+    TNNVector<T, len> operator*(T lr) const {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {
             dst.value[i] = value[i] * lr;
@@ -58,7 +58,7 @@ struct TNNVector {
         }
         return *this;
     }
-    TNNVector<T, len> operator-() {
+    TNNVector<T, len> operator-() const {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {
             dst.value[i] = -value[i];
@@ -78,6 +78,12 @@ struct TNNVector {
         }
     }
 
+    TNNVector<T, len>(const float *addr) {
+        for (int i = 0; i < len; ++i) {
+            value[i] = *addr;
+        }
+    }
+
     void set_lane(T v, int i) {
         value[i] = v;
     }
@@ -93,10 +99,16 @@ struct TNNVector {
         }
         return v;
     }
+    static TNNVector<T, len> loadu(const T* addr) {
+        return load(addr);
+    }
     static void save(T* addr, const TNNVector<T, len>& v) {
         for (int i = 0; i < len; ++i) {
             addr[i] = v.value[i];
         }
+    }
+    static void saveu(T* addr, const TNNVector<T, len>& v) {
+        save(addr, v);
     }
 
     static TNNVector<T, len> bsl_cle(const TNNVector<T, len>& c1, const TNNVector<T, len>& c2, const TNNVector<T, len>& v1, const TNNVector<T, len>& v2) {
@@ -183,6 +195,27 @@ struct TNNVector {
         }
         return dst;
     }
+    static TNNVector<T, len> add(const TNNVector<T, len>& v1, const TNNVector<T, len>& v2) {
+        TNNVector<T, len> dst;
+        for (int i = 0; i < len; ++i) {
+            dst.value[i] = v1.value[i] + v2.value[i];
+        }
+        return dst;
+    }
+    static TNNVector<T, len> sub(const TNNVector<T, len>& v1, const TNNVector<T, len>& v2) {
+        TNNVector<T, len> dst;
+        for (int i = 0; i < len; ++i) {
+            dst.value[i] = v1.value[i] - v2.value[i];
+        }
+        return dst;
+    }
+    static TNNVector<T, len> mul(const TNNVector<T, len>& v1, const TNNVector<T, len>& v2) {
+        TNNVector<T, len> dst;
+        for (int i = 0; i < len; ++i) {
+            dst.value[i] = v1.value[i] * v2.value[i];
+        }
+        return dst;
+    }
 
     // the following functions only work for fp32 and fp16, int8 need to override these functions
     static TNNVector<T, len> floor(const TNNVector<T, len>& v) {
@@ -227,6 +260,13 @@ struct TNNVector {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {
             dst.value[i] = std::tanh(v.value[i]);
+        }
+        return dst;
+    }
+    static TNNVector<T, len> erf(const TNNVector<T, len>& v) {
+        TNNVector<T, len> dst;
+        for (int i = 0; i < len; ++i) {
+            dst.value[i] = std::erff(v.value[i]);
         }
         return dst;
     }

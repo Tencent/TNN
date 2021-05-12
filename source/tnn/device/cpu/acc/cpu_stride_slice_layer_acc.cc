@@ -14,8 +14,9 @@
 
 #include <algorithm>
 #include <cmath>
+
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -34,9 +35,6 @@ Status CpuStrideSliceLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
 
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
-    int input_channel = input_blob->GetBlobDesc().dims[1];
-    int input_height  = input_blob->GetBlobDesc().dims[2];
-    int input_width   = input_blob->GetBlobDesc().dims[3];
 
     auto begins = layer_param->begins;
     std::reverse(begins.begin(), begins.end());
@@ -45,26 +43,34 @@ Status CpuStrideSliceLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     auto strides = layer_param->strides;
     std::reverse(strides.begin(), strides.end());
 
-    for (int i = 0; i < ends.size(); ++i) {
+    const auto input_dims     = input_blob->GetBlobDesc().dims;
+    const int input_dims_size = input_dims.size();
+    for (int i = 0; i < input_dims_size; ++i) {
+        if (begins[i] < 0) {
+            begins[i] += input_dims[i];
+        }
         if (ends[i] == 0) {
-            ends[i] = input_blob->GetBlobDesc().dims[i];
+            ends[i] = input_dims[i];
+        }
+        if (ends[i] < 0) {
+            ends[i] += input_dims[i];
         }
     }
+   
+    DimsVector output_dims = output_blob->GetBlobDesc().dims;
+    int output_count = DimsVectorUtils::Count(output_dims);
+
     if (output_blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
-        int out_offset     = 0;
-        for (int n = begins[0]; n < ends[0]; n += strides[0]) {
-            for (int c = begins[1]; c < ends[1]; c += strides[1]) {
-                for (int h = begins[2]; h < ends[2]; h += strides[2]) {
-                    for (int w = begins[3]; w < ends[3]; w += strides[3]) {
-                        const int in_offset = n * input_channel * input_height * input_width +
-                                              c * input_height * input_width + h * input_width + w;
-                        output_data[out_offset] = input_data[in_offset];
-                        ++out_offset;
-                    }
-                }
+        for(int offset = 0; offset < output_count; ++offset) {
+            DimsVector output_index = DimsOffsetUtils::ConvertOffsetToIndex(output_dims, offset);
+            DimsVector input_index;
+            for(int i = 0; i < output_index.size(); ++i) {
+                input_index.push_back(begins[i] + output_index[i] * strides[i]);
             }
+            int in_offset = DimsOffsetUtils::ConvertIndexToOffset(input_dims, input_index);
+            output_data[offset] = input_data[in_offset];
         }
     } else {
         ASSERT(0);

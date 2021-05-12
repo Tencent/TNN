@@ -13,6 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "onnx_proxy_graph.h"
+
+#include "onnx_utils.h"
 namespace TNN_CONVERTER {
 
 OnnxProxyNode::OnnxProxyNode() : op_name(), op_type(), onnx_node(nullptr) {
@@ -36,11 +38,17 @@ void OnnxProxyGraph::InitProxyGraph() {
     const int node_size = this->graph_proto_->node_size();
     for (int i = 0; i < node_size; ++i) {
         const auto& onnx_node = this->graph_proto_->node(i);
-        std::shared_ptr<OnnxProxyNode> proxy_node(new OnnxProxyNode());
-        proxy_node->op_name   = onnx_node.output(0);
-        proxy_node->op_type   = onnx_node.op_type();
-        proxy_node->onnx_node = &onnx_node;
-        proxy_nodes_map_.insert(std::make_pair(onnx_node.output(0), proxy_node));
+        if (onnx_node.op_type() == "Constant") {
+            // TODO
+            auto tensor = GetTensorFromConstantNode(onnx_node);
+            proxy_initializers_map_.insert(std::make_pair(onnx_node.output(0), tensor));
+        } else {
+            std::shared_ptr<OnnxProxyNode> proxy_node(new OnnxProxyNode());
+            proxy_node->op_name   = onnx_node.output(0);
+            proxy_node->op_type   = onnx_node.op_type();
+            proxy_node->onnx_node = &onnx_node;
+            proxy_nodes_map_.insert(std::make_pair(onnx_node.output(0), proxy_node));
+        }
     }
 
     const int initializer_size = this->graph_proto_->initializer_size();

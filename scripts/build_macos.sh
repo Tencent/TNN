@@ -40,11 +40,11 @@ clone_openvino() {
 
     if [ ! -d openvino ]
     then
-        git clone https://github.com/openvinotoolkit/openvino.git
+        git clone --recursive https://github.com/openvinotoolkit/openvino.git
     fi
     cd openvino
     git reset --hard 9df6a8f
-    git submodule update --init --recursive
+    git submodule update
 
     # 编译静态库
     if [ "${OPENVINO_BUILD_SHARED}" = "OFF" ]
@@ -179,6 +179,13 @@ cmake ${TNN_DIR} \
 
 echo "Building TNN ..."
 make -j4
+
+# check if compiling error occurs, or ci will ignore building errors
+if [ 0 -ne $? ]
+then
+    echo 'building failed.'
+    exit -1
+fi
 
 pack_tnn
 

@@ -47,11 +47,20 @@ public:
     // if output_name of blob not found, then search output_index of layer.
     Status AddOutput(const std::string& output_name, int output_index = 0);
 
+    // return input shapes map from model
+    Status GetModelInputShapesMap(InputShapesMap& shapes_map);
+
     // create tnn network instance with network config and inputs shape.
     // if inputs shape not set, use default from model.
     std::shared_ptr<Instance> CreateInst(
         NetworkConfig& config, Status& status,
         InputShapesMap inputs_shape = InputShapesMap());
+
+    // create tnn network instance with network config and min max inputs shape,
+    // instance reshape can support range from min inputs shape to max inputs shape.
+    std::shared_ptr<Instance> CreateInst(
+        NetworkConfig& config, Status& status,
+        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
 
 private:
     std::shared_ptr<TNNImpl> impl_ = nullptr;

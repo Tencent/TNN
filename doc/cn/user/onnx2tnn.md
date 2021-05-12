@@ -4,7 +4,7 @@
 
 onnx2tnn 是 TNN 中最重要的模型转换工具，它的主要作用是将 ONNX 模型转换成 TNN 模型格式。目前 onnx2tnn 工具支持主要支持 CNN 常用网络结构。由于 Pytorch 模型官方支持支持导出为 ONNX 模型，并且保证导出的 ONNX 模型和原始的 Pytorch 模型是等效的，所以我们只需要保证 ONNX 模型能够转换为 TNN 模型，就直接能够保证 Pytorch 直接转换为 TNN 模型。
 
-onnx2tnn 有开箱即用的 [网页版](https://convertmodel.com/)，使用网页版的用户可以跳过环境搭建和编译的步骤。网页版在浏览器本地完成模型转换，不会将模型上传到云端，用户可以不用担心模型安全。
+onnx2tnn 有开箱即用的 [网页版](https://convertmodel.com/#outputFormat=tnn)，使用网页版的用户可以跳过环境搭建和编译的步骤。网页版在浏览器本地完成模型转换，不会将模型上传到云端，用户可以不用担心模型安全。
 
 ## 1. 环境搭建及编译
 ### 环境搭建
@@ -45,8 +45,9 @@ onnxruntime>=1.1.0
 numpy>=1.17.0  
 onnx-simplifier>=0.2.4  
 protobuf>=3.4.0
+requests
 ```shell script
-pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier protobuf
+pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier protobuf requests
 ```
 
 - cmake （version >= 3.0）
@@ -116,7 +117,7 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -version VERSION      Algorithm version string
-  -optimize OPTIMIZE    Optimize model befor convert, 1:default yes, 0:no
+  -optimize OPTIMIZE    If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
   -half HALF            Save model using half, 1:yes, 0:default no
   -o OUTPUT_DIR         the output dir for tnn model
   -input_shape INPUT_SHAPE

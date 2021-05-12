@@ -39,6 +39,18 @@ private:
     class Cpu##type_string##LayerAcc : public CpuBinaryOpLayerAcc {                                                    \
     public:                                                                                                            \
         virtual ~Cpu##type_string##LayerAcc(){};                                                                       \
+        virtual Status Init(Context *context, LayerParam *param, LayerResource *resource,                              \
+                            const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {                   \
+            if (inputs.size() == 1) {                                                                                  \
+                CPU_CONVERT_HALF_RESOURCE(layer_type);                                                                 \
+            } else {                                                                                                   \
+                RETURN_ON_NEQ(CpuLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);                   \
+            }                                                                                                          \
+            return TNN_OK;                                                                                             \
+        }                                                                                                              \
+                                                                                                                       \
+    protected:                                                                                                         \
+        std::shared_ptr<LayerResource> fp32_resource_ = nullptr;                                                       \
                                                                                                                        \
     private:                                                                                                           \
         virtual Status Calculate(const std::vector<Blob *> &input_blobs, const std::vector<void *> &input_ptrs,        \

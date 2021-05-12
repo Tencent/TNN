@@ -38,5 +38,6 @@ Status ArmDetectionOutputLayerAcc::DoForward(const std::vector<Blob *> &inputs, 
 }
 
 REGISTER_ARM_ACC(DetectionOutput, LAYER_DETECTION_OUTPUT)
+REGISTER_ARM_LAYOUT(LAYER_DETECTION_OUTPUT, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

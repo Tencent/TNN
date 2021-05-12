@@ -33,5 +33,6 @@ Status MetalSignLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_METAL_UNARY_ACC(Sign, LAYER_SIGN);
+REGISTER_METAL_LAYOUT(LAYER_SIGN, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS
