@@ -13,8 +13,13 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/utils/tea.h"
-
+#ifdef WIN32
+#include <winsock2.h>
+#pragma comment(lib,"ws2_32.lib")
+#else
 #include <netinet/in.h>
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
