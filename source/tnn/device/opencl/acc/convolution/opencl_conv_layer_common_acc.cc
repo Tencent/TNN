@@ -52,8 +52,10 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
     const int output_height     = DimsFunctionUtils::GetDim(output_dims, 2);
     const int output_width      = DimsFunctionUtils::GetDim(output_dims, 3);
 
+    std::string program_name = "convolution";
     std::string kernel_name = "Conv2D";
     if (run_3d_ndrange_) {
+        program_name = "convolution_gws_3d";
         kernel_name = "Conv2DGS3D";
         if (output_channel > 4) {
             is_channel_blocking_ = true;
@@ -61,6 +63,7 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
         }
     } else {
         if (use_buffer_) {
+            program_name = "convolution_mix";
             kernel_name += "_MIX";
         }
         int task_size = output_batch * UP_DIV(output_channel, 4) * output_height * output_width;
@@ -70,7 +73,7 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
         }
     }
 
-    ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options_);
+    ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

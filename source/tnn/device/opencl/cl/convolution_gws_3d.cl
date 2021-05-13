@@ -2,8 +2,8 @@
 #include "activation.inc"
 #include "io.inc"
 
-__kernel void Conv2D(
-    GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
+__kernel void Conv2DGS3D(
+    GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
     __read_only image2d_t weights, __read_only image2d_t bias,
     __write_only image2d_t output, __private const int2 input_wh,
     __private const int in_channel_block_length, __private const int2 output_wh,
@@ -11,12 +11,10 @@ __kernel void Conv2D(
     __private const int2 padding_wh, __private const int2 dilation_wh,
     __private const int out_width_blocks) {
     // deal with 2 dim image : dim0 = channel + width | dim1 = batch + height
-    const int output_cw_idx = get_global_id(0);
-    const int output_bh_idx = get_global_id(1);
-    DEAL_NON_UNIFORM_DIM2(output_cw_idx, output_bh_idx);
-
-    const int out_channel_block_idx = output_cw_idx / out_width_blocks;
-    const int out_width_block_idx   = output_cw_idx % out_width_blocks;
+    const int out_channel_block_idx = get_global_id(0);
+    const int out_width_block_idx   = get_global_id(1);
+    const int output_bh_idx         = get_global_id(2);
+    DEAL_NON_UNIFORM_DIM3(out_channel_block_idx, out_width_block_idx, output_bh_idx);
 
     FLOAT4 out0 = RI_F(bias, SAMPLER, (int2)(out_channel_block_idx, 0));
     FLOAT4 out1 = out0;
@@ -29,11 +27,12 @@ __kernel void Conv2D(
     int in_width3 = in_width0 + stride_wh.x * 3;
 
     const int height_start = mad24((output_bh_idx % output_wh.y), stride_wh.y, -padding_wh.y);
-    int in_height_start = mad24(select(0, (-height_start + dilation_wh.y - 1) / dilation_wh.y, height_start < 0), dilation_wh.y, height_start);
+    int in_height_start = mad24(select(0, (-height_start + dilation_wh.y - 1) / dilation_wh.y, height_start < 0),
+                                dilation_wh.y, height_start);
     int in_height_end = min(mad24(kernel_wh.y, dilation_wh.y, height_start), input_wh.y);
 
     const int batch_idx = mul24((output_bh_idx / output_wh.y), input_wh.y);
-    const int weights_h_idx = mul24(out_channel_block_idx, mul24(kernel_wh.x, kernel_wh.y)) + 
+    const int weights_h_idx = mul24(out_channel_block_idx, mul24(kernel_wh.x, kernel_wh.y)) +
                               mul24(select(0, (-height_start + dilation_wh.y - 1) / dilation_wh.y, height_start < 0), kernel_wh.x);
 
     FLOAT4 in0, in1, in2, in3;
@@ -78,8 +77,9 @@ __kernel void Conv2D(
                                output_bh_idx, remain);
 }
 
-__kernel void Conv2D_CB2(
-    GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
+
+__kernel void Conv2DGS3D_CB2(
+    GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
     __read_only image2d_t weights, __read_only image2d_t bias,
     __write_only image2d_t output, __private const int2 input_wh,
     __private const int in_channel_block_length, __private const int out_channel_block_length,
@@ -89,13 +89,11 @@ __kernel void Conv2D_CB2(
     __private const int kernel_size,
     __private const int out_width_blocks) {
     // deal with 2 dim image : dim0 = channel + width | dim1 = batch + height
-    const int output_channel_slice_w_idx = get_global_id(0);
-    const int output_bh_idx = get_global_id(1);
-    DEAL_NON_UNIFORM_DIM2(output_channel_slice_w_idx, output_bh_idx);
-
-    const int out_channel_slice_idx = output_channel_slice_w_idx / out_width_blocks;
+    const int out_channel_slice_idx = get_global_id(0);
+    const int out_width_block_idx   = get_global_id(1);
+    const int output_bh_idx         = get_global_id(2);
+    DEAL_NON_UNIFORM_DIM3(out_channel_slice_idx, out_width_block_idx, output_bh_idx);
     const int out_channel_block_idx = out_channel_slice_idx << 1;
-    const int out_width_block_idx   = output_channel_slice_w_idx % out_width_blocks;
 
     FLOAT4 out_w0_s0 = RI_F(bias, SAMPLER, (int2)(out_channel_block_idx, 0));
     FLOAT4 out_w1_s0 = out_w0_s0;
@@ -187,4 +185,3 @@ __kernel void Conv2D_CB2(
                                     out_w2_s1, out_w3_s1, output_w_idx_s1,
                                     output_bh_idx, remain);
 }
-
