@@ -31,15 +31,15 @@ using namespace std;
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
     // nanodet_m
-    //auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_m.tnnmodel"
-    //                                                  ofType:nil];
-    //auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_m.tnnproto"
-    //                                                  ofType:nil];
+    auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_m.tnnmodel"
+                                                      ofType:nil];
+    auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_m.tnnproto"
+                                                      ofType:nil];
     // nanodet_t
-    auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_t.tnnmodel"
-                                                      ofType:nil];
-    auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_t.tnnproto"
-                                                      ofType:nil];
+    //auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_t.tnnmodel"
+    //                                                  ofType:nil];
+    //auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_t.tnnproto"
+    //                                                  ofType:nil];
     // nanodet_efficient1
     //auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/nanodet/nanodet_e1.tnnmodel"
     //                                                ofType:nil];
@@ -68,7 +68,7 @@ using namespace std;
         option->model_content = model_content;
         option->library_path  = library_path.UTF8String;
         option->compute_units = units;
-        option->model_cfg     = "t";   // "m": nanodet_m; "e1": nanodet_efficientlite1
+        option->model_cfg     = "m";   // "m": nanodet_m; "e1": nanodet_efficientlite1
     }
     
     auto predictor = std::make_shared<ObjectDetectorNanodet>();

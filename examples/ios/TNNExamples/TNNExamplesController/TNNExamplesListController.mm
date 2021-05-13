@@ -95,6 +95,15 @@ using namespace std;
         [examples addObject:data];
     }
     
+    //阅读理解 - TinyBert
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"阅读理解 - TinyBert";
+        data.desc = @"自然语言类 - 单输入多输出";
+        data.viewControllerID = @"TNNReadingComprehensionController";
+        [examples addObject:data];
+    }
+
     //人脸检测 - Blazeface
     {
         auto data = [TNNExampleData new];
@@ -145,7 +154,7 @@ using namespace std;
         {
             data.viewModel = [TNNNanodetObjectDetectorViewModel new];
             data.viewModel.title = data.title;
-            data.viewModel.preferGPU = true;
+            data.viewModel.preferGPU = false;
         }
         [examples addObject:data];
     }

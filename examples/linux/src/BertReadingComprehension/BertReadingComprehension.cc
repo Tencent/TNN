@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     }
 
     
-    auto bertInput = std::make_shared<BertTokenizerInput>(DEVICE_NAIVE);  
+    auto bertInput = std::make_shared<BertTokenizerInput>(DEVICE_NAIVE, "input_ids_0", "input_mask_0", "segment_ids_0");  
     auto predictor = std::make_shared<TNNSDKSample>();
 
     auto bertOutput = predictor->CreateSDKOutput();
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
         tokenizer->buildInput(paragraph, question, bertInput);
         CHECK_TNN_STATUS(predictor->Predict(bertInput, bertOutput));
         std::string ans;
-        tokenizer->ConvertResult(bertOutput, ans);
+        tokenizer->ConvertResult(bertOutput, "unstack:0", "unstack:1", ans);
 
         std::cout << "Please Enter the question: (Enter exit to quit)" << std::endl;
         std::cin.getline(question, LETTER_MAX_COUNT);
