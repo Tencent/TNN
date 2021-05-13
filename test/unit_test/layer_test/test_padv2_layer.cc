@@ -62,7 +62,8 @@ TEST_P(PadV2LayerTest, PadV2Layer) {
     }
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    if ((-FLT_MAX == value || FLT_MAX == value) && DEVICE_HUAWEI_NPU == dev) {
+    // only cuda implements padv2 now
+    if (DEVICE_CUDA != dev) {
         GTEST_SKIP();
     }
 
