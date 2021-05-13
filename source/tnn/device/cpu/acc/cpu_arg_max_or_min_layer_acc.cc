@@ -59,11 +59,11 @@ Status CpuArgMaxOrMinLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
             }
         }  // end for
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuArgMaxOrMinLayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuArgMaxOrMinLayerAcc layer acc dont support datatype");
     } else {
-        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuArgMaxOrMinLayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuArgMaxOrMinLayerAcc layer acc dont support datatype");
     }  // end if
     return TNN_OK;
 }

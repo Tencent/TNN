@@ -9,7 +9,7 @@ import com.google.flatbuffers.*;
 
 @SuppressWarnings("unused")
 public final class Stat extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_1_12_0(); }
+  public static void ValidateVersion() { Constants.FLATBUFFERS_2_0_0(); }
   public static Stat getRootAsStat(ByteBuffer _bb) { return getRootAsStat(_bb, new Stat()); }
   public static Stat getRootAsStat(ByteBuffer _bb, Stat obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
   public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
@@ -43,11 +43,41 @@ public final class Stat extends Table {
     return o;
   }
 
+  @Override
+  protected int keysCompare(Integer o1, Integer o2, ByteBuffer _bb) {
+    int val_1 = _bb.getShort(__offset(8, o1, _bb)) & 0xFFFF;
+    int val_2 = _bb.getShort(__offset(8, o2, _bb)) & 0xFFFF;
+    return val_1 > val_2 ? 1 : val_1 < val_2 ? -1 : 0;
+  }
+
+  public static Stat __lookup_by_key(Stat obj, int vectorLocation, int key, ByteBuffer bb) {
+    int span = bb.getInt(vectorLocation - 4);
+    int start = 0;
+    while (span != 0) {
+      int middle = span / 2;
+      int tableOffset = __indirect(vectorLocation + 4 * (start + middle), bb);
+      int val = bb.getShort(__offset(8, bb.capacity() - tableOffset, bb)) & 0xFFFF;
+      int comp = val > key ? 1 : val < key ? -1 : 0;
+      if (comp > 0) {
+        span = middle;
+      } else if (comp < 0) {
+        middle++;
+        start += middle;
+        span -= middle;
+      } else {
+        return (obj == null ? new Stat() : obj).__assign(tableOffset, bb);
+      }
+    }
+    return null;
+  }
+
   public static final class Vector extends BaseVector {
     public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
 
     public Stat get(int j) { return get(new Stat(), j); }
     public Stat get(Stat obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
+    public Stat getByKey(int key) {  return __lookup_by_key(null, __vector(), key, bb); }
+    public Stat getByKey(Stat obj, int key) {  return __lookup_by_key(obj, __vector(), key, bb); }
   }
 }
 
