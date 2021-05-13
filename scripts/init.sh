@@ -8,7 +8,7 @@ SCRIPT_VERSION="v2.1.16"
 # Set sdk build constants. Must comply with project structure specifications.
 # @see: https://git.code.oa.com/yt-sdk/yt-sdk-docs/tree/master/project
 function setConstants() {
-    PROJECT_NAME="light tnn inner"
+    PROJECT_NAME="light-tnn"
 
     # build scripts options, see @usage function
     IN_DOCKER="false"
@@ -231,14 +231,14 @@ function _pack() {
     log $LOG_INFO "start tar ${TARNAME} from ${OUTPUT}\n"
 
     # 拷贝文档
-    rm -rf ${OUTPUT}/docs
-    cp -rv ${DOCS_PATH} ${OUTPUT}/docs
+    #rm -rf ${OUTPUT}/docs
+    #cp -rv ${DOCS_PATH} ${OUTPUT}/docs
 
     # 只打包当前版本需要的模型目录
-    if [ -n "${MODEL_VERSION}" ]; then
-        clean ${OUTPUT}/models
-        cp -rv ${MODELS_PATH}/${MODEL_DIRNAME} ${OUTPUT}/models
-    fi
+    #if [ -n "${MODEL_VERSION}" ]; then
+    #    clean ${OUTPUT}/models
+    #    cp -rv ${MODELS_PATH}/${MODEL_DIRNAME} ${OUTPUT}/models
+    #fi
 
     # ios 下将模型目录转换为 bundle
     if [ "${PLATFORM}" == "iOS" ]; then
@@ -259,7 +259,7 @@ function _pack() {
 
     rm -rf ${DIRNAME}
     # 多次 _pack 中会删掉部分模型，因此这里重新拷贝模型，方便开发调试
-    cp -r ${MODELS_PATH}/* ${OUTPUT}/models/
+    #cp -r ${MODELS_PATH}/* ${OUTPUT}/models/
 }
 
 # $1: 构建平台，如 Windows/Android/iOS/Linux 等，必须
