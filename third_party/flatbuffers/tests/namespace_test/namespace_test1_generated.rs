@@ -6,7 +6,7 @@ use std::mem;
 use std::cmp::Ordering;
 
 extern crate flatbuffers;
-use self::flatbuffers::EndianScalar;
+use self::flatbuffers::{EndianScalar, Follow};
 
 #[allow(unused_imports, dead_code)]
 pub mod namespace_a {
@@ -15,7 +15,7 @@ pub mod namespace_a {
   use std::cmp::Ordering;
 
   extern crate flatbuffers;
-  use self::flatbuffers::EndianScalar;
+  use self::flatbuffers::{EndianScalar, Follow};
 #[allow(unused_imports, dead_code)]
 pub mod namespace_b {
 
@@ -23,41 +23,198 @@ pub mod namespace_b {
   use std::cmp::Ordering;
 
   extern crate flatbuffers;
-  use self::flatbuffers::EndianScalar;
+  use self::flatbuffers::{EndianScalar, Follow};
 
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+pub const ENUM_MIN_UNION_IN_NESTED_NS: u8 = 0;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+pub const ENUM_MAX_UNION_IN_NESTED_NS: u8 = 1;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 #[allow(non_camel_case_types)]
-#[repr(i8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum EnumInNestedNS {
-  A = 0,
-  B = 1,
-  C = 2,
+pub const ENUM_VALUES_UNION_IN_NESTED_NS: [UnionInNestedNS; 2] = [
+  UnionInNestedNS::NONE,
+  UnionInNestedNS::TableInNestedNS,
+];
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[repr(transparent)]
+pub struct UnionInNestedNS(pub u8);
+#[allow(non_upper_case_globals)]
+impl UnionInNestedNS {
+  pub const NONE: Self = Self(0);
+  pub const TableInNestedNS: Self = Self(1);
+
+  pub const ENUM_MIN: u8 = 0;
+  pub const ENUM_MAX: u8 = 1;
+  pub const ENUM_VALUES: &'static [Self] = &[
+    Self::NONE,
+    Self::TableInNestedNS,
+  ];
+  /// Returns the variant's name or "" if unknown.
+  pub fn variant_name(self) -> Option<&'static str> {
+    match self {
+      Self::NONE => Some("NONE"),
+      Self::TableInNestedNS => Some("TableInNestedNS"),
+      _ => None,
+    }
+  }
+}
+impl std::fmt::Debug for UnionInNestedNS {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    if let Some(name) = self.variant_name() {
+      f.write_str(name)
+    } else {
+      f.write_fmt(format_args!("<UNKNOWN {:?}>", self.0))
+    }
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for UnionInNestedNS {
+  type Inner = Self;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    let b = unsafe {
+      flatbuffers::read_scalar_at::<u8>(buf, loc)
+    };
+    Self(b)
+  }
 }
 
-pub const ENUM_MIN_ENUM_IN_NESTED_NS: i8 = 0;
-pub const ENUM_MAX_ENUM_IN_NESTED_NS: i8 = 2;
+impl flatbuffers::Push for UnionInNestedNS {
+    type Output = UnionInNestedNS;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        unsafe { flatbuffers::emplace_scalar::<u8>(dst, self.0); }
+    }
+}
 
+impl flatbuffers::EndianScalar for UnionInNestedNS {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let b = u8::to_le(self.0);
+    Self(b)
+  }
+  #[inline]
+  #[allow(clippy::wrong_self_convention)]
+  fn from_little_endian(self) -> Self {
+    let b = u8::from_le(self.0);
+    Self(b)
+  }
+}
+
+impl<'a> flatbuffers::Verifiable for UnionInNestedNS {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    u8::run_verifier(v, pos)
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for UnionInNestedNS {}
+pub struct UnionInNestedNSUnionTableOffset {}
+
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq)]
+pub enum UnionInNestedNST {
+  NONE,
+  TableInNestedNS(Box<TableInNestedNST>),
+}
+impl Default for UnionInNestedNST {
+  fn default() -> Self {
+    Self::NONE
+  }
+}
+impl UnionInNestedNST {
+  pub fn union_in_nested_ns_type(&self) -> UnionInNestedNS {
+    match self {
+      Self::NONE => UnionInNestedNS::NONE,
+      Self::TableInNestedNS(_) => UnionInNestedNS::TableInNestedNS,
+    }
+  }
+  pub fn pack(&self, fbb: &mut flatbuffers::FlatBufferBuilder) -> Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>> {
+    match self {
+      Self::NONE => None,
+      Self::TableInNestedNS(v) => Some(v.pack(fbb).as_union_value()),
+    }
+  }
+  /// If the union variant matches, return the owned TableInNestedNST, setting the union to NONE.
+  pub fn take_table_in_nested_ns(&mut self) -> Option<Box<TableInNestedNST>> {
+    if let Self::TableInNestedNS(_) = self {
+      let v = std::mem::replace(self, Self::NONE);
+      if let Self::TableInNestedNS(w) = v {
+        Some(w)
+      } else {
+        unreachable!()
+      }
+    } else {
+      None
+    }
+  }
+  /// If the union variant matches, return a reference to the TableInNestedNST.
+  pub fn as_table_in_nested_ns(&self) -> Option<&TableInNestedNST> {
+    if let Self::TableInNestedNS(v) = self { Some(v.as_ref()) } else { None }
+  }
+  /// If the union variant matches, return a mutable reference to the TableInNestedNST.
+  pub fn as_table_in_nested_ns_mut(&mut self) -> Option<&mut TableInNestedNST> {
+    if let Self::TableInNestedNS(v) = self { Some(v.as_mut()) } else { None }
+  }
+}
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+pub const ENUM_MIN_ENUM_IN_NESTED_NS: i8 = 0;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+pub const ENUM_MAX_ENUM_IN_NESTED_NS: i8 = 2;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_ENUM_IN_NESTED_NS: [EnumInNestedNS; 3] = [
+  EnumInNestedNS::A,
+  EnumInNestedNS::B,
+  EnumInNestedNS::C,
+];
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[repr(transparent)]
+pub struct EnumInNestedNS(pub i8);
+#[allow(non_upper_case_globals)]
+impl EnumInNestedNS {
+  pub const A: Self = Self(0);
+  pub const B: Self = Self(1);
+  pub const C: Self = Self(2);
+
+  pub const ENUM_MIN: i8 = 0;
+  pub const ENUM_MAX: i8 = 2;
+  pub const ENUM_VALUES: &'static [Self] = &[
+    Self::A,
+    Self::B,
+    Self::C,
+  ];
+  /// Returns the variant's name or "" if unknown.
+  pub fn variant_name(self) -> Option<&'static str> {
+    match self {
+      Self::A => Some("A"),
+      Self::B => Some("B"),
+      Self::C => Some("C"),
+      _ => None,
+    }
+  }
+}
+impl std::fmt::Debug for EnumInNestedNS {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    if let Some(name) = self.variant_name() {
+      f.write_str(name)
+    } else {
+      f.write_fmt(format_args!("<UNKNOWN {:?}>", self.0))
+    }
+  }
+}
 impl<'a> flatbuffers::Follow<'a> for EnumInNestedNS {
   type Inner = Self;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::read_scalar_at::<Self>(buf, loc)
-  }
-}
-
-impl flatbuffers::EndianScalar for EnumInNestedNS {
-  #[inline]
-  fn to_little_endian(self) -> Self {
-    let n = i8::to_le(self as i8);
-    let p = &n as *const i8 as *const EnumInNestedNS;
-    unsafe { *p }
-  }
-  #[inline]
-  fn from_little_endian(self) -> Self {
-    let n = i8::from_le(self as i8);
-    let p = &n as *const i8 as *const EnumInNestedNS;
-    unsafe { *p }
+    let b = unsafe {
+      flatbuffers::read_scalar_at::<i8>(buf, loc)
+    };
+    Self(b)
   }
 }
 
@@ -65,36 +222,54 @@ impl flatbuffers::Push for EnumInNestedNS {
     type Output = EnumInNestedNS;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<EnumInNestedNS>(dst, *self);
+        unsafe { flatbuffers::emplace_scalar::<i8>(dst, self.0); }
     }
 }
 
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ENUM_IN_NESTED_NS:[EnumInNestedNS; 3] = [
-  EnumInNestedNS::A,
-  EnumInNestedNS::B,
-  EnumInNestedNS::C
-];
-
-#[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ENUM_IN_NESTED_NS:[&'static str; 3] = [
-    "A",
-    "B",
-    "C"
-];
-
-pub fn enum_name_enum_in_nested_ns(e: EnumInNestedNS) -> &'static str {
-  let index = e as i8;
-  ENUM_NAMES_ENUM_IN_NESTED_NS[index as usize]
+impl flatbuffers::EndianScalar for EnumInNestedNS {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let b = i8::to_le(self.0);
+    Self(b)
+  }
+  #[inline]
+  #[allow(clippy::wrong_self_convention)]
+  fn from_little_endian(self) -> Self {
+    let b = i8::from_le(self.0);
+    Self(b)
+  }
 }
 
+impl<'a> flatbuffers::Verifiable for EnumInNestedNS {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    i8::run_verifier(v, pos)
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for EnumInNestedNS {}
 // struct StructInNestedNS, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct StructInNestedNS {
-  a_: i32,
-  b_: i32,
-} // pub struct StructInNestedNS
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq)]
+pub struct StructInNestedNS(pub [u8; 8]);
+impl Default for StructInNestedNS { 
+  fn default() -> Self { 
+    Self([0; 8])
+  }
+}
+impl std::fmt::Debug for StructInNestedNS {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    f.debug_struct("StructInNestedNS")
+      .field("a", &self.a())
+      .field("b", &self.b())
+      .finish()
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for StructInNestedNS {}
 impl flatbuffers::SafeSliceAccess for StructInNestedNS {}
 impl<'a> flatbuffers::Follow<'a> for StructInNestedNS {
   type Inner = &'a StructInNestedNS;
@@ -132,25 +307,101 @@ impl<'b> flatbuffers::Push for &'b StructInNestedNS {
     }
 }
 
+impl<'a> flatbuffers::Verifiable for StructInNestedNS {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.in_buffer::<Self>(pos)
+  }
+}
+impl<'a> StructInNestedNS {
+  #[allow(clippy::too_many_arguments)]
+  pub fn new(
+    a: i32,
+    b: i32,
+  ) -> Self {
+    let mut s = Self([0; 8]);
+    s.set_a(a);
+    s.set_b(b);
+    s
+  }
 
-impl StructInNestedNS {
-  pub fn new<'a>(_a: i32, _b: i32) -> Self {
-    StructInNestedNS {
-      a_: _a.to_little_endian(),
-      b_: _b.to_little_endian(),
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "NamespaceA.NamespaceB.StructInNestedNS"
+    }
 
+  pub fn a(&self) -> i32 {
+    let mut mem = core::mem::MaybeUninit::<i32>::uninit();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        self.0[0..].as_ptr(),
+        mem.as_mut_ptr() as *mut u8,
+        core::mem::size_of::<i32>(),
+      );
+      mem.assume_init()
+    }.from_little_endian()
+  }
+
+  pub fn set_a(&mut self, x: i32) {
+    let x_le = x.to_little_endian();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        &x_le as *const i32 as *const u8,
+        self.0[0..].as_mut_ptr(),
+        core::mem::size_of::<i32>(),
+      );
     }
   }
-  pub fn a<'a>(&'a self) -> i32 {
-    self.a_.from_little_endian()
+
+  pub fn b(&self) -> i32 {
+    let mut mem = core::mem::MaybeUninit::<i32>::uninit();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        self.0[4..].as_ptr(),
+        mem.as_mut_ptr() as *mut u8,
+        core::mem::size_of::<i32>(),
+      );
+      mem.assume_init()
+    }.from_little_endian()
   }
-  pub fn b<'a>(&'a self) -> i32 {
-    self.b_.from_little_endian()
+
+  pub fn set_b(&mut self, x: i32) {
+    let x_le = x.to_little_endian();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        &x_le as *const i32 as *const u8,
+        self.0[4..].as_mut_ptr(),
+        core::mem::size_of::<i32>(),
+      );
+    }
+  }
+
+  pub fn unpack(&self) -> StructInNestedNST {
+    StructInNestedNST {
+      a: self.a(),
+      b: self.b(),
+    }
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct StructInNestedNST {
+  pub a: i32,
+  pub b: i32,
+}
+impl StructInNestedNST {
+  pub fn pack(&self) -> StructInNestedNS {
+    StructInNestedNS::new(
+      self.a,
+      self.b,
+    )
   }
 }
 
 pub enum TableInNestedNSOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 
 pub struct TableInNestedNS<'a> {
   pub _tab: flatbuffers::Table<'a>,
@@ -160,18 +411,18 @@ impl<'a> flatbuffers::Follow<'a> for TableInNestedNS<'a> {
     type Inner = TableInNestedNS<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self {
-            _tab: flatbuffers::Table { buf: buf, loc: loc },
-        }
+        Self { _tab: flatbuffers::Table { buf, loc } }
     }
 }
 
 impl<'a> TableInNestedNS<'a> {
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "NamespaceA.NamespaceB.TableInNestedNS"
+    }
+
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        TableInNestedNS {
-            _tab: table,
-        }
+        TableInNestedNS { _tab: table }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
@@ -182,6 +433,12 @@ impl<'a> TableInNestedNS<'a> {
       builder.finish()
     }
 
+    pub fn unpack(&self) -> TableInNestedNST {
+      let foo = self.foo();
+      TableInNestedNST {
+        foo,
+      }
+    }
     pub const VT_FOO: flatbuffers::VOffsetT = 4;
 
   #[inline]
@@ -190,6 +447,18 @@ impl<'a> TableInNestedNS<'a> {
   }
 }
 
+impl flatbuffers::Verifiable for TableInNestedNS<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<i32>(&"foo", Self::VT_FOO, false)?
+     .finish();
+    Ok(())
+  }
+}
 pub struct TableInNestedNSArgs {
     pub foo: i32,
 }
@@ -225,6 +494,36 @@ impl<'a: 'b, 'b> TableInNestedNSBuilder<'a, 'b> {
   }
 }
 
+impl std::fmt::Debug for TableInNestedNS<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut ds = f.debug_struct("TableInNestedNS");
+      ds.field("foo", &self.foo());
+      ds.finish()
+  }
+}
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq)]
+pub struct TableInNestedNST {
+  pub foo: i32,
+}
+impl Default for TableInNestedNST {
+  fn default() -> Self {
+    Self {
+      foo: 0,
+    }
+  }
+}
+impl TableInNestedNST {
+  pub fn pack<'b>(
+    &self,
+    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
+  ) -> flatbuffers::WIPOffset<TableInNestedNS<'b>> {
+    let foo = self.foo;
+    TableInNestedNS::create(_fbb, &TableInNestedNSArgs{
+      foo,
+    })
+  }
+}
 }  // pub mod NamespaceB
 }  // pub mod NamespaceA
 
