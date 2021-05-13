@@ -542,7 +542,7 @@ Status DefaultNetwork::Forward() {
     RETURN_ON_NEQ(status, TNN_OK);
     
     if (runtime_blob_pool_) {
-        //当前acc在运行时每次都allocate blob，所以每次forward前清空避免内存泄漏
+        //now we allocate blob eachtime when running acc, so clear blob pool to avoid memory leak
         runtime_blob_pool_->ClearBlobMemoryPool();
     }
     

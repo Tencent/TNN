@@ -58,11 +58,11 @@ Status CpuSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
             }
         }
     } else if (input_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        LOGE("Error: layer acc don't support datatype: %d\n", input_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuSplitVLayerAcc layer acc don't support datatype: %d\n", input_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuSplitVLayerAcc layer acc dont support datatype");
     } else {
-        LOGE("Error: layer acc dont support datatype: %d\n", input_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuSplitVLayerAcc layer acc dont support datatype: %d\n", input_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuSplitVLayerAcc layer acc dont support datatype");
     }
 
     return TNN_OK;
