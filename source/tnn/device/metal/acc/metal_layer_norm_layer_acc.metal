@@ -70,8 +70,8 @@ kernel void layer_norm(const device ftype *src                       [[buffer(0)
     threadgroup_barrier(mem_flags::mem_threadgroup);
 
     for (int index = t_index; index < params.channel_area; index+=32) {
-        float scale = scales[index];
-        float bias  = biases[index];
+        float scale = float(scales[index]);
+        float bias  = float(biases[index]);
         bias -= x_group[0] * x2_group[0] * scale;
 
         dst[index + index_c] = src[index + index_c] * x2_group[0] * scale + bias;

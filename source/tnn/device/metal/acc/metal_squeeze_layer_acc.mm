@@ -80,9 +80,10 @@ Status MetalSqueezeLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs
 }
 
 std::string MetalSqueezeLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    const auto data_type = outputs[0]->GetBlobDesc().data_type;
     if (need_reformat_)
-        return "squeeze_common";
-    return "permute_copy";
+        return DataTypeUtils::GetBytesSize(data_type)==4? "squeeze_common_int4" : "squeeze_common";
+    return DataTypeUtils::GetBytesSize(data_type)==4? "permute_copy_int4" : "permute_copy";
 }
 
 Status MetalSqueezeLayerAcc::Forward(const std::vector<Blob *> &inputs,

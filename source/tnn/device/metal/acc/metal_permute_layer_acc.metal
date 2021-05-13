@@ -257,6 +257,17 @@ kernel void permute_copy(const device ftype4 *src                  [[buffer(0)]]
     dst[index_in_out] = src[index_in_out];
 }
 
+kernel void permute_copy_int4(const device int4 *src                  [[buffer(0)]],
+                            device int4 *dst                            [[buffer(1)]],
+                            constant MetalPermuteParams &params     [[buffer(2)]],
+                            uint3 gid                                          [[thread_position_in_grid]]) {
+    if (any(gid >= uint3(params.output_width, params.output_height, params.output_slice * params.batch)))
+        return;
+
+    int index_in_out = (int)gid.z * params.output_size + (int)gid.y * params.output_width + (int)gid.x;
+    dst[index_in_out] = src[index_in_out];
+}
+
 kernel void permute_common(const device ftype4 *src                  [[buffer(0)]],
                            device ftype4 *dst                        [[buffer(1)]],
                            constant MetalDynamicPermuteParams &params       [[buffer(2)]],

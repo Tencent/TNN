@@ -117,7 +117,8 @@ Status MetalCastLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         BREAK_IF(status != TNN_OK);
         
         status = SetKernelEncoderParam(encoder, inputs, outputs);
-        BREAK_IF(status != TNN_OK);status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
+        BREAK_IF(status != TNN_OK);
+        status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
         BREAK_IF(status != TNN_OK);
     } while (0);
 
