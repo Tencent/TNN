@@ -117,6 +117,7 @@ function buildDll(){
 			#	exit 1
 			#fi
 		done
+		cp -r ${PROJECT_ROOT_PATH}/include ${OUTPUT_WINDOWS_PATH}
     done
 }
 
@@ -130,11 +131,11 @@ function main(){
     log $LOG_INFO "start clean output\n"
     clean "${OUTPUT_WINDOWS_PATH}"
 
-    log $LOG_INFO "start build dll\n"    
+    log $LOG_INFO "start build dll\n"
     buildDll
 
-    #log $LOG_INFO "start pack windows\n"
-    #pack "msvc"
+    log $LOG_INFO "start pack windows\n"
+    pack "msvc"
     
     success "Windows"
     printf "${MAGENTA}Visual Studio version: ${VS_VERSION}${NORMAL}\n"
