@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 
 enable_language(CUDA)
 
+add_definitions(-DTHRUST_IGNORE_CUB_VERSION_CHECK)
 add_definitions(-DTHRUST_IGNORE_DEPRECATED_CPP_DIALECT)
 add_definitions(-DCUB_IGNORE_DEPRECATED_CPP11)
 
