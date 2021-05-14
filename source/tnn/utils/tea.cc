@@ -15,7 +15,7 @@
 #include "tnn/utils/tea.h"
 #ifdef WIN32
 #include <winsock2.h>
-#pragma comment(lib,"ws2_32.lib")
+#pragma comment(lib, "ws2_32.lib")
 #else
 #include <netinet/in.h>
 #endif
@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
+namespace TNN_NS {
 #define ROUNDS 16
 #define LOG_ROUNDS 4
 
@@ -247,13 +247,11 @@ int OiSymmetryEncrypt2Len(int nInBufLen) {
 }
 
 static void CheckZeroEncrypt(const uint8_t* pKey, uint8_t* pOutBuf, int* pOutBufLen, uint8_t* src_buf,
-                               uint8_t* iv_plain, uint8_t* iv_crypt, int src_i);
+                             uint8_t* iv_plain, uint8_t* iv_crypt, int src_i);
 static bool CheckZeroDecrypt(const uint8_t* pInBuf, int nInBufLen, const uint8_t* pKey, uint8_t* dest_buf,
-                               const uint8_t* iv_pre_crypt, const uint8_t* iv_cur_crypt, int dest_i, int nBufPos);
+                             const uint8_t* iv_pre_crypt, const uint8_t* iv_cur_crypt, int dest_i, int nBufPos);
 
-
-void OiSymmetryEncrypt2(const uint8_t* pInBuf, int nInBufLen, const uint8_t* pKey, uint8_t* pOutBuf,
-                          int* pOutBufLen) {
+void OiSymmetryEncrypt2(const uint8_t* pInBuf, int nInBufLen, const uint8_t* pKey, uint8_t* pOutBuf, int* pOutBufLen) {
     int nPadSaltBodyZeroLen;
     int nPadlen;
     uint8_t src_buf[8], iv_plain[8], *iv_crypt;
@@ -328,7 +326,7 @@ void OiSymmetryEncrypt2(const uint8_t* pInBuf, int nInBufLen, const uint8_t* pKe
 }
 
 void CheckZeroEncrypt(const uint8_t* pKey, uint8_t* pOutBuf, int* pOutBufLen, uint8_t* src_buf, uint8_t* iv_plain,
-                        uint8_t* iv_crypt, int src_i) {
+                      uint8_t* iv_crypt, int src_i) {
     int i, j;
     for (i = 1; i <= ZERO_LEN;) {
         if (src_i < 8) {
@@ -355,8 +353,7 @@ void CheckZeroEncrypt(const uint8_t* pKey, uint8_t* pOutBuf, int* pOutBufLen, ui
     }
 }
 
-bool OiSymmetryDecrypt2(const uint8_t* pInBuf, int nInBufLen, const uint8_t* pKey, uint8_t* pOutBuf,
-                          int* pOutBufLen) {
+bool OiSymmetryDecrypt2(const uint8_t* pInBuf, int nInBufLen, const uint8_t* pKey, uint8_t* pOutBuf, int* pOutBufLen) {
     int nPadLen, nPlainLen;
     uint8_t dest_buf[8], zero_buf[8];
     const uint8_t *iv_pre_crypt, *iv_cur_crypt;
@@ -429,7 +426,7 @@ bool OiSymmetryDecrypt2(const uint8_t* pInBuf, int nInBufLen, const uint8_t* pKe
 }
 
 static bool CheckZeroDecrypt(const uint8_t* pInBuf, int nInBufLen, const uint8_t* pKey, uint8_t* dest_buf,
-                               const uint8_t* iv_pre_crypt, const uint8_t* iv_cur_crypt, int dest_i, int nBufPos) {
+                             const uint8_t* iv_pre_crypt, const uint8_t* iv_cur_crypt, int dest_i, int nBufPos) {
     int i, j;
     for (i = 1; i <= ZERO_LEN;) {
         if (dest_i < 8) {
@@ -455,7 +452,7 @@ static bool CheckZeroDecrypt(const uint8_t* pInBuf, int nInBufLen, const uint8_t
 
     return true;
 }
-//QQ used
+// QQ used
 int SymmetryEncrypt3Len(int nInBufLen) {
     int nPadSaltBodyZeroLen;
     int nPadlen;
@@ -509,3 +506,4 @@ int TeaDecrypt(const uint8_t* cryptograph, int cryptograph_len, const uint8_t* k
     }
     return pbuflen;
 }
+}  // namespace TNN_NS

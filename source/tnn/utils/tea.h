@@ -16,7 +16,7 @@
 #define TNN_SOURCE_TNN_UTILS_STRING_UTILS_TEA_H_
 
 #include <stdint.h>
-
+namespace TNN_NS {
 #define PROTO_ENCRYPTION_ENABLED "proto_encryption_enabled"
 #define PROTO_ENCRYPTION_UNKNOWN "proto_encryption_unknown"
 #define MODEL_ENCRYPTION_ENABLED "model_encryption_enabled"
@@ -24,7 +24,6 @@
 
 int TeaEncrypt(const uint8_t *plain, int plain_len, const uint8_t *key, uint8_t *buf, int buf_len);
 
-int TeaDecrypt(const uint8_t *cryptograph, int cryptograph_len, const uint8_t *key, uint8_t *buf,
-               int buf_len);
-
+int TeaDecrypt(const uint8_t *cryptograph, int cryptograph_len, const uint8_t *key, uint8_t *buf, int buf_len);
+}  // namespace TNN_NS
 #endif
