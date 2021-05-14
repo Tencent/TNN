@@ -68,9 +68,6 @@ void X86Sgemv(float* dst, const float* src, const float* weight, float *bias, Di
 template <int activation_type, typename VEC, int pack>
 void X86_Post_Exec(float *dst, const float *bias, long channel, long area);
 
-void X86GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
-                     const float* scale, const int32_t* bias, long relu, const int8_t* add_input,
-                     const float* add_scale, const int8_t* relu6_max);
 }   // namespace TNN_NS
 
 #endif
