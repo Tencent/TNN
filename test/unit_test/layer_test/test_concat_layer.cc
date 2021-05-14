@@ -15,20 +15,22 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
 class ConcatLayerTest : public LayerTest,
-                        public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
+                        public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConcatLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
                                             // axis
-                                            testing::Values(1, 2, 3),
+                                            testing::Values(1, 2, 3, 4, 5),
                                             // input cnt
                                             testing::Values(2, 3),
+                                            // dim count
+                                            testing::Values(2, 3, 4, 5, 6),
                                             // dtype
                                             testing::Values(DATA_TYPE_INT8, DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
@@ -39,19 +41,22 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
     int input_size     = std::get<2>(GetParam());
     int axis           = std::get<3>(GetParam());
     int input_count    = std::get<4>(GetParam());
-    DataType data_type = std::get<5>(GetParam());
+    int dim_count      = std::get<5>(GetParam());
+    DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
-#ifndef TNN_ARM82
-    if (data_type == DATA_TYPE_HALF) {
-        GTEST_SKIP();
-    }
-#endif
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if (axis >= dim_count) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+    if (DEVICE_HUAWEI_NPU == dev && dim_count > 4) {
         GTEST_SKIP();
     }
 
@@ -66,11 +71,13 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
     }
 
     // generate interpreter
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
     std::vector<std::vector<int>> input_dims_vec;
     for (int i = 0; i < input_count; ++i)
-        input_dims_vec.push_back({batch, channel, input_size, input_size});
+        input_dims_vec.push_back(input_dims);
     auto interpreter = GenerateInterpreter("Concat", input_dims_vec, param);
-    Run(interpreter);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

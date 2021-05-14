@@ -25,15 +25,15 @@ Status Conv3DLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, 
 
     GET_INT_3(p->group, p->input_channel, p->output_channel);
 
-    // kernels w, h, d
-    GET_INT_N_INTO_VEC(p->kernels, 3);
+    // kernels d, h, w -> w, h, d
+    GET_INT_N_INTO_VEC_REVERSE(p->kernels, 3);
 
-    // strides w, h, d
-    GET_INT_N_INTO_VEC(p->strides, 3);
+    // strides d, h, w -> w, h, d
+    GET_INT_N_INTO_VEC_REVERSE(p->strides, 3);
 
-    // pads
+    // pads d, h, w -> w, h, d
     int pad_w = 0, pad_h = 0, pad_d = 0;
-    GET_INT_3(pad_w, pad_h, pad_d);
+    GET_INT_3(pad_d, pad_h, pad_w);
     p->pads.push_back(pad_w);
     p->pads.push_back(pad_w);
     p->pads.push_back(pad_h);
@@ -44,8 +44,8 @@ Status Conv3DLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, 
     // bias
     GET_INT_2(p->bias, p->pad_type);
 
-    // dailations
-    GET_INT_N_INTO_VEC_DEFAULT(p->dialations, 3, 1);
+    // dailations d, h, w -> w, h, d
+    GET_INT_N_INTO_VEC_REVERSE_DEFAULT(p->dialations, 3, 1);
 
     // activation
     GET_INT_1(p->activation_type);
@@ -79,27 +79,27 @@ Status Conv3DLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerPara
     output_stream << layer_param->output_channel << " ";
 
     ASSERT(layer_param->kernels.size() == 3);
-    output_stream << layer_param->kernels[0] << " ";
-    output_stream << layer_param->kernels[1] << " ";
     output_stream << layer_param->kernels[2] << " ";
+    output_stream << layer_param->kernels[1] << " ";
+    output_stream << layer_param->kernels[0] << " ";
 
     ASSERT(layer_param->strides.size() == 3);
-    output_stream << layer_param->strides[0] << " ";
-    output_stream << layer_param->strides[1] << " ";
     output_stream << layer_param->strides[2] << " ";
+    output_stream << layer_param->strides[1] << " ";
+    output_stream << layer_param->strides[0] << " ";
 
     ASSERT(layer_param->pads.size() == 6);
-    output_stream << layer_param->pads[0] << " ";
-    output_stream << layer_param->pads[2] << " ";
     output_stream << layer_param->pads[4] << " ";
+    output_stream << layer_param->pads[2] << " ";
+    output_stream << layer_param->pads[0] << " ";
 
     output_stream << layer_param->bias << " ";
     output_stream << layer_param->pad_type << " ";
 
     ASSERT(layer_param->dialations.size() == 3);
-    output_stream << layer_param->dialations[0] << " ";
-    output_stream << layer_param->dialations[1] << " ";
     output_stream << layer_param->dialations[2] << " ";
+    output_stream << layer_param->dialations[1] << " ";
+    output_stream << layer_param->dialations[0] << " ";
 
     output_stream << layer_param->activation_type << " ";
 

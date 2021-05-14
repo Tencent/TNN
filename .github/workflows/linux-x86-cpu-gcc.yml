@@ -31,4 +31,4 @@ jobs:
     - name: gcc-multilib
       run: sudo apt-get install gcc-multilib g++-multilib libprotobuf-dev protobuf-compiler
     - name: build
-      run: ./scripts/build_linux.sh
+      run: ./scripts/build_x86_linux.sh

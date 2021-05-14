@@ -28,29 +28,7 @@ public:
 
 protected:
     Status Convert() {
-        auto param    = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
-        auto resource = dynamic_cast<EltwiseLayerResource *>(resource_);
-        CHECK_PARAM_NULL(param);
-
-        int input_size = input_ops_.size();
-        if (!((input_size == 1 && resource) || input_size == 2)) {
-            return Status(TNNERR_MODEL_ERR, "Error: the Multiply layer input number is not correct");
-        }
-
-        auto output = std::make_shared<ge::op::Mul>(outputs_name_[0]);
-
-        if (input_size == 2) {
-            output->set_input_x(*input_ops_[0]->GetOperator());
-            output->set_input_y(*input_ops_[1]->GetOperator());
-        } else {
-            std::shared_ptr<ge::op::Const> weight_const = nullptr;
-            RETURN_ON_NEQ(GetBinaryWeight(weight_const), TNN_OK);
-
-            output->set_input_x(*weight_const);
-            output->set_input_y(*input_ops_[0]->GetOperator());
-        }
-
-        ADD_OUTPUT_OP(output);
+        return NpuBinaryLayer::BinaryConvert<hiai::op::Mul>();
     }
 };
 

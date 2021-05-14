@@ -17,19 +17,44 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/half_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 // @brief arg_max_or_argmin layer metal acc
 class MetalArgMaxOrMinLayerAcc : public MetalLayerAcc {
 public:
+    Status Init(Context *context, LayerParam *param, LayerResource *resource,
+                           const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     Status AllocateBufferParam(const std::vector<Blob*>& inputs, const std::vector<Blob*>& outputs);
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     Status ComputeThreadSize(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, MTLSize &size);
 };
+
+Status MetalArgMaxOrMinLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                           const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto status = AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    context_ = dynamic_cast<MetalContext *>(context);
+
+    param_    = param;
+    resource_ = resource;
+
+#if TNN_METAL_FULL_PRECISION
+    inputs[0]->GetBlobDesc().data_type  = DATA_TYPE_FLOAT;
+#else
+    inputs[0]->GetBlobDesc().data_type  = DATA_TYPE_HALF;
+#endif
+    outputs[0]->GetBlobDesc().data_type = DATA_TYPE_INT32;
+
+    status = ReloadConstantBlobs(inputs, false);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    return Reshape(inputs, outputs);
+}
 
 std::string MetalArgMaxOrMinLayerAcc::KernelName(const std::vector<Blob *> &inputs,
                                       const std::vector<Blob *> &outputs) {
@@ -87,9 +112,49 @@ Status MetalArgMaxOrMinLayerAcc::ComputeThreadSize(const std::vector<Blob *> &in
 }
 
 Status MetalArgMaxOrMinLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return MetalLayerAcc::Forward(inputs, outputs);
+    auto data_type = outputs[0]->GetBlobDesc().data_type;
+    if (data_type != DATA_TYPE_INT32) {
+        LOGE("MetalArgMaxOrMinLayerAcc: output DataType must be int32\n");
+        return Status(TNNERR_LAYER_ERR, "MetalArgMaxOrMinLayerAcc: output DataType must be int32");
+    }
+
+    auto param = dynamic_cast<ArgMaxOrMinLayerParam *>(param_);
+    if (param->axis <= 1 && param->keep_dims == 0) {
+        LOGE("MetalArgMaxOrMinLayerAcc: axis<1 and keep_dims=0 not supported!\n");
+        return Status(TNNERR_LAYER_ERR, "MetalArgMaxOrMinLayerAcc: axis<1 and keep_dims=0 not supported!");
+    }
+
+    auto context_impl = context_->getMetalContextImpl();
+    auto encoder = [context_impl encoder];
+    
+    MTLSize threads;
+    auto status = ComputeThreadSize(inputs, outputs, threads);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
+    do {
+        auto kernel_name = KernelName(inputs, outputs);
+        MetalBandwidth bandwidth;
+        status = [context_impl load:[NSString stringWithUTF8String:kernel_name.c_str()]
+                            encoder:encoder
+                          bandwidth:bandwidth];
+        BREAK_IF(status != TNN_OK);
+        
+        status = SetKernelEncoderParam(encoder, inputs, outputs);
+        BREAK_IF(status != TNN_OK);
+        status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
+        BREAK_IF(status != TNN_OK);
+    } while (0);
+
+    [encoder endEncoding];
+    
+    if (status == TNN_OK) {
+        [context_impl commit];
+        TNN_PRINT_ENCODER(context_, encoder, this);
+    }
+    return status;
 }
 
 REGISTER_METAL_ACC(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN);
+REGISTER_METAL_LAYOUT(LAYER_ARG_MAX_OR_MIN, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

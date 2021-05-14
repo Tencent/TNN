@@ -22,7 +22,9 @@ Status LRNLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status LRNLayer::InferOutputShape() {
+Status LRNLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
     Blob *input_blob                = input_blobs_[0];
     Blob *output_blob               = output_blobs_[0];
     output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;

@@ -14,18 +14,22 @@
 
 #include "tnn/core/common.h"
 #include "tnn/core/instance.h"
+#include "tnn/core/macro.h"
 #include "tnn/core/tnn.h"
 
 #include "file_reader.h"
 #include "model_checker.h"
+#include "flags.h"
 #include "tnn/utils/split_utils.h"
 
-#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
+#ifdef WIN32
+#include <io.h>
+#else
 #include <unistd.h>
+#endif
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -54,6 +58,8 @@ DeviceType ConvertDeviceType(std::string device_type) {
         return DEVICE_ARM;
     } else if ("HUAWEI_NPU" == device_type) {
         return DEVICE_HUAWEI_NPU;
+    } else if ("X86" == device_type) {
+        return DEVICE_X86;
     } else {
         return DEVICE_NAIVE;
     }
@@ -71,7 +77,7 @@ int InitModelConfig(ModelConfig& model_config, std::string proto_file, std::stri
     }
 
     {
-        std::ifstream model_stream(model_file);
+        std::ifstream model_stream(model_file, std::ios::binary);
         if (!model_stream.is_open() || !model_stream.good()) {
             printf("read model_file failed!\n");
             return -1;
@@ -110,7 +116,11 @@ bool GetInputType(std::string name, FileFormat& format) {
 
 std::pair<std::string, FileFormat> GetFileInfo(std::string input_path) {
     FileFormat format = NOTSUPPORT;
+#ifdef WIN32
+    if (access(input_path.c_str(), 0) == 0) {
+#else
     if (access(input_path.c_str(), F_OK) == 0) {
+#endif
         if (GetInputType(input_path, format)) {
             printf("\tfile name: %s  type: %d\n", input_path.c_str(), format);
             return std::make_pair(input_path, format);
@@ -119,120 +129,102 @@ std::pair<std::string, FileFormat> GetFileInfo(std::string input_path) {
     return std::make_pair("", format);
 }
 
-void PrintConfig() {
+void ShowUsage() {
     printf(
         "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-o] [-e] [-f] "
-        "<refernece> [-n] <val> [-s] <val>\n"
-        "\t-h, --help     \t show this message\n"
-        "\t-p, --proto    \t(require) tnn proto file path\n"
-        "\t-m, --model    \t(require) tnn model file path\n"
-        "\t-d, --device   \t(require) the device to run to check results, ie, "
-        "OPENCL, METAL, ARM, CUDA, HUAWEI_NPU, NAIVE\n"
-        "\t-i, --input    \t(optional) input file\n"
-        "\t-f, --ref      \t(optional) the reference output to compare\n"
-        "\t-e, --end      \t(optional) compare output only\n"
-        "\t-n, --bias     \t(optional) bias val when preprocess image input, ie, "
-        "0.0,0.0,0.0 \n"
-        "\t-s, --scale    \t(optional) scale val when preprocess image input, ie, "
-        "1.0,1.0,1.0 \n"
-        "\t\tformula: y = (x - bias) * scale\n"
-        "\t-o, --output   \t(optional) dump output\n"
-        "\t-b, --batch    \t(optional) check result of multi batch\n");
+        "<refernece> [-n] <val> [-s] <val> [-a] <align_folder>\n");
+    printf("\t-h, <help>     \t%s\n", help_message);
+    printf("\t-p, <proto>    \t%s\n", proto_path_message);
+    printf("\t-m, <model>    \t%s\n", model_path_message);
+    printf("\t-d, <device>   \t%s\n", device_type_message);
+    printf("\t-i, <input>    \t%s\n", input_path_message);
+    printf("\t-f, <ref>      \t%s\n", output_ref_path_message);
+    printf("\t-e, <end>      \t%s\n", cmp_end_message);
+    printf("\t-n, <bias>     \t%s\n", bias_message);
+    printf("\t-s, <scale>    \t%s\n", scale_message);
+    printf("\t\tformula: y = (x - bias) * scale\n");
+    printf("\t-o, <output>   \t%s\n", output_dump_message);
+    printf("\t-b, <batch>    \t%s\n", check_batch_message);
+    printf("\t-a, <align_all>\t%s\n", align_all_message);
+}
+
+bool ParseAndCheckCommandLine(int argc, char* argv[]) {
+    gflags::ParseCommandLineNonHelpFlags(&argc, &argv, true);
+    if (FLAGS_h) {
+        ShowUsage();
+        return false;
+    }
+
+    if (FLAGS_p.empty() || FLAGS_m.empty() || FLAGS_d.empty()) {
+        printf("Parameter -p/-m/-d is not set \n");
+        ShowUsage();
+        return false;
+    }
+
+    return true;
 }
 
 int main(int argc, char* argv[]) {
+    // parse command line params
+    if (!ParseAndCheckCommandLine(argc, argv))
+        return -1;
+
     // Init parameters
-    std::string proto_file_name;
-    std::string model_file_name;
+    std::string proto_file_name = FLAGS_p;
+    std::string model_file_name = FLAGS_m;
 
     NetworkConfig net_config;
+    net_config.device_type = ConvertDeviceType(FLAGS_d);
     ModelConfig model_config;
 
     ModelCheckerParam model_checker_param;
-    model_checker_param.input_file  = std::make_pair("", NOTSUPPORT);
-    model_checker_param.input_bias  = {0, 0, 0, 0};
-    model_checker_param.input_scale = {1.0f, 1.0f, 1.0f, 1.0f};
-    model_checker_param.dump_output = false;
-    model_checker_param.ref_file    = std::make_pair("", NOTSUPPORT);
+    model_checker_param.input_file        = std::make_pair("", NOTSUPPORT);
+    model_checker_param.input_bias        = {0, 0, 0, 0};
+    model_checker_param.input_scale       = {1.0f, 1.0f, 1.0f, 1.0f};
+    model_checker_param.ref_file          = std::make_pair("", NOTSUPPORT);
+    model_checker_param.dump_output       = FLAGS_o;
+    model_checker_param.dump_dir_path     = FLAGS_a;
+    model_checker_param.only_check_output = FLAGS_e;
+    model_checker_param.check_batch       = FLAGS_b;
 
-    struct option long_options[] = {{"proto", required_argument, 0, 'p'},  {"model", required_argument, 0, 'm'},
-                                    {"device", required_argument, 0, 'd'}, {"input", required_argument, 0, 'i'},
-                                    {"ref", required_argument, 0, 'f'},    {"end", no_argument, 0, 'e'},
-                                    {"bias", required_argument, 0, 'n'},   {"scale", required_argument, 0, 's'},
-                                    {"output", no_argument, 0, 'o'},       {"batch", no_argument, 0, 'b'},
-                                    {"help", no_argument, 0, 'h'},         {0, 0, 0, 0}};
+    printf("proto: %s\n", proto_file_name.c_str());
+    printf("model: %s\n", model_file_name.c_str());
+    printf("device: %s\n", FLAGS_d.c_str());
 
-    const char* optstring = "p:m:d:i:f:en:s:obh";
-
-    if (argc == 1) {
-        PrintConfig();
-        return -1;
+    if(!FLAGS_i.empty()) {
+        printf("input file: %s\n", FLAGS_i.c_str());
+        model_checker_param.input_file = GetFileInfo(FLAGS_i);
     }
-
-    while (1) {
-        int c = getopt_long(argc, argv, optstring, long_options, nullptr);
-        if (c == -1)
-            break;
-
-        switch (c) {
-            case 'p':
-                printf("proto: %s\n", optarg);
-                proto_file_name = optarg;
-                break;
-            case 'm':
-                printf("model: %s\n", optarg);
-                model_file_name = optarg;
-                break;
-            case 'd':
-                printf("device: %s\n", optarg);
-                net_config.device_type = ConvertDeviceType(optarg);
-                break;
-            case 'i':
-                printf("input file: %s\n", optarg);
-                model_checker_param.input_file = GetFileInfo(optarg);
-                break;
-            case 'o':
-                printf("dump output\n");
-                model_checker_param.dump_output = true;
-                break;
-            case 'e':
-                printf("compare output only\n");
-                model_checker_param.only_check_output = true;
-                break;
-            case 'f':
-                printf("reference output file: %s\n", optarg);
-                model_checker_param.ref_file = GetFileInfo(optarg);
-                break;
-            case 'n': {
-                printf("bias: %s\n", optarg);
-                std::vector<std::string> array;
-                SplitUtils::SplitStr(optarg, array, ",");
-                model_checker_param.input_bias.clear();
-                for (auto s : array) {
-                    model_checker_param.input_bias.push_back(atof(s.c_str()));
-                }
-            } break;
-            case 's': {
-                printf("scale: %s\n", optarg);
-                std::vector<std::string> array;
-                SplitUtils::SplitStr(optarg, array, ",");
-                model_checker_param.input_scale.clear();
-                for (auto s : array) {
-                    model_checker_param.input_scale.push_back(atof(s.c_str()));
-                }
-            } break;
-            case 'b':
-                printf("check result of multi batch\n");
-                model_checker_param.check_batch = true;
-                break;
-            case 'h':
-            case '?':
-                PrintConfig();
-                return -1;
-            default:
-                PrintConfig();
-                break;
+    if(!FLAGS_f.empty()) {
+        printf("reference output file: %s\n", FLAGS_f.c_str());
+        model_checker_param.ref_file = GetFileInfo(FLAGS_f);
+    }
+    if(!FLAGS_n.empty()) {
+        printf("bias: %s\n", FLAGS_n.c_str());
+        std::vector<std::string> array;
+        SplitUtils::SplitStr(FLAGS_n.c_str(), array, ",");
+        model_checker_param.input_bias.clear();
+        for (auto s : array) {
+            model_checker_param.input_bias.push_back(atof(s.c_str()));
         }
+    }
+    if(!FLAGS_s.empty()) {
+        printf("scale: %s\n", FLAGS_s.c_str());
+        std::vector<std::string> array;
+        SplitUtils::SplitStr(FLAGS_s.c_str(), array, ",");
+        model_checker_param.input_scale.clear();
+        for (auto s : array) {
+            model_checker_param.input_scale.push_back(atof(s.c_str()));
+        }
+    }
+    if(FLAGS_e) {
+        printf("compare output only\n");
+    }
+    if(FLAGS_o) {
+        printf("dump output\n");
+    }
+    if(FLAGS_b) {
+        printf("check result of multi batch\n");
     }
 
     if ("" == model_checker_param.input_file.first && "" != model_checker_param.ref_file.first) {
@@ -251,6 +243,7 @@ int main(int argc, char* argv[]) {
         model_checker_param.only_check_output = true;
     }
 
+#ifndef WIN32
     // only for metal device
     if (net_config.device_type == DEVICE_METAL) {
         //获取当前目录绝对路径
@@ -262,6 +255,7 @@ int main(int argc, char* argv[]) {
             net_config.library_path = {std::string(current_absolute_path.get())};
         }
     }
+#endif
 
     int ret = InitModelConfig(model_config, proto_file_name, model_file_name);
     if (CheckResult("init model config", ret) != true)

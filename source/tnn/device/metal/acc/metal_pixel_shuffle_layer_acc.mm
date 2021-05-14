@@ -16,6 +16,7 @@
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -38,12 +39,12 @@ Status MetalPixelShuffleLayerAcc::AllocateBufferParam(const std::vector<Blob *> 
         metal_params.batch          = dims_input[0];
         metal_params.input_channel  = dims_input[1];
         metal_params.input_slice    = UP_DIV(dims_input[1], 4);
-        metal_params.input_height   = dims_input[2];
-        metal_params.input_width    = dims_input[3];
+        metal_params.input_height   = DimsFunctionUtils::GetDim(dims_input, 2);
+        metal_params.input_width    = DimsFunctionUtils::GetDim(dims_input, 3);
 
         metal_params.output_slice   = UP_DIV(dims_output[1], 4);
-        metal_params.output_height   = dims_output[2];
-        metal_params.output_width    = dims_output[3];
+        metal_params.output_height  = DimsFunctionUtils::GetDim(dims_output, 2);
+        metal_params.output_width   = DimsFunctionUtils::GetDim(dims_output, 3);
 
         metal_params.upscale_factor = layer_param->upscale_factor;
 
@@ -78,5 +79,6 @@ Status MetalPixelShuffleLayerAcc::Forward(const std::vector<Blob *> &inputs, con
 }
 
 REGISTER_METAL_ACC(PixelShuffle, LAYER_PIXEL_SHUFFLE);
+REGISTER_METAL_LAYOUT(LAYER_PIXEL_SHUFFLE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

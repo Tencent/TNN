@@ -14,7 +14,7 @@
 
 #include "tnn/device/opencl/acc/convolution/opencl_conv_layer_acc_impl.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
@@ -52,8 +52,8 @@ Status OpenCLConvLayerAccImpl::Init(Context *context, LayerParam *param, LayerRe
     conv_params_.has_bias        = conv_param->bias;
     conv_params_.activation_type = conv_param->activation_type;
 
-    conv_params_.input_channel  = inputs[0]->GetBlobDesc().dims[1];
-    conv_params_.output_channel = outputs[0]->GetBlobDesc().dims[1];
+    conv_params_.input_channel  = DimsFunctionUtils::GetDim(inputs[0]->GetBlobDesc().dims, 1);
+    conv_params_.output_channel = DimsFunctionUtils::GetDim(outputs[0]->GetBlobDesc().dims, 1);
 
     if ((conv_params_.group <= 0 || conv_params_.input_channel % conv_params_.group != 0)) {
         LOGE("invalid group size in Conv layer!\n");
@@ -143,7 +143,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
                       DimsVectorUtils::Count(filter_shape) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
     }
     weight_memory->SetData(&buffer);
     auto weight_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
@@ -156,7 +156,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(buffer, weight_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Conv MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Conv MemUnMap failed");
     }
 
     // create ocl_weights_
@@ -182,7 +182,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
             CHECK_CL_SUCCESS(ret)
             if (nullptr != weights_clbuffer)
                 delete weights_clbuffer;
-            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
         }
         ocl_weights_->SetData(weights_clbuffer, true);
 
@@ -215,7 +215,7 @@ Status OpenCLConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
             CHECK_CL_SUCCESS(ret)
             if (nullptr != image)
                 delete image;
-            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
         }
         ocl_weights_.reset(new OpenCLMemory(TNN_CL_IMAGE));
         ocl_weights_->SetData(image, true);

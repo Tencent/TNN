@@ -18,6 +18,7 @@
 #include "tnn/device/x86/x86_common.h"
 #ifdef __AVX2__
 #include "tnn/device/x86/acc/avx_mathfun.h"
+#include "tnn/device/x86/acc/sse_mathfun.h"
 #else
 #include "tnn/device/arm/acc/TNNVector.h"
 #endif
@@ -159,23 +160,33 @@ struct Float8 {
         dst.value = log256_ps(v.value);
         return dst;
     }
-    Float8 operator+(const Float8& lr) {
+    static Float8 tanh(const Float8& v) {
+        Float8 dst;
+        __m128 low = _mm256_extractf128_ps(v.value, 0);
+        __m128 high = _mm256_extractf128_ps(v.value, 1);
+        low = tanh_ps(low);
+        high = tanh_ps(high);
+        dst.value = _mm256_castps128_ps256(low);
+        dst.value = _mm256_insertf128_ps(dst.value, high, 1);
+        return dst;
+    }
+    Float8 operator+(const Float8& lr) const {
         Float8 dst;
         dst.value = _mm256_add_ps(value, lr.value);
         return dst;
     }
-    Float8 operator-(const Float8& lr) {
+    Float8 operator-(const Float8& lr) const {
         Float8 dst;
         dst.value = _mm256_sub_ps(value, lr.value);
         return dst;
     }
-    Float8 operator*(float lr) {
+    Float8 operator*(float lr) const {
         Float8 dst;
         __m256 tmp = _mm256_set1_ps(lr);
         dst.value = _mm256_mul_ps(value, tmp);
         return dst;
     }
-    Float8 operator*(const Float8& lr) {
+    Float8 operator*(const Float8& lr) const {
         Float8 dst;
         dst.value = _mm256_mul_ps(value, lr.value);
         return dst;
@@ -188,7 +199,7 @@ struct Float8 {
         value = std::move(lr.value);
         return *this;
     }
-    Float8 operator-() {
+    Float8 operator-() const {
         Float8 dst;
         dst.value = _mm256_sub_ps(_mm256_setzero_ps(), value);
         return dst;

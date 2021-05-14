@@ -34,9 +34,6 @@ Status ArgMaxOrMinLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int in
     if (index < layer_cfg_arr.size()) {
         p->keep_dims = atoi(layer_cfg_arr[index++].c_str());
     }
-	if (p->keep_dims != 1) {
-		p->keep_dims = 1;
-	}
 
     if (index < layer_cfg_arr.size()) {
         p->select_last_index = atoi(layer_cfg_arr[index++].c_str());

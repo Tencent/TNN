@@ -16,6 +16,7 @@
 
 #include <cstring>
 
+#include "tnn/core/common.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_resource.h"
@@ -66,17 +67,24 @@ bool ConvertShapeFormatTFLite(std::vector<int32_t>& shape) {
         LOGE("TNN Converter do not support wrong shape!\n");
         return false;
     }
-    while (shape.size() < 4) {
-        shape.insert(shape.end() - 1, 1);
-    }
-    // shape [n, h , w, c] -> shape [n, c, h, w]
-    if (shape.size() == 4) {
+    if (shape.size() < 3) {
+        return true;
+    } else if (shape.size() == 3) {
+        auto h = shape[1];
+        auto c = shape[2];
+        shape[1] = c;
+        shape[2] = h;
+    } else if (shape.size() == 4) {
+        // shape [n, h , w, c] -> shape [n, c, h, w]
         auto h   = shape[1];
         auto w   = shape[2];
         auto c   = shape[3];
         shape[1] = c;
         shape[2] = h;
         shape[3] = w;
+    } else {
+        LOGE("TNN Converter do not support wrong shape!\n");
+        return false;
     }
     return true;
 }
@@ -132,6 +140,7 @@ int ConvertAxisFormatTFLite(int axis, int input_shape_size) {
     if (input_shape_size == 2) {
         return axis;
     } else if (input_shape_size == 3) {
+        // [n,h,c] -> [n,c,h]
         switch (axis) {
             case 1:
                 return 2;
@@ -184,29 +193,14 @@ int SizeofTFLiteTensorData(tflite::TensorType type) {
 }
 
 void Mask(std::vector<int> shape, int mask, int upper, std::vector<int>& v) {
-    ASSERT(shape.size() == 4);
-    ASSERT(v.size() == 4);
-    ASSERT(mask <= 15 && mask >= 0);
-    if (upper == 0) {
-        // 处理的是 begin，取的是 0
-        if (mask & 0x1)
-            v[0] = 0;
-        if (mask & 0x2)
-            v[1] = 0;
-        if (mask & 0x4)
-            v[2] = 0;
-        if (mask & 0x8)
-            v[3] = 0;
-    } else {
-        // 处理的是 ends， 取最大值
-        if (mask & 0x1)
-            v[0] = shape[0];
-        if (mask & 0x2)
-            v[1] = shape[1];
-        if (mask & 0x4)
-            v[2] = shape[2];
-        if (mask & 0x8)
-            v[3] = shape[3];
+    int window = 0x1;
+    for (int i = 0; i < shape.size(); ++i) {
+        if (mask & window) {
+            // upper == 0: 处理的是 begin，取的是 0
+            // upper != 0: 处理的是 ends， 取最大值
+            v[i] = upper == 0? 0: shape[i];
+        }
+        window = window << 1;
     }
 }
 
@@ -232,6 +226,30 @@ TNN_NS::Status CreateIntScaleResource(TNN_NS::NetResource& net_resource,
         scale_resource->scale_handle = scale_handle;
     }
     return TNN_NS::TNN_CONVERT_OK;
+}
+
+
+TNN_NS::DataType GetTnnDataTypeFromTFLite(const tflite::TensorType& tensor_type) {
+    switch (tensor_type) {
+        case tflite::TensorType_FLOAT32: {
+            return TNN_NS::DATA_TYPE_FLOAT;
+        }
+        case tflite::TensorType_FLOAT16: {
+            return TNN_NS::DATA_TYPE_HALF;
+        }
+        case tflite::TensorType_UINT8:
+        case tflite::TensorType_INT8: {
+            return TNN_NS::DATA_TYPE_INT8;
+        }
+        case tflite::TensorType_INT32:
+        case tflite::TensorType_INT64: {
+            return TNN_NS::DATA_TYPE_INT32;
+        }
+        default: {
+            LOGE("Not support tflite TensorType\n");
+            assert(0);
+        }
+    }
 }
 
 }  // namespace TNN_CONVERTER

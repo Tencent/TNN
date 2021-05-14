@@ -51,7 +51,7 @@ Status OpenCLDeconvLayerCommonAcc::Init(Context *context, LayerParam *param, Lay
     if (deconv_params_.kernel_x == 4 && deconv_params_.kernel_y == 4 &&
                deconv_params_.stride_x == 2 && deconv_params_.stride_y == 2 &&
                deconv_params_.pad_x == 1 && deconv_params_.pad_y == 1 &&
-               deconv_params_.dilation_x == 1 && deconv_params_.dilation_y == 1 && output_dims[3] % 4 == 0) {
+               deconv_params_.dilation_x == 1 && deconv_params_.dilation_y == 1 && DimsFunctionUtils::GetDim(output_dims, 3) % 4 == 0) {
         kernel_name = "Deconv2D4x4s2p1wb4";
     }
 
@@ -71,7 +71,7 @@ void OpenCLDeconvLayerCommonAcc::SetExtraKernelParameters(uint32_t idx, const st
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
-    const int input_channel_blocks  = UP_DIV(input_dims[1], 4);
+    const int input_channel_blocks  = UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4);
 
     execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(input_channel_blocks));
 }

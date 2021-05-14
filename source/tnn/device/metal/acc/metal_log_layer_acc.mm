@@ -33,5 +33,6 @@ Status MetalLogLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
 }
 
 REGISTER_METAL_UNARY_ACC(Log, LAYER_LOG);
+REGISTER_METAL_LAYOUT(LAYER_LOG, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

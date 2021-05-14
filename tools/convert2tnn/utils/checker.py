@@ -47,7 +47,7 @@ def check_onnx_dim(onnx_path : str):
     for ip in session.get_inputs():
         current_shape[ip.name] = ip.shape
         for dim in ip.shape:
-            if type(dim) is not int or dim < 1:
+            if type(dim) is not int or dim < 0:
                 status = -1
                 
     if status == -1:

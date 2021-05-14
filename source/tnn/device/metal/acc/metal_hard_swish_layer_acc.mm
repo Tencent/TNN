@@ -15,6 +15,7 @@
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/acc/metal_multidir_broadcast_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -91,5 +92,6 @@ Status MetalHardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
 }
 
 REGISTER_METAL_ACC(HardSwish, LAYER_HARDSWISH);
+REGISTER_METAL_LAYOUT(LAYER_HARDSWISH, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

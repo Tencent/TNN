@@ -61,6 +61,12 @@ Status X86Device::Free(void* handle) {
     return TNN_OK;
 }
 
+std::shared_ptr<const ImplementedLayout> X86Device::GetImplementedLayout(LayerType type) {
+    auto layouts = new ImplementedLayout();
+    layouts->layouts.push_back(DATA_FORMAT_NCHW);
+    return std::shared_ptr<ImplementedLayout>(layouts);
+}
+
 Status X86Device::CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobDesc& desc, void* command_queue) {
     auto size_info       = Calculate(desc);
     size_t size_in_bytes = GetBlobMemoryBytesSize(size_info);
@@ -90,6 +96,10 @@ AbstractLayerAcc* X86Device::CreateLayerAcc(LayerType type) {
 
 Context* X86Device::CreateContext(int device_id) {
     return new X86Context();
+}
+
+NetworkType X86Device::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT;
 }
 
 Status X86Device::RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator) {

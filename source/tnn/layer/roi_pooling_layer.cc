@@ -22,7 +22,9 @@ Status RoiPoolingLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status RoiPoolingLayer::InferOutputShape() {
+Status RoiPoolingLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
     Blob* input_blob = input_blobs_[0];
     Blob* rpn_blob   = input_blobs_[1];  // of shape <n, num_rois, 5, 1 ,1>
 

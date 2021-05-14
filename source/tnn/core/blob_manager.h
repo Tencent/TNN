@@ -35,7 +35,7 @@ namespace TNN_NS {
 
 class BlobManager : public ISharedMemoryChangeListener {
 public:
-    // @brief BlobManager constrctor
+    // @brief BlobManager constructor
     explicit BlobManager(AbstractDevice *device);
 
     // @brief BlobManager destructor
@@ -53,7 +53,7 @@ public:
     // @param name blob name
     Blob *GetBlob(std::string name);
 
-    // @brief check blob memory state for diffrent share memory mode
+    // @brief check blob memory state for different share memory mode
     Status CheckBlobMemoryState();
 
     // @brief set blob forward memory
@@ -67,8 +67,8 @@ public:
     // @param blobs blob map
     virtual Status GetAllOutputBlobs(BlobMap &blobs);
 
-    // @brief AllocateBlobMemory
-    virtual Status AllocateBlobMemory();
+    // @brief AllocateBlobMemory for blob with flag
+    virtual Status AllocateBlobMemory(int flag = DATA_FLAG_CHANGE_ALWAYS);
 
     // @brief OnSharedForwardMemoryChanged for share memory change observer
     virtual void OnSharedForwardMemoryChanged(void *memory);
@@ -85,7 +85,8 @@ protected:
 
     NetworkConfig config_;
     NetStructure *net_structure_;
-    BlobMemoryPool *blob_memory_pool_;
+    // dimension-memory pool
+    std::map<int, BlobMemoryPool *> blob_memory_pool_map_;
     AbstractDevice *device_;
     BlobMap input_blobs_;
     BlobMap output_blobs_;

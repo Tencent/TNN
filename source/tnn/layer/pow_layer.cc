@@ -15,9 +15,51 @@
 #include "tnn/layer/elementwise_layer.h"
 
 namespace TNN_NS {
+DECLARE_LAYER_WITH_FUNC(Pow, LAYER_POWER,
+                        virtual Status FillLayerParamWithConstantResource(););
 
-DECLARE_ELEMENTWISE_LAYER(Pow, LAYER_POWER);
+Status PowLayer::InferOutputDataType() {
+    return BaseLayer::InferOutputDataType();
+}
 
+Status PowLayer::InferOutputShape(bool ignore_error) {
+    auto status = BaseLayer::InferOutputShape(ignore_error);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
+    auto layer_param = dynamic_cast<PowLayerParam*>(param_);
+    CHECK_PARAM_NULL(layer_param);
+
+    Blob* input_blob  = input_blobs_[0];
+    Blob* output_blob = output_blobs_[0];
+
+    output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
+    return TNN_OK;
+}
+
+Status PowLayer::FillLayerParamWithConstantResource() {
+    Status status = TNN_OK;
+    auto *layer_param = dynamic_cast<PowLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    if (input_blobs_.size() >= 2) {
+        auto min_blob_name = input_blobs_[1]->GetBlobDesc().name;
+        if (const_resource_ != nullptr && const_resource_->find(min_blob_name) != const_resource_->end()) {
+            auto min_buffer =  (*const_resource_)[min_blob_name];
+            auto dim_count = min_buffer->GetDataCount();
+            if (min_buffer->GetDataType() == DATA_TYPE_FLOAT) {
+                auto dim_data = (float *)min_buffer->force_to<float *>();
+                layer_param->exponent = *dim_data;
+            } else {
+                return Status(TNNERR_PARAM_ERR, "ClipLayer has invalid data type for min value");
+            }
+            
+            if (dim_count > 1) {
+                return Status(TNNERR_PARAM_ERR, "PowLayer only dont support broad cast right now");
+            }
+        }
+    }
+    return status;
+}
 REGISTER_ELEMENTWISE_LAYER(Pow, LAYER_POWER);
 
 }  // namespace TNN_NS

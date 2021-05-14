@@ -19,6 +19,9 @@
 #include <vector>
 #include <cuda_runtime.h>
 
+#include <cudnn.h>
+#include <cublas_v2.h>
+
 #include "tnn/core/context.h"
 
 namespace TNN_NS {
@@ -38,10 +41,13 @@ public:
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void** command_queue) override;
 
-    // @brief befor instace forword
+    // @brief share tnn command queue to another context
+    virtual Status ShareCommandQueue(Context* context);
+
+    // @brief before instance forward
     virtual Status OnInstanceForwardBegin() override;
 
-    // @brief after instace forword
+    // @brief after instance forward
     virtual Status OnInstanceForwardEnd() override;
 
     // @brief wait for jobs in the current context to complete
@@ -50,9 +56,12 @@ public:
     // @brief get cuda stream
     cudaStream_t& GetStream();
 
-private:
+public:
+    cudnnHandle_t cudnn_handle_;
+    cublasHandle_t cublas_handle_;
     cudaStream_t stream_;
     int device_id_;
+    bool own_stream_ = false;
 };
 
 }  //  namespace TNN_NS;

@@ -14,7 +14,7 @@
 
 #include "tnn/device/opencl/acc/opencl_reshape_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -24,33 +24,58 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
 
+    int reshape_type = -1;
     ReshapeLayerParam *reshape_param = dynamic_cast<ReshapeLayerParam *>(param_);
     if (!reshape_param) {
-        LOGE("Error: layer param is null\n");
-        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
+        FlattenLayerParam *flatten_param = dynamic_cast<FlattenLayerParam *>(param_);
+        if(!flatten_param) {
+            LOGE("Error: layer param is null\n");
+            return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
+        } else {
+            reshape_type = 0;
+        }
+    } else {
+        reshape_type = reshape_param->reshape_type;
     }
 
     run_3d_ndrange_ = false;
     op_name_        = "Reshape";
 
-    std::string im_to_bf_func_name, bf_to_im_func_name;
-    if (reshape_param->reshape_type == 0)
+    auto input = inputs[0];
+    auto output = outputs[0];
+
+    auto input_dims = input->GetBlobDesc().dims;
+    auto output_dims = output->GetBlobDesc().dims;
+    input_dims_size_ = input_dims.size();
+    output_dims_size_ = output_dims.size();
+
+    std::string src_format = "Image", dst_format = "Image";
+    src_format = input_dims_size_ == 5 ? "Image5D" : input_dims_size_ == 6 ? "Image6D" : src_format;
+    dst_format = output_dims_size_ == 5 ? "Image5D" : output_dims_size_ == 6 ? "Image6D" : dst_format;
+
+    if (reshape_type == 0)
     {
-        im_to_bf_func_name      = "ImageToNCHWBuffer";
-        bf_to_im_func_name      = "NCHWBufferToImage";
-    } else if (reshape_param->reshape_type == 1) {
-        // tensorflow reshape 对应的数据格式是 NHWC
-        im_to_bf_func_name      = "ImageToNHWCBuffer";
-        bf_to_im_func_name      = "NHWCBufferToImage";
+        im_to_bf_func_name_      = src_format + "ToNCHWBuffer";
+        bf_to_im_func_name_      = "NCHWBufferTo" + dst_format;
+    } else if (reshape_type == 1 && outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
+        // tensorflow reshape data format is NHWC, only support NHC4W4 blob for now
+        im_to_bf_func_name_      = src_format + "ToNHWCBuffer";
+        bf_to_im_func_name_      = "NHWCBufferTo" + dst_format;
     } else {
-        LOGE("Error: Unsupport reshape type(%d)", reshape_param->reshape_type);
+        LOGE("Error: Unsupport reshape type(%d), src_format: %s, dst_format: %s\n",
+             reshape_type, src_format.c_str(), dst_format.c_str());
         return Status(TNNERR_MODEL_ERR, "Error: OpenCLReshapeLayerAcc failed!\n");
     }
 
     execute_units_.resize(2);
     // image->buffer
     {
-        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", im_to_bf_func_name);
+        std::set<std::string> build_opt;
+        if (outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
+            is_nchw_output_ = true;
+            build_opt.emplace("-DENABLE_BUFFER_PRECISION_ADJUST");
+        }
+        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", im_to_bf_func_name_, build_opt);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -59,7 +84,7 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
     // buffer->image
     {
-        ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", bf_to_im_func_name);
+        ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", bf_to_im_func_name_);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -73,8 +98,19 @@ OpenCLReshapeLayerAcc::~OpenCLReshapeLayerAcc() {}
 
 Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Reshape Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
     auto input  = inputs[0];
     auto output = outputs[0];
+
+    // reinit opencl execute unit if data format is changed during Reshape
+    if (output->GetBlobDesc().data_format == DATA_FORMAT_NCHW && !is_nchw_output_) {
+        std::set<std::string> build_opt;
+        is_nchw_output_ = true;
+        build_opt.emplace("-DENABLE_BUFFER_PRECISION_ADJUST");
+        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", im_to_bf_func_name_, build_opt);
+        CHECK_TNN_OK(ret)
+    }
 
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
@@ -82,32 +118,95 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
     int blob_size                 = sizeof(float) * DimsVectorUtils::Count(input_dims);
 
-    inter_buffer_ = std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, blob_size);
+    if (output->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
+        inter_buffer_ = std::make_shared<cl::Buffer>(*opencl_runtime->Context(),
+                                                     CL_MEM_READ_WRITE, blob_size);
+    }
 
     // image->buffer
     {
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], input_dims);
-        execute_units_[0].ocl_kernel.setArg(idx++, *inter_buffer_.get());
-        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(input_dims[2]));
-        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(input_dims[3]));
-        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(input_dims[1]));
+        if (output->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
+            execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Buffer *)output->GetHandle().base));
+        } else {
+            execute_units_[0].ocl_kernel.setArg(idx++, *inter_buffer_.get());
+        }
+        if (input_dims_size_ <= 4) {
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
+        } else if (input_dims_size_ == 5) {
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 4)));
+        } else if (input_dims_size_ == 6) {
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 4)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 5)));
+        }
         execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
     }
 
     // buffer->image
-    {
+    if (output->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
+        InsertUnactiveUnitId(1);
+    } else {
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[1], output_dims);
         execute_units_[1].ocl_kernel.setArg(idx++, *inter_buffer_.get());
-        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(output_dims[2]));
-        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(output_dims[3]));
-        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(output_dims[1]));
+        if (output_dims_size_ <= 4) {
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
+        } else if (output_dims_size_ == 5) {
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 4)));
+        } else if (output_dims_size_ == 6) {
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 4)));
+            execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 5)));
+        }
         execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
     }
 
     return TNN_OK;
 }
 
+std::vector<DataFormat> OpenCLReshapeLayerAcc::SupportDataFormat(DataType data_type,
+                                                                 int dims_size,
+                                                                 BlobType blob_type) {
+    std::vector<DataFormat> support_list;
+    if (data_type == DATA_TYPE_INT32) {
+        // reshape layer blob may contain shape info
+        support_list.push_back(DATA_FORMAT_NHC4W4);
+    } else if (dims_size >= 2 && dims_size <= 6) { // only support up to 6 dims
+        support_list.push_back(DATA_FORMAT_NHC4W4);
+        // output blob support nchw
+        if (blob_type == BLOB_OUTPUT) {
+            support_list.push_back(DATA_FORMAT_NCHW);
+        }
+    }
+    return support_list;
+}
+
+std::vector<DataType> OpenCLReshapeLayerAcc::SupportDataType(int dims_size, BlobType blob_type) {
+    if (blob_type == BLOB_INPUT) {
+        // reshape layer blob may contain shape info
+        return {DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_INT32};
+    } else {
+        return {DATA_TYPE_FLOAT, DATA_TYPE_HALF};
+    }
+}
+
 REGISTER_OPENCL_ACC(Reshape, LAYER_RESHAPE)
 REGISTER_OPENCL_ACC(Reshape, LAYER_FLATTEN)
+REGISTER_OPENCL_LAYOUT(LAYER_RESHAPE, DATA_FORMAT_NHC4W4);
+REGISTER_OPENCL_LAYOUT(LAYER_FLATTEN, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

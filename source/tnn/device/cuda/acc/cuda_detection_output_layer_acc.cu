@@ -14,7 +14,7 @@
 
 #include "tnn/device/cuda/acc/cuda_detection_output_layer_acc.h"
 #include "tnn/device/cuda/acc/cuda_detection_output_layer_acc_kernel.cuh"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/bbox_util.h"
 
 namespace TNN_NS {

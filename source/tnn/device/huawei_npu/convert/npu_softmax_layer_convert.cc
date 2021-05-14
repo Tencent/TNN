@@ -22,6 +22,9 @@ DECLARE_NPU_LAYER(Softmax, LAYER_SOFTMAX)
 Status NpuSoftmaxLayer::Convert() {
     auto param = dynamic_cast<SoftmaxLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
+    if (input_ops_[0]->GetShape().size() != 4) {
+        return Status(TNNERR_PARAM_ERR, "Error: Softmax layer not support dim != 4 for HUAWEI_NPU");
+    }
 
     auto output = std::make_shared<ge::op::Softmax>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());

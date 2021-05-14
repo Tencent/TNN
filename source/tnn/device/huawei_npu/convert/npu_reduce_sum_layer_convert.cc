@@ -17,46 +17,21 @@
 
 #include "graph/attr_value.h"
 #include "npu_base_layer_convert.h"
+#include "npu_reduce_layer_convert.h"
 #include "npu_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER_WEIGHT(ReduceSum, LAYER_REDUCE_SUM)
+class NpuReduceSumLayer : public NpuReduceLayer {
+public:
+    NpuReduceSumLayer(LayerType ignore) : NpuReduceLayer(LAYER_REDUCE_SUM) {}
+    ~NpuReduceSumLayer() {}
 
-Status NpuReduceSumLayer::Convert() {
-    // parameter and weight of the pooling layer
-    auto param = dynamic_cast<ReduceLayerParam *>(param_);
-    CHECK_PARAM_NULL(param);
-    std::vector<int> axes            = param->axis;
-    std::vector<int> input_shape_vec = input_ops_[0]->GetShape();
-
-    // check if all reduce
-    if (param->all_reduce) {
-        axes.clear();
-        for (int i = 0; i < input_shape_vec.size(); i++) {
-            axes.push_back(i);
-        }
-    } else {
-        for (int i = 0; i < axes.size(); i++) {
-            if (axes[i] < 0) {
-                axes[i] = input_shape_vec.size() + axes[i];
-            }
-        }
+protected:
+    Status Convert() {
+        return NpuReduceLayer::ReduceConvert<hiai::op::ReduceSum>();
     }
-
-    int reduce_size = axes.size();
-    ge::Shape weight_shape({reduce_size});
-    ge::TensorDesc desc(weight_shape, ge::FORMAT_NCHW, ge::DT_INT32);
-    std::shared_ptr<ge::op::Const> axes_op = std::make_shared<ge::op::Const>(layer_name_ + "_axes");
-    NpuUtils::CreateAttrArray(axes_op, axes, desc, reduce_size);
-    weight_ops_.push_back(axes_op);
-
-    auto output = std::make_shared<ge::op::ReduceSum>(outputs_name_[0]);
-    output->set_input_x(*input_ops_[0]->GetOperator());
-    output->set_input_w(*axes_op);
-    output->set_attr_keep_dims(param->keep_dims);
-    ADD_OUTPUT_OP(output)
-}
+};
 
 REGISTER_NPU_LAYER(ReduceSum, LAYER_REDUCE_SUM)
 

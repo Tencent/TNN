@@ -13,10 +13,10 @@
 // specific language governing permissions and limitations under the License.
 
 #include <cmath>
-#include "tnn/device/arm/acc/arm_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
 
 #include "tnn/device/arm/acc/Float4.h"
+#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -32,7 +32,7 @@ Status ArmClipLayerAcc::DoForward(const std::vector<Blob *> &input_blobs, const 
     auto input_blob  = input_blobs[0];
     auto output_blob = output_blobs[0];
     auto dims        = output_blob->GetBlobDesc().dims;
-    int count        = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+    int count        = dims[0] * ROUND_UP(dims[1], 4) * DimsVectorUtils::Count(dims, 2);
     int count_quad   = UP_DIV(count, 4);
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
@@ -55,5 +55,6 @@ Status ArmClipLayerAcc::DoForward(const std::vector<Blob *> &input_blobs, const 
 }
 
 REGISTER_ARM_ACC(Clip, LAYER_CLIP);
+REGISTER_ARM_LAYOUT(LAYER_CLIP, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

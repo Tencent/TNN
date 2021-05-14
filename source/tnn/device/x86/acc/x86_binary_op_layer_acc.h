@@ -19,6 +19,7 @@
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/device/x86/x86_device.h"
+#include "tnn/device/x86/acc/Float4.h"
 
 namespace TNN_NS {
 
@@ -31,17 +32,36 @@ enum class X86BinaryOpType : int {
     kMIN = 5,
 };
 
+template <X86BinaryOpType op_type, typename VEC, int pack>
+Status BinaryFunc(float *output_ptr, const float *input0_ptr, const float *input1_ptr,
+                  DimsVector &dims0, DimsVector &dims1, DimsVector &output_dims);
+template <X86BinaryOpType op_type>
+void BinaryGeneral(DimsVector output_shape, const std::vector<DimsVector> &input_shapes,
+                   float *output_ptr, std::vector<float *> &input_ptrs);
+using binary_func_t = decltype(&BinaryFunc<X86BinaryOpType::kADD, Float4, 4>);
+using binary_general_func_t = decltype(&BinaryGeneral<X86BinaryOpType::kADD>);
+
 class X86BinaryOpLayerAcc : public X86LayerAcc {
 public:
     virtual ~X86BinaryOpLayerAcc();
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource,
+                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 protected:
     // Calculate Function
     Status Calculate(const std::vector<Blob *> &input_blobs, const std::vector<void *> &input_ptrs,
                      const std::vector<DimsVector> &input_shapes, Blob *output);
     X86BinaryOpType op_type_;
+private:
+    std::vector<DimsVector> input_shapes_;
+    BroadcastType btype_;
+
+    binary_func_t binary_func_;
+    binary_general_func_t binary_general_func_;
 };
 
 #define DECLARE_X86_BINARY_OP_ACC(type_string, op_type)                                                                 \

@@ -19,7 +19,7 @@
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "utils/network_helpers.h"
 
 namespace TNN_NS {
@@ -102,6 +102,21 @@ bool MatConverterTest::MetalTestFilter(const DeviceType& device_type, const MatT
                 mat_converter_type == MatConverterType::Resize)) {
         return true;
     }
+    return false;
+}
+
+bool MatConverterTest::CUDATestFilter(const DeviceType& device_type, const MatType& mat_type,
+                                       const MatConverterType& mat_converter_type) {
+    if (device_type != DEVICE_CUDA)
+        return false;
+
+    if (mat_converter_type == MatConverterType::WarpAffine && (mat_type == NNV12 || mat_type == NNV21)) {
+        return true;
+    }
+    if (mat_converter_type == MatConverterType::Resize && (mat_type == NNV12 || mat_type == NNV21)) {
+        return true;
+    }
+
     return false;
 }
 
@@ -268,7 +283,8 @@ TEST_P(MatConverterTest, MatConverterTest) {
     DeviceType device_type  = ConvertDeviceType(FLAGS_dt);
     // warp affine/resize only support N8UC4 on OpenCL for now
     if (OpenCLTestFilter(device_type, mat_type) ||
-        MetalTestFilter(device_type, mat_type, mat_converter_type, batch)) {
+        MetalTestFilter(device_type, mat_type, mat_converter_type, batch) ||
+        CUDATestFilter(device_type, mat_type, mat_converter_type)) {
         GTEST_SKIP();
     }
     if (MatChannelCheck(mat_type, channel, input_size) ||

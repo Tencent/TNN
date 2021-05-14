@@ -15,12 +15,12 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 class ClipLayerTest : public LayerTest,
-                      public ::testing::WithParamInterface<std::tuple<int, int, int, float, float, DataType>> {};
+                      public ::testing::WithParamInterface<std::tuple<int, int, int, int, float, float, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ClipLayerTest,
                          ::testing::Combine(
@@ -30,6 +30,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ClipLayerTest,
                              testing::Values(1, 4, 15),
                              // size Values(16, 19),
                              testing::Values(1, 6, 8, 13),
+                             // dim count
+                             testing::Values(2, 3, 4, 5),
                              // min
                              testing::Values(-1.234, 2.30, 0),
                              // max
@@ -42,13 +44,21 @@ TEST_P(ClipLayerTest, ClipLayer) {
     int batch      = std::get<0>(GetParam());
     int channel    = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam());
-    float minV     = std::get<3>(GetParam());
-    float maxV     = std::get<4>(GetParam());
+    int dim_count  = std::get<3>(GetParam());
+    float minV     = std::get<4>(GetParam());
+    float maxV     = std::get<5>(GetParam());
     if (maxV < minV) {
         maxV = minV;
     }
-    DataType data_type = std::get<5>(GetParam());
+    DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+
+    if (dev == DEVICE_OPENCL && dim_count > 4) {
+        GTEST_SKIP();
+    }
+    if (DEVICE_HUAWEI_NPU == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
 
     // param
     ClipLayerParam* param = new ClipLayerParam();
@@ -57,7 +67,8 @@ TEST_P(ClipLayerTest, ClipLayer) {
     param->max            = maxV;
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
     auto interpreter            = GenerateInterpreter("Clip", {input_dims}, std::shared_ptr<LayerParam>(param));
     Run(interpreter);
 }

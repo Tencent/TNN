@@ -43,9 +43,13 @@ protected:
         NpuUtils::CreateAttrValue(weight_const, weight_shape, resource->filter_handle);
         weight_ops_.push_back(weight_const);
 
-        auto output = std::make_shared<hiai::op::Convolution>(outputs_name_[0]);
-        output->set_input_x(*input_ops_[0]->GetOperator());
-        output->set_input_filter(*weight_const);
+        std::string conv_op_name = outputs_name_[0];
+        if (activation_type_ != ActivationType_None) {
+            conv_op_name = layer_name_ + "_conv_op";
+        }
+        auto conv_op = std::make_shared<hiai::op::Convolution>(conv_op_name);
+        conv_op->set_input_x(*input_ops_[0]->GetOperator());
+        conv_op->set_input_filter(*weight_const);
         // Init bias
         int bias_count = resource->bias_handle.GetDataCount();
         // check bias
@@ -55,16 +59,45 @@ protected:
             auto bias_const = std::make_shared<ge::op::Const>(layer_name_ + "_bias");
             NpuUtils::CreateAttrValue(bias_const, bias_shape, resource->bias_handle);
             weight_ops_.push_back(bias_const);
-            output->set_input_bias(*bias_const);
+            conv_op->set_input_bias(*bias_const);
         }
-        output->set_attr_strides(ge::AttrValue::LIST_INT({stride_h_, stride_w_}));
-        output->set_attr_dilations(ge::AttrValue::LIST_INT({dilation_h_, dilation_w_}));
-        output->set_attr_groups(group_);
-        output->set_attr_pads(ge::AttrValue::LIST_INT({pad_h_begin_, pad_h_end_, pad_w_begin_, pad_w_end_}));
+        conv_op->set_attr_strides(ge::AttrValue::LIST_INT({stride_h_, stride_w_}));
+        conv_op->set_attr_dilations(ge::AttrValue::LIST_INT({dilation_h_, dilation_w_}));
+        conv_op->set_attr_groups(group_);
+        conv_op->set_attr_pads(ge::AttrValue::LIST_INT({pad_h_begin_, pad_h_end_, pad_w_begin_, pad_w_end_}));
 
-        output->set_attr_pad_mode("SPECIFIC");
+        conv_op->set_attr_pad_mode("SPECIFIC");
 
-        ADD_OUTPUT_OP(output)
+        if (activation_type_ == ActivationType_None) {
+            ADD_OUTPUT_OP(conv_op)
+        } else {
+            weight_ops_.push_back(conv_op);
+
+            if (activation_type_ == ActivationType_ReLU) {
+                auto activation_op = std::make_shared<hiai::op::Activation>(outputs_name_[0]);
+                activation_op->set_input_x(*conv_op);
+                activation_op->set_attr_mode(1);
+                ADD_OUTPUT_OP(activation_op)
+            } else if (activation_type_ == ActivationType_ReLU6) {
+                auto activation_op = std::make_shared<hiai::op::Activation>(outputs_name_[0]);
+                activation_op->set_input_x(*conv_op);
+                activation_op->set_attr_mode(14);
+                ADD_OUTPUT_OP(activation_op)
+            } else if (activation_type_ == ActivationType_SIGMOID_MUL) {
+                auto activation_op = std::make_shared<hiai::op::Activation>(layer_name_ + "_sigmoid");
+                activation_op->set_input_x(*conv_op);
+                activation_op->set_attr_mode(0);
+                weight_ops_.push_back(activation_op);
+
+                auto mul_op = std::make_shared<hiai::op::Mul>(outputs_name_[0]);
+                mul_op->set_input_x1(*conv_op);
+                mul_op->set_input_x2(*activation_op);
+                ADD_OUTPUT_OP(mul_op)
+            } else {
+                LOGE("the convolution activation type (%d) is not support in HUAWEI_NPU yet\n", activation_type_);
+                return Status(TNNERR_PARAM_ERR, "the convolution activation type is not support in HUAWEI_NPU yet");
+            }
+        }
     }
 };
 

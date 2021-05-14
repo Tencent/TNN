@@ -25,7 +25,9 @@ Status DeconvLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status DeconvLayer::InferOutputShape() {
+Status DeconvLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
     Blob* input_blob             = input_blobs_[0];
     Blob* output_blob            = output_blobs_[0];
     ConvLayerParam* deconv_param = dynamic_cast<ConvLayerParam*>(param_);
@@ -77,7 +79,7 @@ Status DeconvLayer::InferOutputShape() {
             height_out = height * stride_h - (stride_h + kernel_extent_h - 2);
             width_out  = width * stride_w - (stride_w + kernel_extent_w - 2);
         } else {
-            LOGE("Error: DeconvLayer dont support pad type: %d\n", pad_type);
+            LOGE_IF(!ignore_error, "Error: DeconvLayer dont support pad type: %d\n", pad_type);
             return Status(TNNERR_PARAM_ERR, "Error: DeconvLayer dont support pad type");
         }
 
@@ -112,7 +114,7 @@ Status DeconvLayer::InferOutputShape() {
         //             deconv_param->pads[2],
         //             deconv_param->pads[3]);
     } else {
-        LOGE("Error: DeconvLayer dont support pad type: %d\n", pad_type);
+        LOGE_IF(!ignore_error, "Error: DeconvLayer dont support pad type: %d\n", pad_type);
         return Status(TNNERR_PARAM_ERR, "Error: DeconvLayer dont support pad type");
     }
 
@@ -122,7 +124,7 @@ Status DeconvLayer::InferOutputShape() {
     }
 
     if (height_out <= 0 || width_out <= 0) {
-        LOGE("Error: invalid deconv param, height_out(%d) or width_out(%d) is less than zero\n", height_out, width_out);
+        LOGE_IF(!ignore_error, "Error: invalid deconv param, height_out(%d) or width_out(%d) is less than zero\n", height_out, width_out);
         return Status(TNNERR_PARAM_ERR, "Error: invalid deconv param, height_out or width_out is less than zero");
     }
 

@@ -15,7 +15,7 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -34,7 +34,8 @@ TEST_P(InnerProductInt8LayerTest, InnerProductLayer) {
     int input_size     = std::get<2>(GetParam());
     int output_channel = std::get<3>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    if (DEVICE_ARM != dev) {
+
+    if(CheckDataTypeSkip(DATA_TYPE_INT8)) {
         GTEST_SKIP();
     }
 

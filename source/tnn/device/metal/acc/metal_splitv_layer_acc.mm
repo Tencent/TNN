@@ -16,6 +16,7 @@
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -26,11 +27,30 @@ Status MetalSplitVLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
 }
 
 Status MetalSplitVLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return  MetalLayerAcc::AllocateBufferParam(inputs, outputs);
+    auto layer_param = dynamic_cast<SplitVLayerParam *>(param_);
+    auto input_dims  = inputs[0]->GetBlobDesc().dims;
+    input_dims[1] = UP_DIV(input_dims[1], 4);
+    {
+    MetalSplitVParamV2 metal_params;
+    metal_params.outer_size = DimsVectorUtils::Count(input_dims, 0, layer_param->axis);
+    metal_params.inner_size = DimsFunctionUtils::GetDimProduct(input_dims, layer_param->axis+1);
+    metal_params.axis_size  = DimsFunctionUtils::GetDim(input_dims, layer_param->axis);
+
+    id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
+    buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
+                                            length:sizeof(MetalSoftmaxParams)
+                                           options:MTLResourceCPUCacheModeWriteCombined];
+    }
+
+    return  TNN_OK;
 }
 
 std::string MetalSplitVLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return "";
+    auto layer_param = dynamic_cast<SplitVLayerParam *>(param_);
+    if (layer_param->axis == 1)
+        return "splitv_axis_1_common";
+
+    return "splitv_common";
 }
 
 Status MetalSplitVLayerAcc::SetKernelEncoderParam(
@@ -43,22 +63,17 @@ Status MetalSplitVLayerAcc::SetKernelEncoderParam(
 Status MetalSplitVLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
                                         const std::vector<Blob *> &outputs,
                                         MTLSize &size) {
-    return MetalLayerAcc::ComputeThreadSize(inputs, outputs, size);
+    return TNN_OK;
 }
 
 Status MetalSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<SplitVLayerParam *>(param_);
-    if (!layer_param || layer_param->axis != 1) {
-        LOGE("SplitV do not support axis!=1 \n");
-        return Status(TNNERR_LAYER_ERR, "SplitV axis is not supported");
-    }
-
     auto context_impl = context_->getMetalContextImpl();
 
     auto input = inputs[0];
 
     MetalBandwidth bandwidth;
-    Status status        = TNN_OK;
+
     DataType data_type   = input->GetBlobDesc().data_type;
     string data_type_str = DataTypeUtils::GetDataTypeString(data_type);
     if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
@@ -66,24 +81,28 @@ Status MetalSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         return Status(TNNERR_LAYER_ERR, "MetalSplitVLayerAcc: DataType must be float or half");
     }
 
-    int channel_offset = 0;
+    const string kernel_name = KernelName(inputs, outputs);
+    bool split_channel       = layer_param->axis == 1;
+
+    int axis_offset = 0;
+    Status status = TNN_OK;
+
     for (int i = 0; i < outputs.size(); i++) {
         auto dims_output    = outputs[i]->GetBlobDesc().dims;
-        auto output_width   = dims_output[3];
-        auto output_height  = dims_output[2];
-        auto output_channel = dims_output[1];
         auto output_slice   = UP_DIV(dims_output[1], 4);
-        auto batch          = dims_output[0];
+        auto split_axis_size= DimsFunctionUtils::GetDim(dims_output, layer_param->axis); 
+        split_axis_size = split_channel? output_slice : split_axis_size;
 
         auto encoder = [context_impl encoder];
         encoder.label = GetKernelLabel();
 
         do {
-            status = [context_impl load: @"splitv_axis_1_common"
+            status = [context_impl load: [NSString stringWithUTF8String:kernel_name.c_str()]
                                 encoder:encoder
                               bandwidth:bandwidth];
             BREAK_IF(status != TNN_OK);
-            MTLSize threads = {(NSUInteger)output_height * output_width, (NSUInteger)output_slice, (NSUInteger)batch};
+            MTLSize threads;
+            GetSingleAxisSplitSize(outputs[i]->GetBlobDesc().dims, layer_param->axis, threads, false);
 
             [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
                         offset:(NSUInteger)input->GetHandle().bytes_offset
@@ -92,8 +111,8 @@ Status MetalSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
                         offset:(NSUInteger)outputs[i]->GetHandle().bytes_offset
                        atIndex:1];
             [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
-            [encoder setBytes:&channel_offset length:sizeof(channel_offset) atIndex:3];
-            [encoder setBytes:&output_slice length:sizeof(output_slice) atIndex:4];
+            [encoder setBytes:&axis_offset length:sizeof(axis_offset) atIndex:3];
+            [encoder setBytes:&split_axis_size length:sizeof(split_axis_size) atIndex:4];
             status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
             BREAK_IF(status != TNN_OK);
         } while (0);
@@ -101,11 +120,13 @@ Status MetalSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         [context_impl commit];
         TNN_PRINT_ENCODER(context_, encoder, this);
         BREAK_IF(status != TNN_OK);
-        channel_offset += output_channel;
+        axis_offset += dims_output[layer_param->axis];
     }
+
     return TNN_OK;
 }
 
 REGISTER_METAL_ACC(SplitV, LAYER_SPLITV);
+REGISTER_METAL_LAYOUT(LAYER_SPLITV, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

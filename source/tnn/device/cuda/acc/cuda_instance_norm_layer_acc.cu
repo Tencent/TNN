@@ -19,7 +19,7 @@
 #include <cub/block/block_radix_sort.cuh>
 
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -132,7 +132,7 @@ Status CudaInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, cons
     int height = dims[2];
     int width = dims[3];
     int count = DimsVectorUtils::Count(dims);
-    int hw = height * width;
+    int hw = DimsVectorUtils::Count(dims, 2);
     void* input_data = input_blob->GetHandle().base;
     void* output_data = output_blob->GetHandle().base;
 

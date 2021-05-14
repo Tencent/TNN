@@ -15,6 +15,7 @@
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/acc/metal_unary_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 DECLARE_METAL_UNARY_ACC(Elu, LAYER_ELU);
@@ -38,6 +39,7 @@ Status MetalEluLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, 
     {
         MetalEluParams metal_params;
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
+        FixDefaultMetalParams(metal_params, dims_input, dims_output);
 
         metal_params.alpha = layer_param->alpha;
 
@@ -53,5 +55,6 @@ Status MetalEluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
 }
 
 REGISTER_METAL_UNARY_ACC(Elu, LAYER_ELU);
+REGISTER_METAL_LAYOUT(LAYER_ELU, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

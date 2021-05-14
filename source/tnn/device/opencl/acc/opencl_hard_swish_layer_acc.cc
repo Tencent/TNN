@@ -15,6 +15,8 @@
 #include "tnn/device/opencl/acc/opencl_binary_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 
+#include <sstream>
+
 namespace TNN_NS {
 
 class OpenCLHardSwishLayerAcc : public OpenCLBinaryLayerAcc {
@@ -46,23 +48,37 @@ Status OpenCLHardSwishLayerAcc::Init(Context *context, LayerParam *param, LayerR
     Status ret = OpenCLBinaryLayerAcc::Init(context, param, resource, inputs_extend_, outputs);
     CHECK_TNN_OK(ret)
 
+    HardSwishLayerParam *hs_param = dynamic_cast<HardSwishLayerParam *>(param_);
+    if (!hs_param) {
+        LOGE("Error: layer param is null\n");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
+    }
+
     op_name_ = "HardSwish";
 
     // create kernel
-    std::string kernel_name = kernel_name_ + "_HardSwish";
     std::set<std::string> build_options;
     std::string compute;
+    std::string alpha_str = std::to_string(hs_param->alpha);
+    if (alpha_str.find('.') != std::string::npos && alpha_str.find('f') == std::string::npos) {
+        alpha_str += "f";
+    }
+    std::string beta_str = std::to_string(hs_param->beta);
+    if (beta_str.find('.') != std::string::npos && beta_str.find('f') == std::string::npos) {
+        beta_str += "f";
+    }
+
     if (broadcast_param_.input0_broadcast_type == BroadcastTypeNormal) {
-        compute =
-            "in0*clamp(in1*(FLOAT)(alpha)+(FLOAT)(beta),(FLOAT)0.0f,(FLOAT)1."
-            "0f)";
+        std::ostringstream oss;
+        oss << "in0*clamp(in1*(FLOAT)(" << alpha_str << ")+(FLOAT)(" << beta_str << "),(FLOAT)0.0f,(FLOAT)1.0f)";
+        compute = oss.str();
     } else {
-        compute =
-            "in1*clamp(in0*(FLOAT)(alpha)+(FLOAT)(beta),(FLOAT)0.0f,(FLOAT)1."
-            "0f)";
+        std::ostringstream oss;
+        oss << "in1*clamp(in0*(FLOAT)(" << alpha_str << ")+(FLOAT)(" << beta_str << "),(FLOAT)0.0f,(FLOAT)1.0f)";
+        compute = oss.str();
     }
     build_options.emplace(" -DOPERATOR=" + compute);
-    ret = CreateExecuteUnit(execute_units_[0], "hard_swish", kernel_name, build_options);
+    ret = CreateExecuteUnit(execute_units_[0], "binary", kernel_name_, build_options);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
@@ -84,9 +100,6 @@ Status OpenCLHardSwishLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
     Status ret = OpenCLBinaryLayerAcc::Reshape(inputs_extend_, outputs);
     CHECK_TNN_OK(ret)
 
-    execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, hs_param->alpha);
-    execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, hs_param->beta);
-
     return TNN_OK;
 }
 
@@ -101,5 +114,6 @@ void OpenCLHardSwishLayerAcc::ExtendInputs(const std::vector<Blob *> &inputs) {
 }
 
 REGISTER_OPENCL_ACC(HardSwish, LAYER_HARDSWISH)
+REGISTER_OPENCL_LAYOUT(LAYER_HARDSWISH, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

@@ -49,11 +49,11 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     }
 
     auto output_dims    = outputs[0]->GetBlobDesc().dims;
-    const int batch     = output_dims[0];
-    int cw              = output_dims[3] * UP_DIV(output_dims[1], 4);
+    const int batch     = DimsFunctionUtils::GetDim(output_dims, 0);
+    int cw              = DimsFunctionUtils::GetDim(output_dims, 3) * UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4);
 
     auto input_dims     = inputs[0]->GetBlobDesc().dims;
-    int axis_n          = input_dims[softmax_param->axis];
+    int axis_n          = DimsFunctionUtils::GetDim(input_dims, softmax_param->axis);
 
     // only support fine-grained parallelism in softmax height
     bool run_local_work = softmax_param->axis == 2 && axis_n >= HighOpIntensityThre;
@@ -75,6 +75,9 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
 Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("SoftMax Layer Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     SoftmaxLayerParam *softmax_param = dynamic_cast<SoftmaxLayerParam *>(param_);
     if (!softmax_param) {
         LOGE("Error: layer param is null\n");
@@ -86,17 +89,17 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
-    const int batch     = output_dims[0];
-    const int channels  = output_dims[1];
-    const int height    = output_dims[2];
-    const int width     = output_dims[3];
-    int c4_n            = input_dims[1] / 4;
+    const int batch     = DimsFunctionUtils::GetDim(output_dims, 0);
+    const int channels  = DimsFunctionUtils::GetDim(output_dims, 1);
+    const int height    = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int width     = DimsFunctionUtils::GetDim(output_dims, 3);
+    int c4_n            = DimsFunctionUtils::GetDim(input_dims, 1) / 4;
 
     const int channelBlocks  = UP_DIV(channels, 4);
     const int remainChannels = channelBlocks * 4 - channels;
 
-    int cw      = output_dims[3] * channelBlocks;
-    int axis_n  = input_dims[softmax_param->axis];
+    int cw      = DimsFunctionUtils::GetDim(output_dims, 3) * channelBlocks;
+    int axis_n  = DimsFunctionUtils::GetDim(input_dims, softmax_param->axis);
 
     uint32_t idx = 0;
 
@@ -170,5 +173,6 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_OPENCL_ACC(Softmax, LAYER_SOFTMAX)
+REGISTER_OPENCL_LAYOUT(LAYER_SOFTMAX, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

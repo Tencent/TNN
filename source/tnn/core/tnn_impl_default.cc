@@ -15,6 +15,7 @@
 #include "tnn/core/tnn_impl_default.h"
 
 #include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/utils/blob_dump_utils.h"
 
 namespace TNN_NS {
 
@@ -57,12 +58,33 @@ Status TNNImplDefault::AddOutput(const std::string& layer_name, int output_index
     return TNN_OK;
 }
 
+Status TNNImplDefault::GetModelInputShapesMap(InputShapesMap& shapes_map) {
+    if (!interpreter_) {
+        return Status(TNNERR_NET_ERR, "interpreter is nil");
+    }
+
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
+    CHECK_PARAM_NULL(default_interpreter);
+    shapes_map = default_interpreter->GetNetStructure()->inputs_shape_map;
+    return TNN_OK;
+} 
+
+
 std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, Status& status,
                                                      InputShapesMap inputs_shape) {
     if (!interpreter_) {
         status = Status(TNNERR_NET_ERR, "interpreter is nil");
         return nullptr;
     }
+#if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
+    //todo: refactor later
+    if(net_config.device_type == DEVICE_CUDA) {
+        status = AddAllLayersOutput();
+        if(status != TNN_OK) {
+            return nullptr;
+        }
+    }
+#endif
 
     auto instance = std::make_shared<Instance>(net_config, model_config_);
     status        = instance->Init(interpreter_, inputs_shape);
@@ -71,6 +93,43 @@ std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, 
         return nullptr;
     }
     return instance;
+}
+
+std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, Status& status,
+                                                     InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+    if (!interpreter_) {
+        status = Status(TNNERR_NET_ERR, "interpreter is nil");
+        return nullptr;
+    }
+#if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
+    //todo: refactor later
+    if(net_config.device_type == DEVICE_CUDA) {
+        status = AddAllLayersOutput();
+        if(status != TNN_OK) {
+            return nullptr;
+        }
+    }
+#endif
+
+    auto instance = std::make_shared<Instance>(net_config, model_config_);
+    status        = instance->Init(interpreter_, min_inputs_shape, max_inputs_shape);
+
+    if (status != TNN_OK) {
+        return nullptr;
+    }
+    return instance;
+}
+
+Status TNNImplDefault::AddAllLayersOutput() {
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
+    CHECK_PARAM_NULL(default_interpreter);
+    auto net_structure = default_interpreter->GetNetStructure();
+    for(auto layer_info : net_structure->layers) {
+        for(auto output_name : layer_info->outputs) {
+            AddOutput(output_name);
+        }
+    }
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

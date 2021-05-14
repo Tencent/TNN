@@ -15,21 +15,23 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
 class SoftmaxLayerTest : public LayerTest,
-                         public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
+                         public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, SoftmaxLayerTest,
                          ::testing::Combine(testing::Values(1, 2), testing::Values(10, 12, 10, 12, 512),
-                                            testing::Values(10, 512), testing::Values(10, 512),
+                                            testing::Values(10, 512), testing::Values(1, 10, 512),
                                             // axis
-                                            testing::Values(1, 2),
+                                            testing::Values(0, 1, 2, 3, 4),
+                                            // dim count
+                                            testing::Values(2, 3, 4, 5),
                                             // dtype
-                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_BFP16)));
 
 TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     // get param
@@ -38,22 +40,29 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     int input_height   = std::get<2>(GetParam());
     int input_width    = std::get<3>(GetParam());
     int axis           = std::get<4>(GetParam());
-    DataType data_type = std::get<5>(GetParam());
+    int dim_count      = std::get<5>(GetParam());
+    DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
-#ifndef TNN_ARM82
-    if (data_type == DATA_TYPE_HALF) {
-        GTEST_SKIP();
-    }
-#endif
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    
+    if (dev == DEVICE_ARM && axis == 0) {
+        // arm do not support axis == 0 now
         GTEST_SKIP();
     }
 
-    if (1 != axis && DEVICE_HUAWEI_NPU == dev) {
+    if (DEVICE_OPENCL == dev && (dim_count > 4 || (axis != 1 && axis != 2))) {
+        // opencl only support axis = 1 or 2 for now
+        GTEST_SKIP();
+    }
+
+    if (2 == axis && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
+    if (dim_count != 4 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
@@ -61,8 +70,11 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
-    if ((channel == 512 && input_height == 512) ||
-        (input_width == 512 && input_height == 512) ||
+    if (axis >= dim_count) {
+        GTEST_SKIP();
+    }
+
+    if ((channel == 512 && input_height == 512) || (input_width == 512 && input_height == 512) ||
         (channel == 512 && input_width == 512)) {
         GTEST_SKIP();
     }
@@ -72,12 +84,18 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
     param->name = "Softmax";
     param->axis = axis;
 
-    auto precision = SetPrecision(dev, data_type); 
+    auto precision = SetPrecision(dev, data_type);
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_height, input_width};
+    std::vector<int> input_dims = {batch, channel};
+    std::vector<int> input_sizes = {input_height, input_width};
+    auto idx = 0;
+    while(input_dims.size() < dim_count) {
+        input_dims.push_back(input_sizes[idx]);
+        idx  = (idx + 1) % 2;
+    }
     auto interpreter            = GenerateInterpreter("Softmax", {input_dims}, param);
-    Run(interpreter);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

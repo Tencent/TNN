@@ -48,9 +48,15 @@ Status CpuPoolLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
     auto output_width = dims_output[3], output_height = dims_output[2], output_channel = dims_output[1];
 
     if (output->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        NaivePooling<float, float>(reinterpret_cast<float *>(input->GetHandle().base),
-                                    reinterpret_cast<float *>(output->GetHandle().base), dims_input, dims_output,
-                                    stride_y, stride_x, kernel_y, kernel_x, pad_y, pad_x, pool_type);
+        if (param->is_adaptive_pool) {
+            NaiveAdaptivePooling<float, float>(reinterpret_cast<float *>(input->GetHandle().base),
+                                               reinterpret_cast<float *>(output->GetHandle().base), dims_input,
+                                               dims_output, pool_type);
+        } else {
+            NaivePooling<float, float>(reinterpret_cast<float *>(input->GetHandle().base),
+                                       reinterpret_cast<float *>(output->GetHandle().base), dims_input, dims_output,
+                                       stride_y, stride_x, kernel_y, kernel_x, pad_y, pad_x, pool_type);
+        }
     } else if (output->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         NaivePooling<bfp16_t, float>(reinterpret_cast<bfp16_t *>(input->GetHandle().base),
                                     reinterpret_cast<bfp16_t *>(output->GetHandle().base), dims_input, dims_output,

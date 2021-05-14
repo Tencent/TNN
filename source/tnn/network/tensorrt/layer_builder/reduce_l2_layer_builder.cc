@@ -37,6 +37,31 @@ ILayer* ReduceL2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network)
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs ReduceL2TRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    auto param = dynamic_cast<ReduceLayerParam*>(param_);
+    DimsExprs output;
+    if (param->keep_dims == 0) {
+        int index = 0;
+        for (int i = 0; i < inputs[0].nbDims; i++) {
+            if (std::find(param->axis.begin(), param->axis.end(), i) == param->axis.end()) {
+                output.d[index++] = inputs[0].d[i];
+            }
+        }
+        output.nbDims = index;
+    } else {
+        for (int i = 0; i < inputs[0].nbDims; i++) {
+            output.d[i] = inputs[0].d[i];
+        }
+        output.nbDims = inputs[0].nbDims;
+        for (auto& axis : param->axis) {
+            output.d[axis] = exprBuilder.constant(1);
+        }
+    }
+
+    return output;
+}
+
 const char* ReduceL2PluginCreator::getPluginName() const {
     return "ReduceL2";
 }

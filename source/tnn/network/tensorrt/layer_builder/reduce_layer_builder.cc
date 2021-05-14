@@ -22,7 +22,7 @@ namespace TNN_NS {
 ReduceTRTLayerBuilder::ReduceTRTLayerBuilder(LayerType ignore) : TensorRTLayerBuilder(ignore) {
 }
 
-ILayer* ReduceTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+uint32_t ReduceTRTLayerBuilder::GetReduceAxis() {
     auto paramlist = dynamic_cast<ReduceLayerParam*>(param_);
     auto axis = paramlist->axis;
     uint32_t reduceAxis = 0x0;
@@ -35,14 +35,21 @@ ILayer* ReduceTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     if (std::find(axis.begin(), axis.end(), 3) != axis.end()) {
         reduceAxis |= 0x8;
     }
+    if (std::find(axis.begin(), axis.end(), 4) != axis.end()) {
+        reduceAxis |= 0x10;
+    }
+    return reduceAxis;
+}
 
+ILayer* ReduceTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto paramlist = dynamic_cast<ReduceLayerParam*>(param_);
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-    IReduceLayer* layer = network->addReduce(*tensor, m_op, reduceAxis, true);
+    IReduceLayer* layer = network->addReduce(*tensor, m_op, GetReduceAxis(), paramlist->keep_dims);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
     }
-    
+
     return layer;
 }
 

@@ -37,6 +37,11 @@ ILayer* InstanceNormTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netw
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
+DimsExprs InstanceNormTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+    return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
+}
+
 const char* InstanceNormPluginCreator::getPluginName() const {
     return "InstanceNorm";
 }

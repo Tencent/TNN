@@ -13,10 +13,30 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Pad, LAYER_PAD);
+
+static bool UseTRTPaddingND(PadLayerParam* paramlist) {
+    // Only zero-padding is supported.
+    if (paramlist->type != 0 || paramlist->value != 0) {
+        return false;
+    }
+
+    // A must have three dimensions or more.
+    if (paramlist->pads.size() < 6) {
+        return false;
+    }
+
+    // The padding can only be applied along the two innermost dimensions.
+    if (paramlist->pads[4] != 0 || paramlist->pads[5] != 0) {
+        return false;
+    }
+
+    return true;
+}
 
 bool PadTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
@@ -36,7 +56,36 @@ nvinfer1::DataType PadTRTPluginLayerBuilder::getOutputDataType(int index, const 
 }
 
 ILayer* PadTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    auto paramlist = dynamic_cast<PadLayerParam*>(param_);
+
+    if (!UseTRTPaddingND(paramlist)) {
+        return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    }
+
+    auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
+    std::vector<int> pads = paramlist->pads;
+    // use IPaddingLayer
+    IPaddingLayer* pad_layer;
+    Dims pre_padding = ConvertToTRTDims({pads[2], pads[0]});
+    Dims post_padding = ConvertToTRTDims({pads[3], pads[1]});
+    pad_layer = network->addPaddingNd(*input_tensor, pre_padding, post_padding);
+
+    return pad_layer;
+}
+
+DimsExprs PadTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
+        int nbInput, nvinfer1::IExprBuilder& exprBuilder) {
+    DimsExprs output(inputs[0]);
+    auto param = dynamic_cast<PadLayerParam*>(param_);
+    auto pads0 = exprBuilder.constant(param->pads[0] + param->pads[1]);
+    auto pads1 = exprBuilder.constant(param->pads[2] + param->pads[3]);
+    auto pads2 = exprBuilder.constant(param->pads[4] + param->pads[5]);
+
+    output.d[3] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[3], *pads0);
+    output.d[2] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[2], *pads1);
+    output.d[1] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[1], *pads2);
+    return output;
 }
 
 const char* PadPluginCreator::getPluginName() const {

@@ -48,5 +48,6 @@ Status OpenCLSubLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 OpenCLSubLayerAcc::~OpenCLSubLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Sub, LAYER_SUB)
+REGISTER_OPENCL_LAYOUT(LAYER_SUB, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

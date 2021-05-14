@@ -25,6 +25,9 @@ TensorRTLayerBuilder::~TensorRTLayerBuilder() {
 
 Status TensorRTLayerBuilder::Init(Context* context, LayerParam* param, LayerResource* resource,
         std::vector<Blob*>& input_blobs, std::vector<Blob*>& output_blobs, AbstractDevice* device) {
+    
+    m_layer->SetLayerName(this->GetLayerName());
+
     Status ret = m_layer->Init(context, param, resource, input_blobs, output_blobs, GetDevice(DEVICE_CUDA));
     if (ret != TNN_OK) {
         return ret;
@@ -32,6 +35,20 @@ Status TensorRTLayerBuilder::Init(Context* context, LayerParam* param, LayerReso
 
     input_blobs_  = m_layer->GetInputBlobs();
     output_blobs_ = m_layer->GetOutputBlobs();
+
+    if (type_ == LayerType::LAYER_UPSAMPLE && input_blobs.size() == 4) {
+        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[input_blobs.size()-1])->GetForeignTensor();
+        auto name = output_blobs_[0]->GetBlobDesc().name;
+        std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetShapeBlobName(name);
+        std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetShapeTensor();
+    }
+
+    if (type_ == LayerType::LAYER_RESHAPE && input_blobs.size() > 1) {
+        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
+        auto name = output_blobs_[0]->GetBlobDesc().name;
+        std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetShapeBlobName(name);
+        std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetShapeTensor();
+    }
 
     param_    = param;
     resource_ = resource;

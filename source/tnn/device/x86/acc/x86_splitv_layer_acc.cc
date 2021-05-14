@@ -14,7 +14,7 @@
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -29,7 +29,7 @@ Status X86SplitVLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     const int axis  = layer_param->axis;
     auto input_blob = inputs[0];
     auto input_dims = input_blob->GetBlobDesc().dims;
-    const int bath  = DimsVectorUtils::Count(input_dims, 0, axis);
+    const int batch = DimsVectorUtils::Count(input_dims, 0, axis);
     int slice_size  = DimsVectorUtils::Count(input_dims, axis + 1);
     if (slice_size == 0) {
         slice_size = 1;
@@ -38,7 +38,7 @@ Status X86SplitVLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     auto input_data       = static_cast<float *>(input_blob->GetHandle().base);
 
     if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        for (size_t b = 0; b < bath; b++) {
+        for (size_t b = 0; b < batch; b++) {
             int slice_input_offset = 0;
             for (size_t i = 0; i < outputs.size(); i++) {
                 auto output_blob = outputs[i];

@@ -12,12 +12,11 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/compute/compute.h"
-
 #include <string.h>
 
 #include "tnn/core/macro.h"
 #include "tnn/device/arm/acc/Float4.h"
+#include "tnn/device/arm/acc/compute/compute.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_util.h"
 #include "tnn/utils/bfp16.h"
@@ -367,9 +366,9 @@ void AvgPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow, l
 element add int8 func
 */
 void MatrixAddInt8(int8_t* dst, const int8_t* A, const int8_t* B, float* dst_scale, const float* a_scale,
-                   float* b_scale, long channel, long height, long width) {
+                   float* b_scale, long channel, long HW) {
     OMP_PARALLEL_FOR_GUIDED_
-    for (long hw = 0; hw < height * width; hw++) {
+    for (long hw = 0; hw < HW; hw++) {
         long c = 0;
 
 #ifdef TNN_USE_NEON
@@ -707,9 +706,8 @@ convdw 3x3 int8 func
 */
 #ifdef __aarch64__
 
-void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z,
-                           long src_y_step, long src_w_step, long dst_depth, const float* scale_z,
-                           long dx, long dc) {
+void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long src_y_step,
+                           long src_w_step, long dst_depth, const float* scale_z, long dx, long dc) {
     auto dst_x       = dst + dx * dst_depth + dc;
     const auto src_z = src + dx * src_w_step + dc;
     int32x4_t acc[4][2];
@@ -755,15 +753,14 @@ void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight,
     }
 }
 
-#else   // __aarch64__
+#else  // __aarch64__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z,
-                           long src_y_step, long src_w_step, long dst_depth, const float* scale_z,
-                           long dx, long dc);
+void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long src_y_step,
+                           long src_w_step, long dst_depth, const float* scale_z, long dx, long dc);
 #ifdef __cplusplus
 }
 #endif
@@ -908,14 +905,12 @@ void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const i
         for (dx = 0; dx < width - 3; dx += 4) {
             long dc = 0;
             for (; dc < dst_depth - 7; dc += 8) {
-                DepthwiseI8K3S1Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth,
-                                      scale_z, dx, dc);
+                DepthwiseI8K3S1Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z, dx, dc);
             }
 
             if (dc < dst_depth) {
                 dc = dst_depth - 8;
-                DepthwiseI8K3S1Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth,
-                                      scale_z, dx, dc);
+                DepthwiseI8K3S1Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z, dx, dc);
             }
         }
     }
@@ -924,14 +919,12 @@ void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const i
     for (; dx < width; dx++) {
         long dc = 0;
         for (; dc < dst_depth - 7; dc += 8) {
-            DepthwiseI8K3Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z,
-                                dx, dc);
+            DepthwiseI8K3Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z, dx, dc);
         }
 
         if (dc < dst_depth) {
             dc = dst_depth - 8;
-            DepthwiseI8K3Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z,
-                                dx, dc);
+            DepthwiseI8K3Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z, dx, dc);
         }
     }
 }

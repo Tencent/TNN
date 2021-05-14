@@ -84,9 +84,8 @@ public:
         reg_var act_type    = get_arguement(9);
 
         reg_var c[3] = {REG_VAR_ARRAY_3};
-        // reg_var op_6f(this);
-        vreg_var v_zero(this);
-        // vreg_var v_6f(this);
+        reg_var op_6f(this);
+        vreg_var v_const(this);
         vreg_var c_data[2][6] = {{VREG_VAR_ARRAY_6}, {VREG_VAR_ARRAY_6}};
         vreg_var a_data[2] = {VREG_VAR_ARRAY_2};
         vreg_var b_data[2] = {VREG_VAR_ARRAY_2};
@@ -154,28 +153,34 @@ public:
         src_a.release();
         src_b.release();
 
-        // fuse relu, relu6 tbd
+        // only support fuse relu, relu6
         act_type.restore();
         cmp(act_type, 0);
-        je("L_post_end");
-            v_zero.aquire();
-            vxorps(v_zero, v_zero, v_zero);
+        je("L_post_end_1");
+            v_const.aquire();
+            vxorps(v_const, v_const, v_const);
             for(int i=0;i<N_r;i++) {
-                vmaxps(c_data[0][i], c_data[0][i], v_zero);
-                vmaxps(c_data[1][i], c_data[1][i], v_zero);
+                vmaxps(c_data[0][i], c_data[0][i], v_const);
+                vmaxps(c_data[1][i], c_data[1][i], v_const);
             }
-            v_zero.release();
-        cmp(act_type, 1);
-        je("L_post_end");
-            // mov(op_6f.restore(), 0x4600);
-            // vbroadcastss(v_6f.aquire(), op_6f);
-            // op_6f.release();
-            // for(int i=0;i<N_r;i++) {
-            //     vminps(c_data[0][i], c_data[0][i], v_6f);
-            //     vminps(c_data[1][i], c_data[1][i], v_6f);
-            // }
-            // v_6f.release();
-        L("L_post_end");
+            v_const.release();
+        L("L_post_end_1");
+
+        cmp(act_type, 2);
+        jne("L_post_end_2");
+            op_6f.restore();
+            v_const.aquire();
+            // 6.f
+            mov(op_6f.cvt32(), 0x40C00000);
+            movd(v_const.xmm(), op_6f.cvt32());
+            vbroadcastss(v_const, v_const.xmm());
+            for(int i=0;i<N_r;i++) {
+                vminps(c_data[0][i], c_data[0][i], v_const);
+                vminps(c_data[1][i], c_data[1][i], v_const);
+            }
+            v_const.release();
+            op_6f.release();
+        L("L_post_end_2");
         act_type.release();
 
         for(int i=0;i<N_r;i++) {

@@ -23,28 +23,28 @@ namespace TNN_NS {
 template <typename T, unsigned int len>
 struct TNNVector {
     T value[len];
-    TNNVector<T, len> operator+(const TNNVector<T, len>& lr) {
+    TNNVector<T, len> operator+(const TNNVector<T, len>& lr) const {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {
             dst.value[i] = value[i] + lr.value[i];
         }
         return dst;
     }
-    TNNVector<T, len> operator-(const TNNVector<T, len>& lr) {
+    TNNVector<T, len> operator-(const TNNVector<T, len>& lr) const {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {
             dst.value[i] = value[i] - lr.value[i];
         }
         return dst;
     }
-    TNNVector<T, len> operator*(const TNNVector<T, len>& lr) {
+    TNNVector<T, len> operator*(const TNNVector<T, len>& lr) const {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {
             dst.value[i] = value[i] * lr.value[i];
         }
         return dst;
     }
-    TNNVector<T, len> operator*(T lr) {
+    TNNVector<T, len> operator*(T lr) const {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {
             dst.value[i] = value[i] * lr;
@@ -58,7 +58,7 @@ struct TNNVector {
         }
         return *this;
     }
-    TNNVector<T, len> operator-() {
+    TNNVector<T, len> operator-() const {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {
             dst.value[i] = -value[i];
@@ -260,6 +260,13 @@ struct TNNVector {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {
             dst.value[i] = std::tanh(v.value[i]);
+        }
+        return dst;
+    }
+    static TNNVector<T, len> erf(const TNNVector<T, len>& v) {
+        TNNVector<T, len> dst;
+        for (int i = 0; i < len; ++i) {
+            dst.value[i] = std::erff(v.value[i]);
         }
         return dst;
     }

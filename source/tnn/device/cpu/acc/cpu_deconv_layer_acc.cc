@@ -17,7 +17,7 @@
 #include <algorithm>
 
 #include "tnn/interpreter/layer_resource_generator.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
@@ -68,8 +68,7 @@ void CpuDeconvLayerAcc::ActiveOutput(ConvLayerParam *param, float &sum) {
         } else if (sum < 0.0f) {
             sum = 0.0f;
         }
-
-    } else if (param->activation_type == ActivationType_SIGMOID_MUL) {
+    } else if(param->activation_type == ActivationType_SIGMOID_MUL) {
         sum = 1.0f / (1.0f + exp(-sum)) * sum;
     }
 }
@@ -188,7 +187,8 @@ Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
         }
 
     } else {
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuDeconvLayerAcc layer acc dont support datatype: %d\n", data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuDeconvLayerAcc layer acc dont support datatype");
     }
     return TNN_OK;
 }

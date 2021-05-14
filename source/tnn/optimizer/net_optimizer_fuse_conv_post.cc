@@ -47,7 +47,8 @@ namespace optimizer {
             return true;
         }
         if (device == DEVICE_X86 && net_config.network_type != NETWORK_TYPE_OPENVINO) {
-            kLayerActivationMap[LAYER_RELU] = ActivationType_ReLU;
+            kLayerActivationMap[LAYER_RELU]  = ActivationType_ReLU;
+            kLayerActivationMap[LAYER_RELU6] = ActivationType_ReLU6;
             return true;
         }
         return false;

@@ -98,7 +98,8 @@ __kernel void PoolingLocal(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
     const int local_height_id       = local_id / local_block_size_wh.x;
 
 #ifdef POOL_AVG
-    local_output[local_id] = (FLOAT4)0;
+    __local float4* avg_output = (__local float4*)local_output;
+    avg_output[local_id] = (float4)0;
     int pos_h = local_height_id;
 
     for (int local_h_block_id = 0; local_h_block_id < local_block_count_wh.y; local_h_block_id++) {
@@ -113,8 +114,8 @@ __kernel void PoolingLocal(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
             input_width_idx =
                 select(input_channel_start + input_width_idx, -1, (input_width_idx < 0 || input_width_idx >= input_wh.x));
 
-            FLOAT4 input_data = RI_F(input, SAMPLER, (int2)(input_width_idx, input_height_idx));
-            local_output[local_id] += input_data;
+            float4 input_data = read_imagef(input, SAMPLER, (int2)(input_width_idx, input_height_idx));
+            avg_output[local_id] += input_data;
             pos_w += local_block_size_wh.x;
         }
         pos_h += local_block_size_wh.y;
@@ -124,14 +125,14 @@ __kernel void PoolingLocal(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
 
     for (int stride_h = (local_block_size_wh.y >> 1); stride_h > 0; stride_h >>= 1) {
         if (local_height_id < stride_h) {
-            local_output[local_id] += local_output[local_id + stride_h * local_block_size_wh.x];
+            avg_output[local_id] += avg_output[local_id + stride_h * local_block_size_wh.x];
         }
         barrier(CLK_LOCAL_MEM_FENCE);
     }
 
     for (int stride_w = (local_block_size_wh.x >> 1); stride_w > 0; stride_w >>= 1) {
         if (local_height_id == 0 && local_width_id < stride_w) {
-            local_output[local_id] += local_output[local_id + stride_w];
+            avg_output[local_id] += avg_output[local_id + stride_w];
         }
         barrier(CLK_LOCAL_MEM_FENCE);
     }
@@ -142,10 +143,10 @@ __kernel void PoolingLocal(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
         const int kernel_height_end   = min(input_height_start + kernel_wh.y, input_wh.y);
         const int kernel_width_end    = min(input_width_start + kernel_wh.x, input_wh.x);
         const int block_size = mul24((kernel_height_end - kernel_height_start), (kernel_width_end - kernel_width_start));
-        local_output[local_id] = local_output[local_id] / (FLOAT)block_size;
+        avg_output[local_id] = avg_output[local_id] / (float)block_size;
 
         const int output_channel_width_idx = mad24(output_channel_idx, output_width, output_width_idx);
-        WI_F(output, (int2)(output_channel_width_idx, output_batch_height_idx), local_output[local_id]);
+        write_imagef(output, (int2)(output_channel_width_idx, output_batch_height_idx), avg_output[local_id]);
     }
 #else
     local_output[local_id] = (FLOAT4)(-FLT_MAX);

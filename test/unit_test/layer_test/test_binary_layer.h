@@ -18,16 +18,15 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 class BinaryLayerTest : public LayerTest,
-                        public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType>> {
+                        public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, DataType>> {
 public:
     BinaryLayerTest(LayerType type);
     void RunBinaryTest(std::string layer_type_str, bool resource_positive = false);
-    bool InputParamCheck(const DataType& data_type, const DeviceType& dev, const int batch);
 
 protected:
     LayerType layer_type_;

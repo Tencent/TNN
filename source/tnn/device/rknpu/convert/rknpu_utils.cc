@@ -15,7 +15,7 @@
 #include "rknpu_utils.h"
 
 #include <tnn/interpreter/layer_resource.h>
-#include <tnn/utils/dims_vector_utils.h>
+#include <tnn/utils/dims_utils.h>
 
 #include <numeric>
 #include <sstream>
@@ -94,7 +94,7 @@ uint32_t RknpuUtils::CalcSize(rk::nn::PrecisionType type, std::vector<int32_t> d
             type_size = 8;
             break;
         default:
-            throw std::invalid_argument("Init: unknow intput or output data type!");
+            throw std::invalid_argument("Init: unknow input or output data type!");
             break;
     }
 

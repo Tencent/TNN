@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
@@ -42,23 +43,41 @@ ILayer* DeconvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     }
 
     ILayer* last_layer;
-    DimsHW kernalSize(paramlist->kernels[1], paramlist->kernels[0]);
+    DimsHW kernelSize(paramlist->kernels[1], paramlist->kernels[0]);
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-    IDeconvolutionLayer* deconv_layer = network->addDeconvolution(*tensor, paramlist->output_channel,
-        kernalSize, kernelWeights, biasWeights);
-    if (deconv_layer != nullptr) {
-        deconv_layer->setName(layer_name_.c_str());
-        deconv_layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
-        deconv_layer->setPadding(DimsHW(paramlist->pads[2], paramlist->pads[0]));
-        deconv_layer->setNbGroups(paramlist->group);
-        if (paramlist->pad_type == -1) {
-            deconv_layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_DOWN);
-        } else {
-            deconv_layer->setPaddingMode(PaddingMode::kSAME_LOWER);
+
+    auto pads = paramlist->pads;
+    IDeconvolutionLayer* deconv_layer;
+    if (paramlist->pad_type == -1 || (pads[0] == pads[1] && pads[2] == pads[3])) {
+        deconv_layer = network->addDeconvolution(*tensor, paramlist->output_channel,
+            kernelSize, kernelWeights, biasWeights);
+        if (deconv_layer != nullptr) {
+            deconv_layer->setName(layer_name_.c_str());
+            deconv_layer->setStride(DimsHW(paramlist->strides[1], paramlist->strides[0]));
+            deconv_layer->setPadding(DimsHW(paramlist->pads[2], paramlist->pads[0]));
+            deconv_layer->setNbGroups(paramlist->group);
+            //deconv_layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_DOWN);
         }
-        last_layer = deconv_layer;
+    } else {
+        DimsVector postPadding{pads[3], pads[1]};
+        DimsVector  prePadding{pads[2], pads[0]};
+        IPaddingLayer* padding_layer = network->addPaddingNd(*tensor, 
+                                                    ConvertToTRTDims(prePadding), 
+                                                    ConvertToTRTDims(postPadding));
+        ITensor* pad_tensor = padding_layer->getOutput(0);
+        deconv_layer = network->addDeconvolution(*pad_tensor, paramlist->output_channel, kernelSize,
+            kernelWeights, biasWeights);
+        if(deconv_layer != NULL) {
+            deconv_layer->setName(layer_name_.c_str());
+            deconv_layer->setStrideNd(ConvertToTRTDimsReverse(paramlist->strides));
+#if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 71
+            deconv_layer->setDilationNd(ConvertToTRTDimsReverse(paramlist->dialations));
+#endif
+            deconv_layer->setNbGroups(paramlist->group);
+        }
     }
+    last_layer = deconv_layer;
 
     IActivationLayer* activation_layer;
     if (paramlist->activation_type == ActivationType_ReLU) {
@@ -80,3 +99,4 @@ ILayer* DeconvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
 REGISTER_TENSORRT_LAYER_BUILDER(Deconvolution, LAYER_DECONVOLUTION);
 
 }  //  namespace TNN_NS
+

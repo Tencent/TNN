@@ -15,7 +15,7 @@
 #include <cmath>
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -26,6 +26,8 @@ Status CpuInstanceNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 }
 
 Status CpuInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto layer_param = dynamic_cast<InstanceNormLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
     auto layer_res = dynamic_cast<InstanceNormLayerResource *>(resource_);
     if (!layer_res) {
         LOGE("Error: layer resource is nil\n");
@@ -47,7 +49,7 @@ Status CpuInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const
     float *k_data          = layer_res->scale_handle.force_to<float *>();
     float *b_data          = layer_res->bias_handle.force_to<float *>();
 
-    float epsilon = 0.00001f;
+    const float epsilon = layer_param->eps;
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
@@ -85,8 +87,8 @@ Status CpuInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const
             }
         }
     } else {
-        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuInstanceNormLayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuInstanceNormLayerAcc layer acc dont support datatype");
     }
 
     return TNN_OK;

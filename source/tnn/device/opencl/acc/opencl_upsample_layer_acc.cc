@@ -17,7 +17,15 @@
 
 namespace TNN_NS {
 
-DECLARE_OPENCL_ACC(Upsample);
+class OpenCLUpsampleLayerAcc : public OpenCLLayerAcc {
+public:
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                        const std::vector<Blob *> &outputs) override;
+
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) override { return TNN_OK; }
+};
 
 static std::vector<uint32_t> UpsampleLocalWS3D(std::vector<uint32_t> &gws, const uint32_t max_workgroup_size) {
     uint32_t compute_units = OpenCLRuntime::GetInstance()->DeviceComputeUnits();
@@ -89,6 +97,9 @@ Status OpenCLUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerRe
 
 Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Upsample Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     UpsampleLayerParam *upsample_param = dynamic_cast<UpsampleLayerParam *>(param_);
     if (!upsample_param) {
         LOGE("Error: layer param is null\n");
@@ -101,13 +112,13 @@ Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
 
-    const int batch        = input_dims[0];
-    const int channels     = input_dims[1];
-    const int input_height = input_dims[2];
-    const int input_width  = input_dims[3];
+    const int batch        = DimsFunctionUtils::GetDim(input_dims, 0);
+    const int channels     = DimsFunctionUtils::GetDim(input_dims, 1);
+    const int input_height = DimsFunctionUtils::GetDim(input_dims, 2);
+    const int input_width  = DimsFunctionUtils::GetDim(input_dims, 3);
 
-    const int output_height = output_dims[2];
-    const int output_width  = output_dims[3];
+    const int output_height = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int output_width  = DimsFunctionUtils::GetDim(output_dims, 3);
 
     const int channel_blocks = UP_DIV(channels, 4);
 
@@ -150,5 +161,6 @@ Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
 }
 
 REGISTER_OPENCL_ACC(Upsample, LAYER_UPSAMPLE)
+REGISTER_OPENCL_LAYOUT(LAYER_UPSAMPLE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

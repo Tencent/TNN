@@ -39,5 +39,6 @@ std::set<std::string> OpenCLSignLayerAcc::CreateBuildOptions() {
 OpenCLSignLayerAcc::~OpenCLSignLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Sign, LAYER_SIGN)
+REGISTER_OPENCL_LAYOUT(LAYER_SIGN, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

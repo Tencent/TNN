@@ -19,11 +19,14 @@ namespace TNN_NS {
 DefaultModelInterpreter::DefaultModelInterpreter() {
     net_structure_ = new NetStructure();
     net_resource_  = new NetResource();
+    params_md5_.clear();
 }
 
 DefaultModelInterpreter::~DefaultModelInterpreter() {
-    delete net_structure_;
-    delete net_resource_;
+    if (nullptr != net_structure_)
+        delete net_structure_;
+    if (nullptr != net_resource_)
+        delete net_resource_;
 }
 
 NetStructure *DefaultModelInterpreter::GetNetStructure() {
@@ -32,6 +35,10 @@ NetStructure *DefaultModelInterpreter::GetNetStructure() {
 
 NetResource *DefaultModelInterpreter::GetNetResource() {
     return net_resource_;
+}
+
+std::vector<std::string> DefaultModelInterpreter::GetParamsMd5() {
+    return params_md5_;
 }
 
 }  // namespace TNN_NS
