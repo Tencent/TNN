@@ -100,6 +100,7 @@ Status OpenCLConvLayerDepthwiseAcc::Reshape(const std::vector<Blob *> &inputs, c
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(dilation_shape), dilation_shape);
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
     }
+    execute_units_[0].ocl_kernel.setArg(idx++, (int)conv_params_.activation_type);
 
     execute_units_[0].local_work_size = Conv2dCommonLocalWS2D(
             execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max, execute_units_[0].sub_group_size);

@@ -7,7 +7,8 @@ __kernel void Conv2D1x1_S1_MIX(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
                           __global const FLOAT4 *bias_ptr,
                           __write_only image2d_t output, __private const int2 wh,
                           __private const int input_c_blocks,
-                          __private const int output_w_updiv_4) {
+                          __private const int output_w_updiv_4,
+                          __private const int activation_type) {
 
     const int output_cw_idx = get_global_id(0); //c/4 w/4
     const int bh_idx  = get_global_id(1); //b h
@@ -52,10 +53,10 @@ __kernel void Conv2D1x1_S1_MIX(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
         weights_offset++;
     }
 
-    out0 = ActivationProcess(out0);
-    out1 = ActivationProcess(out1);
-    out2 = ActivationProcess(out2);
-    out3 = ActivationProcess(out3);
+    out0 = ActivationProcess(out0, activation_type);
+    out1 = ActivationProcess(out1, activation_type);
+    out2 = ActivationProcess(out2, activation_type);
+    out3 = ActivationProcess(out3, activation_type);
 
     const int out_x_base = mul24(output_c_block_idx, wh.x);
 
@@ -71,7 +72,8 @@ __kernel void Conv2D1x1_S1_MIX_CB2(GLOBAL_SIZE_2_DIMS __read_only image2d_t inpu
                                    __write_only image2d_t output, __private const int2 wh,
                                    __private const int input_c_blocks,
                                    __private const int out_channel_block_length,
-                                   __private const int out_width_blocks) {
+                                   __private const int out_width_blocks,
+                                   __private const int activation_type) {
 
     const int output_channel_slice_w_idx = get_global_id(0); //c/4 w/4
     const int output_bh_idx  = get_global_id(1); //b h
@@ -138,15 +140,15 @@ __kernel void Conv2D1x1_S1_MIX_CB2(GLOBAL_SIZE_2_DIMS __read_only image2d_t inpu
         weights_offset += 4;
     }
 
-    out_w0_s0 = ActivationProcess(out_w0_s0);
-    out_w1_s0 = ActivationProcess(out_w1_s0);
-    out_w2_s0 = ActivationProcess(out_w2_s0);
-    out_w3_s0 = ActivationProcess(out_w3_s0);
+    out_w0_s0 = ActivationProcess(out_w0_s0, activation_type);
+    out_w1_s0 = ActivationProcess(out_w1_s0, activation_type);
+    out_w2_s0 = ActivationProcess(out_w2_s0, activation_type);
+    out_w3_s0 = ActivationProcess(out_w3_s0, activation_type);
 
-    out_w0_s1 = ActivationProcess(out_w0_s1);
-    out_w1_s1 = ActivationProcess(out_w1_s1);
-    out_w2_s1 = ActivationProcess(out_w2_s1);
-    out_w3_s1 = ActivationProcess(out_w3_s1);
+    out_w0_s1 = ActivationProcess(out_w0_s1, activation_type);
+    out_w1_s1 = ActivationProcess(out_w1_s1, activation_type);
+    out_w2_s1 = ActivationProcess(out_w2_s1, activation_type);
+    out_w3_s1 = ActivationProcess(out_w3_s1, activation_type);
 
     const int out_x_base = mul24(out_channel_block_idx, wh.x);
 
@@ -167,7 +169,8 @@ __kernel void Conv2D1x1_S1_MIX_WB1(GLOBAL_SIZE_2_DIMS __read_only image2d_t inpu
                           __global const FLOAT16 *weights_ptr,
                           __global const FLOAT4 *bias_ptr,
                           __write_only image2d_t output, __private const int2 wh,
-                          __private const int input_c_blocks) {
+                          __private const int input_c_blocks,
+                          __private const int activation_type) {
 
     const int output_cw_idx = get_global_id(0); //c/4 w
     const int bh_idx  = get_global_id(1); //b h
@@ -196,7 +199,7 @@ __kernel void Conv2D1x1_S1_MIX_WB1(GLOBAL_SIZE_2_DIMS __read_only image2d_t inpu
         weights_offset++;
     }
 
-    out0 = ActivationProcess(out0);
+    out0 = ActivationProcess(out0, activation_type);
 
     const int out_x_base = mul24(output_c_block_idx, wh.x);
 
@@ -210,7 +213,8 @@ __kernel void Conv2D1x1_S1_MIX_WB1_Local(GLOBAL_SIZE_2_DIMS __read_only image2d_
                           __write_only image2d_t output, __private const int2 wh,
                           __private const int input_c_blocks,
                           __private const int local_block_size,
-                          __local FLOAT4* local_output) {
+                          __local FLOAT4* local_output,
+                          __private const int activation_type) {
 
     const int local_id = get_local_id(0);
     const int group_size = get_local_size(0);
@@ -260,7 +264,7 @@ __kernel void Conv2D1x1_S1_MIX_WB1_Local(GLOBAL_SIZE_2_DIMS __read_only image2d_
 
     if (local_id == 0) {
         local_output[local_id] += bias_ptr[output_c_block_idx];
-        local_output[local_id] = ActivationProcess(local_output[local_id]);
+        local_output[local_id] = ActivationProcess(local_output[local_id], activation_type);
 
         const int out_x_base = mul24(output_c_block_idx, wh.x);
 

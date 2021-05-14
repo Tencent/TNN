@@ -9,7 +9,8 @@ __kernel void Conv2DGS3D(
     __private const int in_channel_block_length, __private const int2 output_wh,
     __private const int2 kernel_wh, __private const int2 stride_wh,
     __private const int2 padding_wh, __private const int2 dilation_wh,
-    __private const int out_width_blocks) {
+    __private const int out_width_blocks,
+    __private const int activation_type) {
     // deal with 2 dim image : dim0 = channel + width | dim1 = batch + height
     const int out_channel_block_idx = get_global_id(0);
     const int out_width_block_idx   = get_global_id(1);
@@ -63,10 +64,10 @@ __kernel void Conv2DGS3D(
         }
     }
 
-    out0 = ActivationProcess(out0);
-    out1 = ActivationProcess(out1);
-    out2 = ActivationProcess(out2);
-    out3 = ActivationProcess(out3);
+    out0 = ActivationProcess(out0, activation_type);
+    out1 = ActivationProcess(out1, activation_type);
+    out2 = ActivationProcess(out2, activation_type);
+    out3 = ActivationProcess(out3, activation_type);
 
     const int out_x_base = mul24(out_channel_block_idx, output_wh.x);
     int out_x_idx        = out_width_block_idx << 2;
@@ -87,7 +88,8 @@ __kernel void Conv2DGS3D_CB2(
     __private const int2 kernel_wh, __private const int2 stride_wh,
     __private const int2 padding_wh, __private const int2 dilation_wh,
     __private const int kernel_size,
-    __private const int out_width_blocks) {
+    __private const int out_width_blocks,
+    __private const int activation_type) {
     // deal with 2 dim image : dim0 = channel + width | dim1 = batch + height
     const int out_channel_slice_idx = get_global_id(0);
     const int out_width_block_idx   = get_global_id(1);
@@ -159,15 +161,15 @@ __kernel void Conv2DGS3D_CB2(
         }
     }
 
-    out_w0_s0 = ActivationProcess(out_w0_s0);
-    out_w1_s0 = ActivationProcess(out_w1_s0);
-    out_w2_s0 = ActivationProcess(out_w2_s0);
-    out_w3_s0 = ActivationProcess(out_w3_s0);
+    out_w0_s0 = ActivationProcess(out_w0_s0, activation_type);
+    out_w1_s0 = ActivationProcess(out_w1_s0, activation_type);
+    out_w2_s0 = ActivationProcess(out_w2_s0, activation_type);
+    out_w3_s0 = ActivationProcess(out_w3_s0, activation_type);
 
-    out_w0_s1 = ActivationProcess(out_w0_s1);
-    out_w1_s1 = ActivationProcess(out_w1_s1);
-    out_w2_s1 = ActivationProcess(out_w2_s1);
-    out_w3_s1 = ActivationProcess(out_w3_s1);
+    out_w0_s1 = ActivationProcess(out_w0_s1, activation_type);
+    out_w1_s1 = ActivationProcess(out_w1_s1, activation_type);
+    out_w2_s1 = ActivationProcess(out_w2_s1, activation_type);
+    out_w3_s1 = ActivationProcess(out_w3_s1, activation_type);
 
     const int out_x_base = mul24(out_channel_block_idx, output_wh.x);
     int out_x_idx        = out_width_block_idx << 2;
