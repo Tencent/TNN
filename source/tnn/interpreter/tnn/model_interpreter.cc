@@ -51,7 +51,7 @@ int DecodeData(std::string &content, std::string &key) {
 
     memcpy((void*)cencrypt_data.get(),content.c_str(),data_len);
 
-    int decrypt_len = TeaDecrypt((const uint8_t *)cencrypt_data.get(), cencrypt_data_len, (uint8_t *)key.c_str(),
+    int decrypt_len = TeaDecrypt((const uint8_t *)cencrypt_data.get(), cencrypt_data_len, (const uint8_t *)key.c_str(),
                                  (uint8_t *)cdecrypt_data.get(), cencrypt_data_len);
     if (decrypt_len <= 0) {
         LOGE("Decrypt data fail\n");
