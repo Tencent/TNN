@@ -251,7 +251,7 @@ def get_input_shape_from_onnx(onnx_path) -> dict:
 
 def nhwc_shape_to_nchw(shape: list):
     size = len(shape)
-    if 2 == size:
+    if size < 3:
         return shape
     else:
         channels = shape.pop()
