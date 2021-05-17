@@ -7,10 +7,10 @@ use std::mem;
 use std::cmp::Ordering;
 
 extern crate flatbuffers;
-use self::flatbuffers::EndianScalar;
+use self::flatbuffers::{EndianScalar, Follow};
 
 pub enum TableAOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 
 pub struct TableA<'a> {
   pub _tab: flatbuffers::Table<'a>,
@@ -20,18 +20,14 @@ impl<'a> flatbuffers::Follow<'a> for TableA<'a> {
     type Inner = TableA<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self {
-            _tab: flatbuffers::Table { buf: buf, loc: loc },
-        }
+        Self { _tab: flatbuffers::Table { buf, loc } }
     }
 }
 
 impl<'a> TableA<'a> {
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        TableA {
-            _tab: table,
-        }
+        TableA { _tab: table }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
@@ -46,12 +42,24 @@ impl<'a> TableA<'a> {
 
   #[inline]
   pub fn b(&self) -> Option<my_game::other_name_space::TableB<'a>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<my_game::other_name_space::TableB<'a>>>(TableA::VT_B, None)
+    self._tab.get::<flatbuffers::ForwardsUOffset<my_game::other_name_space::TableB>>(TableA::VT_B, None)
   }
 }
 
+impl flatbuffers::Verifiable for TableA<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<flatbuffers::ForwardsUOffset<my_game::other_name_space::TableB>>(&"b", Self::VT_B, false)?
+     .finish();
+    Ok(())
+  }
+}
 pub struct TableAArgs<'a> {
-    pub b: Option<flatbuffers::WIPOffset<my_game::other_name_space::TableB<'a >>>,
+    pub b: Option<flatbuffers::WIPOffset<my_game::other_name_space::TableB<'a>>>,
 }
 impl<'a> Default for TableAArgs<'a> {
     #[inline]
@@ -85,3 +93,10 @@ impl<'a: 'b, 'b> TableABuilder<'a, 'b> {
   }
 }
 
+impl std::fmt::Debug for TableA<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut ds = f.debug_struct("TableA");
+      ds.field("b", &self.b());
+      ds.finish()
+  }
+}

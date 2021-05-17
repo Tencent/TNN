@@ -13,10 +13,33 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(PadV2, LAYER_PADV2);
+
+static bool UseTRTPaddingND(PadLayerParam* paramlist) {
+    // Only zero-padding is supported.
+    if (paramlist->type != 0 || paramlist->value != 0) {
+        return false;
+    }
+
+    // input must have 4 dimensions or more.
+    if (paramlist->pads.size() < 8) {
+        return false;
+    }
+
+    // The padding can only be applied along the two innermost dimensions.
+    int dim_size = paramlist->pads.size() / 2; 
+    for (int i = 0; i < dim_size - 2; ++i) {
+        if (paramlist->pads[i] != 0 || paramlist->pads[i + dim_size] != 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 bool PadV2TRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
@@ -34,7 +57,23 @@ nvinfer1::DataType PadV2TRTPluginLayerBuilder::getOutputDataType(int index, cons
 }
 
 ILayer* PadV2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    auto paramlist = dynamic_cast<PadLayerParam*>(param_);
+
+    if (!UseTRTPaddingND(paramlist)) {
+        return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    }
+
+    auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
+    std::vector<int> pads = paramlist->pads;
+    int dim_size = pads.size() / 2;
+    // use IPaddingLayer
+    IPaddingLayer* pad_layer;
+    Dims pre_padding = ConvertToTRTDims({pads[dim_size - 2], pads[dim_size - 1]});
+    Dims post_padding = ConvertToTRTDims({pads[2 * dim_size - 2], pads[2 * dim_size - 1]});
+    pad_layer = network->addPaddingNd(*input_tensor, pre_padding, post_padding);
+
+    return pad_layer;
 }
 
 DimsExprs PadV2TRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,

@@ -84,16 +84,14 @@ void ConstPadV2(float* input_data, float* output_data, DimsVector input_dims, Di
 
 void ReflectPadV2(float *input_data, float *output_data, DimsVector input_dims, DimsVector output_dims,
                   PadLayerParam *layer_param) {
-    const int pad_start = (output_dims[2] - input_dims[2]) / 2;
-    const int pad_end   = output_dims[2] - pad_start;
-    for (int i = 0; i < input_dims[2]; i++) {
-        output_data[i + pad_start] = input_data[i];
-    }
-    for (int i = 0; i < pad_start; i++) {
-        output_data[i] = output_data[pad_start * 2 - i];
-    }
-    for (int i = 0; i < pad_end; i++) {
-        output_data[pad_start + input_dims[2] + i] = output_data[pad_start + input_dims[2] - 2 - i];
+    const int count = DimsVectorUtils::Count(output_dims);
+    DimsVector output_dim_index(output_dims.size(), 0);
+    for (int i = 0; i < count; i++) {
+        auto input_index = DimsFunctionUtils::Pad(output_dim_index, input_dims, layer_param->pads, layer_param->type, nullptr);
+        int input_offset = DimsOffsetUtils::ConvertIndexToOffset(input_dims, input_index);
+        output_data[i] = input_data[input_offset];
+
+        output_dim_index = DimsFunctionUtils::IncreaseIndex(output_dim_index, output_dims);
     }
 }
 
@@ -119,17 +117,18 @@ Status CpuPadV2LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
             // mode: const
             ConstPadV2(input_data, output_data, input_dims, output_dims, layer_param);
         } else if (layer_param->type == 1) {
+            // mode: reflect
             ReflectPadV2(input_data, output_data, input_dims, output_dims, layer_param);
         } else {
-            LOGE("Error: layer param is not supported: type:%d\n", layer_param->type);
-            return Status(TNNERR_PARAM_ERR, "Error: layer param is not supported");
+            LOGE("Error: CpuPadV2LayerAcc layer param is not supported: type:%d\n", layer_param->type);
+            return Status(TNNERR_PARAM_ERR, "Error: CpuPadV2LayerAcc layer param is not supported");
         }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuPadV2LayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuPadV2LayerAcc layer acc dont support datatype");
     } else {
-        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuPadV2LayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuPadV2LayerAcc layer acc dont support datatype");
     }
     return TNN_OK;
 }
