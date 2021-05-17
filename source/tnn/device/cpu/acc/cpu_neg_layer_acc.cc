@@ -22,6 +22,9 @@ typedef struct neg_operator : unary_operator {
     virtual float operator()(float in) {
         return -in;
     }
+    virtual int operator()(int in) {
+        return -in;
+    }
 } NEG_OP;
 
 DECLARE_UNARY_ACC(Neg, LAYER_NEG, NEG_OP);

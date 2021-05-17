@@ -187,7 +187,8 @@ Status CpuDeconvLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
         }
 
     } else {
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuDeconvLayerAcc layer acc dont support datatype: %d\n", data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuDeconvLayerAcc layer acc dont support datatype");
     }
     return TNN_OK;
 }
