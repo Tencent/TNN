@@ -16,7 +16,13 @@
         protobuf >= 3.0  
 
 ### ARMv8.2编译报错
-若要支持ARMv8.2编译，ndk版本版本至少为r18b  
+若要支持ARMv8.2编译，ndk版本版本至少为r18b
+
+### Windows CUDA 编译
+#### CUDA 版本
+  cuda 10.2 可能存在与 Visual Studio 安装不完整的问题，如出现 cuda_toolset not found ，请重新安装或升级 CUDA 及 Visual Studio。
+
+
         
 ## 二、模型转换问题
 

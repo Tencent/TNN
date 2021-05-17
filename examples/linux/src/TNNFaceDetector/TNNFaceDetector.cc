@@ -35,6 +35,7 @@
 #endif
 using namespace TNN_NS;
 
+// model: face
 int main(int argc, char** argv) {
     if (!ParseAndCheckCommandLine(argc, argv, false)) {
         ShowUsage(argv[0]);
@@ -144,11 +145,11 @@ int main(int argc, char** argv) {
             image_width = frame.cols;
             image_height = frame.rows;
             image_channel = frame.channels();
-            cv::Mat img = frame.clone();
-            data = img.ptr();
+            // cv::Mat img = frame.clone();
+            data = frame.ptr();
         }
 #endif
-        DimsVector orig_dims = {1, image_channel, image_height, image_width};
+        DimsVector orig_dims = {1, 3, image_height, image_width};
 
         //Predict
         auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, orig_dims, data);

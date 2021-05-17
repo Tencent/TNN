@@ -14,7 +14,9 @@
 
 #ifndef TNN_EXAMPLES_BASE_TNN_SDK_SAMPLE_H_
 #define TNN_EXAMPLES_BASE_TNN_SDK_SAMPLE_H_
-
+#ifdef _WIN32
+    #define NOMINMAX
+#endif
 #include <cmath>
 #include <fstream>
 #include <sstream>

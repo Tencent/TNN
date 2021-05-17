@@ -142,8 +142,8 @@ int main(int argc, char** argv) {
             image_width = frame.cols;
             image_height = frame.rows;
             image_channel = frame.channels();
-            cv::Mat img = frame.clone();
-            data = img.ptr();
+            // cv::Mat img = frame.clone();
+            data = frame.ptr();
         }
 #endif
         DimsVector orig_dims = {1, 4, image_height, image_width};

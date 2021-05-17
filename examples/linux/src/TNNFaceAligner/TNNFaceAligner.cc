@@ -227,8 +227,8 @@ int main(int argc, char** argv) {
             image_width = frame.cols;
             image_height = frame.rows;
             image_channel = frame.channels();
-            cv::Mat img = frame.clone();
-            data = img.ptr();
+            // cv::Mat img = frame.clone();
+            data = frame.ptr();
         }
 #endif
         DimsVector nchw = {1, image_channel, image_height, image_width};
@@ -236,8 +236,8 @@ int main(int argc, char** argv) {
         auto resize_mat = std::make_shared<Mat>(DEVICE_NAIVE, N8UC3, target_dims);
         // TNN_NS::ResizeParam param;
         // TNN_NS::MatUtils::Resize(*image_mat, *resize_mat, param, NULL);
-        CHECK_TNN_STATUS(detect_sdk->Resize(image_mat, resize_mat, TNNInterpLinear));
 
+        CHECK_TNN_STATUS(detect_sdk->Resize(image_mat, resize_mat, TNNInterpNearest));
         CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(resize_mat), output));
         CHECK_TNN_STATUS(predictor->ProcessSDKOutput(output));
 
@@ -248,7 +248,6 @@ int main(int argc, char** argv) {
             ifm_buf[i*4+2]  = data[i*3+2];
             ifm_buf[i*4+3]  = 255;
         }
-
         if (output && dynamic_cast<YoutuFaceAlignOutput *>(output.get())) {
             auto face = dynamic_cast<YoutuFaceAlignOutput *>(output.get())->face;
             
