@@ -565,4 +565,284 @@ void X86Relu6Int8(int8_t* dst, const int8_t* src, const int8_t* relu6_max, long 
     }
 }
 
+void X86MaxPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow, long oh, long c_r4, long kw, long kh,
+                    long stride_w, long stride_h, long pad_w, long pad_h) {
+    for (long oy = 0; oy < oh; ++oy) {
+        for (long ox = 0; ox < ow; ++ox) {
+            const long srcOriginX = ox * stride_w - pad_w;
+            const long srcOriginY = oy * stride_h - pad_h;
+            const long kxs        = MAX(0, -srcOriginX);
+            const long kxe        = MIN(kw, iw - srcOriginX);
+            const long kys        = MAX(0, -srcOriginY);
+            const long kye        = MIN(kh, ih - srcOriginY);
+            long oc               = 0;
+
+            for (; oc + 15 < c_r4; oc += 16) {
+                const auto src_ptr = src + (srcOriginY * iw + srcOriginX) * c_r4 + oc;
+                auto dst_ptr       = dst + (oy * ow + ox) * c_r4 + oc;
+                __m128i max_reg    = _mm_set1_epi8(-127);
+                // find kernel_w * kernel_h max value
+                for (long ky = kys; ky < kye; ++ky) {
+                    const auto src_ptr_h = src_ptr + (ky * iw) * c_r4;
+                    long kx              = kxs;
+                    for (; kx < kxe; kx++) {
+                        const auto srcPtrStart = src_ptr_h + kx * c_r4;
+                        max_reg                = _mm_max_epi8(max_reg, _mm_loadu_si128((__m128i*)srcPtrStart));
+                    }
+                }
+                _mm_storeu_si128((__m128i*)dst_ptr, max_reg);
+            }
+            for (; oc + 7 < c_r4; oc += 8) {
+                const auto src_ptr = src + (srcOriginY * iw + srcOriginX) * c_r4 + oc;
+                auto dst_ptr       = dst + (oy * ow + ox) * c_r4 + oc;
+                __m128i max_reg    = _mm_set1_epi8(-127);
+                // find kernel_w * kernel_h max value
+                for (long ky = kys; ky < kye; ++ky) {
+                    const auto src_ptr_h = src_ptr + (ky * iw) * c_r4;
+                    long kx              = kxs;
+                    for (; kx < kxe; kx++) {
+                        const auto srcPtrStart = src_ptr_h + kx * c_r4;
+                        max_reg                = _mm_max_epi8(max_reg, _mm_loadu_si64(srcPtrStart));
+                    }
+                }
+                _mm_storeu_si64(dst_ptr, max_reg);
+            }
+            for (; oc < c_r4; oc += 4) {
+                int8_t maxValue[4] = {-127, -127, -127, -127};
+                const auto src_ptr = src + (srcOriginY * iw + srcOriginX) * c_r4 + oc;
+                auto dst_ptr       = dst + (oy * ow + ox) * c_r4 + oc;
+                // find kernel_w * kernel_h max value
+                for (long ky = kys; ky < kye; ++ky) {
+                    const auto src_ptr_h = src_ptr + (ky * iw) * c_r4;
+                    long kx              = kxs;
+                    for (; kx < kxe; ++kx) {
+                        const auto srcPtrStart = src_ptr_h + kx * c_r4;
+                        for (long j = 0; j < 4; ++j) {
+                            maxValue[j] = MAX(maxValue[j], srcPtrStart[j]);
+                        }
+                    }
+                }
+                // output
+                *(int32_t*)dst_ptr = *(int32_t*)maxValue;
+            }
+        }
+    }
+}
+
+void X86AvgPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow, long oh, long c_r4, long kw, long kh,
+                    long stride_w, long stride_h, long pad_w, long pad_h) {
+    // set rounding mode for _mm_cvtps_pi8
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+
+    for (long oy = 0; oy < oh; ++oy) {
+        for (long ox = 0; ox < ow; ++ox) {
+            const long srcOriginX   = ox * stride_w - pad_w;
+            const long srcOriginY   = oy * stride_h - pad_h;
+            const long kxs          = MAX(0, -srcOriginX);
+            const long kxe          = MIN(kw, iw - srcOriginX);
+            const long kys          = MAX(0, -srcOriginY);
+            const long kye          = MIN(kh, ih - srcOriginY);
+            const long kernel_count = (kxe - kxs) * (kye - kys);
+            long oc                 = 0;
+
+            int16_t sum[8];
+            __m128 div_vec = _mm_set1_ps((float)kernel_count);
+            for (; oc + 7 < c_r4; oc += 8) {
+                __m128i avg_reg    = _mm_setzero_si128();
+                const auto src_ptr = src + (srcOriginY * iw + srcOriginX) * c_r4 + oc;
+                auto dst_ptr       = dst + (oy * ow + ox) * c_r4 + oc;
+                // find kernel_w * kernel_h avg value
+                for (long ky = kys; ky < kye; ++ky) {
+                    const auto src_ptr_h = src_ptr + (ky * iw) * c_r4;
+                    long kx              = kxs;
+                    for (; kx < kxe; kx++) {
+                        const auto srcPtrStart = src_ptr_h + kx * c_r4;
+                        __m128i cur_val = _mm_cvtepi8_epi16(_mm_loadu_si64(srcPtrStart));
+                        avg_reg         = _mm_add_epi16(avg_reg, cur_val);
+                    }
+                }
+                __m128 avg_reg_lo = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(_mm_unpacklo_epi64(avg_reg, avg_reg)));
+                __m128 avg_reg_hi = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(_mm_unpackhi_epi64(avg_reg, avg_reg)));
+                avg_reg_lo        = _mm_div_ps(avg_reg_lo, div_vec);
+                avg_reg_hi        = _mm_div_ps(avg_reg_hi, div_vec);
+
+                __m128i dst_8x8   = _mm_set_epi64(_mm_cvtps_pi8(avg_reg_hi), _mm_cvtps_pi8(avg_reg_lo));
+                dst_8x8 = _mm_shuffle_epi32(dst_8x8, 8);
+                _mm_storeu_si64(dst_ptr, dst_8x8);
+            }
+
+            for (; oc < c_r4; oc += 4) {
+                int16_t sum[4]     = {0, 0, 0, 0};
+                const auto src_ptr = src + (srcOriginY * iw + srcOriginX) * c_r4 + oc;
+                auto dst_ptr       = dst + (oy * ow + ox) * c_r4 + oc;
+                // find kernel_w * kernel_h avg value
+                for (long ky = kys; ky < kye; ++ky) {
+                    const auto src_ptr_h = src_ptr + (ky * iw) * c_r4;
+                    long kx              = kxs;
+
+                    for (; kx < kxe; ++kx) {
+                        const auto srcPtrStart = src_ptr_h + kx * c_r4;
+                        for (long j = 0; j < 4; ++j) {
+                            sum[j] += srcPtrStart[j];
+                        }
+                    }
+                }
+                // output
+                for (long j = 0; j < 4; j++) {
+                    dst_ptr[j] = static_cast<int8_t>(sum[j] / kernel_count);
+                }
+            }
+        }
+    }
+}
+
+/*
+element add int8 func
+*/
+void X86MatrixAddInt8(int8_t* dst, const int8_t* A, const int8_t* B, float* dst_scale, const float* a_scale,
+                   float* b_scale, long channel, long hw_size) {
+    // set rounding mode for _mm_cvtps_pi8
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+    __m128 zero_f32 = _mm_set1_ps(0.f);
+    __m128 add_05   = _mm_set1_ps(0.5f);
+    __m128 sub_05   = _mm_set1_ps(-0.5f);
+
+    for (long hw = 0; hw < hw_size; hw++) {
+        long c = 0;
+
+        auto A_hw   = A + hw * channel;
+        auto B_hw   = B + hw * channel;
+        auto dst_hw = dst + hw * channel;
+        for (; c < channel - 4; c += 8) {
+            __m128 scale_a_neon0   = _mm_loadu_ps(a_scale + c);
+            __m128 scale_a_neon1   = _mm_loadu_ps(a_scale + c + 4);
+            __m128 scale_b_neon0   = _mm_loadu_ps(b_scale + c);
+            __m128 scale_b_neon1   = _mm_loadu_ps(b_scale + c + 4);
+            __m128 scale_dst_neon0 = _mm_loadu_ps(dst_scale + c);
+            __m128 scale_dst_neon1 = _mm_loadu_ps(dst_scale + c + 4);
+
+            __m128i aval       = _mm_cvtepi8_epi16(_mm_loadu_si64(A_hw + c));
+            __m128i bval       = _mm_cvtepi8_epi16(_mm_loadu_si64(B_hw + c));
+            __m128 a0          = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(_mm_unpacklo_epi64(aval, aval)));
+            __m128 a1          = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(_mm_unpackhi_epi64(aval, aval)));
+            __m128 b0          = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(_mm_unpacklo_epi64(bval, bval)));
+            __m128 b1          = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(_mm_unpackhi_epi64(bval, bval)));
+            __m128 mul0        = _mm_add_ps(_mm_mul_ps(a0, scale_a_neon0), _mm_mul_ps(b0, scale_b_neon0));
+            __m128 mul1        = _mm_add_ps(_mm_mul_ps(a1, scale_a_neon1), _mm_mul_ps(b1, scale_b_neon1));
+            mul0               = _mm_mul_ps(mul0, scale_dst_neon0);
+            mul1               = _mm_mul_ps(mul1, scale_dst_neon1);
+
+            // rounding to zero(val + (val >= 0.f ? 0.5f : -0.5f)) = rounding to nearest ties away from zero
+            __m128 cmp_zero_0 = _mm_cmpge_ps(mul0, zero_f32);
+            __m128 cmp_zero_1 = _mm_cmpge_ps(mul1, zero_f32);
+            __m128 adjust_vec_0 = _mm_blendv_ps(sub_05, add_05, cmp_zero_0);
+            __m128 adjust_vec_1 = _mm_blendv_ps(sub_05, add_05, cmp_zero_1);
+            mul0 = _mm_add_ps(mul0, adjust_vec_0);
+            mul1 = _mm_add_ps(mul1, adjust_vec_1);
+            __m128i dst_8x8 = _mm_set_epi64(_mm_cvtps_pi8(mul1), _mm_cvtps_pi8(mul0));
+            dst_8x8 = _mm_shuffle_epi32(dst_8x8, 8);
+            _mm_storeu_si64(dst_hw + c, dst_8x8);
+        }
+        for (; c < channel; c++) {
+            float aval  = A_hw[c] * a_scale[c] + B_hw[c] * b_scale[c];
+            dst_hw[c] = float2int8(aval * dst_scale[c]);
+        }
+    }
+}
+
+void X86GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, const float* scale, long ic_r4,
+              long oc_r4) {
+    // set rounding mode for _mm_cvtps_pi8
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+
+    __m128 zero_f32 = _mm_set1_ps(0.f);
+    __m128 add_05   = _mm_set1_ps(0.5f);
+    __m128 sub_05   = _mm_set1_ps(-0.5f);
+
+    for (long dc = 0; dc < oc_r4; dc += 4) {
+        __m128i acc0 = _mm_setzero_si128();
+        __m128i acc1 = _mm_setzero_si128();
+        __m128i acc2 = _mm_setzero_si128();
+        __m128i acc3 = _mm_setzero_si128();
+        auto weight_o_0 = weight + dc * ic_r4;
+        auto weight_o_1 = weight_o_0 + ic_r4;
+        auto weight_o_2 = weight_o_1 + ic_r4;
+        auto weight_o_3 = weight_o_2 + ic_r4;
+
+        long c         = 0;
+        for (; c + 15 < ic_r4; c += 16) {
+            __m128i a     = _mm_loadu_si128((__m128i*)(src + c));
+            __m128i b0    = _mm_loadu_si128((__m128i*)(weight_o_0 + c));
+            __m128i b1    = _mm_loadu_si128((__m128i*)(weight_o_1 + c));
+            __m128i b2    = _mm_loadu_si128((__m128i*)(weight_o_2 + c));
+            __m128i b3    = _mm_loadu_si128((__m128i*)(weight_o_3 + c));
+
+            __m128i a_lo  = _mm_cvtepi8_epi16(_mm_unpacklo_epi64(a, a));
+            __m128i a_hi  = _mm_cvtepi8_epi16(_mm_unpackhi_epi64(a, a));
+            __m128i b0_lo = _mm_cvtepi8_epi16(_mm_unpacklo_epi64(b0, b0));
+            __m128i b0_hi = _mm_cvtepi8_epi16(_mm_unpackhi_epi64(b0, b0));
+            __m128i b1_lo = _mm_cvtepi8_epi16(_mm_unpacklo_epi64(b1, b1));
+            __m128i b1_hi = _mm_cvtepi8_epi16(_mm_unpackhi_epi64(b1, b1));
+            __m128i b2_lo = _mm_cvtepi8_epi16(_mm_unpacklo_epi64(b2, b2));
+            __m128i b2_hi = _mm_cvtepi8_epi16(_mm_unpackhi_epi64(b2, b2));
+            __m128i b3_lo = _mm_cvtepi8_epi16(_mm_unpacklo_epi64(b3, b3));
+            __m128i b3_hi = _mm_cvtepi8_epi16(_mm_unpackhi_epi64(b3, b3));
+
+            acc0          = _mm_add_epi32(acc0, _mm_madd_epi16(a_lo, b0_lo));
+            acc1          = _mm_add_epi32(acc1, _mm_madd_epi16(a_lo, b1_lo));
+            acc2          = _mm_add_epi32(acc2, _mm_madd_epi16(a_lo, b2_lo));
+            acc3          = _mm_add_epi32(acc3, _mm_madd_epi16(a_lo, b3_lo));
+            acc0          = _mm_add_epi32(acc0, _mm_madd_epi16(a_hi, b0_hi));
+            acc1          = _mm_add_epi32(acc1, _mm_madd_epi16(a_hi, b1_hi));
+            acc2          = _mm_add_epi32(acc2, _mm_madd_epi16(a_hi, b2_hi));
+            acc3          = _mm_add_epi32(acc3, _mm_madd_epi16(a_hi, b3_hi));
+        }
+        for (; c + 7 < ic_r4; c += 8) {
+            __m128i a  = _mm_cvtepi8_epi16(_mm_loadu_si64(src + c));
+            __m128i b0 = _mm_cvtepi8_epi16(_mm_loadu_si64(weight_o_0 + c));
+            __m128i b1 = _mm_cvtepi8_epi16(_mm_loadu_si64(weight_o_1 + c));
+            __m128i b2 = _mm_cvtepi8_epi16(_mm_loadu_si64(weight_o_2 + c));
+            __m128i b3 = _mm_cvtepi8_epi16(_mm_loadu_si64(weight_o_3 + c));
+
+            acc0       = _mm_add_epi32(acc0, _mm_madd_epi16(a, b0));
+            acc1       = _mm_add_epi32(acc1, _mm_madd_epi16(a, b1));
+            acc2       = _mm_add_epi32(acc2, _mm_madd_epi16(a, b2));
+            acc3       = _mm_add_epi32(acc3, _mm_madd_epi16(a, b3));
+        }
+        for (; c < ic_r4; c += 4) {
+            int a_4xi8  = *((int*)(src + c));
+            int b0_4xi8 = *((int*)(weight_o_0 + c));
+            int b1_4xi8 = *((int*)(weight_o_1 + c));
+            int b2_4xi8 = *((int*)(weight_o_2 + c));
+            int b3_4xi8 = *((int*)(weight_o_3 + c));
+
+            __m128i a  = _mm_cvtepi8_epi16(_mm_cvtsi32_si128(a_4xi8));
+            __m128i b0 = _mm_cvtepi8_epi16(_mm_cvtsi32_si128(b0_4xi8));
+            __m128i b1 = _mm_cvtepi8_epi16(_mm_cvtsi32_si128(b1_4xi8));
+            __m128i b2 = _mm_cvtepi8_epi16(_mm_cvtsi32_si128(b2_4xi8));
+            __m128i b3 = _mm_cvtepi8_epi16(_mm_cvtsi32_si128(b3_4xi8));
+
+            acc0       = _mm_add_epi32(acc0, _mm_madd_epi16(a, b0));
+            acc1       = _mm_add_epi32(acc1, _mm_madd_epi16(a, b1));
+            acc2       = _mm_add_epi32(acc2, _mm_madd_epi16(a, b2));
+            acc3       = _mm_add_epi32(acc3, _mm_madd_epi16(a, b3));
+        }
+
+        __m128i dst_4xi32 = _mm_hadd_epi32(_mm_hadd_epi32(acc0, acc1), _mm_hadd_epi32(acc2, acc3));
+        __m128i bias_vec  = _mm_loadu_si128((__m128i*)(bias + dc));
+        __m128 scale_vec  = _mm_loadu_ps(scale + dc);
+        __m128 dst_4xf32  = _mm_cvtepi32_ps(_mm_add_epi32(dst_4xi32, bias_vec));
+        dst_4xf32         = _mm_mul_ps(dst_4xf32, scale_vec);
+
+        // rounding to zero(val + (val >= 0.f ? 0.5f : -0.5f)) = rounding to nearest ties away from zero
+        __m128 cmp_zero   = _mm_cmpge_ps(dst_4xf32, zero_f32);
+        __m128 adjust_vec = _mm_blendv_ps(sub_05, add_05, cmp_zero);
+        dst_4xf32         = _mm_add_ps(dst_4xf32, adjust_vec);
+        __m128i dst_int8  = _mm_movpi64_epi64(_mm_cvtps_pi8(dst_4xf32));
+        int dst_4x8       = _mm_extract_epi32(dst_int8, 0);
+
+        *((int*)(dst + dc)) = dst_4x8;
+    }
+}
+
 }   // namespace TNN_NS

@@ -44,6 +44,18 @@ void X86DepthwiseI8K5(int8_t* dst, const int8_t* src, const int8_t* weight, cons
 void X86ReluInt8(int8_t* dst, const int8_t* src, long len);
 void X86Relu6Int8(int8_t* dst, const int8_t* src, const int8_t* relu6_max, long width, long dst_depth);
 
+void X86MaxPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow, long oh, long c_r4, long kw, long kh,
+                    long stride_w, long stride_h, long pad_w, long pad_h);
+
+void X86AvgPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow, long oh, long c_r4, long kw, long kh,
+                    long stride_w, long stride_h, long pad_w, long pad_h);
+
+void X86MatrixAddInt8(int8_t* dst, const int8_t* A, const int8_t* B, float* dst_scale, const float* a_scale,
+                   float* b_scale, long channel, long hw_size);
+
+void X86GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, const float* scale,
+                 long ic_r4, long oc_r4);
+
 }   // namespace TNN_NS
 
 #endif

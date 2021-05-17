@@ -19,6 +19,7 @@
 #include "tnn/device/x86/x86_util.h"
 
 #include "tnn/device/x86/acc/compute/x86_compute.h"
+#include "tnn/device/x86/acc/compute/x86_compute_int8.h"
 #include "tnn/device/x86/acc/x86_pool_layer_acc.h"
 #include "tnn/device/x86/acc/Float8.h"
 #include "tnn/device/x86/acc/Float4.h"
@@ -66,6 +67,7 @@ Status X86PoolLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
     auto dims_output = output->GetBlobDesc().dims;
 
     auto batch      = dims_output[0];
+    auto oc_r4      = ROUND_UP(dims_output[1], 4);
     auto input_ptr  = static_cast<float *>(input->GetHandle().base);
     auto output_ptr = static_cast<float *>(output->GetHandle().base);
 
@@ -109,6 +111,23 @@ Status X86PoolLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
                             param->strides[1], param->pads[0], param->pads[2]);
                 }
                 UnpackAcc(output_b + c * dst_hw, dst_pack_ptr, dst_hw, dst_hw, dst_hw, left_c);
+            }
+        }
+    } else if (input->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+        // INT8
+        for (int n = 0; n < batch; n++) {
+            auto input_batch_stride  = dims_input[3] * dims_input[2] * oc_r4;
+            auto output_batch_stride = dims_output[3] * dims_output[2] * oc_r4;
+            if (param->pool_type == 0) {
+                X86MaxPoolingINT8(reinterpret_cast<int8_t *>(input_ptr) + n * input_batch_stride, dims_input[3],
+                               dims_input[2], reinterpret_cast<int8_t *>(output_ptr) + n * output_batch_stride,
+                               dims_output[3], dims_output[2], oc_r4, param->kernels[0], param->kernels[1],
+                               param->strides[0], param->strides[1], param->pads[0], param->pads[2]);
+            } else {
+                X86AvgPoolingINT8(reinterpret_cast<int8_t *>(input_ptr) + n * input_batch_stride, dims_input[3],
+                               dims_input[2], reinterpret_cast<int8_t *>(output_ptr) + n * output_batch_stride,
+                               dims_output[3], dims_output[2], oc_r4, param->kernels[0], param->kernels[1],
+                               param->strides[0], param->strides[1], param->pads[0], param->pads[2]);
             }
         }
     } else {
