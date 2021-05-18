@@ -33,7 +33,7 @@ Status ArmPriorBoxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     // call cpu naive prior box
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         auto prior_box = GeneratePriorBox(inputs, outputs, param);
-        memcpy(nchw_blob_out[0]->GetHandle().base, reinterpret_cast<void *>(prior_box.data()),
+        memcpy(GetBlobHandlePtr(nchw_blob_out[0]->GetHandle()), reinterpret_cast<void *>(prior_box.data()),
                prior_box.size() * sizeof(float));
         PackOutputs<float>(outputs);
     } else {

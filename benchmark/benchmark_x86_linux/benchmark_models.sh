@@ -120,6 +120,11 @@ function bench_x86_linux() {
         exit 0
     fi
 
+    if [ ! -d ${BENCHMARK_MODEL_DIR} ]; then
+        echo "please set model dir path or exec script with option -dl"
+        usage
+        exit -1
+    fi
     cd ${BENCHMARK_MODEL_DIR}
 
     if [ ${#benchmark_model_list[*]} == 0 ];then

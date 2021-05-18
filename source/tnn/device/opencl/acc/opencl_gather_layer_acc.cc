@@ -102,7 +102,7 @@ Status OpenCLGatherLayerAcc::ConvertIndicesBuffer(RawBuffer& indices) {
                       DimsVectorUtils::Count(indices.GetBufferDims()) * sizeof(int), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     auto indices_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
         *indices_buffer_.get(), true, CL_MAP_WRITE, 0, DimsVectorUtils::Count(indices.GetBufferDims()) * sizeof(int), nullptr, nullptr, &ret);
@@ -114,7 +114,7 @@ Status OpenCLGatherLayerAcc::ConvertIndicesBuffer(RawBuffer& indices) {
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(*indices_buffer_.get(), indices_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
     return TNN_OK;
 }

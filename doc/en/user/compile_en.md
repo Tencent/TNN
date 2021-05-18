@@ -116,7 +116,7 @@ RKNPU Compilation Prerequisite in [FAQ](../faq_en.md#rknpu-compilation-prerequis
 ## IV. Compile(x86 Linux)
 ### 1. Enviromnment requirements
 #### Dependencies
-  - cmake (version 3.7.2 or higher)
+  - cmake (version 3.11 or higher)
 
 ### 2. Compilation Steps
 1) switch to 'scripts' directory
@@ -126,12 +126,13 @@ cd <path_to_tnn>/scripts
 2) execute the building scripts
   - compile without openvino
 ```
-./build_linux_naive.sh
+./build_linux_native.sh
 ```
   - compile with openvino
 ```
-./build_linux.sh
+./build_x86_linux.sh
 ```
+Openvino can only be compiled to 64-bit version, cmake version 3.13 or higher
 
 ## V. Compile(Linux CUDA)
 ### 1. Enviromnment requirements
@@ -173,7 +174,7 @@ cd <path_to_tnn>/scripts
 2) execute the building scripts
   - compile without openvino
 ```
-.\build_msvc_naive.bat
+.\build_msvc_native.bat
 ```
   - compile with openvino
 ```
@@ -181,8 +182,34 @@ cd <path_to_tnn>/scripts
 ```
 Openvino can only be compiled to 64-bit version. More problems refer to [FAQ](openvino_en.md)
 
+## VII. Compile(CUDA Windows) 
+### 1. Enviroment requirements
+#### Dependencies
+  - Visual Studio (version 2015 or higher)
+  - cmake (vsrsion 3.11 or higher; Or use build-in cmake in Visual Studio)
+  - CUDA (version 10.2 or higher)
 
-## VII. Compile(Macos)
+#### TensorRT configuration
+  - Download TensorRT (version>=7.1) <https://developer.nvidia.com/nvidia-tensorrt-7x-download>
+  - Configure the TensorRT path in *build_cuda_msvc.bat* : `set TENSORRT_ROOT_DIR=<TensorRT_path>`
+
+#### CuDNN configuration
+  - Download CuDNN (version>=8.0) <https://developer.nvidia.com/rdp/cudnn-download>
+  - Configure the CuDNN path in *build_cuda_msvc.bat* : `set CUDNN_ROOT_DIR=<CuDNN_path>`
+
+### 2. Compilation Steps
+Open `x64 Native Tools Command Prompt for VS 2017/2019`. Or open `cmd` with `cmake` environment virable setted.
+1) switch to 'scripts' directory
+```
+cd <path_to_tnn>/scripts
+```
+2) execute the building scripts
+```
+.\build_cuda_msvc.bat
+```
+
+
+## VIII. Compile(Macos)
 ### 1. Environment requirements
 #### Dependencies
   - cmake 3.11 or above
@@ -204,7 +231,7 @@ cd <path_to_tnn>/scripts
 
 |Option|Default|Description|
 |------|:---:|----|
-|TNN_CPU_ENABLE| OFF | Code source/device/cpu compilation switch, the code is only used for debugging and UnitTest benchmark test, the implementation is all c ++ code, does not contain specific CPU acceleration instructions.|
+|TNN_CPU_ENABLE| ON | Code source/device/cpu compilation switch, the implementation is all c ++ code, does not contain specific CPU acceleration instructions.|
 |TNN_X86_ENABLE| OFF | The code source/device/x86 compilation switch is currently adapted to the openvino implementation, and more accelerated code implementation will be moved in later.|
 |TNN_ARM_ENABLE| OFF | Code source/device/arm compilation switch, the code contains neon acceleration instructions, and partially implements int8 acceleration.|
 |TNN_ARM82_ENABLE| OFF | Code source/device/arm/acc/compute_arm82 compilation switch, the code implements fp16 acceleration.|

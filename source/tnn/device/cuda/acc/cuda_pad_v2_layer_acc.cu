@@ -19,8 +19,9 @@ namespace TNN_NS {
 
 DECLARE_CUDA_ACC(PadV2, LAYER_PADV2);
 
-__global__ void pad_default_kernel_v2(const float* src, float* dst, int count, int input_channel, int output_channel,
-        int pad_c, int output_d, int output_h, int output_w, int input_d, int input_h, int input_w, int pad_d, int pad_h, int pad_w, float value) {
+template <typename T>
+__global__ void pad_default_kernel_v2(const T* src, T* dst, int count, int input_channel, int output_channel,
+        int pad_c, int output_d, int output_h, int output_w, int input_d, int input_h, int input_w, int pad_d, int pad_h, int pad_w, T value) {
     CUDA_KERNEL_LOOP(idx, count) {
         int dst_n = idx / (output_channel * output_d * output_h * output_w);
         int dst_c = (idx / (output_d * output_h * output_w)) % output_channel;
@@ -39,7 +40,8 @@ __global__ void pad_default_kernel_v2(const float* src, float* dst, int count, i
     }
 }
 
-__global__ void pad_reflect_kernel_v2(const float* src, float* dst, int count, int channels, int output_d, int output_h, int output_w, \
+template <typename T>
+__global__ void pad_reflect_kernel_v2(const T* src, T* dst, int count, int channels, int output_d, int output_h, int output_w,
 int input_d, int input_h, int input_w, int pad_d, int pad_h, int pad_w) {
   CUDA_KERNEL_LOOP(idx, count) {
     int dst_n = idx / (channels * output_d * output_h * output_w);
@@ -102,20 +104,32 @@ Status CudaPadV2LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         input_w = input_dims[4];
     }
 
-    float value = params->value;
-
     const int count = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
-    if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        float* input_data = static_cast<float*>(input_blob->GetHandle().base);
-        float* output_data = static_cast<float*>(output_blob->GetHandle().base);
 
+    float value = params->value;
+    void* input_data = input_blob->GetHandle().base;
+    void* output_data = output_blob->GetHandle().base;
+    if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         if (params->type == 0) {
             pad_default_kernel_v2<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
-                input_data, output_data, count, input_c, output_c, pad_c, output_d, output_h, output_w,
+                static_cast<float*>(input_data), static_cast<float*>(output_data), count, input_c, output_c, pad_c, output_d, output_h, output_w,
                 input_d, input_h, input_w, pad_d, pad_h, pad_w, value);
         } else if(params->type == 1) {
             pad_reflect_kernel_v2<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
-                input_data, output_data, count, output_c, output_d, output_h, output_w, input_d, 
+                static_cast<float*>(input_data), static_cast<float*>(output_data), count, output_c, output_d, output_h, output_w, input_d, 
+                input_h, input_w, pad_d, pad_h, pad_w);
+        } else {
+            LOGE("Error: layer acc dont support pad type: %d\n", params->type);
+            return Status(TNNERR_MODEL_ERR, "Error: layer acc don't support pad type");
+        }
+    } else if (input_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        if (params->type == 0) {
+            pad_default_kernel_v2<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+                static_cast<__half*>(input_data), static_cast<__half*>(output_data), count, input_c, output_c, pad_c, output_d, output_h, output_w,
+                input_d, input_h, input_w, pad_d, pad_h, pad_w, __float2half(value));
+        } else if(params->type == 1) {
+            pad_reflect_kernel_v2<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+                static_cast<__half*>(input_data), static_cast<__half*>(output_data), count, output_c, output_d, output_h, output_w, input_d, 
                 input_h, input_w, pad_d, pad_h, pad_w);
         } else {
             LOGE("Error: layer acc dont support pad type: %d\n", params->type);

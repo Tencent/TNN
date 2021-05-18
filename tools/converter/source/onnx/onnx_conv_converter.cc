@@ -44,11 +44,10 @@ TNN_NS::Status OnnxConvConverter::exec(TNN_NS::NetStructure &net_structure, TNN_
 
     const auto &filter_name   = node.input(1);
     const auto *filter_tensor = proxy_initializers_map[filter_name];
-    auto filter_shape         = filter_tensor->dims();
-    const int co              = filter_shape[0];
-    const int ci              = filter_shape[1];
-    const int kh              = filter_shape[2];
-    const int kw              = filter_shape[3];
+    const int co              = filter_tensor->dims(0);
+    const int ci              = filter_tensor->dims(1);
+    const int kh              = filter_tensor->dims(2);
+    const int kw              = filter_tensor->dims(3);
     param->bias               = has_bias;
     param->input_channel      = ci;
     param->output_channel     = co;

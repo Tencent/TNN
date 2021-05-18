@@ -71,7 +71,9 @@ ILayer* DeconvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         if(deconv_layer != NULL) {
             deconv_layer->setName(layer_name_.c_str());
             deconv_layer->setStrideNd(ConvertToTRTDimsReverse(paramlist->strides));
+#if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 71
             deconv_layer->setDilationNd(ConvertToTRTDimsReverse(paramlist->dialations));
+#endif
             deconv_layer->setNbGroups(paramlist->group);
         }
     }

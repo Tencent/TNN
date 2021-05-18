@@ -23,6 +23,52 @@
 
 namespace TNN_NS {
 
+static void SoftmaxChannelFunc(float *dst, float *src, int channel) {
+    // max
+    Float4 max_v = Float4(src[0]);
+    float max    = src[0];
+    int c        = 0;
+    for (; c < channel - 4; c += 4) {
+        max_v = Float4::max(Float4::load(src + c), max_v);
+    }
+    for (; c < channel; ++c) {
+        max = std::max(max, src[c]);
+    }
+    for (int i = 0; i < 4; ++i) {
+        max = std::max(max, max_v[i]);
+    }
+    // exp
+    c = 0;
+    for (; c < channel - 4; c += 4) {
+        Float4::save(dst + c, Float4::exp(Float4::load(src + c) - Float4(max)));
+    }
+    for (; c < channel; ++c) {
+        dst[c] = expf(src[c] - max);
+    }
+    // sum
+    c            = 0;
+    Float4 sum_v = Float4(0.0f);
+    float sum    = 0.0f;
+    for (; c < channel - 4; c += 4) {
+        sum_v = Float4::load(dst + c) + sum_v;
+    }
+    for (; c < channel; ++c) {
+        sum += dst[c];
+    }
+    for (int i = 0; i < 4; ++i) {
+        sum += sum_v[i];
+    }
+    // div
+    c                 = 0;
+    float denominator = 1.0f / sum;
+    for (; c < channel - 4; c += 4) {
+        Float4::save(dst + c, Float4::load(dst + c) * denominator);
+    }
+    for (; c < channel; ++c) {
+        dst[c] *= denominator;
+    }
+}
+
 template <typename T>
 Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     SoftmaxLayerParam *layer_param = dynamic_cast<SoftmaxLayerParam *>(param_);
@@ -68,38 +114,65 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
             input_ptr          = output_ptr;
             reorder_buffer_ptr = reorder_buffer.force_to<float *>();
         }
-
-        for (int y = 0; y < outside; y++) {
-            auto src_y = input_ptr + y * step_y;
-            auto dst_y = reorder_buffer_ptr + y * step_y;
-            memcpy(max_value_ptr, src_y, sizeof(float) * inside);
-
-            auto src = src_y + inside;
-            for (int c = 1; c < channel; ++c, src += inside) {
-                for (int x = 0; x < inside; ++x) {
-                    if (src[x] > max_value_ptr[x])
-                        max_value_ptr[x] = src[x];
-                }
+        if (inside == 1) {
+            for (int y = 0; y < outside; ++y) {
+                auto src_y = input_ptr + y * step_y;
+                auto dst_y = reorder_buffer_ptr + y * step_y;
+                SoftmaxChannelFunc(dst_y, src_y, channel);
             }
-
-            memset(sum_value_ptr, 0, sizeof(float) * inside);
-            src        = src_y;
-            float *dst = dst_y;
-            for (int c = 0; c < channel; ++c, src += inside, dst += inside) {
-                for (int x = 0; x < inside; ++x) {
-                    dst[x] = std::exp(src[x] - max_value_ptr[x]);
-                    sum_value_ptr[x] += dst[x];
+        } else {
+            for (int y = 0; y < outside; y++) {
+                auto src_y = input_ptr + y * step_y;
+                auto dst_y = reorder_buffer_ptr + y * step_y;
+                memcpy(max_value_ptr, src_y, sizeof(float) * inside);
+                // max
+                auto src = src_y + inside;
+                for (int c = 1; c < channel; ++c, src += inside) {
+                    int x = 0;
+                    for (; x < inside - 4; x += 4) {
+                        Float4 src_v = Float4::load(src + x);
+                        Float4 max_v = Float4::load(max_value_ptr + x);
+                        max_v        = Float4::max(src_v, max_v);
+                        Float4::save(max_value_ptr + x, max_v);
+                    }
+                    for (; x < inside; ++x) {
+                        max_value_ptr[x] = src[x] > max_value_ptr[x] ? src[x] : max_value_ptr[x];
+                    }
                 }
-            }
-
-            dst = dst_y;
-            for (int c = 0; c < channel; ++c, dst += inside) {
-                for (int x = 0; x < inside; ++x) {
-                    dst[x] /= sum_value_ptr[x];
+                memset(sum_value_ptr, 0, sizeof(float) * inside);
+                src        = src_y;
+                float *dst = dst_y;
+                for (int c = 0; c < channel; ++c, src += inside, dst += inside) {
+                    int x = 0;
+                    for (; x < inside - 4; x += 4) {
+                        Float4 src_v = Float4::load(src + x);
+                        Float4 max_v = Float4::load(max_value_ptr + x);
+                        Float4 sum_v = Float4::load(sum_value_ptr + x);
+                        Float4 dst_v = Float4::exp(src_v - max_v);
+                        sum_v        = sum_v + dst_v;
+                        Float4::save(dst + x, dst_v);
+                        Float4::save(sum_value_ptr + x, sum_v);
+                    }
+                    for (; x < inside; ++x) {
+                        dst[x] = expf(src[x] - max_value_ptr[x]);
+                        sum_value_ptr[x] += dst[x];
+                    }
+                }
+                dst = dst_y;
+                for (int c = 0; c < channel; ++c, dst += inside) {
+                    int x = 0;
+                    for (; x < inside - 4; x += 4) {
+                        Float4 dst_v = Float4::load(dst + x);
+                        Float4 sum_v = Float4::load(sum_value_ptr + x);
+                        dst_v        = Float4::div(dst_v, sum_v);
+                        Float4::save(dst + x, dst_v);
+                    }
+                    for (; x < inside; ++x) {
+                        dst[x] /= sum_value_ptr[x];
+                    }
                 }
             }
         }
-
         if (packed) {
             PackC4(output_ptr, reorder_buffer_ptr, hw, dims[1]);
         }

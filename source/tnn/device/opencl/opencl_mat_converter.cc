@@ -468,7 +468,7 @@ Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam par
     ret = cl_command_queue->enqueueUnmapMemObject(*matrix_buffer_, matrix_buffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
 
     // create execute unit

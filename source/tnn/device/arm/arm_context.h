@@ -31,10 +31,10 @@ public:
     // @brief share tnn command queue to another context
     virtual Status ShareCommandQueue(Context* context) override;
     
-    // @brief befor instace forword
+    // @brief before instance forward
     virtual Status OnInstanceForwardBegin() override;
 
-    // @brief after instace forword
+    // @brief after instance forward
     virtual Status OnInstanceForwardEnd() override;
 
     // @brief wait for jobs in the current context to complete

@@ -70,7 +70,7 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
              RETURN_ON_NEQ(status, TNN_OK);
              auto min_blob_shapes_map = default_interpreter->GetNetResource()->blob_shapes_map;
             
-            //Note output shape may not change after reshape for const folder, but will do change after forword because shape may be determined at rumtime
+            //Note output shape may not change after reshape for const folder, but will do change after forward because shape may be determined at rumtime
              status = const_folder->Reshape(max_inputs_shape);
              RETURN_ON_NEQ(status, TNN_OK);
              status = const_folder->Forward();

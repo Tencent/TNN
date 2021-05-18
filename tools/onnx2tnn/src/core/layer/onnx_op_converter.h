@@ -22,6 +22,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <set>
 
 #include "tnn/interpreter/tnn/objseri.h"
 #include "onnx.pb.h"

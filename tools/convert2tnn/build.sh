@@ -12,9 +12,9 @@ function usage() {
 }
 
 function clean_build() {
-    echo $1 | grep "${BUILD_DIR}\b" >/dev/null
+    echo $1 | grep -e "${BUILD_DIR}\b" -e "${BIN_DIR}\b" >/dev/null
     if [[ "$?" != "0" ]]; then
-        die "Warnning: $1 seems not to be a BUILD folder."
+        echo "Warnning: $1 seems not to be a BUILD folder."
     fi
     rm -rf $1
     mkdir -p $1

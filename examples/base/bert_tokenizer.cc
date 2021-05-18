@@ -330,6 +330,7 @@ Status BertTokenizer::buildInput(std::string paragraph, std::string question, st
             reinterpret_cast<int*>(input->inputIds)[i] = code1[i];
             reinterpret_cast<int*>(input->inputMasks)[i] = 1;
         } else {
+            reinterpret_cast<int*>(input->inputIds)[i] = 0;
             reinterpret_cast<int*>(input->inputMasks)[i] = 0;
             reinterpret_cast<int*>(input->segments)[i] = 0;
         }

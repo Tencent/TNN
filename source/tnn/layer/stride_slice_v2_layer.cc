@@ -50,7 +50,7 @@ Status StrideSliceV2Layer::InferOutputShape(bool ignore_error) {
         return status;
     }
   
-    //dont rectify begins and ends here, input shape may change, do it in runtime forword see cpu_stride_slice_v2_layer_acc.cc Forword
+    //dont rectify begins and ends here, input shape may change, do it in runtime forward see cpu_stride_slice_v2_layer_acc.cc Forward
 //    layer_param->begins = begins;
 //    layer_param->ends = ends;
     output_blob->GetBlobDesc().dims = output_dims;

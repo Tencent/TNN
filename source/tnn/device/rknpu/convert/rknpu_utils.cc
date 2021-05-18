@@ -94,7 +94,7 @@ uint32_t RknpuUtils::CalcSize(rk::nn::PrecisionType type, std::vector<int32_t> d
             type_size = 8;
             break;
         default:
-            throw std::invalid_argument("Init: unknow intput or output data type!");
+            throw std::invalid_argument("Init: unknow input or output data type!");
             break;
     }
 

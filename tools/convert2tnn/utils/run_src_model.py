@@ -131,7 +131,7 @@ class BaseRunner:
 
     def check_input_information(self, src_model_input_information: dict, tnn_model_input_information: dict) -> bool:
         if len(src_model_input_information) != len(tnn_model_input_information):
-            logging.info("input is not algin 186\n")
+            logging.info("input is not align 186\n")
             # print_not_align_message("onnx input size != tnn input size")
         for name, onnx_info in src_model_input_information.items():
             tnn_name = name.replace(":", "_")
@@ -139,7 +139,7 @@ class BaseRunner:
             if self.check_shape_information(onnx_info, tnn_info):
                 logging.info(name + ": input shape of onnx and tnn is aligned!\n")
             else:
-                logging.error("input is not algin 194\n")
+                logging.error("input is not align 194\n")
                 # print_not_align_message(
                 #     "The {}'s shape not equal! the onnx shape:{}, tnn shape: {}\n".format(name, str(onnx_info),
                 #                                                                           str(tnn_info)))

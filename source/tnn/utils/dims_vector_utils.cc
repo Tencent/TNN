@@ -57,6 +57,32 @@ DimsVector DimsVectorUtils::Max(const DimsVector &dims0, const DimsVector &dims1
     return max_dims;
 }
 
+DimsVector DimsVectorUtils::Min(const DimsVector &dims0, const DimsVector &dims1, int start_index, int end_index) {
+    DimsVector min_dims;
+    DimsVector small_dims;
+    if (dims0.size() >= dims1.size()) {
+        min_dims   = dims0;
+        small_dims = dims1;
+    } else {
+        min_dims   = dims1;
+        small_dims = dims0;
+    }
+
+    if (small_dims.size() <= start_index) {
+        return small_dims;
+    }
+
+    if (-1 == end_index || end_index > small_dims.size()) {
+        end_index = static_cast<int>(small_dims.size());
+    }
+
+    for (int i = start_index; i < end_index; i++) {
+        min_dims[i] = std::min(min_dims[i], small_dims[i]);
+    }
+
+    return min_dims;
+}
+
 bool DimsVectorUtils::Equal(const DimsVector &dims0, const DimsVector &dims1, int start_index, int end_index) {
     if (dims0.size() <= start_index) {
         return false;
