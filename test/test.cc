@@ -61,18 +61,31 @@ namespace test {
             TestOneModel(FLAGS_mp, jsons);
         }
         else {
-            struct dirent *ptr;
-            DIR *dir;
-            std::string filePath = FLAGS_pd;
-            dir = opendir(filePath.c_str());
-            while((ptr=readdir(dir))!=NULL) {
-                std::string proto_name = ptr->d_name;
-                if(proto_name[0] == '.')
-                    continue;
-                if(proto_name.substr(proto_name.length() - 5, 5) == "model" || proto_name.substr(proto_name.length() - 4, 4) == "tnnm")
-                    continue;
-                TestOneModel(proto_name, jsons);
+            std::string file_path = FLAGS_pd;
+            struct dirent** name_list;
+            int file_number = scandir(file_path.c_str(), &name_list, 0, alphasort);
+            if (file_number < 0) {
+                LOGE("scandir fail\n");
+                return -1;
             }
+
+            for (int index = 0; index < file_number; index++) {
+                std::string proto_name = name_list[index]->d_name;
+                if (proto_name[0] == '.') {
+                    free(name_list[index]);
+                    continue;
+                }
+
+                if (proto_name.substr(proto_name.length() - 5, 5) == "model" ||
+                    proto_name.substr(proto_name.length() - 4, 4) == "tnnm") {
+                    free(name_list[index]);
+                    continue;
+                }
+
+                TestOneModel(proto_name, jsons);
+                free(name_list[index]);
+            }
+            free(name_list);
         }
         if(FLAGS_js) {
             std::string json_array = CollectJson(jsons);
