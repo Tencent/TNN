@@ -38,6 +38,9 @@ public:
     virtual float operator()(float in) {
         return in;
     }
+    virtual int operator()(int in) {
+        return in;
+    }
     virtual bfp16_t operator()(bfp16_t in) {
         return in;
     }

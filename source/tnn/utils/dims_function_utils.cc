@@ -205,15 +205,24 @@ DimsVector DimsFunctionUtils::StrideSlice(const DimsVector input_dims,
 DimsVector DimsFunctionUtils::Pad(const DimsVector output_index, DimsVector input_dims, DimsVector pads,
                       int type, Status *status) {
     DimsVector input_index(output_index.size(), 0);
-    if (type != 0) {
+    if (type != 0 && type != 1) {
         if (status) {
             *status = Status(TNNERR_PARAM_ERR, "PadV2 type is not supported");
         }
         return input_index;
     }
-    
-    for (int i=0; i<input_dims.size(); i++) {
-        input_index[i] = output_index[i] - pads[i];
+
+    if (type == 0) {
+        for (int i = 0; i < input_dims.size(); i++) {
+            input_index[i] = output_index[i] - pads[i];
+        }
+    } else if (type == 1) {
+        for (int i = 0; i < input_dims.size(); i++) {
+            int dst        = output_index[i];
+            int pad        = pads[i];
+            int input      = input_dims[i];
+            input_index[i] = dst >= pad ? (dst < pad + input ? dst - pad : pad - 2 - dst + 2 * input) : pad - dst;
+        }
     }
     
     return input_index;
