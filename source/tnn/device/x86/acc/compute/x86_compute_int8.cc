@@ -18,15 +18,39 @@
 
 namespace TNN_NS {
 
+// rounding to zero(val + (val >= 0.f ? 0.5f : -0.5f)) = rounding to nearest ties away from zero
+#define DeclareRounding()                                             \
+    __m128 zero_f32 = _mm_set1_ps(0.f);                               \
+    __m128 add_05   = _mm_set1_ps(0.5f);                              \
+    __m128 sub_05   = _mm_set1_ps(-0.5f);
+
+#define F32X4TOI8X4(f32x4, dst)                                       \
+    __m128 cmp_zero = _mm_cmpge_ps(f32x4, zero_f32);                  \
+    __m128 adjust_vec = _mm_blendv_ps(sub_05, add_05, cmp_zero);      \
+    f32x4 = _mm_add_ps(f32x4, adjust_vec);                            \
+    __m128i dst_i32x4 = _mm_cvttps_epi32(f32x4);                      \
+    __m128i dst_i16x4 = _mm_packs_epi32(dst_i32x4, dst_i32x4);        \
+    __m128i dst_i8x4  = _mm_packs_epi16(dst_i16x4, dst_i16x4);        \
+    int i8x4 = _mm_extract_epi32(dst_i8x4, 0);                        \
+    *((int*)(dst)) = i8x4;
+
+#define F32X8TOI8X8(f32x4_a, f32x4_b, dst)                            \
+    __m128 cmp_zero_0 = _mm_cmpge_ps(f32x4_a, zero_f32);              \
+    __m128 cmp_zero_1 = _mm_cmpge_ps(f32x4_b, zero_f32);              \
+    __m128 adjust_vec_0 = _mm_blendv_ps(sub_05, add_05, cmp_zero_0);  \
+    __m128 adjust_vec_1 = _mm_blendv_ps(sub_05, add_05, cmp_zero_1);  \
+    f32x4_a = _mm_add_ps(f32x4_a, adjust_vec_0);                      \
+    f32x4_b = _mm_add_ps(f32x4_b, adjust_vec_1);                      \
+    __m128i dst_i32x4_a = _mm_cvttps_epi32(f32x4_a);                  \
+    __m128i dst_i32x4_b = _mm_cvttps_epi32(f32x4_b);                  \
+    __m128i dst_i16x8   = _mm_packs_epi32(dst_i32x4_a, dst_i32x4_b);  \
+    __m128i dst_i8x8    = _mm_packs_epi16(dst_i16x8, dst_i16x8);      \
+    _mm_storeu_si64(dst, dst_i8x8);
+
 void X86GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
                      const float* scale, const int32_t* bias, long relu, const int8_t* add_input,
                      const float* add_scale, const int8_t* relu6_max) {
-    // set rounding mode for _mm_cvtps_pi8
-    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-
-    __m128 zero_f32 = _mm_set1_ps(0.f);
-    __m128 add_05   = _mm_set1_ps(0.5f);
-    __m128 sub_05   = _mm_set1_ps(-0.5f);
+    DeclareRounding();
     __m128i zero_i8 = _mm_setzero_si128();
     __m128 relu6_max_vec;
 
@@ -146,27 +170,15 @@ void X86GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, lo
             dst_4x32 = _mm_max_ps(dst_4x32, zero_f32);
             dst_4x32 = _mm_min_ps(dst_4x32, relu6_max_vec);
         }
-
-        // rounding to zero(val + (val >= 0.f ? 0.5f : -0.5f)) = rounding to nearest ties away from zero
-        __m128 cmp_zero = _mm_cmpge_ps(dst_4x32, zero_f32);
-        __m128 adjust_vec = _mm_blendv_ps(sub_05, add_05, cmp_zero);
-        dst_4x32 = _mm_add_ps(dst_4x32, adjust_vec);
-        __m128i dst_int8 = _mm_movpi64_epi64(_mm_cvtps_pi8(dst_4x32));
-        int dst_4x8 = _mm_extract_epi32(dst_int8, 0);
-        *((int*)(dst_x)) = dst_4x8;
+        F32X4TOI8X4(dst_4x32, dst_x);
     }
 }
 
 static void DepthwiseI8K3Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z,
                                 long src_y_step, long src_w_step, long dst_depth, const float* scale_z,
                                 long dx, long dc) {
-    // set rounding mode for _mm_cvtps_pi8
-    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-
+    DeclareRounding();
     __m128i zero_i8 = _mm_setzero_si128();
-    __m128 zero_f32 = _mm_set1_ps(0.f);
-    __m128 add_05   = _mm_set1_ps(0.5f);
-    __m128 sub_05   = _mm_set1_ps(-0.5f);
 
     auto dst_x       = dst + dx * dst_depth + dc;
     const auto src_z = src + dx * src_w_step + dc;
@@ -220,28 +232,14 @@ static void DepthwiseI8K3Kernel(int8_t* dst, const int8_t* src, const int8_t* we
     dst_4x32_0        = _mm_mul_ps(dst_4x32_0, scale_vec0);
     dst_4x32_1        = _mm_mul_ps(dst_4x32_1, scale_vec1);
 
-    // rounding to zero(val + (val >= 0.f ? 0.5f : -0.5f)) = rounding to nearest ties away from zero
-    __m128 cmp_zero_0 = _mm_cmpge_ps(dst_4x32_0, zero_f32);
-    __m128 cmp_zero_1 = _mm_cmpge_ps(dst_4x32_1, zero_f32);
-    __m128 adjust_vec_0 = _mm_blendv_ps(sub_05, add_05, cmp_zero_0);
-    __m128 adjust_vec_1 = _mm_blendv_ps(sub_05, add_05, cmp_zero_1);
-    dst_4x32_0 = _mm_add_ps(dst_4x32_0, adjust_vec_0);
-    dst_4x32_1 = _mm_add_ps(dst_4x32_1, adjust_vec_1);
-    __m128i dst_8x8 = _mm_set_epi64(_mm_cvtps_pi8(dst_4x32_1), _mm_cvtps_pi8(dst_4x32_0));
-    dst_8x8 = _mm_shuffle_epi32(dst_8x8, 8);
-    _mm_storeu_si64(dst_x, dst_8x8);
+    F32X8TOI8X8(dst_4x32_0, dst_4x32_1, dst_x);
 }
 
 void DepthwiseI8K5Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z,
                          long src_y_step, long src_w_step, long dst_depth, const float* scale_z,
                          long dx, long dc) {
-    // set rounding mode for _mm_cvtps_pi8
-    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-
+    DeclareRounding();
     __m128i zero_i8 = _mm_setzero_si128();
-    __m128 zero_f32 = _mm_set1_ps(0.f);
-    __m128 add_05   = _mm_set1_ps(0.5f);
-    __m128 sub_05   = _mm_set1_ps(-0.5f);
 
     auto dst_x       = dst + dx * dst_depth + dc;
     const auto src_z = src + dx * src_w_step + dc;
@@ -316,16 +314,7 @@ void DepthwiseI8K5Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, c
     dst_4x32_0        = _mm_mul_ps(dst_4x32_0, scale_vec0);
     dst_4x32_1        = _mm_mul_ps(dst_4x32_1, scale_vec1);
 
-    // rounding to zero(val + (val >= 0.f ? 0.5f : -0.5f)) = rounding to nearest ties away from zero
-    __m128 cmp_zero_0 = _mm_cmpge_ps(dst_4x32_0, zero_f32);
-    __m128 cmp_zero_1 = _mm_cmpge_ps(dst_4x32_1, zero_f32);
-    __m128 adjust_vec_0 = _mm_blendv_ps(sub_05, add_05, cmp_zero_0);
-    __m128 adjust_vec_1 = _mm_blendv_ps(sub_05, add_05, cmp_zero_1);
-    dst_4x32_0 = _mm_add_ps(dst_4x32_0, adjust_vec_0);
-    dst_4x32_1 = _mm_add_ps(dst_4x32_1, adjust_vec_1);
-    __m128i dst_8x8 = _mm_set_epi64(_mm_cvtps_pi8(dst_4x32_1), _mm_cvtps_pi8(dst_4x32_0));
-    dst_8x8 = _mm_shuffle_epi32(dst_8x8, 8);
-    _mm_storeu_si64(dst_x, dst_8x8);
+    F32X8TOI8X8(dst_4x32_0, dst_4x32_1, dst_x);
 }
 
 void X86DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
@@ -371,13 +360,8 @@ convdw int8 kernel, used in corner process
 */
 void X86DepthwiseI8Unit(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, long fw, long fh,
                      long weight_y_step, long dilate_y_step, long dilate_x_step, const float* scale, long dst_depth) {
-    // set rounding mode for _mm_cvtps_pi8
-    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-
+    DeclareRounding();
     __m128i zero_i8 = _mm_setzero_si128();
-    __m128 zero_f32 = _mm_set1_ps(0.f);
-    __m128 add_05   = _mm_set1_ps(0.5f);
-    __m128 sub_05   = _mm_set1_ps(-0.5f);
     long dc = 0;
     for (; dc < dst_depth - 4; dc += 8) {
         __m128i bias_vec0 = _mm_loadu_si128((__m128i*)(bias + dc));
@@ -416,16 +400,7 @@ void X86DepthwiseI8Unit(int8_t* dst, const int8_t* src, const int8_t* weight, co
         dst_4x32_0        = _mm_mul_ps(dst_4x32_0, scale_vec0);
         dst_4x32_1        = _mm_mul_ps(dst_4x32_1, scale_vec1);
 
-        // rounding to zero(val + (val >= 0.f ? 0.5f : -0.5f)) = rounding to nearest ties away from zero
-        __m128 cmp_zero_0 = _mm_cmpge_ps(dst_4x32_0, zero_f32);
-        __m128 cmp_zero_1 = _mm_cmpge_ps(dst_4x32_1, zero_f32);
-        __m128 adjust_vec_0 = _mm_blendv_ps(sub_05, add_05, cmp_zero_0);
-        __m128 adjust_vec_1 = _mm_blendv_ps(sub_05, add_05, cmp_zero_1);
-        dst_4x32_0 = _mm_add_ps(dst_4x32_0, adjust_vec_0);
-        dst_4x32_1 = _mm_add_ps(dst_4x32_1, adjust_vec_1);
-        __m128i dst_8x8 = _mm_set_epi64(_mm_cvtps_pi8(dst_4x32_1), _mm_cvtps_pi8(dst_4x32_0));
-        dst_8x8 = _mm_shuffle_epi32(dst_8x8, 8);
-        _mm_storeu_si64(dst + dc, dst_8x8);
+        F32X8TOI8X8(dst_4x32_0, dst_4x32_1, (dst + dc));
     }
     for (; dc < dst_depth; dc += 4) {
         long dst_temp[4] = {0, 0, 0, 0};
@@ -452,13 +427,8 @@ general convdw int8 func
 void X86DepthwiseI8General(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
                         long dilate_y_step, long dilate_x_step, long src_w_step, long dst_depth, long fw, long fh,
                         const float* scale_z) {
-    // set rounding mode for _mm_cvtps_pi8
-    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-
+    DeclareRounding();
     __m128i zero_i8 = _mm_setzero_si128();
-    __m128 zero_f32 = _mm_set1_ps(0.f);
-    __m128 add_05   = _mm_set1_ps(0.5f);
-    __m128 sub_05   = _mm_set1_ps(-0.5f);
 
     long dx, fx, fy;
     for (dx = 0; dx < width; ++dx) {
@@ -497,16 +467,7 @@ void X86DepthwiseI8General(int8_t* dst, const int8_t* src, const int8_t* weight,
             dst_4x32_0        = _mm_mul_ps(dst_4x32_0, scale_vec0);
             dst_4x32_1        = _mm_mul_ps(dst_4x32_1, scale_vec1);
 
-            // rounding to zero(val + (val >= 0.f ? 0.5f : -0.5f)) = rounding to nearest ties away from zero
-            __m128 cmp_zero_0 = _mm_cmpge_ps(dst_4x32_0, zero_f32);
-            __m128 cmp_zero_1 = _mm_cmpge_ps(dst_4x32_1, zero_f32);
-            __m128 adjust_vec_0 = _mm_blendv_ps(sub_05, add_05, cmp_zero_0);
-            __m128 adjust_vec_1 = _mm_blendv_ps(sub_05, add_05, cmp_zero_1);
-            dst_4x32_0 = _mm_add_ps(dst_4x32_0, adjust_vec_0);
-            dst_4x32_1 = _mm_add_ps(dst_4x32_1, adjust_vec_1);
-            __m128i dst_8x8 = _mm_set_epi64(_mm_cvtps_pi8(dst_4x32_1), _mm_cvtps_pi8(dst_4x32_0));
-            dst_8x8 = _mm_shuffle_epi32(dst_8x8, 8);
-            _mm_storeu_si64(dst_x, dst_8x8);
+            F32X8TOI8X8(dst_4x32_0, dst_4x32_1, dst_x);
         }
         for (; dc < dst_depth; dc += 4) {
             auto dst_x          = dst + dx * dst_depth + dc;
@@ -631,9 +592,6 @@ void X86MaxPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow
 
 void X86AvgPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow, long oh, long c_r4, long kw, long kh,
                     long stride_w, long stride_h, long pad_w, long pad_h) {
-    // set rounding mode for _mm_cvtps_pi8
-    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-
     for (long oy = 0; oy < oh; ++oy) {
         for (long ox = 0; ox < ow; ++ox) {
             const long srcOriginX   = ox * stride_w - pad_w;
@@ -666,9 +624,11 @@ void X86AvgPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow
                 avg_reg_lo        = _mm_div_ps(avg_reg_lo, div_vec);
                 avg_reg_hi        = _mm_div_ps(avg_reg_hi, div_vec);
 
-                __m128i dst_8x8   = _mm_set_epi64(_mm_cvtps_pi8(avg_reg_hi), _mm_cvtps_pi8(avg_reg_lo));
-                dst_8x8 = _mm_shuffle_epi32(dst_8x8, 8);
-                _mm_storeu_si64(dst_ptr, dst_8x8);
+                __m128i i32x8_a   = _mm_cvttps_epi32(avg_reg_lo);
+                __m128i i32x8_b   = _mm_cvttps_epi32(avg_reg_hi);
+                __m128i i16x8     = _mm_packs_epi32(i32x8_a, i32x8_b);
+                __m128i i8x8      = _mm_packs_epi16(i16x8, i16x8);
+                _mm_storeu_si64(dst_ptr, i8x8);
             }
 
             for (; oc < c_r4; oc += 4) {
@@ -701,11 +661,7 @@ element add int8 func
 */
 void X86MatrixAddInt8(int8_t* dst, const int8_t* A, const int8_t* B, float* dst_scale, const float* a_scale,
                    float* b_scale, long channel, long hw_size) {
-    // set rounding mode for _mm_cvtps_pi8
-    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-    __m128 zero_f32 = _mm_set1_ps(0.f);
-    __m128 add_05   = _mm_set1_ps(0.5f);
-    __m128 sub_05   = _mm_set1_ps(-0.5f);
+    DeclareRounding();
 
     for (long hw = 0; hw < hw_size; hw++) {
         long c = 0;
@@ -732,16 +688,7 @@ void X86MatrixAddInt8(int8_t* dst, const int8_t* A, const int8_t* B, float* dst_
             mul0               = _mm_mul_ps(mul0, scale_dst_neon0);
             mul1               = _mm_mul_ps(mul1, scale_dst_neon1);
 
-            // rounding to zero(val + (val >= 0.f ? 0.5f : -0.5f)) = rounding to nearest ties away from zero
-            __m128 cmp_zero_0 = _mm_cmpge_ps(mul0, zero_f32);
-            __m128 cmp_zero_1 = _mm_cmpge_ps(mul1, zero_f32);
-            __m128 adjust_vec_0 = _mm_blendv_ps(sub_05, add_05, cmp_zero_0);
-            __m128 adjust_vec_1 = _mm_blendv_ps(sub_05, add_05, cmp_zero_1);
-            mul0 = _mm_add_ps(mul0, adjust_vec_0);
-            mul1 = _mm_add_ps(mul1, adjust_vec_1);
-            __m128i dst_8x8 = _mm_set_epi64(_mm_cvtps_pi8(mul1), _mm_cvtps_pi8(mul0));
-            dst_8x8 = _mm_shuffle_epi32(dst_8x8, 8);
-            _mm_storeu_si64(dst_hw + c, dst_8x8);
+            F32X8TOI8X8(mul0, mul1, (dst_hw + c));
         }
         for (; c < channel; c++) {
             float aval  = A_hw[c] * a_scale[c] + B_hw[c] * b_scale[c];
@@ -752,12 +699,7 @@ void X86MatrixAddInt8(int8_t* dst, const int8_t* A, const int8_t* B, float* dst_
 
 void X86GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, const float* scale, long ic_r4,
               long oc_r4) {
-    // set rounding mode for _mm_cvtps_pi8
-    _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-
-    __m128 zero_f32 = _mm_set1_ps(0.f);
-    __m128 add_05   = _mm_set1_ps(0.5f);
-    __m128 sub_05   = _mm_set1_ps(-0.5f);
+    DeclareRounding();
 
     for (long dc = 0; dc < oc_r4; dc += 4) {
         __m128i acc0 = _mm_setzero_si128();
@@ -834,14 +776,7 @@ void X86GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int
         __m128 dst_4xf32  = _mm_cvtepi32_ps(_mm_add_epi32(dst_4xi32, bias_vec));
         dst_4xf32         = _mm_mul_ps(dst_4xf32, scale_vec);
 
-        // rounding to zero(val + (val >= 0.f ? 0.5f : -0.5f)) = rounding to nearest ties away from zero
-        __m128 cmp_zero   = _mm_cmpge_ps(dst_4xf32, zero_f32);
-        __m128 adjust_vec = _mm_blendv_ps(sub_05, add_05, cmp_zero);
-        dst_4xf32         = _mm_add_ps(dst_4xf32, adjust_vec);
-        __m128i dst_int8  = _mm_movpi64_epi64(_mm_cvtps_pi8(dst_4xf32));
-        int dst_4x8       = _mm_extract_epi32(dst_int8, 0);
-
-        *((int*)(dst + dc)) = dst_4x8;
+        F32X4TOI8X4(dst_4xf32, (dst + dc));
     }
 }
 
