@@ -404,6 +404,77 @@ CMatrix WinogradGenerator::allocTransformWeight(int batch, int channel, int heig
     }
 }
 
+// Winograd 4x4 For Conv 3x3
+static inline void WeightTransform4x4_3x3(const float *src, float *dst, float *k_tranform_data, const CMatrix& G,
+                                   const CMatrix& GTranspose, CMatrix& M, const DimsVector& weight_dest_strides,
+                                   int in_channel, int out_channel, int oz_index, int alpha_index) {
+    int ic_stride = 9;
+    int oc_stride = in_channel * ic_stride;
+    int unit_co = 4;
+    int unit_ci = 4;
+    const float* g = std::get<0>(G).get();
+    const float* gt = std::get<0>(GTranspose).get();
+    float* m = std::get<0>(M).get();
+    for (int oz = 0; oz < out_channel; ++oz) {
+        auto srcOz = src + oz * oc_stride;
+
+        int ozC4 = oz / unit_co;
+        int mx   = oz % unit_co;
+
+        auto dstOz = dst + weight_dest_strides[oz_index] * ozC4 + mx;
+        for (int sz = 0; sz < in_channel; ++sz) {
+            int szC4   = sz / unit_ci;
+            int my     = sz % unit_ci;
+            auto srcSz = srcOz + ic_stride * sz;
+            const float *k0    = srcSz;
+            const float *k1    = k0 + 3;
+            const float *k2    = k1 + 3;
+
+            // M = G * K
+            m[0] = k0[0] * g[0] + k1[0] * g[1] + k2[0] * g[2];
+            m[1] = k0[1] * g[0] + k1[1] * g[1] + k2[1] * g[2];
+            m[2] = k0[2] * g[0] + k1[2] * g[1] + k2[2] * g[2];
+            m[3] = k0[0] * g[3] + k1[0] * g[4] + k2[0] * g[5];
+            m[4] = k0[1] * g[3] + k1[1] * g[4] + k2[1] * g[5];
+            m[5] = k0[2] * g[3] + k1[2] * g[4] + k2[2] * g[5];
+            m[6] = k0[0] * g[6] + k1[0] * g[7] + k2[0] * g[8];
+            m[7] = k0[1] * g[6] + k1[1] * g[7] + k2[1] * g[8];
+            m[8] = k0[2] * g[6] + k1[2] * g[7] + k2[2] * g[8];
+            m[9] = k0[0] * g[9] + k1[0] * g[10] + k2[0] * g[11];
+            m[10] = k0[1] * g[9] + k1[1] * g[10] + k2[1] * g[11];
+            m[11] = k0[2] * g[9] + k1[2] * g[10] + k2[2] * g[11];
+
+            // K_Transform = M*GT
+            const float *gt0 = gt;
+            const float *gt1 = gt0 + 4;
+            const float *gt2 = gt1 + 4;
+            k_tranform_data[0] = m[0] * gt0[0] + m[1] * gt1[0] + m[2] * gt2[0];
+            k_tranform_data[1] = m[0] * gt0[1] + m[1] * gt1[1] + m[2] * gt2[1];
+            k_tranform_data[2] = m[0] * gt0[2] + m[1] * gt1[2] + m[2] * gt2[2];
+            k_tranform_data[3] = m[0] * gt0[3] + m[1] * gt1[3] + m[2] * gt2[3];
+            k_tranform_data[4] = m[3] * gt0[0] + m[4] * gt1[0] + m[5] * gt2[0];
+            k_tranform_data[5] = m[3] * gt0[1] + m[4] * gt1[1] + m[5] * gt2[1];
+            k_tranform_data[6] = m[3] * gt0[2] + m[4] * gt1[2] + m[5] * gt2[2];
+            k_tranform_data[7] = m[3] * gt0[3] + m[4] * gt1[3] + m[5] * gt2[3];
+            k_tranform_data[8] = m[6] * gt0[0] + m[7] * gt1[0] + m[8] * gt2[0];
+            k_tranform_data[9] = m[6] * gt0[1] + m[7] * gt1[1] + m[8] * gt2[1];
+            k_tranform_data[10] = m[6] * gt0[2] + m[7] * gt1[2] + m[8] * gt2[2];
+            k_tranform_data[11] = m[6] * gt0[3] + m[7] * gt1[3] + m[8] * gt2[3];
+            k_tranform_data[12] = m[9] * gt0[0] + m[10] * gt1[0] + m[11] * gt2[0];
+            k_tranform_data[13] = m[9] * gt0[1] + m[10] * gt1[1] + m[11] * gt2[1];
+            k_tranform_data[14] = m[9] * gt0[2] + m[10] * gt1[2] + m[11] * gt2[2];
+            k_tranform_data[15] = m[9] * gt0[3] + m[10] * gt1[3] + m[11] * gt2[3];
+
+            auto dstSz = dstOz + szC4 * weight_dest_strides[2] + unit_co * my;
+            // [alpha][alpha][oc4][ic4][16]
+            for (int i = 0; i < 16; ++i) {
+                *dstSz = k_tranform_data[i];
+                dstSz += weight_dest_strides[alpha_index];
+            }
+        }
+    }
+}
+
 /*
 transform weight from [oc][ic][kh][kw] to [unit][unit][co4][ci4][16]
 */
@@ -443,27 +514,32 @@ void WinogradGenerator::transformWeight(CMatrix& weightDest, const float* source
         alpha_index = 0;
     }
 
-    for (int oz = 0; oz < co; ++oz) {
-        auto srcOz = weightPtr + oz * ci * kernelCount * kernelCount;
+    if (unitCi == 4 && unitCo == 4 && kernelCount == 3) {
+        WeightTransform4x4_3x3(weightPtr, weight_dest_data, KTransformData, G_, GT, M,
+                               weight_dest_strides, ci, co, oz_index, alpha_index);
+    } else {
+        for (int oz = 0; oz < co; ++oz) {
+            auto srcOz = weightPtr + oz * ci * kernelCount * kernelCount;
 
-        int ozC4 = oz / unitCo;
-        int mx   = oz % unitCo;
+            int ozC4 = oz / unitCo;
+            int mx   = oz % unitCo;
 
-        auto dstOz = weight_dest_data + weight_dest_strides[oz_index] * ozC4 + mx;
-        for (int sz = 0; sz < ci; ++sz) {
-            int szC4   = sz / unitCi;
-            int my     = sz % unitCi;
-            auto srcSz = srcOz + kernelCount * kernelCount * sz;
+            auto dstOz = weight_dest_data + weight_dest_strides[oz_index] * ozC4 + mx;
+            for (int sz = 0; sz < ci; ++sz) {
+                int szC4   = sz / unitCi;
+                int my     = sz % unitCi;
+                auto srcSz = srcOz + kernelCount * kernelCount * sz;
 
-            // M = G * K
-            matmul(M, G_, srcSz, {kernelCount, kernelCount});
-            // K_Transform = M*GT
-            matmul(K_Transform, M, GT);
+                // M = G * K
+                matmul(M, G_, srcSz, {kernelCount, kernelCount});
+                // K_Transform = M*GT
+                matmul(K_Transform, M, GT);
 
-            auto dstSz = dstOz + szC4 * weight_dest_strides[2] + unitCo * my;
-            // [alpha][alpha][oc4][ic4][16]
-            for (int i = 0; i < alpha * alpha; ++i) {
-                *(dstSz + i * weight_dest_strides[alpha_index]) = KTransformData[i];
+                auto dstSz = dstOz + szC4 * weight_dest_strides[2] + unitCo * my;
+                // [alpha][alpha][oc4][ic4][16]
+                for (int i = 0; i < alpha * alpha; ++i) {
+                    *(dstSz + i * weight_dest_strides[alpha_index]) = KTransformData[i];
+                }
             }
         }
     }

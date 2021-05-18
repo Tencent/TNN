@@ -65,8 +65,10 @@ Status OpenCLConvLayer1x1Acc::Init(Context *context, LayerParam *param, LayerRes
     const int output_height     = output_dims[2];
     const int output_width      = output_dims[3];
 
+    std::string program_name = "convolution_1x1";
     std::string kernel_name;
     if (run_3d_ndrange_) {
+        program_name += "_gws_3d";
         kernel_name = "Conv2D1x1GS3D";
     } else {
         kernel_name = "Conv2D1x1";
@@ -75,6 +77,7 @@ Status OpenCLConvLayer1x1Acc::Init(Context *context, LayerParam *param, LayerRes
         kernel_name += "_S1";
     }
     if (use_buffer_) {
+        program_name += "_mix";
         kernel_name += "_MIX";
     }
 
@@ -94,7 +97,7 @@ Status OpenCLConvLayer1x1Acc::Init(Context *context, LayerParam *param, LayerRes
         kernel_name += "_CB2";
     }
 
-    ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options_);
+    ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
@@ -209,6 +212,8 @@ Status OpenCLConvLayer1x1Acc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(input_channel_blocks, workgroup_size));
         execute_units_[0].ocl_kernel.setArg(idx++, workgroup_size * 4 * type_size, nullptr);
     }
+
+    execute_units_[0].ocl_kernel.setArg(idx++, (int)conv_params_.activation_type);
 
     if (!run_local_work_ && ocl_context_->GetEnableTuneKernel()) {
         execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_, GenerateTuneKernelKey(execute_units_[0]));

@@ -179,6 +179,7 @@ Status OpenCLConvLayerWinogradAcc::Reshape(const std::vector<Blob *> &inputs, co
     execute_units_[2].ocl_kernel.setArg(idx++, round_up_output_height);
     execute_units_[2].ocl_kernel.setArg(idx++, output_width);
     execute_units_[2].ocl_kernel.setArg(idx++, output_height);
+    execute_units_[2].ocl_kernel.setArg(idx++, (int)conv_params_.activation_type);
 
     execute_units_[1].local_work_size = Conv2dCommonLocalWS2D(
             execute_units_[1].global_work_size, execute_units_[1].workgroupsize_max, execute_units_[1].sub_group_size);

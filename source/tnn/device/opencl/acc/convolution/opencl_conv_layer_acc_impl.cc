@@ -60,14 +60,6 @@ Status OpenCLConvLayerAccImpl::Init(Context *context, LayerParam *param, LayerRe
         return Status(TNNERR_LAYER_ERR, "invalid group size in Conv layer");
     }
 
-    if (conv_params_.activation_type == ActivationType_ReLU) {
-        build_options_.emplace("-DRELU");
-    } else if (conv_params_.activation_type == ActivationType_ReLU6) {
-        build_options_.emplace("-DRELU6");
-    } else if (conv_params_.activation_type == ActivationType_SIGMOID_MUL) {
-        build_options_.emplace("-DSIGMOID_MUL");
-    }
-
     // depthwise kernel or winograd kernel use 2d ndragne.
     if (CT_CONV_DEPTHWISE == conv_type_ || CT_CONV_WINOGRAD == conv_type_ ) {
         run_3d_ndrange_ = false;

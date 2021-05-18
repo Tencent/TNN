@@ -38,13 +38,6 @@ Status OpenCLDeconvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, 
 
     // create kernel
     std::set<std::string> build_options;
-    if (deconv_params_.activation_type == ActivationType_ReLU) {
-        build_options.emplace("-DRELU");
-    } else if (deconv_params_.activation_type == ActivationType_ReLU6) {
-        build_options.emplace("-DRELU6");
-    } else if (deconv_params_.activation_type == ActivationType_SIGMOID_MUL) {
-        build_options.emplace("-DSIGMOID_MUL");
-    }
     std::string kernel_name = "DepthwiseDeconv2D";
 
     ret                     = CreateExecuteUnit(execute_units_[0], "deconvolution", kernel_name, build_options);
@@ -63,6 +56,7 @@ void OpenCLDeconvLayerDepthwiseAcc::SetExtraKernelParameters(uint32_t idx, const
     auto output_dims                = outputs[0]->GetBlobDesc().dims;
     const int output_channel_blocks = UP_DIV(output_dims[1], 4);
     execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(output_channel_blocks));
+    execute_units_[0].ocl_kernel.setArg(idx++, (int)deconv_params_.activation_type);
 }
 
 }  // namespace TNN_NS
