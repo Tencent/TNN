@@ -57,7 +57,11 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     auto fusion_type      = std::get<9>(GetParam());
     int channel           = group * channel_per_group;
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
-    if (DEVICE_ARM != dev) {
+    if (DEVICE_ARM != dev && DEVICE_X86 != dev) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_X86 == dev && data_type == DATA_TYPE_BFP16) {
         GTEST_SKIP();
     }
 

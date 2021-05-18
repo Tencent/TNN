@@ -48,33 +48,31 @@ Status X86ConvInt8LayerCommon::allocateBufferWeight(const std::vector<Blob *> &i
     auto dims_output = outputs[0]->GetBlobDesc().dims;
 
     if (!buffer_weight_.GetBytesSize()) {
-        const int input_channel  = dims_input[1];
-        const int output_channel = dims_output[1];
-
         int kw = conv_param->kernels[0];
         int kh = conv_param->kernels[1];
-
-        // only support group == 1
         const int group = conv_param->group;
-        if (group != 1) {
-            LOGE("GROUP NOT SUPPORTED NOW\n");
-            return Status(TNNERR_PARAM_ERR, "INT8 CONV GROUD > 1 NOT SUPPORT");
-        }
-        const int oc      = output_channel;
-        const int ic      = inputs[0]->GetBlobDesc().dims[1];
-        const int oc_4    = UP_DIV(oc, 4);
-        const int ic_4    = UP_DIV(ic, 4);
-        const int icrs_16 = UP_DIV(ic_4 * kw * kh, 4);
 
-        int weight_count   = group * oc_4 * icrs_16 * 64;
+        const int oc         = dims_output[1];
+        const int ic         = dims_input[1];
+        const int oc_g       = oc / group;
+        const int ic_g       = ic / group;
+        const int oc_g_r4    = ROUND_UP(oc_g, 4);
+        const int ic_g_r4    = ROUND_UP(ic_g, 4);
+        const int icrs_g_r16 = ROUND_UP(ic_g_r4 * kw * kh, 16);
+        const int icrs_g     = ic_g * kw * kh;
+
+        int weight_count   = group * oc_g_r4 * icrs_g_r16;
         int data_byte_size = weight_count * DataTypeUtils::GetBytesSize(conv_res->filter_handle.GetDataType());
         RawBuffer temp_buffer(data_byte_size + SIMD_KERNEL_EXTRA_LOAD);
 
-        // from [o][i][h][w]
-        // to: [o/4][h][w][i/16][o4][i16]
-        PackINT8Weight(conv_res->filter_handle.force_to<int8_t *>(), temp_buffer.force_to<int8_t *>(), group, ic,
-                       output_channel, conv_param->kernels[1], conv_param->kernels[0]);
-
+        for (int g = 0; g < group; g++) {
+            auto weight_src_g = conv_res->filter_handle.force_to<int8_t *>() + g * oc_g * icrs_g;
+            auto weight_dst_g = temp_buffer.force_to<int8_t *>() + g * oc_g_r4 * icrs_g_r16;
+            // from [o][i][h][w]
+            // to: [o/4][h][w][i/16][o4][i16]
+            PackINT8Weight(weight_src_g, weight_dst_g, ic_g, oc_g,
+                           conv_param->kernels[1], conv_param->kernels[0]);
+        }
         buffer_weight_ = temp_buffer;
     }
     return TNN_OK;
@@ -199,15 +197,13 @@ Status X86ConvInt8LayerCommon::allocateBufferParam(const std::vector<Blob *> &in
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
     CHECK_PARAM_NULL(conv_param);
 
-    auto dims_input          = inputs[0]->GetBlobDesc().dims;
-    auto dims_output         = outputs[0]->GetBlobDesc().dims;
-    const int input_channel  = dims_input[1];
-    const int output_channel = dims_output[1];
+    auto dims_input    = inputs[0]->GetBlobDesc().dims;
+    const int ic_per_g = dims_input[1] / conv_param->group;
 
-    int max_num_threads = OMP_CORES_;
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
     // alloc img2col and gemm work buffer
     if (!buffer_im2col_.GetBytesSize()) {
-        const int c_round4 = ROUND_UP(input_channel, 4);
+        const int c_round4 = ROUND_UP(ic_per_g, 4);
         const int buffer_size =
             (ROUND_UP(c_round4 * conv_param->kernels[0] * conv_param->kernels[1], 16) * tile_blk_) *
                 max_num_threads + SIMD_KERNEL_EXTRA_LOAD;
@@ -363,18 +359,19 @@ Status X86ConvInt8LayerCommon::Init(Context *context, LayerParam *param, LayerRe
     int stride_y    = conv_param->strides[1];
     int pad_x       = conv_param->pads[0];
     int pad_y       = conv_param->pads[2];
-    int ic_r4       = ROUND_UP(dims_input[1], 4);
+    int ic_g        = dims_input[1] / conv_param->group;
+    int ic_g_r4     = ROUND_UP(ic_g, 4);
 
     // fast mode
-    bool no_im2col = kernel_x == 1 && kernel_y == 1 && ic_r4 % 8 == 0 && stride_x == 1 && stride_y == 1 &&
+    bool no_im2col = kernel_x == 1 && kernel_y == 1 && ic_g_r4 % 8 == 0 && stride_x == 1 && stride_y == 1 &&
                      pad_x == 0 && pad_y == 0 && dims_input[2] * dims_input[3] % 4 == 0;
     if (!no_im2col) {
         im_col_func_ = im2col;
-        if (dims_input[1] == 1) {
+        if (ic_g == 1) {
             im_col_func_ = im2col_smallc<1>;
-        } else if (dims_input[1] == 2) {
+        } else if (ic_g == 2) {
             im_col_func_ = im2col_smallc<2>;
-        } else if (dims_input[1] == 3) {
+        } else if (ic_g == 3) {
             im_col_func_ = im2col_smallc<3>;
         }
     } else {
@@ -383,7 +380,7 @@ Status X86ConvInt8LayerCommon::Init(Context *context, LayerParam *param, LayerRe
 
     // set tile blk size, which be limit to 16KB
     // 16 * 1024 / sizeof(int8_t)
-    int tile_blk = 16384 / (ic_r4 * kernel_x * kernel_y);
+    int tile_blk = 16384 / (ic_g_r4 * kernel_x * kernel_y);
     tile_blk = ROUND_UP(tile_blk, SIMD_INT8CONV_TILE_HW);
     if (tile_blk < SIMD_INT8CONV_TILE_HW) {
         tile_blk = SIMD_INT8CONV_TILE_HW;
@@ -448,6 +445,12 @@ void GemmInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_
     }
 }
 
+static inline void memcpy_2d(int8_t *dst, int8_t *src, int height, int width, int dst_stride, int src_stride) {
+    for (int h = 0; h < height; h++) {
+        memcpy(dst + h * dst_stride, src + h * src_stride, width);
+    }
+}
+
 Status X86ConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
     CHECK_PARAM_NULL(conv_param);
@@ -463,13 +466,18 @@ Status X86ConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     const int batch  = dims_output[0];
     auto ic          = dims_input[1];
     auto ic_r4       = ROUND_UP(ic, 4);
-    auto ic_calc     = ic < 4 ? ic : ic_r4;
     auto oc_r4       = ROUND_UP(dims_output[1], 4);
+    auto ic_g        = dims_input[1] / conv_param->group;
+    auto ic_g_r4     = ROUND_UP(ic_g, 4);
+    auto oc_g        = dims_output[1] / conv_param->group;
+    auto oc_g_r4     = ROUND_UP(oc_g, 4);
+    auto ic_calc     = ic_g < 4 ? ic_g : ic_g_r4;
 
     auto input_channel_stride  = DimsVectorUtils::Count(dims_input, 2);
     auto output_channel_stride = DimsVectorUtils::Count(dims_output, 2);
     auto input_batch_stride    = input_channel_stride * ic_r4;
     auto output_batch_stride   = output_channel_stride * oc_r4;
+    auto kernel_group_stride   = oc_g_r4 * ROUND_UP(ic_g_r4 * conv_param->kernels[0] * conv_param->kernels[1], 16);
 
     int8_t *input_data     = reinterpret_cast<int8_t *>(input->GetHandle().base);
     int8_t *output_data    = reinterpret_cast<int8_t *>(output->GetHandle().base);
@@ -482,33 +490,76 @@ Status X86ConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     const int crs_div8   = UP_DIV(ic_calc * conv_param->kernels[1] * conv_param->kernels[0], 8);
     const int tile_count = UP_DIV(dims_output[2] * dims_output[3], tile_blk_);
 
+    size_t workspace_size = 0;
+    size_t src_group_buf_size = 0;
+    size_t dst_group_buf_size = 0;
+    if (conv_param->group > 1) {
+        src_group_buf_size = ic_g_r4 * input_channel_stride;
+        dst_group_buf_size = oc_g_r4 * output_channel_stride;
+        workspace_size = src_group_buf_size + dst_group_buf_size;
+        dims_input[1] = ic_g;
+    }
+    int8_t *workspace = reinterpret_cast<int8_t *>(context_->GetSharedWorkSpace(workspace_size));
+    memset(workspace, 0, workspace_size);
+
     for (int n = 0; n < batch; ++n) {
-        const auto input_batch = input_data + n * input_batch_stride;
-        auto output_batch      = output_data + n * output_batch_stride;
-        auto add_input_batch   = add_input_data ? add_input_data + n * output_batch_stride : nullptr;
+        auto input_batch     = input_data + n * input_batch_stride;
+        auto output_batch    = output_data + n * output_batch_stride;
+        auto add_input_batch = add_input_data ? add_input_data + n * output_batch_stride : nullptr;
 
-        OMP_PARALLEL_FOR_GUIDED_
-        for (int t_idx = 0; t_idx < tile_count; t_idx++) {
-            int thread_id          = OMP_TID_;
-            int8_t *input_kernel   = nullptr;
-            const int hw_start     = t_idx * tile_blk_;
-            const int real_hw_tile = MIN(output_channel_stride - hw_start, tile_blk_);
-            const int input_count  = crs_div8 * tile_blk_ * 8;
+        auto input_group  = input_batch;
+        auto output_group = output_batch;
+        if (conv_param->group > 1) {
+            input_group  = workspace;
+            output_group = workspace + src_group_buf_size;
+        }
 
-            // im2col
-            if (im_col_func_) {
-                input_kernel = buffer_im2col_.force_to<int8_t *>() + input_count * thread_id;
-                im_col_func_(input_kernel, input_batch, conv_param, hw_start, real_hw_tile, crs_div8, dims_input, dims_output);
-            } else {
-                input_kernel = input_batch + hw_start * ic_calc;
+        for (int g = 0; g < conv_param->group; g++) {
+            if (conv_param->group > 1) {
+                auto input_ptr = input_batch + g * ic_g;
+                memcpy_2d(input_group, input_ptr, input_channel_stride, ic_g, ic_g_r4, ic_r4);
             }
-            auto output_kernel    = output_batch + hw_start * oc_r4;
-            auto add_input_kernel = add_input_batch ? add_input_batch + hw_start * oc_r4 : nullptr;
+            auto bias_g      = bias_ptr + g * oc_g;
+            auto scale_g     = scale_ptr + g * oc_g;
+            auto relu6_max_g = relu6_max_.force_to<int8_t *>() + g * oc_g;
+            auto weight_g    = weight_ptr + g * kernel_group_stride;
 
-            GemmInt8(output_kernel, input_kernel, weight_ptr,
-                        bias_ptr, scale_ptr, real_hw_tile, crs_div8, crs_div8 * 8,
-                        oc_r4, relu_, add_input_kernel, buffer_add_scale_.force_to<float *>(),
-                        relu6_max_.force_to<int8_t *>());
+            OMP_PARALLEL_FOR_GUIDED_
+            for (int t_idx = 0; t_idx < tile_count; t_idx++) {
+                int thread_id          = OMP_TID_;
+                int8_t *input_kernel   = nullptr;
+                const int hw_start     = t_idx * tile_blk_;
+                const int real_hw_tile = MIN(output_channel_stride - hw_start, tile_blk_);
+                const int input_count  = crs_div8 * tile_blk_ * 8;
+
+                // im2col
+                if (im_col_func_) {
+                    input_kernel = buffer_im2col_.force_to<int8_t *>() + input_count * thread_id;
+                    im_col_func_(input_kernel, input_group, conv_param,
+                                 hw_start, real_hw_tile, crs_div8, dims_input, dims_output);
+                } else {
+                    input_kernel = input_group + hw_start * ic_calc;
+                }
+                auto output_kernel    = output_group + hw_start * oc_g_r4;
+                // add_input not support group conv
+                auto add_input_kernel = add_input_batch ? add_input_batch + hw_start * oc_g_r4 : nullptr;
+
+                GemmInt8(output_kernel, input_kernel, weight_g, bias_g, scale_g,
+                         real_hw_tile, crs_div8, crs_div8 * 8, oc_g_r4, relu_,
+                         add_input_kernel, buffer_add_scale_.force_to<float *>(), relu6_max_g);
+            }
+
+            if (conv_param->group > 1) {
+                auto output_ptr = output_batch + g * oc_g;
+                memcpy_2d(output_ptr, output_group, output_channel_stride, oc_g, oc_r4, oc_g_r4);
+
+                if (oc_r4 != dims_output[1] && g == conv_param->group - 1) {
+                    auto output_ptr_corner_case = output_batch + dims_output[1];
+                    for (int h = 0; h < output_channel_stride; h++) {
+                        memset(output_ptr_corner_case + h * oc_r4, 0, (oc_r4 - dims_output[1]));
+                    }
+                }
+            }
         }
     }
 

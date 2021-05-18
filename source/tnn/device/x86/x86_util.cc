@@ -482,7 +482,7 @@ template int MatTranspose(float *dst, const float *src, size_t M, size_t N);
 
 // from [o][i][h][w]
 // to: [o/4][h][w][i/16][o4][i16]
-int PackINT8Weight(int8_t *src, int8_t *dst, int group, int input_channel, int output_channel, int height, int width) {
+int PackINT8Weight(int8_t *src, int8_t *dst, int input_channel, int output_channel, int height, int width) {
     const int oc_4        = (output_channel + 3) / 4;
     const int ic_calc     = input_channel < 4 ? input_channel : ROUND_UP(input_channel, 4);
     const int crs_round16 = ROUND_UP(ic_calc * height * width, 16);
