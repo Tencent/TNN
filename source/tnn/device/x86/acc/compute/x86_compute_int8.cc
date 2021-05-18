@@ -45,7 +45,7 @@ namespace TNN_NS {
     __m128i dst_i32x4_b = _mm_cvttps_epi32(f32x4_b);                  \
     __m128i dst_i16x8   = _mm_packs_epi32(dst_i32x4_a, dst_i32x4_b);  \
     __m128i dst_i8x8    = _mm_packs_epi16(dst_i16x8, dst_i16x8);      \
-    _mm_storeu_si64(dst, dst_i8x8);
+    _mm_storel_epi64((__m128i*)(dst), dst_i8x8);
 
 void X86GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
                      const float* scale, const int32_t* bias, long relu, const int8_t* add_input,
@@ -120,11 +120,11 @@ void X86GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, lo
             const auto weight_sz = weight + (4 * 16) * sz;
             const auto src_z     = src_x + sz * 16;
 
-            __m128i w_vec0  = _mm_loadu_si64(weight_sz);
-            __m128i w_vec1  = _mm_loadu_si64(weight_sz + 16);
-            __m128i w_vec2  = _mm_loadu_si64(weight_sz + 32);
-            __m128i w_vec3  = _mm_loadu_si64(weight_sz + 48);
-            __m128i src_vec = _mm_loadu_si64(src_z);
+            __m128i w_vec0  = _mm_loadl_epi64((__m128i*)(weight_sz));
+            __m128i w_vec1  = _mm_loadl_epi64((__m128i*)(weight_sz + 16));
+            __m128i w_vec2  = _mm_loadl_epi64((__m128i*)(weight_sz + 32));
+            __m128i w_vec3  = _mm_loadl_epi64((__m128i*)(weight_sz + 48));
+            __m128i src_vec = _mm_loadl_epi64((__m128i*)(src_z));
 
             __m128i w_16_00 = _mm_cvtepi8_epi16(w_vec0);
             __m128i w_16_10 = _mm_cvtepi8_epi16(w_vec1);
@@ -189,12 +189,12 @@ static void DepthwiseI8K3Kernel(int8_t* dst, const int8_t* src, const int8_t* we
         const auto src_y    = src_z + fy * src_y_step;
         const auto weight_y = weight + fy * 3 * dst_depth + dc;
 
-        __m128i src_vec_0 = _mm_loadu_si64(src_y);
-        __m128i src_vec_1 = _mm_loadu_si64(src_y + dst_depth);
-        __m128i src_vec_2 = _mm_loadu_si64(src_y + 2 * dst_depth);
-        __m128i w_vec_0   = _mm_loadu_si64(weight_y);
-        __m128i w_vec_1   = _mm_loadu_si64(weight_y + dst_depth);
-        __m128i w_vec_2   = _mm_loadu_si64(weight_y + 2 * dst_depth);
+        __m128i src_vec_0 = _mm_loadl_epi64((__m128i*)(src_y));
+        __m128i src_vec_1 = _mm_loadl_epi64((__m128i*)(src_y + dst_depth));
+        __m128i src_vec_2 = _mm_loadl_epi64((__m128i*)(src_y + 2 * dst_depth));
+        __m128i w_vec_0   = _mm_loadl_epi64((__m128i*)(weight_y));
+        __m128i w_vec_1   = _mm_loadl_epi64((__m128i*)(weight_y + dst_depth));
+        __m128i w_vec_2   = _mm_loadl_epi64((__m128i*)(weight_y + 2 * dst_depth));
 
         __m128i src_16_0  = _mm_cvtepi8_epi16(src_vec_0);
         __m128i src_16_1  = _mm_cvtepi8_epi16(src_vec_1);
@@ -250,16 +250,16 @@ void DepthwiseI8K5Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, c
         const auto src_y    = src_z + fy * src_y_step;
         const auto weight_y = weight + fy * 5 * dst_depth + dc;
 
-        __m128i src_vec_0 = _mm_loadu_si64(src_y);
-        __m128i src_vec_1 = _mm_loadu_si64(src_y + dst_depth);
-        __m128i src_vec_2 = _mm_loadu_si64(src_y + 2 * dst_depth);
-        __m128i src_vec_3 = _mm_loadu_si64(src_y + 3 * dst_depth);
-        __m128i src_vec_4 = _mm_loadu_si64(src_y + 4 * dst_depth);
-        __m128i w_vec_0   = _mm_loadu_si64(weight_y);
-        __m128i w_vec_1   = _mm_loadu_si64(weight_y + dst_depth);
-        __m128i w_vec_2   = _mm_loadu_si64(weight_y + 2 * dst_depth);
-        __m128i w_vec_3   = _mm_loadu_si64(weight_y + 3 * dst_depth);
-        __m128i w_vec_4   = _mm_loadu_si64(weight_y + 4 * dst_depth);
+        __m128i src_vec_0 = _mm_loadl_epi64((__m128i*)(src_y));
+        __m128i src_vec_1 = _mm_loadl_epi64((__m128i*)(src_y + dst_depth));
+        __m128i src_vec_2 = _mm_loadl_epi64((__m128i*)(src_y + 2 * dst_depth));
+        __m128i src_vec_3 = _mm_loadl_epi64((__m128i*)(src_y + 3 * dst_depth));
+        __m128i src_vec_4 = _mm_loadl_epi64((__m128i*)(src_y + 4 * dst_depth));
+        __m128i w_vec_0   = _mm_loadl_epi64((__m128i*)(weight_y));
+        __m128i w_vec_1   = _mm_loadl_epi64((__m128i*)(weight_y + dst_depth));
+        __m128i w_vec_2   = _mm_loadl_epi64((__m128i*)(weight_y + 2 * dst_depth));
+        __m128i w_vec_3   = _mm_loadl_epi64((__m128i*)(weight_y + 3 * dst_depth));
+        __m128i w_vec_4   = _mm_loadl_epi64((__m128i*)(weight_y + 4 * dst_depth));
 
         __m128i src_16_0  = _mm_cvtepi8_epi16(src_vec_0);
         __m128i src_16_1  = _mm_cvtepi8_epi16(src_vec_1);
@@ -373,8 +373,8 @@ void X86DepthwiseI8Unit(int8_t* dst, const int8_t* src, const int8_t* weight, co
                 const auto src_x    = src_y + fx * dilate_x_step;
                 const auto weight_x = weight_y + dst_depth * fx;
 
-                __m128i w_vec    = _mm_loadu_si64(weight_x);
-                __m128i src_vec  = _mm_loadu_si64(src_x);
+                __m128i w_vec    = _mm_loadl_epi64((__m128i*)(weight_x));
+                __m128i src_vec  = _mm_loadl_epi64((__m128i*)(src_x));
                 __m128i w_16     = _mm_cvtepi8_epi16(w_vec);
                 __m128i src_16   = _mm_cvtepi8_epi16(src_vec);
 
@@ -446,8 +446,8 @@ void X86DepthwiseI8General(int8_t* dst, const int8_t* src, const int8_t* weight,
                     const auto src_x    = src_y + fx * dilate_x_step;
                     const auto weight_x = weight_y + dst_depth * fx;
 
-                    __m128i w_vec    = _mm_loadu_si64(weight_x);
-                    __m128i src_vec  = _mm_loadu_si64(src_x);
+                    __m128i w_vec    = _mm_loadl_epi64((__m128i*)(weight_x));
+                    __m128i src_vec  = _mm_loadl_epi64((__m128i*)(src_x));
                     __m128i w_16     = _mm_cvtepi8_epi16(w_vec);
                     __m128i src_16   = _mm_cvtepi8_epi16(src_vec);
                     __m128i w_16_0   = _mm_unpacklo_epi16(w_16, zero_i8);
@@ -563,10 +563,10 @@ void X86MaxPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow
                     long kx              = kxs;
                     for (; kx < kxe; kx++) {
                         const auto srcPtrStart = src_ptr_h + kx * c_r4;
-                        max_reg                = _mm_max_epi8(max_reg, _mm_loadu_si64(srcPtrStart));
+                        max_reg                = _mm_max_epi8(max_reg, _mm_loadl_epi64((__m128i*)srcPtrStart));
                     }
                 }
-                _mm_storeu_si64(dst_ptr, max_reg);
+                _mm_storel_epi64((__m128i*)(dst_ptr), max_reg);
             }
             for (; oc < c_r4; oc += 4) {
                 int8_t maxValue[4] = {-127, -127, -127, -127};
@@ -615,7 +615,7 @@ void X86AvgPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow
                     long kx              = kxs;
                     for (; kx < kxe; kx++) {
                         const auto srcPtrStart = src_ptr_h + kx * c_r4;
-                        __m128i cur_val = _mm_cvtepi8_epi16(_mm_loadu_si64(srcPtrStart));
+                        __m128i cur_val = _mm_cvtepi8_epi16(_mm_loadl_epi64((__m128i*)srcPtrStart));
                         avg_reg         = _mm_add_epi16(avg_reg, cur_val);
                     }
                 }
@@ -628,7 +628,7 @@ void X86AvgPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow
                 __m128i i32x8_b   = _mm_cvttps_epi32(avg_reg_hi);
                 __m128i i16x8     = _mm_packs_epi32(i32x8_a, i32x8_b);
                 __m128i i8x8      = _mm_packs_epi16(i16x8, i16x8);
-                _mm_storeu_si64(dst_ptr, i8x8);
+                _mm_storel_epi64((__m128i*)(dst_ptr), i8x8);
             }
 
             for (; oc < c_r4; oc += 4) {
@@ -677,8 +677,8 @@ void X86MatrixAddInt8(int8_t* dst, const int8_t* A, const int8_t* B, float* dst_
             __m128 scale_dst_neon0 = _mm_loadu_ps(dst_scale + c);
             __m128 scale_dst_neon1 = _mm_loadu_ps(dst_scale + c + 4);
 
-            __m128i aval       = _mm_cvtepi8_epi16(_mm_loadu_si64(A_hw + c));
-            __m128i bval       = _mm_cvtepi8_epi16(_mm_loadu_si64(B_hw + c));
+            __m128i aval       = _mm_cvtepi8_epi16(_mm_loadl_epi64((__m128i*)(A_hw + c)));
+            __m128i bval       = _mm_cvtepi8_epi16(_mm_loadl_epi64((__m128i*)(B_hw + c)));
             __m128 a0          = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(_mm_unpacklo_epi64(aval, aval)));
             __m128 a1          = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(_mm_unpackhi_epi64(aval, aval)));
             __m128 b0          = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(_mm_unpacklo_epi64(bval, bval)));
@@ -740,11 +740,11 @@ void X86GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int
             acc3          = _mm_add_epi32(acc3, _mm_madd_epi16(a_hi, b3_hi));
         }
         for (; c + 7 < ic_r4; c += 8) {
-            __m128i a  = _mm_cvtepi8_epi16(_mm_loadu_si64(src + c));
-            __m128i b0 = _mm_cvtepi8_epi16(_mm_loadu_si64(weight_o_0 + c));
-            __m128i b1 = _mm_cvtepi8_epi16(_mm_loadu_si64(weight_o_1 + c));
-            __m128i b2 = _mm_cvtepi8_epi16(_mm_loadu_si64(weight_o_2 + c));
-            __m128i b3 = _mm_cvtepi8_epi16(_mm_loadu_si64(weight_o_3 + c));
+            __m128i a  = _mm_cvtepi8_epi16(_mm_loadl_epi64((__m128i*)(src + c)));
+            __m128i b0 = _mm_cvtepi8_epi16(_mm_loadl_epi64((__m128i*)(weight_o_0 + c)));
+            __m128i b1 = _mm_cvtepi8_epi16(_mm_loadl_epi64((__m128i*)(weight_o_1 + c)));
+            __m128i b2 = _mm_cvtepi8_epi16(_mm_loadl_epi64((__m128i*)(weight_o_2 + c)));
+            __m128i b3 = _mm_cvtepi8_epi16(_mm_loadl_epi64((__m128i*)(weight_o_3 + c)));
 
             acc0       = _mm_add_epi32(acc0, _mm_madd_epi16(a, b0));
             acc1       = _mm_add_epi32(acc1, _mm_madd_epi16(a, b1));
