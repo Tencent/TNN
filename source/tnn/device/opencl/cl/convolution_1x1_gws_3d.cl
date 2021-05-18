@@ -77,7 +77,8 @@ __kernel void Conv2D1x1GS3D_S1(
     __read_only image2d_t bias,                     /* [w,h] [cout%4 * cout/4, 1]   */
     __write_only image2d_t output, __private const int2 wh,
     __private const int input_c_blocks,
-    __private const int output_w_updiv_4) {
+    __private const int output_w_updiv_4,
+    __private const int activation_type) {
     const int output_c_block_idx = get_global_id(0);
     const int output_w_block_idx = get_global_id(1);
     const int bh_idx      = get_global_id(2);
@@ -122,10 +123,10 @@ __kernel void Conv2D1x1GS3D_S1(
         weights_w_base += 4;
     }
 
-    out0 = ActivationProcess(out0);
-    out1 = ActivationProcess(out1);
-    out2 = ActivationProcess(out2);
-    out3 = ActivationProcess(out3);
+    out0 = ActivationProcess(out0, activation_type);
+    out1 = ActivationProcess(out1, activation_type);
+    out2 = ActivationProcess(out2, activation_type);
+    out3 = ActivationProcess(out3, activation_type);
 
     const int out_x_base = mul24(output_c_block_idx, wh.x);
     int out_x_idx        = output_w_block_idx << 2;
