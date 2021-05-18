@@ -129,19 +129,19 @@ Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &
             auto src_ptr = buffer->force_to<float *>();
             if (blob_dtype == DATA_TYPE_FLOAT) {
                 if (blob_fmt == DATA_FORMAT_NCHW) {
-                    memcpy(reinterpret_cast<float *>(blob->GetHandle().base), src_ptr, buff_count * sizeof(float));
+                    memcpy(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr, buff_count * sizeof(float));
                 } else {
-                    PackFloatBlob(reinterpret_cast<float *>(blob->GetHandle().base), src_ptr, batch, channel, hw);
+                    PackFloatBlob(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr, batch, channel, hw);
                 }
             } else if (blob_dtype == DATA_TYPE_HALF) {
                 RawBuffer tmp_fp16_buff = RawBuffer(buff_count * sizeof(fp16_t));
                 auto tmp_buff_ptr       = tmp_fp16_buff.force_to<fp16_t *>();
                 ConvertFromFloatToHalf(src_ptr, tmp_buff_ptr, buff_count);
                 if (blob_fmt == DATA_FORMAT_NCHW) {
-                    memcpy(reinterpret_cast<fp16_t *>(blob->GetHandle().base), tmp_buff_ptr,
+                    memcpy(reinterpret_cast<fp16_t *>(GetBlobHandlePtr(blob->GetHandle())), tmp_buff_ptr,
                            buff_count * sizeof(fp16_t));
                 } else {
-                    PackHalfBlob(reinterpret_cast<fp16_t *>(blob->GetHandle().base), tmp_buff_ptr, batch, channel, hw);
+                    PackHalfBlob(reinterpret_cast<fp16_t *>(GetBlobHandlePtr(blob->GetHandle())), tmp_buff_ptr, batch, channel, hw);
                 }
             } else {
                 LOGE("RawBuffer2ArmBlob:: unsupported blob data type: %d\n", blob_dtype);
