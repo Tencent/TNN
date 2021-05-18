@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		36A403992653EF5600FB6C74 /* arm_tile_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36A403982653EF5600FB6C74 /* arm_tile_layer_acc.cc */; };
 		4E38EF2926494D360020A4B2 /* tea.h in Headers */ = {isa = PBXBuildFile; fileRef = 4E38EF2726494D360020A4B2 /* tea.h */; };
 		4E38EF2A26494D360020A4B2 /* tea.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4E38EF2826494D360020A4B2 /* tea.cc */; };
 		6178F34B2590AA8C00B4B153 /* winograd_generator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 6178F3472590AA8C00B4B153 /* winograd_generator.cc */; };
@@ -744,6 +745,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		36A403982653EF5600FB6C74 /* arm_tile_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_tile_layer_acc.cc; sourceTree = "<group>"; };
 		4E38EF2726494D360020A4B2 /* tea.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tea.h; sourceTree = "<group>"; };
 		4E38EF2826494D360020A4B2 /* tea.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tea.cc; sourceTree = "<group>"; };
 		6178F3472590AA8C00B4B153 /* winograd_generator.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = winograd_generator.cc; sourceTree = "<group>"; };
@@ -2227,6 +2229,7 @@
 		9DF542DF258B1363006CEC97 /* acc */ = {
 			isa = PBXGroup;
 			children = (
+				36A403982653EF5600FB6C74 /* arm_tile_layer_acc.cc */,
 				9DF54355258B1365006CEC97 /* arm_abs_layer_acc.cc */,
 				E4D05BE5259F15C600921502 /* arm_batch_norm_layer_acc.cc */,
 				E4D05BE9259F15C700921502 /* arm_concat_layer_acc.cc */,
@@ -3128,6 +3131,7 @@
 				E4D05EB525A093D000921502 /* compute_half.cc in Sources */,
 				9DD1FBB1247CE9BE00800139 /* metal_reduce_log_sum_exp_layer_acc.mm in Sources */,
 				9D32FD0224557EEC002DCDAB /* reorg_layer.cc in Sources */,
+				36A403992653EF5600FB6C74 /* arm_tile_layer_acc.cc in Sources */,
 				9D32FCF124557EEC002DCDAB /* base_layer.cc in Sources */,
 				9D32FF2924557EED002DCDAB /* mul_layer_interpreter.cc in Sources */,
 				E4D05C03259F1BA700921502 /* arm_add_layer_acc.cc in Sources */,
