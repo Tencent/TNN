@@ -22,7 +22,7 @@ BinaryLayerTest::BinaryLayerTest(LayerType type) {
 }
 
 bool BinaryLayerTest::InputParamCheck(const DataType& data_type, const DeviceType& dev, const int batch) {
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev && DEVICE_X86 != dev) {
         return true;
     }
 

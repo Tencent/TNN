@@ -40,7 +40,10 @@ Status X86LayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
 std::vector<DataFormat> X86LayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
-        support_list.push_back(DATA_FORMAT_NCHW);
+        if (data_type == DATA_TYPE_FLOAT)
+            support_list.push_back(DATA_FORMAT_NCHW);
+        else if (data_type == DATA_TYPE_INT8)
+            support_list.push_back(DATA_FORMAT_NHWC4);
     }
     return support_list;
 }

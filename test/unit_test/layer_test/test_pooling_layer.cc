@@ -42,7 +42,7 @@ TEST_P(PoolingLayerTest, PoolingLayer) {
     int pool_type      = std::get<5>(GetParam());
     DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev && DEVICE_X86 != dev) {
         GTEST_SKIP();
     }
 
