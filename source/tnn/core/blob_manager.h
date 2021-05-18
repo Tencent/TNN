@@ -35,7 +35,7 @@ namespace TNN_NS {
 
 class BlobManager : public ISharedMemoryChangeListener {
 public:
-    // @brief BlobManager constrctor
+    // @brief BlobManager constructor
     explicit BlobManager(AbstractDevice *device);
 
     // @brief BlobManager destructor
@@ -53,7 +53,7 @@ public:
     // @param name blob name
     Blob *GetBlob(std::string name);
 
-    // @brief check blob memory state for diffrent share memory mode
+    // @brief check blob memory state for different share memory mode
     Status CheckBlobMemoryState();
 
     // @brief set blob forward memory

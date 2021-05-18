@@ -56,19 +56,19 @@ Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config) 
     tnn_.reset(new TNN());
     Status status = tnn_->Init(model_config);
     if (status != TNN_OK) {
-        LOGE("tnn init falied: %s!\n", status.description().c_str());
-        return Status(TNNERR_NET_ERR, "tnn init falied");
+        LOGE("tnn init failed: %s!\n", status.description().c_str());
+        return Status(TNNERR_NET_ERR, "tnn init failed");
     }
     InputShapesMap input_shapes;
     if (model_checker_params_.check_batch) {
         status = tnn_->GetModelInputShapesMap(input_shapes);
         if (status != TNN_OK) {
-            LOGE("tnn get input shape map falied: %s!\n", status.description().c_str());
+            LOGE("tnn get input shape map failed: %s!\n", status.description().c_str());
             return status;
         }
         status = ChangeBatchOfInputShapes(input_shapes);
         if (status != TNN_OK) {
-            LOGE("change batch of input shape map falied: %s!\n", status.description().c_str());
+            LOGE("change batch of input shape map failed: %s!\n", status.description().c_str());
             return status;
         }
     }
@@ -80,7 +80,7 @@ Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config) 
     }
     instance_cpu_ = tnn_->CreateInst(net_config_cpu, status, input_shapes);
     if (status != TNN_OK) {
-        LOGE("create cpu instance falied: %s\n", status.description().c_str());
+        LOGE("create cpu instance failed: %s\n", status.description().c_str());
         return status;
     }
 
@@ -97,8 +97,8 @@ Status ModelChecker::Init(NetworkConfig& net_config, ModelConfig& model_config) 
 
     instance_device_ = tnn_->CreateInst(net_config, status, input_shapes);
     if (status != TNN_OK) {
-        LOGE("create device instance falied: %s\n", status.description().c_str());
-        return Status(TNNERR_INST_ERR, "create device instance falied");
+        LOGE("create device instance failed: %s\n", status.description().c_str());
+        return Status(TNNERR_INST_ERR, "create device instance failed");
     }
 
     return TNN_OK;
@@ -191,7 +191,7 @@ Status ModelChecker::RunModelCheckerPerLayer() {
     } else {
         printf("failed layer count: %d    pass layer count: %d\n", failed_count, pass_count);
         if (!check_results.back().second) {
-            printf("the last layer check falied!\n");
+            printf("the last layer check failed!\n");
         }
         return Status(TNNERR_COMMON_ERROR, "model check failed");
     }
@@ -220,7 +220,7 @@ Status ModelChecker::RunModelCheckerFromDumpFile() {
             FileReader file_reader;
             auto status = file_reader.Read(output_ref_mat_map_, dump_data_path, TEXT);
             if (status != TNN_OK) {
-                LOGE("read input file (%s) falied!\n", dump_data_path.c_str());
+                LOGE("read input file (%s) failed!\n", dump_data_path.c_str());
                 return;
             }
 
@@ -406,7 +406,7 @@ Status ModelChecker::ExtendMatMap(const BlobMap& blobs_map, std::map<std::string
         auto blob_name = item.first;
         if (mat_map.count(blob_name) <= 0) {
             LOGE("mat map don't has blob data (name: %s)\n", blob_name.c_str());
-            return Status(TNNERR_COMMON_ERROR, "extend falied: mat map is not match with blobs map");
+            return Status(TNNERR_COMMON_ERROR, "extend failed: mat map is not match with blobs map");
         }
 
         auto mat      = mat_map[blob_name];
@@ -419,7 +419,7 @@ Status ModelChecker::ExtendMatMap(const BlobMap& blobs_map, std::map<std::string
 
         printf("Warning: mat map (name: %s) will try to be extended due to dims not match\n", blob_name.c_str());
         if (!IsDimsCanBeExtend(src_dims, dst_dims)) {
-            return Status(TNNERR_COMMON_ERROR, "extend falied: dims can't be extend");
+            return Status(TNNERR_COMMON_ERROR, "extend failed: dims can't be extend");
         }
 
         int bytesize_perbatch = DimsVectorUtils::Count(src_dims, 1) * GetMatElementSize(mat.get());
@@ -457,7 +457,7 @@ Status ModelChecker::FeedInputData() {
         file_reader.SetScaleValue(model_checker_params_.input_scale);
         status = file_reader.Read(input_mat_map, input_name, model_checker_params_.input_file.second);
         if (status != TNN_OK) {
-            LOGE("read input file (%s) falied!\n", input_name.c_str());
+            LOGE("read input file (%s) failed!\n", input_name.c_str());
             return Status(TNNERR_COMMON_ERROR, "read input failed");
         }
 
@@ -531,7 +531,7 @@ Status ModelChecker::GetOutputRefData() {
             FileReader file_reader;
             auto status = file_reader.Read(output_ref_mat_map_, output_file_name, TEXT);
             if (status != TNN_OK) {
-                LOGE("read input file (%s) falied!\n", output_file_name.c_str());
+                LOGE("read input file (%s) failed!\n", output_file_name.c_str());
                 return Status(TNNERR_COMMON_ERROR, "read input failed");
             }
         } else {
@@ -581,7 +581,7 @@ Status ModelChecker::GetOutputData(Instance* instance, std::map<std::string, std
 
         auto ret = instance->GetOutputMat(mat, MatConvertParam(), blob_name, DEVICE_NAIVE, mat_type);
         if (ret != TNN_OK) {
-            LOGE("get output mat falied (%s)\n", ret.description().c_str());
+            LOGE("get output mat failed (%s)\n", ret.description().c_str());
             return ret;
         }
 

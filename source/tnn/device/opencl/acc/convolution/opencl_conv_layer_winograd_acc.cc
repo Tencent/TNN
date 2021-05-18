@@ -211,7 +211,7 @@ Status OpenCLConvLayerWinogradAcc::ConvertWinogradTransformWeigths(RawBuffer &ra
                       DimsVectorUtils::Count(dims) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
     }
     auto transform_weight_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
         buffer, true, CL_MAP_WRITE, 0, DimsVectorUtils::Count(dims) * sizeof(float), nullptr, nullptr, &ret);
@@ -223,7 +223,7 @@ Status OpenCLConvLayerWinogradAcc::ConvertWinogradTransformWeigths(RawBuffer &ra
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(buffer, transform_weight_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Conv MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Conv MemUnMap failed");
     }
 
     cl_channel_type data_type = CL_FLOAT;
@@ -238,7 +238,7 @@ Status OpenCLConvLayerWinogradAcc::ConvertWinogradTransformWeigths(RawBuffer &ra
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
     }
     ocl_weights_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_weights_->SetData(image, true);
@@ -272,7 +272,7 @@ Status OpenCLConvLayerWinogradAcc::AllocateWinogradMatrixVAndM(DimsVector input_
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
     }
     ocl_v_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_v_->SetData(image, true);
@@ -285,7 +285,7 @@ Status OpenCLConvLayerWinogradAcc::AllocateWinogradMatrixVAndM(DimsVector input_
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
     }
     ocl_m_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_m_->SetData(image, true);
