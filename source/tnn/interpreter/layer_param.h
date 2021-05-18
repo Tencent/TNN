@@ -59,6 +59,11 @@ struct InstanceNormLayerParam : public LayerParam {
     float eps    = 0.01f;
 };
 
+struct TileLayerParam : public LayerParam {
+    //nchw order
+    std::vector<int> reps;
+};
+
 struct ConvLayerParam : public LayerParam {
     int pad_type = -1;
     // input channels of blob, devide by group
