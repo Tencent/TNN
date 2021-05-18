@@ -95,7 +95,7 @@ function build_android() {
 function run_android() {
     build_android
     if [ $? != 0 ];then
-        echo "build falied"
+        echo "build failed"
         exit 0
     fi
 

@@ -2,27 +2,27 @@
 
 
 
-use crate::include_test1_generated::*;
 use crate::include_test2_generated::*;
+use crate::include_test1_generated::*;
 use std::mem;
 use std::cmp::Ordering;
 
 extern crate flatbuffers;
-use self::flatbuffers::EndianScalar;
+use self::flatbuffers::{EndianScalar, Follow};
 
 #[allow(unused_imports, dead_code)]
 pub mod my_game {
 
-  use crate::include_test1_generated::*;
   use crate::include_test2_generated::*;
+  use crate::include_test1_generated::*;
   use std::mem;
   use std::cmp::Ordering;
 
   extern crate flatbuffers;
-  use self::flatbuffers::EndianScalar;
+  use self::flatbuffers::{EndianScalar, Follow};
 
 pub enum InParentNamespaceOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 
 pub struct InParentNamespace<'a> {
   pub _tab: flatbuffers::Table<'a>,
@@ -32,9 +32,7 @@ impl<'a> flatbuffers::Follow<'a> for InParentNamespace<'a> {
     type Inner = InParentNamespace<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self {
-            _tab: flatbuffers::Table { buf: buf, loc: loc },
-        }
+        Self { _tab: flatbuffers::Table { buf, loc } }
     }
 }
 
@@ -45,9 +43,7 @@ impl<'a> InParentNamespace<'a> {
 
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        InParentNamespace {
-            _tab: table,
-        }
+        InParentNamespace { _tab: table }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
@@ -57,8 +53,23 @@ impl<'a> InParentNamespace<'a> {
       builder.finish()
     }
 
+    pub fn unpack(&self) -> InParentNamespaceT {
+      InParentNamespaceT {
+      }
+    }
 }
 
+impl flatbuffers::Verifiable for InParentNamespace<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .finish();
+    Ok(())
+  }
+}
 pub struct InParentNamespaceArgs {
 }
 impl<'a> Default for InParentNamespaceArgs {
@@ -88,19 +99,44 @@ impl<'a: 'b, 'b> InParentNamespaceBuilder<'a, 'b> {
   }
 }
 
+impl std::fmt::Debug for InParentNamespace<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut ds = f.debug_struct("InParentNamespace");
+      ds.finish()
+  }
+}
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq)]
+pub struct InParentNamespaceT {
+}
+impl Default for InParentNamespaceT {
+  fn default() -> Self {
+    Self {
+    }
+  }
+}
+impl InParentNamespaceT {
+  pub fn pack<'b>(
+    &self,
+    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
+  ) -> flatbuffers::WIPOffset<InParentNamespace<'b>> {
+    InParentNamespace::create(_fbb, &InParentNamespaceArgs{
+    })
+  }
+}
 #[allow(unused_imports, dead_code)]
 pub mod example_2 {
 
-  use crate::include_test1_generated::*;
   use crate::include_test2_generated::*;
+  use crate::include_test1_generated::*;
   use std::mem;
   use std::cmp::Ordering;
 
   extern crate flatbuffers;
-  use self::flatbuffers::EndianScalar;
+  use self::flatbuffers::{EndianScalar, Follow};
 
 pub enum MonsterOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 
 pub struct Monster<'a> {
   pub _tab: flatbuffers::Table<'a>,
@@ -110,9 +146,7 @@ impl<'a> flatbuffers::Follow<'a> for Monster<'a> {
     type Inner = Monster<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self {
-            _tab: flatbuffers::Table { buf: buf, loc: loc },
-        }
+        Self { _tab: flatbuffers::Table { buf, loc } }
     }
 }
 
@@ -123,9 +157,7 @@ impl<'a> Monster<'a> {
 
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        Monster {
-            _tab: table,
-        }
+        Monster { _tab: table }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
@@ -135,8 +167,23 @@ impl<'a> Monster<'a> {
       builder.finish()
     }
 
+    pub fn unpack(&self) -> MonsterT {
+      MonsterT {
+      }
+    }
 }
 
+impl flatbuffers::Verifiable for Monster<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .finish();
+    Ok(())
+  }
+}
 pub struct MonsterArgs {
 }
 impl<'a> Default for MonsterArgs {
@@ -166,56 +213,69 @@ impl<'a: 'b, 'b> MonsterBuilder<'a, 'b> {
   }
 }
 
+impl std::fmt::Debug for Monster<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut ds = f.debug_struct("Monster");
+      ds.finish()
+  }
+}
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq)]
+pub struct MonsterT {
+}
+impl Default for MonsterT {
+  fn default() -> Self {
+    Self {
+    }
+  }
+}
+impl MonsterT {
+  pub fn pack<'b>(
+    &self,
+    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
+  ) -> flatbuffers::WIPOffset<Monster<'b>> {
+    Monster::create(_fbb, &MonsterArgs{
+    })
+  }
+}
 }  // pub mod Example2
 
 #[allow(unused_imports, dead_code)]
 pub mod example {
 
-  use crate::include_test1_generated::*;
   use crate::include_test2_generated::*;
+  use crate::include_test1_generated::*;
   use std::mem;
   use std::cmp::Ordering;
 
   extern crate flatbuffers;
-  use self::flatbuffers::EndianScalar;
+  use self::flatbuffers::{EndianScalar, Follow};
 
-/// Composite components of Monster color.
-#[allow(non_camel_case_types)]
-#[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum Color {
-  Red = 1,
-  /// \brief color Green
-  /// Green is bit_flag with value (1u << 1)
-  Green = 2,
-  /// \brief color Blue (1u << 3)
-  Blue = 8,
-
+#[allow(non_upper_case_globals)]
+mod bitflags_color {
+  flatbuffers::bitflags::bitflags! {
+    /// Composite components of Monster color.
+    #[derive(Default)]
+    pub struct Color: u8 {
+      const Red = 1;
+      /// \brief color Green
+      /// Green is bit_flag with value (1u << 1)
+      const Green = 2;
+      /// \brief color Blue (1u << 3)
+      const Blue = 8;
+    }
+  }
 }
-
-pub const ENUM_MIN_COLOR: u8 = 1;
-pub const ENUM_MAX_COLOR: u8 = 8;
+pub use self::bitflags_color::Color;
 
 impl<'a> flatbuffers::Follow<'a> for Color {
   type Inner = Self;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::read_scalar_at::<Self>(buf, loc)
-  }
-}
-
-impl flatbuffers::EndianScalar for Color {
-  #[inline]
-  fn to_little_endian(self) -> Self {
-    let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const Color;
-    unsafe { *p }
-  }
-  #[inline]
-  fn from_little_endian(self) -> Self {
-    let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const Color;
-    unsafe { *p }
+    let b = unsafe {
+      flatbuffers::read_scalar_at::<u8>(buf, loc)
+    };
+    unsafe { Self::from_bits_unchecked(b) }
   }
 }
 
@@ -223,68 +283,94 @@ impl flatbuffers::Push for Color {
     type Output = Color;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<Color>(dst, *self);
+        unsafe { flatbuffers::emplace_scalar::<u8>(dst, self.bits()); }
     }
 }
 
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_COLOR:[Color; 3] = [
-  Color::Red,
-  Color::Green,
-  Color::Blue
-];
-
-#[allow(non_camel_case_types)]
-pub const ENUM_NAMES_COLOR:[&'static str; 8] = [
-    "Red",
-    "Green",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "Blue"
-];
-
-pub fn enum_name_color(e: Color) -> &'static str {
-  let index = e as u8 - Color::Red as u8;
-  ENUM_NAMES_COLOR[index as usize]
+impl flatbuffers::EndianScalar for Color {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let b = u8::to_le(self.bits());
+    unsafe { Self::from_bits_unchecked(b) }
+  }
+  #[inline]
+  #[allow(clippy::wrong_self_convention)]
+  fn from_little_endian(self) -> Self {
+    let b = u8::from_le(self.bits());
+    unsafe { Self::from_bits_unchecked(b) }
+  }
 }
 
-#[allow(non_camel_case_types)]
-#[repr(i8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum Race {
-  None = -1,
-  Human = 0,
-  Dwarf = 1,
-  Elf = 2,
-
+impl<'a> flatbuffers::Verifiable for Color {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    u8::run_verifier(v, pos)
+  }
 }
 
+impl flatbuffers::SimpleToVerifyInSlice for Color {}
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MIN_RACE: i8 = -1;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MAX_RACE: i8 = 2;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_RACE: [Race; 4] = [
+  Race::None,
+  Race::Human,
+  Race::Dwarf,
+  Race::Elf,
+];
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[repr(transparent)]
+pub struct Race(pub i8);
+#[allow(non_upper_case_globals)]
+impl Race {
+  pub const None: Self = Self(-1);
+  pub const Human: Self = Self(0);
+  pub const Dwarf: Self = Self(1);
+  pub const Elf: Self = Self(2);
+
+  pub const ENUM_MIN: i8 = -1;
+  pub const ENUM_MAX: i8 = 2;
+  pub const ENUM_VALUES: &'static [Self] = &[
+    Self::None,
+    Self::Human,
+    Self::Dwarf,
+    Self::Elf,
+  ];
+  /// Returns the variant's name or "" if unknown.
+  pub fn variant_name(self) -> Option<&'static str> {
+    match self {
+      Self::None => Some("None"),
+      Self::Human => Some("Human"),
+      Self::Dwarf => Some("Dwarf"),
+      Self::Elf => Some("Elf"),
+      _ => None,
+    }
+  }
+}
+impl std::fmt::Debug for Race {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    if let Some(name) = self.variant_name() {
+      f.write_str(name)
+    } else {
+      f.write_fmt(format_args!("<UNKNOWN {:?}>", self.0))
+    }
+  }
+}
 impl<'a> flatbuffers::Follow<'a> for Race {
   type Inner = Self;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::read_scalar_at::<Self>(buf, loc)
-  }
-}
-
-impl flatbuffers::EndianScalar for Race {
-  #[inline]
-  fn to_little_endian(self) -> Self {
-    let n = i8::to_le(self as i8);
-    let p = &n as *const i8 as *const Race;
-    unsafe { *p }
-  }
-  #[inline]
-  fn from_little_endian(self) -> Self {
-    let n = i8::from_le(self as i8);
-    let p = &n as *const i8 as *const Race;
-    unsafe { *p }
+    let b = unsafe {
+      flatbuffers::read_scalar_at::<i8>(buf, loc)
+    };
+    Self(b)
   }
 }
 
@@ -292,65 +378,94 @@ impl flatbuffers::Push for Race {
     type Output = Race;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<Race>(dst, *self);
+        unsafe { flatbuffers::emplace_scalar::<i8>(dst, self.0); }
     }
 }
 
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_RACE:[Race; 4] = [
-  Race::None,
-  Race::Human,
-  Race::Dwarf,
-  Race::Elf
-];
-
-#[allow(non_camel_case_types)]
-pub const ENUM_NAMES_RACE:[&'static str; 4] = [
-    "None",
-    "Human",
-    "Dwarf",
-    "Elf"
-];
-
-pub fn enum_name_race(e: Race) -> &'static str {
-  let index = e as i8 - Race::None as i8;
-  ENUM_NAMES_RACE[index as usize]
+impl flatbuffers::EndianScalar for Race {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let b = i8::to_le(self.0);
+    Self(b)
+  }
+  #[inline]
+  #[allow(clippy::wrong_self_convention)]
+  fn from_little_endian(self) -> Self {
+    let b = i8::from_le(self.0);
+    Self(b)
+  }
 }
 
-#[allow(non_camel_case_types)]
-#[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum Any {
-  NONE = 0,
-  Monster = 1,
-  TestSimpleTableWithEnum = 2,
-  MyGame_Example2_Monster = 3,
-
+impl<'a> flatbuffers::Verifiable for Race {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    i8::run_verifier(v, pos)
+  }
 }
 
+impl flatbuffers::SimpleToVerifyInSlice for Race {}
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MIN_ANY: u8 = 0;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MAX_ANY: u8 = 3;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_ANY: [Any; 4] = [
+  Any::NONE,
+  Any::Monster,
+  Any::TestSimpleTableWithEnum,
+  Any::MyGame_Example2_Monster,
+];
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[repr(transparent)]
+pub struct Any(pub u8);
+#[allow(non_upper_case_globals)]
+impl Any {
+  pub const NONE: Self = Self(0);
+  pub const Monster: Self = Self(1);
+  pub const TestSimpleTableWithEnum: Self = Self(2);
+  pub const MyGame_Example2_Monster: Self = Self(3);
+
+  pub const ENUM_MIN: u8 = 0;
+  pub const ENUM_MAX: u8 = 3;
+  pub const ENUM_VALUES: &'static [Self] = &[
+    Self::NONE,
+    Self::Monster,
+    Self::TestSimpleTableWithEnum,
+    Self::MyGame_Example2_Monster,
+  ];
+  /// Returns the variant's name or "" if unknown.
+  pub fn variant_name(self) -> Option<&'static str> {
+    match self {
+      Self::NONE => Some("NONE"),
+      Self::Monster => Some("Monster"),
+      Self::TestSimpleTableWithEnum => Some("TestSimpleTableWithEnum"),
+      Self::MyGame_Example2_Monster => Some("MyGame_Example2_Monster"),
+      _ => None,
+    }
+  }
+}
+impl std::fmt::Debug for Any {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    if let Some(name) = self.variant_name() {
+      f.write_str(name)
+    } else {
+      f.write_fmt(format_args!("<UNKNOWN {:?}>", self.0))
+    }
+  }
+}
 impl<'a> flatbuffers::Follow<'a> for Any {
   type Inner = Self;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::read_scalar_at::<Self>(buf, loc)
-  }
-}
-
-impl flatbuffers::EndianScalar for Any {
-  #[inline]
-  fn to_little_endian(self) -> Self {
-    let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const Any;
-    unsafe { *p }
-  }
-  #[inline]
-  fn from_little_endian(self) -> Self {
-    let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const Any;
-    unsafe { *p }
+    let b = unsafe {
+      flatbuffers::read_scalar_at::<u8>(buf, loc)
+    };
+    Self(b)
   }
 }
 
@@ -358,66 +473,190 @@ impl flatbuffers::Push for Any {
     type Output = Any;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<Any>(dst, *self);
+        unsafe { flatbuffers::emplace_scalar::<u8>(dst, self.0); }
     }
 }
 
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ANY:[Any; 4] = [
-  Any::NONE,
-  Any::Monster,
-  Any::TestSimpleTableWithEnum,
-  Any::MyGame_Example2_Monster
-];
-
-#[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ANY:[&'static str; 4] = [
-    "NONE",
-    "Monster",
-    "TestSimpleTableWithEnum",
-    "MyGame_Example2_Monster"
-];
-
-pub fn enum_name_any(e: Any) -> &'static str {
-  let index = e as u8;
-  ENUM_NAMES_ANY[index as usize]
+impl flatbuffers::EndianScalar for Any {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let b = u8::to_le(self.0);
+    Self(b)
+  }
+  #[inline]
+  #[allow(clippy::wrong_self_convention)]
+  fn from_little_endian(self) -> Self {
+    let b = u8::from_le(self.0);
+    Self(b)
+  }
 }
 
+impl<'a> flatbuffers::Verifiable for Any {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    u8::run_verifier(v, pos)
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for Any {}
 pub struct AnyUnionTableOffset {}
-#[allow(non_camel_case_types)]
-#[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum AnyUniqueAliases {
-  NONE = 0,
-  M = 1,
-  TS = 2,
-  M2 = 3,
 
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq)]
+pub enum AnyT {
+  NONE,
+  Monster(Box<MonsterT>),
+  TestSimpleTableWithEnum(Box<TestSimpleTableWithEnumT>),
+  MyGameExample2Monster(Box<super::example_2::MonsterT>),
 }
-
+impl Default for AnyT {
+  fn default() -> Self {
+    Self::NONE
+  }
+}
+impl AnyT {
+  pub fn any_type(&self) -> Any {
+    match self {
+      Self::NONE => Any::NONE,
+      Self::Monster(_) => Any::Monster,
+      Self::TestSimpleTableWithEnum(_) => Any::TestSimpleTableWithEnum,
+      Self::MyGameExample2Monster(_) => Any::MyGame_Example2_Monster,
+    }
+  }
+  pub fn pack(&self, fbb: &mut flatbuffers::FlatBufferBuilder) -> Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>> {
+    match self {
+      Self::NONE => None,
+      Self::Monster(v) => Some(v.pack(fbb).as_union_value()),
+      Self::TestSimpleTableWithEnum(v) => Some(v.pack(fbb).as_union_value()),
+      Self::MyGameExample2Monster(v) => Some(v.pack(fbb).as_union_value()),
+    }
+  }
+  /// If the union variant matches, return the owned MonsterT, setting the union to NONE.
+  pub fn take_monster(&mut self) -> Option<Box<MonsterT>> {
+    if let Self::Monster(_) = self {
+      let v = std::mem::replace(self, Self::NONE);
+      if let Self::Monster(w) = v {
+        Some(w)
+      } else {
+        unreachable!()
+      }
+    } else {
+      None
+    }
+  }
+  /// If the union variant matches, return a reference to the MonsterT.
+  pub fn as_monster(&self) -> Option<&MonsterT> {
+    if let Self::Monster(v) = self { Some(v.as_ref()) } else { None }
+  }
+  /// If the union variant matches, return a mutable reference to the MonsterT.
+  pub fn as_monster_mut(&mut self) -> Option<&mut MonsterT> {
+    if let Self::Monster(v) = self { Some(v.as_mut()) } else { None }
+  }
+  /// If the union variant matches, return the owned TestSimpleTableWithEnumT, setting the union to NONE.
+  pub fn take_test_simple_table_with_enum(&mut self) -> Option<Box<TestSimpleTableWithEnumT>> {
+    if let Self::TestSimpleTableWithEnum(_) = self {
+      let v = std::mem::replace(self, Self::NONE);
+      if let Self::TestSimpleTableWithEnum(w) = v {
+        Some(w)
+      } else {
+        unreachable!()
+      }
+    } else {
+      None
+    }
+  }
+  /// If the union variant matches, return a reference to the TestSimpleTableWithEnumT.
+  pub fn as_test_simple_table_with_enum(&self) -> Option<&TestSimpleTableWithEnumT> {
+    if let Self::TestSimpleTableWithEnum(v) = self { Some(v.as_ref()) } else { None }
+  }
+  /// If the union variant matches, return a mutable reference to the TestSimpleTableWithEnumT.
+  pub fn as_test_simple_table_with_enum_mut(&mut self) -> Option<&mut TestSimpleTableWithEnumT> {
+    if let Self::TestSimpleTableWithEnum(v) = self { Some(v.as_mut()) } else { None }
+  }
+  /// If the union variant matches, return the owned super::example_2::MonsterT, setting the union to NONE.
+  pub fn take_my_game_example_2_monster(&mut self) -> Option<Box<super::example_2::MonsterT>> {
+    if let Self::MyGameExample2Monster(_) = self {
+      let v = std::mem::replace(self, Self::NONE);
+      if let Self::MyGameExample2Monster(w) = v {
+        Some(w)
+      } else {
+        unreachable!()
+      }
+    } else {
+      None
+    }
+  }
+  /// If the union variant matches, return a reference to the super::example_2::MonsterT.
+  pub fn as_my_game_example_2_monster(&self) -> Option<&super::example_2::MonsterT> {
+    if let Self::MyGameExample2Monster(v) = self { Some(v.as_ref()) } else { None }
+  }
+  /// If the union variant matches, return a mutable reference to the super::example_2::MonsterT.
+  pub fn as_my_game_example_2_monster_mut(&mut self) -> Option<&mut super::example_2::MonsterT> {
+    if let Self::MyGameExample2Monster(v) = self { Some(v.as_mut()) } else { None }
+  }
+}
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MIN_ANY_UNIQUE_ALIASES: u8 = 0;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MAX_ANY_UNIQUE_ALIASES: u8 = 3;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_ANY_UNIQUE_ALIASES: [AnyUniqueAliases; 4] = [
+  AnyUniqueAliases::NONE,
+  AnyUniqueAliases::M,
+  AnyUniqueAliases::TS,
+  AnyUniqueAliases::M2,
+];
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[repr(transparent)]
+pub struct AnyUniqueAliases(pub u8);
+#[allow(non_upper_case_globals)]
+impl AnyUniqueAliases {
+  pub const NONE: Self = Self(0);
+  pub const M: Self = Self(1);
+  pub const TS: Self = Self(2);
+  pub const M2: Self = Self(3);
+
+  pub const ENUM_MIN: u8 = 0;
+  pub const ENUM_MAX: u8 = 3;
+  pub const ENUM_VALUES: &'static [Self] = &[
+    Self::NONE,
+    Self::M,
+    Self::TS,
+    Self::M2,
+  ];
+  /// Returns the variant's name or "" if unknown.
+  pub fn variant_name(self) -> Option<&'static str> {
+    match self {
+      Self::NONE => Some("NONE"),
+      Self::M => Some("M"),
+      Self::TS => Some("TS"),
+      Self::M2 => Some("M2"),
+      _ => None,
+    }
+  }
+}
+impl std::fmt::Debug for AnyUniqueAliases {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    if let Some(name) = self.variant_name() {
+      f.write_str(name)
+    } else {
+      f.write_fmt(format_args!("<UNKNOWN {:?}>", self.0))
+    }
+  }
+}
 impl<'a> flatbuffers::Follow<'a> for AnyUniqueAliases {
   type Inner = Self;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::read_scalar_at::<Self>(buf, loc)
-  }
-}
-
-impl flatbuffers::EndianScalar for AnyUniqueAliases {
-  #[inline]
-  fn to_little_endian(self) -> Self {
-    let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const AnyUniqueAliases;
-    unsafe { *p }
-  }
-  #[inline]
-  fn from_little_endian(self) -> Self {
-    let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const AnyUniqueAliases;
-    unsafe { *p }
+    let b = unsafe {
+      flatbuffers::read_scalar_at::<u8>(buf, loc)
+    };
+    Self(b)
   }
 }
 
@@ -425,66 +664,190 @@ impl flatbuffers::Push for AnyUniqueAliases {
     type Output = AnyUniqueAliases;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<AnyUniqueAliases>(dst, *self);
+        unsafe { flatbuffers::emplace_scalar::<u8>(dst, self.0); }
     }
 }
 
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ANY_UNIQUE_ALIASES:[AnyUniqueAliases; 4] = [
-  AnyUniqueAliases::NONE,
-  AnyUniqueAliases::M,
-  AnyUniqueAliases::TS,
-  AnyUniqueAliases::M2
-];
-
-#[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ANY_UNIQUE_ALIASES:[&'static str; 4] = [
-    "NONE",
-    "M",
-    "TS",
-    "M2"
-];
-
-pub fn enum_name_any_unique_aliases(e: AnyUniqueAliases) -> &'static str {
-  let index = e as u8;
-  ENUM_NAMES_ANY_UNIQUE_ALIASES[index as usize]
+impl flatbuffers::EndianScalar for AnyUniqueAliases {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let b = u8::to_le(self.0);
+    Self(b)
+  }
+  #[inline]
+  #[allow(clippy::wrong_self_convention)]
+  fn from_little_endian(self) -> Self {
+    let b = u8::from_le(self.0);
+    Self(b)
+  }
 }
 
+impl<'a> flatbuffers::Verifiable for AnyUniqueAliases {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    u8::run_verifier(v, pos)
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for AnyUniqueAliases {}
 pub struct AnyUniqueAliasesUnionTableOffset {}
-#[allow(non_camel_case_types)]
-#[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum AnyAmbiguousAliases {
-  NONE = 0,
-  M1 = 1,
-  M2 = 2,
-  M3 = 3,
 
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq)]
+pub enum AnyUniqueAliasesT {
+  NONE,
+  M(Box<MonsterT>),
+  TS(Box<TestSimpleTableWithEnumT>),
+  M2(Box<super::example_2::MonsterT>),
 }
-
+impl Default for AnyUniqueAliasesT {
+  fn default() -> Self {
+    Self::NONE
+  }
+}
+impl AnyUniqueAliasesT {
+  pub fn any_unique_aliases_type(&self) -> AnyUniqueAliases {
+    match self {
+      Self::NONE => AnyUniqueAliases::NONE,
+      Self::M(_) => AnyUniqueAliases::M,
+      Self::TS(_) => AnyUniqueAliases::TS,
+      Self::M2(_) => AnyUniqueAliases::M2,
+    }
+  }
+  pub fn pack(&self, fbb: &mut flatbuffers::FlatBufferBuilder) -> Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>> {
+    match self {
+      Self::NONE => None,
+      Self::M(v) => Some(v.pack(fbb).as_union_value()),
+      Self::TS(v) => Some(v.pack(fbb).as_union_value()),
+      Self::M2(v) => Some(v.pack(fbb).as_union_value()),
+    }
+  }
+  /// If the union variant matches, return the owned MonsterT, setting the union to NONE.
+  pub fn take_m(&mut self) -> Option<Box<MonsterT>> {
+    if let Self::M(_) = self {
+      let v = std::mem::replace(self, Self::NONE);
+      if let Self::M(w) = v {
+        Some(w)
+      } else {
+        unreachable!()
+      }
+    } else {
+      None
+    }
+  }
+  /// If the union variant matches, return a reference to the MonsterT.
+  pub fn as_m(&self) -> Option<&MonsterT> {
+    if let Self::M(v) = self { Some(v.as_ref()) } else { None }
+  }
+  /// If the union variant matches, return a mutable reference to the MonsterT.
+  pub fn as_m_mut(&mut self) -> Option<&mut MonsterT> {
+    if let Self::M(v) = self { Some(v.as_mut()) } else { None }
+  }
+  /// If the union variant matches, return the owned TestSimpleTableWithEnumT, setting the union to NONE.
+  pub fn take_ts(&mut self) -> Option<Box<TestSimpleTableWithEnumT>> {
+    if let Self::TS(_) = self {
+      let v = std::mem::replace(self, Self::NONE);
+      if let Self::TS(w) = v {
+        Some(w)
+      } else {
+        unreachable!()
+      }
+    } else {
+      None
+    }
+  }
+  /// If the union variant matches, return a reference to the TestSimpleTableWithEnumT.
+  pub fn as_ts(&self) -> Option<&TestSimpleTableWithEnumT> {
+    if let Self::TS(v) = self { Some(v.as_ref()) } else { None }
+  }
+  /// If the union variant matches, return a mutable reference to the TestSimpleTableWithEnumT.
+  pub fn as_ts_mut(&mut self) -> Option<&mut TestSimpleTableWithEnumT> {
+    if let Self::TS(v) = self { Some(v.as_mut()) } else { None }
+  }
+  /// If the union variant matches, return the owned super::example_2::MonsterT, setting the union to NONE.
+  pub fn take_m2(&mut self) -> Option<Box<super::example_2::MonsterT>> {
+    if let Self::M2(_) = self {
+      let v = std::mem::replace(self, Self::NONE);
+      if let Self::M2(w) = v {
+        Some(w)
+      } else {
+        unreachable!()
+      }
+    } else {
+      None
+    }
+  }
+  /// If the union variant matches, return a reference to the super::example_2::MonsterT.
+  pub fn as_m2(&self) -> Option<&super::example_2::MonsterT> {
+    if let Self::M2(v) = self { Some(v.as_ref()) } else { None }
+  }
+  /// If the union variant matches, return a mutable reference to the super::example_2::MonsterT.
+  pub fn as_m2_mut(&mut self) -> Option<&mut super::example_2::MonsterT> {
+    if let Self::M2(v) = self { Some(v.as_mut()) } else { None }
+  }
+}
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MIN_ANY_AMBIGUOUS_ALIASES: u8 = 0;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MAX_ANY_AMBIGUOUS_ALIASES: u8 = 3;
+#[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_ANY_AMBIGUOUS_ALIASES: [AnyAmbiguousAliases; 4] = [
+  AnyAmbiguousAliases::NONE,
+  AnyAmbiguousAliases::M1,
+  AnyAmbiguousAliases::M2,
+  AnyAmbiguousAliases::M3,
+];
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[repr(transparent)]
+pub struct AnyAmbiguousAliases(pub u8);
+#[allow(non_upper_case_globals)]
+impl AnyAmbiguousAliases {
+  pub const NONE: Self = Self(0);
+  pub const M1: Self = Self(1);
+  pub const M2: Self = Self(2);
+  pub const M3: Self = Self(3);
+
+  pub const ENUM_MIN: u8 = 0;
+  pub const ENUM_MAX: u8 = 3;
+  pub const ENUM_VALUES: &'static [Self] = &[
+    Self::NONE,
+    Self::M1,
+    Self::M2,
+    Self::M3,
+  ];
+  /// Returns the variant's name or "" if unknown.
+  pub fn variant_name(self) -> Option<&'static str> {
+    match self {
+      Self::NONE => Some("NONE"),
+      Self::M1 => Some("M1"),
+      Self::M2 => Some("M2"),
+      Self::M3 => Some("M3"),
+      _ => None,
+    }
+  }
+}
+impl std::fmt::Debug for AnyAmbiguousAliases {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    if let Some(name) = self.variant_name() {
+      f.write_str(name)
+    } else {
+      f.write_fmt(format_args!("<UNKNOWN {:?}>", self.0))
+    }
+  }
+}
 impl<'a> flatbuffers::Follow<'a> for AnyAmbiguousAliases {
   type Inner = Self;
   #[inline]
   fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    flatbuffers::read_scalar_at::<Self>(buf, loc)
-  }
-}
-
-impl flatbuffers::EndianScalar for AnyAmbiguousAliases {
-  #[inline]
-  fn to_little_endian(self) -> Self {
-    let n = u8::to_le(self as u8);
-    let p = &n as *const u8 as *const AnyAmbiguousAliases;
-    unsafe { *p }
-  }
-  #[inline]
-  fn from_little_endian(self) -> Self {
-    let n = u8::from_le(self as u8);
-    let p = &n as *const u8 as *const AnyAmbiguousAliases;
-    unsafe { *p }
+    let b = unsafe {
+      flatbuffers::read_scalar_at::<u8>(buf, loc)
+    };
+    Self(b)
   }
 }
 
@@ -492,40 +855,150 @@ impl flatbuffers::Push for AnyAmbiguousAliases {
     type Output = AnyAmbiguousAliases;
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
-        flatbuffers::emplace_scalar::<AnyAmbiguousAliases>(dst, *self);
+        unsafe { flatbuffers::emplace_scalar::<u8>(dst, self.0); }
     }
 }
 
-#[allow(non_camel_case_types)]
-pub const ENUM_VALUES_ANY_AMBIGUOUS_ALIASES:[AnyAmbiguousAliases; 4] = [
-  AnyAmbiguousAliases::NONE,
-  AnyAmbiguousAliases::M1,
-  AnyAmbiguousAliases::M2,
-  AnyAmbiguousAliases::M3
-];
-
-#[allow(non_camel_case_types)]
-pub const ENUM_NAMES_ANY_AMBIGUOUS_ALIASES:[&'static str; 4] = [
-    "NONE",
-    "M1",
-    "M2",
-    "M3"
-];
-
-pub fn enum_name_any_ambiguous_aliases(e: AnyAmbiguousAliases) -> &'static str {
-  let index = e as u8;
-  ENUM_NAMES_ANY_AMBIGUOUS_ALIASES[index as usize]
+impl flatbuffers::EndianScalar for AnyAmbiguousAliases {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let b = u8::to_le(self.0);
+    Self(b)
+  }
+  #[inline]
+  #[allow(clippy::wrong_self_convention)]
+  fn from_little_endian(self) -> Self {
+    let b = u8::from_le(self.0);
+    Self(b)
+  }
 }
 
+impl<'a> flatbuffers::Verifiable for AnyAmbiguousAliases {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    u8::run_verifier(v, pos)
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for AnyAmbiguousAliases {}
 pub struct AnyAmbiguousAliasesUnionTableOffset {}
+
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq)]
+pub enum AnyAmbiguousAliasesT {
+  NONE,
+  M1(Box<MonsterT>),
+  M2(Box<MonsterT>),
+  M3(Box<MonsterT>),
+}
+impl Default for AnyAmbiguousAliasesT {
+  fn default() -> Self {
+    Self::NONE
+  }
+}
+impl AnyAmbiguousAliasesT {
+  pub fn any_ambiguous_aliases_type(&self) -> AnyAmbiguousAliases {
+    match self {
+      Self::NONE => AnyAmbiguousAliases::NONE,
+      Self::M1(_) => AnyAmbiguousAliases::M1,
+      Self::M2(_) => AnyAmbiguousAliases::M2,
+      Self::M3(_) => AnyAmbiguousAliases::M3,
+    }
+  }
+  pub fn pack(&self, fbb: &mut flatbuffers::FlatBufferBuilder) -> Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>> {
+    match self {
+      Self::NONE => None,
+      Self::M1(v) => Some(v.pack(fbb).as_union_value()),
+      Self::M2(v) => Some(v.pack(fbb).as_union_value()),
+      Self::M3(v) => Some(v.pack(fbb).as_union_value()),
+    }
+  }
+  /// If the union variant matches, return the owned MonsterT, setting the union to NONE.
+  pub fn take_m1(&mut self) -> Option<Box<MonsterT>> {
+    if let Self::M1(_) = self {
+      let v = std::mem::replace(self, Self::NONE);
+      if let Self::M1(w) = v {
+        Some(w)
+      } else {
+        unreachable!()
+      }
+    } else {
+      None
+    }
+  }
+  /// If the union variant matches, return a reference to the MonsterT.
+  pub fn as_m1(&self) -> Option<&MonsterT> {
+    if let Self::M1(v) = self { Some(v.as_ref()) } else { None }
+  }
+  /// If the union variant matches, return a mutable reference to the MonsterT.
+  pub fn as_m1_mut(&mut self) -> Option<&mut MonsterT> {
+    if let Self::M1(v) = self { Some(v.as_mut()) } else { None }
+  }
+  /// If the union variant matches, return the owned MonsterT, setting the union to NONE.
+  pub fn take_m2(&mut self) -> Option<Box<MonsterT>> {
+    if let Self::M2(_) = self {
+      let v = std::mem::replace(self, Self::NONE);
+      if let Self::M2(w) = v {
+        Some(w)
+      } else {
+        unreachable!()
+      }
+    } else {
+      None
+    }
+  }
+  /// If the union variant matches, return a reference to the MonsterT.
+  pub fn as_m2(&self) -> Option<&MonsterT> {
+    if let Self::M2(v) = self { Some(v.as_ref()) } else { None }
+  }
+  /// If the union variant matches, return a mutable reference to the MonsterT.
+  pub fn as_m2_mut(&mut self) -> Option<&mut MonsterT> {
+    if let Self::M2(v) = self { Some(v.as_mut()) } else { None }
+  }
+  /// If the union variant matches, return the owned MonsterT, setting the union to NONE.
+  pub fn take_m3(&mut self) -> Option<Box<MonsterT>> {
+    if let Self::M3(_) = self {
+      let v = std::mem::replace(self, Self::NONE);
+      if let Self::M3(w) = v {
+        Some(w)
+      } else {
+        unreachable!()
+      }
+    } else {
+      None
+    }
+  }
+  /// If the union variant matches, return a reference to the MonsterT.
+  pub fn as_m3(&self) -> Option<&MonsterT> {
+    if let Self::M3(v) = self { Some(v.as_ref()) } else { None }
+  }
+  /// If the union variant matches, return a mutable reference to the MonsterT.
+  pub fn as_m3_mut(&mut self) -> Option<&mut MonsterT> {
+    if let Self::M3(v) = self { Some(v.as_mut()) } else { None }
+  }
+}
 // struct Test, aligned to 2
-#[repr(C, align(2))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Test {
-  a_: i16,
-  b_: i8,
-  padding0__: u8,
-} // pub struct Test
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq)]
+pub struct Test(pub [u8; 4]);
+impl Default for Test { 
+  fn default() -> Self { 
+    Self([0; 4])
+  }
+}
+impl std::fmt::Debug for Test {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    f.debug_struct("Test")
+      .field("a", &self.a())
+      .field("b", &self.b())
+      .finish()
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for Test {}
 impl flatbuffers::SafeSliceAccess for Test {}
 impl<'a> flatbuffers::Follow<'a> for Test {
   type Inner = &'a Test;
@@ -563,42 +1036,122 @@ impl<'b> flatbuffers::Push for &'b Test {
     }
 }
 
-
-impl Test {
-  pub fn new<'a>(_a: i16, _b: i8) -> Self {
-    Test {
-      a_: _a.to_little_endian(),
-      b_: _b.to_little_endian(),
-
-      padding0__: 0,
-    }
+impl<'a> flatbuffers::Verifiable for Test {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.in_buffer::<Self>(pos)
   }
+}
+impl<'a> Test {
+  #[allow(clippy::too_many_arguments)]
+  pub fn new(
+    a: i16,
+    b: i8,
+  ) -> Self {
+    let mut s = Self([0; 4]);
+    s.set_a(a);
+    s.set_b(b);
+    s
+  }
+
     pub const fn get_fully_qualified_name() -> &'static str {
         "MyGame.Example.Test"
     }
 
-  pub fn a<'a>(&'a self) -> i16 {
-    self.a_.from_little_endian()
+  pub fn a(&self) -> i16 {
+    let mut mem = core::mem::MaybeUninit::<i16>::uninit();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        self.0[0..].as_ptr(),
+        mem.as_mut_ptr() as *mut u8,
+        core::mem::size_of::<i16>(),
+      );
+      mem.assume_init()
+    }.from_little_endian()
   }
-  pub fn b<'a>(&'a self) -> i8 {
-    self.b_.from_little_endian()
+
+  pub fn set_a(&mut self, x: i16) {
+    let x_le = x.to_little_endian();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        &x_le as *const i16 as *const u8,
+        self.0[0..].as_mut_ptr(),
+        core::mem::size_of::<i16>(),
+      );
+    }
+  }
+
+  pub fn b(&self) -> i8 {
+    let mut mem = core::mem::MaybeUninit::<i8>::uninit();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        self.0[2..].as_ptr(),
+        mem.as_mut_ptr() as *mut u8,
+        core::mem::size_of::<i8>(),
+      );
+      mem.assume_init()
+    }.from_little_endian()
+  }
+
+  pub fn set_b(&mut self, x: i8) {
+    let x_le = x.to_little_endian();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        &x_le as *const i8 as *const u8,
+        self.0[2..].as_mut_ptr(),
+        core::mem::size_of::<i8>(),
+      );
+    }
+  }
+
+  pub fn unpack(&self) -> TestT {
+    TestT {
+      a: self.a(),
+      b: self.b(),
+    }
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct TestT {
+  pub a: i16,
+  pub b: i8,
+}
+impl TestT {
+  pub fn pack(&self) -> Test {
+    Test::new(
+      self.a,
+      self.b,
+    )
   }
 }
 
 // struct Vec3, aligned to 8
-#[repr(C, align(8))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Vec3 {
-  x_: f32,
-  y_: f32,
-  z_: f32,
-  padding0__: u32,
-  test1_: f64,
-  test2_: Color,
-  padding1__: u8,
-  test3_: Test,
-  padding2__: u16,
-} // pub struct Vec3
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq)]
+pub struct Vec3(pub [u8; 32]);
+impl Default for Vec3 { 
+  fn default() -> Self { 
+    Self([0; 32])
+  }
+}
+impl std::fmt::Debug for Vec3 {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    f.debug_struct("Vec3")
+      .field("x", &self.x())
+      .field("y", &self.y())
+      .field("z", &self.z())
+      .field("test1", &self.test1())
+      .field("test2", &self.test2())
+      .field("test3", &self.test3())
+      .finish()
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for Vec3 {}
 impl flatbuffers::SafeSliceAccess for Vec3 {}
 impl<'a> flatbuffers::Follow<'a> for Vec3 {
   type Inner = &'a Vec3;
@@ -636,53 +1189,215 @@ impl<'b> flatbuffers::Push for &'b Vec3 {
     }
 }
 
-
-impl Vec3 {
-  pub fn new<'a>(_x: f32, _y: f32, _z: f32, _test1: f64, _test2: Color, _test3: &'a Test) -> Self {
-    Vec3 {
-      x_: _x.to_little_endian(),
-      y_: _y.to_little_endian(),
-      z_: _z.to_little_endian(),
-      test1_: _test1.to_little_endian(),
-      test2_: _test2.to_little_endian(),
-      test3_: *_test3,
-
-      padding0__: 0,
-      padding1__: 0,
-      padding2__: 0,
-    }
+impl<'a> flatbuffers::Verifiable for Vec3 {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.in_buffer::<Self>(pos)
   }
+}
+impl<'a> Vec3 {
+  #[allow(clippy::too_many_arguments)]
+  pub fn new(
+    x: f32,
+    y: f32,
+    z: f32,
+    test1: f64,
+    test2: Color,
+    test3: &Test,
+  ) -> Self {
+    let mut s = Self([0; 32]);
+    s.set_x(x);
+    s.set_y(y);
+    s.set_z(z);
+    s.set_test1(test1);
+    s.set_test2(test2);
+    s.set_test3(&test3);
+    s
+  }
+
     pub const fn get_fully_qualified_name() -> &'static str {
         "MyGame.Example.Vec3"
     }
 
-  pub fn x<'a>(&'a self) -> f32 {
-    self.x_.from_little_endian()
+  pub fn x(&self) -> f32 {
+    let mut mem = core::mem::MaybeUninit::<f32>::uninit();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        self.0[0..].as_ptr(),
+        mem.as_mut_ptr() as *mut u8,
+        core::mem::size_of::<f32>(),
+      );
+      mem.assume_init()
+    }.from_little_endian()
   }
-  pub fn y<'a>(&'a self) -> f32 {
-    self.y_.from_little_endian()
+
+  pub fn set_x(&mut self, x: f32) {
+    let x_le = x.to_little_endian();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        &x_le as *const f32 as *const u8,
+        self.0[0..].as_mut_ptr(),
+        core::mem::size_of::<f32>(),
+      );
+    }
   }
-  pub fn z<'a>(&'a self) -> f32 {
-    self.z_.from_little_endian()
+
+  pub fn y(&self) -> f32 {
+    let mut mem = core::mem::MaybeUninit::<f32>::uninit();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        self.0[4..].as_ptr(),
+        mem.as_mut_ptr() as *mut u8,
+        core::mem::size_of::<f32>(),
+      );
+      mem.assume_init()
+    }.from_little_endian()
   }
-  pub fn test1<'a>(&'a self) -> f64 {
-    self.test1_.from_little_endian()
+
+  pub fn set_y(&mut self, x: f32) {
+    let x_le = x.to_little_endian();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        &x_le as *const f32 as *const u8,
+        self.0[4..].as_mut_ptr(),
+        core::mem::size_of::<f32>(),
+      );
+    }
   }
-  pub fn test2<'a>(&'a self) -> Color {
-    self.test2_.from_little_endian()
+
+  pub fn z(&self) -> f32 {
+    let mut mem = core::mem::MaybeUninit::<f32>::uninit();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        self.0[8..].as_ptr(),
+        mem.as_mut_ptr() as *mut u8,
+        core::mem::size_of::<f32>(),
+      );
+      mem.assume_init()
+    }.from_little_endian()
   }
-  pub fn test3<'a>(&'a self) -> &'a Test {
-    &self.test3_
+
+  pub fn set_z(&mut self, x: f32) {
+    let x_le = x.to_little_endian();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        &x_le as *const f32 as *const u8,
+        self.0[8..].as_mut_ptr(),
+        core::mem::size_of::<f32>(),
+      );
+    }
+  }
+
+  pub fn test1(&self) -> f64 {
+    let mut mem = core::mem::MaybeUninit::<f64>::uninit();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        self.0[16..].as_ptr(),
+        mem.as_mut_ptr() as *mut u8,
+        core::mem::size_of::<f64>(),
+      );
+      mem.assume_init()
+    }.from_little_endian()
+  }
+
+  pub fn set_test1(&mut self, x: f64) {
+    let x_le = x.to_little_endian();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        &x_le as *const f64 as *const u8,
+        self.0[16..].as_mut_ptr(),
+        core::mem::size_of::<f64>(),
+      );
+    }
+  }
+
+  pub fn test2(&self) -> Color {
+    let mut mem = core::mem::MaybeUninit::<Color>::uninit();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        self.0[24..].as_ptr(),
+        mem.as_mut_ptr() as *mut u8,
+        core::mem::size_of::<Color>(),
+      );
+      mem.assume_init()
+    }.from_little_endian()
+  }
+
+  pub fn set_test2(&mut self, x: Color) {
+    let x_le = x.to_little_endian();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        &x_le as *const Color as *const u8,
+        self.0[24..].as_mut_ptr(),
+        core::mem::size_of::<Color>(),
+      );
+    }
+  }
+
+  pub fn test3(&self) -> &Test {
+    unsafe { &*(self.0[26..].as_ptr() as *const Test) }
+  }
+
+  pub fn set_test3(&mut self, x: &Test) {
+    self.0[26..26+4].copy_from_slice(&x.0)
+  }
+
+  pub fn unpack(&self) -> Vec3T {
+    Vec3T {
+      x: self.x(),
+      y: self.y(),
+      z: self.z(),
+      test1: self.test1(),
+      test2: self.test2(),
+      test3: self.test3().unpack(),
+    }
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Vec3T {
+  pub x: f32,
+  pub y: f32,
+  pub z: f32,
+  pub test1: f64,
+  pub test2: Color,
+  pub test3: TestT,
+}
+impl Vec3T {
+  pub fn pack(&self) -> Vec3 {
+    Vec3::new(
+      self.x,
+      self.y,
+      self.z,
+      self.test1,
+      self.test2,
+      &self.test3.pack(),
+    )
   }
 }
 
 // struct Ability, aligned to 4
-#[repr(C, align(4))]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Ability {
-  id_: u32,
-  distance_: u32,
-} // pub struct Ability
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq)]
+pub struct Ability(pub [u8; 8]);
+impl Default for Ability { 
+  fn default() -> Self { 
+    Self([0; 8])
+  }
+}
+impl std::fmt::Debug for Ability {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    f.debug_struct("Ability")
+      .field("id", &self.id())
+      .field("distance", &self.distance())
+      .finish()
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for Ability {}
 impl flatbuffers::SafeSliceAccess for Ability {}
 impl<'a> flatbuffers::Follow<'a> for Ability {
   type Inner = &'a Ability;
@@ -720,22 +1435,54 @@ impl<'b> flatbuffers::Push for &'b Ability {
     }
 }
 
-
-impl Ability {
-  pub fn new<'a>(_id: u32, _distance: u32) -> Self {
-    Ability {
-      id_: _id.to_little_endian(),
-      distance_: _distance.to_little_endian(),
-
-    }
+impl<'a> flatbuffers::Verifiable for Ability {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.in_buffer::<Self>(pos)
   }
+}
+impl<'a> Ability {
+  #[allow(clippy::too_many_arguments)]
+  pub fn new(
+    id: u32,
+    distance: u32,
+  ) -> Self {
+    let mut s = Self([0; 8]);
+    s.set_id(id);
+    s.set_distance(distance);
+    s
+  }
+
     pub const fn get_fully_qualified_name() -> &'static str {
         "MyGame.Example.Ability"
     }
 
-  pub fn id<'a>(&'a self) -> u32 {
-    self.id_.from_little_endian()
+  pub fn id(&self) -> u32 {
+    let mut mem = core::mem::MaybeUninit::<u32>::uninit();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        self.0[0..].as_ptr(),
+        mem.as_mut_ptr() as *mut u8,
+        core::mem::size_of::<u32>(),
+      );
+      mem.assume_init()
+    }.from_little_endian()
   }
+
+  pub fn set_id(&mut self, x: u32) {
+    let x_le = x.to_little_endian();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        &x_le as *const u32 as *const u8,
+        self.0[0..].as_mut_ptr(),
+        core::mem::size_of::<u32>(),
+      );
+    }
+  }
+
   #[inline]
   pub fn key_compare_less_than(&self, o: &Ability) ->  bool {
     self.id() < o.id()
@@ -746,13 +1493,186 @@ impl Ability {
     let key = self.id();
     key.cmp(&val)
   }
-  pub fn distance<'a>(&'a self) -> u32 {
-    self.distance_.from_little_endian()
+  pub fn distance(&self) -> u32 {
+    let mut mem = core::mem::MaybeUninit::<u32>::uninit();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        self.0[4..].as_ptr(),
+        mem.as_mut_ptr() as *mut u8,
+        core::mem::size_of::<u32>(),
+      );
+      mem.assume_init()
+    }.from_little_endian()
+  }
+
+  pub fn set_distance(&mut self, x: u32) {
+    let x_le = x.to_little_endian();
+    unsafe {
+      core::ptr::copy_nonoverlapping(
+        &x_le as *const u32 as *const u8,
+        self.0[4..].as_mut_ptr(),
+        core::mem::size_of::<u32>(),
+      );
+    }
+  }
+
+  pub fn unpack(&self) -> AbilityT {
+    AbilityT {
+      id: self.id(),
+      distance: self.distance(),
+    }
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct AbilityT {
+  pub id: u32,
+  pub distance: u32,
+}
+impl AbilityT {
+  pub fn pack(&self) -> Ability {
+    Ability::new(
+      self.id,
+      self.distance,
+    )
+  }
+}
+
+// struct StructOfStructs, aligned to 4
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq)]
+pub struct StructOfStructs(pub [u8; 20]);
+impl Default for StructOfStructs { 
+  fn default() -> Self { 
+    Self([0; 20])
+  }
+}
+impl std::fmt::Debug for StructOfStructs {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    f.debug_struct("StructOfStructs")
+      .field("a", &self.a())
+      .field("b", &self.b())
+      .field("c", &self.c())
+      .finish()
+  }
+}
+
+impl flatbuffers::SimpleToVerifyInSlice for StructOfStructs {}
+impl flatbuffers::SafeSliceAccess for StructOfStructs {}
+impl<'a> flatbuffers::Follow<'a> for StructOfStructs {
+  type Inner = &'a StructOfStructs;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    <&'a StructOfStructs>::follow(buf, loc)
+  }
+}
+impl<'a> flatbuffers::Follow<'a> for &'a StructOfStructs {
+  type Inner = &'a StructOfStructs;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::follow_cast_ref::<StructOfStructs>(buf, loc)
+  }
+}
+impl<'b> flatbuffers::Push for StructOfStructs {
+    type Output = StructOfStructs;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(self as *const StructOfStructs as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+impl<'b> flatbuffers::Push for &'b StructOfStructs {
+    type Output = StructOfStructs;
+
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        let src = unsafe {
+            ::std::slice::from_raw_parts(*self as *const StructOfStructs as *const u8, Self::size())
+        };
+        dst.copy_from_slice(src);
+    }
+}
+
+impl<'a> flatbuffers::Verifiable for StructOfStructs {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.in_buffer::<Self>(pos)
+  }
+}
+impl<'a> StructOfStructs {
+  #[allow(clippy::too_many_arguments)]
+  pub fn new(
+    a: &Ability,
+    b: &Test,
+    c: &Ability,
+  ) -> Self {
+    let mut s = Self([0; 20]);
+    s.set_a(&a);
+    s.set_b(&b);
+    s.set_c(&c);
+    s
+  }
+
+    pub const fn get_fully_qualified_name() -> &'static str {
+        "MyGame.Example.StructOfStructs"
+    }
+
+  pub fn a(&self) -> &Ability {
+    unsafe { &*(self.0[0..].as_ptr() as *const Ability) }
+  }
+
+  pub fn set_a(&mut self, x: &Ability) {
+    self.0[0..0+8].copy_from_slice(&x.0)
+  }
+
+  pub fn b(&self) -> &Test {
+    unsafe { &*(self.0[8..].as_ptr() as *const Test) }
+  }
+
+  pub fn set_b(&mut self, x: &Test) {
+    self.0[8..8+4].copy_from_slice(&x.0)
+  }
+
+  pub fn c(&self) -> &Ability {
+    unsafe { &*(self.0[12..].as_ptr() as *const Ability) }
+  }
+
+  pub fn set_c(&mut self, x: &Ability) {
+    self.0[12..12+8].copy_from_slice(&x.0)
+  }
+
+  pub fn unpack(&self) -> StructOfStructsT {
+    StructOfStructsT {
+      a: self.a().unpack(),
+      b: self.b().unpack(),
+      c: self.c().unpack(),
+    }
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct StructOfStructsT {
+  pub a: AbilityT,
+  pub b: TestT,
+  pub c: AbilityT,
+}
+impl StructOfStructsT {
+  pub fn pack(&self) -> StructOfStructs {
+    StructOfStructs::new(
+      &self.a.pack(),
+      &self.b.pack(),
+      &self.c.pack(),
+    )
   }
 }
 
 pub enum TestSimpleTableWithEnumOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 
 pub struct TestSimpleTableWithEnum<'a> {
   pub _tab: flatbuffers::Table<'a>,
@@ -762,9 +1682,7 @@ impl<'a> flatbuffers::Follow<'a> for TestSimpleTableWithEnum<'a> {
     type Inner = TestSimpleTableWithEnum<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self {
-            _tab: flatbuffers::Table { buf: buf, loc: loc },
-        }
+        Self { _tab: flatbuffers::Table { buf, loc } }
     }
 }
 
@@ -775,9 +1693,7 @@ impl<'a> TestSimpleTableWithEnum<'a> {
 
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        TestSimpleTableWithEnum {
-            _tab: table,
-        }
+        TestSimpleTableWithEnum { _tab: table }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
@@ -788,6 +1704,12 @@ impl<'a> TestSimpleTableWithEnum<'a> {
       builder.finish()
     }
 
+    pub fn unpack(&self) -> TestSimpleTableWithEnumT {
+      let color = self.color();
+      TestSimpleTableWithEnumT {
+        color,
+      }
+    }
     pub const VT_COLOR: flatbuffers::VOffsetT = 4;
 
   #[inline]
@@ -796,6 +1718,18 @@ impl<'a> TestSimpleTableWithEnum<'a> {
   }
 }
 
+impl flatbuffers::Verifiable for TestSimpleTableWithEnum<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<Color>(&"color", Self::VT_COLOR, false)?
+     .finish();
+    Ok(())
+  }
+}
 pub struct TestSimpleTableWithEnumArgs {
     pub color: Color,
 }
@@ -831,8 +1765,38 @@ impl<'a: 'b, 'b> TestSimpleTableWithEnumBuilder<'a, 'b> {
   }
 }
 
+impl std::fmt::Debug for TestSimpleTableWithEnum<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut ds = f.debug_struct("TestSimpleTableWithEnum");
+      ds.field("color", &self.color());
+      ds.finish()
+  }
+}
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq)]
+pub struct TestSimpleTableWithEnumT {
+  pub color: Color,
+}
+impl Default for TestSimpleTableWithEnumT {
+  fn default() -> Self {
+    Self {
+      color: Color::Green,
+    }
+  }
+}
+impl TestSimpleTableWithEnumT {
+  pub fn pack<'b>(
+    &self,
+    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
+  ) -> flatbuffers::WIPOffset<TestSimpleTableWithEnum<'b>> {
+    let color = self.color;
+    TestSimpleTableWithEnum::create(_fbb, &TestSimpleTableWithEnumArgs{
+      color,
+    })
+  }
+}
 pub enum StatOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 
 pub struct Stat<'a> {
   pub _tab: flatbuffers::Table<'a>,
@@ -842,9 +1806,7 @@ impl<'a> flatbuffers::Follow<'a> for Stat<'a> {
     type Inner = Stat<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self {
-            _tab: flatbuffers::Table { buf: buf, loc: loc },
-        }
+        Self { _tab: flatbuffers::Table { buf, loc } }
     }
 }
 
@@ -855,9 +1817,7 @@ impl<'a> Stat<'a> {
 
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        Stat {
-            _tab: table,
-        }
+        Stat { _tab: table }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
@@ -870,6 +1830,18 @@ impl<'a> Stat<'a> {
       builder.finish()
     }
 
+    pub fn unpack(&self) -> StatT {
+      let id = self.id().map(|x| {
+        x.to_string()
+      });
+      let val = self.val();
+      let count = self.count();
+      StatT {
+        id,
+        val,
+        count,
+      }
+    }
     pub const VT_ID: flatbuffers::VOffsetT = 4;
     pub const VT_VAL: flatbuffers::VOffsetT = 6;
     pub const VT_COUNT: flatbuffers::VOffsetT = 8;
@@ -886,10 +1858,34 @@ impl<'a> Stat<'a> {
   pub fn count(&self) -> u16 {
     self._tab.get::<u16>(Stat::VT_COUNT, Some(0)).unwrap()
   }
+  #[inline]
+  pub fn key_compare_less_than(&self, o: &Stat) ->  bool {
+    self.count() < o.count()
+  }
+
+  #[inline]
+  pub fn key_compare_with_value(&self, val: u16) ->  ::std::cmp::Ordering {
+    let key = self.count();
+    key.cmp(&val)
+  }
 }
 
+impl flatbuffers::Verifiable for Stat<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>(&"id", Self::VT_ID, false)?
+     .visit_field::<i64>(&"val", Self::VT_VAL, false)?
+     .visit_field::<u16>(&"count", Self::VT_COUNT, false)?
+     .finish();
+    Ok(())
+  }
+}
 pub struct StatArgs<'a> {
-    pub id: Option<flatbuffers::WIPOffset<&'a  str>>,
+    pub id: Option<flatbuffers::WIPOffset<&'a str>>,
     pub val: i64,
     pub count: u16,
 }
@@ -935,8 +1931,50 @@ impl<'a: 'b, 'b> StatBuilder<'a, 'b> {
   }
 }
 
+impl std::fmt::Debug for Stat<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut ds = f.debug_struct("Stat");
+      ds.field("id", &self.id());
+      ds.field("val", &self.val());
+      ds.field("count", &self.count());
+      ds.finish()
+  }
+}
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq)]
+pub struct StatT {
+  pub id: Option<String>,
+  pub val: i64,
+  pub count: u16,
+}
+impl Default for StatT {
+  fn default() -> Self {
+    Self {
+      id: None,
+      val: 0,
+      count: 0,
+    }
+  }
+}
+impl StatT {
+  pub fn pack<'b>(
+    &self,
+    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
+  ) -> flatbuffers::WIPOffset<Stat<'b>> {
+    let id = self.id.as_ref().map(|x|{
+      _fbb.create_string(x)
+    });
+    let val = self.val;
+    let count = self.count;
+    Stat::create(_fbb, &StatArgs{
+      id,
+      val,
+      count,
+    })
+  }
+}
 pub enum ReferrableOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 
 pub struct Referrable<'a> {
   pub _tab: flatbuffers::Table<'a>,
@@ -946,9 +1984,7 @@ impl<'a> flatbuffers::Follow<'a> for Referrable<'a> {
     type Inner = Referrable<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self {
-            _tab: flatbuffers::Table { buf: buf, loc: loc },
-        }
+        Self { _tab: flatbuffers::Table { buf, loc } }
     }
 }
 
@@ -959,9 +1995,7 @@ impl<'a> Referrable<'a> {
 
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        Referrable {
-            _tab: table,
-        }
+        Referrable { _tab: table }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
@@ -972,6 +2006,12 @@ impl<'a> Referrable<'a> {
       builder.finish()
     }
 
+    pub fn unpack(&self) -> ReferrableT {
+      let id = self.id();
+      ReferrableT {
+        id,
+      }
+    }
     pub const VT_ID: flatbuffers::VOffsetT = 4;
 
   #[inline]
@@ -990,6 +2030,18 @@ impl<'a> Referrable<'a> {
   }
 }
 
+impl flatbuffers::Verifiable for Referrable<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<u64>(&"id", Self::VT_ID, false)?
+     .finish();
+    Ok(())
+  }
+}
 pub struct ReferrableArgs {
     pub id: u64,
 }
@@ -1025,8 +2077,38 @@ impl<'a: 'b, 'b> ReferrableBuilder<'a, 'b> {
   }
 }
 
+impl std::fmt::Debug for Referrable<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut ds = f.debug_struct("Referrable");
+      ds.field("id", &self.id());
+      ds.finish()
+  }
+}
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq)]
+pub struct ReferrableT {
+  pub id: u64,
+}
+impl Default for ReferrableT {
+  fn default() -> Self {
+    Self {
+      id: 0,
+    }
+  }
+}
+impl ReferrableT {
+  pub fn pack<'b>(
+    &self,
+    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
+  ) -> flatbuffers::WIPOffset<Referrable<'b>> {
+    let id = self.id;
+    Referrable::create(_fbb, &ReferrableArgs{
+      id,
+    })
+  }
+}
 pub enum MonsterOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 
 /// an example documentation comment: "monster object"
 pub struct Monster<'a> {
@@ -1037,9 +2119,7 @@ impl<'a> flatbuffers::Follow<'a> for Monster<'a> {
     type Inner = Monster<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self {
-            _tab: flatbuffers::Table { buf: buf, loc: loc },
-        }
+        Self { _tab: flatbuffers::Table { buf, loc } }
     }
 }
 
@@ -1050,9 +2130,7 @@ impl<'a> Monster<'a> {
 
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        Monster {
-            _tab: table,
-        }
+        Monster { _tab: table }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
@@ -1066,6 +2144,8 @@ impl<'a> Monster<'a> {
       builder.add_testhashs64_fnv1a(args.testhashs64_fnv1a);
       builder.add_testhashu64_fnv1(args.testhashu64_fnv1);
       builder.add_testhashs64_fnv1(args.testhashs64_fnv1);
+      if let Some(x) = args.scalar_key_sorted_tables { builder.add_scalar_key_sorted_tables(x); }
+      if let Some(x) = args.testrequirednestedflatbuffer { builder.add_testrequirednestedflatbuffer(x); }
       if let Some(x) = args.vector_of_enums { builder.add_vector_of_enums(x); }
       if let Some(x) = args.any_ambiguous { builder.add_any_ambiguous(x); }
       if let Some(x) = args.any_unique { builder.add_any_unique(x); }
@@ -1110,6 +2190,209 @@ impl<'a> Monster<'a> {
       builder.finish()
     }
 
+    pub fn unpack(&self) -> MonsterT {
+      let pos = self.pos().map(|x| {
+        x.unpack()
+      });
+      let mana = self.mana();
+      let hp = self.hp();
+      let name = {
+        let x = self.name();
+        x.to_string()
+      };
+      let inventory = self.inventory().map(|x| {
+        x.to_vec()
+      });
+      let color = self.color();
+      let test = match self.test_type() {
+        Any::NONE => AnyT::NONE,
+        Any::Monster => AnyT::Monster(Box::new(
+          self.test_as_monster()
+              .expect("Invalid union table, expected `Any::Monster`.")
+              .unpack()
+        )),
+        Any::TestSimpleTableWithEnum => AnyT::TestSimpleTableWithEnum(Box::new(
+          self.test_as_test_simple_table_with_enum()
+              .expect("Invalid union table, expected `Any::TestSimpleTableWithEnum`.")
+              .unpack()
+        )),
+        Any::MyGame_Example2_Monster => AnyT::MyGameExample2Monster(Box::new(
+          self.test_as_my_game_example_2_monster()
+              .expect("Invalid union table, expected `Any::MyGame_Example2_Monster`.")
+              .unpack()
+        )),
+        _ => AnyT::NONE,
+      };
+      let test4 = self.test4().map(|x| {
+        x.iter().map(|t| t.unpack()).collect()
+      });
+      let testarrayofstring = self.testarrayofstring().map(|x| {
+        x.iter().map(|s| s.to_string()).collect()
+      });
+      let testarrayoftables = self.testarrayoftables().map(|x| {
+        x.iter().map(|t| t.unpack()).collect()
+      });
+      let enemy = self.enemy().map(|x| {
+        Box::new(x.unpack())
+      });
+      let testnestedflatbuffer = self.testnestedflatbuffer().map(|x| {
+        x.to_vec()
+      });
+      let testempty = self.testempty().map(|x| {
+        Box::new(x.unpack())
+      });
+      let testbool = self.testbool();
+      let testhashs32_fnv1 = self.testhashs32_fnv1();
+      let testhashu32_fnv1 = self.testhashu32_fnv1();
+      let testhashs64_fnv1 = self.testhashs64_fnv1();
+      let testhashu64_fnv1 = self.testhashu64_fnv1();
+      let testhashs32_fnv1a = self.testhashs32_fnv1a();
+      let testhashu32_fnv1a = self.testhashu32_fnv1a();
+      let testhashs64_fnv1a = self.testhashs64_fnv1a();
+      let testhashu64_fnv1a = self.testhashu64_fnv1a();
+      let testarrayofbools = self.testarrayofbools().map(|x| {
+        x.to_vec()
+      });
+      let testf = self.testf();
+      let testf2 = self.testf2();
+      let testf3 = self.testf3();
+      let testarrayofstring2 = self.testarrayofstring2().map(|x| {
+        x.iter().map(|s| s.to_string()).collect()
+      });
+      let testarrayofsortedstruct = self.testarrayofsortedstruct().map(|x| {
+        x.iter().map(|t| t.unpack()).collect()
+      });
+      let flex = self.flex().map(|x| {
+        x.to_vec()
+      });
+      let test5 = self.test5().map(|x| {
+        x.iter().map(|t| t.unpack()).collect()
+      });
+      let vector_of_longs = self.vector_of_longs().map(|x| {
+        x.into_iter().collect()
+      });
+      let vector_of_doubles = self.vector_of_doubles().map(|x| {
+        x.into_iter().collect()
+      });
+      let parent_namespace_test = self.parent_namespace_test().map(|x| {
+        Box::new(x.unpack())
+      });
+      let vector_of_referrables = self.vector_of_referrables().map(|x| {
+        x.iter().map(|t| t.unpack()).collect()
+      });
+      let single_weak_reference = self.single_weak_reference();
+      let vector_of_weak_references = self.vector_of_weak_references().map(|x| {
+        x.into_iter().collect()
+      });
+      let vector_of_strong_referrables = self.vector_of_strong_referrables().map(|x| {
+        x.iter().map(|t| t.unpack()).collect()
+      });
+      let co_owning_reference = self.co_owning_reference();
+      let vector_of_co_owning_references = self.vector_of_co_owning_references().map(|x| {
+        x.into_iter().collect()
+      });
+      let non_owning_reference = self.non_owning_reference();
+      let vector_of_non_owning_references = self.vector_of_non_owning_references().map(|x| {
+        x.into_iter().collect()
+      });
+      let any_unique = match self.any_unique_type() {
+        AnyUniqueAliases::NONE => AnyUniqueAliasesT::NONE,
+        AnyUniqueAliases::M => AnyUniqueAliasesT::M(Box::new(
+          self.any_unique_as_m()
+              .expect("Invalid union table, expected `AnyUniqueAliases::M`.")
+              .unpack()
+        )),
+        AnyUniqueAliases::TS => AnyUniqueAliasesT::TS(Box::new(
+          self.any_unique_as_ts()
+              .expect("Invalid union table, expected `AnyUniqueAliases::TS`.")
+              .unpack()
+        )),
+        AnyUniqueAliases::M2 => AnyUniqueAliasesT::M2(Box::new(
+          self.any_unique_as_m2()
+              .expect("Invalid union table, expected `AnyUniqueAliases::M2`.")
+              .unpack()
+        )),
+        _ => AnyUniqueAliasesT::NONE,
+      };
+      let any_ambiguous = match self.any_ambiguous_type() {
+        AnyAmbiguousAliases::NONE => AnyAmbiguousAliasesT::NONE,
+        AnyAmbiguousAliases::M1 => AnyAmbiguousAliasesT::M1(Box::new(
+          self.any_ambiguous_as_m1()
+              .expect("Invalid union table, expected `AnyAmbiguousAliases::M1`.")
+              .unpack()
+        )),
+        AnyAmbiguousAliases::M2 => AnyAmbiguousAliasesT::M2(Box::new(
+          self.any_ambiguous_as_m2()
+              .expect("Invalid union table, expected `AnyAmbiguousAliases::M2`.")
+              .unpack()
+        )),
+        AnyAmbiguousAliases::M3 => AnyAmbiguousAliasesT::M3(Box::new(
+          self.any_ambiguous_as_m3()
+              .expect("Invalid union table, expected `AnyAmbiguousAliases::M3`.")
+              .unpack()
+        )),
+        _ => AnyAmbiguousAliasesT::NONE,
+      };
+      let vector_of_enums = self.vector_of_enums().map(|x| {
+        x.into_iter().collect()
+      });
+      let signed_enum = self.signed_enum();
+      let testrequirednestedflatbuffer = self.testrequirednestedflatbuffer().map(|x| {
+        x.to_vec()
+      });
+      let scalar_key_sorted_tables = self.scalar_key_sorted_tables().map(|x| {
+        x.iter().map(|t| t.unpack()).collect()
+      });
+      MonsterT {
+        pos,
+        mana,
+        hp,
+        name,
+        inventory,
+        color,
+        test,
+        test4,
+        testarrayofstring,
+        testarrayoftables,
+        enemy,
+        testnestedflatbuffer,
+        testempty,
+        testbool,
+        testhashs32_fnv1,
+        testhashu32_fnv1,
+        testhashs64_fnv1,
+        testhashu64_fnv1,
+        testhashs32_fnv1a,
+        testhashu32_fnv1a,
+        testhashs64_fnv1a,
+        testhashu64_fnv1a,
+        testarrayofbools,
+        testf,
+        testf2,
+        testf3,
+        testarrayofstring2,
+        testarrayofsortedstruct,
+        flex,
+        test5,
+        vector_of_longs,
+        vector_of_doubles,
+        parent_namespace_test,
+        vector_of_referrables,
+        single_weak_reference,
+        vector_of_weak_references,
+        vector_of_strong_referrables,
+        co_owning_reference,
+        vector_of_co_owning_references,
+        non_owning_reference,
+        vector_of_non_owning_references,
+        any_unique,
+        any_ambiguous,
+        vector_of_enums,
+        signed_enum,
+        testrequirednestedflatbuffer,
+        scalar_key_sorted_tables,
+      }
+    }
     pub const VT_POS: flatbuffers::VOffsetT = 4;
     pub const VT_MANA: flatbuffers::VOffsetT = 6;
     pub const VT_HP: flatbuffers::VOffsetT = 8;
@@ -1158,6 +2441,8 @@ impl<'a> Monster<'a> {
     pub const VT_ANY_AMBIGUOUS: flatbuffers::VOffsetT = 96;
     pub const VT_VECTOR_OF_ENUMS: flatbuffers::VOffsetT = 98;
     pub const VT_SIGNED_ENUM: flatbuffers::VOffsetT = 100;
+    pub const VT_TESTREQUIREDNESTEDFLATBUFFER: flatbuffers::VOffsetT = 102;
+    pub const VT_SCALAR_KEY_SORTED_TABLES: flatbuffers::VOffsetT = 104;
 
   #[inline]
   pub fn pos(&self) -> Option<&'a Vec3> {
@@ -1203,38 +2488,35 @@ impl<'a> Monster<'a> {
   }
   #[inline]
   pub fn test4(&self) -> Option<&'a [Test]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Test>>>(Monster::VT_TEST4, None).map(|v| v.safe_slice() )
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, Test>>>(Monster::VT_TEST4, None).map(|v| v.safe_slice())
   }
   #[inline]
   pub fn testarrayofstring(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<&'a str>>>>(Monster::VT_TESTARRAYOFSTRING, None)
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>>(Monster::VT_TESTARRAYOFSTRING, None)
   }
   /// an example documentation comment: this will end up in the generated code
   /// multiline too
   #[inline]
   pub fn testarrayoftables(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Monster<'a>>>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<Monster<'a>>>>>(Monster::VT_TESTARRAYOFTABLES, None)
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Monster>>>>(Monster::VT_TESTARRAYOFTABLES, None)
   }
   #[inline]
   pub fn enemy(&self) -> Option<Monster<'a>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<Monster<'a>>>(Monster::VT_ENEMY, None)
+    self._tab.get::<flatbuffers::ForwardsUOffset<Monster>>(Monster::VT_ENEMY, None)
   }
   #[inline]
   pub fn testnestedflatbuffer(&self) -> Option<&'a [u8]> {
     self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(Monster::VT_TESTNESTEDFLATBUFFER, None).map(|v| v.safe_slice())
   }
-  pub fn testnestedflatbuffer_nested_flatbuffer(&'a self) ->  Option<Monster<'a>> {
-     match self.testnestedflatbuffer() {
-         None => { None }
-         Some(data) => {
-             use self::flatbuffers::Follow;
-             Some(<flatbuffers::ForwardsUOffset<Monster<'a>>>::follow(data, 0))
-         },
-     }
+  pub fn testnestedflatbuffer_nested_flatbuffer(&'a self) -> Option<Monster<'a>> {
+    self.testnestedflatbuffer().map(|data| {
+      use flatbuffers::Follow;
+      <flatbuffers::ForwardsUOffset<Monster<'a>>>::follow(data, 0)
+    })
   }
   #[inline]
   pub fn testempty(&self) -> Option<Stat<'a>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<Stat<'a>>>(Monster::VT_TESTEMPTY, None)
+    self._tab.get::<flatbuffers::ForwardsUOffset<Stat>>(Monster::VT_TESTEMPTY, None)
   }
   #[inline]
   pub fn testbool(&self) -> bool {
@@ -1290,11 +2572,11 @@ impl<'a> Monster<'a> {
   }
   #[inline]
   pub fn testarrayofstring2(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<&'a str>>>>(Monster::VT_TESTARRAYOFSTRING2, None)
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>>(Monster::VT_TESTARRAYOFSTRING2, None)
   }
   #[inline]
   pub fn testarrayofsortedstruct(&self) -> Option<&'a [Ability]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Ability>>>(Monster::VT_TESTARRAYOFSORTEDSTRUCT, None).map(|v| v.safe_slice() )
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, Ability>>>(Monster::VT_TESTARRAYOFSORTEDSTRUCT, None).map(|v| v.safe_slice())
   }
   #[inline]
   pub fn flex(&self) -> Option<&'a [u8]> {
@@ -1302,7 +2584,7 @@ impl<'a> Monster<'a> {
   }
   #[inline]
   pub fn test5(&self) -> Option<&'a [Test]> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<Test>>>(Monster::VT_TEST5, None).map(|v| v.safe_slice() )
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, Test>>>(Monster::VT_TEST5, None).map(|v| v.safe_slice())
   }
   #[inline]
   pub fn vector_of_longs(&self) -> Option<flatbuffers::Vector<'a, i64>> {
@@ -1314,11 +2596,11 @@ impl<'a> Monster<'a> {
   }
   #[inline]
   pub fn parent_namespace_test(&self) -> Option<super::InParentNamespace<'a>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<super::InParentNamespace<'a>>>(Monster::VT_PARENT_NAMESPACE_TEST, None)
+    self._tab.get::<flatbuffers::ForwardsUOffset<super::InParentNamespace>>(Monster::VT_PARENT_NAMESPACE_TEST, None)
   }
   #[inline]
   pub fn vector_of_referrables(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Referrable<'a>>>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<Referrable<'a>>>>>(Monster::VT_VECTOR_OF_REFERRABLES, None)
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Referrable>>>>(Monster::VT_VECTOR_OF_REFERRABLES, None)
   }
   #[inline]
   pub fn single_weak_reference(&self) -> u64 {
@@ -1330,7 +2612,7 @@ impl<'a> Monster<'a> {
   }
   #[inline]
   pub fn vector_of_strong_referrables(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Referrable<'a>>>> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<flatbuffers::ForwardsUOffset<Referrable<'a>>>>>(Monster::VT_VECTOR_OF_STRONG_REFERRABLES, None)
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Referrable>>>>(Monster::VT_VECTOR_OF_STRONG_REFERRABLES, None)
   }
   #[inline]
   pub fn co_owning_reference(&self) -> u64 {
@@ -1373,10 +2655,24 @@ impl<'a> Monster<'a> {
     self._tab.get::<Race>(Monster::VT_SIGNED_ENUM, Some(Race::None)).unwrap()
   }
   #[inline]
+  pub fn testrequirednestedflatbuffer(&self) -> Option<&'a [u8]> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(Monster::VT_TESTREQUIREDNESTEDFLATBUFFER, None).map(|v| v.safe_slice())
+  }
+  pub fn testrequirednestedflatbuffer_nested_flatbuffer(&'a self) -> Option<Monster<'a>> {
+    self.testrequirednestedflatbuffer().map(|data| {
+      use flatbuffers::Follow;
+      <flatbuffers::ForwardsUOffset<Monster<'a>>>::follow(data, 0)
+    })
+  }
+  #[inline]
+  pub fn scalar_key_sorted_tables(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Stat<'a>>>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Stat>>>>(Monster::VT_SCALAR_KEY_SORTED_TABLES, None)
+  }
+  #[inline]
   #[allow(non_snake_case)]
   pub fn test_as_monster(&self) -> Option<Monster<'a>> {
     if self.test_type() == Any::Monster {
-      self.test().map(|u| Monster::init_from_table(u))
+      self.test().map(Monster::init_from_table)
     } else {
       None
     }
@@ -1386,7 +2682,7 @@ impl<'a> Monster<'a> {
   #[allow(non_snake_case)]
   pub fn test_as_test_simple_table_with_enum(&self) -> Option<TestSimpleTableWithEnum<'a>> {
     if self.test_type() == Any::TestSimpleTableWithEnum {
-      self.test().map(|u| TestSimpleTableWithEnum::init_from_table(u))
+      self.test().map(TestSimpleTableWithEnum::init_from_table)
     } else {
       None
     }
@@ -1396,7 +2692,7 @@ impl<'a> Monster<'a> {
   #[allow(non_snake_case)]
   pub fn test_as_my_game_example_2_monster(&self) -> Option<super::example_2::Monster<'a>> {
     if self.test_type() == Any::MyGame_Example2_Monster {
-      self.test().map(|u| super::example_2::Monster::init_from_table(u))
+      self.test().map(super::example_2::Monster::init_from_table)
     } else {
       None
     }
@@ -1406,7 +2702,7 @@ impl<'a> Monster<'a> {
   #[allow(non_snake_case)]
   pub fn any_unique_as_m(&self) -> Option<Monster<'a>> {
     if self.any_unique_type() == AnyUniqueAliases::M {
-      self.any_unique().map(|u| Monster::init_from_table(u))
+      self.any_unique().map(Monster::init_from_table)
     } else {
       None
     }
@@ -1416,7 +2712,7 @@ impl<'a> Monster<'a> {
   #[allow(non_snake_case)]
   pub fn any_unique_as_ts(&self) -> Option<TestSimpleTableWithEnum<'a>> {
     if self.any_unique_type() == AnyUniqueAliases::TS {
-      self.any_unique().map(|u| TestSimpleTableWithEnum::init_from_table(u))
+      self.any_unique().map(TestSimpleTableWithEnum::init_from_table)
     } else {
       None
     }
@@ -1426,7 +2722,7 @@ impl<'a> Monster<'a> {
   #[allow(non_snake_case)]
   pub fn any_unique_as_m2(&self) -> Option<super::example_2::Monster<'a>> {
     if self.any_unique_type() == AnyUniqueAliases::M2 {
-      self.any_unique().map(|u| super::example_2::Monster::init_from_table(u))
+      self.any_unique().map(super::example_2::Monster::init_from_table)
     } else {
       None
     }
@@ -1436,7 +2732,7 @@ impl<'a> Monster<'a> {
   #[allow(non_snake_case)]
   pub fn any_ambiguous_as_m1(&self) -> Option<Monster<'a>> {
     if self.any_ambiguous_type() == AnyAmbiguousAliases::M1 {
-      self.any_ambiguous().map(|u| Monster::init_from_table(u))
+      self.any_ambiguous().map(Monster::init_from_table)
     } else {
       None
     }
@@ -1446,7 +2742,7 @@ impl<'a> Monster<'a> {
   #[allow(non_snake_case)]
   pub fn any_ambiguous_as_m2(&self) -> Option<Monster<'a>> {
     if self.any_ambiguous_type() == AnyAmbiguousAliases::M2 {
-      self.any_ambiguous().map(|u| Monster::init_from_table(u))
+      self.any_ambiguous().map(Monster::init_from_table)
     } else {
       None
     }
@@ -1456,7 +2752,7 @@ impl<'a> Monster<'a> {
   #[allow(non_snake_case)]
   pub fn any_ambiguous_as_m3(&self) -> Option<Monster<'a>> {
     if self.any_ambiguous_type() == AnyAmbiguousAliases::M3 {
-      self.any_ambiguous().map(|u| Monster::init_from_table(u))
+      self.any_ambiguous().map(Monster::init_from_table)
     } else {
       None
     }
@@ -1464,21 +2760,100 @@ impl<'a> Monster<'a> {
 
 }
 
+impl flatbuffers::Verifiable for Monster<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<Vec3>(&"pos", Self::VT_POS, false)?
+     .visit_field::<i16>(&"mana", Self::VT_MANA, false)?
+     .visit_field::<i16>(&"hp", Self::VT_HP, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<&str>>(&"name", Self::VT_NAME, true)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(&"inventory", Self::VT_INVENTORY, false)?
+     .visit_field::<Color>(&"color", Self::VT_COLOR, false)?
+     .visit_union::<Any, _>(&"test_type", Self::VT_TEST_TYPE, &"test", Self::VT_TEST, false, |key, v, pos| {
+        match key {
+          Any::Monster => v.verify_union_variant::<flatbuffers::ForwardsUOffset<Monster>>("Any::Monster", pos),
+          Any::TestSimpleTableWithEnum => v.verify_union_variant::<flatbuffers::ForwardsUOffset<TestSimpleTableWithEnum>>("Any::TestSimpleTableWithEnum", pos),
+          Any::MyGame_Example2_Monster => v.verify_union_variant::<flatbuffers::ForwardsUOffset<super::example_2::Monster>>("Any::MyGame_Example2_Monster", pos),
+          _ => Ok(()),
+        }
+     })?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, Test>>>(&"test4", Self::VT_TEST4, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<&'_ str>>>>(&"testarrayofstring", Self::VT_TESTARRAYOFSTRING, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Monster>>>>(&"testarrayoftables", Self::VT_TESTARRAYOFTABLES, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<Monster>>(&"enemy", Self::VT_ENEMY, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(&"testnestedflatbuffer", Self::VT_TESTNESTEDFLATBUFFER, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<Stat>>(&"testempty", Self::VT_TESTEMPTY, false)?
+     .visit_field::<bool>(&"testbool", Self::VT_TESTBOOL, false)?
+     .visit_field::<i32>(&"testhashs32_fnv1", Self::VT_TESTHASHS32_FNV1, false)?
+     .visit_field::<u32>(&"testhashu32_fnv1", Self::VT_TESTHASHU32_FNV1, false)?
+     .visit_field::<i64>(&"testhashs64_fnv1", Self::VT_TESTHASHS64_FNV1, false)?
+     .visit_field::<u64>(&"testhashu64_fnv1", Self::VT_TESTHASHU64_FNV1, false)?
+     .visit_field::<i32>(&"testhashs32_fnv1a", Self::VT_TESTHASHS32_FNV1A, false)?
+     .visit_field::<u32>(&"testhashu32_fnv1a", Self::VT_TESTHASHU32_FNV1A, false)?
+     .visit_field::<i64>(&"testhashs64_fnv1a", Self::VT_TESTHASHS64_FNV1A, false)?
+     .visit_field::<u64>(&"testhashu64_fnv1a", Self::VT_TESTHASHU64_FNV1A, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, bool>>>(&"testarrayofbools", Self::VT_TESTARRAYOFBOOLS, false)?
+     .visit_field::<f32>(&"testf", Self::VT_TESTF, false)?
+     .visit_field::<f32>(&"testf2", Self::VT_TESTF2, false)?
+     .visit_field::<f32>(&"testf3", Self::VT_TESTF3, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<&'_ str>>>>(&"testarrayofstring2", Self::VT_TESTARRAYOFSTRING2, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, Ability>>>(&"testarrayofsortedstruct", Self::VT_TESTARRAYOFSORTEDSTRUCT, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(&"flex", Self::VT_FLEX, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, Test>>>(&"test5", Self::VT_TEST5, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, i64>>>(&"vector_of_longs", Self::VT_VECTOR_OF_LONGS, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, f64>>>(&"vector_of_doubles", Self::VT_VECTOR_OF_DOUBLES, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<super::InParentNamespace>>(&"parent_namespace_test", Self::VT_PARENT_NAMESPACE_TEST, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Referrable>>>>(&"vector_of_referrables", Self::VT_VECTOR_OF_REFERRABLES, false)?
+     .visit_field::<u64>(&"single_weak_reference", Self::VT_SINGLE_WEAK_REFERENCE, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u64>>>(&"vector_of_weak_references", Self::VT_VECTOR_OF_WEAK_REFERENCES, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Referrable>>>>(&"vector_of_strong_referrables", Self::VT_VECTOR_OF_STRONG_REFERRABLES, false)?
+     .visit_field::<u64>(&"co_owning_reference", Self::VT_CO_OWNING_REFERENCE, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u64>>>(&"vector_of_co_owning_references", Self::VT_VECTOR_OF_CO_OWNING_REFERENCES, false)?
+     .visit_field::<u64>(&"non_owning_reference", Self::VT_NON_OWNING_REFERENCE, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u64>>>(&"vector_of_non_owning_references", Self::VT_VECTOR_OF_NON_OWNING_REFERENCES, false)?
+     .visit_union::<AnyUniqueAliases, _>(&"any_unique_type", Self::VT_ANY_UNIQUE_TYPE, &"any_unique", Self::VT_ANY_UNIQUE, false, |key, v, pos| {
+        match key {
+          AnyUniqueAliases::M => v.verify_union_variant::<flatbuffers::ForwardsUOffset<Monster>>("AnyUniqueAliases::M", pos),
+          AnyUniqueAliases::TS => v.verify_union_variant::<flatbuffers::ForwardsUOffset<TestSimpleTableWithEnum>>("AnyUniqueAliases::TS", pos),
+          AnyUniqueAliases::M2 => v.verify_union_variant::<flatbuffers::ForwardsUOffset<super::example_2::Monster>>("AnyUniqueAliases::M2", pos),
+          _ => Ok(()),
+        }
+     })?
+     .visit_union::<AnyAmbiguousAliases, _>(&"any_ambiguous_type", Self::VT_ANY_AMBIGUOUS_TYPE, &"any_ambiguous", Self::VT_ANY_AMBIGUOUS, false, |key, v, pos| {
+        match key {
+          AnyAmbiguousAliases::M1 => v.verify_union_variant::<flatbuffers::ForwardsUOffset<Monster>>("AnyAmbiguousAliases::M1", pos),
+          AnyAmbiguousAliases::M2 => v.verify_union_variant::<flatbuffers::ForwardsUOffset<Monster>>("AnyAmbiguousAliases::M2", pos),
+          AnyAmbiguousAliases::M3 => v.verify_union_variant::<flatbuffers::ForwardsUOffset<Monster>>("AnyAmbiguousAliases::M3", pos),
+          _ => Ok(()),
+        }
+     })?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, Color>>>(&"vector_of_enums", Self::VT_VECTOR_OF_ENUMS, false)?
+     .visit_field::<Race>(&"signed_enum", Self::VT_SIGNED_ENUM, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>(&"testrequirednestedflatbuffer", Self::VT_TESTREQUIREDNESTEDFLATBUFFER, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<Stat>>>>(&"scalar_key_sorted_tables", Self::VT_SCALAR_KEY_SORTED_TABLES, false)?
+     .finish();
+    Ok(())
+  }
+}
 pub struct MonsterArgs<'a> {
-    pub pos: Option<&'a  Vec3>,
+    pub pos: Option<&'a Vec3>,
     pub mana: i16,
     pub hp: i16,
-    pub name: Option<flatbuffers::WIPOffset<&'a  str>>,
-    pub inventory: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a ,  u8>>>,
+    pub name: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub inventory: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
     pub color: Color,
     pub test_type: Any,
     pub test: Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>>,
-    pub test4: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , Test>>>,
-    pub testarrayofstring: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , flatbuffers::ForwardsUOffset<&'a  str>>>>,
-    pub testarrayoftables: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , flatbuffers::ForwardsUOffset<Monster<'a >>>>>,
-    pub enemy: Option<flatbuffers::WIPOffset<Monster<'a >>>,
-    pub testnestedflatbuffer: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a ,  u8>>>,
-    pub testempty: Option<flatbuffers::WIPOffset<Stat<'a >>>,
+    pub test4: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Test>>>,
+    pub testarrayofstring: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>>,
+    pub testarrayoftables: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Monster<'a>>>>>,
+    pub enemy: Option<flatbuffers::WIPOffset<Monster<'a>>>,
+    pub testnestedflatbuffer: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
+    pub testempty: Option<flatbuffers::WIPOffset<Stat<'a>>>,
     pub testbool: bool,
     pub testhashs32_fnv1: i32,
     pub testhashu32_fnv1: u32,
@@ -1488,31 +2863,33 @@ pub struct MonsterArgs<'a> {
     pub testhashu32_fnv1a: u32,
     pub testhashs64_fnv1a: i64,
     pub testhashu64_fnv1a: u64,
-    pub testarrayofbools: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , bool>>>,
+    pub testarrayofbools: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, bool>>>,
     pub testf: f32,
     pub testf2: f32,
     pub testf3: f32,
-    pub testarrayofstring2: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , flatbuffers::ForwardsUOffset<&'a  str>>>>,
-    pub testarrayofsortedstruct: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , Ability>>>,
-    pub flex: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a ,  u8>>>,
-    pub test5: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , Test>>>,
-    pub vector_of_longs: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a ,  i64>>>,
-    pub vector_of_doubles: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a ,  f64>>>,
-    pub parent_namespace_test: Option<flatbuffers::WIPOffset<super::InParentNamespace<'a >>>,
-    pub vector_of_referrables: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , flatbuffers::ForwardsUOffset<Referrable<'a >>>>>,
+    pub testarrayofstring2: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<&'a str>>>>,
+    pub testarrayofsortedstruct: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Ability>>>,
+    pub flex: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
+    pub test5: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Test>>>,
+    pub vector_of_longs: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, i64>>>,
+    pub vector_of_doubles: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, f64>>>,
+    pub parent_namespace_test: Option<flatbuffers::WIPOffset<super::InParentNamespace<'a>>>,
+    pub vector_of_referrables: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Referrable<'a>>>>>,
     pub single_weak_reference: u64,
-    pub vector_of_weak_references: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a ,  u64>>>,
-    pub vector_of_strong_referrables: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , flatbuffers::ForwardsUOffset<Referrable<'a >>>>>,
+    pub vector_of_weak_references: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u64>>>,
+    pub vector_of_strong_referrables: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Referrable<'a>>>>>,
     pub co_owning_reference: u64,
-    pub vector_of_co_owning_references: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a ,  u64>>>,
+    pub vector_of_co_owning_references: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u64>>>,
     pub non_owning_reference: u64,
-    pub vector_of_non_owning_references: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a ,  u64>>>,
+    pub vector_of_non_owning_references: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u64>>>,
     pub any_unique_type: AnyUniqueAliases,
     pub any_unique: Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>>,
     pub any_ambiguous_type: AnyAmbiguousAliases,
     pub any_ambiguous: Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>>,
-    pub vector_of_enums: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a , Color>>>,
+    pub vector_of_enums: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, Color>>>,
     pub signed_enum: Race,
+    pub testrequirednestedflatbuffer: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
+    pub scalar_key_sorted_tables: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Stat<'a>>>>>,
 }
 impl<'a> Default for MonsterArgs<'a> {
     #[inline]
@@ -1566,6 +2943,8 @@ impl<'a> Default for MonsterArgs<'a> {
             any_ambiguous: None,
             vector_of_enums: None,
             signed_enum: Race::None,
+            testrequirednestedflatbuffer: None,
+            scalar_key_sorted_tables: None,
         }
     }
 }
@@ -1575,7 +2954,7 @@ pub struct MonsterBuilder<'a: 'b, 'b> {
 }
 impl<'a: 'b, 'b> MonsterBuilder<'a, 'b> {
   #[inline]
-  pub fn add_pos(&mut self, pos: &'b  Vec3) {
+  pub fn add_pos(&mut self, pos: &Vec3) {
     self.fbb_.push_slot_always::<&Vec3>(Monster::VT_POS, pos);
   }
   #[inline]
@@ -1767,6 +3146,14 @@ impl<'a: 'b, 'b> MonsterBuilder<'a, 'b> {
     self.fbb_.push_slot::<Race>(Monster::VT_SIGNED_ENUM, signed_enum, Race::None);
   }
   #[inline]
+  pub fn add_testrequirednestedflatbuffer(&mut self, testrequirednestedflatbuffer: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Monster::VT_TESTREQUIREDNESTEDFLATBUFFER, testrequirednestedflatbuffer);
+  }
+  #[inline]
+  pub fn add_scalar_key_sorted_tables(&mut self, scalar_key_sorted_tables: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<Stat<'b >>>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Monster::VT_SCALAR_KEY_SORTED_TABLES, scalar_key_sorted_tables);
+  }
+  #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> MonsterBuilder<'a, 'b> {
     let start = _fbb.start_table();
     MonsterBuilder {
@@ -1782,8 +3169,405 @@ impl<'a: 'b, 'b> MonsterBuilder<'a, 'b> {
   }
 }
 
+impl std::fmt::Debug for Monster<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut ds = f.debug_struct("Monster");
+      ds.field("pos", &self.pos());
+      ds.field("mana", &self.mana());
+      ds.field("hp", &self.hp());
+      ds.field("name", &self.name());
+      ds.field("inventory", &self.inventory());
+      ds.field("color", &self.color());
+      ds.field("test_type", &self.test_type());
+      match self.test_type() {
+        Any::Monster => {
+          if let Some(x) = self.test_as_monster() {
+            ds.field("test", &x)
+          } else {
+            ds.field("test", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        Any::TestSimpleTableWithEnum => {
+          if let Some(x) = self.test_as_test_simple_table_with_enum() {
+            ds.field("test", &x)
+          } else {
+            ds.field("test", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        Any::MyGame_Example2_Monster => {
+          if let Some(x) = self.test_as_my_game_example_2_monster() {
+            ds.field("test", &x)
+          } else {
+            ds.field("test", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        _ => {
+          let x: Option<()> = None;
+          ds.field("test", &x)
+        },
+      };
+      ds.field("test4", &self.test4());
+      ds.field("testarrayofstring", &self.testarrayofstring());
+      ds.field("testarrayoftables", &self.testarrayoftables());
+      ds.field("enemy", &self.enemy());
+      ds.field("testnestedflatbuffer", &self.testnestedflatbuffer());
+      ds.field("testempty", &self.testempty());
+      ds.field("testbool", &self.testbool());
+      ds.field("testhashs32_fnv1", &self.testhashs32_fnv1());
+      ds.field("testhashu32_fnv1", &self.testhashu32_fnv1());
+      ds.field("testhashs64_fnv1", &self.testhashs64_fnv1());
+      ds.field("testhashu64_fnv1", &self.testhashu64_fnv1());
+      ds.field("testhashs32_fnv1a", &self.testhashs32_fnv1a());
+      ds.field("testhashu32_fnv1a", &self.testhashu32_fnv1a());
+      ds.field("testhashs64_fnv1a", &self.testhashs64_fnv1a());
+      ds.field("testhashu64_fnv1a", &self.testhashu64_fnv1a());
+      ds.field("testarrayofbools", &self.testarrayofbools());
+      ds.field("testf", &self.testf());
+      ds.field("testf2", &self.testf2());
+      ds.field("testf3", &self.testf3());
+      ds.field("testarrayofstring2", &self.testarrayofstring2());
+      ds.field("testarrayofsortedstruct", &self.testarrayofsortedstruct());
+      ds.field("flex", &self.flex());
+      ds.field("test5", &self.test5());
+      ds.field("vector_of_longs", &self.vector_of_longs());
+      ds.field("vector_of_doubles", &self.vector_of_doubles());
+      ds.field("parent_namespace_test", &self.parent_namespace_test());
+      ds.field("vector_of_referrables", &self.vector_of_referrables());
+      ds.field("single_weak_reference", &self.single_weak_reference());
+      ds.field("vector_of_weak_references", &self.vector_of_weak_references());
+      ds.field("vector_of_strong_referrables", &self.vector_of_strong_referrables());
+      ds.field("co_owning_reference", &self.co_owning_reference());
+      ds.field("vector_of_co_owning_references", &self.vector_of_co_owning_references());
+      ds.field("non_owning_reference", &self.non_owning_reference());
+      ds.field("vector_of_non_owning_references", &self.vector_of_non_owning_references());
+      ds.field("any_unique_type", &self.any_unique_type());
+      match self.any_unique_type() {
+        AnyUniqueAliases::M => {
+          if let Some(x) = self.any_unique_as_m() {
+            ds.field("any_unique", &x)
+          } else {
+            ds.field("any_unique", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        AnyUniqueAliases::TS => {
+          if let Some(x) = self.any_unique_as_ts() {
+            ds.field("any_unique", &x)
+          } else {
+            ds.field("any_unique", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        AnyUniqueAliases::M2 => {
+          if let Some(x) = self.any_unique_as_m2() {
+            ds.field("any_unique", &x)
+          } else {
+            ds.field("any_unique", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        _ => {
+          let x: Option<()> = None;
+          ds.field("any_unique", &x)
+        },
+      };
+      ds.field("any_ambiguous_type", &self.any_ambiguous_type());
+      match self.any_ambiguous_type() {
+        AnyAmbiguousAliases::M1 => {
+          if let Some(x) = self.any_ambiguous_as_m1() {
+            ds.field("any_ambiguous", &x)
+          } else {
+            ds.field("any_ambiguous", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        AnyAmbiguousAliases::M2 => {
+          if let Some(x) = self.any_ambiguous_as_m2() {
+            ds.field("any_ambiguous", &x)
+          } else {
+            ds.field("any_ambiguous", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        AnyAmbiguousAliases::M3 => {
+          if let Some(x) = self.any_ambiguous_as_m3() {
+            ds.field("any_ambiguous", &x)
+          } else {
+            ds.field("any_ambiguous", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        _ => {
+          let x: Option<()> = None;
+          ds.field("any_ambiguous", &x)
+        },
+      };
+      ds.field("vector_of_enums", &self.vector_of_enums());
+      ds.field("signed_enum", &self.signed_enum());
+      ds.field("testrequirednestedflatbuffer", &self.testrequirednestedflatbuffer());
+      ds.field("scalar_key_sorted_tables", &self.scalar_key_sorted_tables());
+      ds.finish()
+  }
+}
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq)]
+pub struct MonsterT {
+  pub pos: Option<Vec3T>,
+  pub mana: i16,
+  pub hp: i16,
+  pub name: String,
+  pub inventory: Option<Vec<u8>>,
+  pub color: Color,
+  pub test: AnyT,
+  pub test4: Option<Vec<TestT>>,
+  pub testarrayofstring: Option<Vec<String>>,
+  pub testarrayoftables: Option<Vec<MonsterT>>,
+  pub enemy: Option<Box<MonsterT>>,
+  pub testnestedflatbuffer: Option<Vec<u8>>,
+  pub testempty: Option<Box<StatT>>,
+  pub testbool: bool,
+  pub testhashs32_fnv1: i32,
+  pub testhashu32_fnv1: u32,
+  pub testhashs64_fnv1: i64,
+  pub testhashu64_fnv1: u64,
+  pub testhashs32_fnv1a: i32,
+  pub testhashu32_fnv1a: u32,
+  pub testhashs64_fnv1a: i64,
+  pub testhashu64_fnv1a: u64,
+  pub testarrayofbools: Option<Vec<bool>>,
+  pub testf: f32,
+  pub testf2: f32,
+  pub testf3: f32,
+  pub testarrayofstring2: Option<Vec<String>>,
+  pub testarrayofsortedstruct: Option<Vec<AbilityT>>,
+  pub flex: Option<Vec<u8>>,
+  pub test5: Option<Vec<TestT>>,
+  pub vector_of_longs: Option<Vec<i64>>,
+  pub vector_of_doubles: Option<Vec<f64>>,
+  pub parent_namespace_test: Option<Box<super::InParentNamespaceT>>,
+  pub vector_of_referrables: Option<Vec<ReferrableT>>,
+  pub single_weak_reference: u64,
+  pub vector_of_weak_references: Option<Vec<u64>>,
+  pub vector_of_strong_referrables: Option<Vec<ReferrableT>>,
+  pub co_owning_reference: u64,
+  pub vector_of_co_owning_references: Option<Vec<u64>>,
+  pub non_owning_reference: u64,
+  pub vector_of_non_owning_references: Option<Vec<u64>>,
+  pub any_unique: AnyUniqueAliasesT,
+  pub any_ambiguous: AnyAmbiguousAliasesT,
+  pub vector_of_enums: Option<Vec<Color>>,
+  pub signed_enum: Race,
+  pub testrequirednestedflatbuffer: Option<Vec<u8>>,
+  pub scalar_key_sorted_tables: Option<Vec<StatT>>,
+}
+impl Default for MonsterT {
+  fn default() -> Self {
+    Self {
+      pos: None,
+      mana: 150,
+      hp: 100,
+      name: "".to_string(),
+      inventory: None,
+      color: Color::Blue,
+      test: AnyT::NONE,
+      test4: None,
+      testarrayofstring: None,
+      testarrayoftables: None,
+      enemy: None,
+      testnestedflatbuffer: None,
+      testempty: None,
+      testbool: false,
+      testhashs32_fnv1: 0,
+      testhashu32_fnv1: 0,
+      testhashs64_fnv1: 0,
+      testhashu64_fnv1: 0,
+      testhashs32_fnv1a: 0,
+      testhashu32_fnv1a: 0,
+      testhashs64_fnv1a: 0,
+      testhashu64_fnv1a: 0,
+      testarrayofbools: None,
+      testf: 3.14159,
+      testf2: 3.0,
+      testf3: 0.0,
+      testarrayofstring2: None,
+      testarrayofsortedstruct: None,
+      flex: None,
+      test5: None,
+      vector_of_longs: None,
+      vector_of_doubles: None,
+      parent_namespace_test: None,
+      vector_of_referrables: None,
+      single_weak_reference: 0,
+      vector_of_weak_references: None,
+      vector_of_strong_referrables: None,
+      co_owning_reference: 0,
+      vector_of_co_owning_references: None,
+      non_owning_reference: 0,
+      vector_of_non_owning_references: None,
+      any_unique: AnyUniqueAliasesT::NONE,
+      any_ambiguous: AnyAmbiguousAliasesT::NONE,
+      vector_of_enums: None,
+      signed_enum: Race::None,
+      testrequirednestedflatbuffer: None,
+      scalar_key_sorted_tables: None,
+    }
+  }
+}
+impl MonsterT {
+  pub fn pack<'b>(
+    &self,
+    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
+  ) -> flatbuffers::WIPOffset<Monster<'b>> {
+    let pos_tmp = self.pos.as_ref().map(|x| x.pack());
+    let pos = pos_tmp.as_ref();
+    let mana = self.mana;
+    let hp = self.hp;
+    let name = Some({
+      let x = &self.name;
+      _fbb.create_string(x)
+    });
+    let inventory = self.inventory.as_ref().map(|x|{
+      _fbb.create_vector(x)
+    });
+    let color = self.color;
+    let test_type = self.test.any_type();
+    let test = self.test.pack(_fbb);
+    let test4 = self.test4.as_ref().map(|x|{
+      let w: Vec<_> = x.iter().map(|t| t.pack()).collect();_fbb.create_vector(&w)
+    });
+    let testarrayofstring = self.testarrayofstring.as_ref().map(|x|{
+      let w: Vec<_> = x.iter().map(|s| s.as_ref()).collect();_fbb.create_vector_of_strings(&w)
+    });
+    let testarrayoftables = self.testarrayoftables.as_ref().map(|x|{
+      let w: Vec<_> = x.iter().map(|t| t.pack(_fbb)).collect();_fbb.create_vector(&w)
+    });
+    let enemy = self.enemy.as_ref().map(|x|{
+      x.pack(_fbb)
+    });
+    let testnestedflatbuffer = self.testnestedflatbuffer.as_ref().map(|x|{
+      _fbb.create_vector(x)
+    });
+    let testempty = self.testempty.as_ref().map(|x|{
+      x.pack(_fbb)
+    });
+    let testbool = self.testbool;
+    let testhashs32_fnv1 = self.testhashs32_fnv1;
+    let testhashu32_fnv1 = self.testhashu32_fnv1;
+    let testhashs64_fnv1 = self.testhashs64_fnv1;
+    let testhashu64_fnv1 = self.testhashu64_fnv1;
+    let testhashs32_fnv1a = self.testhashs32_fnv1a;
+    let testhashu32_fnv1a = self.testhashu32_fnv1a;
+    let testhashs64_fnv1a = self.testhashs64_fnv1a;
+    let testhashu64_fnv1a = self.testhashu64_fnv1a;
+    let testarrayofbools = self.testarrayofbools.as_ref().map(|x|{
+      _fbb.create_vector(x)
+    });
+    let testf = self.testf;
+    let testf2 = self.testf2;
+    let testf3 = self.testf3;
+    let testarrayofstring2 = self.testarrayofstring2.as_ref().map(|x|{
+      let w: Vec<_> = x.iter().map(|s| s.as_ref()).collect();_fbb.create_vector_of_strings(&w)
+    });
+    let testarrayofsortedstruct = self.testarrayofsortedstruct.as_ref().map(|x|{
+      let w: Vec<_> = x.iter().map(|t| t.pack()).collect();_fbb.create_vector(&w)
+    });
+    let flex = self.flex.as_ref().map(|x|{
+      _fbb.create_vector(x)
+    });
+    let test5 = self.test5.as_ref().map(|x|{
+      let w: Vec<_> = x.iter().map(|t| t.pack()).collect();_fbb.create_vector(&w)
+    });
+    let vector_of_longs = self.vector_of_longs.as_ref().map(|x|{
+      _fbb.create_vector(x)
+    });
+    let vector_of_doubles = self.vector_of_doubles.as_ref().map(|x|{
+      _fbb.create_vector(x)
+    });
+    let parent_namespace_test = self.parent_namespace_test.as_ref().map(|x|{
+      x.pack(_fbb)
+    });
+    let vector_of_referrables = self.vector_of_referrables.as_ref().map(|x|{
+      let w: Vec<_> = x.iter().map(|t| t.pack(_fbb)).collect();_fbb.create_vector(&w)
+    });
+    let single_weak_reference = self.single_weak_reference;
+    let vector_of_weak_references = self.vector_of_weak_references.as_ref().map(|x|{
+      _fbb.create_vector(x)
+    });
+    let vector_of_strong_referrables = self.vector_of_strong_referrables.as_ref().map(|x|{
+      let w: Vec<_> = x.iter().map(|t| t.pack(_fbb)).collect();_fbb.create_vector(&w)
+    });
+    let co_owning_reference = self.co_owning_reference;
+    let vector_of_co_owning_references = self.vector_of_co_owning_references.as_ref().map(|x|{
+      _fbb.create_vector(x)
+    });
+    let non_owning_reference = self.non_owning_reference;
+    let vector_of_non_owning_references = self.vector_of_non_owning_references.as_ref().map(|x|{
+      _fbb.create_vector(x)
+    });
+    let any_unique_type = self.any_unique.any_unique_aliases_type();
+    let any_unique = self.any_unique.pack(_fbb);
+    let any_ambiguous_type = self.any_ambiguous.any_ambiguous_aliases_type();
+    let any_ambiguous = self.any_ambiguous.pack(_fbb);
+    let vector_of_enums = self.vector_of_enums.as_ref().map(|x|{
+      _fbb.create_vector(x)
+    });
+    let signed_enum = self.signed_enum;
+    let testrequirednestedflatbuffer = self.testrequirednestedflatbuffer.as_ref().map(|x|{
+      _fbb.create_vector(x)
+    });
+    let scalar_key_sorted_tables = self.scalar_key_sorted_tables.as_ref().map(|x|{
+      let w: Vec<_> = x.iter().map(|t| t.pack(_fbb)).collect();_fbb.create_vector(&w)
+    });
+    Monster::create(_fbb, &MonsterArgs{
+      pos,
+      mana,
+      hp,
+      name,
+      inventory,
+      color,
+      test_type,
+      test,
+      test4,
+      testarrayofstring,
+      testarrayoftables,
+      enemy,
+      testnestedflatbuffer,
+      testempty,
+      testbool,
+      testhashs32_fnv1,
+      testhashu32_fnv1,
+      testhashs64_fnv1,
+      testhashu64_fnv1,
+      testhashs32_fnv1a,
+      testhashu32_fnv1a,
+      testhashs64_fnv1a,
+      testhashu64_fnv1a,
+      testarrayofbools,
+      testf,
+      testf2,
+      testf3,
+      testarrayofstring2,
+      testarrayofsortedstruct,
+      flex,
+      test5,
+      vector_of_longs,
+      vector_of_doubles,
+      parent_namespace_test,
+      vector_of_referrables,
+      single_weak_reference,
+      vector_of_weak_references,
+      vector_of_strong_referrables,
+      co_owning_reference,
+      vector_of_co_owning_references,
+      non_owning_reference,
+      vector_of_non_owning_references,
+      any_unique_type,
+      any_unique,
+      any_ambiguous_type,
+      any_ambiguous,
+      vector_of_enums,
+      signed_enum,
+      testrequirednestedflatbuffer,
+      scalar_key_sorted_tables,
+    })
+  }
+}
 pub enum TypeAliasesOffset {}
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 
 pub struct TypeAliases<'a> {
   pub _tab: flatbuffers::Table<'a>,
@@ -1793,9 +3577,7 @@ impl<'a> flatbuffers::Follow<'a> for TypeAliases<'a> {
     type Inner = TypeAliases<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        Self {
-            _tab: flatbuffers::Table { buf: buf, loc: loc },
-        }
+        Self { _tab: flatbuffers::Table { buf, loc } }
     }
 }
 
@@ -1806,9 +3588,7 @@ impl<'a> TypeAliases<'a> {
 
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        TypeAliases {
-            _tab: table,
-        }
+        TypeAliases { _tab: table }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
@@ -1830,6 +3610,38 @@ impl<'a> TypeAliases<'a> {
       builder.finish()
     }
 
+    pub fn unpack(&self) -> TypeAliasesT {
+      let i8_ = self.i8_();
+      let u8_ = self.u8_();
+      let i16_ = self.i16_();
+      let u16_ = self.u16_();
+      let i32_ = self.i32_();
+      let u32_ = self.u32_();
+      let i64_ = self.i64_();
+      let u64_ = self.u64_();
+      let f32_ = self.f32_();
+      let f64_ = self.f64_();
+      let v8 = self.v8().map(|x| {
+        x.to_vec()
+      });
+      let vf64 = self.vf64().map(|x| {
+        x.into_iter().collect()
+      });
+      TypeAliasesT {
+        i8_,
+        u8_,
+        i16_,
+        u16_,
+        i32_,
+        u32_,
+        i64_,
+        u64_,
+        f32_,
+        f64_,
+        v8,
+        vf64,
+      }
+    }
     pub const VT_I8_: flatbuffers::VOffsetT = 4;
     pub const VT_U8_: flatbuffers::VOffsetT = 6;
     pub const VT_I16_: flatbuffers::VOffsetT = 8;
@@ -1893,6 +3705,29 @@ impl<'a> TypeAliases<'a> {
   }
 }
 
+impl flatbuffers::Verifiable for TypeAliases<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<i8>(&"i8_", Self::VT_I8_, false)?
+     .visit_field::<u8>(&"u8_", Self::VT_U8_, false)?
+     .visit_field::<i16>(&"i16_", Self::VT_I16_, false)?
+     .visit_field::<u16>(&"u16_", Self::VT_U16_, false)?
+     .visit_field::<i32>(&"i32_", Self::VT_I32_, false)?
+     .visit_field::<u32>(&"u32_", Self::VT_U32_, false)?
+     .visit_field::<i64>(&"i64_", Self::VT_I64_, false)?
+     .visit_field::<u64>(&"u64_", Self::VT_U64_, false)?
+     .visit_field::<f32>(&"f32_", Self::VT_F32_, false)?
+     .visit_field::<f64>(&"f64_", Self::VT_F64_, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, i8>>>(&"v8", Self::VT_V8, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, f64>>>(&"vf64", Self::VT_VF64, false)?
+     .finish();
+    Ok(())
+  }
+}
 pub struct TypeAliasesArgs<'a> {
     pub i8_: i8,
     pub u8_: u8,
@@ -1904,8 +3739,8 @@ pub struct TypeAliasesArgs<'a> {
     pub u64_: u64,
     pub f32_: f32,
     pub f64_: f64,
-    pub v8: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a ,  i8>>>,
-    pub vf64: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a ,  f64>>>,
+    pub v8: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, i8>>>,
+    pub vf64: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, f64>>>,
 }
 impl<'a> Default for TypeAliasesArgs<'a> {
     #[inline]
@@ -1994,29 +3829,180 @@ impl<'a: 'b, 'b> TypeAliasesBuilder<'a, 'b> {
   }
 }
 
+impl std::fmt::Debug for TypeAliases<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut ds = f.debug_struct("TypeAliases");
+      ds.field("i8_", &self.i8_());
+      ds.field("u8_", &self.u8_());
+      ds.field("i16_", &self.i16_());
+      ds.field("u16_", &self.u16_());
+      ds.field("i32_", &self.i32_());
+      ds.field("u32_", &self.u32_());
+      ds.field("i64_", &self.i64_());
+      ds.field("u64_", &self.u64_());
+      ds.field("f32_", &self.f32_());
+      ds.field("f64_", &self.f64_());
+      ds.field("v8", &self.v8());
+      ds.field("vf64", &self.vf64());
+      ds.finish()
+  }
+}
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq)]
+pub struct TypeAliasesT {
+  pub i8_: i8,
+  pub u8_: u8,
+  pub i16_: i16,
+  pub u16_: u16,
+  pub i32_: i32,
+  pub u32_: u32,
+  pub i64_: i64,
+  pub u64_: u64,
+  pub f32_: f32,
+  pub f64_: f64,
+  pub v8: Option<Vec<i8>>,
+  pub vf64: Option<Vec<f64>>,
+}
+impl Default for TypeAliasesT {
+  fn default() -> Self {
+    Self {
+      i8_: 0,
+      u8_: 0,
+      i16_: 0,
+      u16_: 0,
+      i32_: 0,
+      u32_: 0,
+      i64_: 0,
+      u64_: 0,
+      f32_: 0.0,
+      f64_: 0.0,
+      v8: None,
+      vf64: None,
+    }
+  }
+}
+impl TypeAliasesT {
+  pub fn pack<'b>(
+    &self,
+    _fbb: &mut flatbuffers::FlatBufferBuilder<'b>
+  ) -> flatbuffers::WIPOffset<TypeAliases<'b>> {
+    let i8_ = self.i8_;
+    let u8_ = self.u8_;
+    let i16_ = self.i16_;
+    let u16_ = self.u16_;
+    let i32_ = self.i32_;
+    let u32_ = self.u32_;
+    let i64_ = self.i64_;
+    let u64_ = self.u64_;
+    let f32_ = self.f32_;
+    let f64_ = self.f64_;
+    let v8 = self.v8.as_ref().map(|x|{
+      _fbb.create_vector(x)
+    });
+    let vf64 = self.vf64.as_ref().map(|x|{
+      _fbb.create_vector(x)
+    });
+    TypeAliases::create(_fbb, &TypeAliasesArgs{
+      i8_,
+      u8_,
+      i16_,
+      u16_,
+      i32_,
+      u32_,
+      i64_,
+      u64_,
+      f32_,
+      f64_,
+      v8,
+      vf64,
+    })
+  }
+}
 #[inline]
+#[deprecated(since="2.0.0", note="Deprecated in favor of `root_as...` methods.")]
 pub fn get_root_as_monster<'a>(buf: &'a [u8]) -> Monster<'a> {
-  flatbuffers::get_root::<Monster<'a>>(buf)
+  unsafe { flatbuffers::root_unchecked::<Monster<'a>>(buf) }
 }
 
 #[inline]
+#[deprecated(since="2.0.0", note="Deprecated in favor of `root_as...` methods.")]
 pub fn get_size_prefixed_root_as_monster<'a>(buf: &'a [u8]) -> Monster<'a> {
-  flatbuffers::get_size_prefixed_root::<Monster<'a>>(buf)
+  unsafe { flatbuffers::size_prefixed_root_unchecked::<Monster<'a>>(buf) }
 }
 
-pub const MONSTER_IDENTIFIER: &'static str = "MONS";
+#[inline]
+/// Verifies that a buffer of bytes contains a `Monster`
+/// and returns it.
+/// Note that verification is still experimental and may not
+/// catch every error, or be maximally performant. For the
+/// previous, unchecked, behavior use
+/// `root_as_monster_unchecked`.
+pub fn root_as_monster(buf: &[u8]) -> Result<Monster, flatbuffers::InvalidFlatbuffer> {
+  flatbuffers::root::<Monster>(buf)
+}
+#[inline]
+/// Verifies that a buffer of bytes contains a size prefixed
+/// `Monster` and returns it.
+/// Note that verification is still experimental and may not
+/// catch every error, or be maximally performant. For the
+/// previous, unchecked, behavior use
+/// `size_prefixed_root_as_monster_unchecked`.
+pub fn size_prefixed_root_as_monster(buf: &[u8]) -> Result<Monster, flatbuffers::InvalidFlatbuffer> {
+  flatbuffers::size_prefixed_root::<Monster>(buf)
+}
+#[inline]
+/// Verifies, with the given options, that a buffer of bytes
+/// contains a `Monster` and returns it.
+/// Note that verification is still experimental and may not
+/// catch every error, or be maximally performant. For the
+/// previous, unchecked, behavior use
+/// `root_as_monster_unchecked`.
+pub fn root_as_monster_with_opts<'b, 'o>(
+  opts: &'o flatbuffers::VerifierOptions,
+  buf: &'b [u8],
+) -> Result<Monster<'b>, flatbuffers::InvalidFlatbuffer> {
+  flatbuffers::root_with_opts::<Monster<'b>>(opts, buf)
+}
+#[inline]
+/// Verifies, with the given verifier options, that a buffer of
+/// bytes contains a size prefixed `Monster` and returns
+/// it. Note that verification is still experimental and may not
+/// catch every error, or be maximally performant. For the
+/// previous, unchecked, behavior use
+/// `root_as_monster_unchecked`.
+pub fn size_prefixed_root_as_monster_with_opts<'b, 'o>(
+  opts: &'o flatbuffers::VerifierOptions,
+  buf: &'b [u8],
+) -> Result<Monster<'b>, flatbuffers::InvalidFlatbuffer> {
+  flatbuffers::size_prefixed_root_with_opts::<Monster<'b>>(opts, buf)
+}
+#[inline]
+/// Assumes, without verification, that a buffer of bytes contains a Monster and returns it.
+/// # Safety
+/// Callers must trust the given bytes do indeed contain a valid `Monster`.
+pub unsafe fn root_as_monster_unchecked(buf: &[u8]) -> Monster {
+  flatbuffers::root_unchecked::<Monster>(buf)
+}
+#[inline]
+/// Assumes, without verification, that a buffer of bytes contains a size prefixed Monster and returns it.
+/// # Safety
+/// Callers must trust the given bytes do indeed contain a valid size prefixed `Monster`.
+pub unsafe fn size_prefixed_root_as_monster_unchecked(buf: &[u8]) -> Monster {
+  flatbuffers::size_prefixed_root_unchecked::<Monster>(buf)
+}
+pub const MONSTER_IDENTIFIER: &str = "MONS";
 
 #[inline]
 pub fn monster_buffer_has_identifier(buf: &[u8]) -> bool {
-  return flatbuffers::buffer_has_identifier(buf, MONSTER_IDENTIFIER, false);
+  flatbuffers::buffer_has_identifier(buf, MONSTER_IDENTIFIER, false)
 }
 
 #[inline]
 pub fn monster_size_prefixed_buffer_has_identifier(buf: &[u8]) -> bool {
-  return flatbuffers::buffer_has_identifier(buf, MONSTER_IDENTIFIER, true);
+  flatbuffers::buffer_has_identifier(buf, MONSTER_IDENTIFIER, true)
 }
 
-pub const MONSTER_EXTENSION: &'static str = "mon";
+pub const MONSTER_EXTENSION: &str = "mon";
 
 #[inline]
 pub fn finish_monster_buffer<'a, 'b>(

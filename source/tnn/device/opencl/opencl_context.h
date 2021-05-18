@@ -66,20 +66,20 @@ public:
     // load library
     virtual Status LoadLibrary(std::vector<std::string> path) override;
     /**
-     * @brief befor instace forword
-     * @param instance instace
+     * @brief before instance forward
+     * @param instance instance
      */
     virtual Status OnInstanceForwardBegin() override;
     /**
-     * @brief after instace forword
-     * @param instance instace
+     * @brief after instance forward
+     * @param instance instance
      */
     virtual Status OnInstanceForwardEnd() override;
 
      // @brief before instance Reshape
     virtual Status OnInstanceReshapeBegin() override;
 
-    // @brief after instace Reshape
+    // @brief after instance Reshape
     virtual Status OnInstanceReshapeEnd() override;   
 
     // @brief wait for jobs in the current context to complete

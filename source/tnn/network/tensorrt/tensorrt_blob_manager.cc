@@ -79,7 +79,7 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
         dynamic_cast<ForeignBlob*>(blobs_[node_name])->SetForeignTensor(tensorrtTensor);
     }
 
-    // intput blobs
+    // input blobs
     for (auto iter : instance_input_shapes_map) {
         std::string current_blob_name         = iter.first;
         Blob *current_blob                    = blobs_[current_blob_name];
@@ -87,7 +87,7 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
         input_blobs_[current_blob_name]       = current_blob;
     }
 
-    // intput data types
+    // input data types
     const auto& input_data_type_map = net_structure->input_data_type_map;
     for (auto iter : instance_input_shapes_map) {
         std::string current_blob_name         = iter.first;

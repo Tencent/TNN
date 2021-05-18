@@ -171,7 +171,7 @@ Status OpenCLCpuAdapterAcc::Forward(const std::vector<Blob *> &inputs, const std
     status = ConvertBlobForAdaptorAcc(inputs, cpu_blob_in_, true);
     RETURN_ON_NEQ(status, TNN_OK);
 
-    //cpu acc forword
+    //cpu acc forward
     status = cpu_adapter_acc_->Forward(cpu_blob_in_, cpu_blob_out_);
     RETURN_ON_NEQ(status, TNN_OK);
 

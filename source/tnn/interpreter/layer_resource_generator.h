@@ -43,7 +43,7 @@ std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerCons
 Status GenerateRandomResource(LayerType type, LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs,
                               ConstantResource* consts=nullptr);
 
-//@brief only convert iterms of half data type to fp32 data type
+//@brief only convert items of half data type to fp32 data type
 Status ConvertHalfResource(LayerType type, LayerResource* src_res, LayerResource** dst_res);
 
 template <typename T>

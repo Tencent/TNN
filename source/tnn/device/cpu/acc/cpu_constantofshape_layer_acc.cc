@@ -34,7 +34,7 @@ Status CpuConstantOfShapeLayerAcc::Forward(const std::vector<Blob *> &inputs, co
     auto output_data_ptr = (char *)outputs[0]->GetHandle().base;
     
     //support the case if constofshape has empty output blob with dims={0}
-    if (output_dims.size() == 1 || output_dims[0] == 0) {
+    if (output_dims.size() == 1 && output_dims[0] == 0) {
         return TNN_OK;
     }
     

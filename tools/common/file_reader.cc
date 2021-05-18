@@ -87,7 +87,7 @@ Status FileReader::Read(Blob* output_blob, const std::string file_path, const Fi
         int c                   = 0;
         unsigned char* img_data = stbi_load(file_path.c_str(), &w, &h, &c, blob_c);
         if (img_data == nullptr) {
-            LOGE("load image data falied!\n");
+            LOGE("load image data failed!\n");
             return TNNERR_INVALID_INPUT;
         }
         ret = PreProcessImage(img_data, output_blob, w, h, blob_c);
@@ -216,7 +216,7 @@ Status FileReader::PreProcessImage(unsigned char* img_data, Blob* blob, int widt
             int ret = stbir_resize_uint8(img_data, width, height, 0, img_resized, blob_w, blob_h, 0, channel);
             if (ret == 0) {
                 free(img_resized);
-                LOGE("resize image falied!\n");
+                LOGE("resize image failed!\n");
                 return TNNERR_INVALID_INPUT;
             }
             ProcessNHWC2NCHW(img_resized, data_ptr, blob_c, blob_h, blob_w, bias_, scale_, reverse_channel_);
