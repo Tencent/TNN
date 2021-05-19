@@ -19,6 +19,10 @@
 #include "tnn/core/common.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
+#include "tnn/interpreter/layer_resource.h"
+#include "tnn/interpreter/raw_buffer.h"
+#include "tnn/interpreter/tnn/objseri.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_CONVERTER {
 
@@ -199,6 +203,31 @@ void Mask(std::vector<int> shape, int mask, int upper, std::vector<int>& v) {
         window = window << 1;
     }
 }
+
+TNN_NS::Status CreateIntScaleResource(TNN_NS::NetResource& net_resource,
+                                      const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors, int tensor_index) {
+    const auto& tensor    = tf_lite_tensors[tensor_index];
+    const auto scale_name = tensor->name + BLOB_SCALE_SUFFIX;
+    if (net_resource.resource_map.find(scale_name) == net_resource.resource_map.end()) {
+        const auto scale_resource             = std::make_shared<TNN_NS::IntScaleResource>();
+        scale_resource->name                  = scale_name;
+        net_resource.resource_map[scale_name] = scale_resource;
+        auto& quantization                    = tensor->quantization;
+        std::vector<float> scales             = quantization->scale;
+        if (scales.empty()) {
+            return TNN_NS::Status(TNN_NS::TNNERR_CONVERT_INVALID_MODEL, "The scale size is empty\n");
+        }
+        auto scale_handle = TNN_NS::RawBuffer(scales.size() * sizeof(float));
+        scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        auto scale_handle_data = scale_handle.force_to<float*>();
+        for (int i = 0; i < scales.size(); i++) {
+            scale_handle_data[i] = scales[i];
+        }
+        scale_resource->scale_handle = scale_handle;
+    }
+    return TNN_NS::TNN_CONVERT_OK;
+}
+
 
 TNN_NS::DataType GetTnnDataTypeFromTFLite(const tflite::TensorType& tensor_type) {
     switch (tensor_type) {
