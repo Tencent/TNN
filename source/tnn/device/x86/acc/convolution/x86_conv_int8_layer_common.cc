@@ -397,8 +397,12 @@ Status X86ConvInt8LayerCommon::Init(Context *context, LayerParam *param, LayerRe
 
 void GemmInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias,
               const float* scale, int hw_tile, int src_depth_d8, int src_w_step, int dst_depth, int relu,
-              const int8_t* add_input, const float* add_scale, const int8_t* relu6_max) {
+              const int8_t* add_input, const float* add_scale, const int8_t* relu6_max, x86_isa_t arch) {
     const int src_depth_d16 = UP_DIV(src_depth_d8, 2);
+    auto gemm_kernel = X86AVXGemmInt8Unit4x4;
+    if (arch == sse42) {
+        gemm_kernel = X86SSEGemmInt8Unit4x4;
+    }
 
     for (int j = 0; j < dst_depth; j += 4) {
         int hw = 0;
@@ -406,8 +410,8 @@ void GemmInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_
             auto src_hw = src + hw * src_w_step;
             auto dst_hw = dst + hw * dst_depth;
             auto add_input_hw = add_input ? add_input + hw * dst_depth : nullptr;
-            X86GemmInt8Unit4x4(src_hw, weight, dst_hw, src_w_step, dst_depth, src_depth_d8,
-                            scale + j, bias + j, relu, add_input_hw, add_scale, relu6_max);
+            gemm_kernel(src_hw, weight, dst_hw, src_w_step, dst_depth, src_depth_d8,
+                        scale + j, bias + j, relu, add_input_hw, add_scale, relu6_max);
         }
         if (hw < hw_tile) {
             auto src_hw = src + hw * src_w_step;
@@ -425,8 +429,8 @@ void GemmInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_
                     memcpy(add_input_ptr_tmp + i * 4, add_input_hw + i * dst_depth, 4 * sizeof(int8_t));
                 }
             }
-            X86GemmInt8Unit4x4(src_hw, weight, outptr_tmp, src_w_step, 4, src_depth_d8,
-                            scale + j, bias + j, relu, add_input_ptr_tmp, add_scale, relu6_max);
+            gemm_kernel(src_hw, weight, outptr_tmp, src_w_step, 4, src_depth_d8,
+                        scale + j, bias + j, relu, add_input_ptr_tmp, add_scale, relu6_max);
 
             for (int i = 0; i < real_hw_tile; i++) {
                 memcpy(dst_hw + i * dst_depth, outptr_tmp + i * 4, 4 * sizeof(int8_t));
@@ -546,7 +550,8 @@ Status X86ConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
 
                 GemmInt8(output_kernel, input_kernel, weight_g, bias_g, scale_g,
                          real_hw_tile, crs_div8, crs_div8 * 8, oc_g_r4, relu_,
-                         add_input_kernel, buffer_add_scale_.force_to<float *>(), relu6_max_g);
+                         add_input_kernel, buffer_add_scale_.force_to<float *>(),
+                         relu6_max_g, arch_);
             }
 
             if (conv_param->group > 1) {
