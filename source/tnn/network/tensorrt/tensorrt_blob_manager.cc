@@ -50,7 +50,7 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
 
     config_            = config;
     init_thread_id_    = std::this_thread::get_id();
-    memory_mode_state_ = MemoryModeStateFactory::CreateMemoryModeState(config.share_memory_mode);
+    memory_mode_state_ = MemoryModeStateFactory::CreateMemoryModeState(SHARE_MEMORY_MODE_DEFAULT);
 
     // get the maximum dimension of all inputs
     int input_dims = 0;
