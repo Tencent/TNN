@@ -490,7 +490,7 @@ lint/tmp/
 # lint/reports/
 
 source/tnn/network/tensorrt/thirdparty/TensorRT*
-# model/
+model/
 # opencl generated code
 opencl_program.cc
 
