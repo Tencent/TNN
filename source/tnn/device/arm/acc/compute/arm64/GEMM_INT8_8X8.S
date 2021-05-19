@@ -20,7 +20,7 @@
 .align 5
 asm_function GemmInt8Unit8x8
 //void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-//                     const float* scales, long relu, const int8_t* add_input, const float* add_scale)
+//                     const float* scales, long relu, const int8_t* add_input, const float* add_scale, const int8_t* relu6_max)
 //x0(mr),
 //x1(nr),
 //x2(k),
@@ -29,7 +29,11 @@ asm_function GemmInt8Unit8x8
 //x5(weight),
 //x6(dst),
 //x7(c_stride)
-//from stack(scale)
+//from stack(scale)     [sp, #0]
+//from stack(relu)      [sp, #8]
+//from stack(add_input) [sp, #16]
+//from stack(add_scale) [sp, #24]
+//from stack(relu6_max) [sp, #32]
 
 sub sp, sp, #128
 st1 {v8.4s, v9.4s, v10.4s, v11.4s}, [sp], #64
@@ -478,15 +482,15 @@ blo 1f
     smlal2 v23.4s, v27.8h, v7.h[6]
 
 2:
-    ld1 {v24.4s}, [x8], #16
+    ld1 {v24.4s}, [x8], #16   // float scales c0, c1, c2, c3
     movi v25.4s, #0
     cmp x1, #4
     ble 22f
-    ld1 {v25.4s}, [x8]
+    ld1 {v25.4s}, [x8]        // float scales c4, c5, c6, c7
 22:
-    ldr x8, [sp, #8]   // relu
-    cmp x8, #0
-    bge 23f
+    ldr x8, [sp, #8]   // relu (conv - relu - add, relu == -1)
+    cmp x8, #-1
+    bne 23f
     movi v0.16b, #0
     smax v8.4s, v8.4s, v0.4s
     smax v9.4s, v9.4s, v0.4s
@@ -505,7 +509,7 @@ blo 1f
     smax v22.4s, v22.4s, v0.4s
     smax v23.4s, v23.4s, v0.4s
 23:
-    scvtf v8.4s, v8.4s
+    scvtf v8.4s, v8.4s   // result from int32 to float
     scvtf v9.4s, v9.4s
     scvtf v10.4s, v10.4s
     scvtf v11.4s, v11.4s
@@ -524,7 +528,7 @@ blo 1f
 
     ldr x8, [sp, #16]  // add_input
 
-    fmul v8.4s, v8.4s, v24.4s
+    fmul v8.4s, v8.4s, v24.4s   // result = result * scale
     fmul v9.4s, v9.4s, v25.4s
     fmul v10.4s, v10.4s, v24.4s
     fmul v11.4s, v11.4s, v25.4s
@@ -533,7 +537,7 @@ blo 1f
     fmul v14.4s, v14.4s, v24.4s
     fmul v15.4s, v15.4s, v25.4s
 
-    cbz  x8,  25f
+    cbz  x8,  25f      // if add_input_ptr == 0, skip
     add  x9,  x8,  x7
     cmp  x0,  #2
     csel x9,  x8,  x9,  lo
@@ -543,7 +547,7 @@ blo 1f
     cmp  x0,  #4
     csel x11, x10, x11, lo
 
-    ld1 {v28.8b}, [x8]
+    ld1 {v28.8b}, [x8]   // load add_input, convert int8_t to float
     sxtl  v28.8h, v28.8b
     sxtl  v0.4s,  v28.4h
     sxtl2 v1.4s,  v28.8h
@@ -561,11 +565,11 @@ blo 1f
     sxtl2 v7.4s,  v29.8h
 
     ldr x8, [sp, #24]  // add_scale
-    ld1 {v26.4s}, [x8], #16
+    ld1 {v26.4s}, [x8], #16  // float add_scale c0, c1, c2, c3
     movi v27.4s, #0
     cmp x1, #4
     ble 24f
-    ld1 {v27.4s}, [x8]
+    ld1 {v27.4s}, [x8]       // float add_scale c4, c5, c6, c7
 
 24:
     scvtf v0.4s, v0.4s
@@ -577,7 +581,7 @@ blo 1f
     scvtf v6.4s, v6.4s
     scvtf v7.4s, v7.4s
 
-    fmla v8.4s, v0.4s, v26.4s
+    fmla v8.4s, v0.4s, v26.4s   // result += add_input * add_scale
     fmla v9.4s, v1.4s, v27.4s
     fmla v10.4s, v2.4s, v26.4s
     fmla v11.4s, v3.4s, v27.4s
@@ -587,7 +591,7 @@ blo 1f
     fmla v15.4s, v7.4s, v27.4s
 
 25:
-    fmul v16.4s, v16.4s, v24.4s
+    fmul v16.4s, v16.4s, v24.4s  // result = result * scale
     fmul v17.4s, v17.4s, v25.4s
     fmul v18.4s, v18.4s, v24.4s
     fmul v19.4s, v19.4s, v25.4s
@@ -596,7 +600,7 @@ blo 1f
     fmul v22.4s, v22.4s, v24.4s
     fmul v23.4s, v23.4s, v25.4s
 
-    cbz x8,  26f
+    cbz x8,  26f      // if add_input_ptr == 0, skip
     cmp x0, #4
     add  x12, x11, x7
     csel x12, x11, x12, ls
@@ -635,7 +639,7 @@ blo 1f
     scvtf v6.4s, v6.4s
     scvtf v7.4s, v7.4s
 
-    fmla v16.4s, v0.4s, v26.4s
+    fmla v16.4s, v0.4s, v26.4s  // result += add_input * add_scale
     fmla v17.4s, v1.4s, v27.4s
     fmla v18.4s, v2.4s, v26.4s
     fmla v19.4s, v3.4s, v27.4s
@@ -688,9 +692,9 @@ blo 1f
     sqxtn v20.8b, v20.8h
     sqxtn v22.8b, v22.8h
 
-    ldr x8, [sp, #8]
-    cmp x8, #0
-    ble 3f
+    ldr x8, [sp, #8]  // relu (conv add relu, relu == 1 or relu6 == 2)
+    cmp x8, #1
+    blt 3f
     movi v0.16b, #0
     smax v8.8b, v8.8b, v0.8b
     smax v10.8b, v10.8b, v0.8b
@@ -700,6 +704,19 @@ blo 1f
     smax v18.8b, v18.8b, v0.8b
     smax v20.8b, v20.8b, v0.8b
     smax v22.8b, v22.8b, v0.8b
+
+    cmp x8, #2         // relu6
+    bne 3f
+    ldr x8, [sp, #32]  // relu6_max
+    ld1 {v0.8b}, [x8]
+    smin v8.8b, v8.8b, v0.8b
+    smin v10.8b, v10.8b, v0.8b
+    smin v12.8b, v12.8b, v0.8b
+    smin v14.8b, v14.8b, v0.8b
+    smin v16.8b, v16.8b, v0.8b
+    smin v18.8b, v18.8b, v0.8b
+    smin v20.8b, v20.8b, v0.8b
+    smin v22.8b, v22.8b, v0.8b
 
 3:
     add  x9, x6,  x7
