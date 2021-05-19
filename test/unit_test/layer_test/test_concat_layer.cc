@@ -51,7 +51,7 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
     }
 #endif
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev && DEVICE_X86 != dev) {
         GTEST_SKIP();
     }
 

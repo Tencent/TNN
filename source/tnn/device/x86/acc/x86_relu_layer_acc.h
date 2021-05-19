@@ -12,24 +12,20 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_X86_ACC_UPSAMPLE_LAYER_ACC_H_
-#define TNN_SOURCE_TNN_DEVICE_X86_ACC_UPSAMPLE_LAYER_ACC_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_X86_ACC_X86_RELU_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_X86_ACC_X86_RELU_LAYER_ACC_H_
 
-#include <vector>
-
-#include "tnn/core/blob.h"
-#include "tnn/device/x86/acc/x86_layer_acc.h"
-#include "tnn/device/x86/x86_device.h"
+#include "tnn/device/x86/acc/x86_unary2_layer_acc.h"
 
 namespace TNN_NS {
 
-// @brief upsample layer cpu acc
-class X86UpsampleLayerAcc : public X86LayerAcc {
-    // @brief virtual destrcutor
-    virtual ~X86UpsampleLayerAcc();
-    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+class X86ReluLayerAcc : public X86Unary2LayerAcc {
+public:
+    X86ReluLayerAcc() { type_ = LAYER_RELU; };
+    virtual ~X86ReluLayerAcc() {};
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_X86_ACC_UPSAMPLE_LAYER_ACC_H_
+#endif

@@ -15,6 +15,7 @@
 #include "tnn/device/x86/acc/compute/x86_compute_int8.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/device/x86/x86_common.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -894,5 +895,278 @@ void X86GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int
         F32X4TOI8X4(dst_4xf32, (dst + dc));
     }
 }
+
+static bool is_per_tensor_quant(const std::vector<Blob *> &inputs) {
+    bool int8_per_tensor_flag = true;
+    for (auto &blob : inputs) {
+        if (reinterpret_cast<BlobInt8 *>(blob)->GetIntResource()->scale_handle.GetDataCount() > 1) {
+            int8_per_tensor_flag = false;
+            break;
+        }
+    }
+
+    return int8_per_tensor_flag;
+}
+
+/*
+concat channel int8, nhwc format
+*/
+void X86ConcatChannelInt8(Blob *output, const std::vector<Blob *> &inputs) {
+    DeclareRounding();
+    auto dims_output = output->GetBlobDesc().dims;
+    int full_hw      = dims_output[2] * dims_output[3];
+    auto oc_c4       = ROUND_UP(dims_output[1], 4);
+
+    int8_t *output_origin = reinterpret_cast<int8_t *>(output->GetHandle().base);
+
+    if (!is_per_tensor_quant(inputs)) {
+        for (int n = 0; n < dims_output[0]; n++) {
+            int c_offset = 0;
+            for (int b = 0; b < inputs.size(); b++) {
+                auto input_channel = inputs[b]->GetBlobDesc().dims[1];
+                auto ic_c4 = ROUND_UP(input_channel, 4);
+                auto input_ptr = reinterpret_cast<int8_t *>(inputs[b]->GetHandle().base) + n * ic_c4 * full_hw;
+                auto output_ptr = output_origin + n * full_hw * oc_c4 + c_offset;
+                for (int cur_hw = 0; cur_hw < full_hw; cur_hw++) {
+                    memcpy(output_ptr + cur_hw * oc_c4, input_ptr + cur_hw * ic_c4, input_channel);
+                }
+                c_offset += input_channel;
+            }
+        }
+    } else {
+        float *output_scale = reinterpret_cast<BlobInt8 *>(output)->GetIntResource()->scale_handle.force_to<float *>();
+        for (int n = 0; n < dims_output[0]; n++) {
+            int c_offset = 0;
+            for (int b = 0; b < inputs.size(); b++) {
+                float *input_scale = reinterpret_cast<BlobInt8 *>(inputs[b])->GetIntResource()->scale_handle.force_to<float *>();
+                float scale        = input_scale[0] / output_scale[0];
+                __m128 scale_vec   = _mm_set1_ps(scale);
+                auto input_channel = inputs[b]->GetBlobDesc().dims[1];
+                auto ic_c4         = ROUND_UP(input_channel, 4);
+                auto input_ptr     = reinterpret_cast<int8_t *>(inputs[b]->GetHandle().base) + n * ic_c4 * full_hw;
+                auto output_ptr    = output_origin + n * full_hw * oc_c4 + c_offset;
+                for (int cur_hw = 0; cur_hw < full_hw; cur_hw++) {
+                    auto src_ic = input_ptr + cur_hw * ic_c4;
+                    auto dst_ic = output_ptr + cur_hw * oc_c4;
+                    int ic = 0;
+                    for (; ic + 7 < input_channel; ic += 8) {
+                        __m128i src_i8x8    = _mm_loadl_epi64((__m128i*)(src_ic + ic));
+                        __m128i src_i32x4_0 = _mm_cvtepi8_epi32(src_i8x8);
+                        __m128i src_i32x4_1 = _mm_cvtepi8_epi32(_mm_shuffle_epi32(src_i8x8, 0x01));
+                        __m128 src_f32x4_0  = _mm_cvtepi32_ps(src_i32x4_0);
+                        __m128 src_f32x4_1  = _mm_cvtepi32_ps(src_i32x4_1);
+                        src_f32x4_0 = _mm_mul_ps(src_f32x4_0, scale_vec);
+                        src_f32x4_1 = _mm_mul_ps(src_f32x4_1, scale_vec);
+                        F32X8TOI8X8(src_f32x4_0, src_f32x4_1, (dst_ic + ic));
+                    }
+                    for (; ic < input_channel; ic++) {
+                        dst_ic[ic] = float2int8(src_ic[ic] * scale);
+                    }
+                }
+                c_offset += input_channel;
+            }
+        }
+    }
+}
+
+/*
+concat common int8, nhwc format
+*/
+void X86ConcatCommonInt8(Blob *output, const std::vector<Blob *> &inputs, int axis) {
+    DeclareRounding();
+    auto output_dims             = output->GetBlobDesc().dims;
+    DimsVector round_output_dims = {output_dims[0], output_dims[2], output_dims[3], ROUND_UP(output_dims[1], 4)};
+    auto slice_count             = DimsVectorUtils::Count(round_output_dims, 0, axis - 1);
+    auto output_stride           = DimsVectorUtils::Count(round_output_dims, axis - 1);
+    auto *output_origin          = reinterpret_cast<int8_t *>(output->GetHandle().base);
+
+    if (!is_per_tensor_quant(inputs)) {
+        for (int n = 0; n < slice_count; n++) {
+            auto output_ptr = output_origin + n * output_stride;
+            for (int b = 0; b < inputs.size(); b++) {
+                auto input                  = inputs[b];
+                auto input_dims             = input->GetBlobDesc().dims;
+                DimsVector round_input_dims = {input_dims[0], input_dims[2], input_dims[3], ROUND_UP(input_dims[1], 4)};
+                auto input_stride           = DimsVectorUtils::Count(round_input_dims, axis - 1);
+                auto input_ptr = reinterpret_cast<int8_t *>(input->GetHandle().base) + n * input_stride;
+                memcpy(output_ptr, input_ptr, input_stride * sizeof(int8_t));
+                output_ptr += input_stride;
+            }
+        }
+    } else {
+        float *output_scale = reinterpret_cast<BlobInt8 *>(output)->GetIntResource()->scale_handle.force_to<float *>();
+        for (int n = 0; n < slice_count; n++) {
+            auto output_ptr = output_origin + n * output_stride;
+            for (int b = 0; b < inputs.size(); b++) {
+                float *input_scale = reinterpret_cast<BlobInt8 *>(inputs[b])->GetIntResource()->scale_handle.force_to<float *>();
+                float scale                 = input_scale[0] / output_scale[0];
+                __m128 scale_vec            = _mm_set1_ps(scale);
+                auto input                  = inputs[b];
+                auto input_dims             = input->GetBlobDesc().dims;
+                DimsVector round_input_dims = {input_dims[0], input_dims[2], input_dims[3], ROUND_UP(input_dims[1], 4)};
+                auto input_stride           = DimsVectorUtils::Count(round_input_dims, axis - 1);
+                auto input_ptr = reinterpret_cast<int8_t *>(input->GetHandle().base) + n * input_stride;
+
+                int ic = 0;
+                for (; ic + 7 < input_stride; ic += 8) {
+                    __m128i src_i8x8    = _mm_loadl_epi64((__m128i*)(input_ptr + ic));
+                    __m128i src_i32x4_0 = _mm_cvtepi8_epi32(src_i8x8);
+                    __m128i src_i32x4_1 = _mm_cvtepi8_epi32(_mm_shuffle_epi32(src_i8x8, 0x01));
+                    __m128 src_f32x4_0  = _mm_cvtepi32_ps(src_i32x4_0);
+                    __m128 src_f32x4_1  = _mm_cvtepi32_ps(src_i32x4_1);
+                    src_f32x4_0 = _mm_mul_ps(src_f32x4_0, scale_vec);
+                    src_f32x4_1 = _mm_mul_ps(src_f32x4_1, scale_vec);
+                    F32X8TOI8X8(src_f32x4_0, src_f32x4_1, (output_ptr + ic));
+                }
+                for (; ic < input_stride; ic++) {
+                    output_ptr[ic] = float2int8(input_ptr[ic] * scale);
+                }
+                output_ptr += input_stride;
+            }
+        }
+    }
+}
+
+#define SATURATE_CAST_SHORT(X) (short)(MIN(MAX((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), SHRT_MIN), SHRT_MAX))
+
+static inline void get_bilinear_coeffs(float *h_coeffs_ptr, float *w_coeffs_ptr, int ih, int iw, int oh, int ow,
+                                       bool align_corners) {
+    if (align_corners) {
+        const float rheight = (oh > 1) ? (float)(ih - 1) / (oh - 1) : 0.f;
+        const float rwidth  = (ow > 1) ? (float)(iw - 1) / (ow - 1) : 0.f;
+        for (int h = 0; h < oh; ++h) {
+            h_coeffs_ptr[h] = h * rheight;
+        }
+        for (int w = 0; w < ow; ++w) {
+            w_coeffs_ptr[w] = w * rwidth;
+        }
+    } else {
+        const float rheight = (oh > 1) ? (float)(ih) / (oh) : 0.f;
+        const float rwidth  = (ow > 1) ? (float)(iw) / (ow) : 0.f;
+        for (int h = 0; h < oh; ++h) {
+            h_coeffs_ptr[h] = rheight * (h + 0.5) - 0.5;
+            h_coeffs_ptr[h] = h_coeffs_ptr[h] >= 0 ? h_coeffs_ptr[h] : 0;
+        }
+        for (int w = 0; w < ow; ++w) {
+            w_coeffs_ptr[w] = rwidth * (w + 0.5) - 0.5;
+            w_coeffs_ptr[w] = w_coeffs_ptr[w] >= 0 ? w_coeffs_ptr[w] : 0;
+        }
+    }
+}
+
+template <bool do_scale>
+static void upsample_bilinear_cn(int8_t *output_data, const int8_t *input_data, const float *h_coeffs_ptr,
+                                 const float *w_coeffs_ptr, int c_4, int ih, int iw, int oh, int ow,
+                                 const float *scale) {
+    auto c_r4       = c_4 * 4;
+    auto src_y_step = iw * c_r4;
+    auto dst_y_step = ow * c_r4;
+
+    const float INTER_RESIZE_COEF_SCALE = float(1 << 11);
+
+    for (int h2 = 0; h2 < oh; ++h2) {
+        const float h1r      = h_coeffs_ptr[h2];
+        const int h1         = h1r;
+        const int h1p        = (h1 < ih - 1) ? 1 : 0;
+        const float h1lambda = h1r - h1;
+        const float h0lambda = (float)1. - h1lambda;
+        const short h1_short = SATURATE_CAST_SHORT(h1lambda * INTER_RESIZE_COEF_SCALE);
+        const short h0_short = SATURATE_CAST_SHORT(h0lambda * INTER_RESIZE_COEF_SCALE);
+        for (int w2 = 0; w2 < ow; ++w2) {
+            const float w1r       = w_coeffs_ptr[w2];
+            const int w1          = w1r;
+            const int w1p         = (w1 < iw - 1) ? 1 : 0;
+            const float w1lambda  = w1r - w1;
+            const float w0lambda  = (float)1. - w1lambda;
+            const short w1_short  = SATURATE_CAST_SHORT(w1lambda * INTER_RESIZE_COEF_SCALE);
+            const short w0_short  = SATURATE_CAST_SHORT(w0lambda * INTER_RESIZE_COEF_SCALE);
+            const int8_t *Xdata00 = &(input_data[h1 * src_y_step + w1 * c_r4]);
+            const int8_t *Xdata01 = Xdata00 + w1p * c_r4;
+            const int8_t *Xdata10 = Xdata00 + h1p * src_y_step;
+            const int8_t *Xdata11 = Xdata10 + w1p * c_r4;
+            int8_t *Ydata         = &(output_data[h2 * dst_y_step + w2 * c_r4]);
+            const float *scale_p  = scale;
+            for (int c = 0; c < c_r4; ++c) {
+                if (do_scale) {
+                    // compute as float
+                    Ydata[c] = float2int8(((Xdata00[c] * w0lambda + Xdata01[c] * w1lambda) * h0lambda +
+                                           (Xdata10[c] * w0lambda + Xdata11[c] * w1lambda) * h1lambda) * scale_p[c]);
+                } else {
+                    // compute as int
+                    short h0_res = (Xdata00[c] * w0_short + Xdata01[c] * w1_short) >> 4;
+                    short h1_res = (Xdata10[c] * w0_short + Xdata11[c] * w1_short) >> 4;
+                    int8_t res   = (((h0_res * h0_short) >> 16) + ((h1_res * h1_short) >> 16) + 2) >> 2;
+                    Ydata[c]     = res;
+                }
+            }
+        }
+    }
+}
+
+template <bool do_scale>
+void X86UpsampleNearest2D(int8_t *output_data, const int8_t *input_data,
+                          int ih, int iw, int oh, int ow, int c_4, const float *scale) {
+    auto c_r4       = c_4 * 4;
+    auto src_y_step = iw * c_r4;
+    auto dst_y_step = ow * c_r4;
+
+    const float height_scale = (float)ih / (float)oh;
+    const float width_scale  = (float)iw / (float)ow;
+
+    for (int h = 0; h < oh; h++) {
+        int scale_h = static_cast<int>(h * height_scale);
+        auto dst_y  = output_data + h * dst_y_step;
+        auto src_y  = input_data + scale_h * src_y_step;
+        for (int w = 0; w < ow; w++) {
+            int scale_w = static_cast<int>(w * width_scale);
+            auto dst_x  = dst_y + w * c_r4;
+            auto src_x  = src_y + scale_w * c_r4;
+            if (!do_scale) {
+                memcpy(dst_x, src_x, c_r4);
+            } else {
+                for (int c = 0; c < c_r4; ++c) {
+                    dst_x[c] = float2int8(src_x[c] * scale[c]);
+                }
+            }
+        }
+    }
+}
+
+template void X86UpsampleNearest2D<true>(int8_t *output_data, const int8_t *input_data,
+                          int ih, int iw, int oh, int ow, int c_4, const float *scale);
+template void X86UpsampleNearest2D<false>(int8_t *output_data, const int8_t *input_data,
+                          int ih, int iw, int oh, int ow, int c_4, const float *scale);
+
+template <bool do_scale>
+void X86UpsampleBilinear2D(int8_t *output_data, const int8_t *input_data,
+                           int batch, int ih, int iw, int oh, int ow,
+                           int c_4, bool align_corners, const float *scale) {
+    auto src_plane = iw * ih * c_4 * 4;
+    auto dst_plane = ow * oh * c_4 * 4;
+
+    RawBuffer h_coeffs(oh * sizeof(float));
+    RawBuffer w_coeffs(ow * sizeof(float));
+    auto h_coeffs_ptr = h_coeffs.force_to<float *>();
+    auto w_coeffs_ptr = w_coeffs.force_to<float *>();
+
+    get_bilinear_coeffs(h_coeffs_ptr, w_coeffs_ptr, ih, iw, oh, ow, align_corners);
+
+    for (int b = 0; b < batch; ++b) {
+        auto input_b  = input_data + b * src_plane;
+        auto output_b = output_data + b * dst_plane;
+        if (do_scale) {
+            upsample_bilinear_cn<true>(output_b, input_b, h_coeffs_ptr, w_coeffs_ptr, c_4, ih, iw, oh, ow, scale);
+        } else {
+            upsample_bilinear_cn<false>(output_b, input_b, h_coeffs_ptr, w_coeffs_ptr, c_4, ih, iw, oh, ow, scale);
+        }
+    }
+}
+
+template void X86UpsampleBilinear2D<true>(int8_t *output_data, const int8_t *input_data,
+                                          int batch, int ih, int iw, int oh, int ow,
+                                          int c_4, bool align_corners, const float *scale);
+template void X86UpsampleBilinear2D<false>(int8_t *output_data, const int8_t *input_data,
+                                          int batch, int ih, int iw, int oh, int ow,
+                                          int c_4, bool align_corners, const float *scale);
 
 }   // namespace TNN_NS

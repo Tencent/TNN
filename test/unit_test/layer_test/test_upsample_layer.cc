@@ -59,7 +59,7 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
         }
     }
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev && DEVICE_X86 != dev) {
         GTEST_SKIP();
     }
 
@@ -75,6 +75,11 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
     param->scales        = {scale_x, scale_y};
     if (use_dims) {
         param->dims = {(int)round(scale_x * input_size), (int)round(scale_y * input_size)};
+    }
+
+    Precision precision = SetPrecision(dev, data_type);
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
     }
 
     // generate interpreter

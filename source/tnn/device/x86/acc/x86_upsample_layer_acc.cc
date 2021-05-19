@@ -19,6 +19,7 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/device/x86/acc/compute/x86_compute_int8.h"
 
 namespace TNN_NS {
 
@@ -204,24 +205,18 @@ static inline int upsample_cubic2d(float *output_data, const float *input_data, 
     return 0;
 }
 
-X86UpsampleLayerAcc::~X86UpsampleLayerAcc() {}
-
-
-Status X86UpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        int workspace_byte_size = DimsVectorUtils::Count(inputs[0]->GetBlobDesc().dims) * sizeof(float);
-        if (buffer_input_fp32_.GetBytesSize() < workspace_byte_size) {
-            buffer_input_fp32_ = RawBuffer(workspace_byte_size);
-        }
-        workspace_byte_size = DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims) * sizeof(float);
-        if (buffer_output_fp32_.GetBytesSize() < workspace_byte_size) {
-            buffer_output_fp32_ = RawBuffer(workspace_byte_size);
+static inline bool need_do_scale(const float *scale, int len) {
+    for (int i = 0; i < len; ++i) {
+        if (fabs(scale[i] - 1.0) > 0.0078125) {
+            return true;
         }
     }
-    return TNN_OK;
+    return false;
 }
 
-Status X86UpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+X86UpsampleLayerAcc::~X86UpsampleLayerAcc() {}
+
+Status X86UpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<UpsampleLayerParam *>(param_);
     if (!param) {
         return Status(TNNERR_MODEL_ERR, "Error: UpsampleLayerParam is nil");
@@ -244,43 +239,88 @@ Status X86UpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
     float *output_data = static_cast<float *>(output_blob->GetHandle().base);
 
+    RawBuffer buffer_scale_;
+    bool do_scale_;
     if (data_type == DATA_TYPE_INT8) {
-        auto resource      = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource();
-        const float *scale = resource->scale_handle.force_to<float *>();
-        int scale_len      = resource->scale_handle.GetDataCount();
-        auto workspace     = buffer_input_fp32_.force_to<float *>();
-        NaiveDequant(reinterpret_cast<int8_t *>(input_data), scale, scale_len, workspace, dims_input);
-        input_data  = workspace;
-        output_data = buffer_output_fp32_.force_to<float *>();
-    }
+        int total_byte_size = ROUND_UP(dims_output[1], 4) * sizeof(float);
+        input_plane  = ROUND_UP(dims_input[1], 4) * DimsVectorUtils::Count(dims_input, 2);
+        output_plane = ROUND_UP(dims_output[1], 4) * DimsVectorUtils::Count(dims_output, 2);;
 
-    if (param->mode == 1) {  // nearest
-        for (int b = 0; b < batch; ++b) {
-            upsample_nearest2d(output_data + b * output_plane, input_data + b * input_plane, input_height, input_width,
-                               output_height, output_width, channel, (bool)param->align_corners);
+        auto input_resource  = reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource();
+        auto output_resource = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource();
+        const float *i_scale = input_resource->scale_handle.force_to<float *>();
+        const float *o_scale = output_resource->scale_handle.force_to<float *>();
+        int scale_len_i      = input_resource->scale_handle.GetDataCount();
+        int scale_len_o      = output_resource->scale_handle.GetDataCount();
+
+        if (buffer_scale_.GetBytesSize() < total_byte_size) {
+            buffer_scale_ = RawBuffer(total_byte_size);
         }
-    } else if (param->mode == 2) {  // bilinear/linear
-        for (int b = 0; b < batch; ++b) {
-            upsample_bilinear2d(output_data + b * output_plane, input_data + b * input_plane, input_height, input_width,
+        float *temp_ptr = buffer_scale_.force_to<float *>();
+        for (int i = 0; i < dims_output[1]; i++) {
+            int scale_idx_i = scale_len_i == 1 ? 0 : i;
+            int scale_idx_o = scale_len_o == 1 ? 0 : i;
+            if (o_scale[scale_idx_o] >= FLT_MIN)
+                temp_ptr[i] = i_scale[scale_idx_i] / o_scale[scale_idx_o];
+            else
+                temp_ptr[i] = 0.0;
+        }
+        do_scale_ = need_do_scale(temp_ptr, dims_output[1]);
+
+        auto oc_4 = UP_DIV(dims_output[1], 4);
+        if (dims_input[2] == dims_output[2] && dims_input[3] == dims_output[3] && !do_scale_) {
+            if (output_data != input_data) {
+                memcpy(output_data, input_data, batch * input_plane * DataTypeUtils::GetBytesSize(data_type));
+            }
+        } else if (param->mode == 1) {
+            for (int b = 0; b < batch; ++b) {
+                auto output_b = reinterpret_cast<int8_t *>(output_data) + b * output_plane;
+                auto input_b  = reinterpret_cast<int8_t *>(input_data) + b * input_plane;
+                if (do_scale_)
+                    X86UpsampleNearest2D<true>(output_b, input_b, dims_input[2], dims_input[3], dims_output[2],
+                                               dims_output[3], oc_4, buffer_scale_.force_to<float *>());
+                else
+                    X86UpsampleNearest2D<false>(output_b, input_b, dims_input[2], dims_input[3], dims_output[2],
+                                                dims_output[3], oc_4, buffer_scale_.force_to<float *>());
+            }
+        } else if (param->mode == 2) {
+            if (do_scale_)
+                X86UpsampleBilinear2D<true>(reinterpret_cast<int8_t *>(output_data),
+                                            reinterpret_cast<int8_t *>(input_data), batch, dims_input[2], dims_input[3],
+                                            dims_output[2], dims_output[3], oc_4, (bool)param->align_corners,
+                                            buffer_scale_.force_to<float *>());
+            else
+                X86UpsampleBilinear2D<false>(reinterpret_cast<int8_t *>(output_data),
+                                             reinterpret_cast<int8_t *>(input_data), batch, dims_input[2], dims_input[3],
+                                             dims_output[2], dims_output[3], oc_4, (bool)param->align_corners,
+                                             buffer_scale_.force_to<float *>());
+        } else {
+            LOGE("Error: Not supported mode for x86 int8 upsample\n");
+            return Status(TNNERR_PARAM_ERR, "Error: Not supported mode for x86 int8 upsample");
+        }
+    } else if (data_type == DATA_TYPE_FLOAT) {
+        if (param->mode == 1) {  // nearest
+            for (int b = 0; b < batch; ++b) {
+                upsample_nearest2d(output_data + b * output_plane, input_data + b * input_plane, input_height, input_width,
                                 output_height, output_width, channel, (bool)param->align_corners);
-        }
-    } else if (param->mode == 3) { // cubic
-        for (int b = 0; b < batch; ++b) {
-            upsample_cubic2d(output_data + b * output_plane, input_data + b * input_plane, input_height, input_width,
-                             output_height, output_width, channel, (bool)param->align_corners);
+            }
+        } else if (param->mode == 2) {  // bilinear/linear
+            for (int b = 0; b < batch; ++b) {
+                upsample_bilinear2d(output_data + b * output_plane, input_data + b * input_plane, input_height, input_width,
+                                    output_height, output_width, channel, (bool)param->align_corners);
+            }
+        } else if (param->mode == 3) { // cubic
+            for (int b = 0; b < batch; ++b) {
+                upsample_cubic2d(output_data + b * output_plane, input_data + b * input_plane, input_height, input_width,
+                                output_height, output_width, channel, (bool)param->align_corners);
+            }
+        } else {
+            LOGE("Error: Not supported mode for x86 float upsample\n");
+            return Status(TNNERR_MODEL_ERR, "Error: Not supported mode for x86 float upsample");
         }
     } else {
-        LOGE("Error: Upsample dont support resize type\n");
-        return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize type");
-    }
-
-    if (data_type == DATA_TYPE_INT8) {
-        auto resource      = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource();
-        const float *scale = resource->scale_handle.force_to<float *>();
-        int scale_len      = resource->scale_handle.GetDataCount();
-        auto workspace     = output_data;
-        output_data        = static_cast<float *>(output_blob->GetHandle().base);
-        NaiveQuant(workspace, scale, scale_len, reinterpret_cast<int8_t *>(output_data), dims_output);
+        LOGE("Error: Not supported data type for upsample\n");
+        return Status(TNNERR_LAYER_ERR, "Error: Not supported data type for upsample");
     }
 
     return TNN_OK;

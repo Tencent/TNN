@@ -16,6 +16,7 @@
 #include "tnn/device/x86/x86_device.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/device/x86/acc/compute/x86_compute_int8.h"
 
 namespace TNN_NS {
 
@@ -31,6 +32,23 @@ Status X86ConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         LOGE("Error: invalid inputs count\n");
         return Status(TNNERR_LAYER_ERR, "Concat layer's inputs size must >= 2");
     }
+
+    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+        switch (param->axis) {
+            case 1:
+                X86ConcatChannelInt8(outputs[0], inputs);
+                break;
+            case 2:
+            case 3:
+                X86ConcatCommonInt8(outputs[0], inputs, param->axis);
+                break;
+            default:
+                LOGE("Error: X86 Int8 Concat only support on axis 1, 2, 3");
+                return Status(TNNERR_PARAM_ERR, "X86 Int8 Concat only support on axis 1, 2, 3");
+        }
+        return TNN_OK;
+    }
+
     auto input  = inputs[0];
     auto output = outputs[0];
     auto dims   = input->GetBlobDesc().dims;

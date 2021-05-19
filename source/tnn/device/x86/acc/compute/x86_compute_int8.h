@@ -60,6 +60,18 @@ void X86MatrixAddInt8(int8_t* dst, const int8_t* A, const int8_t* B, float* dst_
 void X86GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, const float* scale,
                  long ic_r4, long oc_r4);
 
+void X86ConcatChannelInt8(Blob *output, const std::vector<Blob *> &inputs);
+void X86ConcatCommonInt8(Blob *output, const std::vector<Blob *> &inputs, int axis);
+
+template <bool do_scale>
+void X86UpsampleNearest2D(int8_t *output_data, const int8_t *input_data,
+                          int ih, int iw, int oh, int ow, int c_4, const float *scale);
+
+template <bool do_scale>
+void X86UpsampleBilinear2D(int8_t *output_data, const int8_t *input_data,
+                           int batch, int ih, int iw, int oh, int ow,
+                           int c_4, bool align_corners, const float *scale);
+
 }   // namespace TNN_NS
 
 #endif
