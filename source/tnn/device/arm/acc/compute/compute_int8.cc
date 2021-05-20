@@ -966,44 +966,6 @@ void DepthwiseI8K5(int8_t* dst, const int8_t* src, const int8_t* weight, const i
         }
     }
 }
-
-void DepthwiseI8K5(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
-                   long dilate_y_step, long dialte_x_step, long src_w_step, long dst_depth, long fw, long fh,
-                   const float* scale_z) {
-    long dx = 0;
-
-    // stride == 1, fully use arm registers
-    if (src_w_step == dst_depth) {
-        for (dx = 0; dx < width - 3; dx += 4) {
-            long dc = 0;
-            for (; dc < dst_depth - 7; dc += 8) {
-                DepthwiseI8K5S1Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth,
-                                      scale_z, dx, dc);
-            }
-
-            if (dc < dst_depth) {
-                dc = dst_depth - 8;
-                DepthwiseI8K5S1Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth,
-                                      scale_z, dx, dc);
-            }
-        }
-    }
-
-    // general k3 process, calc left dx
-    for (; dx < width; dx++) {
-        long dc = 0;
-        for (; dc < dst_depth - 7; dc += 8) {
-            DepthwiseI8K5Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z,
-                                dx, dc);
-        }
-
-        if (dc < dst_depth) {
-            dc = dst_depth - 8;
-            DepthwiseI8K5Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z,
-                                dx, dc);
-        }
-    }
-}
 #endif
 
 void ReluInt8(int8_t* dst, const int8_t* src, long len) {
