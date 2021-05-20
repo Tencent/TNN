@@ -61,8 +61,9 @@ Status X86BlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
     auto desc       = blob_->GetBlobDesc();
     if (desc.data_type == DATA_TYPE_INT8) {
         auto dims       = desc.dims;
-        auto hw         = dims[2] * dims[3];
-        auto c_r4       = ROUND_UP(dims[1], 4);
+        auto hw         = DimsVectorUtils::Count(dims, 2);
+        auto c          = DimsFunctionUtils::GetDim(dims, 1);
+        auto c_r4       = ROUND_UP(c, 4);
 
         if (fused_int8_scale.size() < c_r4) {
             fused_int8_scale.resize(c_r4);
@@ -98,8 +99,9 @@ Status X86BlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
     auto desc       = blob_->GetBlobDesc();
     if (desc.data_type == DATA_TYPE_INT8) {
         auto dims       = desc.dims;
-        auto hw         = dims[2] * dims[3];
-        auto c_r4       = ROUND_UP(dims[1], 4);
+        auto hw         = DimsVectorUtils::Count(dims, 2);
+        auto c          = DimsFunctionUtils::GetDim(dims, 1);
+        auto c_r4       = ROUND_UP(c, 4);
 
         if (fused_int8_scale.size() < c_r4) {
             fused_int8_scale.resize(c_r4);

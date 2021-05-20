@@ -38,13 +38,9 @@ Status X86ConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             case 1:
                 X86ConcatChannelInt8(outputs[0], inputs);
                 break;
-            case 2:
-            case 3:
+            default:
                 X86ConcatCommonInt8(outputs[0], inputs, param->axis);
                 break;
-            default:
-                LOGE("Error: X86 Int8 Concat only support on axis 1, 2, 3");
-                return Status(TNNERR_PARAM_ERR, "X86 Int8 Concat only support on axis 1, 2, 3");
         }
         return TNN_OK;
     }

@@ -15,7 +15,7 @@
 #include "tnn/device/x86/acc/compute/x86_compute_int8.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/device/x86/x86_common.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -924,8 +924,9 @@ concat channel int8, nhwc format
 void X86ConcatChannelInt8(Blob *output, const std::vector<Blob *> &inputs) {
     DeclareRounding();
     auto dims_output = output->GetBlobDesc().dims;
-    int full_hw      = dims_output[2] * dims_output[3];
-    auto oc_c4       = ROUND_UP(dims_output[1], 4);
+    auto full_hw     = DimsVectorUtils::Count(dims_output, 2);
+    auto oc          = DimsFunctionUtils::GetDim(dims_output, 1);
+    auto oc_c4       = ROUND_UP(oc, 4);
 
     int8_t *output_origin = reinterpret_cast<int8_t *>(output->GetHandle().base);
 
@@ -979,13 +980,22 @@ void X86ConcatChannelInt8(Blob *output, const std::vector<Blob *> &inputs) {
     }
 }
 
+static DimsVector GetNHWCXRoundDims(const DimsVector &dims, const int round) {
+    DimsVector round_dims = {dims[0]};
+    for (int i = 2; i < dims.size(); ++i) {
+        round_dims.push_back(dims[i]);
+    }
+    round_dims.push_back(ROUND_UP(dims[1], round));
+    return round_dims;
+}
+
 /*
 concat common int8, nhwc format
 */
 void X86ConcatCommonInt8(Blob *output, const std::vector<Blob *> &inputs, int axis) {
     DeclareRounding();
     auto output_dims             = output->GetBlobDesc().dims;
-    DimsVector round_output_dims = {output_dims[0], output_dims[2], output_dims[3], ROUND_UP(output_dims[1], 4)};
+    DimsVector round_output_dims = GetNHWCXRoundDims(output_dims, 4);
     auto slice_count             = DimsVectorUtils::Count(round_output_dims, 0, axis - 1);
     auto output_stride           = DimsVectorUtils::Count(round_output_dims, axis - 1);
     auto *output_origin          = reinterpret_cast<int8_t *>(output->GetHandle().base);
@@ -996,7 +1006,7 @@ void X86ConcatCommonInt8(Blob *output, const std::vector<Blob *> &inputs, int ax
             for (int b = 0; b < inputs.size(); b++) {
                 auto input                  = inputs[b];
                 auto input_dims             = input->GetBlobDesc().dims;
-                DimsVector round_input_dims = {input_dims[0], input_dims[2], input_dims[3], ROUND_UP(input_dims[1], 4)};
+                DimsVector round_input_dims = GetNHWCXRoundDims(input_dims, 4);
                 auto input_stride           = DimsVectorUtils::Count(round_input_dims, axis - 1);
                 auto input_ptr = reinterpret_cast<int8_t *>(input->GetHandle().base) + n * input_stride;
                 memcpy(output_ptr, input_ptr, input_stride * sizeof(int8_t));
@@ -1013,7 +1023,7 @@ void X86ConcatCommonInt8(Blob *output, const std::vector<Blob *> &inputs, int ax
                 __m128 scale_vec            = _mm_set1_ps(scale);
                 auto input                  = inputs[b];
                 auto input_dims             = input->GetBlobDesc().dims;
-                DimsVector round_input_dims = {input_dims[0], input_dims[2], input_dims[3], ROUND_UP(input_dims[1], 4)};
+                DimsVector round_input_dims = GetNHWCXRoundDims(input_dims, 4);
                 auto input_stride           = DimsVectorUtils::Count(round_input_dims, axis - 1);
                 auto input_ptr = reinterpret_cast<int8_t *>(input->GetHandle().base) + n * input_stride;
 
