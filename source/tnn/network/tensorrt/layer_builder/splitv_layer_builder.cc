@@ -41,7 +41,7 @@ DimsExprs SplitVTRTPluginLayerBuilder::getOutputDimensions(int index, const nvin
         int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
     auto param = dynamic_cast<SplitVLayerParam*>(param_);
     DimsExprs output(inputs[0]);
-    if (is_split_specified) {
+    if (param->is_split_specified) {
         output.d[param->axis] = exprBuilder.constant(param->slices[index]);
     } else {
         output.d[param->axis] = exprBuilder.operation(DimensionOperation::kCEIL_DIV, *inputs[0].d[param->axis],
