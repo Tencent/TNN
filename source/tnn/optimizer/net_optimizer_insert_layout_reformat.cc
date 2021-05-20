@@ -43,15 +43,15 @@ namespace optimizer {
 
     bool NetOptimizerInsertLayoutReformat::IsSupported(const NetworkConfig &net_config) {
         // save net_config
-        net_config_     = &net_config;
-        auto device     = net_config.device_type;
-        auto precision  = net_config.precision;
-        device_         = GetDevice(device);
+        net_config_    = &net_config;
+        auto device    = net_config.device_type;
+        auto precision = net_config.precision;
+        device_        = GetDevice(device);
         // possible adapter devices
         static DeviceType adapter_device_list[2] = {DEVICE_ARM, DEVICE_X86};
-        adaptor_device_     = nullptr;
-        auto adaptor_device = device;
-        for(const auto& dev : adapter_device_list) {
+        adaptor_device_                          = nullptr;
+        auto adaptor_device                      = device;
+        for (const auto &dev : adapter_device_list) {
             adaptor_device_ = GetDevice(dev);
             if (adaptor_device_) {
                 adaptor_device = dev;
@@ -99,7 +99,17 @@ namespace optimizer {
         return res;
     }
 
-    static bool NeedDoReformat(DataFormat src_fmt, std::shared_ptr<const ImplementedLayout> dst_fmts) {
+    static bool NeedDoReformat(DataFormat src_fmt, std::shared_ptr<const ImplementedLayout> dst_fmts,
+                               const std::map<std::string, DataFormat> &layer_choosed_layout,
+                               const std::string &layer_name) {
+        // if layer's layout is already choosed
+        if (layer_choosed_layout.find(layer_name) != layer_choosed_layout.end()) {
+            if (src_fmt == layer_choosed_layout.at(layer_name)) {
+                return false;
+            } else {
+                return true;
+            }
+        }
         for (const auto &dst_fmt : dst_fmts->layouts) {
             if (dst_fmt == src_fmt) {
                 return false;
@@ -168,10 +178,13 @@ namespace optimizer {
                             return Status(TNNERR_LAYER_ERR,
                                           "NetOptimizerInsertLayoutReformat Error: empty implemented_layouts");
                         }
-                        // if input layout is not implemented
-                        if (NeedDoReformat(input_layout, implemented_layouts)) {
-                            // choose first implemented layout
-                            auto reformat_layout                  = implemented_layouts->layouts[0];
+                        // If the already choosed layout is different from input_layout or input_layout is not
+                        // implemented, reformat is needed.
+                        if (NeedDoReformat(input_layout, implemented_layouts, layer_choosed_layout, cur_layer->name)) {
+                            // use the choosed layout, or the first implemented layout
+                            auto reformat_layout                  = layer_choosed_layout.count(cur_layer->name)
+                                                                        ? layer_choosed_layout[cur_layer->name]
+                                                                        : implemented_layouts->layouts[0];
                             layer_choosed_layout[cur_layer->name] = reformat_layout;
                             if (std::find(reformat_layouts.begin(), reformat_layouts.end(), reformat_layout) ==
                                 reformat_layouts.end()) {
@@ -237,9 +250,12 @@ namespace optimizer {
                     }
                     for (auto next_in : next_layer->inputs) {
                         if (next_in == cur_out) {
-                            if (NeedDoReformat(cur_layer_layout, next_layer_layouts)) {
-                                // choose first implemented layout
-                                auto reformat_layout                   = next_layer_layouts->layouts[0];
+                            if (NeedDoReformat(cur_layer_layout, next_layer_layouts, layer_choosed_layout,
+                                               next_layer->name)) {
+                                // use the choosed layout, or the first implemented layout
+                                auto reformat_layout                   = layer_choosed_layout.count(next_layer->name)
+                                                                             ? layer_choosed_layout[next_layer->name]
+                                                                             : next_layer_layouts->layouts[0];
                                 layer_choosed_layout[next_layer->name] = reformat_layout;
                                 auto &reformat_outs                    = layout_reformat_outs[reformat_layout];
                                 if (std::find(reformat_outs.begin(), reformat_outs.end(), cur_out) ==
@@ -345,7 +361,8 @@ namespace optimizer {
                 auto next_layer_layouts = GetLayoutsByLayerType(next_layer->type);
                 for (auto &next_in : next_layer->inputs) {
                     // only use reformat out when cur_layer_layout not supported
-                    if (next_in == cur_out && NeedDoReformat(cur_layer_layout, next_layer_layouts)) {
+                    if (next_in == cur_out &&
+                        NeedDoReformat(cur_layer_layout, next_layer_layouts, layer_choosed_layout, next_layer->name)) {
                         if (layer_choosed_layout.find(next_layer->name) == layer_choosed_layout.end()) {
                             LOGE("NetOptimizerInsertLayoutReformat Error: layout of next layer not choosen\n");
                             return Status(TNNERR_LAYER_ERR,
