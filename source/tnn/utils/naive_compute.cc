@@ -415,8 +415,8 @@ template void NaiveConv1D<float, float, float, float>(void *input_ptr, void *out
 template <typename Tin, typename Tw, typename Tacc, typename Tout>
 void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
                DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
-               int pad_x, int group, int dilation, int activation_type, float *scale, int scale_len,
-               int fusion_type, void *add_input, float *add_scale) {
+               int pad_x, int group, int dilation, int activation_type, float *weight_scale, int weight_scale_len,
+               int8_t *relu6_max, int relu6_max_len, int fusion_type, void *add_input, float *add_scale) {
     Tin *input_data               = static_cast<Tin *>(input_ptr);
     Tw *weight_data               = static_cast<Tw *>(weight_ptr);
     Tout *output_data             = static_cast<Tout *>(output_ptr);
@@ -480,13 +480,19 @@ void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, 
                             FloatActivate(result, activation_type);
                             output_data[output_position] = result;
                         } else {
-                            int scaleidx = scale_len == 1 ? 0 : output_c;
-                            float val    = result * scale[scaleidx];
+                            int scale_idx = weight_scale_len == 1 ? 0 : output_c;
+                            float val    = result * weight_scale[scale_idx];
                             if (fusion_type == FusionType_Conv_Add_Activation) {
                                 val += static_cast<Tin *>(add_input)[output_position] * add_scale[output_c];
                             }
                             if (activation_type == ActivationType_ReLU) {
                                 val = std::max(0.0f, val);
+                            } else if (activation_type == ActivationType_ReLU6) {
+                                int relu6_max_idx = relu6_max_len == 1 ? 0:output_c;
+                                int8_t res = std::min(float2int8(val), relu6_max[relu6_max_idx]);
+                                res = std::max((int8_t)0, res);
+                                output_data[output_position] = res;
+                                continue;
                             }
                             if (fusion_type == FusionType_Conv_Activation_Add) {
                                 val += static_cast<Tin *>(add_input)[output_position] * add_scale[output_c];
@@ -500,26 +506,27 @@ void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, 
     }
 }
 
-template void NaiveConv<float, float, float, float>(void *input_ptr, void *output_ptr, void *weight_ptr, 
-                                                    void *bias, DimsVector dims_input, DimsVector dims_output, 
-                                                    int stride_y, int stride_x, int kernel_size_y, 
-                                                    int kernel_size_x, int pad_y, int pad_x, int group, 
-                                                    int dilation, int activation_type, float *scale,
-                                                    int scale_len, int fusion_type, void *add_input, float *add_scale);
+template void NaiveConv<float, float, float, float>(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias,
+                                                    DimsVector dims_input, DimsVector dims_output, int stride_y,
+                                                    int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
+                                                    int pad_x, int group, int dilation, int activation_type,
+                                                    float *weight_scale, int weight_scale_len, int8_t *relu6_max,
+                                                    int relu6_max_len, int fusion_type, void *add_input,
+                                                    float *add_scale);
 
-template void NaiveConv<int8_t, int8_t, int32_t, int8_t>(void *input_ptr, void *output_ptr, void *weight_ptr, 
-                                                        void *bias, DimsVector dims_input, DimsVector dims_output, 
-                                                        int stride_y, int stride_x, int kernel_size_y, 
-                                                        int kernel_size_x, int pad_y, int pad_x, int group, 
-                                                        int dilation, int activation_type, float *scale, 
-                                                        int scale_len, int fusion_type, void *add_input, float *add_scale);
+template void NaiveConv<int8_t, int8_t, int32_t, int8_t>(
+    void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input, DimsVector dims_output,
+    int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y, int pad_x, int group, int dilation,
+    int activation_type, float *weight_scale, int weight_scale_len,  int8_t *relu6_max, int relu6_max_len,
+    int fusion_type, void *add_input, float *add_scale);
 
-template void NaiveConv<bfp16_t, float, float, bfp16_t>(void *input_ptr, void *output_ptr, void *weight_ptr, 
-                                                        void *bias, DimsVector dims_input, DimsVector dims_output, 
-                                                        int stride_y, int stride_x, int kernel_size_y, 
-                                                        int kernel_size_x, int pad_y, int pad_x, int group, 
-                                                        int dilation, int activation_type, float *scale,
-                                                        int scale_len, int fusion_type, void *add_input, float *add_scale);
+template void NaiveConv<bfp16_t, float, float, bfp16_t>(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias,
+                                                        DimsVector dims_input, DimsVector dims_output, int stride_y,
+                                                        int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
+                                                        int pad_x, int group, int dilation, int activation_type,
+                                                        float *weight_scale, int weight_scale_len,  int8_t *relu6_max,
+                                                        int relu6_max_len, int fusion_type, void *add_input,
+                                                        float *add_scale);
 
 /*
  * 3d convolution funtion
