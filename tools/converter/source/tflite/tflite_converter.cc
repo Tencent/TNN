@@ -67,14 +67,17 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
         std::vector<bool> extracted_tensors(tf_lite_model_->subgraphs[i]->tensors.size(), false);
 
         // set input
-        TNN_NS::InputShapesMap& inputs_shape_map = net_structure.inputs_shape_map;
+        TNN_NS::InputShapesMap& inputs_shape_map      = net_structure.inputs_shape_map;
+        TNN_NS::InputDataTypeMap& input_data_type_map = net_structure.input_data_type_map;
         for (const auto index : tf_lite_model_->subgraphs[i]->inputs) {
             const auto& input_tensor = tensors[index];
             const auto& name         = input_tensor->name;
             std::vector<int32_t> shape(input_tensor->shape);
             ConvertShapeFormatTFLite(shape);
             if (inputs_shape_map.find(name) == inputs_shape_map.end()) {
-                inputs_shape_map[name] = shape;
+                inputs_shape_map[name]             = shape;
+                const auto& tflite_input_data_type = input_tensor->type;
+                input_data_type_map[name]          = GetTnnDataTypeFromTFLite(tflite_input_data_type);
             } else {
                 LOGE("The model conflict between same input names %s\n", name.c_str());
                 return TNN_NS::TNNERR_CONVERT_INVALID_MODEL;
@@ -136,6 +139,7 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
                 LOGE("TFLite converter %s failed!\n", cur_layer->type_str.c_str());
                 return status;
             }
+            converter->InsertBlobs(net_structure);
         }
     }
     return TNN_NS::TNN_CONVERT_OK;
@@ -169,7 +173,8 @@ bool TFLite2Tnn::IsQuantized() {
         for (int j = 0; j < operator_size; ++j) {
             const int opcode_index = operators[j]->opcode_index;
             const auto opcode      = tf_lite_op_set[opcode_index]->builtin_code;
-            if (opcode == tflite::BuiltinOperator_CONV_2D || opcode == tflite::BuiltinOperator_DEPTHWISE_CONV_2D) {
+            if (opcode == tflite::BuiltinOperator_CONV_2D || opcode == tflite::BuiltinOperator_DEPTHWISE_CONV_2D ||
+                opcode == tflite::BuiltinOperator_FULLY_CONNECTED) {
                 const int weight_index    = operators[j]->inputs[1];
                 const auto& weight_tensor = tensors[weight_index];
                 quantized_mode            = weight_tensor->type == tflite::TensorType_UINT8;

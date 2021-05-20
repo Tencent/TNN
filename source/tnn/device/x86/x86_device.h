@@ -42,6 +42,8 @@ public:
 
     virtual Status Free(void* handle);
 
+    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type);
+
     virtual Status CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobDesc& desc,
                                 void* command_queue);
 
@@ -51,6 +53,8 @@ public:
     virtual AbstractLayerAcc *CreateLayerAcc(LayerType type);
 
     virtual Context *CreateContext(int device_id);
+
+    virtual NetworkType ConvertAutoNetworkType();
 
     static Status RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator);
 

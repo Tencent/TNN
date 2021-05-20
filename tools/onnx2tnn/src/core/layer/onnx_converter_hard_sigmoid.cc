@@ -34,7 +34,11 @@ string OnnxOpConverterHardSigmoid::TNNLayerParam(
     return layer_param.str();
 }
 
-int OnnxOpConverterHardSigmoid::WriteTNNModel(serializer *net_writer,
+bool OnnxOpConverterHardSigmoid::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
+int OnnxOpConverterHardSigmoid::WriteTNNModel(Serializer *net_writer,
                                                       NodeProto &node,
                                                       OnnxNetInfo &net_info) {
     //有权值写入的返回1， 没有的返回0

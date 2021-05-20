@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 #include "cuda_fp16.h"
 
@@ -153,7 +153,7 @@ __global__ void cbam_fused_pooling_half_kernel(const __half *input, __half* outp
 }
 
 Status CudaCbamFusedPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 

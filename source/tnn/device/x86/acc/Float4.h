@@ -18,7 +18,7 @@
 #include "tnn/device/x86/x86_common.h"
 #include "tnn/device/x86/acc/sse_mathfun.h"
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__llvm__)
 #if __GNUC__ < 5
 #include "tnn/device/arm/acc/TNNVector.h"
 #define VEC_NAIVE_IMPL
@@ -29,6 +29,54 @@ namespace TNN_NS {
 
 #ifdef VEC_NAIVE_IMPL
 using Float4 = TNNVector<float, 4>;
+
+struct Float4x4 {
+    Float4 value[4];
+
+    static Float4x4 ld4u(const float* addr) {
+        Float4x4 v;
+        for (int i = 0; i < 4; i++) {
+            v.value[0].value[i] = addr[i*4 + 0];
+            v.value[1].value[i] = addr[i*4 + 1];
+            v.value[2].value[i] = addr[i*4 + 2];
+            v.value[3].value[i] = addr[i*4 + 3];
+        }
+        return v;
+    }
+    static Float4x4 loadu(const float* addr) {
+        Float4x4 v;
+        for (int i = 0; i < 4; i++) {
+            v.value[i].value[0] = addr[i*4 + 0];
+            v.value[i].value[1] = addr[i*4 + 1];
+            v.value[i].value[2] = addr[i*4 + 2];
+            v.value[i].value[3] = addr[i*4 + 3];
+        }
+        return v;
+    }
+    static Float4x4 ld4(const float* addr) {
+        Float4x4 v;
+        for (int i = 0; i < 4; i++) {
+            v.value[0].value[i] = addr[i*4 + 0];
+            v.value[1].value[i] = addr[i*4 + 1];
+            v.value[2].value[i] = addr[i*4 + 2];
+            v.value[3].value[i] = addr[i*4 + 3];
+        }
+        return v;
+    }
+    static Float4x4 load(const float* addr) {
+        Float4x4 v;
+        for (int i = 0; i < 4; i++) {
+            v.value[i].value[0] = addr[i*4 + 0];
+            v.value[i].value[1] = addr[i*4 + 1];
+            v.value[i].value[2] = addr[i*4 + 2];
+            v.value[i].value[3] = addr[i*4 + 3];
+        }
+        return v;
+    }
+    void get_lane(Float4& v, int index) {
+        v = value[index];
+    }
+};
 #else
 struct Float4 {
     __m128 value;
@@ -163,23 +211,28 @@ struct Float4 {
         dst.value = log_ps(v.value);
         return dst;
     }
-    Float4 operator+(const Float4& lr) {
+    static Float4 tanh(const Float4& v) {
+        Float4 dst;
+        dst.value = tanh_ps(v.value);
+        return dst;
+    }
+    Float4 operator+(const Float4& lr) const {
         Float4 dst;
         dst.value = _mm_add_ps(value, lr.value);
         return dst;
     }
-    Float4 operator-(const Float4& lr) {
+    Float4 operator-(const Float4& lr) const {
         Float4 dst;
         dst.value = _mm_sub_ps(value, lr.value);
         return dst;
     }
-    Float4 operator*(float lr) {
+    Float4 operator*(float lr) const {
         Float4 dst;
         __m128 tmp = _mm_set1_ps(lr);
         dst.value = _mm_mul_ps(value, tmp);
         return dst;
     }
-    Float4 operator*(const Float4& lr) {
+    Float4 operator*(const Float4& lr) const {
         Float4 dst;
         dst.value = _mm_mul_ps(value, lr.value);
         return dst;
@@ -192,10 +245,51 @@ struct Float4 {
         value = std::move(lr.value);
         return *this;
     }
-    Float4 operator-() {
+    Float4 operator-() const {
         Float4 dst;
         dst.value = _mm_sub_ps(_mm_setzero_ps(), value);
         return dst;
+    }
+};
+struct Float4x4 {
+    __m128 value[4];
+
+    static Float4x4 ld4u(const float* addr) {
+        Float4x4 v;
+        v.value[0] = _mm_loadu_ps(addr);
+        v.value[1] = _mm_loadu_ps(addr + 4);
+        v.value[2] = _mm_loadu_ps(addr + 8);
+        v.value[3] = _mm_loadu_ps(addr + 12);
+        _MM_TRANSPOSE4_PS(v.value[0], v.value[1], v.value[2], v.value[3]);
+        return v;
+    }
+    static Float4x4 loadu(const float* addr) {
+        Float4x4 v;
+        v.value[0] = _mm_loadu_ps(addr);
+        v.value[1] = _mm_loadu_ps(addr + 4);
+        v.value[2] = _mm_loadu_ps(addr + 8);
+        v.value[3] = _mm_loadu_ps(addr + 12);
+        return v;
+    }
+    static Float4x4 ld4(const float* addr) {
+        Float4x4 v;
+        v.value[0] = _mm_load_ps(addr);
+        v.value[1] = _mm_load_ps(addr + 4);
+        v.value[2] = _mm_load_ps(addr + 8);
+        v.value[3] = _mm_load_ps(addr + 12);
+        _MM_TRANSPOSE4_PS(v.value[0], v.value[1], v.value[2], v.value[3]);
+        return v;
+    }
+    static Float4x4 load(const float* addr) {
+        Float4x4 v;
+        v.value[0] = _mm_load_ps(addr);
+        v.value[1] = _mm_load_ps(addr + 4);
+        v.value[2] = _mm_load_ps(addr + 8);
+        v.value[3] = _mm_load_ps(addr + 12);
+        return v;
+    }
+    void get_lane(Float4& v, int index) {
+        v.value = value[index];
     }
 };
 #endif

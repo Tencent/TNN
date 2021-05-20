@@ -16,7 +16,7 @@
 #include "tnn/device/arm/acc/Float4.h"
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/device/arm/arm_device.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -95,5 +95,6 @@ Status ArmInstanceNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
 }
 
 REGISTER_ARM_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
+REGISTER_ARM_LAYOUT(LAYER_INST_BATCH_NORM, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

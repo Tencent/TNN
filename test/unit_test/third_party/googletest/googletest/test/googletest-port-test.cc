@@ -949,14 +949,14 @@ TEST(ThreadLocalTest, SingleParamConstructorInitializesToParam) {
   EXPECT_EQ(&i, t2.get());
 }
 
-class NoDefaultContructor {
+class NoDefaultconstructor {
  public:
-  explicit NoDefaultContructor(const char*) {}
-  NoDefaultContructor(const NoDefaultContructor&) {}
+  explicit NoDefaultconstructor(const char*) {}
+  NoDefaultconstructor(const NoDefaultconstructor&) {}
 };
 
-TEST(ThreadLocalTest, ValueDefaultContructorIsNotRequiredForParamVersion) {
-  ThreadLocal<NoDefaultContructor> bar(NoDefaultContructor("foo"));
+TEST(ThreadLocalTest, ValueDefaultconstructorIsNotRequiredForParamVersion) {
+  ThreadLocal<NoDefaultconstructor> bar(NoDefaultconstructor("foo"));
   bar.pointer();
 }
 

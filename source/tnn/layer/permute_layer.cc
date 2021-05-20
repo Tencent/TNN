@@ -25,15 +25,17 @@ Status PermuteLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status PermuteLayer::InferOutputShape() {
-    PermuteLayerParam* permute_param = dynamic_cast<PermuteLayerParam*>(param_);
+Status PermuteLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
+    auto permute_param = dynamic_cast<PermuteLayerParam*>(param_);
     CHECK_PARAM_NULL(permute_param);
 
-    Blob* input_blob  = input_blobs_[0];
-    Blob* output_blob = output_blobs_[0];
+    auto input_blob  = input_blobs_[0];
+    auto output_blob = output_blobs_[0];
 
-    output_blob->GetBlobDesc().dims.clear();
-    auto input_dims          = input_blob->GetBlobDesc().dims;
+    DimsVector output_dims;
+    auto input_dims = input_blob->GetBlobDesc().dims;
     std::vector<int>& orders = permute_param->orders;
 
     for (int i = 0; i < input_dims.size(); ++i) {
@@ -42,18 +44,20 @@ Status PermuteLayer::InferOutputShape() {
         }
     }
     if (permute_param->orders.size() != input_dims.size()) {
-        LOGE("Permute param got wrong size.\n");
+        LOGE_IF(!ignore_error, "Permute param got wrong size.\n");
         return Status(TNNERR_PARAM_ERR, "Permute param got wrong size");
     }
 
     for (int i = 0; i < permute_param->orders.size(); ++i) {
         int order = permute_param->orders[i];
         if (order < 0 || order > input_dims.size() - 1) {
-            LOGE("Permute param out of range.\n");
+            LOGE_IF(!ignore_error, "Permute param out of range.\n");
             return Status(TNNERR_PARAM_ERR, "Permute param out of range");
         }
-        output_blob->GetBlobDesc().dims.push_back(input_dims[order]);
+        output_dims.push_back(input_dims[order]);
     }
+    
+    output_blob->GetBlobDesc().dims = output_dims;
 
     return TNN_OK;
 }

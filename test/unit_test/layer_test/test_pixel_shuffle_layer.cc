@@ -41,10 +41,6 @@ TEST_P(PixelShuffleLayerTest, PixelShuffleLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_X86 == dev) {
-        GTEST_SKIP();
-    }
-
     std::shared_ptr<PixelShuffleLayerParam> param(new PixelShuffleLayerParam());
     param->name           = "PixelShuffle";
     param->upscale_factor = upscale_factor;

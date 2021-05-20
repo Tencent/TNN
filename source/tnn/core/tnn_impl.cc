@@ -27,7 +27,7 @@ Status TNNImpl::DeInit() {
 }
 
 Status TNNImpl::Init(ModelConfig &config) {
-    model_config_ = config;
+    model_config_.model_type = config.model_type;
     return TNN_OK;
 }
 

@@ -12,10 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 #include "tnn/core/macro.h"
-#include "tnn/utils/half.hpp"
 
 #if defined(__APPLE__)
 #include "TargetConditionals.h"

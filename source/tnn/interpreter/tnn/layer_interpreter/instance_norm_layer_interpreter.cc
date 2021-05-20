@@ -18,7 +18,10 @@ namespace TNN_NS {
 
 DECLARE_LAYER_INTERPRETER(InstanceNorm, LAYER_INST_BATCH_NORM);
 
-Status InstanceNormLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam** param) {
+Status InstanceNormLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, LayerParam** param) {
+    auto p = CreateLayerParam<InstanceNormLayerParam>(param);
+    GET_INT_1_OR_DEFAULT(p->channels, 0);
+    GET_FLOAT_1_OR_DEFAULT(p->eps, 1e-5f);
     return TNN_OK;
 }
 
@@ -37,6 +40,9 @@ Status InstanceNormLayerInterpreter::InterpretResource(Deserializer& deserialize
 }
 
 Status InstanceNormLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+    CAST_OR_RET_ERROR(layer_param, InstanceNormLayerParam, "invalid group norm layer param to save", param);
+    output_stream << layer_param->channels << " ";
+    output_stream << layer_param->eps << " ";
     return TNN_OK;
 }
 

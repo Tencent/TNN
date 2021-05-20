@@ -61,7 +61,7 @@ Status X86ConvLayerCommon::allocateBufferWeight(const std::vector<Blob *> &input
             for (int g = 0; g < param->group; g++) {
                 auto src_g = src + K * M * g;
                 auto dst_g = dst + weight_pack_per_group * g;
-                conv_pack_weights(M, K, src_g, K, dst_g, conv_gemm_conf_);
+                conv_pack_col_b_n(M, K, src_g, K, dst_g, conv_gemm_conf_);
             }
 
             temp_buffer.SetDataType(DATA_TYPE_FLOAT);
@@ -156,7 +156,7 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
                         im2col_workspace);
 
             for (int g = 0; g < param->group; g++) {
-                conv_sgemm_nn_col_major(N, M, K,
+                conv_sgemm_nn_col_major_prepack_b(N, M, K,
                     im2col_workspace + col_offset_ * g, N,
                     weights_data + weight_offset_per_group * g, K,
                     output_data + (b * param->group + g) * output_offset_, N,

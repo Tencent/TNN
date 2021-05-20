@@ -24,10 +24,15 @@ namespace TNN_NS {
 
 #define BASIC_BATCH_CHANNEL_SIZE testing::Values(1, 16), testing::Values(1, 3, 64, 128), testing::Values(256)
 
+#define UNARY_BATCH_CHANNEL_SIZE testing::Values(1, 16), testing::Values(1, 3, 64, 128), testing::Values(256)
+
 #else
 
 #define BASIC_BATCH_CHANNEL_SIZE                                                                                       \
     testing::Values(1, 2), testing::Values(1, 2, 3, 4, 10, 32), testing::Values(9, 10, 16, 19)
+
+#define UNARY_BATCH_CHANNEL_SIZE                                                                                       \
+    testing::Values(1, 2), testing::Values(1, 3, 4), testing::Values(3)
 
 #endif
 

@@ -14,33 +14,12 @@
 
 #include "test/unit_test/layer_test/test_binary_layer.h"
 #include "tnn/utils/cpu_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
 BinaryLayerTest::BinaryLayerTest(LayerType type) {
     layer_type_ = type;
-}
-
-bool BinaryLayerTest::InputParamCheck(const DataType& data_type, const DeviceType& dev, const int batch) {
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev && DEVICE_X86 != dev) {
-        return true;
-    }
-
-    if (data_type == DATA_TYPE_HALF && DEVICE_ARM != dev) {
-        return true;
-    }
-
-#ifndef TNN_ARM82
-    if (data_type == DATA_TYPE_HALF) {
-        return true;
-    }
-#endif
-
-    if (batch > 1 && DEVICE_METAL == dev) {
-        return true;
-    }
-
-    return false;
 }
 
 void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_positive) {
@@ -51,36 +30,44 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_po
     int input_count     = std::get<3>(GetParam());
     int param_size_type = std::get<4>(GetParam());
     int weight_idx      = std::get<5>(GetParam());
-    DataType data_type  = std::get<6>(GetParam());
+    int dims_size       = std::get<6>(GetParam());
+    DataType data_type  = std::get<7>(GetParam());
     DeviceType dev      = ConvertDeviceType(FLAGS_dt);
 
-    if (InputParamCheck(data_type, dev, batch)) {
-
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 
+    if (batch > 1 && DEVICE_METAL == dev) {
+         GTEST_SKIP();
+    }
     if (batch > 1 && param_size_type == 3 && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+    if (dims_size != 4 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
     std::vector<int> param_dims;
-    int param_count = 1;
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
     if (0 == param_size_type) {
-        param_count = 1;
         param_dims  = {1, 1, 1, 1};
     } else if (1 == param_size_type) {
-        param_count = channel;
         param_dims  = {1, channel, 1, 1};
     } else if (2 == param_size_type) {
-        param_count = channel * input_size * input_size;
         param_dims  = {1, channel, input_size, input_size};
     } else if (3 == param_size_type) {
-        param_count = input_size * input_size;
         param_dims  = {1, 1, input_size, input_size};
+    }
+
+    for (int i = dims_size; i < 4; ++i) {
+        param_dims.pop_back();
+        input_dims.pop_back();
     }
 
     std::shared_ptr<EltwiseLayerResource> resource = nullptr;
     if (input_count == 1) {
+        int param_count = DimsVectorUtils::Count(param_dims);
         resource = std::shared_ptr<EltwiseLayerResource>(new EltwiseLayerResource());
         RawBuffer buffer(param_count * sizeof(float));
         float* buffer_data = buffer.force_to<float*>();
@@ -113,33 +100,22 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_po
             // this case doesn't exist
             return;
         } else if (0 == weight_idx) {
-            input0_dims = {batch, channel, input_size, input_size};
+            input0_dims = input_dims;
         } else if (1 == weight_idx) {
-            input0_dims = {batch, channel, input_size, input_size};
+            input0_dims = input_dims;
         }
     } else if (2 == input_count) {
         if (-1 == weight_idx) {
             // the size of input are same
-            input0_dims = {batch, channel, input_size, input_size};
-            input1_dims = {batch, channel, input_size, input_size};
+            input0_dims = input_dims;
+            input1_dims = input_dims;
         } else {
-            std::vector<int> weight_dims;
-            if (0 == param_size_type) {
-                weight_dims = {1, 1, 1, 1};
-            } else if (1 == param_size_type) {
-                weight_dims = {1, channel, 1, 1};
-            } else if (2 == param_size_type) {
-                weight_dims = {1, channel, input_size, input_size};
-            } else if (3 == param_size_type) {
-                weight_dims = {1, 1, input_size, input_size};
-            }
-
             if (0 == weight_idx) {
-                input0_dims = weight_dims;
-                input1_dims = {batch, channel, input_size, input_size};
+                input0_dims = param_dims;
+                input1_dims = input_dims;
             } else if (1 == weight_idx) {
-                input0_dims = {batch, channel, input_size, input_size};
-                input1_dims = weight_dims;
+                input0_dims = input_dims;
+                input1_dims = param_dims;
             }
         }
     } else {

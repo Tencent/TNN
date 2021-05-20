@@ -21,8 +21,14 @@ DECLARE_CPU_BINARY_OP_ACC(Div, LAYER_DIV);
 
 Status CpuDivLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, const std::vector<void *> &input_ptrs,
                                  const std::vector<DimsVector> &input_shapes, Blob *output) {
+    void *output_data       = output->GetHandle().base;
+    const auto &output_dims = output->GetBlobDesc().dims;
     if (output->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        CPU_DIV(input_ptrs, input_shapes, output->GetHandle().base, output->GetBlobDesc().dims);
+        CPU_ELEMENT_WISE<float, float>(input_ptrs, input_shapes, output_data, output_dims,
+                                [](float a, float b) -> float { return a / b; });
+    } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        CPU_ELEMENT_WISE<int, int>(input_ptrs, input_shapes, output_data, output_dims,
+                                  [](int a, int b) -> int { return a / b; });
     } else {
         LOGE("Error: CpuDivLayerAcc don't support data type: %d\n", output->GetBlobDesc().data_type);
         return Status(TNNERR_MODEL_ERR, "CpuDivLayerAcc don't support data type");

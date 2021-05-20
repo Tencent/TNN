@@ -346,24 +346,24 @@ int main(int argc, char* argv[]) {
     Calibration calibration;
     Status status = calibration.Init(net_config, model_config);
     if (status != TNN_OK) {
-        printf("calibration init falied!\n");
+        printf("calibration init failed!\n");
         return -1;
     }
 
     ret = calibration.SetCalibrationParams(cali_params);
     if (ret != 0) {
-        printf("set calibration params falied!\n");
+        printf("set calibration params failed!\n");
         return -1;
     }
 
     status = calibration.RunCalibration(dataset);
     if (status != TNN_OK) {
-        printf("calibration run falied!\n");
+        printf("calibration run failed!\n");
         return -1;
     }
     status = calibration.Serialize(output_name + ".quantized.tnnproto", output_name + ".quantized.tnnmodel");
     if (status != TNN_OK) {
-        printf("calibration serialize falied! (%s)\n", status.description().c_str());
+        printf("calibration serialize failed! (%s)\n", status.description().c_str());
         return -1;
     }
     printf("quantize model success!\n");

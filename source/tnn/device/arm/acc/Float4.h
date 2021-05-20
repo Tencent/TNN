@@ -283,22 +283,22 @@ struct Float4 {
         dst.value = vabsq_f32(v.value);
         return dst;
     }
-    Float4 operator+(const Float4& lr) {
+    Float4 operator+(const Float4& lr) const {
         Float4 dst;
         dst.value = value + lr.value;
         return dst;
     }
-    Float4 operator-(const Float4& lr) {
+    Float4 operator-(const Float4& lr) const {
         Float4 dst;
         dst.value = value - lr.value;
         return dst;
     }
-    Float4 operator*(float lr) {
+    Float4 operator*(float lr) const {
         Float4 dst;
         dst.value = vmulq_n_f32(value, lr);
         return dst;
     }
-    Float4 operator*(const Float4& lr) {
+    Float4 operator*(const Float4& lr) const {
         Float4 dst;
         dst.value = value * lr.value;
         return dst;
@@ -311,7 +311,7 @@ struct Float4 {
         value = std::move(lr.value);
         return *this;
     }
-    Float4 operator-() {
+    Float4 operator-() const {
         Float4 dst;
         dst.value = -value;
         return dst;

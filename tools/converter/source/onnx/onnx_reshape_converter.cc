@@ -14,6 +14,7 @@
 
 #include "onnx_base_converter.h"
 #include "onnx_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Reshape);
@@ -26,8 +27,8 @@ TNN_NS::ActivationType OnnxReshapeConverter::ActivationType(const onnx::NodeProt
 }
 TNN_NS::Status OnnxReshapeConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                           const onnx::NodeProto &node,
-                                          std::map<std::string, const onnx::TensorProto *> proxy_initializers_map,
-                                          std::map<std::string, std::shared_ptr<OnnxProxyNode>> proxy_nodes,
+                                          std::map<std::string, const onnx::TensorProto *> &proxy_initializers_map,
+                                          std::map<std::string, std::shared_ptr<OnnxProxyNode>> &proxy_nodes,
                                           bool &quantized_model) {
     const std::string &onnx_op = node.op_type();
     auto param                 = new TNN_NS::ReshapeLayerParam;
@@ -36,26 +37,37 @@ TNN_NS::Status OnnxReshapeConverter::exec(TNN_NS::NetStructure &net_structure, T
     param->type                = cur_layer->type_str;
     param->name                = cur_layer->name;
     param->quantized           = false;
-
+#if 0
     param->axis         = 0;
     param->num_axes     = 4;
     param->shape        = {0, -1, 1, 1};
     param->reshape_type = 0;
-#if 0
-    const auto &shape_name           = node.input(1);
-    const auto &shape_node           = FindNodeProto(shape_name, proxy_nodes);
-    const auto &shape_tensor         = GetAttributeTensor(*shape_node, "value");
-    const int64_t *shape_tensor_data = (int64_t *)GetTensorProtoData(shape_tensor);
-    const int shape_tensor_size      = GetTensorProtoDataSize(shape_tensor);
-
-    assert(shape_tensor_size <= 4);
-
-    for (int i = 0; i < shape_tensor_size; i++) {
-        param->shape[i] = shape_tensor_data[i];
-    }
+    return TNN_NS::TNN_CONVERT_OK;
 #endif
-    cur_layer->inputs.resize(1);
-    cur_layer->inputs[0] = node.input(0);
+    const auto &resource_map = net_resource.resource_map;
+    const auto &shape_name   = node.input(1);
+    if (proxy_initializers_map.find(shape_name) != proxy_initializers_map.end()) {
+        const auto shape_tensor     = proxy_initializers_map[shape_name];
+        std::vector<int> shape_dims = std::vector<int>(shape_tensor->dims().begin(), shape_tensor->dims().end());
+        std::vector<int> shape;
+        int shape_count    = TNN_NS::DimsVectorUtils::Count(shape_dims);
+        void *raw_data_ptr = GetDataFromTensor(*shape_tensor, onnx::TensorProto_DataType_INT64);
+        for (int i = 0; i < shape_count; ++i) {
+            shape.push_back(*((int64_t *)raw_data_ptr + i));
+        }
+        param->axis         = 0;
+        param->num_axes     = shape.size();
+        param->shape        = shape;
+        param->reshape_type = 0;
+        cur_layer->inputs.resize(1);
+        cur_layer->inputs[0] = node.input(0);
+    } else {
+        param->axis         = 0;
+        param->num_axes     = 0;
+        param->shape        = {};
+        param->reshape_type = 0;
+    }
+
     return TNN_NS::TNN_CONVERT_OK;
 }
 

@@ -15,7 +15,7 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -52,14 +52,19 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
+    if(CheckDataTypeSkip(data_type)) {
+        GTEST_SKIP();
+    }
+
     if (mode == 3) {
         // skip cubic upsample for now
-        if (data_type == DATA_TYPE_INT8 || DEVICE_HUAWEI_NPU == dev) {
+        if (data_type == DATA_TYPE_INT8 || DEVICE_HUAWEI_NPU == dev || DEVICE_CUDA == dev) {
             GTEST_SKIP();
         }
     }
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev && DEVICE_X86 != dev) {
+    if (align_corners == 1 && DEVICE_CUDA == dev) {
+        // trt may get wrong result when align_corners == true
         GTEST_SKIP();
     }
 

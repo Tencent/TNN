@@ -791,7 +791,7 @@ void X86SgemvLeft(float* dst, const float* src, const float* weight, float *bias
 
 template <typename VEC, int pack>
 void X86Sgemv(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output) {
-    size_t batch_stride = dims_input[3] * dims_input[2] * dims_input[1];
+    size_t batch_stride = DimsVectorUtils::Count(dims_input, 1);
     for (int b = 0; b < dims_output[0]; ++b) {
         const float *src_batch = src + b * batch_stride;
         float *dst_batch = dst + b * dims_output[1];
@@ -890,4 +890,103 @@ template void X86_Post_Exec<ActivationType_ReLU, Float8, 8>(float *dst, const fl
 template void X86_Post_Exec<ActivationType_ReLU6, Float8, 8>(float *dst, const float *bias, long channel, long area);
 
 //ActivationType_SIGMOID_MUL TBD
+
+template <typename VEC, int pack>
+void X86_VectorAdd(float *dst, const float *src_a, const float *src_b, long len) {
+    long i = 0;
+    for (; i + pack - 1 < len; i += pack) {
+        VEC a_vec = VEC::loadu(src_a + i);
+        VEC b_vec = VEC::loadu(src_b + i);
+        VEC c_vec = VEC::add(a_vec, b_vec);
+        VEC::saveu(dst + i, c_vec);
+    }
+    for (; i < len; i++) {
+        dst[i] = src_a[i] + src_b[i];
+    }
+}
+template void X86_VectorAdd<Float4, 4>(float *dst, const float *src_a, const float *src_b, long len);
+template void X86_VectorAdd<Float8, 8>(float *dst, const float *src_a, const float *src_b, long len);
+
+template <typename VEC, int pack>
+void X86_VectorAdd(float *dst, const float *src, long len) {
+    long i = 0;
+    for (; i + pack - 1 < len; i += pack) {
+        VEC a_vec = VEC::loadu(src + i);
+        VEC b_vec = VEC::loadu(dst + i);
+        VEC c_vec = VEC::add(a_vec, b_vec);
+        VEC::saveu(dst + i, c_vec);
+    }
+    for (; i < len; i++) {
+        dst[i] += src[i];
+    }
+}
+template void X86_VectorAdd<Float4, 4>(float *dst, const float *src, long len);
+template void X86_VectorAdd<Float8, 8>(float *dst, const float *src, long len);
+
+void X86StrideSliceImpl(DimsVector begins, DimsVector strides, DimsVector dims_output,
+                        DimsVector input_strides, DimsVector output_strides,
+                        const float* input_data, float* output_data) {
+    if (dims_output.size() == 5) {
+        for (int n = 0, n_idx = begins[0]; n < dims_output[0]; n++, n_idx += strides[0]) {
+            auto input_n = input_data + n_idx * input_strides[0];
+            auto output_n = output_data + n * output_strides[0];
+            for (int c = 0, c_idx = begins[1]; c < dims_output[1]; c++, c_idx += strides[1]) {
+                auto input_c = input_n + c_idx * input_strides[1];
+                auto output_c = output_n + c * output_strides[1];
+                for (int h = 0, h_idx = begins[2]; h < dims_output[2]; h++, h_idx += strides[2]) {
+                    auto input_h = input_c + h_idx * input_strides[2];
+                    auto output_h = output_c + h * output_strides[2];
+                    for (int w = 0, w_idx = begins[3]; w < dims_output[3]; w++, w_idx += strides[3]) {
+                        auto input_w = input_h + w_idx * input_strides[3];
+                        auto output_w = output_h + w * output_strides[3];
+                        for (int x = 0, x_idx = begins[4]; x < dims_output[4]; x++, x_idx += strides[4]) {
+                            output_w[x] = input_w[x_idx];
+                        }
+                    }
+                }
+            }
+        }
+    } else if (dims_output.size() == 4) {
+        for (int n = 0, n_idx = begins[0]; n < dims_output[0]; n++, n_idx += strides[0]) {
+            auto input_n = input_data + n_idx * input_strides[0];
+            auto output_n = output_data + n * output_strides[0];
+            for (int c = 0, c_idx = begins[1]; c < dims_output[1]; c++, c_idx += strides[1]) {
+                auto input_c = input_n + c_idx * input_strides[1];
+                auto output_c = output_n + c * output_strides[1];
+                for (int h = 0, h_idx = begins[2]; h < dims_output[2]; h++, h_idx += strides[2]) {
+                    auto input_h = input_c + h_idx * input_strides[2];
+                    auto output_h = output_c + h * output_strides[2];
+                    for (int w = 0, w_idx = begins[3]; w < dims_output[3]; w++, w_idx += strides[3]) {
+                        output_h[w] = input_h[w_idx];
+                    }
+                }
+            }
+        }
+    } else if (dims_output.size() == 3) {
+        for (int n = 0, n_idx = begins[0]; n < dims_output[0]; n++, n_idx += strides[0]) {
+            auto input_n = input_data + n_idx * input_strides[0];
+            auto output_n = output_data + n * output_strides[0];
+            for (int c = 0, c_idx = begins[1]; c < dims_output[1]; c++, c_idx += strides[1]) {
+                auto input_c = input_n + c_idx * input_strides[1];
+                auto output_c = output_n + c * output_strides[1];
+                for (int h = 0, h_idx = begins[2]; h < dims_output[2]; h++, h_idx += strides[2]) {
+                    output_c[h] = input_c[h_idx];
+                }
+            }
+        }
+    } else if (dims_output.size() == 2) {
+        for (int n = 0, n_idx = begins[0]; n < dims_output[0]; n++, n_idx += strides[0]) {
+            auto input_n = input_data + n_idx * input_strides[0];
+            auto output_n = output_data + n * output_strides[0];
+            for (int c = 0, c_idx = begins[1]; c < dims_output[1]; c++, c_idx += strides[1]) {
+                output_n[c] = input_n[c_idx];
+            }
+        }
+    } else if (dims_output.size() == 1) {
+        for (int n = 0, n_idx = begins[0]; n < dims_output[0]; n++, n_idx += strides[0]) {
+            output_data[n] = input_data[n_idx];
+        }
+    }
+}
+
 }

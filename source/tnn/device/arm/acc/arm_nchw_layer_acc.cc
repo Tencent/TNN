@@ -16,7 +16,7 @@
 
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -34,11 +34,11 @@ Status ArmNchwLayerAcc::UnPackInputs(const std::vector<Blob *> &inputs) {
     for (int i = 0; i < inputs.size(); i++) {
         auto input_dims = inputs[i]->GetBlobDesc().dims;
         for (int n = 0; n < input_dims[0]; ++n) {
-            auto in_count  = input_dims[3] * input_dims[2] * ROUND_UP(input_dims[1], ic_round_up);
-            auto out_count = input_dims[3] * input_dims[2] * input_dims[1];
-            T *src = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[i]->GetHandle())) + n * in_count;
-            T *dst = reinterpret_cast<T *>(GetBlobHandlePtr(nchw_blob_in[i]->GetHandle())) + n * out_count;
-            UnpackCX(dst, src, input_dims[3] * input_dims[2], input_dims[1]);
+            auto in_count  = DimsVectorUtils::Count(input_dims, 2) * ROUND_UP(input_dims[1], ic_round_up);
+            auto out_count = DimsVectorUtils::Count(input_dims, 2) * input_dims[1];
+            T *src         = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[i]->GetHandle())) + n * in_count;
+            T *dst         = reinterpret_cast<T *>(GetBlobHandlePtr(nchw_blob_in[i]->GetHandle())) + n * out_count;
+            UnpackCX(dst, src, DimsVectorUtils::Count(input_dims, 2), input_dims[1]);
         }
     }
     return TNN_OK;
@@ -60,11 +60,11 @@ Status ArmNchwLayerAcc::PackOutputs(const std::vector<Blob *> &outputs) {
         auto out_dims                  = nchw_blob_out[i]->GetBlobDesc().dims;
         outputs[i]->GetBlobDesc().dims = out_dims;
         for (int n = 0; n < out_dims[0]; ++n) {
-            auto in_count  = out_dims[3] * out_dims[2] * out_dims[1];
-            auto out_count = out_dims[3] * out_dims[2] * ROUND_UP(out_dims[1], oc_round_up);
-            T *src = reinterpret_cast<T *>(GetBlobHandlePtr(nchw_blob_out[i]->GetHandle())) + n * in_count;
-            T *dst = reinterpret_cast<T *>(GetBlobHandlePtr(outputs[i]->GetHandle())) + n * out_count;
-            PackCX(dst, src, out_dims[3] * out_dims[2], out_dims[1]);
+            auto in_count  = DimsVectorUtils::Count(out_dims, 2) * out_dims[1];
+            auto out_count = DimsVectorUtils::Count(out_dims, 2) * ROUND_UP(out_dims[1], oc_round_up);
+            T *src         = reinterpret_cast<T *>(GetBlobHandlePtr(nchw_blob_out[i]->GetHandle())) + n * in_count;
+            T *dst         = reinterpret_cast<T *>(GetBlobHandlePtr(outputs[i]->GetHandle())) + n * out_count;
+            PackCX(dst, src, DimsVectorUtils::Count(out_dims, 2), out_dims[1]);
         }
     }
     return TNN_OK;

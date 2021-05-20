@@ -29,7 +29,7 @@ namespace TNN_NS {
 //      output:  B MxN matrix in col major(N-packed), so the storage-format is 
 //                    (divUp(N, block_size), M, block_size)
 template<typename T>
-void pack_n(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, conv_gemm_config<T, T, T> &conv_gemm_conf)
+void pack_col_b_n(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, conv_gemm_config<T, T, T> &conv_gemm_conf)
 {
     int block_size = conv_gemm_conf.n_block_;
     dim_t i=0; 
@@ -48,7 +48,7 @@ void pack_n(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, conv_gem
 }
 
 template 
-void pack_n<float>(const float * a, dim_t lda, float * b, dim_t ldb, 
+void pack_col_b_n<float>(const float * a, dim_t lda, float * b, dim_t ldb, 
                    dim_t m, dim_t n,
                    conv_gemm_config<float, float, float> &conv_gemm_conf);
 
@@ -57,7 +57,7 @@ void pack_n<float>(const float * a, dim_t lda, float * b, dim_t ldb,
 //      output:  B MxN matrix in col major(N-packed), so the storage-format is 
 //                    (divUp(N, block_size), M, block_size)
 template<typename T>
-void pack_t(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, conv_gemm_config<T, T, T> &conv_gemm_conf) 
+void pack_col_a_n(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, conv_gemm_config<T, T, T> &conv_gemm_conf) 
 {
     dim_t block_size = conv_gemm_conf.m_block_;
     dim_t i = 0; 
@@ -130,8 +130,78 @@ void pack_t(const T * a, dim_t lda, T * b, dim_t ldb, dim_t m, dim_t n, conv_gem
 }
 
 template 
-void pack_t<float>(const float * a, dim_t lda, float * b, dim_t ldb, 
+void pack_col_a_n<float>(const float * a, dim_t lda, float * b, dim_t ldb, 
                    dim_t m, dim_t n,
                    conv_gemm_config<float, float, float> &conv_gemm_conf);
+
+template <int blk, typename T>
+void pack_a_t_trans(
+    const T *src,
+    dim_t lda,
+    T *dst,
+    dim_t cur_k,
+    dim_t block_size)
+{
+    for (int j = 0; j < blk; j++) {
+        auto src_j = src + j * lda;
+        auto dst_j = dst + j;
+        for (int k = 0; k < cur_k; k++) {
+            dst_j[k * block_size] = src_j[k];
+        }
+    }
+}
+
+// lda -> total_k
+// ldb -> m_block_size (M_c)
+// cur_k
+// cur_m
+template<typename T>
+void pack_col_a_t(
+    const T *src_a,
+    dim_t lda,
+    T *src_b,
+    dim_t ldb,
+    dim_t cur_k,
+    dim_t cur_m,
+    conv_gemm_config<T, T, T> &conv_gemm_conf)
+{
+    dim_t block_size = conv_gemm_conf.m_block_;
+    dim_t i = 0;
+
+    if (block_size == 16) {
+        for (; i + 15 < cur_m; i += 16) {
+            auto a_ptr = src_a + i * lda;
+            auto b_ptr = src_b + i * ldb;
+            pack_a_t_trans<16, T>(a_ptr, lda, b_ptr, cur_k, block_size);
+        }
+    }
+    for (; i + 7 < cur_m; i += 8) {
+        auto a_ptr = src_a + i * lda;
+        auto b_ptr = src_b + divDown(i, block_size) * ldb + i % block_size;
+        pack_a_t_trans<8, T>(a_ptr, lda, b_ptr, cur_k, block_size);
+    }
+    for (; i + 3 < cur_m; i += 4) {
+        auto a_ptr = src_a + i * lda;
+        auto b_ptr = src_b + divDown(i, block_size) * ldb + i % block_size;
+        pack_a_t_trans<4, T>(a_ptr, lda, b_ptr, cur_k, block_size);
+    }
+    for (; i + 2 < cur_m; i += 3) {
+        auto a_ptr = src_a + i * lda;
+        auto b_ptr = src_b + divDown(i, block_size) * ldb + i % block_size;
+        pack_a_t_trans<3, T>(a_ptr, lda, b_ptr, cur_k, block_size);
+    }
+    for (; i + 1 < cur_m; i += 2) {
+        auto a_ptr = src_a + i * lda;
+        auto b_ptr = src_b + divDown(i, block_size) * ldb + i % block_size;
+        pack_a_t_trans<2, T>(a_ptr, lda, b_ptr, cur_k, block_size);
+    }
+    for (; i < cur_m; i++) {
+        auto a_ptr = src_a + i * lda;
+        auto b_ptr = src_b + divDown(i, block_size) * ldb + i % block_size;
+        pack_a_t_trans<1, T>(a_ptr, lda, b_ptr, cur_k, block_size);
+    }
+}
+template void pack_col_a_t<float>(const float * a, dim_t lda, float * b, dim_t ldb, 
+                   dim_t m, dim_t n, conv_gemm_config<float, float, float> &conv_gemm_conf);
 
 } // namespace tnn

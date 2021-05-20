@@ -25,7 +25,7 @@ Status ArmMulLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
         return status;
     }
 
-    _Operator = [=](Float4 v1, Float4 v2) -> Float4 { return v1 * v2; };
+    op_type_ = ArmBinaryOpType::kMUL;
 
     return TNN_OK;
 }
@@ -33,5 +33,7 @@ Status ArmMulLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 ArmMulLayerAcc::~ArmMulLayerAcc() {}
 
 REGISTER_ARM_ACC(Mul, LAYER_MUL)
+REGISTER_ARM_PRECISION_FP16(LAYER_MUL)
+REGISTER_ARM_LAYOUT(LAYER_MUL, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

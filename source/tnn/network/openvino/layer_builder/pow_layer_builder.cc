@@ -46,11 +46,13 @@ Status PowOVLayerBuilder::Build() {
     auto mulConst = std::make_shared<ngraph::op::Constant>(
         ngraph::element::Type_t::f32, powNodeShape, std::vector<float>{paramlist->scale});
     auto mulNode = std::make_shared<ngraph::op::v1::Multiply>(input_node->output(0), mulConst);
+    mulNode->set_friendly_name(paramlist->name + "_mul");
     mulNode->validate_and_infer_types();
 
     auto addConst = std::make_shared<ngraph::op::Constant>(
         ngraph::element::Type_t::f32, powNodeShape, std::vector<float>{paramlist->shift});
     auto addNode = std::make_shared<ngraph::op::v1::Add>(mulNode->output(0), addConst);
+    addNode->set_friendly_name(paramlist->name + "_add");
     addNode->validate_and_infer_types();
 
     auto powerConst = std::make_shared<ngraph::op::Constant>(

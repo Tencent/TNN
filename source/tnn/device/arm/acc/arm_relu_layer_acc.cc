@@ -13,9 +13,11 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_relu_layer_acc.h"
+
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -25,7 +27,7 @@ Status ArmReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 
     auto dims = output->GetBlobDesc().dims;
 
-    long count = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+    long count = dims[0] * ROUND_UP(dims[1], 4) * DimsVectorUtils::Count(dims, 2);
 
     auto &data_type = input->GetBlobDesc().data_type;
     if (data_type == DATA_TYPE_INT8) {
@@ -60,5 +62,6 @@ Status ArmReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 
 REGISTER_ARM_ACC(Relu, LAYER_RELU)
 REGISTER_ARM_PRECISION_FP16(LAYER_RELU)
+REGISTER_ARM_LAYOUT(LAYER_RELU, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

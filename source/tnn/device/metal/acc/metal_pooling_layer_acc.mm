@@ -15,6 +15,7 @@
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -129,5 +130,6 @@ Status MetalPoolingLayerAcc::ComputeThreadgroupSize(const std::vector<Blob *> &i
 }
 
 REGISTER_METAL_ACC(Pooling, LAYER_POOLING);
+REGISTER_METAL_LAYOUT(LAYER_POOLING, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

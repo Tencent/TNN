@@ -60,6 +60,8 @@ public:
 protected:
     id<MTLBuffer> buffer_weight_ = nil;
     id<MTLBuffer> buffer_bias_   = nil;
+    bool is_channel_4x_ = false;
+    int bias_datatype_bytes_ = 0;
 };
 
 }  // namespace TNN_NS

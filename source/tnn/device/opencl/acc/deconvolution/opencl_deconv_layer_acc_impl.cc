@@ -14,7 +14,7 @@
 
 #include "tnn/device/opencl/acc/deconvolution/opencl_deconv_layer_common_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
@@ -46,8 +46,8 @@ Status OpenCLDeconvLayerAccImpl::Init(Context *context, LayerParam *param, Layer
     deconv_params_.has_bias        = conv_param->bias;
     deconv_params_.activation_type = conv_param->activation_type;
 
-    deconv_params_.input_channel  = inputs[0]->GetBlobDesc().dims[1];
-    deconv_params_.output_channel = outputs[0]->GetBlobDesc().dims[1];
+    deconv_params_.input_channel  = DimsFunctionUtils::GetDim(inputs[0]->GetBlobDesc().dims, 1);
+    deconv_params_.output_channel = DimsFunctionUtils::GetDim(outputs[0]->GetBlobDesc().dims, 1);
 
     if ((deconv_params_.group <= 0 || deconv_params_.input_channel % deconv_params_.group != 0)) {
         LOGE("invalid group size in DeConv layer!\n");
@@ -94,8 +94,8 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
     auto output_dims = output->GetBlobDesc().dims;
 
     // output_channel/4
-    const int output_channel_blocks = UP_DIV(output_dims[1], 4);
-    const int input_channel_blocks = UP_DIV(input_dims[1], 4);
+    const int output_channel_blocks = UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4);
+    const int input_channel_blocks = UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4);
 
     int pad_x_trans = deconv_params_.kernel_x - 1 - deconv_params_.pad_x;
     int pad_y_trans = deconv_params_.kernel_y - 1 - deconv_params_.pad_y;
@@ -104,9 +104,9 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
     const int align_height = deconv_params_.stride_y - 1 - pad_y_trans;
 
     //input_width, input_height
-    int input_imageshape[2]  = {input_dims[3], input_dims[2]};
+    int input_imageshape[2]  = {DimsFunctionUtils::GetDim(input_dims, 3), DimsFunctionUtils::GetDim(input_dims, 2)};
     //output_width, output_height
-    int output_imageshape[2] = {output_dims[3], output_dims[2]};
+    int output_imageshape[2] = {DimsFunctionUtils::GetDim(output_dims, 3), DimsFunctionUtils::GetDim(output_dims, 2)};
     int stride_shape[2]      = {deconv_params_.stride_x, deconv_params_.stride_y};
     int align_shape[2]       = {align_width, align_height};
     int padding_shape[2]     = {pad_x_trans, pad_y_trans};
@@ -117,17 +117,20 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
         deconv_params_.kernel_x == 4 && deconv_params_.kernel_y == 4 &&
         deconv_params_.stride_x == 2 && deconv_params_.stride_y == 2 &&
         deconv_params_.pad_x == 1 && deconv_params_.pad_y == 1 &&
-        deconv_params_.dilation_x == 1 && deconv_params_.dilation_y == 1 && output_dims[3] % 4 == 0);
+        deconv_params_.dilation_x == 1 && deconv_params_.dilation_y == 1 && DimsFunctionUtils::GetDim(output_dims, 3) % 4 == 0);
 
     // output_width * output_channel/4, batch * output_height
     execute_units_[0].global_work_size = {
-            static_cast<uint32_t>(output_dims[3] * UP_DIV(output_dims[1], 4)),
-            static_cast<uint32_t>(output_dims[0] * output_dims[2])};
+            static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3) *
+                                  UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4)),
+            static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 0) *
+                                  DimsFunctionUtils::GetDim(output_dims, 2))};
 
     if (is_deconv_4x4_s2_p1_wb4) {
         // output_width/4 * output_channel/4, batch * output_height
         execute_units_[0].global_work_size[0] =
-            static_cast<uint32_t>(UP_DIV(output_dims[3], 4) * UP_DIV(output_dims[1], 4));
+            static_cast<uint32_t>(UP_DIV(DimsFunctionUtils::GetDim(output_dims, 3), 4) *
+                                  UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4));
     }
 
     uint32_t idx = 0;
@@ -143,7 +146,8 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(output_imageshape), output_imageshape);
 
     if (is_deconv_4x4_s2_p1_wb4) {
-        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(UP_DIV(output_dims[3], 4)));
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(
+            UP_DIV(DimsFunctionUtils::GetDim(output_dims, 3), 4)));
     } else {
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(align_shape), align_shape);
@@ -204,7 +208,7 @@ Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
                       (cl::size_type)bytes_size, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Deconv malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Deconv malloc memory failed");
     }
     weight_buffer->SetData(&buffer);
     auto weight_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(buffer, true, CL_MAP_WRITE, 0, bytes_size,
@@ -217,7 +221,7 @@ Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(buffer, weight_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Deconv MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Deconv MemUnMap failed");
     }
 
     // create ocl_weights_
@@ -239,7 +243,7 @@ Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     ocl_weights_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_weights_->SetData(image, true);

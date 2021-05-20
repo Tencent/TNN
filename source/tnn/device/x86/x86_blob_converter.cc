@@ -298,13 +298,13 @@ static Status ConvertNCHWFloatToInt8Blob(Mat& image, char* handle_ptr,
     return TNN_OK;
 }
 
-static Status ConvertInt8MatToInt8Blob(Mat& image, char* handle_ptr,
-                                       const MatConvertParam& param, const DimsVector& dims,
-                                       const int hw, const int c_r4,
+static Status ConvertInt8MatToInt8Blob(Mat& image, char* handle_ptr, const MatConvertParam& param,
+                                       const DimsVector& dims, const int hw, const int c_r4,
                                        std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
-    return DataFormatConverter::ConvertFromNCHWToNHWC4Int8(reinterpret_cast<int8_t *>(image.GetData()),
-                                                           reinterpret_cast<int8_t *>(handle_ptr),
-                                                           dims[0], dims[1], dims[2], dims[3]);
+    auto batch   = DimsFunctionUtils::GetDim(dims, 0);
+    auto channel = DimsFunctionUtils::GetDim(dims, 1);
+    return DataFormatConverter::ConvertFromNCHWToNHWC4Int8(reinterpret_cast<int8_t*>(image.GetData()),
+                                                           reinterpret_cast<int8_t*>(handle_ptr), batch, channel, hw);
 }
 
 REGISTER_X86_BLOB_CONVERT_FUNC(N8UC4,               DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertN8UC4ToInt8Blob)
@@ -408,13 +408,13 @@ static Status ConvertInt8BlobToNCHWFloat(Mat& image, char* handle_ptr,
     return TNN_OK;
 }
 
-static Status ConvertInt8BlobToInt8Mat(Mat& image, char* handle_ptr,
-                                       const MatConvertParam& param, const DimsVector& dims,
-                                       const int hw, const int c_r4,
+static Status ConvertInt8BlobToInt8Mat(Mat& image, char* handle_ptr, const MatConvertParam& param,
+                                       const DimsVector& dims, const int hw, const int c_r4,
                                        std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
-    return DataFormatConverter::ConvertFromNHWC4ToNCHWInt8(reinterpret_cast<int8_t *>(handle_ptr),
-                                                           reinterpret_cast<int8_t *>(image.GetData()),
-                                                           dims[0], dims[1], dims[2], dims[3]);
+    auto batch   = DimsFunctionUtils::GetDim(dims, 0);
+    auto channel = DimsFunctionUtils::GetDim(dims, 1);
+    return DataFormatConverter::ConvertFromNHWC4ToNCHWInt8(
+        reinterpret_cast<int8_t*>(handle_ptr), reinterpret_cast<int8_t*>(image.GetData()), batch, channel, hw);
 }
 
 REGISTER_X86_BLOB_CONVERT_FUNC(N8UC4,               DATA_TYPE_INT8,  CVT_DIR_BLOB2MAT, ConvertInt8BlobToN8UC4)

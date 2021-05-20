@@ -41,8 +41,8 @@ def gene_random_data(input_info: dict) -> str:
             data[name] = np.random.rand(*shape)
             np.savetxt(data_file, data[name].reshape(-1), fmt="%0.6f")
         elif data_type == 3:
-            data[name] = np.random.randint(low=0,high=1
-                                           , size=shape)
+            # range [low, high)
+            data[name] = np.random.randint(low=0, high=2, size=shape)
             np.savetxt(data_file, data[name].reshape(-1), fmt="%i")
     data_file.close()
     return data_path

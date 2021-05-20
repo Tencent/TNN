@@ -11,60 +11,57 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-
-#include "tnn/device/x86/acc/x86_arg_max_or_min_layer_acc.h"
+#include "tnn/device/x86/acc/x86_layer_acc.h"
+#include "tnn/utils/dims_vector_utils.h"
+#include <iostream>
 
 namespace TNN_NS {
-
-Status X86ArgMaxOrMinLayerAcc::Init(Context *context, LayerParam *param, LayerResource* resource, const std::vector<Blob*> &inputs,
-                                    const std::vector<Blob *> &outputs) {
-    auto param_list = dynamic_cast<ArgMaxOrMinLayerParam *>(param);
-    auto input_dims = inputs[0]->GetBlobDesc().dims;
-
-    num_        = DimsVectorUtils::Count(input_dims, 0, param_list->axis);
-    channels_   = input_dims[param_list->axis];
-    stride_     = DimsVectorUtils::Count(input_dims, param_list->axis + 1);
-    stride_     = stride_ == 0 ? 1 : stride_;
-
-    if (param_list->mode == 0) op_ = std::make_shared<X86_ARG_MIN_OP>();
-    else                       op_ = std::make_shared<X86_ARG_MAX_OP>();
-
-    return TNN_OK;
-}
+DECLARE_X86_ACC(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN);
 
 Status X86ArgMaxOrMinLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-
-    auto input_blob     = inputs[0];
-    auto output_blob    = outputs[0];
-
-    // dimension：num,axis,stride -> num, 1, stride
-    // SIMD: 1 stride ->  8-16 stride
-    // maintain " tmp, val, index "
-    // val = max(val, cur), mask = dif(tmp, val), index = select_mask(mask, cur_index, index)
-    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        float *input_ptr = static_cast<float *>(input_blob->GetHandle().base);
-        float *output_ptr = static_cast<float *>(output_blob->GetHandle().base);
-        for (int n = 0; n < num_; n++) {
-            for (int s = 0; s < stride_; s++) {
-                int guard_index = 0;
-                int ptr_base = n * stride_ * channels_ + s;
-                float gurad_value = 0.0;
-                op_->Init();
-                for (int c = 0; c < channels_; c++) {
-                    (*op_)(c, input_ptr[ptr_base]);
-                    ptr_base += stride_;
-                }
-                output_ptr[n * stride_ + s] = (float)op_->get_idx();
-            }
-        }
-    } else {
-        LOGE("Error : layer acc dont support datatype : %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+    auto param       = dynamic_cast<ArgMaxOrMinLayerParam *>(param_);
+    CHECK_PARAM_NULL(param);
+    auto input_blob  = inputs[0];
+    auto output_blob = outputs[0];
+    auto input_dims  = input_blob->GetBlobDesc().dims;
+    int axis         = param->axis;
+    int num          = DimsVectorUtils::Count(input_dims, 0, axis);
+    int channels     = input_dims[axis];
+    int stride       = DimsVectorUtils::Count(input_dims, axis + 1);
+    if (stride == 0) {
+        stride = 1;
     }
-
+    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        auto input_ptr  = static_cast<float *>(input_blob->GetHandle().base);
+        auto output_ptr = static_cast<int *>(output_blob->GetHandle().base);
+        for (int n = 0; n < num; ++n) {
+            for (int s = 0; s < stride; ++s) {
+                int guard_index = 0;
+                for (int c = 1; c < channels; ++c) {
+                    float guard_value = input_ptr[n * stride * channels + guard_index * stride + s];
+                    float cur_value   = input_ptr[n * stride * channels + c * stride + s];
+                    if (param->mode == 0) {
+                        // ArgMin
+                        guard_index = cur_value < guard_value ? c : guard_index;
+                    } else {
+                        // ArgMax
+                        guard_index = cur_value > guard_value ? c : guard_index;
+                    }
+                };  // end for loop
+                output_ptr[n * stride + s] = guard_index;
+                // std::cout << output_ptr[n * stride + s] << " ";
+            }
+        }  // end for
+    } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+    } else {
+        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+    }  // end if
     return TNN_OK;
 }
 
 REGISTER_X86_ACC(ArgMaxOrMin, LAYER_ARG_MAX_OR_MIN);
 
-} // namespace TNN_NS
+}  // namespace TNN_NS

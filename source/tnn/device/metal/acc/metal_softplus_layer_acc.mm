@@ -33,5 +33,6 @@ Status MetalSoftplusLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_METAL_UNARY_ACC(Softplus, LAYER_SOFTPLUS);
+REGISTER_METAL_LAYOUT(LAYER_SOFTPLUS, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

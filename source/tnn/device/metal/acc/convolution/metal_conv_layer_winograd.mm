@@ -17,8 +17,8 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/dims_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 #include "tnn/utils/winograd_generator.h"
 
 namespace TNN_NS {
@@ -42,7 +42,8 @@ bool MetalConvLayerWinograd::isPrefered(ConvLayerParam *param, const std::vector
     auto ih = inputs[0]->GetBlobDesc().dims[2];
     auto ic = ROUND_UP(inputs[0]->GetBlobDesc().dims[1], 4);
     auto oc = ROUND_UP(outputs[0]->GetBlobDesc().dims[1], 4);
-    return ic * oc * ih / iw >= 2048;
+    // skip layers with large chennels due to large numerical errors
+    return (ic * oc * ih / iw >= 2048) && (ic * oc < 512 * 4096);
 }
 
 MetalConvLayerWinograd::~MetalConvLayerWinograd() {}

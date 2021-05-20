@@ -16,7 +16,7 @@
 
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/detection_post_process_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 

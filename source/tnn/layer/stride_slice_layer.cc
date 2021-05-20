@@ -24,10 +24,12 @@ Status StrideSliceLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status StrideSliceLayer::InferOutputShape() {
+Status StrideSliceLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
     StrideSliceLayerParam* layer_param = dynamic_cast<StrideSliceLayerParam*>(param_);
     if (!layer_param) {
-        LOGE("StrideSliceLayer param is nil\n");
+        LOGE_IF(!ignore_error, "StrideSliceLayer param is nil\n");
         return Status(TNNERR_PARAM_ERR, "StrideSliceLayer param is nil");
     }
 
@@ -39,7 +41,7 @@ Status StrideSliceLayer::InferOutputShape() {
 
     if (layer_param->begins.size() != input_dims.size() || layer_param->ends.size() != input_dims.size() ||
         layer_param->strides.size() != input_dims.size()) {
-        LOGE("StrideSliceLayer param got wrong size\n");
+        LOGE_IF(!ignore_error, "StrideSliceLayer param got wrong size: input dims size: %ld\n", input_dims.size());
         return Status(TNNERR_PARAM_ERR, "StrideSliceLayer param got wrong size");
     }
 
@@ -62,7 +64,7 @@ Status StrideSliceLayer::InferOutputShape() {
         for (int i = 0; i < input_dims.size(); i++) {
             ends[i] = sizes[i] + begins[i];
             if (ends[i] > input_dims[i]) {
-                LOGE("StrideSliceLayer param is invalid. Check NCNN Param\n");
+                LOGE_IF(!ignore_error, "StrideSliceLayer param is invalid. Check NCNN Param\n");
                 return Status(TNNERR_PARAM_ERR, "StrideSliceLayer param is invalid. Check NCNN Param");
             }
         }
@@ -82,14 +84,14 @@ Status StrideSliceLayer::InferOutputShape() {
             }
 
             if (begins[i] >= ends[i]) {
-                LOGE("StrideSliceLayer param is invalid\n");
+                LOGE_IF(!ignore_error, "StrideSliceLayer param is invalid\n");
                 return Status(TNNERR_PARAM_ERR, "StrideSliceLayer param is invalid");
             }
 
             sizes[i] = (ends[i] - begins[i] - 1) / strides[i] + 1;
 
             if (sizes[i] <= 0) {
-                LOGE("StrideSliceLayer param is invalid\n");
+                LOGE_IF(!ignore_error, "StrideSliceLayer param is invalid\n");
                 return Status(TNNERR_PARAM_ERR, "StrideSliceLayer param is invalid");
             }
         }

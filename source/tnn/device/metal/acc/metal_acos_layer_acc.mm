@@ -33,5 +33,6 @@ Status MetalAcosLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_METAL_UNARY_ACC(Acos, LAYER_ACOS);
+REGISTER_METAL_LAYOUT(LAYER_ACOS, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

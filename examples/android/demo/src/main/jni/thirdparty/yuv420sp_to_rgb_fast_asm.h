@@ -10,7 +10,6 @@
 //#include <opencv2/highgui/highgui.hpp>
 //#include <opencv2/imgproc/imgproc.hpp>
 
-// http://code.oa.com/v2/weima/detail/78193   --- nihui
 static void yuv420sp_to_rgb_fast_asm(const unsigned char* yuv420sp, int w, int h, unsigned char* rgb)
 {
     const unsigned char* yptr = yuv420sp;

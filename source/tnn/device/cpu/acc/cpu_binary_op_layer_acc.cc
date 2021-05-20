@@ -27,8 +27,8 @@ Status CpuBinaryOpLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
 Status CpuBinaryOpLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     if (!layer_param) {
-        LOGE("Error: layer param is nil\n");
-        return Status(TNNERR_PARAM_ERR, "Error: layer param is nil");
+        LOGE("Error: CpuBinaryOpLayerAcc layer param is nil\n");
+        return Status(TNNERR_PARAM_ERR, "Error: CpuBinaryOpLayerAcc layer param is nil");
     }
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
     if (!((inputs.size() == 1 && layer_res) || inputs.size() >= 2)) {

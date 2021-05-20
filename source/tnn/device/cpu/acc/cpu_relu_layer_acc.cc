@@ -18,7 +18,7 @@
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/bfp16_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -51,6 +51,9 @@ Status CpuReluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
         for (int index = 0; index < count; ++index) {
             output_data[index] = std::max((int8_t)0, input_data[index]);
         }
+    } else {
+        LOGE("CpuReluLayerAcc dont support data type: %d", data_type);
+        return Status(TNNERR_NO_RESULT, "CpuReluLayerAcc dont support data type");
     }
     return TNN_OK;
 }

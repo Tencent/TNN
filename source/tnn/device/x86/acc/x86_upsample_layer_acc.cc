@@ -16,7 +16,7 @@
 
 #include "tnn/core/blob_int8.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 #include "tnn/device/x86/acc/compute/x86_compute_int8.h"

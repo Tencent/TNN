@@ -35,47 +35,84 @@ DECLARE_OPENVINO_LAYER_BUILDER(Splitv, LAYER_SPLITV);
 Status SplitvOVLayerBuilder::Build() {
     
     if (GetInputNodes().size() <= 0) {
-        LOGE("Error: %d input nodes\n", GetInputNodes().size());
+        LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
     auto param = dynamic_cast<SplitVLayerParam *>(param_);
 
     auto input_node = GetInputNodes()[0];
-    std::vector<int> begins, ends;
-    std::vector<int64_t> begin_mask, end_mask;
-    size_t input_dims = input_node->get_input_shape(0).size();
-    ngraph::Shape dims_shape({input_dims});
 
-    for (int i = 0; i < input_dims; i++) {
-        if (i == param->axis) {
-            begin_mask.push_back(0);
-            end_mask.push_back(0);
-        } else {
-            begin_mask.push_back(1);
-            end_mask.push_back(1);
+    auto get_split_flag = [&]() -> bool {
+        auto &slices = param->slices;
+        std::set<int> slice_set(slices.begin(), slices.end());
+        if (slice_set.size() != 1) {
+            return false;
         }
-        begins.push_back(0);
-        ends.push_back(0);
-    }
+        if (slices[0] * slices.size() != input_node->get_output_shape(0)[param->axis]) {
+            return false;
+        }
+        return true;
+    };
 
-    ngraph::NodeVector outputNodes;
-    
-    for (int i = 0; i < param->slices.size(); i++) {
-        begins[param->axis] = ends[param->axis];
-        ends[param->axis]  += param->slices[i];
-
-        auto beginNode = std::make_shared<ngraph::op::Constant>(
-            ngraph::element::Type_t::i32, dims_shape, begins);
-        auto endNode   = std::make_shared<ngraph::op::Constant>(
-            ngraph::element::Type_t::i32, dims_shape, ends);
+    if (0) {
+    // if (get_split_flag()) {
+        LOGD("SplitV: use split operation\n");
+        // use split instead of splitV
+        auto axis_node = std::make_shared<ngraph::op::Constant>(ngraph::element::i32, ngraph::Shape(), param->axis);
+        auto splitNode = std::make_shared<ngraph::op::v1::Split>(input_node->output(0), axis_node->output(0), param->slices.size());
         
-        auto strideSliceNode = std::make_shared<ngraph::op::v1::StridedSlice>(
-            input_node->output(0), beginNode, endNode, begin_mask, end_mask);
-        
-        outputNodes.push_back(strideSliceNode);
-    }
+        splitNode->set_friendly_name(param->name);
+        splitNode->validate_and_infer_types();
 
-    SetOutputTensors(outputNodes);
+        ngraph::NodeVector outputNodes;
+        for (auto &iter : splitNode->outputs()) {
+            outputNodes.push_back(iter.get_node_shared_ptr());
+        }
+
+        SetOutputTensors(outputNodes);
+    } else {
+        LOGD("SplitV: use strideslice operation\n");
+        // use stride slice instead of splitV
+        std::vector<int> begins, ends;
+        std::vector<int64_t> begin_mask, end_mask;
+        size_t input_dims = input_node->get_output_shape(0).size();
+        ngraph::Shape dims_shape({input_dims});
+
+        auto output_blobs = GetOutputBlobs();
+
+        for (int i = 0; i < input_dims; i++) {
+            if (i == param->axis) {
+                begin_mask.push_back(0);
+                end_mask.push_back(0);
+            } else {
+                begin_mask.push_back(1);
+                end_mask.push_back(1);
+            }
+            begins.push_back(0);
+            ends.push_back(0);
+        }
+
+        ngraph::NodeVector outputNodes;
+
+        for (int i = 0; i < param->slices.size(); i++) {
+            begins[param->axis] = ends[param->axis];
+            ends[param->axis]  += param->slices[i];
+
+            auto beginNode = std::make_shared<ngraph::op::Constant>(
+                ngraph::element::Type_t::i32, dims_shape, begins);
+            auto endNode   = std::make_shared<ngraph::op::Constant>(
+                ngraph::element::Type_t::i32, dims_shape, ends);
+            
+            auto strideSliceNode = std::make_shared<ngraph::op::v1::StridedSlice>(
+                input_node->output(0), beginNode, endNode, begin_mask, end_mask);
+            
+            strideSliceNode->set_friendly_name(output_blobs[i]->GetBlobDesc().name);
+            strideSliceNode->validate_and_infer_types();
+            outputNodes.push_back(strideSliceNode);
+        }
+
+        SetOutputTensors(outputNodes);
+    }
 
     return TNN_OK;
 

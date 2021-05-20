@@ -15,17 +15,17 @@
 #include <cmath>
 #include <memory>
 
-#include <ngraph/node.hpp>
+#include <inference_engine.hpp>
 #include <ngraph/ngraph.hpp>
+#include <ngraph/node.hpp>
 #include <ngraph/op/op.hpp>
 #include <ngraph/opsets/opset.hpp>
 #include <ngraph/opsets/opset1.hpp>
-#include <inference_engine.hpp>
 
-#include "tnn/layer/base_layer.h"
-#include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
 #include "tnn/extern_wrapper/foreign_blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
+#include "tnn/layer/base_layer.h"
+#include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
 #include "tnn/network/openvino/openvino_types.h"
 
 namespace TNN_NS {
@@ -33,17 +33,15 @@ namespace TNN_NS {
 DECLARE_OPENVINO_LAYER_BUILDER(Conv, LAYER_CONVOLUTION);
 
 Status ConvOVLayerBuilder::Build() {
-    
     auto paramlist = dynamic_cast<ConvLayerParam*>(param_);
-    
-    if (GetInputNodes().size() <=0) {
+
+    if (GetInputNodes().size() <= 0) {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
     auto input_node = GetInputNodes()[0];
 
     auto convNode = std::make_shared<ngraph::op::v1::GroupConvolution>();
-
 
     // set strides
     ngraph::Strides stride;
@@ -86,7 +84,7 @@ Status ConvOVLayerBuilder::Build() {
     ngraph::Shape weights_shape;
     weights_shape.push_back(paramlist->group);
     weights_shape.push_back(paramlist->output_channel / paramlist->group);
-    weights_shape.push_back(paramlist->input_channel);
+    weights_shape.push_back(input_node->get_output_shape(0).at(1) / paramlist->group);
     weight_size *= paramlist->output_channel * paramlist->input_channel;
     for (int i = paramlist->kernels.size() - 1; i >= 0; i--) {
         weights_shape.push_back(paramlist->kernels.at(i));
@@ -94,22 +92,21 @@ Status ConvOVLayerBuilder::Build() {
     }
 
     auto resource = dynamic_cast<ConvLayerResource*>(GetResource());
-    
+
     std::shared_ptr<ngraph::Node> weights_Node = std::make_shared<ngraph::op::Constant>(
         DataTransfer(resource->filter_handle.GetDataType()), weights_shape, resource->filter_handle.force_to<float*>());
-    
+
     // if input channels > weights input channels
     if (input_node->get_output_shape(0).at(1) > paramlist->input_channel * paramlist->group) {
         auto channels = paramlist->input_channel * paramlist->group;
         ngraph::Shape axisShape, lengthShape;
         axisShape.push_back(1);
         lengthShape.push_back(2);
-        auto axisNode = std::make_shared<ngraph::op::Constant>(
-            ngraph::element::Type_t::i32, axisShape, std::vector<int>({1}));
-        auto lengthNode = std::make_shared<ngraph::op::Constant>(
-            ngraph::element::Type_t::i32, lengthShape, std::vector<int>({channels, -1}));
-        auto sliceNode = std::make_shared<ngraph::op::VariadicSplit>(
-            input_node->output(0), axisNode, lengthNode);
+        auto axisNode =
+            std::make_shared<ngraph::op::Constant>(ngraph::element::Type_t::i32, axisShape, std::vector<int>({1}));
+        auto lengthNode = std::make_shared<ngraph::op::Constant>(ngraph::element::Type_t::i32, lengthShape,
+                                                                 std::vector<int>({channels, -1}));
+        auto sliceNode  = std::make_shared<ngraph::op::VariadicSplit>(input_node->output(0), axisNode, lengthNode);
         convNode->set_argument(0, sliceNode->output(0));
     } else {
         convNode->set_argument(0, input_node->output(0));
@@ -117,39 +114,46 @@ Status ConvOVLayerBuilder::Build() {
     convNode->set_argument(1, weights_Node->output(0));
     convNode->validate_and_infer_types();
 
+    std::shared_ptr<ngraph::Node> output_node = nullptr;
+    ngraph::NodeVector outputNodes;
+
     if (paramlist->bias) {
         // set bias shape
         ngraph::Shape biasShape;
         for (size_t i = 0; i < convNode->get_output_shape(0).size(); i++) {
-            if (i == 1) biasShape.push_back(convNode->get_output_shape(0).at(1));
-            else biasShape.push_back(1);
+            if (i == 1)
+                biasShape.push_back(convNode->get_output_shape(0).at(1));
+            else
+                biasShape.push_back(1);
         }
 
         // set bias node
         std::shared_ptr<ngraph::Node> biasNode = std::make_shared<ngraph::op::Constant>(
             DataTransfer(resource->bias_handle.GetDataType()), biasShape, resource->bias_handle.force_to<float*>());
-        
+
         auto addNode = std::make_shared<ngraph::op::v1::Add>();
         addNode->set_argument(0, convNode->output(0));
         addNode->set_argument(1, biasNode->output(0));
-
-        addNode->set_friendly_name(paramlist->name);
-        ngraph::NodeVector outputNodes;
-        outputNodes.push_back(addNode);
         addNode->validate_and_infer_types();
-        SetOutputTensors(outputNodes);
-
+        output_node = addNode;
     } else {
-        // set node name
-        convNode->set_friendly_name(paramlist->name);
-
-        // set output node
-        ngraph::NodeVector outputNodes;
-        outputNodes.push_back(convNode);
-        convNode->validate_and_infer_types();
-        SetOutputTensors(outputNodes);
+        output_node = convNode;
     }
 
+    if (paramlist->activation_type != ActivationType_None) {
+        if (paramlist->activation_type == ActivationType_ReLU) {
+            output_node = std::make_shared<ngraph::op::Relu>(output_node->output(0));
+        } else if (paramlist->activation_type == ActivationType_ReLU6) {
+            output_node = std::make_shared<ngraph::op::Clamp>(output_node->output(0), 0, 6);
+        } else {
+            return Status(TNNERR_PARAM_ERR, "Unsupported activation type");
+        }
+    }
+
+    output_node->validate_and_infer_types();
+    output_node->set_friendly_name(paramlist->name);
+    outputNodes.push_back(output_node);
+    SetOutputTensors(outputNodes);
     return TNN_OK;
 }
 

@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
+#include "tnn/utils/blob_transfer_utils.h"
 
 namespace TNN_NS {
 
@@ -26,18 +27,20 @@ Status X86LayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
     param_    = param;
     resource_ = resource;
 
+    RETURN_ON_NEQ(ReloadConstantBlobs(inputs, false), TNN_OK);
+
     if (cpu_with_isa(avx2)) {
         arch_ = avx2;
     } else if (cpu_with_isa(sse42)) {
         arch_ = sse42;
     } else {
-        return Status(TNNERR_DEVICE_NOT_SUPPORT, "Can not support X86 arch before SSE4.2");
+        return Status(TNNERR_DEVICE_NOT_SUPPORT, "Cat not support X86 arch before SSE4.2");
     }
 
     return Reshape(inputs, outputs);
 }
 
-std::vector<DataFormat> X86LayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> X86LayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
         if (data_type == DATA_TYPE_FLOAT)
@@ -74,6 +77,37 @@ Status X86LayerAcc::Reshape(const std::vector<Blob*> &inputs, const std::vector<
 
 Status X86LayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return Status(TNNERR_LAYER_ERR, "DoForward not implement");
+}
+
+Status X86LayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob) {
+    auto const_resource = const_resource_;
+    auto const_resource_flag = const_resource_flag_;
+    auto const_blob_map = const_blob_map_;
+    for (auto iter : inputs) {
+        auto name = iter->GetBlobDesc().name;
+        if (const_resource == nullptr || const_resource->find(name) == const_resource->end()) {
+            continue;
+        }
+        if (only_reload_shape_differ_blob && const_resource_flag &&
+            const_resource_flag->find(name) == const_resource_flag->end()) {
+            continue;
+        }
+
+        auto buffer = (*const_resource)[name];
+        std::shared_ptr<Blob> blob = nullptr;
+        if (const_blob_map.find(name) != const_blob_map.end()) {
+            blob = const_blob_map[name];
+        }
+        auto status = RawBuffer2Blob(buffer.get(), blob);
+        RETURN_ON_NEQ(status, TNN_OK);
+
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
+        const_blob_map[name] = blob;
+        iter->SetHandle(blob->GetHandle());
+        LOGD("Reload constant blob: %s\n", name.c_str());
+    }
+    const_blob_map_ = const_blob_map;
+    return TNN_OK;
 }
 
 }  // namespace TNN_NS

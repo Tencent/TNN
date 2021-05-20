@@ -14,7 +14,6 @@
 
 #include <math.h>
 
-#include "objseri.h"
 #include "onnx2tnn.h"
 #include "onnx_utility.h"
 
@@ -49,6 +48,13 @@ int Onnx2TNN::FuseGlobalAveragePool(
                 // check op
                 if (!(node_reduce_mean->op_type() == "ReduceMean"))
                     break;
+                
+                //check keepdim
+                auto keepdims = get_node_attr_i(*node_trans, "keepdims", 0);
+                if (keepdims  != 1) {
+                    break;
+                }
+                
                 // check transpose
                 if (node_trans->output(0) != node_reduce_mean->input(0)) {
                     break;
@@ -77,6 +83,13 @@ int Onnx2TNN::FuseGlobalAveragePool(
             if(node->op_type() == "ReduceMean"){
                 //check reduce mean axes
                 auto node_reduce_mean =node;
+                
+                //check keepdim
+                auto keepdims = get_node_attr_i(*node_reduce_mean, "keepdims", 0);
+                if (keepdims  != 1) {
+                    break;
+                }
+                
                 vector<int64_t> axes = get_node_attr_ai(*node_reduce_mean, "axes");
                 if (axes.size() != 2 || axes[0] != 2 || axes[1] != 3) {
                     break;

@@ -33,6 +33,9 @@ public:
     Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
     Status ComputeDeconvParam(MetalConvParams& metal_param);
+
+protected:
+    bool is_group2_specialized_;
 };
 
 }  // namespace TNN_NS

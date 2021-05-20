@@ -39,5 +39,6 @@ std::set<std::string> OpenCLCosLayerAcc::CreateBuildOptions() {
 OpenCLCosLayerAcc::~OpenCLCosLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Cos, LAYER_COS)
+REGISTER_OPENCL_LAYOUT(LAYER_COS, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

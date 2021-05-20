@@ -15,7 +15,7 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -45,10 +45,6 @@ TEST_P(ReorgLayerTest, ReorgLayer) {
     }
 
     if (DEVICE_CUDA == dev) {
-        GTEST_SKIP();
-    }
-
-    if (DEVICE_X86 == dev) {
         GTEST_SKIP();
     }
 
