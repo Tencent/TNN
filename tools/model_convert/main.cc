@@ -29,8 +29,8 @@ bool CheckResult(std::string desc, int ret) {
 }
 
 std::string GetFileName(std::string file_path) {
-    unsigned int pos_s = file_path.rfind('/');
-    unsigned int pos_e = file_path.rfind('.');
+    size_t pos_s = file_path.rfind('/');
+    size_t pos_e = file_path.rfind('.');
     int len            = 0;
     if (pos_s == std::string::npos) {
         pos_s = 0;
@@ -79,7 +79,8 @@ void PrintConfig() {
         "\t-v, --version      \t(optional) the model versoin to save\n"
         "\t\t0: RapidnetV1\n"
         "\t\t1: TNN\n"
-        "\t\t2: RapidnetV3 (default)\n");
+        "\t\t2: RapidnetV3 (default)\n"
+        "\t\t3: TNN_V2\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -154,6 +155,8 @@ int main(int argc, char* argv[]) {
             output_name += "_v1";
         } else if (rapidnetv3::MV_TNN == model_version) {
             output_name += "_tnn";
+        } else if (rapidnetv3::MV_TNN_V2 == model_version) {
+            output_name += "_tnn_v2";
         } else if (rapidnetv3::MV_RPNV3 == model_version) {
             output_name += "_v3";
         }

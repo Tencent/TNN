@@ -21,6 +21,8 @@ namespace rapidnetv3 {
             return g_version_magic_number_tnn;
         } else if (MV_RPNV3 == model_version_) {
             return g_version_magic_number_rapidnet_v3;
+        } else if (MV_TNN_V2 == model_version_) {
+            return g_version_magic_number_tnn_v2;
         } else {
             return 0;
         }
