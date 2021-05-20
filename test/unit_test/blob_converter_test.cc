@@ -62,7 +62,7 @@ bool BlobConverterTest::TestFilterCheck(const DataType& blob_data_type, const De
     }
 #endif
 
-    if (DEVICE_METAL == dev && !(NCHW_FLOAT == mat_type || (N8UC4 == mat_type && batch == 1))) {
+    if (DEVICE_METAL == dev && !(NCHW_FLOAT == mat_type || ((N8UC3 == mat_type || N8UC4 == mat_type) && batch == 1))) {
         return true;
     }
 
@@ -179,11 +179,6 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
 
     if (TestFilterCheck(blob_data_type, dev, mat_type, batch, channel, input_size, reverse_channel)) {
         GTEST_SKIP();
-    }
-
-    bool need_tmp_buffer_metal = false;
-    if (DEVICE_METAL == dev && N8UC4 == mat_type) {
-        need_tmp_buffer_metal = true;
     }
 
     int mat_channel;
@@ -342,24 +337,10 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
             CLEANUP_AND_FAIL();
         }
 
-        if (need_tmp_buffer_metal) {
-            Mat metal_tmp_buffer(DEVICE_METAL, N8UC4, dims);
-            ret = device_converter.ConvertToMat(metal_tmp_buffer, to_mat_param, device_command_queue);
-            if (ret != TNN_OK) {
-                LOGE("metal converter convert blob to mat failed, mat type: %d\n", mat_type);
-                CLEANUP_AND_FAIL();
-            }
-            ret = MatUtils::Copy(metal_tmp_buffer, mat_out_dev, device_command_queue);
-            if (ret != TNN_OK) {
-                LOGE("copy metal mat to cpu failed, mat type: %d\n", mat_type);
-                CLEANUP_AND_FAIL();
-            }
-        } else {
-            ret = device_converter.ConvertToMat(mat_out_dev, to_mat_param, device_command_queue);
-            if (ret != TNN_OK) {
-                LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
-                CLEANUP_AND_FAIL();
-            }
+        ret = device_converter.ConvertToMat(mat_out_dev, to_mat_param, device_command_queue);
+        if (ret != TNN_OK) {
+            LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
+            CLEANUP_AND_FAIL();
         }
         cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data), static_cast<uint8_t*>(mat_out_dev_data),
                                   mat_channel, channel, out_size);
