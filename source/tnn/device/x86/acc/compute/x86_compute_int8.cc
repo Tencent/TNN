@@ -35,6 +35,16 @@ namespace TNN_NS {
     int i8x4 = _mm_extract_epi32(dst_i8x4, 0);                        \
     *((int*)(dst)) = i8x4;
 
+#define F32X4TOI8X4_NODEF(f32x4, dst)                                 \
+    cmp_zero = _mm_cmpge_ps(f32x4, zero_f32);                         \
+    adjust_vec = _mm_blendv_ps(sub_05, add_05, cmp_zero);             \
+    f32x4 = _mm_add_ps(f32x4, adjust_vec);                            \
+    dst_i32x4 = _mm_cvttps_epi32(f32x4);                              \
+    dst_i16x4 = _mm_packs_epi32(dst_i32x4, dst_i32x4);                \
+    dst_i8x4  = _mm_packs_epi16(dst_i16x4, dst_i16x4);                \
+    i8x4 = _mm_extract_epi32(dst_i8x4, 0);                            \
+    *((int*)(dst)) = i8x4;
+
 #define F32X8TOI8X8(f32x4_a, f32x4_b, dst)                            \
     __m128 cmp_zero_0 = _mm_cmpge_ps(f32x4_a, zero_f32);              \
     __m128 cmp_zero_1 = _mm_cmpge_ps(f32x4_b, zero_f32);              \
@@ -1165,7 +1175,50 @@ void X86Int8ToFloat(float* dst, const int8_t* src, const float* scale, long batc
         auto dst_b = dst + b * channel * hw;
         auto src_b = src + b * channel_r4 * hw;
 
-        for (long c = 0; c < channel; c++) {
+        long c = 0;
+        for (; c + 3 < channel; c += 4) {
+            auto dst_c_0 = dst_b + c * hw;
+            auto dst_c_1 = dst_c_0 + hw;
+            auto dst_c_2 = dst_c_1 + hw;
+            auto dst_c_3 = dst_c_2 + hw;
+            auto src_c   = src_b + c;
+
+            __m128 scale_vec = _mm_loadu_ps(scale + c);
+            long i = 0;
+            for (; i + 3 < hw; i += 4) {
+                auto src_hw = src_c + i * channel_r4;
+                int i8x4_0  = (*(int *)(src_hw));
+                int i8x4_1  = (*(int *)(src_hw + channel_r4));
+                int i8x4_2  = (*(int *)(src_hw + channel_r4 * 2));
+                int i8x4_3  = (*(int *)(src_hw + channel_r4 * 3));
+
+                __m128 f32x4_0 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(_mm_cvtsi32_si128(i8x4_0)));
+                __m128 f32x4_1 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(_mm_cvtsi32_si128(i8x4_1)));
+                __m128 f32x4_2 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(_mm_cvtsi32_si128(i8x4_2)));
+                __m128 f32x4_3 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(_mm_cvtsi32_si128(i8x4_3)));
+                f32x4_0        = _mm_mul_ps(f32x4_0, scale_vec);
+                f32x4_1        = _mm_mul_ps(f32x4_1, scale_vec);
+                f32x4_2        = _mm_mul_ps(f32x4_2, scale_vec);
+                f32x4_3        = _mm_mul_ps(f32x4_3, scale_vec);
+                _MM_TRANSPOSE4_PS(f32x4_0, f32x4_1, f32x4_2, f32x4_3);
+                _mm_storeu_ps(dst_c_0 + i, f32x4_0);
+                _mm_storeu_ps(dst_c_1 + i, f32x4_1);
+                _mm_storeu_ps(dst_c_2 + i, f32x4_2);
+                _mm_storeu_ps(dst_c_3 + i, f32x4_3);
+            }
+            float dst_tmp[4];
+            for (; i < hw; i++) {
+                int i8x4     = *((int *)(src_c + i * channel_r4));
+                __m128 f32x4 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(_mm_cvtsi32_si128(i8x4)));
+                f32x4        = _mm_mul_ps(f32x4, scale_vec);
+                _mm_store_ps(dst_tmp, f32x4);
+                dst_c_0[i]   = dst_tmp[0];
+                dst_c_1[i]   = dst_tmp[1];
+                dst_c_2[i]   = dst_tmp[2];
+                dst_c_3[i]   = dst_tmp[3];
+            }
+        }
+        for (; c < channel; c++) {
             auto dst_c = dst_b + c * hw;
             auto src_c = src_b + c;
             auto sc    = scale[c];
@@ -1178,12 +1231,57 @@ void X86Int8ToFloat(float* dst, const int8_t* src, const float* scale, long batc
 }
 
 void X86FloatToInt8(int8_t* dst, const float* src, const float* scale, long batch, long channel, long hw) {
+    DeclareRounding();
     long channel_r4 = ROUND_UP(channel, 4);
     for (long b = 0; b < batch; b++) {
         auto dst_b = dst + b * channel_r4 * hw;
         auto src_b = src + b * channel * hw;
 
-        for (long i = 0; i < hw; i++) {
+        long i = 0;
+        for (; i + 3 < hw; i += 4) {
+            auto dst_hw_0 = dst_b + i * channel_r4;
+            auto dst_hw_1 = dst_hw_0 + channel_r4;
+            auto dst_hw_2 = dst_hw_1 + channel_r4;
+            auto dst_hw_3 = dst_hw_2 + channel_r4;
+            auto src_hw   = src_b + i;
+
+            long c = 0;
+            for (; c + 3 < channel; c += 4) {
+                auto src_c = src_hw + c * hw;
+                __m128 s_vec   = _mm_loadu_ps(scale + c);
+                __m128 f32x4_0 = _mm_loadu_ps(src_c);
+                __m128 f32x4_1 = _mm_loadu_ps(src_c + hw);
+                __m128 f32x4_2 = _mm_loadu_ps(src_c + hw * 2);
+                __m128 f32x4_3 = _mm_loadu_ps(src_c + hw * 3);
+                _MM_TRANSPOSE4_PS(f32x4_0, f32x4_1, f32x4_2, f32x4_3);
+                f32x4_0        = _mm_mul_ps(f32x4_0, s_vec);
+                f32x4_1        = _mm_mul_ps(f32x4_1, s_vec);
+                f32x4_2        = _mm_mul_ps(f32x4_2, s_vec);
+                f32x4_3        = _mm_mul_ps(f32x4_3, s_vec);
+                F32X4TOI8X4(f32x4_0, dst_hw_0 + c);
+                F32X4TOI8X4_NODEF(f32x4_1, dst_hw_1 + c);
+                F32X4TOI8X4_NODEF(f32x4_2, dst_hw_2 + c);
+                F32X4TOI8X4_NODEF(f32x4_3, dst_hw_3 + c);
+            }
+            int8_t int8_tmp[4];
+            for (; c < channel; c++) {
+                __m128 s_vec = _mm_set1_ps(scale[c]);
+                __m128 f32x4 = _mm_loadu_ps(src_hw + c * hw);
+                f32x4        = _mm_mul_ps(f32x4, s_vec);
+                F32X4TOI8X4(f32x4, int8_tmp);
+                dst_hw_0[c]  = int8_tmp[0];
+                dst_hw_1[c]  = int8_tmp[1];
+                dst_hw_2[c]  = int8_tmp[2];
+                dst_hw_3[c]  = int8_tmp[3];
+            }
+            for (; c < channel_r4; c++) {
+                dst_hw_0[c]  = 0;
+                dst_hw_1[c]  = 0;
+                dst_hw_2[c]  = 0;
+                dst_hw_3[c]  = 0;
+            }
+        }
+        for (; i < hw; i++) {
             auto dst_hw = dst_b + i * channel_r4;
             auto src_hw = src_b + i;
 
