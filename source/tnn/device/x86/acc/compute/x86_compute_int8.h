@@ -72,6 +72,9 @@ void X86UpsampleBilinear2D(int8_t *output_data, const int8_t *input_data,
                            int batch, int ih, int iw, int oh, int ow,
                            int c_4, bool align_corners, const float *scale);
 
+void X86Int8ToFloat(float* dst, const int8_t* src, const float* scale, long batch, long channel, long hw);
+void X86FloatToInt8(int8_t* dst, const float* src, const float* scale, long batch, long channel, long hw);
+
 }   // namespace TNN_NS
 
 #endif

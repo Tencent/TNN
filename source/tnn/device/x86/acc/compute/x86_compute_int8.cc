@@ -1027,8 +1027,6 @@ void X86ConcatCommonInt8(Blob *output, const std::vector<Blob *> &inputs, int ax
     }
 }
 
-#define SATURATE_CAST_SHORT(X) (short)(MIN(MAX((int)((X) + ((X) >= 0.f ? 0.5f : -0.5f)), SHRT_MIN), SHRT_MAX))
-
 static inline void get_bilinear_coeffs(float *h_coeffs_ptr, float *w_coeffs_ptr, int ih, int iw, int oh, int ow,
                                        bool align_corners) {
     if (align_corners) {
@@ -1070,16 +1068,12 @@ static void upsample_bilinear_cn(int8_t *output_data, const int8_t *input_data, 
         const int h1p        = (h1 < ih - 1) ? 1 : 0;
         const float h1lambda = h1r - h1;
         const float h0lambda = (float)1. - h1lambda;
-        const short h1_short = SATURATE_CAST_SHORT(h1lambda * INTER_RESIZE_COEF_SCALE);
-        const short h0_short = SATURATE_CAST_SHORT(h0lambda * INTER_RESIZE_COEF_SCALE);
         for (int w2 = 0; w2 < ow; ++w2) {
             const float w1r       = w_coeffs_ptr[w2];
             const int w1          = w1r;
             const int w1p         = (w1 < iw - 1) ? 1 : 0;
             const float w1lambda  = w1r - w1;
             const float w0lambda  = (float)1. - w1lambda;
-            const short w1_short  = SATURATE_CAST_SHORT(w1lambda * INTER_RESIZE_COEF_SCALE);
-            const short w0_short  = SATURATE_CAST_SHORT(w0lambda * INTER_RESIZE_COEF_SCALE);
             const int8_t *Xdata00 = &(input_data[h1 * src_y_step + w1 * c_r4]);
             const int8_t *Xdata01 = Xdata00 + w1p * c_r4;
             const int8_t *Xdata10 = Xdata00 + h1p * src_y_step;
@@ -1088,15 +1082,11 @@ static void upsample_bilinear_cn(int8_t *output_data, const int8_t *input_data, 
             const float *scale_p  = scale;
             for (int c = 0; c < c_r4; ++c) {
                 if (do_scale) {
-                    // compute as float
                     Ydata[c] = float2int8(((Xdata00[c] * w0lambda + Xdata01[c] * w1lambda) * h0lambda +
                                            (Xdata10[c] * w0lambda + Xdata11[c] * w1lambda) * h1lambda) * scale_p[c]);
                 } else {
-                    // compute as int
-                    short h0_res = (Xdata00[c] * w0_short + Xdata01[c] * w1_short) >> 4;
-                    short h1_res = (Xdata10[c] * w0_short + Xdata11[c] * w1_short) >> 4;
-                    int8_t res   = (((h0_res * h0_short) >> 16) + ((h1_res * h1_short) >> 16) + 2) >> 2;
-                    Ydata[c]     = res;
+                    Ydata[c] = float2int8(((Xdata00[c] * w0lambda + Xdata01[c] * w1lambda) * h0lambda +
+                                           (Xdata10[c] * w0lambda + Xdata11[c] * w1lambda) * h1lambda));
                 }
             }
         }
@@ -1168,5 +1158,44 @@ template void X86UpsampleBilinear2D<true>(int8_t *output_data, const int8_t *inp
 template void X86UpsampleBilinear2D<false>(int8_t *output_data, const int8_t *input_data,
                                           int batch, int ih, int iw, int oh, int ow,
                                           int c_4, bool align_corners, const float *scale);
+
+void X86Int8ToFloat(float* dst, const int8_t* src, const float* scale, long batch, long channel, long hw) {
+    long channel_r4 = ROUND_UP(channel, 4);
+    for (long b = 0; b < batch; b++) {
+        auto dst_b = dst + b * channel * hw;
+        auto src_b = src + b * channel_r4 * hw;
+
+        for (long c = 0; c < channel; c++) {
+            auto dst_c = dst_b + c * hw;
+            auto src_c = src_b + c;
+            auto sc    = scale[c];
+
+            for (long i = 0; i < hw; i++) {
+                dst_c[i] = static_cast<float>(src_c[i * channel_r4]) * sc;
+            }
+        }
+    }
+}
+
+void X86FloatToInt8(int8_t* dst, const float* src, const float* scale, long batch, long channel, long hw) {
+    long channel_r4 = ROUND_UP(channel, 4);
+    for (long b = 0; b < batch; b++) {
+        auto dst_b = dst + b * channel_r4 * hw;
+        auto src_b = src + b * channel * hw;
+
+        for (long i = 0; i < hw; i++) {
+            auto dst_hw = dst_b + i * channel_r4;
+            auto src_hw = src_b + i;
+
+            long c = 0;
+            for (; c < channel; c++) {
+                dst_hw[c] = float2int8(src_hw[c * hw] * scale[c]);
+            }
+            for (; c < channel_r4; c++) {
+                dst_hw[c] = 0;
+            }
+        }
+    }
+}
 
 }   // namespace TNN_NS

@@ -39,7 +39,7 @@ namespace optimizer {
 
     bool NetOptimizerInsertInt8Reformat::IsSupported(const NetworkConfig &net_config) {
         auto device = net_config.device_type;
-        return device == DEVICE_ARM || device == DEVICE_NAIVE;
+        return device == DEVICE_ARM || device == DEVICE_NAIVE || device == DEVICE_X86;
     }
 
     static std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_quantized) {
