@@ -223,8 +223,6 @@ Status MetalLayerAcc::RawBuffer2MetalBlob(RawBuffer *buffer, std::shared_ptr<Blo
     [encoder endEncoding];
     [context_impl commit];
 
-    TNN_PRINT_ENCODER(context_, encoder, this);
-
     return status;
 }
 
