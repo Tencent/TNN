@@ -365,6 +365,8 @@ namespace test {
             } else if (format_type == 3) {
                 mat_type = NC_INT32;
                 data_type = DATA_TYPE_INT32;
+            } else if (format_type == 4) {
+                mat_type = RESERVED_INT8_TEST;
             }
 
             if (blob_desc.data_type == DATA_TYPE_INT32) {
@@ -467,7 +469,9 @@ namespace test {
             if(is_input && !FLAGS_sc.empty()) {
                 SetScaleOrBias(param.scale, FLAGS_sc);
             } else {
-                if(IsImageMat(mat_type)) {
+                if (mat_type == RESERVED_INT8_TEST) {
+                    std::fill(param.scale.begin(), param.scale.end(), 1.0f);
+                } else if(IsImageMat(mat_type)) {
                     std::fill(param.scale.begin(), param.scale.end(), 1.0f / 255.0f);
                 } else if(dims[1] > 4) {
                     param.scale = std::vector<float>(dims[1], 1);
@@ -478,7 +482,9 @@ namespace test {
             if(is_input && !FLAGS_bi.empty()) {
                 SetScaleOrBias(param.bias, FLAGS_bi);
             } else {
-                if(IsImageMat(mat_type)) {
+                if (mat_type == RESERVED_INT8_TEST) {
+                    std::fill(param.bias.begin(), param.bias.end(), 0);
+                } else if(IsImageMat(mat_type)) {
                     std::fill(param.bias.begin(), param.bias.end(), 0);
                 } else if(dims[1] > 4) {
                     param.bias  = std::vector<float>(dims[1], 0);

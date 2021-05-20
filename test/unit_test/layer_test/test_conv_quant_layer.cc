@@ -39,7 +39,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
                                             // data_type
                                             testing::Values(DATA_TYPE_INT8, DATA_TYPE_BFP16),
                                             // activation_type
-                                            testing::Values(ActivationType_None, ActivationType_ReLU),
+                                            testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6),
                                             // fusion_type
                                             testing::Values(FusionType_None, FusionType_Conv_Add_Activation,
                                                             FusionType_Conv_Activation_Add)));
@@ -66,6 +66,12 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     if (fusion_type != FusionType_None) {
         // only int8 data type support conv add fusion
         if (group != 1 || data_type != DATA_TYPE_INT8) {
+            GTEST_SKIP();
+        }
+    }
+
+    if (fusion_type == FusionType_Conv_Activation_Add) {
+        if (activation_type == ActivationType_ReLU6) {
             GTEST_SKIP();
         }
     }
