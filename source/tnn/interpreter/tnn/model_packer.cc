@@ -105,6 +105,9 @@ Status ModelPacker::PackProto(std::string file_path) {
             const auto& input_data_type_map = net_struc->input_data_type_map;
             if (input_data_type_map.find(input_shape.first) != input_data_type_map.end()) {
                 write_stream << input_data_type_map.find(input_shape.first)->second << " ";
+            } else {
+                // default data type: float
+                write_stream << "0" << " ";
             }
         }
         if (input_count > 1 && idx < (input_count - 1)) {
