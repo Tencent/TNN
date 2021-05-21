@@ -58,7 +58,6 @@ function build_onnx2tnn() {
     onnx2nn_files=$(ls -U tools/onnx2tnn/onnx-converter/onnx2tnn*.so);
     if [ ${#onnx2nn_files[*]} -ge 1 ]; then
         cp ${onnx2nn_files[i]} ../../../../../onnx-converter
-        rm ${onnx2nn_files[i]}
         echo "Compiled onnx2tnn successfully !"
     else
         echo "Compiled onnx2tnn failed !!!"

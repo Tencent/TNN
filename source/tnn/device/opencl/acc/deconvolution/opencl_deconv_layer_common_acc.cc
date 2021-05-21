@@ -40,13 +40,6 @@ Status OpenCLDeconvLayerCommonAcc::Init(Context *context, LayerParam *param, Lay
 
     // create kernel
     std::set<std::string> build_options;
-    if (deconv_params_.activation_type == ActivationType_ReLU) {
-        build_options.emplace("-DRELU");
-    } else if (deconv_params_.activation_type == ActivationType_ReLU6) {
-        build_options.emplace("-DRELU6");
-    } else if (deconv_params_.activation_type == ActivationType_SIGMOID_MUL) {
-        build_options.emplace("-DSIGMOID_MUL");
-    }
     std::string kernel_name = "Deconv2D";
     if (deconv_params_.kernel_x == 4 && deconv_params_.kernel_y == 4 &&
                deconv_params_.stride_x == 2 && deconv_params_.stride_y == 2 &&
@@ -74,6 +67,7 @@ void OpenCLDeconvLayerCommonAcc::SetExtraKernelParameters(uint32_t idx, const st
     const int input_channel_blocks  = UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4);
 
     execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(input_channel_blocks));
+    execute_units_[0].ocl_kernel.setArg(idx++, (int)deconv_params_.activation_type);
 }
 
 }  // namespace TNN_NS

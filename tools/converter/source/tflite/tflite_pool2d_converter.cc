@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tflite_op_converter.h"
+#include "tflite_utils.h"
 
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Pool2D);
@@ -40,55 +41,64 @@ TNN_NS::Status TFLitePool2DConverter::exec(TNN_NS::NetStructure& net_structure, 
     auto tf_lite_op_type             = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
     const auto& pool_option          = tf_lite_operator->builtin_options.AsPool2DOptions();
 
-    if (quantized_model) {
-        // TODO
-    } else {
-        param->name      = cur_layer->name;
-        param->type      = cur_layer->type_str;
-        param->quantized = false;
+    param->name      = cur_layer->name;
+    param->type      = cur_layer->type_str;
+    param->quantized = quantized_model;
 
-        switch (tf_lite_op_type) {
-            case tflite::BuiltinOperator_MAX_POOL_2D: {
-                param->pool_type = 0;
-                break;
-            }
-            case tflite::BuiltinOperator_AVERAGE_POOL_2D: {
-                param->pool_type = 1;
-                break;
-            }
-            default: {
-                LOGE("TNN Pool 2D do not Support unknown pool type\n");
-                return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
-            }
+    switch (tf_lite_op_type) {
+        case tflite::BuiltinOperator_MAX_POOL_2D: {
+            param->pool_type = 0;
+            break;
         }
-
-        param->kernels.push_back(pool_option->filter_width);
-        param->kernels.push_back(pool_option->filter_height);
-        param->kernels_params = param->kernels;
-
-        param->strides.push_back(pool_option->stride_w);
-        param->strides.push_back(pool_option->stride_h);
-
-        // default: Padding_SAME
-        param->pad_type = 0;
-        if (pool_option->padding == tflite::Padding_VALID) {
-            // tensorflow pad valid
-            param->pad_type = 1;
+        case tflite::BuiltinOperator_AVERAGE_POOL_2D: {
+            param->pool_type = 1;
+            break;
         }
-        param->pads.push_back(0);
-        param->pads.push_back(0);
-        param->pads.push_back(0);
-        param->pads.push_back(0);
-
-        param->kernel_indexs.push_back(-1);
-        param->kernel_indexs.push_back(-1);
-        // TFLite do not have adaptive pool
-        param->is_adaptive_pool = 0;
-        param->output_shape     = {-1, -1};
-        // update param
-        cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
+        default: {
+            LOGE("TNN Pool 2D do not Support unknown pool type\n");
+            return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
+        }
     }
 
+    param->kernels.push_back(pool_option->filter_width);
+    param->kernels.push_back(pool_option->filter_height);
+    param->kernels_params = param->kernels;
+
+    param->strides.push_back(pool_option->stride_w);
+    param->strides.push_back(pool_option->stride_h);
+
+    // default: Padding_SAME
+    param->pad_type = 0;
+    if (pool_option->padding == tflite::Padding_VALID) {
+        // tensorflow pad valid
+        param->pad_type = 1;
+    }
+    param->pads.push_back(0);
+    param->pads.push_back(0);
+    param->pads.push_back(0);
+    param->pads.push_back(0);
+
+    param->kernel_indexs.push_back(-1);
+    param->kernel_indexs.push_back(-1);
+    // TFLite do not have adaptive pool
+    param->is_adaptive_pool = 0;
+    param->output_shape     = {-1, -1};
+    // update param
+    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
+    if (quantized_model)  {
+        // create IntScaleResource for input
+        int input_tensor_index = tf_lite_operator->inputs[0];
+        TNN_NS::Status status = CreateIntScaleResource(net_resource, tf_lite_tensors, input_tensor_index);
+        if (status != TNN_NS::TNN_CONVERT_OK) {
+            return status;
+        }
+        // create IntScaleResource for output
+        int output_tensor_index = tf_lite_operator->outputs[0];
+        status = CreateIntScaleResource(net_resource, tf_lite_tensors, output_tensor_index);
+        if (status != TNN_NS::TNN_CONVERT_OK) {
+            return status;
+        }
+    }
     return TNN_NS::TNN_CONVERT_OK;
 }
 
