@@ -190,7 +190,9 @@ Status ModelInterpreter::InterpretInput(const std::string &inputs_content) {
     if (ret != TNN_OK) {
         return Status(TNNERR_INVALID_NETCFG, "split input line error");
     }
-    if (this->version_magic_number == g_version_magic_number) {
+    // magic number 0: for old rpn model
+    if (this->version_magic_number == g_version_magic_number ||
+        this->version_magic_number == 0) {
         /*
          * input list is separated by : symbol
          * eg:
