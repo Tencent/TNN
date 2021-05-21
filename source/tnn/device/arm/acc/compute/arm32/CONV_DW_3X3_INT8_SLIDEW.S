@@ -142,74 +142,91 @@ add     r9, r10, #16
 add     r10, scale_z, r10
 add     scale_z, scale_z, r9
 vld1.32 {d28-d29}, [scale_z]
-vcvt.f32.s32    q10, q10
-ldr     r3, .L6
 vld1.32 {d30-d31}, [r10]
-vdup.32 q3, r3
-vmul.f32        q10, q10, q14
+
 vcvt.f32.s32    q2, q2
-vcvt.f32.s32    q0, q0
+vcvt.f32.s32    q10, q10
 vcvt.f32.s32    q8, q8
 vcvt.f32.s32    q1, q1
-vmov q13, q3
-vmul.f32        q8, q8, q15
 vcvt.f32.s32    q9, q9
-vmul.f32        q2, q2, q15
+vcvt.f32.s32    q0, q0
 vcvt.f32.s32    q4, q4
 vcvt.f32.s32    q5, q5
-vadd.f32        q10, q10, q3
-vmul.f32        q0, q0, q14
+
+vmul.f32        q2, q2, q15
+vmul.f32        q10, q10, q14
+vmul.f32        q8, q8, q15
 vmul.f32        q1, q1, q14
-vmul.f32        q12, q9, q15
-vadd.f32        q11, q8, q3
+vmul.f32        q9, q9, q15
+vmul.f32        q0, q0, q14
+vmul.f32        q4, q4, q15
+vmul.f32        q5, q5, q14
+
+// f32 --> s32 --> s8
+// val + (val >= 0.f ? 0.5f : -0.5f)
+vmov.f32        q6, #0.5
+vmov.f32        q7, #-0.5
+
+vcge.f32        q3,  q2, #0
+vcge.f32        q11, q10, #0
+vcge.f32        q12, q8, #0
+vcge.f32        q13, q1, #0
+vcge.f32        q14, q9, #0
+vcge.f32        q15, q0, #0
+vbsl.f32        q3, q6, q7
+vbsl.f32        q11, q6, q7
+vbsl.f32        q12, q6, q7
+vbsl.f32        q13, q6, q7
+vbsl.f32        q14, q6, q7
+vbsl.f32        q15, q6, q7
 vadd.f32        q2, q2, q3
-vmul.f32        q8, q5, q14
-vmul.f32        q9, q4, q15
-vsub.i32        q10, q10, q13
-vadd.f32        q0, q0, q3
-vadd.f32        q1, q1, q3
-vsub.i32        q2, q2, q13
-vadd.f32        q12, q12, q3
-vadd.f32        q9, q9, q3
-vqmovn.s32      d20, q10
-vsub.i32        q0, q0, q13
-vsub.i32        q14, q1, q13
-vadd.f32        q8, q8, q3
-vsub.i32        q12, q12, q13
-vsub.i32        q11, q11, q13
-vsub.i32        q8, q8, q13
+vadd.f32        q10, q10, q11
+vcge.f32        q3,  q4, #0
+vcge.f32        q11, q5, #0
+vadd.f32        q8, q8, q12
+vadd.f32        q1, q1, q13
+vadd.f32        q9, q9, q14
+vadd.f32        q0, q0, q15
+vbsl.f32        q3, q6, q7
+vbsl.f32        q11, q6, q7
+vadd.f32        q4, q4, q3
+vadd.f32        q5, q5, q11
+
+vcvt.s32.f32    q2, q2
+vcvt.s32.f32    q10, q10
+vcvt.s32.f32    q11, q8
+vcvt.s32.f32    q14, q1
+vcvt.s32.f32    q12, q9
+vcvt.s32.f32    q0, q0
+vcvt.s32.f32    q9, q4
+vcvt.s32.f32    q8, q5
+
 vqmovn.s32      d4, q2
-vsub.i32        q9, q9, q13
-vmov    d5, d20
-vqmovn.s32      d0, q0
-vqmovn.s32      d28, q14
+vqmovn.s32      d5, q10
+vqmovn.s32      d22, q11
+vqmovn.s32      d23, q14
+vqmovn.s32      d24, q12
+vqmovn.s32      d25, q0
+vqmovn.s32      d18, q9
+vqmovn.s32      d19, q8
+
+vqmovn.s16      d4, q2
+vqmovn.s16      d22, q11
+vqmovn.s16      d24, q12
+vqmovn.s16      d16, q9
+
 add     r0, r0, r11
 mov     r3, r0
-vqmovn.s32      d24, q12
-vqmovn.s32      d22, q11
-vqmovn.s32      d18, q9
-vqmovn.s16      d4, q2
-vmov    d25, d0
-vmov    d23, d28
-vqmovn.s32      d16, q8
 vst1.8  {d4}, [r3], dst_depth
-vmov    d17, d16
 lsl     r5, dst_depth, #1
-vqmovn.s16      d24, q12
-vqmovn.s16      d22, q11
-vmov    d16, d18
 add     r5, r0, r5
 vst1.8  {d24}, [r3]
-vqmovn.s16      d16, q8
 vst1.8  {d22}, [r5], dst_depth
 vst1.8  {d16}, [r5]
 
 add  sp, sp, #16
 vpop {q4-q7}
 pop  {r4, r5, r6, r7, r8, r9, r10, r11, pc}
-
-.L6:
-    .word 0x4B400000
 
 #endif
 #endif
