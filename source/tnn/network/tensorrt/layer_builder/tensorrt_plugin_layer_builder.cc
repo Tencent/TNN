@@ -32,11 +32,11 @@ TensorRTPluginLayerBuilder::~TensorRTPluginLayerBuilder() {
 }
 
 Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& input_blobs,
-        std::vector<Blob*>& output_blobs, AbstractDevice* device) {
+        std::vector<Blob*>& output_blobs, AbstractDevice* device, bool enable_const_folder) {
     
     m_layer->SetLayerName(this->GetLayerName());
 
-    Status ret = m_layer->Init(context, param, resource, input_blobs, output_blobs, device);
+    Status ret = m_layer->Init(context, param, resource, input_blobs, output_blobs, device, enable_const_folder);
     if (ret != TNN_OK) {
         return ret;
     }

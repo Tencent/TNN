@@ -31,7 +31,7 @@
 namespace TNN_NS {
 
 #define MAX_SCRATCH_MEMORY (1<<31 - 1)
-#define TENSORRT_SERIALIZE_VERSION "v1.1"
+#define TENSORRT_SERIALIZE_VERSION "v1.2"
 
 NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
     g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
@@ -67,7 +67,8 @@ TensorRTNetwork_::~TensorRTNetwork_() {
 }
 
 Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
-        AbstractModelInterpreter* interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+        AbstractModelInterpreter* interpreter, InputShapesMap min_inputs_shape,
+        InputShapesMap max_inputs_shape, bool enable_const_folder) {
     std::unique_lock<std::mutex> lck(network_mutex);
     device_id_ = net_config.device_id;
     CUDA_CHECK(cudaSetDevice(net_config.device_id));
@@ -128,7 +129,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         }
     }
 
-    ret = InitLayers(net_structure, net_resource);
+    ret = InitLayers(net_structure, net_resource, enable_const_folder);
     if (ret != TNN_OK) {
         return ret;
     }
@@ -144,7 +145,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
 
     std::string cache_file_name = GetCacheFileName(params_md5, inputs, outputs, min_inputs_shape,
         net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
-    ExclFile *file_lock = new ExclFile(cache_file_name);
+
+    std::unique_ptr<ExclFile> file_lock(new ExclFile(cache_file_name));
 
     if (test_mode || false == file_lock->Ready()) {
         ret = InitWithoutCache(inputs, outputs, cache_file_name, net_resource, min_inputs_shape);
@@ -174,14 +176,6 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         ret = CreateExecuteContext();
         if (ret != TNN_OK)
             return ret;
-
-    }
-
-    delete file_lock;
-
-    ret = blob_manager_->AllocateBlobMemory();
-    if (ret != TNN_OK) {
-       return ret;
     }
 
     int bind_num = m_trt_engine->getNbBindings();
@@ -346,7 +340,7 @@ std::unordered_map<std::string, TensorRTPluginLayerBuilder*> TensorRTNetwork_::G
     return m_plugin_layer_name_map;
 }
 
-Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *net_resource) {
+Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *net_resource, bool enable_const_folder) {
     Status ret = TNN_OK;
 
     // mark const blobs and blob data type
@@ -428,7 +422,8 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 
         cur_layer->SetRuntimeMode(runtime_model_);
         cur_layer->SetConstantResource(&net_resource->constant_map);
-        ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
+        ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs,
+            outputs, device_, enable_const_folder);
         if (ret != TNN_OK) {
             LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
             return ret;

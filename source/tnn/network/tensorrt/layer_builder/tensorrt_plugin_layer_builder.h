@@ -32,7 +32,7 @@ public:
 
     // @brief virtual layer init
     virtual Status Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& inputs,
-                std::vector<Blob*>& outputs, AbstractDevice* device);
+                std::vector<Blob*>& outputs, AbstractDevice* device, bool enable_const_folder);
 
     // @brief virtual layer infer
     virtual Status Forward();

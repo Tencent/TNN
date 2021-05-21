@@ -37,12 +37,13 @@ BaseLayer::~BaseLayer() {
 }
 
 Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& input_blobs,
-                       std::vector<Blob*>& output_blobs, AbstractDevice* device) {
+                       std::vector<Blob*>& output_blobs, AbstractDevice* device, bool enable_const_folder) {
     input_blobs_  = input_blobs;
     output_blobs_ = output_blobs;
 
     param_    = param;
     resource_ = resource;
+    enable_const_folder_ = enable_const_folder;
 
     auto status = InferOutputDataType();
     if (status != TNN_OK) {
@@ -70,10 +71,10 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
             }
         }
     }
-    
-    if (device->GetDeviceType() == DEVICE_NAIVE || !IsOutputConstant() || device->GetDeviceType() == DEVICE_CUDA) {
-        layer_acc_ = device->CreateLayerAcc(type_);
 
+    if (device->GetDeviceType() == DEVICE_NAIVE || !IsOutputConstant() ||
+            (device->GetDeviceType() == DEVICE_CUDA && !enable_const_folder)) {
+        layer_acc_ = device->CreateLayerAcc(type_);
         if (layer_acc_ != NULL) {
             layer_acc_->SetRuntimeMode(runtime_model_);
             layer_acc_->SetConstantResource(const_resource_);
@@ -164,25 +165,21 @@ Status BaseLayer::InferOutputDataType() {
 }
 
 Status BaseLayer::Reshape() {
-    if (input_blobs_[0]->GetBlobDesc().device_type != DEVICE_CUDA) {
-        if (!output_blobs_[0]->NeedAllocateInForward()) {
-            auto status = InferOutputShape();
-            RETURN_ON_NEQ(status, TNN_OK);
+    if (!output_blobs_[0]->NeedAllocateInForward()) {
+        auto status = InferOutputShape();
+        RETURN_ON_NEQ(status, TNN_OK);
 
-            auto dims = output_blobs_[0]->GetBlobDesc().dims;
-            for (auto item : dims) {
-                if (item < 0) {
-                    LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
-                    return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
-                }
+        auto dims = output_blobs_[0]->GetBlobDesc().dims;
+        for (auto item : dims) {
+            if (item < 0) {
+                LOGE("Error: layer(%s) output dims is invalid\n", layer_name_.c_str());
+                return Status(TNNERR_LAYER_ERR, "layer output dims is invalid");
             }
         }
     }
     if (layer_acc_ != NULL) {
-        if (input_blobs_[0]->GetBlobDesc().device_type != DEVICE_CUDA) {
-            auto status = layer_acc_->ReloadConstantBlobs(input_blobs_, true);
-            RETURN_ON_NEQ(status, TNN_OK);
-        }
+        auto status = layer_acc_->ReloadConstantBlobs(input_blobs_, true);
+        RETURN_ON_NEQ(status, TNN_OK);
         return layer_acc_->Reshape(input_blobs_, output_blobs_);
     } else {
         LOGE("layer acc is nil\n");
@@ -195,8 +192,9 @@ Status BaseLayer::Forward() {
         if (runtime_model_ == RUNTIME_MODE_NORMAL) {
             auto status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
             RETURN_ON_NEQ(status, TNN_OK);
-            
-            if (!IsOutputConstant() || input_blobs_[0]->GetBlobDesc().device_type == DEVICE_CUDA) {
+
+            if (!IsOutputConstant() ||
+                    (input_blobs_[0]->GetBlobDesc().device_type == DEVICE_CUDA && !enable_const_folder_)) {
                 status = layer_acc_->Forward(input_blobs_, output_blobs_);
                 RETURN_ON_NEQ(status, TNN_OK);
             }

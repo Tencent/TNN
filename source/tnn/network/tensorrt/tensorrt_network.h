@@ -74,8 +74,8 @@ public:
     // @param inputs_shape_map modify input shape, if empty, it will use the
     // shape in proto
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config,
-                        AbstractModelInterpreter* interpreter,
-                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
+        AbstractModelInterpreter* interpreter, InputShapesMap min_inputs_shape,
+        InputShapesMap max_inputs_shape, bool enable_const_folder);
 
     // @brief network forward
     virtual Status Forward();
@@ -96,7 +96,7 @@ public:
     std::set<std::string> m_concat_blob_names;
 
 private:
-    virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
+    virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource, bool enable_const_folder);
 
     bool IsBlobUsed(Blob* blob);
 
