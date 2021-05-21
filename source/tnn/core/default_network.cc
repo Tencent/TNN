@@ -33,7 +33,7 @@
 
 namespace TNN_NS {
 
-//reserved for uncompatible
+//reserved for incompatible
 const std::string CACHE_TAG = "d1";
 
 NetworkImplFactoryRegister<NetworkImplFactory<DefaultNetwork>> g_network_impl_default_factory_register(
@@ -148,9 +148,9 @@ static inline bool IsLayoutReformatLayer(std::shared_ptr<LayerInfo> layer) {
 }
 
 /*
- * InitLayer funcion does the following things:
+ * InitLayer function does the following things:
  *  1. Set Blob type accordingly.
- *  2. Set data_tyep accordingly.
+ *  2. Set data_type accordingly.
  *  3. Infer the blob shapes.
  *  4. Check the weights required.
  */
@@ -545,7 +545,7 @@ Status DefaultNetwork::Forward() {
     RETURN_ON_NEQ(status, TNN_OK);
     
     if (runtime_blob_pool_) {
-        //当前acc在运行时每次都allocate blob，所以每次forward前清空避免内存泄漏
+        //now we allocate blob eachtime when running acc, so clear blob pool to avoid memory leak
         runtime_blob_pool_->ClearBlobMemoryPool();
     }
     
@@ -692,7 +692,7 @@ Status DefaultNetwork::ReshapeLayers() {
     for (auto cur_layer : layers_) {
         auto status = cur_layer->Reshape();
         RETURN_ON_NEQ(status, TNN_OK);
-        //Note output shape may not change after reshape for const folder, but will do change after forword because shape may be determined at rumtime
+        //Note output shape may not change after reshape for const folder, but will do change after forward because shape may be determined at rumtime
         LOGD("ReshapeLayers Output Shape: [%s]\n", cur_layer->GetOutputBlobs()[0]->GetBlobDesc().description().c_str());
     }
     return TNN_OK;

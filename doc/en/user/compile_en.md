@@ -182,8 +182,34 @@ cd <path_to_tnn>/scripts
 ```
 Openvino can only be compiled to 64-bit version. More problems refer to [FAQ](openvino_en.md)
 
+## VII. Compile(CUDA Windows) 
+### 1. Enviroment requirements
+#### Dependencies
+  - Visual Studio (version 2015 or higher)
+  - cmake (vsrsion 3.11 or higher; Or use build-in cmake in Visual Studio)
+  - CUDA (version 10.2 or higher)
 
-## VII. Compile(Macos)
+#### TensorRT configuration
+  - Download TensorRT (version>=7.1) <https://developer.nvidia.com/nvidia-tensorrt-7x-download>
+  - Configure the TensorRT path in *build_cuda_msvc.bat* : `set TENSORRT_ROOT_DIR=<TensorRT_path>`
+
+#### CuDNN configuration
+  - Download CuDNN (version>=8.0) <https://developer.nvidia.com/rdp/cudnn-download>
+  - Configure the CuDNN path in *build_cuda_msvc.bat* : `set CUDNN_ROOT_DIR=<CuDNN_path>`
+
+### 2. Compilation Steps
+Open `x64 Native Tools Command Prompt for VS 2017/2019`. Or open `cmd` with `cmake` environment virable setted.
+1) switch to 'scripts' directory
+```
+cd <path_to_tnn>/scripts
+```
+2) execute the building scripts
+```
+.\build_cuda_msvc.bat
+```
+
+
+## VIII. Compile(Macos)
 ### 1. Environment requirements
 #### Dependencies
   - cmake 3.11 or above

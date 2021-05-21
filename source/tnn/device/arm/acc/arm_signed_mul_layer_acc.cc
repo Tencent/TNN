@@ -45,8 +45,8 @@ Status ArmSignedMulLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::
 
     auto input_blob    = inputs[0];
     auto output_blob   = outputs[0];
-    T *input_data  = static_cast<T *>(input_blob->GetHandle().base);
-    T *output_data = static_cast<T *>(output_blob->GetHandle().base);
+    T *input_data  = reinterpret_cast<T *>(GetBlobHandlePtr(input_blob->GetHandle()));
+    T *output_data = reinterpret_cast<T *>(GetBlobHandlePtr(output_blob->GetHandle()));
     int batch          = input_blob->GetBlobDesc().dims[0];
     int channel        = input_blob->GetBlobDesc().dims[1];
     int channel_r4     = UP_DIV(channel, 4);

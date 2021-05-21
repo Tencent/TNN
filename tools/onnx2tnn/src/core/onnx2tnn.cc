@@ -159,7 +159,7 @@ int Onnx2TNN::TNNWriteProto() {
 
             // line 2, input blobs
             {
-                int intput_blob_count                          = 0;
+                int input_blob_count                          = 0;
                 std::vector<onnx::ValueInfoProto*> input_blobs = std::vector<onnx::ValueInfoProto*>();
                 for (int j = 0; j < graph.input_size(); j++) {
                     const std::string& input_name = graph.input(j).name();
@@ -194,18 +194,18 @@ int Onnx2TNN::TNNWriteProto() {
                         continue;
                     }
 
-                    intput_blob_count++;
+                    input_blob_count++;
                     input_blobs.push_back((onnx::ValueInfoProto*)(&(graph.input(j))));
                 }
 
-                if (intput_blob_count == 0) {
-                    LOGE("invalid input blob count(must >= 1): %d\n", intput_blob_count);
+                if (input_blob_count == 0) {
+                    LOGE("invalid input blob count(must >= 1): %d\n", input_blob_count);
                     assert(0);
                     break;
                 }
 
                 proto_net_info << "\"";
-                for (int ii = 0; ii < intput_blob_count; ii++) {
+                for (int ii = 0; ii < input_blob_count; ii++) {
                     onnx::ValueInfoProto* input_blob = input_blobs[ii];
                     auto shape = GetDimsFromTensorShape(input_blob->type().tensor_type().shape());
                     
@@ -225,7 +225,7 @@ int Onnx2TNN::TNNWriteProto() {
                         
                     DataType input_data_type = GetTnnDataTypeFromOnnx(input_blob->type());
                     proto_net_info << input_data_type << " ";
-                    if (intput_blob_count > 1 && ii != intput_blob_count - 1) {
+                    if (input_blob_count > 1 && ii != input_blob_count - 1) {
                         proto_net_info << ": ";
                     }
                 }

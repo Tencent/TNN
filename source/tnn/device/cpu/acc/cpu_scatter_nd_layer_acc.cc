@@ -113,8 +113,8 @@ Status CpuScatterNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         return TNN_OK;
 
     } else {
-        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: expand layer acc dont support datatype");
+        LOGE("Error: CpuScatterNDLayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuScatterNDLayerAcc layer acc dont support datatype");
     }
     return TNN_OK;
 }

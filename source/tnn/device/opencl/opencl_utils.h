@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILES_H_
-#define TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILES_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILS_H_
+#define TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILS_H_
 
 #include <string>
 #include <vector>
@@ -159,4 +159,4 @@ uint32_t SetExecuteUnit2DSizeInfoNCHW(OpenCLExecuteUnit &unit, DimsVector dims);
 uint32_t SetExecuteUnit1DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims);
 
 }  // namespace TNN_NS
-#endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILES_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILS_H_

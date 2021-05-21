@@ -62,8 +62,8 @@ bool MetalBlobConverterAcc::CheckDeviceAndMat(DeviceType device_type, MatType ma
     bool device_supported = (device_type == DEVICE_METAL || device_type == DEVICE_ARM || 
             device_type == DEVICE_X86 || device_type == DEVICE_NAIVE);
 
-    bool mat_supported = (mat_type == N8UC4 || mat_type == NCHW_FLOAT ||
-            mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32);
+    bool mat_supported = (mat_type == N8UC4 || mat_type == N8UC3 ||
+            mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32);
 
     return device_supported && mat_supported;
 }
@@ -85,7 +85,9 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
     float scale_texture_buffer = 1.0f;
     float bias_texture_buffer  = 1.0f;
     const auto mat_type = mat->GetMatType();
-    if (mat_type == N8UC4) {
+    // Metal does not support N8UC3 mat, only N8UC4 metal mat uses mtltexture
+    bool need_rescale = (mat_type == N8UC4) && (is_mat_to_blob || mat->GetDeviceType() == DEVICE_METAL);
+    if (need_rescale) {
         scale_texture_buffer = is_mat_to_blob ? 255.0f : 1.0 / 255.0f;
         bias_texture_buffer  = is_mat_to_blob ? 1.0    : 1.0 / 255.0f;
     }
@@ -113,22 +115,24 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
             return Status(TNNERR_INVALID_INPUT, "buffer bias is nil");
         }
     } else {
-        if (param.scale.size() >= 4) {
+        if (param.scale.size() >= 3) {
             metal_param.scale_x = scale_texture_buffer * param.scale[0];
             metal_param.scale_y = scale_texture_buffer * param.scale[1];
             metal_param.scale_z = scale_texture_buffer * param.scale[2];
-            metal_param.scale_w = scale_texture_buffer * param.scale[3];
+            if (param.scale.size() > 3)
+                metal_param.scale_w = scale_texture_buffer * param.scale[3];
         } else {
             metal_param.scale_x = 1.0f;
             metal_param.scale_y = 1.0f;
             metal_param.scale_z = 1.0f;
             metal_param.scale_w = 1.0f;
         }
-        if (param.bias.size() >= 4) {
+        if (param.bias.size() >= 3) {
             metal_param.bias_x = bias_texture_buffer * param.bias[0];
             metal_param.bias_y = bias_texture_buffer * param.bias[1];
             metal_param.bias_z = bias_texture_buffer * param.bias[2];
-            metal_param.bias_w = bias_texture_buffer * param.bias[3];
+            if (param.bias.size() > 3)
+                metal_param.bias_w = bias_texture_buffer * param.bias[3];
         } else {
             metal_param.bias_x = 0.0f;
             metal_param.bias_y = 0.0f;
@@ -182,7 +186,10 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
                 }
             }
         } else {
-            if (blob_data_format == DATA_FORMAT_NC4HW4) {
+            if (mat_device_type != DEVICE_METAL && blob_data_format == DATA_FORMAT_NC4HW4) {
+                func_process = [library newFunctionWithName:@"image_converter_buffer_nc4hw4_2_buffer_bgra"];
+                LOGD("image_converter_buffer_nc4hw4_2_buffer_bgra\n");
+            } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
                 func_process = [library newFunctionWithName:@"image_converter_buffer_nc4hw4_2_texture_bgra8888"];
                 LOGD("image_converter_buffer_nc4hw4_2_texture_bgra8888\n");
             } else if (blob_data_format == DATA_FORMAT_NCHW) {
@@ -190,6 +197,19 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
                     func_process = [library newFunctionWithName:@"image_converter_buffer_nchw_f_2_texture_bgra8888"];
                     LOGD("image_converter_buffer_nchw_f_2_texture_bgra8888\n");
                 }
+            }
+        }
+    } else if (mat_type == N8UC3) {
+        if (is_mat_to_blob) {
+            if (blob_data_format == DATA_FORMAT_NC4HW4) {
+                func_process = [library newFunctionWithName:@"image_converter_buffer_bgr_2_buffer_nc4hw4"];
+                LOGD("image_converter_buffer_bgr_2_buffer_nc4hw4\n");
+
+            }
+        } else {
+            if (blob_data_format == DATA_FORMAT_NC4HW4) {
+                func_process = [library newFunctionWithName:@"image_converter_buffer_nc4hw4_2_buffer_bgr"];
+                LOGD("image_converter_buffer_nc4hw4_2_buffer_bgr\n");
             }
         }
     } else if (mat_type == NCHW_FLOAT) {
@@ -340,6 +360,37 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         } else if (waitState == 2) {
             [command_buffer waitUntilScheduled];
         }
+    } else if ((mat_type == N8UC4 || mat_type == N8UC3) && output_mat_device != DEVICE_METAL) {
+        auto safe_dims = dims;
+        safe_dims[1]   = mat_type == N8UC4 ? 4 : 3;
+        auto count = DimsVectorUtils::Count(safe_dims);
+        auto bytes_size = sizeof(unsigned char);
+        id<MTLBuffer> output_mtl_buffer = [command_queue_impl.device newBufferWithLength:count * bytes_size
+                                                                       options:MTLResourceCPUCacheModeDefaultCache];
+
+        MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
+        MTLSize groups = {(NSUInteger)((DimsFunctionUtils::GetDim(dims, 3) + group_threads.width - 1) / group_threads.width),
+                          (NSUInteger)DimsFunctionUtils::GetDim(dims, 2),
+                          (NSUInteger)1};
+
+        command_buffer = [command_queue_impl commandBuffer];
+        [command_buffer enqueue];
+        auto encoder = [command_buffer computeCommandEncoder];
+        [encoder setComputePipelineState:pipeline_process_];
+
+        [encoder setBuffer:output_mtl_buffer offset:0 atIndex:0];
+        [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input_blob->GetHandle().base
+                    offset:(NSUInteger)input_blob->GetHandle().bytes_offset
+                   atIndex:1];
+        [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
+
+        [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
+        [encoder endEncoding];
+
+        [command_buffer commit];
+
+        [command_buffer waitUntilCompleted];
+        memcpy(output_mat.GetData(), output_mtl_buffer.contents, count * bytes_size);
     } else if (mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST) {
         auto input_buffer_blob          = dynamic_cast<Blob *>(input_blob);
         id<MTLBuffer> output_mtl_buffer = nil;
@@ -557,6 +608,38 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                         offset:(NSUInteger)output_buffer_blob->GetHandle().bytes_offset
                        atIndex:0];
             [encoder setBuffer:buffer_param_ offset:0 atIndex:1];
+
+            [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
+            [encoder endEncoding];
+
+            [command_buffer commit];
+            if (waitState == 1) {
+                [command_buffer waitUntilCompleted];
+            } else if (waitState == 2) {
+                [command_buffer waitUntilScheduled];
+            }
+            return TNN_OK;
+        } else if (mat_type == N8UC3 && mat_device_type != DEVICE_METAL) {
+            MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
+            MTLSize groups        = {(NSUInteger)((DimsFunctionUtils::GetDim(dims, 3) + group_threads.width - 1) / group_threads.width),
+                              (NSUInteger)DimsFunctionUtils::GetDim(dims, 2), (NSUInteger)1};
+
+            const auto bytes_size = sizeof(unsigned char);
+            auto count = DimsVectorUtils::Count(dims);
+            id<MTLBuffer> input_tmp_buffer = [command_queue_impl.device newBufferWithBytes:input_mat.GetData()
+                                                                      length:count * bytes_size
+                                                                     options:MTLCPUCacheModeDefaultCache];
+
+            auto command_buffer = [command_queue_impl commandBuffer];
+            [command_buffer enqueue];
+            auto encoder = [command_buffer computeCommandEncoder];
+            [encoder setComputePipelineState:pipeline_process_];
+
+            [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output_blob->GetHandle().base
+                        offset:(NSUInteger)output_blob->GetHandle().bytes_offset
+                       atIndex:0];
+            [encoder setBuffer:input_tmp_buffer offset:0 atIndex:1];
+            [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
 
             [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
             [encoder endEncoding];

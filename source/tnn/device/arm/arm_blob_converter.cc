@@ -245,14 +245,14 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam para
 }
 
 /*
-compatiable to ncnn mat
+compatible to ncnn mat
 */
 Status ArmBlobConverterAcc::ConvertToMat(Mat &image, MatConvertParam param, void *command_queue) {
     return ConvertToMatAsync(image, param, command_queue);
 }
 
 /*
-compatiable to ncnn mat
+compatible to ncnn mat
 */
 Status ArmBlobConverterAcc::ConvertFromMat(Mat &image, MatConvertParam param, void *command_queue) {
     return ConvertFromMatAsync(image, param, command_queue);

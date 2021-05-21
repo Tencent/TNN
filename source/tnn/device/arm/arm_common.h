@@ -48,9 +48,16 @@
 #define VQMOVN_HIGH_S32_T(lows16, highs32) vcombine_s16((lows16), vqmovn_s32(highs32))
 #define VMOVL_HIGH_S16_T(a) vmovl_s16(vget_high_s16(a))
 // trick convert for float, only accurate when abs(a) < 1.5 * 2^22, assume ok
-const float32x4_t kNeonClampNumberf = vdupq_n_f32(12582912.0f);
-const int32x4_t kNeonClampNumberi   = vdupq_n_s32(0x4B400000);
-#define VCVTAQ_S32_F32(a) (vsubq_s32(vreinterpretq_s32_f32(vaddq_f32(a, kNeonClampNumberf)), kNeonClampNumberi))
+// magic number 12582912.0f will do rounding to nearest, ties to even
+// but naive and aarch64 will do rounding to nearest, ties away from zero, it's not aligned
+// ties away from zero: val + (val >= 0.f ? 0.5f : -0.5f)
+// const float32x4_t kNeonClampNumberf = vdupq_n_f32(12582912.0f);
+// const int32x4_t kNeonClampNumberi   = vdupq_n_s32(0x4B400000);
+// #define VCVTAQ_S32_F32(a) (vsubq_s32(vreinterpretq_s32_f32(vaddq_f32(a, kNeonClampNumberf)), kNeonClampNumberi))
+const float32x4_t kNeonA = vdupq_n_f32(0.5f);
+const float32x4_t kNeonB = vdupq_n_f32(-0.5f);
+const float32x4_t kNeonZero = vdupq_n_f32(0.f);
+#define VCVTAQ_S32_F32(a) (vcvtq_s32_f32(vaddq_f32(a, vbslq_f32(vcgeq_f32(a, kNeonZero), kNeonA, kNeonB))))
 
 #define VPADDQ_S32(a, b)                                                                                               \
     vcombine_s32(vpadd_s32(vget_low_s32(a), vget_high_s32(a)), vpadd_s32(vget_low_s32(b), vget_high_s32(b)))

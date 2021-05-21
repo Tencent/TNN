@@ -23,7 +23,7 @@
 namespace TNN_NS {
 
 
-//default contructor will create convert buffer
+//default constructor will create convert buffer
 OpenCLBlobConverterAcc::OpenCLBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {
     BlobMemorySizeInfo size_info;
     if (blob->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {

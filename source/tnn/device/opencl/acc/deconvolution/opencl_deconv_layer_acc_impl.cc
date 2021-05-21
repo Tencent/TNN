@@ -208,7 +208,7 @@ Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
                       (cl::size_type)bytes_size, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Deconv malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Deconv malloc memory failed");
     }
     weight_buffer->SetData(&buffer);
     auto weight_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(buffer, true, CL_MAP_WRITE, 0, bytes_size,
@@ -221,7 +221,7 @@ Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(buffer, weight_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Deconv MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Deconv MemUnMap failed");
     }
 
     // create ocl_weights_
@@ -243,7 +243,7 @@ Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     ocl_weights_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_weights_->SetData(image, true);

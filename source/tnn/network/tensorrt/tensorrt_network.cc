@@ -143,11 +143,6 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         return ret;
     }
 
-    ret = blob_manager_->AllocateBlobMemory();
-    if (ret != TNN_OK) {
-       return ret;
-    }
-
     std::string cache_file_name = GetCacheFileName(params_md5, inputs, outputs, min_inputs_shape,
         net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
     ExclFile *file_lock = new ExclFile(cache_file_name);
@@ -184,6 +179,11 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     delete file_lock;
+
+    ret = blob_manager_->AllocateBlobMemory();
+    if (ret != TNN_OK) {
+       return ret;
+    }
 
     int bind_num = m_trt_engine->getNbBindings();
     this->m_trt_bindings = new void*[bind_num];
@@ -247,8 +247,9 @@ Status TensorRTNetwork_::ReshapeLayers() {
         bool ret;
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
         if (std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->IsShapeTensor()) {
-            auto map = net_resource_->constant_map;
-            ret = m_trt_context->setInputShapeBinding(index, (int*)map[blob_name]->force_to<int *>());
+            auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetShapeBlobName();
+            auto dims = blob_manager_->GetBlob(name)->GetBlobDesc().dims;
+            ret = m_trt_context->setInputShapeBinding(index, dims.data());
         } else {
             nvinfer1::Dims inputDims = ConvertToTRTDims(buf->GetBufferDims());
             ret = m_trt_context->setBindingDimensions(index, inputDims);
@@ -406,7 +407,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 
 Status TensorRTNetwork_::CreateExecuteContext() {
     m_trt_context = m_trt_engine->createExecutionContextWithoutDeviceMemory();
-    size_t context_memory_size = std::max(m_trt_engine->getDeviceMemorySize(), size_t(1024));
+    size_t context_memory_size = (std::max)(m_trt_engine->getDeviceMemorySize(), size_t(1024));
     Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemAlloc(&m_context_memory, context_memory_size);
     if (ret != TNN_OK) {
         LOGE("Error Create TensorRT execute context\n");
