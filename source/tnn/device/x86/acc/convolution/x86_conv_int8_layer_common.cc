@@ -480,9 +480,9 @@ Status X86ConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
                 tile_blk_ = SIMD_INT8CONV_TILE_HW;
                 break;
             }
-            tile_count = UP_DIV(dims_input[2] * dims_output[3], tile_blk_);
+            tile_count = UP_DIV(dims_output[2] * dims_output[3], tile_blk_);
         }
-        tile_count = UP_DIV(dims_input[2] * dims_output[3], tile_blk_);
+        tile_count = UP_DIV(dims_output[2] * dims_output[3], tile_blk_);
     }
 
     size_t workspace_size = 0;
