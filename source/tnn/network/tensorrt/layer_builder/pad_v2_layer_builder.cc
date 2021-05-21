@@ -43,8 +43,15 @@ static bool UseTRTPaddingND(PadLayerParam* paramlist) {
 
 bool PadV2TRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32
-           || inOut[pos].type == nvinfer1::DataType::kHALF) && inOut[pos].type == inOut[0].type && inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+    bool base_check = (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32
+           || inOut[pos].type == nvinfer1::DataType::kHALF) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+    if(nbInputs == 1) {
+        return base_check && inOut[pos].type == inOut[0].type;
+    } else if(pos == 1) {
+        return base_check && inOut[pos].type == nvinfer1::DataType::kINT32;
+    } else {
+        return base_check && inOut[pos].type == inOut[0].type;
+    }
 }
 
 const char* PadV2TRTPluginLayerBuilder::getPluginType() const {
