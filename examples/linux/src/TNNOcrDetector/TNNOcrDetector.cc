@@ -218,8 +218,6 @@ int main(int argc, char **argv) {
                 pts.push_back({(int)(box_ptr[3].first * scale_x), (int)(box_ptr[3].second * scale_y)});
     
                 cv::polylines(frame, pts, true, {0, 255, 255, 255});
-                cv::putText(frame, ocr_output->texts[i], {(int)(box_ptr[0].first * scale_x), (int)(box_ptr[0].second * scale_y)},
-                            cv::FONT_HERSHEY_PLAIN, 2.0, {255, 0, 0, 255});
             }
         }
 
