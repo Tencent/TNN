@@ -144,16 +144,17 @@ def squeeze_data(data: np.ndarray, num_axes):
     return data
 
 
-NCHW_TO_NHWC_AXES = (0, 2, 3, 1)
-def nchw_data_to_nhwc(data_dict: dict, input_details: dict):
+def prepare_data_for_tflite(data_dict: dict, input_details: dict):
     for item in input_details:
         name = item["name"]
-        src_shape_size = len(item["shape"])
-        data = data_dict[name]
-        data = data.transpose(NCHW_TO_NHWC_AXES)
-        data = squeeze_data(data, len(data.shape) - src_shape_size)
-        data_dict[name] = data
-
+        tnn_format_shape = item["shape"]
+        size = len(tnn_format_shape)
+        if size < 3:
+            continue
+        else:
+            tnn_format_data = data_dict[name]
+            tflite_format_data = np.rollaxis(tnn_format_data, 1, size)
+            data_dict[name] = tflite_format_data
     return data_dict
 
 
@@ -174,7 +175,7 @@ def run_tflite(model_path: str, input_path: str, input_info: dict) -> str:
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
-    input_data_dict = nchw_data_to_nhwc(input_data_dict, input_details)
+    input_data_dict = prepare_data_for_tflite(input_data_dict, input_details)
     for item in input_details:
         name = item["name"]
         index = item["index"]
@@ -249,16 +250,13 @@ def get_input_shape_from_onnx(onnx_path) -> dict:
 
 
 def nhwc_shape_to_nchw(shape: list):
-    shape_size = len(shape)
-    if shape_size > 4:
-        raise RuntimeError("Do not support 5-dimensional input!")
-
-    while len(shape) < 4:
-        shape.insert(-1, 1)
-    channels = shape.pop()
-    shape.insert(1, channels)
-
-    return shape
+    size = len(shape)
+    if size < 3:
+        return shape
+    else:
+        channels = shape.pop()
+        shape.insert(1, channels)
+        return shape
 
 
 def get_input_shape_from_tflite(tflite_path)->dict:
