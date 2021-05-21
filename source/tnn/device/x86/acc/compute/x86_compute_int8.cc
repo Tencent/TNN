@@ -16,6 +16,7 @@
 #include "tnn/utils/naive_compute.h"
 #include "tnn/device/x86/x86_common.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
@@ -621,7 +622,7 @@ void X86DepthwiseI8General(int8_t* dst, const int8_t* src, const int8_t* weight,
 void X86ReluInt8(int8_t* dst, const int8_t* src, long len) {
     __m128i zero_i8 = _mm_setzero_si128();
     long idx = len - len % 16;
-
+    OMP_PARALLEL_FOR_GUIDED_
     for (long i = 0; i < idx; i += 16) {
         __m128i vec = _mm_loadu_si128((__m128i*)(src + i));
         _mm_storeu_si128((__m128i*)(dst + i), _mm_max_epi8(vec, zero_i8));
@@ -633,7 +634,7 @@ void X86ReluInt8(int8_t* dst, const int8_t* src, long len) {
 
 void X86Relu6Int8(int8_t* dst, const int8_t* src, const int8_t* relu6_max, long width, long dst_depth) {
     __m128i zero_i8 = _mm_setzero_si128();
-
+    OMP_PARALLEL_FOR_GUIDED_
     for (long dx = 0; dx < width; dx++) {
         auto src_dx = src + dx * dst_depth;
         auto dst_dx = dst + dx * dst_depth;
@@ -654,6 +655,7 @@ void X86Relu6Int8(int8_t* dst, const int8_t* src, const int8_t* relu6_max, long 
 
 void X86MaxPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow, long oh, long c_r4, long kw, long kh,
                     long stride_w, long stride_h, long pad_w, long pad_h) {
+    OMP_PARALLEL_FOR_COLLAPSE_(2)
     for (long oy = 0; oy < oh; ++oy) {
         for (long ox = 0; ox < ow; ++ox) {
             const long srcOriginX = ox * stride_w - pad_w;
@@ -718,6 +720,7 @@ void X86MaxPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow
 
 void X86AvgPoolingINT8(const int8_t* src, long iw, long ih, int8_t* dst, long ow, long oh, long c_r4, long kw, long kh,
                     long stride_w, long stride_h, long pad_w, long pad_h) {
+    OMP_PARALLEL_FOR_COLLAPSE_(2)
     for (long oy = 0; oy < oh; ++oy) {
         for (long ox = 0; ox < ow; ++ox) {
             const long srcOriginX   = ox * stride_w - pad_w;
@@ -788,7 +791,7 @@ element add int8 func
 void X86MatrixAddInt8(int8_t* dst, const int8_t* A, const int8_t* B, float* dst_scale, const float* a_scale,
                    float* b_scale, long channel, long hw_size) {
     DeclareRounding();
-
+    OMP_PARALLEL_FOR_GUIDED_
     for (long hw = 0; hw < hw_size; hw++) {
         long c = 0;
 
@@ -826,7 +829,7 @@ void X86MatrixAddInt8(int8_t* dst, const int8_t* A, const int8_t* B, float* dst_
 void X86GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, const float* scale, long ic_r4,
               long oc_r4) {
     DeclareRounding();
-
+    OMP_PARALLEL_FOR_GUIDED_
     for (long dc = 0; dc < oc_r4; dc += 4) {
         __m128i acc0 = _mm_setzero_si128();
         __m128i acc1 = _mm_setzero_si128();
@@ -938,6 +941,7 @@ void X86ConcatChannelInt8(Blob *output, const std::vector<Blob *> &inputs) {
                 auto ic_c4 = ROUND_UP(input_channel, 4);
                 auto input_ptr = reinterpret_cast<int8_t *>(inputs[b]->GetHandle().base) + n * ic_c4 * full_hw;
                 auto output_ptr = output_origin + n * full_hw * oc_c4 + c_offset;
+                OMP_PARALLEL_FOR_GUIDED_
                 for (int cur_hw = 0; cur_hw < full_hw; cur_hw++) {
                     memcpy(output_ptr + cur_hw * oc_c4, input_ptr + cur_hw * ic_c4, input_channel);
                 }
@@ -956,6 +960,7 @@ void X86ConcatChannelInt8(Blob *output, const std::vector<Blob *> &inputs) {
                 auto ic_c4         = ROUND_UP(input_channel, 4);
                 auto input_ptr     = reinterpret_cast<int8_t *>(inputs[b]->GetHandle().base) + n * ic_c4 * full_hw;
                 auto output_ptr    = output_origin + n * full_hw * oc_c4 + c_offset;
+                OMP_PARALLEL_FOR_GUIDED_
                 for (int cur_hw = 0; cur_hw < full_hw; cur_hw++) {
                     auto src_ic = input_ptr + cur_hw * ic_c4;
                     auto dst_ic = output_ptr + cur_hw * oc_c4;
@@ -1082,6 +1087,7 @@ static void upsample_bilinear_cn(int8_t *output_data, const int8_t *input_data, 
 
     const float INTER_RESIZE_COEF_SCALE = float(1 << 11);
 
+    OMP_PARALLEL_FOR_GUIDED_
     for (int h2 = 0; h2 < oh; ++h2) {
         const float h1r      = h_coeffs_ptr[h2];
         const int h1         = h1r;
@@ -1123,6 +1129,7 @@ void X86UpsampleNearest2D(int8_t *output_data, const int8_t *input_data,
     const float height_scale = (float)ih / (float)oh;
     const float width_scale  = (float)iw / (float)ow;
 
+    OMP_PARALLEL_FOR_GUIDED_
     for (int h = 0; h < oh; h++) {
         int scale_h = static_cast<int>(h * height_scale);
         auto dst_y  = output_data + h * dst_y_step;

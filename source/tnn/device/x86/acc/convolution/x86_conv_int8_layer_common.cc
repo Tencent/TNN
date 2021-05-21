@@ -192,29 +192,6 @@ Status X86ConvInt8LayerCommon::allocateBufferAddScale(const std::vector<Blob *> 
     return TNN_OK;
 }
 
-Status X86ConvInt8LayerCommon::allocateBufferParam(const std::vector<Blob *> &inputs,
-                                                   const std::vector<Blob *> &outputs) {
-    ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
-    CHECK_PARAM_NULL(conv_param);
-
-    auto dims_input    = inputs[0]->GetBlobDesc().dims;
-    const int ic_per_g = dims_input[1] / conv_param->group;
-
-    int max_num_threads = OMP_MAX_THREADS_NUM_;
-    // alloc img2col and gemm work buffer
-    if (!buffer_im2col_.GetBytesSize()) {
-        const int c_round4 = ROUND_UP(ic_per_g, 4);
-        const int buffer_size =
-            (ROUND_UP(c_round4 * conv_param->kernels[0] * conv_param->kernels[1], 16) * tile_blk_) *
-                max_num_threads + SIMD_KERNEL_EXTRA_LOAD;
-
-        RawBuffer temp_buffer_i2c(buffer_size);
-        buffer_im2col_          = temp_buffer_i2c;
-    }
-    RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
-    return TNN_OK;
-}
-
 #define DEF_IMG2COL_VAL                                                                                                \
     int x_id = (int)x_start + i;                                                                                       \
     int ox   = x_id % output_dims[3];                                                                                  \
@@ -390,7 +367,7 @@ Status X86ConvInt8LayerCommon::Init(Context *context, LayerParam *param, LayerRe
     }
     tile_blk_ = tile_blk;
 
-    RETURN_ON_NEQ(allocateBufferParam(inputs, outputs), TNN_OK);
+    RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
 
     return TNN_OK;
 }
@@ -492,7 +469,21 @@ Status X86ConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     int8_t *weight_ptr = buffer_weight_.force_to<int8_t *>();
 
     const int crs_div8   = UP_DIV(ic_calc * conv_param->kernels[1] * conv_param->kernels[0], 8);
-    const int tile_count = UP_DIV(dims_output[2] * dims_output[3], tile_blk_);
+    int tile_count = UP_DIV(dims_output[2] * dims_output[3], tile_blk_);
+
+    // for multi-threads, adjust tile_blk to make more threads parallel
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    if (max_num_threads > 1 && tile_count < max_num_threads && tile_blk_ > SIMD_INT8CONV_TILE_HW) {
+        while (tile_count < max_num_threads) {
+            tile_blk_ = ROUND_UP(tile_blk_ / 2, SIMD_INT8CONV_TILE_HW);
+            if (tile_blk_ < SIMD_INT8CONV_TILE_HW) {
+                tile_blk_ = SIMD_INT8CONV_TILE_HW;
+                break;
+            }
+            tile_count = UP_DIV(dims_input[2] * dims_output[3], tile_blk_);
+        }
+        tile_count = UP_DIV(dims_input[2] * dims_output[3], tile_blk_);
+    }
 
     size_t workspace_size = 0;
     size_t src_group_buf_size = 0;
@@ -500,11 +491,15 @@ Status X86ConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     if (conv_param->group > 1) {
         src_group_buf_size = ic_g_r4 * input_channel_stride;
         dst_group_buf_size = oc_g_r4 * output_channel_stride;
-        workspace_size = src_group_buf_size + dst_group_buf_size;
         dims_input[1] = ic_g;
     }
+    size_t im2col_buf_size = ROUND_UP(ic_g_r4 * conv_param->kernels[0] * conv_param->kernels[1], 16) *
+                             tile_blk_ * max_num_threads + SIMD_KERNEL_EXTRA_LOAD;
+    workspace_size = src_group_buf_size + dst_group_buf_size + im2col_buf_size;
     int8_t *workspace = reinterpret_cast<int8_t *>(context_->GetSharedWorkSpace(workspace_size));
-    memset(workspace, 0, workspace_size);
+    // im2col will memset 0 by itself
+    memset(workspace, 0, src_group_buf_size + dst_group_buf_size);
+    auto im2col_buf_ptr = workspace + src_group_buf_size + dst_group_buf_size;
 
     for (int n = 0; n < batch; ++n) {
         auto input_batch     = input_data + n * input_batch_stride;
@@ -538,7 +533,7 @@ Status X86ConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
 
                 // im2col
                 if (im_col_func_) {
-                    input_kernel = buffer_im2col_.force_to<int8_t *>() + input_count * thread_id;
+                    input_kernel = im2col_buf_ptr + input_count * thread_id;
                     im_col_func_(input_kernel, input_group, conv_param,
                                  hw_start, real_hw_tile, crs_div8, dims_input, dims_output);
                 } else {

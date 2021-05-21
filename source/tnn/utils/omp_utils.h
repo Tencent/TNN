@@ -21,6 +21,8 @@
 #define OMP_PARALLEL_FOR_ _Pragma("omp parallel for")
 #define OMP_PARALLEL_FOR_GUIDED_ _Pragma("omp parallel for")
 #define OMP_PARALLEL_FOR_DYNAMIC_ _Pragma("omp parallel for schedule(dynamic)")
+#define PRAGMA_(X) _Pragma(#X)
+#define OMP_PARALLEL_FOR_COLLAPSE_(t) PRAGMA_(omp parallel for collapse(t))
 #define OMP_SECTION_ _Pragma("omp section")
 #define OMP_PARALLEL_SECTIONS_ _Pragma("omp parallel sections")
 #define OMP_CORES_ (omp_get_num_procs())
@@ -33,6 +35,7 @@
 #define OMP_PARALLEL_FOR_
 #define OMP_PARALLEL_FOR_GUIDED_
 #define OMP_PARALLEL_FOR_DYNAMIC_
+#define OMP_PARALLEL_FOR_COLLAPSE_(t)
 #define OMP_SECTION_
 #define OMP_PARALLEL_SECTIONS_
 #define OMP_CORES_ (1)
