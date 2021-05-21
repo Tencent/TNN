@@ -43,7 +43,7 @@ bool ArmConvInt8LayerDepthwise::isPrefered(ConvLayerParam *param, const std::vec
 
 ArmConvInt8LayerDepthwise::~ArmConvInt8LayerDepthwise() {}
 
-Status ArmConvInt8LayerDepthwise::allocateBufferParam(const std::vector<Blob *> &inputs,
+Status ArmConvInt8LayerDepthwise::allocateBufferWeight(const std::vector<Blob *> &inputs,
                                                       const std::vector<Blob *> &outputs) {
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
     CHECK_PARAM_NULL(conv_param);
@@ -152,6 +152,8 @@ Status ArmConvInt8LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
 #ifdef TNN_USE_NEON
         if (kernel_x == kernel_y && kernel_x == 3 && k_param_->oc_r4 >= 8 && dilate_x == 1 && dilate_y == 1) {
             dwfunc = DepthwiseI8K3;
+        } else if (kernel_x == kernel_y && kernel_x == 5 && k_param_->oc_r4 >= 8 && dilate_x == 1 && dilate_y == 1) {
+            dwfunc = DepthwiseI8K5;
         }
 #endif
         OMP_PARALLEL_SECTIONS_ {
@@ -188,6 +190,8 @@ Status ArmConvInt8LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
 
         if (conv_param->activation_type == ActivationType_ReLU) {
             ReluInt8(output_batch, output_batch, output_height * dst_y_step);
+        } else if (conv_param->activation_type == ActivationType_ReLU6) {
+            Relu6Int8(output_batch, output_batch, relu6_max_.force_to<int8_t *>(), output_height * output_width, oc_4 * 4);
         }
     }
     return TNN_OK;

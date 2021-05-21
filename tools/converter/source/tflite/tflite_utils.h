@@ -20,6 +20,9 @@
 
 #include "tflite-schema/schema_generated.h"
 #include "tnn/core/common.h"
+#include "tnn/core/status.h"
+#include "tnn/interpreter/layer_resource.h"
+#include "tnn/interpreter/net_resource.h"
 
 namespace TNN_CONVERTER {
 
@@ -42,6 +45,9 @@ int SizeofTFLiteTensorData(tflite::TensorType type);
 
 void Mask(std::vector<int> shape, int mask, int upper, std::vector<int>& v);
 
+TNN_NS::Status CreateIntScaleResource(TNN_NS::NetResource& net_resource,
+                                      const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
+                                      int tensor_index);
 TNN_NS::DataType GetTnnDataTypeFromTFLite(const tflite::TensorType& tensor_type);
 
 }  // namespace TNN_CONVERTER
