@@ -18,6 +18,7 @@
 #include <iostream>
 #include <unordered_set>
 #include <cuda_runtime.h>
+#include <thread>
 
 #include "tnn/core/default_network.h"
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
@@ -59,7 +60,7 @@ public:
 
 class TensorRTPluginLayerBuilder;
 
-class TensorRTNetwork_ : public DefaultNetwork {
+class TensorRTNetwork_ : public DefaultNetwork, public ISharedMemoryChangeListener {
 public:
     // @brief TensorRTNetwork_ Constructor
     TensorRTNetwork_();
@@ -86,6 +87,9 @@ public:
 
     // @brief tnn instance network infer, it will not wait
     virtual Status ForwardAsync(Callback call_back);
+
+    // @brief OnSharedForwardMemoryChanged for share memory change observer
+    virtual void OnSharedForwardMemoryChanged(void *memory);
 
     static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> GetPluginLayerNameMap();
 
@@ -123,6 +127,8 @@ private:
     void* m_context_memory;
     NetResource *net_resource_;
     int device_id_;
+
+    std::thread::id init_thread_id_;
 
     std::vector<std::string> const_input_blobs_;
     std::vector<std::string> const_weight_blobs_;
