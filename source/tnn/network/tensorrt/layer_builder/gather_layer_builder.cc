@@ -26,6 +26,10 @@ bool GatherTRTPluginLayerBuilder::supportsFormatCombination(
         inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
 }
 
+Status GatherTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* GatherTRTPluginLayerBuilder::getPluginType() const {
     return "Gather";
 }
