@@ -39,13 +39,16 @@ Status OpenCLExpandLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     auto output_dims_size = output_dims.size();
 
     std::string src_format = "Image", dst_format = "Image";
+    std::string img_to_buf_program_name = "image_to_buffer", buf_to_img_program_name = "buffer_to_image";
     src_format = input_dims_size == 5 ? "Image5D" : input_dims_size == 6 ? "Image6D" : src_format;
+    img_to_buf_program_name = input_dims_size == 5 ? "image_5d_to_buffer" : input_dims_size == 6 ? "image_6d_to_buffer" : img_to_buf_program_name;
     dst_format = output_dims_size == 5 ? "Image5D" : output_dims_size == 6 ? "Image6D" : dst_format;
+    buf_to_img_program_name = output_dims_size == 5 ? "buffer_to_image_5d" : output_dims_size == 6 ? "buffer_to_image_6d" : buf_to_img_program_name;
 
     execute_units_.resize(3);
     // image->buffer
     {
-        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", src_format + "ToNCHWBuffer");
+        ret = CreateExecuteUnit(execute_units_[0], img_to_buf_program_name, src_format + "ToNCHWBuffer");
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -67,7 +70,7 @@ Status OpenCLExpandLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 
     // buffer->image
     {
-        ret = CreateExecuteUnit(execute_units_[2], "buffer_to_image", "NCHWBufferTo" + dst_format);
+        ret = CreateExecuteUnit(execute_units_[2], buf_to_img_program_name, "NCHWBufferTo" + dst_format);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
