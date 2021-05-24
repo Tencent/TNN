@@ -188,18 +188,18 @@ download_model \
 
 # download nanodet model
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/nanodet_m.tnnproto" \
-    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/chinese-ocr/nanodet_m.tnnmodel" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/nanodet/nanodet_m.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/nanodet/nanodet_m.tnnmodel" \
     "nanodet"
   
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/nanodet_t.tnnproto" \
-    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/chinese-ocr/nanodet_t.tnnmodel" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/nanodet/nanodet_t.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/nanodet/nanodet_t.tnnmodel" \
     "nanodet"
   
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/nanodet_e1.tnnproto" \
-    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/chinese-ocr/nanodet_e1.tnnmodel" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/nanodet/nanodet_e1.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/nanodet/nanodet_e1.tnnmodel" \
     "nanodet"
 
 # download tiny-bert model
