@@ -51,12 +51,18 @@ TensorRTNetwork_::TensorRTNetwork_() {
 
 TensorRTNetwork_::~TensorRTNetwork_() {
     CUDA_CHECK(cudaSetDevice(device_id_));
-    if (m_context_memory) {
-        Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemFree(m_context_memory);
-        if (ret != TNN_OK) {
-            LOGE("Error deconstruct TensorRT Network\n");
+
+    if(config_.share_memory_mode == SHARE_MEMORY_MODE_SHARE_ONE_THREAD) {
+        SharedMemoryManager::ReleaseSharedMemory(init_thread_id_, device_, config_.device_id, this);
+    } else {
+        if (m_context_memory) {
+            Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemFree(m_context_memory);
+            if (ret != TNN_OK) {
+                LOGE("Error deconstruct TensorRT Network\n");
+            }
         }
     }
+
     if (m_trt_context) {
         m_trt_context->destroy();
     }
@@ -107,6 +113,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
             return ret;
         }
     }
+
+    init_thread_id_    = std::this_thread::get_id();
 
     blob_manager_ = new TensorRTBlobManager(device_);
     ret = blob_manager_->Init(net_config, net_structure, max_inputs_shape, GetNetResourceDataType(net_resource));
@@ -408,12 +416,20 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 Status TensorRTNetwork_::CreateExecuteContext() {
     m_trt_context = m_trt_engine->createExecutionContextWithoutDeviceMemory();
     size_t context_memory_size = (std::max)(m_trt_engine->getDeviceMemorySize(), size_t(1024));
-    Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemAlloc(&m_context_memory, context_memory_size);
-    if (ret != TNN_OK) {
-        LOGE("Error Create TensorRT execute context\n");
-        return ret;
+    Status status = TNN_OK;
+    if(config_.share_memory_mode == SHARE_MEMORY_MODE_SHARE_ONE_THREAD) { 
+        SharedMemory share_memory = SharedMemoryManager::GetSharedMemory(
+                        context_memory_size, init_thread_id_, device_,
+                        config_.device_id, this, status);
+        m_trt_context->setDeviceMemory(share_memory.shared_memory_data);
+    } else {
+        Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemAlloc(&m_context_memory, context_memory_size);
+        if (ret != TNN_OK) {
+            LOGE("Error Create TensorRT execute context\n");
+            return ret;
+        }
+        m_trt_context->setDeviceMemory(m_context_memory);
     }
-    m_trt_context->setDeviceMemory(m_context_memory);
     return TNN_OK;
 }
 
@@ -755,6 +771,10 @@ Status TensorRTNetwork_::CheckConstBlobs() {
     const_weight_blobs_ = const_weight_blobs;
 
     return TNN_OK;
+}
+
+void TensorRTNetwork_::OnSharedForwardMemoryChanged(void *memory) {
+    m_trt_context->setDeviceMemory(memory);    
 }
 
 }  //  namespace  TNN_NS
