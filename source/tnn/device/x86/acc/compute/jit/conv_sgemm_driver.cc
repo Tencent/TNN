@@ -40,7 +40,7 @@ void conv_sgemm_block_n(
     dim_t m_block = conv_gemm_conf.m_block_;
 
     for(dim_t i=0;i<M;)  {
-        dim_t cur_m = std::min(M - i, conv_gemm_conf.kernel_m_r_);
+        dim_t cur_m = MIN(M - i, conv_gemm_conf.kernel_m_r_);
 
         const float * cur_a = src_a + divDown(i, m_block) * K_c + i % m_block;
         const float * cur_b = src_b;

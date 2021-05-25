@@ -530,9 +530,9 @@ template<> void reduce_postprocess<X86ReduceOpType::kLOGSUM>(float* input, float
 template<X86ReduceOpType type>
 void reduce_kernel(float * input, float * output, size_t outer_size, size_t inner_size, size_t reduce_size) 
 {
-    for(size_t outer_idx = 0; outer_idx < outer_size; outer_idx++) {
+    for(long outer_idx = 0; outer_idx < outer_size; outer_idx++) {
         OMP_PARALLEL_FOR_GUIDED_
-        for(size_t inner_idx = 0; inner_idx < inner_size; inner_idx++) {
+        for(long inner_idx = 0; inner_idx < inner_size; inner_idx++) {
             float acc = 0;
             if (type == X86ReduceOpType::kMIN) {
                 acc = FLT_MAX;
