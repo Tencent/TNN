@@ -216,7 +216,7 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
         if (is_mat_to_blob) {
             if (blob_data_format == DATA_FORMAT_NCHW) {
                 func_process = [library newFunctionWithName:@"data_converter_nchw_float2ftype"];
-                LOGD("data_converter_nchw_2_nchw\n");
+                LOGD("data_converter_nchw_float2ftype\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
                 func_process = [library newFunctionWithName:@"data_converter_nchw_2_nc4hw4_float_v2"];
                 LOGD("data_converter_nchw_2_nc4hw4_float_v2\n");
@@ -225,10 +225,10 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
             if (blob_data_type == DATA_TYPE_INT32) {
                 // int32 blob to float mat
                 func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_int322float_v2"];
-                LOGD("data_converter_nc4hw4_2_nchw_int32_v2\n");
+                LOGD("data_converter_nc4hw4_2_nchw_int322float_v2\n");
             } else if (blob_data_format == DATA_FORMAT_NCHW) {
                 func_process = [library newFunctionWithName:@"data_converter_nchw_ftype2float"];
-                LOGD("data_converter_nchw_2_nchw\n");
+                LOGD("data_converter_nchw_ftype2float\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
                 func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_float_v2"];
                 LOGD("data_converter_nc4hw4_2_nchw_float_v2\n");
@@ -238,28 +238,38 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
         if (is_mat_to_blob) {
             if (blob_data_format == DATA_FORMAT_NCHW) {
                 func_process = [library newFunctionWithName:@"data_converter_nchw_half2ftype"];
-                LOGD("data_converter_nchw_2_nchw\n");
+                LOGD("data_converter_nchw_half2ftype\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
                 func_process = [library newFunctionWithName:@"data_converter_nchw_2_nc4hw4_half_v2"];
-                LOGD("data_converter_nchw_2_nc4hw4_float_v2\n");
+                LOGD("data_converter_nchw_2_nc4hw4_half_v2\n");
             }
         } else {
             if (blob_data_format == DATA_FORMAT_NCHW) {
                 func_process = [library newFunctionWithName:@"data_converter_nchw_ftype2half"];
-                LOGD("data_converter_nchw_2_nchw\n");
+                LOGD("data_converter_nchw_ftype2half\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
                 func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_half_v2"];
-                LOGD("data_converter_nc4hw4_2_nchw_float_v2\n");
+                LOGD("data_converter_nc4hw4_2_nchw_half_v2\n");
             }
         }
     } else if (mat_type == NC_INT32) {
-        if (blob_data_type == DATA_TYPE_INT32 && blob_data_format == DATA_FORMAT_NC4HW4) {
+        if (blob_data_type == DATA_TYPE_INT32) {
             if (is_mat_to_blob) {
-                func_process = [library newFunctionWithName:@"data_converter_nchw_2_nc4hw4_int32_v2"];
-                LOGD("data_converter_nchw_2_nc4hw4_int32_v2\n");
+                if (blob_data_format == DATA_FORMAT_NC4HW4) {
+                    func_process = [library newFunctionWithName:@"data_converter_nchw_2_nc4hw4_int32_v2"];
+                    LOGD("data_converter_nchw_2_nc4hw4_int32_v2\n");
+                } else if (blob_data_format == DATA_FORMAT_NCHW) {
+                    func_process = [library newFunctionWithName:@"data_converter_nchw_int"];
+                    LOGD("data_converter_nchw_int\n");
+                }
             } else {
-                func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_int32_v2"];
-                LOGD("data_converter_nc4hw4_2_nchw_int32_v2\n");
+                if (blob_data_format == DATA_FORMAT_NC4HW4) {
+                    func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_int32_v2"];
+                    LOGD("data_converter_nc4hw4_2_nchw_int32_v2\n");
+                } else if (blob_data_format == DATA_FORMAT_NCHW) {
+                    func_process = [library newFunctionWithName:@"data_converter_nchw_int"];
+                    LOGD("data_converter_nchw_int\n");
+                }
             }
         }
     }
@@ -472,16 +482,26 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
 
         NSUInteger image_size  = DimsFunctionUtils::GetDimProduct(dims, 2);
         NSUInteger image_slice = UP_DIV(dims[1], 4);
+        bool is_blob_nchw = input_buffer_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
 
         auto group_threads = MTLSizeMake(pipeline_process_.threadExecutionWidth, 1, 1);
         auto groups = MTLSizeMake((image_size + group_threads.width - 1) / group_threads.width,
                                   image_slice, dims[0]);
+        if (is_blob_nchw) {
+            groups = MTLSizeMake((image_size + group_threads.width - 1) / group_threads.width,
+                                 dims[1], dims[0]);
+        }
 
         if (image_size <= image_slice) {
             group_threads = MTLSizeMake(1, pipeline_process_.threadExecutionWidth, 1);
             groups = MTLSizeMake(image_size,
                                  (image_slice + group_threads.height - 1) / group_threads.height,
                                  dims[0]);
+            if (is_blob_nchw) {
+                groups = MTLSizeMake(image_size,
+                                     (dims[1] + group_threads.height - 1) / group_threads.height,
+                                     dims[0]);
+            }
         }
 
         command_buffer = [command_queue_impl commandBuffer];
@@ -732,7 +752,7 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             auto groups = MTLSizeMake((image_size + group_threads.width - 1) / group_threads.width,
                                       image_slice, dims[0]);
             if (is_blob_nchw) {
-                return Status(TNNERR_COMMON_ERROR, "MetalBlobConverter does not support int32 mat to NCHW blob!");
+                groups.height = dims[1];
             }
 
             if (image_size <= image_slice) {

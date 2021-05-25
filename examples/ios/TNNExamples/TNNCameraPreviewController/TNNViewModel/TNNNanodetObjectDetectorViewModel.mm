@@ -68,7 +68,7 @@ using namespace std;
         option->model_content = model_content;
         option->library_path  = library_path.UTF8String;
         option->compute_units = units;
-        option->model_cfg     = "m";   // "m": nanodet_m; "e1": nanodet_efficientlite1
+        option->model_cfg     = "m";   // "m": nanodet_m; "e1": nanodet_efficientlite1; "t": nanodet_t
     }
     
     auto predictor = std::make_shared<ObjectDetectorNanodet>();
