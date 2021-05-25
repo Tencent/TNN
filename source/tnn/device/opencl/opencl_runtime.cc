@@ -200,10 +200,6 @@ Status OpenCLRuntime::Init() {
 
 OpenCLRuntime::~OpenCLRuntime() {
     LOGD("~OpenCLRuntime() start\n");
-    Status ret = SaveProgramCache();
-    if (ret != TNN_OK) {
-        LOGE("save program cache failed, ret: %d, msg: %s\n", (int)ret, ret.description().c_str());
-    }
     program_map_.clear();
     context_.reset();
     device_.reset();
@@ -683,6 +679,7 @@ Status OpenCLRuntime::SaveProgramCache() {
                                   + program_cache_bin_file_path);
                 }
             }
+            is_program_cache_changed_ = false;
             RELEASE_AND_UNLOCK(program_cache_fout);
         } else {
             fclose(program_cache_fout);
