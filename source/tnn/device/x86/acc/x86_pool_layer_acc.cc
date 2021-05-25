@@ -17,6 +17,7 @@
 #include "tnn/device/x86/x86_device.h"
 #include "tnn/device/x86/x86_common.h"
 #include "tnn/device/x86/x86_util.h"
+#include "tnn/utils/omp_utils.h"
 
 #include "tnn/device/x86/acc/compute/x86_compute.h"
 #include "tnn/device/x86/acc/compute/x86_compute_int8.h"
@@ -84,20 +85,24 @@ Status X86PoolLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
         c_pack = 8;
     }
 
+    int max_num_threads  = OMP_MAX_THREADS_NUM_;
     size_t src_hw        = dims_input[3] * dims_input[2];
     size_t dst_hw        = dims_output[3] * dims_output[2];
     size_t src_pack_size = ROUND_UP(src_hw * c_pack * sizeof(float), 32);
     size_t dst_pack_size = ROUND_UP(dst_hw * c_pack * sizeof(float), 32);
-    float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(src_pack_size + dst_pack_size));
-    auto src_pack_ptr = workspace;
-    auto dst_pack_ptr = workspace + src_pack_size / sizeof(float);
+    float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(
+                        (src_pack_size + dst_pack_size) * max_num_threads));
 
     if (output->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        //OMP_PARALLEL_FOR_
         for (int b = 0; b < batch; b++) {
             auto input_b  = reinterpret_cast<float *>(input_ptr) + b * dims_input[1] * src_hw;
             auto output_b = reinterpret_cast<float *>(output_ptr) + b * dims_output[1] * dst_hw;
+            OMP_PARALLEL_FOR_GUIDED_
             for (int c = 0; c < dims_output[1]; c += c_pack) {
+                int thread_id = OMP_TID_;
+                auto workspace_per_t = workspace + thread_id * ((src_pack_size + dst_pack_size) / sizeof(float));
+                auto src_pack_ptr    = workspace_per_t;
+                auto dst_pack_ptr    = workspace_per_t + src_pack_size / sizeof(float);
                 int left_c = MIN(dims_output[1] - c, c_pack);
                 PackAcc(src_pack_ptr, input_b + c * src_hw, src_hw, src_hw, src_hw, left_c);
                 if (param->pool_type == 0) {

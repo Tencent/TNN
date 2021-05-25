@@ -287,9 +287,6 @@ void conv_sgemm_tn_col_major_prepack_a(
     dim_t m_block = conv_gemm_conf.m_block_;
     dim_t n_block = conv_gemm_conf.n_block_;
 
-    dim_t i, j, k;
-    i = j = k = 0;
-
     dim_t first = 0;
     dim_t post_type;
 
@@ -298,7 +295,7 @@ void conv_sgemm_tn_col_major_prepack_a(
         first = 1;
     }
 
-    for (k = 0; k < K; k += K_c)  {
+    for (dim_t k = 0; k < K; k += K_c)  {
         if (k + K_c >= K) {
             post_type = act_type;
         } else {
@@ -310,12 +307,13 @@ void conv_sgemm_tn_col_major_prepack_a(
         // pack b -> K_c * N;
         pack_col_b_n(src_b + k, ldb, pack_b_buf, K_c, cur_k, N, conv_gemm_conf);
 
-        for (i = 0; i < M; i += M_c)  {
+        OMP_PARALLEL_FOR_DYNAMIC_
+        for (dim_t i = 0; i < M; i += M_c)  {
             dim_t cur_m = MIN(M - i, M_c);
             // pack a -> M_c * K_c;
             auto src_a_i = src_a + k * divUp(M, m_block) + i * K_c;
 
-            for (j = 0; j < N;)  {
+            for (dim_t j = 0; j < N;)  {
                 dim_t cur_n = MIN(N - j, conv_gemm_conf.kernel_n_r_);
                 float * cur_c = dst + i + j * ldc;
 

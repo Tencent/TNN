@@ -16,6 +16,7 @@
 #include "tnn/device/x86/acc/Float8.h"
 #include "tnn/device/x86/acc/Float4.h"
 #include "tnn/utils/naive_compute.h"
+#include "tnn/utils/omp_utils.h"
 
 #include <algorithm>
 #include <cstring>
@@ -529,15 +530,16 @@ template<> void reduce_postprocess<X86ReduceOpType::kLOGSUM>(float* input, float
 template<X86ReduceOpType type>
 void reduce_kernel(float * input, float * output, size_t outer_size, size_t inner_size, size_t reduce_size) 
 {
-    for(size_t outer_idx=0;outer_idx<outer_size;outer_idx++) {
-        for(size_t inner_idx=0;inner_idx<inner_size;inner_idx++) {
+    for(size_t outer_idx = 0; outer_idx < outer_size; outer_idx++) {
+        OMP_PARALLEL_FOR_GUIDED_
+        for(size_t inner_idx = 0; inner_idx < inner_size; inner_idx++) {
             float acc = 0;
             if (type == X86ReduceOpType::kMIN) {
                 acc = FLT_MAX;
             } else if (type == X86ReduceOpType::kMAX) {
                 acc = -FLT_MAX;
             }
-            for(int i=0;i<reduce_size;i++) {
+            for(int i = 0; i < reduce_size; i++) {
                 acc = reduce_iter_op<type>(acc, input[i * inner_size + inner_idx]);
             }
             output[inner_idx] = reduce_final_op<type>(acc, float(reduce_size));
@@ -792,12 +794,14 @@ void X86SgemvLeft(float* dst, const float* src, const float* weight, float *bias
 template <typename VEC, int pack>
 void X86Sgemv(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output) {
     size_t batch_stride = DimsVectorUtils::Count(dims_input, 1);
+    int oc_vec_size = dims_output[1] / pack * pack;
+    int oc_left = dims_output[1] - oc_vec_size;
     for (int b = 0; b < dims_output[0]; ++b) {
         const float *src_batch = src + b * batch_stride;
         float *dst_batch = dst + b * dims_output[1];
 
-        int oc = 0;
-        for (; oc + pack - 1 < dims_output[1]; oc += pack) {
+        OMP_PARALLEL_FOR_GUIDED_
+        for (int oc = 0; oc < oc_vec_size; oc += pack) {
             auto weight_oc = weight + oc * batch_stride;
             VEC acc = VEC::loadu(bias + oc);
             size_t ic = 0;
@@ -823,7 +827,8 @@ void X86Sgemv(float* dst, const float* src, const float* weight, float *bias, Di
             }
             VEC::saveu(dst_batch + oc, acc);
         }
-        int left = dims_output[1] - oc;
+        int left = oc_left;
+        int oc = oc_vec_size;
         if (pack == 8) {
             if (left == 7) {
                 X86SgemvLeft<7, pack>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);
