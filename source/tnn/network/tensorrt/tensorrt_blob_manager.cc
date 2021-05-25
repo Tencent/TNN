@@ -50,7 +50,7 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
 
     config_            = config;
     init_thread_id_    = std::this_thread::get_id();
-    memory_mode_state_ = MemoryModeStateFactory::CreateMemoryModeState(config.share_memory_mode);
+    memory_mode_state_ = MemoryModeStateFactory::CreateMemoryModeState(SHARE_MEMORY_MODE_DEFAULT);
 
     // get the maximum dimension of all inputs
     int input_dims = 0;
@@ -116,9 +116,6 @@ Status TensorRTBlobManager::AllocateBlobMemory(int flag) {
         Blob *current_blob = iter.second;
         BlobMemorySizeInfo info = device_->Calculate(current_blob->GetBlobDesc());
         info.data_type = DATA_TYPE_FLOAT;
-        if (info.dims.size() > 1 && config_.share_memory_mode != SHARE_MEMORY_MODE_DEFAULT) {
-            return Status(TNNERR_SHARE_MEMORY_MODE_NOT_SUPPORT, "share_memory_mode option is unsupported");
-        }
         int use_count = 1;
         BlobMemory *blob_memory = nullptr;
         blob_memory = blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, true);
@@ -130,9 +127,6 @@ Status TensorRTBlobManager::AllocateBlobMemory(int flag) {
         Blob *current_blob = iter.second;
         BlobMemorySizeInfo info = device_->Calculate(current_blob->GetBlobDesc());
         info.data_type = DATA_TYPE_FLOAT;
-        if (info.dims.size() > 1 && config_.share_memory_mode != SHARE_MEMORY_MODE_DEFAULT) {
-            return Status(TNNERR_SHARE_MEMORY_MODE_NOT_SUPPORT, "share_memory_mode option is unsupported");
-        }
         int use_count = 1;
         BlobMemory *blob_memory = nullptr;
         blob_memory = blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, true);
@@ -142,8 +136,7 @@ Status TensorRTBlobManager::AllocateBlobMemory(int flag) {
     Status status = TNN_OK;
 
     do {
-        if (config_.share_memory_mode == SHARE_MEMORY_MODE_DEFAULT) {
-            // The default strategy allocated the blob memory seperately.
+            // ignore share memory mode, allocated the blob memory seperately.
             MemorySeperateAssignStrategy strategy;
             for (auto blob_memory_pool_iter : blob_memory_pool_map_) {
                 status = blob_memory_pool_iter.second->AssignAllBlobMemory(strategy);
@@ -151,22 +144,6 @@ Status TensorRTBlobManager::AllocateBlobMemory(int flag) {
             }
             BREAK_IF(status != TNN_OK);
             BindBlobMemory();
-        } else if (config_.share_memory_mode == SHARE_MEMORY_MODE_SHARE_ONE_THREAD) {
-            // The share_on_thread strategy may share memory of different models-
-            // whithin the same thread.
-            for (auto blob_memory_pool_iter : blob_memory_pool_map_) {
-                int forward_memory_size   = blob_memory_pool_iter.second->GetAllBlobMemorySize();
-                SharedMemory share_memory = SharedMemoryManager::GetSharedMemory(
-                        forward_memory_size, init_thread_id_, device_,
-                        config_.device_id, this, status);
-                BREAK_IF(status != TNN_OK);
-                MemoryUnifyAssignStrategy strategy(share_memory.shared_memory_data);
-                status = blob_memory_pool_iter.second->AssignAllBlobMemory(strategy);
-                BREAK_IF(status != TNN_OK);
-            }
-            BREAK_IF(status != TNN_OK);
-            BindBlobMemory();
-        }
     } while (0);
 
     return status;
