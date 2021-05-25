@@ -85,6 +85,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
 
     config_            = config;
     init_thread_id_    = std::this_thread::get_id();
+    shared_memory_allocated_ = false;
     memory_mode_state_ = MemoryModeStateFactory::CreateMemoryModeState(config.share_memory_mode);
 
     // get the maximum dimension of all inputs
@@ -239,6 +240,7 @@ Status BlobManager::AllocateBlobMemory(int flag) {
                         forward_memory_size, init_thread_id_, device_,
                         config_.device_id, this, status);
                 BREAK_IF(status != TNN_OK);
+		shared_memory_allocated_ = true;
                 MemoryUnifyAssignStrategy strategy(share_memory.shared_memory_data);
                 status = blob_memory_pool_iter.second->AssignAllBlobMemory(strategy);
                 BREAK_IF(status != TNN_OK);
@@ -275,8 +277,8 @@ int BlobManager::GetBlobUseCount(int layer_index, std::string current_blob_name)
 }
 
 Status BlobManager::DeInit() {
-    if (config_.share_memory_mode == SHARE_MEMORY_MODE_SHARE_ONE_THREAD) {
-        SharedMemoryManager::ReleaseSharedMemory(init_thread_id_, device_, config_.device_id, this);
+    if(shared_memory_allocated_) {
+    	SharedMemoryManager::ReleaseSharedMemory(init_thread_id_, device_, config_.device_id, this);
     }
 
     for (auto blob : blobs_) {

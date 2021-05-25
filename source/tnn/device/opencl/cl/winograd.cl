@@ -174,7 +174,8 @@ __kernel void TransformFromMatrixM(GLOBAL_SIZE_2_DIMS __read_only image2d_t matr
                                  __private const int round_w,
                                  __private const int round_h,
                                  __private const int out_width,
-                                 __private const int out_height) {
+                                 __private const int out_height,
+                                 __private const int activation_type) {
         const int output_cw_idx = get_global_id(0); //c/4 w/2
         const int output_bh_idx  = get_global_id(1); //b h/2
         DEAL_NON_UNIFORM_DIM2(output_cw_idx, output_bh_idx);
@@ -214,21 +215,21 @@ __kernel void TransformFromMatrixM(GLOBAL_SIZE_2_DIMS __read_only image2d_t matr
         int2 ox = mad24((int2)(c_block_idx), (int2)(out_width), ow);
         int2 oy = mad24((int2)(batch), (int2)(out_height), oh);
         FLOAT4 res00  = bias_value + out00 + out10 + out20;
-        res00 = ActivationProcess(res00);
+        res00 = ActivationProcess(res00, activation_type);
         WI_F(output, (int2)(ox.s0, oy.s0), res00);
         if (ow.s1 < out_width && oh.s0 < out_height) {
             FLOAT4 res10  = bias_value + out10 - out20 + out30;
-            res10 = ActivationProcess(res10);
+            res10 = ActivationProcess(res10, activation_type);
             WI_F(output, (int2)(ox.s1, oy.s0), res10);
         }
         if (ow.s0 < out_width && oh.s1 < out_height) {
             FLOAT4 res01  = bias_value + out01 + out11 + out21;
-            res01 = ActivationProcess(res01);
+            res01 = ActivationProcess(res01, activation_type);
             WI_F(output, (int2)(ox.s0, oy.s1), res01);
         }
         if (ow.s1 < out_width && oh.s1 < out_height) {
             FLOAT4 res11  = bias_value + out11 - out21 + out31;
-            res11 = ActivationProcess(res11);
+            res11 = ActivationProcess(res11, activation_type);
             WI_F(output, (int2)(ox.s1, oy.s1), res11);
         }
 }
