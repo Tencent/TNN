@@ -25,7 +25,7 @@ class CpuReformatLayerAcc : public CpuLayerAcc {
     virtual ~CpuReformatLayerAcc();
 
     /**
-     * @brief init layer with param, resouce, intput blobs and output blobs.
+     * @brief init layer with param, resouce, input blobs and output blobs.
      * @param context cpu context
      * @param param    layer param
      * @param resource  layer resouce

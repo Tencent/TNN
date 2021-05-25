@@ -990,7 +990,7 @@ int main(int argc, char** argv)
         // Test different input+output data types
         TestSize<unsigned char>(num_items,      (int) 0, (int) 99);
 
-        // Test same intput+output data types
+        // Test same input+output data types
         TestSize<unsigned char>(num_items,      (unsigned char) 0,      (unsigned char) 99);
         TestSize<char>(num_items,               (char) 0,               (char) 99);
         TestSize<unsigned short>(num_items,     (unsigned short) 0,     (unsigned short)99);
