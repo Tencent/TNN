@@ -33,7 +33,7 @@ string OnnxOpConverterPower::TNNLayerParam(NodeProto &node,
     bool has_tensor = net_info.weights_map.find(node.input(1)) != net_info.weights_map.end();
     if (node.input_size() > 1 && has_tensor) {
         onnx::TensorProto exponent_tensor = net_info.weights_map[node.input(1)];
-        const double *exponent_data       = (const double *)(exponent_tensor.raw_data().data());
+        const float *exponent_data        = get_tensor_proto_data(exponent_tensor);
         exponent                          = exponent_data[0];
     }
 
