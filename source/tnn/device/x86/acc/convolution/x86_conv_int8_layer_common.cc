@@ -476,7 +476,7 @@ Status X86ConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     if (max_num_threads > 1 && tile_count < max_num_threads && tile_blk_ > SIMD_INT8CONV_TILE_HW) {
         while (tile_count < max_num_threads) {
             tile_blk_ = ROUND_UP(tile_blk_ / 2, SIMD_INT8CONV_TILE_HW);
-            if (tile_blk_ < SIMD_INT8CONV_TILE_HW) {
+            if (tile_blk_ <= SIMD_INT8CONV_TILE_HW) {
                 tile_blk_ = SIMD_INT8CONV_TILE_HW;
                 break;
             }
