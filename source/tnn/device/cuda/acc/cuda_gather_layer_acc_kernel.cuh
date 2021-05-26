@@ -12,34 +12,17 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "flags.h"
+#ifndef TNN_SOURCE_TNN_DEVICE_CUDA_ACC_CUDA_GATHER_LAYER_ACC_KERNEL_CUH_
+#define TNN_SOURCE_TNN_DEVICE_CUDA_ACC_CUDA_GATHER_LAYER_ACC_KERNEL_CUH_
+
+#include "tnn/device/cuda/acc/cuda_layer_acc.h"
 
 namespace TNN_NS {
 
-DEFINE_bool(h, false, help_message);
+template <typename T>
+Status RunGather(int dst_size, int slice_size, int src_slice_count, int dst_slice_count,
+                 const T* src_data, const int* indices_data, T* dst_data, cudaStream_t stream);
 
-DEFINE_string(p, "", proto_path_message);
+}  //  namespace TNN_NS
 
-DEFINE_string(m, "", model_path_message);
-
-DEFINE_string(d, "", device_type_message);
-
-DEFINE_string(i, "", input_path_message);
-
-DEFINE_string(f, "", output_ref_path_message);
-
-DEFINE_bool(e, false, cmp_end_message);
-
-DEFINE_string(n, "", bias_message);
-
-DEFINE_string(s, "", scale_message);
-
-DEFINE_bool(o, false, output_dump_message);
-
-DEFINE_bool(b, false, check_batch_message);
-
-DEFINE_string(a, "", align_all_message);
-
-DEFINE_string(sp, "", set_precision_message);
-
-}  // namespace TNN_NS
+#endif  //  TNN_SOURCE_TNN_DEVICE_CUDA_ACC_CUDA_GATHER_LAYER_ACC_KERNEL_CUH_
