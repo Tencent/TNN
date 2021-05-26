@@ -220,18 +220,13 @@ Status CudaMatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
     int type_size = DataTypeUtils::GetBytesSize(input_blob1->GetBlobDesc().data_type);
     int cur_workspace_size = (size[0]*stride_a[0]+size[1]*stride_a[1]+size[2]*stride_a[2]) * K * N * type_size;
 
-    if (cur_workspace_size > workspace_size) {
-        workspace_size = cur_workspace_size;
-        if (workspace_) {
-            CUDA_CHECK(cudaFree(workspace_));
-        }
-        CUDA_CHECK(cudaMalloc(&workspace_, workspace_size));
-    }
-
+    context_->SetWorkspaceSize(cur_workspace_size);
     if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_FLOAT) {
-        matmul_transpose_kernel<<<dimGrid, dimBlock, 0, context_->GetStream()>>>((float*)workspace_, (float*)input_data1, K, N);
+        matmul_transpose_kernel<<<dimGrid, dimBlock, 0, context_->GetStream()>>>((float*)context_->GetWorkspace(),
+        (float*)input_data1, K, N);
     } else if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_HALF) {
-        matmul_transpose_kernel<<<dimGrid, dimBlock, 0, context_->GetStream()>>>((__half*)workspace_, (__half*)input_data1, K, N);
+        matmul_transpose_kernel<<<dimGrid, dimBlock, 0, context_->GetStream()>>>((__half*)context_->GetWorkspace(),
+        (__half*)input_data1, K, N);
     }
 
     dim3 grid;
@@ -239,15 +234,15 @@ Status CudaMatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
     grid.y = (N + TNN_CUDA_NUM_THREADS - 1) / TNN_CUDA_NUM_THREADS;
     grid.z = (K + TNN_CUDA_NUM_THREADS - 1) / TNN_CUDA_NUM_THREADS;
 
-    cudaMemsetAsync(output_data, 0, size[0] * size[1] * size[2] * N * type_size, context_->GetStream());
+    CUDA_CHECK(cudaMemsetAsync(output_data, 0, size[0] * size[1] * size[2] * N * type_size, context_->GetStream()));
 
     if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_FLOAT) {
         matmul_batched_gemv_kernel<<<grid, TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
-            (float*)workspace_, (float*)input_data2, (float*)output_data, stride_a[0], stride_a[1],
+            (float*)context_->GetWorkspace(), (float*)input_data2, (float*)output_data, stride_a[0], stride_a[1],
             stride_a[2], stride_b[0], stride_b[1], stride_b[2], size[1], size[2], N, K);
     } else if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_HALF) {
         matmul_batched_gemv_kernel_fp16<<<grid, TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
-            (__half*)workspace_, (float*)input_data2, (__half*)output_data, stride_a[0], stride_a[1],
+            (__half*)context_->GetWorkspace(), (float*)input_data2, (__half*)output_data, stride_a[0], stride_a[1],
             stride_a[2], stride_b[0], stride_b[1], stride_b[2], size[1], size[2], N, K);
     }
     return TNN_OK;

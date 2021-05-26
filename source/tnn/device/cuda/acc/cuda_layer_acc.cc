@@ -19,18 +19,12 @@
 
 namespace TNN_NS {
 
-void* CudaLayerAcc::workspace_ = nullptr;
-int CudaLayerAcc::workspace_size = 0;
-
 CudaLayerAcc::~CudaLayerAcc() {
     for (int i = 0; i < tempbufs_.size(); i++) {
         Status ret = device_->Free(tempbufs_[i].ptr);
         if (ret != TNN_OK) {
             LOGE("Error cuda free acc temp buf failed\n");
         }
-    }
-    if (workspace_) {
-        cudaFree(workspace_);
     }
 }
 

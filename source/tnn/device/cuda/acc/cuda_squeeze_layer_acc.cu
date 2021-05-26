@@ -36,8 +36,8 @@ Status CudaSqueezeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     int count = DimsVectorUtils::Count(dims);
     void* input_data = input_blob->GetHandle().base;
     void* output_data = output_blob->GetHandle().base;
-    cudaMemcpyAsync(output_data, input_data, count * DataTypeUtils::GetBytesSize(input_blob->GetBlobDesc().data_type),
-        cudaMemcpyDeviceToDevice, context_->GetStream());
+    auto size = count * DataTypeUtils::GetBytesSize(input_blob->GetBlobDesc().data_type);
+    CUDA_CHECK(cudaMemcpyAsync(output_data, input_data, size, cudaMemcpyDeviceToDevice, context_->GetStream()));
     return TNN_OK;
 }
 

@@ -19,20 +19,6 @@ namespace TNN_NS {
 
 DECLARE_CUDA_ACC(Permute, LAYER_PERMUTE);
 
-__global__ void permute_kernel(int n, const float *srcData, int num_axes, int *permute_order,
-        int *old_steps, int *new_steps, float *dstData) {
-    CUDA_KERNEL_LOOP(index, n) {
-        int old_idx = 0;
-        int idx = index;
-        for (int j = 0; j < num_axes; ++j) {
-            int order = permute_order[j];
-            old_idx += (idx / new_steps[j]) * old_steps[order];
-            idx %= new_steps[j];
-        }
-        dstData[index] = srcData[old_idx];
-    }
-}
-
 Status CudaPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
@@ -40,31 +26,9 @@ Status CudaPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerResou
 
 Status CudaPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
-    Blob *input_blob  = inputs[0];
-    Blob *output_blob = outputs[0];
-    auto input_dims = input_blob->GetBlobDesc().dims;
-    auto output_dims = output_blob->GetBlobDesc().dims;
-    std::vector<int> input_step;
-    std::vector<int> output_step;
-    for (int i = 0; i < input_dims.size(); i++) {
-        input_step.push_back(DimsVectorUtils::Count(input_dims, i + 1));
-        output_step.push_back(DimsVectorUtils::Count(output_dims, i + 1));
-    }
-    cudaMemcpyAsync(tempbufs_[1].ptr, &(input_step[0]), input_dims.size() * sizeof(int), cudaMemcpyHostToDevice, context_->GetStream());
-    cudaMemcpyAsync(tempbufs_[2].ptr, &(output_step[0]), input_dims.size() * sizeof(int), cudaMemcpyHostToDevice, context_->GetStream());
-    return TNN_OK;
 }
 
 Status CudaPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Blob *input_blob  = inputs[0];
-    Blob *output_blob = outputs[0];
-
-    auto dims = output_blob->GetBlobDesc().dims;
-    int count = DimsVectorUtils::Count(dims);
-    float* input_data = static_cast<float*>(input_blob->GetHandle().base);
-    float* output_data = static_cast<float*>(output_blob->GetHandle().base);
-    permute_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
-        count, input_data, dims.size(), (int*)tempbufs_[0].ptr, (int*)tempbufs_[1].ptr, (int*)tempbufs_[2].ptr, output_data);
     return TNN_OK;
 }
 
