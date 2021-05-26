@@ -1152,15 +1152,15 @@ void NaiveYUVToBGROrBGRA(const unsigned char *yuv, unsigned char *bgr, const int
 }
 
 void NaiveDequant(const int8_t *input_ptr, const float *scale_ptr, int scale_len, float *output, DimsVector dims) {
-    int batch   = dims[0];
-    int channel = dims[1];
-    int count   = DimsVectorUtils::Count(dims, 2, 4);
+    int batch   = DimsFunctionUtils::GetDim(dims, 0);
+    int channel = DimsFunctionUtils::GetDim(dims, 1);
+    int hw_size = DimsVectorUtils::Count(dims, 2);
     for (int n = 0; n < batch; n++) {
         OMP_PARALLEL_FOR_
         for (int c = 0; c < channel; c++) {
-            int offset    = n * channel * count + c * count;
+            int offset    = n * channel * hw_size + c * hw_size;
             int scale_idx = scale_len == 1 ? 0 : c;
-            for (int hw = 0; hw < dims[2] * dims[3]; hw++) {
+            for (int hw = 0; hw < hw_size; hw++) {
                 output[offset + hw] = scale_ptr[scale_idx] * static_cast<float>(input_ptr[offset + hw]);
             }
         }
@@ -1168,12 +1168,15 @@ void NaiveDequant(const int8_t *input_ptr, const float *scale_ptr, int scale_len
 }
 
 void NaiveQuant(const float *input_ptr, const float *scale_ptr, int scale_len, int8_t *output, DimsVector dims) {
-    for (int n = 0; n < dims[0]; n++) {
+    int batch   = DimsFunctionUtils::GetDim(dims, 0);
+    int channel = DimsFunctionUtils::GetDim(dims, 1);
+    int hw_size = DimsVectorUtils::Count(dims, 2);
+    for (int n = 0; n < batch; n++) {
         OMP_PARALLEL_FOR_
-        for (int c = 0; c < dims[1]; c++) {
-            int offset    = n * dims[1] * dims[2] * dims[3] + c * dims[2] * dims[3];
+        for (int c = 0; c < channel; c++) {
+            int offset    = n * channel * hw_size + c * hw_size;
             int scale_idx = scale_len == 1 ? 0 : c;
-            for (int hw = 0; hw < dims[2] * dims[3]; hw++) {
+            for (int hw = 0; hw < hw_size; hw++) {
                 if (scale_ptr[scale_idx] != 0)
                     output[offset + hw] = float2int8(input_ptr[offset + hw] / scale_ptr[scale_idx]);
                 else
