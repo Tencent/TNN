@@ -168,6 +168,7 @@ public:
     TNNComputeUnits compute_units = TNNComputeUnitsCPU;
     Precision precision = PRECISION_AUTO;
     InputShapesMap input_shapes = {};
+    InputShapesMap max_input_shapes = {};
 };
 
 typedef enum {

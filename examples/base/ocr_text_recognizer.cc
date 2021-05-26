@@ -34,7 +34,12 @@ namespace TNN_NS {
 OCRTextRecognizerOutput::~OCRTextRecognizerOutput() {}
 
 Status OCRTextRecognizer::Init(std::shared_ptr<TNNSDKOption> option) {
-    option->input_shapes.insert( {"input", DimsVector({1, 3, dst_height_, max_width_})} );
+    if (option->compute_units == TNNComputeUnitsTensorRT) {
+        option->max_input_shapes.insert( {"input", DimsVector({1, 3, dst_height_, max_width_})} );
+        option->input_shapes.insert({"input", DimsVector({1, 3, 7, 7})});
+    } else {
+        option->input_shapes.insert({"input", DimsVector({1, 3, dst_height_, max_width_})});
+    }
     // load vocabulary
     const auto& vocab_file_path = dynamic_cast<OCRTextRecognizerOption *>(option.get())->vocab_path;
     std::ifstream in(vocab_file_path.c_str());

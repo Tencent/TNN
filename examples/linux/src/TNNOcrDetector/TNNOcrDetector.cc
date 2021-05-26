@@ -145,7 +145,6 @@ int main(int argc, char **argv) {
             std::cerr << "Image open failed.\n";
             return -1;
         }
-        printf("%d %d %d\n", image_channel, image_height, image_width);
         // NHWC2NCHW(data, image_height, image_width, 4);
         printf("OCR Detector is about to start, and the picrture is %s\n", input_imgfn);
     } else if (detect_type == 2) {
@@ -231,6 +230,7 @@ int main(int argc, char **argv) {
             int success = stbi_write_bmp(buff, image_width, image_height, 4, frame.ptr());
             if(!success) 
                 return -1;
+            printf("The result was saved in %s.png.\n", "predictions");
             free(data);
             break;
         }

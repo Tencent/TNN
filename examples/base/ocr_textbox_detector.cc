@@ -178,7 +178,13 @@ Status OCRTextboxDetector::Init(std::shared_ptr<TNNSDKOption> option_i) {
     if (max_size % 32 != 0) {
         max_size = (max_size + 31 ) / 32 * 32;
     }
-    option->input_shapes.insert( {"input0", DimsVector({1, 3, max_size, max_size})} );
+    if (option->compute_units == TNNComputeUnitsTensorRT) {
+        option->max_input_shapes.insert( {"input0", DimsVector({1, 3, max_size, max_size})} );
+        option->input_shapes.insert( {"input0", DimsVector({1, 3, 128, 128})});
+        // input_shapes.insert({})
+    } else {
+        option->input_shapes.insert( {"input0", DimsVector({1, 3, max_size, max_size})});
+    }
     status = TNNSDKSample::Init(option_i);
     RETURN_ON_NEQ(status, TNN_OK);
 

@@ -610,7 +610,11 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         } else if (device_type_ == TNN_NS::DEVICE_CUDA) {
             network_config.network_type = NETWORK_TYPE_TENSORRT;
         }
-        auto instance               = net_->CreateInst(network_config, status, option->input_shapes);
+        std::shared_ptr<TNN_NS::Instance> instance;
+        if (device_type_ == TNN_NS::DEVICE_CUDA && !(option->max_input_shapes.empty()))
+            instance = net_->CreateInst(network_config, status, option->input_shapes, option->max_input_shapes);
+        else
+            instance = net_->CreateInst(network_config, status, option->input_shapes);
 
         if (!check_npu_ && (status != TNN_NS::TNN_OK || !instance)) {
             // try device_arm
