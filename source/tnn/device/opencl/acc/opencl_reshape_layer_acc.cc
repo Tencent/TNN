@@ -50,8 +50,12 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     output_dims_size_ = output_dims.size();
 
     std::string src_format = "Image", dst_format = "Image";
+    im_to_bf_program_name_ = "image_to_buffer";
+    bf_to_im_program_name_ = "buffer_to_image";
     src_format = input_dims_size_ == 5 ? "Image5D" : input_dims_size_ == 6 ? "Image6D" : src_format;
+    im_to_bf_program_name_ = input_dims_size_ == 5 ? "image_5d_to_buffer" : input_dims_size_ == 6 ? "image_6d_to_buffer" : im_to_bf_program_name_;
     dst_format = output_dims_size_ == 5 ? "Image5D" : output_dims_size_ == 6 ? "Image6D" : dst_format;
+    bf_to_im_program_name_ = output_dims_size_ == 5 ? "buffer_to_image_5d" : output_dims_size_ == 6 ? "buffer_to_image_6d" : bf_to_im_program_name_;
 
     if (reshape_type == 0)
     {
@@ -75,7 +79,7 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
             is_nchw_output_ = true;
             build_opt.emplace("-DENABLE_BUFFER_PRECISION_ADJUST");
         }
-        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", im_to_bf_func_name_, build_opt);
+        ret = CreateExecuteUnit(execute_units_[0], im_to_bf_program_name_, im_to_bf_func_name_, build_opt);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -84,7 +88,7 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
     // buffer->image
     {
-        ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", bf_to_im_func_name_);
+        ret = CreateExecuteUnit(execute_units_[1], bf_to_im_program_name_, bf_to_im_func_name_);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -108,7 +112,7 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         std::set<std::string> build_opt;
         is_nchw_output_ = true;
         build_opt.emplace("-DENABLE_BUFFER_PRECISION_ADJUST");
-        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", im_to_bf_func_name_, build_opt);
+        ret = CreateExecuteUnit(execute_units_[0], im_to_bf_program_name_, im_to_bf_func_name_, build_opt);
         CHECK_TNN_OK(ret)
     }
 
