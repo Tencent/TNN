@@ -58,6 +58,18 @@ if(TNN_BENCHMARK_MODE)
     add_definitions(-DGENERATE_RESOURCE)
 endif()
 
+if(NOT TNN_BUILD_SHARED)
+    if(MSVC)
+        foreach(flag_var
+            CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
+            CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO
+            CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+            CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+            string(REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+        endforeach()
+    endif()
+endif()
+
 if(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4003 /wd4819 /wd4244 /wd4018")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4003 /wd4819 /wd4244 /wd4018")
