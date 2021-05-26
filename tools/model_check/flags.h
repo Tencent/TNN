@@ -44,6 +44,8 @@ static const char check_batch_message[] = "(optional) check result of multi batc
 
 static const char align_all_message[] = "(optional) dump folder path to compare the all model";
 
+static const char set_precision_message[] = "(optional) specify tnn precision type(default HIGH): AUTO, NORMAL, HIGH, LOW";
+
 DECLARE_bool(h);
 
 DECLARE_string(p);
@@ -68,6 +70,7 @@ DECLARE_bool(b);
 
 DECLARE_string(a);
 
+DECLARE_string(sp);
 }  // namespace TNN_NS
 
 #endif  // TNN_TOOLS_MODEL_CHECK_FLAGS_H_
