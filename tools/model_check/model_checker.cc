@@ -39,7 +39,6 @@ ModelChecker::ModelChecker() {
     model_checker_params_.input_bias  = {0, 0, 0, 0};
     model_checker_params_.input_scale = {1.0f, 1.0f, 1.0f, 1.0f};
     model_checker_params_.dump_output = false;
-    model_checker_params_.only_check_output = true;
     output_ref_mat_map_.clear();
     cpu_blobdata_map.clear();
     check_results.clear();
