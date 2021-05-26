@@ -288,6 +288,8 @@ struct SplitVLayerParam : public LayerParam {
     int axis = 1;
     // size of each slice
     std::vector<int> slices;
+    // judge whether slices is specified or calculated by equal sized parts
+    bool is_split_specified = true;
 
     PARAM_COPY(SplitVLayerParam)
 };
