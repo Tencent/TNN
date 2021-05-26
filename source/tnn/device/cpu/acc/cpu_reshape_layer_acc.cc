@@ -52,7 +52,7 @@ Status CpuReshapeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &in
         outputs[0]->GetBlobDesc().dims = output_dims;
     }
     
-    //Adjust params to diffrent batch\height\width with 0 and -1
+    //Adjust params to different batch\height\width with 0 and -1
     auto shape = layer_param->shape;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     if (shape.size() == output_dims.size()) {

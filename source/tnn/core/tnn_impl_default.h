@@ -35,7 +35,7 @@ public:
     // @brief tnn destructor
     virtual ~TNNImplDefault();
 
-    // @brief init the tnn, contruct model interpreter
+    // @brief init the tnn, construct model interpreter
     // @param config config model type and params
     // @return status code: Successful, returns zero. Otherwise, returns
     // error code.

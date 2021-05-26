@@ -59,7 +59,9 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
     if (default_interpreter && default_interpreter->GetNetStructure() &&
         (NeedDoConstantFolding(default_interpreter->GetNetStructure()) || net_config_.device_type == DEVICE_CUDA)) {
         auto const_folder = std::make_shared<ConstFolder>();
-        auto status = const_folder->Init(net_config_, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape);
+        auto folder_net_config = net_config_;
+	folder_net_config.share_memory_mode = SHARE_MEMORY_MODE_DEFAULT;
+	auto status = const_folder->Init(folder_net_config, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape);
         RETURN_ON_NEQ(status, TNN_OK);
 
         if(min_inputs_shape.size() != 0) {
@@ -69,7 +71,7 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
              RETURN_ON_NEQ(status, TNN_OK);
              auto min_blob_shapes_map = default_interpreter->GetNetResource()->blob_shapes_map;
             
-            //Note output shape may not change after reshape for const folder, but will do change after forword because shape may be determined at rumtime
+            //Note output shape may not change after reshape for const folder, but will do change after forward because shape may be determined at rumtime
              status = const_folder->Reshape(max_inputs_shape);
              RETURN_ON_NEQ(status, TNN_OK);
              status = const_folder->Forward();

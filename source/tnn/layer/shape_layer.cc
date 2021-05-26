@@ -24,7 +24,7 @@ Status ShapeLayer::InferOutputDataType() {
     
     output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_INT32;
     
-    //insure no blob reuse in const forword, so set alloc status DATA_FLAG_ALLOCATE_IN_FORWARD
+    //insure no blob reuse in const forward, so set alloc status DATA_FLAG_ALLOCATE_IN_FORWARD
     for (auto& iter : output_blobs_) {
         iter->SetFlag(iter->GetFlag() | DATA_FLAG_CHANGE_IF_SHAPE_DIFFER | DATA_FLAG_ALLOCATE_IN_FORWARD);
     }
