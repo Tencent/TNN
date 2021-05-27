@@ -124,6 +124,11 @@ struct ScatterNDLayerResource : public LayerResource {
     RawBuffer updates;
 };
 
+struct ScatterLayerResource : public LayerResource {
+    RawBuffer indices;
+    RawBuffer updates;
+};
+
 struct GatherLayerResource : public LayerResource {
     //RawBuffer has dims
     RawBuffer data;
