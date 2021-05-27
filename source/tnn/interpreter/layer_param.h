@@ -648,6 +648,29 @@ struct EinsumLayerParam : public LayerParam {
     PARAM_COPY(EinsumLayerParam)
 };
 
+struct TopKLayerParam : public LayerParam {
+    int axis    = -1;
+    int largest = 1;
+    int sorted  = 1;
+
+    PARAM_COPY(TopKLayerParam)
+};
+
+struct NonMaxSuppressionLayerParam : public LayerParam {
+    int center_point_box           = 0;
+    int max_output_boxes_per_class = 0;
+    float iou_threshold            = 0.0f;
+    float score_threshold          = 0.0f;
+
+    PARAM_COPY(NonMaxSuppressionLayerParam)
+};
+
+struct ScatterLayerParam : public LayerParam {
+    int axis = 0;
+
+    PARAM_COPY(ScatterLayerParam)
+};
+
 };  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H

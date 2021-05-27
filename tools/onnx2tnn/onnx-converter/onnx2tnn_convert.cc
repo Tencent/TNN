@@ -150,7 +150,7 @@ int onnx2tnn_convert(std::string onnx_model_path, std::string output_dir, std::s
     std::string tnn_proto = output_dir + "/" + onnx_model_name + ".tnnproto";
     std::string tnn_model = output_dir + "/" + onnx_model_name + ".tnnmodel";
     TNN_NS::InputShapesMap input_shape_map = {};
-    LOGE("The input_info %s", input_info.c_str());
+    LOGE("The input_info %s\n", input_info.c_str());
     Status status = parse_input_info(input_info, input_shape_map);
     Onnx2TNN converter(onnx_model_path, tnn_proto, tnn_model, input_shape_map);
     int ret = converter.Convert((DataType)data_type);
