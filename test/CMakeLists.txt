@@ -36,10 +36,17 @@ elseif(SYSTEM.iOS OR SYSTEM.Darwin)
     endif()
 else()
     message("target link libraries whole-archive")
-    target_link_libraries(TNNTest
-        -Wl,--whole-archive TNN -Wl,--no-whole-archive
-        gflags
-    )
+    if(MSVC)
+        target_link_libraries(TNNTest
+            -WHOLEARCHIVE:TNN
+            gflags
+        )
+    else()
+        target_link_libraries(TNNTest
+            -Wl,--whole-archive TNN -Wl,--no-whole-archive
+            gflags
+        )
+    endif()
 
     if(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE)
         add_library(TNNBenchmarkTest STATIC ${TEST_SRCS})

@@ -46,7 +46,9 @@ message(${CMAKE_CURRENT_SOURCE_DIR})
 include(cmake/macros.cmake)
 
 if (SYSTEM.Windows)
-    add_definitions(-DBUILDING_DLL)
+    if(TNN_BUILD_SHARED)
+        add_definitions(-DBUILDING_DLL)
+    endif()
 endif()
 
 if(TNN_PROFILER_ENABLE)
@@ -58,15 +60,27 @@ if(TNN_BENCHMARK_MODE)
     add_definitions(-DGENERATE_RESOURCE)
 endif()
 
+if(NOT TNN_BUILD_SHARED)
+    if(MSVC)
+        foreach(flag_var
+            CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
+            CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO
+            CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+            CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+            string(REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+        endforeach()
+    endif()
+endif()
+
 if(MSVC)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4003 /wd4819 /wd4244 /wd4018")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4003 /wd4819 /wd4244 /wd4018")
-	# add options for light-sdk/studio QT link.
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_USE_MATH_DEFINES=1")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8 /Zc:__cplusplus")  #/std:c++11
-	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MT /Z7 /GL")
-	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT /Zi /GL")
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd /Z7")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4003 /wd4819 /wd4244 /wd4018 /utf-8")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4003 /wd4819 /wd4244 /wd4018 /utf-8")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_USE_MATH_DEFINES=1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8 /std:c++11 /Zc:__cplusplus")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--whole-archive tnn -Wl,--no-whole-archive")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MT /Z7 /GL")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT /Zi /GL")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd /Z7")
 endif()
 
 # ignore loop-vectorize warning

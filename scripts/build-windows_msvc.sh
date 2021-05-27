@@ -86,7 +86,11 @@ function buildDll(){
                 [ ! -d "${BUILD_PATH}" ] && mkdir -p ${BUILD_PATH}
             fi
             cd ${BUILD_PATH}
-
+            if [[  $BUILD_INNER == "true" ]]; then
+                BUILD_SHARED="OFF"
+            else
+                BUILD_SHARED="ON"
+            fi
             configureCMakeGenerator "$VS_VERSION" "${ARCH}"
             echo ${PROJECT_ROOT_PATH}
             cmake ${PROJECT_ROOT_PATH} -G "$GENERATOR" $AARCH -T $PLATFORM_TOOLSET \
@@ -100,13 +104,13 @@ function buildDll(){
                 -DCMAKE_SYSTEM_VERSION=${TARGET_WINDOWS_VERSION} \
                 -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
                 -DBUILD_TEST=${BUILD_TEST} \
-                -DBUILD_INNER=${BUILD_INNER} \
+                -DTNN_BUILD_SHARED=${BUILD_SHARED} \
                 -DOUTPUT_PATH=${OUTPUT_WINDOWS_PATH} \
                 -DLIBRARY_OUTPUT_PATH=${OUTPUT_WINDOWS_PATH}/libs/${ARCH} \
                 -DEXECUTABLE_OUTPUT_PATH=${OUTPUT_WINDOWS_PATH}/bin/${ARCH}
             if [ $? -ne 0 ]; then
-				log $LOG_ERROR "cmake ${ARCH} error\n"
-				exit 1
+                log $LOG_ERROR "cmake ${ARCH} error\n"
+                exit 1
             fi
 
             MSBuild.exe ALL_BUILD.vcxproj -property:Configuration=${BUILD_TYPE}
