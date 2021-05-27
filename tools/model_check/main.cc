@@ -274,12 +274,7 @@ int main(int argc, char* argv[]) {
         printf("set model_checker params failed! (error: %s)\n", status.description().c_str());
         return -1;
     }
-
-    if (model_checker_param.only_check_output) {
-        net_config.precision = PRECISION_AUTO;
-    } else {
-        net_config.precision = PRECISION_HIGH;
-    }
+    net_config.precision = PRECISION_HIGH;
     status = model_checker.Init(net_config, model_config);
     if (status != TNN_OK) {
         printf("model_checker init failed! (error: %s)\n", status.description().c_str());
