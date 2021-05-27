@@ -31,6 +31,7 @@
 
 // Interface visibility
 #if defined _WIN32 || defined __CYGWIN__
+#ifndef TNN_WIN_BUILD_STATIC
 #ifdef BUILDING_DLL
 #ifdef __GNUC__
 #define PUBLIC __attribute__((dllexport))
@@ -44,6 +45,9 @@
 #define PUBLIC __declspec(dllimport)
 #endif // __GNUC__
 #endif // BUILDING_DLL
+#else  // TNN_WIN_BUILD_STATIC
+#define PUBLIC
+#endif // TNN_WIN_BUILD_STATIC
 #define LOCAL
 #else // _WIN32 || __CYGWIN__
 #if __GNUC__ >= 4
