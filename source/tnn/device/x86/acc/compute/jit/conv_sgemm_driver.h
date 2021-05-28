@@ -75,6 +75,12 @@ void conv_pack_col_a_t(
     float * dst,
     conv_gemm_config<float, float, float> &conv_gemm_conf);
 
+// adjust M block size (M_c_) for mutil-thread
+void conv_ajust_m_blk_size(
+    int max_num_threads,
+    dim_t m_all,
+    dim_t &m_blk);
+
 }   // namespace TNN_NS
 
 #endif

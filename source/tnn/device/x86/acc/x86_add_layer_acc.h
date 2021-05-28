@@ -12,24 +12,31 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_X86_ACC_UPSAMPLE_LAYER_ACC_H_
-#define TNN_SOURCE_TNN_DEVICE_X86_ACC_UPSAMPLE_LAYER_ACC_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_X86_X86_ADD_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_X86_X86_ADD_LAYER_ACC_H_
 
-#include <vector>
-
-#include "tnn/core/blob.h"
-#include "tnn/device/x86/acc/x86_layer_acc.h"
-#include "tnn/device/x86/x86_device.h"
+#include "tnn/device/x86/acc/x86_binary_op_layer_acc.h"
 
 namespace TNN_NS {
 
-// @brief upsample layer cpu acc
-class X86UpsampleLayerAcc : public X86LayerAcc {
-    // @brief virtual destrcutor
-    virtual ~X86UpsampleLayerAcc();
+// @brief conv layer cpu acc
+class X86AddLayerAcc : public X86BinaryOpLayerAcc {
+public:
+    virtual ~X86AddLayerAcc();
+
+    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                const std::vector<Blob *> &outputs);
+
+    Status allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+private:
+    RawBuffer input0_int_scale_;
+    RawBuffer input1_int_scale_;
+    RawBuffer output_int_scale_;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_X86_ACC_UPSAMPLE_LAYER_ACC_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_X86_X86_ADD_LAYER_ACC_H_
