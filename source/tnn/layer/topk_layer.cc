@@ -53,10 +53,6 @@ Status TopKLayer::InferOutputShape(bool ignore_error) {
         return Status(TNNERR_PARAM_ERR, "TopKLayer output blobs size != 2");
     }
 
-    if (input_blobs_.size() > 1) {
-        return Status(TNNERR_PARAM_ERR, "TopKLayer only support one input blob, not support k as a input blob");
-    }
-
     if (layer_param->k > 0) {
         output_dims[layer_param->axis] = std::min(layer_param->k, input_dims[layer_param->axis]);
     }

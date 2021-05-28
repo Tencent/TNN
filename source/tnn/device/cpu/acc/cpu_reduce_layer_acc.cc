@@ -39,13 +39,62 @@ Status CalculateReduceDims(Blob *input_blob, ReduceLayerParam *layer_param,
     return TNN_OK;
 }
 
+template <typename T>
+Status CpuReduceLayerAcc::ProcessReduce(Blob *input_blob, Blob *output_blob,
+                     const std::vector<std::tuple<int, int, int>> &reduce_dims) {
+    T *input_data  = static_cast<T *>(input_blob->GetHandle().base);
+    T *output_data = static_cast<T *>(output_blob->GetHandle().base);
+    auto input_dims = input_blob->GetBlobDesc().dims;
+    auto output_count = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
+
+    int input_count            = DimsVectorUtils::Count(input_dims);
+    T* pre_cal_reduce_result = new T[input_count];
+    PreCalculateReduce(pre_cal_reduce_result, input_data, input_count);
+
+    T *src       = pre_cal_reduce_result;
+    T *tmp_ptr   = nullptr;
+    bool release_mem = false;
+    for (int i = 0; i < reduce_dims.size(); ++i) {
+        auto reduce_dim   = reduce_dims[i];
+        auto outer_count  = std::get<0>(reduce_dim);
+        auto reduce_count = std::get<1>(reduce_dim);
+        auto inner_count  = std::get<2>(reduce_dim);
+        if (tmp_ptr != nullptr) {
+            release_mem = true;
+        }
+        tmp_ptr = new T[inner_count * outer_count]();
+        CalculateReduce(tmp_ptr, src, outer_count, reduce_count, inner_count);
+        if (release_mem) {
+            delete[] src;
+        }
+        src = tmp_ptr;
+    }
+    PostCalculateReduce(output_data, src, output_count);
+    if (release_mem || reduce_dims.size() == 1) {
+        delete[] src;
+    }
+    delete[] pre_cal_reduce_result;
+
+    return TNN_OK;
+}
+
 Status CpuReduceLayerAcc::PreCalculateReduce(float *dst, float *src, int count) {
     ::memcpy(dst, src, count * sizeof(float));
     return TNN_OK;
 }
 
+Status CpuReduceLayerAcc::PreCalculateReduce(int32_t *dst, int32_t *src, int count) {
+    ::memcpy(dst, src, count * sizeof(int32_t));
+    return TNN_OK;
+}
+
 Status CpuReduceLayerAcc::PostCalculateReduce(float *dst, float *src, int count) {
     ::memcpy(dst, src, count * sizeof(float));
+    return TNN_OK;
+}
+
+Status CpuReduceLayerAcc::PostCalculateReduce(int32_t *dst, int32_t *src, int count) {
+    ::memcpy(dst, src, count * sizeof(int32_t));
     return TNN_OK;
 }
 
@@ -76,36 +125,17 @@ Status CpuReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         return status;
     }
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-        float *output_data = static_cast<float *>(output_blob->GetHandle().base);
-
-        int input_count            = DimsVectorUtils::Count(input_dims);
-        float* pre_cal_reduce_result = new float[input_count];
-        PreCalculateReduce(pre_cal_reduce_result, input_data, input_count);
-
-        float *src       = pre_cal_reduce_result;
-        float *tmp_ptr   = nullptr;
-        bool release_mem = false;
-        for (int i = 0; i < reduce_dims.size(); ++i) {
-            auto reduce_dim   = reduce_dims[i];
-            auto outer_count  = std::get<0>(reduce_dim);
-            auto reduce_count = std::get<1>(reduce_dim);
-            auto inner_count  = std::get<2>(reduce_dim);
-            if (tmp_ptr != nullptr) {
-                release_mem = true;
-            }
-            tmp_ptr = new float[inner_count * outer_count]();
-            CalculateReduce(tmp_ptr, src, outer_count, reduce_count, inner_count);
-            if (release_mem) {
-                delete[] src;
-            }
-            src = tmp_ptr;
+        status = ProcessReduce<float>(input_blob, output_blob, reduce_dims);
+        if (status != TNN_OK) {
+            LOGE("CpuReduceLayerAcc: Process Reduce failed\n");
+            return status;
         }
-        PostCalculateReduce(output_data, src, output_count);
-        if (release_mem || reduce_dims.size() == 1) {
-            delete[] src;
-        }
-        delete[] pre_cal_reduce_result;
+    } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        status = ProcessReduce<int32_t>(input_blob, output_blob, reduce_dims);
+        if (status != TNN_OK) {
+            LOGE("CpuReduceLayerAcc: Process Reduce failed\n");
+            return status;
+        };
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         LOGE("Error: CpuReduceLayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
         return Status(TNNERR_MODEL_ERR, "Error: CpuReduceLayerAcc layer acc dont support datatype");
