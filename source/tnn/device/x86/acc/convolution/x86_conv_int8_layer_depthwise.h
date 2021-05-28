@@ -12,24 +12,27 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_X86_ACC_UPSAMPLE_LAYER_ACC_H_
-#define TNN_SOURCE_TNN_DEVICE_X86_ACC_UPSAMPLE_LAYER_ACC_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_X86_X86_CONV_INT8_LAYER_ACC_DEPTHWISE_H_
+#define TNN_SOURCE_TNN_DEVICE_X86_X86_CONV_INT8_LAYER_ACC_DEPTHWISE_H_
 
-#include <vector>
-
-#include "tnn/core/blob.h"
-#include "tnn/device/x86/acc/x86_layer_acc.h"
-#include "tnn/device/x86/x86_device.h"
+#include "tnn/device/x86/acc/convolution/x86_conv_int8_layer_common.h"
 
 namespace TNN_NS {
 
-// @brief upsample layer cpu acc
-class X86UpsampleLayerAcc : public X86LayerAcc {
-    // @brief virtual destrcutor
-    virtual ~X86UpsampleLayerAcc();
+// @brief conv layer cpu acc
+class X86ConvInt8LayerDepthwise : public X86ConvInt8LayerCommon {
+public:
+    virtual ~X86ConvInt8LayerDepthwise();
+
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+    // preferred when gourp == input channel and group == outputchanenl
+    static bool isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
+                           const std::vector<Blob *> &outputs);
+
+    virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_X86_ACC_UPSAMPLE_LAYER_ACC_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_X86_X86_CONV_INT8_LAYER_ACC_DEPTHWISE_H_

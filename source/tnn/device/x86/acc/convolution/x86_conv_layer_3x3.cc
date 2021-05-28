@@ -497,7 +497,7 @@ template void input_trans_4x4<Float4>(const float *src, int src_stride, int src_
 //    0, 1, -1, -1
 template <typename VEC>
 static void output_trans_post_2x4(const float *src, int src_stride, int src_h_stride, float *dest, int dest_stride,
-                                  int dest_h_stride, float *bias_value, int relu_type) {
+                                  int dest_h_stride, const float *bias_value, int relu_type) {
     VEC src00 = VEC::loadu(src);
     VEC src01 = VEC::loadu(src + src_stride);
     VEC src02 = VEC::loadu(src + src_stride + src_stride);
@@ -562,9 +562,9 @@ static void output_trans_post_2x4(const float *src, int src_stride, int src_h_st
     VEC::saveu(dest + dest_stride, dest11);
 }
 template void output_trans_post_2x4<Float8>(const float *src, int src_stride, int src_h_stride, float *dest,
-                                            int dest_stride, int dest_h_stride, float *bias_value, int relu_type);
+                                            int dest_stride, int dest_h_stride, const float *bias_value, int relu_type);
 template void output_trans_post_2x4<Float4>(const float *src, int src_stride, int src_h_stride, float *dest,
-                                            int dest_stride, int dest_h_stride, float *bias_value, int relu_type);
+                                            int dest_stride, int dest_h_stride, const float *bias_value, int relu_type);
 
 bool X86ConvLayer3x3::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                  const std::vector<Blob *> &outputs) {
@@ -644,9 +644,6 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
     auto dims_input  = input->GetBlobDesc().dims;
     auto dims_output = output->GetBlobDesc().dims;
 
-    float *weights_data = buffer_weight_.force_to<float *>();
-    float *bias_data    = buffer_bias_.force_to<float *>();
-
     auto src_origin = reinterpret_cast<float *>(input->GetHandle().base);
     auto dst_origin = reinterpret_cast<float *>(output->GetHandle().base);
 
@@ -700,13 +697,15 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
     int ic_8_stride  = w_pad * h_pad * CH_PACK;
     int oc_8_stride  = width_out * height_out * CH_PACK;
 
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
     size_t zero_size = ROUND_UP(w_pad * sizeof(float), 32);
     size_t pack_input_size = ROUND_UP(w_pad * h_pad * ROUND_UP(channel_in, CH_PACK) * sizeof(float), 32);
     size_t tmp_size = ROUND_UP((ic_8 + oc_8) * src_unit * src_unit * CH_PACK * TILE_NUM * sizeof(float), 32);
     size_t src_trans_size = ROUND_UP(src_unit * src_unit * CH_PACK * sizeof(float), 32);
     size_t dst_trans_size = ROUND_UP(dst_unit * dst_unit * CH_PACK * sizeof(float), 32);
     float *workspace = reinterpret_cast<float *>(
-        context_->GetSharedWorkSpace(zero_size + pack_input_size + tmp_size + src_trans_size + dst_trans_size));
+        context_->GetSharedWorkSpace(zero_size + pack_input_size + tmp_size +
+                                     (src_trans_size + dst_trans_size) * max_num_threads));
 
     float *zero_ptr = workspace;
     memset(zero_ptr, 0, sizeof(float) * w_pad);
@@ -714,7 +713,7 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
     float *input_c8 = pack_input;
     float *tmp_data = pack_input + pack_input_size / sizeof(float);
     float *src_trans_tmp_data = tmp_data + tmp_size / sizeof(float);
-    float *dst_trans_tmp_data = src_trans_tmp_data + src_trans_size / sizeof(float);
+    float *dst_trans_tmp_data = src_trans_tmp_data + max_num_threads * src_trans_size / sizeof(float);
 
     for (int ni = 0; ni < batch; ni++) {
         auto input_ptr  = src_origin + ni * in_n_stride;
@@ -736,7 +735,11 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
             int c_gi_stride = tile_count * oc_8 * CH_PACK;
             int b_gi_stride = tile_count * ic_8 * CH_PACK;
 
+            OMP_PARALLEL_FOR_DYNAMIC_
             for (int x_i = 0; x_i < tile_count; x_i++) {
+                int thread_id = OMP_TID_;
+                auto src_trans_tmp_per_thread = src_trans_tmp_data + thread_id * (src_trans_size / sizeof(float));
+
                 int index = tile_index + x_i;
                 int w_idx = index % w_unit;
                 int h_idx = index / w_unit;
@@ -761,10 +764,10 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
                     for (int ci = 0; ci < ic_8; ++ci) {
                         const float *src_ci = src_ptr + ci * ic_8_stride;
                         // pad
-                        memset(src_trans_tmp_data, 0, 16 * CH_PACK * sizeof(float));  // src_unit * src_unit * ch_pack
+                        memset(src_trans_tmp_per_thread, 0, 16 * CH_PACK * sizeof(float));  // src_unit * src_unit * ch_pack
                         if (x_size > 0) {
                             for (int yi = 0; yi < ey; ++yi) {
-                                float *dst_yi       = src_trans_tmp_data + yi * src_unit * CH_PACK;
+                                float *dst_yi       = src_trans_tmp_per_thread + yi * src_unit * CH_PACK;
                                 const float *src_yi = src_ci + w_pad * yi * CH_PACK;
                                 memcpy(dst_yi, src_yi, x_size * sizeof(float) * CH_PACK);
                             }
@@ -772,7 +775,7 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
 
                         // trans
                         float *dst_ci = dst_ptr + ci * tile_count * CH_PACK;
-                        input_trans_func(src_trans_tmp_data, CH_PACK, src_unit * CH_PACK, dst_ci, b_gi_stride,
+                        input_trans_func(src_trans_tmp_per_thread, CH_PACK, src_unit * CH_PACK, dst_ci, b_gi_stride,
                                          b_gi_stride * src_unit);
                     }
                 }
@@ -783,6 +786,7 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
             float *dst_temp_data = tmp_data + TILE_NUM * ic_8 * 16 * CH_PACK;  // src_unit * src_unit * ch_pack
             float *b_ptr         = tmp_data;
             int w_gi_stride      = ic_8 * oc_8 * CH_PACK * CH_PACK;
+            OMP_PARALLEL_FOR_GUIDED_
             for (int gi = 0; gi < src_unit * src_unit; ++gi) {
                 float *trans_dst          = dst_temp_data + gi * c_gi_stride;
                 float *trans_src          = b_ptr + gi * b_gi_stride;
@@ -792,10 +796,13 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
             }
 
             // ---------------------------------------- output trans --------------------------------------
-            float bias_value[8];
-            memset(bias_value, 0, CH_PACK * sizeof(float));
 
+            OMP_PARALLEL_FOR_DYNAMIC_
             for (int ti = 0; ti < tile_count; ++ti) {
+                int thread_id = OMP_TID_;
+                auto src_trans_tmp_per_thread = src_trans_tmp_data + thread_id * (src_trans_size / sizeof(float));
+                auto dst_trans_tmp_per_thread = dst_trans_tmp_data + thread_id * (dst_trans_size / sizeof(float));
+
                 int index = tile_index + ti;
 
                 int w_idx = index % w_unit;
@@ -813,34 +820,29 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
                 if (ex == 2) {
                     // trans output
                     for (int ci = 0; ci < oc_8; ++ci) {
-                        if (bias_ptr) {
-                            memcpy(bias_value, bias_ptr + ci * CH_PACK, CH_PACK * sizeof(float));
-                        }
-
+                        const float *bias_ci = bias_ptr + ci * CH_PACK;
                         float *dst_ci = dst_ptr + ci * oc_8_stride;
                         float *src_ci = src_ptr + ci * tile_count * CH_PACK;
-                        output_trans_func(src_ci, c_gi_stride, c_gi_stride * src_unit, src_trans_tmp_data, CH_PACK,
-                                          dst_unit * CH_PACK, bias_value, param->activation_type);
-                        unpack_func(src_trans_tmp_data, output_ptr, ci * CH_PACK, ci * CH_PACK + CH_PACK, dst_y,
+                        output_trans_func(src_ci, c_gi_stride, c_gi_stride * src_unit, src_trans_tmp_per_thread, CH_PACK,
+                                          dst_unit * CH_PACK, bias_ci, param->activation_type);
+                        unpack_func(src_trans_tmp_per_thread, output_ptr, ci * CH_PACK, ci * CH_PACK + CH_PACK, dst_y,
                                     dst_y + ey, dst_x, dst_x + ex, channel_out, height_out, width_out, false, zero_ptr);
                     }
                 } else {
                     for (int ci = 0; ci < oc_8; ++ci) {
-                        if (bias_ptr) {
-                            memcpy(bias_value, bias_ptr + ci * CH_PACK, CH_PACK * sizeof(float));
-                        }
+                        const float *bias_ci = bias_ptr + ci * CH_PACK;
                         // trans output
                         float *dst_ci = dst_ptr + ci * oc_8_stride;
                         float *src_ci = src_ptr + ci * tile_count * CH_PACK;
-                        output_trans_func(src_ci, c_gi_stride, c_gi_stride * src_unit, src_trans_tmp_data, CH_PACK,
-                                          dst_unit * CH_PACK, bias_value, param->activation_type);
+                        output_trans_func(src_ci, c_gi_stride, c_gi_stride * src_unit, src_trans_tmp_per_thread, CH_PACK,
+                                          dst_unit * CH_PACK, bias_ci, param->activation_type);
                         // copy to dest
-                        memset(dst_trans_tmp_data, 0, 4 * CH_PACK * sizeof(float));  // dst_unit * dst_unit * ch_pack
+                        memset(dst_trans_tmp_per_thread, 0, 4 * CH_PACK * sizeof(float));  // dst_unit * dst_unit * ch_pack
                         for (int i = 0; i < ey; ++i) {
-                            memcpy(dst_trans_tmp_data + i * ex * CH_PACK, src_trans_tmp_data + i * CH_PACK * dst_unit,
+                            memcpy(dst_trans_tmp_per_thread + i * ex * CH_PACK, src_trans_tmp_per_thread + i * CH_PACK * dst_unit,
                                    ex * sizeof(float) * CH_PACK);
                         }
-                        unpack_func(dst_trans_tmp_data, output_ptr, ci * CH_PACK, ci * CH_PACK + CH_PACK, dst_y,
+                        unpack_func(dst_trans_tmp_per_thread, output_ptr, ci * CH_PACK, ci * CH_PACK + CH_PACK, dst_y,
                                     dst_y + ey, dst_x, dst_x + ex, channel_out, height_out, width_out, false, zero_ptr);
                     }
                 }
