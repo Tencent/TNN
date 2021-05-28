@@ -58,6 +58,12 @@ public:
     // @return TNN_OK if free success, otherwise error code.
     virtual Status Allocate(void** handle, BlobMemorySizeInfo& size_info) = 0;
 
+    // @brief Allocates memory
+    // @param size info blob size info to allocate
+    // @param handle handle blob memory
+    // @return TNN_OK if free success, otherwise error code.
+    virtual Status Allocate(BlobHandle* handle, BlobMemorySizeInfo& size_info);
+
     // @brief Releases memory resources associated by the handle.
     // @return TNN_OK if free success, otherwise error code.
     virtual Status Free(void* handle) = 0;

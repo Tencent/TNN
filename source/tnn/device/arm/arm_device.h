@@ -31,6 +31,8 @@ public:
 
     virtual Status Allocate(void** handle, BlobMemorySizeInfo& size_info);
 
+    virtual Status Allocate(BlobHandle* handle, BlobMemorySizeInfo& size_info);
+
     virtual Status Allocate(void** handle, MatType mat_type, DimsVector dims);
 
     virtual Status Free(void* handle);

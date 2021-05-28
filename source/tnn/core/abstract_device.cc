@@ -27,6 +27,19 @@ DeviceType AbstractDevice::GetDeviceType() {
     return device_type_;
 }
 
+Status AbstractDevice::Allocate(BlobHandle* handle, BlobMemorySizeInfo& size_info) {
+    void* data = nullptr;
+
+    auto status = Allocate(&data, size_info);
+    if (status != TNN_OK) {
+        return status;
+    }
+    handle->base         = data;
+    handle->bytes_offset = 0;
+
+    return TNN_OK;
+}
+
 std::shared_ptr<const ImplementedPrecision> AbstractDevice::GetImplementedPrecision(LayerType type) {
     return std::make_shared<ImplementedPrecision>();
 }
