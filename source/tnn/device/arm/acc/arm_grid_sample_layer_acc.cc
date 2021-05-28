@@ -107,9 +107,9 @@ static void ComputeNC4HW4(const std::vector<Blob *> &inputs, const std::vector<B
     auto output_base_ptr     = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
     bool grid_packed         = grid_blob->GetBlobDesc().data_format == DATA_FORMAT_NC4HW4;
     for (int n = 0; n < batch; n++) {
-        auto input_data    = input_base_ptr + n * channel_ud4 * input_channel_area * 4;
-        auto grid_data     = grid_base_ptr + n * grid_channel_ud4 * grid_hw * 4;
-        auto output_data   = output_base_ptr + n * channel_ud4 * output_channel_area * 4;
+        auto input_data  = input_base_ptr + n * channel_ud4 * input_channel_area * 4;
+        auto grid_data   = grid_base_ptr + n * grid_channel_ud4 * grid_hw * 4;
+        auto output_data = output_base_ptr + n * channel_ud4 * output_channel_area * 4;
         RawBuffer reorder_grid_buffer;
         float *grid_buffer = nullptr;
         if (grid_packed) {
@@ -191,7 +191,7 @@ Status ArmGridSampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const
 }
 
 REGISTER_ARM_ACC(GridSample, LAYER_GRIDSAMPLE);
-REGISTER_ARM_LAYOUT(LAYER_GRIDSAMPLE, DATA_FORMAT_NCHW)
+// REGISTER_ARM_LAYOUT(LAYER_GRIDSAMPLE, DATA_FORMAT_NCHW)
 REGISTER_ARM_LAYOUT(LAYER_GRIDSAMPLE, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

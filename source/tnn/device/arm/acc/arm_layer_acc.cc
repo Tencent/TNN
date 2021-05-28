@@ -24,6 +24,7 @@
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/blob_transfer_utils.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -116,12 +117,17 @@ Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &
         auto blob_dtype = blob->GetBlobDesc().data_type;
         auto blob_fmt   = blob->GetBlobDesc().data_format;
         auto dims       = desc.dims;
+
         if (dims.size() < 2) {
-            LOGE("RawBuffer2ArmBlob:: unsupported dims size: %d\n", (int)dims.size());
-            return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: not support dims size less than 2 now");
+            memcpy(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), buffer->force_to<void *>(), buffer->GetBytesSize());
+            return TNN_OK;
         }
-        int batch       = dims[0];
-        int channel     = dims[1];
+        // if (dims.size() < 2) {
+        //     LOGE("RawBuffer2ArmBlob:: unsupported dims size: %d\n", (int)dims.size());
+        //     return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: not support dims size less than 2 now");
+        // }
+        int batch       = DimsFunctionUtils::GetDim(dims, 0);
+        int channel     = DimsFunctionUtils::GetDim(dims, 1);
         int hw          = DimsVectorUtils::Count(dims, 2);
         auto buff_count = batch * channel * hw;
 
