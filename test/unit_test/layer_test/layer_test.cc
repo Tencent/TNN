@@ -42,7 +42,10 @@ bool LayerTest::CheckDataTypeSkip(DataType data_type) {
     }
 #endif
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
-    if ( (data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_INT8 || data_type == DATA_TYPE_BFP16) && (DEVICE_ARM != dev &&  DEVICE_NAIVE != dev))  {
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev && DEVICE_X86 != dev && DEVICE_NAIVE != dev) {
+        return true;
+    }
+    if ( (data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_BFP16) && (DEVICE_ARM != dev &&  DEVICE_NAIVE != dev))  {
         return true;
     }
     return false;
