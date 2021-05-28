@@ -36,7 +36,7 @@ OCRTextRecognizerOutput::~OCRTextRecognizerOutput() {}
 Status OCRTextRecognizer::Init(std::shared_ptr<TNNSDKOption> option) {
     if (option->compute_units == TNNComputeUnitsTensorRT) {
         option->max_input_shapes.insert( {"input", DimsVector({1, 3, dst_height_, max_width_})} );
-        option->input_shapes.insert({"input", DimsVector({1, 3, 7, 7})});
+        option->input_shapes.insert({"input", DimsVector({1, 3, 8, 8})});
     } else {
         option->input_shapes.insert({"input", DimsVector({1, 3, dst_height_, max_width_})});
     }

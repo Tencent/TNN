@@ -35,7 +35,7 @@
 #include <opencv2/opencv.hpp>
 using namespace TNN_NS;
 
-Status initOCRDetector(std::shared_ptr<OCRDriver> &predictor, DimsVector &target_dims) {
+Status initOCRDetector(std::shared_ptr<OCRDriver> &predictor, DimsVector &target_dims, char** argv) {
     predictor = std::make_shared<OCRDriver>();
     auto gOCRTextBoxDetector = std::make_shared<OCRTextboxDetector>();
     auto gOCRAnglePredictor = std::make_shared<OCRAnglePredictor>();
@@ -51,7 +51,11 @@ Status initOCRDetector(std::shared_ptr<OCRDriver> &predictor, DimsVector &target
     #endif
 
     std::string protoContent, modelContent;
-    std::string modelPath = "../../../../model/chinese-ocr/";
+    #ifdef _WIN32
+        std::string modelPath = "..\\..\\..\\..\\..\\model\\chinese-ocr\\";
+    #else
+        std::string modelPath = "../../../../model/chinese-ocr/";
+    #endif
     
     // text box detector
     protoContent = fdLoadFile(modelPath + "dbnet.tnnproto");
@@ -116,7 +120,7 @@ Status initOCRDetector(std::shared_ptr<OCRDriver> &predictor, DimsVector &target
 int main(int argc, char **argv) {
     auto predictor = std::shared_ptr<OCRDriver>();
     DimsVector target_dims;
-    initOCRDetector(predictor, target_dims);
+    if(initOCRDetector(predictor, target_dims, argv) == -1) return -1;
 
     printf("Please choose the source you want to detect:\n");
     printf("1. picture;\t2. video;\t3. camera.\n");
