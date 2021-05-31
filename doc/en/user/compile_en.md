@@ -187,7 +187,7 @@ Openvino can only be compiled to 64-bit version. More problems refer to [FAQ](op
 #### Dependencies
   - Visual Studio (version 2015 or higher)
   - cmake (vsrsion 3.11 or higher; Or use build-in cmake in Visual Studio)
-  - CUDA (version 10.2 or higher)
+  - CUDA (version 10.2 or higher) and make sure `CUDA_PATH` was set in Environment Virables
 
 #### TensorRT configuration
   - Download TensorRT (version>=7.1) <https://developer.nvidia.com/nvidia-tensorrt-7x-download>

@@ -19,6 +19,8 @@
 
 namespace TNN_NS {
 
+//different implementation may generate different order, cause unalign [onnx vs cpu vs other devices]  
+
 DECLARE_LAYER(TopK, LAYER_TOPK);
 
 Status TopKLayer::InferOutputDataType() {

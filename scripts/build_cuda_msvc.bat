@@ -10,8 +10,10 @@ if defined CUDA_PATH (
 
 set TNN_DIR=%~dp0..\
 set BUILD_DIR=%~dp0build_cuda_msvc
-set TENSORRT_ROOT_DIR=F:\Deps\TensorRT-7.1.3.4.Windows10.x86_64.cuda-11.0.cudnn8.0\TensorRT-7.1.3.4
-set CUDNN_ROOT_DIR=F:\Deps\cudnn-11.0-windows-x64-v8.0.5.39\cuda\
+set TENSORRT_ROOT_DIR=
+@REM for example    F:\Deps\TensorRT-7.1.3.4.Windows10.x86_64.cuda-11.0.cudnn8.0\TensorRT-7.1.3.4
+set CUDNN_ROOT_DIR=
+@REM for example    F:\Deps\cudnn-11.0-windows-x64-v8.0.5.39\cuda\
 set TNN_INSTALL_DIR=%~dp0cuda_msvc_release
 
 if not exist %BUILD_DIR% (

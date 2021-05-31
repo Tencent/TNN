@@ -17,12 +17,13 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/device/x86/acc/x86_lstm_layer_acc.h"
 #include "tnn/device/x86/acc/Float4.h"
-
+#include "tnn/utils/omp_utils.h"
 namespace TNN_NS {
 
 static void X86LSTMActivate(const float *gates, float *h_t, float *c_t, float *y, int len) {
-    int i = 0;
-    for (; i + 3 < len; i += 4) {
+    int len_vec  = len / 4 * 4;
+    OMP_PARALLEL_FOR_GUIDED_
+    for (int i = 0; i < len_vec; i += 4) {
         Float4x4 vec = Float4x4::ld4u(gates + i * 4);
         Float4 I, O, F, C;
         vec.get_lane(I, 0);
@@ -41,7 +42,7 @@ static void X86LSTMActivate(const float *gates, float *h_t, float *c_t, float *y
         Float4::saveu(h_t + i, h_vec);
         Float4::saveu(y + i, h_vec);
     }
-    for (; i < len; i++) {
+    for (int i = len_vec; i < len; i++) {
         float I = gates[i * 4];
         float O = gates[i * 4 + 1];
         float F = gates[i * 4 + 2];
@@ -92,6 +93,7 @@ Status X86LSTMONNXLayerAcc::LSTMOneDirection(const float *x, float *y, const flo
         auto y_t = y + ti * batch_size * hidden_size;
 
         // add bias
+        OMP_PARALLEL_FOR_GUIDED_
         for (int i = 0; i < batch_size; i++) {
             auto gates_b = gates_t + i * 4 * hidden_size;
             for (int j = 0; j < hidden_size; j++) {
