@@ -29,7 +29,7 @@ BlobMemorySizeInfo CudaDevice::Calculate(BlobDesc& desc) {
     auto size_info = Calculate1DMemorySize(desc);
     int size_count = DimsVectorUtils::Count(size_info.dims);
     if (size_count == 0) {
-        size_info.dims[0] = 4;
+        size_info.dims[0] = 1;
     }
     return size_info;
 }
