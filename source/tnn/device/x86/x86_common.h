@@ -16,11 +16,14 @@
 #define TNN_X86_COMMON_H_
 
 #include "tnn/core/macro.h"
+#include "tnn/core/blob_int8.h"
 
 #if defined(_MSC_VER)
 #include <intrin.h>
 #else
 #include <x86intrin.h>
 #endif
+
+#define SIMD_KERNEL_EXTRA_LOAD (64)
 
 #endif

@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/x86/x86_context.h"
+#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
@@ -25,6 +26,8 @@ Status X86Context::GetCommandQueue(void** command_queue) {
 }
 
 Status X86Context::OnInstanceForwardBegin() {
+    Context::OnInstanceForwardBegin();
+    OMP_SET_THREADS_(GetNumThreads());
     return TNN_OK;
 }
 
@@ -34,6 +37,15 @@ Status X86Context::OnInstanceForwardEnd() {
 
 Status X86Context::Synchronize() {
     return TNN_OK;
+}
+
+Status X86Context::SetNumThreads(int num_threads) {
+    num_threads_ = MIN(MAX(num_threads, 1), OMP_CORES_);
+    return TNN_OK;
+}
+
+int X86Context::GetNumThreads() {
+    return num_threads_;
 }
 
 void* X86Context::GetSharedWorkSpace(size_t size) {
