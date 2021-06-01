@@ -24,6 +24,10 @@ bool ReduceL2TRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status ReduceL2TRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* ReduceL2TRTPluginLayerBuilder::getPluginType() const {
     return "ReduceL2";
 }

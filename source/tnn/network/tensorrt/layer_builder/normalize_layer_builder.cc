@@ -24,6 +24,10 @@ bool NormalizeTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status NormalizeTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* NormalizeTRTPluginLayerBuilder::getPluginType() const {
     return "Normalize";
 }

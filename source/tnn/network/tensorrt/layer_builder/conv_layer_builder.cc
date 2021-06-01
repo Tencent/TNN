@@ -26,6 +26,10 @@ bool ConvolutionTRTPluginLayerBuilder::supportsFormatCombination(
     return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
 }
 
+Status ConvolutionTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* ConvolutionTRTPluginLayerBuilder::getPluginType() const {
     return "Convolution";
 }

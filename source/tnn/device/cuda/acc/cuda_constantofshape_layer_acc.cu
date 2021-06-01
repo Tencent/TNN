@@ -17,21 +17,21 @@
 
 namespace TNN_NS {
 
-DECLARE_CUDA_ACC(Permute, LAYER_PERMUTE);
+DECLARE_CUDA_ACC(ConstantOfShape, LAYER_CONSTANT_OF_SHAPE);
 
-Status CudaPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status CudaConstantOfShapeLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
-Status CudaPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaConstantOfShapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CudaPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaConstantOfShapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-REGISTER_CUDA_ACC(Permute, LAYER_PERMUTE);
+REGISTER_CUDA_ACC(ConstantOfShape, LAYER_CONSTANT_OF_SHAPE);
 
 }  // namespace TNN_NS
