@@ -34,35 +34,34 @@ __global__ void tile_kernel(int count, const float *input, float *output, const 
 
 Status CudaTileLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Status ret = CudaLayerAcc::Init(context, param, resource, inputs, outputs);
-    if (ret != TNN_OK) {
-        return ret;
-    }
-
-    auto output_dims = outputs[0]->GetBlobDesc().dims;
-    CreateTempBuf(output_dims.size() * sizeof(int));
-    CreateTempBuf(output_dims.size() * sizeof(int));
-    return TNN_OK;
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
 Status CudaTileLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Blob *input_blob  = inputs[0];
-    Blob *output_blob = outputs[0];
-
-    auto input_dims = input_blob->GetBlobDesc().dims;
-    auto output_dims = output_blob->GetBlobDesc().dims;
-    while (input_dims.size() < output_dims.size()) {
-        input_dims.insert(input_dims.begin(), 1);
-    }
-
-    cudaMemcpyAsync(tempbufs_[0].ptr, input_dims.data(), input_dims.size()*sizeof(int),
-        cudaMemcpyHostToDevice, context_->GetStream());
-    cudaMemcpyAsync(tempbufs_[1].ptr, output_dims.data(), output_dims.size()*sizeof(int),
-        cudaMemcpyHostToDevice, context_->GetStream());
+    this->is_reshaped = false;
     return TNN_OK;
 }
 
 Status CudaTileLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (tempbufs_.size() == 0) {
+        auto output_dims = outputs[0]->GetBlobDesc().dims;
+        CreateTempBuf(output_dims.size() * sizeof(int));
+        CreateTempBuf(output_dims.size() * sizeof(int));
+    }
+
+    if (!this->is_reshaped) {
+        auto input_dims = inputs[0]->GetBlobDesc().dims;
+        auto output_dims = outputs[0]->GetBlobDesc().dims;
+        while (input_dims.size() < output_dims.size()) {
+            input_dims.insert(input_dims.begin(), 1);
+        }
+
+        cudaMemcpyAsync(tempbufs_[0].ptr, input_dims.data(), input_dims.size()*sizeof(int),
+            cudaMemcpyHostToDevice, context_->GetStream());
+        cudaMemcpyAsync(tempbufs_[1].ptr, output_dims.data(), output_dims.size()*sizeof(int),
+            cudaMemcpyHostToDevice, context_->GetStream());
+    }
+
     int count = DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims);
     float* input_data = static_cast<float*>(inputs[0]->GetHandle().base);
     float* output_data = static_cast<float*>(outputs[0]->GetHandle().base);

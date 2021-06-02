@@ -35,43 +35,36 @@ inline CodeType GetCodeType(const int number) {
     }
 }
 
-Status CudaDetectionOutputLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    CudaLayerAcc::Init(context, param, resource, inputs, outputs);
+void CudaDetectionOutputLayerAcc::AllocTempBuf() {
     DetectionOutputLayerParam *params = dynamic_cast<DetectionOutputLayerParam *>(param_);
-    if (!params) {
-        LOGE("Error: DetectionOutputLayerParam is nil\n");
-        return Status(TNNERR_MODEL_ERR, "Error: DetectionOutputLayerParam is nil");
-    }
-    int num = inputs[0]->GetBlobDesc().dims[0];
-    num_priors = inputs[2]->GetBlobDesc().dims[2] / 4;
-    num_loc_classes = params->share_location ? 1 : params->num_classes;
-    top_k = std::min(params->nms_param.top_k, num_priors);
     int num_overlaps = top_k * (top_k - 1) / 2;
     if (params->keep_top_k > 0) {
-        max_top_k = num * params->keep_top_k;
+        max_top_k = max_num * params->keep_top_k;
     } else {
-        max_top_k = num * 256;
+        max_top_k = max_num * 256;
     }
 
-    CreateTempBuf(num * num_loc_classes * num_priors * 4 * sizeof(float));
-    CreateTempBuf(num * params->keep_top_k * 7 * sizeof(float));
-    CreateTempBuf(num * params->num_classes * num_priors * sizeof(float));
-    CreateTempBuf(num * params->num_classes * num_priors * sizeof(float));
-    CreateTempBuf(num * params->num_classes * num_priors * sizeof(int));
-    CreateTempBuf(num * params->num_classes * num_priors * sizeof(int));
-    CreateTempBuf(num * params->num_classes * num_overlaps * sizeof(float));
-    CreateTempBuf(num * params->num_classes * num_priors * sizeof(bool));
-    CreateTempBuf(num * params->num_classes * sizeof(int));
-    CreateTempBuf(num * params->num_classes * top_k * sizeof(float));
-    CreateTempBuf(num * params->num_classes * top_k * sizeof(int));
-    CreateTempBuf(num * params->keep_top_k * sizeof(float));
-    CreateTempBuf(num * params->keep_top_k * sizeof(float));
-    CreateTempBuf(num * sizeof(int));
+    CreateTempBuf(max_num * num_loc_classes * num_priors * 4 * sizeof(float));
+    CreateTempBuf(max_num * params->keep_top_k * 7 * sizeof(float));
+    CreateTempBuf(max_num * params->num_classes * num_priors * sizeof(float));
+    CreateTempBuf(max_num * params->num_classes * num_priors * sizeof(float));
+    CreateTempBuf(max_num * params->num_classes * num_priors * sizeof(int));
+    CreateTempBuf(max_num * params->num_classes * num_priors * sizeof(int));
+    CreateTempBuf(max_num * params->num_classes * num_overlaps * sizeof(float));
+    CreateTempBuf(max_num * params->num_classes * num_priors * sizeof(bool));
+    CreateTempBuf(max_num * params->num_classes * sizeof(int));
+    CreateTempBuf(max_num * params->num_classes * top_k * sizeof(float));
+    CreateTempBuf(max_num * params->num_classes * top_k * sizeof(int));
+    CreateTempBuf(max_num * params->keep_top_k * sizeof(float));
+    CreateTempBuf(max_num * params->keep_top_k * sizeof(float));
+    CreateTempBuf(max_num * sizeof(int));
     temp_storage_bytes = 32 * 1024 * 1024 + 256;
     CreateTempBuf(temp_storage_bytes);
+}
 
-    return TNN_OK;
+Status CudaDetectionOutputLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
 Status CudaDetectionOutputLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -90,6 +83,26 @@ Status CudaDetectionOutputLayerAcc::Forward(const std::vector<Blob *> &inputs, c
 
     int num = input_blob1->GetBlobDesc().dims[0];
     DetectionOutputLayerParam *params = dynamic_cast<DetectionOutputLayerParam *>(param_);
+    CHECK_PARAM_NULL(params);
+
+    if (tempbufs_.size() == 0) {
+        max_num = num;
+        num_priors = inputs[2]->GetBlobDesc().dims[2] / 4;
+        num_loc_classes = params->share_location ? 1 : params->num_classes;
+        top_k = std::min(params->nms_param.top_k, num_priors);
+        AllocTempBuf();
+    }
+
+    if (num > max_num) {
+        for (int i = 0; i < tempbufs_.size(); i++) {
+            Status ret = device_->Free(tempbufs_[i].ptr);
+            if (ret != TNN_OK) {
+                LOGE("Error cuda free acc temp buf failed\n");
+            }
+        }
+        max_num = num;
+        AllocTempBuf();
+    }
 
     CodeType code_type = GetCodeType(params->code_type);
     decode_bboxes_all_launcher(loc_data_d, prior_data_d, num, num_priors, num_loc_classes,
