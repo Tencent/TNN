@@ -100,6 +100,7 @@ Status CudaDetectionOutputLayerAcc::Forward(const std::vector<Blob *> &inputs, c
                 LOGE("Error cuda free acc temp buf failed\n");
             }
         }
+        tempbufs_.clear();
         max_num = num;
         AllocTempBuf();
     }
