@@ -25,6 +25,10 @@ bool CbamFusedPoolingTRTPluginLayerBuilder::supportsFormatCombination(
         (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF);
 }
 
+Status CbamFusedPoolingTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* CbamFusedPoolingTRTPluginLayerBuilder::getPluginType() const {
     return "CbamFusedPooling";
 }

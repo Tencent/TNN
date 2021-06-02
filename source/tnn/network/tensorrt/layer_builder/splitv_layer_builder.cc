@@ -24,6 +24,10 @@ bool SplitVTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status SplitVTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* SplitVTRTPluginLayerBuilder::getPluginType() const {
     return "SplitV";
 }
@@ -41,7 +45,12 @@ DimsExprs SplitVTRTPluginLayerBuilder::getOutputDimensions(int index, const nvin
         int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
     auto param = dynamic_cast<SplitVLayerParam*>(param_);
     DimsExprs output(inputs[0]);
-    output.d[param->axis] = exprBuilder.constant(param->slices[index]);
+    if (param->is_split_specified) {
+        output.d[param->axis] = exprBuilder.constant(param->slices[index]);
+    } else {
+        output.d[param->axis] = exprBuilder.operation(DimensionOperation::kCEIL_DIV, *inputs[0].d[param->axis],
+                                                      *exprBuilder.constant(param->slices.size()));
+    }
     return output;
 }
 

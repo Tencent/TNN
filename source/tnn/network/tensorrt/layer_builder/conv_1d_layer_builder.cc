@@ -49,7 +49,7 @@ ILayer* Convolution1DTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     kernelSize.d[0] = paramlist->kernels[0];
     kernelSize.d[1] = 1;
 
-    auto unsqueeze_dims = input_blobs_[0]->GetBlobDesc().dims;
+    DimsVector unsqueeze_dims(input_tensor->getDimensions().nbDims, 0);
     unsqueeze_dims.push_back(1);
     ILayer* layer = AddReshapeToNetwork(network, input_tensor, unsqueeze_dims, (layer_name_ + "unsqueeze").c_str());
 
@@ -92,8 +92,8 @@ ILayer* Convolution1DTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         return nullptr;
     }
 
-    auto output_dims = output_blobs_[0]->GetBlobDesc().dims;
-    last_layer = AddReshapeToNetwork(network, last_layer->getOutput(0), output_dims, (layer_name_ + "squeeze").c_str());
+    unsqueeze_dims.erase(unsqueeze_dims.end()-1);
+    last_layer = AddReshapeToNetwork(network, last_layer->getOutput(0), unsqueeze_dims, (layer_name_ + "squeeze").c_str());
 
     return last_layer;
 }

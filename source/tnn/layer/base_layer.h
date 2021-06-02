@@ -41,7 +41,7 @@ public:
     // @brief layer init
     // @param ...
     virtual Status Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& inputs,
-                std::vector<Blob*>& outputs, AbstractDevice* device);
+                std::vector<Blob*>& outputs, AbstractDevice* device, bool enable_const_folder=true);
 
     //@brief Reshape recalculate the output tensor dims
     virtual Status Reshape();
@@ -96,6 +96,7 @@ protected:
     ConstantResource* const_resource_ = nullptr;
     ConstantResourceFlag* const_resource_flag_ = nullptr;
     RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;
+    bool enable_const_folder_ = true;
 
     //@brief calculate the output tensor dims
     virtual Status InferOutputShape(bool ignore_error = false);

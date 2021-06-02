@@ -24,6 +24,10 @@ bool InstanceNormTRTPluginLayerBuilder::supportsFormatCombination(
         inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
 }
 
+Status InstanceNormTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* InstanceNormTRTPluginLayerBuilder::getPluginType() const {
     return "InstanceNorm";
 }
