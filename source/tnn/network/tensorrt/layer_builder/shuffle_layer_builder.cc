@@ -24,6 +24,10 @@ bool ShuffleTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status ShuffleTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* ShuffleTRTPluginLayerBuilder::getPluginType() const {
     return "Shuffle";
 }

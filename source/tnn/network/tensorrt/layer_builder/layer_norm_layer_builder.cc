@@ -32,6 +32,10 @@ bool LayerNormTRTPluginLayerBuilder::supportsFormatCombination(
     return layout_check && datatype_check;
 }
 
+Status LayerNormTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* LayerNormTRTPluginLayerBuilder::getPluginType() const {
     return "LayerNorm";
 }

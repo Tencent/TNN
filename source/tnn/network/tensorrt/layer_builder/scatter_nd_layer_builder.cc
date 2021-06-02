@@ -23,6 +23,10 @@ bool ScatterNDTRTPluginLayerBuilder::supportsFormatCombination(
     return (inOut[pos].type == nvinfer1::DataType::kINT32 || inOut[pos].type == nvinfer1::DataType::kFLOAT);
 }
 
+Status ScatterNDTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* ScatterNDTRTPluginLayerBuilder::getPluginType() const {
     return "ScatterND";
 }

@@ -32,19 +32,15 @@ TensorRTBaseLayerBuilder::~TensorRTBaseLayerBuilder() {
     }
 }
 
+Status TensorRTBaseLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 Status TensorRTBaseLayerBuilder::InferOutputShape() {
     return TNN_OK;
 }
 
 Status TensorRTBaseLayerBuilder::Build() {
-    return TNN_OK;
-}
-
-Status TensorRTBaseLayerBuilder::Reshape() {
-    Status ret = m_layer->Reshape();
-    if (ret != TNN_OK) {
-        return ret;
-    }
     return TNN_OK;
 }
 

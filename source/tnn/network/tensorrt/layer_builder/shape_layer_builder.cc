@@ -12,16 +12,11 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/shape_layer_builder.h"
-#include "tnn/network/tensorrt/utils.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
 
-ShapeTRTLayerBuilder::ShapeTRTLayerBuilder(LayerType type) : TensorRTLayerBuilder(type) {
-}
-
-ShapeTRTLayerBuilder::~ShapeTRTLayerBuilder() {
-}
+DECLARE_TENSORRT_LAYER_BUILDER(Shape, LAYER_SHAPE);
 
 ILayer* ShapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
