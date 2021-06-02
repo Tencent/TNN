@@ -95,6 +95,20 @@ Status ArmDevice::Allocate(void **handle, BlobMemorySizeInfo &size_info) {
     return TNN_OK;
 }
 
+Status ArmDevice::Allocate(BlobHandle *handle, BlobMemorySizeInfo &size_info) {
+    void* data = nullptr;
+
+    // arm alloc extra 64 bypes for load(see NEON_KERNEL_EXTRA_LOAD)
+    auto status = Allocate(&data, size_info);
+    if (status != TNN_OK) {
+        return status;
+    }
+    handle->base         = data;
+    handle->bytes_offset = 16;
+
+    return TNN_OK;
+}
+
 Status ArmDevice::Free(void *handle) {
     if (handle) {
         free(handle);

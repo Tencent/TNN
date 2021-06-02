@@ -23,6 +23,10 @@ bool TileTRTPluginLayerBuilder::supportsFormatCombination(
     return inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32;
 }
 
+Status TileTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* TileTRTPluginLayerBuilder::getPluginType() const {
     return "Tile";
 }

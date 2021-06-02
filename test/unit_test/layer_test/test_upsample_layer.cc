@@ -82,6 +82,11 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
         param->dims = {(int)round(scale_x * input_size), (int)round(scale_y * input_size)};
     }
 
+    Precision precision = SetPrecision(dev, data_type);
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
+    }
+
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
     auto interpreter            = GenerateInterpreter("Upsample", {input_dims}, param);

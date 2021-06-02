@@ -21,9 +21,65 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Gather, LAYER_GATHER);
 
 bool GatherTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF ||
-        inOut[pos].type == nvinfer1::DataType::kINT32) &&
-        inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+    auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
+
+    auto support_fp32_i32 = (inOut[pos].type == nvinfer1::DataType::kFLOAT ||
+                             inOut[pos].type == nvinfer1::DataType::kINT32) &&
+                             inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+    auto support_i32 = inOut[pos].type == nvinfer1::DataType::kINT32 &&
+                       inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+    auto support_f32_f16_i32 = (inOut[pos].type == nvinfer1::DataType::kFLOAT ||
+                                inOut[pos].type == nvinfer1::DataType::kINT32 ||
+                                inOut[pos].type == nvinfer1::DataType::kHALF) &&
+                                inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+
+    if (layer_param->data_in_resource) {
+        // if data in resource, output dtype only support fp32 & int32
+        if (layer_param->indices_in_resource) {
+            // resource -> input_data, output[0] -> output_data
+            // resource -> input_indices
+            if (nbInputs != 0 && nbOutputs != 1) {
+                return false;
+            }
+            return support_fp32_i32;
+        } else {
+            // resource -> input_data, output[0] -> output_data
+            // input[0] -> input_indices
+            if (nbInputs != 1 && nbOutputs != 1) {
+                return false;
+            }
+            if (pos == 0) {
+                return support_i32;
+            } else {
+                return support_fp32_i32;
+            }
+        }
+    } else {
+        // if data not in resouce, output dtype = input dtype, support fp32 & fp16 & int32
+        if (layer_param->indices_in_resource) {
+            // input[0] -> input_data, output[0] -> output_data
+            // resource -> input_indices
+            if (nbInputs != 1 && nbOutputs != 1) {
+                return false;
+            }
+            return support_f32_f16_i32 && inOut[pos].type == inOut[0].type;
+        } else {
+            // input[0] -> input_data, output[0] -> output_data
+            // input[1] -> input_indices
+            if (nbInputs != 2 && nbOutputs != 1) {
+                return false;
+            }
+            if (pos == 1) {
+                return support_i32;
+            } else {
+                return support_f32_f16_i32 && inOut[pos].type == inOut[0].type;
+            }
+        }
+    }
+}
+
+Status GatherTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
 }
 
 const char* GatherTRTPluginLayerBuilder::getPluginType() const {

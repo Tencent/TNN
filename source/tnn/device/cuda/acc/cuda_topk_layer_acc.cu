@@ -12,20 +12,26 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_SHAPE_LAYER_BUILDER_H_
-#define TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_SHAPE_LAYER_BUILDER_H_
-
-#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-class ShapeTRTLayerBuilder : public TensorRTLayerBuilder {
-public:
-    ShapeTRTLayerBuilder(LayerType type);
-    virtual ~ShapeTRTLayerBuilder();
-    virtual ILayer* AddToNetwork(INetworkDefinition* network);
-};
+DECLARE_CUDA_ACC(TopK, LAYER_TOPK);
 
-}  //  namespace TNN_NS
+Status CudaTopKLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
+}
 
-#endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_SHAPE_LAYER_BUILDER_H_
+Status CudaTopKLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+Status CudaTopKLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+REGISTER_CUDA_ACC(TopK, LAYER_TOPK);
+
+}  // namespace TNN_NS

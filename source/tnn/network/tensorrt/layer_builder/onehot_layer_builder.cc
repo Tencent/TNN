@@ -23,6 +23,10 @@ bool OneHotTRTPluginLayerBuilder::supportsFormatCombination(
     return (inOut[pos].type == nvinfer1::DataType::kINT32 || inOut[pos].type == nvinfer1::DataType::kFLOAT);
 }
 
+Status OneHotTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* OneHotTRTPluginLayerBuilder::getPluginType() const {
     return "OneHot";
 }

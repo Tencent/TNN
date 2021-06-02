@@ -29,19 +29,23 @@ ILayer* UpsampleTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
         if (input_blobs_.size() == 1) {
-            nvinfer1::Dims4 dims(output_dims[0], output_dims[1], output_dims[2], output_dims[3]);
-            layer->setOutputDimensions(dims);
+            if (!paramlist->dims.empty()) {
+                nvinfer1::Dims4 dims(output_dims[0], output_dims[1], output_dims[2], output_dims[3]);
+                layer->setOutputDimensions(dims);
+            } else {
+                float scale[4];
+                scale[0] = 1;
+                scale[1] = 1;
+                scale[2] = paramlist->scales[1];
+                scale[3] = paramlist->scales[0];
+                layer->setScales(scale, 4);
+            }
         } else if (input_blobs_.size() == 4) {
             auto input_foreign_tensor2 = dynamic_cast<ForeignBlob*>(input_blobs_[input_blobs_.size()-1])->GetForeignTensor();
             auto input_tensor2 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor2)->GetTensor();
             layer->setInput(1, *input_tensor2);
         } else {
-            float scale[4];
-            scale[0] = 1;
-            scale[1] = 1;
-            scale[2] = paramlist->scales[1];
-            scale[3] = paramlist->scales[0];
-            layer->setScales(scale, 4);
+            return nullptr;
         }
         layer->setResizeMode(paramlist->mode == 1 ? ResizeMode::kNEAREST : ResizeMode::kLINEAR);
         layer->setAlignCorners(paramlist->align_corners);
