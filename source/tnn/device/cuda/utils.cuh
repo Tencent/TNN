@@ -21,11 +21,9 @@ namespace TNN_NS {
 
 template<typename T>
 __device__ float get_float_value(T value) { return value; }
-//template<> __device__ float get_float_value<__half>(__half value) { return __half2float(value); }
 
 template<typename T>
 __device__ T convert_float_value(float value) { return T(value); }
-//template<> __device__ __half convert_float_value<__half>(float value) { return __float2half(value); }
 
 }  //  namespace TNN_NS;
 

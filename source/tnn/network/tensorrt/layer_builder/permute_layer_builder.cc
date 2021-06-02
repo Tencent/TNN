@@ -27,13 +27,12 @@ ILayer* PermuteTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     }
 
     Blob* input_blob  = input_blobs_[0];
-    auto input_dims = input_blob->GetBlobDesc().dims;
     auto input_tensors = GetInputITensors();
     IShuffleLayer* layer = network->addShuffle(*input_tensors[0]);
     if (layer != nullptr) {
         Dims reshape_dims;
-        reshape_dims.nbDims = input_dims.size();
-        for (int i = 0; i < input_dims.size(); i++) {
+        reshape_dims.nbDims = input_tensors[0]->getDimensions().nbDims;
+        for (int i = 0; i < reshape_dims.nbDims; i++) {
             reshape_dims.d[i] = 0;
         }
         layer->setName(layer_name_.c_str());

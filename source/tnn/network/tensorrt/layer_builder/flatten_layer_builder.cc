@@ -23,6 +23,10 @@ bool FlattenTRTPluginLayerBuilder::supportsFormatCombination(
     return inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32;
 }
 
+Status FlattenTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* FlattenTRTPluginLayerBuilder::getPluginType() const {
     return "Flatten";
 }

@@ -68,6 +68,7 @@ public:
 protected:
     void CreateTempBuf(size_t size);
 
+    bool is_reshaped         = false;
     CudaDevice *device_      = nullptr;
     LayerParam *param_       = nullptr;
     LayerResource *resource_ = nullptr;
