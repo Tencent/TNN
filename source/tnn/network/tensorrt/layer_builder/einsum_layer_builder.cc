@@ -24,6 +24,10 @@ bool EinsumTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status EinsumTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* EinsumTRTPluginLayerBuilder::getPluginType() const {
     return "Einsum";
 }

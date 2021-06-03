@@ -24,6 +24,10 @@ bool PixelShuffleTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status PixelShuffleTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* PixelShuffleTRTPluginLayerBuilder::getPluginType() const {
     return "PixelShuffle";
 }

@@ -25,12 +25,23 @@ string OnnxOpConverterTopK::TNNOpType(NodeProto& node, OnnxNetInfo& net_info) {
 }
 
 string OnnxOpConverterTopK::TNNLayerParam(NodeProto& node, OnnxNetInfo& net_info) {
-    int axis    = (int)get_node_attr_i(node, "axis", -1);
-    int largest = (int)get_node_attr_i(node, "largest", 1);
-    int sorted  = (int)get_node_attr_i(node, "sorted", 1);
-    int k       = (int)get_node_attr_i(node, "k", -1);
-
     ostringstream layer_param;
+
+    int axis    = -1;
+    int largest = 1;
+    int sorted  = 1;
+
+    if (node_has_attr(node, "axis")) {
+        axis = get_node_attr_i(node, "axis");
+    }
+    if (node_has_attr(node, "largest")) {
+        largest = get_node_attr_i(node, "largest");
+    }
+    if (node_has_attr(node, "sorted")) {
+        sorted = get_node_attr_i(node, "sorted");
+    }
+    int k = get_node_attr_i(node, "k");
+
     layer_param << axis << " " << largest << " " << sorted << " " << k << " ";
 
     return layer_param.str();
