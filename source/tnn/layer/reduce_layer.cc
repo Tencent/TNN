@@ -39,7 +39,7 @@ Status ReduceLayer::InferOutputShape(bool ignore_error) {
 
     if (layer_param->all_reduce) {
         layer_param->axis.clear();
-        for (int i = 0; dims.size(); ++i) {
+        for (int i = 0; i < dims.size(); ++i) {
             layer_param->axis.push_back(i);
         }
     }

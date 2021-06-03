@@ -44,7 +44,7 @@ Status NonMaxSuppressionLayer::InferOutputShape(bool ignore_error) {
     auto scores_dims = scores_blob->GetBlobDesc().dims;
 
     auto last_dim = 3;
-    auto output_dims = {boxes_dims[0], layer_param->max_output_boxes_per_class, last_dim};
+    auto output_dims = {layer_param->max_output_boxes_per_class, last_dim};
 
     output_blob->GetBlobDesc().dims = output_dims;
 
