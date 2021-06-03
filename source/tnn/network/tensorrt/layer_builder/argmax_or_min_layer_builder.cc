@@ -27,6 +27,10 @@ bool ArgMaxOrMinTRTPluginLayerBuilder::supportsFormatCombination(
     }
 }
 
+Status ArgMaxOrMinTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* ArgMaxOrMinTRTPluginLayerBuilder::getPluginType() const {
     return "ArgMaxOrMin";
 }

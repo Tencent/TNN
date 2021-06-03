@@ -32,7 +32,7 @@ public:
 
     // @brief virtual layer init
     virtual Status Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& inputs,
-                std::vector<Blob*>& outputs, AbstractDevice* device);
+                std::vector<Blob*>& outputs, AbstractDevice* device, bool enable_const_folder);
 
     // @brief virtual layer infer
     virtual Status Forward();
@@ -122,6 +122,7 @@ public:
         virtual nvinfer1::DataType getOutputDataType(int index, const nvinfer1::DataType* inputTypes,              \
             int nbInputs) const;                                                                                   \
         virtual ILayer* AddToNetwork(INetworkDefinition* network);                                                 \
+        virtual Status Reshape();                                                                                  \
     };                                                                                                             \
     class type_string##PluginCreator : public nvinfer1::IPluginCreator {                                           \
     public:                                                                                                        \

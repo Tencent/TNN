@@ -23,6 +23,10 @@ bool GatherNDTRTPluginLayerBuilder::supportsFormatCombination(
     return inOut[0].type == nvinfer1::DataType::kFLOAT;
 }
 
+Status GatherNDTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* GatherNDTRTPluginLayerBuilder::getPluginType() const {
     return "GatherND";
 }

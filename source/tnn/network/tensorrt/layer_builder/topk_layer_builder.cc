@@ -13,37 +13,31 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
-#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_LAYER_BUILDER(Permute, LAYER_PERMUTE);
+DECLARE_TENSORRT_LAYER_BUILDER(TopK, LAYER_TOPK);
 
-ILayer* PermuteTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    auto paramlist = dynamic_cast<PermuteLayerParam*>(param_);
-    Permutation permute;
-    for (int i = 0; i < paramlist->orders.size(); ++i) {
-        permute.order[i] = paramlist->orders[i];
+ILayer* TopKTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto param = dynamic_cast<TopKLayerParam*>(param_);
+    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+
+    auto topk_largest = nvinfer1::TopKOperation::kMAX;
+    if (param->largest != 1) {
+        topk_largest = nvinfer1::TopKOperation::kMIN;
     }
 
-    Blob* input_blob  = input_blobs_[0];
-    auto input_tensors = GetInputITensors();
-    IShuffleLayer* layer = network->addShuffle(*input_tensors[0]);
+    uint32_t reduceAxis = 0x1 << param->axis;
+
+    ITopKLayer* layer = network->addTopK(*tensor, topk_largest, param->k, reduceAxis);
     if (layer != nullptr) {
-        Dims reshape_dims;
-        reshape_dims.nbDims = input_tensors[0]->getDimensions().nbDims;
-        for (int i = 0; i < reshape_dims.nbDims; i++) {
-            reshape_dims.d[i] = 0;
-        }
         layer->setName(layer_name_.c_str());
-        layer->setReshapeDimensions(reshape_dims);
-        layer->setSecondTranspose(permute);
     }
 
     return layer;
 }
 
-REGISTER_TENSORRT_LAYER_BUILDER(Permute, LAYER_PERMUTE);
+REGISTER_TENSORRT_LAYER_BUILDER(TopK, LAYER_TOPK);
 
 }  //  namespace TNN_NS
-

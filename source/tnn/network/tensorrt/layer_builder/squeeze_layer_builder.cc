@@ -20,11 +20,13 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Squeeze, LAYER_SQUEEZE);
 
 bool SqueezeTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+    return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF ||
+            inOut[pos].type == nvinfer1::DataType::kINT32) && inOut[pos].type == inOut[0].type &&
+            inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+}
 
-    return (inOut[pos].type == nvinfer1::DataType::kFLOAT && 
-            inOut[pos].format == nvinfer1::TensorFormat::kNCHW && 
-            inOut[pos].type == inOut[0].type ) || 
-            inOut[pos].type == nvinfer1::DataType::kINT32;
+Status SqueezeTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
 }
 
 const char* SqueezeTRTPluginLayerBuilder::getPluginType() const {
