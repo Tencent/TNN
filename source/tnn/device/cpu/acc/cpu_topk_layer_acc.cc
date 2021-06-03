@@ -173,11 +173,6 @@ Status CpuTopKLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
         return Status(TNNERR_PARAM_ERR, "Error: TopKLayer must have 2 output blobs");
     }
 
-    if (inputs.size() > 1) {
-        LOGE("Error: TopKLayer only support 1 input blob, not support k as a input blob\n");
-        return Status(TNNERR_PARAM_ERR, "Error: TopKLayer only support 1 input blob, not support k as a input blob");
-    }
-
     auto input_dims = inputs[0]->GetBlobDesc().dims;
     if (param->axis >= input_dims.size()) {
         LOGE("Error: TopKLayer the axis exceeds input dims\n");

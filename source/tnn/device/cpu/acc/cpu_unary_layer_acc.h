@@ -44,6 +44,10 @@ public:
     virtual bfp16_t operator()(bfp16_t in) {
         return in;
     }
+    virtual int8_t operator()(int8_t in) {
+        return in;
+    }
+
 
 protected:
     LayerParam *param_ = NULL;
