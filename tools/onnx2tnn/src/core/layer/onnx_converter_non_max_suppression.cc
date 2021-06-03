@@ -34,9 +34,9 @@ string OnnxOpConverterNonMaxSuppression::TNNLayerParam(NodeProto& node, OnnxNetI
     int center_point_box = (int)get_node_attr_i(node, "center_point_box", 0);
     int input_size       = node.input_size();
 
-    int max_output_boxes_per_class = 0;
-    float iou_threshold            = 0.0f;
-    float score_threshold          = 0.0f;
+    int64_t max_output_boxes_per_class = 0;
+    float iou_threshold                = 0.0f;
+    float score_threshold              = 0.0f;
 
     if (input_size >= 3) {
         auto vec_i = get_node_attr_ai(node, "max_output_boxes_per_class", net_info, 2);

@@ -660,10 +660,10 @@ struct TopKLayerParam : public LayerParam {
 };
 
 struct NonMaxSuppressionLayerParam : public LayerParam {
-    int center_point_box           = 0;
-    int max_output_boxes_per_class = 0;
-    float iou_threshold            = 0.0f;
-    float score_threshold          = 0.0f;
+    int center_point_box               = 0;
+    int64_t max_output_boxes_per_class = 0;
+    float iou_threshold                = 0.0f;
+    float score_threshold              = 0.0f;
 
     PARAM_COPY(NonMaxSuppressionLayerParam)
 };

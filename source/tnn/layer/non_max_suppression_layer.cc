@@ -33,18 +33,23 @@ Status NonMaxSuppressionLayer::InferOutputShape(bool ignore_error) {
     auto status = BaseLayer::InferOutputShape(ignore_error);
     RETURN_ON_NEQ(status, TNN_OK);
 
-    auto layer_param = dynamic_cast<NonMaxSuppressionLayerParam*>(param_);
+    auto layer_param = dynamic_cast<NonMaxSuppressionLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
 
-    Blob *boxes_blob = input_blobs_[0];
+    Blob *boxes_blob  = input_blobs_[0];
     Blob *scores_blob = input_blobs_[1];
     Blob *output_blob = output_blobs_[0];
 
-    auto boxes_dims = boxes_blob->GetBlobDesc().dims;
+    auto boxes_dims  = boxes_blob->GetBlobDesc().dims;
     auto scores_dims = scores_blob->GetBlobDesc().dims;
 
-    auto last_dim = 3;
-    auto output_dims = {layer_param->max_output_boxes_per_class, last_dim};
+    int64_t output_dim_max_box = layer_param->max_output_boxes_per_class;
+    if (output_dim_max_box > boxes_dims[1]) {
+        output_dim_max_box = boxes_dims[1];
+    }
+
+    int last_dim     = 3;
+    auto output_dims = {(int)output_dim_max_box, last_dim};
 
     output_blob->GetBlobDesc().dims = output_dims;
 

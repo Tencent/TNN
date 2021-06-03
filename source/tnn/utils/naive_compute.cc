@@ -1148,7 +1148,7 @@ void NaiveNonMaxSuppression(const std::vector<Blob *> &inputs, const std::vector
                             NonMaxSuppressionLayerParam *param) {
     ASSERT(inputs.size() >= 2);
     int center_point_box = param->center_point_box;
-    int max_output_boxes_per_class = param->max_output_boxes_per_class;
+    int64_t max_output_boxes_per_class = param->max_output_boxes_per_class;
     float iou_threshold = param->iou_threshold;
     float score_threshold = param->score_threshold;
 
@@ -1239,6 +1239,7 @@ void NaiveNonMaxSuppression(const std::vector<Blob *> &inputs, const std::vector
     const auto num_selected = selected_indices.size();
     int *output_blob_data = static_cast<int *>(output_blob->GetHandle().base);
     output_blob->GetBlobDesc().dims = {static_cast<int>(num_selected), last_dim};
+
     ASSERT(last_dim * sizeof(int) == sizeof(SelectedIndex));
     memcpy(output_blob_data, selected_indices.data(), num_selected * sizeof(SelectedIndex));
 }

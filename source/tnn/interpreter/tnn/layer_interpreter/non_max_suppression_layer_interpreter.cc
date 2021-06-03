@@ -26,7 +26,7 @@ Status NonMaxSuppressionLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, 
     int index         = start_index;
 
     GET_INT_1_OR_DEFAULT(layer_param->center_point_box, 0);
-    GET_INT_1_OR_DEFAULT(layer_param->max_output_boxes_per_class, 0);
+    GET_LONG_1_OR_DEFAULT(layer_param->max_output_boxes_per_class, 0);
     GET_FLOAT_1_OR_DEFAULT(layer_param->iou_threshold, 0.0f);
     GET_FLOAT_1_OR_DEFAULT(layer_param->score_threshold, 0.0f);
 
