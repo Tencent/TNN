@@ -69,7 +69,7 @@ Status CpuUnaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
         auto dims = input_blob->GetBlobDesc().dims;
         int8_t *input_data  = static_cast<int8_t *>(input_blob->GetHandle().base);
         int8_t *output_data = static_cast<int8_t *>(output_blob->GetHandle().base);
-        if (dynamic_cast<BlobInt8 *>(input_blob)) {
+        if (param_->quantized) {
             auto input_scale_handle  = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->scale_handle;
             auto output_scale_handle = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->scale_handle;
             const float *i_scale     = input_scale_handle.force_to<float *>();
