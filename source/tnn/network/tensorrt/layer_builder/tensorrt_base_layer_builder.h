@@ -54,7 +54,7 @@ public:
 
     // @brief virtual layer init
     virtual Status Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& inputs,
-                std::vector<Blob*>& outputs, AbstractDevice* device) = 0;
+            std::vector<Blob*>& outputs, AbstractDevice* device, bool enable_const_folder=true) = 0;
 
     // @brief virtual Reshape recalculate the output tensor dims
     virtual Status Reshape();

@@ -13,7 +13,6 @@
 // specific language governing permissions and limitations under the License.
 
 #include <stdlib.h>
-
 #include "tnn/interpreter/tnn/layer_interpreter/abstract_layer_interpreter.h"
 
 namespace TNN_NS {
@@ -38,15 +37,10 @@ Status TopKLayerInterpreter::InterpretResource(Deserializer& deserializer, Layer
 }
 
 Status TopKLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
-    auto* layer_param = static_cast<TopKLayerParam*>(param);
-    if (nullptr == layer_param) {
-        LOGE("invalid layer param to save\n");
-        return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
-    }
 
+    CAST_OR_RET_ERROR(layer_param, TopKLayerParam, "invalid topk param to save", param);
     output_stream << layer_param->axis << " " << layer_param->largest << " " << 
                      layer_param->sorted << " " << layer_param->k << " ";
-
     return TNN_OK;
 }
 

@@ -12,20 +12,20 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_SHAPE_LAYER_BUILDER_H_
-#define TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_SHAPE_LAYER_BUILDER_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_X86_ACC_X86_RELU_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_X86_ACC_X86_RELU_LAYER_ACC_H_
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/device/x86/acc/x86_unary2_layer_acc.h"
 
 namespace TNN_NS {
 
-class ShapeTRTLayerBuilder : public TensorRTLayerBuilder {
+class X86ReluLayerAcc : public X86Unary2LayerAcc {
 public:
-    ShapeTRTLayerBuilder(LayerType type);
-    virtual ~ShapeTRTLayerBuilder();
-    virtual ILayer* AddToNetwork(INetworkDefinition* network);
+    X86ReluLayerAcc() { type_ = LAYER_RELU; };
+    virtual ~X86ReluLayerAcc() {};
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 };
 
-}  //  namespace TNN_NS
+}  // namespace TNN_NS
 
-#endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_SHAPE_LAYER_BUILDER_H_
+#endif

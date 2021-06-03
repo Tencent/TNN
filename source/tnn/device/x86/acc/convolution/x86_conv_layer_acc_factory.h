@@ -16,8 +16,6 @@
 #define TNN_SOURCE_TNN_DEVICE_X86_X86_CONV_LAYER_ACC_FACTORY_H_
 
 #include "tnn/device/x86/acc/x86_layer_acc.h"
-#include "tnn/device/x86/acc/convolution/x86_conv_layer_common.h"
-#include "tnn/device/x86/acc/convolution/x86_conv_layer_depthwise.h"
 #include <memory>
 #include <type_traits>
 
@@ -26,6 +24,9 @@ namespace TNN_NS {
 class X86ConvLayerAccFactory {
 public:
     static void CreateImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, LayerParam *param,
+                            std::shared_ptr<X86LayerAcc> &conv_acc_impl);
+
+    static void CreateImpInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, LayerParam *param,
                             std::shared_ptr<X86LayerAcc> &conv_acc_impl);
 };
 

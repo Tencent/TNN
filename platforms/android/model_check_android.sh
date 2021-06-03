@@ -19,9 +19,10 @@ INPUT_PATH=
 OPTION_DUMP_OUTPUT=
 OPTION_CHECK_BATCH=
 OPTION_CHECK_OUTPUT=
+SET_PRECISION=
 
 function usage() {
-    echo "usage: ./model_check_android.sh  [-32] [-v82] [-c] [-b] [-d] <device-id> [-t] <CPU/GPU> [-m] <tnnproto> [-i] <input_file> [-p] [-o]"
+    echo "usage: ./model_check_android.sh  [-32] [-v82] [-c] [-b] [-d] <device-id> [-t] <CPU/GPU> [-m] <tnnproto> [-i] <input_file> [-p] [-o] [-s <AUTO/...>]"
     echo "options:"
     echo "        -32   Build 32 bit."
     echo "        -v82  enable armv8.2."
@@ -34,7 +35,8 @@ function usage() {
     echo "        -p    Push models to device"
     echo "        -o    dump output"
     echo "        -a    check multi batch"
-    echo "        -e    only check output"
+    echo "        -e    only check output(precision: AUTO)"
+    echo "        -s    AUTO/NORMAL/HIGH/LOW specify the tnn precision(default: HIGH)"
 }
 function die() {
     echo $1
@@ -146,16 +148,16 @@ function run_android() {
 
         if [ -n "$INPUT_PATH" ]
         then
-            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR:${ANDROID_DIR}/lib ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel -i $ANDROID_DATA_DIR/input.txt $OPTION_DUMP_OUTPUT $OPTION_CHECK_BATCH $OPTION_CHECK_OUTPUT >> $ANDROID_DIR/test_log.txt"
+            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR:${ANDROID_DIR}/lib ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel -i $ANDROID_DATA_DIR/input.txt $OPTION_DUMP_OUTPUT $OPTION_CHECK_BATCH $OPTION_CHECK_OUTPUT $SET_PRECISION >> $ANDROID_DIR/test_log.txt"
         else
-            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR:${ANDROID_DIR}/lib ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel $OPTION_DUMP_OUTPUT $OPTION_CHECK_BATCH $OPTION_CHECK_OUTPUT >> $ANDROID_DIR/test_log.txt"
+            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR:${ANDROID_DIR}/lib ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel $OPTION_DUMP_OUTPUT $OPTION_CHECK_BATCH $OPTION_CHECK_OUTPUT $SET_PRECISION >> $ANDROID_DIR/test_log.txt"
         fi
     else
         if [ -n "$INPUT_PATH" ]
         then
-            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel -i $ANDROID_DATA_DIR/input.txt $OPTION_DUMP_OUTPUT $OPTION_CHECK_BATCH $OPTION_CHECK_OUTPUT  >> $ANDROID_DIR/test_log.txt"
+            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel -i $ANDROID_DATA_DIR/input.txt $OPTION_DUMP_OUTPUT $OPTION_CHECK_BATCH $OPTION_CHECK_OUTPUT $SET_PRECISION >> $ANDROID_DIR/test_log.txt"
         else
-            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel $OPTION_DUMP_OUTPUT $OPTION_CHECK_BATCH $OPTION_CHECK_OUTPUT  >> $ANDROID_DIR/test_log.txt"
+            $ADB shell "cd $ANDROID_DIR ; LD_LIBRARY_PATH=$ANDROID_DIR ./model_check -d $DEVICE -p $ANDROID_DATA_DIR/test.tnnproto -m $ANDROID_DATA_DIR/test.tnnmodel $OPTION_DUMP_OUTPUT $OPTION_CHECK_BATCH $OPTION_CHECK_OUTPUT $SET_PRECISION >> $ANDROID_DIR/test_log.txt"
         fi
     fi
 
@@ -218,6 +220,11 @@ while [ "$1" != "" ]; do
         -e)
             shift
             OPTION_CHECK_OUTPUT=-e
+            ;;
+        -s)
+            shift
+            SET_PRECISION=" -sp $1"
+            shift
             ;;
         *)
             usage

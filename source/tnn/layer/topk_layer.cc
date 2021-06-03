@@ -19,6 +19,7 @@
 
 namespace TNN_NS {
 
+//different implementation may generate different order, cause unalign [onnx vs cpu vs other devices]  
 DECLARE_LAYER_WITH_FUNC(TopK, LAYER_TOPK,
                         virtual Status FillLayerParamWithConstantResource(););
 
