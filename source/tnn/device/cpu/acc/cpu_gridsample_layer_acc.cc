@@ -84,9 +84,12 @@ Status CpuGridSampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
                 if (h0 + 1 < 0 || h0 + 1 > input_height - 1) {
                     h1lambda = 0;
                 }
-                
+                LOGD("h0: %d, input_width:%d, w0:%d", h0, input_width, w0);
                 //Note: read outside valid roi will raise
                 const float *x_data_ptr = input_data_b + h0 * input_width + w0;
+                if (x_data_ptr < input_data_ptr) {
+                    x_data_ptr = input_data_ptr;
+                }
                 float *y_data_ptr = output_data_b + i;
                 for (int c=0; c<channel; c++) {
                     y_data_ptr[0] = h0lambda * (w0lambda * x_data_ptr[0] + w1lambda * x_data_ptr[w1p]) +

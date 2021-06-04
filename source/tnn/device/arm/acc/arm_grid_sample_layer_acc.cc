@@ -47,7 +47,7 @@ static void ComputeNCHW(const std::vector<Blob *> &inputs, const std::vector<Blo
             auto grid_position = grid_data + 2 * i;
             float grid_x       = (grid_position[0] + 1) * input_width * 0.5 - 0.5;
             float grid_y       = (grid_position[1] + 1) * input_height * 0.5 - 0.5;
-            // w0lambda: (1-x) ; w1lambda: x
+            // w0lambda: (1-y) ; w1lambda: y
             const int w0   = std::floor(grid_x);
             const int w1p  = (w0 < input_width - 1) ? 1 : 0;
             float w1lambda = grid_x - w0;
@@ -58,7 +58,7 @@ static void ComputeNCHW(const std::vector<Blob *> &inputs, const std::vector<Blo
             if (w0 + 1 < 0 || w0 + 1 > input_width - 1) {
                 w1lambda = 0;
             }
-            // h0lambda: (1-y) ; h1lambda: y
+            // h0lambda: (1-x) ; h1lambda x
             const int h0   = std::floor(grid_y);
             const int h1p  = (h0 < input_height - 1) ? 1 : 0;
             float h1lambda = grid_y - h0;
@@ -71,6 +71,9 @@ static void ComputeNCHW(const std::vector<Blob *> &inputs, const std::vector<Blo
             }
             // Note: read outside valid roi will raise
             const float *x_data_ptr = input_data + h0 * input_width + w0;
+            if (x_data_ptr < input_base_ptr) {
+                x_data_ptr = input_base_ptr;
+            }
             float *y_data_ptr       = output_data + i;
             for (int c = 0; c < channel; c++) {
                 // reference: https://zh.wikipedia.org/wiki/%E5%8F%8C%E7%BA%BF%E6%80%A7%E6%8F%92%E5%80%BC
@@ -149,6 +152,9 @@ static void ComputeNC4HW4(const std::vector<Blob *> &inputs, const std::vector<B
                 // Note: read outside valid roi will raise
                 auto x_data_ptr   = input_data + c * input_channel_area * 4 + h0 * input_width * 4 + w0 * 4;
                 auto y_data_ptr   = output_data + c * output_channel_area * 4 + i * 4;
+                if (x_data_ptr < input_base_ptr) {
+                    x_data_ptr = input_base_ptr;
+                }
                 Float4 w0lambda_v = Float4(w0lambda);
                 Float4 w1lambda_v = Float4(w1lambda);
                 Float4 h0lambda_v = Float4(h0lambda);
@@ -192,6 +198,6 @@ Status ArmGridSampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const
 
 REGISTER_ARM_ACC(GridSample, LAYER_GRIDSAMPLE);
 REGISTER_ARM_LAYOUT(LAYER_GRIDSAMPLE, DATA_FORMAT_NCHW)
-REGISTER_ARM_LAYOUT(LAYER_GRIDSAMPLE, DATA_FORMAT_NC4HW4)
+//REGISTER_ARM_LAYOUT(LAYER_GRIDSAMPLE, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS
