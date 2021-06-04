@@ -470,6 +470,10 @@ bool CpuUtils::CpuSupportInt8Dot() {
 
 // ANDROID
 #elif defined(__ANDROID__)
+    // hwcap & HWCAP_ASIMDDP (1 << 20) may also work, need more test
+    // unsigned int hwcap = getauxval(AT_HWCAP);
+    // int8dot = hwcap & (1 << 20);
+
     cpuinfo_android_properties cpu_prop;
     cpuinfo_arm_linux_processor processor;
     cpuinfo_arm_linux_parse_proc_cpuinfo(cpu_prop.proc_cpuinfo_hardware, &processor);
@@ -525,6 +529,7 @@ bool CpuUtils::CpuSupportInt8Dot() {
 
 // Linux
 #elif defined(__linux__)
+    // HWCAP_ASIMDDP not work on kunpeng 920
     cpuinfo_android_properties cpu_prop;
     cpuinfo_arm_linux_processor processor;
     cpuinfo_arm_linux_parse_proc_cpuinfo(cpu_prop.proc_cpuinfo_hardware, &processor);
