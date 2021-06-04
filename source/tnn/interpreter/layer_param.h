@@ -288,6 +288,8 @@ struct SplitVLayerParam : public LayerParam {
     int axis = 1;
     // size of each slice
     std::vector<int> slices;
+    // judge whether slices is specified or calculated by equal sized parts
+    bool is_split_specified = true;
 
     PARAM_COPY(SplitVLayerParam)
 };
@@ -646,6 +648,15 @@ struct EinsumLayerParam : public LayerParam {
     std::vector<DimsVector> operand_dims;
 
     PARAM_COPY(EinsumLayerParam)
+};
+
+struct TopKLayerParam : public LayerParam {
+    int axis = -1;
+    int largest = 1;
+    int sorted = 1;
+    int k;
+
+    PARAM_COPY(TopKLayerParam)
 };
 
 };  // namespace TNN_NS

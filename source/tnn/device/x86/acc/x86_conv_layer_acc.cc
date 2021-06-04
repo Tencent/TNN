@@ -40,7 +40,12 @@ Status X86ConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
         return ret;
     }
 
-    X86ConvLayerAccFactory::CreateImpFP(inputs, outputs, param_, conv_acc_impl_);
+    auto data_type = inputs[0]->GetBlobDesc().data_type;
+    if (data_type == DATA_TYPE_INT8) {
+        X86ConvLayerAccFactory::CreateImpInt8(inputs, outputs, param_, conv_acc_impl_);
+    } else {
+        X86ConvLayerAccFactory::CreateImpFP(inputs, outputs, param_, conv_acc_impl_);
+    }
 
     if (!conv_acc_impl_) {
         return Status(TNNERR_NET_ERR, "Could not create conv impl_");

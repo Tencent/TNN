@@ -24,6 +24,10 @@ bool HardSwishTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status HardSwishTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* HardSwishTRTPluginLayerBuilder::getPluginType() const {
     return "HardSwish";
 }

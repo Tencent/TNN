@@ -25,6 +25,10 @@ bool CbamFusedReduceTRTPluginLayerBuilder::supportsFormatCombination(
         (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF);
 }
 
+Status CbamFusedReduceTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* CbamFusedReduceTRTPluginLayerBuilder::getPluginType() const {
     return "CbamFusedReduce";
 }

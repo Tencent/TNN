@@ -10,6 +10,10 @@ bool PReluTRTPluginLayerBuilder::supportsFormatCombination(
         inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
 }
 
+Status PReluTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* PReluTRTPluginLayerBuilder::getPluginType() const {
     return "PRelu";
 }
