@@ -23,6 +23,10 @@ bool HistogramTRTPluginLayerBuilder::supportsFormatCombination(
     return (inOut[pos].type == nvinfer1::DataType::kINT32);
 }
 
+Status HistogramTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* HistogramTRTPluginLayerBuilder::getPluginType() const {
     return "Histogram";
 }

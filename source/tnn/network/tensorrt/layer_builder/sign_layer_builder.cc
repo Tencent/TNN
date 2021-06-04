@@ -24,6 +24,10 @@ bool SignTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status SignTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* SignTRTPluginLayerBuilder::getPluginType() const {
     return "Sign";
 }
