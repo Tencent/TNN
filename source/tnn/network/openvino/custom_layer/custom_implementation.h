@@ -24,6 +24,7 @@
 #include <ie_layouts.h>
 
 #include <tnn/core/status.h>
+#include <tnn/network/openvino/openvino_network.h>
 #include <ngraph/ngraph.hpp>
 #include <ngraph/opsets/opset.hpp>
 
@@ -41,16 +42,16 @@ public:
         constructor_validate_and_infer_types();
     };
 
-    void validate_and_infer_types() override {
-        for (size_t i = 0; i < output_blobs_.size(); i++) {
-            auto dims0 = output_blobs_[i]->GetBlobDesc().dims;
-            ngraph::Shape output_shape(dims0.size());
-            for (size_t j = 0; j < dims0.size(); j++) {
-                output_shape[j] = dims0[j];
-            }
-            set_output_type(i, get_input_element_type(0), ngraph::PartialShape(output_shape));
+    virtual void validate_and_infer_types() {
+    for (size_t i = 0; i < output_blobs_.size(); i++) {
+        auto dims0 = output_blobs_[i]->GetBlobDesc().dims;
+        ngraph::Shape output_shape(dims0.size());
+        for (size_t j = 0; j < dims0.size(); j++) {
+            output_shape[j] = dims0[j];
         }
+        set_output_type(i, get_input_element_type(0), ngraph::PartialShape(output_shape));
     }
+};
 
     bool visit_attributes(ngraph::AttributeVisitor& visitor) override {
         return true;
@@ -312,6 +313,7 @@ public:
         std::shared_ptr<ngraph::Node> clone_with_new_inputs(const ngraph::OutputVector& new_args) const override {     \
             return std::make_shared<Custom##type##Op>(new_args, base_layer_, input_blobs_, output_blobs_);             \
         }                                                                                                              \
+        void validate_and_infer_types() override;                                                                      \
     }
 
 #endif

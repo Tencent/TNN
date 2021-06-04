@@ -20,6 +20,27 @@
 namespace TNN_NS {
     
 DECLARE_CUSTOM_OP(Pooling);
+void CustomPoolingOp::validate_and_infer_types()  {
+    for (size_t i = 0; i < output_blobs_.size(); i++) {
+        auto dims0 = output_blobs_[i]->GetBlobDesc().dims;
+        ngraph::Shape output_shape(dims0.size());
+        for (size_t j = 0; j < dims0.size(); j++) {
+            output_shape[j] = dims0[j];
+        }
+        set_output_type(i, get_input_element_type(0), ngraph::PartialShape(output_shape));
+    }
+
+    for (size_t i = 0; i < input_blobs_.size(); i++) {
+        auto input_desc = input_blobs_[i]->GetBlobDesc();
+        auto input_dims = input_desc.dims;
+        auto input_shape = get_input_shape(i);
+        for (size_t j = 0; j < input_dims.size(); j++) {
+            input_dims[j] = input_shape[j];
+        }
+        input_desc.dims = input_dims;
+        input_blobs_[i]->SetBlobDesc(input_desc);
+    }
+}
 REGISTER_CUSTOM_OP(Pooling);
 
 DECLARE_CUSTOM_IMPLEMENTATION(Pooling);

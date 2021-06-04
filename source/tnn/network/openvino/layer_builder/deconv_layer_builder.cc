@@ -96,7 +96,7 @@ Status DeconvOVLayerBuilder::Build() {
 
     // assume that channels == weights input channels
     auto deConvNode = std::make_shared<ngraph::op::v1::GroupConvolutionBackpropData>(
-        input_node->output(0), weightsNode, output_shape, strides, pads_begin, pads_end, dilations, pad_type);
+        input_node->output(0), weightsNode, strides, pads_begin, pads_end, dilations, pad_type);
 
     deConvNode->validate_and_infer_types();
 

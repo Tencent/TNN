@@ -20,6 +20,23 @@
 namespace TNN_NS {
     
 DECLARE_CUSTOM_OP(StrideSliceV2);
+void CustomStrideSliceV2Op::validate_and_infer_types()  {
+    for (size_t i = 0; i < output_blobs_.size(); i++) {
+        printf("%s\t:", output_blobs_[i]->GetBlobDesc().name.c_str());
+        for (auto item : output_blobs_[i]->GetBlobDesc().dims) {
+            printf("%d, ", item);
+        }
+        printf("-->");
+        auto dims0 = output_blobs_[i]->GetBlobDesc().dims;
+        ngraph::Shape output_shape(dims0.size());
+        for (size_t j = 0; j < dims0.size(); j++) {
+            output_shape[j] = dims0[j];
+            printf("%d, ", dims0[j]);
+        }
+        printf("\n");
+        set_output_type(i, get_input_element_type(0), ngraph::PartialShape(output_shape));
+    }
+}
 REGISTER_CUSTOM_OP(StrideSliceV2);
 
 DECLARE_CUSTOM_IMPLEMENTATION(StrideSliceV2);

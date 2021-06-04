@@ -47,7 +47,7 @@ Status initOCRDetector(std::shared_ptr<OCRDriver> &predictor, DimsVector &target
     #ifdef _CUDA_
         compute_units = TNN_NS::TNNComputeUnitsTensorRT;
     #elif _OPENVINO_
-        compute_units = TNN_NS::TNNComputeUnitsCPU;
+        compute_units = TNN_NS::TNNComputeUnitsOpenvino;
     #endif
 
     std::string protoContent, modelContent;
