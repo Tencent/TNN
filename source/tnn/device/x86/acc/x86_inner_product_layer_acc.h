@@ -37,6 +37,7 @@ public:
 protected:
     RawBuffer buffer_weight_;
     RawBuffer buffer_bias_;
+    RawBuffer buffer_scale_;
     conv_gemm_config<float, float, float> conv_gemm_conf_;
     InnerProductCompute impl_;
     std::shared_ptr<LayerResource> fc_acc_f32_resource_ = nullptr;

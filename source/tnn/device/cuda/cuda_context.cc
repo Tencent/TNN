@@ -38,6 +38,10 @@ CudaContext::~CudaContext() {
     if (cublas_status != CUBLAS_STATUS_SUCCESS) {
         LOGE("destroy cublas handle failed");
     }
+
+    if (workspace_) {
+        CUDA_CHECK(cudaFree(workspace_));
+    }
 }
 
 Status CudaContext::Setup(int device_id) {
@@ -124,6 +128,20 @@ Status CudaContext::OnInstanceForwardEnd() {
 
 cudaStream_t& CudaContext::GetStream() {
     return stream_;
+}
+
+void* CudaContext::GetWorkspace() {
+    return workspace_;
+}
+
+void CudaContext::SetWorkspaceSize(int size) {
+    if (size > workspace_size_) {
+        if (workspace_) {
+            CUDA_CHECK(cudaFree(workspace_));
+        }
+        CUDA_CHECK(cudaMalloc(&workspace_, size));
+        workspace_size_ = size;
+    }
 }
 
 Status CudaContext::Synchronize() {

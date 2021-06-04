@@ -12,20 +12,17 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_SHAPE_LAYER_BUILDER_H_
-#define TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_SHAPE_LAYER_BUILDER_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_CUDA_ACC_CUDA_GATHER_LAYER_ACC_KERNEL_CUH_
+#define TNN_SOURCE_TNN_DEVICE_CUDA_ACC_CUDA_GATHER_LAYER_ACC_KERNEL_CUH_
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/device/cuda/acc/cuda_layer_acc.h"
 
 namespace TNN_NS {
 
-class ShapeTRTLayerBuilder : public TensorRTLayerBuilder {
-public:
-    ShapeTRTLayerBuilder(LayerType type);
-    virtual ~ShapeTRTLayerBuilder();
-    virtual ILayer* AddToNetwork(INetworkDefinition* network);
-};
+template <typename T>
+Status RunGather(int dst_size, int slice_size, int src_slice_count, int dst_slice_count,
+                 const T* src_data, const int* indices_data, T* dst_data, cudaStream_t stream);
 
 }  //  namespace TNN_NS
 
-#endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_LAYER_BUILDER_SHAPE_LAYER_BUILDER_H_
+#endif  //  TNN_SOURCE_TNN_DEVICE_CUDA_ACC_CUDA_GATHER_LAYER_ACC_KERNEL_CUH_

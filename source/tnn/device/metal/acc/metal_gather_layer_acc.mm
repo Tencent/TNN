@@ -172,7 +172,6 @@ Status MetalGatherLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
 }
 
 Status MetalGatherLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    //printf("== %d, %d\n", inputs[0]->GetBlobDesc().data_format, outputs[0]->GetBlobDesc().data_format);
     return MetalLayerAcc::Forward(inputs, outputs);
 }
 

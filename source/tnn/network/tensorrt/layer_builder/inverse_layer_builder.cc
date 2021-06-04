@@ -23,6 +23,10 @@ bool InverseTRTPluginLayerBuilder::supportsFormatCombination(
     return inOut[pos].type == nvinfer1::DataType::kFLOAT;
 }
 
+Status InverseTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* InverseTRTPluginLayerBuilder::getPluginType() const {
     return "Inverse";
 }

@@ -15,6 +15,7 @@
 #include "tnn/device/x86/acc/x86_unary_layer_acc.h"
 #include "tnn/device/x86/x86_context.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
@@ -36,6 +37,7 @@ Status X86UnaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     auto input_data  = static_cast<float*>(input->GetHandle().base);
     auto output_data = static_cast<float*>(output->GetHandle().base);
 
+    OMP_PARALLEL_FOR_GUIDED_
     for (int n = 0; n < count; n++) {
         output_data[n] = (*op_)(input_data[n]);
     }

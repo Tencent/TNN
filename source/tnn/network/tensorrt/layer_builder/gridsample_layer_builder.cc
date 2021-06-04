@@ -24,6 +24,10 @@ bool GridSampleTRTPluginLayerBuilder::supportsFormatCombination(
         inOut[pos].type == nvinfer1::DataType::kINT32) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
 }
 
+Status GridSampleTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* GridSampleTRTPluginLayerBuilder::getPluginType() const {
     return "GridSample";
 }

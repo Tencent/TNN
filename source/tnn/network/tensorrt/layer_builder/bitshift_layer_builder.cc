@@ -23,6 +23,10 @@ bool BitShiftTRTPluginLayerBuilder::supportsFormatCombination(
     return (inOut[pos].type == nvinfer1::DataType::kINT32);
 }
 
+Status BitShiftTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* BitShiftTRTPluginLayerBuilder::getPluginType() const {
     return "BitShift";
 }

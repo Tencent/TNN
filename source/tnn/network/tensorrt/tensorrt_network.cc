@@ -31,7 +31,7 @@
 namespace TNN_NS {
 
 #define MAX_SCRATCH_MEMORY (1<<31 - 1)
-#define TENSORRT_SERIALIZE_VERSION "v1.1"
+#define TENSORRT_SERIALIZE_VERSION "v1.2"
 
 NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
     g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
@@ -51,12 +51,18 @@ TensorRTNetwork_::TensorRTNetwork_() {
 
 TensorRTNetwork_::~TensorRTNetwork_() {
     CUDA_CHECK(cudaSetDevice(device_id_));
-    if (m_context_memory) {
-        Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemFree(m_context_memory);
-        if (ret != TNN_OK) {
-            LOGE("Error deconstruct TensorRT Network\n");
+
+    if(config_.share_memory_mode == SHARE_MEMORY_MODE_SHARE_ONE_THREAD) {
+        SharedMemoryManager::ReleaseSharedMemory(init_thread_id_, device_, config_.device_id, this);
+    } else {
+        if (m_context_memory) {
+            Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemFree(m_context_memory);
+            if (ret != TNN_OK) {
+                LOGE("Error deconstruct TensorRT Network\n");
+            }
         }
     }
+
     if (m_trt_context) {
         m_trt_context->destroy();
     }
@@ -67,7 +73,8 @@ TensorRTNetwork_::~TensorRTNetwork_() {
 }
 
 Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
-        AbstractModelInterpreter* interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+        AbstractModelInterpreter* interpreter, InputShapesMap min_inputs_shape,
+        InputShapesMap max_inputs_shape, bool enable_const_folder) {
     std::unique_lock<std::mutex> lck(network_mutex);
     device_id_ = net_config.device_id;
     CUDA_CHECK(cudaSetDevice(net_config.device_id));
@@ -108,6 +115,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         }
     }
 
+    init_thread_id_    = std::this_thread::get_id();
+
     blob_manager_ = new TensorRTBlobManager(device_);
     ret = blob_manager_->Init(net_config, net_structure, max_inputs_shape, GetNetResourceDataType(net_resource));
     if (ret != TNN_OK) {
@@ -115,7 +124,6 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     this->m_max_batchsize = 1;
-
     BlobMap inputs;
     ret = blob_manager_->GetAllInputBlobs(inputs);
     if (ret != TNN_OK) {
@@ -129,7 +137,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         }
     }
 
-    ret = InitLayers(net_structure, net_resource);
+    ret = InitLayers(net_structure, net_resource, enable_const_folder);
     if (ret != TNN_OK) {
         return ret;
     }
@@ -145,7 +153,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
 
     std::string cache_file_name = GetCacheFileName(params_md5, inputs, outputs, min_inputs_shape,
         net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
-    ExclFile *file_lock = new ExclFile(cache_file_name);
+
+    std::unique_ptr<ExclFile> file_lock(new ExclFile(cache_file_name));
 
     if (test_mode || false == file_lock->Ready()) {
         ret = InitWithoutCache(inputs, outputs, cache_file_name, net_resource, min_inputs_shape);
@@ -175,18 +184,32 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         ret = CreateExecuteContext();
         if (ret != TNN_OK)
             return ret;
-
     }
 
-    delete file_lock;
+    int bind_num = m_trt_engine->getNbBindings();
+    this->m_trt_bindings = new void*[bind_num];
+
+    for (auto iter : inputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
+        nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
+        m_trt_context->setBindingDimensions(index, inputDims);
+    }
+
+    for (auto iter : outputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        auto trt_dims = m_trt_context->getBindingDimensions(index).d;
+        DimsVector dims;
+        for (int i = 0; i < m_trt_context->getBindingDimensions(index).nbDims; i++) {
+            dims.push_back(trt_dims[i]);
+        }
+        blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims = dims;
+    }
 
     ret = blob_manager_->AllocateBlobMemory();
     if (ret != TNN_OK) {
        return ret;
     }
-
-    int bind_num = m_trt_engine->getNbBindings();
-    this->m_trt_bindings = new void*[bind_num];
 
     for (auto iter : outputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
@@ -236,6 +259,23 @@ Status TensorRTNetwork_::ReshapeLayers() {
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
     }
 
+    BlobMap outputs;
+    ret = blob_manager_->GetAllOutputBlobs(outputs);
+    if (ret != TNN_OK) {
+        LOGE("ERROR: get output blobs failed");
+        return ret;
+    }
+
+    for (auto iter : outputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        auto trt_dims = m_trt_context->getBindingDimensions(index).d;
+        DimsVector dims;
+        for (int i = 0; i < m_trt_context->getBindingDimensions(index).nbDims; i++) {
+            dims.push_back(trt_dims[i]);
+        }
+        blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims = dims;
+    }
+
     for (auto blob_name : const_input_blobs_) {
         Blob *blob = blob_manager_->GetBlob(blob_name);
         auto buf = net_resource_->constant_map[blob_name];
@@ -247,8 +287,9 @@ Status TensorRTNetwork_::ReshapeLayers() {
         bool ret;
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
         if (std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->IsShapeTensor()) {
-            auto map = net_resource_->constant_map;
-            ret = m_trt_context->setInputShapeBinding(index, (int*)map[blob_name]->force_to<int *>());
+            auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetShapeBlobName();
+            auto dims = blob_manager_->GetBlob(name)->GetBlobDesc().dims;
+            ret = m_trt_context->setInputShapeBinding(index, dims.data());
         } else {
             nvinfer1::Dims inputDims = ConvertToTRTDims(buf->GetBufferDims());
             ret = m_trt_context->setBindingDimensions(index, inputDims);
@@ -307,7 +348,7 @@ std::unordered_map<std::string, TensorRTPluginLayerBuilder*> TensorRTNetwork_::G
     return m_plugin_layer_name_map;
 }
 
-Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *net_resource) {
+Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *net_resource, bool enable_const_folder) {
     Status ret = TNN_OK;
 
     // mark const blobs and blob data type
@@ -389,7 +430,8 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 
         cur_layer->SetRuntimeMode(runtime_model_);
         cur_layer->SetConstantResource(&net_resource->constant_map);
-        ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
+        ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs,
+            outputs, device_, enable_const_folder);
         if (ret != TNN_OK) {
             LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
             return ret;
@@ -407,12 +449,20 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 Status TensorRTNetwork_::CreateExecuteContext() {
     m_trt_context = m_trt_engine->createExecutionContextWithoutDeviceMemory();
     size_t context_memory_size = (std::max)(m_trt_engine->getDeviceMemorySize(), size_t(1024));
-    Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemAlloc(&m_context_memory, context_memory_size);
-    if (ret != TNN_OK) {
-        LOGE("Error Create TensorRT execute context\n");
-        return ret;
+    Status status = TNN_OK;
+    if(config_.share_memory_mode == SHARE_MEMORY_MODE_SHARE_ONE_THREAD) { 
+        SharedMemory share_memory = SharedMemoryManager::GetSharedMemory(
+                        context_memory_size, init_thread_id_, device_,
+                        config_.device_id, this, status);
+        m_trt_context->setDeviceMemory(share_memory.shared_memory_data);
+    } else {
+        Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemAlloc(&m_context_memory, context_memory_size);
+        if (ret != TNN_OK) {
+            LOGE("Error Create TensorRT execute context\n");
+            return ret;
+        }
+        m_trt_context->setDeviceMemory(m_context_memory);
     }
-    m_trt_context->setDeviceMemory(m_context_memory);
     return TNN_OK;
 }
 
@@ -754,6 +804,10 @@ Status TensorRTNetwork_::CheckConstBlobs() {
     const_weight_blobs_ = const_weight_blobs;
 
     return TNN_OK;
+}
+
+void TensorRTNetwork_::OnSharedForwardMemoryChanged(void *memory) {
+    m_trt_context->setDeviceMemory(memory);    
 }
 
 }  //  namespace  TNN_NS

@@ -108,6 +108,7 @@ Status OpenCLStrideSliceV2LayerAcc::Init(Context *context, LayerParam *param, La
         program_name = "copy";
         kernel_name  = "CopyImage";
         if (output_dims.size() == 5) {
+            program_name = "copy_image_5d";
             kernel_name = "CopyImage5D";
         }
         ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);

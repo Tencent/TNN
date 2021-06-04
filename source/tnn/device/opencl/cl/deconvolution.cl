@@ -12,7 +12,8 @@ __kernel void Deconv2D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __read_on
                        __private const int2 padding_wh,
                        __private const int2 kernel_wh,
                        __private const int kernel_size,
-                       __private const int in_channel_blocks) {
+                       __private const int in_channel_blocks,
+                       __private const int activation_type) {
 
     const int output_cw_idx = get_global_id(0);
     const int output_bh_idx = get_global_id(1);
@@ -66,7 +67,7 @@ __kernel void Deconv2D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __read_on
         }
     }
 
-    out0 = ActivationProcess(out0);
+    out0 = ActivationProcess(out0, activation_type);
 
     WI_F(output, (int2)(output_cw_idx, output_bh_idx), out0);
 }
@@ -77,7 +78,8 @@ __kernel void Deconv2D4x4s2p1wb4(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
                                  __private const int2 input_wh,
                                  __private const int2 output_wh,
                                  __private const int out_width_blocks,
-                                 __private const int in_channel_blocks) {
+                                 __private const int in_channel_blocks,
+                                 __private const int activation_type) {
 
     const int output_cw_blocks_idx = get_global_id(0);
     const int output_bh_idx = get_global_id(1);
@@ -194,10 +196,10 @@ __kernel void Deconv2D4x4s2p1wb4(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
         }
     }
 
-    out0 = ActivationProcess(out0);
-    out1 = ActivationProcess(out1);
-    out2 = ActivationProcess(out2);
-    out3 = ActivationProcess(out3);
+    out0 = ActivationProcess(out0, activation_type);
+    out1 = ActivationProcess(out1, activation_type);
+    out2 = ActivationProcess(out2, activation_type);
+    out3 = ActivationProcess(out3, activation_type);
 
     int out_width_idx   = out_width_blocks_idx << 2;
     const int remain = output_wh.x - out_width_idx;
@@ -216,7 +218,8 @@ __kernel void DepthwiseDeconv2D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, 
                                 __private const int2 align_wh,
                                 __private const int2 padding_wh,
                                 __private const int2 kernel_wh,
-                                __private const int kernel_size, __private const int out_channel_blocks) {
+                                __private const int kernel_size, __private const int out_channel_blocks,
+                                __private const int activation_type) {
     const int output_cw_idx = get_global_id(0);
     const int output_bh_idx = get_global_id(1);
     DEAL_NON_UNIFORM_DIM2(output_cw_idx, output_bh_idx);
@@ -255,7 +258,7 @@ __kernel void DepthwiseDeconv2D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, 
         }
     }
 
-    out0 = ActivationProcess(out0);
+    out0 = ActivationProcess(out0, activation_type);
 
     const int output_image_x = mad24(out_channel_blocks_idx, output_wh.x, out_width_idx);
     WI_F(output, (int2)(output_image_x, output_bh_idx), out0);

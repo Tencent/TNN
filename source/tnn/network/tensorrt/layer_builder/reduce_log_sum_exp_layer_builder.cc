@@ -20,8 +20,12 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP)
 
 bool ReduceLogSumExpTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
-        && inOut[pos].type == inOut[0].type);
+    return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF) &&
+        inOut[pos].format == nvinfer1::TensorFormat::kNCHW && inOut[pos].type == inOut[0].type;
+}
+
+Status ReduceLogSumExpTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
 }
 
 const char* ReduceLogSumExpTRTPluginLayerBuilder::getPluginType() const {
