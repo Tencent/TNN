@@ -473,7 +473,7 @@ void PackSDOTINT8Weight(const int8_t *src, int8_t *dst, int oc, int ic, int kh, 
     int ic_r4  = ROUND_UP(ic, 4);
     int crs    = ic * kw * kh;
     int crs_r4 = ic_r4 * kw * kh;
-    int ic_align_4 = ROUND_UP(ic, 4);
+    int ic_align_4 = ic / 4 * 4;
     int oc_r4_align = oc_r4 / 8 * 8;
 
     for (int o = 0; o < oc_r4_align; o += 8) {
