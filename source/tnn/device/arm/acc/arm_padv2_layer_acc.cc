@@ -70,8 +70,8 @@ Status ArmPadV2LayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT ||
         output_blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ||
         output_blob->GetBlobDesc().data_type == DATA_TYPE_UINT32) {
-        float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-        float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+        auto input_data = reinterpret_cast<float*>(GetBlobHandlePtr(input_blob->GetHandle()));
+        auto output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
 
         if (layer_param->type == 0) {
             // mode: const
