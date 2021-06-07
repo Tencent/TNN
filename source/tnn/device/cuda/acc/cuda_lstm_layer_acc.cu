@@ -194,7 +194,13 @@ CudaLSTMONNXLayerAcc::~CudaLSTMONNXLayerAcc(){
 }
 
 Status CudaLSTMONNXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    if (this->is_reshaped) {
+    this->is_reshaped = false;
+    return TNN_OK;
+}
+
+Status CudaLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+
+    if (!this->is_reshaped) {
         DimsVector input_dims  = inputs[0]->GetBlobDesc().dims;
         LSTMONNXLayerParam * lstm_param = dynamic_cast<LSTMONNXLayerParam *>(param_);
 
@@ -330,15 +336,9 @@ Status CudaLSTMONNXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         CUDNN_CHECK(cudnnCreatePersistentRNNPlan(rnn_desc_, batch_size, CUDNN_DATA_FLOAT, &rnn_plan_));
         CUDNN_CHECK(cudnnSetPersistentRNNPlan(rnn_desc_, rnn_plan_));
         }
+        this->is_reshaped = true;
     }
 
-    return TNN_OK;
-}
-
-Status CudaLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-
-    this->is_reshaped = true;
-    Reshape(inputs, outputs);
     float * bottom_data = (float*)(((char*)inputs[0]->GetHandle().base) + inputs[0]->GetHandle().bytes_offset);
     float * top_data    = (float*)(((char*)outputs[0]->GetHandle().base) + outputs[0]->GetHandle().bytes_offset);
     CUDNN_CHECK(cudnnRNNForwardInference(context_->cudnn_handle_,
