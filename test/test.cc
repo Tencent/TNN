@@ -78,8 +78,6 @@ namespace test {
                 return ret;
             }
             instance->SetCpuNumThreads(std::max(FLAGS_th, 1));
-            input_shape["input"] = DimsVector({1, 3, 32, 256});
-            instance->Reshape(input_shape);
 
             //get blob
             BlobMap input_blob_map;
