@@ -1,0 +1,178 @@
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// specific language governing permissions and limitations under the License.
+
+#if TNN_ARM82
+#ifdef __aarch64__
+
+#include "tnn/device/arm/acc/compute/asm_func_name.S"
+
+.text
+.align 5
+
+asm_function ConvDw3x3Int8SdotSlideW
+//void ConvDw3x3Int8SdotSlideW(int8_t *dst_z,
+//                        const int8_t *src,
+//                        const int8_t* weight_z,
+//                        const int32_t* bias_z,
+//                        const float* scale_z,
+//                        long src_y_step,
+//                        long dst_depth,
+//                        long width)
+//x0(dst_z),
+//x1(src),
+//x2(weight_z),
+//x3(bias_z),
+//x4(scale_z),
+//x5(src_y_step),
+//x6(dst_depth),
+//x7(width)
+
+.macro TRANSPOSE_4X16_S8 r0 r1 r2 r3
+/* r0: w0c0,w0c1,w0c2,w0c3,w0c4,w0c5,w0c6,w0c7 | w1c0,w1c1,w1c2,w1c3,w1c4,w1c5,w1c6,w1c7 */
+/* r1: w1c0,w1c1,w1c2,w1c3,w1c4,w1c5,w1c6,w1c7 | w2c0,w2c1,w2c2,w2c3,w2c4,w2c5,w2c6,w2c7 */
+/* r2: w2c0,w2c1,w2c2,w2c3,w2c4,w2c5,w2c6,w2c7 | w3c0,w3c1,w3c2,w3c3,w3c4,w3c5,w3c6,w3c7 */
+/* r3: any register, weight in this pos = 0 */
+    zip1 v24.16b, \r0, \r1
+    zip2 v25.16b, \r0, \r1
+    zip1 v26.16b, \r2, \r3
+    zip2 v27.16b, \r2, \r3
+    /* w0c0,w1c0,w2c0,0,w0c1,w1c1,w2c1,0 | w0c2,w1c2,w2c2,0,w0c3,w1c3,w2c3,0 */
+    zip1 v28.8h, v24.8h, v26.8h
+    /* w0c4,w1c4,w2c4,0,w0c5,w1c5,w2c5,0 | w0c6,w1c6,w2c6,0,w0c7,w1c7,w2c7,0 */
+    zip2 v29.8h, v24.8h, v26.8h
+    /* w1c0,w2c0,w3c0,0,w1c1,w2c1,w3c1,0 | w1c2,w2c2,w3c2,0,w1c3,w2c3,w3c3,0 */
+    zip1 v30.8h, v25.8h, v27.8h
+    /* w1c4,w2c4,w3c4,0,w1c5,w2c5,w3c5,0 | w1c6,w2c6,w3c6,0,w1c7,w2c7,w3c7,0 */
+    zip2 v31.8h, v25.8h, v27.8h
+.endm
+
+cmp x7, #0
+ble End
+
+sub sp, sp, #128
+st1 {v8.4s, v9.4s, v10.4s, v11.4s}, [sp], #64
+st1 {v12.4s, v13.4s, v14.4s, v15.4s}, [sp], #64
+
+// weight
+// c0 k0k1k2-, c1 k0k1k2-, c2 k0k1k2-, c3 k0k1k2-
+// c4 k0k1k2-, c5 k0k1k2-, c6 k0k1k2-, c7 k0k1k2-
+ldr q0, [x2]
+ldr q1, [x2, #16]
+ldr q2, [x2, #32]
+ldr q3, [x2, #48]
+ldr q4, [x2, #64]
+ldr q5, [x2, #80]
+
+// bias
+ldr q6, [x3]
+ldr q7, [x3, #16]
+
+// scale
+ldr q8, [x4]
+ldr q9, [x4, #16]
+
+LoopDw:
+    cmp x7, #1
+    ble LoopDwEnd
+
+    sub x7, x7, #2
+
+    mov x9, x1
+    add x10, x1, x5
+    add x11, x1, x5, lsl#1
+    ld1 {v14.d}[0], [x9], x6
+    ld1 {v14.d}[1], [x9], x6
+    ld1 {v16.d}[0], [x9], x6
+    ld1 {v16.d}[1], [x9]
+    ld1 {v17.d}[0], [x10], x6
+    ld1 {v17.d}[1], [x10], x6
+    ld1 {v19.d}[0], [x10], x6
+    ld1 {v19.d}[1], [x10]
+    ld1 {v20.d}[0], [x11], x6
+    ld1 {v20.d}[1], [x11], x6
+    ld1 {v22.d}[0], [x11], x6
+    ld1 {v22.d}[1], [x11]
+
+    mov v10.16b, v6.16b
+    mov v11.16b, v7.16b
+    mov v12.16b, v6.16b
+    mov v13.16b, v7.16b
+    eor v23.16b, v23.16b, v23.16b
+
+    ins v15.d[0], v14.d[1]
+    ins v15.d[1], v16.d[0]
+    ins v18.d[0], v17.d[1]
+    ins v18.d[1], v19.d[0]
+    ins v21.d[0], v20.d[1]
+    ins v21.d[1], v22.d[0]
+
+    TRANSPOSE_4X16_S8 v14.16b, v15.16b, v16.16b, v23.16b
+    sdot v10.4s, v28.16b, v0.16b
+    sdot v11.4s, v29.16b, v1.16b
+    sdot v12.4s, v30.16b, v0.16b
+    sdot v13.4s, v31.16b, v1.16b
+    TRANSPOSE_4X16_S8 v17.16b, v18.16b, v19.16b, v23.16b
+    sdot v10.4s, v28.16b, v2.16b
+    sdot v11.4s, v29.16b, v3.16b
+    sdot v12.4s, v30.16b, v2.16b
+    sdot v13.4s, v31.16b, v3.16b
+    TRANSPOSE_4X16_S8 v20.16b, v21.16b, v22.16b, v23.16b
+    sdot v10.4s, v28.16b, v4.16b
+    sdot v11.4s, v29.16b, v5.16b
+    sdot v12.4s, v30.16b, v4.16b
+    sdot v13.4s, v31.16b, v5.16b
+
+    scvtf v10.4s, v10.4s
+    scvtf v11.4s, v11.4s
+    scvtf v12.4s, v12.4s
+    scvtf v13.4s, v13.4s
+
+    fmul v10.4s, v10.4s, v8.4s
+    fmul v11.4s, v11.4s, v9.4s
+    fmul v12.4s, v12.4s, v8.4s
+    fmul v13.4s, v13.4s, v9.4s
+
+    fcvtas v10.4s, v10.4s
+    fcvtas v11.4s, v11.4s
+    fcvtas v12.4s, v12.4s
+    fcvtas v13.4s, v13.4s
+
+    sqxtn  v10.4h, v10.4s
+    sqxtn  v12.4h, v12.4s
+    sqxtn2 v10.8h, v11.4s
+    sqxtn2 v12.8h, v13.4s
+
+    sqxtn v10.8b, v10.8h
+    sqxtn v12.8b, v12.8h
+
+    st1 {v10.8b}, [x0], x6
+    st1 {v12.8b}, [x0], x6
+
+    // src += 2 * dst_depth
+    add x1, x1, x6, lsl#1
+
+    b LoopDw
+
+LoopDwEnd:
+
+sub sp, sp, #128
+ld1 {v8.4s, v9.4s, v10.4s, v11.4s}, [sp], #64
+ld1 {v12.4s, v13.4s, v14.4s, v15.4s}, [sp], #64
+
+End:
+
+ret
+
+#endif
+#endif
