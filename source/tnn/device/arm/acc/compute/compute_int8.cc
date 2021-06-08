@@ -408,27 +408,33 @@ void Int8ToFloat(float* dst, const int8_t* src, const float* scale, long batch, 
     for (long n = 0; n < batch; n++) {
         float* dst_c        = dst + n * c_4 * hw;
         const int8_t* src_c = src + n * c_4 * hw;
-        OMP_PARALLEL_FOR_GUIDED_
-        for (long cnt = 0; cnt < hw; cnt++) {
-            long c = 0;
+
+        long c = 0;
 #ifdef TNN_USE_NEON
-            for (; c < channel - 4; c += 8) {
-                float32x4_t scale_neon0 = vld1q_f32(scale + c);
-                float32x4_t scale_neon1 = vld1q_f32(scale + c + 4);
-                int8x8_t val            = vld1_s8(src_c + cnt * c_4 + c);
+        for (; c < channel - 4; c += 8) {
+            auto dst_c_0 = dst_c + c * hw;
+            auto dst_c_1 = dst_c_0 + 4 * hw;
+            auto src_c_0 = src_c + c;
+
+            float32x4_t scale_neon0 = vld1q_f32(scale + c);
+            float32x4_t scale_neon1 = vld1q_f32(scale + c + 4);
+
+            for (long cnt = 0; cnt < hw; cnt++) {
+                int8x8_t val            = vld1_s8(src_c_0 + cnt * c_4);
                 int16x8_t val_s16       = vmovl_s8(val);
                 float32x4_t f32_0       = vcvtq_f32_s32(vmovl_s16(vget_low_s16(val_s16)));
                 float32x4_t f32_1       = vcvtq_f32_s32(VMOVL_HIGH_S16_T(val_s16));
                 f32_0                   = vmulq_f32(f32_0, scale_neon0);
                 f32_1                   = vmulq_f32(f32_1, scale_neon1);
-                vst1q_f32(dst_c + cnt * 4 + c * hw, f32_0);
-                vst1q_f32(dst_c + cnt * 4 + (c + 4) * hw, f32_1);
+                vst1q_f32(dst_c_0 + cnt * 4, f32_0);
+                vst1q_f32(dst_c_1 + cnt * 4, f32_1);
             }
+        }
 #endif
-            for (; c < channel; c++) {
-                // nchw4 to nhwc4
-                long ci                           = c % 4;
-                long co                           = c / 4;
+        for (; c < channel; c++) {
+            long ci = c % 4;
+            long co = c / 4;
+            for (long cnt = 0; cnt < hw; cnt++) {
                 dst_c[co * hw * 4 + cnt * 4 + ci] = static_cast<float>(src_c[cnt * c_4 + c]) * scale[c];
             }
         }
@@ -444,27 +450,30 @@ void FloatToInt8(int8_t* dst, const float* src, const float* scale, long batch, 
     for (long n = 0; n < batch; n++) {
         int8_t* dst_c      = dst + n * c_4 * hw;
         const float* src_c = src + n * c_4 * hw;
-        OMP_PARALLEL_FOR_GUIDED_
-        for (long cnt = 0; cnt < hw; cnt++) {
-            // nhwc4 to nchw4
-            long idx = 0;
-#ifdef TNN_USE_NEON
-            idx = channel - channel % 8;
 
-            for (long c = 0; c < idx; c += 8) {
-                float32x4_t scale_neon0 = vld1q_f32(scale + c);
-                float32x4_t scale_neon1 = vld1q_f32(scale + c + 4);
-                float32x4_t val0        = vmulq_f32(vld1q_f32(src_c + c * hw + cnt * 4), scale_neon0);
-                float32x4_t val1        = vmulq_f32(vld1q_f32(src_c + (c + 4) * hw + cnt * 4), scale_neon1);
-                int16x4_t s16_0         = vqmovn_s32(VCVTAQ_S32_F32(val0));
-                int16x8_t s16           = VQMOVN_HIGH_S32_T(s16_0, VCVTAQ_S32_F32(val1));
-                vst1_s8(dst_c + cnt * c_4 + c, vqmovn_s16(s16));
+        long c = 0;
+#ifdef TNN_USE_NEON
+        for (; c < channel - 4; c += 8) {
+            float32x4_t scale_neon0 = vld1q_f32(scale + c);
+            float32x4_t scale_neon1 = vld1q_f32(scale + c + 4);
+
+            auto dst_c_0 = dst_c + c;
+            auto src_c_0 = src_c + c * hw;
+            auto src_c_1 = src_c_0 + 4 * hw;
+            for (long cnt = 0; cnt < hw; cnt++) {
+                float32x4_t val0 = vmulq_f32(vld1q_f32(src_c_0 + cnt * 4), scale_neon0);
+                float32x4_t val1 = vmulq_f32(vld1q_f32(src_c_1 + cnt * 4), scale_neon1);
+                int16x4_t s16_0  = vqmovn_s32(VCVTAQ_S32_F32(val0));
+                int16x8_t s16    = VQMOVN_HIGH_S32_T(s16_0, VCVTAQ_S32_F32(val1));
+                vst1_s8(dst_c_0 + cnt * c_4, vqmovn_s16(s16));
             }
+        }
 #endif
-            for (; idx < channel; idx++) {
-                long ci                = idx % 4;
-                long co                = idx / 4;
-                dst_c[cnt * c_4 + idx] = float2int8(src_c[co * hw * 4 + cnt * 4 + ci] * scale[idx]);
+        for (; c < channel; c++) {
+            long ci = c % 4;
+            long co = c / 4;
+            for (long cnt = 0; cnt < hw; cnt++) {
+                dst_c[cnt * c_4 + c] = float2int8(src_c[co * hw * 4 + cnt * 4 + ci] * scale[c]);
             }
         }
     }
@@ -706,52 +715,14 @@ convdw 3x3 int8 func
 */
 #ifdef __aarch64__
 
-void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long src_y_step,
-                           long src_w_step, long dst_depth, const float* scale_z, long dx, long dc) {
-    auto dst_x       = dst + dx * dst_depth + dc;
-    const auto src_z = src + dx * src_w_step + dc;
-    int32x4_t acc[4][2];
-    int16x8_t a[6], b[3];
-    acc[0][0] = vld1q_s32(bias_z + dc);
-    acc[0][1] = vld1q_s32(bias_z + dc + 4);
-    acc[1][0] = acc[0][0];
-    acc[1][1] = acc[0][1];
-    acc[2][0] = acc[0][0];
-    acc[2][1] = acc[0][1];
-    acc[3][0] = acc[0][0];
-    acc[3][1] = acc[0][1];
-
-    for (long fy = 0; fy < 3; ++fy) {
-        const auto src_y    = src_z + fy * src_y_step;
-        const auto weight_y = weight + fy * 3 * dst_depth + dc;
-        // unroll loops
-        a[0] = vmovl_s8(vld1_s8(src_y + 0 * dst_depth));
-        b[0] = vmovl_s8(vld1_s8(weight_y + 0 * dst_depth));
-        a[1] = vmovl_s8(vld1_s8(src_y + 1 * dst_depth));
-        b[1] = vmovl_s8(vld1_s8(weight_y + 1 * dst_depth));
-        a[2] = vmovl_s8(vld1_s8(src_y + 2 * dst_depth));
-        b[2] = vmovl_s8(vld1_s8(weight_y + 2 * dst_depth));
-        a[3] = vmovl_s8(vld1_s8(src_y + 3 * dst_depth));
-        a[4] = vmovl_s8(vld1_s8(src_y + 4 * dst_depth));
-        a[5] = vmovl_s8(vld1_s8(src_y + 5 * dst_depth));
-        for (long fx = 0; fx < 3; fx++) {
-            acc[0][0] = vmlal_s16(acc[0][0], vget_low_s16(a[fx + 0]), vget_low_s16(b[fx]));
-            acc[0][1] = vmlal_s16(acc[0][1], vget_high_s16(a[fx + 0]), vget_high_s16(b[fx]));
-            acc[1][0] = vmlal_s16(acc[1][0], vget_low_s16(a[fx + 1]), vget_low_s16(b[fx]));
-            acc[1][1] = vmlal_s16(acc[1][1], vget_high_s16(a[fx + 1]), vget_high_s16(b[fx]));
-            acc[2][0] = vmlal_s16(acc[2][0], vget_low_s16(a[fx + 2]), vget_low_s16(b[fx]));
-            acc[2][1] = vmlal_s16(acc[2][1], vget_high_s16(a[fx + 2]), vget_high_s16(b[fx]));
-            acc[3][0] = vmlal_s16(acc[3][0], vget_low_s16(a[fx + 3]), vget_low_s16(b[fx]));
-            acc[3][1] = vmlal_s16(acc[3][1], vget_high_s16(a[fx + 3]), vget_high_s16(b[fx]));
-        }
-    }
-    float32x4_t scale0 = vld1q_f32(scale_z + dc);
-    float32x4_t scale1 = vld1q_f32(scale_z + dc + 4);
-    for (long ww = 0; ww < 4; ww++) {
-        int8x8_t acc_s8 = Float4x2ScaleTos8(vcvtq_f32_s32(acc[ww][0]), vcvtq_f32_s32(acc[ww][1]), scale0, scale1);
-        vst1_s8(dst_x + ww * dst_depth, acc_s8);
-    }
+#ifdef __cplusplus
+extern "C" {
+#endif
+void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, 
+                         const float* scale_z, long src_y_step, long dst_depth, long width);
+#ifdef __cplusplus
 }
+#endif
 
 #else  // __aarch64__
 
@@ -901,6 +872,20 @@ void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const i
     long dx = 0;
     // todo:3x8 for arm v7 16regs
     // stride == 1, fully use arm registers
+#ifdef __aarch64__
+    if (src_w_step == dst_depth) {
+        auto width_align4 = width / 4 * 4;
+        long dc = 0;
+        for (; dc < dst_depth - 7; dc += 8) {
+            DepthwiseI8K3S1Kernel(dst + dc, src + dc, weight + dc, bias_z + dc, scale_z + dc, dilate_y_step, dst_depth, width_align4);
+        }
+        if (dc < dst_depth) {
+            dc = dst_depth - 8;
+            DepthwiseI8K3S1Kernel(dst + dc, src + dc, weight + dc, bias_z + dc, scale_z + dc, dilate_y_step, dst_depth, width_align4);
+        }
+        dx = width_align4;
+    }
+#else
     if (src_w_step == dst_depth) {
         for (dx = 0; dx < width - 3; dx += 4) {
             long dc = 0;
@@ -914,6 +899,7 @@ void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const i
             }
         }
     }
+#endif
 
     // general k3 process, calc left dx
     for (; dx < width; dx++) {
