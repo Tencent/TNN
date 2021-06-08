@@ -24,7 +24,7 @@ bool TileTRTPluginLayerBuilder::supportsFormatCombination(
 }
 
 Status TileTRTPluginLayerBuilder::Reshape() {
-    return TNN_OK;
+    return m_layer->Reshape();
 }
 
 const char* TileTRTPluginLayerBuilder::getPluginType() const {
@@ -45,9 +45,10 @@ DimsExprs TileTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfe
     DimsExprs output;
     auto *layer_param = dynamic_cast<TileLayerParam *>(param_);
     auto reps = layer_param->reps;
-    auto input_dims = input_blobs_[0]->GetBlobDesc().dims;
-    output.nbDims = std::max(reps.size(), input_dims.size());
-    int index_i = input_dims.size()-1, index_o = output.nbDims-1, index_r = reps.size()-1;
+    auto input_dims = inputs[0].nbDims;
+    int reps_size = reps.size();
+    output.nbDims = std::max(reps_size, inputs[0].nbDims);
+    int index_i = inputs[0].nbDims-1, index_o = output.nbDims-1, index_r = reps_size-1;
     for (; index_i>=0 && index_r>=0; index_i--, index_o--, index_r--) {
         auto rep = exprBuilder.constant(reps[index_r]);
         output.d[index_o] = exprBuilder.operation(DimensionOperation::kPROD, *inputs[0].d[index_i], *rep);
