@@ -66,17 +66,17 @@ TNN_NS::Status TFLiteGatherConverter::exec(TNN_NS::NetStructure& net_structure, 
         param->data_in_resource = false;
     }
     const auto& indices_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
-    const auto& indices_data = tf_lite_model_buffer[indices_tensor->buffer]->data;
+    const auto& indices_data   = tf_lite_model_buffer[indices_tensor->buffer]->data;
     if (!indices_data.empty()) {
         auto indices_dims = input_tensor->shape;
         if (indices_dims.size() != 2) {
             LOGE("TNN TFLite Converter only support Gather's input dims size 2\n");
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
-        auto count = TNN_NS::DimsVectorUtils::Count(indices_dims);
-        TNN_NS::RawBuffer indices_raw_buffer = TNN_NS::RawBuffer(count * sizeof(float ), indices_dims);
-        indices_raw_buffer.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
-        memcpy(indices_raw_buffer.force_to<float*>(), indices_data.data(), count*sizeof(float));
+        auto count                           = TNN_NS::DimsVectorUtils::Count(indices_dims);
+        TNN_NS::RawBuffer indices_raw_buffer = TNN_NS::RawBuffer(count * sizeof(int32_t), indices_dims);
+        indices_raw_buffer.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        memcpy(indices_raw_buffer.force_to<float*>(), indices_data.data(), count * sizeof(int32_t));
         resource->indices = indices_raw_buffer;
         cur_layer->inputs.erase(cur_layer->inputs.begin() + 1);
     } else {
