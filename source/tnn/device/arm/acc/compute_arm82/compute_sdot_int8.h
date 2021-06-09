@@ -28,6 +28,7 @@ void GEMM_SDOT_INT8_8X4(int8_t* dst, const int8_t* src, const int8_t* weight, lo
                        const int8_t* relu6_max);
 
 void PackSDOTINT8Weight(const int8_t *src, int8_t *dst, int oc, int ic, int kh, int kw);
+void PackSDOTINT8WeightGemv(const int8_t *src, int8_t *dst, const int oc, const int ic, const int hw);
 
 #ifdef TNN_ARM82_A64
 #ifdef __cplusplus
@@ -45,6 +46,9 @@ void GemmInt8SdotUnit8x4(int8_t* dst, const int8_t* src, const int8_t* weight,
                         const int32_t* bias, const float* scale,
                         long relu, const int8_t* add_input, 
                         const float* add_scale, const int8_t* relu6_max);
+
+void GemvInt8Sdot(int8_t* dst, const int8_t* src, const int8_t* weight,
+                  const int32_t* bias, const float* scale, long ic_r4, long oc_r4);
 
 #ifdef __cplusplus
 }

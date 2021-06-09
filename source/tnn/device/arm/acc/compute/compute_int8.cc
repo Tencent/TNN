@@ -528,28 +528,27 @@ inline int16x8x2_t Load16x8x2(const int8_t* src) {
 /*
 gemm int8 func, used in conv int8 common(img2col + gemm)
 */
-void GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, const float* scale, long ic_r8,
+void GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, const float* scale, long ic_r4,
               long oc_r4) {
 #ifdef TNN_USE_NEON
-    int8x8_t s8zero = vdup_n_s8(0);
     OMP_PARALLEL_FOR_
     for (long dc = 0; dc < oc_r4; dc += 4) {
         int32x4_t acc0 = vdupq_n_s32(0);
         int32x4_t acc1 = vdupq_n_s32(0);
         int32x4_t acc2 = vdupq_n_s32(0);
         int32x4_t acc3 = vdupq_n_s32(0);
-        auto weight_o  = weight + dc * ic_r8;
+        auto weight_o  = weight + dc * ic_r4;
         long c         = 0;
-        for (; c < ic_r8 - 8; c += 16) {
+        for (; c < ic_r4 - 15; c += 16) {
             int16x8x2_t a0 = Load16x8x2(src + c);
-            int16x8x2_t b0 = Load16x8x2(weight_o + 0 * ic_r8 + c);
-            __builtin_prefetch(weight_o + 0 * ic_r8 + c + 256);
-            int16x8x2_t b1 = Load16x8x2(weight_o + 1 * ic_r8 + c);
-            __builtin_prefetch(weight_o + 1 * ic_r8 + c + 256);
-            int16x8x2_t b2 = Load16x8x2(weight_o + 2 * ic_r8 + c);
-            __builtin_prefetch(weight_o + 2 * ic_r8 + c + 256);
-            int16x8x2_t b3 = Load16x8x2(weight_o + 3 * ic_r8 + c);
-            __builtin_prefetch(weight_o + 3 * ic_r8 + c + 256);
+            int16x8x2_t b0 = Load16x8x2(weight_o + 0 * ic_r4 + c);
+            __builtin_prefetch(weight_o + 0 * ic_r4 + c + 256);
+            int16x8x2_t b1 = Load16x8x2(weight_o + 1 * ic_r4 + c);
+            __builtin_prefetch(weight_o + 1 * ic_r4 + c + 256);
+            int16x8x2_t b2 = Load16x8x2(weight_o + 2 * ic_r4 + c);
+            __builtin_prefetch(weight_o + 2 * ic_r4 + c + 256);
+            int16x8x2_t b3 = Load16x8x2(weight_o + 3 * ic_r4 + c);
+            __builtin_prefetch(weight_o + 3 * ic_r4 + c + 256);
             acc0 = vmlal_s16(acc0, vget_low_s16(a0.val[0]), vget_low_s16(b0.val[0]));
             acc1 = vmlal_s16(acc1, vget_low_s16(a0.val[0]), vget_low_s16(b1.val[0]));
             acc2 = vmlal_s16(acc2, vget_low_s16(a0.val[0]), vget_low_s16(b2.val[0]));
@@ -571,12 +570,12 @@ void GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_
             acc3 = vmlal_s16(acc3, vget_high_s16(a0.val[1]), vget_high_s16(b3.val[1]));
         }
 
-        for (; c < ic_r8; c += 8) {
+        for (; c < ic_r4 - 7; c += 8) {
             int16x8_t a  = vmovl_s8(vld1_s8(src + c));
-            int16x8_t b0 = vmovl_s8(vld1_s8(weight_o + 0 * ic_r8 + c));
-            int16x8_t b1 = vmovl_s8(vld1_s8(weight_o + 1 * ic_r8 + c));
-            int16x8_t b2 = vmovl_s8(vld1_s8(weight_o + 2 * ic_r8 + c));
-            int16x8_t b3 = vmovl_s8(vld1_s8(weight_o + 3 * ic_r8 + c));
+            int16x8_t b0 = vmovl_s8(vld1_s8(weight_o + 0 * ic_r4 + c));
+            int16x8_t b1 = vmovl_s8(vld1_s8(weight_o + 1 * ic_r4 + c));
+            int16x8_t b2 = vmovl_s8(vld1_s8(weight_o + 2 * ic_r4 + c));
+            int16x8_t b3 = vmovl_s8(vld1_s8(weight_o + 3 * ic_r4 + c));
             acc0         = vmlal_s16(acc0, vget_low_s16(a), vget_low_s16(b0));
             acc1         = vmlal_s16(acc1, vget_low_s16(a), vget_low_s16(b1));
             acc2         = vmlal_s16(acc2, vget_low_s16(a), vget_low_s16(b2));
@@ -585,6 +584,28 @@ void GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_
             acc1         = vmlal_s16(acc1, vget_high_s16(a), vget_high_s16(b1));
             acc2         = vmlal_s16(acc2, vget_high_s16(a), vget_high_s16(b2));
             acc3         = vmlal_s16(acc3, vget_high_s16(a), vget_high_s16(b3));
+        }
+
+        for (; c < ic_r4; c += 4) {
+            int32x2_t a_i8x4;
+            int32x2_t b0_i8x4;
+            int32x2_t b1_i8x4;
+            int32x2_t b2_i8x4;
+            int32x2_t b3_i8x4;
+            a_i8x4       = vld1_lane_s32((int32_t*)(src + c), a_i8x4, 0);
+            b0_i8x4      = vld1_lane_s32((int32_t*)(weight_o + 0 * ic_r4 + c), b0_i8x4, 0);
+            b1_i8x4      = vld1_lane_s32((int32_t*)(weight_o + 1 * ic_r4 + c), b1_i8x4, 0);
+            b2_i8x4      = vld1_lane_s32((int32_t*)(weight_o + 2 * ic_r4 + c), b2_i8x4, 0);
+            b3_i8x4      = vld1_lane_s32((int32_t*)(weight_o + 3 * ic_r4 + c), b3_i8x4, 0);
+            int16x8_t a  = vmovl_s8(vreinterpret_s8_s32(a_i8x4));
+            int16x8_t b0 = vmovl_s8(vreinterpret_s8_s32(b0_i8x4));
+            int16x8_t b1 = vmovl_s8(vreinterpret_s8_s32(b1_i8x4));
+            int16x8_t b2 = vmovl_s8(vreinterpret_s8_s32(b2_i8x4));
+            int16x8_t b3 = vmovl_s8(vreinterpret_s8_s32(b3_i8x4));
+            acc0         = vmlal_s16(acc0, vget_low_s16(a), vget_low_s16(b0));
+            acc1         = vmlal_s16(acc1, vget_low_s16(a), vget_low_s16(b1));
+            acc2         = vmlal_s16(acc2, vget_low_s16(a), vget_low_s16(b2));
+            acc3         = vmlal_s16(acc3, vget_low_s16(a), vget_low_s16(b3));
         }
         acc0                  = VPADDQ_S32(acc0, acc1);
         acc2                  = VPADDQ_S32(acc2, acc3);
@@ -596,8 +617,8 @@ void GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_
 #else
     for (long dc = 0; dc < oc_r4; dc++) {
         int32_t acc = bias[dc];
-        for (long c = 0; c < ic_r8; c++) {
-            acc += src[c] * weight[dc * ic_r8 + c];
+        for (long c = 0; c < ic_r4; c++) {
+            acc += src[c] * weight[dc * ic_r4 + c];
         }
         dst[dc] = float2int8(acc * scale[dc]);
     }

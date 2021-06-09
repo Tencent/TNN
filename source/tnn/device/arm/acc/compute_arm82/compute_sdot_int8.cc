@@ -549,4 +549,70 @@ void PackSDOTINT8Weight(const int8_t *src, int8_t *dst, int oc, int ic, int kh, 
     }
 }
 
+void PackSDOTINT8WeightGemv(const int8_t *src, int8_t *dst, const int oc, const int ic, const int hw) {
+    auto ic_r4       = ROUND_UP(ic, 4);
+    auto oc_r4       = ROUND_UP(oc, 4);
+    auto dst_step    = ic * hw;
+    auto dst_step_r4 = ic_r4 * hw;
+    int o = 0;
+    for (; o + 15 < oc; o += 16) {
+        auto dst_o = dst + o * dst_step_r4;
+        auto src_o = src + o * dst_step;
+        for (int i = 0; i < hw; i++) {
+            auto dst_i = dst_o + i * ic_r4 * 16;
+            auto src_i = src_o + i;
+            int c = 0;
+            for (; c + 3 < ic; c += 4) {
+                auto dst_c = dst_i + c * 16;
+                auto src_c = src_i + c * hw;
+                for (int m = 0; m < 16; m++) {
+                    for (int n = 0; n < 4; n++) {
+                        dst_c[m * 4 + n] = src_c[m * dst_step + n * hw];
+                    }
+                }
+            }
+            if (c < ic) {
+                auto dst_c = dst_i + c * 16;
+                auto src_c = src_i + c * hw;
+                for (int m = 0; m < 16; m++) {
+                    for (int n = 0; n < ic - c; n++) {
+                        dst_c[m * 4 + n] = src_c[m * dst_step + n * hw];
+                    }
+                }
+            }
+        }
+    }
+    for (; o < oc_r4; o += 4) {
+        auto dst_o = dst + o * dst_step_r4;
+        auto src_o = src + o * dst_step;
+        for (int i = 0; i < hw; i++) {
+            auto dst_i = dst_o + i * ic_r4 * 4;
+            auto src_i = src_o + i;
+            int c = 0;
+            for (; c + 3 < ic; c += 4) {
+                auto dst_c = dst_i + c * 4;
+                auto src_c = src_i + c * hw;
+                for (int m = 0; m < 4; m++) {
+                    if (m + o < oc) {
+                        for (int n = 0; n < 4; n++) {
+                            dst_c[m * 4 + n] = src_c[m * dst_step + n * hw];
+                        }
+                    }
+                }
+            }
+            if (c < ic) {
+                auto dst_c = dst_i + c * 4;
+                auto src_c = src_i + c * hw;
+                for (int m = 0; m < 4; m++) {
+                    if (m + o < oc) {
+                        for (int n = 0; n < ic - c; n++) {
+                            dst_c[m * 4 + n] = src_c[m * dst_step + n * hw];
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 }   // namespace TNN_NS
