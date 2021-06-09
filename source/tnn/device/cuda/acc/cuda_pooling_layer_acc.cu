@@ -55,11 +55,6 @@ __global__ void adaptive_pooling_kernel(const float* input, float* output, int c
     }
 }
 
-static bool IsGlobalPooling(PoolingLayerParam *param, const std::vector<Blob *> &inputs,
-    const std::vector<Blob *> &outputs) {
-    return param->kernels[1] == 0 && param->kernels[0] == 0;
-}
-
 CudaPoolingLayerAcc::~CudaPoolingLayerAcc() {
     cudnnDestroy(this->m_cudnn_handle);
     cudnnDestroyPoolingDescriptor(this->m_pooling_desc);
@@ -89,30 +84,13 @@ Status CudaPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     cudnnCreateTensorDescriptor(&m_output_desc);
     auto input_dims = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
-    is_global = IsGlobalPooling(params, inputs, outputs);
     cudnnSetPooling2dDescriptor(this->m_pooling_desc, this->m_pooling_mode, CUDNN_PROPAGATE_NAN,
         params->kernels[1], params->kernels[0], params->pads[2], params->pads[0], params->strides[1],
         params->strides[0]);
-    // cudnnSetTensor4dDescriptor(this->m_input_desc, this->m_tensor_format, this->m_data_type,
-    //     input_dims[0], input_dims[1], input_dims[2], input_dims[3]);
-    // cudnnSetTensor4dDescriptor(this->m_output_desc, this->m_tensor_format, this->m_data_type,
-    //     output_dims[0], output_dims[1], output_dims[2], output_dims[3]);
     return TNN_OK;
 }
 
 Status CudaPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto params = dynamic_cast<PoolingLayerParam *>(param_);
-    auto input_dims = inputs[0]->GetBlobDesc().dims;
-    auto output_dims = outputs[0]->GetBlobDesc().dims;
-    if (is_global) {
-        cudnnSetPooling2dDescriptor(this->m_pooling_desc, this->m_pooling_mode, CUDNN_PROPAGATE_NAN,
-            input_dims[2], input_dims[3], params->pads[2], params->pads[0], params->strides[1],
-            params->strides[0]);
-        cudnnSetTensor4dDescriptor(this->m_input_desc, this->m_tensor_format, this->m_data_type,
-            input_dims[0], input_dims[1], input_dims[2], input_dims[3]);
-        cudnnSetTensor4dDescriptor(this->m_output_desc, this->m_tensor_format, this->m_data_type,
-            output_dims[0], output_dims[1], output_dims[2], output_dims[3]);
-    }
     return TNN_OK;
 }
 
@@ -127,18 +105,19 @@ Status CudaPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     float* input_data = static_cast<float*>(input_blob->GetHandle().base);
     float* output_data = static_cast<float*>(output_blob->GetHandle().base);
 
-    {
     auto input_dims = input_blob->GetBlobDesc().dims;
     auto output_dims = output_blob->GetBlobDesc().dims;
+    if (param->is_global_pool) {
+        cudnnSetPooling2dDescriptor(this->m_pooling_desc, this->m_pooling_mode, CUDNN_PROPAGATE_NAN,
+            input_dims[2], input_dims[3], param->pads[2], param->pads[0], param->strides[1],
+            param->strides[0]);
+    }
     cudnnSetTensor4dDescriptor(this->m_input_desc, this->m_tensor_format, this->m_data_type,
         input_dims[0], input_dims[1], input_dims[2], input_dims[3]);
     cudnnSetTensor4dDescriptor(this->m_output_desc, this->m_tensor_format, this->m_data_type,
         output_dims[0], output_dims[1], output_dims[2], output_dims[3]);
-    }
 
     if (param->is_adaptive_pool) {
-        auto input_dims = input_blob->GetBlobDesc().dims;
-        auto output_dims = output_blob->GetBlobDesc().dims;
         bool is_1d = input_dims.size() == 3;
         int channels = is_1d ? input_dims[0] : input_dims[0] * input_dims[1];
         int input_height = is_1d ? input_dims[1] : input_dims[2];
