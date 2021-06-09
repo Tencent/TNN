@@ -235,12 +235,12 @@ Status ArmConvInt8SdotLayerCommon::DoForward(const std::vector<Blob *> &inputs, 
             auto output_kernel = output_batch + hw_start * oc_r4;
             auto add_input_kernel = add_input_batch ? add_input_batch + hw_start * oc_r4 : nullptr;
 
-            GEMM_SDOT_INT8_8X8(output_kernel, input_kernel, weight_ptr, crs_r4, oc_r4, real_hw_tile, 
-                               bias_ptr, scale_ptr, relu_, add_input_kernel, add_scale_ptr, relu6_max_ptr);
+            GemmInt8SdotUnit8x8(output_kernel, input_kernel, weight_ptr, crs_r4, oc_r4, real_hw_tile,
+                                bias_ptr, scale_ptr, relu_, add_input_kernel, add_scale_ptr, relu6_max_ptr);
 
             if (oc_r4 > oc_r4_align) {
                 auto add_input_tmp = add_input_kernel ? add_input_kernel + oc_r4_align : nullptr;
-                GEMM_SDOT_INT8_8X4(output_kernel + oc_r4_align, input_kernel,
+                GemmInt8SdotUnit8x4(output_kernel + oc_r4_align, input_kernel,
                                    weight_ptr + oc_r4_align * crs_r4,
                                    crs_r4, oc_r4, real_hw_tile,
                                    bias_ptr + oc_r4_align, scale_ptr + oc_r4_align,

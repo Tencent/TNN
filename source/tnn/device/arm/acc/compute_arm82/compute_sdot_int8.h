@@ -17,16 +17,6 @@
 
 namespace TNN_NS {
 
-void GEMM_SDOT_INT8_8X8(int8_t* dst, const int8_t* src, const int8_t* weight, long src_depth,
-                       long dst_depth, long hw, const int32_t* bias, const float* scale,
-                       long relu, const int8_t* add_input, const float* add_scale,
-                       const int8_t* relu6_max);
-
-void GEMM_SDOT_INT8_8X4(int8_t* dst, const int8_t* src, const int8_t* weight, long src_depth,
-                       long dst_depth, long hw, const int32_t* bias, const float* scale,
-                       long relu, const int8_t* add_input, const float* add_scale,
-                       const int8_t* relu6_max);
-
 void PackSDOTINT8Weight(const int8_t *src, int8_t *dst, int oc, int ic, int kh, int kw);
 void PackSDOTINT8WeightGemv(const int8_t *src, int8_t *dst, const int oc, const int ic, const int hw);
 
