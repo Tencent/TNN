@@ -46,20 +46,7 @@ Status MetalTileLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
         metal_params.extend_batch_times = dims_output[0] / dims_input[0];
         metal_params.extend_slice_times = dims_output[1] / dims_input[1];
         metal_params.extend_width_times = dims_output[3] / dims_input[3];
-//        LOGE("metal_params.extend_batch_times=%d\n",metal_params.extend_batch_times);
-//        LOGE("metal_params.extend_slice_times=%d\n",metal_params.extend_slice_times);
-//        LOGE("metal_params.extend_width_times=%d\n",metal_params.extend_width_times);
-//        LOGE("metal_params.output_slice=%d\n",metal_params.output_slice);
-//        LOGE("metal_params.output_width=%d\n",metal_params.output_width);
-//        LOGE("metal_params.output_size=%d\n",metal_params.output_size);
-//        LOGE("metal_params.batch=%d\n",metal_params.batch);
-//        LOGE("metal_params.output_height=%d\n",metal_params.output_height);
-//        LOGE("metal_params.output_channel=%d\n",metal_params.output_channel);
-//        LOGE("metal_params.input_slice=%d\n",metal_params.input_slice);
-//        LOGE("metal_params.input_size=%d\n",metal_params.input_size);
-//        LOGE("metal_params.input_width=%d\n",metal_params.input_width);
-//        LOGE("metal_params.input_height=%d\n",metal_params.input_height);
-//        LOGE("metal_params.input_channel=%d\n",metal_params.input_channel);
+
 
 
         buffer_param_     = [device newBufferWithBytes:(const void *)(&metal_params)

@@ -16,75 +16,7 @@
 #include "tnn/device/metal/acc/metal_common.metal"
 
 using namespace metal;
-/*
-kernel void tile(device ftype4 *in [[buffer(0)]],
-                device ftype4 *out [[buffer(1)]],
-                constant MetalTileParams &params [[buffer(2)]],
-                uint3 gid [[thread_position_in_grid]]) {
-     if (any(gid >= uint3(params.output_size, params.output_channel, params.batch)))
-                        return;
-    int plane_row = params.extend_width_times * params.input_width;
-    int plane = plane_row * params.input_height * params.extend_height_times;
-    int in_plane = params.input_width * params.input_height;
-    //auto z_out = out + (int)gid.z * params.output_slice * params.output_size +
-    //                 (int)gid.y * params.output_size + (int)gid.x;
-    int o_index =  (int)gid.z * params.output_slice * params.output_size +
-                         (int)gid.y /4 * params.output_size  + (int)gid.x;  //not pad has problem
 
-    //auto z_in = in + (int)gid.z / params.extend_batch_times * params.input_slice * params.input_size +
-    //                (int)gid.y / params.extend_slice_times * params.input_size +
-    //                (int)gid.x % plane / plane_row * params.input_width +
-    //                (int)gid.x % plane % params.input_width;
-    //int index = (int)gid.z % params.batch * params.input_slice  * params.input_size +
-    //                                (int)gid.y % params.input_slice *params.input_size +
-    //                                (int)gid.x % (4*plane) / plane * in_plane +
-    //                                (int)gid.x % plane / plane_row * params.input_width +
-    //                                (int)gid.x % plane % params.input_width;
-
-    int offset = (int)gid.z % params.batch * params.input_slice * params.input_size +
-                     (int)gid.y % params.input_channel +
-                     (int)gid.x % plane / plane_row * params.input_width +
-                     (int)gid.x % plane % params.input_width;
-
-    if(params.output_slice == 1)
-    {
-        for(int i=0; i < params.extend_channel_times; i++)
-        {
-            out[o_index][i*params.input_channel] = in[offset][0];
-        }
-    }
-    else
-    {
-        out[o_index][(int)gid.y%4] = in[offset][0];
-    }
-}
-
-*/
-/*
-kernel void tile(const device ftype4 *in [[buffer(0)]],
-                device ftype4 *out [[buffer(1)]],
-                constant MetalTileParams &params [[buffer(2)]],
-                uint3 gid [[thread_position_in_grid]]) {
-     if (any(gid >= uint3(params.output_size, params.output_slice, params.batch)))
-                        return;
-    int plane_row = params.extend_width_times * params.input_width;
-    int plane = plane_row * params.input_height;
-    auto z_out = out + (int)gid.z * params.output_slice * params.output_size +
-                     (int)gid.y * params.output_size + (int)gid.x;
-
-    //auto z_in = in + (int)gid.z / params.extend_batch_times * params.input_slice * params.input_size +
-    //                (int)gid.y / params.extend_slice_times * params.input_size +
-    //                (int)gid.x % plane / plane_row * params.input_width +
-    //                (int)gid.x % plane % params.input_width;
-
-    auto z_in = in + (int)gid.z / params.extend_batch_times * params.input_slice * params.input_size +
-                     (int)gid.y / params.extend_slice_times * params.input_size +
-                     (int)gid.x % plane / plane_row * params.input_width +
-                     (int)gid.x % plane % params.input_width;
-
-    *z_out = *z_in;
-}
-*/
 kernel void tile(const device ftype4 *in [[buffer(0)]],
                 device ftype4 *out [[buffer(1)]],
                 constant MetalTileParams &params [[buffer(2)]],
