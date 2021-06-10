@@ -734,6 +734,27 @@ struct MetalMatMulParams {
     int K;
 };
 
+struct MetalTileParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+    int input_channel;
+
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int output_channel;
+    int batch;
+
+    int extend_width_times;
+    int extend_height_times;
+    int extend_slice_times;
+    int extend_channel_times;
+    int extend_batch_times;
+};
+
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
     do {                                                                                                               \
         metal_params.input_width   = DimsFunctionUtils::GetDim(dims_input, 3);                                         \
