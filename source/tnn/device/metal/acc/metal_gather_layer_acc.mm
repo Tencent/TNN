@@ -17,6 +17,7 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/utils/half_utils.h"
 
 namespace TNN_NS {
 
@@ -100,7 +101,7 @@ Status MetalGatherLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
 #else
         if (data_type == DATA_TYPE_FLOAT) {
             data_cast_type.reset(new uint16_t[data_count], [](uint16_t *p){delete[] p;});
-            if (ConvertFromFloatToHalf(data_cast_type.get(), (float *)input_data, data_count) != 0) {
+            if (ConvertFromFloatToHalf((float *)data_cast_type.get(), (float *)input_data, data_count) != 0) {
                 LOGE("Error: DataType %d not support\n", data_type);
                 return Status(TNNERR_MODEL_ERR, "Convert Data in LayerRerouece from float to half failed!");
             }
