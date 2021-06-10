@@ -45,40 +45,11 @@ Status CudaScatterNDLayerAcc::Init(Context *context, LayerParam *param, LayerRes
         CreateTempBuf(count * sizeof(int));
     }
 
-    auto input_dims = inputs[0]->GetBlobDesc().dims;
-    CreateTempBuf(input_dims.size() * sizeof(int));
-
     return TNN_OK;
 }
 
 Status CudaScatterNDLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto resource = dynamic_cast<ScatterNDLayerResource *>(resource_);
-    DimsVector indices_dims;
-    if (inputs.size() < 3) {
-        indices_dims = resource->indices.GetBufferDims();
-    } else {
-        indices_dims = inputs[1]->GetBlobDesc().dims;
-    }
-
-    auto input_dims = inputs[0]->GetBlobDesc().dims;
-    auto indice_rank = indices_dims.size();
-    auto last_indice_dimension = indices_dims[indice_rank - 1];
-    std::vector<int> element_counts(last_indice_dimension, 0);
-    for (int i = 0; i < last_indice_dimension; ++i) {
-        element_counts[i] = DimsVectorUtils::Count(input_dims, i + 1);
-    }
-
-    if (inputs.size() < 3) {
-        int* indice = resource->indices.force_to<int*>();
-        int count = resource->indices.GetDataCount();
-        cudaMemcpyAsync(tempbufs_[0].ptr, indice, count * sizeof(int), cudaMemcpyHostToDevice, context_->GetStream());
-        cudaMemcpyAsync(tempbufs_[1].ptr, element_counts.data(), last_indice_dimension * sizeof(int),
-            cudaMemcpyHostToDevice, context_->GetStream());
-    } else {
-        cudaMemcpyAsync(tempbufs_[0].ptr, element_counts.data(), last_indice_dimension * sizeof(int),
-            cudaMemcpyHostToDevice, context_->GetStream());
-    }
-
+    this->is_reshaped = false;
     return TNN_OK;
 }
 
@@ -93,8 +64,39 @@ Status CudaScatterNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     int* indice_data = nullptr;
     int* element_counts = nullptr;
 
+    if (inputs.size() < 3 && tempbufs_.size() < 2) {
+        CreateTempBuf(input_dims.size() * sizeof(int));
+    }
+
     auto resource = dynamic_cast<ScatterNDLayerResource *>(resource_);
     DimsVector indices_dims;
+
+    if (!this->is_reshaped) {
+        if (inputs.size() < 3) {
+            indices_dims = resource->indices.GetBufferDims();
+        } else {
+            indices_dims = inputs[1]->GetBlobDesc().dims;
+        }
+        auto indice_rank = indices_dims.size();
+        auto last_indice_dimension = indices_dims[indice_rank - 1];
+        std::vector<int> element_counts_(last_indice_dimension, 0);
+        for (int i = 0; i < last_indice_dimension; ++i) {
+            element_counts_[i] = DimsVectorUtils::Count(input_dims, i + 1);
+        }
+
+        if (inputs.size() < 3) {
+            int* indice = resource->indices.force_to<int*>();
+            int count = resource->indices.GetDataCount();
+            cudaMemcpyAsync(tempbufs_[0].ptr, indice, count * sizeof(int), cudaMemcpyHostToDevice, context_->GetStream());
+            cudaMemcpyAsync(tempbufs_[1].ptr, element_counts_.data(), last_indice_dimension * sizeof(int),
+                cudaMemcpyHostToDevice, context_->GetStream());
+        } else {
+            cudaMemcpyAsync(tempbufs_[0].ptr, element_counts_.data(), last_indice_dimension * sizeof(int),
+                cudaMemcpyHostToDevice, context_->GetStream());
+        }
+        this->is_reshaped = true;
+    }
+
     if (inputs.size() < 3) {
         indices_dims = resource->indices.GetBufferDims();
         indice_data = (int*)tempbufs_[0].ptr;
