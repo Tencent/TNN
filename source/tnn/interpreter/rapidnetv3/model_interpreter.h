@@ -28,7 +28,7 @@ namespace rapidnetv3 {
     public:
         // @brief rapidnet v1 model interpreter load params is proto contents,
         // model path.
-        virtual Status Interpret(std::vector<std::string> params);
+        virtual Status Interpret(std::vector<std::string> &params);
 
         // @brief get model version
         ModelVersion GetModelVersion();
@@ -41,8 +41,8 @@ namespace rapidnetv3 {
         GetLayerInterpreterMap();
 
     protected:
-        virtual Status InterpretProto(std::string content);
-        virtual Status InterpretModel(std::string model_content);
+        virtual Status InterpretProto(std::string &content);
+        virtual Status InterpretModel(std::string &model_content);
         virtual Status InterpretInput(const std::string& inputs_content);
         virtual Status InterpretOutput(const std::string& outputs_content);
         virtual Status InterpretLayer(const std::string& layer_str);
