@@ -161,6 +161,7 @@ struct PoolingLayerParam : public LayerParam {
     std::vector<int> kernel_indexs;
 
     int is_adaptive_pool = 0;
+    int is_global_pool = 0;
     // order [w h d]
     std::vector<int> output_shape;
 
