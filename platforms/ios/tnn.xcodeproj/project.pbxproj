@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		369005C5267314D900412264 /* pad_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 369005C3267314D900412264 /* pad_utils.cc */; };
+		369005C6267314D900412264 /* pad_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 369005C4267314D900412264 /* pad_utils.h */; };
 		4E187CFA267202BF00804FDF /* roialign_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4E187CF0267202BE00804FDF /* roialign_layer_interpreter.cc */; };
 		4E187CFB267202BF00804FDF /* conv_1d_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4E187CF1267202BE00804FDF /* conv_1d_layer_interpreter.cc */; };
 		4E187CFC267202BF00804FDF /* topk_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4E187CF2267202BF00804FDF /* topk_layer_interpreter.cc */; };
@@ -969,6 +971,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		369005C3267314D900412264 /* pad_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pad_utils.cc; sourceTree = "<group>"; };
+		369005C4267314D900412264 /* pad_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pad_utils.h; sourceTree = "<group>"; };
 		4E187CF0267202BE00804FDF /* roialign_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = roialign_layer_interpreter.cc; path = tnn/layer_interpreter/roialign_layer_interpreter.cc; sourceTree = "<group>"; };
 		4E187CF1267202BE00804FDF /* conv_1d_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = conv_1d_layer_interpreter.cc; path = tnn/layer_interpreter/conv_1d_layer_interpreter.cc; sourceTree = "<group>"; };
 		4E187CF2267202BF00804FDF /* topk_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = topk_layer_interpreter.cc; path = tnn/layer_interpreter/topk_layer_interpreter.cc; sourceTree = "<group>"; };
@@ -2076,6 +2080,8 @@
 		9D32F98824557EE7002DCDAB /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				369005C3267314D900412264 /* pad_utils.cc */,
+				369005C4267314D900412264 /* pad_utils.h */,
 				EC78BA1126034506009271A8 /* blob_dump_utils.h */,
 				EC8BDE0E25E3B15F0085CCC2 /* data_flag_utils.cc */,
 				EC8BDE1025E3B15F0085CCC2 /* dims_offset_utils.cc */,
@@ -3345,6 +3351,7 @@
 				9D32FF4824557EED002DCDAB /* ncnn_layer_type.h in Headers */,
 				9D32FF3624557EED002DCDAB /* reduce_op_interpreter.h in Headers */,
 				ECCDCECA25DF536000D7D297 /* compute_int8.h in Headers */,
+				369005C6267314D900412264 /* pad_utils.h in Headers */,
 				9D32FF0724557EED002DCDAB /* model_packer.h in Headers */,
 				EC0BE13725144B5E009BD69A /* detection_post_process_utils.h in Headers */,
 				9DF543AA258B1366006CEC97 /* arm_unary_layer_acc.h in Headers */,
@@ -4022,6 +4029,7 @@
 				9DD1FB7D247CE9BE00800139 /* metal_relu6_layer_acc.metal in Sources */,
 				ECCDCE8D25DF536000D7D297 /* cpu_erf_layer_acc.cc in Sources */,
 				ECCDCEB525DF536000D7D297 /* cpu_unsqueeze_layer_acc.cc in Sources */,
+				369005C5267314D900412264 /* pad_utils.cc in Sources */,
 				E4D05BBC259DCB2E00921502 /* GEMM_FP16_N8.S in Sources */,
 				9D32FCBE24557EEC002DCDAB /* cpu_utils.cc in Sources */,
 				9DD1FB6F247CE9BE00800139 /* metal_acos_layer_acc.mm in Sources */,
