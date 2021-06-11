@@ -21,6 +21,10 @@
 
 namespace TNN_NS {
 
+//@brief create foreignBlob with blob descript only
+ForeignBlob::ForeignBlob(BlobDesc desc): Blob(desc, true) {
+}
+
 //@brief create foreignBlob with blob only
 ForeignBlob::ForeignBlob(Blob* blob): Blob(blob->GetBlobDesc(), blob->GetHandle()) {
     foreign_tensor_ = std::make_shared<ForeignTensor>();

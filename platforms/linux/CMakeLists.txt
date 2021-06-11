@@ -63,6 +63,12 @@ if(TNN_CUDA_ENABLE)
     target_link_libraries(TNN nvinfer nvinfer_plugin cudnn)
 endif()
 
+if (TNN_TNNTORCH_ENABLE)
+    find_package(Torch REQUIRED)
+    message("xxxxx" ${TORCH_LIBRARIES})
+    target_link_libraries(TNN ${TORCH_LIBRARIES})
+endif()
+
 if(TNN_RK_NPU_ENABLE)
     message(STATUS "Build TNN RKNPU")
     target_link_libraries(TNN rknpu_ddk)

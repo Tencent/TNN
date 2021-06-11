@@ -98,6 +98,7 @@ typedef enum {
     NETWORK_TYPE_HUAWEI_NPU = 0x6000,
     NETWORK_TYPE_RK_NPU     = 0x7000,
     NETWORK_TYPE_TENSORRT   = 0x8000,
+    NETWORK_TYPE_TNNTORCH   = 0x9000,
 } NetworkType;
 
 typedef enum {
@@ -131,7 +132,8 @@ typedef enum {
     MODEL_TYPE_SNPE     = 0x3000,
     MODEL_TYPE_HIAI     = 0x4000,
     MODEL_TYPE_ATLAS    = 0x5000,
-    MODEL_TYPE_RKCACHE  = 0x6000
+    MODEL_TYPE_RKCACHE  = 0x6000,
+    MODEL_TYPE_TORCHSCRIPT  = 0x7000,
 } ModelType;
 
 using DimsVector = std::vector<int>;

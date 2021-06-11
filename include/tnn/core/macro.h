@@ -208,6 +208,8 @@
         }                                                                                                         \
     } while (0)
 
+#define RETURN_ON_FAIL(status)  RETURN_ON_NEQ(status, TNN_OK)
+
 #define CHECK_PARAM_NULL(param)                                                   \
     do {                                                                                                         \
         if (!param) {                                                                                        \

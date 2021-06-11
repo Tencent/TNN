@@ -131,6 +131,11 @@ Status CudaDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, BlobDe
     return TNN_OK;
 }
 
+Status CudaDevice::GetCurrentDeviceId(int &device_id) {
+    CUDA_CHECK(cudaGetDevice(&device_id));
+    return TNN_OK;
+}
+
 AbstractLayerAcc* CudaDevice::CreateLayerAcc(LayerType type) {
     auto layer_creator_map = GetLayerCreatorMap();
     if (layer_creator_map.count(type) > 0) {

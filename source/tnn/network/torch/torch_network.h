@@ -1,0 +1,80 @@
+// Copyright 2021 Tencent. All Rights Reserved
+
+#ifndef TNN_SOURCE_NETWORK_TNNTORCH_TNNTORCH_NETWORK_H
+#define TNN_SOURCE_NETWORK_TNNTORCH_TNNTORCH_NETWORK_H
+
+#include <vector>
+
+#include "tnn/core/abstract_network.h"
+#include "tnn/core/default_network.h"
+#include "tnn/core/blob.h"
+#include "tnn/core/blob_manager.h"
+#include "tnn/core/common.h"
+#include "tnn/core/context.h"
+#include "tnn/core/macro.h"
+#include "tnn/interpreter/net_resource.h"
+#include "tnn/interpreter/net_structure.h"
+#include "tnn/layer/base_layer.h"
+
+#include <torch/script.h>
+
+namespace TNN_NS {
+
+class TNNTorchNetwork:public DefaultNetwork {
+public:
+    // @brief virtual default destructor
+    virtual ~TNNTorchNetwork();
+
+    // @brief init network with net cfg and net res.
+    // @param net_cfg
+    // @param net_res
+    virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config,
+                        AbstractModelInterpreter* interpreter,
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
+
+    // @brief deinit release init create resource
+    // virtual Status DeInit();
+
+    // @brief network infer
+    virtual Status Reshape(const InputShapesMap &inputs);
+
+    // @brief get tnn command queue
+    // @param command_queue device command queue for forward
+    // virtual Status GetCommandQueue(void **command_queue);
+
+    // @brief network infer, it will sync to wait result
+    virtual Status Forward();
+
+    // @brief tnn instance network infer, it will not wait
+    virtual Status ForwardAsync(Callback call_back);
+
+    // @brief get all input blobs
+    // @param blobs input blobs name map
+    virtual Status GetAllInputBlobs(BlobMap &blobs);
+
+    // @brief get all output blobs
+    // @param blobs output blobs name map
+    virtual Status GetAllOutputBlobs(BlobMap &blobs);
+
+
+private:
+
+    virtual Status LoadModule(std::istream& in, NetworkConfig &config);
+
+    virtual Status CreateIOBinding(InputShapesMap  min_shape, InputShapesMap max_shape);
+  
+    std::shared_ptr<torch::jit::Module> module_;
+    std::shared_ptr<torch::jit::Graph> graph_;
+
+    std::string forward_func_name_ = "forward";
+
+
+    BlobMap input_blob_map_;
+    BlobMap output_blob_map_;
+
+    std::vector<torch::IValue> in_ivalues_;
+};
+
+}  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_NETWORK_TNNTORCH_TNNTORCH_NETWORK_H

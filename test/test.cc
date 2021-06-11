@@ -23,6 +23,7 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <iostream>
 #include <string>
 
 #include "test/flags.h"
@@ -298,6 +299,8 @@ namespace test {
             } else {
                 config.params.push_back(model_path);
             }
+        } else if (config.model_type == MODEL_TYPE_TORCHSCRIPT) {
+            config.params.push_back(std::string(FLAGS_mp));
         } else {
             config.params.push_back(FLAGS_mp);
         }
@@ -322,7 +325,7 @@ namespace test {
         // use model type instead, may change later for same model type with
         // different network type
         if (config.device_type == DEVICE_CUDA) {
-            config.network_type = NETWORK_TYPE_TENSORRT;
+            config.network_type = ConvertNetworkType(FLAGS_nt);
         } else {
             config.network_type = ConvertNetworkType(FLAGS_nt);
         }
@@ -387,6 +390,7 @@ namespace test {
             void* mat_data = mat->GetData();
             int data_count     = DimsVectorUtils::Count(mat->GetDims());
             auto mat_type = mat->GetMatType();
+            srand (time(NULL));
             if (FLAGS_ip.empty()) {
                 for (int i = 0; i < data_count; i++) {
                     if (mat_type == NCHW_FLOAT) {
