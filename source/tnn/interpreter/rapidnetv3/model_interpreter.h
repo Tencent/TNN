@@ -28,7 +28,7 @@ namespace rapidnetv3 {
     public:
         // @brief rapidnet v1 model interpreter load params is proto contents,
         // model path.
-        virtual Status Interpret(std::vector<std::string> &params);
+        Status Interpret(std::vector<std::string> &params) override;
 
         // @brief get model version
         ModelVersion GetModelVersion();
@@ -41,16 +41,16 @@ namespace rapidnetv3 {
         GetLayerInterpreterMap();
 
     protected:
-        virtual Status InterpretProto(std::string &content);
-        virtual Status InterpretModel(std::string &model_content);
-        virtual Status InterpretInput(const std::string& inputs_content);
-        virtual Status InterpretOutput(const std::string& outputs_content);
-        virtual Status InterpretLayer(const std::string& layer_str);
+        Status InterpretProto(std::string &content) override;
+        Status InterpretModel(std::string &model_content) override;
+        Status InterpretInput(const std::string& inputs_content) override;
+        Status InterpretOutput(const std::string& outputs_content) override;
+        Status InterpretLayer(const std::string& layer_str) override;
         
     protected:
-        virtual std::string Transfer(std::string content);
-        virtual bool IsValidVersionNumber(uint32_t number);
-        virtual std::shared_ptr<TNN_NS::Deserializer> GetDeserializer(std::istream &is);
+        std::string Transfer(std::string content) override;
+        bool IsValidVersionNumber(uint32_t number) override;
+        std::shared_ptr<TNN_NS::Deserializer> GetDeserializer(std::istream &is) override;
 
     protected:
         ModelVersion model_version_;
