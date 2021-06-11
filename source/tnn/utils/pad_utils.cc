@@ -13,6 +13,8 @@
 // specific language governing permissions and limitations under the License.
 #include "tnn/utils/pad_utils.h"
 
+#include <cstring>
+
 #include "tnn/device/arm/acc/Float4.h"
 
 namespace TNN_NS {
