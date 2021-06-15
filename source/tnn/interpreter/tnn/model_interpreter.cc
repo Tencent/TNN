@@ -42,60 +42,57 @@ std::shared_ptr<Deserializer> ModelInterpreter::GetDeserializer(std::istream &is
     return std::make_shared<Deserializer>(is);
 }
 
-int DecodeData(std::string &content, std::string &key) {
-    int data_len          = content.size();
-    int cencrypt_data_len = ((data_len - 1) / 8 + 1) * 8;
+#pragma mark - decode data
 
-    std::shared_ptr<uint8_t> cencrypt_data(new uint8_t[cencrypt_data_len]);
-    std::shared_ptr<uint8_t> cdecrypt_data(new uint8_t[cencrypt_data_len]);
-
-    memcpy((void*)cencrypt_data.get(),content.c_str(),data_len);
-
-    int decrypt_len = TeaDecrypt((const uint8_t *)cencrypt_data.get(), cencrypt_data_len, (const uint8_t *)key.c_str(),
-                                 (uint8_t *)cdecrypt_data.get(), cencrypt_data_len);
-    if (decrypt_len <= 0) {
-        LOGE("Decrypt data fail\n");
-        return TNNERR_INVALID_INPUT;
+#define GYAIDataEncryptKey(key)                                                                      \
+    snprintf(key, sizeof(key), "%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c", 'Z', 'e', 'D', 'A', '3', '2', \
+             '%', 'd', 'k', 'n', '_', 'v', 'a', '4', 'd', 'A', 'j', 'g')
+static inline uint8_t *decrypt(const uint8_t *data, size_t *data_size, const char *skey) {
+    char keyStr[20] = {0};
+    GYAIDataEncryptKey(keyStr);
+    const uint8_t *key = reinterpret_cast<const uint8_t *>(keyStr);
+    if (skey && strnlen(skey, sizeof(keyStr))) {
+        key = reinterpret_cast<const uint8_t *>(skey);
     }
+    
+    auto fsize = static_cast<int>(*data_size);
+    uint8_t *buffer = reinterpret_cast<uint8_t *>(malloc(fsize));  // result
+    if (!buffer) return nullptr;
+    
+    int decryptLen = TeaDecrypt(data, fsize, key, buffer, fsize);
+    *data_size = decryptLen;
+    if (decryptLen <= 0) {
+        free(buffer);
+        buffer = nullptr;
+    }
+    return buffer;
+}
 
-    memcpy((void*)content.c_str(),cdecrypt_data.get(),data_len);
-
-    return TNN_OK;
+static inline std::string DecodeDataToString(const char *data, size_t fsize, const char *key, bool retSrcIfFail) {
+    if (!data || fsize <= 0) {
+        return "";
+    }
+    
+    size_t deLen = fsize;
+    auto deBuf = decrypt((const uint8_t *)data, &deLen, key);
+    if (deBuf) {
+        std::string buffer(reinterpret_cast<char *>(deBuf), deLen);
+        free(deBuf);
+        return buffer;
+    } else if (retSrcIfFail) {
+        return std::string(reinterpret_cast<const char *>(data), fsize);
+    }
+    return "";
 }
 
 Status DecodeEncryptionContent(std::string &proto_content,std::string &model_content,std::string &proto_encryption_status,
                                std::string &model_encryption_status,std::string &key)
 {
-    if (proto_encryption_status == PROTO_ENCRYPTION_ENABLED) {
-        int ret = DecodeData(proto_content, key);
-        if (ret == TNNERR_INVALID_INPUT) {
-            LOGE("proto decode fail\n");
-            return TNNERR_NET_ERR;
-        }
-    } else if (proto_encryption_status == PROTO_ENCRYPTION_UNKNOWN) {
-        int ret = DecodeData(proto_content, key);
-        if (ret == TNNERR_INVALID_INPUT) {
-            LOGD("proto is not encryption\n");
-        }
-    } else {
-        LOGD("treat proto as plaintext\n");
-    }
-
-    if (model_encryption_status == MODEL_ENCRYPTION_ENABLED) {
-        int ret = DecodeData(model_content, key);
-        if (ret == TNNERR_INVALID_INPUT) {
-            LOGE("model decode fail\n");
-            return TNNERR_MODEL_ERR;
-        }
-    } else if (model_encryption_status == MODEL_ENCRYPTION_UNKNOWN) {
-        int ret = DecodeData(model_content, key);
-        if (ret == TNNERR_INVALID_MODEL) {
-            LOGD("model is not encryption\n");
-        }
-    } else {
-        LOGD("treat model as plaintext\n");
-    }
-    return TNN_OK;
+    bool forceDecodeProto = (proto_encryption_status == PROTO_ENCRYPTION_ENABLED);
+    bool forceDecodeModel = (model_encryption_status == MODEL_ENCRYPTION_ENABLED);
+    proto_content = DecodeDataToString(proto_content.c_str(), proto_content.size(), key.c_str(), !forceDecodeProto);
+    model_content = DecodeDataToString(model_content.c_str(), model_content.size(), key.c_str(), !forceDecodeModel);
+    return proto_content.size() && model_content.size() ? TNN_OK : TNNERR_INVALID_MODEL;
 }
 
 // Interpret the proto and model.
