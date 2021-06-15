@@ -297,7 +297,7 @@ int main(int argc, char* argv[]) {
     if (net_config.device_type == DEVICE_HUAWEI_NPU) {
         net_config.precision = PRECISION_AUTO;
     }
-    printf("tnn precision %d", net_config.precision);
+    printf("tnn precision %d\n", net_config.precision);
     status = model_checker.Init(net_config, model_config);
     if (status != TNN_OK) {
         printf("model_checker init failed! (error: %s)\n", status.description().c_str());

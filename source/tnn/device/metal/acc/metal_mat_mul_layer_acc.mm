@@ -94,7 +94,7 @@ Status MetalMatMulLayerAcc::AllocateBufferWeight(const std::vector<Blob *> &inpu
     }        
 #else       
     if (data_type == DATA_TYPE_FLOAT) {
-        data_type_half = new uint16_t[uint16_t];
+        data_type_half = new uint16_t[count];
         if (ConvertFromFloatToHalf((float *)data, data_type_half, count) != 0) {
             LOGE("matmul weight DataType is not supported");
             delete[] data_type_half;
