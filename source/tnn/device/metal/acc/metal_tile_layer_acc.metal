@@ -29,25 +29,26 @@ kernel void tile(const device ftype4 *in [[buffer(0)]],
                      (int)gid.y * params.output_size + (int)gid.x;
 
     int batch_index = (int)gid.z % (params.batch/params.extend_batch_times) * params.input_slice * params.input_size;
-    int x_index =(int)gid.x % plane / plane_row * params.input_width +
-                                      (int)gid.x % params.input_width;
-    int start_row = (int)gid.y * 4 - (int)gid.y * 4 / params.input_channel * params.input_channel;
+    int in_channel_offset =(int)gid.x % plane / plane_row * params.input_width +
+                                          (int)gid.x % params.input_width;
+    int channel_index = (int)gid.y*4  - (int)gid.y * 4 / params.input_channel * params.input_channel;
+
     ftype a[4];
     int count = 0;
     for(int i = 0; i < 4; i++)
     {
-        if(start_row >= params.input_channel)
+        if(channel_index >= params.input_channel)    //channel_index must in range(0,input_channel)
         {
-            start_row = 0;
-            count++;
+            channel_index = 0;
+            count++;                                //if channel_index==input_channel, channel_index re-assign to 0,count is this case happen times in one slice
         }
         if(count > params.extend_channel_times)
-            a[i] = 0;
+            a[i] = 0;                               //after channel extended, output channel < 4,need pad 0
         else
-        {
-                a[i] = in[batch_index + start_row/4*params.input_size + x_index][start_row%4];
-        }
-        start_row++;
+            // channel_index/4 and channel_index%4 means four channel element packed as one ftype4 element
+            a[i] = in[batch_index + channel_index/4*params.input_size + in_channel_offset][channel_index%4];
+
+        channel_index++;
     }
     ftype4 tmp = ftype4(a[0],a[1],a[2],a[3]);
     *z_out = tmp;
