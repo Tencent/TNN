@@ -108,6 +108,19 @@ private:
         DECLARE_ARM_FP16_LAYER_FUNC;                                                                                   \
     }
 
+#define DECLARE_ARM_ACC_WITH_EXTRA(type_string, layer_type, extra)                                                     \
+    class Arm##type_string##LayerAcc : public ArmLayerAcc {                                                            \
+    public:                                                                                                            \
+        virtual ~Arm##type_string##LayerAcc(){};                                                                       \
+        virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);               \
+                                                                                                                       \
+    private:                                                                                                           \
+        template <typename T>                                                                                          \
+        Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                            \
+        DECLARE_ARM_FP16_LAYER_FUNC;                                                                                   \
+        extra;                                                                                                         \
+    }
+
 #define REGISTER_ARM_ACC(type_string, layer_type)                                                                      \
     ArmTypeLayerAccRegister<TypeLayerAccCreator<Arm##type_string##LayerAcc>> g_arm_##layer_type##_acc_register(        \
         layer_type);
