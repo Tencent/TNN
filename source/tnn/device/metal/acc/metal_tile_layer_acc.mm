@@ -31,21 +31,21 @@ Status MetalTileLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
     // buffer_param_
     {
         MetalTileParams metal_params;
-        metal_params.input_width        = dims_input[3];
-        metal_params.input_height       = dims_input[2];
-        metal_params.input_size         = metal_params.input_height * metal_params.input_width;
-        metal_params.input_slice        = UP_DIV(dims_input[1], 4);
-        metal_params.input_channel      = dims_input[1];
+        metal_params.input_width          = dims_input[3];
+        metal_params.input_height         = dims_input[2];
+        metal_params.input_size           = metal_params.input_height * metal_params.input_width;
+        metal_params.input_slice          = UP_DIV(dims_input[1], 4);
+        metal_params.input_channel        = dims_input[1];
 
-        metal_params.output_width       = dims_output[3];
-        metal_params.output_height      = dims_output[2];
-        metal_params.output_size        = metal_params.output_height * metal_params.output_width;
-        metal_params.output_slice       = UP_DIV(dims_output[1], 4);
-        metal_params.output_channel     = dims_output[1];
-        metal_params.batch              = dims_output[0];
-        metal_params.extend_batch_times = dims_output[0] / dims_input[0];
-        metal_params.extend_slice_times = dims_output[1] / dims_input[1];
-        metal_params.extend_width_times = dims_output[3] / dims_input[3];
+        metal_params.output_width         = dims_output[3];
+        metal_params.output_height        = dims_output[2];
+        metal_params.output_size          = metal_params.output_height * metal_params.output_width;
+        metal_params.output_slice         = UP_DIV(dims_output[1], 4);
+        metal_params.output_channel       = dims_output[1];
+        metal_params.batch                = dims_output[0];
+        metal_params.extend_batch_times   = dims_output[0] / dims_input[0];
+        metal_params.extend_channel_times = dims_output[1] / dims_input[1];
+        metal_params.extend_width_times   = dims_output[3] / dims_input[3];
 
 
 
