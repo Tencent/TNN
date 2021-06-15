@@ -33,8 +33,7 @@ namespace rapidnetv3 {
         return ser;
     }
 
-    Status ModelPacker::Pack(std::string proto_path,
-                                       std::string model_path) {
+    Status ModelPacker::Pack(std::string proto_path, std::string model_path) {
         return TNN_NS::ModelPacker::Pack(proto_path, model_path);
     }
 

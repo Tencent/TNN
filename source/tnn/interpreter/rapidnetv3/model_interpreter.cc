@@ -35,7 +35,7 @@ g_default_factory_register_rapidnet_v3(MODEL_TYPE_RAPIDNET);
         return std::make_shared<rapidnetv3::Deserializer>(is);
     }
 
-    Status ModelInterpreter::Interpret(std::vector<std::string> params) {
+    Status ModelInterpreter::Interpret(std::vector<std::string> &params) {
          return TNN_NS::ModelInterpreter::Interpret(params);
     }
 
@@ -51,7 +51,7 @@ g_default_factory_register_rapidnet_v3(MODEL_TYPE_RAPIDNET);
         }
     }
 
-    Status ModelInterpreter::InterpretProto(std::string content) {
+    Status ModelInterpreter::InterpretProto(std::string &content) {
         return TNN_NS::ModelInterpreter::InterpretProto(content);
     }
 
@@ -96,7 +96,7 @@ g_default_factory_register_rapidnet_v3(MODEL_TYPE_RAPIDNET);
        return TNN_NS::ModelInterpreter::InterpretLayer(layer_str);
     }
 
-    Status ModelInterpreter::InterpretModel(std::string model_content) {
+    Status ModelInterpreter::InterpretModel(std::string &model_content) {
         return TNN_NS::ModelInterpreter::InterpretModel(model_content);
     }
 

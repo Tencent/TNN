@@ -17,12 +17,12 @@ namespace rapidnetv3 {
         }
         
         // @brief save the rpn model into files
-        virtual Status Pack(std::string proto_path, std::string model_path);
+        Status Pack(std::string proto_path, std::string model_path) override;
 
     protected:
-        virtual std::string Transfer(std::string content);
-        virtual uint32_t GetMagicNumber();
-        virtual std::shared_ptr<TNN_NS::Serializer> GetSerializer(std::ostream &os);
+        std::string Transfer(std::string content) override;
+        uint32_t GetMagicNumber() override;
+        std::shared_ptr<TNN_NS::Serializer> GetSerializer(std::ostream &os) override;
     };
 
 }  // namespace rapidnetv3
