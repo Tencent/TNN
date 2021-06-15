@@ -87,10 +87,18 @@ Status CpuGridSampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
                 int iy_se = iy_nw + 1;
 
                 // get surfaces to each neighbor:
-                float nw = (ix_se - ix) * (iy_se - iy);
-                float ne = (ix - ix_sw) * (iy_sw - iy);
-                float sw = (ix_ne - ix) * (iy - iy_ne);
-                float se = (ix - ix_nw) * (iy - iy_nw);
+                bool nw_within_bound = within_bounds_2d(iy_nw, ix_nw, input_height, input_width);
+                bool ne_within_bound = within_bounds_2d(iy_ne, ix_ne, input_height, input_width);
+                bool sw_within_bound = within_bounds_2d(iy_sw, ix_sw, input_height, input_width);
+                bool se_within_bound = within_bounds_2d(iy_se, ix_se, input_height, input_width);
+                float nw             = nw_within_bound ? (ix_se - ix) * (iy_se - iy) : 0;
+                float ne             = ne_within_bound ? (ix - ix_sw) * (iy_sw - iy) : 0;
+                float sw             = sw_within_bound ? (ix_ne - ix) * (iy - iy_ne) : 0;
+                float se             = se_within_bound ? (ix - ix_nw) * (iy - iy_nw) : 0;
+                int nw_index         = nw_within_bound ? iy_nw * input_width + ix_nw : 0;
+                int ne_index         = ne_within_bound ? iy_ne * input_width + ix_ne : 0;
+                int sw_index         = sw_within_bound ? iy_sw * input_width + ix_sw : 0;
+                int se_index         = se_within_bound ? iy_se * input_width + ix_se : 0;
 
                 // calculate bilinear weighted pixel value and set output pixel
                 float *input_data  = input_data_b;
@@ -98,18 +106,10 @@ Status CpuGridSampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
                 for (int c = 0; c < channel;
                      ++c, output_data += output_channel_area, input_data += input_channel_area) {
                     auto res = static_cast<float>(0);
-                    if (within_bounds_2d(iy_nw, ix_nw, input_height, input_width)) {
-                        res += input_data[iy_nw * input_width + ix_nw] * nw;
-                    }
-                    if (within_bounds_2d(iy_ne, ix_ne, input_height, input_width)) {
-                        res += input_data[iy_ne * input_width + ix_ne] * ne;
-                    }
-                    if (within_bounds_2d(iy_sw, ix_sw, input_height, input_width)) {
-                        res += input_data[iy_sw * input_width + ix_sw] * sw;
-                    }
-                    if (within_bounds_2d(iy_se, ix_se, input_height, input_width)) {
-                        res += input_data[iy_se * input_width + ix_se] * se;
-                    }
+                    res += input_data[nw_index] * nw;
+                    res += input_data[ne_index] * ne;
+                    res += input_data[sw_index] * sw;
+                    res += input_data[se_index] * se;
                     *output_data = res;
                 }
             }
