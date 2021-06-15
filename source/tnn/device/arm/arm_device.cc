@@ -51,9 +51,9 @@ BlobMemorySizeInfo ArmDevice::Calculate1DMemorySize(BlobDesc &desc) {
     } else {
         // packed format
         if (desc.data_type == DATA_TYPE_HALF) {
-            count = desc.dims[0] * ROUND_UP(desc.dims[1], 8) * DimsVectorUtils::Count(desc.dims, 2);
+            count = DimsFunctionUtils::GetDim(desc.dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(desc.dims, 1), 8) * DimsVectorUtils::Count(desc.dims, 2);
         } else {
-            count = desc.dims[0] * ROUND_UP(desc.dims[1], 4) * DimsVectorUtils::Count(desc.dims, 2);
+            count = DimsFunctionUtils::GetDim(desc.dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(desc.dims, 1), 4) * DimsVectorUtils::Count(desc.dims, 2);
         }
     }
     info.dims.push_back(count);
