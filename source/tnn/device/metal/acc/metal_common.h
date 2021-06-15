@@ -749,8 +749,6 @@ struct MetalTileParams {
     int batch;
 
     int extend_width_times;
-    int extend_height_times;
-    int extend_slice_times;
     int extend_channel_times;
     int extend_batch_times;
 };
