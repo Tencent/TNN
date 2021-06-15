@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include <cmath>
+
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
@@ -25,83 +26,95 @@ Status CpuGridSampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     return TNN_OK;
 }
 
+static inline bool within_bounds_2d(int h, int w, int H, int W) {
+    return h >= 0 && h < H && w >= 0 && w < W;
+}
+
 Status CpuGridSampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<GridSampleLayerParam *>(param_);
-    
-    auto input_dims = inputs[0]->GetBlobDesc().dims;
-    auto grid_dims = inputs[1]->GetBlobDesc().dims;
-    auto output_dims = outputs[0]->GetBlobDesc().dims;
-    
-    if (output_dims.size() != 4) {
-        return Status(TNNERR_PARAM_ERR, "CpuGridSampleLayerAcc only support 4D sampler");
-    }
-    
     if (layer_param->mode != 2 || layer_param->pad_type != 0 || layer_param->align_corners != 0) {
         return Status(TNNERR_PARAM_ERR, "CpuGridSampleLayerAcc dont support some mode or pade type or align_corners");
     }
-    
-    const int batch = input_dims[0];
-    const int channel = input_dims[1];
-    const int input_channel_area = DimsVectorUtils::Count(input_dims, 2);
+    auto input_dims  = inputs[0]->GetBlobDesc().dims;
+    auto grid_dims   = inputs[1]->GetBlobDesc().dims;
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+    if (output_dims.size() != 4) {
+        return Status(TNNERR_PARAM_ERR, "CpuGridSampleLayerAcc only support 4D sampler");
+    }
+    const int batch               = input_dims[0];
+    const int channel             = input_dims[1];
+    const int input_height        = input_dims[2];
+    const int input_width         = input_dims[3];
+    const int input_channel_area  = DimsVectorUtils::Count(input_dims, 2);
     const int output_channel_area = DimsVectorUtils::Count(output_dims, 2);
-    float *input_data_ptr  = (float *)((char *)inputs[0]->GetHandle().base+ inputs[0]->GetHandle().bytes_offset);
-    float *grid_data_ptr  = (float *)((char *)inputs[1]->GetHandle().base+ inputs[1]->GetHandle().bytes_offset);
-    float *output_data_ptr = (float *)((char *)outputs[0]->GetHandle().base + outputs[0]->GetHandle().bytes_offset);
-    
-    const int grid_area = DimsVectorUtils::Count(grid_dims, 1);
-    
-    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        const int input_height = input_dims[2];
-        const int input_width = input_dims[3];
-        for (int b=0; b<batch; b++) {
-            auto grid_data_b = grid_data_ptr + b*grid_area;
-            auto input_data_b = input_data_ptr + b*input_channel_area*channel;
-            auto output_data_b = output_data_ptr + b*output_channel_area*channel;
-            
-            for (int i=0; i<output_channel_area; i++) {
-                auto grid_data = grid_data_b + 2*i;
-                float grid_x = (grid_data[0] + 1) * input_width * 0.5 -0.5;
-                float grid_y = (grid_data[1] + 1) * input_height * 0.5 - 0.5;
-                
-                const int w0 = std::floor(grid_x);
-                const int w1p = (w0 < input_width - 1) ? 1 : 0;
-                float w1lambda = grid_x - w0;
-                float w0lambda = (float)1. - w1lambda;
-                if (w0 < 0 || w0 > input_width - 1) {
-                    w0lambda = 0;
-                }
-                if (w0 + 1 < 0 || w0 + 1 > input_width - 1) {
-                    w1lambda = 0;
-                }
-                
-                const int h0  = std::floor(grid_y);
-                const int h1p = (h0 < input_height - 1) ? 1 : 0;
-                float h1lambda = grid_y - h0;
-                float h0lambda = (float)1. - h1lambda;
-                if (h0 < 0 || h0 > input_height - 1) {
-                    h0lambda = 0;
-                }
-                if (h0 + 1 < 0 || h0 + 1 > input_height - 1) {
-                    h1lambda = 0;
-                }
-                
-                //Note: read outside valid roi will raise
-                const float *x_data_ptr = input_data_b + h0 * input_width + w0;
-                float *y_data_ptr = output_data_b + i;
-                for (int c=0; c<channel; c++) {
-                    y_data_ptr[0] = h0lambda * (w0lambda * x_data_ptr[0] + w1lambda * x_data_ptr[w1p]) +
-                                    h1lambda * (w0lambda * x_data_ptr[h1p * input_width] +
-                                                w1lambda * x_data_ptr[h1p * input_width + w1p]);
-                    
-                    x_data_ptr += input_channel_area;
-                    y_data_ptr += output_channel_area;
+    const int grid_height         = grid_dims[1];
+    const int grid_width          = grid_dims[2];
+    const int grid_area           = DimsVectorUtils::Count(grid_dims, 1);
+    auto output_height            = output_dims[2];
+    auto output_width             = output_dims[3];
+
+    float *input_base_ptr  = (float *)((char *)inputs[0]->GetHandle().base + inputs[0]->GetHandle().bytes_offset);
+    float *grid_base_ptr   = (float *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
+    float *output_base_ptr = (float *)((char *)outputs[0]->GetHandle().base + outputs[0]->GetHandle().bytes_offset);
+
+    if (inputs[0]->GetBlobDesc().data_type != DATA_TYPE_FLOAT) {
+        return Status(TNNERR_PARAM_ERR, "CpuGridSampleLayerAcc now only support float data");
+    }
+    for (int n = 0; n < batch; n++) {
+        auto input_data_b  = input_base_ptr + n * channel * input_channel_area;
+        auto grid_data_b   = grid_base_ptr + n * grid_area;
+        auto output_data_b = output_base_ptr + n * channel * output_channel_area;
+        for (int h = 0; h < output_height; ++h) {
+            for (int w = 0; w < output_width; ++w) {
+                auto grid_position = grid_data_b + h * grid_width * 2 + w * 2;
+                float x            = grid_position[0];
+                float y            = grid_position[1];
+                // unnormalize
+                float ix = (x + 1) * input_width * 0.5 - 0.5;
+                float iy = (y + 1) * input_height * 0.5 - 0.5;
+                // get corner pixel values from (x, y)
+                // for 4d, we use north-east-south-west
+                int ix_nw = static_cast<int>(std::floor(ix));
+                int iy_nw = static_cast<int>(std::floor(iy));
+
+                int ix_ne = ix_nw + 1;
+                int iy_ne = iy_nw;
+
+                int ix_sw = ix_nw;
+                int iy_sw = iy_nw + 1;
+
+                int ix_se = ix_nw + 1;
+                int iy_se = iy_nw + 1;
+
+                // get surfaces to each neighbor:
+                bool nw_within_bound = within_bounds_2d(iy_nw, ix_nw, input_height, input_width);
+                bool ne_within_bound = within_bounds_2d(iy_ne, ix_ne, input_height, input_width);
+                bool sw_within_bound = within_bounds_2d(iy_sw, ix_sw, input_height, input_width);
+                bool se_within_bound = within_bounds_2d(iy_se, ix_se, input_height, input_width);
+                float nw             = nw_within_bound ? (ix_se - ix) * (iy_se - iy) : 0;
+                float ne             = ne_within_bound ? (ix - ix_sw) * (iy_sw - iy) : 0;
+                float sw             = sw_within_bound ? (ix_ne - ix) * (iy - iy_ne) : 0;
+                float se             = se_within_bound ? (ix - ix_nw) * (iy - iy_nw) : 0;
+                int nw_index         = nw_within_bound ? iy_nw * input_width + ix_nw : 0;
+                int ne_index         = ne_within_bound ? iy_ne * input_width + ix_ne : 0;
+                int sw_index         = sw_within_bound ? iy_sw * input_width + ix_sw : 0;
+                int se_index         = se_within_bound ? iy_se * input_width + ix_se : 0;
+
+                // calculate bilinear weighted pixel value and set output pixel
+                float *input_data  = input_data_b;
+                float *output_data = output_data_b + h * output_width + w;
+                for (int c = 0; c < channel;
+                     ++c, output_data += output_channel_area, input_data += input_channel_area) {
+                    auto res = static_cast<float>(0);
+                    res += input_data[nw_index] * nw;
+                    res += input_data[ne_index] * ne;
+                    res += input_data[sw_index] * sw;
+                    res += input_data[se_index] * se;
+                    *output_data = res;
                 }
             }
         }
-    } else {
-        return Status(TNNERR_PARAM_ERR, "CpuGridSampleLayerAcc now only support float data");
     }
-
     return TNN_OK;
 }
 
