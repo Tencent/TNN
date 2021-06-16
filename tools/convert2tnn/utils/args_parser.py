@@ -267,6 +267,13 @@ def parse_args():
                                    required=False,
                                    help="the version for model")
 
+    tflite2tnn_parser.add_argument('-half',
+                                   dest='half',
+                                   default=False,
+                                   action='store_true',
+                                   required=False,
+                                   help="save the model using half")
+
     tflite2tnn_parser.add_argument('-align',
                                    dest='align',
                                    default='',

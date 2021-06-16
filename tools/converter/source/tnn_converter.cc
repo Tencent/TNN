@@ -48,9 +48,15 @@ int Run(int argc, char* argv[]) {
         LOGE("Converter: converter %s failed!\n", FLAGS_mp.c_str());
         return status;
     }
+
+    TNN_NS::DataType dataType = TNN_NS::DATA_TYPE_FLOAT;
+    if (FLAGS_half) {
+        dataType = TNN_NS::DATA_TYPE_HALF;
+    }
+
     // TODO optimize the model
     // prefer optimize
-    TnnOptimizer tnn_optimizer;
+    TnnOptimizer tnn_optimizer(dataType);
     status = tnn_optimizer.PreOptimize(net_structure, net_resource);
     if (status != TNN_NS::TNN_CONVERT_OK) {
         LOGE("Converter: optimize %s failed!\n", FLAGS_mp.c_str());

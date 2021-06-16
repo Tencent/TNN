@@ -19,6 +19,10 @@
 
 namespace TNN_CONVERTER {
 
+TnnOptimizer::TnnOptimizer(TNN_NS::DataType dataType) {
+    dataType_ = dataType;
+}
+
 TNN_NS::Status TnnOptimizer::PreOptimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
     // pre optimize
     std::vector<std::string> pre_optimize_pass = {
@@ -45,6 +49,9 @@ TNN_NS::Status TnnOptimizer::PostOptimize(TNN_NS::NetStructure& net_structure, T
     // pre optimize
     std::vector<std::string> pre_optimize_pass = {"ConstantFolding", "AdjustLayerInputs", "EliminateReformatNode",
                                                   "TransformDequantized"};
+    if (dataType_ == TNN_NS::DATA_TYPE_HALF) {
+        pre_optimize_pass.emplace_back("FloatToHalf");
+    }
     for (const auto& pass_name : pre_optimize_pass) {
         auto pass = TnnOptimizePassManager::get()->search(pass_name);
         if (pass == nullptr) {
