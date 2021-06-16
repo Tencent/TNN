@@ -172,9 +172,9 @@ Status DecodeEncryptionContent(std::string &proto_content,std::string &model_con
         proto_content = DecodeDataToString(proto_content.c_str(), proto_content.size(), key.c_str(), true);
     }
     
-    if (proto_encryption_status == MODEL_ENCRYPTION_ENABLED) {
+    if (model_encryption_status == MODEL_ENCRYPTION_ENABLED) {
         model_content = DecodeDataToString(model_content.c_str(), model_content.size(), key.c_str(), false);
-    } else if (proto_encryption_status == MODEL_ENCRYPTION_UNKNOWN) {
+    } else if (model_encryption_status == MODEL_ENCRYPTION_UNKNOWN) {
         model_content = DecodeDataToString(model_content.c_str(), model_content.size(), key.c_str(), true);
     }
     return proto_content.size() && model_content.size() ? TNN_OK : TNNERR_INVALID_MODEL;
