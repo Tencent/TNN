@@ -102,15 +102,18 @@ static void BroadCastTypeFilter(const DimsVector &dims_output, const DimsVector 
         type = BroadcastTypeNormal;
         return;
     }
-    if (DimsVectorUtils::Equal(dims_output, dims_input, 1)) {
+    if (DimsVectorUtils::Equal(dims_output, dims_input, 1) &&
+        DimsVectorUtils::Count(dims_input, 0, 1) == 1) {
         type = BroadcastTypeElement;
         return;
     }
-    if (DimsVectorUtils::Equal(dims_output, dims_input, 2)) {
+    if (DimsVectorUtils::Equal(dims_output, dims_input, 2) &&
+        DimsVectorUtils::Count(dims_input, 0, 2) == 1) {
         type = BroadcastTypeHeightWidth;
         return;
     }
-    if (DimsVectorUtils::Equal(dims_output, dims_input, 3)) {
+    if (DimsVectorUtils::Equal(dims_output, dims_input, 3) &&
+        DimsVectorUtils::Count(dims_input, 0, 3) == 1) {
         type = BroadcastTypeWidth;
         return;
     }
