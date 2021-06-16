@@ -114,6 +114,7 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     MatrixOperation opB = getMatrixOp(matrix_b);
 
     if (opA == MatrixOperation::kNONE && opB == MatrixOperation::kNONE && dims_b.d[dims_b.nbDims - 1] == 1 &&
+            input_tensors.size() == 2 &&
             input_tensors[0]->getDimensions().nbDims == input_tensors[1]->getDimensions().nbDims) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
