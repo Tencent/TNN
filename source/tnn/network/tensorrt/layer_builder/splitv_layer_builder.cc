@@ -25,7 +25,7 @@ bool SplitVTRTPluginLayerBuilder::supportsFormatCombination(
 }
 
 Status SplitVTRTPluginLayerBuilder::Reshape() {
-    return TNN_OK;
+    return m_layer->Reshape();
 }
 
 const char* SplitVTRTPluginLayerBuilder::getPluginType() const {

@@ -216,6 +216,7 @@ enum LayerType {
     LAYER_LAYER_NORM                                        = 326,
     LAYER_GELU                                              = 327,
     LAYER_TOPK                                              = 328,
+    LAYER_NOT                                               = 329,
 
     LAYER_BLOB_SCALE                                        = 600,
 

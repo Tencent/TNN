@@ -29,6 +29,7 @@ bool LSTMONNXTRTPluginLayerBuilder::supportsFormatCombination(
 }
 
 Status LSTMONNXTRTPluginLayerBuilder::Reshape() {
+    return m_layer->Reshape();
     return TNN_OK;
 }
 

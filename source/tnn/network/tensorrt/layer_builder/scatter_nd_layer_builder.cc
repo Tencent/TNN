@@ -24,7 +24,7 @@ bool ScatterNDTRTPluginLayerBuilder::supportsFormatCombination(
 }
 
 Status ScatterNDTRTPluginLayerBuilder::Reshape() {
-    return TNN_OK;
+    return m_layer->Reshape();
 }
 
 const char* ScatterNDTRTPluginLayerBuilder::getPluginType() const {

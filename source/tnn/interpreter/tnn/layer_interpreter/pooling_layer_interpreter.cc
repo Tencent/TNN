@@ -28,6 +28,7 @@ Status PoolingLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index,
     // kernels
     GET_INT_2_INTO_VEC_REVERSE(p->kernels);
     p->kernels_params = p->kernels;
+    p->is_global_pool = p->kernels[0] == 0 && p->kernels[1] == 0;
 
     // strides h,w -> w,h
     GET_INT_2_INTO_VEC_REVERSE(p->strides);
