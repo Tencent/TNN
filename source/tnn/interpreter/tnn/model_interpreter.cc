@@ -166,10 +166,17 @@ std::string DecodeFileToData(const std::string &path, bool forceDecode, bool ret
 Status DecodeEncryptionContent(std::string &proto_content,std::string &model_content,std::string &proto_encryption_status,
                                std::string &model_encryption_status,std::string &key)
 {
-    bool forceDecodeProto = (proto_encryption_status == PROTO_ENCRYPTION_ENABLED);
-    bool forceDecodeModel = (model_encryption_status == MODEL_ENCRYPTION_ENABLED);
-    proto_content = DecodeDataToString(proto_content.c_str(), proto_content.size(), key.c_str(), !forceDecodeProto);
-    model_content = DecodeDataToString(model_content.c_str(), model_content.size(), key.c_str(), !forceDecodeModel);
+    if (proto_encryption_status == PROTO_ENCRYPTION_ENABLED) {
+        proto_content = DecodeDataToString(proto_content.c_str(), proto_content.size(), key.c_str(), false);
+    } else if (proto_encryption_status == PROTO_ENCRYPTION_UNKNOWN) {
+        proto_content = DecodeDataToString(proto_content.c_str(), proto_content.size(), key.c_str(), true);
+    }
+    
+    if (proto_encryption_status == MODEL_ENCRYPTION_ENABLED) {
+        model_content = DecodeDataToString(model_content.c_str(), model_content.size(), key.c_str(), false);
+    } else if (proto_encryption_status == MODEL_ENCRYPTION_UNKNOWN) {
+        model_content = DecodeDataToString(model_content.c_str(), model_content.size(), key.c_str(), true);
+    }
     return proto_content.size() && model_content.size() ? TNN_OK : TNNERR_INVALID_MODEL;
 }
 
