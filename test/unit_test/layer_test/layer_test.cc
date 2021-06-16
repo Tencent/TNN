@@ -275,7 +275,7 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
     } else if (blob_desc_device.data_type == DATA_TYPE_INT8) {
         // the value is initialized as int8
         mat_type = RESERVED_INT8_TEST;
-    } else if (blob_desc_device.data_type == DATA_TYPE_HALF) {
+    } else if (blob_desc_device.data_type == DATA_TYPE_HALF && device_blob->GetBlobDesc().device_type == DEVICE_ARM) {
         // the value is initialized as half
         mat_type = RESERVED_FP16_TEST;
     }
