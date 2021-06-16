@@ -134,6 +134,7 @@ static inline bool StringHasEnding(const std::string &prefer, const std::string 
     return 0 == prefer.compare(prefer.length() - ending.length(), ending.length(), ending);
 }
 
+PUBLIC
 std::string DecodeFileToData(const std::string &path, bool forceDecode, bool retSrcIfFail) {
     if (path.length() == 0) {
         return "";
