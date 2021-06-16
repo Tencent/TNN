@@ -42,7 +42,7 @@ std::shared_ptr<Deserializer> ModelInterpreter::GetDeserializer(std::istream &is
     return std::make_shared<Deserializer>(is);
 }
 
-#pragma mark - decode data
+#pragma mark - decode data for rpnn (light sdk use)
 
 #define GYAIDataEncryptKey(key)                                                                      \
     snprintf(key, sizeof(key), "%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c", 'Z', 'e', 'D', 'A', '3', '2', \
@@ -84,6 +84,84 @@ static inline std::string DecodeDataToString(const char *data, size_t fsize, con
     }
     return "";
 }
+
+#pragma mark - decode file 兼容旧版本接口 (light sdk use)
+
+static uint8_t *ReadFile(const std::string &path, size_t *size) {
+    FILE *fileHandle = fopen(path.c_str(), "rb");
+    if (!fileHandle) {
+        return nullptr;
+    }
+    
+    // find size of file
+    fseek(fileHandle, 0, SEEK_END);
+    size_t fileSize = ftell(fileHandle);
+    if (fileSize < 0) {
+        fclose(fileHandle);
+        return nullptr;
+    }
+    *size = fileSize;
+    fseek(fileHandle, 0, SEEK_SET);
+    
+    auto data = malloc(fileSize + 1);
+    if (!data) {
+        fclose(fileHandle);
+        return nullptr;
+    }
+    
+    size_t readLen = fread(data, 1, fileSize, fileHandle);
+    if (readLen < 0 || readLen != fileSize) {
+        fclose(fileHandle);
+        free(data);
+        LOGE("Error : read file error!\n");
+        return nullptr;
+    }
+    
+    if (fclose(fileHandle) != 0) {
+        free(data);
+        LOGE("Error : close file failed!\n");
+        return nullptr;
+    }
+    (reinterpret_cast<char*>(data))[fileSize] = 0;
+    return reinterpret_cast<uint8_t *>(data);
+}
+
+// 通常用于判断文件路径是否有指定的后缀
+static inline bool StringHasEnding(const std::string &prefer, const std::string &ending) {
+    if (prefer.length() < ending.length()) {
+        return false;
+    }
+    return 0 == prefer.compare(prefer.length() - ending.length(), ending.length(), ending);
+}
+
+std::string DecodeFileToData(const std::string &path, bool forceDecode, bool retSrcIfFail) {
+    if (path.length() == 0) {
+        return "";
+    }
+    
+    size_t fsize = 0;
+    uint8_t *data = ReadFile(path, &fsize);
+    auto hadWmcSuffix = StringHasEnding(path, ".wmc");
+    if ((data && fsize > 0) && (hadWmcSuffix || forceDecode)) {  // wmc file means force decode
+        std::string buffer = DecodeDataToString((char *)data, fsize, NULL, retSrcIfFail);
+        free(data);
+        return buffer;
+    }
+    
+    if (!data) {  // read default encode file(extension) if fail
+        std::string wmcfile = path + ".wmc";
+        data = ReadFile(wmcfile, &fsize);
+        std::string buffer = DecodeDataToString((char *)data, fsize, NULL, retSrcIfFail);
+        if (data) free(data);
+        return buffer;
+    }
+    
+    std::string buffer(reinterpret_cast<char *>(data), fsize);
+    free(data);
+    return buffer;
+}
+
+#pragma mark - 解密接口 (light sdk use)
 
 Status DecodeEncryptionContent(std::string &proto_content,std::string &model_content,std::string &proto_encryption_status,
                                std::string &model_encryption_status,std::string &key)
