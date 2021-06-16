@@ -129,7 +129,7 @@ function run_android() {
         if [ -n "$INPUT_PATH" ]
         then
             echo "push input file"
-            $ADB push $WORK_DIR/${INPUT_PATH} ${ANDROID_DATA_DIR}/input.txt
+            $ADB push ${INPUT_PATH} ${ANDROID_DATA_DIR}/input.txt
         fi
         TEST_MODEL_PATH=${TEST_PROTO_PATH/proto/model}
         $ADB push ${TEST_PROTO_PATH} ${ANDROID_DATA_DIR}/test.tnnproto

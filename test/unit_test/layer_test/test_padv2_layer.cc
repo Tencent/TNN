@@ -62,8 +62,12 @@ TEST_P(PadV2LayerTest, PadV2Layer) {
     }
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // only cuda implements padv2 now
-    if (DEVICE_CUDA != dev) {
+    // only cuda and arm implements padv2 now
+    if (!(DEVICE_CUDA == dev || DEVICE_ARM == dev)) {
+        GTEST_SKIP();
+    }
+    // arm only support dims size 4
+    if (DEVICE_ARM == dev && dim_count != 4) {
         GTEST_SKIP();
     }
 
