@@ -167,10 +167,8 @@ std::string OpenCLBinaryLayerAcc::GetKernelName(const MultidirBroadcastLayerPara
     if (param.input0_broadcast_type == BroadcastTypeNormal &&
         param.input1_broadcast_type == BroadcastTypeNormal) {
         return "BinaryElementWise";
-    } else if ((param.input0_broadcast_type == BroadcastTypeSingle &&
-                param.input1_broadcast_type == BroadcastTypeNormal) ||
-                (param.input1_broadcast_type == BroadcastTypeSingle &&
-                param.input0_broadcast_type == BroadcastTypeNormal)) {
+    } else if (param.input0_broadcast_type == BroadcastTypeSingle ||
+               param.input1_broadcast_type == BroadcastTypeSingle) {
         return "BinarySingle";
     } else if ((param.input0_broadcast_type == BroadcastTypeChannel &&
                 param.input1_broadcast_type == BroadcastTypeNormal) ||
