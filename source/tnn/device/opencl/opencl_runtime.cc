@@ -622,7 +622,7 @@ Status OpenCLRuntime::SaveProgramCache() {
                         kernel_key_list_stream << kernel_name << " ";
                     }
                 }
-                ASSERT(kernel_info_stream.str().size() < KERNEL_KEY_LIST_MAX_LEN);
+                ASSERT(kernel_key_list_stream.str().size() < KERNEL_KEY_LIST_MAX_LEN);
                 strcpy(info.kernel_key_list, kernel_key_list_stream.str().c_str());
                 info.buffer_size = buffer_size;
                 int fwsize = fwrite(&info, sizeof(struct ProgramCacheInfo), 1, program_cache_fout);
