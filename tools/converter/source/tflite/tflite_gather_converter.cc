@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <tnn/utils/data_format_converter.h>
 #include <tnn/utils/dims_vector_utils.h>
 
 #include "tflite_op_converter.h"
@@ -52,16 +53,41 @@ TNN_NS::Status TFLiteGatherConverter::exec(TNN_NS::NetStructure& net_structure, 
     if (!input_data.empty()) {
         param->data_in_resource = true;
         auto input_dims         = input_tensor->shape;
-        if (input_dims.size() != 2) {
-            LOGE("TNN TFLite Converter only support Gather's input dims size 2\n");
+        if (input_dims.size() <= 2) {
+            auto count                        = TNN_NS::DimsVectorUtils::Count(input_dims);
+            TNN_NS::RawBuffer data_raw_buffer = TNN_NS::RawBuffer(count * sizeof(float), input_dims);
+            data_raw_buffer.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+            memcpy(data_raw_buffer.force_to<float*>(), input_data.data(), count * sizeof(float));
+            resource->data = data_raw_buffer;
+            cur_layer->inputs.erase(cur_layer->inputs.begin());
+        } else if (input_dims.size() == 3 || input_dims.size() == 4) {
+            int n, c, h, w;
+            if (input_dims.size() == 3) {
+                n = input_dims[0];
+                h = input_dims[1];
+                w = 1;
+                c = input_dims[2];
+            } else {
+                n = input_dims[0];
+                h = input_dims[1];
+                w = input_dims[2];
+                c = input_dims[3];
+            }
+            const int count                   = TNN_NS::DimsVectorUtils::Count(input_dims);
+            TNN_NS::RawBuffer data_raw_buffer = TNN_NS::RawBuffer(count * sizeof(float), input_dims);
+            data_raw_buffer.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+            auto tmp_buffer = new float[count]();
+            TNN_NS::DataFormatConverter::ConvertBetweenNHWCAndNCHW<float>((float*)input_data.data(), tmp_buffer, n, c,
+                                                                          h, w, TNN_NS::DataFormatConverter::NHWC2NCHW);
+            memcpy(data_raw_buffer.force_to<float*>(), tmp_buffer, count * sizeof(float));
+            resource->data = data_raw_buffer;
+            delete[] tmp_buffer;
+            cur_layer->inputs.erase(cur_layer->inputs.begin());
+        } else {
+            LOGE("TNN TFLite Gather Converter does not support input dims size %lu\n", input_dims.size());
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
-        auto count                        = TNN_NS::DimsVectorUtils::Count(input_dims);
-        TNN_NS::RawBuffer data_raw_buffer = TNN_NS::RawBuffer(count * sizeof(float), input_dims);
-        data_raw_buffer.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
-        memcpy(data_raw_buffer.force_to<float*>(), input_data.data(), count * sizeof(float));
-        resource->data = data_raw_buffer;
-        cur_layer->inputs.erase(cur_layer->inputs.begin());
+
     } else {
         param->data_in_resource = false;
     }
@@ -69,16 +95,40 @@ TNN_NS::Status TFLiteGatherConverter::exec(TNN_NS::NetStructure& net_structure, 
     const auto& indices_data   = tf_lite_model_buffer[indices_tensor->buffer]->data;
     if (!indices_data.empty()) {
         auto indices_dims = input_tensor->shape;
-        if (indices_dims.size() != 2) {
-            LOGE("TNN TFLite Converter only support Gather's input dims size 2\n");
+        if (indices_dims.size() == 2) {
+            auto count                           = TNN_NS::DimsVectorUtils::Count(indices_dims);
+            TNN_NS::RawBuffer indices_raw_buffer = TNN_NS::RawBuffer(count * sizeof(int32_t), indices_dims);
+            indices_raw_buffer.SetDataType(TNN_NS::DATA_TYPE_INT32);
+            memcpy(indices_raw_buffer.force_to<float*>(), indices_data.data(), count * sizeof(int32_t));
+            resource->indices = indices_raw_buffer;
+            cur_layer->inputs.erase(cur_layer->inputs.begin() + 1);
+        } else if (indices_dims.size() == 3 || indices_dims.size() == 4) {
+            int n, c, h, w;
+            if (indices_dims.size() == 3) {
+                n = indices_dims[0];
+                h = indices_dims[1];
+                w = 1;
+                c = indices_dims[2];
+            } else {
+                n = indices_dims[0];
+                h = indices_dims[1];
+                w = indices_dims[2];
+                c = indices_dims[3];
+            }
+            const int count                      = TNN_NS::DimsVectorUtils::Count(indices_dims);
+            TNN_NS::RawBuffer indices_raw_buffer = TNN_NS::RawBuffer(count * sizeof(int32_t), indices_dims);
+            indices_raw_buffer.SetDataType(TNN_NS::DATA_TYPE_INT32);
+            auto tmp_buffer = new int32_t[count]();
+            TNN_NS::DataFormatConverter::ConvertBetweenNHWCAndNCHW<int32_t>(
+                (int32_t*)indices_data.data(), tmp_buffer, n, c, h, w, TNN_NS::DataFormatConverter::NHWC2NCHW);
+            memcpy(indices_raw_buffer.force_to<float*>(), tmp_buffer, count * sizeof(int32_t));
+            resource->indices = indices_raw_buffer;
+            delete[] tmp_buffer;
+            cur_layer->inputs.erase(cur_layer->inputs.begin() + 1);
+        } else {
+            LOGE("TNN TFLite Gather convert does not support indices dims size %lu\n", indices_dims.size());
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
-        auto count                           = TNN_NS::DimsVectorUtils::Count(indices_dims);
-        TNN_NS::RawBuffer indices_raw_buffer = TNN_NS::RawBuffer(count * sizeof(int32_t), indices_dims);
-        indices_raw_buffer.SetDataType(TNN_NS::DATA_TYPE_INT32);
-        memcpy(indices_raw_buffer.force_to<float*>(), indices_data.data(), count * sizeof(int32_t));
-        resource->indices = indices_raw_buffer;
-        cur_layer->inputs.erase(cur_layer->inputs.begin() + 1);
     } else {
         param->indices_in_resource = false;
     }
