@@ -16,6 +16,58 @@
 
 namespace TNN_NS {
 
+// c0 kh0kh1kh2 0, c1 kh0kh1kh2 0, c2 kh0kh1kh2 0, c3 kh0kh1kh2 0
+// c4 kh0kh1kh2 0, c5 kh0kh1kh2 0, c6 kh0kh1kh2 0, c7 kh0kh1kh2 0
+void PackSDOTDW3X3INT8Weight(const int8_t *src, int8_t *dst, int oc) {
+    int oc_r4 = ROUND_UP(oc, 4);
+    int oc_r4_align = oc_r4 / 8 * 8;
+    int o = 0;
+    for (; o < oc_r4_align; o += 8) {
+        auto src_o = src + o * 3 * 3; // kh x kw
+        auto dst_o = dst + o * 3 * 4; // kw x [kh0, kh1, kh2, 0]
+        for (int w = 0; w < 3; w++) {
+            auto src_w = src_o + w;
+            auto dst_w = dst_o + w * 8 * 4;
+            for (int c = 0; c < 8; c++) {
+                auto src_c = src_w + c * 3 * 3;
+                auto dst_c = dst_w + c * 4;
+                if (o + c < oc) {
+                    for (int h = 0; h < 3; h++) {
+                        dst_c[h] = src_c[h * 3];
+                    }
+                } else {
+                    for (int h = 0; h < 3; h++) {
+                        dst_c[h] = 0;
+                    }
+                }
+                dst_c[3] = 0;
+            }
+        }
+    }
+    if (o < oc_r4) {
+        auto src_o = src + o * 3 * 3; // kh x kw
+        auto dst_o = dst + o * 3 * 4; // kw x [kh0, kh1, kh2, 0]
+        for (int w = 0; w < 3; w++) {
+            auto src_w = src_o + w;
+            auto dst_w = dst_o + w * 4 * 4;
+            for (int c = 0; c < 4; c++) {
+                auto src_c = src_w + c * 3 * 3;
+                auto dst_c = dst_w + c * 4;
+                if (o + c < oc) {
+                    for (int h = 0; h < 3; h++) {
+                        dst_c[h] = src_c[h * 3];
+                    }
+                } else {
+                    for (int h = 0; h < 3; h++) {
+                        dst_c[h] = 0;
+                    }
+                }
+                dst_c[3] = 0;
+            }
+        }
+    }
+}
+
 void PackSDOTINT8Weight(const int8_t *src, int8_t *dst, int oc, int ic, int kh, int kw) {
     int oc_r4  = ROUND_UP(oc, 4);
     int ic_r4  = ROUND_UP(ic, 4);

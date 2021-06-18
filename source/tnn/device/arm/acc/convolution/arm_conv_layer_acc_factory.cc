@@ -22,7 +22,16 @@ ArmConvInt8LayerCommon always as the last solution
 */
 void ArmConvLayerAccFactory::CreateImpInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                                            LayerParam *param, std::shared_ptr<ArmLayerAcc> &conv_acc_impl) {
-    if (ArmConvInt8LayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+    if (0) {
+    }
+#ifdef TNN_ARM82_A64
+    else if (ArmConvInt8SdotLayerDepthwiseS1::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<ArmConvInt8SdotLayerDepthwiseS1 *>(conv_acc_impl.get())) {
+            conv_acc_impl = std::make_shared<ArmConvInt8SdotLayerDepthwiseS1>();
+        }
+    }
+#endif
+    else if (ArmConvInt8LayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
         if (!dynamic_cast<ArmConvInt8LayerDepthwise *>(conv_acc_impl.get())) {
             conv_acc_impl = std::make_shared<ArmConvInt8LayerDepthwise>();
         }

@@ -19,6 +19,7 @@ namespace TNN_NS {
 
 void PackSDOTINT8Weight(const int8_t *src, int8_t *dst, int oc, int ic, int kh, int kw);
 void PackSDOTINT8WeightGemv(const int8_t *src, int8_t *dst, const int oc, const int ic, const int hw);
+void PackSDOTDW3X3INT8Weight(const int8_t *src, int8_t *dst, int oc);
 
 #ifdef TNN_ARM82_A64
 #ifdef __cplusplus
@@ -39,6 +40,11 @@ void GemmInt8SdotUnit8x4(int8_t* dst, const int8_t* src, const int8_t* weight,
 
 void GemvInt8Sdot(int8_t* dst, const int8_t* src, const int8_t* weight,
                   const int32_t* bias, const float* scale, long ic_r4, long oc_r4);
+
+void ConvDw3x3Int8SdotSlideW(int8_t *dst_z, int8_t **src, const int8_t* weight_z, const int32_t* bias_z,
+                             const float* scale_z, long dc, long dst_depth, long width);
+void ConvDw3x3Int8SdotSlideWLeftC4(int8_t *dst_z, int8_t **src, const int8_t* weight_z, const int32_t* bias_z,
+                             const float* scale_z, long dc, long dst_depth, long width);
 
 #ifdef __cplusplus
 }
