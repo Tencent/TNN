@@ -239,9 +239,27 @@ Status Instance::SetInputMat(std::shared_ptr<Mat> mat, MatConvertParam param, st
     return TNN_OK;
 }
 
+bool NeedDoConvert(const MatConvertParam &param) {
+    for (auto s : param.scale) {
+        if (s != 1.0f) {
+            return true;
+        }
+    }
+    for (auto b : param.bias) {
+        if (b != 0.0f) {
+            return true;
+        }
+    }
+    if (param.reverse_channel) {
+        return true;
+    }
+
+    return false;
+}
+
 // get output Mat
 Status Instance::GetOutputMat(std::shared_ptr<Mat> &mat, MatConvertParam param, std::string output_name,
-                              DeviceType device, MatType mat_type) {
+                              DeviceType device, MatType mat_type, bool alloc_memory) {
     // get output blobs
     BlobMap output_blobs;
     auto status = network_->GetAllOutputBlobs(output_blobs);
@@ -267,6 +285,17 @@ Status Instance::GetOutputMat(std::shared_ptr<Mat> &mat, MatConvertParam param, 
         return TNN_OK;
     }
 
+    // check whether mat share memory with blob is valid
+    if (!alloc_memory) {
+        if (device != net_config_.device_type) {
+            return Status(TNNERR_PARAM_ERR, "output mat device type must be the same with network when set share memmory");
+        } else if (device != DEVICE_CUDA && device != DEVICE_NAIVE) {
+            return Status(TNNERR_PARAM_ERR, "only cuda or naive network support output mat share memory with blob");
+        } else if (NeedDoConvert(param)) {
+            return Status(TNNERR_PARAM_ERR, "output mat not support convert when share memory with blob");
+        }
+    }
+
     // check if it has been allocated or reallocated for dims change.
     // allocate output mat
     bool need_allocate = true;
@@ -280,31 +309,40 @@ Status Instance::GetOutputMat(std::shared_ptr<Mat> &mat, MatConvertParam param, 
 
     if (need_allocate) {
         auto dims                 = output_blobs[output_name]->GetBlobDesc().dims;
-        std::shared_ptr<TNN_NS::Mat> output_mat(new TNN_NS::Mat(device, mat_type, dims));
-        output_mats_[output_name] = output_mat;
+        if (alloc_memory) {
+            std::shared_ptr<TNN_NS::Mat> output_mat(new TNN_NS::Mat(device, mat_type, dims));
+            output_mats_[output_name] = output_mat;
+        } else {
+            void *data = (void *)(reinterpret_cast<char*>(output_blobs[output_name]->GetHandle().base) +
+                                  output_blobs[output_name]->GetHandle().bytes_offset);
+            std::shared_ptr<TNN_NS::Mat> output_mat(new TNN_NS::Mat(device, mat_type, dims, data));
+            output_mats_[output_name] = output_mat;
+        }
     }
 
     mat = output_mats_[output_name];
 
-    // check blob convert
-    std::shared_ptr<BlobConverter> blob_converter = nullptr;
-    if (output_converters_.size() > 0 && output_converters_.find(output_name) != output_converters_.end()) {
-        blob_converter = output_converters_[output_name];
-    } else {
-        auto input_blob                 = output_blobs[output_name];
-        blob_converter                  = std::make_shared<BlobConverter>(input_blob);
-        output_converters_[output_name] = blob_converter;
-    }
+    if (alloc_memory) {
+        // check blob convert
+        std::shared_ptr<BlobConverter> blob_converter = nullptr;
+        if (output_converters_.size() > 0 && output_converters_.find(output_name) != output_converters_.end()) {
+            blob_converter = output_converters_[output_name];
+        } else {
+            auto input_blob                 = output_blobs[output_name];
+            blob_converter                  = std::make_shared<BlobConverter>(input_blob);
+            output_converters_[output_name] = blob_converter;
+        }
 
-    // get command queue
-    void *command_queue = nullptr;
-    network_->GetCommandQueue(&command_queue);
-    status = blob_converter->ConvertToMat(*(mat.get()), param, command_queue);
-    if (status == TNN_NS::TNN_OK) {
-        // set output mat convert status
-        output_mats_convert_status_[output_name] = 1;
-    } else {
-        LOGE("output_blob_convert.ConvertFromMat Error: %s\n", status.description().c_str());
+        // get command queue
+        void *command_queue = nullptr;
+        network_->GetCommandQueue(&command_queue);
+        status = blob_converter->ConvertToMat(*(mat.get()), param, command_queue);
+        if (status == TNN_NS::TNN_OK) {
+            // set output mat convert status
+            output_mats_convert_status_[output_name] = 1;
+        } else {
+            LOGE("output_blob_convert.ConvertFromMat Error: %s\n", status.description().c_str());
+        }
     }
 
     return status;

@@ -125,10 +125,12 @@ public:
                        std::string input_name = "");
     
     // get output Mat, if output_name is not set, take the first output as default
+    // if alloc_memory is false, share memory with output blob
     Status GetOutputMat(std::shared_ptr<Mat>& mat,
                         MatConvertParam param = MatConvertParam(),
                         std::string output_name = "",
-                        DeviceType device = DEVICE_ARM, MatType mat_type = NCHW_FLOAT);
+                        DeviceType device = DEVICE_ARM, MatType mat_type = NCHW_FLOAT,
+                        bool alloc_memory = true);
     
 private:
     // input converter
