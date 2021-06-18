@@ -45,9 +45,7 @@ Status initOCRDetector(std::shared_ptr<OCRDriver> &predictor, DimsVector &target
     compute_units = TNN_NS::TNNComputeUnitsCPU;
     // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
     #ifdef _CUDA_
-        compute_units = TNN_NS::TNNComputeUnitsTensorRT;
-    #elif _OPENVINO_
-        compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+        compute_units = TNN_NS::TNNComputeUnitsGPU;
     #endif
 
     std::string protoContent, modelContent;

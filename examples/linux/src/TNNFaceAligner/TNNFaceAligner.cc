@@ -64,9 +64,7 @@ Status initDetectPredictor(std::shared_ptr<BlazeFaceDetector>& predictor, int ar
         detect_option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
-            detect_option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
-        #elif _OPENVINO_
-            detect_option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+            detect_option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         #endif
         
         detect_option->min_score_threshold = 0.75;
@@ -109,9 +107,7 @@ Status initFaceAlignPredictor(std::shared_ptr<YoutuFaceAlign>& predictor, int ar
         align_option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
-            align_option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
-        #elif _OPENVINO_
-            align_option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+            align_option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         #endif
 
         // set parameters

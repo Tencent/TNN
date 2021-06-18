@@ -74,9 +74,7 @@ int main(int argc, char **argv) {
         option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
-            option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
-        #elif _OPENVINO_
-            option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+            option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         #endif
         
         option->input_shapes.insert(std::pair<std::string, DimsVector>("input_ids_0", nchw));

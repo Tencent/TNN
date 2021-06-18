@@ -82,9 +82,7 @@ Status Worker::Init(std::string model_path) {
     // if enable openvino, set computUnitType to TNNComputeUnitsOpenvino
     TNN_NS::TNNComputeUnits computUnitType = TNN_NS::TNNComputeUnitsCPU;
 #ifdef _CUDA_
-    computUnitType = TNN_NS::TNNComputeUnitsTensorRT;
-#elif _OPENVINO_
-    computUnitType = TNN_NS::TNNComputeUnitsOpenvino;
+    computUnitType = TNN_NS::TNNComputeUnitsGPU;
 #endif
 
     auto option = std::make_shared<TNN_NS::UltraFaceDetectorOption>();
