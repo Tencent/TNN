@@ -221,7 +221,22 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
 
 Status TensorRTNetwork_::Forward() {
     CUDA_CHECK(cudaSetDevice(device_id_));
-    bool ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
+    BlobMap inputs;
+    auto ret = blob_manager_->GetAllInputBlobs(inputs);
+    if (ret != TNN_OK) {
+        LOGE("ERROR: get input blobs failed");
+        return ret;
+    }
+
+    for (auto iter : inputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
+        nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
+        m_trt_context->setBindingDimensions(index, inputDims);
+        this->m_trt_bindings[index] = iter.second->GetHandle().base;
+    }
+
+    ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
         dynamic_cast<CudaContext*>(context_)->GetStream(), nullptr);
     if (ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
@@ -328,7 +343,22 @@ Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
 
 Status TensorRTNetwork_::ForwardAsync(Callback call_back) {
     CUDA_CHECK(cudaSetDevice(device_id_));
-    bool ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
+    BlobMap inputs;
+    auto ret = blob_manager_->GetAllInputBlobs(inputs);
+    if (ret != TNN_OK) {
+        LOGE("ERROR: get input blobs failed");
+        return ret;
+    }
+
+    for (auto iter : inputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
+        nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
+        m_trt_context->setBindingDimensions(index, inputDims);
+        this->m_trt_bindings[index] = iter.second->GetHandle().base;
+    }
+
+    ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
         dynamic_cast<CudaContext*>(context_)->GetStream(), nullptr);
     if (ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
