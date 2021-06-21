@@ -24,6 +24,9 @@
 using namespace TNN_NS;
 
 namespace TNN_NS {
+
+DataType RawBuffer::dst_data_type_ = DATA_TYPE_FLOAT;
+
 RawBuffer::~RawBuffer() {
     buff_ = nullptr;
 }
@@ -210,6 +213,21 @@ RawBuffer ConvertHalfToBFP16(RawBuffer &buf) {
     }
 }
 
+/*
+ * Convert the data handle form float to half
+ */
+RawBuffer ConvertFloatToHalf(RawBuffer &buf) {
+    if (buf.GetBytesSize() > 0 && buf.GetDataType() == DATA_TYPE_FLOAT) {
+        auto data_count = buf.GetDataCount();
+        RawBuffer buf_half(data_count * sizeof(fp16_t));
+        ConvertFromFloatToHalf(buf.force_to<float *>(), buf_half.force_to<void *>(), data_count);
+        buf_half.SetDataType(DATA_TYPE_HALF);
+        return buf_half;
+    } else {
+        return buf;
+    }
+}
+
 std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer) {
     int element_size = 0;
     DataType type    = raw_buffer.GetDataType();
@@ -232,6 +250,16 @@ std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer) {
     }
 
     return float_data;
+}
+
+RawBuffer ConverRawbuffer(RawBuffer &buf) {
+    if (buf.GetDataType() == DATA_TYPE_FLOAT) {
+        if (RawBuffer::dst_data_type_ == DATA_TYPE_HALF) {
+            return ConvertFloatToHalf(buf);
+        }
+    }
+
+    return buf;
 }
 
 }  // namespace TNN_NS

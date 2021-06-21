@@ -29,6 +29,12 @@
 namespace TNN_CONVERTER {
 int Run(int argc, char* argv[]) {
     ParseCommandLine(argc, argv);
+
+    // Set the target data type to be saved
+    if (FLAGS_half) {
+        TNN_NS::RawBuffer::dst_data_type_ = TNN_NS::DATA_TYPE_HALF;
+    }
+
     auto interpreter =
         std::shared_ptr<TNN_NS::AbstractModelInterpreter>(TNN_NS::CreateModelInterpreter(TNN_NS::MODEL_TYPE_TNN));
     TNN_NS::NetStructure& net_structure =

@@ -47,6 +47,7 @@ namespace TNN_NS {
         }
 
         virtual void PutRaw(TNN_NS::RawBuffer &value) {
+            value = ConverRawbuffer(value);
             int length = value.GetBytesSize();
             auto data_type = (TNN_NS::DataType)value.GetDataType();
             DimsVector  dims  = value.GetBufferDims();

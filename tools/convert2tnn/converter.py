@@ -108,13 +108,14 @@ def main():
         tf_path = parse_path.parse_path(args.tf_path)
         output_dir = parse_path.parse_path(args.output_dir)
         version = args.version
+        half = args.half
         align = args.align.lower()
         input_file = args.input_file_path
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
         try:
-            tflite2tnn.convert(tf_path,  output_dir, version, align, input_file, ref_file, debug_mode=debug_mode)
+            tflite2tnn.convert(tf_path,  output_dir, version, half, align, input_file, ref_file, debug_mode=debug_mode)
         except Exception as err:
            logging.error("\n Conversion to  tnn failed :(\n")
            logging.error(err)

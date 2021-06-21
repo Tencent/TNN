@@ -57,6 +57,9 @@ public:
         return reinterpret_cast<T>(buff_ ? buff_.get() : nullptr);
     }
 
+    // Record the target data type be saved.
+    static DataType dst_data_type_;
+
 private:
     shared_ptr<char> buff_ = nullptr;
     int bytes_size_        = 0;
@@ -67,7 +70,10 @@ private:
 RawBuffer ConvertHalfHandle(RawBuffer &buf);
 RawBuffer ConvertFloatToBFP16(RawBuffer &buf);
 RawBuffer ConvertHalfToBFP16(RawBuffer &buf);
+RawBuffer ConvertFloatToHalf(RawBuffer &buf);
 std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer);
+
+RawBuffer ConverRawbuffer(RawBuffer &buf);
 
 }  // namespace TNN_NS
 
