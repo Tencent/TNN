@@ -161,6 +161,7 @@ struct PoolingLayerParam : public LayerParam {
     std::vector<int> kernel_indexs;
 
     int is_adaptive_pool = 0;
+    int is_global_pool = 0;
     // order [w h d]
     std::vector<int> output_shape;
 
@@ -648,6 +649,15 @@ struct EinsumLayerParam : public LayerParam {
     std::vector<DimsVector> operand_dims;
 
     PARAM_COPY(EinsumLayerParam)
+};
+
+struct TopKLayerParam : public LayerParam {
+    int axis = -1;
+    int largest = 1;
+    int sorted = 1;
+    int k;
+
+    PARAM_COPY(TopKLayerParam)
 };
 
 };  // namespace TNN_NS

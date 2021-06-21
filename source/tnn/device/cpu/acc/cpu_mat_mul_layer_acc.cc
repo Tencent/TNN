@@ -58,8 +58,8 @@ Status CpuMatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         int batch_b   = count_b / (N * K);
         int batch_c   = count_c / (M * K);
         for (int bc = 0; bc < batch_c; ++bc) {
-            int ba = bc < batch_a ? bc : 0;
-            int bb = bc < batch_b ? bc : 0;
+            int ba = bc % batch_a;
+            int bb = bc % batch_b;
             
             for (int m = 0; m < M; ++m) {
                 for (int k = 0; k < K; ++k) {

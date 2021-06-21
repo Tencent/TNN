@@ -54,6 +54,10 @@ bool PadV2TRTPluginLayerBuilder::supportsFormatCombination(
     }
 }
 
+Status PadV2TRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* PadV2TRTPluginLayerBuilder::getPluginType() const {
     return "PadV2";
 }

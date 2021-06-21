@@ -59,7 +59,7 @@ TEST_P(TileLayerTest, TileLayer) {
     if (CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
-    if (!(DEVICE_NAIVE == dev || DEVICE_ARM == dev || DEVICE_CUDA == dev)) {
+    if (!(DEVICE_NAIVE == dev || DEVICE_ARM == dev || DEVICE_CUDA == dev || DEVICE_METAL == dev)) {
         GTEST_SKIP();
     }
 

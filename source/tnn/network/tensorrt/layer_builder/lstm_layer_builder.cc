@@ -28,6 +28,11 @@ bool LSTMONNXTRTPluginLayerBuilder::supportsFormatCombination(
     return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
 }
 
+Status LSTMONNXTRTPluginLayerBuilder::Reshape() {
+    return m_layer->Reshape();
+    return TNN_OK;
+}
+
 const char* LSTMONNXTRTPluginLayerBuilder::getPluginType() const {
     return "LSTMONNX";
 }

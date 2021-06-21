@@ -60,7 +60,7 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
  * Those object is initialized in this function.
  */
 Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder) {
     config_                                      = net_config;
     Status ret                                   = TNN_OK;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);

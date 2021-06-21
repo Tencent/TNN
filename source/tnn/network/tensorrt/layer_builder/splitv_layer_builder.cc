@@ -24,6 +24,10 @@ bool SplitVTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status SplitVTRTPluginLayerBuilder::Reshape() {
+    return m_layer->Reshape();
+}
+
 const char* SplitVTRTPluginLayerBuilder::getPluginType() const {
     return "SplitV";
 }
