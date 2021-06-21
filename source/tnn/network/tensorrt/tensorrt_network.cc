@@ -189,21 +189,10 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     int bind_num = m_trt_engine->getNbBindings();
     this->m_trt_bindings = new void*[bind_num];
 
-    for (auto iter : inputs) {
-        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
-        nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
-        m_trt_context->setBindingDimensions(index, inputDims);
-    }
-
-    for (auto iter : outputs) {
-        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        auto trt_dims = m_trt_context->getBindingDimensions(index).d;
-        DimsVector dims;
-        for (int i = 0; i < m_trt_context->getBindingDimensions(index).nbDims; i++) {
-            dims.push_back(trt_dims[i]);
-        }
-        blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims = dims;
+    ret = ReshapeLayers();
+    if (ret != TNN_OK) {
+        LOGE("tensorrt network reshape layers failed\n");
+        return ret;
     }
 
     ret = blob_manager_->AllocateBlobMemory();
@@ -216,7 +205,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
     }
 
-    return ReshapeLayers();
+    return TNN_OK;
 }
 
 Status TensorRTNetwork_::Forward() {
@@ -281,16 +270,6 @@ Status TensorRTNetwork_::ReshapeLayers() {
         return ret;
     }
 
-    for (auto iter : outputs) {
-        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        auto trt_dims = m_trt_context->getBindingDimensions(index).d;
-        DimsVector dims;
-        for (int i = 0; i < m_trt_context->getBindingDimensions(index).nbDims; i++) {
-            dims.push_back(trt_dims[i]);
-        }
-        blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims = dims;
-    }
-
     for (auto blob_name : const_input_blobs_) {
         Blob *blob = blob_manager_->GetBlob(blob_name);
         auto buf = net_resource_->constant_map[blob_name];
@@ -313,6 +292,16 @@ Status TensorRTNetwork_::ReshapeLayers() {
         if (!ret) {
             return Status(TNNERR_PARAM_ERR, "Reshape failed\n");
         }
+    }
+
+    for (auto iter : outputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        auto trt_dims = m_trt_context->getBindingDimensions(index).d;
+        DimsVector dims;
+        for (int i = 0; i < m_trt_context->getBindingDimensions(index).nbDims; i++) {
+            dims.push_back(trt_dims[i]);
+        }
+        blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims = dims;
     }
 
     return TNN_OK;
@@ -352,9 +341,6 @@ Status TensorRTNetwork_::ForwardAsync(Callback call_back) {
 
     for (auto iter : inputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
-        nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
-        m_trt_context->setBindingDimensions(index, inputDims);
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
     }
 
