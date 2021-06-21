@@ -60,6 +60,7 @@ Status CudaTileLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
             cudaMemcpyHostToDevice, context_->GetStream());
         cudaMemcpyAsync(tempbufs_[1].ptr, output_dims.data(), output_dims.size()*sizeof(int),
             cudaMemcpyHostToDevice, context_->GetStream());
+        this->is_reshaped = true;
     }
 
     int count = DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims);

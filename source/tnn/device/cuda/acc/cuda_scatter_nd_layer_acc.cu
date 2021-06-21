@@ -94,6 +94,7 @@ Status CudaScatterNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
             cudaMemcpyAsync(tempbufs_[0].ptr, element_counts_.data(), last_indice_dimension * sizeof(int),
                 cudaMemcpyHostToDevice, context_->GetStream());
         }
+        this->is_reshaped = true;
     }
 
     if (inputs.size() < 3) {
