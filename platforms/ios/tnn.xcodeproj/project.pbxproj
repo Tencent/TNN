@@ -7,6 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		320CCF242681CB910086E65C /* CONV_DW_3X3_INT8_SDOT_SLIDEW.S in Sources */ = {isa = PBXBuildFile; fileRef = 320CCF202681CB910086E65C /* CONV_DW_3X3_INT8_SDOT_SLIDEW.S */; };
+		320CCF252681CB910086E65C /* GEMM_INT8_SDOT_8X4.S in Sources */ = {isa = PBXBuildFile; fileRef = 320CCF212681CB910086E65C /* GEMM_INT8_SDOT_8X4.S */; };
+		320CCF262681CB910086E65C /* GEMM_INT8_SDOT_8X8.S in Sources */ = {isa = PBXBuildFile; fileRef = 320CCF222681CB910086E65C /* GEMM_INT8_SDOT_8X8.S */; };
+		320CCF272681CB910086E65C /* GEMV_INT8_SDOT.S in Sources */ = {isa = PBXBuildFile; fileRef = 320CCF232681CB910086E65C /* GEMV_INT8_SDOT.S */; };
+		320CCF2E2681CC090086E65C /* arm_conv_int8_sdot_layer_common.cc in Sources */ = {isa = PBXBuildFile; fileRef = 320CCF2A2681CC090086E65C /* arm_conv_int8_sdot_layer_common.cc */; };
+		320CCF2F2681CC090086E65C /* arm_conv_int8_sdot_layer_depthwise_s1.cc in Sources */ = {isa = PBXBuildFile; fileRef = 320CCF2B2681CC090086E65C /* arm_conv_int8_sdot_layer_depthwise_s1.cc */; };
+		320CCF302681CC090086E65C /* compute_sdot_int8.h in Headers */ = {isa = PBXBuildFile; fileRef = 320CCF2C2681CC090086E65C /* compute_sdot_int8.h */; };
+		320CCF312681CC090086E65C /* compute_sdot_int8.cc in Sources */ = {isa = PBXBuildFile; fileRef = 320CCF2D2681CC090086E65C /* compute_sdot_int8.cc */; };
+		320CCF352681CC3D0086E65C /* arm_conv_int8_sdot_layer_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 320CCF332681CC3D0086E65C /* arm_conv_int8_sdot_layer_common.h */; };
+		320CCF362681CC3D0086E65C /* arm_conv_int8_sdot_layer_depthwise_s1.h in Headers */ = {isa = PBXBuildFile; fileRef = 320CCF342681CC3D0086E65C /* arm_conv_int8_sdot_layer_depthwise_s1.h */; };
+		320CCF3B2681CE570086E65C /* CONV_DW_3X3_INT8_SLIDEW.S in Sources */ = {isa = PBXBuildFile; fileRef = 320CCF3A2681CE570086E65C /* CONV_DW_3X3_INT8_SLIDEW.S */; };
 		369005C5267314D900412264 /* pad_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 369005C3267314D900412264 /* pad_utils.cc */; };
 		369005C6267314D900412264 /* pad_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 369005C4267314D900412264 /* pad_utils.h */; };
 		4E187CFA267202BF00804FDF /* roialign_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4E187CF0267202BE00804FDF /* roialign_layer_interpreter.cc */; };
@@ -971,6 +982,17 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		320CCF202681CB910086E65C /* CONV_DW_3X3_INT8_SDOT_SLIDEW.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = CONV_DW_3X3_INT8_SDOT_SLIDEW.S; sourceTree = "<group>"; };
+		320CCF212681CB910086E65C /* GEMM_INT8_SDOT_8X4.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = GEMM_INT8_SDOT_8X4.S; sourceTree = "<group>"; };
+		320CCF222681CB910086E65C /* GEMM_INT8_SDOT_8X8.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = GEMM_INT8_SDOT_8X8.S; sourceTree = "<group>"; };
+		320CCF232681CB910086E65C /* GEMV_INT8_SDOT.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = GEMV_INT8_SDOT.S; sourceTree = "<group>"; };
+		320CCF2A2681CC090086E65C /* arm_conv_int8_sdot_layer_common.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_conv_int8_sdot_layer_common.cc; sourceTree = "<group>"; };
+		320CCF2B2681CC090086E65C /* arm_conv_int8_sdot_layer_depthwise_s1.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_conv_int8_sdot_layer_depthwise_s1.cc; sourceTree = "<group>"; };
+		320CCF2C2681CC090086E65C /* compute_sdot_int8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = compute_sdot_int8.h; sourceTree = "<group>"; };
+		320CCF2D2681CC090086E65C /* compute_sdot_int8.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = compute_sdot_int8.cc; sourceTree = "<group>"; };
+		320CCF332681CC3D0086E65C /* arm_conv_int8_sdot_layer_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_conv_int8_sdot_layer_common.h; sourceTree = "<group>"; };
+		320CCF342681CC3D0086E65C /* arm_conv_int8_sdot_layer_depthwise_s1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_conv_int8_sdot_layer_depthwise_s1.h; sourceTree = "<group>"; };
+		320CCF3A2681CE570086E65C /* CONV_DW_3X3_INT8_SLIDEW.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = CONV_DW_3X3_INT8_SLIDEW.S; sourceTree = "<group>"; };
 		369005C3267314D900412264 /* pad_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pad_utils.cc; sourceTree = "<group>"; };
 		369005C4267314D900412264 /* pad_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pad_utils.h; sourceTree = "<group>"; };
 		4E187CF0267202BE00804FDF /* roialign_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = roialign_layer_interpreter.cc; path = tnn/layer_interpreter/roialign_layer_interpreter.cc; sourceTree = "<group>"; };
@@ -2956,6 +2978,7 @@
 		9DF54339258B1364006CEC97 /* arm64 */ = {
 			isa = PBXGroup;
 			children = (
+				320CCF3A2681CE570086E65C /* CONV_DW_3X3_INT8_SLIDEW.S */,
 				9DF5433A258B1364006CEC97 /* CONV_BFP16_O4.S */,
 				9DF5433B258B1364006CEC97 /* CONV_FLOAT_SLIDEW_C3.S */,
 				9DF5433C258B1364006CEC97 /* CONV_DW_5x5_BFP16_SLIDEW.S */,
@@ -2976,6 +2999,8 @@
 		9DF54363258B1365006CEC97 /* convolution */ = {
 			isa = PBXGroup;
 			children = (
+				320CCF332681CC3D0086E65C /* arm_conv_int8_sdot_layer_common.h */,
+				320CCF342681CC3D0086E65C /* arm_conv_int8_sdot_layer_depthwise_s1.h */,
 				9DF54364258B1365006CEC97 /* arm_conv_int8_layer_depthwise.cc */,
 				9DF54365258B1365006CEC97 /* arm_conv_layer_depthwise_s1.h */,
 				9DF54366258B1365006CEC97 /* arm_conv_layer_common.cc */,
@@ -3012,6 +3037,10 @@
 		E4D05B7B259DCB2D00921502 /* compute_arm82 */ = {
 			isa = PBXGroup;
 			children = (
+				320CCF2A2681CC090086E65C /* arm_conv_int8_sdot_layer_common.cc */,
+				320CCF2B2681CC090086E65C /* arm_conv_int8_sdot_layer_depthwise_s1.cc */,
+				320CCF2D2681CC090086E65C /* compute_sdot_int8.cc */,
+				320CCF2C2681CC090086E65C /* compute_sdot_int8.h */,
 				EC626D452615B20300750B31 /* arm_binary_fp16_layer_acc.cc */,
 				E4D05B7C259DCB2D00921502 /* arm_conv_fp16_layer_depthwise.cc */,
 				E4D05BF5259F161000921502 /* arm_batch_norm_fp16_layer.cc */,
@@ -3056,6 +3085,10 @@
 		E4D05B92259DCB2D00921502 /* asm_64 */ = {
 			isa = PBXGroup;
 			children = (
+				320CCF202681CB910086E65C /* CONV_DW_3X3_INT8_SDOT_SLIDEW.S */,
+				320CCF212681CB910086E65C /* GEMM_INT8_SDOT_8X4.S */,
+				320CCF222681CB910086E65C /* GEMM_INT8_SDOT_8X8.S */,
+				320CCF232681CB910086E65C /* GEMV_INT8_SDOT.S */,
 				E4D05B93259DCB2D00921502 /* DECONV_FP16_O8_C1.S */,
 				E4D05B94259DCB2D00921502 /* CONV_DW_3X3_FP16_SLIDEW.S */,
 				E4D05B95259DCB2D00921502 /* GEMM_FP16_N8.S */,
@@ -3321,6 +3354,7 @@
 				9DF543BB258B1366006CEC97 /* arm_deconv_fp16_layer_depthwise.h in Headers */,
 				9D32FC8724557EEC002DCDAB /* blob_2d_memory_pool.h in Headers */,
 				ECCDCE8425DF536000D7D297 /* cpu_context.h in Headers */,
+				320CCF362681CC3D0086E65C /* arm_conv_int8_sdot_layer_depthwise_s1.h in Headers */,
 				9DF19EA224A200AC00E1376D /* metal_cpu_adapter_acc.h in Headers */,
 				9DD1FB78247CE9BE00800139 /* metal_deconv_layer_common.h in Headers */,
 				ECCDCE9325DF536000D7D297 /* cpu_detection_post_process_layer_acc.h in Headers */,
@@ -3336,6 +3370,7 @@
 				9DD1FBB8247CE9BE00800139 /* metal_conv_layer_acc.h in Headers */,
 				9DF26BDA24645EA500F22F0D /* naive_compute.h in Headers */,
 				9DF54430258B1367006CEC97 /* arm_conv_layer_depthwise.h in Headers */,
+				320CCF352681CC3D0086E65C /* arm_conv_int8_sdot_layer_common.h in Headers */,
 				4E187D2B2672030500804FDF /* arm_concat_layer_acc.h in Headers */,
 				EC0BE1BC251DBE65009BD69A /* mat_converter_utils.h in Headers */,
 				4E187D3F2672036B00804FDF /* metal_mat_mul_layer_acc.h in Headers */,
@@ -3414,6 +3449,7 @@
 				EC39A3FC25FB65E000891D9A /* half.hpp in Headers */,
 				9DF54400258B1366006CEC97 /* arm_reshape_layer_acc.h in Headers */,
 				9D32FF3924557EED002DCDAB /* default_model_packer.h in Headers */,
+				320CCF302681CC090086E65C /* compute_sdot_int8.h in Headers */,
 				9DF5444A258B162F006CEC97 /* npu_common_utils.h in Headers */,
 				9DF5439B258B1366006CEC97 /* arm_nchw_layer_acc.h in Headers */,
 				9D2DB1D622D759C8000C508F /* tnn.h in Headers */,
@@ -3664,6 +3700,7 @@
 				9D32FCAD24557EEC002DCDAB /* string_format.cc in Sources */,
 				9D32FCD324557EEC002DCDAB /* inner_product_layer.cc in Sources */,
 				ECCDCF1825E0F97500D7D297 /* scatter_nd_layer.cc in Sources */,
+				320CCF242681CB910086E65C /* CONV_DW_3X3_INT8_SDOT_SLIDEW.S in Sources */,
 				9DF54423258B1367006CEC97 /* arm_conv_layer_depthwise.cc in Sources */,
 				9D32FF3E24557EED002DCDAB /* net_structure.cc in Sources */,
 				ECCDCEB225DF536000D7D297 /* cpu_detection_output_layer_acc.cc in Sources */,
@@ -3734,6 +3771,7 @@
 				9D32FC9424557EEC002DCDAB /* memory_seperate_assign_strategy.cc in Sources */,
 				ECCDCEEE25DF536000D7D297 /* cpu_reshape_layer_acc.cc in Sources */,
 				9D32FF5C24557EED002DCDAB /* relu_layer_interpreter.cc in Sources */,
+				320CCF2E2681CC090086E65C /* arm_conv_int8_sdot_layer_common.cc in Sources */,
 				ECCDCEAF25DF536000D7D297 /* cpu_sub_layer_acc.cc in Sources */,
 				9DD1FBD0247CE9BF00800139 /* metal_sub_layer_acc.metal in Sources */,
 				9D32FF6524557EED002DCDAB /* layer_type.cc in Sources */,
@@ -3742,6 +3780,7 @@
 				E4D05BC6259DCB2E00921502 /* arm_conv_fp16_layer_3x3.cc in Sources */,
 				ECCDCEE225DF536000D7D297 /* cpu_ceil_layer_acc.cc in Sources */,
 				E44D946426048BE7003FE4A3 /* arm_lstm_fp16_layer.cc in Sources */,
+				320CCF272681CB910086E65C /* GEMV_INT8_SDOT.S in Sources */,
 				9D32FCD424557EEC002DCDAB /* atan_layer.cc in Sources */,
 				9D32FF2124557EED002DCDAB /* selu_layer_interpreter.cc in Sources */,
 				9D32FF2224557EED002DCDAB /* lrn_layer_interpreter.cc in Sources */,
@@ -3749,6 +3788,7 @@
 				E4D05BAF259DCB2E00921502 /* DECONV_FP16_O8.S in Sources */,
 				E44D947B26048C32003FE4A3 /* cpu_info.cc in Sources */,
 				E4D05BF2259F15C700921502 /* arm_prelu_layer_acc.cc in Sources */,
+				320CCF3B2681CE570086E65C /* CONV_DW_3X3_INT8_SLIDEW.S in Sources */,
 				9DD1FB83247CE9BE00800139 /* metal_exp_layer_acc.mm in Sources */,
 				ECCDCEB825DF536000D7D297 /* cpu_conv_layer_acc.cc in Sources */,
 				ECCDCEB725DF536000D7D297 /* cpu_detection_post_process_layer_acc.cc in Sources */,
@@ -3885,6 +3925,7 @@
 				ECCDCEDD25DF536000D7D297 /* cpu_exp_layer_acc.cc in Sources */,
 				9D32FF2424557EED002DCDAB /* hard_sigmoid_layer_interpreter.cc in Sources */,
 				4E187D20267202D800804FDF /* roialign_layer.cc in Sources */,
+				320CCF262681CB910086E65C /* GEMM_INT8_SDOT_8X8.S in Sources */,
 				9DD1FB72247CE9BE00800139 /* metal_deconv_layer_common.mm in Sources */,
 				EC626D4D2615B21A00750B31 /* arm_expand_layer_acc.cc in Sources */,
 				E4D05BC0259DCB2E00921502 /* HALF2FLOAT.S in Sources */,
@@ -3965,6 +4006,7 @@
 				9D32FF3224557EED002DCDAB /* concat_layer_interpreter.cc in Sources */,
 				9DF5441A258B1367006CEC97 /* arm_conv_int8_layer_1x1.cc in Sources */,
 				9D32FCD924557EEC002DCDAB /* detection_output_layer.cc in Sources */,
+				320CCF2F2681CC090086E65C /* arm_conv_int8_sdot_layer_depthwise_s1.cc in Sources */,
 				ECCDCF2625E0F97500D7D297 /* gather_layer.cc in Sources */,
 				9DD1FBBB247CE9BE00800139 /* metal_conv_layer_common.metal in Sources */,
 				9D32FCE924557EEC002DCDAB /* pad_layer.cc in Sources */,
@@ -4096,6 +4138,7 @@
 				EC626D4E2615B21A00750B31 /* arm_cast_layer_acc.cc in Sources */,
 				9DD1FB35247CE9BE00800139 /* metal_device.mm in Sources */,
 				9DF543AD258B1366006CEC97 /* arm_trig_layer_acc.cc in Sources */,
+				320CCF312681CC090086E65C /* compute_sdot_int8.cc in Sources */,
 				E4D05BBE259DCB2E00921502 /* CONV_FP16_SLIDEW_C3.S in Sources */,
 				ECCDCEBA25DF536000D7D297 /* cpu_add_layer_acc.cc in Sources */,
 				ECCDCF1D25E0F97500D7D297 /* mat_mul_layer.cc in Sources */,
@@ -4114,6 +4157,7 @@
 				9D32FCC024557EEC002DCDAB /* sigmoid_layer.cc in Sources */,
 				9D32FCE724557EEC002DCDAB /* reduce_mean_layer.cc in Sources */,
 				ECCDCEBE25DF536000D7D297 /* cpu_relu_layer_acc.cc in Sources */,
+				320CCF252681CB910086E65C /* GEMM_INT8_SDOT_8X4.S in Sources */,
 				EC0BE17925144C10009BD69A /* reorg_layer_interpreter.cc in Sources */,
 				EC626D422615B1F800750B31 /* binary_function.cc in Sources */,
 				9DD1FB45247CE9BE00800139 /* metal_hard_swish_layer_acc.metal in Sources */,
