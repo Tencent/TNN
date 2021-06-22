@@ -60,6 +60,13 @@ static const std::vector<std::string> g_opencl_library_paths = {
 
 std::shared_ptr<OpenCLSymbols> OpenCLSymbols::opencl_symbols_singleton_ = nullptr;
 
+int LoadOpenCLSymbol() {
+    if (false == TNN_NS::OpenCLSymbols::GetInstance()->LoadOpenCLLibrary()) {
+        return 0x9001;
+    }
+    return 0;
+}
+
 OpenCLSymbols *OpenCLSymbols::GetInstance() {
     static std::once_flag opencl_symbol_once;
     std::call_once(opencl_symbol_once, []() { opencl_symbols_singleton_.reset(new OpenCLSymbols()); });
