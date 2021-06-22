@@ -79,7 +79,7 @@ Status Worker::Init(std::string model_path) {
     auto proto_content = fdLoadFile(model_path+"/face_detector/version-slim-320_simplified.tnnproto");
     auto model_content = fdLoadFile(model_path+"/face_detector/version-slim-320_simplified.tnnmodel");
 
-    // if enable openvino, set computUnitType to TNNComputeUnitsOpenvino
+    // if enable openvino, define macro _OPENVINO_
     TNN_NS::TNNComputeUnits computUnitType = TNN_NS::TNNComputeUnitsCPU;
 #ifdef _CUDA_
     computUnitType = TNN_NS::TNNComputeUnitsGPU;

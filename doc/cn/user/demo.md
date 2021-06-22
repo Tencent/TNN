@@ -523,14 +523,12 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 * 初始化predictor  
    ```cpp
    CHECK_TNN_STATUS(predictor->Init(option));
-   // 对 Linux/Window(OpenVINO)
-   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
-   // 对 Linux/Window(X86 native)
+   // 对 Linux/Window(X86 native / OPENVINO)
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // 对 ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // 对 CUDA
-   option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+   option->compute_units = TNN_NS::TNNComputeUnitsGPU;
    ```
 * 创建输入mat  
    ```cpp
@@ -555,14 +553,12 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 * 初始化predictor  
    ```cpp
    CHECK_TNN_STATUS(predictor->Init(option));
-   // 对 Linux/Window(OpenVINO)
-   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
-   // 对 Linux/Window(X86 native)
+   // 对 Linux/Window(X86 native / OPENVINO)
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // 对 ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // 对 CUDA
-   option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+   option->compute_units = TNN_NS::TNNComputeUnitsGPU;
    ```
 * 创建输入mat  
    ```cpp

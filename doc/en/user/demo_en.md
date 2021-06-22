@@ -526,14 +526,12 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
 * Init predictor:  
    ```cpp
    CHECK_TNN_STATUS(predictor->Init(option));
-   // for Linux/Windows(OpenVINO)
-   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
-   // for Linux/Windows(X86 native)
+   // for Linux/Windows(X86 native / OPENVINO)
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // for ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // for CUDA
-   option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+   option->compute_units = TNN_NS::TNNComputeUnitsGPU;
    ```
 * Create image_mat:  
    ```cpp
@@ -558,14 +556,12 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
 * Init predictor:  
    ```cpp
    CHECK_TNN_STATUS(predictor->Init(option));
-   // for Linux/Windows(OpenVINO)
-   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
-   // for Linux/Windows(X86 native)
+   // for Linux/Windows(X86 native / OPENVINO)
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // for ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // for CUDA
-   option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+   option->compute_units = TNN_NS::TNNComputeUnitsGPU;
    ```
 * Create image_mat:  
    ```cpp
