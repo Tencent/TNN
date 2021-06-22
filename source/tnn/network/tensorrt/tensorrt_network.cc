@@ -219,9 +219,6 @@ Status TensorRTNetwork_::Forward() {
 
     for (auto iter : inputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
-        nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
-        m_trt_context->setBindingDimensions(index, inputDims);
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
     }
 
