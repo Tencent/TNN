@@ -121,7 +121,7 @@ int Onnx2TNN::FuseShuffleChannel(onnx::GraphProto* mutable_graph, std::vector<In
                     break;
                 }
 
-                if (node_reference[node->input(0)] != 1 || node_reference[node_transpose->input(0)] != 1 ||
+                if (node_reference[node_transpose->input(0)] != 1 ||
                     node_reference[node_reshape2->input(0)] != 1) {
                     break;
                 }
@@ -219,7 +219,7 @@ int Onnx2TNN::FuseShuffleChannel(onnx::GraphProto* mutable_graph, std::vector<In
 
                     onnx::AttributeProto* attr_ends = node_gather2->add_attribute();
                     attr_ends->set_name("ends");
-                    attr_ends->add_ints(0);
+                    attr_ends->add_ints(INT_MAX);
 
                     onnx::AttributeProto* attr_axes = node_gather2->add_attribute();
                     attr_axes->set_name("axes");
