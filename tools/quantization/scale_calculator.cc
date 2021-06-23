@@ -13,6 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #include "scale_calculator.h"
+
+#include "tnn/utils/dims_vector_utils.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -110,11 +113,9 @@ int ScaleCalculator::UpdateRange() {
         return 0;
     }
 
-    int batch       = origin_blob_->GetBlobDesc().dims[0];
-    int channel     = origin_blob_->GetBlobDesc().dims[1];
-    int height      = origin_blob_->GetBlobDesc().dims[2];
-    int width       = origin_blob_->GetBlobDesc().dims[3];
-    int hxw         = height * width;
+    int batch   = origin_blob_->GetBlobDesc().dims[0];
+    int channel = origin_blob_->GetBlobDesc().dims[1];
+    int hxw     = DimsVectorUtils::Count(origin_blob_->GetBlobDesc().dims, 2);
     float* data_ptr = reinterpret_cast<float*>(static_cast<char*>(origin_blob_->GetHandle().base) +
                                                origin_blob_->GetHandle().bytes_offset);
 
@@ -167,11 +168,9 @@ int ScaleCalculator::UpdateDistribute() {
         return 0;
     }
 
-    int batch       = origin_blob_->GetBlobDesc().dims[0];
-    int channel     = origin_blob_->GetBlobDesc().dims[1];
-    int height      = origin_blob_->GetBlobDesc().dims[2];
-    int width       = origin_blob_->GetBlobDesc().dims[3];
-    int hxw         = height * width;
+    int batch   = origin_blob_->GetBlobDesc().dims[0];
+    int channel = origin_blob_->GetBlobDesc().dims[1];
+    int hxw     = DimsVectorUtils::Count(origin_blob_->GetBlobDesc().dims, 2);
     float* data_ptr = reinterpret_cast<float*>(static_cast<char*>(origin_blob_->GetHandle().base) +
                                                origin_blob_->GetHandle().bytes_offset);
 
