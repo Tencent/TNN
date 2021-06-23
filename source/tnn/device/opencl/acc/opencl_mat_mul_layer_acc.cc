@@ -199,11 +199,12 @@ Status OpenCLMatMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 
     execute_units_[0].ocl_kernel.setArg(idx++, M);
     execute_units_[0].ocl_kernel.setArg(idx++, K_blocks);
+    execute_units_[0].ocl_kernel.setArg(idx++, K);
     execute_units_[0].ocl_kernel.setArg(idx++, K_remain);
     execute_units_[0].ocl_kernel.setArg(idx++, batch_a);
     execute_units_[0].ocl_kernel.setArg(idx++, batch_b);
     if (need_reshape_[2]) {
-        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reshape_outputs_[2][0]->GetHandle().base));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reshape_inputs_[2][0]->GetHandle().base));
     } else {
         execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
     }
@@ -310,7 +311,7 @@ Status OpenCLMatMulLayerAcc::InitReshapeLayer(
         reshape_param.reshape_type = 0;
         reshape_param.axis         = 0;
         reshape_param.num_axes     = 4;
-        reshape_param.shape        = {0, -1, 1, 1};
+        reshape_param.shape        = output_desc.dims;
         layer->Init(ocl_context_, &reshape_param, nullptr, reshape_layer_inputs, reshape_layer_outputs);
     } else {
         ReshapeLayerParam reshape_param;
