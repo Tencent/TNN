@@ -65,6 +65,10 @@ Status OpenCLMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         // get weights
         int weights_height = batch_b * K;
         int weights_width  = N;
+        if (weight_position_ == 0) {
+            weights_height = batch_a * M;
+            weights_width  = K;
+        }
         if (weight_handle.GetDataType() == DATA_TYPE_FLOAT) {
             // get float pointer from raw buffer.
             float *weights_data_ptr = weight_handle.force_to<float *>();
