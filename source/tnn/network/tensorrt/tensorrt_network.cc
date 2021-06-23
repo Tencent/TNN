@@ -282,7 +282,7 @@ Status TensorRTNetwork_::ReshapeLayers() {
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
         if (std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->IsShapeTensor()) {
             auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetShapeBlobName();
-            auto dims = blob_manager_->GetBlob(name)->GetBlobDesc().dims;
+            auto dims = net_resource_->blob_shapes_map[name];
             ret = m_trt_context->setInputShapeBinding(index, dims.data());
         } else {
             nvinfer1::Dims inputDims = ConvertToTRTDims(buf->GetBufferDims());
