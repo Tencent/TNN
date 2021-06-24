@@ -12,17 +12,17 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_INT8_SDOT_LAYER_ACC_DEPTHWISE_S1_H_
-#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_INT8_SDOT_LAYER_ACC_DEPTHWISE_S1_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_INT8_SDOT_LAYER_ACC_DEPTHWISE_3X3_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_INT8_SDOT_LAYER_ACC_DEPTHWISE_3X3_H_
 
 #include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_depthwise.h"
 #include "tnn/core/macro.h"
 
 namespace TNN_NS {
 
-class ArmConvInt8SdotLayerDepthwiseS1 : public ArmConvInt8LayerDepthwise {
+class ArmConvInt8SdotLayerDepthwise3x3 : public ArmConvInt8LayerDepthwise {
 public:
-    virtual ~ArmConvInt8SdotLayerDepthwiseS1();
+    virtual ~ArmConvInt8SdotLayerDepthwise3x3();
 
     virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
@@ -36,4 +36,4 @@ public:
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_INT8_SDOT_LAYER_ACC_DEPTHWISE_S1_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_CONV_INT8_SDOT_LAYER_ACC_DEPTHWISE_3X3_H_

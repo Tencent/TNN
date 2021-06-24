@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 #if TNN_ARM82
 
-#include "tnn/device/arm/acc/convolution/arm_conv_int8_sdot_layer_depthwise_s1.h"
+#include "tnn/device/arm/acc/convolution/arm_conv_int8_sdot_layer_depthwise_3x3.h"
 #include "tnn/device/arm/acc/compute_arm82/compute_sdot_int8.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
@@ -26,7 +26,7 @@
 #ifdef TNN_ARM82_USE_NEON
 namespace TNN_NS {
 
-Status ArmConvInt8SdotLayerDepthwiseS1::allocateBufferWeight(const std::vector<Blob *> &inputs,
+Status ArmConvInt8SdotLayerDepthwise3x3::allocateBufferWeight(const std::vector<Blob *> &inputs,
                                                              const std::vector<Blob *> &outputs) {
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
     CHECK_PARAM_NULL(conv_param);
@@ -59,7 +59,7 @@ Status ArmConvInt8SdotLayerDepthwiseS1::allocateBufferWeight(const std::vector<B
     return TNN_OK;
 }
 
-bool ArmConvInt8SdotLayerDepthwiseS1::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
+bool ArmConvInt8SdotLayerDepthwise3x3::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                          const std::vector<Blob *> &outputs) {
     if (!param) {
         return false;
@@ -82,7 +82,7 @@ bool ArmConvInt8SdotLayerDepthwiseS1::isPrefered(ConvLayerParam *param, const st
            (param->fusion_type == FusionType_None) && support_dot;
 }
 
-ArmConvInt8SdotLayerDepthwiseS1::~ArmConvInt8SdotLayerDepthwiseS1() {}
+ArmConvInt8SdotLayerDepthwise3x3::~ArmConvInt8SdotLayerDepthwise3x3() {}
 
 static inline void cache_lines_slide_s1(int8_t **cache_lines, int n) {
     auto temp = cache_lines[0];
@@ -249,7 +249,7 @@ static void DepthwiseK3S2SlideW(int8_t* dst, const int8_t* src, const int8_t* we
     }
 }
 
-Status ArmConvInt8SdotLayerDepthwiseS1::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status ArmConvInt8SdotLayerDepthwise3x3::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param_);
     CHECK_PARAM_NULL(conv_param);
 
