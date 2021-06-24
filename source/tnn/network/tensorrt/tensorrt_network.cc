@@ -152,7 +152,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     std::string cache_file_name = GetCacheFileName(params_md5, inputs, outputs, min_inputs_shape,
-        net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
+        net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW,
+        enable_const_folder);
 
     std::unique_ptr<ExclFile> file_lock(new ExclFile(cache_file_name));
 
@@ -717,7 +718,7 @@ bool TensorRTNetwork_::IsBlobUsed(Blob* blob) {
 
 std::string TensorRTNetwork_::GetCacheFileName(std::vector<std::string> params_md5, BlobMap input_map,
         BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, int batchsize,
-        bool int8_mode, bool use_fp16) {
+        bool int8_mode, bool use_fp16, bool enable_const_folder) {
     std::string md5_source = "";
 
     for (auto iter : params_md5) {
@@ -752,10 +753,12 @@ std::string TensorRTNetwork_::GetCacheFileName(std::vector<std::string> params_m
         precision = "";
     }
 
+    std::string const_folder = enable_const_folder ? "const_folder_on" : "const_folder_off";
+
     std::string cache_file_name = "." +  md5(md5_source) + precision
         + TENSORRT_SERIALIZE_VERSION + "-b-" + std::to_string(batchsize)
         + "-" + GetGpuType(device_id) + "-" + GetTrtVersion() + GetCudaVersion()
-        + ".cache";
+        + "-" + const_folder + ".cache";
     return cache_file_name;
 }
 
