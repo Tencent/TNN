@@ -21,6 +21,9 @@
 #include "tnn/utils/dims_utils.h"
 #include "tnn/utils/omp_utils.h"
 #include "tnn/utils/naive_compute.h"
+#ifdef TNN_USE_NEON
+#include <arm_neon.h>
+#endif
 
 namespace TNN_NS {
 /*
@@ -194,6 +197,26 @@ Status ArmConvInt8LayerCommon::allocateBufferAddScale(const std::vector<Blob *> 
     return TNN_OK;
 }
 
+// aarch32 memcpy small size has poor performance, use intrinsic to speed up
+static inline void memcpy_intrinsic(int8_t *dst, const int8_t *src, int ic_r4) {
+    int i = 0;
+#ifdef TNN_USE_NEON
+    for (; i + 31 < ic_r4; i += 32) {
+        vst1q_s8(dst + i, vld1q_s8(src + i));
+        vst1q_s8(dst + i + 16, vld1q_s8(src + i + 16));
+    }
+    for (; i + 15 < ic_r4; i += 16) {
+        vst1q_s8(dst + i, vld1q_s8(src + i));
+    }
+    for (; i + 7 < ic_r4; i += 8) {
+        vst1_s8(dst + i, vld1_s8(src + i));
+    }
+#endif
+    for (; i + 3 < ic_r4; i += 4) {
+        *((int32_t*)(dst + i)) = *((int32_t*)(src + i));
+    }
+}
+
 #define DEF_IMG2COL_VAL                                                                                                \
     int x_id = (int)x_start + i;                                                                                       \
     int ox   = x_id % kparam->ow;                                                                                      \
@@ -232,7 +255,7 @@ static void im2col(int8_t *dst, const int8_t *src, const ConvLayerParam *param, 
             for (int fx = 0; fx < fxC; ++fx) {
                 auto dst_x = dst_y + fx * kparam->ic_r4;
                 auto src_x = src_y + fx * dilate_x * kparam->ic_r4;
-                memcpy(dst_x, src_x, kparam->ic_r4);
+                memcpy_intrinsic(dst_x, src_x, kparam->ic_r4);
             }
         }
     }
@@ -264,9 +287,7 @@ static void im2col_smallc(int8_t *dst, const int8_t *src, const ConvLayerParam *
             for (int fx = 0; fx < fxC; fx++) {
                 auto dst_x = dst_y + fx * REALC;
                 auto src_x = src_y + fx * src_w_step * dilate_x;
-                for (int c = 0; c < REALC; c++) {
-                    dst_x[c] = src_x[c];
-                }
+                memcpy(dst_x, src_x, REALC);
             }
         }
     }
@@ -352,6 +373,8 @@ Status ArmConvInt8LayerCommon::Init(Context *context, LayerParam *param, LayerRe
             im_col_func_ = im2col_smallc<2>;
         else if (dims_input[1] == 3)
             im_col_func_ = im2col_smallc<3>;
+        else if (dims_input[1] == 4)
+            im_col_func_ = im2col_smallc<4>;
     } else {
         im_col_func_ = nullptr;
     }

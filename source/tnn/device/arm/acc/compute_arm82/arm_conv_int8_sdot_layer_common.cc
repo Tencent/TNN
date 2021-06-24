@@ -73,6 +73,24 @@ Status ArmConvInt8SdotLayerCommon::allocateBufferWeight(const std::vector<Blob *
     return TNN_OK;
 }
 
+// aarch32 memcpy small size has poor performance, use intrinsic to speed up
+static inline void memcpy_intrinsic(int8_t *dst, const int8_t *src, int ic_r4) {
+    int i = 0;
+    for (; i + 31 < ic_r4; i += 32) {
+        vst1q_s8(dst + i, vld1q_s8(src + i));
+        vst1q_s8(dst + i + 16, vld1q_s8(src + i + 16));
+    }
+    for (; i + 15 < ic_r4; i += 16) {
+        vst1q_s8(dst + i, vld1q_s8(src + i));
+    }
+    for (; i + 7 < ic_r4; i += 8) {
+        vst1_s8(dst + i, vld1_s8(src + i));
+    }
+    for (; i + 3 < ic_r4; i += 4) {
+        *((int32_t*)(dst + i)) = *((int32_t*)(src + i));
+    }
+}
+
 #define DEF_IMG2COL_VAL                                                                                                \
     int x_id = (int)x_start + i;                                                                                       \
     int ox   = x_id % output_dims[3];                                                                                  \
@@ -109,7 +127,7 @@ static void im2col(int8_t *dst, const int8_t *src, const ConvLayerParam *param, 
             for (int fx = 0; fx < fxC; ++fx) {
                 auto dst_x = dst_y + fx * src_w_step;
                 auto src_x = src_y + fx * dilate_x * src_w_step;
-                memcpy(dst_x, src_x, src_w_step);
+                memcpy_intrinsic(dst_x, src_x, src_w_step);
             }
         }
     }
@@ -168,7 +186,7 @@ Status ArmConvInt8SdotLayerCommon::Init(Context *context, LayerParam *param, Lay
                      pad_x == 0 && pad_y == 0;
     if (!no_im2col) {
         im_col_func_ = im2col;
-        if (dims_input[1] < 4) {
+        if (dims_input[1] <= 4) {
             im_col_func_ = im2col_smallc;
         }
     } else {
