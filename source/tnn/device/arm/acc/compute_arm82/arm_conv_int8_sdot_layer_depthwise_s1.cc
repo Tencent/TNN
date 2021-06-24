@@ -23,8 +23,7 @@
 
 #include "tnn/utils/omp_utils.h"
 
-#ifdef TNN_ARM82_A64
-
+#ifdef TNN_ARM82_USE_NEON
 namespace TNN_NS {
 
 Status ArmConvInt8SdotLayerDepthwiseS1::allocateBufferWeight(const std::vector<Blob *> &inputs,
@@ -72,11 +71,12 @@ bool ArmConvInt8SdotLayerDepthwiseS1::isPrefered(ConvLayerParam *param, const st
     const int output_channel = dims_output[1];
 
     bool support_dot = CpuUtils::CpuSupportInt8Dot();
-    // only support convdw3x3 stride1 pad1 dialation1
+    // only support convdw3x3 stride1/2 pad1 dialation1
     return (param->group == input_channel && param->group == output_channel) &&
            (param->kernels[0] == param->kernels[1] && (param->kernels[0] == 3)) &&
            (param->dialations[0] == 1 && param->dialations[1] == 1) &&
-           (param->strides[0] == 1 && param->strides[1] == 1) &&
+           ((param->strides[0] == 1 && param->strides[1] == 1) ||
+            (param->strides[0] == 2 && param->strides[1] == 2)) &&
            (param->pads[0] == param->pads[1] && param->pads[0] == param->pads[2] &&
             param->pads[0] == param->pads[3] && param->pads[0] == 1) &&
            (param->fusion_type == FusionType_None) && support_dot;
@@ -84,7 +84,7 @@ bool ArmConvInt8SdotLayerDepthwiseS1::isPrefered(ConvLayerParam *param, const st
 
 ArmConvInt8SdotLayerDepthwiseS1::~ArmConvInt8SdotLayerDepthwiseS1() {}
 
-static inline void cache_lines_slide(int8_t **cache_lines, int n) {
+static inline void cache_lines_slide_s1(int8_t **cache_lines, int n) {
     auto temp = cache_lines[0];
     for (int i = 0; i < n - 1; i++) {
         cache_lines[i] = cache_lines[i + 1];
@@ -92,7 +92,17 @@ static inline void cache_lines_slide(int8_t **cache_lines, int n) {
     cache_lines[n - 1] = temp;
 }
 
-static void DepthwiseI8K3Sdot(int8_t* dst, int8_t** src, const int8_t* weight, const int32_t* bias_z, long width,
+static inline void cache_lines_slide_s2(int8_t **cache_lines, int n) {
+    auto temp0 = cache_lines[0];
+    auto temp1 = cache_lines[1];
+    for (int i = 0; i < n - 2; i++) {
+        cache_lines[i] = cache_lines[i + 2];
+    }
+    cache_lines[n - 2] = temp0;
+    cache_lines[n - 1] = temp1;
+}
+
+static void DepthwiseI8K3S1Sdot(int8_t* dst, int8_t** src, const int8_t* weight, const int32_t* bias_z, long width,
                               long dst_depth, const float* scale_z, const int8_t* relu6_max, int activation_type) {
     OMP_PARALLEL_FOR_GUIDED_
     for (long dc = 0; dc < dst_depth - 7; dc += 8) {
@@ -107,6 +117,135 @@ static void DepthwiseI8K3Sdot(int8_t* dst, int8_t** src, const int8_t* weight, c
         ReluInt8(dst, dst, dst_depth * width);
     } else if (activation_type == ActivationType_ReLU6) {
         Relu6Int8(dst, dst, relu6_max, width, dst_depth);
+    }
+}
+
+static void DepthwiseI8K3S2Sdot(int8_t* dst, int8_t** src, const int8_t* weight, const int32_t* bias_z, long width,
+                              long dst_depth, const float* scale_z, const int8_t* relu6_max, int activation_type) {
+    OMP_PARALLEL_FOR_GUIDED_
+    for (long dc = 0; dc < dst_depth - 7; dc += 8) {
+        ConvDw3x3S2Int8SdotSlideW(dst + dc, src, weight + dc * 12, bias_z + dc, scale_z + dc, dc, dst_depth, width);
+    }
+    long dc = dst_depth / 8 * 8;
+    if (dc < dst_depth) {
+        ConvDw3x3S2Int8SdotSlideWLeftC4(dst + dc, src, weight + dc * 12, bias_z + dc, scale_z + dc, dc, dst_depth, width);
+    }
+
+    if (activation_type == ActivationType_ReLU) {
+        ReluInt8(dst, dst, dst_depth * width);
+    } else if (activation_type == ActivationType_ReLU6) {
+        Relu6Int8(dst, dst, relu6_max, width, dst_depth);
+    }
+}
+
+static void DepthwiseK3S1SlideW(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias,
+                                const float* scale, const int8_t* relu6_max, int8_t* work_space,
+                                int8_t** cache_line, ArmKernelParam* k_param, int activation_type,
+                                int batch, int workspace_w_stride) {
+    auto src_h_stride = k_param->iw * k_param->ic_r4;
+    auto dst_h_stride = k_param->ow * k_param->oc_r4;
+    int pad_l = 1, pad_t = 1, pad_b = 1;
+    int kernel_h = 3;
+
+    for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
+        auto src_ptr = src + batch_idx * k_param->ih * src_h_stride;
+        auto dst_ptr = dst + batch_idx * k_param->oh * dst_h_stride;
+
+        for (int h = 0; h < kernel_h; h++) {
+            cache_line[h] = work_space + h * workspace_w_stride;
+        }
+
+        // memset top pad_t if batch > 0, batch = 0 already memset 0
+        if (batch_idx > 0) {
+            for (int h = 0; h < pad_t; h++) {
+                memset(cache_line[h] + pad_l * k_param->oc_r4, 0, sizeof(int8_t) * src_h_stride);
+            }
+        }
+
+        for (int h = pad_t; h < kernel_h - 1; h++) {
+            auto cache_line_h_ptr = cache_line[h] + pad_l * k_param->oc_r4;
+            memcpy(cache_line[h] + pad_l * k_param->oc_r4, src_ptr, sizeof(int8_t) * src_h_stride);
+            src_ptr += src_h_stride;
+        }
+
+        int cache_line_idx = kernel_h - 1;
+        for (int h = 0; h < k_param->oh - pad_b; h++) {
+            memcpy(cache_line[cache_line_idx] + pad_l * k_param->oc_r4, src_ptr, sizeof(int8_t) * src_h_stride);
+
+            DepthwiseI8K3S1Sdot(dst_ptr, cache_line, weight, bias, k_param->ow, k_param->oc_r4,
+                              scale, relu6_max, activation_type);
+
+            src_ptr += src_h_stride;
+            dst_ptr += dst_h_stride;
+            cache_lines_slide_s1(cache_line, kernel_h);
+        }
+
+        for (int h = pad_b; h > 0; h--) {
+            memset(cache_line[cache_line_idx] + pad_l * k_param->oc_r4, 0, sizeof(int8_t) * src_h_stride);
+
+            DepthwiseI8K3S1Sdot(dst_ptr, cache_line, weight, bias, k_param->ow, k_param->oc_r4,
+                              scale, relu6_max, activation_type);
+
+            dst_ptr += dst_h_stride;
+            cache_lines_slide_s1(cache_line, kernel_h);
+        }
+    }
+}
+
+static void DepthwiseK3S2SlideW(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias,
+                                const float* scale, const int8_t* relu6_max, int8_t* work_space,
+                                int8_t** cache_line, ArmKernelParam* k_param, int activation_type,
+                                int batch, int workspace_w_stride) {
+    auto src_h_stride = k_param->iw * k_param->ic_r4;
+    auto dst_h_stride = k_param->ow * k_param->oc_r4;
+    int pad_l = 1, pad_t = 1, pad_b = 1;
+    int kernel_h = 3;
+
+    for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
+        auto src_ptr = src + batch_idx * k_param->ih * src_h_stride;
+        auto dst_ptr = dst + batch_idx * k_param->oh * dst_h_stride;
+
+        for (int h = 0; h < kernel_h; h++) {
+            cache_line[h] = work_space + h * workspace_w_stride;
+        }
+
+        // memset top pad_t if batch > 0, batch = 0 already memset 0
+        if (batch_idx > 0) {
+            for (int h = 0; h < pad_t; h++) {
+                memset(cache_line[h] + pad_l * k_param->oc_r4, 0, sizeof(int8_t) * src_h_stride);
+            }
+        }
+
+        int cache_line_idx_0 = kernel_h - 2;
+        int cache_line_idx_1 = kernel_h - 1;
+        for (int h = 0; h < k_param->oh - pad_b; h++) {
+            memcpy(cache_line[cache_line_idx_0] + pad_l * k_param->oc_r4, src_ptr, sizeof(int8_t) * src_h_stride);
+            memcpy(cache_line[cache_line_idx_1] + pad_l * k_param->oc_r4, src_ptr + src_h_stride, sizeof(int8_t) * src_h_stride);
+
+            DepthwiseI8K3S2Sdot(dst_ptr, cache_line, weight, bias, k_param->ow, k_param->oc_r4,
+                              scale, relu6_max, activation_type);
+
+            src_ptr += 2 * src_h_stride;
+            dst_ptr += dst_h_stride;
+            cache_lines_slide_s2(cache_line, kernel_h);
+        }
+
+        // corner case oh - 1
+        int h = k_param->oh - pad_b;
+        int ih_end = h * 2 - pad_l + 3 - 1;
+        if (ih_end > k_param->ih - 1) {
+            memcpy(cache_line[cache_line_idx_0] + pad_l * k_param->oc_r4, src_ptr, sizeof(int8_t) * src_h_stride);
+            memset(cache_line[cache_line_idx_1] + pad_l * k_param->oc_r4, 0, sizeof(int8_t) * src_h_stride);
+
+            DepthwiseI8K3S2Sdot(dst_ptr, cache_line, weight, bias, k_param->ow, k_param->oc_r4,
+                              scale, relu6_max, activation_type);
+        } else {
+            memcpy(cache_line[cache_line_idx_0] + pad_l * k_param->oc_r4, src_ptr, sizeof(int8_t) * src_h_stride);
+            memcpy(cache_line[cache_line_idx_1] + pad_l * k_param->oc_r4, src_ptr + src_h_stride, sizeof(int8_t) * src_h_stride);
+
+            DepthwiseI8K3S2Sdot(dst_ptr, cache_line, weight, bias, k_param->ow, k_param->oc_r4,
+                              scale, relu6_max, activation_type);
+        }
     }
 }
 
@@ -127,24 +266,24 @@ Status ArmConvInt8SdotLayerDepthwiseS1::DoForward(const std::vector<Blob *> &inp
     int pad_r          = conv_param->pads[1];
     int pad_t          = conv_param->pads[2];
     int pad_b          = conv_param->pads[3];
-    int weight_z_step  = conv_param->kernels[0] * conv_param->kernels[1];
 
     auto *src_origin     = reinterpret_cast<const int8_t *>(GetBlobHandlePtr(input->GetHandle()));
     auto *dst_origin     = reinterpret_cast<int8_t *>(GetBlobHandlePtr(output->GetHandle()));
-    int max_num_threads  = OMP_MAX_THREADS_NUM_;
     auto src_h_stride    = k_param_->iw * k_param_->ic_r4;
     auto dst_h_stride    = k_param_->ow * k_param_->oc_r4;
     auto workspace_w_pad = k_param_->iw + pad_l + pad_r;
-    // 2 for extra preload in asm kernel
-    auto workspace_w_stride   = (workspace_w_pad + 2) * k_param_->oc_r4;
-    auto workspace_per_thread = conv_param->kernels[1] * workspace_w_stride * data_byte_size;
+    int extra_load = 0;
+    // 1 for extra preload in f3s2 asm kernel
+    if (conv_param->strides[0] == 2) extra_load = 1;
+    auto workspace_w_stride   = (workspace_w_pad + extra_load) * k_param_->oc_r4;
+    auto workspace_size = conv_param->kernels[1] * workspace_w_stride * data_byte_size;
 
     if (pad_t > conv_param->kernels[1]) {
         LOGE("ERROR: ConvDw pad_t must small than kernel_h\n");
         return Status(TNNERR_LAYER_ERR, "ERROR: ConvDw pad_t must small than kernel_h");
     }
 
-    auto work_space = reinterpret_cast<int8_t *>(context_->GetSharedWorkSpace(max_num_threads * workspace_per_thread));
+    auto work_space = reinterpret_cast<int8_t *>(context_->GetSharedWorkSpace(workspace_size));
     int8_t** cache_line = (int8_t**)malloc(conv_param->kernels[1] * sizeof(int8_t*));
 
     float *scale_ptr      = buffer_scale_.force_to<float *>();
@@ -153,51 +292,19 @@ Status ArmConvInt8SdotLayerDepthwiseS1::DoForward(const std::vector<Blob *> &inp
     int8_t *relu6_max_ptr = relu6_max_.force_to<int8_t *>();
 
     // data in workspace are dirty, must be clear first for left and right padding area
-    memset(work_space, 0, max_num_threads * workspace_per_thread);
-    for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
-        auto src_ptr = src_origin + batch_idx * k_param_->ih * src_h_stride;
-        auto dst_ptr = dst_origin + batch_idx * k_param_->oh * dst_h_stride;
+    memset(work_space, 0, workspace_size);
 
-        for (int h = 0; h < conv_param->kernels[1]; h++) {
-            cache_line[h] = work_space + h * workspace_w_stride;
-        }
-
-        // memset top pad_t if batch > 0, batch = 0 already memset 0
-        if (batch_idx > 0) {
-            for (int h = 0; h < pad_t; h++) {
-                memset(cache_line[h] + pad_l * k_param_->oc_r4, 0, sizeof(int8_t) * src_h_stride);
-            }
-        }
-
-        for (int h = pad_t; h < conv_param->kernels[1] - 1; h++) {
-            auto cache_line_h_ptr = cache_line[h] + pad_l * k_param_->oc_r4;
-            memcpy(cache_line[h] + pad_l * k_param_->oc_r4, src_ptr, sizeof(int8_t) * src_h_stride);
-            src_ptr += src_h_stride;
-        }
-
-        int cache_line_idx = conv_param->kernels[1] - 1;
-        for (int h = 0; h < k_param_->oh - pad_b; h++) {
-            memcpy(cache_line[cache_line_idx] + pad_l * k_param_->oc_r4, src_ptr, sizeof(int8_t) * src_h_stride);
-
-            DepthwiseI8K3Sdot(dst_ptr, cache_line, weight_ptr, bias_ptr, k_param_->ow, k_param_->oc_r4,
-                              scale_ptr, relu6_max_ptr, conv_param->activation_type);
-
-            src_ptr += src_h_stride;
-            dst_ptr += dst_h_stride;
-            cache_lines_slide(cache_line, conv_param->kernels[1]);
-        }
-
-        for (int h = pad_b; h > 0; h--) {
-            memset(cache_line[cache_line_idx] + pad_l * k_param_->oc_r4, 0, sizeof(int8_t) * src_h_stride);
-
-            DepthwiseI8K3Sdot(dst_ptr, cache_line, weight_ptr, bias_ptr, k_param_->ow, k_param_->oc_r4,
-                              scale_ptr, relu6_max_ptr, conv_param->activation_type);
-
-            dst_ptr += dst_h_stride;
-            cache_lines_slide(cache_line, conv_param->kernels[1]);
-        }
+    if (conv_param->strides[0] == 1) {
+        DepthwiseK3S1SlideW(dst_origin, src_origin, weight_ptr, bias_ptr, scale_ptr, relu6_max_ptr,
+                            work_space, cache_line, k_param_.get(), conv_param->activation_type,
+                            batch, workspace_w_stride);
+    } else if (conv_param->strides[0] == 2) {
+        DepthwiseK3S2SlideW(dst_origin, src_origin, weight_ptr, bias_ptr, scale_ptr, relu6_max_ptr,
+                            work_space, cache_line, k_param_.get(), conv_param->activation_type,
+                            batch, workspace_w_stride);
     }
 
+    free(cache_line);
     return TNN_OK;
 }
 

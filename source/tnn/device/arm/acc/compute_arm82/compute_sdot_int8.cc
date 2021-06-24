@@ -16,6 +16,27 @@
 
 namespace TNN_NS {
 
+#ifdef TNN_ARM82_A32
+void GemmInt8SdotUnit4x8(int8_t* dst, const int8_t* src, const int8_t* weight,
+                         long src_depth, long dst_depth, long hw,
+                         const int32_t* bias, const float* scale,
+                         long relu, const int8_t* add_input,
+                         const float* add_scale, const int8_t* relu6_max) {
+    const int8_t* add_input_ptr = nullptr;
+    const float* add_scale_ptr = nullptr;
+    for (int dz = 0; dz < dst_depth / 8 * 8; dz += 8) {
+        if (add_input) {
+            add_input_ptr = add_input + dz;
+            add_scale_ptr = add_scale + dz;
+        }
+        GemmInt8SdotUnit4x8Kernel(dst + dz, src, weight + dz * src_depth,
+                                  src_depth, dst_depth, hw,
+                                  bias + dz, scale + dz, relu,
+                                  add_input_ptr, add_scale_ptr, relu6_max + dz);
+    }
+}
+#endif
+
 // c0 kh0kh1kh2 0, c1 kh0kh1kh2 0, c2 kh0kh1kh2 0, c3 kh0kh1kh2 0
 // c4 kh0kh1kh2 0, c5 kh0kh1kh2 0, c6 kh0kh1kh2 0, c7 kh0kh1kh2 0
 void PackSDOTDW3X3INT8Weight(const int8_t *src, int8_t *dst, int oc) {

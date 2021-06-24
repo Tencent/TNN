@@ -18,7 +18,11 @@
 #include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_common.h"
 
 #ifndef NEON_INT8_SDOT_TILE_HW
+#if defined(TNN_ARM82_A64)
 #define NEON_INT8_SDOT_TILE_HW (8)
+#elif defined(TNN_ARM82_A32)
+#define NEON_INT8_SDOT_TILE_HW (4)
+#endif
 #endif
 
 namespace TNN_NS {

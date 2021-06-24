@@ -21,11 +21,43 @@ void PackSDOTINT8Weight(const int8_t *src, int8_t *dst, int oc, int ic, int kh, 
 void PackSDOTINT8WeightGemv(const int8_t *src, int8_t *dst, const int oc, const int ic, const int hw);
 void PackSDOTDW3X3INT8Weight(const int8_t *src, int8_t *dst, int oc);
 
-#ifdef TNN_ARM82_A64
+#ifdef TNN_ARM82_A32
+void GemmInt8SdotUnit4x8(int8_t* dst, const int8_t* src, const int8_t* weight,
+                         long src_depth, long dst_depth, long hw,
+                         const int32_t* bias, const float* scale,
+                         long relu, const int8_t* add_input,
+                         const float* add_scale, const int8_t* relu6_max);
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#ifdef TNN_ARM82_USE_NEON
+void ConvDw3x3Int8SdotSlideW(int8_t *dst_z, int8_t **src, const int8_t* weight_z, const int32_t* bias_z,
+                             const float* scale_z, long dc, long dst_depth, long width);
+void ConvDw3x3Int8SdotSlideWLeftC4(int8_t *dst_z, int8_t **src, const int8_t* weight_z, const int32_t* bias_z,
+                             const float* scale_z, long dc, long dst_depth, long width);
+
+void ConvDw3x3S2Int8SdotSlideW(int8_t *dst_z, int8_t **src, const int8_t* weight_z, const int32_t* bias_z,
+                               const float* scale_z, long dc, long dst_depth, long width);
+void ConvDw3x3S2Int8SdotSlideWLeftC4(int8_t *dst_z, int8_t **src, const int8_t* weight_z, const int32_t* bias_z,
+                               const float* scale_z, long dc, long dst_depth, long width);
+#endif
+
+#if defined(TNN_ARM82_A32)
+void GemmInt8SdotUnit4x8Kernel(int8_t* dst, const int8_t* src, const int8_t* weight,
+                               long src_depth, long dst_depth, long hw,
+                               const int32_t* bias, const float* scale,
+                               long relu, const int8_t* add_input,
+                               const float* add_scale, const int8_t* relu6_max);
+
+void GemmInt8SdotUnit4x4(int8_t* dst, const int8_t* src, const int8_t* weight,
+                         long src_depth, long dst_depth, long hw,
+                         const int32_t* bias, const float* scale,
+                         long relu, const int8_t* add_input,
+                         const float* add_scale, const int8_t* relu6_max);
+#elif defined(TNN_ARM82_A64)
 void GemmInt8SdotUnit8x8(int8_t* dst, const int8_t* src, const int8_t* weight,
                         long src_depth, long dst_depth, long hw, 
                         const int32_t* bias, const float* scale,
@@ -37,18 +69,12 @@ void GemmInt8SdotUnit8x4(int8_t* dst, const int8_t* src, const int8_t* weight,
                         const int32_t* bias, const float* scale,
                         long relu, const int8_t* add_input, 
                         const float* add_scale, const int8_t* relu6_max);
-
 void GemvInt8Sdot(int8_t* dst, const int8_t* src, const int8_t* weight,
                   const int32_t* bias, const float* scale, long ic_r4, long oc_r4);
-
-void ConvDw3x3Int8SdotSlideW(int8_t *dst_z, int8_t **src, const int8_t* weight_z, const int32_t* bias_z,
-                             const float* scale_z, long dc, long dst_depth, long width);
-void ConvDw3x3Int8SdotSlideWLeftC4(int8_t *dst_z, int8_t **src, const int8_t* weight_z, const int32_t* bias_z,
-                             const float* scale_z, long dc, long dst_depth, long width);
+#endif
 
 #ifdef __cplusplus
 }
-#endif
 #endif
 
 }

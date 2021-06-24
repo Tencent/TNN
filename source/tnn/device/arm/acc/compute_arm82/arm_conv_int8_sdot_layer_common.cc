@@ -24,7 +24,7 @@
 #include "tnn/utils/omp_utils.h"
 #include "tnn/utils/cpu_utils.h"
 
-#ifdef TNN_ARM82_A64
+#ifdef TNN_ARM82_USE_NEON
 
 namespace TNN_NS {
 
@@ -115,6 +115,32 @@ static void im2col(int8_t *dst, const int8_t *src, const ConvLayerParam *param, 
     }
 }
 
+// hard code src_w_step to 4 can speed up aarch32
+static void im2col_smallc(int8_t *dst, const int8_t *src, const ConvLayerParam *param, size_t x_start, size_t dst_cnt,
+                          int crs_r4, DimsVector input_dims, DimsVector output_dims) {
+    const int src_w_step = 4; // ROUND_UP(input_dims[1], 4)
+    auto kh       = param->kernels[1];
+    auto kw       = param->kernels[0];
+    auto dilate_y = param->dialations[1];
+    auto dilate_x = param->dialations[0];
+    for (int i = 0; i < dst_cnt; ++i) {
+        DEF_IMG2COL_VAL;
+
+        auto dst_i        = dst + crs_r4 * i;
+        auto input_offset = src + (sx + sfx * dilate_x + (sy + sfy * dilate_y) * input_dims[3]) * src_w_step;
+        auto idx_offset   = (sfy * kw + sfx) * src_w_step;
+        memset(dst_i, 0, crs_r4 * sizeof(int8_t));
+        for (int fy = 0; fy < fyC; ++fy) {
+            auto dst_y = dst_i + idx_offset + fy * kw * src_w_step;
+            auto src_y = input_offset + fy * input_dims[3] * src_w_step * dilate_y;
+            for (int fx = 0; fx < fxC; ++fx) {
+                auto dst_x = dst_y + fx * src_w_step;
+                auto src_x = src_y + fx * dilate_x * src_w_step;
+                memcpy(dst_x, src_x, src_w_step);
+            }
+        }
+    }
+}
 
 Status ArmConvInt8SdotLayerCommon::Init(Context *context, LayerParam *param, LayerResource *resource,
                                     const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -142,6 +168,9 @@ Status ArmConvInt8SdotLayerCommon::Init(Context *context, LayerParam *param, Lay
                      pad_x == 0 && pad_y == 0;
     if (!no_im2col) {
         im_col_func_ = im2col;
+        if (dims_input[1] < 4) {
+            im_col_func_ = im2col_smallc;
+        }
     } else {
         im_col_func_ = nullptr;
     }
@@ -211,6 +240,14 @@ Status ArmConvInt8SdotLayerCommon::DoForward(const std::vector<Blob *> &inputs, 
     int8_t *workspace = reinterpret_cast<int8_t *>(context_->GetSharedWorkSpace(im2col_buf_size));
     auto im2col_buf_ptr = workspace;
 
+#if defined(TNN_ARM82_A64)
+    auto GemmInt8SdotUnit = GemmInt8SdotUnit8x8;
+    auto GemmInt8SdotLeft = GemmInt8SdotUnit8x4;
+#elif defined(TNN_ARM82_A32)
+    auto GemmInt8SdotUnit = GemmInt8SdotUnit4x8;
+    auto GemmInt8SdotLeft = GemmInt8SdotUnit4x4;
+#endif
+
     for (int n = 0; n < batch; ++n) {
         auto input_batch     = input_data + n * input_batch_stride;
         auto output_batch    = output_data + n * output_batch_stride;
@@ -235,12 +272,12 @@ Status ArmConvInt8SdotLayerCommon::DoForward(const std::vector<Blob *> &inputs, 
             auto output_kernel = output_batch + hw_start * oc_r4;
             auto add_input_kernel = add_input_batch ? add_input_batch + hw_start * oc_r4 : nullptr;
 
-            GemmInt8SdotUnit8x8(output_kernel, input_kernel, weight_ptr, crs_r4, oc_r4, real_hw_tile,
+            GemmInt8SdotUnit(output_kernel, input_kernel, weight_ptr, crs_r4, oc_r4, real_hw_tile,
                                 bias_ptr, scale_ptr, relu_, add_input_kernel, add_scale_ptr, relu6_max_ptr);
 
             if (oc_r4 > oc_r4_align) {
                 auto add_input_tmp = add_input_kernel ? add_input_kernel + oc_r4_align : nullptr;
-                GemmInt8SdotUnit8x4(output_kernel + oc_r4_align, input_kernel,
+                GemmInt8SdotLeft(output_kernel + oc_r4_align, input_kernel,
                                    weight_ptr + oc_r4_align * crs_r4,
                                    crs_r4, oc_r4, real_hw_tile,
                                    bias_ptr + oc_r4_align, scale_ptr + oc_r4_align,
