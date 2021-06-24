@@ -89,6 +89,8 @@ TNN_NS::Status TFLiteBinaryConverter::exec(TNN_NS::NetStructure& net_structure, 
         // TODO
     } else {
         if (param->weight_input_index != -1) {
+            ConvertRawBuffer convert_raw_buffer;
+
             // get weight from weight
             auto layer_resource     = new TNN_NS::EltwiseLayerResource;
             layer_resource->name    = cur_layer->name;
@@ -134,7 +136,8 @@ TNN_NS::Status TFLiteBinaryConverter::exec(TNN_NS::NetStructure& net_structure, 
                 TNN_NS::DataFormatConverter::ConvertBetweenNHWCAndNCHW<float>(
                     weight_ptr, element_handle.force_to<float*>(), n, c, h, w, TNN_NS::DataFormatConverter::NHWC2NCHW);
             }
-            layer_resource->element_handle             = element_handle;
+            auto new_element_handle                    = convert_raw_buffer.convert(element_handle);
+            layer_resource->element_handle             = new_element_handle;
             net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
             cur_layer->inputs.resize(1);
             if (param->weight_input_index == 0) {

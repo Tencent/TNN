@@ -52,6 +52,8 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
     param->type              = cur_layer->type_str;
     param->quantized         = false;
 
+    ConvertRawBuffer convert_raw_buffer;
+
     auto tf_lite_op_type = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
     if (tf_lite_op_type == tflite::BuiltinOperator_LEAKY_RELU) {
         param->channel_shared          = 1;
@@ -62,7 +64,8 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
         layer_resource->name           = cur_layer->name;
         TNN_NS::RawBuffer slope_handle = TNN_NS::RawBuffer(1 * sizeof(float));
         ::memcpy(slope_handle.force_to<float*>(), &alpha, 1 * sizeof(float));
-        layer_resource->slope_handle               = slope_handle;
+        auto new_slope_handle                      = convert_raw_buffer.convert(slope_handle);
+        layer_resource->slope_handle               = new_slope_handle;
         net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
     } else if (tf_lite_op_type == tflite::BuiltinOperator_PRELU) {
         ASSERT(input_size == 2);
@@ -73,7 +76,8 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
         TNN_NS::RawBuffer slope_handle = TNN_NS::RawBuffer(co * sizeof(float));
         auto data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
         ::memcpy(slope_handle.force_to<float*>(), data_ptr, sizeof(float) * co);
-        layer_resource->slope_handle = slope_handle;
+        auto new_slope_handle        = convert_raw_buffer.convert(slope_handle);
+        layer_resource->slope_handle = new_slope_handle;
 
         net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
     }
