@@ -223,9 +223,9 @@ Status TensorRTNetwork_::Forward() {
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
     }
 
-    ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
+    bool trt_ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
         dynamic_cast<CudaContext*>(context_)->GetStream(), nullptr);
-    if (ret != true) {
+    if (trt_ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
     }
     Status status = context_->Synchronize();
@@ -342,9 +342,9 @@ Status TensorRTNetwork_::ForwardAsync(Callback call_back) {
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
     }
 
-    ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
+    bool trt_ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
         dynamic_cast<CudaContext*>(context_)->GetStream(), nullptr);
-    if (ret != true) {
+    if (trt_ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
     }
     Status status = TNN_OK;
