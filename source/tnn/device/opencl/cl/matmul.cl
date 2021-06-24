@@ -7,7 +7,7 @@ __kernel void MatMul(
     GLOBAL_SIZE_2_DIMS __read_only image2d_t matrix_a,
     __read_only image2d_t matrix_b,
     __private const int m,
-    __private const int k, __private const int k_remain,
+    __private const int k_blocks, __private const int k, __private const int k_remain,
     __private const int batch_a, __private const int batch_b,
     __write_only image2d_t matrix_c) {
     const int image_row = get_global_id(0);
@@ -27,7 +27,7 @@ __kernel void MatMul(
     FLOAT4 matrix_b_data_3;
     FLOAT4 sum = (FLOAT4)0;
 
-    int k_size = k;
+    int k_size = k_blocks;
     if (k_remain > 0) {
         k_size--;
     }
