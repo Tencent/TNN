@@ -79,20 +79,7 @@ kernel void grid_sample(const device ftype4 *input_data [[buffer(0)]],
                  input_data[sw_index+slice_index] * sw+input_data[se_index+slice_index] * se;
 
     out[index] = val;
-/*
-    if(index==12)
-    {
-    out[0] = float4(x,0,0,0);
-    out[1] = float4(y,0,0,0);
-    out[3] = float4(sw,0,0,0);
-    out[4] = float4(se,0,0,0);
-   // out[0] = float4(nw_index,0,0,0);
-   //  out[1] = float4(ne_index,0,0,0);
-   //   out[2] = float4(sw_index,0,0,0);
-   //    out[3] = float4(se_index,0,0,0);
-       // out[0] = float4(input_data[nw_index][0],input_data[ne_index][0],input_data[ne_index][0],input_data[ne_index][0]);
-    }
-*/
+
 }
 
 

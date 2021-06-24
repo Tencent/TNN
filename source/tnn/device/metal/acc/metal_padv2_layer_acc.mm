@@ -37,15 +37,6 @@ Status MetalPadV2LayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs
         MetalPadParams metal_params;
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
 
-//        metal_params.pad_l = layer_param->pads[0];
-//        metal_params.pad_r = layer_param->pads[1];
-//        metal_params.pad_t = layer_param->pads[2];
-//        metal_params.pad_b = layer_param->pads[3];
-//        metal_params.pad_c_b = layer_param->pads[4];
-//        metal_params.pad_c_e = layer_param->pads[5];
-//        metal_params.value = layer_param->value;
-//        metal_params.input_channel = dims_input[1];
-
         metal_params.pad_c_b = layer_param->pads[1];
         metal_params.pad_t = layer_param->pads[2];
         metal_params.pad_l = layer_param->pads[3];

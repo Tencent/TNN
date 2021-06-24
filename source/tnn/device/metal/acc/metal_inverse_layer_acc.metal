@@ -32,8 +32,5 @@ kernel void inverse(const device ftype4 *in [[buffer(0)]],
 
     ftype4 tmp = ftype4(in[index][3],in[index][1],in[index][2],in[index][0]);
     out[index] = tmp*det_inverse;
-   // out[0] = float4(1,1,in[index+2][0],in[index+3][0]);
-    //if(index == 0)
-   // out[index] = float4(1,in[index+1][0],in[index+2][0],in[index+3][0]);
 
 }

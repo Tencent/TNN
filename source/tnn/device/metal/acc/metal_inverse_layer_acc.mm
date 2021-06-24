@@ -57,13 +57,11 @@ string MetalInverseLayerAcc::KernelName(const std::vector<Blob *> &inputs, const
 Status MetalInverseLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
                                                const std::vector<Blob *> &outputs,
                                                MTLSize &size) {
-    LOGE("enter ComputeThreadSize\n");
     return MetalLayerAcc::ComputeThreadSize(inputs, outputs, size);
 }
 
 Status MetalInverseLayerAcc::Forward(const std::vector<Blob *> &inputs,
                                      const std::vector<Blob *> &outputs) {
-    LOGE("enter Forward\n");
     return MetalLayerAcc::Forward(inputs, outputs);
 }
 
@@ -71,7 +69,6 @@ Status MetalInverseLayerAcc::SetKernelEncoderParam(
     id<MTLComputeCommandEncoder> encoder,
     const std::vector<Blob *> &inputs,
     const std::vector<Blob *> &outputs) {
-    LOGE("enter SetKernelEncoderParam\n");
 
     [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)inputs[0]->GetHandle().base
                 offset:(NSUInteger)inputs[0]->GetHandle().bytes_offset

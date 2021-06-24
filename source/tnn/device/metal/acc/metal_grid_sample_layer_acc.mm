@@ -54,21 +54,19 @@ Status MetalGridSampleLayerAcc::AllocateBufferParam(const std::vector<Blob *> &i
 }
 
 string MetalGridSampleLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    //LOGE("enter KernelName\n");
+
     return "grid_sample";
 }
 
 Status MetalGridSampleLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
                                                const std::vector<Blob *> &outputs,
                                                MTLSize &size) {
-    //LOGE("enter MetalGridSampleLayerAcc\n");
 
     return MetalLayerAcc::ComputeThreadSize(inputs, outputs, size);
 }
 
 Status MetalGridSampleLayerAcc::Forward(const std::vector<Blob *> &inputs,
                                      const std::vector<Blob *> &outputs) {
-    //LOGE("enter grid sample Forward\n");
     return MetalLayerAcc::Forward(inputs, outputs);
 }
 
