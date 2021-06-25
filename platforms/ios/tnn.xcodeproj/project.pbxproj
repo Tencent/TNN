@@ -23,6 +23,7 @@
 		32BFADEB2684AAEE00502FAC /* GEMM_INT8_SDOT_4X8.S in Sources */ = {isa = PBXBuildFile; fileRef = 32BFADE72684AAEE00502FAC /* GEMM_INT8_SDOT_4X8.S */; };
 		32BFADEF2684AB0100502FAC /* CONV_DW_3X3S1_INT8_SDOT_SLIDEW.S in Sources */ = {isa = PBXBuildFile; fileRef = 32BFADED2684AB0100502FAC /* CONV_DW_3X3S1_INT8_SDOT_SLIDEW.S */; };
 		32BFADF02684AB0100502FAC /* CONV_DW_3X3S2_INT8_SDOT_SLIDEW.S in Sources */ = {isa = PBXBuildFile; fileRef = 32BFADEE2684AB0100502FAC /* CONV_DW_3X3S2_INT8_SDOT_SLIDEW.S */; };
+		32EE07CF268589E200656211 /* GEMV_INT8_SDOT.S in Sources */ = {isa = PBXBuildFile; fileRef = 32EE07CE268589E200656211 /* GEMV_INT8_SDOT.S */; };
 		369005C5267314D900412264 /* pad_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 369005C3267314D900412264 /* pad_utils.cc */; };
 		369005C6267314D900412264 /* pad_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 369005C4267314D900412264 /* pad_utils.h */; };
 		4E187CFA267202BF00804FDF /* roialign_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4E187CF0267202BE00804FDF /* roialign_layer_interpreter.cc */; };
@@ -1003,6 +1004,7 @@
 		32BFADE72684AAEE00502FAC /* GEMM_INT8_SDOT_4X8.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = GEMM_INT8_SDOT_4X8.S; sourceTree = "<group>"; };
 		32BFADED2684AB0100502FAC /* CONV_DW_3X3S1_INT8_SDOT_SLIDEW.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = CONV_DW_3X3S1_INT8_SDOT_SLIDEW.S; sourceTree = "<group>"; };
 		32BFADEE2684AB0100502FAC /* CONV_DW_3X3S2_INT8_SDOT_SLIDEW.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = CONV_DW_3X3S2_INT8_SDOT_SLIDEW.S; sourceTree = "<group>"; };
+		32EE07CE268589E200656211 /* GEMV_INT8_SDOT.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = GEMV_INT8_SDOT.S; sourceTree = "<group>"; };
 		369005C3267314D900412264 /* pad_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pad_utils.cc; sourceTree = "<group>"; };
 		369005C4267314D900412264 /* pad_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pad_utils.h; sourceTree = "<group>"; };
 		4E187CF0267202BE00804FDF /* roialign_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = roialign_layer_interpreter.cc; path = tnn/layer_interpreter/roialign_layer_interpreter.cc; sourceTree = "<group>"; };
@@ -3081,6 +3083,7 @@
 		E4D05B80259DCB2D00921502 /* asm_32 */ = {
 			isa = PBXGroup;
 			children = (
+				32EE07CE268589E200656211 /* GEMV_INT8_SDOT.S */,
 				32BFADE52684AAEE00502FAC /* CONV_DW_3X3S1_INT8_SDOT_SLIDEW.S */,
 				32BFADE42684AAEE00502FAC /* CONV_DW_3X3S2_INT8_SDOT_SLIDEW.S */,
 				32BFADE62684AAEE00502FAC /* GEMM_INT8_SDOT_4X4.S */,
@@ -3768,6 +3771,7 @@
 				9DD1FB66247CE9BE00800139 /* metal_atan_layer_acc.mm in Sources */,
 				ECCDCF2C25E0F97500D7D297 /* unsqueeze_layer.cc in Sources */,
 				9D32FF3324557EED002DCDAB /* conv_3d_layer_interpreter.cc in Sources */,
+				32EE07CF268589E200656211 /* GEMV_INT8_SDOT.S in Sources */,
 				9DF543E4258B1366006CEC97 /* asm_func_name.S in Sources */,
 				E4D05BAB259DCB2E00921502 /* GEMM_FP16_N8.S in Sources */,
 				E4D05BA5259DCB2E00921502 /* arm_conv_fp16_layer_depthwise.cc in Sources */,

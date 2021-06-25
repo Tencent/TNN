@@ -43,6 +43,9 @@ void ConvDw3x3S2Int8SdotSlideW(int8_t *dst_z, int8_t **src, const int8_t* weight
                                const float* scale_z, long dc, long dst_depth, long width);
 void ConvDw3x3S2Int8SdotSlideWLeftC4(int8_t *dst_z, int8_t **src, const int8_t* weight_z, const int32_t* bias_z,
                                const float* scale_z, long dc, long dst_depth, long width);
+
+void GemvInt8Sdot(int8_t* dst, const int8_t* src, const int8_t* weight,
+                  const int32_t* bias, const float* scale, long ic_r4, long oc_r4);
 #endif
 
 #if defined(TNN_ARM82_A32)
@@ -69,8 +72,6 @@ void GemmInt8SdotUnit8x4(int8_t* dst, const int8_t* src, const int8_t* weight,
                         const int32_t* bias, const float* scale,
                         long relu, const int8_t* add_input, 
                         const float* add_scale, const int8_t* relu6_max);
-void GemvInt8Sdot(int8_t* dst, const int8_t* src, const int8_t* weight,
-                  const int32_t* bias, const float* scale, long ic_r4, long oc_r4);
 #endif
 
 #ifdef __cplusplus

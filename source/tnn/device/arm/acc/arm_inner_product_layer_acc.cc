@@ -24,7 +24,7 @@
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
 #include "tnn/utils/cpu_utils.h"
-#ifdef TNN_ARM82_A64
+#ifdef TNN_ARM82_USE_NEON
 #include "tnn/device/arm/acc/compute_arm82/compute_sdot_int8.h"
 #endif
 
@@ -153,7 +153,7 @@ Status ArmInnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
             auto hw = DimsVectorUtils::Count(dims_input, 2);
             auto weight_count = ROUND_UP(oc, 4) * ROUND_UP(dims_input[1], 4) * hw;
             buffer_weight_    = RawBuffer(weight_count * data_byte_size + NEON_KERNEL_EXTRA_LOAD);
-#ifdef TNN_ARM82_A64
+#ifdef TNN_ARM82_USE_NEON
             if (support_int8_sdot_) {
                 PackSDOTINT8WeightGemv(w_handle.force_to<int8_t *>(), buffer_weight_.force_to<int8_t *>(), oc, dims_input[1], hw);
             } else {
@@ -231,7 +231,7 @@ Status ArmInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerR
     if (input_data_type == DATA_TYPE_FLOAT || input_data_type == DATA_TYPE_BFP16 || input_data_type == DATA_TYPE_INT8) {
         if (input_data_type == DATA_TYPE_INT8) {
             gemv_func_ = GemvInt8;
-#ifdef TNN_ARM82_A64
+#ifdef TNN_ARM82_USE_NEON
             support_int8_sdot_ = CpuUtils::CpuSupportInt8Dot();
             if (support_int8_sdot_) {
                 gemv_func_ = GemvInt8Sdot;
