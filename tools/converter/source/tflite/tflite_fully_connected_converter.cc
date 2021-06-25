@@ -168,7 +168,7 @@ TNN_NS::Status TFLiteFullyConnectedConverter::exec(
             auto new_weight_handle        = convert_raw_buffer.convert(weight_handle);
             layer_resource->weight_handle = new_weight_handle;
         }
-        if (tf_lite_operator->inputs.size() == 3) {
+        if (tf_lite_operator->inputs.size() == 3 && tf_lite_operator->inputs[2] >= 0) {
             auto &bias_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
             auto bias_ptr     = reinterpret_cast<const float *>(tf_lite_model_buffer[bias_tensor->buffer]->data.data());
             auto bias_shape   = bias_tensor->shape;
