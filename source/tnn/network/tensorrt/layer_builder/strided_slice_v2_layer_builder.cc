@@ -29,17 +29,9 @@ static ShapeTensor clamp(INetworkDefinition* network, const ShapeTensor& x, cons
 
 static ShapeTensor bumpIfNegative(INetworkDefinition* network, const ShapeTensor& inputDims,
         const ShapeTensor& indices) {
-    const auto signs = clamp(network, indices, shapeVector(-1), shapeVector(0));
-    return sub(network, indices, mul(network, signs, inputDims));
-}
-
-void decodeOnnxStartsAndEnds(INetworkDefinition* network, const ShapeTensor& inputDims,
-        const ShapeTensor& steps, ShapeTensor& starts, ShapeTensor& ends) {
-    const auto stepSign = clamp(network, steps, shapeVector(-1), shapeVector(0));
-    starts = bumpIfNegative(network, inputDims, starts);
-    starts = clamp(network, starts, shapeVector(0), add(network, inputDims, stepSign));
-    ends = bumpIfNegative(network, inputDims, ends);
-    ends = clamp(network, ends, stepSign, inputDims);
+    const auto signs = clamp(network, sub(network, similar(network, indices, 0), indices),
+        shapeVector(0), shapeVector(1));
+    return add(network, indices, mul(network, signs, inputDims));
 }
 
 ShapeTensor axesToInterlaceSubscripts(const ShapeTensor& axes, int nbDims) {
@@ -70,10 +62,13 @@ ILayer* StrideSliceV2TRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     ShapeTensor axes;
     ShapeTensor strides;
 
-    begins = ShapeTensor(1, std::move(param->begins));
-    ends = ShapeTensor(1, std::move(param->ends));
     axes = ShapeTensor(1, std::move(param->axes));
     strides = ShapeTensor(1, std::move(param->strides));
+
+    if (input_tensors.size() == 1) {
+        begins = ShapeTensor(1, std::move(param->begins));
+        ends = ShapeTensor(1, std::move(param->ends));
+    }
 
     if (input_tensors.size() >= 2) {
         begins = ShapeTensor(*input_tensors[1], 0);
@@ -83,8 +78,6 @@ ILayer* StrideSliceV2TRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         ends = ShapeTensor(*input_tensors[2], 0);
     }
 
-    bool isIota = true;
-    int j = 0;
     std::vector<int> newAxes;
     newAxes.reserve(axes.size());
 
@@ -95,21 +88,23 @@ ILayer* StrideSliceV2TRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
             axis += r;
         }
         newAxes.push_back(axis);
-        isIota &= axis == j;
-        ++j;
     }
     axes = ShapeTensor(1, std::move(newAxes));
 
     assert(std::unordered_set<int>(axes.begin(), axes.end()).size() == static_cast<size_t>(axes.size()));
 
-    if (axes.size() < dims.size() || !isIota) {
-        const ShapeTensor subscripts{axesToInterlaceSubscripts(axes, dims.size())};
-        begins = interlace(network, similar(network, dims, 0), begins, subscripts);
-        ends = interlace(network, dims, ends, subscripts);
-        strides = interlace(network, similar(network, dims, 1), strides, subscripts);
-    }
+    const ShapeTensor subscripts{axesToInterlaceSubscripts(axes, dims.size())};
+    auto tmp_dims = gather(network, dims, axes);
+    begins = bumpIfNegative(network, tmp_dims, begins);
+    begins = interlace(network, similar(network, dims, 0), begins, subscripts);
+    ends = bumpIfNegative(network, tmp_dims, ends);
+    ends = interlace(network, dims, ends, subscripts);
+    strides = interlace(network, similar(network, dims, 1), strides, subscripts);
+    const auto stepSign = clamp(network, sub(network, similar(network, strides, 0), strides),
+        shapeVector(0), shapeVector(1));
+    begins = clamp(network, begins, shapeVector(0), sub(network, dims, stepSign));
+    ends = clamp(network, ends, stepSign, dims);
 
-    decodeOnnxStartsAndEnds(network, dims, strides, begins, ends);
     const ShapeTensor sizes = computeSliceSizes(network, begins, ends, strides, dims);
     nvinfer1::ISliceLayer* layer = addSlice(network, *input_tensors[0], begins, sizes, strides);
     if (layer != nullptr) {

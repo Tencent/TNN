@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cassert>
 #include <climits>
+#include <set>
 
 #include "tnn/network/tensorrt/shape_tensor.h"
 
@@ -108,27 +109,22 @@ nvinfer1::ITensor& ShapeTensor::tensor(INetworkDefinition* network) const {
     assert(m_depth <= 2);
     if (!m_tensor || m_depth != 0) {
         if (allValuesKnown()) {
-            if (hasAllNonNegativeValues(m_values)) {
-                nvinfer1::Dims dims;
-                dims.nbDims = size();
-                int count = 1;
-                for (int i = 0; i < size(); i++) {
-                    int value = std::min(INT_MAX-1, m_values[i]);
-                    dims.d[i] = value;
-                    count *= value;
-                }
-                nvinfer1::Weights w{nvinfer1::DataType::kINT32, count == 0 ? nullptr : m_values.data(), count};
-                m_tensor = network->addShape(*network->addConstant(dims, w)->getOutput(0))->getOutput(0);
-                if (rank() == 0) {
-                    nvinfer1::IShuffleLayer* shuffle = network->addShuffle(*m_tensor);
-                    nvinfer1::Dims d{0, {}, {}};
-                    shuffle->setReshapeDimensions(d);
-                    m_tensor = shuffle->getOutput(0);
-                }
-            } else {
-                const nvinfer1::Dims dims{rank(), {size()}, {}};
-                const nvinfer1::Weights w{nvinfer1::DataType::kINT32, m_values.data(), size()};
-                m_tensor = network->addConstant(dims, w)->getOutput(0);
+            assert(hasAllNonNegativeValues(m_values));
+            nvinfer1::Dims dims;
+            dims.nbDims = size();
+            int count = 1;
+            for (int i = 0; i < size(); i++) {
+                int value = std::min(INT_MAX-1, m_values[i]);
+                dims.d[i] = value;
+                count *= value;
+            }
+            nvinfer1::Weights w{nvinfer1::DataType::kINT32, count == 0 ? nullptr : m_values.data(), count};
+            m_tensor = network->addShape(*network->addConstant(dims, w)->getOutput(0))->getOutput(0);
+            if (rank() == 0) {
+                nvinfer1::IShuffleLayer* shuffle = network->addShuffle(*m_tensor);
+                nvinfer1::Dims d{0, {}, {}};
+                shuffle->setReshapeDimensions(d);
+                m_tensor = shuffle->getOutput(0);
             }
             m_depth = 0;
         } else {
@@ -327,8 +323,7 @@ nvinfer1::IShuffleLayer* addShuffle(INetworkDefinition* network, nvinfer1::ITens
     nvinfer1::IShuffleLayer* shuffle = network->addShuffle(data);
     if (reshapeDims.allValuesKnown()) {
         shuffle->setReshapeDimensions(toDims(reshapeDims));
-    }
-    else {
+    } else {
         shuffle->setInput(1, reshapeDims.tensor(network));
     }
     shuffle->setZeroIsPlaceholder(zeroIsPlaceholder);
@@ -348,6 +343,40 @@ nvinfer1::IFillLayer* addFill(INetworkDefinition* network, const ShapeTensor& sh
     nvinfer1::IFillLayer* fill = network->addFill(toDims(shape), op);
     setShapeInputIfDynamic(network, fill, 0, shape);
     return fill;
+}
+
+nvinfer1::IShuffleLayer* addUnsqueeze(INetworkDefinition* network,
+        nvinfer1::ITensor& tensor, const std::vector<int>& axes) {
+    const auto dims = shapeOf(tensor);
+    const std::set<int> axesSet(axes.begin(), axes.end());
+
+    if (dims.size() + axesSet.size() > nvinfer1::Dims::MAX_DIMS) {
+        return nullptr;
+    }
+
+    std::vector<int> subscripts(dims.size());
+    std::iota(subscripts.begin(), subscripts.end(), 0);
+    for (const auto& axis : axesSet) {
+        subscripts.insert(subscripts.begin() + axis, dims.size());
+    }
+
+    const auto newDims = interlace(network, dims, shapeVector(1), ShapeTensor(1, std::move(subscripts)));
+    nvinfer1::IShuffleLayer* unsqueeze_layer = addShuffle(network, tensor, newDims);
+    return unsqueeze_layer;
+}
+
+nvinfer1::IShuffleLayer* addSqueeze(INetworkDefinition* network, nvinfer1::ITensor& tensor,
+        const std::vector<int>& axes) {
+    const auto dims = shapeOf(tensor);
+    std::vector<int> subscripts(dims.size());
+    auto p = std::remove_if(subscripts.begin(), subscripts.end(),
+        [axes](int x) { return std::find(axes.begin(), axes.end(), x) != axes.end(); });
+    subscripts.resize(p - subscripts.begin());
+
+    auto newDims = gather(network, dims, ShapeTensor(1, std::move(subscripts)));
+    nvinfer1::IShuffleLayer* squeeze_layer = addShuffle(network, tensor, newDims);
+
+    return squeeze_layer;
 }
 
 }  //  namespace TNN_NS

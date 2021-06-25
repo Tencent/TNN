@@ -191,6 +191,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
 
     for (auto iter : inputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        if (index < 0) continue;
         auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
         nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
         m_trt_context->setBindingDimensions(index, inputDims);
@@ -253,6 +254,7 @@ Status TensorRTNetwork_::ReshapeLayers() {
 
     for (auto iter : inputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        if (index < 0) continue;
         auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
         nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
         m_trt_context->setBindingDimensions(index, inputDims);

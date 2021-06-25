@@ -181,6 +181,14 @@ nvinfer1::IShuffleLayer* addShuffle(INetworkDefinition* network, nvinfer1::ITens
 // Add an IFillLayer.
 nvinfer1::IFillLayer* addFill(INetworkDefinition* network, const ShapeTensor& shape, nvinfer1::FillOperation op);
 
+// Add a Unsqueeze layer on a given set of axes.
+nvinfer1::IShuffleLayer* addUnsqueeze(INetworkDefinition* network,
+    nvinfer1::ITensor& tensor, const std::vector<int>& axes);
+
+// Add a Squeeze layer on a given set of axes.
+nvinfer1::IShuffleLayer* addSqueeze(INetworkDefinition* network,
+    nvinfer1::ITensor& tensor, const std::vector<int>& axes);
+
 // Reshape a tensor.
 //
 // Treats any zeros in newShape as dimensions, not placeholders.
