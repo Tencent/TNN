@@ -121,6 +121,9 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
             cur_layer->type              = layer_type;
             cur_layer->type_str          = type_name;
             for (auto input_index : operators[j]->inputs) {
+                if (input_index < 0) {
+                    continue;
+                }
                 cur_layer->inputs.push_back(tensors[input_index]->name);
             }
             for (auto output_index : operators[j]->outputs) {
