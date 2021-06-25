@@ -187,4 +187,4 @@ torch.onnx.export(senet,
 				  input_names= ['input'],
 				  output_names = ['output'])
 ```
-通过上面的代码，将 Pytorch 模型转换为 ONNX 模型之后，可以参考上面“ONN转换为 TNN 模型”的章节，将生成的 ONNX 模型转换为 TNN 模型。
+通过上面的代码，将 Pytorch 模型转换为 ONNX 模型之后，可以参考上面“ONNX转换为 TNN 模型”的章节，将生成的 ONNX 模型转换为 TNN 模型。
