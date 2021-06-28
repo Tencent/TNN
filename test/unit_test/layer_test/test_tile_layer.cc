@@ -63,9 +63,6 @@ TEST_P(TileLayerTest, TileLayer) {
           || DEVICE_CUDA == dev  || DEVICE_OPENCL == dev)) {
         GTEST_SKIP();
     }
-    if (DEVICE_OPENCL == dev && DATA_TYPE_INT8 == data_type) {
-        GTEST_SKIP();
-    }
     Precision precision = SetPrecision(dev, data_type);
 
     // param

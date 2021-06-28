@@ -8,11 +8,12 @@ __kernel void Tile(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_only 
                    __private const int output_batch,
                    __private const int output_channel,
                    __private const int output_height,
-                   __private const int output_width
+                   __private const int output_width,
+                   __private const int out_chw,
+                   __private const int out_hw
                    ) {
     const int cw = get_global_id(0);
     const int hb = get_global_id(1);
-    const int count = output_width * output_height *  output_channel * output_batch;
     DEAL_NON_UNIFORM_DIM2(cw, hb);
     int out_batch =  hb / output_height;
     int out_channel = cw / output_width;
@@ -20,28 +21,19 @@ __kernel void Tile(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_only 
     int out_width = cw % output_width;
 
 
-    // compute four position of output
+    // compute four position
     // 0 index
-    int index =  out_batch * output_channel * output_height * output_width + out_channel * 4 * output_height  * output_width +
+    int index =  out_batch * out_chw + out_channel * 4 * out_hw +
                  out_height * output_width + out_width;
-    if (out_channel * 4 >= output_channel) {
-       FLOAT4 out_zero = (FLOAT4)((FLOAT)0, (FLOAT)0, (FLOAT)0, (FLOAT)0);
-       WI_F(output, (int2)(cw, hb), out_zero);
-       return;
-    }
 
-    int prod = count;
-    prod = prod / output_batch;
-    int batch = index / prod % input_batch;
+    int batch = index / out_chw % input_batch;
 
-    prod = prod /  output_channel;
-    int channel = index / prod % input_channel;
+    int channel = index / out_hw % input_channel;
 
-    prod = prod / output_height;
-    int h =  index / prod % input_height;
 
-    prod = prod / output_width;
-    int w  = index / prod % input_width;
+    int h =  index / output_width % input_height;
+
+    int w  = index  % input_width;
 
     FLOAT4 in = RI_F(input, SAMPLER, (int2)( channel / 4 * input_width + w , batch * input_height + h));
     int idx = channel % 4;
@@ -49,18 +41,14 @@ __kernel void Tile(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_only 
 
     //1 index
     index = index + output_height  * output_width;
-    prod = count;
-    prod = prod / output_batch;
-    batch = index / prod % input_batch;
 
-    prod = prod / output_channel;
-    channel = index / prod % input_channel;
+    batch = index / out_chw % input_batch;
 
-    prod = prod / output_height;
-    h =  index / prod % input_height;
+    channel = index / out_hw % input_channel;
 
-    prod = prod / output_width;
-    w  = index / prod % input_width;
+    h =  index / output_width % input_height;
+
+    w  = index % input_width;
 
     in = RI_F(input, SAMPLER, (int2)(channel / 4 * input_width + w , batch * input_height + h));
     idx = channel % 4;
@@ -69,18 +57,14 @@ __kernel void Tile(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_only 
 
     //2 index
     index = index + output_height  * output_width;
-    prod = count;
-    prod = prod / output_batch;
-    batch = index / prod % input_batch;
 
-    prod = prod / output_channel;
-    channel = index / prod % input_channel;
+    batch = index / out_chw % input_batch;
 
-    prod = prod / output_height;
-    h =  index / prod % input_height;
+    channel = index / out_hw % input_channel;
 
-    prod = prod / output_width;
-    w  = index / prod % input_width;
+    h =  index / output_width % input_height;
+
+    w  = index  % input_width;
 
     in = RI_F(input, SAMPLER, (int2)(channel / 4 * input_width + w , batch * input_height + h));
     idx = channel % 4;
@@ -90,25 +74,42 @@ __kernel void Tile(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_only 
 
     //3 index
     index = index + output_height  * output_width;
-    prod = count;
-    prod = prod / output_batch;
-    batch = index / prod % input_batch;
 
-    prod = prod / output_channel;
-    channel = index / prod % input_channel;
+    batch = index / out_chw % input_batch;
 
-    prod = prod / output_height;
-    h =  index / prod % input_height;
+    channel = index / out_hw % input_channel;
 
-    prod = prod / output_width;
-    w  = index / prod % input_width;
+    h =  index / output_width % input_height;
+
+    w  = index % input_width;
 
     in = RI_F(input, SAMPLER, (int2)(channel / 4 * input_width + w , batch * input_height + h));
     idx = channel % 4;
     FLOAT out3 = idx == 0 ? in.x : (idx == 1 ? in.y : (idx == 2 ? in.z : in.w));
     out3 = (out_channel * 4 + 3) >= output_channel ? (FLOAT)0 : out3;
 
-
     FLOAT4 out = (FLOAT4)(out0, out1, out2, out3);
     WI_F(output, (int2)(cw, hb), out);
+}
+
+__kernel void Tile_nhw(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_only image2d_t output,
+                  __private const int input_batch,
+                  __private const int input_channel,
+                   __private const int input_height,
+                   __private const int input_width,
+                   __private const int output_batch,
+                   __private const int output_channel,
+                   __private const int output_height,
+                   __private const int output_width
+                   ) {
+    const int cw = get_global_id(0);
+    const int hb = get_global_id(1);
+    DEAL_NON_UNIFORM_DIM2(cw, hb);
+    int out_batch =  (hb / output_height) % input_batch;
+    int out_channel = (cw / output_width);
+    int h = (hb % output_height) % input_height;
+    int w = (cw % output_width)  % input_width;
+
+    FLOAT4 in = RI_F(input, SAMPLER, (int2)(out_channel * input_width + w , out_batch * input_height + h));
+    WI_F(output, (int2)(cw, hb), in);
 }
