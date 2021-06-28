@@ -369,6 +369,7 @@ nvinfer1::IShuffleLayer* addSqueeze(INetworkDefinition* network, nvinfer1::ITens
         const std::vector<int>& axes) {
     const auto dims = shapeOf(tensor);
     std::vector<int> subscripts(dims.size());
+    std::iota(subscripts.begin(), subscripts.end(), 0);
     auto p = std::remove_if(subscripts.begin(), subscripts.end(),
         [axes](int x) { return std::find(axes.begin(), axes.end(), x) != axes.end(); });
     subscripts.resize(p - subscripts.begin());
