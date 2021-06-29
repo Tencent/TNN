@@ -40,4 +40,6 @@ DEFINE_bool(b, false, check_batch_message);
 
 DEFINE_string(a, "", align_all_message);
 
+DEFINE_string(sp, "", set_precision_message);
+
 }  // namespace TNN_NS

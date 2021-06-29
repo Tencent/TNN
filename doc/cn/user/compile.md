@@ -189,7 +189,7 @@ openvino只能编译成64位的库，更多编译问题请参考 [FAQ](openvino.
 依赖库
   - Visual Studio (2017 及更高版本)
   - cmake (把3.11及以上版本cmake加入环境变量或使用 Visual Studio 自带cmake)
-  - CUDA (使用10.2及以上版本)
+  - CUDA (使用10.2及以上版本) 并且确保 `CUDA_PATH` 加入了环境变量
 
 #### TensorRT配置
   - 下载TensorRT(>=7.1) <https://developer.nvidia.com/nvidia-tensorrt-7x-download>

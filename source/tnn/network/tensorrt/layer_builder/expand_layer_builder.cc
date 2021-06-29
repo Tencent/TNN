@@ -12,83 +12,111 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
-
-#include <cudnn.h>
-
-#include "tnn/interpreter/layer_param.h"
-#include "tnn/network/tensorrt/dimension_expr.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Expand, LAYER_EXPAND);
+DECLARE_TENSORRT_LAYER_BUILDER(Expand, LAYER_EXPAND);
 
-bool ExpandTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return (((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
-        && inOut[pos].type == inOut[0].type) || inOut[pos].type == nvinfer1::DataType::kINT32);
-}
-
-const char* ExpandTRTPluginLayerBuilder::getPluginType() const {
-    return "Expand";
-}
-
-nvinfer1::DataType ExpandTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
-    return inputTypes[0];
-}
-
-
-DimsExprs ExpandTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
-
-    nvinfer1::IExprBuilder& e = exprBuilder;
-   
+ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto layer_param = dynamic_cast<ExpandLayerParam*>(param_);
-    if (!layer_param) {
-        LOGE("ExpandTRTPluginLayerBuilder::getOutputDimensions got null param\n");
-        return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
+
+    auto input_tensors = GetInputITensors();
+    ITensor* input_data_tensor = input_tensors[0];
+    ITensor* inputDims;
+    if (input_tensors[0]->getDimensions().nbDims != 0)
+        inputDims = network->addShape(*input_tensors[0])->getOutput(0);
+    int inputRank;
+    if (input_tensors[0]->getDimensions().nbDims != 0) {
+        inputRank = inputDims->getDimensions().d[0];
+    } else {
+        inputRank = 0;
     }
 
-    // TODO, deal with the case: shape_dims from TensorData
-    auto shape_dims = layer_param->shape;
+    auto shape = input_tensors[1];
+    auto shapeLength = input_tensors[1]->getDimensions().d[0];
+    int newRank = std::max(shapeLength, inputRank);
 
-    DimsExprs expand_dims;
-    expand_dims.nbDims = shape_dims.size();
-    for(int i=0;i<shape_dims.size();i++) {
-        expand_dims.d[i] = DimensionExpr(shape_dims[i], e).expr();
-    }
-
-    int nb_dims_diff = std::abs(expand_dims.nbDims - inputs[0].nbDims);
-
-    DimsExprs output;
-    if (expand_dims.nbDims > inputs[0].nbDims) {
-        output = expand_dims;
-        for(int i=0;i<output.nbDims;i++) {
-            if (i >= nb_dims_diff) {
-                output.d[i] = e.operation(nvinfer1::DimensionOperation::kMAX, *expand_dims.d[i], *inputs[0].d[i - nb_dims_diff]);
-            }
+    ITensor* newDims;
+    if (newRank - inputRank != 0) {
+        Dims tmpDims;
+        tmpDims.nbDims = newRank - inputRank;
+        for (int i = 0; i < newRank - inputRank; i++) {
+            tmpDims.d[i] = 1;
+        }
+        Weights tmpWeight;
+        tmpWeight.type = nvinfer1::DataType::kINT32;
+        tmpWeight.values = layer_param->shape.data();
+        tmpWeight.count = 1;
+        if (input_tensors[0]->getDimensions().nbDims != 0) {
+            nvinfer1::ITensor* const args[2] = {
+                network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0), inputDims};
+            newDims = network->addConcatenation(args, 2)->getOutput(0);
+        } else {
+            newDims = network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0);
         }
     } else {
-        output = inputs[0];
-        for(int i=0;i<output.nbDims;i++) {
-            if (i >= nb_dims_diff) {
-                output.d[i] = e.operation(nvinfer1::DimensionOperation::kMAX, *expand_dims.d[i - nb_dims_diff], *inputs[0].d[i]);
-            }
-        }
+        newDims = inputDims;
     }
 
-    return output;
+    if (newRank - inputRank != 0) {
+        IShuffleLayer* reshape_layer = network->addShuffle(*input_data_tensor);
+        reshape_layer->setInput(1, *newDims);
+        input_data_tensor = reshape_layer->getOutput(0);
+    }
+
+    ITensor* newShape;
+    if (newRank - shapeLength != 0) {
+        Dims tmpDims;
+        tmpDims.nbDims = newRank - shapeLength;
+        for (int i = 0; i < newRank - shapeLength; i++) {
+            tmpDims.d[i] = 1;
+        }
+        Weights tmpWeight;
+        tmpWeight.type = nvinfer1::DataType::kINT32;
+        tmpWeight.values = layer_param->shape.data();
+        tmpWeight.count = 1;
+        nvinfer1::ITensor* const args[2] = {
+            network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0), shape};
+        newShape = network->addConcatenation(args, 2)->getOutput(0);
+    } else {
+        newShape = shape;
+    }
+
+    Dims startDims;
+    startDims.nbDims = newRank;
+    for (int i = 0; i < newRank; i++) {
+        startDims.d[i] = 0;
+    }
+
+    ITensor* sizes = network->addElementWise(*newDims, *newShape, ElementWiseOperation::kMAX)->getOutput(0);
+    ITensor* one;
+    {
+        Dims tmpDims;
+        tmpDims.nbDims = newRank;
+        for (int i = 0; i < newRank; i++)
+            tmpDims.d[i] = 1;
+        Weights tmpWeight;
+        tmpWeight.type = nvinfer1::DataType::kINT32;
+        tmpWeight.values = layer_param->shape.data();
+        tmpWeight.count = 1;
+        one = network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0);
+    }
+
+    ITensor* strides = network->addElementWise(*one,
+        *network->addElementWise(*newDims, *one, ElementWiseOperation::kSUB)->getOutput(0),
+        ElementWiseOperation::kMIN)->getOutput(0);
+
+    ISliceLayer* broadcast_layer = network->addSlice(*input_data_tensor, startDims, nvinfer1::Dims{}, nvinfer1::Dims{});
+    if (broadcast_layer != nullptr) {
+        broadcast_layer->setInput(2, *sizes);
+        broadcast_layer->setInput(3, *strides);
+    }
+
+    return broadcast_layer;
 }
 
-ILayer* ExpandTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
-}
-
-const char* ExpandPluginCreator::getPluginName() const {
-    return "Expand";
-}
-
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Expand, LAYER_EXPAND);
+REGISTER_TENSORRT_LAYER_BUILDER(Expand, LAYER_EXPAND);
 
 }  //  namespace TNN_NS

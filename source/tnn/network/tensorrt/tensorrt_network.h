@@ -18,6 +18,7 @@
 #include <iostream>
 #include <unordered_set>
 #include <cuda_runtime.h>
+#include <thread>
 
 #include "tnn/core/default_network.h"
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
@@ -59,7 +60,7 @@ public:
 
 class TensorRTPluginLayerBuilder;
 
-class TensorRTNetwork_ : public DefaultNetwork {
+class TensorRTNetwork_ : public DefaultNetwork, public ISharedMemoryChangeListener {
 public:
     // @brief TensorRTNetwork_ Constructor
     TensorRTNetwork_();
@@ -74,8 +75,8 @@ public:
     // @param inputs_shape_map modify input shape, if empty, it will use the
     // shape in proto
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config,
-                        AbstractModelInterpreter* interpreter,
-                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
+        AbstractModelInterpreter* interpreter, InputShapesMap min_inputs_shape,
+        InputShapesMap max_inputs_shape, bool enable_const_folder);
 
     // @brief network forward
     virtual Status Forward();
@@ -87,16 +88,19 @@ public:
     // @brief tnn instance network infer, it will not wait
     virtual Status ForwardAsync(Callback call_back);
 
+    // @brief OnSharedForwardMemoryChanged for share memory change observer
+    virtual void OnSharedForwardMemoryChanged(void *memory);
+
     static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> GetPluginLayerNameMap();
 
     std::string GetCacheFileName(std::vector<std::string> params_md5, BlobMap input_map,
         BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, int batchsize,
-        bool int8_mode, bool use_fp16);
+        bool int8_mode, bool use_fp16, bool enable_const_folder);
 
     std::set<std::string> m_concat_blob_names;
 
 private:
-    virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
+    virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource, bool enable_const_folder);
 
     bool IsBlobUsed(Blob* blob);
 
@@ -123,6 +127,8 @@ private:
     void* m_context_memory;
     NetResource *net_resource_;
     int device_id_;
+
+    std::thread::id init_thread_id_;
 
     std::vector<std::string> const_input_blobs_;
     std::vector<std::string> const_weight_blobs_;

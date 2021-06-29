@@ -32,11 +32,11 @@ TensorRTPluginLayerBuilder::~TensorRTPluginLayerBuilder() {
 }
 
 Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& input_blobs,
-        std::vector<Blob*>& output_blobs, AbstractDevice* device) {
+        std::vector<Blob*>& output_blobs, AbstractDevice* device, bool enable_const_folder) {
     
     m_layer->SetLayerName(this->GetLayerName());
 
-    Status ret = m_layer->Init(context, param, resource, input_blobs, output_blobs, device);
+    Status ret = m_layer->Init(context, param, resource, input_blobs, output_blobs, device, enable_const_folder);
     if (ret != TNN_OK) {
         return ret;
     }
@@ -92,20 +92,19 @@ bool dims_equal(DimsVector dims, nvinfer1::Dims trt_dims) {
 int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputDesc,
         const nvinfer1::PluginTensorDesc* outputDesc, const void* const* inputs, void* const* outputs,
         void* workspace, cudaStream_t stream) {
+    bool is_input_zero = false;
     for (int i = 0; i < input_blobs_.size(); i++) {
         Blob* input_blob = input_blobs_[i];
         BlobHandle input_handle;
         input_handle.base = const_cast<void *>(inputs[i]);
         input_handle.bytes_offset = input_blob->GetHandle().bytes_offset;
         input_blob->SetHandle(input_handle);
-        if (false == dims_equal(input_blob->GetBlobDesc().dims, inputDesc[i].dims)) {
-            std::stringstream tnn_dims, trt_dims; 
-            for( int d =0; d < inputDesc[i].dims.nbDims;d++) trt_dims << inputDesc[i].dims.d[d] << ",";
-            for( int d :input_blob->GetBlobDesc().dims) tnn_dims << d << ",";
-            LOGE("TensorRT input dims differs from TNN input dims. tnn shape:%s trt shape:%s\n", 
-                    tnn_dims.str().c_str(), trt_dims.str().c_str());
-            return -1;
+        DimsVector dims;
+        for (int j = 0; j < inputDesc[i].dims.nbDims; j++) {
+            dims.push_back(inputDesc[i].dims.d[j]);
+            if (inputDesc[i].dims.d[j] == 0) is_input_zero = true;
         }
+        input_blob->GetBlobDesc().dims = dims;
     }
 
     for (int i = 0; i < output_blobs_.size(); i++) {
@@ -114,15 +113,14 @@ int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputD
         output_handle.base = const_cast<void *>(outputs[i]);
         output_handle.bytes_offset = output_blob->GetHandle().bytes_offset;
         output_blob->SetHandle(output_handle);
-        if (false == dims_equal(output_blob->GetBlobDesc().dims, outputDesc[i].dims)) {
-            std::stringstream tnn_dims, trt_dims; 
-            for( int d =0; d < outputDesc[i].dims.nbDims;d++) trt_dims << outputDesc[i].dims.d[d] << ",";
-            for( int d :output_blob->GetBlobDesc().dims) tnn_dims << d << ",";
-            LOGE("TensorRT output dims differs from TNN output dims. tnn shape:%s trt shape:%s\n", 
-                    tnn_dims.str().c_str(), trt_dims.str().c_str());
-            return -1;
+        DimsVector dims;
+        for (int j = 0; j < outputDesc[i].dims.nbDims; j++) {
+            dims.push_back(outputDesc[i].dims.d[j]);
         }
+        output_blob->GetBlobDesc().dims = dims;
     }
+
+    if (is_input_zero) return 0;
 
     Status ret = m_layer->Forward();
     if (ret != TNN_OK) return -1;

@@ -32,14 +32,20 @@ public:
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void** command_queue) override;
 
-    // @brief befor instace forword
+    // @brief before instance forward
     virtual Status OnInstanceForwardBegin() override;
 
-    // @brief after instace forword
+    // @brief after instance forward
     virtual Status OnInstanceForwardEnd() override;
 
     // @brief wait for jobs in the current context to complete
     virtual Status Synchronize() override;
+
+    // @brief set threads run on device
+    virtual Status SetNumThreads(int num_threads) override;
+
+    // @brief get threads run on device
+    virtual int GetNumThreads();
 
     void* GetSharedWorkSpace(size_t size);
     void* GetSharedWorkSpace(size_t size, int index);

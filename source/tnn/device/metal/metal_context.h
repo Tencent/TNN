@@ -135,11 +135,11 @@ private:
                   bandwidth:(TNN_NS::MetalBandwidth)bandwidth;
 
 /**
- * @brief befor instace forword
+ * @brief before instance forward
  */
 - (Status)onInstanceForwardBegin;
 /**
- * @brief after instace forword
+ * @brief after instance forward
  */
 - (Status)onInstanceForwardEnd;
 

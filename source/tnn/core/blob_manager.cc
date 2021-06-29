@@ -85,6 +85,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
 
     config_            = config;
     init_thread_id_    = std::this_thread::get_id();
+    shared_memory_allocated_ = false;
     memory_mode_state_ = MemoryModeStateFactory::CreateMemoryModeState(config.share_memory_mode);
 
     // get the maximum dimension of all inputs
@@ -112,7 +113,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
         blobs_[node_name] = new Blob(desc, handle);
     }
 
-    // intput blobs
+    // input blobs
     const auto& input_data_type_map = net_structure->input_data_type_map;
     for (auto iter : instance_input_shapes_map) {
         auto current_blob_name = iter.first;
@@ -141,7 +142,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
 
 /*
  *  This function allocates the memory for all blobs.
- *  The memory size is calclucated by each Device according to data_type \
+ *  The memory size is calculated by each Device according to data_type \
  *  and data format.
  *  The size may be different for different devices.
  */
@@ -167,7 +168,7 @@ Status BlobManager::AllocateBlobMemory(int flag) {
     }
 
     /*
-     *  We reuse blob memory of the previos layers if it is not referenced.
+     *  We reuse blob memory of the previous layers if it is not referenced.
      *  So, a use_count is calculated here.
      */
     for (size_t layer_index = 0; layer_index < net_structure_->layers.size(); layer_index++) {
@@ -222,7 +223,7 @@ Status BlobManager::AllocateBlobMemory(int flag) {
 
     do {
         if (config_.share_memory_mode == SHARE_MEMORY_MODE_DEFAULT) {
-            // The default strategy allocated the blob memory seperately.
+            // The default strategy allocated the blob memory separately.
             MemorySeperateAssignStrategy strategy;
             for (auto blob_memory_pool_iter : blob_memory_pool_map_) {
                 status = blob_memory_pool_iter.second->AssignAllBlobMemory(strategy);
@@ -232,13 +233,14 @@ Status BlobManager::AllocateBlobMemory(int flag) {
             BindBlobMemory();
         } else if (config_.share_memory_mode == SHARE_MEMORY_MODE_SHARE_ONE_THREAD) {
             // The share_on_thread strategy may share memory of different models-
-            // whithin the same thread.
+            // within the same thread.
             for (auto blob_memory_pool_iter : blob_memory_pool_map_) {
                 int forward_memory_size   = blob_memory_pool_iter.second->GetAllBlobMemorySize();
                 SharedMemory share_memory = SharedMemoryManager::GetSharedMemory(
                         forward_memory_size, init_thread_id_, device_,
                         config_.device_id, this, status);
                 BREAK_IF(status != TNN_OK);
+		shared_memory_allocated_ = true;
                 MemoryUnifyAssignStrategy strategy(share_memory.shared_memory_data);
                 status = blob_memory_pool_iter.second->AssignAllBlobMemory(strategy);
                 BREAK_IF(status != TNN_OK);
@@ -275,8 +277,8 @@ int BlobManager::GetBlobUseCount(int layer_index, std::string current_blob_name)
 }
 
 Status BlobManager::DeInit() {
-    if (config_.share_memory_mode == SHARE_MEMORY_MODE_SHARE_ONE_THREAD) {
-        SharedMemoryManager::ReleaseSharedMemory(init_thread_id_, device_, config_.device_id, this);
+    if(shared_memory_allocated_) {
+    	SharedMemoryManager::ReleaseSharedMemory(init_thread_id_, device_, config_.device_id, this);
     }
 
     for (auto blob : blobs_) {

@@ -40,7 +40,7 @@ extern const std::map<std::string, std::vector<unsigned char>> g_opencl_program_
 
 static std::mutex g_mtx;
 
-//reserved for uncompatible
+//reserved for incompatible
 const std::string CACHE_TAG = "d1_tnn_ocl";
 
 //magic number
@@ -121,7 +121,7 @@ Status OpenCLRuntime::Init() {
 
 #ifdef TNN_USE_OPENCL_WRAPPER
         if (false == OpenCLSymbols::GetInstance()->LoadOpenCLLibrary()) {
-            return Status(TNNERR_DEVICE_LIBRARY_LOAD, "load opencl library falied!");
+            return Status(TNNERR_DEVICE_LIBRARY_LOAD, "load opencl library failed!");
         }
 #endif  // TNN_USE_OPENCL_WRAPPER
 
@@ -147,7 +147,7 @@ Status OpenCLRuntime::Init() {
 
         if (err != CL_SUCCESS) {
             LOGE(
-                "Create special opencl context falied, Create common opencl "
+                "Create special opencl context failed, Create common opencl "
                 "context then.\n");
             context_ = std::shared_ptr<cl::Context>(new cl::Context(*device_, nullptr, nullptr, nullptr, &err));
         }
@@ -322,12 +322,12 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
         auto status = this->LoadProgram(program_name, &program);
         if (!status) {
             LOGE("load program (%s) failed!\n", program_name.c_str());
-            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "load program falied");
+            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "load program failed");
         }
         status = this->BuildProgram(build_options_str, &program);
         if (!status) {
             LOGE("%s build failed!\n", program_name.c_str());
-            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "build program falied");
+            return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "build program failed");
         }
         program_map_.emplace(build_program_key, program);
     }
@@ -337,7 +337,7 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
     kernel = cl::Kernel(program, kernel_name.c_str(), &err);
     if (err != CL_SUCCESS) {
         LOGE("Kernel create failed! (ERROR CODE: %d)\n", err);
-        return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "create kernel falied");
+        return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "create kernel failed");
     }
 
     auto kernel_name_it = kernel_name_map_.find(build_program_key);
@@ -568,7 +568,7 @@ Status OpenCLRuntime::LoadProgramCache() {
                 if (!status) {
                     RELEASE_AND_UNLOCK(program_cache_fin);
                     return Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
-                                  "build program falied, program name: " + program_name);
+                                  "build program failed, program name: " + program_name);
                 }
                 program_map_.emplace(key, program);
                 kernel_name_map_.emplace(key, kernel_name_list);
@@ -618,7 +618,7 @@ Status OpenCLRuntime::SaveProgramCache() {
                         kernel_key_list_stream << kernel_name << " ";
                     }
                 }
-                ASSERT(kernel_info_stream.str().size() < KERNEL_KEY_LIST_MAX_LEN);
+                ASSERT(kernel_key_list_stream.str().size() < KERNEL_KEY_LIST_MAX_LEN);
                 strcpy(info.kernel_key_list, kernel_key_list_stream.str().c_str());
                 info.buffer_size = buffer_size;
                 int fwsize = fwrite(&info, sizeof(struct ProgramCacheInfo), 1, program_cache_fout);

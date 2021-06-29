@@ -24,6 +24,10 @@ bool PriorBoxTRTPluginLayerBuilder::supportsFormatCombination(
         && inOut[pos].type == inOut[0].type);
 }
 
+Status PriorBoxTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
 const char* PriorBoxTRTPluginLayerBuilder::getPluginType() const {
     return "PriorBox";
 }

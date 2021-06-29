@@ -41,7 +41,7 @@ public:
     // @brief virtual destructor
     virtual ~AbstractLayerAcc(){};
 
-    // @brief init layer with param, resouce, intput blobs and output blobs.
+    // @brief init layer with param, resouce, input blobs and output blobs.
     // @context tnn instance device context
     // @param param    layer param
     // @param resouce  layer resouce

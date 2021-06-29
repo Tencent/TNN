@@ -61,27 +61,27 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
             return Status(TNNERR_PARAM_ERR, "inputs size shound be 2 without binary resource");
         }
     } else {
-        auto param_dims = layer_res->element_shape;
+        param_dims_ = layer_res->element_shape;
         input_idx_      = 0;
         if (inputs.size() != 1) {
             return Status(TNNERR_PARAM_ERR, "input size should be 1");
         }
 
-        int diff = output_dims_size_ - param_dims.size();
+        int diff = output_dims_size_ - param_dims_.size();
         for (int i = 0; i < diff; i++) {
-            param_dims.insert(param_dims.begin(), 1);
+            param_dims_.insert(param_dims_.begin(), 1);
         }
 
         if (layer_res->element_handle.GetDataType() == DATA_TYPE_FLOAT) {
             float *data_ptr = layer_res->element_handle.force_to<float *>();
-            ret             = ConvertParam(data_ptr, param_dims);
+            ret             = ConvertParam(data_ptr, param_dims_);
             CHECK_TNN_OK(ret)
         } else {
             auto float_data_ptr = GetFloatFromRawBuffer(layer_res->element_handle);  // handle the memory
             if (float_data_ptr == nullptr) {
-                return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "convert res to float falied");
+                return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "convert res to float failed");
             }
-            ret = ConvertParam(float_data_ptr.get(), param_dims);
+            ret = ConvertParam(float_data_ptr.get(), param_dims_);
             CHECK_TNN_OK(ret)
         }
     }
@@ -125,6 +125,36 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
             param_batch = DimsFunctionUtils::GetDim(param_dims, 0);
         }
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, param_batch);
+    } else if (kernel_name_ == "BinaryBroadcast") {
+        std::vector<int> output_shape(4), input0_shape(4), input1_shape(4);
+        if (inputs.size() == 2) {
+            if (inputs[input_idx_]->GetBlobDesc().dims.size() > 4 ||
+                inputs[param_idx_]->GetBlobDesc().dims.size() > 4) {
+                return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "opencl binary layer inputs not support dims > 4");
+            }
+            for (int i = 0; i < 4; ++i) {
+                input0_shape[i] = DimsFunctionUtils::GetDim(inputs[input_idx_]->GetBlobDesc().dims, i);
+                input1_shape[i] = DimsFunctionUtils::GetDim(inputs[param_idx_]->GetBlobDesc().dims, i);
+            }
+        } else {
+            if (inputs[input_idx_]->GetBlobDesc().dims.size() > 4 || param_dims_.size() > 4) {
+                return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "opencl binary layer inputs not support dims > 4");
+            }
+            for (int i = 0; i < 4; ++i) {
+                input0_shape[i] = DimsFunctionUtils::GetDim(inputs[input_idx_]->GetBlobDesc().dims, i);
+                input1_shape[i] = DimsFunctionUtils::GetDim(param_dims_, i);
+            }
+        }
+
+        for (int i = 0; i < 4; ++i) {
+            output_shape[i] = DimsFunctionUtils::GetDim(output_dims, i);
+        }
+
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, 4 * sizeof(int), output_shape.data());
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, 4 * sizeof(int), input0_shape.data());
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, 4 * sizeof(int), input1_shape.data());
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, UP_DIV(input0_shape[1], 4));
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, UP_DIV(input1_shape[1], 4));
     }
 
     // set output
@@ -134,21 +164,34 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 }
 
 std::string OpenCLBinaryLayerAcc::GetKernelName(const MultidirBroadcastLayerParam &param) {
-    if (param.input0_broadcast_type == BroadcastTypeSingle || param.input1_broadcast_type == BroadcastTypeSingle) {
+    if (param.input0_broadcast_type == BroadcastTypeNormal &&
+        param.input1_broadcast_type == BroadcastTypeNormal) {
+        return "BinaryElementWise";
+    } else if (param.input0_broadcast_type == BroadcastTypeSingle ||
+               param.input1_broadcast_type == BroadcastTypeSingle) {
         return "BinarySingle";
-    } else if (param.input0_broadcast_type == BroadcastTypeChannel ||
-               param.input1_broadcast_type == BroadcastTypeChannel) {
+    } else if ((param.input0_broadcast_type == BroadcastTypeChannel &&
+                param.input1_broadcast_type == BroadcastTypeNormal) ||
+                (param.input1_broadcast_type == BroadcastTypeChannel &&
+                param.input0_broadcast_type == BroadcastTypeNormal)) {
         return "BinaryChannel";
-    } else if (param.input0_broadcast_type == BroadcastTypeElement ||
-               param.input1_broadcast_type == BroadcastTypeElement) {
+    } else if ((param.input0_broadcast_type == BroadcastTypeElement &&
+                param.input1_broadcast_type == BroadcastTypeNormal) ||
+                (param.input1_broadcast_type == BroadcastTypeElement &&
+                param.input0_broadcast_type == BroadcastTypeNormal)) {
         return "BinaryCHW";
-    } else if (param.input0_broadcast_type == BroadcastTypeHeightWidth ||
-               param.input1_broadcast_type == BroadcastTypeHeightWidth) {
+    } else if ((param.input0_broadcast_type == BroadcastTypeHeightWidth &&
+                param.input1_broadcast_type == BroadcastTypeNormal) ||
+                (param.input1_broadcast_type == BroadcastTypeHeightWidth &&
+                param.input0_broadcast_type == BroadcastTypeNormal)) {
         return "BinaryHW";
-    } else if (param.input0_broadcast_type == BroadcastTypeWidth || param.input1_broadcast_type == BroadcastTypeWidth) {
+    } else if ((param.input0_broadcast_type == BroadcastTypeWidth &&
+                param.input1_broadcast_type == BroadcastTypeNormal) ||
+                (param.input1_broadcast_type == BroadcastTypeWidth &&
+                param.input0_broadcast_type == BroadcastTypeNormal)) {
         return "BinaryWidth";
     } else {
-        return "BinaryElementWise";
+        return "BinaryBroadcast";
     }
 }
 
@@ -166,7 +209,7 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
                               buffer_size * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     param_buffer->SetData(&param_clbuffer);
     auto param_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
@@ -180,7 +223,7 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(param_clbuffer, param_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
 
     // create binary_param_
@@ -195,7 +238,7 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     binary_params_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     binary_params_->SetData(image, true);

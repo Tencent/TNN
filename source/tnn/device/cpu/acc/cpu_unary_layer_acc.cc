@@ -59,34 +59,46 @@ Status CpuUnaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
         for (int index = 0; index < count; ++index) {
             output_data[index] = (*op_)(input_data[index]);
         }
+    } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        auto input_data  = static_cast<int *>(input_blob->GetHandle().base);
+        auto output_data = static_cast<int *>(output_blob->GetHandle().base);
+        for (int index = 0; index < count; ++index) {
+            output_data[index] = (*op_)(input_data[index]);
+        }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         auto dims = input_blob->GetBlobDesc().dims;
         int8_t *input_data  = static_cast<int8_t *>(input_blob->GetHandle().base);
         int8_t *output_data = static_cast<int8_t *>(output_blob->GetHandle().base);
-        auto input_scale_handle  = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->scale_handle;
-        auto output_scale_handle = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->scale_handle;
-        const float *i_scale = input_scale_handle.force_to<float *>();
-        const float *o_scale = output_scale_handle.force_to<float *>();
-        int scale_len_i = input_scale_handle.GetDataCount();
-        int scale_len_o = output_scale_handle.GetDataCount();
-        for (int n = 0; n < dims[0]; ++n) {
-            auto input_data_n  = input_data + n * dims[1] * dims[2] * dims[3];
-            auto output_data_n = output_data + n * dims[1] * dims[2] * dims[3];
-            for (int c = 0; c < dims[1]; ++c) {
-                auto input_data_c  = input_data_n + c * dims[2] * dims[3];
-                auto output_data_c = output_data_n + c * dims[2] * dims[3];
-                float input_scale   = scale_len_i == 0 ? i_scale[0] : i_scale[c];
-                float output_scale  = scale_len_o == 0 ? o_scale[0] : o_scale[c];
-                for (int hw = 0; hw < DimsVectorUtils::Count(dims, 2); ++hw) {
-                    float input_data_tmp  = input_data_c[hw] * input_scale;
-                    float output_data_tmp = (*op_)(input_data_tmp);
-                    output_data_c[hw] = float2int8(output_data_tmp / output_scale);
+        if (param_->quantized) {
+            auto input_scale_handle  = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->scale_handle;
+            auto output_scale_handle = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->scale_handle;
+            const float *i_scale     = input_scale_handle.force_to<float *>();
+            const float *o_scale     = output_scale_handle.force_to<float *>();
+            int scale_len_i          = input_scale_handle.GetDataCount();
+            int scale_len_o          = output_scale_handle.GetDataCount();
+            for (int n = 0; n < dims[0]; ++n) {
+                auto input_data_n  = input_data + n * dims[1] * dims[2] * dims[3];
+                auto output_data_n = output_data + n * dims[1] * dims[2] * dims[3];
+                for (int c = 0; c < dims[1]; ++c) {
+                    auto input_data_c  = input_data_n + c * dims[2] * dims[3];
+                    auto output_data_c = output_data_n + c * dims[2] * dims[3];
+                    float input_scale  = scale_len_i == 0 ? i_scale[0] : i_scale[c];
+                    float output_scale = scale_len_o == 0 ? o_scale[0] : o_scale[c];
+                    for (int hw = 0; hw < DimsVectorUtils::Count(dims, 2); ++hw) {
+                        float input_data_tmp  = input_data_c[hw] * input_scale;
+                        float output_data_tmp = (*op_)(input_data_tmp);
+                        output_data_c[hw]     = float2int8(output_data_tmp / output_scale);
+                    }
                 }
+            }
+        } else {
+            for (int index = 0; index < count; ++index) {
+                output_data[index] = (*op_)(input_data[index]);
             }
         }
     } else {
-        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuUnaryLayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuUnaryLayerAcc layer acc dont support datatype");
     }
 
     return TNN_OK;

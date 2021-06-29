@@ -42,7 +42,10 @@ bool LayerTest::CheckDataTypeSkip(DataType data_type) {
     }
 #endif
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
-    if ( (data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_INT8 || data_type == DATA_TYPE_BFP16) && (DEVICE_ARM != dev &&  DEVICE_NAIVE != dev))  {
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev && DEVICE_X86 != dev && DEVICE_NAIVE != dev) {
+        return true;
+    }
+    if ( (data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_BFP16) && (DEVICE_ARM != dev &&  DEVICE_NAIVE != dev))  {
         return true;
     }
     return false;
@@ -128,38 +131,38 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
 
     instance_cpu_ = std::make_shared<Instance>(config_cpu, model_config);
     if (nullptr == instance_cpu_) {
-        LOGE("tnn create cpu instance falied\n");
+        LOGE("tnn create cpu instance failed\n");
         return Status(TNNERR_NULL_PARAM, "instance is null");
     }
 
     instance_device_ = std::make_shared<Instance>(config_device, model_config);
     if (nullptr == instance_device_) {
-        LOGE("tnn create device instance falied\n");
+        LOGE("tnn create device instance failed\n");
         return Status(TNNERR_NULL_PARAM, "instance is null");
     }
 
     InputShapesMap input_shape = InputShapesMap();
     ret                        = instance_cpu_->Init(interp, input_shape);
     if (ret != TNN_OK) {
-        LOGE("tnn init cpu instance falied (%s)\n", ret.description().c_str());
+        LOGE("tnn init cpu instance failed (%s)\n", ret.description().c_str());
         return ret;
     }
     ret = instance_device_->Init(instance_cpu_->GetInterpreter(), input_shape);
     if (ret != TNN_OK) {
-        LOGE("tnn init device instance falied (%s)\n", ret.description().c_str());
+        LOGE("tnn init device instance failed (%s)\n", ret.description().c_str());
         return ret;
     }
 
     if (nullptr == instance_ocl_cache_ && DEVICE_OPENCL == config_device.device_type) {
         instance_ocl_cache_ = std::make_shared<Instance>(config_device, model_config);
         if (nullptr == instance_ocl_cache_) {
-            LOGE("tnn create ocl cache instance falied\n");
+            LOGE("tnn create ocl cache instance failed\n");
             return Status(TNNERR_NULL_PARAM, "instance is null");
         }
 
         ret = instance_ocl_cache_->Init(interp, input_shape);
         if (ret != TNN_OK) {
-            LOGE("tnn init device instance falied\n");
+            LOGE("tnn init device instance failed\n");
             return ret;
         }
     }
@@ -272,7 +275,7 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
     } else if (blob_desc_device.data_type == DATA_TYPE_INT8) {
         // the value is initialized as int8
         mat_type = RESERVED_INT8_TEST;
-    } else if (blob_desc_device.data_type == DATA_TYPE_HALF) {
+    } else if (blob_desc_device.data_type == DATA_TYPE_HALF && device_blob->GetBlobDesc().device_type == DEVICE_ARM) {
         // the value is initialized as half
         mat_type = RESERVED_FP16_TEST;
     }

@@ -68,7 +68,8 @@ Status GatherLayer::InferOutputShape(bool ignore_error) {
     while (axis < 0) {
         axis += data_dims.size();
     }
-    
+    layer_param->axis = axis;
+
     DimsVector output_dims;
     if (axis > 0 && axis<data_dims.size()) {
         output_dims.insert(output_dims.end(), data_dims.begin(), data_dims.begin()+axis);

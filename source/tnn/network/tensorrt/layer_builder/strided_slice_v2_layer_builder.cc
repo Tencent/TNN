@@ -23,6 +23,10 @@ bool StrideSliceV2TRTPluginLayerBuilder::supportsFormatCombination(
     return inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32;
 }
 
+Status StrideSliceV2TRTPluginLayerBuilder::Reshape() {
+    return m_layer->Reshape();
+}
+
 const char* StrideSliceV2TRTPluginLayerBuilder::getPluginType() const {
     return "StrideSliceV2";
 }

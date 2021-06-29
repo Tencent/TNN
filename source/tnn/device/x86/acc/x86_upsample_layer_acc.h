@@ -27,14 +27,7 @@ namespace TNN_NS {
 class X86UpsampleLayerAcc : public X86LayerAcc {
     // @brief virtual destrcutor
     virtual ~X86UpsampleLayerAcc();
-
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
-private:
-    RawBuffer buffer_input_fp32_;
-    RawBuffer buffer_output_fp32_;
 };
 
 }  // namespace TNN_NS

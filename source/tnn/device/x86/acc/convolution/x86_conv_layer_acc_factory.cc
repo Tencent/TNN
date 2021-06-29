@@ -17,13 +17,15 @@
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_depthwise.h"
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_1x1.h"
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_3x3.h"
+#include "tnn/device/x86/acc/convolution/x86_conv_layer_common.h"
+#include "tnn/device/x86/acc/convolution/x86_conv_int8_layer_common.h"
+#include "tnn/device/x86/acc/convolution/x86_conv_int8_layer_depthwise.h"
 
 namespace TNN_NS {
 
 /*
 get different impl based on conv params
-ArmConvLayerCommon always as the last solution
-bfp16 impl included in fp impl
+X86ConvLayerCommon always as the last solution
 */
 void X86ConvLayerAccFactory::CreateImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                                          LayerParam *param, std::shared_ptr<X86LayerAcc> &conv_acc_impl) {
@@ -41,6 +43,23 @@ void X86ConvLayerAccFactory::CreateImpFP(const std::vector<Blob *> &inputs, cons
         }
     } else if (!conv_acc_impl) {
         conv_acc_impl = std::make_shared<X86ConvLayerCommon>();
+    }
+}
+
+/*
+get different impl based on conv params
+X86ConvInt8LayerCommon always as the last solution
+*/
+void X86ConvLayerAccFactory::CreateImpInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                                           LayerParam *param, std::shared_ptr<X86LayerAcc> &conv_acc_impl) {
+    if (X86ConvInt8LayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<X86ConvInt8LayerDepthwise *>(conv_acc_impl.get())) {
+            conv_acc_impl = std::make_shared<X86ConvInt8LayerDepthwise>();
+        }
+    } else if (X86ConvInt8LayerCommon::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<X86ConvInt8LayerCommon *>(conv_acc_impl.get())) {
+            conv_acc_impl = std::make_shared<X86ConvInt8LayerCommon>();
+        }
     }
 }
 

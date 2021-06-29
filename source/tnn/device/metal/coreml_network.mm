@@ -30,7 +30,7 @@ CoreMLNetwork::~CoreMLNetwork() {
 }
 
 Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                           InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+                           InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder) {
     if (@available(iOS 11.0, macOS 10.13, *)) {
         Status ret = TNN_OK;
 
