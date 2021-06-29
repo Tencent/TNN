@@ -11,8 +11,9 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#include "tnn/device/opencl/acc/opencl_unary_layer_acc.h"
 #include <iostream>
+
+#include "tnn/device/opencl/acc/opencl_unary_layer_acc.h"
 namespace TNN_NS {
 
 class OpenCLInverseLayerAcc : public OpenCLLayerAcc {
@@ -23,22 +24,21 @@ public:
     virtual ~OpenCLInverseLayerAcc() override;
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
-
 };
 
 Status OpenCLInverseLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init BatchNorm Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
-    auto output_dims = outputs[0]->GetBlobDesc().dims;
-    auto input_dims = inputs[0]->GetBlobDesc().dims;
-    run_3d_ndrange_ = false;
-    op_name_        = "Inverse";
+    auto output_dims        = outputs[0]->GetBlobDesc().dims;
+    auto input_dims         = inputs[0]->GetBlobDesc().dims;
+    run_3d_ndrange_         = false;
+    op_name_                = "Inverse";
     std::string kernel_name = "Inverse";
 
     // create kernel
-    ret                     = CreateExecuteUnit(execute_units_[0], "inverse", kernel_name);
+    ret = CreateExecuteUnit(execute_units_[0], "inverse", kernel_name);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
@@ -54,8 +54,8 @@ Status OpenCLInverseLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     CHECK_TNN_OK(ret)
 
     auto output_dims = outputs[0]->GetBlobDesc().dims;
-    auto input_dims = inputs[0]->GetBlobDesc().dims;
-    uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], output_dims);
+    auto input_dims  = inputs[0]->GetBlobDesc().dims;
+    uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], output_dims);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
 
@@ -67,6 +67,6 @@ Status OpenCLInverseLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     return TNN_OK;
 }
 
-REGISTER_OPENCL_ACC(Inverse,  LAYER_INVERSE)
+REGISTER_OPENCL_ACC(Inverse, LAYER_INVERSE)
 REGISTER_OPENCL_LAYOUT(LAYER_INVERSE, DATA_FORMAT_NHC4W4);
 }  // namespace TNN_NS
