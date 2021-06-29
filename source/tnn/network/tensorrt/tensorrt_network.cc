@@ -47,6 +47,7 @@ TensorRTNetwork_::TensorRTNetwork_() {
     m_trt_context = nullptr;
     m_context_memory = nullptr;
     m_trt_bindings = nullptr;
+    device_id_ = 0;
 }
 
 TensorRTNetwork_::~TensorRTNetwork_() {
