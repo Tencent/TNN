@@ -500,6 +500,9 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
                 cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 1));
                 CHECK_CL_SUCCESS(cl_ret);
             }
+            if (param.scale.size() > 4 || param.bias.size() > 4) {
+                return Status(TNNERR_PARAM_ERR, "Cpu convert scale/bias is not valid");
+            }
             // pad scale && bias for vectors in opencl kernel
             while (param.scale.size() < 4) {
                 param.scale.push_back(1.0f);
@@ -521,6 +524,16 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
         if (!convert_to_mat) {
             cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 1));
             CHECK_CL_SUCCESS(cl_ret);
+        }
+        if (param.scale.size() > 4 || param.bias.size() > 4) {
+            return Status(TNNERR_PARAM_ERR, "Gpu convert scale/bias is not valid");
+        }
+        // pad scale && bias for vectors in opencl kernel
+        while (param.scale.size() < 4) {
+            param.scale.push_back(1.0f);
+        }
+        while (param.bias.size() < 4) {
+            param.bias.push_back(0.0f);
         }
         cl_ret = unit.ocl_kernel.setArg(idx++, sizeof(float) * param.scale.size(), param.scale.data());
         CHECK_CL_SUCCESS(cl_ret);
