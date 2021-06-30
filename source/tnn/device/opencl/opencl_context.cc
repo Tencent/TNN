@@ -235,6 +235,15 @@ Status OpenCLContext::OnInstanceReshapeEnd() {
             }
         }
     }
+
+    if (opencl_runtime_ == nullptr) {
+        return Status(TNNERR_OPENCL_RUNTIME_ERROR, "opencl_runtime is nullptr");
+    }
+
+    Status ret = opencl_runtime_->SaveProgramCache();
+    if (ret != TNN_OK) {
+        LOGE("save program cache failed, ret: %d, msg: %s\n", (int)ret, ret.description().c_str());
+    }
     return TNN_OK;
 }
 
