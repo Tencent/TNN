@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
         std::cin.getline(img_buff, 256);
         std::cin.getline(img_buff, 256);
         if (strlen(img_buff) == 0) {
-            strncpy(input_imgfn, "/Users/wangshenpeng/Desktop/test_ocr.jpg", 256);
+            strncpy(input_imgfn, "../../../assets/test_ocr.jpg", 256);
         } else {
             strncpy(input_imgfn, img_buff, 256);
         }
