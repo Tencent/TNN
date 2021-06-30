@@ -53,7 +53,6 @@ file(GLOB_RECURSE UTIL_SRC
 file(GLOB_RECURSE WEBCAM_SRC "${CMAKE_SOURCE_DIR}/../../base/ocr*.cc")
 list(REMOVE_ITEM BASE_SRC ${WEBCAM_SRC})
 
-add_definitions(-D_OPENVINO_)
 if (TNN_DEMO_WITH_OPENCV)
     add_definitions(-D_OPENCV_)
 endif()
