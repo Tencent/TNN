@@ -337,6 +337,8 @@ else()
     endif()
 endif()
 
+set_target_properties(TNN PROPERTIES DEBUG_POSTFIX "d")
+
 if(TNN_QUANTIZATION_ENABLE)
     add_subdirectory(tools/quantization)
 endif()
