@@ -468,7 +468,8 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
 
     // multi weights by input_scale
     float* input_scale_data = input_scale->scale_handle.force_to<float*>();
-    float* weight_data      = resource->filter_handle.force_to<float*>();
+    auto fp32_filter_handle = ConvertHalfHandle(resource->filter_handle);
+    float* weight_data      = fp32_filter_handle.force_to<float*>();
     for (int group_idx = 0; group_idx < group; group_idx++) {
         for (int oc = 0; oc < output_channel_per_group; ++oc) {
             for (int ic = 0; ic < input_channel_per_group; ++ic) {
@@ -519,7 +520,8 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
 
     // quantize bias
     if (param->bias) {
-        float* bias_data = resource->bias_handle.force_to<float*>();
+        auto fp32_bias_handle = ConvertHalfHandle(resource->bias_handle);
+        float* bias_data      = fp32_bias_handle.force_to<float*>();
         RawBuffer bias_quantized(output_channel * sizeof(int32_t));
         bias_quantized.SetDataType(DATA_TYPE_INT32);
         int32_t* bias_quantized_data = bias_quantized.force_to<int32_t*>();
@@ -559,7 +561,8 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource, InnerProd
 
     // multi weights by input_scale
     float* input_scale_data = input_scale->scale_handle.force_to<float*>();
-    float* weight_data      = resource->weight_handle.force_to<float*>();
+    auto fp32_weight_handle = ConvertHalfHandle(resource->weight_handle);
+    float* weight_data      = fp32_weight_handle.force_to<float*>();
     for (int i = 0; i < size; ++i) {
         weight_multiby_inputscale[i] = weight_data[i] * input_scale_data[0];
     }
@@ -586,7 +589,8 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource, InnerProd
 
     // quantize bias
     if (param->has_bias) {
-        float* bias_data = resource->bias_handle.force_to<float*>();
+        auto fp32_bias_handle = ConvertHalfHandle(resource->bias_handle);
+        float* bias_data      = fp32_bias_handle.force_to<float*>();
         RawBuffer bias_quantized(output_channel * sizeof(int32_t));
         bias_quantized.SetDataType(DATA_TYPE_INT32);
         int32_t* bias_quantized_data = bias_quantized.force_to<int32_t*>();
