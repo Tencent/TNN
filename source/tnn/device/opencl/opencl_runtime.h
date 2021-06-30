@@ -66,6 +66,7 @@ public:
 
     Status BuildKernel(cl::Kernel &kernel, const std::string &program_name, const std::string &kernel_name,
                        const std::set<std::string> &build_options);
+    Status SaveProgramCache();
 
 private:
     OpenCLRuntime();
@@ -76,7 +77,6 @@ private:
     bool BuildProgram(const std::string &build_options, cl::Program *program);
 
     Status LoadProgramCache();
-    Status SaveProgramCache();
 
 private:
     static std::shared_ptr<OpenCLRuntime> opencl_runtime_singleton_;

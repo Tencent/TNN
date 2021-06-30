@@ -92,6 +92,7 @@ bool dims_equal(DimsVector dims, nvinfer1::Dims trt_dims) {
 int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputDesc,
         const nvinfer1::PluginTensorDesc* outputDesc, const void* const* inputs, void* const* outputs,
         void* workspace, cudaStream_t stream) {
+    bool is_input_zero = false;
     for (int i = 0; i < input_blobs_.size(); i++) {
         Blob* input_blob = input_blobs_[i];
         BlobHandle input_handle;
@@ -101,6 +102,7 @@ int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputD
         DimsVector dims;
         for (int j = 0; j < inputDesc[i].dims.nbDims; j++) {
             dims.push_back(inputDesc[i].dims.d[j]);
+            if (inputDesc[i].dims.d[j] == 0) is_input_zero = true;
         }
         input_blob->GetBlobDesc().dims = dims;
     }
@@ -117,6 +119,8 @@ int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputD
         }
         output_blob->GetBlobDesc().dims = dims;
     }
+
+    if (is_input_zero) return 0;
 
     Status ret = m_layer->Forward();
     if (ret != TNN_OK) return -1;

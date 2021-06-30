@@ -158,7 +158,8 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     std::string cache_file_name = GetCacheFileName(params_md5, inputs, outputs, min_inputs_shape,
-        net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW);
+        net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW,
+        enable_const_folder);
 
     std::unique_ptr<ExclFile> file_lock(new ExclFile(cache_file_name));
 
@@ -196,21 +197,10 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     int bind_num = m_trt_engine->getNbBindings();
     this->m_trt_bindings = new void*[bind_num];
 
-    for (auto iter : inputs) {
-        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
-        nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
-        m_trt_context->setBindingDimensions(index, inputDims);
-    }
-
-    for (auto iter : outputs) {
-        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        auto trt_dims = m_trt_context->getBindingDimensions(index).d;
-        DimsVector dims;
-        for (int i = 0; i < m_trt_context->getBindingDimensions(index).nbDims; i++) {
-            dims.push_back(trt_dims[i]);
-        }
-        blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims = dims;
+    ret = ReshapeLayers();
+    if (ret != TNN_OK) {
+        LOGE("tensorrt network reshape layers failed\n");
+        return ret;
     }
 
     ret = blob_manager_->AllocateBlobMemory();
@@ -223,14 +213,26 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
     }
 
-    return ReshapeLayers();
+    return TNN_OK;
 }
 
 Status TensorRTNetwork_::Forward() {
     CUDA_CHECK(cudaSetDevice(device_id_));
-    bool ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
+    BlobMap inputs;
+    auto ret = blob_manager_->GetAllInputBlobs(inputs);
+    if (ret != TNN_OK) {
+        LOGE("ERROR: get input blobs failed");
+        return ret;
+    }
+
+    for (auto iter : inputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        this->m_trt_bindings[index] = iter.second->GetHandle().base;
+    }
+
+    bool trt_ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
         dynamic_cast<CudaContext*>(context_)->GetStream(), nullptr);
-    if (ret != true) {
+    if (trt_ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
     }
     Status status = context_->Synchronize();
@@ -273,16 +275,6 @@ Status TensorRTNetwork_::ReshapeLayers() {
         return ret;
     }
 
-    for (auto iter : outputs) {
-        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        auto trt_dims = m_trt_context->getBindingDimensions(index).d;
-        DimsVector dims;
-        for (int i = 0; i < m_trt_context->getBindingDimensions(index).nbDims; i++) {
-            dims.push_back(trt_dims[i]);
-        }
-        blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims = dims;
-    }
-
     for (auto blob_name : const_input_blobs_) {
         Blob *blob = blob_manager_->GetBlob(blob_name);
         auto buf = net_resource_->constant_map[blob_name];
@@ -295,7 +287,7 @@ Status TensorRTNetwork_::ReshapeLayers() {
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
         if (std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->IsShapeTensor()) {
             auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetShapeBlobName();
-            auto dims = blob_manager_->GetBlob(name)->GetBlobDesc().dims;
+            auto dims = net_resource_->blob_shapes_map[name];
             ret = m_trt_context->setInputShapeBinding(index, dims.data());
         } else {
             nvinfer1::Dims inputDims = ConvertToTRTDims(buf->GetBufferDims());
@@ -305,6 +297,16 @@ Status TensorRTNetwork_::ReshapeLayers() {
         if (!ret) {
             return Status(TNNERR_PARAM_ERR, "Reshape failed\n");
         }
+    }
+
+    for (auto iter : outputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        auto trt_dims = m_trt_context->getBindingDimensions(index).d;
+        DimsVector dims;
+        for (int i = 0; i < m_trt_context->getBindingDimensions(index).nbDims; i++) {
+            dims.push_back(trt_dims[i]);
+        }
+        blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims = dims;
     }
 
     return TNN_OK;
@@ -335,9 +337,21 @@ Status TensorRTNetwork_::Reshape(const InputShapesMap &inputs) {
 
 Status TensorRTNetwork_::ForwardAsync(Callback call_back) {
     CUDA_CHECK(cudaSetDevice(device_id_));
-    bool ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
+    BlobMap inputs;
+    auto ret = blob_manager_->GetAllInputBlobs(inputs);
+    if (ret != TNN_OK) {
+        LOGE("ERROR: get input blobs failed");
+        return ret;
+    }
+
+    for (auto iter : inputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        this->m_trt_bindings[index] = iter.second->GetHandle().base;
+    }
+
+    bool trt_ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
         dynamic_cast<CudaContext*>(context_)->GetStream(), nullptr);
-    if (ret != true) {
+    if (trt_ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
     }
     Status status = TNN_OK;
@@ -712,7 +726,7 @@ bool TensorRTNetwork_::IsBlobUsed(Blob* blob) {
 
 std::string TensorRTNetwork_::GetCacheFileName(std::vector<std::string> params_md5, BlobMap input_map,
         BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, int batchsize,
-        bool int8_mode, bool use_fp16) {
+        bool int8_mode, bool use_fp16, bool enable_const_folder) {
     std::string md5_source = "";
 
     for (auto iter : params_md5) {
@@ -747,10 +761,12 @@ std::string TensorRTNetwork_::GetCacheFileName(std::vector<std::string> params_m
         precision = "";
     }
 
+    std::string const_folder = enable_const_folder ? "const_folder_on" : "const_folder_off";
+
     std::string cache_file_name = "." +  md5(md5_source) + precision
         + TENSORRT_SERIALIZE_VERSION + "-b-" + std::to_string(batchsize)
         + "-" + GetGpuType(device_id) + "-" + GetTrtVersion() + GetCudaVersion()
-        + ".cache";
+        + "-" + const_folder + ".cache";
     return cache_file_name;
 }
 

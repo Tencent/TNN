@@ -136,7 +136,8 @@ int CompareData(const float* ref_data, const float* result_data, size_t n, float
             sum_ref += ref_data[i] * ref_data[i];
             sum_dot += result_data[i] * ref_data[i];
         }
-        double cos_sim = sum_dot / (sqrt(sum_res) * sqrt(sum_ref));
+        // need to avoid sum_res or sum_ref is 0.0f
+        double cos_sim = sum_dot / ((sqrt(sum_res) + 1e-9f) * (sqrt(sum_ref) + 1e-9f));
         if (cos_sim < 0.9998f) {
             printf("ERROR COSINE SIMILARITY %.6f < 0.9998\n", cos_sim);
             return -1;
