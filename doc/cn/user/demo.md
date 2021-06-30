@@ -276,7 +276,7 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
    ./demo_x86_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
 
    物体检测 demo
-   ./demo_x86_objectdetector -p ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto -m ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel -i ../../../assets/004545.jpg
+   ./demo_x86_objectdetector -p ../../../../model/yolov5/yolov5s.tnnproto -m ../../../../model/yolov5/yolov5s.tnnmodel -i ../../../assets/004545.jpg
 
    阅读理解 demo
    ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
@@ -347,7 +347,7 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
    ./demo_x86_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
 
    物体检测 demo
-   ./demo_x86_objectdetector -p ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto -m ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel -i ../../../assets/004545.jpg
+   ./demo_x86_objectdetector -p ../../../../model/yolov5/yolov5s.tnnproto -m ../../../../model/yolov5/yolov5s.tnnmodel -i ../../../assets/004545.jpg
 
    阅读理解 demo
    ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
@@ -510,7 +510,7 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
    ./demo_cuda_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
 
    物体检测 demo
-   ./demo_cuda_objectdetector -p ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto -m ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel -i ../../../assets/004545.jpg
+   ./demo_cuda_objectdetector -p ../../../../model/yolov5/yolov5s.tnnproto -m ../../../../model/yolov5/yolov5s.tnnmodel -i ../../../assets/004545.jpg
 
    阅读理解 demo
    ./demo_cuda_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
