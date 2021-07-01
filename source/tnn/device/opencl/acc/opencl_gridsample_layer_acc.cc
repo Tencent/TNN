@@ -12,10 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <iostream>
-
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
+
 namespace TNN_NS {
 
 class OpenCLGridsampleLayerAcc : public OpenCLLayerAcc {
@@ -77,14 +76,17 @@ Status OpenCLGridsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, cons
         return Status(TNNERR_PARAM_ERR,
                       "OpenclGridSampleLayerAcc dont support some mode or pade type or align_corners");
     }
-    std::cerr << "enter opencl gridsample layer" << std::endl;
+
     auto input  = inputs[0];
     auto grid   = inputs[1];
     auto output = outputs[0];
 
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
-
+    if (input_dims.size() != 4 || output_dims.size() != 4) {
+        LOGE("GridSample Layer (OpenCL) only support 4-dim by now\n");
+        return Status(TNNERR_INVALID_INPUT, "GridSample Layer (OpenCL) only support 4-dim by now\n");
+    }
     const int batch        = DimsFunctionUtils::GetDim(input_dims, 0);
     const int channels     = DimsFunctionUtils::GetDim(input_dims, 1);
     const int input_height = DimsFunctionUtils::GetDim(input_dims, 2);
@@ -95,8 +97,10 @@ Status OpenCLGridsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, cons
 
     const int channel_blocks = UP_DIV(channels, 4);
 
-    uint32_t idx = 0;
-    idx          = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], output_dims);
+    uint32_t idx         = 0;
+    auto output_upheight = output_dims;
+    output_upheight[2]   = UP_DIV(output_upheight[2], 4);
+    idx                  = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], output_upheight);
 
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)grid->GetHandle().base));
@@ -106,7 +110,7 @@ Status OpenCLGridsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, cons
     execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(input_width));
     execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(output_height));
     execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(output_width));
-    std::cerr << "enter last line" << std::endl;
+
     return TNN_OK;
 }
 

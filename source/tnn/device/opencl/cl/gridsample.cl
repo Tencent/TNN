@@ -9,15 +9,10 @@ __kernel void BilinearGridSample(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     DEAL_NON_UNIFORM_DIM2(cw, hb);
     const int output_w_idx       = cw % out_width;
     const int output_c_block_idx = cw / out_width;
-    const int output_b_idx       = hb / out_height;
-    const int output_h_idx       = hb % out_height;
-    if (output_h_idx % 4) {
-        return;
-    }
-    FLOAT4 posx4 = RI_F(grid, SAMPLER, (int2)(output_h_idx / 4 * 2, output_b_idx * out_width + output_w_idx));
-    FLOAT4 posy4 = RI_F(grid, SAMPLER, (int2)(output_h_idx / 4 * 2 + 1, output_b_idx * out_width + output_w_idx));
-    FLOAT4 x     = posx4;
-    FLOAT4 y     = posy4;
+    const int output_b_idx       = hb / ((out_height + 3) / 4);
+    const int output_h_idx       = hb % ((out_height + 3) / 4);
+    FLOAT4 x = RI_F(grid, SAMPLER, (int2)(output_h_idx * 2, output_b_idx * out_width + output_w_idx));
+    FLOAT4 y = RI_F(grid, SAMPLER, (int2)(output_h_idx * 2 + 1, output_b_idx * out_width + output_w_idx));
 
     FLOAT4 ix = (x + ((FLOAT)1.0)) * input_width * ((FLOAT)0.5) - ((FLOAT)0.5);
     FLOAT4 iy = (y + ((FLOAT)1.0)) * input_height * ((FLOAT)0.5) - ((FLOAT)0.5);
@@ -35,11 +30,11 @@ __kernel void BilinearGridSample(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     FLOAT4 iy_se = iy_nw + 1;
 
     // get nw_within_bound
-    int4 low_ix_nw = ix_nw >= 0;
-    int4 low_iy_nw = iy_nw >= 0;
+    int4 low_ix_nw = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_nw >= (int)0);
+    int4 low_iy_nw = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_nw >= (int)0);
 
-    int4 up_ix_nw = ix_nw < input_width;
-    int4 up_iy_nw = iy_nw < input_height;
+    int4 up_ix_nw = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_nw < input_width);
+    int4 up_iy_nw = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_nw < input_height);
 
     int4 nw_within_bound = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), low_ix_nw);
     nw_within_bound      = select((int4)(0, 0, 0, 0), nw_within_bound, low_iy_nw);
@@ -47,30 +42,30 @@ __kernel void BilinearGridSample(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     nw_within_bound      = select((int4)(0, 0, 0, 0), nw_within_bound, up_iy_nw);
 
     // get ne_within_bound
-    low_ix_nw            = ix_ne >= 0;
-    low_iy_nw            = iy_ne >= 0;
-    up_ix_nw             = ix_ne < input_width;
-    up_iy_nw             = iy_ne < input_height;
+    low_ix_nw            = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_ne >= 0);
+    low_iy_nw            = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_ne >= 0);
+    up_ix_nw             = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_ne < input_width);
+    up_iy_nw             = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_ne < input_height);
     int4 ne_within_bound = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), low_ix_nw);
     ne_within_bound      = select((int4)(0, 0, 0, 0), ne_within_bound, low_iy_nw);
     ne_within_bound      = select((int4)(0, 0, 0, 0), ne_within_bound, up_ix_nw);
     ne_within_bound      = select((int4)(0, 0, 0, 0), ne_within_bound, up_iy_nw);
 
     // get sw_within_bound
-    low_ix_nw            = ix_sw >= 0;
-    low_iy_nw            = iy_sw >= 0;
-    up_ix_nw             = ix_sw < input_width;
-    up_iy_nw             = iy_sw < input_height;
+    low_ix_nw            = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_sw >= 0);
+    low_iy_nw            = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_sw >= 0);
+    up_ix_nw             = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_sw < input_width);
+    up_iy_nw             = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_sw < input_height);
     int4 sw_within_bound = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), low_ix_nw);
     sw_within_bound      = select((int4)(0, 0, 0, 0), sw_within_bound, low_iy_nw);
     sw_within_bound      = select((int4)(0, 0, 0, 0), sw_within_bound, up_ix_nw);
     sw_within_bound      = select((int4)(0, 0, 0, 0), sw_within_bound, up_iy_nw);
 
     // get se_within_bound
-    low_ix_nw            = ix_se >= 0;
-    low_iy_nw            = iy_se >= 0;
-    up_ix_nw             = ix_se < input_width;
-    up_iy_nw             = iy_se < input_height;
+    low_ix_nw            = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_se >= 0);
+    low_iy_nw            = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_se >= 0);
+    up_ix_nw             = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_se < input_width);
+    up_iy_nw             = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_se < input_height);
     int4 se_within_bound = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), low_ix_nw);
     se_within_bound      = select((int4)(0, 0, 0, 0), se_within_bound, low_iy_nw);
     se_within_bound      = select((int4)(0, 0, 0, 0), se_within_bound, up_ix_nw);
@@ -106,11 +101,11 @@ __kernel void BilinearGridSample(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
         RI_F(input, SAMPLER,
              (int2)(output_c_block_idx * input_width + se_index_x, output_b_idx * input_height + se_index_y));
     res = res + input_data_se * se.x;
-    WI_F(output, (int2)((output_c_block_idx * out_width + output_w_idx), output_b_idx * out_height + output_h_idx),
+    WI_F(output, (int2)((output_c_block_idx * out_width + output_w_idx), output_b_idx * out_height + output_h_idx * 4),
          res);
 
     //
-    if (output_h_idx + 1 >= out_height) {
+    if (output_h_idx * 4 + 1 >= out_height) {
         return;
     }
 
@@ -139,11 +134,12 @@ __kernel void BilinearGridSample(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
         RI_F(input, SAMPLER,
              (int2)(output_c_block_idx * input_width + se_index_x, output_b_idx * input_height + se_index_y));
     res = res + input_data_se * se.y;
-    WI_F(output, (int2)((output_c_block_idx * out_width + output_w_idx), output_b_idx * out_height + output_h_idx + 1),
+    WI_F(output,
+         (int2)((output_c_block_idx * out_width + output_w_idx), output_b_idx * out_height + output_h_idx * 4 + 1),
          res);
 
     //
-    if (output_h_idx + 2 >= out_height) {
+    if (output_h_idx * 4 + 2 >= out_height) {
         return;
     }
     nw_index_x = select(0, (int)(ix_nw.z), nw_within_bound.z);
@@ -171,10 +167,11 @@ __kernel void BilinearGridSample(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
         RI_F(input, SAMPLER,
              (int2)(output_c_block_idx * input_width + se_index_x, output_b_idx * input_height + se_index_y));
     res = res + input_data_se * se.z;
-    WI_F(output, (int2)((output_c_block_idx * out_width + output_w_idx), output_b_idx * out_height + output_h_idx + 2),
+    WI_F(output,
+         (int2)((output_c_block_idx * out_width + output_w_idx), output_b_idx * out_height + output_h_idx * 4 + 2),
          res);
 
-    if (output_h_idx + 3 >= out_height) {
+    if (output_h_idx * 4 + 3 >= out_height) {
         return;
     }
     nw_index_x = select(0, (int)(ix_nw.w), nw_within_bound.w);
@@ -202,6 +199,7 @@ __kernel void BilinearGridSample(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
         RI_F(input, SAMPLER,
              (int2)(output_c_block_idx * input_width + se_index_x, output_b_idx * input_height + se_index_y));
     res = res + input_data_se * se.w;
-    WI_F(output, (int2)((output_c_block_idx * out_width + output_w_idx), output_b_idx * out_height + output_h_idx + 3),
+    WI_F(output,
+         (int2)((output_c_block_idx * out_width + output_w_idx), output_b_idx * out_height + output_h_idx * 4 + 3),
          res);
 }
