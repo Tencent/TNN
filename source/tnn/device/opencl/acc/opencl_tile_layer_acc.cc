@@ -50,7 +50,7 @@ Status OpenCLTileLayerAcc::Init(Context *context, LayerParam *param, LayerResour
         kernel_name = "Tile";
     }
     // create kernel
-    ret                     = CreateExecuteUnit(execute_units_[0], "tile", kernel_name);
+    ret = CreateExecuteUnit(execute_units_[0], "tile", kernel_name);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
