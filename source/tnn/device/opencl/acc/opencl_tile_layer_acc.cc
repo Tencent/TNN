@@ -29,13 +29,20 @@ public:
 
 Status OpenCLTileLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    LOGD("Init BatchNorm Acc\n");
+    LOGD("Init Tile Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
+
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
-    run_3d_ndrange_  = false;
-    op_name_         = "Tile";
+
+    if (input_dims.size() != 4 || output_dims.size() != 4) {
+        LOGE("Tile Layer (OpenCL) only support 4-dim by now\n");
+        return Status(TNNERR_INVALID_INPUT, "Tile Layer (OpenCL) only support 4-dim by now\n");
+    }
+
+    run_3d_ndrange_ = false;
+    op_name_        = "Tile";
     std::string kernel_name;
     if (input_dims[1] == output_dims[1]) {
         kernel_name = "Tile_nhw";
@@ -43,8 +50,7 @@ Status OpenCLTileLayerAcc::Init(Context *context, LayerParam *param, LayerResour
         kernel_name = "Tile";
     }
     // create kernel
-    std::string kernel_name = "Tile";
-    ret                     = CreateExecuteUnit(execute_units_[0], "tile", kernel_name);
+    ret = CreateExecuteUnit(execute_units_[0], "tile", kernel_name);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
