@@ -48,8 +48,7 @@ function build_linux_bench() {
           -DTNN_BENCHMARK_MODE:BOOL=ON \
           -DTNN_UNIT_TEST_ENABLE:BOOL=ON \
           -DTNN_UNIT_TEST_BENCHMARK:BOOL=ON \
-          -DTNN_PROFILER_ENABLE:BOOL=ON \
-          -DBUILD_FOR_ANDROID_COMMAND=true
+          -DTNN_PROFILER_ENABLE:BOOL=ON
     make -j4
 }
 

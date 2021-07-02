@@ -14,8 +14,7 @@
 
 #include "test/unit_test/blob_converter_test.h"
 
-#include <sys/time.h>
-
+#include "test/timer.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/unit_test_macro.h"
 #include "tnn/core/blob_int8.h"
@@ -288,9 +287,7 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
 
     Mat mat_in(DEVICE_NAIVE, mat_type, dims, mat_in_data);
 
-    struct timezone zone;
-    struct timeval time1;
-    struct timeval time2;
+    test::Timer timer("");
     int loop_cnt = 10;
 
     Status ret;
@@ -302,10 +299,8 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     }
     loop_cnt = 1;
 #endif
-    float min = FLT_MAX, max = FLT_MIN, sum = 0.0f;
-    gettimeofday(&time1, &zone);
     for (int i = 0; i < loop_cnt; ++i) {
-        gettimeofday(&time1, &zone);
+        timer.Start();
 
         ret = device_converter.ConvertFromMat(mat_in, from_mat_param, device_command_queue);
         if (ret != TNN_OK) {
@@ -314,17 +309,12 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
             CLEANUP_AND_FAIL();
         }
 
-        gettimeofday(&time2, &zone);
-        float delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
-        min         = fmin(min, delta);
-        max         = fmax(max, delta);
-        sum += delta;
+        timer.Stop();
     }
     if (FLAGS_ub) {
-        printf("== ConvertFromMat ==\ndevice: \t%s\nmat type: \t%s\n", FLAGS_dt.c_str(),
-               MatTypeToString(mat_type).c_str());
-        printf("dims: \t%s\n", DimsToString(dims).c_str());
-        printf("time cost: min =   %g ms  |  max =  %g ms  |  avg = %g ms\n", min, max, sum / (float)loop_cnt);
+        LOGI("ConvertFromMat (device: %s  mat type: %s  dims: %s)\n", FLAGS_dt.c_str(),
+               MatTypeToString(mat_type).c_str(), DimsToString(dims).c_str());
+        timer.Print();
     }
 
     MatConvertParam to_mat_param;
@@ -342,12 +332,9 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
 #endif
     Mat mat_out_dev_nchw(DEVICE_NAIVE, NCHW_FLOAT, dims, mat_out_dev_nchw_data);
 
-    min = FLT_MAX;
-    max = FLT_MIN;
-    sum = 0.0f;
-    gettimeofday(&time1, &zone);
+    timer.Reset();
     for (int i = 0; i < loop_cnt; ++i) {
-        gettimeofday(&time1, &zone);
+        timer.Start();
 
         ret = device_converter.ConvertToMat(mat_out_dev_nchw, to_mat_param, device_command_queue);
         if (ret != TNN_OK) {
@@ -355,17 +342,12 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
             CLEANUP_AND_FAIL();
         }
 
-        gettimeofday(&time2, &zone);
-        float delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
-        min         = fmin(min, delta);
-        max         = fmax(max, delta);
-        sum += delta;
+        timer.Stop();
     }
     if (FLAGS_ub) {
-        printf("== ConvertToMat ==\ndevice: \t%s\nmat type: \t%s\n", FLAGS_dt.c_str(),
-               MatTypeToString(mat_type).c_str());
-        printf("dims: \t%s\n", DimsToString(dims).c_str());
-        printf("time cost: min =   %g ms  |  max =  %g ms  |  avg = %g ms\n", min, max, sum / (float)loop_cnt);
+        LOGI("ConvertToMat (device: %s  mat type: %s  dims: %s)\n", FLAGS_dt.c_str(),
+               MatTypeToString(mat_type).c_str(), DimsToString(dims).c_str());
+        timer.Print();
     }
 
     int cmp_result = 0;
