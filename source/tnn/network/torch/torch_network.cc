@@ -23,15 +23,18 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/common.h"
 #include "tnn/core/status.h"
+#include "tnn/core/macro.h"
 #include "tnn/extern_wrapper/foreign_blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/interpreter/abstract_model_interpreter.h"
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/network/torch/torch_utils.h"
 #include "tnn/network/torch/torch_tensor.h"
+#include "tnn/network/torch/torch_types.h"
 
 #include "torch/csrc/jit/passes/freeze_module.h"
 #include "torch/csrc/jit/passes/lower_graph.h"
+#include <torchvision/vision.h>
 
 namespace TNN_NS {
 
@@ -68,16 +71,18 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
     at::ArrayRef<torch::jit::Value*> outputs = graph_->block()->outputs();
 
     #if 0
-    printf("graph dump:\n:%s\n", graph_->toString().c_str());
+    //printf("graph dump:\n:%s\n", graph_->toString().c_str());
 
     for(int i=0;i<inputs.size();i++) {
         auto input = inputs[i];
         printf("input[%d] from node [%s] of type:[%s]\n", input->unique(), input->node()->scopeName().c_str(), input->type()->annotation_str().c_str());
+        printf("input[%d] typekind:[%s]\n", input->unique(), typeKindToString(input->type()->kind()));
     }
 
     for(int i=0;i<outputs.size();i++) {
         auto output = outputs[i];
         printf("output[%d] from node [%s] of type:[%s]\n", output->unique(), output->node()->scopeName().c_str(), output->type()->annotation_str().c_str());
+        printf("output[%d] typekind:[%s]\n", output->unique(), typeKindToString(output->type()->kind()));
     }
     #endif
 
@@ -100,6 +105,33 @@ Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
 }
 
 Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMap max_shape) {
+
+    std::vector<torch::jit::Value*> inputs;
+
+    std::set<c10::TypeKind> supported_kinds = {
+        c10::TypeKind::TensorType,
+        c10::TypeKind::TupleType,
+        c10::TypeKind::ListType,
+        c10::TypeKind::DictType,
+    };
+
+    std::set<std::string> input_names;
+    std::set<std::string> output_names;
+
+    int i=0;
+    for(auto input : graph_->block()->inputs()) {
+        c10::TypeKind kind = input->type()->kind();
+        if (supported_kinds.find(kind) != supported_kinds.end()) {
+            inputs.push_back(input);
+            // auto matcher = JitTypeMatcher::create(input->type(), std::string("output0[0]"));
+            // printf("valid:%d\n", matcher->valid());
+            // char name[20];
+            // snprintf(name, 20, "input_%d", i++);
+            // input_names.insert(std::string(name));
+            // printf("input[%d]:%s\n", i-1, name);
+        }
+    }
+
     NetStructure fake_netstructure;
     fake_netstructure.inputs_shape_map = max_shape;
 
@@ -122,13 +154,19 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
 
     in_ivalues_.resize(fake_netstructure.blobs.size());
 
-    int i=0;
+    i = 0;
     for(auto input : fake_netstructure.blobs) {
         auto blob  = blob_manager_->GetBlob(input);
         auto foreign_blob = new ForeignBlob(blob->GetBlobDesc(), blob->GetHandle());
 
         blob_manager_->ReplaceBlob(input, foreign_blob);
         input_blob_map_[input] = foreign_blob;
+
+        int id = JitTypeMatcher::id_from_name(input);
+        if (id >= 0 ) {
+             auto matcher = JitTypeMatcher::create(inputs[id]->type(), input); 
+             printf("%s id:%d type:%s matched:%d\n", input.c_str(), id, inputs[id]->type()->annotation_str().c_str(), matcher->valid());
+        }
 
         RETURN_ON_FAIL(attachTensor(foreign_blob));
         RETURN_ON_FAIL(ForeignBlobToIValue(in_ivalues_[i++], foreign_blob));

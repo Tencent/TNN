@@ -236,7 +236,7 @@ namespace test {
         InputShapesMap input_shape;
         if(!FLAGS_is.empty()) {
             std::string input_shape_message(FLAGS_is);
-            std::string delimiter = "[";
+            std::string delimiter = ":";
             std::vector<int> input_dim;
             std::ptrdiff_t p1 = 0, p2;
             p2 = input_shape_message.find(delimiter, p1);
@@ -249,7 +249,7 @@ namespace test {
                     input_dim.push_back(atoi(input_shape_message.substr(p1, p2 - p1).c_str()));
                     p1 = p2 + 1;
                 } else {
-                    input_dim.push_back(atoi(input_shape_message.substr(p1, input_shape_message.length() - 1 - p1).c_str()));
+                    input_dim.push_back(atoi(input_shape_message.substr(p1, input_shape_message.length() - p1).c_str()));
                     break;
                 }
             }

@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NETWORK_TORCH_TYPES_H_
-#define TNN_SOURCE_TNN_NETWORK_TORCH_TYPES_H_
+#ifndef TNN_SOURCE_TNN_NETWORK_TORCH_UTILS_H_
+#define TNN_SOURCE_TNN_NETWORK_TORCH_UTILS_H_
 
 #include <memory>
 #include <vector>
@@ -208,4 +208,4 @@ Status GetBlobDescFromTensor(BlobDesc &desc, const torch::Tensor &tensor) {
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_NETWORK_TORCH_TYPES_H_
+#endif  // TNN_SOURCE_TNN_NETWORK_TORCH_UTILS_H_

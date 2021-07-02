@@ -64,9 +64,9 @@ if(TNN_CUDA_ENABLE)
 endif()
 
 if (TNN_TNNTORCH_ENABLE)
+    find_package(TorchVision REQUIRED)
     find_package(Torch REQUIRED)
-    message("xxxxx" ${TORCH_LIBRARIES})
-    target_link_libraries(TNN ${TORCH_LIBRARIES})
+    target_link_libraries(TNN ${TORCH_LIBRARIES} TorchVision::TorchVision)
 endif()
 
 if(TNN_RK_NPU_ENABLE)
