@@ -468,8 +468,12 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
 
     // multi weights by input_scale
     float* input_scale_data = input_scale->scale_handle.force_to<float*>();
-    auto fp32_filter_handle = ConvertHalfHandle(resource->filter_handle);
-    float* weight_data      = fp32_filter_handle.force_to<float*>();
+    auto filter_handle      = resource->filter_handle;
+    if (resource->filter_handle.GetDataType() == DATA_TYPE_HALF) {
+        LOGI("Fp16 model is used to quantize, precision may be lower than fp32 model!");
+        filter_handle = ConvertHalfHandle(filter_handle);
+    }
+    float* weight_data = filter_handle.force_to<float*>();
     for (int group_idx = 0; group_idx < group; group_idx++) {
         for (int oc = 0; oc < output_channel_per_group; ++oc) {
             for (int ic = 0; ic < input_channel_per_group; ++ic) {
@@ -561,8 +565,12 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource, InnerProd
 
     // multi weights by input_scale
     float* input_scale_data = input_scale->scale_handle.force_to<float*>();
-    auto fp32_weight_handle = ConvertHalfHandle(resource->weight_handle);
-    float* weight_data      = fp32_weight_handle.force_to<float*>();
+    auto weight_handle      = resource->weight_handle;
+    if (resource->weight_handle.GetDataType() == DATA_TYPE_HALF) {
+        LOGI("Fp16 model is used to quantize, precision may be lower than fp32 model!");
+        weight_handle = ConvertHalfHandle(weight_handle);
+    }
+    float* weight_data = weight_handle.force_to<float*>();
     for (int i = 0; i < size; ++i) {
         weight_multiby_inputscale[i] = weight_data[i] * input_scale_data[0];
     }
