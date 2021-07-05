@@ -31,7 +31,10 @@ static ShapeTensor bumpIfNegative(INetworkDefinition* network, const ShapeTensor
         const ShapeTensor& indices) {
     const auto signs = clamp(network, sub(network, similar(network, indices, 0), indices),
         shapeVector(0), shapeVector(1));
-    return add(network, indices, mul(network, signs, inputDims));
+    auto signed_indices = sub(network, shapeVector(0), mul(network, signs, indices));
+
+    return add(network, sub(network, mul(network, signs, inputDims), signed_indices),
+        mul(network, indices, sub(network, shapeVector(1), signs)));
 }
 
 ShapeTensor axesToInterlaceSubscripts(const ShapeTensor& axes, int nbDims) {
