@@ -17,7 +17,7 @@
 
 using namespace metal;
 
-kernel void convolution_common_4x(const device ftype4 *in            [[buffer(0)]],
+kernel void convolution1d_common_4x(const device ftype4 *in            [[buffer(0)]],
                                      device ftype4 *out                 [[buffer(1)]],
                                      constant MetalConvParams& params   [[buffer(2)]],
                                      const device ftype4x4 *wt          [[buffer(3)]],
@@ -58,7 +58,7 @@ kernel void convolution_common_4x(const device ftype4 *in            [[buffer(0)
     *z_out = activate(ftype4(result), params.activation);
 }
 
-kernel void convolution_common(const device ftype *in     [[buffer(0)]],    
+kernel void convolution1d_common(const device ftype *in     [[buffer(0)]],    
                             device ftype *out                [[buffer(1)]],
                             constant MetalConvParams& params  [[buffer(2)]],
                             const device ftype4 *wt           [[buffer(3)]],
