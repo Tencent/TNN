@@ -18,15 +18,21 @@
 #include <map>
 #include <sstream>
 #include <string>
-#include <vector>
 #include <type_traits>
+#include <vector>
+
 #include "tnn/core/macro.h"
+#include "tnn/core/mat.h"
 
 namespace TNN_NS {
 
 std::string DoubleToString(double val);
 
 std::string DoubleToStringFilter(double val);
+
+std::string MatTypeToString(MatType mat_type);
+
+std::string DimsToString(std::vector<int> dims);
 
 template <typename Int>
 std::string IntToString(Int val) {
