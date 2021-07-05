@@ -586,17 +586,12 @@ int PackNeonC3(fp16_t *dst, const float *src, size_t hw, size_t channel) {
 
 // 0 < remain < 8
 int PackNeonRemain(fp16_t *dst, const fp16_t *src, size_t hw, int remain) {
-    const fp16_t *p_src[7];
-    for (int r = 0; r < remain; ++r) {
-        p_src[r] = src + hw * r;
-    }
-
-    for (int cur_hw = 0; cur_hw < hw; cur_hw++) {
-        for (int r = 0; r < remain; ++r) {
-            dst[cur_hw * 8 + r] = p_src[r][cur_hw];
-        }
-        for (int r = remain; r < 8; ++r) {
-            dst[cur_hw * 8 + r] = 0.f;
+    int r, cur_hw;
+    int idx = 0;
+    memset(dst, 0, hw * 8 * sizeof(fp16_t));
+    for (r = 0; r < remain; ++r) {
+        for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            dst[8 * cur_hw + r] = src[idx++];
         }
     }
 

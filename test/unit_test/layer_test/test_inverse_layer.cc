@@ -20,14 +20,13 @@
 
 namespace TNN_NS {
 
-class InverseLayerTest
-    : public LayerTest,
-      public ::testing::WithParamInterface<std::tuple<int, int, int, int,  DataType>> {};
+class InverseLayerTest : public LayerTest,
+                         public ::testing::WithParamInterface<std::tuple<int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, InverseLayerTest,
-                         ::testing::Combine(testing::Values(1),
+                         ::testing::Combine(testing::Values(1, 2, 3, 4),
                                             // channel
-                                            testing::Values(1),
+                                            testing::Values(1, 2, 3, 4),
                                             // input_height
                                             testing::Values(2),
                                             // input_weight
@@ -43,18 +42,18 @@ TEST_P(InverseLayerTest, InverseLayer) {
     int input_width    = std::get<3>(GetParam());
     DataType data_type = std::get<4>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    LOGE("(%d,%d,%d,%d) ",batch,channel,input_height,input_width);
+    LOGE("(%d,%d,%d,%d) ", batch, channel, input_height, input_width);
     if (CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
-    if (!(DEVICE_NAIVE == dev || DEVICE_METAL == dev)) {
+    if (!(DEVICE_NAIVE == dev || DEVICE_OPENCL == dev)) {
         GTEST_SKIP();
     }
 
     Precision precision = SetPrecision(dev, data_type);
 
     // param
-    std::shared_ptr<InverseLayerParam> param(new InverseLayerParam());
+    std::shared_ptr<LayerParam> param(new LayerParam());
     param->name = "Inverse";
 
     // generate interpreter
