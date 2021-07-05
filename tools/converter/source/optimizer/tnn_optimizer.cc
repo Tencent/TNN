@@ -14,20 +14,50 @@
 
 #include "tnn_optimizer.h"
 
+#include "include/tnn/core/status.h"
 #include "tnn_optimize_pass.h"
 
 namespace TNN_CONVERTER {
 
-TNN_NS::Status TnnOptimizer::Optimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
-    std::vector<std::string> optimize_pass = {"EliminateSqueeze", "TransformReduceMean"};
-    for (auto pass_name : optimize_pass) {
+TNN_NS::Status TnnOptimizer::PreOptimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
+    // pre optimize
+    std::vector<std::string> pre_optimize_pass = {
+        "EliminateUnusefulNode",
+        "FuseShuffleChannel",
+    };
+    for (const auto& pass_name : pre_optimize_pass) {
         auto pass = TnnOptimizePassManager::get()->search(pass_name);
         if (pass == nullptr) {
-            LOGE("Unsupport optimize pass %s\n", pass_name.c_str());
+            LOGE("Converter: do not support pre optimize pass %s\n", pass_name.c_str());
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_PASS;
         }
-        pass->exec(net_structure, net_resource);
+        TNN_NS::Status status = pass->exec(net_structure, net_resource);
+        if (status != TNN_NS::TNN_CONVERT_OK) {
+            LOGE("Converter: pre optimize failed. the failed pass is %s\n", pass_name.c_str());
+            return TNN_NS::TNNERR_CONVERT_OPTIMIZE_ERROR;
+        }
     }
+
+    return TNN_NS::TNN_CONVERT_OK;
+}
+
+TNN_NS::Status TnnOptimizer::PostOptimize(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
+    // pre optimize
+    std::vector<std::string> pre_optimize_pass = {"ConstantFolding", "AdjustLayerInputs", "EliminateReformatNode",
+                                                  "TransformDequantized"};
+    for (const auto& pass_name : pre_optimize_pass) {
+        auto pass = TnnOptimizePassManager::get()->search(pass_name);
+        if (pass == nullptr) {
+            LOGE("Converter: do not support pre optimize pass %s\n", pass_name.c_str());
+            return TNN_NS::TNNERR_CONVERT_OPTIMIZE_ERROR;
+        }
+        TNN_NS::Status status = pass->exec(net_structure, net_resource);
+        if (status != TNN_NS::TNN_CONVERT_OK) {
+            LOGE("Converter: pre optimize failed. the failed pass is %s\n", pass_name.c_str());
+            return TNN_NS::TNNERR_CONVERT_OPTIMIZE_ERROR;
+        }
+    }
+
     return TNN_NS::TNN_CONVERT_OK;
 }
 }  // namespace TNN_CONVERTER

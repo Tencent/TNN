@@ -14,14 +14,29 @@
 
 #include <math.h>
 
-#include "half_utils.h"
-#include "objseri.h"
+
 #include "onnx2tnn.h"
 
-int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
-                       std::vector<IndexNode>& index_nodes,
-                       std::map<std::string, onnx::TensorProto>& weights,
-                       std::map<std::string, int>& node_reference,
+onnx::TensorProto CopyFloatTensorProto(onnx::TensorProto& src_tensor) {
+    onnx::TensorProto cpy_tensor;
+    cpy_tensor.set_data_type(src_tensor.data_type());
+
+    int dims_size = 1;
+    for (const auto dim : src_tensor.dims()) {
+        dims_size *= dim;
+        cpy_tensor.add_dims(dim);
+    }
+
+    auto* src_data = get_tensor_proto_data(src_tensor);
+    for (int i = 0; i < dims_size; i++) {
+        cpy_tensor.add_float_data(src_data[i]);
+    }
+
+    return cpy_tensor;
+}
+
+int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
+                       std::map<std::string, onnx::TensorProto>& weights, std::map<std::string, int>& node_reference,
                        std::set<std::string>& blob_names) {
     auto const node_count = index_nodes.size();
 
@@ -43,15 +58,15 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                 }
 
                 auto conv_weights_name = node_conv->input(1);
-                auto bn_gamma_name = node_batchnorm->input(1);
+                auto bn_gamma_name     = node_batchnorm->input(1);
                 if (unable_fuse_table.count(conv_weights_name) == 0) {
                     std::map<std::string, int> tmp;
-                    tmp[bn_gamma_name] = 0;
+                    tmp[bn_gamma_name]                   = 0;
                     unable_fuse_table[conv_weights_name] = std::move(tmp);
                 } else if (unable_fuse_table[conv_weights_name].count(bn_gamma_name) == 0) {
                     unable_fuse_table[conv_weights_name][bn_gamma_name] = 0;
                 }
-                unable_fuse_table[conv_weights_name][bn_gamma_name] ++;
+                unable_fuse_table[conv_weights_name][bn_gamma_name]++;
 
                 i += 1;
             }
@@ -76,17 +91,15 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                 }
 
                 auto conv_weights_name = node_conv->input(1);
-                auto bn_gamma_name = node_batchnorm->input(1);
+                auto bn_gamma_name     = node_batchnorm->input(1);
                 if (unable_fuse_table[conv_weights_name].size() > 1) {
                     break;
                 }
 
-                auto kernel_shape =
-                    get_node_attr_ai(*node_conv, "kernel_shape");
+                auto kernel_shape = get_node_attr_ai(*node_conv, "kernel_shape");
 
                 bool can_fuse = false;
-                if (node_conv->output_size() == 1 &&
-                    node_batchnorm->input_size() == 5 &&
+                if (node_conv->output_size() == 1 && node_batchnorm->input_size() == 5 &&
                     node_conv->output(0) == node_batchnorm->input(0)) {
                     //目前仅仅考虑二维情况
                     can_fuse = kernel_shape.size() == 2;
@@ -97,25 +110,20 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                     break;
                 }
 
-                int group = (int)get_node_attr_i(*node_conv, "group", 1);
+                int group                = (int)get_node_attr_i(*node_conv, "group", 1);
                 auto& conv_weight_tensor = weights[node_conv->input(1)];
                 int channel_output       = (int)conv_weight_tensor.dims(0);
-                int channel_input = (int)conv_weight_tensor.dims(1) * group;
+                int channel_input        = (int)conv_weight_tensor.dims(1) * group;
 
                 float* slope = new float[channel_output];
                 float* bias  = new float[channel_output];
                 {
-                    float epsilon =
-                        get_node_attr_f(*node_batchnorm, "epsilon", 1e-5f);
+                    float epsilon = get_node_attr_f(*node_batchnorm, "epsilon", 1e-5f);
 
-                    const onnx::TensorProto& gamma =
-                        weights[node_batchnorm->input(1)];
-                    const onnx::TensorProto& beta =
-                        weights[node_batchnorm->input(2)];
-                    const onnx::TensorProto& mean =
-                        weights[node_batchnorm->input(3)];
-                    const onnx::TensorProto& var =
-                        weights[node_batchnorm->input(4)];
+                    const onnx::TensorProto& gamma = weights[node_batchnorm->input(1)];
+                    const onnx::TensorProto& beta  = weights[node_batchnorm->input(2)];
+                    const onnx::TensorProto& mean  = weights[node_batchnorm->input(3)];
+                    const onnx::TensorProto& var   = weights[node_batchnorm->input(4)];
 
                     int channels = get_tensor_proto_data_size(gamma);
                     assert(channels == channel_output);
@@ -128,11 +136,8 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                         const float* var_data   = get_tensor_proto_data(var);
 
                         for (int j = 0; j < channels; j++) {
-                            double sqrt_var =
-                                sqrt(double(var_data[j]) + epsilon);
-                            bias[j] = double(beta_data[j]) -
-                                      double(gamma_data[j]) *
-                                          double(mean_data[j]) / sqrt_var;
+                            double sqrt_var = sqrt(double(var_data[j]) + epsilon);
+                            bias[j]  = double(beta_data[j]) - double(gamma_data[j]) * double(mean_data[j]) / sqrt_var;
                             slope[j] = double(gamma_data[j]) / sqrt_var;
                         }
                     }
@@ -140,32 +145,31 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
 
                 int has_bias = node_conv->input_size() == 3 ? 1 : 0;
                 if (!has_bias) {
-                    auto temp_tensor =
-                        onnx::TensorProto(weights[node_batchnorm->input(2)]);
-                    float* temp_tensor_data =
-                        get_tensor_proto_mutable_data(temp_tensor);
-                    int channels = get_tensor_proto_data_size(temp_tensor);
+                    auto temp_tensor        = onnx::TensorProto(weights[node_batchnorm->input(2)]);
+                    float* temp_tensor_data = get_tensor_proto_mutable_data(temp_tensor);
+                    int channels            = get_tensor_proto_data_size(temp_tensor);
                     assert(channels == channel_output);
                     for (int j = 0; j < channels; j++) {
                         temp_tensor_data[j] = 0;
                     }
-                    auto temp_tensor_name = node_batchnorm->output(0) + "_bias";
+                    auto temp_tensor_name     = node_batchnorm->output(0) + "_bias";
                     weights[temp_tensor_name] = temp_tensor;
 
                     node_conv->add_input(temp_tensor_name);
                 }
                 auto& conv_bias_tensor = weights[node_conv->input(2)];
 
-                auto new_conv_weight_name = node_conv->input(1) + "_@" + std::to_string(i);
-                weights[new_conv_weight_name] = onnx::TensorProto(weights[node_conv->input(1)]);
-                auto& new_conv_weight_tensor = weights[new_conv_weight_name];
+                auto new_conv_weight_name   = node_conv->input(1) + "_@" + std::to_string(i);
+                auto new_conv_weight_tensor = CopyFloatTensorProto(weights[node_conv->input(1)]);
                 node_conv->set_input(1, new_conv_weight_name);
 
+                auto new_conv_bias_name   = node_conv->input(2) + "_@" + std::to_string(i);
+                auto new_conv_bias_tensor = CopyFloatTensorProto(weights[node_conv->input(2)]);
+                node_conv->set_input(2, new_conv_bias_name);
+
                 // modeify conv weight
-                float* conv_weights =
-                    get_tensor_proto_mutable_data(new_conv_weight_tensor);
-                float* conv_bias =
-                    get_tensor_proto_mutable_data(conv_bias_tensor);
+                float* conv_weights = get_tensor_proto_mutable_data(new_conv_weight_tensor);
+                float* conv_bias    = get_tensor_proto_mutable_data(new_conv_bias_tensor);
 
                 const int channel_input_group  = channel_input / group;
                 const int channel_output_group = channel_output / group;
@@ -174,11 +178,8 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                         int oc = g * channel_output_group + g_o;
                         for (int g_i = 0; g_i < channel_input_group; g_i++) {
                             for (int g_k = 0; g_k < kernel_size; g_k++) {
-                                int index =
-                                    g * channel_output_group *
-                                        channel_input_group * kernel_size +
-                                    g_o * channel_input_group * kernel_size +
-                                    g_i * kernel_size + g_k;
+                                int index = g * channel_output_group * channel_input_group * kernel_size +
+                                            g_o * channel_input_group * kernel_size + g_i * kernel_size + g_k;
                                 conv_weights[index] *= slope[oc];
                             }
                         }
@@ -190,6 +191,9 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
 
                 delete[] slope;
                 delete[] bias;
+
+                weights[new_conv_bias_name]   = new_conv_bias_tensor;
+                weights[new_conv_weight_name] = new_conv_weight_tensor;
 
                 node_batchnorm->set_op_type(k_tnn_noop_type);
 
@@ -204,12 +208,12 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
         // Conv <= Conv - Add
         do {
             if (node->op_type() == "Conv" && i + 1 < node_count) {
-                auto node_conv = node;
+                auto node_conv                = node;
                 std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
                 if (next_indexes.size() != 1) {
                     break;
                 }
-                auto node_add  = index_nodes[next_indexes[0]].node;
+                auto node_add = index_nodes[next_indexes[0]].node;
 
                 // check op
                 if (!(node_add->op_type() == "Add")) {
@@ -221,11 +225,9 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                     break;
                 }
 
-                auto kernel_shape =
-                    get_node_attr_ai(*node_conv, "kernel_shape");
-                bool can_fuse = false;
-                if (node_conv->output_size() == 1 &&
-                    node_add->input_size() == 2 &&
+                auto kernel_shape = get_node_attr_ai(*node_conv, "kernel_shape");
+                bool can_fuse     = false;
+                if (node_conv->output_size() == 1 && node_add->input_size() == 2 &&
                     node_conv->output(0) == node_add->input(0)) {
                     //目前仅仅考虑二维情况
                     can_fuse = kernel_shape.size() == 2;
@@ -234,7 +236,7 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                     break;
                 }
 
-                int group = (int)get_node_attr_i(*node_conv, "group", 1);
+                int group                = (int)get_node_attr_i(*node_conv, "group", 1);
                 auto& conv_weight_tensor = weights[node_conv->input(1)];
                 int channel_output       = (int)conv_weight_tensor.dims(0);
                 // get add weight
@@ -254,8 +256,7 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                         break;
                     }
                     int add_bias_channel_size = add_bias_tensor.dims(1);
-                    if (add_bias_size != channel_output ||
-                        add_bias_channel_size != channel_output) {
+                    if (add_bias_size != channel_output || add_bias_channel_size != channel_output) {
                         break;
                     }
                 }
@@ -264,11 +265,9 @@ int Onnx2TNN::FuseConv(onnx::GraphProto* mutable_graph,
                     // move add bias to Conv
                     node_conv->add_input(add_bias_name);
                 } else {
-                    float* add_bias =
-                        get_tensor_proto_mutable_data(add_bias_tensor);
+                    float* add_bias        = get_tensor_proto_mutable_data(add_bias_tensor);
                     auto& conv_bias_tensor = weights[node_conv->input(2)];
-                    float* conv_bias =
-                        get_tensor_proto_mutable_data(conv_bias_tensor);
+                    float* conv_bias       = get_tensor_proto_mutable_data(conv_bias_tensor);
 
                     for (int i = 0; i < channel_output; ++i) {
                         if (add_bias_size == 1) {

@@ -16,7 +16,7 @@
 
 #include "tnn/core/common.h"
 #include "tnn/core/macro.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -38,15 +38,61 @@ BlobMemorySizeInfo Calculate1DMemorySize(BlobDesc& desc) {
 BlobMemorySizeInfo Calculate2DCLImageMemorySize(BlobDesc& desc) {
     BlobMemorySizeInfo info;
     info.data_type = desc.data_type;
-    int batch, channel, height, width;
-    batch            = desc.dims[0];
-    channel          = desc.dims[1];
-    height           = desc.dims[2];
-    width            = desc.dims[3];
-    int image_width  = UP_DIV(channel, 4) * width;
-    int image_height = batch * height;
-    info.dims.push_back(image_width);
-    info.dims.push_back(image_height);
+    if (desc.data_format == DATA_FORMAT_NHC4W4 || desc.data_format == DATA_FORMAT_AUTO) {
+        if (desc.dims.size() <= 4) {
+            int batch, channel, height, width;
+            auto dims        = desc.dims;
+            batch            = DimsFunctionUtils::GetDim(dims, 0);
+            channel          = DimsFunctionUtils::GetDim(dims, 1);
+            height           = DimsFunctionUtils::GetDim(dims, 2);
+            width            = DimsFunctionUtils::GetDim(dims, 3);
+            int image_width  = UP_DIV(channel, 4) * width;
+            int image_height = batch * height;
+            info.dims.push_back(image_width);
+            info.dims.push_back(image_height);
+        } else if (desc.dims.size() == 5) {
+            int batch, channel, dim2, dim3, dim4;
+            auto dims       = desc.dims;
+            batch = DimsFunctionUtils::GetDim(dims, 0);
+            channel = DimsFunctionUtils::GetDim(dims, 1);
+            dim2 = DimsFunctionUtils::GetDim(dims, 2);
+            dim3 = DimsFunctionUtils::GetDim(dims, 3);
+            dim4 = DimsFunctionUtils::GetDim(dims, 4);
+            int image_width  = UP_DIV(channel, 4) * dim4;
+            int image_height = batch * dim2 * dim3;
+            info.dims.push_back(image_width);
+            info.dims.push_back(image_height);
+        } else if (desc.dims.size() == 6) {
+            int batch, channel, dim2, dim3, dim4, dim5;
+            auto dims       = desc.dims;
+            batch = DimsFunctionUtils::GetDim(dims, 0);
+            channel = DimsFunctionUtils::GetDim(dims, 1);
+            dim2 = DimsFunctionUtils::GetDim(dims, 2);
+            dim3 = DimsFunctionUtils::GetDim(dims, 3);
+            dim4 = DimsFunctionUtils::GetDim(dims, 4);
+            dim5 = DimsFunctionUtils::GetDim(dims, 5);
+            int image_width  = UP_DIV(channel, 4) * dim4 * dim5;
+            int image_height = batch * dim2 * dim3;
+            info.dims.push_back(image_width);
+            info.dims.push_back(image_height);
+        } else {
+            LOGE("TNN Blob not support dims(%d)\n", (int)desc.dims.size());
+            return info;
+        }
+    } else if (desc.data_format == DATA_FORMAT_CNH4) {
+        int batch, channel, height;
+        auto dims        = desc.dims;
+        batch            = DimsFunctionUtils::GetDim(dims, 0);
+        channel          = DimsFunctionUtils::GetDim(dims, 1);
+        height           = DimsFunctionUtils::GetDim(dims, 2);
+        int image_width  = UP_DIV(height, 4);
+        int image_height = channel * batch;
+        info.dims.push_back(image_width);
+        info.dims.push_back(image_height);
+    } else {
+        LOGE("TNN Blob format(%d) not support on CLImage\n", desc.data_format);
+        return info;
+    }
     return info;
 }
 

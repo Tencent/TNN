@@ -35,8 +35,9 @@ public:
     virtual std::string TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model)   = 0;
     virtual tflite::ActivationFunctionType ActivationType(const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
                                                           tflite::BuiltinOperator op_code) = 0;
-    TNN_NS::Status SeparateActivation(tnn::NetStructure& net_structure,
+    TNN_NS::Status SeparateActivation(TNN_NS::NetStructure& net_structure,
                                       tflite::ActivationFunctionType activation_function_type);
+    void InsertBlobs(TNN_NS::NetStructure& net_structure);
 
 protected:
     std::string tflite_op_type_;

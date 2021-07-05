@@ -33,14 +33,16 @@ std::set<std::string> OpenCLReduceL1LayerAcc::CreateBuildOptions() {
     std::set<std::string> build_options;
     std::string init    = " -DDATAINIT=0 ";
     std::string compute = " -DOPERATOR(r,t)=r=(r+fabs(t)); ";
-    std::string inner   = " -DINNEROPERATOR=r.x+r.y+r.z+r.w ";
-    std::string post    = " -DPOSTOPERATOR=(r) ";
-    build_options.emplace(init + compute + inner + post);
+    std::string reduce  = " -DREDUCEOPERATOR(r,t)=r=(r+t); ";
+    std::string inner   = " -DINNEROPERATOR(r)=r.x+r.y+r.z+r.w ";
+    std::string post    = " -DPOSTOPERATOR(r)=(r) ";
+    build_options.emplace(init + compute + reduce + inner + post);
     return build_options;
 }
 
 OpenCLReduceL1LayerAcc::~OpenCLReduceL1LayerAcc() {}
 
 REGISTER_OPENCL_ACC(ReduceL1, LAYER_REDUCE_L1)
+REGISTER_OPENCL_LAYOUT(LAYER_REDUCE_L1, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

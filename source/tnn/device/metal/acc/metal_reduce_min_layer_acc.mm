@@ -19,6 +19,8 @@ namespace TNN_NS {
 DECLARE_METAL_REDUCE_ACC(ReduceMin, LAYER_REDUCE_MIN);
 
 std::string MetalReduceMinLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (multi_axis_)
+        return "reduce_min_multi_axis_common";
     if (axis_ == 0) {
         return "reduce_min_axis_0_common";
     } else if (axis_ == 1) {
@@ -39,5 +41,6 @@ Status MetalReduceMinLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
 }
 
 REGISTER_METAL_REDUCE_ACC(ReduceMin, LAYER_REDUCE_MIN);
+REGISTER_METAL_LAYOUT(LAYER_REDUCE_MIN, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

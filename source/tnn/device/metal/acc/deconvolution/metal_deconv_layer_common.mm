@@ -17,7 +17,7 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -31,6 +31,17 @@ static int LeastCommonMultiple(int m, int n) {
         }
     }
     return m * n / a;
+}
+
+Status MetalDeconvLayerCommon::ComputeDeconvParam(MetalConvParams& metal_params) {
+    metal_params.kernel_delta_y =
+        LeastCommonMultiple(metal_params.dilation_y, metal_params.stride_y) / metal_params.dilation_y;
+    metal_params.kernel_delta_x =
+        LeastCommonMultiple(metal_params.dilation_x, metal_params.stride_x) / metal_params.dilation_x;
+    metal_params.input_delta_y = metal_params.kernel_delta_y * metal_params.dilation_y / metal_params.stride_y;
+    metal_params.input_delta_x = metal_params.kernel_delta_x * metal_params.dilation_x / metal_params.stride_x;
+
+    return TNN_OK;
 }
 
 bool MetalDeconvLayerCommon::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
@@ -48,14 +59,24 @@ Status MetalDeconvLayerCommon::AllocateBufferWeight(const std::vector<Blob *> &i
     auto dims_output             = outputs[0]->GetBlobDesc().dims;
     const int input_channel      = dims_input[1];
     const int output_channel     = dims_output[1];
+    const int group = layer_param->group;
+    const int goc   = output_channel / group;
+    const int gic   = input_channel / group;
+    is_channel_4x_ = group == 1 || (group > 1 && (gic % 4 == 0) && (goc % 4 == 0));
+    is_group2_specialized_ = group == 2 && goc == 1 && gic == 2;
 
     Status status = TNN_OK;
     if (!buffer_weight_) {
         int kw = layer_param->kernels[0];
         int kh = layer_param->kernels[1];
 
-        buffer_weight_ = AllocatePackedGOIHW16MetalBufferFormRawBuffer(
-            layer_res->filter_handle, {output_channel, input_channel, kh, kw}, layer_param->group, status, true);
+        if (is_channel_4x_ || is_group2_specialized_) {
+            buffer_weight_ = AllocatePackedGOIHW16MetalBufferFormRawBuffer(
+                layer_res->filter_handle, {output_channel, input_channel, kh, kw}, layer_param->group, status, true);
+        } else {
+            buffer_weight_ = AllocatePackedGOIHW4MetalBufferFormRawBuffer(
+                layer_res->filter_handle, {output_channel, input_channel, kh, kw}, layer_param->group, status, true);
+        }
     }
     return status;
 }
@@ -74,23 +95,28 @@ Status MetalDeconvLayerCommon::AllocateBufferParam(const std::vector<Blob *> &in
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
         SetDefaultMetalConvParams(metal_params, deconv_param);
 
-        auto input_slice_per_group = UP_DIV(dims_input[1], 4) / group;
-        input_slice_per_group      = input_slice_per_group > 0 ? input_slice_per_group : 1;
-        metal_params.input_slice   = input_slice_per_group;
+        if (is_channel_4x_ || is_group2_specialized_) {
+            auto input_slice_per_group = UP_DIV(dims_input[1], 4) / group;
+            input_slice_per_group      = input_slice_per_group > 0 ? input_slice_per_group : 1;
+            metal_params.input_slice   = input_slice_per_group;
 
-        auto output_slice_per_group = UP_DIV(dims_output[1], 4) / group;
-        output_slice_per_group      = output_slice_per_group > 0 ? output_slice_per_group : 1;
-        metal_params.output_slice   = output_slice_per_group;
+            auto output_slice_per_group = UP_DIV(dims_output[1], 4) / group;
+            output_slice_per_group      = output_slice_per_group > 0 ? output_slice_per_group : 1;
+            metal_params.output_slice   = output_slice_per_group;
 
-        metal_params.threadgroup_input_slice = metal_params.input_slice;
-        //            metal_params.batch = dims_output[0];
+            metal_params.threadgroup_input_slice = metal_params.input_slice;
+            //            metal_params.batch = dims_output[0];
+        } else {
+            const int goc = dims_output[1] / group;
+            const int gic = dims_input[1] / group;
+            metal_params.input_slice            = UP_DIV(gic, 4);
+            metal_params.input_slice_per_group  = gic;
+            metal_params.output_slice           = UP_DIV(goc, 4);
+            metal_params.output_slice_per_group = goc;
+        }
         
-        metal_params.kernel_delta_y =
-            LeastCommonMultiple(metal_params.dilation_y, metal_params.stride_y) / metal_params.dilation_y;
-        metal_params.kernel_delta_x =
-            LeastCommonMultiple(metal_params.dilation_x, metal_params.stride_x) / metal_params.dilation_x;
-        metal_params.input_delta_y = metal_params.kernel_delta_y * metal_params.dilation_y / metal_params.stride_y;
-        metal_params.input_delta_x = metal_params.kernel_delta_x * metal_params.dilation_x / metal_params.stride_x;
+        auto status = ComputeDeconvParam(metal_params);
+        RETURN_ON_NEQ(status, TNN_OK);
 
         buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
                                             length:sizeof(MetalConvParams)
@@ -108,16 +134,13 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
     auto dims_output             = output->GetBlobDesc().dims;
     auto context_impl            = context_->getMetalContextImpl();
 
-    if (dims_input[0] != 1) {
-        LOGE("Error: batch size or group is not support\n");
-        return Status(TNNERR_LAYER_ERR, "batch size or group is not support");
-    }
-
     auto encoder = [context_impl encoder];
     encoder.label = GetKernelLabel();
 
     DataType data_type = output->GetBlobDesc().data_type;
     int data_byte_size = DataTypeUtils::GetBytesSize(data_type);
+
+    auto batch = dims_output[0];
 
     auto input_width             = dims_input[3];
     auto input_height            = dims_input[2];
@@ -149,27 +172,28 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
     MetalBandwidth bandwidth;
     MTLSize threads = {(NSUInteger)output_width, (NSUInteger)output_height, (NSUInteger)output_slice_per_group};
 
-    bool supported = false;
-    if (group == 1 || (group != 1 && (output_channel_per_group % 4) == 0 && (input_channel_per_group % 4) == 0)) {
-        supported = true;
-        status    = [context_impl load:@"deconv_common_group_channel_in4x_out4x" encoder:encoder bandwidth:bandwidth];
+    if (is_channel_4x_) {
+        status = [context_impl load:@"deconv_common_group_channel_in4x_out4x" encoder:encoder bandwidth:bandwidth];
     } else {
-        //注意此处先特殊处理
-        if (group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2) {
-            supported              = true;
-            status                 = [context_impl load:@"deconv_common_group_channel_in2_out1_group2"
+        //special case
+        if (is_group2_specialized_) {
+            status = [context_impl load:@"deconv_common_group_channel_in2_out1_group2"
                                 encoder:encoder
                               bandwidth:bandwidth];
             input_bytes_per_group  = input_channel_per_group * output_height * output_width * data_byte_size;
             output_slice_per_group = output_channel_per_group * output_height * output_width * data_byte_size;
         } else {
-            supported = false;
+            status = [context_impl load:@"deconv_common_group_channel"
+                                encoder:encoder
+                              bandwidth:bandwidth];
+            threads = {(NSUInteger)output_width, (NSUInteger)output_height,
+                        (NSUInteger)UP_DIV(output_channel_per_group, 4)};
+            // compute offset within kernel
+            input_bytes_per_group  = 0;
+            output_bytes_per_group = 0;
+            weight_bytes_per_group = ROUND_UP(output_channel_per_group, 4) * input_channel_per_group * kernel_size * data_byte_size;
+            bias_bytes_per_group   = output_channel_per_group * data_byte_size;
         }
-    }
-    if (!supported) {
-        [encoder endEncoding];
-        LOGE("Error: deconv group != 1 is not supported\n");
-        return Status(TNNERR_LAYER_ERR, "deconv group != 1 is not supported");
     }
 
     if (status != TNN_OK) {
@@ -177,17 +201,39 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
         return status;
     }
 
-    if (!(group == 2 && output_channel_per_group == 1 && input_channel_per_group == 2)) {
-        for (int g = 0; g < group; g++) {
+    if (!is_group2_specialized_) {
+        for(int n=0; n<batch; ++n) {
+            for (int g = 0; g < group; g++) {
+                [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
+                            offset:(NSUInteger)input->GetHandle().bytes_offset + g * input_bytes_per_group + n * input_bytes
+                           atIndex:0];
+                [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
+                            offset:(NSUInteger)output->GetHandle().bytes_offset + g * output_bytes_per_group + n * output_bytes
+                           atIndex:1];
+                [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
+                [encoder setBuffer:buffer_weight_ offset:g * weight_bytes_per_group atIndex:3];
+                [encoder setBuffer:buffer_bias_ offset:g * bias_bytes_per_group atIndex:4];
+                [encoder setBytes :&g       length:sizeof(int) atIndex:5];
+
+                status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
+
+                if (status != TNN_OK) {
+                    [encoder endEncoding];
+                    return status;
+                }
+            }
+        }
+    } else {
+        for(int n=0; n<batch; ++n) {
             [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
-                        offset:(NSUInteger)input->GetHandle().bytes_offset + g * input_bytes_per_group
+                        offset:(NSUInteger)input->GetHandle().bytes_offset + n * input_bytes
                        atIndex:0];
             [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
-                        offset:(NSUInteger)output->GetHandle().bytes_offset + g * output_bytes_per_group
+                        offset:(NSUInteger)output->GetHandle().bytes_offset + n * output_bytes
                        atIndex:1];
             [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
-            [encoder setBuffer:buffer_weight_ offset:g * weight_bytes_per_group atIndex:3];
-            [encoder setBuffer:buffer_bias_ offset:g * bias_bytes_per_group atIndex:4];
+            [encoder setBuffer:buffer_weight_ offset:0 atIndex:3];
+            [encoder setBuffer:buffer_bias_ offset:0 atIndex:4];
 
             status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
 
@@ -195,23 +241,6 @@ Status MetalDeconvLayerCommon::Forward(const std::vector<Blob *> &inputs, const 
                 [encoder endEncoding];
                 return status;
             }
-        }
-    } else {
-        [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
-                    offset:(NSUInteger)input->GetHandle().bytes_offset
-                   atIndex:0];
-        [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
-                    offset:(NSUInteger)output->GetHandle().bytes_offset
-                   atIndex:1];
-        [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
-        [encoder setBuffer:buffer_weight_ offset:0 atIndex:3];
-        [encoder setBuffer:buffer_bias_ offset:0 atIndex:4];
-
-        status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
-
-        if (status != TNN_OK) {
-            [encoder endEncoding];
-            return status;
         }
     }
     [encoder endEncoding];

@@ -28,6 +28,60 @@ __kernel void Conv2DFilterBufferToBuffer(GLOBAL_SIZE_2_DIMS __global const float
     output_ptr[output_offset] = (FLOAT)(val);
 }
 
+// convert kernel : from buffer(mihw) to buffer(ic/4 h w m ic4)
+// but now dw only support m == 1
+__kernel void DWFilterBufferToBuffer(GLOBAL_SIZE_2_DIMS __global const float *input_ptr,
+                                     __private const int4 kernel_shape, __private const int height_width_size,
+                                     __global FLOAT* output_ptr) {
+    const int hw_idx  = get_global_id(0);
+    const int ic_block_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(hw_idx, ic_block_idx);
+
+    FLOAT4 output_values = 0;
+    if (kernel_shape.x == 1) {
+        const int input_channel_4_idx = ic_block_idx << 2;
+        const int buffer_height_idx   = hw_idx / kernel_shape.w;
+        const int buffer_width_idx    = hw_idx % kernel_shape.w;
+
+        const int buffer_offset =
+            mad24(mad24(input_channel_4_idx, kernel_shape.z, buffer_height_idx), kernel_shape.w, buffer_width_idx);
+
+        const int remain_channel = kernel_shape.y - input_channel_4_idx;
+        if (input_channel_4_idx < kernel_shape.y) {
+            if (remain_channel >= 4) {
+                int offset      = buffer_offset;
+                output_values.x = (FLOAT)(*(input_ptr + offset));
+                offset += height_width_size;
+                output_values.y = (FLOAT)(*(input_ptr + offset));
+                offset += height_width_size;
+                output_values.z = (FLOAT)(*(input_ptr + offset));
+                offset += height_width_size;
+                output_values.w = (FLOAT)(*(input_ptr + offset));
+            } else if (remain_channel == 3) {
+                int offset      = buffer_offset;
+                output_values.x = (FLOAT)(*(input_ptr + offset));
+                offset += height_width_size;
+                output_values.y = (FLOAT)(*(input_ptr + offset));
+                offset += height_width_size;
+                output_values.z = (FLOAT)(*(input_ptr + offset));
+
+            } else if (remain_channel == 2) {
+                int offset      = buffer_offset;
+                output_values.x = (FLOAT)(*(input_ptr + offset));
+                offset += height_width_size;
+                output_values.y = (FLOAT)(*(input_ptr + offset));
+            } else if (remain_channel == 1) {
+                int offset      = buffer_offset;
+                output_values.x = (FLOAT)(*(input_ptr + offset));
+            }
+        }
+        const int output_offset = mad24(mad24(ic_block_idx, kernel_shape.z, buffer_height_idx),
+                                        kernel_shape.w, buffer_width_idx) << 2;
+        vstore4(output_values, 0, output_ptr + output_offset);
+    }
+}
+
 // convert arg as 4 alignment
 __kernel void ArgBufferToBuffer(GLOBAL_SIZE_2_DIMS __global const float *input_ptr, __private const int count,
                                 __global FLOAT* output_ptr) {

@@ -40,6 +40,10 @@ class CpuDeconvLayerAcc : public CpuLayerAcc {
 
 private:
     RawBuffer buffer_scale_;
+
+    std::shared_ptr<LayerResource> fp32_resource_ = nullptr;
+
+    void ActiveOutput(ConvLayerParam *param, float &sum);
 };
 
 }  // namespace TNN_NS

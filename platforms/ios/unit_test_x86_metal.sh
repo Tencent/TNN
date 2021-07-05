@@ -33,6 +33,7 @@ function build_unit_test() {
     cd $BUILD_DIR
     cmake ../../.. \
           -DCMAKE_BUILD_TYPE=DEBUG \
+          -DTNN_BENCHMARK_MODE:BOOL="ON" \
           -DTNN_TEST_ENABLE:BOOL="ON"  \
           -DTNN_UNIT_TEST_ENABLE:BOOL="ON"  \
           -DTNN_METAL_ENABLE:BOOL=$METAL
@@ -42,7 +43,7 @@ function build_unit_test() {
 function run_unit_test() {
     build_unit_test
     if [ $? != 0 ]; then
-        echo "build falied!"
+        echo "build failed!"
         exit 0
     fi
     if [ "" != "$BUILD_ONLY" ]; then

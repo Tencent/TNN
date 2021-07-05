@@ -34,9 +34,11 @@ public:
 
     virtual ~OpenCLLayerAcc() override;
 
-    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override = 0;
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) override;
 
 #if TNN_PROFILE
     virtual void UpdateProfilingData(OpenCLProfilingData *pdata, std::vector<uint32_t> gws, std::vector<uint32_t> lws,
@@ -47,9 +49,12 @@ protected:
 
     void ConfigKernelStrategy();
 
+    void InsertUnactiveUnitId(int id);
+
     Status ConvertChannelWeights(RawBuffer &raw_handle, shared_ptr<OpenCLMemory> &ocl_handle, int output_channel,
                                  bool has_value = true, bool share_channel = false, bool use_buffer = false);
 
+    Status RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, DataFormat format = DATA_FORMAT_NHC4W4);
     OpenCLContext *ocl_context_ = nullptr;
     std::vector<OpenCLExecuteUnit> execute_units_ = {};
 
@@ -68,8 +73,17 @@ private:
     Status ConvertChannelWeights(float *handle_data_ptr, shared_ptr<OpenCLMemory> &ocl_handle, int output_channel,
                                  bool has_handle = true, bool share_channel = false, bool use_buffer = false);
 
+    Status CheckBlob(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     // @brief return device layer acc support data format
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size) override;
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) override;
+
+    // @brief return device layer acc support data type
+    virtual std::vector<DataType> SupportDataType(int dims_size, BlobType blob_type);
+
+    // @brief decide Blob Data Type based on support data type list
+    virtual Status ResolveBlobDataType(Blob *blob, BlobType blob_type);
+
+    std::set<int> unactive_unit_ids_ = {};
 };
 
 #define DECLARE_OPENCL_ACC(type_string)                                                                                \
@@ -84,6 +98,22 @@ private:
 #define REGISTER_OPENCL_ACC(type_string, layer_type)                                                                   \
     OpenCLTypeLayerAccRegister<TypeLayerAccCreator<OpenCL##type_string##LayerAcc>>                                     \
         g_opencl_##layer_type##_acc_register(layer_type);
+
+class OpenCLTypeLayerLayoutCreator {
+public:
+    static std::shared_ptr<ImplementedLayout> UpdateImplementedLayout(LayerType layer_type, DataFormat layout) {
+        // make sure opencl device has been registered
+        TypeDeviceRegister<OpenCLDevice> opencl_device_register(DEVICE_OPENCL);
+        auto implemented_layout = GetDevice(DEVICE_OPENCL)->GetImplementedLayout(layer_type);
+        auto updated_layout     = std::make_shared<ImplementedLayout>(*implemented_layout);
+        updated_layout->layouts.push_back(layout);
+        return updated_layout;
+    }
+};
+
+#define REGISTER_OPENCL_LAYOUT(layer_type, layout)                                                                        \
+    OpenCLTypeLayerLayoutRegister g_opencl_##layer_type##_##layout##_layout_register(                                      \
+             layer_type, OpenCLTypeLayerLayoutCreator::UpdateImplementedLayout(layer_type, layout));
 
 }  // namespace TNN_NS
 

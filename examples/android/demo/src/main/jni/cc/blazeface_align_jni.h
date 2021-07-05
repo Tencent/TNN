@@ -43,7 +43,7 @@ JNIEXPORT jint JNICALL TNN_BLAZEFACE_ALIGN(init)(JNIEnv *env, jobject thiz, jstr
                                                     jint computUnitType);
 JNIEXPORT JNICALL jboolean TNN_BLAZEFACE_ALIGN(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath);
 JNIEXPORT JNICALL jint TNN_BLAZEFACE_ALIGN(deinit)(JNIEnv *env, jobject thiz);
-JNIEXPORT JNICALL jobjectArray TNN_BLAZEFACE_ALIGN(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint rotate);
+JNIEXPORT JNICALL jobjectArray TNN_BLAZEFACE_ALIGN(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint view_width, jint view_height, jint rotate);
 
 #ifdef __cplusplus
 }

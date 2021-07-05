@@ -14,32 +14,16 @@
 
 #ifndef onnx2tnn_prefix_h
 #define onnx2tnn_prefix_h
+#include "tnn/core/macro.h"
+#include "tnn/core/common.h"
+#include "tnn/utils/half_utils.h"
 
-#ifdef TNNNameSpace
-#undef TNNNameSpace
-#endif
-
-#define TNN_VERSION_(x) tnn##x
-#define TNN_VERSION(x) TNN_VERSION_(x)
-#ifdef TNN_DATE
-#define TNNNameSpace TNN_VERSION(TNN_DATE)
-#else
-#define TNNNameSpace TNN_VERSION()
-#endif
 
 #define LOG_LEVEL 2
 #define LOG_FUNCTION (LOG_LEVEL >= 3 ? __PRETTY_FUNCTION__ : __FUNCTION__)
 #define DLog(fmt, ...)                                                         \
     printf(("%s [Line %d] " fmt), LOG_FUNCTION, __LINE__, ##__VA_ARGS__)
 
-#define BREAK_IF(cond)                                                          \
-    if (cond)                                                                  \
-    break
-#define BREAK_IF_MSG(cond, msg)                                                  \
-    if (cond)                                                                  \
-        DLog(msg);                                                             \
-    if (cond)                                                                  \
-    break
 
 #define k_tnn_noop_type "tnn.noop"
 #define k_layout_order_nchw "nchw"

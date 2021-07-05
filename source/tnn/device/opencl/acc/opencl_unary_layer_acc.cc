@@ -43,11 +43,24 @@ OpenCLUnaryLayerAcc::~OpenCLUnaryLayerAcc() {
 
 Status OpenCLUnaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Unary Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     uint32_t idx = SetExecuteUnit3DSizeInfoDefault(execute_units_[0], output_dims);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
     return TNN_OK;
+}
+
+std::vector<DataFormat> OpenCLUnaryLayerAcc::SupportDataFormat(DataType data_type,
+                                                               int dims_size,
+                                                               BlobType blob_type) {
+    std::vector<DataFormat> support_list;
+    if (dims_size >= 2 && dims_size <= 6) { // only support up to 6 dims
+        support_list.push_back(DATA_FORMAT_NHC4W4);
+    }
+    return support_list;
 }
 
 }  // namespace TNN_NS

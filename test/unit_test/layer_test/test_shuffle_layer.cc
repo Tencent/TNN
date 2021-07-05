@@ -15,14 +15,16 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-class ShuffleLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
+class ShuffleLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int, int>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ShuffleLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                                            // dim count
+                                            testing::Values(2, 3, 4, 5, 6),
                                             // group
                                             testing::Values(1, 2, 3)));
 
@@ -31,21 +33,29 @@ TEST_P(ShuffleLayerTest, ShuffleLayer) {
     int batch             = std::get<0>(GetParam());
     int channel_per_group = std::get<1>(GetParam());
     int input_size        = std::get<2>(GetParam());
-    int group             = std::get<3>(GetParam());
+    int dim_count         = std::get<3>(GetParam());
+    int group             = std::get<4>(GetParam());
     int channel           = channel_per_group * group;
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+    if (DEVICE_HUAWEI_NPU == dev && dim_count != 4) {
+        GTEST_SKIP();
+    }
 
     // param
-    ShuffleLayerParam param;
-    param.name  = "ShuffleChannel";
-    param.group = group;
+    std::shared_ptr<ShuffleLayerParam> param(new ShuffleLayerParam());
+    param->name  = "ShuffleChannel";
+    param->group = group;
 
-    Run(LAYER_SHUFFLE_CHANNEL, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
+    auto interpreter            = GenerateInterpreter("ShuffleChannel", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

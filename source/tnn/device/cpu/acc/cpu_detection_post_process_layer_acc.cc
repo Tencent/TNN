@@ -16,7 +16,7 @@
 
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/detection_post_process_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -31,6 +31,9 @@ Status CpuDetectionPostProcessLayerAcc::Forward(const std::vector<Blob *> &input
     auto resource = dynamic_cast<DetectionPostProcessLayerResource *>(resource_);
     if (!param || !resource) {
         return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
+    }
+    if (param->use_regular_nms) {
+        return TNNERR_UNSUPPORT_NET;
     }
     Blob* nhwc_input0 = new Blob(inputs[0]->GetBlobDesc(), true);
     DataFormatConverter::ConvertFromNCHWToNHWC<float>(inputs[0], nhwc_input0);
@@ -48,12 +51,9 @@ Status CpuDetectionPostProcessLayerAcc::Forward(const std::vector<Blob *> &input
     Blob decode_boxes_blob = Blob(decode_boxes_desc, true);
     DecodeBoxes(param, resource, nhwc_input0, scale_values, &decode_boxes_blob);
 
-    if (param->use_regular_nms) {
-        return TNNERR_UNSUPPORT_NET;
-    } else {
-        NonMaxSuppressionMultiClassFastImpl(param, resource, &decode_boxes_blob, nhwc_input1, outputs[0], outputs[1],
-                                            outputs[2], outputs[3]);
-    }
+    NonMaxSuppressionMultiClassFastImpl(param, resource, &decode_boxes_blob, nhwc_input1, outputs[0], outputs[1],
+                                        outputs[2], outputs[3]);
+
     delete nhwc_input0;
     delete nhwc_input1;
     return TNN_OK;

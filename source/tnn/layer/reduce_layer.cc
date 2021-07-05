@@ -14,31 +14,49 @@
 
 #include "reduce_layer.h"
 
-#include "tnn/utils/dims_vector_utils.h"
+#include <set>
+
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-Status ReduceLayer::InferOutputShape() {
+Status ReduceLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
     auto layer_param = dynamic_cast<ReduceLayerParam*>(param_);
-    if (!layer_param || layer_param->axis.size() != 1) {
-        LOGE("Error: Reduce may not support axes != 1, depend on device\n");
+    if (!layer_param) {
+        LOGE_IF(!ignore_error, "Error: Reduce may not support axes != 1, depend on device\n");
         return Status(TNNERR_MODEL_ERR, "Error: Reduce may not support axes != 1, depend on device");
     }
 
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
-    auto dims         = input_blob->GetBlobDesc().dims;
+    auto dims  = input_blob->GetBlobDesc().dims;
 
-    int axis             = layer_param->axis[0];
-    axis                 = axis >= 0 ? axis : axis + (int)dims.size();
-    layer_param->axis[0] = axis;
-    if (axis < 0 || axis >= dims.size()) {
-        LOGE("Error: layer param axis is invalid\n");
-        return Status(TNNERR_MODEL_ERR, "Error: layer param axis is invalid");
+    std::set<int> axis_filter;
+    for (auto& axis : layer_param->axis) {
+        axis = axis >= 0 ? axis : axis + (int)dims.size();
+        if (axis < 0 || axis >= dims.size()) {
+            LOGE_IF(!ignore_error, "Error: layer param axis is invalid\n");
+            return Status(TNNERR_MODEL_ERR, "Error: layer param axis is invalid");
+        }
+        dims[axis] = 1;
+        axis_filter.insert(axis);
     }
-
-    dims[layer_param->axis[0]]      = 1;
-    output_blob->GetBlobDesc().dims = dims;
+    
+  
+    DimsVector output_dims;
+    if (layer_param->keep_dims == 0) {
+        for(int i = 0; i < dims.size(); ++i) {
+            if(axis_filter.count(i) == 0) {
+                output_dims.push_back(dims[i]);           
+            }
+        }
+    } else {
+        output_dims = dims;
+    }
+    
+    output_blob->GetBlobDesc().dims = output_dims;
 
     return TNN_OK;
 }

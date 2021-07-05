@@ -23,7 +23,8 @@ bool OpenCLConvLayerDepthwiseAcc::IsPrefered(const ConvLayerParam *param, const 
         return false;
     }
 
-    return param->group == inputs[0]->GetBlobDesc().dims[1] && param->group == outputs[0]->GetBlobDesc().dims[1];
+    return param->group == DimsFunctionUtils::GetDim(inputs[0]->GetBlobDesc().dims, 1) &&
+           param->group == DimsFunctionUtils::GetDim(outputs[0]->GetBlobDesc().dims, 1);
 }
 
 Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -39,19 +40,13 @@ Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, La
     ret = AllocateWeightsBias(resource);
     CHECK_TNN_OK(ret)
 
-    // create kernel
-    std::set<std::string> build_options;
-    if (conv_params_.activation_type == ActivationType_ReLU) {
-        build_options.emplace("-DRELU");
-    } else if (conv_params_.activation_type == ActivationType_ReLU6) {
-        build_options.emplace("-DRELU6");
-    }
+    std::string program_name = "convolution_depthwise";
     std::string kernel_name = "DepthwiseConv2D";
     if (conv_params_.stride_x == 1 && conv_params_.stride_y == 1 && conv_params_.dilation_x == 1 &&
         conv_params_.dilation_y == 1) {
         kernel_name = "DepthwiseConv2DS1";
     }
-    ret = CreateExecuteUnit(execute_units_[0], "convolution", kernel_name, build_options);
+    ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
@@ -67,17 +62,18 @@ Status OpenCLConvLayerDepthwiseAcc::Reshape(const std::vector<Blob *> &inputs, c
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
-    const int output_height = output_dims[2];
-    const int output_width  = output_dims[3];
+    const int output_height = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int output_width  = DimsFunctionUtils::GetDim(output_dims, 3);
 
-    const int input_height   = input_dims[2];
-    const int input_width    = input_dims[3];
-    const int input_channels = input_dims[1];
+    const int input_height   = DimsFunctionUtils::GetDim(input_dims, 2);
+    const int input_width    = DimsFunctionUtils::GetDim(input_dims, 3);
+    const int input_channels = DimsFunctionUtils::GetDim(input_dims, 1);
 
-    execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4) * UP_DIV(output_dims[3], 4)),
-                                        static_cast<uint32_t>(output_dims[0] * output_dims[2])};
-    execute_units_[0].local_work_size  = Conv2dCommonLocalWS2D(
-        execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max, execute_units_[0].sub_group_size);
+    execute_units_[0].global_work_size = {
+        static_cast<uint32_t>(UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4) *
+                              UP_DIV(DimsFunctionUtils::GetDim(output_dims, 3), 4)),
+        static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 0) *
+                              DimsFunctionUtils::GetDim(output_dims, 2))};
 
     int kernel_shape[2]      = {conv_params_.kernel_x, conv_params_.kernel_y};
     int stride_shape[2]      = {conv_params_.stride_x, conv_params_.stride_y};
@@ -103,6 +99,14 @@ Status OpenCLConvLayerDepthwiseAcc::Reshape(const std::vector<Blob *> &inputs, c
         conv_params_.dilation_y != 1) {
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(dilation_shape), dilation_shape);
         execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
+    }
+    execute_units_[0].ocl_kernel.setArg(idx++, (int)conv_params_.activation_type);
+
+    execute_units_[0].local_work_size = Conv2dCommonLocalWS2D(
+            execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max, execute_units_[0].sub_group_size);
+
+    if (ocl_context_->GetEnableTuneKernel()) {
+        execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_, GenerateTuneKernelKey(execute_units_[0]));
     }
 
     return TNN_OK;

@@ -22,11 +22,12 @@ public:
 };
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReluLayerTest,
-                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
-                                            testing::Values(DATA_TYPE_BFP16, DATA_TYPE_FLOAT)));
+                         ::testing::Combine(UNARY_BATCH_CHANNEL_SIZE,
+                                            testing::Values(2, 3, 4, 5),
+                                            testing::Values(DATA_TYPE_HALF, DATA_TYPE_BFP16, DATA_TYPE_FLOAT)));
 
 TEST_P(ReluLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
+    RunUnaryTest("Relu");
 }
 
 }  // namespace TNN_NS

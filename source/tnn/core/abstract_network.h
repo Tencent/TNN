@@ -38,7 +38,7 @@ public:
     // @param net_cfg
     // @param net_res
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                        InputShapesMap inputs_shape) = 0;
+        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder=true) = 0;
 
     // @brief deinit release init create resource
     virtual Status DeInit() = 0;
@@ -68,6 +68,9 @@ public:
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void **command_queue) = 0;
 
+    // @brief share tnn command queue to another network。
+    virtual Status ShareCommandQueue(AbstractNetwork *network);
+    
     // @brief network infer, it will sync to wait result
     virtual Status Forward() = 0;
 

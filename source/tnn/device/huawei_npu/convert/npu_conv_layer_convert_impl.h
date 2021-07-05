@@ -31,42 +31,46 @@ protected:
     Status ObtainParam() {
         auto param = dynamic_cast<ConvLayerParam *>(param_);
         CHECK_PARAM_NULL(param);
-        stride_w = param->strides[0];
-        stride_h = param->strides[1];
+        stride_w_ = param->strides[0];
+        stride_h_ = param->strides[1];
 
-        dilation_w = param->dialations[0];
-        dilation_h = param->dialations[1];
+        dilation_w_ = param->dialations[0];
+        dilation_h_ = param->dialations[1];
 
-        kernel_w       = param->kernels[0];
-        kernel_h       = param->kernels[1];
-        group          = param->group;
-        output_channel = param->output_channel;
-        pad_w_begin    = param->pads[0];
-        pad_w_end      = param->pads[1];
-        pad_h_begin    = param->pads[2];
-        pad_h_end      = param->pads[3];
-        pad_type       = param->pad_type;
+        kernel_w_       = param->kernels[0];
+        kernel_h_       = param->kernels[1];
+        group_          = param->group;
+        output_channel_ = param->output_channel;
+        pad_w_begin_    = param->pads[0];
+        pad_w_end_      = param->pads[1];
+        pad_h_begin_    = param->pads[2];
+        pad_h_end_      = param->pads[3];
+        pad_type_       = param->pad_type;
+
+        activation_type_ = param->activation_type;
 
         return TNN_OK;
     }
     std::vector<shared_ptr<ge::Operator>> weight_ops_;
-    int stride_w;
-    int stride_h;
+    int stride_w_;
+    int stride_h_;
 
-    int dilation_w;
-    int dilation_h;
+    int dilation_w_;
+    int dilation_h_;
 
-    int kernel_w;
-    int kernel_h;
+    int kernel_w_;
+    int kernel_h_;
 
-    int pad_w_begin;
-    int pad_w_end;
-    int pad_h_begin;
-    int pad_h_end;
+    int pad_w_begin_;
+    int pad_w_end_;
+    int pad_h_begin_;
+    int pad_h_end_;
 
-    int group;
-    int output_channel;
-    int pad_type;
+    int group_;
+    int output_channel_;
+    int pad_type_;
+
+    int activation_type_;
 };
 
 }  // namespace TNN_NS

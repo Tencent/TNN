@@ -9,6 +9,7 @@ SHARED_LIB="ON"
 ARM="ON"
 OPENMP="ON"
 OPENCL="ON"
+#HUAWEI_NPU="ON"
 if [ -z "$HUAWEI_NPU" ]; then
     HUAWEI_NPU="OFF"
 fi
@@ -92,6 +93,7 @@ cmake ${TNN_ROOT_PATH} \
       -DANDROID_NATIVE_API_LEVEL=${ANDROID_API_LEVEL}  \
       -DANDROID_TOOLCHAIN=clang \
       -DBUILD_FOR_ANDROID_COMMAND=true \
+      -DTNN_CPU_ENABLE:BOOL=ON \
       -DTNN_ARM_ENABLE:BOOL=$ARM \
       -DTNN_HUAWEI_NPU_ENABLE:BOOL=$HUAWEI_NPU \
       -DTNN_OPENCL_ENABLE:BOOL=$OPENCL \
@@ -125,6 +127,7 @@ cmake ${TNN_ROOT_PATH} \
       -DANDROID_NATIVE_API_LEVEL=${ANDROID_API_LEVEL}  \
       -DANDROID_TOOLCHAIN=clang \
       -DBUILD_FOR_ANDROID_COMMAND=true \
+      -DTNN_CPU_ENABLE:BOOL=ON \
       -DTNN_ARM_ENABLE:BOOL=$ARM \
       -DTNN_HUAWEI_NPU_ENABLE:BOOL=$HUAWEI_NPU \
       -DTNN_OPENCL_ENABLE:BOOL=$OPENCL \
@@ -169,3 +172,7 @@ if [  "$HUAWEI_NPU" == "ON" ]; then
     cp ${TNN_ROOT_PATH}/third_party/huawei_npu/hiai_ddk_latest/arm64-v8a/* release/arm64-v8a/
 fi
 echo "build done!"
+
+if [ "$SHARED_LIB" != "ON" ]; then
+    echo -e "\033[31m[WARNING] TNN is built as a static library, link it with option -Wl,--whole-archive tnn -Wl,--no-whole-archive\033[0m"
+fi

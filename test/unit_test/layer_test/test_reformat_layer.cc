@@ -15,7 +15,7 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -41,15 +41,16 @@ TEST_P(ReformatLayerTest, ReformatLayer) {
     }
 
     DataType output_data_type = input_data_type == DATA_TYPE_INT8 ? DATA_TYPE_FLOAT : DATA_TYPE_INT8;
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, input_data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, output_data_type);
 
-    ReformatLayerParam param;
-    param.name     = "Reformat";
-    param.src_type = input_data_type;
-    param.dst_type = output_data_type;
-    Run(LAYER_REFORMAT, &param, nullptr, inputs_desc, outputs_desc);
+    std::shared_ptr<ReformatLayerParam> param(new ReformatLayerParam());
+    param->name     = "Reformat";
+    param->src_type = input_data_type;
+    param->dst_type = output_data_type;
+
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Reformat", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

@@ -14,30 +14,15 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_RK_NPU_RKNPU_BLOB_CONVERTER_CC_
 #define TNN_SOURCE_TNN_DEVICE_RK_NPU_RKNPU_BLOB_CONVERTER_CC_
 #include "tnn/core/macro.h"
-#include "tnn/device/cpu/cpu_blob_converter.h"
+#include "tnn/utils/blob_converter_default.h"
 #include "tnn/utils/blob_converter.h"
 
 namespace TNN_NS {
 
-class RknpuBlobConverterAcc : public CpuBlobConverterAcc {
+class RknpuBlobConverterAcc : public DefaultBlobConverterAcc {
 public:
-    RknpuBlobConverterAcc(Blob *blob) : CpuBlobConverterAcc(blob) {}
+    RknpuBlobConverterAcc(Blob *blob) : DefaultBlobConverterAcc(blob) {}
     ~RknpuBlobConverterAcc() {}
-    // output
-    virtual Status ConvertToMat(Mat &image, MatConvertParam param, void *command_queue = NULL) {
-        return CpuBlobConverterAcc::ConvertToMat(image, param, command_queue);
-    }
-    virtual Status ConvertToMatAsync(Mat &image, MatConvertParam param, void *command_queue = NULL) {
-        return CpuBlobConverterAcc::ConvertToMatAsync(image, param, command_queue);
-    }
-
-    // input
-    virtual Status ConvertFromMat(Mat &image, MatConvertParam param, void *command_queue = NULL) {
-        return CpuBlobConverterAcc::ConvertFromMat(image, param, command_queue);
-    }
-    virtual Status ConvertFromMatAsync(Mat &image, MatConvertParam param, void *command_queue = NULL) {
-        return CpuBlobConverterAcc::ConvertFromMatAsync(image, param, command_queue);
-    }
 };
 
 DECLARE_BLOB_CONVERTER_CREATER(Rknpu);

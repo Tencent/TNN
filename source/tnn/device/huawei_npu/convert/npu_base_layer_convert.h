@@ -22,8 +22,8 @@
 #include <vector>
 
 #include "graph/attr_value.h"
-#include "graph/op/nn_defs.h"
 #include "graph/compatible/all_ops.h"
+#include "graph/op/nn_defs.h"
 #include "tnn/core/abstract_device.h"
 #include "tnn/core/blob.h"
 #include "tnn/core/context.h"
@@ -72,6 +72,9 @@ public:
     //@brief set laye name
     void SetLayerName(std::string layer_name);
 
+    //@brief set npu rom version
+    void SetNpuVersion(std::string version);
+
     // add for huawei_npu
     //@brief get output operators
     std::vector<std::shared_ptr<OperatorInfo>> &GetOutputOps();
@@ -82,7 +85,8 @@ public:
 
 protected:
     LayerType type_;
-    std::string layer_name_;
+    std::string layer_name_ = "";
+    std::string npu_version_ = "";
     // add for huawei_npu
     std::vector<std::shared_ptr<OperatorInfo>> input_ops_;
     std::vector<std::shared_ptr<OperatorInfo>> output_ops_;
@@ -90,6 +94,7 @@ protected:
     LayerResource *resource_;
 
     std::vector<std::string> outputs_name_;
+    std::vector<std::vector<int>> output_shapes_;
     virtual Status Convert() = 0;
 };
 

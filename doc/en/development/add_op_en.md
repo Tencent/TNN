@@ -120,10 +120,63 @@ Add the LayerAcc implementation of the corresponding operator in the folder `<pa
 
 ### 3.5 Huawei NPU platform
 In folder`<path_to_TNN>/source/tnn/device/huawei_npu/convert`, add  the LayerConvert implementation of the corresponding operator.
-（1）Declare the LayerConvert implementation of the new operator，if no other input weights，Use`DECLARE_NPU_LAYER` to declare；  
-（2）`REGISTER_NPU_LAYER` register LayerConvert implementation of new Operator；  
-（3）Implement the following function：   
+(1）Declare the LayerConvert implementation of the new operator，if no other input weights，Use`DECLARE_NPU_LAYER` to declare；  
+(2）`REGISTER_NPU_LAYER` register LayerConvert implementation of new Operator；  
+(3）Implement the following function：   
 * `Convert()` -- use IR to convert the tnn operator；  
+
+### 3.6 X86 platform
+
+#### 3.6.1 openvino operator import
+Add the OpenVINOLayerBuilder implementation of the corresponding operator in the folder `<path_to_TNN>/source/tnn/network/openvino/layer_builder`
+(1) Declare the OpenVINOLayerBuilder implementation of the new operator with `DECLARE_OPENVINO_LAYER_BUILDER`
+(2) Register OpenVINOLayerBuilder implementation with `REGISTER_OPENVINO_LAYER_BUILDER`
+(3) Implement the following function:
+* `Build()` -- convert the tnn operator to ngraph node；  
+
+Register custom op for those operator with poor performance or unsupported in the floder `<path_to_TNN>/source/tnn/network/openvino/custom_layer`
+(1) use `DECLARE_CUSTOM_IMPLEMENTATION`to declare the custom op and `REGISTER_CUSTOM_IMPLEMENTATION` to register
+(2) construct ngrah node with custom op in `Build()`
+
+#### 3.6.2 kernel implementation
+Add the LayerAcc implementation of the corresponding operator in the folder `<path_to_TNN>/source/tnn/device/x86/acc`.
+(1) Declare the LayerAcc implementation of the new operator, if there are no special parameters, you can directly use the `DECLARE_X86_ACC ()` declaration;
+(2) `REGISTER_X86_ACC ()` register LayerAcc implementation for the new operator;
+(3) Implement the following interface:
+* `Init ()` -- process LayerParam and LayerResource;
+* `Reshape ()` -- implement logic when the input blob size changes;
+* `Forward ()` -- X86 implementation of the new operator
+
+
+
+### 3.7 CUDA platform
+
+#### 3.7.1 tensorrt operator import
+Add the TensorRTLayerBuilder implementation of the corresponding operator under the folder `<path_to_TNN>/source/tnn/network/tensorrt/layer_builder`.  
+(1) To declare the TensorRTLayerBuilder implementation of the new operator, you can directly use the `DECLARE_TENSORRT_LAYER_BUILDER` declaration;  
+(2) `REGISTER_TENSORRT_LAYER_BUILDER` registers the new operator implementation of TensorRTLayerBuilder;  
+(3) Implement the following interfaces:  
+* `AddToNetwork()` -- Network import corresponding tensorrt operator.
+  
+For operators that are not supported by tensorrt or have poor performance, plugin op can be registered to replace tensorrt's op.  
+(1) Use `DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER` and `REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER` to declare and register under `<path_to_TNN>/source/tnn/network/tensorrt/layer_build`  
+(2) Implement the following interfaces:  
+* `supportsFormatCombination` -- determine the supported data type and data arrangement;  
+* `getPluginType` -- custom plugin type;  
+* `getOutputDataType` -- set output data type;  
+* `AddToNetwork` -- implement plugin import network;  
+* `getOutputDimensions` -- return the output size calculation formula  
+* `getPluginName` -- custom plugin name  
+
+#### 3.7.2 kernel implementation
+Add the LayerAcc implementation of the corresponding operator under the folder `<path_to_TNN>/source/tnn/device/cuda/acc`.  
+(1) Declare the LayerAcc implementation of the new operator. If there are no special parameters, you can directly use the `DECLARE_CUDA_ACC()` statement;  
+(2) `REGISTER_CUDA_ACC()` Registers the LayerAcc implementation of the new operator;  
+(3) Implement the following interfaces:  
+* `Init()` -- Process LayerParam and LayerResource;  
+* `Reshape()` -- Realize the logic when the input blob size changes;  
+* `Forward()` -- CUDA implementation of the new operator;  
+
 
 ## 4. Add Unit Test <span id = "4"> </span>
 Add the unit test file of the corresponding layer in the folder `<path_to_TNN>/test/unit_test/layer_test`.

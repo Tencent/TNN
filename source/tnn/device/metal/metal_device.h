@@ -40,11 +40,20 @@ public:
     virtual AbstractLayerAcc* CreateLayerAcc(LayerType type);
 
     virtual Context* CreateContext(int device_id);
+    
+    // @brief get implemented layouts on the device by layer type
+    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type);
+
+    virtual NetworkType ConvertAutoNetworkType();
 
     static Status RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator);
+    
+    static Status RegisterLayerLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout);
 
 private:
-    static std::map<LayerType, LayerAccCreator*>& GetLayerCreatorMap();
+    static BlobMemorySizeInfo Calculate1DMemorySize(BlobDesc& desc);
+    static std::map<LayerType, std::shared_ptr<LayerAccCreator>>& GetLayerCreatorMap();
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>>& GetLayerLayoutMap();
 };
 
 //@brief CpuTypeLayerAccRegister register CpuTypeLayerAccCreator
@@ -53,6 +62,13 @@ class MetalTypeLayerAccRegister {
 public:
     explicit MetalTypeLayerAccRegister(LayerType type) {
         MetalDevice::RegisterLayerAccCreator(type, new T());
+    }
+};
+
+class MetalTypeLayerLayoutRegister {
+public:
+    explicit MetalTypeLayerLayoutRegister(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+        MetalDevice::RegisterLayerLayout(type, layout);
     }
 };
 

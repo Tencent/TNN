@@ -287,7 +287,7 @@ __kernel void NCHWBufferToImageFLOAT(GLOBAL_SIZE_2_DIMS __global const FLOAT *in
     WI_F(output, (int2)(image_width_idx, image_height_idx), output_values);
 }
 
-// convert arg as 4 alignment [w, h] = [count/4, 1]
+// convert data from buffer(nchw) to image(b h, ic/4 w ic4)
 __kernel void ArgBufferToImage(GLOBAL_SIZE_2_DIMS __global const float *input_ptr, __private const int count,
                                   __write_only image2d_t output) {
     int image_width_idx  = get_global_id(0);
@@ -316,6 +316,88 @@ __kernel void ArgBufferToImage(GLOBAL_SIZE_2_DIMS __global const float *input_pt
         values.x = *(input_ptr + offset);
     }
     write_imagef(output, (int2)(image_width_idx, image_height_idx), values);
+}
+
+// convert data from buffer(num_directions, 4 * hidden_size, weights_width)
+// to image(weights_width, num_directions * 4 * hidden_size/4 hidden_size4)
+__kernel void LstmFilterBufferToImage(GLOBAL_SIZE_2_DIMS __global const float *input_ptr,
+                                      __private const int num_directions,
+                                      __private const int hidden_size,
+                                      __private const int weights_width,
+                                      __private const int hidden_updiv_4_size,
+                                      __private const int hidden_mul_4_size,
+                                      __write_only image2d_t output) {
+    int image_width_idx   = get_global_id(0);
+    int weights_width_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(image_width_idx, weights_width_idx);
+
+    const int hid_4_idx     = image_width_idx % hidden_updiv_4_size;
+    const int dir_gate_idx  = image_width_idx / hidden_updiv_4_size;
+    const int dir_idx       = dir_gate_idx >> 2;
+    const int gate_idx      = dir_gate_idx % 4;
+    const int hid_idx       = hid_4_idx << 2;
+    const int remain        = hidden_size - hid_idx;
+
+    int buffer_offset       = (dir_idx * hidden_mul_4_size + gate_idx * hidden_size + hid_idx) *
+                              weights_width + weights_width_idx;
+
+    float4 out = 0;
+    if (remain >= 4) {
+        out.x = *(input_ptr + buffer_offset);
+        buffer_offset += weights_width;
+        out.y = *(input_ptr + buffer_offset);
+        buffer_offset += weights_width;
+        out.z = *(input_ptr + buffer_offset);
+        buffer_offset += weights_width;
+        out.w = *(input_ptr + buffer_offset);
+    } else if (remain == 3) {
+        out.x = *(input_ptr + buffer_offset);
+        buffer_offset += weights_width;
+        out.y = *(input_ptr + buffer_offset);
+        buffer_offset += weights_width;
+        out.z = *(input_ptr + buffer_offset);
+    } else if (remain == 2) {
+        out.x = *(input_ptr + buffer_offset);
+        buffer_offset += weights_width;
+        out.y = *(input_ptr + buffer_offset);
+    } else if (remain == 1) {
+        out.x = *(input_ptr + buffer_offset);
+    }
+    write_imagef(output, (int2)(image_width_idx, weights_width_idx), out);
+}
+
+// convert data from buffer(num_directions, 8 * hidden_size)
+// to image(num_directions, 8 * hidden_size/4 hidden_size4)
+__kernel void LstmBiasBufferToImage(GLOBAL_SIZE_2_DIMS __global const float *input_ptr,
+                                      __private const int num_directions,
+                                      __private const int hidden_size,
+                                      __private const int hidden_updiv_4_size,
+                                      __private const int hidden_mul_8_size,
+                                      __write_only image2d_t output) {
+    int image_width_idx  = get_global_id(0);
+    int dir_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(image_width_idx, dir_idx);
+
+    const int hid_4_idx     = image_width_idx % hidden_updiv_4_size;
+    const int gate_idx      = image_width_idx / hidden_updiv_4_size;
+    const int hid_idx       = hid_4_idx << 2;
+    const int remain        = hidden_size - hid_idx;
+
+    int buffer_offset       = dir_idx * hidden_mul_8_size + gate_idx * hidden_size + hid_idx;
+
+    float4 out = 0;
+    if (remain >= 4) {
+        out = vload4(0, input_ptr + buffer_offset);
+    } else if (remain == 3) {
+        out.xyz = vload3(0, input_ptr + buffer_offset);
+    } else if (remain == 2) {
+        out.xy = vload2(0, input_ptr + buffer_offset);
+    } else if (remain == 1) {
+        out.x = *(input_ptr + buffer_offset);
+    }
+    write_imagef(output, (int2)(image_width_idx, dir_idx), out);
 }
 
 __kernel void RGBABufferToImage(GLOBAL_SIZE_2_DIMS __global const uchar *input_ptr, __write_only image2d_t output, 

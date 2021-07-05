@@ -35,6 +35,9 @@ Status OpenCLNormalizeLayerAcc::Init(Context *context, LayerParam *param, LayerR
 
 Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Normalize Layer Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     auto norm_param = dynamic_cast<NormalizeLayerParam *>(param_);
     if (!norm_param) {
         LOGE("Error: layer param is null\n");
@@ -56,22 +59,22 @@ Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
         build_options.emplace("-DNORMALIZE_P2");
     }
     std::string kernel_name;
-    if (input_dims[1] % 4 == 0) {
+    if (DimsFunctionUtils::GetDim(input_dims, 1) % 4 == 0) {
         kernel_name = "NormalizeCommon0";
     } else {
         kernel_name = "NormalizeCommon";
     }
 
-    Status ret = CreateExecuteUnit(execute_units_[0], "normalize", kernel_name, build_options);
+    ret = CreateExecuteUnit(execute_units_[0], "normalize", kernel_name, build_options);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
     }
 
-    const int batch    = input_dims[0];
-    const int height   = input_dims[2];
-    const int width    = input_dims[3];
-    const int channels = input_dims[1];
+    const int batch    = DimsFunctionUtils::GetDim(input_dims, 0);
+    const int height   = DimsFunctionUtils::GetDim(input_dims, 2);
+    const int width    = DimsFunctionUtils::GetDim(input_dims, 3);
+    const int channels = DimsFunctionUtils::GetDim(input_dims, 1);
 
     const int channel_blocks = UP_DIV(channels, 4);
     const int channel_remain = channels % 4;
@@ -95,5 +98,6 @@ Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 }
 
 REGISTER_OPENCL_ACC(Normalize, LAYER_NORMALIZE)
+REGISTER_OPENCL_LAYOUT(LAYER_NORMALIZE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

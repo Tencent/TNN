@@ -29,7 +29,16 @@ public:
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 private:
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) override;
+    virtual std::vector<DataType> SupportDataType(int dims_size, BlobType blob_type) override;
     std::shared_ptr<cl::Buffer> inter_buffer_ = nullptr;
+    int input_dims_size_ = 0;
+    int output_dims_size_ = 0;
+    bool is_nchw_output_ = false;
+    std::string im_to_bf_func_name_;
+    std::string bf_to_im_func_name_;
+    std::string im_to_bf_program_name_;
+    std::string bf_to_im_program_name_;
 };
 
 }  // namespace TNN_NS

@@ -37,7 +37,7 @@ struct OpenCLConvParam {
     int activation_type;
 };
 
-enum ConvType { CT_CONV_COMMON = 0, CT_CONV_1x1, CT_CONV_DEPTHWISE };
+enum ConvType { CT_CONV_COMMON = 0, CT_CONV_1x1, CT_CONV_DEPTHWISE, CT_CONV_WINOGRAD };
 
 class OpenCLConvLayerAccImpl : public OpenCLLayerAcc {
 public:
@@ -55,8 +55,12 @@ protected:
     Status AllocateWeightsBias(LayerResource *resource);
     std::vector<uint32_t> Conv2dCommonLocalWS2D(std::vector<uint32_t> &gws, const uint32_t max_workgroup_size,
                                                 const uint32_t subgroup_size = 0);
-    std::vector<uint32_t> Conv2dCommonLocalWS3D(std::vector<uint32_t> &gws, const uint32_t kernel_size,
+    std::vector<uint32_t> Conv2dCommonLocalWS3DGeneral(std::vector<uint32_t> &gws, const uint32_t kernel_size,
                                                 const uint32_t max_workgroup_size);
+
+    std::vector<uint32_t> Conv2dCommonLocalWS3DKernel3x3(std::vector<uint32_t> &gws, const uint32_t kernel_size,
+                                                const uint32_t max_workgroup_size);
+    std::string GenerateTuneKernelKey(OpenCLExecuteUnit &unit);
 
 private:
     Status ConvertWeights(float *weights_data_ptr);
@@ -66,6 +70,8 @@ protected:
     shared_ptr<OpenCLMemory> ocl_weights_;
     shared_ptr<OpenCLMemory> ocl_bias_;
     ConvType conv_type_;
+    std::set<std::string> build_options_;
+    bool is_channel_blocking_ = false;
 };
 
 }  // namespace TNN_NS

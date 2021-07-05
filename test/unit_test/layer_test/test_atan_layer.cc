@@ -22,10 +22,12 @@ public:
 };
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, AtanLayerTest,
-                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
+                         ::testing::Combine(UNARY_BATCH_CHANNEL_SIZE,
+                                            testing::Values(2, 3, 4, 5),
+                                            testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(AtanLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
+    RunUnaryTest("Atan");
 }
 
 }  // namespace TNN_NS

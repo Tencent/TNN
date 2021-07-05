@@ -55,7 +55,7 @@ docker rmi turandotkay/tnn-convert:latest
 #### Build Docker image (If the image is pulled through previous step, skip this part)
 
 ``` shell script
-cd <path-to-tnn>/tools/
+cd <path-to-tnn>/
 docker build -t tnn-convert:latest.
 ```
 
@@ -103,50 +103,53 @@ docker run  -it tnn-convert:latest  python3 ./converter.py tf2tnn -h
 ```
 The output shows below：
 ``` text
-usage: convert tf2tnn [-h] -tp TF_PATH -in input_name -on output_name
-                      [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half]
+usage: convert tf2tnn [-h] -tp TF_PATH -in input_info [input_info ...] -on output_name [output_name ...] [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half] [-align] [-input_file INPUT_FILE_PATH]
+                      [-ref_file REFER_FILE_PATH]
 
 optional arguments:
-  -h, --help       show this help message and exit
-  -tp TF_PATH      the path for tensorflow graphdef file
-  -in input_name   the tensorflow model's input names
-  -on output_name  the tensorflow model's output name
-  -o OUTPUT_DIR    the output tnn directory
-  -v v1.0          the version for model
-  -optimize        optimize the model
-  -half            optimize the model
-  -align           align the onnx model with tnn model
-  -fold_const      enable tf constant_folding transformation before conversion
-  -input_file      the input file path which contains the input data for the inference model
-  -ref_file        the reference file path which contains the reference data to compare the results
+  -h, --help            show this help message and exit
+  -tp TF_PATH           the path for tensorflow graphdef file
+  -in input_info [input_info ...]
+                        specify the input name and shape of the model. e.g., -in input1_name:1,128,128,3 input2_name:1,256,256,3
+  -on output_name [output_name ...]
+                        the tensorflow model's output name. e.g. -on output_name1 output_name2
+  -o OUTPUT_DIR         the output tnn directory
+  -v v1.0               the version for model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -half                 save the model using half
+  -align                align the onnx model with tnn model
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference data to compare the results.
 ```
 Here are the explanations for each parameter:
 
 - tp parameter (required)
     Use the "-tp" parameter to specify the path of the model to be converted. Currently only supports the conversion of a single TF model, does not support the conversion of multiple TF models together.
 - in parameter (required)
-    Specify the name of the model input through the "-in" parameter. If the model has multiple inputs, use ";" to split. Some models specify placeholders with unknown ranks and dims which can not be mapped to onnx. In those cases one can add the shape after the input name inside [], for example -in name[1,28,28,3]
+    Specify the name of the model input through the "-in" parameter, for example "-in input1_name:1,128,128,3 input2_name:1,256,256,3"
 - on parameter (required)
-    Specify the name of the model output through the "-on" parameter. If the model has multiple outputs, use ";" to split
+    Specify the name of the model output through the "-on" parameter, for example "-on output_name1 output_name2"
 - output_dir parameter:
     You can specify the output path through the "-o <path>" parameter, but we generally do not apply this parameter in docker. By default, the generated TNN model will be placed in the same path as the TF model.
 - optimize parameter (optional)
-    You can optimize the model with the "-optimize" parameter. **We strongly recommend that you enable this option. Only when the model conversion fails while you enable this option, you could remove the "-opti mize" parameter and try again**.
+    You can optimize the model with the "-optimize" parameter. **If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result**.
 - v parameter (optional)
     You can use -v to specify the version number of the model to facilitate later tracking and differentiation of the model.
 - half parameter (optional)
-   You can optimize the model with the "-half" parameter. The model data will be stored in FP16 to reduce the size of the model by setting this parameter. By default, the model data is stored in FP32.
+   You can save the model with the "-half" parameter. The model data will be stored in FP16 to reduce the size of the model by setting this parameter. By default, the model data is stored in FP32.
 - align parameter (optional)
-    You can optimize the model with the "-align" parameter. Compare TNN model and Original model to determine whether TNN model is correct.
+    You can align the model with the "-align" parameter. Compare TNN model and original model to determine whether TNN model is correct. If you remove "-align", model align will not run; if you use "-align" or "-align output", this tool will compare the last output of TNN model and original model; if the model is not align, you can use '-align all' to address the first unaligned layer.
 - fold_const parameter (optional)
     You can optimize the model with the "-fold_const" parameter. Enable tf constant_folding transformation before conversion.
 - input_file parameter (optional)
-    Specify the input file's name which will be used by model_check through the "-input_file" parameter.
+    Specify the input file's name which will be used by model_check through the "-input_file" parameter. This is [input format](#Input).
 - ref_file parameter (optional)
-    Specify the reference file's name which will be used by model_check through the "-ref_file" parameter. 
+    Specify the reference file's name which will be used by model_check through the "-ref_file" parameter. This is [output format](#Output). 
 
 
-**Current convert2tnn input model only supports graphdef format，does not support checkpoint or saved_model format. Refer to [tf2tnn](./tf2tnn_en.md) to transfer checkpoint or saved_model models.
+**Current convert2tnn input model only supports graphdef format，does not support checkpoint or saved_model format. Refer to [tf2tnn](./tf2tnn_en.md) to transfer checkpoint or saved_model models.**
 
 Here is an example of converting a TF model in a TNN model
 
@@ -195,9 +198,6 @@ brew install protobuf
 export http_proxy=http://{addr}:{port}
 export https_proxy=http://{addr}:{port}
 ## Compile
-cd <path-to-tnn>/tools/onnx2tnn/onnx-converter
-./build.sh 
-```
 
 - install python (version >=3.6)  
 
@@ -214,9 +214,10 @@ yum install  python3 python3-devel
 onnx=1.6.0  
 onnxruntime>=1.1.0   
 numpy>=1.17.0  
-onnx-simplifier>=0.2.4  
+onnx-simplifier>=0.2.4 
+requests
 ```shell script
-pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier
+pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier requests
 ```
 
 - cmake （version >= 3.0）
@@ -317,21 +318,32 @@ python3 converter.py onnx2tnn -h
 ```
 usage information：
 ```text
-usage: convert onnx2tnn [-h] [-optimize] [-half] [-v v1.0.0] [-o OUTPUT_DIR]
+usage: convert onnx2tnn [-h] [-in input_info [input_info ...]] [-optimize]
+                        [-half] [-v v1.0.0] [-o OUTPUT_DIR] [-align]
+                        [-input_file INPUT_FILE_PATH]
+                        [-ref_file REFER_FILE_PATH] [-debug]
                         onnx_path
 
 positional arguments:
-  onnx_path      the path for onnx file
+  onnx_path             the path for onnx file
 
 optional arguments:
   -h, --help            show this help message and exit
-  -optimize             optimize the model
+  -in input_info [input_info ...]
+                        specify the input name and shape of the model. e.g.,
+                        -in input1_name:1,3,128,128 input2_name:1,3,256,256
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
   -half                 save model using half
   -v v1.0.0             the version for model
   -o OUTPUT_DIR         the output tnn directory
   -align                align the onnx model with tnn model
-  -input_file in.txt    the input file path which contains the input data for the inference model
-  -ref_file   ref.txt   the reference file path which contains the reference data to compare the results
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for
+                        the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference
+                        data to compare the results.
+  -debug                Turn on the switch to debug the model.
 ```
 Example:
 ```shell script
@@ -379,7 +391,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model, default v1.0
-  -optimize             optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
   -half                 save model using half
   -align                align the onnx model with tnn model
   -input_file in.txt    the input file path which contains the input data for the inference model
@@ -397,23 +409,26 @@ The current convert2tnn model only supports the graphdef model, but does not sup
 python3 converter.py tf2tnn -h
 ```
 usage information：
-```
-usage: convert tf2tnn [-h] -tp TF_PATH -in input_name -on output_name
-                      [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half]
+```text
+usage: convert tf2tnn [-h] -tp TF_PATH -in input_info [input_info ...] -on output_name [output_name ...] [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half] [-align] [-input_file INPUT_FILE_PATH]
+                      [-ref_file REFER_FILE_PATH]
 
 optional arguments:
   -h, --help            show this help message and exit
   -tp TF_PATH           the path for tensorflow graphdef file
-  -in input_name        the tensorflow model's input names
-  -on output_name       the tensorflow model's output name
+  -in input_info [input_info ...]
+                        specify the input name and shape of the model. e.g., -in input1_name:1,128,128,3 input2_name:1,256,256,3
+  -on output_name [output_name ...]
+                        the tensorflow model's output name. e.g. -on output_name1 output_name2
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
-  -optimize             optimize the model
-  -half                 optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -half                 save the model using half
   -align                align the onnx model with tnn model
-  -fold_const           enable tf constant_folding transformation before conversion
-  -input_file in.txt    the input file path which contains the input data for the inference model
-  -ref_file   out.txt   the reference file path which contains the reference data to compare the results
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference data to compare the results.
 ```
 Example：
 ```shell script
@@ -442,6 +457,150 @@ optional arguments:
 Example：
 ```shell script
 python3 converter.py tflite2tnn  ~/tf-model/test.tflite  -o ~/tf-model/
+```
+
+## Input and Output File Example
+### Input
+```text
+
+The number of input 
+input_name input_shape_size input_info input_data_type
+input_data 
+input_name input_shape_size input_info input_data_type
+input_data
+......
+
+Example
+ 2 
+ in0 4 1 3 1 1 3
+ 2 
+ 4 
+ 3 
+ in1 4 1 2 2 1 0
+ 0.1 
+ 0.2 
+ 0.3 
+ 0.4 
+
+
+Tips：
+If input data type is float, you can use 0 to specify input_data_type.
+If input data type is int,   you can use 3 to specify input_data_type.
+
+```
+
+### Output
+```text
+
+
+The number of output 
+output_name output_shape_size output_info output_data_type
+output_data 
+output_name output_shape_size output_info output_data_type
+output_data
+......
+
+Example
+ 2 
+ out0 2 1 3 0
+ 0.1 
+ 0.2 
+ 0.3 
+ out1 4 1 2 2 1 0
+ 0.1 
+ 0.2 
+ 0.3 
+ 0.4 
+
+
+Tips：
+If output data type is float, you can use 0 to specify output_data_type.
+If output data type is int,   you can use 3 to specify output_data_type.
+
+```
+
+### The Code Used to Generate Input or Output File
+```python
+def write_pytorch_data(output_path, data, data_name_list):
+    """
+    Save the data of Pytorch needed to align TNN model.
+
+    The input and output names of pytorch model and onnx model may not match,
+    you can use Netron to visualize the onnx model to determine the data_name_list.
+
+    The following example converts ResNet50 to onnx model and saves input and output:
+    >>> from torchvision.models.resnet import resnet50
+    >>> model = resnet50(pretrained=False).eval()
+    >>> input_data = torch.randn(1, 3, 224, 224)
+    >>> input_names, output_names = ["input"], ["output"]
+    >>> torch.onnx.export(model, input_data, "ResNet50.onnx", input_names=input_names, output_names=output_names)
+    >>> with torch.no_grad():
+    ...     output_data = model(input_data)
+    ...
+    >>> write_pytorch_data("input.txt", input_data, input_names)
+    >>> write_pytorch_data("output.txt", output_data, output_names)
+
+    :param output_path: Path to save data.
+    :param data: The input or output data of Pytorch model.
+    :param data_name_list: The name of input or output data. You can get it after visualization through Netron.
+    :return:
+    """
+
+    if type(data) is not list and type(data) is not tuple:
+        data = [data, ]
+    assert len(data) == len(data_name_list), "The number of data and data_name_list are not equal!"
+    with open(output_path, "w") as f:
+        f.write("{}\n" .format(len(data)))
+        for name, data in zip(data_name_list, data):
+            data = data.numpy()
+            shape = data.shape
+            description = "{} {} ".format(name, len(shape))
+            for dim in shape:
+                description += "{} ".format(dim)
+            data_type = 0 if data.dtype == np.float32 else 3
+            fmt = "%0.6f" if data_type == 0 else "%i"
+            description += "{}".format(data_type)
+            f.write(description + "\n")
+            np.savetxt(f, data.reshape(-1), fmt=fmt)
+
+
+def write_tensorflow_data(output_path, data, data_name_list, data_usage=1):
+    """
+    Save the data of TensoFlow needed to align TNN model.
+
+    :param output_path: Path to save data. "You should use input.txt or output.txt to name input or output data"
+    :param data: The input or output data of TensorFlow model.
+    :param data_name_list: The name of input or output data. You can get it after visualization through Netron.
+    :param data_usage: Specify the data usage. If the data is input data, data_usage=0;
+                       if the data if outptu data, data_usage=1.
+    :return:
+    """
+    def convert_nhwc(data):
+        assert len(data.shape) <= 4
+        if len(data.shape) == 2:
+            return data
+        orders = (0, 2, 1) if len(data.shape) == 3 else (0, 2, 3, 1)
+        return data.transpose(orders)
+
+    if type(data) is not list and type(data) is not tuple:
+        data = [data, ]
+    assert len(data) == len(data_name_list), "The number of data and data_name_list are not equal!"
+    with open(output_path, "w") as f:
+        f.write("{}\n" .format(len(data)))
+        for name, data in zip(data_name_list, data):
+            data = convert_nhwc(data) if data_usage == 0 else data
+            shape = data.shape
+            description = "{} {} ".format(name, len(shape))
+            for dim in shape:
+                description += "{} ".format(dim)
+            data_type = 0 if data.dtype == np.float32 else 3
+            fmt = "%0.6f" if data_type == 0 else "%i"
+            description += "{}".format(data_type)
+            f.write(description + "\n")
+            np.savetxt(f, data.reshape(-1), fmt=fmt)
+
+
+
 ```
 
 ## Model Conversion Details

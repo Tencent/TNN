@@ -87,6 +87,13 @@ float4 GetPixelClamped(texture2d<half, access::read> in [[texture(0)]], uint x, 
     CLAMP(y, 0, height - 1)
     return float4(in.read(uint2(x, y)));
 }
+
+ftype GetValueClamped(device ftype* data [[buffer(0)]], uint x, uint y, uint width, uint height) {
+    CLAMP(x, 0, width - 1)
+    CLAMP(y, 0, height - 1)
+    return data[y * width +x];
+}
+
 #define S_MIN -32768
 #define S_MAX 32767
 #define SATURATE_CAST_SHORT(x) (half)(min(max(S_MIN, (int)((x)+((x)>=0.f? 0.5f:-0.5f))), S_MAX))
@@ -149,54 +156,121 @@ kernel void mat_converter_texture_n8uc4_resize_bilinear(
     dst_bgra.write(half4(value), uint2(gid));
 }
 
-kernel void mat_converter_texture_n8uc4_resize_bilinear_gather(
-                                                               texture2d<half, access::sample> src_bgra      [[texture(0)]],
-                                                               texture2d<half, access::write> dst_bgra       [[texture(1)]],
-                                                               constant MetalResizeParams& parameters        [[buffer(0)]],
-                                                               ushort2 gid                                   [[thread_position_in_grid]])
+float4 GetCubicWeights(float x) {
+    const float A = -0.75f;
+    float4 w;
+    w[0] = ((A*(x + 1) - 5*A)*(x + 1) + 8*A)*(x + 1) - 4*A;
+    w[1] = ((A + 2)*x - (A + 3))*x*x + 1;
+    w[2] = ((A + 2)*(1 - x) - (A + 3))*(1 - x)*(1 - x) + 1;
+    w[3] = 1.f - w[0] - w[1] - w[2];
+    return w;
+}
+
+kernel void mat_converter_texture_n8uc4_resize_cubic(
+                                                        texture2d<half, access::read> src_bgra        [[texture(0)]],
+                                                        texture2d<half, access::write> dst_bgra       [[texture(1)]],
+                                                        constant MetalResizeParams& parameters        [[buffer(0)]],
+                                                        ushort2 gid                                   [[thread_position_in_grid]])
 {
-    if(any(gid >= ushort2(parameters.resized_width, parameters.resized_height)))
+    if (any(gid >= ushort2(parameters.resized_width, parameters.resized_height)))
         return;
     
-    //constexpr sampler s(coord::pixel, address::clamp_to_edge, filter::nearest);
-    constexpr sampler s(coord::pixel, address::clamp_to_edge, filter::linear);
-    //scale_w=1.5, scale_h=1.2
-    float x = float(gid.x + 0.5) / parameters.scale_w - 0.5;
-    float y = float(gid.y + 0.5) / parameters.scale_h - 0.5;
+    float scale_x_inv = float(parameters.width) / float(parameters.resized_width);
+    float scale_y_inv = float(parameters.height) / float(parameters.resized_height);
     
-    // the inner order of the gather is: (top-right, bottom-right, bottom-left, top-left)
-    half4 val_x = src_bgra.gather(s, float2(x, y), int2(0), component::x);
-    half4 val_y = src_bgra.gather(s, float2(x, y), int2(0), component::y);
-    half4 val_z = src_bgra.gather(s, float2(x, y), int2(0), component::z);
-    half4 val_w = src_bgra.gather(s, float2(x, y), int2(0), component::w);
+    float x = float(gid.x + 0.5) * scale_x_inv - 0.5;
+    float y = float(gid.y + 0.5) * scale_y_inv - 0.5;
     
-    int left   = floor(x);
-    //int right  = min(left + 1, parameters.width - 1);
-    int top    = floor(y);
-    //int bottom = min(top + 1, parameters.height - 1);
+    int xint = floor(x);
+    float xfrac = x - xint;
+    float4 wx = GetCubicWeights(xfrac);
     
-    float scale_w2 = x - left;
-    float scale_w1 = 1 - scale_w2;
-    float scale_h2 = y - top;
-    float scale_h1 = 1 - scale_h2;
+    int yint = floor(y);
+    float yfrac = y - yint;
+    float4 wy = GetCubicWeights(yfrac);
     
-    half4 coef;
-    coef[0] = scale_w2*scale_h1;
-    coef[1] = scale_w2*scale_h2;
-    coef[2] = scale_w1*scale_h2;
-    coef[3] = scale_w1*scale_h1;
+    float4 p00 = float4(GetPixelClamped(src_bgra, xint + 0, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 p01 = float4(GetPixelClamped(src_bgra, xint + 1, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 p02 = float4(GetPixelClamped(src_bgra, xint + 2, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 p03 = float4(GetPixelClamped(src_bgra, xint + 3, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 val0 = p00 * wx.x + p01 * wx.y + p02 * wx.z + p03 * wx.w;
     
-    half4 rst;
-    half4 xvec = val_x * coef;
-    rst[0] = xvec[0] + xvec[1] + xvec[2] + xvec[3];
-    half4 yvec = val_y * coef;
-    rst[1] = yvec[0] + yvec[1] + yvec[2] + yvec[3];
-    half4 zvec = val_z * coef;
-    rst[2] = zvec[0] + zvec[1] + zvec[2] + zvec[3];
-    half4 wvec = val_w * coef;
-    rst[3] = wvec[0] + wvec[1] + wvec[2] + wvec[3];
+    float4 p10 = float4(GetPixelClamped(src_bgra, xint + 0, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 p11 = float4(GetPixelClamped(src_bgra, xint + 1, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 p12 = float4(GetPixelClamped(src_bgra, xint + 2, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 p13 = float4(GetPixelClamped(src_bgra, xint + 3, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 val1 = p10 * wx.x + p11 * wx.y + p12 * wx.z + p13 * wx.w;
     
-    dst_bgra.write(rst, uint2(gid));
+    float4 p20 = float4(GetPixelClamped(src_bgra, xint + 0, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 p21 = float4(GetPixelClamped(src_bgra, xint + 1, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 p22 = float4(GetPixelClamped(src_bgra, xint + 2, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 p23 = float4(GetPixelClamped(src_bgra, xint + 3, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 val2 = p20 * wx.x + p21 * wx.y + p22 * wx.z + p23 * wx.w;
+    
+    float4 p30 = float4(GetPixelClamped(src_bgra, xint + 0, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 p31 = float4(GetPixelClamped(src_bgra, xint + 1, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 p32 = float4(GetPixelClamped(src_bgra, xint + 2, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 p33 = float4(GetPixelClamped(src_bgra, xint + 3, yint - 1, parameters.width, parameters.height))*255.0;
+    float4 val3 = p30 * wx.x + p31 * wx.y + p32 * wx.z + p33 * wx.w;
+    
+    float4 rst = val0 * wy.x + val1 * wy.y + val2 * wy.z + val3 * wy.w;
+    
+    rst = rst / 255.0;
+    
+    dst_bgra.write(half4(rst), uint2(gid));
+}
+
+kernel void mat_converter_nchwf_n8uc4_resize_cubic(
+                                                   device ftype* src        [[buffer(0)]],
+                                                   device ftype* dst        [[buffer(1)]],
+                                                   constant MetalResizeParams& params        [[buffer(2)]],
+                                                   ushort3 gid                                  [[thread_position_in_grid]])
+{
+    if (any(gid >= ushort3(params.resized_width, params.resized_height, params.batch*params.slice)))
+        return;
+    
+    float scale_x_inv = float(params.width) / float(params.resized_width);
+    float scale_y_inv = float(params.height) / float(params.resized_height);
+    device ftype* src_c = src + gid.z*params.width*params.height;
+    
+    float x = float(gid.x + 0.5) * scale_x_inv - 0.5;
+    float y = float(gid.y + 0.5) * scale_y_inv - 0.5;
+    
+    int xint = floor(x);
+    float xfrac = x - xint;
+    float4 wx = GetCubicWeights(xfrac);
+    
+    int yint = floor(y);
+    float yfrac = y - yint;
+    float4 wy = GetCubicWeights(yfrac);
+    
+    float p00 = float(GetValueClamped(src_c, xint + 0, yint - 1, params.width, params.height));
+    float p01 = float(GetValueClamped(src_c, xint + 1, yint - 1, params.width, params.height));
+    float p02 = float(GetValueClamped(src_c, xint + 2, yint - 1, params.width, params.height));
+    float p03 = float(GetValueClamped(src_c, xint + 3, yint - 1, params.width, params.height));
+    float val0 = p00 * wx.x + p01 * wx.y + p02 * wx.z + p03 * wx.w;
+    
+    float p10 = float(GetValueClamped(src_c, xint + 0, yint - 1, params.width, params.height));
+    float p11 = float(GetValueClamped(src_c, xint + 1, yint - 1, params.width, params.height));
+    float p12 = float(GetValueClamped(src_c, xint + 2, yint - 1, params.width, params.height));
+    float p13 = float(GetValueClamped(src_c, xint + 3, yint - 1, params.width, params.height));
+    float val1 = p10 * wx.x + p11 * wx.y + p12 * wx.z + p13 * wx.w;
+    
+    float p20 = float(GetValueClamped(src_c, xint + 0, yint - 1, params.width, params.height));
+    float p21 = float(GetValueClamped(src_c, xint + 1, yint - 1, params.width, params.height));
+    float p22 = float(GetValueClamped(src_c, xint + 2, yint - 1, params.width, params.height));
+    float p23 = float(GetValueClamped(src_c, xint + 3, yint - 1, params.width, params.height));
+    float val2 = p20 * wx.x + p21 * wx.y + p22 * wx.z + p23 * wx.w;
+    
+    float p30 = float(GetValueClamped(src_c, xint + 0, yint - 1, params.width, params.height));
+    float p31 = float(GetValueClamped(src_c, xint + 1, yint - 1, params.width, params.height));
+    float p32 = float(GetValueClamped(src_c, xint + 2, yint - 1, params.width, params.height));
+    float p33 = float(GetValueClamped(src_c, xint + 3, yint - 1, params.width, params.height));
+    float val3 = p30 * wx.x + p31 * wx.y + p32 * wx.z + p33 * wx.w;
+    
+    float rst = val0 * wy.x + val1 * wy.y + val2 * wy.z + val3 * wy.w;
+    
+    dst[(gid.z*params.height+gid.y)*params.width+gid.x] = ftype(rst);
 }
 
 kernel void bgr2gray_n8uc4_nchw_float(
@@ -307,14 +381,10 @@ kernel void mat_converter_texture_n8uc4_warpaffine_linear_const(
     if (any(gid >= ushort2(parameters.resized_width, parameters.resized_height)))
         return;
     
-    // fill dst with border value first
-    half4 border_value = half4(parameters.border_val / 255.0);
-    dst_bgra.write(border_value, uint2(gid));
-    
     float x = gid.x * parameters.transform_inv[0][0] + gid.y * parameters.transform_inv[0][1] + parameters.transform_inv[0][2];
     float y = gid.x * parameters.transform_inv[1][0] + gid.y * parameters.transform_inv[1][1] + parameters.transform_inv[1][2];
     
-    float4 value = 0;
+    float4 value = float4(parameters.border_val);
     
     int xint = floor(x);
     float xfrac = x - xint;
@@ -354,7 +424,6 @@ kernel void mat_converter_texture_n8uc4_warpaffine_linear_const(
         float4 col1 = (p01 * x_ef0_ + p11 * x_ef1_) / 16;
         
         value = ((col0 * y_ef0_)/(1024.0*64.0) + (col1 * y_ef1_)/(1024.0*64.0) + 2.0) / 4.0;
-        value = value / 255.0;
     } else if( x>=-1 && x<=parameters.width-1 && y>=-1 && y<=parameters.height-1 ){
         // partial sampling
         //(x, y)
@@ -366,10 +435,10 @@ kernel void mat_converter_texture_n8uc4_warpaffine_linear_const(
         //(x+1, y+1)
         bool mask3 = x <= (parameters.width - 2) && y <= (parameters.height - 2);
         
-        float4 p00 = mask0 ? float4(GetPixelClamped(src_bgra, xint + 0, yint + 0, parameters.width, parameters.height))*255.0 : 0;
-        float4 p10 = mask1 ? float4(GetPixelClamped(src_bgra, xint + 1, yint + 0, parameters.width, parameters.height))*255.0 : 0;
-        float4 p01 = mask2 ? float4(GetPixelClamped(src_bgra, xint + 0, yint + 1, parameters.width, parameters.height))*255.0 : 0;
-        float4 p11 = mask3 ? float4(GetPixelClamped(src_bgra, xint + 1, yint + 1, parameters.width, parameters.height))*255.0 : 0;
+        float4 p00 = mask0 ? float4(GetPixelClamped(src_bgra, xint + 0, yint + 0, parameters.width, parameters.height))*255.0 : float4(parameters.border_val);
+        float4 p10 = mask1 ? float4(GetPixelClamped(src_bgra, xint + 1, yint + 0, parameters.width, parameters.height))*255.0 : float4(parameters.border_val);
+        float4 p01 = mask2 ? float4(GetPixelClamped(src_bgra, xint + 0, yint + 1, parameters.width, parameters.height))*255.0 : float4(parameters.border_val);
+        float4 p11 = mask3 ? float4(GetPixelClamped(src_bgra, xint + 1, yint + 1, parameters.width, parameters.height))*255.0 : float4(parameters.border_val);
         
         float x_ef0_ = (1 - xfrac) * 2048;
         float x_ef1_ = xfrac * 2048;
@@ -381,8 +450,112 @@ kernel void mat_converter_texture_n8uc4_warpaffine_linear_const(
         float4 col1 = (p01 * x_ef0_ + p11 * x_ef1_) / 16;
         
         value = ((col0 * y_ef0_)/(1024.0*64.0) + (col1 * y_ef1_)/(1024.0*64.0) + 2.0) / 4.0;
-        value = value / 255.0;
     }
     
+    value = value / 255.0;
     dst_bgra.write(half4(value), uint2(gid));
+}
+
+kernel void mat_converter_texture_n8uc4_warpaffine_nearest_const(
+                                                                texture2d<half, access::read> src_bgra        [[texture(0)]],
+                                                                texture2d<half, access::write> dst_bgra       [[texture(1)]],
+                                                                constant MetalWarpAffineParams& parameters    [[buffer(0)]],
+                                                                ushort2 gid                                   [[thread_position_in_grid]])
+{
+    if (any(gid >= ushort2(parameters.resized_width, parameters.resized_height)))
+        return;
+
+    float x = gid.x * parameters.transform_inv[0][0] + gid.y * parameters.transform_inv[0][1] + parameters.transform_inv[0][2];
+    float y = gid.x * parameters.transform_inv[1][0] + gid.y * parameters.transform_inv[1][1] + parameters.transform_inv[1][2];
+
+    float4 value = float4(parameters.border_val);
+
+    int xint = floor(x);
+    float xfrac = x - xint;
+
+    int yint = floor(y);
+    float yfrac = y - yint;
+
+    bool x_next = xfrac >= 0.5;
+    bool y_next = yfrac >= 0.5;
+    if( x >= 0 && x < parameters.width-1 && y>=0 && y< parameters.height-1 ) {
+        // normal bilinear sampling
+        float4 p00 = float4(GetPixelClamped(src_bgra, xint + 0, yint + 0, parameters.width, parameters.height))*255.0;
+        float4 p10 = float4(GetPixelClamped(src_bgra, xint + 1, yint + 0, parameters.width, parameters.height))*255.0;
+        float4 p01 = float4(GetPixelClamped(src_bgra, xint + 0, yint + 1, parameters.width, parameters.height))*255.0;
+        float4 p11 = float4(GetPixelClamped(src_bgra, xint + 1, yint + 1, parameters.width, parameters.height))*255.0;
+
+        value = y_next? (x_next? p11 : p01) : (x_next? p10 : p00);
+    } else if( x>=-1 && x<=parameters.width-1 && y>=-1 && y<=parameters.height-1 ){
+        // partial sampling
+        //(x, y)
+        bool mask0 = x >= 0 && y >= 0;
+        //(x+1, y)
+        bool mask1 = x <= (parameters.width - 2) && y >= 0;
+        //(x, y+1)
+        bool mask2 = x >= 0 && y <= (parameters.height - 2);
+        //(x+1, y+1)
+        bool mask3 = x <= (parameters.width - 2) && y <= (parameters.height - 2);
+
+        float4 p00 = mask0 ? float4(GetPixelClamped(src_bgra, xint + 0, yint + 0, parameters.width, parameters.height))*255.0 : float4(parameters.border_val);
+        float4 p10 = mask1 ? float4(GetPixelClamped(src_bgra, xint + 1, yint + 0, parameters.width, parameters.height))*255.0 : float4(parameters.border_val);
+        float4 p01 = mask2 ? float4(GetPixelClamped(src_bgra, xint + 0, yint + 1, parameters.width, parameters.height))*255.0 : float4(parameters.border_val);
+        float4 p11 = mask3 ? float4(GetPixelClamped(src_bgra, xint + 1, yint + 1, parameters.width, parameters.height))*255.0 : float4(parameters.border_val);
+
+        value = y_next? (x_next? p11 : p01) : (x_next? p10 : p00);
+    }
+
+    value = value / 255.0;
+    dst_bgra.write(half4(value), uint2(gid));
+}
+
+kernel void copymakeborder_n8uc4_constant(
+                              texture2d<half, access::read> src_bgra[[texture(0)]],
+                              texture2d<half, access::write>dst_bgra[[texture(1)]],
+                              constant MetalCopyMakeBorderParam& parameters [[buffer(0)]],
+                              ushort2 gid[[thread_position_in_grid]])
+{
+    uint2 dst_size;
+    int dst_height = parameters.height + parameters.top + parameters.bottom;
+    int dst_width  = parameters.width + parameters.left + parameters.right;
+    dst_size.x = dst_width;
+    dst_size.y = dst_height;
+    if(any(gid >= (ushort2)dst_size))
+        return;
+
+    int2 in_loc = int2(gid.x-parameters.left, gid.y-parameters.top);
+    half4 value = half4(parameters.border_val / 255.0);
+    if(in_loc.x >= 0 && in_loc.x < parameters.width && in_loc.y >= 0 && in_loc.y < parameters.height)
+        value = src_bgra.read(uint2(in_loc));
+
+    dst_bgra.write(value, uint2(gid));
+}
+
+kernel void copymakeborder_nchw_constant(
+                                device float* in                       [[buffer(0)]],
+                                device float* out                      [[buffer(1)]],
+                                constant MetalCopyMakeBorderParam& parameters   [[buffer(2)]],
+                                ushort3 gid                            [[thread_position_in_grid]])
+{
+    uint3 dst_size;
+    int dst_height = parameters.height + parameters.top + parameters.bottom;
+    int dst_width  = parameters.width + parameters.left + parameters.right;
+    int dst_slice  = parameters.batch * parameters.channel;
+    dst_size.x = dst_width;
+    dst_size.y = dst_height;
+    dst_size.z = dst_slice;
+    if(any(gid >= ushort3(dst_size)))
+        return;
+
+    auto dst_offset = gid.z * dst_height * dst_width + gid.y * dst_width + gid.x;
+
+    auto src_h = gid.y - parameters.top;
+    auto src_w = gid.x - parameters.left;
+    float value = parameters.border_val;
+    if (src_h >= 0 && src_h < parameters.height && src_w >= 0 && src_w < parameters.width) {
+        auto src_offset = gid.z * parameters.width * parameters.height + src_h * parameters.width + src_w;
+        value = in[src_offset];
+    }
+
+    out[dst_offset] = value;
 }

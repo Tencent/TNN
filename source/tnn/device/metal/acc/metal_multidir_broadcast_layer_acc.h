@@ -30,10 +30,6 @@ public:
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     
 public:
-    virtual std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    virtual Status ComputeThreadSize(const std::vector<Blob *> &inputs,
-                                     const std::vector<Blob *> &outputs,
-                                     MTLSize &size);
     virtual Status SetKernelEncoderParam(
                                          id<MTLComputeCommandEncoder> encoder,
                                          const std::vector<Blob *> &inputs,
@@ -41,6 +37,7 @@ public:
 
 protected:
     id<MTLBuffer> buffer_weight_ = nil;
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false);
 };
 
 #define DECLARE_METAL_MULTIDIR_BROADCAST_ACC(type_string, layer_type)                                                  \

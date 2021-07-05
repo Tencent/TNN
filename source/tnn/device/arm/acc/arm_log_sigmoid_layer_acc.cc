@@ -20,10 +20,14 @@ typedef struct arm_logsigmoid_operator : arm_unary_operator {
     virtual Float4 operator()(const Float4& v) {
         return Float4::log(Float4::sigmoid(v));
     }
+    virtual Float4 fast_op(const Float4& v) {
+        return Float4::log(Float4::fast_sigmoid(v));
+    }
 } ARM_LOGSIGMOID_OP;
 
 DECLARE_ARM_UNARY_ACC(LogSigmoid, ARM_LOGSIGMOID_OP);
 
 REGISTER_ARM_ACC(LogSigmoid, LAYER_LOGSIGMOID)
+REGISTER_ARM_LAYOUT(LAYER_LOGSIGMOID, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

@@ -12,6 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <tnn/utils/dims_vector_utils.h>
+
 #include "tflite_op_converter.h"
 #include "tflite_utils.h"
 
@@ -20,7 +22,11 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Conv2D);
 
 std::string TFLiteConv2DConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
-    return "Convolution";
+    if (quantized_model) {
+        return "QuantizedConvolution";
+    } else {
+        return "Convolution";
+    }
 }
 
 tflite::ActivationFunctionType TFLiteConv2DConverter::ActivationType(
@@ -34,6 +40,122 @@ tflite::ActivationFunctionType TFLiteConv2DConverter::ActivationType(
             return tflite::ActivationFunctionType_NONE;
     }
 }
+void CalculatePadSize(const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
+                      const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
+                      const tflite::BuiltinOperator tf_lite_op_type,
+                      const tflite::BuiltinOptionsUnion& builtin_options_union, const int kernel_h, const int kernel_w,
+                      TNN_NS::ConvLayerParam* param) {
+    auto input_index          = tf_lite_operator->inputs[0];
+    const auto& input_tensor  = tf_lite_tensors[input_index];
+    const auto input_shape    = input_tensor->shape;
+    const int input_height    = input_shape[1];
+    const int input_wight     = input_shape[2];
+    const auto& output_tensor = tf_lite_tensors[tf_lite_operator->outputs[0]];
+    const auto& output_shape  = output_tensor->shape;
+    const int output_height   = output_shape[1];
+    const int output_weight   = output_shape[2];
+    int pad_left              = 0;
+    int pad_right             = 0;
+    int pad_top               = 0;
+    int pad_bottom            = 0;
+    int dilation_h            = 0;
+    int dilation_w            = 0;
+    int stride_h              = 0;
+    int stride_w              = 0;
+    int kernel_extent_h       = 0;
+    int kernel_extent_w       = 0;
+    int total_pad_h           = 0;
+    int total_pad_w           = 0;
+    if (tf_lite_op_type == tflite::BuiltinOperator_CONV_2D) {
+        const auto& option = builtin_options_union.AsConv2DOptions();
+        dilation_h         = option->dilation_h_factor;
+        dilation_w         = option->dilation_w_factor;
+        stride_h           = option->stride_h;
+        stride_w           = option->stride_w;
+    } else if (tf_lite_op_type == tflite::BuiltinOperator_DEPTHWISE_CONV_2D) {
+        const auto& option = builtin_options_union.AsDepthwiseConv2DOptions();
+        dilation_h         = option->dilation_h_factor;
+        dilation_w         = option->dilation_w_factor;
+        stride_h           = option->stride_h;
+        stride_w           = option->stride_w;
+    }
+    kernel_extent_h = dilation_h * (kernel_h - 1) + 1;
+    kernel_extent_w = dilation_w * (kernel_w - 1) + 1;
+    total_pad_h     = (output_height - 1) * stride_h + kernel_extent_h - input_height;
+    total_pad_w     = (output_weight - 1) * stride_w + kernel_extent_w - input_wight;
+    pad_top         = total_pad_h % 2 == 0 ? total_pad_h / 2 : total_pad_h / 2 + 1;
+    pad_bottom      = total_pad_h - pad_top;
+    pad_left        = total_pad_w % 2 == 0 ? total_pad_w / 2 : total_pad_w / 2 + 1;
+    pad_right       = total_pad_w - pad_left;
+    param->pads.clear();
+    param->pads.push_back(pad_left);
+    param->pads.push_back(pad_right);
+    param->pads.push_back(pad_top);
+    param->pads.push_back(pad_bottom);
+}
+
+static TNN_NS::Status CreateResource(TNN_NS::NetResource& net_resource,
+                                     const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
+                                     const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors,
+                                     const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
+                                    std::string layer_name) {
+    auto resource                         = std::make_shared<TNN_NS::ConvLayerResource>();
+    resource->name                        = layer_name;
+    net_resource.resource_map[layer_name] = resource;
+    const auto& weight_tensor             = tf_lite_tensors[tf_lite_operator->inputs[1]];
+    const auto& weight_quantization       = weight_tensor->quantization;
+    const auto& weight_scales             = weight_quantization->scale;
+    ASSERT(weight_scales.size() == 1);
+    const auto& weight_zero_point = weight_quantization->zero_point;
+    ASSERT(weight_zero_point.size() == 1);
+    auto& weight_dims            = weight_tensor->shape;
+    const int CO          = weight_dims[0];
+    const int KH          = weight_dims[1];
+    const int KW          = weight_dims[2];
+    const int CI          = weight_dims[3];
+    const int weight_size = TNN_NS::DimsVectorUtils::Count(weight_dims);
+    auto filter_handle    = TNN_NS::RawBuffer(weight_size * sizeof(int8_t));
+    filter_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+    auto dst     = filter_handle.force_to<int8_t*>();
+    uint8_t* src = tf_lite_model_buffer[weight_tensor->buffer]->data.data();
+    // OHWi -> OIHW
+    for (int co = 0; co < CO; ++co) {
+        for (int ci = 0; ci < CI; ++ci) {
+            for (int h = 0; h < KH; ++h) {
+                for (int w = 0; w < KW; ++w) {
+                    dst[(co * CI + ci) * KH * KW + h * KW + w] =
+                        src[(co * KH + h) * KW * CI + w * CI + ci] - weight_zero_point[0];
+                }
+            }
+        }
+    }
+    resource->filter_handle = filter_handle;
+
+    // create weight scale
+    const auto& input_scale = tf_lite_tensors[tf_lite_operator->inputs[0]]->quantization->scale;
+    assert(weight_scales.size() == input_scale.size());
+    TNN_NS::RawBuffer scale_handle = TNN_NS::RawBuffer(weight_scales.size() * sizeof(float ));
+    scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+    const auto cal_weight_scale_data = scale_handle.force_to<float*>();
+    for (int i = 0; i < weight_scales.size(); ++i) {
+        cal_weight_scale_data[i] = input_scale[i] * weight_scales[i];
+    }
+    resource->scale_handle = scale_handle;
+
+    if (tf_lite_operator->inputs.size() >2) {
+        // bias
+        const auto& bias_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
+        const auto bias_data = reinterpret_cast<int32_t*>(tf_lite_model_buffer[bias_tensor->buffer]->data.data());
+        const auto& bias_dims = bias_tensor->shape;
+        const int bias_size = TNN_NS::DimsVectorUtils::Count(bias_dims);
+        TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(bias_size * sizeof(int32_t));
+        bias_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        ::memcpy(bias_handle.force_to<int32_t*>(),bias_data, bias_size*sizeof(int32_t));
+        resource->bias_handle = bias_handle;
+    }
+
+    return TNN_NS::TNN_CONVERT_OK;
+}
 
 TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
                                            const std::unique_ptr<tflite::OperatorT>& tf_lite_operator,
@@ -46,10 +168,11 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
     cur_layer->param              = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->name                   = cur_layer->name;
     param->type                   = cur_layer->type_str;
-    param->quantized              = false;
+    param->quantized              = quantized_model;
     // 3|2 inputs: input tensor, weight, (bias)
     const int input_size = tf_lite_operator->inputs.size();
     ASSERT(input_size == 2 || input_size == 3);
+    param->bias = input_size > 2 ? 1 : 0;
     // weight index
     const int weight_index    = tf_lite_operator->inputs[1];
     const auto& weight_tensor = tf_lite_tensors[weight_index];
@@ -72,11 +195,10 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
         param->strides.push_back(option->stride_h);
         param->dialations.push_back(option->dilation_w_factor);
         param->dialations.push_back(option->dilation_h_factor);
-        param->group    = 1;
-        param->pad_type = 0;
+        param->group = 1;
         if (option->padding == tflite::Padding_VALID) {
             // tensorflow pad valid
-            param->pad_type = -1;
+            param->pad_type = 1;
             param->pads.push_back(0);
             param->pads.push_back(0);
             param->pads.push_back(0);
@@ -87,6 +209,11 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
             param->pads.push_back(0);
             param->pads.push_back(0);
             param->pads.push_back(0);
+        }
+        if (param->dialations[0] != 1 && param->dialations[1] != 1) {
+            param->pad_type = -1;
+            TNN_CONVERTER::CalculatePadSize(tf_lite_operator, tf_lite_tensors, tf_lite_op_type,
+                                            tf_lite_operator->builtin_options, kh, kw, param);
         }
         const auto activation = option->fused_activation_function;
         if (activation == tflite::ActivationFunctionType_RELU) {
@@ -113,7 +240,7 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
         param->pad_type = 0;
         if (depthwise_option->padding == tflite::Padding_VALID) {
             // tensorflow pad valid
-            param->pad_type = -1;
+            param->pad_type = 1;
             param->pads.push_back(0);
             param->pads.push_back(0);
             param->pads.push_back(0);
@@ -124,6 +251,18 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
             param->pads.push_back(0);
             param->pads.push_back(0);
             param->pads.push_back(0);
+        }
+        if ((param->dialations[0] != 1 || param->dialations[1] != 1) &&
+            (param->strides[0] != 1 || param->strides[1] != 1)) {
+            LOGE("TFLite Converter: If any value of dilation_rate is > 1, then all values of strides must be 1.\n");
+            return TNN_NS::TNNERR_INVALID_MODEL;
+        }
+
+        if ((param->dialations[0] != 1 || param->dialations[1] != 1) &&
+            (param->strides[0] == 1 && param->strides[1] == 1)) {
+            param->pad_type = -1;
+            TNN_CONVERTER::CalculatePadSize(tf_lite_operator, tf_lite_tensors, tf_lite_op_type,
+                                            tf_lite_operator->builtin_options, kh, kw, param);
         }
         const auto activation = depthwise_option->fused_activation_function;
         if (activation == tflite::ActivationFunctionType_RELU) {
@@ -140,7 +279,18 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
     }
 
     if (quantized_model) {
-        // TODO
+        // create IntScaleResource for input
+        int input_tensor_index = tf_lite_operator->inputs[0];
+        TNN_NS::Status status  = CreateIntScaleResource(net_resource, tf_lite_tensors, input_tensor_index);
+        ASSERT(status == TNN_NS::TNN_CONVERT_OK);
+        // create conv resource
+        status = CreateResource(net_resource, tf_lite_operator, tf_lite_tensors, tf_lite_model_buffer,cur_layer->name);
+        ASSERT(status == TNN_NS::TNN_CONVERT_OK);
+        // create IntScaleResource for output
+        int output_tensor_index = tf_lite_operator->outputs[0];
+        status                  = CreateIntScaleResource(net_resource, tf_lite_tensors, output_tensor_index);
+        ASSERT(status == TNN_NS::TNN_CONVERT_OK);
+
     } else {
         // weight
         auto layer_resource  = new TNN_NS::ConvLayerResource;
@@ -156,7 +306,6 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
             const auto& bias_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
             auto bias_data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[bias_tensor->buffer]->data.data());
             if (bias_data_ptr != nullptr) {
-                param->bias                   = 1;
                 TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(param->output_channel * sizeof(float));
                 ::memcpy(bias_handle.force_to<float*>(), bias_data_ptr, param->output_channel * sizeof(float));
                 layer_resource->bias_handle = bias_handle;

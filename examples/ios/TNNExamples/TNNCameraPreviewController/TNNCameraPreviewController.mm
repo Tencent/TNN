@@ -6,6 +6,7 @@
 #import <CoreMedia/CoreMedia.h>
 #import <tnn/tnn.h>
 #import "TNNBoundingBox.h"
+#import "TNNMaskImage.h"
 #include "tnn_fps_counter.h"
 #import "UIImage+Utility.h"
 #import "ultra_face_detector.h"
@@ -30,6 +31,7 @@ typedef void(^CommonCallback)(Status);
 
 @property (nonatomic, strong) dispatch_semaphore_t inflightSemaphore;
 
+@property (nonatomic, strong) TNNMaskImage *maskImage;
 @property (nonatomic, strong) NSArray<TNNBoundingBox *> *boundingBoxes;
 @property (nonatomic, strong) NSArray<UIColor *> *colors;
 @end
@@ -58,6 +60,8 @@ typedef void(^CommonCallback)(Status);
     _fps_counter = std::make_shared<TNNFPSCounter>();
     
     _boundingBoxes = [NSArray array];
+    // maskimage layer
+    _maskImage = [[TNNMaskImage alloc] init];
     _inflightSemaphore = dispatch_semaphore_create(kMaxBuffersInFlight);
     
     self.cameraDevice = [[TNNCameraVideoDevice alloc] init];
@@ -68,7 +72,7 @@ typedef void(^CommonCallback)(Status);
     }
     
     // add the bounding box layers to the UI, on top of the video preview.
-    [self setupBoundingBox:12];
+    [self setupBoundingBox:17];
     
     //set up camera
     auto camera = self.viewModel.preferFrontCamera ? AVCaptureDevicePositionFront : AVCaptureDevicePositionBack;
@@ -115,6 +119,9 @@ typedef void(^CommonCallback)(Status);
         
         [iter addToLayer:_cameraPreview.layer];
     }
+    [_maskImage hide];
+    [_maskImage removeFromSuperLayer];
+    [_maskImage addToLayer:_cameraPreview.layer];
     self.boundingBoxes = boundingBoxes;
 }
 
@@ -199,14 +206,15 @@ typedef void(^CommonCallback)(Status);
         //Note：智能指针必须在resize后才能释放
         std::shared_ptr<char> image_data = nullptr;
         std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
-        auto origin_dims = {1, 3, origin_height, origin_width};
+        // devan: to support generate UIImage, set channel to 4
+        auto origin_dims = {1, 4, origin_height, origin_width};
         if (compute_units == TNNComputeUnitsCPU) {
             image_data = utility::CVImageBuffRefGetData(image_buffer);
             image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, origin_dims, image_data.get());
         } else {
             image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, origin_dims, (void *)image_texture_ref);
         }
-        
+
 //        auto input_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, target_dims);
 //#ifndef END2END
 //        //resize
@@ -223,6 +231,8 @@ typedef void(^CommonCallback)(Status);
             status = predictor_async_thread->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
             fps_counter_async_thread->End("detect");
         } while (0);
+        // hide the textbox, use drawinglines instead to support box with angles
+        bool hideTextbox = predictor_async_thread->hideTextBox();
         
         CVBufferRelease(image_buffer);
         CFBridgingRelease(image_texture_ref);
@@ -233,6 +243,7 @@ typedef void(^CommonCallback)(Status);
         dispatch_sync(dispatch_get_main_queue(), ^{
             [self showSDKOutput:sdk_output
             withOriginImageSize:origin_image_size
+             hideTextFrame:hideTextbox
                      withStatus:status];
             [self showFPS:map_fps];
             //[self showTime: time];
@@ -245,13 +256,17 @@ typedef void(^CommonCallback)(Status);
 
 - (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
        withOriginImageSize:(CGSize)size
+        hideTextFrame:(bool) hideTextFrame
            withStatus:(Status)status {
     auto object_list = [self.viewModel getObjectList:output];
-    [self showObjectInfo:object_list withOriginImageSize:size withStatus:status];
+    [self showObjectInfo:object_list withOriginImageSize:size hideTextFrame:hideTextFrame withStatus:status];
+    auto mask_data   = [self.viewModel getImage:output];
+    [self showMask:mask_data withOriginImageSize:size withStatus:status];
 }
 
 - (void)showObjectInfo:(std::vector<std::shared_ptr<ObjectInfo> >)object_list
             withOriginImageSize:(CGSize)origin_size
+            hideTextFrame:(bool) hideTextFrame
             withStatus:(Status)status {
     //status
     if (status != TNN_OK) {
@@ -278,6 +293,9 @@ typedef void(^CommonCallback)(Status);
                 auto view_width = self.cameraPreview.bounds.size.width;
                 auto view_height = self.cameraPreview.bounds.size.height;
                 auto label = [self.viewModel labelForObject:object];
+                if (!label && object->label) {
+                    label = [NSString stringWithUTF8String:object->label];
+                }
                 auto view_face = object->AdjustToImageSize(origin_size.height, origin_size.width);
                 view_face = view_face.AdjustToViewSize(view_height, view_width, video_gravity);
                 if (camera_pos == AVCaptureDevicePositionFront) {
@@ -285,17 +303,36 @@ typedef void(^CommonCallback)(Status);
                 }
                 [_boundingBoxes[i] showText:label
                                   withColor:self.colors[i]
+                              hideTextFrame:hideTextFrame
                                     atFrame:CGRectMake(view_face.x1, view_face.y1,
                                                        view_face.x2-view_face.x1,
                                                        view_face.y2-view_face.y1)];
     //            [_boundingBoxes[i] showMarkAtPoints:{{(view_face.x1+view_face.x2)/2, (view_face.y1+view_face.y2)/2}} withColor:[UIColor redColor]];
-                [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor greenColor]];
+                // When we need to draw lines connecting key points, we draw key points with circle.
+                // Otherwise, we draw cross-shaped points.
+                [_boundingBoxes[i] showMarkAtPoints:view_face.key_points withColor:[UIColor greenColor] circle:view_face.lines.size()!=0];
+                [_boundingBoxes[i] showLines:view_face.key_points lines:view_face.lines withColor:self.colors[i]];
             } else {
                 [_boundingBoxes[i] hide];
             }
         }
     }
 }
+
+- (void)showMask:(ImageInfo)image_info
+            withOriginImageSize:(CGSize)origin_size
+            withStatus:(Status)status {
+    if (!image_info.data)
+        return;
+    auto camera_pos = [self.cameraDevice cameraPosition];
+    if (camera_pos == AVCaptureDevicePositionFront) {
+        image_info = image_info.FlipX();
+    }
+    // devan: method to support RGB data?
+    UIImage* image = utility::UIImageWithDataRGBA(image_info.data.get(), image_info.image_height, image_info.image_width);
+    [_maskImage showImage:image atFrame:_cameraPreview.bounds];
+}
+
 
 - (std::vector<std::shared_ptr<ObjectInfo> >)reorder:(std::vector<std::shared_ptr<ObjectInfo> >) object_list {
     if (_object_list_last.size() > 0 && object_list.size() > 0) {

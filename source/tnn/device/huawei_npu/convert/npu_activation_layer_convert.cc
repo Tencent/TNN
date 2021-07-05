@@ -12,9 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "graph/op/nn_defs.h"
 #include "npu_base_layer_convert.h"
-#include "npu_utils.h"
 #include "tnn/core/layer_type.h"
 
 #ifndef TNN_SOURCE_TNN_DEVICE_HUAWEI_NPU_CONVERT_NPU_ACTIVATION_LAYER_CONVERT_H_
@@ -45,24 +43,11 @@ protected:
                 CHECK_PARAM_NULL(param);
                 output->set_attr_coef(param->alpha);
             } break;
-            case LAYER_PRELU: {
-                mode          = 5;
-                auto param    = dynamic_cast<PReluLayerParam *>(param_);
-                auto resource = dynamic_cast<PReluLayerResource *>(resource_);
-                CHECK_PARAM_NULL(param);
-                if (!resource) {
-                    return Status(TNNERR_MODEL_ERR, "Error: prelu layer resource is nil");
-                }
-                const float *slope_data = resource->slope_handle.force_to<float *>();
-                if (param->channel_shared) {
-                    // if channel shared
-                    output->set_attr_negative_slope(slope_data[0]);
-                } else {
-                    return Status(TNNERR_LAYER_ERR, "Error: huawei_npu currently only supports shared-channel prelu");
-                }
-            } break;
             case LAYER_ABS:
                 mode = 6;
+                break;
+            case LAYER_SOFTSIGN:
+                mode = 8;
                 break;
             case LAYER_SOFTPLUS:
                 mode = 9;
@@ -70,8 +55,12 @@ protected:
             case LAYER_HARDSIGMOID: {
                 auto param = dynamic_cast<HardSigmoidLayerParam *>(param_);
                 CHECK_PARAM_NULL(param);
-                if (param->alpha != 1.0f || param->beta != 0.0f) {
-                    return Status(TNNERR_LAYER_ERR, "Error: Npu currently only supports no coefficient hardsigmoid");
+                if (!(param->alpha >= 0.1666f && param->alpha <= 0.1667f && param->beta >= 0.4999f &&
+                      param->beta <= 0.5001f)) {
+                    LOGE("hardsigmoid only support alpha=1/6 beta=0.5, but in fact, alpha=%f beta=%f\n", param->alpha,
+                         param->beta);
+                    return Status(TNNERR_LAYER_ERR,
+                                  "Error: Npu currently only supports hardsigmoid (alpha=1/6, beta=0.5)");
                 }
                 mode = 10;
             } break;
@@ -80,6 +69,9 @@ protected:
                 break;
             case LAYER_RELU6:
                 mode = 14;
+                break;
+            case LAYER_GELU:
+                mode = 15;
                 break;
             default:
                 return Status(TNNERR_UNKNOWN_LAYER, "This activation is not defined in NPU");
@@ -109,18 +101,20 @@ DECLARE_NPU_ACTIVATION_LAYER(Tanh, LAYER_TANH)
 REGISTER_NPU_LAYER(Tanh, LAYER_TANH)
 DECLARE_NPU_ACTIVATION_LAYER(Elu, LAYER_ELU)
 REGISTER_NPU_LAYER(Elu, LAYER_ELU)
-DECLARE_NPU_ACTIVATION_LAYER(Prelu, LAYER_PRELU)
-REGISTER_NPU_LAYER(Prelu, LAYER_PRELU)
 DECLARE_NPU_ACTIVATION_LAYER(Abs, LAYER_ABS)
 REGISTER_NPU_LAYER(Abs, LAYER_ABS)
 DECLARE_NPU_ACTIVATION_LAYER(Softplus, LAYER_SOFTPLUS)
 REGISTER_NPU_LAYER(Softplus, LAYER_SOFTPLUS)
+DECLARE_NPU_ACTIVATION_LAYER(Softsign, LAYER_SOFTSIGN)
+REGISTER_NPU_LAYER(Softsign, LAYER_SOFTSIGN)
 DECLARE_NPU_ACTIVATION_LAYER(HardSigmoid, LAYER_HARDSIGMOID)
 REGISTER_NPU_LAYER(HardSigmoid, LAYER_HARDSIGMOID)
 DECLARE_NPU_ACTIVATION_LAYER(Selu, LAYER_SELU)
 REGISTER_NPU_LAYER(Selu, LAYER_SELU)
 DECLARE_NPU_ACTIVATION_LAYER(Relu6, LAYER_RELU6)
 REGISTER_NPU_LAYER(Relu6, LAYER_RELU6)
+DECLARE_NPU_ACTIVATION_LAYER(Gelu, LAYER_GELU)
+REGISTER_NPU_LAYER(Gelu, LAYER_GELU)
 
 }  // namespace TNN_NS
 

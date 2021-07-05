@@ -16,6 +16,8 @@
 #define TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_CONTEXT_H_
 
 #include <memory>
+#include <thread>
+#include <mutex>
 
 #include "tnn/core/context.h"
 #include "tnn/core/profile.h"
@@ -38,7 +40,7 @@ struct OpenCLProfilingData : public ProfilingData {
 class OpenCLProfileResult : public ProfileResult {
 public:
     virtual ~OpenCLProfileResult();
-    virtual std::string GetProfilingData() override;
+    virtual std::string GetProfilingDataInfo() override;
 };
 #endif
 
@@ -51,29 +53,44 @@ public:
     // @param command_queue device command queue for forward
     Status GetCommandQueue(void **command_queue) override;
 
+    // @brief share tnn command queue to another context
+    Status ShareCommandQueue(Context* context) override;
+
     /**
      * @brief get CommandQueue
      */
     cl::CommandQueue *CommandQueue();
 
+    cl::CommandQueue *TuneCommandQueue();
+
     // load library
     virtual Status LoadLibrary(std::vector<std::string> path) override;
     /**
-     * @brief befor instace forword
-     * @param instance instace
+     * @brief before instance forward
+     * @param instance instance
      */
     virtual Status OnInstanceForwardBegin() override;
     /**
-     * @brief after instace forword
-     * @param instance instace
+     * @brief after instance forward
+     * @param instance instance
      */
     virtual Status OnInstanceForwardEnd() override;
+
+     // @brief before instance Reshape
+    virtual Status OnInstanceReshapeBegin() override;
+
+    // @brief after instance Reshape
+    virtual Status OnInstanceReshapeEnd() override;   
 
     // @brief wait for jobs in the current context to complete
     virtual Status Synchronize() override;
 
     // @brief add flush_count_ and return val
     unsigned int AddAndGetFlushCount();
+
+    std::map<std::string, std::vector<uint32_t>>& GetLocalSizeTuneMap();
+
+    Status StoreLocalSizeTuneMap();
 
 #if TNN_PROFILE
 public:
@@ -88,8 +105,19 @@ public:
 
 private:
     std::shared_ptr<cl::CommandQueue> command_queue_ = nullptr;
+    std::shared_ptr<cl::CommandQueue> tune_command_queue_ = nullptr;
+    std::shared_ptr<cl::CommandQueue> GetCommandQueue();
     OpenCLRuntime *opencl_runtime_ = nullptr;
     unsigned int flush_count_ = 0;
+    cl_command_queue_properties properties_ = 0;
+
+    bool ReadStatusCheck(std::ifstream& is);
+
+    std::map<std::string, std::vector<uint32_t>> local_size_tune_map_;
+    uint32_t tune_map_size_;
+
+    static std::mutex s_mutex_;
+
 };
 
 }  // namespace TNN_NS

@@ -66,11 +66,25 @@ inline ftype4 prelu(ftype4 x, ftype4 slop) {
 
 inline ftype4 activate(ftype4 value, int type) {
     switch (type) {
-        case 1: // Relu see layer_param.h
+        case 0x0001: // Relu see layer_param.h
             return max(value, Zero4);
-        case 2: // Relu6 see layer_param.h
+        case 0x0002: // Relu6 see layer_param.h
             return clamp(value, Zero4, Six4);
+        case 0x0100: // Sigmoid_Mul see layer_param.h
+            return One4 / (One4 + exp(-value)) * value;
         default: // None
             return value;
     }
+}
+
+// compute tanh according to its definition
+// metal::tanh may produce nan
+inline ftype4 tanh_high_precision(ftype4 x) {
+    float4 ep = exp(float4(x));
+    float4 en = exp(float4(-x));
+    float4 numerator   = ep - en;
+    float4 denominator = ep + en;
+    float4 result = numerator / denominator;
+
+    return ftype4(result);
 }

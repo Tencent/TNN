@@ -34,6 +34,8 @@ public:
     template <typename T>
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+    DECLARE_ARM_FP16_LAYER_FUNC;
+
 protected:
     bool shared_channel_;
     RawBuffer buffer_scale_;

@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 #import "tnn_sdk_sample.h"
 
 using namespace::TNN_NS;
@@ -27,5 +27,10 @@ using namespace::TNN_NS;
 
 //Object Detection
 -(std::vector<std::shared_ptr<ObjectInfo> >)getObjectList:(std::shared_ptr<TNNSDKOutput>)output;
+-(ImageInfo)getImage:(std::shared_ptr<TNNSDKOutput>)sdk_output;
 -(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object;
+
+//Custom UI control
+- (void)setupCustomView:(UIView *)view
+           layoutHeight:(NSLayoutConstraint *)viewLayoutHeight;
 @end

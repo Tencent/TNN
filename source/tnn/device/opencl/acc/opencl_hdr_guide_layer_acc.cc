@@ -31,6 +31,9 @@ public:
 private:
     Status ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memory, float *weight, float *bias, int pixel_count);
     Status ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, float *data_ptr, float default_val);
+    bool InputParamCheck(RawBuffer &ccm_weight_handle, RawBuffer &ccm_bias_handle,
+                         RawBuffer &shifts_handle, RawBuffer &slopes_handle,
+                         RawBuffer &p_weight_handle, RawBuffer &p_bias_handle);
 
 private:
     shared_ptr<OpenCLMemory> ocl_ccm_ = nullptr;
@@ -38,6 +41,15 @@ private:
     shared_ptr<OpenCLMemory> ocl_slopes_ = nullptr;
     shared_ptr<OpenCLMemory> ocl_projection_ = nullptr;
 };
+
+bool OpenCLHdrGuideLayerAcc::InputParamCheck(
+        RawBuffer &ccm_weight_handle, RawBuffer &ccm_bias_handle,
+        RawBuffer &shifts_handle, RawBuffer &slopes_handle,
+        RawBuffer &p_weight_handle, RawBuffer &p_bias_handle) {
+    return (ccm_weight_handle.GetDataCount() != 9 || ccm_bias_handle.GetDataCount() != 3 ||
+            shifts_handle.GetDataCount() != 12 || slopes_handle.GetDataCount() != 12 ||
+            p_weight_handle.GetDataCount() != 3 || p_bias_handle.GetDataCount() != 1);
+}
 
 Status OpenCLHdrGuideLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                     const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -55,9 +67,8 @@ Status OpenCLHdrGuideLayerAcc::Init(Context *context, LayerParam *param, LayerRe
     RawBuffer &slopes_handle                  = hdr_guide_resource->slopes_handle;
     RawBuffer &p_weight_handle                = hdr_guide_resource->projection_weight_handle;
     RawBuffer &p_bias_handle                  = hdr_guide_resource->projection_bias_handle;
-    if (ccm_weight_handle.GetDataCount() != 9 || ccm_bias_handle.GetDataCount() != 3 ||
-        shifts_handle.GetDataCount() != 12 || slopes_handle.GetDataCount() != 12 ||
-        p_weight_handle.GetDataCount() != 3 || p_bias_handle.GetDataCount() != 1) {
+    if (InputParamCheck(ccm_weight_handle, ccm_bias_handle, shifts_handle,
+                        slopes_handle, p_weight_handle, p_bias_handle)) {
         LOGE("Invalid data size of HDRGuide Param!\n");
         return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "Invalid data size of HDRGuide Param!");
     }
@@ -150,6 +161,8 @@ OpenCLHdrGuideLayerAcc::~OpenCLHdrGuideLayerAcc() {}
 Status OpenCLHdrGuideLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("HDRGuide Layer Reshape\n");
     ASSERT(inputs.size() == 1);
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
 
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
@@ -174,7 +187,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memo
                         buffer_size * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     float *clbuffer_ptr = static_cast<float *>(ocl_context_->CommandQueue()->enqueueMapBuffer(
         clbuffer, true, CL_MAP_WRITE, 0, buffer_size * sizeof(float), nullptr, nullptr, &ret));
@@ -194,14 +207,14 @@ Status OpenCLHdrGuideLayerAcc::ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memo
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(clbuffer, clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
 
     // create ocl_blob
     int image_w               = pixel_count;
     int image_h               = 1;
     cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetFp16Enable())
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
     cl::Image2D *image = new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
                                          cl::ImageFormat(CL_RGBA, data_type), image_w, image_h, 0, nullptr, &ret);
@@ -209,7 +222,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memo
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     ocl_memory.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_memory->SetData(image, true);
@@ -230,7 +243,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
                      nullptr, &ocl_ret);
     if (ocl_ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ocl_ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     float *clbuf_ptr = static_cast<float *>(ocl_context_->CommandQueue()->enqueueMapBuffer(
         clbuf, true, CL_MAP_WRITE, 0, buf_size * sizeof(float), nullptr, nullptr, &ocl_ret));
@@ -250,14 +263,14 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
     ocl_ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(clbuf, clbuf_ptr);
     if (ocl_ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ocl_ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
 
     // create ocl_blob
     int img_width          = 4;
     int img_height         = 1;
     cl_channel_type data_t = CL_FLOAT;
-    if (ocl_runtime->GetFp16Enable())
+    if (ocl_runtime->GetPrecision() != PRECISION_HIGH)
         data_t = CL_HALF_FLOAT;
     cl::Image2D *img = new cl::Image2D(*ocl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_t),
                                        img_width, img_height, 0, nullptr, &ocl_ret);
@@ -265,7 +278,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
         CHECK_CL_SUCCESS(ocl_ret)
         if (nullptr != img)
             delete img;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     ocl_blob.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_blob->SetData(img, true);
@@ -278,5 +291,6 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
 }
 
 REGISTER_OPENCL_ACC(HdrGuide, LAYER_HDRGUIDE)
+REGISTER_OPENCL_LAYOUT(LAYER_HDRGUIDE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

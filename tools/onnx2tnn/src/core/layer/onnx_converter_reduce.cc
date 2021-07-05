@@ -20,21 +20,11 @@ string OnnxConverterReduce::TNNLayerParam(NodeProto &node,
     ostringstream layer_param;
 
     std::vector<int64_t> axes = get_node_attr_ai(node, "axes");
-    int64_t keepdims          = get_node_attr_i(node, "keepdims");
+    int64_t keepdims          = get_node_attr_i(node, "keepdims", 1);
     layer_param << keepdims << " ";
 
     for (int64_t axis : axes) {
         layer_param << axis << " ";
-    }
-
-    if (axes.size() != 1) {
-        DLog(
-            "error::ReduceMean convert failed onnx: must contain only 1 "
-            "axis\n");
-        assert(0);
-    }
-    if (axes[0] != 1) {
-        DLog("Warning::Reduce may not support axes != 1, depend on device\n");
     }
     return layer_param.str();
 }

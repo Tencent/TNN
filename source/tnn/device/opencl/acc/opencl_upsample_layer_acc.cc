@@ -17,7 +17,15 @@
 
 namespace TNN_NS {
 
-DECLARE_OPENCL_ACC(Upsample);
+class OpenCLUpsampleLayerAcc : public OpenCLLayerAcc {
+public:
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                        const std::vector<Blob *> &outputs) override;
+
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) override { return TNN_OK; }
+};
 
 static std::vector<uint32_t> UpsampleLocalWS3D(std::vector<uint32_t> &gws, const uint32_t max_workgroup_size) {
     uint32_t compute_units = OpenCLRuntime::GetInstance()->DeviceComputeUnits();
@@ -62,6 +70,14 @@ Status OpenCLUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerRe
             LOGD("build bilinear\n");
             kernel_name = "Bilinear";
         }
+    } else if (upsample_param->mode == 3) {  // cubic
+        if (upsample_param->align_corners) {
+            LOGD("build cubic with aligned corners\n");
+            kernel_name = "CubicAlignCorners";
+        } else {
+            LOGD("build cubic\n");
+            kernel_name = "Cubic";
+        }
     } else {
         LOGE("Not support Upsample type: %d\n", upsample_param->mode);
         return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid upsample mode");
@@ -81,6 +97,9 @@ Status OpenCLUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerRe
 
 Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Upsample Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     UpsampleLayerParam *upsample_param = dynamic_cast<UpsampleLayerParam *>(param_);
     if (!upsample_param) {
         LOGE("Error: layer param is null\n");
@@ -93,19 +112,19 @@ Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
 
-    const int batch        = input_dims[0];
-    const int channels     = input_dims[1];
-    const int input_height = input_dims[2];
-    const int input_width  = input_dims[3];
+    const int batch        = DimsFunctionUtils::GetDim(input_dims, 0);
+    const int channels     = DimsFunctionUtils::GetDim(input_dims, 1);
+    const int input_height = DimsFunctionUtils::GetDim(input_dims, 2);
+    const int input_width  = DimsFunctionUtils::GetDim(input_dims, 3);
 
-    const int output_height = output_dims[2];
-    const int output_width  = output_dims[3];
+    const int output_height = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int output_width  = DimsFunctionUtils::GetDim(output_dims, 3);
 
     const int channel_blocks = UP_DIV(channels, 4);
 
     float height_scale;
     float width_scale;
-    if (upsample_param->mode == 2 && upsample_param->align_corners) {
+    if ((upsample_param->mode == 2 || upsample_param->mode == 3) && upsample_param->align_corners) {
         height_scale = (float)(input_height - 1) / (float)(output_height - 1);
         width_scale  = (float)(input_width - 1) / (float)(output_width - 1);
     } else {
@@ -142,5 +161,6 @@ Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
 }
 
 REGISTER_OPENCL_ACC(Upsample, LAYER_UPSAMPLE)
+REGISTER_OPENCL_LAYOUT(LAYER_UPSAMPLE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

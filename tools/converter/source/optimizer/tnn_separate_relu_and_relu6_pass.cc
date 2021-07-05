@@ -21,8 +21,8 @@ std::string TnnOptimizeSeparateReluAndRelu6Pass::PassName() {
     return "SeparateReluAndRelu6";
 }
 
-TNN_NS::Status TnnOptimizeSeparateReluAndRelu6Pass::exec(tnn::NetStructure& net_structure,
-                                                         tnn::NetResource& net_resource) {
+TNN_NS::Status TnnOptimizeSeparateReluAndRelu6Pass::exec(TNN_NS::NetStructure& net_structure,
+                                                         TNN_NS::NetResource& net_resource) {
     auto& layers                         = net_structure.layers;
     const std::string conv_output_suffix = "_output";
     const std::string activation_suffix  = "_activation";

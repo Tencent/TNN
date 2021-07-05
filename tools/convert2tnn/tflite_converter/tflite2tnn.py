@@ -43,7 +43,7 @@ def tflite2tnn(tf_path, tnn_path, not_fold_const=False):
 
 
 def convert(tf_path,  output_dir, version,  align=False,
-            input_path=None, refer_path=None):
+            input_path=None, refer_path=None, debug_mode: bool = False):
     checker.check_file_exist(tf_path)
     model_name = os.path.basename(tf_path)
     if output_dir is None or not os.path.isdir(output_dir):
@@ -58,11 +58,12 @@ def convert(tf_path,  output_dir, version,  align=False,
 
     if version is None:
         version = "v1.0"
-    if align is True:
+    if align == 'output':
         proto_suffix = '.tnnproto'
         model_suffix = '.tnnmodel'
         tnn_proto_name = model_name + proto_suffix
         tnn_model_name = model_name + model_suffix
         tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
         tnn_model_path = os.path.join(output_dir, tnn_model_name)
-        align_model.align_model(tf_path, tnn_proto_path, tnn_model_path, input_path, refer_path, None, True)
+        align_model.align_model(tf_path, tnn_proto_path, tnn_model_path, input_path, refer_path, None, True,
+                                debug_mode=debug_mode)

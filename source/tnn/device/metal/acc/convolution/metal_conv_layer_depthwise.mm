@@ -17,7 +17,8 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 bool MetalConvLayerDepthwise::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
@@ -71,11 +72,26 @@ Status MetalConvLayerDepthwise::AllocateBufferParam(const std::vector<Blob *> &i
                                             length:sizeof(MetalConvParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
+    // check if specialized kernels should be used
+    bool s11 = (layer_param->strides[0] == 1 && layer_param->strides[1] == 1);
+    bool d11 = (layer_param->dialations[0] == 1 && layer_param->dialations[1] == 1);
+    bool k15 = (layer_param->kernels[0] == 1 && layer_param->kernels[1] == 5);
+    bool k51 = (layer_param->kernels[0] == 5 && layer_param->kernels[1] == 1);
+    if (s11 && d11 && k51) {
+        this->k51s1d1_ = true;
+    } else if (s11 && d11 && k15) {
+        this->k15s1d1_ = true;
+    }
 
     return TNN_OK;
 }
 
 std::string MetalConvLayerDepthwise::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (k51s1d1_) {
+        return "convolution_depthwise5x1_h8w4";
+    } else if (k15s1d1_) {
+        return "convolution_depthwise1x5_h4w8";
+    }
     return "convolution_depthwise";
 }
 
@@ -98,9 +114,38 @@ Status MetalConvLayerDepthwise::ComputeThreadSize(const std::vector<Blob *> &inp
                                         MTLSize &size) {
     auto output = outputs[0];
     auto dims_output  = output->GetBlobDesc().dims;
-    size = GetDefaultThreadSize(dims_output, false);
+    if (k51s1d1_) {
+        size = MTLSizeMake(4, 8, 1);
+    } else if (k15s1d1_) {
+        size = MTLSizeMake(8, 4, 1);
+    } else {
+        size = GetDefaultThreadSize(dims_output, false);
+    }
     return TNN_OK;
 }
+
+Status MetalConvLayerDepthwise::ComputeThreadgroupSize(const std::vector<Blob *> &inputs,
+                                     const std::vector<Blob *> &outputs,
+                                     MTLSize &size) {
+    auto dims_output  = outputs[0]->GetBlobDesc().dims;
+    auto output_height = dims_output[2];
+    auto output_width  = dims_output[3];
+    auto output_slice = UP_DIV(dims_output[1], 4);
+    auto output_batch = dims_output[0];
+    if (k51s1d1_) {
+        size = MTLSizeMake(UP_DIV(output_width, 4),
+                           UP_DIV(output_height, 8),
+                           output_batch*output_slice);
+    } else if (k15s1d1_) {
+        size = MTLSizeMake(UP_DIV(output_width, 8),
+                           UP_DIV(output_height, 4),
+                           output_batch*output_slice);
+    } else {
+        size = MTLSizeMake(0, 0, 0);
+    }
+    return TNN_OK;
+}
+
 
 Status MetalConvLayerDepthwise::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Forward(inputs, outputs);

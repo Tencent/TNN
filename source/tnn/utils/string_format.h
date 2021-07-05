@@ -18,14 +18,38 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <vector>
+
 #include "tnn/core/macro.h"
+#include "tnn/core/mat.h"
 
 namespace TNN_NS {
 
 std::string DoubleToString(double val);
 
 std::string DoubleToStringFilter(double val);
+
+std::string MatTypeToString(MatType mat_type);
+
+std::string DimsToString(std::vector<int> dims);
+
+template <typename Int>
+std::string IntToString(Int val) {
+    static_assert(std::is_integral<Int>::value, "Integral type required!");
+    std::stringstream stream;
+    stream << val;
+    return stream.str();
+}
+
+template <typename Int>
+std::string IntToStringFilter(Int val) {
+    if (static_cast<Int>(0) == val) {
+        return "";
+    } else {
+        return IntToString(val);
+    }
+}
 
 template <typename T>
 std::string VectorToString(std::vector<T> val) {

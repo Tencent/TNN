@@ -104,7 +104,7 @@ JNIEXPORT JNICALL jint TNN_OBJECT_DETECTOR(deinit)(JNIEnv *env, jobject thiz)
 
 //#define STB_IMAGE_WRITE_IMPLEMENTATION
 //#include "stb_image_write.h"
-JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint rotate)
+JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint view_width, jint view_height, jint rotate)
 {
     jobjectArray objectInfoArray;
     auto asyncRefDetector = gDetector;
@@ -135,7 +135,6 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env
 
     TNN_NS::Status status = asyncRefDetector->Predict(input, output);
 
-    asyncRefDetector->ProcessSDKOutput(output);
     objectInfoList = dynamic_cast<TNN_NS::ObjectDetectorYoloOutput *>(output.get())->object_list;
     delete [] yuvData;
     delete [] rgbaData;
@@ -152,12 +151,14 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTOR(detectFromStream)(JNIEnv *env
             jobject objObjectInfo = env->NewObject(clsObjectInfo, midconstructorObjectInfo);
             int landmarkNum = objectInfoList[i].key_points.size();
             LOGI("object[%d] %f %f %f %f score %f landmark size %d, label_id: %d", i, objectInfoList[i].x1, objectInfoList[i].y1, objectInfoList[i].x2, objectInfoList[i].y2, objectInfoList[i].score, landmarkNum, objectInfoList[i].class_id);
-            env->SetFloatField(objObjectInfo, fidx1, objectInfoList[i].x1 * scale_w);
-            env->SetFloatField(objObjectInfo, fidy1, objectInfoList[i].y1 * scale_h);
-            env->SetFloatField(objObjectInfo, fidx2, objectInfoList[i].x2 * scale_w);
-            env->SetFloatField(objObjectInfo, fidy2, objectInfoList[i].y2 * scale_h);
-            env->SetFloatField(objObjectInfo, fidscore, objectInfoList[i].score);
-            env->SetIntField(objObjectInfo, fidcls, objectInfoList[i].class_id);
+            auto object_preview = objectInfoList[i].AdjustToImageSize(width, height);
+            auto object_orig = object_preview.AdjustToViewSize(view_height, view_width, 2);
+            env->SetFloatField(objObjectInfo, fidx1, object_orig.x1);
+            env->SetFloatField(objObjectInfo, fidy1, object_orig.y1);
+            env->SetFloatField(objObjectInfo, fidx2, object_orig.x2);
+            env->SetFloatField(objObjectInfo, fidy2, object_orig.y2);
+            env->SetFloatField(objObjectInfo, fidscore, object_orig.score);
+            env->SetIntField(objObjectInfo, fidcls, object_orig.class_id);
             env->SetObjectArrayElement(objectInfoArray, i, objObjectInfo);
             env->DeleteLocalRef(objObjectInfo);
         }

@@ -48,6 +48,9 @@ public:
     // init with model interpeter and inputs shape.
     Status Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape);
 
+    // init with model interpeter, min inputs shape and max inputs shape.
+    Status Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
+
     // deinit, release network
     Status DeInit();
 
@@ -66,6 +69,10 @@ public:
 
     // get tnn command queue
     Status GetCommandQueue(void** command_queue);
+    
+    // @brief share command queue with another instance
+    // @param instance to share command queue
+    Status ShareCommandQueue(Instance *instance);
 
     // @brief tnn instance network infer, it will wait until all layer infer complete.
     Status Forward();
@@ -74,6 +81,11 @@ public:
     // tnn instance network infer with callback to get blob info
     Status ForwardWithCallback(BlobStatisticCallback before, BlobStatisticCallback after);
 #endif  // end of FORWARD_CALLBACK_ENABLE
+
+#ifdef GET_INTERP_ENABLE
+    // get model interpreter
+    std::shared_ptr<AbstractModelInterpreter> GetInterpreter();
+#endif  // end of GET_INTERP_ENABLE
 
     // tnn instance network infer async.
     // device gpu, all layer infer complete will call Callback.
@@ -86,7 +98,8 @@ public:
     Status GetAllOutputBlobs(BlobMap& blobs);
 
     // set threads run on cpu
-    virtual Status SetCpuNumThreads(int num_threads);
+    Status SetCpuNumThreads(int num_threads);
+
 #if TNN_PROFILE
 public:
     /**start to profile each layer, dont call this func if you only want to profile the whole mode*/
@@ -96,10 +109,13 @@ public:
 #endif
 
 private:
-    std::shared_ptr<AbstractModelInterpreter> interpreter_;
-    std::shared_ptr<AbstractNetwork> network_;
+    std::shared_ptr<AbstractModelInterpreter> interpreter_ = nullptr;
+    std::shared_ptr<AbstractNetwork> network_ = nullptr;
+    std::shared_ptr<AbstractNetwork> const_folder_ = nullptr;
     NetworkConfig net_config_;
     ModelConfig model_config_;
+    
+    AbstractNetwork *GetNetwork();
     
     //Mat interface for simple use
 public:

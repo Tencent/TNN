@@ -25,7 +25,7 @@ Status ArmMinLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
         return status;
     }
 
-    _Operator = [=](Float4 v1, Float4 v2, bool swap_flag) -> Float4 { return Float4::min(v1, v2); };
+    op_type_ = ArmBinaryOpType::kMIN;
 
     return TNN_OK;
 }
@@ -33,5 +33,7 @@ Status ArmMinLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 ArmMinLayerAcc::~ArmMinLayerAcc() {}
 
 REGISTER_ARM_ACC(Min, LAYER_MINIMUM)
+REGISTER_ARM_PRECISION_FP16(LAYER_MINIMUM)
+REGISTER_ARM_LAYOUT(LAYER_MINIMUM, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

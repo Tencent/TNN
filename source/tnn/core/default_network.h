@@ -50,7 +50,7 @@ public:
     // @param inputs_shape_map modify input shape, if empty, it will use the
     // shape in proto
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                        InputShapesMap inputs_shape);
+        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder=true);
 
     // @brief reshape with input shape info
     // @inputs input shape info
@@ -59,6 +59,9 @@ public:
     // @brief get tnn command queue
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void **command_queue);
+    
+    // @brief share tnn command queue to another network
+    virtual Status ShareCommandQueue(AbstractNetwork *network);
 
     // @brief network forward
     virtual Status Forward();
@@ -95,21 +98,37 @@ public:
     virtual std::shared_ptr<ProfileResult> FinishProfile();
 #endif
 
-private:
+protected:
     virtual Status InitLayers(NetStructure *net_structure, NetResource *net_resource);
+    virtual Status AllocateBlobMemory();
+    RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;
+    
+    Status GenerateInt8Blob(const std::string &name, NetResource *net_resource, Blob **blob);
+    Status UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info, bool is_input, bool is_quantized_net,
+                               const std::string &name, NetResource *net_resource, Blob **blob);
+
+    std::string GenerateCacheFileName(ModelConfig &model_config, std::string& md5_str);
 
     AbstractDevice *device_ = nullptr;
     Context *context_       = nullptr;
+    Context *GetContext();
 
     std::vector<BaseLayer *> layers_;
 
     BlobManager *blob_manager_ = nullptr;
+    BlobMemoryPool *runtime_blob_pool_ = nullptr;
 
     NetStructure *net_structure_ = nullptr;
+    NetResource *net_resource_ = nullptr;
 
     NetworkConfig config_;
 
     static std::mutex optimize_mtx_;
+
+private:
+
+   Status ReshapeLayers();
+
 };
 
 }  // namespace TNN_NS

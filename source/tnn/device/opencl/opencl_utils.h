@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILES_H_
-#define TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILES_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILS_H_
+#define TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILS_H_
 
 #include <string>
 #include <vector>
@@ -23,7 +23,9 @@
 #include "tnn/device/opencl/opencl_memory.h"
 #include "tnn/device/opencl/opencl_runtime.h"
 
+#include "tnn/core/mat.h"
 #include "tnn/core/blob.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
@@ -35,6 +37,8 @@ enum OpenCLBufferFormat {
     DW_CONV2D_FILTER = 3,
     NCHW_BUFFER      = 4,
     NHWC4_BUFFER     = 5,
+    LSTM_FILTER      = 6,
+    LSTM_BIAS        = 7,
 };
 
 template <typename T, typename Dim>
@@ -99,9 +103,9 @@ inline cl::Image &GetOpenCLImage(const OpenCLMemory *blob) {
     return (*(cl::Image *)(blob->GetData()));
 }
 
-std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer);
-
 std::vector<int> GetImageShape(const OpenCLMemory *image);
+
+void GetKernelTime(const cl::Event *event, double &kernel_time);
 
 void GetProfilingTime(const cl::Event *event, double &kernel_time, double &event_queued, double &event_submit,
                       double &event_start, double &event_end);
@@ -125,11 +129,19 @@ std::vector<uint32_t> LocalWS2DDefault(OpenCLExecuteUnit &unit);
 std::vector<uint32_t> LocalWS2DDefault(const std::vector<uint32_t> &gws, const uint32_t max_workgroup_size,
                                        const uint32_t subgroup_size = 0);
 
+std::vector<uint32_t> LocalTune(OpenCLExecuteUnit &unit, OpenCLContext *context, std::string tune_key);
+
 Status CopyBufferToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl::Buffer &buffer,
                          const cl::Image &image, int w, int h, bool need_wait = false);
 
 Status CopyImageToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl::Image &src, const cl::Image &dst,
                         int w, int h, bool need_wait = false, OpenCLProfilingData *pdata = nullptr);
+
+Status CopyBufferToMat(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int buffer_size,
+                       const MatType& mat_type, cl::CommandQueue *command_queue);
+
+Status CopyMatToBuffer(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int buffer_size,
+                       const MatType& mat_type, cl::CommandQueue *command_queue);
 
 uint32_t gcd(uint32_t number1, uint32_t number2);
 
@@ -140,5 +152,11 @@ uint32_t SetExecuteUnit3DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dim
 
 uint32_t SetExecuteUnit2DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims);
 
+uint32_t SetExecuteUnit2DSizeInfoCNH4(OpenCLExecuteUnit &unit, DimsVector dims);
+
+uint32_t SetExecuteUnit2DSizeInfoNCHW(OpenCLExecuteUnit &unit, DimsVector dims);
+
+uint32_t SetExecuteUnit1DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims);
+
 }  // namespace TNN_NS
-#endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILES_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_OPENCL_UTILS_H_

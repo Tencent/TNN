@@ -15,17 +15,26 @@
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 DECLARE_ARM_ACC(SplitV, LAYER_SPLITV);
 
+static DimsVector GetNCXHWXRoundDims(const DimsVector &dims, const int round) {
+    DimsVector round_dims = {dims[0], UP_DIV(dims[1], round)};
+    for (int i = 2; i < dims.size(); ++i) {
+        round_dims.push_back(dims[i]);
+    }
+    round_dims.push_back(round);
+    return round_dims;
+}
+
 // batch || height || width, no channel
 static int splitv_common(Blob *input, const std::vector<Blob *> &outputs, SplitVLayerParam *param) {
     const int axis        = param->axis;
     auto input_dims       = input->GetBlobDesc().dims;
-    auto round_input_dims = {input_dims[0], UP_DIV(input_dims[1], 4), input_dims[2], input_dims[3], 4};  // 5 dims
+    auto round_input_dims = GetNCXHWXRoundDims(input_dims, 4);
     const int batch       = DimsVectorUtils::Count(round_input_dims, 0, axis);
     const int slice_size  = DimsVectorUtils::Count(round_input_dims, axis + 1);
     const int slice_input = input_dims[axis];
@@ -52,16 +61,16 @@ static int splitv_channel(Blob *input, const std::vector<Blob *> &outputs, Split
     const int axis              = param->axis;
     auto input_dims             = input->GetBlobDesc().dims;
     auto input_data             = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
-    DimsVector round_input_dims = {input_dims[0], UP_DIV(input_dims[1], 4), input_dims[2], input_dims[3], 4};
+    DimsVector round_input_dims = GetNCXHWXRoundDims(input_dims, 4);
 
     int slice_offset = 0;
     for (int i = 0; i < outputs.size(); i++) {
         auto output                  = outputs[i];
         auto output_dims             = output->GetBlobDesc().dims;
-        DimsVector round_output_dims = {output_dims[0], UP_DIV(output_dims[1], 4), output_dims[2], output_dims[3], 4};
+        DimsVector round_output_dims = GetNCXHWXRoundDims(output_dims, 4);
         auto output_data             = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
         const int slice              = output_dims[axis];
-        auto plane                   = output_dims[2] * output_dims[3];
+        auto plane                   = DimsVectorUtils::Count(output_dims, 2);
         for (int b = 0; b < output_dims[0]; b++) {
             auto input_b  = input_data + b * DimsVectorUtils::Count(round_input_dims, 1);
             auto output_b = output_data + b * DimsVectorUtils::Count(round_output_dims, 1);
@@ -100,7 +109,7 @@ static int splitv_channel(Blob *input, const std::vector<Blob *> &outputs, Split
 static int splitv_channel_c4(Blob *input, const std::vector<Blob *> &outputs, SplitVLayerParam *param) {
     const int axis        = param->axis;
     auto input_dims       = input->GetBlobDesc().dims;
-    auto round_input_dims = {input_dims[0], UP_DIV(input_dims[1], 4), input_dims[2], input_dims[3], 4};  // 5 dims
+    auto round_input_dims = GetNCXHWXRoundDims(input_dims, 4);
     const int batch       = DimsVectorUtils::Count(round_input_dims, 0, axis);
     const int slice_size  = DimsVectorUtils::Count(round_input_dims, axis + 1);
     // different from split common, treat 4 element in channel as one
@@ -167,5 +176,6 @@ Status ArmSplitVLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 }
 
 REGISTER_ARM_ACC(SplitV, LAYER_SPLITV);
+REGISTER_ARM_LAYOUT(LAYER_SPLITV, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

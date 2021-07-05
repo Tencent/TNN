@@ -15,7 +15,7 @@
 #include "tnn/core/mat.h"
 
 #include "tnn/core/abstract_device.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -37,11 +37,11 @@ void* Mat::GetData() {
 }
 
 DimsVector Mat::GetDims() {
-    return dims_;;
+    return dims_;
 }
 
 int Mat::GetDim(int index) {
-    if (index >= 0 && index <dims_.size()) {
+    if ( (index >= 0) && (index < (int)dims_.size()) ) {
         return dims_[index];
     } else {
         return 0;
@@ -66,12 +66,15 @@ int Mat::GetWidth() {
 
 Mat::Mat(DeviceType device_type, MatType mat_type, DimsVector dims) {
     dims_ = dims;
-    
+
     auto device = GetDevice(device_type);
     ASSERT(device != NULL);
 
     int count = DimsVectorUtils::Count(dims);
-    ASSERT(count > 0);
+    if (count < 0) {
+        LOGE("Mat::Mat has invalid dims with count < 0\n");
+    }
+    ASSERT(count >= 0);
 
     device_type_     = device_type;
     mat_type_        = mat_type;
@@ -93,12 +96,19 @@ Mat::Mat(DeviceType device_type, MatType mat_type, DimsVector dims) {
 
 Mat::Mat(DeviceType device_type, MatType mat_type, DimsVector dims, void* data) {
     dims_ = dims;
-    
+
     data_alloc_ = nullptr;
 
     device_type_ = device_type;
     mat_type_    = mat_type;
     data_        = data;
+}
+
+Mat::Mat(DeviceType device_type, MatType mat_type) {
+    device_type_ = device_type;
+    mat_type_    = mat_type;
+    data_ = nullptr;
+    data_alloc_ = nullptr;
 }
 
 }  // namespace TNN_NS

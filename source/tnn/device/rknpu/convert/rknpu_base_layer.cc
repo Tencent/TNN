@@ -16,6 +16,8 @@
 
 #include <mutex>
 
+#include "tnn/utils/npu_common_utils.h"
+
 namespace TNN_NS {
 
 RknpuBaseLayer::RknpuBaseLayer(LayerType type) {
@@ -55,38 +57,33 @@ Status RknpuBaseLayer::GetOutputShape(int i, std::vector<int> &output_shape) {
 }
 
 Status RknpuBaseLayer::CalculateOutputShape(std::vector<std::vector<int>> &output_shapes) {
-    BaseLayer *shape_calculator = CreateLayer(type_);
+    std::vector<BlobDesc> blob_descs;
     std::vector<Blob *> input_blobs;
-    BlobDesc blob_desc;
+    std::vector<Blob *> output_blobs;
+
+    blob_descs.clear();
     for (auto &input_op : input_ops_) {
-        blob_desc.dims.clear();
+        BlobDesc blob_desc;
         for (auto dim : input_op->GetDims())
             blob_desc.dims.push_back((int)dim);
-        Blob *blob = new Blob(blob_desc);
-        input_blobs.push_back(blob);
+        blob_descs.emplace_back(blob_desc);
     }
-    std::vector<Blob *> output_blobs;
-    for (int i = 0; i < outputs_name_.size(); i++) {
-        Blob *blob = new Blob(blob_desc);
-        output_blobs.push_back(blob);
-    }
-    Status ret = shape_calculator->InferShapeAhead(input_blobs, output_blobs, param_, resource_);
-    if (ret == TNN_OK) {
-        for (int i = 0; i < outputs_name_.size(); i++) {
-            output_shapes.push_back(output_blobs[i]->GetBlobDesc().dims);
-        }
-    }
+    RETURN_ON_NEQ(NpuCommonUtils::CreateBlobs(blob_descs, input_blobs), TNN_OK);
 
-    for (auto &blob : input_blobs) {
-        delete (blob);
+    blob_descs.clear();
+    for (int i = 0; i < outputs_name_.size(); i++) {
+        BlobDesc blob_desc;
+        blob_descs.emplace_back(blob_desc);
     }
-    for (auto &blob : output_blobs) {
-        delete (blob);
-    }
-    input_blobs.clear();
-    output_blobs.clear();
-    delete (shape_calculator);
-    return ret;
+    RETURN_ON_NEQ(NpuCommonUtils::CreateBlobs(blob_descs, output_blobs), TNN_OK);
+
+    RETURN_ON_NEQ(NpuCommonUtils::CalculateOutputShape(type_, input_blobs, output_blobs, param_, resource_,
+                                                       outputs_name_, output_shapes),
+                  TNN_OK);
+
+    RETURN_ON_NEQ(NpuCommonUtils::ReleaseBlobs(input_blobs, output_blobs), TNN_OK);
+
+    return TNN_OK;
 }
 
 std::vector<std::shared_ptr<rk::nn::Tensor>> &RknpuBaseLayer::GetOutputOps() {

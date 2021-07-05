@@ -37,6 +37,10 @@ public:
 protected:
     id<MTLBuffer> buffer_weight_ = nil;
     int axis_ = 1;
+    bool multi_axis_ = false;
+    bool need_reformat_ = false;
+    id<MTLBuffer> buffer_output_ = nil;
+    id<MTLBuffer> buffer_reformat_ = nil;
 };
 
 #define DECLARE_METAL_REDUCE_ACC(type_string, layer_type)                                                              \

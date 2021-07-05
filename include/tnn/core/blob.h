@@ -21,6 +21,7 @@
 
 #include "tnn/core/common.h"
 #include "tnn/core/macro.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4251)
@@ -29,9 +30,9 @@ namespace TNN_NS {
 
 //@brief BlobDesc blob data info
 struct PUBLIC BlobDesc {
-    // deivce_type describes devie cpu, gpu, ...
+    // device_type describes device cpu, gpu, ...
     DeviceType device_type = DEVICE_NAIVE;
-    // data_type describes data precion fp32, in8, ...
+    // data_type describes data precision fp32, in8, ...
     DataType data_type = DATA_TYPE_FLOAT;
     // data_format describes data order nchw, nhwc, ...
     DataFormat data_format = DATA_FORMAT_AUTO;
@@ -39,12 +40,16 @@ struct PUBLIC BlobDesc {
     DimsVector dims;
     // name describes the blob name
     std::string name = "";
+    
+    std::string description(bool all_message = false);
 };
 
 struct PUBLIC BlobHandle {
     void *base            = NULL;
     uint64_t bytes_offset = 0;
 };
+
+class BlobImpl;
 
 // @brief Blob tnn data store and transfer interface.
 class PUBLIC Blob {
@@ -57,9 +62,9 @@ public:
     //@brief create Blob with blob descript and data handle
     Blob(BlobDesc desc, BlobHandle handle);
 
-    ~Blob();    
+    virtual ~Blob();
 
-    //@brief retrun blob desc
+    //@brief return blob desc
     BlobDesc &GetBlobDesc();
 
     //@brief set blob description
@@ -73,14 +78,22 @@ public:
     //@param handle to the stored data
     void SetHandle(BlobHandle handle);
 
-private:
-    BlobDesc desc_;
-    BlobHandle handle_;
-    bool alloc_memory_;
+    //@brief allocate blob handle in forward
+    bool NeedAllocateInForward();
+    
+    //@brief check if it is constant
+    bool IsConstant();
+
+    int GetFlag();
+
+    void SetFlag(int flag);
+private: 
+    BlobImpl* impl_;
 };
 
-// InputShapeMap input rereshape info
-using InputShapesMap = std::map<std::string, DimsVector>;
+// InputShapeMap input reshape info
+using InputShapesMap   = std::map<std::string, DimsVector>;
+using InputDataTypeMap = std::map<std::string, DataType>;
 
 using BlobMap = std::map<std::string, Blob *>;
 

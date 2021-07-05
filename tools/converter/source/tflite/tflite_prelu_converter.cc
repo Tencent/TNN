@@ -54,15 +54,15 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
 
     auto tf_lite_op_type = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
     if (tf_lite_op_type == tflite::BuiltinOperator_LEAKY_RELU) {
-        param->channel_shared = 1;
-        param->has_filler     = 0;
-        auto option = tf_lite_operator->builtin_options.AsLeakyReluOptions();
-        auto alpha = option->alpha;
+        param->channel_shared          = 1;
+        param->has_filler              = 0;
+        auto option                    = tf_lite_operator->builtin_options.AsLeakyReluOptions();
+        auto alpha                     = option->alpha;
         auto layer_resource            = new TNN_NS::PReluLayerResource;
         layer_resource->name           = cur_layer->name;
-        TNN_NS::RawBuffer slope_handle = TNN_NS::RawBuffer(1 * sizeof(float ));
-        ::memcpy(slope_handle.force_to<float*>(), &alpha, 1 * sizeof(float ));
-        layer_resource->slope_handle = slope_handle;
+        TNN_NS::RawBuffer slope_handle = TNN_NS::RawBuffer(1 * sizeof(float));
+        ::memcpy(slope_handle.force_to<float*>(), &alpha, 1 * sizeof(float));
+        layer_resource->slope_handle               = slope_handle;
         net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
     } else if (tf_lite_op_type == tflite::BuiltinOperator_PRELU) {
         ASSERT(input_size == 2);

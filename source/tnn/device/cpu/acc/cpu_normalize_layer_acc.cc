@@ -18,11 +18,15 @@
 #include <limits.h>
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 DECLARE_CPU_ACC(Normalize, LAYER_NORMALIZE);
+
+bool CheckNormalizeLayerParam(const int p, const int axis, const int across_spatial) {
+    return (p != 1 && p != 2 && p != INT_MAX && p != INT_MIN) || axis != 1 || across_spatial != 0;
+}
 
 Status CpuNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
@@ -47,7 +51,7 @@ Status CpuNormalizeLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     int channel_shared = layer_param->channel_shared;
 
     // old tnn support scale the result of normalize and only norm2
-    if ((p != 1 && p != 2 && p != INT_MAX && p != INT_MIN) || axis != 1 || across_spatial != 0) {
+    if (CheckNormalizeLayerParam(p, axis, across_spatial)) {
         LOGE("Error: layer param is not supported now\n");
         return Status(TNNERR_INST_ERR, "Error: layer param is not supported now");
     }
@@ -109,8 +113,8 @@ Status CpuNormalizeLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         }
         delete[] denominator;
     } else {
-        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuNormalizeLayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuNormalizeLayerAcc layer acc dont support datatype");
     }
 
     return TNN_OK;

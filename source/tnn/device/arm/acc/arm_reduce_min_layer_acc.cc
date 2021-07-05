@@ -47,5 +47,6 @@ typedef struct arm_reduce_min_operator : arm_reduce_operator {
 
 DECLARE_ARM_REDUCE_ACC(ReduceMin, ARM_REDUCE_MIN_OP);
 REGISTER_ARM_ACC(ReduceMin, LAYER_REDUCE_MIN);
+REGISTER_ARM_LAYOUT(LAYER_REDUCE_MIN, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

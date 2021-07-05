@@ -30,15 +30,15 @@ Status NpuPadLayer::Convert() {
     std::vector<int> paddings = {
         0, 0, param->pads[4], param->pads[5], param->pads[2], param->pads[3], param->pads[0], param->pads[1]};
     std::shared_ptr<ge::op::Const> paddings_const = std::make_shared<ge::op::Const>(layer_name_ + "_paddings");
-    ge::TensorDesc desc(hiai::Shape({4, 2}), hiai::FORMAT_NCHW, hiai::DT_INT32);
+    ge::TensorDesc desc(ge::Shape({4, 2}), ge::FORMAT_NCHW, ge::DT_INT32);
     NpuUtils::CreateAttrArray(paddings_const, paddings, desc, 8);
     weight_ops_.push_back(paddings_const);
 
     if (param->type == 0) {
         // values
-        std::vector<float> const_val                     = {param->value};
+        std::vector<float> const_val                   = {param->value};
         std::shared_ptr<ge::op::Const> const_val_const = std::make_shared<ge::op::Const>(layer_name_ + "_values");
-        ge::TensorDesc const_desc(hiai::Shape({1}), hiai::FORMAT_NCHW, hiai::DT_FLOAT);
+        ge::TensorDesc const_desc(ge::Shape({1}), ge::FORMAT_NCHW, ge::DT_FLOAT);
         NpuUtils::CreateAttrArray(const_val_const, const_val, const_desc, 1);
         weight_ops_.push_back(const_val_const);
 

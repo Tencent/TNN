@@ -26,7 +26,7 @@
 
 namespace TNN_NS {
 
-enum GpuType { OTHER = 0, ADRENO = 1, MALI = 2, MALI_T = 3, MALI_G = 4 };
+enum GpuType { OTHER = 0, ADRENO = 1, MALI = 2, MALI_T = 3, MALI_G = 4, INTEL_GPU = 5, NVIDIA_GPU = 6};
 
 struct GpuInfo {
     GpuType type = OTHER;
@@ -54,22 +54,29 @@ public:
     uint64_t DeviceGlobalMemeryCacheSize() const;
     uint32_t DeviceComputeUnits() const;
     uint32_t DeviceMaxFreq() const;
+    uint64_t DeviceLocalMemerySize() const;
     uint64_t GetMaxWorkGroupSize(const cl::Kernel &kernel);
     uint32_t GetSubGroupSize(const cl::Kernel &kernel, const cl::NDRange &range = cl::NullRange);
     GpuInfo GetGpuInfo();
-    bool GetFp16Enable() const;
-    bool SetFp16Enable(bool enable);
-    void SetPrecision(Precision precision);
+    std::vector<size_t> GetImage2dMaxSize();
+    bool SetPrecision(Precision precision);
+    void SetCachePath(const std::string &cache_path);
+    Precision GetPrecision();
+
 
     Status BuildKernel(cl::Kernel &kernel, const std::string &program_name, const std::string &kernel_name,
                        const std::set<std::string> &build_options);
+    Status SaveProgramCache();
 
 private:
     OpenCLRuntime();
     GpuInfo ParseGpuInfo(std::string device_name, std::string device_version);
+    Status SearchGpuDevice(std::shared_ptr<cl::Device>& device);
 
     bool LoadProgram(const std::string &program_name, cl::Program *program);
     bool BuildProgram(const std::string &build_options, cl::Program *program);
+
+    Status LoadProgramCache();
 
 private:
     static std::shared_ptr<OpenCLRuntime> opencl_runtime_singleton_;
@@ -79,15 +86,22 @@ private:
 
     std::shared_ptr<cl::Context> context_ = nullptr;
     std::shared_ptr<cl::Device> device_ = nullptr;
-    std::map<std::string, cl::Program> program_map_ = {};
+    std::map<std::pair<std::string, std::string>, cl::Program> program_map_ = {};
     uint64_t global_memery_cachesize_ = 0;
     uint32_t compute_units_ = 0;
     uint32_t max_freq_ = 0;
+    uint64_t local_memory_size_ = 0;
     std::string default_build_opts_ = "";
     GpuInfo gpu_info_;
     bool support_fp16_ = false;
     bool fp16_enable_ = false;
     Precision precision_ = PRECISION_AUTO;
+    std::string cache_path_ = "";
+    std::string program_cache_file_path_ = "";
+    bool is_program_cache_changed_ = false;
+    std::map<std::pair<std::string, std::string>, std::vector<std::string> > kernel_name_map_ = {};
+
+    std::vector<size_t> image_2d_max_size_;
 };
 
 }  // namespace TNN_NS

@@ -19,10 +19,9 @@ cd build_aarch64_linux
 cmake ${TNN_ROOT_PATH} \
     -DCMAKE_SYSTEM_NAME=Linux  \
     -DTNN_TEST_ENABLE=ON \
-    -DTNN_CPU_ENABLE=OFF \
+    -DTNN_CPU_ENABLE=ON \
     -DCMAKE_C_COMPILER=$CC \
     -DCMAKE_CXX_COMPILER=$CXX \
-    -DCMAKE_BUILD_TYPE=Debug \
     -DTNN_ARM_ENABLE:BOOL=$ARM \
     -DTNN_OPENMP_ENABLE:BOOL=$OPENMP \
     -DTNN_OPENCL_ENABLE:BOOL=$OPENCL \
@@ -34,5 +33,11 @@ cmake ${TNN_ROOT_PATH} \
 
 
 make -j4
+
+# check compile error, or ci will not stop
+if [ 0 -ne $? ]
+then
+    exit -1
+fi
 
 ctest --output-on-failure -j 2

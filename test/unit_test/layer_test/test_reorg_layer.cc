@@ -15,11 +15,12 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-class ReorgLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int, bool>> {};
+class ReorgLayerTest : public LayerTest,
+                       public ::testing::WithParamInterface<std::tuple<int, int, int, int, bool, int>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReorgLayerTest,
                          ::testing::Combine(testing::Values(1, 2), testing::Values(36, 72),
@@ -27,7 +28,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ReorgLayerTest,
                                             // stride
                                             testing::Values(2, 3),
                                             // reverse
-                                            testing::Values(true, false)));
+                                            testing::Values(true, false), testing::Values(0, 1)));
 
 TEST_P(ReorgLayerTest, ReorgLayer) {
     // get param
@@ -35,25 +36,34 @@ TEST_P(ReorgLayerTest, ReorgLayer) {
     int channel    = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam());
     int stride     = std::get<3>(GetParam());
-    bool reverse   = std::get<4>(GetParam());
-
+    bool forward   = std::get<4>(GetParam());
+    int mode       = std::get<5>(GetParam());  // 0 : DCR, 1: CRD
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_METAL == dev) {
+    if (DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
+
+    if (DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
+
+    if (mode == 1 && forward == 0) {
+        // illegal case
+        GTEST_SKIP();
+    }
 
     // param
-    ReorgLayerParam param;
-    param.name    = "Reorg";
-    param.stride  = stride;
-    param.reverse = reverse;
+    std::shared_ptr<ReorgLayerParam> param(new ReorgLayerParam());
+    param->name    = "Reorg";
+    param->stride  = stride;
+    param->forward = forward;
+    param->mode    = mode;
 
-    // resource
-    Run(LAYER_REORG, &param, NULL, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Reorg", {input_dims}, param);
+    Run(interpreter);
 }
 
 }  // namespace TNN_NS

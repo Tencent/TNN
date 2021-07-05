@@ -14,46 +14,23 @@
 
 #include <graph/op/all_ops.h>
 #include <tnn/core/status.h>
+#include "npu_binary_layer_convert.h"
 #include "tnn/device/huawei_npu/convert/npu_base_layer_convert.h"
 #include "tnn/device/huawei_npu/convert/npu_utils.h"
+#include "tnn/utils/npu_common_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_NPU_LAYER_WEIGHT(Mul, LAYER_MUL)
+class NpuMulLayer : public NpuBinaryLayer {
+public:
+    NpuMulLayer(LayerType ignore) : NpuBinaryLayer(LAYER_MUL) {}
+    ~NpuMulLayer() {}
 
-Status NpuMulLayer::Convert() {
-    auto param    = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
-    auto resource = dynamic_cast<EltwiseLayerResource *>(resource_);
-    CHECK_PARAM_NULL(param);
-
-    int input_size = input_ops_.size();
-    if (!((input_size == 1 && resource) || input_size == 2)) {
-        return Status(TNNERR_MODEL_ERR, "Error: the Multiply layer input number is not correct");
+protected:
+    Status Convert() {
+        return NpuBinaryLayer::BinaryConvert<hiai::op::Mul>();
     }
-
-    auto output   = std::make_shared<ge::op::Mul>(outputs_name_[0]);
-
-    if (input_size == 2) {
-        output->set_input_x(*input_ops_[0]->GetOperator());
-        output->set_input_y(*input_ops_[1]->GetOperator());
-    } else {
-        auto weight_const             = std::make_shared<ge::op::Const>(layer_name_ + "_weight");
-        std::vector<int> weight_shape = resource->element_shape;
-        std::vector<int> input_shape  = input_ops_[0]->GetShape();
-        Status calculate_ret          = NpuUtils::CalculateBroadcastSize(weight_shape, resource, input_shape);
-        if (calculate_ret != TNN_OK) {
-            return calculate_ret;
-        }
-        ge::Shape weight_shape_op({weight_shape[0], weight_shape[1], weight_shape[2], weight_shape[3]});
-        NpuUtils::CreateAttrValue(weight_const, weight_shape_op, resource->element_handle);
-        weight_ops_.push_back(weight_const);
-
-        output->set_input_x(*weight_const);
-        output->set_input_y(*input_ops_[0]->GetOperator());
-    }
-
-    ADD_OUTPUT_OP(output)
-}
+};
 
 REGISTER_NPU_LAYER(Mul, LAYER_MUL)
 

@@ -18,7 +18,6 @@
 #include <algorithm>
 #include <string>
 #include <unordered_set>
-#include <sys/time.h>
 
 
 namespace TNN_NS {
@@ -33,22 +32,7 @@ MatConvertParam ObjectDetectorYolo::GetConvertParamForInput(std::string name) {
 
 std::shared_ptr<Mat> ObjectDetectorYolo::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat,
                                                                    std::string name) {
-    auto target_dims = GetInputShape(name);
-    auto input_height = input_mat->GetHeight();
-    auto input_width = input_mat->GetWidth();
-    if (target_dims.size() >= 4 &&
-        (input_height != target_dims[2] || input_width != target_dims[3])) {
-        auto target_mat = std::make_shared<TNN_NS::Mat>(input_mat->GetDeviceType(),
-                                                        input_mat->GetMatType(), target_dims);
-        auto status = Resize(input_mat, target_mat, TNNInterpLinear);
-        if (status == TNN_OK) {
-            return target_mat;
-        } else {
-            LOGE("%s\n", status.description().c_str());
-            return nullptr;
-        }
-    }
-    return input_mat;
+    return TNNSDKSample::ResizeToInputShape(input_mat, name);
 }
 
 std::shared_ptr<TNNSDKOutput> ObjectDetectorYolo::CreateSDKOutput() {
@@ -83,49 +67,7 @@ Status ObjectDetectorYolo::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output
 }
 
 void ObjectDetectorYolo::NMS(std::vector<ObjectInfo>& objs, std::vector<ObjectInfo>& results) {
-    std::sort(objs.begin(), objs.end(), [](const ObjectInfo &a, const ObjectInfo &b) { return a.score > b.score; });
-    
-    results.clear();
-    auto box_num = objs.size();
-    std::vector<int> merged(box_num, 0);
-
-    for (int i = 0; i < box_num; i++) {
-        if (merged[i])
-            continue;
-
-        merged[i] = 1;
-        float h0 = objs[i].y2 - objs[i].y1 + 1;
-        float w0 = objs[i].x2 - objs[i].x1 + 1;
-        float area0 = h0 * w0;
-
-        for (int j = i + 1; j < box_num; j++) {
-            if (merged[j])
-                continue;
-
-            float inner_x0 = objs[i].x1 > objs[j].x1 ? objs[i].x1 : objs[j].x1;
-            float inner_y0 = objs[i].y1 > objs[j].y1 ? objs[i].y1 : objs[j].y1;
-
-            float inner_x1 = objs[i].x2 < objs[j].x2 ? objs[i].x2 : objs[j].x2;
-            float inner_y1 = objs[i].y2 < objs[j].y2 ? objs[i].y2 : objs[j].y2;
-
-            float inner_h = inner_y1 - inner_y0 + 1;
-            float inner_w = inner_x1 - inner_x0 + 1;
-
-            if (inner_h <= 0 || inner_w <= 0)
-                continue;
-
-            float inner_area = inner_h * inner_w;
-            float h1 = objs[j].y2 - objs[j].y1 + 1;
-            float w1 = objs[j].x2 - objs[j].x1 + 1;
-            float area1 = h1 * w1;
-            float iou = inner_area / (area0 + area1 - inner_area);
-
-            if (iou > iou_threshold_) {
-                merged[j] = 1;
-            }
-        }
-        results.push_back(objs[i]);
-    }
+    ::TNN_NS::NMS(objs, results, iou_threshold_, TNNHardNMS);
 }
 
 ObjectDetectorYolo::~ObjectDetectorYolo() {}

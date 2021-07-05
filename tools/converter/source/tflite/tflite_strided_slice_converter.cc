@@ -28,7 +28,7 @@ tflite::ActivationFunctionType TFLiteStridedSliceConverter::ActivationType(
 }
 
 TNN_NS::Status TFLiteStridedSliceConverter::exec(
-    tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+    TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
     const std::unique_ptr<tflite::OperatorT> &tf_lite_operator,
     const std::vector<std::unique_ptr<tflite::TensorT>> &tf_lite_tensors,
     const std::vector<std::unique_ptr<tflite::BufferT>> &tf_lite_model_buffer,
@@ -41,7 +41,7 @@ TNN_NS::Status TFLiteStridedSliceConverter::exec(
     parm->quantized  = false;
     auto option      = tf_lite_operator->builtin_options.AsStridedSliceOptions();
     ASSERT(tf_lite_operator->inputs.size() >= 3);
-    auto& input_tensor = tf_lite_tensors[tf_lite_operator->inputs[0]];
+    auto &input_tensor = tf_lite_tensors[tf_lite_operator->inputs[0]];
     auto &begin_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
     auto begin_size =
         tf_lite_model_buffer[begin_tensor->buffer]->data.size() / SizeofTFLiteTensorData(begin_tensor->type);

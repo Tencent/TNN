@@ -89,7 +89,10 @@ def main():
     net_output = helper.make_tensor_value_info(net_layers[-1]['top'], TensorProto.FLOAT, [net_output_shape_dict['n'], net_output_shape_dict['k'], net_output_shape_dict['h'], net_output_shape_dict['w']])
     net_outputes = [net_output]
 
-    net_output_name = net_layers[-2]['top']
+    # check the model.espresso.net file to adjust the index #
+    print('check the model.espresso.net file to adjust the index')
+    # net_output_name = net_layers[-2]['top']
+    net_output_name = net_layers[-1]['top']
     if net_output_name.isdigit() != True:
         net_output2_shape_dict = net_layer_shapes[net_output_name]
         net_output2 = helper.make_tensor_value_info(net_output_name, TensorProto.FLOAT, [net_output2_shape_dict['n'], net_output2_shape_dict['k'], net_output2_shape_dict['h'], net_output2_shape_dict['w']])
@@ -106,7 +109,11 @@ def main():
     #创建nodes NodeProto
     onnx_net_nodes = []
     onnx_net_weights = []
-    layer_info = net_layers[1]
+
+    # check the model.espresso.net file to adjust the index #
+    print('check the model.espresso.net file to adjust the index')
+    # layer_info = net_layers[1]
+    layer_info = net_layers[0]
 
     for layer_info in net_layers:
         print(layer_info['type'])
@@ -287,31 +294,60 @@ def main():
                                           )
             onnx_net_nodes.append(layer_node)
         elif layer_info['type'] == 'activation':
+            node_inputs = layer_info['bottom'].split(',')
+            node_outputs = layer_info['top'].split(',')
+
             activation_mode = layer_info['mode']
             if activation_mode == 0:
-                node_type = 'Relu'
+                layer_node = helper.make_node('Relu',  # node type
+                 node_inputs,  # inputs
+                  node_outputs,  # outputs
+                  )
             elif activation_mode == 1:
-                node_type = 'Tanh'
+                layer_node = helper.make_node('Tanh',  # node type
+                 node_inputs,  # inputs
+                  node_outputs,  # outputs
+                  )
             elif activation_mode == 2:
-                node_type = 'LeakyRelu'
+                layer_node = helper.make_node('LeakyRelu',  # node type
+                 node_inputs,  # inputs
+                  node_outputs,  # outputs
+                  )
             elif activation_mode == 3:
-                node_type = 'Sigmoid'
+                layer_node = helper.make_node('Sigmoid',  # node type
+                 node_inputs,  # inputs
+                  node_outputs,  # outputs
+                  )
             elif activation_mode == 4:
-                node_type = 'PRelu'
+                layer_node = helper.make_node('PRelu',  # node type
+                 node_inputs,  # inputs
+                  node_outputs,  # outputs
+                  )
             elif activation_mode == 8:
-                node_type = 'Elu'
+                layer_node = helper.make_node('Elu',  # node type
+                 node_inputs,  # inputs
+                  node_outputs,  # outputs
+                  )
+            elif activation_mode == 9:
+                layer_node = helper.make_node('ThresholdedRelu',  # node type
+                 node_inputs,  # inputs
+                  node_outputs,  # outputs
+                  alpha = layer_info['alpha']
+                  )
             elif activation_mode == 10:
-                node_type = 'Softplus'
+                layer_node = helper.make_node('Softplus',  # node type
+                 node_inputs,  # inputs
+                  node_outputs,  # outputs
+                  )
+            elif activation_mode == 12:
+                layer_node = helper.make_node('Softsign',  # node type
+                 node_inputs,  # inputs
+                  node_outputs,  # outputs
+                  )
             else:
                 print('Error: unsupported activation mode: ' + str(activation_mode))
                 assert(0)
 
-            node_inputs = layer_info['bottom'].split(',')
-            node_outputs = layer_info['top'].split(',')
-            layer_node = helper.make_node(node_type,  # node type
-                                          node_inputs,  # inputs
-                                          node_outputs,  # outputs
-                                          )
             onnx_net_nodes.append(layer_node)
         elif layer_info['type'] == 'load_constant':
             # constant_blob
@@ -332,7 +368,7 @@ def main():
 
     #创建model (ModelProto)
     # onnx_model = helper.make_model(graph_def, producer_name='YouTu Tencent')
-    onnx_model = helper.make_model(graph_def, producer_name='YouTu Tencent', opset_imports=[helper.make_operatorsetid("", 9)])
+    onnx_model = helper.make_model(graph_def, producer_name='YouTu Tencent', opset_imports=[helper.make_operatorsetid("", 12)])
 
     # print('The model is:\n{}'.format(onnx_model))
     onnx.checker.check_model(onnx_model)

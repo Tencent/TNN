@@ -39,5 +39,6 @@ std::set<std::string> OpenCLLogLayerAcc::CreateBuildOptions() {
 OpenCLLogLayerAcc::~OpenCLLogLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Log, LAYER_LOG)
+REGISTER_OPENCL_LAYOUT(LAYER_LOG, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

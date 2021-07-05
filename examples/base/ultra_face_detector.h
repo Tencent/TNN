@@ -24,8 +24,7 @@
 
 namespace TNN_NS {
 
-struct FaceInfo : ObjectInfo {
-} ;
+typedef ObjectInfo FaceInfo;
 
 class UltraFaceDetectorInput : public TNNSDKInput {
 public:
@@ -68,7 +67,7 @@ private:
                       int image_w, int image_h,
                       float score_threshold, int num_anchors);
 
-    void NMS(std::vector<FaceInfo> &input, std::vector<FaceInfo> &output, float iou_threshold, int type = 2);
+    void NMS(std::vector<FaceInfo> &input, std::vector<FaceInfo> &output, float iou_threshold, TNNNMSType type = TNNBlendingNMS);
     
 private:
     int num_anchors;

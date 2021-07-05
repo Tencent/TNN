@@ -35,7 +35,7 @@ namespace ncnn {
 
         auto& p               = param_dict;
         layer_param->channels = GetInt(p, 0, 0);
-        layer_param->eps      = GetFloat(p, 1, 0.01f);
+        layer_param->eps      = GetFloat(p, 1, 1e-5f);
 
         return TNN_OK;
     }

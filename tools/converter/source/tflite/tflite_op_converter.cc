@@ -37,21 +37,23 @@ TFLiteOpConverterManager::~TFLiteOpConverterManager() {
         delete it.second;
     }
     tf_lite_op_converter_map_.clear();
+    delete tf_lite_op_converter_manager_;
 }
 
 void TFLiteOpConverterManager::insert(const tflite::BuiltinOperator op_index, TFLiteOpConverter* t) {
     tf_lite_op_converter_map_.insert(std::make_pair(op_index, t));
 }
 
-TNN_NS::Status TFLiteOpConverter::SeparateActivation(tnn::NetStructure& net_structure,
+TNN_NS::Status TFLiteOpConverter::SeparateActivation(TNN_NS::NetStructure& net_structure,
                                                      tflite::ActivationFunctionType activation_function_type) {
-    if (activation_function_type == tflite::ActivationFunctionType_NONE) {
+    auto& layers = net_structure.layers;
+    auto& layer  = layers.back();
+    if (activation_function_type == tflite::ActivationFunctionType_NONE || layer->type == TNN_NS::LAYER_CONVOLUTION ||
+        layer->type == TNN_NS::LAYER_DECONVOLUTION) {
         return TNN_NS::TNN_CONVERT_OK;
     }
-    auto& layers                         = net_structure.layers;
     const std::string conv_output_suffix = "_output";
     const std::string activation_suffix  = "_activation";
-    auto& layer                          = layers.back();
     if (activation_function_type == tflite::ActivationFunctionType_RELU ||
         activation_function_type == tflite::ActivationFunctionType_RELU6) {
         auto activation_layer = new TNN_NS::LayerInfo;
@@ -78,5 +80,17 @@ TNN_NS::Status TFLiteOpConverter::SeparateActivation(tnn::NetStructure& net_stru
         return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
     }
     return TNN_NS::TNN_CONVERT_OK;
+}
+
+void TFLiteOpConverter::InsertBlobs(TNN_NS::NetStructure& net_structure) {
+    auto& cur_layer = net_structure.layers.back();
+    auto& inputs    = cur_layer->inputs;
+    auto& outputs   = cur_layer->outputs;
+    for (const auto& input_name : inputs) {
+        net_structure.blobs.insert(input_name);
+    }
+    for (const auto& output_name : outputs) {
+        net_structure.blobs.insert(output_name);
+    }
 }
 }  // namespace TNN_CONVERTER

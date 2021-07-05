@@ -58,7 +58,7 @@ namespace ncnn {
         std::vector<float> float_result;
         str_arr param_vec = GetStrList(param, index);
         // start from offset 1; first element is the length
-        for (int i = 1; i < param_vec.size(); i++) {
+        for (size_t i = 1; i < param_vec.size(); i++) {
             float_result.push_back(atof(param_vec[i].c_str()));
         }
         return float_result;
@@ -68,7 +68,7 @@ namespace ncnn {
         std::vector<int> int_result;
         str_arr param_vec = GetStrList(param, index);
         // start from the offset 1; first element is the length
-        for (int i = 1; i < param_vec.size(); i++) {
+        for (size_t i = 1; i < param_vec.size(); i++) {
             int_result.push_back(atoi(param_vec[i].c_str()));
         }
         return int_result;

@@ -14,7 +14,12 @@
 
 #ifdef TNN_USE_OPENCL_WRAPPER
 
+#ifdef WIN32
+#include <windows.h>
+#include <libloaderapi.h>
+#else
 #include <dlfcn.h>
+#endif
 #include <memory>
 #include <string>
 #include <vector>
@@ -36,13 +41,17 @@ static const std::vector<std::string> g_opencl_library_paths = {
     // Mali
     "/system/vendor/lib64/egl/libGLES_mali.so",
     "/system/lib64/egl/libGLES_mali.so",
+    // Pixel Phone
+    "libOpenCL-pixel.so",
 #else
     // Qualcomm Adreno
     "/system/vendor/lib/libOpenCL.so", "/system/lib/libOpenCL.so",
     // Mali
     "/system/vendor/lib/egl/libGLES_mali.so", "/system/lib/egl/libGLES_mali.so",
     // other
-    "/system/vendor/lib/libPVROCL.so", "/data/data/org.pocl.libs/files/lib/libpocl.so"
+    "/system/vendor/lib/libPVROCL.so", "/data/data/org.pocl.libs/files/lib/libpocl.so",
+    // Pixel Phone
+    "libOpenCL-pixel.so",
 #endif
 #elif defined(__linux__)
     "/usr/lib/libOpenCL.so",
@@ -51,6 +60,13 @@ static const std::vector<std::string> g_opencl_library_paths = {
     "/usr/lib64/libOpenCL.so",
     "/usr/lib32/libOpenCL.so",
     "libOpenCL.so"
+#elif defined(_WIN32)
+    // SysWOW64/OpenCL.dll is 32-bit 
+    "C:/Windows/SysWOW64/OpenCL.dll",
+    "C:/Windows/System32/OpenCL.dll"
+#elif defined(_WIN64)
+    "C:/Windows/System32/OpenCL.dll",
+    "C:/Windows/SysWOW64/OpenCL.dll"
 #endif
 };
 
@@ -82,6 +98,7 @@ bool OpenCLSymbols::LoadOpenCLLibrary() {
     }
     for (const auto &opencl_lib : g_opencl_library_paths) {
         if (LoadLibraryFromPath(opencl_lib)) {
+            LOGD("OpenCL Lib Path: %s\n", opencl_lib.c_str());
             return true;
         }
     }
@@ -90,7 +107,11 @@ bool OpenCLSymbols::LoadOpenCLLibrary() {
 
 bool OpenCLSymbols::UnLoadOpenCLLibrary() {
     if (handle_ != nullptr) {
+#ifdef WIN32
+        if (FreeLibrary(handle_) == 0) {
+#else
         if (dlclose(handle_) != 0) {
+#endif
             return false;
         }
         handle_ = nullptr;
@@ -100,18 +121,53 @@ bool OpenCLSymbols::UnLoadOpenCLLibrary() {
 }
 
 bool OpenCLSymbols::LoadLibraryFromPath(const std::string &library_path) {
-    handle_ = dlopen(library_path.c_str(), RTLD_NOW | RTLD_LOCAL);
+#ifdef WIN32
+    handle_ = LoadLibraryA(library_path.c_str());
     if (handle_ == nullptr) {
         return false;
     }
 
-// load function ptr use dlopen and dlsym. if cann't find func_name, will return false.
 #define TNN_LOAD_FUNCTION_PTR(func_name)                                                                               \
-    func_name = reinterpret_cast<func_name##Func>(dlsym(handle_, #func_name));                                         \
+    func_name = reinterpret_cast<func_name##Func>(GetProcAddress(handle_, #func_name));                                         \
     if (func_name == nullptr) {                                                                                        \
         LOGE("load func (%s) from (%s) failed!\n", #func_name, library_path.c_str());                                  \
         return false;                                                                                                  \
     }
+
+#else  // WIN32
+    handle_ = dlopen(library_path.c_str(), RTLD_NOW | RTLD_LOCAL);
+    if (handle_ == nullptr) {
+        return false;
+    }
+    bool is_pixel = library_path == "libOpenCL-pixel.so";
+    typedef void* (*loadOpenCLPointer_t)(const char* name);
+    loadOpenCLPointer_t loadOpenCLPointer;
+    if(is_pixel){
+        typedef void (*enableOpenCL_t)();
+        enableOpenCL_t enableOpenCL = reinterpret_cast<enableOpenCL_t>(dlsym(handle_, "enableOpenCL"));
+        if (enableOpenCL == nullptr) {
+            return false;
+        }
+        enableOpenCL();
+        loadOpenCLPointer = reinterpret_cast<loadOpenCLPointer_t>(dlsym(handle_, "loadOpenCLPointer"));
+        if (loadOpenCLPointer == nullptr) {
+            return false;
+        }
+    }
+
+// load function ptr use dlopen and dlsym. if cann't find func_name, will return false.
+#define TNN_LOAD_FUNCTION_PTR(func_name)                                                                               \
+    if(is_pixel){                                                                                                      \
+        func_name = reinterpret_cast<func_name##Func>(loadOpenCLPointer(#func_name));                                  \
+    } else {                                                                                                           \
+        func_name = reinterpret_cast<func_name##Func>(dlsym(handle_, #func_name));                                     \
+    }                                                                                                                  \
+    if (func_name == nullptr) {                                                                                        \
+        LOGE("load func (%s) from (%s) failed!\n", #func_name, library_path.c_str());                                  \
+        return false;                                                                                                  \
+    }
+
+#endif // end of WIN32
 
     TNN_LOAD_FUNCTION_PTR(clGetPlatformIDs);
     TNN_LOAD_FUNCTION_PTR(clGetPlatformInfo);
@@ -179,14 +235,14 @@ bool OpenCLSymbols::LoadLibraryFromPath(const std::string &library_path) {
 }  // namespace TNN_NS
 
 // clGetPlatformIDs wrapper, use OpenCLSymbols function. use OpenCLSymbols function.
-cl_int clGetPlatformIDs(cl_uint num_entries, cl_platform_id *platforms, cl_uint *num_platforms) {
+cl_int CL_API_CALL clGetPlatformIDs(cl_uint num_entries, cl_platform_id *platforms, cl_uint *num_platforms) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetPlatformIDs;
     CHECK_NOTNULL(func);
     return func(num_entries, platforms, num_platforms);
 }
 
 //clGetPlatformInfo wrapper, use OpenCLSymbols function. use OpenCLSymbols function.
-cl_int clGetPlatformInfo(cl_platform_id platform, cl_platform_info param_name, size_t param_value_size,
+cl_int CL_API_CALL clGetPlatformInfo(cl_platform_id platform, cl_platform_info param_name, size_t param_value_size,
                          void *param_value, size_t *param_value_size_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetPlatformInfo;
     CHECK_NOTNULL(func);
@@ -194,7 +250,7 @@ cl_int clGetPlatformInfo(cl_platform_id platform, cl_platform_info param_name, s
 }
 
 //clGetDeviceIDs wrapper, use OpenCLSymbols function.
-cl_int clGetDeviceIDs(cl_platform_id platform, cl_device_type device_type, cl_uint num_entries, cl_device_id *devices,
+cl_int CL_API_CALL clGetDeviceIDs(cl_platform_id platform, cl_device_type device_type, cl_uint num_entries, cl_device_id *devices,
                       cl_uint *num_devices) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetDeviceIDs;
     CHECK_NOTNULL(func);
@@ -202,7 +258,7 @@ cl_int clGetDeviceIDs(cl_platform_id platform, cl_device_type device_type, cl_ui
 }
 
 //clGetDeviceInfo wrapper, use OpenCLSymbols function.
-cl_int clGetDeviceInfo(cl_device_id device, cl_device_info param_name, size_t param_value_size, void *param_value,
+cl_int CL_API_CALL clGetDeviceInfo(cl_device_id device, cl_device_info param_name, size_t param_value_size, void *param_value,
                        size_t *param_value_size_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetDeviceInfo;
     CHECK_NOTNULL(func);
@@ -210,7 +266,7 @@ cl_int clGetDeviceInfo(cl_device_id device, cl_device_info param_name, size_t pa
 }
 
 //clCreateContext wrapper, use OpenCLSymbols function.
-cl_context clCreateContext(const cl_context_properties *properties, cl_uint num_devices, const cl_device_id *devices,
+cl_context CL_API_CALL clCreateContext(const cl_context_properties *properties, cl_uint num_devices, const cl_device_id *devices,
                            void(CL_CALLBACK *pfn_notify)(const char *, const void *, size_t, void *), void *user_data,
                            cl_int *errcode_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateContext;
@@ -219,7 +275,7 @@ cl_context clCreateContext(const cl_context_properties *properties, cl_uint num_
 }
 
 //clCreateContextFromType wrapper, use OpenCLSymbols function.
-cl_context clCreateContextFromType(const cl_context_properties *properties, cl_device_type device_type,
+cl_context CL_API_CALL clCreateContextFromType(const cl_context_properties *properties, cl_device_type device_type,
                                    void(CL_CALLBACK *pfn_notify)(const char *, const void *, size_t, void *),
                                    void *user_data, cl_int *errcode_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateContextFromType;
@@ -228,21 +284,21 @@ cl_context clCreateContextFromType(const cl_context_properties *properties, cl_d
 }
 
 //clRetainContext wrapper, use OpenCLSymbols function.
-cl_int clRetainContext(cl_context context) {
+cl_int CL_API_CALL clRetainContext(cl_context context) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clRetainContext;
     CHECK_NOTNULL(func);
     return func(context);
 }
 
 //clReleaseContext wrapper, use OpenCLSymbols function.
-cl_int clReleaseContext(cl_context context) {
+cl_int CL_API_CALL clReleaseContext(cl_context context) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clReleaseContext;
     CHECK_NOTNULL(func);
     return func(context);
 }
 
 //clGetContextInfo wrapper, use OpenCLSymbols function.
-cl_int clGetContextInfo(cl_context context, cl_context_info param_name, size_t param_value_size, void *param_value,
+cl_int CL_API_CALL clGetContextInfo(cl_context context, cl_context_info param_name, size_t param_value_size, void *param_value,
                         size_t *param_value_size_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetContextInfo;
     CHECK_NOTNULL(func);
@@ -250,15 +306,24 @@ cl_int clGetContextInfo(cl_context context, cl_context_info param_name, size_t p
 }
 
 //clCreateProgramWithSource wrapper, use OpenCLSymbols function.
-cl_program clCreateProgramWithSource(cl_context context, cl_uint count, const char **strings, const size_t *lengths,
+cl_program CL_API_CALL clCreateProgramWithSource(cl_context context, cl_uint count, const char **strings, const size_t *lengths,
                                      cl_int *errcode_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateProgramWithSource;
     CHECK_NOTNULL(func);
     return func(context, count, strings, lengths, errcode_ret);
 }
 
+//clCreateProgramWithBinary wrapper, use OpenCLSymbols function.
+cl_program CL_API_CALL clCreateProgramWithBinary(cl_context context, cl_uint count, const cl_device_id *device_list,
+                                     const size_t *length, const unsigned char **buffer,
+                                     cl_int *binary_status, cl_int *errcode_ret) {
+    auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateProgramWithBinary;
+    CHECK_NOTNULL(func);
+    return func(context, count, device_list, length, buffer, binary_status, errcode_ret);
+}
+
 //clGetProgramInfo wrapper, use OpenCLSymbols function.
-cl_int clGetProgramInfo(cl_program program, cl_program_info param_name, size_t param_value_size, void *param_value,
+cl_int CL_API_CALL clGetProgramInfo(cl_program program, cl_program_info param_name, size_t param_value_size, void *param_value,
                         size_t *param_value_size_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetProgramInfo;
     CHECK_NOTNULL(func);
@@ -266,7 +331,7 @@ cl_int clGetProgramInfo(cl_program program, cl_program_info param_name, size_t p
 }
 
 //clGetProgramBuildInfo wrapper, use OpenCLSymbols function.
-cl_int clGetProgramBuildInfo(cl_program program, cl_device_id device, cl_program_build_info param_name,
+cl_int CL_API_CALL clGetProgramBuildInfo(cl_program program, cl_device_id device, cl_program_build_info param_name,
                              size_t param_value_size, void *param_value, size_t *param_value_size_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetProgramBuildInfo;
     CHECK_NOTNULL(func);
@@ -274,21 +339,21 @@ cl_int clGetProgramBuildInfo(cl_program program, cl_device_id device, cl_program
 }
 
 //clRetainProgram wrapper, use OpenCLSymbols function.
-cl_int clRetainProgram(cl_program program) {
+cl_int CL_API_CALL clRetainProgram(cl_program program) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clRetainProgram;
     CHECK_NOTNULL(func);
     return func(program);
 }
 
 //clReleaseProgram wrapper, use OpenCLSymbols function.
-cl_int clReleaseProgram(cl_program program) {
+cl_int CL_API_CALL clReleaseProgram(cl_program program) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clReleaseProgram;
     CHECK_NOTNULL(func);
     return func(program);
 }
 
 //clBuildProgram wrapper, use OpenCLSymbols function.
-cl_int clBuildProgram(cl_program program, cl_uint num_devices, const cl_device_id *device_list, const char *options,
+cl_int CL_API_CALL clBuildProgram(cl_program program, cl_uint num_devices, const cl_device_id *device_list, const char *options,
                       void(CL_CALLBACK *pfn_notify)(cl_program program, void *user_data), void *user_data) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clBuildProgram;
     CHECK_NOTNULL(func);
@@ -296,56 +361,56 @@ cl_int clBuildProgram(cl_program program, cl_uint num_devices, const cl_device_i
 }
 
 //clCreateKernel wrapper, use OpenCLSymbols function.
-cl_kernel clCreateKernel(cl_program program, const char *kernelName, cl_int *errcode_ret) {
+cl_kernel CL_API_CALL clCreateKernel(cl_program program, const char *kernelName, cl_int *errcode_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateKernel;
     CHECK_NOTNULL(func);
     return func(program, kernelName, errcode_ret);
 }
 
 //clRetainKernel wrapper, use OpenCLSymbols function.
-cl_int clRetainKernel(cl_kernel kernel) {
+cl_int CL_API_CALL clRetainKernel(cl_kernel kernel) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clRetainKernel;
     CHECK_NOTNULL(func);
     return func(kernel);
 }
 
 //clReleaseKernel wrapper, use OpenCLSymbols function.
-cl_int clReleaseKernel(cl_kernel kernel) {
+cl_int CL_API_CALL clReleaseKernel(cl_kernel kernel) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clReleaseKernel;
     CHECK_NOTNULL(func);
     return func(kernel);
 }
 
 //clSetKernelArg wrapper, use OpenCLSymbols function.
-cl_int clSetKernelArg(cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value) {
+cl_int CL_API_CALL clSetKernelArg(cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clSetKernelArg;
     CHECK_NOTNULL(func);
     return func(kernel, arg_index, arg_size, arg_value);
 }
 
 //clCreateBuffer wrapper, use OpenCLSymbols function.
-cl_mem clCreateBuffer(cl_context context, cl_mem_flags flags, size_t size, void *host_ptr, cl_int *errcode_ret) {
+cl_mem CL_API_CALL clCreateBuffer(cl_context context, cl_mem_flags flags, size_t size, void *host_ptr, cl_int *errcode_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateBuffer;
     CHECK_NOTNULL(func);
     return func(context, flags, size, host_ptr, errcode_ret);
 }
 
 //clRetainMemObject wrapper, use OpenCLSymbols function.
-cl_int clRetainMemObject(cl_mem memobj) {
+cl_int CL_API_CALL clRetainMemObject(cl_mem memobj) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clRetainMemObject;
     CHECK_NOTNULL(func);
     return func(memobj);
 }
 
 //clReleaseMemObject wrapper, use OpenCLSymbols function.
-cl_int clReleaseMemObject(cl_mem memobj) {
+cl_int CL_API_CALL clReleaseMemObject(cl_mem memobj) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clReleaseMemObject;
     CHECK_NOTNULL(func);
     return func(memobj);
 }
 
 //clGetImageInfo wrapper, use OpenCLSymbols function.
-cl_int clGetImageInfo(cl_mem image, cl_image_info param_name, size_t param_value_size, void *param_value,
+cl_int CL_API_CALL clGetImageInfo(cl_mem image, cl_image_info param_name, size_t param_value_size, void *param_value,
                       size_t *param_value_size_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetImageInfo;
     CHECK_NOTNULL(func);
@@ -353,21 +418,21 @@ cl_int clGetImageInfo(cl_mem image, cl_image_info param_name, size_t param_value
 }
 
 //clRetainCommandQueue wrapper, use OpenCLSymbols function.
-cl_int clRetainCommandQueue(cl_command_queue command_queue) {
+cl_int CL_API_CALL clRetainCommandQueue(cl_command_queue command_queue) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clRetainCommandQueue;
     CHECK_NOTNULL(func);
     return func(command_queue);
 }
 
 //clReleaseCommandQueue wrapper, use OpenCLSymbols function.
-cl_int clReleaseCommandQueue(cl_command_queue command_queue) {
+cl_int CL_API_CALL clReleaseCommandQueue(cl_command_queue command_queue) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clReleaseCommandQueue;
     CHECK_NOTNULL(func);
     return func(command_queue);
 }
 
 //clEnqueueReadBuffer wrapper, use OpenCLSymbols function.
-cl_int clEnqueueReadBuffer(cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_read, size_t offset,
+cl_int CL_API_CALL clEnqueueReadBuffer(cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_read, size_t offset,
                            size_t size, void *ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list,
                            cl_event *event) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueReadBuffer;
@@ -377,7 +442,7 @@ cl_int clEnqueueReadBuffer(cl_command_queue command_queue, cl_mem buffer, cl_boo
 }
 
 //clEnqueueWriteBuffer wrapper, use OpenCLSymbols function.
-cl_int clEnqueueWriteBuffer(cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_write, size_t offset,
+cl_int CL_API_CALL clEnqueueWriteBuffer(cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_write, size_t offset,
                             size_t size, const void *ptr, cl_uint num_events_in_wait_list,
                             const cl_event *event_wait_list, cl_event *event) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueWriteBuffer;
@@ -387,7 +452,7 @@ cl_int clEnqueueWriteBuffer(cl_command_queue command_queue, cl_mem buffer, cl_bo
 }
 
 //clEnqueueMapBuffer wrapper, use OpenCLSymbols function.
-void *clEnqueueMapBuffer(cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_map, cl_map_flags map_flags,
+void *CL_API_CALL clEnqueueMapBuffer(cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_map, cl_map_flags map_flags,
                          size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list,
                          cl_event *event, cl_int *errcode_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueMapBuffer;
@@ -397,7 +462,7 @@ void *clEnqueueMapBuffer(cl_command_queue command_queue, cl_mem buffer, cl_bool 
 }
 
 //clEnqueueMapImage wrapper, use OpenCLSymbols function.
-void *clEnqueueMapImage(cl_command_queue command_queue, cl_mem image, cl_bool blocking_map, cl_map_flags map_flags,
+void *CL_API_CALL clEnqueueMapImage(cl_command_queue command_queue, cl_mem image, cl_bool blocking_map, cl_map_flags map_flags,
                         const size_t *origin, const size_t *region, size_t *image_row_pitch, size_t *image_slice_pitch,
                         cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event,
                         cl_int *errcode_ret) {
@@ -408,7 +473,7 @@ void *clEnqueueMapImage(cl_command_queue command_queue, cl_mem image, cl_bool bl
 }
 
 //clEnqueueUnmapMemObject wrapper, use OpenCLSymbols function.
-cl_int clEnqueueUnmapMemObject(cl_command_queue command_queue, cl_mem memobj, void *mapped_ptr,
+cl_int CL_API_CALL clEnqueueUnmapMemObject(cl_command_queue command_queue, cl_mem memobj, void *mapped_ptr,
                                cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueUnmapMemObject;
     CHECK_NOTNULL(func);
@@ -416,7 +481,7 @@ cl_int clEnqueueUnmapMemObject(cl_command_queue command_queue, cl_mem memobj, vo
 }
 
 //clGetKernelWorkGroupInfo wrapper, use OpenCLSymbols function.
-cl_int clGetKernelWorkGroupInfo(cl_kernel kernel, cl_device_id device, cl_kernel_work_group_info param_name,
+cl_int CL_API_CALL clGetKernelWorkGroupInfo(cl_kernel kernel, cl_device_id device, cl_kernel_work_group_info param_name,
                                 size_t param_value_size, void *param_value, size_t *param_value_size_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetKernelWorkGroupInfo;
     CHECK_NOTNULL(func);
@@ -424,7 +489,7 @@ cl_int clGetKernelWorkGroupInfo(cl_kernel kernel, cl_device_id device, cl_kernel
 }
 
 //clGetEventProfilingInfo wrapper, use OpenCLSymbols function.
-cl_int clGetEventProfilingInfo(cl_event event, cl_profiling_info param_name, size_t param_value_size, void *param_value,
+cl_int CL_API_CALL clGetEventProfilingInfo(cl_event event, cl_profiling_info param_name, size_t param_value_size, void *param_value,
                                size_t *param_value_size_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetEventProfilingInfo;
     CHECK_NOTNULL(func);
@@ -432,7 +497,7 @@ cl_int clGetEventProfilingInfo(cl_event event, cl_profiling_info param_name, siz
 }
 
 //clEnqueueNDRangeKernel wrapper, use OpenCLSymbols function.
-cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim,
+cl_int CL_API_CALL clEnqueueNDRangeKernel(cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim,
                               const size_t *global_work_offset, const size_t *global_work_size,
                               const size_t *local_work_size, cl_uint num_events_in_wait_list,
                               const cl_event *event_wait_list, cl_event *event) {
@@ -443,28 +508,28 @@ cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue, cl_kernel kernel, 
 }
 
 //clWaitForEvents wrapper, use OpenCLSymbols function.
-cl_int clWaitForEvents(cl_uint num_events, const cl_event *event_list) {
+cl_int CL_API_CALL clWaitForEvents(cl_uint num_events, const cl_event *event_list) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clWaitForEvents;
     CHECK_NOTNULL(func);
     return func(num_events, event_list);
 }
 
 //clRetainEvent wrapper, use OpenCLSymbols function.
-cl_int clRetainEvent(cl_event event) {
+cl_int CL_API_CALL clRetainEvent(cl_event event) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clRetainEvent;
     CHECK_NOTNULL(func);
     return func(event);
 }
 
 //clReleaseEvent wrapper, use OpenCLSymbols function.
-cl_int clReleaseEvent(cl_event event) {
+cl_int CL_API_CALL clReleaseEvent(cl_event event) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clReleaseEvent;
     CHECK_NOTNULL(func);
     return func(event);
 }
 
 //clGetEventInfo wrapper, use OpenCLSymbols function.
-cl_int clGetEventInfo(cl_event event, cl_event_info param_name, size_t param_value_size, void *param_value,
+cl_int CL_API_CALL clGetEventInfo(cl_event event, cl_event_info param_name, size_t param_value_size, void *param_value,
                       size_t *param_value_size_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetEventInfo;
     CHECK_NOTNULL(func);
@@ -472,21 +537,21 @@ cl_int clGetEventInfo(cl_event event, cl_event_info param_name, size_t param_val
 }
 
 //clFlush wrapper, use OpenCLSymbols function.
-cl_int clFlush(cl_command_queue command_queue) {
+cl_int CL_API_CALL clFlush(cl_command_queue command_queue) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clFlush;
     CHECK_NOTNULL(func);
     return func(command_queue);
 }
 
 //clFinish wrapper, use OpenCLSymbols function.
-cl_int clFinish(cl_command_queue command_queue) {
+cl_int CL_API_CALL clFinish(cl_command_queue command_queue) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clFinish;
     CHECK_NOTNULL(func);
     return func(command_queue);
 }
 
 //clCreateImage2D wrapper, use OpenCLSymbols function.
-cl_mem clCreateImage2D(cl_context context, cl_mem_flags flags, const cl_image_format *image_format, size_t imageWidth,
+cl_mem CL_API_CALL clCreateImage2D(cl_context context, cl_mem_flags flags, const cl_image_format *image_format, size_t imageWidth,
                        size_t imageHeight, size_t image_row_pitch, void *host_ptr, cl_int *errcode_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateImage2D;
     CHECK_NOTNULL(func);
@@ -494,7 +559,7 @@ cl_mem clCreateImage2D(cl_context context, cl_mem_flags flags, const cl_image_fo
 }
 
 //clCreateImage3D wrapper, use OpenCLSymbols function.
-cl_mem clCreateImage3D(cl_context context, cl_mem_flags flags, const cl_image_format *image_format, size_t imageWidth,
+cl_mem CL_API_CALL clCreateImage3D(cl_context context, cl_mem_flags flags, const cl_image_format *image_format, size_t imageWidth,
                        size_t imageHeight, size_t imageDepth, size_t image_row_pitch, size_t image_slice_pitch,
                        void *host_ptr, cl_int *errcode_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateImage3D;
@@ -504,7 +569,7 @@ cl_mem clCreateImage3D(cl_context context, cl_mem_flags flags, const cl_image_fo
 }
 
 //clCreateCommandQueue wrapper, use OpenCLSymbols function.
-cl_command_queue clCreateCommandQueue(cl_context context, cl_device_id device, cl_command_queue_properties properties,
+cl_command_queue CL_API_CALL clCreateCommandQueue(cl_context context, cl_device_id device, cl_command_queue_properties properties,
                                       cl_int *errcode_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateCommandQueue;
     CHECK_NOTNULL(func);
@@ -512,7 +577,7 @@ cl_command_queue clCreateCommandQueue(cl_context context, cl_device_id device, c
 }
 
 //clGetCommandQueueInfo wrapper, use OpenCLSymbols function.
-cl_int clGetCommandQueueInfo(cl_command_queue command_queue, cl_command_queue_info param_name, size_t param_value_size,
+cl_int CL_API_CALL clGetCommandQueueInfo(cl_command_queue command_queue, cl_command_queue_info param_name, size_t param_value_size,
                              void *param_value, size_t *param_value_size_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetCommandQueueInfo;
     CHECK_NOTNULL(func);
@@ -520,7 +585,7 @@ cl_int clGetCommandQueueInfo(cl_command_queue command_queue, cl_command_queue_in
 }
 
 //clEnqueueCopyImage wrapper, use OpenCLSymbols function.
-cl_int clEnqueueCopyImage(cl_command_queue queue, cl_mem src_image, cl_mem dst_image, const size_t *src_origin,
+cl_int CL_API_CALL clEnqueueCopyImage(cl_command_queue queue, cl_mem src_image, cl_mem dst_image, const size_t *src_origin,
                           const size_t *dst_origin, const size_t *region, cl_uint num_events_in_wait_list,
                           const cl_event *event_wait_list, cl_event *event) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueCopyImage;
@@ -530,7 +595,7 @@ cl_int clEnqueueCopyImage(cl_command_queue queue, cl_mem src_image, cl_mem dst_i
 }
 
 //clEnqueueCopyBufferToImage wrapper, use OpenCLSymbols function.
-cl_int clEnqueueCopyBufferToImage(cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_image,
+cl_int CL_API_CALL clEnqueueCopyBufferToImage(cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_image,
                                   size_t src_offset, const size_t *dst_origin, const size_t *region,
                                   cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueCopyBufferToImage;
@@ -540,7 +605,7 @@ cl_int clEnqueueCopyBufferToImage(cl_command_queue command_queue, cl_mem src_buf
 }
 
 //clEnqueueCopyImageToBuffer wrapper, use OpenCLSymbols function.
-cl_int clEnqueueCopyImageToBuffer(cl_command_queue command_queue, cl_mem src_image, cl_mem dst_buffer,
+cl_int CL_API_CALL clEnqueueCopyImageToBuffer(cl_command_queue command_queue, cl_mem src_image, cl_mem dst_buffer,
                                   const size_t *src_origin, const size_t *region, size_t dst_offset,
                                   cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueCopyImageToBuffer;
@@ -552,21 +617,21 @@ cl_int clEnqueueCopyImageToBuffer(cl_command_queue command_queue, cl_mem src_ima
 #if CL_HPP_TARGET_OPENCL_VERSION >= 120
 
 //clRetainDevice wrapper, use OpenCLSymbols function.
-cl_int clRetainDevice(cl_device_id device) {
+cl_int CL_API_CALL clRetainDevice(cl_device_id device) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clRetainDevice;
     CHECK_NOTNULL(func);
     return func(device);
 }
 
 //clReleaseDevice wrapper, use OpenCLSymbols function.
-cl_int clReleaseDevice(cl_device_id device) {
+cl_int CL_API_CALL clReleaseDevice(cl_device_id device) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clReleaseDevice;
     CHECK_NOTNULL(func);
     return func(device);
 }
 
 //clCreateImage wrapper, use OpenCLSymbols function.
-cl_mem clCreateImage(cl_context context, cl_mem_flags flags, const cl_image_format *image_format,
+cl_mem CL_API_CALL clCreateImage(cl_context context, cl_mem_flags flags, const cl_image_format *image_format,
                      const cl_image_desc *image_desc, void *host_ptr, cl_int *errcode_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateImage;
     CHECK_NOTNULL(func);
@@ -578,7 +643,7 @@ cl_mem clCreateImage(cl_context context, cl_mem_flags flags, const cl_image_form
 #if CL_HPP_TARGET_OPENCL_VERSION >= 200
 
 //clGetKernelSubGroupInfoKHR wrapper, use OpenCLSymbols function.
-cl_int clGetKernelSubGroupInfoKHR(cl_kernel kernel, cl_device_id device, cl_kernel_sub_group_info param_name,
+cl_int CL_API_CALL clGetKernelSubGroupInfoKHR(cl_kernel kernel, cl_device_id device, cl_kernel_sub_group_info param_name,
                                   size_t input_value_size, const void *input_value, size_t param_value_size,
                                   void *param_value, size_t *param_value_size_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetKernelSubGroupInfoKHR;
@@ -588,7 +653,7 @@ cl_int clGetKernelSubGroupInfoKHR(cl_kernel kernel, cl_device_id device, cl_kern
 }
 
 //clCreateCommandQueueWithProperties wrapper, use OpenCLSymbols function.
-cl_command_queue clCreateCommandQueueWithProperties(cl_context context, cl_device_id device,
+cl_command_queue CL_API_CALL clCreateCommandQueueWithProperties(cl_context context, cl_device_id device,
                                                     const cl_queue_properties *properties, cl_int *errcode_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateCommandQueueWithProperties;
     CHECK_NOTNULL(func);
@@ -596,7 +661,7 @@ cl_command_queue clCreateCommandQueueWithProperties(cl_context context, cl_devic
 }
 
 //clGetExtensionFunctionAddress wrapper, use OpenCLSymbols function.
-void *clGetExtensionFunctionAddress(const char *func_name) {
+void *CL_API_CALL clGetExtensionFunctionAddress(const char *func_name) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clGetExtensionFunctionAddress;
     CHECK_NOTNULL(func);
     return func(func_name);

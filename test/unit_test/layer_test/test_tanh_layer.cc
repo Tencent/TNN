@@ -22,10 +22,12 @@ public:
 };
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, TanhLayerTest,
-                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
+                         ::testing::Combine(UNARY_BATCH_CHANNEL_SIZE,
+                                            testing::Values(2, 3, 4, 5),
+                                            testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(TanhLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
+    RunUnaryTest("Tanh");
 }
 
 }  // namespace TNN_NS

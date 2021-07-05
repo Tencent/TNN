@@ -16,3 +16,4 @@ export https_proxy=https://web-proxy.oa.com:8080/
 <!-- 编译+运行 -->
 1. 安装coremltools //https://pypi.org/project/coremltools/
 pip3 install -U coremltools
+pip3 install -U onnx-coreml

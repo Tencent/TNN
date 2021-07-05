@@ -16,6 +16,7 @@
 #include "tnn/device/opencl/acc/convolution/opencl_conv_layer_acc_impl.h"
 #include "tnn/device/opencl/acc/convolution/opencl_conv_layer_common_acc.h"
 #include "tnn/device/opencl/acc/convolution/opencl_conv_layer_depthwise_acc.h"
+#include "tnn/device/opencl/acc/convolution/opencl_conv_layer_winograd_acc.h"
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 
@@ -44,6 +45,8 @@ Status OpenCLConvLayerAcc::Init(Context *context, LayerParam *param, LayerResour
         conv_acc_implement_ = std::make_shared<OpenCLConvLayerDepthwiseAcc>();
     } else if (OpenCLConvLayer1x1Acc::IsPrefered(conv_param, inputs, outputs)) {
         conv_acc_implement_ = std::make_shared<OpenCLConvLayer1x1Acc>();
+    } else if (OpenCLConvLayerWinogradAcc::IsPrefered(conv_param, inputs, outputs)) {
+        conv_acc_implement_ = std::make_shared<OpenCLConvLayerWinogradAcc>();
     } else if (OpenCLConvLayerCommonAcc::IsPrefered(conv_param, inputs, outputs)) {
         conv_acc_implement_ = std::make_shared<OpenCLConvLayerCommonAcc>();
     }
@@ -57,6 +60,9 @@ Status OpenCLConvLayerAcc::Init(Context *context, LayerParam *param, LayerResour
 OpenCLConvLayerAcc::~OpenCLConvLayerAcc() {}
 
 Status OpenCLConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     if (conv_acc_implement_ == nullptr)
         return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "this type conv acc is not implemented");
 
@@ -71,5 +77,6 @@ Status OpenCLConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 }
 
 REGISTER_OPENCL_ACC(Conv, LAYER_CONVOLUTION)
+REGISTER_OPENCL_LAYOUT(LAYER_CONVOLUTION, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

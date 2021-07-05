@@ -30,6 +30,7 @@ public:
 
 private:
     virtual std::set<std::string> CreateBuildOptions() = 0;
+    bool run_local_work_ = false;
 };
 
 #define DECLARE_OPENCL_REDUCE_ACC(type_string)                                                                         \

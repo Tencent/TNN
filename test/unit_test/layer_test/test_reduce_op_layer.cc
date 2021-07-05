@@ -13,20 +13,62 @@
 // specific language governing permissions and limitations under the License.
 
 #include "layer_test.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "unit_test_common.h"
 #include "utils/network_helpers.h"
 
 namespace TNN_NS {
 
-class ReduceOpLayerTest : public LayerTest,
-                          public ::testing::WithParamInterface<std::tuple<int, int, int, int, DataType>> {};
+static std::string GenerateReduceProto(std::string op_type, ReduceLayerParam param) {
+    std::ostringstream ostr;
+    ostr << "\"" << op_type << " layer_name 1 1 input output " << param.keep_dims << " ";
+    for (auto axis : param.axis) {
+        ostr << axis << " ";
+    }
+    ostr << ",\"";
+    return ostr.str();
+}
+
+static void UpdateReduceAxis(std::vector<int>& axes, const int dim_count) {
+    const auto f = [=](int& v){ v = v < 0? v+dim_count : v;};
+    std::for_each(axes.begin(), axes.end(), f);
+}
+
+static bool HasAxis(std::vector<int> axes, const int axis, const int dim_count) {
+    UpdateReduceAxis(axes, dim_count);
+    auto it = std::find(axes.begin(), axes.end(), axis);
+    return (it != axes.end());
+}
+
+static bool IsDiscontinuous(std::vector<int> axes, const int dim_count) {
+    UpdateReduceAxis(axes, dim_count);
+    auto min_val = *std::min_element(axes.begin(), axes.end());
+    auto max_val = *std::max_element(axes.begin(), axes.end());
+    for(auto v=min_val; v<=max_val; ++v) {
+        if (std::find(axes.begin(), axes.end(), v) == axes.end())
+            return true;
+    }
+    return false;
+}
+
+class ReduceOpLayerTest
+    : public LayerTest,
+      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, std::vector<int>, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(2, 3, 4, 10, 32),
-                                            testing::Values(9, 10, 16, 19),
+                         ::testing::Combine(testing::Values(1, 2),
+                                            testing::Values(2, 3, 9, 128),
+                                            testing::Values(9, 10, 19, 128),
+                                            testing::Values(9, 10, 19, 128),
+                                            // keep_dim
+                                            testing::Values(0, 1),
+                                            // dim count
+                                            testing::Values(2, 3, 4),
                                             // axis
-                                            testing::Values(1),
+                                            testing::Values(std::vector<int>({1}), std::vector<int>({2}),
+                                                            std::vector<int>({3}), std::vector<int>({1, 2}),
+                                                            std::vector<int>({1, -1}), std::vector<int>({3, -2}),
+                                                            std::vector<int>({1, -2, -1})),
                                             // dtype
                                             testing::Values(DATA_TYPE_FLOAT)));
 
@@ -34,30 +76,81 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     // get param
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
-    int input_size     = std::get<2>(GetParam());
-    int axis           = std::get<3>(GetParam());
-    DataType data_type = std::get<4>(GetParam());
+    int input_height   = std::get<2>(GetParam());
+    int input_width    = std::get<3>(GetParam());
+    int keep_dims      = std::get<4>(GetParam());
+    int dim_count      = std::get<5>(GetParam());
+    auto& axis         = std::get<6>(GetParam());
+    DataType data_type = std::get<7>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
+    // only test one case for large inputs
+    if ((channel == 128 && (input_height > 9 || input_width > 9)) ||
+        (input_width == 128 && (channel > 2 || input_height > 9)) ||
+        (input_height == 128 && (channel > 2 || input_width > 9))) {
+        GTEST_SKIP();
+    }
+
+    // blobconverter cannot handle 1-dimensional blob, skip it for now
+    if (dim_count <= axis.size()+1 && keep_dims == 0) {
+        GTEST_SKIP();
+    }
+
+    for(const auto& d: axis) {
+        if (d >= dim_count || d + dim_count < 0) {
+            GTEST_SKIP();
+        }
+    }
+
+    if (DEVICE_OPENCL == dev && keep_dims != 1) {
+        GTEST_SKIP();
+    }
+
+    if ((HasAxis(axis, 0, dim_count) || IsDiscontinuous(axis, dim_count)) && DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
 
     // param
-    ReduceMaxLayerParam param;
-    param.name = "ReduceOp";
-    param.axis = {axis};
+    std::shared_ptr<ReduceLayerParam> param(new ReduceLayerParam());
+    param->name = "ReduceOp";
+    param->axis = axis;
+    param->keep_dims = keep_dims;
 
-    // all reduce different op layer run
-    Run(LAYER_REDUCE_MAX, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_MIN, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_MEAN, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_L2, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_LOG_SUM, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_LOG_SUM_EXP, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_PROD, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_SUM_SQUARE, &param, nullptr, inputs_desc, outputs_desc);
-    Run(LAYER_REDUCE_SUM, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    //std::vector<int> input_dims = {batch, channel, input_height, input_width};
+    std::vector<int> input_dims = {batch, channel};
+    for(int i=input_dims.size(); i<dim_count; ++i) {
+        if (i % 2 == 0) input_dims.push_back(input_height);
+        else input_dims.push_back(input_width);
+    }
+
+
+    if (DEVICE_HUAWEI_NPU != dev) {
+        auto interpreter1 = GenerateInterpreter("ReduceMax", {input_dims}, param);
+        Run(interpreter1);
+        auto interpreter2 = GenerateInterpreter("ReduceMin", {input_dims}, param);
+        Run(interpreter2);
+        auto interpreter3 = GenerateInterpreter("ReduceMean", {input_dims}, param);
+        Run(interpreter3);
+        auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
+        Run(interpreter8);
+        if (DEVICE_CUDA != dev) {
+            auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param);
+            Run(interpreter5);
+            auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param);
+            Run(interpreter6);
+            auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param);
+            Run(interpreter7);
+            auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param);
+            Run(interpreter10);
+        }
+    }
+    auto interpreter4 = GenerateInterpreter("ReduceSum", {input_dims}, param);
+    Run(interpreter4);
+    if (DEVICE_CUDA != dev) {
+        auto interpreter9 = GenerateInterpreter("ReduceProd", {input_dims}, param);
+        Run(interpreter9);
+    }
 }
 
 }  // namespace TNN_NS

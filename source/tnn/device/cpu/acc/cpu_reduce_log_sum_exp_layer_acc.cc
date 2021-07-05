@@ -12,32 +12,49 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/utils/naive_compute.h"
 #include "tnn/device/cpu/acc/cpu_reduce_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
+#include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
 
-DECLARE_CPU_REDUCE_ACC(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP);
+DECLARE_CPU_PRE_REDUCE_POST_ACC(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP);
+
+Status CpuReduceLogSumExpLayerAcc::PreCalculateReduce(float* dst, float* src, int count) {
+    ::memcpy(dst, src, count * sizeof(float));
+    return TNN_OK;
+}
 
 Status CpuReduceLogSumExpLayerAcc::CalculateReduce(float* output_data, float* input_data, int outer_dim, int channels,
                                                    int inner_dim) {
-    float* origin_output_data = output_data;
-    int output_size           = outer_dim * inner_dim;
     for (int oc = 0; oc < outer_dim; oc++) {
+        // Standardize to prevent overflow.
+        // log(sum(exp xi)) = c + log(sum(exp(xi-c)))
+        std::vector<float> max_values(inner_dim, -FLT_MAX);
+        for (int c = 0; c < channels; c++) {
+            const int offset = c * inner_dim;
+            for (int ic = 0; ic < inner_dim; ic++) {
+                max_values[ic] = std::max(max_values[ic], input_data[ic + offset]);
+            }
+        }
+
         for (int c = 0; c < channels; c++) {
             for (int ic = 0; ic < inner_dim; ic++) {
-                output_data[ic] += std::exp(input_data[ic]);
+                output_data[ic] += std::exp(input_data[ic] - max_values[ic]);
             }
             input_data += inner_dim;
         }
+
+        for (int ic = 0; ic < inner_dim; ic++) {
+            output_data[ic] = std::log(output_data[ic]) + max_values[ic];
+        }
         output_data += inner_dim;
     }
-
-    for (int i = 0; i < output_size; ++i) {
-        origin_output_data[i] = std::log(origin_output_data[i]);
-    }
+    return TNN_OK;
+}
+Status CpuReduceLogSumExpLayerAcc::PostCalculateReduce(float* dst, float* src, int count) {
+    ::memcpy(dst, src, count * sizeof(float));
     return TNN_OK;
 }
 

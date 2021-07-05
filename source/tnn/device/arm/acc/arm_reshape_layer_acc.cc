@@ -17,9 +17,163 @@
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
+#include "tnn/utils/data_format_converter.h"
 
 namespace TNN_NS {
+
+bool ArmReshapeLayerAcc::UseNaiveConstantBlobs() {
+    return true;
+}
+
+Status ArmReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    LOGD("Init Reshape Acc\n");
+    Status ret = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    ReshapeLayerParam *reshape_param = dynamic_cast<ReshapeLayerParam *>(param_);
+    if (!reshape_param) {
+        FlattenLayerParam *flatten_param = dynamic_cast<FlattenLayerParam *>(param_);
+        if(!flatten_param) {
+            LOGE("Error: layer param is null\n");
+            return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
+        } else {
+            reshape_type_ = 0;
+        }
+    } else {
+        reshape_type_ = reshape_param->reshape_type;
+    }
+
+    return TNN_OK;
+}
+
+template <typename T>
+Status ArmReshapeLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto dims_input  = inputs[0]->GetBlobDesc().dims;
+    auto dims_output = outputs[0]->GetBlobDesc().dims;
+
+    char *input_origin  = GetBlobHandlePtr(inputs[0]->GetHandle());
+    char *output_origin = GetBlobHandlePtr(outputs[0]->GetHandle());
+
+    auto ic    = dims_input[1];
+    auto ic_r4 = ROUND_UP(dims_input[1], 4);
+    auto ihw   = DimsVectorUtils::Count(dims_input, 2);
+    auto oc    = dims_output[1];
+    auto oc_r4 = ROUND_UP(dims_output[1], 4);
+    auto ohw   = DimsVectorUtils::Count(dims_output, 2);
+
+    auto input_plane     = ic * ihw;
+    auto input_plane_r4  = ic_r4 * ihw;
+    auto output_plane    = oc * ohw;
+    auto output_plane_r4 = oc_r4 * ohw;
+
+    for (int b = 0; b < dims_input[0]; b++) {
+        auto input_data     = reinterpret_cast<T *>(input_origin) + b * input_plane_r4;
+        auto workspace_data = reinterpret_cast<T *>(workspace_) + b * input_plane;
+        if (reshape_type_ == 0)
+            UnpackC4(workspace_data, input_data, ihw, ic);
+        else if (reshape_type_ == 1)
+            UnpackC4ToNHWC(workspace_data, input_data, ihw, ic);
+        else
+            return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
+    }
+    for (int b = 0; b < dims_output[0]; b++) {
+        auto workspace_data = reinterpret_cast<T *>(workspace_) + b * output_plane;
+        auto output_data    = reinterpret_cast<T *>(output_origin) + b * output_plane_r4;
+        if (reshape_type_ == 0)
+            PackC4(output_data, workspace_data, ohw, oc);
+        else if (reshape_type_ == 1)
+            PackC4FromNHWC(output_data, workspace_data, ohw, oc);
+        else
+            return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
+    }
+
+    return TNN_OK;
+}
+
+#if TNN_ARM82
+template <>
+Status ArmReshapeLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto dims_input  = inputs[0]->GetBlobDesc().dims;
+    auto dims_output = outputs[0]->GetBlobDesc().dims;
+
+    char *input_origin  = GetBlobHandlePtr(inputs[0]->GetHandle());
+    char *output_origin = GetBlobHandlePtr(outputs[0]->GetHandle());
+
+    auto ic    = dims_input[1];
+    auto ic_r8 = ROUND_UP(dims_input[1], 8);
+    auto ihw   = DimsVectorUtils::Count(dims_input, 2);
+    auto oc    = dims_output[1];
+    auto oc_r8 = ROUND_UP(dims_output[1], 8);
+    auto ohw   = DimsVectorUtils::Count(dims_output, 2);
+
+    auto input_plane     = ic * ihw;
+    auto input_plane_r8  = ic_r8 * ihw;
+    auto output_plane    = oc * ohw;
+    auto output_plane_r8 = oc_r8 * ohw;
+
+    for (int b = 0; b < dims_input[0]; b++) {
+        auto input_data     = reinterpret_cast<fp16_t *>(input_origin) + b * input_plane_r8;
+        auto workspace_data = reinterpret_cast<fp16_t *>(workspace_) + b * input_plane;
+        if (reshape_type_ == 0)
+            UnpackC8(workspace_data, input_data, ihw, ic);
+        else if (reshape_type_ == 1)
+            UnpackC8ToNHWC(workspace_data, input_data, ihw, ic);
+        else
+            return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
+    }
+    for (int b = 0; b < dims_output[0]; b++) {
+        auto workspace_data = reinterpret_cast<fp16_t *>(workspace_) + b * output_plane;
+        auto output_data    = reinterpret_cast<fp16_t *>(output_origin) + b * output_plane_r8;
+        if (reshape_type_ == 0)
+            PackC8(output_data, workspace_data, ohw, oc);
+        else if (reshape_type_ == 1)
+            PackC8FromNHWC(output_data, workspace_data, ohw, oc);
+        else
+            return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
+    }
+
+    return TNN_OK;
+}
+#endif
+
+template <typename T>
+Status ArmReshapeLayerAcc::ExecNchw(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto dims_input  = inputs[0]->GetBlobDesc().dims;
+    auto dims_output = outputs[0]->GetBlobDesc().dims;
+
+    char *input_origin  = GetBlobHandlePtr(inputs[0]->GetHandle());
+    char *output_origin = GetBlobHandlePtr(outputs[0]->GetHandle());
+
+    auto ele_size = DataTypeUtils::GetBytesSize(inputs[0]->GetBlobDesc().data_type);
+
+    if (reshape_type_ == 0) {
+        if (input_origin != output_origin) {
+            memcpy(output_origin, input_origin, DimsVectorUtils::Count(dims_input) * ele_size);
+        }
+    } else if (reshape_type_ == 1) {
+        if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+            DataFormatConverter::ConvertFromNCHWToNHWC<float>(inputs[0], outputs[0]);
+            DataFormatConverter::ConvertFromNHWCToNCHW<float>(outputs[0], nullptr);
+        } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
+            DataFormatConverter::ConvertFromNCHWToNHWC<bfp16_t>(inputs[0], outputs[0]);
+            DataFormatConverter::ConvertFromNHWCToNCHW<bfp16_t>(outputs[0], nullptr);
+        }
+#if TNN_ARM82
+        else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+            DataFormatConverter::ConvertFromNCHWToNHWC<fp16_t>(inputs[0], outputs[0]);
+            DataFormatConverter::ConvertFromNHWCToNCHW<fp16_t>(outputs[0], nullptr);
+        }
+#endif
+        else {
+            return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8 reshape, in todo list");
+        }
+    } else {
+        return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
+    }
+    return TNN_OK;
+}
 
 Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs.size() < 1) {
@@ -36,77 +190,47 @@ Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     auto size_in_bytes = DimsVectorUtils::Count(input->GetBlobDesc().dims) * data_byte_size;
     workspace_         = context_->GetSharedWorkSpace(size_in_bytes);
 
-    auto param    = (ReshapeLayerParam *)param_;
-    ASSERT(param != nullptr);
-
-    if (DATA_FORMAT_NC4HW4 == input->GetBlobDesc().data_format) {
+    if (DATA_FORMAT_NC4HW4 == input->GetBlobDesc().data_format ||
+        DATA_FORMAT_NC8HW8 == input->GetBlobDesc().data_format) {
         if (DATA_TYPE_FLOAT == in_data_type) {
             return Exec<float>(inputs, outputs);
         } else if (DATA_TYPE_BFP16 == in_data_type) {
             return Exec<bfp16_t>(inputs, outputs);
-        } else {
+        } 
+#if TNN_ARM82
+        else if (DATA_TYPE_HALF == in_data_type) {
+            return Exec<fp16_t>(inputs, outputs);
+        }
+#endif
+        else {
+            return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8 reshape, in todo list");
+        }
+    } else if (DATA_FORMAT_NCHW == input->GetBlobDesc().data_format) {
+        if (DATA_TYPE_FLOAT == in_data_type) {
+            return ExecNchw<float>(inputs, outputs);
+        } else if (DATA_TYPE_BFP16 == in_data_type) {
+            return ExecNchw<bfp16_t>(inputs, outputs);
+        }
+#if TNN_ARM82
+        else if (DATA_TYPE_HALF == in_data_type) {
+            return ExecNchw<fp16_t>(inputs, outputs);
+        }
+#endif
+        else {
             return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8 reshape, in todo list");
         }
     } else {
-        return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR nhwc/int8 fc, in todo list");
+        return Status(TNNERR_LAYER_ERR, "Unsupported data format in reshape");
     }
-
-    return TNN_OK;
 }
 
-template <typename T>
-Status ArmReshapeLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto dims_input   = inputs[0]->GetBlobDesc().dims;
-    auto dims_output  = outputs[0]->GetBlobDesc().dims;
-
-    char *input_origin  = GetBlobHandlePtr(inputs[0]->GetHandle());
-    char *output_origin = GetBlobHandlePtr(outputs[0]->GetHandle());
-
-    auto param    = (ReshapeLayerParam *)param_;
-    ASSERT(param != nullptr);
-
-    auto ic    = dims_input[1];
-    auto ic_r4 = ROUND_UP(dims_input[1], 4);
-    auto ih    = dims_input[2];
-    auto iw    = dims_input[3];
-    auto oc    = dims_output[1];
-    auto oc_r4 = ROUND_UP(dims_output[1], 4);
-    auto oh    = dims_output[2];
-    auto ow    = dims_output[3];
-
-    auto input_plane     = ic * ih * iw;
-    auto input_plane_r4  = ic_r4 * ih * iw;
-    auto output_plane    = oc * oh * ow;
-    auto output_plane_r4 = oc_r4 * oh * ow;
-
-    for (int b = 0; b < dims_input[0]; b++) {
-        auto input_data =
-            reinterpret_cast<float *>(input_origin) + b * input_plane_r4;
-        auto workspace_data =
-            reinterpret_cast<float *>(workspace_) + b * input_plane;
-        if (param->reshape_type == 0)
-            UnpackC4(workspace_data, input_data, ih * iw, ic);
-        else if (param->reshape_type == 1)
-            UnpackC4ToNHWC(workspace_data, input_data, ih * iw, ic);
-        else
-            return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
-    }
-    for (int b = 0; b < dims_output[0]; b++) {
-        auto workspace_data =
-            reinterpret_cast<float *>(workspace_) + b * output_plane;
-        auto output_data =
-            reinterpret_cast<float *>(output_origin) + b * output_plane_r4;
-        if (param->reshape_type == 0)
-            PackC4(output_data, workspace_data, oh * ow, oc);
-        else if (param->reshape_type == 1)
-            PackC4FromNHWC(output_data, workspace_data, oh * ow, oc);
-        else
-            return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
-    }
-
-    return TNN_OK;
-};
-
 REGISTER_ARM_ACC(Reshape, LAYER_RESHAPE);
+REGISTER_ARM_ACC(Reshape, LAYER_FLATTEN);
+REGISTER_ARM_PRECISION_FP16(LAYER_RESHAPE)
+REGISTER_ARM_PRECISION_FP16(LAYER_FLATTEN)
+REGISTER_ARM_LAYOUT(LAYER_RESHAPE, DATA_FORMAT_NC4HW4)
+REGISTER_ARM_LAYOUT(LAYER_FLATTEN, DATA_FORMAT_NC4HW4)
+REGISTER_ARM_LAYOUT(LAYER_RESHAPE, DATA_FORMAT_NCHW)
+REGISTER_ARM_LAYOUT(LAYER_FLATTEN, DATA_FORMAT_NCHW)
 
 }  // namespace TNN_NS

@@ -15,7 +15,7 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -23,12 +23,13 @@ class InnerProductLayerTest : public LayerTest,
                               public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, InnerProductLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 3, 10, 32),
+                         ::testing::Combine(testing::Values(1, 2, 8, 11), testing::Values(1, 3, 10, 32),
                                             testing::Values(9, 10, 16, 19),
                                             // output channel
-                                            testing::Values(21, 50),
+                                            testing::Values(4, 8, 21, 50),
                                             // has bias Values(0, 1)));
-                                            testing::Values(0, 1), testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16)));
+                                            testing::Values(0, 1),
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_BFP16)));
 
 TEST_P(InnerProductLayerTest, InnerProductLayer) {
     // get param
@@ -39,34 +40,31 @@ TEST_P(InnerProductLayerTest, InnerProductLayer) {
     int has_bias       = std::get<4>(GetParam());
     DataType dtype     = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    if (dtype != DATA_TYPE_FLOAT && (DEVICE_METAL == dev || DEVICE_OPENCL == dev)) {
+
+    if (dev == DEVICE_ARM && dtype == DATA_TYPE_HALF) {
+        // error of fp16 result will accumulate as input size increases
+        if (input_channel * input_size * input_size > 5000) {
+            GTEST_SKIP();
+        }
+    }
+
+    if(CheckDataTypeSkip(dtype)) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, input_channel, input_size, 1, dtype);
-    auto outputs_desc = CreateOutputBlobsDesc(1, dtype);
-
     // param
-    InnerProductLayerParam param;
-    param.name       = "InnerProduct";
-    param.num_output = output_channel;
-    param.has_bias   = has_bias;
-    param.axis       = 1;
+    std::shared_ptr<InnerProductLayerParam> param(new InnerProductLayerParam());
+    param->name       = "InnerProduct";
+    param->num_output = output_channel;
+    param->has_bias   = has_bias;
+    param->axis       = 1;
 
-    // resource
-    InnerProductLayerResource resource;
-    int filter_count = output_channel * input_channel * input_size * input_size;
-    RawBuffer filter(filter_count * sizeof(float));
-    float* filter_data = filter.force_to<float*>();
-    RawBuffer bias(output_channel * sizeof(float));
-    float* bias_data = bias.force_to<float*>();
-    InitRandom(filter_data, filter_count, 1.0f);
-    InitRandom(bias_data, output_channel, 1.0f);
-    resource.weight_handle = filter;
-    resource.bias_handle   = bias;
+    // generate interpreter
+    std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("InnerProduct", {input_dims}, param);
 
-    Run(LAYER_INNER_PRODUCT, &param, &resource, inputs_desc, outputs_desc);
+    Precision precision = SetPrecision(dev, dtype);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

@@ -19,6 +19,8 @@ namespace TNN_NS {
 DECLARE_METAL_REDUCE_ACC(ReduceSumSquare, LAYER_REDUCE_SUM_SQUARE);
 
 std::string MetalReduceSumSquareLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (multi_axis_)
+        return "reduce_sum_square_multi_axis_common";
     if (axis_ == 0) {
         return "reduce_sum_square_axis_0_common";
     } else if (axis_ == 1) {
@@ -39,5 +41,6 @@ Status MetalReduceSumSquareLayerAcc::Forward(const std::vector<Blob *> &inputs, 
 }
 
 REGISTER_METAL_REDUCE_ACC(ReduceSumSquare, LAYER_REDUCE_SUM_SQUARE);
+REGISTER_METAL_LAYOUT(LAYER_REDUCE_SUM_SQUARE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

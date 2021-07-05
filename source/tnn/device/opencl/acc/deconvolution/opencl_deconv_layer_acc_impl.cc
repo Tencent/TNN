@@ -14,7 +14,8 @@
 
 #include "tnn/device/opencl/acc/deconvolution/opencl_deconv_layer_common_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -23,7 +24,7 @@ Status OpenCLDeconvLayerAccImpl::Init(Context *context, LayerParam *param, Layer
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
 
-    run_3d_ndrange_ = true;
+    run_3d_ndrange_ = false;
 
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param);
     if (nullptr == conv_param) {
@@ -45,8 +46,8 @@ Status OpenCLDeconvLayerAccImpl::Init(Context *context, LayerParam *param, Layer
     deconv_params_.has_bias        = conv_param->bias;
     deconv_params_.activation_type = conv_param->activation_type;
 
-    deconv_params_.input_channel  = inputs[0]->GetBlobDesc().dims[1];
-    deconv_params_.output_channel = outputs[0]->GetBlobDesc().dims[1];
+    deconv_params_.input_channel  = DimsFunctionUtils::GetDim(inputs[0]->GetBlobDesc().dims, 1);
+    deconv_params_.output_channel = DimsFunctionUtils::GetDim(outputs[0]->GetBlobDesc().dims, 1);
 
     if ((deconv_params_.group <= 0 || deconv_params_.input_channel % deconv_params_.group != 0)) {
         LOGE("invalid group size in DeConv layer!\n");
@@ -93,8 +94,8 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
     auto output_dims = output->GetBlobDesc().dims;
 
     // output_channel/4
-    const int output_channel_blocks = UP_DIV(output_dims[1], 4);
-    const int input_channel_blocks = UP_DIV(input_dims[1], 4);
+    const int output_channel_blocks = UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4);
+    const int input_channel_blocks = UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4);
 
     int pad_x_trans = deconv_params_.kernel_x - 1 - deconv_params_.pad_x;
     int pad_y_trans = deconv_params_.kernel_y - 1 - deconv_params_.pad_y;
@@ -103,19 +104,34 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
     const int align_height = deconv_params_.stride_y - 1 - pad_y_trans;
 
     //input_width, input_height
-    int input_imageshape[2]  = {input_dims[3], input_dims[2]};
+    int input_imageshape[2]  = {DimsFunctionUtils::GetDim(input_dims, 3), DimsFunctionUtils::GetDim(input_dims, 2)};
     //output_width, output_height
-    int output_imageshape[2] = {output_dims[3], output_dims[2]};
+    int output_imageshape[2] = {DimsFunctionUtils::GetDim(output_dims, 3), DimsFunctionUtils::GetDim(output_dims, 2)};
     int stride_shape[2]      = {deconv_params_.stride_x, deconv_params_.stride_y};
     int align_shape[2]       = {align_width, align_height};
     int padding_shape[2]     = {pad_x_trans, pad_y_trans};
     int kernel_shape[2]      = {deconv_params_.kernel_x, deconv_params_.kernel_y};
 
-    //output_channel/4, output_width, batch * output_height
-    execute_units_[0].global_work_size = {static_cast<uint32_t>(UP_DIV(output_dims[1], 4)),
-                                        static_cast<uint32_t>(output_dims[3]),
-                                        static_cast<uint32_t>(output_dims[0] * output_dims[2])};
-    execute_units_[0].local_work_size = LocalWS3DDefault(execute_units_[0]);
+    bool is_deconv_4x4_s2_p1_wb4    =
+        (CT_DECONV_DEPTHWISE != deconv_type_ &&
+        deconv_params_.kernel_x == 4 && deconv_params_.kernel_y == 4 &&
+        deconv_params_.stride_x == 2 && deconv_params_.stride_y == 2 &&
+        deconv_params_.pad_x == 1 && deconv_params_.pad_y == 1 &&
+        deconv_params_.dilation_x == 1 && deconv_params_.dilation_y == 1 && DimsFunctionUtils::GetDim(output_dims, 3) % 4 == 0);
+
+    // output_width * output_channel/4, batch * output_height
+    execute_units_[0].global_work_size = {
+            static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3) *
+                                  UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4)),
+            static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 0) *
+                                  DimsFunctionUtils::GetDim(output_dims, 2))};
+
+    if (is_deconv_4x4_s2_p1_wb4) {
+        // output_width/4 * output_channel/4, batch * output_height
+        execute_units_[0].global_work_size[0] =
+            static_cast<uint32_t>(UP_DIV(DimsFunctionUtils::GetDim(output_dims, 3), 4) *
+                                  UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4));
+    }
 
     uint32_t idx = 0;
     for (auto gws : execute_units_[0].global_work_size) {
@@ -128,13 +144,25 @@ Status OpenCLDeconvLayerAccImpl::Reshape(const std::vector<Blob *> &inputs, cons
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(input_imageshape), input_imageshape);
     execute_units_[0].ocl_kernel.setArg(idx++, sizeof(output_imageshape), output_imageshape);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(align_shape), align_shape);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
-    execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(kernel_shape[0] * kernel_shape[1]));
+
+    if (is_deconv_4x4_s2_p1_wb4) {
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(
+            UP_DIV(DimsFunctionUtils::GetDim(output_dims, 3), 4)));
+    } else {
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(align_shape), align_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<int32_t>(kernel_shape[0] * kernel_shape[1]));
+    }
 
     SetExtraKernelParameters(idx, inputs, outputs);
+
+    execute_units_[0].local_work_size = LocalWS2DDefault(execute_units_[0]);
+
+    if (ocl_context_->GetEnableTuneKernel()) {
+        execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_, GenerateTuneKernelKey(execute_units_[0]));
+    }
 
     return TNN_OK;
 }
@@ -180,7 +208,7 @@ Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
                       (cl::size_type)bytes_size, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Deconv malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Deconv malloc memory failed");
     }
     weight_buffer->SetData(&buffer);
     auto weight_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(buffer, true, CL_MAP_WRITE, 0, bytes_size,
@@ -193,7 +221,7 @@ Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(buffer, weight_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Deconv MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Deconv MemUnMap failed");
     }
 
     // create ocl_weights_
@@ -206,7 +234,7 @@ Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
                                                                  deconv_params_.kernel_x * deconv_params_.kernel_y)};
     }
     cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetFp16Enable())
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
     cl::Image2D *image =
         new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
@@ -215,7 +243,7 @@ Status OpenCLDeconvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     ocl_weights_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_weights_->SetData(image, true);
@@ -234,9 +262,23 @@ void OpenCLDeconvLayerAccImpl::SetExtraKernelParameters(uint32_t idx, const std:
 
 #if TNN_PROFILE
 double OpenCLDeconvLayerAccImpl::GetFlops() {
-    return 2.0 * DimsVectorUtils::Count(input_dims_) * input_dims_[1] / deconv_params_.group * deconv_params_.kernel_x *
+    return 2.0 * DimsVectorUtils::Count(input_dims_) * output_dims_[1] / deconv_params_.group * deconv_params_.kernel_x *
            deconv_params_.kernel_y / 1000.0 / 1000.0;
 }
 #endif
+
+std::string OpenCLDeconvLayerAccImpl::GenerateTuneKernelKey(OpenCLExecuteUnit &unit) {
+    std::string tune_key = unit.program_name + "_" + unit.kernel_name + "_" + "param[" + 
+    "kernel_" + ToString(deconv_params_.kernel_x) + "_" + ToString(deconv_params_.kernel_y) + "_" +  
+    "pad_" + ToString(deconv_params_.pad_x) + "_" + ToString(deconv_params_.pad_y ) + "_" + 
+    "stride_" + ToString(deconv_params_.stride_x) + "_" + ToString(deconv_params_.stride_y ) + "_" + 
+    "dilation_" + ToString(deconv_params_.dilation_x) + "_"+ ToString(deconv_params_.dilation_y) + "_" +
+    "pad_type_" + ToString(deconv_params_.pad_type) + "_" + 
+    "group_" + ToString(deconv_params_.group) + "]_global";
+    for(auto size : unit.global_work_size) {
+        tune_key += "_" + ToString(size);
+    }
+    return tune_key;
+} 
 
 }  // namespace TNN_NS

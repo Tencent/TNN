@@ -33,14 +33,16 @@ std::set<std::string> OpenCLReduceMeanLayerAcc::CreateBuildOptions() {
     std::set<std::string> build_options;
     std::string init    = " -DDATAINIT=0 ";
     std::string compute = " -DOPERATOR(r,t)=r=(r+t); ";
-    std::string inner   = " -DINNEROPERATOR=r.x+r.y+r.z+r.w ";
-    std::string post    = " -DPOSTOPERATOR=(r/axis_n) ";
-    build_options.emplace(init + compute + inner + post);
+    std::string reduce  = " -DREDUCEOPERATOR(r,t)=r=(r+t); ";
+    std::string inner   = " -DINNEROPERATOR(r)=r.x+r.y+r.z+r.w ";
+    std::string post    = " -DPOSTOPERATOR(r)=(r/axis_n) ";
+    build_options.emplace(init + compute + reduce + inner + post);
     return build_options;
 }
 
 OpenCLReduceMeanLayerAcc::~OpenCLReduceMeanLayerAcc() {}
 
 REGISTER_OPENCL_ACC(ReduceMean, LAYER_REDUCE_MEAN)
+REGISTER_OPENCL_LAYOUT(LAYER_REDUCE_MEAN, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

@@ -17,7 +17,7 @@
 
 #include "tnn/device/arm/acc/compute/winograd_function.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_layer_common.h"
-#include "tnn/utils/wingorad_generater.h"
+#include "tnn/utils/winograd_generator.h"
 
 namespace TNN_NS {
 

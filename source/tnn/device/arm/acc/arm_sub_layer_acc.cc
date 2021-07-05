@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "arm_binary_layer_acc.h"
+#include "tnn/device/arm/acc/arm_binary_layer_acc.h"
 
 namespace TNN_NS {
 
@@ -25,10 +25,7 @@ Status ArmSubLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
         return status;
     }
 
-    _Operator = [=](Float4 v1, Float4 v2, bool swap_flag) -> Float4 {
-        Float4 dst = (swap_flag) ? v2 - v1 : v1 - v2;
-        return dst;
-    };
+    op_type_ = ArmBinaryOpType::kSUB;
 
     return TNN_OK;
 }
@@ -36,5 +33,7 @@ Status ArmSubLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 ArmSubLayerAcc::~ArmSubLayerAcc() {}
 
 REGISTER_ARM_ACC(Sub, LAYER_SUB)
+REGISTER_ARM_PRECISION_FP16(LAYER_SUB)
+REGISTER_ARM_LAYOUT(LAYER_SUB, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

@@ -16,28 +16,12 @@
 
 #include <memory>
 
-#include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_common.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_int8_layer_depthwise.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_1x1.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_3x3.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_c3.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_common.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_depthwise.h"
-#include "tnn/device/arm/acc/convolution/arm_conv_layer_depthwise_s1.h"
+#include "tnn/device/arm/acc/convolution/arm_conv_layer_acc_factory.h"
 #include "tnn/device/arm/acc/convolution/arm_conv_layer_group.h"
+#include "tnn/interpreter/layer_resource_generator.h"
 #include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
-
-static std::shared_ptr<LayerResource> CreateFp32ConvResource(ConvLayerResource *conv_f16) {
-    ConvLayerResource *conv_f32 = new ConvLayerResource();
-
-    conv_f32->filter_handle = ConvertHalfHandle(conv_f16->filter_handle);
-    conv_f32->scale_handle  = ConvertHalfHandle(conv_f16->scale_handle);
-    conv_f32->bias_handle   = ConvertHalfHandle(conv_f16->bias_handle);
-
-    return std::shared_ptr<LayerResource>(conv_f32);
-}
 
 Status ArmConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                              const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -48,22 +32,31 @@ Status ArmConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     CHECK_PARAM_NULL(conv_res);
 
     if (conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF) {
-        conv_acc_f32_resource_ = CreateFp32ConvResource(conv_res);
+        LayerResource *fp32_res = nullptr;
+        RETURN_ON_NEQ(ConvertHalfResource(LAYER_CONVOLUTION, conv_res, &fp32_res), TNN_OK);
+        conv_acc_f32_resource_ = std::shared_ptr<LayerResource>(fp32_res);
         ret                    = ArmLayerAcc::Init(context, param, conv_acc_f32_resource_.get(), inputs, outputs);
     } else {
         ret = ArmLayerAcc::Init(context, param, resource, inputs, outputs);
     }
-    if (ret != TNN_OK)
+    if (ret != TNN_OK) {
         return ret;
-
+    }
     auto data_type = inputs[0]->GetBlobDesc().data_type;
-    if (conv_param->group != 1 && conv_param->group != inputs[0]->GetBlobDesc().dims[1]) {
+    if (conv_param->group != 1 && (conv_param->group != inputs[0]->GetBlobDesc().dims[1] ||
+                                   conv_param->group != outputs[0]->GetBlobDesc().dims[1])) {
         conv_acc_impl_ = std::make_shared<ArmConvLayerGroup>();
     } else {
         if (data_type == DATA_TYPE_INT8) {
-            GetImpInt8(inputs, outputs);
-        } else {
-            GetImpFP(inputs, outputs);
+            ArmConvLayerAccFactory::CreateImpInt8(inputs, outputs, param_, conv_acc_impl_);
+        }
+#if TNN_ARM82
+        else if (data_type == DATA_TYPE_HALF) {
+            ArmConvLayerAccFactory::CreateImpHalf(inputs, outputs, param_, conv_acc_impl_);
+        }
+#endif
+        else {
+            ArmConvLayerAccFactory::CreateImpFP(inputs, outputs, param_, conv_acc_impl_);
         }
     }
 
@@ -75,59 +68,16 @@ Status ArmConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
 
 ArmConvLayerAcc::~ArmConvLayerAcc() {}
 
-/*
-get different impl based on conv params
-ArmConvInt8LayerCommon always as the last solution
-*/
-void ArmConvLayerAcc::GetImpInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    if (ArmConvInt8LayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
-        if (!dynamic_cast<ArmConvInt8LayerDepthwise *>(conv_acc_impl_.get())) {
-            conv_acc_impl_ = std::make_shared<ArmConvInt8LayerDepthwise>();
-        }
-    } else if (ArmConvInt8LayerCommon::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
-        if (!dynamic_cast<ArmConvInt8LayerCommon *>(conv_acc_impl_.get())) {
-            conv_acc_impl_ = std::make_shared<ArmConvInt8LayerCommon>();
-        }
-    }
-}
-
-/*
-get different impl based on conv params
-ArmConvLayerCommon always as the last solution
-bfp16 impl included in fp impl
-*/
-void ArmConvLayerAcc::GetImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    if (ArmConvLayerC3::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
-        if (!dynamic_cast<ArmConvLayerC3 *>(conv_acc_impl_.get())) {
-            conv_acc_impl_ = std::make_shared<ArmConvLayerC3>();
-        }
-    } else if (ArmConvLayer3x3::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
-        if (!dynamic_cast<ArmConvLayer3x3 *>(conv_acc_impl_.get())) {
-            conv_acc_impl_ = std::make_shared<ArmConvLayer3x3>();
-        }
-    } else if (ArmConvLayer1x1::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
-        if (!dynamic_cast<ArmConvLayer1x1 *>(conv_acc_impl_.get())) {
-            conv_acc_impl_ = std::make_shared<ArmConvLayer1x1>();
-        }
-    } else if (ArmConvLayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
-        if (ArmConvLayerDepthwiseS1::isPrefered(dynamic_cast<ConvLayerParam *>(param_), inputs, outputs)) {
-            if (!dynamic_cast<ArmConvLayerDepthwiseS1 *>(conv_acc_impl_.get())) {
-                conv_acc_impl_ = std::make_shared<ArmConvLayerDepthwiseS1>();
-            }
-        } else if (!dynamic_cast<ArmConvLayerDepthwise *>(conv_acc_impl_.get())) {
-            conv_acc_impl_ = std::make_shared<ArmConvLayerDepthwise>();
-        }
-    }
-    if (!conv_acc_impl_) {
-        conv_acc_impl_ = std::make_shared<ArmConvLayerCommon>();
-    }
-}
-
 Status ArmConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return conv_acc_impl_->Reshape(inputs, outputs);
 }
 
 Status ArmConvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    // converted weights are assumed to be packed, and can be freed now
+    if (conv_acc_f32_resource_) {
+        conv_acc_f32_resource_.reset();
+    }
+
     if (conv_acc_impl_) {
         return conv_acc_impl_->DoForward(inputs, outputs);
     } else {
@@ -136,5 +86,7 @@ Status ArmConvLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_ARM_ACC(Conv, LAYER_CONVOLUTION)
+REGISTER_ARM_PRECISION_FP16(LAYER_CONVOLUTION)
+REGISTER_ARM_LAYOUT(LAYER_CONVOLUTION, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

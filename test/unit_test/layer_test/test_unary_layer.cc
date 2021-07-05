@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "test/unit_test/layer_test/test_unary_layer.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -20,28 +21,43 @@ UnaryLayerTest::UnaryLayerTest(LayerType type) {
     layer_type_ = type;
 }
 
-void UnaryLayerTest::RunUnaryTest() {
+void UnaryLayerTest::RunUnaryTest(std::string type_str) {
     // get param
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
     int input_size     = std::get<2>(GetParam());
-    DataType data_type = std::get<3>(GetParam());
+    int dim_count      = std::get<3>(GetParam());
+    DataType data_type = std::get<4>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
+    //special for cuda skip
+    if ((type_str == "Reciprocal" || type_str == "Softplus") && DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
 
-    LayerParam param;
-    param.name = "Unary";
-    Run(layer_type_, &param, nullptr, inputs_desc, outputs_desc);
+    // skip dims > 4 for HUAWEI_NPU
+    if (dim_count > 4 && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+
+    std::shared_ptr<LayerParam> param(new LayerParam());
+    param->name = "Unary";
+
+    Precision precision = SetPrecision(dev, data_type);
+    
+    // generate proto string
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
+    }
+
+    auto interpreter = GenerateInterpreter(type_str, {input_dims}, param);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

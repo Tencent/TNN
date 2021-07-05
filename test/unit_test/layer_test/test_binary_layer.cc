@@ -13,6 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "test/unit_test/layer_test/test_binary_layer.h"
+#include "tnn/utils/cpu_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
 
@@ -20,63 +22,77 @@ BinaryLayerTest::BinaryLayerTest(LayerType type) {
     layer_type_ = type;
 }
 
-void BinaryLayerTest::RunBinaryTest() {
+void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_positive) {
     // get param
-    int batch            = std::get<0>(GetParam());
-    int channel          = std::get<1>(GetParam());
-    int input_size       = std::get<2>(GetParam());
-    int input_count      = std::get<3>(GetParam());
-    int param_size_type  = std::get<4>(GetParam());
-    int weight_idx       = std::get<5>(GetParam());
-    DataType data_type   = std::get<6>(GetParam());
-    LayerType layer_type = layer_type_;
-    DeviceType dev       = ConvertDeviceType(FLAGS_dt);
+    int batch           = std::get<0>(GetParam());
+    int channel         = std::get<1>(GetParam());
+    int input_size      = std::get<2>(GetParam());
+    int input_count     = std::get<3>(GetParam());
+    int param_size_type = std::get<4>(GetParam());
+    int weight_idx      = std::get<5>(GetParam());
+    int dims_size       = std::get<6>(GetParam());
+    DataType data_type  = std::get<7>(GetParam());
+    DeviceType dev      = ConvertDeviceType(FLAGS_dt);
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 
     if (batch > 1 && DEVICE_METAL == dev) {
+         GTEST_SKIP();
+    }
+    if (batch > 1 && param_size_type == 3 && DEVICE_HUAWEI_NPU == dev) {
+        GTEST_SKIP();
+    }
+    if (dims_size != 4 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
     std::vector<int> param_dims;
-    int param_count = 1;
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
     if (0 == param_size_type) {
-        param_count = 1;
         param_dims  = {1, 1, 1, 1};
     } else if (1 == param_size_type) {
-        param_count = channel;
         param_dims  = {1, channel, 1, 1};
     } else if (2 == param_size_type) {
-        param_count = channel * input_size * input_size;
         param_dims  = {1, channel, input_size, input_size};
     } else if (3 == param_size_type) {
-        param_count = input_size * input_size;
         param_dims  = {1, 1, input_size, input_size};
+    }
+
+    for (int i = dims_size; i < 4; ++i) {
+        param_dims.pop_back();
+        input_dims.pop_back();
     }
 
     std::shared_ptr<EltwiseLayerResource> resource = nullptr;
     if (input_count == 1) {
-        resource.reset(new EltwiseLayerResource());
+        int param_count = DimsVectorUtils::Count(param_dims);
+        resource = std::shared_ptr<EltwiseLayerResource>(new EltwiseLayerResource());
         RawBuffer buffer(param_count * sizeof(float));
         float* buffer_data = buffer.force_to<float*>();
-        InitRandom(buffer_data, param_count, 1.0f);
+        if (resource_positive) {
+            InitRandom(buffer_data, param_count, 0.001f, 1.0f);
+        } else {
+            InitRandom(buffer_data, param_count, 1.0f);
+        }
         resource->element_handle = buffer;
         resource->element_shape  = param_dims;
     }
 
     // param
-    std::shared_ptr<MultidirBroadcastLayerParam> param;
+    std::shared_ptr<MultidirBroadcastLayerParam> param = nullptr;
     if (LAYER_HARDSWISH == layer_type_) {
-        param.reset(new HardSwishLayerParam());
+        param = std::shared_ptr<MultidirBroadcastLayerParam>(new HardSwishLayerParam());
     } else {
-        param.reset(new MultidirBroadcastLayerParam());
+        param = std::shared_ptr<MultidirBroadcastLayerParam>(new MultidirBroadcastLayerParam());
     }
 
     param->name               = "Binary";
     param->weight_input_index = weight_idx;
 
+    std::vector<int> input0_dims;
+    std::vector<int> input1_dims;
     // blob desc
     std::vector<BlobDesc> inputs_desc;
     if (1 == input_count) {
@@ -84,33 +100,22 @@ void BinaryLayerTest::RunBinaryTest() {
             // this case doesn't exist
             return;
         } else if (0 == weight_idx) {
-            inputs_desc = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
+            input0_dims = input_dims;
         } else if (1 == weight_idx) {
-            inputs_desc = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
+            input0_dims = input_dims;
         }
     } else if (2 == input_count) {
         if (-1 == weight_idx) {
             // the size of input are same
-            inputs_desc = CreateInputBlobsDesc(batch, channel, input_size, 2, data_type);
+            input0_dims = input_dims;
+            input1_dims = input_dims;
         } else {
-            std::vector<BlobDesc> weight_desc;
-            if (0 == param_size_type) {
-                weight_desc = CreateInputBlobsDesc(1, 1, 1, 1, data_type);
-            } else if (1 == param_size_type) {
-                weight_desc = CreateInputBlobsDesc(1, channel, 1, 1, data_type);
-            } else if (2 == param_size_type) {
-                weight_desc = CreateInputBlobsDesc(1, channel, input_size, 1, data_type);
-            } else if (3 == param_size_type) {
-                weight_desc = CreateInputBlobsDesc(1, 1, input_size, 1, data_type);
-            }
-
-            auto input_desc = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
             if (0 == weight_idx) {
-                inputs_desc.push_back(weight_desc[0]);
-                inputs_desc.push_back(input_desc[0]);
+                input0_dims = param_dims;
+                input1_dims = input_dims;
             } else if (1 == weight_idx) {
-                inputs_desc.push_back(input_desc[0]);
-                inputs_desc.push_back(weight_desc[0]);
+                input0_dims = input_dims;
+                input1_dims = param_dims;
             }
         }
     } else {
@@ -118,9 +123,19 @@ void BinaryLayerTest::RunBinaryTest() {
         return;
     }
 
-    std::vector<BlobDesc> outputs_desc = CreateOutputBlobsDesc(1, data_type);
 
-    Run(layer_type, param.get(), resource.get(), inputs_desc, outputs_desc);
+    Precision precision = SetPrecision(dev, data_type);
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
+    } 
+    
+    std::shared_ptr<AbstractModelInterpreter> interpreter;
+    if (1 == input_count) {
+        interpreter = GenerateInterpreter(layer_type_str, {input0_dims}, param, resource);
+    } else if (2 == input_count) {
+        interpreter = GenerateInterpreter(layer_type_str, {input0_dims, input1_dims}, param);
+    }
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

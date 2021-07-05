@@ -13,36 +13,79 @@
 // specific language governing permissions and limitations under the License.
 
 #include "npu_utils.h"
-#include <tnn/interpreter/layer_resource.h>
-#include <tnn/utils/dims_vector_utils.h>
+#include <stdlib.h>
 #include <sstream>
 #include "tnn/core/macro.h"
+#include "tnn/utils/dims_utils.h"
+#include "tnn/utils/split_utils.h"
 
-namespace tnn {
+namespace TNN_NS {
 
-Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const>& attr_value, ge::Shape shape, RawBuffer &raw_buffer) {
-    ge::TensorDesc desc(shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
+Status NpuUtils::CreateAttrValue(shared_ptr<ge::op::Const> &attr_value, ge::Shape shape, RawBuffer &raw_buffer) {
     ge::TensorPtr tensor_ptr = std::make_shared<ge::Tensor>();
-
-    tensor_ptr->SetTensorDesc(desc);
-    tensor_ptr->SetData(raw_buffer.force_to<uint8_t *>(), raw_buffer.GetBytesSize());
-
+    ge::Format format        = ge::FORMAT_RESERVED;
+    if (shape.GetDims().size() == 4) {
+        format = ge::FORMAT_NCHW;
+    } else {
+        format = ge::FORMAT_ND;
+    }
+    if (raw_buffer.GetDataType() == DATA_TYPE_FLOAT || raw_buffer.GetDataType() == DATA_TYPE_HALF) {
+        ge::TensorDesc desc(shape, format, ge::DT_FLOAT);
+        tensor_ptr->SetTensorDesc(desc);
+    } else if (raw_buffer.GetDataType() == DATA_TYPE_INT32) {
+        ge::TensorDesc desc(shape, format, ge::DT_INT32);
+        tensor_ptr->SetTensorDesc(desc);
+    } else {
+        LOGE("raw buffer data type is not support in CreateAttrValue");
+        return Status(TNNERR_INVALID_DATA, "raw buffer data type is not support in CreateAttrValue");
+    }
+    if (raw_buffer.GetDataType() == DATA_TYPE_HALF) {
+        // if filter handle is half, need convert to float first.
+        std::shared_ptr<float> float_data_ptr = GetFloatFromRawBuffer(raw_buffer);
+        if (float_data_ptr == nullptr) {
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+        }
+        tensor_ptr->SetData((uint8_t *)float_data_ptr.get(), raw_buffer.GetDataCount() * sizeof(float));
+    } else if (raw_buffer.GetDataType() == DATA_TYPE_FLOAT) {
+        tensor_ptr->SetData(raw_buffer.force_to<uint8_t *>(), raw_buffer.GetBytesSize());
+    } else if (raw_buffer.GetDataType() == DATA_TYPE_INT32) {
+        tensor_ptr->SetData(raw_buffer.force_to<uint8_t *>(), raw_buffer.GetBytesSize());
+    } else {
+        tensor_ptr->SetData(raw_buffer.force_to<uint8_t *>(), raw_buffer.GetBytesSize());
+    }
     attr_value->set_attr_value(tensor_ptr);
     return TNN_OK;
 }
 
 Status NpuUtils::CreateInputData(std::shared_ptr<ge::op::Data> &input_data, std::string &input_name,
                                  DimsVector dims_vector) {
-    int n = dims_vector[0];
-    int c = dims_vector[1];
-    int h = dims_vector[2];
-    int w = dims_vector[3];
-
-    ge::Shape data_shape({n, c, h, w});
-    ge::TensorDesc desc(data_shape, ge::FORMAT_NCHW, ge::DT_FLOAT);
+    // TO-DO: support int32 input
+    ge::TensorDesc desc(ge::Shape(NpuUtils::Int32VecToTVec<int64_t>(dims_vector)), ge::FORMAT_NCHW, ge::DT_FLOAT);
 
     input_data = std::make_shared<ge::op::Data>(input_name);
     input_data->update_input_desc_x(desc);
+    return TNN_OK;
+}
+
+Status NpuUtils::CreateConstOpFromResource(std::shared_ptr<OperatorInfo> &const_op, std::string name,
+                                           NetResource *net_resource) {
+    if (net_resource->constant_map.count(name) > 0) {
+        auto raw_buffer      = net_resource->constant_map[name];
+        auto data_const      = std::make_shared<ge::op::Const>(name + "_const");
+        auto raw_buffer_dims = raw_buffer->GetBufferDims();
+        ge::Shape const_shape(NpuUtils::Int32VecToTVec<int64_t>(raw_buffer_dims));
+        auto ret = NpuUtils::CreateAttrValue(data_const, const_shape, *raw_buffer);
+        if (ret != TNN_OK) {
+            LOGE("The input op of layer which is found in resource convert to const op failed\n");
+            return ret;
+        }
+        const_op = std::make_shared<OperatorInfo>(data_const);
+        const_op->SetShape(raw_buffer_dims);
+    } else {
+        LOGE("The input op of layer is not found in resource");
+        return Status(TNNERR_LAYER_ERR, "The input op of layer is not found in resource");
+    }
+
     return TNN_OK;
 }
 
@@ -56,45 +99,6 @@ Status NpuUtils::WriteModelFile(domi::ModelBufferData &model_buffer_data, std::s
     file.write(static_cast<char *>(model_buffer_data.data), model_buffer_data.length);
     file.close();
     return TNN_OK;
-}
-
-Status NpuUtils::CalculateBroadcastSize(vector<int> &weight, EltwiseLayerResource *layer_res, vector<int> &input) {
-    int input_count = DimsVectorUtils::Count(input, 1);
-    if (weight.size() < 4) {
-        weight             = {1, 1, 1, 1};
-        int layer_res_size = layer_res->element_handle.GetDataCount();
-        if (layer_res_size == 1) {
-            // single element
-            weight[1] = layer_res_size;
-        } else if (layer_res_size == input[1]) {
-            // channel broadcast
-            weight[1] = layer_res_size;
-        } else if (layer_res_size == input_count) {
-            // element broadcast
-            weight[1] = input[1];
-            weight[2] = input[2];
-            weight[3] = input[3];
-        } else if (layer_res_size == input[3]) {
-            weight[3] = input[3];
-        } else {
-            return Status(TNNERR_LAYER_ERR, "Error: unsupported broadcast type");
-        }
-        layer_res->element_shape = weight;
-    }
-    return TNN_OK;
-}
-
-std::string NpuUtils::GetFileHash(ModelConfig &model_config) {
-    std::string file_content = model_config.params[1] + model_config.params[0];
-    int hash                 = 0;
-    for (size_t i = 0; i < file_content.length(); ++i)
-        hash = 65599 * hash + file_content.at(i);
-    return std::to_string(hash ^ (hash >> 16));
-}
-
-bool NpuUtils::FileExits(std::string model_path) {
-    std::ifstream infile(model_path);
-    return infile.good();
 }
 
 Status NpuUtils::GetPadMode(int &pad_mode, int pad_type) {
@@ -116,38 +120,138 @@ Status NpuUtils::GetPadMode(int &pad_mode, int pad_type) {
     return TNN_OK;
 }
 
-int NpuUtils::checkNpuVersion(const char *version) {
-    // ddk version's format: xxx.xxx.xxx.xxx
-    std::string version_s(version);
-    size_t pos = std::string::npos;
-    int count = 0, update_index = 1;
-    while ((pos = version_s.find(".")) != std::string::npos) {
-        std::string curr_update = version_s.substr(0, pos);
-        if (count == update_index) {
-            return std::stoi(curr_update.c_str());
+static bool IsNumberString(std::string num_str) {
+    const char *num_char = num_str.c_str();
+
+    for (int i = 0; i < num_str.length(); ++i) {
+        if (!(num_char[i] >= '0' && num_char[i] <= '9')) {
+            return false;
         }
-        version_s.erase(0, pos + 1);
-        count++;
     }
-    return 0;
+    return true;
 }
 
-std::string NpuUtils::modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map) {
-    std::stringstream model_suffix_stream("");
-    for (auto iter : inputs_shape) {
-        if (instance_input_shapes_map.count(iter.first) > 0 && instance_input_shapes_map[iter.first] != iter.second) {
-            instance_input_shapes_map[iter.first] = iter.second;
-            model_suffix_stream << "_" << iter.first << "[";
-            DimsVector value = iter.second;
-            for (size_t i = 0; i < value.size(); ++i) {
-                if (i != 0) {
-                    model_suffix_stream << "x";
-                }
-                model_suffix_stream << value[i];
+bool NpuUtils::IsVersionValid(std::string version) {
+    str_arr version_vec;
+    auto ret = SplitUtils::SplitStr(version.c_str(), version_vec, ".");
+    if (ret != TNN_OK) {
+        LOGE("split npu version failed (str: %s)\n", version.c_str());
+        return false;
+    }
+
+    if (version_vec.size() != 4) {
+        return false;
+    }
+
+    for (auto val : version_vec) {
+        if (!IsNumberString(val) && val != "xxx")
+            return false;
+    }
+
+    return true;
+}
+
+bool NpuUtils::VersionCompare(std::string version, std::string cmp, VersionCompareType type) {
+    if (!IsVersionValid(version) || !IsVersionValid(cmp)) {
+        LOGE("invalid version(s1: %s  s2: %s)\n", version.c_str(), cmp.c_str());
+        return false;
+    }
+
+    str_arr version_vec;
+    str_arr cmp_vec;
+
+    auto ret = SplitUtils::SplitStr(version.c_str(), version_vec, ".");
+    if (ret != TNN_OK) {
+        LOGE("split npu version failed (str: %s)\n", version.c_str());
+        return false;
+    }
+
+    ret = SplitUtils::SplitStr(cmp.c_str(), cmp_vec, ".");
+    if (ret != TNN_OK) {
+        LOGE("split npu version failed (str: %s)\n", cmp.c_str());
+        return false;
+    }
+
+    for (unsigned int i = 0; i < version_vec.size(); ++i) {
+        int version_val = 0;
+        int cmp_val     = 0;
+
+        if (version_vec[i] == "xxx") {
+            version_val = -1;
+        }
+        if (cmp_vec[i] == "xxx") {
+            cmp_val = -1;
+        }
+
+        version_val = atoi(version_vec[i].c_str());
+        cmp_val     = atoi(cmp_vec[i].c_str());
+
+        if (VCT_SMALLER == type || VCT_SMALLEQUAL == type) {
+            if (version_val < cmp_val) {
+                return true;
+            } else if (version_val > cmp_val) {
+                return false;
             }
-            model_suffix_stream << "]";
+        } else if (VCT_BIGGER == type || VCT_BIGEQUAL == type) {
+            if (version_val < cmp_val) {
+                return false;
+            } else if (version_val > cmp_val) {
+                return true;
+            }
         }
     }
-    return model_suffix_stream.str();
+
+    if (VCT_SMALLEQUAL == type || VCT_BIGEQUAL == type) {
+        return true;
+    } else {
+        return false;
+    }
 }
-}  // namespace tnn
+
+void NpuUtils::SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string> &visited,
+                            std::map<std::string, shared_ptr<OperatorInfo>> &global_operator_map) {
+    std::vector<shared_ptr<LayerInfo>> layers;
+    // only view input
+    InputShapesMap sub_input_shapes_map;
+    for (int i = cpu_count; i < net_structure->layers.size(); i++) {
+        std::shared_ptr<LayerInfo> &layer_info = net_structure->layers[i];
+        for (std::string &input : layer_info->inputs) {
+            // if the subnetwork input exists in visited
+            if (visited.count(input) > 0) {
+                // if the input has not defined in new inputShapeMap yet
+                if (sub_input_shapes_map.count(input) == 0) {
+                    sub_input_shapes_map[input] = global_operator_map[input]->GetShape();
+                }
+            }
+        }
+        layers.push_back(layer_info);
+    }
+    net_structure->layers           = layers;
+    net_structure->inputs_shape_map = sub_input_shapes_map;
+
+    // remove outputs which has visited
+    std::set<std::string> outputs;
+    for (auto output : net_structure->outputs) {
+        if (visited.count(output) == 0) {
+            outputs.insert(output);
+        }
+    }
+    net_structure->outputs = outputs;
+}
+
+ge::DataType NpuUtils::ConvertToHiaiDataType(TNN_NS::DataType tnn_dtype) {
+    if (DATA_TYPE_FLOAT == tnn_dtype) {
+        return ge::DT_FLOAT;
+    } else if (DATA_TYPE_HALF == tnn_dtype) {
+        return ge::DT_FLOAT16;
+    } else if (DATA_TYPE_INT8 == tnn_dtype) {
+        return ge::DT_INT8;
+    } else if (DATA_TYPE_INT32 == tnn_dtype) {
+        return ge::DT_INT32;
+    } else if (DATA_TYPE_BFP16 == tnn_dtype) {
+        return ge::DT_UNDEFINED;
+    }
+    return ge::DT_UNDEFINED;
+}
+
+}  // namespace TNN_NS

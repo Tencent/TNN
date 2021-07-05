@@ -37,7 +37,7 @@ Status RknpuReduceMeanLayer::Convert() {
     ADD_OUTPUT_OP();
 
     std::vector<int> axes                 = param->axis;
-    std::vector<uint32_t> input_shape_vec = input_ops_[0]->GetDims();
+    std::vector<int32_t> input_shape_vec = input_ops_[0]->GetDims();
 
     // check if all reduce
     if (param->all_reduce) {
@@ -58,6 +58,7 @@ Status RknpuReduceMeanLayer::Convert() {
     for (const auto val : axes) {
         attr.axis.push_back(static_cast<uint32_t>(val));
     }
+    attr.axis_num = attr.axis.size();
     attr.keep_dim = param->keep_dims;
     graph_->AddOperator(rk::nn::OperatorType::REDUCE, inputs, output_ops_, (void *)&attr);
 

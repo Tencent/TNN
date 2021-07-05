@@ -35,6 +35,8 @@ private:
     std::vector<uint32_t> Conv2d1x1LocalWS3D(std::vector<uint32_t> &gws, const uint32_t max_workgroup_size);
 
     bool stride_is_1_ = false;
+    bool width_blocking_is_1_ = false;
+    bool run_local_work_ = false;
 };
 
 }  // namespace TNN_NS

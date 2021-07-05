@@ -38,6 +38,10 @@ std::string TFLiteUnaryConverter::TNNOpType(tflite::BuiltinOperator op_code, boo
             return "Rsqrt";
         case tflite::BuiltinOperator_RELU:
             return "ReLU";
+        case tflite::BuiltinOperator_SHAPE:
+            return "Shape";
+        case tflite::BuiltinOperator_SQRT:
+            return "Sqrt";
         default:
             return "";
     }
@@ -47,7 +51,7 @@ tflite::ActivationFunctionType TFLiteUnaryConverter::ActivationType(
     return tflite::ActivationFunctionType_NONE;
 }
 
-TNN_NS::Status TFLiteUnaryConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+TNN_NS::Status TFLiteUnaryConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                           const std::unique_ptr<tflite::OperatorT> &tf_lite_operator,
                                           const std::vector<std::unique_ptr<tflite::TensorT>> &tf_lite_tensors,
                                           const std::vector<std::unique_ptr<tflite::BufferT>> &tf_lite_model_buffer,
@@ -72,5 +76,6 @@ REGISTER_CONVERTER(Unary, BuiltinOperator_SIN);
 REGISTER_CONVERTER(Unary, BuiltinOperator_NEG);
 REGISTER_CONVERTER(Unary, BuiltinOperator_RSQRT);
 REGISTER_CONVERTER(Unary, BuiltinOperator_RELU);
-
+REGISTER_CONVERTER(Unary, BuiltinOperator_SHAPE);
+REGISTER_CONVERTER(Unary, BuiltinOperator_SQRT);
 }  // namespace TNN_CONVERTER

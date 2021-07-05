@@ -17,48 +17,68 @@
 
 #include <tnn/core/blob.h>
 #include <tnn/interpreter/layer_resource.h>
+#include <tnn/interpreter/net_resource.h>
+#include <tnn/interpreter/net_structure.h>
 #include <tnn/interpreter/raw_buffer.h>
 
-#include "graph/op/array_defs.h"
-#include "graph/op/const_defs.h"
 #include "graph/compatible/all_ops.h"
 #include "graph/operator.h"
 #include "hiai_ir_build.h"
+#include "npu_base_layer_convert.h"
 #include "tnn/core/common.h"
 #include "tnn/core/status.h"
-#include "tnn/interpreter/layer_param.h"
 
 namespace TNN_NS {
+
+typedef enum {
+    VCT_SMALLER = 0,
+    VCT_SMALLEQUAL,
+    VCT_BIGGER,
+    VCT_BIGEQUAL,
+} VersionCompareType;
 
 class NpuUtils {
 public:
     static Status CreateInputData(std::shared_ptr<ge::op::Data> &input_data, std::string &input_name,
                                   DimsVector dims_vector);
 
-    static Status CreateAttrValue(shared_ptr<ge::op::Const>& attr_value, ge::Shape shape, RawBuffer &raw_buffer);
+    static Status CreateAttrValue(std::shared_ptr<ge::op::Const> &attr_value, ge::Shape shape, RawBuffer &raw_buffer);
 
     template <class T>
     static Status CreateAttrArray(std::shared_ptr<ge::op::Const> &attr_value, std::vector<T> data,
-                                  ge::TensorDesc input_desc, int shape) {
-        ge::AttrValue::TENSOR input_size_tensor = std::make_shared<ge::Tensor>(input_desc);
-        input_size_tensor->SetData((uint8_t *)data.data(), sizeof(T) * shape);
+                                  ge::TensorDesc input_desc, int length) {
+        ge::TensorPtr input_size_tensor = std::make_shared<ge::Tensor>(input_desc);
+        // since 1-d array total size = sizeof(datatype) * length
+        input_size_tensor->SetData((uint8_t *)data.data(), sizeof(T) * length);
         attr_value->set_attr_value(input_size_tensor);
         return TNN_OK;
     }
 
+    static Status CreateConstOpFromResource(std::shared_ptr<OperatorInfo> &const_op, std::string name,
+                                            NetResource *net_resource);
+
     static Status WriteModelFile(domi::ModelBufferData &model_buffer_data, std::string file_path);
-
-    static Status CalculateBroadcastSize(vector<int> &weight_shape, EltwiseLayerResource *layer_res,
-                                         vector<int> &input_shape);
-    static std::string GetFileHash(ModelConfig &model_config);
-
-    static bool FileExits(string model_path);
 
     static Status GetPadMode(int &pad_mode, int pad_type);
 
-    static int checkNpuVersion(const char *version);
+    static bool IsVersionValid(std::string version);
 
-    static std::string modifyModelInputSize(InputShapesMap &inputs_shape, InputShapesMap &instance_input_shapes_map);
+    static bool VersionCompare(std::string version, std::string cmp, VersionCompareType type);
+
+    static void SplitNetwork(const int cpu_count, NetStructure *net_structure, std::set<std::string> &visited,
+                             std::map<std::string, shared_ptr<OperatorInfo>> &global_operator_map);
+
+    template <class T>
+    static std::vector<T> Int32VecToTVec(std::vector<int> vec) {
+        std::vector<T> result;
+        result.clear();
+        for (auto value : vec) {
+            result.push_back((T)value);
+        }
+        return result;
+    }
+
+    static ge::DataType ConvertToHiaiDataType(TNN_NS::DataType tnn_dtype);
 };
 
 }  // namespace TNN_NS

@@ -19,7 +19,7 @@
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "utils/network_helpers.h"
 
 namespace TNN_NS {
@@ -30,29 +30,7 @@ Context* MatConverterTest::cpu_context_;
 Context* MatConverterTest::device_context_;
 
 void MatConverterTest::SetUpTestCase() {
-    NetworkConfig config;
-    config.device_type = ConvertDeviceType(FLAGS_dt);
-    if (FLAGS_lp.length() > 0) {
-        config.library_path = {FLAGS_lp};
-    }
-    TNN_NS::Status ret = TNN_NS::TNN_OK;
-
-    // cpu
-    cpu_ = GetDevice(DEVICE_NAIVE);
-    ASSERT(cpu_ != NULL);
-
-    cpu_context_ = cpu_->CreateContext(0);
-    ASSERT(cpu_context_ != NULL);
-
-    // device
-    device_ = GetDevice(config.device_type);
-    ASSERT(device_ != NULL);
-
-    device_context_ = device_->CreateContext(config.device_id);
-    ASSERT(device_context_ != NULL);
-
-    ret = device_context_->LoadLibrary(config.library_path);
-    ASSERT(ret == TNN_OK);
+   SetUpEnvironment(&cpu_, &device_, &cpu_context_, &device_context_);
 }
 
 void MatConverterTest::TearDownTestCase() {
@@ -86,16 +64,139 @@ int MatConverterTest::CreateTestData(int batch, int channel, int input_size, Mat
         mat_out_dev_data_ = malloc(out_size_ * sizeof(uint8_t));
     }
 
+    if (mat_type == NNV12 || mat_type == NNV21) {
+        out_size_ /= 2;
+    }
+
     return 0;
 }
 
-int MatConverterTest::DestroyTestData()
-{
+int MatConverterTest::DestroyTestData() {
     free(mat_in_data_);
     free(mat_out_ref_data_);
     free(mat_out_dev_data_);
 
     return 0;
+}
+
+bool MatConverterTest::OpenCLTestFilter(const DeviceType& device_type, const MatType& mat_type) {
+    return device_type == DEVICE_OPENCL && mat_type != N8UC4;
+}
+
+bool MatConverterTest::MetalTestFilter(const DeviceType& device_type, const MatType& mat_type,
+                                       const MatConverterType& mat_converter_type, const int batch) {
+    // Metal device only supports NCHW_FLOAT and N8UC4 mat
+    if (device_type == DEVICE_METAL && !(mat_type == N8UC4 || mat_type == NCHW_FLOAT)) {
+        return true;
+    }
+    // Only Copy supports NCHW_FLOAT
+    if (device_type == DEVICE_METAL && mat_type == NCHW_FLOAT && mat_converter_type != MatConverterType::Copy) {
+        return true;
+    }
+    // Metal device only supports N8UC4 mat with batchsize = 1
+    if (device_type == DEVICE_METAL && mat_type == N8UC4 && batch != 1) {
+        return true;
+    }
+    // Disable interpolation-related tests on Metal
+    if (device_type == DEVICE_METAL && (mat_converter_type == MatConverterType::WarpAffine ||
+                mat_converter_type == MatConverterType::Resize)) {
+        return true;
+    }
+    return false;
+}
+
+bool MatConverterTest::CUDATestFilter(const DeviceType& device_type, const MatType& mat_type,
+                                       const MatConverterType& mat_converter_type) {
+    if (device_type != DEVICE_CUDA)
+        return false;
+
+    if (mat_converter_type == MatConverterType::WarpAffine && (mat_type == NNV12 || mat_type == NNV21)) {
+        return true;
+    }
+    if (mat_converter_type == MatConverterType::Resize && (mat_type == NNV12 || mat_type == NNV21)) {
+        return true;
+    }
+
+    return false;
+}
+
+bool MatConverterTest::MatChannelCheck(const MatType& mat_type, const int channel, const int input_size) {
+    return (mat_type == NGRAY && channel != 1) ||
+           (mat_type == N8UC3 && channel != 3) ||
+           (mat_type == N8UC4 && channel != 4) ||
+           ((mat_type == NNV12 || mat_type == NNV21) && (channel != 3 || input_size % 2 != 0));
+}
+
+bool MatConverterTest::CvtColorCheck(const DeviceType& device_type, const MatType& mat_type,
+                                     const MatConverterType& mat_converter_type,
+                                     const ColorConversionType& cvt_type,
+                                     const int input_size) {
+    if (mat_converter_type == MatConverterType::CvtColor) {
+        if (device_type != DEVICE_ARM && device_type != DEVICE_X86) {
+            return true;
+        }
+        if (cvt_type == COLOR_CONVERT_BGRTOGRAY && mat_type != N8UC3) {
+            return true;
+        }
+        if (cvt_type == COLOR_CONVERT_RGBTOGRAY && mat_type != N8UC3) {
+            return true;
+        }
+        if (cvt_type == COLOR_CONVERT_BGRATOGRAY && mat_type != N8UC4) {
+            return true;
+        }
+        if (cvt_type == COLOR_CONVERT_RGBATOGRAY && mat_type != N8UC4) {
+            return true;
+        }
+        if ((cvt_type == COLOR_CONVERT_NV12TOBGR || cvt_type == COLOR_CONVERT_NV21TOBGR) &&
+            (mat_type != N8UC3 || input_size % 2 != 0)) {
+            return true;
+        }
+        if ((cvt_type == COLOR_CONVERT_NV12TOBGRA || cvt_type == COLOR_CONVERT_NV21TOBGRA) &&
+            (mat_type != N8UC4 || input_size % 2 != 0)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool MatConverterTest::CopyMakeBorderCheck(const DeviceType& device_type, const MatType& mat_type,
+                                           const MatConverterType& mat_converter_type) {
+    if (mat_converter_type == MatConverterType::CopyMakeBorder) {
+        if (mat_type == NNV12 || mat_type == NNV21) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool MatConverterTest::CropYUVCheck(const MatConverterTestParam& mat_converter_test_param,
+                                    const MatConverterType& mat_converter_type,
+                                    const MatType& mat_type) {
+    if (mat_converter_type == MatConverterType::Crop) {
+        auto param = mat_converter_test_param.crop_param;
+        if (mat_type == NNV12 || mat_type == NNV21) {
+            if (param.top_left_x % 2 || param.top_left_y % 2 || param.height % 2 || param.width % 2) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void MatConverterTest::GetOutputSize(const MatConverterTestParam& mat_converter_test_param,
+                                     const MatConverterType& mat_converter_type,
+                                     const int input_size,
+                                     int& output_size) {
+    if (mat_converter_type == MatConverterType::Resize){
+        output_size = int(round(mat_converter_test_param.resize_param.scale_h * input_size));
+    } else if (mat_converter_type == MatConverterType::Crop) {
+        output_size = mat_converter_test_param.crop_param.width;
+    } else if (mat_converter_type == MatConverterType::CopyMakeBorder) {
+        output_size = input_size + mat_converter_test_param.copy_make_border_param.top +
+                      mat_converter_test_param.copy_make_border_param.bottom;
+    } else {
+        output_size = input_size;
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
@@ -105,9 +206,9 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                             // channel
                             testing::Values(1, 3, 4), 
                             // inputsize
-                            testing::Values(20, 21, 26, 27),
+                            testing::Values(20, 23, 27, 150, 320),
                             // mat type
-                            testing::Values(N8UC4, N8UC3, NGRAY),
+                            testing::Values(N8UC4, N8UC3, NGRAY, NNV12, NNV21),
                             // converter test param
                             testing::Values(
                                 // Copy
@@ -126,24 +227,49 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                                 MatConverterTestParam(MatConverterType::WarpAffine, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
                                                       INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, 0.0),
                                 MatConverterTestParam(MatConverterType::WarpAffine, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
-                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, 255),
                                 MatConverterTestParam(MatConverterType::WarpAffine, 1, 0, 1, 0, 1, 1,
-                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, 255),
                                 MatConverterTestParam(MatConverterType::WarpAffine, 1, 0, 50, 0, 1, 100,
-                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, 255),
                                 MatConverterTestParam(MatConverterType::WarpAffine, 2, 1, 100, 3, 7, 50,
-                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, 255),
                                 MatConverterTestParam(MatConverterType::WarpAffine, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
-                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, FLT_MIN),
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_CONSTANT, 255),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                                      INTERP_TYPE_NEAREST, BORDER_TYPE_CONSTANT, 0.0),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+                                                      INTERP_TYPE_NEAREST, BORDER_TYPE_CONSTANT, 0.0),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 1, 0, 50, 0, 1, 100,
+                                                      INTERP_TYPE_NEAREST, BORDER_TYPE_CONSTANT, 255),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 2, 1, 100, 3, 7, 50,
+                                                      INTERP_TYPE_NEAREST, BORDER_TYPE_CONSTANT, 255),
                                 // CvtColor
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRTOGRAY),
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRATOGRAY),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_RGBTOGRAY),
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_RGBATOGRAY),
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGR),
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGR),
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV12TOBGRA),
-                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGRA)
+                                MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_NV21TOBGRA),
+                                // CopyMakeBorder
+                                MatConverterTestParam(MatConverterType::CopyMakeBorder, 0, 10, 0, 10,
+                                                      BORDER_TYPE_CONSTANT, 0.0),
+                                MatConverterTestParam(MatConverterType::CopyMakeBorder, 5, 7, 5, 7,
+                                                      BORDER_TYPE_CONSTANT, 255.0),
+                                MatConverterTestParam(MatConverterType::CopyMakeBorder, 3, 9, 7, 5,
+                                                      BORDER_TYPE_CONSTANT, 100.0),
+                                MatConverterTestParam(MatConverterType::CopyMakeBorder, 7, 3, 3, 7,
+                                                      BORDER_TYPE_CONSTANT, 50.0)
                                                       )
                             ));
+
+#define CHECK_STATUS                                        \
+    if (status != TNN_OK) {                                 \
+        std::cout << status.description() << std::endl;     \
+        FAIL();                                             \
+    }
 
 TEST_P(MatConverterTest, MatConverterTest) {
     int batch                                       = std::get<0>(GetParam());
@@ -156,57 +282,28 @@ TEST_P(MatConverterTest, MatConverterTest) {
 
     DeviceType device_type  = ConvertDeviceType(FLAGS_dt);
     // warp affine/resize only support N8UC4 on OpenCL for now
-    if(device_type == DEVICE_OPENCL && mat_type != N8UC4)
-    {
+    if (OpenCLTestFilter(device_type, mat_type) ||
+        MetalTestFilter(device_type, mat_type, mat_converter_type, batch) ||
+        CUDATestFilter(device_type, mat_type, mat_converter_type)) {
         GTEST_SKIP();
     }
-    if ((mat_type == NGRAY && channel != 1) || (mat_type == N8UC3 && channel != 3) || (mat_type == N8UC4 && channel != 4))
-    {
+    if (MatChannelCheck(mat_type, channel, input_size) ||
+        CvtColorCheck(device_type, mat_type, mat_converter_type, cvt_type, input_size) ||
+        CopyMakeBorderCheck(device_type, mat_type, mat_converter_type) ||
+        CropYUVCheck(mat_converter_test_param, mat_converter_type, mat_type)) {
         GTEST_SKIP();
     }
-    {
-        // Metal device only supports NCHW_FLOAT and N8UC4 mat
-        if(device_type == DEVICE_METAL && !(mat_type == N8UC4 || mat_type == NCHW_FLOAT)) {
-            GTEST_SKIP();
-        }
-        // Only Copy supports NCHW_FLOAT
-        if(device_type == DEVICE_METAL && mat_type == NCHW_FLOAT && mat_converter_type != MatConverterType::Copy) {
-            GTEST_SKIP();
-        }
-        // Metal device only supports N8UC4 mat with batchsize = 1
-        if(device_type == DEVICE_METAL && mat_type == N8UC4 && batch != 1) {
-            GTEST_SKIP();
-        }
-
-    }
-
-    if (mat_converter_type == MatConverterType::CvtColor) {
-        if (device_type != DEVICE_ARM) {
-            GTEST_SKIP();
-        }
-        if (cvt_type == COLOR_CONVERT_BGRTOGRAY && mat_type != N8UC3) {
-            GTEST_SKIP();
-        }
-        if (cvt_type == COLOR_CONVERT_BGRATOGRAY && mat_type != N8UC4) {
-            GTEST_SKIP();
-        }
-        if ((cvt_type == COLOR_CONVERT_NV12TOBGR || cvt_type == COLOR_CONVERT_NV21TOBGR) &&
-            (mat_type != N8UC3 || input_size % 2 != 0)) {
-            GTEST_SKIP();
-        }
-        if ((cvt_type == COLOR_CONVERT_NV12TOBGRA || cvt_type == COLOR_CONVERT_NV21TOBGRA) &&
-            (mat_type != N8UC4 || input_size % 2 != 0)) {
-            GTEST_SKIP();
-        }
+    if (device_type == DEVICE_HUAWEI_NPU) {
+        GTEST_SKIP();
     }
 
     int output_size;
-    if (mat_converter_type == MatConverterType::Resize){
-        output_size = 380;
-    } else if(mat_converter_type == MatConverterType::Crop) {
-        output_size = mat_converter_test_param.crop_param.width;
-    } else {
-        output_size = input_size;
+    GetOutputSize(mat_converter_test_param, mat_converter_type, input_size, output_size);
+
+    if (mat_type == NNV12 || mat_type == NNV21) {
+        if (output_size % 2 != 0) {
+            GTEST_SKIP();
+        }
     }
 
     DimsVector dims         = {batch, channel, input_size, input_size};
@@ -226,9 +323,11 @@ TEST_P(MatConverterTest, MatConverterTest) {
     {
         case MatConverterType::Copy:
         {
-            MatUtils::Copy(cpu_in_mat, device_mat, device_command_queue);
+            TNN_NS::Status status = MatUtils::Copy(cpu_in_mat, device_mat, device_command_queue);
+            CHECK_STATUS;
 
-            MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
+            status = MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
+            CHECK_STATUS;
 
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_dev_data_), static_cast<uint8_t*>(mat_in_data_),
                                       channel, channel, out_size_);
@@ -238,19 +337,15 @@ TEST_P(MatConverterTest, MatConverterTest) {
         }
         case MatConverterType::Resize:
         {
-            tnn::Status status = MatUtils::Resize(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.resize_param, NULL);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            TNN_NS::Status status = MatUtils::Resize(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.resize_param, NULL);
+            CHECK_STATUS;
 
             status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
             status = MatUtils::Resize(device_in_mat, device_mat,
                                                  mat_converter_test_param.resize_param,
                                                  device_command_queue);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
@@ -260,19 +355,15 @@ TEST_P(MatConverterTest, MatConverterTest) {
         }
         case MatConverterType::Crop:
         {
-            tnn::Status status = MatUtils::Crop(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.crop_param, NULL);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            TNN_NS::Status status = MatUtils::Crop(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.crop_param, NULL);
+            CHECK_STATUS;
 
             status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
             status = MatUtils::Crop(device_in_mat, device_mat,
                                                  mat_converter_test_param.crop_param,
                                                  device_command_queue);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
@@ -282,21 +373,17 @@ TEST_P(MatConverterTest, MatConverterTest) {
         }
         case MatConverterType::WarpAffine:
         {
-            tnn::Status status = MatUtils::WarpAffine(cpu_in_mat, cpu_ref_mat,
+            TNN_NS::Status status = MatUtils::WarpAffine(cpu_in_mat, cpu_ref_mat,
                                                            mat_converter_test_param.warp_affine_param,
                                                            device_command_queue);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
             status = MatUtils::WarpAffine(device_in_mat, device_mat,
                                                  mat_converter_test_param.warp_affine_param,
                                                  device_command_queue);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
@@ -306,26 +393,43 @@ TEST_P(MatConverterTest, MatConverterTest) {
         }
         case MatConverterType::CvtColor:
         {
-            tnn::Status status = MatUtils::CvtColor(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.cvt_type, NULL);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            TNN_NS::Status status = MatUtils::CvtColor(cpu_in_mat, cpu_ref_mat, mat_converter_test_param.cvt_type, NULL);
+            CHECK_STATUS;
 
             status = MatUtils::Copy(cpu_in_mat, device_in_mat,
                                            device_command_queue);
             status = MatUtils::CvtColor(device_in_mat, device_mat,
                                                  mat_converter_test_param.cvt_type,
                                                  device_command_queue);
-            if (status != TNN_OK) {
-                FAIL();
-            }
+            CHECK_STATUS;
 
             MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
 
             if (mat_converter_test_param.cvt_type == COLOR_CONVERT_BGRTOGRAY ||
-                mat_converter_test_param.cvt_type == COLOR_CONVERT_BGRATOGRAY) {
+                mat_converter_test_param.cvt_type == COLOR_CONVERT_BGRATOGRAY ||
+                mat_converter_test_param.cvt_type == COLOR_CONVERT_RGBTOGRAY ||
+                mat_converter_test_param.cvt_type == COLOR_CONVERT_RGBATOGRAY) {
                 out_size_ /= channel;
             }
+            cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
+                                      channel, channel, out_size_);
+            EXPECT_EQ(0, cmp_result);
+            break;
+        }
+        case MatConverterType::CopyMakeBorder:
+        {
+            TNN_NS::Status status = MatUtils::CopyMakeBorder(cpu_in_mat, cpu_ref_mat,
+                                                             mat_converter_test_param.copy_make_border_param, NULL);
+            CHECK_STATUS;
+
+            status = MatUtils::Copy(cpu_in_mat, device_in_mat,
+                                           device_command_queue);
+            status = MatUtils::CopyMakeBorder(device_in_mat, device_mat,
+                                                 mat_converter_test_param.copy_make_border_param,
+                                                 device_command_queue);
+            CHECK_STATUS;
+
+            MatUtils::Copy(device_mat, cpu_out_mat, device_command_queue);
             cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data_), static_cast<uint8_t*>(mat_out_dev_data_),
                                       channel, channel, out_size_);
             EXPECT_EQ(0, cmp_result);
@@ -335,5 +439,7 @@ TEST_P(MatConverterTest, MatConverterTest) {
     rtn = DestroyTestData();
     EXPECT_EQ(rtn, 0);
 }
+
+#undef CHECK_STATUS
 
 }  // namespace TNN_NS

@@ -21,8 +21,8 @@ std::string TnnOptimizeFuseInstanceNormalizationPass::PassName() {
     return "FuseInstanceNormalization";
 }
 
-TNN_NS::Status TnnOptimizeFuseInstanceNormalizationPass::exec(tnn::NetStructure& net_structure,
-                                                              tnn::NetResource& net_resource) {
+TNN_NS::Status TnnOptimizeFuseInstanceNormalizationPass::exec(TNN_NS::NetStructure& net_structure,
+                                                              TNN_NS::NetResource& net_resource) {
     auto& layers = net_structure.layers;
     for (auto iter = layers.begin(); iter != layers.end(); iter++) {
         auto& layer = *iter;

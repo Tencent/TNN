@@ -33,17 +33,19 @@ function build_x86() {
     mkdir -p build
     cd $BUILD_DIR
     cmake ../../.. \
-          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_BUILD_TYPE=Release \
           -DDEBUG=$DEBUG \
           -DTNN_TEST_ENABLE:BOOL="ON"  \
-          -DTNN_CPU_ENABLE:BOOL="ON"
+          -DTNN_CPU_ENABLE:BOOL="ON"  \
+          -DTNN_BUILD_SHARED:BOOL="ON"  \
+          -DTNN_OPENMP_ENABLE:BOOL="ON"
     make -j4
 }
 
 function run_x86() {
     build_x86
     mkdir -p $DUMP_DIR
-    ./test/TNNTest -mp=$MODEL_DIR/test.tnnproto -ip=$MODEL_DIR/$INPUT_FILE_NAME -op=dump_data.txt -wc=0 -ic=1
+    ./test/TNNTest -mp=$MODEL_DIR/test.tnnproto -ip=$MODEL_DIR/$INPUT_FILE_NAME -dt="NAIVE" -op=dump_data.txt -wc=0 -ic=1
 }
 
 while [ "$1" != "" ]; do

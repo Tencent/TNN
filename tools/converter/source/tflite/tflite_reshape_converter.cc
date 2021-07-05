@@ -40,36 +40,42 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
     cur_layer->param                 = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->name                      = cur_layer->name;
     param->type                      = cur_layer->type_str;
-    param->quantized                 = false;
+    param->quantized                 = quantized_model;
+    param->reshape_type              = 1;
+    param->axis                      = 0;
+    // tensorflow reshape (n,h,w,c);
+    std::vector<int> reshape_dim;
 
-    if (quantized_model) {
-        // TODO
-    } else {
-        // tensorflow reshape(nhwc);
-        param->reshape_type = 1;
-        param->axis         = 0;
-        param->num_axes     = 4;
-        assert(tf_lite_operator->inputs.size() == 2);
-        const auto& shape_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
-        assert(shape_tensor->type == tflite::TensorType_INT32);
-
-        int shape_size = 1;
-        for (int i = 0; i < shape_tensor->shape.size(); ++i) {
-            shape_size *= shape_tensor->shape[i];
+    const auto option = tf_lite_operator->builtin_options.AsReshapeOptions();
+    if (option == nullptr || option->new_shape.empty()) {
+        ASSERT(tf_lite_operator->inputs.size() == 2);
+        const auto& new_shape_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
+        ASSERT(new_shape_tensor->type == tflite::TensorType_INT32);
+        const auto& buffer = tf_lite_model_buffer[new_shape_tensor->buffer];
+        int data_count     = buffer->data.size() / SizeofTFLiteTensorData(new_shape_tensor->type);
+        if (data_count != 0) {
+            reshape_dim.assign(reinterpret_cast<int32_t*>(buffer->data.data()),
+                               reinterpret_cast<int32_t*>(buffer->data.data()) + data_count);
+            reshape_dim[0] = 0;
+            ConvertShapeFormatTFLite(reshape_dim);
+            param->num_axes = reshape_dim.size();
+            param->shape    = reshape_dim;
+            cur_layer->inputs.resize(1);
+            cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
+        } else {
+            LOGE("TFLite do not support this type reshape!\n");
+            return TNN_NS::Status(TNN_NS::TNNERR_UNSUPPORT_NET, "TFLite do not support this type reshape!\n");
         }
-        const auto& shape_data = tf_lite_model_buffer[shape_tensor->buffer]->data;
-        ASSERT(shape_size == shape_data.size() / 4);
-
-        auto shape_data_ptr = reinterpret_cast<const int32_t*>(shape_data.data());
-        std::vector<int> reshape_dim(shape_data_ptr, shape_data_ptr + shape_size);
+    } else {
+        const auto& new_shape = option->new_shape;
+        reshape_dim.assign(new_shape.begin(), new_shape.end());
         reshape_dim[0] = 0;
         ConvertShapeFormatTFLite(reshape_dim);
-        param->shape = reshape_dim;
+        param->num_axes = reshape_dim.size();
+        param->shape    = reshape_dim;
+        cur_layer->inputs.resize(1);
+        cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
     }
-
-    // set input output index
-    cur_layer->inputs.resize(1);
-    cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
     return TNN_NS::TNN_CONVERT_OK;
 }
 

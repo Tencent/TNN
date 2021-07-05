@@ -17,10 +17,49 @@
 #include "tnn/device/opencl/opencl_utils.h"
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/utils/blob_memory_size_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
+
+Status OpenCLMatConverterAcc::SetExecuteUnit(
+        OpenCLExecuteUnit& unit, Mat& src, Mat& dst,
+        const bool copy_flag, const std::string& mat_key) {
+    Status ret = TNN_OK;
+    if(copy_flag){
+        if(execute_map_.count(mat_key) == 0) {
+            std::string program_name = "convert_to_mat";
+            std::string kernel_name = "";
+            if(N8UC4 == dst.GetMatType()) {
+                kernel_name = "CopyToN8UC4";
+            } else if (N8UC3 == dst.GetMatType()) {
+                kernel_name = "CopyToN8UC3";
+            }
+            ret = CreateExecuteUnit(unit, program_name, kernel_name);
+            if(ret != TNN_OK) {
+                return ret;
+            }
+            execute_map_[mat_key] = unit;
+        }
+    } else {
+        if(execute_map_.count(mat_key) == 0) {
+            std::string program_name = "convert_from_mat";
+            std::string kernel_name = "";
+            if(N8UC4 == src.GetMatType()) {
+                kernel_name = "CopyFromN8UC4";
+            } else if (N8UC3 == src.GetMatType()) {
+                kernel_name = "CopyFromN8UC3";
+            }
+            ret = CreateExecuteUnit(unit, program_name, kernel_name);
+            if(ret != TNN_OK) {
+                return ret;
+            }
+            execute_map_[mat_key] = unit;
+        }
+    }
+
+    return TNN_OK;
+}
 
 Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret           = TNN_OK;
@@ -81,37 +120,11 @@ Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     std::string mat_key = ToString(src.GetDeviceType()) + "_" + ToString(dst.GetDeviceType());
     //create convert unit only once for every key
     OpenCLExecuteUnit unit;
-    if(copy_flag){
-        if(execute_map_.count(mat_key) == 0) {
-            std::string program_name = "convert_to_mat";
-            std::string kernel_name = "";
-            if(N8UC4 == dst.GetMatType()) {
-                kernel_name = "CopyToN8UC4";
-            } else if (N8UC3 == dst.GetMatType()) {
-                kernel_name = "CopyToN8UC3";
-            }
-            ret = CreateExecuteUnit(unit, program_name, kernel_name);
-            if(ret != TNN_OK) {
-                return ret;
-            }
-            execute_map_[mat_key] = unit; 
-        }
-    } else {
-        if(execute_map_.count(mat_key) == 0) {
-            std::string program_name = "convert_from_mat";
-            std::string kernel_name = "";
-            if(N8UC4 == src.GetMatType()) {
-                kernel_name = "CopyFromN8UC4";
-            } else if (N8UC3 == src.GetMatType()) {
-                kernel_name = "CopyFromN8UC3";
-            }
-            ret = CreateExecuteUnit(unit, program_name, kernel_name);
-            if(ret != TNN_OK) {
-                return ret;
-            }
-            execute_map_[mat_key] = unit; 
-        }
+    ret = SetExecuteUnit(unit, src, dst, copy_flag, mat_key);
+    if (ret != TNN_OK) {
+        return ret;
     }
+
     // set copy_arguments
     ret                    = SetConvertArgs(unit, src, dst, false);
     if (ret != TNN_OK) {
@@ -145,61 +158,25 @@ Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
 Status OpenCLMatConverterAcc::CopyBufferDataToMat(Mat &mat, cl::CommandQueue *command_queue) {
     MatType mat_type   = mat.GetMatType();
     DimsVector dims    = mat.GetDims();
-    int data_type_size = 1;
-    if (mat_type == NCHW_FLOAT) {
-        data_type_size = sizeof(float);
-    } else if (mat_type == N8UC4) {
-        //special for 8UC4, blob channel <= 4.
-        dims[1] = 4;
+
+    Status ret = CopyBufferToMat(mat, *buffer_, dims, buffer_size_, mat_type, command_queue);
+    if (ret != TNN_OK) {
+        return ret;
     }
-    int size_in_bytes = DimsVectorUtils::Count(dims) * data_type_size;
-    if (size_in_bytes > buffer_size_) {
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL buffer is smaller than the need!");
-    }
-    cl_int ret = CL_SUCCESS;
-    auto output_buffer_ptr =
-        command_queue->enqueueMapBuffer(*buffer_, true, CL_MAP_READ, 0, buffer_size_, nullptr, nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
-    }
-    memcpy(mat.GetData(), output_buffer_ptr, size_in_bytes);
-    ret = command_queue->enqueueUnmapMemObject(*buffer_, output_buffer_ptr);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
-    }
+
     return TNN_OK;
 }
 
 //enqueueMapBuffer get cpu buffer pointer, copy mat to buffer pointer, enqueueUnmapMemObject.
 Status OpenCLMatConverterAcc::CopyMatToBufferData(Mat &mat, cl::CommandQueue *command_queue) {
     MatType mat_type   = mat.GetMatType();
-    int data_type_size = 1;
     DimsVector dims    = mat.GetDims();
-    if (mat_type == NCHW_FLOAT) {
-        data_type_size = sizeof(float);
-    } else if (mat_type == N8UC4) {
-        //special for 8UC4, blob channel <= 4.
-        dims[1] = 4;
+
+    Status ret = CopyMatToBuffer(mat, *buffer_, dims, buffer_size_, mat_type, command_queue);
+    if (ret != TNN_OK) {
+        return ret;
     }
-    int size_in_bytes = DimsVectorUtils::Count(dims) * data_type_size;
-    if (size_in_bytes > buffer_size_) {
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL buffer is smaller than the need!");
-    }
-    cl_int ret = CL_SUCCESS;
-    auto output_buffer_ptr =
-        command_queue->enqueueMapBuffer(*buffer_, true, CL_MAP_WRITE, 0, buffer_size_, nullptr, nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
-    }
-    memcpy(output_buffer_ptr, mat.GetData(), size_in_bytes);
-    ret = command_queue->enqueueUnmapMemObject(*buffer_, output_buffer_ptr);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
-    }
+
     return TNN_OK;
 }
 
@@ -218,10 +195,10 @@ Status OpenCLMatConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &src, 
         cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
         CHECK_CL_SUCCESS(cl_ret);
         //height
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[2]); 
+        cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 2));
         CHECK_CL_SUCCESS(cl_ret);
         //width
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[3]);
+        cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 3));
         CHECK_CL_SUCCESS(cl_ret);
     } else if (DEVICE_OPENCL == src.GetDeviceType()) {
         cl::Image *mat_image = static_cast<cl::Image *>(src.GetData());
@@ -230,10 +207,10 @@ Status OpenCLMatConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &src, 
         cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
         CHECK_CL_SUCCESS(cl_ret);
         //height
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[2]); 
+        cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 2));
         CHECK_CL_SUCCESS(cl_ret);
         //width
-        cl_ret = unit.ocl_kernel.setArg(idx++, dims[3]);
+        cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 3));
         CHECK_CL_SUCCESS(cl_ret);
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
@@ -249,7 +226,8 @@ Status OpenCLMatConverterAcc::SetWarpAffineArgs(OpenCLExecuteUnit& unit, Mat& sr
     uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, output_dims);
 
     cl_int cl_ret;
-    const std::string key = "WarpAffine";
+    const std::string key = (param.interp_type == INTERP_TYPE_LINEAR) ?
+            "WarpAffineLinear" : "WarpAffineNearest";
     if (DEVICE_OPENCL == src.GetDeviceType()) {
         cl::Image *mat_image        = static_cast<cl::Image *>(src.GetData());
         cl::Image *output_mat_image = static_cast<cl::Image *>(dst.GetData());
@@ -261,19 +239,19 @@ Status OpenCLMatConverterAcc::SetWarpAffineArgs(OpenCLExecuteUnit& unit, Mat& sr
         cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, *output_mat_image);
         CHECK_CL_SUCCESS(cl_ret);
         // output height
-        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, output_dims[2]);
+        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, 2));
         CHECK_CL_SUCCESS(cl_ret);
         // output width
-        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, output_dims[3]);
+        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, 3));
         CHECK_CL_SUCCESS(cl_ret);
         // channel
-        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, input_dims[1]);
+        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4));
         CHECK_CL_SUCCESS(cl_ret);
         // input height
-        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, input_dims[2]);
+        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 2));
         CHECK_CL_SUCCESS(cl_ret);
         // input width
-        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, input_dims[3]);
+        cl_ret = execute_map_[key].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 3));
         CHECK_CL_SUCCESS(cl_ret);
         // inversed transform matrix
         cl_ret = unit.ocl_kernel.setArg(idx++, *matrix_buffer_);
@@ -328,8 +306,13 @@ Status OpenCLMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void
 
     auto dims        = dst.GetDims();
     uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, dims);
-    float w_scale =  ((float)src.GetWidth() / (float)dst.GetWidth());
-    float h_scale =  ((float)src.GetHeight() / (float)dst.GetHeight());
+    int dst_width    = dst.GetWidth();
+    int dst_height   = dst.GetHeight();
+    if (dst_width == 0 || dst_height == 0) {
+        return Status(TNNERR_INVALID_INPUT, "dst size is zero");
+    }
+    float w_scale =  ((float)src.GetWidth() / (float)dst_width);
+    float h_scale =  ((float)src.GetHeight() / (float)dst_height);
     cl_int cl_ret;
     cl::Image *image_input = static_cast<cl::Image *>(src.GetData());
     cl::Image *image_output = static_cast<cl::Image *>(dst.GetData());
@@ -485,16 +468,27 @@ Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam par
     ret = cl_command_queue->enqueueUnmapMemObject(*matrix_buffer_, matrix_buffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
 
     // create execute unit
-    const std::string key = "WarpAffine";
+    const std::string key = (param.interp_type == INTERP_TYPE_LINEAR) ?
+            "WarpAffineLinear" : "WarpAffineNearest";
     OpenCLExecuteUnit unit;
     if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
         if (execute_map_.count(key) == 0) {
             std::string program_name = "warp_affine";
             std::string kernel_name = "WarpAffineLinear";
+            ret = CreateExecuteUnit(unit, program_name, kernel_name);
+            if (ret != TNN_OK) {
+                return ret;
+            }
+            execute_map_[key] = unit;
+        }
+    } else if (param.interp_type == INTERP_TYPE_NEAREST && param.border_type == BORDER_TYPE_CONSTANT) {
+        if (execute_map_.count(key) == 0) {
+            std::string program_name = "warp_affine";
+            std::string kernel_name = "WarpAffineNearest";
             ret = CreateExecuteUnit(unit, program_name, kernel_name);
             if (ret != TNN_OK) {
                 return ret;
@@ -520,6 +514,68 @@ Status OpenCLMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam par
 
 Status OpenCLMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue) {
     return Status(TNNERR_OPENCL_UNSUPPORT_ERROR, "opencl not support color conversion");
+}
+
+Status OpenCLMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
+    Status ret            = TNN_OK;
+    if(src.GetDeviceType() != dst.GetDeviceType()) {
+        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+    }
+    auto cl_command_queue = static_cast<cl::CommandQueue *>(command_queue);
+    if (cl_command_queue == nullptr) {
+        LOGE("Get OpenCL command queue failed!\n");
+        return Status(TNNERR_NULL_PARAM, "Get OpenCL command queue failed!");
+    }
+    const std::string key = "CopyMakeBorder";
+    OpenCLExecuteUnit unit;
+    if(execute_map_.count(key) == 0) {
+        std::string program_name = "copy";
+        std::string kernel_name = "CopyMakeBorder";
+        ret = CreateExecuteUnit(unit, program_name, kernel_name);
+        if(ret != TNN_OK) {
+            return ret;
+        }
+        execute_map_[key] = unit;
+    }
+
+    auto dims        = dst.GetDims();
+    uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, dims);
+
+    cl_int cl_ret;
+
+    cl::Image *image_input = static_cast<cl::Image *>(src.GetData());
+    cl::Image *image_output = static_cast<cl::Image *>(dst.GetData());
+    cl_ret = unit.ocl_kernel.setArg(idx++, *image_input);
+    CHECK_CL_SUCCESS(cl_ret);
+    cl_ret = unit.ocl_kernel.setArg(idx++, *image_output);
+    CHECK_CL_SUCCESS(cl_ret);
+    // make border top
+    cl_ret = unit.ocl_kernel.setArg(idx++, param.top);
+    CHECK_CL_SUCCESS(cl_ret);
+    // make border left
+    cl_ret = unit.ocl_kernel.setArg(idx++, param.left);
+    CHECK_CL_SUCCESS(cl_ret);
+    // src_w
+    cl_ret = unit.ocl_kernel.setArg(idx++, src.GetWidth());
+    CHECK_CL_SUCCESS(cl_ret);
+    // src_h
+    cl_ret = unit.ocl_kernel.setArg(idx++, src.GetHeight());
+    CHECK_CL_SUCCESS(cl_ret);
+    // src_channel_blocks
+    cl_ret = unit.ocl_kernel.setArg(idx++, UP_DIV(src.GetChannel(), 4));
+    CHECK_CL_SUCCESS(cl_ret);
+    // dst_h
+    cl_ret = unit.ocl_kernel.setArg(idx++, dst.GetHeight());
+    CHECK_CL_SUCCESS(cl_ret);
+    // border_val
+    cl_ret = unit.ocl_kernel.setArg(idx++, param.border_val);
+    CHECK_CL_SUCCESS(cl_ret);
+
+    ret = RunConvertUnit(unit, cl_command_queue, false);
+    if (ret != TNN_OK) {
+        return ret;
+    }
+    return TNN_OK;
 }
 
 DECLARE_MAT_CONVERTER_CREATER(OpenCL);

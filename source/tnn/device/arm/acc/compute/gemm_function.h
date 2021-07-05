@@ -29,16 +29,40 @@ namespace TNN_NS {
 
 template <typename T>
 void GEMM_FUNC(T *dst, const T *src, const float *weight, int src_depth_quad, int dst_step, int dst_depth_quad,
-               int width, float *bias, int64_t relu);
+               int width, float *bias, long relu);
 
 void set_block_size(int &a_block, int &b_block, int l2_size, const int plane_num, const int oc_r4, const int ic_r4,
                     int byte_size);
 template <typename T>
 void sgemm_repack_lhs(T *dst, T *src, float *weight, int ic4, int oc4, int width, int dst_z_step, int a_block,
-                      int b_block, T *work_space, float *bias, int act_type);
+                      int b_block, T *work_space, float *bias, int act_type, bool fast_post);
 template <typename T>
 void sgemm_repack_rhs(T *dst, T *src, float *weight, int ic4, int oc4, int width, int dst_z_step, int a_block,
-                      int b_block, T *work_space, float *bias, int act_type);
+                      int b_block, T *work_space, float *bias, int act_type, bool fast_post);
+
+void Kernel_12x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc);
+void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc);
+void Kernel_1x8(int m, int n, int k, const float *sa, const float *sb, float *sc, int ldc);
+
+void PackB_8(int k, int n, const float *src, int ldb, float *dst);
+void PackA_12(int m, int k, const float *src, int lda, float *dst);
+void PackA_4(int m, int k, const float *src, int lda, float *dst);
+void PackA_1(int m, int k, const float *src, int lda, float *dst);
+
+#if TNN_ARM82
+template <int mr, int nr, typename T>
+void NaiveKernel(int m, int n, int k, const T *sa, const T *sb, T *sc, int ldc);
+void Kernel_8x16(int m, int n, int k, const fp16_t* sa, const fp16_t* sb, fp16_t* sc, int ldc);
+void Kernel_4x16(int m, int n, int k, const fp16_t* sa, const fp16_t* sb, fp16_t* sc, int ldc);
+void Kernel_1x16(int m, int n, int k, const fp16_t* sa, const fp16_t* sb, fp16_t* sc, int ldc);
+
+template <int nr, typename T>
+void NaivePackB(int k, int n, const T *from, int ldb, T *to);
+void PackB_16(int k, int n, const fp16_t* src, int ldb, fp16_t* dst);
+void PackA_8(int m, int k, const fp16_t* src, int lda, fp16_t* dst);
+void PackA_4(int m, int k, const fp16_t* src, int lda, fp16_t* dst);
+void PackA_1(int m, int k, const fp16_t* src, int lda, fp16_t* dst);
+#endif
 
 }  // namespace TNN_NS
 

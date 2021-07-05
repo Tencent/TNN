@@ -108,47 +108,33 @@ ble L4
 
 mov r12, src
 vld1.32 {q8}, [bias]
+vldm weight!, {d8-d11}
+vldm src!, {d0-d7}
 vmov q9,  q8
 vmov q10, q8
-vld1.32 {q4}, [weight]!
 vmov q11, q8
 vmov q12, q8
 vmov q13, q8
-vld1.32 {q0, q1}, [src]!
 vmov q14, q8
 vmov q15, q8
 
 vmov.i32 d15[0], weight
 
 L8Loop:
-    pld [weight, #256]
-    COMPUTE_UNIT_0 q8, q9, q10, q11, q4
-    pld [src, #256]
-    vld1.32 {q5}, [weight]!
-    vld1.32 {q2, q3}, [src]!
-    COMPUTE_UNIT_1 q12, q13, q14, q15, q4
-
-    vld1.32 {q4}, [weight]!
-    COMPUTE_UNIT_2 q8, q9, q10, q11, q5
-    vld1.32 {q0, q1}, [src]!
-    pld [weight, #256]
-    COMPUTE_UNIT_3 q12, q13, q14, q15, q5
-
-    vld1.32 {q5}, [weight]!
-    COMPUTE_UNIT_0 q8, q9, q10, q11, q4
-    vld1.32 {q2, q3}, [src]!
-    COMPUTE_UNIT_1 q12, q13, q14, q15, q4
-
     subs r3, r3, #1
-
-    pld [src, #256]
-    vld1.32 {q4}, [weight]!
-    COMPUTE_UNIT_2 q8, q9, q10, q11, q5
-    sub src, src, #128
-    add src, src, r8
-
-    vld1.32 {q0, q1}, [src]!
+    COMPUTE_UNIT_0 q8,  q9,  q10, q11, q4
+    COMPUTE_UNIT_1 q12, q13, q14, q15, q4
+    COMPUTE_UNIT_2 q8,  q9,  q10, q11, q5
     COMPUTE_UNIT_3 q12, q13, q14, q15, q5
+    vldm src!, {d0-d7}
+    vldm weight!, {d8-d11}
+
+    COMPUTE_UNIT_0 q8,  q9,  q10, q11, q4
+    COMPUTE_UNIT_1 q12, q13, q14, q15, q4
+    COMPUTE_UNIT_2 q8,  q9,  q10, q11, q5
+    COMPUTE_UNIT_3 q12, q13, q14, q15, q5
+    vldm src!, {d0-d7}
+    vldm weight!, {d8-d11}
     bne L8Loop
 
 add src, r12, #128 
@@ -179,35 +165,26 @@ L4:
 cmp width, #3
 ble L1
 
+vmov.i32 d15[0], weight
 mov r12, src
-vld1.32 {q4, q5}, [weight]!
+//vld1.32 {q4, q5}, [weight]!
 vld1.32 {q8}, [bias]
-vld1.32 {q0, q1}, [src]!
+//vld1.32 {q0, q1}, [src]!
+vldm src, {d0-d7}
+vldm weight!, {d24-d31}
 vmov q9, q8
 vmov q10, q8
 vmov q11, q8
 
-vmov.i32 d15[0], weight
 L4Loop:
-    pld [src, #256]
-    COMPUTE_UNIT_0 q8, q9, q10, q11, q4
-    vld1.32 {q2, q3}, [src]!
-    pld [weight, #256]
-    COMPUTE_UNIT_1 q8, q9, q10, q11, q5
-    vld1.32 {q12, q13}, [weight]!
-    COMPUTE_UNIT_2 q8, q9, q10, q11, q12
-    pld [weight, #256]
-    vld1.32 {q4, q5}, [weight]!
-    pld [src, #256]
-    COMPUTE_UNIT_3 q8, q9, q10, q11, q13
-
-    subs r3, r3, #1
-
-    sub src, src, #64
     add src, src, r8
-    pld [src, #256]
-    vld1.32 {q0, q1}, [src]!
-    pld [weight, #256]
+    subs r3, r3, #1
+    COMPUTE_UNIT_0 q8, q9, q10, q11, q12
+    COMPUTE_UNIT_1 q8, q9, q10, q11, q13
+    COMPUTE_UNIT_2 q8, q9, q10, q11, q14
+    COMPUTE_UNIT_3 q8, q9, q10, q11, q15
+    vldm src, {d0-d7}
+    vldm weight!, {d24-d31}
     bne L4Loop
 
 add src, r12, #64

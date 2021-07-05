@@ -56,20 +56,13 @@ Status ArmConvLayerDepthwise::allocateBufferWeight(const std::vector<Blob *> &in
         int weight_count   = group4 * kh * kw;
         int data_byte_size = DataTypeUtils::GetBytesSize(conv_res->filter_handle.GetDataType());
 
-        if (conv_res->filter_handle.GetDataType() == DATA_TYPE_FLOAT ||
-            conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF) {
+        if (conv_res->filter_handle.GetDataType() == DATA_TYPE_FLOAT) {
             RawBuffer temp_buffer(weight_count * data_byte_size);
             float *dst = temp_buffer.force_to<float *>();
 
-            if (conv_res->filter_handle.GetDataType() == DATA_TYPE_FLOAT) {
-                DataFormatConverter::ConvertFromNCHWToNCHW4Float((float *)src, (float *)dst, 1, group,
-                                                                 param->kernels[1], param->kernels[0]);
-                temp_buffer.SetDataType(DATA_TYPE_FLOAT);
-            } else {
-                DataFormatConverter::ConvertFromNCHWToNCHW4Half((int16_t *)src, (int16_t *)dst, 1, group,
+            DataFormatConverter::ConvertFromNCHWToNCHW4Float((float *)src, (float *)dst, 1, group,
                                                                 param->kernels[1], param->kernels[0]);
-                temp_buffer.SetDataType(DATA_TYPE_HALF);
-            }
+            temp_buffer.SetDataType(DATA_TYPE_FLOAT);
 
             buffer_weight_ = temp_buffer;
         } else {

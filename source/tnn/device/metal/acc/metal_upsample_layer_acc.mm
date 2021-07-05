@@ -9,16 +9,31 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/metal_context.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_METAL_ACC(Upsample, LAYER_UPSAMPLE);
+class MetalUpsampleLayerAcc : public MetalLayerAcc {
+public:
+    virtual ~MetalUpsampleLayerAcc(){};
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual std::string KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status ComputeThreadSize(const std::vector<Blob *> &inputs,
+                             const std::vector<Blob *> &outputs,
+                             MTLSize &size);
+    virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder,
+                                 const std::vector<Blob *> &inputs,
+                                 const std::vector<Blob *> &outputs);
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) { return TNN_OK; }
+};
 
 Status MetalUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs,
                                       const std::vector<Blob *> &outputs) {
@@ -43,7 +58,7 @@ Status MetalUpsampleLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inp
         if (layer_param->mode == 1) {
             scale_x = (float)metal_params.input_width / (float)metal_params.output_width;
             scale_y = (float)metal_params.input_height / (float)metal_params.output_height;
-        } else if (layer_param->mode == 2) {
+        } else if (layer_param->mode == 2 || layer_param->mode == 3) {
             if (layer_param->align_corners) {
                 scale_x = (metal_params.output_width > 1) ? (float)(metal_params.input_width - 1) / (metal_params.output_width - 1) : 0.f;
                 scale_y = (metal_params.output_height > 1) ? (float)(metal_params.input_height - 1) / (metal_params.output_height - 1) : 0.f;
@@ -91,6 +106,12 @@ std::string MetalUpsampleLayerAcc::KernelName(const std::vector<Blob *> &inputs,
         } else {
             return "upsample_bilinear_noalign";
         }
+    } else if (layer_param->mode == 3) {
+        if (layer_param->align_corners) {
+            return "upsample_cubic_align";
+        } else {
+            return "upsample_cubic_noalign";
+        }
     } else {
         LOGE("upsample type not support!\n");
         return "";
@@ -103,5 +124,6 @@ Status MetalUpsampleLayerAcc::Forward(const std::vector<Blob *> &inputs,
 }
 
 REGISTER_METAL_ACC(Upsample, LAYER_UPSAMPLE);
+REGISTER_METAL_LAYOUT(LAYER_UPSAMPLE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

@@ -18,6 +18,7 @@
 #include <cmath>
 #include "tnn/core/macro.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/device/arm/acc/TNNVector.h"
 #ifdef TNN_USE_NEON
 #include <arm_neon.h>
 #include "tnn/device/arm/acc/neon_mathfun.h"
@@ -106,6 +107,9 @@ struct Float4 {
     static void get_high(Float4& v1, Float2& v2) {
         v2.value = vget_high_f32(v1.value);
     }
+    static Float4 combine(Float2& v1, Float2& v2) {
+        return vcombine_f32(v1.value, v2.value);
+    }
     static Float4 extract(const Float4& v1, const Float4& v2, const int n) {
         Float4 dst;
         if (n == 0) {
@@ -148,6 +152,15 @@ struct Float4 {
     }
     static void mla_lane1(Float4& v1, const Float4& v2, const Float2& v3) {
         v1.value = vmlaq_lane_f32(v1.value, v2.value, v3.value, 1);
+    }
+    static void mls(Float4& v1, const Float4& v2, const Float4& v3) {
+        v1.value = vmlsq_f32(v1.value, v2.value, v3.value);
+    }
+    static void mls_lane0(Float4& v1, const Float4& v2, const Float2& v3) {
+        v1.value = vmlsq_lane_f32(v1.value, v2.value, v3.value, 0);
+    }
+    static void mls_lane1(Float4& v1, const Float4& v2, const Float2& v3) {
+        v1.value = vmlsq_lane_f32(v1.value, v2.value, v3.value, 1);
     }
     static Float4 bsl_cle(const Float4& c1, const Float4& c2, const Float4& v1, const Float4& v2) {
         Float4 dst;
@@ -255,6 +268,11 @@ struct Float4 {
         dst.value = sigmoid_ps(v.value);
         return dst;
     }
+    static Float4 fast_sigmoid(const Float4& v) {
+        Float4 dst;
+        dst.value = fast_sigmoid_ps(v.value);
+        return dst;
+    }
     static Float4 log(const Float4& v) {
         Float4 dst;
         dst.value = log_ps(v.value);
@@ -265,22 +283,22 @@ struct Float4 {
         dst.value = vabsq_f32(v.value);
         return dst;
     }
-    Float4 operator+(const Float4& lr) {
+    Float4 operator+(const Float4& lr) const {
         Float4 dst;
         dst.value = value + lr.value;
         return dst;
     }
-    Float4 operator-(const Float4& lr) {
+    Float4 operator-(const Float4& lr) const {
         Float4 dst;
         dst.value = value - lr.value;
         return dst;
     }
-    Float4 operator*(float lr) {
+    Float4 operator*(float lr) const {
         Float4 dst;
         dst.value = vmulq_n_f32(value, lr);
         return dst;
     }
-    Float4 operator*(const Float4& lr) {
+    Float4 operator*(const Float4& lr) const {
         Float4 dst;
         dst.value = value * lr.value;
         return dst;
@@ -293,7 +311,7 @@ struct Float4 {
         value = std::move(lr.value);
         return *this;
     }
-    Float4 operator-() {
+    Float4 operator-() const {
         Float4 dst;
         dst.value = -value;
         return dst;
@@ -418,157 +436,39 @@ struct Short4x4 {
 
 #else
 
-struct Float2 {
-    float value[2];
+struct Float2 : TNNVector<float, 2> {
+    using TNNVector<float, 2>::TNNVector;
 };
 
-struct Float4 {
-    float value[4];
-    Float4 operator+(const Float4& lr) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = value[i] + lr.value[i];
-        }
-        return dst;
-    }
-    Float4 operator-(const Float4& lr) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = value[i] - lr.value[i];
-        }
-        return dst;
-    }
-    Float4 operator*(const Float4& lr) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = value[i] * lr.value[i];
-        }
-        return dst;
-    }
-    Float4 operator*(float lr) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = value[i] * lr;
-        }
-        return dst;
-    }
-
-    Float4& operator=(const Float4& lr) {
-        for (int i = 0; i < 4; ++i) {
-            value[i] = lr.value[i];
-        }
-        return *this;
-    }
-    Float4 operator-() {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = -value[i];
-        }
-        return dst;
-    }
+struct Float4 : TNNVector<float, 4> {
+    using TNNVector<float, 4>::TNNVector;
     Float4() {}
-    Float4(const float v) {
-        for (int i = 0; i < 4; ++i) {
-            value[i] = v;
-        }
-    }
-
     Float4(const Float4& lr) {
         for (int i = 0; i < 4; ++i) {
             value[i] = lr.value[i];
         }
     }
-
-    void set_lane(float v, int i) {
-        value[i] = v;
-    }
-
-    const float operator[](const int i) const {
-        return value[i];
+    Float4(const TNNVector<float, 4>& lr) {
+        for (int i = 0; i < 4; ++i) {
+            value[i] = lr.value[i];
+        }
     }
 
-    static Float4 load(const float* addr) {
-        Float4 v;
-        for (int i = 0; i < 4; ++i) {
-            v.value[i] = addr[i];
-        }
-        return v;
-    }
-    static void save(float* addr, const Float4& v) {
-        for (int i = 0; i < 4; ++i) {
-            addr[i] = v.value[i];
-        }
-    }
-    static Float4 load(const bfp16_t* addr) {
-        Float4 v;
-        for (int i = 0; i < 4; ++i) {
-            v.value[i] = static_cast<float>(addr[i]);
-        }
-        return v;
-    }
-    static void save(bfp16_t* addr, const Float4& v) {
-        for (int i = 0; i < 4; ++i) {
-            addr[i] = static_cast<bfp16_t>(v.value[i]);
-        }
-    }
-    static Float4 bsl_cle(const Float4& c1, const Float4& c2, const Float4& v1, const Float4& v2) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = c1.value[i] <= c2.value[i] ? v1.value[i] : v2.value[i];
-        }
-        return dst;
-    }
-    static Float4 bsl_clt(const Float4& c1, const Float4& c2, const Float4& v1, const Float4& v2) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = c1.value[i] < c2.value[i] ? v1.value[i] : v2.value[i];
-        }
-        return dst;
-    }
-    static Float4 bsl_cge(const Float4& c1, const Float4& c2, const Float4& v1, const Float4& v2) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = c1.value[i] >= c2.value[i] ? v1.value[i] : v2.value[i];
-        }
-        return dst;
-    }
-    static Float4 bsl_cgt(const Float4& c1, const Float4& c2, const Float4& v1, const Float4& v2) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = c1.value[i] > c2.value[i] ? v1.value[i] : v2.value[i];
-        }
-        return dst;
-    }
-
-    static void get_low(Float4& v1, Float2& v2) {
+    static void get_low(const Float4& v1, Float2& v2) {
         v2.value[0] = v1.value[0];
         v2.value[1] = v1.value[1];
     }
-    static void get_high(Float4& v1, Float2& v2) {
+    static void get_high(const Float4& v1, Float2& v2) {
         v2.value[0] = v1.value[2];
         v2.value[1] = v1.value[3];
     }
-    static Float4 extract(const Float4& v1, const Float4& v2, const int n) {
+    static Float4 combine(const Float2& v1, const Float2& v2) {
         Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = (n + i < 4) ? v1[n + i] : v2[n + i - 4];
-        }
+        dst.value[0] = v1.value[0];
+        dst.value[1] = v1.value[1];
+        dst.value[2] = v2.value[0];
+        dst.value[3] = v2.value[1];
         return dst;
-    }
-    static Float4 pad(const Float4& v1, const Float4& v2, const int n) {
-        Float4 dst;
-        for (int i = 0; i < 4 - n; ++i) {
-            dst.value[i] = v1[i];
-        }
-        for (int i = 4 - n; i < 4; ++i) {
-            dst.value[i] = v2[i];
-        }
-        return dst;
-    }
-    static void mla(Float4& v1, const Float4& v2, const Float4& v3) {
-        for (int i = 0; i < 4; ++i) {
-            v1.value[i] = v1.value[i] + v2.value[i] * v3.value[i];
-        }
     }
     static void mla_lane0(Float4& v1, const Float4& v2, const Float2& v3) {
         for (int i = 0; i < 4; ++i) {
@@ -580,118 +480,30 @@ struct Float4 {
             v1.value[i] = v1.value[i] + v2.value[i] * v3.value[1];
         }
     }
-    static Float4 neg(const Float4& v) {
-        Float4 dst;
+    static void mls_lane0(Float4& v1, const Float4& v2, const Float2& v3) {
         for (int i = 0; i < 4; ++i) {
-            dst.value[i] = -v.value[i];
+            v1.value[i] = v1.value[i] - v2.value[i] * v3.value[0];
         }
-        return dst;
     }
-    static Float4 floor(const Float4& v) {
-        Float4 dst;
+    static void mls_lane1(Float4& v1, const Float4& v2, const Float2& v3) {
         for (int i = 0; i < 4; ++i) {
-            dst.value[i] = std::floor(v.value[i]);
+            v1.value[i] = v1.value[i] - v2.value[i] * v3.value[1];
         }
-        return dst;
-    }
-    static Float4 ceil(const Float4& v) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = std::ceil(v.value[i]);
-        }
-        return dst;
-    }
-    static Float4 max(const Float4& v1, const Float4& v2) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = std::max(v1.value[i], v2.value[i]);
-        }
-        return dst;
-    }
-    static Float4 min(const Float4& v1, const Float4& v2) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = std::min(v1.value[i], v2.value[i]);
-        }
-        return dst;
-    }
-    static Float4 div(const Float4& v1, const Float4& v2) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = v1.value[i] / v2.value[i];
-        }
-        return dst;
-    }
-    static Float4 exp(const Float4& v) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = std::exp(v.value[i]);
-        }
-        return dst;
-    }
-    static Float4 pow(const Float4& v, const Float4& e) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = std::pow(v.value[i], e.value[i]);
-        }
-        return dst;
-    }
-    static Float4 sqrt(const Float4& v) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = std::sqrt(v.value[i]);
-        }
-        return dst;
-    }
-    static Float4 tanh(const Float4& v) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = std::tanh(v.value[i]);
-        }
-        return dst;
     }
 
-    static Float4 tan(const Float4& v) {
-        Float4 dst;
+    using TNNVector<float, 4>::load;
+    using TNNVector<float, 4>::save;
+    static Float4 load(const bfp16_t* addr) {
+        Float4 v;
         for (int i = 0; i < 4; ++i) {
-            dst.value[i] = std::tan(v.value[i]);
+            v.value[i] = static_cast<float>(addr[i]);
         }
-        return dst;
+        return v;
     }
-    static Float4 sin(const Float4& v) {
-        Float4 dst;
+    static void save(bfp16_t* addr, const Float4& v) {
         for (int i = 0; i < 4; ++i) {
-            dst.value[i] = std::sin(v.value[i]);
+            addr[i] = static_cast<bfp16_t>(v.value[i]);
         }
-        return dst;
-    }
-    static Float4 cos(const Float4& v) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = std::cos(v.value[i]);
-        }
-        return dst;
-    }
-    static Float4 sigmoid(const Float4& v) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = 1.0f / (1.0f + std::exp(-v.value[i]));
-        }
-        return dst;
-    }
-    static Float4 log(const Float4& v) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = std::log(v.value[i]);
-        }
-        return dst;
-    }
-    static Float4 abs(const Float4& v) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = std::fabs(v.value[i]);
-        }
-        return dst;
     }
 };
 

@@ -35,13 +35,9 @@ public:
         const rk::nn::QuantizationType qntType = rk::nn::QuantizationType::NONE, const uint8_t bits = 8,
         const float scale = 1.0, const uint32_t zero_point = 0, const int8_t fl = 0);
 
-    static Status CalculateBroadcastSize(std::vector<int> &weight_shape, EltwiseLayerResource *layer_res,
-                                         std::vector<int> &input_shape);
-    static std::string GetFileHash(ModelConfig &model_config);
-
     static Status GetPadType(rk::nn::PadType &rk_pad_type, int pad_type);
 
-    static uint32_t CalcSize(rk::nn::PrecisionType type, std::vector<uint32_t> dims);
+    static uint32_t CalcSize(rk::nn::PrecisionType type, std::vector<int32_t> dims);
 };
 
 }  // namespace TNN_NS

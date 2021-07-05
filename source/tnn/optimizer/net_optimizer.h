@@ -31,7 +31,7 @@ namespace optimizer {
     public:
         virtual ~NetOptimizer() {}
         virtual std::string Strategy()                                          = 0;
-        virtual bool SupportDevice(DeviceType device)                           = 0;
+        virtual bool IsSupported(const NetworkConfig &net_config)               = 0;
         virtual Status Optimize(NetStructure *structure, NetResource *resource) = 0;
     };
 

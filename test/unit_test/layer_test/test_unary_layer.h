@@ -18,14 +18,14 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-class UnaryLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, DataType>> {
+class UnaryLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int, DataType>> {
 public:
     explicit UnaryLayerTest(LayerType type);
-    void RunUnaryTest();
+    void RunUnaryTest(std::string type_str);
 
 protected:
     LayerType layer_type_;

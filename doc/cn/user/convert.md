@@ -103,50 +103,48 @@ docker run  -it tnn-convert:latest  python3 ./converter.py tf2tnn -h
 ```
 得到的输出信息如下：
 ``` text
-usage: convert tf2tnn [-h] -tp TF_PATH -in input_name -on output_name
-                      [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half]
+usage: convert tf2tnn [-h] -tp TF_PATH -in input_info [input_info ...] -on output_name [output_name ...] [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half] [-align] [-input_file INPUT_FILE_PATH]
+                      [-ref_file REFER_FILE_PATH]
 
 optional arguments:
   -h, --help            show this help message and exit
   -tp TF_PATH           the path for tensorflow graphdef file
-  -in input_name        the tensorflow model's input names. If batch is not
-                        specified, you can add input shape after the input
-                        name, e.g. -in "name[1,28,28,3]"
-  -on output_name       the tensorflow model's output name
+  -in input_info [input_info ...]
+                        specify the input name and shape of the model. e.g., -in input1_name:1,128,128,3 input2_name:1,256,256,3
+  -on output_name [output_name ...]
+                        the tensorflow model's output name. e.g. -on output_name1 output_name2
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
-  -optimize             optimize the model
-  -half                 optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -half                 save the model using half
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH
-                        the input file path which contains the input data for
-                        the inference model.
+                        the input file path which contains the input data for the inference model.
   -ref_file REFER_FILE_PATH
-                        the reference file path which contains the reference
-                        data to compare the results.
+                        the reference file path which contains the reference data to compare the results.
 ```
 通过上面的输出，可以发现针对 TF 模型的转换，convert2tnn 工具提供了很多参数，我们一次对下面的参数进行解释：
 
 - tp 参数（必须）
     通过 “-tp” 参数指定需要转换的模型的路径。目前只支持单个 TF模型的转换，不支持多个 TF 模型的一起转换。
 - in 参数（必须）
-    通过 “-in” 参数指定模型输入的名称，输入的名称需要放到“”中，例如，-in "name"。如果模型有多个输入，请使用 “;”进行分割。有的 TensorFlow 模型没有指定 batch 导致无法成功转换为 ONNX 模型，进而无法成功转换为 TNN 模型。你可以通过在名称后添加输入 shape 进行指定。shape 信息需要放在 [] 中。例如：-in "name[1,28,28,3]"。
+    通过 “-in” 参数指定模型输入，例如：-in input_name_1:1,128,128,3 input_name_2:1,256,256,3。
 - on 参数（必须）
-    通过 “-on” 参数指定模型输出的名称，如果模型有多个输出，请使用 “;”进行分割
+    通过 “-on” 参数指定模型输出的名称，例如: -on output_name1 output_name2
 - output_dir 参数：
     可以通过 “-o <path>” 参数指定输出路径，但是在 docker 中我们一般不使用这个参数，默认会将生成的 TNN 模型放在当前和 TF 模型相同的路径下。
 - optimize 参数（可选）
-    可以通过 “-optimize” 参数来对模型进行优化，**我们强烈建议你开启这个选项，只有在开启这个选项模型转换失败时，我们才建议你去掉 “-optimize” 参数进行重新尝试**。
+    可以通过 “-optimize” 参数来对模型进行优化，**对于固定输入维度的模型，我们强烈建议你开启这个选项，对于动态可变输入维度的模型则关闭这个选项，否则可能在维度变化时造成结果错误或者运行报错**。
 - v 参数（可选）
     可以通过 -v 来指定模型的版本号，以便于后期对模型进行追踪和区分。
 - half 参数（可选）
     可以通过 -half 参数指定，模型数据通过 FP16 进行存储，减少模型的大小，默认是通过 FP32 的方式进行存储模型数据的。
 - align 参数（可选）
-    可以通过 -align 参数指定，将 转换得到的 TNN 模型和原模型进行对齐，确定 TNN 模型是否转换成功。__当前仅支持单输入单输出模型和单输入多输出模型。 align 只支持 FP32 模型的校验，所以使用 align 的时候不能使用 half__
+    可以通过 -align 参数指定转换得到的 TNN 模型和原模型对齐的模式，确定 TNN 模型是否转换成功。例如：不使用 “-align” 参数，默认不进行对齐；如果只对比 TNN 模型和原模型最后一层的输出，可以使用命令 “-align” 或 “-align output”; 如果模型不对齐，可以使用命令 “-align all” 进行逐层对齐，并输出第一层不对齐层的信息。（TensorFlow Lite 模型暂时不支持 “-align all”）。__align 只支持 FP32 模型的校验，所以使用 align 的时候不能使用 half__
 - input_file 参数（可选）
-    可以通过 -input_file 参数指定模型对齐所需要的输入文件的名称，输入需要遵循如下[格式](#输入)。
+    可以通过 -input_file 参数指定模型对齐所需要的输入文件的名称，输入需要遵循如下[格式](#输入)。生成输入的代码可以[参考](#生成输入或输出文件示例代码)。
 - ref_file 参数（可选）
-    可以通过 -ref_file 参数指定待对齐的输出文件的名称，输出需遵循如下[格式](#输出)。生成输出的代码可以[参考](#生成输出示例代码)。
+    可以通过 -ref_file 参数指定待对齐的输出文件的名称，输出需遵循如下[格式](#输出)。生成输出的代码可以[参考](#生成输入或输出文件示例代码)。
 
 
 **当前 convert2tnn 的模型只支持 graphdef 模型，不支持 checkpoint 以及 saved_model 格式的文件，如果想将 checkpoint 或者 saved_model 的模型进行转换，可以参看下面[tf2tnn](./tf2tnn.md)的部分，自行进行转换。**
@@ -156,8 +154,8 @@ optional arguments:
 ``` shell script
 docker run --volume=$(pwd):/workspace -it tnn-convert:latest  python3 ./converter.py tf2tnn \
     -tp /workspace/test.pb \
-    -in "input0[1,32,32,3];input1[1,32,32,3]" \
-    -on output0 \
+    -in "input0:1,32,32,3 input2:1,32,32,3" \
+    -on output0 output1 \
     -v v2.0 \
     -optimize \
     -align \
@@ -175,7 +173,7 @@ docker run --volume=$(pwd):/workspace -it tnn-convert:latest python3 ./converter
     /workspace/mobilenetv3-small-c7eb32fe.onnx \
     -optimize \
     -v v3.0 \
-    -align  \
+    -align output \
     -input_file /workspace/in.txt \
     -ref_file /workspace/ref.txt
 
@@ -230,8 +228,9 @@ onnxruntime>=1.1.0
 numpy>=1.17.0  
 onnx-simplifier>=0.2.4  
 protobuf>=3.4.0
+requests
 ```shell script
-pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier protobuf
+pip3 install onnx==1.6.0 onnxruntime numpy onnx-simplifier protobuf requests
 ```
 
 - cmake （version >= 3.0）
@@ -332,15 +331,21 @@ python3 converter.py onnx2tnn -h
 ```
 usage 信息如下：
 ```text
-usage: convert onnx2tnn [-h] [-optimize] [-half] [-v v1.0.0] [-o OUTPUT_DIR]
+usage: convert onnx2tnn [-h] [-in input_info [input_info ...]] [-optimize]
+                        [-half] [-v v1.0.0] [-o OUTPUT_DIR] [-align]
+                        [-input_file INPUT_FILE_PATH]
+                        [-ref_file REFER_FILE_PATH] [-debug]
                         onnx_path
 
 positional arguments:
-  onnx_path      the path for onnx file
+  onnx_path             the path for onnx file
 
 optional arguments:
   -h, --help            show this help message and exit
-  -optimize             optimize the model
+  -in input_info [input_info ...]
+                        specify the input name and shape of the model. e.g.,
+                        -in input1_name:1,3,128,128 input2_name:1,3,256,256
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
   -half                 save model using half
   -v v1.0.0             the version for model
   -o OUTPUT_DIR         the output tnn directory
@@ -351,6 +356,7 @@ optional arguments:
   -ref_file REFER_FILE_PATH
                         the reference file path which contains the reference
                         data to compare the results.
+  -debug                Turn on the switch to debug the model.
 ```
 示例：
 ```shell script
@@ -403,7 +409,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model, default v1.0
-  -optimize             optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
   -half                 save model using half
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH
@@ -433,28 +439,26 @@ python3 converter.py caffe2tnn \
 python3 converter.py tf2tnn -h
 ```
 usage 信息如下：
-```
-usage: convert tf2tnn [-h] -tp TF_PATH -in input_name -on output_name
-                      [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half]
+```text
+usage: convert tf2tnn [-h] -tp TF_PATH -in input_info [input_info ...] -on output_name [output_name ...] [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half] [-align] [-input_file INPUT_FILE_PATH]
+                      [-ref_file REFER_FILE_PATH]
 
 optional arguments:
   -h, --help            show this help message and exit
   -tp TF_PATH           the path for tensorflow graphdef file
-  -in input_name        the tensorflow model's input names. If batch is not
-                        specified, you can add input shape after the input
-                        name, e.g. -in "name[1,28,28,3]"
-  -on output_name       the tensorflow model's output name
+  -in input_info [input_info ...]
+                        specify the input name and shape of the model. e.g., -in input1_name:1,128,128,3 input2_name:1,256,256,3
+  -on output_name [output_name ...]
+                        the tensorflow model's output name. e.g. -on output_name1 output_name2
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
-  -optimize             optimize the model
-  -half                 optimize the model
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -half                 save the mode using half
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH
-                        the input file path which contains the input data for
-                        the inference model.
+                        the input file path which contains the input data for the inference model.
   -ref_file REFER_FILE_PATH
-                        the reference file path which contains the reference
-                        data to compare the results.
+                        the reference file path which contains the reference data to compare the results.
 ```
 - tensorflow-lite2tnn
 
@@ -493,12 +497,30 @@ python3 converter.py tflite2tnn \
 ## 输入输出文件格式示例
 ### 输入
 ```text
-输入数据按一维排列
+
+输入数量 
+输入名称 shape维度个数 具体shape信息 输入数据类型
+输入数据 
+输入名称 shape维度个数 具体shape信息 输入数据类型
+输入数据 
+......
 
 例如
-0.1
-0.2
-0.3
+ 2 
+ in0 4 1 3 1 1 3
+ 2 
+ 4 
+ 3 
+ in1 4 1 2 2 1 0
+ 0.1 
+ 0.2 
+ 0.3 
+ 0.4 
+
+
+提示：
+如果输入数据是 float, 输入数据类型可以用 0 表示
+如果输入数据是 int  , 输入数据类型可以用 3 表示
 
 ```
 
@@ -506,74 +528,110 @@ python3 converter.py tflite2tnn \
 ```text
 
 输出数量 
-输出名称 shape维度个数 具体shape信息 
-输出 
-输出名称 shape维度个数 具体shape信息 
-输出 
+输出名称 shape维度个数 具体shape信息 输出数据类型
+输出数据 
+输出名称 shape维度个数 具体shape信息 输出数据类型
+输出数据
 ......
 
 例如
  2 
- out0 2 1 3 
+ out0 2 1 3 0
  0.1 
  0.2 
  0.3 
- out1 4 1 2 2 1 
+ out1 4 1 2 2 1 0
  0.1 
  0.2 
  0.3 
  0.4 
 
 
+提示：
+如果输出数据是 float, 输出数据类型可以用 0 表示
+如果输出数据是 int  , 输出数据类型可以用 3 表示
+
 ```
 
-### 生成输出示例代码
+### 生成输入或输出文件示例代码
 ```python
-"""
+def write_pytorch_data(output_path, data, data_name_list):
+    """
+    Save the data of Pytorch needed to align TNN model.
 
-模型推理得到的输出至少包含以下三个部分：
-name -> 类型：str。用于标识该输出的名称。
-shape -> 类型：list。用于描述输出的维数。
-tensor -> 类型：numpy.ndarray。存放输出数据。
+    The input and output names of pytorch model and onnx model may not match,
+    you can use Netron to visualize the onnx model to determine the data_name_list.
 
-假设有两个输出，它们分别如下：
-输出一组成部分：
-name_1
-shape_1
-tensor_1
+    The following example converts ResNet50 to onnx model and saves input and output:
+    >>> from torchvision.models.resnet import resnet50
+    >>> model = resnet50(pretrained=False).eval()
+    >>> input_data = torch.randn(1, 3, 224, 224)
+    >>> input_names, output_names = ["input"], ["output"]
+    >>> torch.onnx.export(model, input_data, "ResNet50.onnx", input_names=input_names, output_names=output_names)
+    >>> with torch.no_grad():
+    ...     output_data = model(input_data)
+    ...
+    >>> write_pytorch_data("input.txt", input_data, input_names)
+    >>> write_pytorch_data("output.txt", output_data, output_names)
 
-输出二组成部分：
-name_2
-shape_2
-tensor_2
+    :param output_path: Path to save data.
+    :param data: The input or output data of Pytorch model.
+    :param data_name_list: The name of input or output data. You can get it after visualization through Netron.
+    :return:
+    """
 
-你可以参考以下代码将输出写到文件中
+    if type(data) is not list and type(data) is not tuple:
+        data = [data, ]
+    assert len(data) == len(data_name_list), "The number of data and data_name_list are not equal!"
+    with open(output_path, "w") as f:
+        f.write("{}\n" .format(len(data)))
+        for name, data in zip(data_name_list, data):
+            data = data.numpy()
+            shape = data.shape
+            description = "{} {} ".format(name, len(shape))
+            for dim in shape:
+                description += "{} ".format(dim)
+            data_type = 0 if data.dtype == np.float32 else 3
+            fmt = "%0.6f" if data_type == 0 else "%i"
+            description += "{}".format(data_type)
+            f.write(description + "\n")
+            np.savetxt(f, data.reshape(-1), fmt=fmt)
 
-"""
 
-# 输出数量
-num_output = 2
+def write_tensorflow_data(output_path, data, data_name_list, data_usage=1):
+    """
+    Save the data of TensoFlow needed to align TNN model.
 
-# 输出文件保存路径
-output_path = "output.txt"
+    :param output_path: Path to save data. "You should use input.txt or output.txt to name input or output data"
+    :param data: The input or output data of TensorFlow model.
+    :param data_name_list: The name of input or output data. You can get it after visualization through Netron.
+    :param data_usage: Specify the data usage. If the data is input data, data_usage=0;
+                       if the data if outptu data, data_usage=1.
+    :return:
+    """
+    def convert_nhwc(data):
+        assert len(data.shape) <= 4
+        if len(data.shape) == 2:
+            return data
+        orders = (0, 2, 1) if len(data.shape) == 3 else (0, 2, 3, 1)
+        return data.transpose(orders)
 
-with open(output_path, "w") as f:
-    # 保存输出数量
-    f.write("{}\n" .format(num_output))
-
-    # 保存第一个输出
-    description_1 = "{} {} " .format(name_1, len(shape_1))
-    for dim in shape_1:
-        description_1 += "{} " .format(dim)
-    f.write(description_1 + "\n")
-    np.savetxt(f, tensor_1.reshape(-1), fmt="%0.18f")
-
-    # 保存第二个输出
-    description_2 = "{} {} " .format(name_2, len(shape_2))
-    for dim in shape_2:
-        description_2 += "{} " .format(dim)
-    f.write(description_2 + "\n")
-    np.savetxt(f, tensor_2.reshape(-1), fmt="%0.18f")
+    if type(data) is not list and type(data) is not tuple:
+        data = [data, ]
+    assert len(data) == len(data_name_list), "The number of data and data_name_list are not equal!"
+    with open(output_path, "w") as f:
+        f.write("{}\n" .format(len(data)))
+        for name, data in zip(data_name_list, data):
+            data = convert_nhwc(data) if data_usage == 0 else data
+            shape = data.shape
+            description = "{} {} ".format(name, len(shape))
+            for dim in shape:
+                description += "{} ".format(dim)
+            data_type = 0 if data.dtype == np.float32 else 3
+            fmt = "%0.6f" if data_type == 0 else "%i"
+            description += "{}".format(data_type)
+            f.write(description + "\n")
+            np.savetxt(f, data.reshape(-1), fmt=fmt)
 
 
 ```

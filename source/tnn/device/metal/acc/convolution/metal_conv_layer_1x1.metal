@@ -19,20 +19,20 @@ using namespace metal;
 
 #define CONV_UNROLL (4)
 
-kernel void convolution_1x1(const device ftype4 *in           [[buffer(0)]],
+kernel void convolution_1x1_4x(const device ftype4 *in           [[buffer(0)]],
                             device ftype4 *out                [[buffer(1)]],
                             constant MetalConvParams& params  [[buffer(2)]],
                             const device ftype4x4 *wt         [[buffer(3)]],
                             const device ftype4 *biasTerms    [[buffer(4)]],
                             uint3 gid                         [[thread_position_in_grid]]) {
     if (any(gid >= uint3(params.output_size,
-                           params.output_slice_per_group,
+                           params.output_slice,
                            params.batch)))
         return;
     
     int g = gid.y / params.output_slice_per_group;
-    auto xy_wt  = wt                                                    + (int)gid.y * params.input_slice_per_group;
-    auto xy_in  = in  + (int)gid.z * params.input_slice  * params.input_size  +          g * params.input_size  + (int)gid.x;
+    auto xy_wt  = wt  + (int)gid.y * params.input_slice_per_group;
+    auto xy_in  = in  + (int)gid.z * params.input_slice  * params.input_size  + g * params.input_slice_per_group * params.input_size  + (int)gid.x;
     auto xy_out = out + (int)gid.z * params.output_slice * params.output_size + (int)gid.y * params.output_size + (int)gid.x;
     
     auto result = params.has_bias ? float4(biasTerms[gid.y]) : float4(Zero4);
@@ -40,6 +40,72 @@ kernel void convolution_1x1(const device ftype4 *in           [[buffer(0)]],
         result += float4(*xy_in) * float4x4(xy_wt[z]);
     }
     *xy_out = activate(ftype4(result), params.activation);
+}
+
+kernel void convolution_1x1_common(const device ftype *in     [[buffer(0)]],
+                            device ftype *out                [[buffer(1)]],
+                            constant MetalConvParams& params  [[buffer(2)]],
+                            const device ftype4 *wt           [[buffer(3)]],
+                            const device ftype *biasTerms    [[buffer(4)]],
+                            uint3 gid                         [[thread_position_in_grid]]) {
+    uint output_slice_per_group = UP_DIV(params.output_slice_per_group, 4);
+    uint slices = params.group * output_slice_per_group;
+    if (any(gid >= uint3(params.output_size,
+                           slices,
+                           params.batch)))
+        return;
+
+    int g = gid.y / output_slice_per_group;
+    int4 output_channel = (gid.y % output_slice_per_group) * 4 + int4(0, 1, 2, 3);
+    bool4 valid = output_channel < params.output_slice_per_group;
+    output_channel += g * params.output_slice_per_group;
+    
+    auto output_slice = output_channel / 4;
+    auto output_c     = output_channel % 4;
+
+    int start_input_channel = g * params.input_slice_per_group;
+    int start_input_slice   = start_input_channel / 4;
+    int start_input_c       = start_input_channel % 4;
+
+    const device ftype4 *xy_wt  = wt  + (int)gid.y * params.input_slice_per_group;
+    const device ftype *xy_in   = in  + (int)gid.z * params.input_slice  * params.input_size * 4 + \
+                    start_input_slice * params.input_size * 4 + (int)gid.x * 4 + start_input_c;
+
+    int4 out_idx = (int)gid.z * params.output_slice * params.output_size * 4 + \
+                    output_slice * params.output_size * 4 + (int)gid.x * 4 + output_c;
+
+    auto bias = params.has_bias ? (select(float4(Zero4),
+                        float4(biasTerms[output_channel[0]],
+                                biasTerms[output_channel[1]],
+                                biasTerms[output_channel[2]],
+                                biasTerms[output_channel[3]]),
+                        valid)) : float4(Zero4);
+    
+    float4 sum = bias;
+    const int step_size = params.input_size * 4 - 3;
+    for (auto c = 0; c < params.input_slice_per_group; c++) {
+        sum += float(*xy_in) * float4(xy_wt[c]);
+        start_input_c += 1;
+        int flag = start_input_c == 4;
+        xy_in += flag * step_size + (1 - flag) * 1;
+        start_input_c -= flag * start_input_c;
+    }
+    ftype4 result = activate(ftype4(sum), params.activation);
+    if (valid[3]) {
+        out[out_idx[0]] = result[0];
+        out[out_idx[1]] = result[1];
+        out[out_idx[2]] = result[2];
+        out[out_idx[3]] = result[3];
+    } else if (valid[2]) {
+        out[out_idx[0]] = result[0];
+        out[out_idx[1]] = result[1];
+        out[out_idx[2]] = result[2];
+    } else if (valid[1]) {
+        out[out_idx[0]] = result[0];
+        out[out_idx[1]] = result[1];
+    } else {
+        out[out_idx[0]] = result[0];
+    }
 }
 
 kernel void convolution_1x1_g1z4(const device ftype4 *in             [[buffer(0)]],

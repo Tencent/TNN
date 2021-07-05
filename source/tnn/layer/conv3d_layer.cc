@@ -24,13 +24,11 @@ Status Conv3DLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status Conv3DLayer::InferOutputShape() {
+Status Conv3DLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
-    if (input_blob->GetBlobDesc().data_format != DATA_FORMAT_NCDHW) {
-        LOGE("Error: Conv3D layer only support NCDHW data format\n");
-        return Status(TNNERR_LAYER_ERR, "Error: Conv3D layer only support NCDHW data format");
-    }
 
     ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param_);
     CHECK_PARAM_NULL(conv_param);
@@ -63,13 +61,13 @@ Status Conv3DLayer::InferOutputShape() {
 
     const int pad_type = conv_param->pad_type;
 
+    int kernel_extent_h = dilation_h * (kernel_h - 1) + 1;
+    int kernel_extent_w = dilation_w * (kernel_w - 1) + 1;
+    int kernel_extent_d = dilation_d * (kernel_d - 1) + 1;
+
     // Refactored the code to support tensorflow models
     if (pad_type == -1)  // default padding following the proto setting
     {
-        int kernel_extent_h = dilation_h * (kernel_h - 1) + 1;
-        int kernel_extent_w = dilation_w * (kernel_w - 1) + 1;
-        int kernel_extent_d = dilation_d * (kernel_d - 1) + 1;
-
         height_out = (height + 2 * pad_h_begin - kernel_extent_h) / stride_h + 1;
         width_out  = (width + 2 * pad_w_begin - kernel_extent_w) / stride_w + 1;
         depth_out  = (depth + 2 * pad_d_begin - kernel_extent_d) / stride_d + 1;
@@ -83,19 +81,19 @@ Status Conv3DLayer::InferOutputShape() {
             depth_out  = static_cast<int>(std::ceil(float(depth) / float(stride_d)));
         } else if (pad_type == 1)  // VALID type
         {
-            height_out = static_cast<int>(std::ceil(float(height - kernel_h + 1) / float(stride_h)));
-            width_out  = static_cast<int>(std::ceil(float(width - kernel_w + 1) / float(stride_w)));
-            depth_out  = static_cast<int>(std::ceil(float(depth - kernel_d + 1) / float(stride_d)));
+            height_out = static_cast<int>(std::ceil(float(height - kernel_extent_h + 1) / float(stride_h)));
+            width_out  = static_cast<int>(std::ceil(float(width - kernel_extent_w + 1) / float(stride_w)));
+            depth_out  = static_cast<int>(std::ceil(float(depth - kernel_extent_d + 1) / float(stride_d)));
         } else  // FULL type
         {
             // to-do: deconv has full type, what's conv's full type?
-            LOGE("Error: Conv3DLayer dont support pad type: %d\n", pad_type);
+            LOGE_IF(!ignore_error, "Error: Conv3DLayer dont support pad type: %d\n", pad_type);
             return Status(TNNERR_PARAM_ERR, "Error: Conv3DLayer dont support pad type");
         }
 
-        int pad_along_height = ((height_out - 1) * stride_h + kernel_h - height);
-        int pad_along_width  = ((width_out - 1) * stride_w + kernel_w - width);
-        int pad_along_depth  = ((depth_out - 1) * stride_d + kernel_d - depth);
+        int pad_along_height = ((height_out - 1) * stride_h + kernel_extent_h - height);
+        int pad_along_width  = ((width_out - 1) * stride_w + kernel_extent_w - width);
+        int pad_along_depth  = ((depth_out - 1) * stride_d + kernel_extent_d - depth);
 
         int pad_top   = pad_along_height / 2;
         int pad_left  = pad_along_width / 2;
@@ -123,7 +121,7 @@ Status Conv3DLayer::InferOutputShape() {
         conv_param->pads[4] = pad_front;
         conv_param->pads[5] = pad_back;
     } else {
-        LOGE("Error: Conv3DLayer dont support pad type: %d\n", pad_type);
+        LOGE_IF(!ignore_error, "Error: Conv3DLayer dont support pad type: %d\n", pad_type);
         return Status(TNNERR_PARAM_ERR, "Error: Conv3DLayer dont support pad type");
     }
 

@@ -29,6 +29,7 @@ public:
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 private:
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) override;
     virtual std::set<std::string> CreateBuildOptions() = 0;
 };
 

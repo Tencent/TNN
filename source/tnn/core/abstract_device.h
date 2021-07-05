@@ -26,6 +26,16 @@
 
 namespace TNN_NS {
 
+struct ImplementedPrecision {
+    bool fp32_implemented  = false;
+    bool fp16_implemented  = false;
+    bool bfp16_implemented = false;
+};
+
+struct ImplementedLayout {
+    std::vector<DataFormat> layouts;
+};
+
 // @brief AbstractDevice define create memory, context and layer acc interface.
 class AbstractDevice {
 public:
@@ -52,6 +62,12 @@ public:
     // @return TNN_OK if free success, otherwise error code.
     virtual Status Allocate(void** handle, BlobMemorySizeInfo& size_info) = 0;
 
+    // @brief Allocates memory
+    // @param size info blob size info to allocate
+    // @param handle handle blob memory
+    // @return TNN_OK if free success, otherwise error code.
+    virtual Status Allocate(BlobHandle* handle, BlobMemorySizeInfo& size_info);
+
     // @brief Releases memory resources associated by the handle.
     // @return TNN_OK if free success, otherwise error code.
     virtual Status Free(void* handle) = 0;
@@ -70,8 +86,17 @@ public:
     // @brief CreateContext create tnn instance device context
     virtual Context* CreateContext(int device_id) = 0;
 
+    // @brief get implemented precisions on the device by layer type
+    virtual std::shared_ptr<const ImplementedPrecision> GetImplementedPrecision(LayerType type);
+
+    // @brief get implemented layouts on the device by layer type
+    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type);
+
     // @brief get factory device type
     DeviceType GetDeviceType();
+
+    // @brief auto network type decided by device.
+    virtual NetworkType ConvertAutoNetworkType() = 0;
 
 private:
     DeviceType device_type_;
@@ -83,12 +108,15 @@ std::map<DeviceType, std::shared_ptr<AbstractDevice>>& GetGlobalDeviceMap();
 // @brief Get Device
 AbstractDevice* GetDevice(DeviceType type);
 
-// @brief TypeDeviceRegister contruct register device
+// @brief TypeDeviceRegister construct register device
 template <typename T>
 class TypeDeviceRegister {
 public:
     explicit TypeDeviceRegister(DeviceType type) {
-        GetGlobalDeviceMap()[type] = std::shared_ptr<T>(new T(type));
+        auto& device_map = GetGlobalDeviceMap();
+        if (device_map.find(type) == device_map.end()) {
+            device_map[type] = std::shared_ptr<T>(new T(type));
+        }
     }
 };
 

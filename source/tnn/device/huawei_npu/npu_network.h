@@ -22,6 +22,7 @@
 #include <tnn/interpreter/net_structure.h>
 #include <tnn/layer/base_layer.h>
 
+#include <hiai_ir_build.h>
 #include <tnn/core/default_network.h>
 #include <tnn/interpreter/default_model_interpreter.h>
 #include <string>
@@ -48,7 +49,7 @@ public:
     // @param net_cfg
     // @param net_res
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                        InputShapesMap inputs_shape);
+        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder=true);
 
     // @brief deinit release init create resource
     virtual Status DeInit();
@@ -95,9 +96,29 @@ public:
     // @brief set device affinity
     virtual Status SetDeviceAffinity(const std::vector<int> &device_list);
 
+#if TNN_PROFILE
+public:
+    virtual void StartProfile();
+    virtual std::shared_ptr<ProfileResult> FinishProfile();
+#endif
+
 private:
     // add for huawei_npu
-    Status IRInitLayers(NetworkConfig &net_config, AbstractModelInterpreter *interpreter, InputShapesMap &inputs_shape);
+
+    bool InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config);
+
+    Status RomVersionCheck();
+
+    Status InitContext(NetworkConfig &net_config);
+
+    Status HiAIModelInit(std::string model_path, NetworkConfig &net_config, ModelConfig &model_config,
+                         DefaultModelInterpreter *interpreter, InputShapesMap inputs_shape,
+                         InputShapesMap &cpu_inputs_shape);
+
+    Status IRInitLayers(NetworkConfig &net_config, DefaultModelInterpreter *interpreter, InputShapesMap &inputs_shape);
+
+    Status InitSubNetwork(NetworkConfig &net_config, ModelConfig &model_config, DefaultModelInterpreter *interpreter,
+                          InputShapesMap &cpu_inputs_shape);
 
     Status ConvertLayers(NetResource *net_resource);
 
@@ -105,12 +126,13 @@ private:
 
     Status SetGraphInputsAndOutputs(InputShapesMap &input_shape_map, InputShapesMap &cpu_input_shape_map);
 
-    Status BuildModel(std::string model_path);
+    Status BuildGraph(domi::HiaiIrBuild &ir_build, domi::ModelBufferData &om_model_buff);
 
-    Status InitCheck();
+    Status InitBlobs(InputShapesMap &inputs_shape, InputShapesMap &cpu_inputs_shape);
 
-    InputShapesMap modifyInterpreterCPU();
+    Blob *CreateNpuBlob(hiai::TensorDimension dims, std::string name, void *data);
 
+private:
     AbstractDevice *device_ = nullptr;
 
     Context *context_ = nullptr;
@@ -125,10 +147,10 @@ private:
     ge::Graph graph_ = ge::Graph("graph");
 
     // the boolean controls if build from om or build from memory
-    bool from_path_ = true;
+    bool use_path_ = true;
     // the name of the model
     std::string model_name_;
-    int version_num_ = 0;
+    std::string version_str_ = "";
     std::shared_ptr<hiai::AiModelMngerClient> client_;
     std::vector<std::shared_ptr<hiai::AiTensor>> input_tensor_;
     std::vector<std::shared_ptr<hiai::AiTensor>> output_tensor_;
@@ -138,12 +160,15 @@ private:
     BlobMap output_blob_map_;
 
     // here to add sub network :
-    std::shared_ptr<DefaultNetwork> default_network_;
+    std::shared_ptr<DefaultNetwork> sub_network_;
+    std::shared_ptr<DefaultModelInterpreter> sub_network_interp_;
+    // count how many layers have been constructed
     int cpu_count_;
     std::set<std::string> visited_;
-    bool useCPU = false;
+    bool use_subnet_ = false;
     BlobMap npu_inter_out_blobmap_;
     BlobMap cpu_inter_in_blobmap_;
+    std::map<std::string, std::shared_ptr<BlobConverter>> cpu_blob_converter_map_;
 };
 
 }  // namespace TNN_NS

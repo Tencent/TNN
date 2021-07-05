@@ -15,7 +15,7 @@
 TNNTest
 必选参数：
     -mp 模型proto位置(模型model需要在同文件夹下同前缀名)
-    -dt DEVICE类型（ARM, OPENCL, HUAWEI_NPU）
+    -dt DEVICE类型（ARM, OPENCL, HUAWEI_NPU, X86, CUDA）
 常用可选参数：
     -nt network类型（默认naive， 华为Npu需要特殊指定 -nt HUAWEI_NPU）
     -op 输出文件位置   

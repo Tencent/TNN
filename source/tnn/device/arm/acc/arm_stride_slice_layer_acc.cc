@@ -14,12 +14,117 @@
 
 #include <algorithm>
 #include <cmath>
+
 #include "tnn/device/arm/acc/arm_layer_acc.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 DECLARE_ARM_ACC(StrideSlice, LAYER_STRIDED_SLICE);
+
+static Status ExecStrideSlice(Blob *input_blob, Blob *output_blob, const std::vector<int> &begins,
+                              const std::vector<int> &ends, const std::vector<int> &strides) {
+    auto dims_input   = input_blob->GetBlobDesc().dims;
+    auto dims_output  = output_blob->GetBlobDesc().dims;
+    int input_slice  = UP_DIV(dims_input[1], 4);
+    int output_slice = UP_DIV(dims_output[1], 4);
+
+    // support maximum dim 5
+    int input_strides[4];
+    int output_strides[4];
+    input_strides[0] = DimsVectorUtils::Count(dims_input, 2) * 4 * input_slice;
+    output_strides[0] = DimsVectorUtils::Count(dims_output, 2) * 4 * output_slice;
+    for (int i = 1; i < 4; i++) {
+        input_strides[i] = DimsVectorUtils::Count(dims_input, i + 1) * 4;
+        output_strides[i] = DimsVectorUtils::Count(dims_output, i + 1) * 4;
+    }
+
+    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(input_blob->GetHandle()));
+        float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
+
+        int nn = 0, nc = 0, nh = 0, nw = 0, nx = 0;
+        if (begins.size() == 5) {
+            for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
+                auto input_n  = input_data + n * input_strides[0];
+                auto output_n = output_data + nn * output_strides[0];
+                nc = 0;
+                for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
+                    auto zi = c / 4, ri = c % 4;
+                    auto zo = nc / 4, ro = nc % 4;
+
+                    auto input_c  = input_n + zi * input_strides[1];
+                    auto output_c = output_n + zo * output_strides[1];
+                    nh = 0;
+                    for (int h = begins[2]; h < ends[2]; h += strides[2], nh++) {
+                        auto input_h  = input_c + h * input_strides[2];
+                        auto output_h = output_c + nh * output_strides[2];
+                        nw = 0;
+                        for (int w = begins[3]; w < ends[3]; w += strides[3], nw++) {
+                            auto input_w  = input_h + w * input_strides[3];
+                            auto output_w = output_h + nw * output_strides[3];
+                            nx = 0;
+                            for (int x = begins[4]; x < ends[4]; x += strides[4], nx++) {
+                                output_w[nx * 4 + ro] = input_w[x * 4 + ri];
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (begins.size() == 4) {
+            for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
+                auto input_n  = input_data + n * input_strides[0];
+                auto output_n = output_data + nn * output_strides[0];
+                nc = 0;
+                for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
+                    auto zi = c / 4, ri = c % 4;
+                    auto zo = nc / 4, ro = nc % 4;
+
+                    auto input_c  = input_n + zi * input_strides[1];
+                    auto output_c = output_n + zo * output_strides[1];
+                    nh = 0;
+                    for (int h = begins[2]; h < ends[2]; h += strides[2], nh++) {
+                        auto input_h  = input_c + h * input_strides[2];
+                        auto output_h = output_c + nh * output_strides[2];
+                        nw = 0;
+                        for (int w = begins[3]; w < ends[3]; w += strides[3], nw++) {
+                            output_h[nw * 4 + ro] = input_h[w * 4 + ri];
+                        }
+                    }
+                }
+            }
+        } else if (begins.size() == 3) {
+            for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
+                auto input_n  = input_data + n * input_strides[0];
+                auto output_n = output_data + nn * output_strides[0];
+                nc = 0;
+                for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
+                    auto zi = c / 4, ri = c % 4;
+                    auto zo = nc / 4, ro = nc % 4;
+
+                    auto input_c  = input_n + zi * input_strides[1];
+                    auto output_c = output_n + zo * output_strides[1];
+                    nh = 0;
+                    for (int h = begins[2]; h < ends[2]; h += strides[2], nh++) {
+                        output_c[nh * 4 + ro] = input_c[h * 4 + ri];
+                    }
+                }
+            }
+        } else if (begins.size() == 2) {
+            for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
+                auto input_n  = input_data + n * input_strides[0];
+                auto output_n = output_data + nn * output_strides[0];
+                nc = 0;
+                for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
+                    output_n[nc] = input_n[c];
+                }
+            }
+        }
+    } else {
+        return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8/bfp16 StrideSlice, in todo list");
+    }
+    return TNN_OK;
+}
 
 Status ArmStrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<StrideSliceLayerParam *>(param_);
@@ -32,14 +137,10 @@ Status ArmStrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     Blob *output_blob = outputs[0];
     auto dims_input   = input_blob->GetBlobDesc().dims;
     auto dims_output  = output_blob->GetBlobDesc().dims;
-    int input_channel = dims_input[1];
-    int input_height  = dims_input[2];
-    int input_width   = dims_input[3];
-    int output_height = dims_output[2];
-    int output_width  = dims_output[3];
-
-    int input_slice  = UP_DIV(dims_input[1], 4);
-    int output_slice = UP_DIV(dims_output[1], 4);
+    auto dim_size     = dims_output.size();
+    if ((dim_size > 5 || dim_size < 2) || dim_size != dims_input.size()) {
+        return Status(TNNERR_MODEL_ERR, "Error: StrideSliceLayerParam not support!");
+    }
 
     auto begins  = layer_param->begins;
     auto ends    = layer_param->ends;
@@ -53,37 +154,60 @@ Status ArmStrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
             ends[i] = input_blob->GetBlobDesc().dims[i];
         }
     }
-    int nn = 0, nc = 0, nh = 0, nw = 0;
 
-    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        float *input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(input_blob->GetHandle()));
-        float *output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
-
-        for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
-            auto input_ptr  = input_data + n * input_slice * 4 * input_width * input_height;
-            auto output_ptr = output_data + nn * output_slice * 4 * output_width * output_height;
-            nc              = 0;
-            for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
-                auto zi = c / 4, ri = c % 4;
-                auto zo = nc / 4, ro = nc % 4;
-                nh = 0;
-                for (int h = begins[2]; h < ends[2]; h += strides[2], nh++) {
-                    nw = 0;
-                    for (int w = begins[3]; w < ends[3]; w += strides[3], nw++) {
-                        const int i_offset = zi * input_width * input_height * 4 + h * input_width * 4 + w * 4 + ri;
-                        const int o_offset =
-                            zo * output_width * output_height * 4 + nh * output_width * 4 + nw * 4 + ro;
-                        output_ptr[o_offset] = input_ptr[i_offset];
-                    }
-                }
-            }
-        }
-    } else {
-        return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8/bfp16 StrideSlice, in todo list");
-    }
-    return TNN_OK;
+    return ExecStrideSlice(input_blob, output_blob, begins, ends, strides);
 }
 
 REGISTER_ARM_ACC(StrideSlice, LAYER_STRIDED_SLICE)
+REGISTER_ARM_LAYOUT(LAYER_STRIDED_SLICE, DATA_FORMAT_NC4HW4)
+
+DECLARE_ARM_ACC(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
+
+Status ArmStrideSliceV2LayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto layer_param = dynamic_cast<StrideSliceV2LayerParam *>(param_);
+    if (!layer_param) {
+        LOGE("Error: StrideSliceV2LayerParam is nil\n");
+        return Status(TNNERR_MODEL_ERR, "Error: StrideSliceV2LayerParam is nil");
+    }
+
+    Blob *input_blob  = inputs[0];
+    Blob *output_blob = outputs[0];
+    auto dims_input   = input_blob->GetBlobDesc().dims;
+    auto dims_output  = output_blob->GetBlobDesc().dims;
+    auto dim_size     = dims_output.size();
+    if ((dim_size > 5 || dim_size < 2) || dim_size != dims_input.size()) {
+        return Status(TNNERR_MODEL_ERR, "Error: StrideSliceV2LayerParam not support!");
+    }
+
+    auto begins  = layer_param->begins;
+    auto ends    = layer_param->ends;
+    auto strides = layer_param->strides;
+    auto axes    = layer_param->axes;
+
+    Status status = TNN_OK;
+    DimsFunctionUtils::StrideSlice(dims_input, begins, ends, strides, axes, &status);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    std::vector<int> rectified_begins(dim_size, 0);
+    std::vector<int> rectified_ends(dim_size, 0);
+    std::vector<int> rectified_strides(dim_size, 0);
+    for (int i = 0, axes_idx = 0; i < dim_size; ++i) {
+        if (axes_idx >= axes.size() || i != axes[axes_idx]) {
+            rectified_begins[i]  = 0;
+            rectified_ends[i]    = dims_input[i];
+            rectified_strides[i] = 1;
+        } else {
+            rectified_begins[i]  = begins[axes_idx];
+            rectified_ends[i]    = ends[axes_idx];
+            rectified_strides[i] = strides[axes_idx];
+            axes_idx += 1;
+        }
+    }
+
+    return ExecStrideSlice(input_blob, output_blob, rectified_begins, rectified_ends, rectified_strides);
+}
+
+REGISTER_ARM_ACC(StrideSliceV2, LAYER_STRIDED_SLICE_V2)
+REGISTER_ARM_LAYOUT(LAYER_STRIDED_SLICE_V2, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

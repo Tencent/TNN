@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "arm_unary_layer_acc.h"
+#include "tnn/device/arm/acc/arm_unary_layer_acc.h"
 
 namespace TNN_NS {
 
@@ -24,6 +24,7 @@ typedef struct arm_floor_operator : arm_unary_operator {
 
 DECLARE_ARM_UNARY_ACC(Floor, ARM_FLOOR_OP);
 REGISTER_ARM_ACC(Floor, LAYER_FLOOR);
+REGISTER_ARM_LAYOUT(LAYER_FLOOR, DATA_FORMAT_NC4HW4)
 
 typedef struct arm_ceil_operator : arm_unary_operator {
     virtual Float4 operator()(const Float4& v) {
@@ -33,5 +34,6 @@ typedef struct arm_ceil_operator : arm_unary_operator {
 
 DECLARE_ARM_UNARY_ACC(Ceil, ARM_CEIL_OP);
 REGISTER_ARM_ACC(Ceil, LAYER_CEIL);
+REGISTER_ARM_LAYOUT(LAYER_CEIL, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

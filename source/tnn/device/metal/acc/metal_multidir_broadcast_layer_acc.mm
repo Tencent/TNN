@@ -17,10 +17,28 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 MetalMultidirBroadcastLayerAcc::~MetalMultidirBroadcastLayerAcc() {}
+
+Status MetalMultidirBroadcastLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob) {
+    auto max_dim_size = inputs[0]->GetBlobDesc().dims.size();
+    for(auto *blob : inputs) {
+        auto dims_input = blob->GetBlobDesc().dims;
+        max_dim_size = std::max(dims_input.size(), max_dim_size);
+    }
+    for(auto *blob : inputs) {
+        auto dims_input = blob->GetBlobDesc().dims;
+        while (dims_input.size() < max_dim_size) {
+            dims_input.insert(dims_input.begin(), 1);
+        }
+        blob->GetBlobDesc().dims = dims_input;
+    }
+
+    return MetalLayerAcc::ReloadConstantBlobs(inputs, only_reload_shape_differ_blob);
+}
 
 Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                                            const std::vector<Blob *> &outputs) {
@@ -31,44 +49,56 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
     }
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
 
+    auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
+    bool has_resource = layer_res && (layer_res->element_handle.force_to<void *>());
+
+    Status status = TNN_OK;
+    if (layer_res && !buffer_weight_) {
+        // If two inputs have different dimensions, align on the right
+        auto element_shape = layer_res->element_shape;
+        while(element_shape.size() < outputs[0]->GetBlobDesc().dims.size())
+            element_shape.insert(element_shape.begin(), 1);
+        buffer_weight_ =
+            AllocatePackedNC4HW4MetalBufferFormRawBuffer(layer_res->element_handle, element_shape, 1, status);
+    }
+
     auto dims_output = outputs[0]->GetBlobDesc().dims;
+    auto dims_input0  = inputs[0]->GetBlobDesc().dims;
+
     // buffer_param_
     {
         MetalBroadcastParams metal_params;
-        metal_params.input_width  = dims_output[3];
-        metal_params.input_height = dims_output[2];
+        metal_params.input_width  = DimsFunctionUtils::GetDim(dims_output, 3);
+        metal_params.input_height = DimsFunctionUtils::GetDim(dims_output, 2);
         metal_params.input_size   = metal_params.input_height * metal_params.input_width;
         metal_params.input_slice  = UP_DIV(dims_output[1], 4);
 
-        metal_params.output_width  = dims_output[3];
-        metal_params.output_height = dims_output[2];
+        metal_params.output_width  = DimsFunctionUtils::GetDim(dims_output, 3);
+        metal_params.output_height = DimsFunctionUtils::GetDim(dims_output, 2);
         metal_params.output_size   = metal_params.output_height * metal_params.output_width;
         metal_params.output_slice  = UP_DIV(dims_output[1], 4);
+
+        metal_params.input0_size   = UP_DIV(dims_input0[1], 4) * DimsFunctionUtils::GetDimProduct(dims_input0, 2);
+        if (!(layer_res && buffer_weight_)) {
+            auto dims_input1  = inputs[1]->GetBlobDesc().dims;
+            metal_params.input1_size = UP_DIV(dims_input1[1], 4) * DimsFunctionUtils::GetDimProduct(dims_input1, 2);
+        }
 
         metal_params.batch = dims_output[0];
 
         metal_params.broadcast_input0 = layer_param->input0_broadcast_type;
         metal_params.broadcast_input1 = layer_param->input1_broadcast_type;
-        ;
+
+        metal_params.weight_index = has_resource? layer_param->weight_input_index : -1;
+        // for passing unit_test
+        //metal_params.weight_index = layer_param->weight_input_index;
 
         buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
                                             length:sizeof(MetalBroadcastParams)
                                            options:MTLResourceCPUCacheModeWriteCombined];
     }
 
-    auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
-
-    Status status = TNN_OK;
-    if (layer_res && !buffer_weight_) {
-        const auto element_shape = layer_res->element_shape;
-        buffer_weight_ =
-            AllocatePackedNC4HW4MetalBufferFormRawBuffer(layer_res->element_handle, element_shape, 1, status);
-    }
     return status;
-}
-
-std::string MetalMultidirBroadcastLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return "";
 }
 
 Status MetalMultidirBroadcastLayerAcc::SetKernelEncoderParam(
@@ -108,16 +138,6 @@ Status MetalMultidirBroadcastLayerAcc::SetKernelEncoderParam(
                 offset:(NSUInteger)output->GetHandle().bytes_offset
                atIndex:2];
     [encoder setBuffer:buffer_param_ offset:0 atIndex:3];
-    return TNN_OK;
-}
-
-Status MetalMultidirBroadcastLayerAcc::ComputeThreadSize(
-                                                         const std::vector<Blob *> &inputs,
-                                                         const std::vector<Blob *> &outputs,
-                                                         MTLSize &size) {
-    auto output = outputs[0];
-    auto dims_output  = output->GetBlobDesc().dims;
-    size = GetDefaultThreadSize(dims_output, true);
     return TNN_OK;
 }
 

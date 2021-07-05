@@ -22,11 +22,11 @@ typedef struct arm_reduce_l2_operator : arm_reduce_operator {
     };
 
     virtual Float4 DataInit() {
-        return Float4(0);
+        return Float4(0.f);
     };
 
     virtual Float4 Calculate(Float4 &v, Float4 &t) {
-        return v + Float4::pow(t, Float4(2));
+        return v + t * t;
     };
 
     virtual float Calculate(const float &v, const float &t) {
@@ -45,5 +45,6 @@ typedef struct arm_reduce_l2_operator : arm_reduce_operator {
 DECLARE_ARM_REDUCE_ACC(ReduceL2, ARM_REDUCE_L2_OP);
 
 REGISTER_ARM_ACC(ReduceL2, LAYER_REDUCE_L2);
+REGISTER_ARM_LAYOUT(LAYER_REDUCE_L2, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

@@ -12,69 +12,83 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <iomanip>
+#include <sstream>
+
 #include "tnn/core/blob.h"
-#include "tnn/core/abstract_device.h"
-#include "tnn/memory_manager/blob_memory_size_info.h"
+#include "tnn/core/blob_impl.h"
 
 namespace TNN_NS {
 
+std::string BlobDesc::description(bool all_message) {
+    std::ostringstream os;
+    //name
+    os << "name: " <<name;
+
+    //data type
+    os << " data type: " << data_type;
+
+    //shape
+    os << " shape: [ " ;
+    for (auto iter : dims) {
+        os << iter << " " ;
+    }
+    os << "]";
+
+    return os.str();
+}
+
 Blob::Blob(BlobDesc desc) {
-    desc_ = desc;
-    alloc_memory_ = false;
+    impl_ = new BlobImpl(desc);
 }
 
 Blob::Blob(BlobDesc desc, bool alloc_memory) {
-    desc_ = desc;
-    alloc_memory_ = alloc_memory;
-    if(alloc_memory) {
-        auto device = GetDevice(desc.device_type);
-        if(device != NULL) {
-            BlobMemorySizeInfo size_info = device->Calculate(desc);
-            device->Allocate(&handle_.base, size_info);
-        }
-    }
+    impl_ = new BlobImpl(desc, alloc_memory);
 }
 
 Blob::~Blob() {
-    if(alloc_memory_ && handle_.base != NULL) {
-        auto device = GetDevice(desc_.device_type);
-        if(device != NULL) {
-            device->Free(handle_.base);
-        }
-    }
+    delete impl_;
 }
 
 Blob::Blob(BlobDesc desc, BlobHandle handle) {
-    desc_   = desc;
-    handle_ = handle;
-    alloc_memory_ = false;
+    impl_ = new BlobImpl(desc, handle);
 }
 
 // Set the descriptor of the blob.
 void Blob::SetBlobDesc(BlobDesc desc) {
-    desc_ = desc;
+    impl_->SetBlobDesc(desc);
 }
 
 // Get a reference of the descriptor of the blob.
 BlobDesc &Blob::GetBlobDesc() {
-    return desc_;
+    return impl_->GetBlobDesc();
 }
 
 // Get a copy of the handle of the blob.
 BlobHandle Blob::GetHandle() {
-    return handle_;
+    return impl_->GetHandle();
 }
 
 // Set the handle of the blob.
 void Blob::SetHandle(BlobHandle handle) {
-    if(alloc_memory_) {
-        auto device = GetDevice(desc_.device_type);
-        if(device != NULL) {
-            device->Free(handle_.base);
-        }
-    }
-    handle_ = handle;
-    alloc_memory_ = false;
+    impl_->SetHandle(handle);
+}
+
+//@brief allocate blob handle in forward
+bool Blob::NeedAllocateInForward() {
+    return impl_->NeedAllocateInForward();
+}
+
+bool Blob::IsConstant() {
+    return impl_->IsConstant();
+}
+
+int Blob::GetFlag() {
+    return impl_->GetFlag();
+}
+
+void Blob::SetFlag(int flag) {
+    impl_->SetFlag(flag);
 }
 
 }  // namespace TNN_NS

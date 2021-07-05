@@ -22,10 +22,18 @@ public:
 };
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, LogSigmoidLayerTest,
-                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE, testing::Values(DATA_TYPE_FLOAT)));
+                         ::testing::Combine(UNARY_BATCH_CHANNEL_SIZE,
+                                            testing::Values(2, 3, 4, 5),
+                                            testing::Values(DATA_TYPE_FLOAT)));
 
 TEST_P(LogSigmoidLayerTest, UnaryLayerTest) {
-    RunUnaryTest();
+    DeviceType dev = ConvertDeviceType(FLAGS_dt);
+
+    if (DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
+
+    RunUnaryTest("LogSigmoid");
 }
 
 }  // namespace TNN_NS

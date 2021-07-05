@@ -19,6 +19,8 @@ namespace TNN_NS {
 DECLARE_METAL_REDUCE_ACC(ReduceProd, LAYER_REDUCE_PROD);
 
 std::string MetalReduceProdLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (multi_axis_)
+        return "reduce_prod_multi_axis_common";
     if (axis_ == 0) {
         return "reduce_prod_axis_0_common";
     } else if (axis_ == 1) {
@@ -39,5 +41,6 @@ Status MetalReduceProdLayerAcc::Forward(const std::vector<Blob *> &inputs, const
 }
 
 REGISTER_METAL_REDUCE_ACC(ReduceProd, LAYER_REDUCE_PROD);
+REGISTER_METAL_LAYOUT(LAYER_REDUCE_PROD, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

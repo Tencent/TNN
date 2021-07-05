@@ -23,7 +23,7 @@ DataType GetNetResourceDataType(NetResource* resource) {
         ConvLayerResource* conv_resource = dynamic_cast<ConvLayerResource*>(iter.second.get());
         if (conv_resource) {
             auto type = conv_resource->filter_handle.GetDataType();
-            if (conv_resource->filter_handle.GetDataType() == DATA_TYPE_HALF)
+            if (type == DATA_TYPE_HALF)
                 return DATA_TYPE_HALF;
         }
     }

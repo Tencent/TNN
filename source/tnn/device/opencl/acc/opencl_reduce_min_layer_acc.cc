@@ -33,14 +33,16 @@ std::set<std::string> OpenCLReduceMinLayerAcc::CreateBuildOptions() {
     std::set<std::string> build_options;
     std::string init    = " -DDATAINIT=FLT_MAX ";
     std::string compute = " -DOPERATOR(r,t)=r=min(r,t); ";
-    std::string inner   = " -DINNEROPERATOR=min(min(r.x,r.y),min(r.z,r.w)) ";
-    std::string post    = " -DPOSTOPERATOR=(r) ";
-    build_options.emplace(init + compute + inner + post);
+    std::string reduce  = " -DREDUCEOPERATOR(r,t)=r=min(r,t); ";
+    std::string inner   = " -DINNEROPERATOR(r)=min(min(r.x,r.y),min(r.z,r.w)) ";
+    std::string post    = " -DPOSTOPERATOR(r)=(r) ";
+    build_options.emplace(init + compute + reduce + inner + post);
     return build_options;
 }
 
 OpenCLReduceMinLayerAcc::~OpenCLReduceMinLayerAcc() {}
 
 REGISTER_OPENCL_ACC(ReduceMin, LAYER_REDUCE_MIN)
+REGISTER_OPENCL_LAYOUT(LAYER_REDUCE_MIN, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

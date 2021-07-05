@@ -22,3 +22,17 @@ inline void WriteOutputAntiOutOfBounds(__write_only image2d_t output, FLOAT4 out
         WI_F(output, (int2)(output_w_idx, output_h_idx), out0);
     }
 }
+
+inline void WriteSliceOutputAntiOutOfBounds(__write_only image2d_t output, FLOAT4 out0, FLOAT4 out1, FLOAT4 out2, FLOAT4 out3,const int output_w_idx, const int output_h_idx, const int remain)
+{
+    WI_F(output, (int2)(output_w_idx, output_h_idx), out0);
+    if (remain >= 2) {
+        WI_F(output, (int2)(output_w_idx + 1, output_h_idx), out1);
+    }
+    if (remain >= 3) {
+        WI_F(output, (int2)(output_w_idx + 2, output_h_idx), out2);
+    }
+    if (remain >= 4) {
+        WI_F(output, (int2)(output_w_idx + 3, output_h_idx), out3);
+    }
+}

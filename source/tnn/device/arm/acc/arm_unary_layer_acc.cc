@@ -13,8 +13,10 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_unary_layer_acc.h"
+
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
+#include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
@@ -29,19 +31,10 @@ Status ArmUnaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource
 
 // SUPPORTED DATATYPES
 bool ArmUnaryLayerAcc::DataTypeSupported(DataType data_type) {
-    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16)
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_HALF)
         return true;
     else
         return false;
-}
-
-Status ArmUnaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        return Exec<float>(inputs, outputs);
-    } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
-        return Exec<bfp16_t>(inputs, outputs);
-    }
-    return TNNERR_LAYER_ERR;
 }
 
 template <typename T>
@@ -51,18 +44,34 @@ Status ArmUnaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vect
 
     auto dims = output->GetBlobDesc().dims;
 
-    int count      = dims[0] * ROUND_UP(dims[1], 4) * dims[2] * dims[3];
+    int count      = dims[0] * ROUND_UP(dims[1], 4) * DimsVectorUtils::Count(dims, 2);
     int count_quad = UP_DIV(count, 4);
 
     auto input_ptr  = reinterpret_cast<T *>(GetBlobHandlePtr(input->GetHandle()));
     auto output_ptr = reinterpret_cast<T *>(GetBlobHandlePtr(output->GetHandle()));
 
-    OMP_PARALLEL_FOR_
-    for (int n = 0; n < count_quad; n++) {
-        Float4::save(output_ptr + n * 4, (*op_)(Float4::load(input_ptr + n * 4)));
+    if (context_->GetPrecision() == PRECISION_HIGH) {
+        OMP_PARALLEL_FOR_
+        for (int n = 0; n < count_quad; n++) {
+            Float4::save(output_ptr + n * 4, (*op_)(Float4::load(input_ptr + n * 4)));
+        }
+    } else {
+        OMP_PARALLEL_FOR_
+        for (int n = 0; n < count_quad; n++) {
+            Float4::save(output_ptr + n * 4, op_->fast_op(Float4::load(input_ptr + n * 4)));
+        }
     }
 
     return TNN_OK;
+}
+
+Status ArmUnaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        return Exec<float>(inputs, outputs);
+    } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
+        return Exec<bfp16_t>(inputs, outputs);
+    }
+    return TNNERR_LAYER_ERR;
 }
 
 }  // namespace TNN_NS

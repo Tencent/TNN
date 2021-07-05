@@ -17,11 +17,14 @@
 
 namespace TNN_NS {
 
-class SignedMulLayerTest : public LayerTest,
-                           public ::testing::WithParamInterface<std::tuple<int, int, int, float, float, float, DataType>> {};
+class SignedMulLayerTest
+    : public LayerTest,
+      public ::testing::WithParamInterface<std::tuple<int, int, int, int, float, float, float, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, SignedMulLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                                            // dim count
+                                            testing::Values(2, 3, 4, 5),
                                             // alpha
                                             testing::Values(1.0f, 0.0f, -1.0f),
                                             // beta
@@ -36,30 +39,44 @@ TEST_P(SignedMulLayerTest, SignedMulLayer) {
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
     int input_size     = std::get<2>(GetParam());
-    float alpha          = std::get<3>(GetParam());
-    float beta           = std::get<4>(GetParam());
-    float gamma          = std::get<5>(GetParam());
-    DataType data_type = std::get<6>(GetParam());
+    int dim_count      = std::get<3>(GetParam());
+    float alpha        = std::get<4>(GetParam());
+    float beta         = std::get<5>(GetParam());
+    float gamma        = std::get<6>(GetParam());
+    DataType data_type = std::get<7>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 
-    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
+    if (DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
+    if (DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
 
     // param
-    SignedMulLayerParam param;
-    param.alpha = alpha;
-    param.beta  = beta;
-    param.gamma  = gamma;
+    std::shared_ptr<SignedMulLayerParam> param(new SignedMulLayerParam());
+    param->alpha = alpha;
+    param->beta  = beta;
+    param->gamma = gamma;
 
-    Run(LAYER_SIGNED_MUL, &param, nullptr, inputs_desc, outputs_desc);
+    // generate interpreter
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
+    auto interpreter            = GenerateInterpreter("SignedMul", {input_dims}, param);
+    Precision precision         = PRECISION_AUTO;
+    if (DATA_TYPE_BFP16 == data_type) {
+        precision = PRECISION_LOW;
+    }
+
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

@@ -15,7 +15,7 @@
 #include <cmath>
 
 #include "tnn/layer/base_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 DECLARE_LAYER(InnerProduct, LAYER_INNER_PRODUCT);
@@ -24,25 +24,24 @@ Status InnerProductLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status InnerProductLayer::InferOutputShape() {
+Status InnerProductLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+
     InnerProductLayerParam* ip_param = dynamic_cast<InnerProductLayerParam*>(param_);
     CHECK_PARAM_NULL(ip_param);
 
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
+    auto input_dims   = input_blob->GetBlobDesc().dims;
 
     int N    = ip_param->num_output;
     int axis = ip_param->axis;
-    //    int M    = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, 0, axis);
-    //    int K    = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, axis);
-
-    output_blob->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
-
-    output_blob->GetBlobDesc().dims[axis] = N;
-    for (int i = axis + 1; i < output_blob->GetBlobDesc().dims.size(); i++) {
-        output_blob->GetBlobDesc().dims[i] = 1;
+    DimsVector output_dims;
+    for (int i = 0; i < axis; ++i) {
+        output_dims.push_back(input_dims[i]);
     }
-
+    output_dims.push_back(N);
+    output_blob->GetBlobDesc().dims = output_dims;
     return TNN_OK;
 }
 

@@ -42,11 +42,20 @@ private:
     Status RunConvertUnit(OpenCLExecuteUnit& unit, cl::CommandQueue* command_queue, bool need_wait = false);
     Status CopyBufferDataToMat(Mat& mat, cl::CommandQueue* command_queue);
     Status CopyMatToBufferData(Mat& mat, cl::CommandQueue* command_queue);
+    Status CopyScaleBiasToBuffer(MatConvertParam param, cl::CommandQueue *cl_command_queue);
+
+    Status GetConvertToMatKernelName(Mat &mat, std::string& kernel_name, std::string& program_name);
+    Status GetConvertFromMatKernelName(Mat &mat, std::string& kernel_name, std::string& program_name);
 
     std::map<std::string, OpenCLExecuteUnit> convert_to_mat_map_ = {};
     std::map<std::string, OpenCLExecuteUnit> convert_from_mat_map_ = {};
     std::shared_ptr<cl::Buffer> buffer_ = nullptr;
-    int buffer_size_ = 0;
+    std::shared_ptr<cl::Buffer> scale_buffer_ = nullptr;
+    std::shared_ptr<cl::Buffer> bias_buffer_ = nullptr;
+    std::vector<float> host_scale_buffer_;
+    std::vector<float> host_bias_buffer_;
+    int64_t buffer_size_ = 0;
+    int scale_bias_buffer_size_ = 0;
     bool do_scale_bias_ = true;
 };
 

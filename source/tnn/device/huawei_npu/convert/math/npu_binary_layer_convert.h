@@ -31,6 +31,7 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
+#include "tnn/utils/npu_common_utils.h"
 
 namespace TNN_NS {
 
@@ -56,16 +57,8 @@ protected:
             output->set_input_x1(*input_ops_[0]->GetOperator());
             output->set_input_x2(*input_ops_[1]->GetOperator());
         } else {
-            auto weight_const             = std::make_shared<ge::op::Const>(layer_name_ + "_weight");
-            std::vector<int> weight_shape = resource->element_shape;
-            std::vector<int> input_shape  = input_ops_[0]->GetShape();
-            Status calculate_ret = NpuUtils::CalculateBroadcastSize(weight_shape, resource, input_shape);
-            if (calculate_ret != TNN_OK) {
-                return calculate_ret;
-            }
-            ge::Shape weight_shape_op({weight_shape[0], weight_shape[1], weight_shape[2], weight_shape[3]});
-            NpuUtils::CreateAttrValue(weight_const, weight_shape_op, resource->element_handle);
-            weight_ops_.push_back(weight_const);
+            std::shared_ptr<ge::op::Const> weight_const = nullptr;
+            RETURN_ON_NEQ(GetBinaryWeight(weight_const), TNN_OK);
 
             if (param->weight_input_index == 0) {
                 // weight const
@@ -78,6 +71,18 @@ protected:
             }
         }
         ADD_OUTPUT_OP(output)
+    }
+
+    Status GetBinaryWeight(std::shared_ptr<ge::op::Const> &weight_const) {
+        auto resource = dynamic_cast<EltwiseLayerResource *>(resource_);
+        CHECK_PARAM_NULL(resource);
+
+        weight_const = std::make_shared<ge::op::Const>(layer_name_ + "_weight");
+        ge::Shape weight_shape(NpuUtils::Int32VecToTVec<int64_t>(resource->element_shape));
+        NpuUtils::CreateAttrValue(weight_const, weight_shape, resource->element_handle);
+        weight_ops_.push_back(weight_const);
+
+        return TNN_OK;
     }
 
 private:

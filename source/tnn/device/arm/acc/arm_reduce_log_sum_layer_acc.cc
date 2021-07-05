@@ -17,22 +17,6 @@
 namespace TNN_NS {
 
 typedef struct arm_reduce_log_sum_operator : arm_reduce_operator {
-    virtual void DataInit(void *data, size_t count) {
-        memset(data, 0, count * sizeof(float));
-    };
-
-    virtual Float4 DataInit() {
-        return Float4(0);
-    };
-
-    virtual Float4 Calculate(Float4 &v, Float4 &t) {
-        return v + t;
-    };
-
-    virtual float Calculate(const float &v, const float &t) {
-        return v + t;
-    };
-
     virtual Float4 PostCalculate(const Float4 &v, const Float4 &t) {
         return Float4::log(v);
     };
@@ -40,10 +24,15 @@ typedef struct arm_reduce_log_sum_operator : arm_reduce_operator {
     virtual float PostCalculate(const float &v, const float &t) {
         return std::log(v);
     };
+
+    virtual bool PosCalculateOnce() {
+        return true;
+    };
 } ARM_REDUCE_LOG_SUM_OP;
 
 DECLARE_ARM_REDUCE_ACC(ReduceLogSum, ARM_REDUCE_LOG_SUM_OP);
 
 REGISTER_ARM_ACC(ReduceLogSum, LAYER_REDUCE_LOG_SUM);
+REGISTER_ARM_LAYOUT(LAYER_REDUCE_LOG_SUM, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

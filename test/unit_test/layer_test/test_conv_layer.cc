@@ -15,42 +15,39 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/cpu_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-class ConvLayerTest
-    : public LayerTest,
-      public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, DataType>> {
-    float GetCalcMflops(LayerParam* param, std::vector<Blob*> inputs, std::vector<Blob*> outputs) {
-        ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param);
-        auto dims_input            = inputs[0]->GetBlobDesc().dims;
-        auto dims_output           = outputs[0]->GetBlobDesc().dims;
-        float Mflops = 2.0f * dims_output[0] * dims_output[1] * dims_input[1] * dims_output[2] * dims_output[3] *
-                       conv_param->kernels[0] * conv_param->kernels[1] / 1000.f / 1000.f;
-        return Mflops;
-    }
-};
+class ConvLayerTest : public LayerTest,
+                      public ::testing::WithParamInterface<
+                          std::tuple<int, int, int, int, int, int, int, int, int, DataType, ActivationType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
-                        ::testing::Combine(  // batch
-                            testing::Values(1),
-                            // channel
-                            testing::Values(1, 2, 3, 4, 10, 32),
-                            // hw
-                            testing::Values(9, 10, 16, 19),
-                            // group
-                            testing::Values(1, 2),
-                            // kernel
-                            testing::Values(1, 2, 3, 5),
-                            // dilation
-                            testing::Values(1, 2),
-                            // stride
-                            testing::Values(1, 2),
-                            // pads
-                            testing::Values(0, 1),
-                            // data_type
-                            testing::Values(DATA_TYPE_FLOAT)));
+                         ::testing::Combine(  // batch
+                             testing::Values(1, 2),
+                             // channel
+                             testing::Values(1, 3, 10, 48),
+                             // hw
+                             testing::Values(9, 10, 16, 19),
+                             // group
+                             testing::Values(1, 2),
+                             // kernel
+                             testing::Values(1, 2, 3, 5),
+                             // dilation
+                             testing::Values(1, 2),
+                             // stride
+                             testing::Values(1, 2),
+                             // pads
+                             testing::Values(0, 1),
+                             // pad type
+                             testing::Values(-1, 0, 1),
+                             // data_type
+                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF),
+                             // activation_type
+                             testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6,
+                                             ActivationType_SIGMOID_MUL)));
 
 TEST_P(ConvLayerTest, ConvLayer) {
     // get param
@@ -63,47 +60,45 @@ TEST_P(ConvLayerTest, ConvLayer) {
     int dilation          = std::get<5>(GetParam());
     int stride            = std::get<6>(GetParam());
     int pad               = std::get<7>(GetParam());
-    auto dtype            = std::get<8>(GetParam());
+    int pad_type          = std::get<8>(GetParam());
+    auto dtype            = std::get<9>(GetParam());
+    int activation_type   = std::get<10>(GetParam());
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
 
-    if (dtype == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(dtype)) {
         GTEST_SKIP();
     }
 
-    if (((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
+    if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_CUDA == dev) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, DATA_TYPE_FLOAT);
-    auto outputs_desc = CreateOutputBlobsDesc(1, DATA_TYPE_FLOAT);
+    if (activation_type == ActivationType_ReLU6 && DEVICE_X86 == dev) {
+        GTEST_SKIP();
+    }
+    if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_X86 == dev) {
+        GTEST_SKIP();
+    }
 
     // param
-    ConvLayerParam param;
-    param.name            = "Conv";
-    param.input_channel   = channel;
-    param.output_channel  = channel;
-    param.group           = group;
-    param.kernels         = {kernel, kernel};
-    param.dialations      = {dilation, dilation};
-    param.strides         = {stride, stride};
-    param.pads            = {pad, pad, pad, pad};
-    param.bias            = 1;
-    param.activation_type = ActivationType_ReLU;
+    std::shared_ptr<ConvLayerParam> param(new ConvLayerParam());
+    param->name            = "Conv";
+    param->input_channel   = channel;
+    param->output_channel  = channel;
+    param->group           = group;
+    param->kernels         = {kernel, kernel};
+    param->dialations      = {dilation, dilation};
+    param->strides         = {stride, stride};
+    param->pads            = {pad, pad, pad, pad};
+    param->pad_type        = pad_type;
+    param->bias            = 1;
+    param->activation_type = activation_type;
 
-    // resource
-    ConvLayerResource resource;
-    int filter_count = channel * channel * kernel * kernel / group;
-    RawBuffer filter(filter_count * sizeof(float));
-    float* filter_data = filter.force_to<float*>();
-    RawBuffer bias(channel * sizeof(float));
-    float* bias_data = bias.force_to<float*>();
-    InitRandom(filter_data, filter_count, 1.0f);
-    InitRandom(bias_data, channel, 1.0f);
-    resource.filter_handle = filter;
-    resource.bias_handle   = bias;
-
-    Run(LAYER_CONVOLUTION, &param, &resource, inputs_desc, outputs_desc);
+    // generate interpreter
+    Precision precision         = SetPrecision(dev, dtype);
+    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    auto interpreter            = GenerateInterpreter("Convolution", {input_dims}, param);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

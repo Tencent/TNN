@@ -27,7 +27,7 @@ tflite::ActivationFunctionType TFLiteConcatConverter::ActivationType(
     return tf_lite_operator->builtin_options.AsConcatenationOptions()->fused_activation_function;
 }
 
-TNN_NS::Status TFLiteConcatConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+TNN_NS::Status TFLiteConcatConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
                                            const std::unique_ptr<tflite::OperatorT> &tf_lite_operator,
                                            const std::vector<std::unique_ptr<tflite::TensorT>> &tf_lite_tensors,
                                            const std::vector<std::unique_ptr<tflite::BufferT>> &tf_lite_model_buffer,
@@ -42,7 +42,8 @@ TNN_NS::Status TFLiteConcatConverter::exec(tnn::NetStructure &net_structure, tnn
     param->type                = cur_layer->type_str;
     param->quantized           = false;
     auto option                = tf_lite_operator->builtin_options.AsConcatenationOptions();
-    param->axis                = ConvertAxisFormatTFLite(option->axis);
+    auto &input_tensor         = tf_lite_tensors[tf_lite_operator->inputs[0]];
+    param->axis                = ConvertAxisFormatTFLite(option->axis, input_tensor->shape.size());
     return TNN_NS::TNN_CONVERT_OK;
 }
 

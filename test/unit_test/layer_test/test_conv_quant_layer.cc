@@ -16,15 +16,17 @@
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 class ConvQuantLayerTest : public LayerTest,
-                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType>> {};
+                           public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, DataType,
+                                                                           ActivationType, FusionType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
-                         ::testing::Combine(testing::Values(1), testing::Values(1, 2, 3, 4, 10, 32),
+                         ::testing::Combine(testing::Values(1), 
+                                            testing::Values(1, 3, 10, 64),
                                             testing::Values(9, 10, 16, 19),
                                             // kernel
                                             testing::Values(1, 3),
@@ -32,8 +34,15 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvQuantLayerTest,
                                             testing::Values(1, 2),
                                             // group
                                             testing::Values(1, 2, 3, 8),
+                                            // dilation
+                                            testing::Values(1, 2),
                                             // data_type
-                                            testing::Values(DATA_TYPE_INT8, DATA_TYPE_BFP16)));
+                                            testing::Values(DATA_TYPE_INT8, DATA_TYPE_BFP16),
+                                            // activation_type
+                                            testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6),
+                                            // fusion_type
+                                            testing::Values(FusionType_None, FusionType_Conv_Add_Activation,
+                                                            FusionType_Conv_Activation_Add)));
 
 TEST_P(ConvQuantLayerTest, ConvLayer) {
     // get param
@@ -42,52 +51,79 @@ TEST_P(ConvQuantLayerTest, ConvLayer) {
     int input_size        = std::get<2>(GetParam());
     int kernel            = std::get<3>(GetParam());
     int stride            = std::get<4>(GetParam());
-    DataType data_type    = std::get<6>(GetParam());
     int group             = std::get<5>(GetParam());
+    int dilation          = std::get<6>(GetParam());
+    DataType data_type    = std::get<7>(GetParam());
+    auto activation_type  = std::get<8>(GetParam());
+    auto fusion_type      = std::get<9>(GetParam());
     int channel           = group * channel_per_group;
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
-    if (DEVICE_ARM != dev) {
+
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 
-    // blob desc
-    auto inputs_desc  = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
-    auto outputs_desc = CreateOutputBlobsDesc(1, data_type);
-
-    // param
-    ConvLayerParam param;
-    param.name           = "Conv";
-    param.input_channel  = channel;
-    param.output_channel = channel;
-    param.group          = group;
-    param.kernels        = {kernel, kernel};
-    param.dialations     = {1, 1};
-    param.strides        = {stride, stride};
-    param.pads           = {kernel / 2, kernel / 2, kernel / 2, kernel / 2};
-    param.bias           = 1;
-
-    // resource
-    ConvLayerResource resource;
-    auto element_size = (data_type == DATA_TYPE_INT8) ? 1 : 4;
-    int filter_count  = channel * channel * kernel * kernel / group;
-    RawBuffer filter(filter_count * element_size);
-    RawBuffer bias(channel * sizeof(float));
-    if (data_type == DATA_TYPE_BFP16) {
-        InitRandom(filter.force_to<float*>(), filter_count, (float)1.0);
-        InitRandom(bias.force_to<float*>(), channel, (float)1);
-    } else {
-        RawBuffer scale(channel * sizeof(float));
-        InitRandom(filter.force_to<int8_t*>(), filter_count, (int8_t)8);
-        filter.SetDataType(data_type);
-        InitRandom(bias.force_to<int32_t*>(), channel, (int32_t)8);
-        InitRandom(scale.force_to<float*>(), channel, 1.0f);
-        resource.scale_handle = scale;
+    if (fusion_type != FusionType_None) {
+        // only int8 data type support conv add fusion
+        if (group != 1 || data_type != DATA_TYPE_INT8) {
+            GTEST_SKIP();
+        }
     }
 
-    resource.filter_handle = filter;
-    resource.bias_handle   = bias;
+    if (fusion_type == FusionType_Conv_Activation_Add) {
+        if (activation_type == ActivationType_ReLU6) {
+            GTEST_SKIP();
+        }
+    }
 
-    Run(LAYER_CONVOLUTION, &param, &resource, inputs_desc, outputs_desc);
+    // param
+    std::shared_ptr<ConvLayerParam> param(new ConvLayerParam());
+    param->name            = "Conv";
+    param->input_channel   = channel;
+    param->output_channel  = channel;
+    param->group           = group;
+    param->kernels         = {kernel, kernel};
+    param->dialations      = {dilation, dilation};
+    param->strides         = {stride, stride};
+    param->pads            = {kernel / 2, kernel / 2, kernel / 2, kernel / 2};
+    param->bias            = 1;
+    param->activation_type = activation_type;
+    param->fusion_type     = fusion_type;
+
+    std::vector<int> conv_input_dims = {batch, channel, input_size, input_size};
+    std::vector<std::vector<int>> input_vec;
+    input_vec.push_back(conv_input_dims);
+
+    // get add input dim
+    if (fusion_type != FusionType_None) {
+        auto inputs_desc              = CreateInputBlobsDesc(batch, channel, input_size, 1, data_type);
+        Blob conv_input_blob          = Blob(inputs_desc[0]);
+        std::vector<Blob*> conv_input = {&conv_input_blob};
+
+        BlobDesc conv_output_desc;
+        conv_output_desc.data_type     = data_type;
+        conv_output_desc.device_type   = DEVICE_NAIVE;
+        Blob conv_output_blob          = Blob(conv_output_desc);
+        std::vector<Blob*> conv_output = {&conv_output_blob};
+
+        auto layer_creator_map = GetGlobalLayerCreatorMap();
+        auto conv_layer        = layer_creator_map[LAYER_CONVOLUTION]->CreateLayer();
+
+        conv_layer->InferShapeAhead(conv_input, conv_output, param.get(), nullptr);
+        input_vec.push_back(conv_output[0]->GetBlobDesc().dims);
+        delete conv_layer;
+    }
+
+    // generate proto string
+    Precision precision = PRECISION_AUTO;
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
+    } else if (DATA_TYPE_BFP16 == data_type) {
+        precision = PRECISION_LOW;
+    }
+
+    auto interpreter = GenerateInterpreter("Convolution", input_vec, param);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

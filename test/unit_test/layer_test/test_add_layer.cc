@@ -29,17 +29,16 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, AddLayerTest,
                                             testing::Values(0, 1, 2, 3),
                                             // weight index
                                             testing::Values(-1, 0, 1),
+                                            // dims
+                                            testing::Values(2, 3, 4),
                                             // data_type
-                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT8)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT8, DATA_TYPE_HALF)));
 
 TEST_P(AddLayerTest, BinaryLayerTest) {
     int batch               = std::get<0>(GetParam());
-    int channel             = std::get<1>(GetParam());
-    int input_size          = std::get<2>(GetParam());
     int input_cnt           = std::get<3>(GetParam());
     int param_size_type     = std::get<4>(GetParam());
-    int weight_index        = std::get<5>(GetParam());
-    DataType blob_data_type = std::get<6>(GetParam());
+    DataType blob_data_type = std::get<7>(GetParam());
 
     if (blob_data_type == DATA_TYPE_INT8) {
         // currently only single batch and non-broadcasting add is implemented
@@ -48,7 +47,6 @@ TEST_P(AddLayerTest, BinaryLayerTest) {
         }
     }
 
-    RunBinaryTest();
+    RunBinaryTest("Add");
 }
-
 }  // namespace TNN_NS

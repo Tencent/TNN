@@ -21,9 +21,15 @@
 
 namespace TNN_NS {
 
+class RawBuffer;
+
 Status CopyToDevice(Blob *dst, Blob *src, void *command_queue);
 Status CopyFromDevice(Blob *blob, Blob *src, void *command_queue);
 
+// @brief transfer blob to rawbuffer. The device of blob must be DEVICE_NAIVE
+Status Blob2RawBuffer(Blob *blob, std::shared_ptr<RawBuffer> &buffer);
+// @brief transfer rawbuffer to blob. The device of blob will be DEVICE_NAIVE
+Status RawBuffer2Blob(RawBuffer *buffer, std::shared_ptr<Blob> &blob);
 }  // namespace TNN_NS
 
 #endif  // TNN_INCLUDE_TNN_UTILS_BLOB_TRANSFER_UTILS_H

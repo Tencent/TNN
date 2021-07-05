@@ -33,5 +33,6 @@ Status MetalAsinLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_METAL_UNARY_ACC(Asin, LAYER_ASIN);
+REGISTER_METAL_LAYOUT(LAYER_ASIN, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

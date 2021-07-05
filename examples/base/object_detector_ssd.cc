@@ -16,7 +16,6 @@
 #include <iostream>
 #include <algorithm>
 #include <unordered_set>
-#include <sys/time.h>
 
 namespace TNN_NS {
 
@@ -26,22 +25,7 @@ ObjectDetectorSSD::~ObjectDetectorSSD() {}
 
 std::shared_ptr<Mat> ObjectDetectorSSD::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat,
                                                                    std::string name) {
-    auto target_dims = GetInputShape(name);
-    auto input_height = input_mat->GetHeight();
-    auto input_width = input_mat->GetWidth();
-    if (target_dims.size() >= 4 &&
-        (input_height != target_dims[2] || input_width != target_dims[3])) {
-        auto target_mat = std::make_shared<TNN_NS::Mat>(input_mat->GetDeviceType(),
-                                                        input_mat->GetMatType(), target_dims);
-        auto status = Resize(input_mat, target_mat, TNNInterpLinear);
-        if (status == TNN_OK) {
-            return target_mat;
-        } else {
-            LOGE("%s\n", status.description().c_str());
-            return nullptr;
-        }
-    }
-    return input_mat;
+    return TNNSDKSample::ResizeToInputShape(input_mat, name);
 }
 
 MatConvertParam ObjectDetectorSSD::GetConvertParamForInput(std::string tag) {
@@ -82,7 +66,7 @@ void ObjectDetectorSSD::GenerateDetectResult(std::shared_ptr<TNN_NS::Mat> output
                                              int num_detections, int image_width, int image_height) {
     float* data = reinterpret_cast<float*>(output->GetData());
     auto clip = [](float v){
-        return std::min(v>0.0?v:0.0, 1.0);
+        return (std::min)(v>0.0?v:0.0, 1.0);
     };
     
     for(int i=0; i<num_detections; ++i) {

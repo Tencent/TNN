@@ -16,37 +16,22 @@
 
 #include <string>
 #include <vector>
+#ifdef WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 #include "tnn/core/macro.h"
 #include "tnn/core/profile.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/string_utils.h"
 
 #if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
 #include <sys/system_properties.h>
 #endif
 
 namespace TNN_NS {
-
-std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer) {
-    int element_size = 0;
-    DataType type    = raw_buffer.GetDataType();
-    int bytes        = raw_buffer.GetBytesSize();
-    std::shared_ptr<float> float_data;
-    if (type == DATA_TYPE_FLOAT) {
-        element_size = bytes / sizeof(float);
-        float_data.reset(new float[element_size], [](float *p) { delete[] p; });
-        memcpy(float_data.get(), raw_buffer.force_to<float *>(), bytes);
-    } else if (type == DATA_TYPE_HALF) {
-        element_size = bytes / 2;
-        float_data.reset(new float[element_size], [](float *p) { delete[] p; });
-        ConvertFromHalfToFloat(raw_buffer.force_to<void *>(), float_data.get(), element_size);
-    } else if (type == DATA_TYPE_INT8) {
-        LOGE("Not support INT8 raw buffer\n");
-        return nullptr;
-    }
-
-    return float_data;
-}
 
 // get image width and height
 std::vector<int> GetImageShape(const OpenCLMemory *image) {
@@ -62,18 +47,30 @@ std::vector<int> GetImageShape(const OpenCLMemory *image) {
 }
 
 // get kernel run time info.
+void GetKernelTime(const cl::Event *event, double &kernel_time) {
+    cl_int error = CL_SUCCESS;
+    error        = event->wait();
+    CHECK_CL_SUCCESS(error);
+    unsigned long long start_t  = event->getProfilingInfo<CL_PROFILING_COMMAND_START>(&error);
+    CHECK_CL_SUCCESS(error);
+    unsigned long long end_t    = event->getProfilingInfo<CL_PROFILING_COMMAND_END>(&error);
+    CHECK_CL_SUCCESS(error);
+    kernel_time  = (end_t - start_t) / 1000000.0;
+}
+
+// get kernel run time info.
 void GetProfilingTime(const cl::Event *event, double &kernel_time, double &event_queued, double &event_submit,
                       double &event_start, double &event_end) {
     cl_int error = CL_SUCCESS;
     error        = event->wait();
     CHECK_CL_SUCCESS(error);
-    int queued_t = event->getProfilingInfo<CL_PROFILING_COMMAND_QUEUED>(&error);
+    unsigned long long queued_t = event->getProfilingInfo<CL_PROFILING_COMMAND_QUEUED>(&error);
     CHECK_CL_SUCCESS(error);
-    int submit_t = event->getProfilingInfo<CL_PROFILING_COMMAND_SUBMIT>(&error);
+    unsigned long long submit_t = event->getProfilingInfo<CL_PROFILING_COMMAND_SUBMIT>(&error);
     CHECK_CL_SUCCESS(error);
-    int start_t = event->getProfilingInfo<CL_PROFILING_COMMAND_START>(&error);
+    unsigned long long start_t  = event->getProfilingInfo<CL_PROFILING_COMMAND_START>(&error);
     CHECK_CL_SUCCESS(error);
-    int end_t = event->getProfilingInfo<CL_PROFILING_COMMAND_END>(&error);
+    unsigned long long end_t    = event->getProfilingInfo<CL_PROFILING_COMMAND_END>(&error);
     CHECK_CL_SUCCESS(error);
     kernel_time  = (end_t - start_t) / 1000000.0;
     event_queued = (double)queued_t;
@@ -146,16 +143,20 @@ Status RunKernel(const cl::Kernel &kernel, const std::vector<uint32_t> &gws, con
 
     if (error != CL_SUCCESS) {
         CHECK_CL_SUCCESS(error);
-        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
+        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange failed");
     }
 
-#if TNN_PROFILE
     if (pdata != nullptr) {
         pdata->event = event;
     }
-#endif
     LOGD("end RunKernel !\n");
     return TNN_OK;
+}
+
+bool AdrenoLocalSizeValid(const std::vector<uint32_t> &gws, std::vector<uint32_t>& lws,
+                          const uint32_t subgroup_size) {
+    return 0 == (lws[0] * lws[1]) % subgroup_size && 0 == gws[0] % lws[0] && 0 == gws[1] % lws[1] &&
+           ((lws[0] < lws[1]) == (gws[0] < gws[1]));
 }
 
 // adreno local size calculate
@@ -182,8 +183,7 @@ std::vector<uint32_t> AdrenoLocalSize2D(const std::vector<uint32_t> &gws, const 
             int min_val            = std::max<uint32_t>(min_workgroup_size / lws[1], 1);
             lws[0]                 = std::min<uint32_t>(gws[0], max_val);
             for (; lws[0] >= min_val; lws[0]--) {
-                if (0 == (lws[0] * lws[1]) % subgroup_size && 0 == gws[0] % lws[0] && 0 == gws[1] % lws[1] &&
-                    ((lws[0] < lws[1]) == (gws[0] < gws[1]))) {
+                if (AdrenoLocalSizeValid(gws, lws, subgroup_size)) {
                     return lws;
                 }
             }
@@ -236,7 +236,7 @@ Status AdjustBuildOptionForFp32(std::set<std::string>& build_options)
     char sdk[128] = "0";
     __system_property_get("ro.build.version.sdk", sdk);
     int sdk_version = atoi(sdk);
-    // Android 7.1之前版本 fp16 exp 部分机型上的速度有问题，改用fp32版本的kernel
+    // Before Android 8.0, the performance of exp fp16 is poor, so use fp32 instead
     force_fp32 = (sdk_version <= 25);
 #elif (defined __ANDROID_API__) && (__ANDROID_API__ < 21)
     force_fp32 = true;
@@ -311,6 +311,84 @@ std::vector<uint32_t> LocalWS2DDefault(const std::vector<uint32_t> &gws, const u
     return lws;
 }
 
+std::vector<uint32_t> LocalTune(OpenCLExecuteUnit &unit, OpenCLContext *context, std::string tune_key) {
+    std::map<std::string, std::vector<uint32_t>> &tune_map = context->GetLocalSizeTuneMap();
+    if (tune_map.count(tune_key) > 0) {
+        std::vector<uint32_t> lws = tune_map[tune_key];
+        return lws;
+    } else {
+        cl::CommandQueue *tune_command_queue = context->TuneCommandQueue();
+        std::vector<uint32_t> &gws           = unit.global_work_size;
+        uint32_t workgroupsize_max           = unit.workgroupsize_max;
+        cl::Kernel &kernel                   = unit.ocl_kernel;
+
+        std::vector<uint32_t> opt_lws = unit.local_work_size;
+        std::vector<uint32_t> lws(gws.size(), 1);
+
+        double kernel_min_time;
+        OpenCLProfilingData data;
+        RunKernel(unit.ocl_kernel, unit.global_work_size, unit.local_work_size, tune_command_queue, "tune", &data);
+        GetKernelTime(&data.event, kernel_min_time);
+
+        if (gws.size() == 2) {
+            for (lws[0] = 1; lws[0] < gws[0] * 2; lws[0] *= 2) {
+                for (lws[1] = 1; lws[1] < gws[1] * 2; lws[1] *= 2) {
+                    if (lws[0] * lws[1] <= workgroupsize_max) {
+                        double kernel_time;
+                        RunKernel(unit.ocl_kernel, unit.global_work_size, lws, tune_command_queue, "tune", &data);
+                        GetKernelTime(&data.event, kernel_time);
+                        if (kernel_time < kernel_min_time) {
+                            kernel_min_time = kernel_time;
+                            opt_lws.resize(2);
+                            opt_lws[0] = lws[0];
+                            opt_lws[1] = lws[1];
+                        }
+                    }
+                }
+            }
+        } else if (gws.size() == 3) {
+            for (lws[0] = 1; lws[0] < gws[0] * 2; lws[0] *= 2) {
+                for (lws[1] = 1; lws[1] < gws[1] * 2; lws[1] *= 2) {
+                    for (lws[2] = 1; lws[2] < gws[2] * 2; lws[2] *= 2) {
+                        if (lws[0] * lws[1] * lws[2] <= workgroupsize_max) {
+                            double kernel_time;
+                            RunKernel(unit.ocl_kernel, unit.global_work_size, lws, tune_command_queue, "tune", &data);
+                            GetKernelTime(&data.event, kernel_time);
+                            if (kernel_time < kernel_min_time) {
+                                kernel_min_time = kernel_time;
+                                opt_lws.resize(3);
+                                opt_lws[0] = lws[0];
+                                opt_lws[1] = lws[1];
+                                opt_lws[2] = lws[2];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // double check
+        double kernel_time;
+        RunKernel(unit.ocl_kernel, unit.global_work_size, unit.local_work_size, tune_command_queue, "tune", &data);
+        GetKernelTime(&data.event, kernel_time);
+
+#ifdef WIN32
+        Sleep(10);
+#else
+        usleep(10000);
+#endif
+
+        if (kernel_time < kernel_min_time) {
+            tune_map.insert(make_pair(tune_key, unit.local_work_size));
+            return unit.local_work_size;
+        } else {
+            tune_map.insert(make_pair(tune_key, opt_lws));
+            return opt_lws;
+        }
+    }
+}
+
+
 // copy data from clBuffer to clImage.
 Status CopyBufferToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl::Buffer &buffer,
                          const cl::Image &image, int w, int h, bool need_wait) {
@@ -337,7 +415,7 @@ Status CopyBufferToImage(OpenCLRuntime *runtime, OpenCLContext *context, const c
 
     if (error != CL_SUCCESS) {
         CHECK_CL_SUCCESS(error);
-        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
+        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange failed");
     }
 
     if (need_wait) {
@@ -360,7 +438,7 @@ Status CopyImageToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl
 
     if (error != CL_SUCCESS) {
         CHECK_CL_SUCCESS(error);
-        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange falied");
+        return Status(TNNERR_OPENCL_API_ERROR, "OpenCL NDRange failed");
     }
 
     if (need_wait) {
@@ -377,6 +455,56 @@ Status CopyImageToImage(OpenCLRuntime *runtime, OpenCLContext *context, const cl
     return TNN_OK;
 }
 
+Status CopyBufferToMat(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int buffer_size,
+                       const MatType& mat_type, cl::CommandQueue *command_queue) {
+    int data_type_size = 1;
+    if (mat_type == NCHW_FLOAT) {
+        data_type_size = sizeof(float);
+    } else if (mat_type == NC_INT32) {
+        data_type_size = sizeof(int);
+    } else if (mat_type == N8UC4) {
+        //special for 8UC4, blob channel <= 4.
+        dims[1] = 4;
+    }
+    int size_in_bytes = DimsVectorUtils::Count(dims) * data_type_size;
+    if (size_in_bytes > buffer_size) {
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL buffer is smaller than the need!");
+    }
+    cl_int ret = CL_SUCCESS;
+    ret = command_queue->enqueueReadBuffer(buffer, CL_TRUE, 0, size_in_bytes, mat.GetData());
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL enqueueReadBuffer failed");
+    }
+
+    return TNN_OK;
+}
+
+Status CopyMatToBuffer(Mat &mat, cl::Buffer& buffer, DimsVector& dims, const int buffer_size,
+                       const MatType& mat_type, cl::CommandQueue *command_queue) {
+    int data_type_size = 1;
+    if (mat_type == NCHW_FLOAT) {
+        data_type_size = sizeof(float);
+    } else if (mat_type == NC_INT32) {
+        data_type_size = sizeof(int);
+    } else if (mat_type == N8UC4) {
+        //special for 8UC4, blob channel <= 4.
+        dims[1] = 4;
+    }
+    int size_in_bytes = DimsVectorUtils::Count(dims) * data_type_size;
+    if (size_in_bytes > buffer_size) {
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL buffer is smaller than the need!");
+    }
+    cl_int ret = CL_SUCCESS;
+    ret = command_queue->enqueueWriteBuffer(buffer, CL_TRUE, 0, size_in_bytes, mat.GetData());
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL enqueueWriteBuffer failed");
+    }
+
+    return TNN_OK;
+}
+
 uint32_t gcd(uint32_t number1, uint32_t number2) {
     return number2 == 0 ? number1 : gcd(number2, number1 % number2);
 }
@@ -385,6 +513,9 @@ uint32_t gcd(uint32_t number1, uint32_t number2) {
 Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_name, const std::string &kernel_name,
                          const std::set<std::string> &build_opt) {
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+
+    unit.program_name = program_name;
+    unit.kernel_name = kernel_name;
 
     Status ret = opencl_runtime->BuildKernel(unit.ocl_kernel, program_name, kernel_name, build_opt);
     if (ret != TNN_OK) {
@@ -399,19 +530,39 @@ Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_nam
 
     unit.sub_group_size = static_cast<uint32_t>(opencl_runtime->GetSubGroupSize(unit.ocl_kernel));
 
+    unit.local_mem_size = opencl_runtime->DeviceLocalMemerySize();
+
     return TNN_OK;
 }
 
 // set execute unit 3d default global size, local size and kernel arguments.
 uint32_t SetExecuteUnit3DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims) {
-    unit.global_work_size = {
-        // width
-        static_cast<uint32_t>(dims[3]),
+    uint32_t gws0 = 0, gws1 = 0, gws2;
+    if (dims.size() == 5) {
+        // dim4
+        gws0 = DimsFunctionUtils::GetDim(dims, 4);
         // channel-blocks/4
-        static_cast<uint32_t>(UP_DIV(dims[1], 4)),
+        gws1 = UP_DIV(DimsFunctionUtils::GetDim(dims, 1), 4);
+        // batch * dim2 * dim3
+        gws2 = DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 2) *
+               DimsFunctionUtils::GetDim(dims, 3);
+    } else if (dims.size() == 6) {
+        // dim4 * dim5
+        gws0 = DimsFunctionUtils::GetDim(dims, 4) * DimsFunctionUtils::GetDim(dims, 5);
+        // channel-blocks/4
+        gws1 = UP_DIV(DimsFunctionUtils::GetDim(dims, 1), 4);
+        // batch * dim2 * dim3
+        gws2 = DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 2) *
+               DimsFunctionUtils::GetDim(dims, 3);
+    } else {
+        // width
+        gws0 = DimsFunctionUtils::GetDim(dims, 3);
+        // channel-blocks/4
+        gws1 = UP_DIV(DimsFunctionUtils::GetDim(dims, 1), 4);
         // batch * height
-        static_cast<uint32_t>(dims[0] * dims[2]),
-    };
+        gws2 = DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 2);
+    }
+    unit.global_work_size = {gws0, gws1, gws2};
 
     // change the order temporarily to get the local size
     std::vector<uint32_t> temp_gws = {unit.global_work_size[1], unit.global_work_size[0], unit.global_work_size[2]};
@@ -432,11 +583,41 @@ uint32_t SetExecuteUnit3DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dim
 
 // set execute unit 2d default global size, local size and kernel arguments.
 uint32_t SetExecuteUnit2DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims) {
-    unit.global_work_size = {
+    uint32_t image_width = 0, image_height = 0;
+    if (dims.size() == 5) {
+        // channel-blocks * dim4
+        image_width = UP_DIV(DimsFunctionUtils::GetDim(dims, 1), 4) * DimsFunctionUtils::GetDim(dims, 4);
+        // batch * dim2 * dim3
+        image_height = DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 2) *
+                       DimsFunctionUtils::GetDim(dims, 3);
+    } else if (dims.size() == 6) {
+        // channel-blocks * dim4 * dim5
+        image_width = UP_DIV(DimsFunctionUtils::GetDim(dims, 1), 4) * DimsFunctionUtils::GetDim(dims, 4) *
+                      DimsFunctionUtils::GetDim(dims, 5);
+        // batch * dim2 * dim3
+        image_height = DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 2) *
+                       DimsFunctionUtils::GetDim(dims, 3);
+    } else {
         // channel-blocks * [width]
-        static_cast<uint32_t>(UP_DIV(dims[1], 4) * dims[3]),
+        image_width = UP_DIV(DimsFunctionUtils::GetDim(dims, 1), 4) * DimsFunctionUtils::GetDim(dims, 3);
         // batch * height
-        static_cast<uint32_t>(dims[0] * dims[2]),
+        image_height = DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 2);
+    }
+    unit.global_work_size = {image_width, image_height};
+    unit.local_work_size = LocalWS2DDefault(unit);
+    uint32_t idx         = 0;
+    unit.ocl_kernel.setArg(idx++, unit.global_work_size[0]);
+    unit.ocl_kernel.setArg(idx++, unit.global_work_size[1]);
+    return idx;
+}
+
+// set execute unit 2d global size for cnh4, local size and kernel arguments.
+uint32_t SetExecuteUnit2DSizeInfoCNH4(OpenCLExecuteUnit &unit, DimsVector dims) {
+    unit.global_work_size = {
+        // height-blocks
+        static_cast<uint32_t>(UP_DIV(DimsFunctionUtils::GetDim(dims, 2), 4)),
+        // channel * batch
+        static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 1) * DimsFunctionUtils::GetDim(dims, 0)),
     };
     unit.local_work_size = LocalWS2DDefault(unit);
     uint32_t idx         = 0;
@@ -444,5 +625,32 @@ uint32_t SetExecuteUnit2DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dim
     unit.ocl_kernel.setArg(idx++, unit.global_work_size[1]);
     return idx;
 }
+
+// set execute unit 2d global size for nchw, local size and kernel arguments.
+uint32_t SetExecuteUnit2DSizeInfoNCHW(OpenCLExecuteUnit &unit, DimsVector dims) {
+    int count = DimsVectorUtils::Count(dims, 2);
+    uint32_t gws0 = count == 0 ? 1 : count;
+    unit.global_work_size = {
+        // [dim2 * dim3 ...]
+        gws0,
+        // batch * channel
+        static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 1)),
+    };
+    unit.local_work_size = LocalWS2DDefault(unit);
+    uint32_t idx         = 0;
+    unit.ocl_kernel.setArg(idx++, unit.global_work_size[0]);
+    unit.ocl_kernel.setArg(idx++, unit.global_work_size[1]);
+    return idx;
+}
+
+// set execute unit 1d default global size, local size and kernel arguments.
+uint32_t SetExecuteUnit1DSizeInfoDefault(OpenCLExecuteUnit &unit, DimsVector dims) {
+    unit.global_work_size = {(uint32_t)DimsVectorUtils::Count(dims)};
+    unit.local_work_size = {unit.workgroupsize_max};
+    uint32_t idx         = 0;
+    unit.ocl_kernel.setArg(idx++, unit.global_work_size[0]);
+    return idx;
+}
+
 
 }  // namespace TNN_NS

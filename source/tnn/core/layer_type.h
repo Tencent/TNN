@@ -69,7 +69,7 @@ enum LayerType {
     LAYER_QUANTIZEDRESHAPE                                  = 51,
     LAYER_CONVOLUTION_DEPTHWISE                             = 52,
     LAYER_QUANTIZEDBIASADD                                  = 53,
-    LAYER_BIASADD                                           = 54,
+    LAYER_BIAS_ADD                                          = 54,
     LAYER_CONTINUATION_INDICATOR                            = 55,
     LAYER_QUANTIZEDRELU                                     = 56,
     LAYER_STRIDED_SLICE                                     = 57,
@@ -183,19 +183,48 @@ enum LayerType {
     LAYER_SIGNED_MUL                                        = 196,
     LAYER_DETECTION_POST_PROCESS                            = 197,
     LAYER_SQUARED_DIFFERENCE                                = 198,
+    LAYER_ARG_MAX_OR_MIN                                    = 199,
 
-    LAYER_CONVOLUTION_3D = 201,
-    LAYER_POOLING_3D     = 202,
+    LAYER_CONVOLUTION_3D                                    = 201,
+    LAYER_POOLING_3D                                        = 202,
+    LAYER_CONVOLUTION_1D                                    = 203,
 
-    LAYER_HDRGUIDE = 302,
+    LAYER_HDRGUIDE                                          = 302,
+    LAYER_PIXEL_SHUFFLE                                     = 303,
+    LAYER_EXPAND                                            = 304,
+    LAYER_SCATTER_ND                                        = 305,
+    LAYER_STRIDED_SLICE_V2                                  = 306,
+    LAYER_ERF                                               = 307,
+    LAYER_CONSTANT_OF_SHAPE                                 = 308,
+    LAYER_NONZERO                                           = 309,
+    LAYER_LSTMONNX                                          = 310,
+    LAYER_RANGE                                             = 311,
+    LAYER_SIZE                                              = 312,
+    LAYER_BITSHIFT                                          = 313,
+    LAYER_HISTOGRAM                                         = 314,
+    LAYER_GATHERND                                          = 315,
+    LAYER_PADV2                                             = 316,
+    LAYER_ROIALIGN                                          = 317,
+    LAYER_GROUP_NORM                                        = 318,
+    LAYER_ONEHOT                                            = 319,
+    LAYER_SOFTSIGN                                          = 320,
+    LAYER_EINSUM                                            = 321,
+    LAYER_INVERSE                                           = 322,
+    LAYER_GRIDSAMPLE                                        = 323,
+    LAYER_EQUAL                                             = 324,
+    LAYER_WHERE                                             = 325,
+    LAYER_LAYER_NORM                                        = 326,
+    LAYER_GELU                                              = 327,
+    LAYER_TOPK                                              = 328,
+    LAYER_NOT                                               = 329,
 
-    LAYER_BLOB_SCALE = 600,
+    LAYER_BLOB_SCALE                                        = 600,
 
-    LAYER_INT8_RANGE = 700,
-    LAYER_TRT_ENGINE = 701,
+    LAYER_INT8_RANGE                                        = 700,
+    LAYER_TRT_ENGINE                                        = 701,
 
-
-
+    LAYER_CBAM_FUSED_REDUCE                                 = 800,
+    LAYER_CBAM_FUSED_POOLING                                = 801
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str);

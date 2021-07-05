@@ -13,6 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include <gtest/gtest.h>
+#include <chrono>
+
 #include "test/flags.h"
 #include "test/test_utils.h"
 #include "test/unit_test/unit_test_common.h"
@@ -27,6 +29,7 @@ void ShowUsage() {
     printf("    -ic \"<number>\"        %s \n", iterations_count_message);
     printf("    -ub \"<bool>\"          %s \n", unit_test_benchmark_message);
     printf("    -th \"<bumber>\"        %s \n", cpu_thread_num_message);
+    printf("    -et \"<enable tune>\t%s \n", enable_tune_message);
 }
 
 bool ParseAndCheckCommandLine(int argc, char *argv[]) {
@@ -42,6 +45,8 @@ bool ParseAndCheckCommandLine(int argc, char *argv[]) {
 }  // namespace TNN_NS
 
 GTEST_API_ int main(int argc, char **argv) {
+    std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
+
     int result = 0;
     try {
         ::testing::InitGoogleTest(&argc, argv);
@@ -50,6 +55,12 @@ GTEST_API_ int main(int argc, char **argv) {
             result = RUN_ALL_TESTS();
         }
     } catch (std::exception e) {
+        LOGE("unit test catches an exception: %s \n", e.what());
     }
+
+    std::chrono::time_point<std::chrono::system_clock> stop = std::chrono::system_clock::now();
+    float cost_sec = std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() / 1000000.0f;
+    printf("=== Unit Test Cost: %f s ===\n", cost_sec);
+
     return result;
 }

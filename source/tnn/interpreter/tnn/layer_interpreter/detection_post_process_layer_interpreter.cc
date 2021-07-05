@@ -31,7 +31,7 @@ Status DetectionPostProcessLayerInterpreter::InterpretProto(str_arr layer_cfg_ar
     GET_FLOAT_1(p->nms_score_threshold);
     GET_FLOAT_1(p->nms_iou_threshold);
     GET_INT_1(p->num_classes);
-    float y_scale, x_scale, h_scale, w_scale;
+    float y_scale = 1, x_scale = 1, h_scale = 1, w_scale = 1;
     GET_FLOAT_1(y_scale);
     GET_FLOAT_1(x_scale);
     GET_FLOAT_1(h_scale);

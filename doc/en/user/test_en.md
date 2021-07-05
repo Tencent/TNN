@@ -15,7 +15,7 @@ Enable the test options：
 TNNTest 
 required parameters： 
     -mp path to model and proto(The proto and model should have the same prefix in the same folder)
-    -dt device type (ARM, OPENCL, HUAWEI_NPU)
+    -dt device type (ARM, OPENCL, HUAWEI_NPU, X86, CUDA)
 optional parameters：
     -nt network type（default naive， npu needs to be specified as -nt HUAWEI_NPU）
     -op path of the output  

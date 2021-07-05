@@ -32,5 +32,6 @@ Status MetalExpLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
 }
 
 REGISTER_METAL_UNARY_ACC(Exp, LAYER_EXP);
+REGISTER_METAL_LAYOUT(LAYER_EXP, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

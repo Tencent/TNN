@@ -31,7 +31,7 @@ JNIEXPORT jint JNICALL TNN_BLAZEFACE_DETECTOR(init)(JNIEnv *env, jobject thiz, j
                                                     jint computUnitType);
 JNIEXPORT JNICALL jboolean TNN_BLAZEFACE_DETECTOR(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath);
 JNIEXPORT JNICALL jint TNN_BLAZEFACE_DETECTOR(deinit)(JNIEnv *env, jobject thiz);
-JNIEXPORT JNICALL jobjectArray TNN_BLAZEFACE_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint rotate);
+JNIEXPORT JNICALL jobjectArray TNN_BLAZEFACE_DETECTOR(detectFromStream)(JNIEnv *env, jobject thiz, jbyteArray yuv420sp, jint width, jint height, jint view_width, jint view_height, jint rotate);
 JNIEXPORT JNICALL jobjectArray TNN_BLAZEFACE_DETECTOR(detectFromImage)(JNIEnv *env, jobject thiz, jobject imageSource, jint width, jint height);
 
 #ifdef __cplusplus

@@ -21,34 +21,46 @@ from tf_converter import tf2tnn
 from tflite_converter import tflite2tnn
 from utils import parse_path
 
-logging.basicConfig(level=logging.INFO, format="")
-
 
 def main():
     parser = args_parser.parse_args()
     args = parser.parse_args()
 
+    debug_mode: bool = args.debug
+    if debug_mode is True:
+        logging.basicConfig(level=logging.DEBUG, format='')
+    else:
+        logging.basicConfig(level=logging.INFO, format='')
     logging.info("\n{}  convert model, please wait a moment {}\n".format("-" * 10, "-" * 10))
+
     if args.sub_command == 'onnx2tnn':
         onnx_path = parse_path.parse_path(args.onnx_path)
         output_dir = parse_path.parse_path(args.output_dir)
-        input_names = args.input_names
         version = args.version
         optimize = args.optimize
         half = args.half
         align = args.align
+        if align is None:
+            align = 'output'
+        align_batch = args.align_batch
         input_file = args.input_file_path
         ref_file = args.refer_file_path
         onnx_path = parse_path.parse_path(onnx_path)
         output_dir = parse_path.parse_path(output_dir)
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
-
+        input_names = None
+        if args.input_names is not None:
+            input_names = ""
+            for item in args.input_names:
+                input_names += (item + " ")
         try:
-            onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, input_file, ref_file, input_names)
+            onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, align_batch, input_file, ref_file, input_names,
+                             debug_mode=debug_mode)
         except Exception as err:
             logging.error("Conversion to  tnn failed :(\n")
-    
+            logging.error(err)
+
     elif args.sub_command == 'caffe2tnn':
         proto_path = parse_path.parse_path(args.proto_path)
         model_path = parse_path.parse_path(args.model_path)
@@ -57,14 +69,18 @@ def main():
         optimize = args.optimize
         half = args.half
         align = args.align
+        if align is None:
+            align = 'output'
         input_file = args.input_file_path
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
         try:
-            caffe2tnn.convert(proto_path, model_path, output_dir, version, optimize, half, align, input_file, ref_file)
+            caffe2tnn.convert(proto_path, model_path, output_dir, version, optimize, half, align, input_file, ref_file,
+                              debug_mode=debug_mode)
         except Exception as err:
             logging.error("Conversion to  tnn failed :(\n")
+            logging.error(err)
 
     elif args.sub_command == 'tf2tnn':
         tf_path = parse_path.parse_path(args.tf_path)
@@ -75,31 +91,33 @@ def main():
         optimize = args.optimize
         half = args.half
         align = args.align
+        if align is None:
+            align = 'output'
         not_fold_const = args.not_fold_const
         input_file = args.input_file_path
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
-
         try:
             tf2tnn.convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align, not_fold_const,
-                        input_file, ref_file)
+                        input_file, ref_file, debug_mode=debug_mode)
         except Exception as err:
             logging.error("\nConversion to  tnn failed :(\n")
+            logging.error(err)
     elif args.sub_command == 'tflite2tnn':
         tf_path = parse_path.parse_path(args.tf_path)
         output_dir = parse_path.parse_path(args.output_dir)
         version = args.version
-        align = args.align
+        align = args.align.lower()
         input_file = args.input_file_path
         ref_file = args.refer_file_path
         input_file = parse_path.parse_path(input_file)
         ref_file = parse_path.parse_path(ref_file)
         try:
-            tflite2tnn.convert(tf_path,  output_dir, version, align,
-                       input_file, ref_file)
+            tflite2tnn.convert(tf_path,  output_dir, version, align, input_file, ref_file, debug_mode=debug_mode)
         except Exception as err:
            logging.error("\n Conversion to  tnn failed :(\n")
+           logging.error(err)
     elif args.sub_command is None:
         parser.print_help()
     else:

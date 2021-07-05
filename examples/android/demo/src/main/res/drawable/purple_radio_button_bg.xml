@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 按钮可用，并且处于按下状态时显示这个状态 -->
+    <item android:drawable="@drawable/purple_radio_button_selected_style" android:state_enabled="true" android:state_selected="true" />
+
+    <!-- 按钮可用，并且处于正常状态时显示这个状态 -->
+    <item android:drawable="@drawable/purple_radio_button_unselected_style" android:state_enabled="true" android:state_selected="false" />
+</selector>

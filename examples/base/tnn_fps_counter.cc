@@ -1,7 +1,7 @@
 //  Copyright © 2020 tencent. All rights reserved.
 
 #include "tnn_fps_counter.h"
-#include <sys/time.h>
+#include "sample_timer.h"
 
 const std::string kFPSCounterDefaultTag = "fps.default.tag";
 
@@ -17,19 +17,15 @@ std::string TNNFPSCounter::RetifiedTag(std::string tag) {
 void TNNFPSCounter::Begin(std::string tag) {
     tag = RetifiedTag(tag);
     
-    timeval tv;
-    gettimeofday(&tv, NULL);
-    double time = tv.tv_sec* 1000.0 + tv.tv_usec / 1000.0;
-    map_start_time_[tag] = time;
+    map_timer["tag"] = std::make_shared<TNN_NS::SampleTimer>();
+    map_timer["tag"]->Start(); 
 }
 
 void TNNFPSCounter::End(std::string tag) {
     tag = RetifiedTag(tag);
     
-    timeval tv;
-    gettimeofday(&tv, NULL);
-    double time = tv.tv_sec* 1000.0 + tv.tv_usec / 1000.0;
-    time -= GetStartTime(tag);
+    map_timer["tag"]->Stop();
+    double time = map_timer["tag"]->GetTime();
     
     if (time > 0.1) {
         double fps = GetFPS(tag);

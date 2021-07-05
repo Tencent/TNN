@@ -23,10 +23,14 @@
 #include "tnn/core/tnn.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/mat_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 #define TNN_SDK_ENABLE_BENCHMARK 1
-
 #define TNN_SDK_USE_NCNN_MODEL 0
+
+#ifndef HAS_OPENCV
+#define HAS_OPENCV 0
+#endif
 
 namespace TNN_NS {
 
@@ -46,6 +50,10 @@ struct ObjectInfo {
     std::vector<std::pair<float, float>> key_points = {};
     //key_points_3d <x y z>
     std::vector<triple<float,float,float>> key_points_3d = {};
+    //lines connecting key_points
+    std::vector<std::pair<int, int>> lines;
+    // label
+    const char *label = nullptr;
     
     float score = 0;
     int class_id = -1;
@@ -60,6 +68,19 @@ struct ObjectInfo {
     ObjectInfo FlipX();
     ObjectInfo AddOffset(float offset_x, float offset_y);
     float IntersectionRatio(ObjectInfo *obj);
+};
+
+struct ImageInfo {
+    ImageInfo();
+    ImageInfo(std::shared_ptr<Mat>mat);
+    ImageInfo(const ImageInfo& info);
+    int image_width = 0;
+    int image_height = 0;
+    int image_channel = 0;
+    // 4-channel image data
+    std::shared_ptr<char> data;
+
+    ImageInfo FlipX();
 };
 
 struct BenchOption {
@@ -94,12 +115,21 @@ typedef enum {
     TNNComputeUnitsGPU = 1,
     // run on huawei_npu, if failed run on cpu
     TNNComputeUnitsHuaweiNPU = 2,
+    // run on openvino
+    TNNComputeUnitsOpenvino = 3,
+    // run on TensorRT
+    TNNComputeUnitsTensorRT = 4,
 } TNNComputeUnits;
 
-typedef  struct{
-    unsigned char r,g,b,a;
-}RGBA;
+struct RGBA{
+    RGBA(int r = 0, int g = 0, int b = 0, int a = 0) : r(r), g(g), b(b), a(a) {}
+    unsigned char r, g, b, a;
+};
 
+class TNNSDKUtils {
+public:
+    static DeviceType GetFallBackDeviceType(DeviceType dev);
+};
 
 extern const std::string kTNNSDKDefaultName;
 class TNNSDKInput {
@@ -130,18 +160,23 @@ public:
     std::string model_content = "";
     std::string library_path = "";
     TNNComputeUnits compute_units = TNNComputeUnitsCPU;
+    Precision precision = PRECISION_AUTO;
     InputShapesMap input_shapes = {};
 };
 
 typedef enum {
     TNNInterpNearest = 0,
     TNNInterpLinear  = 1,
+    TNNInterpCubic   = 2,
 } TNNInterpType;
 
 typedef enum {
     TNNBorderConstant = 0,
     TNNBorderReflect  = 1,
     TNNBorderEdge     = 2,
+    TNNBorderReplicate = 3,
+    TNNBorderReflect101 = 4,
+    TNNBorderWrap = 5,
     
 } TNNBorderType;
 
@@ -170,10 +205,16 @@ public:
     void setCheckNpuSwitch(bool option);
     
     virtual Status GetCommandQueue(void **command_queue);
+    virtual Status DumpBlob(const BlobMap& blob_map, std::string output_dir);
     Status Resize(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type);
     Status Crop(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, int start_x, int start_y);
     Status WarpAffine(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst, TNNInterpType interp_type, TNNBorderType border_type, float trans_mat[2][3]);
     Status Copy(std::shared_ptr<TNN_NS::Mat> src, std::shared_ptr<TNN_NS::Mat> dst);
+    Status CopyMakeBorder(std::shared_ptr<TNN_NS::Mat> src,
+                          std::shared_ptr<TNN_NS::Mat> dst,
+                          int top, int bottom, int left, int right,
+                          TNNBorderType border_type, uint8_t border_value = 0);
+    virtual bool hideTextBox();
 
 protected:
     BenchOption bench_option_;
@@ -181,6 +222,7 @@ protected:
 
     std::vector<std::string> GetInputNames();
     std::vector<std::string> GetOutputNames();
+    std::shared_ptr<Mat> ResizeToInputShape(std::shared_ptr<Mat> input_mat, std::string name);
     
 protected:
     std::shared_ptr<TNN> net_             = nullptr;
@@ -206,6 +248,14 @@ protected:
     std::vector<std::shared_ptr<TNNSDKSample>> sdks_ = {};
     
 };
+
+typedef enum {
+    TNNHardNMS      = 0,
+    TNNBlendingNMS  = 1,
+    TNNWeightedNMS  = 2,
+} TNNNMSType;
+
+void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float iou_threshold, TNNNMSType type);
 
 void Rectangle(void *data_rgba, int image_height, int image_width,
                int x0, int y0, int x1, int y1, float scale_x = 1.0, float scale_y = 1.0);
