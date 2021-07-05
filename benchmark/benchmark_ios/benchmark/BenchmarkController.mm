@@ -176,16 +176,16 @@ struct BenchResult {
         allResult = [allResult stringByAppendingFormat:@"model: %s\n", model.name.c_str()];
         
         //benchmark on arm cpu
-       auto result_arm = [self benchmarkWithProtoContent:model.tnn_proto_content
-                                               model:model.tnn_model_content
-                                              coreml:model.coreml
-                                             library:pathLibrary.UTF8String
-                                             netType:NETWORK_TYPE_DEFAULT
-                                             deviceType:DEVICE_ARM
-                                              option:option];
-       NSLog(@"arm: \ntime: %s", result_arm.description().c_str());
-       allResult = [allResult stringByAppendingFormat:@"arm: \ntime: %s",
-                    result_arm.description().c_str()];
+        auto result_arm = [self benchmarkWithProtoContent:model.tnn_proto_content
+                                                model:model.tnn_model_content
+                                               coreml:model.coreml
+                                              library:pathLibrary.UTF8String
+                                              netType:NETWORK_TYPE_DEFAULT
+                                              deviceType:DEVICE_ARM
+                                               option:option];
+        NSLog(@"arm: \ntime: %s", result_arm.description().c_str());
+        allResult = [allResult stringByAppendingFormat:@"arm: \ntime: %s",
+                     result_arm.description().c_str()];
         
         
         //benchmark on gpu
