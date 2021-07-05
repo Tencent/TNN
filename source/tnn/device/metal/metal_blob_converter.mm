@@ -139,10 +139,10 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
             metal_param.bias_z = 0.0f;
             metal_param.bias_w = 0.0f;
         }
+        LOGD("metal_param scale: %.6f %.6f %.6f\n", metal_param.scale_x, metal_param.scale_y, metal_param.scale_z);
+        LOGD("metal_param size: %d %d %d\n", metal_param.size, metal_param.slice, metal_param.batch);
     }
 
-    LOGD("metal_param scale: %.6f %.6f %.6f\n", metal_param.scale_x, metal_param.scale_y, metal_param.scale_z);
-    LOGD("metal_param size: %d %d %d\n", metal_param.size, metal_param.slice, metal_param.batch);
 
     buffer_param_ = [device_ newBufferWithBytes:&metal_param
                                          length:sizeof(MetalImageConverterParams)

@@ -154,6 +154,13 @@ Status ConstFolder::GetOptimizedNet(std::shared_ptr<NetStructure> &const_fold_st
     {
         
         for (auto iter : net_structure->layers) {
+            if (iter->type == LAYER_PADV2 || iter->type == LAYER_REPEAT) {
+                iter->inputs.resize(1);
+
+            }
+            if (iter->type == LAYER_GRIDSAMPLE) {
+                iter->inputs.resize(2);
+            }
             if (target_flag == DATA_FLAG_CHANGE_IF_SHAPE_DIFFER) {
                 //layers with output flag DATA_FLAG_CHANGE_NEVER or DATA_FLAG_CHANGE_IF_SHAPE_DIFFER will be removed
                 if (constant_layers.find(iter->name) == constant_layers.end()) {
@@ -168,7 +175,7 @@ Status ConstFolder::GetOptimizedNet(std::shared_ptr<NetStructure> &const_fold_st
         }
         const_fold_struct->layers = optmized_layers;
     }
-    
+
     const_fold_resource = std::make_shared<NetResource>();
     *const_fold_resource = *net_resource;
     {

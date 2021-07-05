@@ -73,6 +73,9 @@ Status MetalMatMulLayerAcc::AllocateBufferWeight(const std::vector<Blob *> &inpu
                                              const std::vector<Blob *> &outputs) {
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     auto layer_res = dynamic_cast<MatMulLayerResource *>(resource_);
+    if (layer_res == nullptr) {
+        return TNN_OK;
+    }
     auto& weight   = layer_res->weight;
 
     const auto data_type = weight.GetDataType();
