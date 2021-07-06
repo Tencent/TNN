@@ -21,24 +21,24 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Pooling, LAYER_POOLING);
 
 bool PoolingTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return (inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    return (inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR);
 }
 
 Status PoolingTRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* PoolingTRTPluginLayerBuilder::getPluginType() const {
+const char* PoolingTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "Pooling";
 }
 
 nvinfer1::DataType PoolingTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     auto paramlist = dynamic_cast<PoolingLayerParam*>(param_);
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
@@ -113,7 +113,7 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
 }
 
 DimsExprs PoolingTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     auto paramlist = dynamic_cast<PoolingLayerParam*>(param_);
     if (paramlist->is_adaptive_pool) {
         DimsExprs output(inputs[0]);
@@ -130,7 +130,7 @@ DimsExprs PoolingTRTPluginLayerBuilder::getOutputDimensions(int index, const nvi
     return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputDims, exprBuilder);
 }
 
-const char* PoolingPluginCreator::getPluginName() const {
+const char* PoolingPluginCreator::getPluginName() const noexcept {
     return "Pooling";
 }
 

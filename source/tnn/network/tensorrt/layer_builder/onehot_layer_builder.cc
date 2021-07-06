@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(OneHot, LAYER_ONEHOT);
 
 bool OneHotTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return (inOut[pos].type == nvinfer1::DataType::kINT32 || inOut[pos].type == nvinfer1::DataType::kFLOAT);
 }
 
@@ -27,21 +27,21 @@ Status OneHotTRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* OneHotTRTPluginLayerBuilder::getPluginType() const {
+const char* OneHotTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "OneHot";
 }
 
 nvinfer1::DataType OneHotTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return nvinfer1::DataType::kFLOAT;
 }
 
-ILayer* OneHotTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* OneHotTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs OneHotTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     auto param = dynamic_cast<OneHotLayerParam*>(param_);
     DimsExprs output(inputs[0]);
     output.nbDims = output.nbDims + 1;
@@ -57,7 +57,7 @@ DimsExprs OneHotTRTPluginLayerBuilder::getOutputDimensions(int index, const nvin
     return output;
 }
 
-const char* OneHotPluginCreator::getPluginName() const {
+const char* OneHotPluginCreator::getPluginName() const noexcept {
     return "OneHot";
 }
 

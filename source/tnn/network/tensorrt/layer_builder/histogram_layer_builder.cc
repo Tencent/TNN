@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Histogram, LAYER_HISTOGRAM);
 
 bool HistogramTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return (inOut[pos].type == nvinfer1::DataType::kINT32);
 }
 
@@ -27,21 +27,21 @@ Status HistogramTRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* HistogramTRTPluginLayerBuilder::getPluginType() const {
+const char* HistogramTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "Histogram";
 }
 
 nvinfer1::DataType HistogramTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* HistogramTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* HistogramTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs HistogramTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     auto layer_param = dynamic_cast<HistogramLayerParam*>(param_);
     DimsExprs output;
     output.nbDims = 1;
@@ -49,7 +49,7 @@ DimsExprs HistogramTRTPluginLayerBuilder::getOutputDimensions(int index, const n
     return output;
 }
 
-const char* HistogramPluginCreator::getPluginName() const {
+const char* HistogramPluginCreator::getPluginName() const noexcept {
     return "Histogram";
 }
 
