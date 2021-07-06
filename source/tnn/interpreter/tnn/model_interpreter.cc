@@ -178,7 +178,11 @@ Status DecodeEncryptionContent(std::string &proto_content,std::string &model_con
     } else if (model_encryption_status == MODEL_ENCRYPTION_UNKNOWN) {
         model_content = DecodeDataToString(model_content.c_str(), model_content.size(), key.c_str(), true);
     }
-    return proto_content.size() && model_content.size() ? TNN_OK : TNNERR_INVALID_MODEL;
+    
+    if (model_content.empty()) {
+        LOGE("Model data is empty! Will use RANDOM model data!\n");
+    }
+    return proto_content.size() ? TNN_OK : TNNERR_INVALID_MODEL;
 }
 
 // Interpret the proto and model.
