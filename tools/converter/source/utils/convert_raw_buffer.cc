@@ -12,25 +12,32 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tools/converter/source/utils/convert_raw_buffer.h"
+#include "convert_raw_buffer.h"
 
-TNN_NS::DataType ConvertRawBuffer::dst_data_type_ = TNN_NS::DATA_TYPE_FLOAT;
+namespace TNN_CONVERTER {
 
-TNN_NS::RawBuffer ConvertRawBuffer::convert(TNN_NS::RawBuffer& value) {
-    if (value.GetDataType() == TNN_NS::DATA_TYPE_FLOAT) {
-        if (dst_data_type_ == TNN_NS::DATA_TYPE_HALF) {
-            return ConvertFloatToHalf(value);
-        }
+std::shared_ptr<ConvertRawBuffer> ConvertRawBuffer::convert_raw_buffer_ = nullptr;
+
+std::shared_ptr<ConvertRawBuffer> ConvertRawBuffer::GetInstance() {
+    if (convert_raw_buffer_ == nullptr) {
+        convert_raw_buffer_ = std::shared_ptr<ConvertRawBuffer>(new ConvertRawBuffer(TNN_NS::DATA_TYPE_FLOAT));
     }
-
-    return value;
+    return convert_raw_buffer_;
 }
 
-TNN_NS::RawBuffer ConvertRawBuffer::ConvertFloatToHalf(TNN_NS::RawBuffer& value) {
-    const int data_count          = value.GetDataCount();
-    TNN_NS::RawBuffer half_buffer = TNN_NS::RawBuffer(data_count * sizeof(fp16_t));
-    TNN_NS::ConvertFromFloatToHalf(value.force_to<float*>(), half_buffer.force_to<void*>(), data_count);
-    half_buffer.SetDataType(TNN_NS::DATA_TYPE_HALF);
-
-    return half_buffer;
+TNN_NS::RawBuffer ConvertRawBuffer::Convert(TNN_NS::RawBuffer &value) {
+    if (value.GetDataType() == TNN_NS::DATA_TYPE_FLOAT &&
+        target_data_type_ == TNN_NS::DATA_TYPE_HALF) {
+        const int data_count          = value.GetDataCount();
+        TNN_NS::RawBuffer half_buffer = TNN_NS::RawBuffer(data_count * sizeof(fp16_t));
+        TNN_NS::ConvertFromFloatToHalf(value.force_to<float*>(), half_buffer.force_to<void*>(), data_count);
+        half_buffer.SetDataType(TNN_NS::DATA_TYPE_HALF);
+        return half_buffer;
+    } else if (value.GetDataType() ==  target_data_type_ ) {
+        return value;
+    } else {
+        LOGE("ConvertRawBuffer does not support convert from %d to %d", value.GetDataType(), target_data_type_);
+        return value;
+    }
 }
+}  // namespace TNN_CONVERTER

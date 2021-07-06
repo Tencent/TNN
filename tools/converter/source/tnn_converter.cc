@@ -32,7 +32,8 @@ int Run(int argc, char* argv[]) {
     ParseCommandLine(argc, argv);
 
     if(FLAGS_half) {
-        ConvertRawBuffer::dst_data_type_ = TNN_NS::DATA_TYPE_HALF;
+        auto convert_raw_buffer = ConvertRawBuffer::GetInstance();
+        convert_raw_buffer->SetTargetDataType(TNN_NS::DATA_TYPE_HALF);
     }
 
     auto interpreter =

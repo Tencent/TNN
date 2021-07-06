@@ -16,15 +16,29 @@
 #define TNNCONVERTER_SRC_UTILS_CONVERT_RAW_BUFFER_H
 #include "tnn/core/common.h"
 #include "tnn/interpreter/raw_buffer.h"
+#include "tnn/utils/dims_vector_utils.h"
+namespace TNN_CONVERTER {
 
 class ConvertRawBuffer {
 public:
-    TNN_NS::RawBuffer convert(TNN_NS::RawBuffer& value);
+    ConvertRawBuffer(ConvertRawBuffer &other) = delete;
+    void operator=(const ConvertRawBuffer &) = delete;
 
-    static TNN_NS::DataType dst_data_type_;
+    static std::shared_ptr<ConvertRawBuffer> GetInstance();
+
+    TNN_NS::RawBuffer Convert(TNN_NS::RawBuffer &value);
+    void SetTargetDataType(TNN_NS::DataType data_type) {
+        target_data_type_ = data_type;
+    };
+    TNN_NS::DataType GetTargetDataType() {
+        return target_data_type_;
+    }
 
 private:
-    TNN_NS::RawBuffer ConvertFloatToHalf(TNN_NS::RawBuffer& value);
-};
+    ConvertRawBuffer(TNN_NS::DataType data_type) : target_data_type_(data_type){};
 
+    TNN_NS::DataType target_data_type_ = TNN_NS::DATA_TYPE_FLOAT;
+    static std::shared_ptr<ConvertRawBuffer> convert_raw_buffer_;
+};
+}  // namespace TNN_CONVERTER
 #endif  // TNNCONVERTER_SRC_UTILS_CONVERT_RAW_BUFFER_H
