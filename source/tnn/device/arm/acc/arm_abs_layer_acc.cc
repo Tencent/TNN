@@ -18,7 +18,7 @@ namespace TNN_NS {
 
 typedef struct arm_abs_operator : arm_unary_operator {
     virtual Float4 operator()(const Float4& v) {
-        return Float4::abs(v)
+        return Float4::abs(v);
     }
 } ARM_ABS_OP;
 
