@@ -17,6 +17,25 @@
 
 DECLARE_OP_CONVERTER(Slice);
 
+std::vector<int64_t> get_tensor_data(onnx::TensorProto &tensor) {
+    const auto data_type = tensor.data_type();
+    const auto *data     = get_tensor_proto_data(tensor);
+    const int size       = get_tensor_proto_data_size(tensor);
+    std::vector<int64_t> data_vec(size, 0);
+    for (int i = 0; i < size; i++) {
+        if (data_type == onnx::TensorProto_DataType_INT64) {
+            data_vec[i] = static_cast<int64_t>(reinterpret_cast<const int64_t *>(data)[i]);
+        } else if (data_type == onnx::TensorProto_DataType_INT32) {
+            data_vec[i] = static_cast<int64_t>(reinterpret_cast<const int32_t *>(data)[i]);
+        } else {
+            DLog("Onnx Converter: do not support tensor proto data type\n");
+            assert(0);
+        }
+    }
+
+    return data_vec;
+}
+
 string OnnxOpConverterSlice::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
     return "StridedSliceV2";
 }
@@ -32,6 +51,28 @@ string OnnxOpConverterSlice::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_inf
     if (net_info.opset >= 10) {
         steps = get_node_attr_ai(node, "steps", net_info, 4);
     }
+
+    const int input_size = node.input_size();
+    if (input_size > 1) {
+        onnx::TensorProto tensor = net_info.weights_map[node.input(1)];
+        starts                   = get_tensor_data(tensor);
+    }
+
+    if (input_size > 2) {
+        onnx::TensorProto tensor = net_info.weights_map[node.input(2)];
+        ends                     = get_tensor_data(tensor);
+    }
+
+    if (input_size > 3) {
+        onnx::TensorProto tensor = net_info.weights_map[node.input(3)];
+        axes                     = get_tensor_data(tensor);
+    }
+
+    if (input_size > 4) {
+        onnx::TensorProto tensor = net_info.weights_map[node.input(4)];
+        steps                    = get_tensor_data(tensor);
+    }
+
     layer_param << starts.size() << " ";
     for (const auto &start : starts) {
         layer_param << start << " ";
