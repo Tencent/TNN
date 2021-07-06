@@ -237,7 +237,7 @@ Status OpenCLInnerProductLayerAcc::InitReshapeLayer(const std::vector<Blob *> &i
     reshape_output_blob_->SetHandle(blob_handle);
 
     // Init LayerAcc
-    reshape_param_.name         = "InnerProduct_Reshape";
+    reshape_param_.name         = layer_name_ + "_Reshape";
     reshape_param_.reshape_type = 0;
     reshape_param_.axis         = 0;
     reshape_param_.num_axes     = 4;
