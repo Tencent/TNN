@@ -24,7 +24,7 @@ class PadV2LayerTest : public LayerTest,
 };
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PadV2LayerTest,
-                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
+                         ::testing::Combine(testing::Values(1,2), testing::Values(1,2,3,4,10,32), testing::Values(9, 10, 16, 19),
                                             // pad_w
                                             testing::Values(0, 1, 2),
                                             // pad_h
@@ -64,7 +64,7 @@ TEST_P(PadV2LayerTest, PadV2Layer) {
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     // only cuda, arm, opencl implements padv2 now
-    if (!(DEVICE_CUDA == dev || DEVICE_ARM == dev || DEVICE_OPENCL == dev)) {
+    if (!(DEVICE_CUDA == dev || DEVICE_ARM == dev || DEVICE_OPENCL == dev || DEVICE_METAL == dev)) {
         GTEST_SKIP();
     }
     // arm only support dims size 4
@@ -74,6 +74,11 @@ TEST_P(PadV2LayerTest, PadV2Layer) {
     // opnecl only support dims size 4
     if (DEVICE_OPENCL == dev && dim_count != 4) {
         GTEST_SKIP();
+    }
+
+    // metal only support dims size 4
+    if (DEVICE_METAL == dev && dim_count != 4) {
+    GTEST_SKIP();
     }
 
     // param

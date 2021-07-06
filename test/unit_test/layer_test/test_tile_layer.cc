@@ -59,7 +59,7 @@ TEST_P(TileLayerTest, TileLayer) {
     if (CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
-    if (!(DEVICE_NAIVE == dev || DEVICE_ARM == dev || DEVICE_CUDA == dev || DEVICE_OPENCL == dev)) {
+    if (!(DEVICE_NAIVE == dev || DEVICE_ARM == dev || DEVICE_CUDA == dev || DEVICE_OPENCL == dev || DEVICE_METAL == dev)) {
         GTEST_SKIP();
     }
     Precision precision = SetPrecision(dev, data_type);
