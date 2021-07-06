@@ -45,7 +45,7 @@ TEST_P(InverseLayerTest, InverseLayer) {
     if (CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
-    if (!(DEVICE_NAIVE == dev || DEVICE_OPENCL == dev || DEVICE_METAL == dev )) {
+    if (!(DEVICE_NAIVE == dev || DEVICE_OPENCL == dev || DEVICE_METAL == dev)) {
         GTEST_SKIP();
     }
 
