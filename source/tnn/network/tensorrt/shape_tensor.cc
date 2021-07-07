@@ -122,7 +122,7 @@ nvinfer1::ITensor& ShapeTensor::tensor(INetworkDefinition* network) const {
             m_tensor = network->addShape(*network->addConstant(dims, w)->getOutput(0))->getOutput(0);
             if (rank() == 0) {
                 nvinfer1::IShuffleLayer* shuffle = network->addShuffle(*m_tensor);
-                nvinfer1::Dims d{0, {}, {}};
+                nvinfer1::Dims d{0, {}};
                 shuffle->setReshapeDimensions(d);
                 m_tensor = shuffle->getOutput(0);
             }
@@ -284,7 +284,7 @@ ShapeTensor convertTo1D(INetworkDefinition* network, const ShapeTensor& tensor) 
 }
 
 static nvinfer1::Dims toDims(const ShapeTensor& x) {
-    nvinfer1::Dims d{-1, {}, {}};
+    nvinfer1::Dims d{-1, {}};
     if (x.sizeKnown()) {
         d.nbDims = x.size();
         if (x.allValuesKnown()) {

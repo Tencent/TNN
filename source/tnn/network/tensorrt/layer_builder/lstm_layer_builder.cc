@@ -24,8 +24,8 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(LSTMONNX, LAYER_LSTMONNX);
 
 bool LSTMONNXTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
 }
 
 Status LSTMONNXTRTPluginLayerBuilder::Reshape() {
@@ -33,18 +33,18 @@ Status LSTMONNXTRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* LSTMONNXTRTPluginLayerBuilder::getPluginType() const {
+const char* LSTMONNXTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "LSTMONNX";
 }
 
 nvinfer1::DataType LSTMONNXTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
 
 DimsExprs LSTMONNXTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
 
     nvinfer1::IExprBuilder& e = exprBuilder;
    
@@ -54,11 +54,11 @@ DimsExprs LSTMONNXTRTPluginLayerBuilder::getOutputDimensions(int index, const nv
         return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
     }
 
-    DimensionExpr num_directions(layer_param->direction >=2 ? 2 : 1, e);
-    DimensionExpr output_size(layer_param->hidden_size, e);
+    DimensionExpr num_directions(layer_param->direction >=2 ? 2 : 1, &e);
+    DimensionExpr output_size(layer_param->hidden_size, &e);
     
-    DimensionExpr sequence_len(inputs[0].d[0], e);
-    DimensionExpr batch(inputs[0].d[1], e);
+    DimensionExpr sequence_len(inputs[0].d[0], &e);
+    DimensionExpr batch(inputs[0].d[1], &e);
 
     DimsExprs output;
 
@@ -83,11 +83,11 @@ DimsExprs LSTMONNXTRTPluginLayerBuilder::getOutputDimensions(int index, const nv
     return output;
 }
 
-ILayer* LSTMONNXTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* LSTMONNXTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
-const char* LSTMONNXPluginCreator::getPluginName() const {
+const char* LSTMONNXPluginCreator::getPluginName() const noexcept {
     return "LSTMONNX";
 }
 
