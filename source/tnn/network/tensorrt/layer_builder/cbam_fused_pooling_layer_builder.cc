@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(CbamFusedPooling, LAYER_CBAM_FUSED_POOLING);
 
 bool CbamFusedPoolingTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return nbInputs == 1 && nbOutputs == 2 && pos < nbInputs + nbOutputs &&
         inOut[pos].format == nvinfer1::TensorFormat::kLINEAR &&
         (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF);
@@ -29,16 +29,16 @@ Status CbamFusedPoolingTRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* CbamFusedPoolingTRTPluginLayerBuilder::getPluginType() const {
+const char* CbamFusedPoolingTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "CbamFusedPooling";
 }
 
 nvinfer1::DataType CbamFusedPoolingTRTPluginLayerBuilder::getOutputDataType(int index,
-        const nvinfer1::DataType* inputTypes, int nbInputs) const {
+        const nvinfer1::DataType* inputTypes, int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* CbamFusedPoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* CbamFusedPoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
 
@@ -46,14 +46,14 @@ ILayer* CbamFusedPoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* 
 }
 
 DimsExprs CbamFusedPoolingTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DimsExprs output(inputs[0]);
     output.d[2] = exprBuilder.constant(1);
     output.d[3] = exprBuilder.constant(1);
     return output;
 }
 
-const char* CbamFusedPoolingPluginCreator::getPluginName() const {
+const char* CbamFusedPoolingPluginCreator::getPluginName() const noexcept {
     return "CbamFusedPooling";
 }
 

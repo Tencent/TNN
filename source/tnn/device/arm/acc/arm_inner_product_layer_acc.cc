@@ -23,17 +23,26 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/utils/cpu_utils.h"
+#ifdef TNN_ARM82_USE_NEON
+#include "tnn/device/arm/acc/compute_arm82/compute_sdot_int8.h"
+#endif
 
 namespace TNN_NS {
 
 ArmInnerProductLayerAcc::~ArmInnerProductLayerAcc() {}
 
-// pack int8 kernel: round up c8, round up oc4
-static void packweight_i8(const int8_t *src, int8_t *dst, const int oc, const int ic) {
-    auto dst_step = ROUND_UP(ic, 8);
-
+// pack int8 kernel: round up ic4, round up oc4
+static void packweight_i8(const int8_t *src, int8_t *dst, const int oc, const int ic, const int hw) {
+    auto ic_r4       = ROUND_UP(ic, 4);
+    auto dst_step    = ic * hw;
+    auto dst_step_r4 = ic_r4 * hw;
     for (int o = 0; o < oc; o++) {
-        memcpy(dst + o * dst_step, src + o * ic, ic);
+        for (int i = 0; i < hw; i++) {
+            for (int c = 0; c < ic; c++) {
+                dst[o * dst_step_r4 + i * ic_r4 + c] = src[o * dst_step + c * hw + i];
+            }
+        }
     }
 }
 
@@ -141,9 +150,18 @@ Status ArmInnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
                 PackB_8(ic, oc, transpose_ptr, oc, buffer_weight_.force_to<float *>());
             }
         } else {
-            auto weight_count = ROUND_UP(oc, 4) * ROUND_UP(ic, 8);
+            auto hw = DimsVectorUtils::Count(dims_input, 2);
+            auto weight_count = ROUND_UP(oc, 4) * ROUND_UP(dims_input[1], 4) * hw;
             buffer_weight_    = RawBuffer(weight_count * data_byte_size + NEON_KERNEL_EXTRA_LOAD);
-            packweight_i8(w_handle.force_to<int8_t *>(), buffer_weight_.force_to<int8_t *>(), oc, ic);
+#ifdef TNN_ARM82_USE_NEON
+            if (support_int8_sdot_) {
+                PackSDOTINT8WeightGemv(w_handle.force_to<int8_t *>(), buffer_weight_.force_to<int8_t *>(), oc, dims_input[1], hw);
+            } else {
+                packweight_i8(w_handle.force_to<int8_t *>(), buffer_weight_.force_to<int8_t *>(), oc, dims_input[1], hw);
+            }
+#else
+            packweight_i8(w_handle.force_to<int8_t *>(), buffer_weight_.force_to<int8_t *>(), oc, dims_input[1], hw);
+#endif
         }
     }
 
@@ -211,6 +229,15 @@ Status ArmInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerR
     RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
     auto input_data_type = inputs[0]->GetBlobDesc().data_type;
     if (input_data_type == DATA_TYPE_FLOAT || input_data_type == DATA_TYPE_BFP16 || input_data_type == DATA_TYPE_INT8) {
+        if (input_data_type == DATA_TYPE_INT8) {
+            gemv_func_ = GemvInt8;
+#ifdef TNN_ARM82_USE_NEON
+            support_int8_sdot_ = CpuUtils::CpuSupportInt8Dot();
+            if (support_int8_sdot_) {
+                gemv_func_ = GemvInt8Sdot;
+            }
+#endif
+        }
         RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
         RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);
     }
@@ -335,35 +362,15 @@ Status ArmInnerProductLayerAcc::Exec<int8_t>(const std::vector<Blob *> &inputs, 
     auto ic    = dims_input[1];
     auto ic_r4 = ROUND_UP(ic, 4);
     auto hw    = DimsVectorUtils::Count(dims_input, 2);
-    auto ik    = ic * hw;
-    auto ik_r8 = ROUND_UP(ik, 8);
+    auto ik_r4 = ic_r4 * hw;
     auto oc_r4 = ROUND_UP(dims_output[1], 4);
 
-    int8_t *tmp_ptr = (int8_t *)context_->GetSharedWorkSpace(ik_r8);
-    for (int k = ik; k < ik_r8; ++k) {
-        tmp_ptr[k] = 0;
-    }
-
     for (int n = 0; n < dims_output[0]; n++) {
-        auto input_ptr  = input_origin + n * ic_r4 * hw;
+        auto input_ptr  = input_origin + n * ik_r4;
         auto output_ptr = output_origin + n * oc_r4;
 
-        if (hw == 1) {
-            if (ic_r4 != ik_r8) {
-                memcpy(tmp_ptr, input_ptr, ic_r4);
-            } else {
-                tmp_ptr = input_ptr;
-            }
-        } else if (ic == 1) {
-            for (int k = 0; k < ik; ++k) {
-                tmp_ptr[k] = input_ptr[k << 2];
-            }
-        } else {
-            UnpackHWC4ToCHW(tmp_ptr, input_ptr, ic, hw);
-        }
-
-        GemvInt8(output_ptr, tmp_ptr, buffer_weight_.force_to<int8_t *>(), buffer_bias_.force_to<int32_t *>(),
-                 buffer_scale_.force_to<float *>(), ik_r8, oc_r4);
+        gemv_func_(output_ptr, input_ptr, buffer_weight_.force_to<int8_t *>(), buffer_bias_.force_to<int32_t *>(),
+                 buffer_scale_.force_to<float *>(), ik_r4, oc_r4);
     }
 
     return TNN_OK;

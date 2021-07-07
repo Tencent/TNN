@@ -36,6 +36,9 @@ public:
     // @brief get cpu fp16 capability
     PUBLIC static bool CpuSupportFp16();
 
+    // @brief get cpu int8 dot capability
+    PUBLIC static bool CpuSupportInt8Dot();
+
     // @brief set x86 cpu denormal ftz and daz, no use for other cpu.
     // @param denormal 0:turn off denormal 1:turn on denormal
     PUBLIC static void SetCpuDenormal(int denormal);

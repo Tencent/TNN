@@ -15,8 +15,8 @@
 #include "test/unit_test/layer_test/layer_test.h"
 
 #include <sstream>
-#include <sys/time.h>
 
+#include "test/timer.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
 #include "tnn/core/blob_int8.h"
@@ -182,22 +182,14 @@ Status LayerTest::Forward() {
     instance_device_->StartProfile();
 #endif
 
-    struct timezone zone;
-    struct timeval time1;
-    struct timeval time2;
-    gettimeofday(&time1, &zone);
-    float min = FLT_MAX, max = FLT_MIN, sum = 0.0f;
+    test::Timer timer("device " + FLAGS_dt);
     for (int i = 0; i < FLAGS_ic; ++i) {
-        gettimeofday(&time1, &zone);
+        timer.Start();
 
         ret = instance_device_->Forward();
         EXPECT_EQ_OR_RETURN(ret, TNN_OK);
 
-        gettimeofday(&time2, &zone);
-        float delta = (time2.tv_sec - time1.tv_sec) * 1000.0 + (time2.tv_usec - time1.tv_usec) / 1000.0;
-        min         = fmin(min, delta);
-        max         = fmax(max, delta);
-        sum += delta;
+        timer.Stop();
     }
 
 #if TNN_PROFILE && defined(TNN_UNIT_TEST_BENCHMARK)
@@ -209,8 +201,7 @@ Status LayerTest::Forward() {
      * Used for benchmarking.
      */
     if (FLAGS_ub) {
-        printf("device %s time cost: min =   %g ms  |  max =  %g ms  |  avg = %g ms\n", FLAGS_dt.c_str(), min, max,
-               sum / (float)FLAGS_ic);
+        timer.Print();
     }
 
     return ret;
@@ -275,7 +266,7 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
     } else if (blob_desc_device.data_type == DATA_TYPE_INT8) {
         // the value is initialized as int8
         mat_type = RESERVED_INT8_TEST;
-    } else if (blob_desc_device.data_type == DATA_TYPE_HALF) {
+    } else if (blob_desc_device.data_type == DATA_TYPE_HALF && device_blob->GetBlobDesc().device_type == DEVICE_ARM) {
         // the value is initialized as half
         mat_type = RESERVED_FP16_TEST;
     }
