@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Tile, LAYER_REPEAT);
 
 bool TileTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32;
 }
 
@@ -27,21 +27,21 @@ Status TileTRTPluginLayerBuilder::Reshape() {
     return m_layer->Reshape();
 }
 
-const char* TileTRTPluginLayerBuilder::getPluginType() const {
+const char* TileTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "Tile";
 }
 
 nvinfer1::DataType TileTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* TileTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* TileTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs TileTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DimsExprs output;
     auto *layer_param = dynamic_cast<TileLayerParam *>(param_);
     auto reps = layer_param->reps;
@@ -61,7 +61,7 @@ DimsExprs TileTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfe
     return output;
 }
 
-const char* TilePluginCreator::getPluginName() const {
+const char* TilePluginCreator::getPluginName() const noexcept {
     return "Tile";
 }
 

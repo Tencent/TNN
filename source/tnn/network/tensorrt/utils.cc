@@ -91,7 +91,7 @@ DataType ConvertTRTDataType(nvinfer1::DataType type) {
 
 DataFormat ConvertTRTDataFormat(nvinfer1::TensorFormat format) {
     switch (format) {
-        case nvinfer1::TensorFormat::kNCHW :
+        case nvinfer1::TensorFormat::kLINEAR :
             return DATA_FORMAT_NCHW;
         case nvinfer1::TensorFormat::kCHW2 :
             return DATA_FORMAT_NC2HW2;
