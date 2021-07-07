@@ -18,7 +18,7 @@ set LIBTORCH_ROOT_DIR=
 @REM for example    F:\Deps\libtorch-win-shared-with-deps-1.8.1+cu111\libtorch
 set LIBTORCHVISION_ROOT_DIR=
 @REM for example    F:\Deps\torchvision-0.9.1
-set TNN_INSTALL_DIR=%~dp0cuda_msvc_release
+set TNN_INSTALL_DIR=%~dp0tnntorch_msvc_release
 
 if not exist %BUILD_DIR% (
     mkdir %BUILD_DIR%
