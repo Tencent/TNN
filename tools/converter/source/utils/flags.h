@@ -29,6 +29,8 @@ static const char model_type_message[] = "specify model type: Caffe, TF, TFLite.
 
 static const char save_path_message[] = "Specify the save path of the results after TNN inference";
 
+static const char half_message[] = "Convert float model to half";
+
 DECLARE_bool(h);
 
 DECLARE_string(mp);
@@ -38,6 +40,8 @@ DECLARE_string(od);
 DECLARE_string(mt);
 
 DECLARE_string(sp);
+
+DECLARE_bool(half);
 
 }  // namespace TNN_CONVERTER
 

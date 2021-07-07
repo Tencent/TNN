@@ -141,6 +141,7 @@ TNN_NS::Status TFLiteFullyConnectedConverter::exec(
         status                  = CreateIntScaleResource(net_resource, tf_lite_tensors, output_tensor_index);
         ASSERT(status == TNN_NS::TNN_CONVERT_OK);
     } else {
+
         auto weight_ptr       = reinterpret_cast<float *>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
         auto input_data_shape = tf_lite_tensors[tf_lite_operator->inputs[0]]->shape;
         if (input_data_shape.size() == 4) {
@@ -157,12 +158,12 @@ TNN_NS::Status TFLiteFullyConnectedConverter::exec(
             }
             TNN_NS::RawBuffer weight_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
             ::memcpy(weight_handle.force_to<float *>(), tmp, weight_size * sizeof(float));
-            layer_resource->weight_handle = weight_handle;
+            layer_resource->weight_handle = ConvertRawBuffer::GetInstance()->Convert(weight_handle);
             delete[] tmp;
         } else {
             TNN_NS::RawBuffer weight_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
             ::memcpy(weight_handle.force_to<float *>(), weight_ptr, weight_size * sizeof(float));
-            layer_resource->weight_handle = weight_handle;
+            layer_resource->weight_handle = ConvertRawBuffer::GetInstance()->Convert(weight_handle);
         }
         if (tf_lite_operator->inputs.size() == 3 && tf_lite_operator->inputs[2] >= 0) {
             auto &bias_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
@@ -171,7 +172,7 @@ TNN_NS::Status TFLiteFullyConnectedConverter::exec(
             int bias_size     = Count(bias_shape);
             TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(bias_size * sizeof(float));
             ::memcpy(bias_handle.force_to<float *>(), bias_ptr, bias_size * sizeof(float));
-            layer_resource->bias_handle = bias_handle;
+            layer_resource->bias_handle = ConvertRawBuffer::GetInstance()->Convert(bias_handle);
         }
     }
 

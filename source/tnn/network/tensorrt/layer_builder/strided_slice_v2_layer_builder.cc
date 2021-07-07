@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
 
 bool StrideSliceV2TRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32;
 }
 
@@ -27,21 +27,21 @@ Status StrideSliceV2TRTPluginLayerBuilder::Reshape() {
     return m_layer->Reshape();
 }
 
-const char* StrideSliceV2TRTPluginLayerBuilder::getPluginType() const {
+const char* StrideSliceV2TRTPluginLayerBuilder::getPluginType() const noexcept {
     return "StrideSliceV2";
 }
 
 nvinfer1::DataType StrideSliceV2TRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* StrideSliceV2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* StrideSliceV2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs StrideSliceV2TRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     StrideSliceV2LayerParam* param = dynamic_cast<StrideSliceV2LayerParam*>(param_);
     DimsExprs output(inputs[0]);
     for (int i = 0; i < param->axes.size(); i++) {
@@ -70,7 +70,7 @@ DimsExprs StrideSliceV2TRTPluginLayerBuilder::getOutputDimensions(int index, con
     return output;
 }
 
-const char* StrideSliceV2PluginCreator::getPluginName() const {
+const char* StrideSliceV2PluginCreator::getPluginName() const noexcept {
     return "StrideSliceV2";
 }
 
