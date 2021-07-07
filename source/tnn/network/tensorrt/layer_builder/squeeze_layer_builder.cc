@@ -19,31 +19,31 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Squeeze, LAYER_SQUEEZE);
 
 bool SqueezeTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF ||
             inOut[pos].type == nvinfer1::DataType::kINT32) && inOut[pos].type == inOut[0].type &&
-            inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+            inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
 }
 
 Status SqueezeTRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* SqueezeTRTPluginLayerBuilder::getPluginType() const {
+const char* SqueezeTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "Squeeze";
 }
 
 nvinfer1::DataType SqueezeTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* SqueezeTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* SqueezeTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs SqueezeTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     auto param = dynamic_cast<SqueezeLayerParam*>(param_);
     auto axes = param->axes;
     DimsExprs output;
@@ -61,7 +61,7 @@ DimsExprs SqueezeTRTPluginLayerBuilder::getOutputDimensions(int index, const nvi
     return output;
 }
 
-const char* SqueezePluginCreator::getPluginName() const {
+const char* SqueezePluginCreator::getPluginName() const noexcept {
     return "Squeeze";
 }
 

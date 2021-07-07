@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Flatten, LAYER_FLATTEN);
 
 bool FlattenTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32;
 }
 
@@ -27,21 +27,21 @@ Status FlattenTRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* FlattenTRTPluginLayerBuilder::getPluginType() const {
+const char* FlattenTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "Flatten";
 }
 
 nvinfer1::DataType FlattenTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* FlattenTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* FlattenTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs FlattenTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DimsExprs output;
     output.nbDims = 2;
     output.d[0] = exprBuilder.constant(1);
@@ -59,7 +59,7 @@ DimsExprs FlattenTRTPluginLayerBuilder::getOutputDimensions(int index, const nvi
     return output;
 }
 
-const char* FlattenPluginCreator::getPluginName() const {
+const char* FlattenPluginCreator::getPluginName() const noexcept {
     return "Flatten";
 }
 

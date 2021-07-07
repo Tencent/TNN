@@ -47,7 +47,14 @@ Status ConstFolder::Init(NetworkConfig &net_config, ModelConfig &model_config, A
                             InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     config_ = net_config;
     config_.device_type = DEVICE_NAIVE;
-    runtime_blob_pool_ = BlobMemoryPoolFactory::CreateBlobMemoryPool(GetDevice(DEVICE_NAIVE));
+    auto device         = GetDevice(DEVICE_NAIVE);
+    if (nullptr == device) {
+        LOGE("device in Const Floder is null, please check compile options to enable CPU (TNN_CPU_ENABLE=ON)\n");
+        return Status(
+                TNNERR_DEVICE_NOT_SUPPORT,
+                "device in Const Floder is null, please check compile options to enable CPU (TNN_CPU_ENABLE=ON)\n");
+    }
+    runtime_blob_pool_ = BlobMemoryPoolFactory::CreateBlobMemoryPool(device);
     
     runtime_model_ = RUNTIME_MODE_CONST_FOLD;
     
