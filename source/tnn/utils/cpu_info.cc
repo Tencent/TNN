@@ -14,13 +14,16 @@
 
 #include "cpu_info.h"
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(__linux__)
 
 #include <alloca.h>
 #include <fcntl.h>
 #include <string.h>
-#include <sys/system_properties.h>
 #include <unistd.h>
+
+#ifdef __ANDROID__
+#include <sys/system_properties.h>
+#endif
 
 #define BUFFER_SIZE 1024
 
@@ -291,6 +294,7 @@ bool cpuinfo_arm_linux_parse_proc_cpuinfo(char *hardware, struct cpuinfo_arm_lin
     return cpuinfo_linux_parse_multiline_file("/proc/cpuinfo", BUFFER_SIZE, (cpuinfo_line_callback)parse_line, &state);
 }
 
+#ifdef __ANDROID__
 void cpuinfo_arm_android_parse_properties(struct cpuinfo_android_properties *properties) {
     __system_property_get("ro.product.board", properties->ro_product_board);
     __system_property_get("ro.board.platform", properties->ro_board_platform);
@@ -299,6 +303,7 @@ void cpuinfo_arm_android_parse_properties(struct cpuinfo_android_properties *pro
     __system_property_get("ro.chipname", properties->ro_chipname);
     __system_property_get("ro.hardware.chipname", properties->ro_hardware_chipname);
 }
+#endif
 
 enum cpuinfo_android_chipset_property {
     cpuinfo_android_chipset_property_proc_cpuinfo_hardware = 0,
@@ -652,4 +657,4 @@ struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset(const struct cpuin
     return chipset;
 }
 
-#endif  // __ANDROID__
+#endif  // __ANDROID__ || __linux__

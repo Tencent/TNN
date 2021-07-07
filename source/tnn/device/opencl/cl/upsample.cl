@@ -135,7 +135,7 @@ __kernel void BilinearAlignCorners(
     write_imagef(output, (int2)(output_cw_idx, output_bh_idx), out);
 }
 
-static inline float4 UpsampleCubicInterpolation(float4 A, float4 B, float4 C, float4 D, float factor) {
+inline float4 UpsampleCubicInterpolation(float4 A, float4 B, float4 C, float4 D, float factor) {
     // refer to opencv
     const float w = -0.75f;
 

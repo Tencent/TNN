@@ -42,9 +42,9 @@ static bool UseTRTPaddingND(PadLayerParam* paramlist) {
 }
 
 bool PadV2TRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     bool base_check = (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32
-           || inOut[pos].type == nvinfer1::DataType::kHALF) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+           || inOut[pos].type == nvinfer1::DataType::kHALF) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
     if(nbInputs == 1) {
         return base_check && inOut[pos].type == inOut[0].type;
     } else if(pos == 1) {
@@ -58,16 +58,16 @@ Status PadV2TRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* PadV2TRTPluginLayerBuilder::getPluginType() const {
+const char* PadV2TRTPluginLayerBuilder::getPluginType() const noexcept {
     return "PadV2";
 }
 
 nvinfer1::DataType PadV2TRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* PadV2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* PadV2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     auto paramlist = dynamic_cast<PadLayerParam*>(param_);
 
     if (!UseTRTPaddingND(paramlist)) {
@@ -88,7 +88,7 @@ ILayer* PadV2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 }
 
 DimsExprs PadV2TRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInput, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInput, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DimsExprs output(inputs[0]);
     auto param = dynamic_cast<PadLayerParam*>(param_);
     auto output_dims = input_blobs_[0]->GetBlobDesc().dims;
@@ -101,7 +101,7 @@ DimsExprs PadV2TRTPluginLayerBuilder::getOutputDimensions(int index, const nvinf
     return output;
 }
 
-const char* PadV2PluginCreator::getPluginName() const {
+const char* PadV2PluginCreator::getPluginName() const noexcept {
     return "PadV2";
 }
 

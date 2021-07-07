@@ -18,6 +18,7 @@
 #include "tflite/tflite-schema/schema_generated.h"
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/interpreter/net_structure.h"
+#include "tools/converter/source/utils/convert_raw_buffer.h"
 
 namespace TNN_CONVERTER {
 
