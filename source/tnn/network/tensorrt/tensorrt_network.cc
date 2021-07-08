@@ -31,7 +31,7 @@
 namespace TNN_NS {
 
 #define MAX_SCRATCH_MEMORY (1<<31 - 1)
-#define TENSORRT_SERIALIZE_VERSION "v1.2"
+#define TENSORRT_SERIALIZE_VERSION "v1.4"
 
 NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
     g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
@@ -47,6 +47,7 @@ TensorRTNetwork_::TensorRTNetwork_() {
     m_trt_context = nullptr;
     m_context_memory = nullptr;
     m_trt_bindings = nullptr;
+    device_id_ = 0;
 }
 
 TensorRTNetwork_::~TensorRTNetwork_() {
@@ -220,6 +221,7 @@ Status TensorRTNetwork_::Forward() {
 
     for (auto iter : inputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        if (index < 0) continue;
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
     }
 
@@ -255,6 +257,7 @@ Status TensorRTNetwork_::ReshapeLayers() {
 
     for (auto iter : inputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        if (index < 0) continue;
         auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
         nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
         m_trt_context->setBindingDimensions(index, inputDims);
@@ -339,6 +342,7 @@ Status TensorRTNetwork_::ForwardAsync(Callback call_back) {
 
     for (auto iter : inputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        if (index < 0) continue;
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
     }
 
