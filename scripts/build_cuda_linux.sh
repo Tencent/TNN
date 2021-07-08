@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TNNTORCH="OFF"
+TNNTORCH="ON"
 
 if [ -z $TNN_ROOT_PATH ]
 then
