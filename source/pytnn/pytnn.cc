@@ -80,8 +80,6 @@ py::array_t<float> Module::Forward(py::array_t<float> input) {
 PYBIND11_MODULE(pytnn, m) {
     m.doc() = "pybind11 tnn torch plugin"; // optional module docstring
 
-    m.def("echo", &echo, "A function which show demo", py::arg("i"), py::arg("j"));
-
     //DataType
     py::enum_<DataType>(m, "DataType")
     .value("DATA_TYPE_AUTO", DataType::DATA_TYPE_AUTO)
