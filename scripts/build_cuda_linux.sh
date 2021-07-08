@@ -1,5 +1,7 @@
 #!/bin/bash
 
+TNNTORCH="ON"
+
 if [ -z $TNN_ROOT_PATH ]
 then
     TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
@@ -22,6 +24,7 @@ cmake ${TNN_ROOT_PATH} \
     -DTNN_X86_ENABLE=OFF \
     -DTNN_CUDA_ENABLE=ON \
     -DTNN_TENSORRT_ENABLE=ON \
+    -DTNN_TNNTORCH_ENABLE=${TNNTORCH} \
     -DTNN_BENCHMARK_MODE=OFF \
     -DTNN_BUILD_SHARED=ON \
     -DTNN_CONVERTER_ENABLE=OFF 
