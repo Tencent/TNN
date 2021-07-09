@@ -12,80 +12,31 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Unsqueeze, LAYER_UNSQUEEZE);
+DECLARE_TENSORRT_LAYER_BUILDER(Unsqueeze, LAYER_UNSQUEEZE);
 
-bool UnsqueezeTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
-    return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF ||
-        inOut[pos].type == nvinfer1::DataType::kINT32) &&
-        inOut[pos].format == nvinfer1::TensorFormat::kLINEAR &&
-        inOut[pos].type == inOut[0].type;
-}
-
-Status UnsqueezeTRTPluginLayerBuilder::Reshape() {
-    return TNN_OK;
-}
-
-const char* UnsqueezeTRTPluginLayerBuilder::getPluginType() const noexcept {
-    return "Unsqueeze";
-}
-
-nvinfer1::DataType UnsqueezeTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const noexcept {
-    return inputTypes[0];
-}
-
-ILayer* UnsqueezeTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
-    if (GetInputITensors()[0]->getDimensions().nbDims == 0) {
-        auto param = dynamic_cast<UnsqueezeLayerParam*>(param_);
-        nvinfer1::Dims trt_dims;
-        trt_dims.nbDims = 1;
-        trt_dims.d[0] = 1;
-        nvinfer1::Weights const_weight;
-        const_weight.type = nvinfer1::DataType::kINT32;
-        const_weight.values = &param->axes[0];
-        const_weight.count = 1;
-        ILayer* constant_layer = network->addConstant(trt_dims, const_weight);
-        IShuffleLayer* shuffle_layer = network->addShuffle(*GetInputITensors()[0]);
-        nvinfer1::Dims d;
-        d.nbDims = 1;
-        d.d[0] = 1;
-        shuffle_layer->setReshapeDimensions(d);
-        return shuffle_layer;
-    }
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
-}
-
-DimsExprs UnsqueezeTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
-    auto param = dynamic_cast<UnsqueezeLayerParam*>(param_);
-    auto axes = param->axes;
-    DimsExprs output;
-    output.nbDims = axes.size() + inputs[0].nbDims;
+ILayer* UnsqueezeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto paramlist = dynamic_cast<UnsqueezeLayerParam*>(param_);
+    auto axes = paramlist->axes;
+    auto tensor = GetInputITensors()[0];
+    int newSize = tensor->getDimensions().nbDims + axes.size();
     for (auto& axis : axes) {
-        axis = axis < 0 ? axis + inputs[0].nbDims + 1 : axis;
-    }
-
-    int in_index = 0;
-    for (int i = 0; i < output.nbDims; i++) {
-        if (std::find(axes.begin(), axes.end(), i) == axes.end()) {
-            output.d[i] = inputs[0].d[in_index++];
-        } else {
-            output.d[i] = exprBuilder.constant(1);
+        if (axis < 0) {
+            axis += newSize;
         }
     }
-    return output;
+    auto layer = addUnsqueeze(network, *tensor, axes);
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
+    }
+
+    return layer;
 }
 
-const char* UnsqueezePluginCreator::getPluginName() const noexcept {
-    return "Unsqueeze";
-}
-
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Unsqueeze, LAYER_UNSQUEEZE);
-
+REGISTER_TENSORRT_LAYER_BUILDER(Unsqueeze, LAYER_UNSQUEEZE);
 
 }  //  namespace TNN_NS
+

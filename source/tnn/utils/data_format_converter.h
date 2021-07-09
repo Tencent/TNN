@@ -101,7 +101,7 @@ public:
         const auto src_dims = src->GetBlobDesc().dims;
         ASSERT(src_dims.size() > 1);
         const int num     = src_dims[0];
-        const int channel = src_dims[1];
+        const int channel = src_dims.size() > 1 ? src_dims[1] : 1;
         const int height  = src_dims.size() > 2 ? src_dims[2] : 1;
         const int width   = src_dims.size() > 3 ? src_dims[3] : 1;
         T *src_data_ptr   = (T *)src->GetHandle().base;
@@ -117,7 +117,7 @@ public:
         const auto src_dims = src->GetBlobDesc().dims;
         ASSERT(src_dims.size() > 1);
         const int num     = src_dims[0];
-        const int channel = src_dims[1];
+        const int channel = src_dims.size() > 1 ? src_dims[1] : 1;
         const int height  = src_dims.size() > 2 ? src_dims[2] : 1;
         const int width   = src_dims.size() > 3 ? src_dims[3] : 1;
         T *src_data_ptr   = (T *)src->GetHandle().base;

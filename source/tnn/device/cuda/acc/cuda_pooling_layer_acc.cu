@@ -56,7 +56,6 @@ __global__ void adaptive_pooling_kernel(const float* input, float* output, int c
 }
 
 CudaPoolingLayerAcc::~CudaPoolingLayerAcc() {
-    cudnnDestroy(this->m_cudnn_handle);
     cudnnDestroyPoolingDescriptor(this->m_pooling_desc);
     cudnnDestroyTensorDescriptor(this->m_input_desc);
     cudnnDestroyTensorDescriptor(this->m_output_desc);
@@ -78,7 +77,6 @@ Status CudaPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerResou
 
     this->m_tensor_format = CUDNN_TENSOR_NCHW;
     this->m_data_type = CUDNN_DATA_FLOAT;
-    cudnnCreate(&m_cudnn_handle);
     cudnnCreatePoolingDescriptor(&m_pooling_desc);
     cudnnCreateTensorDescriptor(&m_input_desc);
     cudnnCreateTensorDescriptor(&m_output_desc);
@@ -132,7 +130,7 @@ Status CudaPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     } else {
         float alpha = 1.f;
         float beta = 0.f;
-        cudnnPoolingForward(this->m_cudnn_handle, this->m_pooling_desc, &alpha, m_input_desc,
+        cudnnPoolingForward(context_->cudnn_handle_, this->m_pooling_desc, &alpha, m_input_desc,
             input_data, &beta, m_output_desc, output_data);
     }
     return TNN_OK;

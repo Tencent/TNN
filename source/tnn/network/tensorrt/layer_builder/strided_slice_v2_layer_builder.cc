@@ -12,68 +12,110 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include <cassert>
+#include <stdlib.h>
+#include <unordered_set>
+
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
+DECLARE_TENSORRT_LAYER_BUILDER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
 
-bool StrideSliceV2TRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
-    return inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32;
+static ShapeTensor clamp(INetworkDefinition* network, const ShapeTensor& x, const ShapeTensor& lowerBound,
+        const ShapeTensor& upperBound) {
+    return min(network, max(network, x, lowerBound), upperBound);
 }
 
-Status StrideSliceV2TRTPluginLayerBuilder::Reshape() {
-    return m_layer->Reshape();
+static ShapeTensor bumpIfNegative(INetworkDefinition* network, const ShapeTensor& inputDims,
+        const ShapeTensor& indices) {
+    const auto signs = clamp(network, sub(network, similar(network, indices, 0), indices),
+        shapeVector(0), shapeVector(1));
+    auto signed_indices = sub(network, shapeVector(0), mul(network, signs, indices));
+
+    return add(network, sub(network, mul(network, signs, inputDims), signed_indices),
+        mul(network, indices, sub(network, shapeVector(1), signs)));
 }
 
-const char* StrideSliceV2TRTPluginLayerBuilder::getPluginType() const noexcept {
-    return "StrideSliceV2";
-}
-
-nvinfer1::DataType StrideSliceV2TRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const noexcept {
-    return inputTypes[0];
-}
-
-ILayer* StrideSliceV2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
-}
-
-DimsExprs StrideSliceV2TRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
-    StrideSliceV2LayerParam* param = dynamic_cast<StrideSliceV2LayerParam*>(param_);
-    DimsExprs output(inputs[0]);
-    for (int i = 0; i < param->axes.size(); i++) {
-        int index = param->axes[i];
-
-        auto begin = exprBuilder.constant(param->begins[i]);
-        if (param->begins[i] < 0) {
-            begin = exprBuilder.operation(DimensionOperation::kSUM, *begin, *inputs[0].d[index]);
-        }
-
-        auto end = exprBuilder.constant(param->ends[i]);
-        if (param->ends[i] == INT_MAX) {
-            end = inputs[0].d[index];
-        }
-
-        if (param->ends[i] < 0) {
-            end = exprBuilder.operation(DimensionOperation::kSUM, *end, *inputs[0].d[index]);
-        }
-        auto stride = exprBuilder.constant(param->strides[i]);
-        auto one = exprBuilder.constant(1);
-        auto diff = exprBuilder.operation(DimensionOperation::kSUB, *end, *begin);
-        diff = exprBuilder.operation(DimensionOperation::kSUB, *diff, *one);
-        output.d[index] = exprBuilder.operation(DimensionOperation::kFLOOR_DIV, *diff, *stride);
-        output.d[index] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[index], *one);
+ShapeTensor axesToInterlaceSubscripts(const ShapeTensor& axes, int nbDims) {
+    std::vector<int> subscripts(nbDims);
+    std::iota(subscripts.begin(), subscripts.end(), 0);
+    for (int i = 0; i < axes.size(); ++i) {
+        subscripts[axes[i]] = nbDims + i;
     }
-    return output;
+    return ShapeTensor(1, std::move(subscripts));
 }
 
-const char* StrideSliceV2PluginCreator::getPluginName() const noexcept {
-    return "StrideSliceV2";
+ShapeTensor computeSliceSizes(INetworkDefinition* network, const ShapeTensor& starts, const ShapeTensor& ends,
+        const ShapeTensor& steps, const ShapeTensor& dims) {
+    if (steps.isAll(1)) {
+        return sub(network, ends, starts);
+    } else {
+        return sub(network, similar(network, dims, 0), floorDiv(network, sub(network, starts, ends), steps));
+    }
 }
 
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
+ILayer* StrideSliceV2TRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    StrideSliceV2LayerParam* param = dynamic_cast<StrideSliceV2LayerParam*>(param_);
+    auto input_tensors = GetInputITensors();
+    auto dims = shapeOf(*input_tensors[0]);
+
+    ShapeTensor begins;
+    ShapeTensor ends;
+    ShapeTensor axes;
+    ShapeTensor strides;
+
+    axes = ShapeTensor(1, std::move(param->axes));
+    strides = ShapeTensor(1, std::move(param->strides));
+
+    if (input_tensors.size() == 1) {
+        begins = ShapeTensor(1, std::move(param->begins));
+        ends = ShapeTensor(1, std::move(param->ends));
+    }
+
+    if (input_tensors.size() >= 2) {
+        begins = ShapeTensor(*input_tensors[1], 0);
+    }
+
+    if (input_tensors.size() >= 3) {
+        ends = ShapeTensor(*input_tensors[2], 0);
+    }
+
+    std::vector<int> newAxes;
+    newAxes.reserve(axes.size());
+
+    for (int axis : axes) {
+        int r = dims.size();
+        assert(-r <= axis && axis < r);
+        if (axis < 0) {
+            axis += r;
+        }
+        newAxes.push_back(axis);
+    }
+    axes = ShapeTensor(1, std::move(newAxes));
+
+    assert(std::unordered_set<int>(axes.begin(), axes.end()).size() == static_cast<size_t>(axes.size()));
+
+    const ShapeTensor subscripts{axesToInterlaceSubscripts(axes, dims.size())};
+    auto tmp_dims = gather(network, dims, axes);
+    begins = bumpIfNegative(network, tmp_dims, begins);
+    begins = interlace(network, similar(network, dims, 0), begins, subscripts);
+    ends = bumpIfNegative(network, tmp_dims, ends);
+    ends = interlace(network, dims, ends, subscripts);
+    strides = interlace(network, similar(network, dims, 1), strides, subscripts);
+    const auto stepSign = clamp(network, sub(network, similar(network, strides, 0), strides),
+        shapeVector(0), shapeVector(1));
+    begins = clamp(network, begins, shapeVector(0), sub(network, dims, stepSign));
+    ends = clamp(network, ends, stepSign, dims);
+
+    const ShapeTensor sizes = computeSliceSizes(network, begins, ends, strides, dims);
+    nvinfer1::ISliceLayer* layer = addSlice(network, *input_tensors[0], begins, sizes, strides);
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
+    }
+    return layer;
+}
+
+REGISTER_TENSORRT_LAYER_BUILDER(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
 
 }  //  namespace TNN_NS
