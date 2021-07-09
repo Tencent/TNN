@@ -20,7 +20,7 @@ namespace py = pybind11;
 namespace TNN_NS {
 
     void InitInstancePy(py::module &m){
-        py::class_<Instance>(m, "Instance")
+        py::class_<Instance, std::shared_ptr<Instance>>(m, "Instance")
             .def("Forward", &Instance::Forward)
             .def("GetForwardMemorySize", &Instance::GetForwardMemorySize)
             .def("SetForwardMemory", &Instance::SetForwardMemory)

@@ -89,8 +89,12 @@ py::array_t<float> Module::Forward(py::array_t<float> input) {
 PYBIND11_MODULE(pytnn, m) {
     m.doc() = "pybind11 tnn torch plugin"; // optional module docstring
 
+    InitStatusPy(m);
     InitCommonPy(m);
     InitMatPy(m);
+    InitBlobPy(m);
+    InitTNNPy(m);
+    InitInstancePy(m);
 
     m.def("load", &Load, "pytnn load");
     py::class_<Module>(m, "Module")

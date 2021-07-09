@@ -102,20 +102,24 @@ void InitCommonPy(py::module &m) {
         .value("MODEL_TYPE_HIAI", ModelType::MODEL_TYPE_HIAI)
         .value("MODEL_TYPE_ATLAS", ModelType::MODEL_TYPE_ATLAS)
         .value("MODEL_TYPE_RKCACHE", ModelType::MODEL_TYPE_RKCACHE)
-        .export_values();
+        .value("MODEL_TYPE_TORCHSCRIPT", ModelType::MODEL_TYPE_TORCHSCRIPT)
+	.export_values();
 
     py::class_<NetworkConfig>(m, "NetworkConfig")
-        .def_readwrite("device_type", &NetworkConfig::device_type)
+        .def(py::init<>())
+    	.def_readwrite("device_type", &NetworkConfig::device_type)
         .def_readwrite("device_id", &NetworkConfig::device_id)
         .def_readwrite("data_format", &NetworkConfig::data_format)
-        .def_readwrite("share_memory_mode", &NetworkConfig::share_memory_mode)
+        .def_readwrite("network_type", &NetworkConfig::network_type)
+	.def_readwrite("share_memory_mode", &NetworkConfig::share_memory_mode)
         .def_readwrite("library_path", &NetworkConfig::library_path)
         .def_readwrite("precision", &NetworkConfig::precision)
         .def_readwrite("cache_path", &NetworkConfig::cache_path)
         .def_readwrite("enable_tune_kernel", &NetworkConfig::enable_tune_kernel);
 
     py::class_<ModelConfig>(m, "ModelConfig")
-        .def_readwrite("model_type", &ModelConfig::model_type)
+        .def(py::init<>())
+    	.def_readwrite("model_type", &ModelConfig::model_type)
         .def_readwrite("params", &ModelConfig::params);
 };
 

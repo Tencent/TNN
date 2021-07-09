@@ -21,7 +21,7 @@ namespace TNN_NS {
 
 void InitStatusPy(py::module &m) {
     py::class_<Status>(m, "Status")
-        .def(py::init<int, std::string>())
+        .def(py::init<int, std::string>(), py::arg("code") = 0, py::arg("message") = "")
         .def("description", &Status::description);
 }
 
