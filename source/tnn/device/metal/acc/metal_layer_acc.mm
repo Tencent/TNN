@@ -116,7 +116,7 @@ Status MetalLayerAcc::RawBuffer2MetalBlob(RawBuffer *buffer, std::shared_ptr<Blo
 #else
         desc.data_type  = DATA_TYPE_HALF;
 #endif
-        LOGE("test55....\n");
+
         desc.data_format = DATA_FORMAT_NC4HW4;
         ConfigBuffer2MetalBlobDesc(desc);
 
@@ -238,7 +238,7 @@ Status MetalLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, con
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     auto dims_input      = inputs[0]->GetBlobDesc().dims;
     auto dims_output     = outputs[0]->GetBlobDesc().dims;
-    LOGE("test55....\n");
+
     // buffer_param_
     {
         auto metal_params = GetDefaultMetalParams(dims_input, dims_output);
@@ -311,7 +311,7 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
         LOGE("MetalLayerAcc: DataType must be float or half\n");
         return Status(TNNERR_LAYER_ERR, "MetalLayerAcc: DataType must be float or half");
     }
-    LOGE("test55....\n");
+
     
     //
     auto context_impl = context_->getMetalContextImpl();
@@ -375,7 +375,11 @@ std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int
 
 MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
     auto output_height  = DimsFunctionUtils::GetDim(dims, 2);
-    auto output_width   = DimsFunctionUtils::GetDim(dims, 3) * DimsFunctionUtils::GetDimProduct(dims, 4);
+    auto output_width   = DimsFunctionUtils::GetDim(dims, 3);
+    if(dims.size() == 5)
+        output_width = output_width * DimsFunctionUtils::GetDimProduct(dims, 4);
+    else if(dims.size() == 6)
+        output_width = output_width * DimsFunctionUtils::GetDimProduct(dims, 4) * DimsFunctionUtils::GetDimProduct(dims, 5);
     auto output_size  = output_width * output_height;
     auto output_slice = UP_DIV(dims[1], 4);
     auto output_batch = dims[0];
