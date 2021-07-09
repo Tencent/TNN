@@ -1,4 +1,4 @@
-// Tencent is pleased to support the open source community by making TNN available.
+﻿// Tencent is pleased to support the open source community by making TNN available.
 //
 // Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
 //
@@ -9,19 +9,16 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#pragma once
+#ifndef TNN_INCLUDE_TNN_UTILS_LOAD_OPENCL_SYMBOL_H_
+#define TNN_INCLUDE_TNN_UTILS_LOAD_OPENCL_SYMBOL_H_
 
-#include "tnn/core/macro.h"
-#include "tnn/core/common.h"
-#include "tnn/core/instance.h"
-#include "tnn/core/blob.h"
-#include "tnn/core/tnn.h"
-#include "tnn/core/status.h"
-#include "tnn/utils/half_utils.h"
-#include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
-//#include "tnn/utils/data_format_converter.h"
-#include "tnn/utils/blob_converter.h"
+namespace TNN_NS {
+
+// @brief LoadOpenCLSymbol
+extern PUBLIC int LoadOpenCLSymbol();
+
+}
+#endif  // TNN_INCLUDE_TNN_UTILS_LOAD_OPENCL_SYMBOL_H_

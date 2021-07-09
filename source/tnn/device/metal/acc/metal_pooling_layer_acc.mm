@@ -105,8 +105,8 @@ Status MetalPoolingLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs
                                         const std::vector<Blob *> &outputs,
                                         MTLSize &size) {
     if (use_global_pooling_) {
-        //diapatch kernel with threadGroups and threads
-        size = MTLSizeMake(32, 1, 1);
+        // diapatch kernel with threadGroups and threads
+        size = MTLSizeMake(TNN_METAL_POOLING_MAX_THREADGROUP_COUNT, 1, 1);
     } else {
         auto dims_output = outputs[0]->GetBlobDesc().dims;
         size = GetDefaultThreadSize(dims_output, false);

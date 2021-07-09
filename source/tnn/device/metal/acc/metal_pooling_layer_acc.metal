@@ -82,14 +82,14 @@ kernel void pooling_global_average(const device ftype4 *in            [[buffer(0
     auto input_index_c = (int)gid.z * params.input_size;
     auto output_index_c = (int)gid.z * params.output_size;
     
-    const int max_index = min(32, params.input_size);
+    const int max_index = min(TNN_METAL_POOLING_MAX_THREADGROUP_COUNT, params.input_size);
     
     //do not use setThreadgroupMemoryLength, unknown bug will raise
-    threadgroup float4 x_group[32];
+    threadgroup float4 x_group[TNN_METAL_POOLING_MAX_THREADGROUP_COUNT];
     
     //compute local sum
     float4 sum_x = float4(0);
-    for (int index = t_index; index < params.input_size; index+=32) {
+    for (int index = t_index; index < params.input_size; index += sizeof(x_group) / sizeof(x_group[0])) {
         auto temp = float4(in[index + input_index_c]);
         sum_x += temp;
     }
@@ -121,14 +121,14 @@ kernel void pooling_global_max(const device ftype4 *in            [[buffer(0)]],
     auto input_index_c = (int)gid.z * params.input_size;
     auto output_index_c = (int)gid.z * params.output_size;
     
-    const int max_index = min(32, params.input_size);
+    const int max_index = min(TNN_METAL_POOLING_MAX_THREADGROUP_COUNT, params.input_size);
     
     //do not use setThreadgroupMemoryLength, unknown bug will raise
-    threadgroup ftype4 x_group[32];
+    threadgroup ftype4 x_group[TNN_METAL_POOLING_MAX_THREADGROUP_COUNT];
     
     //compute local maximum value
     ftype4 max_x = ftype4(-FTYPE_MAX);
-    for (int index = t_index; index < params.input_size; index+=32) {
+    for (int index = t_index; index < params.input_size; index += sizeof(x_group) / sizeof(x_group[0])) {
         auto temp = in[index + input_index_c];
         max_x = max(max_x, temp);
     }

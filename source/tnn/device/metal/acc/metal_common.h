@@ -16,6 +16,14 @@
 #ifndef TNN_METAL_COMMON_H_
 #define TNN_METAL_COMMON_H_
 
+#include <TargetConditionals.h>
+
+#if TARGET_OS_OSX
+#define TNN_METAL_POOLING_MAX_THREADGROUP_COUNT 16 // for MBP 13.3-Intel macos barrier crash
+#else
+#define TNN_METAL_POOLING_MAX_THREADGROUP_COUNT 32
+#endif
+
 #ifndef FLT_MAX
 #define FLT_MIN 1.175494351e-38F
 #define FLT_MAX 3.402823466e+38F

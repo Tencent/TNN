@@ -34,7 +34,7 @@ namespace rapidnetv3 {
         Serializer(std::ostream &os) : TNN_NS::Serializer(os), model_version_(MV_RPNV3){}
         Serializer(std::ostream &os, int ver) : TNN_NS::Serializer(os), model_version_(ver){}
 
-        virtual void PutRaw(TNN_NS::RawBuffer &value) {
+        void PutRaw(TNN_NS::RawBuffer &value) override {
             int length = value.GetBytesSize();
             auto data_type = (TNN_NS::DataType)value.GetDataType();
             char *buffer = value.force_to<char *>();
@@ -91,7 +91,7 @@ namespace rapidnetv3 {
     public:
         Deserializer(std::istream &is) : TNN_NS::Deserializer(is) {}
         
-        virtual void GetRaw(TNN_NS::RawBuffer &value) {
+        void GetRaw(TNN_NS::RawBuffer &value) override {
             auto pos = _istream.tellg();
             uint32_t magic_number = 0;
             _istream.read((char *)&magic_number, sizeof(uint32_t));
