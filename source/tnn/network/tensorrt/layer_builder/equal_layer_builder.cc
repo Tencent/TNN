@@ -12,20 +12,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tools/converter/source/utils/flags.h"
+#include "tnn/network/tensorrt/layer_builder/binary_layer_builder.h"
 
-namespace TNN_CONVERTER {
+namespace TNN_NS {
 
-DEFINE_bool(h, false, help_message);
+DECLARE_TRT_BINARY_LAYER_BUILDER(Equal);
 
-DEFINE_string(mp, "", tf_path_message);
+EqualTRTLayerBuilder::EqualTRTLayerBuilder(LayerType ignore) : BinaryTRTLayerBuilder(ignore) {
+    m_op = ElementWiseOperation::kEQUAL;
+}
 
-DEFINE_string(od, "", output_dir_message);
+REGISTER_TENSORRT_LAYER_BUILDER(Equal, LAYER_EQUAL);
 
-DEFINE_string(mt, "", model_type_message);
-
-DEFINE_string(sp, "", save_path_message);
-
-DEFINE_bool(half, false, half_message);
-
-}  // namespace TNN_CONVERTER
+}  //  namespace TNN_NS

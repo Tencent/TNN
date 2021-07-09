@@ -12,20 +12,26 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tools/converter/source/utils/flags.h"
+#include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/utils/dims_utils.h"
 
-namespace TNN_CONVERTER {
+namespace TNN_NS {
 
-DEFINE_bool(h, false, help_message);
+DECLARE_CUDA_ACC(Equal, LAYER_EQUAL);
 
-DEFINE_string(mp, "", tf_path_message);
+Status CudaEqualLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
+}
 
-DEFINE_string(od, "", output_dir_message);
+Status CudaEqualLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
 
-DEFINE_string(mt, "", model_type_message);
+Status CudaEqualLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
 
-DEFINE_string(sp, "", save_path_message);
+REGISTER_CUDA_ACC(Equal, LAYER_EQUAL);
 
-DEFINE_bool(half, false, half_message);
-
-}  // namespace TNN_CONVERTER
+}  // namespace TNN_NS

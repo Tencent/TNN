@@ -65,6 +65,12 @@ ILayer* BinaryTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
         auto src_a = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
 
+        bool unsqueeze = src_a->getDimensions().nbDims == 0;
+        if (unsqueeze) {
+            ShapeTensor tmp(*src_a, 0);
+            src_a = &(convertTo1D(network, tmp).tensor(network));
+        }
+
         auto const_layer = ConvertWeightToConstLayer(network, &(resource->element_handle),
             resource->element_shape, src_a->getDimensions().nbDims);
 
@@ -95,6 +101,13 @@ ILayer* BinaryTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         layer = network->addElementWise(*src_a, *src_b, m_op);
         if (layer != nullptr) {
             layer->setName(layer_name_.c_str());
+        }
+        if (unsqueeze) {
+            Dims tmp_dims;
+            tmp_dims.nbDims = 0;
+            IShuffleLayer* shuffle = network->addShuffle(*layer->getOutput(0));
+            shuffle->setReshapeDimensions(tmp_dims);
+            return shuffle;
         }
     }
     return layer;

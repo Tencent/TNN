@@ -12,60 +12,31 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Squeeze, LAYER_SQUEEZE);
+DECLARE_TENSORRT_LAYER_BUILDER(Squeeze, LAYER_SQUEEZE);
 
-bool SqueezeTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
-    return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF ||
-            inOut[pos].type == nvinfer1::DataType::kINT32) && inOut[pos].type == inOut[0].type &&
-            inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
-}
-
-Status SqueezeTRTPluginLayerBuilder::Reshape() {
-    return TNN_OK;
-}
-
-const char* SqueezeTRTPluginLayerBuilder::getPluginType() const noexcept {
-    return "Squeeze";
-}
-
-nvinfer1::DataType SqueezeTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const noexcept {
-    return inputTypes[0];
-}
-
-ILayer* SqueezeTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
-}
-
-DimsExprs SqueezeTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
-    auto param = dynamic_cast<SqueezeLayerParam*>(param_);
-    auto axes = param->axes;
-    DimsExprs output;
-    output.nbDims = inputs[0].nbDims - axes.size();
+ILayer* SqueezeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto paramlist = dynamic_cast<SqueezeLayerParam*>(param_);
+    auto axes = paramlist->axes;
+    auto tensor = GetInputITensors()[0];
+    int size = tensor->getDimensions().nbDims;
     for (auto& axis : axes) {
-        axis = axis < 0 ? axis + inputs[0].nbDims : axis;
-    }
-
-    int out_index = 0;
-    for (int i = 0; i < inputs[0].nbDims; i++) {
-        if (std::find(axes.begin(), axes.end(), i) == axes.end()) {
-            output.d[out_index++] = inputs[0].d[i];
+        if (axis < 0) {
+            axis += size;
         }
     }
-    return output;
+    auto layer = addSqueeze(network, *tensor, axes);
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
+    }
+
+    return layer;
 }
 
-const char* SqueezePluginCreator::getPluginName() const noexcept {
-    return "Squeeze";
-}
-
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Squeeze, LAYER_SQUEEZE);
-
+REGISTER_TENSORRT_LAYER_BUILDER(Squeeze, LAYER_SQUEEZE);
 
 }  //  namespace TNN_NS
+
