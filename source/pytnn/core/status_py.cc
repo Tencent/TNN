@@ -26,5 +26,3 @@ void InitStatusPy(py::module &m) {
 }
 
 }  // namespace TNN_NS
-
-}  // namespace TNN_NS

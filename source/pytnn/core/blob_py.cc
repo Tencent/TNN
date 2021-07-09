@@ -22,6 +22,5 @@ namespace TNN_NS {
 void InitBlobPy(py::module& m) {
     py::class_<Blob>(m, "Blob");
 }
-}  // namespace TNN_NS
 
 }  // namespace TNN_NS

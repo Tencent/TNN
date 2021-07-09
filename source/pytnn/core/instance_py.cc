@@ -21,16 +21,14 @@ namespace TNN_NS {
 
     void InitInstancePy(py::module &m){
         py::class_<Instance>(m, "Instance")
+            .def("Forward", &Instance::Forward)
             .def("GetForwardMemorySize", &Instance::GetForwardMemorySize)
             .def("SetForwardMemory", &Instance::SetForwardMemory)
             .def("Reshape", &Instance::Reshape)
-            .def("GetCommandQueue", &Instance::GetCommandQueue)
-            .def("ShareCommandQueue", &Instance::ShareCommandQueue)
-            .def("Forward", &Instance::Forward)
-            .def("SetCpuNumThreads", &Instance::SetCpuNumThreads)
+	    .def("ShareCommandQueue", &Instance::ShareCommandQueue)
+	    .def("SetCpuNumThreads", &Instance::SetCpuNumThreads)
             .def("SetInputMat", &Instance::SetInputMat)
             .def("GetOutputMat", &Instance::GetOutputMat);
     }
-}
 
 }  // namespace TNN_NS

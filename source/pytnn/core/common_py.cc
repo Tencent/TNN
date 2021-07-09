@@ -21,9 +21,6 @@ namespace TNN_NS {
 
 void InitCommonPy(py::module &m) {
 
-    PYBIND11_MAKE_OPAQUE(std::vector<int>);
-    py::bind_vector<std::vector<int>>(m, "DimsVector");
-
     // DataType
     py::enum_<DataType>(m, "DataType")
         .value("DATA_TYPE_AUTO", DataType::DATA_TYPE_AUTO)
@@ -54,9 +51,9 @@ void InitCommonPy(py::module &m) {
     // Precison
     py::enum_<Precision>(m, "Precision")
         .value("PRECISION_AUTO", Precision::PRECISION_AUTO)
-        .value("PRECISION_NORMAL", Precison::PRECISION_NORMAL)
-        .value("PRECISION_HIGH", Precison::PRECISION_HIGH)
-        .value("PRECISION_LOW", Precison::PRECISION_LOW)
+        .value("PRECISION_NORMAL", Precision::PRECISION_NORMAL)
+        .value("PRECISION_HIGH", Precision::PRECISION_HIGH)
+        .value("PRECISION_LOW", Precision::PRECISION_LOW)
         .export_values();
 
     // NetworkType
@@ -90,16 +87,9 @@ void InitCommonPy(py::module &m) {
 
     // ShareMemoryMode
     py::enum_<ShareMemoryMode>(m, "ShareMemoryMode")
-        .value("SHARE_MEMORY_MODE_DEFAULT", DeviceType::SHARE_MEMORY_MODE_DEFAULT)
-        .value("SHARE_MEMORY_MODE_SHARE_ONE_THREAD", DeviceType::SHARE_MEMORY_MODE_SHARE_ONE_THREAD)
-        .value("SHARE_MEMORY_MODE_SET_FROM_EXTERNAL", DeviceType::SHARE_MEMORY_MODE_SET_FROM_EXTERNAL)
-        .export_values();
-
-    // ShareMemoryMode
-    py::enum_<ShareMemoryMode>(m, "ShareMemoryMode")
-        .value("SHARE_MEMORY_MODE_DEFAULT", DeviceType::SHARE_MEMORY_MODE_DEFAULT)
-        .value("SHARE_MEMORY_MODE_SHARE_ONE_THREAD", DeviceType::SHARE_MEMORY_MODE_SHARE_ONE_THREAD)
-        .value("SHARE_MEMORY_MODE_SET_FROM_EXTERNAL", DeviceType::SHARE_MEMORY_MODE_SET_FROM_EXTERNAL)
+        .value("SHARE_MEMORY_MODE_DEFAULT", ShareMemoryMode::SHARE_MEMORY_MODE_DEFAULT)
+        .value("SHARE_MEMORY_MODE_SHARE_ONE_THREAD", ShareMemoryMode::SHARE_MEMORY_MODE_SHARE_ONE_THREAD)
+        .value("SHARE_MEMORY_MODE_SET_FROM_EXTERNAL", ShareMemoryMode::SHARE_MEMORY_MODE_SET_FROM_EXTERNAL)
         .export_values();
 
     // ModelType
@@ -115,20 +105,18 @@ void InitCommonPy(py::module &m) {
         .export_values();
 
     py::class_<NetworkConfig>(m, "NetworkConfig")
-        .def_readwrite("device_type", NetworkConfig::device_type)
-        .def_readwrite("device_id", NetworkConfig::device_id)
-        .def_readwrite("data_format", NetworkConfig::data_format)
-        .def_readwrite("share_memory_mode", NetworkConfig::share_memory_mode)
-        .def_readwrite("library_path", NetworkConfig::library_path)
-        .def_readwrite("precision", NetworkConfig::precision)
-        .def_readwrite("cache_path", NetworkConfig::cache_path)
-        .def_readwrite("enable_tune_kernel", NetworkConfig::enable_tune_kernel)
+        .def_readwrite("device_type", &NetworkConfig::device_type)
+        .def_readwrite("device_id", &NetworkConfig::device_id)
+        .def_readwrite("data_format", &NetworkConfig::data_format)
+        .def_readwrite("share_memory_mode", &NetworkConfig::share_memory_mode)
+        .def_readwrite("library_path", &NetworkConfig::library_path)
+        .def_readwrite("precision", &NetworkConfig::precision)
+        .def_readwrite("cache_path", &NetworkConfig::cache_path)
+        .def_readwrite("enable_tune_kernel", &NetworkConfig::enable_tune_kernel);
 
     py::class_<ModelConfig>(m, "ModelConfig")
-        .def_readwrite("model_type", ModelConfig::model_type)
-        .def_readwrite("params", ModelConfig::params)
+        .def_readwrite("model_type", &ModelConfig::model_type)
+        .def_readwrite("params", &ModelConfig::params);
 };
-
-}
 
 }  // namespace TNN_NS
