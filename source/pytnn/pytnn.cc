@@ -21,23 +21,32 @@ namespace py = pybind11;
 namespace TNN_NS {
 
 Module* Load(const std::string& model_path) {
-    printf("model_path: %s \n", model_path.c_str());
+    auto module = new Module();
+    Status ret = module->Init(model_path);
+    if(ret != TNN_OK) {
+	delete module;
+	return nullptr;
+    } else {
+        return module;
+    }
+}
+
+Status Module::Init(const std::string& model_path) {
     ModelConfig model_config;
     model_config.model_type = MODEL_TYPE_TORCHSCRIPT;
     model_config.params.push_back(model_path);
-    TNN net;
-    Status ret = net.Init(model_config);
+    Status ret = TNN_OK;
+    ret = net_.Init(model_config);
+    if(ret != TNN_OK) {
+        return ret;
+    }
     InputShapesMap shapes_map;
     shapes_map["0"]={1,3,224,224};
     NetworkConfig network_config;
     network_config.device_type = DEVICE_CUDA;
     network_config.network_type = NETWORK_TYPE_TNNTORCH;
-    auto instance = net.CreateInst(network_config, ret, shapes_map); 
-    return new Module(instance);
-}
-
-Module::Module(std::shared_ptr<Instance> instance) {
-    instance_ = instance;
+    instance_ = net_.CreateInst(network_config, ret, shapes_map); 
+    return ret;
 }
 
 py::array_t<float> Module::Forward(py::array_t<float> input) {
@@ -80,40 +89,10 @@ py::array_t<float> Module::Forward(py::array_t<float> input) {
 PYBIND11_MODULE(pytnn, m) {
     m.doc() = "pybind11 tnn torch plugin"; // optional module docstring
 
-    //DataType
-    py::enum_<DataType>(m, "DataType")
-    .value("DATA_TYPE_AUTO", DataType::DATA_TYPE_AUTO)
-    .value("DATA_TYPE_FLOAT", DataType::DATA_TYPE_FLOAT)
-    .value("DATA_TYPE_HALF", DataType::DATA_TYPE_HALF)
-    .value("DATA_TYPE_INT8", DataType::DATA_TYPE_INT8)
-    .value("DATA_TYPE_INT32", DataType::DATA_TYPE_INT32)
-    .value("DATA_TYPE_BFP16", DataType::DATA_TYPE_BFP16)
-    .value("DATA_TYPE_INT64", DataType::DATA_TYPE_INT64)
-    .value("DATA_TYPE_UINT32", DataType::DATA_TYPE_UINT32)
-    .export_values();
-
-    //DeviceType
-    py::enum_<DeviceType>(m, "DeviceType")
-    .value("DEVICE_NAIVE", DeviceType::DEVICE_NAIVE)
-    .value("DEVICE_X86", DeviceType::DEVICE_X86)
-    .value("DEVICE_ARM", DeviceType::DEVICE_ARM)
-    .value("DEVICE_OPENCL", DeviceType::DEVICE_OPENCL)
-    .value("DEVICE_METAL", DeviceType::DEVICE_METAL)
-    .value("DEVICE_CUDA", DeviceType::DEVICE_CUDA)
-    .export_values();
-
-    //MatType
-    py::enum_<MatType>(m, "MatType")
-    .value("NCHW_FLOAT", MatType::NCHW_FLOAT)
-    .export_values();
-
-    //Mat
-    py::class_<Mat>(m, "Mat") 
-    .def(py::init<DeviceType, MatType, std::vector<int>>())
-    .def("GetDims", &Mat::GetDims);
+    InitCommonPy(m);
+    InitMatPy(m);
 
     m.def("load", &Load, "pytnn load");
-
     py::class_<Module>(m, "Module")
     .def("forward", &Module::Forward);
 }

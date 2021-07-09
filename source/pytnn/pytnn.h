@@ -19,6 +19,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 
+#include <tnn/core/tnn.h>
 #include <tnn/core/instance.h>
 #include <tnn/core/macro.h>
 #include <tnn/core/status.h>
@@ -30,11 +31,15 @@ namespace py = pybind11;
 
 namespace TNN_NS {
 
+void InitCommonPy(py::module &m);
+void InitMatPy(py::module &m);
+
 class PUBLIC Module {
 public:
-    Module(std::shared_ptr<Instance> instance);
+    Status Init(const std::string& model_path);
     py::array_t<float> Forward(py::array_t<float> input);  
 private:
+    TNN net_;
     std::shared_ptr<Instance> instance_;
 };
 
