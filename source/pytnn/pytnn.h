@@ -17,6 +17,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 #include <pybind11/numpy.h>
 
 #include <tnn/core/tnn.h>
@@ -31,8 +32,14 @@ namespace py = pybind11;
 
 namespace TNN_NS {
 
+void InitStatusPy(py::module &m);
 void InitCommonPy(py::module &m);
 void InitMatPy(py::module &m);
+void InitBlobPy(py::module& m);
+void InitTNNPy(py::module &m);
+void InitInstancePy(py::module &m);
+
+void InitBlobConverter(py::module &m);
 
 class PUBLIC Module {
 public:
