@@ -39,7 +39,7 @@ void InitBlobPy(py::module& m);
 void InitTNNPy(py::module &m);
 void InitInstancePy(py::module &m);
 
-void InitBlobConverter(py::module &m);
+void InitBlobConverterPy(py::module &m);
 
 class PUBLIC Module {
 public:

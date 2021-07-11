@@ -35,9 +35,9 @@ namespace TNN_NS {
         .value("RESERVED_INT8_TEST", MatType::RESERVED_INT8_TEST)
         .export_values();
 
-    py::class_<Mat>(m, "Mat")
+    py::class_<Mat, std::shared_ptr<Mat>>(m, "Mat")
         .def(py::init<DeviceType, MatType, std::vector<int>>())
-        .def(py::init<DeviceType, MatType, std::vector<int>, void*>())
+        .def(py::init<DeviceType, MatType, std::vector<int>, char*>())
         .def(py::init<DeviceType, MatType>())
         .def("GetDeviceType", &Mat::GetDeviceType)
         .def("GetMatType", &Mat::GetMatType)

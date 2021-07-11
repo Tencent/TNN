@@ -21,9 +21,10 @@ namespace TNN_NS {
 
 void InitBlobConverterPy(py::module& m) {
     py::class_<MatConvertParam>(m, "MatConvertParam")
-    .def_readwrite("scale", MatConvertParam::scale)
-    .def_readwrite("bias", MatConvertParam::bias)
-    .def_readwrite("reverse_channel", MatConvertParam::reverse_channel);
+    .def(py::init<>())
+    .def_readwrite("scale", &MatConvertParam::scale)
+    .def_readwrite("bias", &MatConvertParam::bias)
+    .def_readwrite("reverse_channel", &MatConvertParam::reverse_channel);
 }
 
 }  // namespace TNN_NS

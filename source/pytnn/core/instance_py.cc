@@ -27,8 +27,8 @@ namespace TNN_NS {
             .def("Reshape", &Instance::Reshape)
 	    .def("ShareCommandQueue", &Instance::ShareCommandQueue)
 	    .def("SetCpuNumThreads", &Instance::SetCpuNumThreads)
-            .def("SetInputMat", &Instance::SetInputMat)
-            .def("GetOutputMat", &Instance::GetOutputMat);
+            .def("SetInputMat", &Instance::SetInputMat, py::arg("mat"), py::arg("param"), py::arg("input_name") = "")
+            .def("GetOutputMat", &Instance::GetOutputMat, py::arg("mat"), py::arg("param")=MatConvertParam(), py::arg("output_name")="", py::arg("device")=DEVICE_ARM, py::arg("mat_type")=NCHW_FLOAT);
     }
 
 }  // namespace TNN_NS

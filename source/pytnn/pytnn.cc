@@ -93,6 +93,8 @@ PYBIND11_MODULE(pytnn, m) {
     InitCommonPy(m);
     InitMatPy(m);
     InitBlobPy(m);
+    InitBlobConverterPy(m);
+
     InitTNNPy(m);
     InitInstancePy(m);
 
