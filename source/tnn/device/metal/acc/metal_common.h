@@ -82,6 +82,8 @@ struct MetalCastParams {
 #define kBroadcastTypeElement 0x0003
 #define kBroadcastTypeHeightWidth 0x0004
 
+#define kBroadcastTypeGeneral 0x0006
+
 /** Broadcast Param Struct **/
 struct MetalBroadcastParams {
     int input_width;

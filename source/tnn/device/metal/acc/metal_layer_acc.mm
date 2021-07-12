@@ -374,6 +374,11 @@ std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int
 MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
     auto output_height  = DimsFunctionUtils::GetDim(dims, 2);
     auto output_width   = DimsFunctionUtils::GetDim(dims, 3);
+
+    if(dims.size()==5){
+        output_width = DimsFunctionUtils::GetDim(dims, 3) * DimsFunctionUtils::GetDim(dims, 4);
+    }
+
     auto output_size  = output_width * output_height;
     auto output_slice = UP_DIV(dims[1], 4);
     auto output_batch = dims[0];
@@ -740,7 +745,12 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
 
     const int channel = DimsFunctionUtils::GetDim(buffer_shape, 1);
     const int kh      = DimsFunctionUtils::GetDim(buffer_shape, 2);
-    const int kw      = DimsFunctionUtils::GetDim(buffer_shape, 3);
+    //const int kw      = DimsFunctionUtils::GetDim(buffer_shape, 3);
+    int kw      = DimsFunctionUtils::GetDim(buffer_shape, 3);
+    
+    if(buffer_shape.size()==5){
+        kw = DimsFunctionUtils::GetDim(buffer_shape, 3) * DimsFunctionUtils::GetDim(buffer_shape, 4);
+    }
 
     const int channel4 = UP_DIV(channel, 4) * 4;
 
