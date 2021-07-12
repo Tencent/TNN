@@ -303,3 +303,84 @@ __kernel void ReduceC3Local(REDUCE_LOCAL_INPUTS) {
 
     REDUCE_WRITE_LOCAL_OUTPUT(local_id, group_size, local_output)
 }
+
+__kernel void ReduceC1NotKeepDims(REDUCE_INPUTS) {
+    const int output_x = get_global_id(0);
+    const int output_y = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(output_x, output_y);
+
+    FLOAT4 t;
+    FLOAT4 r      = (FLOAT4)(DATAINIT);
+    FLOAT4 result = (FLOAT4)(DATAINIT);
+
+    const int n = output_y / input_w;
+    const int w = output_y % input_w;
+    const int h = output_x;
+
+    const int h_remainder = (h == input_h / 4) ? input_h % 4 : 4;
+    for (int h_offset = 0; h_offset < h_remainder; h_offset++) {
+        r            = (FLOAT4)(DATAINIT);
+        const int ix = w;
+        const int iy = n * input_h + h * 4 + h_offset;
+        for (unsigned short i = 0; i < c4_n; i++) {
+            t = RI_F(input, SAMPLER, (int2)(ix + input_w * i, iy));
+            OPERATOR(r, t)
+        }
+        if (c4_r == 1) {
+            t = RI_F(input, SAMPLER, (int2)(ix + cw4, iy));
+            OPERATOR(r.x, t.x)
+        } else if (c4_r == 2) {
+            t = RI_F(input, SAMPLER, (int2)(ix + cw4, iy));
+            OPERATOR(r.x, t.x)
+            OPERATOR(r.y, t.y)
+        } else if (c4_r == 3) {
+            t = RI_F(input, SAMPLER, (int2)(ix + cw4, iy));
+            OPERATOR(r.x, t.x)
+            OPERATOR(r.y, t.y)
+            OPERATOR(r.z, t.z)
+        }
+
+        switch (h_offset) {
+            case 0:
+                result.x = INNEROPERATOR(r);
+                break;
+            case 1:
+                result.y = INNEROPERATOR(r);
+                break;
+            case 2:
+                result.z = INNEROPERATOR(r);
+                break;
+            case 3:
+                result.w = INNEROPERATOR(r);
+                break;
+        }
+    }
+    result = POSTOPERATOR(result);
+
+    WI_F(output, (int2)(output_x, output_y), result);
+}
+
+__kernel void ReduceC2NotKeepDims(REDUCE_INPUTS) {
+    const int output_x = get_global_id(0);
+    const int output_y = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(output_x, output_y);
+
+    FLOAT4 t;
+    FLOAT4 r = (FLOAT4)(DATAINIT);
+
+    const int c = output_x;
+    const int n = output_y / input_w;
+    const int w = output_y % input_w;
+
+    int ix = c * input_w + w;
+    int iy = n * input_h;
+    for (unsigned short i = 0; i < input_h; i++) {
+        t = RI_F(input, SAMPLER, (int2)(ix, iy + i));
+        OPERATOR(r, t)
+    }
+    r = POSTOPERATOR(r);
+
+    WI_F(output, (int2)(output_x, output_y), r);
+}
