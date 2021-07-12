@@ -102,7 +102,7 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         }
     }
 
-    if (DEVICE_OPENCL == dev && keep_dims != 1) {
+    if (DEVICE_OPENCL == dev && keep_dims != 1 && axis.size() > 1) {
         GTEST_SKIP();
     }
 

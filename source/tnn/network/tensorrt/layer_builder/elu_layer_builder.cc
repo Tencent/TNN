@@ -19,8 +19,8 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Elu, LAYER_ELU);
 
 bool EluTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
         && inOut[pos].type == inOut[0].type);
 }
 
@@ -28,21 +28,21 @@ Status EluTRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* EluTRTPluginLayerBuilder::getPluginType() const {
+const char* EluTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "Elu";
 }
 
 nvinfer1::DataType EluTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* EluTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* EluTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs EluTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DimsExprs output(inputs[0]);
     for (int i = 1; i < nbInputs; i++) {
         for (int j = 0; j < output.nbDims; j++) {
@@ -52,7 +52,7 @@ DimsExprs EluTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer
     return output;
 }
 
-const char* EluPluginCreator::getPluginName() const {
+const char* EluPluginCreator::getPluginName() const noexcept {
     return "Elu";
 }
 

@@ -19,30 +19,30 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(ReduceLogSumExp, LAYER_REDUCE_LOG_SUM_EXP);
 
 bool ReduceLogSumExpTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF) &&
-        inOut[pos].format == nvinfer1::TensorFormat::kNCHW && inOut[pos].type == inOut[0].type;
+        inOut[pos].format == nvinfer1::TensorFormat::kLINEAR && inOut[pos].type == inOut[0].type;
 }
 
 Status ReduceLogSumExpTRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* ReduceLogSumExpTRTPluginLayerBuilder::getPluginType() const {
+const char* ReduceLogSumExpTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "ReduceLogSumExp";
 }
 
 nvinfer1::DataType ReduceLogSumExpTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* ReduceLogSumExpTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* ReduceLogSumExpTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs ReduceLogSumExpTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     auto param = dynamic_cast<ReduceLayerParam*>(param_);
     DimsExprs output;
     if (param->keep_dims == 0) {
@@ -66,7 +66,7 @@ DimsExprs ReduceLogSumExpTRTPluginLayerBuilder::getOutputDimensions(int index, c
     return output;
 }
 
-const char* ReduceLogSumExpPluginCreator::getPluginName() const {
+const char* ReduceLogSumExpPluginCreator::getPluginName() const noexcept {
     return "ReduceLogSumExp";
 }
 
