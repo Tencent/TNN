@@ -54,6 +54,18 @@ namespace TNN_NS {
     }
  
 
+    BlobMap GetAllInputBlobs(Instance* instance) {
+        BlobMap input_blobs;
+	instance->GetAllInputBlobs(input_blobs);
+        return input_blobs;
+    }
+
+    BlobMap GetAllOutputBlobs(Instance* instance) {
+        BlobMap output_blobs;
+	instance->GetAllOutputBlobs(output_blobs);
+        return output_blobs;
+    }
+
 
     void InitInstancePy(py::module &m){
         py::class_<Instance, std::shared_ptr<Instance>>(m, "Instance")
@@ -63,6 +75,8 @@ namespace TNN_NS {
             .def("Reshape", &Instance::Reshape)
 	    .def("ShareCommandQueue", &Instance::ShareCommandQueue)
 	    .def("SetCpuNumThreads", &Instance::SetCpuNumThreads)
+            .def("GetAllInputBlobs", GetAllInputBlobs, py::return_value_policy::reference)
+            .def("GetAllOutputBlobs", GetAllOutputBlobs, py::return_value_policy::reference)
             .def("SetInputMat", &Instance::SetInputMat, py::arg("mat"), py::arg("param"), py::arg("input_name") = "")
             .def("GetOutputMat", GetOutputMat, py::arg("param")=MatConvertParam(), py::arg("output_name")="", py::arg("device")=DEVICE_ARM, py::arg("mat_type")=NCHW_FLOAT);
 //            .def("GetOutputMat", &Instance::GetOutputMat, py::arg("mat"), py::arg("param")=MatConvertParam(), py::arg("output_name")="", py::arg("device")=DEVICE_ARM, py::arg("mat_type")=NCHW_FLOAT);

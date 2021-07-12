@@ -30,6 +30,11 @@ instance.Forward()
 #output_mat=pytnn.Mat(pytnn.DEVICE_NAIVE, pytnn.NCHW_FLOAT)
 #instance.GetOutputMat(output_mat, pytnn.MatConvertParam(), "", pytnn.DEVICE_NAIVE, pytnn.NCHW_FLOAT)
 output_mat=instance.GetOutputMat(pytnn.MatConvertParam(), "output_0", pytnn.DEVICE_NAIVE, pytnn.NCHW_FLOAT)
-
 output_mat_numpy=pytnn.convert_mat_to_numpy(output_mat)
 print(output_mat_numpy)
+
+output_blobs=instance.GetAllOutputBlobs()
+for value in output_blobs.values():
+    desc = value.GetBlobDesc()
+    print (desc.name, desc.dims, desc.device_type, desc.data_type, desc.data_format)
+
