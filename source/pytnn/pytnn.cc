@@ -45,7 +45,7 @@ py::array_t<float> Module::Forward(py::array_t<float> input) {
     Status ret = TNN_OK;
     if(!instance_) {
         InputShapesMap shapes_map;
-        shapes_map["0"]=input_mat->GetDims();
+        shapes_map["input_0"]=input_mat->GetDims();
         NetworkConfig network_config;
         network_config.device_type = DEVICE_CUDA;
         network_config.network_type = NETWORK_TYPE_TNNTORCH;
@@ -56,7 +56,7 @@ py::array_t<float> Module::Forward(py::array_t<float> input) {
     instance_->Forward();
     std::shared_ptr<TNN_NS::Mat> output_mat;
     instance_->GetOutputMat(output_mat, MatConvertParam(),
-                        "", DEVICE_NAIVE, NCHW_FLOAT);
+                        "output_0", DEVICE_NAIVE, NCHW_FLOAT);
     return ConvertMatToNumpy(output_mat);
 }
 

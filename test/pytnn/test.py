@@ -24,12 +24,12 @@ instance=tnn.CreateInst(network_config, ret, {"input_0":[1,3,224,224]})
 
 #input_mat=pytnn.Mat(pytnn.DEVICE_NAIVE, pytnn.NCHW_FLOAT, [1,3,224,224], input.tobytes())
 input_mat=pytnn.convert_numpy_to_mat(input)
-instance.SetInputMat(input_mat, pytnn.MatConvertParam())
+instance.SetInputMat(input_mat, pytnn.MatConvertParam(), "input_0")
 instance.Forward()
 
 #output_mat=pytnn.Mat(pytnn.DEVICE_NAIVE, pytnn.NCHW_FLOAT)
 #instance.GetOutputMat(output_mat, pytnn.MatConvertParam(), "", pytnn.DEVICE_NAIVE, pytnn.NCHW_FLOAT)
-output_mat=instance.GetOutputMat(pytnn.MatConvertParam(), "", pytnn.DEVICE_NAIVE, pytnn.NCHW_FLOAT)
+output_mat=instance.GetOutputMat(pytnn.MatConvertParam(), "output_0", pytnn.DEVICE_NAIVE, pytnn.NCHW_FLOAT)
 
 output_mat_numpy=pytnn.convert_mat_to_numpy(output_mat)
 print(output_mat_numpy)
