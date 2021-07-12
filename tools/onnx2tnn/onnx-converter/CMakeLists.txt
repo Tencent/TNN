@@ -10,6 +10,8 @@ else ()
     message(FATAL_ERROR "Protobuf not found, must install first")
 endif ()
 
+add_subdirectory(pybind11)
+
 if(APPLE)
     find_library(MAC_ACCE Accelerate)
     if (NOT MAC_ACCE)
