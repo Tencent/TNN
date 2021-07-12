@@ -20,70 +20,34 @@ namespace TNN_NS {
 
 void BroadCastTypeFilter(const DimsVector &dims_output, const DimsVector &dims_input, int &type) {
 
-    if(dims_input.size()==5){
-        DimsVector dims_output_=dims_output;
-        DimsVector dims_input_=dims_input;
-        dims_output_[3]=dims_output[3]*dims_output[4];
-        dims_input_[3]=dims_input[3]*dims_input[4];
-        if (DimsVectorUtils::Equal(dims_output_, dims_input_)) {
-            type = BroadcastTypeNormal;
-            return;
-        }
-        if (DimsVectorUtils::Equal(dims_output_, dims_input_, 1)) {
-            type = BroadcastTypeElement;
-            return;
-        }
-        if (DimsVectorUtils::Equal(dims_output_, dims_input_, 2)) {
-            type = BroadcastTypeHeightWidth;
-            return;
-        }
-        if (DimsVectorUtils::Equal(dims_output_, dims_input_, 3)) {
-            type = BroadcastTypeWidth;
-            return;
-        }
-        int broadcast_count = DimsVectorUtils::Count(dims_input_);
-        if (broadcast_count == 1) {
-            type = BroadcastTypeSingle;
-        } else if (broadcast_count == dims_output_[1]) {
-            // broadcast dim = [1, channel, 1...]
-            if (dims_input_[1] == dims_output_[1]) {
-                type = BroadcastTypeChannel;
-            } else {
-                type = BroadcastTypeGeneral;
-            }
+    if (DimsVectorUtils::Equal(dims_output, dims_input)) {
+        type = BroadcastTypeNormal;
+        return;
+    }
+    if (DimsVectorUtils::Equal(dims_output, dims_input, 1)) {
+        type = BroadcastTypeElement;
+        return;
+    }
+    if (DimsVectorUtils::Equal(dims_output, dims_input, 2)) {
+        type = BroadcastTypeHeightWidth;
+        return;
+    }
+    if (DimsVectorUtils::Equal(dims_output, dims_input, 3)) {
+        type = BroadcastTypeWidth;
+        return;
+    }
+    int broadcast_count = DimsVectorUtils::Count(dims_input);
+    if (broadcast_count == 1) {
+        type = BroadcastTypeSingle;
+    } else if (broadcast_count == dims_output[1]) {
+        // broadcast dim = [1, channel, 1...]
+        if (dims_input[1] == dims_output[1]) {
+            type = BroadcastTypeChannel;
         } else {
             type = BroadcastTypeGeneral;
         }
-    }else{
-        if (DimsVectorUtils::Equal(dims_output, dims_input)) {
-            type = BroadcastTypeNormal;
-            return;
-        }
-        if (DimsVectorUtils::Equal(dims_output, dims_input, 1)) {
-            type = BroadcastTypeElement;
-            return;
-        }
-        if (DimsVectorUtils::Equal(dims_output, dims_input, 2)) {
-            type = BroadcastTypeHeightWidth;
-            return;
-        }
-        if (DimsVectorUtils::Equal(dims_output, dims_input, 3)) {
-            type = BroadcastTypeWidth;
-            return;
-        }
-        int broadcast_count = DimsVectorUtils::Count(dims_input);
-        if (broadcast_count == 1) {
-            type = BroadcastTypeSingle;
-        } else if (broadcast_count == dims_output[1]) {
-            // broadcast dim = [1, channel, 1...]
-            if (dims_input[1] == dims_output[1]) {
-                type = BroadcastTypeChannel;
-            } else {
-                type = BroadcastTypeGeneral;
-            }
-        } else {
+    } else {
             type = BroadcastTypeGeneral;
-        }
     }
     return;
 }
