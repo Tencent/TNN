@@ -52,6 +52,9 @@ private:
 
 Module* Load(const std::string& model_path);
 
+py::array_t<float> ConvertMatToNumpy(std::shared_ptr<Mat>);
+std::shared_ptr<Mat> ConvertNumpyToMat(py::array_t<float>);
+
 }  // namespace TNN_NS
 
 #pragma warning(pop)

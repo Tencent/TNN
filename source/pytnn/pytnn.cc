@@ -37,19 +37,30 @@ Status Module::Init(const std::string& model_path) {
     model_config.params.push_back(model_path);
     Status ret = TNN_OK;
     ret = net_.Init(model_config);
-    if(ret != TNN_OK) {
-        return ret;
-    }
-    InputShapesMap shapes_map;
-    shapes_map["0"]={1,3,224,224};
-    NetworkConfig network_config;
-    network_config.device_type = DEVICE_CUDA;
-    network_config.network_type = NETWORK_TYPE_TNNTORCH;
-    instance_ = net_.CreateInst(network_config, ret, shapes_map); 
     return ret;
 }
 
 py::array_t<float> Module::Forward(py::array_t<float> input) {
+    auto input_mat = ConvertNumpyToMat(input);
+    Status ret = TNN_OK;
+    if(!instance_) {
+        InputShapesMap shapes_map;
+        shapes_map["0"]=input_mat->GetDims();
+        NetworkConfig network_config;
+        network_config.device_type = DEVICE_CUDA;
+        network_config.network_type = NETWORK_TYPE_TNNTORCH;
+        instance_ = net_.CreateInst(network_config, ret, shapes_map); 
+    }
+
+    instance_->SetInputMat(input_mat, MatConvertParam()); 
+    instance_->Forward();
+    std::shared_ptr<TNN_NS::Mat> output_mat;
+    instance_->GetOutputMat(output_mat, MatConvertParam(),
+                        "", DEVICE_NAIVE, NCHW_FLOAT);
+    return ConvertMatToNumpy(output_mat);
+}
+
+std::shared_ptr<Mat> ConvertNumpyToMat(py::array_t<float> input) {
     py::buffer_info input_info = input.request();
     float *input_ptr = static_cast<float *>(input_info.ptr);
     DimsVector input_dims;
@@ -57,11 +68,10 @@ py::array_t<float> Module::Forward(py::array_t<float> input) {
         input_dims.push_back(dim);
     }
     auto input_mat = std::make_shared<TNN_NS::Mat>(DEVICE_NAIVE, NCHW_FLOAT, input_dims, input_ptr);
-    instance_->SetInputMat(input_mat, MatConvertParam()); 
-    instance_->Forward();
-    std::shared_ptr<TNN_NS::Mat> output_mat;
-    instance_->GetOutputMat(output_mat, MatConvertParam(),
-                        "", DEVICE_NAIVE, NCHW_FLOAT);
+    return input_mat;
+}
+
+py::array_t<float> ConvertMatToNumpy(std::shared_ptr<Mat> output_mat) {
     auto output_dims = output_mat->GetDims();
     std::vector<size_t> shape;
     for(auto dim : output_dims) {
@@ -101,6 +111,8 @@ PYBIND11_MODULE(pytnn, m) {
     m.def("load", &Load, "pytnn load");
     py::class_<Module>(m, "Module")
     .def("forward", &Module::Forward);
+    m.def("convert_mat_to_numpy", &ConvertMatToNumpy, "convert mat to numpy");
+    m.def("convert_numpy_to_mat", &ConvertNumpyToMat, "convert numpy to mat");
 }
 
 } // TNN_NS
