@@ -20,7 +20,27 @@ namespace py = pybind11;
 namespace TNN_NS {
 
 void InitBlobPy(py::module& m) {
-    py::class_<Blob>(m, "Blob");
+    py::class_<BlobDesc>(m, "BlobDesc")
+        .def(py::init<>())
+        .def_readwrite("device_type", &BlobDesc::device_type)
+        .def_readwrite("data_type", &BlobDesc::data_type)
+        .def_readwrite("data_format", &BlobDesc::data_format)
+        .def_readwrite("dims", &BlobDesc::dims)
+        .def_readwrite("name", &BlobDesc::name);
+
+    py::class_<BlobHandle>(m, "BlobHandle")
+        .def(py::init<>())
+        .def_readwrite("base", &BlobHandle::base)
+        .def_readwrite("bytes_offset", &BlobHandle::bytes_offset); 
+
+    py::class_<Blob>(m, "Blob")
+	.def(py::init<BlobDesc>())
+        .def(py::init<BlobDesc, bool>())
+        .def(py::init<BlobDesc, BlobHandle>())
+        .def("GetBlobDesc", &Blob::GetBlobDesc)
+        .def("SetBlobDesc", &Blob::SetBlobDesc)
+        .def("GetHandle", &Blob::GetHandle)
+        .def("SetHandle", &Blob::SetHandle);
 }
 
 }  // namespace TNN_NS
