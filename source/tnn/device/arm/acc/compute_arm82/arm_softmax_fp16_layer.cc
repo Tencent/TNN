@@ -24,7 +24,7 @@ static void SoftmaxChannelFuncFp16(fp16_t *dst, fp16_t *src, int channel) {
     Half8 max_v = Half8(src[0]);
     fp16_t max  = src[0];
     int c       = 0;
-    for (; c < channel - 8; c += 8) {
+    for (; c <= channel - 8; c += 8) {
         max_v = Half8::max(Half8::load(src + c), max_v);
     }
     for (; c < channel; ++c) {
@@ -36,7 +36,7 @@ static void SoftmaxChannelFuncFp16(fp16_t *dst, fp16_t *src, int channel) {
     // exp
     c     = 0;
     max_v = Half8(max);
-    for (; c < channel - 8; c += 8) {
+    for (; c <= channel - 8; c += 8) {
         Half8::save(dst + c, Half8::exp(Half8::load(src + c) - max_v));
     }
     for (; c < channel; ++c) {
@@ -46,7 +46,7 @@ static void SoftmaxChannelFuncFp16(fp16_t *dst, fp16_t *src, int channel) {
     c           = 0;
     Half8 sum_v = Half8((fp16_t)0.0);
     fp16_t sum  = (fp16_t)0.0;
-    for (; c < channel - 8; c += 8) {
+    for (; c <= channel - 8; c += 8) {
         sum_v = Half8::load(dst + c) + sum_v;
     }
     for (; c < channel; ++c) {
@@ -58,7 +58,7 @@ static void SoftmaxChannelFuncFp16(fp16_t *dst, fp16_t *src, int channel) {
     // div
     c                  = 0;
     fp16_t denominator = (fp16_t)(1.0f / sum);
-    for (; c < channel - 8; c += 8) {
+    for (; c <= channel - 8; c += 8) {
         Half8::save(dst + c, Half8::load(dst + c) * denominator);
     }
     for (; c < channel; ++c) {
@@ -153,7 +153,7 @@ Status ArmSoftmaxLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std
                 dst = dst_y;
                 for (int c = 0; c < channel; ++c, dst += inside) {
                     int x = 0;
-                    for (; x < inside - 8; x += 8) {
+                    for (; x <= inside - 8; x += 8) {
                         Half8 dst_v = Half8::load(dst + x);
                         Half8 sum_v = Half8::load(sum_value_ptr + x);
                         dst_v       = dst_v * sum_v;
