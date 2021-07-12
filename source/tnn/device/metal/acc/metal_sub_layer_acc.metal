@@ -52,7 +52,7 @@ kernel void sub_broadcast(const device ftype4 *src0                             
         data0 = ftype4(src0[batch_offset0 + gid.x].x);
     } else if (params.broadcast_input0 == kBroadcastTypeElement) {
         data0 = ftype4(src0[index_size]);
-    } else if (params.broadcast_input1 == kBroadcastTypeGeneral) {
+    } else if (params.broadcast_input0 == kBroadcastTypeGeneral) {
         data0 = ftype4(src0[(int)(gid.x/params.output_width)]);
     } else {
         data0 = src0[index];
