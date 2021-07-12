@@ -52,6 +52,8 @@ kernel void div_broadcast(const device ftype4 *src0                             
         data0 = ftype4(src0[batch_offset0 + gid.x].x);
     } else if (params.broadcast_input0 == kBroadcastTypeElement) {
         data0 = ftype4(src0[index_size]);
+    } else if (params.broadcast_input0 == kBroadcastTypeGeneral) {
+        data0 = ftype4(src0[(int)(gid.x/params.output_width)]);
     } else {
         data0 = src0[index];
     }
@@ -65,6 +67,8 @@ kernel void div_broadcast(const device ftype4 *src0                             
         data1 = ftype4(src1[batch_offset1 + gid.x].x);
     } else if (params.broadcast_input1 == kBroadcastTypeElement) {
         data1 = ftype4(src1[index_size]);
+    } else if (params.broadcast_input1 == kBroadcastTypeGeneral) {
+        data1 = ftype4(src1[(int)(gid.x/params.output_width)]);
     } else {
         data1 = src1[index];
     }
