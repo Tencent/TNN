@@ -371,7 +371,11 @@ namespace test {
             }
 
             if (blob_desc.data_type == DATA_TYPE_INT32) {
+                data_type = DATA_TYPE_INT32;
                 mat_type = NC_INT32;
+            } else if (blob_desc.data_type == DATA_TYPE_INT64) {
+                data_type = DATA_TYPE_INT64;
+                mat_type = NC_INT64;
             }
 
             int bytes = DimsVectorUtils::Count(blob_desc.dims) * DataTypeUtils::GetBytesSize(data_type);
@@ -530,11 +534,29 @@ namespace test {
                 LOGD("the output shape: %s\n", shape.c_str());
             }
         }
+        f << std::endl;
         for (auto output : outputs) {
+            {
+                f << output.first;
+                auto mat      = output.second;
+                DimsVector dims = mat->GetDims();
+                f << " mat_type: " << mat->GetMatType() ;
+                f << " dims: " << dims.size();
+                for (auto dim : dims) {
+                    f << " " << dim;
+                }
+                f << std::endl;
+            }
+
             auto mat  = output.second;
             int data_count     = DimsVectorUtils::Count(mat->GetDims());
             if (mat->GetMatType() == NC_INT32 ) {
                 int * data = reinterpret_cast<int*>(mat->GetData());
+                for (int c = 0; c < data_count; ++c) {
+                    f << data[c] << std::endl;
+                }
+            } else if (mat->GetMatType() == NC_INT64 ) {
+                int64_t * data = reinterpret_cast<int64_t*>(mat->GetData());
                 for (int c = 0; c < data_count; ++c) {
                     f << data[c] << std::endl;
                 }

@@ -29,6 +29,8 @@ int DataTypeUtils::GetBytesSize(DataType data_type) {
         return 1;
     } else if (data_type == DATA_TYPE_INT32) {
         return 4;
+    } else if (data_type == DATA_TYPE_INT64) {
+        return 8;
     } else if (data_type == DATA_TYPE_UINT32) {
         return 4;
     } else {
@@ -48,6 +50,8 @@ std::string DataTypeUtils::GetDataTypeString(DataType data_type) {
         return "int8";
     } else if (data_type == DATA_TYPE_INT32) {
         return "int32";
+    } else if (data_type == DATA_TYPE_INT64) {
+        return "int64";
     } else {
         return "";
     }

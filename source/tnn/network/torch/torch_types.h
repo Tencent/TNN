@@ -18,6 +18,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <stdlib.h>
 
 #include "tnn/core/common.h"
 #include "tnn/core/status.h"
@@ -25,7 +26,18 @@
 
 #include <torch/script.h>
 
+namespace at {
+using TensorPtr = std::shared_ptr<at::Tensor>;
+}
+
 namespace TNN_NS {
+
+
+struct JitTypeMatcher;
+using JitTypeMatcherPtr = std::shared_ptr<JitTypeMatcher>;
+
+struct IValueRouter;
+using IValueRouterPtr = std::shared_ptr<IValueRouter>;
 
 /*
     Tuple:  (int)
@@ -85,6 +97,10 @@ public:
         return std::string();
     }
 
+    std::string full() {
+        return *sptr_;
+    }
+
     int len() const {
         return len_;
     }
@@ -118,9 +134,6 @@ private:
     bool valid_ = false;
 };
 
-struct JitTypeMatcher;
-using JitTypeMatcherPtr = std::shared_ptr<JitTypeMatcher>;
-
 struct JitTypeMatcher: std::enable_shared_from_this<JitTypeMatcher>
 {
 public: 
@@ -150,9 +163,30 @@ public:
 
     JitTypeMatcherPtr next(); 
 
+    bool hasNext() {return next_ != nullptr;}
+
     std::vector<c10::TypePtr> elements();
 
-    static int id_from_name(std::string);
+    static int idFromName(std::string);
+
+    int intKey() {
+        // TODO runtime type check.
+        return std::stoi(key_.str());
+    }
+
+    float floatKey() {
+        // TODO runtime type check.
+        return std::stof(key_.str());
+    }
+
+    std::string strKey() {
+        // TODO runtime type check.
+        return key_.str(); 
+    }
+
+    c10::TypePtr type() {
+        return type_;
+    }
 
 private:
 
@@ -167,9 +201,42 @@ private:
     bool valid_;
 
     JitTypeMatcherPtr next_;
+
+    friend struct IValueRouter;
 };
 
+struct IValueRouter: std::enable_shared_from_this<IValueRouter> 
+{
+public:
+    static IValueRouterPtr create(c10::TypePtr type, std::string full_name) {
+        return std::make_shared<IValueRouter>(type, full_name);
+    }
 
+    static Status getAllTensorNames(c10::IValue &ivalue, std::string prefix, std::vector<std::string> &names);
+
+    explicit IValueRouter(c10::TypePtr type, std::string full_name)
+    {
+        full_name_ = full_name;
+        matcher_ = JitTypeMatcher::create(type, full_name);
+    }
+
+    // Here we use the type TensorPtr, readers will know the 
+    // ownership of the returned tensor still owes to the ivalue.
+    // you may say at::Tensor will not take the ownership too, why returning TensorPtr?
+    // because it is easily misunderstood.
+    Status route(c10::IValue &ivalue, at::TensorPtr &tensor);
+
+
+    // attach  the given tensor to the ivalue according to 
+    // the input name and ivalue type
+    // ownership of the tensor will transfer to the ivalue
+    Status attach(c10::IValue &ivalue, at::TensorPtr tensor);
+
+private:
+
+    JitTypeMatcherPtr matcher_;
+    std::string full_name_;
+};
 
 }  // namespace TNN_NS
 

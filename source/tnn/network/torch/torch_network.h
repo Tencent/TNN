@@ -63,6 +63,8 @@ private:
 
     virtual Status CreateIOBinding(InputShapesMap  min_shape, InputShapesMap max_shape);
   
+    virtual Status ClearOutputs();
+
     std::shared_ptr<torch::jit::Module> module_;
     std::shared_ptr<torch::jit::Graph> graph_;
 

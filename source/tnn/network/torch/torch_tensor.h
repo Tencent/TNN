@@ -21,36 +21,58 @@
 #include "tnn/core/macro.h"
 #include "tnn/interpreter/layer_resource.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
+#include "tnn/network/torch/torch_types.h"
 
 #include <torch/script.h>
 
 namespace TNN_NS {
+
 
 // @brief Base Type of a Torch Tensor
 class TorchTensor : public ForeignTensor {
 public:
     explicit TorchTensor() {};
 
-    explicit TorchTensor(std::shared_ptr<torch::Tensor> tensor):m_tensor(tensor) {};
+    explicit TorchTensor(at::TensorPtr tensor):tensor_(tensor) {};
+
+    explicit TorchTensor(IValueRouterPtr router):router_(router) {};
+
+    explicit TorchTensor(at::TensorPtr tensor, IValueRouterPtr router):tensor_(tensor), router_(router) {};
 
     // @brief virtual destructor
     virtual ~TorchTensor() {};
 
     // @brief get the ITensor
-    std::shared_ptr<torch::Tensor> GetTensor() {
-        return m_tensor;
+    at::TensorPtr GetTensor() {
+        return tensor_;
     }
 
-    Status SetTensor(std::shared_ptr<torch::Tensor> tensor) {
-        m_tensor = tensor;
+    Status SetTensor(at::TensorPtr tensor) {
+        tensor_ = tensor;
+        return TNN_OK;
+    }
+
+    IValueRouterPtr GetRouter() {
+        return router_;
+    }
+
+
+    Status SetRouter(IValueRouterPtr router) {
+        router_ = router;
         return TNN_OK;
     }
 
 private:
 
-    std::shared_ptr<torch::Tensor> m_tensor;
+    at::TensorPtr tensor_;
+    IValueRouterPtr router_;
 
 };
+
+Status GetIValueRouterFromBlob(Blob * blob, IValueRouterPtr &router);
+
+Status SetTensorToBlob(Blob * blob, at::TensorPtr tensor);
+
 
 }  //  namespace TNN_NS
 

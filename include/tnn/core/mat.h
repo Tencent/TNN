@@ -43,7 +43,9 @@ typedef enum {
     NCHW_FLOAT = 0x20,
     //NCDi[0-4]: int32
     NC_INT32 = 0x21,
-    
+    //int64
+    NC_INT64 = 0x22,
+
     // RESERVED FOR INTERNAL TEST USE
     RESERVED_BFP16_TEST = 0x200,
     RESERVED_FP16_TEST  = 0x201,

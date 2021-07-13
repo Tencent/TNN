@@ -91,6 +91,7 @@ Mat::Mat(DeviceType device_type, MatType mat_type, DimsVector dims) {
     } else {
         data_       = nullptr;
         data_alloc_ = nullptr;
+        LOGE("Mat Allocate failed msg:%s\n", status.description().c_str());
     }
 }
 

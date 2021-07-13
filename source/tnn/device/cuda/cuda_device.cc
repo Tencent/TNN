@@ -38,6 +38,8 @@ Status CudaDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
         desc.data_type = DATA_TYPE_FLOAT;
     } else if (mat_type == NC_INT32) {
         desc.data_type = DATA_TYPE_INT32;
+    } else if (mat_type == NC_INT64) {
+        desc.data_type = DATA_TYPE_INT64;
     } else {
         desc.data_type = DATA_TYPE_INT8;
     }

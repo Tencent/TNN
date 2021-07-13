@@ -45,7 +45,7 @@ public:
     //@brief create foreignBlob with blob only
     ForeignBlob(Blob * blob);
 
-    ~ForeignBlob();    
+    virtual ~ForeignBlob();    
 
     //@brief get the ForeignTensor
     std::shared_ptr<ForeignTensor> GetForeignTensor();
