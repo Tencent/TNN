@@ -82,6 +82,8 @@ struct MetalCastParams {
 #define kBroadcastTypeElement 0x0003
 #define kBroadcastTypeHeightWidth 0x0004
 
+#define kBroadcastTypeGeneral 0x0006
+
 /** Broadcast Param Struct **/
 struct MetalBroadcastParams {
     int input_width;
@@ -793,6 +795,22 @@ struct MetalTileParams {
         metal_params.pad_y       = conv_param->pads[2];                                                                \
         metal_params.dilation_x  = conv_param->dialations[0];                                                          \
         metal_params.dilation_y  = conv_param->dialations[1];                                                          \
+        metal_params.group       = conv_param->group;                                                                  \
+    } while (0)
+
+#define SetDefaultMetalConv1DParams(metal_params, conv_param)                                                            \
+    do {                                                                                                               \
+        metal_params.activation  = conv_param->activation_type;                                                        \
+        metal_params.has_bias    = conv_param->bias;                                                                   \
+        metal_params.kernel_x    = 1;                                                             \
+        metal_params.kernel_y    = conv_param->kernels[0];                                                             \
+        metal_params.kernel_size = metal_params.kernel_x * metal_params.kernel_y;                                      \
+        metal_params.stride_x    = 1;                                                             \
+        metal_params.stride_y    = conv_param->strides[0];                                                             \
+        metal_params.pad_x       = conv_param->pads[0];                                                                \
+        metal_params.pad_y       = 0;                                                                \
+        metal_params.dilation_x  = conv_param->dialations[0];                                                          \
+        metal_params.dilation_y  = 1;                                                          \
         metal_params.group       = conv_param->group;                                                                  \
     } while (0)
 

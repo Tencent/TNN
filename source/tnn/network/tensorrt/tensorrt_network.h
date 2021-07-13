@@ -93,6 +93,12 @@ public:
     // @brief OnSharedForwardMemoryChanged for share memory change observer
     virtual void OnSharedForwardMemoryChanged(void *memory);
 
+    // @brief get network forward for all blob memory size
+    virtual Status GetForwardMemorySize(int &memory_size);
+
+    // @brief set forward memory when share memory mode is set from external
+    virtual Status SetForwardMemory(void *memory);
+
     static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> GetPluginLayerNameMap();
 
     std::string GetCacheFileName(std::vector<std::string> params_md5, BlobMap input_map,
@@ -129,6 +135,7 @@ private:
     void* m_context_memory;
     NetResource *net_resource_;
     int device_id_;
+    size_t context_memory_size_;
 
     std::thread::id init_thread_id_;
 

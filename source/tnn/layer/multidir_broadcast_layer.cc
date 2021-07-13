@@ -48,6 +48,7 @@ void BroadCastTypeFilter(const DimsVector &dims_output, const DimsVector &dims_i
     } else {
         type = BroadcastTypeGeneral;
     }
+    
     return;
 }
 

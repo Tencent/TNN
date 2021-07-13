@@ -12,31 +12,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/binary_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_LAYER_BUILDER(Squeeze, LAYER_SQUEEZE);
+DECLARE_TRT_BINARY_LAYER_BUILDER(Equal);
 
-ILayer* SqueezeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    auto paramlist = dynamic_cast<SqueezeLayerParam*>(param_);
-    auto axes = paramlist->axes;
-    auto tensor = GetInputITensors()[0];
-    int size = tensor->getDimensions().nbDims;
-    for (auto& axis : axes) {
-        if (axis < 0) {
-            axis += size;
-        }
-    }
-    auto layer = addSqueeze(network, *tensor, axes);
-    if (layer != nullptr) {
-        layer->setName(layer_name_.c_str());
-    }
-
-    return layer;
+EqualTRTLayerBuilder::EqualTRTLayerBuilder(LayerType ignore) : BinaryTRTLayerBuilder(ignore) {
+    m_op = ElementWiseOperation::kEQUAL;
 }
 
-REGISTER_TENSORRT_LAYER_BUILDER(Squeeze, LAYER_SQUEEZE);
+REGISTER_TENSORRT_LAYER_BUILDER(Equal, LAYER_EQUAL);
 
 }  //  namespace TNN_NS
-
