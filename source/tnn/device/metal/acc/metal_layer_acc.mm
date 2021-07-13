@@ -376,10 +376,12 @@ std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int
 MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
     auto output_height  = DimsFunctionUtils::GetDim(dims, 2);
     auto output_width   = DimsFunctionUtils::GetDim(dims, 3);
-    if(dims.size() == 5)
+    if (dims.size() == 5) {
         output_width = output_width * DimsFunctionUtils::GetDimProduct(dims, 4);
-    else if(dims.size() == 6)
-        output_width = output_width * DimsFunctionUtils::GetDimProduct(dims, 4) * DimsFunctionUtils::GetDimProduct(dims, 5);
+    } else if (dims.size() == 6) {
+        output_width =
+            output_width * DimsFunctionUtils::GetDimProduct(dims, 4) * DimsFunctionUtils::GetDimProduct(dims, 5);
+    }
     auto output_size  = output_width * output_height;
     auto output_slice = UP_DIV(dims[1], 4);
     auto output_batch = dims[0];
