@@ -24,8 +24,7 @@ class PadV2LayerTest : public LayerTest,
 };
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PadV2LayerTest,
-                         ::testing::Combine(testing::Values(1, 2), testing::Values(1, 2, 3, 4, 10, 32),
-                                            testing::Values(9, 10, 16, 19),
+                         ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
                                             // pad_w
                                             testing::Values(0, 1, 2),
                                             // pad_h
