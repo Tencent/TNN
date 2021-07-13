@@ -49,10 +49,6 @@ TEST_P(InverseLayerTest, InverseLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_METAL == dev && batch != 1) {
-        GTEST_SKIP();
-    }
-
     Precision precision = SetPrecision(dev, data_type);
 
     // param
