@@ -236,24 +236,41 @@ namespace test {
         InputShapesMap input_shape;
         if(!FLAGS_is.empty()) {
             std::string input_shape_message(FLAGS_is);
-            std::string delimiter = ":";
-            std::vector<int> input_dim;
-            std::ptrdiff_t p1 = 0, p2;
-            p2 = input_shape_message.find(delimiter, p1);
-            std::string input_name = input_shape_message.substr(p1, p2 -p1);
-            p1 = p2 + 1;
-            delimiter = ",";
-            while (true) {
-                p2 = input_shape_message.find(delimiter, p1);
-                if (p2 != std::string::npos) {
-                    input_dim.push_back(atoi(input_shape_message.substr(p1, p2 - p1).c_str()));
-                    p1 = p2 + 1;
-                } else {
-                    input_dim.push_back(atoi(input_shape_message.substr(p1, input_shape_message.length() - p1).c_str()));
-                    break;
-                }
+            std::vector<std::string> input_shape_strs;
+            std::string delimiter = ";";
+
+            size_t pos = 0;
+            std::string token;
+            while ((pos = input_shape_message.find(delimiter)) != std::string::npos) {
+                token = input_shape_message.substr(0, pos);
+                input_shape_strs.push_back(token);
+                input_shape_message.erase(0, pos + delimiter.length());
             }
-            input_shape[input_name] = input_dim;
+            if (input_shape_message.length() != 0) {
+                input_shape_strs.push_back(input_shape_message);
+            }
+
+            for(auto input_shape_str : input_shape_strs)
+            {
+                std::string delimiter = ":";
+                std::vector<int> input_dim;
+                std::ptrdiff_t p1 = 0, p2;
+                p2 = input_shape_str.find(delimiter, p1);
+                std::string input_name = input_shape_str.substr(p1, p2 -p1);
+                p1 = p2 + 1;
+                delimiter = ",";
+                while (true) {
+                    p2 = input_shape_str.find(delimiter, p1);
+                    if (p2 != std::string::npos) {
+                        input_dim.push_back(atoi(input_shape_str.substr(p1, p2 - p1).c_str()));
+                        p1 = p2 + 1;
+                    } else {
+                        input_dim.push_back(atoi(input_shape_str.substr(p1, input_shape_str.length() - p1).c_str()));
+                        break;
+                    }
+                }
+                input_shape[input_name] = input_dim;
+            }
         }
         return input_shape;
     }
