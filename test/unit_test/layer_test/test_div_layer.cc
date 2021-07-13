@@ -30,7 +30,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, DivLayerTest,
                                             // weight index
                                             testing::Values(-1, 0, 1),
                                             // dims
-                                            testing::Values(2, 3, 4),
+                                            testing::Values(2, 3, 4, 5),
                                             // data_type
                                             testing::Values(DATA_TYPE_FLOAT)));
 

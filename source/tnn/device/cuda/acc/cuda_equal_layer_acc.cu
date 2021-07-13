@@ -12,31 +12,26 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_LAYER_BUILDER(Squeeze, LAYER_SQUEEZE);
+DECLARE_CUDA_ACC(Equal, LAYER_EQUAL);
 
-ILayer* SqueezeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    auto paramlist = dynamic_cast<SqueezeLayerParam*>(param_);
-    auto axes = paramlist->axes;
-    auto tensor = GetInputITensors()[0];
-    int size = tensor->getDimensions().nbDims;
-    for (auto& axis : axes) {
-        if (axis < 0) {
-            axis += size;
-        }
-    }
-    auto layer = addSqueeze(network, *tensor, axes);
-    if (layer != nullptr) {
-        layer->setName(layer_name_.c_str());
-    }
-
-    return layer;
+Status CudaEqualLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
-REGISTER_TENSORRT_LAYER_BUILDER(Squeeze, LAYER_SQUEEZE);
+Status CudaEqualLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
 
-}  //  namespace TNN_NS
+Status CudaEqualLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
 
+REGISTER_CUDA_ACC(Equal, LAYER_EQUAL);
+
+}  // namespace TNN_NS

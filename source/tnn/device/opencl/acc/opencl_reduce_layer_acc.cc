@@ -62,6 +62,13 @@ Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerReso
             kernel_name += "Local";
         }
 
+        if (reduce_param->keep_dims == 0 && axis < 3) {
+            if (run_local_work_) {
+                kernel_name = kernel_name.substr(0, kernel_name.size() - 5);
+            }
+            kernel_name += "NotKeepDims";
+        }
+
         std::set<std::string> build_options = CreateBuildOptions();
 
         ret = CreateExecuteUnit(execute_units_[0], "reduce", kernel_name, build_options);

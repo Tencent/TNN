@@ -12,57 +12,31 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Flatten, LAYER_FLATTEN);
+DECLARE_TENSORRT_LAYER_BUILDER(Flatten, LAYER_FLATTEN);
 
-bool FlattenTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
-    return inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32;
-}
+ILayer* FlattenTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto layer_param = dynamic_cast<FlattenLayerParam*>(param_);
+    auto tensor = GetInputITensors()[0];
 
-Status FlattenTRTPluginLayerBuilder::Reshape() {
-    return TNN_OK;
-}
-
-const char* FlattenTRTPluginLayerBuilder::getPluginType() const noexcept {
-    return "Flatten";
-}
-
-nvinfer1::DataType FlattenTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const noexcept {
-    return inputTypes[0];
-}
-
-ILayer* FlattenTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
-}
-
-DimsExprs FlattenTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) noexcept {
-    DimsExprs output;
-    output.nbDims = 2;
-    output.d[0] = exprBuilder.constant(1);
-    output.d[1] = exprBuilder.constant(1);
-    auto *layer_param = dynamic_cast<FlattenLayerParam *>(param_);
     int axis = layer_param->axis;
-    for (int i = 0; i < axis; i++) {
-        output.d[0] = exprBuilder.operation(DimensionOperation::kPROD, *output.d[0], *inputs[0].d[i]);
-    }
+    if (axis < 0) axis += tensor->getDimensions().nbDims;
 
-    for (int i = axis; i < inputs[0].nbDims; i++) {
-        output.d[1] = exprBuilder.operation(DimensionOperation::kPROD, *output.d[1], *inputs[0].d[i]);
-    }
+    auto dims = shapeOf(*tensor);
+    auto d0 = product(network, dims, 0, axis, 1);
+    auto d1 = product(network, dims, axis, dims.size(), 1);
 
-    return output;
+    IShuffleLayer* flatten_layer = addShuffle(network, *tensor, concat(network, d0, d1), false);
+    if (flatten_layer != nullptr) {
+        flatten_layer->setName(layer_name_.c_str());
+    }
+    return flatten_layer;
 }
 
-const char* FlattenPluginCreator::getPluginName() const noexcept {
-    return "Flatten";
-}
-
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(Flatten, LAYER_FLATTEN);
+REGISTER_TENSORRT_LAYER_BUILDER(Flatten, LAYER_FLATTEN);
 
 }  //  namespace TNN_NS
+

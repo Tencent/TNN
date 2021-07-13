@@ -68,12 +68,23 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
     // buffer_param_
     {
         MetalBroadcastParams metal_params;
-        metal_params.input_width  = DimsFunctionUtils::GetDim(dims_output, 3);
+
+        if(dims_output.size()==5){
+            metal_params.input_width  = DimsFunctionUtils::GetDim(dims_output, 3) * DimsFunctionUtils::GetDim(dims_output, 4);
+        }else{
+            metal_params.input_width  = DimsFunctionUtils::GetDim(dims_output, 3);
+        }
+        //metal_params.input_width  = DimsFunctionUtils::GetDim(dims_output, 3);
         metal_params.input_height = DimsFunctionUtils::GetDim(dims_output, 2);
         metal_params.input_size   = metal_params.input_height * metal_params.input_width;
         metal_params.input_slice  = UP_DIV(dims_output[1], 4);
 
-        metal_params.output_width  = DimsFunctionUtils::GetDim(dims_output, 3);
+        if(dims_output.size()==5){
+            metal_params.output_width  = DimsFunctionUtils::GetDim(dims_output, 3) * DimsFunctionUtils::GetDim(dims_output, 4);
+        }else{
+            metal_params.output_width  = DimsFunctionUtils::GetDim(dims_output, 3);
+        }
+        //metal_params.output_width  = DimsFunctionUtils::GetDim(dims_output, 3);
         metal_params.output_height = DimsFunctionUtils::GetDim(dims_output, 2);
         metal_params.output_size   = metal_params.output_height * metal_params.output_width;
         metal_params.output_slice  = UP_DIV(dims_output[1], 4);

@@ -42,15 +42,29 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     auto paramlist = dynamic_cast<PoolingLayerParam*>(param_);
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
+    auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
     bool int8 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetInt8Mode();
 
     bool symmetric = (paramlist->pads[0] == paramlist->pads[1]) && (paramlist->pads[2] == paramlist->pads[3]);
-    if (symmetric && (paramlist->is_global_pool || (int8 && paramlist->pool_type == 1) || paramlist->is_adaptive_pool)) {
+    if (symmetric && ((int8 && paramlist->pool_type == 1) || paramlist->is_adaptive_pool)) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
 
+    if (paramlist->is_global_pool) {
+        ReduceOperation op;
+        if (paramlist->pool_type == 0) {
+            op = ReduceOperation::kMAX;
+        } else {
+            op = ReduceOperation::kAVG;
+        }
+        uint32_t reduceAxes = ((1 << input_tensor->getDimensions().nbDims) - 1) & ~0b11;
+
+        ILayer* reduce = network->addReduce(*input_tensor, op, reduceAxes, true);
+        reduce->setName(layer_name_.c_str());
+        return reduce;
+    }
+
     Dims kernelSize(ConvertToTRTDimsReverse(paramlist->kernels));
-    auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
 
     PoolingType type;
     if (paramlist->pool_type == 0) {
