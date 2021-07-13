@@ -25,12 +25,19 @@ kernel void inverse(const device ftype4 *in [[buffer(0)]],
                         return;
 
     int index  = (int)gid.z * params.output_slice * params.output_size +
-                     (int)gid.y * params.output_size + (int)gid.x;
+                      (int)gid.y * params.output_size + (int)gid.x;
 
-    float det = in[index][0]*in[index][3] - in[index][1]*in[index][2];
-    float det_inverse = 1.0f / det;
+    int index_in = index/4*4;
+    float4 det = in[index_in]*in[index_in+3] - in[index_in+1]*in[index_in+2];
+    float4 det_inverse;
+    det_inverse = 1.0f / det;
 
-    ftype4 tmp = ftype4(in[index][3],in[index][1],in[index][2],in[index][0]);
-    out[index] = tmp*det_inverse;
-
+    if(index%4==0)
+        out[index_in+3] =  in[index] * det_inverse;
+    else if(index%4==1)
+        out[index_in+1] = -1.0 * in[index] * det_inverse;
+    else if(index%4==2)
+        out[index_in+2] = -1.0 * in[index] * det_inverse;
+    else if(index%4==3)
+        out[index_in] = in[index] * det_inverse;
 }

@@ -238,6 +238,7 @@ Status MetalLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, con
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     auto dims_input      = inputs[0]->GetBlobDesc().dims;
     auto dims_output     = outputs[0]->GetBlobDesc().dims;
+
     // buffer_param_
     {
         auto metal_params = GetDefaultMetalParams(dims_input, dims_output);
@@ -310,6 +311,7 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
         LOGE("MetalLayerAcc: DataType must be float or half\n");
         return Status(TNNERR_LAYER_ERR, "MetalLayerAcc: DataType must be float or half");
     }
+
     
     //
     auto context_impl = context_->getMetalContextImpl();
@@ -374,6 +376,12 @@ std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int
 MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
     auto output_height  = DimsFunctionUtils::GetDim(dims, 2);
     auto output_width   = DimsFunctionUtils::GetDim(dims, 3);
+    if (dims.size() == 5) {
+        output_width = output_width * DimsFunctionUtils::GetDimProduct(dims, 4);
+    } else if (dims.size() == 6) {
+        output_width =
+            output_width * DimsFunctionUtils::GetDimProduct(dims, 4) * DimsFunctionUtils::GetDimProduct(dims, 5);
+    }
     auto output_size  = output_width * output_height;
     auto output_slice = UP_DIV(dims[1], 4);
     auto output_batch = dims[0];
@@ -738,9 +746,15 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
     id<MTLDevice> device     = [TNNMetalDeviceImpl sharedDevice];
     id<MTLBuffer> mtl_buffer = nil;
 
-    const int channel = DimsFunctionUtils::GetDim(buffer_shape, 1);
-    const int kh      = DimsFunctionUtils::GetDim(buffer_shape, 2);
-    const int kw      = DimsFunctionUtils::GetDim(buffer_shape, 3);
+    int channel = DimsFunctionUtils::GetDim(buffer_shape, 1);
+    int kh      = DimsFunctionUtils::GetDim(buffer_shape, 2);
+    int kw      = DimsFunctionUtils::GetDim(buffer_shape, 3);
+
+    if (buffer_shape.size() == 5) {
+        kw = kw * DimsFunctionUtils::GetDim(buffer_shape, 4);
+    } else if (buffer_shape.size() == 6) {
+        kw = kw * DimsFunctionUtils::GetDim(buffer_shape, 4) * DimsFunctionUtils::GetDim(buffer_shape, 5);
+    }
 
     const int channel4 = UP_DIV(channel, 4) * 4;
 

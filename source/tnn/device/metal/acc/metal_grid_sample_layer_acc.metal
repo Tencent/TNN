@@ -28,9 +28,10 @@ kernel void grid_sample(const device ftype4 *input_data [[buffer(0)]],
 
     int index =  (int)gid.z * params.output_slice * params.output_size +
                  (int)gid.y * params.output_size + (int)gid.x;
-    int index_xy = (int)gid.z * params.output_slice * params.output_size*2/4 +
-                   (int)gid.x/(4*params.output_width) *2*params.output_width+
-                    (int)gid.x%params.output_width*2;
+
+    int index_xy = (int)gid.z  * ((params.output_size-1)/(4*params.output_width) +1)*2*params.output_width +
+                       (int)gid.x/(4*params.output_width) *2*params.output_width+
+                        (int)gid.x%params.output_width*2;
 
     int in_index_xy = gid.x/params.output_width%4;
 

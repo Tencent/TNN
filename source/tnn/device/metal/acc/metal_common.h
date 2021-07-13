@@ -740,6 +740,10 @@ struct MetalTileParams {
     int input_size;
     int input_slice;
     int input_channel;
+    int input_dim1_size;
+    int input_dim0_size;
+    int output_dim1_size;
+    int output_dim0_size;
 
     int output_width;
     int output_height;
@@ -751,6 +755,8 @@ struct MetalTileParams {
     int extend_width_times;
     int extend_channel_times;
     int extend_batch_times;
+    int extend_dim1_times;
+    int extend_dim0_times;
 };
 
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
