@@ -750,10 +750,11 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
     int kh      = DimsFunctionUtils::GetDim(buffer_shape, 2);
     int kw      = DimsFunctionUtils::GetDim(buffer_shape, 3);
 
-    if(buffer_shape.size() == 5)
+    if (buffer_shape.size() == 5) {
         kw = kw * DimsFunctionUtils::GetDim(buffer_shape, 4);
-    else if(buffer_shape.size() == 6)
+    } else if (buffer_shape.size() == 6) {
         kw = kw * DimsFunctionUtils::GetDim(buffer_shape, 4) * DimsFunctionUtils::GetDim(buffer_shape, 5);
+    }
 
     const int channel4 = UP_DIV(channel, 4) * 4;
 
