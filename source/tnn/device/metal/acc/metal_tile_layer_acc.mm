@@ -31,16 +31,37 @@ namespace TNN_NS {
         // buffer_param_
         {
             MetalTileParams metal_params;
-            metal_params.input_dim1_size      = dims_input[4];
-            metal_params.input_dim0_size      = dims_input[5];
+            if(dims_input.size() == 4) {
+                metal_params.input_dim0_size = 1;
+                metal_params.input_dim1_size = 1;
+                metal_params.output_dim1_size     = 1;
+                metal_params.output_dim0_size     = 1;
+                metal_params.extend_dim1_times    = 1;
+                metal_params.extend_dim0_times    = 1;
+            }
+            if(dims_input.size() == 5) {
+                metal_params.input_dim0_size = 1;
+                metal_params.input_dim1_size = dims_input[4];
+                metal_params.output_dim1_size     = dims_output[4];
+                metal_params.output_dim0_size     = 1;
+                metal_params.extend_dim1_times    = dims_output[4] / dims_input[4];
+                metal_params.extend_dim0_times    = 1;
+            }
+
+            if(dims_input.size() == 6) {
+                metal_params.input_dim0_size = dims_input[5];
+                metal_params.input_dim1_size = dims_input[4];
+                metal_params.output_dim0_size     = dims_output[5];
+                metal_params.output_dim1_size     = dims_output[4];
+                metal_params.extend_dim0_times    = dims_output[5] / dims_input[5];
+                metal_params.extend_dim1_times    = dims_output[4] / dims_input[4];
+            }
             metal_params.input_width          = dims_input[3];
             metal_params.input_height         = dims_input[2];
             metal_params.input_size           = metal_params.input_height * metal_params.input_width;
             metal_params.input_slice          = UP_DIV(dims_input[1], 4);
             metal_params.input_channel        = dims_input[1];
 
-            metal_params.output_dim1_size     = dims_output[4];
-            metal_params.output_dim0_size     = dims_output[5];
             metal_params.output_width         = dims_output[3]*metal_params.output_dim1_size * metal_params.output_dim0_size;
             metal_params.output_height        = dims_output[2];
             metal_params.output_size          = metal_params.output_height * metal_params.output_width;
@@ -50,8 +71,6 @@ namespace TNN_NS {
             metal_params.extend_batch_times   = dims_output[0] / dims_input[0];
             metal_params.extend_channel_times = dims_output[1] / dims_input[1];
             metal_params.extend_width_times   = dims_output[3] / dims_input[3];
-            metal_params.extend_dim1_times    = dims_output[4] / dims_input[4];
-            metal_params.extend_dim0_times    = dims_output[5] / dims_input[5];
 
             LOGE("input_width=%d\n",metal_params.input_width);
 
