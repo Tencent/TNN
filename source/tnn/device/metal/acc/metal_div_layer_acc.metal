@@ -71,7 +71,7 @@ kernel void div_broadcast(const device ftype4 *src0                             
         data1 = ftype4(src1[index_size]);
     } else if (params.broadcast_input1 == kBroadcastTypeGeneral) {
         data1 = ftype4(src1[(int)(gid.x/params.output_width)]);
-    } else if (params.broadcast_input0 == kBroadcastTypeWidth) {
+    } else if (params.broadcast_input1 == kBroadcastTypeWidth) {
         data1 = ftype4(src1[(int)(gid.x % params.output_width) + (int)(gid.y * params.input_size / 4)]);
     } else {
         data1 = src1[index];
