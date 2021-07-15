@@ -12,13 +12,20 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/acc/arm_gather_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(Gather, LAYER_GATHER);
+//DECLARE_ARM_ACC(Gather, LAYER_GATHER);
+
+bool ArmGatherLayerAcc::DataTypeSupported(DataType data_type) {
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_INT8 || data_type == DATA_TYPE_INT32)
+        return true;
+    else
+        return false;
+}
 
 Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
@@ -49,7 +56,7 @@ Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         indices_dims = (*(inputs.rbegin()))->GetBlobDesc().dims;
         indices_data_ptr = reinterpret_cast<int *>(GetBlobHandlePtr((*(inputs.rbegin()))->GetHandle()));
     }
-
+    
     const int slice_size = DimsVectorUtils::Count(input_data_dims, axis + 1);
     const int input_slice_count = DimsVectorUtils::Count(input_data_dims, axis, axis + 1);
     const int batch = DimsVectorUtils::Count(input_data_dims, 0, axis);
@@ -59,7 +66,7 @@ Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 
     const int ele_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
     auto output_data_ptr = GetBlobHandlePtr(outputs[0]->GetHandle());
-
+    
     for (int b = 0; b < batch; b++) {
         int input_index_b = b * input_slice_count * slice_size;
         int output_index_b = b * output_slice_count * slice_size;
@@ -81,7 +88,7 @@ Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 }
 
 REGISTER_ARM_ACC(Gather, LAYER_GATHER);
-REGISTER_ARM_PRECISION_FP16(LAYER_GATHER)
+//REGISTER_ARM_PRECISION_FP16(LAYER_GATHER)
 REGISTER_ARM_LAYOUT(LAYER_GATHER, DATA_FORMAT_NCHW)
 
 }  // namespace TNN_NS
