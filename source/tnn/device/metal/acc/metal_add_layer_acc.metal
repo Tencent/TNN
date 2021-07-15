@@ -54,6 +54,8 @@ kernel void add_broadcast(const device ftype4 *src0                             
         data0 = ftype4(src0[index_size]);
     } else if (params.broadcast_input0 == kBroadcastTypeGeneral) {
         data0 = ftype4(src0[(int)(gid.x/params.output_width)]);
+    } else if (params.broadcast_input0 == kBroadcastTypeWidth) {
+        data0 = ftype4(src0[(int)(gid.x % params.output_width) + (int)(gid.y * params.input_size / 4)]);
     } else {
         data0 = src0[index];
     }
@@ -69,6 +71,8 @@ kernel void add_broadcast(const device ftype4 *src0                             
         data1 = ftype4(src1[index_size]);
     } else if (params.broadcast_input1 == kBroadcastTypeGeneral) {
         data1 = ftype4(src1[(int)(gid.x/params.output_width)]);
+    } else if (params.broadcast_input1 == kBroadcastTypeWidth) {
+        data1 = ftype4(src1[(int)(gid.x % params.output_width) + (int)(gid.y * params.input_size / 4)]);
     } else {
         data1 = src1[index];
     }
