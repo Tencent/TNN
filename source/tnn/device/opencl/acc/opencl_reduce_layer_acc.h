@@ -16,6 +16,7 @@
 #define TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_REDUCE_LAYER_ACC_H_
 
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
+#include "tnn/device/opencl/acc/opencl_reshape_layer_acc.h"
 
 namespace TNN_NS {
 
@@ -28,13 +29,19 @@ public:
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
 private:
     virtual std::set<std::string> CreateBuildOptions() = 0;
-    Status GenerateTempImage(DimsVector dims);
+    Status InitReshapeLayer(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     bool run_local_work_ = false;
+    bool need_reshape_   = false;
 
-    std::shared_ptr<cl::Buffer> inter_buffer_  = nullptr;
-    std::shared_ptr<OpenCLMemory> inter_image_ = nullptr;
+    ReshapeLayerParam reshape_param_;
+    shared_ptr<OpenCLReshapeLayerAcc> reshape_layer_acc_ = nullptr;
+    std::vector<Blob *> reshape_inputs_                  = {};
+    shared_ptr<Blob> reshape_input_blob_                 = nullptr;
+    shared_ptr<cl::Image2D> reshape_input_image_         = nullptr;
 };
 
 #define DECLARE_OPENCL_REDUCE_ACC(type_string)                                                                         \

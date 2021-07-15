@@ -48,10 +48,6 @@ Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
 
-    if (reduce_param->keep_dims == 0) {
-        execute_units_.resize(3);
-    }
-
     if (reduce_param->axis.size() == 1) {
         int axis = reduce_param->axis[0];
         axis     = axis >= 0 ? axis : axis + (int)input_dims.size();
@@ -96,26 +92,6 @@ Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         }
     }
 
-    if (reduce_param->keep_dims == 0) {
-        // image->buffer
-        {
-            ret = CreateExecuteUnit(execute_units_[1], "image_to_buffer", "ImageToNCHWBuffer");
-            if (ret != TNN_OK) {
-                LOGE("create execute unit failed!\n");
-                return ret;
-            }
-        }
-
-        // buffer->image
-        {
-            ret = CreateExecuteUnit(execute_units_[2], "buffer_to_image", "NCHWBufferToImage");
-            if (ret != TNN_OK) {
-                LOGE("create execute unit failed!\n");
-                return ret;
-            }
-        }
-    }
-
     return TNN_OK;
 }
 
@@ -134,17 +110,18 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 
     ASSERT(inputs.size() == 1);
 
-    auto input_dims  = inputs[0]->GetBlobDesc().dims;
-    auto output_dims = outputs[0]->GetBlobDesc().dims;
-
-    const int keep_dims    = reduce_param->keep_dims;
-    auto final_output_dims = output_dims;
-    if (keep_dims == 0) {
-        output_dims = PadDims(output_dims, reduce_param->axis);
-        GenerateTempImage(output_dims);
+    need_reshape_ = reduce_param->keep_dims == 0;
+    // init
+    if (need_reshape_) {
+        ret = InitReshapeLayer(inputs, outputs);
+        CHECK_TNN_OK(ret)
     }
 
-    auto* reduce_output_ptr = keep_dims != 0 ? (cl::Image *)outputs[0]->GetHandle().base : (cl::Image *)inter_image_->GetData();
+    auto input_dims  = inputs[0]->GetBlobDesc().dims;
+    auto output_dims = !need_reshape_ ? outputs[0]->GetBlobDesc().dims : reshape_inputs_[0]->GetBlobDesc().dims;
+
+    auto *reduce_output_ptr =
+        !need_reshape_ ? (cl::Image *)outputs[0]->GetHandle().base : (cl::Image *)reshape_inputs_[0]->GetHandle().base;
 
     int hb   = DimsFunctionUtils::GetDim(output_dims, 0) * DimsFunctionUtils::GetDim(output_dims, 2);
     int cw   = DimsFunctionUtils::GetDim(output_dims, 3) * UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4);
@@ -262,97 +239,94 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         execute_units_[0].ocl_kernel.setArg(idx++, 4 * sizeof(int), axis_nhwc.data());
     }
 
-    if (keep_dims == 0) {
-        OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-
-        int size0 = UP_DIV(DimsFunctionUtils::GetDim(final_output_dims, 1), 4) * 4 *
-                    DimsFunctionUtils::GetDim(final_output_dims, 0) * DimsFunctionUtils::GetDim(final_output_dims, 2) *
-                    DimsFunctionUtils::GetDim(final_output_dims, 3);
-        int size1 = UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4) * 4 *
-                    DimsFunctionUtils::GetDim(output_dims, 0) * DimsFunctionUtils::GetDim(output_dims, 2) *
-                    DimsFunctionUtils::GetDim(output_dims, 3);
-        int blob_size = std::max(size0, size1) * sizeof(float);
-
-        inter_buffer_ = std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, blob_size);
-
-        // image->buffer
-        {
-            uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[1], output_dims);
-            execute_units_[1].ocl_kernel.setArg(idx++, *inter_buffer_.get());
-            execute_units_[1].ocl_kernel.setArg(idx++,
-                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
-            execute_units_[1].ocl_kernel.setArg(idx++,
-                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
-            execute_units_[1].ocl_kernel.setArg(idx++,
-                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
-            execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)inter_image_->GetData()));
+    // reshape
+    if (need_reshape_) {
+        if (reshape_layer_acc_ == nullptr) {
+            return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "reshape layer acc in Reduce is null");
         }
-
-        // buffer->image
-        {
-            uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[2], final_output_dims);
-            execute_units_[2].ocl_kernel.setArg(idx++, *inter_buffer_.get());
-            execute_units_[2].ocl_kernel.setArg(idx++,
-                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(final_output_dims, 2)));
-            execute_units_[2].ocl_kernel.setArg(idx++,
-                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(final_output_dims, 3)));
-            execute_units_[2].ocl_kernel.setArg(idx++,
-                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(final_output_dims, 1)));
-            execute_units_[2].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-        }
+        ret = reshape_layer_acc_->Reshape(reshape_inputs_, outputs);
+        CHECK_TNN_OK(ret)
     }
 
     return TNN_OK;
 }
 
-Status OpenCLReduceLayerAcc::GenerateTempImage(DimsVector dims) {
+Status OpenCLReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret = TNN_OK;
+    ret        = OpenCLLayerAcc::Forward(inputs, outputs);
+    if (need_reshape_) {
+        // reshape first
+        if (reshape_layer_acc_ == nullptr) {
+            return Status(TNNERR_OPENCL_ACC_FORWARD_ERROR, "reshape layer acc in Reduce is null");
+        }
+        ret = reshape_layer_acc_->Forward(reshape_inputs_, outputs);
+        CHECK_TNN_OK(ret)
+    }
+
+    return ret;
+}
+
+Status OpenCLReduceLayerAcc::InitReshapeLayer(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret = TNN_OK;
+
+    reshape_layer_acc_ = std::make_shared<OpenCLReshapeLayerAcc>();
+    if (reshape_layer_acc_ == nullptr) {
+        LOGE("Create Reshape Layer Acc in InnerProduct failed!\n");
+        return Status(TNNERR_CREATE_LAYER, "Create Reshape Layer Acc in Reduce failed!");
+    }
+
+    auto reduce_param = dynamic_cast<ReduceLayerParam *>(param_);
+    if (!reduce_param) {
+        LOGE("Error: layer param is null\n");
+        return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
+    }
+
+    // create output_blob
+    BlobDesc desc           = inputs[0]->GetBlobDesc();
+    desc.data_format        = DATA_FORMAT_NHC4W4;
+    auto input_dims         = inputs[0]->GetBlobDesc().dims;
+    auto output_dims        = outputs[0]->GetBlobDesc().dims;
+    auto reduce_axis        = reduce_param->axis;
+    auto reshape_input_dims = PadDims(output_dims, reduce_axis);
+    desc.dims               = reshape_input_dims;
+    reshape_input_blob_     = std::make_shared<Blob>(desc);
+    if (reshape_input_blob_ == nullptr) {
+        LOGE("Create reshape output blob in Reduce failed!\n");
+        return Status(TNNERR_CREATE_LAYER, "Create reshape output blob in Reduce failed!");
+    }
+    reshape_inputs_.clear();
+    reshape_inputs_.push_back(reshape_input_blob_.get());
+
+    // create output_image
+    int climage_w =
+        UP_DIV(DimsFunctionUtils::GetDim(reshape_input_dims, 1), 4) * DimsFunctionUtils::GetDim(reshape_input_dims, 3);
+    int climage_h = DimsFunctionUtils::GetDim(reshape_input_dims, 0) * DimsFunctionUtils::GetDim(reshape_input_dims, 2);
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-
-    // copy param data into clBuffer
-    shared_ptr<OpenCLMemory> buffer(new OpenCLMemory(TNN_CL_BUFFER));
-    int buffer_size = DimsFunctionUtils::GetDim(dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(dims, 1), 4) *
-                      DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
-    cl_int ret = CL_SUCCESS;
-    cl::Buffer param_clbuffer(*opencl_runtime->Context(), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                              buffer_size * sizeof(float), nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
-    }
-    buffer->SetData(&param_clbuffer);
-    auto param_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
-        param_clbuffer, true, CL_MAP_WRITE, 0, buffer_size * sizeof(float), nullptr, nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
-    }
-    memset(param_clbuffer_ptr, 0, buffer_size * sizeof(float));
-    ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(param_clbuffer, param_clbuffer_ptr);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
-    }
-
-    // create binary_param_
-    int climage_w             = UP_DIV(DimsFunctionUtils::GetDim(dims, 1), 4) * DimsFunctionUtils::GetDim(dims, 3);
-    int climage_h             = DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 2);
+    DimsVector imageshape{climage_w, climage_h};
     cl_channel_type data_type = CL_FLOAT;
     if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
         data_type = CL_HALF_FLOAT;
-    cl::Image2D *image = new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
-                                         cl::ImageFormat(CL_RGBA, data_type), climage_w, climage_h, 0, nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        if (nullptr != image)
-            delete image;
+    cl_int err           = CL_SUCCESS;
+    reshape_input_image_ = std::make_shared<cl::Image2D>(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
+                                                         cl::ImageFormat(CL_RGBA, data_type), imageshape[0],
+                                                         imageshape[1], 0, nullptr, &err);
+    if (err != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(err)
         return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
-    inter_image_.reset(new OpenCLMemory(TNN_CL_IMAGE));
-    inter_image_->SetData(image, true);
+    BlobHandle blob_handle;
+    blob_handle.base = reshape_input_image_.get();
+    reshape_input_blob_->SetHandle(blob_handle);
 
-    // convert nchw buffer to Image
-    ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
-    return convertor.ConvertBufferToImage(buffer.get(), NCHW_BUFFER, dims, inter_image_.get(), true);
+    // Init LayerAcc
+    reshape_param_.name         = layer_name_ + "_Reshape";
+    reshape_param_.reshape_type = 0;
+    reshape_param_.axis         = 0;
+    reshape_param_.num_axes     = output_dims.size();
+    reshape_param_.shape        = output_dims;
+    reshape_layer_acc_->Init(ocl_context_, &reshape_param_, nullptr, reshape_inputs_, outputs);
+
+    return ret;
 }
 
 }  // namespace TNN_NS
