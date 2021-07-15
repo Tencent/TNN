@@ -19,26 +19,30 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(DetectionOutput, LAYER_DETECTION_OUTPUT);
 
 bool DetectionOutputTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
         && inOut[pos].type == inOut[0].type);
 }
 
-const char* DetectionOutputTRTPluginLayerBuilder::getPluginType() const {
+Status DetectionOutputTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* DetectionOutputTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "DetectionOutput";
 }
 
-nvinfer1::DataType DetectionOutputTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+nvinfer1::DataType DetectionOutputTRTPluginLayerBuilder::getOutputDataType(int index,
+        const nvinfer1::DataType* inputTypes, int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* DetectionOutputTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* DetectionOutputTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs DetectionOutputTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DetectionOutputLayerParam* param = dynamic_cast<DetectionOutputLayerParam*>(param_);
     DimsExprs output;
     output.nbDims = 4;
@@ -49,7 +53,7 @@ DimsExprs DetectionOutputTRTPluginLayerBuilder::getOutputDimensions(int index, c
     return output;
 }
 
-const char* DetectionOutputPluginCreator::getPluginName() const {
+const char* DetectionOutputPluginCreator::getPluginName() const noexcept {
     return "DetectionOutput";
 }
 

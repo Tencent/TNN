@@ -20,7 +20,8 @@
 namespace TNN_NS {
 
 class PadV2LayerTest : public LayerTest,
-                     public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, float>> {};
+                       public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, int, int, float>> {
+};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PadV2LayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
@@ -62,30 +63,39 @@ TEST_P(PadV2LayerTest, PadV2Layer) {
     }
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
-    // only cuda implements padv2 now
-    if (DEVICE_CUDA != dev) {
+    // only cuda, arm, opencl implements padv2 now
+    if (!(DEVICE_CUDA == dev || DEVICE_ARM == dev || DEVICE_OPENCL == dev)) {
+        GTEST_SKIP();
+    }
+    // arm only support dims size 4
+    if (DEVICE_ARM == dev && dim_count != 4) {
+        GTEST_SKIP();
+    }
+    // opnecl only support dims size 4
+    if (DEVICE_OPENCL == dev && dim_count != 4) {
         GTEST_SKIP();
     }
 
     // param
     std::shared_ptr<PadLayerParam> param(new PadLayerParam());
-    param->name  = "PadV2";
-    param->type  = pad_type;
+    param->name = "PadV2";
+    param->type = pad_type;
     if (dim_count == 2) {
-        param->pads  = {0, pad_c, 0, pad_c};
+        param->pads = {0, pad_c, 0, pad_c};
     } else if (dim_count == 3) {
-        param->pads  = {0, pad_c, pad_h, 0, pad_c, pad_h};
+        param->pads = {0, pad_c, pad_h, 0, pad_c, pad_h};
     } else if (dim_count == 4) {
-        param->pads  = {0, pad_c, pad_h, pad_w, 0, pad_c, pad_h, pad_w};
+        param->pads = {0, pad_c, pad_h, pad_w, 0, pad_c, pad_h, pad_w};
     } else if (dim_count == 5) {
-        param->pads  = {0, pad_c, pad_h, pad_w, pad_w, 0, pad_c, pad_h, pad_w, pad_w};
-    } 
+        param->pads = {0, pad_c, pad_h, pad_w, pad_w, 0, pad_c, pad_h, pad_w, pad_w};
+    }
     param->value = value;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel};
-    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
-    auto interpreter            = GenerateInterpreter("PadV2", {input_dims}, param);
+    while (input_dims.size() < dim_count)
+        input_dims.push_back(input_size);
+    auto interpreter = GenerateInterpreter("PadV2", {input_dims}, param);
     Run(interpreter);
 }
 

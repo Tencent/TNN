@@ -19,26 +19,30 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(ReduceL2, LAYER_REDUCE_L2);
 
 bool ReduceL2TRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept{
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
         && inOut[pos].type == inOut[0].type);
 }
 
-const char* ReduceL2TRTPluginLayerBuilder::getPluginType() const {
+Status ReduceL2TRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* ReduceL2TRTPluginLayerBuilder::getPluginType() const noexcept {
     return "ReduceL2";
 }
 
 nvinfer1::DataType ReduceL2TRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* ReduceL2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* ReduceL2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs ReduceL2TRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     auto param = dynamic_cast<ReduceLayerParam*>(param_);
     DimsExprs output;
     if (param->keep_dims == 0) {
@@ -62,7 +66,7 @@ DimsExprs ReduceL2TRTPluginLayerBuilder::getOutputDimensions(int index, const nv
     return output;
 }
 
-const char* ReduceL2PluginCreator::getPluginName() const {
+const char* ReduceL2PluginCreator::getPluginName() const noexcept {
     return "ReduceL2";
 }
 

@@ -19,29 +19,33 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Inverse, LAYER_INVERSE);
 
 bool InverseTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return inOut[pos].type == nvinfer1::DataType::kFLOAT;
 }
 
-const char* InverseTRTPluginLayerBuilder::getPluginType() const {
+Status InverseTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* InverseTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "Inverse";
 }
 
 nvinfer1::DataType InverseTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* InverseTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* InverseTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs InverseTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInput, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInput, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInput, exprBuilder);
 }
 
-const char* InversePluginCreator::getPluginName() const {
+const char* InversePluginCreator::getPluginName() const noexcept {
     return "Inverse";
 }
 

@@ -19,30 +19,34 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Sign, LAYER_SIGN);
 
 bool SignTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
         && inOut[pos].type == inOut[0].type);
 }
 
-const char* SignTRTPluginLayerBuilder::getPluginType() const {
+Status SignTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* SignTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "Sign";
 }
 
 nvinfer1::DataType SignTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* SignTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* SignTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs SignTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputDims, exprBuilder);
 }
 
-const char* SignPluginCreator::getPluginName() const {
+const char* SignPluginCreator::getPluginName() const noexcept {
     return "Sign";
 }
 

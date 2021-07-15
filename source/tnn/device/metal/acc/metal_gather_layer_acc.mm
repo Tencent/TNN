@@ -17,6 +17,7 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/utils/half_utils.h"
 
 namespace TNN_NS {
 

@@ -19,26 +19,30 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Einsum, LAYER_EINSUM);
 
 bool EinsumTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
         && inOut[pos].type == inOut[0].type);
 }
 
-const char* EinsumTRTPluginLayerBuilder::getPluginType() const {
+Status EinsumTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* EinsumTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "Einsum";
 }
 
 nvinfer1::DataType EinsumTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* EinsumTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* EinsumTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs EinsumTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     auto param = dynamic_cast<EinsumLayerParam *>(param_);
     DimsExprs output;
     auto output_dims = output_blobs_[0]->GetBlobDesc().dims;
@@ -50,7 +54,7 @@ DimsExprs EinsumTRTPluginLayerBuilder::getOutputDimensions(int index, const nvin
     return output;
 }
 
-const char* EinsumPluginCreator::getPluginName() const {
+const char* EinsumPluginCreator::getPluginName() const noexcept {
     return "Einsum";
 }
 

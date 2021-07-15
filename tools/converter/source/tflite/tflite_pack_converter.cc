@@ -33,31 +33,33 @@ TNN_NS::Status TFLitePackConverter::exec(TNN_NS::NetStructure &net_structure, TN
                                          const std::vector<std::unique_ptr<tflite::BufferT>> &tf_lite_model_buffer,
                                          const std::vector<std::unique_ptr<tflite::OperatorCodeT>> &tf_lite_op_set,
                                          bool quantized_model) {
-    auto param           = new TNN_NS::ConcatLayerParam;
-    auto cur_layer       = net_structure.layers.back();
-    cur_layer->param     = std::shared_ptr<TNN_NS::LayerParam>(param);
-    param->name          = cur_layer->name;
-    param->type          = cur_layer->type_str;
-    param->quantized     = quantized_model;
-    auto option          = tf_lite_operator->builtin_options.AsPackOptions();
-    auto &input_tensor   = tf_lite_tensors[tf_lite_operator->inputs[0]];
-    param->axis          = ConvertAxisFormatTFLite(option->axis, input_tensor->shape.size());
-    for (const auto& index: tf_lite_operator->inputs){
-        const auto& tensor = tf_lite_tensors[index];
-        const auto& buffer = tf_lite_model_buffer[tensor->buffer];
+    auto param         = new TNN_NS::ConcatLayerParam;
+    auto cur_layer     = net_structure.layers.back();
+    cur_layer->param   = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->name        = cur_layer->name;
+    param->type        = cur_layer->type_str;
+    param->quantized   = quantized_model;
+    auto option        = tf_lite_operator->builtin_options.AsPackOptions();
+    auto &input_tensor = tf_lite_tensors[tf_lite_operator->inputs[0]];
+    param->axis        = ConvertAxisFormatTFLite(option->axis, input_tensor->shape.size());
+    for (const auto &index : tf_lite_operator->inputs) {
+        const auto &tensor = tf_lite_tensors[index];
+        const auto &buffer = tf_lite_model_buffer[tensor->buffer];
         if (buffer->data.empty()) {
             continue;
         }
-        const auto& input_dims = tensor->shape;
-        int data_count = buffer->data.size() / SizeofTFLiteTensorData(tensor->type);
+        const auto &input_dims = tensor->shape;
+        int data_count         = buffer->data.size() / SizeofTFLiteTensorData(tensor->type);
         if (input_dims.empty() && data_count == 1 && tensor->type == tflite::TensorType_INT32) {
             // only one value
             std::vector<int32_t> tnn_dims = {1};
-            auto raw_buffer = new TNN_NS::RawBuffer(data_count * sizeof(int32_t), tnn_dims);
+            auto raw_buffer               = new TNN_NS::RawBuffer(data_count * sizeof(int32_t), tnn_dims);
             raw_buffer->SetDataType(TNN_NS::DATA_TYPE_INT32);
-            ::memcpy(raw_buffer->force_to<int32_t*>(), reinterpret_cast<int32_t*>(buffer->data.data()),
+            ::memcpy(raw_buffer->force_to<int32_t *>(), reinterpret_cast<int32_t *>(buffer->data.data()),
                      data_count * sizeof(int32_t));
             net_resource.constant_map[tensor->name] = std::shared_ptr<TNN_NS::RawBuffer>(raw_buffer);
+            net_resource.constant_map[tensor->name] =
+                std::make_shared<TNN_NS::RawBuffer>(ConvertRawBuffer::GetInstance()->Convert(*raw_buffer));
         } else {
             LOGE("TFLite Pack only support pack one value");
             return TNN_NS::Status(TNN_NS::TNNERR_UNSUPPORT_NET, "TFLite Pack only support pack one value");

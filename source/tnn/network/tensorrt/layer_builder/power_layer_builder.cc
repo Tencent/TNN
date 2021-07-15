@@ -29,6 +29,22 @@ ILayer* PowTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
     auto input_dims        = input_blobs_[0]->GetBlobDesc().dims;
 
+    if (params->exponent == 0.5 && params->shift == 0 && params->scale == 1) {
+        if (tensor->getDimensions().nbDims == 0) {
+            IShuffleLayer* shuffle_layer = network->addShuffle(*GetInputITensors()[0]);
+            nvinfer1::Dims d;
+            d.nbDims = 1;
+            d.d[0] = 1;
+            shuffle_layer->setReshapeDimensions(d);
+            tensor = shuffle_layer->getOutput(0);
+        }
+        IUnaryLayer* layer = network->addUnary(*tensor, UnaryOperation::kSQRT);
+        if (layer != nullptr) {
+            layer->setName(layer_name_.c_str());
+        }
+        return layer;
+    }
+
     Weights power;
     power.type = nvinfer1::DataType::kFLOAT;
     power.count = 1;
@@ -44,14 +60,15 @@ ILayer* PowTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     scale.count = 1;
     scale.values = &(params->scale);
 
+    int dims_size = tensor->getDimensions().nbDims;
     // unsqueeze 
     ILayer* layer;
-    if (input_dims.size() == 2 || input_dims.size() == 3) {
+    if (dims_size == 2 || dims_size == 3) {
         DimsVector unsqueeze_dims;
-        for (int i = 0; i < input_dims.size(); i++) {
-            unsqueeze_dims.push_back(input_dims[i]);
+        for (int i = 0; i < dims_size; i++) {
+            unsqueeze_dims.push_back(0);
         }
-        for (int i = 0; i < 4-input_dims.size(); i++) {
+        for (int i = 0; i < 4 - dims_size; i++) {
             unsqueeze_dims.push_back(1);
         }
         layer = AddReshapeToNetwork(network, tensor, unsqueeze_dims, (layer_name_ + "squeeze").c_str());
@@ -66,8 +83,12 @@ ILayer* PowTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     }
 
     //squeeze
-    if(input_dims.size() == 2 || input_dims.size() == 3) {
-       layer = AddReshapeToNetwork(network, tensor, input_dims, (layer_name_ + "unsqueeze").c_str());
+    if(dims_size == 2 || dims_size == 3) {
+        DimsVector squeeze_dims;
+        for (int i = 0; i < dims_size; i++) {
+            squeeze_dims.push_back(0);
+        }
+        layer = AddReshapeToNetwork(network, tensor, squeeze_dims, (layer_name_ + "unsqueeze").c_str());
     }
 
     return layer;

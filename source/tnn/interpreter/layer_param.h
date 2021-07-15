@@ -88,7 +88,7 @@ struct GroupNormLayerParam : public LayerParam {
 
 struct LayerNormLayerParam : public LayerParam {
     int reduce_dims_size = 0;
-    float eps = 1e-5f;
+    float eps            = 1e-5f;
 
     PARAM_COPY(LayerNormLayerParam)
 };
@@ -97,14 +97,14 @@ struct GridSampleLayerParam : public LayerParam {
     // 1: nereast 2: bilinear/linear 3: cubic
     int mode = 2;
     // 0:const 1:reflect 2:edge
-    int pad_type = 0;
+    int pad_type      = 0;
     int align_corners = 0;
 
     PARAM_COPY(GridSampleLayerParam)
 };
 
 struct TileLayerParam : public LayerParam {
-    //nchw order
+    // nchw order
     std::vector<int> reps;
 
     PARAM_COPY(TileLayerParam)
@@ -133,8 +133,8 @@ struct ConvLayerParam : public LayerParam {
 };
 
 struct PadLayerParam : public LayerParam {
-    //for old Pad the order is  [w_begin, w_end, h_begin, h_end, c_begin, c_end]
-    //for PadV2 the order correspand to input dims, same as ONNX, like [x1_begin, x2_begin,...,x1_end, x2_end,...]
+    // for old Pad the order is  [w_begin, w_end, h_begin, h_end, c_begin, c_end]
+    // for PadV2 the order correspand to input dims, same as ONNX, like [x1_begin, x2_begin,...,x1_end, x2_end,...]
     std::vector<int> pads;
     // 0:const 1:reflect 2:edge
     int type    = 0;
@@ -161,6 +161,7 @@ struct PoolingLayerParam : public LayerParam {
     std::vector<int> kernel_indexs;
 
     int is_adaptive_pool = 0;
+    int is_global_pool   = 0;
     // order [w h d]
     std::vector<int> output_shape;
 
@@ -195,8 +196,8 @@ struct UpsampleLayerParam : public LayerParam {
 
 struct RangeLayerParam : public LayerParam {
     DataType data_type = DATA_TYPE_FLOAT;
-    RangeData start = {0};
-    RangeData limit = {0};
+    RangeData start    = {0};
+    RangeData limit    = {0};
 
     // designated initializer may cause compile error in msvc
     RangeData delta = {1};
@@ -250,7 +251,7 @@ struct PermuteLayerParam : public LayerParam {
 
 struct CastLayerParam : public LayerParam {
     int to   = 0;
-    int from = 0; // used for HUAWEI_NPU
+    int from = 0;  // used for HUAWEI_NPU
 
     PARAM_COPY(CastLayerParam)
 };
@@ -261,18 +262,18 @@ struct HistogramLayerParam : public LayerParam {
 };
 
 struct OneHotLayerParam : public LayerParam {
-    int axis = -1;
-    int depth = -1;
+    int axis        = -1;
+    int depth       = -1;
     float value_off = 0;
-    float value_on = 1;
-    
+    float value_on  = 1;
+
     PARAM_COPY(OneHotLayerParam)
 };
 
 struct BitShiftLayerParam : public LayerParam {
-    //0: rigth 1:left
+    // 0: rigth 1:left
     int direction = 0;
-    int bits = 0;
+    int bits      = 0;
     PARAM_COPY(BitShiftLayerParam)
 };
 
@@ -288,6 +289,8 @@ struct SplitVLayerParam : public LayerParam {
     int axis = 1;
     // size of each slice
     std::vector<int> slices;
+    // judge whether slices is specified or calculated by equal sized parts
+    bool is_split_specified = true;
 
     PARAM_COPY(SplitVLayerParam)
 };
@@ -323,7 +326,7 @@ struct InnerProductLayerParam : public LayerParam {
 };
 
 struct ConcatLayerParam : public LayerParam {
-    int axis                    = 1;
+    int axis = 1;
 
     PARAM_COPY(ConcatLayerParam)
 };
@@ -555,7 +558,7 @@ struct SignedMulLayerParam : public LayerParam {
 };
 
 struct SqueezeLayerParam : public LayerParam {
-    //Note the axes is ascending order,  see SqueezeLayer::InferOutputShape and UnsqueezeLayer::InferOutputShape
+    // Note the axes is ascending order,  see SqueezeLayer::InferOutputShape and UnsqueezeLayer::InferOutputShape
     std::vector<int> axes;
     bool data_in_resource = false;
 
@@ -591,15 +594,15 @@ struct GatherLayerParam : public LayerParam {
 };
 
 struct GatherNDLayerParam : public LayerParam {
-    int batch_dims                 = 0;
+    int batch_dims = 0;
     PARAM_COPY(GatherNDLayerParam)
 };
 
 struct LSTMONNXLayerParam : public LayerParam {
     float clip_threshold = 0;
     int hidden_size      = 0;
-    //0: forward 1:reverse 2:bidirection
-    int direction                        = 0;
+    // 0: forward 1:reverse 2:bidirection
+    int direction = 0;
 
     PARAM_COPY(LSTMONNXLayerParam)
 };
@@ -628,7 +631,6 @@ struct RoiAlignLayerParam : public LayerParam {
     float spatial_scale;
 
     PARAM_COPY(RoiAlignLayerParam)
-
 };
 
 struct FlattenLayerParam : public LayerParam {
@@ -646,6 +648,15 @@ struct EinsumLayerParam : public LayerParam {
     std::vector<DimsVector> operand_dims;
 
     PARAM_COPY(EinsumLayerParam)
+};
+
+struct TopKLayerParam : public LayerParam {
+    int axis    = -1;
+    int largest = 1;
+    int sorted  = 1;
+    int k;
+
+    PARAM_COPY(TopKLayerParam)
 };
 
 };  // namespace TNN_NS

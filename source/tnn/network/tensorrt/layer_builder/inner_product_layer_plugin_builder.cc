@@ -19,21 +19,25 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(InnerProduct, LAYER_INNER_PRODUCT);
 
 bool InnerProductTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
 }
 
-const char* InnerProductTRTPluginLayerBuilder::getPluginType() const {
+Status InnerProductTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* InnerProductTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "InnerProduct";
 }
 
 nvinfer1::DataType InnerProductTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
 DimsExprs InnerProductTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
 
     InnerProductLayerParam* ip_param = dynamic_cast<InnerProductLayerParam*>(param_);
     if (!ip_param) {
@@ -55,11 +59,11 @@ DimsExprs InnerProductTRTPluginLayerBuilder::getOutputDimensions(int index, cons
     return output;
 }
 
-ILayer* InnerProductTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* InnerProductTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
-const char* InnerProductPluginCreator::getPluginName() const {
+const char* InnerProductPluginCreator::getPluginName() const noexcept {
     return "InnerProduct";
 }
 

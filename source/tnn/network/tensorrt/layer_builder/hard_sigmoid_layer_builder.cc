@@ -19,30 +19,34 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(HardSigmoid, LAYER_HARDSIGMOID);
 
 bool HardSigmoidTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
         && inOut[pos].type == inOut[0].type);
 }
 
-const char* HardSigmoidTRTPluginLayerBuilder::getPluginType() const {
+Status HardSigmoidTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* HardSigmoidTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "HardSigmoid";
 }
 
 nvinfer1::DataType HardSigmoidTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* HardSigmoidTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* HardSigmoidTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs HardSigmoidTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputDims, exprBuilder);
 }
 
-const char* HardSigmoidPluginCreator::getPluginName() const {
+const char* HardSigmoidPluginCreator::getPluginName() const noexcept {
     return "HardSigmoid";
 }
 
