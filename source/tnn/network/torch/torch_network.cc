@@ -35,6 +35,20 @@
 #include <torch/torch.h>
 #include <torch/csrc/jit/passes/freeze_module.h>
 #include <torch/csrc/jit/passes/lower_graph.h>
+
+#include "torch/csrc/jit/passes/common_subexpression_elimination.h"
+#include "torch/csrc/jit/passes/create_functional_graphs.h"
+#include "torch/csrc/jit/passes/dead_code_elimination.h"
+#include "torch/csrc/jit/passes/freeze_module.h"
+#include "torch/csrc/jit/passes/fuse_linear.h"
+#include "torch/csrc/jit/passes/guard_elimination.h"
+#include "torch/csrc/jit/passes/loop_unrolling.h"
+#include "torch/csrc/jit/passes/lower_graph.h"
+#include "torch/csrc/jit/passes/lower_tuples.h"
+#include "torch/csrc/jit/passes/peephole.h"
+#include "torch/csrc/jit/passes/remove_mutation.h"
+#include "tnn/network/torch/partitioning.h"
+
 #include <torchvision/vision.h>
 
 
@@ -75,8 +89,11 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
     at::ArrayRef<torch::jit::Value*> inputs = graph_->block()->inputs();
     at::ArrayRef<torch::jit::Value*> outputs = graph_->block()->outputs();
 
-    #if 0
-    //printf("graph dump:\n:%s\n", graph_->toString().c_str());
+    #if 1
+    // printf("graph dump:\n:%s\n", graph_->toString().c_str());
+    std::shared_ptr<torch::jit::Graph> g_ptr(graph_);
+    auto seg_blocks = trtorch::partitioning::Partition(g_ptr);
+    
 
     for(int i=0;i<inputs.size();i++) {
         auto input = inputs[i];
@@ -101,7 +118,18 @@ Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
     RETURN_ON_NEQ(ConvertToTorchDevice(device, config.device_type, config.device_id), TNN_OK);
     auto mod = torch::jit::load(in, device);
     module_ = std::make_shared<torch::jit::Module>(torch::jit::freeze(mod));
-    graph_ = module_->get_method(forward_func_name_).graph(); 
+    graph_ = module_->get_method(forward_func_name_).graph();
+
+    // torch::jit::EliminateRedundantGuards(graph_);
+    // torch::jit::RemoveListMutation(graph_);
+    // torch::jit::RemoveTensorMutation(graph_);
+    // torch::jit::CreateFunctionalGraphs(graph_);
+    // torch::jit::InlineFunctionalGraphs(graph_);
+    // torch::jit::PeepholeOptimize(graph_, false);
+    // torch::jit::FuseLinear(graph_);
+    // torch::jit::LowerSimpleTuples(graph_);
+    // torch::jit::EliminateCommonSubexpression(graph_);
+    // torch::jit::EliminateDeadCode(graph_);
 
     // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
     // graph_ = graph_and_ivalues.first;
