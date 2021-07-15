@@ -81,7 +81,7 @@ struct MetalCastParams {
 #define kBroadcastTypeChannel 0x0002
 #define kBroadcastTypeElement 0x0003
 #define kBroadcastTypeHeightWidth 0x0004
-
+#define kBroadcastTypeWidth 0x0005
 #define kBroadcastTypeGeneral 0x0006
 
 /** Broadcast Param Struct **/
