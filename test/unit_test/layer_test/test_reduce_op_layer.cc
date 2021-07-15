@@ -102,10 +102,6 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         }
     }
 
-    if (DEVICE_OPENCL == dev && keep_dims != 1 && axis.size() > 1) {
-        GTEST_SKIP();
-    }
-
     if ((HasAxis(axis, 0, dim_count) || IsDiscontinuous(axis, dim_count)) && DEVICE_CUDA == dev) {
         GTEST_SKIP();
     }

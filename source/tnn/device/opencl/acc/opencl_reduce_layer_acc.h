@@ -30,7 +30,11 @@ public:
 
 private:
     virtual std::set<std::string> CreateBuildOptions() = 0;
+    Status GenerateTempImage(DimsVector dims);
     bool run_local_work_ = false;
+
+    std::shared_ptr<cl::Buffer> inter_buffer_  = nullptr;
+    std::shared_ptr<OpenCLMemory> inter_image_ = nullptr;
 };
 
 #define DECLARE_OPENCL_REDUCE_ACC(type_string)                                                                         \

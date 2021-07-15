@@ -87,9 +87,7 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     }
 
     kernel_name_ = GetKernelName(broadcast_param_);
-    // support 5 dims
-    if (param_dims_.size() == 5 && kernel_name_ != "BinaryElementWise" && kernel_name_ != "BinarySingle" &&
-        kernel_name_ != "BinaryChannel") {
+    if (param_dims_.size() == 5 && kernel_name_ != "BinaryElementWise" && kernel_name_ != "BinarySingle") {
         kernel_name_ = "BinaryBroadcast_5D";
     }
 
@@ -163,21 +161,15 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     } else if (kernel_name_ == "BinaryBroadcast_5D") {
         const int n_dims = 5;
         std::vector<int> output_shape(n_dims), input0_shape(n_dims), input1_shape(n_dims);
-        int *input0_shape_data = input0_shape.data();
-        int *input1_shape_data = input1_shape.data();
-        if (broadcast_param_.weight_input_index == 0) {
-            input0_shape_data = input1_shape.data();
-            input1_shape_data = input0_shape.data();
-        }
         if (inputs.size() == 2) {
             for (int i = 0; i < n_dims; ++i) {
-                input0_shape_data[i] = DimsFunctionUtils::GetDim(inputs[input_idx_]->GetBlobDesc().dims, i);
-                input1_shape_data[i] = DimsFunctionUtils::GetDim(inputs[param_idx_]->GetBlobDesc().dims, i);
+                input0_shape[i] = DimsFunctionUtils::GetDim(inputs[input_idx_]->GetBlobDesc().dims, i);
+                input1_shape[i] = DimsFunctionUtils::GetDim(inputs[param_idx_]->GetBlobDesc().dims, i);
             }
         } else {
             for (int i = 0; i < n_dims; ++i) {
-                input1_shape_data[i] = DimsFunctionUtils::GetDim(inputs[input_idx_]->GetBlobDesc().dims, i);
-                input0_shape_data[i] = DimsFunctionUtils::GetDim(param_dims_, i);
+                input0_shape[i] = DimsFunctionUtils::GetDim(inputs[input_idx_]->GetBlobDesc().dims, i);
+                input1_shape[i] = DimsFunctionUtils::GetDim(param_dims_, i);
             }
         }
 
@@ -186,8 +178,8 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         }
 
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, n_dims * sizeof(int), output_shape.data());
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, n_dims * sizeof(int), input0_shape_data);
-        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, n_dims * sizeof(int), input1_shape_data);
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, n_dims * sizeof(int), input0_shape.data());
+        execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, n_dims * sizeof(int), input1_shape.data());
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, UP_DIV(input0_shape[1], 4));
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, UP_DIV(input1_shape[1], 4));
     }
