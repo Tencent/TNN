@@ -91,8 +91,9 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
 
     #if 1
     // printf("graph dump:\n:%s\n", graph_->toString().c_str());
-    std::shared_ptr<torch::jit::Graph> g_ptr(graph_);
-    auto seg_blocks = trtorch::partitioning::Partition(g_ptr);
+    auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
+    // std::shared_ptr<torch::jit::Graph> g_ptr(graph_);
+    auto seg_blocks = partitioning::Partition(graph_and_ivalues.first, max_inputs_shape);
     
 
     for(int i=0;i<inputs.size();i++) {

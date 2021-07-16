@@ -1,6 +1,6 @@
 #include "tnn/network/torch/SegmentedBlock.h"
 
-namespace trtorch {
+namespace TNN_NS {
 namespace partitioning {
 
 SegmentedBlock::SegmentedBlock(SegmentedBlockTarget blk_target, std::vector<torch::jit::Node*>& nodes)
@@ -62,4 +62,4 @@ torch::jit::Node* SegmentedBlock::cloneNode(torch::jit::Node* node) {
 }
 
 } // namespace partitioning
-} // namespace trtorch
+} // namespace TNN_NS

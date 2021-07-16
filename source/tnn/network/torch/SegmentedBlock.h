@@ -1,10 +1,11 @@
 #pragma once
 
 #include <vector>
-
+#include "tnn/core/macro.h"
+#include "tnn/core/blob.h"
 #include "torch/csrc/jit/ir/ir.h"
 
-namespace trtorch {
+namespace TNN_NS {
 namespace partitioning {
 
 struct SegmentedBlock {
@@ -57,12 +58,12 @@ struct SegmentedBlock {
   bool contain_raw_value(torch::jit::Value* input) {
     return old_to_new_.count(input);
   }
-  // void register_inshape(std::vector<ir::InputRange>& in_shape) {
-  //   in_shape_ = in_shape;
-  // }
-  // const std::vector<ir::InputRange>& in_shape() const {
-  //   return in_shape_;
-  // }
+  void register_inshape(std::vector<DimsVector>& in_shape) {
+    in_shape_ = in_shape;
+  }
+  const std::vector<DimsVector>& in_shape() const {
+    return in_shape_;
+  }
   void update_target(SegmentedBlockTarget new_target) {
     target_ = new_target;
   }
@@ -72,7 +73,7 @@ struct SegmentedBlock {
 
  private:
   SegmentedBlockTarget target_;
-  // std::vector<ir::InputRange> in_shape_;
+  std::vector<DimsVector> in_shape_;
   std::vector<torch::jit::Value*> inputs_;
   std::vector<torch::jit::Value*> outputs_;
   std::vector<torch::jit::Node*> nodes_;
@@ -81,4 +82,4 @@ struct SegmentedBlock {
 };
 
 } // namespace partitioning
-} // namespace trtorch
+} // namespace TNN_NS

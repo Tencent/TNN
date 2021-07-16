@@ -2,10 +2,10 @@
 
 #include <queue>
 // #include "core/conversion/conversion.h"
-// #include "core/partitioning/shape_analysis.h"
+#include "tnn/network/torch/shape_analysis.h"
 #include "torch/csrc/jit/passes/dead_code_elimination.h"
 
-namespace trtorch {
+namespace TNN_NS {
 namespace partitioning {
 
 struct usage_info {
@@ -327,7 +327,7 @@ std::vector<SegmentedBlock> segment_graph(std::shared_ptr<torch::jit::Graph> g) 
 }
 
 std::vector<SegmentedBlock> Partition(
-    std::shared_ptr<torch::jit::Graph> g) {
+    std::shared_ptr<torch::jit::Graph> g, InputShapesMap& input_shape) {
   // LOG_DEBUG(partition_info);
   // segment lowering global graph into blocks
   std::vector<SegmentedBlock> segmented_blocks = segment_graph(g);
@@ -351,10 +351,10 @@ std::vector<SegmentedBlock> Partition(
   }
 
   // run shape analysis on each segmented block
-  // runShapeAnalysis(segmented_blocks, input_ranges, g);
+  runShapeAnalysis(segmented_blocks, input_shape, g);
 
   return segmented_blocks;
 }
 
 } // namespace partitioning
-} // namespace trtorch
+} // namespace TNN_NS
