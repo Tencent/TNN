@@ -48,6 +48,7 @@
 #include "torch/csrc/jit/passes/peephole.h"
 #include "torch/csrc/jit/passes/remove_mutation.h"
 #include "tnn/network/torch/partitioning.h"
+#include "tnn/network/torch/torch_convert.h"
 
 #include <torchvision/vision.h>
 
@@ -94,7 +95,11 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
     auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
     // std::shared_ptr<torch::jit::Graph> g_ptr(graph_);
     auto seg_blocks = partitioning::Partition(graph_and_ivalues.first, max_inputs_shape);
-    
+    for (auto &block : seg_blocks) {
+        conversion::TorchConvertCtx ctx;
+        auto engine_ptr = conversion::ConvertBlockToInstance(block, &ctx);
+    }
+     
 
     for(int i=0;i<inputs.size();i++) {
         auto input = inputs[i];
