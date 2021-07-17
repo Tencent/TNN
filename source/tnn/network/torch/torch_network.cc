@@ -97,7 +97,9 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
     auto seg_blocks = partitioning::Partition(graph_and_ivalues.first, max_inputs_shape);
     for (auto &block : seg_blocks) {
         conversion::TorchConvertCtx ctx;
-        auto engine_ptr = conversion::ConvertBlockToInstance(block, &ctx);
+        if (block.target() == partitioning::SegmentedBlock::kTNN) {
+            auto engine_ptr = conversion::ConvertBlockToInstance(block, &ctx);
+        }
     }
      
 

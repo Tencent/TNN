@@ -42,7 +42,7 @@ static inline T getValue(const torch::jit::Value* value) {
 template <typename T>
 static std::vector<T> getValue(const torch::jit::Value* value, std::vector<int>& shape) {
     std::vector<T> data;
-    const auto tensor = getValue<at::Tensor>(value);
+    const auto tensor = getValue<at::Tensor>(value).to(at::kCPU);
     int size = tensor.numel();
     if (!size) {
         return data;
