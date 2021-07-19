@@ -19,8 +19,7 @@
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
-
-DECLARE_METAL_ACC(PadV2, LAYER_PADV2);
+DECLARE_METAL_ACC_WITH_EXTRA(PadV2, LAYER_PADV2, protected: virtual bool UseNaiveConstantBlobs(){return true;});
 
 Status MetalPadV2LayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Reshape(inputs, outputs);
