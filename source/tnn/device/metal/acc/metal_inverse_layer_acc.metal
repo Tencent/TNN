@@ -28,8 +28,8 @@ kernel void inverse(const device ftype4 *in [[buffer(0)]],
                       (int)gid.y * params.output_size + (int)gid.x;
 
     int index_in = index/4*4;
-    float4 det = in[index_in]*in[index_in+3] - in[index_in+1]*in[index_in+2];
-    float4 det_inverse;
+    ftype4 det = in[index_in]*in[index_in+3] - in[index_in+1]*in[index_in+2];
+    ftype4 det_inverse;
     det_inverse = 1.0f / det;
 
     if(index%4==0)
