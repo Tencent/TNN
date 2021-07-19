@@ -416,7 +416,7 @@ Status X86_FMA(float *input_data, float *output_data, float *scale_data, float *
                     T scale = T(&scale_data[c]);
                     float *input  = input_data + (b * channel + c) * cal_count;
                     float *output = output_data + (b * channel + c) * cal_count;
-                    for (size_t index = 0; index < tail; index += 8) {
+                    for (size_t index = 0; index < tail; index += pack_c) {
                         src = T::loadu(input + index);
                         src = T::mul(src, scale);
                         T::saveu(output + index, src);
