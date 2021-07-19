@@ -87,8 +87,8 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     }
 
     kernel_name_ = GetKernelName(broadcast_param_);
-    if (param_dims_.size() == 5 && kernel_name_ == "BinaryBroadcast") {
-        kernel_name_ += "5D";
+    if (param_dims_.size() == 5 && kernel_name_ != "BinaryElementWise" && kernel_name_ != "BinarySingle") {
+        kernel_name_ = "BinaryBroadcast_5D";
     }
 
     return TNN_OK;
@@ -158,7 +158,7 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, 4 * sizeof(int), input1_shape.data());
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, UP_DIV(input0_shape[1], 4));
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, UP_DIV(input1_shape[1], 4));
-    } else if (kernel_name_ == "BinaryBroadcast5D") {
+    } else if (kernel_name_ == "BinaryBroadcast_5D") {
         const int n_dims = 5;
         std::vector<int> output_shape(n_dims), input0_shape(n_dims), input1_shape(n_dims);
         if (inputs.size() == 2) {

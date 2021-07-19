@@ -154,7 +154,7 @@ __kernel void BinaryBroadcast(GLOBAL_SIZE_2_DIMS __read_only image2d_t input0,
     WI_F(output, (int2)(output_cw, output_bh), out);
 }
 
-__kernel void BinaryBroadcast5D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input0, __read_only image2d_t input1,
+__kernel void BinaryBroadcast_5D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input0, __read_only image2d_t input1,
                                 shape_5d output_shape, shape_5d input0_shape, shape_5d input1_shape,
                                 __private const int input0_c_4_blocks, __private const int input1_c_4_blocks,
                                 __write_only image2d_t output) {
