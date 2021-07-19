@@ -18,7 +18,7 @@
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
-DECLARE_METAL_ACC(GridSample, LAYER_GRIDSAMPLE);
+DECLARE_METAL_ACC_WITH_EXTRA(GridSample, LAYER_GRIDSAMPLE, protected: virtual bool UseNaiveConstantBlobs(){return true;});
 
 Status MetalGridSampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Reshape(inputs, outputs);

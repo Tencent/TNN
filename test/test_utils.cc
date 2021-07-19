@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 #include "test_utils.h"
-
+#include <cmath>
 #include <math.h>
 
 #include <algorithm>
@@ -134,10 +134,10 @@ int CompareData(const float* ref_data, const float* result_data, size_t n, float
             sum_ref += ref_data[i] * ref_data[i];
             sum_dot += result_data[i] * ref_data[i];
         }
-        // need to avoid sum_res or sum_ref is 0.0f
+
         double cos_sim = sum_dot / ((sqrt(sum_res) + 1e-9f) * (sqrt(sum_ref) + 1e-9f));
-        if (cos_sim < 0.9998f) {
-            printf("ERROR COSINE SIMILARITY %.6f < 0.9998\n", cos_sim);
+        if (std::isnan(cos_sim) || cos_sim < 0.9998f) {
+            LOGE("ERROR COSINE SIMILARITY %.6f < 0.9998\n", cos_sim);
             return -1;
         }
     }
