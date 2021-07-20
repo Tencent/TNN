@@ -175,11 +175,12 @@ Status MetalLayerAcc::RawBuffer2MetalBlob(RawBuffer *buffer, std::shared_ptr<Blo
 
     auto context_impl = context_->getMetalContextImpl();
     // _commandBuffer may be nil, call 'commit' to initialize a commandBuffer
-    [context_impl commit];
+    [context_impl commit:YES];
 
     auto encoder = [context_impl encoder];
     if (!encoder) {
-        LOGE("RawBuffer2MetalBlob: encoder is nil!\n");
+        LOGE("ERROR: RawBuffer2MetalBlob cannot allocate new encoder for blob with name (%s) \n", desc.name.c_str());
+        return Status(TNNERR_PARAM_ERR, "RawBuffer2MetalBlob cannot allocate new encoder for blob");
     }
 
     MetalImageConverterParams params;
