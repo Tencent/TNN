@@ -34,6 +34,33 @@ def _parse_input_ranges(input_sizes: List):
             max_input_shapes["input_" + str(index)] = value;
     return (min_input_shapes, max_input_shapes)
 
+def _parse_network_config(config_dict):
+    network_config = pytnn.NetworkConfig()
+
+    if "device_type" in config_dict:
+        network_config.device_type = config_dict["device_type"]
+    else:
+        network_config.device_type = pytnn.DEVICE_CUDA
+    if "device_id" in config_dict:
+        network_config.device_id = config_dict["device_id"]
+    if "data_format" in config_dict:
+        network_config.data_format = config_dict["data_format"]
+    if "network_type" in config_dict:
+        network_config.network_type = config_dict["network_type"]
+    else:
+        network_config.network_type = pytnn.NETWORK_TYPE_TNNTORCH
+    if "share_memory_mode" in config_dict:
+        network_config.share_memory_mode = config_dict["share_memory_mode"]
+    if "library_path" in config_dict:
+        network_config.library_path = config_dict["library_path"]
+    if "precision" in config_dict:
+        network_config.precision = config_dict["precision"]
+    if "cache_path" in config_dict:
+        network_config.cache_path = config_dict["cache_path"]
+    if "enable_tune_kernel" in config_dict:
+        network_config.enable_tune_kernel = config_dict["enable_tune_kernel"]
+
+    return network_config
 
 def load(model_path, network_config=None, min_input_shapes={}, max_input_shapes={}):
     return Module(model_path, network_config, min_input_shapes, max_input_shapes)
@@ -43,7 +70,8 @@ def load(model_path, network_config=None, input_shapes={}):
 
 def load(model_path, config_dict):
     min_input_shapes, max_input_shapes = _parse_input_ranges(config_dict["input_shapes"])
-    return Module(model_path, None, min_input_shapes, max_input_shapes)
+    network_config = _parse_network_config(config_dict)
+    return Module(model_path, network_config, min_input_shapes, max_input_shapes)
 
 class Module:
     def __init__(self, model_path, network_config, min_input_shapes, max_input_shapes):
