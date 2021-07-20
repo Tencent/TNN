@@ -366,11 +366,11 @@ message(${Python3_INCLUDE_DIRS})
 include_directories(${Python3_INCLUDE_DIRS})
 add_subdirectory(third_party/pybind11)
 file(GLOB_RECURSE TORCH_SRC "source/pytnn/*.cc")
-add_library(pytnn SHARED ${TORCH_SRC})
-target_link_libraries(pytnn pybind11::module)
-set_target_properties(pytnn PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+add_library(_pytnn SHARED ${TORCH_SRC})
+target_link_libraries(_pytnn pybind11::module)
+set_target_properties(_pytnn PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                      SUFFIX "${PYTHON_MODULE_EXTENSION}")
-target_link_libraries(pytnn TNN)
+target_link_libraries(_pytnn TNN)
 
 if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE OR TNN_MODEL_CHECK_ENABLE)
     set(TNN_USE_GFLAGS ON)
