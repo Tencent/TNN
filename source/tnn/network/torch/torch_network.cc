@@ -62,6 +62,8 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
         return TNNERR_DEVICE_CONTEXT_CREATE;
     }
 
+    min_inputs_shape_ = min_inputs_shape;
+    max_inputs_shape_ = max_inputs_shape;
     // if share net resource with another net, create io binding later when sharing
     if (net_config.share_memory_mode != SHARE_MEMORY_MODE_SHARE_NET_RESOURCE) {
         if (model_config.model_type == MODEL_TYPE_TORCHSCRIPT) {
@@ -95,9 +97,6 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
 
         RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape, max_inputs_shape));
         init_done_ = true;
-    } else {
-        min_inputs_shape_ = min_inputs_shape;
-        max_inputs_shape_ = max_inputs_shape;
     }
 
     return TNN_OK;
