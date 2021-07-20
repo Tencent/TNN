@@ -439,6 +439,7 @@ struct MetalReduceParams {
     int axis;
     int input_channel;
     int input_channel_mode_4;
+    int input_dim4;
 };
 
 /** Multi-axis Reduce Param Struct **/
