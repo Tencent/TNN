@@ -83,6 +83,7 @@ struct MetalCastParams {
 #define kBroadcastTypeHeightWidth 0x0004
 #define kBroadcastTypeWidth 0x0005
 #define kBroadcastTypeGeneral 0x0006
+#define kBroadcastTypedim2dim3 0x0007
 
 /** Broadcast Param Struct **/
 struct MetalBroadcastParams {
@@ -102,6 +103,15 @@ struct MetalBroadcastParams {
 
     int input0_size;
     int input1_size;
+    int input0_dim2;
+    int input1_dim2;
+    int output_dim2;
+    int input0_dim3;
+    int input1_dim3;
+    int output_dim3;
+    int input0_dim4;
+    int input1_dim4;
+    int output_dim4;
 };
 
 /**Pow Param Struct **/
@@ -427,6 +437,7 @@ struct MetalReduceParams {
     int axis;
     int input_channel;
     int input_channel_mode_4;
+    int input_dim4;
 };
 
 /** Multi-axis Reduce Param Struct **/
