@@ -19,6 +19,17 @@
 namespace TNN_NS {
 
 void BroadCastTypeFilter(const DimsVector &dims_output, const DimsVector &dims_input, int &type) {
+
+    if(dims_input.size()==5){
+        DimsVector dims_output_=dims_output;
+        DimsVector dims_input_=dims_input;
+
+        if ((dims_output_[0]==dims_input_[0]) && (dims_output_[1]==dims_input_[1]) && (dims_input_[2]==1) && (dims_input_[3]==1) && (dims_output_[4]==dims_input_[4])) {
+            type = BroadcastType5DimsHeightWidth;
+            return;
+        }
+     }
+
     if (DimsVectorUtils::Equal(dims_output, dims_input)) {
         type = BroadcastTypeNormal;
         return;
