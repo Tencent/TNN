@@ -111,8 +111,8 @@ kernel void reduce_sum_axis_4_common(INPUT_PARAM) {
     auto z_out = dst + (int)gid.z * params.output_slice * params.output_size + (int)gid.y * params.output_size + (int)gid.x;
     auto s = ftype4(0,0,0,0);
     for (int b = 0; b < params.input_dim4; b++) {
-        s += *(z_in + b);                                                                                                                                                                                                                                                  \
-    }                                                                                                                                                                                                                                                                       \
+        s += *(z_in + b);
+    }
     *z_out = s;
 }
 
