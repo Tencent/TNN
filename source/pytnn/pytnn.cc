@@ -20,46 +20,6 @@ namespace py = pybind11;
 
 namespace TNN_NS {
 
-Module* Load(const std::string& model_path) {
-    auto module = new Module();
-    Status ret = module->Init(model_path);
-    if(ret != TNN_OK) {
-	delete module;
-	return nullptr;
-    } else {
-        return module;
-    }
-}
-
-Status Module::Init(const std::string& model_path) {
-    ModelConfig model_config;
-    model_config.model_type = MODEL_TYPE_TORCHSCRIPT;
-    model_config.params.push_back(model_path);
-    Status ret = TNN_OK;
-    ret = net_.Init(model_config);
-    return ret;
-}
-
-py::array_t<float> Module::Forward(py::array_t<float> input) {
-    auto input_mat = ConvertNumpyToMat(input);
-    Status ret = TNN_OK;
-    if(!instance_) {
-        InputShapesMap shapes_map;
-        shapes_map["input_0"]=input_mat->GetDims();
-        NetworkConfig network_config;
-        network_config.device_type = DEVICE_CUDA;
-        network_config.network_type = NETWORK_TYPE_TNNTORCH;
-        instance_ = net_.CreateInst(network_config, ret, shapes_map); 
-    }
-
-    instance_->SetInputMat(input_mat, MatConvertParam()); 
-    instance_->Forward();
-    std::shared_ptr<TNN_NS::Mat> output_mat;
-    instance_->GetOutputMat(output_mat, MatConvertParam(),
-                        "output_0", DEVICE_NAIVE, NCHW_FLOAT);
-    return ConvertMatToNumpy(output_mat);
-}
-
 std::shared_ptr<Mat> ConvertNumpyToMat(py::array_t<float> input) {
     py::buffer_info input_info = input.request();
     float *input_ptr = static_cast<float *>(input_info.ptr);
@@ -108,9 +68,6 @@ PYBIND11_MODULE(pytnn, m) {
     InitTNNPy(m);
     InitInstancePy(m);
 
-    m.def("load", &Load, "pytnn load");
-    py::class_<Module>(m, "Module")
-    .def("forward", &Module::Forward);
     m.def("convert_mat_to_numpy", &ConvertMatToNumpy, "convert mat to numpy");
     m.def("convert_numpy_to_mat", &ConvertNumpyToMat, "convert numpy to mat");
 }

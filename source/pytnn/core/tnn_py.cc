@@ -27,7 +27,7 @@ namespace TNN_NS {
             .def("AddOutput", &TNN::AddOutput)
             .def("GetModelInputShapesMap", &TNN::GetModelInputShapesMap)
             .def("CreateInst", static_cast<std::shared_ptr<Instance> (TNN::*)(NetworkConfig&, Status& ,InputShapesMap)>(&TNN::CreateInst))
-            .def("CreateInst", static_cast<std::shared_ptr<Instance> (TNN::*)(NetworkConfig&, Status& ,InputShapesMap)>(&TNN::CreateInst));
+            .def("CreateInst", static_cast<std::shared_ptr<Instance> (TNN::*)(NetworkConfig&, Status& ,InputShapesMap, InputShapesMap)>(&TNN::CreateInst));
     }
 
 }  // namespace TNN_NS
