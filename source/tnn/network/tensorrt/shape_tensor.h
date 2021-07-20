@@ -20,6 +20,12 @@
 #include <vector>
 
 #include <NvInfer.h>
+#ifdef _WIN32
+#include <numeric>
+#include <functional>
+#undef max
+#undef min
+#endif
 
 #include "tnn/core/macro.h"
 
