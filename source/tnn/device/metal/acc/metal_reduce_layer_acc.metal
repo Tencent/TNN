@@ -121,7 +121,6 @@ DEFINE_REDUCE_AXIS_1(l1, 0, abs(t), s+t, dot(s,1));
 DEFINE_REDUCE_AXIS_2(l1, 0, abs(t), s+t, s);
 DEFINE_REDUCE_AXIS_3(l1, 0, abs(t), s+t, s);
 
-
 DEFINE_REDUCE_AXIS_0(l2, 0, pow(t,2), s+t, sqrt(s));
 DEFINE_REDUCE_AXIS_1(l2, 0, pow(t,2), s+t, sqrt(dot(s,1)));
 DEFINE_REDUCE_AXIS_2(l2, 0, pow(t,2), s+t, sqrt(s));
