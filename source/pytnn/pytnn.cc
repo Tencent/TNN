@@ -56,7 +56,7 @@ py::array_t<float> ConvertMatToNumpy(std::shared_ptr<Mat> output_mat) {
     return output;
 }
 
-PYBIND11_MODULE(pytnn, m) {
+PYBIND11_MODULE(_pytnn, m) {
     m.doc() = "pybind11 tnn torch plugin"; // optional module docstring
 
     InitStatusPy(m);
