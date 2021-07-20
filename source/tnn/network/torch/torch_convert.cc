@@ -86,12 +86,12 @@ void ConvertNodeToLayer(const torch::jit::Node *node, LayerInfo *layer_info, Lay
 
 }
 
-c10::intrusive_ptr<TNNEngine> ConvertBlockToInstance(partitioning::SegmentedBlock &block, TorchConvertCtx *ctx) {
+c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::SegmentedBlock &block, TorchConvertCtx *ctx) {
     ModelConfig model_config;
     NetworkConfig network_config;
 
     network_config.device_type = DEVICE_X86;
-    auto instance_ptr = c10::make_intrusive<TNNEngine>(network_config, model_config);
+    auto instance_ptr = c10::make_intrusive<runtime::TNNEngine>(network_config, model_config);
 
     auto interpreter = dynamic_cast<DefaultModelInterpreter *>(ctx->get_interpreter().get());
     auto net_structure = interpreter->GetNetStructure();

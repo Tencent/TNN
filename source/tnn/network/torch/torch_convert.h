@@ -20,6 +20,7 @@
 #include <torch/script.h>
 #include "c10/util/intrusive_ptr.h"
 #include "torch/custom_class.h"
+#include "tnn/network/torch/torch_tnn_runtime.h"
 
 namespace TNN_NS {
 namespace conversion {
@@ -46,14 +47,7 @@ private:
     std::shared_ptr<AbstractModelInterpreter> interpreter_;
 };
 
-struct TNNEngine : public torch::CustomClassHolder {
-    TNNEngine(NetworkConfig &network_config, ModelConfig &model_config) {
-        instance_ = std::make_shared<Instance>(network_config, model_config);
-    }
-    std::shared_ptr<Instance> instance_;
-};
-
-c10::intrusive_ptr<TNNEngine> ConvertBlockToInstance(partitioning::SegmentedBlock &block, TorchConvertCtx *ctx); 
+c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::SegmentedBlock &block, TorchConvertCtx *ctx); 
 
 }
 }

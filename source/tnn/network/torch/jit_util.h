@@ -32,7 +32,7 @@ inline std::vector<int64_t> toVec(c10::IntArrayRef a) {
   return arr;
 }
 
-std::vector<int> toDims(c10::IntArrayRef l) {
+inline std::vector<int> toDims(c10::IntArrayRef l) {
   std::vector<int> dims;
   for (size_t i = 0; i < l.size(); i++) {
     dims.push_back(l[i]);

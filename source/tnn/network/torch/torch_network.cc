@@ -49,6 +49,7 @@
 #include "torch/csrc/jit/passes/remove_mutation.h"
 #include "tnn/network/torch/partitioning.h"
 #include "tnn/network/torch/torch_convert.h"
+#include "tnn/network/torch/torch_compile.h"
 
 #include <torchvision/vision.h>
 
@@ -87,21 +88,27 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
         return Status(TNNERR_PARAM_ERR, "Unsupported model type for TNNTorchNetwork");
     }
 
+    #if 1
+    auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
+    // // std::shared_ptr<torch::jit::Graph> g_ptr(graph_);
+    // auto seg_blocks = partitioning::Partition(graph_and_ivalues.first, max_inputs_shape);
+    // for (auto &block : seg_blocks) {
+    //     conversion::TorchConvertCtx ctx;
+    //     if (block.target() == partitioning::SegmentedBlock::kTNN) {
+    //         auto engine_ptr = conversion::ConvertBlockToInstance(block, &ctx);
+    //     }
+    // }
+    auto new_mod = CompileTorch(graph_and_ivalues.first, max_inputs_shape);
+    module_ = new_mod;
+    graph_ = module_->get_method(forward_func_name_).graph();
+
+    #endif
+
     at::ArrayRef<torch::jit::Value*> inputs = graph_->block()->inputs();
     at::ArrayRef<torch::jit::Value*> outputs = graph_->block()->outputs();
 
     #if 1
     // printf("graph dump:\n:%s\n", graph_->toString().c_str());
-    auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
-    // std::shared_ptr<torch::jit::Graph> g_ptr(graph_);
-    auto seg_blocks = partitioning::Partition(graph_and_ivalues.first, max_inputs_shape);
-    for (auto &block : seg_blocks) {
-        conversion::TorchConvertCtx ctx;
-        if (block.target() == partitioning::SegmentedBlock::kTNN) {
-            auto engine_ptr = conversion::ConvertBlockToInstance(block, &ctx);
-        }
-    }
-     
 
     for(int i=0;i<inputs.size();i++) {
         auto input = inputs[i];
