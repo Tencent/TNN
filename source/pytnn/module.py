@@ -13,7 +13,6 @@ def _supported_input_size_type(input_size) -> bool:
 
 
 def _parse_input_ranges(input_sizes: List):
-    print(input_sizes)
     if any(not isinstance(i, dict) and not _supported_input_size_type(i) for i in input_sizes):
         raise KeyError("An input size must either be a static size or a range of two sizes (min, max) as Dict")
     min_input_shapes = {}
@@ -93,7 +92,11 @@ class Module:
             input_mat=pytnn.convert_numpy_to_mat(value)
             self.instance.SetInputMat(input_mat, pytnn.MatConvertParam(), "input_" + str(index))
         self.instance.Forward()
-        
-        output_mat=self.instance.GetOutputMat(pytnn.MatConvertParam(), "output_0", pytnn.DEVICE_NAIVE, pytnn.NCHW_FLOAT)
-        output_mat_numpy=pytnn.convert_mat_to_numpy(output_mat)
-        return output_mat_numpy
+       
+        output_blobs = self.instance.GetAllOutputBlobs()
+        output_list = []
+        for key, value in output_blobs.items():
+            output_mat=self.instance.GetOutputMat(pytnn.MatConvertParam(), "output_0", pytnn.DEVICE_NAIVE, pytnn.NCHW_FLOAT)
+            output_mat_numpy=pytnn.convert_mat_to_numpy(output_mat)
+            output_list.append(output_mat_numpy)
+        return output_list
