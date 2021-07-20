@@ -33,15 +33,22 @@ public:
 
 private:
     virtual std::set<std::string> CreateBuildOptions() = 0;
-    Status InitReshapeLayer(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    bool run_local_work_ = false;
-    bool need_reshape_   = false;
+    Status InitReshapeLayer(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                            DimsVector &reshape_shape, shared_ptr<OpenCLReshapeLayerAcc> &reshape_layer_acc);
+    Status CreaterBlob(BlobDesc desc, DimsVector dims, std::shared_ptr<Blob> &blob);
+    DimsVector GenerateInputShape(DimsVector &input_dims, int axis);
+    DimsVector AfterReduceDims(DimsVector dims, std::vector<int> axis);
+    bool run_local_work_      = false;
+    bool input_need_reshape_  = false;
+    bool output_need_reshape_ = false;
 
-    ReshapeLayerParam reshape_param_;
-    shared_ptr<OpenCLReshapeLayerAcc> reshape_layer_acc_ = nullptr;
-    std::vector<Blob *> reshape_inputs_                  = {};
-    shared_ptr<Blob> reshape_input_blob_                 = nullptr;
-    shared_ptr<cl::Image2D> reshape_input_image_         = nullptr;
+    shared_ptr<OpenCLReshapeLayerAcc> reshape_input_layer_acc_  = nullptr;
+    shared_ptr<OpenCLReshapeLayerAcc> reshape_output_layer_acc_ = nullptr;
+    std::vector<Blob *> reduce_inputs_                          = {};
+    std::vector<Blob *> reduce_outputs_                         = {};
+    std::shared_ptr<Blob> reduce_input_blob_                    = nullptr;
+    std::shared_ptr<Blob> reduce_output_blob_                   = nullptr;
+    int single_axis_                                            = 1;
 };
 
 #define DECLARE_OPENCL_REDUCE_ACC(type_string)                                                                         \

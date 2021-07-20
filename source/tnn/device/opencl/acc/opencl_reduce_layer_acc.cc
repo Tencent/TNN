@@ -13,21 +13,13 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/opencl/acc/opencl_reduce_layer_acc.h"
+
 #include "tnn/device/opencl/imagebuffer_convertor.h"
 
 namespace TNN_NS {
 
 #define LowOpParallelismThre 256
 #define HighOpIntensityThre 128
-
-DimsVector PadDims(DimsVector dims, std::vector<int> axis) {
-    std::sort(axis.begin(), axis.end());
-    for (const auto item : axis) {
-        dims.insert(dims.begin() + item, 1);
-    }
-
-    return dims;
-}
 
 Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                   const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -41,22 +33,27 @@ Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
+    auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
-    int hb   = DimsFunctionUtils::GetDim(output_dims, 0) * DimsFunctionUtils::GetDim(output_dims, 2);
-    int cw   = DimsFunctionUtils::GetDim(output_dims, 3) * UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4);
+    if (input_dims.size() > 4 && reduce_param->axis.size() > 1) {
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR,
+                      "opencl reshape layer inputs not support dims > 4 and axis dims > 1");
+    }
 
-    auto input_dims  = inputs[0]->GetBlobDesc().dims;
+    int hb = DimsFunctionUtils::GetDim(output_dims, 0) * DimsFunctionUtils::GetDim(output_dims, 2);
+    int cw = DimsFunctionUtils::GetDim(output_dims, 3) * UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4);
 
     if (reduce_param->axis.size() == 1) {
-        int axis = reduce_param->axis[0];
-        axis     = axis >= 0 ? axis : axis + (int)input_dims.size();
+        int axis     = reduce_param->axis[0];
+        axis         = axis >= 0 ? axis : axis + (int)input_dims.size();
+        single_axis_ = axis;
 
         int axis_n = DimsFunctionUtils::GetDim(input_dims, axis);
 
         run_local_work_ = cw * hb < LowOpParallelismThre && axis_n >= HighOpIntensityThre;
 
-        run_3d_ndrange_         = false;
+        run_3d_ndrange_ = false;
         std::string kernel_name;
         if (axis == 0) {
             kernel_name = "ReduceC0";
@@ -70,6 +67,10 @@ Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 
         if (run_local_work_) {
             kernel_name += "Local";
+        }
+
+        if (input_dims.size() > 4) {
+            kernel_name = "ReduceC2";
         }
 
         std::set<std::string> build_options = CreateBuildOptions();
@@ -110,46 +111,82 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 
     ASSERT(inputs.size() == 1);
 
-    need_reshape_ = reduce_param->keep_dims == 0;
-    // init
-    if (need_reshape_) {
-        ret = InitReshapeLayer(inputs, outputs);
+    input_need_reshape_  = inputs[0]->GetBlobDesc().dims.size() > 4;
+    output_need_reshape_ = (reduce_param->keep_dims == 0) || input_need_reshape_;
+
+    // init input_reshape
+    if (input_need_reshape_) {
+        single_axis_ = reduce_param->axis[0] == 0 ? 0 : 2;
+        auto shape   = GenerateInputShape(inputs[0]->GetBlobDesc().dims, reduce_param->axis[0]);
+        ret          = CreaterBlob(inputs[0]->GetBlobDesc(), shape, reduce_input_blob_);
+        CHECK_TNN_OK(ret)
+
+        reduce_inputs_.clear();
+        reduce_inputs_.push_back(reduce_input_blob_.get());
+        ret = InitReshapeLayer(inputs, reduce_inputs_, shape, reshape_input_layer_acc_);
         CHECK_TNN_OK(ret)
     }
 
-    auto input_dims  = inputs[0]->GetBlobDesc().dims;
-    auto output_dims = !need_reshape_ ? outputs[0]->GetBlobDesc().dims : reshape_inputs_[0]->GetBlobDesc().dims;
+    auto reduce_input_blob = (input_need_reshape_ ? reduce_inputs_ : inputs)[0];
+    auto reduce_input_dims = reduce_input_blob->GetBlobDesc().dims;
 
-    auto *reduce_output_ptr =
-        !need_reshape_ ? (cl::Image *)outputs[0]->GetHandle().base : (cl::Image *)reshape_inputs_[0]->GetHandle().base;
+    // init output_reshape
+    if (output_need_reshape_) {
+        auto shape = outputs[0]->GetBlobDesc().dims;
+        auto axis  = reduce_param->axis;
+        if (input_need_reshape_) {
+            axis = {single_axis_};
+        }
+        auto reduce_output_dims = AfterReduceDims(reduce_input_dims, axis);
+        ret                     = CreaterBlob(outputs[0]->GetBlobDesc(), reduce_output_dims, reduce_output_blob_);
+        CHECK_TNN_OK(ret)
 
-    int hb   = DimsFunctionUtils::GetDim(output_dims, 0) * DimsFunctionUtils::GetDim(output_dims, 2);
-    int cw   = DimsFunctionUtils::GetDim(output_dims, 3) * UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4);
-    int c4_n = DimsFunctionUtils::GetDim(input_dims, 1) / 4;
-    int c4_r = DimsFunctionUtils::GetDim(input_dims, 1) % 4;
-    int cw4  = DimsFunctionUtils::GetDim(input_dims, 3) * c4_n;
+        reduce_outputs_.clear();
+        reduce_outputs_.push_back(reduce_output_blob_.get());
+        ret = InitReshapeLayer(reduce_outputs_, outputs, shape, reshape_output_layer_acc_);
+        CHECK_TNN_OK(ret)
+    }
+
+    auto reduce_output_blob = (output_need_reshape_ ? reduce_outputs_ : outputs)[0];
+    auto reduce_output_dims = reduce_output_blob->GetBlobDesc().dims;
+
+    int hb = DimsFunctionUtils::GetDim(reduce_output_dims, 0) * DimsFunctionUtils::GetDim(reduce_output_dims, 2);
+    int cw =
+        DimsFunctionUtils::GetDim(reduce_output_dims, 3) * UP_DIV(DimsFunctionUtils::GetDim(reduce_output_dims, 1), 4);
+    int c4_n = DimsFunctionUtils::GetDim(reduce_input_dims, 1) / 4;
+    int c4_r = DimsFunctionUtils::GetDim(reduce_input_dims, 1) % 4;
+    int cw4  = DimsFunctionUtils::GetDim(reduce_input_dims, 3) * c4_n;
+
+    if (input_need_reshape_) {
+        if (reshape_input_layer_acc_ == nullptr) {
+            return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "reshape layer acc in Reduce is null");
+        }
+        ret = reshape_input_layer_acc_->Reshape(inputs, reduce_inputs_);
+        CHECK_TNN_OK(ret)
+    }
 
     if (reduce_param->axis.size() == 1) {
-        int axis = reduce_param->axis[0];
-        axis     = axis >= 0 ? axis : axis + (int)input_dims.size();
+        int axis = single_axis_;
+        axis     = axis >= 0 ? axis : axis + (int)reduce_input_dims.size();
 
-        int axis_n = DimsFunctionUtils::GetDim(input_dims, axis);
+        int axis_n = DimsFunctionUtils::GetDim(reduce_input_dims, axis);
 
-        auto &unit            = execute_units_[0];
+        auto &unit              = execute_units_[0];
         uint32_t workgroup_size = 0;
 
         OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-        int type_size = sizeof(float);
+        int type_size                 = sizeof(float);
         if (opencl_runtime->GetPrecision() != PRECISION_HIGH) {
             type_size = 2;
         }
 
         if (run_local_work_) {
-            workgroup_size = std::min(static_cast<uint32_t>(unit.local_mem_size / (4 * type_size)),
-                                    unit.workgroupsize_max);
+            workgroup_size =
+                std::min(static_cast<uint32_t>(unit.local_mem_size / (4 * type_size)), unit.workgroupsize_max);
             workgroup_size = std::min(static_cast<uint32_t>(axis == 1 ? c4_n : axis_n), workgroup_size);
-            int temp_size = 1;
-            while ((temp_size <<= 1) <= workgroup_size);
+            int temp_size  = 1;
+            while ((temp_size <<= 1) <= workgroup_size)
+                ;
             workgroup_size = temp_size >> 1;
 
             unit.global_work_size = {static_cast<uint32_t>(cw * workgroup_size), static_cast<uint32_t>(hb)};
@@ -163,12 +200,12 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
         execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[1]);
 
-        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
-        execute_units_[0].ocl_kernel.setArg(idx++, *reduce_output_ptr);
-        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 0));
-        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 1));
-        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 2));
-        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 3));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reduce_input_blob->GetHandle().base));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reduce_output_blob->GetHandle().base));
+        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(reduce_input_dims, 0));
+        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(reduce_input_dims, 1));
+        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(reduce_input_dims, 2));
+        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(reduce_input_dims, 3));
         execute_units_[0].ocl_kernel.setArg(idx++, c4_n);
         execute_units_[0].ocl_kernel.setArg(idx++, c4_r);
         execute_units_[0].ocl_kernel.setArg(idx++, cw4);
@@ -186,33 +223,33 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         auto &unit              = execute_units_[0];
         uint32_t workgroup_size = 0;
 
-        int axis_n = 1;
+        int axis_n                 = 1;
         std::vector<int> axis_nhwc = {0, 0, 0, 0};
         for (int i = 0; i < reduce_param->axis.size(); i++) {
             int axis = reduce_param->axis[i];
-            axis     = axis >= 0 ? axis : axis + (int)input_dims.size();
-            switch(axis) {
+            axis     = axis >= 0 ? axis : axis + (int)reduce_input_dims.size();
+            switch (axis) {
                 case 0:
                     if (!axis_nhwc[0]) {
-                        axis_n *= DimsFunctionUtils::GetDim(input_dims, axis);
+                        axis_n *= DimsFunctionUtils::GetDim(reduce_input_dims, axis);
                         axis_nhwc[0] = 1;
                     }
                     break;
                 case 1:
                     if (!axis_nhwc[3]) {
-                        axis_n *= DimsFunctionUtils::GetDim(input_dims, axis);
+                        axis_n *= DimsFunctionUtils::GetDim(reduce_input_dims, axis);
                         axis_nhwc[3] = 1;
                     }
                     break;
                 case 2:
                     if (!axis_nhwc[1]) {
-                        axis_n *= DimsFunctionUtils::GetDim(input_dims, axis);
+                        axis_n *= DimsFunctionUtils::GetDim(reduce_input_dims, axis);
                         axis_nhwc[1] = 1;
                     }
                     break;
                 case 3:
                     if (!axis_nhwc[2]) {
-                        axis_n *= DimsFunctionUtils::GetDim(input_dims, axis);
+                        axis_n *= DimsFunctionUtils::GetDim(reduce_input_dims, axis);
                         axis_nhwc[2] = 1;
                     }
                     break;
@@ -226,12 +263,12 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
         execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[1]);
 
-        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
-        execute_units_[0].ocl_kernel.setArg(idx++, *reduce_output_ptr);
-        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 0));
-        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 1));
-        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 2));
-        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(input_dims, 3));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reduce_input_blob->GetHandle().base));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reduce_output_blob->GetHandle().base));
+        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(reduce_input_dims, 0));
+        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(reduce_input_dims, 1));
+        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(reduce_input_dims, 2));
+        execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(reduce_input_dims, 3));
         execute_units_[0].ocl_kernel.setArg(idx++, c4_n);
         execute_units_[0].ocl_kernel.setArg(idx++, c4_r);
         execute_units_[0].ocl_kernel.setArg(idx++, cw4);
@@ -240,11 +277,11 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     }
 
     // reshape
-    if (need_reshape_) {
-        if (reshape_layer_acc_ == nullptr) {
+    if (output_need_reshape_) {
+        if (reshape_output_layer_acc_ == nullptr) {
             return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "reshape layer acc in Reduce is null");
         }
-        ret = reshape_layer_acc_->Reshape(reshape_inputs_, outputs);
+        ret = reshape_output_layer_acc_->Reshape(reduce_outputs_, outputs);
         CHECK_TNN_OK(ret)
     }
 
@@ -253,24 +290,35 @@ Status OpenCLReduceLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 
 Status OpenCLReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status ret = TNN_OK;
-    ret        = OpenCLLayerAcc::Forward(inputs, outputs);
-    if (need_reshape_) {
-        // reshape first
-        if (reshape_layer_acc_ == nullptr) {
+
+    if (input_need_reshape_) {
+        if (reshape_input_layer_acc_ == nullptr) {
             return Status(TNNERR_OPENCL_ACC_FORWARD_ERROR, "reshape layer acc in Reduce is null");
         }
-        ret = reshape_layer_acc_->Forward(reshape_inputs_, outputs);
+        ret = reshape_input_layer_acc_->Forward(inputs, reduce_inputs_);
+        CHECK_TNN_OK(ret)
+    }
+
+    ret = OpenCLLayerAcc::Forward(inputs, outputs);
+
+    if (output_need_reshape_) {
+        if (reshape_output_layer_acc_ == nullptr) {
+            return Status(TNNERR_OPENCL_ACC_FORWARD_ERROR, "reshape layer acc in Reduce is null");
+        }
+        ret = reshape_output_layer_acc_->Forward(reduce_outputs_, outputs);
         CHECK_TNN_OK(ret)
     }
 
     return ret;
 }
 
-Status OpenCLReduceLayerAcc::InitReshapeLayer(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status OpenCLReduceLayerAcc::InitReshapeLayer(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                                              DimsVector &reshape_shape,
+                                              shared_ptr<OpenCLReshapeLayerAcc> &reshape_layer_acc) {
     Status ret = TNN_OK;
 
-    reshape_layer_acc_ = std::make_shared<OpenCLReshapeLayerAcc>();
-    if (reshape_layer_acc_ == nullptr) {
+    reshape_layer_acc = std::make_shared<OpenCLReshapeLayerAcc>();
+    if (reshape_layer_acc == nullptr) {
         LOGE("Create Reshape Layer Acc in InnerProduct failed!\n");
         return Status(TNNERR_CREATE_LAYER, "Create Reshape Layer Acc in Reduce failed!");
     }
@@ -281,52 +329,51 @@ Status OpenCLReduceLayerAcc::InitReshapeLayer(const std::vector<Blob *> &inputs,
         return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
-    // create output_blob
-    BlobDesc desc           = inputs[0]->GetBlobDesc();
-    desc.data_format        = DATA_FORMAT_NHC4W4;
-    auto input_dims         = inputs[0]->GetBlobDesc().dims;
-    auto output_dims        = outputs[0]->GetBlobDesc().dims;
-    auto reduce_axis        = reduce_param->axis;
-    auto reshape_input_dims = PadDims(output_dims, reduce_axis);
-    desc.dims               = reshape_input_dims;
-    reshape_input_blob_     = std::make_shared<Blob>(desc);
-    if (reshape_input_blob_ == nullptr) {
-        LOGE("Create reshape output blob in Reduce failed!\n");
-        return Status(TNNERR_CREATE_LAYER, "Create reshape output blob in Reduce failed!");
-    }
-    reshape_inputs_.clear();
-    reshape_inputs_.push_back(reshape_input_blob_.get());
-
-    // create output_image
-    int climage_w =
-        UP_DIV(DimsFunctionUtils::GetDim(reshape_input_dims, 1), 4) * DimsFunctionUtils::GetDim(reshape_input_dims, 3);
-    int climage_h = DimsFunctionUtils::GetDim(reshape_input_dims, 0) * DimsFunctionUtils::GetDim(reshape_input_dims, 2);
-    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-    DimsVector imageshape{climage_w, climage_h};
-    cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
-        data_type = CL_HALF_FLOAT;
-    cl_int err           = CL_SUCCESS;
-    reshape_input_image_ = std::make_shared<cl::Image2D>(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
-                                                         cl::ImageFormat(CL_RGBA, data_type), imageshape[0],
-                                                         imageshape[1], 0, nullptr, &err);
-    if (err != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(err)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
-    }
-    BlobHandle blob_handle;
-    blob_handle.base = reshape_input_image_.get();
-    reshape_input_blob_->SetHandle(blob_handle);
-
     // Init LayerAcc
-    reshape_param_.name         = layer_name_ + "_Reshape";
-    reshape_param_.reshape_type = 0;
-    reshape_param_.axis         = 0;
-    reshape_param_.num_axes     = output_dims.size();
-    reshape_param_.shape        = output_dims;
-    reshape_layer_acc_->Init(ocl_context_, &reshape_param_, nullptr, reshape_inputs_, outputs);
+    std::string suffix = input_need_reshape_ ? "_Input" : "_Output";
+    ReshapeLayerParam reshape_param;
+    reshape_param.name         = layer_name_ + "_Reshape" + suffix;
+    reshape_param.reshape_type = 0;
+    reshape_param.axis         = 0;
+    reshape_param.num_axes     = reshape_shape.size();
+    reshape_param.shape        = reshape_shape;
+    reshape_layer_acc->Init(ocl_context_, &reshape_param, nullptr, inputs, outputs);
 
     return ret;
+}
+
+Status OpenCLReduceLayerAcc::CreaterBlob(BlobDesc desc, DimsVector dims, std::shared_ptr<Blob> &blob) {
+    BlobDesc blob_desc    = desc;
+    blob_desc.data_format = DATA_FORMAT_NHC4W4;
+    blob_desc.dims        = dims;
+    blob                  = std::make_shared<Blob>(blob_desc, true);
+    if (blob == nullptr) {
+        LOGE("Create reshape output blob in MatMul failed!\n");
+        return Status(TNNERR_CREATE_LAYER, "Create reshape blob in Reduce failed!");
+    }
+
+    return TNN_OK;
+}
+
+DimsVector OpenCLReduceLayerAcc::GenerateInputShape(DimsVector &input_dims, int axis) {
+    const int batch           = DimsFunctionUtils::GetDim(input_dims, 0);
+    const int channel_count   = DimsVectorUtils::Count(input_dims, 1, axis);
+    const int axis_dims       = DimsFunctionUtils::GetDim(input_dims, axis);
+    const int last_dims_count = DimsVectorUtils::Count(input_dims, axis + 1);
+
+    if (axis == 0) {
+        return {batch, DimsVectorUtils::Count(input_dims, 1), 1, 1};
+    }
+
+    return {batch, channel_count, axis_dims, last_dims_count};
+}
+
+DimsVector OpenCLReduceLayerAcc::AfterReduceDims(DimsVector dims, std::vector<int> axis) {
+    for (const auto item : axis) {
+        dims[item] = 1;
+    }
+
+    return dims;
 }
 
 }  // namespace TNN_NS
