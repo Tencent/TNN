@@ -73,9 +73,9 @@ Status CpuPoolLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
         int scale_len        = reinterpret_cast<BlobInt8 *>(output)->GetIntResource()->scale_handle.GetDataCount();
         bool merge_channel   = scale_len == 1;
 
-        int batch   = dims_input[0];
-        int channel = dims_input[1];
-        int hxw     = DimsVectorUtils::Count(dims_input, 2);
+        int batch   = dims_output[0];
+        int channel = dims_output[1];
+        int hxw     = DimsVectorUtils::Count(dims_output, 2);
 
         int8_t *output_data = static_cast<int8_t *>(output->GetHandle().base);
         for (int b = 0; b < batch; ++b) {

@@ -153,11 +153,11 @@ Status Calibration::RunCalibration(DataSet& dataset) {
     }
 
     // Merge Blob Scale of some layers
-    //ret = MergeBlobScale();
-    //if (ret != 0) {
-    //    LOGE("merge blob scale failed!\n");
-    //    return TNNERR_QUANTIZE_ERROR;
-    //}
+    ret = MergeBlobScale();
+    if (ret != 0) {
+        LOGE("merge blob scale failed!\n");
+        return TNNERR_QUANTIZE_ERROR;
+    }
 
     return TNN_OK;
 }
@@ -697,12 +697,12 @@ int Calibration::MergeBlobScale() {
 void Calibration::MergeBlobScaleRecursion(LayerInfo* layer_info, NetStructure* net_struct, NetResource* net_resource) {
     LayerType layer_type = layer_info->type;
     // Skip average pooling
-    if (layer_type == LAYER_POOLING) {
-        auto param = dynamic_cast<PoolingLayerParam*>(layer_info->param.get());
-        if (param->pool_type == 1) {
-            return;
-        }
-    }
+    // if (layer_type == LAYER_POOLING) {
+    //     auto param = dynamic_cast<PoolingLayerParam*>(layer_info->param.get());
+    //     if (param->pool_type == 1) {
+    //         return;
+    //     }
+    // }
     if (kBlobScaleMergeLayerTypeStr.find(layer_type) != kBlobScaleMergeLayerTypeStr.end()) {
         ASSERT(layer_info->inputs.size() == 1 && layer_info->outputs.size() == 1)
         LayerInfo* pre_layer_info = GetLayerInfoFromOutpubBlobName(layer_info->inputs[0], net_struct);
@@ -712,7 +712,7 @@ void Calibration::MergeBlobScaleRecursion(LayerInfo* layer_info, NetStructure* n
             std::string output_scale_name = layer_info->outputs[0] + +BLOB_SCALE_SUFFIX;
             if (net_resource->resource_map.find(input_scale_name) != net_resource->resource_map.end() &&
                 net_resource->resource_map.find(output_scale_name) != net_resource->resource_map.end()) {
-                net_resource->resource_map[input_scale_name] = net_resource->resource_map[output_scale_name];
+    //            net_resource->resource_map[input_scale_name] = net_resource->resource_map[output_scale_name];
                 layer_info->param->quantized                 = true;
             }
 
