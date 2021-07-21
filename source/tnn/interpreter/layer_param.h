@@ -144,6 +144,7 @@ struct PadLayerParam : public LayerParam {
 };
 
 struct PoolingLayerParam : public LayerParam {
+    // 0: Max  1: Average
     int pool_type = 0;
     //-1:caffe typy default 0:SAME 1:VALID
     int pad_type  = -1;

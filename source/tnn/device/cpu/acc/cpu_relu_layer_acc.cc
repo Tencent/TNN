@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "tnn/core/blob_int8.h"
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/bfp16_utils.h"
@@ -46,10 +47,27 @@ Status CpuReluLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
             output_data[index] = std::max(0.0f, (float)input_data[index]);
         }
     } else if (data_type == DATA_TYPE_INT8) {
+        const float *i_scale =
+            reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->scale_handle.force_to<float *>();
+        const float *o_scale =
+            reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->scale_handle.force_to<float *>();
+        int scale_len      = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->scale_handle.GetDataCount();
+        bool merge_channel = scale_len == 1;
+
+        int batch   = input_blob->GetBlobDesc().dims[0];
+        int channel = input_blob->GetBlobDesc().dims[1];
+        int hxw     = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, 2);
+
         int8_t *input_data  = static_cast<int8_t *>(input_blob->GetHandle().base);
         int8_t *output_data = static_cast<int8_t *>(output_blob->GetHandle().base);
-        for (int index = 0; index < count; ++index) {
-            output_data[index] = std::max((int8_t)0, input_data[index]);
+        for (int b = 0; b < batch; ++b) {
+            for (int c = 0; c < channel; ++c) {
+                for (int i = 0; i < hxw; ++i) {
+                    int index          = b * channel * hxw + c * hxw + i;
+                    int s_idx          = merge_channel ? 0 : c;
+                    output_data[index] = std::max((int8_t)0, input_data[index]) * i_scale[s_idx] / o_scale[s_idx];
+                }
+            }
         }
     } else {
         LOGE("CpuReluLayerAcc dont support data type: %d", data_type);

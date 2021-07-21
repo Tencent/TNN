@@ -12,9 +12,11 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/utils/naive_compute.h"
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
+
+#include "tnn/core/blob_int8.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
 
@@ -59,12 +61,32 @@ Status CpuPoolLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
         }
     } else if (output->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         NaivePooling<bfp16_t, float>(reinterpret_cast<bfp16_t *>(input->GetHandle().base),
-                                    reinterpret_cast<bfp16_t *>(output->GetHandle().base), dims_input, dims_output,
-                                    stride_y, stride_x, kernel_y, kernel_x, pad_y, pad_x, pool_type);
+                                     reinterpret_cast<bfp16_t *>(output->GetHandle().base), dims_input, dims_output,
+                                     stride_y, stride_x, kernel_y, kernel_x, pad_y, pad_x, pool_type);
     } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         NaivePooling<int8_t, int32_t>(reinterpret_cast<int8_t *>(input->GetHandle().base),
-                                    reinterpret_cast<int8_t *>(output->GetHandle().base), dims_input, dims_output,
-                                    stride_y, stride_x, kernel_y, kernel_x, pad_y, pad_x, pool_type);
+                                      reinterpret_cast<int8_t *>(output->GetHandle().base), dims_input, dims_output,
+                                      stride_y, stride_x, kernel_y, kernel_x, pad_y, pad_x, pool_type);
+
+        const float *i_scale = reinterpret_cast<BlobInt8 *>(input)->GetIntResource()->scale_handle.force_to<float *>();
+        const float *o_scale = reinterpret_cast<BlobInt8 *>(output)->GetIntResource()->scale_handle.force_to<float *>();
+        int scale_len        = reinterpret_cast<BlobInt8 *>(output)->GetIntResource()->scale_handle.GetDataCount();
+        bool merge_channel   = scale_len == 1;
+
+        int batch   = dims_input[0];
+        int channel = dims_input[1];
+        int hxw     = DimsVectorUtils::Count(dims_input, 2);
+
+        int8_t *output_data = static_cast<int8_t *>(output->GetHandle().base);
+        for (int b = 0; b < batch; ++b) {
+            for (int c = 0; c < channel; ++c) {
+                for (int i = 0; i < hxw; ++i) {
+                    int index          = b * channel * hxw + c * hxw + i;
+                    int s_idx          = merge_channel ? 0 : c;
+                    output_data[index] = output_data[index] * i_scale[s_idx] / o_scale[s_idx];
+                }
+            }
+        }
     }
 
     return TNN_OK;

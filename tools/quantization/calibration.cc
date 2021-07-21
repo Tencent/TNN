@@ -153,11 +153,11 @@ Status Calibration::RunCalibration(DataSet& dataset) {
     }
 
     // Merge Blob Scale of some layers
-    ret = MergeBlobScale();
-    if (ret != 0) {
-        LOGE("merge blob scale failed!\n");
-        return TNNERR_QUANTIZE_ERROR;
-    }
+    //ret = MergeBlobScale();
+    //if (ret != 0) {
+    //    LOGE("merge blob scale failed!\n");
+    //    return TNNERR_QUANTIZE_ERROR;
+    //}
 
     return TNN_OK;
 }
