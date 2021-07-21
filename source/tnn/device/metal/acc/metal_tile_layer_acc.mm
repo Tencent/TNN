@@ -72,8 +72,6 @@ namespace TNN_NS {
             metal_params.extend_channel_times = dims_output[1] / dims_input[1];
             metal_params.extend_width_times   = dims_output[3] / dims_input[3];
 
-            LOGE("input_width=%d\n",metal_params.input_width);
-
             buffer_param_     = [device newBufferWithBytes:(const void *)(&metal_params)
                                                     length:sizeof(metal_params)
                                                    options:MTLResourceCPUCacheModeWriteCombined];
