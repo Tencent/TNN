@@ -75,7 +75,7 @@ def load(model_path, config_dict = {}):
 def load_raw(model_path, network_config=None, input_shapes=None):
     return Module(model_path, network_config, input_shapes, input_shapes)
 
-def load_raw_range(model_path, network_config=None, min_input_shapes=None, max_input_shapes=None):
+def load_raw_range(model_path, network_config=None, min_input_shapes, max_input_shapes):
     return Module(model_path, network_config, min_input_shapes, max_input_shapes)
 
 class Module:
