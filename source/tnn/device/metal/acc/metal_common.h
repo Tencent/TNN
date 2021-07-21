@@ -84,6 +84,8 @@ struct MetalCastParams {
 #define kBroadcastTypeWidth 0x0005
 #define kBroadcastTypeGeneral 0x0006
 
+#define kBroadcastType5DimsHeightWidth 0x0009
+
 /** Broadcast Param Struct **/
 struct MetalBroadcastParams {
     int input_width;
@@ -102,6 +104,16 @@ struct MetalBroadcastParams {
 
     int input0_size;
     int input1_size;
+
+    int real_input0_1;
+    int real_input0_2;
+    int real_input0_3;
+    int real_input0_4;
+
+    int real_input1_1;
+    int real_input1_2;
+    int real_input1_3;
+    int real_input1_4;
 };
 
 /**Pow Param Struct **/

@@ -89,10 +89,19 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
         metal_params.output_size   = metal_params.output_height * metal_params.output_width;
         metal_params.output_slice  = UP_DIV(dims_output[1], 4);
 
+        metal_params.real_input0_1 = dims_input0[1];
+        metal_params.real_input0_2 = dims_input0[2];
+        metal_params.real_input0_3 = dims_input0[3];
+        metal_params.real_input0_4 = dims_input0[4];
+
         metal_params.input0_size   = UP_DIV(dims_input0[1], 4) * DimsFunctionUtils::GetDimProduct(dims_input0, 2);
         if (!(layer_res && buffer_weight_)) {
             auto dims_input1  = inputs[1]->GetBlobDesc().dims;
             metal_params.input1_size = UP_DIV(dims_input1[1], 4) * DimsFunctionUtils::GetDimProduct(dims_input1, 2);
+            metal_params.real_input1_1 = dims_input1[1];
+            metal_params.real_input1_2 = dims_input1[2];
+            metal_params.real_input1_3 = dims_input1[3];
+            metal_params.real_input1_4 = dims_input1[4];
         }
 
         metal_params.batch = dims_output[0];
