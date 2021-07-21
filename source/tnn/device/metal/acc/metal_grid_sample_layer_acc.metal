@@ -69,18 +69,20 @@ kernel void grid_sample(const device ftype4 *input_data [[buffer(0)]],
     int ne_index = (iy_ne >= 0 && iy_ne < params.input_height && ix_ne >= 0 && ix_ne < params.input_width) ?
                     iy_ne * params.input_width + ix_ne : 0;
     int sw_index = (iy_sw >= 0 && iy_sw < params.input_height && ix_sw >= 0 && ix_sw < params.input_width) ?
-                    iy_sw * params.input_width + ix_sw : 0 ;
+                    iy_sw * params.input_width + ix_sw : 0;
     int se_index = (iy_se >= 0 && iy_se < params.input_height && ix_se >= 0 && ix_se < params.input_width) ?
                     iy_se * params.input_width + ix_se : 0;
 
     int slice_index = (int)gid.z * params.input_slice * params.input_size + (int)gid.y * params.input_size;
 
+    ftype4 val = ftype4(0,0,0,0);
 
-    ftype4 val = input_data[nw_index+slice_index] * nw + input_data[ne_index+slice_index] * ne +
-                 input_data[sw_index+slice_index] * sw+input_data[se_index+slice_index] * se;
-
-    out[index] = val;
-
+    val = input_data[nw_index+slice_index] * nw + input_data[ne_index+slice_index] * ne +
+             input_data[sw_index+slice_index] * sw+input_data[se_index+slice_index] * se;
+    if(!isnan(x))
+        out[index] = val;
+    else
+        out[index] = ftype4(0,0,0,0);
 }
 
 
