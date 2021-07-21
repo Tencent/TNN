@@ -9,3 +9,7 @@ input=np.ones((1,3,224,224), np.float32, 'F')
 module=pytnn.load("../../model/SqueezeNet/squeezenet_v1.1.ts", {"input_shapes":[ {"min": [1,3,224,224], "max": [1,3,224,224]} ]})
 output=module.forward(input)
 print(output[0])
+
+module=pytnn.load("../../model/SqueezeNet/squeezenet_v1.1.tnnproto")
+output=module.forward({"data" : input})
+print(output[0])
