@@ -124,8 +124,12 @@ struct Float4 {
     static void saveu(float* addr, const Float4& v) {
         _mm_storeu_ps(addr, v.value);
     }
+    // mla_231
     static void mla(Float4& v1, const Float4& v2, const Float4& v3) {
         v1.value = _mm_add_ps(v1.value, _mm_mul_ps(v2.value, v3.value));
+    }
+    static void mla_123(Float4& v1, const Float4& v2, const Float4& v3) {
+        v1.value = _mm_add_ps(v3.value, _mm_mul_ps(v1.value, v2.value));
     }
     static void mls(Float4& v1, const Float4& v2, const Float4& v3) {
         v1.value = _mm_sub_ps(v1.value, _mm_mul_ps(v2.value, v3.value));

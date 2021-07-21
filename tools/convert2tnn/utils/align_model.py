@@ -76,7 +76,7 @@ def get_input_from_file(path: str) -> dict:
             #int32
             for j in range(count):
                 data.append(int(f.readline().strip('\n')))
-            np_data = np.array(data).astype(np.int64).reshape(dims)
+            np_data = np.array(data).astype(np.int32).reshape(dims)
             input_dict.update({input_name: np_data})
     return input_dict
 
@@ -192,7 +192,7 @@ def run_tflite(model_path: str, input_path: str, input_info: dict) -> str:
             output_data = interpreter.get_tensor(index)
             if item["dtype"] == np.float32:
                 data_type = 0
-            elif item["dtype"] == np.int64:
+            elif item["dtype"] == np.int64 or item["dtype"] == np.int32:
                 data_type = 3
             shape = list(output_data.shape)
             original_len = len(shape)
@@ -272,7 +272,7 @@ def get_input_shape_from_tflite(tflite_path)->dict:
 
         if item["dtype"] == np.float32:
             data_type = 0
-        elif item["dtype"] == np.int64:
+        elif item["dtype"] == np.int64 or item['dtype'] == np.int32:
             data_type = 3
         else:
             logging.error("Do not support input date type")
