@@ -109,7 +109,7 @@ class Module:
         else:
             self.instance=self.tnn.CreateInst(network_config, ret, min_input_shapes, max_input_shapes)
 
-    def forward(self, *inputs):
+    def forward(self, *inputs, rtype="list"):
         if len(inputs) > 1:
             for index, value in enumerate(inputs):
                 self.instance.SetInputMat(convert_numpy_to_mat(value), MatConvertParam(), "input_" + str(index))
@@ -124,9 +124,16 @@ class Module:
                 self.instance.SetInputMat(convert_numpy_to_mat(inputs[0]), MatConvertParam()) 
         self.instance.Forward()
         output_blobs = self.instance.GetAllOutputBlobs()
-        output_list = []
+        output = []
+        is_dict = False
+        if rtype == "dict":
+            output = {}
+            is_dict = True
         for key, value in output_blobs.items():
             output_mat=self.instance.GetOutputMat(MatConvertParam(), key, DEVICE_NAIVE, NCHW_FLOAT)
             output_mat_numpy=convert_mat_to_numpy(output_mat)
-            output_list.append(output_mat_numpy)
-        return output_list
+            if is_dict:
+                output[key] = output_mat_numpy
+            else:
+                output.append(output_mat_numpy)
+        return output
