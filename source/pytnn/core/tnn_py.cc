@@ -26,7 +26,7 @@ namespace TNN_NS {
             .def("DeInit", &TNN::DeInit)
             .def("AddOutput", &TNN::AddOutput)
             .def("GetModelInputShapesMap", &TNN::GetModelInputShapesMap)
-            .def("CreateInst", static_cast<std::shared_ptr<Instance> (TNN::*)(NetworkConfig&, Status& ,InputShapesMap)>(&TNN::CreateInst))
+            .def("CreateInst", static_cast<std::shared_ptr<Instance> (TNN::*)(NetworkConfig&, Status& ,InputShapesMap)>(&TNN::CreateInst), py::arg("config"), py::arg("status"), py::arg("inputs_shape")=InputShapesMap())
             .def("CreateInst", static_cast<std::shared_ptr<Instance> (TNN::*)(NetworkConfig&, Status& ,InputShapesMap, InputShapesMap)>(&TNN::CreateInst));
     }
 

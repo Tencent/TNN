@@ -41,17 +41,6 @@ void InitInstancePy(py::module &m);
 
 void InitBlobConverterPy(py::module &m);
 
-class PUBLIC Module {
-public:
-    Status Init(const std::string& model_path);
-    py::array_t<float> Forward(py::array_t<float> input);  
-private:
-    TNN net_;
-    std::shared_ptr<Instance> instance_;
-};
-
-Module* Load(const std::string& model_path);
-
 py::array_t<float> ConvertMatToNumpy(std::shared_ptr<Mat>);
 std::shared_ptr<Mat> ConvertNumpyToMat(py::array_t<float>);
 
