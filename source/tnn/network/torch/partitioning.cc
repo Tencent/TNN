@@ -1,6 +1,7 @@
 #include "tnn/network/torch/partitioning.h"
 
 #include <queue>
+#include "tnn/network/torch/jit_util.h"
 // #include "core/conversion/conversion.h"
 #include "tnn/network/torch/shape_analysis.h"
 #include "torch/csrc/jit/passes/dead_code_elimination.h"
@@ -14,10 +15,6 @@ struct usage_info {
   std::vector<int> tensorrt_use_id;
 };
 
-inline bool isTensorOrTensorList(torch::jit::Value* val) {
-  return val->type()->isSubtypeOf(torch::jit::TensorType::get()) ||
-      val->type()->isSubtypeOf(torch::jit::ListType::ofTensors());
-}
 
 bool OpSupported(const torch::jit::Node* n) {
   std::set<std::string> op_supported = {
@@ -60,7 +57,7 @@ bool isAllNodesSupported(const std::vector<torch::jit::Node*>& nodes) {
 
 bool containTargetInputs(torch::jit::Node* n, const std::unordered_set<torch::jit::Value*>& target_inputs) {
   for (auto input : n->inputs()) {
-    if (!isTensorOrTensorList(input) && target_inputs.count(input)) {
+    if (!util::isTensorOrTensorList(input) && target_inputs.count(input)) {
       return true;
     }
   }
@@ -69,7 +66,7 @@ bool containTargetInputs(torch::jit::Node* n, const std::unordered_set<torch::ji
 
 bool containNonTensorOutputs(torch::jit::Node* n) {
   for (auto output : n->outputs()) {
-    if (!isTensorOrTensorList(output)) {
+    if (!util::isTensorOrTensorList(output)) {
       return true;
     }
   }
@@ -89,7 +86,7 @@ std::vector<torch::jit::Node*> getDependencyNodes(std::vector<torch::jit::Value*
     if (node->kind() != torch::jit::prim::Constant && !visited.count(node)) {
       stk.push_back(node);
       for (auto input : node->inputs()) {
-        if (!isTensorOrTensorList(input)) {
+        if (!util::isTensorOrTensorList(input)) {
           q.push(input);
         }
       }
@@ -103,7 +100,7 @@ std::vector<SegmentedBlock> injectNodesForNonTensorInputs(SegmentedBlock& seg_bl
   // reconstruct segmented_block if this block requires nonTensor input
   std::vector<torch::jit::Value*> nontensor_inputs;
   for (auto input : seg_block.raw_inputs()) {
-    if (!isTensorOrTensorList(input)) {
+    if (!util::isTensorOrTensorList(input)) {
       nontensor_inputs.push_back(input);
     }
   }
@@ -151,7 +148,7 @@ void resolveNonTensorInputs(PartitionedGraph& segmented_blocks, std::shared_ptr<
   std::unordered_map<torch::jit::Value*, usage_info> usage_counts;
   for (int i = segmented_blocks.size() - 1; i >= 0; --i) {
     for (auto input : segmented_blocks[i].raw_inputs()) {
-      if (!isTensorOrTensorList(input)) {
+      if (!util::isTensorOrTensorList(input)) {
         segmented_blocks[i].target() == SegmentedBlock::kTorch ? usage_counts[input].torch_use_id.push_back(i)
                                                                : usage_counts[input].tensorrt_use_id.push_back(i);
       }
@@ -230,7 +227,7 @@ void registerSegmentsOutputs(PartitionedGraph& segmented_blocks, std::shared_ptr
       if (std::find(seg_block.raw_inputs().begin(), seg_block.raw_inputs().end(), mini_graph_input) ==
               seg_block.raw_inputs().end() &&
           seg_block.contain_raw_value(mini_graph_input)) {
-        if (!isTensorOrTensorList(mini_graph_input) && seg_block.target() == SegmentedBlock::kTNN)
+        if (!util::isTensorOrTensorList(mini_graph_input) && seg_block.target() == SegmentedBlock::kTNN)
           continue;
         seg_block.registerOutput(mini_graph_input);
       }
@@ -244,7 +241,7 @@ void registerSegmentsOutputs(PartitionedGraph& segmented_blocks, std::shared_ptr
         // for TensorRT segments, register last nonInput Tensor outputs
         for (int i = seg_block.raw_nodes().size() - 1; i >= 0; --i) {
           for (auto node_output : seg_block.raw_nodes()[i]->outputs()) {
-            if (isTensorOrTensorList(node_output))
+            if (util::isTensorOrTensorList(node_output))
               seg_block.registerOutput(node_output);
           }
           if (!seg_block.raw_outputs().empty())
@@ -343,9 +340,6 @@ std::vector<SegmentedBlock> Partition(
     // if (block.target() == SegmentedBlock::kTNN) {
     if (1) {
       std::cout << block.g()->toString(true);
-    }
-    for (auto n : block.raw_nodes()) {
-      std::cout << n->kind().toUnqualString() << std::endl;
     }
     printf("====================== subgraph end   %d ======================\n", block.target());
   }

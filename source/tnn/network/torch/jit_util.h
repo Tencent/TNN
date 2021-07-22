@@ -8,6 +8,11 @@
 namespace TNN_NS {
 namespace util {
 
+inline bool isTensorOrTensorList(torch::jit::Value* val) {
+  return val->type()->isSubtypeOf(torch::jit::TensorType::get()) ||
+      val->type()->isSubtypeOf(torch::jit::ListType::ofTensors());
+}
+
 inline std::string node_info(const torch::jit::Node* n) {
   std::stringstream ss;
   ss << *n;
@@ -43,7 +48,12 @@ inline std::vector<int> toDims(c10::IntArrayRef l) {
 inline c10::FunctionSchema GenerateGraphSchema(std::string method_name, std::shared_ptr<torch::jit::Graph>& g) {
   std::vector<c10::Argument> args;
   for (auto in : g->inputs()) {
-    args.push_back(c10::Argument(in->debugName(), in->type()));
+    if (in->type()->kind() == torch::jit::TypeKind::OptionalType) {
+      auto ival = torch::jit::IValue();
+      args.push_back(c10::Argument(in->debugName(), in->type(), c10::nullopt, ival));
+    } else {
+      args.push_back(c10::Argument(in->debugName(), in->type()));
+    }
   }
 
   std::vector<c10::Argument> returns;

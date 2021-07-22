@@ -3,6 +3,7 @@
 #include "tnn/network/torch/jit_util.h"
 #include "torch/csrc/jit/api/module.h"
 #include "torch/csrc/jit/passes/constant_pooling.h"
+#include "tnn/network/torch/torch_types.h"
 
 namespace TNN_NS {
 namespace partitioning {
@@ -48,6 +49,7 @@ void getSegmentsOutputByRunning(
 
   auto cur_method = cur_mod._ivalue()->compilation_unit()->create_function(c10::QualifiedName("forward"), copy_g);
   auto schema = util::GenerateGraphSchema(cur_method->name(), copy_g);
+  std::cout << c10::toString(schema) << std::endl;
   cur_mod.type()->addMethod(cur_method);
   cur_method->setSchema(schema);
 
@@ -56,6 +58,7 @@ void getSegmentsOutputByRunning(
   // set inputs ivalues, now supports Tensor/Int to pass argumentes between different segments
   for (auto& input : seg_block.raw_inputs()) {
     printf("seg input name %s\n", input->debugName().c_str());
+    if (input->type()->kind() == torch::jit::TypeKind::OptionalType) continue;
     if (!ivalues_maps.count(input)) {
       std::cout << "Could not find mini graph input IValue " << input->debugName() << std::endl;
       return;
@@ -80,6 +83,7 @@ void getSegmentsOutputByRunning(
 
   // run segments to get outputs for later segments input shape, and other arguments such as Int
   std::vector<torch::jit::IValue> jit_results;
+  std::cout << copy_g->toString() << std::endl;
   torch::jit::IValue jit_results_ivalues = cur_mod.forward(jit_inputs_ivalues);
 
   if (jit_results_ivalues.isTuple()) {
@@ -114,9 +118,18 @@ void runShapeAnalysis(
   // store the mapping from lowering graph torch::jit::Value => torch::jit::IValue that we get by running segments
   std::unordered_map<torch::jit::Value*, torch::jit::IValue> ivalues_maps;
   std::vector<torch::jit::IValue> random_inputs = generateRandomInputs(input_shape);
-  for (size_t i = 0; i < g->inputs().size(); ++i) {
+
+  // Todo : use IValueRouter instead
+  for (size_t i = 0; i < random_inputs.size(); ++i) {
     printf("graph input %d %s\n", i, g->inputs()[i]->debugName().c_str());
-    ivalues_maps[g->inputs()[i]] = random_inputs[i];
+    auto type = g->inputs()[i]->type();
+    if (type->kind() == c10::TypeKind::ListType) {
+      c10::TypePtr elementType = g->inputs()[i]->type()->expect<c10::ListType>()->getElementType();
+      ivalues_maps[g->inputs()[i]] = c10::impl::GenericList(elementType);
+      ivalues_maps[g->inputs()[i]].toList().push_back(random_inputs[i]);
+    } else {
+      ivalues_maps[g->inputs()[i]] = random_inputs[i];
+    }
   }
 
   // register every segment's input shape, and it's running output IValues
