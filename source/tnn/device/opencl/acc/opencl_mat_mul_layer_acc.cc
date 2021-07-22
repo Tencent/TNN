@@ -90,7 +90,10 @@ Status OpenCLMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 
     // create kernel
     std::string kernel_name = "MatMul";
-    ret                     = CreateExecuteUnit(execute_units_[0], "matmul", kernel_name);
+    if (outputs[0]->GetBlobDesc().dims.size() == 6) {
+        kernel_name = "MatMul6D";
+    }
+    ret = CreateExecuteUnit(execute_units_[0], "matmul", kernel_name);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
@@ -108,6 +111,39 @@ Status OpenCLMatMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 
     auto input0_dims    = inputs[0]->GetBlobDesc().dims;
     auto output_dims    = outputs[0]->GetBlobDesc().dims;
+
+    if (output_dims.size() == 6) {
+        need_reshape_ = {false, false, false};
+
+        DimsVector input1_dims;
+        auto idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], output_dims);
+        if (inputs.size() == 2) {
+            input1_dims = inputs[1]->GetBlobDesc().dims;
+            execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
+            execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[1]->GetHandle().base));
+        } else {
+            if (weight_position_ == 1) {
+                input1_dims = reshape_outputs_[1][0]->GetBlobDesc().dims;
+                execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
+                execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reshape_outputs_[1][0]->GetHandle().base));
+            } else {
+                input0_dims = reshape_outputs_[0][0]->GetBlobDesc().dims;
+                input1_dims = inputs[0]->GetBlobDesc().dims;
+                execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reshape_outputs_[0][0]->GetHandle().base));
+                execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
+            }
+        }
+
+        execute_units_[0].ocl_kernel.setArg(idx++, input0_dims.size() * sizeof(int), input0_dims.data());
+        execute_units_[0].ocl_kernel.setArg(idx++, input1_dims.size() * sizeof(int), input1_dims.data());
+        execute_units_[0].ocl_kernel.setArg(idx++, output_dims.size() * sizeof(int), output_dims.data());
+        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(input0_dims[1], 4));
+        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(input1_dims[1], 4));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
+
+        return TNN_OK;
+    }
+
     if (inputs.size() == 2) {
         bool need_reshape = false;
         ret = InitReshapeLayer(inputs[0], reshape_layer_acc_[0], need_reshape, reshape_inputs_[0],

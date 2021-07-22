@@ -53,6 +53,12 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
                 input_idx_ = 0;
                 param_idx_ = 1;
 
+            } else if (output_dims_size_ == 5) {
+                if (broadcast_param_.input0_broadcast_type == BroadcastTypeHeightWidth &&
+                    broadcast_param_.input1_broadcast_type == BroadcastTypeGeneral) {
+                    input_idx_ = 1;
+                    param_idx_ = 0;
+                }
             } else {
                 return Status(TNNERR_PARAM_ERR, "input dims is illegal");
             }
@@ -87,8 +93,17 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     }
 
     kernel_name_ = GetKernelName(broadcast_param_);
-    if (param_dims_.size() == 5 && kernel_name_ == "BinaryBroadcast") {
-        kernel_name_ += "5D";
+    if (kernel_name_ == "BinaryWidth") {
+        DimsVector input_shape0 = inputs[0]->GetBlobDesc().dims;
+        DimsVector input_shape1 = inputs.size() == 2 ? inputs[1]->GetBlobDesc().dims : param_dims_;
+        // if shape = (N, 1, H, W) or (N, C, 1, W), use BinaryBroadcast
+        // if shape = (N, 1, 1, W), use BinaryWidth
+        if ((input_shape0[1] != 1 || input_shape0[2] != 1) && (input_shape1[1] != 1 || input_shape1[2] != 1)) {
+            kernel_name_ = "BinaryBroadcast";
+        }
+    }
+    if (output_dims_size_ == 5 && kernel_name_ != "BinaryElementWise" && kernel_name_ != "BinarySingle") {
+        kernel_name_ = "BinaryBroadcast5D";
     }
 
     return TNN_OK;
