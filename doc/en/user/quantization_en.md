@@ -60,3 +60,19 @@ Two files will be generated in the current directory where the command is execut
 ...
 ```
  (4) scale and mean need to be the value after calculation. For example, 1.0/128.0 is invalid and 0.0078125 is ok.  
+ 
+### 6. Test Data
+Some tests have be done for squeezenet1.1-7.onnx (downloads: https://github.com/onnx/models/blob/master/vision/classification/squeezenet/model/squeezenet1.1-7.onnx) in ImageNet(ILSVRC2012) (downloads: https://image-net.org/challenges/LSVRC/2012/) 
+
+The Top-1 accuracy of FP32 is 55.71%. 
+
+63 pictures are chosen from data set to be the inputs of quantization. And the result is as follows:  
+
+| blob_method | weight_method | merge_type | Top-1 Accuracy | 
+| :---------: | :-----------: | :--------: | :------------: | 
+| 2-(KL) | 1-(ADMM) | 0-(Per-Channel) | 51.58% | 
+| 2-(KL) | 1-(ADMM) | 2-(Per-Tensor) | 50.23% | 
+| 2-(KL) | 1-(ADMM) | 1-(Mix) | 55.37% | 
+| 0-(Min-Max) | 0-(Min-Max) | 0-(Per-Channel) | 54.82% | 
+
+Different configurations can be tried to get the best performance.
