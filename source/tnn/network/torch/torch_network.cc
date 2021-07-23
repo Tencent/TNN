@@ -45,6 +45,10 @@ NetworkImplFactoryRegister<NetworkImplFactory<TNNTorchNetwork>> g_network_impl_t
 TNNTorchNetwork::~TNNTorchNetwork() {
     // delete output foreign_blobs 
     ClearOutputs();
+    if (blob_manager_) {
+        delete blob_manager_;
+        blob_manager_ = nullptr;
+    }
 }
 
 Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,

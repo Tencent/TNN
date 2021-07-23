@@ -118,12 +118,28 @@ private:
 struct TypeKindMatcher
 {
 public:
+    // e.g :
+    //       TypePtr : Tuple(Tensor, Dict[str, List[Tensor]])
+    //       Type_str: (1)[boxes][0]
     explicit TypeKindMatcher(c10::TypePtr type, SubStr type_str);
 
+    // e.g : 
+    //       prefix = (1)
     SubStr prefix() const {return prefix_;}
+
+    // e.g : 
+    //       key = 1
     SubStr key() const {return key_;}
+
+    // e.g : 
+    //       sufix = [boxes][0]
     SubStr suffix() const {return suffix_;}
+
+    // e.g :
+    //       offset = 1
+    // only valid when keyType == IntType
     int offset() const {return offset_;}
+
     bool valid() const {return valid_;}
 
 private:
