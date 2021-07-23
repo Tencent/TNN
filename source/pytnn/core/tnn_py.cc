@@ -19,13 +19,33 @@ namespace py = pybind11;
 
 namespace TNN_NS {
 
+    InputShapesMap GetModelInputShapesMap(TNN* net) {
+        InputShapesMap shapes_map;
+        net->GetModelInputShapesMap(shapes_map);
+        return shapes_map;
+    }
+
+    std::vector<std::string> GetModelInputNames(TNN* net) {
+        std::vector<std::string> input_names;
+        net->GetModelInputNames(input_names);
+        return input_names;
+    }
+
+    std::vector<std::string> GetModelOutputNames(TNN* net) {
+        std::vector<std::string> output_names;
+        net->GetModelOutputNames(output_names);
+        return output_names;
+    }
+
     void InitTNNPy(py::module &m) {
         py::class_<TNN>(m, "TNN")
      	    .def(py::init<>())
 	    .def("Init", &TNN::Init)
             .def("DeInit", &TNN::DeInit)
             .def("AddOutput", &TNN::AddOutput)
-            .def("GetModelInputShapesMap", &TNN::GetModelInputShapesMap)
+            .def("GetModelInputShapesMap", GetModelInputShapesMap)
+            .def("GetModelInputNames", GetModelInputNames)
+            .def("GetModelOutputNames", GetModelOutputNames)
             .def("CreateInst", static_cast<std::shared_ptr<Instance> (TNN::*)(NetworkConfig&, Status& ,InputShapesMap)>(&TNN::CreateInst), py::arg("config"), py::arg("status"), py::arg("inputs_shape")=InputShapesMap())
             .def("CreateInst", static_cast<std::shared_ptr<Instance> (TNN::*)(NetworkConfig&, Status& ,InputShapesMap, InputShapesMap)>(&TNN::CreateInst));
     }

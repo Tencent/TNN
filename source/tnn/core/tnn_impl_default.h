@@ -57,6 +57,12 @@ public:
     //@brief get input shapes map from model
     virtual Status GetModelInputShapesMap(InputShapesMap& shapes_map);
 
+    // return input names from model
+    virtual Status GetModelInputNames(std::vector<std::string>& input_names);
+
+    // return output names from model
+    virtual Status GetModelOutputNames(std::vector<std::string>& input_names);
+
     // @brief create an instance
     // @param instance: The instance to be created.
     // @param inputs_shape: modify input shape, or it will use the shape in the

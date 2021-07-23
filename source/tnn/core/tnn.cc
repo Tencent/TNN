@@ -54,6 +54,22 @@ Status TNN::GetModelInputShapesMap(InputShapesMap& shapes_map) {
     return impl_->GetModelInputShapesMap(shapes_map);
 }
 
+Status TNN::GetModelInputNames(std::vector<std::string>& input_names) {
+     if (!impl_) {
+        LOGE("Error: impl_ is nil\n");
+        return Status(TNNERR_NET_ERR, "tnn impl_ is nil");
+    }
+    return impl_->GetModelInputNames(input_names);
+}
+
+Status TNN::GetModelOutputNames(std::vector<std::string>& output_names) {
+     if (!impl_) {
+        LOGE("Error: impl_ is nil\n");
+        return Status(TNNERR_NET_ERR, "tnn impl_ is nil");
+    }
+    return impl_->GetModelOutputNames(output_names);
+}
+
 std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status, InputShapesMap inputs_shape) {
     if (!impl_) {
         status = Status(TNNERR_NET_ERR, "tnn impl_ is nil");
