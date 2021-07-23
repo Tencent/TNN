@@ -99,7 +99,7 @@ def _parse_precision(precision):
             return PRECISION_LOW
         else:
             raise ValueError("Got a precision unsupported (type: " + precision + ")")
-     else:
+    else:
         raise TypeError("precision must be of type string or Precision, but got: " +
                         str(type(precision)))
 
@@ -191,20 +191,20 @@ class Module:
     def __init__(self, model_path):
         self.model_path = model_path
         self.tnn=TNN()
-        model_config=ModelConfig()
+        self.model_config=ModelConfig()
         if model_path.endswith("tnnproto"):
             weights_path=_replace_last(model_path, "tnnproto", "tnnmodel")
-            model_config.model_type=MODEL_TYPE_TNN
+            self.model_config.model_type=MODEL_TYPE_TNN
             params = []
             with open(model_path, "r") as f:
                 params.append(f.read())
             with open(weights_path, "rb") as f:
                 params.append(f.read())
-            model_config.params=params
+            self.model_config.params=params
         else:
-            model_config.model_type=MODEL_TYPE_TORCHSCRIPT
-            model_config.params=[model_path]
-        self.tnn.Init(model_config)
+            self.model_config.model_type=MODEL_TYPE_TORCHSCRIPT
+            self.model_config.params=[model_path]
+        self.tnn.Init(self.model_config)
 
     def parsed_input_names(self):
         return self.tnn.GetModelInputNames()
@@ -212,12 +212,12 @@ class Module:
     def parsed_output_names(self):
         return self.tnn.GetModelOutputNames()
 
-    def create_instance(self, network_config, min_input_shapes, max_input_shapes):
+    def create_inst(self, network_config, min_input_shapes, max_input_shapes):
         ret=Status()
         if network_config is None:
             network_config=NetworkConfig()
             network_config.device_type=DEVICE_CUDA
-        if model_config.model_type == MODEL_TYPE_TORCHSCRIPT:
+        if self.model_config.model_type == MODEL_TYPE_TORCHSCRIPT:
             network_config.network_type=NETWORK_TYPE_TNNTORCH
         if min_input_shapes is None:
             self.instance=self.tnn.CreateInst(network_config, ret)
@@ -228,7 +228,7 @@ class Module:
 
         self.input_names = self.parsed_input_names()
         self.output_names = self.parsed_output_names()
-  
+
         if len(self.input_names) == 0:
             self.input_names = list(self.instance.GetAllInputBlobs().keys())
         if len(self.output_names) == 0:
@@ -254,7 +254,7 @@ class Module:
         if rtype == "dict":
             output = {}
             is_dict = True
-        for output_name in enumerate(self.output_names):
+        for output_name in self.output_names:
             output_mat=self.instance.GetOutputMat(MatConvertParam(), output_name, DEVICE_NAIVE, NCHW_FLOAT)
             output_mat_numpy=convert_mat_to_numpy(output_mat)
             if is_dict:
