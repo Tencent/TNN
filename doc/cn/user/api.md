@@ -1,6 +1,6 @@
-# API说明
-
 [English Version](../../en/user/api_en.md)
+
+# C++ API说明
 
 ## 一、API兼容性
 
@@ -556,3 +556,28 @@ struct PUBLIC MatConvertParam {
 
 ### 16. version.h
 构建版本信息
+
+# Python API说明
+
+Python API 基于pybind 对 C++ Core 相关API进行了封装，相关用法与C++ API基本相同，仅改变了c++传引用参数作为返回值的函数行为，在python对应接口中改为直接作为函数返回值返回。此外，Python API提供了简化的API接口。
+
+## 一、模型加载
+
+python api 提供了简化的模型加载接口`load`, `load_raw`, `load_raw_range`。  
+- `load` :  
+- `load_raw` :  
+- `load_raw_range` :  
+
+```python
+module=pytnn.load("../../model/SqueezeNet/squeezenet_v1.1.ts", {"input_shapes":[ {"min": [1,3,224,224], "max": [1,3,224,224]} ], "network_type": pytnn.NETWORK_TYPE_TNNTORCH, "device_type": pytnn.DEVICE_CUDA})
+module=pytnn.load("../../model/SqueezeNet/squeezenet_v1.1.ts", {"input_shapes":[ {"min": [1,3,224,224], "max": [1,3,224,224]} ], "network_type": "tnntorch", "device_type": "cuda"})
+module=pytnn.load("../../model/SqueezeNet/squeezenet_v1.1.ts", {"input_shapes":[ {"min": [1,3,224,224], "max": [1,3,224,224]} ]})
+module=pytnn.load("../../model/SqueezeNet/squeezenet_v1.1.ts", {"input_shapes":[[1,3,224,224]]})
+module=pytnn.load("../../model/SqueezeNet/squeezenet_v1.1.ts", {"input_shapes":[(1,3,224,224)]})
+```
+
+
+
+ 
+
+
