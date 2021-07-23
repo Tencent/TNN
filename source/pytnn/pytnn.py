@@ -38,9 +38,9 @@ def _parse_device_type(device_type):
     if isinstance(device_type, DeviceType):
         return device_type
     elif isinstance(device_type, str):
-        if device_type == "gpu" or device_type == "GPU" or device_type == "CUDA" or device_type == "cuda":
+        if device_type == "gpu" or device_type == "GPU" or device_type == "cuda" or device_type == "CUDA":
             return DEVICE_CUDA
-        elif device_type == "cpu" or device_type == "CPU" or device_type == "X86" or device_type == "x86":
+        elif device_type == "cpu" or device_type == "CPU" or device_type == "x86" or device_type == "X86":
             return DEVICE_X86
         elif device_type == "arm" or device_type == "ARM":
             return DEVICE_ARM
@@ -51,7 +51,7 @@ def _parse_device_type(device_type):
         elif device_type == "opencl" or device_type == "OPENCL":
             return DEVICE_OPENCL
         else:
-            ValueError("Got a device_type unsupported (type: " + device_type + ")")
+            raise ValueError("Got a device_type unsupported (type: " + device_type + ")")
     else:
         raise TypeError("device_type must be of type string or DeviceType, but got: " +
                         str(type(device_type)))         
@@ -75,7 +75,7 @@ def _parse_network_type(network_type):
         elif network_type == "atlas" or network_type == "ATLAS":
             return NETWORK_TYPE_ATLAS
         else:
-            ValueError("Got a network_type unsupported (type: " + network_type + ")")
+            raise ValueError("Got a network_type unsupported (type: " + network_type + ")")
     else:
         raise TypeError("network_type must be of type string or NetworkType, but got: " +
                         str(type(network_type)))
@@ -94,6 +94,43 @@ def _parse_precision(precision):
         elif precision == "low" or precision == "LOW" or precision == "fp16" or precision == "FP16" \
             or precision == "float16" or precision == "FLOAT16" or precision == "bfp16" or precision == "BFP16":
             return PRECISION_LOW
+        else:
+            raise ValueError("Got a precision unsupported (type: " + precision + ")")
+     else:
+        raise TypeError("precision must be of type string or Precision, but got: " +
+                        str(type(precision)))
+
+def _parse_share_memory_mode(share_memory_mode):
+    if isinstance(share_memory_mode, ShareMemoryMode):
+        return share_memory_mode
+    elif isinstance(share_memory_mode, str):
+        if share_memory_mode == "default" or share_memory_mode == "DEFAULT":
+            return SHARE_MEMORY_MODE_DEFAULT
+        elif share_memory_mode == "share_one_thread" or share_memory_mode == "SHARE_ONE_THREAD":
+            return SHARE_MEMORY_MODE_SHARE_ONE_THREAD
+        elif share_memory_mode == "set_from_external" or share_memory_mode == "SET_FROM_EXTERNAL":
+            return SHARE_MEMORY_MODE_SET_FROM_EXTERNAL
+        else:
+            raise ValueError("Got a share_memory_mode unsupported (type: " + share_memory_mode + ")")
+    else:
+        raise TypeError("share_memory_mode must be of type string or ShareMemoryMode, but got: " +
+                        str(type(share_memory_mode)))
+
+def _parse_data_format(data_format):
+    if isinstance(data_format, DataFormat):
+        return data_format
+    elif isinstance(data_format, str):
+        if data_format == "NCHW" or data_format == "nchw":
+            return DATA_FORMAT_NCHW
+        elif data_format == "NC4HW4" or data_format == "nc4hw4":
+            return DATA_FORMAT_NC4HW4
+        elif data_format == "NHC4W4" or data_format == "nhc4w4":
+            return DATA_FORMAT_NHC4W4
+        else:
+            raise ValueError("Got a data_format unsupported (type: " + data_format + ")")
+    else:
+        raise TypeError("data_format must be of type string or DataFormat, but got: " +
+                        str(type(data_format)))
 
 def _parse_network_config(config_dict):
     network_config = NetworkConfig()
@@ -105,20 +142,21 @@ def _parse_network_config(config_dict):
         assert isinstance(config_dict["device_id"], int)
         network_config.device_id = config_dict["device_id"]
     if "data_format" in config_dict:
-        assert isinstance(config_dict["data_format"], DataFormat)
-        network_config.data_format = config_dict["data_format"]
+        network_config.data_format = _parse_data_format(config_dict["data_format"])
     if "network_type" in config_dict:
         network_config.network_type = _parse_network_type(config_dict["network_type"])
     if "share_memory_mode" in config_dict:
-        assert isinstance(config_dict["share_memory_mode"], ShareMemoryMode)
-        network_config.share_memory_mode = config_dict["share_memory_mode"]
+        network_config.share_memory_mode = _parse_share_memory_mode(config_dict["share_memory_mode"])
     if "library_path" in config_dict:
+        assert isinstance(config_dict["library_path"], str)
         network_config.library_path = config_dict["library_path"]
     if "precision" in config_dict:
         network_config.precision = _parse_precision(config_dict["precision"])
     if "cache_path" in config_dict:
+        assert isinstance(config_dict["cache_path"], str)
         network_config.cache_path = config_dict["cache_path"]
     if "enable_tune_kernel" in config_dict:
+        assert isinstance(config_dict["enable_tune_kernel"], bool)
         network_config.enable_tune_kernel = config_dict["enable_tune_kernel"]
     return network_config
 
