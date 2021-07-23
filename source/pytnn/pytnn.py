@@ -12,25 +12,28 @@ def _supported_input_size_type(input_size) -> bool:
             + str(type(input_size)))
 
 
-def _parse_input_ranges(input_sizes: List):
+def _parse_input_ranges(input_sizes: List, input_names):
     if any(not isinstance(i, dict) and not _supported_input_size_type(i) for i in input_sizes):
         raise KeyError("An input size must either be a static size or a range of two sizes (min, max) as Dict")
     min_input_shapes = {}
     max_input_shapes = {}
     for index, value in enumerate(input_sizes):
+        input_name = "input_" + str(index)
+        if len(input_names) > index:
+            input_name = input_names[index]
         if isinstance(value, dict):
             if all(k in value for k in ["min", "max"]):
-                min_input_shapes["input_" + str(index)] = value["min"]
-                max_input_shapes["input_" + str(index)] = value["max"]
+                min_input_shapes[input_name] = value["min"]
+                max_input_shapes[input_name] = value["max"]
             else:
                 raise KeyError(
                     "An input size must either be a static size or a range of three sizes (min, opt, max) as Dict")
         elif isinstance(value, list):
-            min_input_shapes["input_" + str(index)] = value
-            max_input_shapes["input_" + str(index)] = value
+            min_input_shapes[input_name] = value
+            max_input_shapes[input_name] = value
         elif isinstance(value, tuple):
-            min_input_shapes["input_" + str(index)] = value
-            max_input_shapes["input_" + str(index)] = value
+            min_input_shapes[input_name] = value
+            max_input_shapes[input_name] = value
     return (min_input_shapes, max_input_shapes)
 
 
@@ -165,21 +168,27 @@ def _replace_last(source_string, replace_what, replace_with):
     return head + replace_with + tail
 
 def load(model_path, config_dict = {}):
+    module = Module(model_path)
+    input_names = module.parsed_input_names()
     min_input_shapes = None
     max_input_shapes = None
     if "input_shapes" in config_dict:
-        min_input_shapes, max_input_shapes = _parse_input_ranges(config_dict["input_shapes"])
+        min_input_shapes, max_input_shapes = _parse_input_ranges(config_dict["input_shapes"], input_names)
     network_config = _parse_network_config(config_dict)
-    return Module(model_path, network_config, min_input_shapes, max_input_shapes)
+    module.create_inst(network_config, min_input_shapes, max_input_shapes)
+    return module
 
 def load_raw(model_path, network_config=None, input_shapes=None):
-    return Module(model_path, network_config, input_shapes, input_shapes)
-
+    module = Module(model_path, network_config, input_shapes, input_shapes)
+    module.create_inst(network_config, input_shapes, input_shapes)
+    return module
 def load_raw_range(model_path, network_config=None, min_input_shapes=None, max_input_shapes=None):
-    return Module(model_path, network_config, min_input_shapes, max_input_shapes)
+    module = Module(model_path)
+    module.create_inst(network_config, min_input_shapes, max_input_shapes)
+    return module
 
 class Module:
-    def __init__(self, model_path, network_config, min_input_shapes, max_input_shapes):
+    def __init__(self, model_path):
         self.model_path = model_path
         self.tnn=TNN()
         model_config=ModelConfig()
@@ -196,6 +205,14 @@ class Module:
             model_config.model_type=MODEL_TYPE_TORCHSCRIPT
             model_config.params=[model_path]
         self.tnn.Init(model_config)
+
+    def parsed_input_names(self):
+        return self.tnn.GetModelInputNames()
+
+    def parsed_output_names(self):
+        return self.tnn.GetModelOutputNames()
+
+    def create_instance(self, network_config, min_input_shapes, max_input_shapes):
         ret=Status()
         if network_config is None:
             network_config=NetworkConfig()
@@ -209,14 +226,22 @@ class Module:
         else:
             self.instance=self.tnn.CreateInst(network_config, ret, min_input_shapes, max_input_shapes)
 
+        self.input_names = self.parsed_input_names()
+        self.output_names = self.parsed_output_names()
+  
+        if len(self.input_names) == 0:
+            self.input_names = list(self.instance.GetAllInputBlobs().keys())
+        if len(self.output_names) == 0:
+            self.output_names = list(self.instance.GetAllOutputBlobs().keys())
+
     def forward(self, *inputs, rtype="list"):
         if len(inputs) > 1:
             for index, value in enumerate(inputs):
-                self.instance.SetInputMat(convert_numpy_to_mat(value), MatConvertParam(), "input_" + str(index))
+                self.instance.SetInputMat(convert_numpy_to_mat(value), MatConvertParam(), self.input_names[index])
         else:
             if isinstance(inputs[0], tuple) or isinstance(inputs[0], list):
                 for index, value in enumerate(inputs[0]):
-                    self.instance.SetInputMat(convert_numpy_to_mat(value), MatConvertParam(), "input_" + str(index))
+                    self.instance.SetInputMat(convert_numpy_to_mat(value), MatConvertParam(), self.input_names[index])
             elif isinstance(inputs[0], dict):
                 for key, value in inputs[0].items():
                     self.instance.SetInputMat(convert_numpy_to_mat(value), MatConvertParam(), key)
@@ -229,8 +254,8 @@ class Module:
         if rtype == "dict":
             output = {}
             is_dict = True
-        for key, value in output_blobs.items():
-            output_mat=self.instance.GetOutputMat(MatConvertParam(), key, DEVICE_NAIVE, NCHW_FLOAT)
+        for output_name in enumerate(self.output_names):
+            output_mat=self.instance.GetOutputMat(MatConvertParam(), output_name, DEVICE_NAIVE, NCHW_FLOAT)
             output_mat_numpy=convert_mat_to_numpy(output_mat)
             if is_dict:
                 output[key] = output_mat_numpy
