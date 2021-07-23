@@ -55,6 +55,10 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
         return Status(TNNERR_CONTEXT_ERR, "context is nil");
 }
 
+std::vector<BaseLayer *>& DefaultNetwork::GetLayers(){
+    return layers_;
+}
+
 /*
  * The Network holds blob, blobmanager, layers etc.
  * Those object is initialized in this function.

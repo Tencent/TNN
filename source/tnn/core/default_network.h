@@ -31,6 +31,7 @@
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/interpreter/net_structure.h"
 #include "tnn/layer/base_layer.h"
+#include "tnn/train/grad/grad_manager.h"
 
 namespace TNN_NS {
 
@@ -92,6 +93,10 @@ public:
     // @brief set threads run on device
     virtual Status SetCpuNumThreads(int num_threads);
 
+
+    // @brief get layers
+    virtual std::vector<BaseLayer *>& GetLayers();    
+
 #if TNN_PROFILE
 public:
     virtual void StartProfile();
@@ -128,7 +133,6 @@ protected:
 private:
 
    Status ReshapeLayers();
-
 };
 
 }  // namespace TNN_NS

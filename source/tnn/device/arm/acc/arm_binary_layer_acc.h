@@ -27,6 +27,8 @@ enum class ArmBinaryOpType : int {
     kMAX = 4,
     kMIN = 5,
     kHARDSWISH = 6,
+    kBinaryCrossEntropy = 7,
+    kCategoricalCrossEntropy = 8
 };
 
 class ArmBinaryLayerAcc : public ArmLayerAcc {

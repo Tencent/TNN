@@ -237,7 +237,9 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/extern_wrapper/*.h"
                       "source/tnn/extern_wrapper/*.cc"
                       "source/tnn/memory_manager/*.h"
-                      "source/tnn/memory_manager/*.cc")
+                      "source/tnn/memory_manager/*.cc"
+                      "source/tnn/train/*.h"
+                      "source/tnn/train/*.cc")
 
 if(TNN_SYMBOL_HIDE AND UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")

@@ -193,12 +193,16 @@ Status BlobManager::AllocateBlobMemory(int flag) {
 
                 BlobMemorySizeInfo info = device_->Calculate(current_blob->GetBlobDesc());
                 // find an available BlobMemory
+#ifdef TRAIN
+                BlobMemory *blob_memory = blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, true);
+#else
                 BlobMemory *blob_memory = blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, false);
+#endif
                 blob_memory_mapping_.insert(std::make_pair(current_blob, blob_memory));
             }
         }
-
-        // refund the input blob memory
+#ifdef TRAIN
+        // refund the input blob memory, train mode cannot reuse blob memory
         for (auto current_blob_name : layer_info->inputs) {
             Blob *current_blob = blobs_[current_blob_name];
             if (current_blob->NeedAllocateInForward() ||
@@ -217,7 +221,9 @@ Status BlobManager::AllocateBlobMemory(int flag) {
                 }
             }
         }
+#endif
     }
+
 
     Status status = TNN_OK;
 

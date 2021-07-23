@@ -42,6 +42,7 @@ public:
     void buffer(char *buf, int bytes_size);
     void SetDataType(DataType data_type);
     void SetBufferDims(DimsVector shape);
+    void SetTrainable(bool trainable);
 
 
 
@@ -49,6 +50,7 @@ public:
     int GetBytesSize();
     int GetDataCount();
     DimsVector GetBufferDims();
+    bool GetTrainable();
 
     void Permute(size_t outter, size_t inner);
 
@@ -62,6 +64,7 @@ private:
     int bytes_size_        = 0;
     DataType data_type_    = DATA_TYPE_FLOAT;
     DimsVector dims_ = {};
+    bool trainable_ = false;
 };
 
 RawBuffer ConvertHalfHandle(RawBuffer &buf);

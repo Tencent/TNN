@@ -27,6 +27,7 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
+#include "tnn/train/grad/layer_grad.h"
 
 namespace TNN_NS {
 
@@ -51,6 +52,9 @@ public:
 
     //@brief get layer name
     std::string GetLayerName();
+
+    //@brief get layer type
+    LayerType GetLayerType();
 
     //@brief set laye name
     void SetLayerName(std::string layer_name);
@@ -97,6 +101,7 @@ protected:
     ConstantResourceFlag* const_resource_flag_ = nullptr;
     RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;
     bool enable_const_folder_ = true;
+    
 
     //@brief calculate the output tensor dims
     virtual Status InferOutputShape(bool ignore_error = false);
@@ -104,6 +109,9 @@ protected:
     virtual Status InferOutputDataType();
     //@brief fill layer param with constant resource
     virtual Status FillLayerParamWithConstantResource();
+
+    friend class LayerGrad;
+    
 };
 
 //@brief LayerCreator define the create layer interface

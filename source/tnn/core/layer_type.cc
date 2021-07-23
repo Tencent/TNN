@@ -216,6 +216,8 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"Where", LAYER_WHERE},
     {"LayerNorm", LAYER_LAYER_NORM},
     {"GELU", LAYER_GELU},
+    {"CategoricalCrossEntropy", LAYER_CATEGORICAL_CROSSENTROPY},
+    {"BinaryCrossEntropy", LAYER_BINARY_CROSSENTROPY},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 

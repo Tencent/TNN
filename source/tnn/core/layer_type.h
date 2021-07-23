@@ -217,6 +217,9 @@ enum LayerType {
     LAYER_GELU                                              = 327,
     LAYER_TOPK                                              = 328,
     LAYER_NOT                                               = 329,
+    //for train
+    LAYER_CATEGORICAL_CROSSENTROPY                          = 330,
+    LAYER_BINARY_CROSSENTROPY                               = 331,
 
     LAYER_BLOB_SCALE                                        = 600,
 
