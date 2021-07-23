@@ -134,8 +134,8 @@ Status MetalConv1DLayerCommon::Reshape(const std::vector<Blob *> &inputs, const 
 
 std::string MetalConv1DLayerCommon::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (is_channel_4x_)
-        return "convolution1d_common_4x";
-    return "convolution1d_common";
+        return "convolution_common_4x";
+    return "convolution_common";
 }
 
 Status MetalConv1DLayerCommon::ComputeThreadSize(const std::vector<Blob *> &inputs,
