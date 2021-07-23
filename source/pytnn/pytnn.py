@@ -33,36 +33,98 @@ def _parse_input_ranges(input_sizes: List):
             max_input_shapes["input_" + str(index)] = value
     return (min_input_shapes, max_input_shapes)
 
+
+def _parse_device_type(device_type):
+    if isinstance(device_type, DeviceType):
+        return device_type
+    elif isinstance(device_type, str):
+        if device_type == "gpu" or device_type == "GPU" or device_type == "CUDA" or device_type == "cuda":
+            return DEVICE_CUDA
+        elif device_type == "cpu" or device_type == "CPU" or device_type == "X86" or device_type == "x86":
+            return DEVICE_X86
+        elif device_type == "arm" or device_type == "ARM":
+            return DEVICE_ARM
+        elif device_type == "naive" or device_type == "NAIVE":
+            return DEVICE_NAIVE
+        elif device_type == "metal" or device_type == "METAL":
+            return DEVICE_METAL
+        elif device_type == "opencl" or device_type == "OPENCL":
+            return DEVICE_OPENCL
+        else:
+            ValueError("Got a device_type unsupported (type: " + device_type + ")")
+    else:
+        raise TypeError("device_type must be of type string or DeviceType, but got: " +
+                        str(type(device_type)))         
+
+def _parse_network_type(network_type):
+    if isinstance(network_type, NetworkType):
+        return network_type
+    elif isinstance(network_type, str):
+        if network_type == "auto" or network_type == "AUTO":
+            return NETWORK_TYPE_AUTO
+        elif network_type == "default" or network_type == "DEFAULT":
+            return NETWORK_TYPE_DEFAULT
+        elif network_type == "openvino" or network_type == "OPENVINO":
+            return NETWORK_TYPE_OPENVINO
+        elif network_type == "coreml" or network_type == "COREML":
+            return NETWORK_TYPE_COREML
+        elif network_type == "tensorrt" or network_type == "TENSORRT":
+            return NETWORK_TYPE_TENSORRT
+        elif network_type == "tnntorch" or network_type == "ATLAS":
+            return NETWORK_TYPE_TNNTORCH
+        elif network_type == "atlas" or network_type == "ATLAS":
+            return NETWORK_TYPE_ATLAS
+        else:
+            ValueError("Got a network_type unsupported (type: " + network_type + ")")
+    else:
+        raise TypeError("network_type must be of type string or NetworkType, but got: " +
+                        str(type(network_type)))
+
+def _parse_precision(precision):
+    if isinstance(precision, Precision):
+        return precision
+    elif isinstance(precision, str):
+        if precision == "auto" or precision == "AUTO":
+            return PRECISION_AUTO
+        if precision == "normal" or precision == "NORMAL":
+            return PRECISION_NORMAL
+        elif precision == "high" or precision == "HIGH" or precision == "fp32" or precision == "FP32" \
+            or precision == "float32" or precision == "FLOAT32":
+            return PRECISION_HIGH
+        elif precision == "low" or precision == "LOW" or precision == "fp16" or precision == "FP16" \
+            or precision == "float16" or precision == "FLOAT16" or precision == "bfp16" or precision == "BFP16":
+            return PRECISION_LOW
+
 def _parse_network_config(config_dict):
     network_config = NetworkConfig()
-
     if "device_type" in config_dict:
-        network_config.device_type = config_dict["device_type"]
+        network_config.device_type = _parse_device_type(config_dict["device_type"])
     else:
         network_config.device_type = DEVICE_CUDA
     if "device_id" in config_dict:
+        assert isinstance(config_dict["device_id"], int)
         network_config.device_id = config_dict["device_id"]
     if "data_format" in config_dict:
+        assert isinstance(config_dict["data_format"], DataFormat)
         network_config.data_format = config_dict["data_format"]
     if "network_type" in config_dict:
-        network_config.network_type = config_dict["network_type"]
+        network_config.network_type = _parse_network_type(config_dict["network_type"])
     if "share_memory_mode" in config_dict:
+        assert isinstance(config_dict["share_memory_mode"], ShareMemoryMode)
         network_config.share_memory_mode = config_dict["share_memory_mode"]
     if "library_path" in config_dict:
         network_config.library_path = config_dict["library_path"]
     if "precision" in config_dict:
-        network_config.precision = config_dict["precision"]
+        network_config.precision = _parse_precision(config_dict["precision"])
     if "cache_path" in config_dict:
         network_config.cache_path = config_dict["cache_path"]
     if "enable_tune_kernel" in config_dict:
         network_config.enable_tune_kernel = config_dict["enable_tune_kernel"]
-
     return network_config
 
 def _replace_last(source_string, replace_what, replace_with):
     head, _sep, tail = source_string.rpartition(replace_what)
     return head + replace_with + tail
-
 
 def load(model_path, config_dict = {}):
     min_input_shapes = None
@@ -75,7 +137,7 @@ def load(model_path, config_dict = {}):
 def load_raw(model_path, network_config=None, input_shapes=None):
     return Module(model_path, network_config, input_shapes, input_shapes)
 
-def load_raw_range(model_path, network_config=None, min_input_shapes, max_input_shapes):
+def load_raw_range(model_path, network_config=None, min_input_shapes=None, max_input_shapes=None):
     return Module(model_path, network_config, min_input_shapes, max_input_shapes)
 
 class Module:
