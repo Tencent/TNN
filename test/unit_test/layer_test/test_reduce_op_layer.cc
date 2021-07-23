@@ -19,6 +19,18 @@
 
 namespace TNN_NS {
 
+static bool TestFilter(DeviceType device_type, int input_dim_size, int axis_size) {
+    if (device_type == DEVICE_NAIVE)
+        return true;
+
+    if (device_type == DEVICE_OPENCL && input_dim_size <= 4)
+        return true;
+    if (device_type == DEVICE_OPENCL && input_dim_size > 4 && axis_size == 1)
+        return true;
+
+    return false;
+}
+
 static std::string GenerateReduceProto(std::string op_type, ReduceLayerParam param) {
     std::ostringstream ostr;
     ostr << "\"" << op_type << " layer_name 1 1 input output " << param.keep_dims << " ";
@@ -63,7 +75,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                                             // keep_dim
                                             testing::Values(0, 1),
                                             // dim count
-                                            testing::Values(2, 3, 4),
+                                            testing::Values(2, 3, 4, 5),
                                             // axis
                                             testing::Values(std::vector<int>({1}), std::vector<int>({2}),
                                                             std::vector<int>({3}), std::vector<int>({1, 2}),
@@ -91,6 +103,10 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         GTEST_SKIP();
     }
 
+    if (!TestFilter(dev, dim_count, axis.size())) {
+        GTEST_SKIP();
+    }
+
     // blobconverter cannot handle 1-dimensional blob, skip it for now
     if (dim_count <= axis.size()+1 && keep_dims == 0) {
         GTEST_SKIP();
@@ -100,10 +116,6 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         if (d >= dim_count || d + dim_count < 0) {
             GTEST_SKIP();
         }
-    }
-
-    if (DEVICE_OPENCL == dev && keep_dims != 1 && axis.size() > 1) {
-        GTEST_SKIP();
     }
 
     if ((HasAxis(axis, 0, dim_count) || IsDiscontinuous(axis, dim_count)) && DEVICE_CUDA == dev) {
@@ -124,6 +136,11 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         else input_dims.push_back(input_width);
     }
 
+    if (dim_count > 4) {
+        for (int i = 4; i < dim_count; i++) {
+            input_dims[i] = std::min(input_height, input_width);
+        }
+    }
 
     if (DEVICE_HUAWEI_NPU != dev) {
         auto interpreter1 = GenerateInterpreter("ReduceMax", {input_dims}, param);
