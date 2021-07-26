@@ -160,8 +160,6 @@ namespace test {
 
             timer.Print();
 
-            FreeMatMapMemory(input_mat_map);
-            FreeMatMapMemory(output_mat_map);
             return 0;
         } else {
             return ret;
@@ -585,12 +583,6 @@ namespace test {
             }
         }
         f.close();
-    }
-
-    void FreeMatMapMemory(MatMap& mat_map) {
-        for(auto iter : mat_map) {
-            free(iter.second->GetData());
-        }
     }
 
 }  // namespace test
