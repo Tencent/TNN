@@ -55,7 +55,7 @@ kernel void mul_broadcast(const device ftype4 *src0                             
     } else if (params.broadcast_input0 == kBroadcastTypeGeneral) {  //maybe some error!
         data0 = ftype4(src0[(int)(gid.x / params.output_width)]);
     } else if (params.broadcast_input0 == kBroadcastTypeWidth) {
-        data0 = ftype4(src0[(int)(gid.x % params.output_width) + (int)(gid.y * params.input_size / 4)]);
+        data0 = ftype4(src0[(int)(gid.x % params.output_width) + (int)(gid.y * params.input0_size)]);
     } else if (params.broadcast_input0 == kBroadcastType5DimsHeightWidth) {
         data0 = ftype4(src0[(int)(gid.x % params.real_input0_4) + (int)(gid.y * params.real_input0_4 * params.real_input0_3)]);
     } else {
