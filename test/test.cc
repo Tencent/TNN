@@ -89,13 +89,15 @@ namespace test {
             instance->GetCommandQueue(&command_queue);
 
             //create mat and converter
-            MatMap input_mat_map = CreateBlobMatMap(input_blob_map, FLAGS_it);
+            MatMap input_mat_map;
+            CreateBlobMatMap(input_blob_map, FLAGS_it, input_mat_map);
             InitInputMatMap(input_mat_map);
             auto input_converters_map = CreateBlobConverterMap(input_blob_map);
             auto input_params_map = CreateConvertParamMap(input_mat_map, true);
 
             //mat format NCHW_FLOAT
-            MatMap output_mat_map = CreateBlobMatMap(output_blob_map, 0);
+            MatMap output_mat_map;
+            CreateBlobMatMap(output_blob_map, 0, output_mat_map);
             auto output_converters_map = CreateBlobConverterMap(output_blob_map);
             auto output_params_map = CreateConvertParamMap(output_mat_map, false);
 
@@ -106,6 +108,13 @@ namespace test {
                     blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
                 }
                 ret = instance->ForwardAsync(nullptr);
+
+                bool is_update = CreateBlobMatMap(output_blob_map, 0, output_mat_map);
+                if (is_update) {
+                    output_converters_map = CreateBlobConverterMap(output_blob_map);
+                    output_params_map = CreateConvertParamMap(output_mat_map, false);
+                }
+
                 for(auto element : output_converters_map) {
                     auto name = element.first;
                     auto blob_converter = element.second;
@@ -141,6 +150,13 @@ namespace test {
                 if (!CheckResult("Forward", ret)) {
                     return ret;
                 }
+
+                bool is_update = CreateBlobMatMap(output_blob_map, 0, output_mat_map);
+                if (is_update) {
+                    output_converters_map = CreateBlobConverterMap(output_blob_map);
+                    output_params_map = CreateConvertParamMap(output_mat_map, false);
+                }
+
                 for(auto element : output_converters_map) {
                     auto name = element.first;
                     auto blob_converter = element.second;
@@ -363,8 +379,8 @@ namespace test {
         }
     }
 
-    MatMap CreateBlobMatMap(BlobMap& blob_map, int format_type) {
-        MatMap mat_map;
+    bool CreateBlobMatMap(BlobMap& blob_map, int format_type, MatMap &mat_map) {
+        bool is_update = false;
         for (auto iter : blob_map) {
             auto name = iter.first;
             Blob* device_blob = iter.second;
@@ -395,12 +411,21 @@ namespace test {
                 mat_type = NC_INT64;
             }
 
+            // check whether mat need to update
+            if (mat_map.find(name) != mat_map.end()) {
+                if (mat_map[name]->GetMatType() == mat_type &&
+                    DimsVectorUtils::Equal(mat_map[name]->GetDims(), blob_desc.dims)) continue;
+                // release old mat memory
+                free(mat_map[name]->GetData());
+            }
+
             int bytes = DimsVectorUtils::Count(blob_desc.dims) * DataTypeUtils::GetBytesSize(data_type);
             void* mat_data = malloc(bytes);
             auto mat = std::make_shared<Mat>(DEVICE_NAIVE, mat_type, blob_desc.dims, mat_data);
             mat_map[name] = mat;
+            is_update = true;
         }
-        return mat_map;
+        return is_update;
     }
 
 
