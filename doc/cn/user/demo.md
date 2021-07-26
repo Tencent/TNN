@@ -208,7 +208,8 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
     
 ## 三、Linux/Mac/Windows/ArmLinux/CudaLinux Demo 介绍
 ### 功能
-* 快速在 Linux/Mac/Windows/ArmLinux/CudaLinux 环境下运行模型，展示 TNN 接口的使用方法。
+* 快速在 Linux/Mac/Windows/ArmLinux/CudaLinux 环境下运行模型，展示 TNN 接口的使用方法。<br>
+**注意：demo sdk 请使用推荐模型，如需使用其他模型需要修改 sdk 预处理及后处理功能适应不同模型的输入输出差异**
 
 ### 使用步骤
 #### 1. 下载 Demo 模型

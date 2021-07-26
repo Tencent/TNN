@@ -212,7 +212,8 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
 ## III. Introduction to Linux/Mac/Windows/Armlinux/CudaLinux Demo
 
 ### Ability
-* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux/Mac/Windows/ArmLinux/CudaLinux environment.
+* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux/Mac/Windows/ArmLinux/CudaLinux environment.<br>
+**Attention：demo sdk need to use the model recommended. Preprosess and Postprocesss may need to be modified with different model for type of different input and output.**
 
 ### Running Steps
 #### 1. Downloand demo models
