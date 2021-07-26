@@ -74,6 +74,10 @@ public:
     // @param instance to share command queue
     Status ShareCommandQueue(Instance *instance);
 
+    // @brief share network resource with another instance
+    // @param instance to share network resource
+    Status ShareNetResource(Instance *instance);
+
     // @brief tnn instance network infer, it will wait until all layer infer complete.
     Status Forward();
 

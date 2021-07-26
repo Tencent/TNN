@@ -121,7 +121,9 @@ typedef enum {
     SHARE_MEMORY_MODE_SHARE_ONE_THREAD = 1,
     // set blob memory from external, different thread share blob memory need
     // synchronize
-    SHARE_MEMORY_MODE_SET_FROM_EXTERNAL = 2
+    SHARE_MEMORY_MODE_SET_FROM_EXTERNAL = 2,
+    // tnn instane share net resource
+    SHARE_MEMORY_MODE_SHARE_NET_RESOURCE = 3
 } ShareMemoryMode;
 
 typedef enum {
