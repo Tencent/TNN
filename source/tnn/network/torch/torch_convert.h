@@ -25,29 +25,7 @@
 namespace TNN_NS {
 namespace conversion {
 
-class TorchConvertCtx {
-public:
-    TorchConvertCtx() {
-        auto interpreter = CreateModelInterpreter(MODEL_TYPE_TNN);
-        interpreter_ = std::shared_ptr<AbstractModelInterpreter>(interpreter);
-    };
-    void buildOp(const torch::jit::Node* node);
-    bool dealPrime(const torch::jit::Node* node);
-    int declareTensor(std::string name);
-    int lookupTensor(std::string name);
-    std::string lookupTensor(int idx) const;
-    void declareVar(std::string name, const torch::jit::Node* var);
-    const torch::jit::Node* lookupVar(std::string name) const;
-    std::shared_ptr<AbstractModelInterpreter> get_interpreter() {
-        return interpreter_;
-    };
-private:
-    std::map<std::string, const torch::jit::Node*> varTable;
-    std::map<std::string, int> tensorIdx;
-    std::shared_ptr<AbstractModelInterpreter> interpreter_;
-};
-
-c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::SegmentedBlock &block, TorchConvertCtx *ctx); 
+c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::SegmentedBlock &block); 
 
 }
 }

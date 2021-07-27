@@ -4,6 +4,6 @@
 
 namespace TNN_NS{
 
-std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Graph> g, InputShapesMap& input_shape);
+std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap& input_shape);
 
 }

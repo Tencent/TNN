@@ -24,7 +24,7 @@ bool OpSupported(const torch::jit::Node* n) {
     "max_pool2d"
   };
 
-  std::cout << "node kind " << n->kind().toUnqualString() << std::endl;
+  // std::cout << "node kind " << n->kind().toUnqualString() << std::endl;
   auto node_name = n->outputs().size() > 0 ? n->output(0)->debugName() : "";
   auto kind = n->kind();
   // if(kind.is_prim()) {
@@ -40,7 +40,7 @@ bool OpSupported(const torch::jit::Node* n) {
   // }
   
   if (op_supported.count(n->kind().toUnqualString()) > 0) {
-    std::cout << "supported node kind " << n->kind().toUnqualString() << std::endl;
+    // std::cout << "supported node kind " << n->kind().toUnqualString() << std::endl;
     return true;
   }
   return false;
@@ -345,7 +345,7 @@ std::vector<SegmentedBlock> Partition(
   }
 
   // run shape analysis on each segmented block
-  runShapeAnalysis(segmented_blocks, input_shape, g);
+  // runShapeAnalysis(segmented_blocks, input_shape, g);
 
   return segmented_blocks;
 }
