@@ -39,6 +39,7 @@
 #include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/device_utils.h"
 #include "tnn/utils/omp_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
@@ -413,13 +414,10 @@ namespace test {
             if (mat_map.find(name) != mat_map.end()) {
                 if (mat_map[name]->GetMatType() == mat_type &&
                     DimsVectorUtils::Equal(mat_map[name]->GetDims(), blob_desc.dims)) continue;
-                // release old mat memory
-                free(mat_map[name]->GetData());
             }
 
-            int bytes = DimsVectorUtils::Count(blob_desc.dims) * DataTypeUtils::GetBytesSize(data_type);
-            void* mat_data = malloc(bytes);
-            auto mat = std::make_shared<Mat>(DEVICE_NAIVE, mat_type, blob_desc.dims, mat_data);
+            auto device_type = GetConcreteDeviceType(DEVICE_GROUP_CPU);
+            auto mat = std::make_shared<Mat>(device_type, mat_type, blob_desc.dims);
             mat_map[name] = mat;
             is_update = true;
         }
