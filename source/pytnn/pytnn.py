@@ -41,9 +41,9 @@ def _parse_device_type(device_type):
     if isinstance(device_type, DeviceType):
         return device_type
     elif isinstance(device_type, str):
-        if device_type == "gpu" or device_type == "GPU" or device_type == "cuda" or device_type == "CUDA":
+        if device_type == "cuda" or device_type == "CUDA":
             return DEVICE_CUDA
-        elif device_type == "cpu" or device_type == "CPU" or device_type == "x86" or device_type == "X86":
+        elif device_type == "x86" or device_type == "X86":
             return DEVICE_X86
         elif device_type == "arm" or device_type == "ARM":
             return DEVICE_ARM
@@ -178,11 +178,11 @@ def load(model_path, config_dict = {}):
     module.create_inst(network_config, min_input_shapes, max_input_shapes)
     return module
 
-def load_raw(model_path, network_config=None, input_shapes=None):
-    module = Module(model_path, network_config, input_shapes, input_shapes)
+def load_raw(model_path, network_config, input_shapes=None):
+    module = Module(model_path)
     module.create_inst(network_config, input_shapes, input_shapes)
     return module
-def load_raw_range(model_path, network_config=None, min_input_shapes=None, max_input_shapes=None):
+def load_raw_range(model_path, network_config, min_input_shapes, max_input_shapes):
     module = Module(model_path)
     module.create_inst(network_config, min_input_shapes, max_input_shapes)
     return module
@@ -217,6 +217,9 @@ class Module:
         if network_config is None:
             network_config=NetworkConfig()
             network_config.device_type=DEVICE_CUDA
+        if isinstance(network_config, NetworkConfig):
+            raise TypeError("network_config can be None or of type NetworkConfig, but got: " +
+ 84                         str(type(network_config)))
         if self.model_config.model_type == MODEL_TYPE_TORCHSCRIPT:
             network_config.network_type=NETWORK_TYPE_TNNTORCH
         if min_input_shapes is None:

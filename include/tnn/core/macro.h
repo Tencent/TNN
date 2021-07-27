@@ -227,4 +227,14 @@
 #define DEPRECATED
 #endif
 
+#define TNN_CHECK(condition, fail_msg, ...)                     \
+    do {                                                        \
+        auto _status = (condition);                             \
+        if (!_status)  {                                        \
+            char _msg[2000];                                    \
+            snprintf(_msg, 2000, fail_msg, ##__VA_ARGS__);      \
+            return Status(TNNERR_COMMON_ERROR, _msg);           \
+        }                                                       \
+    } while(0)
+
 #endif  // TNN_INCLUDE_TNN_CORE_MACRO_H_

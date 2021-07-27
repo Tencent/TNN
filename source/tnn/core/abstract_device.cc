@@ -17,6 +17,10 @@
 #include <map>
 #include <mutex>
 
+#include "tnn/core/common.h"
+#include "tnn/core/status.h"
+#include "tnn/core/macro.h"
+
 namespace TNN_NS {
 
 AbstractDevice::AbstractDevice(DeviceType device_type) : device_type_(device_type) {}

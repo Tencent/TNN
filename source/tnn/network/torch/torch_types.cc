@@ -19,11 +19,13 @@
 #include <set>
 #include <regex>
 #include <mutex>
+#include <sstream>
 #include <stdlib.h>
 
 #include "tnn/core/common.h"
 #include "tnn/core/status.h"
 #include "tnn/core/macro.h"
+#include "tnn/network/torch/torch_utils.h"
 
 #include <torch/script.h>
 
@@ -71,7 +73,7 @@ c10::TypeKind key_type(c10::TypePtr type) {
         case c10::TypeKind::TupleType:
             return c10::TypeKind::IntType; 
         case c10::TypeKind::DictType:
-            return type->cast<c10::DictType>()->getKeyType()->kind();
+            return type->expect<c10::DictType>()->getKeyType()->kind();
     }
     return c10::TypeKind::StringType;
 }
@@ -155,11 +157,6 @@ void JitTypeMatcher::match(SubStr type_str) {
     TypeKindMatcher matcher(type_, type_str);
     key_ = matcher.key();
     suffix_ = matcher.suffix();
-    // type_str reaches the end
-    if (matcher.valid() && suffix_.len() == 0) {
-        valid_ = true;
-        return;
-    }
 
     auto elems = elements();
     if (elems.size() == 0) {
@@ -183,7 +180,7 @@ JitTypeMatcherPtr JitTypeMatcher::next() {
     return next_;
 }
 
-int JitTypeMatcher::id_from_name(std::string full_name) {
+int JitTypeMatcher::idFromName(std::string full_name) {
 
     auto matcher = JitTypeMatcher::create(c10::AnyType::create(), full_name);
     auto name = matcher->value_name_.str();
@@ -208,15 +205,15 @@ std::vector<c10::TypePtr> JitTypeMatcher::elements() {
     std::vector<c10::TypePtr> ret;
     switch(type_->kind()) {
         case c10::TypeKind::TupleType : 
-            for(auto t : type_->cast<c10::TupleType>()->elements()) {
+            for(auto t : type_->expect<c10::TupleType>()->elements()) {
                 ret.push_back(t);
             }
             break;
         case c10::TypeKind::ListType: 
-            ret.push_back(type_->cast<c10::ListType>()->getElementType());
+            ret.push_back(type_->expect<c10::ListType>()->getElementType());
             break;
         case c10::TypeKind::DictType: 
-            ret.push_back(type_->cast<c10::DictType>()->getValueType());
+            ret.push_back(type_->expect<c10::DictType>()->getValueType());
             break;
         default:
             break;
@@ -224,5 +221,263 @@ std::vector<c10::TypePtr> JitTypeMatcher::elements() {
 
     return ret;
 }
+
+Status attach_tensor_to_ivalue(c10::IValue &ivalue, at::TensorPtr tensor, JitTypeMatcherPtr matcher) {
+    TNN_CHECK(ivalue.type()->isSubtypeOf(matcher->type()), "IValue type %s != matcher type %s", 
+                                                           ivalue.type()->annotation_str().c_str(), 
+                                                           matcher->type()->annotation_str().c_str());
+    switch (matcher->type()->kind()) {
+        case c10::TypeKind::TupleType : 
+            {
+                TNN_CHECK(matcher->hasNext(), "Type(%s) has no next!", matcher->type()->annotation_str().c_str());
+                auto tuple = ivalue.toTuple();
+                int idx = matcher->intKey();
+                while(tuple->elements().size() <= idx) {
+                    c10::IValue iv;
+                    RETURN_ON_FAIL(CreateIValueFromTypePtr(iv, matcher->next()->type()));
+                    tuple->elements().push_back(iv);
+                }
+                auto element = tuple->elements()[idx];
+                RETURN_ON_FAIL(attach_tensor_to_ivalue(element, tensor, matcher->next()));
+                tuple->elements()[idx] = element;
+                ivalue = tuple;
+                break;
+            }
+        case c10::TypeKind::ListType: 
+            {
+                TNN_CHECK(matcher->hasNext(), "Type(%s) has no next!", matcher->type()->annotation_str().c_str());
+                int idx = matcher->intKey();
+
+                auto list = ivalue.toList();
+                while(list.size() <= idx) {
+                    c10::IValue iv;
+                    RETURN_ON_FAIL(CreateIValueFromTypePtr(iv, matcher->next()->type()));
+                    list.push_back(iv);
+                }
+                c10::IValue element = list[idx];
+                RETURN_ON_FAIL(attach_tensor_to_ivalue(element, tensor, matcher->next()));
+                list[idx] = element;
+                ivalue = list;
+                break;
+            }
+        case c10::TypeKind::DictType: 
+            {
+                c10::IValue key;
+                if (key_type(matcher->type()) == c10::TypeKind::StringType) {
+                    key = c10::IValue(matcher->strKey());
+                } else if (key_type(matcher->type()) == c10::TypeKind::IntType) {
+                    key = c10::IValue(matcher->intKey());
+                } else if (key_type(matcher->type()) == c10::TypeKind::FloatType) {
+                    key = c10::IValue(matcher->floatKey());
+                }
+
+                TNN_CHECK(matcher->hasNext(), "Type(%s) has no next!", matcher->type()->annotation_str().c_str());
+
+                auto dict = ivalue.toGenericDict();
+                if (!dict.contains(key)) {
+                    c10::IValue iv;
+                    RETURN_ON_FAIL(CreateIValueFromTypePtr(iv, matcher->next()->type()));
+                    dict.insert(key, iv);
+                }
+
+                c10::IValue element = dict.at(key);
+                RETURN_ON_FAIL(attach_tensor_to_ivalue(element, tensor, matcher->next()));
+                dict.insert_or_assign(key, element);
+                ivalue = dict;
+                break;
+            }
+        case c10::TypeKind::TensorType:
+            {
+                ivalue = c10::IValue(std::move(*tensor));
+            }
+            break;
+        default:
+            // printf("matcher type:%s kind:%d, str:%s\n", matcher->type()->annotation_str().c_str(), matcher->type()->kind(), typeKindToString(matcher->type()->kind()));
+            return Status(TNNERR_PARAM_ERR, "Unsupported type in function attach_tensor_to_ivalue");
+    }
+
+    return TNN_OK;
+}
+
+Status IValueRouter::attach(c10::IValue &ivalue, at::TensorPtr tensor) {
+    TNN_CHECK(matcher_->valid(), "Input name \"%s\" not matched with the target type:\"%s\"", full_name_.c_str(), matcher_->type()->annotation_str().c_str());
+    RETURN_ON_FAIL(attach_tensor_to_ivalue(ivalue, tensor, matcher_));
+    return TNN_OK; 
+}
+
+template<typename T>
+Status keyToString(T key, c10::TypeKind kind, std::string &str) {
+    std::lock_guard<std::mutex> guard(g_map_mutex);
+
+    std::stringstream ss;
+
+    if (type_kind_closet.find(kind) != type_kind_closet.end()) {
+        ss << type_kind_closet[kind].start << key <<type_kind_closet[kind].end;
+        str = ss.str();
+    } else {
+        printf("keyToString typekind:%s\n", typeKindToString(kind));
+        return Status(TNNERR_PARAM_ERR, "Unsupported key type from function keyToString.");
+    }
+    return TNN_OK;
+}
+
+Status eval(c10::IValue &ivalue, std::string &value) 
+{
+    std::stringstream ss;
+    if (ivalue.isInt()) {
+        ss << ivalue.toInt();
+    } else if (ivalue.isString()) {
+        ss << ivalue.toStringRef();
+    } else if (ivalue.isDouble()) {
+        ss << ivalue.toDouble();
+    } else {
+        return Status(TNNERR_PARAM_ERR, "Unsupport ivalue type from function eval");
+    }
+    value = ss.str();
+    return TNN_OK;
+}
+
+
+#define IDX_TO_STR(key, kind, str)              \
+    std::string str;                            \
+    RETURN_ON_FAIL(keyToString(key, kind, str))
+
+#define SUB_TRAVERSE(ele, prefix, names)        \
+    std::vector<std::string> names;             \
+    RETURN_ON_FAIL(traverse(ele, prefix, names))
+
+Status traverse(c10::IValue &ivalue, std::string prefix, std::vector<std::string> &ret) {
+    // printf("traverse got type:%s prefix:%s\n", ivalue.type()->annotation_str().c_str(), prefix.c_str());
+    std::vector<std::string> names;
+    switch (ivalue.type()->kind()) {
+        case c10::TypeKind::TupleType:
+        {
+            auto tuple = ivalue.toTuple();
+            auto elements = tuple->elements();
+            for(int i=0;i<elements.size();i++) {
+                IDX_TO_STR(i, c10::TypeKind::TupleType, path);
+                SUB_TRAVERSE(elements[i], prefix + path, sub_names);
+                names.insert(names.end(), sub_names.begin(), sub_names.end());
+            }
+            break;
+        }
+        case c10::TypeKind::ListType:
+        {
+            auto list = ivalue.toList();
+            for(int i=0;i<list.size();i++) {
+                c10::IValue ele = list[i];
+                IDX_TO_STR(i, c10::TypeKind::ListType, path);
+                SUB_TRAVERSE(ele, prefix + path, sub_names);
+                names.insert(names.end(), sub_names.begin(), sub_names.end());
+            }
+            break;
+        }
+        case c10::TypeKind::DictType:
+        {
+            auto dict = ivalue.toGenericDict();
+            int i = 0;
+            for(auto it= dict.begin();it != dict.end();it++) 
+            {
+                auto key = it->key();
+                auto value = it->value();
+
+                std::string str_key;
+                RETURN_ON_FAIL(eval(key, str_key));
+                IDX_TO_STR(str_key, c10::TypeKind::DictType, path);
+
+                SUB_TRAVERSE(value, prefix + path, sub_names);
+                names.insert(names.end(), sub_names.begin(), sub_names.end());
+            }
+            break;
+        }
+        case c10::TypeKind::TensorType:
+        {
+            names.push_back(prefix);
+            break;
+        }
+        default:
+            return Status(TNNERR_PARAM_ERR, "Unsupported type from function traverse");
+    }
+    ret = names; 
+    return TNN_OK;;
+}
+
+#undef IDX_TO_STR
+#undef SUB_TRAVERSE
+
+Status IValueRouter::getAllTensorNames(c10::IValue &ivalue, std::string prefix, std::vector<std::string> &names) {
+    RETURN_ON_FAIL(traverse(ivalue, prefix, names));
+    return TNN_OK;  
+}
+
+Status route_ivalue_to_tensor(c10::IValue &ivalue, at::TensorPtr &tensor, JitTypeMatcherPtr matcher) {
+    TNN_CHECK(ivalue.type()->isSubtypeOf(matcher->type()), "IValue type %s != matcher type %s", 
+                                                           ivalue.type()->annotation_str().c_str(), 
+                                                           matcher->type()->annotation_str().c_str());
+    switch (matcher->type()->kind()) {
+        case c10::TypeKind::TupleType : 
+            {
+                TNN_CHECK(matcher->hasNext(), "Type(%s) has no next!", matcher->type()->annotation_str().c_str());
+                auto tuple = ivalue.toTuple();
+                int idx = matcher->intKey();
+
+                TNN_CHECK(tuple->elements().size() > idx, "idx(%d) larger than Tuple size(%lu)!", idx, tuple->elements().size());
+
+                auto element = tuple->elements()[idx];
+                RETURN_ON_FAIL(route_ivalue_to_tensor(element, tensor, matcher->next()));
+                break;
+            }
+        case c10::TypeKind::ListType: 
+            {
+                TNN_CHECK(matcher->hasNext(), "Type(%s) has no next!", matcher->type()->annotation_str().c_str());
+                int idx = matcher->intKey();
+
+                auto list = ivalue.toList();
+                TNN_CHECK(list.size() > idx, "idx(%d) larger than List size(%lu)!", idx, list.size());
+
+                c10::IValue element = list[idx];
+                RETURN_ON_FAIL(route_ivalue_to_tensor(element, tensor, matcher->next()));
+                break;
+            }
+        case c10::TypeKind::DictType: 
+            {
+                c10::IValue key;
+                if (key_type(matcher->type()) == c10::TypeKind::StringType) {
+                    key = c10::IValue(matcher->strKey());
+                } else if (key_type(matcher->type()) == c10::TypeKind::IntType) {
+                    key = c10::IValue(matcher->intKey());
+                } else if (key_type(matcher->type()) == c10::TypeKind::FloatType) {
+                    key = c10::IValue(matcher->floatKey());
+                }
+
+                TNN_CHECK(matcher->hasNext(), "Type(%s) has no next!", matcher->type()->annotation_str().c_str());
+
+                auto dict = ivalue.toGenericDict();
+                TNN_CHECK(dict.contains(key), "dict(%s) not contains specified key!", matcher->type()->annotation_str().c_str());
+
+                c10::IValue element = dict.at(key);
+                RETURN_ON_FAIL(route_ivalue_to_tensor(element, tensor, matcher->next()));
+                break;
+            }
+        case c10::TypeKind::TensorType:
+            {
+                tensor = std::make_shared<at::Tensor>(ivalue.toTensor());
+            }
+            break;
+        default:
+            // printf("matcher type:%s kind:%d, str:%s\n", matcher->type()->annotation_str().c_str(), matcher->type()->kind(), typeKindToString(matcher->type()->kind()));
+            return Status(TNNERR_PARAM_ERR, "Unsupported type in function route_ivalue_to_tensor");
+    }
+
+    return TNN_OK;
+}
+
+Status IValueRouter::route(c10::IValue &ivalue, at::TensorPtr &tensor) {
+    TNN_CHECK(matcher_->valid(), "blob name \"%s\" not matched with the target type:\"%s\"", full_name_.c_str(), matcher_->type()->annotation_str().c_str());
+    RETURN_ON_FAIL(route_ivalue_to_tensor(ivalue, tensor, matcher_));
+
+    return TNN_OK;
+}
+
 
 }

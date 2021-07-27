@@ -10,7 +10,7 @@ export TENSORRT_ROOT_DIR=/usr/local/TensorRT-7.2.3.4
 export LIBTORCH_ROOT_DIR=/usr/local/libtorch-cxx11-abi-1.8.1+cu102
 export LIBTORCHVISION_ROOT_DIR=/usr/local/libtorchvision-cxx11-abi-0.9.1+cu102
 
-BUILD_DIR=${TNN_ROOT_PATH}/scripts/build_tnntroch_linux
+BUILD_DIR=${TNN_ROOT_PATH}/scripts/build_tnntorch_linux
 TNN_INSTALL_DIR=${TNN_ROOT_PATH}/scripts/tnntorch_linux_release
 
 TNN_VERSION_PATH=$TNN_ROOT_PATH/scripts/version

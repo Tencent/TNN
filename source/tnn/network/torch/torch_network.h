@@ -56,13 +56,23 @@ public:
     // @param blobs output blobs name map
     virtual Status GetAllOutputBlobs(BlobMap &blobs);
 
+    // @brief share torch network resource(module and graph) to another network
+    // @param network to share resource
+    virtual Status ShareNetResource(AbstractNetwork *network);
 
+    // @brief get torch network module
+    std::shared_ptr<torch::jit::Module> GetModule() { return module_; }
+
+    // @brief get torch network graph
+    std::shared_ptr<torch::jit::Graph> GetGraph() { return graph_; }
 private:
 
     virtual Status LoadModule(std::istream& in, NetworkConfig &config);
 
     virtual Status CreateIOBinding(InputShapesMap  min_shape, InputShapesMap max_shape);
   
+    virtual Status ClearOutputs();
+
     std::shared_ptr<torch::jit::Module> module_;
     std::shared_ptr<torch::jit::Graph> graph_;
 
@@ -71,6 +81,10 @@ private:
 
     BlobMap input_blob_map_;
     BlobMap output_blob_map_;
+
+    bool init_done_ = false;
+    InputShapesMap min_inputs_shape_;
+    InputShapesMap max_inputs_shape_;
 
     std::vector<torch::IValue> in_ivalues_;
 };

@@ -81,6 +81,9 @@ inline Status ConvertToTorchDataType(at::ScalarType& scalar_type, DataType data_
         case DATA_TYPE_HALF:
             scalar_type = at::ScalarType::Half;
             break;
+        case DATA_TYPE_INT64:
+            scalar_type = at::ScalarType::Long;
+            break;
         default:
             ret = Status(TNNERR_PARAM_ERR, "data_type not supported by TorchNetwork");
             break;
@@ -101,6 +104,9 @@ inline Status ConvertToDataType(DataType &data_type, at::ScalarType& scalar_type
         case at::ScalarType::Half:
             data_type = DATA_TYPE_HALF;
             break;
+        case at::ScalarType::Long:
+            data_type = DATA_TYPE_INT64;
+            break;
         default:
             ret = Status(TNNERR_PARAM_ERR, "data_type converting not implemented");
             break;
@@ -109,102 +115,31 @@ inline Status ConvertToDataType(DataType &data_type, at::ScalarType& scalar_type
     return ret;
 }
 
-std::vector<int64_t> ConvertDimsToIntArrayRef(DimsVector dims) {
+inline std::vector<int64_t> ConvertDimsToIntArrayRef(DimsVector dims) {
     return std::vector<int64_t>(dims.begin(), dims.end());
 }
 
-Status CreateTensorByBlobDesc(std::shared_ptr<torch::Tensor> &tensor, BlobDesc desc) {
-
-
-    c10::Device device(c10::kCPU);
-    RETURN_ON_FAIL(ConvertToTorchDevice(device, desc.device_type));
-
-    at::ScalarType scalar_type;
-    RETURN_ON_FAIL(ConvertToTorchDataType(scalar_type, desc.data_type));
-
-    tensor = std::make_shared<torch::Tensor>(at::zeros(
-                    ConvertDimsToIntArrayRef(desc.dims), scalar_type, c10::Layout::Strided, device, false));
-
-    return TNN_OK;
-}
-
-Status CreateTensorByBlob(std::shared_ptr<torch::Tensor> &tensor, Blob *blob) {
-    auto desc = blob->GetBlobDesc();
-
-    c10::Device device(c10::kCPU);
-    RETURN_ON_FAIL(ConvertToTorchDevice(device, desc.device_type));
-
-    at::ScalarType scalar_type;
-    RETURN_ON_FAIL(ConvertToTorchDataType(scalar_type, desc.data_type));
-
-    tensor = std::make_shared<torch::Tensor>(torch::from_blob(blob->GetHandle().base,
-                    ConvertDimsToIntArrayRef(desc.dims), c10::TensorOptions(scalar_type).device(device)));
-
-    return TNN_OK;
-}
-
-Status ConvertIValueToTensors(std::vector<torch::Tensor> &tensor, const torch::jit::IValue &ivalue) {
-    tensor.resize(0);
-    if (ivalue.isTensor()) {
-        tensor.push_back(ivalue.toTensor());
-    } else {
-        return Status(TNNERR_PARAM_ERR, "Converting from Tuple, List or other types are not implemented.");
+inline bool mapKeysEqualTo(BlobMap &map, std::vector<std::string> &names) {
+    if (map.size() != names.size()) {
+        return false;
     }
-    return TNN_OK;
-}
-
-Status attachTensor(ForeignBlob * blob) {
-    if (blob == nullptr)  {
-        return TNNERR_NULL_PARAM;
+    for(auto name : names) {
+        if (map.find(name) == map.end()) {
+            return false;
+        }
     }
-
-    std::shared_ptr<torch::Tensor> tensor;
-    RETURN_ON_FAIL(CreateTensorByBlob(tensor, blob));
-    blob->SetForeignTensor(std::make_shared<TorchTensor>(tensor));
-
-    return TNN_OK; 
+    return true;
 }
 
-Status ForeignBlobToIValue(torch::IValue &ivalue, ForeignBlob * blob) {
-    if (blob == nullptr)  {
-        return TNNERR_NULL_PARAM;
-    }
+Status CreateTensorByBlobDesc(std::shared_ptr<torch::Tensor> &tensor, BlobDesc desc);
 
-    at::Tensor tensor = *std::dynamic_pointer_cast<TorchTensor>(blob->GetForeignTensor())->GetTensor().get();
+Status CreateTensorByBlob(std::shared_ptr<torch::Tensor> &tensor, Blob *blob);
 
-    // IValue constructor will take ownership of tensor_impl, so we need to clone one.
-    // zerocopy for Tensors which created by torch::from_blob 
-    ivalue = tensor;
+Status ConvertIValueToTensors(std::vector<torch::Tensor> &tensor, const torch::jit::IValue &ivalue);
 
-    return TNN_OK; 
-}
+Status GetBlobDescFromTensor(BlobDesc &desc, const torch::Tensor &tensor);
 
-Status GetTensor(at::Tensor &tensor, Blob * blob) {
-    if (blob == nullptr)  {
-        return TNNERR_NULL_PARAM;
-    }
-    auto foreign_blob = dynamic_cast<ForeignBlob*>(blob);
-    if (foreign_blob == nullptr) {
-        return Status(TNNERR_PARAM_ERR, "not a instance of ForeignBlob.");
-    }
-
-    tensor = *std::dynamic_pointer_cast<TorchTensor>(foreign_blob->GetForeignTensor())->GetTensor().get();
-
-    return TNN_OK; 
-}
-
-Status GetBlobDescFromTensor(BlobDesc &desc, const torch::Tensor &tensor) {
-    auto device = tensor.device();
-
-    RETURN_ON_FAIL(ConvertToDeviceType(desc.device_type, device));
-    desc.dims = std::vector<int>(tensor.sizes().begin(), tensor.sizes().end());
-
-    auto scalar_type = tensor.dtype().toScalarType();
-    RETURN_ON_FAIL(ConvertToDataType(desc.data_type, scalar_type));
-
-    return TNN_OK; 
-}
-
+Status CreateIValueFromTypePtr(c10::IValue &ivalue, c10::TypePtr type);
 
 }  // namespace TNN_NS
 

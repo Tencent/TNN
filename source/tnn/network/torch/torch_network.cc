@@ -32,15 +32,24 @@
 #include "tnn/network/torch/torch_tensor.h"
 #include "tnn/network/torch/torch_types.h"
 
-#include "torch/csrc/jit/passes/freeze_module.h"
-#include "torch/csrc/jit/passes/lower_graph.h"
+#include <torch/torch.h>
+#include <torch/csrc/jit/passes/freeze_module.h>
+#include <torch/csrc/jit/passes/lower_graph.h>
 #include <torchvision/vision.h>
+
 
 namespace TNN_NS {
 
 NetworkImplFactoryRegister<NetworkImplFactory<TNNTorchNetwork>> g_network_impl_torch_factory_register(NETWORK_TYPE_TNNTORCH);
 
-TNNTorchNetwork::~TNNTorchNetwork() {}
+TNNTorchNetwork::~TNNTorchNetwork() {
+    // delete output foreign_blobs 
+    ClearOutputs();
+    if (blob_manager_) {
+        delete blob_manager_;
+        blob_manager_ = nullptr;
+    }
+}
 
 Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                         InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
@@ -57,36 +66,42 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
         return TNNERR_DEVICE_CONTEXT_CREATE;
     }
 
-    if (model_config.model_type == MODEL_TYPE_TORCHSCRIPT) {
-        std::ifstream model_stream(model_config.params[0], std::ios::binary);
-        if (model_config.params.size() > 1) {
-            forward_func_name_ = model_config.params[1];
+    min_inputs_shape_ = min_inputs_shape;
+    max_inputs_shape_ = max_inputs_shape;
+    // if share net resource with another net, create io binding later when sharing
+    if (net_config.share_memory_mode != SHARE_MEMORY_MODE_SHARE_NET_RESOURCE) {
+        if (model_config.model_type == MODEL_TYPE_TORCHSCRIPT) {
+            std::ifstream model_stream(model_config.params[0], std::ios::binary);
+            if (model_config.params.size() > 1) {
+                forward_func_name_ = model_config.params[1];
+            }
+            RETURN_ON_FAIL(LoadModule(model_stream, net_config));
+        } else {
+            return Status(TNNERR_PARAM_ERR, "Unsupported model type for TNNTorchNetwork");
         }
-        RETURN_ON_FAIL(LoadModule(model_stream, net_config));
-    } else {
-        return Status(TNNERR_PARAM_ERR, "Unsupported model type for TNNTorchNetwork");
+
+        at::ArrayRef<torch::jit::Value*> inputs = graph_->block()->inputs();
+        at::ArrayRef<torch::jit::Value*> outputs = graph_->block()->outputs();
+
+        #if 0
+        //printf("graph dump:\n:%s\n", graph_->toString().c_str());
+
+        for(int i=0;i<inputs.size();i++) {
+            auto input = inputs[i];
+            printf("input[%d] from node [%s] of type:[%s]\n", input->unique(), input->node()->scopeName().c_str(), input->type()->annotation_str().c_str());
+            printf("input[%d] typekind:[%s]\n", input->unique(), typeKindToString(input->type()->kind()));
+        }
+
+        for(int i=0;i<outputs.size();i++) {
+            auto output = outputs[i];
+            printf("output[%d] from node [%s] of type:[%s]\n", output->unique(), output->node()->scopeName().c_str(), output->type()->annotation_str().c_str());
+            printf("output[%d] typekind:[%s]\n", output->unique(), typeKindToString(output->type()->kind()));
+        }
+        #endif
+
+        RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape, max_inputs_shape));
+        init_done_ = true;
     }
-
-    at::ArrayRef<torch::jit::Value*> inputs = graph_->block()->inputs();
-    at::ArrayRef<torch::jit::Value*> outputs = graph_->block()->outputs();
-
-    #if 0
-    //printf("graph dump:\n:%s\n", graph_->toString().c_str());
-
-    for(int i=0;i<inputs.size();i++) {
-        auto input = inputs[i];
-        printf("input[%d] from node [%s] of type:[%s]\n", input->unique(), input->node()->scopeName().c_str(), input->type()->annotation_str().c_str());
-        printf("input[%d] typekind:[%s]\n", input->unique(), typeKindToString(input->type()->kind()));
-    }
-
-    for(int i=0;i<outputs.size();i++) {
-        auto output = outputs[i];
-        printf("output[%d] from node [%s] of type:[%s]\n", output->unique(), output->node()->scopeName().c_str(), output->type()->annotation_str().c_str());
-        printf("output[%d] typekind:[%s]\n", output->unique(), typeKindToString(output->type()->kind()));
-    }
-    #endif
-
-    RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape, max_inputs_shape));
 
     return TNN_OK;
 }
@@ -101,6 +116,20 @@ Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
     // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
     // graph_ = graph_and_ivalues.first;
 
+    return TNN_OK;
+}
+
+Status TNNTorchNetwork::ShareNetResource(AbstractNetwork* network) {
+    auto network_target = dynamic_cast<TNNTorchNetwork *>(network);
+    if (!network_target) {
+        return Status(TNNERR_PARAM_ERR, "network to share resource need to be TNNTorchNetwork");
+    }
+
+    module_ = network_target->GetModule();
+    graph_ = network_target->GetGraph();
+
+    RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape_, max_inputs_shape_));
+    init_done_ = true;
     return TNN_OK;
 }
 
@@ -123,12 +152,6 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
         c10::TypeKind kind = input->type()->kind();
         if (supported_kinds.find(kind) != supported_kinds.end()) {
             inputs.push_back(input);
-            // auto matcher = JitTypeMatcher::create(input->type(), std::string("output0[0]"));
-            // printf("valid:%d\n", matcher->valid());
-            // char name[20];
-            // snprintf(name, 20, "input_%d", i++);
-            // input_names.insert(std::string(name));
-            // printf("input[%d]:%s\n", i-1, name);
         }
     }
 
@@ -152,7 +175,13 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
 
     RETURN_ON_FAIL(blob_manager_->AllocateBlobMemory());
 
-    in_ivalues_.resize(fake_netstructure.blobs.size());
+    in_ivalues_.resize(inputs.size());
+
+    // Create Ivalues from types
+    for(int i=0;i<inputs.size();i++) {
+        // printf("[%d] create ivalue from type:%s kind:%s\n", i, inputs[i]->type()->annotation_str().c_str(), c10::typeKindToString(inputs[i]->type()->kind()));
+        RETURN_ON_FAIL(CreateIValueFromTypePtr(in_ivalues_[i], inputs[i]->type()));  
+    }
 
     i = 0;
     for(auto input : fake_netstructure.blobs) {
@@ -162,35 +191,53 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
         blob_manager_->ReplaceBlob(input, foreign_blob);
         input_blob_map_[input] = foreign_blob;
 
-        int id = JitTypeMatcher::id_from_name(input);
-        if (id >= 0 ) {
-             auto matcher = JitTypeMatcher::create(inputs[id]->type(), input); 
-             printf("%s id:%d type:%s matched:%d\n", input.c_str(), id, inputs[id]->type()->annotation_str().c_str(), matcher->valid());
+        int id = JitTypeMatcher::idFromName(input);
+        // TODO Add define to to this check.
+        if (id < 0 || id >= inputs.size() ) {
+            return Status(TNNERR_PARAM_ERR, "Invalid input id.");
         }
 
-        RETURN_ON_FAIL(attachTensor(foreign_blob));
-        RETURN_ON_FAIL(ForeignBlobToIValue(in_ivalues_[i++], foreign_blob));
+        // TODO Check IValue type same as input tensor type()
+        auto router = IValueRouter::create(inputs[id]->type(), input); 
+        std::shared_ptr<at::Tensor> tensor;
+        RETURN_ON_FAIL(CreateTensorByBlob(tensor, foreign_blob)); 
+        RETURN_ON_FAIL(router->attach(in_ivalues_[id], tensor));
+
+        RETURN_ON_FAIL(foreign_blob->SetForeignTensor(std::make_shared<TorchTensor>(router)));
+
+        #if 1
+        // in_ivalues_[id].dump();
+        // auto cpu_out = out_tensors[i].to(torch::kCPU);
+        // auto bytes = torch::jit::pickle_save(ivalue.deepcopy().toTensor());
+        // auto bytes = torch::jit::pickle_save(cpu_out);
+        // std::ofstream fout("out.pt", std::ios::out | std::ios::binary);
+        // fout.write(bytes.data(), bytes.size());
+        // fout.close();
+        #endif
     }
 
-    std::vector<torch::Tensor> out_tensors;
+    // TODO Check integrity of the ivalues
 
     auto out = module_->forward(in_ivalues_);
-    RETURN_ON_FAIL(ConvertIValueToTensors(out_tensors, out));
+    std::vector<std::string> out_names;
+    RETURN_ON_FAIL(IValueRouter::getAllTensorNames(out, "output_0", out_names));
 
-    i = 0;
-    for(auto out : out_tensors) {
-        char tensor_name[200];
-        snprintf(tensor_name, 200, "output_%d", i++);
+    for(auto name : out_names) {
+        auto router = IValueRouter::create(out.type(), name); 
+
+        std::shared_ptr<at::Tensor> tensor;
+        RETURN_ON_FAIL(router->route(out, tensor));
+        TNN_CHECK(tensor != nullptr, "Got null tensor from IValueRouter");
+
         BlobDesc desc;
-        desc.name = std::string(tensor_name);
-        RETURN_ON_FAIL(GetBlobDescFromTensor(desc, out));
+        RETURN_ON_FAIL(GetBlobDescFromTensor(desc, *tensor));
 
         BlobHandle handle;
-        handle.base = out.data_ptr(); 
+        handle.base = tensor->data_ptr(); 
 
         auto foreign_blob =  new ForeignBlob(desc, handle);
-        foreign_blob->SetForeignTensor(std::make_shared<TorchTensor>(std::make_shared<torch::Tensor>(std::move(out))));
-        output_blob_map_[desc.name] = foreign_blob;
+        RETURN_ON_FAIL(foreign_blob->SetForeignTensor(std::make_shared<TorchTensor>(tensor, router)));
+        output_blob_map_[name] = foreign_blob;    
     }
 
     return TNN_OK;
@@ -203,42 +250,71 @@ Status TNNTorchNetwork::Reshape(const InputShapesMap &inputs) {
 
 Status TNNTorchNetwork::Forward() {
 
-
+    if (!init_done_) {
+        return Status(TNNERR_INST_ERR, "Torch Network is not initialized");
+    }
     auto out = module_->forward(in_ivalues_);
 
-    std::vector<torch::Tensor> out_tensors;
-    RETURN_ON_FAIL(ConvertIValueToTensors(out_tensors, out));
+    std::vector<std::string> out_names;
+    RETURN_ON_FAIL(IValueRouter::getAllTensorNames(out, "output_0", out_names));
 
-    auto cpu_out = out_tensors[0].to(torch::kCPU);
+    // recreating output_blobs if output names not match
+    if (mapKeysEqualTo(output_blob_map_, out_names)) {
 
-    int i=0;
-    for(auto p : output_blob_map_ ) {
-        auto foreign_blob = dynamic_cast<ForeignBlob*>(p.second);
-        BlobHandle handle = foreign_blob->GetHandle();
-        handle.base = out_tensors[i].data_ptr();
-        auto cpu_out = out_tensors[i].to(torch::kCPU);
+        for(auto name : out_names) {
+            auto blob =  output_blob_map_[name];
+            IValueRouterPtr router;
+            RETURN_ON_FAIL(GetIValueRouterFromBlob(blob, router));
 
-        foreign_blob->SetHandle(handle);
-        foreign_blob->SetForeignTensor(std::make_shared<TorchTensor>(std::make_shared<torch::Tensor>(std::move(out_tensors[i]))));
-        i++;
+            std::shared_ptr<at::Tensor> tensor;
+            RETURN_ON_FAIL(router->route(out, tensor));
 
-        #if 0
-        auto bytes = torch::jit::pickle_save(cpu_out);
-        std::ofstream fout("out.pt", std::ios::out | std::ios::binary);
-        fout.write(bytes.data(), bytes.size());
-        fout.close();
-        #endif
+            TNN_CHECK(tensor != nullptr, "Got null tensor from IValueRouter");
+
+            BlobDesc desc;
+            RETURN_ON_FAIL(GetBlobDescFromTensor(desc, *tensor));
+
+            BlobHandle handle;
+            handle.base = tensor->data_ptr(); 
+
+            blob->SetHandle(handle);
+            blob->SetBlobDesc(desc);
+
+            RETURN_ON_FAIL(SetTensorToBlob(blob, tensor));
+        }
+    } else {
+        RETURN_ON_FAIL(ClearOutputs());
+
+        for(auto name : out_names) {
+
+            auto router = IValueRouter::create(out.type(), name); 
+
+            std::shared_ptr<at::Tensor> tensor;
+            RETURN_ON_FAIL(router->route(out, tensor));
+
+            TNN_CHECK(tensor != nullptr, "Got null tensor from IValueRouter");
+
+            BlobDesc desc;
+            RETURN_ON_FAIL(GetBlobDescFromTensor(desc, *tensor));
+
+            BlobHandle handle;
+            handle.base = tensor->data_ptr(); 
+
+            auto foreign_blob =  new ForeignBlob(desc, handle);
+            RETURN_ON_FAIL(foreign_blob->SetForeignTensor(std::make_shared<TorchTensor>(tensor, router)));
+            output_blob_map_[name] = foreign_blob;    
+        }
     }
 
-    #if 0
-    for(auto iv : in_ivalues_) {
-        auto bytes = torch::jit::pickle_save(iv.deepcopy().toTensor());
-        std::ofstream fout("in.pt", std::ios::out | std::ios::binary);
-        fout.write(bytes.data(), bytes.size());
-        fout.close();
-    }
-    #endif
+    return TNN_OK;
+}
 
+Status TNNTorchNetwork::ClearOutputs() {
+    auto it = output_blob_map_.begin();
+    while(it != output_blob_map_.end()) {
+        delete it->second;
+        it = output_blob_map_.erase(it);
+    }
     return TNN_OK;
 }
 
