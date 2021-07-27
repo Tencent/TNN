@@ -28,9 +28,8 @@ inline bool ConcatLayerCheckShape(DimsVector shape1, DimsVector shape2, int excl
 
     int i = 0;
     for (; i < shape1.size(); i++) {
-        //support shape1[i] == 0 for empty blob in yolov5
-        if ((i != exclude_axis && shape1[i] != shape2[i]) ||
-            (shape1[i] < 0 || shape2[i] < 0)) {
+        // support shape1[i] == 0 for empty blob in yolov5
+        if ((i != exclude_axis && shape1[i] != shape2[i]) || (shape1[i] < 0 || shape2[i] < 0)) {
             LOGE_IF(!ignore_error, "dim[%d] not match (shape1:%d, shape2:%d)\n", i, shape1[i], shape2[i]);
             return false;
         }
@@ -49,7 +48,7 @@ Status ConcatLayer::InferOutputDataType() {
 
 Status ConcatLayer::InferOutputShape(bool ignore_error) {
     BaseLayer::InferOutputShape(ignore_error);
-    
+
     auto layer_param = dynamic_cast<ConcatLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);
 
@@ -62,7 +61,7 @@ Status ConcatLayer::InferOutputShape(bool ignore_error) {
         layer_param->axis = axis;
     }
     if (axis < 0 || axis > input_blob->GetBlobDesc().dims.size()) {
-        LOGE_IF(!ignore_error, "Error: ConcatLayer axis(%d) is invalid\n", axis);
+        LOGE_IF(!ignore_error, "Error: ConcatLayer (%s) axis(%d) is invalid\n", layer_param->name.c_str(), axis);
         return Status(TNNERR_PARAM_ERR, "ConcatLayer axis is invalid");
     }
 
@@ -74,10 +73,10 @@ Status ConcatLayer::InferOutputShape(bool ignore_error) {
         auto cur_shape  = input_blob->GetBlobDesc().dims;
         if (!ConcatLayerCheckShape(last_shape, cur_shape, axis, ignore_error)) {
             LOGE_IF(!ignore_error,
-                "Error: ConcatLayer's (layer name: %s) inputs can not be "
-                "concatenated with "
-                "axis=%d\n",
-                GetLayerName().c_str(), axis);
+                    "Error: ConcatLayer's (layer name: %s) inputs can not be "
+                    "concatenated with "
+                    "axis=%d\n",
+                    GetLayerName().c_str(), axis);
             return Status(TNNERR_PARAM_ERR, "ConcatLayer's inputs can not be concatenated");
         }
         out_concat_dim_size += cur_shape[axis];
