@@ -17,6 +17,7 @@
 #include <stdio.h>
 
 #include "tnn/network/tensorrt/utils.h"
+#include "tnn/network/tensorrt/shape_tensor.h"
 #include "tnn/core/macro.h"
 #include "tnn/utils/data_type_utils.h"
 
@@ -166,13 +167,14 @@ nvinfer1::ILayer* ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* networ
                                                             DimsVector recommend_dims, int expand_dims) {
 
     size_t buf_size_in_bytes = buf->GetDataCount() * DataTypeUtils::GetBytesSize(buf->GetDataType());
-    
+
     nvinfer1::Weights const_weight;
     const_weight.type = ConvertToTRTDataType(buf->GetDataType());
     const_weight.values = buf->force_to<void*>();
     const_weight.count = buf->GetDataCount();
 
     DimsVector buf_dims = buf->GetBufferDims();
+
     if (recommend_dims.size() > 0 ) {
         buf_dims = recommend_dims;
     }
@@ -204,11 +206,12 @@ nvinfer1::ILayer* ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* networ
     return constant_layer;
 }
 
-nvinfer1::ILayer* AddReshapeToNetwork(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor* input_tensor, DimsVector reshape_dims, const char* layer_name) {
+nvinfer1::ILayer* AddReshapeToNetwork(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor* input_tensor,
+        DimsVector reshape_dims, const char* layer_name) {
     nvinfer1::IShuffleLayer* shuffle_layer = network->addShuffle(*input_tensor);
     if (shuffle_layer != nullptr) {
         shuffle_layer->setName(layer_name);
-        shuffle_layer->setReshapeDimensions(ConvertToTRTDynamicDims(reshape_dims));
+        shuffle_layer->setReshapeDimensions(ConvertToTRTDims(reshape_dims));
     }
     return shuffle_layer;
 }
@@ -228,5 +231,39 @@ nvinfer1::Dims ConvertPaddingToTRTDims(DimsVector dims) {
     return trt_dims;
 }
 
+static void BroadcastTensor(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor*& t, const int nbDims) {
+    const auto inputDims = shapeOf(*t);
+    const int nbInputDims = inputDims.size();
+    assert(nbInputDims <= nbDims);
+    if (nbInputDims < nbDims) {
+        nvinfer1::IShuffleLayer* reshape = addShuffle(network, *t, concat(network, fillShapeVector(
+            network, 1, shapeVector(nbDims - nbInputDims)), shapeOf(*t)));
+        t = reshape->getOutput(0);
+    }
+}
+
+void BroadcastTensors(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor*& t1, nvinfer1::ITensor*& t2) {
+    const int t1Dims = t1->getDimensions().nbDims;
+    const int t2Dims = t2->getDimensions().nbDims;
+
+    if (t1Dims == t2Dims) {
+        return;
+    }
+
+    if (t1Dims > t2Dims) {
+        BroadcastTensor(network, t2, t1Dims);
+        return;
+    }
+
+    BroadcastTensor(network, t1, t2Dims);
+}
+
+void BroadcastTensors(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor*& t1,
+        nvinfer1::ITensor*& t2, nvinfer1::ITensor*& t3) {
+    const int maxDims = std::max({t1->getDimensions().nbDims, t2->getDimensions().nbDims, t3->getDimensions().nbDims});
+    BroadcastTensor(network, t1, maxDims);
+    BroadcastTensor(network, t2, maxDims);
+    BroadcastTensor(network, t3, maxDims);
+}
 
 }  //  namespace TNN_NS

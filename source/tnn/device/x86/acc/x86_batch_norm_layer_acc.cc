@@ -52,12 +52,17 @@ Status X86BatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
     auto input_blob        = inputs[0];
     auto output_blob       = outputs[0];
 
+    auto x86_fma_func = X86_FMA<Float4, 4>;
+    if (arch_ == avx2) {
+        x86_fma_func = X86_FMA<Float8, 8>;
+    }
+
     RawBuffer scale_handle = resource->scale_handle;
     bool shared_channel     = scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(scale_handle.GetDataType());
     RawBuffer bias_handle  = resource->bias_handle;
     bool has_bias          = bias_handle.GetDataCount() > 0; 
 
-    X86_FMA(static_cast<float *>(input_blob->GetHandle().base),
+    x86_fma_func(static_cast<float *>(input_blob->GetHandle().base),
             static_cast<float *>(output_blob->GetHandle().base),
             scale_handle.force_to<float *>(), bias_handle.force_to<float *>(),
             shared_channel, has_bias, output_blob->GetBlobDesc().dims);

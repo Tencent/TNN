@@ -37,7 +37,7 @@ cd <path_to_tnn>/platforms/linux/
   
 ### 3. 量化输入   
 #### 3.1 输入数据的选取   
-输入数据需要包括典型的输入，否则影响输出结果的精度，图片数量在20~50左右。  
+输入数据需要包括典型的输入，否则影响输出结果的精度，图片数量在50~100左右。  
 #### 3.2 输入预处理    
 对图片的输入数据进行预处理，主要通过bias和scale参数进行。公式为：   
 input_pre = (input - bias) * scale  
@@ -59,3 +59,20 @@ input_pre = (input - bias) * scale
 ...
 ```
 （4）scale和mean的值必须是计算之后的值，不能使用公式，例如1.0/128.0就是无效的，而0.0078125就是可以的。
+
+### 6. 测试数据
+针对模型squeezenet1.1-7.onnx进行了测试验证，模型下载链接：https://github.com/onnx/models/blob/master/vision/classification/squeezenet/model/squeezenet1.1-7.onnx 
+
+使用ImageNet(ILSVRC2012)数据集，下载链接：https://image-net.org/challenges/LSVRC/2012/ 
+
+使用FP32精度进行测试，Top-1准确率为55.71% 
+从数据集中抽取了63张图片作为输入进行量化，最终Top-1准确率结果如下：  
+
+| blob_method | weight_method | merge_type | Top-1 Accuracy | 
+| :---------: | :-----------: | :--------: | :------------: | 
+| 2-(KL) | 1-(ADMM) | 0-(Per-Channel) | 51.58% | 
+| 2-(KL) | 1-(ADMM) | 2-(Per-Tensor) | 50.23% | 
+| 2-(KL) | 1-(ADMM) | 1-(Mix) | 55.37% | 
+| 0-(Min-Max) | 0-(Min-Max) | 0-(Per-Channel) | 54.82% | 
+
+具体使用时，可以使用不同的配置尝试，看模型适用于那种量化方法。

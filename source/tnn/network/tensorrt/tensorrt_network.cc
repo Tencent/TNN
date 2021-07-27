@@ -31,7 +31,7 @@
 namespace TNN_NS {
 
 #define MAX_SCRATCH_MEMORY (1<<31 - 1)
-#define TENSORRT_SERIALIZE_VERSION "v1.2"
+#define TENSORRT_SERIALIZE_VERSION "v1.4"
 
 NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
     g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
@@ -47,6 +47,7 @@ TensorRTNetwork_::TensorRTNetwork_() {
     m_trt_context = nullptr;
     m_context_memory = nullptr;
     m_trt_bindings = nullptr;
+    device_id_ = 0;
 }
 
 TensorRTNetwork_::~TensorRTNetwork_() {
@@ -220,6 +221,7 @@ Status TensorRTNetwork_::Forward() {
 
     for (auto iter : inputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        if (index < 0) continue;
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
     }
 
@@ -255,6 +257,7 @@ Status TensorRTNetwork_::ReshapeLayers() {
 
     for (auto iter : inputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        if (index < 0) continue;
         auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
         nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
         m_trt_context->setBindingDimensions(index, inputDims);
@@ -339,6 +342,7 @@ Status TensorRTNetwork_::ForwardAsync(Callback call_back) {
 
     for (auto iter : inputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        if (index < 0) continue;
         this->m_trt_bindings[index] = iter.second->GetHandle().base;
     }
 
@@ -462,21 +466,36 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 
 Status TensorRTNetwork_::CreateExecuteContext() {
     m_trt_context = m_trt_engine->createExecutionContextWithoutDeviceMemory();
-    size_t context_memory_size = (std::max)(m_trt_engine->getDeviceMemorySize(), size_t(1024));
+    context_memory_size_ = (std::max)(m_trt_engine->getDeviceMemorySize(), size_t(1024));
     Status status = TNN_OK;
     if(config_.share_memory_mode == SHARE_MEMORY_MODE_SHARE_ONE_THREAD) { 
         SharedMemory share_memory = SharedMemoryManager::GetSharedMemory(
-                        context_memory_size, init_thread_id_, device_,
+                        context_memory_size_, init_thread_id_, device_,
                         config_.device_id, this, status);
         m_trt_context->setDeviceMemory(share_memory.shared_memory_data);
-    } else {
-        Status ret = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemAlloc(&m_context_memory, context_memory_size);
-        if (ret != TNN_OK) {
+    } else if (config_.share_memory_mode == SHARE_MEMORY_MODE_DEFAULT) {
+        status = dynamic_cast<TensorRTBlobManager*>(blob_manager_)->MemAlloc(&m_context_memory, context_memory_size_);
+        if (status != TNN_OK) {
             LOGE("Error Create TensorRT execute context\n");
-            return ret;
+            return status;
         }
         m_trt_context->setDeviceMemory(m_context_memory);
     }
+    return TNN_OK;
+}
+
+Status TensorRTNetwork_::GetForwardMemorySize(int &memory_size) {
+    memory_size = context_memory_size_;
+    return TNN_OK;
+}
+
+Status TensorRTNetwork_::SetForwardMemory(void *memory) {
+    if (config_.share_memory_mode != SHARE_MEMORY_MODE_SET_FROM_EXTERNAL) {
+        LOGE("Error Only SHARE_MEMORY_MODE_SET_FROM_EXTERNAL mode can set forward memory from external\n");
+        return TNNERR_SHARE_MEMORY_MODE_NOT_SUPPORT;
+    }
+
+    m_trt_context->setDeviceMemory(memory);
     return TNN_OK;
 }
 
