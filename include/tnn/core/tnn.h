@@ -50,6 +50,12 @@ public:
     // return input shapes map from model
     Status GetModelInputShapesMap(InputShapesMap& shapes_map);
 
+    // return input names from model
+    Status GetModelInputNames(std::vector<std::string>& input_names);
+
+    // return output names from model
+    Status GetModelOutputNames(std::vector<std::string>& output_names);
+
     // create tnn network instance with network config and inputs shape.
     // if inputs shape not set, use default from model.
     std::shared_ptr<Instance> CreateInst(

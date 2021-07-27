@@ -41,6 +41,7 @@ option(TNN_ONNX2TNN_ENABLE "Enable ONNX2TNN Converter" OFF)
 option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
 option(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE "Enable Build Benchmark Test Lib" OFF)
 option(TNN_GLIBCXX_USE_CXX11_ABI_ENABLE "Enable Use CXX11 ABI" ON)
+option(TNN_PYBIND_ENABLE  "Enable Pybind" OFF)
 
 set(TNN_USE_GFLAGS OFF)
 
@@ -115,6 +116,7 @@ endif()
 
 if(TNN_CONVERTER_ENABLE OR TNN_ONNX2TNN_ENABLE)
     set(TNN_SYMBOL_HIDE OFF)
+    set(TNN_PYBIND_ENABLE ON)
     add_definitions(-DTNN_CONVERTER_RUNTIME)
 endif()
 
@@ -240,7 +242,7 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/extern_wrapper/*.cc"
                       "source/tnn/memory_manager/*.h"
                       "source/tnn/memory_manager/*.cc")
-
+		      
 if(TNN_SYMBOL_HIDE AND UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
 endif()
@@ -358,6 +360,17 @@ elseif(SYSTEM.Darwin)
     include(platforms/mac/CMakeLists.txt)
 elseif(SYSTEM.Windows)
     include(platforms/windows/CMakeLists.txt)
+endif()
+
+if(TNN_PYBIND_ENABLE)
+    include_directories(third_party/pybind11/include)
+    add_subdirectory(third_party/pybind11)
+    file(GLOB_RECURSE TORCH_SRC "source/pytnn/*.cc")
+    add_library(_pytnn SHARED ${TORCH_SRC})
+    target_link_libraries(_pytnn pybind11::module)
+    set_target_properties(_pytnn PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
+    target_link_libraries(_pytnn TNN)
 endif()
 
 if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE OR TNN_MODEL_CHECK_ENABLE)

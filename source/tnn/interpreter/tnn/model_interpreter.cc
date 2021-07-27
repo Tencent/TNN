@@ -203,6 +203,7 @@ Status ModelInterpreter::InterpretInput(const std::string &inputs_content) {
                 return Status(TNNERR_INVALID_NETCFG, "split input line error");
             }
             DimsVector &input_shape = structure->inputs_shape_map[input_cfg_vec[0]];
+            structure->parsed_input_names_list.push_back(input_cfg_vec[0]);
             // input_shape.set_name(input_cfg_vec[0]);
             for (int dim_i = 1; dim_i < input_cfg_vec.size(); dim_i++) {
                 input_shape.push_back(atoi(input_cfg_vec[dim_i].c_str()));
@@ -221,6 +222,7 @@ Status ModelInterpreter::InterpretInput(const std::string &inputs_content) {
                 return Status(TNNERR_INVALID_NETCFG, "split input line error");
             }
             DimsVector &input_shape = structure->inputs_shape_map[input_cfg[0]];
+            structure->parsed_input_names_list.push_back(input_cfg[0]);
             int dims_size           = atoi(input_cfg[1].c_str());
             for (int i = 2; i < dims_size + 2; ++i) {
                 if (i >= input_cfg.size()) {
@@ -247,6 +249,7 @@ Status ModelInterpreter::InterpretOutput(const std::string &outputs_content) {
         return Status(TNNERR_INVALID_NETCFG, "split output line error");
     }
     for (auto iter : output_cfg_vec) {
+        structure->parsed_output_names_list.push_back(iter);
         structure->outputs.insert(iter);
     }
     return TNN_OK;
