@@ -1,165 +1,11 @@
 #include "tnn/network/torch/torch_compile.h"
 
-#include "tnn/network/torch/torch_convert.h"
-#include "tnn/network/torch/jit_util.h"
-
-#include <torch/csrc/jit/passes/lower_graph.h>
 #include <torch/csrc/jit/passes/inliner.h>
-
+#include <torch/csrc/jit/passes/lower_graph.h>
 #include <torch/csrc/jit/passes/subgraph_rewrite.h>
 
-namespace torch {
-namespace jit {
-namespace tnn {
-struct Slot {
-  c10::intrusive_ptr<c10::ivalue::Object> obj;
-  size_t offset;
-  bool operator==(const Slot& other) const {
-    return (this->obj == other.obj && this->offset == other.offset);
-  }
-};
-
-// remove the first module argument, replacing any access of its
-// parameters/attributes with extra_ivalue input Slots that hold what value to
-// pass into the graph. Used for ONNX export to remove first-class modules
-// so it can deal purely with parameters and inputs
-std::pair<std::shared_ptr<Graph>, std::vector<Slot>> lower_graph(
-    const ModulePtr& self,
-    Graph& g_,
-    size_t self_offset = 0) {
-  std::shared_ptr<Graph> g = g_.copy();
-  // Inline to remove method/function calls
-  Inline(*g);
-
-  std::vector<Slot> extra_ivalues;
-
-  struct SlotHash {
-    std::size_t operator()(const Slot& slot) const {
-      auto obj_hash = std::hash<c10::ivalue::Object*>{}(slot.obj.get());
-      auto offset_hash = std::hash<size_t>{}(slot.offset);
-      return c10::hash_combine(obj_hash, offset_hash);
-    }
-  };
-  std::unordered_map<Slot, size_t, SlotHash> slot_to_offset;
-  struct ToScan {
-    ModulePtr mod;
-    Node* n;
-    size_t offset;
-  };
-  std::vector<ToScan> to_scan;
-  std::vector<Node*> to_clean; // nodes that should be dead at the end
-
-  auto getOrAddSlot = [&](const Slot& slot) -> Value* {
-    auto it = slot_to_offset.find(slot);
-    if (it != slot_to_offset.end()) {
-      size_t ivalues_start = g->inputs().size() - extra_ivalues.size();
-      return g->inputs().at(ivalues_start + it->second);
-    }
-    extra_ivalues.emplace_back(slot);
-    slot_to_offset[slot] = extra_ivalues.size() - 1;
-    return g->addInput()->setType(slot.obj->getSlot(slot.offset).type());
-  };
-
-  auto self_value = g->inputs().at(self_offset);
-  std::cout << self_value->debugName() << std::endl;
-
-  for (Use use : self_value->uses()) {
-    to_scan.emplace_back(ToScan{self, use.user, use.offset});
-  }
-  while (to_scan.size() > 0) {
-    auto e = to_scan.back();
-    to_scan.pop_back();
-
-    // when we lambda lift forks, first-class modules may be passed across
-    // forks. This code recursively lowers the module in the fork call.
-    if (e.n->kind() == prim::fork) {
-      auto subgraph = e.n->g(attr::Subgraph);
-      std::vector<Slot> new_slots;
-      std::tie(subgraph, new_slots) = lower_graph(e.mod, *subgraph, e.offset);
-      e.n->g_(attr::Subgraph, subgraph);
-      for (const Slot& slot : new_slots) {
-        e.n->addInput(getOrAddSlot(slot));
-      }
-      e.n->removeInput(e.offset);
-      continue;
-    }
-    if (e.n->kind() == prim::PythonOp) {
-      throw std::runtime_error("error");
-    }
-    if (e.n->kind() != prim::GetAttr) {
-      throw std::runtime_error("error");
-    }
-    size_t slot_idx = e.mod->type()->getAttributeSlot(e.n->s(attr::name));
-    // auto iv = e.mod->getSlot(slot_idx);
-    // if (ClassTypePtr c = e.n->output()->type()->cast<ClassType>()) {
-    //     std::cout << e.n->scopeName() << " " << e.n->output(0)->debugName() << std::endl;
-    //   if (c->is_module()) {
-    //     for (Use use : e.n->output()->uses()) {
-    //       to_scan.emplace_back(ToScan{iv.toObject(), use.user, use.offset});
-    //     }
-    //     to_clean.emplace_back(e.n);
-    //     continue;
-    //   }
-    // }
-    e.n->output()->replaceAllUsesWith(getOrAddSlot({e.mod, slot_idx}));
-    e.n->destroy();
-  }
-
-  while (to_clean.size() > 0) {
-    Node* n = to_clean.back();
-    AT_ASSERT(!n->hasUses());
-    n->destroy();
-    to_clean.pop_back();
-  }
-  AT_ASSERT(!self_value->hasUses());
-  g->eraseInput(self_offset);
-
-  return std::make_pair(std::move(g), std::move(extra_ivalues));
-}
-
-static std::vector<IValue> loadTensors(const std::vector<Slot>& slots) {
-  std::vector<IValue> result;
-  result.reserve(slots.size());
-  for (const Slot& slot : slots) {
-    auto obj = slot.obj->getSlot(slot.offset);
-    if (obj.isTensor()) {
-      result.emplace_back(obj.toTensor());
-    } else if (obj.isBool()) {
-      result.emplace_back(obj.toBool());
-    } else if (obj.isObject()) {
-      result.emplace_back(obj.toObject());
-    } else {
-      // Unpack quantization packed tensor
-      auto type = obj.type();
-      TORCH_CHECK(
-          (type ==
-           getCustomClass(
-               "__torch__.torch.classes.quantized.Conv2dPackedParamsBase")) ||
-              (type ==
-               getCustomClass(
-                   "__torch__.torch.classes.quantized.Conv3dPackedParamsBase")) ||
-              (type ==
-               getCustomClass(
-                   "__torch__.torch.classes.quantized.LinearPackedParamsBase")),
-          "Unknown type ",
-          type->repr_str(),
-          " encountered in graph lowering. This type is not supported in ONNX export.");
-      result.emplace_back(
-          script::Object(obj.toObject()).run_method("__getstate__"));
-    }
-  }
-  return result;
-}
-
-std::pair<std::shared_ptr<Graph>, std::vector<IValue>> LowerGraph(
-    Graph& graph,
-    const ModulePtr& self) {
-  auto result = lower_graph(self, graph);
-  return std::make_pair(result.first, loadTensors(result.second));
-}
-}
-}
-}
+#include "tnn/network/torch/jit_util.h"
+#include "tnn/network/torch/torch_convert.h"
 
 namespace TNN_NS {
 
@@ -175,10 +21,7 @@ void removeUselessOps(torch::jit::Block* block, std::string self) {
         }
         std::set<torch::jit::NodeKind> uselessKind = {
             // prime
-            at::prim::Print,
-            at::prim::RaiseException,
-            at::prim::TimePoint,
-            at::prim::annotate,
+            at::prim::Print, at::prim::RaiseException, at::prim::TimePoint, at::prim::annotate,
             // aten
             at::aten::warn,
             // at::prim::SetAttr,
@@ -191,12 +34,10 @@ void removeUselessOps(torch::jit::Block* block, std::string self) {
             //     }
             // }
 
-
             for (size_t i = 0; i < it->inputs().size();) {
                 auto input = it->inputs().at(i);
                 // only handling constants bc of potential side effects
-                if (input->uses().size() == 1 &&
-                    input->node()->kind() == at::prim::Constant) {
+                if (input->uses().size() == 1 && input->node()->kind() == at::prim::Constant) {
                     it->removeInput(i);
                     input->node()->destroy();
                 } else {
@@ -210,7 +51,7 @@ void removeUselessOps(torch::jit::Block* block, std::string self) {
             }
         } else if (it->kind() == at::aten::contiguous || it->kind().toUnqualString() == std::string("data")) {
             it->output()->replaceAllUsesWith(it->input(0));
-            for (int i = it->inputs().size()-1; i >= 0; i--) {
+            for (int i = it->inputs().size() - 1; i >= 0; i--) {
                 it->removeInput(i);
             }
             it.destroyCurrent();
@@ -223,7 +64,8 @@ std::map<torch::jit::Value*, torch::jit::IValue> get_named_params(c10::ArrayRef<
     std::map<torch::jit::Value*, torch::jit::IValue> named_params;
     auto param_it = params.begin();
     for (auto in : inputs) {
-        if (in->type()->kind() == torch::jit::TypeKind::OptionalType) continue;
+        if (in->type()->kind() == torch::jit::TypeKind::OptionalType)
+            continue;
         if (!util::isTensorOrTensorList(in) && param_it != params.end()) {
             std::cout << in->debugName() << std::endl;
             named_params[in] = *param_it;
@@ -235,7 +77,7 @@ std::map<torch::jit::Value*, torch::jit::IValue> get_named_params(c10::ArrayRef<
 }
 
 torch::jit::Value* getOrAddInputForValue(torch::jit::Value* old_value, std::shared_ptr<torch::jit::Graph>& graph,
-                                            std::unordered_map<torch::jit::Value*, torch::jit::Value*>& old_to_new) {
+                                         std::unordered_map<torch::jit::Value*, torch::jit::Value*>& old_to_new) {
     if (old_to_new.count(old_value) == 0) {
         auto node = old_value->node();
 
@@ -253,31 +95,30 @@ torch::jit::Value* getOrAddInputForValue(torch::jit::Value* old_value, std::shar
     }
 }
 
-torch::jit::Node* cloneNode(
-    torch::jit::Node* node,
-    std::shared_ptr<torch::jit::Graph>& graph,
-    std::unordered_map<torch::jit::Value*, torch::jit::Value*>& old_to_new) {
-  auto* block = graph->block();
-  auto env = [&](torch::jit::Value* v) { return getOrAddInputForValue(v, graph, old_to_new); };
+torch::jit::Node* cloneNode(torch::jit::Node* node, std::shared_ptr<torch::jit::Graph>& graph,
+                            std::unordered_map<torch::jit::Value*, torch::jit::Value*>& old_to_new) {
+    auto* block = graph->block();
+    auto env    = [&](torch::jit::Value* v) { return getOrAddInputForValue(v, graph, old_to_new); };
 
-  // create node for current graph by using the metadata in node and input Values in env
-  auto new_node = block->appendNode(graph->createClone(node, env));
-  for (size_t i = 0; i < node->outputs().size(); ++i) {
-    auto oo = node->outputs()[i];
-    auto no = new_node->outputs()[i];
-    old_to_new[oo] = no;
-  }
-  return new_node;
+    // create node for current graph by using the metadata in node and input Values in env
+    auto new_node = block->appendNode(graph->createClone(node, env));
+    for (size_t i = 0; i < node->outputs().size(); ++i) {
+        auto oo        = node->outputs()[i];
+        auto no        = new_node->outputs()[i];
+        old_to_new[oo] = no;
+    }
+    return new_node;
 }
 
 void AddEngineToGraph(std::shared_ptr<torch::jit::script::Module> mod, std::shared_ptr<torch::jit::Graph>& g,
-                        c10::intrusive_ptr<runtime::TNNEngine> engine_ptr, std::string engine_id = "", bool fallback = false) {
+                      c10::intrusive_ptr<runtime::TNNEngine> engine_ptr, std::string engine_id = "",
+                      bool fallback = false) {
     // Get required metadata about the engine out
     // BlobMap input_blobs;
     // BlobMap output_blobs;
     // engine_ptr->instance_->GetAllInputBlobs(input_blobs);
     // engine_ptr->instance_->GetAllOutputBlobs(output_blobs);
-    auto input_names = engine_ptr->input_names;
+    auto input_names  = engine_ptr->input_names;
     auto output_names = engine_ptr->output_names;
 
     //..
@@ -321,7 +162,7 @@ void AddEngineToGraph(std::shared_ptr<torch::jit::script::Module> mod, std::shar
     // Create the actual execution node trt::execute_engine using the assembled
     // inputs
     auto execute_node = g->create(c10::Symbol::fromQualString("tnn::execute_engine"),
-                                    torch::jit::ArrayRef<torch::jit::Value*>(execute_node_inputs), 1);
+                                  torch::jit::ArrayRef<torch::jit::Value*>(execute_node_inputs), 1);
     g->block()->appendNode(execute_node);
     execute_node->outputs()[0]->setType(c10::ListType::ofTensors());
 
@@ -385,8 +226,7 @@ void AddSegmentedBlockToGraph(std::shared_ptr<torch::jit::Graph>& g, partitionin
     return;
 }
 
-std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Module> mod,
-                                                    InputShapesMap& input_shape) {
+std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap& input_shape) {
     std::cout << c10::toString(mod->get_method("forward").function().getSchema()) << std::endl;
     auto low_g = mod->get_method("forward").graph();
     // removeUselessOps(low_g->block(), low_g->inputs()[0]->debugName());
@@ -401,7 +241,7 @@ std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Mod
     std::unordered_map<torch::jit::Value*, torch::jit::Value*> old_to_new_g;
 
     for (auto input : g->inputs()) {
-      std::cout << input->debugName() << " | " << input->type()->repr_str() << std::endl;
+        std::cout << input->debugName() << " | " << input->type()->repr_str() << std::endl;
     }
     // auto named_params = get_named_params(g->inputs(), graph_and_ivalues.second);
 
@@ -413,31 +253,36 @@ std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Mod
         std::ostringstream tnn_engine_id;
         tnn_engine_id << reinterpret_cast<const int*>(&block);
         if (block.target() == partitioning::SegmentedBlock::kTNN) {
+            // if (subgraph_cnt >= 4) {
+            //     block.change_target(partitioning::SegmentedBlock::kTorch);
+            //     continue;
+            // }
             auto engine_ptr = conversion::ConvertBlockToInstance(block);
             auto temp_g     = std::make_shared<torch::jit::Graph>();
             AddEngineToGraph(mod, temp_g, engine_ptr, tnn_engine_id.str(), true);
             // std::cout << block.g()->toString() << std::endl;
             // std::cout << temp_g->toString() << std::endl;
 
-            std::vector<torch::jit::Value *> block_real_inputs;
+            std::vector<torch::jit::Value*> block_real_inputs;
             block_real_inputs.push_back(low_g->inputs()[0]);
             for (auto input : block.raw_inputs()) {
                 if (old_to_new_g.count(input) == 0) {
-                  block_real_inputs.push_back(input);
+                    block_real_inputs.push_back(input);
                 } else {
-                  block_real_inputs.push_back(old_to_new_g[input]);
+                    block_real_inputs.push_back(old_to_new_g[input]);
                 }
             }
             for (auto input : block_real_inputs) {
                 std::cout << input->debugName() << " | " << input->owningGraph() << std::endl;
             }
-            
+
             WithInsertPoint insert_point(block.raw_outputs()[0]->node());
             auto new_outputs = torch::jit::insertGraph(*low_g, *temp_g, block_real_inputs);
 
             int out_idx = 0;
             for (auto output : block.raw_outputs()) {
-                // std::cout << output->debugName() << " | " << output->owningGraph() << " | " << new_outputs[out_idx]->debugName() << std::endl;
+                // std::cout << output->debugName() << " | " << output->owningGraph() << " | " <<
+                // new_outputs[out_idx]->debugName() << std::endl;
                 output->replaceAllUsesWith(new_outputs[out_idx]);
                 old_to_new_g[output] = new_outputs[out_idx++];
             }
@@ -445,7 +290,6 @@ std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Mod
             // std::cout << low_g->toString() << std::endl;
 
             subgraph_cnt++;
-            // if (subgraph_cnt >= 4) break;
 
             block.update_graph(temp_g);
             // AddSegmentedBlockToGraph(new_g, block, old_to_new_g);
@@ -465,11 +309,10 @@ std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Mod
         }
     }
 
-    std::cout << "============================= the final graph ===========================" << std::endl; 
+    std::cout << "============================= the final graph ===========================" << std::endl;
     std::cout << low_g->toString() << std::endl;
 
     return mod;
-
 }
 
 }  // namespace TNN_NS
