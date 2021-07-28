@@ -270,7 +270,7 @@ torch::jit::Node* cloneNode(
   return new_node;
 }
 
-void AddEngineToGraph(torch::jit::script::Module mod, std::shared_ptr<torch::jit::Graph>& g,
+void AddEngineToGraph(std::shared_ptr<torch::jit::script::Module> mod, std::shared_ptr<torch::jit::Graph>& g,
                         c10::intrusive_ptr<runtime::TNNEngine> engine_ptr, std::string engine_id = "", bool fallback = false) {
     // Get required metadata about the engine out
     // BlobMap input_blobs;
@@ -283,12 +283,12 @@ void AddEngineToGraph(torch::jit::script::Module mod, std::shared_ptr<torch::jit
     //..
     // Add the engine as an attribute of the module, this will let the engine be
     // serialized and deserialized
-    mod.register_attribute(engine_id, c10::getCustomClassType<c10::intrusive_ptr<runtime::TNNEngine>>(),
+    mod->register_attribute(engine_id, c10::getCustomClassType<c10::intrusive_ptr<runtime::TNNEngine>>(),
                             c10::IValue(std::move(engine_ptr)), false);
 
     // Add the module as an input into the graph
     auto self = g->addInput("self_1");
-    self->setType(mod.type());
+    self->setType(mod->type());
 
     // Start by retriveing the engine from the module attribute list
     auto engine_node = g->createGetAttr(self, engine_id);
@@ -398,20 +398,14 @@ std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Mod
     // auto g = graph_and_ivalues.first;
     auto g = low_g;
 
+    std::unordered_map<torch::jit::Value*, torch::jit::Value*> old_to_new_g;
+
     for (auto input : g->inputs()) {
       std::cout << input->debugName() << " | " << input->type()->repr_str() << std::endl;
     }
     // auto named_params = get_named_params(g->inputs(), graph_and_ivalues.second);
 
     auto seg_blocks = partitioning::Partition(g, input_shape);
-
-    std::unordered_map<torch::jit::Value*, torch::jit::Value*> old_to_new_g;
-    auto new_g = std::make_shared<torch::jit::Graph>();
-    auto new_mod = std::make_shared<torch::jit::Module>("tnntorch");
-    // add global graph's input to old_to_new_g mapping
-    for (auto input : g->inputs()) {
-        getOrAddInputForValue(input, new_g, old_to_new_g);
-    }
 
     int subgraph_cnt = 0;
     for (auto& block : seg_blocks) {
@@ -421,33 +415,37 @@ std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Mod
         if (block.target() == partitioning::SegmentedBlock::kTNN) {
             auto engine_ptr = conversion::ConvertBlockToInstance(block);
             auto temp_g     = std::make_shared<torch::jit::Graph>();
-            // AddEngineToGraph(*new_mod.get(), temp_g, engine_ptr, tnn_engine_id.str(), true);
-            AddEngineToGraph(*mod.get(), temp_g, engine_ptr, tnn_engine_id.str(), true);
+            AddEngineToGraph(mod, temp_g, engine_ptr, tnn_engine_id.str(), true);
             // std::cout << block.g()->toString() << std::endl;
             // std::cout << temp_g->toString() << std::endl;
 
             std::vector<torch::jit::Value *> block_real_inputs;
             block_real_inputs.push_back(low_g->inputs()[0]);
             for (auto input : block.raw_inputs()) {
-                block_real_inputs.push_back(input);
+                if (old_to_new_g.count(input) == 0) {
+                  block_real_inputs.push_back(input);
+                } else {
+                  block_real_inputs.push_back(old_to_new_g[input]);
+                }
             }
             for (auto input : block_real_inputs) {
                 std::cout << input->debugName() << " | " << input->owningGraph() << std::endl;
             }
             
-            WithInsertPoint insert_point(block.raw_outputs()[0]->node()->next());
+            WithInsertPoint insert_point(block.raw_outputs()[0]->node());
             auto new_outputs = torch::jit::insertGraph(*low_g, *temp_g, block_real_inputs);
 
             int out_idx = 0;
             for (auto output : block.raw_outputs()) {
-                std::cout << output->debugName() << " | " << output->owningGraph() << std::endl;
-                output->replaceAllUsesWith(new_outputs[out_idx++]);
+                // std::cout << output->debugName() << " | " << output->owningGraph() << " | " << new_outputs[out_idx]->debugName() << std::endl;
+                output->replaceAllUsesWith(new_outputs[out_idx]);
+                old_to_new_g[output] = new_outputs[out_idx++];
             }
+
+            // std::cout << low_g->toString() << std::endl;
 
             subgraph_cnt++;
             // if (subgraph_cnt >= 4) break;
-
-            std::cout << low_g->toString() << std::endl;
 
             block.update_graph(temp_g);
             // AddSegmentedBlockToGraph(new_g, block, old_to_new_g);
@@ -456,31 +454,20 @@ std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Mod
         }
     }
 
-    // for (auto& block : seg_blocks) {
-    //     if (block.target() == partitioning::SegmentedBlock::kTNN) {
-    //         for (auto n : block.raw_nodes()) {
-    //             n->removeAllInputs();
-    //         }
-    //         for (auto n : block.raw_nodes()) {
-    //             n->destroy();
-    //         }
-    //     }
-    // }
-
-    for (auto& output : g->outputs()) {
-        // new_g->registerOutput(old_to_new_g[output]);
+    for (auto& block : seg_blocks) {
+        if (block.target() == partitioning::SegmentedBlock::kTNN) {
+            for (auto n : block.raw_nodes()) {
+                n->removeAllInputs();
+            }
+            for (auto n : block.raw_nodes()) {
+                n->destroy();
+            }
+        }
     }
 
     std::cout << "============================= the final graph ===========================" << std::endl; 
-    // std::cout << new_g->toString() << std::endl;
     std::cout << low_g->toString() << std::endl;
 
-    auto new_method = new_mod->_ivalue()->compilation_unit()->create_function("forward", new_g);
-    auto schema = util::GenerateGraphSchema(new_method->name(), new_g);
-    new_mod->type()->addMethod(new_method);
-    new_method->setSchema(schema);
-
-    // return new_mod;
     return mod;
 
 }
