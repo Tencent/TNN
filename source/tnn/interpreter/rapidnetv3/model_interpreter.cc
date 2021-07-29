@@ -15,6 +15,11 @@ namespace rapidnetv3 {
     TNNImplFactoryRegister<TNNImplFactory<TNNImplDefault>>
 g_default_factory_register_rapidnet_v3(MODEL_TYPE_RAPIDNET);
 
+TNNImplFactoryRegister<TNNImplFactory<TNNImplDefault>> g_tnn_impl_hyper_factory_register(MODEL_TYPE_HYPER);
+
+TypeModelInterpreterRegister<TypeModelInterpreterCreator<ModelInterpreter>> g_hyper_model_interpreter_register(
+    MODEL_TYPE_HYPER);
+
     TypeModelInterpreterRegister<
         TypeModelInterpreterCreator<ModelInterpreter>>
         g_rapidnet_v3_model_interpreter_register(MODEL_TYPE_RAPIDNET);

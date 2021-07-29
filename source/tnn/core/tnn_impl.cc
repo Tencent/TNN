@@ -53,4 +53,16 @@ void TNNImplManager::RegisterTNNImplFactory(ModelType type, AbstractTNNImplFacto
     }
 }
 
+// std::shared_ptr<AbstractModelInterpreter> TNNImpl::GetInterpreter() {
+//     return nullptr;
+// }
+
+NetStructure* TNNImpl::GetNetStructure(ModelConfig& config) {
+    return nullptr;
+}
+
+NetResource* TNNImpl::GetNetResource(ModelConfig& config) {
+    return nullptr;
+}
+
 }  // namespace TNN_NS

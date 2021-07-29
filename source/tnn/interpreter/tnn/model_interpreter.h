@@ -108,7 +108,7 @@ protected:
     ;
 
 protected:
-    uint32_t version_magic_number = 0;
+uint32_t version_magic_number = 0;
 };
 
 }  // namespace TNN_NS

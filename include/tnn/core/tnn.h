@@ -23,6 +23,8 @@
 #include "tnn/core/instance.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
+#include "tnn/interpreter/net_structure.h"
+#include "tnn/interpreter/net_resource.h"
 
 #pragma warning(push)
 #pragma warning(disable:4251)
@@ -46,6 +48,12 @@ public:
     // add output to the model. 
     // if output_name of blob not found, then search output_index of layer.
     Status AddOutput(const std::string& output_name, int output_index = 0);
+
+    // std::shared_ptr<AbstractModelInterpreter> GetInterpreter();
+
+    NetStructure* GetNetStructure(ModelConfig& config);
+
+    NetResource* GetNetResource(ModelConfig& config);
 
     // create tnn network instance with network config and inputs shape.
     // if inputs shape not set, use default from model.

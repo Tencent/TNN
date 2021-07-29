@@ -22,6 +22,9 @@
 #include "tnn/core/common.h"
 #include "tnn/core/instance.h"
 #include "tnn/core/status.h"
+#include "tnn/interpreter/abstract_model_interpreter.h"
+#include "tnn/interpreter/net_structure.h"
+#include "tnn/interpreter/net_resource.h"
 
 namespace TNN_NS {
 
@@ -58,6 +61,12 @@ public:
     // error code.
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
                                                  InputShapesMap inputs_shape = InputShapesMap()) = 0;
+
+    // virtual std::shared_ptr<AbstractModelInterpreter> GetInterpreter();
+
+    virtual NetStructure* GetNetStructure(ModelConfig& config);
+
+    virtual NetResource* GetNetResource(ModelConfig& config);
 
 protected:
     ModelConfig model_config_;

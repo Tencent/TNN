@@ -64,6 +64,12 @@ public:
         NetworkConfig& config, Status& status,
         InputShapesMap inputs_shape = InputShapesMap());
 
+    // virtual std::shared_ptr<AbstractModelInterpreter> GetInterpreter();
+    
+    virtual NetStructure* GetNetStructure(ModelConfig& config);
+
+    virtual NetResource* GetNetResource(ModelConfig& config);
+    
 private:
     std::shared_ptr<AbstractModelInterpreter> interpreter_;
 };

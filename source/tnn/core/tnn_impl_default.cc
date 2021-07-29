@@ -73,4 +73,24 @@ std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, 
     return instance;
 }
 
+// std::shared_ptr<AbstractModelInterpreter> TNNImplDefault::GetInterpreter() {
+//     if (!interpreter_) {
+//         return nullptr;
+//     }
+//     return interpreter_;
+// }
+NetStructure* TNNImplDefault::GetNetStructure(ModelConfig& config) {
+    auto interpreter = CreateModelInterpreter(config.model_type);
+    DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
+    auto status = default_interpreter->Interpret(config.params);
+    return default_interpreter->GetNetStructure();
+}
+
+NetResource* TNNImplDefault::GetNetResource(ModelConfig& config) {
+    auto interpreter = CreateModelInterpreter(config.model_type);
+    DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
+    auto status = default_interpreter->Interpret(config.params);
+    return default_interpreter->GetNetResource();
+}
+
 }  // namespace TNN_NS

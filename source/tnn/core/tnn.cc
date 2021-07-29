@@ -55,4 +55,21 @@ std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status,
     return impl_->CreateInst(config, status, inputs_shape);
 }
 
+// std::shared_ptr<AbstractModelInterpreter> TNN::GetInterpreter() {
+//     if (!impl_) {
+//         return nullptr;
+//     }
+//     return impl_->GetInterpreter();
+// }
+
+NetStructure* TNN::GetNetStructure(ModelConfig& config) {
+    impl_ = TNNImplManager::GetTNNImpl(config.model_type);
+    return impl_->GetNetStructure(config);
+}
+
+NetResource* TNN::GetNetResource(ModelConfig& config) {
+    impl_ = TNNImplManager::GetTNNImpl(config.model_type);
+    return impl_->GetNetResource(config);
+}
+
 }  // namespace TNN_NS
