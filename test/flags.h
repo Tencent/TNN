@@ -43,6 +43,8 @@ static const char warm_up_count_message[] = "warm up count (default 0).";
 
 static const char input_path_message[] = "input file path";
 
+static const char input_map_message[] = "input file map: input[input_file]";
+
 static const char output_path_message[] = "output file path";
 
 static const char output_format_cmp_message[] = "output format for comparison";
@@ -86,6 +88,8 @@ DECLARE_int32(ic);
 DECLARE_int32(wc);
 
 DECLARE_string(ip);
+
+DECLARE_string(im);
 
 DECLARE_string(op);
 
