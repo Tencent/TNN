@@ -59,6 +59,9 @@ Status CudaBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param
     auto hw = DimsVectorUtils::Count(dims, 2);
     auto chw = DimsFunctionUtils::GetDim(dims, 1) * hw;
     auto nchw = DimsFunctionUtils::GetDim(dims, 0) * chw;
+    if (!DimsVectorUtils::Equal(dims, image.GetDims())) {
+        image.ReAlloc(dims);
+    }
     if (image.GetDeviceType() == DEVICE_CUDA) {
         prepareParamPtr(param, image.GetMatType(), stream);
         if (image.GetMatType() == NCHW_FLOAT) {

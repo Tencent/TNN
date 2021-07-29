@@ -112,6 +112,13 @@ typedef enum {
     DEVICE_ATLAS      = 0x1040,
     DEVICE_HUAWEI_NPU = 0x1050,
     DEVICE_RK_NPU     = 0x1060,
+
+    // General CPU
+    DEVICE_GROUP_CPU  = 0x4010,
+    // General GPU
+    DEVICE_GROUP_GPU  = 0x4020,
+    // General NPU
+    DEVICE_GROUP_NPU  = 0x4030,
 } DeviceType;
 
 typedef enum {
@@ -121,7 +128,9 @@ typedef enum {
     SHARE_MEMORY_MODE_SHARE_ONE_THREAD = 1,
     // set blob memory from external, different thread share blob memory need
     // synchronize
-    SHARE_MEMORY_MODE_SET_FROM_EXTERNAL = 2
+    SHARE_MEMORY_MODE_SET_FROM_EXTERNAL = 2,
+    // tnn instane share net resource
+    SHARE_MEMORY_MODE_SHARE_NET_RESOURCE = 3
 } ShareMemoryMode;
 
 typedef enum {

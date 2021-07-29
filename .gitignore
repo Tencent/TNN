@@ -496,3 +496,7 @@ opencl_program.cc
 
 # opencl generated code
 opencl_program.cc
+
+# cache
+*.cache
+*.cache~

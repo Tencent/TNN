@@ -36,6 +36,8 @@ DEFINE_int32(wc, 0, warm_up_count_message);
 
 DEFINE_string(ip, "", input_path_message);
 
+DEFINE_string(im, "", input_map_message);
+
 DEFINE_string(op, "", output_path_message);
 
 DEFINE_bool(fc, false, output_format_cmp_message);

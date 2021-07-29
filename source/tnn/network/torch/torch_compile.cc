@@ -11,8 +11,6 @@ namespace TNN_NS {
 
 using namespace conversion;
 using namespace torch::jit;
-using namespace c10;
-using namespace at;
 
 void removeUselessOps(torch::jit::Block* block, std::string self) {
     for (auto it = block->nodes().begin(), end = block->nodes().end(); it != end; ++it) {
@@ -226,6 +224,32 @@ void AddSegmentedBlockToGraph(std::shared_ptr<torch::jit::Graph>& g, partitionin
     return;
 }
 
+void RegisterNodeToOutput(std::shared_ptr<torch::jit::Module> &mod, const std::vector<torch::jit::Node *> &nodes) {
+    auto copy_g = mod->get_method("forward").graph();
+
+    std::vector<torch::jit::Value *> out_vec;
+    for (auto &output : copy_g->outputs()) {
+        out_vec.push_back(output);
+    }
+
+    for (auto node : nodes) {
+        for (auto &output : node->outputs()) {
+            out_vec.push_back(output);
+        }
+        // copy_g->registerOutput(output);
+    }
+    c10::ArrayRef<torch::jit::Value *> new_outputs(out_vec);
+    auto new_output_node = copy_g->appendNode(copy_g->createTuple(new_outputs));
+    for (int idx = copy_g->outputs().size() - 1; idx >= 0; --idx) {
+        copy_g->eraseOutput(idx);
+    }
+    copy_g->registerOutput(new_output_node->outputs()[0]);
+
+    auto &cur_method = mod->get_method("forward").function(); 
+    auto schema = util::GenerateGraphSchema(cur_method.name(), copy_g);
+    cur_method.setSchema(schema);
+}
+
 std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap& input_shape) {
     std::cout << c10::toString(mod->get_method("forward").function().getSchema()) << std::endl;
     auto low_g = mod->get_method("forward").graph();
@@ -246,6 +270,11 @@ std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Mod
     // auto named_params = get_named_params(g->inputs(), graph_and_ivalues.second);
 
     auto seg_blocks = partitioning::Partition(g, input_shape);
+
+    // {
+    //     RegisterNodeToOutput(mod, seg_blocks[0].raw_nodes());
+    //     return mod;
+    // }
 
     int subgraph_cnt = 0;
     for (auto& block : seg_blocks) {

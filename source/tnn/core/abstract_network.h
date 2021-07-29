@@ -70,6 +70,10 @@ public:
 
     // @brief share tnn command queue to another network。
     virtual Status ShareCommandQueue(AbstractNetwork *network);
+
+    // @brief share tnn network resource to another network
+    // @param network to share resource
+    virtual Status ShareNetResource(AbstractNetwork *network);
     
     // @brief network infer, it will sync to wait result
     virtual Status Forward() = 0;

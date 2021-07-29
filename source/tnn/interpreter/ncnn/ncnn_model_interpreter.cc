@@ -50,10 +50,14 @@ namespace ncnn {
         NetStructure *structure = GetNetStructure();
         auto layers             = structure->layers;
         auto blobs              = structure->blobs;
+        std::vector<std::string> output_names_condidate;
         std::set<std::string> out_blobs;
 
         for (auto layer : layers) {
             for (auto out_blob : layer->outputs) {
+                if(out_blobs.count(out_blob) == 0) {
+                    output_names_condidate.push_back(out_blob);
+                }
                 out_blobs.insert(out_blob);
             }
 
@@ -65,6 +69,12 @@ namespace ncnn {
         }
 
         structure->outputs = out_blobs;
+
+        for(auto output_name : output_names_condidate) {
+            if(out_blobs.count(output_name) > 0) {
+                structure->parsed_output_names_list.push_back(output_name);
+            }
+        }
 
         return TNN_OK;
     }
@@ -150,6 +160,7 @@ namespace ncnn {
                     input_shape.push_back(GetInt(hwc_vec, 1, 0));  // h
                     input_shape.push_back(GetInt(hwc_vec, 0, 0));  // w
                 }
+                structure->parsed_input_names_list.push_back(input_name);
                 structure->inputs_shape_map[input_name] = input_shape;
             } else {
                 ret = AppendCommonLayer(layer_cfg_arr, structure, layer_interpreter_map);

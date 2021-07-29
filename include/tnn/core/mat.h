@@ -73,6 +73,7 @@ public:
     int GetHeight();
     int GetWidth();
     int GetDim(int index);
+    void ReAlloc(DimsVector dims);
     DimsVector GetDims();
 
 private:

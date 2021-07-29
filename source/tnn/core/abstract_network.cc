@@ -29,6 +29,11 @@ Status AbstractNetwork::ShareCommandQueue(AbstractNetwork *network) {
     return Status(TNNERR_COMMON_ERROR, "Subclass of AbstractNetwork must implement this func ShareCommandQueue");
 }
 
+Status AbstractNetwork::ShareNetResource(AbstractNetwork *network) {
+    LOGE("Subclass of AbstractNetwork must implement this func ShareNetResource\n");
+    return Status(TNNERR_COMMON_ERROR, "Subclass of AbstractNetwork must implement this func ShareNetResource");
+}
+
 Status AbstractNetwork::SetCpuNumThreads(int num_threads) {
     return TNN_OK;
 }

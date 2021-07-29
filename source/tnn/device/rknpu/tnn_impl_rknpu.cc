@@ -44,6 +44,15 @@ Status TNNImplRknpu::GetModelInputShapesMap(InputShapesMap& shapes_map) {
     return Status(TNNERR_COMMON_ERROR, "RKNPU IMPL can not get model input shapes map");
 }
 
+Status TNNImplRknpu::GetModelInputNames(std::vector<std::string>& input_names) {
+    return Status(TNNERR_NET_ERR, "Error: CoreML do not supprt get model input names");
+}
+
+Status TNNImplRknpu::GetModelOutputNames(std::vector<std::string>& output_names) {
+    return Status(TNNERR_NET_ERR, "Error: CoreML do not supprt get model output names");
+
+}
+
 std::shared_ptr<Instance> TNNImplRknpu::CreateInst(NetworkConfig& net_config, Status& status,
                                                    InputShapesMap inputs_shape) {
     auto instance = std::make_shared<Instance>(net_config, model_config_);

@@ -42,7 +42,7 @@ namespace test {
 
     bool CheckResult(std::string desc, Status result);
 
-    MatMap CreateBlobMatMap(BlobMap& blob_map, int mat_type);
+    bool CreateBlobMatMap(BlobMap& blob_map, int mat_type, MatMap &mat_map);
 
     void InitInputMatMap(MatMap& mat_map);
 

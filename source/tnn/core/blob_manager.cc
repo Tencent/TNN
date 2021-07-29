@@ -222,7 +222,8 @@ Status BlobManager::AllocateBlobMemory(int flag) {
     Status status = TNN_OK;
 
     do {
-        if (config_.share_memory_mode == SHARE_MEMORY_MODE_DEFAULT) {
+        if (config_.share_memory_mode == SHARE_MEMORY_MODE_DEFAULT ||
+            config_.share_memory_mode == SHARE_MEMORY_MODE_SHARE_NET_RESOURCE) {
             // The default strategy allocated the blob memory separately.
             MemorySeperateAssignStrategy strategy;
             for (auto blob_memory_pool_iter : blob_memory_pool_map_) {

@@ -139,6 +139,10 @@ Status Instance::ShareCommandQueue(Instance *instance) {
     return network_->ShareCommandQueue(instance->GetNetwork());
 }
 
+Status Instance::ShareNetResource(Instance *instance) {
+    return network_->ShareNetResource(instance->GetNetwork());
+}
+
 AbstractNetwork *Instance::GetNetwork() {
     return network_.get();
 }

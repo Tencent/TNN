@@ -60,6 +60,10 @@ NetworkImplFactoryRegister<NetworkImplFactory<TNNTorchNetwork>> g_network_impl_t
 TNNTorchNetwork::~TNNTorchNetwork() {
     // delete output foreign_blobs 
     ClearOutputs();
+    if (blob_manager_) {
+        delete blob_manager_;
+        blob_manager_ = nullptr;
+    }
 }
 
 Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
@@ -77,43 +81,50 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
         return TNNERR_DEVICE_CONTEXT_CREATE;
     }
 
-    if (model_config.model_type == MODEL_TYPE_TORCHSCRIPT) {
-        std::ifstream model_stream(model_config.params[0], std::ios::binary);
-        if (model_config.params.size() > 1) {
-            forward_func_name_ = model_config.params[1];
+    min_inputs_shape_ = min_inputs_shape;
+    max_inputs_shape_ = max_inputs_shape;
+    // if share net resource with another net, create io binding later when sharing
+    if (net_config.share_memory_mode != SHARE_MEMORY_MODE_SHARE_NET_RESOURCE) {
+        if (model_config.model_type == MODEL_TYPE_TORCHSCRIPT) {
+            std::ifstream model_stream(model_config.params[0], std::ios::binary);
+            if (model_config.params.size() > 1) {
+                forward_func_name_ = model_config.params[1];
+            }
+            RETURN_ON_FAIL(LoadModule(model_stream, net_config));
+        } else {
+            return Status(TNNERR_PARAM_ERR, "Unsupported model type for TNNTorchNetwork");
         }
-        RETURN_ON_FAIL(LoadModule(model_stream, net_config));
-    } else {
-        return Status(TNNERR_PARAM_ERR, "Unsupported model type for TNNTorchNetwork");
+
+        #if 0
+        // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
+        auto new_mod = CompileTorch(module_, max_inputs_shape);
+        module_ = new_mod;
+        graph_ = module_->get_method(forward_func_name_).graph();
+
+        #endif
+
+        at::ArrayRef<torch::jit::Value*> inputs = graph_->block()->inputs();
+        at::ArrayRef<torch::jit::Value*> outputs = graph_->block()->outputs();
+
+        #if 0
+        //printf("graph dump:\n:%s\n", graph_->toString().c_str());
+
+        for(int i=0;i<inputs.size();i++) {
+            auto input = inputs[i];
+            printf("input[%d] from node [%s] of type:[%s]\n", input->unique(), input->node()->scopeName().c_str(), input->type()->annotation_str().c_str());
+            printf("input[%d] typekind:[%s]\n", input->unique(), typeKindToString(input->type()->kind()));
+        }
+
+        for(int i=0;i<outputs.size();i++) {
+            auto output = outputs[i];
+            printf("output[%d] from node [%s] of type:[%s]\n", output->unique(), output->node()->scopeName().c_str(), output->type()->annotation_str().c_str());
+            printf("output[%d] typekind:[%s]\n", output->unique(), typeKindToString(output->type()->kind()));
+        }
+        #endif
+
+        RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape, max_inputs_shape));
+        init_done_ = true;
     }
-    #if 1
-    // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
-    auto new_mod = CompileTorch(module_, max_inputs_shape);
-    module_ = new_mod;
-    graph_ = module_->get_method(forward_func_name_).graph();
-
-    #endif
-
-    at::ArrayRef<torch::jit::Value*> inputs = graph_->block()->inputs();
-    at::ArrayRef<torch::jit::Value*> outputs = graph_->block()->outputs();
-
-    #if 0
-    // printf("graph dump:\n:%s\n", graph_->toString().c_str());
-
-    for(int i=0;i<inputs.size();i++) {
-        auto input = inputs[i];
-        printf("input[%d] from node [%s] of type:[%s]\n", input->unique(), input->node()->scopeName().c_str(), input->type()->annotation_str().c_str());
-        printf("input[%d] typekind:[%s]\n", input->unique(), typeKindToString(input->type()->kind()));
-    }
-
-    for(int i=0;i<outputs.size();i++) {
-        auto output = outputs[i];
-        printf("output[%d] from node [%s] of type:[%s]\n", output->unique(), output->node()->scopeName().c_str(), output->type()->annotation_str().c_str());
-        printf("output[%d] typekind:[%s]\n", output->unique(), typeKindToString(output->type()->kind()));
-    }
-    #endif
-
-    RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape, max_inputs_shape));
 
     return TNN_OK;
 }
@@ -122,23 +133,29 @@ Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
     c10::Device device(c10::kCPU);
     RETURN_ON_NEQ(ConvertToTorchDevice(device, config.device_type, config.device_id), TNN_OK);
     auto mod = torch::jit::load(in, device);
-    module_ = std::make_shared<torch::jit::Module>(torch::jit::freeze(mod));
-    graph_ = module_->get_method(forward_func_name_).graph();
-
-    // torch::jit::EliminateRedundantGuards(graph_);
-    // torch::jit::RemoveListMutation(graph_);
-    // torch::jit::RemoveTensorMutation(graph_);
-    // torch::jit::CreateFunctionalGraphs(graph_);
-    // torch::jit::InlineFunctionalGraphs(graph_);
-    // torch::jit::PeepholeOptimize(graph_, false);
-    // torch::jit::FuseLinear(graph_);
-    // torch::jit::LowerSimpleTuples(graph_);
-    // torch::jit::EliminateCommonSubexpression(graph_);
-    // torch::jit::EliminateDeadCode(graph_);
+    mod.eval();
+    // TODO support freeze
+    module_ = std::make_shared<torch::jit::Module>(torch::jit::freeze_module(mod));
+    // module_ = std::make_shared<torch::jit::Module>(mod);
+    graph_ = module_->get_method(forward_func_name_).graph(); 
 
     // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
     // graph_ = graph_and_ivalues.first;
 
+    return TNN_OK;
+}
+
+Status TNNTorchNetwork::ShareNetResource(AbstractNetwork* network) {
+    auto network_target = dynamic_cast<TNNTorchNetwork *>(network);
+    if (!network_target) {
+        return Status(TNNERR_PARAM_ERR, "network to share resource need to be TNNTorchNetwork");
+    }
+
+    module_ = network_target->GetModule();
+    graph_ = network_target->GetGraph();
+
+    RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape_, max_inputs_shape_));
+    init_done_ = true;
     return TNN_OK;
 }
 
@@ -225,6 +242,9 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
         #endif
     }
 
+    // TODO Avoid forward fail on random inputs
+    return TNN_OK;
+
     // TODO Check integrity of the ivalues
 
     auto out = module_->forward(in_ivalues_);
@@ -259,6 +279,9 @@ Status TNNTorchNetwork::Reshape(const InputShapesMap &inputs) {
 
 Status TNNTorchNetwork::Forward() {
 
+    if (!init_done_) {
+        return Status(TNNERR_INST_ERR, "Torch Network is not initialized");
+    }
     auto out = module_->forward(in_ivalues_);
 
     std::vector<std::string> out_names;
