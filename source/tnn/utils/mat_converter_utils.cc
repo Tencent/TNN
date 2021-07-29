@@ -13,7 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/utils/mat_converter_utils.h"
+
 #include <climits>
+#include <algorithm>
 
 namespace TNN_NS {
 
@@ -144,6 +146,23 @@ void WarpAffineMatrixInverse(const float (*transform)[3], double* inverse) {
     double b2 = -inverse[3] * M[2] - A22        * M[5];
     inverse[2]      = b1;
     inverse[5]      = b2;
+}
+
+int GetMatElementSize(Mat* mat) {
+    MatType mat_type = mat->GetMatType();
+    if (NCHW_FLOAT == mat_type) {
+        return 4;
+    } else if (NC_INT32 == mat_type) {
+        return 4;
+    } else if (N8UC3 == mat_type || N8UC4 == mat_type || NGRAY == mat_type || NNV21 == mat_type || NNV12 == mat_type) {
+        return 1;
+    } else if (RESERVED_BFP16_TEST == mat_type || RESERVED_FP16_TEST == mat_type) {
+        return 2;
+    } else if (RESERVED_INT8_TEST == mat_type) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 }  // namespace TNN_NS

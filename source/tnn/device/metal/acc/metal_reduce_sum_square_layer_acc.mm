@@ -41,5 +41,6 @@ Status MetalReduceSumSquareLayerAcc::Forward(const std::vector<Blob *> &inputs, 
 }
 
 REGISTER_METAL_REDUCE_ACC(ReduceSumSquare, LAYER_REDUCE_SUM_SQUARE);
+REGISTER_METAL_LAYOUT(LAYER_REDUCE_SUM_SQUARE, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

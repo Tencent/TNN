@@ -13,7 +13,6 @@
 // specific language governing permissions and limitations under the License.
 
 #include "face_gray_transfer.h"
-#include <sys/time.h>
 #include <cmath>
 
 namespace TNN_NS {

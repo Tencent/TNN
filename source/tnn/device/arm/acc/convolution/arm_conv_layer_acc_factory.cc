@@ -22,11 +22,28 @@ ArmConvInt8LayerCommon always as the last solution
 */
 void ArmConvLayerAccFactory::CreateImpInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                                            LayerParam *param, std::shared_ptr<ArmLayerAcc> &conv_acc_impl) {
-    if (ArmConvInt8LayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+    if (0) {
+    }
+#ifdef TNN_ARM82_USE_NEON
+    else if (ArmConvInt8SdotLayerDepthwise3x3::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<ArmConvInt8SdotLayerDepthwise3x3 *>(conv_acc_impl.get())) {
+            conv_acc_impl = std::make_shared<ArmConvInt8SdotLayerDepthwise3x3>();
+        }
+    }
+#endif
+    else if (ArmConvInt8LayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
         if (!dynamic_cast<ArmConvInt8LayerDepthwise *>(conv_acc_impl.get())) {
             conv_acc_impl = std::make_shared<ArmConvInt8LayerDepthwise>();
         }
-    } else if (ArmConvInt8Layer1x1::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+    }
+#ifdef TNN_ARM82_USE_NEON
+    else if (ArmConvInt8SdotLayerCommon::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<ArmConvInt8SdotLayerCommon *>(conv_acc_impl.get())) {
+            conv_acc_impl = std::make_shared<ArmConvInt8SdotLayerCommon>();
+        }
+    }
+#endif
+    else if (ArmConvInt8Layer1x1::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
         if (!dynamic_cast<ArmConvInt8Layer1x1 *>(conv_acc_impl.get())) {
             conv_acc_impl = std::make_shared<ArmConvInt8Layer1x1>();
         }
@@ -70,7 +87,33 @@ void ArmConvLayerAccFactory::CreateImpFP(const std::vector<Blob *> &inputs, cons
     }
 }
 
+#if TNN_ARM82
 void ArmConvLayerAccFactory::CreateImpHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                         LayerParam *param, std::shared_ptr<ArmLayerAcc> &conv_acc_impl) {}
+                                         LayerParam *param, std::shared_ptr<ArmLayerAcc> &conv_acc_impl) {
+    if (ArmConvFp16LayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (ArmConvFp16LayerDepthwiseS1::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+            if (!dynamic_cast<ArmConvFp16LayerDepthwiseS1 *>(conv_acc_impl.get())) {
+                conv_acc_impl = std::make_shared<ArmConvFp16LayerDepthwiseS1>();
+            }
+        } else {
+            if (!dynamic_cast<ArmConvFp16LayerDepthwise *>(conv_acc_impl.get())) {
+                conv_acc_impl = std::make_shared<ArmConvFp16LayerDepthwise>();
+            }
+        }
+    } else if (ArmConvFp16LayerC3::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<ArmConvFp16LayerC3 *>(conv_acc_impl.get())) {
+            conv_acc_impl = std::make_shared<ArmConvFp16LayerC3>();
+        }
+    } else if (ArmConvFp16Layer3x3::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<ArmConvFp16Layer3x3 *>(conv_acc_impl.get())) {
+            conv_acc_impl = std::make_shared<ArmConvFp16Layer3x3>();
+        }
+    } else if (ArmConvFp16LayerCommon::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<ArmConvFp16LayerCommon *>(conv_acc_impl.get())) {
+            conv_acc_impl = std::make_shared<ArmConvFp16LayerCommon>();
+        }
+    }
+}
+#endif
 
 }  // namespace TNN_NS

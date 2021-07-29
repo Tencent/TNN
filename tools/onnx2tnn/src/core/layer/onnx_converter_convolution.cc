@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include <fstream>
@@ -18,18 +18,29 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-#include "half_utils.h"
+
 
 DECLARE_OP_CONVERTER(Conv);
 
 string OnnxOpConverterConv::TNNOpType(NodeProto& node,
-                                           OnnxNetInfo &net_info) {
+                                      OnnxNetInfo &net_info) {
     const std::string& onnx_op = node.op_type();
 
     std::vector<int64_t> kernel_shape = get_node_attr_ai(node, "kernel_shape");
+    const int kernel_shape_size = kernel_shape.size();
 
     if (onnx_op == "Conv") {
-        return kernel_shape.size() == 3 ? "Convolution3D" : "Convolution";
+        switch (kernel_shape_size) {
+            case 1:
+                return "Convolution1D";
+            case 2:
+                return "Convolution";
+            case 3:
+                return "Convolution3D";
+            default:
+                DLog("Convolution%d is unsuported \n", kernel_shape_size);
+                assert(0);
+        }
     } else if (onnx_op == "ConvTranspose") {
         return kernel_shape.size() == 3 ? "Deconvolution3D" : "Deconvolution";
     }
@@ -38,7 +49,7 @@ string OnnxOpConverterConv::TNNOpType(NodeProto& node,
 }
 
 string OnnxOpConverterConv::TNNLayerParam(NodeProto& node,
-                                               OnnxNetInfo& net_info) {
+                                          OnnxNetInfo& net_info) {
     ostringstream layer_param;
 
     const std::string& onnx_op = node.op_type();
@@ -51,9 +62,9 @@ string OnnxOpConverterConv::TNNLayerParam(NodeProto& node,
 
     if (onnx_op == "Conv") {
         channel_output = (int)weight.dims(0);
-        channel_input  = (int)weight.dims(1) * group;
+        channel_input  = (int)weight.dims(1);
     } else if (onnx_op == "ConvTranspose") {
-        channel_input = (int)weight.dims(0);
+        channel_input = (int)weight.dims(0) / group;
         channel_output  = (int)weight.dims(1) * group;
     }
     int has_bias = node.input_size() == 3 ? 1 : 0;
@@ -77,7 +88,7 @@ string OnnxOpConverterConv::TNNLayerParam(NodeProto& node,
         DLog("SAME_LOWER is unsuported, change toSAME_UPPER \n");
         assert(0);
     }
-    
+
     if (output_pads.size()>0 && output_pads[0] != 0) {
         // output padding conver to pad_type 3 for deconvolution
         pad_type = 3;
@@ -85,27 +96,27 @@ string OnnxOpConverterConv::TNNLayerParam(NodeProto& node,
 
     layer_param << group << " " << channel_input << " " << channel_output
                 << " ";
-    
+
     //kernel size
     if (kernel_shape.size() == 1) {
-        layer_param << kernel_shape[0] << " " << kernel_shape[0] << " ";
+        layer_param << kernel_shape[0] << " ";
     } else if (kernel_shape.size() == 2) {
         layer_param << kernel_shape[0] << " " << kernel_shape[1] << " ";
     } else if (kernel_shape.size() == 3) {
         layer_param << kernel_shape[0] << " " << kernel_shape[1] << " "
                     << kernel_shape[2] << " ";
     }
-    
+
     //stride
     if (strides.size() == 1) {
-        layer_param << strides[0] << " " << strides[0] << " ";
+        layer_param << strides[0] << " ";
     } else if (strides.size() == 2) {
         layer_param << strides[0] << " " << strides[1] << " ";
     } else if (strides.size() == 3) {
         layer_param << strides[0] << " " << strides[1] << " " << strides[2]
                     << " ";
     }
-    
+
     //pad
     if (pads.size() == 1) {
         layer_param << pads[0] << " " << pads[0] << " ";
@@ -148,7 +159,7 @@ string OnnxOpConverterConv::TNNLayerParam(NodeProto& node,
     layer_param << has_bias << " " << pad_type << " ";
 
     if (dilations.size() == 1) {
-        layer_param << dilations[0] << " " << dilations[0] << " ";
+        layer_param << dilations[0] << " ";
     } else if (dilations.size() == 2) {
         layer_param << dilations[0] << " " << dilations[1] << " ";
     } else if (dilations.size() == 3) {
@@ -159,25 +170,29 @@ string OnnxOpConverterConv::TNNLayerParam(NodeProto& node,
     return layer_param.str();
 }
 
-int OnnxOpConverterConv::WriteTNNModel(serializer* net_writer,
-                                            NodeProto& node,
-                                            OnnxNetInfo& net_info) {
+bool OnnxOpConverterConv::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return true;
+}
+
+int OnnxOpConverterConv::WriteTNNModel(Serializer* net_writer,
+                                       NodeProto& node,
+                                       OnnxNetInfo& net_info) {
     const std::string& onnx_op = node.op_type();
     std::string name = !node.name().empty() ? node.name() : node.output(0);
     const std::string& tnn_layer_type = TNNOpType(node, net_info);
 
     //写头信息
-    net_writer->put_int(0);  //触发type from string
-    net_writer->put_string(tnn_layer_type);
-    net_writer->put_string(name);
+    net_writer->PutInt(0);  //触发type from string
+    net_writer->PutString(tnn_layer_type);
+    net_writer->PutString(name);
 
     //写数据
     //对应conv_layer_datad的反序列化
-    net_writer->put_string(name);
+    net_writer->PutString(name);
 
     int has_bias = node.input_size() == 3 ? 1 : 0;
     //                has_bias = 0;
-    net_writer->put_int(has_bias);
+    net_writer->PutInt(has_bias);
 
     const onnx::TensorProto& weights = net_info.weights_map[node.input(1)];
     WriteTensorData(weights, net_writer, net_info.data_type);

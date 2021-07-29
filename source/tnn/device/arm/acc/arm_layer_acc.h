@@ -29,8 +29,8 @@ namespace TNN_NS {
 // @brief conv layer arm acc
 class ArmLayerAcc : public AbstractLayerAcc {
 public:
-    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-                const std::vector<Blob *> &outputs);
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                        const std::vector<Blob *> &outputs);
 
     virtual ~ArmLayerAcc();
 
@@ -49,6 +49,12 @@ public:
      * @return forward result
      */
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+    /**
+     * @brief allocate or update constant blobs if constant resource change.
+     * Note: this func may cost much time, call this func only when necessary.
+     */
+    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false);
 
     /**
      * @brief layer Doforward
@@ -71,19 +77,48 @@ protected:
 
     virtual bool DataTypeSupported(DataType data_type);
 
+    // @brief if true, const blobs are loaded the same as naive device
+    virtual bool UseNaiveConstantBlobs();
+    // @brief config blobdesc for reload buffer to arm blob
+    virtual Status ConfigBuffer2ArmBlobDesc(BlobDesc &desc);
+    // @brief reload buffer to arm blob using packed format
+    virtual Status RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDesc &desc);
+
 private:
     // @brief return device layer acc support data format
-    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size);
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);
 };
+
+#if TNN_ARM82
+#define DECLARE_ARM_FP16_LAYER_FUNC                                                                                    \
+    Status ExecFp16(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+#else
+#define DECLARE_ARM_FP16_LAYER_FUNC
+#endif  // TNN_ARM82
 
 #define DECLARE_ARM_ACC(type_string, layer_type)                                                                       \
     class Arm##type_string##LayerAcc : public ArmLayerAcc {                                                            \
     public:                                                                                                            \
         virtual ~Arm##type_string##LayerAcc(){};                                                                       \
         virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);               \
+                                                                                                                       \
     private:                                                                                                           \
         template <typename T>                                                                                          \
         Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                            \
+        DECLARE_ARM_FP16_LAYER_FUNC;                                                                                   \
+    }
+
+#define DECLARE_ARM_ACC_WITH_EXTRA(type_string, layer_type, extra)                                                     \
+    class Arm##type_string##LayerAcc : public ArmLayerAcc {                                                            \
+    public:                                                                                                            \
+        virtual ~Arm##type_string##LayerAcc(){};                                                                       \
+        virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);               \
+                                                                                                                       \
+    private:                                                                                                           \
+        template <typename T>                                                                                          \
+        Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                            \
+        DECLARE_ARM_FP16_LAYER_FUNC;                                                                                   \
+        extra;                                                                                                         \
     }
 
 #define REGISTER_ARM_ACC(type_string, layer_type)                                                                      \
@@ -95,16 +130,37 @@ public:
     static std::shared_ptr<ImplementedPrecision> UpdateImplementedPrecision(LayerType layer_type) {
         // make sure arm device has been registered
         TypeDeviceRegister<ArmDevice> arm_device_register(DEVICE_ARM);
-        auto implemented_precision = GetDevice(DEVICE_ARM)->GetImplementedPrecision(layer_type);
-        auto updated_precision     = std::make_shared<ImplementedPrecision>(*implemented_precision);
+        auto implemented_precision          = GetDevice(DEVICE_ARM)->GetImplementedPrecision(layer_type);
+        auto updated_precision              = std::make_shared<ImplementedPrecision>(*implemented_precision);
         updated_precision->fp16_implemented = true;
         return updated_precision;
     };
 };
 
+#if TNN_ARM82
 #define REGISTER_ARM_PRECISION_FP16(layer_type)                                                                        \
-    ArmTypeLayerPrecisionRegister g_arm_##layer_type##_fp16_precision_register(layer_type,                             \
-        ArmTypeLayerFp16PrecisionCreator::UpdateImplementedPrecision(layer_type));
+    ArmTypeLayerPrecisionRegister g_arm_##layer_type##_fp16_precision_register(                                        \
+        layer_type, ArmTypeLayerFp16PrecisionCreator::UpdateImplementedPrecision(layer_type));
+#else
+#define REGISTER_ARM_PRECISION_FP16(layer_type)
+#endif  // TNN_ARM82
+
+class ArmTypeLayerLayoutCreator {
+public:
+    static std::shared_ptr<ImplementedLayout> UpdateImplementedLayout(LayerType layer_type, DataFormat layout) {
+        // make sure arm device has been registered
+        TypeDeviceRegister<ArmDevice> arm_device_register(DEVICE_ARM);
+        auto implemented_layout = GetDevice(DEVICE_ARM)->GetImplementedLayout(layer_type);
+        auto updated_layout     = std::make_shared<ImplementedLayout>(*implemented_layout);
+        updated_layout->layouts.push_back(layout);
+        return updated_layout;
+    }
+};
+
+// DATA_FORMAT_NC4HW4 represents packed layouts for both fp32 and fp16
+#define REGISTER_ARM_LAYOUT(layer_type, layout)                                                                        \
+    ArmTypeLayerLayoutRegister g_arm_##layer_type##_##layout##_layout_register(                                        \
+        layer_type, ArmTypeLayerLayoutCreator::UpdateImplementedLayout(layer_type, layout));
 
 }  // namespace TNN_NS
 

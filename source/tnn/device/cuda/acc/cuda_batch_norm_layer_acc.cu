@@ -1,65 +1,38 @@
-// Copyright 2019 Tencent. All Rights Reserved
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
 
-#include "device/cuda/acc/cuda_batch_norm_layer_acc.h"
-#include <iostream>
-#include "device/cuda/cuda_utils.h"
-#include "utils/dims_vector_utils.h"
+#include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-template<int THREAD_PER_BLOCK, int ELE_PER_THREAD>
-__global__ void bn_relu_unroll_kernel ( 
-    int_fastdiv channels, const int chw,
-    int_fastdiv hw, const float* src_data, 
-    const float* k, const float* b,float *dst, 
-    bool relu, const float relu_negative_slope) 
-{
-    const int n_off = blockIdx.y * chw;
-    const int ele_off = ELE_PER_THREAD * THREAD_PER_BLOCK * blockIdx.x + threadIdx.x;
+DECLARE_CUDA_ACC(BatchNorm, LAYER_BATCH_NORM);
 
-    src_data += n_off + ele_off;
-    dst      += n_off + ele_off;
-    int index = n_off + ele_off;
-
-    #pragma unroll
-    for(int i=0; i<ELE_PER_THREAD; ++i){
-            if(ele_off + i*THREAD_PER_BLOCK < chw){
-                const int c = (index / hw) % channels;
-                float val = src_data[i*THREAD_PER_BLOCK] * k[c] + b[c];
-                if(relu) val = val>=0?val:val*relu_negative_slope;
-                dst[i*THREAD_PER_BLOCK] = val;
-            }
-            index += THREAD_PER_BLOCK;
-    }
-
+Status CudaBatchNormLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
-
-void bn_relu_launcher(int n, int c, int hw, const float *src, 
-                                            const float *k, const float *b, float *dst, bool relu, 
-                                            const int_fastdiv &cdiv, const int_fastdiv &hwdiv,
-                                            const float relu_negative_slope, cudaStream_t *stream){
-    const int THREAD_PER_BLOCK = 128;
-    const int ELE_PER_THREAD = 4; 
-    dim3 griddim;
-    griddim.x = (c*hw + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) /(ELE_PER_THREAD * THREAD_PER_BLOCK);
-    griddim.y = n;
-    bn_relu_unroll_kernel<THREAD_PER_BLOCK,ELE_PER_THREAD><<<griddim, 128,0, *stream>>>
-                    (cdiv, c*hw, hwdiv, src, k, b,dst, relu, relu_negative_slope);
-}
-
-
-Status CudaBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs,
-                                          const std::vector<Blob *> &outputs) {
-
-    const int hw = blob_info_.input_h * blob_info_.input_w;
-    bn_relu_launcher(blob_info_.batch, blob_info_.input_c, hw,
-                     (float*) inputs[0]->GetHandle().base,
-                     k_, b_, 
-                     (float*) outputs[0]->GetHandle().base,
-                     false, 
-                     c_div_, hw_div_, 0.f, &context_->stream_);
+Status CudaBatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
+Status CudaBatchNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
 }
+
+REGISTER_CUDA_ACC(BatchNorm, LAYER_BATCH_NORM);
+REGISTER_CUDA_ACC(BatchNorm, LAYER_SCALE);
+
+}  // namespace TNN_NS

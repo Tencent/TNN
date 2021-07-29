@@ -125,8 +125,8 @@ Status ArmConvLayerCommon::Init(Context *context, LayerParam *param, LayerResour
         if (conv_param->activation_type == ActivationType_ReLU) {
             post_func_ = PostAddBiasRelu<float>;
         } else if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
-            post_func_ = context_->GetPrecision() == PRECISION_HIGH ? PostAddBiasSwish<float, false>
-                                                                    : PostAddBiasSwish<float, true>;
+            post_func_ = context_->GetPrecision() == PRECISION_HIGH ? PostAddBiasSwish<float, float, false>
+                                                                    : PostAddBiasSwish<float, float, true>;
         } else if (conv_param->activation_type == ActivationType_ReLU6) {
             post_func_ = PostAddBiasRelu6<float>;
         } else {
@@ -136,8 +136,8 @@ Status ArmConvLayerCommon::Init(Context *context, LayerParam *param, LayerResour
         if (conv_param->activation_type == ActivationType_ReLU) {
             post_func_ = PostAddBiasRelu<bfp16_t>;
         } else if (conv_param->activation_type == ActivationType_SIGMOID_MUL) {
-            post_func_ = context_->GetPrecision() == PRECISION_HIGH ? PostAddBiasSwish<bfp16_t, false>
-                                                                    : PostAddBiasSwish<bfp16_t, true>;
+            post_func_ = context_->GetPrecision() == PRECISION_HIGH ? PostAddBiasSwish<bfp16_t, float, false>
+                                                                    : PostAddBiasSwish<bfp16_t, float, true>;
         } else if (conv_param->activation_type == ActivationType_ReLU6) {
             post_func_ = PostAddBiasRelu6<bfp16_t>;
         } else {
@@ -318,4 +318,23 @@ Status ArmConvLayerCommon::Exec(const std::vector<Blob *> &inputs, const std::ve
     return TNN_OK;
 }
 
+template <typename T>
+void ArmConvLayerCommon::PostExec(const std::vector<Blob *> &outputs) {
+    const int batch = outputs[0]->GetBlobDesc().dims[0];
+    auto dst_origin = reinterpret_cast<T *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    if (post_func_) {
+        OMP_PARALLEL_FOR_
+        for (int batch_idx = 0; batch_idx < batch; ++batch_idx) {
+            auto output_ptr = dst_origin + batch_idx * k_param_->ow * k_param_->oh * k_param_->oc_r4;
+            for (int dz = 0; dz < k_param_->oc_r4; dz += 4) {
+                auto dst_z    = output_ptr + dz * k_param_->ow * k_param_->oh;
+                float *bias_z = reinterpret_cast<float *>(k_param_->bias) + dz;
+                post_func_(dst_z, bias_z, k_param_->ow * k_param_->oh, 1);
+            }
+        }
+    }
+}
+
+template void ArmConvLayerCommon::PostExec<float>(const std::vector<Blob *> &outputs);
+template void ArmConvLayerCommon::PostExec<bfp16_t>(const std::vector<Blob *> &outputs);
 }  // namespace TNN_NS

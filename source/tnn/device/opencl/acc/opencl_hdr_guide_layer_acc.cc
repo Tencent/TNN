@@ -161,6 +161,8 @@ OpenCLHdrGuideLayerAcc::~OpenCLHdrGuideLayerAcc() {}
 Status OpenCLHdrGuideLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("HDRGuide Layer Reshape\n");
     ASSERT(inputs.size() == 1);
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
 
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
@@ -185,7 +187,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memo
                         buffer_size * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     float *clbuffer_ptr = static_cast<float *>(ocl_context_->CommandQueue()->enqueueMapBuffer(
         clbuffer, true, CL_MAP_WRITE, 0, buffer_size * sizeof(float), nullptr, nullptr, &ret));
@@ -205,7 +207,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memo
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(clbuffer, clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
 
     // create ocl_blob
@@ -220,7 +222,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertWeights(shared_ptr<OpenCLMemory> &ocl_memo
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image)
             delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     ocl_memory.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_memory->SetData(image, true);
@@ -241,7 +243,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
                      nullptr, &ocl_ret);
     if (ocl_ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ocl_ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     float *clbuf_ptr = static_cast<float *>(ocl_context_->CommandQueue()->enqueueMapBuffer(
         clbuf, true, CL_MAP_WRITE, 0, buf_size * sizeof(float), nullptr, nullptr, &ocl_ret));
@@ -261,7 +263,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
     ocl_ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(clbuf, clbuf_ptr);
     if (ocl_ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ocl_ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
 
     // create ocl_blob
@@ -276,7 +278,7 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
         CHECK_CL_SUCCESS(ocl_ret)
         if (nullptr != img)
             delete img;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     ocl_blob.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_blob->SetData(img, true);
@@ -289,5 +291,6 @@ Status OpenCLHdrGuideLayerAcc::ConvertTrans(shared_ptr<OpenCLMemory> &ocl_blob, 
 }
 
 REGISTER_OPENCL_ACC(HdrGuide, LAYER_HDRGUIDE)
+REGISTER_OPENCL_LAYOUT(LAYER_HDRGUIDE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

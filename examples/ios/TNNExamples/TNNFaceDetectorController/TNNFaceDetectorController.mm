@@ -61,7 +61,7 @@ using namespace TNN_NS;
 
 - (IBAction)onBtnTNNExamples:(id)sender {
     // check release mode at Product->Scheme when running
-    //运行时请在Product->Scheme中确认意见调整到release模式
+    //运行时请在Product->Scheme中确认已经调整到release模式
 
     // Get metallib path from app bundle
     // PS：A script(Build Phases -> Run Script) is added to copy the metallib

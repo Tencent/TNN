@@ -15,6 +15,7 @@
 #include "tnn/utils/random_data_utils.h"
 
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -30,6 +31,7 @@ template int InitRandom(float* host_data, size_t n, float range);
 template int InitRandom(int32_t* host_data, size_t n, int32_t range);
 template int InitRandom(int8_t* host_data, size_t n, int8_t range);
 template int InitRandom(bfp16_t* host_data, size_t n, bfp16_t range);
+template int InitRandom(fp16_t * host_data, size_t n, fp16_t range);
 
 template <typename T>
 int InitRandom(T* host_data, size_t n, T range_min, T range_max) {
@@ -46,6 +48,7 @@ template int InitRandom(float* host_data, size_t n, float range_min, float range
 template int InitRandom(int32_t* host_data, size_t n, int32_t range_min, int32_t range_max);
 template int InitRandom(int8_t* host_data, size_t n, int8_t range_min, int8_t range_max);
 template int InitRandom(uint8_t* host_data, size_t n, uint8_t range_min, uint8_t range_max);
+template int InitRandom(fp16_t* host_data, size_t n, fp16_t range_min, fp16_t range_max);
 
 template <>
 int InitRandom(bfp16_t* host_data, size_t n, bfp16_t range_min, bfp16_t range_max) {

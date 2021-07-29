@@ -15,7 +15,7 @@
 #include "tnn/core/mat.h"
 
 #include "tnn/core/abstract_device.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -71,7 +71,10 @@ Mat::Mat(DeviceType device_type, MatType mat_type, DimsVector dims) {
     ASSERT(device != NULL);
 
     int count = DimsVectorUtils::Count(dims);
-    ASSERT(count > 0);
+    if (count < 0) {
+        LOGE("Mat::Mat has invalid dims with count < 0\n");
+    }
+    ASSERT(count >= 0);
 
     device_type_     = device_type;
     mat_type_        = mat_type;
@@ -99,6 +102,13 @@ Mat::Mat(DeviceType device_type, MatType mat_type, DimsVector dims, void* data) 
     device_type_ = device_type;
     mat_type_    = mat_type;
     data_        = data;
+}
+
+Mat::Mat(DeviceType device_type, MatType mat_type) {
+    device_type_ = device_type;
+    mat_type_    = mat_type;
+    data_ = nullptr;
+    data_alloc_ = nullptr;
 }
 
 }  // namespace TNN_NS

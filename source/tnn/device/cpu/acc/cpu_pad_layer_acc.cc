@@ -185,7 +185,9 @@ Status CpuPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
     int data_byte_size          = DataTypeUtils::GetBytesSize(input_blob->GetBlobDesc().data_type);
     const int input_width_bytes = input_width * data_byte_size;
 
-    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+    if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT ||
+        output_blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ||
+        output_blob->GetBlobDesc().data_type == DATA_TYPE_UINT32) {
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
 
@@ -208,15 +210,15 @@ Status CpuPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
                 return status;
             }
         } else {
-            LOGE("Error: layer param is not supported: type:%d\n", layer_param->type);
-            return Status(TNNERR_PARAM_ERR, "Error: layer param is not supported");
+            LOGE("Error: CpuPadLayerAcc layer param is not supported: type:%d\n", layer_param->type);
+            return Status(TNNERR_PARAM_ERR, "Error: CpuPadLayerAcc layer param is not supported");
         }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuPadLayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuPadLayerAcc layer acc dont support datatype");
     } else {
-        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuPadLayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuPadLayerAcc layer acc dont support datatype");
     }
     return TNN_OK;
 }

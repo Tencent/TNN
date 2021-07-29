@@ -15,18 +15,18 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 class HardSwishLayerTest
     : public LayerTest,
-      public ::testing::WithParamInterface<std::tuple<int, int, int, float, float, int, DataType>> {};
+      public ::testing::WithParamInterface<std::tuple<int, int, int, float, float, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, HardSwishLayerTest,
                          ::testing::Combine(
                              // batch
-                             testing::Values(1),
+                             testing::Values(1, 2),
                              // channel Values(1, 6, 8, 13),
                              testing::Values(1, 6, 8, 13),
                              // size Values(1, 6, 8, 13),
@@ -37,6 +37,8 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, HardSwishLayerTest,
                              testing::Values(0, 2, 1.5, 3),
                              // input count
                              testing::Values(1, 2),
+                             // input dim
+                             testing::Values(2, 3, 4),
                              // data_type
                              testing::Values(DATA_TYPE_FLOAT)));
 
@@ -48,8 +50,9 @@ TEST_P(HardSwishLayerTest, HardSwishLayer) {
     float alpha     = std::get<3>(GetParam());
     float beta      = std::get<4>(GetParam());
     int input_count = std::get<5>(GetParam());
+    int dim_count   = std::get<6>(GetParam());
 
-    DataType data_type = std::get<6>(GetParam());
+    DataType data_type = std::get<7>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
     if (DEVICE_HUAWEI_NPU == dev) {
@@ -63,7 +66,9 @@ TEST_P(HardSwishLayerTest, HardSwishLayer) {
     param->beta  = beta;
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
+
     std::vector<std::vector<int>> input_dims_vec;
     for (int i = 0; i < input_count; ++i) {
         input_dims_vec.push_back(input_dims);

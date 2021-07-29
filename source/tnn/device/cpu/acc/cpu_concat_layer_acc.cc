@@ -16,7 +16,7 @@
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/device/cpu/cpu_context.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
@@ -52,8 +52,10 @@ Status CpuConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
             }
         }
     }
-
-    const int axis = param->axis;
+    int axis = param->axis;
+    if (axis < 0) {
+        axis += (int)inputs[0]->GetBlobDesc().dims.size();
+    }
     if (axis > dims.size() || axis < 0) {
         LOGE("Error: Concat layer param invalid\n");
         return Status(TNNERR_PARAM_ERR, "Concat layer param invalid");
@@ -79,10 +81,13 @@ Status CpuConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
             // use int8_t for all types
             int8_t *input_data          = static_cast<int8_t *>(inputs[i]->GetHandle().base);
             const int input_concat_axis = inputs[i]->GetBlobDesc().dims[axis];
-            for (int n = 0; n < num_concats; ++n) {
-                memcpy(output_data + (n * output_concat_axis + output_concat_axis_offset) * concate_size * datasize,
-                       input_data + n * input_concat_axis * concate_size * datasize,
-                       input_concat_axis * concate_size * datasize);
+            //support shape1[i] == 0 for empty blob in yolov5
+            if (input_data) {
+                for (int n = 0; n < num_concats; ++n) {
+                    memcpy(output_data + (n * output_concat_axis + output_concat_axis_offset) * concate_size * datasize,
+                           input_data + n * input_concat_axis * concate_size * datasize,
+                           input_concat_axis * concate_size * datasize);
+                }
             }
             output_concat_axis_offset += input_concat_axis;
         }

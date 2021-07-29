@@ -332,9 +332,6 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                     public void onPreviewFrame(byte[] data, Camera camera) {
                         if (mIsDetectingFace) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
-                            if (mIsCountFps) {
-                                mFpsCounter.begin("BlazeFaceDetect");
-                            }
                             FaceInfo[] faceInfoList;
                             // reinit
                             if (mDeviceSwiched) {
@@ -348,11 +345,15 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                                 int ret = mFaceDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.975f, 0.23f, 1, device);
                                 if (ret == 0) {
                                     mIsDetectingFace = true;
+                                    mFpsCounter.init();
                                 } else {
                                     mIsDetectingFace = false;
                                     Log.e(TAG, "Face detector init failed " + ret);
                                 }
                                 mDeviceSwiched = false;
+                            }
+                            if (mIsCountFps) {
+                                mFpsCounter.begin("BlazeFaceDetect");
                             }
                             faceInfoList = mFaceDetector.detectFromStream(data, mCameraWidth, mCameraHeight, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
                             if (mIsCountFps) {

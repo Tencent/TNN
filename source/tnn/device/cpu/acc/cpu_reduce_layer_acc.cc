@@ -15,7 +15,7 @@
 #include "tnn/device/cpu/acc/cpu_reduce_layer_acc.h"
 
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
@@ -107,11 +107,11 @@ Status CpuReduceLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         }
         delete[] pre_cal_reduce_result;
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuReduceLayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuReduceLayerAcc layer acc dont support datatype");
     } else {
-        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuReduceLayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuReduceLayerAcc layer acc dont support datatype");
     }
 
     return TNN_OK;

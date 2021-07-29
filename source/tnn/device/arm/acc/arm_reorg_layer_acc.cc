@@ -15,7 +15,7 @@
 #include "tnn/device/arm/acc/arm_nchw_layer_acc.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
@@ -35,8 +35,8 @@ Status ArmReorgLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
 
     AllocConvertBuffer(inputs, outputs);
 
-    UnPackInputs(inputs);
     if (data_type == DATA_TYPE_FLOAT) {
+        UnPackInputs<float>(inputs);
         auto *bottom_data = reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_in[0]->GetHandle()));
         auto *top_data = reinterpret_cast<float *>(GetBlobHandlePtr(nchw_blob_out[0]->GetHandle()));
 
@@ -53,14 +53,15 @@ Status ArmReorgLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
             int width              = output_dims[3];
             NaiveReorg(bottom_data, width, height, channel, batch, stride, forward, mode, top_data);
         }
+        PackOutputs<float>(outputs);
     } else {
         return Status(TNNERR_LAYER_ERR, "NO IMPLEMENT FOR int8/bfp16 shuffle, in todo list");
     }
-    PackOutputs(outputs);
 
     return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Reorg, LAYER_REORG)
+REGISTER_ARM_LAYOUT(LAYER_REORG, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

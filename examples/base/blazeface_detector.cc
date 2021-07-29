@@ -13,10 +13,15 @@
 // specific language governing permissions and limitations under the License.
 
 #include "blazeface_detector.h"
-#include <sys/time.h>
 #include <cmath>
 #include <fstream>
 #include <cstring>
+#include <time.h>
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <sys/time.h>
+#endif
 
 namespace TNN_NS {
 

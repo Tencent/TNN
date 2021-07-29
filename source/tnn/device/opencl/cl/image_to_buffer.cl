@@ -166,7 +166,13 @@ __kernel void ImageToNCHWBuffer(GLOBAL_SIZE_2_DIMS __global float *output, /* nc
     const int width_idx  = image_width_idx % width;
     int channel_4_idx    = (image_width_idx / width) * 4;
     int buffer_offset    = ((batch_idx * channels + channel_4_idx) * height + height_idx) * width + width_idx;
+    #ifdef ENABLE_BUFFER_PRECISION_ADJUST
+    __global FLOAT *output_ptr = (__global FLOAT *)output;
+    FLOAT4 values    = RI_F(input_ptr, SAMPLER, (int2)(image_width_idx, image_height_idx));
+    #else
+    __global float *output_ptr = output;
     float4 values    = read_imagef(input_ptr, SAMPLER, (int2)(image_width_idx, image_height_idx));
+    #endif
 
     const int height_width_size = height * width;
 
@@ -174,28 +180,28 @@ __kernel void ImageToNCHWBuffer(GLOBAL_SIZE_2_DIMS __global float *output, /* nc
 
     if (remain_channel >= 4) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
         offset += height_width_size;
-        output[offset] = values.y;
+        output_ptr[offset] = values.y;
         offset += height_width_size;
-        output[offset] = values.z;
+        output_ptr[offset] = values.z;
         offset += height_width_size;
-        output[offset] = values.w;
+        output_ptr[offset] = values.w;
     } else if (remain_channel == 3) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
         offset += height_width_size;
-        output[offset] = values.y;
+        output_ptr[offset] = values.y;
         offset += height_width_size;
-        output[offset] = values.z;
+        output_ptr[offset] = values.z;
     } else if (remain_channel == 2) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
         offset += height_width_size;
-        output[offset] = values.y;
+        output_ptr[offset] = values.y;
     } else if (remain_channel == 1) {
         int offset     = buffer_offset;
-        output[offset] = values.x;
+        output_ptr[offset] = values.x;
     }
 }
 

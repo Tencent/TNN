@@ -33,7 +33,12 @@ public:
     virtual ~AbstractModelInterpreter(){};
 
     // @brief different interpreter has different order param
-    virtual Status Interpret(std::vector<std::string> &params) = 0;
+    virtual Status Interpret(std::vector<std::string>& params) = 0;
+
+    // @brief copy interpreter
+    virtual std::shared_ptr<AbstractModelInterpreter> Copy() {
+        return nullptr;
+    };
 };
 
 // @brief ModelInterpreterCreator define model interpreter creator interface

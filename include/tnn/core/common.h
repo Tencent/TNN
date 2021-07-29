@@ -29,23 +29,39 @@ namespace TNN_NS {
 typedef std::function<void(void)> Callback;
 
 typedef enum {
+    //auto
+    //针对算子输入类型多变的情况，如二元算子中某个输入是权值，其可以为浮点也可以为整数
+    DATA_TYPE_AUTO = -1,
+    // float
     DATA_TYPE_FLOAT = 0,
-    DATA_TYPE_HALF  = 1,
-    DATA_TYPE_INT8  = 2,
+    // half float
+    DATA_TYPE_HALF = 1,
+    // int8
+    DATA_TYPE_INT8 = 2,
+    // int32
     DATA_TYPE_INT32 = 3,
+    // brain float 16
     DATA_TYPE_BFP16 = 4,
-    DATA_TYPE_INT64 = 5
+    // int64
+    DATA_TYPE_INT64 = 5,
+    // uint32
+    DATA_TYPE_UINT32 = 6
 } DataType;
 
 typedef enum {
     // decided by device
-    DATA_FORMAT_AUTO   = -1,
-    DATA_FORMAT_NCHW   = 0,
-    DATA_FORMAT_NHWC   = 1,
-    DATA_FORMAT_NHWC4  = 2,
-    DATA_FORMAT_NC4HW4 = 3,
-    DATA_FORMAT_NCDHW  = 4,
-    DATA_FORMAT_NHC4W4 = 5,
+    DATA_FORMAT_AUTO     = -1,
+    DATA_FORMAT_NCHW     = 0,
+    DATA_FORMAT_NHWC     = 1,
+    DATA_FORMAT_NHWC4    = 2,
+    DATA_FORMAT_NC2HW2   = 3,
+    DATA_FORMAT_NC4HW4   = 4,
+    DATA_FORMAT_NC8HW8   = 5,
+    DATA_FORMAT_NC16HW16 = 6,
+    DATA_FORMAT_NCDHW    = 7,
+    DATA_FORMAT_NHC4W4   = 8,
+    // special for LSTM ONNX
+    DATA_FORMAT_CNH4     = 1000,
 } DataFormat;
 
 typedef enum {
@@ -72,6 +88,7 @@ typedef enum {
 } Precision;
 
 typedef enum {
+    NETWORK_TYPE_AUTO       = -1,
     NETWORK_TYPE_DEFAULT    = 0,
     NETWORK_TYPE_OPENVINO   = 0x1000,
     NETWORK_TYPE_COREML     = 0x2000,
@@ -79,7 +96,8 @@ typedef enum {
     NETWORK_TYPE_HIAI       = 0x4000,
     NETWORK_TYPE_ATLAS      = 0x5000,
     NETWORK_TYPE_HUAWEI_NPU = 0x6000,
-    NETWORK_TYPE_RK_NPU     = 0x7000
+    NETWORK_TYPE_RK_NPU     = 0x7000,
+    NETWORK_TYPE_TENSORRT   = 0x8000,
 } NetworkType;
 
 typedef enum {
@@ -113,7 +131,8 @@ typedef enum {
     MODEL_TYPE_COREML   = 0x2000,
     MODEL_TYPE_SNPE     = 0x3000,
     MODEL_TYPE_HIAI     = 0x4000,
-    MODEL_TYPE_ATLAS    = 0x5000
+    MODEL_TYPE_ATLAS    = 0x5000,
+    MODEL_TYPE_RKCACHE  = 0x6000
 } ModelType;
 
 using DimsVector = std::vector<int>;
@@ -127,11 +146,11 @@ struct PUBLIC NetworkConfig {
     // device id default 0
     int device_id = 0;
 
-    // blob data format decided by device
+    // blob data format, auto decided by device
     DataFormat data_format = DATA_FORMAT_AUTO;
 
-    // network type default internal
-    NetworkType network_type = NETWORK_TYPE_DEFAULT;
+    // network type, auto decided by device
+    NetworkType network_type = NETWORK_TYPE_AUTO;
 
     // raidnet instances not share memory with others
     ShareMemoryMode share_memory_mode = SHARE_MEMORY_MODE_DEFAULT;
@@ -142,8 +161,12 @@ struct PUBLIC NetworkConfig {
     // compute precision
     Precision precision = PRECISION_AUTO;
 
-    // cache path to store possible cache models
+    // cache path to store possible cache models or opt kernel
     std::string cache_path = "";
+
+    // network init or reshape may cost more time to select opt kernel implement if enable tune kernel
+    // cache_path can set to store tune kernel info.
+    bool enable_tune_kernel = false;
 };
 
 struct PUBLIC ModelConfig {
@@ -158,6 +181,30 @@ struct PUBLIC ModelConfig {
     // atlas model need one param: om file path.
     std::vector<std::string> params = {};
 };
+
+typedef enum {
+    //normal runtime forward, only layers with varing output in tnn proto will be executed
+    RUNTIME_MODE_NORMAL = 0,
+    //normal runtime forward, only layers with constant output (eg. ShapeLayer) will be executed to do constant folding
+    RUNTIME_MODE_CONST_FOLD = 1,
+} RuntimeMode;
+
+typedef enum {
+    //data always change
+    DATA_FLAG_CHANGE_ALWAYS   = 0, //0x00000000
+    //data change if shape differ
+    DATA_FLAG_CHANGE_IF_SHAPE_DIFFER  = 1, //0x00000001
+    //data never change
+    DATA_FLAG_CHANGE_NEVER   = 2, //0x00000002
+
+    //data allocate in forward
+    DATA_FLAG_ALLOCATE_IN_FORWARD   = 65536, //0x00010000
+} DataFlag;
+
+typedef union {
+    int i;
+    float f;
+} RangeData;
 
 }  // namespace TNN_NS
 

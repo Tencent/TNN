@@ -21,8 +21,7 @@
 #include <string>
 #include <typeinfo>
 #include "tnn/core/common.h"
-#include "tnn/interpreter/raw_buffer.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -32,18 +31,24 @@ class RawBuffer {
 public:
     RawBuffer();
     explicit RawBuffer(int bytes_size);
+    RawBuffer(int bytes_size, DimsVector dims);
     RawBuffer(int bytes_size, char *buffer);
+    RawBuffer(int bytes_size, char* buffer, DimsVector dims);
     RawBuffer(const RawBuffer &buf);
+    RawBuffer(int bytes_size, int alignment);
     RawBuffer &operator=(RawBuffer buf);
     ~RawBuffer();
 
     void buffer(char *buf, int bytes_size);
     void SetDataType(DataType data_type);
+    void SetBufferDims(DimsVector shape);
+
 
 
     DataType GetDataType();
     int GetBytesSize();
     int GetDataCount();
+    DimsVector GetBufferDims();
 
     void Permute(size_t outter, size_t inner);
 
@@ -56,6 +61,7 @@ private:
     shared_ptr<char> buff_ = nullptr;
     int bytes_size_        = 0;
     DataType data_type_    = DATA_TYPE_FLOAT;
+    DimsVector dims_ = {};
 };
 
 RawBuffer ConvertHalfHandle(RawBuffer &buf);

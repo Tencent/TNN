@@ -20,35 +20,35 @@
 .align 5
 asm_function GemmInt8Unit4x4 
 //void GemmInt8Unit4x4(int8_t* src, const int8_t* weight, int8_t* dst, int src_w_step, int dst_depth, 
-//                            int cdiv8, float *scale, int32_t*bias, long relu, const int8_t* add_input, const float* add_scale)
+//                     int cdiv8, float *scale, int32_t*bias, long relu, const int8_t* add_input, const float* add_scale, const int8_t* relu6_max)
 src          .req r0
 weight       .req r1
 dst          .req r2
 src_w_step   .req r3
-dst_depth    .req r4
-cdiv8        .req r5
-scale        .req r6
-bias         .req r7
-relu         .req r8
-add_input    .req r9
-add_scale    .req r10
+dst_depth    .req r4  // (sp, #36)
+cdiv8        .req r5  // (sp, #40)
+scale        .req r6  // (sp, #44)
+bias         .req r7  // (sp, #48)
+relu         .req r8  // (sp, #52)
+add_input    .req r9  // (sp, #56)
+add_scale    .req r10 // (sp, #60)
+relu6_max    .req r11 // (sp, #64)
 
-
-push {r4, r5, r6, r7, r8, r9, r10, lr}
-
+push {r4, r5, r6, r7, r8, r9, r10, r11, lr}
 
 //prefetch data
 //assume buffer c>=16, even c==8
 vld1.8 {q12, q13}, [weight]!
 vld1.8 {q14, q15}, [src]!
 
-ldr r4, [sp, #32]
-ldr r5, [sp, #36]
-ldr r6, [sp, #40]
-ldr r7, [sp, #44]
-ldr r8, [sp, #48]
-ldr r9, [sp, #52]
-ldr r10, [sp, #56]
+ldr r4, [sp, #36]
+ldr r5, [sp, #40]
+ldr r6, [sp, #44]
+ldr r7, [sp, #48]
+ldr r8, [sp, #52]
+ldr r9, [sp, #56]
+ldr r10, [sp, #60]
+ldr r11, [sp, #64]
 vpush {q4-q7}
 
 C8Start:
@@ -158,13 +158,13 @@ LoopEnd:
     vcvt.f32.s32 q2, q2 
     vcvt.f32.s32 q3, q3 
 
-    vmul.f32 q12, q0, q15
+    vmul.f32 q12, q0, q15   // result = result * scale
     vmul.f32 q13, q1, q15
     vmul.f32 q4,  q2, q15
     vmul.f32 q5,  q3, q15
 
-    cmp relu, #0
-    bge Add
+    cmp relu, #-1           // relu (conv - relu - add, relu == -1)
+    bne Add
     vmov.i32 q6,  #0
     vmax.f32 q12, q6
     vmax.f32 q13, q6
@@ -172,7 +172,7 @@ LoopEnd:
     vmax.f32 q5,  q6
 
 Add:
-    cmp add_input, #0
+    cmp add_input, #0       // if add_input_ptr == 0, skip
     beq Relu
 
     vld1.s32 d4[0], [add_input], dst_depth
@@ -193,25 +193,34 @@ Add:
     vcvt.f32.s32 q10, q10
     vcvt.f32.s32 q11, q11
 
-    vmla.f32 q12, q8,  q14
+    vmla.f32 q12, q8,  q14   // result += add_input * add_scale
     vmla.f32 q13, q9,  q14
     vmla.f32 q4,  q10, q14
     vmla.f32 q5,  q11, q14
 
 Relu:
-    //f32 --> s8
-    // trick: magic num 12582912.0f
-    ldr r0, .L4
-    vdup.32 q7, r0
-    vadd.f32 q12, q12, q7
-    vadd.f32 q13, q13, q7
-    vadd.f32 q4,  q4,  q7
-    vadd.f32 q5,  q5,  q7
+    // f32 --> s32 --> s8
+    // val + (val >= 0.f ? 0.5f : -0.5f)
+    vmov.f32 q6, #0.5
+    vmov.f32 q7, #-0.5
 
-    vsub.s32 q12, q12, q7
-    vsub.s32 q13, q13, q7
-    vsub.s32 q4,  q4,  q7
-    vsub.s32 q5,  q5,  q7
+    vcge.f32 q0, q12, #0
+    vcge.f32 q1, q13, #0
+    vcge.f32 q2, q4,  #0
+    vcge.f32 q3, q5,  #0
+    vbsl.f32 q0, q6, q7
+    vbsl.f32 q1, q6, q7
+    vbsl.f32 q2, q6, q7
+    vbsl.f32 q3, q6, q7
+
+    vadd.f32 q12, q12, q0
+    vadd.f32 q13, q13, q1
+    vadd.f32 q4,  q4,  q2
+    vadd.f32 q5,  q5,  q3
+    vcvt.s32.f32 q12, q12
+    vcvt.s32.f32 q13, q13
+    vcvt.s32.f32 q4, q4
+    vcvt.s32.f32 q5, q5
 
     vqmovn.s32 d0,q12
     vqmovn.s32 d1,q13
@@ -220,11 +229,17 @@ Relu:
     vqmovn.s16 d4,q0
     vqmovn.s16 d6,q1
 
-    cmp relu, #0
-    ble Store
+    cmp relu, #1            // relu (conv add relu, relu == 1 or relu6 == 2)
+    blt Store
     vmov.i32 q6,  #0
     vmax.s8 d4, d12
     vmax.s8 d6, d12
+
+    cmp relu, #2            // relu6
+    bne Store
+    vld1.32 {d12[]}, [r11]  // relu6_max
+    vmin.s8 d4, d12
+    vmin.s8 d6, d12
 
 Store:
     vst1.s32 d4[0], [dst], dst_depth
@@ -233,10 +248,7 @@ Store:
     vst1.s32 d6[1], [dst]
     
 vpop {q4-q7}
-pop {r4, r5, r6, r7, r8, r9, r10, pc}
-
-.L4:
-    .word 0x4B400000
+pop {r4, r5, r6, r7, r8, r9, r10, r11, pc}
 
 #endif
 #endif

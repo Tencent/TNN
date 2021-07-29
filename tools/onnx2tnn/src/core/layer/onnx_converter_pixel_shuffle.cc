@@ -28,7 +28,11 @@ string OnnxOpConverterPixelShuffle::TNNLayerParam(NodeProto &node, OnnxNetInfo &
     return layer_param.str();
 }
 
-int OnnxOpConverterPixelShuffle::WriteTNNModel(serializer *, NodeProto &, OnnxNetInfo &) {
+bool OnnxOpConverterPixelShuffle::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return false;
+}
+
+int OnnxOpConverterPixelShuffle::WriteTNNModel(Serializer *, NodeProto &, OnnxNetInfo &) {
     return 0;
 }
 

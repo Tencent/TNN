@@ -1,40 +1,37 @@
-// Copyright 2019 Tencent. All Rights Reserved
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
 
-#include "device/cuda/acc/cuda_permute_layer_acc.h"
-#include <iostream>
-#include "device/cuda/cuda_utils.h"
-#include "utils/dims_vector_utils.h"
+#include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
-        
-__global__ void permute_kernel(int n, const float * srcData,
-                               int num_axes, int * permute_order,
-                               int * old_steps, int * new_steps,
-                               float * dstData) {
-    CUDA_KERNEL_LOOP(index, n) {
-        int old_idx = 0;
-        int idx = index;
-        for (int j = 0; j < num_axes; ++j) {
-            int order = permute_order[j];
-            old_idx += (idx / new_steps[j]) * old_steps[order];
-            idx %= new_steps[j];
-        }
-        dstData[index] = srcData[old_idx];
-    }
+
+DECLARE_CUDA_ACC(Permute, LAYER_PERMUTE);
+
+Status CudaPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
-Status CudaPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs,
-                                                                 const std::vector<Blob *> &outputs) {
-
-    float* bottom_data  = (float*) inputs[0]->GetHandle().base;
-    float* top_data     = (float*) outputs[0]->GetHandle().base;
-    size_t count = DimsVectorUtils::Count(inputs[ 0 ]->GetBlobDesc().dims); 
-
-    permute_kernel<<<RPD_GET_BLOCKS(count), RPD_CUDA_NUM_THREADS, 0, context_->stream_>>>
-          (count, bottom_data, n_dims_, 
-          permute_order_d_, old_steps_d_, new_steps_d_, top_data);
-
+Status CudaPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
+
+Status CudaPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+REGISTER_CUDA_ACC(Permute, LAYER_PERMUTE);
 
 }  // namespace TNN_NS

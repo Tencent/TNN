@@ -31,6 +31,9 @@ public:
     // @brief get string for DataType
     // @param data_tyep data type info
     static std::string GetDataTypeString(DataType data_type);
+    
+    // @brief safely cast int64 to int, int64_min to int_min and int64_max to int_max. avoid to cast int64_max to -1
+    static int SaturateCast(long long int data);
 };
 
 }  // namespace TNN_NS

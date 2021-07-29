@@ -15,21 +15,23 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 class PowLayerTest : public LayerTest,
-                     public ::testing::WithParamInterface<std::tuple<int, int, int, float, float, float, DataType>> {};
+                     public ::testing::WithParamInterface<std::tuple<int, int, int, int, float, float, float, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, PowLayerTest,
                          ::testing::Combine(
                              // batch
-                             testing::Values(1),
+                             testing::Values(1, 2),
                              // channel Values(1, 8),
                              testing::Values(1, 4, 15),
                              // size Values(16, 19),
                              testing::Values(1, 6, 8, 13),
+                             // dim count
+                             testing::Values(2, 3, 4, 5),
                              // scale
                              testing::Values(1.234, 2.30, 0),
                              // shift
@@ -46,18 +48,23 @@ TEST_P(PowLayerTest, PowLayer) {
     int batch      = std::get<0>(GetParam());
     int channel    = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam());
-    float scale    = std::get<3>(GetParam());
-    float shift    = std::get<4>(GetParam());
-    float exponent = std::get<5>(GetParam());
+    int dim_count  = std::get<3>(GetParam());
+    float scale    = std::get<4>(GetParam());
+    float shift    = std::get<5>(GetParam());
+    float exponent = std::get<6>(GetParam());
 
-    DataType data_type = std::get<6>(GetParam());
+    DataType data_type = std::get<7>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (DEVICE_HUAWEI_NPU == dev) {
+    if (dim_count > 4 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if (DEVICE_CUDA == dev) {
+        exponent = (int)exponent;
+    }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
         GTEST_SKIP();
     }
 
@@ -69,7 +76,8 @@ TEST_P(PowLayerTest, PowLayer) {
     param->exponent = exponent;
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
     auto interpreter            = GenerateInterpreter("Power", {input_dims}, param);
     Run(interpreter);
 }

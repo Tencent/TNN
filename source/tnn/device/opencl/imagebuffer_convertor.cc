@@ -54,25 +54,25 @@ Status ImageBufferConvertor::ConvertImageToBuffer(const OpenCLMemory *image, con
 
     if (type == CONV2D_FILTER) {
         //channel * height * width
-        const int ic_w_h_size = dims[1] * dims[2] * dims[3];
+        const int ic_w_h_size = DimsFunctionUtils::GetDim(dims, 1) * DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
         //height * width
-        const int w_h_size    = dims[2] * dims[3];
-        int kernel_shape[2]   = {dims[2], dims[3]};
+        const int w_h_size    = DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
+        int kernel_shape[2]   = {DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3)};
         //batch
-        image_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[0]));
+        image_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 0)));
         image_to_buffer_unit_.ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
         image_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(ic_w_h_size));
         image_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(w_h_size));
     } else if (type == ARGUMENT) {
         //batch
-        image_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[0]));
+        image_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 0)));
     } else {
         //height
-        image_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[2]));
+        image_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 2)));
         //width
-        image_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[3]));
+        image_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 3)));
         //channel
-        image_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[1]));
+        image_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 1)));
     }
 
     image_to_buffer_unit_.ocl_kernel.setArg(idx++, GetOpenCLImage(image));
@@ -107,6 +107,10 @@ Status ImageBufferConvertor::ConvertBufferToImage(const OpenCLMemory *buffer, co
         kernel_name = "NCHWBufferToImage";
     } else if (type == ARGUMENT) {
         kernel_name = "ArgBufferToImage";
+    } else if (type == LSTM_FILTER) {
+        kernel_name = "LstmFilterBufferToImage";
+    } else if (type == LSTM_BIAS) {
+        kernel_name = "LstmBiasBufferToImage";
     } else {
         LOGE("not support such type !!! \n");
         return Status(TNNERR_OPENCL_API_ERROR, "type not support");
@@ -122,7 +126,7 @@ Status ImageBufferConvertor::ConvertBufferToImage(const OpenCLMemory *buffer, co
     }
 
     buffer_to_image_unit_.global_work_size = {static_cast<uint32_t>(image_shape[0]),
-                                            static_cast<uint32_t>(image_shape[1])};
+                                              static_cast<uint32_t>(image_shape[1])};
 
     uint32_t idx = 0;
     buffer_to_image_unit_.ocl_kernel.setArg(idx++, buffer_to_image_unit_.global_work_size[0]);
@@ -131,30 +135,52 @@ Status ImageBufferConvertor::ConvertBufferToImage(const OpenCLMemory *buffer, co
 
     if (type == CONV2D_FILTER) {
         //channel * height * width
-        const int ic_w_h_size = dims[1] * dims[2] * dims[3];
+        const int ic_w_h_size = DimsFunctionUtils::GetDim(dims, 1) * DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
         //height * width
-        const int w_h_size    = dims[2] * dims[3];
-        int kernel_shape[2]   = {dims[2], dims[3]};
-        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[0]));
+        const int w_h_size    = DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
+        int kernel_shape[2]   = {DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3)};
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 0)));
         buffer_to_image_unit_.ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
         buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(ic_w_h_size));
         buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(w_h_size));
     } else if (type == DW_CONV2D_FILTER) {
         //height * width
-        const int w_h_size  = dims[2] * dims[3];
-        int kernel_shape[4] = {dims[0], dims[1], dims[2], dims[3]};
+        const int w_h_size  = DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
+        int kernel_shape[4] = {DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1), DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3)};
         buffer_to_image_unit_.ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
         buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(w_h_size));
     } else if (type == ARGUMENT) {
         //batch
-        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[0]));
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 0)));
+    } else if (type == LSTM_FILTER) {
+        // num_directions
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 0)));
+        // hidden_size
+        int hidden_size = DimsFunctionUtils::GetDim(dims, 1) / 4;
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(hidden_size));
+        // weights_width
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 2)));
+        // hidden_updiv_4_size
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(UP_DIV(hidden_size, 4)));
+        // hidden_mul_4_size
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 1)));
+    } else if (type == LSTM_BIAS) {
+        // num_directions
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 0)));
+        // hidden_size
+        int hidden_size = DimsFunctionUtils::GetDim(dims, 1) / 8;
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(hidden_size));
+        // hidden_updiv_4_size
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(UP_DIV(hidden_size, 4)));
+        // hidden_mul_8_size
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 1)));
     } else {
         //height
-        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[2]));
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 2)));
         //width
-        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[3]));
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 3)));
         //channel
-        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[1]));
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 1)));
     }
 
     buffer_to_image_unit_.ocl_kernel.setArg(idx++, GetOpenCLImage(image));
@@ -179,6 +205,8 @@ Status ImageBufferConvertor::ConvertBufferToBuffer(const OpenCLMemory *input, co
     std::string kernel_name;
     if (type == CONV2D_FILTER) {
         kernel_name = "Conv2DFilterBufferToBuffer";
+    } else if (type == DW_CONV2D_FILTER) {
+        kernel_name = "DWFilterBufferToBuffer";
     } else if (type == ARGUMENT && dims.size() == 1) {
         kernel_name = "ArgBufferToBuffer";
     } else {
@@ -196,10 +224,13 @@ Status ImageBufferConvertor::ConvertBufferToBuffer(const OpenCLMemory *input, co
     }
 
     if (type == CONV2D_FILTER) {
-        buffer_to_buffer_unit_.global_work_size.push_back(ROUND_UP(dims[0], 4));
-        buffer_to_buffer_unit_.global_work_size.push_back(dims[2] * dims[3] * ROUND_UP(dims[1], 4));
+        buffer_to_buffer_unit_.global_work_size.push_back(ROUND_UP(DimsFunctionUtils::GetDim(dims, 0), 4));
+        buffer_to_buffer_unit_.global_work_size.push_back(DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3) * ROUND_UP(DimsFunctionUtils::GetDim(dims, 1), 4));
+    } else if (type == DW_CONV2D_FILTER) {
+        buffer_to_buffer_unit_.global_work_size.push_back(DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3));
+        buffer_to_buffer_unit_.global_work_size.push_back(UP_DIV(DimsFunctionUtils::GetDim(dims, 1), 4));
     } else if (type == ARGUMENT && dims.size() == 1) {
-        buffer_to_buffer_unit_.global_work_size.push_back(UP_DIV(dims[0], 4));
+        buffer_to_buffer_unit_.global_work_size.push_back(UP_DIV(DimsFunctionUtils::GetDim(dims, 0), 4));
         buffer_to_buffer_unit_.global_work_size.push_back(1);
     } else {
         LOGE("not support such type !!! \n");
@@ -213,17 +244,23 @@ Status ImageBufferConvertor::ConvertBufferToBuffer(const OpenCLMemory *input, co
 
     if (type == CONV2D_FILTER) {
         //height * width
-        const int w_h_size  = dims[2] * dims[3];
-        int kernel_shape[2] = {dims[2], dims[3]};
+        const int w_h_size  = DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
+        int kernel_shape[2] = {DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3)};
         //batch
-        buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[0]));
+        buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 0)));
         //channel
-        buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[1]));
+        buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 1)));
+        buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
+        buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(w_h_size));
+    } else if (type == DW_CONV2D_FILTER) {
+        //height * width
+        const int w_h_size  = DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
+        int kernel_shape[4] = {DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1), DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3)};
         buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
         buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(w_h_size));
     } else if (type == ARGUMENT) {
         //batch
-        buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(dims[0]));
+        buffer_to_buffer_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 0)));
     } else {
         LOGE("not support such type !!! \n");
         return Status(TNNERR_OPENCL_API_ERROR, "type not support");

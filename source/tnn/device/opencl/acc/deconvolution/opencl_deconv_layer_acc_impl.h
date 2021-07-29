@@ -39,6 +39,8 @@ private:
                                           const std::vector<Blob *> &outputs);
     Status ConvertWeights(float *weights_data_ptr);
 
+    std::string GenerateTuneKernelKey(OpenCLExecuteUnit &unit);
+
 protected:
     OpenCLConvParam deconv_params_;
     shared_ptr<OpenCLMemory> ocl_weights_;

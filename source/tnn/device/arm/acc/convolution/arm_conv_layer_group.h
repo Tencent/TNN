@@ -38,16 +38,15 @@ private:
     Status SplitResource(std::vector<std::shared_ptr<LayerResource>> &resources);
 
     Status SetSplitBlobDesc(Blob *blob, std::vector<std::shared_ptr<Blob>> &blobs);
-    Status SetSplitBlobHandle(std::vector<std::shared_ptr<Blob>> &blobs, RawBuffer &buf);
     Status SetSplitBlobScale(Blob *blob, std::vector<std::shared_ptr<Blob>> &blobs);
 
-    Status CopyInputSplitBlob(Blob *input);
-    Status CopyOutputSplitBlob(Blob *output);
-
-    template <typename T>
-    void TransformInput(Blob *input);
-    template <typename T>
-    void TransformOutput(Blob *input);
+    void TransformInput(char *packed_data, char *unpacked_data, char *src, 
+                        size_t ic_per_group, size_t group_step, size_t group_step_align,
+                        DimsVector dims, DataType data_type);
+                        
+    void TransformOutput(char *packed_data, char *unpacked_data, char *src, 
+                        size_t ic_per_group, size_t group_step, size_t group_step_align,
+                        DimsVector dims, DataType data_type);
 
 private:
     std::vector<std::shared_ptr<ArmLayerAcc>> conv_acc_impls_;

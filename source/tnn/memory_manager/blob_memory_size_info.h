@@ -24,10 +24,10 @@ namespace TNN_NS {
 // @brief blob memory info data type and data memory dims
 struct BlobMemorySizeInfo {
     DataType data_type = DATA_TYPE_FLOAT;
-    std::vector<int> dims;
+    std::vector<int> dims = {};
 };
 
-int GetBlobMemoryBytesSize(BlobMemorySizeInfo& size_info);
+int64_t GetBlobMemoryBytesSize(BlobMemorySizeInfo& size_info);
 
 }  // namespace TNN_NS
 

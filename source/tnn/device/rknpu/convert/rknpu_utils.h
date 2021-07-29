@@ -37,7 +37,7 @@ public:
 
     static Status GetPadType(rk::nn::PadType &rk_pad_type, int pad_type);
 
-    static uint32_t CalcSize(rk::nn::PrecisionType type, std::vector<uint32_t> dims);
+    static uint32_t CalcSize(rk::nn::PrecisionType type, std::vector<int32_t> dims);
 };
 
 }  // namespace TNN_NS

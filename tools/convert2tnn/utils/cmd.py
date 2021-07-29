@@ -21,7 +21,7 @@ import time
 from converter import logging
 
 
-def run(cmd_string, work_dir=None, timeout=None, is_shell=True):
+def run(cmd_string, work_dir=None, timeout=None, is_shell=True, log_level="debug"):
     """
          执行一个SHELL命令 封装了subprocess的Popen方法, 支持超时判断，支持读取stdout和stderr
         :parameter:
@@ -42,14 +42,18 @@ def run(cmd_string, work_dir=None, timeout=None, is_shell=True):
 
     sub = subprocess.Popen(cmd_string_list,
                            stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE,
+                           stderr=subprocess.STDOUT,
                            shell=True,
-                           bufsize=4096,
+                           bufsize=0,
                            cwd=work_dir,
                            close_fds=True)
-    (stdout, stderr) = sub.communicate()
-    logging.debug(str(stdout.decode('utf-8')))
+    while True:
+        line = sub.stdout.readline().decode('utf-8')
+        if log_level == "error":
+            logging.error(str(line))
+        elif log_level == "debug":
+            logging.debug(str(line))
+        if line == '' and sub.poll() is not None:
+            break
     rc = sub.poll()
-    if rc != 0:
-        logging.error(str(stderr.decode('utf-8')))
     return rc

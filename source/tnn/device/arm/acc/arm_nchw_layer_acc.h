@@ -29,9 +29,11 @@ public:
 protected:
     virtual Status AllocConvertBuffer(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
-    virtual Status UnPackInputs(const std::vector<Blob *> &inputs);
+    template <typename T>
+    Status UnPackInputs(const std::vector<Blob *> &inputs);
 
-    virtual Status PackOutputs(const std::vector<Blob *> &outputs);
+    template <typename T>
+    Status PackOutputs(const std::vector<Blob *> &outputs);
 
     std::vector<Blob *> GetNchwBlobVector(const std::vector<std::shared_ptr<Blob>> &blobs);
 

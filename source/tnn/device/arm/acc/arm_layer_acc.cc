@@ -18,9 +18,13 @@
 // specific language governing permissions and limitations under the License.
 //
 
-#include "tnn/core/profile.h"
 #include "tnn/device/arm/acc/arm_layer_acc.h"
+
+#include "tnn/core/profile.h"
 #include "tnn/device/arm/arm_context.h"
+#include "tnn/utils/blob_transfer_utils.h"
+#include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -36,25 +40,35 @@ Status ArmLayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
     // init base k_param_
     auto input_dim  = inputs[0]->GetBlobDesc().dims;
     auto output_dim = outputs[0]->GetBlobDesc().dims;
-    k_param_->ic_r4 = ROUND_UP(input_dim[1], 4);
-    k_param_->ih    = input_dim[2];
-    k_param_->iw    = input_dim[3];
-    k_param_->oc_r4 = ROUND_UP(output_dim[1], 4);
-    k_param_->oh    = output_dim[2];
-    k_param_->ow    = output_dim[3];
+    int ic          = input_dim[1];
+    int ih          = input_dim.size() > 2 ? input_dim[2] : 1;
+    int iw          = input_dim.size() > 3 ? input_dim[3] : 1;
+    int oc          = output_dim[1];
+    int oh          = output_dim.size() > 2 ? output_dim[2] : 1;
+    int ow          = output_dim.size() > 3 ? output_dim[3] : 1;
+    k_param_->set_dims(ROUND_UP(ic, 4), ROUND_UP(ic, 8), ih, iw, ROUND_UP(oc, 4), ROUND_UP(oc, 8), oh, ow);
+
+    RETURN_ON_NEQ(ReloadConstantBlobs(inputs, false), TNN_OK);
 
     return TNN_OK;
 }
 
-std::vector<DataFormat> ArmLayerAcc::SupportDataFormat(DataType data_type, int dims_size) {
+std::vector<DataFormat> ArmLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
-        if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_HALF)
+        if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16)
             support_list.push_back(DATA_FORMAT_NC4HW4);
         else if (data_type == DATA_TYPE_INT8)
             support_list.push_back(DATA_FORMAT_NHWC4);
+        else if (data_type == DATA_TYPE_HALF) {
+            support_list.push_back(DATA_FORMAT_NC8HW8);
+        }
     }
     return support_list;
+}
+
+bool ArmLayerAcc::UseNaiveConstantBlobs() {
+    return false;
 }
 
 ArmLayerAcc::~ArmLayerAcc() {}
@@ -63,19 +77,155 @@ Status ArmLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector
     // reinit k_param_ h,w
     auto input_dim  = inputs[0]->GetBlobDesc().dims;
     auto output_dim = outputs[0]->GetBlobDesc().dims;
-    k_param_->ic_r4 = ROUND_UP(input_dim[1], 4);
-    k_param_->ih    = input_dim[2];
-    k_param_->iw    = input_dim[3];
-    k_param_->oc_r4 = ROUND_UP(output_dim[1], 4);
-    k_param_->oh    = output_dim[2];
-    k_param_->ow    = output_dim[3];
+    int ic          = input_dim[1];
+    int ih          = input_dim.size() > 2 ? input_dim[2] : 1;
+    int iw          = input_dim.size() > 3 ? input_dim[3] : 1;
+    int oc          = output_dim[1];
+    int oh          = output_dim.size() > 2 ? output_dim[2] : 1;
+    int ow          = output_dim.size() > 3 ? output_dim[3] : 1;
+    k_param_->set_dims(ROUND_UP(ic, 4), ROUND_UP(ic, 8), ih, iw, ROUND_UP(oc, 4), ROUND_UP(oc, 8), oh, ow);
+    return TNN_OK;
+}
+
+Status ArmLayerAcc::ConfigBuffer2ArmBlobDesc(BlobDesc &desc) {
+    return TNN_OK;
+}
+
+Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDesc &desc) {
+    if (!buffer) {
+        LOGE("RawBuffer2ArmBlob:: buffer is null \n");
+        return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: buffer is null");
+    }
+
+    const int count = blob ? DimsVectorUtils::Count(blob->GetBlobDesc().dims) : 0;
+
+    if (!blob || buffer->GetDataCount() != count) {
+        {
+            desc.device_type = DEVICE_ARM;
+            desc.dims        = buffer->GetBufferDims();
+            ConfigBuffer2ArmBlobDesc(desc);
+        }
+        if (buffer->GetBytesSize() > 0) {
+            blob = std::make_shared<Blob>(desc, true);
+        } else {
+            blob = std::make_shared<Blob>(desc, false);
+        }
+    }
+
+    if (blob->GetHandle().base && buffer->GetBytesSize() > 0) {
+        auto buff_dtype = buffer->GetDataType();
+        auto blob_dtype = blob->GetBlobDesc().data_type;
+        auto blob_fmt   = blob->GetBlobDesc().data_format;
+        auto dims       = desc.dims;
+
+        if (dims.size() < 2) {
+            memcpy(GetBlobHandlePtr(blob->GetHandle()), buffer->force_to<void *>(), buffer->GetBytesSize());
+            return TNN_OK;
+        }
+
+        int batch       = DimsFunctionUtils::GetDim(dims, 0);
+        int channel     = DimsFunctionUtils::GetDim(dims, 1);
+        int hw          = DimsVectorUtils::Count(dims, 2);
+        auto buff_count = batch * channel * hw;
+
+        if (buff_dtype == DATA_TYPE_FLOAT) {
+            auto src_ptr = buffer->force_to<float *>();
+            if (blob_dtype == DATA_TYPE_FLOAT) {
+                if (blob_fmt == DATA_FORMAT_NCHW) {
+                    memcpy(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr, buff_count * sizeof(float));
+                } else {
+                    PackFloatBlob(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr, batch, channel, hw);
+                }
+            } else if (blob_dtype == DATA_TYPE_HALF) {
+                RawBuffer tmp_fp16_buff = RawBuffer(buff_count * sizeof(fp16_t));
+                auto tmp_buff_ptr       = tmp_fp16_buff.force_to<fp16_t *>();
+                ConvertFromFloatToHalf(src_ptr, tmp_buff_ptr, buff_count);
+                if (blob_fmt == DATA_FORMAT_NCHW) {
+                    memcpy(reinterpret_cast<fp16_t *>(GetBlobHandlePtr(blob->GetHandle())), tmp_buff_ptr,
+                           buff_count * sizeof(fp16_t));
+                } else {
+                    PackHalfBlob(reinterpret_cast<fp16_t *>(GetBlobHandlePtr(blob->GetHandle())), tmp_buff_ptr, batch, channel, hw);
+                }
+            } else {
+                LOGE("RawBuffer2ArmBlob:: unsupported blob data type: %d\n", blob_dtype);
+                return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: unsupported blob data type");
+            }
+        } else {
+            LOGE("RawBuffer2ArmBlob:: unsupported buffer data type: %d\n", buff_dtype);
+            return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: unsupported buffer data type");
+        }
+    }
+
+    return TNN_OK;
+}
+
+Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob) {
+    auto const_resource = const_resource_;
+    if (const_resource == nullptr) {
+        return TNN_OK;
+    }
+    auto const_resource_flag = const_resource_flag_;
+    auto const_blob_map = const_blob_map_;
+
+    // The default blob desc has the same data type and data format with non-constant input blob
+    BlobDesc arm_default_desc;
+    for (auto iter : inputs) {
+        auto name = iter->GetBlobDesc().name;
+        // skip const blobs
+        if (const_resource->find(name) != const_resource->end()) {
+            continue;
+        }
+        if (only_reload_shape_differ_blob && const_resource_flag &&
+            const_resource_flag->find(name) == const_resource_flag->end()) {
+            continue;
+        }
+
+        arm_default_desc.device_type = DEVICE_ARM;
+        arm_default_desc.data_type   = iter->GetBlobDesc().data_type;
+        arm_default_desc.data_format = iter->GetBlobDesc().data_format;
+    }
+
+    for (auto iter : inputs) {
+        auto name = iter->GetBlobDesc().name;
+        // deal with const blobs
+        if (const_resource->find(name) == const_resource->end()) {
+            continue;
+        }
+        if (only_reload_shape_differ_blob && const_resource_flag &&
+            const_resource_flag->find(name) == const_resource_flag->end()) {
+            continue;
+        }
+
+        LOGD("Reloading constant blob: %s, default data_type = %d, data_format = %d\n", name.c_str(),
+             arm_default_desc.data_type, arm_default_desc.data_format);
+        auto buffer                = (*const_resource)[name];
+        std::shared_ptr<Blob> blob = nullptr;
+        if (const_blob_map.find(name) != const_blob_map.end()) {
+            blob = const_blob_map[name];
+        }
+        Status status;
+        if (UseNaiveConstantBlobs()) {
+            status = RawBuffer2Blob(buffer.get(), blob);
+        } else {
+            status = RawBuffer2ArmBlob(buffer.get(), blob, arm_default_desc);
+        }
+        RETURN_ON_NEQ(status, TNN_OK);
+
+        blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
+        const_blob_map[name] = blob;
+        iter->SetHandle(blob->GetHandle());
+        iter->GetBlobDesc() = blob->GetBlobDesc();
+        LOGD("Reload constant blob: %s done\n", name.c_str());
+    }
+    const_blob_map_ = const_blob_map;
     return TNN_OK;
 }
 
 bool ArmLayerAcc::DataTypeSupported(DataType data_type) {
-    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8) {
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8 ||
+        data_type == DATA_TYPE_HALF) {
         return true;
-    } else { 
+    } else {
         return false;
     }
 }

@@ -1,7 +1,7 @@
 #include "tnn/device/metal/coreml_network.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -30,7 +30,7 @@ CoreMLNetwork::~CoreMLNetwork() {
 }
 
 Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                           InputShapesMap inputs_shape) {
+                           InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder) {
     if (@available(iOS 11.0, macOS 10.13, *)) {
         Status ret = TNN_OK;
 

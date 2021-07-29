@@ -20,7 +20,7 @@
 #import "tnn/device//metal/metal_command_queue.h"
 #import "tnn/device//metal/acc/metal_common.h"
 #import "tnn/core/abstract_device.h"
-#import "tnn/utils/dims_vector_utils.h"
+#import "tnn/utils/dims_utils.h"
 
 #define ENABLE_PIPELINE_CACHE 1
 #define KERNEL_SYNC 0
@@ -1091,10 +1091,10 @@ Status MetalMatConverterAcc::CopyMakeBorder(Mat &src, Mat &dst, CopyMakeBorderPa
     if (src_mat_type != N8UC4 && src_mat_type != NCHW_FLOAT) {
         return Status(TNNERR_PARAM_ERR, "mat type not support yet");
     }
-    //Get device
-    if (device_ == nil) {
-        id<MTLTexture> texture = (__bridge id<MTLTexture>)(src.GetData());
-        device_     = texture.device;
+
+    auto status = SetDevice(src, dst, src_device_type, dst_device_type, src_mat_type, dst_mat_type);
+    if (status != TNN_OK) {
+        return status;
     }
 
     auto command_queue_impl = (__bridge TNNMetalCommandQueueImpl *)(command_queue);
@@ -1104,7 +1104,7 @@ Status MetalMatConverterAcc::CopyMakeBorder(Mat &src, Mat &dst, CopyMakeBorderPa
 
     auto context_impl = command_queue_impl.metalContextImpl;
 
-    auto status = AllocateBufferCopyMakeBorderParam(param, src, dst);
+    status = AllocateBufferCopyMakeBorderParam(param, src, dst);
     if (status != TNN_OK) {
         return status;
     }

@@ -78,10 +78,10 @@ Status FaceDetectMesh::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
         //1.5*crop
         crop_height = 1.5 * (face_orig.y2 - face_orig.y1);
         crop_width  = 1.5 * (face_orig.x2 - face_orig.x1);
-        crop_x = std::max(0.0, face_orig.x1 - 0.25 * crop_width);
-        crop_y = std::max(0.0, face_orig.y1 - 0.25 * crop_height);
-        crop_width  = std::min(crop_width,  image_orig_width-crop_x);
-        crop_height = std::min(crop_height, image_orig_height-crop_y);
+        crop_x = (std::max)(0.0, face_orig.x1 - 0.25 * crop_width);
+        crop_y = (std::max)(0.0, face_orig.y1 - 0.25 * crop_height);
+        crop_width  = (std::min)(crop_width,  image_orig_width-crop_x);
+        crop_height = (std::min)(crop_height, image_orig_height-crop_y);
 
         DimsVector crop_dims = {1, 3, static_cast<int>(crop_height), static_cast<int>(crop_width)};
         std::shared_ptr<TNN_NS::Mat> croped_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC4, crop_dims);

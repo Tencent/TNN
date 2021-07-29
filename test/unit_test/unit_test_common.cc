@@ -44,9 +44,11 @@ IntScaleResource* CreateIntScale(int channel) {
     return int8scale;
 }
 
-void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** cpu_context, Context** device_context) {
+void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device,
+                       Context** cpu_context, Context** device_context) {
     NetworkConfig config;
     config.device_type = ConvertDeviceType(FLAGS_dt);
+    config.enable_tune_kernel = FLAGS_et;
     if (FLAGS_lp.length() > 0) {
         config.library_path = {FLAGS_lp};
     }
@@ -66,11 +68,11 @@ void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device, Context** c
     *device_context = (*device)->CreateContext(config.device_id);
     ASSERT(*device_context != NULL);
 
+
     if (!FLAGS_ub) {
-        ret = (*device_context)->SetPrecision(PRECISION_HIGH);
-        if (ret != TNN_OK) {
-            LOGE("Error: device of type(%d) not support set high precision\n", config.device_type);
-        }
+        (*device_context)->SetPrecision(PRECISION_HIGH);
+    } else {
+        (*device_context)->SetEnableTuneKernel(config.enable_tune_kernel);
     }
 
     ret = (*device_context)->LoadLibrary(config.library_path);

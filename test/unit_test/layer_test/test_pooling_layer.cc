@@ -14,6 +14,7 @@
 
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
+#include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
 
@@ -29,7 +30,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, PoolingLayerTest,
                                             // pool type
                                             testing::Values(0, 1),
                                             // datatype
-                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_BFP16)));
+                                            testing::Values(DATA_TYPE_INT8, DATA_TYPE_FLOAT, DATA_TYPE_BFP16, DATA_TYPE_HALF)));
 
 TEST_P(PoolingLayerTest, PoolingLayer) {
     // get param
@@ -41,11 +42,7 @@ TEST_P(PoolingLayerTest, PoolingLayer) {
     int pool_type      = std::get<5>(GetParam());
     DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
-        GTEST_SKIP();
-    }
-
-    if (data_type == DATA_TYPE_BFP16 && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
 
@@ -67,10 +64,10 @@ TEST_P(PoolingLayerTest, PoolingLayer) {
     // generate interpreter
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
     auto interpreter            = GenerateInterpreter("Pooling", {input_dims}, param);
-    Precision precision         = PRECISION_AUTO;
-    if (DATA_TYPE_BFP16 == data_type) {
-        precision = PRECISION_LOW;
-    }
+    Precision precision         = SetPrecision(dev, data_type);
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
+    } 
     Run(interpreter, precision);
 }
 

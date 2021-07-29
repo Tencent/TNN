@@ -13,7 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include <gtest/gtest.h>
-#include <sys/time.h>
+#include <chrono>
+
 #include "test/flags.h"
 #include "test/test_utils.h"
 #include "test/unit_test/unit_test_common.h"
@@ -28,6 +29,7 @@ void ShowUsage() {
     printf("    -ic \"<number>\"        %s \n", iterations_count_message);
     printf("    -ub \"<bool>\"          %s \n", unit_test_benchmark_message);
     printf("    -th \"<bumber>\"        %s \n", cpu_thread_num_message);
+    printf("    -et \"<enable tune>\t%s \n", enable_tune_message);
 }
 
 bool ParseAndCheckCommandLine(int argc, char *argv[]) {
@@ -43,10 +45,7 @@ bool ParseAndCheckCommandLine(int argc, char *argv[]) {
 }  // namespace TNN_NS
 
 GTEST_API_ int main(int argc, char **argv) {
-    struct timezone zone;
-    struct timeval time1;
-    struct timeval time2;
-    gettimeofday(&time1, &zone);
+    std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
 
     int result = 0;
     try {
@@ -59,8 +58,8 @@ GTEST_API_ int main(int argc, char **argv) {
         LOGE("unit test catches an exception: %s \n", e.what());
     }
 
-    gettimeofday(&time2, &zone);
-    float cost_sec = (time2.tv_sec - time1.tv_sec) + (time2.tv_usec - time1.tv_usec) / 1000000.0;
+    std::chrono::time_point<std::chrono::system_clock> stop = std::chrono::system_clock::now();
+    float cost_sec = std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() / 1000000.0f;
     printf("=== Unit Test Cost: %f s ===\n", cost_sec);
 
     return result;

@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/mat_converter_acc.h"
 #include <math.h>
@@ -56,6 +56,8 @@ static int GetCvtColorDstChannel(ColorConversionType type) {
     switch (type) {
         case COLOR_CONVERT_BGRTOGRAY:
         case COLOR_CONVERT_BGRATOGRAY:
+        case COLOR_CONVERT_RGBTOGRAY:
+        case COLOR_CONVERT_RGBATOGRAY:
             return 1;
         case COLOR_CONVERT_NV12TOBGR:
         case COLOR_CONVERT_NV21TOBGR:

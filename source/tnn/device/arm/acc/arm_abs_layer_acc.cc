@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "arm_unary_layer_acc.h"
+#include "tnn/device/arm/acc/arm_unary_layer_acc.h"
 
 namespace TNN_NS {
 
@@ -25,5 +25,6 @@ typedef struct arm_abs_operator : arm_unary_operator {
 DECLARE_ARM_UNARY_ACC(Abs, ARM_ABS_OP);
 
 REGISTER_ARM_ACC(Abs, LAYER_ABS)
+REGISTER_ARM_LAYOUT(LAYER_ABS, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

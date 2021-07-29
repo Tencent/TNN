@@ -24,7 +24,9 @@ Status ConvLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status ConvLayer::InferOutputShape() {
+Status ConvLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
     Blob* input_blob           = input_blobs_[0];
     Blob* output_blob          = output_blobs_[0];
     ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param_);
@@ -51,12 +53,12 @@ Status ConvLayer::InferOutputShape() {
 
     const int pad_type = conv_param->pad_type;
 
+    int kernel_extent_h = dilation_h * (kernel_h - 1) + 1;
+    int kernel_extent_w = dilation_w * (kernel_w - 1) + 1;
+
     // Refactored the code to support tensorflow models
     if (pad_type == -1)  // default padding following the proto setting
     {
-        int kernel_extent_h = dilation_h * (kernel_h - 1) + 1;
-        int kernel_extent_w = dilation_w * (kernel_w - 1) + 1;
-
         const int pad_left   = conv_param->pads[0];
         const int pad_right  = conv_param->pads[1];
         const int pad_top    = conv_param->pads[2];
@@ -74,17 +76,17 @@ Status ConvLayer::InferOutputShape() {
             width_out  = static_cast<int>(std::ceil(float(width) / float(stride_w)));
         } else if (pad_type == 1)  // VALID type
         {
-            height_out = static_cast<int>(std::ceil(float(height - kernel_h + 1) / float(stride_h)));
-            width_out  = static_cast<int>(std::ceil(float(width - kernel_w + 1) / float(stride_w)));
+            height_out = static_cast<int>(std::ceil(float(height - kernel_extent_h + 1) / float(stride_h)));
+            width_out  = static_cast<int>(std::ceil(float(width - kernel_extent_w + 1) / float(stride_w)));
         } else  // FULL type
         {
             // to-do: deconv has full type, what's conv's full type?
-            LOGE("Error: ConvLayer dont support pad type: %d\n", pad_type);
+            LOGE_IF(!ignore_error, "Error: ConvLayer dont support pad type: %d\n", pad_type);
             return Status(TNNERR_PARAM_ERR, "Error: ConvLayer dont support pad type");
         }
 
-        int pad_along_height = ((height_out - 1) * stride_h + kernel_h - height);
-        int pad_along_width  = ((width_out - 1) * stride_w + kernel_w - width);
+        int pad_along_height = ((height_out - 1) * stride_h + kernel_extent_h - height);
+        int pad_along_width  = ((width_out - 1) * stride_w + kernel_extent_w - width);
         int pad_top          = pad_along_height / 2;
         int pad_left         = pad_along_width / 2;
 
@@ -103,18 +105,18 @@ Status ConvLayer::InferOutputShape() {
         conv_param->pads[2] = pad_top;
         conv_param->pads[3] = pad_down;
     } else {
-        LOGE("Error: ConvLayer dont support pad type: %d\n", pad_type);
+        LOGE_IF(!ignore_error, "Error: ConvLayer dont support pad type: %d\n", pad_type);
         return Status(TNNERR_PARAM_ERR, "Error: ConvLayer dont support pad type");
     }
 
     int group = conv_param->group;
     if (group == 0) {
-        LOGE("Error: ConvLayer Error: invalid group param\n");
+        LOGE_IF(!ignore_error, "Error: ConvLayer Error: invalid group param\n");
         return Status(TNNERR_INVALID_GROUP, "ConvLayer Error: invalid group param");
     }
 
     if (height_out <= 0 || width_out <= 0) {
-        LOGE("Error: invalid deconv param, height_out(%d) or width_out(%d) is less than zero\n", height_out, width_out);
+        LOGE_IF(!ignore_error, "Error: invalid deconv param, height_out(%d) or width_out(%d) is less than zero\n", height_out, width_out);
         return Status(TNNERR_PARAM_ERR, "invalid conv param, height_out or width_out is less than zero");
     }
 

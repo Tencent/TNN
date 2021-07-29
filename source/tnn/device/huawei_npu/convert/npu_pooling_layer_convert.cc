@@ -43,8 +43,9 @@ Status NpuPoolLayer::Convert() {
     int pad_h_end   = param->pads[3];
     int kernel_w    = param->kernels[0];
     int kernel_h    = param->kernels[1];
+    int ceil_mode   = param->ceil_mode;
 
-    auto output = std::make_shared<ge::op::Pooling>(outputs_name_[0]);
+    auto output = std::make_shared<hiai::op::PoolingD>(outputs_name_[0]);
     output->set_input_x(*input_ops_[0]->GetOperator());
     output->set_attr_mode(pool_mode);
     if (kernel_h == 0 || kernel_w == 0) {
@@ -55,8 +56,10 @@ Status NpuPoolLayer::Convert() {
     output->set_attr_pad_mode(pad_mode);
     output->set_attr_pad(ge::AttrValue::LIST_INT({pad_h_begin, pad_h_end, pad_w_begin, pad_w_end}));
     output->set_attr_stride(ge::AttrValue::LIST_INT({stride_h, stride_w}));
-    output->set_attr_ceil_mode(0);
-    output->set_attr_data_mode(1);
+    if (param->pad_type == -1) {
+        output->set_attr_ceil_mode(ceil_mode);
+        output->set_attr_data_mode(1);
+    }
     ADD_OUTPUT_OP(output)
 }
 

@@ -17,7 +17,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/interpreter/layer_resource.h"
 #include "tnn/layer/base_layer.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {

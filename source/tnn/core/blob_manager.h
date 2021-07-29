@@ -35,7 +35,7 @@ namespace TNN_NS {
 
 class BlobManager : public ISharedMemoryChangeListener {
 public:
-    // @brief BlobManager constrctor
+    // @brief BlobManager constructor
     explicit BlobManager(AbstractDevice *device);
 
     // @brief BlobManager destructor
@@ -43,7 +43,7 @@ public:
 
     // @brief InitBlobs init blobs
     // @param structure net structure
-    Status Init(NetworkConfig &config, NetStructure *net_structure, InputShapesMap inputs_shape_map,
+    virtual Status Init(NetworkConfig &config, NetStructure *net_structure, InputShapesMap inputs_shape_map,
                 DataType input_data_type);
 
     // @brief DeInit release Init create resource
@@ -53,7 +53,7 @@ public:
     // @param name blob name
     Blob *GetBlob(std::string name);
 
-    // @brief check blob memory state for diffrent share memory mode
+    // @brief check blob memory state for different share memory mode
     Status CheckBlobMemoryState();
 
     // @brief set blob forward memory
@@ -67,8 +67,8 @@ public:
     // @param blobs blob map
     virtual Status GetAllOutputBlobs(BlobMap &blobs);
 
-    // @brief AllocateBlobMemory
-    Status AllocateBlobMemory();
+    // @brief AllocateBlobMemory for blob with flag
+    virtual Status AllocateBlobMemory(int flag = DATA_FLAG_CHANGE_ALWAYS);
 
     // @brief OnSharedForwardMemoryChanged for share memory change observer
     virtual void OnSharedForwardMemoryChanged(void *memory);
@@ -79,19 +79,21 @@ public:
     // @brief replace blob with new_blob, and delete the original blob if exist
     void ReplaceBlob(std::string name, Blob *new_blob);
 
-private:
+protected:
     void BindBlobMemory();
     int GetBlobUseCount(int layer_index, std::string current_blob_name);
 
     NetworkConfig config_;
     NetStructure *net_structure_;
-    BlobMemoryPool *blob_memory_pool_;
+    // dimension-memory pool
+    std::map<int, BlobMemoryPool *> blob_memory_pool_map_;
     AbstractDevice *device_;
     BlobMap input_blobs_;
     BlobMap output_blobs_;
     std::shared_ptr<MemoryAssignStrategy> strategy_;
     std::map<std::string, Blob *> blobs_;
     std::map<Blob *, BlobMemory *> blob_memory_mapping_;
+    bool shared_memory_allocated_;
 
     std::thread::id init_thread_id_;
     MemoryModeState *memory_mode_state_;

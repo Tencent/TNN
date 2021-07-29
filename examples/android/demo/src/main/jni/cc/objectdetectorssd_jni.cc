@@ -222,7 +222,6 @@ JNIEXPORT JNICALL jobjectArray TNN_OBJECT_DETECTORSSD(detectFromImage)(JNIEnv *e
     TNN_NS::Status status = asyncRefDetector->Predict(input, output);
     AndroidBitmap_unlockPixels(env, imageSource);
 
-    asyncRefDetector->ProcessSDKOutput(output);
     objectInfoList = dynamic_cast<TNN_NS::ObjectDetectorSSDOutput*>(output.get())->object_list;
 
     if (status != TNN_NS::TNN_OK) {

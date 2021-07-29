@@ -22,7 +22,8 @@ from converter import logging
 import os
 import sys
 
-def tflite2tnn(tf_path, tnn_path, not_fold_const=False):
+
+def tflite2tnn(tf_path, tnn_path, half=False, not_fold_const=False):
     cmd.run("pwd")
     relative_path = "bin/TnnConverter"
     TnnConverter_path = parse_path.parse_path(relative_path)
@@ -34,6 +35,7 @@ def tflite2tnn(tf_path, tnn_path, not_fold_const=False):
         tnn_path = os.path.dirname(tf_path)
     checker.check_file_exist(tnn_path)
     command = command + " -od " + tnn_path + "/"
+    command = command + (" -half" if half else "")
     logging.debug(command)
     result = cmd.run(command)
     if result == 0:
@@ -42,15 +44,15 @@ def tflite2tnn(tf_path, tnn_path, not_fold_const=False):
         return False
 
 
-def convert(tf_path,  output_dir, version,  align=False,
-            input_path=None, refer_path=None):
+def convert(tf_path,  output_dir, version, half, align=False,
+            input_path=None, refer_path=None, debug_mode: bool = False):
     checker.check_file_exist(tf_path)
     model_name = os.path.basename(tf_path)
     if output_dir is None or not os.path.isdir(output_dir):
         output_dir = os.path.dirname(tf_path)
     checker.check_file_exist(output_dir)
     model_name = model_name[:-len(".tflite")]
-    if tflite2tnn(tf_path, output_dir) is False:
+    if tflite2tnn(tf_path, output_dir, half) is False:
         logging.error("Oh No, tflite2tnn failed :(\n")
         sys.exit(return_code.CONVERT_FAILED)
     else:
@@ -58,11 +60,12 @@ def convert(tf_path,  output_dir, version,  align=False,
 
     if version is None:
         version = "v1.0"
-    if align is True:
+    if align == 'output':
         proto_suffix = '.tnnproto'
         model_suffix = '.tnnmodel'
         tnn_proto_name = model_name + proto_suffix
         tnn_model_name = model_name + model_suffix
         tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
         tnn_model_path = os.path.join(output_dir, tnn_model_name)
-        align_model.align_model(tf_path, tnn_proto_path, tnn_model_path, input_path, refer_path, None, True)
+        align_model.align_model(tf_path, tnn_proto_path, tnn_model_path, input_path, refer_path, None, True,
+                                debug_mode=debug_mode)

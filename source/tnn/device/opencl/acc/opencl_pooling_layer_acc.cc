@@ -14,6 +14,7 @@
 
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -52,10 +53,10 @@ Status OpenCLPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
 
-    const int batch         = output_dims[0];
-    const int output_height = output_dims[2];
-    const int output_width  = output_dims[3];
-    const int channels      = output_dims[1];
+    const int batch         = DimsFunctionUtils::GetDim(output_dims, 0);
+    const int output_height = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int output_width  = DimsFunctionUtils::GetDim(output_dims, 3);
+    const int channels      = DimsFunctionUtils::GetDim(output_dims, 1);
 
     const int kernel_height = pooling_param->kernels[1];
     const int kernel_width  = pooling_param->kernels[0];
@@ -82,6 +83,9 @@ Status OpenCLPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
 Status OpenCLPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Pooling Acc Reshape\n");
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
+    CHECK_TNN_OK(ret)
+
     PoolingLayerParam *pooling_param = dynamic_cast<PoolingLayerParam *>(param_);
     if (!pooling_param) {
         LOGE("Error: layer param is null\n");
@@ -95,20 +99,20 @@ Status OpenCLPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     auto input_dims  = input->GetBlobDesc().dims;
     auto output_dims = output->GetBlobDesc().dims;
 
-    const int batch         = output_dims[0];
-    const int output_height = output_dims[2];
-    const int output_width  = output_dims[3];
-    const int channels      = output_dims[1];
+    const int batch         = DimsFunctionUtils::GetDim(output_dims, 0);
+    const int output_height = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int output_width  = DimsFunctionUtils::GetDim(output_dims, 3);
+    const int channels      = DimsFunctionUtils::GetDim(output_dims, 1);
 
-    const int input_height = input_dims[2];
-    const int input_width  = input_dims[3];
+    const int input_height = DimsFunctionUtils::GetDim(input_dims, 2);
+    const int input_width  = DimsFunctionUtils::GetDim(input_dims, 3);
 
     const int channel_blocks    = UP_DIV(channels, 4);
     uint32_t workgroup_size     = 0;
 
     OpenCLRuntime * opencl_runtime = OpenCLRuntime::GetInstance();
     int type_size = sizeof(float);
-    if (opencl_runtime->GetPrecision() != PRECISION_HIGH) {
+    if (opencl_runtime->GetPrecision() != PRECISION_HIGH && pooling_param->pool_type == 0) {
         type_size = 2;
     }
 
@@ -186,9 +190,24 @@ Status OpenCLPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
     }
 
+    if (ocl_context_->GetEnableTuneKernel()) {
+        std::string tune_key = unit.program_name + "_" + unit.kernel_name + "_" + "param[" +
+                               "kernel_" + ToString(pooling_param->kernels[0]) + "_" + ToString(pooling_param->kernels[1]) + "_" +
+                               "pad_" + ToString(pooling_param->pads[0]) + "_" + ToString(pooling_param->pads[1]) + "_" +
+                               "stride_" + ToString(pooling_param->strides[0]) + "_" + ToString(pooling_param->strides[1]) + "_" +
+                               "pool_type_" + ToString(pooling_param->pool_type) + "_" + 
+                               "ceil_mode_" + ToString(pooling_param->ceil_mode) + "_" + 
+                               "pad_type_" + ToString(pooling_param->pad_type) + "]_global";
+        for (auto size : unit.global_work_size) {
+            tune_key += "_" + ToString(size);
+        }
+        execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_, tune_key);
+    }
+
     return TNN_OK;
 }
 
 REGISTER_OPENCL_ACC(Pooling, LAYER_POOLING)
+REGISTER_OPENCL_LAYOUT(LAYER_POOLING, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

@@ -4,6 +4,7 @@
 #include "tnn/device/metal/acc/metal_layer_acc.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -66,5 +67,6 @@ Status MetalLRNLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
 }
 
 REGISTER_METAL_ACC(LRN, LAYER_LRN);
+REGISTER_METAL_LAYOUT(LAYER_LRN, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

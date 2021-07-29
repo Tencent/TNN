@@ -24,7 +24,7 @@ public:
     virtual ~MultidirBroadcastLayer(){};
 
 protected:
-    virtual Status InferOutputShape();
+    virtual Status InferOutputShape(bool ignore_error = false);
 };
 
 #define DECLARE_MULTIDIR_BROADCAST_LAYER(type_string, layer_type)                                                      \

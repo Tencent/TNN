@@ -15,10 +15,18 @@
 #ifndef TNN_SOURCE_TNN_INTERPRETER_LAYER_RESOURCE_H_
 #define TNN_SOURCE_TNN_INTERPRETER_LAYER_RESOURCE_H_
 
+#include <map>
+#include <memory>
+#include <string>
+
 #include "tnn/core/layer_type.h"
 #include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
+
+typedef std::map<std::string, DimsVector> BlobShapesMap;
+typedef std::map<std::string, std::shared_ptr<RawBuffer> > ConstantResource;
+typedef std::map<std::string, int > ConstantResourceFlag;
 
 struct LayerResource {
     std::string name = "";
@@ -29,13 +37,13 @@ struct LayerResource {
 // @brief conv layer filter format
 typedef enum { OIHW = 0, IHWO = 1, OIDHW = 2 } ConvLayerFilterFormat;
 
-// @brief ConvLayerResource different device hold different handle
+// @brief ConvLayerResource different device holds different handle
 struct ConvLayerResource : public LayerResource {
     // conv layer filter format
     ConvLayerFilterFormat filter_format = OIHW;
 
     // conv layer handle
-    // NOTE: for deconv, the weight's default format is  [n][i][o][h][w]
+    // NOTE: for deconv, the weight's default format is [n][i][o][h][w]
     RawBuffer filter_handle;
 
     // bias handle
@@ -85,7 +93,7 @@ struct IntScaleResource : public LayerResource {
     RawBuffer bias_handle;
 };
 
-// @brief HdrGuideLayerResource different device hold different handle
+// @brief HdrGuideLayerResource different device holds different handle
 struct HdrGuideLayerResource : public LayerResource {
     // ccm weight
     RawBuffer ccm_weight_handle;
@@ -109,6 +117,39 @@ struct ConstLayerResource : public LayerResource {
 struct DetectionPostProcessLayerResource : public LayerResource {
     RawBuffer anchors_handle;
 };
+
+struct ScatterNDLayerResource : public LayerResource {
+    RawBuffer indices;
+    // optional
+    RawBuffer updates;
+};
+
+struct GatherLayerResource : public LayerResource {
+    //RawBuffer has dims
+    RawBuffer data;
+    RawBuffer indices;
+};
+
+struct ConstantOfShapeLayerResource : public LayerResource {
+    //RawBuffer has dims
+    RawBuffer value;
+};
+
+struct SqueezeLayerResource : public LayerResource {
+    std::vector<int> data_dims;
+    RawBuffer data;
+};
+
+struct UnsqueezeLayerResource : public SqueezeLayerResource {};
+
+struct MatMulLayerResource : public LayerResource {
+    RawBuffer weight;
+};
+
+struct BiasAddLayerResource : public LayerResource {
+    RawBuffer bias_handle;
+};
+
 
 }  // namespace TNN_NS
 

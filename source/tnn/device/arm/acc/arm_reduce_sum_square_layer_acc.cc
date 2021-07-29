@@ -33,5 +33,6 @@ typedef struct arm_reduce_sum_square_operator : arm_reduce_operator {
 DECLARE_ARM_REDUCE_ACC(ReduceSumSquare, ARM_REDUCE_SUM_SQUARE_OP);
 
 REGISTER_ARM_ACC(ReduceSumSquare, LAYER_REDUCE_SUM_SQUARE);
+REGISTER_ARM_LAYOUT(LAYER_REDUCE_SUM_SQUARE, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

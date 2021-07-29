@@ -12,33 +12,32 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_Add_LAYER_ACC_H_
-#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_Add_LAYER_ACC_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_ADD_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_ADD_LAYER_ACC_H_
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/acc/arm_binary_layer_acc.h"
 
 namespace TNN_NS {
-
 // @brief conv layer cpu acc
-class ArmAddLayerAcc : public ArmLayerAcc {
+class ArmAddLayerAcc : public ArmBinaryLayerAcc {
 public:
     virtual ~ArmAddLayerAcc();
 
-    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-                const std::vector<Blob *> &outputs);
-
-    Status allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                const std::vector<Blob *> &outputs) override;
     
-    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual bool DataTypeSupported(DataType data_type) override;
+
+    Status allocateBufferParamInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    
+    virtual Status ExecInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 private:
     RawBuffer input0_int_scale_;
     RawBuffer input1_int_scale_;
     RawBuffer output_int_scale_;
-    RawBuffer output_bias_;
-    DimsVector bias_shape_;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_Add_LAYER_ACC_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_ADD_LAYER_ACC_H_

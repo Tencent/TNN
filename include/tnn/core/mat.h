@@ -39,8 +39,11 @@ typedef enum {
     NNV21      = 0x11,
     //YUV420SP, YYYYUVUVUV
     NNV12      = 0x12,
-    //nchw: float
+    //NCDi[0-4]: float
     NCHW_FLOAT = 0x20,
+    //NCDi[0-4]: int32
+    NC_INT32 = 0x21,
+    
     // RESERVED FOR INTERNAL TEST USE
     RESERVED_BFP16_TEST = 0x200,
     RESERVED_FP16_TEST  = 0x201,
@@ -53,6 +56,8 @@ public:
 
     Mat(DeviceType device_type, MatType mat_type, DimsVector shape_dims, void* data);
     Mat(DeviceType device_type, MatType mat_type, DimsVector shape_dims);
+    //empty mat
+    Mat(DeviceType device_type, MatType mat_type);
 
     DEPRECATED("use Mat(DeviceType, MatType, DimsVector, void*) instead")
     Mat(DeviceType device_type, MatType mat_type, void* data) : Mat(device_type, mat_type, {1,0,0,0}, data) {};
@@ -67,9 +72,6 @@ public:
     int GetWidth();
     int GetDim(int index);
     DimsVector GetDims();
-
-    //    Mat(const Mat&) = delete;
-    //    Mat& operator=(const Mat&) = delete;
 
 private:
     Mat(){};

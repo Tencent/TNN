@@ -54,6 +54,8 @@ void InitInterTab1D(float* tab, int tabsz);
 
 void WarpAffineMatrixInverse(const float (*transform)[3], double* inverse);
 
+int GetMatElementSize(Mat* mat);
+
 }  // namespace TNN_NS
 
 #endif

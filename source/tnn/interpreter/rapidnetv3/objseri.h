@@ -23,18 +23,20 @@ namespace rapidnetv3 {
     enum ModelVersion {
         MV_RPNV1 = 0,
         MV_TNN = 1,
-        MV_RPNV3 = 2
+        MV_RPNV3 = 2,
+        MV_TNN_V2 = 3
     };
 
     static const uint32_t g_version_magic_number_tnn = 0x0FABC0002;
     static const uint32_t g_version_magic_number_rapidnet_v3 = 0x0FABC0003;
+    static const uint32_t g_version_magic_number_tnn_v2 = 0x0FABC0004;
 
-    class Serializer : public TNN_NS::Serializer {
+class Serializer : public TNN_NS::Serializer {
     public:
         Serializer(std::ostream &os) : TNN_NS::Serializer(os), model_version_(MV_RPNV3){}
         Serializer(std::ostream &os, int ver) : TNN_NS::Serializer(os), model_version_(ver){}
 
-        virtual void PutRaw(TNN_NS::RawBuffer &value) {
+        void PutRaw(TNN_NS::RawBuffer &value) override {
             int length = value.GetBytesSize();
             auto data_type = (TNN_NS::DataType)value.GetDataType();
             char *buffer = value.force_to<char *>();
@@ -57,6 +59,8 @@ namespace rapidnetv3 {
                     PutInt(g_version_magic_number_tnn);
                 } else if (MV_RPNV3 == model_version_) {
                     PutInt(g_version_magic_number_rapidnet_v3);
+                } else if (MV_TNN_V2 == model_version_) {
+                    PutInt(g_version_magic_number_tnn_v2);
                 } else {
                     return;
                 }
@@ -73,6 +77,17 @@ namespace rapidnetv3 {
                 BlurMix(buffer, mixed_buffer, length);
                 _ostream.write(reinterpret_cast<char *>(mixed_buffer),
                         static_cast<std::streamsize>(length));
+            } else if (MV_TNN_V2 == model_version_) {
+                auto dims = value.GetBufferDims();
+                PutInt((int)(dims.size()));
+                if (dims.size() > 0) {
+                    _ostream.write(reinterpret_cast<char *>(dims.data()),
+                                   static_cast<std::streamsize>(dims.size() * sizeof(int32_t)));
+                }
+                if (_ostream.bad()) {
+                    return;
+                }
+                _ostream.write(reinterpret_cast<char *>(buffer), static_cast<std::streamsize>(length));
             } else {
                 _ostream.write(reinterpret_cast<char *>(buffer),
                         static_cast<std::streamsize>(length));
@@ -91,21 +106,30 @@ namespace rapidnetv3 {
     public:
         Deserializer(std::istream &is) : TNN_NS::Deserializer(is) {}
         
-        virtual void GetRaw(TNN_NS::RawBuffer &value) {
+        void GetRaw(TNN_NS::RawBuffer &value) override {
             auto pos = _istream.tellg();
             uint32_t magic_number = 0;
             _istream.read((char *)&magic_number, sizeof(uint32_t));
             
             if (magic_number == g_version_magic_number_tnn ||
+                magic_number == g_version_magic_number_tnn_v2 ||
                 magic_number == g_version_magic_number_rapidnet_v3) {
                 auto data_type = (TNN_NS::DataType)GetInt();
                  int length = GetInt();
                  if (length <= 0) {
                      return;
                  }
-                 
+
                  value = TNN_NS::RawBuffer(length);
                  value.SetDataType(data_type);
+                 if (magic_number == g_version_magic_number_tnn_v2) {
+                     DimsVector dims;
+                     int size = GetInt();
+                     for (int i = 0; i < size; ++i) {
+                         dims.push_back(GetInt());
+                     }
+                     value.SetBufferDims(dims);
+                 }
                  char *buffer = value.force_to<char *>();
                  if (_istream.eof())
                      return;

@@ -20,6 +20,13 @@ else()
     target_link_libraries(TNN log -fopenmp)
 endif()
 
+if(NOT TNN_BUILD_SHARED)
+    string(ASCII 27 Esc)
+    set(ColourReset "${Esc}[m")
+    set(Red         "${Esc}[31m")
+    message(STATUS "${Red}[WARNING] TNN is built as a static library, link it with option -Wl,--whole-archive tnn -Wl,--no-whole-archive${ColourReset}")
+endif()
+
 if(TNN_OPENCL_ENABLE)
     message(STATUS "Build TNN OpenCL")
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/opencl/include)

@@ -17,9 +17,9 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
-#include "tnn/utils/half_utils.h"
-#include "tnn/utils/wingorad_generater.h"
+#include "tnn/utils/dims_utils.h"
+#include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/winograd_generator.h"
 
 namespace TNN_NS {
 bool MetalConvLayerWinograd::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
@@ -42,7 +42,8 @@ bool MetalConvLayerWinograd::isPrefered(ConvLayerParam *param, const std::vector
     auto ih = inputs[0]->GetBlobDesc().dims[2];
     auto ic = ROUND_UP(inputs[0]->GetBlobDesc().dims[1], 4);
     auto oc = ROUND_UP(outputs[0]->GetBlobDesc().dims[1], 4);
-    return ic * oc * ih / iw >= 2048;
+    // skip layers with large chennels due to large numerical errors
+    return (ic * oc * ih / iw >= 2048) && (ic * oc < 512 * 4096);
 }
 
 MetalConvLayerWinograd::~MetalConvLayerWinograd() {}
@@ -82,9 +83,9 @@ Status MetalConvLayerWinograd::AllocateBufferWeight(const std::vector<Blob *> &i
         }
 
         //预处理
-        WinogradGenerater generater(dst_unit, kh, 1.0f);
-        auto pack_weight_fp32 = generater.allocTransformWeight(output_channel, input_channel, kh, kw, 4, 4);
-        generater.transformWeight(pack_weight_fp32, weight_fp32, output_channel, input_channel, kh, kw);
+        WinogradGenerator generator(dst_unit, kh, 1.0f);
+        auto pack_weight_fp32 = generator.allocTransformWeight(output_channel, input_channel, kh, kw, 4, 4);
+        generator.transformWeight(pack_weight_fp32, weight_fp32, output_channel, input_channel, kh, kw);
 
         auto pack_weight_fp32_data = get<0>(pack_weight_fp32).get();
         auto pack_weight_fp32_dims = get<1>(pack_weight_fp32);
@@ -199,7 +200,13 @@ Status MetalConvLayerWinograd::AllocateBufferParam(const std::vector<Blob *> &in
 Status MetalConvLayerWinograd::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input       = inputs[0];
     auto output      = outputs[0];
+    auto dims_input  = input->GetBlobDesc().dims;
     auto dims_output = output->GetBlobDesc().dims;
+    int batch = dims_output[0];
+
+    int data_byte_size = DataTypeUtils::GetBytesSize(output->GetBlobDesc().data_type);
+    auto input_bytes = dims_input[3] * dims_input[2] * ROUND_UP(dims_input[1], 4) * data_byte_size;
+    auto output_bytes = dims_output[3] * dims_output[2] * ROUND_UP(dims_output[1], 4) * data_byte_size;
 
     auto context_impl = context_->getMetalContextImpl();
     auto encoder      = [context_impl encoder];
@@ -208,44 +215,50 @@ Status MetalConvLayerWinograd::Forward(const std::vector<Blob *> &inputs, const 
     Status status = TNN_OK;
     MetalBandwidth bandwidth;
 
-    do {
-        { // transform
-            status = [context_impl load:@"winograd_transform_source2_3_1" encoder:encoder bandwidth:bandwidth];
-            BREAK_IF(status != TNN_OK);
+    for (int n = 0; n < batch; ++n) {
+        do {
+            { // transform
+                status = [context_impl load:@"winograd_transform_source2_3_1" encoder:encoder bandwidth:bandwidth];
+                BREAK_IF(status != TNN_OK);
 
-            [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
-                        offset:(NSUInteger)input->GetHandle().bytes_offset
-                       atIndex:0];
-            [encoder setBuffer:buffer_temp_input_ offset:0 atIndex:1];
-            [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
-            status = [context_impl dispatchEncoder:encoder threads:input_transform_threads_ bandwidth:bandwidth];
-            BREAK_IF(status != TNN_OK);
-        }
-        { // gemm
-            status = [context_impl load:@"matmul4x4" encoder:encoder bandwidth:bandwidth];
-            BREAK_IF(status != TNN_OK);
+                [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
+                            offset:(NSUInteger)input->GetHandle().bytes_offset + n*input_bytes
+                           atIndex:0];
+                [encoder setBuffer:buffer_temp_input_ offset:0 atIndex:1];
+                [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
+                status = [context_impl dispatchEncoder:encoder threads:input_transform_threads_ bandwidth:bandwidth];
+                BREAK_IF(status != TNN_OK);
+            }
+            { // gemm
+                status = [context_impl load:@"matmul4x4" encoder:encoder bandwidth:bandwidth];
+                BREAK_IF(status != TNN_OK);
 
-            [encoder setBuffer:buffer_temp_input_ offset:0 atIndex:0];
-            [encoder setBuffer:buffer_temp_output_ offset:0 atIndex:1];
-            [encoder setBuffer:buffer_weight_ offset:0 atIndex:2];
-            [encoder setBuffer:buffer_shape_ offset:0 atIndex:3];
-            status = [context_impl dispatchEncoder:encoder threads:matmul_threads_ bandwidth:bandwidth];
-            BREAK_IF(status != TNN_OK);
-        }
-        { // transform
-            status = [context_impl load:@"winograd_transform_dest2_3_1" encoder:encoder bandwidth:bandwidth];
-            BREAK_IF(status != TNN_OK);
+                [encoder setBuffer:buffer_temp_input_ offset:0 atIndex:0];
+                [encoder setBuffer:buffer_temp_output_ offset:0 atIndex:1];
+                [encoder setBuffer:buffer_weight_ offset:0 atIndex:2];
+                [encoder setBuffer:buffer_shape_ offset:0 atIndex:3];
+                status = [context_impl dispatchEncoder:encoder threads:matmul_threads_ bandwidth:bandwidth];
+                BREAK_IF(status != TNN_OK);
+            }
+            { // transform
+                status = [context_impl load:@"winograd_transform_dest2_3_1" encoder:encoder bandwidth:bandwidth];
+                BREAK_IF(status != TNN_OK);
 
-            [encoder setBuffer:buffer_temp_output_ offset:0 atIndex:0];
-            [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
-                        offset:(NSUInteger)output->GetHandle().bytes_offset
-                       atIndex:1];
-            [encoder setBuffer:buffer_bias_ offset:0 atIndex:2];
-            [encoder setBuffer:buffer_param_ offset:0 atIndex:3];
-            status = [context_impl dispatchEncoder:encoder threads:output_transform_threads_ bandwidth:bandwidth];
-            BREAK_IF(status != TNN_OK);
+                [encoder setBuffer:buffer_temp_output_ offset:0 atIndex:0];
+                [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output->GetHandle().base
+                            offset:(NSUInteger)output->GetHandle().bytes_offset + n*output_bytes
+                           atIndex:1];
+                [encoder setBuffer:buffer_bias_ offset:0 atIndex:2];
+                [encoder setBuffer:buffer_param_ offset:0 atIndex:3];
+                status = [context_impl dispatchEncoder:encoder threads:output_transform_threads_ bandwidth:bandwidth];
+                BREAK_IF(status != TNN_OK);
+            }
+        } while (0);
+        if (status != TNN_OK) {
+            [encoder endEncoding];
+            return status;
         }
-    } while (0);
+    }
 
     [encoder endEncoding];
     [context_impl commit];

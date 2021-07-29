@@ -27,6 +27,7 @@
 #include <array>
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "sample_timer.h"
 
 namespace TNN_NS{
 

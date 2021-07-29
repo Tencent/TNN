@@ -17,7 +17,7 @@
 #include "tnn/device/arm/arm_mat_util.h"
 #include "tnn/device/arm/arm_util.h"
 
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/mat_converter_utils.h"
 
 namespace TNN_NS {
@@ -37,7 +37,7 @@ Status ArmMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     } else if(src.GetMatType() == NCHW_FLOAT) {
         memcpy(dst.GetData(), src.GetData(), elem_num * sizeof(float));
     } else {
-        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        return Status(TNNERR_PARAM_ERR, "ArmMatConverterAcc::Copy, convert type not support yet");
     }
     return ret;
 }
@@ -97,7 +97,7 @@ Status ArmMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
     } else {
-        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        return Status(TNNERR_PARAM_ERR, "ArmMatConverterAcc::Resize, convert type not support yet");
     }
 
     return ret;
@@ -152,7 +152,7 @@ Status ArmMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comma
             MatMemcpy2D(src_ptr, dst_ptr, param.width, param.height / 2, src.GetWidth(), dst.GetWidth());
         }
     } else {
-        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        return Status(TNNERR_PARAM_ERR, "ArmMatConverterAcc::Crop, convert type not support yet");
     }
 
     return ret;
@@ -194,7 +194,7 @@ Status ArmMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     } else if (src.GetMatType() == NNV21 || src.GetMatType() == NNV12) {
         AFFINE_CHECK_RUN(WarpAffineBilinearYUV420sp, WarpAffineNearestYUV420sp);
     } else {
-        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        return Status(TNNERR_PARAM_ERR, "ArmMatConverterAcc::WarpAffine, convert type not support yet");
     }
 
     return ret;
@@ -209,20 +209,33 @@ Status ArmMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type
     if (ret != TNN_OK)
         return ret;
 
-    if (type == COLOR_CONVERT_NV12TOBGR) {
-        NV12ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
-    } else if (type == COLOR_CONVERT_NV21TOBGR) {
-        NV21ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
-    } else if (type == COLOR_CONVERT_NV12TOBGRA) {
-        NV12ToBGRA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
-    } else if (type == COLOR_CONVERT_NV21TOBGRA) {
-        NV21ToBGRA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
-    } else if (type == COLOR_CONVERT_BGRTOGRAY) {
-        BGRToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
-    } else if (type == COLOR_CONVERT_BGRATOGRAY) {
-        BGRAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
-    } else {
-        return Status(TNNERR_PARAM_ERR, "color conversion type not support yet");
+    switch (type) {
+        case COLOR_CONVERT_NV12TOBGR:
+            NV12ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_NV21TOBGR:
+            NV21ToBGR((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_NV12TOBGRA:
+            NV12ToBGRA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_NV21TOBGRA:
+            NV21ToBGRA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_BGRTOGRAY:
+            BGRToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_BGRATOGRAY:
+            BGRAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_RGBTOGRAY:
+            RGBToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        case COLOR_CONVERT_RGBATOGRAY:
+            RGBAToGray((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch()*src.GetHeight(), src.GetWidth());
+            break;
+        default:
+            return Status(TNNERR_PARAM_ERR, "ArmMatConverterAcc::CvtColor, color conversion type not support yet");
     }
 
     return ret;

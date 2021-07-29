@@ -151,7 +151,8 @@ Status ArmConvInt8Layer1x1::DoForward(const std::vector<Blob *> &inputs, const s
                                     .scales    = reinterpret_cast<float *>(k_param_->scale),
                                     .relu      = relu_,
                                     .add_input = add_input_data,
-                                    .add_scale = buffer_add_scale_.force_to<float *>()};
+                                    .add_scale = buffer_add_scale_.force_to<float *>(),
+                                    .relu6_max = relu6_max_.force_to<int8_t *>()};
     size_t output_size           = k_param_->ow * k_param_->oh * k_param_->oc_r4;
     ComputeQ8Gemm(&context, dims_output[2] * dims_output[3], oc, mr, nr);
 

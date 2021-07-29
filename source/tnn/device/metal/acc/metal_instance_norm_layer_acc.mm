@@ -17,7 +17,7 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/half_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -56,6 +56,7 @@ Status MetalInstanceNormLayerAcc::AllocateBufferParam(const std::vector<Blob *> 
     // buffer_param_
     {
         auto metal_params = GetDefaultMetalParams(dims_input, dims_output);
+        FixDefaultMetalParams(metal_params, dims_input, dims_output);
         // adapt to batchnorm, merge output batch to slice
         metal_params.output_slice *= metal_params.batch;
         buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
@@ -156,5 +157,6 @@ Status MetalInstanceNormLayerAcc::Forward(const std::vector<Blob *> &inputs, con
 }
 
 REGISTER_METAL_ACC(InstanceNorm, LAYER_INST_BATCH_NORM);
+REGISTER_METAL_LAYOUT(LAYER_INST_BATCH_NORM, DATA_FORMAT_NC4HW4);
 
 } // namespace TNN_NS

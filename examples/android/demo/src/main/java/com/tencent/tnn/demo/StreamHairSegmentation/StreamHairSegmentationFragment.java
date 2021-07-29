@@ -62,6 +62,7 @@ public class StreamHairSegmentationFragment extends BaseFragment {
     private TextView HuaweiNpuTextView;
 
     private boolean mDeviceSwiched = false;
+    private byte[] mColor = {(byte)0, (byte)0, (byte)185, (byte)90};
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -173,41 +174,43 @@ public class StreamHairSegmentationFragment extends BaseFragment {
                 public void onClick(View v) {
                     RadioButton btn = $(v.getId());
                     boolean selected = btn.isSelected();
+                    // init hair color to black
                     byte[] color = {(byte)0, (byte)0, (byte)0, (byte)0};
+                    mColor = color;
                     if (!selected) {
                         switch (v.getId()) {
                             case R.id.button_blue:
-                                color[0] = (byte)0;
-                                color[1] = (byte)0;
-                                color[2] = (byte)185;
-                                color[3] = (byte)90;
+                                mColor[0] = (byte)0;
+                                mColor[1] = (byte)0;
+                                mColor[2] = (byte)185;
+                                mColor[3] = (byte)90;
                                 break;
                             case R.id.button_cyan:
-                                color[0] = (byte)0;
-                                color[1] = (byte)185;
-                                color[2] = (byte)185;
-                                color[3] = (byte)40;
+                                mColor[0] = (byte)0;
+                                mColor[1] = (byte)185;
+                                mColor[2] = (byte)185;
+                                mColor[3] = (byte)40;
                                 break;
                             case R.id.button_green:
-                                color[0] = (byte)0;
-                                color[1] = (byte)185;
-                                color[2] = (byte)0;
-                                color[3] = (byte)50;
+                                mColor[0] = (byte)0;
+                                mColor[1] = (byte)185;
+                                mColor[2] = (byte)0;
+                                mColor[3] = (byte)50;
                                 break;
                             case R.id.button_purple:
-                                color[0] = (byte)185;
-                                color[1] = (byte)0;
-                                color[2] = (byte)185;
-                                color[3] = (byte)64;
+                                mColor[0] = (byte)185;
+                                mColor[1] = (byte)0;
+                                mColor[2] = (byte)185;
+                                mColor[3] = (byte)64;
                                 break;
                             case R.id.button_red:
-                                color[0] = (byte)185;
-                                color[1] = (byte)0;
-                                color[2] = (byte)0;
-                                color[3] = (byte)64;
+                                mColor[0] = (byte)185;
+                                mColor[1] = (byte)0;
+                                mColor[2] = (byte)0;
+                                mColor[3] = (byte)64;
                         }
                     }
-                    mHairSegmentation.setHairColor(color);
+                    mHairSegmentation.setHairColor(mColor);
                     btn.setSelected(!selected);
 
                     for (int j = 0; j < colorList.length; j++) {
@@ -388,9 +391,6 @@ public class StreamHairSegmentationFragment extends BaseFragment {
                     public void onPreviewFrame(byte[] data, Camera camera) {
                         if (mIsSegmentingHair) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
-                            if (mIsCountFps) {
-                                mFpsCounter.begin("HairSegmentation");
-                            }
                             ImageInfo[] imageInfoList;
                             // reinit
                             if (mDeviceSwiched) {
@@ -404,11 +404,16 @@ public class StreamHairSegmentationFragment extends BaseFragment {
                                 int ret = mHairSegmentation.init(modelPath, mCameraHeight, mCameraWidth, device);
                                 if (ret == 0) {
                                     mIsSegmentingHair = true;
+                                    mHairSegmentation.setHairColor(mColor);
+                                    mFpsCounter.init();
                                 } else {
                                     mIsSegmentingHair = false;
                                     Log.e(TAG, "Hair Segmentation init failed " + ret);
                                 }
                                 mDeviceSwiched = false;
+                            }
+                            if (mIsCountFps) {
+                                mFpsCounter.begin("HairSegmentation");
                             }
                             imageInfoList = mHairSegmentation.predictFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mRotate);
                             if (mIsCountFps) {

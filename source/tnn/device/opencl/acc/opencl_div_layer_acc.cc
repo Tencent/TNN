@@ -48,5 +48,6 @@ Status OpenCLDivLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 OpenCLDivLayerAcc::~OpenCLDivLayerAcc() {}
 
 REGISTER_OPENCL_ACC(Div, LAYER_DIV)
+REGISTER_OPENCL_LAYOUT(LAYER_DIV, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

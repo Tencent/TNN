@@ -38,6 +38,9 @@ public:
     virtual MatConvertParam GetConvertParamForInput(std::string tag = "");
     virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
+    virtual std::shared_ptr<TNN_NS::Mat> ProcessSDKInputMat(std::shared_ptr<TNN_NS::Mat> mat,
+                                                              std::string name);
+
 };
 
 }

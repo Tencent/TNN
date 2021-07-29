@@ -18,7 +18,7 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-#include "half_utils.h"
+
 
 DECLARE_OP_CONVERTER(InstNorm);
 
@@ -33,14 +33,19 @@ string OnnxOpConverterInstNorm::TNNLayerParam(NodeProto& node,
 
     float epsilon = get_node_attr_f(node, "epsilon", 1e-5f);
     int channels = get_tensor_proto_data_size(scale);
-
+    
+    
     ostringstream layer_param;
-    layer_param << epsilon;
+    layer_param << channels << " " << epsilon;
     
     return layer_param.str();
 }
 
-int OnnxOpConverterInstNorm::WriteTNNModel(serializer* net_writer,
+bool OnnxOpConverterInstNorm::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
+    return true;
+}
+
+int OnnxOpConverterInstNorm::WriteTNNModel(Serializer* net_writer,
                                                  NodeProto& node,
                                                  OnnxNetInfo& net_info) {
     const std::string& onnx_op = node.op_type();
@@ -48,9 +53,9 @@ int OnnxOpConverterInstNorm::WriteTNNModel(serializer* net_writer,
     const std::string& tnn_layer_type = TNNOpType(node,net_info);
 
     //写头信息
-    net_writer->put_int(0);  //触发type from string
-    net_writer->put_string(tnn_layer_type);
-    net_writer->put_string(name);
+    net_writer->PutInt(0);  //触发type from string
+    net_writer->PutString(tnn_layer_type);
+    net_writer->PutString(name);
 
     //写数据
     const onnx::TensorProto& scale = net_info.weights_map[node.input(1)];
@@ -61,8 +66,8 @@ int OnnxOpConverterInstNorm::WriteTNNModel(serializer* net_writer,
     const float* scale_data = get_tensor_proto_data(scale);
     const float* b_data = get_tensor_proto_data(b);
 
-    WriteRawData(scale_data, channels, net_writer, net_info.data_type);
-    WriteRawData(b_data, channels, net_writer, net_info.data_type);
+    WriteRawData(scale_data, channels, net_writer, net_info.data_type, {channels});
+    WriteRawData(b_data, channels, net_writer, net_info.data_type, {channels});
 
 
     //有权值写入的返回1， 没有的返回0

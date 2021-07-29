@@ -25,5 +25,6 @@ typedef struct arm_neg_operator : arm_unary_operator {
 DECLARE_ARM_UNARY_ACC(Neg, ARM_NEG_OP);
 
 REGISTER_ARM_ACC(Neg, LAYER_NEG);
+REGISTER_ARM_LAYOUT(LAYER_NEG, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

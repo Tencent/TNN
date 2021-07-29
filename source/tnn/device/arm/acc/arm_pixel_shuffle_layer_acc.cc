@@ -14,7 +14,7 @@
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
@@ -36,8 +36,8 @@ template <typename T>
 static Status ExecFactor1(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
 
-    auto *input_ptr  = static_cast<T *>(inputs[0]->GetHandle().base);
-    auto *output_ptr = static_cast<T *>(outputs[0]->GetHandle().base);
+    auto *input_ptr  = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    auto *output_ptr = reinterpret_cast<T *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
 
     int data_byte_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
     auto size_in_bytes = input_dims[0] * ROUND_UP(input_dims[1], 4) * input_dims[2] * input_dims[3] * data_byte_size;
@@ -47,23 +47,23 @@ static Status ExecFactor1(const std::vector<Blob *> &inputs, const std::vector<B
     return TNN_OK;
 }
 
-#define PixelShufflePreparation                                         \
-    auto input_dims  = inputs[0]->GetBlobDesc().dims;                   \
-    auto output_dims = outputs[0]->GetBlobDesc().dims;                  \
-    auto ic    = input_dims[1];                                         \
-    auto ic_r4 = ROUND_UP(input_dims[1], 4);                            \
-    auto ih    = input_dims[2];                                         \
-    auto iw    = input_dims[3];                                         \
-    auto oc    = output_dims[1];                                        \
-    auto oc_r4 = ROUND_UP(output_dims[1], 4);                           \
-    auto oh    = output_dims[2];                                        \
-    auto ow    = output_dims[3];                                        \
-    auto input_plane     = ic * ih * iw;                                \
-    auto input_plane_r4  = ic_r4 * ih * iw;                             \
-    auto output_plane    = oc * oh * ow;                                \
-    auto output_plane_r4 = oc_r4 * oh * ow;                             \
-    auto *input_ptr  = static_cast<T *>(inputs[0]->GetHandle().base);   \
-    auto *output_ptr = static_cast<T *>(outputs[0]->GetHandle().base);
+#define PixelShufflePreparation                                                                                        \
+    auto input_dims      = inputs[0]->GetBlobDesc().dims;                                                              \
+    auto output_dims     = outputs[0]->GetBlobDesc().dims;                                                             \
+    auto ic              = input_dims[1];                                                                              \
+    auto ic_r4           = ROUND_UP(input_dims[1], 4);                                                                 \
+    auto ih              = input_dims[2];                                                                              \
+    auto iw              = input_dims[3];                                                                              \
+    auto oc              = output_dims[1];                                                                             \
+    auto oc_r4           = ROUND_UP(output_dims[1], 4);                                                                \
+    auto oh              = output_dims[2];                                                                             \
+    auto ow              = output_dims[3];                                                                             \
+    auto input_plane     = ic * ih * iw;                                                                               \
+    auto input_plane_r4  = ic_r4 * ih * iw;                                                                            \
+    auto output_plane    = oc * oh * ow;                                                                               \
+    auto output_plane_r4 = oc_r4 * oh * ow;                                                                            \
+    auto *input_ptr      = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));                            \
+    auto *output_ptr     = reinterpret_cast<T *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
 
 template <typename T>
 static void UnfoldPlane2x2(int oh, int ow, T *workspace_data_c, T *input_data_c) {
@@ -209,5 +209,6 @@ Status ArmPixelShuffleLayerAcc::Exec(const std::vector<Blob *> &inputs, const st
 }
 
 REGISTER_ARM_ACC(PixelShuffle, LAYER_PIXEL_SHUFFLE);
+REGISTER_ARM_LAYOUT(LAYER_PIXEL_SHUFFLE, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

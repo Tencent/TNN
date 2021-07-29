@@ -13,10 +13,11 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_reduce_layer_acc.h"
+
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
@@ -30,9 +31,9 @@ Status ArmReduceLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 }
 
 template <bool post_cal>
-void ArmReduceLayerAcc::ReduceChannel(
-        float* input_data, float* output_data, DimsVector& dims_in,
-        const int c4n, const int c4r, const Float4 axis_n, const int hw_r, const int hw_c, const int hw) {
+void ArmReduceLayerAcc::ReduceChannel(float *input_data, float *output_data, DimsVector &dims_in, const int c4n,
+                                      const int c4r, const Float4 axis_n, const int hw_r, const int hw_c,
+                                      const int hw) {
     float reduce_c = dims_in[1];
     for (int n = 0; n < dims_in[0]; n++) {
         for (int c = 0; c < c4n; c++) {
@@ -45,14 +46,14 @@ void ArmReduceLayerAcc::ReduceChannel(
                 r.set_lane(*(output_data + p + 4), 1);
                 r.set_lane(*(output_data + p + 8), 2);
                 r.set_lane(*(output_data + p + 12), 3);
-                int e      = 4;
+                int e = 4;
                 if ((c == c4n - 1) && (c4r != 0)) {
                     e = c4r;
                 }
                 for (int j = 0; j < e; j++) {
                     // t.value = v.value.val[j];
                     v.get_lane(t, j);
-                    r       = op_->Calculate(r, t);
+                    r = op_->Calculate(r, t);
                 }
                 if (c == c4n - 1) {
                     if (post_cal)
@@ -85,22 +86,26 @@ void ArmReduceLayerAcc::ReduceChannel(
     }
 }
 
+static bool NeedRepack(const DimsVector &src_dims, const DimsVector &dst_dims) {
+    return ((src_dims.size() != dst_dims.size()) && (src_dims[1] != dst_dims[1]));
+}
+
 Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<ReduceLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
 
-    auto input    = inputs[0];
-    auto output   = outputs[0];
-    auto dims_in  = input->GetBlobDesc().dims;
+    auto input   = inputs[0];
+    auto output  = outputs[0];
+    auto dims_in = input->GetBlobDesc().dims;
 
     int data_byte_size = DataTypeUtils::GetBytesSize(input->GetBlobDesc().data_type);
 
     if (input->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        auto input_data  = reinterpret_cast<float *>(input->GetHandle().base);
-        auto output_data = reinterpret_cast<float *>(output->GetHandle().base);
+        auto input_data  = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
+        auto output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
 
         if (op_->NeedPreCalculate()) {
-            auto in_count = dims_in[0] * ROUND_UP(dims_in[1], 4) * dims_in[2] * dims_in[3];
+            auto in_count = dims_in[0] * ROUND_UP(dims_in[1], 4) * DimsVectorUtils::Count(dims_in, 2);
             OMP_PARALLEL_FOR_
             for (int i = 0; i < in_count; i += 4) {
                 Float4 v = Float4::load(input_data + i);
@@ -116,20 +121,20 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             int axis = param->axis[i];
             axis     = axis >= 0 ? axis : axis + (int)dims_in.size();
 
-            auto dims_out = dims_in;
+            auto dims_out  = dims_in;
             dims_out[axis] = 1;
-            int out_count = dims_out[0] * ROUND_UP(dims_out[1], 4) * dims_out[2] * dims_out[3];
+            int out_count  = dims_out[0] * ROUND_UP(dims_out[1], 4) * DimsVectorUtils::Count(dims_out, 2);
 
             if (i == 0) {
                 input_data_a = input_data;
             } else {
                 input_data_a = output_data_a;
             }
-            if (i == param->axis.size() - 1) {
+            if (i == param->axis.size() - 1 && !NeedRepack(dims_out, output->GetBlobDesc().dims)) {
                 output_data_a = output_data;
             } else {
-                tmp_out[0] = RawBuffer(out_count * data_byte_size);
-                output_data_a = tmp_out[0].force_to<float*>();
+                tmp_out[0]    = RawBuffer(out_count * data_byte_size);
+                output_data_a = tmp_out[0].force_to<float *>();
             }
 
             bool post_cal = op_->PosCalculateOnce() ? (i == param->axis.size() - 1) : true;
@@ -141,6 +146,19 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 
             tmp_out[1] = tmp_out[0];
         }
+
+        if (NeedRepack(dims_in, output->GetBlobDesc().dims)) {
+            tmp_out[0]    = RawBuffer(ROUND_UP(DimsVectorUtils::Count(dims_in), 4) * data_byte_size);
+            auto tmp_data = tmp_out[0].force_to<float *>();
+            auto c_src    = dims_in[1];
+            auto hw_src   = DimsVectorUtils::Count(dims_in, 2);
+            auto c_dst    = output->GetBlobDesc().dims[1];
+            auto hw_dst   = DimsVectorUtils::Count(output->GetBlobDesc().dims, 2);
+            for (int b = 0; b < dims_in[0]; ++b) {
+                UnpackC4(tmp_data, output_data_a + b * ROUND_UP(c_src, 4) * hw_src, hw_src, c_src);
+                PackC4(output_data + b * ROUND_UP(c_dst, 4) * hw_dst, tmp_data, hw_dst, c_dst);
+            }
+        }
     } else {
         LOGE("Error: layer acc dont support datatype: %d\n", output->GetBlobDesc().data_type);
         return TNNERR_LAYER_ERR;
@@ -149,21 +167,15 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     return TNN_OK;
 }
 
-template<bool post_cal>
-void ArmReduceLayerAcc::ReduceOneAxis(float* input_data, float* output_data, DimsVector& dims_in,
-                                      int out_count, int axis) {
-    int channels  = dims_in[axis];
-    int outer_dim = DimsVectorUtils::Count(dims_in, 0, axis);
-    int inner_dim = DimsVectorUtils::Count(dims_in, axis + 1);
-
+template <bool post_cal>
+void ArmReduceLayerAcc::ReduceOneAxis(float *input_data, float *output_data, DimsVector &dims_in, int out_count,
+                                      int axis) {
     int c4u  = ROUND_UP(dims_in[1], 4);
     int c4n  = UP_DIV(dims_in[1], 4);
     int c4r  = dims_in[1] % 4;
-    int hw   = dims_in[2] * dims_in[3];
+    int hw   = DimsVectorUtils::Count(dims_in, 2);
     int hw_c = hw / 4;
     int hw_r = hw % 4;
-    int w4   = dims_in[3] * 4;
-    int h4   = dims_in[2] * 4;
     Float4 axis_n(dims_in[axis]);
 
     op_->DataInit(output_data, out_count);
@@ -186,40 +198,25 @@ void ArmReduceLayerAcc::ReduceOneAxis(float* input_data, float* output_data, Dim
                 r = op_->PostCalculate(r, axis_n);
             Float4::save(output_data + i, r);
         }
-    } else if (axis == 2) {
-        for (int n = 0; n < dims_in[0]; n++) {
-            for (int c = 0; c < c4n; c++) {
-                OMP_PARALLEL_FOR_
-                for (int w = 0; w < w4; w += 4) {
-                    Float4 r = op_->DataInit();
-                    for (int h = 0; h < h4; h += 4) {
-                        Float4 v = Float4::load(input_data + w + h * dims_in[3]);
-                        r = op_->Calculate(r, v);
-                    }
-                    if (post_cal)
-                        r = op_->PostCalculate(r, axis_n);
-                    Float4::save(output_data + w, r);
-                }
-                input_data += hw << 2;
-                output_data += dims_in[3] << 2;
-            }
-        }
     } else {
-        for (int n = 0; n < dims_in[0]; n++) {
-            for (int c = 0; c < c4n; c++) {
-                OMP_PARALLEL_FOR_
-                for (int h = 0; h < h4; h += 4) {
-                    Float4 r = op_->DataInit();
-                    for (int w = 0; w < w4; w += 4) {
-                        Float4 v = Float4::load(input_data + w + h * dims_in[3]);
-                        r        = op_->Calculate(r, v);
-                    }
-                    if (post_cal)
-                        r = op_->PostCalculate(r, axis_n);
-                    Float4::save(output_data + h, r);
+        int outer_dim  = dims_in[0] * c4n * DimsVectorUtils::Count(dims_in, 2, axis);
+        int reduce_dim = dims_in[axis];
+        int inner_dim  = DimsVectorUtils::Count(dims_in, axis + 1);
+        OMP_PARALLEL_FOR_
+        for (int o = 0; o < outer_dim; ++o) {
+            auto input_data_o  = input_data + o * reduce_dim * inner_dim * 4;
+            auto output_data_o = output_data + o * inner_dim * 4;
+            for (int i = 0; i < inner_dim; ++i) {
+                auto input_data_i  = input_data_o + i * 4;
+                auto output_data_i = output_data_o + i * 4;
+                Float4 res         = op_->DataInit();
+                for (int r = 0; r < reduce_dim; ++r) {
+                    Float4 val = Float4::load(input_data_i + r * inner_dim * 4);
+                    res        = op_->Calculate(res, val);
                 }
-                input_data += hw << 2;
-                output_data += dims_in[2] << 2;
+                if (post_cal)
+                    res = op_->PostCalculate(res, axis_n);
+                Float4::save(output_data_i, res);
             }
         }
     }

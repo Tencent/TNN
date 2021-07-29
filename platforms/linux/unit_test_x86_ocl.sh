@@ -10,6 +10,7 @@ DUMP_DIR=$WORK_DIR/dump_data
 
 function usage() {
     echo "-c\tClean up build folders."
+    echo "-f\tfilter"
     echo "-b\tBuild only."
 }
 function die() {
@@ -43,7 +44,7 @@ function build_x86() {
 function run_x86() {
     build_x86
     if [ $? != 0 ]; then
-        echo "build falied!"
+        echo "build failed!"
         exit 0
     fi
     if [ "" != "$BUILD_ONLY" ]; then

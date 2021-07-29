@@ -47,21 +47,7 @@ protected:
     PostFunc post_func_ = nullptr;
 
     template <typename T>
-    void PostExec(const std::vector<Blob *> &outputs) {
-        const int batch = outputs[0]->GetBlobDesc().dims[0];
-        auto dst_origin = reinterpret_cast<T *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
-        if (post_func_) {
-            OMP_PARALLEL_FOR_
-            for (int batch_idx = 0; batch_idx < batch; ++batch_idx) {
-                auto output_ptr = dst_origin + batch_idx * k_param_->ow * k_param_->oh * k_param_->oc_r4;
-                for (int dz = 0; dz < k_param_->oc_r4; dz += 4) {
-                    auto dst_z    = output_ptr + dz * k_param_->ow * k_param_->oh;
-                    float *bias_z = reinterpret_cast<float *>(k_param_->bias) + dz;
-                    post_func_(dst_z, bias_z, k_param_->ow * k_param_->oh, 1);
-                }
-            }
-        }
-    };
+    void PostExec(const std::vector<Blob *> &outputs);
 };
 
 }  // namespace TNN_NS

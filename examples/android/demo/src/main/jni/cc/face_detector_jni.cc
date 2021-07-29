@@ -212,7 +212,6 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromImage)(JNIEnv *env, j
     TNN_NS::Status status = asyncRefDetector->Predict(input, output);
     AndroidBitmap_unlockPixels(env, imageSource);
 
-    asyncRefDetector->ProcessSDKOutput(output);
     faceInfoList = dynamic_cast<TNN_NS::UltraFaceDetectorOutput *>(output.get())->face_list;
 
     if (status != TNN_NS::TNN_OK) {

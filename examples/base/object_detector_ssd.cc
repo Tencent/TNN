@@ -16,7 +16,6 @@
 #include <iostream>
 #include <algorithm>
 #include <unordered_set>
-#include <sys/time.h>
 
 namespace TNN_NS {
 
@@ -67,7 +66,7 @@ void ObjectDetectorSSD::GenerateDetectResult(std::shared_ptr<TNN_NS::Mat> output
                                              int num_detections, int image_width, int image_height) {
     float* data = reinterpret_cast<float*>(output->GetData());
     auto clip = [](float v){
-        return std::min(v>0.0?v:0.0, 1.0);
+        return (std::min)(v>0.0?v:0.0, 1.0);
     };
     
     for(int i=0; i<num_detections; ++i) {

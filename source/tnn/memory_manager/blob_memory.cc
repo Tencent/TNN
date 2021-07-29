@@ -22,6 +22,7 @@ BlobMemory::BlobMemory(AbstractDevice* device, BlobMemorySizeInfo& size_info, in
 }
 BlobMemory::~BlobMemory() {
     if (need_release_memory_) {
+        need_release_memory_ = false;
         device_->Free(handle_.base);
     }
 }
@@ -48,13 +49,11 @@ bool BlobMemory::DecrementUseCount() {
 }
 
 Status BlobMemory::AllocateHandle() {
-    void* data = NULL;
-    auto status = device_->Allocate(&data, size_info_);
+    auto status = device_->Allocate(&handle_, size_info_);
     if (status != TNN_OK) {
         return status;
     }
-    handle_.base         = data;
-    handle_.bytes_offset = 0;
+
     need_release_memory_ = true;
     return TNN_OK;
 }

@@ -31,6 +31,10 @@ public:
 private:
     void GetImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+#if TNN_ARM82
+    void GetImpHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+#endif
+
 protected:
     std::shared_ptr<ArmLayerAcc> deconv_acc_impl_           = nullptr;
     std::shared_ptr<LayerResource> deconv_acc_f32_resource_ = nullptr;

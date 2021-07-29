@@ -15,21 +15,23 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 class EluLayerTest : public LayerTest,
-                     public ::testing::WithParamInterface<std::tuple<int, int, int, float, DataType>> {};
+                     public ::testing::WithParamInterface<std::tuple<int, int, int, int, float, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, EluLayerTest,
                          ::testing::Combine(
                              // batch
-                             testing::Values(1),
+                             testing::Values(1, 2),
                              // channel Values(1, 8),
                              testing::Values(1, 4, 15),
                              // size Values(16, 19),
                              testing::Values(1, 6, 8, 13),
+                             // dim count
+                             testing::Values(2, 3, 4, 5),
                              // alpha
                              testing::Values(-1.234, 2.30, 0.564),
                              // data_type
@@ -40,11 +42,19 @@ TEST_P(EluLayerTest, EluLayer) {
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
     int input_size     = std::get<2>(GetParam());
-    float alpha        = std::get<3>(GetParam());
-    DataType data_type = std::get<4>(GetParam());
+    int dim_count      = std::get<3>(GetParam());
+    float alpha        = std::get<4>(GetParam());
+    DataType data_type = std::get<5>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
 
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev) {
+    if(CheckDataTypeSkip(data_type)) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_OPENCL == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+    if (DEVICE_HUAWEI_NPU == dev && dim_count > 4) {
         GTEST_SKIP();
     }
 
@@ -54,7 +64,8 @@ TEST_P(EluLayerTest, EluLayer) {
     param->alpha = alpha;
 
     // generate interpreter
-    std::vector<int> input_dims = {batch, channel, input_size, input_size};
+    std::vector<int> input_dims = {batch, channel};
+    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
     auto interpreter            = GenerateInterpreter("Elu", {input_dims}, param);
     Run(interpreter);
 }

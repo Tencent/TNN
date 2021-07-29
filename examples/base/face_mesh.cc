@@ -13,7 +13,6 @@
 // specific language governing permissions and limitations under the License.
 
 #include "face_mesh.h"
-#include <sys/time.h>
 #include <cmath>
 #include <fstream>
 #include <cstring>

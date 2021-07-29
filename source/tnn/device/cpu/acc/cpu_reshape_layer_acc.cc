@@ -15,34 +15,106 @@
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(Reshape, LAYER_RESHAPE);
+DECLARE_CPU_ACC_WITH_FUNC(Reshape, LAYER_RESHAPE,
+                          virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                                 const std::vector<Blob *> &outputs););
 
 Status CpuReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
+Status CpuReshapeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto *layer_param = dynamic_cast<ReshapeLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    Status status = TNN_OK;
+    auto input_dims = inputs[0]->GetBlobDesc().dims;
+    if (inputs.size() >= 2) {
+        if (inputs[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
+            return Status(TNNERR_PARAM_ERR, "Reshape input(shape) has invalid data type");
+        }
+        
+        auto dim_count = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
+        auto dim_data = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
+        DimsVector dims;
+        for (int i=0; i<dim_count; i++) {
+            dims.push_back(dim_data[i]);
+        }
+        layer_param->shape = dims;
+        layer_param->num_axes = dim_count;
+        auto output_dims = DimsFunctionUtils::Reshape(input_dims, dims, layer_param->axis, dim_count, &status);
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        outputs[0]->GetBlobDesc().dims = output_dims;
+    }
+    
+    //Adjust params to different batch\height\width with 0 and -1
+    auto shape = layer_param->shape;
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+    if (shape.size() == output_dims.size()) {
+        const auto count = MIN(output_dims.size(), input_dims.size());
+        
+        //reset 0
+        {
+            for (auto i=0; i<count; i++) {
+                if (output_dims[i]> 0 && input_dims[i] == output_dims[i] && shape[i] != -1) {
+                    shape[i] = 0;
+                }
+            }
+        }
+        
+        //reset -1
+        {
+            int non_zero_index = -1;
+            int non_zero_count = 0;
+            for (auto i=0; i<shape.size(); i++) {
+                if (shape[i] != 0) {
+                    non_zero_index = i;
+                    non_zero_count++;
+                }
+            }
+            
+            if (non_zero_count == 1) {
+                shape[non_zero_index] = -1;
+            }
+        }
+        
+        auto infer_output_dims = DimsFunctionUtils::Reshape(input_dims, shape, layer_param->axis, (int)shape.size(), &status);
+        if (status == TNN_OK && DimsVectorUtils::Equal(infer_output_dims, output_dims)) {
+            layer_param->shape = shape;
+        }
+    }
+    
+    return TNN_OK;
+}
+
 Status CpuReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto input  = inputs[0];
-    auto output = outputs[0];
-    auto param  = (ReshapeLayerParam *)param_;
+    auto &input  = inputs[0];
+    auto &output = outputs[0];
+    auto param   = (ReshapeLayerParam *)param_;
     ASSERT(param != nullptr);
     if (param->reshape_type == 0) {
         if (output->GetHandle().base != input->GetHandle().base) {
             auto dims_input    = input->GetBlobDesc().dims;
             int data_byte_size = DataTypeUtils::GetBytesSize(output->GetBlobDesc().data_type);
-            auto size_in_bytes = dims_input[0] * dims_input[1] * dims_input[2] * dims_input[3] * data_byte_size;
+            auto size_in_bytes = DimsVectorUtils::Count(dims_input) * data_byte_size;
             memcpy(output->GetHandle().base, input->GetHandle().base, size_in_bytes);
         }
     } else if (param->reshape_type == 1) {
-        // tensorflow 的数据格式是 nhwc, 但是 tnn 的数据格式是 nchw，所以reshape 算子进行转换的时候，需要进行特殊处理
-        // tflite: input(nhwc) -> reshape(1,-1,1,3) -> output(nhwc)
-        // tflite: input(nchw) -> transpose(0,2,3,1) -> reshape(1,-1,1,3) -> transpose(0, 3, 1, 2)->output(nchw)
-        DataFormatConverter::ConvertFromNCHWToNHWC<float>(input, output);
-        DataFormatConverter::ConvertFromNHWCToNCHW<float>(output, nullptr);
+        const auto dims_output = output->GetBlobDesc().dims;
+        if (dims_output.size() <= 4) {
+            // tensorflow reshape
+            DataFormatConverter::ConvertFromNCHWToNHWC<float>(input, output);
+            DataFormatConverter::ConvertFromNHWCToNCHW<float>(output, nullptr);
+        } else {
+            // tensorflow reshape does not support dims>4
+            LOGE("Error: Unsupported dim size(%d) for reshape type(%d)", (int)dims_output.size(), param->reshape_type);
+            return Status(TNNERR_MODEL_ERR, "Error: CpuReshapeLayerAcc failed!\n");
+        }
     } else {
         LOGE("Error: Unsupport reshape type(%d)", param->reshape_type);
         return Status(TNNERR_MODEL_ERR, "Error: CpuReshapeLayerAcc failed!\n");

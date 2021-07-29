@@ -20,7 +20,7 @@
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/blob_memory_size_utils.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -44,7 +44,18 @@ ArmDevice::~ArmDevice() {}
 BlobMemorySizeInfo ArmDevice::Calculate1DMemorySize(BlobDesc &desc) {
     BlobMemorySizeInfo info;
     info.data_type = desc.data_type;
-    int count      = desc.dims[0] * ROUND_UP(desc.dims[1], 4) * desc.dims[2] * desc.dims[3];
+    int count      = 1;
+    if (desc.data_format == DATA_FORMAT_NCHW || desc.data_format == DATA_FORMAT_AUTO) {
+        for (auto d : desc.dims)
+            count *= d;
+    } else {
+        // packed format
+        if (desc.data_type == DATA_TYPE_HALF) {
+            count = DimsFunctionUtils::GetDim(desc.dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(desc.dims, 1), 8) * DimsVectorUtils::Count(desc.dims, 2);
+        } else {
+            count = DimsFunctionUtils::GetDim(desc.dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(desc.dims, 1), 4) * DimsVectorUtils::Count(desc.dims, 2);
+        }
+    }
     info.dims.push_back(count);
     return info;
 }
@@ -60,8 +71,17 @@ Status ArmDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
     desc.data_format = DATA_FORMAT_NCHW;
     if (mat_type == NCHW_FLOAT) {
         desc.data_type = DATA_TYPE_FLOAT;
-    } else {
+    } else if (mat_type == RESERVED_BFP16_TEST) {
+        desc.data_type = DATA_TYPE_BFP16;
+    } else if (mat_type == RESERVED_FP16_TEST) {
+        desc.data_type = DATA_TYPE_HALF;
+    } else if (mat_type == N8UC3 || mat_type == N8UC4 || mat_type == NGRAY || mat_type == NNV21 || mat_type == NNV12 ||
+               mat_type == RESERVED_INT8_TEST) {
+        // round up to support special case like: N8UC4 with dims[1] = 3
+        desc.dims[1]   = ROUND_UP(desc.dims[1], 4);
         desc.data_type = DATA_TYPE_INT8;
+    } else if (mat_type == NC_INT32) {
+        desc.data_type = DATA_TYPE_INT32;
     }
     auto size_info = Calculate(desc);
     return Allocate(handle, size_info);
@@ -72,6 +92,20 @@ Status ArmDevice::Allocate(void **handle, BlobMemorySizeInfo &size_info) {
         int bytes_size = GetBlobMemoryBytesSize(size_info);
         *handle        = armMalloc(bytes_size + NEON_KERNEL_EXTRA_LOAD);
     }
+    return TNN_OK;
+}
+
+Status ArmDevice::Allocate(BlobHandle *handle, BlobMemorySizeInfo &size_info) {
+    void* data = nullptr;
+
+    // arm alloc extra 64 bypes for load(see NEON_KERNEL_EXTRA_LOAD)
+    auto status = Allocate(&data, size_info);
+    if (status != TNN_OK) {
+        return status;
+    }
+    handle->base         = data;
+    handle->bytes_offset = 16;
+
     return TNN_OK;
 }
 
@@ -116,6 +150,18 @@ std::shared_ptr<const ImplementedPrecision> ArmDevice::GetImplementedPrecision(L
     return std::make_shared<ImplementedPrecision>();
 }
 
+NetworkType ArmDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_DEFAULT;
+}
+
+std::shared_ptr<const ImplementedLayout> ArmDevice::GetImplementedLayout(LayerType type) {
+    auto &layer_layout_map = GetLayerLayoutMap();
+    if (layer_layout_map.count(type) > 0) {
+        return layer_layout_map[type];
+    }
+    return std::make_shared<ImplementedLayout>();
+}
+
 Context *ArmDevice::CreateContext(int device_id) {
     return new ArmContext();
 }
@@ -135,10 +181,20 @@ Status ArmDevice::RegisterLayerPrecision(LayerType type, std::shared_ptr<Impleme
     return TNN_OK;
 }
 
+Status ArmDevice::RegisterLayerLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+    GetLayerLayoutMap()[type] = layout;
+    return TNN_OK;
+}
+
 std::map<LayerType, std::shared_ptr<ImplementedPrecision>> &ArmDevice::GetLayerPrecisionMap() {
     static std::map<LayerType, std::shared_ptr<ImplementedPrecision>> layer_precision_map;
     return layer_precision_map;
-};
+}
+
+std::map<LayerType, std::shared_ptr<ImplementedLayout>> &ArmDevice::GetLayerLayoutMap() {
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
+    return layer_layout_map;
+}
 
 TypeDeviceRegister<ArmDevice> g_arm_device_register(DEVICE_ARM);
 

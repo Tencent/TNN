@@ -1,13 +1,25 @@
-// Copyright 2019 Tencent. All Rights Reserved
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
 
-#include "device/cuda/acc/cuda_softmax_layer_acc.h"
-#include <iostream>
-#include "device/cuda/cuda_utils.h"
-#include "utils/dims_vector_utils.h"
+#include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-__global__ void kernel_channel_max(const int num, const int channels, 
+DECLARE_CUDA_ACC(SoftMax, LAYER_SOFTMAX);
+
+__global__ void softmax_channel_max_kernel(const int num, const int channels, 
     const int spatial_dim, const float* data, float* out) {
     CUDA_KERNEL_LOOP(index, num*spatial_dim) {
         int n = index / spatial_dim;
@@ -20,7 +32,7 @@ __global__ void kernel_channel_max(const int num, const int channels,
     }
 }
 
-__global__ void kernel_channel_subtract_exp(const int count,
+__global__ void softmax_channel_subtract_exp_kernel(const int count,
     const int num, const int channels,
     const int spatial_dim, const float* bottom_data, const float* channel_max, float* top_data) {
     CUDA_KERNEL_LOOP(index, count) {
@@ -30,20 +42,20 @@ __global__ void kernel_channel_subtract_exp(const int count,
     }
 }
 
-__global__ void kernel_channel_sum(const int num, const int channels,
+__global__ void softmax_channel_sum_kernel(const int num, const int channels,
     const int spatial_dim, const float* data, float* channel_sum) {
     CUDA_KERNEL_LOOP(index, num * spatial_dim) {
         int n = index / spatial_dim;
         int s = index % spatial_dim;
         float sum = 0;
         for (int c = 0; c < channels; ++c) {
-            sum += data[(n * channels + c) * spatial_dim + s];
+          sum += data[(n * channels + c) * spatial_dim + s];
         }
         channel_sum[index] = sum;
     }
 }
 
-__global__ void kernel_channel_div(const int count,
+__global__ void softmax_channel_div_kernel(const int count,
     const int num, const int channels,
     const int spatial_dim, const float* channel_sum, float* data) {
     CUDA_KERNEL_LOOP(index, count) {
@@ -53,30 +65,51 @@ __global__ void kernel_channel_div(const int count,
     }
 }
 
-Status CudaSoftmaxLayerAcc::Forward(const std::vector<Blob *> &inputs,
-                                    const std::vector<Blob *> &outputs) {
-  
-    float* bottom_data  = (float*) inputs[0]->GetHandle().base;
-    float* top_data     = (float*) outputs[0]->GetHandle().base;
-
-    DimsVector input_dims  = inputs[ 0 ]->GetBlobDesc().dims;
-
-    int channels  = input_dims[axis_];
-    int count     = DimsVectorUtils::Count(input_dims); 
-
-    kernel_channel_max<<<RPD_GET_BLOCKS(outer_dim_ * inner_dim_), RPD_CUDA_NUM_THREADS, 0, context_->stream_>>>
-      (outer_dim_, channels, inner_dim_, bottom_data, workspace_);
-
-    kernel_channel_subtract_exp<<<RPD_GET_BLOCKS(count), RPD_CUDA_NUM_THREADS, 0, context_->stream_>>>
-      (count, outer_dim_, channels, inner_dim_, bottom_data, workspace_, top_data);
-
-    kernel_channel_sum<<<RPD_GET_BLOCKS(outer_dim_ * inner_dim_), RPD_CUDA_NUM_THREADS, 0, context_->stream_>>>
-      (outer_dim_, channels, inner_dim_, top_data, workspace_);
-
-    kernel_channel_div<<<RPD_GET_BLOCKS(count), RPD_CUDA_NUM_THREADS, 0, context_->stream_>>>
-      (count, outer_dim_, channels, inner_dim_, workspace_, top_data);
-
+Status CudaSoftMaxLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret = CudaLayerAcc::Init(context, param, resource, inputs, outputs);
+    if (ret != TNN_OK) {
+        return ret;
+    }
+    CreateTempBuf(DimsVectorUtils::Count(inputs[0]->GetBlobDesc().dims) * sizeof(float));
     return TNN_OK;
 }
+
+Status CudaSoftMaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+Status CudaSoftMaxLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto params = dynamic_cast<SoftmaxLayerParam *>(param_);
+    if (!params) {
+        LOGE("Error: SoftMaxLayerParam is nil\n");
+        return Status(TNNERR_MODEL_ERR, "Error: SoftMaxLayerParam is nil");
+    }
+
+    Blob *input_blob  = inputs[0];
+    Blob *output_blob = outputs[0];
+    auto dims = input_blob->GetBlobDesc().dims;
+    int count = DimsVectorUtils::Count(dims);
+    float* input_data = static_cast<float*>(input_blob->GetHandle().base);
+    float* output_data = static_cast<float*>(output_blob->GetHandle().base);
+    int axis = params->axis;
+    axis = static_cast<int>((axis + dims.size()) % dims.size());
+    int channel = dims[axis];
+    int outer_num = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, 0, axis);
+    int inner_num = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, axis + 1);
+
+    softmax_channel_max_kernel<<<TNN_CUDA_GET_BLOCKS(outer_num * inner_num), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>
+      (outer_num, channel, inner_num, input_data, (float*)tempbufs_[0].ptr);
+    softmax_channel_subtract_exp_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>
+      (count, outer_num, channel, inner_num, input_data, (float*)tempbufs_[0].ptr, output_data);
+    softmax_channel_sum_kernel<<<TNN_CUDA_GET_BLOCKS(outer_num * inner_num), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>
+      (outer_num, channel, inner_num, output_data, (float*)tempbufs_[0].ptr);
+    softmax_channel_div_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>
+      (count, outer_num, channel, inner_num, (float*)tempbufs_[0].ptr, output_data);
+    
+    return TNN_OK;
+}
+
+REGISTER_CUDA_ACC(SoftMax, LAYER_SOFTMAX);
 
 }  // namespace TNN_NS

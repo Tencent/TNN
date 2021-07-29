@@ -14,7 +14,6 @@
 
 #include "youtu_face_align.h"
 #include "tnn/utils/dims_vector_utils.h"
-#include <sys/time.h>
 
 namespace TNN_NS{
 
@@ -122,28 +121,28 @@ Status YoutuFaceAlign::Predict(std::shared_ptr<TNNSDKInput> input, std::shared_p
 #if TNN_SDK_ENABLE_BENCHMARK
     bench_result_.Reset();
     for (int fcount = 0; fcount < bench_option_.forward_count; fcount++) {
-        timeval tv_begin, tv_end;
-        gettimeofday(&tv_begin, NULL);
+        SampleTimer sample_time;
+        sample_time.Start();
 #endif
         // step 1. set input mat for phase1
         auto input_names = GetInputNames();
         RETURN_VALUE_ON_NEQ(input_names.size(), 1, Status(TNNERR_PARAM_ERR, "TNNInput number is invalid"));
         
         auto input_mat = input->GetMat();
-        std::shared_ptr<Mat> input = nullptr;
+        std::shared_ptr<Mat> input1 = nullptr;
         if (phase == 1 && prev_face == false){
             // use face region from face detector
-            input = WarpByRect(input_mat, x1, y1, x2, y2, image_h, net_scale, M);
+            input1 = WarpByRect(input_mat, x1, y1, x2, y2, image_h, net_scale, M);
         } else{
-            input = AlignN(input_mat, pre_pts, mean, image_h, image_w, net_scale, M);
+            input1 = AlignN(input_mat, pre_pts, mean, image_h, image_w, net_scale, M);
         }
         // BGR2Gray
-        input = BGRToGray(input);
+        input1 = BGRToGray(input1);
         // Normalize
         auto input_convert_param = GetConvertParamForInput();
-        auto status = instance_->SetInputMat(input, input_convert_param);
+        status = instance_->SetInputMat(input1, input_convert_param);
         RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
-        
+
         // step 2. forward phase1 model
         status = instance_->ForwardAsync(nullptr);
         if (status != TNN_NS::TNN_OK) {
@@ -153,19 +152,20 @@ Status YoutuFaceAlign::Predict(std::shared_ptr<TNNSDKInput> input, std::shared_p
 
         // step 3. get output mat of phase1 model
         output = CreateSDKOutput();
+        auto input_device_type = input_mat->GetDeviceType();
         auto output_names = GetOutputNames();
-        
         for (auto name : output_names) {
             auto output_convert_param = GetConvertParamForOutput(name);
             std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
-            status = instance_->GetOutputMat(output_mat, output_convert_param, name);
+            status = instance_->GetOutputMat(output_mat, output_convert_param, name,
+                                             TNNSDKUtils::GetFallBackDeviceType(input_device_type));
             RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             output->AddMat(output_mat, name);
         }
         
 #if TNN_SDK_ENABLE_BENCHMARK
-        gettimeofday(&tv_end, NULL);
-        double elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
+        sample_time.Stop();
+        double elapsed = sample_time.GetTime();
         bench_result_.AddTime(elapsed);
 #endif
         // post-processing
@@ -188,7 +188,7 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::WarpByRect(std::shared_ptr<TNN_NS::
     // drop forehead
     ymin  = ymin + (ymax - ymin) * 0.3;
     
-    float width = std::max(xmax - xmin, ymax - ymin) * enlarge;
+    float width = (std::max)(xmax - xmin, ymax - ymin) * enlarge;
     if(width == 0)
         width = 2.0;
     
@@ -253,10 +253,12 @@ returns:
     the image sent to the phase2 model
  */
 std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::AlignN(std::shared_ptr<TNN_NS::Mat> image, std::shared_ptr<TNN_NS::Mat> pre_pts, std::vector<float> mean_pts, int net_h, int net_w, float net_scale, std::vector<float>&M) {
+    DimsVector dims(3, 0);
     // check shape
-    auto dims = pre_pts->GetDims();
+    const int batch = pre_pts->GetDim(0);
+    dims[0] = batch;
     if(phase == 1) {
-        auto channel = dims[1];
+        auto channel = pre_pts->GetDim(1);
         dims[1] = channel / 2;
         dims[2] = 2;
     } else if(phase == 2) {
@@ -384,17 +386,27 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::AlignN(std::shared_ptr<TNN_NS::Mat>
 std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<TNN_NS::Mat> bgr_image) {
     Status status = TNN_OK;
 
-    if(bgr_image->GetMatType() != N8UC4){
+    ColorConversionType cvt_type;
+
+    if(bgr_image->GetMatType() == N8UC4) {
+        cvt_type = COLOR_CONVERT_BGRATOGRAY;
+    } else if (bgr_image->GetMatType() == N8UC3) {
+        cvt_type = COLOR_CONVERT_BGRTOGRAY;
+    } else {
         return nullptr;
     }
 
     // only arm supports bgr2gray for now, construct arm input mat when necessary
+    TNN_NS::DeviceType src_device_type = bgr_image->GetDeviceType();
+    TNN_NS::DeviceType dst_device_type = bgr_image->GetDeviceType();
+
     std::shared_ptr<TNN_NS::Mat> bgrInputMat = nullptr;
-    if (DEVICE_ARM == bgr_image->GetDeviceType()) {
+    if (DEVICE_ARM == src_device_type || DEVICE_NAIVE == src_device_type) {
         bgrInputMat = bgr_image;
-    } else if (DEVICE_METAL == bgr_image->GetDeviceType()) {
+    } else if (DEVICE_METAL == src_device_type) {
         // condtruct an arm mat
-        bgrInputMat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, bgr_image->GetMatType(), bgr_image->GetDims());
+        dst_device_type = DEVICE_ARM;
+        bgrInputMat = std::make_shared<TNN_NS::Mat>(dst_device_type, bgr_image->GetMatType(), bgr_image->GetDims());
         status = Copy(bgr_image, bgrInputMat);
         if (status != TNN_OK) {
             LOGE("Copy bgrInput Error:%s\n", status.description().c_str());
@@ -404,7 +416,7 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<TNN_NS::M
 
     auto grayDims = bgrInputMat->GetDims();
     grayDims[1] = 1;
-    auto grayMat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::NGRAY, grayDims);
+    auto grayMat = std::make_shared<TNN_NS::Mat>(dst_device_type, TNN_NS::NGRAY, grayDims);
     
     void* command_queue = nullptr;
     status = instance_->GetCommandQueue(&command_queue);
@@ -412,7 +424,7 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<TNN_NS::M
         LOGE("GetCommandQueue Error:%s\n", status.description().c_str());
         return nullptr;
     }
-    status = MatUtils::CvtColor(*(bgrInputMat.get()), *(grayMat.get()), COLOR_CONVERT_BGRATOGRAY, command_queue);
+    status = MatUtils::CvtColor(*(bgrInputMat.get()), *(grayMat.get()), cvt_type, command_queue);
     if(status != TNN_OK) {
         LOGE("CvtColor error:%s\n", status.description().c_str());
         return nullptr;
@@ -420,11 +432,11 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<TNN_NS::M
 
     // copy when necessary
     std::shared_ptr<TNN_NS::Mat> outputMat = nullptr;
-    if (DEVICE_ARM == bgr_image->GetDeviceType()) {
+    if (DEVICE_ARM == src_device_type || DEVICE_NAIVE == src_device_type ) {
         outputMat = grayMat;
-    } else {
+    } else if (DEVICE_METAL == src_device_type ) {
         // convert ngray mat to nchw_float
-        auto grayMatFloat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::NCHW_FLOAT, grayMat->GetDims());
+        auto grayMatFloat = std::make_shared<TNN_NS::Mat>(dst_device_type, TNN_NS::NCHW_FLOAT, grayMat->GetDims());
         float* grayFloatData  = static_cast<float*>(grayMatFloat->GetData());
         uint8_t* grayUintData = static_cast<uint8_t*>(grayMat->GetData());
         for(int i=0; i<grayDims[2]*grayDims[3]; ++i) {
@@ -438,7 +450,7 @@ std::shared_ptr<TNN_NS::Mat> YoutuFaceAlign::BGRToGray(std::shared_ptr<TNN_NS::M
             return nullptr;
         }
     }
-    
+
     return outputMat;
 }
 

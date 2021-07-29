@@ -24,37 +24,107 @@
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/naive_compute.h"
+#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
 #ifdef TNN_USE_NEON
-int PackNeon(float *dst, const float *src, size_t hw, size_t channel) {
-    for (int c = 0; c < channel; c += 4) {
-        auto src_c = src + c * hw;
-        auto dst_c = dst + c * hw;
-        for (int cur_hw = 0; cur_hw < hw; cur_hw += 4) {
-            float32x4x4_t v;
-            v.val[0] = vld1q_f32(src_c + cur_hw);
-            v.val[1] = vld1q_f32(src_c + cur_hw + hw * 1);
-            v.val[2] = vld1q_f32(src_c + cur_hw + hw * 2);
-            v.val[3] = vld1q_f32(src_c + cur_hw + hw * 3);
-            vst4q_f32(dst_c + cur_hw * 4, v);
-        }
-    }
-
-    return 0;
-}
 int PackNeonC3(float *dst, const float *src, size_t hw, size_t channel) {
     auto src0 = src;
     auto src1 = src + hw;
     auto src2 = src + hw * 2;
-    for (int cur_hw = 0; cur_hw < hw; cur_hw += 4) {
-        float32x4x4_t v;
+    int cur_hw = 0;
+    float32x4x4_t v;
+    v.val[3] = vdupq_n_f32(0);
+    for (; cur_hw + 3 < hw; cur_hw += 4) {
         v.val[0] = vld1q_f32(src0 + cur_hw);
         v.val[1] = vld1q_f32(src1 + cur_hw);
         v.val[2] = vld1q_f32(src2 + cur_hw);
-        v.val[3] = vdupq_n_f32(0);
         vst4q_f32(dst + cur_hw * 4, v);
+    }
+    for (; cur_hw < hw; cur_hw++) {
+        dst[cur_hw * 4 + 0] = src0[cur_hw];
+        dst[cur_hw * 4 + 1] = src1[cur_hw];
+        dst[cur_hw * 4 + 2] = src2[cur_hw];
+        dst[cur_hw * 4 + 3] = 0.f;
+    }
+
+    return 0;
+}
+int PackNeonC2(float *dst, const float *src, size_t hw, size_t channel) {
+    auto src0 = src;
+    auto src1 = src + hw;
+    int cur_hw = 0;
+    float32x4x4_t v;
+    v.val[2] = vdupq_n_f32(0);
+    v.val[3] = vdupq_n_f32(0);
+    for (; cur_hw + 3 < hw; cur_hw += 4) {
+        v.val[0] = vld1q_f32(src0 + cur_hw);
+        v.val[1] = vld1q_f32(src1 + cur_hw);
+        vst4q_f32(dst + cur_hw * 4, v);
+    }
+    for (; cur_hw < hw; cur_hw++) {
+        dst[cur_hw * 4 + 0] = src0[cur_hw];
+        dst[cur_hw * 4 + 1] = src1[cur_hw];
+        dst[cur_hw * 4 + 2] = 0.f;
+        dst[cur_hw * 4 + 3] = 0.f;
+    }
+
+    return 0;
+}
+int PackNeonC1(float *dst, const float *src, size_t hw, size_t channel) {
+    auto src0 = src;
+    int cur_hw = 0;
+    float32x4x4_t v;
+    v.val[1] = vdupq_n_f32(0);
+    v.val[2] = vdupq_n_f32(0);
+    v.val[3] = vdupq_n_f32(0);
+    for (; cur_hw + 3 < hw; cur_hw += 4) {
+        v.val[0] = vld1q_f32(src0 + cur_hw);
+        vst4q_f32(dst + cur_hw * 4, v);
+    }
+    for (; cur_hw < hw; cur_hw++) {
+        dst[cur_hw * 4 + 0] = src0[cur_hw];
+        dst[cur_hw * 4 + 1] = 0.f;
+        dst[cur_hw * 4 + 2] = 0.f;
+        dst[cur_hw * 4 + 3] = 0.f;
+    }
+
+    return 0;
+}
+int PackNeon(float *dst, const float *src, size_t hw, size_t channel) {
+    for (int c = 0; c + 3 < channel; c += 4) {
+        auto src0 = src + c * hw;
+        auto src1 = src + c * hw + hw;
+        auto src2 = src + c * hw + hw * 2;
+        auto src3 = src + c * hw + hw * 3;
+        auto dst_c = dst + c * hw;
+        int cur_hw = 0;
+        for (; cur_hw + 3 < hw; cur_hw += 4) {
+            float32x4x4_t v;
+            v.val[0] = vld1q_f32(src0 + cur_hw);
+            v.val[1] = vld1q_f32(src1 + cur_hw);
+            v.val[2] = vld1q_f32(src2 + cur_hw);
+            v.val[3] = vld1q_f32(src3 + cur_hw);
+            vst4q_f32(dst_c + cur_hw * 4, v);
+        }
+        for (; cur_hw < hw; cur_hw++) {
+            dst_c[cur_hw * 4 + 0] = src0[cur_hw];
+            dst_c[cur_hw * 4 + 1] = src1[cur_hw];
+            dst_c[cur_hw * 4 + 2] = src2[cur_hw];
+            dst_c[cur_hw * 4 + 3] = src3[cur_hw];
+        }
+    }
+    int remain = channel % 4;
+    int offset = channel / 4 * 4;
+    src += offset * hw;
+    dst += offset * hw;
+    if (remain == 3) {
+        PackNeonC3(dst, src, hw, remain);
+    } else if (remain == 2) {
+        PackNeonC2(dst, src, hw, remain);
+    } else if (remain == 1) {
+        PackNeonC1(dst, src, hw, remain);
     }
 
     return 0;
@@ -94,18 +164,93 @@ int PackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
 
     return 0;
 }
+int UnpackNeonC3(float *dst, const float *src, size_t hw, size_t channel) {
+    auto dst0 = dst;
+    auto dst1 = dst + hw;
+    auto dst2 = dst + hw * 2;
+    int cur_hw = 0;
+    float32x4x4_t v;
+    for (; cur_hw + 3 < hw; cur_hw += 4) {
+        v = vld4q_f32(src + cur_hw * 4);
+        vst1q_f32(dst0 + cur_hw, v.val[0]);
+        vst1q_f32(dst1 + cur_hw, v.val[1]);
+        vst1q_f32(dst2 + cur_hw, v.val[2]);
+    }
+    for (; cur_hw < hw; cur_hw++) {
+        dst0[cur_hw] = src[cur_hw * 4 + 0];
+        dst1[cur_hw] = src[cur_hw * 4 + 1];
+        dst2[cur_hw] = src[cur_hw * 4 + 2];
+    }
+
+    return 0;
+}
+int UnpackNeonC2(float *dst, const float *src, size_t hw, size_t channel) {
+    auto dst0 = dst;
+    auto dst1 = dst + hw;
+    int cur_hw = 0;
+    float32x4x4_t v;
+    for (; cur_hw + 3 < hw; cur_hw += 4) {
+        v = vld4q_f32(src + cur_hw * 4);
+        vst1q_f32(dst0 + cur_hw, v.val[0]);
+        vst1q_f32(dst1 + cur_hw, v.val[1]);
+    }
+    for (; cur_hw < hw; cur_hw++) {
+        dst0[cur_hw] = src[cur_hw * 4 + 0];
+        dst1[cur_hw] = src[cur_hw * 4 + 1];
+    }
+
+    return 0;
+}
+int UnpackNeonC1(float *dst, const float *src, size_t hw, size_t channel) {
+    auto dst0 = dst;
+    int cur_hw = 0;
+    float32x4_t v;
+    for (; cur_hw + 3 < hw; cur_hw += 4) {
+        v[0] = src[cur_hw * 4];
+        v[1] = src[cur_hw * 4 + 4];
+        v[2] = src[cur_hw * 4 + 4 * 2];
+        v[3] = src[cur_hw * 4 + 4 * 3];
+        vst1q_f32(dst0 + cur_hw, v);
+    }
+    for (; cur_hw < hw; cur_hw++) {
+        dst0[cur_hw] = src[cur_hw * 4 + 0];
+    }
+
+    return 0;
+}
 int UnpackNeon(float *dst, const float *src, size_t hw, size_t channel) {
     float32x4x4_t v;
-    for (int c = 0; c < channel; c += 4) {
+    for (int c = 0; c + 3 < channel; c += 4) {
+        int cur_hw = 0;
         auto src_c = src + c * hw;
-        auto dst_c = dst + c * hw;
-        for (int cur_hw = 0; cur_hw < hw; cur_hw += 4) {
+        auto dst0  = dst + c * hw;
+        auto dst1  = dst + c * hw + hw;
+        auto dst2  = dst + c * hw + hw * 2;
+        auto dst3  = dst + c * hw + hw * 3;
+        for (; cur_hw + 3 < hw; cur_hw += 4) {
             v = vld4q_f32(src_c + cur_hw * 4);
-            vst1q_f32(dst_c + cur_hw, v.val[0]);
-            vst1q_f32(dst_c + cur_hw + hw * 1, v.val[1]);
-            vst1q_f32(dst_c + cur_hw + hw * 2, v.val[2]);
-            vst1q_f32(dst_c + cur_hw + hw * 3, v.val[3]);
+            vst1q_f32(dst0 + cur_hw, v.val[0]);
+            vst1q_f32(dst1 + cur_hw, v.val[1]);
+            vst1q_f32(dst2 + cur_hw, v.val[2]);
+            vst1q_f32(dst3 + cur_hw, v.val[3]);
         }
+        for (; cur_hw < hw; cur_hw++) {
+            dst0[cur_hw] = src_c[cur_hw * 4 + 0];
+            dst1[cur_hw] = src_c[cur_hw * 4 + 1];
+            dst2[cur_hw] = src_c[cur_hw * 4 + 2];
+            dst3[cur_hw] = src_c[cur_hw * 4 + 3];
+        }
+    }
+    int remain = channel % 4;
+    int offset = channel / 4 * 4;
+    src += offset * hw;
+    dst += offset * hw;
+    if (remain == 3) {
+        UnpackNeonC3(dst, src, hw, remain);
+    } else if (remain == 2) {
+        UnpackNeonC2(dst, src, hw, remain);
+    } else if (remain == 1) {
+        UnpackNeonC1(dst, src, hw, remain);
     }
 
     return 0;
@@ -154,11 +299,7 @@ template <typename Tin, typename Tout>
 int PackC4(Tout *dst, const Tin *src, size_t hw, size_t channel) {
 #ifdef TNN_USE_NEON
     if (std::is_same<Tin, float>::value && std::is_same<Tout, float>::value) {
-        if (channel % 4 == 0 && hw % 4 == 0) {
-            return PackNeon((float *)dst, (const float *)src, hw, channel);
-        } else if (channel == 3 && hw % 4 == 0) {
-            return PackNeonC3((float *)dst, (const float *)src, hw, channel);
-        }
+        return PackNeon((float *)dst, (const float *)src, hw, channel);
     }
 #endif
     int c, cur_hw;
@@ -180,6 +321,68 @@ template int PackC4(float *dst, const float *src, size_t hw, size_t channel);
 template int PackC4(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int PackC4(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int PackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
+template int PackC4(float *dst, const fp16_t *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int PackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+#ifdef TNN_ARM82_USE_NEON
+    if (std::is_same<Tin, float>::value && std::is_same<Tout, fp16_t>::value) {
+        if (channel == 3) {
+            return PackNeonC3((fp16_t*)dst, (const float*)src, hw, channel);
+        }
+    }
+    if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, fp16_t>::value) {
+        return PackNeon((fp16_t *)dst, (const fp16_t *)src, hw, channel);
+    }
+#endif
+    int c, cur_hw;
+    int idx = 0;
+    memset(dst, 0, hw * UP_DIV(channel, 8) * 8 * sizeof(Tout));
+    for (c = 0; c < channel; ++c) {
+        int plane      = c / 8;
+        auto *dstPlane = plane * hw * 8 + dst;
+        int offset     = c % 8;
+        for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            dstPlane[8 * cur_hw + offset] = src[idx++];
+        }
+    }
+
+    return 0;
+}
+
+template int PackC8(float *dst, const float *src, size_t hw, size_t channel);
+template int PackC8(fp16_t *dst, const float *src, size_t hw, size_t channel);
+template int PackC8(float *dst, const fp16_t *src, size_t hw, size_t channel);
+template int PackC8(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int PackCX(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    if (std::is_same<Tin, float>::value && std::is_same<Tout, float>::value) {
+        return PackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, float>::value && std::is_same<Tout, bfp16_t>::value) {
+        return PackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, bfp16_t>::value && std::is_same<Tout, float>::value) {
+        return PackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, bfp16_t>::value && std::is_same<Tout, bfp16_t>::value) {
+        return PackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, float>::value && std::is_same<Tout, fp16_t>::value) {
+        return PackC8(dst, src, hw, channel);
+    } else if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, float>::value) {
+        return PackC8(dst, src, hw, channel);
+    } else if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, fp16_t>::value) {
+        return PackC8(dst, src, hw, channel);
+    } else {
+        return 0;
+    }
+}
+
+template int PackCX(float *dst, const float *src, size_t hw, size_t channel);
+template int PackCX(bfp16_t *dst, const float *src, size_t hw, size_t channel);
+template int PackCX(float *dst, const bfp16_t *src, size_t hw, size_t channel);
+template int PackCX(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
+template int PackCX(fp16_t *dst, const float *src, size_t hw, size_t channel);
+template int PackCX(float *dst, const fp16_t *src, size_t hw, size_t channel);
+template int PackCX(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
 int PackC4FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
@@ -208,6 +411,30 @@ template int PackC4FromNHWC(bfp16_t *dst, const float *src, size_t hw, size_t ch
 template int PackC4FromNHWC(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int PackC4FromNHWC(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
 
+template <typename Tin, typename Tout>
+int PackC8FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+#ifdef TNN_ARM82_USE_NEON
+    if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, fp16_t>::value) {
+        return PackNeonNHWC((fp16_t *)dst, (const fp16_t *)src, hw, channel);
+    }
+#endif
+    int c, cur_hw;
+    int idx = 0;
+    memset(dst, 0, hw * UP_DIV(channel, 8) * 8 * sizeof(Tout));
+    for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        for (c = 0; c < channel; ++c) {
+            int plane      = c / 8;
+            auto *dstPlane = plane * hw * 8 + dst;
+            int offset     = c % 8;
+            dstPlane[8 * cur_hw + offset] = src[idx++];
+        }
+    }
+
+    return 0;
+}
+
+template int PackC8FromNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
+
 int PackCAndQuant(int8_t *dst, const float *src, size_t hw, size_t channel, float *scale) {
     int idx  = 0;
     int c_r4 = ROUND_UP(channel, 4);
@@ -226,9 +453,7 @@ template <typename Tin, typename Tout>
 int UnpackC4(Tout *dst, const Tin *src, size_t hw, size_t channel) {
 #ifdef TNN_USE_NEON
     if (std::is_same<Tin, float>::value && std::is_same<Tout, float>::value) {
-        if (channel % 4 == 0 && hw % 4 == 0) {
-            return UnpackNeon((float *)dst, (const float *)src, hw, channel);
-        }
+        return UnpackNeon((float *)dst, (const float *)src, hw, channel);
     }
 #endif
     int cur_hw;
@@ -249,6 +474,125 @@ template int UnpackC4(float *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int UnpackC4(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
+
+
+bool FloatBlobCanIgnorePack(size_t channel, size_t hw) {
+    return (hw == 1) && (channel % 4 == 0);
+}
+
+bool HalfBlobCanIgnorePack(size_t channel, size_t hw) {
+    return (hw == 1) && (channel % 8 == 0);
+}
+
+int PackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw) {
+    OMP_PARALLEL_FOR_
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * ROUND_UP(channel, 4) * hw;
+        auto src_ptr_n = src + n * channel * hw;
+        PackC4(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
+int UnpackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw) {
+    OMP_PARALLEL_FOR_
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * channel * hw;
+        auto src_ptr_n = src + n * ROUND_UP(channel, 4) * hw;
+        UnpackC4(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
+int PackFloatBlob(bfp16_t *dst, bfp16_t *src, size_t batch, size_t channel, size_t hw) {
+    OMP_PARALLEL_FOR_
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * ROUND_UP(channel, 4) * hw;
+        auto src_ptr_n = src + n * channel * hw;
+        PackC4(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
+int UnpackFloatBlob(bfp16_t *dst, bfp16_t *src, size_t batch, size_t channel, size_t hw) {
+    OMP_PARALLEL_FOR_
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * channel * hw;
+        auto src_ptr_n = src + n * ROUND_UP(channel, 4) * hw;
+        UnpackC4(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
+int PackHalfBlob(fp16_t *dst, fp16_t *src, size_t batch, size_t channel, size_t hw) {
+    OMP_PARALLEL_FOR_
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * ROUND_UP(channel, 8) * hw;
+        auto src_ptr_n = src + n * channel * hw;
+        PackC8(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
+int UnpackHalfBlob(fp16_t *dst, fp16_t *src, size_t batch, size_t channel, size_t hw) {
+    OMP_PARALLEL_FOR_
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * channel * hw;
+        auto src_ptr_n = src + n * ROUND_UP(channel, 8) * hw;
+        UnpackC8(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
+template <typename Tin, typename Tout>
+int UnpackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    int cur_hw;
+    int c;
+    int idx = 0;
+    for (c = 0; c < channel; ++c) {
+        int plane         = c / 8;
+        const auto *src_c = plane * hw * 8 + src;
+        int offset        = c % 8;
+        for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            dst[idx++] = src_c[8 * cur_hw + offset];
+        }
+    }
+    return 0;
+}
+
+template int UnpackC8(float *dst, const float *src, size_t hw, size_t channel);
+template int UnpackC8(float *dst, const fp16_t *src, size_t hw, size_t channel);
+template int UnpackC8(fp16_t *dst, const float *src, size_t hw, size_t channel);
+template int UnpackC8(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int UnpackCX(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    if (std::is_same<Tin, float>::value && std::is_same<Tout, float>::value) {
+        return UnpackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, float>::value && std::is_same<Tout, bfp16_t>::value) {
+        return UnpackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, bfp16_t>::value && std::is_same<Tout, float>::value) {
+        return UnpackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, bfp16_t>::value && std::is_same<Tout, bfp16_t>::value) {
+        return UnpackC4(dst, src, hw, channel);
+    } else if (std::is_same<Tin, float>::value && std::is_same<Tout, fp16_t>::value) {
+        return UnpackC8(dst, src, hw, channel);
+    } else if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, float>::value) {
+        return UnpackC8(dst, src, hw, channel);
+    } else if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, fp16_t>::value) {
+        return UnpackC8(dst, src, hw, channel);
+    } else {
+        return 0;
+    }
+}
+
+template int UnpackCX(float *dst, const float *src, size_t hw, size_t channel);
+template int UnpackCX(bfp16_t *dst, const float *src, size_t hw, size_t channel);
+template int UnpackCX(float *dst, const bfp16_t *src, size_t hw, size_t channel);
+template int UnpackCX(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
+template int UnpackCX(fp16_t *dst, const float *src, size_t hw, size_t channel);
+template int UnpackCX(float *dst, const fp16_t *src, size_t hw, size_t channel);
+template int UnpackCX(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
 int UnpackC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
@@ -275,6 +619,28 @@ template int UnpackC4ToNHWC(float *dst, const float *src, size_t hw, size_t chan
 template int UnpackC4ToNHWC(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int UnpackC4ToNHWC(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4ToNHWC(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int UnpackC8ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+#ifdef TNN_ARM82_USE_NEON
+    if (std::is_same<Tin, fp16_t>::value && std::is_same<Tout, fp16_t>::value) {
+        return UnpackNeonNHWC((fp16_t *)dst, (const fp16_t *)src, hw, channel);
+    }
+#endif
+    int cur_hw;
+    int c;
+    int idx = 0;
+    for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        for (c = 0; c < channel; ++c) {
+            int plane         = c / 8;
+            const auto *src_c = plane * hw * 8 + src;
+            int offset        = c % 8;
+            dst[idx++] = src_c[8 * cur_hw + offset];
+        }
+    }
+    return 0;
+}
+template int UnpackC8ToNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel);
 
 int UnpackAndDequant(float *dst, const int8_t *src, size_t hw, size_t channel, float *scale, float *bias) {
     int cur_hw;
@@ -304,6 +670,20 @@ int UnpackC4WithStride(float *dst, const float *src, size_t ih, size_t iw, size_
             for (int w = 0; w < iw; w++) {
                 *dst_x_start++ = src_c[4 * (h * iw + w) + offset];
             }
+        }
+    }
+
+    return 0;
+}
+
+int UnpackHWC4ToCHW(int8_t *dst, const int8_t *src, size_t channel, size_t hw) {
+    auto c_r4 = ROUND_UP(channel, 4);
+
+    for (int c = 0; c < channel; ++c) {
+        auto src_c = src + c;
+        auto dst_c = dst + c * hw;
+        for (int z = 0; z < hw; ++z) {
+            dst_c[z] = src_c[z * c_r4];
         }
     }
 
@@ -386,6 +766,73 @@ int ConvertWeightsFromGIOHWToGOHWI16(T *src, T *dst, int group, int input_channe
 
 template int ConvertWeightsFromGIOHWToGOHWI16(float *src, float *dst, int group, int input_channel, int output_channel,
                                               int height, int width);
+
+// if gic < 8
+// to   [g][o/8][h][w][i][8]
+// from [g][i][o][h][w]
+//else
+// to   [g][o/8][h][w][i/8][64]
+// from [g][i][o][h][w]
+template <typename T>
+int ConvertWeightsFromGIOHWToGOHWI64(const T *src, T *dst, int group, int input_channel, int output_channel, int height,
+                                     int width) {
+    const int goc       = output_channel / group;
+    const int gic       = input_channel / group;
+    const int goc_8     = (goc + 7) / 8;
+    const int gic_8     = (gic + 7) / 8;
+    const int src_count = group * goc * gic * height * width;
+    int src_index = 0;
+
+    if (gic < 8) {
+        for (int g = 0; g < group; g++) {
+            auto g_dst = dst + g * goc_8 * gic * height * width * 8;  // g
+            for (int i = 0; i < gic; i++) {
+                auto i_dst = g_dst + i * 8;
+                for (int o = 0; o < goc; o++) {
+                    auto zo = o / 8, ro = o % 8;
+                    auto o_dst = i_dst + zo * height * width * gic * 8 + ro;
+                    for (int h = 0; h < height; h++) {
+                        for (int w = 0; w < width; w++) {
+                            if (src_index < src_count) {
+                                o_dst[(h * width + w) * gic * 8] = src[src_index++];
+                            } else {
+                                o_dst[(h * width + w) * gic * 8] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    for (int g = 0; g < group; g++) {
+        auto g_dst = dst + g * goc_8 * gic_8 * height * width * 64;  // g
+        for (int i = 0; i < gic; i++) {
+            auto zi = i / 8, ri = i % 8;
+            auto i_dst = g_dst + zi * 64 + ri * 8;
+            for (int o = 0; o < goc; o++) {
+                auto zo = o / 8, ro = o % 8;
+                auto o_dst = i_dst + zo * height * width * gic_8 * 64 + ro;
+                for (int h = 0; h < height; h++) {
+                    for (int w = 0; w < width; w++) {
+                        if (src_index < src_count) {
+                            o_dst[(h * width + w) * gic_8 * 64] = src[src_index++];
+                        } else {
+                            o_dst[(h * width + w) * gic_8 * 64] = 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+#if TNN_ARM82
+template int ConvertWeightsFromGIOHWToGOHWI64(const int16_t *src, int16_t *dst, int group, int input_channel, int output_channel,
+                                              int height, int width);
+#endif
 
 template <typename T>
 int ConvertWeightsC4ToC8(T *weight, int ic, int oc) {
@@ -482,6 +929,88 @@ int ConvertWeightsFromOI3HWToOHW12(T *src, T *dst, int input_channel, int output
 template int ConvertWeightsFromOI3HWToOHW12(float *src, float *dst, int input_channel, int output_channel, int height,
                                             int width);
 
+// to   [g][o/8][h][w][24]
+// from [g][o][i][h][w]
+template <typename T>
+int ConvertWeightsFromOI3HWToOHW24(const T *src, T *dst, int input_channel, int output_channel, int height, int width) {
+    const int src_count = output_channel * input_channel * height * width;
+
+    int src_index = 0;
+
+    for (int o = 0; o < output_channel; o++) {
+        auto zo = o / 8, ro = o % 8;
+        auto o_dst = dst + zo * height * width * 24 + ro;  // o/8 x 8
+        for (int i = 0; i < input_channel; i++) {
+            auto zi = i / 3, ri = i % 3;
+            auto i_dst = o_dst + zi * height * width * 24 + ri * 8;  // i x 8
+            for (int h = 0; h < height; h++) {
+                for (int w = 0; w < width; w++) {
+                    // to   [g][o/8][h][w][24]
+                    // from [g][o][i][h][w]
+                    if (src_index < src_count) {
+                        i_dst[(h * width + w) * 24] = src[src_index++];
+                    } else {
+                        i_dst[(h * width + w) * 24] = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+#if TNN_ARM82
+template int ConvertWeightsFromOI3HWToOHW24(const int16_t *src, int16_t *dst, int input_channel, int output_channel, int height, int width);
+#endif
+
+// to   [g][o/8][i/8][h][w][i8][o8]
+// from [g][o][i][h][w]
+template <typename T>
+int ConvertWeightsFromGOIHWToGOIHW64(const T *src, T *dst, int group, int input_channel, int output_channel, int height,
+                                     int width) {
+    const int goc = output_channel / group;
+    const int gic = input_channel / group;
+    const int goc_r8 = ROUND_UP(goc, 8);
+    const size_t src_count = group * goc * gic * height * width;
+    const size_t ic_step = gic * height * width;
+    const size_t hw_size = height * width;
+
+    for (int g = 0; g < group; g++) {
+        auto g_src = src + g * goc * ic_step;
+        auto g_dst = dst + g * goc_r8 * ic_step;
+        for (int oc = 0; oc < goc; oc += 8) {
+            int oc_eff = MIN(goc - oc, 8);
+            auto oc_src = g_src + oc * ic_step;
+            auto oc_dst = g_dst + oc * ic_step;
+            for (int ic = 0; ic < gic; ic += 8) {
+                int ic_eff = MIN(gic - ic, 8);
+                auto ic_src = oc_src + ic * hw_size;
+                auto ic_dst = oc_dst + ic * hw_size * 8;
+                for (int k = 0; k < hw_size; k++) {
+                    auto k_src = ic_src + k;
+                    auto k_dst = ic_dst + k * ic_eff * 8;
+                    for (int ic_i = 0; ic_i < ic_eff; ic_i++) {
+                        int oc_i = 0;
+                        for (; oc_i < oc_eff; oc_i++) {
+                            k_dst[ic_i * 8 + oc_i] = k_src[oc_i * ic_step + ic_i * hw_size];
+                        }
+                        for (; oc_i < 8; oc_i++) {
+                            k_dst[ic_i * 8 + oc_i] = 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+#if TNN_ARM82
+template int ConvertWeightsFromGOIHWToGOIHW64(const fp16_t *src, fp16_t *dst, int group, int input_channel, int output_channel, int height,
+                                     int width);
+template int ConvertWeightsFromGOIHWToGOIHW64(const int16_t *src, int16_t *dst, int group, int input_channel, int output_channel, int height,
+                                     int width);
+#endif
+
 //float
 //     r = 1.164 * (y - 16) + 1.596 * (v - 128);
 //     g = 1.164 * (y - 16) - 0.813 * (v - 128) - 0.391 * (u - 128);
@@ -504,6 +1033,10 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
         unsigned char* rgb1 = bgr + w * 3;
 #if __aarch64__
         int64_t nn = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain = w - (nn << 3);
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
@@ -590,6 +1123,10 @@ void NV12ToBGR(const unsigned char* nv12, unsigned char* bgr, int h, int w) {
         }
 #else
         int nn         = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);
@@ -692,6 +1229,10 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
         unsigned char* rgb1 = bgr + w * 3;
 #if __aarch64__
         int64_t nn = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain = w - (nn << 3);
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
@@ -778,6 +1319,10 @@ void NV21ToBGR(const unsigned char* nv21, unsigned char* bgr, int h, int w) {
         }
 #else
         int nn         = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);
@@ -880,6 +1425,10 @@ void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
         unsigned char* rgb1 = bgra + w * 4;
 #if __aarch64__
         int64_t nn = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain = w - (nn << 3);
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
@@ -970,6 +1519,10 @@ void NV12ToBGRA(const unsigned char* nv12, unsigned char* bgra, int h, int w) {
         }
 #else
         int nn         = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);
@@ -1074,6 +1627,10 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
         unsigned char* rgb1 = bgra + w * 4;
 #if __aarch64__
         int64_t nn = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain = w - (nn << 3);
 
         int16x8_t _q1135 = vdupq_n_s16(1135);
@@ -1164,6 +1721,10 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
         }
 #else
         int nn         = w >> 3;
+        if (nn > 0) {
+            // avoid prefetch cross border
+            nn -= 1;
+        }
         int remain     = w - (nn << 3);
         short _s1135   = 1135;
         int8x8_t _v74  = vdup_n_s8(74);
@@ -1256,12 +1817,12 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
 
 #ifdef TNN_USE_NEON
 
-#define CVTGRAYIMPL(n)                                                  \
+#define CVTGRAYIMPL(n, bgr_order)                                       \
     uint8x8x##n##_t _Src;                                               \
     _Src  = vld##n##_u8(Sp);                                            \
-    _Bh   = vmovl_u8(_Src.val[0]);                                      \
+    _Bh   = vmovl_u8(_Src.val[bgr_order ? 0 : 2]);                      \
     _Gh   = vmovl_u8(_Src.val[1]);                                      \
-    _Rh   = vmovl_u8(_Src.val[2]);                                      \
+    _Rh   = vmovl_u8(_Src.val[bgr_order ? 2 : 0]);                      \
     _Bval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Bh)));                \
     _Gval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Gh)));                \
     _Rval = vcvtq_f32_u32(vmovl_u16(vget_low_u16(_Rh)));                \
@@ -1280,10 +1841,10 @@ void NV21ToBGRA(const unsigned char* nv21, unsigned char* bgra, int h, int w) {
 
 #endif  // TNN_USE_NEON
 
-template <int channel>
-void BGROrBGRAToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
+template <int channel, bool bgr_order>
+void ColorToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
 #ifndef TNN_USE_NEON
-    NaiveBGROrBGRAToGray(bgr, gray, h, w, channel);
+    NaiveColorToGray(bgr, gray, h, w, channel, bgr_order);
 #else
     int offset = 0;
     int plane  = h * w;
@@ -1298,9 +1859,9 @@ void BGROrBGRAToGray(const unsigned char* bgr, unsigned char* gray, int h, int w
     uint16x4_t _acc0, _acc1;
     for (; offset < plane>>3<<3; offset += 8) {
         if (channel == 3) {
-            CVTGRAYIMPL(3);
+            CVTGRAYIMPL(3, bgr_order);
         } else {
-            CVTGRAYIMPL(4);
+            CVTGRAYIMPL(4, bgr_order);
         }
         Sp   += 8 * channel;
         Dp   += 8;
@@ -1310,9 +1871,9 @@ void BGROrBGRAToGray(const unsigned char* bgr, unsigned char* gray, int h, int w
     }
 
     for (; offset < plane; ++offset) {
-        unsigned b = bgr[offset * channel + 0];
+        unsigned b = bgr[offset * channel + (bgr_order ? 0 : 2)];
         unsigned g = bgr[offset * channel + 1];
-        unsigned r = bgr[offset * channel + 2];
+        unsigned r = bgr[offset * channel + (bgr_order ? 2 : 0)];
         float gray_color = 0.114 * b + 0.587 * g + 0.299 * r;
         gray[offset] = gray_color;
     }
@@ -1320,11 +1881,19 @@ void BGROrBGRAToGray(const unsigned char* bgr, unsigned char* gray, int h, int w
 }
 
 void BGRToGray(const unsigned char* bgr, unsigned char* gray, int h, int w) {
-    BGROrBGRAToGray<3>(bgr, gray, h, w);
+    ColorToGray<3, true>(bgr, gray, h, w);
 }
 
 void BGRAToGray(const unsigned char* bgra, unsigned char* gray, int h, int w) {
-    BGROrBGRAToGray<4>(bgra, gray, h, w);
+    ColorToGray<4, true>(bgra, gray, h, w);
+}
+
+void RGBToGray(const unsigned char* rgb, unsigned char* gray, int h, int w) {
+    ColorToGray<3, false>(rgb, gray, h, w);
+}
+
+void RGBAToGray(const unsigned char* rgba, unsigned char* gray, int h, int w) {
+    ColorToGray<4, false>(rgba, gray, h, w);
 }
 
 #ifdef TNN_USE_NEON

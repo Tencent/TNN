@@ -40,6 +40,8 @@ def do_optimize(onnx_net_path, input_shape):
     try:
         import onnx2tnn.onnx_optimizer.onnx_optimizer as opt
     except ImportError:
+        import onnx_optimizer.onnx_optimizer as opt
+    else:
         print("\n\n t fail")
         os.system(sys.executable + " onnx_optimizer " + onnx_net_path)
         return
@@ -57,7 +59,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('onnx_model_path', help='Input ONNX model path')
     parser.add_argument('-version', help='Algorithm version string')
-    parser.add_argument('-optimize', help='Optimize model befor convert, 1:default yes, 0:no')
+    parser.add_argument('-optimize', help='If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result')
     parser.add_argument('-half', help='Save model using half, 1:yes, 0:default no')
     parser.add_argument('-o',
                         dest='output_dir',
@@ -67,6 +69,7 @@ def main():
     parser.add_argument('-input_shape', 
                         required=False, 
                         action='store',
+                        nargs='+',
                         help='manually-set static input shape, useful when the input shape is dynamic')
     args = parser.parse_args()
     onnx_net_path = args.onnx_model_path
@@ -74,7 +77,11 @@ def main():
     algo_optimize = args.optimize
     model_half = args.half
     output_dir = args.output_dir
-    input_shape = args.input_shape
+    input_shape = ""
+    if args.input_shape is not None:
+        input_shape = ""
+        for item in args.input_shape:
+            input_shape += (item + " ")
 
     if onnx_net_path is None:
         print('Please make sure the onnx model path is correct!')
@@ -112,13 +119,22 @@ def main():
         print("1.----onnx_optimizer: " + onnx_net_path)
         do_optimize(onnx_net_path, input_shape)
 
+        if os.path.exists(onnx_net_opt_path) is False:
+            print("1.----onnx_optimizer:  onnx_simplifier.py failed, onnx2tnn will try to convert the orignal onnx model")
+            onnx_net_opt_path = onnx_net_path
+
     # os.access('/python/test.py',os.F_OK)
     print("2.----onnx2tnn: " + onnx_net_opt_path)
     file_time = time.strftime("%Y%m%d %H:%M:%S", time.localtime())
     status = 0
 
     try:
-        status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time, 0 if model_half == '0' else 1)
+        if input_shape is None:
+            input_shape = ""
+        status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time,
+                                  0 if model_half == '0' else 1,
+                                  1 if algo_optimize != '0' else 0,
+                                  input_shape)
     except Exception as err:
         status = -1
         traceback.print_exc()

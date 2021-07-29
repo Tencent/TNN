@@ -5,8 +5,8 @@ __kernel void ConvertFromNCHW(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
                               __private const int height,
                               __private const int width,
                               __private const int channels,
-                              __constant float* scale,
-                              __constant float* bias) {
+                              __global const float* scale,
+                              __global const float* bias) {
     int image_width_idx  = get_global_id(0);
     int image_height_idx = get_global_id(1);
 
@@ -66,6 +66,95 @@ __kernel void ConvertFromNCHW(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
 #ifdef ENABLE_SCALE_BIAS
         output_values.x = output_values.x * scale[channel_4_idx] + bias[channel_4_idx];
 #endif
+    }
+
+    write_imagef(output, (int2)(image_width_idx, image_height_idx),
+                 output_values);
+}
+
+__kernel void IntBlobConvertFromNCINT32(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
+                                        __global const int *input_ptr,
+                                        __private const int height,
+                                        __private const int width,
+                                        __private const int channels,
+                                        __global const float* scale,
+                                        __global const float* bias) {
+    int image_width_idx  = get_global_id(0);
+    int image_height_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(image_width_idx, image_height_idx);
+
+    const int batch_idx     = image_height_idx / height;
+    const int height_idx    = image_height_idx % height;
+    const int width_idx     = image_width_idx % width;
+    const int channel_4_idx = (image_width_idx / width) << 2;
+    const int buffer_offset =
+        ((batch_idx * channels + channel_4_idx) * height + height_idx) * width +
+        width_idx;
+
+    const int remain_channel    = channels - channel_4_idx;
+    const int height_width_size = height * width;
+    int4 output_values        = 0;
+
+    if (remain_channel >= 4) {
+        int offset      = buffer_offset;
+        output_values.x = *(input_ptr + offset);
+        offset += height_width_size;
+        output_values.y = *(input_ptr + offset);
+        offset += height_width_size;
+        output_values.z = *(input_ptr + offset);
+        offset += height_width_size;
+        output_values.w = *(input_ptr + offset);
+    } else if (remain_channel == 3) {
+        int offset      = buffer_offset;
+        output_values.x = *(input_ptr + offset);
+        offset += height_width_size;
+        output_values.y = *(input_ptr + offset);
+        offset += height_width_size;
+        output_values.z = *(input_ptr + offset);
+    } else if (remain_channel == 2) {
+        int offset      = buffer_offset;
+        output_values.x = *(input_ptr + offset);
+        offset += height_width_size;
+        output_values.y = *(input_ptr + offset);
+    } else if (remain_channel == 1) {
+        int offset      = buffer_offset;
+        output_values.x = *(input_ptr + offset);
+    }
+
+    write_imagei(output, (int2)(image_width_idx, image_height_idx),
+                 output_values);
+}
+
+__kernel void CNH4BlobConvertFromNCHW(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
+                                      __global const float *input_ptr,
+                                      __private const int height,
+                                      __private const int batch,
+                                      __private const int channels,
+                                      __global const float* scale,
+                                      __global const float* bias) {
+    int image_width_idx  = get_global_id(0);
+    int image_height_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(image_width_idx, image_height_idx);
+
+    const int batch_idx     = image_height_idx % batch;
+    const int channel_idx   = image_height_idx / batch;
+    const int height_4_idx  = image_width_idx << 2;
+    int buffer_offset =
+        (batch_idx * channels + channel_idx) * height + height_4_idx;
+
+    const int remain_height = height - height_4_idx;
+    float4 output_values        = 0;
+    int offset      = buffer_offset;
+    if (remain_height >= 4) {
+        output_values = vload4(0, input_ptr + offset);
+    } else if (remain_height == 3) {
+        output_values.xyz = vload3(0, input_ptr + offset);
+    } else if (remain_height == 2) {
+        output_values.xy = vload2(0, input_ptr + offset);
+    } else if (remain_height == 1) {
+        output_values.x = input_ptr[offset];
     }
 
     write_imagef(output, (int2)(image_width_idx, image_height_idx),

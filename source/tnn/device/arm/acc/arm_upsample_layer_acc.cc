@@ -15,10 +15,9 @@
 #include "tnn/device/arm/acc/arm_upsample_layer_acc.h"
 
 #include "math.h"
-
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -200,6 +199,237 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
             }
         }
     }
+
+    return 0;
+}
+
+// cubic interpolate weights
+static void get_cubic_weights(float coor, float *coeffs) {
+    // opencv uses -0.75
+    static const float A = -0.75f;
+    float x              = coor - std::floor(coor);
+
+    coeffs[0] = ((A * (x + 1) - 5 * A) * (x + 1) + 8 * A) * (x + 1) - 4 * A;
+    coeffs[1] = ((A + 2) * x - (A + 3)) * x * x + 1;
+    coeffs[2] = ((A + 2) * (1 - x) - (A + 3)) * (1 - x) * (1 - x) + 1;
+    coeffs[3] = 1.f - coeffs[0] - coeffs[1] - coeffs[2];
+}
+
+static inline void get_cubic_pos_coeffs(int *h_pos_ptr, int *w_pos_ptr, float *h_coeffs_ptr, float *w_coeffs_ptr,
+                                        int ih, int iw, int oh, int ow, bool align_corners) {
+#define ClipC4(x, X) (((x) >= 0 ? ((x) < (X) ? (x) : ((X)-1)) : 0) * 4)
+#define SET_POS4(ptr, x, X)                                                                                            \
+    ptr[0] = ClipC4(x - 1, X);                                                                                         \
+    ptr[1] = ClipC4(x, X);                                                                                             \
+    ptr[2] = ClipC4(x + 1, X);                                                                                         \
+    ptr[3] = ClipC4(x + 2, X);                                                                                         \
+    ptr += 4;
+
+    auto h_pos4_ptr = h_pos_ptr + oh;
+    auto w_pos4_ptr = w_pos_ptr + ow;
+    if (align_corners) {
+        const float rheight = (oh > 1) ? (float)(ih - 1) / (oh - 1) : 0.f;
+        const float rwidth  = (ow > 1) ? (float)(iw - 1) / (ow - 1) : 0.f;
+        for (int h = 0; h < oh; ++h) {
+            auto h1      = std::floor(static_cast<float>(h * rheight));
+            h_pos_ptr[h] = h1;
+            SET_POS4(h_pos4_ptr, h1, ih);
+            get_cubic_weights(h * rheight, h_coeffs_ptr + h * 4);
+        }
+        for (int w = 0; w < ow; ++w) {
+            auto w1      = std::floor(static_cast<float>(w * rwidth));
+            w_pos_ptr[w] = w1;
+            SET_POS4(w_pos4_ptr, w1, iw);
+            get_cubic_weights(w * rwidth, w_coeffs_ptr + w * 4);
+        }
+    } else {
+        const float rheight = (oh > 1) ? (float)(ih) / (oh) : 0.f;
+        const float rwidth  = (ow > 1) ? (float)(iw) / (ow) : 0.f;
+        for (int h = 0; h < oh; ++h) {
+            auto h1      = std::floor(static_cast<float>(rheight * (h + 0.5) - 0.5));
+            h_pos_ptr[h] = h1;
+            SET_POS4(h_pos4_ptr, h1, ih);
+            get_cubic_weights(rheight * (h + 0.5) - 0.5, h_coeffs_ptr + h * 4);
+        }
+        for (int w = 0; w < ow; ++w) {
+            auto w1      = std::floor(static_cast<float>(rwidth * (w + 0.5) - 0.5));
+            w_pos_ptr[w] = w1;
+            SET_POS4(w_pos4_ptr, w1, iw);
+            get_cubic_weights(rwidth * (w + 0.5) - 0.5, w_coeffs_ptr + w * 4);
+        }
+    }
+#undef SET_POS4
+#undef ClipC4
+}
+
+struct UpsampleCubicKernelParm {
+    UpsampleCubicKernelParm(float **rows0_t_, float **rows1_t_, float **rows2_t_, float **rows3_t_, int *prev_h1_,
+                            int *h_pos_ptr_, int *w_pos_ptr_, int *h_pos4_ptr_, int *w_pos4_ptr_) {
+        rows0_t    = rows0_t_;
+        rows1_t    = rows1_t_;
+        rows2_t    = rows2_t_;
+        rows3_t    = rows3_t_;
+        prev_h1    = prev_h1_;
+        h_pos_ptr  = h_pos_ptr_;
+        w_pos_ptr  = w_pos_ptr_;
+        h_pos4_ptr = h_pos4_ptr_;
+        w_pos4_ptr = w_pos4_ptr_;
+    };
+
+    float **rows0_t;
+    float **rows1_t;
+    float **rows2_t;
+    float **rows3_t;
+    int *prev_h1;
+    int *h_pos_ptr;
+    int *w_pos_ptr;
+    int *h_pos4_ptr;
+    int *w_pos4_ptr;
+};
+
+static inline int upsample_cubic2d(float *output_data, const float *input_data, int batch, int ih, int iw, int oh,
+                                   int ow, int c_4, bool align_corners) {
+    auto src_z_step = iw * ih * 4;
+    auto dst_z_step = ow * oh * 4;
+    auto src_y_step = iw * 4;
+    auto src_plane  = iw * ih * c_4 * 4;
+    auto dst_plane  = ow * oh * c_4 * 4;
+
+    RawBuffer h_coeffs(oh * sizeof(float) * 4);
+    RawBuffer w_coeffs(ow * sizeof(float) * 4);
+    auto h_coeffs_ptr = h_coeffs.force_to<float *>();
+    auto w_coeffs_ptr = w_coeffs.force_to<float *>();
+    RawBuffer h_pos(5 * oh * sizeof(float));
+    RawBuffer w_pos(5 * ow * sizeof(float));
+    auto h_pos_ptr = h_pos.force_to<int *>();
+    auto w_pos_ptr = w_pos.force_to<int *>();
+
+    get_cubic_pos_coeffs(h_pos_ptr, w_pos_ptr, h_coeffs_ptr, w_coeffs_ptr, ih, iw, oh, ow, align_corners);
+
+    auto h_pos4_ptr = h_pos_ptr + oh;
+    auto w_pos4_ptr = w_pos_ptr + ow;
+
+#define ROW_CAL_START                                                                                                  \
+    const int w1  = param.w_pos_ptr[w2];                                                                               \
+    const int *wp = param.w_pos4_ptr + 4 * w2;                                                                         \
+    auto w_lambda = Float4::load(w_coeffs_ptr + 4 * w2);
+#define ROW_CAL(src, dst)                                                                                               \
+    auto Xdata##src = input_z + hp[dst] * iw;                                                                           \
+    auto row_##dst  = Float4::load(Xdata##src + wp[0]) * w_lambda[0] + Float4::load(Xdata##src + wp[1]) * w_lambda[1] + \
+                     Float4::load(Xdata##src + wp[2]) * w_lambda[2] + Float4::load(Xdata##src + wp[3]) * w_lambda[3];   \
+    Float4::save(param.rows##dst##_t[thread_id] + buf_offset, row_##dst);
+
+    // loop body
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    int buf_count       = ow * 4 * max_num_threads;
+    RawBuffer workspace(4 * buf_count * sizeof(float));
+    float *rows0 = workspace.force_to<float *>();
+    float *rows1 = rows0 + buf_count;
+    float *rows2 = rows1 + buf_count;
+    float *rows3 = rows2 + buf_count;
+    float *rows0_t[max_num_threads];
+    float *rows1_t[max_num_threads];
+    float *rows2_t[max_num_threads];
+    float *rows3_t[max_num_threads];
+    int prev_h1[max_num_threads];
+
+    UpsampleCubicKernelParm param(rows0_t, rows1_t, rows2_t, rows3_t, prev_h1, h_pos_ptr, w_pos_ptr, h_pos4_ptr,
+                                  w_pos4_ptr);
+
+    for (int b = 0; b < batch; ++b) {
+        auto input_b  = input_data + b * src_plane;
+        auto output_b = output_data + b * dst_plane;
+
+        for (int z = 0; z < c_4; z++) {
+            auto input_z  = input_b + z * src_z_step;
+            auto output_z = output_b + z * dst_z_step;
+
+            for (int t = 0; t < max_num_threads; ++t) {
+                prev_h1[t] = INT_MIN;
+                rows0_t[t] = rows0 + t * (ow * 4);
+                rows1_t[t] = rows1 + t * (ow * 4);
+                rows2_t[t] = rows2 + t * (ow * 4);
+                rows3_t[t] = rows3 + t * (ow * 4);
+            }
+
+            OMP_PARALLEL_FOR_
+            for (int h2 = 0; h2 < oh; ++h2) {
+                int thread_id  = OMP_TID_;
+                const int h1   = param.h_pos_ptr[h2];
+                const int *hp  = param.h_pos4_ptr + 4 * h2;
+                int buf_offset = 0;
+
+                int diff_h = h1 - prev_h1[thread_id];
+
+                if (diff_h == 0) {
+                    // reuse all rows
+                } else if (diff_h == 1) {
+                    auto rows_tmp            = param.rows0_t[thread_id];
+                    param.rows0_t[thread_id] = param.rows1_t[thread_id];
+                    param.rows1_t[thread_id] = param.rows2_t[thread_id];
+                    param.rows2_t[thread_id] = param.rows3_t[thread_id];
+                    param.rows3_t[thread_id] = rows_tmp;
+                    for (int w2 = 0; w2 < ow; ++w2) {
+                        ROW_CAL_START;
+                        ROW_CAL(0, 3);
+                        buf_offset += 4;
+                    }
+                } else if (diff_h == 2) {
+                    auto rows_tmp            = param.rows0_t[thread_id];
+                    param.rows0_t[thread_id] = param.rows2_t[thread_id];
+                    param.rows2_t[thread_id] = rows_tmp;
+                    rows_tmp                 = param.rows1_t[thread_id];
+                    param.rows1_t[thread_id] = param.rows3_t[thread_id];
+                    param.rows3_t[thread_id] = rows_tmp;
+                    for (int w2 = 0; w2 < ow; ++w2) {
+                        ROW_CAL_START;
+                        ROW_CAL(0, 2);
+                        ROW_CAL(1, 3);
+                        buf_offset += 4;
+                    }
+                } else if (diff_h == 3) {
+                    auto rows_tmp            = param.rows0_t[thread_id];
+                    param.rows0_t[thread_id] = param.rows3_t[thread_id];
+                    param.rows3_t[thread_id] = param.rows2_t[thread_id];
+                    param.rows2_t[thread_id] = param.rows1_t[thread_id];
+                    param.rows1_t[thread_id] = rows_tmp;
+                    for (int w2 = 0; w2 < ow; ++w2) {
+                        ROW_CAL_START;
+                        ROW_CAL(0, 1);
+                        ROW_CAL(1, 2);
+                        ROW_CAL(2, 3);
+                        buf_offset += 4;
+                    }
+                } else {
+                    for (int w2 = 0; w2 < ow; ++w2) {
+                        ROW_CAL_START;
+                        ROW_CAL(0, 0);
+                        ROW_CAL(1, 1);
+                        ROW_CAL(2, 2);
+                        ROW_CAL(3, 3);
+                        buf_offset += 4;
+                    }
+                }
+                param.prev_h1[thread_id] = h1;
+
+                auto h_lambda = Float4::load(h_coeffs_ptr + 4 * h2);
+                buf_offset    = 0;
+                for (int w2 = 0; w2 < ow; ++w2) {
+                    float *Ydata = output_z + h2 * ow * 4 + w2 * 4;
+                    Float4::save(Ydata, Float4::load(param.rows0_t[thread_id] + buf_offset) * h_lambda[0] +
+                                            Float4::load(param.rows1_t[thread_id] + buf_offset) * h_lambda[1] +
+                                            Float4::load(param.rows2_t[thread_id] + buf_offset) * h_lambda[2] +
+                                            Float4::load(param.rows3_t[thread_id] + buf_offset) * h_lambda[3]);
+
+                    buf_offset += 4;
+                    Ydata += dst_z_step;
+                }
+            }
+        }
+    }
+
+#undef TROW_CAL
+#undef ROW_CAL_START
 
     return 0;
 }
@@ -659,6 +889,10 @@ static int upsample_bilinear2d(int8_t *output_data, const int8_t *input_data, in
 
 ArmUpsampleLayerAcc::~ArmUpsampleLayerAcc() {}
 
+bool ArmUpsampleLayerAcc::UseNaiveConstantBlobs() {
+    return true;
+}
+
 Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<UpsampleLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
@@ -746,6 +980,13 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         } else {
             return Status(TNNERR_LAYER_ERR, "Error: Not supported data type for upsample bilinear");
         }
+    } else if (param->mode == 3) {  // cubic
+        if (data_type == DATA_TYPE_FLOAT) {
+            upsample_cubic2d(output_data, input_data, batch, dims_input[2], dims_input[3], dims_output[2],
+                             dims_output[3], oc_4, (bool)param->align_corners);
+        } else {
+            return Status(TNNERR_LAYER_ERR, "Error: Not supported data type for upsample cubic");
+        }
     } else {
         LOGE("Error: Upsample dont support resize mode\n");
         return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize mode");
@@ -755,5 +996,6 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
 }
 
 REGISTER_ARM_ACC(Upsample, LAYER_UPSAMPLE)
+REGISTER_ARM_LAYOUT(LAYER_UPSAMPLE, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

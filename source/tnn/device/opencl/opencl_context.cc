@@ -17,9 +17,11 @@
 #include "tnn/device/opencl/opencl_utils.h"
 #include "tnn/utils/string_format.h"
 
-#include "sys/time.h"
+#include <fstream>
 
 namespace TNN_NS {
+
+std::mutex OpenCLContext::s_mutex_;
 
 OpenCLContext::OpenCLContext() : Context() {
     // Get OpenCL Runtime
@@ -51,13 +53,17 @@ cl::CommandQueue* OpenCLContext::CommandQueue() {
     return command_queue_.get();
 }
 
+cl::CommandQueue* OpenCLContext::TuneCommandQueue() {
+    return tune_command_queue_.get();
+}
+
+OpenCLProfilingData::~OpenCLProfilingData() {}
+
 #if TNN_PROFILE
 void OpenCLContext::StartProfile() {
     Context::StartProfile();
     profiling_result_ = std::make_shared<OpenCLProfileResult>();
 }
-
-OpenCLProfilingData::~OpenCLProfilingData() {}
 
 OpenCLProfileResult::~OpenCLProfileResult() {}
 
@@ -155,13 +161,99 @@ Status OpenCLContext::OnInstanceForwardEnd() {
     return TNN_OK;
 }
 
-// synchronize will wait until the comman queue finish
+// this function is called before Reshape by Network.
+Status OpenCLContext::OnInstanceReshapeBegin() {
+    if (enable_tune_kernel_) {
+        cl_int err;
+        cl_command_queue_properties properties = properties_ | CL_QUEUE_PROFILING_ENABLE;
+        tune_command_queue_ = std::make_shared<cl::CommandQueue>(*opencl_runtime_->Context(),
+                                                                 *opencl_runtime_->Device(), properties, &err);
+        if (err != CL_SUCCESS) {
+            LOGE("Command Queue create failed! (ERROR CODE: %d)\n", err);
+            return Status(TNNERR_DEVICE_CONTEXT_CREATE, "Command Queue create failed!");
+        }
+
+        //read tune map
+        if(!cache_file_path_.empty() && local_size_tune_map_.empty()) {
+            std::lock_guard<std::mutex> lock(s_mutex_);
+            std::ifstream cache_stream(cache_file_path_);
+            std::string key;
+            uint32_t cache_map_size;
+            uint32_t local_size_length;
+            uint32_t local_value;
+            bool tune_file_error = false;
+            if (cache_stream.is_open() && cache_stream.good()) {
+                cache_stream >> cache_map_size;
+                if(cache_stream.good()) {
+                    for (int i = 0; i < cache_map_size; ++i) {
+                        std::vector<uint32_t> local_size;
+                        cache_stream >> key >> local_size_length;
+                        for (int i = 0; i < local_size_length; ++i) {
+                            cache_stream >> local_value;
+                            local_size.push_back(local_value);
+                        }
+                        if(cache_stream.good()) {
+                            local_size_tune_map_.insert(make_pair(key, local_size));
+                        } else {
+                            local_size_tune_map_.clear();
+                            break;
+                        }
+                    }
+                }
+                cache_stream.close();
+            }
+        }
+
+        tune_map_size_ = local_size_tune_map_.size();
+    }
+    return TNN_OK;
+}
+
+// this function is called after Reshape by Network.
+Status OpenCLContext::OnInstanceReshapeEnd() {
+    if (enable_tune_kernel_) {
+        tune_command_queue_ = nullptr;
+        if (!cache_file_path_.empty() && local_size_tune_map_.size() > tune_map_size_) {
+            std::lock_guard<std::mutex> lock(s_mutex_);
+            tune_map_size_ = local_size_tune_map_.size();
+            std::ofstream cache_stream(cache_file_path_);
+            if (cache_stream.is_open()) {
+                cache_stream << local_size_tune_map_.size() << std::endl;
+                for (auto element : local_size_tune_map_) {
+                    std::string key                  = element.first;
+                    std::vector<uint32_t> local_size = element.second;
+                    cache_stream << key << " " << local_size.size();
+                    for (int i = 0; i < local_size.size(); ++i) {
+                        cache_stream << " " << local_size[i];
+                    }
+                    cache_stream << std::endl;
+                    if(!cache_stream.good()) {
+                        break;
+                    }
+                }
+                cache_stream.close();
+            }
+        }
+    }
+
+    if (opencl_runtime_ == nullptr) {
+        return Status(TNNERR_OPENCL_RUNTIME_ERROR, "opencl_runtime is nullptr");
+    }
+
+    Status ret = opencl_runtime_->SaveProgramCache();
+    if (ret != TNN_OK) {
+        LOGE("save program cache failed, ret: %d, msg: %s\n", (int)ret, ret.description().c_str());
+    }
+    return TNN_OK;
+}
+
+// synchronize will wait until the command queue finish
 Status OpenCLContext::Synchronize() {
     cl_int result = command_queue_->finish();
     if (result == 0) {
         return TNN_OK;
     } else {
-        return Status(TNNERR_OPENCL_FINISH_ERROR, "command queue finish falied");
+        return Status(TNNERR_OPENCL_FINISH_ERROR, "command queue finish failed");
     }
 }
 
@@ -177,20 +269,22 @@ Status OpenCLContext::Init() {
         return Status(TNNERR_OPENCL_RUNTIME_ERROR, "opencl_runtime is nullptr");
     }
 
+    // set cache path for opencl runtime
+    opencl_runtime_->SetCachePath(cache_path_);
+
     Status status = opencl_runtime_->Init();
     if (status != TNN_OK) {
         LOGE("OpenCL Runtime Init() failed (ret = %d)!\n", (int)status);
         return status;
     }
 
-    cl_command_queue_properties properties = 0;
 #if TNN_PROFILE
-    properties |= CL_QUEUE_PROFILING_ENABLE;
+    properties_ |= CL_QUEUE_PROFILING_ENABLE;
 #endif
 
     cl_int err;
     command_queue_ =
-        std::make_shared<cl::CommandQueue>(*opencl_runtime_->Context(), *opencl_runtime_->Device(), properties, &err);
+        std::make_shared<cl::CommandQueue>(*opencl_runtime_->Context(), *opencl_runtime_->Device(), properties_, &err);
     if (err != CL_SUCCESS) {
         LOGE("Command Queue create failed! (ERROR CODE: %d)\n", err);
         return Status(TNNERR_DEVICE_CONTEXT_CREATE, "Command Queue create failed!");
@@ -210,5 +304,10 @@ Status OpenCLContext::Init() {
 std::shared_ptr<cl::CommandQueue> OpenCLContext::GetCommandQueue() {
     return command_queue_; 
 }
+
+std::map<std::string, std::vector<uint32_t>>& OpenCLContext::GetLocalSizeTuneMap() {
+    return local_size_tune_map_;
+}
+
 
 }  // namespace TNN_NS

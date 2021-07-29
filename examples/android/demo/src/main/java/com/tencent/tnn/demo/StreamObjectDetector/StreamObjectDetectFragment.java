@@ -337,9 +337,6 @@ public class StreamObjectDetectFragment extends BaseFragment {
                     public void onPreviewFrame(byte[] data, Camera camera) {
                         if (mIsDetectingObject) {
                             Camera.Parameters mCameraParameters = camera.getParameters();
-                            if (mIsCountFps) {
-                                mFpsCounter.begin("ObjectDetect");
-                            }
                             ObjectInfo[] objectInfoList;
                             // reinit
                             if (mDeviceSwiched) {
@@ -353,11 +350,15 @@ public class StreamObjectDetectFragment extends BaseFragment {
                                 int ret = mObjectDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
                                 if (ret == 0) {
                                     mIsDetectingObject = true;
+                                    mFpsCounter.init();
                                 } else {
                                     mIsDetectingObject = false;
                                     Log.e(TAG, "Face detector init failed " + ret);
                                 }
                                 mDeviceSwiched = false;
+                            }
+                            if (mIsCountFps) {
+                                mFpsCounter.begin("ObjectDetect");
                             }
                             objectInfoList = mObjectDetector.detectFromStream(data, mCameraParameters.getPreviewSize().width, mCameraParameters.getPreviewSize().height, mDrawView.getWidth(), mDrawView.getHeight(), mRotate);
                             if (mIsCountFps) {

@@ -22,7 +22,9 @@ Status HdrGuideLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status HdrGuideLayer::InferOutputShape() {
+Status HdrGuideLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
 
@@ -32,14 +34,14 @@ Status HdrGuideLayer::InferOutputShape() {
     int width   = input_blob->GetBlobDesc().dims[3];
 
     if (channel != 3) {
-        LOGE(
+        LOGE_IF(!ignore_error,
             "Error: HdrGuideLayer Error: invalid channel size (need to be "
             "3)\n");
         return Status(TNNERR_PARAM_ERR, "HdrGuideLayer Error: invalid channel size");
     }
 
     if (height <= 0 || width <= 0) {
-        LOGE("Error: invalid height or width, is less than zero\n");
+        LOGE_IF(!ignore_error, "Error: invalid height or width, is less than zero\n");
         return Status(TNNERR_PARAM_ERR, "invalid height or width, is less than zero");
     }
 

@@ -21,6 +21,9 @@
 #import "TNNFaceDetectAlignerViewModel.h"
 #import "TNNFaceDetectMeshViewModel.h"
 #import "TNNHairSegmentationViewModel.h"
+#import "TNNPoseDetectLandmarkViewModel.h"
+#import "TNNSkeletonDetectorViewModel.h"
+#import "TNNOCRViewModel.h"
 
 #import "TNNExamplesListCell.h"
 
@@ -54,7 +57,7 @@ using namespace std;
 
 - (void)setupTNNExampleDataSource {
     auto examples = [NSMutableArray array];
-    
+
     //人脸检测 - Ultra Fast
     {
         auto data = [TNNExampleData new];
@@ -173,6 +176,51 @@ using namespace std;
         }
         [examples addObject:data];
     }
+    
+    //人体姿势关键点 - BlazePose
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"人体关键点 - BlazePose";
+        data.desc = @"摄像头 - 单输入多输出";
+        data.viewControllerID = @"TNNCameraPreviewController";
+        {
+            data.viewModel = [TNNPoseDetectLandmarkViewModel new];
+            data.viewModel.title = @"BlazePose";
+            data.viewModel.preferFrontCamera = false;
+        }
+        [examples addObject:data];
+    }
+    
+    //人体关键点 - SkeletonDetector
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"人体关键点 - 腾讯微视";
+        data.desc = @"摄像头 - 单输入单输出";
+        data.viewControllerID = @"TNNCameraPreviewController";
+        {
+            data.viewModel = [TNNSkeletonDetectorViewModel new];
+            data.viewModel.title = @"人体关键点 - 腾讯微视";
+            data.viewModel.preferFrontCamera = false;
+            data.viewModel.preferGPU = false;
+        }
+        [examples addObject:data];
+    }
+
+#if HAS_OPENCV
+    //光学字符识别 - OCR
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"OCR";
+        data.desc = @"摄像头 - 单输入多输出";
+        data.viewControllerID = @"TNNCameraPreviewController";
+        {
+            data.viewModel = [TNNOCRViewModel new];
+            data.viewModel.title = @"OCR";
+            data.viewModel.preferFrontCamera = false;
+        }
+        [examples addObject:data];
+    }
+#endif
 
     self.examples = examples;
 }

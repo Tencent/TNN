@@ -12,12 +12,14 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "objseri.h"
 #include "onnx2tnn.h"
 
 int Onnx2TNN::FuseInstanceNormalization(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
                                         std::map<std::string, onnx::TensorProto>& weights,
                                         std::map<std::string, int>& node_reference, std::set<std::string>& blob_names) {
+    //NOTE: The old fuse logic of instance norm is wrong, new version of pytorch now directly convert it to InstanceNormalization instead of multiple nodes
+    return 0;
+    
     auto const node_count = index_nodes.size();
 
     for (int i = 0; i < node_count; i++) {

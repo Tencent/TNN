@@ -25,7 +25,7 @@ std::string ModelPacker::Transfer(std::string content) {
 }
 
 uint32_t ModelPacker::GetMagicNumber() {
-    return g_version_magic_number;
+    return g_version_magic_number_v2;
 }
 
 std::shared_ptr<Serializer> ModelPacker::GetSerializer(std::ostream &os) {
@@ -88,16 +88,28 @@ Status ModelPacker::PackProto(std::string file_path) {
                      << ",\"" << std::endl;
     }
 
-    // 2nd line: "<input_name1> <d0> <d1> ... : <input_name2> ... ,"
+    // 2nd line: "input_name size n c h w date_type : input_name size n c h w data_type ... ,"
     write_stream << "\"";
     int input_count = net_struc->inputs_shape_map.size();
     int idx         = 0;
     for (auto input_shape : net_struc->inputs_shape_map) {
         write_stream << input_shape.first << " ";
+        const auto& input_dims = input_shape.second;
+        if (magic_number == g_version_magic_number_v2){
+            write_stream << input_dims.size() << " ";
+        }
         for (auto item : input_shape.second) {
             write_stream << item << " ";
         }
-
+        if (magic_number == g_version_magic_number_v2) {
+            const auto& input_data_type_map = net_struc->input_data_type_map;
+            if (input_data_type_map.find(input_shape.first) != input_data_type_map.end()) {
+                write_stream << input_data_type_map.find(input_shape.first)->second << " ";
+            } else {
+                // default data type: float
+                write_stream << "0" << " ";
+            }
+        }
         if (input_count > 1 && idx < (input_count - 1)) {
             write_stream << ": ";
         }
@@ -197,12 +209,30 @@ Status ModelPacker::PackModel(std::string file_path) {
     }
 
     header.layer_cnt_ = resource_count;
-    if (header.layer_cnt_ <= 0) {
+    if (header.layer_cnt_ < 0) {
         return Status(TNNERR_INVALID_MODEL, "invalid model: layer count is less than 1");
     }
     header.serialize(*serializer);
 
     ret = PackLayers(serializer, true, resource_count);
+    if (ret != TNN_OK) {
+        write_stream.close();
+        return ret;
+    }
+    
+    // save const_map
+    auto const_map = net_resource->constant_map;
+    if (const_map.size() > 0) {
+        // write magic num
+        serializer->PutInt(magic_number);
+        // write const map size
+        serializer->PutInt((int)const_map.size());
+        for (const auto& iter : const_map) {
+            serializer->PutString(iter.first);
+            serializer->PutRaw(*(iter.second.get()));
+        }
+    }
+    
     write_stream.close();
     if (ret != TNN_OK) {
         return ret;

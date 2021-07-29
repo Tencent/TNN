@@ -94,16 +94,20 @@ def onnx_optimizer(onnx_net_path, input_shape=None):
         optimized_onnx_model = onnx_model
 
         try:
-            input_shape_ = {}
-            if input_shape is not None:
-                for inp in input_shape.split(";"):
-                    name, shape = inp.split(":")
-                    shape_ = []
-                    for dim in shape.split(","):
-                        shape_.append(int(dim))
-                    input_shape_[name] = shape_
+            input_shapes_ = {}
+            if (input_shape is not None) and (input_shape != ""):
+                input_shape = input_shape.strip()
+                for x in input_shape.split(" "):
+                    if ':' not in x:
+                        input_shapes_[None] = list(map(int, x.split(',')))
+                    else:
+                        pieces = x.split(':')
+                        # for the input name like input:0
+                        name, shape = ':'.join(
+                            pieces[:-1]), list(map(int, pieces[-1].split(',')))
+                        input_shapes_[name] = shape
             optimized_onnx_model, check_ok = onnx_simplifier.simplify(
-                optimized_onnx_model, input_shapes=input_shape_, perform_optimization=False)
+                optimized_onnx_model, input_shapes=input_shapes_, perform_optimization=False)
             if not check_ok :
                 print("Check failed!")
                 exit()

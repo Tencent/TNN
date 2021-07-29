@@ -15,19 +15,20 @@
 #include "test/unit_test/layer_test/layer_test.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/utils/network_helpers.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/cpu_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 class ConvLayerTest : public LayerTest,
                       public ::testing::WithParamInterface<
-                          std::tuple<int, int, int, int, int, int, int, int, DataType, ActivationType>> {};
+                          std::tuple<int, int, int, int, int, int, int, int, int, DataType, ActivationType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                          ::testing::Combine(  // batch
-                             testing::Values(1),
+                             testing::Values(1, 2),
                              // channel
-                             testing::Values(1, 2, 3, 4, 10, 32),
+                             testing::Values(1, 3, 10, 48),
                              // hw
                              testing::Values(9, 10, 16, 19),
                              // group
@@ -40,8 +41,10 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ConvLayerTest,
                              testing::Values(1, 2),
                              // pads
                              testing::Values(0, 1),
+                             // pad type
+                             testing::Values(-1, 0, 1),
                              // data_type
-                             testing::Values(DATA_TYPE_FLOAT),
+                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF),
                              // activation_type
                              testing::Values(ActivationType_None, ActivationType_ReLU, ActivationType_ReLU6,
                                              ActivationType_SIGMOID_MUL)));
@@ -57,25 +60,23 @@ TEST_P(ConvLayerTest, ConvLayer) {
     int dilation          = std::get<5>(GetParam());
     int stride            = std::get<6>(GetParam());
     int pad               = std::get<7>(GetParam());
-    auto dtype            = std::get<8>(GetParam());
-    int activation_type   = std::get<9>(GetParam());
+    int pad_type          = std::get<8>(GetParam());
+    auto dtype            = std::get<9>(GetParam());
+    int activation_type   = std::get<10>(GetParam());
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
 
-    auto precision = PRECISION_AUTO;
-    if (DEVICE_ARM == dev && ActivationType_SIGMOID_MUL) {
-        if (DATA_TYPE_FLOAT == dtype) {
-            precision = PRECISION_HIGH;
-        } else {
-            GTEST_SKIP();
-        }
-    }
-
-    bool is_depthwise = (group == channel);
-    if (!is_depthwise && ((channel_per_group % 4) != 0) && DEVICE_METAL == dev) {
+    if(CheckDataTypeSkip(dtype)) {
         GTEST_SKIP();
     }
 
-    if (activation_type != ActivationType_None && DEVICE_HUAWEI_NPU == dev) {
+    if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_CUDA == dev) {
+        GTEST_SKIP();
+    }
+
+    if (activation_type == ActivationType_ReLU6 && DEVICE_X86 == dev) {
+        GTEST_SKIP();
+    }
+    if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_X86 == dev) {
         GTEST_SKIP();
     }
 
@@ -89,10 +90,12 @@ TEST_P(ConvLayerTest, ConvLayer) {
     param->dialations      = {dilation, dilation};
     param->strides         = {stride, stride};
     param->pads            = {pad, pad, pad, pad};
+    param->pad_type        = pad_type;
     param->bias            = 1;
     param->activation_type = activation_type;
 
     // generate interpreter
+    Precision precision         = SetPrecision(dev, dtype);
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
     auto interpreter            = GenerateInterpreter("Convolution", {input_dims}, param);
     Run(interpreter, precision);

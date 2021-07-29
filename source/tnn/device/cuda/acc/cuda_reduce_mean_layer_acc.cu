@@ -1,43 +1,37 @@
-// Copyright 2019 Tencent. All Rights Reserved
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
 
-#include "device/cuda/acc/cuda_reduce_mean_layer_acc.h"
-#include <iostream>
-#include "device/cuda/cuda_utils.h"
-#include "utils/dims_vector_utils.h"
+#include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
-        
 
-__global__ void kernel_reduce_mean(const int num, const int channels,
-    const int spatial_dim, const float* input, float* output) {
-    CUDA_KERNEL_LOOP(index, num * spatial_dim) {
-        int n = index / spatial_dim;
-        int s = index % spatial_dim;
-        float sum = 0;
-        for (int c = 0; c < channels; ++c) {
-            sum += input[(n * channels + c) * spatial_dim + s];
-        }
-        output[n * spatial_dim + s] = sum / float(channels);
-    }
+DECLARE_CUDA_ACC(ReduceMean, LAYER_REDUCE_MEAN);
+
+Status CudaReduceMeanLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
-Status CudaReduceMeanLayerAcc::Forward(const std::vector<Blob *> &inputs,
-                                                                 const std::vector<Blob *> &outputs) {
-
-    int channels = inputs[0]->GetBlobDesc().dims[axis_];
-    float* bottom_data  = (float*) inputs[0]->GetHandle().base;
-    float* top_data     = (float*) outputs[0]->GetHandle().base;
-    size_t count = DimsVectorUtils::Count(inputs[ 0 ]->GetBlobDesc().dims); 
-
-    if ( channels == 1) {
-      CUDA_CHECK(cudaMemcpyAsync(top_data, bottom_data, count * sizeof(float), cudaMemcpyDeviceToDevice, context_->stream_));
-      return TNN_OK;
-    } else {
-      kernel_reduce_mean<<<RPD_GET_BLOCKS(outer_dim_ * inner_dim_), RPD_CUDA_NUM_THREADS, 0, context_->stream_>>>
-        (outer_dim_, channels, inner_dim_, bottom_data, top_data);
-    }
-
+Status CudaReduceMeanLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
+
+Status CudaReduceMeanLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+REGISTER_CUDA_ACC(ReduceMean, LAYER_REDUCE_MEAN);
 
 }  // namespace TNN_NS

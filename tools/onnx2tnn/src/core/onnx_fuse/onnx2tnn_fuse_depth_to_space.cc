@@ -14,8 +14,6 @@
 
 #include <math.h>
 
-#include "half_utils.h"
-#include "objseri.h"
 #include "onnx2tnn.h"
 #include "onnx_utility.h"
 
@@ -94,6 +92,7 @@ int Onnx2TNN::FuseDepthToSpace(onnx::GraphProto* mutable_graph, std::vector<Inde
 
             onnx::AttributeProto* attr_mode = reshape_node->add_attribute();
             std::string mode                = is_crd ? "CRD" : "DCR";
+            attr_mode->set_name("mode");
             attr_mode->set_s(mode);
 
             node->set_op_type(k_tnn_noop_type);

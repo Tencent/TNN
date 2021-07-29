@@ -28,6 +28,7 @@ Status PoolingLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index,
     // kernels
     GET_INT_2_INTO_VEC_REVERSE(p->kernels);
     p->kernels_params = p->kernels;
+    p->is_global_pool = p->kernels[0] == 0 && p->kernels[1] == 0;
 
     // strides h,w -> w,h
     GET_INT_2_INTO_VEC_REVERSE(p->strides);
@@ -47,6 +48,11 @@ Status PoolingLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index,
     }
 
     GET_INT_2(p->pad_type, p->ceil_mode);
+
+    GET_INT_1(p->is_adaptive_pool);
+    int output_h = 0, output_w = 0;
+    GET_INT_2(output_h, output_w);
+    p->output_shape = {output_w, output_h};
 
     return TNN_OK;
 }
@@ -78,6 +84,9 @@ Status PoolingLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerPar
 
     output_stream << layer_param->pad_type << " ";
     output_stream << layer_param->ceil_mode << " ";
+
+    output_stream << layer_param->is_adaptive_pool << " ";
+    output_stream << layer_param->output_shape[0] << " " << layer_param->output_shape[1] << " ";
 
     return TNN_OK;
 }

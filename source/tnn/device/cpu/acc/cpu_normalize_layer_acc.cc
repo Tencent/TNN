@@ -18,7 +18,7 @@
 #include <limits.h>
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -113,8 +113,8 @@ Status CpuNormalizeLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         }
         delete[] denominator;
     } else {
-        LOGE("Error: layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc dont support datatype");
+        LOGE("Error: CpuNormalizeLayerAcc layer acc dont support datatype: %d\n", output_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: CpuNormalizeLayerAcc layer acc dont support datatype");
     }
 
     return TNN_OK;

@@ -25,7 +25,7 @@ public:
     virtual ~ElementwiseLayer(){};
 
 protected:
-    virtual Status InferOutputShape();
+    virtual Status InferOutputShape(bool ignore_error = false);
 };
 
 #define DECLARE_ELEMENTWISE_LAYER(type_string, layer_type)                                                             \

@@ -55,10 +55,10 @@
 
    c) 真机运行时，如果遇到CodeSign错误`Command CodeSign failed with a nonzero exit code`，可参看issue20 `iOS Demo运行步骤说明`
 
-## 二、Android/ArmLinux平台耗时测试
+## 二、Android平台耗时测试
 ### 1. 环境搭建  
 #### 1.1 编译环境  
-参考[TNN编译文档](../user/compile.md) 中Android/Armlinux库编译，检查环境是否满足要求。  
+参考[TNN编译文档](../user/compile.md) 中Android库编译，检查环境是否满足要求。  
 
 #### 1.2 执行环境  
 * adb命令配置  
@@ -87,13 +87,14 @@ cp mobilenet_v1.tnnproto .
 
 ### 4. 执行脚本
 ```
-./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <CPU/GPU>
+./benchmark_models.sh  [-32] [-c] [-b] [-f] [-d] [-bs] <device-id> [-t] <CPU/GPU>
 参数说明：
     -32   编译32位的库，否则为64位
     -c    删除之前的编译文件，重新编译
     -b    仅编译，不执行
     -f    打印每一层的耗时，否则是整个网络的平均耗时。
     -t    指定执行的平台。需要加上<CPU/GPU/HUAWEI_NPU>
+    -bs   shell运行可执行文件测试
 ```
 P.S. 不指定 -t, 默认跑CPU和GPU, 华为npu benchmark需通过-t HUAWEI_NPU特殊制定.
 #### 4.1 全网络性能分析：
@@ -122,3 +123,4 @@ P.S. 华为npu不支持每层分析。
 
 ### 5. 特殊说明
 * 对于OpenCL平台，逐层性能分析的目的是分析kernel的耗时分布，其中为了打印每层耗时，有额外开销，只有kernel时间具有参考意义。如果要看整体实际性能，需要参考全网络性能分析。
+* Android系统相比shell执行可执行文件耗时测试，app耗时测试的性能更贴近真实安卓app执行的性能。受安卓调度策略的影响，两种方式的性能可能有明显差异。综上所述，安卓app耗时测试更为推荐。
