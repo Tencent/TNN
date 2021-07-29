@@ -110,6 +110,7 @@ namespace test {
                 }
                 ret = instance->ForwardAsync(nullptr);
 
+                instance->GetAllOutputBlobs(output_blob_map);
                 bool is_update = CreateBlobMatMap(output_blob_map, 0, output_mat_map);
                 if (is_update) {
                     output_converters_map = CreateBlobConverterMap(output_blob_map);
@@ -152,6 +153,7 @@ namespace test {
                     return ret;
                 }
 
+                instance->GetAllOutputBlobs(output_blob_map);
                 bool is_update = CreateBlobMatMap(output_blob_map, 0, output_mat_map);
                 if (is_update) {
                     output_converters_map = CreateBlobConverterMap(output_blob_map);
