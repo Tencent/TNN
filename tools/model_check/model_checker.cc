@@ -470,7 +470,7 @@ Status ModelChecker::FeedInputData() {
             auto data_type = item.second->GetBlobDesc().data_type;
             int data_count = DimsVectorUtils::Count(dims);
             std::shared_ptr<Mat> mat;
-            if (DATA_TYPE_FLOAT == data_type) {
+            if (DATA_TYPE_FLOAT == data_type || DATA_TYPE_INT8 == data_type) {
                 mat             = std::shared_ptr<Mat>(new Mat(DEVICE_NAIVE, NCHW_FLOAT, dims));
                 float* data_ptr = reinterpret_cast<float*>(mat->GetData());
                 for (int i = 0; i < data_count; i++) {

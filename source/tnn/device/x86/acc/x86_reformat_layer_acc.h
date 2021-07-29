@@ -32,7 +32,7 @@ public:
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 private:
-    RawBuffer scale_buffer_;
+    std::vector<RawBuffer> scale_buffer_;
 };
 
 }  // namespace TNN_NS

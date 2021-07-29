@@ -55,6 +55,7 @@ Status X86ConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     // converted weights are assumed to be packed, and can be freed now
     if (conv_acc_f32_resource_) {
         conv_acc_f32_resource_.reset();
+        resource_ = nullptr;
     }
 
     return ret;

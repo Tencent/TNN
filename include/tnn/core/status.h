@@ -105,23 +105,21 @@ enum StatusCode {
     // Atlas
     TNNERR_ATLAS_RUNTIME_ERROR    = 0xC001,
     TNNERR_ATLAS_TIMEOUT_ERROR    = 0xC002,
-    TNNERR_ATLAS_MALLOC_ERROR     = 0xC002,
-    TNNERR_ATLAS_GRAPH_INIT_ERROR = 0xC003,
+    TNNERR_ATLAS_MALLOC_ERROR     = 0xC003,
+    TNNERR_ATLAS_GRAPH_INIT_ERROR = 0xC004,
 
     // Hiai
     TNNERR_HIAI_API_ERROR = 0xD001,
-    //Huawei NPU
+
+    // Huawei NPU
     TNNERR_NPU_LOAD_ERROR      = 0xE000,
     TNNERR_NPU_UNSUPPORT_ERROR = 0xE001,
     TNNERR_NPU_HIAI_API_ERROR  = 0xE002,
 
     // Cuda
     TNNERR_CUDA_TENSORRT_ERROR = 0xF001,
-    TNNERR_CUDA_SYNC_ERROR = 0xF002,
-    TNNERR_CUDA_MEMCPY_ERROR = 0xF003,
-
-    // Quantize
-    TNNERR_QUANTIZE_ERROR = 0x10001,
+    TNNERR_CUDA_SYNC_ERROR     = 0xF002,
+    TNNERR_CUDA_MEMCPY_ERROR   = 0xF003,
 
     // TNN CONVERT
     TNN_CONVERT_OK                 = 0x10000,
@@ -130,6 +128,9 @@ enum StatusCode {
     TNNERR_CONVERT_INVALID_MODEL   = 0x10003,
     TNNERR_CONVERT_UNSUPPORT_PASS  = 0x10004,
     TNNERR_CONVERT_OPTIMIZE_ERROR  = 0x10005,
+
+    // Quantize
+    TNNERR_QUANTIZE_ERROR = 0x20001,
 };
 
 class PUBLIC Status {
@@ -146,7 +147,7 @@ public:
     std::string description();
 
 private:
-    int code_ = 0;
+    int code_            = 0;
     std::string message_ = "";
 };
 
