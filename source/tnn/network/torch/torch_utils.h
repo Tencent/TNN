@@ -84,6 +84,9 @@ inline Status ConvertToTorchDataType(at::ScalarType& scalar_type, DataType data_
         case DATA_TYPE_INT64:
             scalar_type = at::ScalarType::Long;
             break;
+        case DATA_TYPE_INT32:
+            scalar_type = at::ScalarType::Int;
+            break;
         default:
             ret = Status(TNNERR_PARAM_ERR, "data_type not supported by TorchNetwork");
             break;
@@ -106,6 +109,9 @@ inline Status ConvertToDataType(DataType &data_type, at::ScalarType& scalar_type
             break;
         case at::ScalarType::Long:
             data_type = DATA_TYPE_INT64;
+            break;
+        case at::ScalarType::Int:
+            data_type = DATA_TYPE_INT32;
             break;
         default:
             ret = Status(TNNERR_PARAM_ERR, "data_type converting not implemented");
