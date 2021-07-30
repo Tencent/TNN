@@ -379,6 +379,8 @@ Status MetalContext::Synchronize() {
         }
         // create a new command buffer
         _commandBuffer = [_commandQueue commandBuffer];
+        //for safety, dont enqueue
+        //[_commandBuffer enqueue];
     }
 }
 
