@@ -213,6 +213,11 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
                         param.scale.data(), param.bias.data(), channel, hw);
             }
         }
+    } else if (desc.data_type == DATA_TYPE_INT64) {
+        if (image.GetMatType() == NC_INT64) {
+            memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * sizeof(int64_t));
+            return TNN_OK;
+        }
     }
 
     if (image.GetMatType() == NCHW_FLOAT) {
@@ -243,7 +248,8 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
         }
     } else {
         FREE_INT8_TEMP_DATA();
-        return Status(TNNERR_PARAM_ERR, "DefaultBlobConverterAcc::ConvertToMatAsync, convert type not support yet");
+        return Status(TNNERR_PARAM_ERR, "DefaultBlobConverterAcc::ConvertToMatAsync, convert type not support yet: " +
+                                        std::to_string(desc.data_type) + " to " + std::to_string(image.GetMatType()));
     }
 
     // reverse channel before convert if needed
