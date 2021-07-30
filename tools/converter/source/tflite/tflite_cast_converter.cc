@@ -37,6 +37,10 @@ TNN_NS::Status TFLiteCastConverter::exec(tnn::NetStructure &net_structure, tnn::
     param->type                = cur_layer->type_str;
     param->quantized           = false;
     const auto& options = tf_lite_operator->builtin_options.AsCastOptions();
+    if (options == nullptr) {
+        param->to = 0;
+        return TNN_NS::TNN_CONVERT_OK;
+    }
     auto tflite_data_type = options->out_data_type;
     if (tflite_data_type == tflite::TensorType_FLOAT32){
         param->to = 0;

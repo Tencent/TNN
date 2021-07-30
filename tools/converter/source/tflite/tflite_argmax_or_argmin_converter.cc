@@ -40,8 +40,8 @@ TNN_NS::Status TFLiteArgMaxOrMinConverter::exec(
     param->name         = cur_layer->name;
     param->type         = cur_layer->type_str;
     param->quantized    = false;
-    // tflite converter only support keep_dims = 1
-    param->keep_dims    = 1;
+    // tflite alway keep_dims = 0
+    param->keep_dims    = 0;
     auto tflite_op_type = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
     if (tflite_op_type == tflite::BuiltinOperator_ARG_MIN) {
         param->mode = 0;
