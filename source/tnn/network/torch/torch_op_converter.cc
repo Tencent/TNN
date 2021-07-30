@@ -1,6 +1,9 @@
 #include "tnn/network/torch/torch_op_converter.h"
 
 namespace TNN_NS {
+
+// the function schema is defined in aten/src/ATen/native/native_functions.ymal
+
 namespace conversion
 {
 std::map<std::string, std::shared_ptr<TorchOpConverter>>& GetGlobalTorchConvertMap() {
@@ -10,7 +13,8 @@ std::map<std::string, std::shared_ptr<TorchOpConverter>>& GetGlobalTorchConvertM
     return *creators;
 }
 
-class ConvTorchConverter : public TorchOpConverter {
+// func: conv2d(Tensor input, Tensor weight, Tensor? bias=None, int[2] stride=1, int[2] padding=0, int[2] dilation=1, int groups=1) -> Tensor
+class Conv2DTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
         layer_info->type = LAYER_CONVOLUTION;
@@ -29,6 +33,7 @@ public:
         const auto stride = getValue<std::vector<int64_t>>(inputs[3]);
         const auto padding = getValue<std::vector<int64_t>>(inputs[4]);
         const auto dialation = getValue<std::vector<int64_t>>(inputs[5]);
+        const auto group = getValue<int64_t>(inputs[6]);
         std::vector<int> shape;
         auto weight_vec = getValue<float>(weight, shape);
 
@@ -40,6 +45,7 @@ public:
         layer_param->kernels = {shape[2], shape[3]};
         layer_param->dialations = {(int)dialation[0], (int)dialation[1]};
         layer_param->strides = {(int)stride[0], (int)stride[1]};
+        layer_param->group = group;
         layer_param->pads = {(int)padding[0], (int)padding[0], (int)padding[1], (int)padding[1]};
         conv_res->filter_handle = RawBuffer(weight_vec.size() * sizeof(float), reinterpret_cast<char *>(weight_vec.data()));
 
@@ -57,6 +63,65 @@ public:
     }
 };
 
+// func: _convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, bool transposed, 
+//                    int[] output_padding, int groups, bool benchmark, bool deterministic, bool cudnn_enabled, bool allow_tf32) -> Tensor
+class _ConvTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
+        layer_info->type = LAYER_CONVOLUTION;
+        layer_info->type_str = "Convolution";
+        layer_info->name = node->output(0)->debugName();
+
+        const auto& inputs = node->inputs();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<ConvLayerParam>();
+        auto conv_res = new(ConvLayerResource);
+        const auto weight = inputs[1];
+        const auto bias = inputs[2];
+        const auto stride = getValue<std::vector<int64_t>>(inputs[3]);
+        const auto padding = getValue<std::vector<int64_t>>(inputs[4]);
+        const auto dialation = getValue<std::vector<int64_t>>(inputs[5]);
+        const auto group = getValue<int64_t>(inputs[8]);
+        const auto transposed = getValue<bool>(inputs[6]);
+
+        if (transposed) {
+            layer_info->type_str = LAYER_DECONVOLUTION;
+            std::cout << "deconv" << std::endl;
+        }
+
+        std::vector<int> shape;
+        auto weight_vec = getValue<float>(weight, shape);
+
+        // set param accroding to real value, just test here
+        layer_param->name = "Convolution";
+        layer_param->pad_type = 0;
+        layer_param->output_channel = shape[0];
+        layer_param->input_channel = shape[1];
+        layer_param->kernels = {shape[2], shape[3]};
+        layer_param->dialations = {(int)dialation[0], (int)dialation[1]};
+        layer_param->strides = {(int)stride[0], (int)stride[1]};
+        layer_param->pads = {(int)padding[0], (int)padding[0], (int)padding[1], (int)padding[1]};
+        layer_param->group = group;
+        conv_res->filter_handle = RawBuffer(weight_vec.size() * sizeof(float), reinterpret_cast<char *>(weight_vec.data()));
+
+        auto bias_vec = getValue<float>(bias, shape);
+        if (bias_vec.size() != 0) {
+            layer_param->bias = 1;
+            conv_res->bias_handle = RawBuffer(bias_vec.size() * sizeof(float), reinterpret_cast<char *>(bias_vec.data()));
+        }
+
+        layer_info->param = layer_param;
+        *layer_resouce = conv_res;
+
+
+        return TNN_OK;
+    }
+};
+
+// func: max_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, int[2] dilation=1, bool ceil_mode=False) -> Tensor
 class PoolTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
@@ -95,6 +160,7 @@ public:
     }
 };
 
+// func: relu_(Tensor(a!) self) -> Tensor(a!)
 class ReluTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
@@ -111,6 +177,7 @@ public:
     }
 };
 
+// func: add_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
 class AddTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
@@ -133,7 +200,8 @@ public:
     }
 };
 
-REGISTER_TORCH_OP_CONVERTER(Conv, conv2d)
+REGISTER_TORCH_OP_CONVERTER(Conv2D, conv2d)
+REGISTER_TORCH_OP_CONVERTER(_Conv, _convolution)
 REGISTER_TORCH_OP_CONVERTER(Relu, relu_)
 REGISTER_TORCH_OP_CONVERTER(Pool, max_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Add, add_)

@@ -187,8 +187,6 @@ void AddEngineToGraph(std::shared_ptr<torch::jit::script::Module> mod, std::shar
         }
     }
 
-    std::cout << g->toString() << std::endl;
-
     return;
 }
 
@@ -301,17 +299,16 @@ std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Mod
                     block_real_inputs.push_back(old_to_new_g[input]);
                 }
             }
-            for (auto input : block_real_inputs) {
-                std::cout << input->debugName() << " | " << input->owningGraph() << std::endl;
-            }
+            // for (auto input : block_real_inputs) {
+            //     std::cout << input->debugName() << " | " << input->owningGraph() << std::endl;
+            // }
 
             WithInsertPoint insert_point(block.raw_outputs()[0]->node());
             auto new_outputs = torch::jit::insertGraph(*low_g, *temp_g, block_real_inputs);
 
             int out_idx = 0;
             for (auto output : block.raw_outputs()) {
-                // std::cout << output->debugName() << " | " << output->owningGraph() << " | " <<
-                // new_outputs[out_idx]->debugName() << std::endl;
+                // std::cout << "[out] " << output->debugName() << " | " << new_outputs[out_idx]->debugName() << std::endl;
                 output->replaceAllUsesWith(new_outputs[out_idx]);
                 old_to_new_g[output] = new_outputs[out_idx++];
             }

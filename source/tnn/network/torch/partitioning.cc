@@ -2,7 +2,7 @@
 
 #include <queue>
 #include "tnn/network/torch/jit_util.h"
-// #include "core/conversion/conversion.h"
+#include "tnn/network/torch/torch_op_converter.h"
 #include "tnn/network/torch/shape_analysis.h"
 #include "torch/csrc/jit/passes/dead_code_elimination.h"
 
@@ -17,16 +17,16 @@ struct usage_info {
 
 
 bool OpSupported(const torch::jit::Node* n) {
-  std::set<std::string> op_supported = {
-    "conv2d",
-    "relu_",
-    "add_",
-    "max_pool2d"
-  };
+  // std::set<std::string> op_supported = {
+  //   "conv2d",
+  //   "relu_",
+  //   "add_",
+  //   "max_pool2d"
+  // };
 
   // std::cout << "node kind " << n->kind().toUnqualString() << std::endl;
-  auto node_name = n->outputs().size() > 0 ? n->output(0)->debugName() : "";
-  auto kind = n->kind();
+  // auto node_name = n->outputs().size() > 0 ? n->output(0)->debugName() : "";
+  // auto kind = n->kind();
   // if(kind.is_prim()) {
   //   switch(kind) {
   //     case at::prim::Constant:
@@ -38,11 +38,11 @@ bool OpSupported(const torch::jit::Node* n) {
   //       break;
   //   }
   // }
-  
-  if (op_supported.count(n->kind().toUnqualString()) > 0) {
-    // std::cout << "supported node kind " << n->kind().toUnqualString() << std::endl;
+
+  if (conversion::GetGlobalTorchConvertMap().count(n->kind().toUnqualString()) > 0) {
     return true;
   }
+  
   return false;
 }
 
@@ -204,20 +204,32 @@ void resolveNonTensorInputs(PartitionedGraph& segmented_blocks, std::shared_ptr<
 
 void registerSegmentsOutputs(PartitionedGraph& segmented_blocks, std::shared_ptr<torch::jit::Graph> g) {
   // find the corresponding raw values in original global graph for this segmented block's inputs/outputs
-  std::set<torch::jit::Value*> input_values;
+  std::vector<torch::jit::Value*> input_values;
   for (auto& seg_block : segmented_blocks) {
     for (auto& input : seg_block.raw_inputs()) {
-      input_values.insert(input);
+      input_values.push_back(input);
     }
   }
 
   for (auto& graph_output : g->outputs()) {
-    input_values.insert(graph_output);
+    input_values.push_back(graph_output);
   }
 
-  for (auto &value : input_values) {
-    std::cout << "[partition:registerSegmentsOutputs] "<< value->debugName() << std::endl;
-  }
+  // remove duplicate value and keep the order
+  std::set<torch::jit::Value*> temp_set;
+  auto new_end = std::remove_if(input_values.begin(), input_values.end(), [&temp_set](torch::jit::Value* value)
+  {
+      if (temp_set.find(value) != std::end(temp_set))
+          return true;
+      temp_set.insert(value);
+      return false;
+  });
+
+  input_values.erase(new_end, input_values.end());
+
+  // for (auto &value : input_values) {
+  //   std::cout << "[partition:registerSegmentsOutputs] "<< value->debugName() << std::endl;
+  // }
 
   // should be careful here because some in-place operations don't return any values, there is no output for this kind
   // of segment identify the output for each mini-graph by checking if any value in this graph is used later we
@@ -280,7 +292,7 @@ void registerSegmentsOutputs(PartitionedGraph& segmented_blocks, std::shared_ptr
 }
 
 std::vector<SegmentedBlock> segment_graph(std::shared_ptr<torch::jit::Graph> g) {
-  auto min_block_size = 3;
+  auto min_block_size = 5;
   std::unordered_set<std::string> forced_fallback_operators();
 
   auto nodes = g->block()->nodes();
@@ -339,7 +351,7 @@ std::vector<SegmentedBlock> Partition(
     printf("====================== subgraph start %d ======================\n", block.target());
     // if (block.target() == SegmentedBlock::kTNN) {
     if (1) {
-      std::cout << block.g()->toString(true);
+      std::cout << block.g()->toString(false);
     }
     printf("====================== subgraph end   %d ======================\n", block.target());
   }

@@ -141,6 +141,7 @@ Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
     graph_ = module_->get_method(forward_func_name_).graph();
     // FoldFrozenConvBatchnorm(graph_);
     OptimizeFrozenGraph(graph_);
+    LowerSimpleTuples(graph_);
 
     // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
     // graph_ = graph_and_ivalues.first;

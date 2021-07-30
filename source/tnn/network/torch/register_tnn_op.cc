@@ -12,6 +12,7 @@ namespace runtime {
 std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
                                         c10::intrusive_ptr<TNNEngine> compiled_engine) {
     auto input_names = compiled_engine->input_names;
+    auto output_names = compiled_engine->output_names;
     InputShapesMap inputs_shape_map;
     int input_idx = 0;
     for (auto &input : inputs) {
@@ -36,14 +37,16 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
     compiled_engine->instance_->Forward();
     std::cout << "tnn engine work!!!" << std::endl;
 
-    std::vector<at::Tensor> outputs(output_blobs.size());
+    std::vector<at::Tensor> outputs(output_names.size());
 
-    auto tnn_dims = output_blobs.begin()->second->GetBlobDesc().dims;
-    std::vector<int64_t> dims;
-    for (auto iter : tnn_dims)
-        dims.push_back(iter);
-    auto type  = at::kFloat;
-    outputs[0] = std::move(at::empty(dims, {at::kCUDA}).to(type).contiguous());
+    for (int i = 0; i < output_names.size(); i++) {
+        auto tnn_dims = output_blobs[output_names[i]]->GetBlobDesc().dims;
+        std::vector<int64_t> dims;
+        for (auto iter : tnn_dims)
+            dims.push_back(iter);
+        auto type  = at::kFloat;
+        outputs[i] = std::move(at::empty(dims, {at::kCUDA}).to(type).contiguous());
+    }
 
     return outputs;
 }
