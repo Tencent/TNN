@@ -217,9 +217,9 @@ class Module:
         if network_config is None:
             network_config=NetworkConfig()
             network_config.device_type=DEVICE_CUDA
-        if isinstance(network_config, NetworkConfig):
+        if not isinstance(network_config, NetworkConfig):
             raise TypeError("network_config can be None or of type NetworkConfig, but got: " +
- 84                         str(type(network_config)))
+                          str(type(network_config)))
         if self.model_config.model_type == MODEL_TYPE_TORCHSCRIPT:
             network_config.network_type=NETWORK_TYPE_TNNTORCH
         if min_input_shapes is None:
