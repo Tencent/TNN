@@ -3,10 +3,8 @@
 #include "tnn/network/torch/jit_util.h"
 #include "tnn/network/torch/torch_convert.h"
 #include "tnn/network/torch/torch_tnn_runtime.h"
+#include "tnn/network/torch/torch_utils.h"
 #include "torch/csrc/jit/runtime/custom_operator.h"
-#include "torch/torch.h"
-
-// #include "/root/env/pytorch-1.8.1/lib/python3.7/site-packages/torch/include/ATen/core/jit_type.h"
 
 namespace TNN_NS {
 namespace runtime {

@@ -70,9 +70,6 @@ struct SegmentedBlock {
   enum SegmentedBlockTarget target() {
     return target_;
   }
-  void change_target(SegmentedBlockTarget target) {
-    target_ = target;
-  }
 
  private:
   SegmentedBlockTarget target_;

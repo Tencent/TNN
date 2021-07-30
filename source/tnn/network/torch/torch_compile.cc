@@ -283,7 +283,7 @@ std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Mod
         tnn_engine_id << reinterpret_cast<const int*>(&block);
         if (block.target() == partitioning::SegmentedBlock::kTNN) {
             // if (subgraph_cnt >= 4) {
-            //     block.change_target(partitioning::SegmentedBlock::kTorch);
+            //     block.update_target(partitioning::SegmentedBlock::kTorch);
             //     continue;
             // }
             auto engine_ptr = conversion::ConvertBlockToInstance(block);

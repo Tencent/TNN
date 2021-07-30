@@ -34,6 +34,7 @@
 
 #include <torch/torch.h>
 #include <torch/csrc/jit/passes/freeze_module.h>
+#include <torch/csrc/jit/passes/frozen_graph_optimizations.h>
 
 #include "torch/csrc/jit/passes/common_subexpression_elimination.h"
 #include "torch/csrc/jit/passes/create_functional_graphs.h"
@@ -95,7 +96,7 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
             return Status(TNNERR_PARAM_ERR, "Unsupported model type for TNNTorchNetwork");
         }
 
-        #if 0
+        #if 1
         // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
         auto new_mod = CompileTorch(module_, max_inputs_shape);
         module_ = new_mod;
@@ -137,7 +138,9 @@ Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
     // TODO support freeze
     module_ = std::make_shared<torch::jit::Module>(torch::jit::freeze_module(mod));
     // module_ = std::make_shared<torch::jit::Module>(mod);
-    graph_ = module_->get_method(forward_func_name_).graph(); 
+    graph_ = module_->get_method(forward_func_name_).graph();
+    // FoldFrozenConvBatchnorm(graph_);
+    OptimizeFrozenGraph(graph_);
 
     // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
     // graph_ = graph_and_ivalues.first;
