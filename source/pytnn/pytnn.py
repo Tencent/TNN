@@ -234,8 +234,6 @@ class Module:
 
         if len(self.input_names) == 0:
             self.input_names = list(self.instance.GetAllInputBlobs().keys())
-        if len(self.output_names) == 0:
-            self.output_names = list(self.instance.GetAllOutputBlobs().keys())
 
     def forward(self, *inputs, rtype="list"):
         if len(inputs) > 1:
@@ -257,6 +255,8 @@ class Module:
         if rtype == "dict":
             output = {}
             is_dict = True
+        if len(self.output_names) == 0:
+            self.output_names = list(self.instance.GetAllOutputBlobs().keys())
         for output_name in self.output_names:
             output_mat=self.instance.GetOutputMat(MatConvertParam(), output_name, DEVICE_NAIVE, NCHW_FLOAT)
             output_mat_numpy=convert_mat_to_numpy(output_mat)
