@@ -51,11 +51,13 @@ struct ConvLayerResource : public LayerResource {
 
     // extra scale handle for different precision
     RawBuffer scale_handle;
+    RawBuffer scale_bias_handle;
 };
 
 struct BatchNormLayerResource : public LayerResource {
     // bn k buffer
     RawBuffer scale_handle;
+    RawBuffer scale_bias_handle;
 
     // bn b buffer
     RawBuffer bias_handle;
@@ -79,6 +81,8 @@ struct InnerProductLayerResource : public LayerResource {
 
     // extra scale handle for different precision
     RawBuffer scale_handle;
+    RawBuffer scale_bias_handle;
+
 };
 
 struct PReluLayerResource : public LayerResource {
@@ -89,6 +93,8 @@ struct PReluLayerResource : public LayerResource {
 struct IntScaleResource : public LayerResource {
     // scale buffer
     RawBuffer scale_handle;
+    RawBuffer scale_bias_handle;
+
     // bias buffer
     RawBuffer bias_handle;
 };

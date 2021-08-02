@@ -72,6 +72,8 @@ Status ConvLayerInterpreter::InterpretResource(Deserializer& deserializer, Layer
     if (layer_res->filter_handle.GetDataType() == DATA_TYPE_INT8) {
         // quantized
         GET_BUFFER_FOR_ATTR(layer_res, scale_handle, deserializer);
+        GET_BUFFER_FOR_ATTR(layer_res, scale_bias_handle, deserializer);
+
     }
 
     return TNN_OK;
@@ -120,6 +122,7 @@ Status ConvLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* pa
     }
     if (layer_param->quantized) {
         serializer.PutRaw(layer_res->scale_handle);
+        serializer.PutRaw(layer_res->scale_bias_handle);
     }
 
     return TNN_OK;

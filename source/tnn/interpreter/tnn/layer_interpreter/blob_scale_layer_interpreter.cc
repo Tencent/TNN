@@ -26,6 +26,7 @@ Status BlobScaleLayerInterpreter::InterpretResource(Deserializer& deserializer, 
     auto layer_res = CreateLayerRes<IntScaleResource>(resource);
 
     GET_BUFFER_FOR_ATTR(layer_res, scale_handle, deserializer);
+    GET_BUFFER_FOR_ATTR(layer_res, scale_bias_handle, deserializer);
     GET_BUFFER_FOR_ATTR(layer_res, bias_handle, deserializer);
 
     return TNN_OK;
@@ -39,6 +40,7 @@ Status BlobScaleLayerInterpreter::SaveResource(Serializer& serializer, LayerPara
     CAST_OR_RET_ERROR(layer_res, IntScaleResource, "invalid blob_scale to save", resource);
 
     serializer.PutRaw(layer_res->scale_handle);
+    serializer.PutRaw(layer_res->scale_bias_handle);
     serializer.PutRaw(layer_res->bias_handle);
 
     return TNN_OK;

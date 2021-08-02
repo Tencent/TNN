@@ -42,6 +42,8 @@ Status ScaleLayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
 
     RawBuffer scale;
     deserializer.GetRaw(scale);
+    RawBuffer scale_bias;
+    deserializer.GetRaw(scale_bias);
 
     RawBuffer bias;
     if (has_bias)
@@ -49,6 +51,7 @@ Status ScaleLayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
 
     layer_res->scale_handle = scale;
     layer_res->bias_handle  = bias;
+    layer_res->scale_bias_handle  = scale_bias;
 
     return TNN_OK;
 }
@@ -82,6 +85,8 @@ Status ScaleLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* p
     serializer.PutString(layer_param->name);
     serializer.PutInt(layer_param->bias_term);
     serializer.PutRaw(layer_res->scale_handle);
+    serializer.PutRaw(layer_res->scale_bias_handle);
+
     if (layer_param->bias_term) {
         serializer.PutRaw(layer_res->bias_handle);
     }

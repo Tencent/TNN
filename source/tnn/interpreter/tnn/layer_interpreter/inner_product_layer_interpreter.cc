@@ -52,6 +52,9 @@ Status InnerProductLayerInterpreter::InterpretResource(Deserializer& deserialize
         RawBuffer scale;
         deserializer.GetRaw(scale);
         layer_res->scale_handle = scale;
+        RawBuffer scale_bias;
+        deserializer.GetRaw(scale_bias);
+        layer_res->scale_bias_handle = scale_bias;
     }
 
     return TNN_OK;
@@ -90,6 +93,7 @@ Status InnerProductLayerInterpreter::SaveResource(Serializer& serializer, LayerP
 
     if (layer_param->quantized) {
         serializer.PutRaw(layer_res->scale_handle);
+        serializer.PutRaw(layer_res->scale_bias_handle);
     }
 
     return TNN_OK;

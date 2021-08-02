@@ -75,7 +75,7 @@ int ScaleCalculator::Init(Blob* blob, bool merge_channel, CalibrationMethod meth
             item.resize(bin_nums_);
         }
 
-        if (height * width < 100) {
+        if (height * width < 100 && cali_method_ != ASY_MIN_MAX) {
             // the data num is too small, use minmax
             cali_method_ = MIN_MAX;
         }
@@ -88,7 +88,7 @@ int ScaleCalculator::Init(Blob* blob, bool merge_channel, CalibrationMethod meth
 }
 
 int ScaleCalculator::SetQuantizeMethod(CalibrationMethod method) {
-    if (method != MIN_MAX && method != KL_DIVERGENCE) {
+    if (method != MIN_MAX && method != KL_DIVERGENCE && method != ASY_MIN_MAX) {
         LOGE("invalid method (%d) for blob quantization!\n", method);
         return -1;
     }
@@ -204,6 +204,36 @@ int ScaleCalculator::UpdateDistribute() {
     return 0;
 }
 
+int ScaleCalculator::CalculateScale(std::vector<float>& val, std::vector<int8_t>& bias) {
+    val.clear();
+    bias.clear();
+    if (merge_channel_) {
+        val.push_back(0.0f);
+        bias.push_back(0);
+        if (!valid_channel_[0]) {
+            return -1;
+        }            
+        int ret = CalculateScalePerRange(range_per_channel_[0], val[0], bias[0]);
+        if (ret != 0)
+        return -1;
+    }else{
+        val.resize(valid_channel_.size());
+        bias.resize(valid_channel_.size());
+        std::fill(val.begin(), val.end(), 0.0f);
+        std::fill(bias.begin(), bias.end(), 0);
+
+        for (unsigned int c = 0; c < range_per_channel_.size(); ++c) {
+            if (!valid_channel_[c]) {
+                continue;
+            }
+            int ret = CalculateScalePerRange(range_per_channel_[c], val[c], bias[c]);
+            if (ret != 0)
+                return -1;
+        }
+    }
+return 0;
+} 
+
 int ScaleCalculator::CalculateScale(std::vector<float>& val) {
     val.clear();
 
@@ -234,6 +264,23 @@ int ScaleCalculator::CalculateScale(std::vector<float>& val) {
         }
     }
 
+    return 0;
+}
+
+int ScaleCalculator::CalculateScalePerRange(std::pair<float, float> range, float& blob_scale, int8_t& bias){
+    float min_val = std::min(.0f, range.first);
+    float max_val = std::max(.0f, range.second);
+    blob_scale = (max_val - min_val) / 254.0f;
+    float scale_float2int8 = 1.0f;
+    if (max_val != min_val){
+        scale_float2int8 = 1 / blob_scale;
+    }else{
+        LOGE("Not support yet\n");
+        //return -1;
+    }
+
+    bias = 127 - static_cast<int>(std::round(max_val * scale_float2int8));
+    //int8_t bias2 = -127 - static_cast<int>(std::round(min_val * scale_float2int8));
     return 0;
 }
 
