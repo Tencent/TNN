@@ -695,3 +695,22 @@ std::vector<int> CreateDimsVectorFromTensor(const onnx::TensorProto& tensor) {
     }
     return dims;
 }
+
+std::vector<int64_t> get_tensor_proto_data_i(onnx::TensorProto& tensor) {
+    const auto data_type = tensor.data_type();
+    const auto* data     = get_tensor_proto_data(tensor);
+    const int size       = get_tensor_proto_data_size(tensor);
+    std::vector<int64_t> data_vec(size, 0);
+    for (int i = 0; i < size; i++) {
+        if (data_type == onnx::TensorProto_DataType_INT64) {
+            data_vec[i] = static_cast<int64_t>(reinterpret_cast<const int64_t*>(data)[i]);
+        } else if (data_type == onnx::TensorProto_DataType_INT32) {
+            data_vec[i] = static_cast<int64_t>(reinterpret_cast<const int32_t*>(data)[i]);
+        } else {
+            DLog("Onnx Converter: do not support tensor proto data type\n");
+            assert(0);
+        }
+    }
+
+    return data_vec;
+}
