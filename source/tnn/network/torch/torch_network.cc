@@ -218,9 +218,6 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
         #endif
     }
 
-    // TODO Avoid forward fail on random inputs
-    return TNN_OK;
-
     // TODO Check integrity of the ivalues
 
     auto out = module_->forward(in_ivalues_);
