@@ -120,7 +120,15 @@ std::vector<int64_t> get_node_attr_ai(const onnx::NodeProto& node,
         }
 
         const onnx::TensorProto& tensorProto = net_info.weights_map.at(name);
-        array_i = get_tensor_proto_data_vector<int64_t>(tensorProto);
+        if (tensorProto.data_type() == onnx::TensorProto_DataType_INT32) {
+            std::vector<int32_t> array_temp = get_tensor_proto_data_vector<int32_t>(tensorProto);
+            array_i.clear();
+            for (const auto item : array_temp) {
+                array_i.emplace_back(item);
+            }
+        } else {
+            array_i = get_tensor_proto_data_vector<int64_t>(tensorProto);
+        }
     }
     return array_i;
 }
@@ -694,23 +702,4 @@ std::vector<int> CreateDimsVectorFromTensor(const onnx::TensorProto& tensor) {
         dims.push_back((int)tensor.dims(i));
     }
     return dims;
-}
-
-std::vector<int64_t> get_tensor_proto_data_i(onnx::TensorProto& tensor) {
-    const auto data_type = tensor.data_type();
-    const auto* data     = get_tensor_proto_data(tensor);
-    const int size       = get_tensor_proto_data_size(tensor);
-    std::vector<int64_t> data_vec(size, 0);
-    for (int i = 0; i < size; i++) {
-        if (data_type == onnx::TensorProto_DataType_INT64) {
-            data_vec[i] = static_cast<int64_t>(reinterpret_cast<const int64_t*>(data)[i]);
-        } else if (data_type == onnx::TensorProto_DataType_INT32) {
-            data_vec[i] = static_cast<int64_t>(reinterpret_cast<const int32_t*>(data)[i]);
-        } else {
-            DLog("Onnx Converter: do not support tensor proto data type\n");
-            assert(0);
-        }
-    }
-
-    return data_vec;
 }

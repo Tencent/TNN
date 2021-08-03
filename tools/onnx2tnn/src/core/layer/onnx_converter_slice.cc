@@ -33,15 +33,6 @@ string OnnxOpConverterSlice::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_inf
         steps = get_node_attr_ai(node, "steps", net_info, 4);
     }
 
-    std::vector<std::vector<int64_t> *> attr_ptr_vec = {&starts, &ends, &axes, &steps};
-
-    const int input_size = node.input_size();
-    for (int i = 1; i < input_size; i++) {
-        onnx::TensorProto tensor        = net_info.weights_map[node.input(i)];
-        std::vector<int64_t> tensor_vec = get_tensor_proto_data_i(tensor);
-        attr_ptr_vec[i - 1]->assign(tensor_vec.begin(), tensor_vec.end());
-    }
-
     layer_param << starts.size() << " ";
     for (const auto &start : starts) {
         layer_param << start << " ";
