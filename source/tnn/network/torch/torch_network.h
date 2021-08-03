@@ -69,9 +69,13 @@ private:
 
     virtual Status LoadModule(std::istream& in, NetworkConfig &config);
 
+    virtual Status CompileModule(NetworkConfig &config);
+
     virtual Status CreateIOBinding(InputShapesMap  min_shape, InputShapesMap max_shape);
   
     virtual Status ClearOutputs();
+
+    Status DumpAllOutputBlob();
 
     std::shared_ptr<torch::jit::Module> module_;
     std::shared_ptr<torch::jit::Graph> graph_;

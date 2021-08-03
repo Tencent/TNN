@@ -17,13 +17,14 @@ void ConvertNodeToLayer(const torch::jit::Node *node, LayerInfo *layer_info, Lay
 
 }
 
-c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::SegmentedBlock &block) {
+c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::SegmentedBlock &block, NetworkConfig &config) {
     auto ctx = std::make_shared<runtime::TorchConvertCtx>();
 
     ModelConfig model_config;
     NetworkConfig network_config;
 
-    network_config.device_type = DEVICE_X86;
+    network_config.device_type = config.device_type;
+    network_config.device_id = config.device_id;
     auto instance_ptr = c10::make_intrusive<runtime::TNNEngine>(network_config, model_config);
 
     auto interpreter = dynamic_cast<DefaultModelInterpreter *>(ctx->get_interpreter().get());
@@ -64,11 +65,6 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
         for (auto output: layer_info->outputs) {
             net_structure->blobs.insert(output);
         }
-
-        // auto inputs = node->inputs();
-        // for (auto input : inputs) std::cout << "[node] input " << input->debugName() << std::endl;
-        // auto node_name = node->outputs().size() > 0 ? node->output(0)->debugName() : "";
-        // std::cout << "[ConvertBlockToInstance:node  ] " << node->kind().toUnqualString() << " " << node_name << " " << std::endl;
     }
     
     for (auto &output : g->outputs()) {

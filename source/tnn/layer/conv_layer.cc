@@ -67,6 +67,16 @@ Status ConvLayer::InferOutputShape(bool ignore_error) {
         height_out = (height + pad_top + pad_bottom - kernel_extent_h) / stride_h + 1;
         width_out  = (width + pad_left + pad_right - kernel_extent_w) / stride_w + 1;
 
+    } else if (pad_type == 3) {
+        // torchscript pad type
+        height_out = static_cast<int>(std::floor(float(height + 2 * pad_h_begin  - dilation_h * (kernel_h - 1) - 1) / float(stride_h) + 1));
+        width_out = static_cast<int>(std::floor(float(width + 2 * pad_w_begin  - dilation_w * (kernel_w - 1) - 1) / float(stride_w) + 1));
+        int pad_along_height = ((height_out - 1) * stride_h + kernel_extent_h - height);
+        int pad_along_width  = ((width_out - 1) * stride_w + kernel_extent_w - width);
+        conv_param->pads[0] = pad_w_begin;
+        conv_param->pads[2] = pad_h_begin;
+        conv_param->pads[1] = pad_along_width - pad_w_begin;
+        conv_param->pads[3] = pad_along_height - pad_h_begin;
     } else if (pad_type == 0 || pad_type == 1 || pad_type == 2) {
         // The code below is based on the logic from
         // https://www.tensorflow.org/api_docs/python/nn/convolution

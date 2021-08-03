@@ -17,28 +17,6 @@ struct usage_info {
 
 
 bool OpSupported(const torch::jit::Node* n) {
-  // std::set<std::string> op_supported = {
-  //   "conv2d",
-  //   "relu_",
-  //   "add_",
-  //   "max_pool2d"
-  // };
-
-  // std::cout << "node kind " << n->kind().toUnqualString() << std::endl;
-  // auto node_name = n->outputs().size() > 0 ? n->output(0)->debugName() : "";
-  // auto kind = n->kind();
-  // if(kind.is_prim()) {
-  //   switch(kind) {
-  //     case at::prim::Constant:
-  //     case at::prim::ListConstruct:
-  //     case at::prim::ListUnpack:
-  //       std::cout << "supported node kind " << n->kind().toUnqualString() << " output name " << node_name <<std::endl;
-  //       return true;
-  //     default:
-  //       break;
-  //   }
-  // }
-
   if (conversion::GetGlobalTorchConvertMap().count(n->kind().toUnqualString()) > 0) {
     return true;
   }
@@ -227,10 +205,6 @@ void registerSegmentsOutputs(PartitionedGraph& segmented_blocks, std::shared_ptr
 
   input_values.erase(new_end, input_values.end());
 
-  // for (auto &value : input_values) {
-  //   std::cout << "[partition:registerSegmentsOutputs] "<< value->debugName() << std::endl;
-  // }
-
   // should be careful here because some in-place operations don't return any values, there is no output for this kind
   // of segment identify the output for each mini-graph by checking if any value in this graph is used later we
   // shouldn't register nonTensor output for TensorRT segments
@@ -262,23 +236,10 @@ void registerSegmentsOutputs(PartitionedGraph& segmented_blocks, std::shared_ptr
       }
     }
   }
-  // for (auto &s_block : segmented_blocks) {
-  //   auto b = s_block.block();
-  //   for (const auto node : b->nodes()) {
-  //     auto node_name = node->outputs().size() > 0 ? node->output(0)->debugName() : "";
-  //     std::cout << "[:registerSegmentsOutputs:befor] " << s_block.target() << " " << node->kind().toUnqualString() << " " << node_name << " " << std::endl;
-  //   }
-  // }
+
   std::for_each(segmented_blocks.begin(), segmented_blocks.end(), [](SegmentedBlock& seg_block) {
     torch::jit::EliminateDeadCode(seg_block.g());
   });
-  // for (auto &s_block : segmented_blocks) {
-  //   auto b = s_block.block();
-  //   for (const auto node : b->nodes()) {
-  //     auto node_name = node->outputs().size() > 0 ? node->output(0)->debugName() : "";
-  //     std::cout << "[:registerSegmentsOutputs:after] " << s_block.target() << " " << node->kind().toUnqualString() << " " << node_name << " " << std::endl;
-  //   }
-  // }
 
   // erase segments which still have no output
   segmented_blocks.erase(

@@ -38,8 +38,8 @@ public:
         auto weight_vec = getValue<float>(weight, shape);
 
         // set param accroding to real value, just test here
-        layer_param->name = "Convolution";
-        layer_param->pad_type = 0;
+        layer_param->name = layer_info->name;
+        layer_param->pad_type = 3;
         layer_param->output_channel = shape[0];
         layer_param->input_channel = shape[1];
         layer_param->kernels = {shape[2], shape[3]};
@@ -47,6 +47,7 @@ public:
         layer_param->strides = {(int)stride[0], (int)stride[1]};
         layer_param->group = group;
         layer_param->pads = {(int)padding[0], (int)padding[0], (int)padding[1], (int)padding[1]};
+        conv_res->name = layer_info->name;
         conv_res->filter_handle = RawBuffer(weight_vec.size() * sizeof(float), reinterpret_cast<char *>(weight_vec.data()));
 
         auto bias_vec = getValue<float>(bias, shape);
@@ -96,8 +97,8 @@ public:
         auto weight_vec = getValue<float>(weight, shape);
 
         // set param accroding to real value, just test here
-        layer_param->name = "Convolution";
-        layer_param->pad_type = 0;
+        layer_param->name = layer_info->name;
+        layer_param->pad_type = 3;
         layer_param->output_channel = shape[0];
         layer_param->input_channel = shape[1];
         layer_param->kernels = {shape[2], shape[3]};
@@ -105,6 +106,7 @@ public:
         layer_param->strides = {(int)stride[0], (int)stride[1]};
         layer_param->pads = {(int)padding[0], (int)padding[0], (int)padding[1], (int)padding[1]};
         layer_param->group = group;
+        conv_res->name = layer_info->name;
         conv_res->filter_handle = RawBuffer(weight_vec.size() * sizeof(float), reinterpret_cast<char *>(weight_vec.data()));
 
         auto bias_vec = getValue<float>(bias, shape);
@@ -135,20 +137,24 @@ public:
         layer_info->outputs.push_back(node->outputs()[0]->debugName());
 
         auto pool_param = std::make_shared<PoolingLayerParam>();
-        pool_param->name = "Pooling";
+        pool_param->name = layer_info->name;
         std::string op_type = node->kind().toUnqualString();
 
         if (op_type.find("adaptive") == std::string::npos) {
             const auto kernel_size = getValue<std::vector<int64_t>>(inputs[1]);
             const auto stride = getValue<std::vector<int64_t>>(inputs[2]);
             const auto padding = getValue<std::vector<int64_t>>(inputs[3]);
+            const auto dialation = getValue<std::vector<int64_t>>(inputs[4]);
+            const auto ceil_mode = getValue<bool>(inputs[5]);
             
-            pool_param->pad_type = 0;
+            pool_param->pad_type = 3;
             pool_param->kernels_params = {(int)kernel_size[0], (int)kernel_size[1]};
             pool_param->strides = {(int)stride[0], (int)stride[1]};
             pool_param->pads = {(int)padding[0], (int)padding[0], (int)padding[1], (int)padding[1]};
             pool_param->kernel_indexs = {-1, -1};
             pool_param->kernels = {-1, -1};
+            pool_param->output_shape = {-1, -1};
+            pool_param->ceil_mode = ceil_mode;
         } else {
             return TNNERR_LAYER_ERR;
         }

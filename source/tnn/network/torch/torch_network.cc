@@ -53,6 +53,7 @@
 
 #include <torchvision/vision.h>
 
+#include "tnn/utils/blob_dump_utils.h"
 
 namespace TNN_NS {
 
@@ -98,7 +99,7 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
 
         #if 1
         // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
-        auto new_mod = CompileTorch(module_, max_inputs_shape);
+        auto new_mod = CompileTorch(module_, max_inputs_shape, net_config);
         module_ = new_mod;
         graph_ = module_->get_method(forward_func_name_).graph();
 
@@ -146,6 +147,10 @@ Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
     // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
     // graph_ = graph_and_ivalues.first;
 
+    return TNN_OK;
+}
+
+Status TNNTorchNetwork::CompileModule(NetworkConfig &config) {
     return TNN_OK;
 }
 
@@ -339,6 +344,8 @@ Status TNNTorchNetwork::Forward() {
         }
     }
 
+    DumpAllOutputBlob();
+
     return TNN_OK;
 }
 
@@ -362,6 +369,17 @@ Status TNNTorchNetwork::GetAllInputBlobs(BlobMap &blobs) {
 
 Status TNNTorchNetwork::GetAllOutputBlobs(BlobMap &blobs) {
     blobs = output_blob_map_;
+    return TNN_OK;
+}
+
+Status TNNTorchNetwork::DumpAllOutputBlob() {
+    Status ret;
+    for(auto output : output_blob_map_) {
+        ret = DumpDeviceBlob(output.second, context_, "torch_" + output.first);
+        if(ret != TNN_OK) {
+            LOGE("DumpDeviceBlob failed error code: %d, msg: %s \n", (int)ret, ret.description().c_str());
+        }
+    }
     return TNN_OK;
 }
 
