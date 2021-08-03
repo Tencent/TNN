@@ -343,8 +343,10 @@ Status TNNTorchNetwork::Forward() {
             output_blob_map_[name] = foreign_blob;    
         }
     }
-
+#if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
+    RETURN_ON_FAIL(context_->Synchronize());
     DumpAllOutputBlob();
+#endif
 
     return TNN_OK;
 }

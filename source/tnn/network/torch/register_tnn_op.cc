@@ -28,6 +28,13 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
 
         // ModelPacker package(interpreter->GetNetStructure(), interpreter->GetNetResource());
         // package.Pack("torch.tnnproto", "torch.tnnmodel");
+    } else {
+        auto interpreter = dynamic_cast<DefaultModelInterpreter *>(compiled_engine->ctx_->get_interpreter().get());
+        for (auto input : inputs_shape_map) {
+            if (input.second != interpreter->GetNetStructure()->inputs_shape_map[input.first]) {
+                compiled_engine->instance_->Init(compiled_engine->ctx_->get_interpreter(), inputs_shape_map);
+            }
+        }
     }
 
     BlobMap input_blobs;

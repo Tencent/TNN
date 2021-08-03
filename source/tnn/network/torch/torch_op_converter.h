@@ -74,6 +74,7 @@ static std::vector<T> getValue(const torch::jit::Value* value, std::vector<int>&
 
 class TorchOpConverter {
 public:
+    virtual bool IsSupported(const torch::jit::Node *node) {return true;};
     virtual Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) = 0;
 };
 

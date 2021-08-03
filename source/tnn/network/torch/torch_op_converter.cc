@@ -68,6 +68,12 @@ public:
 //                    int[] output_padding, int groups, bool benchmark, bool deterministic, bool cudnn_enabled, bool allow_tf32) -> Tensor
 class _ConvTorchConverter : public TorchOpConverter {
 public:
+    bool IsSupported(const torch::jit::Node *node) {
+        const auto& inputs = node->inputs();
+        const auto transposed = getValue<bool>(inputs[6]);
+        return !transposed; 
+    }
+
     Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
         layer_info->type = LAYER_CONVOLUTION;
         layer_info->type_str = "Convolution";
@@ -86,12 +92,12 @@ public:
         const auto padding = getValue<std::vector<int64_t>>(inputs[4]);
         const auto dialation = getValue<std::vector<int64_t>>(inputs[5]);
         const auto group = getValue<int64_t>(inputs[8]);
-        const auto transposed = getValue<bool>(inputs[6]);
+        // const auto transposed = getValue<bool>(inputs[6]);
 
-        if (transposed) {
-            layer_info->type_str = LAYER_DECONVOLUTION;
-            std::cout << "deconv" << std::endl;
-        }
+        // if (transposed) {
+        //     layer_info->type_str = LAYER_DECONVOLUTION;
+        //     std::cout << "deconv" << std::endl;
+        // }
 
         std::vector<int> shape;
         auto weight_vec = getValue<float>(weight, shape);
