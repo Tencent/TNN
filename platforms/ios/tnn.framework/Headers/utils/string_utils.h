@@ -9,13 +9,19 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#ifndef TNN_INCLUDE_TNN_VERSION_H_
-#define TNN_INCLUDE_TNN_VERSION_H_
 
-static char *branch_name_tnn = "feature_support_conv1d";
-static char *commit_date_tnn = "2021-07-23";
-static char *commit_hash_tnn = "cdd4c6f9";
+#ifndef TNN_INCLUDE_TNN_UTILS_STRING_UTILS_H_
+#define TNN_INCLUDE_TNN_UTILS_STRING_UTILS_H_
 
-#endif //TNN_INCLUDE_TNN_VERSION_H_
+#include <string>
+#include "tnn/core/macro.h"
+
+namespace TNN_NS {
+
+extern PUBLIC std::string UcharToString(const unsigned char *buffer, int length);
+
+}  // namespace TNN_NS
+
+#endif  // TNN_INCLUDE_TNN_UTILS_STRING_UTILS_INNER_H_

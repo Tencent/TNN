@@ -11,11 +11,19 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
-#ifndef TNN_INCLUDE_TNN_VERSION_H_
-#define TNN_INCLUDE_TNN_VERSION_H_
 
-static char *branch_name_tnn = "feature_support_conv1d";
-static char *commit_date_tnn = "2021-07-23";
-static char *commit_hash_tnn = "cdd4c6f9";
+#ifndef TNN_INCLUDE_TNN_UTILS_HALF_UTILS_H_
+#define TNN_INCLUDE_TNN_UTILS_HALF_UTILS_H_
 
-#endif //TNN_INCLUDE_TNN_VERSION_H_
+#include "tnn/core/macro.h"
+
+namespace TNN_NS {
+
+// @brief convert float to half
+extern PUBLIC int ConvertFromFloatToHalf(float *fp32, void *fp16, int count);
+// @brief convert half to float
+extern PUBLIC int ConvertFromHalfToFloat(void *fp16, float *fp32, int count);
+
+}  // namespace TNN_NS
+
+#endif  // TNN_INCLUDE_TNN_UTILS_HALF_UTILS_H_

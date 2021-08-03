@@ -11,11 +11,15 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
-#ifndef TNN_INCLUDE_TNN_VERSION_H_
-#define TNN_INCLUDE_TNN_VERSION_H_
 
-static char *branch_name_tnn = "feature_support_conv1d";
-static char *commit_date_tnn = "2021-07-23";
-static char *commit_hash_tnn = "cdd4c6f9";
-
-#endif //TNN_INCLUDE_TNN_VERSION_H_
+#import "tnn/core/macro.h"
+#import "tnn/core/common.h"
+#import "tnn/core/instance.h"
+#import "tnn/core/blob.h"
+#import "tnn/core/tnn.h"
+#import "tnn/core/status.h"
+#import "tnn/utils/half_utils.h"
+#import "tnn/utils/data_type_utils.h"
+#import "tnn/utils/dims_vector_utils.h"
+//#import "tnn/utils/data_format_converter.h"
+#import "tnn/utils/blob_converter.h"
