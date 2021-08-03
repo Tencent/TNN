@@ -133,5 +133,59 @@ Status CreateIValueFromTypePtr(c10::IValue &ivalue, c10::TypePtr type) {
 }
 
 
+Status IValueTensorTo(c10::IValue &ivalue, at::ScalarType scalar_type) {
+    switch (ivalue.type()->kind()) {
+        case c10::TypeKind::TupleType:
+        {
+            auto tuple = ivalue.toTuple();
+            auto elements = tuple->elements();
+            for(int i=0;i<elements.size();i++) {
+                auto element = elements[i];
+                RETURN_ON_FAIL(IValueTensorTo(element, scalar_type));
+                tuple->elements()[i] = element;
+            }
+            ivalue = tuple;
+            break;
+        }
+        case c10::TypeKind::ListType:
+        {
+            auto list = ivalue.toList();
+            for(int i=0;i<list.size();i++) {
+                c10::IValue ele = list[i];
+                RETURN_ON_FAIL(IValueTensorTo(ele, scalar_type));
+                list[i] = ele;
+            }
+            ivalue = list;
+            break;
+        }
+        case c10::TypeKind::DictType:
+        {
+            auto dict = ivalue.toGenericDict();
+            for(auto it= dict.begin();it != dict.end();it++) 
+            {
+                auto key = it->key();
+                auto value = it->value();
+
+                RETURN_ON_FAIL(IValueTensorTo(value, scalar_type));
+
+                dict.insert_or_assign(key, value);
+            }
+            ivalue = dict;
+            break;
+        }
+        case c10::TypeKind::TensorType:
+        {
+            auto tensor = ivalue.toTensor().to(scalar_type);
+            ivalue = c10::IValue(std::move(tensor));
+            break;
+        }
+        default:
+            return Status(TNNERR_PARAM_ERR, "Unsupported type from function IValueTensorTo");
+    }
+
+    return TNN_OK;
+}
+
+
 
 }

@@ -83,10 +83,13 @@ private:
     BlobMap output_blob_map_;
 
     bool init_done_ = false;
+    DataType precision_;
+
     InputShapesMap min_inputs_shape_;
     InputShapesMap max_inputs_shape_;
 
     std::vector<torch::IValue> in_ivalues_;
+
 };
 
 }  // namespace TNN_NS
