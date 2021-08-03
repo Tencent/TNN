@@ -32,7 +32,6 @@ string OnnxOpConverterSlice::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_inf
     if (net_info.opset >= 10) {
         steps = get_node_attr_ai(node, "steps", net_info, 4);
     }
-
     layer_param << starts.size() << " ";
     for (const auto &start : starts) {
         layer_param << start << " ";
