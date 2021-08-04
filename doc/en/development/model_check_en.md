@@ -15,24 +15,43 @@ To compile the model_check tool, the following macro must be set to ON:
 ## III. Usage
 ### 1. Command
 ```
-./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-f] <refernece> [-e] [-n] <val> [-s] <val> [-o] [-b]
+./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-f] <refernece> [-e] [-n] <val> [-s] <val> [-o] [-b] -sp [precision]
 ```
 ### 2. Parameter Description
-|option           |mandatory|with value |description                                       |  
-|:------------------|:------:|:-----:|:-------------------------------------------|  
-|-h, --help         |        |       |Output command prompt.                                |  
-|-p, --proto        |&radic; |&radic;|Specify tnnproto model description file.                   |   
-|-m, --model        |&radic; |&radic;|Specify the tnnmodel model parameter file.                   |  
-|-d, --device       |&radic; |&radic;|Specify the platform on which the model is executed, such as OPENCL, ARM, METAL, CUDA, HUAWEI_NPU etc.    |  
-|-i, --input_path   |        |&radic;|Specify the input file. The currently supported formats are:<br>&bull; Text file (the file suffix is ​​.txt). The format is the same as the input file dumped by model converter tool. <br>&bull; Common picture format files (file suffix is ​​.jpg .jpeg .png .bmp)<br>If not specified, (-1, 1) will be used for random input|  
-|-f, --ref          |        |&radic;|Use the specified output to compare the results. The currently supported formats are:<br>&bull; Text file (file suffix is ​​.txt), the format is the same as the output file dumped by model converter tool.|
-|-e, --end          |        |       |Only check output of model.                           |  
-|-n, --mean         |        |&radic;|Pre-processing, mean operation on each channel of input data, parameter format: 0.0, 0.0, 0.0|  
-|-s, --scale        |        |&radic;|Pre-processing, scale the input data channels, the parameter format is: 1.0, 1.0, 1.0|  
-|-o, --output       |        |       |Whether to save the final output.                           |  
-|-b, --batch        |        |       |Check the result of each batch. (Not finished yet) |  
+|option   |mandatory|with value |description                                       |  
+|:-------:|:-------:|:-----:|:-------------------------------------------|  
+|-h       |         |       |Output command prompt.                                |  
+|-p       |&radic;  |&radic;|Specify tnnproto model description file.                   |   
+|-m       |&radic;  |&radic;|Specify the tnnmodel model parameter file.                   |  
+|-d       |&radic;  |&radic;|Specify the platform on which the model is executed, such as OPENCL, ARM, METAL, CUDA, HUAWEI_NPU etc.    |  
+|-i       |         |&radic;|Specify the input file. The currently supported formats are:<br>&bull; Text file (the file suffix is ​​.txt). The format is the same as the input file dumped by model converter tool. <br>&bull; Common picture format files (file suffix is ​​.jpg .jpeg .png .bmp)<br>If not specified, (-1, 1) will be used for random input|  
+|-f       |         |&radic;|Use the specified output to compare the results. The currently supported formats are:<br>&bull; Text file (file suffix is ​​.txt), the format is the same as the output file dumped by model converter tool.|
+|-e       |         |       |Only check output of model.                           |  
+|-n       |         |&radic;|Pre-processing, mean operation on each channel of input data, parameter format: 0.0, 0.0, 0.0|  
+|-s       |         |&radic;|Pre-processing, scale the input data channels, the parameter format is: 1.0, 1.0, 1.0|  
+|-o       |         |       |Whether to save the final output.                           |  
+|-b       |         |       |Check the result of each batch.  |  
+|-sp      |         |&radic;|Set the precision of device|  
 
+Note: the formula of bias and scale is: y=(x-bias)*scale
 
+### 3. Txt file format
+```
+<blob_num_s>
+<blob1_name> <dim_size_n1> <dim0> <dim1> ... <dim(n1-1)> <data type>
+<data>
+...
+<data>
+<blob2_name> <dim_size_n2> <dim0> <dim1> ... <dim(n2-1)> <data type>
+<data>
+...
+<data>
+...
+<blob(s)_name> <dim_size_ns> <dim0> <dim1> ... <dim(ns-1)> <data type>
+<data>
+...
+<data>
+```
 
 ## IV. Execute the Script
 ### 1. Android
@@ -55,5 +74,4 @@ cd <path_to_tnn>/platforms/linux/
 `` `
 
 ## V. Tool Restrictions
-* Currently the tool only supports fp32 model verification;
 * For per-layer model checking, only the fp32 precision is supported. For only-output model checking, the precision is decided by device automatically.
