@@ -42,13 +42,14 @@ private:
     bool input_need_reshape_  = false;
     bool output_need_reshape_ = false;
 
-    shared_ptr<OpenCLReshapeLayerAcc> reshape_input_layer_acc_  = nullptr;
-    shared_ptr<OpenCLReshapeLayerAcc> reshape_output_layer_acc_ = nullptr;
-    std::vector<Blob *> reduce_inputs_                          = {};
-    std::vector<Blob *> reduce_outputs_                         = {};
-    std::shared_ptr<Blob> reduce_input_blob_                    = nullptr;
-    std::shared_ptr<Blob> reduce_output_blob_                   = nullptr;
-    int single_axis_                                            = 1;
+    shared_ptr<OpenCLReshapeLayerAcc> reshape_input_layer_acc_         = nullptr;
+    shared_ptr<OpenCLReshapeLayerAcc> reshape_output_layer_acc_        = nullptr;
+    std::vector<std::shared_ptr<ReshapeLayerParam>> reshape_param_vec_ = {};
+    std::vector<Blob *> reduce_inputs_                                 = {};
+    std::vector<Blob *> reduce_outputs_                                = {};
+    std::shared_ptr<Blob> reduce_input_blob_                           = nullptr;
+    std::shared_ptr<Blob> reduce_output_blob_                          = nullptr;
+    int single_axis_                                                   = 1;
 };
 
 #define DECLARE_OPENCL_REDUCE_ACC(type_string)                                                                         \

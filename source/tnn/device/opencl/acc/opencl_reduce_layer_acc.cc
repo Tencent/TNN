@@ -330,14 +330,16 @@ Status OpenCLReduceLayerAcc::InitReshapeLayer(const std::vector<Blob *> &inputs,
     }
 
     // Init LayerAcc
-    std::string suffix = input_need_reshape_ ? "_Input" : "_Output";
-    ReshapeLayerParam reshape_param;
-    reshape_param.name         = layer_name_ + "_Reshape" + suffix;
-    reshape_param.reshape_type = 0;
-    reshape_param.axis         = 0;
-    reshape_param.num_axes     = reshape_shape.size();
-    reshape_param.shape        = reshape_shape;
-    reshape_layer_acc->Init(ocl_context_, &reshape_param, nullptr, inputs, outputs);
+    std::string suffix                               = input_need_reshape_ ? "_Input" : "_Output";
+    std::shared_ptr<ReshapeLayerParam> reshape_param = std::make_shared<ReshapeLayerParam>();
+    reshape_param->name                              = layer_name_ + "_Reshape" + suffix;
+    reshape_param->reshape_type                      = 0;
+    reshape_param->axis                              = 0;
+    reshape_param->num_axes                          = reshape_shape.size();
+    reshape_param->shape                             = reshape_shape;
+    reshape_layer_acc->Init(ocl_context_, reshape_param.get(), nullptr, inputs, outputs);
+
+    reshape_param_vec_.emplace_back(reshape_param);
 
     return ret;
 }
