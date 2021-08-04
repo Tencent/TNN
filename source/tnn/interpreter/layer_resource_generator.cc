@@ -377,9 +377,10 @@ class BlobScaleLayerResourceGenerator : public LayerResourceGenerator {
  */
 class BinaryLayerResourceGenerator : public LayerResourceGenerator {
     virtual Status GenLayerResource(LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs) {
-        LOGD("BinaryLayerResourceGenerator\n");
 
         if (inputs.size() == 1) {
+            LOGD("BinaryLayerResourceGenerator, input size is 1\n");
+
             LOGE(
                 "[WARNNING] can't infer resource shape from binary param in benchmark mode, random generator may not "
                 "be exactly same with the real resource!\n");
