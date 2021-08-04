@@ -133,6 +133,8 @@ enum StatusCode {
 
     //TNN TRAIN ERROR
     TNN_TRAIN_ERROR = 0x70001,
+    TNN_OP_ERROR = 0x70002,
+    TNN_OP_NOT_FOUND = 0x70002,
 };
 
 class PUBLIC Status {

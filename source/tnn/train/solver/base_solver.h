@@ -28,7 +28,11 @@ namespace TNN_NS {
 namespace train {
 class BaseSolver{
 public:
-    BaseSolver(AbstractNetwork* network): grad_manager_(network){};
+    BaseSolver(AbstractNetwork* network, NetworkConfig* config) {
+        auto context = grad_manager_.GetContext();
+        context.network = network;
+        context.config = config;
+    };
     virtual ~BaseSolver() = default;
     virtual Status step(Blob* loss) = 0;
     int CurrentStep() {
@@ -38,7 +42,7 @@ public:
         step_ = step;
     };
 protected:
-    //@breif 更新参数的梯度值，按现在的框架只有resource里的资源需要做变量的更新
+    // @brief 更新参数的梯度值，按现在的框架只有resource里的资源需要做变量的更新
     virtual Status ComputeUpdateValue(RawBuffer* resource_param, std::shared_ptr<RawBuffer>& resource_param_grad) = 0;
     virtual Status UpdateTrainableVariable(RawBuffer* resource_param, const std::shared_ptr<RawBuffer>& resource_param_grad);
     GradManager grad_manager_;

@@ -14,32 +14,26 @@
 
 // author: sanerzheng@tencent.com
 
-#ifndef TNN_SOURCE_TNN_TRAIN_GRAD_GRAD_H
-#define TNN_SOURCE_TNN_TRAIN_GRAD_GRAD_H
+#ifndef TNN_SOURCE_TNN_TRAIN_GRAD_TRAIN_CONTEXT_H
+#define TNN_SOURCE_TNN_TRAIN_GRAD_TRAIN_CONTEXT_H
 
 #include <string>
 #include <set>
-#include "core/tnn.h"
-#include "tnn/train/grad/layer_grad.h"
+
+#include "tnn/core/status.h"
+#include "tnn/core/blob.h"
 #include "tnn/core/default_network.h"
-#include "tnn/train/grad/train_context.h"
 
 namespace TNN_NS {
 namespace train {
-class GradManager {
-public:
-    GradManager(){};
-    GradManager(AbstractNetwork* network, NetworkConfig* config);
-    ~GradManager() = default;
-    Status CalcuteGrads(Blob* loss);
-    inline TrainContext& GetContext();
-private:
-    static std::set<RawBuffer* > trainables_;
-    TrainContext context_;
+struct TrainContext {
+    AbstractNetwork* network;
+    NetworkConfig* config;
+    std::map<Blob*, std::shared_ptr<Blob> > backward_grads_blob;
+    std::map<Blob*, std::shared_ptr<RawBuffer>> backward_grads_resource;
+
 };
-
-
 
 } // namespace train
 } // namespace TNN_NS
-#endif  // TNN_SOURCE_TNN_TRAIN_GRAD_GRAD_H
+#endif  // TNN_SOURCE_TNN_TRAIN_GRAD_TRAIN_CONTEXT_H

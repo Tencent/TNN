@@ -43,7 +43,7 @@ Status BaseSolver::UpdateTrainableVariable(RawBuffer* resource_param, const std:
 }
 Status BaseSolver::step(Blob* loss) {
     grad_manager_.CalcuteGrads(loss);
-    auto resource_grads = grad_manager_.GetBackWardGradsResource();
+    auto resource_grads = grad_manager_.GetContext().backward_grads_resource;
     for(auto iter: resource_grads){
         if(iter.first->GetTrainable()) {
             Status status = UpdateTrainableVariable(iter.first, iter.second);

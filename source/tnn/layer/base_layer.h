@@ -87,7 +87,8 @@ public:
     // @brief set runtime mode
     void SetRuntimeMode(RuntimeMode mode);
 
-protected:
+
+public:
     LayerType type_;
 
     std::string layer_name_;

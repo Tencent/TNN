@@ -43,6 +43,15 @@ template<> float binary_op<ArmBinaryOpType::kMIN, float>(const float &a, const f
 template<> float binary_op<ArmBinaryOpType::kHARDSWISH, float>(const float &a, const float &b, float alpha, float beta) {
     return a * MAX(MIN(b * alpha + beta, 1.0f), 0.f);
 }
+//a: logits b:target
+template<> float binary_op<ArmBinaryOpType::kCategoricalCrossEntropy, float>(const float &a, const float &b, float alpha, float beta) {
+    return -std::log(a) * b;
+}
+
+template<> float binary_op<ArmBinaryOpType::kBinaryCrossEntropy, float>(const float &a, const float &b, float alpha, float beta) {
+    return -std::log(a) * b - std::log(1.0f - a) * (1.0f - b);
+}
+
 
 template<> Float4 binary_op<ArmBinaryOpType::kADD, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return a + b;
@@ -64,6 +73,15 @@ template<> Float4 binary_op<ArmBinaryOpType::kMIN, Float4>(const Float4 &a, cons
 }
 template<> Float4 binary_op<ArmBinaryOpType::kHARDSWISH, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return a * Float4::max(Float4::min(b * alpha + beta, 1.0f), 0.f);
+}
+//a: logits b:target
+template<> Float4 binary_op<ArmBinaryOpType::kCategoricalCrossEntropy, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
+    return Float4::neg(Float4::log(a) * b);
+}
+const Float4 Float4::float4_const_one = TNNVector<float, 4>(1.0);
+//a: logits b:target
+template<> Float4 binary_op<ArmBinaryOpType::kBinaryCrossEntropy, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
+    return Float4::neg(Float4::log(a) * b + Float4::log(Float4::float4_const_one - a) * (Float4::float4_const_one - b));
 }
 
 Status ArmBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,

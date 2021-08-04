@@ -14,32 +14,29 @@
 
 // author: sanerzheng@tencent.com
 
-#ifndef TNN_SOURCE_TNN_TRAIN_GRAD_GRAD_H
-#define TNN_SOURCE_TNN_TRAIN_GRAD_GRAD_H
-
-#include <string>
-#include <set>
-#include "core/tnn.h"
-#include "tnn/train/grad/layer_grad.h"
-#include "tnn/core/default_network.h"
-#include "tnn/train/grad/train_context.h"
+#ifndef TNN_SOURCE_TNN_TRAIN_OPERATIONS_OP_TYPE_H
+#define TNN_SOURCE_TNN_TRAIN_OPERATIONS_OP_TYPE_H
 
 namespace TNN_NS {
 namespace train {
-class GradManager {
-public:
-    GradManager(){};
-    GradManager(AbstractNetwork* network, NetworkConfig* config);
-    ~GradManager() = default;
-    Status CalcuteGrads(Blob* loss);
-    inline TrainContext& GetContext();
-private:
-    static std::set<RawBuffer* > trainables_;
-    TrainContext context_;
-};
 
+// @brief all op types, used in train module, but may be used in predict modules;  
+enum OpType {
+    BinaryCrossEntryopyLayerGradOp = 1000,
+    ElementOp = 1001
+}; 
 
+enum ElementOpType {
+    Unkown = 0,
+    Add = 1,
+    Sub = 2,
+    Mul = 3,
+    Div = 4,
+    Log = 5,
+    Neg = 6
+
+}; 
 
 } // namespace train
 } // namespace TNN_NS
-#endif  // TNN_SOURCE_TNN_TRAIN_GRAD_GRAD_H
+#endif  //TNN_SOURCE_TNN_TRAIN_OPERATIONS_OP_TYPE_H 

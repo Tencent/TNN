@@ -23,6 +23,7 @@
 #include "tnn/core/status.h"
 #include "tnn/core/blob.h"
 #include "tnn/layer/base_layer.h"
+#include "tnn/train/grad/train_context.h"
 
 namespace TNN_NS {
 namespace train {
@@ -31,11 +32,34 @@ public:
     LayerGrad();
     virtual ~LayerGrad() = default;
 
-    //@breif calcute grads
-    virtual Status OnGrad(const BaseLayer* layer, std::map<Blob*, std::shared_ptr<RawBuffer> >& backward_grads_blob, std::map<RawBuffer*, std::shared_ptr<RawBuffer> >& backward_grads_resource);
-
+    // @brief calcute grads
+    virtual Status OnGrad(const BaseLayer* layer, TrainContext& context);
+    static void RegisterLayerGrad(LayerType type, std::shared_ptr<LayerGrad> layer_grad_p) {
+        GetLayerGradMap()[type] = layer_grad_p;
+    };
+    inline static std::map<LayerType, std::shared_ptr<LayerGrad>>& GetLayerGradMap() {
+        static std::map<LayerType, std::shared_ptr<LayerGrad>> layer_2_grad_map;
+        return layer_2_grad_map;
+    };  
 };
 
+template <typename T>
+class LayerGradRegister {
+public:
+    explicit LayerGradRegister(LayerType type) {
+        LayerGrad::RegisterLayerGrad(type, std::make_shared<T>());
+    }
+};
+
+#define DECLARE_LAYER_GRAD(type_string, layer_type)                                                                       \
+class type_string##LayerGrad : public LayerGrad {                                                            \
+public:                                                                                                            \
+    virtual ~##type_string##LayerGrad(){};                                                                       \
+    virtual Status OnGrad(const BaseLayer* layer, TrainContext& context);               \
+};
+
+#define REGISTER_LAYER_GRAD(type_string, layer_type)                                                                      \
+    LayerGradRegister<##type_string##LayerGrad> g_##layer_type##_layer_grad_register(layer_type);
 
 
 

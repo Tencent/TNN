@@ -19,13 +19,17 @@
 
 namespace TNN_NS {
 namespace train {
-GradManager::GradManager(AbstractNetwork* network) {
-    network_ = network;
+GradManager::GradManager(AbstractNetwork* network, NetworkConfig* config) {
+    context_.network = network;
+    context_.config = config;
 };
+inline TrainContext& GradManager::GetContext() {
+    return context_;
+}
 // store grads with Rawbuffer not blob to avoid device difference 
 // now trainable varibles are always resource, maybe blob input can be a trainable in future
 Status GradManager::CalcuteGrads(Blob* loss) {
-    DefaultNetwork* network = dynamic_cast<DefaultNetwork* >(network_);
+    DefaultNetwork* network = dynamic_cast<DefaultNetwork* >(context_.network);
     if(network == nullptr) {
         return Status(TNNERR_UNSUPPORT_NET, "grad module only support default net work");
     }
@@ -33,19 +37,20 @@ Status GradManager::CalcuteGrads(Blob* loss) {
         return Status(TNNERR_INVALID_DATA, "dims size of loss must 1 and data_type must be float");
     }
     //TODO:set grads to 0 with memset to avoid memory release and alloc when resize every train step 
-    backward_grads_blob_.clear();
-    backward_grads_resource_.clear();
-    Status status = Blob2RawBuffer(loss, backward_grads_blob_[loss]);
+    context_.backward_grads_blob.clear();
+    context_.backward_grads_resource.clear();
+    Status status = Blob2RawBuffer(loss, context_.backward_grads_blob[loss]);
     RETURN_ON_NEQ(status, TNN_OK);
-    auto loss_raw_buffer = backward_grads_blob_[loss];
+    auto loss_raw_buffer = context_.backward_grads_blob[loss];
     loss_raw_buffer->force_to<float *>()[0] = 1.f;
     loss_raw_buffer->SetTrainable(false);
     auto layers = network->GetLayers();
-    for(auto iter: layers) {
-        status = GetLayerGradMap()[iter->GetLayerType()]->OnGrad(iter, backward_grads_blob_, backward_grads_resource_);
+    for(auto iter = layers.rbegin(); iter != layers.rend(); iter++) {
+        status = LayerGrad::GetLayerGradMap()[(*iter)->GetLayerType()]->OnGrad(*iter, context_);
         RETURN_ON_NEQ(status, TNN_OK);
     }
     return status;
-}    
+} 
+ 
 }
 } //namspace TNN_NS
