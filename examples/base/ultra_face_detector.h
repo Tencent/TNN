@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #ifndef TNN_EXAMPLES_BASE_ULTRA_FACE_DETECTOR_H_
-#define TNN_EXAMPLES_BASE_ULTRA_FACE_DETECTOR_H_ 
+#define TNN_EXAMPLES_BASE_ULTRA_FACE_DETECTOR_H_
 
 #include <algorithm>
 #include <iostream>
@@ -24,70 +24,69 @@
 
 namespace TNN_NS {
 
-typedef ObjectInfo FaceInfo;
+    class UltraFaceDetectorInput : public TNNSDKInput {
+    public:
+        UltraFaceDetectorInput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKInput(mat) {};
+        virtual ~UltraFaceDetectorInput();
+    };
 
-class UltraFaceDetectorInput : public TNNSDKInput {
-public:
-    UltraFaceDetectorInput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKInput(mat) {};
-    virtual ~UltraFaceDetectorInput();
-};
+    class UltraFaceDetectorOutput : public TNNSDKOutput {
+    public:
+        UltraFaceDetectorOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
+        virtual ~UltraFaceDetectorOutput();
+        std::vector<ObjectInfo> object_list;
+    };
 
-class UltraFaceDetectorOutput : public TNNSDKOutput {
-public:
-    UltraFaceDetectorOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
-    virtual ~UltraFaceDetectorOutput();
-    std::vector<FaceInfo> face_list;
-};
+    class UltraFaceDetectorOption : public TNNSDKOption {
+    public:
+        UltraFaceDetectorOption();
+        virtual ~UltraFaceDetectorOption();
+        int input_width;
+        int input_height;
+        int num_thread = 1;
+        float score_threshold = 0.7;
+        float iou_threshold = 0.3;
+        int topk = -1;
+    };
 
-class UltraFaceDetectorOption : public TNNSDKOption {
-public:
-    UltraFaceDetectorOption();
-    virtual ~UltraFaceDetectorOption();
-    int input_width;
-    int input_height;
-    int num_thread = 1;
-    float score_threshold = 0.7;
-    float iou_threshold = 0.3;
-    int topk = -1;
-};
+    class UltraFaceDetector : public TNNSDKSample {
+    public:
+        virtual ~UltraFaceDetector();
 
-class UltraFaceDetector : public TNNSDKSample {
-public:
-    virtual ~UltraFaceDetector();
-    
-    virtual Status Init(std::shared_ptr<TNNSDKOption> option);
-    virtual MatConvertParam GetConvertParamForInput(std::string name = "");
-    virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
-    virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
-    virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat,
-                                                            std::string name = kTNNSDKDefaultName);
-    
-private:
-    void GenerateBBox(std::vector<FaceInfo> &bbox_collection, TNN_NS::Mat &scores, TNN_NS::Mat &boxes,
-                      int image_w, int image_h,
-                      float score_threshold, int num_anchors);
+        virtual Status Init(std::shared_ptr<TNNSDKOption> option);
+        virtual MatConvertParam GetConvertParamForInput(std::string name = "");
+        virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
+        virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output, std::vector<DimsVector> input_dims);
+        virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat,
+                                                        std::string name = kTNNSDKDefaultName);
 
-    void NMS(std::vector<FaceInfo> &input, std::vector<FaceInfo> &output, float iou_threshold, TNNNMSType type = TNNBlendingNMS);
-    
-private:
-    int num_anchors;
+    private:
+        void GenerateBBox(std::vector<ObjectInfo> &bbox_collection, TNN_NS::Mat &scores, TNN_NS::Mat &boxes,
+                          int image_w, int image_h,
+                          float score_threshold, int num_anchors);
 
-    const float mean_vals[3] = {127, 127, 127};
-    const float norm_vals[3] = {1.0 / 128, 1.0 / 128, 1.0 / 128};
+        void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float iou_threshold, TNNNMSType type = TNNBlendingNMS);
 
-    const float center_variance = 0.1;
-    const float size_variance = 0.2;
-    const std::vector<std::vector<float>> min_boxes = {
-            {10.0f,  16.0f,  24.0f},
-            {32.0f,  48.0f},
-            {64.0f,  96.0f},
-            {128.0f, 192.0f, 256.0f}};
-    const std::vector<float> strides = {8.0, 16.0, 32.0, 64.0};
-    std::vector<std::vector<float>> featuremap_size;
-    std::vector<std::vector<float>> shrinkage_size;
+    private:
+        int num_anchors;
+        int num_classes;
 
-    std::vector<std::vector<float>> priors = {};
-};
+        const float mean_vals[3] = {127, 127, 127};
+        const float norm_vals[3] = {1.0 / 128, 1.0 / 128, 1.0 / 128};
+
+        const float center_variance = 0.1;
+        const float size_variance = 0.2;
+        const std::vector<std::vector<float>> min_boxes = {
+                {10.0f,  16.0f,  24.0f},
+                {32.0f,  48.0f},
+                {64.0f,  96.0f},
+                {128.0f, 192.0f, 256.0f}};
+        const std::vector<float> strides = {8.0, 16.0, 32.0, 64.0};
+        std::vector<std::vector<float>> featuremap_size;
+        std::vector<std::vector<float>> shrinkage_size;
+
+        std::vector<std::vector<float>> priors = {};
+    };
 
 }
 

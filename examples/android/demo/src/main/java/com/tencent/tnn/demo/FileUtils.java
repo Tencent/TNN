@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,7 +22,7 @@ public class FileUtils {
     }
 
     public static boolean copyAsset(AssetManager assetManager,
-                                     String fromAssetPath, String toPath) {
+                                    String fromAssetPath, String toPath) {
         InputStream in = null;
         OutputStream out = null;
         try {
@@ -35,7 +36,7 @@ public class FileUtils {
             out.close();
             out = null;
             return true;
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
@@ -44,9 +45,20 @@ public class FileUtils {
     public static void copyFile(InputStream in, OutputStream out) throws IOException {
         byte[] buffer = new byte[1024];
         int read;
-        while((read = in.read(buffer)) != -1){
+        while ((read = in.read(buffer)) != -1) {
             out.write(buffer, 0, read);
         }
+    }
+
+    public static Bitmap readBitmapFromSDCard(String filePath) {
+        InputStream istr = null;
+        try {
+            File file = new File(filePath);
+            istr = new FileInputStream(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return BitmapFactory.decodeStream(istr);
     }
 
     public static Bitmap readBitmapFromFile(AssetManager assetManager, String filePath) {

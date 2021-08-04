@@ -73,10 +73,9 @@ public class StreamOCRDetectFragment extends BaseFragment {
         NpuEnable = mOCRDetector.checkNpu(modelPath);
     }
 
-    private String initModel()
-    {
+    private String initModel() {
 
-        String targetDir =  getActivity().getFilesDir().getAbsolutePath();
+        String targetDir = getActivity().getFilesDir().getAbsolutePath();
 
         // copy ocr related models to sdcard
         String[] modelPathsDetector = {
@@ -91,9 +90,15 @@ public class StreamOCRDetectFragment extends BaseFragment {
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
             String modelFilePath = modelPathsDetector[i];
-            String interModelFilePath = targetDir + "/" + modelFilePath ;
-            FileUtils.copyAsset(getActivity().getAssets(), "chinese-ocr/"+modelFilePath, interModelFilePath);
+            String interModelFilePath = targetDir + "/" + modelFilePath;
+            FileUtils.copyAsset(getActivity().getAssets(), "chinese-ocr/" + modelFilePath, interModelFilePath);
         }
+        FileUtils.copyAsset(getActivity().getAssets(), "feature/features.bin", targetDir + "/features.bin");
+        FileUtils.copyAsset(getActivity().getAssets(), "broadcast/broadcast-slim-320_best.opt.tnnmodel",
+                targetDir + "/broadcast-slim-320_best.opt.tnnmodel");
+        FileUtils.copyAsset(getActivity().getAssets(), "broadcast/broadcast-slim-320_best.opt.tnnproto",
+                targetDir + "/broadcast-slim-320_best.opt.tnnproto");
+
         return targetDir;
     }
 
@@ -104,32 +109,31 @@ public class StreamOCRDetectFragment extends BaseFragment {
             clickBack();
         }
     }
-    private void restartCamera()
-    {
+
+    private void restartCamera() {
         closeCamera();
         openCamera(mCameraFacing);
         startPreview(mSurfaceHolder);
     }
-    private void onSwichGPU(boolean b)
-    {
+
+    private void onSwichGPU(boolean b) {
         if (b && mHuaweiNPUswitch.isChecked()) {
             mHuaweiNPUswitch.setChecked(false);
             mUseHuaweiNpu = false;
         }
         mUseGPU = b;
-        TextView result_view = (TextView)$(R.id.result);
+        TextView result_view = (TextView) $(R.id.result);
         result_view.setText("");
         mDeviceSwiched = true;
     }
 
-    private void onSwichNPU(boolean b)
-    {
+    private void onSwichNPU(boolean b) {
         if (b && mGPUSwitch.isChecked()) {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
         }
         mUseHuaweiNpu = b;
-        TextView result_view = (TextView)$(R.id.result);
+        TextView result_view = (TextView) $(R.id.result);
         result_view.setText("");
         mDeviceSwiched = true;
     }
@@ -182,8 +186,7 @@ public class StreamOCRDetectFragment extends BaseFragment {
                 closeCamera();
                 if (mCameraFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
                     openCamera(Camera.CameraInfo.CAMERA_FACING_BACK);
-                }
-                else {
+                } else {
                     openCamera(Camera.CameraInfo.CAMERA_FACING_FRONT);
                 }
                 startPreview(mSurfaceHolder);
@@ -246,16 +249,16 @@ public class StreamOCRDetectFragment extends BaseFragment {
         getView().setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-            if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-                clickBack();
-                return true;
-            }
-            return false;
+                if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
+                    clickBack();
+                    return true;
+                }
+                return false;
             }
         });
     }
 
-/**********************************     Camera    **********************************/
+    /**********************************     Camera    **********************************/
 
 
     public void openCamera() {
@@ -286,10 +289,9 @@ public class StreamOCRDetectFragment extends BaseFragment {
             if (mOpenedCamera == null) {
 //                popTip("can't find camera","");
                 Log.e(TAG, "can't find camera");
-            }
-            else {
+            } else {
 
-                int r = CameraSetting.initCamera(getActivity().getApplicationContext(),mOpenedCamera,mOpenedCameraId);
+                int r = CameraSetting.initCamera(getActivity().getApplicationContext(), mOpenedCamera, mOpenedCameraId);
                 if (r == 0) {
                     //设置摄像头朝向
                     CameraSetting.setCameraFacing(cameraFacing);
@@ -324,8 +326,7 @@ public class StreamOCRDetectFragment extends BaseFragment {
                     Log.e(TAG, "Failed to init camera");
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Log.e(TAG, "open camera failed:" + e.getLocalizedMessage());
         }
     }
@@ -375,14 +376,13 @@ public class StreamOCRDetectFragment extends BaseFragment {
                                     monitorResult += "arm\n";
                                 }
                                 monitorResult += "fps: " + String.format("%.02f", fps);
-                                TextView monitor_result_view = (TextView)$(R.id.monitor_result);
+                                TextView monitor_result_view = (TextView) $(R.id.monitor_result);
                                 monitor_result_view.setText(monitorResult);
                             }
-                            Log.i(TAG, "detect from stream ret " + objectInfoList);
+//                            Log.i(TAG, "1111  detect from stream ret " + objectInfoList);
                             mDrawView.addTextRect(objectInfoList);
-                        }
-                        else {
-                            Log.i(TAG,"No face");
+                        } else {
+                            Log.i(TAG, "No face");
                         }
                     }
                 });

@@ -73,7 +73,9 @@ public:
                                                             std::string name = kTNNSDKDefaultName);
     
     cv::Mat& GetPaddedInput() { return padded_input_; }
-    
+    int GetPadding() {return padding_;}
+    float GetScaleDownRatio() {return scale_down_ratio_;}
+
 private:
     int padding_  = 10;
     float box_score_thresh_ = 0.6f;

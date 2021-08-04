@@ -29,7 +29,7 @@
 #define TNN_SDK_USE_NCNN_MODEL 0
 
 #ifndef HAS_OPENCV
-#define HAS_OPENCV 0
+#define HAS_OPENCV 1
 #endif
 
 namespace TNN_NS {
@@ -62,11 +62,11 @@ struct ObjectInfo {
     /**gravity
      * 0:resize
      * 1:resize fit the view and keep aspect, empty space may be remained zero
-     *  2:resize to fill the view and keep aspect, no empty space remain
+     * 2:resize to fill the view and keep aspect, no empty space remain
      */
     ObjectInfo AdjustToViewSize(int view_height, int view_width, int gravity = 2);
     ObjectInfo FlipX();
-    ObjectInfo AddOffset(float offset_x, float offset_y);
+    ObjectInfo AddOffset(float offset_x, float offset_y, float ratio_x=1.0f, float ratio_y=1.0f);
     float IntersectionRatio(ObjectInfo *obj);
 };
 
@@ -197,7 +197,8 @@ public:
     virtual MatConvertParam GetConvertParamForOutput(std::string name = "");
     virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
-    
+    virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output, std::vector<DimsVector> input_dims);
+
     virtual std::shared_ptr<TNN_NS::Mat> ProcessSDKInputMat(std::shared_ptr<TNN_NS::Mat> mat,
                                                             std::string name = kTNNSDKDefaultName);
 
@@ -258,7 +259,7 @@ typedef enum {
 void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float iou_threshold, TNNNMSType type);
 
 void Rectangle(void *data_rgba, int image_height, int image_width,
-               int x0, int y0, int x1, int y1, float scale_x = 1.0, float scale_y = 1.0);
+               int x0, int y0, int x1, int y1, float scale_x = 1.0, float scale_y = 1.0, RGBA color = RGBA(0, 255, 0, 0));
 
 void Point(void *data_rgba, int image_height, int image_width,
            int x, int y, float z, float scale_x = 1.0, float scale_y = 1.0);

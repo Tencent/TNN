@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.SurfaceHolder;
@@ -27,20 +28,22 @@ import java.util.ArrayList;
 
 
 public class ImageOCRDetectFragment extends BaseFragment {
+    private static final String IMAGES_PATH = Environment.getExternalStorageDirectory().getPath() + "/saveBitmaps";
+    private int index = 43;
+    private static final String IMAGE = "test_ocr.jpg";
 
     private final static String TAG = ImageOCRDetectFragment.class.getSimpleName();
     private OCRDetector mOCRDetector = new OCRDetector();
+    private Bitmap originBitmap;
 
-    private static final String IMAGE = "test_ocr.jpg";
     private Paint mPaint = new Paint();
     private DrawView mDrawView;
+    private ImageView mImageView;
     private ToggleButton mGPUSwitch;
     private Button mRunButton;
     private boolean mUseGPU = false;
     //add for npu
-    private ToggleButton mHuaweiNPUswitch;
     private boolean mUseHuaweiNpu = false;
-    private TextView HuaweiNpuTextView;
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -53,10 +56,9 @@ public class ImageOCRDetectFragment extends BaseFragment {
         NpuEnable = mOCRDetector.checkNpu(modelPath);
     }
 
-    private String initModel()
-    {
+    private String initModel() {
 
-        String targetDir =  getActivity().getFilesDir().getAbsolutePath();
+        String targetDir = getActivity().getFilesDir().getAbsolutePath();
 
         // copy ocr related models to sdcard
         String[] modelPathsDetector = {
@@ -71,8 +73,8 @@ public class ImageOCRDetectFragment extends BaseFragment {
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
             String modelFilePath = modelPathsDetector[i];
-            String interModelFilePath = targetDir + "/" + modelFilePath ;
-            FileUtils.copyAsset(getActivity().getAssets(), "chinese-ocr/"+modelFilePath, interModelFilePath);
+            String interModelFilePath = targetDir + "/" + modelFilePath;
+            FileUtils.copyAsset(getActivity().getAssets(), "chinese-ocr/" + modelFilePath, interModelFilePath);
         }
         return targetDir;
     }
@@ -85,25 +87,20 @@ public class ImageOCRDetectFragment extends BaseFragment {
         }
     }
 
-    private void onSwichGPU(boolean b)
-    {
-        if(b && mHuaweiNPUswitch.isChecked()){
-            mHuaweiNPUswitch.setChecked(false);
-            mUseHuaweiNpu = false;
-        }
+    private void onSwichGPU(boolean b) {
+
         mUseGPU = b;
-        TextView result_view = (TextView)$(R.id.result);
+        TextView result_view = (TextView) $(R.id.result);
         result_view.setText("");
     }
 
-    private void onSwichNPU(boolean b)
-    {
-        if(b && mGPUSwitch.isChecked()){
+    private void onSwichNPU(boolean b) {
+        if (b && mGPUSwitch.isChecked()) {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
         }
         mUseHuaweiNpu = b;
-        TextView result_view = (TextView)$(R.id.result);
+        TextView result_view = (TextView) $(R.id.result);
         result_view.setText("");
     }
 
@@ -128,21 +125,6 @@ public class ImageOCRDetectFragment extends BaseFragment {
             }
         });
 
-        $$(R.id.npu_switch);
-        mHuaweiNPUswitch = $(R.id.npu_switch);
-        mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichNPU(b);
-            }
-        });
-
-        HuaweiNpuTextView = $(R.id.npu_text);
-
-        if (!NpuEnable) {
-            HuaweiNpuTextView.setVisibility(View.INVISIBLE);
-            mHuaweiNPUswitch.setVisibility(View.INVISIBLE);
-        }
         mDrawView = (DrawView) $(R.id.drawView);
         mRunButton = $(R.id.run_button);
         mRunButton.setOnClickListener(new View.OnClickListener() {
@@ -152,9 +134,27 @@ public class ImageOCRDetectFragment extends BaseFragment {
             }
         });
 
-        Bitmap originBitmap = FileUtils.readBitmapFromFile(getActivity().getAssets(), IMAGE);
-        ImageView source = (ImageView)$(R.id.origin);
+        ((Button) $(R.id.btn_next)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                nextImage();
+                startDetect();
+            }
+        });
+
+        originBitmap = FileUtils.readBitmapFromFile(getActivity().getAssets(), IMAGE);
+        mImageView = (ImageView) $(R.id.origin);
+        mImageView.setImageBitmap(originBitmap);
+
+        ImageView source = (ImageView) $(R.id.origin);
         source.setImageBitmap(originBitmap);
+
+    }
+
+    private void nextImage() {
+        String path = IMAGES_PATH + String.format("/image-%05d.jpeg", ++index);
+        originBitmap = FileUtils.readBitmapFromSDCard(path);
+        mImageView.setImageBitmap(originBitmap);
     }
 
     @Override
@@ -174,22 +174,18 @@ public class ImageOCRDetectFragment extends BaseFragment {
 
 
     private void startDetect() {
-
-        Bitmap originBitmap = FileUtils.readBitmapFromFile(getActivity().getAssets(), IMAGE);
         Bitmap scaleBitmap = Bitmap.createScaledBitmap(originBitmap, originBitmap.getWidth(), originBitmap.getHeight(), false);
-        ImageView source = (ImageView)$(R.id.origin);
-        source.setImageBitmap(originBitmap);
         String modelPath = initModel();
         Log.d(TAG, "Init classify " + modelPath);
         int device = 0;
-        if(mUseHuaweiNpu) {
+        if (mUseHuaweiNpu) {
             device = 2;
-        }else if(mUseGPU) {
+        } else if (mUseGPU) {
             device = 1;
         }
         int result = mOCRDetector.init(modelPath, originBitmap.getWidth(), originBitmap.getHeight(), device);
         String txt_result = "text result:\n";
-        if(result == 0) {
+        if (result == 0) {
             Log.d(TAG, "detect from image");
             ObjectInfo[] objectInfoList = mOCRDetector.detectFromImage(scaleBitmap, originBitmap.getWidth(), originBitmap.getHeight());
             Log.d(TAG, "detect from image result " + objectInfoList);
@@ -210,9 +206,12 @@ public class ImageOCRDetectFragment extends BaseFragment {
                 Canvas canvas = new Canvas(scaleBitmap2);
                 ArrayList<float[]> point_lines_list = new ArrayList<float[]>();
                 ArrayList<String> labels = new ArrayList<String>();
-                for (int i = 0; i < objectInfoList.length; i++)
-                {
+                for (int i = 0; i < objectInfoList.length; i++) {
                     float[] point_lines = new float[4 * 4];
+                    if (objectInfoList[i]==null || objectInfoList[i].key_points == null || objectInfoList[i].key_points.length == 0) {
+                        Log.e("julis", "objectInfoList[i].key_points.length == 0");
+                        continue;
+                    }
                     point_lines[0] = objectInfoList[i].key_points[0][0];
                     point_lines[1] = objectInfoList[i].key_points[0][1];
                     point_lines[2] = objectInfoList[i].key_points[1][0];
@@ -234,20 +233,19 @@ public class ImageOCRDetectFragment extends BaseFragment {
                     labels.add(String.format("%s", objectInfoList[i].label));
                     txt_result += objectInfoList[i].label + "\n";
                 }
-                for (int i=0; i<point_lines_list.size(); i++) {
+                for (int i = 0; i < point_lines_list.size(); i++) {
                     float[] point_lines = point_lines_list.get(i);
                     canvas.drawLines(point_lines, mPaint);
-                    if(labels.size() > 0) {
+                    if (labels.size() > 0) {
                         canvas.drawText(labels.get(i), point_lines[0], point_lines[1], mPaint);
                     }
                 }
-                source.setImageBitmap(scaleBitmap2);
-
-                source.draw(canvas);
+                mImageView.setImageBitmap(scaleBitmap2);
+                mImageView.draw(canvas);
 
             }
             String benchResult = "text box count: " + objectCount + " " + Helper.getBenchResult() + txt_result;
-            TextView result_view = (TextView)$(R.id.result);
+            TextView result_view = (TextView) $(R.id.result);
             result_view.setText(benchResult);
         } else {
             Log.e(TAG, "failed to init model " + result);
@@ -298,11 +296,11 @@ public class ImageOCRDetectFragment extends BaseFragment {
         getView().setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-            if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-                clickBack();
-                return true;
-            }
-            return false;
+                if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
+                    clickBack();
+                    return true;
+                }
+                return false;
             }
         });
     }

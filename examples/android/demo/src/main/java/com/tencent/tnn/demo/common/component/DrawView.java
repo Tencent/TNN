@@ -23,8 +23,7 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 
 
-public class DrawView extends SurfaceView
-{
+public class DrawView extends SurfaceView {
     private static String TAG = DrawView.class.getSimpleName();
     private Paint paint = new Paint();
     private Paint key_paint = new Paint();
@@ -37,8 +36,7 @@ public class DrawView extends SurfaceView
     private ArrayList<float[]> point_lines_list = new ArrayList<float[]>();
     private ArrayList<ImageInfo> image_info_list = new ArrayList<ImageInfo>();
 
-    public DrawView(Context context, AttributeSet attrs)
-    {
+    public DrawView(Context context, AttributeSet attrs) {
         super(context, attrs);
         paint.setARGB(255, 0, 255, 0);
         key_paint.setARGB(255, 0, 255, 0);
@@ -58,19 +56,16 @@ public class DrawView extends SurfaceView
         setWillNotDraw(false);
     }
 
-    public void addFaceRect(FaceInfo[] facestatus)
-    {
+    public void addFaceRect(FaceInfo[] facestatus) {
         rects.clear();
         points_list.clear();
-        if (facestatus != null && facestatus.length!=0)
-        {
-            for (int i=0; i<facestatus.length; i++)
-            {
-                rects.add(new Rect((int)facestatus[i].x1, (int)facestatus[i].y1, (int)facestatus[i].x2, (int)facestatus[i].y2));
+        if (facestatus != null && facestatus.length != 0) {
+            for (int i = 0; i < facestatus.length; i++) {
+                rects.add(new Rect((int) facestatus[i].x1, (int) facestatus[i].y1, (int) facestatus[i].x2, (int) facestatus[i].y2));
                 float[][] keypoints = facestatus[i].keypoints;
-                if(keypoints != null) {
+                if (keypoints != null) {
                     float[] points = new float[facestatus[i].keypoints.length * 2];
-                    for(int j = 0; j < keypoints.length; ++j) {
+                    for (int j = 0; j < keypoints.length; ++j) {
                         points[j * 2] = facestatus[i].keypoints[j][0];
                         points[j * 2 + 1] = facestatus[i].keypoints[j][1];
                     }
@@ -82,15 +77,12 @@ public class DrawView extends SurfaceView
         postInvalidate();
     }
 
-    public void addObjectRect(ObjectInfo[] objectstatus, String[]  label_list)
-    {
+    public void addObjectRect(ObjectInfo[] objectstatus, String[] label_list) {
         rects.clear();
         labels.clear();
-        if (objectstatus != null && objectstatus.length!=0)
-        {
-            for (int i=0; i<objectstatus.length; i++)
-            {
-                rects.add(new Rect((int)objectstatus[i].x1, (int)objectstatus[i].y1, (int)objectstatus[i].x2, (int)objectstatus[i].y2));
+        if (objectstatus != null && objectstatus.length != 0) {
+            for (int i = 0; i < objectstatus.length; i++) {
+                rects.add(new Rect((int) objectstatus[i].x1, (int) objectstatus[i].y1, (int) objectstatus[i].x2, (int) objectstatus[i].y2));
                 labels.add(String.format("%s : %f", label_list[objectstatus[i].class_id], objectstatus[i].score));
             }
         }
@@ -98,15 +90,16 @@ public class DrawView extends SurfaceView
         postInvalidate();
     }
 
-    public void addTextRect(ObjectInfo[] objectstatus)
-    {
+    public void addTextRect(ObjectInfo[] objectstatus) {
         point_lines_list.clear();
         labels.clear();
-        if (objectstatus != null && objectstatus.length!=0)
-        {
-            for (int i=0; i<objectstatus.length; i++)
-            {
+        if (objectstatus != null && objectstatus.length != 0) {
+            for (int i = 0; i < objectstatus.length; i++) {
                 float[] point_lines = new float[4 * 4];
+                if (objectstatus[i].key_points.length == 0) {
+                    Log.e("julis","objectstatus[i].key_points.length == 0");
+                    return;
+                }
                 point_lines[0] = objectstatus[i].key_points[0][0];
                 point_lines[1] = objectstatus[i].key_points[0][1];
                 point_lines[2] = objectstatus[i].key_points[1][0];
@@ -132,12 +125,10 @@ public class DrawView extends SurfaceView
         postInvalidate();
     }
 
-    public void addObjectRect(ObjectInfo[] objectstatus)
-    {
+    public void addObjectRect(ObjectInfo[] objectstatus) {
         points_list.clear();
         point_lines_list.clear();
-        if (objectstatus != null && objectstatus.length != 0)
-        {
+        if (objectstatus != null && objectstatus.length != 0) {
             for (int i = 0; i < objectstatus.length; i++) {
                 float[][] key_points = objectstatus[i].key_points;
                 if (key_points != null && key_points.length != 0) {
@@ -166,8 +157,7 @@ public class DrawView extends SurfaceView
         postInvalidate();
     }
 
-    public void addImageInfo(ImageInfo imageInfo)
-    {
+    public void addImageInfo(ImageInfo imageInfo) {
         image_info_list.clear();
         image_info_list.add(imageInfo);
 
@@ -175,15 +165,13 @@ public class DrawView extends SurfaceView
     }
 
     @Override
-    protected void onDraw(Canvas canvas)
-    {
-        if (rects.size() > 0)
-        {
-            for (int i=0; i<rects.size(); i++) {
+    protected void onDraw(Canvas canvas) {
+        if (rects.size() > 0) {
+            for (int i = 0; i < rects.size(); i++) {
                 Log.d(TAG, "rect " + rects.get(i));
                 paint.setARGB(255, 0, 255, 0);
                 canvas.drawRect(rects.get(i), paint);
-                if(labels.size() > 0) {
+                if (labels.size() > 0) {
                     canvas.drawText(labels.get(i), rects.get(i).left, rects.get(i).top - 5, paint);
                 }
             }
@@ -201,7 +189,7 @@ public class DrawView extends SurfaceView
             for (int i = 0; i < point_lines_list.size(); ++i) {
                 float[] point_lines = point_lines_list.get(i);
                 canvas.drawLines(point_lines, line_paint);
-                if(labels.size() > 0) {
+                if (labels.size() > 0) {
                     canvas.drawText(labels.get(i), point_lines[0], point_lines[1], text_paint);
                 }
             }
@@ -216,7 +204,7 @@ public class DrawView extends SurfaceView
                     Bitmap bitmap = Bitmap.createBitmap(imageInfo.image_width, imageInfo.image_height, Bitmap.Config.ARGB_8888);
                     ByteBuffer buffer = ByteBuffer.wrap(imageInfo.data);
                     bitmap.copyPixelsFromBuffer(buffer);
-                    Rect rect = new Rect(0, 0, getWidth() - 1, getHeight() -1);
+                    Rect rect = new Rect(0, 0, getWidth() - 1, getHeight() - 1);
                     canvas.drawBitmap(bitmap, null, rect, null);
                     bitmap.recycle();
                 }
