@@ -28,6 +28,22 @@ bool OpSupported(const torch::jit::Node* n) {
   return false;
 }
 
+bool CheckFatalOp(const torch::jit::Node* n) {
+   static std::set<std::string> fatal_op_name = {"nonzero", "zeros"};
+   for (auto b : n->blocks()) {
+     for (auto it = b->nodes().begin(), end = b->nodes().end(); it != end; ++it) {
+       auto res = CheckFatalOp(*it);
+       if (res) return res;
+     }
+   }
+
+  if (fatal_op_name.count(n->kind().toUnqualString()) > 0) {
+    return true;
+  }
+
+  return false;
+}
+
 bool isAllNodesSupported(const std::vector<torch::jit::Node*>& nodes) {
   for (auto node : nodes) {
     if (!OpSupported(node)) {
@@ -258,7 +274,7 @@ void registerSegmentsOutputs(PartitionedGraph& segmented_blocks, std::shared_ptr
 
 std::vector<SegmentedBlock> segment_graph(std::shared_ptr<torch::jit::Graph> g) {
   auto min_block_size = 5;
-  std::unordered_set<std::string> forced_fallback_operators();
+  bool forced_fallback = false;
 
   auto nodes = g->block()->nodes();
   std::vector<SegmentedBlock> segmented_blocks;
@@ -270,8 +286,11 @@ std::vector<SegmentedBlock> segment_graph(std::shared_ptr<torch::jit::Graph> g) 
       continue;
     }
 
-    std::string node_string(n->kind().toQualString());
-    if (OpSupported(n)) {
+    if (!forced_fallback && CheckFatalOp(n)) {
+      forced_fallback = true;
+    }
+
+    if (OpSupported(n) && !forced_fallback) {
       tensorrt_nodes.push_back(n);
       if (tensorrt_nodes.size() >= min_block_size && !pytorch_nodes.empty()) {
         segmented_blocks.emplace_back(SegmentedBlock::kTorch, pytorch_nodes);
