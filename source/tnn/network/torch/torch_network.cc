@@ -275,6 +275,8 @@ Status TNNTorchNetwork::Reshape(const InputShapesMap &inputs) {
 
 
 Status TNNTorchNetwork::Forward() {
+    // Blob converter may issue async converting, we need to wait for data ready.
+    RETURN_ON_FAIL(context_->Synchronize());
 
     if (!init_done_) {
         return Status(TNNERR_INST_ERR, "Torch Network is not initialized");

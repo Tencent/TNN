@@ -175,8 +175,13 @@ Status IValueTensorTo(c10::IValue &ivalue, at::ScalarType scalar_type) {
         }
         case c10::TypeKind::TensorType:
         {
-            auto tensor = ivalue.toTensor().to(scalar_type);
-            ivalue = c10::IValue(std::move(tensor));
+            auto tensor = ivalue.toTensor();
+            if (tensor.scalar_type() == at::ScalarType::Float || 
+                tensor.scalar_type() == at::ScalarType::Half) 
+            {
+                auto new_tensor = tensor.to(scalar_type);
+                ivalue = c10::IValue(std::move(new_tensor));
+            }
             break;
         }
         default:
