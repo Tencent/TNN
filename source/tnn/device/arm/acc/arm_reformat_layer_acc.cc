@@ -117,6 +117,9 @@ Status ArmReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         auto dims   = outputs[i]->GetBlobDesc().dims;
         int batch   = dims[0];
         int channel = dims[1];
+        if (dims.size() < 2){
+            channel = 1;
+        }
         int hw      = DimsVectorUtils::Count(dims, 2);
         if (param->type == DEQUANT_ONLY) {
             Int8ToFloat(reinterpret_cast<float *>(GetBlobHandlePtr(outputs[i]->GetHandle())),
