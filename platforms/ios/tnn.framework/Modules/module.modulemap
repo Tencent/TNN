@@ -1,6 +1,0 @@
-framework module tnn {
-  umbrella header "tnn.h"
-
-  export *
-  module * { export * }
-}
