@@ -69,7 +69,7 @@ private:
 
     virtual Status LoadModule(std::istream& in, NetworkConfig &config);
 
-    virtual Status CompileModule(NetworkConfig &config);
+    virtual Status CompileModule();
 
     virtual Status CreateIOBinding(InputShapesMap  min_shape, InputShapesMap max_shape);
   

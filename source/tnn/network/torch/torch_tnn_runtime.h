@@ -12,7 +12,7 @@
 #include "tnn/interpreter/net_structure.h"
 #include "tnn/layer/base_layer.h"
 
-#include "tnn/network/torch/SegmentedBlock.h"
+#include "tnn/network/torch/segment.h"
 #include "tnn/interpreter/default_model_interpreter.h"
 
 #include <torch/script.h>

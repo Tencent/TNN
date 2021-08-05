@@ -1,3 +1,16 @@
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// specific language governing permissions and limitations under the License.
 
 #include "tnn/core/blob.h"
 #include "tnn/network/torch/jit_util.h"
@@ -12,7 +25,7 @@ namespace runtime {
 
 std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
                                         c10::intrusive_ptr<TNNEngine> compiled_engine) {
-    auto input_names = compiled_engine->input_names;
+    auto input_names  = compiled_engine->input_names;
     auto output_names = compiled_engine->output_names;
     InputShapesMap inputs_shape_map;
     int input_idx = 0;
@@ -33,6 +46,7 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         for (auto input : inputs_shape_map) {
             if (input.second != interpreter->GetNetStructure()->inputs_shape_map[input.first]) {
                 compiled_engine->instance_->Init(compiled_engine->ctx_->get_interpreter(), inputs_shape_map);
+                break;
             }
         }
     }
@@ -62,7 +76,7 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         // outputs[i] = std::move(at::empty(dims, {at::kCUDA}).to(type).contiguous());
         std::shared_ptr<at::Tensor> tensor_ptr;
         CreateTensorByBlob(tensor_ptr, output_blobs[output_names[i]]);
-        outputs[i] = std::move(*tensor_ptr);        
+        outputs[i] = std::move(*tensor_ptr);
     }
 
     return outputs;

@@ -1,3 +1,17 @@
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// specific language governing permissions and limitations under the License.
+
 #include "tnn/network/torch/torch_compile.h"
 
 #include <torch/csrc/jit/passes/inliner.h>
@@ -120,15 +134,11 @@ void RegisterNodeToOutput(std::shared_ptr<torch::jit::Module> &mod, const std::v
     cur_method.setSchema(schema);
 }
 
-std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap &input_shape,
-                                                 NetworkConfig &config) {
+void CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap &input_shape, NetworkConfig &config) {
     std::cout << c10::toString(mod->get_method("forward").function().getSchema()) << std::endl;
     auto low_g = mod->get_method("forward").graph();
-    // removeUselessOps(low_g->block(), low_g->inputs()[0]->debugName());
-    // return mod;
     std::cout << low_g->toString(false) << std::endl;
 
-    // auto graph_and_ivalues = torch::jit::tnn::LowerGraph(*low_g, mod->_ivalue());
     // auto graph_and_ivalues = torch::jit::LowerGraph(*low_g, mod->_ivalue());
     // auto g = graph_and_ivalues.first;
     auto g = low_g;
@@ -138,25 +148,20 @@ std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Mod
     for (auto input : g->inputs()) {
         std::cout << input->debugName() << " | " << input->type()->repr_str() << std::endl;
     }
-    // auto named_params = get_named_params(g->inputs(), graph_and_ivalues.second);
 
     auto seg_blocks = partitioning::Partition(g, input_shape);
+#if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
+    {
+        RegisterNodeToOutput(mod, seg_blocks[0].raw_nodes());
+        return mod;
+    }
+#endif
 
-    // {
-    //     RegisterNodeToOutput(mod, seg_blocks[0].raw_nodes());
-    //     return mod;
-    // }
-
-    int subgraph_cnt = 0;
     for (auto &block : seg_blocks) {
         std::string cur_block_target = block.target() == partitioning::SegmentedBlock::kTNN ? "TNN" : "Torch";
         std::ostringstream tnn_engine_id;
         tnn_engine_id << reinterpret_cast<const int *>(&block);
         if (block.target() == partitioning::SegmentedBlock::kTNN) {
-            // if (subgraph_cnt >= 4) {
-            //     block.update_target(partitioning::SegmentedBlock::kTorch);
-            //     continue;
-            // }
             auto engine_ptr = conversion::ConvertBlockToInstance(block, config);
             auto temp_g     = std::make_shared<torch::jit::Graph>();
             AddEngineToGraph(mod, temp_g, engine_ptr, tnn_engine_id.str(), true);
@@ -189,12 +194,7 @@ std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Mod
 
             // std::cout << low_g->toString() << std::endl;
 
-            subgraph_cnt++;
-
             block.update_graph(temp_g);
-            // AddSegmentedBlockToGraph(new_g, block, old_to_new_g);
-        } else {
-            // AddSegmentedBlockToGraph(new_g, block, old_to_new_g);
         }
     }
 
@@ -212,7 +212,7 @@ std::shared_ptr<torch::jit::Module> CompileTorch(std::shared_ptr<torch::jit::Mod
     std::cout << "============================= the final graph ===========================" << std::endl;
     std::cout << low_g->toString() << std::endl;
 
-    return mod;
+    return;
 }
 
 }  // namespace TNN_NS

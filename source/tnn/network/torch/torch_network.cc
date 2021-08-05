@@ -99,9 +99,10 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
 
         #if 1
         // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
-        auto new_mod = CompileTorch(module_, max_inputs_shape, net_config);
-        module_ = new_mod;
-        graph_ = module_->get_method(forward_func_name_).graph();
+        // auto new_mod = CompileTorch(module_, max_inputs_shape, net_config);
+        // module_ = new_mod;
+        // graph_ = module_->get_method(forward_func_name_).graph();
+        CompileModule();
 
         #endif
 
@@ -150,7 +151,9 @@ Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
     return TNN_OK;
 }
 
-Status TNNTorchNetwork::CompileModule(NetworkConfig &config) {
+Status TNNTorchNetwork::CompileModule() {
+    CompileTorch(module_, max_inputs_shape_, config_);
+
     return TNN_OK;
 }
 
