@@ -63,6 +63,7 @@ private:
     std::vector<Blob *> concat_outputs_                                         = {};
     std::vector<shared_ptr<Blob>> concat_input_blob_vec_                        = {};
     std::vector<shared_ptr<cl::Image2D>> concat_input_image_vec_                = {};
+    std::vector<std::shared_ptr<ReshapeLayerParam>> reshape_param_vec_          = {};
     std::vector<std::vector<Blob *>> input_reshape_inputs_                      = {};
     std::vector<std::vector<Blob *>> input_reshape_outputs_                     = {};
     shared_ptr<Blob> concat_output_blob_                                        = nullptr;
@@ -470,17 +471,19 @@ Status OpenCLConcatLayerAcc::InitReshapeLayer(const std::vector<Blob *> &inputs,
         concat_input_blob_vec_[i]->SetHandle(blob_handle);
 
         // Init LayerAcc
-        ReshapeLayerParam reshape_param;
-        reshape_param.name         = layer_name_ + "_Input_Reshape_" + std::to_string(i);
-        reshape_param.reshape_type = 0;
-        reshape_param.axis         = 0;
-        reshape_param.num_axes     = shape.size();
-        reshape_param.shape        = shape;
+        std::shared_ptr<ReshapeLayerParam> reshape_param = std::make_shared<ReshapeLayerParam>();
+        reshape_param->type         = "Reshape";
+        reshape_param->name         = layer_name_ + "_Input_Reshape_" + std::to_string(i);
+        reshape_param->reshape_type = 0;
+        reshape_param->axis         = 0;
+        reshape_param->num_axes     = shape.size();
+        reshape_param->shape        = shape;
 
         input_reshape_inputs_.push_back({inputs[i]});
         input_reshape_outputs_.push_back({concat_inputs_[i]});
-        reshape_layer_acc->Init(ocl_context_, &reshape_param, nullptr, input_reshape_inputs_[i],
+        reshape_layer_acc->Init(ocl_context_, reshape_param.get(), nullptr, input_reshape_inputs_[i],
                                 input_reshape_outputs_[i]);
+        reshape_param_vec_.emplace_back(reshape_param);
     }
 
     // create output reshape
@@ -530,13 +533,15 @@ Status OpenCLConcatLayerAcc::InitReshapeLayer(const std::vector<Blob *> &inputs,
         concat_output_blob_->SetHandle(blob_handle);
 
         // Init LayerAcc
-        ReshapeLayerParam reshape_param;
-        reshape_param.name         = layer_name_ + "_Output_Reshape";
-        reshape_param.reshape_type = 0;
-        reshape_param.axis         = 0;
-        reshape_param.num_axes     = shape.size();
-        reshape_param.shape        = shape;
-        output_reshape_layer_acc_->Init(ocl_context_, &reshape_param, nullptr, concat_outputs_, outputs);
+        std::shared_ptr<ReshapeLayerParam> reshape_param = std::make_shared<ReshapeLayerParam>();
+        reshape_param->type         = "Reshape";
+        reshape_param->name         = layer_name_ + "_Output_Reshape";
+        reshape_param->reshape_type = 0;
+        reshape_param->axis         = 0;
+        reshape_param->num_axes     = shape.size();
+        reshape_param->shape        = shape;
+        output_reshape_layer_acc_->Init(ocl_context_, reshape_param.get(), nullptr, concat_outputs_, outputs);
+        reshape_param_vec_.emplace_back(reshape_param);
     }
 
     return ret;

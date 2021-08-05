@@ -36,6 +36,7 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     EltwiseLayerResource *layer_res = dynamic_cast<EltwiseLayerResource *>(resource);
     if (layer_res == nullptr) {
         if (inputs.size() == 2) {
+            param_dims_ = inputs[0]->GetBlobDesc().dims;
             if (broadcast_param_.input0_broadcast_type == BroadcastTypeNormal &&
                 broadcast_param_.input1_broadcast_type == BroadcastTypeNormal) {
                 // inputs[0] and inputs[1] are equal
@@ -54,8 +55,9 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
                 param_idx_ = 1;
 
             } else if (output_dims_size_ == 5) {
-                if (broadcast_param_.input0_broadcast_type == BroadcastTypeHeightWidth &&
-                    broadcast_param_.input1_broadcast_type == BroadcastTypeGeneral) {
+                input_idx_ = 0;
+                param_idx_ = 1;
+                if (broadcast_param_.input0_broadcast_type != BroadcastTypeNormal) {
                     input_idx_ = 1;
                     param_idx_ = 0;
                 }
@@ -93,18 +95,6 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     }
 
     kernel_name_ = GetKernelName(broadcast_param_);
-    if (kernel_name_ == "BinaryWidth") {
-        DimsVector input_shape0 = inputs[0]->GetBlobDesc().dims;
-        DimsVector input_shape1 = inputs.size() == 2 ? inputs[1]->GetBlobDesc().dims : param_dims_;
-        // if shape = (N, 1, H, W) or (N, C, 1, W), use BinaryBroadcast
-        // if shape = (N, 1, 1, W), use BinaryWidth
-        if ((input_shape0[1] != 1 || input_shape0[2] != 1) && (input_shape1[1] != 1 || input_shape1[2] != 1)) {
-            kernel_name_ = "BinaryBroadcast";
-        }
-    }
-    if (output_dims_size_ == 5 && kernel_name_ != "BinaryElementWise" && kernel_name_ != "BinarySingle") {
-        kernel_name_ = "BinaryBroadcast5D";
-    }
 
     return TNN_OK;
 }
@@ -206,31 +196,40 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 }
 
 std::string OpenCLBinaryLayerAcc::GetKernelName(const MultidirBroadcastLayerParam &param) {
-    if (param.input0_broadcast_type == BroadcastTypeNormal &&
-        param.input1_broadcast_type == BroadcastTypeNormal) {
+    if (output_dims_size_ == 5) {
+        return "BinaryBroadcast5D";
+    }
+
+    if (param.input0_broadcast_type == BroadcastTypeNormal && param.input1_broadcast_type == BroadcastTypeNormal) {
         return "BinaryElementWise";
     } else if (param.input0_broadcast_type == BroadcastTypeSingle ||
                param.input1_broadcast_type == BroadcastTypeSingle) {
         return "BinarySingle";
     } else if ((param.input0_broadcast_type == BroadcastTypeChannel &&
                 param.input1_broadcast_type == BroadcastTypeNormal) ||
-                (param.input1_broadcast_type == BroadcastTypeChannel &&
+               (param.input1_broadcast_type == BroadcastTypeChannel &&
                 param.input0_broadcast_type == BroadcastTypeNormal)) {
         return "BinaryChannel";
     } else if ((param.input0_broadcast_type == BroadcastTypeElement &&
                 param.input1_broadcast_type == BroadcastTypeNormal) ||
-                (param.input1_broadcast_type == BroadcastTypeElement &&
+               (param.input1_broadcast_type == BroadcastTypeElement &&
                 param.input0_broadcast_type == BroadcastTypeNormal)) {
         return "BinaryCHW";
     } else if ((param.input0_broadcast_type == BroadcastTypeHeightWidth &&
                 param.input1_broadcast_type == BroadcastTypeNormal) ||
-                (param.input1_broadcast_type == BroadcastTypeHeightWidth &&
+               (param.input1_broadcast_type == BroadcastTypeHeightWidth &&
                 param.input0_broadcast_type == BroadcastTypeNormal)) {
         return "BinaryHW";
     } else if ((param.input0_broadcast_type == BroadcastTypeWidth &&
                 param.input1_broadcast_type == BroadcastTypeNormal) ||
-                (param.input1_broadcast_type == BroadcastTypeWidth &&
+               (param.input1_broadcast_type == BroadcastTypeWidth &&
                 param.input0_broadcast_type == BroadcastTypeNormal)) {
+        // if shape = (N, 1, H, W) or (N, C, 1, W), use BinaryBroadcast
+        // if shape = (N, 1, 1, W), use BinaryWidth
+        if ((input_dims_.size() > 3 && param_dims_.size() > 3) && (input_dims_[1] != 1 || input_dims_[2] != 1) &&
+            (param_dims_[1] != 1 || param_dims_[2] != 1)) {
+            return "BinaryBroadcast";
+        }
         return "BinaryWidth";
     } else {
         return "BinaryBroadcast";

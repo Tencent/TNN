@@ -73,8 +73,12 @@ struct Float8 {
     static void saveu(float* addr, const Float8& v) {
         _mm256_storeu_ps(addr, v.value);
     }
+    // mla_231
     static void mla(Float8& v1, const Float8& v2, const Float8& v3) {
         v1.value = _mm256_fmadd_ps(v2.value, v3.value, v1.value);
+    }
+    static void mla_123(Float8& v1, const Float8& v2, const Float8& v3) {
+        v1.value = _mm256_fmadd_ps(v1.value, v2.value, v3.value);
     }
     static void mls(Float8& v1, const Float8& v2, const Float8& v3) {
         v1.value = _mm256_fmsub_ps(v2.value, v3.value, v1.value);

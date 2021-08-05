@@ -58,7 +58,7 @@ kernel void convolution1d_common_4x(const device ftype4 *in            [[buffer(
     *z_out = activate(ftype4(result), params.activation);
 }
 
-kernel void convolution1d_common(const device ftype *in     [[buffer(0)]],    
+kernel void convolution1d_common(const device ftype *in     [[buffer(0)]],
                             device ftype *out                [[buffer(1)]],
                             constant MetalConvParams& params  [[buffer(2)]],
                             const device ftype4 *wt           [[buffer(3)]],
