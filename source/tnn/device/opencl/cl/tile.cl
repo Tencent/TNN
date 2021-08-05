@@ -112,6 +112,7 @@ __kernel void Tile6D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_onl
     const int out_d3xd4xd5      = output_shape.data[3] * out_d4xd5;
     const int out_d2xd3xd4xd5   = output_shape.data[2] * out_d3xd4xd5;
     const int out_cxd2xd3xd4xd5 = output_shape.data[1] * out_d2xd3xd4xd5;
+    const int out_d2xd3xd4      = out_d2xd3 * output_shape.data[4];
 
     const int out_batch   = image_height_idx / out_d2xd3;
     const int out_channel = image_width_idx / out_d4xd5;
@@ -122,17 +123,22 @@ __kernel void Tile6D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_onl
     const int out_d4      = out_d4_d5 / output_shape.data[5];
     const int out_d5      = out_d4_d5 % output_shape.data[5];
 
-    // compute four position
-    // 0 index
     int index = out_batch * out_cxd2xd3xd4xd5 + out_channel * 4 * out_d2xd3xd4xd5 + out_d2 * out_d3xd4xd5 +
                 out_d3 * out_d4xd5 + out_d4 * output_shape.data[5] + out_d5;
+
+    const int index_div_out_d2xd3xd4xd5 = index / out_d2xd3xd4xd5;
+    const int index_div_out_d3xd4xd5    = index / out_d3xd4xd5;
+    const int index_div_out_d4xd5       = index / out_d4xd5;
+
+    // compute four position
+    // 0 index
     int in_batch          = index / out_cxd2xd3xd4xd5 % input_shape.data[0];
-    int in_channel        = index / out_d2xd3xd4xd5 % input_shape.data[1];
-    int in_d2             = index / out_d3xd4xd5 % input_shape.data[2];
-    int in_d3             = index / out_d4xd5 % input_shape.data[3];
+    int in_channel        = index_div_out_d2xd3xd4xd5 % input_shape.data[1];
+    int in_d2             = index_div_out_d3xd4xd5 % input_shape.data[2];
+    int in_d3             = index_div_out_d4xd5 % input_shape.data[3];
     int in_d4             = index / input_shape.data[5] % input_shape.data[4];
     int in_d5             = index % input_shape.data[5];
-    int ix                = in_channel / 4 * in_d4xd5 + in_d4 * input_shape.data[5] + in_d5;
+    int ix                = (in_channel >> 2) * in_d4xd5 + in_d4 * input_shape.data[5] + in_d5;
     int iy                = in_batch * in_d2xd3 + in_d2 * input_shape.data[3] + in_d3;
     FLOAT4 in             = RI_F(input, SAMPLER, (int2)(ix, iy));
     int in_channel_remain = in_channel % 4;
@@ -142,12 +148,12 @@ __kernel void Tile6D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_onl
     // 1 index
     index             = index + out_d2xd3xd4xd5;
     in_batch          = index / out_cxd2xd3xd4xd5 % input_shape.data[0];
-    in_channel        = index / out_d2xd3xd4xd5 % input_shape.data[1];
-    in_d2             = index / out_d3xd4xd5 % input_shape.data[2];
-    in_d3             = index / out_d4xd5 % input_shape.data[3];
+    in_channel        = (index_div_out_d2xd3xd4xd5 + 1) % input_shape.data[1];
+    in_d2             = (index_div_out_d3xd4xd5 + output_shape.data[2]) % input_shape.data[2];
+    in_d3             = (index_div_out_d4xd5 + out_d2xd3) % input_shape.data[3];
     in_d4             = index / input_shape.data[5] % input_shape.data[4];
     in_d5             = index % input_shape.data[5];
-    ix                = in_channel / 4 * in_d4xd5 + in_d4 * input_shape.data[5] + in_d5;
+    ix                = (in_channel >> 2) * in_d4xd5 + in_d4 * input_shape.data[5] + in_d5;
     iy                = in_batch * in_d2xd3 + in_d2 * input_shape.data[3] + in_d3;
     in                = RI_F(input, SAMPLER, (int2)(ix, iy));
     in_channel_remain = in_channel % 4;
@@ -158,12 +164,12 @@ __kernel void Tile6D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_onl
     // 2 index
     index             = index + out_d2xd3xd4xd5;
     in_batch          = index / out_cxd2xd3xd4xd5 % input_shape.data[0];
-    in_channel        = index / out_d2xd3xd4xd5 % input_shape.data[1];
-    in_d2             = index / out_d3xd4xd5 % input_shape.data[2];
-    in_d3             = index / out_d4xd5 % input_shape.data[3];
+    in_channel        = (index_div_out_d2xd3xd4xd5 + 2) % input_shape.data[1];
+    in_d2             = (index_div_out_d3xd4xd5 + output_shape.data[2] * 2) % input_shape.data[2];
+    in_d3             = (index_div_out_d4xd5 + out_d2xd3 * 2) % input_shape.data[3];
     in_d4             = index / input_shape.data[5] % input_shape.data[4];
     in_d5             = index % input_shape.data[5];
-    ix                = in_channel / 4 * in_d4xd5 + in_d4 * input_shape.data[5] + in_d5;
+    ix                = (in_channel >> 2) * in_d4xd5 + in_d4 * input_shape.data[5] + in_d5;
     iy                = in_batch * in_d2xd3 + in_d2 * input_shape.data[3] + in_d3;
     in                = RI_F(input, SAMPLER, (int2)(ix, iy));
     in_channel_remain = in_channel % 4;
@@ -174,12 +180,12 @@ __kernel void Tile6D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_onl
     // 3 index
     index             = index + out_d2xd3xd4xd5;
     in_batch          = index / out_cxd2xd3xd4xd5 % input_shape.data[0];
-    in_channel        = index / out_d2xd3xd4xd5 % input_shape.data[1];
-    in_d2             = index / out_d3xd4xd5 % input_shape.data[2];
-    in_d3             = index / out_d4xd5 % input_shape.data[3];
+    in_channel        = (index_div_out_d2xd3xd4xd5 + 3) % input_shape.data[1];
+    in_d2             = (index_div_out_d3xd4xd5 + output_shape.data[2] * 3) % input_shape.data[2];
+    in_d3             = (index_div_out_d4xd5 + out_d2xd3 * 3) % input_shape.data[3];
     in_d4             = index / input_shape.data[5] % input_shape.data[4];
     in_d5             = index % input_shape.data[5];
-    ix                = in_channel / 4 * in_d4xd5 + in_d4 * input_shape.data[5] + in_d5;
+    ix                = (in_channel >> 2) * in_d4xd5 + in_d4 * input_shape.data[5] + in_d5;
     iy                = in_batch * in_d2xd3 + in_d2 * input_shape.data[3] + in_d3;
     in                = RI_F(input, SAMPLER, (int2)(ix, iy));
     in_channel_remain = in_channel % 4;
