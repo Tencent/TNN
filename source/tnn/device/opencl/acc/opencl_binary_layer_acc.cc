@@ -224,12 +224,6 @@ std::string OpenCLBinaryLayerAcc::GetKernelName(const MultidirBroadcastLayerPara
                 param.input1_broadcast_type == BroadcastTypeNormal) ||
                (param.input1_broadcast_type == BroadcastTypeWidth &&
                 param.input0_broadcast_type == BroadcastTypeNormal)) {
-        // if shape = (N, 1, H, W) or (N, C, 1, W), use BinaryBroadcast
-        // if shape = (N, 1, 1, W), use BinaryWidth
-        if ((input_dims_.size() > 3 && param_dims_.size() > 3) && (input_dims_[1] != 1 || input_dims_[2] != 1) &&
-            (param_dims_[1] != 1 || param_dims_[2] != 1)) {
-            return "BinaryBroadcast";
-        }
         return "BinaryWidth";
     } else {
         return "BinaryBroadcast";
