@@ -147,7 +147,7 @@ std::pair<std::string, FileFormat> GetFileInfo(std::string input_path) {
 void ShowUsage() {
     printf(
         "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-o] [-e] [-f] "
-        "<refernece> [-n] <val> [-s] <val>\n");
+        "<refernece> [-n] <val> [-s] <val> [-sp] <precision>\n");
     printf("\t-h, <help>     \t%s\n", help_message);
     printf("\t-p, <proto>    \t%s\n", proto_path_message);
     printf("\t-m, <model>    \t%s\n", model_path_message);
