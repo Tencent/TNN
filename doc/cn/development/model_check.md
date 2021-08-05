@@ -32,7 +32,7 @@
 |-s     |        |&radic;|预处理，仅对输入为图片时有效。对输入数据各通道进行scale操作，参数格式为：1.0,1.0,1.0|  
 |-o     |        |       |是否保存最终的输出。                           |  
 |-b     |        |       |验证多batch情况下，每个batch结果是否正确。|  
-|-sp    |        |&radic;|强制设置执行的device的精度|  
+|-sp    |        |&radic;|强制设置执行的device的精度(AUTO/NORMAL/HIGH/LOW)|  
 
 注：预处理的公式是：y=(x-bias)*scale
 ### 3. txt文件格式
