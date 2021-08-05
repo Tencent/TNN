@@ -40,8 +40,8 @@ Status ArmGeluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 
         // https://arxiv.org/abs/1606.08415
         // approximate calculation
-        float F0 = 0.7978845608028654;  // sqrt(2/pi)
-        float F1 = 0.044715;            // 
+        float F0 = 0.7978845834732056f;  // sqrt(2/pi)
+        float F1 = 0.0447149984538f;            // 
         Float4 vone(1.0f);
 
         for (long i = 0; i < count; i += 4) {

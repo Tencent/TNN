@@ -18,7 +18,18 @@
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(Unsqueeze, LAYER_UNSQUEEZE);
+// DECLARE_ARM_ACC(Unsqueeze, LAYER_UNSQUEEZE);
+
+DECLARE_ARM_ACC_TYPESUPPORTED(Unsqueeze, LAYER_UNSQUEEZE);
+
+bool ArmUnsqueezeLayerAcc::DataTypeSupported(DataType data_type) {
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8 ||
+        data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_INT32) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 Status ArmUnsqueezeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     void *input_data  = GetBlobHandlePtr(inputs[0]->GetHandle());

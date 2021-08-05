@@ -31,6 +31,8 @@ public:
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+    virtual bool DataTypeSupported(DataType data_type);
+
 private:
     RawBuffer scale_buffer_;
 };

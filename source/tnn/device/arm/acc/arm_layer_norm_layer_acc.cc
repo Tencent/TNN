@@ -70,12 +70,30 @@ Status ArmLayerNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
             float sum_x  = 0.f;
             float sum_x2 = 0.f;
 
+            // kahan累加，提高累加精度
+            // https://blog.csdn.net/weixin_34268753/article/details/85917630
+            Float4 c_x_f4(0.f);
+            Float4 c_x2_f4(0.f);
 
-            for(int hw=0; hw < f4_round_down*4; hw+=4){
+            for (int hw = 0; hw < f4_round_down * 4; hw += 4) {
                 auto x = Float4::load(src + c * channel_area + hw);
-                sum_x_f4  = sum_x_f4 + x;
-                sum_x2_f4 = sum_x2_f4 + (x * x);
+
+                auto y   = x - c_x_f4;
+                auto tmp = sum_x_f4 + y;
+                c_x_f4   = (tmp - sum_x_f4) - y;
+                sum_x_f4 = tmp;
+
+                y         = (x * x) - c_x2_f4;
+                tmp       = sum_x2_f4 + y;
+                c_x2_f4   = (tmp - sum_x2_f4) - y;
+                sum_x2_f4 = tmp;
             }
+
+            // for(int hw=0; hw < f4_round_down*4; hw+=4){
+            //     auto x = Float4::load(src + c * channel_area + hw);
+            //     sum_x_f4  = sum_x_f4 + x;
+            //     sum_x2_f4 = sum_x2_f4 + (x * x);
+            // }
 
             for(int hw=f4_round_down*4; hw < f4_round_down*4 + f4_remainder; hw+=1){
                 auto x = src[c * channel_area + hw];

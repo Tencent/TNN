@@ -18,7 +18,18 @@
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(Cast, LAYER_CAST);
+// DECLARE_ARM_ACC(Cast, LAYER_CAST);
+
+DECLARE_ARM_ACC_TYPESUPPORTED(Cast, LAYER_CAST);
+
+bool ArmCastLayerAcc::DataTypeSupported(DataType data_type) {
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8 ||
+        data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_INT32) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 Status ArmCastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     const auto param = dynamic_cast<CastLayerParam*>(param_);

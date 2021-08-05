@@ -18,7 +18,19 @@
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(Gather, LAYER_GATHER);
+// DECLARE_ARM_ACC(Gather, LAYER_GATHER);
+
+DECLARE_ARM_ACC_TYPESUPPORTED(Gather, LAYER_GATHER);
+
+bool ArmGatherLayerAcc::DataTypeSupported(DataType data_type) {
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8 ||
+        data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_INT32) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 
 Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
