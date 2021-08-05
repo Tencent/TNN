@@ -31,7 +31,7 @@ To compile the model_check tool, the following macro must be set to ON:
 |-s       |         |&radic;|Pre-processing, scale the input data channels, the parameter format is: 1.0, 1.0, 1.0|  
 |-o       |         |       |Whether to save the final output.                           |  
 |-b       |         |       |Check the result of each batch.  |  
-|-sp      |         |&radic;|Set the precision of device|  
+|-sp      |         |&radic;|Set the precision of device(AUTO/NORMAL/HIGH/LOW)|  
 
 Note: the formula of bias and scale is: y=(x-bias)*scale
 
