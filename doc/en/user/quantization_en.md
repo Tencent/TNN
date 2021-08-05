@@ -19,7 +19,7 @@ cd <path_to_tnn>/platforms/linux/
 ## III. Usage
 ### 1. Command  
 ```
-./quantization_cmd [-h] [-p] [-m] [-i] [-b] [-w] [-n] [-s] [-r] [-t] <param>
+./quantization_cmd [-h] [-p] <proto file> [-m] <model file> [-i] <input folder> [-b] <val> [-w] <val> [-n] <val> [-s] <val> [-t] <val> [-o] <output_name>
 ```
 ### 2. Parameter Description  
 
@@ -35,10 +35,11 @@ cd <path_to_tnn>/platforms/linux/
 |-s, --scale        |        |&radic;|Pre-processing, scale the input data channels, the parameter format is: 1.0, 1.0, 1.0|
 |-r, --reverse_channel|        |&radic;|Pre-processing, valid for picture format files: <br>&bull; 0 use RGB order (default)<br>&bull; 1 use BGR order|
 |-t, --merge_type|        |&radic;|Whether use per-tensor or per-channel method when quantifying: <br>&bull; 0 per-channel method (default)<br>&bull; 1 mix method, weights: per-channel, blob: per-tensor.<br>&bull; 2 per-tensor method|  
+|-o, --output   |        |&radic;|Specify the output name|  
   
 ### 3. Quantization Input   
 #### 3.1 Select input data    
-The input needs to include specific input data, otherwise it will affect the accuracy of the output result, and keep the number of pictures at about 20 ~ 50.
+The input needs to include specific input data, otherwise it will affect the accuracy of the output result, and keep the number of pictures at least 50.
 #### 3.2 Input preprocess   
 The input data is preprocessed mainly through mean and scale parameters. The formula is:   
 input_pre = (input - mean) * scale  
