@@ -13,7 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/metal/acc/convolution/metal_conv1d_layer_acc.h"
-#include "tnn/device/metal/acc/convolution/metal_conv1d_layer_common.h"
+#include "tnn/device/metal/acc/convolution/metal_conv_layer_common.h"
 #include "tnn/device/metal/acc/metal_common.h"
 #include "tnn/device/metal/metal_context.h"
 
@@ -22,7 +22,7 @@ namespace TNN_NS {
 Status MetalConv1DLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
-    conv_acc_impl_ = make_shared<MetalConv1DLayerCommon>();
+    conv_acc_impl_ = make_shared<MetalConvLayerCommon>();
 
     auto status = conv_acc_impl_->Init(context, param, resource, inputs, outputs);
     if (status != TNN_OK) {
