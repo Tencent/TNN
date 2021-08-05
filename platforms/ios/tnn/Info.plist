@@ -23,7 +23,7 @@
 		<string>iPhoneOS</string>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>75</string>
+	<string>72</string>
 	<key>DTCompiler</key>
 	<string>com.apple.compilers.llvm.clang.1_0</string>
 	<key>DTPlatformBuild</key>
@@ -51,11 +51,11 @@
 	<key>YTSDKInfo</key>
 	<dict>
 		<key>tnn_commit_branch</key>
-		<string>feature_support_conv1d</string>
+		<string>feature_demo</string>
 		<key>tnn_commit_date</key>
-		<string>2021-08-03</string>
+		<string>2020-09-08</string>
 		<key>tnn_commit_hash</key>
-		<string>45efcc2b</string>
+		<string>6c96d79</string>
 	</dict>
 </dict>
 </plist>
