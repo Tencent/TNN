@@ -27,9 +27,15 @@ Status ScatterElementsLayer::InferOutputDataType() {
 
 Status ScatterElementsLayer::InferOutputShape(bool ignore_error) {
     BaseLayer::InferOutputShape(ignore_error);
-    auto resource = dynamic_cast<ScatterElementsLayerResource *>(resource_);
-    
-    auto data_dims = resource->data.GetBufferDims();
+
+    DimsVector data_dims;
+
+    if (input_blobs_.size() < 3) {
+        auto resource = dynamic_cast<ScatterElementsLayerResource *>(resource_);
+        data_dims = resource->data.GetBufferDims();
+    } else {
+        data_dims = input_blobs_[0]->GetBlobDesc().dims;
+    }
 
     Blob* output_blob = output_blobs_[0];
     output_blob->GetBlobDesc().dims = data_dims;

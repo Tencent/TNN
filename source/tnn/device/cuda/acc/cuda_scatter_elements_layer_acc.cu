@@ -50,11 +50,13 @@ Status CudaScatterElementsLayerAcc::Init(Context *context, LayerParam *param, La
         return ret;
     }
 
-    auto res = dynamic_cast<ScatterElementsLayerResource *>(resource);
-    auto size = res->data.GetBytesSize();
-    CreateTempBuf(size);
-    void* data = res->data.force_to<void*>();
-    CUDA_CHECK(cudaMemcpyAsync(tempbufs_[0].ptr, data, size, cudaMemcpyHostToDevice, context_->GetStream()));
+    if (inputs.size() < 3) {
+        auto res = dynamic_cast<ScatterElementsLayerResource *>(resource);
+        auto size = res->data.GetBytesSize();
+        CreateTempBuf(size);
+        void* data = res->data.force_to<void*>();
+        CUDA_CHECK(cudaMemcpyAsync(tempbufs_[0].ptr, data, size, cudaMemcpyHostToDevice, context_->GetStream()));
+    }
 
     return TNN_OK;
 }
@@ -67,33 +69,58 @@ Status CudaScatterElementsLayerAcc::Forward(const std::vector<Blob *> &inputs, c
     auto param = dynamic_cast<ScatterElementsLayerParam *>(param_);
     auto resource = dynamic_cast<ScatterElementsLayerResource *>(resource_);
 
-    auto* data_ptr = resource->data.force_to<float*>();
-    auto data_dims = resource->data.GetBufferDims();
-    auto data_rank = data_dims.size();
+    float* output_data = reinterpret_cast<float*>(outputs[0]->GetHandle().base);
 
-    int* indices_ptr = (int*)inputs[0]->GetHandle().base;
-    auto indices_dims = inputs[0]->GetBlobDesc().dims;
+    float* data_ptr;
+    DimsVector data_dims;
+    int* indices_data;
+    DimsVector indices_dims;
+    float* update_data;
+    DimsVector update_dims;
+    int data_size;
+    int tempbuf_index;
+
+    if (inputs.size() < 3) {
+        data_ptr = (float*)tempbufs_[0].ptr;
+        data_dims = resource->data.GetBufferDims();
+        indices_data = (int*)inputs[0]->GetHandle().base;
+        indices_dims = inputs[0]->GetBlobDesc().dims;
+        update_data = (float*)inputs[1]->GetHandle().base;
+        update_dims = inputs[1]->GetBlobDesc().dims;
+        data_size = resource->data.GetBytesSize();
+        tempbuf_index = 1;
+    } else {
+        data_ptr = (float*)inputs[0]->GetHandle().base;
+        data_dims = inputs[0]->GetBlobDesc().dims;
+        indices_data = (int*)inputs[1]->GetHandle().base;
+        indices_dims = inputs[1]->GetBlobDesc().dims;
+        update_data = (float*)inputs[2]->GetHandle().base;
+        update_dims = inputs[2]->GetBlobDesc().dims;
+        data_size = DimsVectorUtils::Count(data_dims);
+        tempbuf_index = 0;
+    }
+
+    auto data_rank = data_dims.size();
     int indices_size = DimsVectorUtils::Count(indices_dims);
     int axis = param->axis < 0 ? param->axis + data_rank : param->axis;
 
-    float* update_data = (float*)inputs[1]->GetHandle().base;
-    auto update_dims = inputs[1]->GetBlobDesc().dims;
-
-    auto size = resource->data.GetBytesSize();
-    float* output_data = reinterpret_cast<float*>(outputs[0]->GetHandle().base);
-    CUDA_CHECK(cudaMemcpyAsync(output_data, tempbufs_[0].ptr, size, cudaMemcpyDeviceToDevice, context_->GetStream()));
+    CUDA_CHECK(cudaMemcpyAsync(output_data, data_ptr, data_size, cudaMemcpyDeviceToDevice, context_->GetStream()));
 
     if (!this->is_reshaped) {
         CreateTempBuf(data_rank * sizeof(int));
         CreateTempBuf(data_rank * sizeof(int));
 
-        CUDA_CHECK(cudaMemcpyAsync(tempbufs_[1].ptr, data_dims.data(), data_rank * sizeof(int), cudaMemcpyHostToDevice, context_->GetStream()));
-        CUDA_CHECK(cudaMemcpyAsync(tempbufs_[2].ptr, indices_dims.data(), data_rank * sizeof(int), cudaMemcpyHostToDevice, context_->GetStream()));
+        CUDA_CHECK(cudaMemcpyAsync(tempbufs_[tempbuf_index].ptr, data_dims.data(), data_rank * sizeof(int),
+            cudaMemcpyHostToDevice, context_->GetStream()));
+        CUDA_CHECK(cudaMemcpyAsync(tempbufs_[tempbuf_index+1].ptr, indices_dims.data(), data_rank * sizeof(int),
+            cudaMemcpyHostToDevice, context_->GetStream()));
         this->is_reshaped = true;
     }
 
     int grid = (indices_size + TNN_CUDA_NUM_THREADS - 1) / TNN_CUDA_NUM_THREADS;
-    scatter_elements_kernel<<<grid, TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(data_rank, data_ptr, (int*)tempbufs_[1].ptr, indices_ptr, indices_size, (int*)tempbufs_[2].ptr, update_data, axis, output_data);
+    scatter_elements_kernel<<<grid, TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(data_rank, data_ptr,
+        (int*)tempbufs_[tempbuf_index].ptr, indices_data, indices_size, (int*)tempbufs_[tempbuf_index+1].ptr,
+        update_data, axis, output_data);
 
     return TNN_OK;
 }
