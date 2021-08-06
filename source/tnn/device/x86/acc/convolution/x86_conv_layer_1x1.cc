@@ -52,7 +52,6 @@ X86ConvLayer1x1::~X86ConvLayer1x1() {}
 
 Status X86ConvLayer1x1::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     ConvLayerParam *param = dynamic_cast<ConvLayerParam *>(param_);
-    ConvLayerResource *resource = dynamic_cast<ConvLayerResource *>(resource_);
 
     auto input       = inputs[0];
     auto output      = outputs[0];
@@ -75,11 +74,14 @@ Status X86ConvLayer1x1::DoForward(const std::vector<Blob *> &inputs, const std::
     int n = src_z_step;
     int k = dims_input[1];
 
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    conv_ajust_m_blk_size(max_num_threads, src_z_step, conv_gemm_conf_.M_c_);
+
     int m_c = conv_gemm_conf_.M_c_;
     int k_c = conv_gemm_conf_.K_c_;
 
     float *src_buf = reinterpret_cast<float *>(
-        context_->GetSharedWorkSpace(m_c * k_c * sizeof(float)));
+        context_->GetSharedWorkSpace(m_c * k_c * max_num_threads * sizeof(float)));
 
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
         const float * B = src_origin + batch_idx * k * n;

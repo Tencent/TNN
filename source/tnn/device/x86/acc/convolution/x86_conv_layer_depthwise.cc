@@ -107,7 +107,6 @@ void PackWithPad(
 
 Status X86ConvLayerDepthwise::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     ConvLayerParam *param = dynamic_cast<ConvLayerParam *>(param_);
-    ConvLayerResource *resource = dynamic_cast<ConvLayerResource *>(resource_);
 
     auto input       = inputs[0];
     auto output      = outputs[0];
@@ -127,9 +126,11 @@ Status X86ConvLayerDepthwise::DoForward(const std::vector<Blob *> &inputs, const
     int dilate_x_step  = c_pack * param->dialations[0];
     int weight_z_step  = param->kernels[0] * param->kernels[1];
 
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
     size_t src_pad_size = ROUND_UP(src_pad_w * (dims_input[2] + param->pads[2] + param->pads[3]) * c_pack * sizeof(float), 32);
     size_t dst_tmp_size = ROUND_UP(dst_z_step * c_pack * sizeof(float), 32);
-    float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(src_pad_size + dst_tmp_size));
+    float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(
+                                                 (src_pad_size + dst_tmp_size) * max_num_threads));
 
     const float *src_origin = reinterpret_cast<const float *>(input->GetHandle().base);
     float *dst_origin = reinterpret_cast<float *>(output->GetHandle().base);
@@ -166,15 +167,17 @@ Status X86ConvLayerDepthwise::DoForward(const std::vector<Blob *> &inputs, const
         auto src_ptr = src_origin + batch_idx * dims_input[1] * src_z_step;
         auto dst_ptr = dst_origin + batch_idx * dims_output[1] * dst_z_step;
 
-        // OMP_PARALLEL_FOR_
+        OMP_PARALLEL_FOR_GUIDED_
         for (int dz = 0; dz < dims_output[1]; dz += c_pack) {
             int real_dz     = MIN(c_pack, dims_output[1] - dz);
             auto *dst_z     = dst_ptr + dst_z_step * dz;
             auto *src_z     = src_ptr + src_z_step * dz;
             auto *weight_dz = weights_data + dz * weight_z_step;
             auto *bias_z    = bias_data + dz;
-            auto *src_buf   = workspace;
-            auto *dst_buf   = workspace + src_pad_size / sizeof(float);
+            int thread_id   = OMP_TID_;
+            auto *tmp_buf   = workspace + thread_id * ((src_pad_size + dst_tmp_size) / sizeof(float));
+            auto *src_buf   = tmp_buf;
+            auto *dst_buf   = tmp_buf + src_pad_size / sizeof(float);
 
             PackWithPadAcc(src_z, src_buf, param->pads, dims_input[2], dims_input[3], real_dz);
             dw_full(dst_buf, src_buf, weight_dz, bias_z, dims_output[3], param->strides[0] * c_pack,

@@ -20,7 +20,7 @@
 namespace TNN_NS {
 typedef struct x86_softsign_operator : x86_unary2_operator {
     virtual float operator()(const float v) {
-        return v / (abs(v) + 1.0f);
+        return v / (std::abs(v) + 1.0f);
     }
 
     virtual Float4 operator()(const Float4 &v) {

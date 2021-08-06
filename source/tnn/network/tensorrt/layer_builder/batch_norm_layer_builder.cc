@@ -42,14 +42,15 @@ ILayer* BatchNormTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     scale.count = resource->scale_handle.GetDataCount();
     scale.values = resource->scale_handle.force_to<void *>();
 
+    int dims_size = tensor->getDimensions().nbDims;
     // unsqueeze 
     ILayer* layer;
-    if (input_dims.size() == 2 || input_dims.size() == 3) {
+    if (dims_size == 2 || dims_size == 3) {
         DimsVector unsqueeze_dims;
-        for (int i = 0; i < input_dims.size(); i++) {
-            unsqueeze_dims.push_back(input_dims[i]);
+        for (int i = 0; i < dims_size; i++) {
+            unsqueeze_dims.push_back(0);
         }
-        for (int i = 0; i < 4-input_dims.size(); i++) {
+        for (int i = 0; i < 4 - dims_size; i++) {
             unsqueeze_dims.push_back(1);
         }
         layer = AddReshapeToNetwork(network, tensor, unsqueeze_dims, (layer_name_ + "squeeze").c_str());
@@ -68,8 +69,12 @@ ILayer* BatchNormTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     }
 
     //squeeze
-    if(input_dims.size() == 2 || input_dims.size() == 3) {
-       layer = AddReshapeToNetwork(network, tensor, input_dims, (layer_name_ + "unsqueeze").c_str());
+    if(dims_size == 2 || dims_size == 3) {
+        DimsVector squeeze_dims;
+        for (int i = 0; i < dims_size; i++) {
+            squeeze_dims.push_back(0);
+        }
+        layer = AddReshapeToNetwork(network, tensor, squeeze_dims, (layer_name_ + "unsqueeze").c_str());
     }
 
     return layer;

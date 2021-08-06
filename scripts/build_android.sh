@@ -102,7 +102,13 @@ cmake ${TNN_ROOT_PATH} \
       -DTNN_OPENMP_ENABLE:BOOL=$OPENMP \
       -DSHARING_MEM_WITH_OPENGL=${SHARING_MEM_WITH_OPENGL} \
       -DTNN_BUILD_SHARED:BOOL=$SHARED_LIB
-make -j32
+make -j8
+
+# check ret code for ci
+if [ 0 -ne $? ]
+then
+  exit -1
+fi
 
 echo ' '
 echo '******************** step 3: start build rpn arm64 ********************'
@@ -136,7 +142,13 @@ cmake ${TNN_ROOT_PATH} \
       -DTNN_OPENMP_ENABLE:BOOL=$OPENMP \
       -DSHARING_MEM_WITH_OPENGL=${SHARING_MEM_WITH_OPENGL} \
       -DTNN_BUILD_SHARED:BOOL=$SHARED_LIB
-make -j32
+make -j8
+
+# check ret code for ci
+if [ 0 -ne $? ]
+then
+  exit -1
+fi
 
 echo ' '
 echo '******************** step 4: add version attr ********************'

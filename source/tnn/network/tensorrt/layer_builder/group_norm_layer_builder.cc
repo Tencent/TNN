@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(GroupNorm, LAYER_GROUP_NORM);
 
 bool GroupNormTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     const auto &desc = inOut[pos];
     const auto common_cond = nbInputs == 3 && nbOutputs == 1;
     switch (pos)
@@ -27,39 +27,43 @@ bool GroupNormTRTPluginLayerBuilder::supportsFormatCombination(
     case 0:
         return common_cond 
             && (desc.type == nvinfer1::DataType::kFLOAT || desc.type == nvinfer1::DataType::kHALF)
-            && desc.format == nvinfer1::TensorFormat::kNCHW;
+            && desc.format == nvinfer1::TensorFormat::kLINEAR;
     case 1:
     case 2:
         return common_cond && desc.type == nvinfer1::DataType::kFLOAT;
     case 3:
         return common_cond
             && desc.type == inOut[0].type
-            && desc.format == nvinfer1::TensorFormat::kNCHW;
+            && desc.format == nvinfer1::TensorFormat::kLINEAR;
     default:
         return false;
     }
 }
 
-const char* GroupNormTRTPluginLayerBuilder::getPluginType() const {
+Status GroupNormTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* GroupNormTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "GroupNorm";
 }
 
 nvinfer1::DataType GroupNormTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* GroupNormTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* GroupNormTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs GroupNormTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DimsExprs output(inputs[0]);
     return output;
 }
 
-const char* GroupNormPluginCreator::getPluginName() const {
+const char* GroupNormPluginCreator::getPluginName() const noexcept {
     return "GroupNorm";
 }
 

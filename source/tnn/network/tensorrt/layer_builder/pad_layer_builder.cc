@@ -39,23 +39,27 @@ static bool UseTRTPaddingND(PadLayerParam* paramlist) {
 }
 
 bool PadTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     int channels = inOut[0].dims.d[1];
     bool is_pad_8 = (channels % 8 == 0);
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kNCHW) ||
-        (inOut[pos].type == nvinfer1::DataType::kHALF && inOut[pos].format == nvinfer1::TensorFormat::kNHWC8 && is_pad_8));
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR) ||
+        (inOut[pos].type == nvinfer1::DataType::kHALF && inOut[pos].format == nvinfer1::TensorFormat::kHWC8 && is_pad_8));
 }
 
-const char* PadTRTPluginLayerBuilder::getPluginType() const {
+Status PadTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* PadTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "Pad";
 }
 
 nvinfer1::DataType PadTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* PadTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* PadTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     auto paramlist = dynamic_cast<PadLayerParam*>(param_);
 
     if (!UseTRTPaddingND(paramlist)) {
@@ -75,7 +79,7 @@ ILayer* PadTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 }
 
 DimsExprs PadTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInput, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInput, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DimsExprs output(inputs[0]);
     auto param = dynamic_cast<PadLayerParam*>(param_);
     auto pads0 = exprBuilder.constant(param->pads[0] + param->pads[1]);
@@ -88,7 +92,7 @@ DimsExprs PadTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer
     return output;
 }
 
-const char* PadPluginCreator::getPluginName() const {
+const char* PadPluginCreator::getPluginName() const noexcept {
     return "Pad";
 }
 
