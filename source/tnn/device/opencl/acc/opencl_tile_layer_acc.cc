@@ -34,19 +34,26 @@ Status OpenCLTileLayerAcc::Init(Context *context, LayerParam *param, LayerResour
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
 
-    if (input_dims.size() != 4 || output_dims.size() != 4) {
+    if ((input_dims.size() != 4 || output_dims.size() != 4) && (input_dims.size() != 6 || output_dims.size() != 6)) {
         LOGE("Tile Layer (OpenCL) only support 4-dim by now\n");
-        return Status(TNNERR_INVALID_INPUT, "Tile Layer (OpenCL) only support 4-dim by now\n");
+        return Status(TNNERR_INVALID_INPUT, "Tile Layer (OpenCL) only support 4-dim and 6-dim by now\n");
     }
 
     run_3d_ndrange_ = false;
     op_name_        = "Tile";
     std::string kernel_name;
-    if (input_dims[1] == output_dims[1]) {
-        kernel_name = "Tile_nhw";
-    } else {
+    do {
+        if (input_dims.size() == 6 && output_dims.size() == 6) {
+            kernel_name = "Tile6D";
+            break;
+        }
+        if (input_dims[1] == output_dims[1]) {
+            kernel_name = "Tile_nhw";
+            break;
+        }
         kernel_name = "Tile";
-    }
+    } while (0);
+
     // create kernel
     ret = CreateExecuteUnit(execute_units_[0], "tile", kernel_name);
     if (ret != TNN_OK) {
@@ -68,6 +75,13 @@ Status OpenCLTileLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
     uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], output_dims);
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
+
+    if (input_dims.size() > 4 || output_dims.size() > 4) {
+        execute_units_[0].ocl_kernel.setArg(idx++, input_dims.size() * sizeof(int), input_dims.data());
+        execute_units_[0].ocl_kernel.setArg(idx++, output_dims.size() * sizeof(int), output_dims.data());
+
+        return TNN_OK;
+    }
 
     execute_units_[0].ocl_kernel.setArg(idx++, input_dims[0]);
     execute_units_[0].ocl_kernel.setArg(idx++, input_dims[1]);

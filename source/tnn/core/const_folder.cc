@@ -184,7 +184,7 @@ Status ConstFolder::GetOptimizedNet(std::shared_ptr<NetStructure> &const_fold_st
         }
         const_fold_struct->layers = optmized_layers;
     }
-    
+
     const_fold_resource = std::make_shared<NetResource>();
     *const_fold_resource = *net_resource;
     {
