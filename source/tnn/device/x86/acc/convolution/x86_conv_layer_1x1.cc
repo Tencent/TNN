@@ -52,7 +52,6 @@ X86ConvLayer1x1::~X86ConvLayer1x1() {}
 
 Status X86ConvLayer1x1::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     ConvLayerParam *param = dynamic_cast<ConvLayerParam *>(param_);
-    ConvLayerResource *resource = dynamic_cast<ConvLayerResource *>(resource_);
 
     auto input       = inputs[0];
     auto output      = outputs[0];

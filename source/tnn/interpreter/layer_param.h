@@ -411,7 +411,7 @@ typedef enum {
     // broadcast channel x height
     BroadcastTypeChannelHeight = 7,
     // broadcast channel x width
-    BroadcastTypeChannelWidth = 8
+    BroadcastTypeChannelWidth = 8,
 } BroadcastType;
 
 struct MultidirBroadcastLayerParam : public ElementWiseLayerParam {

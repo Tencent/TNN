@@ -104,6 +104,18 @@ kernel void reduce_##name##_axis_3_common(INPUT_PARAM) {                        
     *z_out = s;                                                                                                                                 \
 }
 
+kernel void reduce_sum_axis_4_common(INPUT_PARAM) {
+    if (any(gid >= uint3(params.output_size, params.output_slice, params.output_batch)))
+        return;
+    auto z_in  = src + (int)gid.z * params.input_slice * params.input_size + (int)gid.y * params.input_size + (int)gid.x * params.input_dim4;
+    auto z_out = dst + (int)gid.z * params.output_slice * params.output_size + (int)gid.y * params.output_size + (int)gid.x;
+    auto s = ftype4(0,0,0,0);
+    for (int b = 0; b < params.input_dim4; b++) {
+        s += *(z_in + b);
+    }
+    *z_out = s;
+}
+
 DEFINE_REDUCE_AXIS_0(l1, 0, abs(t), s+t, s);
 DEFINE_REDUCE_AXIS_1(l1, 0, abs(t), s+t, dot(s,1));
 DEFINE_REDUCE_AXIS_2(l1, 0, abs(t), s+t, s);
