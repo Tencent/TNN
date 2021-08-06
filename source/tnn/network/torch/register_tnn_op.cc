@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/core/blob.h"
@@ -19,6 +19,10 @@
 #include "tnn/network/torch/torch_utils.h"
 #include "torch/csrc/jit/runtime/custom_operator.h"
 // #include "tnn/interpreter/tnn/model_packer.h"
+#include <cuda_runtime.h>
+
+#include "c10/cuda/CUDAStream.h"
+#include "tnn/utils/blob_dump_utils.h"
 
 namespace TNN_NS {
 namespace runtime {
@@ -39,6 +43,11 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         compiled_engine->instance_->Init(compiled_engine->ctx_->get_interpreter(), inputs_shape_map);
         compiled_engine->is_init_ = true;
 
+        if (inputs[0].is_cuda()) {
+            c10::cuda::CUDAStream stream = c10::cuda::getCurrentCUDAStream(inputs[0].device().index());
+            compiled_engine->instance_->SetCommandQueue(stream.stream());
+        }
+
         // ModelPacker package(interpreter->GetNetStructure(), interpreter->GetNetResource());
         // package.Pack("torch.tnnproto", "torch.tnnmodel");
     } else {
@@ -57,27 +66,26 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
     compiled_engine->instance_->GetAllOutputBlobs(output_blobs);
 
     for (int i = 0; i < input_names.size(); i++) {
-        BlobHandle handle;
-        handle.base = inputs[i].data_ptr();
-        input_blobs[input_names[i]]->SetHandle(handle);
+        // cat not change trt inner data ptr by set blob handle, set input mat instead
+        DeviceType device_type;
+        BlobDesc blob_desc;
+        ConvertToDeviceType(device_type, inputs[i].device());
+        GetBlobDescFromTensor(blob_desc, inputs[i]);
+        auto input_mat = std::make_shared<Mat>(device_type, NCHW_FLOAT, blob_desc.dims, inputs[i].data_ptr());
+        compiled_engine->instance_->SetInputMat(input_mat, MatConvertParam(), input_names[i]);
     }
 
+    // DumpDeviceBlob(input_blobs[input_names[0]], cmd_queue, "tnn-input");
+
     compiled_engine->instance_->Forward();
-    std::cout << "tnn engine work!!!" << std::endl;
 
     std::vector<at::Tensor> outputs(output_names.size());
-
     for (int i = 0; i < output_names.size(); i++) {
-        // auto tnn_dims = output_blobs[output_names[i]]->GetBlobDesc().dims;
-        // std::vector<int64_t> dims;
-        // for (auto iter : tnn_dims)
-        //     dims.push_back(iter);
-        // auto type  = at::kFloat;
-        // outputs[i] = std::move(at::empty(dims, {at::kCUDA}).to(type).contiguous());
         std::shared_ptr<at::Tensor> tensor_ptr;
         CreateTensorByBlob(tensor_ptr, output_blobs[output_names[i]]);
         outputs[i] = std::move(*tensor_ptr);
     }
+    // DumpDeviceBlob(output_blobs[output_names[0]], cmd_queue, "tnn-output");
 
     return outputs;
 }

@@ -24,6 +24,10 @@ Status CpuContext::GetCommandQueue(void** command_queue) {
     return TNN_OK;
 }
 
+Status CpuContext::SetCommandQueue(void* command_queue) {
+    return TNN_OK;
+}
+
 Status CpuContext::ShareCommandQueue(Context* context) {
     return TNN_OK;
 }

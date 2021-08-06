@@ -521,6 +521,13 @@ Status DefaultNetwork::GetCommandQueue(void **command_queue) {
     return context_->GetCommandQueue(command_queue);
 }
 
+Status DefaultNetwork::SetCommandQueue(void *command_queue) {
+    if (context_ == NULL) {
+        return TNNERR_DEVICE_CONTEXT_CREATE;
+    }
+    return context_->SetCommandQueue(command_queue);
+}
+
 Status DefaultNetwork::ShareCommandQueue(AbstractNetwork *network) {
     if (context_ == NULL) {
         return TNNERR_DEVICE_CONTEXT_CREATE;

@@ -18,6 +18,9 @@ message(${TORCH_INCLUDE_DIRS})
 include_directories(${TORCH_INCLUDE_DIRS})
 include_directories(${TorchVision_INCLUDE_DIR})
 
+enable_language(CUDA)
+include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+
 message(${TNN_TORCH_SRC})
 add_library(TNNTorch OBJECT ${TNN_TORCH_SRC})
 

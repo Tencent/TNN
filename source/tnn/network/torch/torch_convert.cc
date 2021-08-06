@@ -25,6 +25,7 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
 
     network_config.device_type = config.device_type;
     network_config.device_id = config.device_id;
+    network_config.precision = config.precision;
     auto instance_ptr = c10::make_intrusive<runtime::TNNEngine>(network_config, model_config);
 
     auto interpreter = dynamic_cast<DefaultModelInterpreter *>(ctx->get_interpreter().get());

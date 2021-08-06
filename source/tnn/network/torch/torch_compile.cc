@@ -21,6 +21,8 @@
 #include "tnn/network/torch/jit_util.h"
 #include "tnn/network/torch/torch_convert.h"
 
+#include "tnn/utils/blob_dump_utils.h"
+
 namespace TNN_NS {
 
 using namespace conversion;
@@ -145,15 +147,23 @@ void CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap &input
 
     std::unordered_map<torch::jit::Value *, torch::jit::Value *> old_to_new_g;
 
-    for (auto input : g->inputs()) {
-        std::cout << input->debugName() << " | " << input->type()->repr_str() << std::endl;
-    }
+    // for (auto input : g->inputs()) {
+    //     std::cout << input->debugName() << " | " << input->type()->repr_str() << std::endl;
+    // }
 
     auto seg_blocks = partitioning::Partition(g, input_shape);
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
     {
-        RegisterNodeToOutput(mod, seg_blocks[0].raw_nodes());
-        return mod;
+        std::vector<torch::jit::Node *> reg_outputs;
+        for (auto &block : seg_blocks) {
+            if (block.target() == partitioning::SegmentedBlock::kTNN) {
+                for (auto &node : block.raw_nodes()) {
+                    reg_outputs.push_back(node);
+                }
+            }
+        }
+        RegisterNodeToOutput(mod, reg_outputs);
+        return;
     }
 #endif
 

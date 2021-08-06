@@ -380,6 +380,10 @@ Status OpenVINONetwork_::GetCommandQueue(void **command_queue) {
     return TNN_OK;
 }
 
+Status OpenVINONetwork_::SetCommandQueue(void *command_queue) {
+    return TNN_OK;
+}
+
 Status OpenVINONetwork_::Forward() {
     infer_request_.Infer();
 #if TNN_PROFILE

@@ -241,6 +241,13 @@ Status CoreMLNetwork::GetCommandQueue(void **command_queue) {
     return context_->GetCommandQueue(command_queue);
 }
 
+Status CoreMLNetwork::SetCommandQueue(void *command_queue) {
+    if (context_ == NULL) {
+        return Status(TNNERR_DEVICE_CONTEXT_CREATE, "CoreML SetCommandQueue is nil");
+    }
+    return context_->SetCommandQueue(command_queue);
+}
+
 Status CoreMLNetwork::Forward() {
     if (@available(iOS 11.0, macOS 10.13, *)) {
         BlobMap blob_output_map;

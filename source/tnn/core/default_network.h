@@ -59,6 +59,10 @@ public:
     // @brief get tnn command queue
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void **command_queue);
+
+    // @brief set tnn command queue
+    // @param command_queue device command queue for forward
+    virtual Status SetCommandQueue(void *command_queue);
     
     // @brief share tnn command queue to another network
     virtual Status ShareCommandQueue(AbstractNetwork *network);

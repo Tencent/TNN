@@ -69,6 +69,9 @@ public:
 
     // get tnn command queue
     Status GetCommandQueue(void** command_queue);
+
+    // set tnn command queue
+    Status SetCommandQueue(void* command_queue);
     
     // @brief share command queue with another instance
     // @param instance to share command queue

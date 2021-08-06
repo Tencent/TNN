@@ -634,6 +634,10 @@ Status NpuNetwork::GetCommandQueue(void **command_queue) {
     return TNN_OK;
 }
 
+Status NpuNetwork::SetCommandQueue(void* command_queue) {
+    return TNN_OK;
+}
+
 Status NpuNetwork::Forward() {
     hiai::AiContext context;
     std::string key   = "model_name";

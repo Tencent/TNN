@@ -84,6 +84,29 @@ Status CudaContext::GetCommandQueue(void** command_queue) {
     return TNN_OK;
 }
 
+Status CudaContext::SetCommandQueue(void* command_queue) {
+    if (own_stream_) {
+        CUDA_CHECK(cudaStreamSynchronize(stream_))
+        CUDA_CHECK(cudaStreamDestroy(stream_));
+    }
+    own_stream_ = false;
+    stream_ = (cudaStream_t)command_queue;
+
+    cudnnStatus_t cudnn_status = cudnnSetStream(cudnn_handle_, stream_);
+    if (cudnn_status != CUDNN_STATUS_SUCCESS) {
+        LOGE("cudnn handle set stream failed");
+        return TNNERR_INST_ERR;
+    }
+
+    cublasStatus_t cublas_status = cublasSetStream(cublas_handle_, stream_);
+    if (cublas_status != CUBLAS_STATUS_SUCCESS) {
+        LOGE("cublas handle set stream failed");
+        return TNNERR_INST_ERR;
+    }
+
+    return TNN_OK;
+}
+
 Status CudaContext::ShareCommandQueue(Context* context) {
 
     if (context == nullptr)

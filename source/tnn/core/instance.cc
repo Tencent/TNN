@@ -135,6 +135,10 @@ Status Instance::GetCommandQueue(void **command_queue) {
     return network_->GetCommandQueue(command_queue);
 }
 
+Status Instance::SetCommandQueue(void *command_queue) {
+    return network_->SetCommandQueue(command_queue);
+}
+
 Status Instance::ShareCommandQueue(Instance *instance) {
     return network_->ShareCommandQueue(instance->GetNetwork());
 }

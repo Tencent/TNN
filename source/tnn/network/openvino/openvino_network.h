@@ -62,6 +62,10 @@ public:
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void **command_queue);
 
+    // @brief set tnn command queue
+    // @param command_queue device command queue for forward
+    virtual Status SetCommandQueue(void* command_queue);
+
     // @brief network infer, it will sync to wait result
     virtual Status Forward();
 

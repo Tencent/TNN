@@ -31,6 +31,7 @@ extern PUBLIC std::string g_tnn_dump_directory;
 #endif
 
 Status DumpDeviceBlob(Blob* dst, Context* context, std::string fname_prefix);
+Status DumpDeviceBlob(Blob* dst, void* command_queue, std::string fname_prefix);
 
 }  // namespace TNN_NS
 
