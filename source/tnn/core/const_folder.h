@@ -43,9 +43,6 @@ public:
     // @brief ConstFolder virtual Destructor
     virtual ~ConstFolder();
     
-    // @brief network deinit to release init create resource
-    virtual Status DeInit();
-    
     // @brief get optimized NetStructure and NetResource without const layers of flag >= flag0, it must be called after Forward
     Status GetOptimizedNet(std::shared_ptr<NetStructure> &opt_structure,
                                    std::shared_ptr<NetResource> &opt_resource,
@@ -61,16 +58,14 @@ public:
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                         InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
 
-    // @brief reshape with input shape info
-    // @inputs input shape info
-    virtual Status Reshape(const InputShapesMap &inputs);
+    // fold for new inputs shape
+    Status Reshape(const InputShapesMap& inputs_shape);
 
-    // @brief network forward
-    virtual Status Forward();
-    
 protected:
     virtual Status AllocateBlobMemory();
 
+private:
+    virtual Status Forward();
 };
 
 }  // namespace TNN_NS
