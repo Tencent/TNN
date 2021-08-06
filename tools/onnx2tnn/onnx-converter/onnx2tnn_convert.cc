@@ -211,12 +211,6 @@ int onnx2tnn_convert(std::string onnx_model_path, std::string output_dir, std::s
             return status;
         }
 
-        status = const_folder->Forward();
-        if (status != TNN_OK) {
-            DLog("ConstFolder Forward Error: %s\n", status.description().c_str());
-            return status;
-        }
-
         std::shared_ptr<NetStructure> opt_structure = nullptr;
         std::shared_ptr<NetResource> opt_resource = nullptr;
         status = const_folder->GetOptimizedNet(opt_structure, opt_resource,

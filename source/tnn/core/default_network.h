@@ -109,6 +109,9 @@ protected:
 
     std::string GenerateCacheFileName(ModelConfig &model_config, std::string& md5_str);
 
+    Status PrepareDoReshape(const InputShapesMap &inputs, bool& shape_changed);
+    Status DoReshape();
+
     AbstractDevice *device_ = nullptr;
     Context *context_       = nullptr;
     Context *GetContext();
