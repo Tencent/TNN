@@ -34,7 +34,7 @@ void BroadCastTypeFilter(const DimsVector &dims_output, const DimsVector &dims_i
     }
     if (DimsVectorUtils::Equal(dims_output, dims_input, 3)) {
         type = BroadcastTypeWidth;
-        if (dims_input[2] == 1) {
+        if (dims_input[1] != 1) {
             type = BroadcastTypeChannelWidth;
         }
         return;
