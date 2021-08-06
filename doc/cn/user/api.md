@@ -571,7 +571,7 @@ def load(model_path, config_dict = {}):
 
 其中`model_path`传递模型路径，对于TNN这种模型结构与权重分开存储的模型，仅需传递tnnproto 文件路径，模型权重路径基于后缀名自动查找。`config_dict`支持字典传入，相关key说明如下:  
 
-* `input_shapes`:  支持list传入，可通过两种格式指定：
+* `input_shapes`:  支持list以及dict两种形式传入，其中dict key 可指定输入name。shape可通过两种格式指定：
 
 ```python
 { "input_shapes": [ {"min": [1,3,224,224], "max": [1,3,248,248]} ]}
@@ -584,7 +584,13 @@ def load(model_path, config_dict = {}):
 { "input_shapes":  [ [1,3,112,112], {"min": [1,3,224,224], "max": [1,3,248,248]} ] }
 ```   
 
-其中第一个输入为固定输入尺寸，第二个输入为可变尺寸。 
+其中第一个输入为固定输入尺寸，第二个输入为可变尺寸。  
+相同的输入，通过dict传入，key可用于指定输入name：  
+
+```python
+{ "input_shapes":  { "data_0": [1,3,112,112], "data_1": {"min": [1,3,224,224], "max": [1,3,248,248]} } }
+```   
+其中`data_0` 为固定输入尺寸，`data_1` 为可变输入尺寸。  
 
 * `device_type`:  支持DeviceType枚举类型以及字符串传入。
 

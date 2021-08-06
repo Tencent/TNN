@@ -147,6 +147,8 @@ Status GetBlobDescFromTensor(BlobDesc &desc, const torch::Tensor &tensor);
 
 Status CreateIValueFromTypePtr(c10::IValue &ivalue, c10::TypePtr type);
 
+Status IValueTensorTo(c10::IValue &ivalue, at::ScalarType scalar_type);
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_NETWORK_TORCH_UTILS_H_
