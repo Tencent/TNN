@@ -53,11 +53,6 @@ TNN_NS::Status TnnRuntime::ConstantFolding(const std::shared_ptr<TNN_NS::Abstrac
         LOGE("Converter Runtime: instance init failed!\n");
         return status;
     }
-    status = const_folder->Forward();
-    if (status != TNN_NS::TNN_OK) {
-        LOGE("ConstFolding Forward Error: %s\n", status.description().c_str());
-        return status;
-    }
     return TNN_NS::TNN_OK;
 }
 /**

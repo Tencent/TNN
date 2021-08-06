@@ -43,7 +43,7 @@ TNN_NS::Status TFLiteSquareConverter::exec(TNN_NS::NetStructure& net_structure, 
     param->scale               = 1.0;
     param->shift               = 0.0;
     const auto tf_lite_op_type = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
-    if (tf_lite_op_type == tflite::BuiltinOperator_SQRT) {
+    if (tf_lite_op_type == tflite::BuiltinOperator_SQUARE) {
         param->exponent = 2.0;
     } else if (tf_lite_op_type == tflite::BuiltinOperator_POW) {
         ASSERT(tf_lite_operator->inputs.size() == 2);
