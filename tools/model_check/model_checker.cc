@@ -113,13 +113,13 @@ Status ModelChecker::RunModelChecker() {
     Status ret = TNN_OK;
 
     if (model_checker_params_.only_check_output) {
+        ret = RunModelCheckerOutput();
+    } else {
         if (!model_checker_params_.dump_dir_path.empty()) {
             ret = RunModelCheckerFromDumpFile();
         } else {
-            ret = RunModelCheckerOutput();
+            ret = RunModelCheckerPerLayer();
         }
-    } else {
-        ret = RunModelCheckerPerLayer();
     }
 
     return ret;
@@ -417,8 +417,20 @@ Status ModelChecker::ExtendMatMap(const BlobMap& blobs_map, std::map<std::string
             continue;
         }
 
-        printf("Warning: mat map (name: %s) will try to be extended due to dims not match\n", blob_name.c_str());
+        LOGE("Warning: mat map (name: %s) will try to be extended due to dims not match\n", blob_name.c_str());
         if (!IsDimsCanBeExtend(src_dims, dst_dims)) {
+            std::string message = "src_dims(from input): [";
+            for (const auto& dim : src_dims) {
+                message.append(std::to_string(dim) + ",");
+            }
+            message.append("] vs ");
+            message.append("dst_dims(from forward): [");
+            for (const auto& dim : dst_dims) {
+                message.append(std::to_string(dim) + ",");
+            }
+            message.append("]");
+            LOGE("%s\n", message.c_str());
+
             return Status(TNNERR_COMMON_ERROR, "extend failed: dims can't be extend");
         }
 
