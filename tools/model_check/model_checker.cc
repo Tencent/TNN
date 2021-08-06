@@ -113,13 +113,13 @@ Status ModelChecker::RunModelChecker() {
     Status ret = TNN_OK;
 
     if (model_checker_params_.only_check_output) {
+        ret = RunModelCheckerOutput();
+    } else {
         if (!model_checker_params_.dump_dir_path.empty()) {
             ret = RunModelCheckerFromDumpFile();
         } else {
-            ret = RunModelCheckerOutput();
+            ret = RunModelCheckerPerLayer();
         }
-    } else {
-        ret = RunModelCheckerPerLayer();
     }
 
     return ret;
