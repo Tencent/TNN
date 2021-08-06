@@ -119,7 +119,7 @@ Status ArmReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
 
     for (int i = 0; i < inputs.size(); ++i) {
         auto dims   = outputs[i]->GetBlobDesc().dims;
-        int batch   = dims[0];
+        int batch   = DimsFunctionUtils::GetDim(dims, 0);
         int channel = DimsFunctionUtils::GetDim(dims, 1);
         int hw      = DimsVectorUtils::Count(dims, 2);
         if (param->type == DEQUANT_ONLY) {

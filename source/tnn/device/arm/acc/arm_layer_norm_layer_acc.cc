@@ -57,8 +57,6 @@ Status ArmLayerNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
         auto dst = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
         auto src = reinterpret_cast<float *>(GetBlobHandlePtr(input_blob->GetHandle()));
 
-        float *input_data = (float *)((char *)input_blob->GetHandle().base + input_blob->GetHandle().bytes_offset);
-
         for (int c = 0; c < channels; c += 1) {
             Float4 sum_x_f4(0.f);
             Float4 sum_x2_f4(0.f);
@@ -66,7 +64,7 @@ Status ArmLayerNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
             float sum_x  = 0.f;
             float sum_x2 = 0.f;
 
-            // kahan累加，提高累加精度
+            // kahan acc, improve accumulation accuracy
             // https://blog.csdn.net/weixin_34268753/article/details/85917630
             Float4 c_x_f4(0.f);
             Float4 c_x2_f4(0.f);
