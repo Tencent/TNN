@@ -18,7 +18,7 @@ cd <path_to_tnn>/platforms/linux/
 ## 三、量化工具的使用  
 ### 1. 命令  
 ```
-./quantization_cmd [-h] [-p] [-m] [-i] [-b] [-w] [-n] [-s] [-r] [-t] <param>
+./quantization_cmd [-h] [-p] <proto file> [-m] <model file> [-i] <input folder> [-b] <val> [-w] <val> [-n] <val> [-s] <val> [-t] <val> [-o] <output_name>
 ```
 ### 2. 参数说明  
 
@@ -34,10 +34,11 @@ cd <path_to_tnn>/platforms/linux/
 |-s, --scale        |        |✅|预处理，仅对输入为图片时起作用。对输入数据各通道进行scale操作，参数格式为：1.0,1.0,1.0|
 |-r, --reverse_channel|        |✅|预处理，仅对输入为图片时起作用：<br>&bull; 0 使用RGB顺序（默认）<br>&bull; 1 使用BGR顺序|
 |-t, --merge_type|        |✅|在量化的时候采用Per-Tensor还是Per-Channel的方式。<br>&bull; 0 Per-Channel方法（默认）<br>&bull; 1 混合方法，weights采用Per-Channel，blob采用Per-Tensor。<br>&bull; 2 Per-Tensor方法|  
+|-o, --output|        |✅|指定最终输出文件名|  
   
 ### 3. 量化输入   
 #### 3.1 输入数据的选取   
-输入数据需要包括典型的输入，否则影响输出结果的精度，图片数量在50~100左右。  
+输入数据需要包括典型的输入，否则影响输出结果的精度，图片数量至少50张。  
 #### 3.2 输入预处理    
 对图片的输入数据进行预处理，主要通过bias和scale参数进行。公式为：   
 input_pre = (input - bias) * scale  
