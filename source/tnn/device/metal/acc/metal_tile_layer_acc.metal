@@ -21,16 +21,25 @@ kernel void tile(const device ftype4 *in [[buffer(0)]],
                 device ftype4 *out [[buffer(1)]],
                 constant MetalTileParams &params [[buffer(2)]],
                 uint3 gid [[thread_position_in_grid]]) {
-     if (any(gid >= uint3(params.output_size, params.output_slice, params.batch)))
+    if (any(gid >= uint3(params.output_size, params.output_slice, params.batch)))
                         return;
-    int plane_row = params.extend_width_times * params.input_width;
-    int plane = plane_row * params.input_height;
+    int dim0_plane = params.input_dim0_size ;
+    int dim1_plane = dim0_plane * params.input_dim1_size * params.extend_dim0_times;
+    int plane_row =  params.input_width * dim1_plane * params.extend_dim1_times;
+    int plane = params.extend_width_times * plane_row * params.input_height;
+    int in_row_plane = params.input_width * params.input_dim0_size* params.input_dim1_size;
+    int in_dim1_plane = params.input_dim0_size* params.input_dim1_size;
+
     auto z_out = out + (int)gid.z * params.output_slice * params.output_size +
                      (int)gid.y * params.output_size + (int)gid.x;
 
     int batch_index = (int)gid.z % (params.batch/params.extend_batch_times) * params.input_slice * params.input_size;
-    int in_channel_offset =(int)gid.x % plane / plane_row * params.input_width +
-                                          (int)gid.x % params.input_width;
+
+    int in_channel_offset =(int)gid.x % plane / (plane_row*params.extend_width_times ) * in_row_plane +
+                           (int)gid.x % plane_row / (dim1_plane * params.extend_dim1_times) * in_dim1_plane +
+                           (int)gid.x % dim1_plane / (dim0_plane * params.extend_dim0_times) * params.input_dim0_size +
+                           (int)gid.x % params.input_dim0_size;
+
     int channel_index = (int)gid.y*4  - (int)gid.y * 4 / params.input_channel * params.input_channel;
 
     ftype a[4];
@@ -46,10 +55,11 @@ kernel void tile(const device ftype4 *in [[buffer(0)]],
             a[i] = 0;                               //after channel extended, output channel < 4,need pad 0
         else
             // channel_index/4 and channel_index%4 means four channel element packed as one ftype4 element
-            a[i] = in[batch_index + channel_index/4*params.input_size + in_channel_offset][channel_index%4];
+            a[i] = in[batch_index + channel_index/4*params.input_size*params.input_dim1_size*params.input_dim0_size + in_channel_offset][channel_index%4];
 
         channel_index++;
     }
     ftype4 tmp = ftype4(a[0],a[1],a[2],a[3]);
     *z_out = tmp;
+
 }

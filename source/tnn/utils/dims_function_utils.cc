@@ -178,7 +178,7 @@ DimsVector DimsFunctionUtils::StrideSlice(const DimsVector input_dims,
             begins[i] += input_dims[index];
         }
 
-        if (ends[i] == INT_MAX) {
+        if (ends[i] == INT_MAX || ends[i] > input_dims[index]) {
             ends[i] = input_dims[index];
         } else if (ends[i] == INT_MIN) {
             ends[i] = -1;
