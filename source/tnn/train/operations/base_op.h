@@ -29,7 +29,7 @@ public:
     typedef std::vector<std::pair<int, std::shared_ptr<BaseOp>>> PriorityOp;
     BaseOp() {};
     virtual ~BaseOp() = default;
-    virtual bool IsSupported(TrainContext& context) = 0; 
+    virtual bool IsSupported(ParamWrappers& inputs, ParamWrappers& outputs, TrainContext& context) = 0; 
     virtual Status Exec(ParamWrappers& inputs, ParamWrappers& outputs, ParamWrappers& params) = 0;
     inline static std::map<OpType, PriorityOp>& GetPriorityOpTypeMap() {
         static std::map<OpType, PriorityOp > priority_op_type_map;
@@ -40,6 +40,12 @@ public:
     //     return layer_2_op_map;
     // };
     
+    static Status RunOp(OpType type, ParamWrappers& inputs, ParamWrappers& outputs, ParamWrappers& params, TrainContext& context){
+        std::shared_ptr<BaseOp> op = GetSupportedOp(type, inputs, outputs, context);
+        if(op == nullptr) 
+            return Status(TNN_OP_NOT_FOUND, "not supported op type");
+        return op->Exec(inputs, outputs, params);
+    };
     // these funcs are for right value parameter
     static Status RunOp(OpType type, ParamWrappers&& inputs, ParamWrappers&& outputs, ParamWrappers& params, TrainContext& context){
         return RunOp(type, inputs, outputs, params, context);
@@ -63,19 +69,13 @@ public:
         return RunOp(type, inputs, outputs, params, context);
     };
 
-    static Status RunOp(OpType type, ParamWrappers& inputs, ParamWrappers& outputs, ParamWrappers& params, TrainContext& context){
-        std::shared_ptr<BaseOp> op = GetSupportedOp(type, context);
-        if(op == nullptr) 
-            return Status(TNN_OP_NOT_FOUND, "not supported op type");
-        return op->Exec(inputs, outputs, params);
-    };
-    static std::shared_ptr<BaseOp> GetSupportedOp(OpType type, TrainContext& context) {
+    static std::shared_ptr<BaseOp> GetSupportedOp(OpType type, ParamWrappers& inputs, ParamWrappers& outputs, TrainContext& context) {
         auto priority_op_type_map = GetPriorityOpTypeMap();
         auto iter = priority_op_type_map.find(type);
         if( iter == priority_op_type_map.end())
             return nullptr;
         for(auto priority_op_iter = iter->second.begin(); priority_op_iter != iter->second.end(); ++priority_op_iter) {
-            if(priority_op_iter->second->IsSupported(context)) {
+            if(priority_op_iter->second->IsSupported(inputs, outputs, context)) {
                 return priority_op_iter->second;
             }
         }
@@ -105,8 +105,8 @@ public:
 #define DECLARE_OP(type_string, op_type)                                                                       \
 class type_string##Op : public BaseOp {                                                            \
 public:                                                                                                            \
-    virtual ~##type_string##Op(){};                                                                       \
-    virtual bool IsSupported(ParamWrappers& inputs, ParamWrappers& ouputs, ParamWrappers& other_params); \
+    virtual ~##type_string##Op(){}; \
+    virtual bool IsSupported(ParamWrappers& inputs, ParamWrappers& outputs, TrainContext& context);   \
     virtual Status Exec(ParamWrappers& inputs, ParamWrappers& ouputs, ParamWrappers& other_params);    \
 }
 

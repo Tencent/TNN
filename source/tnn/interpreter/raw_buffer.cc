@@ -152,6 +152,10 @@ void RawBuffer::SetDataType(DataType data_type) {
     data_type_ = data_type;
 }
 
+void RawBuffer::SetDataFormat(DataFormat data_format) {
+    data_format_ = data_format;
+}
+
 void RawBuffer::SetTrainable(bool trainable) {
     trainable_ = trainable;
 };
@@ -170,6 +174,9 @@ bool RawBuffer::GetTrainable() {
 
 int RawBuffer::GetBytesSize() {
     return bytes_size_;
+}
+DataFormat RawBuffer::GetDataFormat() {
+    return data_format_;
 }
 
 int RawBuffer::GetDataCount() {

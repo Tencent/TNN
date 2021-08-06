@@ -36,14 +36,16 @@ Status GradManager::CalcuteGrads(Blob* loss) {
     if(loss->GetBlobDesc().dims.empty() || loss->GetBlobDesc().data_type != DATA_TYPE_FLOAT) {
         return Status(TNNERR_INVALID_DATA, "dims size of loss must 1 and data_type must be float");
     }
-    //TODO:set grads to 0 with memset to avoid memory release and alloc when resize every train step 
+    // TODO:set grads to 0 with memset to avoid memory release and alloc when resize every train step 
+    // TODO:check loss size
     context_.backward_grads_blob.clear();
     context_.backward_grads_resource.clear();
     Status status = Blob2RawBuffer(loss, context_.backward_grads_blob[loss]);
     RETURN_ON_NEQ(status, TNN_OK);
-    auto loss_raw_buffer = context_.backward_grads_blob[loss];
+    auto& loss_raw_buffer = context_.backward_grads_blob[loss];
     loss_raw_buffer->force_to<float *>()[0] = 1.f;
     loss_raw_buffer->SetTrainable(false);
+    loss_raw_buffer->SetDataFormat(loss->GetBlobDesc().data_format);
     auto layers = network->GetLayers();
     for(auto iter = layers.rbegin(); iter != layers.rend(); iter++) {
         status = LayerGrad::GetLayerGradMap()[(*iter)->GetLayerType()]->OnGrad(*iter, context_);

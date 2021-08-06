@@ -20,56 +20,49 @@
 
 namespace TNN_NS {
 namespace train {
-DECLARE_LAYER_GRAD(BinaryCrossEntropy, LAYER_BINARY_CROSSENTROPY);
+DECLARE_LAYER_GRAD(ReduceMean, LAYER_REDUCE_MEAN);
 
-Status BinaryCrossEntropyLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context){
+Status ReduceMeanLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context){
     auto inputs = layer->input_blobs_;
     auto outputs = layer->output_blobs_;
-    if(inputs.size() != 2 || outputs.size() != 1) {
+    if(inputs.size() != 1 || outputs.size() != 1) {
         return Status(TNN_TRAIN_ERROR, "input size or output size not match in BinaryCrossEntropyLayerGrad");
     }
-    auto input0_dims = inputs[0]->GetBlobDesc().dims;
-    auto input1_dims = inputs[1]->GetBlobDesc().dims;
-    auto output_dims = outputs[0]->GetBlobDesc().dims;
-    if(!DimsVectorUtils::Equal(input1_dims, input0_dims) || !DimsVectorUtils::Equal(input1_dims, output_dims)) {
-        return Status(TNN_TRAIN_ERROR, "input dims and output dims not match in BinaryCrossEntropyLayerGrad");
-    }
     auto input0_data_type = inputs[0]->GetBlobDesc().data_type;
-    auto input1_data_type = inputs[1]->GetBlobDesc().data_type;
     auto output_data_type = outputs[0]->GetBlobDesc().data_type;
-    if( input0_data_type != input1_data_type || input1_data_type != output_data_type) {
+    auto input0_dims = inputs[0]->GetBlobDesc().dims;
+    auto output_dims = outputs[1]->GetBlobDesc().dims;
+    if( input0_data_type != output_data_type) {
        return Status(TNN_TRAIN_ERROR, "input datatype and output datatype not match in BinaryCrossEntropyLayerGrad"); 
     }
     if( output_data_type != DATA_TYPE_BFP16 || output_data_type != DATA_TYPE_FLOAT) {
        return Status(TNN_TRAIN_ERROR, "output datatype not match in BinaryCrossEntropyLayerGrad"); 
     }
     auto data_format = outputs[0]->GetBlobDesc().data_format;
+    auto layer_param = dynamic_cast<ReduceLayerParam *>(layer->param_);
+    if(layer_param->axis.size() <= 0 )
+        return Status(TNN_TRAIN_ERROR, "reduce layer param axis error");
+    //梯度等于所有reduce 轴的元素个数N分之1，还要乘上output的diff，前面实现的也忘记了
+    int reduce_count = 1;
+    std::sort(axis);
+    for(auto axis in layer_param) 
     ParamWrapper pw0(inputs[0]);
     ParamWrapper pw1(inputs[1]);
     ParamWrapper pw_const_1;
-    if(output_data_type == DATA_TYPE_BFP16)
-        pw_const_1 = ParamWrapper(bfp16_t(1.0f));
-    else
-        pw_const_1 = ParamWrapper(1.0f);   
-    
-    
     //x0 is logits, x1 is true labels
-    //y = -x1*log(x0) - (1-x1)*log(1-x0)
-    //dy/dx0 = -(x1/x0 + (1-x1)/(1-x0))
-    //dy/dx1 = log(1-x0) - log(x0)
-    ParamWrapper grad0 = _Neg(_Add(_Div(pw1, pw0, context), _Div(_Sub(_Const(pw_const_1, input1_dims, data_format), pw1, context),
-                                            _Sub(_Const(pw_const_1, input0_dims, data_format), pw0, context)
-                                            ,context), context), context);
-    ParamWrapper grad1 = _Sub(_Log(_Sub(_Const(ParamWrapper(1.0f), input0_dims, data_format), pw0, context), context),
-                              _Log(pw0, context), context);
+    //y = -x1*log(x0)
+    //dy/dx0 = -x1/x0 
+    //dy/dx1 = -log(x0)
+    ParamWrapper grad0 = _Neg(_Div(pw1, pw0, context), context);
+    ParamWrapper grad1 = _Neg(_Log(pw0, context), context);
     if(!grad0.IsRawbufferSharedPtr() || !grad1.IsRawbufferSharedPtr()) {
-        return Status(TNN_TRAIN_ERROR, "Calcute BinaryCrossEntropyLayerGrad error");
+        return Status(TNN_TRAIN_ERROR, "Calcute CategoricalCrossEntropyLayerGrad error");
     }
-    UpdateGradValue(inputs[0], grad0.GetRawbufferSharedPtr(), context);
-    UpdateGradValue(inputs[1], grad0.GetRawbufferSharedPtr(), context);
+    context.backward_grads_blob[inputs[0]] = grad0.GetRawbufferSharedPtr();
+    context.backward_grads_blob[inputs[1]] = grad1.GetRawbufferSharedPtr();
     return Status(TNN_OK); 
 }
-REGISTER_LAYER_GRAD(BinaryCrossEntropy, LAYER_BINARY_CROSSENTROPY);
+REGISTER_LAYER_GRAD(ReduceMean, LAYER_REDUCE_MEAN);
 
 } //namespace train         
 } //namspace TNN_NS

@@ -31,9 +31,10 @@ class LayerGrad {
 public:
     LayerGrad();
     virtual ~LayerGrad() = default;
-
     // @brief calcute grads
-    virtual Status OnGrad(const BaseLayer* layer, TrainContext& context);
+    virtual Status OnGrad(const BaseLayer* layer, TrainContext& context) = 0;
+    virtual void UpdateGradValue(Blob* blob, std::shared_ptr<RawBuffer> raw_buff,TrainContext& context);
+    virtual void UpdateGradValue(RawBuffer* resource, std::shared_ptr<RawBuffer> raw_buff,TrainContext& context);
     static void RegisterLayerGrad(LayerType type, std::shared_ptr<LayerGrad> layer_grad_p) {
         GetLayerGradMap()[type] = layer_grad_p;
     };

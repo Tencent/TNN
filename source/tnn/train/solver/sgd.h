@@ -22,7 +22,7 @@ namespace TNN_NS {
 namespace train {
 
 class SGD: public BaseSolver {
-    SGD(AbstractNetwork* network, float learningrate):BaseSolver(network), learningrate_(learningrate) {};
+    SGD(AbstractNetwork* network, NetworkConfig* config, float learningrate):BaseSolver(network, config), learningrate_(learningrate) {};
     ~SGD() {};
     virtual Status ComputeUpdateValue(RawBuffer* resource_param, std::shared_ptr<RawBuffer>& resource_param_grad);
 private:

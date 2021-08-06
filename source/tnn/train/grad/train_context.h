@@ -29,8 +29,8 @@ namespace train {
 struct TrainContext {
     AbstractNetwork* network;
     NetworkConfig* config;
-    std::map<Blob*, std::shared_ptr<Blob> > backward_grads_blob;
-    std::map<Blob*, std::shared_ptr<RawBuffer>> backward_grads_resource;
+    std::map<Blob*, std::shared_ptr<RawBuffer> > backward_grads_blob;
+    std::map<RawBuffer*, std::shared_ptr<RawBuffer>> backward_grads_resource;
 
 };
 

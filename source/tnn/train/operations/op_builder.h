@@ -27,6 +27,7 @@ ParamWrapper BinaryOpHelper(ParamWrapper& input1,  ParamWrapper& input2, TrainCo
         return {};
     std::shared_ptr<RawBuffer> output = std::make_shared<RawBuffer>(input1.GetBlobOrRawbufferSize(), input1.GetBlobOrRawbufferDims());
     output->SetDataType(input1.GetBlobOrRawbufferDatatype());
+    output->SetDataFormat(input1.GetBlobOrRawbufferDataformat());
     ParamWrappers outputs = {ParamWrapper(output)};
     Status status = BaseOp::RunOp(OpType::ElementOp, {input1, input2}, {ParamWrapper(output)}, {ParamWrapper(element_op_type)}, context);
     if(status != TNN_OK)
@@ -70,14 +71,20 @@ ParamWrapper _Log(ParamWrapper input1, TrainContext& context) {
     return UnaryOpHelper(input1, context, ElementOpType::Log);
 }
 
-ParamWrapper _Const(ParamWrapper input1, DimsVector dims) {
+ParamWrapper _Const(ParamWrapper input1, DimsVector dims, DataFormat data_format) {
     std::shared_ptr<RawBuffer> output;
     if(input1.Isint()) {
         output = std::make_shared<RawBuffer>(sizeof(int) * DimsVectorUtils::Count(dims), dims);
-        output->SetDataType(DATA_TYPE_INT32);        
+        output->SetDataType(DATA_TYPE_INT32);
+        output->SetDataFormat(data_format);      
     } else if (input1.Isfloat()){
         output = std::make_shared<RawBuffer>(sizeof(float) * DimsVectorUtils::Count(dims), dims);
         output->SetDataType(DATA_TYPE_FLOAT); 
+        output->SetDataFormat(data_format);
+    } else if (input1.IsBfp16()) {
+        output = std::make_shared<RawBuffer>(sizeof(bfp16_t) * DimsVectorUtils::Count(dims), dims);
+        output->SetDataType(DATA_TYPE_BFP16); 
+        output->SetDataFormat(data_format);       
     }
     return {};
 }
