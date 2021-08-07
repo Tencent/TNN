@@ -21,7 +21,7 @@ __kernel void Inverse(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_on
     FLOAT4 in2  = RI_F(input, SAMPLER, (int2)(in_channel * input_width + w, in_batch * input_height + h + 1));
     FLOAT4 in3  = RI_F(input, SAMPLER, (int2)(in_channel * input_width + w + 1, in_batch * input_height + h + 1));
     FLOAT4 det4 = in0 * in3 - in1 * in2;
-    det4        = ((FLOAT)1.0) / det4;
+    det4        = ((FLOAT)1.0f) / det4;
     FLOAT4 out0 = in3 * det4;
     FLOAT4 out1 = ((FLOAT)(-1)) * in1 * det4;
     FLOAT4 out2 = ((FLOAT)(-1)) * in2 * det4;
