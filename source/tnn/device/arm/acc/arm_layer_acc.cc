@@ -223,7 +223,7 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool 
 
 bool ArmLayerAcc::DataTypeSupported(DataType data_type) {
     if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8 ||
-        data_type == DATA_TYPE_HALF) {
+        data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_INT32) {
         return true;
     } else {
         return false;

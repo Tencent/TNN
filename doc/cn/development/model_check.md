@@ -15,23 +15,43 @@
 ## 三、校验工具使用
 ### 1. 命令
 ```
-./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-f] <refernece> [-e] [-n] <val> [-s] <val> [-o] [-b]
+./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-f] <refernece> [-e] [-n] <val> [-s] <val> [-o] [-b] -sp [precision]
 ```
 ### 2. 参数说明
 
-|命令参数           |是否必须|带参数 |参数说明                                       |  
-|:------------------|:------:|:-----:|:-------------------------------------------|  
-|-h, --help         |        |       |输出命令提示。                                |  
-|-p, --proto        |&radic; |&radic;|指定tnnproto模型描述文件。                   |   
-|-m, --model        |&radic; |&radic;|指定tnnmodel模型参数文件。                   |  
-|-d, --device       |&radic; |&radic;|指定模型执行的平台，如OPENCL，ARM，METAL，CUDA，HUAWEI_NPU等。    |  
-|-i, --input        |        |&radic;|指定输入文件。目前支持格式为：<br>&bull; 文本文件（文件后缀为.txt）, 格式与模型转换工具导出的输入格式一致。<br>&bull; 常用图片格式文件（文件后缀为 .jpg .jpeg .png .bmp）<br>如果不指定，则会使用 (-1, 1) 随机输入|  
-|-f, --ref          |        |&radic;|采用指定输出进行结果对比。目前支持格式为：<br>&bull; 文本文件（文件后缀为.txt），格式与模型转换工具导出的输出格式一致。|  
-|-e, --end          |        |       |仅校验模型的最终输出。                         |  
-|-n, --bias         |        |&radic;|预处理，仅对输入为图片时有效。对输入数据各通道进行bias操作，参数格式为：0.0,0.0,0.0|  
-|-s, --scale        |        |&radic;|预处理，仅对输入为图片时有效。对输入数据各通道进行scale操作，参数格式为：1.0,1.0,1.0|  
-|-o, --output       |        |       |是否保存最终的输出。                           |  
-|-b, --batch        |        |       |验证多batch情况下，每个batch结果是否正确。（还未开发完成） |  
+|命令参数|是否必须|带参数 |参数说明                                       |  
+|:-----:|:------:|:-----:|:-------------------------------------------|  
+|-h     |        |       |输出命令提示。                                |  
+|-p     |&radic; |&radic;|指定tnnproto模型描述文件。                   |   
+|-m     |&radic; |&radic;|指定tnnmodel模型参数文件。                   |  
+|-d     |&radic; |&radic;|指定模型执行的平台，如OPENCL，ARM，METAL，CUDA，HUAWEI_NPU等。    |  
+|-i     |        |&radic;|指定输入文件。目前支持格式为：<br>&bull; 文本文件（文件后缀为.txt）, 格式与模型转换工具导出的输入格式一致。<br>&bull; 常用图片格式文件（文件后缀为 .jpg .jpeg .png .bmp）<br>如果不指定，则会使用 (-1, 1) 随机输入|  
+|-f     |        |&radic;|采用指定输出进行结果对比。目前支持格式为：<br>&bull; 文本文件（文件后缀为.txt），格式与模型转换工具导出的输出格式一致。|  
+|-e     |        |       |仅校验模型的最终输出。                         |  
+|-n     |        |&radic;|预处理，仅对输入为图片时有效。对输入数据各通道进行bias操作，参数格式为：0.0,0.0,0.0|  
+|-s     |        |&radic;|预处理，仅对输入为图片时有效。对输入数据各通道进行scale操作，参数格式为：1.0,1.0,1.0|  
+|-o     |        |       |是否保存最终的输出。                           |  
+|-b     |        |       |验证多batch情况下，每个batch结果是否正确。|  
+|-sp    |        |&radic;|强制设置执行的device的精度(AUTO/NORMAL/HIGH/LOW)|  
+
+注：预处理的公式是：y=(x-bias)*scale
+### 3. txt文件格式
+```
+<blob_num_s>
+<blob1_name> <dim_size_n1> <dim0> <dim1> ... <dim(n1-1)> <data type>
+<data>
+...
+<data>
+<blob2_name> <dim_size_n2> <dim0> <dim1> ... <dim(n2-1)> <data type>
+<data>
+...
+<data>
+...
+<blob(s)_name> <dim_size_ns> <dim0> <dim1> ... <dim(ns-1)> <data type>
+<data>
+...
+<data>
+```
 
 ## 四、执行脚本
 ### 1. Android
@@ -54,5 +74,4 @@ cd <path_to_tnn>/platforms/linux/
 ```
 
 ## 五、工具限制
-* 目前只支持fp32的模型校验；
 * 对于逐层校验，只针对fp32精度下的结果进行校验；对于最后结果校验，使用Auto精度进行校验。

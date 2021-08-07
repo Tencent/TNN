@@ -16,8 +16,8 @@
 
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
-#include "tnn/utils/half_utils_inner.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -27,6 +27,8 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
 
     auto reformat_param = dynamic_cast<ReformatLayerParam *>(param);
     CHECK_PARAM_NULL(reformat_param);
+
+    scale_buffer_.resize(inputs.size());
 
     if (reformat_param->src_format == reformat_param->dst_format) {
         if (reformat_param->src_type == DATA_TYPE_INT8 && reformat_param->dst_type == DATA_TYPE_FLOAT) {
@@ -88,27 +90,29 @@ Status ArmReformatLayerAcc::allocateBufferParam(const std::vector<Blob *> &input
         return TNN_OK;
     }
 
-    if (param->src_type != param->dst_type && !scale_buffer_.GetBytesSize()) {
-        auto dims_output    = outputs[0]->GetBlobDesc().dims;
-        int total_byte_size = ROUND_UP(dims_output[1], 4) * sizeof(float);
-        IntScaleResource *reformat_scale;
-        if (param->src_type == DATA_TYPE_INT8) {
-            reformat_scale = reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource();
-        } else {
-            reformat_scale = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource();
+    for (int idx = 0; idx < inputs.size(); ++idx) {
+        if (param->src_type != param->dst_type && !scale_buffer_[idx].GetBytesSize()) {
+            auto dims_output    = outputs[idx]->GetBlobDesc().dims;
+            int total_byte_size = ROUND_UP(dims_output[1], 4) * sizeof(float);
+            IntScaleResource *reformat_scale;
+            if (param->src_type == DATA_TYPE_INT8) {
+                reformat_scale = reinterpret_cast<BlobInt8 *>(inputs[idx])->GetIntResource();
+            } else {
+                reformat_scale = reinterpret_cast<BlobInt8 *>(outputs[idx])->GetIntResource();
+            }
+            const float *scale = reformat_scale->scale_handle.force_to<float *>();
+            int scale_cnt      = reformat_scale->scale_handle.GetDataCount();
+            RawBuffer temp_buffer(total_byte_size);
+            float *temp_ptr = temp_buffer.force_to<float *>();
+            for (int i = 0; i < dims_output[1]; i++) {
+                int scale_idx = scale_cnt == 1 ? 0 : i;
+                if (param->type == QUANT_ONLY)
+                    temp_ptr[i] = 1.0 / scale[scale_idx];
+                if (param->type == DEQUANT_ONLY)
+                    temp_ptr[i] = scale[scale_idx];
+            }
+            scale_buffer_[idx] = temp_buffer;
         }
-        const float *scale = reformat_scale->scale_handle.force_to<float *>();
-        int scale_cnt      = reformat_scale->scale_handle.GetDataCount();
-        RawBuffer temp_buffer(total_byte_size);
-        float *temp_ptr = temp_buffer.force_to<float *>();
-        for (int i = 0; i < dims_output[1]; i++) {
-            int scale_idx = scale_cnt == 1 ? 0 : i;
-            if (param->type == QUANT_ONLY)
-                temp_ptr[i] = 1.0 / scale[scale_idx];
-            if (param->type == DEQUANT_ONLY)
-                temp_ptr[i] = scale[scale_idx];
-        }
-        scale_buffer_ = temp_buffer;
     }
 
     return TNN_OK;
@@ -138,11 +142,11 @@ Status ArmReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         if (param->type == DEQUANT_ONLY) {
             Int8ToFloat(reinterpret_cast<float *>(GetBlobHandlePtr(outputs[i]->GetHandle())),
                         reinterpret_cast<int8_t *>(GetBlobHandlePtr(inputs[i]->GetHandle())),
-                        scale_buffer_.force_to<float *>(), batch, channel, hw);
+                        scale_buffer_[i].force_to<float *>(), batch, channel, hw);
         } else if (param->type == QUANT_ONLY) {
             FloatToInt8(reinterpret_cast<int8_t *>(GetBlobHandlePtr(outputs[i]->GetHandle())),
                         reinterpret_cast<float *>(GetBlobHandlePtr(inputs[i]->GetHandle())),
-                        scale_buffer_.force_to<float *>(), batch, channel, hw);
+                        scale_buffer_[i].force_to<float *>(), batch, channel, hw);
         } else if (param->type == NC4HW4FP32_2_NCHWFP32) {
             auto dst_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[i]->GetHandle()));
             auto src_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[i]->GetHandle()));

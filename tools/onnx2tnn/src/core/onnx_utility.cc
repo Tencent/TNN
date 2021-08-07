@@ -120,7 +120,15 @@ std::vector<int64_t> get_node_attr_ai(const onnx::NodeProto& node,
         }
 
         const onnx::TensorProto& tensorProto = net_info.weights_map.at(name);
-        array_i = get_tensor_proto_data_vector<int64_t>(tensorProto);
+        if (tensorProto.data_type() == onnx::TensorProto_DataType_INT32) {
+            std::vector<int32_t> array_temp = get_tensor_proto_data_vector<int32_t>(tensorProto);
+            array_i.clear();
+            for (const auto item : array_temp) {
+                array_i.emplace_back(item);
+            }
+        } else {
+            array_i = get_tensor_proto_data_vector<int64_t>(tensorProto);
+        }
     }
     return array_i;
 }
