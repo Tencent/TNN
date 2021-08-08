@@ -12,13 +12,20 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/acc/arm_cast_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(Cast, LAYER_CAST);
+bool ArmCastLayerAcc::DataTypeSupported(DataType data_type) {
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8 ||
+        data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_INT32) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 Status ArmCastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     const auto param = dynamic_cast<CastLayerParam*>(param_);
