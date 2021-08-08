@@ -26,7 +26,6 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, LayerNormLayerTest,
                                             testing::Values(1, 4, 6),           // channel
                                             testing::Values(10, 20, 65, 128),   // input_size
                                             testing::Values(1, 2, 3, 4, 5),     // reduce_dims_size
-                                            // dim count
                                             testing::Values(2, 3, 4, 5)));      // dim count
 
 TEST_P(LayerNormLayerTest, LayerNormLayer) {
@@ -43,7 +42,6 @@ TEST_P(LayerNormLayerTest, LayerNormLayer) {
         GTEST_SKIP();
     }
 
-    // if (DEVICE_OPENCL == dev || DEVICE_METAL == dev || DEVICE_ARM == dev || DEVICE_HUAWEI_NPU == dev) {
     if (DEVICE_OPENCL == dev || DEVICE_METAL == dev || DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }

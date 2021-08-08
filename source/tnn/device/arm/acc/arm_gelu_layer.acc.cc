@@ -13,23 +13,19 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_gelu_layer_acc.h"
-
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/dims_vector_utils.h"
 
-namespace TNN_NS
-{
+namespace TNN_NS {
 
-Status ArmGeluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs){
-    auto input = inputs[0];
+Status ArmGeluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto input  = inputs[0];
     auto output = outputs[0];
 
-    // n, c, h, w
     auto dims = output->GetBlobDesc().dims;
 
-    //             n     *     round_up(c,4)    *              h*w
     long count = dims[0] * ROUND_UP(dims[1], 4) * DimsVectorUtils::Count(dims, 2);
 
     auto &data_type = input->GetBlobDesc().data_type;
@@ -40,15 +36,15 @@ Status ArmGeluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 
         // https://arxiv.org/abs/1606.08415
         // approximate calculation
-        float F0 = 0.7978845834732056f;  // sqrt(2/pi)
-        float F1 = 0.0447149984538f;            // 
+        float F0 = 0.7978845834732056f;
+        float F1 = 0.0447149984538f;
         Float4 vone(1.0f);
 
         for (long i = 0; i < count; i += 4) {
             auto x = Float4::load(src + i);
-            // auto tmp = Float4::pow(x, vthree); // pow only support positive number now
+
             auto tmp = x * x;
-            tmp = tmp * x;
+            tmp      = tmp * x;
 
             tmp = tmp * F1;
             tmp = tmp + x;
@@ -69,4 +65,4 @@ Status ArmGeluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 REGISTER_ARM_ACC(Gelu, LAYER_GELU)
 REGISTER_ARM_LAYOUT(LAYER_GELU, DATA_FORMAT_NC4HW4)
 
-} // namespace TNN_NS
+}  // namespace TNN_NS
