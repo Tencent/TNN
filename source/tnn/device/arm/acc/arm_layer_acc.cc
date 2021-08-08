@@ -223,7 +223,7 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool 
 
 bool ArmLayerAcc::DataTypeSupported(DataType data_type) {
     if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8 ||
-        data_type == DATA_TYPE_HALF) {
+        data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_INT32) {
         return true;
     } else {
         return false;
@@ -242,6 +242,7 @@ Status ArmLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector
     if (DataTypeSupported(in_data_type)) {
         status = this->DoForward(inputs, outputs);
     } else {
+        std::cout << param_->type << std::endl;
         LOGE("Error : arm layer acc got unsupported data type %d\n", in_data_type);
         return Status(TNNERR_LAYER_ERR, "Error: arm layer acc got unsupported data type.");
     }

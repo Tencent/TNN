@@ -108,6 +108,19 @@ private:
         DECLARE_ARM_FP16_LAYER_FUNC;                                                                                   \
     }
 
+#define DECLARE_ARM_ACC_TYPESUPPORTED(type_string, layer_type)                                                         \
+    class Arm##type_string##LayerAcc : public ArmLayerAcc {                                                            \
+    public:                                                                                                            \
+        virtual ~Arm##type_string##LayerAcc(){};                                                                       \
+        virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);               \
+        virtual bool DataTypeSupported(DataType data_type);                                                            \
+                                                                                                                       \
+    private:                                                                                                           \
+        template <typename T>                                                                                          \
+        Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);                            \
+        DECLARE_ARM_FP16_LAYER_FUNC;                                                                                   \
+    }
+
 #define DECLARE_ARM_ACC_WITH_EXTRA(type_string, layer_type, extra)                                                     \
     class Arm##type_string##LayerAcc : public ArmLayerAcc {                                                            \
     public:                                                                                                            \

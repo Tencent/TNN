@@ -34,7 +34,7 @@ public:
     virtual bool DataTypeSupported(DataType data_type);
 
 private:
-    RawBuffer scale_buffer_;
+    std::vector<RawBuffer> scale_buffer_;
 };
 
 }  // namespace TNN_NS

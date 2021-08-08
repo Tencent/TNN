@@ -88,6 +88,7 @@ namespace optimizer {
             // support multi inputs/outputs
             // only quant & dequant now
             std::vector<std::string> reformat_outs;
+            reformat_outs.clear();
             for (auto cur_out : cur_layer->outputs) {
                 bool need_reformat = false;
                 for (int next_id = index + 1; next_id < count; next_id++) {
@@ -101,8 +102,9 @@ namespace optimizer {
                         }
                     }
                 }
-                if (need_reformat)
+                if (need_reformat) {
                     reformat_outs.push_back(cur_out);
+                }
             }
             if (!reformat_outs.size()) {
                 continue;
@@ -157,7 +159,8 @@ namespace optimizer {
                 new_layer->inputs.push_back(new_out);
                 structure->blobs.insert(new_out);
                 for (auto &cur_layer_out : cur_layer->outputs) {
-                    cur_layer_out = new_out;
+                    if (cur_layer_out == cur_out)
+                        cur_layer_out = new_out;
                 }
                 // change the inputs of successed float layers
                 for (int next_id = index + 1; next_id < count; next_id++) {
