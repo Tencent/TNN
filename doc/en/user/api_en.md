@@ -570,7 +570,7 @@ def load(model_path, config_dict = {}):
 Models like TNN whose model structure and weight are stored separately, only need to pass the tnnproto file path, and the model weight path is automatically searched based on the suffix name. `config_dict` supports dictionary input, the related key description is as follows:  
 
 
-* `input_shapes`:  support python list input, each input can be specified in two formats:
+* `input_shapes`:  support python list or dict input, the dict key can specify the input name。 each input can be specified in two formats:
 
 ```python
 { "input_shapes": [ {"min": [1,3,224,224], "max": [1,3,248,248]} ]}
@@ -584,7 +584,16 @@ For multi-input models, different input sizes can use different formats to speci
 { "input_shapes":  [ [1,3,112,112], {"min": [1,3,224,224], "max": [1,3,248,248]} ] }
 ```   
 
-The first input is a fixed input size, and the second input specifies the minimum and maximum size supported.
+The first input is a fixed input size, and the second input specifies the minimum and maximum size supported.  
+
+The same input is passed in through dict, and the key can be used to specify the input name:
+
+```python
+{"input_shapes": {"data_0": [1,3,112,112], "data_1": {"min": [1,3,224,224], "max": [1,3,248,248]}}}
+```
+
+`data_0` is a fixed input size, and `data_1` specifies the minimum and maximum size supported.  
+
 
 * `device_type`:  Support enumeration type DeviceType and string type as input.
 

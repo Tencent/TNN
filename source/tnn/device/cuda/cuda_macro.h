@@ -32,9 +32,10 @@ namespace TNN_NS {
 
 #define CUDA_CHECK(status) {                                               \
     std::stringstream _error;                                              \
-    if (cudaSuccess != status) {                                           \
-        _error << "Cuda failure: " << cudaGetErrorName(status) << " "      \
-               << cudaGetErrorString(status);                              \
+    auto _status = (status);                                               \
+    if (cudaSuccess != _status) {                                          \
+        _error << "Cuda failure: " << cudaGetErrorName(_status) << " "     \
+               << cudaGetErrorString(_status);                             \
         FatalError(_error.str());                                          \
     }                                                                      \
 }

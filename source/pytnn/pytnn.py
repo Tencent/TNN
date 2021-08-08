@@ -6,36 +6,49 @@ def _supported_input_size_type(input_size) -> bool:
         return True
     elif isinstance(input_size, list):
         return True
+    elif isinstance(input_size, dict):
+        return True
     else:
         raise TypeError(
-            "Input sizes for inputs are required to be a List, tuple or a Dict of two sizes (min, max), found type: "
+            "input size is required to be a List, tuple or a Dict of two sizes (min, max), found type: "
             + str(type(input_size)))
 
 
-def _parse_input_ranges(input_sizes: List, input_names):
-    if any(not isinstance(i, dict) and not _supported_input_size_type(i) for i in input_sizes):
+def _parse_input_ranges(input_sizes, input_names):
+    if not isinstance(input_sizes, list) and not isinstance(input_sizes, dict):
+        raise KeyError("input sizes required to be a List or Dict, found type: " + str(type(input_sizes)))
+    if isinstance(input_sizes, list) and any(not _supported_input_size_type(i) for i in input_sizes):
+        raise KeyError("An input size must either be a static size or a range of two sizes (min, max) as Dict")
+    if isinstance(input_sizes, dict) and any(not _supported_input_size_type(i) for i in input_sizes.values()):
         raise KeyError("An input size must either be a static size or a range of two sizes (min, max) as Dict")
     min_input_shapes = {}
     max_input_shapes = {}
-    for index, value in enumerate(input_sizes):
-        input_name = "input_" + str(index)
-        if len(input_names) > index:
-            input_name = input_names[index]
-        if isinstance(value, dict):
-            if all(k in value for k in ["min", "max"]):
-                min_input_shapes[input_name] = value["min"]
-                max_input_shapes[input_name] = value["max"]
-            else:
-                raise KeyError(
-                    "An input size must either be a static size or a range of three sizes (min, opt, max) as Dict")
-        elif isinstance(value, list):
-            min_input_shapes[input_name] = value
-            max_input_shapes[input_name] = value
-        elif isinstance(value, tuple):
-            min_input_shapes[input_name] = value
-            max_input_shapes[input_name] = value
+    if isinstance(input_sizes, list):
+        for index, value in enumerate(input_sizes):
+            input_name = "input_" + str(index)
+            if len(input_names) > index:
+                input_name = input_names[index]
+            min_value, max_value = _parse_min_max_value(value)
+            min_input_shapes[input_name] = min_value
+            max_input_shapes[input_name] = max_value
+    if isinstance(input_sizes, dict):
+        for key, value in input_sizes.items():
+            min_value, max_value = _parse_min_max_value(value)
+            min_input_shapes[key] = min_value
+            max_input_shapes[key] = max_value
     return (min_input_shapes, max_input_shapes)
 
+def _parse_min_max_value(value):
+    if isinstance(value, dict):
+        if all(k in value for k in ["min", "max"]):
+            return (value["min"], value["max"])
+        else:
+            raise KeyError(
+                "An input size must either be a static size or a range of two sizes (min, max) as Dict")
+    elif isinstance(value, list):
+        return (value, value)
+    elif isinstance(value, tuple):
+        return (value, value)
 
 def _parse_device_type(device_type):
     if isinstance(device_type, DeviceType):

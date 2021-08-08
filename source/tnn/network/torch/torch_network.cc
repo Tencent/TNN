@@ -57,6 +57,12 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
     config_                                      = net_config;
     Status ret                                   = TNN_OK;
 
+    if (config_.precision == PRECISION_LOW ) {
+        precision_ = DATA_TYPE_HALF;
+    } else {
+        precision_ = DATA_TYPE_FLOAT;
+    }
+
     device_ = GetDevice(net_config.device_type);
     if (device_ == nullptr) {
         return TNNERR_DEVICE_NOT_SUPPORT;
@@ -80,10 +86,10 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
             return Status(TNNERR_PARAM_ERR, "Unsupported model type for TNNTorchNetwork");
         }
 
+        #if 0
         at::ArrayRef<torch::jit::Value*> inputs = graph_->block()->inputs();
         at::ArrayRef<torch::jit::Value*> outputs = graph_->block()->outputs();
 
-        #if 0
         //printf("graph dump:\n:%s\n", graph_->toString().c_str());
 
         for(int i=0;i<inputs.size();i++) {
@@ -110,9 +116,18 @@ Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
     c10::Device device(c10::kCPU);
     RETURN_ON_NEQ(ConvertToTorchDevice(device, config.device_type, config.device_id), TNN_OK);
     auto mod = torch::jit::load(in, device);
-    // TODO support freeze
-    // module_ = std::make_shared<torch::jit::Module>(torch::jit::freeze(mod));
-    module_ = std::make_shared<torch::jit::Module>(mod);
+
+    if (config.precision == PRECISION_LOW ) {
+        mod.to(torch::kHalf);
+    }
+
+    // freeze function requires module_ in training mode [libtorch 1.8.1]
+    if (!mod.is_training()) {
+        mod.train(true);
+    }
+    module_ = std::make_shared<torch::jit::Module>(torch::jit::freeze(mod));
+    module_->train(false);
+
     graph_ = module_->get_method(forward_func_name_).graph(); 
 
     // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
@@ -137,8 +152,6 @@ Status TNNTorchNetwork::ShareNetResource(AbstractNetwork* network) {
 
 Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMap max_shape) {
 
-    std::vector<torch::jit::Value*> inputs;
-
     std::set<c10::TypeKind> supported_kinds = {
         c10::TypeKind::TensorType,
         c10::TypeKind::TupleType,
@@ -146,8 +159,8 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
         c10::TypeKind::DictType,
     };
 
-    std::set<std::string> input_names;
-    std::set<std::string> output_names;
+
+    std::vector<torch::jit::Value*> inputs;
 
     int i=0;
     for(auto input : graph_->block()->inputs()) {
@@ -194,18 +207,12 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
         input_blob_map_[input] = foreign_blob;
 
         int id = JitTypeMatcher::idFromName(input);
-        // TODO Add define to to this check.
-        if (id < 0 || id >= inputs.size() ) {
-            return Status(TNNERR_PARAM_ERR, "Invalid input id.");
-        }
+        TNN_CHECK(id >= 0 && id < inputs.size(), "Invalid input id.");
 
-        // TODO Check IValue type same as input tensor type()
         auto router = IValueRouter::create(inputs[id]->type(), input); 
         std::shared_ptr<at::Tensor> tensor;
         RETURN_ON_FAIL(CreateTensorByBlob(tensor, foreign_blob)); 
         RETURN_ON_FAIL(router->attach(in_ivalues_[id], tensor));
-
-        RETURN_ON_FAIL(foreign_blob->SetForeignTensor(std::make_shared<TorchTensor>(router)));
 
         #if 1
         // in_ivalues_[id].dump();
@@ -218,12 +225,26 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
         #endif
     }
 
-    // TODO Avoid forward fail on random inputs
-    return TNN_OK;
-
     // TODO Check integrity of the ivalues
 
-    auto out = module_->forward(in_ivalues_);
+    std::vector<torch::IValue> cur_inputs = in_ivalues_;
+    // Convert to half here because blobConverter does not support half precision currently
+    if (precision_ == DATA_TYPE_HALF) {
+        for(int i=0;i<cur_inputs.size();i++) {
+            auto ivalue = cur_inputs[i];
+            RETURN_ON_FAIL(IValueTensorTo(ivalue, at::ScalarType::Half));
+            cur_inputs[i] = ivalue;
+        }
+    }
+
+    auto out = module_->forward(cur_inputs);
+
+    // Convert to float here because blobConverter does not support half precision currently
+    if (precision_ == DATA_TYPE_HALF) {
+        // convert output to fp32
+        RETURN_ON_FAIL(IValueTensorTo(out, at::ScalarType::Float));
+    }
+
     std::vector<std::string> out_names;
     RETURN_ON_FAIL(IValueRouter::getAllTensorNames(out, "output_0", out_names));
 
@@ -254,11 +275,30 @@ Status TNNTorchNetwork::Reshape(const InputShapesMap &inputs) {
 
 
 Status TNNTorchNetwork::Forward() {
+    // Blob converter may issue async converting, we need to wait for data ready.
+    RETURN_ON_FAIL(context_->Synchronize());
 
     if (!init_done_) {
         return Status(TNNERR_INST_ERR, "Torch Network is not initialized");
     }
-    auto out = module_->forward(in_ivalues_);
+
+    std::vector<torch::IValue> cur_inputs = in_ivalues_;
+
+    // Convert to half here because blobConverter does not support half precision currently
+    if (precision_ == DATA_TYPE_HALF) {
+        for(int i=0;i<cur_inputs.size();i++) {
+            auto ivalue = cur_inputs[i];
+            RETURN_ON_FAIL(IValueTensorTo(ivalue, at::ScalarType::Half));
+            cur_inputs[i] = ivalue;
+        }
+    }
+
+    auto out = module_->forward(cur_inputs);
+
+    // Convert to float here because blobConverter does not support half precision currently
+    if (precision_ == DATA_TYPE_HALF) {
+        RETURN_ON_FAIL(IValueTensorTo(out, at::ScalarType::Float));
+    }
 
     std::vector<std::string> out_names;
     RETURN_ON_FAIL(IValueRouter::getAllTensorNames(out, "output_0", out_names));

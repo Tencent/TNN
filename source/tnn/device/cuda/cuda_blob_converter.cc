@@ -116,6 +116,7 @@ Status CudaBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param
             ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
         }
     }
+
     return ret;
 }
 
