@@ -2,7 +2,6 @@
 // Created by rgb000000 on 2021/8/6.
 //
 
-#include "reading_comprehension_tinybert.h"
 #include "reading_comprehension_jni.h"
 #include <jni.h>
 #include "helper_jni.h"
