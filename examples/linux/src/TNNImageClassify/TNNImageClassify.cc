@@ -104,8 +104,6 @@ int main(int argc, char** argv) {
     //完成计算，获取任意输出点
     fprintf(stdout, "Classify done. Result: %sOutput argmax: %d\n", labels[class_id], class_id+1);
     fprintf(stdout, "%s\n", predictor->GetBenchResult().Description().c_str());
-
-    fprintf(stdout, "I am here!");
     free(data);
     return 0;
 }

@@ -88,12 +88,8 @@ int main(int argc, char **argv) {
     auto predictor = std::make_shared<TNNSDKSample>();
 
     auto bertOutput = predictor->CreateSDKOutput();
-
-    std::cout << ">>> Ready To Load Successfully" << std::endl;
     
     CHECK_TNN_STATUS(predictor->Init(option));
-
-    std::cout << ">>> Load Successfully" << std::endl;
 
     char* paragraph = (char*)malloc(sizeof(char) * LETTER_MAX_COUNT);
     char* question = (char*)malloc(sizeof(char) * LETTER_MAX_COUNT);
