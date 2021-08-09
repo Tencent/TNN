@@ -212,21 +212,33 @@ int ScaleCalculator::CalculateScale(std::vector<float>& val, std::vector<int8_t>
         bias.push_back(0);
         if (!valid_channel_[0]) {
             return -1;
-        }            
-        int ret = CalculateScalePerRange(range_per_channel_[0], val[0], bias[0]);
+        }
+        int ret = -1;
+        if(cali_method_ == ASY_MIN_MAX){
+            ret = CalculateScalePerRange(range_per_channel_[0], val[0], bias[0]);
+        }else{
+            ret = CalculateScalePerDis(distribute_per_channel_[0], interval_per_channel_[0], val[0]);
+        }
         if (ret != 0)
-        return -1;
+            return -1;
     }else{
         val.resize(valid_channel_.size());
         bias.resize(valid_channel_.size());
         std::fill(val.begin(), val.end(), 0.0f);
-        std::fill(bias.begin(), bias.end(), 0);
+        std::fill(bias.begin(), bias.end(), (int8_t)0);
+        // std::fill(bias.begin(), bias.end(), 0);
 
         for (unsigned int c = 0; c < range_per_channel_.size(); ++c) {
             if (!valid_channel_[c]) {
                 continue;
             }
-            int ret = CalculateScalePerRange(range_per_channel_[c], val[c], bias[c]);
+            int ret = -1;
+            if(cali_method_ == ASY_MIN_MAX){
+                ret = CalculateScalePerRange(range_per_channel_[c], val[c], bias[c]);
+            }else{
+                ret = CalculateScalePerDis(distribute_per_channel_[c], interval_per_channel_[c], val[c]);
+                LOGE("%d\n",bias[c]);
+            }
             if (ret != 0)
                 return -1;
         }
@@ -234,38 +246,37 @@ int ScaleCalculator::CalculateScale(std::vector<float>& val, std::vector<int8_t>
 return 0;
 } 
 
-int ScaleCalculator::CalculateScale(std::vector<float>& val) {
-    val.clear();
+// int ScaleCalculator::CalculateScale(std::vector<float>& val) {
+//     val.clear();
 
-    if (merge_channel_) {
-        val.push_back(0.0f);
-        if (!valid_channel_[0]) {
-            LOGE("blob val is invalid in this merge channel mode (all zero)\n");
-            return -1;
-        }
-        int ret = CalculateScalePerDis(distribute_per_channel_[0], interval_per_channel_[0], val[0]);
-        if (ret != 0) {
-            LOGE("CalculateScalePerDis() failed\n");
-            return -1;
-        }
-    } else {
-        val.resize(valid_channel_.size());
-        std::fill(val.begin(), val.end(), 0.0f);
+//     if (merge_channel_) {
+//         val.push_back(0.0f);
+//         if (!valid_channel_[0]) {
+//             LOGE("blob val is invalid in this merge channel mode (all zero)\n");
+//             return -1;
+//         }
+//         int ret = CalculateScalePerDis(distribute_per_channel_[0], interval_per_channel_[0], val[0]);
+//         if (ret != 0) {
+//             LOGE("CalculateScalePerDis() failed\n");
+//             return -1;
+//         }
+//     } else {
+//         val.resize(valid_channel_.size());
+//         std::fill(val.begin(), val.end(), 0.0f);
 
-        for (unsigned int c = 0; c < distribute_per_channel_.size(); ++c) {
-            if (!valid_channel_[c]) {
-                continue;
-            }
-            int ret = CalculateScalePerDis(distribute_per_channel_[c], interval_per_channel_[c], val[c]);
-            if (ret != 0) {
-                LOGE("CalculateScalePerDis() failed\n");
-                return -1;
-            }
-        }
-    }
-
-    return 0;
-}
+//         for (unsigned int c = 0; c < distribute_per_channel_.size(); ++c) {
+//             if (!valid_channel_[c]) {
+//                 continue;
+//             }
+//             int ret = CalculateScalePerDis(distribute_per_channel_[c], interval_per_channel_[c], val[c]);
+//             if (ret != 0) {
+//                 LOGE("CalculateScalePerDis() failed\n");
+//                 return -1;
+//             }
+//         }
+//     }
+//     return 0;
+// }
 
 int ScaleCalculator::CalculateScalePerRange(std::pair<float, float> range, float& blob_scale, int8_t& bias){
     float min_val = std::min(.0f, range.first);
@@ -391,6 +402,7 @@ int ScaleCalculator::CalculateScalePerDis(std::vector<float>& distribute, float 
     }
 
     output = ((float)threshold + 0.5) / interval / 127.0;
+    LOGE("ouput:%f\n",output);
 
     return 0;
 }

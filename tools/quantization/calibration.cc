@@ -221,21 +221,13 @@ int Calibration::CalBlobScale(DataSet& dataset) {
         std::vector<int8_t> scale_bias_vec;
 
         std::string input_scale_name = item.first->GetBlobDesc().name + BLOB_SCALE_SUFFIX;
-        if(cali_params_.blob_quantize_method == ASY_MIN_MAX){
-            int ret = item.second->CalculateScale(scale_vec, scale_bias_vec);
-        }else{
-            int ret = item.second->CalculateScale(scale_vec);
-        }
+        int ret = item.second->CalculateScale(scale_vec, scale_bias_vec);
         if (ret != 0) {
             LOGE("CalculateScale (%s) failed\n", input_scale_name.c_str());
             return ret;
         }
         LayerResource* blob_scale_res;
-        if(cali_params_.blob_quantize_method == ASY_MIN_MAX){
-            blob_scale_res = CreateIntScale(scale_vec, scale_bias_vec);
-        }else{
-            blob_scale_res = CreateIntScale(scale_vec);
-        }
+        blob_scale_res = CreateIntScale(scale_vec, scale_bias_vec);
         net_resource->resource_map[input_scale_name] = std::shared_ptr<LayerResource>(blob_scale_res);
         printf("\t====> Calculate (%s) done!\n", input_scale_name.c_str());
     }

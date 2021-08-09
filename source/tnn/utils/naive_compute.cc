@@ -506,6 +506,120 @@ void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, 
     }
 }
 
+template <typename Tin, typename Tw, typename Tacc, typename Tout>
+void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
+               DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y, 
+               int pad_x, int group, int dilation, int activation_type, float *weight_scale, int weight_scale_len, 
+               int8_t *scale_bias_handle_w, int8_t *scale_bias_handle_i, int8_t *scale_bias_handle_o,
+               int8_t *relu6_max, int relu6_max_len, int fusion_type, void *add_input, float *add_scale) {
+    Tin *input_data               = static_cast<Tin *>(input_ptr);
+    Tw *weight_data               = static_cast<Tw *>(weight_ptr);
+    Tout *output_data             = static_cast<Tout *>(output_ptr);
+    Tacc *bias_data               = static_cast<Tacc *>(bias);
+    int number                    = dims_output[0];
+    int output_channel            = dims_output[1];
+    int output_height             = dims_output[2];
+    int output_width              = dims_output[3];
+    int input_channel             = dims_input[1];
+    int input_height              = dims_input[2];
+    int input_width               = dims_input[3];
+    int output_channels_per_group = output_channel / group;
+    int input_channels_per_group  = input_channel / group;
+
+    // #pragma omp parallel for
+    for (int n = 0; n < number; ++n) {
+        for (int g = 0; g < group; ++g) {
+            int output_c_start = g * output_channels_per_group;
+            int output_c_end   = (g + 1) * output_channels_per_group;
+            int input_c_start  = g * input_channels_per_group;
+            int input_c_end    = (g + 1) * input_channels_per_group;
+            int weights_start =
+                g * output_channels_per_group * input_channels_per_group * kernel_size_x * kernel_size_y;
+            for (int output_c = output_c_start; output_c < output_c_end; ++output_c) {
+                int scale_idx = weight_scale_len == 1 ? 0 : output_c;
+                for (int h = 0; h < output_height; ++h) {
+                    int input_h_start = h * stride_y - pad_y;
+                    for (int w = 0; w < output_width; ++w) {
+                        int input_w_start = w * stride_x - pad_x;
+                        Tacc result       = static_cast<Tacc>(0.0f);
+                        int output_position = ((n * output_channel + output_c) * output_height + h) * output_width + w;
+                        for (int kernel_h = 0; kernel_h < kernel_size_y; ++kernel_h) {
+                            int input_h = input_h_start + kernel_h * dilation;
+                            if (input_h < 0 || input_h >= input_height) {
+                                continue;
+                            }
+                            for (int kernel_w = 0; kernel_w < kernel_size_x; ++kernel_w) {
+                                int input_w = input_w_start + kernel_w * dilation;
+                                if (input_w < 0 || input_w >= input_width) {
+                                    continue;
+                                }
+                                for (int input_c = input_c_start; input_c < input_c_end; ++input_c) {
+                                    int input_position =
+                                        ((n * input_channel + input_c) * input_height + input_h) * input_width +
+                                        input_w;
+                                    int weight_position = weights_start +
+                                                          (((output_c - output_c_start) * input_channels_per_group +
+                                                            input_c - input_c_start) *
+                                                               kernel_size_y +
+                                                           kernel_h) *
+                                                              kernel_size_x +
+                                                          kernel_w;
+                                                          
+                                    result += input_data[input_position] * weight_data[weight_position] -   
+                                    static_cast<Tacc>(scale_bias_handle_w[scale_idx] * input_data[input_position]) -
+                                    static_cast<Tacc>(scale_bias_handle_i[input_c] * weight_data[weight_position]) + 
+                                    static_cast<Tacc>(scale_bias_handle_i[input_c] * scale_bias_handle_w[scale_idx]);
+                                       
+                                    // if(output_position>= 0){
+                                    //     LOGE("%d,%d,%d,%d,%d,%d,result%d,input_data%d,weight_data%d,sw%d,si%d\n",output_c,h,w,kernel_h,kernel_w,input_c,
+                                    //     result,input_data[input_position], weight_data[weight_position],scale_bias_handle_w[scale_idx],scale_bias_handle_i[scale_idx]);
+                                    // }
+                                }
+                            }
+                        }
+
+                        if (bias_data) {
+                            result += bias_data[output_c];
+                        }
+                        if (sizeof(Tin) > 1) {  // float
+                            FloatActivate(result, activation_type);
+                            output_data[output_position] = result;
+                        } else {
+                            float val    = result * weight_scale[scale_idx];
+                            if (fusion_type == FusionType_Conv_Add_Activation) {
+                                val += static_cast<Tin *>(add_input)[output_position] * add_scale[output_c];
+                            }
+                            if (activation_type == ActivationType_ReLU) {
+                                val = std::max(0.0f, val);
+                            } else if (activation_type == ActivationType_ReLU6) {
+                                int relu6_max_idx = relu6_max_len == 1 ? 0:output_c;
+                                int8_t res = std::min(float2int8(val), relu6_max[relu6_max_idx]);
+                                res = std::max((int8_t)0, res);
+                                output_data[output_position] = res;
+                                continue;
+                            }
+                            if (fusion_type == FusionType_Conv_Activation_Add) {
+                                val += static_cast<Tin *>(add_input)[output_position] * add_scale[output_c];
+                            }
+                            val += static_cast<Tin>(scale_bias_handle_o[scale_idx]);
+                            output_data[output_position] = float2int8(val);
+                            // LOGE("position:%d,,val:%f==%d\n",output_position,val,output_data[output_position]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+template void NaiveConvBias<int8_t, int8_t, int32_t, int8_t>(
+    void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
+    DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
+    int pad_x, int group, int dilation, int activation_type, float *weight_scale, int weight_scale_len,
+    int8_t *scale_bias_handle_w, int8_t *scale_bias_handle_i, int8_t * scale_bias_handle_o,
+    int8_t *relu6_max, int relu6_max_len, int fusion_type = FusionType_None, void *add_input = nullptr,
+    float *add_scale = nullptr);
+
 template void NaiveConv<float, float, float, float>(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias,
                                                     DimsVector dims_input, DimsVector dims_output, int stride_y,
                                                     int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
@@ -1185,5 +1299,42 @@ void NaiveQuant(const float *input_ptr, const float *scale_ptr, int scale_len, i
         }
     }
 }
+void NaiveDequantBias(const int8_t *input_ptr, const float *scale_ptr, const int8_t *scale_bias_ptr, int scale_len, float *output, DimsVector dims){
+    int batch   = DimsFunctionUtils::GetDim(dims, 0);
+    int channel = DimsFunctionUtils::GetDim(dims, 1);
+    int hw_size = DimsVectorUtils::Count(dims, 2);
+    for (int n = 0; n < batch; n++) {
+        OMP_PARALLEL_FOR_
+        for (int c = 0; c < channel; c++) {
+            int offset    = n * channel * hw_size + c * hw_size;
+            int scale_idx = scale_len == 1 ? 0 : c;
+            for (int hw = 0; hw < hw_size; hw++) {
+                output[offset + hw] = scale_ptr[scale_idx] * (static_cast<float>(input_ptr[offset + hw]) - static_cast<float>(scale_bias_ptr[scale_idx]));
+            }
+        }
+    }    
+}
+
+void NaiveQuantBias(const float *input_ptr, const float *scale_ptr, const int8_t *scale_bias_ptr, int scale_len, int8_t *output, DimsVector dims){
+    int batch   = DimsFunctionUtils::GetDim(dims, 0);
+    int channel = DimsFunctionUtils::GetDim(dims, 1);
+    int hw_size = DimsVectorUtils::Count(dims, 2);
+    for (int n = 0; n < batch; n++) {
+        OMP_PARALLEL_FOR_
+        for (int c = 0; c < channel; c++) {
+            int offset    = n * channel * hw_size + c * hw_size;
+            int scale_idx = scale_len == 1 ? 0 : c;
+            for (int hw = 0; hw < hw_size; hw++) {
+                if (scale_ptr[scale_idx] != 0){
+                    float val = input_ptr[offset + hw] / scale_ptr[scale_idx] + static_cast<float>(scale_bias_ptr[scale_idx]);
+                    int8_t test = float2int8(val);
+                    float bias = static_cast<float>(scale_bias_ptr[scale_idx]);
+                    output[offset + hw] = float2int8(input_ptr[offset + hw] / scale_ptr[scale_idx] + static_cast<float>(scale_bias_ptr[scale_idx]));
+              } else
+                    output[offset + hw] = 0;
+            }
+       }
+    }
+}    
 
 }  // namespace TNN_NS

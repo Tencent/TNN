@@ -31,7 +31,9 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
 
     auto conv_param = dynamic_cast<ConvLayerParam *>(param);
     CHECK_PARAM_NULL(conv_param);
-    auto conv_res = dynamic_cast<ConvLayerResource *>(resource_);
+    resource_ = resource;
+    ConvLayerResource* conv_res = dynamic_cast<ConvLayerResource *>(resource_);
+
     CHECK_PARAM_NULL(conv_res);
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         if (!buffer_scale_.GetBytesSize()) {
@@ -50,7 +52,7 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
             int scale_len_o = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource()->scale_handle.GetDataCount();
             RawBuffer temp_buffer(total_byte_size);
             float *temp_ptr = temp_buffer.force_to<float *>();
-
+            
             int32_t *bias_ptr = conv_res->bias_handle.force_to<int32_t *>();
             for (int i = 0; i < dims_output[1]; i++) {
                 int w_scale_idx = scale_len_w == 1 ? 0 : i;
@@ -114,7 +116,8 @@ Status CpuConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
 
 Status CpuConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param    = dynamic_cast<ConvLayerParam *>(param_);
-    auto resource = dynamic_cast<ConvLayerResource *>(resource_);
+    ConvLayerResource* resource = dynamic_cast<ConvLayerResource *>(resource_);
+
     if (!param || !resource) {
         return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
     }
@@ -144,12 +147,17 @@ Status CpuConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
                                                   param->dialations[1], param->activation_type, NULL, 0, NULL, 0);
     } else if (data_type == DATA_TYPE_INT8) {
         auto weight_scale = buffer_scale_.force_to<float *>();
+        int8_t* scale_bias_handle_w = resource->scale_bias_handle.force_to<int8_t *>();
+        int8_t* scale_bias_handle_i = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
+        int8_t* scale_bias_handle_o = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
         auto relu6_max    = relu6_max_.force_to<int8_t *>();
         void *add_input   = (param->fusion_type == FusionType_None) ? nullptr : inputs[1]->GetHandle().base;
-        NaiveConv<int8_t, int8_t, int32_t, int8_t>(
+        NaiveConvBias<int8_t, int8_t, int32_t, int8_t>(
             input_ptr, output_ptr, weight_ptr, bias_ptr, input_dims, output_dims, param->strides[1], param->strides[0],
             param->kernels[1], param->kernels[0], param->pads[2], param->pads[0], param->group, param->dialations[1],
-            param->activation_type, weight_scale, buffer_scale_.GetDataCount(), relu6_max, relu6_max_.GetDataCount(),
+            param->activation_type, weight_scale, buffer_scale_.GetDataCount(), 
+            scale_bias_handle_w, scale_bias_handle_i, scale_bias_handle_o,
+            relu6_max, relu6_max_.GetDataCount(),
             param->fusion_type, add_input, buffer_add_scale_.force_to<float *>());
     } else {
         return Status(TNNERR_LAYER_ERR, "data type not support in conv");
