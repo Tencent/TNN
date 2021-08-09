@@ -1231,8 +1231,7 @@ static Status ConvertNNV21ToHalfBlob(Mat& image, char* handle_ptr,
 }
 
 template <typename T_mat>
-static Status ConvertFloatMatToHalfBlob(Mat& image, char* handle_ptr, con (reformat_param->src_type == DATA_TYPE_INT32 && reformat_param->dst_type == DATA_TYPE_INT32) {
-        //     reformat_pst MatConvertParam& param,
+static Status ConvertFloatMatToHalfBlob(Mat& image, char* handle_ptr, const MatConvertParam& param, 
                                         const DimsVector& dims, const int hw, const int c_r4,
                                         std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
     auto batch   = DimsFunctionUtils::GetDim(dims, 0);
