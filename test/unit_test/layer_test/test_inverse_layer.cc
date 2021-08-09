@@ -42,11 +42,10 @@ TEST_P(InverseLayerTest, InverseLayer) {
     int input_width    = std::get<3>(GetParam());
     DataType data_type = std::get<4>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    LOGE("(%d,%d,%d,%d) ", batch, channel, input_height, input_width);
     if (CheckDataTypeSkip(data_type)) {
         GTEST_SKIP();
     }
-    if (!(DEVICE_NAIVE == dev || DEVICE_OPENCL == dev)) {
+    if (!(DEVICE_NAIVE == dev || DEVICE_OPENCL == dev || DEVICE_METAL == dev)) {
         GTEST_SKIP();
     }
 

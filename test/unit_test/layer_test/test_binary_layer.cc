@@ -48,6 +48,10 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_po
         GTEST_SKIP();
     }
 
+    if (dims_size > 4 && DEVICE_OPENCL != dev && DEVICE_METAL != dev) {
+        GTEST_SKIP();
+    }
+
     std::vector<int> param_dims;
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
     if (0 == param_size_type) {
