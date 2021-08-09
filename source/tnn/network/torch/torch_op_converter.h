@@ -14,7 +14,9 @@
 #include "tnn/layer/base_layer.h"
 
 #include "tnn/network/torch/segment.h"
+#include "tnn/network/torch/torch_utils.h"
 #include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/utils/data_type_utils.h"
 
 #include <torch/script.h>
 #include "c10/util/intrusive_ptr.h"
@@ -28,12 +30,13 @@ static inline T getValue(const torch::jit::Value* value) {
     auto optional_ivalue = toIValue(value);
     T res;
     if (!optional_ivalue) {
+        LOGE("getValue:Value cannot be interpret as IValue\n");
         return res;
     }
     c10::IValue& val = optional_ivalue.value();
     auto optional_res = val.toOptional<T>();
     if (!optional_res) {
-        // MNN_ERROR("getValue: value is None.");
+        LOGE("getValue:IValue is none");
         return res;
     }
     return optional_res.value();
@@ -53,7 +56,6 @@ static std::vector<T> getValue(const torch::jit::Value* value, std::vector<int>&
     for (int i = 0; i < shapes.size(); i++) {
         shape[i] = static_cast<int>(shapes[i]);
     }
-    auto scalarType = tensor.scalar_type();
     data.resize(size);
     int idx = 0;
     std::function<void(int, int)> copyData = [&](int dim, int offset) {
@@ -70,6 +72,62 @@ static std::vector<T> getValue(const torch::jit::Value* value, std::vector<int>&
     };
     copyData(0, 0);
     return data;
+}
+
+template <typename T>
+static std::vector<T> getValue(const at::Tensor &tensor, std::vector<int>& shape) {
+    std::vector<T> data;
+    int size = tensor.numel();
+    if (!size) {
+        return data;
+    }
+    const auto shapes = tensor.sizes().vec();
+    const auto strides = tensor.strides().vec();
+    shape.resize(shapes.size());
+    for (int i = 0; i < shapes.size(); i++) {
+        shape[i] = static_cast<int>(shapes[i]);
+    }
+    data.resize(size);
+    int idx = 0;
+    std::function<void(int, int)> copyData = [&](int dim, int offset) {
+        if (dim == shapes.size()-1) {
+            for (int i = 0; i < shapes[dim]; i++) {
+                data[idx++] = tensor.data_ptr<T>()[offset + i * strides[dim]];
+
+            }
+        } else {
+            for (int i = 0; i < shapes[dim]; i++) {
+                copyData(dim + 1, offset + i * strides[dim]);
+            }
+        }
+    };
+    copyData(0, 0);
+    return data;
+}
+
+static RawBuffer getValue(const torch::jit::Value* value) {
+    const auto tensor = getValue<at::Tensor>(value).to(at::kCPU);
+    int size = tensor.numel();
+    if (!size) {
+        return RawBuffer();
+    }
+    DataType data_type;
+    auto torch_type = tensor.scalar_type();
+    ConvertToDataType(data_type, torch_type);
+    DimsVector dims;
+    if (data_type == DATA_TYPE_HALF) {
+        auto new_tensor = tensor.to(at::ScalarType::Float);
+        auto vec = getValue<float>(new_tensor, dims);
+        auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
+        return RawBuffer(bytes_size, reinterpret_cast<char *>(vec.data()), dims);
+    } else if (data_type == DATA_TYPE_FLOAT) {
+        auto vec = getValue<float>(value, dims);
+        auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
+        return RawBuffer(bytes_size, reinterpret_cast<char *>(vec.data()), dims);
+    } else {
+        LOGE("getValue:wrong scalar type\n");
+    }
+    return RawBuffer();
 }
 
 class TorchOpConverter {

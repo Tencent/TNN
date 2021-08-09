@@ -34,8 +34,8 @@ public:
         const auto padding = getValue<std::vector<int64_t>>(inputs[4]);
         const auto dialation = getValue<std::vector<int64_t>>(inputs[5]);
         const auto group = getValue<int64_t>(inputs[6]);
-        std::vector<int> shape;
-        auto weight_vec = getValue<float>(weight, shape);
+        auto weight_buf = getValue(weight);
+        auto shape = weight_buf.GetBufferDims();
 
         // set param accroding to real value, just test here
         layer_param->name = layer_info->name;
@@ -48,17 +48,16 @@ public:
         layer_param->group = group;
         layer_param->pads = {(int)padding[0], (int)padding[0], (int)padding[1], (int)padding[1]};
         conv_res->name = layer_info->name;
-        conv_res->filter_handle = RawBuffer(weight_vec.size() * sizeof(float), reinterpret_cast<char *>(weight_vec.data()));
+        conv_res->filter_handle = weight_buf;
 
-        auto bias_vec = getValue<float>(bias, shape);
-        if (bias_vec.size() != 0) {
+        auto bias_buf = getValue(bias);
+        if (bias_buf.GetBytesSize() != 0) {
             layer_param->bias = 1;
-            conv_res->bias_handle = RawBuffer(bias_vec.size() * sizeof(float), reinterpret_cast<char *>(bias_vec.data()));
+            conv_res->bias_handle = bias_buf;
         }
 
         layer_info->param = layer_param;
         *layer_resouce = conv_res;
-
 
         return TNN_OK;
     }
@@ -99,8 +98,8 @@ public:
         //     std::cout << "deconv" << std::endl;
         // }
 
-        std::vector<int> shape;
-        auto weight_vec = getValue<float>(weight, shape);
+        auto weight_buf = getValue(weight);
+        auto shape = weight_buf.GetBufferDims();
 
         // set param accroding to real value, just test here
         layer_param->name = layer_info->name;
@@ -113,17 +112,16 @@ public:
         layer_param->pads = {(int)padding[0], (int)padding[0], (int)padding[1], (int)padding[1]};
         layer_param->group = group;
         conv_res->name = layer_info->name;
-        conv_res->filter_handle = RawBuffer(weight_vec.size() * sizeof(float), reinterpret_cast<char *>(weight_vec.data()));
+        conv_res->filter_handle = weight_buf;
 
-        auto bias_vec = getValue<float>(bias, shape);
-        if (bias_vec.size() != 0) {
+        auto bias_buf = getValue(bias);
+        if (bias_buf.GetBytesSize() != 0) {
             layer_param->bias = 1;
-            conv_res->bias_handle = RawBuffer(bias_vec.size() * sizeof(float), reinterpret_cast<char *>(bias_vec.data()));
+            conv_res->bias_handle = bias_buf;
         }
 
         layer_info->param = layer_param;
         *layer_resouce = conv_res;
-
 
         return TNN_OK;
     }

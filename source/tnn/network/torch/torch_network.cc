@@ -37,6 +37,8 @@
 
 #include <torch/torch.h>
 #include <torch/csrc/jit/passes/freeze_module.h>
+#include <torch/csrc/jit/passes/frozen_graph_optimizations.h>
+#include "torch/csrc/jit/passes/lower_tuples.h"
 
 #include <torchvision/vision.h>
 
@@ -135,13 +137,17 @@ Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
     }
 
     // freeze function requires module_ in training mode [libtorch 1.8.1]
-    if (!mod.is_training()) {
-        mod.train(true);
-    }
-    module_ = std::make_shared<torch::jit::Module>(torch::jit::freeze(mod));
-    module_->train(false);
+    // if (!mod.is_training()) {
+    //     mod.train(true);
+    // }
+    // module_ = std::make_shared<torch::jit::Module>(torch::jit::freeze(mod));
+    // module_->train(false);
 
-    graph_ = module_->get_method(forward_func_name_).graph(); 
+    mod.eval();
+    module_ = std::make_shared<torch::jit::Module>(torch::jit::freeze_module(mod));
+    graph_ = module_->get_method(forward_func_name_).graph();
+    OptimizeFrozenGraph(graph_);
+    LowerSimpleTuples(graph_);
 
     // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
     // graph_ = graph_and_ivalues.first;
