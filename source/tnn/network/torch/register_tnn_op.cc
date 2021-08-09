@@ -29,6 +29,7 @@ namespace runtime {
 
 std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
                                         c10::intrusive_ptr<TNNEngine> compiled_engine) {
+    auto scalar_type = inputs[0].scalar_type();
     auto input_names  = compiled_engine->input_names;
     auto output_names = compiled_engine->output_names;
     InputShapesMap inputs_shape_map;
@@ -71,7 +72,7 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         BlobDesc blob_desc;
         ConvertToDeviceType(device_type, inputs[i].device());
         GetBlobDescFromTensor(blob_desc, inputs[i]);
-        if (inputs[i].scalar_type() == at::ScalarType::Half) {
+        if (scalar_type == at::ScalarType::Half) {
             auto new_tensor = inputs[i].to(at::ScalarType::Float);
             auto input_mat = std::make_shared<Mat>(device_type, NCHW_FLOAT, blob_desc.dims, new_tensor.data_ptr());
             compiled_engine->instance_->SetInputMat(input_mat, MatConvertParam(), input_names[i]);
@@ -89,7 +90,7 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
     for (int i = 0; i < output_names.size(); i++) {
         std::shared_ptr<at::Tensor> tensor_ptr;
         CreateTensorByBlob(tensor_ptr, output_blobs[output_names[i]]);
-        if (inputs[i].scalar_type() == at::ScalarType::Half) {
+        if (scalar_type == at::ScalarType::Half) {
             outputs[i] = std::move(tensor_ptr->to(at::ScalarType::Half));
         } else {
             outputs[i] = std::move(*tensor_ptr);
