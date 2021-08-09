@@ -12,31 +12,25 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_REFORMAT_LAYER_ACC_H_
-#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_REFORMAT_LAYER_ACC_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_CAST_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_CAST_LAYER_ACC_H_
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 
 namespace TNN_NS {
 
-// @brief conv layer cpu acc
-class ArmReformatLayerAcc : public ArmLayerAcc {
+class ArmCastLayerAcc : public ArmLayerAcc {
 public:
-    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-                const std::vector<Blob *> &outputs);
-
-    virtual ~ArmReformatLayerAcc();
-
-    Status allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
+    virtual ~ArmCastLayerAcc(){};
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
     virtual bool DataTypeSupported(DataType data_type);
 
 private:
-    std::vector<RawBuffer> scale_buffer_;
+    template <typename T>
+    Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    DECLARE_ARM_FP16_LAYER_FUNC;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_REFORMAT_LAYER_ACC_H_
+#endif

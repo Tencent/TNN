@@ -12,20 +12,28 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/acc/arm_gather_layer_acc.h"
+
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(Gather, LAYER_GATHER);
+bool ArmGatherLayerAcc::DataTypeSupported(DataType data_type) {
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT8 ||
+        data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_INT32) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
+    auto layer_param = dynamic_cast<GatherLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
     int axis = layer_param->axis;
 
-    auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);
+    auto layer_resource = dynamic_cast<GatherLayerResource *>(resource_);
     if ((layer_param->data_in_resource || layer_param->indices_in_resource) && !layer_resource) {
         return Status(TNNERR_MODEL_ERR, "Gather resource is invalid");
     }
@@ -34,34 +42,34 @@ Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     char *input_data_ptr = nullptr;
     if (layer_param->data_in_resource) {
         input_data_dims = layer_resource->data.GetBufferDims();
-        input_data_ptr = layer_resource->data.force_to<char*>();
+        input_data_ptr  = layer_resource->data.force_to<char *>();
     } else {
         input_data_dims = (*(inputs.begin()))->GetBlobDesc().dims;
-        input_data_ptr = GetBlobHandlePtr((*(inputs.begin()))->GetHandle());
+        input_data_ptr  = GetBlobHandlePtr((*(inputs.begin()))->GetHandle());
     }
 
     DimsVector indices_dims;
     int *indices_data_ptr = nullptr;
     if (layer_param->indices_in_resource) {
-        indices_dims = layer_resource->indices.GetBufferDims();
-        indices_data_ptr = layer_resource->indices.force_to<int*>();
+        indices_dims     = layer_resource->indices.GetBufferDims();
+        indices_data_ptr = layer_resource->indices.force_to<int *>();
     } else {
-        indices_dims = (*(inputs.rbegin()))->GetBlobDesc().dims;
+        indices_dims     = (*(inputs.rbegin()))->GetBlobDesc().dims;
         indices_data_ptr = reinterpret_cast<int *>(GetBlobHandlePtr((*(inputs.rbegin()))->GetHandle()));
     }
 
-    const int slice_size = DimsVectorUtils::Count(input_data_dims, axis + 1);
+    const int slice_size        = DimsVectorUtils::Count(input_data_dims, axis + 1);
     const int input_slice_count = DimsVectorUtils::Count(input_data_dims, axis, axis + 1);
-    const int batch = DimsVectorUtils::Count(input_data_dims, 0, axis);
+    const int batch             = DimsVectorUtils::Count(input_data_dims, 0, axis);
 
-    const auto output_dims = outputs[0]->GetBlobDesc().dims;
+    const auto output_dims       = outputs[0]->GetBlobDesc().dims;
     const int output_slice_count = DimsVectorUtils::Count(indices_dims);
 
-    const int ele_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
+    const int ele_size   = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
     auto output_data_ptr = GetBlobHandlePtr(outputs[0]->GetHandle());
 
     for (int b = 0; b < batch; b++) {
-        int input_index_b = b * input_slice_count * slice_size;
+        int input_index_b  = b * input_slice_count * slice_size;
         int output_index_b = b * output_slice_count * slice_size;
         for (int i = 0; i < output_slice_count; i++) {
             int slice_index = indices_data_ptr[i];
@@ -69,11 +77,10 @@ Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 LOGE("ArmGatherLayerAcc::Forward invalid slice_index\n");
                 return Status(TNNERR_MODEL_ERR, "ArmGatherLayerAcc::Forward invalid slice_index");
             }
-            int input_index = input_index_b + slice_index * slice_size;
+            int input_index  = input_index_b + slice_index * slice_size;
             int output_index = output_index_b + i * slice_size;
-            
-            memcpy(output_data_ptr + output_index * ele_size,
-                   input_data_ptr + input_index * ele_size,
+
+            memcpy(output_data_ptr + output_index * ele_size, input_data_ptr + input_index * ele_size,
                    slice_size * ele_size);
         }
     }
