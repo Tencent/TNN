@@ -53,7 +53,6 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
         } else if (reformat_param->src_type == DATA_TYPE_INT32 && reformat_param->dst_type == DATA_TYPE_INT32) {
             reformat_param->type = NC4HW4INT32_2_NCHWINT32;
         } else {
-            LOGE("\n>>>>>>>>>>>>> here0\n");
             LOGE("ArmReformatLayerAcc::Init Error: src_fmt: %d, dst_fmt: %d, src_type: %d, dst_type: %d\n",
                  reformat_param->src_format, reformat_param->dst_format, reformat_param->src_type,
                  reformat_param->dst_type);
@@ -67,14 +66,12 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
         } else if (reformat_param->src_type == DATA_TYPE_INT32 && reformat_param->dst_type == DATA_TYPE_INT32) {
             reformat_param->type = NCHWINT32_2_NC4HW4INT32;
         } else {
-            LOGE("\n>>>>>>>>>>>>> here1\n");
             LOGE("ArmReformatLayerAcc::Init Error: src_fmt: %d, dst_fmt: %d, src_type: %d, dst_type: %d\n",
                  reformat_param->src_format, reformat_param->dst_format, reformat_param->src_type,
                  reformat_param->dst_type);
             return Status(TNNERR_MODEL_ERR, "ArmReformatLayerAcc::Init unsupport reformat type");
         }
     } else {
-        LOGE("\n>>>>>>>>>>>>> here2\n");
         LOGE("ArmReformatLayerAcc::Init Error: src_fmt: %d, dst_fmt: %d, src_type: %d, dst_type: %d\n",
              reformat_param->src_format, reformat_param->dst_format, reformat_param->src_type,
              reformat_param->dst_type);

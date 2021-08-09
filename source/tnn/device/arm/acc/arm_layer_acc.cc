@@ -242,7 +242,6 @@ Status ArmLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector
     if (DataTypeSupported(in_data_type)) {
         status = this->DoForward(inputs, outputs);
     } else {
-        std::cout << param_->type << std::endl;
         LOGE("Error : arm layer acc got unsupported data type %d\n", in_data_type);
         return Status(TNNERR_LAYER_ERR, "Error: arm layer acc got unsupported data type.");
     }

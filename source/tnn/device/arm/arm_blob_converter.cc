@@ -52,8 +52,6 @@ Status ArmBlobConverterAcc::GetBlobConvertFunc(MatType mat_type, DataType data_t
                                                BlobConvertDirection cvt_dir, ArmBlobConvertFunc& cvt_func) {
     const auto& cvt_map = GetBlobConvertFuncMap();
     const auto& cvt_key = GetUniqueBlobConvertKey(mat_type, data_type, cvt_dir);
-    // std::cout << cvt_key << std::endl;
-    // LOGE("\n>>> print ^^^^^^^ \n");
     if (cvt_map.find(cvt_key) == cvt_map.end() || cvt_map.at(cvt_key) == nullptr) {
         LOGE("ArmBlobConverterAcc::GetBlobConvertFunc, convert type not support yet. mat_type: %d data_type:%d cvt_dir:%d\n", mat_type, data_type, cvt_dir);
 #if !TNN_ARM82
@@ -1231,7 +1229,7 @@ static Status ConvertNNV21ToHalfBlob(Mat& image, char* handle_ptr,
 }
 
 template <typename T_mat>
-static Status ConvertFloatMatToHalfBlob(Mat& image, char* handle_ptr, const MatConvertParam& param, 
+static Status ConvertFloatMatToHalfBlob(Mat& image, char* handle_ptr, const MatConvertParam& param,
                                         const DimsVector& dims, const int hw, const int c_r4,
                                         std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
     auto batch   = DimsFunctionUtils::GetDim(dims, 0);
@@ -1369,8 +1367,6 @@ REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_FLOAT, CVT_DIR_BLO
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_BFP16, CVT_DIR_BLOB2MAT, (ConvertFloatBlobToFloatMat<float, bfp16_t>))
 REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_BFP16_TEST, DATA_TYPE_BFP16, CVT_DIR_BLOB2MAT, (ConvertFloatBlobToFloatMat<bfp16_t, bfp16_t>))
 REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_INT8_TEST,  DATA_TYPE_INT8,  CVT_DIR_BLOB2MAT, ConvertInt8BlobToInt8Mat)
-
-REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_INT32, CVT_DIR_BLOB2MAT, ConvertInt8BlobToNCHWFloat)
 
 #if TNN_ARM82
 static Status ConvertHalfBlobToN8UC4(Mat& image, char* handle_ptr, const MatConvertParam& param, const DimsVector& dims,
