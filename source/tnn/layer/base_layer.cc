@@ -207,6 +207,8 @@ Status BaseLayer::Forward() {
             RETURN_ON_NEQ(status, TNN_OK);
             
             if (IsOutputConstant()) {
+                status = layer_acc_->AllocateRuntimeOutputBlob(input_blobs_, output_blobs_);
+                RETURN_ON_NEQ(status, TNN_OK);
                 status = layer_acc_->Forward(input_blobs_, output_blobs_);
                 RETURN_ON_NEQ(status, TNN_OK);
             } else {
