@@ -142,6 +142,7 @@ Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
     // }
     // module_ = std::make_shared<torch::jit::Module>(torch::jit::freeze(mod));
     // module_->train(false);
+    // graph_ = module_->get_method(forward_func_name_).graph();
 
     mod.eval();
     module_ = std::make_shared<torch::jit::Module>(torch::jit::freeze_module(mod));

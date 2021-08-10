@@ -66,6 +66,9 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
     compiled_engine->instance_->GetAllInputBlobs(input_blobs);
     compiled_engine->instance_->GetAllOutputBlobs(output_blobs);
 
+    // void *cmd_queue;
+    // compiled_engine->instance_->GetCommandQueue(&cmd_queue);
+
     for (int i = 0; i < input_names.size(); i++) {
         // cat not change trt inner data ptr by set blob handle, set input mat instead
         DeviceType device_type;
@@ -80,9 +83,8 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
             auto input_mat = std::make_shared<Mat>(device_type, NCHW_FLOAT, blob_desc.dims, inputs[i].data_ptr());
             compiled_engine->instance_->SetInputMat(input_mat, MatConvertParam(), input_names[i]);
         }
+        // DumpDeviceBlob(input_blobs[input_names[i]], cmd_queue, "tnn-input-"+input_names[i]);
     }
-
-    // DumpDeviceBlob(input_blobs[input_names[0]], cmd_queue, "tnn-input");
 
     compiled_engine->instance_->Forward();
 
@@ -95,8 +97,8 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         } else {
             outputs[i] = std::move(*tensor_ptr);
         }
+        // DumpDeviceBlob(output_blobs[output_names[i]], cmd_queue, "tnn-output-"+output_names[i]);
     }
-    // DumpDeviceBlob(output_blobs[output_names[0]], cmd_queue, "tnn-output");
 
     return outputs;
 }

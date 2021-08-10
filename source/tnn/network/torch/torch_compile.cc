@@ -17,6 +17,7 @@
 #include <torch/csrc/jit/passes/inliner.h>
 #include <torch/csrc/jit/passes/lower_graph.h>
 #include <torch/csrc/jit/passes/subgraph_rewrite.h>
+#include <torch/csrc/jit/passes/dead_code_elimination.h>
 
 #include "tnn/network/torch/jit_util.h"
 #include "tnn/network/torch/torch_convert.h"
@@ -27,6 +28,46 @@ namespace TNN_NS {
 
 using namespace conversion;
 using namespace torch::jit;
+
+void RemoveUselessOps(torch::jit::Block *block) {
+    for (auto it = block->nodes().begin(), end = block->nodes().end(); it != end; ++it) {
+        for (auto b : it->blocks()) {
+            RemoveUselessOps(b);
+        }
+        std::set<NodeKind> uselessKind = {
+            // prime
+            prim::Print,
+            prim::RaiseException,
+            prim::TimePoint,
+            prim::annotate,
+            // aten
+            aten::warn,
+        };
+        if (uselessKind.count(it->kind())) {
+            for (size_t i = 0; i < it->inputs().size();) {
+                auto input = it->inputs().at(i);
+                // only handling constants bc of potential side effects
+                if (input->uses().size() == 1 && input->node()->kind() == prim::Constant) {
+                    it->removeInput(i);
+                    input->node()->destroy();
+                } else {
+                    ++i;
+                }
+            }
+            it.destroyCurrent();
+        } else if (it->kind() == prim::Loop) {
+            if (it->outputs().empty()) {
+                it.destroyCurrent();
+            }
+        } else if (it->kind() == aten::contiguous || it->kind().toUnqualString() == std::string("data")) {
+            it->output()->replaceAllUsesWith(it->input(0));
+            for (int i = it->inputs().size() - 1; i >= 0; i--) {
+                it->removeInput(i);
+            }
+            it.destroyCurrent();
+        }
+    }
+}
 
 void AddEngineToGraph(std::shared_ptr<torch::jit::script::Module> mod, std::shared_ptr<torch::jit::Graph> &g,
                       c10::intrusive_ptr<runtime::TNNEngine> engine_ptr, std::string engine_id = "",
@@ -151,6 +192,10 @@ void CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap &input
     //     std::cout << input->debugName() << " | " << input->type()->repr_str() << std::endl;
     // }
 
+    // remove useless nodes for partition&conversion
+    RemoveUselessOps(g->block());
+    torch::jit::EliminateDeadCode(g);
+
     auto seg_blocks = partitioning::Partition(g, input_shape);
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
     {
@@ -218,6 +263,9 @@ void CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap &input
             }
         }
     }
+    
+    // remove constant nodes which has been convert to tnn netresource
+    torch::jit::EliminateDeadCode(g);
 
     std::cout << "============================= the final graph ===========================" << std::endl;
     std::cout << low_g->toString() << std::endl;

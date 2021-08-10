@@ -82,9 +82,9 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     CHECK_PARAM_NULL(default_interpreter);
 
     auto params_md5 = default_interpreter->GetParamsMd5();
-    if (params_md5.size() == 0) {
-        test_mode = true;
-    }
+    // if (params_md5.size() == 0) {
+    //     test_mode = true;
+    // }
 
     NetStructure *net_structure = default_interpreter->GetNetStructure();
     NetResource *net_resource   = default_interpreter->GetNetResource();
