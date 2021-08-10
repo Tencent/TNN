@@ -28,13 +28,14 @@ cmake ${TNN_ROOT_PATH} \
     -DTNN_X86_ENABLE=ON \
     -DTNN_CUDA_ENABLE=ON \
     -DTNN_TNNTORCH_ENABLE=ON \
+    -DTNN_PYBIND_ENABLE=ON \
     -DTNN_TENSORRT_ENABLE=ON \
     -DTNN_BENCHMARK_MODE=OFF \
     -DTNN_BUILD_SHARED=ON \
     -DTNN_CONVERTER_ENABLE=OFF 
 
 echo "Building TNN ..."
-# make -j
+make -j4
 
 # if [ -d ${TNN_INSTALL_DIR} ]
 # then 
@@ -48,5 +49,7 @@ echo "Building TNN ..."
 # cp -r ${TNN_ROOT_PATH}/include ${TNN_INSTALL_DIR}/
 # cp libTNN.so* ${TNN_INSTALL_DIR}/lib
 # cp test/TNNTest ${TNN_INSTALL_DIR}/bin
+
+cp ${TNN_ROOT_PATH}/source/pytnn/*.py ${BUILD_DIR}/
 
 echo "Done"
