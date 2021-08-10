@@ -32,10 +32,6 @@ __global__ void gather_nd_kernel(int count, const float* data, const int* indice
 
 Status CudaGatherNDLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Status ret = CudaLayerAcc::Init(context, param, resource, inputs, outputs);
-    if(ret != TNN_OK) {
-        return ret;
-    }
     auto layer_param = dynamic_cast<GatherNDLayerParam*>(param);
     CHECK_PARAM_NULL(layer_param);
     int batch_dims = layer_param->batch_dims;
@@ -44,9 +40,7 @@ Status CudaGatherNDLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         return Status(TNNERR_PARAM_ERR, "GatherNDLayerParam has invalid param batch_dims");
     }
 
-    auto input_dims = (*(inputs.begin()))->GetBlobDesc().dims;
-    CreateTempBuf(input_dims.size() * sizeof(int));
-    return TNN_OK;
+    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
    
 Status CudaGatherNDLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -54,6 +48,11 @@ Status CudaGatherNDLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 }
 
 Status CudaGatherNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (tempbufs_.size() == 0) {
+        auto input_dims = inputs[0]->GetBlobDesc().dims;
+        CreateTempBuf(input_dims.size() * sizeof(int));
+    }
+
     Blob *input_data_blob  = inputs[0];
     Blob *indices_blob  = inputs[1];
     Blob *output_blob = outputs[0];

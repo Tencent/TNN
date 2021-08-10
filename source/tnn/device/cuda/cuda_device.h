@@ -23,6 +23,9 @@ namespace TNN_NS {
 
 class CudaDevice : public AbstractDevice {
 public:
+
+    using AbstractDevice::Allocate;
+
     explicit CudaDevice(DeviceType device_type);
 
     ~CudaDevice();

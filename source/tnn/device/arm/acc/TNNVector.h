@@ -157,9 +157,15 @@ struct TNNVector {
         }
         return dst;
     }
+    // mla_231
     static void mla(TNNVector<T, len>& v1, const TNNVector<T, len>& v2, const TNNVector<T, len>& v3) {
         for (int i = 0; i < len; ++i) {
             v1.value[i] = v1.value[i] + v2.value[i] * v3.value[i];
+        }
+    }
+    static void mla_123(TNNVector<T, len>& v1, const TNNVector<T, len>& v2, const TNNVector<T, len>& v3) {
+        for (int i = 0; i < len; ++i) {
+            v1.value[i] = v3.value[i] + v1.value[i] * v2.value[i];
         }
     }
     static void mls(TNNVector<T, len>& v1, const TNNVector<T, len>& v2, const TNNVector<T, len>& v3) {

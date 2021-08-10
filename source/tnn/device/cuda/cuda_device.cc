@@ -26,7 +26,12 @@ CudaDevice::CudaDevice(DeviceType device_type) : AbstractDevice(device_type) {}
 CudaDevice::~CudaDevice() {}
 
 BlobMemorySizeInfo CudaDevice::Calculate(BlobDesc& desc) {
-    return Calculate1DMemorySize(desc);
+    auto size_info = Calculate1DMemorySize(desc);
+    int size_count = DimsVectorUtils::Count(size_info.dims);
+    if (size_count == 0) {
+        size_info.dims[0] = 1;
+    }
+    return size_info;
 }
 
 Status CudaDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {

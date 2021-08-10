@@ -51,6 +51,10 @@ protected:
     RawBuffer buffer_weight_;
     RawBuffer buffer_bias_;
     RawBuffer buffer_scale_;
+
+    std::function<void(int8_t *, const int8_t *, const int8_t*, const int32_t*,
+                       const float*, long, long)> gemv_func_;
+    bool support_int8_sdot_ = false;
 };
 
 }  // namespace TNN_NS

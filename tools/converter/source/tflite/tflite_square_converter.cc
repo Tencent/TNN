@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tflite_op_converter.h"
+#include "tflite_utils.h"
 
 namespace TNN_CONVERTER {
 
@@ -33,20 +34,35 @@ TNN_NS::Status TFLiteSquareConverter::exec(TNN_NS::NetStructure& net_structure, 
                                            const std::vector<std::unique_ptr<tflite::BufferT>>& tf_lite_model_buffer,
                                            const std::vector<std::unique_ptr<tflite::OperatorCodeT>>& tf_lite_op_set,
                                            bool quantized_model) {
-    ASSERT(tf_lite_operator->inputs.size() == 1);
+    auto* param                = new TNN_NS::PowLayerParam;
+    auto cur_layer             = net_structure.layers.back();
+    cur_layer->param           = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->name                = cur_layer->name;
+    param->type                = cur_layer->type_str;
+    param->quantized           = false;
+    param->scale               = 1.0;
+    param->shift               = 0.0;
+    const auto tf_lite_op_type = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
+    if (tf_lite_op_type == tflite::BuiltinOperator_SQUARE) {
+        param->exponent = 2.0;
+    } else if (tf_lite_op_type == tflite::BuiltinOperator_POW) {
+        ASSERT(tf_lite_operator->inputs.size() == 2);
+        const auto& tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
+        const auto& buffer = tf_lite_model_buffer[tensor->buffer];
+        const auto count   = buffer->data.size() / SizeofTFLiteTensorData(tensor->type);
+        ASSERT(count == 1);
+        param->exponent = reinterpret_cast<float*>(buffer->data.data())[0];
+        cur_layer->inputs.resize(1);
+        cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
+    } else {
+        LOGE("TFLite Convert: do not support operator type");
+        return TNN_NS::TNNERR_MODEL_ERR;
+    }
 
-    auto* param      = new TNN_NS::PowLayerParam;
-    auto cur_layer   = net_structure.layers.back();
-    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
-    param->name      = cur_layer->name;
-    param->type      = cur_layer->type_str;
-    param->quantized = false;
-    param->exponent  = 2.0;
-    param->scale     = 1.0;
-    param->shift     = 0.0;
     return TNN_NS::TNN_CONVERT_OK;
 }
 
 using namespace tflite;
 REGISTER_CONVERTER(Square, BuiltinOperator_SQUARE);
+REGISTER_CONVERTER(Square, BuiltinOperator_POW);
 }  // namespace TNN_CONVERTER

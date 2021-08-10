@@ -91,7 +91,10 @@ Status DumpDeviceBlob(Blob* blob, void* command_queue, std::string fname_prefix)
     } else {
         data_ptr = blob->GetHandle().base;
     }
-    
+    if (data_ptr == nullptr) {
+        LOGD("This blob: %s does not need dump\n", blob_desc.name.c_str());
+        return TNN_OK;
+    }
     char fname[1000];
     snprintf(fname, 1000, "%s-%s.txt", fname_prefix.c_str(), BlobDescToString(blob_desc).c_str());
     FILE* fp = fopen(fname, "wb");

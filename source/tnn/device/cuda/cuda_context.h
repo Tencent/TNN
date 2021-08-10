@@ -60,11 +60,19 @@ public:
     // @brief get cuda stream
     cudaStream_t& GetStream();
 
+    // @brief get workspace
+    void* GetWorkspace();
+
+    // @brief get worksapce size
+    void SetWorkspaceSize(int size);
+
 public:
     cudnnHandle_t cudnn_handle_;
     cublasHandle_t cublas_handle_;
     cudaStream_t stream_;
-    int device_id_;
+    void* workspace_ = nullptr;
+    int workspace_size_ = 0;
+    int device_id_ = 0;
     bool own_stream_ = false;
 };
 

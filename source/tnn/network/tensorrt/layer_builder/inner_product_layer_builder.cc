@@ -113,15 +113,16 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     }
 
     ILayer* layer;
-    //unsqueeze 
-    if (input_tensor->getDimensions().nbDims < 4) {
-        DimsVector unsqueeze_dims = input_blobs_[0]->GetBlobDesc().dims;
-        while(unsqueeze_dims.size() < 4) {
-            unsqueeze_dims.push_back(1);
-        }
-        layer = AddReshapeToNetwork(network, input_tensor, unsqueeze_dims, (layer_name_ + "unsqueeze").c_str());        
-        input_tensor = layer->getOutput(0);
-    }
+
+    Dims in_dims;
+    in_dims.nbDims = 4;
+    in_dims.d[0] = -1;
+    in_dims.d[1] = kernelWeights.count / paramlist->num_output;
+    in_dims.d[2] = 1;
+    in_dims.d[3] = 1;
+    IShuffleLayer* in_reshape_layer = network->addShuffle(*input_tensor);
+    in_reshape_layer->setReshapeDimensions(in_dims);
+    input_tensor = in_reshape_layer->getOutput(0);
 
     //FullyConnected
     layer = network->addFullyConnected(*input_tensor, paramlist->num_output, 
@@ -136,11 +137,15 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         input_tensor = layer->getOutput(0);
     }
 
-    auto output_dims = output_blobs_[0]->GetBlobDesc().dims;
-    //squeeze
-    if(output_dims.size() < 4) {
-        layer = AddReshapeToNetwork(network, input_tensor, output_dims, (layer_name_ + "squeeze").c_str());
+    Dims out_dims;
+    out_dims.nbDims = paramlist->axis + 1;
+    for (int i = 0; i < out_dims.nbDims; i++) {
+        out_dims.d[i] = 0;
     }
+    IShuffleLayer* out_reshape_layer = network->addShuffle(*input_tensor);
+    out_reshape_layer->setReshapeDimensions(out_dims);
+    input_tensor = out_reshape_layer->getOutput(0);
+    layer = out_reshape_layer;
 
     if (int8) {
         float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(

@@ -173,12 +173,12 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
    
    Model source: https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB
 
-   Effect example: Huawei P30, ARM single thread 32.2359ms
+   Effect example: Huawei P40, ARM single thread 32.2359ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_image.jpg" width = "25%" height = " 25%"/>
    
    
-   Example： Huawei P30, NPU rom 100.320.010.022 9.04ms
+   Example： Huawei P40, NPU rom 100.320.010.022 9.04ms
        
    
 <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detecor_image_npu.jpg" width = "25%" height = "25%"/>
@@ -186,12 +186,12 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
 2. Face detection-video
    Model source: https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB
 
-   Effect example: Huawei P30, ARM single thread 122.296ms
+   Effect example: Huawei P40, ARM single thread 122.296ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_stream.jpg" width = "25%" height = " 25%"/>
 
    
-    Example： Huawei P30, NPU rom 100.320.010.022 28ms
+    Example： Huawei P40, NPU rom 100.320.010.022 28ms
    
  <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detector_stream_npu.jpg" width = "25%" height = "25%"/>
    
@@ -199,12 +199,12 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
 
    Model source: https://github.com/forresti/SqueezeNet
 
-   Effect example: Huawei P30, ARM single thread 81.4047ms
+   Effect example: Huawei P40, ARM single thread 81.4047ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_image_classify.jpg" width = "25%" height = "25%"/>
    
    
-   Example： Huawei P30, NPU rom 100.320.010.022 2.48ms
+   Example： Huawei P40, NPU rom 100.320.010.022 2.48ms
    
    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "25%" height = "25%"/>
    

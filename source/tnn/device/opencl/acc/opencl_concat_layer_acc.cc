@@ -14,6 +14,7 @@
 
 #include "tnn/device/opencl/acc/opencl_layer_acc.h"
 #include "tnn/device/opencl/imagebuffer_convertor.h"
+#include "tnn/device/opencl/acc/opencl_reshape_layer_acc.h"
 
 #include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
@@ -31,6 +32,7 @@ public:
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 #if TNN_PROFILE
     virtual double GetBandwidth() override;
 #endif
@@ -40,12 +42,32 @@ private:
     Status ReshapeTwoInputsConcat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     Status ReshapeBufferConcat(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+    // add reshape when the dims > 4
+    Status InitReshapeLayer(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    // calculate the shape in reshape
+    DimsVector CalculateShape(const DimsVector &dims);
+    int CalculateAxis(int axis, int dims_size);
+
 private:
     std::shared_ptr<cl::Buffer> output_buffer_              = nullptr;
     std::vector<std::shared_ptr<cl::Buffer>> input_buffers_ = {};
     int axis_                                               = 1;
     bool do_image_concat_                                   = true;
     ConcatKernelType concat_type_                           = BUFFER_COPY;
+
+    // add reshape when the dims > 4
+    bool need_reshape_                                                          = false;
+    shared_ptr<OpenCLReshapeLayerAcc> output_reshape_layer_acc_                 = nullptr;
+    std::vector<shared_ptr<OpenCLReshapeLayerAcc>> input_reshape_layer_acc_vec_ = {};
+    std::vector<Blob *> concat_inputs_                                          = {};
+    std::vector<Blob *> concat_outputs_                                         = {};
+    std::vector<shared_ptr<Blob>> concat_input_blob_vec_                        = {};
+    std::vector<shared_ptr<cl::Image2D>> concat_input_image_vec_                = {};
+    std::vector<std::shared_ptr<ReshapeLayerParam>> reshape_param_vec_          = {};
+    std::vector<std::vector<Blob *>> input_reshape_inputs_                      = {};
+    std::vector<std::vector<Blob *>> input_reshape_outputs_                     = {};
+    shared_ptr<Blob> concat_output_blob_                                        = nullptr;
+    shared_ptr<cl::Image2D> concat_output_image_                                = nullptr;
 };
 
 bool CheckIsTwoInputs(const size_t input_size, const int axis) {
@@ -64,7 +86,8 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     ConcatLayerParam *concat_param = dynamic_cast<ConcatLayerParam *>(param);
     CHECK_PARAM_NULL(concat_param);
 
-    axis_            = concat_param->axis;
+    axis_            = CalculateAxis(concat_param->axis, outputs[0]->GetBlobDesc().dims.size());
+    need_reshape_    = outputs[0]->GetBlobDesc().dims.size() > 4;
     do_image_concat_ = true;
     if (axis_ == 1) {
         for (size_t i = 0; i < inputs.size() - 1; ++i) {
@@ -95,6 +118,10 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         } else {
             concat_type_ = BUFFER_COPY;
         }
+    }
+
+    if (need_reshape_) {
+        concat_type_     = BUFFER_COPY;
     }
 
     // create kernel
@@ -165,17 +192,74 @@ Status OpenCLConcatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
     CHECK_TNN_OK(ret)
 
+    if (need_reshape_) {
+        ret = InitReshapeLayer(inputs, outputs);
+        CHECK_TNN_OK(ret)
+    }
+
+    auto concat_inputs  = need_reshape_ ? concat_inputs_ : inputs;
+    auto concat_outputs = need_reshape_ ? concat_outputs_ : outputs;
+
+    if (need_reshape_) {
+        const int input_size = input_reshape_layer_acc_vec_.size();
+        for (int i = 0; i < input_size; i++) {
+            if (input_reshape_layer_acc_vec_[i] == nullptr) {
+                return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "reshape layer acc in Concat is null");
+            }
+            ret = input_reshape_layer_acc_vec_[i]->Reshape(input_reshape_inputs_[i], input_reshape_outputs_[i]);
+            CHECK_TNN_OK(ret)
+        }
+    }
 
     if (IMAGE_COPY == concat_type_) {
-        return ReshapeImageConcat(inputs, outputs);
+        ret = ReshapeImageConcat(concat_inputs, concat_outputs);
     } else if (TWO_INPUTS_CHANNEL_4X == concat_type_) {
-        return ReshapeTwoInputsConcat(inputs, outputs);
+        ret = ReshapeTwoInputsConcat(concat_inputs, concat_outputs);
     } else if (TWO_INPUTS_CHANNEL_MOD_123 == concat_type_) {
-        return ReshapeTwoInputsConcat(inputs, outputs);
+        ret = ReshapeTwoInputsConcat(concat_inputs, concat_outputs);
     } else {
         // default BUFFER_COPY
-        return ReshapeBufferConcat(inputs, outputs);
+        ret = ReshapeBufferConcat(concat_inputs, concat_outputs);
     }
+
+    if (need_reshape_) {
+        if (output_reshape_layer_acc_ == nullptr) {
+            return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "reshape layer acc in Concat is null");
+        }
+        ret = output_reshape_layer_acc_->Reshape(concat_outputs_, outputs);
+        CHECK_TNN_OK(ret)
+    }
+
+    return ret;
+}
+
+Status OpenCLConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret          = TNN_OK;
+    auto concat_inputs  = need_reshape_ ? concat_inputs_ : inputs;
+    auto concat_outputs = need_reshape_ ? concat_outputs_ : outputs;
+
+    if (need_reshape_) {
+        const int input_size = input_reshape_layer_acc_vec_.size();
+        for (int i = 0; i < input_size; i++) {
+            if (input_reshape_layer_acc_vec_[i] == nullptr) {
+                return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "reshape layer acc in Concat is null");
+            }
+            ret = input_reshape_layer_acc_vec_[i]->Forward(input_reshape_inputs_[i], input_reshape_outputs_[i]);
+            CHECK_TNN_OK(ret)
+        }
+    }
+
+    ret = OpenCLLayerAcc::Forward(concat_inputs, concat_outputs);
+
+    if (need_reshape_) {
+        if (output_reshape_layer_acc_ == nullptr) {
+            return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "reshape layer acc in Concat is null");
+        }
+        ret = output_reshape_layer_acc_->Forward(concat_outputs, outputs);
+        CHECK_TNN_OK(ret)
+    }
+
+    return ret;
 }
 
 #if TNN_PROFILE
@@ -334,6 +418,161 @@ Status OpenCLConcatLayerAcc::ReshapeTwoInputsConcat(const std::vector<Blob *> &i
     execute_units_[0].ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(output_dims, 1));
     execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
     return TNN_OK;
+}
+
+Status OpenCLConcatLayerAcc::InitReshapeLayer(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret = TNN_OK;
+
+    // create input reshape
+    concat_inputs_.clear();
+    input_reshape_inputs_.clear();
+    input_reshape_outputs_.clear();
+    const int inputs_size = inputs.size();
+    for (int i = 0; i < inputs_size; i++) {
+        auto reshape_layer_acc = std::make_shared<OpenCLReshapeLayerAcc>();
+        if (reshape_layer_acc == nullptr) {
+            LOGE("Create Reshape Layer Acc in Concat failed!\n");
+            return Status(TNNERR_CREATE_LAYER, "Create Reshape Layer Acc in Concat failed!");
+        }
+        input_reshape_layer_acc_vec_.push_back(reshape_layer_acc);
+
+        BlobDesc desc            = inputs[i]->GetBlobDesc();
+        desc.data_format         = DATA_FORMAT_NHC4W4;
+        auto dims                = inputs[i]->GetBlobDesc().dims;
+        auto shape               = CalculateShape(dims);
+        desc.dims                = shape;
+        auto reshape_output_blob = std::make_shared<Blob>(desc);
+        if (reshape_output_blob == nullptr) {
+            LOGE("Create reshape output blob in Concat failed!\n");
+            return Status(TNNERR_CREATE_LAYER, "Create reshape output blob in Concat failed!");
+        }
+        concat_input_blob_vec_.push_back(reshape_output_blob);
+        concat_inputs_.push_back(concat_input_blob_vec_[i].get());
+
+        OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+        int climage_w = UP_DIV(DimsFunctionUtils::GetDim(desc.dims, 1), 4) * DimsFunctionUtils::GetDim(desc.dims, 3);
+        int climage_h = DimsFunctionUtils::GetDim(desc.dims, 0) * DimsFunctionUtils::GetDim(desc.dims, 2);
+        DimsVector imageshape{climage_w, climage_h};
+        cl_channel_type data_type = CL_FLOAT;
+        if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
+            data_type = CL_HALF_FLOAT;
+        cl_int err                = CL_SUCCESS;
+        auto reshape_output_image = std::make_shared<cl::Image2D>(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
+                                                                  cl::ImageFormat(CL_RGBA, data_type), imageshape[0],
+                                                                  imageshape[1], 0, nullptr, &err);
+        if (err != CL_SUCCESS) {
+            CHECK_CL_SUCCESS(err)
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
+        }
+        concat_input_image_vec_.push_back(reshape_output_image);
+
+        BlobHandle blob_handle;
+        blob_handle.base = concat_input_image_vec_[i].get();
+        concat_input_blob_vec_[i]->SetHandle(blob_handle);
+
+        // Init LayerAcc
+        std::shared_ptr<ReshapeLayerParam> reshape_param = std::make_shared<ReshapeLayerParam>();
+        reshape_param->type         = "Reshape";
+        reshape_param->name         = layer_name_ + "_Input_Reshape_" + std::to_string(i);
+        reshape_param->reshape_type = 0;
+        reshape_param->axis         = 0;
+        reshape_param->num_axes     = shape.size();
+        reshape_param->shape        = shape;
+
+        input_reshape_inputs_.push_back({inputs[i]});
+        input_reshape_outputs_.push_back({concat_inputs_[i]});
+        reshape_layer_acc->Init(ocl_context_, reshape_param.get(), nullptr, input_reshape_inputs_[i],
+                                input_reshape_outputs_[i]);
+        reshape_param_vec_.emplace_back(reshape_param);
+    }
+
+    // create output reshape
+    {
+        output_reshape_layer_acc_ = std::make_shared<OpenCLReshapeLayerAcc>();
+        if (output_reshape_layer_acc_ == nullptr) {
+            LOGE("Create Reshape Layer Acc in Concat failed!\n");
+            return Status(TNNERR_CREATE_LAYER, "Create Reshape Layer Acc in Concat failed!");
+        }
+
+        BlobDesc desc                = outputs[0]->GetBlobDesc();
+        desc.data_format             = DATA_FORMAT_NHC4W4;
+        auto shape                   = outputs[0]->GetBlobDesc().dims;
+        desc.dims                    = concat_inputs_[0]->GetBlobDesc().dims;
+        int out_concat_dim_size      = 0;
+        const int concat_inputs_size = concat_inputs_.size();
+        for (int idx = 0; idx < concat_inputs_size; idx++) {
+            out_concat_dim_size += concat_inputs_[idx]->GetBlobDesc().dims[axis_];
+        }
+        desc.dims[axis_] = out_concat_dim_size;
+
+        concat_output_blob_ = std::make_shared<Blob>(desc);
+        if (concat_output_blob_ == nullptr) {
+            LOGE("Create reshape output blob in Concat failed!\n");
+            return Status(TNNERR_CREATE_LAYER, "Create reshape output blob in Concat failed!");
+        }
+        concat_outputs_.push_back(concat_output_blob_.get());
+
+        OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+        int climage_w = UP_DIV(DimsFunctionUtils::GetDim(desc.dims, 1), 4) * DimsFunctionUtils::GetDim(desc.dims, 3);
+        int climage_h = DimsFunctionUtils::GetDim(desc.dims, 0) * DimsFunctionUtils::GetDim(desc.dims, 2);
+        DimsVector imageshape{climage_w, climage_h};
+        cl_channel_type data_type = CL_FLOAT;
+        if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
+            data_type = CL_HALF_FLOAT;
+        cl_int err           = CL_SUCCESS;
+        concat_output_image_ = std::make_shared<cl::Image2D>(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
+                                                             cl::ImageFormat(CL_RGBA, data_type), imageshape[0],
+                                                             imageshape[1], 0, nullptr, &err);
+        if (err != CL_SUCCESS) {
+            CHECK_CL_SUCCESS(err)
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
+        }
+
+        BlobHandle blob_handle;
+        blob_handle.base = concat_output_image_.get();
+        concat_output_blob_->SetHandle(blob_handle);
+
+        // Init LayerAcc
+        std::shared_ptr<ReshapeLayerParam> reshape_param = std::make_shared<ReshapeLayerParam>();
+        reshape_param->type         = "Reshape";
+        reshape_param->name         = layer_name_ + "_Output_Reshape";
+        reshape_param->reshape_type = 0;
+        reshape_param->axis         = 0;
+        reshape_param->num_axes     = shape.size();
+        reshape_param->shape        = shape;
+        output_reshape_layer_acc_->Init(ocl_context_, reshape_param.get(), nullptr, concat_outputs_, outputs);
+        reshape_param_vec_.emplace_back(reshape_param);
+    }
+
+    return ret;
+}
+
+DimsVector OpenCLConcatLayerAcc::CalculateShape(const DimsVector &dims) {
+    ConcatLayerParam *concat_param = dynamic_cast<ConcatLayerParam *>(param_);
+
+    const int axis = concat_param->axis;
+
+    if (axis == 0) {
+        return {DimsFunctionUtils::GetDim(dims, 0), DimsVectorUtils::Count(dims, 1), 1, 1};
+    }
+
+    DimsVector target_dims = {DimsFunctionUtils::GetDim(dims, 0), 1, DimsFunctionUtils::GetDim(dims, axis), 1};
+    if (axis > 1) {
+        target_dims[1] = DimsVectorUtils::Count(dims, 1, axis);
+    }
+    if (axis < dims.size() - 1) {
+        target_dims[3] = DimsVectorUtils::Count(dims, axis + 1);
+    }
+
+    return target_dims;
+}
+
+int OpenCLConcatLayerAcc::CalculateAxis(int axis, int dims_size) {
+    if (dims_size <= 4 || axis == 0) {
+        return axis;
+    }
+
+    return 2;
 }
 
 REGISTER_OPENCL_ACC(Concat, LAYER_CONCAT)

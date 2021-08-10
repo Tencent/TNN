@@ -28,6 +28,7 @@ DECLARE_ARM_ACC(Softmax, LAYER_SOFTMAX);
     auto input        = inputs[0];                                                                                     \
     auto output       = outputs[0];                                                                                    \
     auto dims         = output->GetBlobDesc().dims;                                                                    \
+    axis              = static_cast<int>((axis + dims.size()) % dims.size());                                          \
     auto hw           = DimsVectorUtils::Count(dims, 2);                                                               \
     auto batch        = dims[0];                                                                                       \
     bool packed       = input->GetBlobDesc().data_format != DATA_FORMAT_NCHW;                                          \
