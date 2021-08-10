@@ -535,6 +535,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     FuseLSTM(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseArgMaxOrMin(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHistogram(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    FuseClip(mutable_graph, index_nodes, weights, node_reference, blob_names);
     RemoveConsecutiveReshape(mutable_graph, index_nodes, weights, node_reference, blob_names);
 #ifdef PROCESS_TF
     TransferSplit(mutable_graph, index_nodes, weights, node_reference, blob_names);
