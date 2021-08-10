@@ -442,6 +442,8 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     auto m_trt_network = m_trt_builder->createNetworkV2(networkFlags);
     auto m_trt_config = m_trt_builder->createBuilderConfig();
     auto profile = m_trt_builder->createOptimizationProfile();
+
+    bool is_input_fp16 = false;
     for (auto input : inputs) {
         auto foreign_blob = dynamic_cast<ForeignBlob*>(input.second);
         auto desc = input.second->GetBlobDesc();
@@ -454,6 +456,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         auto nv_dims = ConvertToTRTDynamicDims(max_dims, min_dims);
         nvinfer1::ITensor* in_tensor = m_trt_network->addInput(desc.name.c_str(),
             ConvertToTRTDataType(desc.data_type), nv_dims);
+	is_input_fp16 |= desc.data_type == DATA_TYPE_HALF;
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMIN, min_dims);
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kOPT, opt_dims);
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMAX, max_dims);
@@ -624,6 +627,9 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         for (int i = 0; i < tensor->getDimensions().nbDims; i++) {
             LOGD("shape: %d\n", tensor->getDimensions().d[i]);
         }
+	if (config_.precision == PRECISION_LOW && is_input_fp16) {
+            tensor->setType(nvinfer1::DataType::kHALF);
+	}
         m_trt_network->markOutput(*tensor);
     }
 

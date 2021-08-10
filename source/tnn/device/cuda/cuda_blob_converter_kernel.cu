@@ -26,11 +26,13 @@ inline __device__ unsigned char fp32_to_u8_sat(float in) {
     return (unsigned char)(x);
 }
 
-__global__ void scale_bias_kernel(int size, const float* src, float* dst, float* scale, float* bias, int hw, int channels) {
+template<typename I, typename O>
+__global__ void scale_bias_kernel(int size, const I* src, O* dst, float* scale, float* bias,
+        int hw, int channels) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < size) {
         int c = tid / hw % channels;
-        dst[tid] = src[tid] * scale[c] + bias[c];
+        dst[tid] = convert_float_value<O>(get_float_value<I>(src[tid]) * scale[c] + bias[c]);
     }
 }
 
@@ -162,13 +164,24 @@ void GrayToBlob(int count, const unsigned char *src, float *dst, cudaStream_t st
     }
 }
 
-void ScaleBias(const float* src, float* dst, cudaStream_t stream, float* scale, float* bias, int batch, int channels, int hw) {
+template <typename I, typename O>
+void ScaleBias(const I* src, O* dst, cudaStream_t stream, float* scale, float* bias, int batch,
+        int channels, int hw) {
     int count = batch * channels * hw;
     int grid = (count + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
     if (count > 0 && grid > 0) {
-        scale_bias_kernel<<<grid, THREAD_PER_BLOCK, 0, stream>>>(count, src, dst, scale, bias, hw, channels); 
+        scale_bias_kernel<I, O><<<grid, THREAD_PER_BLOCK, 0, stream>>>(count, src, dst, scale, bias, hw, channels); 
     }
 }
+
+template void ScaleBias<float, float>(const float* src, float* dst, cudaStream_t stream, float* scale,
+    float* bias, int batch, int channels, int hw);
+
+template void ScaleBias<__half, float>(const __half* src, float* dst, cudaStream_t stream, float* scale,
+    float* bias, int batch, int channels, int hw);
+
+template void ScaleBias<float, __half>(const float* src, __half* dst, cudaStream_t stream, float* scale,
+    float* bias, int batch, int channels, int hw);
 
 }  //  namespace TNN_NS
 

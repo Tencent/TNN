@@ -16,6 +16,7 @@
 #define TNN_SOURCE_TNN_DEVICE_CUDA_UTILS_CUDA_BLOB_CONVERTER_KERNEL_CUH_
 
 #include "tnn/core/macro.h"
+#include "tnn/device/cuda/utils.cuh"
 
 namespace TNN_NS {
 
@@ -29,7 +30,9 @@ void BGRToBlob(int batch, int CHW, int HW, const unsigned char *src, float *dst,
 
 void GrayToBlob(int count, const unsigned char *src, float *dst, cudaStream_t stream, float scale, float bias);
 
-void ScaleBias(const float* src, float* dst, cudaStream_t stream, float* scale, float* bias, int batch, int channels, int hw);
+template<typename I, typename O>
+void ScaleBias(const I* src, O* dst, cudaStream_t stream, float* scale, float* bias,
+    int batch, int channels, int hw);
 
 }  //  namespace TNN_NS;
 
