@@ -19,6 +19,14 @@ namespace py = pybind11;
 
 namespace TNN_NS {
 
+void SetTransform(WarpAffineParam* param, std::vector<std::vector<int>> transform) {
+    for(int i = 0; i < 2; ++i) {
+        for(int j = 0; j < 3; ++j) {
+            param->transform[i][j] = transform[i][j];
+        }
+    }	
+}
+
 void InitMatUtilsPy(py::module& m) {
 
     py::enum_<InterpType>(m, "InterpType")
@@ -57,15 +65,13 @@ void InitMatUtilsPy(py::module& m) {
     .def_readwrite("height", &CropParam::height)
     ;
 
-    /*
     py::class_<WarpAffineParam>(m, "WarpAffineParam")
     .def(py::init<>())
-    .def_readwrite("transform", &WarpAffineParam::transform)
+    .def("SetTransform", &SetTransform)
     .def_readwrite("interp_type", &WarpAffineParam::interp_type)
     .def_readwrite("border_type", &WarpAffineParam::border_type)
     .def_readwrite("border_val", &WarpAffineParam::border_val)
     ;
-    */
 
     py::class_<CopyMakeBorderParam>(m, "CopyMakeBorderParam")
     .def(py::init<>())
@@ -83,7 +89,7 @@ void InitMatUtilsPy(py::module& m) {
     .def_static("Crop", &MatUtils::Crop)
     .def_static("CvtColor", &MatUtils::CvtColor)
     .def_static("CopyMakeBorder", &MatUtils::CopyMakeBorder)
-//    .def_static("WarpAffine", &MatUtils::WarpAffine)
+    .def_static("WarpAffine", &MatUtils::WarpAffine)
     ;
 
 }
