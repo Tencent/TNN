@@ -29,18 +29,18 @@ tflite::ActivationFunctionType TFLiteArgMaxOrMinConverter::ActivationType(
 }
 
 TNN_NS::Status TFLiteArgMaxOrMinConverter::exec(
-    tnn::NetStructure &net_structure, tnn::NetResource &net_resource,
+    TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
     const std::unique_ptr<tflite::OperatorT> &tf_lite_operator,
     const std::vector<std::unique_ptr<tflite::TensorT>> &tf_lite_tensors,
     const std::vector<std::unique_ptr<tflite::BufferT>> &tf_lite_model_buffer,
     const std::vector<std::unique_ptr<tflite::OperatorCodeT>> &tf_lite_op_set, bool quantized_model) {
-    auto param          = new TNN_NS::ArgMaxOrMinLayerParam;
-    auto cur_layer      = net_structure.layers.back();
-    cur_layer->param    = std::shared_ptr<TNN_NS::LayerParam>(param);
-    param->name         = cur_layer->name;
-    param->type         = cur_layer->type_str;
-    param->quantized    = false;
-    // tflite alway keep_dims = 0
+    auto param       = new TNN_NS::ArgMaxOrMinLayerParam;
+    auto cur_layer   = net_structure.layers.back();
+    cur_layer->param = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->name      = cur_layer->name;
+    param->type      = cur_layer->type_str;
+    param->quantized = false;
+    // tflite always keep_dims = 0
     param->keep_dims    = 0;
     auto tflite_op_type = tf_lite_op_set[tf_lite_operator->opcode_index]->builtin_code;
     if (tflite_op_type == tflite::BuiltinOperator_ARG_MIN) {
