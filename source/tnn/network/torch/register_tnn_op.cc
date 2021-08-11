@@ -33,14 +33,21 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
     auto input_names  = compiled_engine->input_names;
     auto output_names = compiled_engine->output_names;
     InputShapesMap inputs_shape_map;
+    InputDataTypeMap inputs_data_type_map;
+
     int input_idx = 0;
     for (auto &input : inputs) {
-        inputs_shape_map[input_names[input_idx++]] = util::toDims(input.sizes());
+        inputs_shape_map[input_names[input_idx]] = util::toDims(input.sizes());
+        BlobDesc blob_desc;
+        GetBlobDescFromTensor(blob_desc, inputs[input_idx]);
+        // binding input data type
+        inputs_data_type_map[input_names[input_idx++]] = blob_desc.data_type;
     }
 
     if (!compiled_engine->is_init_) {
         auto interpreter = dynamic_cast<DefaultModelInterpreter *>(compiled_engine->ctx_->get_interpreter().get());
         interpreter->GetNetStructure()->inputs_shape_map = inputs_shape_map;
+        interpreter->GetNetStructure()->input_data_type_map = inputs_data_type_map;
         compiled_engine->instance_->Init(compiled_engine->ctx_->get_interpreter(), inputs_shape_map);
         compiled_engine->is_init_ = true;
 
@@ -70,19 +77,25 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
     // compiled_engine->instance_->GetCommandQueue(&cmd_queue);
 
     for (int i = 0; i < input_names.size(); i++) {
-        // cat not change trt inner data ptr by set blob handle, set input mat instead
+        // set blob handle directly
         DeviceType device_type;
         BlobDesc blob_desc;
         ConvertToDeviceType(device_type, inputs[i].device());
         GetBlobDescFromTensor(blob_desc, inputs[i]);
-        if (scalar_type == at::ScalarType::Half) {
-            auto new_tensor = inputs[i].to(at::ScalarType::Float);
-            auto input_mat = std::make_shared<Mat>(device_type, NCHW_FLOAT, blob_desc.dims, new_tensor.data_ptr());
-            compiled_engine->instance_->SetInputMat(input_mat, MatConvertParam(), input_names[i]);
-        } else {
-            auto input_mat = std::make_shared<Mat>(device_type, NCHW_FLOAT, blob_desc.dims, inputs[i].data_ptr());
-            compiled_engine->instance_->SetInputMat(input_mat, MatConvertParam(), input_names[i]);
-        }
+        BlobHandle handle;
+        handle.base = inputs[i].data_ptr();
+        input_blobs[input_names[i]]->SetHandle(handle);
+        input_blobs[input_names[i]]->SetBlobDesc(blob_desc);
+
+        // if (scalar_type == at::ScalarType::Half) {
+        //     auto new_tensor = inputs[i].to(at::ScalarType::Float);
+        //     auto input_mat = std::make_shared<Mat>(device_type, NCHW_FLOAT, blob_desc.dims, new_tensor.data_ptr());
+        //     compiled_engine->instance_->SetInputMat(input_mat, MatConvertParam(), input_names[i]);
+        // } else {
+        //     auto input_mat = std::make_shared<Mat>(device_type, NCHW_FLOAT, blob_desc.dims, inputs[i].data_ptr());
+        //     compiled_engine->instance_->SetInputMat(input_mat, MatConvertParam(), input_names[i]);
+        // }
+
         // DumpDeviceBlob(input_blobs[input_names[i]], cmd_queue, "tnn-input-"+input_names[i]);
     }
 
@@ -90,13 +103,16 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
 
     std::vector<at::Tensor> outputs(output_names.size());
     for (int i = 0; i < output_names.size(); i++) {
+        // output blob data type is consistent with the input tensor, no need to convert tensor type
         std::shared_ptr<at::Tensor> tensor_ptr;
         CreateTensorByBlob(tensor_ptr, output_blobs[output_names[i]]);
-        if (scalar_type == at::ScalarType::Half) {
-            outputs[i] = std::move(tensor_ptr->to(at::ScalarType::Half));
-        } else {
-            outputs[i] = std::move(*tensor_ptr);
-        }
+        outputs[i] = std::move(*tensor_ptr);
+        // if (scalar_type == at::ScalarType::Half) {
+        //     outputs[i] = std::move(tensor_ptr->to(at::ScalarType::Half));
+        // } else {
+        //     outputs[i] = std::move(*tensor_ptr);
+        // }
+
         // DumpDeviceBlob(output_blobs[output_names[i]], cmd_queue, "tnn-output-"+output_names[i]);
     }
 

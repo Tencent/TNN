@@ -116,10 +116,11 @@ static RawBuffer getValue(const torch::jit::Value* value) {
     ConvertToDataType(data_type, torch_type);
     DimsVector dims;
     if (data_type == DATA_TYPE_HALF) {
-        auto new_tensor = tensor.to(at::ScalarType::Float);
-        auto vec = getValue<float>(new_tensor, dims);
-        auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
-        return RawBuffer(bytes_size, reinterpret_cast<char *>(vec.data()), dims);
+        auto vec = getValue<at::Half>(tensor, dims);
+        auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF);
+        auto buffer = RawBuffer(bytes_size, reinterpret_cast<char *>(vec.data()), dims);
+        buffer.SetDataType(DATA_TYPE_HALF);
+        return buffer;
     } else if (data_type == DATA_TYPE_FLOAT) {
         auto vec = getValue<float>(value, dims);
         auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
