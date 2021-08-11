@@ -57,13 +57,13 @@ TNNTorchNetwork::~TNNTorchNetwork() {
     }
 }
 
-Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
+                             AbstractModelInterpreter *interpreter, InputShapesMap min_inputs_shape,
+                             InputShapesMap max_inputs_shape, bool enable_const_folder) {
+    config_    = net_config;
+    Status ret = TNN_OK;
 
-    config_                                      = net_config;
-    Status ret                                   = TNN_OK;
-
-    if (config_.precision == PRECISION_LOW ) {
+    if (config_.precision == PRECISION_LOW) {
         precision_ = DATA_TYPE_HALF;
     } else {
         precision_ = DATA_TYPE_FLOAT;
