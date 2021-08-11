@@ -28,7 +28,7 @@ namespace TNN_NS {
 #ifndef TNN_USE_NEON
 void GemmInt8UnitN8Naive(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c,
                          long c_stride, const float* scales, long relu, const int8_t* add_input,
-                         const float* add_scale) {
+                         const float* add_scale, const int8_t* relu6_max) {
     union {
         const void* as_void_ptr;
         int8_t* as_int8_ptr;
@@ -45,15 +45,22 @@ void GemmInt8UnitN8Naive(long mr, long nr, long k, const int8_t* a, long a_strid
 
             auto res = acc * scales[n];
             // Conv-Relu-Add
-            if (relu < 0) {
+            if (relu == -1) {
                 res = MAX(0, res);
             }
             if (add_input) {
                 res += add_input[m * c_stride + n] * add_scale[n];
             }
             // Conv-Add-Relu
-            if (relu > 0) {
+            if (relu == 1) {
                 res = MAX(0, res);
+            }
+            // Conv-Add-Relu6
+            else if (relu == 2) {
+                int8_t res_int8 = MIN(float2int8(res), relu6_max[n]);
+                res_int8 = MAX(0, res_int8);
+                c[m * c_stride + n] = res_int8;
+                continue;
             }
             c[m * c_stride + n] = float2int8(res);
         }
@@ -62,9 +69,9 @@ void GemmInt8UnitN8Naive(long mr, long nr, long k, const int8_t* a, long a_strid
 #else
 extern "C" {
 void GemmInt8Unit4x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-                     const float* scales, long, const int8_t* add_input, const float* add_scale);
+                     const float* scales, long, const int8_t* add_input, const float* add_scale, const int8_t* relu6_max);
 void GemmInt8Unit8x8(long mr, long nr, long k, const int8_t* a, long a_stride, const void* w, int8_t* c, long c_stride,
-                     const float* scales, long, const int8_t* add_input, const float* add_scale);
+                     const float* scales, long, const int8_t* add_input, const float* add_scale, const int8_t* relu6_max);
 }
 #endif
 
@@ -90,11 +97,12 @@ static void ComputeQ8GemmTile(const Q8GemmContext* context, long mr_block_start,
 
     auto add_input = context->add_input ? context->add_input + mr_block_start * c_stride + nr_block_start : nullptr;
     auto add_scale = context->add_scale ? context->add_scale + nr_block_start : nullptr;
+    auto relu6_max = context->relu6_max ? context->relu6_max + nr_block_start : nullptr;
 
     gemm_int8_func(mr_block_size, nr_block_size, k, a + (mr_block_start)*a_stride, a_stride,
                    (const void*)((intptr_t)packed_w + nr_block_start * (k_stride * sizeof(int8_t) + sizeof(int32_t))),
                    c + mr_block_start * c_stride + nr_block_start, c_stride, context->scales + nr_block_start,
-                   context->relu, add_input, add_scale);
+                   context->relu, add_input, add_scale, relu6_max);
 }
 
 void ComputeQ8Gemm(const Q8GemmContext* context, int32_t range_k, int32_t range_l, int32_t tile_k, int32_t tile_l) {
@@ -113,7 +121,7 @@ conv int8 fuse with add common micro kernel
 */
 void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
                      const float* scale, const int32_t* bias, long relu, const int8_t* add_input,
-                     const float* add_scale) {
+                     const float* add_scale, const int8_t* relu6_max) {
     for (long w = 0; w < 4; ++w) {
         const auto src_x   = src + w * src_w_step;
         auto dst_x         = dst + w * dst_depth;
@@ -145,16 +153,24 @@ void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long 
         for (long j = 0; j < 4; ++j) {
             auto res = static_cast<float>(dstTemp[j] + bias[j]) * scale[j];
             // Conv-Relu-Add
-            if (relu < 0) {
+            if (relu == -1) {
                 res = MAX(0, res);
             }
             if (add_input_x) {
                 res += add_input_x[j] * add_scale[j];
             }
             // Conv-Add-Relu
-            if (relu > 0) {
+            if (relu == 1) {
                 res = MAX(0, res);
             }
+            // Conv-Add-Relu6
+            else if (relu == 2) {
+                int8_t res_int8 = MIN(float2int8(res), relu6_max[j]);
+                res_int8 = MAX(0, res_int8);
+                dst_x[j] = res_int8;
+                continue;
+            }
+
             dst_x[j] = float2int8(res);
         }
     }
@@ -392,27 +408,33 @@ void Int8ToFloat(float* dst, const int8_t* src, const float* scale, long batch, 
     for (long n = 0; n < batch; n++) {
         float* dst_c        = dst + n * c_4 * hw;
         const int8_t* src_c = src + n * c_4 * hw;
-        OMP_PARALLEL_FOR_GUIDED_
-        for (long cnt = 0; cnt < hw; cnt++) {
-            long c = 0;
+
+        long c = 0;
 #ifdef TNN_USE_NEON
-            for (; c < channel - 4; c += 8) {
-                float32x4_t scale_neon0 = vld1q_f32(scale + c);
-                float32x4_t scale_neon1 = vld1q_f32(scale + c + 4);
-                int8x8_t val            = vld1_s8(src_c + cnt * c_4 + c);
+        for (; c < channel - 4; c += 8) {
+            auto dst_c_0 = dst_c + c * hw;
+            auto dst_c_1 = dst_c_0 + 4 * hw;
+            auto src_c_0 = src_c + c;
+
+            float32x4_t scale_neon0 = vld1q_f32(scale + c);
+            float32x4_t scale_neon1 = vld1q_f32(scale + c + 4);
+
+            for (long cnt = 0; cnt < hw; cnt++) {
+                int8x8_t val            = vld1_s8(src_c_0 + cnt * c_4);
                 int16x8_t val_s16       = vmovl_s8(val);
                 float32x4_t f32_0       = vcvtq_f32_s32(vmovl_s16(vget_low_s16(val_s16)));
                 float32x4_t f32_1       = vcvtq_f32_s32(VMOVL_HIGH_S16_T(val_s16));
                 f32_0                   = vmulq_f32(f32_0, scale_neon0);
                 f32_1                   = vmulq_f32(f32_1, scale_neon1);
-                vst1q_f32(dst_c + cnt * 4 + c * hw, f32_0);
-                vst1q_f32(dst_c + cnt * 4 + (c + 4) * hw, f32_1);
+                vst1q_f32(dst_c_0 + cnt * 4, f32_0);
+                vst1q_f32(dst_c_1 + cnt * 4, f32_1);
             }
+        }
 #endif
-            for (; c < channel; c++) {
-                // nchw4 to nhwc4
-                long ci                           = c % 4;
-                long co                           = c / 4;
+        for (; c < channel; c++) {
+            long ci = c % 4;
+            long co = c / 4;
+            for (long cnt = 0; cnt < hw; cnt++) {
                 dst_c[co * hw * 4 + cnt * 4 + ci] = static_cast<float>(src_c[cnt * c_4 + c]) * scale[c];
             }
         }
@@ -428,27 +450,30 @@ void FloatToInt8(int8_t* dst, const float* src, const float* scale, long batch, 
     for (long n = 0; n < batch; n++) {
         int8_t* dst_c      = dst + n * c_4 * hw;
         const float* src_c = src + n * c_4 * hw;
-        OMP_PARALLEL_FOR_GUIDED_
-        for (long cnt = 0; cnt < hw; cnt++) {
-            // nhwc4 to nchw4
-            long idx = 0;
-#ifdef TNN_USE_NEON
-            idx = channel - channel % 8;
 
-            for (long c = 0; c < idx; c += 8) {
-                float32x4_t scale_neon0 = vld1q_f32(scale + c);
-                float32x4_t scale_neon1 = vld1q_f32(scale + c + 4);
-                float32x4_t val0        = vmulq_f32(vld1q_f32(src_c + c * hw + cnt * 4), scale_neon0);
-                float32x4_t val1        = vmulq_f32(vld1q_f32(src_c + (c + 4) * hw + cnt * 4), scale_neon1);
-                int16x4_t s16_0         = vqmovn_s32(VCVTAQ_S32_F32(val0));
-                int16x8_t s16           = VQMOVN_HIGH_S32_T(s16_0, VCVTAQ_S32_F32(val1));
-                vst1_s8(dst_c + cnt * c_4 + c, vqmovn_s16(s16));
+        long c = 0;
+#ifdef TNN_USE_NEON
+        for (; c < channel - 4; c += 8) {
+            float32x4_t scale_neon0 = vld1q_f32(scale + c);
+            float32x4_t scale_neon1 = vld1q_f32(scale + c + 4);
+
+            auto dst_c_0 = dst_c + c;
+            auto src_c_0 = src_c + c * hw;
+            auto src_c_1 = src_c_0 + 4 * hw;
+            for (long cnt = 0; cnt < hw; cnt++) {
+                float32x4_t val0 = vmulq_f32(vld1q_f32(src_c_0 + cnt * 4), scale_neon0);
+                float32x4_t val1 = vmulq_f32(vld1q_f32(src_c_1 + cnt * 4), scale_neon1);
+                int16x4_t s16_0  = vqmovn_s32(VCVTAQ_S32_F32(val0));
+                int16x8_t s16    = VQMOVN_HIGH_S32_T(s16_0, VCVTAQ_S32_F32(val1));
+                vst1_s8(dst_c_0 + cnt * c_4, vqmovn_s16(s16));
             }
+        }
 #endif
-            for (; idx < channel; idx++) {
-                long ci                = idx % 4;
-                long co                = idx / 4;
-                dst_c[cnt * c_4 + idx] = float2int8(src_c[co * hw * 4 + cnt * 4 + ci] * scale[idx]);
+        for (; c < channel; c++) {
+            long ci = c % 4;
+            long co = c / 4;
+            for (long cnt = 0; cnt < hw; cnt++) {
+                dst_c[cnt * c_4 + c] = float2int8(src_c[co * hw * 4 + cnt * 4 + ci] * scale[c]);
             }
         }
     }
@@ -461,7 +486,7 @@ assemble kernel used int gemm int8 func
 extern "C" {
 void GemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
                      const float* scale, const int32_t* bias, long relu, const int8_t* add_input,
-                     const float* add_scale);
+                     const float* add_scale, const int8_t* relu6_max);
 }
 #endif
 
@@ -470,7 +495,7 @@ gemm int8 fuse with add func used in linux debug mode
 */
 void GemmInt8(int8_t* dst, const int8_t* src, int8_t* work_space, const int8_t* weight, const int32_t* bias,
               const float* scale, long src_depth_d8, long src_w_step, long dst_depth, long relu,
-              const int8_t* add_input, const float* add_scale) {
+              const int8_t* add_input, const float* add_scale, const int8_t* relu6_max) {
     const long src_depth_d16 = UP_DIV(src_depth_d8, 2);
 #if !defined(__aarch64__) && defined(TNN_USE_NEON)
     PackLineV7(src_depth_d8 * 8, reinterpret_cast<const int32_t*>(src), reinterpret_cast<int32_t*>(work_space));
@@ -478,12 +503,15 @@ void GemmInt8(int8_t* dst, const int8_t* src, int8_t* work_space, const int8_t* 
 #endif
     for (long j = 0; j < dst_depth; j += 4) {
         GemmInt8Unit4x4(src, weight, dst, src_w_step, dst_depth, src_depth_d8, scale + j, bias + j, relu, add_input,
-                        add_scale);
+                        add_scale, relu6_max);
         dst += 4;
         weight += 4 * src_depth_d16 * 16;
         if (add_input) {
             add_input += 4;
             add_scale += 4;
+        }
+        if (relu6_max) {
+            relu6_max += 4;
         }
     }
 }
@@ -500,28 +528,27 @@ inline int16x8x2_t Load16x8x2(const int8_t* src) {
 /*
 gemm int8 func, used in conv int8 common(img2col + gemm)
 */
-void GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, const float* scale, long ic_r8,
+void GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias, const float* scale, long ic_r4,
               long oc_r4) {
 #ifdef TNN_USE_NEON
-    int8x8_t s8zero = vdup_n_s8(0);
     OMP_PARALLEL_FOR_
     for (long dc = 0; dc < oc_r4; dc += 4) {
         int32x4_t acc0 = vdupq_n_s32(0);
         int32x4_t acc1 = vdupq_n_s32(0);
         int32x4_t acc2 = vdupq_n_s32(0);
         int32x4_t acc3 = vdupq_n_s32(0);
-        auto weight_o  = weight + dc * ic_r8;
+        auto weight_o  = weight + dc * ic_r4;
         long c         = 0;
-        for (; c < ic_r8 - 8; c += 16) {
+        for (; c < ic_r4 - 15; c += 16) {
             int16x8x2_t a0 = Load16x8x2(src + c);
-            int16x8x2_t b0 = Load16x8x2(weight_o + 0 * ic_r8 + c);
-            __builtin_prefetch(weight_o + 0 * ic_r8 + c + 256);
-            int16x8x2_t b1 = Load16x8x2(weight_o + 1 * ic_r8 + c);
-            __builtin_prefetch(weight_o + 1 * ic_r8 + c + 256);
-            int16x8x2_t b2 = Load16x8x2(weight_o + 2 * ic_r8 + c);
-            __builtin_prefetch(weight_o + 2 * ic_r8 + c + 256);
-            int16x8x2_t b3 = Load16x8x2(weight_o + 3 * ic_r8 + c);
-            __builtin_prefetch(weight_o + 3 * ic_r8 + c + 256);
+            int16x8x2_t b0 = Load16x8x2(weight_o + 0 * ic_r4 + c);
+            __builtin_prefetch(weight_o + 0 * ic_r4 + c + 256);
+            int16x8x2_t b1 = Load16x8x2(weight_o + 1 * ic_r4 + c);
+            __builtin_prefetch(weight_o + 1 * ic_r4 + c + 256);
+            int16x8x2_t b2 = Load16x8x2(weight_o + 2 * ic_r4 + c);
+            __builtin_prefetch(weight_o + 2 * ic_r4 + c + 256);
+            int16x8x2_t b3 = Load16x8x2(weight_o + 3 * ic_r4 + c);
+            __builtin_prefetch(weight_o + 3 * ic_r4 + c + 256);
             acc0 = vmlal_s16(acc0, vget_low_s16(a0.val[0]), vget_low_s16(b0.val[0]));
             acc1 = vmlal_s16(acc1, vget_low_s16(a0.val[0]), vget_low_s16(b1.val[0]));
             acc2 = vmlal_s16(acc2, vget_low_s16(a0.val[0]), vget_low_s16(b2.val[0]));
@@ -543,12 +570,12 @@ void GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_
             acc3 = vmlal_s16(acc3, vget_high_s16(a0.val[1]), vget_high_s16(b3.val[1]));
         }
 
-        for (; c < ic_r8; c += 8) {
+        for (; c < ic_r4 - 7; c += 8) {
             int16x8_t a  = vmovl_s8(vld1_s8(src + c));
-            int16x8_t b0 = vmovl_s8(vld1_s8(weight_o + 0 * ic_r8 + c));
-            int16x8_t b1 = vmovl_s8(vld1_s8(weight_o + 1 * ic_r8 + c));
-            int16x8_t b2 = vmovl_s8(vld1_s8(weight_o + 2 * ic_r8 + c));
-            int16x8_t b3 = vmovl_s8(vld1_s8(weight_o + 3 * ic_r8 + c));
+            int16x8_t b0 = vmovl_s8(vld1_s8(weight_o + 0 * ic_r4 + c));
+            int16x8_t b1 = vmovl_s8(vld1_s8(weight_o + 1 * ic_r4 + c));
+            int16x8_t b2 = vmovl_s8(vld1_s8(weight_o + 2 * ic_r4 + c));
+            int16x8_t b3 = vmovl_s8(vld1_s8(weight_o + 3 * ic_r4 + c));
             acc0         = vmlal_s16(acc0, vget_low_s16(a), vget_low_s16(b0));
             acc1         = vmlal_s16(acc1, vget_low_s16(a), vget_low_s16(b1));
             acc2         = vmlal_s16(acc2, vget_low_s16(a), vget_low_s16(b2));
@@ -557,6 +584,28 @@ void GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_
             acc1         = vmlal_s16(acc1, vget_high_s16(a), vget_high_s16(b1));
             acc2         = vmlal_s16(acc2, vget_high_s16(a), vget_high_s16(b2));
             acc3         = vmlal_s16(acc3, vget_high_s16(a), vget_high_s16(b3));
+        }
+
+        for (; c < ic_r4; c += 4) {
+            int32x2_t a_i8x4;
+            int32x2_t b0_i8x4;
+            int32x2_t b1_i8x4;
+            int32x2_t b2_i8x4;
+            int32x2_t b3_i8x4;
+            a_i8x4       = vld1_lane_s32((int32_t*)(src + c), a_i8x4, 0);
+            b0_i8x4      = vld1_lane_s32((int32_t*)(weight_o + 0 * ic_r4 + c), b0_i8x4, 0);
+            b1_i8x4      = vld1_lane_s32((int32_t*)(weight_o + 1 * ic_r4 + c), b1_i8x4, 0);
+            b2_i8x4      = vld1_lane_s32((int32_t*)(weight_o + 2 * ic_r4 + c), b2_i8x4, 0);
+            b3_i8x4      = vld1_lane_s32((int32_t*)(weight_o + 3 * ic_r4 + c), b3_i8x4, 0);
+            int16x8_t a  = vmovl_s8(vreinterpret_s8_s32(a_i8x4));
+            int16x8_t b0 = vmovl_s8(vreinterpret_s8_s32(b0_i8x4));
+            int16x8_t b1 = vmovl_s8(vreinterpret_s8_s32(b1_i8x4));
+            int16x8_t b2 = vmovl_s8(vreinterpret_s8_s32(b2_i8x4));
+            int16x8_t b3 = vmovl_s8(vreinterpret_s8_s32(b3_i8x4));
+            acc0         = vmlal_s16(acc0, vget_low_s16(a), vget_low_s16(b0));
+            acc1         = vmlal_s16(acc1, vget_low_s16(a), vget_low_s16(b1));
+            acc2         = vmlal_s16(acc2, vget_low_s16(a), vget_low_s16(b2));
+            acc3         = vmlal_s16(acc3, vget_low_s16(a), vget_low_s16(b3));
         }
         acc0                  = VPADDQ_S32(acc0, acc1);
         acc2                  = VPADDQ_S32(acc2, acc3);
@@ -568,8 +617,8 @@ void GemvInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_
 #else
     for (long dc = 0; dc < oc_r4; dc++) {
         int32_t acc = bias[dc];
-        for (long c = 0; c < ic_r8; c++) {
-            acc += src[c] * weight[dc * ic_r8 + c];
+        for (long c = 0; c < ic_r4; c++) {
+            acc += src[c] * weight[dc * ic_r4 + c];
         }
         dst[dc] = float2int8(acc * scale[dc]);
     }
@@ -687,12 +736,36 @@ convdw 3x3 int8 func
 */
 #ifdef __aarch64__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, 
+                         const float* scale_z, long src_y_step, long dst_depth, long width);
+#ifdef __cplusplus
+}
+#endif
+
+#else  // __aarch64__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long src_y_step,
-                           long src_w_step, long dst_depth, const float* scale_z, long dx, long dc) {
+                           long src_w_step, long dst_depth, const float* scale_z, long dx, long dc);
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // __aarch64__
+
+void DepthwiseI8K5S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z,
+                           long src_y_step, long src_w_step, long dst_depth, const float* scale_z,
+                           long dx, long dc) {
     auto dst_x       = dst + dx * dst_depth + dc;
     const auto src_z = src + dx * src_w_step + dc;
     int32x4_t acc[4][2];
-    int16x8_t a[6], b[3];
+    int16x8_t a[8], b[5];
     acc[0][0] = vld1q_s32(bias_z + dc);
     acc[0][1] = vld1q_s32(bias_z + dc + 4);
     acc[1][0] = acc[0][0];
@@ -702,20 +775,26 @@ void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight,
     acc[3][0] = acc[0][0];
     acc[3][1] = acc[0][1];
 
-    for (long fy = 0; fy < 3; ++fy) {
+    for (long fy = 0; fy < 5; ++fy) {
         const auto src_y    = src_z + fy * src_y_step;
-        const auto weight_y = weight + fy * 3 * dst_depth + dc;
+        const auto weight_y = weight + fy * 5 * dst_depth + dc;
         // unroll loops
         a[0] = vmovl_s8(vld1_s8(src_y + 0 * dst_depth));
-        b[0] = vmovl_s8(vld1_s8(weight_y + 0 * dst_depth));
         a[1] = vmovl_s8(vld1_s8(src_y + 1 * dst_depth));
-        b[1] = vmovl_s8(vld1_s8(weight_y + 1 * dst_depth));
         a[2] = vmovl_s8(vld1_s8(src_y + 2 * dst_depth));
-        b[2] = vmovl_s8(vld1_s8(weight_y + 2 * dst_depth));
         a[3] = vmovl_s8(vld1_s8(src_y + 3 * dst_depth));
         a[4] = vmovl_s8(vld1_s8(src_y + 4 * dst_depth));
         a[5] = vmovl_s8(vld1_s8(src_y + 5 * dst_depth));
-        for (long fx = 0; fx < 3; fx++) {
+        a[6] = vmovl_s8(vld1_s8(src_y + 6 * dst_depth));
+        a[7] = vmovl_s8(vld1_s8(src_y + 7 * dst_depth));
+
+        b[0] = vmovl_s8(vld1_s8(weight_y + 0 * dst_depth));
+        b[1] = vmovl_s8(vld1_s8(weight_y + 1 * dst_depth));
+        b[2] = vmovl_s8(vld1_s8(weight_y + 2 * dst_depth));
+        b[3] = vmovl_s8(vld1_s8(weight_y + 3 * dst_depth));
+        b[4] = vmovl_s8(vld1_s8(weight_y + 4 * dst_depth));
+
+        for (long fx = 0; fx < 5; fx++) {
             acc[0][0] = vmlal_s16(acc[0][0], vget_low_s16(a[fx + 0]), vget_low_s16(b[fx]));
             acc[0][1] = vmlal_s16(acc[0][1], vget_high_s16(a[fx + 0]), vget_high_s16(b[fx]));
             acc[1][0] = vmlal_s16(acc[1][0], vget_low_s16(a[fx + 1]), vget_low_s16(b[fx]));
@@ -734,22 +813,9 @@ void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight,
     }
 }
 
-#else  // __aarch64__
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void DepthwiseI8K3S1Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long src_y_step,
-                           long src_w_step, long dst_depth, const float* scale_z, long dx, long dc);
-#ifdef __cplusplus
-}
-#endif
-
-#endif  // __aarch64__
-
-void DepthwiseI8K3Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long src_y_step,
-                         long src_w_step, long dst_depth, const float* scale_z, long dx, long dc) {
+void DepthwiseI8K3Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z,
+                         long src_y_step, long src_w_step, long dst_depth, const float* scale_z,
+                         long dx, long dc) {
     auto dst_x       = dst + dx * dst_depth + dc;
     const auto src_z = src + dx * src_w_step + dc;
     int32x4_t acc0   = vld1q_s32(bias_z + dc);
@@ -779,12 +845,68 @@ void DepthwiseI8K3Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, c
     vst1_s8(dst_x, acc_s8);
 }
 
+void DepthwiseI8K5Kernel(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z,
+                         long src_y_step, long src_w_step, long dst_depth, const float* scale_z,
+                         long dx, long dc) {
+    auto dst_x       = dst + dx * dst_depth + dc;
+    const auto src_z = src + dx * src_w_step + dc;
+    int32x4_t acc0   = vld1q_s32(bias_z + dc);
+    int32x4_t acc1   = vld1q_s32(bias_z + dc + 4);
+
+    for (long fy = 0; fy < 5; ++fy) {
+        const auto src_y    = src_z + fy * src_y_step;
+        const auto weight_y = weight + fy * 5 * dst_depth + dc;
+        int16x8_t a[5], b[5];
+        a[0] = vmovl_s8(vld1_s8(src_y + 0 * dst_depth));
+        a[1] = vmovl_s8(vld1_s8(src_y + 1 * dst_depth));
+        a[2] = vmovl_s8(vld1_s8(src_y + 2 * dst_depth));
+        a[3] = vmovl_s8(vld1_s8(src_y + 3 * dst_depth));
+        a[4] = vmovl_s8(vld1_s8(src_y + 4 * dst_depth));
+
+        b[0] = vmovl_s8(vld1_s8(weight_y + 0 * dst_depth));
+        b[1] = vmovl_s8(vld1_s8(weight_y + 1 * dst_depth));
+        b[2] = vmovl_s8(vld1_s8(weight_y + 2 * dst_depth));
+        b[3] = vmovl_s8(vld1_s8(weight_y + 3 * dst_depth));
+        b[4] = vmovl_s8(vld1_s8(weight_y + 4 * dst_depth));
+
+        acc0 = vmlal_s16(acc0, vget_low_s16(a[0]), vget_low_s16(b[0]));
+        acc1 = vmlal_s16(acc1, vget_high_s16(a[0]), vget_high_s16(b[0]));
+        acc0 = vmlal_s16(acc0, vget_low_s16(a[1]), vget_low_s16(b[1]));
+        acc1 = vmlal_s16(acc1, vget_high_s16(a[1]), vget_high_s16(b[1]));
+        acc0 = vmlal_s16(acc0, vget_low_s16(a[2]), vget_low_s16(b[2]));
+        acc1 = vmlal_s16(acc1, vget_high_s16(a[2]), vget_high_s16(b[2]));
+        acc0 = vmlal_s16(acc0, vget_low_s16(a[3]), vget_low_s16(b[3]));
+        acc1 = vmlal_s16(acc1, vget_high_s16(a[3]), vget_high_s16(b[3]));
+        acc0 = vmlal_s16(acc0, vget_low_s16(a[4]), vget_low_s16(b[4]));
+        acc1 = vmlal_s16(acc1, vget_high_s16(a[4]), vget_high_s16(b[4]));
+    }
+    float32x4_t scale0 = vld1q_f32(scale_z + dc);
+    float32x4_t scale1 = vld1q_f32(scale_z + dc + 4);
+
+    int8x8_t acc_s8 = Float4x2ScaleTos8(vcvtq_f32_s32(acc0), vcvtq_f32_s32(acc1), scale0, scale1);
+    vst1_s8(dst_x, acc_s8);
+}
+
 void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
                    long dilate_y_step, long dialte_x_step, long src_w_step, long dst_depth, long fw, long fh,
                    const float* scale_z) {
     long dx = 0;
     // todo:3x8 for arm v7 16regs
     // stride == 1, fully use arm registers
+#ifdef __aarch64__
+    if (src_w_step == dst_depth) {
+        auto width_align4 = width / 4 * 4;
+        long dc = 0;
+        for (; dc < dst_depth - 7; dc += 8) {
+            DepthwiseI8K3S1Kernel(dst + dc, src + dc, weight + dc, bias_z + dc, scale_z + dc, dilate_y_step, dst_depth, width_align4);
+        }
+        if (dc < dst_depth) {
+            dc = dst_depth - 8;
+            DepthwiseI8K3S1Kernel(dst + dc, src + dc, weight + dc, bias_z + dc, scale_z + dc, dilate_y_step, dst_depth, width_align4);
+        }
+        dx = width_align4;
+    }
+#else
     if (src_w_step == dst_depth) {
         for (dx = 0; dx < width - 3; dx += 4) {
             long dc = 0;
@@ -798,6 +920,7 @@ void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const i
             }
         }
     }
+#endif
 
     // general k3 process, calc left dx
     for (; dx < width; dx++) {
@@ -809,6 +932,44 @@ void DepthwiseI8K3(int8_t* dst, const int8_t* src, const int8_t* weight, const i
         if (dc < dst_depth) {
             dc = dst_depth - 8;
             DepthwiseI8K3Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z, dx, dc);
+        }
+    }
+}
+
+void DepthwiseI8K5(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_t* bias_z, long width,
+                   long dilate_y_step, long dialte_x_step, long src_w_step, long dst_depth, long fw, long fh,
+                   const float* scale_z) {
+    long dx = 0;
+
+    // stride == 1, fully use arm registers
+    if (src_w_step == dst_depth) {
+        for (dx = 0; dx < width - 3; dx += 4) {
+            long dc = 0;
+            for (; dc < dst_depth - 7; dc += 8) {
+                DepthwiseI8K5S1Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth,
+                                      scale_z, dx, dc);
+            }
+
+            if (dc < dst_depth) {
+                dc = dst_depth - 8;
+                DepthwiseI8K5S1Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth,
+                                      scale_z, dx, dc);
+            }
+        }
+    }
+
+    // general k3 process, calc left dx
+    for (; dx < width; dx++) {
+        long dc = 0;
+        for (; dc < dst_depth - 7; dc += 8) {
+            DepthwiseI8K5Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z,
+                                dx, dc);
+        }
+
+        if (dc < dst_depth) {
+            dc = dst_depth - 8;
+            DepthwiseI8K5Kernel(dst, src, weight, bias_z, dilate_y_step, src_w_step, dst_depth, scale_z,
+                                dx, dc);
         }
     }
 }
@@ -827,6 +988,33 @@ void ReluInt8(int8_t* dst, const int8_t* src, long len) {
 #endif
     for (; idx < len; idx++) {
         dst[idx] = MAX(0, src[idx]);
+    }
+}
+
+void Relu6Int8(int8_t* dst, const int8_t* src, const int8_t* relu6_max, long width, long dst_depth) {
+    long idx = 0;
+
+#ifdef TNN_USE_NEON
+    int8x8_t vzero = vdup_n_s8(0);
+#endif
+
+    OMP_PARALLEL_FOR_GUIDED_
+    for (long dx = 0; dx < width; dx++) {
+        auto src_dx = src + dx * dst_depth;
+        auto dst_dx = dst + dx * dst_depth;
+
+        long dc = 0;
+#ifdef TNN_USE_NEON
+        for (; dc + 7 < dst_depth; dc += 8) {
+            int8x8_t src_vec   = vld1_s8(src_dx + dc);
+            int8x8_t relu6_vec = vld1_s8(relu6_max + dc);
+            vst1_s8(dst_dx + dc, vmax_s8(vzero, vmin_s8(src_vec, relu6_vec)));
+        }
+#endif
+        for (; dc < dst_depth; dc++) {
+            int8_t tmp = MIN(src_dx[dc], relu6_max[dc]);
+            dst_dx[dc] = MAX(0, tmp);
+        }
     }
 }
 

@@ -19,22 +19,26 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(CbamFusedReduce, LAYER_CBAM_FUSED_REDUCE);
 
 bool CbamFusedReduceTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return nbInputs == 1 && nbOutputs == 1 && pos < nbInputs + nbOutputs &&
         inOut[pos].format == nvinfer1::TensorFormat::kLINEAR &&
         (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF);
 }
 
-const char* CbamFusedReduceTRTPluginLayerBuilder::getPluginType() const {
+Status CbamFusedReduceTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* CbamFusedReduceTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "CbamFusedReduce";
 }
 
 nvinfer1::DataType CbamFusedReduceTRTPluginLayerBuilder::getOutputDataType(int index,
-        const nvinfer1::DataType* inputTypes, int nbInputs) const {
+        const nvinfer1::DataType* inputTypes, int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* CbamFusedReduceTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* CbamFusedReduceTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
 
@@ -42,13 +46,13 @@ ILayer* CbamFusedReduceTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* n
 }
 
 DimsExprs CbamFusedReduceTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DimsExprs output(inputs[0]);
     output.d[1] = exprBuilder.constant(2);
     return output;
 }
 
-const char* CbamFusedReducePluginCreator::getPluginName() const {
+const char* CbamFusedReducePluginCreator::getPluginName() const noexcept {
     return "CbamFusedReduce";
 }
 

@@ -76,17 +76,17 @@ Status ArmMatMulLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
     T *matrix_b;
 
     if (inputs.size() == 2) {
-        matrix_a = static_cast<T *>(inputs[0]->GetHandle().base);
-        matrix_b = static_cast<T *>(inputs[1]->GetHandle().base);
+        matrix_a = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+        matrix_b = reinterpret_cast<T *>(GetBlobHandlePtr(inputs[1]->GetHandle()));
     } else {
         auto weight = resource->weight.force_to<T *>();
         if (buffer_weight_.force_to<T *>()) {
             weight = buffer_weight_.force_to<T *>();
         }
-        matrix_a    = param->weight_position == 0 ? weight : static_cast<T *>(inputs[0]->GetHandle().base);
-        matrix_b    = param->weight_position == 1 ? weight : static_cast<T *>(inputs[0]->GetHandle().base);
+        matrix_a    = param->weight_position == 0 ? weight : reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+        matrix_b    = param->weight_position == 1 ? weight : reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
     }
-    auto matrix_c = static_cast<T *>(outputs[0]->GetHandle().base);
+    auto matrix_c = reinterpret_cast<T *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
 
     int N = matrix_b_dims[matrix_b_dims.size() - 1];
     int K = matrix_a_dims[matrix_a_dims.size() - 1];

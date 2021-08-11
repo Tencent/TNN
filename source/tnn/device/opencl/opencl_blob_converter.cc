@@ -23,7 +23,7 @@
 namespace TNN_NS {
 
 
-//default contructor will create convert buffer
+//default constructor will create convert buffer
 OpenCLBlobConverterAcc::OpenCLBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {
     BlobMemorySizeInfo size_info;
     if (blob->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
@@ -233,7 +233,7 @@ bool OpenCLBlobConverterAcc::NeedDoScaleBias(MatConvertParam &param) {
     return false;
 }
 
-Status OpenCLBlobConverterAcc::GetConvertToMatKernelName(Mat &mat, std::string& kernel_name) {
+Status OpenCLBlobConverterAcc::GetConvertToMatKernelName(Mat &mat, std::string& kernel_name, std::string& program_name) {
     int dims_size = blob_->GetBlobDesc().dims.size();
     if (blob_->GetBlobDesc().data_type == DATA_TYPE_INT32) {
         if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4 && dims_size <= 4) {
@@ -264,6 +264,7 @@ Status OpenCLBlobConverterAcc::GetConvertToMatKernelName(Mat &mat, std::string& 
             }
         } else if (dims_size == 5) {
             if (NCHW_FLOAT == mat.GetMatType()) {
+                program_name = "blob_5d_convert_to_mat";
                 kernel_name = "Blob5DConvertToNCHW";
             } else {
                 char error_str[128];
@@ -273,6 +274,7 @@ Status OpenCLBlobConverterAcc::GetConvertToMatKernelName(Mat &mat, std::string& 
             }
         } else if (dims_size == 6) {
             if (NCHW_FLOAT == mat.GetMatType()) {
+                program_name = "blob_6d_convert_to_mat";
                 kernel_name = "Blob6DConvertToNCHW";
             } else {
                 char error_str[128];
@@ -304,7 +306,7 @@ Status OpenCLBlobConverterAcc::GetConvertToMatKernelName(Mat &mat, std::string& 
     return TNN_OK;
 }
 
-Status OpenCLBlobConverterAcc::GetConvertFromMatKernelName(Mat &mat, std::string& kernel_name) {
+Status OpenCLBlobConverterAcc::GetConvertFromMatKernelName(Mat &mat, std::string& kernel_name, std::string& program_name) {
     int dims_size = blob_->GetBlobDesc().dims.size();
     if (blob_->GetBlobDesc().data_type == DATA_TYPE_INT32) {
         if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4 && dims_size <= 4) {
@@ -335,6 +337,7 @@ Status OpenCLBlobConverterAcc::GetConvertFromMatKernelName(Mat &mat, std::string
             }
         } else if (dims_size == 5) {
             if (NCHW_FLOAT == mat.GetMatType()) {
+                program_name = "blob_5d_convert_from_mat";
                 kernel_name = "Blob5DConvertFromNCHW";
             } else {
                 char error_str[128];
@@ -344,6 +347,7 @@ Status OpenCLBlobConverterAcc::GetConvertFromMatKernelName(Mat &mat, std::string
             }
         } else if (dims_size == 6) {
             if (NCHW_FLOAT == mat.GetMatType()) {
+                program_name = "blob_6d_convert_from_mat";
                 kernel_name = "Blob6DConvertFromNCHW";
             } else {
                 char error_str[128];
@@ -381,7 +385,7 @@ Status OpenCLBlobConverterAcc::CreateConvertUnit(OpenCLExecuteUnit &unit, Mat &m
         program_name = "convert_to_mat";
         //DEVICE_NAIVE AND DEVICE_ARM is same for memory type.
         if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType()) {
-            Status ret = GetConvertToMatKernelName(mat, kernel_name);
+            Status ret = GetConvertToMatKernelName(mat, kernel_name, program_name);
             if (ret != TNN_OK) {
                 return ret;
             }
@@ -397,7 +401,7 @@ Status OpenCLBlobConverterAcc::CreateConvertUnit(OpenCLExecuteUnit &unit, Mat &m
     } else {
         program_name = "convert_from_mat";
         if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType()) {
-            Status ret = GetConvertFromMatKernelName(mat, kernel_name);
+            Status ret = GetConvertFromMatKernelName(mat, kernel_name, program_name);
             if (ret != TNN_OK) {
                 return ret;
             }
@@ -583,6 +587,15 @@ Status OpenCLBlobConverterAcc::CopyMatToBufferData(Mat &mat, cl::CommandQueue *c
 
 Status OpenCLBlobConverterAcc::CopyScaleBiasToBuffer(MatConvertParam param, cl::CommandQueue *cl_command_queue) {
     cl_int cl_ret;
+    if (nullptr == scale_buffer_ || nullptr == bias_buffer_) {
+        LOGE("scale buffer or bias buffer is null\n");
+        return Status(TNNERR_OUTOFMEMORY, "scale buffer or bias buffer is null");
+    }
+    if (nullptr == param.scale.data() || nullptr == param.bias.data()) {
+        LOGE("scale or bias is invalid\n");
+        return Status(TNNERR_NULL_PARAM, "scale or bias is invalid");
+    }
+
     if (param.scale != host_scale_buffer_) {
         // Copy scale to buffer
         cl_ret = cl_command_queue->enqueueWriteBuffer(*scale_buffer_, CL_TRUE, 0, scale_bias_buffer_size_, param.scale.data());

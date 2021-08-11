@@ -105,6 +105,9 @@ Status ImageBufferConvertor::ConvertBufferToImage(const OpenCLMemory *buffer, co
         kernel_name = "NHWCBufferToImage";
     } else if (type == NCHW_BUFFER) {
         kernel_name = "NCHWBufferToImage";
+        if (dims.size() == 5) {
+            kernel_name = "NCHWBufferToImage5D";
+        }
     } else if (type == ARGUMENT) {
         kernel_name = "ArgBufferToImage";
     } else if (type == LSTM_FILTER) {
@@ -120,8 +123,10 @@ Status ImageBufferConvertor::ConvertBufferToImage(const OpenCLMemory *buffer, co
     if (buffer_to_image_unit_.ocl_kernel.get() == nullptr || buffer_to_image_kernelname_ != kernel_name) {
         buffer_to_image_kernelname_ = kernel_name;
         std::set<std::string> build_options;
-
-        ret = CreateExecuteUnit(buffer_to_image_unit_, "buffer_to_image", kernel_name, build_options);
+        if (kernel_name != "NCHWBufferToImage5D")
+            ret = CreateExecuteUnit(buffer_to_image_unit_, "buffer_to_image", kernel_name, build_options);
+        else
+            ret = CreateExecuteUnit(buffer_to_image_unit_, "buffer_to_image_5d", kernel_name, build_options);
         CHECK_TNN_OK(ret)
     }
 
@@ -174,6 +179,15 @@ Status ImageBufferConvertor::ConvertBufferToImage(const OpenCLMemory *buffer, co
         buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(UP_DIV(hidden_size, 4)));
         // hidden_mul_8_size
         buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 1)));
+    } else if (type == NCHW_BUFFER && dims.size() == 5) {
+        //channel
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 1)));
+        //dim2
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 2)));
+        //dim3
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 3)));
+        //dim4
+        buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 4)));
     } else {
         //height
         buffer_to_image_unit_.ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(dims, 2)));

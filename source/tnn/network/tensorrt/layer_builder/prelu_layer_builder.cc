@@ -5,21 +5,25 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(PRelu, LAYER_PRELU);
 
 bool PReluTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) &&
-        inOut[pos].format == nvinfer1::TensorFormat::kNCHW);
+        inOut[pos].format == nvinfer1::TensorFormat::kLINEAR);
 }
 
-const char* PReluTRTPluginLayerBuilder::getPluginType() const {
+Status PReluTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* PReluTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "PRelu";
 }
 
 nvinfer1::DataType PReluTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* PReluTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* PReluTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     const auto paramlist = dynamic_cast<PReluLayerParam *>(param_);
     if (!paramlist->channel_shared) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
@@ -52,11 +56,11 @@ ILayer* PReluTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 }
 
 DimsExprs PReluTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
 }
 
-const char* PReluPluginCreator::getPluginName() const {
+const char* PReluPluginCreator::getPluginName() const noexcept {
     return "PRelu";
 }
 

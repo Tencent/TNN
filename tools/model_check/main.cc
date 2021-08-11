@@ -65,6 +65,21 @@ DeviceType ConvertDeviceType(std::string device_type) {
     }
 }
 
+Precision ConvertPrecision(std::string precision) {
+    std::transform(precision.begin(), precision.end(), precision.begin(), ::toupper);
+    if ("AUTO" == precision) {
+        return PRECISION_AUTO;
+    } else if ("NORMAL" == precision) {
+        return PRECISION_NORMAL;
+    } else if ("HIGH" == precision) {
+        return PRECISION_HIGH;
+    } else if ("LOW" == precision) {
+        return PRECISION_LOW;
+    } else {
+        return PRECISION_HIGH;
+    }
+}
+
 int InitModelConfig(ModelConfig& model_config, std::string proto_file, std::string model_file) {
     {
         std::ifstream proto_stream(proto_file);
@@ -132,7 +147,7 @@ std::pair<std::string, FileFormat> GetFileInfo(std::string input_path) {
 void ShowUsage() {
     printf(
         "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-o] [-e] [-f] "
-        "<refernece> [-n] <val> [-s] <val> [-a] <align_folder>\n");
+        "<refernece> [-n] <val> [-s] <val> [-sp] <precision>\n");
     printf("\t-h, <help>     \t%s\n", help_message);
     printf("\t-p, <proto>    \t%s\n", proto_path_message);
     printf("\t-m, <model>    \t%s\n", model_path_message);
@@ -145,7 +160,7 @@ void ShowUsage() {
     printf("\t\tformula: y = (x - bias) * scale\n");
     printf("\t-o, <output>   \t%s\n", output_dump_message);
     printf("\t-b, <batch>    \t%s\n", check_batch_message);
-    printf("\t-a, <align_all>\t%s\n", align_all_message);
+    printf("\t-sp, <set precision>\t%s\n", set_precision_message);
 }
 
 bool ParseAndCheckCommandLine(int argc, char* argv[]) {
@@ -239,7 +254,7 @@ int main(int argc, char* argv[]) {
     }
 
     // for NAIVE only check output
-    if (net_config.device_type == DEVICE_NAIVE) {
+    if (net_config.device_type == DEVICE_NAIVE && model_checker_param.dump_dir_path.empty()) {
         model_checker_param.only_check_output = true;
     }
 
@@ -267,12 +282,20 @@ int main(int argc, char* argv[]) {
         printf("set model_checker params failed! (error: %s)\n", status.description().c_str());
         return -1;
     }
-
-    if (model_checker_param.only_check_output) {
-        net_config.precision = PRECISION_AUTO;
+    if ("" == FLAGS_sp) {
+        if (model_checker_param.only_check_output) {
+            net_config.precision = PRECISION_AUTO;
+        } else {
+            net_config.precision = PRECISION_HIGH;
+        }
     } else {
-        net_config.precision = PRECISION_HIGH;
+        net_config.precision = ConvertPrecision(FLAGS_sp);
     }
+    // NPU devices always use PRECISION_AUTO
+    if (net_config.device_type == DEVICE_HUAWEI_NPU) {
+        net_config.precision = PRECISION_AUTO;
+    }
+    printf("tnn precision %d\n", net_config.precision);
     status = model_checker.Init(net_config, model_config);
     if (status != TNN_OK) {
         printf("model_checker init failed! (error: %s)\n", status.description().c_str());

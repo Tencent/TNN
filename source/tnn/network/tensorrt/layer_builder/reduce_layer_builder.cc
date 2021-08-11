@@ -26,6 +26,10 @@ uint32_t ReduceTRTLayerBuilder::GetReduceAxis() {
     auto paramlist = dynamic_cast<ReduceLayerParam*>(param_);
     auto axis = paramlist->axis;
     uint32_t reduceAxis = 0x0;
+    for (int i = 0; i < axis.size(); i++) {
+        axis[i] = axis[i] > 0 ? axis[i] : axis[i] + GetInputITensors()[0]->getDimensions().nbDims;
+    }
+
     if (std::find(axis.begin(), axis.end(), 1) != axis.end()) {
         reduceAxis |= 0x2;
     }

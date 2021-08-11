@@ -116,12 +116,14 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
     void *input_ptr     = input_blob->GetHandle().base;
     void *output_ptr    = output_blob->GetHandle().base;
     auto param = dynamic_cast<ConvLayerParam *>(param_);
-    auto resource = dynamic_cast<ConvLayerResource *>(resource_);
 
     int conv_in_offset_ = input_dims[2] * input_dims[3] * input_dims[1];
     int conv_out_spatial_dim_ = output_dims[2] * output_dims[3];
     int output_offset_ = output_dims[1] * conv_out_spatial_dim_ / param->group;
     size_t col_offset_ = param->kernels[0] * param->kernels[1] * output_dims[2] * output_dims[3] * (input_dims[1] / param->group);
+
+    int max_num_threads = OMP_MAX_THREADS_NUM_;
+    conv_ajust_m_blk_size(max_num_threads, conv_out_spatial_dim_, conv_gemm_conf_.M_c_);
 
     int m_c = conv_gemm_conf_.M_c_;
     int k_c = conv_gemm_conf_.K_c_;
@@ -129,7 +131,7 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
     size_t src_trans_size = m_c * k_c;
 
     size_t im2col_size = ROUND_UP(col_offset_ * param->group * sizeof(float), 32);
-    size_t workspace_size = (im2col_size + ROUND_UP(src_trans_size * sizeof(float), 32));
+    size_t workspace_size = (im2col_size + ROUND_UP(src_trans_size * max_num_threads * sizeof(float), 32));
     float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(workspace_size));
 
     float *im2col_workspace = workspace;

@@ -64,6 +64,7 @@ function build_android() {
           -DTNN_TEST_ENABLE:BOOL="ON"  \
           -DTNN_UNIT_TEST_ENABLE:BOOL="ON"  \
           -DTNN_ARM_ENABLE:BOOL="ON" \
+          -DTNN_ARM82_ENABLE:BOOL="ON" \
           -DTNN_OPENCL_ENABLE:BOOL="ON" \
           -DTNN_HUAWEI_NPU_ENABLE:BOOL=$HUAWEI_NPU \
           -DBUILD_FOR_ANDROID_COMMAND=true
@@ -73,7 +74,7 @@ function build_android() {
 function run() {
     build_android
     if [ $? != 0 ]; then
-        echo "build falied!"
+        echo "build failed!"
         exit 0
     fi
 

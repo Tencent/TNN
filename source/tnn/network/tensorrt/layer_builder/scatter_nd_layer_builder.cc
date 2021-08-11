@@ -19,29 +19,33 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(ScatterND, LAYER_SCATTERND);
 
 bool ScatterNDTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return (inOut[pos].type == nvinfer1::DataType::kINT32 || inOut[pos].type == nvinfer1::DataType::kFLOAT);
 }
 
-const char* ScatterNDTRTPluginLayerBuilder::getPluginType() const {
+Status ScatterNDTRTPluginLayerBuilder::Reshape() {
+    return m_layer->Reshape();
+}
+
+const char* ScatterNDTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "ScatterND";
 }
 
 nvinfer1::DataType ScatterNDTRTPluginLayerBuilder::getOutputDataType(int index,
-        const nvinfer1::DataType* inputTypes, int nbInputs) const {
+        const nvinfer1::DataType* inputTypes, int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* ScatterNDTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* ScatterNDTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs ScatterNDTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
 }
 
-const char* ScatterNDPluginCreator::getPluginName() const {
+const char* ScatterNDPluginCreator::getPluginName() const noexcept {
     return "ScatterND";
 }
 

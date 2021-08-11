@@ -171,7 +171,7 @@ Status OpenCLInstanceNormLayerAcc::AllocateImage(int batch, int output_channel) 
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image_var)
             delete image_var;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     ocl_var_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_var_->SetData(image_var, true);
@@ -182,7 +182,7 @@ Status OpenCLInstanceNormLayerAcc::AllocateImage(int batch, int output_channel) 
         CHECK_CL_SUCCESS(ret)
         if (nullptr != image_bias)
             delete image_bias;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     ocl_bias_.reset(new OpenCLMemory(TNN_CL_IMAGE));
     ocl_bias_->SetData(image_bias, true);

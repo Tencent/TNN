@@ -56,7 +56,7 @@ public:
     }
 };
 
-// @brief NetStruture describes network build info
+// @brief NetStructure describes network build info
 struct NetStructure {
     InputShapesMap inputs_shape_map;
     InputDataTypeMap  input_data_type_map;

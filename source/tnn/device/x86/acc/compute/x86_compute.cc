@@ -15,6 +15,8 @@
 #include "tnn/device/x86/acc/compute/x86_compute.h"
 #include "tnn/device/x86/acc/Float8.h"
 #include "tnn/device/x86/acc/Float4.h"
+#include "tnn/utils/naive_compute.h"
+#include "tnn/utils/omp_utils.h"
 
 #include <algorithm>
 #include <cstring>
@@ -352,6 +354,7 @@ template void X86AvgPooling<Float8, 8>(const float* src, long iw, long ih, float
 template void X86AvgPooling<Float4, 4>(const float* src, long iw, long ih, float* dst, long ow, long oh, long kw, long kh, long stride_w,
                 long stride_h, long pad_w, long pad_h);
 
+template <class T, int pack_c>
 Status X86_FMA(float *input_data, float *output_data, float *scale_data, float *bias_data,
                bool shared_channel, bool has_bias, DimsVector output_dim) {
     
@@ -363,101 +366,73 @@ Status X86_FMA(float *input_data, float *output_data, float *scale_data, float *
         cal_count = DimsVectorUtils::Count(output_dim, 2);
     
     if (shared_channel) {
-#ifdef __AVX2__
-        int tail = cal_count - cal_count % 8;
-        if (has_bias) {     // has bias
-            // register __m256 src, scale, bias;
-            __m256 src, scale, bias;
-            scale = _mm256_broadcast_ss(&scale_data[0]);
-            bias  = _mm256_broadcast_ss(&bias_data[0]);
-            for (size_t i = 0; i < tail; i += 8) {
-                src = _mm256_loadu_ps(input_data + i);
-                src = _mm256_fmadd_ps(src, scale, bias);
-                _mm256_storeu_ps(output_data + i, src);
+        int tail = cal_count - cal_count % pack_c;
+        if (has_bias) {
+            T src;
+            T scale = T(&scale_data[0]);
+            T bias  = T(&bias_data[0]);
+            for (size_t i = 0; i < tail; i += pack_c) {
+                src = T::loadu(input_data + i);
+                T::mla_123(src, scale, bias);
+                T::saveu(output_data + i, src);
             }
             for (size_t i = tail; i < cal_count; i++) {
                 output_data[i] = input_data[i] * scale_data[0] + bias_data[0];
             }
-        } else {        // no bias
-            // register __m256 src, scale;
-            __m256 src, scale;
-            scale = _mm256_broadcast_ss(&scale_data[0]);
-            for (size_t i = 0; i < tail; i += 8) {
-                src = _mm256_loadu_ps(input_data + i);
-                src = _mm256_mul_ps(src, scale);
-                _mm256_storeu_ps(output_data + i, src);
+        } else { // no bias
+            T src;
+            T scale = T(&scale_data[0]);
+            for (size_t i = 0; i < tail; i += pack_c) {
+                src = T::loadu(input_data + i);
+                src = T::mul(src, scale);
+                T::saveu(output_data + i, src);
             }
             for (size_t i = tail; i < cal_count; i++) {
                 output_data[i] = input_data[i] * scale_data[0];
             }
-        }  
-#else
-        const float scale = scale_data[0];
-        float bias = 0.f;
-        if (has_bias) bias = bias_data[0];
-        for (int index = 0; index < cal_count; index++) {
-            if (has_bias)
-                output_data[index] = input_data[index] * scale + bias;
-            else 
-                output_data[index] = input_data[index] * scale;
         }
-#endif
     } else {
-#ifdef __AVX2__
-        int tail = cal_count - cal_count % 8;
+        int tail = cal_count - cal_count % pack_c;
         for (int b = 0; b < output_dim[0]; b++) {
             for (int c = 0; c < channel; c++) {
                 if (has_bias) {
                     // register __m256 src, scale, bias;
-                    __m256 src, scale, bias;
-                    scale = _mm256_broadcast_ss(&scale_data[c]);
-                    bias  = _mm256_broadcast_ss(&bias_data[c]);
+                    T src;
+                    T scale = T(&scale_data[c]);
+                    T bias  = T(&bias_data[c]);
                     float *input  = input_data + (b * channel + c) * cal_count;
                     float *output = output_data + (b * channel + c) * cal_count;
-                    for (size_t index = 0; index < tail; index += 8) {
-                        src = _mm256_loadu_ps(input + index);
-                        src = _mm256_fmadd_ps(src, scale, bias);
-                        _mm256_storeu_ps(output + index, src);
+                    for (size_t index = 0; index < tail; index += pack_c) {
+                        src = T::loadu(input + index);
+                        T::mla_123(src, scale, bias);
+                        T::saveu(output + index, src);
                     }
-                    for (size_t index = tail; index < cal_count; index++)
+                    for (size_t index = tail; index < cal_count; index++) {
                         output[index] = input[index] * scale_data[c] + bias_data[c];
+                    }
                 } else {
                     // register __m256 src, scale;
-                    __m256 src, scale;
-                    scale = _mm256_broadcast_ss(&scale_data[c]);
+                    T src;
+                    T scale = T(&scale_data[c]);
                     float *input  = input_data + (b * channel + c) * cal_count;
                     float *output = output_data + (b * channel + c) * cal_count;
-                    for (size_t index = 0; index < tail; index += 8) {
-                        src = _mm256_loadu_ps(input + index);
-                        src = _mm256_mul_ps(src, scale);
-                        _mm256_storeu_ps(output + index, src);
+                    for (size_t index = 0; index < tail; index += pack_c) {
+                        src = T::loadu(input + index);
+                        src = T::mul(src, scale);
+                        T::saveu(output + index, src);
                     }
                     for (size_t index = tail; index < cal_count; index++)
                         output[index] = input[index] * scale_data[c];
                 }
             }
         }
-#else
-        for (int b = 0; b < output_dim[0]; b++) {
-            for (int c = 0; c < channel; c++) {
-                float *input  = input_data + (b * channel + c) * cal_count;
-                float *output = output_data + (b * channel + c) * cal_count;
-                const float scale = scale_data[c];
-                float bias = 0.f;
-                if (has_bias) bias = bias_data[c];
-                for (int index = 0; index < cal_count; index++) {
-                    if (has_bias)
-                        output[index] = input[index] * scale + bias;
-                    else
-                        output[index] = input[index] * scale;
-                }
-            }
-        }
-#endif
     }
     return TNN_OK;
 }
-
+template Status X86_FMA<Float8, 8>(float *input_data, float *output_data, float *scale_data, float *bias_data,
+               bool shared_channel, bool has_bias, DimsVector output_dim);
+template Status X86_FMA<Float4, 4>(float *input_data, float *output_data, float *scale_data, float *bias_data,
+               bool shared_channel, bool has_bias, DimsVector output_dim);
 
 template<X86ReduceOpType type>
 float reduce_iter_op(const float acc, const float v) {
@@ -528,15 +503,16 @@ template<> void reduce_postprocess<X86ReduceOpType::kLOGSUM>(float* input, float
 template<X86ReduceOpType type>
 void reduce_kernel(float * input, float * output, size_t outer_size, size_t inner_size, size_t reduce_size) 
 {
-    for(size_t outer_idx=0;outer_idx<outer_size;outer_idx++) {
-        for(size_t inner_idx=0;inner_idx<inner_size;inner_idx++) {
+    for(long outer_idx = 0; outer_idx < outer_size; outer_idx++) {
+        OMP_PARALLEL_FOR_GUIDED_
+        for(long inner_idx = 0; inner_idx < inner_size; inner_idx++) {
             float acc = 0;
             if (type == X86ReduceOpType::kMIN) {
                 acc = FLT_MAX;
             } else if (type == X86ReduceOpType::kMAX) {
                 acc = -FLT_MAX;
             }
-            for(int i=0;i<reduce_size;i++) {
+            for(int i = 0; i < reduce_size; i++) {
                 acc = reduce_iter_op<type>(acc, input[i * inner_size + inner_idx]);
             }
             output[inner_idx] = reduce_final_op<type>(acc, float(reduce_size));
@@ -791,12 +767,14 @@ void X86SgemvLeft(float* dst, const float* src, const float* weight, float *bias
 template <typename VEC, int pack>
 void X86Sgemv(float* dst, const float* src, const float* weight, float *bias, DimsVector dims_input, DimsVector dims_output) {
     size_t batch_stride = DimsVectorUtils::Count(dims_input, 1);
+    int oc_vec_size = dims_output[1] / pack * pack;
+    int oc_left = dims_output[1] - oc_vec_size;
     for (int b = 0; b < dims_output[0]; ++b) {
         const float *src_batch = src + b * batch_stride;
         float *dst_batch = dst + b * dims_output[1];
 
-        int oc = 0;
-        for (; oc + pack - 1 < dims_output[1]; oc += pack) {
+        OMP_PARALLEL_FOR_GUIDED_
+        for (int oc = 0; oc < oc_vec_size; oc += pack) {
             auto weight_oc = weight + oc * batch_stride;
             VEC acc = VEC::loadu(bias + oc);
             size_t ic = 0;
@@ -822,7 +800,8 @@ void X86Sgemv(float* dst, const float* src, const float* weight, float *bias, Di
             }
             VEC::saveu(dst_batch + oc, acc);
         }
-        int left = dims_output[1] - oc;
+        int left = oc_left;
+        int oc = oc_vec_size;
         if (pack == 8) {
             if (left == 7) {
                 X86SgemvLeft<7, pack>(dst_batch + oc, src_batch, weight + oc * batch_stride, bias + oc, batch_stride);

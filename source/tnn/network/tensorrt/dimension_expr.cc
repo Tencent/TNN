@@ -25,14 +25,14 @@
 
 namespace TNN_NS {
 
-DimensionExpr::DimensionExpr(const nvinfer1::IDimensionExpr * idimexpr, nvinfer1::IExprBuilder &builder) :
+DimensionExpr::DimensionExpr(const nvinfer1::IDimensionExpr * idimexpr, nvinfer1::IExprBuilder* builder) :
                     expr_(idimexpr), builder_(builder)
 {}
 
-DimensionExpr::DimensionExpr(const int v, nvinfer1::IExprBuilder &builder) :
+DimensionExpr::DimensionExpr(const int v, nvinfer1::IExprBuilder* builder) :
                     builder_(builder)
 {
-    expr_ = builder.constant(v);
+    expr_ = builder->constant(v);
 }
 
 // @brief virtual destructor

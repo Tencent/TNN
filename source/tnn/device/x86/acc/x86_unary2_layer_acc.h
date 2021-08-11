@@ -20,6 +20,7 @@
 #include "tnn/device/x86/acc/Float8.h"
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
@@ -52,11 +53,13 @@ void unary2_kernel_avx(std::vector<int> dims, const float *src, float *dst, Laye
     op.Init(param);
 
     auto count = DimsVectorUtils::Count(dims);
-    int x      = 0;
-    for (; x + 7 < count; x += 8) {
+    auto count_vec = count / 8 * 8;
+
+    OMP_PARALLEL_FOR_GUIDED_
+    for (int x = 0; x < count_vec; x += 8) {
         Float8::saveu(dst + x, op(Float8::loadu(src + x)));
     }
-    for (; x < count; x++) {
+    for (int x = count_vec; x < count; x++) {
         dst[x] = op(src[x]);
     }
 }
@@ -67,12 +70,13 @@ void unary2_kernel_sse(std::vector<int> dims, const float *src, float *dst, Laye
     op.Init(param);
 
     auto count = DimsVectorUtils::Count(dims);
+    auto count_vec = count / 4 * 4;
 
-    int x = 0;
-    for (; x + 3 < count; x += 4) {
+    OMP_PARALLEL_FOR_GUIDED_
+    for (int x = 0; x < count_vec; x += 4) {
         Float4::save(dst + x, op(Float4::load(src + x)));
     }
-    for (; x < count; x++) {
+    for (int x = count_vec; x < count; x++) {
         dst[x] = op(src[x]);
     }
 }

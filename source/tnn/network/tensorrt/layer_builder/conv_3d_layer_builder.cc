@@ -22,21 +22,25 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Convolution3D, LAYER_CONVOLUTION_3D);
 
 bool Convolution3DTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
 }
 
-const char* Convolution3DTRTPluginLayerBuilder::getPluginType() const {
+Status Convolution3DTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* Convolution3DTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "Convolution3D";
 }
 
-nvinfer1::DataType Convolution3DTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+nvinfer1::DataType Convolution3DTRTPluginLayerBuilder::getOutputDataType(int index,
+        const nvinfer1::DataType* inputTypes, int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
 DimsExprs Convolution3DTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
 
     ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param_);
     if (!conv_param) {
@@ -75,13 +79,13 @@ DimsExprs Convolution3DTRTPluginLayerBuilder::getOutputDimensions(int index, con
     const int dilation_h = conv_param->dialations[1];
     const int dilation_d = conv_param->dialations[2];
 
-    DimensionExpr height_out(nullptr, e);
-    DimensionExpr width_out(nullptr, e);
-    DimensionExpr depth_out(nullptr, e);
+    DimensionExpr height_out(nullptr, &e);
+    DimensionExpr width_out(nullptr, &e);
+    DimensionExpr depth_out(nullptr, &e);
 
-    DimensionExpr depth(inputs[0].d[2], e);
-    DimensionExpr height(inputs[0].d[3], e);
-    DimensionExpr width(inputs[0].d[4], e);
+    DimensionExpr depth(inputs[0].d[2], &e);
+    DimensionExpr height(inputs[0].d[3], &e);
+    DimensionExpr width(inputs[0].d[4], &e);
 
     const int pad_type = conv_param->pad_type;
     if (pad_type == -1)  // default padding following the proto setting
@@ -119,7 +123,7 @@ DimsExprs Convolution3DTRTPluginLayerBuilder::getOutputDimensions(int index, con
     return output;
 }
 
-ILayer* Convolution3DTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* Convolution3DTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     auto paramlist = dynamic_cast<ConvLayerParam*>(param_);
     auto resource = dynamic_cast<ConvLayerResource*>(resource_);
 
@@ -220,7 +224,7 @@ ILayer* Convolution3DTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* net
     return last_layer;
 }
 
-const char* Convolution3DPluginCreator::getPluginName() const {
+const char* Convolution3DPluginCreator::getPluginName() const noexcept {
     return "Convolution3D";
 }
 

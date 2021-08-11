@@ -47,26 +47,42 @@ Status ConstFolder::Init(NetworkConfig &net_config, ModelConfig &model_config, A
                             InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     config_ = net_config;
     config_.device_type = DEVICE_NAIVE;
-    runtime_blob_pool_ = BlobMemoryPoolFactory::CreateBlobMemoryPool(GetDevice(DEVICE_NAIVE));
+    auto device         = GetDevice(DEVICE_NAIVE);
+    if (nullptr == device) {
+        LOGE("device in Const Floder is null, please check compile options to enable CPU (TNN_CPU_ENABLE=ON)\n");
+        return Status(
+                TNNERR_DEVICE_NOT_SUPPORT,
+                "device in Const Floder is null, please check compile options to enable CPU (TNN_CPU_ENABLE=ON)\n");
+    }
+    runtime_blob_pool_ = BlobMemoryPoolFactory::CreateBlobMemoryPool(device);
     
     runtime_model_ = RUNTIME_MODE_CONST_FOLD;
     
-    return DefaultNetwork::Init(config_, model_config, interpreter, min_inputs_shape, max_inputs_shape);
+    auto ret =DefaultNetwork::Init(config_, model_config, interpreter, min_inputs_shape, max_inputs_shape);
+    if(ret != TNN_OK) {
+        return ret;
+    }
+    
+    return Forward();
 }
 
 Status ConstFolder::AllocateBlobMemory() {
     return blob_manager_->AllocateBlobMemory(DATA_FLAG_CHANGE_IF_SHAPE_DIFFER);
 }
 
-Status ConstFolder::Reshape(const InputShapesMap &inputs) {
-    return DefaultNetwork::Reshape(inputs);
+Status ConstFolder::Reshape(const InputShapesMap& inputs_shape) {
+    bool shape_changed = false;
+    auto ret = PrepareDoReshape(inputs_shape, shape_changed);
+    if(ret != TNN_OK) {
+        return ret;
+    }
+    if(!shape_changed) {
+        return ret;
+    }
+    return Forward();
 }
 
-Status ConstFolder::DeInit() {
-    return DefaultNetwork::DeInit();
-}
-
-Status ConstFolder::Forward() {
+Status ConstFolder::Forward() {  
     auto status = DefaultNetwork::Forward();
     RETURN_ON_NEQ(status, TNN_OK);
     
@@ -85,7 +101,7 @@ Status ConstFolder::Forward() {
     
     std::set<std::string> constant_layers;
     std::set<std::string> shape_differ_layers;
-    //In Forword, keep old const resource for reuse, save new const blobs to ConstantResource
+    //In Forward, keep old const resource for reuse, save new const blobs to ConstantResource
     //In GetOptimizeNetStructure, remove redundant constants of layer NEVER CHANGE
     ConstantResource constant_map = net_resource_->constant_map;
     auto constant_blob_flags = net_resource_->constant_blob_flags;
@@ -168,7 +184,7 @@ Status ConstFolder::GetOptimizedNet(std::shared_ptr<NetStructure> &const_fold_st
         }
         const_fold_struct->layers = optmized_layers;
     }
-    
+
     const_fold_resource = std::make_shared<NetResource>();
     *const_fold_resource = *net_resource;
     {

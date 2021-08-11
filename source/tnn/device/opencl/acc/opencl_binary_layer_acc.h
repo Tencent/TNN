@@ -42,6 +42,7 @@ protected:
 
 private:
     std::shared_ptr<OpenCLMemory> binary_params_ = nullptr;
+    std::vector<int> param_dims_ = {};
     int input_idx_ = 0;
     int param_idx_ = 1;
     int output_dims_size_ = 0;

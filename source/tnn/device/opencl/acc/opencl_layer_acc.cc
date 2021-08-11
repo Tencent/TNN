@@ -230,7 +230,7 @@ Status OpenCLLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<
                                handle_size * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     float *handle_clbuffer_ptr = (float *)ocl_context_->CommandQueue()->enqueueMapBuffer(
         handle_clbuffer, true, CL_MAP_WRITE, 0, handle_size * sizeof(float), nullptr, nullptr, &ret);
@@ -247,7 +247,7 @@ Status OpenCLLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<
     ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(handle_clbuffer, handle_clbuffer_ptr);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
     }
 
     // create ocl_handle_
@@ -263,7 +263,7 @@ Status OpenCLLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<
             CHECK_CL_SUCCESS(ret)
             if (nullptr != buffer)
                 delete buffer;
-            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
         }
         ocl_handle->SetData(buffer, true);
 
@@ -287,7 +287,7 @@ Status OpenCLLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<
             CHECK_CL_SUCCESS(ret)
             if (nullptr != image)
                 delete image;
-            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
         }
         ocl_handle.reset(new OpenCLMemory(TNN_CL_IMAGE));
         ocl_handle->SetData(image, true);
@@ -339,7 +339,7 @@ Status OpenCLLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bo
 }
 
 Status OpenCLLayerAcc::RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, DataFormat format) {
-    if (!buffer || buffer->GetBufferDims().size() > 4) {
+    if (!buffer || buffer->GetBufferDims().size() > 5) {
         return Status(TNNERR_PARAM_ERR, "raw buffer for opencl blob is invalid");
     }
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
@@ -370,12 +370,17 @@ Status OpenCLLayerAcc::RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<B
         int blob_buffer_size = DimsFunctionUtils::GetDim(dims, 0) *
                             ALIGN_UP4(DimsFunctionUtils::GetDim(dims, 1)) *
                             DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
+        if (dims.size() > 4) {
+            for (int idx_dim = 4; idx_dim < dims.size(); idx_dim++) {
+                blob_buffer_size *= DimsFunctionUtils::GetDim(dims, idx_dim);
+            }
+        }
         cl_int ret      = CL_SUCCESS;
         cl::Buffer cl_buffer(*opencl_runtime->Context(), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
                             blob_buffer_size * sizeof(float), nullptr, &ret);
         if (ret != CL_SUCCESS) {
             CHECK_CL_SUCCESS(ret)
-            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
         }
         blob_buffer->SetData(&cl_buffer);
         auto cl_buffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
@@ -389,7 +394,7 @@ Status OpenCLLayerAcc::RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<B
         ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(cl_buffer, cl_buffer_ptr);
         if (ret != CL_SUCCESS) {
             CHECK_CL_SUCCESS(ret)
-            return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap falied");
+            return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
         }
 
         BlobDesc desc;

@@ -101,18 +101,18 @@ Status Calibration::Init(NetworkConfig& net_config, ModelConfig& model_config, I
     TNN tnn;
     Status status = tnn.Init(model_config);
     if (status != TNN_OK) {
-        LOGE("tnn init falied!\n");
+        LOGE("tnn init failed!\n");
         return TNNERR_INVALID_MODEL;
     }
     instance_ = tnn.CreateInst(net_config, status);
     if (status != TNN_OK) {
-        LOGE("tnn create instance falied!\n");
+        LOGE("tnn create instance failed!\n");
         return TNNERR_INST_ERR;
     }
 
     interpreter_ = std::dynamic_pointer_cast<DefaultModelInterpreter>(instance_->GetInterpreter());
     if (interpreter_ == nullptr) {
-        LOGE("instance init falied!\n");
+        LOGE("instance init failed!\n");
         return TNNERR_INST_ERR;
     }
 
@@ -141,21 +141,21 @@ Status Calibration::RunCalibration(DataSet& dataset) {
     // Compute Feature Scale
     int ret = CalBlobScale(dataset);
     if (ret != 0) {
-        LOGE("calcluate blob scale falied!\n");
+        LOGE("calcluate blob scale failed!\n");
         return TNNERR_QUANTIZE_ERROR;
     }
 
     // Quantize params
     ret = QuantizeParams();
     if (ret != 0) {
-        LOGE("quantize params falied!\n");
+        LOGE("quantize params failed!\n");
         return TNNERR_QUANTIZE_ERROR;
     }
 
     // Merge Blob Scale of some layers
     ret = MergeBlobScale();
     if (ret != 0) {
-        LOGE("merge blob scale falied!\n");
+        LOGE("merge blob scale failed!\n");
         return TNNERR_QUANTIZE_ERROR;
     }
 
@@ -174,7 +174,7 @@ Status Calibration::Serialize(std::string proto_path, std::string model_path) {
 
     Status status = packer.Pack(proto_path, model_path);
     if (status != TNN_OK) {
-        LOGE("pack the model falied!\n");
+        LOGE("pack the model failed!\n");
         return status;
     }
 
@@ -187,14 +187,14 @@ int Calibration::CalBlobScale(DataSet& dataset) {
 
     Status status = instance_->Reshape(dataset.input_shape);
     if (status != TNN_OK) {
-        LOGE("instance reshape falied!\n");
+        LOGE("instance reshape failed!\n");
         return -1;
     }
 
     // Init Feature map
     int ret = InitFeatureMap();
     if (ret != 0) {
-        LOGE("init feautre map for quantize falied!\n");
+        LOGE("init feautre map for quantize failed!\n");
         return ret;
     }
     printf("\tInit Feature Map done!\n");
@@ -202,7 +202,7 @@ int Calibration::CalBlobScale(DataSet& dataset) {
     // Collect the Range of Feature map
     ret = UpdateBlobRange(dataset);
     if (ret != 0) {
-        LOGE("collect feautre map range falied!\n");
+        LOGE("collect feautre map range failed!\n");
         return ret;
     }
     printf("\tCollect Blob Range done!\n");
@@ -210,7 +210,7 @@ int Calibration::CalBlobScale(DataSet& dataset) {
     // Calculate Distribute of Feature map
     ret = UpdateBlobDistribute(dataset);
     if (ret != 0) {
-        LOGE("update feautre map distribute falied!\n");
+        LOGE("update feautre map distribute failed!\n");
         return ret;
     }
     printf("\tCollect Blob Distribution done!\n");
@@ -218,11 +218,12 @@ int Calibration::CalBlobScale(DataSet& dataset) {
     // Compute Scale of Feature map and save to resource map
     for (auto& item : feature_map_) {
         std::vector<float> scale_vec;
-        int ret = item.second->CalculateScale(scale_vec);
+        std::string input_scale_name = item.first->GetBlobDesc().name + BLOB_SCALE_SUFFIX;
+        int ret                      = item.second->CalculateScale(scale_vec);
         if (ret != 0) {
+            LOGE("CalculateScale (%s) failed\n", input_scale_name.c_str());
             return ret;
         }
-        std::string input_scale_name                 = item.first->GetBlobDesc().name + BLOB_SCALE_SUFFIX;
         LayerResource* blob_scale_res                = CreateIntScale(scale_vec);
         net_resource->resource_map[input_scale_name] = std::shared_ptr<LayerResource>(blob_scale_res);
         printf("\t====> Calculate (%s) done!\n", input_scale_name.c_str());
@@ -263,7 +264,7 @@ int Calibration::InitFeatureMap() {
     BlobMap input_blobs;
     Status status = instance_->GetAllInputBlobs(input_blobs);
     if (status != TNN_OK) {
-        LOGE("instance get input blobs falied!\n");
+        LOGE("instance get input blobs failed!\n");
         return -1;
     }
     for (auto item : input_blobs) {
@@ -279,7 +280,7 @@ int Calibration::UpdateBlobRange(DataSet& dataset) {
     BlobMap input_blobs;
     Status status = instance_->GetAllInputBlobs(input_blobs);
     if (status != TNN_OK) {
-        LOGE("instance get input blobs falied!\n");
+        LOGE("instance get input blobs failed!\n");
         return -1;
     }
     Blob* input_blob = input_blobs.begin()->second;
@@ -303,7 +304,7 @@ int Calibration::UpdateBlobRange(DataSet& dataset) {
 
         status = file_reader.Read(input_blob, file_pack.first, file_pack.second);
         if (status != TNN_OK) {
-            LOGE("read input file (%s) falied!\n", file_pack.first.c_str());
+            LOGE("read input file (%s) failed!\n", file_pack.first.c_str());
             continue;
         }
         instance_->ForwardWithCallback(func, func);
@@ -320,7 +321,7 @@ int Calibration::UpdateBlobDistribute(DataSet& dataset) {
     BlobMap input_blobs;
     Status status = instance_->GetAllInputBlobs(input_blobs);
     if (status != TNN_OK) {
-        LOGE("instance get input blobs falied!\n");
+        LOGE("instance get input blobs failed!\n");
         return -1;
     }
     Blob* input_blob = input_blobs.begin()->second;
@@ -344,7 +345,7 @@ int Calibration::UpdateBlobDistribute(DataSet& dataset) {
 
         status = file_reader.Read(input_blob, file_pack.first, file_pack.second);
         if (status != TNN_OK) {
-            LOGE("read input file (%s) falied!\n", file_pack.first.c_str());
+            LOGE("read input file (%s) failed!\n", file_pack.first.c_str());
             continue;
         }
         instance_->ForwardWithCallback(func, func);
@@ -464,11 +465,16 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
     if (input_scale->scale_handle.GetDataCount() == 1)
         merge_channel = true;
 
-    bool is_depthwise = group == output_channel;
+    bool is_depthwise = (output_channel_per_group == 1 && input_channel_per_group == 1);
 
     // multi weights by input_scale
     float* input_scale_data = input_scale->scale_handle.force_to<float*>();
-    float* weight_data      = resource->filter_handle.force_to<float*>();
+    auto filter_handle      = resource->filter_handle;
+    if (resource->filter_handle.GetDataType() == DATA_TYPE_HALF) {
+        LOGI("Fp16 model is used to quantize, precision may be lower than fp32 model!");
+        filter_handle = ConvertHalfHandle(filter_handle);
+    }
+    float* weight_data = filter_handle.force_to<float*>();
     for (int group_idx = 0; group_idx < group; group_idx++) {
         for (int oc = 0; oc < output_channel_per_group; ++oc) {
             for (int ic = 0; ic < input_channel_per_group; ++ic) {
@@ -500,7 +506,7 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
     int ret                       = CalQuantizedWeights(weight_multiby_inputscale.data(), size, output_channel,
                                   cali_params_.merge_weights_channel, weight_quantized_data, weight_scale_data);
     if (ret != 0) {
-        LOGE("Calculate quantized weights falied!\n");
+        LOGE("Calculate quantized weights failed!\n");
         return ret;
     }
 
@@ -519,7 +525,8 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
 
     // quantize bias
     if (param->bias) {
-        float* bias_data = resource->bias_handle.force_to<float*>();
+        auto fp32_bias_handle = ConvertHalfHandle(resource->bias_handle);
+        float* bias_data      = fp32_bias_handle.force_to<float*>();
         RawBuffer bias_quantized(output_channel * sizeof(int32_t));
         bias_quantized.SetDataType(DATA_TYPE_INT32);
         int32_t* bias_quantized_data = bias_quantized.force_to<int32_t*>();
@@ -559,7 +566,12 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource, InnerProd
 
     // multi weights by input_scale
     float* input_scale_data = input_scale->scale_handle.force_to<float*>();
-    float* weight_data      = resource->weight_handle.force_to<float*>();
+    auto weight_handle      = resource->weight_handle;
+    if (resource->weight_handle.GetDataType() == DATA_TYPE_HALF) {
+        LOGI("Fp16 model is used to quantize, precision may be lower than fp32 model!");
+        weight_handle = ConvertHalfHandle(weight_handle);
+    }
+    float* weight_data = weight_handle.force_to<float*>();
     for (int i = 0; i < size; ++i) {
         weight_multiby_inputscale[i] = weight_data[i] * input_scale_data[0];
     }
@@ -577,7 +589,7 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource, InnerProd
     int ret                       = CalQuantizedWeights(weight_multiby_inputscale.data(), size, output_channel,
                                   cali_params_.merge_weights_channel, weight_quantized_data, weight_scale_data);
     if (ret != 0) {
-        LOGE("Calculate quantized weights falied!\n");
+        LOGE("Calculate quantized weights failed!\n");
         return ret;
     }
 
@@ -586,7 +598,8 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource, InnerProd
 
     // quantize bias
     if (param->has_bias) {
-        float* bias_data = resource->bias_handle.force_to<float*>();
+        auto fp32_bias_handle = ConvertHalfHandle(resource->bias_handle);
+        float* bias_data      = fp32_bias_handle.force_to<float*>();
         RawBuffer bias_quantized(output_channel * sizeof(int32_t));
         bias_quantized.SetDataType(DATA_TYPE_INT32);
         int32_t* bias_quantized_data = bias_quantized.force_to<int32_t*>();
@@ -685,7 +698,7 @@ void Calibration::MergeBlobScaleRecursion(LayerInfo* layer_info, NetStructure* n
     LayerType layer_type = layer_info->type;
     // Skip average pooling
     if (layer_type == LAYER_POOLING) {
-        auto param = dynamic_cast<PoolingLayerParam *>(layer_info->param.get());
+        auto param = dynamic_cast<PoolingLayerParam*>(layer_info->param.get());
         if (param->pool_type == 1) {
             return;
         }

@@ -65,6 +65,10 @@ Status OpenCLMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         // get weights
         int weights_height = batch_b * K;
         int weights_width  = N;
+        if (weight_position_ == 0) {
+            weights_height = batch_a * M;
+            weights_width  = K;
+        }
         if (weight_handle.GetDataType() == DATA_TYPE_FLOAT) {
             // get float pointer from raw buffer.
             float *weights_data_ptr = weight_handle.force_to<float *>();
@@ -86,7 +90,10 @@ Status OpenCLMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 
     // create kernel
     std::string kernel_name = "MatMul";
-    ret                     = CreateExecuteUnit(execute_units_[0], "matmul", kernel_name);
+    if (outputs[0]->GetBlobDesc().dims.size() == 6) {
+        kernel_name = "MatMul6D";
+    }
+    ret = CreateExecuteUnit(execute_units_[0], "matmul", kernel_name);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
@@ -104,6 +111,39 @@ Status OpenCLMatMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 
     auto input0_dims    = inputs[0]->GetBlobDesc().dims;
     auto output_dims    = outputs[0]->GetBlobDesc().dims;
+
+    if (output_dims.size() == 6) {
+        need_reshape_ = {false, false, false};
+
+        DimsVector input1_dims;
+        auto idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], output_dims);
+        if (inputs.size() == 2) {
+            input1_dims = inputs[1]->GetBlobDesc().dims;
+            execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
+            execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[1]->GetHandle().base));
+        } else {
+            if (weight_position_ == 1) {
+                input1_dims = reshape_outputs_[1][0]->GetBlobDesc().dims;
+                execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
+                execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reshape_outputs_[1][0]->GetHandle().base));
+            } else {
+                input0_dims = reshape_outputs_[0][0]->GetBlobDesc().dims;
+                input1_dims = inputs[0]->GetBlobDesc().dims;
+                execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reshape_outputs_[0][0]->GetHandle().base));
+                execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
+            }
+        }
+
+        execute_units_[0].ocl_kernel.setArg(idx++, input0_dims.size() * sizeof(int), input0_dims.data());
+        execute_units_[0].ocl_kernel.setArg(idx++, input1_dims.size() * sizeof(int), input1_dims.data());
+        execute_units_[0].ocl_kernel.setArg(idx++, output_dims.size() * sizeof(int), output_dims.data());
+        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(input0_dims[1], 4));
+        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(input1_dims[1], 4));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
+
+        return TNN_OK;
+    }
+
     if (inputs.size() == 2) {
         bool need_reshape = false;
         ret = InitReshapeLayer(inputs[0], reshape_layer_acc_[0], need_reshape, reshape_inputs_[0],
@@ -199,11 +239,12 @@ Status OpenCLMatMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 
     execute_units_[0].ocl_kernel.setArg(idx++, M);
     execute_units_[0].ocl_kernel.setArg(idx++, K_blocks);
+    execute_units_[0].ocl_kernel.setArg(idx++, K);
     execute_units_[0].ocl_kernel.setArg(idx++, K_remain);
     execute_units_[0].ocl_kernel.setArg(idx++, batch_a);
     execute_units_[0].ocl_kernel.setArg(idx++, batch_b);
     if (need_reshape_[2]) {
-        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reshape_outputs_[2][0]->GetHandle().base));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reshape_inputs_[2][0]->GetHandle().base));
     } else {
         execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
     }
@@ -304,23 +345,23 @@ Status OpenCLMatMulLayerAcc::InitReshapeLayer(
     }    
 
     // Init LayerAcc
+    std::shared_ptr<ReshapeLayerParam> reshape_param = std::make_shared<ReshapeLayerParam>();
     if (position != 2) {
-        ReshapeLayerParam reshape_param;
-        reshape_param.name         = "MatMul_Reshape";
-        reshape_param.reshape_type = 0;
-        reshape_param.axis         = 0;
-        reshape_param.num_axes     = 4;
-        reshape_param.shape        = {0, -1, 1, 1};
-        layer->Init(ocl_context_, &reshape_param, nullptr, reshape_layer_inputs, reshape_layer_outputs);
+        reshape_param->name         = "MatMul_Reshape";
+        reshape_param->reshape_type = 0;
+        reshape_param->axis         = 0;
+        reshape_param->num_axes     = 4;
+        reshape_param->shape        = output_desc.dims;
+        layer->Init(ocl_context_, reshape_param.get(), nullptr, reshape_layer_inputs, reshape_layer_outputs);
     } else {
-        ReshapeLayerParam reshape_param;
-        reshape_param.name         = "MatMul_Reshape";
-        reshape_param.reshape_type = 0;
-        reshape_param.axis         = 0;
-        reshape_param.num_axes     = blob->GetBlobDesc().dims.size();
-        reshape_param.shape        = blob->GetBlobDesc().dims;
-        layer->Init(ocl_context_, &reshape_param, nullptr, reshape_layer_inputs, reshape_layer_outputs);
+        reshape_param->name         = "MatMul_Reshape";
+        reshape_param->reshape_type = 0;
+        reshape_param->axis         = 0;
+        reshape_param->num_axes     = blob->GetBlobDesc().dims.size();
+        reshape_param->shape        = blob->GetBlobDesc().dims;
+        layer->Init(ocl_context_, reshape_param.get(), nullptr, reshape_layer_inputs, reshape_layer_outputs);
     }
+    reshape_param_vec_.emplace_back(reshape_param);
 
     return ret;
 }
@@ -336,7 +377,7 @@ Status OpenCLMatMulLayerAcc::ConvertWeights(float *weights_data_ptr, int weight_
                       DimsVectorUtils::Count(weight_shape) * sizeof(float), nullptr, &ret);
     if (ret != CL_SUCCESS) {
         CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory falied");
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
     }
     weight_buffer->SetData(&buffer);
     ret = ocl_context_->CommandQueue()->enqueueWriteBuffer(

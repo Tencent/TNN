@@ -26,4 +26,6 @@ DEFINE_string(mt, "", model_type_message);
 
 DEFINE_string(sp, "", save_path_message);
 
+DEFINE_bool(half, false, half_message);
+
 }  // namespace TNN_CONVERTER
