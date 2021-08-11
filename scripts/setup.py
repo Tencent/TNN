@@ -51,6 +51,7 @@ class BdistCommand(bdist_wheel):
 
 setup(name='pytnn',
       setup_requires=[],
+      version='0.3.0',
       cmdclass={
           'install': InstallCommand,
           'bdist_wheel': BdistCommand,

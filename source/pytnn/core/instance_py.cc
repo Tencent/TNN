@@ -50,19 +50,19 @@ namespace TNN_NS {
                         DeviceType device = DEVICE_ARM, MatType mat_type = NCHW_FLOAT) {
 	std::shared_ptr<Mat> output_mat;
         instance->GetOutputMat(output_mat, param, output_name, device, mat_type);
-	return output_mat;
+	    return output_mat;
     }
  
 
     BlobMap GetAllInputBlobs(Instance* instance) {
         BlobMap input_blobs;
-	instance->GetAllInputBlobs(input_blobs);
+	    instance->GetAllInputBlobs(input_blobs);
         return input_blobs;
     }
 
     BlobMap GetAllOutputBlobs(Instance* instance) {
         BlobMap output_blobs;
-	instance->GetAllOutputBlobs(output_blobs);
+	    instance->GetAllOutputBlobs(output_blobs);
         return output_blobs;
     }
 
@@ -73,8 +73,8 @@ namespace TNN_NS {
             .def("GetForwardMemorySize", &Instance::GetForwardMemorySize)
             .def("SetForwardMemory", &Instance::SetForwardMemory)
             .def("Reshape", &Instance::Reshape)
-	    .def("ShareCommandQueue", &Instance::ShareCommandQueue)
-	    .def("SetCpuNumThreads", &Instance::SetCpuNumThreads)
+	        .def("ShareCommandQueue", &Instance::ShareCommandQueue)
+	        .def("SetCpuNumThreads", &Instance::SetCpuNumThreads)
             .def("GetAllInputBlobs", GetAllInputBlobs, py::return_value_policy::reference)
             .def("GetAllOutputBlobs", GetAllOutputBlobs, py::return_value_policy::reference)
             .def("SetInputMat", &Instance::SetInputMat, py::arg("mat"), py::arg("param"), py::arg("input_name") = "")
