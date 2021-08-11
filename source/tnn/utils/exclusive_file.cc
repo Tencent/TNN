@@ -33,7 +33,7 @@ namespace TNN_NS {
 
 static std::mutex static_mutex;
 
-#if defined _WIN32 
+#if defined(_WIN32)
 
 shared_mutex_t shared_mutex_init(const char* iname) {
     shared_mutex_t mutex = {NULL, 0, NULL, 1};
@@ -115,7 +115,7 @@ static void create_file(const char * fname) {
     }
 }
 
-#elif defined __ANDROID__ // __ANDROID__
+#elif defined(__ANDROID__) // Android
 
 shared_mutex_t shared_mutex_init(const char* iname) {
     shared_mutex_t mutex = {NULL, 0, NULL, 1};
@@ -190,7 +190,7 @@ static void create_file(const char * fname) {
     close(fd);
 }
 
-#else
+#elif defined(__linux__)  || defined(LINUX) // Linux
 
 shared_mutex_t shared_mutex_init(const char* iname) {
     shared_mutex_t mutex = {NULL, 0, NULL, 1};
@@ -285,6 +285,99 @@ static void create_file(const char * fname) {
     close(fd);
 }
 
+#else
+
+shared_mutex_t shared_mutex_init(const char* iname) {
+    shared_mutex_t mutex = {NULL, 0, NULL, 1};
+    std::string iname_md5 = md5(std::string(iname));
+    char name[TNN_NAME_MAX];
+
+    sprintf(name, ".%u.%s.tnnmutex", getuid(), iname_md5.c_str());
+
+    // @brief open existing shared memory object, or create one.
+    mutex.shm_fd = shm_open(name, O_RDWR | O_CREAT | O_EXCL, 0660);
+    if (mutex.shm_fd < 0) {
+        // sleep to wait ftruncated
+        usleep(100*1000);
+        mutex.shm_fd = shm_open(name, O_RDWR | O_EXCL, 0660);
+        mutex.created = 0;
+    }
+
+    if (mutex.created ) {
+        if (ftruncate(mutex.shm_fd, sizeof(pthread_mutex_t)) != 0) {
+            perror("rapidnet cache file ftruncate failed");
+            return mutex;
+        }
+    }
+
+    // Map pthread mutex into the shared memory.
+    void *addr = mmap(NULL, sizeof(pthread_mutex_t), PROT_READ|PROT_WRITE,
+        MAP_SHARED, mutex.shm_fd, 0);
+
+    if (addr == MAP_FAILED) {
+        perror("rapidnet cache file mmap failed");
+        return mutex;
+    }
+
+    pthread_mutex_t *mutex_ptr = (pthread_mutex_t*)addr;
+
+    // initialize the mutex.
+    if (mutex.created) {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
+        // TODO: mac os not support set robust
+        // ExclFile need to resolve deadlock problem before used on mac os
+        pthread_mutex_init(mutex_ptr, &attr);
+    }
+
+    mutex.ptr = mutex_ptr;
+    mutex.name = (char*)malloc(TNN_NAME_MAX + 1);
+    strcpy(mutex.name, name);
+
+    return mutex;
+}
+
+int shared_mutex_close(shared_mutex_t mutex) {
+    if (mutex.ptr != NULL) {
+        if (munmap((void *)mutex.ptr, sizeof(pthread_mutex_t))) {
+            perror("rapidnet cache file munmap failed");
+            return -1;
+        }
+        mutex.ptr = NULL;
+    }
+    if (close(mutex.shm_fd)) {
+        perror("rapidnet cache file close failed");
+        return -1;
+    }
+    mutex.shm_fd = 0;
+    free(mutex.name);
+    return 0;
+}
+
+void shared_mutex_lock(shared_mutex_t * mutex) {
+    // TODO: mac os not support make mutex consistent
+    // ExclFile need to fix when last owner was crashed
+    pthread_mutex_lock(mutex->ptr);
+}
+
+void shared_mutex_unlock(shared_mutex_t * mutex) {
+    pthread_mutex_unlock(mutex->ptr);
+}
+
+static bool file_exists(const char * fname) {
+    int fd = open(fname, O_RDWR | O_EXCL, 0666);
+    if (fd < 0) {
+        return false;
+    }
+    close(fd);
+    return true;
+}
+
+static void create_file(const char * fname) {
+    int fd = open(fname, O_RDWR | O_CREAT, 0666);
+    close(fd);
+}
 #endif
 
 ExclFile::ExclFile(std::string fname) : m_fname(fname) {
