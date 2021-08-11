@@ -25,6 +25,13 @@ namespace TNN_NS {
 
 TypeModelInterpreterRegister<TypeModelInterpreterCreator<ModelInterpreter>> g_tnn_model_interpreter_register(
     MODEL_TYPE_TNN);
+TypeModelInterpreterRegister<TypeModelInterpreterCreator<IRModelInterpreter>> g_tnn_ir_model_interpreter_register(
+    MODEL_TYPE_TNNIR);
+
+Status IRModelInterpreter::InterpretMd5(const std::string& content) {
+    this->params_md5_.emplace_back(md5(content));
+    return TNN_OK;
+};
 
 std::string ModelInterpreter::Transfer(std::string content) {
     return content;

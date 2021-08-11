@@ -213,10 +213,9 @@ void CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap &input
 #endif
 
     for (auto &block : seg_blocks) {
-        std::string cur_block_target = block.target() == partitioning::SegmentedBlock::kTNN ? "TNN" : "Torch";
-        std::ostringstream tnn_engine_id;
-        tnn_engine_id << reinterpret_cast<const int *>(&block);
         if (block.target() == partitioning::SegmentedBlock::kTNN) {
+            std::ostringstream tnn_engine_id;
+            tnn_engine_id << reinterpret_cast<const int *>(&block);
             auto engine_ptr = conversion::ConvertBlockToInstance(block, config);
             auto temp_g     = std::make_shared<torch::jit::Graph>();
             AddEngineToGraph(mod, temp_g, engine_ptr, tnn_engine_id.str(), true);

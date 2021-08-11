@@ -1,6 +1,6 @@
 #include "tnn/network/torch/torch_convert.h"
 #include "tnn/network/torch/torch_op_converter.h"
-
+#include "tnn/interpreter/tnn/model_interpreter.h"
 namespace TNN_NS {
 namespace conversion {
 
@@ -28,11 +28,12 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
     network_config.precision = config.precision;
     auto instance_ptr = c10::make_intrusive<runtime::TNNEngine>(network_config, model_config);
 
-    auto interpreter = dynamic_cast<DefaultModelInterpreter *>(ctx->get_interpreter().get());
+    auto interpreter = dynamic_cast<IRModelInterpreter *>(ctx->get_interpreter().get());
     auto net_structure = interpreter->GetNetStructure();
     auto net_resource  = interpreter->GetNetResource();
 
     auto g = block.g();
+    interpreter->InterpretMd5(g->toString(false));
 
     // set input shape
     InputShapesMap inputs_shape_map;

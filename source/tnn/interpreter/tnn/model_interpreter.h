@@ -123,6 +123,13 @@ protected:
     uint32_t version_magic_number = 0;
 };
 
+class IRModelInterpreter : public ModelInterpreter {
+public:
+    IRModelInterpreter() {};
+    ~IRModelInterpreter() {};
+    Status InterpretMd5(const std::string& content);
+};
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_TNN_TNN_MODEL_INTERPRETER_H_

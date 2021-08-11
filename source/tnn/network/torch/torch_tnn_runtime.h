@@ -24,7 +24,7 @@ namespace runtime {
 class TorchConvertCtx {
 public:
     TorchConvertCtx() {
-        auto interpreter = CreateModelInterpreter(MODEL_TYPE_TNN);
+        auto interpreter = CreateModelInterpreter(MODEL_TYPE_TNNIR);
         interpreter_ = std::shared_ptr<AbstractModelInterpreter>(interpreter);
     };
     void buildOp(const torch::jit::Node* node);
