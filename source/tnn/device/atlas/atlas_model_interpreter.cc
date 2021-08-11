@@ -55,7 +55,6 @@ Status AtlasModelInterpreter::Interpret(std::vector<std::string> &params) {
         LOGE("acl init falied\n");
         return tnn_ret;
     }
-    AtlasRuntime::IncreaseRef();
 
     size_t model_mem_size;
     aclError acl_ret = ACL_ERROR_NONE;
