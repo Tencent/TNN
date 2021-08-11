@@ -357,7 +357,7 @@ int shared_mutex_close(shared_mutex_t mutex) {
 
 void shared_mutex_lock(shared_mutex_t * mutex) {
     // TODO: mac os not support make mutex consistent
-    // ExclFile need to fix when last owner was crashed
+    // ExclFile need to fix when last owner was crashed before used on mac os
     pthread_mutex_lock(mutex->ptr);
 }
 
