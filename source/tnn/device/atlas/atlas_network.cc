@@ -14,14 +14,17 @@ namespace TNN_NS {
 NetworkImplFactoryRegister<NetworkImplFactory<AtlasNetwork>> g_network_impl_atlas_factory_register(NETWORK_TYPE_ATLAS);
 
 AtlasNetwork::~AtlasNetwork() {
-    DeInit();
+    if (need_to_deinit) {
+        DeInit();
+    }
 }
 
 Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                          InputShapesMap inputs_shape) {
-    AtlasModelInterpreter *atlas_interpreter = dynamic_cast<AtlasModelInterpreter *>(interpreter);
+                          InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder) {
+    need_to_deinit = true;
 
-    model_weight_size_ = atlas_interpreter->GetModelWeightsBufferSize();
+    AtlasModelInterpreter *atlas_interpreter = dynamic_cast<AtlasModelInterpreter *>(interpreter);
+    model_weight_size_                       = atlas_interpreter->GetModelWeightsBufferSize();
 
     // Init ACL
     Status ret = AtlasRuntime::Init();
@@ -38,7 +41,7 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     }
 
     // Get model weights buffer ptr
-    model_weight_ptr_  = atlas_interpreter->GetModelWeightsBufferPtr(net_config.device_id);
+    model_weight_ptr_ = atlas_interpreter->GetModelWeightsBufferPtr(net_config.device_id);
     if (model_weight_ptr_ == nullptr) {
         LOGE("get model weight buffer ptr falied\n");
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "get model weight buffer ptr falied");
@@ -103,7 +106,7 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     }
 
     // reshape if needed
-    ret = Reshape(inputs_shape);
+    ret = Reshape(max_inputs_shape);
     if (ret != TNN_OK)
         return ret;
 
@@ -160,10 +163,13 @@ Status AtlasNetwork::Reshape(const InputShapesMap &inputs) {
 }
 
 Status AtlasNetwork::DeInit() {
-    aclError ret = aclrtSetCurrentContext(context_);
-    if (ret != ACL_ERROR_NONE) {
-        LOGE("set context failed\n");
-        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set context failed");
+    aclError ret = ACL_ERROR_NONE;
+    if (nullptr != context_) {
+        ret = aclrtSetCurrentContext(context_);
+        if (ret != ACL_ERROR_NONE) {
+            LOGE("set context failed\n");
+            return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set context failed");
+        }
     }
 
     for (auto item : input_blob_map_) {
@@ -182,9 +188,13 @@ Status AtlasNetwork::DeInit() {
     output_blob_map_.clear();
 
     LOGD("acl destroy input dataset\n");
-    DestroyDataset(input_);
+    if (nullptr != input_) {
+        DestroyDataset(input_);
+    }
     LOGD("acl destroy output dataset\n");
-    DestroyDataset(output_);
+    if (nullptr != output_) {
+        DestroyDataset(output_);
+    }
 
     UnloadModel();
 
@@ -238,7 +248,7 @@ Status AtlasNetwork::ForwardAsync(Callback call_back) {
     return Forward();
 }
 
-Status AtlasNetwork::LoadModelFromFile(const std::string& om_file) {
+Status AtlasNetwork::LoadModelFromFile(const std::string &om_file) {
     size_t temp_size;
     aclError ret = aclmdlQuerySize(om_file.c_str(), &model_mem_size_, &temp_size);
     if (ret != ACL_ERROR_NONE) {
@@ -276,10 +286,9 @@ Status AtlasNetwork::LoadModelFromFile(const std::string& om_file) {
     return TNN_OK;
 }
 
-Status AtlasNetwork::LoadModelFromMemory(const std::string& om_content) {
+Status AtlasNetwork::LoadModelFromMemory(const std::string &om_content) {
     size_t temp_size;
-    aclError ret =
-        aclmdlQuerySizeFromMem(om_content.data(), om_content.length(), &model_mem_size_, &temp_size);
+    aclError ret = aclmdlQuerySizeFromMem(om_content.data(), om_content.length(), &model_mem_size_, &temp_size);
     if (ret != ACL_ERROR_NONE) {
         LOGE("query model failed (ret=%d)\n", ret);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "query model failed");

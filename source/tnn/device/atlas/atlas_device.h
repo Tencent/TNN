@@ -40,6 +40,9 @@ public:
     virtual AbstractLayerAcc* CreateLayerAcc(LayerType type);
 
     virtual Context* CreateContext(int device_id);
+
+    // @brief auto network type decided by device.
+    virtual NetworkType ConvertAutoNetworkType();
 };
 
 }  // namespace TNN_NS

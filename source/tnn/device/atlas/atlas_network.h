@@ -23,7 +23,8 @@ public:
     // @param net_cfg
     // @param net_res
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                        InputShapesMap inputs_shape);
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape,
+                        bool enable_const_folder = true);
 
     // @brief deinit release init create resource
     virtual Status DeInit();
@@ -69,10 +70,10 @@ public:
 
 private:
     // @brief load model from om file
-    Status LoadModelFromFile(const std::string& om_file);
+    Status LoadModelFromFile(const std::string &om_file);
 
     // @brief load model from memory
-    Status LoadModelFromMemory(const std::string& om_file);
+    Status LoadModelFromMemory(const std::string &om_file);
 
     // @brief unload model
     void UnloadModel();
@@ -96,6 +97,7 @@ private:
     BlobMap input_blob_map_;
     BlobMap output_blob_map_;
 
+    bool need_to_deinit                               = false;
     std::shared_ptr<AtlasCommandQueue> command_queue_ = nullptr;
     aclrtContext context_                             = nullptr;
     aclrtStream stream_                               = nullptr;

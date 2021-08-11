@@ -31,10 +31,22 @@ Status TNNImplAtlas::AddOutput(const std::string& layer_name, int output_index) 
     return TNN_OK;
 }
 
+Status TNNImplAtlas::GetModelInputShapesMap(InputShapesMap& shapes_map) {
+    LOGE("Atlas not support this api (GetModelInputShapesMap)\n");
+    return Status(TNNERR_DEVICE_NOT_SUPPORT, "Atlas not support this api (GetModelInputShapesMap)");
+}
+
 std::shared_ptr<Instance> TNNImplAtlas::CreateInst(NetworkConfig& net_config, Status& status,
                                                    InputShapesMap inputs_shape) {
     auto instance = std::make_shared<Instance>(net_config, model_config_);
     status        = instance->Init(interpreter_, inputs_shape);
+    return instance;
+}
+
+std::shared_ptr<Instance> TNNImplAtlas::CreateInst(NetworkConfig& net_config, Status& status,
+                                                   InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+    auto instance = std::make_shared<Instance>(net_config, model_config_);
+    status        = instance->Init(interpreter_, min_inputs_shape, max_inputs_shape);
     return instance;
 }
 

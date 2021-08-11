@@ -111,6 +111,10 @@ Context* AtlasDevice::CreateContext(int) {
     return nullptr;
 }
 
+NetworkType AtlasDevice::ConvertAutoNetworkType() {
+    return NETWORK_TYPE_ATLAS;
+}
+
 TypeDeviceRegister<AtlasDevice> g_atlas_device_register(DEVICE_ATLAS);
 
 }  // namespace TNN_NS
