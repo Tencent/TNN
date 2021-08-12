@@ -594,6 +594,12 @@ Status OpenCLRuntime::SaveProgramCache() {
             auto program_raw = program.get();
             auto binSizes = program.getInfo<CL_PROGRAM_BINARY_SIZES>();
             auto device_id = device_->get();
+            if (binSizes.empty()) {
+                ret = Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
+                             "opencl get empty program binary, program name: "
+                             + key.first);
+                continue;
+            }
             // use first one
             size_t buffer_size = binSizes[0];
             auto program_name = key.first;
