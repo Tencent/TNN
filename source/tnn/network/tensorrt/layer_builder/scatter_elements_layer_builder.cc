@@ -43,15 +43,6 @@ ILayer* ScatterElementsTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* n
 DimsExprs ScatterElementsTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
         int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DimsExprs output(inputs[0]);
-    auto resource = dynamic_cast<ScatterElementsLayerResource *>(resource_);
-
-    if (nbInputs < 3) {
-        auto data_dims = resource->data.GetBufferDims();
-        output.nbDims = data_dims.size();
-        for (int i = 0; i < data_dims.size(); i++) {
-            output.d[i] = exprBuilder.constant(data_dims[i]);
-        }
-    }
     return output;
 }
 

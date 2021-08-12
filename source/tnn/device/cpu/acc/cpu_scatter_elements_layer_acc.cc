@@ -30,37 +30,14 @@ Status CpuScatterElementsLayerAcc::Reshape(const std::vector<Blob *> &inputs, co
 Status CpuScatterElementsLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<ScatterElementsLayerParam *>(param_);
 
-    auto resource = dynamic_cast<ScatterElementsLayerResource *>(resource_);
-    if (!resource && inputs.size() < 3) {
-        LOGE("CpuScatterElementsLayerAcc has not layer resource\n");
-        return Status(TNNERR_PARAM_ERR, "CpuScatterElementsLayerAcc has not layer resource");
-    }
+    DimsVector data_dims = inputs[0]->GetBlobDesc().dims;
+    DimsVector indices_dims = inputs[1]->GetBlobDesc().dims;
+    DimsVector update_dims = inputs[2]->GetBlobDesc().dims;
+    float* data_ptr = (float*)inputs[0]->GetHandle().base;
 
-    DimsVector data_dims;
-    DimsVector indices_dims;
-    DimsVector update_dims;
-    float* data_ptr;
-    int* indices_offset;
-    float* update_data;
-    int total_input_bytes;
-
-    if (inputs.size() < 3) {
-        data_dims = resource->data.GetBufferDims();
-        indices_dims = inputs[0]->GetBlobDesc().dims;
-        update_dims = inputs[1]->GetBlobDesc().dims;
-        data_ptr = resource->data.force_to<float*>();
-        indices_offset = (int *)inputs[0]->GetHandle().base;
-        update_data = (float*)inputs[1]->GetHandle().base;
-        total_input_bytes = resource->data.GetBytesSize();
-    } else {
-        data_dims = inputs[0]->GetBlobDesc().dims;
-        indices_dims = inputs[1]->GetBlobDesc().dims;
-        update_dims = inputs[2]->GetBlobDesc().dims;
-        data_ptr = (float*)inputs[0]->GetHandle().base;
-        indices_offset = (int *)inputs[1]->GetHandle().base;
-        update_data = (float*)inputs[2]->GetHandle().base;
-        total_input_bytes = DimsVectorUtils::Count(data_dims) * sizeof(float);
-    }
+    int* indices_offset = (int *)inputs[1]->GetHandle().base;
+    float* update_data = (float*)inputs[2]->GetHandle().base;
+    int total_input_bytes = DimsVectorUtils::Count(data_dims) * sizeof(float);
 
     auto num_indices = DimsVectorUtils::Count(indices_dims);
 
@@ -88,7 +65,6 @@ Status CpuScatterElementsLayerAcc::Forward(const std::vector<Blob *> &inputs, co
             dim_block_size[i] = data_dims[i + 1] * dim_block_size[i + 1];
         }
     }
-
     for (int index = 0; index < num_indices;) {
         int axis_idx = indices_data[index];
         size_t dst_offset = 0;
@@ -99,7 +75,11 @@ Status CpuScatterElementsLayerAcc::Forward(const std::vector<Blob *> &inputs, co
                 dst_offset += dims_counters[i] * dim_block_size[i];
             }
         }
-        output_data[dst_offset] = update_data[index];
+        if (param->op == 0) {
+            output_data[dst_offset] = update_data[index];
+        } else {
+            output_data[dst_offset] += update_data[index];
+        }
 
         if (++index == num_indices) {
             break;

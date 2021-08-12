@@ -22,7 +22,9 @@ namespace TNN_NS {
 DECLARE_LAYER(ScatterElements, LAYER_SCATTER_ELEMENTS);
 
 Status ScatterElementsLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    Blob* output_blob = output_blobs_[0];
+    output_blob->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
+    return TNN_OK;
 }
 
 Status ScatterElementsLayer::InferOutputShape(bool ignore_error) {
@@ -30,15 +32,8 @@ Status ScatterElementsLayer::InferOutputShape(bool ignore_error) {
 
     DimsVector data_dims;
 
-    if (input_blobs_.size() < 3) {
-        auto resource = dynamic_cast<ScatterElementsLayerResource *>(resource_);
-        data_dims = resource->data.GetBufferDims();
-    } else {
-        data_dims = input_blobs_[0]->GetBlobDesc().dims;
-    }
-
     Blob* output_blob = output_blobs_[0];
-    output_blob->GetBlobDesc().dims = data_dims;
+    output_blob->GetBlobDesc().dims = input_blobs_[0]->GetBlobDesc().dims;
     return TNN_OK;
 }
 

@@ -38,43 +38,15 @@ string OnnxOpConverterScatterElements::TNNLayerParam(NodeProto& node, OnnxNetInf
 }
 
 std::vector<std::string> OnnxOpConverterScatterElements::GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info) {
-    auto iter_data = net_info.weights_map.find(node.input(0));
-    if (iter_data == net_info.weights_map.end()) {
-        return {node.input(0), node.input(1), node.input(2)};
-    } else {
-        return {node.input(1), node.input(2)};
-    }
-
+    return {node.input(0), node.input(1), node.input(2)};
 }
 
 bool OnnxOpConverterScatterElements::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
-    auto iter_data = net_info.weights_map.find(node.input(0));
-    if (iter_data == net_info.weights_map.end()) {
-        return false;
-    } else {
-        return true;
-    }
+    return false;
 };
 
 int OnnxOpConverterScatterElements::WriteTNNModel(Serializer* net_writer, NodeProto& node, OnnxNetInfo& net_info) {
-    if (!HasLayerResource(node, net_info)) {
-        return 0;
-    }
-    
-    const std::string& onnx_op        = node.op_type();
-    std::string name                  = !node.name().empty() ? node.name() : node.output(0);
-    const std::string& tnn_layer_type = TNNOpType(node, net_info);
-
-    net_writer->PutInt(0);
-    net_writer->PutString(tnn_layer_type);
-    net_writer->PutString(name);
-
-    const auto& weights_map  = net_info.weights_map;
-    const onnx::TensorProto& data = net_info.weights_map[node.input(0)];
-    net_writer->PutBool(true);
-    WriteTensorData(data, net_writer, DATA_TYPE_FLOAT);
-
-    return 1;
+    return 0;
 }
 
 REGISTER_OP_CONVERTER(ScatterElements, ScatterElements);

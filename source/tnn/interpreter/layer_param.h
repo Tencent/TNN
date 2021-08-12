@@ -661,6 +661,8 @@ struct TopKLayerParam : public LayerParam {
 
 struct ScatterElementsLayerParam : public LayerParam {
     int axis = 0;
+    // 0: eq, 1: add
+    int op = 0;
 
     PARAM_COPY(ScatterElementsLayerParam);
 };

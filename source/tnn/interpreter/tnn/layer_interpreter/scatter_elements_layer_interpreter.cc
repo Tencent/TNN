@@ -25,11 +25,6 @@ Status ScatterElementsLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, in
 }
 
 Status ScatterElementsLayerInterpreter::InterpretResource(Deserializer &deserializer, LayerResource **resource) {
-    auto layer_resource = CreateLayerRes<ScatterElementsLayerResource>(resource);
-    bool has_data    = deserializer.GetBool();
-    if (has_data) {
-        GET_BUFFER_FOR_ATTR(layer_resource, data, deserializer);
-    }
     return TNN_OK;
 }
 
@@ -40,19 +35,6 @@ Status ScatterElementsLayerInterpreter::SaveProto(std::ofstream &output_stream, 
 }
 
 Status ScatterElementsLayerInterpreter::SaveResource(Serializer &serializer, LayerParam *param, LayerResource *resource) {
-    CAST_OR_RET_ERROR(layer_param, ScatterElementsLayerParam, "invalid layer param", param);
-    auto layer_resource = dynamic_cast<ScatterElementsLayerResource *>(resource);
-    if (!layer_resource) {
-        return TNN_OK;
-    }
-    const auto &data_dims = layer_resource->data.GetBufferDims();
-    bool has_data         = !data_dims.empty();
-    if (has_data) {
-        serializer.PutBool(true);
-        serializer.PutRaw(layer_resource->data);
-    } else {
-        serializer.PutBool(false);
-    }
     return TNN_OK;
 }
 
