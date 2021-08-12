@@ -27,12 +27,16 @@ string OnnxOpConverterScatterElements::TNNLayerParam(NodeProto& node, OnnxNetInf
     ostringstream layer_param;
 
     int axis = 0;
+    int op   = 0;
 
     if (node_has_attr(node, "axis")) {
         axis = get_node_attr_i(node, "axis");
     }
+    if (node_has_attr(node, "op")) {
+        op = get_node_attr_i(node, "op");
+    }
 
-    layer_param << axis << " ";
+    layer_param << axis << " " << op << " ";
 
     return layer_param.str();
 }

@@ -18,8 +18,9 @@ DECLARE_LAYER_INTERPRETER(ScatterElements, LAYER_SCATTER_ELEMENTS);
 
 Status ScatterElementsLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam **param) {
     int index = start_index;
-    auto p = CreateLayerParam<ScatterElementsLayerParam>(param);
+    auto p    = CreateLayerParam<ScatterElementsLayerParam>(param);
     GET_INT_1(p->axis);
+    GET_INT_1(p->op);
 
     return TNN_OK;
 }
@@ -30,11 +31,12 @@ Status ScatterElementsLayerInterpreter::InterpretResource(Deserializer &deserial
 
 Status ScatterElementsLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
     CAST_OR_RET_ERROR(layer_param, ScatterElementsLayerParam, "invalid scatter elements param to save", param);
-    output_stream << layer_param->axis << " ";
+    output_stream << layer_param->axis << " " << layer_param->op << " ";
     return TNN_OK;
 }
 
-Status ScatterElementsLayerInterpreter::SaveResource(Serializer &serializer, LayerParam *param, LayerResource *resource) {
+Status ScatterElementsLayerInterpreter::SaveResource(Serializer &serializer, LayerParam *param,
+                                                     LayerResource *resource) {
     return TNN_OK;
 }
 
