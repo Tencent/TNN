@@ -333,14 +333,14 @@ std::vector<SegmentedBlock> Partition(std::shared_ptr<torch::jit::Graph> g, Inpu
     // register input/output torch::jit::Value for segmented graphs
     registerSegmentsOutputs(segmented_blocks, g);
 
-    for (auto block : segmented_blocks) {
-        printf("====================== subgraph start %d ======================\n", block.target());
-        // if (block.target() == SegmentedBlock::kTNN) {
-        if (1) {
-            std::cout << block.g()->toString(false);
-        }
-        printf("====================== subgraph end   %d ======================\n", block.target());
-    }
+    // for (auto block : segmented_blocks) {
+    //     printf("====================== subgraph start %d ======================\n", block.target());
+    //     // if (block.target() == SegmentedBlock::kTNN) {
+    //     if (1) {
+    //         std::cout << block.g()->toString(false);
+    //     }
+    //     printf("====================== subgraph end   %d ======================\n", block.target());
+    // }
 
     // run shape analysis on each segmented block
     // runShapeAnalysis(segmented_blocks, input_shape, g);

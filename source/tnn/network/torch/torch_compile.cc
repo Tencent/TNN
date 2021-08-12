@@ -37,7 +37,7 @@ void RemoveUselessOps(torch::jit::Block *block) {
         std::set<NodeKind> uselessKind = {
             // prime
             prim::Print,
-            prim::RaiseException,
+            // prim::RaiseException,
             prim::TimePoint,
             prim::annotate,
             // aten
@@ -64,6 +64,79 @@ void RemoveUselessOps(torch::jit::Block *block) {
             for (int i = it->inputs().size() - 1; i >= 0; i--) {
                 it->removeInput(i);
             }
+            it.destroyCurrent();
+        }
+    }
+}
+
+void RemoveException(torch::jit::Block *block) {
+    auto check_node = [](torch::jit::Node *n) -> bool {
+        if (n->blocks().size() != 2) {
+            return false;
+        }
+        auto block0 = n->blocks()[0];
+        auto block1 = n->blocks()[1];
+        if (block0->outputs().size() != 0 || block1->outputs().size() != 0) {
+            // Make sure that the node doesn't actually produce any Value that are
+            // used by other nodes
+            return false;
+        }
+
+        auto block0_start = block0->nodes().begin();
+        auto block1_start = block1->nodes().begin();
+
+        // Make sure that there is one block which contains exception node 
+        if (block0_start->kind() != prim::RaiseException && block1_start->kind() != prim::RaiseException) {
+            return false;
+        }
+
+        /// Check if this Node hosts a pattern like so:
+        ///  = prim::If(%5958)
+        ///   block0():
+        ///     = prim::RaiseException(%45)
+        ///    -> ()
+        ///   block1():
+        ///    -> ()
+        if ((*block0_start)->kind() == prim::RaiseException) {
+            if ((*(++block0_start))->kind() != prim::Return) {
+                // Make sure that block0 is solely just the exception and the return
+                return false;
+            }
+
+            if ((*(block1_start))->kind() != prim::Return) {
+                // Make sure that block1 is solely the return
+                return false;
+            }
+        }
+
+        /// Check if this Node hosts a pattern like so:
+        ///  = prim::If(%5958)
+        ///   block0():
+        ///    -> ()
+        ///   block1():
+        ///     = prim::RaiseException(%45)
+        ///    -> ()
+        if ((*block1_start)->kind() == prim::RaiseException) {
+            if ((*(++block1_start))->kind() != prim::Return) {
+                // Make sure that block1 is solely just the exception and the return
+                return false;
+            }
+
+            if ((*(block0_start))->kind() != prim::Return) {
+                // Make sure that block0 is solely the return
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    for (auto it = block->nodes().begin(), end = block->nodes().end(); it != end; ++it) {
+        for (auto b : it->blocks()) {
+            RemoveException(b);
+        }
+
+        if (it->kind() == prim::If && check_node(*it)) {
             it.destroyCurrent();
         }
     }
@@ -193,7 +266,8 @@ void CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap &input
     // }
 
     // remove useless nodes for partition&conversion
-    RemoveUselessOps(g->block());
+    // RemoveUselessOps(g->block());
+    RemoveException(g->block());
     torch::jit::EliminateDeadCode(g);
 
     auto seg_blocks = partitioning::Partition(g, input_shape);
