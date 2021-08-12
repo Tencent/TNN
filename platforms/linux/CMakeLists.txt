@@ -9,8 +9,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/opencl/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/stb)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src)
 
-set(COMMON_SRC ${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src/test_common.cc)
-
 target_link_libraries(TNN dl)
 
 if(TNN_X86_ENABLE)
@@ -47,7 +45,7 @@ if(TNN_OPENVINO_ENABLE)
     set_target_properties(ngraph PROPERTIES IMPORTED_LOCATION $ENV{OPENVINO_ROOT_DIR}/deployment_tools/ngraph/lib/${LIB_PFX}ngraph${LIB_EXT})
     set_target_properties(tbb PROPERTIES IMPORTED_LOCATION $ENV{OPENVINO_ROOT_DIR}/deployment_tools/inference_engine/external/tbb/lib/libtbb.so.2)
     # set_target_properties(pugixml PROPERTIES IMPORTED_LOCATION $ENV{OPENVINO_ROOT_DIR}/lib/${LIB_PFX}pugixml.a)
-    
+
     target_link_libraries(TNN inference_engine inference_engine_legacy inference_engine_transformations inference_engine_lp_transformations ngraph tbb)
 endif()
 
@@ -61,6 +59,11 @@ if(TNN_CUDA_ENABLE)
     set_target_properties(nvinfer_plugin PROPERTIES IMPORTED_LOCATION $ENV{TENSORRT_ROOT_DIR}/lib/libnvinfer_plugin.so)
     set_target_properties(cudnn PROPERTIES IMPORTED_LOCATION $ENV{CUDNN_ROOT_DIR}/lib64/libcudnn.so)
     target_link_libraries(TNN nvinfer nvinfer_plugin cudnn)
+endif()
+
+if(TNN_ATLAS_ENABLE)
+    message(STATUS "Build TNN Atlas")
+    target_link_libraries(TNN ascendcl acl_dvpp)
 endif()
 
 if(TNN_RK_NPU_ENABLE)

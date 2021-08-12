@@ -241,6 +241,14 @@ Status ArmMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type
     return ret;
 }
 
+Status ArmMatConverterAcc::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue) {
+    return Status(TNNERR_PARAM_ERR, "arm not support ResizeAndPaste conversion");
+}
+
+Status ArmMatConverterAcc::ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue) {
+    return Status(TNNERR_PARAM_ERR, "arm not support ConcatMatWithBatch conversion");
+}
+
 static Status CopyMakeBorderImpl(Mat& src, Mat& dst, CopyMakeBorderParam param, int channel) {
     Status ret = TNN_OK;
 

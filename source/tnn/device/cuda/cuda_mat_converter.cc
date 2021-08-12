@@ -174,6 +174,16 @@ Status CudaMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType typ
     return ret;
 }
 
+Status CudaMatConverterAcc::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param,
+                                  void* command_queue) {
+    return Status(TNNERR_PARAM_ERR, "cuda not support ResizeAndPaste yet");
+}
+
+Status CudaMatConverterAcc::ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue) {
+    return Status(TNNERR_PARAM_ERR, "cuda not support ConcatMatWithBatch yet");
+}
+
+
 Status CudaMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
     Status ret = TNN_OK;
 
