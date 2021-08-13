@@ -299,6 +299,23 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                 DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
                 assert(0);
             }
+        } else if (src_data_type == onnx::TensorProto_DataType_BOOL) {
+            if (dst_data_type == DATA_TYPE_AUTO || dst_data_type == DATA_TYPE_INT8) {
+                if (data_count > 0) {
+                    auto bool_data = (bool *)raw_data;
+                    auto int8_data = new int8_t[data_count];
+                    for (int ii = 0; ii < data_count; ii++) {
+                        int8_data[ii] = static_cast<int8_t>(bool_data[ii]);
+                    }
+                    writer->PutRaw(data_count * sizeof(int8_t), (char *)int8_data, dims, DATA_TYPE_INT8);
+                    delete[] int8_data;
+                } else {
+                    writer->PutRaw(data_count * sizeof(int8_t), (char *)NULL, dims, DATA_TYPE_INT8);
+                }
+            } else {
+                DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
+                assert(0);
+            }
         } else {
             DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
             assert(0);

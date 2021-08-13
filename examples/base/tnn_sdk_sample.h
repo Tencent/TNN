@@ -188,7 +188,7 @@ public:
     void SetBenchOption(BenchOption option);
     BenchResult GetBenchResult();
     virtual DimsVector GetInputShape(std::string name = kTNNSDKDefaultName);
-
+    virtual MatType GetOutputMatType(std::string name = "");
 
     virtual Status Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output);
 

@@ -659,6 +659,12 @@ struct TopKLayerParam : public LayerParam {
     PARAM_COPY(TopKLayerParam)
 };
 
+struct LogSoftmaxLayerParam : public LayerParam {
+    int axis = 1;
+
+    PARAM_COPY(LogSoftmaxLayerParam)
+};
+
 };  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H
