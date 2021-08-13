@@ -59,6 +59,18 @@ std::vector<BaseLayer *>& DefaultNetwork::GetLayers(){
     return layers_;
 }
 
+Status DefaultNetwork::TrainStep(){
+    return solver_->step();
+};
+
+Status DefaultNetwork::SetSolver(std::shared_ptr<train::BaseSolver> solver){
+    solver_ = solver;
+    return TNN_OK;
+}
+std::shared_ptr<train::BaseSolver> DefaultNetwork::GetSolver() {
+    return solver_;
+} 
+
 /*
  * The Network holds blob, blobmanager, layers etc.
  * Those object is initialized in this function.
@@ -92,6 +104,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 #endif
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
+    context_->SetTraining(net_config.train_config.run_mode == TRAIN_MODE);
 
     if(!net_config.cache_path.empty()) {
         auto params_md5 = default_interpreter->GetParamsMd5();
@@ -330,6 +343,10 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         layers_.push_back(cur_layer);
     }
     return ret;
+}
+
+Blob* DefaultNetwork::GetBlob(std::string blob_name){
+    return blob_manager_->GetBlob(blob_name);
 }
 
 Status DefaultNetwork::AllocateBlobMemory() {

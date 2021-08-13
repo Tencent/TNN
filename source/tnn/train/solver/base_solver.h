@@ -34,13 +34,14 @@ public:
         context.config = config;
     };
     virtual ~BaseSolver() = default;
-    virtual Status step(Blob* loss) = 0;
+    virtual Status step() = 0;
     int CurrentStep() {
         return step_;
     };
     void SetCurrentStep(int step) {
         step_ = step;
     };
+    void SetNeedGradLayers(const std::set<std::string>& need_grad_layers);
 protected:
     // @brief 更新参数的梯度值，按现在的框架只有resource里的资源需要做变量的更新
     virtual Status ComputeUpdateValue(RawBuffer* resource_param, std::shared_ptr<RawBuffer>& resource_param_grad) = 0;

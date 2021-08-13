@@ -307,7 +307,10 @@ int ConvertFromBFP16ToFloat(void *fp16, float *fp32, int count) {
 
     return 0;
 }
-
+void ConvertToNCHW(void*& src_ptr, RawBuffer& dst, RawBuffer* input_rawbuffer);
+void ConvertToNCHW(void*& data_ptr, RawBuffer& dst, const BlobDesc& input_desc);
+void ConvertToNCHW(void*& src_ptr, RawBuffer& dst, const DataType& dtype, const DataFormat& dformat, const DimsVector& dims);
+void ConvertToNC4HW4(std::shared_ptr<RawBuffer>& src, BlobDesc& input_desc); 
 } //namspace train
 } //namespace TNN_NS
 

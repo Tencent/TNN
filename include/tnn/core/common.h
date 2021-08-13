@@ -166,6 +166,9 @@ struct PUBLIC NetworkConfig {
     // network init or reshape may cost more time to select opt kernel implement if enable tune kernel
     // cache_path can set to store tune kernel info.
     bool enable_tune_kernel = false;
+
+    TrainConfig train_config;
+
 };
 
 struct PUBLIC ModelConfig {
@@ -204,6 +207,39 @@ typedef union {
     int i;
     float f;
 } RangeData;
+
+typedef enum {
+    SOLVER_SGD   = 0, //0x00000000
+} SolverType;
+
+typedef enum {
+    DEFAULT_FUNC   = 0, //will not add loss func automatically, use the model's output_layer as loss directly
+    BINARY_CROSS_ENTROPY_FUNC = 1,
+    CATEGORICAL_CROSS_ENTROPY_FUNC = 2
+
+} LossFunc;
+
+typedef enum {
+    PREDICT_MODE = 0,
+    TRAIN_MODE = 1
+} RunMode;
+
+struct PUBLIC SGDParams {
+    float learning_rate;
+};
+
+struct PUBLIC TrainConfig {
+    RunMode run_mode = PREDICT_MODE;//
+    SolverType solver_type;
+    LossFunc loss_func;
+    std::string output_layer_name;
+    std::string target_name;
+    std::string loss_layer_name;
+    DimsVector target_shape;
+    std::set<std::string> trainable_layers;
+    SGDParams sgd_params;
+    
+};
 
 }  // namespace TNN_NS
 

@@ -26,18 +26,24 @@ GradManager::GradManager(AbstractNetwork* network, NetworkConfig* config) {
 inline TrainContext& GradManager::GetContext() {
     return context_;
 }
+void GradManager::SetNeedGradLayers(const std::set<std::string>& need_grad_layers){
+    need_grad_layers_ = need_grad_layers;
+}
+
 // store grads with Rawbuffer not blob to avoid device difference 
 // now trainable varibles are always resource, maybe blob input can be a trainable in future
-Status GradManager::CalcuteGrads(Blob* loss) {
+Status GradManager::CalcuteGrads() {
     DefaultNetwork* network = dynamic_cast<DefaultNetwork* >(context_.network);
     if(network == nullptr) {
         return Status(TNNERR_UNSUPPORT_NET, "grad module only support default net work");
     }
+    Blob* loss = network->GetBlob(context_.config->train_config.loss_layer_name);
     if(loss->GetBlobDesc().dims.empty() || loss->GetBlobDesc().data_type != DATA_TYPE_FLOAT) {
         return Status(TNNERR_INVALID_DATA, "dims size of loss must 1 and data_type must be float");
     }
     // TODO:set grads to 0 with memset to avoid memory release and alloc when resize every train step 
     // TODO:check loss size
+    
     context_.backward_grads_blob.clear();
     context_.backward_grads_resource.clear();
     Status status = Blob2RawBuffer(loss, context_.backward_grads_blob[loss]);
@@ -48,6 +54,8 @@ Status GradManager::CalcuteGrads(Blob* loss) {
     loss_raw_buffer->SetDataFormat(loss->GetBlobDesc().data_format);
     auto layers = network->GetLayers();
     for(auto iter = layers.rbegin(); iter != layers.rend(); iter++) {
+        if(need_grad_layers_.find((*iter)->layer_name_) == need_grad_layers_.end())
+            continue;
         status = LayerGrad::GetLayerGradMap()[(*iter)->GetLayerType()]->OnGrad(*iter, context_);
         RETURN_ON_NEQ(status, TNN_OK);
     }

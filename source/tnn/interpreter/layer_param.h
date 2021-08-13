@@ -49,6 +49,7 @@ struct LayerParam {
     bool quantized = false;
     // weight data size for ncnn param
     size_t weight_data_size = 0;
+    bool trainable = false;
 
     PARAM_COPY(LayerParam)
 };
@@ -389,6 +390,14 @@ struct SliceLayerParam : public LayerParam {
 
 struct ElementWiseLayerParam : public LayerParam {
     PARAM_COPY(ElementWiseLayerParam)
+};
+
+struct BinaryCrossEntropyLayerParam : public LayerParam {
+    PARAM_COPY(BinaryCrossEntropyLayerParam)
+};
+
+struct CategoricalCrossEntropyLayerParam : public LayerParam {
+    PARAM_COPY(CategoricalCrossEntropyLayerParam)
 };
 
 typedef enum {

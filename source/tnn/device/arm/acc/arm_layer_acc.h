@@ -84,6 +84,9 @@ protected:
     // @brief reload buffer to arm blob using packed format
     virtual Status RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, BlobDesc &desc);
 
+    // @brief only for train module; update layer resource to layer buffer
+    virtual Status RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
 private:
     // @brief return device layer acc support data format
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);

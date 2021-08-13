@@ -26,6 +26,7 @@
 #include "tnn/core/profile.h"
 #include "tnn/core/status.h"
 #include "tnn/interpreter/abstract_model_interpreter.h"
+#include "tnn/train/solver/sgd.h"
 
 namespace TNN_NS {
 
@@ -92,6 +93,12 @@ public:
 
     // @brief set threads run on device
     virtual Status SetCpuNumThreads(int num_threads);
+
+    // @brief run one step in train mode
+    virtual Status TrainStep();
+    // @breif for train
+    virtual Status SetSolver(std::shared_ptr<train::BaseSolver> solver);
+    virtual std::shared_ptr<train::BaseSolver> GetSolver(); 
 
 #if TNN_PROFILE
 public:

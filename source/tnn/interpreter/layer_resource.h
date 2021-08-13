@@ -32,6 +32,8 @@ struct LayerResource {
     std::string name = "";
     // default virtual destructor
     virtual ~LayerResource(){};
+
+    virtual void SetTrainable(bool trainable) {};
 };
 
 // @brief conv layer filter format
@@ -51,6 +53,11 @@ struct ConvLayerResource : public LayerResource {
 
     // extra scale handle for different precision
     RawBuffer scale_handle;
+
+    virtual void SetTrainable(bool trainable){
+        bias_handle.SetTrainable(trainable);
+        filter_handle.SetTrainable(trainable);
+    };
 };
 
 struct BatchNormLayerResource : public LayerResource {
@@ -59,6 +66,10 @@ struct BatchNormLayerResource : public LayerResource {
 
     // bn b buffer
     RawBuffer bias_handle;
+
+    virtual void SetTrainable(bool trainable){
+        bias_handle.SetTrainable(trainable); 
+    };
 };
 
 struct InstanceNormLayerResource : public BatchNormLayerResource {};
@@ -68,6 +79,10 @@ struct EltwiseLayerResource : public LayerResource {
     RawBuffer element_handle;
 
     std::vector<int> element_shape;
+
+    virtual void SetTrainable(bool trainable){
+        element_handle.SetTrainable(trainable);
+    };
 };
 
 struct InnerProductLayerResource : public LayerResource {
@@ -79,11 +94,21 @@ struct InnerProductLayerResource : public LayerResource {
 
     // extra scale handle for different precision
     RawBuffer scale_handle;
+
+    virtual void SetTrainable(bool trainable){
+        bias_handle.SetTrainable(trainable);
+        weight_handle.SetTrainable(trainable);
+    };
+    
 };
 
 struct PReluLayerResource : public LayerResource {
     // slope
     RawBuffer slope_handle;
+
+    virtual void SetTrainable(bool trainable){
+        slope_handle.SetTrainable(trainable);
+    };
 };
 
 struct IntScaleResource : public LayerResource {
@@ -91,6 +116,11 @@ struct IntScaleResource : public LayerResource {
     RawBuffer scale_handle;
     // bias buffer
     RawBuffer bias_handle;
+
+    virtual void SetTrainable(bool trainable){
+        bias_handle.SetTrainable(trainable);
+        scale_handle.SetTrainable(trainable);
+    };
 };
 
 // @brief HdrGuideLayerResource different device holds different handle
@@ -107,11 +137,24 @@ struct HdrGuideLayerResource : public LayerResource {
     RawBuffer projection_weight_handle;
     // projection bias
     RawBuffer projection_bias_handle;
+
+    virtual void SetTrainable(bool trainable){
+        ccm_weight_handle.SetTrainable(trainable);
+        ccm_bias_handle.SetTrainable(trainable);
+        shifts_handle.SetTrainable(trainable);
+        slopes_handle.SetTrainable(trainable);
+        projection_weight_handle.SetTrainable(trainable);
+        projection_bias_handle.SetTrainable(trainable);
+    };
 };
 
 struct ConstLayerResource : public LayerResource {
     // const weights
     RawBuffer weight_handle;
+
+    virtual void SetTrainable(bool trainable){
+        weight_handle.SetTrainable(trainable);
+    }
 };
 
 struct DetectionPostProcessLayerResource : public LayerResource {
@@ -138,16 +181,25 @@ struct ConstantOfShapeLayerResource : public LayerResource {
 struct SqueezeLayerResource : public LayerResource {
     std::vector<int> data_dims;
     RawBuffer data;
+    virtual void SetTrainable(bool trainable){
+        data.SetTrainable(trainable);
+    }
 };
 
 struct UnsqueezeLayerResource : public SqueezeLayerResource {};
 
 struct MatMulLayerResource : public LayerResource {
     RawBuffer weight;
+    virtual void SetTrainable(bool trainable){
+        weight.SetTrainable(trainable);
+    }
 };
 
 struct BiasAddLayerResource : public LayerResource {
     RawBuffer bias_handle;
+    virtual void SetTrainable(bool trainable){
+        bias_handle.SetTrainable(trainable);
+    }
 };
 
 

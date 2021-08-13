@@ -31,11 +31,13 @@ public:
     GradManager(){};
     GradManager(AbstractNetwork* network, NetworkConfig* config);
     ~GradManager() = default;
-    Status CalcuteGrads(Blob* loss);
+    Status CalcuteGrads();
     inline TrainContext& GetContext();
+    void SetNeedGradLayers(const std::set<std::string>& trainable_layers);
 private:
-    static std::set<RawBuffer* > trainables_;
+    //static std::set<RawBuffer* > trainables_;
     TrainContext context_;
+    std::set<std::string> need_grad_layers_;
 };
 
 

@@ -31,7 +31,7 @@
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/interpreter/net_structure.h"
 #include "tnn/layer/base_layer.h"
-#include "tnn/train/grad/grad_manager.h"
+#include "tnn/train/solver/sgd.h"
 
 namespace TNN_NS {
 
@@ -95,7 +95,14 @@ public:
 
 
     // @brief get layers
-    virtual std::vector<BaseLayer *>& GetLayers();    
+    virtual std::vector<BaseLayer *>& GetLayers(); 
+
+    virtual Status TrainStep();
+
+    virtual Status SetSolver(std::shared_ptr<train::BaseSolver> solver);
+    virtual std::shared_ptr<train::BaseSolver> GetSolver();  
+
+    virtual Blob* GetBlob(std::string blob_name);   
 
 #if TNN_PROFILE
 public:
@@ -127,6 +134,7 @@ protected:
     NetResource *net_resource_ = nullptr;
 
     NetworkConfig config_;
+    std::shared_ptr<train::BaseSolver> solver_;
 
     static std::mutex optimize_mtx_;
 

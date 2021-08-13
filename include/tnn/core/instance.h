@@ -141,6 +141,8 @@ private:
     std::map<std::string, std::shared_ptr<Mat>> output_mats_ = {};
     // output mat convert status
     std::map<std::string, int> output_mats_convert_status_ = {};
+
+
 };
 
 }  // namespace TNN_NS

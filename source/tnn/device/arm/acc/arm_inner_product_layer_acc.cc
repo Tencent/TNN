@@ -96,7 +96,7 @@ Status ArmInnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
     InnerProductLayerResource *fc_res = dynamic_cast<InnerProductLayerResource *>(resource_);
     CHECK_PARAM_NULL(fc_res);
 
-    if (!buffer_weight_.GetBytesSize()) {
+    if (!buffer_weight_.GetBytesSize() || context_->IsTraining()) {
         DimsVector dims_input  = inputs[0]->GetBlobDesc().dims;
         DimsVector dims_output = outputs[0]->GetBlobDesc().dims;
 
@@ -176,7 +176,7 @@ Status ArmInnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
     CHECK_PARAM_NULL(fc_res);
     auto dims_output = outputs[0]->GetBlobDesc().dims;
 
-    if (!buffer_bias_.GetBytesSize()) {
+    if (!buffer_bias_.GetBytesSize() || context_->IsTraining()) {
         if (fc_param->has_bias) {
             auto bias_handle = fc_res->bias_handle;
 
@@ -220,6 +220,22 @@ Status ArmInnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
                     buffer_scale_.force_to<float *>()[i] = 0.0;
             }
         }
+    }
+    return TNN_OK;
+}
+
+Status ArmInnerProductLayerAcc::RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs){
+    if(context_->IsTraining())
+        return TNN_OK;
+    auto input_data_type = inputs[0]->GetBlobDesc().data_type;
+    InnerProductLayerParam *fc_param = dynamic_cast<InnerProductLayerParam *>(param_);
+    CHECK_PARAM_NULL(fc_param);
+    InnerProductLayerResource *fc_res = dynamic_cast<InnerProductLayerResource *>(resource_);
+    CHECK_PARAM_NULL(fc_res);
+    // train module don't support other data type, so skip;
+    if (input_data_type == DATA_TYPE_FLOAT || input_data_type == DATA_TYPE_BFP16 ) {
+        RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
+        RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);       
     }
     return TNN_OK;
 }

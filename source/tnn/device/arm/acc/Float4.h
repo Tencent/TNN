@@ -316,6 +316,7 @@ struct Float4 {
         dst.value = -value;
         return dst;
     }
+    static const Float4 float4_const_one;
 };
 
 struct Float4x4 {

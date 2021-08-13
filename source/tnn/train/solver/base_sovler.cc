@@ -26,6 +26,10 @@ void UpdateVariable(T* dst_ptr, const T* src, int count){
     for(int i=0; i<count; i++)
         dstr_ptr[i] -= src[i];
 }
+void BaseSolver::SetNeedGradLayers(const std::set<std::string>& need_grad_layers) {
+    grad_manager_.SetNeedGradLayers(need_grad_layers);
+}
+
 Status BaseSolver::UpdateTrainableVariable(RawBuffer* resource_param, const std::shared_ptr<RawBuffer>& resource_param_grad) {
     if(resource_param->GetDataType() != resource_param_grad->GetDataType() || resource_param->GetDataCount() != resource_param_grad->GetDataCount()) {
         return Status(TNN_TRAIN_ERROR, "grad data type or dims not match"); 
@@ -41,8 +45,8 @@ Status BaseSolver::UpdateTrainableVariable(RawBuffer* resource_param, const std:
         return Status(TNN_TRAIN_ERROR, "DATA TYPE NOT SUPPORT");
     return Status(TNN_OK);
 }
-Status BaseSolver::step(Blob* loss) {
-    grad_manager_.CalcuteGrads(loss);
+Status BaseSolver::step() {
+    grad_manager_.CalcuteGrads();
     auto resource_grads = grad_manager_.GetContext().backward_grads_resource;
     for(auto iter: resource_grads){
         if(iter.first->GetTrainable()) {
