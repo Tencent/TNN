@@ -1,4 +1,5 @@
 #include "tnn/network/torch/torch_op_converter.h"
+// #include <ATen/native/quantized/cpu/conv_packed_params.h>
 
 namespace TNN_NS {
 
@@ -210,11 +211,35 @@ public:
     }
 };
 
-REGISTER_TORCH_OP_CONVERTER(Conv2D, conv2d)
-REGISTER_TORCH_OP_CONVERTER(_Conv, _convolution)
-REGISTER_TORCH_OP_CONVERTER(Relu, relu_)
-REGISTER_TORCH_OP_CONVERTER(Pool, max_pool2d)
-REGISTER_TORCH_OP_CONVERTER(Add, add_)
+// class QuantConv2DTorchConverter : public TorchOpConverter {
+// public:
+//     Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
+//         const auto& inputs = node->inputs();
+//         auto weight = toIValue(inputs[1]).value();
+//         std::cout << weight.isTuple() << std::endl;
+//         std::cout << weight.isTensor() << std::endl;
+//         std::cout << weight.isObject() << std::endl;
+//         auto object = weight.toObject().get();
+//         auto slots = object->slots();
+//         for (auto &slot : slots) {
+//             std::cout << slot.isCapsule() << std::endl;
+//             auto conv_param = reinterpret_cast<ConvPackedParamsBase<2> *>(slot.toCapsule().get());
+//             // c10::intrusive_ptr<ConvPackedParamsBase<2>> conv_param = slot.toCapsule();
+//             std::cout << "get" << std::endl;
+//         }
+
+//         return TNN_OK;
+//     }
+// };
+
+REGISTER_TORCH_OP_CONVERTER(Conv2D, aten, conv2d)
+REGISTER_TORCH_OP_CONVERTER(_Conv, aten, _convolution)
+REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
+REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
+REGISTER_TORCH_OP_CONVERTER(Add, aten, add_)
+
+
+// REGISTER_TORCH_OP_CONVERTER(QuantConv2D, quantized, conv2d)
 
 } // namespace conversion
 }

@@ -8,7 +8,7 @@ using namespace partitioning;
 
 
 void ConvertNodeToLayer(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_res) {
-    const auto& op_type = node->kind().toUnqualString();
+    const auto& op_type = node->kind().toQualString();
 
     auto& converter = GetGlobalTorchConvertMap()[op_type];
     converter->Convert(node, layer_info, layer_res);

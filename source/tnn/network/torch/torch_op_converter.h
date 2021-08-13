@@ -147,8 +147,8 @@ public:
     }
 };
 
-#define REGISTER_TORCH_OP_CONVERTER(type_string, op_type)                                                               \
-    TypeTorchOpConverterRegister<type_string##TorchConverter> g_##op_type##_resource_register(#op_type);
+#define REGISTER_TORCH_OP_CONVERTER(type_string, ns, op_type)                                                               \
+    TypeTorchOpConverterRegister<type_string##TorchConverter> g_##ns##op_type##_resource_register(#ns"::"#op_type);
 
 }
 }

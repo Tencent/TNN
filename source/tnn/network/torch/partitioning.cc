@@ -30,7 +30,7 @@ struct usage_info {
 };
 
 bool OpSupported(const torch::jit::Node* n) {
-    const auto& op_type = n->kind().toUnqualString();
+    const auto& op_type = n->kind().toQualString();
 
     if (conversion::GetGlobalTorchConvertMap().count(op_type) > 0) {
         auto& converter = conversion::GetGlobalTorchConvertMap()[op_type];
