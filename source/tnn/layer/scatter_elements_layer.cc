@@ -22,9 +22,10 @@ namespace TNN_NS {
 DECLARE_LAYER(ScatterElements, LAYER_SCATTER_ELEMENTS);
 
 Status ScatterElementsLayer::InferOutputDataType() {
+    Status status = BaseLayer::InferOutputDataType();
     Blob* output_blob = output_blobs_[0];
     output_blob->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
-    return TNN_OK;
+    return status;
 }
 
 Status ScatterElementsLayer::InferOutputShape(bool ignore_error) {
