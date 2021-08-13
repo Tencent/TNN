@@ -40,7 +40,7 @@ namespace TNN_NS {
     void InitTNNPy(py::module &m) {
         py::class_<TNN>(m, "TNN")
      	    .def(py::init<>())
-	    .def("Init", &TNN::Init)
+	        .def("Init", &TNN::Init)
             .def("DeInit", &TNN::DeInit)
             .def("AddOutput", &TNN::AddOutput)
             .def("GetModelInputShapesMap", GetModelInputShapesMap)

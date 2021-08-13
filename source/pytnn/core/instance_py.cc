@@ -66,6 +66,11 @@ namespace TNN_NS {
         return output_blobs;
     }
 
+    void* GetCommandQueue(Instance* instance) {
+        void* command_queue;
+        instance->GetCommandQueue(&command_queue);
+        return command_queue;
+    }
 
     void InitInstancePy(py::module &m){
         py::class_<Instance, std::shared_ptr<Instance>>(m, "Instance")
@@ -73,6 +78,7 @@ namespace TNN_NS {
             .def("GetForwardMemorySize", &Instance::GetForwardMemorySize)
             .def("SetForwardMemory", &Instance::SetForwardMemory)
             .def("Reshape", &Instance::Reshape)
+            .def("GetCommandQueue", GetCommandQueue) 
 	    .def("ShareCommandQueue", &Instance::ShareCommandQueue)
 	    .def("SetCpuNumThreads", &Instance::SetCpuNumThreads)
             .def("GetAllInputBlobs", GetAllInputBlobs, py::return_value_policy::reference)

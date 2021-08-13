@@ -71,7 +71,7 @@ static int GetCvtColorDstChannel(ColorConversionType type) {
 }
 
 Status MatUtils::Copy(Mat& src, Mat& dst, void* command_queue) {
-    auto ret = CheckSrcAndDstMat(src, dst, false, true, true);
+    auto ret = CheckSrcAndDstMat(src, dst, false, true, false);
     if (ret != TNN_OK) {
         return ret;
     }
