@@ -50,7 +50,7 @@ Status AtlasModelInterpreter::Interpret(std::vector<std::string> &params) {
     }
 
     // Init ACL
-    Status tnn_ret = AtlasRuntime::GetInstance()->Init();
+    Status tnn_ret = AtlasRuntime::Init();
     if (tnn_ret != TNN_OK) {
         LOGE("acl init falied\n");
         return tnn_ret;
