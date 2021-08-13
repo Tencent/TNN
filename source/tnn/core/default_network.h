@@ -50,7 +50,7 @@ public:
     // @param inputs_shape_map modify input shape, if empty, it will use the
     // shape in proto
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
+        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder=true);
 
     // @brief reshape with input shape info
     // @inputs input shape info
@@ -108,6 +108,9 @@ protected:
                                const std::string &name, NetResource *net_resource, Blob **blob);
 
     std::string GenerateCacheFileName(ModelConfig &model_config, std::string& md5_str);
+
+    Status PrepareDoReshape(const InputShapesMap &inputs, bool& shape_changed);
+    Status DoReshape();
 
     AbstractDevice *device_ = nullptr;
     Context *context_       = nullptr;

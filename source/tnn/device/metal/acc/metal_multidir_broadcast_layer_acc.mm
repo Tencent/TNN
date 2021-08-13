@@ -68,23 +68,55 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
     // buffer_param_
     {
         MetalBroadcastParams metal_params;
-        metal_params.input_width  = DimsFunctionUtils::GetDim(dims_output, 3);
+
+        if(dims_output.size()==5){
+            metal_params.input_width  = DimsFunctionUtils::GetDim(dims_output, 3) * DimsFunctionUtils::GetDim(dims_output, 4);
+        }else{
+            metal_params.input_width  = DimsFunctionUtils::GetDim(dims_output, 3);
+        }
+        //metal_params.input_width  = DimsFunctionUtils::GetDim(dims_output, 3);
         metal_params.input_height = DimsFunctionUtils::GetDim(dims_output, 2);
         metal_params.input_size   = metal_params.input_height * metal_params.input_width;
         metal_params.input_slice  = UP_DIV(dims_output[1], 4);
 
-        metal_params.output_width  = DimsFunctionUtils::GetDim(dims_output, 3);
+        if(dims_output.size()==5){
+            metal_params.output_width  = DimsFunctionUtils::GetDim(dims_output, 3) * DimsFunctionUtils::GetDim(dims_output, 4);
+        }else{
+            metal_params.output_width  = DimsFunctionUtils::GetDim(dims_output, 3);
+        }
+        //metal_params.output_width  = DimsFunctionUtils::GetDim(dims_output, 3);
         metal_params.output_height = DimsFunctionUtils::GetDim(dims_output, 2);
         metal_params.output_size   = metal_params.output_height * metal_params.output_width;
         metal_params.output_slice  = UP_DIV(dims_output[1], 4);
 
-        metal_params.input0_size   = UP_DIV(dims_input0[1], 4) * DimsFunctionUtils::GetDimProduct(dims_input0, 2);
+        metal_params.real_input0_1 = dims_input0[1];
+        metal_params.real_input0_2 = dims_input0[2];
+        metal_params.real_input0_3 = dims_input0[3];
+        metal_params.real_input0_4 = dims_input0[4];
+
+        metal_params.input0_size   =  DimsFunctionUtils::GetDimProduct(dims_input0, 2);
         if (!(layer_res && buffer_weight_)) {
             auto dims_input1  = inputs[1]->GetBlobDesc().dims;
-            metal_params.input1_size = UP_DIV(dims_input1[1], 4) * DimsFunctionUtils::GetDimProduct(dims_input1, 2);
+            metal_params.input1_size = DimsFunctionUtils::GetDimProduct(dims_input1, 2);
+            metal_params.real_input1_1 = dims_input1[1];
+            metal_params.real_input1_2 = dims_input1[2];
+            metal_params.real_input1_3 = dims_input1[3];
+            metal_params.real_input1_4 = dims_input1[4];
+
+            if(dims_input1.size()==5){
+                if ((dims_output[0]==dims_input1[0]) && (dims_output[1]==dims_input1[1]) && (dims_input1[2]==1) && (dims_input1[3]==1) && (dims_output[4]==dims_input1[4])) {
+                    layer_param->input1_broadcast_type = kBroadcastType5DimsHeightWidth;
+                }
+            }
         }
 
         metal_params.batch = dims_output[0];
+
+        if(dims_input0.size()==5){
+            if ((dims_output[0]==dims_input0[0]) && (dims_output[1]==dims_input0[1]) && (dims_input0[2]==1) && (dims_input0[3]==1) && (dims_output[4]==dims_input0[4])) {
+                layer_param->input0_broadcast_type = kBroadcastType5DimsHeightWidth;
+            }
+        }
 
         metal_params.broadcast_input0 = layer_param->input0_broadcast_type;
         metal_params.broadcast_input1 = layer_param->input1_broadcast_type;

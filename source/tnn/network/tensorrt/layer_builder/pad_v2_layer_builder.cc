@@ -13,32 +13,82 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(PadV2, LAYER_PADV2);
 
-bool PadV2TRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32
-           || inOut[pos].type == nvinfer1::DataType::kHALF) && inOut[pos].type == inOut[0].type && inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+static bool UseTRTPaddingND(PadLayerParam* paramlist) {
+    // Only zero-padding is supported.
+    if (paramlist->type != 0 || paramlist->value != 0) {
+        return false;
+    }
+
+    // input must have 4 dimensions or more.
+    if (paramlist->pads.size() < 8) {
+        return false;
+    }
+
+    // The padding can only be applied along the two innermost dimensions.
+    int dim_size = paramlist->pads.size() / 2; 
+    for (int i = 0; i < dim_size - 2; ++i) {
+        if (paramlist->pads[i] != 0 || paramlist->pads[i + dim_size] != 0) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
-const char* PadV2TRTPluginLayerBuilder::getPluginType() const {
+bool PadV2TRTPluginLayerBuilder::supportsFormatCombination(
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    bool base_check = (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kINT32
+           || inOut[pos].type == nvinfer1::DataType::kHALF) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
+    if(nbInputs == 1) {
+        return base_check && inOut[pos].type == inOut[0].type;
+    } else if(pos == 1) {
+        return base_check && inOut[pos].type == nvinfer1::DataType::kINT32;
+    } else {
+        return base_check && inOut[pos].type == inOut[0].type;
+    }
+}
+
+Status PadV2TRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* PadV2TRTPluginLayerBuilder::getPluginType() const noexcept {
     return "PadV2";
 }
 
 nvinfer1::DataType PadV2TRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* PadV2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
+ILayer* PadV2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
+    auto paramlist = dynamic_cast<PadLayerParam*>(param_);
+
+    if (!UseTRTPaddingND(paramlist)) {
+        return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    }
+
+    auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
+    std::vector<int> pads = paramlist->pads;
+    int dim_size = pads.size() / 2;
+    // use IPaddingLayer
+    IPaddingLayer* pad_layer;
+    Dims pre_padding = ConvertToTRTDims({pads[dim_size - 2], pads[dim_size - 1]});
+    Dims post_padding = ConvertToTRTDims({pads[2 * dim_size - 2], pads[2 * dim_size - 1]});
+    pad_layer = network->addPaddingNd(*input_tensor, pre_padding, post_padding);
+
+    return pad_layer;
 }
 
 DimsExprs PadV2TRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInput, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInput, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DimsExprs output(inputs[0]);
     auto param = dynamic_cast<PadLayerParam*>(param_);
     auto output_dims = input_blobs_[0]->GetBlobDesc().dims;
@@ -51,7 +101,7 @@ DimsExprs PadV2TRTPluginLayerBuilder::getOutputDimensions(int index, const nvinf
     return output;
 }
 
-const char* PadV2PluginCreator::getPluginName() const {
+const char* PadV2PluginCreator::getPluginName() const noexcept {
     return "PadV2";
 }
 

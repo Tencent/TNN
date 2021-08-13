@@ -19,25 +19,29 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(GatherND, LAYER_GATHERND);
 
 bool GatherNDTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return inOut[0].type == nvinfer1::DataType::kFLOAT;
 }
 
-const char* GatherNDTRTPluginLayerBuilder::getPluginType() const {
+Status GatherNDTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* GatherNDTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "GatherND";
 }
 
 nvinfer1::DataType GatherNDTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* GatherNDTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* GatherNDTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs GatherNDTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInput, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInput, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DimsExprs output;
 
     output.nbDims = output_blobs_[0]->GetBlobDesc().dims.size();
@@ -47,7 +51,7 @@ DimsExprs GatherNDTRTPluginLayerBuilder::getOutputDimensions(int index, const nv
     return output;
 }
 
-const char* GatherNDPluginCreator::getPluginName() const {
+const char* GatherNDPluginCreator::getPluginName() const noexcept {
     return "GatherND";
 }
 

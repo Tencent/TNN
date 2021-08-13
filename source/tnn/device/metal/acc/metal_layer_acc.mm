@@ -175,11 +175,12 @@ Status MetalLayerAcc::RawBuffer2MetalBlob(RawBuffer *buffer, std::shared_ptr<Blo
 
     auto context_impl = context_->getMetalContextImpl();
     // _commandBuffer may be nil, call 'commit' to initialize a commandBuffer
-    [context_impl commit];
+    [context_impl commit:YES];
 
     auto encoder = [context_impl encoder];
     if (!encoder) {
-        LOGE("RawBuffer2MetalBlob: encoder is nil!\n");
+        LOGE("ERROR: RawBuffer2MetalBlob cannot allocate new encoder for blob with name (%s) \n", desc.name.c_str());
+        return Status(TNNERR_PARAM_ERR, "RawBuffer2MetalBlob cannot allocate new encoder for blob");
     }
 
     MetalImageConverterParams params;
@@ -223,8 +224,6 @@ Status MetalLayerAcc::RawBuffer2MetalBlob(RawBuffer *buffer, std::shared_ptr<Blo
     [encoder endEncoding];
     [context_impl commit];
 
-    TNN_PRINT_ENCODER(context_, encoder, this);
-
     return status;
 }
 
@@ -240,6 +239,7 @@ Status MetalLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, con
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     auto dims_input      = inputs[0]->GetBlobDesc().dims;
     auto dims_output     = outputs[0]->GetBlobDesc().dims;
+
     // buffer_param_
     {
         auto metal_params = GetDefaultMetalParams(dims_input, dims_output);
@@ -312,6 +312,7 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
         LOGE("MetalLayerAcc: DataType must be float or half\n");
         return Status(TNNERR_LAYER_ERR, "MetalLayerAcc: DataType must be float or half");
     }
+
     
     //
     auto context_impl = context_->getMetalContextImpl();
@@ -375,7 +376,7 @@ std::vector<DataFormat> MetalLayerAcc::SupportDataFormat(DataType data_type, int
 
 MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
     auto output_height  = DimsFunctionUtils::GetDim(dims, 2);
-    auto output_width   = DimsFunctionUtils::GetDim(dims, 3);
+    auto output_width   = DimsFunctionUtils::GetDimProduct(dims, 3);
     auto output_size  = output_width * output_height;
     auto output_slice = UP_DIV(dims[1], 4);
     auto output_batch = dims[0];
@@ -740,9 +741,9 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
     id<MTLDevice> device     = [TNNMetalDeviceImpl sharedDevice];
     id<MTLBuffer> mtl_buffer = nil;
 
-    const int channel = DimsFunctionUtils::GetDim(buffer_shape, 1);
-    const int kh      = DimsFunctionUtils::GetDim(buffer_shape, 2);
-    const int kw      = DimsFunctionUtils::GetDim(buffer_shape, 3);
+    int channel = DimsFunctionUtils::GetDim(buffer_shape, 1);
+    int kh      = DimsFunctionUtils::GetDim(buffer_shape, 2);
+    int kw      = DimsFunctionUtils::GetDimProduct(buffer_shape, 3);
 
     const int channel4 = UP_DIV(channel, 4) * 4;
 

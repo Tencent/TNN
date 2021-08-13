@@ -19,26 +19,30 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(StrideSlice, LAYER_STRIDED_SLICE);
 
 bool StrideSliceTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
         && inOut[pos].type == inOut[0].type);
 }
 
-const char* StrideSliceTRTPluginLayerBuilder::getPluginType() const {
+Status StrideSliceTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* StrideSliceTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "StrideSlice";
 }
 
 nvinfer1::DataType StrideSliceTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* StrideSliceTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* StrideSliceTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs StrideSliceTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     StrideSliceLayerParam* param = dynamic_cast<StrideSliceLayerParam*>(param_);
     auto begins  = param->begins;
     auto ends    = param->ends;
@@ -56,7 +60,7 @@ DimsExprs StrideSliceTRTPluginLayerBuilder::getOutputDimensions(int index, const
     return output;
 }
 
-const char* StrideSlicePluginCreator::getPluginName() const {
+const char* StrideSlicePluginCreator::getPluginName() const noexcept {
     return "StrideSlice";
 }
 

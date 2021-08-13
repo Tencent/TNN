@@ -91,7 +91,92 @@ kernel void image_converter_buffer_nchw_f_2_texture_bgra8888(
     dst_bgra.write(half4(in), uint2(gid));
 }
 
+static inline uchar convert_uchar_saturate(const ftype val) {
+    return val <= 0 ? uchar(0) : (val >= 255 ? uchar(255) : uchar(val));
+}
+
 #pragma mark - buffer <-> buffer
+kernel void image_converter_buffer_nc4hw4_2_buffer_bgra(
+      device uchar  *dst                           [[buffer(0)]],
+      const device ftype4 *src                     [[buffer(1)]],
+      constant MetalImageConverterParams& params   [[buffer(2)]],
+      ushort2 gid                                  [[thread_position_in_grid]])
+{
+    if (any(gid >= ushort2(params.width, params.height)))
+        return;
+
+    const int offset = (int)gid.y * params.width + (int)gid.x;
+
+    float4 in = float4(src[offset]);
+    
+    in = in*float4(params.scale_x, params.scale_y, params.scale_z, params.scale_w) + float4(params.bias_x, params.bias_y, params.bias_z, params.bias_w);
+    in = params.bgra_to_rgba ? in.zyxw : in;
+
+    dst[offset*4 + 0] = convert_uchar_saturate(in.x);
+    dst[offset*4 + 1] = convert_uchar_saturate(in.y);
+    dst[offset*4 + 2] = convert_uchar_saturate(in.z);
+    dst[offset*4 + 3] = convert_uchar_saturate(in.w);
+}
+
+kernel void image_converter_buffer_nc4hw4_2_buffer_bgr(
+      device uchar  *dst                           [[buffer(0)]],
+      const device ftype4 *src                     [[buffer(1)]],
+      constant MetalImageConverterParams& params   [[buffer(2)]],
+      ushort2 gid                                  [[thread_position_in_grid]])
+{
+    if (any(gid >= ushort2(params.width, params.height)))
+        return;
+
+    const int offset = (int)gid.y * params.width + (int)gid.x;
+
+    float3 in = float3(src[offset].xyz);
+    
+    in = in*float3(params.scale_x, params.scale_y, params.scale_z) + float3(params.bias_x, params.bias_y, params.bias_z);
+    in = params.bgra_to_rgba ? in.zyx : in;
+
+    dst[offset*3 + 0] = convert_uchar_saturate(in.x);
+    dst[offset*3 + 1] = convert_uchar_saturate(in.y);
+    dst[offset*3 + 2] = convert_uchar_saturate(in.z);
+}
+
+kernel void image_converter_buffer_bgr_2_buffer_nc4hw4(
+      device ftype4 *dst                          [[buffer(0)]],
+      const device uchar  *src                    [[buffer(1)]],
+      constant MetalImageConverterParams& params  [[buffer(2)]],
+      ushort2 gid                                 [[thread_position_in_grid]])
+{
+    if (any(gid >= ushort2(params.width, params.height)))
+        return;
+
+    const int offset = (int)gid.y * params.width + (int)gid.x;
+
+    float3 in = float3(src[offset*3], src[offset*3 + 1], src[offset*3 + 2]);
+    in = params.bgra_to_rgba ? in.zyx : in;
+    
+    in = in*float3(params.scale_x, params.scale_y, params.scale_z) + float3(params.bias_x, params.bias_y, params.bias_z);
+    
+    ftype4 val  = ftype4(in.x, in.y, in.z, 0.f);
+    dst[offset] = val;
+}
+
+kernel void image_converter_buffer_bgra_2_buffer_nc4hw4(
+      device ftype4 *dst                          [[buffer(0)]],
+      const device uchar  *src                    [[buffer(1)]],
+      constant MetalImageConverterParams& params  [[buffer(2)]],
+      ushort2 gid                                 [[thread_position_in_grid]])
+{
+    if (any(gid >= ushort2(params.width, params.height)))
+        return;
+
+    const int offset = (int)gid.y * params.width + (int)gid.x;
+
+    float4 in = float4(src[offset*4], src[offset*4 + 1], src[offset*4 + 2], src[offset*4 + 3]);
+    in = params.bgra_to_rgba ? in.zyxw : in;
+    
+    in = in*float4(params.scale_x, params.scale_y, params.scale_z, params.scale_w) + float4(params.bias_x, params.bias_y, params.bias_z, params.bias_w);
+    dst[offset] = ftype4(in.x);
+}
+
 template<typename SrcType, typename SrcType4, typename DstType, typename DstType4>
 static inline void data_converter_nc4hw4_2_nchw(device DstType *dst,
                                                 const device SrcType4 *src,
@@ -139,7 +224,7 @@ static inline void data_converter_nc4hw4_2_nchw_v2(device DstType *dst,
     int channel_out = gid.y*4;
     int index_out = ((int)gid.z*params.channel + channel_out)*params.size + (int)gid.x;
 
-    float4 scale_c = float4(Zero4);
+    float4 scale_c = float4(One4);
     float4 bias_c  = float4(Zero4);
     if (DoScale) {
         scale_c = float4(scale[channel_out], 0, 0, 0);
@@ -285,7 +370,7 @@ static inline void data_converter_nchw_2_nc4hw4_v2(device DstType4 *dst,
     const int index_out =  (int)gid.z*params.slice*params.size + (int)gid.y * params.size + (int)gid.x;
 
     ftype4 in_data  = ftype4(Zero4);
-    float4 scale_c  = float4(Zero4);
+    float4 scale_c  = float4(One4);
     float4 bias_c   = float4(Zero4);
 
     in_data.x = src[index_in];

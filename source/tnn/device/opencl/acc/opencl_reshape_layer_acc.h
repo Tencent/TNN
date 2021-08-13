@@ -37,6 +37,8 @@ private:
     bool is_nchw_output_ = false;
     std::string im_to_bf_func_name_;
     std::string bf_to_im_func_name_;
+    std::string im_to_bf_program_name_;
+    std::string bf_to_im_program_name_;
 };
 
 }  // namespace TNN_NS

@@ -20,21 +20,25 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Binary);
 
 std::string TFLiteBinaryConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
+    std::string prefix;
+    if (quantized_model) {
+        prefix = "Quantized";
+    }
     switch (op_code) {
         case tflite::BuiltinOperator_ADD:
-            return "Add";
+            return prefix + "Add";
         case tflite::BuiltinOperator_SUB:
-            return "Sub";
+            return prefix + "Sub";
         case tflite::BuiltinOperator_MUL:
-            return "Mul";
+            return prefix + "Mul";
         case tflite::BuiltinOperator_DIV:
-            return "Div";
+            return prefix + "Div";
         case tflite::BuiltinOperator_MAXIMUM:
-            return "Maximum";
+            return prefix + "Maximum";
         case tflite::BuiltinOperator_MINIMUM:
-            return "Minimum";
+            return prefix + "Minimum";
         case tflite::BuiltinOperator_SQUARED_DIFFERENCE:
-            return "SquaredDifference";
+            return prefix + "SquaredDifference";
         default:
             return "";
     }
@@ -71,7 +75,7 @@ TNN_NS::Status TFLiteBinaryConverter::exec(TNN_NS::NetStructure& net_structure, 
     cur_layer->param          = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->type               = cur_layer->type_str;
     param->name               = cur_layer->name;
-    param->quantized          = false;
+    param->quantized          = quantized_model;
     param->weight_input_index = -1;
     for (int i = 0; i < tf_lite_operator->inputs.size(); ++i) {
         auto& tensor = tf_lite_tensors[tf_lite_operator->inputs[i]];
@@ -130,7 +134,7 @@ TNN_NS::Status TFLiteBinaryConverter::exec(TNN_NS::NetStructure& net_structure, 
                 TNN_NS::DataFormatConverter::ConvertBetweenNHWCAndNCHW<float>(
                     weight_ptr, element_handle.force_to<float*>(), n, c, h, w, TNN_NS::DataFormatConverter::NHWC2NCHW);
             }
-            layer_resource->element_handle             = element_handle;
+            layer_resource->element_handle             = ConvertRawBuffer::GetInstance()->Convert(element_handle);
             net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
             cur_layer->inputs.resize(1);
             if (param->weight_input_index == 0) {

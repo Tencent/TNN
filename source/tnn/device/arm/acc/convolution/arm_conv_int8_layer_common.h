@@ -39,21 +39,17 @@ public:
 
     virtual Status allocateBufferScale(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
-    virtual Status allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
     virtual Status allocateBufferAddScale(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
     virtual Status setFusionParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
     RawBuffer buffer_weight_;
-    RawBuffer buffer_im2col_;
-    RawBuffer buffer_tmpout_;
     RawBuffer buffer_bias_;
     RawBuffer buffer_scale_;
-    RawBuffer buffer_gemm_work_space_;
     RawBuffer buffer_add_scale_;
-    RawBuffer buffer_add_tmpin_;
+    // for conv relu6 fusion
+    RawBuffer relu6_max_;
 
     long relu_ = 0;
 

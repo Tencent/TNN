@@ -22,21 +22,25 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Convolution, LAYER_CONVOLUTION);
 
 bool ConvolutionTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
 }
 
-const char* ConvolutionTRTPluginLayerBuilder::getPluginType() const {
+Status ConvolutionTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* ConvolutionTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "Convolution";
 }
 
 nvinfer1::DataType ConvolutionTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
 DimsExprs ConvolutionTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
 
     ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param_);
     if (!conv_param) {
@@ -65,11 +69,11 @@ DimsExprs ConvolutionTRTPluginLayerBuilder::getOutputDimensions(int index, const
     const int dilation_w = conv_param->dialations[0];
     const int dilation_h = conv_param->dialations[1];
 
-    DimensionExpr height_out(nullptr, e);
-    DimensionExpr width_out(nullptr, e);
+    DimensionExpr height_out(nullptr, &e);
+    DimensionExpr width_out(nullptr, &e);
 
-    DimensionExpr height(inputs[0].d[2], e);
-    DimensionExpr width(inputs[0].d[3], e);
+    DimensionExpr height(inputs[0].d[2], &e);
+    DimensionExpr width(inputs[0].d[3], &e);
 
     const int pad_type = conv_param->pad_type;
     if (pad_type == -1) {
@@ -98,11 +102,11 @@ DimsExprs ConvolutionTRTPluginLayerBuilder::getOutputDimensions(int index, const
     return output;
 }
 
-const char* ConvolutionPluginCreator::getPluginName() const {
+const char* ConvolutionPluginCreator::getPluginName() const noexcept {
     return "Convolution";
 }
 
-ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     auto paramlist = dynamic_cast<ConvLayerParam*>(param_);
     auto resource = dynamic_cast<ConvLayerResource*>(resource_);
 

@@ -38,13 +38,15 @@ Status SplitVLayer::InferOutputShape(bool ignore_error) {
         layer_param->axis += input_dims.size();
     }
     // slices may be empty
-    if (layer_param->slices.empty()) {
+    if (layer_param->slices.empty() || !layer_param->is_split_specified) {
+        layer_param->slices.clear();
         int input_size       = input_dims[layer_param->axis];
         int output_blob_size = output_blobs_.size();
         if (input_size % output_blob_size == 0) {
             for (int i = 0; i < output_blob_size; ++i) {
                 layer_param->slices.push_back(input_size / output_blob_size);
             }
+            layer_param->is_split_specified = false;
         } else {
             return Status(
                 TNNERR_PARAM_ERR,

@@ -12,6 +12,38 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 
+import onnxruntime
+
+import numpy as np
+
+
+def get_output_shape(onnx_path: str) -> dict:
+    session = onnxruntime.InferenceSession(onnx_path)
+    input_data = {}
+    for inp in session.get_inputs():
+        name = inp.name
+        shape = inp.shape
+        dtype = inp.type
+        if "int" in dtype:
+            input_data[name] = np.random.randint(low=0, high=2, size=shape)
+        else:
+            input_data[name] = np.random.rand(*shape).astype(np.float32)
+
+    pred = session.run([], input_data)
+
+    output_shape = {}
+    for tensor, oup_info in zip(pred, session.get_outputs()):
+        shape = tensor.shape
+        name = oup_info.name
+        output_shape[name] = shape
+
+    return output_shape
+
+
+def get_perm(shape_length: int):
+    return [0, *list(range(2, shape_length)), 1]
+
+
 def get_output_info(tnnproto: list) -> list:
     output_info = tnnproto[3]
     output_name = output_info.split("\"")[1]
@@ -28,8 +60,13 @@ def find_target_layer(content: list, target_name: str):
     raise Exception("Conversion failed")
 
 
-def generate_transpose(input_name: str, output_name: str) -> str:
-    return "\"Permute {} 1 1 {} {} 4 0 3 1 2 ,\"\n" .format(output_name, input_name, output_name)
+def generate_transpose(input_name: str, output_name: str, perm: list) -> str:
+    permute_layer = "\"Permute {} 1 1 {} {} {} " .format(output_name, input_name, output_name, len(perm))
+    for item in perm:
+        permute_layer += "{} " .format(item)
+    permute_layer += ",\"\n"
+    
+    return permute_layer
 
 
 def replace_output_name(layer_info: str, src_name: str, dst_name: str):
@@ -44,17 +81,24 @@ def replace_output_name(layer_info: str, src_name: str, dst_name: str):
 
 
 def fix_tnn_output(tnnproto_path: str):
+    onnx_path = tnnproto_path[:-8] + "onnx"
+    output_shape = get_output_shape(onnx_path)
+
     with open(tnnproto_path) as f:
         tnnproto = f.readlines()
     output_info = get_output_info(tnnproto)
     offset = 5
     add_layers = []
     for output_name in output_info:
+        shape = output_shape[output_name]
+        if len(shape) <= 2:
+            continue
+        perm = get_perm(len(shape))
         idx, name = find_target_layer(tnnproto[offset:], output_name)
         inner_output_name = output_name + "_fix_output_name_from_tf2onnx"
         add_layers.append(inner_output_name)
         tnnproto[offset + idx] = replace_output_name(tnnproto[offset + idx], output_name, inner_output_name)
-        tnnproto.append(generate_transpose(inner_output_name, output_name))
+        tnnproto.append(generate_transpose(inner_output_name, output_name, perm))
 
     # fix op
     info = tnnproto[0].split(" ")

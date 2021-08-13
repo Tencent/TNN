@@ -19,26 +19,30 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(PixelShuffle, LAYER_PIXEL_SHUFFLE);
 
 bool PixelShuffleTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
         && inOut[pos].type == inOut[0].type);
 }
 
-const char* PixelShuffleTRTPluginLayerBuilder::getPluginType() const {
+Status PixelShuffleTRTPluginLayerBuilder::Reshape() {
+    return TNN_OK;
+}
+
+const char* PixelShuffleTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "PixelShuffle";
 }
 
-nvinfer1::DataType PixelShuffleTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+nvinfer1::DataType PixelShuffleTRTPluginLayerBuilder::getOutputDataType(int index,
+        const nvinfer1::DataType* inputTypes, int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* PixelShuffleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* PixelShuffleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs PixelShuffleTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     auto param = dynamic_cast<PixelShuffleLayerParam*>(param_);
     DimsExprs output(inputs[0]);
     auto upscale_factor = exprBuilder.constant(param->upscale_factor);
@@ -49,7 +53,7 @@ DimsExprs PixelShuffleTRTPluginLayerBuilder::getOutputDimensions(int index, cons
     return output;
 }
 
-const char* PixelShufflePluginCreator::getPluginName() const {
+const char* PixelShufflePluginCreator::getPluginName() const noexcept {
     return "PixelShuffle";
 }
 

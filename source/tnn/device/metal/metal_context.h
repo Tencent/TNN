@@ -44,14 +44,14 @@ TNN_OBJC_CLASS(TNNMetalCommandQueueImpl);
 
 namespace TNN_NS {
 
-typedef struct {
+struct MetalBandwidth{
     /** wrap size */
-    NSUInteger thread_execution_width;
+    NSUInteger thread_execution_width = 0;
     /** max threads per thread group */
-    NSUInteger max_threads_per_group;
+    NSUInteger max_threads_per_group = 0;
     /** run conbcurrently on z axis or not */
-    BOOL z_axis_protected;
-} MetalBandwidth;
+    BOOL z_axis_protected = NO;
+} ;
 
 class MetalContext : public Context {
 public:
@@ -71,7 +71,7 @@ public:
     TNNMMetalContextImpl *getMetalContextImpl();
 
 private:
-    __strong TNNMMetalContextImpl *metal_context_impl_;
+    __strong TNNMMetalContextImpl *metal_context_impl_ = nil;
 };
 
 } // namespace TNN_NS

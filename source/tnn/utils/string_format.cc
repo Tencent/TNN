@@ -34,6 +34,43 @@ std::string DoubleToStringFilter(double val) {
     }
 }
 
+std::string MatTypeToString(MatType mat_type) {
+    if (N8UC3 == mat_type) {
+        return "N8UC3";
+    } else if (N8UC4 == mat_type) {
+        return "N8UC4";
+    } else if (NGRAY == mat_type) {
+        return "NGRAY";
+    } else if (NNV21 == mat_type) {
+        return "NNV21";
+    } else if (NNV12 == mat_type) {
+        return "NNV12";
+    } else if (NCHW_FLOAT == mat_type) {
+        return "NCHW_FLOAT";
+    } else if (NC_INT32 == mat_type) {
+        return "NC_INT32";
+    } else if (RESERVED_BFP16_TEST == mat_type) {
+        return "RESERVED_BFP16_TEST";
+    } else if (RESERVED_FP16_TEST == mat_type) {
+        return "RESERVED_FP16_TEST";
+    } else if (RESERVED_INT8_TEST == mat_type) {
+        return "RESERVED_INT8_TEST";
+    } else {
+        return "INVALID Mat Type";
+    }
+}
+
+std::string DimsToString(std::vector<int> dims) {
+    std::stringstream stream;
+    stream << "[";
+    for (int i = 0; i < dims.size() - 1; ++i) {
+        stream << dims[i] << ", ";
+    }
+    stream << dims[dims.size() - 1] << "]";
+
+    return stream.str();
+}
+
 struct CmpByValue {
     bool operator()(const std::pair<std::string, std::vector<float>> &lhs,
                     const std::pair<std::string, std::vector<float>> &rhs) {

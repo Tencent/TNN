@@ -14,6 +14,7 @@
 
 #include "test/unit_test/blob_converter_test.h"
 
+#include "test/timer.h"
 #include "test/unit_test/unit_test_common.h"
 #include "test/unit_test/unit_test_macro.h"
 #include "tnn/core/blob_int8.h"
@@ -23,6 +24,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
 #include "tnn/utils/mat_utils.h"
+#include "tnn/utils/string_format.h"
 #include "utils/network_helpers.h"
 
 namespace TNN_NS {
@@ -62,7 +64,7 @@ bool BlobConverterTest::TestFilterCheck(const DataType& blob_data_type, const De
     }
 #endif
 
-    if (DEVICE_METAL == dev && !(NCHW_FLOAT == mat_type || (N8UC4 == mat_type && batch == 1))) {
+    if (DEVICE_METAL == dev && !(NCHW_FLOAT == mat_type || ((N8UC3 == mat_type || N8UC4 == mat_type) && batch == 1))) {
         return true;
     }
 
@@ -181,11 +183,6 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         GTEST_SKIP();
     }
 
-    bool need_tmp_buffer_metal = false;
-    if (DEVICE_METAL == dev && N8UC4 == mat_type) {
-        need_tmp_buffer_metal = true;
-    }
-
     int mat_channel;
     if (mat_type == N8UC4) {
         mat_channel = 4;
@@ -289,16 +286,35 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     from_mat_param.bias  = bias_data;
 
     Mat mat_in(DEVICE_NAIVE, mat_type, dims, mat_in_data);
+
+    test::Timer timer("");
+    int loop_cnt = 10;
+
     Status ret;
+#ifndef TNN_UNIT_TEST_BENCHMARK
     ret = cpu_converter.ConvertFromMat(mat_in, from_mat_param, NULL);
     if (ret != TNN_OK) {
         LOGE("cpu converter convert mat to blob failed, mat type: %d\n", mat_type);
         CLEANUP_AND_FAIL();
     }
-    ret = device_converter.ConvertFromMat(mat_in, from_mat_param, device_command_queue);
-    if (ret != TNN_OK) {
-        LOGE("device converter convert mat to blob failed, mat type: %d, msg:%s\n", mat_type, ret.description().c_str());
-        CLEANUP_AND_FAIL();
+    loop_cnt = 1;
+#endif
+    for (int i = 0; i < loop_cnt; ++i) {
+        timer.Start();
+
+        ret = device_converter.ConvertFromMat(mat_in, from_mat_param, device_command_queue);
+        if (ret != TNN_OK) {
+            LOGE("device converter convert mat to blob failed, mat type: %d, msg:%s\n", mat_type,
+                 ret.description().c_str());
+            CLEANUP_AND_FAIL();
+        }
+
+        timer.Stop();
+    }
+    if (FLAGS_ub) {
+        LOGI("ConvertFromMat (device: %s  mat type: %s  dims: %s)\n", FLAGS_dt.c_str(),
+               MatTypeToString(mat_type).c_str(), DimsToString(dims).c_str());
+        timer.Print();
     }
 
     MatConvertParam to_mat_param;
@@ -307,19 +323,35 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
     to_mat_param.scale           = scale_data;
     to_mat_param.bias            = bias_data;
     Mat mat_out_ref_nchw(DEVICE_NAIVE, NCHW_FLOAT, dims, mat_out_ref_nchw_data);
+#ifndef TNN_UNIT_TEST_BENCHMARK
     ret = cpu_converter.ConvertToMat(mat_out_ref_nchw, to_mat_param, NULL);
     if (ret != TNN_OK) {
         LOGE("cpu converter convert blob to mat failed, mat type: %d\n", NCHW_FLOAT);
         CLEANUP_AND_FAIL();
     }
+#endif
     Mat mat_out_dev_nchw(DEVICE_NAIVE, NCHW_FLOAT, dims, mat_out_dev_nchw_data);
-    ret = device_converter.ConvertToMat(mat_out_dev_nchw, to_mat_param, device_command_queue);
-    if (ret != TNN_OK) {
-        LOGE("device converter convert blob to mat failed, mat type: %d\n", NCHW_FLOAT);
-        CLEANUP_AND_FAIL();
+
+    timer.Reset();
+    for (int i = 0; i < loop_cnt; ++i) {
+        timer.Start();
+
+        ret = device_converter.ConvertToMat(mat_out_dev_nchw, to_mat_param, device_command_queue);
+        if (ret != TNN_OK) {
+            LOGE("device converter convert blob to mat failed, mat type: %d\n", NCHW_FLOAT);
+            CLEANUP_AND_FAIL();
+        }
+
+        timer.Stop();
+    }
+    if (FLAGS_ub) {
+        LOGI("ConvertToMat (device: %s  mat type: %s  dims: %s)\n", FLAGS_dt.c_str(),
+               MatTypeToString(mat_type).c_str(), DimsToString(dims).c_str());
+        timer.Print();
     }
 
-    int cmp_result    = 0;
+    int cmp_result = 0;
+#ifndef TNN_UNIT_TEST_BENCHMARK
     float compare_eps = blob_data_type == DATA_TYPE_INT8 ? max_i8_diff + 0.01 : 0.01;
 
     cmp_result |= CompareData(static_cast<float*>(mat_out_ref_nchw_data), static_cast<float*>(mat_out_dev_nchw_data),
@@ -342,24 +374,10 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
             CLEANUP_AND_FAIL();
         }
 
-        if (need_tmp_buffer_metal) {
-            Mat metal_tmp_buffer(DEVICE_METAL, N8UC4, dims);
-            ret = device_converter.ConvertToMat(metal_tmp_buffer, to_mat_param, device_command_queue);
-            if (ret != TNN_OK) {
-                LOGE("metal converter convert blob to mat failed, mat type: %d\n", mat_type);
-                CLEANUP_AND_FAIL();
-            }
-            ret = MatUtils::Copy(metal_tmp_buffer, mat_out_dev, device_command_queue);
-            if (ret != TNN_OK) {
-                LOGE("copy metal mat to cpu failed, mat type: %d\n", mat_type);
-                CLEANUP_AND_FAIL();
-            }
-        } else {
-            ret = device_converter.ConvertToMat(mat_out_dev, to_mat_param, device_command_queue);
-            if (ret != TNN_OK) {
-                LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
-                CLEANUP_AND_FAIL();
-            }
+        ret = device_converter.ConvertToMat(mat_out_dev, to_mat_param, device_command_queue);
+        if (ret != TNN_OK) {
+            LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
+            CLEANUP_AND_FAIL();
         }
         cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data), static_cast<uint8_t*>(mat_out_dev_data),
                                   mat_channel, channel, out_size);
@@ -367,6 +385,7 @@ TEST_P(BlobConverterTest, BlobConverterTest) {
         cmp_result |= OpenCLMatTest(mat_in, from_mat_param, to_mat_param, dims, in_size, out_size, mat_type,
                                     mat_channel, channel, device_converter, device_command_queue, mat_out_ref_data);
     }
+#endif
 
     EXPECT_EQ(0, cmp_result);
 

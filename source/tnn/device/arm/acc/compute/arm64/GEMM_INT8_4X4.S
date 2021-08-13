@@ -20,7 +20,7 @@
 .align 5
 asm_function GemmInt8Unit4x4 
 //void GemmInt8Unit4x4(int8_t* src, const int8_t* weight, int8_t* dst, int src_w_step, int dst_depth, 
-//                     int cdiv8, float *scale, int32_t*bias, long relu, const int8_t* add_input, const float* add_scale)
+//     int cdiv8, float *scale, int32_t*bias, long relu, const int8_t* add_input, const float* add_scale, const int8_t* relu6_max)
 //x0(src),
 //x1(weight),
 //x2(dst),
@@ -29,14 +29,14 @@ asm_function GemmInt8Unit4x4
 //x5(cdiv8),
 //x6(scale),
 //x7(bias)
-
-
-
+//stack(relu)      [sp, 0]
+//stack(add_input) [sp, 8]
+//stack(add_scale) [sp, 16]
+//stack(relu6_max) [sp, 24]
 
 sub sp, sp, #128
 st1 {v8.4s, v9.4s, v10.4s, v11.4s}, [sp], #64
 st1 {v12.4s, v13.4s, v14.4s, v15.4s}, [sp], #64
-
 
 //prefetch data
 //assume buffer c>=16, even c==8
@@ -288,7 +288,7 @@ LoopEnd:
      scvtf v6.4s, v18.4s 
      scvtf v7.4s, v19.4s 
       
-     fmul v12.4s, v4.4s, v1.4s 
+     fmul v12.4s, v4.4s, v1.4s  // result = result * scale
      fmul v13.4s, v5.4s, v1.4s 
       
      fmul v14.4s, v6.4s, v1.4s 
@@ -298,8 +298,8 @@ LoopEnd:
      ldr x7, [sp, #8]    // add_input
      ldr x8, [sp, #16]   // add_scale
 
-     cmp x9, #0
-     bge Add
+     cmp x9, #-1         // relu (conv - relu - add, relu == -1)
+     bne Add
      movi v3.16b, #0
      fmax v12.4s, v12.4s, v3.4s
      fmax v13.4s, v13.4s, v3.4s
@@ -307,7 +307,7 @@ LoopEnd:
      fmax v15.4s, v15.4s, v3.4s
 
 Add:
-     cbz x7, Relu
+     cbz x7, Relu        // if add_input == 0, skip
      ld1 {v28.s}[0], [x7], x4
      ld1 {v28.s}[1], [x7], x4
      ld1 {v29.s}[0], [x7], x4
@@ -326,7 +326,7 @@ Add:
      scvtf v26.4s, v22.4s
      scvtf v27.4s, v23.4s
 
-     fmla v12.4s, v24.4s, v30.4s
+     fmla v12.4s, v24.4s, v30.4s  // result += add_input * add_scale
      fmla v13.4s, v25.4s, v30.4s
      fmla v14.4s, v26.4s, v30.4s
      fmla v15.4s, v27.4s, v30.4s
@@ -344,19 +344,25 @@ Relu:
      sqxtn v2.8b, v0.8h 
      sqxtn v4.8b, v1.8h
 
-     cmp x9, #0
-     ble Store
+     cmp x9, #1         // relu (conv add relu, relu == 1 or relu6 == 2)
+     blt Store
      movi v3.8b, #0
      smax v2.8b, v2.8b, v3.8b
      smax v4.8b, v4.8b, v3.8b
 
+     cmp x9, #2         // relu6
+     bne Store
+     ldr x8, [sp, #24]  // relu6_max
+     ld1r {v3.2s}, [x8]
+     smin v2.8b, v2.8b, v3.8b
+     smin v4.8b, v4.8b, v3.8b
+
 Store:
-     st1 {v2.s}[0], [x2], x4 
-     st1 {v2.s}[1], [x2], x4 
+     st1 {v2.s}[0], [x2], x4
+     st1 {v2.s}[1], [x2], x4
 
-     st1 {v4.s}[0], [x2], x4 
-     st1 {v4.s}[1], [x2]                 
-
+     st1 {v4.s}[0], [x2], x4
+     st1 {v4.s}[1], [x2]
 
 sub sp, sp, #128
 ld1 {v8.4s, v9.4s, v10.4s, v11.4s}, [sp], #64

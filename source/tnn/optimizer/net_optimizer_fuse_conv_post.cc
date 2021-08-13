@@ -115,10 +115,16 @@ namespace optimizer {
 
                     // prevent fusing multiple activation layers into one conv layer
                     if (!is_input_of_others && conv_param->activation_type == ActivationType_None) {
-                        // quantized conv can fuse with relu only
-                        if (conv_param->quantized && activation_type != ActivationType_ReLU) {
-                            layers_fused.push_back(layer_info_current);
+                        if (conv_param->quantized)  {
+                            // quantized conv fuse relu and relu6
+                            if (activation_type == ActivationType_ReLU || activation_type == ActivationType_ReLU6) {
+                                conv_param->activation_type = activation_type;
+                                layer_info_prev->outputs = layer_info_current->outputs;
+                            } else {
+                                layers_fused.push_back(layer_info_current);
+                            }
                         } else {
+                            // float conv fuse
                             conv_param->activation_type = activation_type;
                             layer_info_prev->outputs    = layer_info_current->outputs;
                         }
