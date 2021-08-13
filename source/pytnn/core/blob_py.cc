@@ -34,7 +34,7 @@ void InitBlobPy(py::module& m) {
         .def_readwrite("bytes_offset", &BlobHandle::bytes_offset); 
 
     py::class_<Blob>(m, "Blob")
-	.def(py::init<BlobDesc>())
+	    .def(py::init<BlobDesc>())
         .def(py::init<BlobDesc, bool>())
         .def(py::init<BlobDesc, BlobHandle>())
         .def("GetBlobDesc", &Blob::GetBlobDesc)

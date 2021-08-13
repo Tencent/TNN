@@ -39,7 +39,15 @@ void InitBlobPy(py::module& m);
 void InitTNNPy(py::module &m);
 void InitInstancePy(py::module &m);
 
+void InitBFP16UtilsPy(py::module &m);
 void InitBlobConverterPy(py::module &m);
+void InitCpuUtilsPy(py::module &m);
+void InitDataTypeUtilsPy(py::module &m);
+void InitDeviceUtilsPy(py::module &m);
+void InitDimsVectorUtilsPy(py::module &m);
+void InitHalfUtilsPy(py::module &m);
+void InitMatUtilsPy(py::module& m);
+void InitStringUtilsPy(py::module& m);
 
 py::array_t<float> ConvertMatToNumpy(std::shared_ptr<Mat>);
 std::shared_ptr<Mat> ConvertNumpyToMat(py::array_t<float>);

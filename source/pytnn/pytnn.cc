@@ -68,6 +68,15 @@ PYBIND11_MODULE(_pytnn, m) {
     InitTNNPy(m);
     InitInstancePy(m);
 
+    InitBFP16UtilsPy(m);
+    InitCpuUtilsPy(m);
+    InitDataTypeUtilsPy(m);
+    InitDeviceUtilsPy(m);
+    InitDimsVectorUtilsPy(m);
+    InitHalfUtilsPy(m);
+    InitMatUtilsPy(m);
+    InitStringUtilsPy(m);
+
     m.def("convert_mat_to_numpy", &ConvertMatToNumpy, "convert mat to numpy");
     m.def("convert_numpy_to_mat", &ConvertNumpyToMat, "convert numpy to mat");
 }

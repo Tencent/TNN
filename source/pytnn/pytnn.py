@@ -1,4 +1,4 @@
-from _pytnn import *
+from pytnn._pytnn import *
 from typing import List, Dict, Any
 
 def _supported_input_size_type(input_size) -> bool:
