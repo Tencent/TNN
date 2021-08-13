@@ -38,6 +38,8 @@ DeviceType ConvertDeviceType(std::string device_type) {
         return DEVICE_HUAWEI_NPU;
     } else if ("RKNPU" == device_type) {
         return DEVICE_RK_NPU;
+    } else if ("ATLAS" == device_type) {
+        return DEVICE_ATLAS;
     } else {
         return DEVICE_ARM;
     }
@@ -54,6 +56,8 @@ ModelType ConvertModelType(std::string model_type) {
         return MODEL_TYPE_NCNN;
     } else if ("RKCACHE" == model_type) {
         return MODEL_TYPE_RKCACHE;
+    } else if ("ATLAS" == model_type) {
+        return MODEL_TYPE_ATLAS;
     } else {
         return MODEL_TYPE_TNN;
     }
@@ -72,8 +76,10 @@ NetworkType ConvertNetworkType(std::string network_type) {
         return NETWORK_TYPE_RK_NPU;
     } else if ("TRT" == network_type) {
         return NETWORK_TYPE_TENSORRT;
+    } else if ("ATLAS" == network_type) {
+        return NETWORK_TYPE_ATLAS;
     } else {
-        return NETWORK_TYPE_DEFAULT;
+        return NETWORK_TYPE_AUTO;
     }
 }
 

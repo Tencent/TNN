@@ -205,7 +205,7 @@ namespace test {
         printf("    -pr \"<precision >\"    \t%s \n", precision_message);
         printf("    -is \"<input shape>\"   \t%s \n", input_shape_message);
         printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
-        printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
+        printf("    -nt \"<network type>\t%s \n", network_type_message);
         printf("    -et \"<enable tune>\t%s \n", enable_tune_message);
         printf("    -sc \"<input scale>\t%s \n", scale_message);
         printf("    -bi \"<input bias>\t%s \n", bias_message);
