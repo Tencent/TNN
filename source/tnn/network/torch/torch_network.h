@@ -73,6 +73,8 @@ private:
   
     virtual Status ClearOutputs();
 
+    virtual Status ReleaseTorchOutputTensors();
+
     std::shared_ptr<torch::jit::Module> module_;
     std::shared_ptr<torch::jit::Graph> graph_;
 
