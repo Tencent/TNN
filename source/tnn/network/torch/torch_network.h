@@ -75,6 +75,8 @@ private:
   
     virtual Status ClearOutputs();
 
+    virtual Status ReleaseTorchOutputTensors();
+
     Status DumpAllOutputBlob();
 
     std::shared_ptr<torch::jit::Module> module_;

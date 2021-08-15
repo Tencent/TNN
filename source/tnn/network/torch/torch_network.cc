@@ -304,6 +304,10 @@ Status TNNTorchNetwork::Forward() {
     // Blob converter may issue async converting, we need to wait for data ready.
     RETURN_ON_FAIL(context_->Synchronize());
 
+    // TNN blob holds torch's output Tensor of previous forward round, so we can access it's data.
+    // at this point, we don't need it, so release it to save memory.
+    RETURN_ON_FAIL(ReleaseTorchOutputTensors());
+
     if (!init_done_) {
         return Status(TNNERR_INST_ERR, "Torch Network is not initialized");
     }
@@ -390,6 +394,19 @@ Status TNNTorchNetwork::ClearOutputs() {
         delete it->second;
         it = output_blob_map_.erase(it);
     }
+    return TNN_OK;
+}
+
+
+Status TNNTorchNetwork::ReleaseTorchOutputTensors() {
+    auto it = output_blob_map_.begin();
+    while(it != output_blob_map_.end()) {
+        auto blob = it->second;
+        std::shared_ptr<at::Tensor> empty_tensor;
+        RETURN_ON_FAIL(SetTensorToBlob(blob, empty_tensor));
+        it++;
+    }
+
     return TNN_OK;
 }
 
