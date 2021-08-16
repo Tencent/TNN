@@ -157,7 +157,7 @@ bool CheckNumberString(std::string num_str) {
     const char* num_char = num_str.c_str();
 
     for (int i = 0; i < num_str.length(); ++i) {
-        if (!(num_char[i] >= '0' && num_char[i] <= '9') && num_char[i] != '.') {
+        if (!(num_char[i] >= '0' && num_char[i] <= '9') && num_char[i] != '.' && num_char[i] != '-') {
             return false;
         }
     }

@@ -510,7 +510,7 @@ template <typename Tin, typename Tw, typename Tacc, typename Tout>
 void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
                DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y, 
                int pad_x, int group, int dilation, int activation_type, float *weight_scale, int weight_scale_len, 
-               int8_t *scale_bias_handle_w, int8_t *scale_bias_handle_i, int8_t *scale_bias_handle_o,
+               void *scale_bias_w_ptr, void *scale_bias_i_ptr, void *scale_bias_o_ptr, void *weight_x_bias_ptr,
                int8_t *relu6_max, int relu6_max_len, int fusion_type, void *add_input, float *add_scale) {
     Tin *input_data               = static_cast<Tin *>(input_ptr);
     Tw *weight_data               = static_cast<Tw *>(weight_ptr);
@@ -525,6 +525,10 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
     int input_width               = dims_input[3];
     int output_channels_per_group = output_channel / group;
     int input_channels_per_group  = input_channel / group;
+    Tin *scale_bias_handle_i      = static_cast<Tin *>(scale_bias_i_ptr);
+    Tw *scale_bias_handle_w       = static_cast<Tw *>(scale_bias_w_ptr);
+    Tout *scale_bias_handle_o     = static_cast<Tout *>(scale_bias_o_ptr);
+    Tacc *buffer_weight_x_bias    = static_cast<Tacc *>(weight_x_bias_ptr);
 
     // #pragma omp parallel for
     for (int n = 0; n < number; ++n) {
@@ -564,12 +568,12 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
                                                            kernel_h) *
                                                               kernel_size_x +
                                                           kernel_w;
-                                                          
+                                    int weight_x_bias_position = input_c  + weight_position * input_channel;
+                                                                                           
                                     result += input_data[input_position] * weight_data[weight_position] -   
-                                    static_cast<Tacc>(scale_bias_handle_w[scale_idx] * input_data[input_position]) -
-                                    static_cast<Tacc>(scale_bias_handle_i[input_c] * weight_data[weight_position]) + 
-                                    static_cast<Tacc>(scale_bias_handle_i[input_c] * scale_bias_handle_w[scale_idx]);
-                                       
+                                    static_cast<Tacc>(input_data[input_position] * scale_bias_handle_w[scale_idx]) +
+                                    buffer_weight_x_bias[weight_x_bias_position];  
+
                                     // if(output_position>= 0){
                                     //     LOGE("%d,%d,%d,%d,%d,%d,result%d,input_data%d,weight_data%d,sw%d,si%d\n",output_c,h,w,kernel_h,kernel_w,input_c,
                                     //     result,input_data[input_position], weight_data[weight_position],scale_bias_handle_w[scale_idx],scale_bias_handle_i[scale_idx]);
@@ -616,7 +620,7 @@ template void NaiveConvBias<int8_t, int8_t, int32_t, int8_t>(
     void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
     DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
     int pad_x, int group, int dilation, int activation_type, float *weight_scale, int weight_scale_len,
-    int8_t *scale_bias_handle_w, int8_t *scale_bias_handle_i, int8_t * scale_bias_handle_o,
+    void *scale_bias_w_ptr, void *scale_bias_i_ptr, void * scale_bias_o_ptr, void *weight_x_bias_ptr,
     int8_t *relu6_max, int relu6_max_len, int fusion_type = FusionType_None, void *add_input = nullptr,
     float *add_scale = nullptr);
 
@@ -1326,9 +1330,6 @@ void NaiveQuantBias(const float *input_ptr, const float *scale_ptr, const int8_t
             int scale_idx = scale_len == 1 ? 0 : c;
             for (int hw = 0; hw < hw_size; hw++) {
                 if (scale_ptr[scale_idx] != 0){
-                    float val = input_ptr[offset + hw] / scale_ptr[scale_idx] + static_cast<float>(scale_bias_ptr[scale_idx]);
-                    int8_t test = float2int8(val);
-                    float bias = static_cast<float>(scale_bias_ptr[scale_idx]);
                     output[offset + hw] = float2int8(input_ptr[offset + hw] / scale_ptr[scale_idx] + static_cast<float>(scale_bias_ptr[scale_idx]));
               } else
                     output[offset + hw] = 0;
