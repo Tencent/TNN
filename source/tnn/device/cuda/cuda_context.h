@@ -68,7 +68,7 @@ public:
     cudaStream_t stream_;
     void* workspace_ = nullptr;
     int workspace_size_ = 0;
-    int device_id_;
+    int device_id_ = 0;
     bool own_stream_ = false;
 };
 

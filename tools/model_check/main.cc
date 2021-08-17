@@ -147,7 +147,7 @@ std::pair<std::string, FileFormat> GetFileInfo(std::string input_path) {
 void ShowUsage() {
     printf(
         "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-d] <device> [-i] <input> [-o] [-e] [-f] "
-        "<refernece> [-n] <val> [-s] <val> [-a] <align_folder>\n");
+        "<refernece> [-n] <val> [-s] <val> [-sp] <precision>\n");
     printf("\t-h, <help>     \t%s\n", help_message);
     printf("\t-p, <proto>    \t%s\n", proto_path_message);
     printf("\t-m, <model>    \t%s\n", model_path_message);
@@ -160,7 +160,6 @@ void ShowUsage() {
     printf("\t\tformula: y = (x - bias) * scale\n");
     printf("\t-o, <output>   \t%s\n", output_dump_message);
     printf("\t-b, <batch>    \t%s\n", check_batch_message);
-    printf("\t-a, <align_all>\t%s\n", align_all_message);
     printf("\t-sp, <set precision>\t%s\n", set_precision_message);
 }
 
@@ -255,7 +254,7 @@ int main(int argc, char* argv[]) {
     }
 
     // for NAIVE only check output
-    if (net_config.device_type == DEVICE_NAIVE) {
+    if (net_config.device_type == DEVICE_NAIVE && model_checker_param.dump_dir_path.empty()) {
         model_checker_param.only_check_output = true;
     }
 

@@ -603,6 +603,7 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         network_config.library_path = {option->library_path};
         network_config.device_type  = device_type_;
         network_config.precision = option->precision;
+        network_config.cache_path = "/sdcard/";
         if(device_type_ == TNN_NS::DEVICE_HUAWEI_NPU){
             network_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
         } else if (option->compute_units == TNNComputeUnitsOpenvino) {
@@ -662,6 +663,18 @@ DimsVector TNNSDKSample::GetInputShape(std::string name) {
         shape = blob_map[name]->GetBlobDesc().dims;
     }
     return shape;
+}
+
+MatType TNNSDKSample::GetOutputMatType(std::string name) {
+    if (instance_) {
+        BlobMap output_blobs;
+        instance_->GetAllOutputBlobs(output_blobs);
+        auto blob = (name == "") ? output_blobs.begin()->second : output_blobs[name];
+        if (blob->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+            return NC_INT32;
+        }
+    }
+    return NCHW_FLOAT;
 }
 
 std::vector<std::string> TNNSDKSample::GetInputNames() {
@@ -827,7 +840,8 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
             auto output_convert_param = GetConvertParamForOutput();
             std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
             status = instance_->GetOutputMat(output_mat, output_convert_param, "",
-                                             TNNSDKUtils::GetFallBackDeviceType(input_device_type));
+                                             TNNSDKUtils::GetFallBackDeviceType(input_device_type),
+                                             GetOutputMatType());
             RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             output->AddMat(output_mat, output_names[0]);
         } else {
@@ -835,7 +849,8 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
                 auto output_convert_param = GetConvertParamForOutput(name);
                 std::shared_ptr<TNN_NS::Mat> output_mat = nullptr;
                 status = instance_->GetOutputMat(output_mat, output_convert_param, name,
-                                                 TNNSDKUtils::GetFallBackDeviceType(input_device_type));
+                                                 TNNSDKUtils::GetFallBackDeviceType(input_device_type),
+                                                 GetOutputMatType(name));
                 RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
                 output->AddMat(output_mat, name);
             }

@@ -32,7 +32,7 @@ nvinfer1::Dims unsqueeze_trt_dims(const nvinfer1::Dims &input_dims, int unsqueez
 }
 
 bool MatMulTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     if (pos == 1) {
         return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
     } else {
@@ -45,16 +45,16 @@ Status MatMulTRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* MatMulTRTPluginLayerBuilder::getPluginType() const {
+const char* MatMulTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "MatMul";
 }
 
 nvinfer1::DataType MatMulTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     auto paramlist = dynamic_cast<MatMulLayerParam *>(param_);
     auto resource  = dynamic_cast<MatMulLayerResource *>(resource_);
     auto input_tensors = GetInputITensors();
@@ -129,7 +129,7 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 }
 
 DimsExprs MatMulTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInput, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInput, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DimsExprs output(inputs[0]);
     int size = inputs[0].nbDims;
     output.d[size - 1] = inputs[1].d[size - 1];
@@ -140,7 +140,7 @@ DimsExprs MatMulTRTPluginLayerBuilder::getOutputDimensions(int index, const nvin
     return output;
 }
 
-const char* MatMulPluginCreator::getPluginName() const {
+const char* MatMulPluginCreator::getPluginName() const noexcept {
     return "MatMul";
 }
 
