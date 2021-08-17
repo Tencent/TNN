@@ -27,7 +27,8 @@ JNIEXPORT JNICALL jint TNN_READING_COMPREHENSION(init)(JNIEnv *env, jobject thiz
     option->library_path="";
     option->proto_content = protoContent;
     option->model_content = modelContent;
-    option->precision = TNN_NS::PRECISION_HIGH;
+//    option->precision = TNN_NS::PRECISION_HIGH;
+    option->precision = TNN_NS::PRECISION_NORMAL;
 
     if (gComputeUnitType == 1) {
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
@@ -67,7 +68,7 @@ JNIEXPORT JNICALL jstring TNN_READING_COMPREHENSION(ask)(JNIEnv *env, jobject th
     int ret = -1;
 
     TNN_NS::BenchOption bench_option;
-    bench_option.forward_count = 10;
+    bench_option.forward_count = 1;
     gResponder->SetBenchOption(bench_option);
 
     std::string vocabPath;
@@ -105,6 +106,7 @@ JNIEXPORT JNICALL jstring TNN_READING_COMPREHENSION(ask)(JNIEnv *env, jobject th
     tokenizer->ConvertResult(bertOutput, "output_0", "output_1", ans);
 
     auto bench_result = gResponder->GetBenchResult();
+    LOGE("avg time is %f", bench_result.avg);
 
     return string2jstring(env, ans.c_str());
 }

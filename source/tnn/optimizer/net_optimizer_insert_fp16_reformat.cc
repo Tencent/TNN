@@ -34,6 +34,89 @@ namespace optimizer {
     NetOptimizerRegister<NetOptimizerInsertFp16Reformat> g_net_optimizer_insert_fp16_reformat(OptPriority::P2);
     static const std::string reformat_name_suffix = "_fp16_reformat";
 
+    static const std::set<LayerType> kLayerOutputNonFloat = {LAYER_ARG_MAX_OR_MIN};
+
+    // skip fp16 reformat if output of the layer is not float type
+    bool IsLayerOutputFloat(std::shared_ptr<LayerInfo> layer) {
+        if (kLayerOutputNonFloat.find(layer->type) != kLayerOutputNonFloat.end()) {
+            return false;
+        }
+
+        if (layer->type == LAYER_CAST) {
+            auto layer_param = dynamic_cast<CastLayerParam *>(layer->param.get());
+            CHECK_PARAM_NULL(layer_param);
+            return (layer_param->to == DATA_TYPE_FLOAT || layer_param->to == DATA_TYPE_HALF);
+        }
+
+        return true;
+    }
+
+    // skip some special cases which must output fp32 or int32 instead of fp16, such as gather (data in resource)
+    bool IsSpecialCase(std::set<std::string> writelist, std::string cur_name){
+        return writelist.find(cur_name) != writelist.end();
+    }
+
+    void OutputSameAsInput(std::shared_ptr<LayerInfo> cur_layer, std::set<std::string> &writelist, std::set<std::string> &blob32) {
+        std::vector<std::string> intersection;
+        std::set<std::string> cur_input(cur_layer->inputs.begin(), cur_layer->inputs.end());
+        std::set_intersection(cur_input.begin(), cur_input.end(), 
+                            blob32.begin(), blob32.end(), std::back_inserter(intersection));
+        if (intersection.size() > 0){
+            writelist.insert(cur_layer->name);
+            for (auto cur_output: cur_layer->outputs){
+                blob32.insert(cur_output);
+            }
+        }
+    }
+
+    bool GenWriterList(NetStructure *structure, std::set<std::string> &writelist){
+        // If input is int32, some layers will propagate int32 (such as unsqueeze, gather), 
+        // these layers will view as special case which don't output fp16
+
+        const std::set<LayerType> layer_type_writelist = {LAYER_UNSQUEEZE, LAYER_GATHER};
+
+        std::set<std::string> blob32;
+
+        std::vector<std::shared_ptr<LayerInfo>> layers_orig = structure->layers;
+        const int count                                     = (const int)layers_orig.size();
+
+        // get input type
+        for (const auto &iter : structure->input_data_type_map) {
+            const auto &name = iter.first;
+            const auto type = iter.second;
+            if (type == DATA_TYPE_INT32){
+                blob32.insert(name);
+            }
+        }
+        for (int index = 0; index < count; index++) {
+            auto cur_layer = layers_orig[index];
+
+            if (layer_type_writelist.find(cur_layer->type) != layer_type_writelist.end()){
+                // process Gather
+                if (cur_layer->type == LAYER_GATHER){
+                    auto layer_param = dynamic_cast<GatherLayerParam *>(cur_layer->param.get());
+                    CHECK_PARAM_NULL(layer_param);
+                    if (layer_param->data_in_resource == true){
+                        // if data in resource, must return fp32 or int32
+                        writelist.insert(cur_layer->name);
+                        for (auto cur_output: cur_layer->outputs){
+                            blob32.insert(cur_output);
+                        }
+                    }else{
+                        // else indice in reource, output type in the same as input
+                        OutputSameAsInput(cur_layer, writelist, blob32);
+                    }
+                }
+                // process Unsqueeze
+                if (cur_layer->type == LAYER_UNSQUEEZE){
+                    // output type is the same as input
+                    OutputSameAsInput(cur_layer, writelist, blob32);
+                }
+            }
+        }
+        return true;
+    }
+
     std::string NetOptimizerInsertFp16Reformat::Strategy() {
         return kNetOptimizerInsertFp16Reformat;
     }
@@ -131,16 +214,21 @@ namespace optimizer {
             }
         }
 
+        std::set<std::string> writelist;
+        if (!GenWriterList(structure, writelist)){
+            return Status(TNNERR_CONVERT_OPTIMIZE_ERROR, "Can not generate writelist");
+        }
+
         for (int index = 0; index < count; index++) {
             auto cur_layer = layers_orig[index];
             layers_fused.push_back(cur_layer);
-            if (constant_layers.count(cur_layer->name) > 0) {
+            if (constant_layers.count(cur_layer->name) > 0 || !IsLayerOutputFloat(cur_layer)) {
                 continue;
             }
             // find blobs need reformat
             // support multi inputs/outputs
             std::vector<std::string> reformat_outs;
-            bool is_cur_layer_fp16 = device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented;
+            bool is_cur_layer_fp16 = device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented & !IsSpecialCase(writelist, cur_layer->name);
             for (auto cur_out : cur_layer->outputs) {
                 if (constant_blobs.count(cur_out) > 0) {
                     continue;
@@ -151,7 +239,7 @@ namespace optimizer {
                     if (constant_layers.count(next_layer->name) > 0) {
                         continue;
                     }
-                    bool is_next_layer_fp16 = device_->GetImplementedPrecision(next_layer->type)->fp16_implemented;
+                    bool is_next_layer_fp16 = device_->GetImplementedPrecision(next_layer->type)->fp16_implemented & !IsSpecialCase(writelist, next_layer->name);
                     for (auto next_in : next_layer->inputs) {
                         if (next_in == cur_out && is_next_layer_fp16 != is_cur_layer_fp16) {
                             need_reformat = true;

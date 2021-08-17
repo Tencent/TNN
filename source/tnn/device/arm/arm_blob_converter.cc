@@ -95,8 +95,8 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param,
         int ele_size = DataTypeUtils::GetBytesSize(desc.data_type);
         if (image.GetMatType() == NC_INT32) {
             memcpy(image.GetData(), GetBlobHandlePtr(blob_->GetHandle()), count * ele_size);
-            return ret;
         }
+        return ret;
     }
 
     auto cvt_data_type  = desc.data_type;
