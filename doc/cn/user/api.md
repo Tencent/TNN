@@ -89,7 +89,7 @@ auto status = instance->GetOutputMat(output_mat);
 
 TNN输出获取通过调用GetOutputMat接口完成，输出结果将按照特定格式保存在`output_mat`中。
 
-## 二、API详解
+## 三、API详解
 
 ### API目录结构
 
@@ -136,16 +136,14 @@ struct PUBLIC ModelConfig {
     // coreml model need one param: coreml model directory path.
     // snpe model need one param: dlc model directory path.
     // hiai model need two params: order is model name, model file path.
-    // atlas model need one param: config string.
+    // atlas model need one param: om file path or om file content.
     std::vector<std::string> params;
 };
 ```
-
 ModelConfig参数说明：
 
 - `model_type`: TNN当前开源版本仅支持传入`MODEL_TYPE_TNN`， `MODEL_TYPE_NCNN`, `MODEL_TYPE_COREML` 模型格式。  
-- `params`: TNN模型需传入proto文件内容以及model文件路径。NCNN模型需传入param文件内容以及bin文件路径, COREML模型需传入coreml 模型所在目录路径。
-
+- `params`: TNN模型需传入proto文件内容以及model文件内容。NCNN模型需传入param文件内容以及bin文件路径, COREML模型需传入coreml 模型所在目录路径。Atlas模型需要传入om文件路径或者内容，om模型可以通过官方提供的atc工具转换（使用方法请参考：https://support.huaweicloud.com/tg-Inference-cann/atlasatc_16_0002.html ）
 
 ```cpp
 struct PUBLIC NetworkConfig {

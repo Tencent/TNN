@@ -2,7 +2,19 @@
 
 [中文版本](../../cn/user/compile.md)
 
-## I. Compile (iOS)
+Content
+* [Compile (iOS)](#1)
+* [Compile (Android)](#2)
+* [Cross-Compile in Linux](#3)
+* [Compile(x86 Linux)](#4)
+* [Compile(Linux CUDA)](#5)
+* [Compile(Linux Atlas)](#6)
+* [Compile(x86 Windows)](#7)
+* [Compile(CUDA Windows) ](#8)
+* [Compile(Macos)](#9)
+* [Description for build options](#10)
+
+## I. Compile (iOS) <span id = "1"> </span>
 ### 1. Environment requirements
   - Mac, Xcode IDE
   - cmake（version 3.1 or higher）
@@ -31,7 +43,7 @@ After the compilation, the `tnn.framework` library and` tnn.bundle` resources ar
 
 Currently, the compiled `tnn.framework` supports running on CPU and GPU of iOS devices, but only supports running on GPU of Mac. The support for Mac CPU will come in future TNN updates.
 
-## II. Compile (Android)
+## II. Compile (Android) <span id = "2"> </span>
 ### 1. Environment requirements
 #### Dependency
   - cmake（version 3.6 or higher）
@@ -72,7 +84,7 @@ cd <path_to_tnn>/scripts
 ```
 After the compilation is completed, the corresponding `armeabi-v7a` library, the` arm64-v8a` library and the `include` header file are generated in the` release` directory of the current directory. <font color="#dd0000">Notice that add `-Wl,--whole-archive tnn -Wl,--no-whole-archive` to the project, if tnn static library is compiled</font>.
 
-## III. Cross-Compile in Linux
+## III. Cross-Compile in Linux <span id = "3"> </span>
 
 ### 1. Environment requirements
 #### Dependencies
@@ -113,7 +125,7 @@ You need to download the DDK library files and copy them to the specified direct
 Please see:
 RKNPU Compilation Prerequisite in [FAQ](../faq_en.md#rknpu-compilation-prerequisite)RKNPU Compilation Prerequisite.
 
-## IV. Compile(x86 Linux)
+## IV. Compile(x86 Linux) <span id = "4"> </span>
 ### 1. Enviromnment requirements
 #### Dependencies
   - cmake (version 3.11 or higher)
@@ -134,7 +146,7 @@ cd <path_to_tnn>/scripts
 ```
 Openvino can only be compiled to 64-bit version, cmake version 3.13 or higher
 
-## V. Compile(Linux CUDA)
+## V. Compile(Linux CUDA) <span id = "5"> </span>
 ### 1. Enviromnment requirements
 #### Dependency
   - cmake（version 3.8 or higher）
@@ -158,7 +170,30 @@ cd <path_to_tnn>/scripts
 ./build_cuda_linux.sh
 ```
 
-## VI. Compile(x86 Windows)
+## VI. Compile(Linux Atlas) <span id = "6"> </span>
+### 1. Enviromnment requirements
+#### Dependency
+  - cmake（version 3.8 or higher）
+  - AtlasDDK (20.2.0 or higher) (Download: https://www.hiascend.com/zh/hardware/firmware-drivers)
+#### Docker image
+Official docker image for X86 and ARM. (Download: https://ascendhub.huawei.com/)
+### 2. Compilation Steps
+1) Set environment variable： 
+* DDK_PATH -- the root path of AtlasDDK: /usr/local/Ascend/ascend-toolkit/latest 
+* NPU_HOST_LIB -- the path of DDK lib：${DDK_PATH}/acllib/lib64 
+* LD_LIBRARY_PATH -- add NPU_HOST_LIB into LD_LIBRARY_PATH 
+```
+export DDK_PATH=/usr/local/Ascend/ascend-toolkit/latest
+export NPU_HOST_LIB=${DDK_PATH}/acllib/lib64
+export LD_LIBRARY_PATH=${DDK_PATH}/acllib/lib64:$LD_LIBRARY_PATH
+```
+2) execute the building scripts
+```
+cd <TNN_PATH>/scripts
+./build_atlas.sh
+```
+
+## VII. Compile(x86 Windows) <span id = "7"> </span>
 ### 1. Environment requirements
 #### Dependencies
   - Visual Studio (version 2015 or higher)
@@ -182,7 +217,7 @@ cd <path_to_tnn>/scripts
 ```
 Openvino can only be compiled to 64-bit version. More problems refer to [FAQ](openvino_en.md)
 
-## VII. Compile(CUDA Windows) 
+## VIII. Compile(CUDA Windows)  <span id = "8"> </span>
 ### 1. Enviroment requirements
 #### Dependencies
   - Visual Studio (version 2015 or higher)
@@ -208,8 +243,7 @@ cd <path_to_tnn>/scripts
 .\build_cuda_msvc.bat
 ```
 
-
-## VIII. Compile(Macos)
+## VIIII. Compile(Macos) <span id = "9"> </span>
 ### 1. Environment requirements
 #### Dependencies
   - cmake 3.11 or above
@@ -227,7 +261,7 @@ cd <path_to_tnn>/scripts
 ./build_macos.sh
 ```
 
-## Description for build options 
+## Description for build options <span id = "10"> </span>
 
 |Option|Default|Description|
 |------|:---:|----|

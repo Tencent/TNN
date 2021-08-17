@@ -2,7 +2,19 @@
 
 [English Version](../../en/user/compile_en.md)
 
-## 一、iOS库编译
+目录：
+* [iOS库编译](#1)
+* [Android库编译](#2)
+* [ARM Linux跨平台交叉编译](#3)
+* [Linux 环境编译](#4)
+* [Linux CUDA库编译](#5)
+* [Linux Atlas库编译](#6)
+* [Windows 环境编译](#7)
+* [Windows CUDA 环境编译](#8)
+* [Macos 环境编译](#9)
+* [编译参数说明](#10)
+
+## 一、iOS库编译 <span id = "1"> </span>
 ### 1. 编译环境要求
   - Mac系统, Xcode IDE
   - cmake（使用3.1及以上版本）
@@ -31,7 +43,7 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer/
 
 当前编译出的`tnn.framework`支持iOS设备上跑CPU和GPU，在Mac设备上当前仅支持跑GPU，CPU的支持在后续版本迭代中支持。
 
-## 二、Android库编译
+## 二、Android库编译 <span id = "2"> </span>
 ### 1. 环境要求
 #### 依赖库
   - cmake（使用3.6及以上版本）
@@ -77,7 +89,7 @@ cd <path_to_tnn>/scripts
 
 编译完成后，在当前目录的`release`目录下生成对应的`armeabi-v7a`库，`arm64-v8a`库和`include`头文件。<font color="#dd0000">如果是编译成静态库，集成链接需添加`-Wl,--whole-archive tnn -Wl,--no-whole-archive`</font>。
 
-## 三、ARM Linux跨平台交叉编译
+## 三、ARM Linux跨平台交叉编译 <span id = "3"> </span>
 
 ### 1. 环境要求
 #### 依赖库
@@ -114,7 +126,7 @@ cd <path_to_tnn>/scripts
 RKNPU : 运行前需要下载DDK, 并放到指定文件夹。具体请参考:
 [FAQ](../faq.md#如何创建rknpu编译环境)如何创建RKNPU编译环境?
 
-## 四、Linux 环境编译
+## 四、Linux 环境编译 <span id = "4"> </span>
 ### 1.环境要求
 依赖库
   - cmake (使用3.11版本及以上)
@@ -136,7 +148,7 @@ cd <path_to_tnn>/scripts
 ```
 注意：openvino只能编译成64位的库，且cmake版本必须要求3.13以上
 
-## 五、Linux CUDA库编译
+## 五、Linux CUDA库编译 <span id = "5"> </span>
 ### 1.环境要求
 #### 依赖库
   - cmake (使用3.8及以上版本）
@@ -160,7 +172,30 @@ cd <path_to_tnn>/scripts
 ./build_cuda_linux.sh
 ```
 
-## 六、Windows 环境编译
+## 六、Linux Atlas库编译 <span id = "6"> </span>
+### 1.环境要求
+#### 依赖库
+  - cmake (使用3.8及以上版本）
+  - AtlasDDK (20.2.0及以上版本)，官方下载地址：https://www.hiascend.com/zh/hardware/firmware-drivers
+#### 镜像仓库
+官方提供了x86平台和ARM平台的镜像仓库：https://ascendhub.huawei.com/
+### 2.编译步骤
+1) 配置相关环境变量： 
+* DDK_PATH——设置为AtlasDDK的根目录：/usr/local/Ascend/ascend-toolkit/latest 
+* NPU_HOST_LIB——设置为Atlas的库目录：${DDK_PATH}/acllib/lib64 
+* LD_LIBRARY_PATH——将Atlas的库路径设置到LD_LIBRARY_PATH中 
+```
+export DDK_PATH=/usr/local/Ascend/ascend-toolkit/latest
+export NPU_HOST_LIB=${DDK_PATH}/acllib/lib64
+export LD_LIBRARY_PATH=$DDK_PATH/acllib/lib64:$LD_LIBRARY_PATH
+```
+2) 执行编译脚本
+```
+cd <TNN_PATH>/scripts
+./build_atlas.sh
+```
+
+## 七、Windows 环境编译 <span id = "7"> </span>
 ### 1.环境要求
 依赖库
   - Visual Studio (2017 及更高版本)
@@ -184,7 +219,7 @@ cd <path_to_tnn>/scripts
 ```
 openvino只能编译成64位的库，更多编译问题请参考 [FAQ](openvino.md)
 
-## 七、Windows CUDA 环境编译
+## 八、Windows CUDA 环境编译 <span id = "8"> </span>
 ### 1.环境要求
 依赖库
   - Visual Studio (2017 及更高版本)
@@ -210,7 +245,7 @@ cd <path_to_tnn>/scripts
 .\build_cuda_msvc.bat
 ```
 
-## 八、Macos 环境编译
+## 九、Macos 环境编译 <span id = "9"> </span>
 ### 1.环境要求
 依赖库
   - cmake 3.11 以上版本 
@@ -228,7 +263,7 @@ cd <path_to_tnn>/scripts
 ./build_macos.sh
 ```
 
-## 编译参数option说明
+## 编译参数option说明 <span id = "10"> </span>
 
 |Option|默认值|说明|
 |------|:---:|----|

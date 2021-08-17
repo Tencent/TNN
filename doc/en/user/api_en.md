@@ -139,7 +139,7 @@ struct PUBLIC ModelConfig {
     // coreml model need one param: coreml model directory path.
     // snpe model need one param: dlc model directory path.
     // hiai model need two params: order is model name, model file path.
-    // atlas model need one param: config string.
+    // atlas model need one param: om file path or om file content.
     std::vector<std::string> params;
 };
 ```
@@ -147,7 +147,7 @@ struct PUBLIC ModelConfig {
 ModelConfig parameters：  
 
 - `model_type`: The current open source version of TNN only supports importing `MODEL_TYPE_TNN`, `MODEL_TYPE_NCNN`, `MODEL_TYPE_COREML` model formats.  
-- `params`: The TNN model needs to pass in the content of the proto file and the path of the model file. The NCNN model needs to input the content of the param file and the path of the bin file, and the COREML model needs to input the directory path where the coreml model is located.  
+- `params`: The TNN model needs to pass in the content of the proto file and model file. The NCNN model needs to input the content of the param file and the path of the bin file, and the COREML model needs to input the directory path where the coreml model is located. For atlas model, the om file is needed, which can be converted via atc tools (reference: https://support.huaweicloud.com/intl/en-us/atctool-cann502alphaXinfer/atlasatc_16_0005.html)
 
 ```cpp
 struct PUBLIC NetworkConfig {
