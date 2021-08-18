@@ -378,6 +378,13 @@ int Calibration::QuantizeParams() {
 
     for (auto& item : net_struct->layers) {
         LayerType layer_type = item->type;
+
+        // skip constant layer
+        auto const_layers = net_resource->constant_layers;
+        if (const_layers.find(item->name) != const_layers.end()) {
+            continue;
+        }
+
         if (kQuantizedLayerTypeStr.find(layer_type) != kQuantizedLayerTypeStr.end()) {
             // assign NetStructure
             item->param->quantized = true;
