@@ -25,7 +25,10 @@
 #include "tnn/interpreter/abstract_model_interpreter.h"
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/utils/dims_utils.h"
+
+#ifdef TRAIN
 #include "tnn/train/solver/sgd.h"
+#endif
 
 namespace TNN_NS {
 
@@ -41,7 +44,7 @@ Instance::Instance(NetworkConfig &net_config, ModelConfig &model_config) {
 Instance::~Instance() {
     DeInit();
 }
-
+#ifdef TRAIN
 /*
  * @brief deep vist the compute DAG graph, to find which layers need to be calcualted grads
  * @return if cur layer need to be calculated grad
@@ -67,10 +70,12 @@ bool DeepVisit(const LayerInfo* layer, const std::set<std::string>& trainable_la
         need_grad_layers.insert(layer->name);
     return need_grad;
 }
-
+#endif
 Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape) {
     return Init(interpreter, inputs_shape, inputs_shape);
 }
+
+#ifdef TRAIN
 Status SetTrainLayers(DefaultModelInterpreter* interpreter, std::set<std::string>& need_grad_layers, const TrainConfig train_config) {
     if(train_config.run_mode != TRAIN_MODE)
         return TNN_OK;
@@ -86,6 +91,7 @@ Status SetTrainLayers(DefaultModelInterpreter* interpreter, std::set<std::string
         
         structure->inputs_shape_map[train_config.target_name] = train_config.target_shape;
         auto cur_layer = std::make_shared<LayerInfo>();
+        LayerParam* param = nullptr;
         if(train_config.loss_func == BINARY_CROSS_ENTROPY_FUNC) { // the output_layer is sigmoid usually
             cur_layer->type = LAYER_BINARY_CROSSENTROPY;
             cur_layer->type_str = "BinaryCrossEntropy";
@@ -98,31 +104,30 @@ Status SetTrainLayers(DefaultModelInterpreter* interpreter, std::set<std::string
             cur_layer->type_str = "CategoricalCrossEntropy";
             cur_layer->inputs.clear();
             cur_layer->outputs.clear();
-            cur_layer->name = train_config.output_layer_name + "/CategoricalCrossEntropy";
-
-            std::string output_blob_name;
-            for(auto layer: structure->layers) {
-                if(layer->name == train_config.output_layer_name)
-                    output_blob_name = layer->outputs[0];
-            }
-            if(output_blob_name.empty())
-                return Status(TNNERR_NET_ERR, "find output blob error");
-            cur_layer->inputs.push_back(output_blob_name);
-            cur_layer->inputs.push_back(train_config.target_name);
-            cur_layer->outputs.push_back(cur_layer->name); //use layer name as output blob name
-
-            structure->blobs.insert(train_config.output_layer_name);
-            structure->blobs.insert(train_config.target_name);
-            structure->blobs.insert(cur_layer->name);
-
-            LayerParam* param = new CategoricalCrossEntropyLayerParam();
-            param->quantized = false;
-            param->type = cur_layer->type_str;
-            param->trainable = false;
-            cur_layer->param = std::make_shared<LayerParam>(param);         
+            cur_layer->name = train_config.output_layer_name + "/CategoricalCrossEntropy";  
         } else {
             return Status(TNNERR_NET_ERR, "NOT SUPPORT LOSS FUNC");
         }
+        std::string output_blob_name;
+        for(auto layer: structure->layers) {
+            if(layer->name == train_config.output_layer_name)
+                output_blob_name = layer->outputs[0];
+        }
+        if(output_blob_name.empty())
+            return Status(TNNERR_NET_ERR, "find output blob error");
+        cur_layer->inputs.push_back(output_blob_name);
+        cur_layer->inputs.push_back(train_config.target_name);
+        cur_layer->outputs.push_back(cur_layer->name); //use layer name as output blob name
+
+        structure->blobs.insert(train_config.output_layer_name);
+        structure->blobs.insert(train_config.target_name);
+        structure->blobs.insert(cur_layer->name);
+
+        param = new MultidirBroadcastLayerParam();
+        param->quantized = false;
+        param->type = cur_layer->type_str;
+        param->trainable = false;
+        cur_layer->param = std::shared_ptr<LayerParam>(param);      
         structure->layers.push_back(cur_layer);
         //loss reduce mean layer
         auto loss_layer = std::make_shared<LayerInfo>();
@@ -130,19 +135,19 @@ Status SetTrainLayers(DefaultModelInterpreter* interpreter, std::set<std::string
         loss_layer->type_str = "ReduceMean";
         loss_layer->inputs.clear();
         loss_layer->outputs.clear();
-        loss_layer->name =  train_config.loss_layer_name;
+        loss_layer->name = train_config.loss_layer_name;
         loss_layer->inputs.push_back(cur_layer->outputs[0]);
         loss_layer->outputs.push_back(loss_layer->name);
         structure->blobs.insert(loss_layer->name);
-        LayerParam* param = new ReduceLayerParam();
+        param = new ReduceLayerParam();
         param->quantized = false;
         param->type = loss_layer->type_str;
         param->trainable = false;
         train_config.target_shape.size();
-        auto axis = static_cast<ReduceLayerParam*>(param)->axis;
-        for(int i=1; i<train_config.target_shape.size(); ++i)
+        auto& axis = static_cast<ReduceLayerParam*>(param)->axis;
+        for(int i=0; i<train_config.target_shape.size(); ++i)
             axis.push_back(i);
-        loss_layer->param = std::make_shared<LayerParam>(param);
+        loss_layer->param = std::shared_ptr<LayerParam>(param);
         structure->layers.push_back(loss_layer);
         structure->outputs.insert(loss_layer->name);      
     }
@@ -163,13 +168,16 @@ Status SetTrainLayers(DefaultModelInterpreter* interpreter, std::set<std::string
                 iter.second->SetTrainable(true);
         }
     }
+    return TNN_OK;
 }
 Status CreateSolver(AbstractNetwork* network, NetworkConfig* config, const std::set<std::string>& need_grad_layers){
     if(config->train_config.run_mode != TRAIN_MODE)
         return TNN_OK;
     //set solver
     if(config->train_config.solver_type == SOLVER_SGD) {
-        std::shared_ptr<train::BaseSolver> solver = std::make_shared<train::BaseSolver>(network, config);
+        float learning_rate = config->train_config.sgd_params.learning_rate;
+        std::shared_ptr<train::BaseSolver> solver(new train::SGD(network, config, learning_rate));
+        //std::shared_ptr<train::BaseSolver> solver(new train::BaseSolver(network, config));
         solver->SetNeedGradLayers(need_grad_layers);
         network->SetSolver(solver); //小心智能指针的循环引用
     } else {
@@ -178,6 +186,12 @@ Status CreateSolver(AbstractNetwork* network, NetworkConfig* config, const std::
     return TNN_OK;
 
 }
+Status Instance::TrainStep() {
+    return network_->TrainStep();
+
+};
+#endif // ifdef TRAIN
+
 Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     auto device = GetDevice(net_config_.device_type);
     RETURN_VALUE_ON_NEQ(device != NULL, true, TNNERR_DEVICE_NOT_SUPPORT);
@@ -201,9 +215,12 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
         LOGE("ERROR: network_ is nil, network_type may not support\n");
         return Status(TNNERR_NET_ERR, "network_ is nil, network_type may not support");
     }
+    Status ret;
+#ifdef TRAIN
     std::set<std::string> need_grad_string;
-    auto ret = SetTrainLayers(default_interpreter, need_grad_string, net_config_.train_config);
+    ret = SetTrainLayers(default_interpreter, need_grad_string, net_config_.train_config);
     RETURN_ON_NEQ(ret, TNN_OK);
+#endif
     if (net_config_.device_type == DEVICE_CUDA) {
         auto ret = network_->Init(net_config_, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape, false);
         if (ret == TNN_OK) {
@@ -245,12 +262,14 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
  
         const_folder_ = const_folder;
     }
-
+#ifdef Train
     network_ = NetworkImplManager::GetNetworkImpl(network_type);
-    ret = network_->Init(net_config_, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape, true);
-    RETURN_ON_NEQ(ret, TNN_OK);
     ret = CreateSolver(network_.get(), &net_config_, need_grad_string);
     RETURN_ON_NEQ(ret, TNN_OK);
+#endif
+    ret = network_->Init(net_config_, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape, true);
+    RETURN_ON_NEQ(ret, TNN_OK);
+
 
     return TNN_OK;
 }

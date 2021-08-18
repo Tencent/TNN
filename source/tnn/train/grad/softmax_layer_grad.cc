@@ -14,7 +14,7 @@
 
 // author: sanerzheng@tencent.com
 
-#include "tnn/train/grad/grad_manager.h"
+#include "tnn/train/grad/layer_grad.h"
 #include "tnn/train/operations/op_builder.h"
 #include "tnn/train/grad/utils.h"
 #include "tnn/device/arm/arm_util.h"
@@ -59,8 +59,8 @@ Status SoftMaxLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context){
     int channel_for_pack = input0_dims[1];
     int hw_for_pack = DimsVectorUtils::Count(input0_dims, 2);
 
-    void* input_ptr = inputs[0]->GetHandle().base + inputs[0]->GetHandle().bytes_offset;
-    void* output_ptr = outputs[0]->GetHandle().base + outputs[0]->GetHandle().bytes_offset;
+    void* input_ptr = static_cast<void*>(static_cast<char*>(inputs[0]->GetHandle().base) + inputs[0]->GetHandle().bytes_offset);
+    void* output_ptr = static_cast<void*>(static_cast<char*>(outputs[0]->GetHandle().base) + outputs[0]->GetHandle().bytes_offset);
     void* output_grad_ptr = iter_output_grad->second->force_to<void*>();
 
     // TODO: abstract three code blocks below to an util function

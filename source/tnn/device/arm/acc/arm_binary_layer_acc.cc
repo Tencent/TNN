@@ -78,7 +78,7 @@ template<> Float4 binary_op<ArmBinaryOpType::kHARDSWISH, Float4>(const Float4 &a
 template<> Float4 binary_op<ArmBinaryOpType::kCategoricalCrossEntropy, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return Float4::neg(Float4::log(a) * b);
 }
-const Float4 Float4::float4_const_one = TNNVector<float, 4>(1.0);
+const Float4 Float4::float4_const_one(1.0);
 //a: logits b:target
 template<> Float4 binary_op<ArmBinaryOpType::kBinaryCrossEntropy, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return Float4::neg(Float4::log(a) * b + Float4::log(Float4::float4_const_one - a) * (Float4::float4_const_one - b));
@@ -384,7 +384,10 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 return Exec<float, ArmBinaryOpType::kMIN>(inputs, outputs);
             case ArmBinaryOpType::kHARDSWISH :
                 return Exec<float, ArmBinaryOpType::kHARDSWISH>(inputs, outputs);
-
+            case ArmBinaryOpType::kBinaryCrossEntropy :
+                return Exec<float, ArmBinaryOpType::kBinaryCrossEntropy>(inputs, outputs);
+            case ArmBinaryOpType::kCategoricalCrossEntropy :
+                return Exec<float, ArmBinaryOpType::kCategoricalCrossEntropy>(inputs, outputs);
             default :
                 LOGE("Error, unknown binary op_type\n");
                 return TNNERR_LAYER_ERR;
@@ -405,7 +408,10 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 return Exec<bfp16_t, ArmBinaryOpType::kMIN>(inputs, outputs);
             case ArmBinaryOpType::kHARDSWISH :
                 return Exec<bfp16_t, ArmBinaryOpType::kHARDSWISH>(inputs, outputs);
-
+            case ArmBinaryOpType::kBinaryCrossEntropy :
+                return Exec<float, ArmBinaryOpType::kBinaryCrossEntropy>(inputs, outputs);
+            case ArmBinaryOpType::kCategoricalCrossEntropy :
+                return Exec<float, ArmBinaryOpType::kCategoricalCrossEntropy>(inputs, outputs);
             default :
                 LOGE("Error, unknown binary op_type\n");
                 return TNNERR_LAYER_ERR;

@@ -52,6 +52,8 @@ Status ReduceLayer::InferOutputShape(bool ignore_error) {
                 output_dims.push_back(dims[i]);           
             }
         }
+        if(output_dims.size() <= 0)
+            output_dims.push_back(1);
     } else {
         output_dims = dims;
     }

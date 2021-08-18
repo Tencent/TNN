@@ -14,13 +14,14 @@
 
 // author: sanerzheng@tencent.com
 
-#include "tnn/train/grad/grad_manager.h"
+#include "tnn/train/grad/layer_grad.h"
 #include "tnn/train/operations/op_builder.h"
 
 
 namespace TNN_NS {
 namespace train {
 DECLARE_LAYER_GRAD(Sigmoid, LAYER_SIGMOID);
+//class SigmoidLayerGrad : public LayerGrad { public: virtual ~SigmoidLayerGrad(){}; virtual Status OnGrad(const BaseLayer* layer, TrainContext& context); };
 Status SigmoidLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context){
     auto inputs = layer->input_blobs_;
     auto outputs = layer->output_blobs_;

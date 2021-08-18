@@ -18,6 +18,7 @@
 #include "tnn/train/grad/utils.h"
 //special for nchw to nc4hw4 transform
 #include "tnn/device/arm/arm_util.h"
+#include "tnn/core/default_network.h"
 
 namespace TNN_NS {
 namespace train {
@@ -207,9 +208,11 @@ bool ElementOp::IsSupported(ParamWrappers& inputs, ParamWrappers& outputs, Train
         if(data_format != inputs[i].GetBlobOrRawbufferDataformat()) 
             return false;
         data_format = inputs[i].GetBlobOrRawbufferDataformat();
-        if( data_type != DATA_FORMAT_NCHW && data_type != DATA_FORMAT_NC4HW4) 
+        if( data_format != DATA_FORMAT_NCHW && data_format != DATA_FORMAT_NC4HW4) 
             return false;
     }
+    data_type = outputs[0].GetBlobOrRawbufferDatatype();
+    data_format = outputs[0].GetBlobOrRawbufferDataformat();
     for (size_t i = 0; i < outputs.size(); i++)
     {
         if(!outputs[i].IsBlobOrRawbuffer())
@@ -221,7 +224,7 @@ bool ElementOp::IsSupported(ParamWrappers& inputs, ParamWrappers& outputs, Train
         if(data_format != outputs[i].GetBlobOrRawbufferDataformat()) 
             return false;
         data_format = outputs[i].GetBlobOrRawbufferDataformat();
-        if(data_type != DATA_FORMAT_NCHW && data_type != DATA_FORMAT_NC4HW4) 
+        if(data_format != DATA_FORMAT_NCHW && data_format != DATA_FORMAT_NC4HW4) 
             return false;
     }
     return true;

@@ -14,7 +14,7 @@
 
 // author: sanerzheng@tencent.com
 
-#include "tnn/train/grad/grad_manager.h"
+#include "tnn/train/grad/layer_grad.h"
 #include "tnn/train/operations/op_builder.h"
 #include "tnn/train/grad/utils.h"
 #include "tnn/device/arm/arm_util.h"
@@ -59,8 +59,8 @@ Status InnerProductLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& conte
     std::shared_ptr<RawBuffer> weight_grad = std::make_shared<RawBuffer>(DimsVectorUtils::Count(weight_dims) * DataTypeUtils::GetBytesSize(weight_data_type), weight_dims);
     std::shared_ptr<RawBuffer> bias_grad;
 
-    void* input_ptr = inputs[0]->GetHandle().base + inputs[0]->GetHandle().bytes_offset;
-    void* output_ptr = outputs[0]->GetHandle().base + outputs[0]->GetHandle().bytes_offset;
+    void* input_ptr = static_cast<void*>(static_cast<char*>(inputs[0]->GetHandle().base) + inputs[0]->GetHandle().bytes_offset);
+    void* output_ptr = static_cast<void*>(static_cast<char*>(outputs[0]->GetHandle().base) + outputs[0]->GetHandle().bytes_offset);
     void* output_grad_ptr = output_grad->force_to<void*>();
     void* weight_ptr = resource->weight_handle.force_to<void*>();
     // TODO: direct compute on nc4hw4 using batch float compute

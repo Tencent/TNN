@@ -77,10 +77,7 @@ public:
     virtual std::shared_ptr<Instance> CreateInst(
         NetworkConfig& config, Status& status,
         InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
-    
-    // @brief set train module from config
-    virtual Status TNNImplDefault::SetTrain(const TrainConfig& train_config);
-
+        
 private:
     Status AddAllLayersOutput();
     std::shared_ptr<AbstractModelInterpreter> interpreter_;

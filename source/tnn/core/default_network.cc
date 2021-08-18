@@ -58,9 +58,12 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
 std::vector<BaseLayer *>& DefaultNetwork::GetLayers(){
     return layers_;
 }
-
+#ifdef TRAIN
 Status DefaultNetwork::TrainStep(){
-    return solver_->step();
+    if(context_->IsTraining())
+        return solver_->step();
+    else
+        return Status(TNN_TRAIN_ERROR, "not in train mode");
 };
 
 Status DefaultNetwork::SetSolver(std::shared_ptr<train::BaseSolver> solver){
@@ -70,7 +73,7 @@ Status DefaultNetwork::SetSolver(std::shared_ptr<train::BaseSolver> solver){
 std::shared_ptr<train::BaseSolver> DefaultNetwork::GetSolver() {
     return solver_;
 } 
-
+#endif
 /*
  * The Network holds blob, blobmanager, layers etc.
  * Those object is initialized in this function.
@@ -104,7 +107,9 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 #endif
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
+#ifdef Train
     context_->SetTraining(net_config.train_config.run_mode == TRAIN_MODE);
+#endif
 
     if(!net_config.cache_path.empty()) {
         auto params_md5 = default_interpreter->GetParamsMd5();
@@ -687,6 +692,10 @@ Status DefaultNetwork::ForwardAsync(Callback call_back) {
         RETURN_ON_NEQ(result, TNN_OK);
     }
     context_->OnInstanceForwardEnd();
+// #ifdef TRAIN
+//     if(context_->IsTraining())
+//         solver_->step();
+// #endif
     return result;
 }
 

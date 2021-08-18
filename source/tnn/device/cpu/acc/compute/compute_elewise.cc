@@ -65,6 +65,15 @@ void CPU_ELEWISE(const std::vector<void *> &input_ptrs, const std::vector<DimsVe
 }
 
 /*
+ * ouput
+ */
+void CPU_BINARY_CE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
+             DimsVector shape_output) {
+    ELEWISE_OP binary_ce_op = [](float a, float b) -> float { return -std::log(a) * b - std::log(1.0f - a) * (1.0f - b);; };
+    CPU_ELEWISE(input_ptrs, input_shapes, output, shape_output, binary_ce_op);
+}
+
+/*
  * Output[i] = min(input0[i], input1[i], input..n[i])
  * Broadcast is supported on n, c, h, w dims
  */

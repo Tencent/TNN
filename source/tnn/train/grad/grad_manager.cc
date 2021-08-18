@@ -15,7 +15,10 @@
 // author: sanerzheng@tencent.com
 
 #include "tnn/train/grad/grad_manager.h"
+#include "tnn/core/default_network.h"
 #include "tnn/utils/blob_transfer_utils.h"
+#include "tnn/train/grad/layer_grad.h"
+
 
 namespace TNN_NS {
 namespace train {
@@ -23,9 +26,6 @@ GradManager::GradManager(AbstractNetwork* network, NetworkConfig* config) {
     context_.network = network;
     context_.config = config;
 };
-inline TrainContext& GradManager::GetContext() {
-    return context_;
-}
 void GradManager::SetNeedGradLayers(const std::set<std::string>& need_grad_layers){
     need_grad_layers_ = need_grad_layers;
 }

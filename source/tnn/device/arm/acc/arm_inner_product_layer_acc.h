@@ -39,9 +39,11 @@ public:
 
     template <typename T>
     Status ExecNchw(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
+#ifdef TRAIN
     // @brief only for train module; update layer resource to layer buffer
     virtual Status RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+#endif
+
 #if TNN_ARM82
     virtual Status allocateBufferWeightHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     virtual Status allocateBufferBiasHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);

@@ -14,7 +14,7 @@
 
 // author: sanerzheng@tencent.com
 
-#include "tnn/train/grad/grad_manager.h"
+#include "tnn/train/grad/layer_grad.h"
 #include "tnn/train/operations/op_builder.h"
 #include "tnn/train/grad/utils.h"
 #include "tnn/device/arm/arm_util.h"
@@ -65,7 +65,7 @@ Status ReduceMeanLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context
     int hw = DimsVectorUtils::Count(input0_dims, 2);
     int output_count = batch * channel * hw;
     int input_count = DimsVectorUtils::Count(output_dims);
-    void* input_ptr = inputs[0]->GetHandle().base + inputs[0]->GetHandle().bytes_offset;
+    void* input_ptr = static_cast<void*>(static_cast<char*>(inputs[0]->GetHandle().base) + inputs[0]->GetHandle().bytes_offset);
     //void* output_ptr = outputs[0]->GetHandle().base + outputs[0]->GetHandle().bytes_offset;
     RawBuffer input_buffer(input_count* DataTypeUtils::GetBytesSize(input0_data_type));
     if(input0_desc.data_format == DATA_FORMAT_NC4HW4) {

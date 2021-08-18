@@ -21,10 +21,14 @@
 namespace TNN_NS {
 namespace train {
 
-class SGD: public BaseSolver {
+class SGD: public BaseSolver{
+public:
+    //BaseSolver(network, config), 
     SGD(AbstractNetwork* network, NetworkConfig* config, float learningrate):BaseSolver(network, config), learningrate_(learningrate) {};
-    ~SGD() {};
+    virtual ~SGD() {};
+    virtual Status UpdateTrainableVariable(RawBuffer* resource_param, const std::shared_ptr<RawBuffer>& resource_param_grad);
     virtual Status ComputeUpdateValue(RawBuffer* resource_param, std::shared_ptr<RawBuffer>& resource_param_grad);
+    virtual Status step();
 private:
     float learningrate_;
 };

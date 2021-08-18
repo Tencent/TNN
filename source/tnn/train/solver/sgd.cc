@@ -19,11 +19,27 @@
 
 namespace TNN_NS {
 namespace train {
-template <typename T>
-void GetUpdateValue(T* ptr, int count, T learningrate) {
+template <typename T> void GetUpdateValue(T* ptr, int count, float learningrate);
+template <>
+void GetUpdateValue<float>(float* ptr, int count, float learningrate) {
     //NOTE: don't deal with dataformat 
     for(int i=0; i<count; i++)
         ptr[i] *= learningrate;
+}
+
+template <>
+void GetUpdateValue<bfp16_t>(bfp16_t* ptr, int count, float learningrate) {
+    //NOTE: don't deal with dataformat 
+    cvt_32b v;
+    for(int i=0; i<count; i++) {
+        v.u = ptr[i].w << 16;
+        v.f *= learningrate;
+        ptr[i].w = v.u >> 16;
+    }
+        
+}
+Status SGD::UpdateTrainableVariable(RawBuffer* resource_param, const std::shared_ptr<RawBuffer>& resource_param_grad) {
+    return BaseSolver::UpdateTrainableVariable(resource_param, resource_param_grad);
 }
 
 Status SGD::ComputeUpdateValue(RawBuffer* resource_param, std::shared_ptr<RawBuffer>& resource_param_grad){
@@ -40,6 +56,10 @@ Status SGD::ComputeUpdateValue(RawBuffer* resource_param, std::shared_ptr<RawBuf
     else
         return Status(TNN_TRAIN_ERROR, "DATA TYPE NOT SUPPORT");
     return Status(TNN_OK);    
+}
+
+Status SGD::step() {
+   return BaseSolver::step();
 }
 }
 }

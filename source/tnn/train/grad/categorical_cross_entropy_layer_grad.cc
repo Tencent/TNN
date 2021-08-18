@@ -14,7 +14,7 @@
 
 // author: sanerzheng@tencent.com
 
-#include "tnn/train/grad/grad_manager.h"
+#include "tnn/train/grad/layer_grad.h"
 #include "tnn/train/operations/op_builder.h"
 
 

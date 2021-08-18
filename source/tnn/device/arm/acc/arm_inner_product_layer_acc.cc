@@ -223,7 +223,7 @@ Status ArmInnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
     }
     return TNN_OK;
 }
-
+#ifdef TRAIN
 Status ArmInnerProductLayerAcc::RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs){
     if(context_->IsTraining())
         return TNN_OK;
@@ -239,6 +239,7 @@ Status ArmInnerProductLayerAcc::RefreshBuffers(const std::vector<Blob *> &inputs
     }
     return TNN_OK;
 }
+#endif
 
 Status ArmInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                      const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

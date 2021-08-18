@@ -100,6 +100,11 @@ public:
     // set threads run on cpu
     Status SetCpuNumThreads(int num_threads);
 
+    // run backward step in train module
+#ifdef TRAIN
+    Status TrainStep();
+#endif
+
 #if TNN_PROFILE
 public:
     /**start to profile each layer, dont call this func if you only want to profile the whole mode*/

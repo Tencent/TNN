@@ -20,14 +20,34 @@
 
 namespace TNN_NS {
 namespace train {
-template <typename T>
-void UpdateVariable(T* dst_ptr, const T* src, int count){
+template<typename T> void UpdateVariable(T* dst_ptr, const T* src, int count);
+template <>
+void UpdateVariable<float>(float* dst_ptr, const float* src, int count){
     //NOTE: don't deal with dataformat 
     for(int i=0; i<count; i++)
-        dstr_ptr[i] -= src[i];
+        dst_ptr[i] -= src[i];
 }
+template <>
+void UpdateVariable<bfp16_t>(bfp16_t* dst_ptr, const bfp16_t* src, int count){
+    //NOTE: don't deal with dataformat
+    cvt_32b c1; 
+    cvt_32b c2; 
+    for(int i=0; i<count; i++) {
+        c1.u = dst_ptr[i].w << 16;
+        c2.u = src[i].w << 16;
+        c1.f -= c2.f;
+        dst_ptr[i] = c1.u >> 16;
+    }
+}
+
+
+Status BaseSolver::ComputeUpdateValue(RawBuffer* resource_param, std::shared_ptr<RawBuffer>& resource_param_grad) {
+    return Status(TNN_TRAIN_ERROR, "ComputeUpdateValue not implement in this solver");
+}
+
 void BaseSolver::SetNeedGradLayers(const std::set<std::string>& need_grad_layers) {
-    grad_manager_.SetNeedGradLayers(need_grad_layers);
+    //grad_manager_.SetNeedGradLayers(need_grad_layers);
+    return;
 }
 
 Status BaseSolver::UpdateTrainableVariable(RawBuffer* resource_param, const std::shared_ptr<RawBuffer>& resource_param_grad) {
@@ -46,14 +66,15 @@ Status BaseSolver::UpdateTrainableVariable(RawBuffer* resource_param, const std:
     return Status(TNN_OK);
 }
 Status BaseSolver::step() {
-    grad_manager_.CalcuteGrads();
-    auto resource_grads = grad_manager_.GetContext().backward_grads_resource;
+    RETURN_ON_NEQ(grad_manager_.CalcuteGrads(), TNN_OK);
+    auto& resource_grads = grad_manager_.GetContext().backward_grads_resource;
     for(auto iter: resource_grads){
         if(iter.first->GetTrainable()) {
             Status status = UpdateTrainableVariable(iter.first, iter.second);
             RETURN_ON_NEQ(status, TNN_OK);
         }
     }
+    return TNN_OK;
 }
 
 }// namespace trian

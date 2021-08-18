@@ -78,7 +78,8 @@ Status BlobConverter::ConvertFromMatAsync(Mat& image, MatConvertParam param, voi
 }
 
 Status BlobConverter::CheckScaleBiasInParam(Mat& image, MatConvertParam& param, bool convert_to_mat) {
-    int channel = convert_to_mat ? blob_->GetBlobDesc().dims[1] : image.GetChannel();
+    int channel = blob_->GetBlobDesc().dims.size() > 1 ? blob_->GetBlobDesc().dims[1]: 1;
+    channel = convert_to_mat ? channel : image.GetChannel();
     // 非图像类的Mat channel和scale/bias长度与不匹配时，如果scale全1，bias全0，会默认调整，否则报错
     if ((image.GetMatType() == NCHW_FLOAT || image.GetMatType() == RESERVED_BFP16_TEST ||
          image.GetMatType() == RESERVED_FP16_TEST || image.GetMatType() == RESERVED_INT8_TEST ||

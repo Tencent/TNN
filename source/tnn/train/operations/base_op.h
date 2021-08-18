@@ -19,6 +19,8 @@
 #include <vector>
 #include "tnn/train/grad/utils.h"
 #include "tnn/train/operations/op_type.h"
+#include "tnn/train/grad/train_context.h"
+
 
 namespace TNN_NS {
 namespace train {
@@ -105,7 +107,7 @@ public:
 #define DECLARE_OP(type_string, op_type)                                                                       \
 class type_string##Op : public BaseOp {                                                            \
 public:                                                                                                            \
-    virtual ~##type_string##Op(){}; \
+    virtual ~type_string##Op(){}; \
     virtual bool IsSupported(ParamWrappers& inputs, ParamWrappers& outputs, TrainContext& context);   \
     virtual Status Exec(ParamWrappers& inputs, ParamWrappers& ouputs, ParamWrappers& other_params);    \
 }
@@ -119,7 +121,7 @@ public:
 };
 
 #define REGISTER_OP(type_string, op_type, priority)                                                                      \
-    OpRegister<##type_string##Op> g_##type_string##_grad_op_register(op_type, priority);
+    OpRegister<type_string##Op> g_##type_string##_grad_op_register(op_type, priority);
 
 // template <typename T>
 // class GradOpRegister {

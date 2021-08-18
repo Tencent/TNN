@@ -170,11 +170,8 @@ int RawBuffer::GetBytesSize() {
 
 bool RawBuffer::GetTrainable() {
     return trainable_ ;
-};
-
-int RawBuffer::GetBytesSize() {
-    return bytes_size_;
 }
+
 DataFormat RawBuffer::GetDataFormat() {
     return data_format_;
 }

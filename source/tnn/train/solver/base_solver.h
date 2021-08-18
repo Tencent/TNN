@@ -14,8 +14,8 @@
 
 // author: sanerzheng@tencent.com
 
-#ifndef TNN_SOURCE_TNN_TRAIN_BASE_SOLVER_SOVERL_H
-#define TNN_SOURCE_TNN_TRAIN_BASE_SOLVER_SOVERL_H
+#ifndef TNN_SOURCE_TNN_TRAIN_BASE_SOLVER_SOLVER_H
+#define TNN_SOURCE_TNN_TRAIN_BASE_SOLVER_SOLVER_H
 #include <string>
 #include <set>
 
@@ -23,7 +23,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/interpreter/raw_buffer.h"
 #include "tnn/train/grad/grad_manager.h"
-
+#include "tnn/train/grad/train_context.h"
 namespace TNN_NS {
 namespace train {
 class BaseSolver{
@@ -33,19 +33,20 @@ public:
         context.network = network;
         context.config = config;
     };
-    virtual ~BaseSolver() = default;
-    virtual Status step() = 0;
-    int CurrentStep() {
-        return step_;
-    };
-    void SetCurrentStep(int step) {
-        step_ = step;
-    };
-    void SetNeedGradLayers(const std::set<std::string>& need_grad_layers);
-protected:
+     ~BaseSolver() {};
+     Status step();
+    // int CurrentStep() {
+    //     return step_;
+    // };
+    // void SetCurrentStep(int step) {
+    //     step_ = step;
+    // };
+     void SetNeedGradLayers(const std::set<std::string>& need_grad_layers);
+public:
     // @brief 更新参数的梯度值，按现在的框架只有resource里的资源需要做变量的更新
-    virtual Status ComputeUpdateValue(RawBuffer* resource_param, std::shared_ptr<RawBuffer>& resource_param_grad) = 0;
     virtual Status UpdateTrainableVariable(RawBuffer* resource_param, const std::shared_ptr<RawBuffer>& resource_param_grad);
+    virtual Status ComputeUpdateValue(RawBuffer* resource_param, std::shared_ptr<RawBuffer>& resource_param_grad);
+
     GradManager grad_manager_;
 private:
     int step_ = 0;
@@ -53,9 +54,6 @@ private:
     
 };
 
-
-
-
 } // namespace train
 } // namespace TNN_NS
-#endif  // TNN_SOURCE_TNN_TRAIN_BASE_SOLVER_SOVERL_H
+#endif  // TNN_SOURCE_TNN_TRAIN_BASE_SOLVER_SOLVER_H

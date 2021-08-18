@@ -62,5 +62,24 @@ void ConvertToNC4HW4(std::shared_ptr<RawBuffer>& src, BlobDesc& input_desc) {
         src = tmpbuffer;
     }
 }
+
+int ConvertFromBFP16ToFloat(void *fp16, float *fp32, int count) {
+    bfp16_t *bfp16PTR = (bfp16_t *)fp16;
+    for (int i = 0; i < count; ++i) {
+        fp32[i] = float(bfp16PTR[i]);
+    }
+
+    return 0;
+}
+
+int ConvertFromFloatToBFP16(float *fp32, void *fp16, int count) {
+    bfp16_t *bfp16PTR = (bfp16_t *)fp16;
+    for (int i = 0; i < count; ++i) {
+        bfp16PTR[i] = fp32[i];
+    }
+
+    return 0;
+}
+
 }
 }

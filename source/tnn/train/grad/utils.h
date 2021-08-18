@@ -22,13 +22,13 @@
 #include "tnn/core/status.h"
 #include "tnn/core/blob.h"
 #include "tnn/layer/base_layer.h"
-#include "tnn/core/abstract_network.h"
 #include "tnn/train/operations/op_type.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/blob_memory_size_utils.h"
 
 namespace TNN_NS {
+class AbstractNetwork;
 namespace train {
 #define DECLARE_PARAMWRAPPER_FUNCS(TypeName, ValueName) \
     ParamWrapper(TypeName v) { \
@@ -109,18 +109,23 @@ public:
     ParamWrapper(): type_(ParamType::default_type_enum){};
     ParamWrapper(const ParamWrapper& other) = default;
     ParamWrapper(const ParamWrapper&& other){
-        type_ = other.type_;
-        value_ = other.value_;
-        blob_shared_ptr_ = std::move(other.blob_shared_ptr_);
-        raw_buffer_shared_ptr_ = std::move(other.raw_buffer_shared_ptr_);
-        bfp16_value_ = other.bfp16_value_;
+        if(this != &other) {
+            type_ = other.type_;
+            value_ = other.value_;
+            blob_shared_ptr_ = std::move(other.blob_shared_ptr_);
+            raw_buffer_shared_ptr_ = std::move(other.raw_buffer_shared_ptr_);
+            bfp16_value_ = other.bfp16_value_;
+        }
     };
     ParamWrapper& operator= (const ParamWrapper& other){
-        type_ = other.type_;
-        value_ = other.value_;
-        blob_shared_ptr_ = other.blob_shared_ptr_;
-        raw_buffer_shared_ptr_ = other.raw_buffer_shared_ptr_;
-        bfp16_value_ = other.bfp16_value_;
+        if(this != &other) {
+            type_ = other.type_;
+            value_ = other.value_;
+            blob_shared_ptr_ = other.blob_shared_ptr_;
+            raw_buffer_shared_ptr_ = other.raw_buffer_shared_ptr_;
+            bfp16_value_ = other.bfp16_value_;
+        }
+        return *this;
     };
     ~ParamWrapper(){
         // if(type_ == ParamType::blob_shared_ptr_value_enum) {
@@ -187,13 +192,14 @@ public:
 
     int GetBlobOrRawbufferSize() {
         assert(IsBlobOrRawbuffer());
+        BlobDesc desc;
         switch (type_)
         {
             case blob_shared_ptr_value_enum:
-                auto& desc = blob_shared_ptr_->GetBlobDesc(); 
+                desc = blob_shared_ptr_->GetBlobDesc(); 
                 return (desc.dims.size() >  0 ? Calculate1DMemorySize(desc).dims[0] : 0) * DataTypeUtils::GetBytesSize(desc.data_type) ;
             case blob_pvalue_enum:
-                auto& desc = value_.blob_pvalue->GetBlobDesc();
+                desc = value_.blob_pvalue->GetBlobDesc();
                 return (desc.dims.size() >  0 ? Calculate1DMemorySize(desc).dims[0] : 0) * DataTypeUtils::GetBytesSize(desc.data_type) ;
             case rawbuffer_shared_ptr_value_enum:
                 return raw_buffer_shared_ptr_->GetBytesSize();
@@ -264,9 +270,9 @@ public:
         switch (type_)
         {
             case blob_shared_ptr_value_enum:
-                return blob_shared_ptr_->GetHandle().base + blob_shared_ptr_->GetHandle().bytes_offset;
+                return static_cast<void*>(static_cast<char*>(blob_shared_ptr_->GetHandle().base) + blob_shared_ptr_->GetHandle().bytes_offset);
             case blob_pvalue_enum:
-                return value_.blob_pvalue->GetHandle().base + value_.blob_pvalue->GetHandle().bytes_offset;
+                return static_cast<void*>(static_cast<char*>(blob_shared_ptr_->GetHandle().base) + blob_shared_ptr_->GetHandle().bytes_offset);
             case rawbuffer_shared_ptr_value_enum:
                 return raw_buffer_shared_ptr_->force_to<void *>();
             case raw_buffer_pvalue_enum:
@@ -290,23 +296,8 @@ private:
 };
 typedef std::vector<ParamWrapper> ParamWrappers;
 
-int ConvertFromFloatToBFP16(float *fp32, void *fp16, int count) {
-    bfp16_t *bfp16PTR = (bfp16_t *)fp16;
-    for (int i = 0; i < count; ++i) {
-        bfp16PTR[i] = fp32[i];
-    }
-
-    return 0;
-}
-
-int ConvertFromBFP16ToFloat(void *fp16, float *fp32, int count) {
-    bfp16_t *bfp16PTR = (bfp16_t *)fp16;
-    for (int i = 0; i < count; ++i) {
-        fp32[i] = float(bfp16PTR[i]);
-    }
-
-    return 0;
-}
+int ConvertFromFloatToBFP16(float *fp32, void *fp16, int count);
+int ConvertFromBFP16ToFloat(void *fp16, float *fp32, int count);
 void ConvertToNCHW(void*& src_ptr, RawBuffer& dst, RawBuffer* input_rawbuffer);
 void ConvertToNCHW(void*& data_ptr, RawBuffer& dst, const BlobDesc& input_desc);
 void ConvertToNCHW(void*& src_ptr, RawBuffer& dst, const DataType& dtype, const DataFormat& dformat, const DimsVector& dims);

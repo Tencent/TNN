@@ -392,13 +392,6 @@ struct ElementWiseLayerParam : public LayerParam {
     PARAM_COPY(ElementWiseLayerParam)
 };
 
-struct BinaryCrossEntropyLayerParam : public LayerParam {
-    PARAM_COPY(BinaryCrossEntropyLayerParam)
-};
-
-struct CategoricalCrossEntropyLayerParam : public LayerParam {
-    PARAM_COPY(CategoricalCrossEntropyLayerParam)
-};
 
 typedef enum {
     // unknown or decided by runtime

@@ -27,7 +27,6 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
-#include "tnn/train/grad/layer_grad.h"
 
 namespace TNN_NS {
 
@@ -87,7 +86,6 @@ public:
     // @brief set runtime mode
     void SetRuntimeMode(RuntimeMode mode);
 
-
 public:
     LayerType type_;
 
@@ -111,7 +109,7 @@ public:
     //@brief fill layer param with constant resource
     virtual Status FillLayerParamWithConstantResource();
 
-    friend class LayerGrad;
+    //
     
 };
 

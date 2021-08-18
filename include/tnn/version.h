@@ -14,8 +14,8 @@
 #ifndef TNN_INCLUDE_TNN_VERSION_H_
 #define TNN_INCLUDE_TNN_VERSION_H_
 
-static char *branch_name_tnn = "feature_dynamic_dims";
-static char *commit_date_tnn = "2021-03-12";
-static char *commit_hash_tnn = "a4c6b4f5";
+static char *branch_name_tnn = "dev";
+static char *commit_date_tnn = "2021-08-13";
+static char *commit_hash_tnn = "b3bb5e1d";
 
 #endif //TNN_INCLUDE_TNN_VERSION_H_

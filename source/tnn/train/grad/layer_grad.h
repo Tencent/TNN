@@ -29,7 +29,7 @@ namespace TNN_NS {
 namespace train {
 class LayerGrad {
 public:
-    LayerGrad();
+    LayerGrad() {};
     virtual ~LayerGrad() = default;
     // @brief calcute grads
     virtual Status OnGrad(const BaseLayer* layer, TrainContext& context) = 0;
@@ -55,12 +55,12 @@ public:
 #define DECLARE_LAYER_GRAD(type_string, layer_type)                                                                       \
 class type_string##LayerGrad : public LayerGrad {                                                            \
 public:                                                                                                            \
-    virtual ~##type_string##LayerGrad(){};                                                                       \
+    virtual ~type_string##LayerGrad(){};                                                                       \
     virtual Status OnGrad(const BaseLayer* layer, TrainContext& context);               \
 };
 
 #define REGISTER_LAYER_GRAD(type_string, layer_type)                                                                      \
-    LayerGradRegister<##type_string##LayerGrad> g_##layer_type##_layer_grad_register(layer_type);
+    LayerGradRegister<type_string##LayerGrad> g_##layer_type##_layer_grad_register(layer_type);
 
 
 

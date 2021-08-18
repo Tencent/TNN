@@ -14,14 +14,11 @@
 
 // author: sanerzheng@tencent.com
 
-#ifndef TNN_SOURCE_TNN_TRAIN_GRAD_GRAD_H
-#define TNN_SOURCE_TNN_TRAIN_GRAD_GRAD_H
+#ifndef TNN_SOURCE_TNN_TRAIN_GRAD_GRAD_MANAGER_H
+#define TNN_SOURCE_TNN_TRAIN_GRAD_GRAD_MANAGER_H
 
 #include <string>
 #include <set>
-#include "core/tnn.h"
-#include "tnn/train/grad/layer_grad.h"
-#include "tnn/core/default_network.h"
 #include "tnn/train/grad/train_context.h"
 
 namespace TNN_NS {
@@ -32,7 +29,9 @@ public:
     GradManager(AbstractNetwork* network, NetworkConfig* config);
     ~GradManager() = default;
     Status CalcuteGrads();
-    inline TrainContext& GetContext();
+    inline TrainContext& GetContext() {
+        return context_;
+    };
     void SetNeedGradLayers(const std::set<std::string>& trainable_layers);
 private:
     //static std::set<RawBuffer* > trainables_;
@@ -44,4 +43,4 @@ private:
 
 } // namespace train
 } // namespace TNN_NS
-#endif  // TNN_SOURCE_TNN_TRAIN_GRAD_GRAD_H
+#endif  // TNN_SOURCE_TNN_TRAIN_GRAD_GRAD_MANAGER_H
