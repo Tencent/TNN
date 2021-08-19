@@ -91,6 +91,13 @@ Status CpuStrideSliceV2LayerAcc::Forward(const std::vector<Blob *> &inputs, cons
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
 
+    const int input_dims_size = input_blob->GetBlobDesc().dims.size();
+    for (auto &axis : layer_param->axes) {
+        if (axis < 0) {
+            axis += input_dims_size;
+        }
+    }
+
     auto begins = layer_param->begins;
     auto ends = layer_param->ends;
     auto strides = layer_param->strides;

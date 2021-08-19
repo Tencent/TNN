@@ -226,6 +226,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"PixelShuffle", LAYER_PIXEL_SHUFFLE},
     {"Expand", LAYER_EXPAND},
     {"ScatterND", LAYER_SCATTER_ND},
+    {"ScatterElements", LAYER_SCATTER_ELEMENTS},
     {"ConstantOfShape", LAYER_CONSTANT_OF_SHAPE},
     {"NonZero", LAYER_NONZERO},
     {"LSTMONNX", LAYER_LSTMONNX},

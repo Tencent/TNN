@@ -16,7 +16,7 @@
 #include "onnx_utility.h"
 
 DECLARE_OP_CONVERTER_WITH_FUNC(Range,
-                               virtual std::vector<std::string> GetInputNames(NodeProto &node, OnnxNetInfo &net_info););
+                               virtual std::vector<std::string> GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info););
 
 //void OnnxOpConverterRange::ProcessConstantNode(NodeProto &node, OnnxNetInfo &net_info) {
 //    for (const auto &input_node_name : node.input()) {
@@ -30,7 +30,7 @@ string OnnxOpConverterRange::TNNOpType(NodeProto &node, OnnxNetInfo &net_info) {
     return "Range";
 }
 
-std::vector<std::string> OnnxOpConverterRange::GetInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+std::vector<std::string> OnnxOpConverterRange::GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info) {
     //start, limit, delta
     return {node.input(0), node.input(1), node.input(2)};
 }
