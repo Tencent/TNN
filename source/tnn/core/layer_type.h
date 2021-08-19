@@ -218,6 +218,7 @@ enum LayerType {
     LAYER_TOPK                                              = 328,
     LAYER_NOT                                               = 329,
     LAYER_LOGSOFTMAX                                        = 330,
+    LAYER_SCATTER_ELEMENTS                                  = 331,
 
     LAYER_BLOB_SCALE                                        = 600,
 
