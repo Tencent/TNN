@@ -659,6 +659,20 @@ struct TopKLayerParam : public LayerParam {
     PARAM_COPY(TopKLayerParam)
 };
 
+struct ScatterElementsLayerParam : public LayerParam {
+    int axis = 0;
+    // 0: eq, 1: add
+    int op = 0;
+
+    PARAM_COPY(ScatterElementsLayerParam);
+};
+
+struct LogSoftmaxLayerParam : public LayerParam {
+    int axis = 1;
+
+    PARAM_COPY(LogSoftmaxLayerParam)
+};
+
 };  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H

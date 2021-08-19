@@ -13,34 +13,32 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_LAYER_BUILDER(TopK, LAYER_TOPK);
+DECLARE_TENSORRT_LAYER_BUILDER(Where, LAYER_WHERE);
 
-ILayer* TopKTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    auto param = dynamic_cast<TopKLayerParam*>(param_);
-    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
-    auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+ILayer* WhereTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto input_tensors = GetInputITensors();
+    auto condition = input_tensors[0];
+    auto x = input_tensors[1];
+    auto y = input_tensors[2];
 
-    auto topk_largest = nvinfer1::TopKOperation::kMAX;
-    if (param->largest != 1) {
-        topk_largest = nvinfer1::TopKOperation::kMIN;
+    if (condition->getType() == nvinfer1::DataType::kFLOAT) {
+        ILayer* cast_layer = network->addIdentity(*condition);
+        cast_layer->setOutputType(0, nvinfer1::DataType::kBOOL);
+        condition = cast_layer->getOutput(0);
     }
 
-    if (param->axis < 0) {
-        param->axis += tensor->getDimensions().nbDims;
-    }
-    uint32_t reduceAxis = 0x1 << param->axis;
-
-    ITopKLayer* layer = network->addTopK(*tensor, topk_largest, param->k, reduceAxis);
+    BroadcastTensors(network, x, y, condition);
+    ISelectLayer* layer = network->addSelect(*condition, *x, *y);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
     }
-
     return layer;
 }
 
-REGISTER_TENSORRT_LAYER_BUILDER(TopK, LAYER_TOPK);
+REGISTER_TENSORRT_LAYER_BUILDER(Where, LAYER_WHERE);
 
 }  //  namespace TNN_NS

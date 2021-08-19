@@ -23,26 +23,30 @@ std::string TFLiteCastConverter::TNNOpType(tflite::BuiltinOperator op_code, bool
     return "Cast";
 }
 
-tflite::ActivationFunctionType TFLiteCastConverter::ActivationType(const std::unique_ptr<tflite::OperatorT> &tf_lite_operator, tflite::BuiltinOperator op_code) {
+tflite::ActivationFunctionType TFLiteCastConverter::ActivationType(
+    const std::unique_ptr<tflite::OperatorT> &tf_lite_operator, tflite::BuiltinOperator op_code) {
     return tflite::ActivationFunctionType_NONE;
 }
 
-
-TNN_NS::Status TFLiteCastConverter::exec(tnn::NetStructure &net_structure, tnn::NetResource &net_resource, const std::unique_ptr<tflite::OperatorT> &tf_lite_operator, const std::vector<std::unique_ptr<tflite::TensorT>> &tf_lite_tensors, const std::vector<std::unique_ptr<tflite::BufferT>> &tf_lite_model_buffer, const std::vector<std::unique_ptr<tflite::OperatorCodeT>> &tf_lite_op_set, bool quantized_model) {
-
-    auto param                 = new TNN_NS::CastLayerParam;
-    auto cur_layer             = net_structure.layers.back();
-    cur_layer->param           = std::shared_ptr<TNN_NS::LayerParam>(param);
-    param->name                = cur_layer->name;
-    param->type                = cur_layer->type_str;
-    param->quantized           = false;
-    const auto& options = tf_lite_operator->builtin_options.AsCastOptions();
+TNN_NS::Status TFLiteCastConverter::exec(TNN_NS::NetStructure &net_structure, TNN_NS::NetResource &net_resource,
+                                         const std::unique_ptr<tflite::OperatorT> &tf_lite_operator,
+                                         const std::vector<std::unique_ptr<tflite::TensorT>> &tf_lite_tensors,
+                                         const std::vector<std::unique_ptr<tflite::BufferT>> &tf_lite_model_buffer,
+                                         const std::vector<std::unique_ptr<tflite::OperatorCodeT>> &tf_lite_op_set,
+                                         bool quantized_model) {
+    auto param          = new TNN_NS::CastLayerParam;
+    auto cur_layer      = net_structure.layers.back();
+    cur_layer->param    = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->name         = cur_layer->name;
+    param->type         = cur_layer->type_str;
+    param->quantized    = false;
+    const auto &options = tf_lite_operator->builtin_options.AsCastOptions();
     if (options == nullptr) {
         param->to = 0;
         return TNN_NS::TNN_CONVERT_OK;
     }
     auto tflite_data_type = options->out_data_type;
-    if (tflite_data_type == tflite::TensorType_FLOAT32){
+    if (tflite_data_type == tflite::TensorType_FLOAT32) {
         param->to = 0;
     } else {
         LOGE("TFLiteCastConverter does not support tflite tensor type\n");

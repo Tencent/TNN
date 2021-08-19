@@ -172,6 +172,9 @@ DimsVector DimsFunctionUtils::StrideSlice(const DimsVector input_dims,
     //前闭后开区间
     for (int i = 0; i < axes.size(); i++) {
         int index = axes[i];
+        if (index < 0) {
+            index = input_dims.size() + index;
+        }
         if (input_dims.size() <= index || output_dims.size() <= index)
             continue;
         if (begins[i] < 0) {
