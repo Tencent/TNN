@@ -65,11 +65,20 @@ void CPU_ELEWISE(const std::vector<void *> &input_ptrs, const std::vector<DimsVe
 }
 
 /*
- * ouput
+ * binary cross entropy
  */
 void CPU_BINARY_CE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
              DimsVector shape_output) {
-    ELEWISE_OP binary_ce_op = [](float a, float b) -> float { return -std::log(a) * b - std::log(1.0f - a) * (1.0f - b);; };
+    ELEWISE_OP binary_ce_op = [](float a, float b) -> float { return -std::log(a) * b - std::log(1.0f - a) * (1.0f - b);};
+    CPU_ELEWISE(input_ptrs, input_shapes, output, shape_output, binary_ce_op);
+}
+
+/*
+ * binary cross entropy
+ */
+void CPU_CATEGORICAL_CE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
+             DimsVector shape_output) {
+    ELEWISE_OP binary_ce_op = [](float a, float b) -> float { return -std::log(a) * b; };
     CPU_ELEWISE(input_ptrs, input_shapes, output, shape_output, binary_ce_op);
 }
 

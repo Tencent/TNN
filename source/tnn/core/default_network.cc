@@ -107,7 +107,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 #endif
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
-#ifdef Train
+#ifdef TRAIN
     context_->SetTraining(net_config.train_config.run_mode == TRAIN_MODE);
 #endif
 

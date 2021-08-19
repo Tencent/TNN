@@ -396,6 +396,28 @@ Status Instance::SetInputMat(std::shared_ptr<Mat> mat, MatConvertParam param, st
     return TNN_OK;
 }
 
+Status Instance::GetOutputDataPoint(void** data_ptr, const std::string output_name, 
+                                    DimsVector& dims, int& data_type, int& data_format){
+    BlobMap output_blobs;
+    auto status = network_->GetAllOutputBlobs(output_blobs);
+    if (status != TNN_OK || output_blobs.size() <= 0) {
+        LOGE("instance.GetOutputDataPoint Error: %s\n", status.description().c_str());
+        return status;
+    }
+    auto iter = output_blobs.find(output_name);
+    if (iter == output_blobs.end()) {
+        LOGE("instance dont have the output with name: %s\n", output_name.c_str());
+        return Status(TNNERR_MODEL_ERR, "instance dont have the output with name");
+    }
+    Blob* blob = iter->second;
+    *data_ptr = static_cast<void*>(static_cast<char*>(blob->GetHandle().base) 
+                                        + blob->GetHandle().bytes_offset);
+    dims = blob->GetBlobDesc().dims;
+    data_type = static_cast<int>(blob->GetBlobDesc().data_type);
+    data_format = static_cast<int>(blob->GetBlobDesc().data_format);
+    return TNN_OK;
+}
+
 // get output Mat
 Status Instance::GetOutputMat(std::shared_ptr<Mat> &mat, MatConvertParam param, std::string output_name,
                               DeviceType device, MatType mat_type) {

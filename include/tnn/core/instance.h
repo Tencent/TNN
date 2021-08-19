@@ -134,6 +134,10 @@ public:
                         MatConvertParam param = MatConvertParam(),
                         std::string output_name = "",
                         DeviceType device = DEVICE_ARM, MatType mat_type = NCHW_FLOAT);
+
+    // get output data point for debug  
+    Status GetOutputDataPoint(void** data_ptr, const std::string output_name, 
+                                        DimsVector& dims, int& data_type, int& data_format);
     
 private:
     // input converter
