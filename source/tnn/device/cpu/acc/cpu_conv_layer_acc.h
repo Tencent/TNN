@@ -39,6 +39,7 @@ private:
     RawBuffer buffer_scale_;
 
     // @brief - scale_bias_i * weight + scale_bias_i * scale_bias_w
+    bool do_bias_preprocess = false;
     RawBuffer buffer_weight_x_bias;
 
     // @brief for conv add fusion

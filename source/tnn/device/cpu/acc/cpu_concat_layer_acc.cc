@@ -46,6 +46,7 @@ Status CpuConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         int8_per_tensor_flag = true;
         // if one blob is per channel quant, concat with the normal way
         for (auto &blob : inputs) {
+            int test = reinterpret_cast<BlobInt8 *>(blob)->GetIntResource()->scale_handle.GetDataCount();
             if (reinterpret_cast<BlobInt8 *>(blob)->GetIntResource()->scale_handle.GetDataCount() > 1) {
                 int8_per_tensor_flag = false;
                 break;
@@ -93,9 +94,12 @@ Status CpuConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         }
     } else {
         float *output_scale = reinterpret_cast<BlobInt8 *>(output)->GetIntResource()->scale_handle.force_to<float *>();
+        int8_t *output_scale_bias = reinterpret_cast<BlobInt8 *>(output)->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
         for (size_t i = 0; i < inputs.size(); ++i) {
             float *input_scale =
                 reinterpret_cast<BlobInt8 *>(inputs[i])->GetIntResource()->scale_handle.force_to<float *>();
+            int8_t *input_scale_bias =
+                reinterpret_cast<BlobInt8 *>(inputs[i])->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
             int8_t *input_data          = static_cast<int8_t *>(inputs[i]->GetHandle().base);
             const int input_concat_axis = inputs[i]->GetBlobDesc().dims[axis];
             for (int n = 0; n < num_concats; ++n) {
@@ -103,7 +107,8 @@ Status CpuConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
                 int8_t *concat_src = input_data + n * input_concat_axis * concate_size;
                 // per tensor need dequant and requant
                 for (int i = 0; i < input_concat_axis * concate_size; i++) {
-                    concat_dst[i] = float2int8(concat_src[i] * input_scale[0] / output_scale[0]);
+                    float val = static_cast<float>(concat_src[i] - input_scale_bias[0]);
+                    concat_dst[i] = float2int8(val * input_scale[0] / output_scale[0] + output_scale_bias[0]);
                 }
             }
             output_concat_axis_offset += input_concat_axis;

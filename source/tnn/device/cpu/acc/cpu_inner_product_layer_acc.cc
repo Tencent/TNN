@@ -43,6 +43,7 @@ Status CpuInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerR
         return TNN_OK;
     }
 
+    resource_ = resource;
     auto layer_param = dynamic_cast<InnerProductLayerParam *>(param);
     CHECK_PARAM_NULL(layer_param);
     auto layer_res = dynamic_cast<InnerProductLayerResource *>(resource_);
@@ -111,8 +112,15 @@ Status CpuInnerProductLayerAcc::Forward(const std::vector<Blob *> &inputs, const
         NaiveFC((float *)input_data, (float *)output_data, (float *)weight_data, (float *)bias_data, dims_input,
                 dims_output);
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        NaiveFC(input_data, output_data, weight_data, buffer_scale_.force_to<float *>(), dims_output[1], bias_data,
-                dims_input, dims_output);
+        int8_t *scale_bias_w_ptr = resource->scale_bias_handle.force_to<int8_t *>();
+        int8_t *scale_bias_i_ptr =
+            reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
+        int8_t *scale_bias_o_ptr =
+            reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
+        int scale_bias_len_i = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->scale_bias_handle.GetDataCount();
+        int scale_bias_len_o = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource()->scale_bias_handle.GetDataCount();
+        NaiveFCBias(input_data, output_data, weight_data, buffer_scale_.force_to<float *>(), dims_output[1], bias_data,
+                    scale_bias_w_ptr, scale_bias_i_ptr, scale_bias_o_ptr, scale_bias_len_i, scale_bias_len_o, dims_input, dims_output);
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         RawBuffer weight_bf16 = RawBuffer(resource->weight_handle.GetDataCount() * sizeof(bfp16_t));
         ConvertFromFloatToBFP16((float *)weight_data, weight_bf16.force_to<void *>(),
