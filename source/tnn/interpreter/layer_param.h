@@ -659,6 +659,14 @@ struct TopKLayerParam : public LayerParam {
     PARAM_COPY(TopKLayerParam)
 };
 
+struct ScatterElementsLayerParam : public LayerParam {
+    int axis = 0;
+    // 0: eq, 1: add
+    int op = 0;
+
+    PARAM_COPY(ScatterElementsLayerParam);
+};
+
 struct LogSoftmaxLayerParam : public LayerParam {
     int axis = 1;
 
