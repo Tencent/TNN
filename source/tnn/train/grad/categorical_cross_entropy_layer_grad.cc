@@ -40,7 +40,7 @@ Status CategoricalCrossEntropyLayerGrad::OnGrad(const BaseLayer* layer, TrainCon
     if( input0_data_type != input1_data_type || input1_data_type != output_data_type) {
        return Status(TNN_TRAIN_ERROR, "input datatype and output datatype not match in CategoricalCrossEntropyLayerGrad"); 
     }
-    if( output_data_type != DATA_TYPE_BFP16 || output_data_type != DATA_TYPE_FLOAT) {
+    if( output_data_type != DATA_TYPE_BFP16 && output_data_type != DATA_TYPE_FLOAT) {
        return Status(TNN_TRAIN_ERROR, "output datatype not match in CategoricalCrossEntropyLayerGrad"); 
     }
     auto data_format = outputs[0]->GetBlobDesc().data_format;
@@ -54,7 +54,7 @@ Status CategoricalCrossEntropyLayerGrad::OnGrad(const BaseLayer* layer, TrainCon
     ParamWrapper grad1 = _Neg(_Log(pw0, context), context);
     auto iter_output = context.backward_grads_blob.find(outputs[0]);
     if(iter_output == context.backward_grads_blob.end()) {
-        return Status(TNN_TRAIN_ERROR, "BinaryCrossEntropyLayerGrad output grad not find");
+        return Status(TNN_TRAIN_ERROR, "CategoricalCrossEntropyLayerGrad output grad not find");
     }
     grad0 = _Mul(grad0, ParamWrapper(iter_output->second), context);
     grad1 = _Mul(grad1, ParamWrapper(iter_output->second), context);
@@ -62,7 +62,7 @@ Status CategoricalCrossEntropyLayerGrad::OnGrad(const BaseLayer* layer, TrainCon
         return Status(TNN_TRAIN_ERROR, "Calcute CategoricalCrossEntropyLayerGrad error");
     }
     UpdateGradValue(inputs[0], grad0.GetRawbufferSharedPtr(), context);
-    UpdateGradValue(inputs[1], grad0.GetRawbufferSharedPtr(), context);
+    UpdateGradValue(inputs[1], grad1.GetRawbufferSharedPtr(), context);
     return Status(TNN_OK); 
 }
 REGISTER_LAYER_GRAD(CategoricalCrossEntropy, LAYER_CATEGORICAL_CROSSENTROPY);

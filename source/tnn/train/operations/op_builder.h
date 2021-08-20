@@ -34,6 +34,9 @@ ParamWrapper _Log(ParamWrapper input1, TrainContext& context);
 
 ParamWrapper _Const(ParamWrapper input1, DimsVector dims, DataFormat data_format);
 
+// for relu, x > 0 return 1, x <=0 return 0;
+ParamWrapper _RSign(ParamWrapper input1, TrainContext& context);
+
 } // train
 } //TNN_NS
 

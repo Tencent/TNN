@@ -20,49 +20,41 @@
 
 namespace TNN_NS {
 namespace train {
-DECLARE_LAYER_GRAD(Sigmoid, LAYER_SIGMOID);
-//class SigmoidLayerGrad : public LayerGrad { public: virtual ~SigmoidLayerGrad(){}; virtual Status OnGrad(const BaseLayer* layer, TrainContext& context); };
-Status SigmoidLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context){
+DECLARE_LAYER_GRAD(Relu, LAYER_RELU);
+
+Status ReluLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context){
     auto inputs = layer->input_blobs_;
     auto outputs = layer->output_blobs_;
     if(inputs.size() != 1 || outputs.size() != 1) {
-        return Status(TNN_TRAIN_ERROR, "input size or output size not match in SigmoidLayerGrad");
+        return Status(TNN_TRAIN_ERROR, "input size or output size not match in ReluLayerGrad");
     }
     auto input0_dims = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     if(!DimsVectorUtils::Equal(input0_dims, output_dims)) {
-        return Status(TNN_TRAIN_ERROR, "input dims and output dims not match in SigmoidLayerGrad");
+        return Status(TNN_TRAIN_ERROR, "input dims and output dims not match in ReluLayerGrad");
     }
     auto input0_data_type = inputs[0]->GetBlobDesc().data_type;
     auto output_data_type = outputs[0]->GetBlobDesc().data_type;
     if(input0_data_type != output_data_type) {
-       return Status(TNN_TRAIN_ERROR, "input datatype and output datatype not match in SigmoidLayerGrad"); 
+       return Status(TNN_TRAIN_ERROR, "input datatype and output datatype not match in ReluLayerGrad"); 
     }
     if(output_data_type != DATA_TYPE_BFP16 && output_data_type != DATA_TYPE_FLOAT) {
-       return Status(TNN_TRAIN_ERROR, "output datatype not match in SigmoidLayerGrad"); 
+       return Status(TNN_TRAIN_ERROR, "output datatype not match in ReluLayerGrad"); 
     }
-    ParamWrapper pw0(outputs[0]);
-    ParamWrapper pw_const_1;
-    if(output_data_type == DATA_TYPE_BFP16)
-        pw_const_1 = ParamWrapper(bfp16_t(1.0f));
-    else
-        pw_const_1 = ParamWrapper(1.0f); 
 
-    //y = sigmoid(x)
-    //dy/dx = y(1-y) 
-    ParamWrapper grad0 = _Mul(pw0, _Sub(pw_const_1, pw0, context), context);
+
     auto iter_output = context.backward_grads_blob.find(outputs[0]);
     if(iter_output == context.backward_grads_blob.end()) {
-        return Status(TNN_TRAIN_ERROR, "SigmoidLayerGrad output grad not find");
+        return Status(TNN_TRAIN_ERROR, "BinaryCrossEntropyLayerGrad output grad not find");
     }
-    grad0 = _Mul(grad0, ParamWrapper(iter_output->second), context);
+    auto grad0 = _Mul(_RSign(ParamWrapper(inputs[0]), context), ParamWrapper(iter_output->second), context);
     if(!grad0.IsRawbufferSharedPtr()) {
-        return Status(TNN_TRAIN_ERROR, "Calcute SigmoidLayerGrad error");
+        return Status(TNN_TRAIN_ERROR, "Calcute ReluLayerGrad error");
     }
     UpdateGradValue(inputs[0], grad0.GetRawbufferSharedPtr(), context);
     return Status(TNN_OK); 
 }
-REGISTER_LAYER_GRAD(Sigmoid, LAYER_SIGMOID);
+REGISTER_LAYER_GRAD(Relu, LAYER_RELU);
 
 } //namespace train         
 } //namspace TNN_NS

@@ -22,7 +22,7 @@
 
 namespace TNN_NS {
 namespace train {
-DECLARE_OP(Element, ElementOp);
+DECLARE_OP(Element, OP_ElEMENT);
 
 template <typename T, ElementOpType type>
 void calculate(T *out, T* in, int count) {
@@ -63,6 +63,11 @@ template <>
 void calculate<float, ElementOpType::Neg>(float *out, float* in, int count) {
     for(size_t i=0; i<count; ++i) 
         out[i] = -in[i];
+}
+template <>
+void calculate<float, ElementOpType::RSign>(float *out, float* in, int count) {
+    for(size_t i=0; i<count; ++i) 
+        out[i] = in[i] > 0.0 ? 1.0 : 0.0;
 }
 
 template <>
@@ -128,9 +133,19 @@ void calculate<bfp16_t, ElementOpType::Neg>(bfp16_t *out, bfp16_t* in, int count
         out[i].w = t1.u >> 16;
     }
 }
+template <>
+void calculate<bfp16_t, ElementOpType::RSign>(bfp16_t *out, bfp16_t* in, int count) {
+    cvt_32b t1;
+    bfp16_t const_0(0.0f);
+    bfp16_t const_1(1.0f);
+    for(size_t i=0; i<count; ++i) {
+        t1.u = in[i].w << 16;
+        out[i] = t1.f > 0.0f ? const_1: const_0;
+    }
+}
 template<>
 void calculate_div_nc4hw4(bfp16_t* out, bfp16_t* in, int batch, int channel, int hw) {
-    // skip empty element in nc4hw4 format, other wise zero may be dived
+    // skip empty element in nc4hw4 format, other wise zero may be divded
     cvt_32b t1;
     cvt_32b t2;
     int c, cur_hw;
@@ -260,18 +275,18 @@ Status ElementOp::Exec(ParamWrappers& inputs, ParamWrappers& outputs, ParamWrapp
                 buffer->SetDataType(DATA_TYPE_BFP16);
                 buffer->SetDataFormat(inputs[i].GetBlobOrRawbufferDataformat());
                 ConvertFromFloatToBFP16(static_cast<float*>(inputs[i].GetBlobOrRawbufferDataPointer()), buffer->force_to<void*>(), data_count);
-                buffers.emplace_back(ParamWrapper(buffer));
+                buffers[i] = ParamWrapper(buffer);
             } else if(src_dtype == DATA_TYPE_BFP16 && dst_dtype == DATA_TYPE_FLOAT) {
                 std::shared_ptr<RawBuffer> buffer = std::make_shared<RawBuffer>(data_count*sizeof(float), inputs[i].GetBlobOrRawbufferDims());
                 buffer->SetDataType(DATA_TYPE_FLOAT);
                 buffer->SetDataFormat(inputs[i].GetBlobOrRawbufferDataformat());
                 ConvertFromBFP16ToFloat(static_cast<void*>(inputs[i].GetBlobOrRawbufferDataPointer()), buffer->force_to<float*>(), data_count);
-                buffers.emplace_back(ParamWrapper(buffer));
+                buffers[i] = ParamWrapper(buffer);
             } else {
                 return Status(TNN_OP_ERROR, "data type transformer error");
             }
         } else {
-            buffers.push_back(inputs[i]);
+            buffers[i] = inputs[i];
         }
         // nchw -> nc4hw4 
         // int PackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw);
@@ -290,9 +305,9 @@ Status ElementOp::Exec(ParamWrappers& inputs, ParamWrappers& outputs, ParamWrapp
             if(src_dformat == DATA_FORMAT_NCHW && dst_dformat == DATA_FORMAT_NC4HW4) {
                 buffer->SetDataFormat(DATA_FORMAT_NC4HW4);
                 if(dst_dtype == DATA_TYPE_BFP16)
-                    PackFloatBlob(static_cast<bfp16_t*>(buffers[i].GetBlobOrRawbufferDataPointer()), buffer->force_to<bfp16_t*>(), batch, channel, hw);
+                    PackFloatBlob(buffer->force_to<bfp16_t*>(), static_cast<bfp16_t*>(buffers[i].GetBlobOrRawbufferDataPointer()), batch, channel, hw);
                 else if(dst_dtype == DATA_TYPE_FLOAT)
-                    PackFloatBlob(static_cast<float*>(buffers[i].GetBlobOrRawbufferDataPointer()), buffer->force_to<float*>(), batch, channel, hw);
+                    PackFloatBlob(buffer->force_to<float*>(), static_cast<float*>(buffers[i].GetBlobOrRawbufferDataPointer()), batch, channel, hw);
                 else
                     return Status(TNN_OP_ERROR, "data format transfer error, unkown data type");
             } else if(src_dformat == DATA_FORMAT_NC4HW4 && dst_dformat == DATA_FORMAT_NCHW) {
@@ -300,9 +315,9 @@ Status ElementOp::Exec(ParamWrappers& inputs, ParamWrappers& outputs, ParamWrapp
                 buffer->SetDataType(buffers[i].GetBlobOrRawbufferDatatype());
                 buffer->SetDataFormat(DATA_FORMAT_NC4HW4);
                 if(dst_dtype == DATA_TYPE_BFP16)
-                    UnpackFloatBlob(static_cast<bfp16_t*>(buffers[i].GetBlobOrRawbufferDataPointer()), buffer->force_to<bfp16_t*>(), batch, channel, hw);
+                    UnpackFloatBlob(buffer->force_to<bfp16_t*>(), static_cast<bfp16_t*>(buffers[i].GetBlobOrRawbufferDataPointer()), batch, channel, hw);
                 else if(dst_dtype == DATA_TYPE_FLOAT)
-                    UnpackFloatBlob(static_cast<float*>(buffers[i].GetBlobOrRawbufferDataPointer()), buffer->force_to<float*>(), batch, channel, hw);
+                    UnpackFloatBlob(buffer->force_to<float*>(), static_cast<float*>(buffers[i].GetBlobOrRawbufferDataPointer()),  batch, channel, hw);
                 else
                     return Status(TNN_OP_ERROR, "data format transfer error, unkown data type2");                
             } else {
@@ -317,7 +332,7 @@ Status ElementOp::Exec(ParamWrappers& inputs, ParamWrappers& outputs, ParamWrapp
     int data_count = outputs[0].GetBlobOrRawbufferSize()/ DataTypeUtils::GetBytesSize(outputs[0].GetBlobOrRawbufferDatatype());
     void* input_ptr = buffers[0].GetBlobOrRawbufferDataPointer();
     auto dims = outputs[0].GetBlobOrRawbufferDims();
-    if(buffers.size() > 2) {
+    if(buffers.size() > 1) {
         memcpy(output_ptr, buffers[1].GetBlobOrRawbufferDataPointer(), outputs[0].GetBlobOrRawbufferSize());
     }
     if(dst_dformat == DATA_FORMAT_NHC4W4 && op_type == ElementOpType::Div) {
@@ -341,22 +356,25 @@ Status ElementOp::Exec(ParamWrappers& inputs, ParamWrappers& outputs, ParamWrapp
             switch (op_type)
             {
                 case ElementOpType::Add:
-                    calculate<float, ElementOpType::Add>(static_cast<float*>(input_ptr), static_cast<float*>(output_ptr), data_count);
+                    calculate<float, ElementOpType::Add>(static_cast<float*>(output_ptr), static_cast<float*>(input_ptr), data_count);
                     break;
                 case ElementOpType::Sub:
-                    calculate<float, ElementOpType::Sub>(static_cast<float*>(input_ptr), static_cast<float*>(output_ptr), data_count);
+                    calculate<float, ElementOpType::Sub>(static_cast<float*>(output_ptr), static_cast<float*>(input_ptr), data_count);
                     break;
                 case ElementOpType::Mul:
-                    calculate<float, ElementOpType::Mul>(static_cast<float*>(input_ptr), static_cast<float*>(output_ptr), data_count);
+                    calculate<float, ElementOpType::Mul>(static_cast<float*>(output_ptr), static_cast<float*>(input_ptr), data_count);
                     break;
                 case ElementOpType::Div:
-                    calculate<float, ElementOpType::Div>(static_cast<float*>(input_ptr), static_cast<float*>(output_ptr), data_count);
+                    calculate<float, ElementOpType::Div>(static_cast<float*>(output_ptr), static_cast<float*>(input_ptr), data_count);
                     break;
                 case ElementOpType::Log:
-                    calculate<float, ElementOpType::Log>(static_cast<float*>(input_ptr), static_cast<float*>(output_ptr), data_count);
+                    calculate<float, ElementOpType::Log>(static_cast<float*>(output_ptr), static_cast<float*>(input_ptr), data_count);
                     break;
                 case ElementOpType::Neg:
-                    calculate<float, ElementOpType::Neg>(static_cast<float*>(input_ptr), static_cast<float*>(output_ptr), data_count);
+                    calculate<float, ElementOpType::Neg>(static_cast<float*>(output_ptr), static_cast<float*>(input_ptr), data_count);
+                    break;
+                case ElementOpType::RSign:
+                    calculate<float, ElementOpType::RSign>(static_cast<float*>(output_ptr), static_cast<float*>(input_ptr), data_count);
                     break;
                 default:
                     return Status(TNN_OP_ERROR, "Unsupport ElementOpType ");
@@ -366,22 +384,25 @@ Status ElementOp::Exec(ParamWrappers& inputs, ParamWrappers& outputs, ParamWrapp
             switch (op_type)
             {
                 case ElementOpType::Add:
-                    calculate<bfp16_t, ElementOpType::Add>(static_cast<bfp16_t*>(input_ptr), static_cast<bfp16_t*>(output_ptr), data_count);
+                    calculate<bfp16_t, ElementOpType::Add>(static_cast<bfp16_t*>(output_ptr), static_cast<bfp16_t*>(input_ptr), data_count);
                     break;
                 case ElementOpType::Sub:
-                    calculate<bfp16_t, ElementOpType::Sub>(static_cast<bfp16_t*>(input_ptr), static_cast<bfp16_t*>(output_ptr), data_count);
+                    calculate<bfp16_t, ElementOpType::Sub>(static_cast<bfp16_t*>(output_ptr), static_cast<bfp16_t*>(input_ptr), data_count);
                     break;
                 case ElementOpType::Mul:
-                    calculate<bfp16_t, ElementOpType::Mul>(static_cast<bfp16_t*>(input_ptr), static_cast<bfp16_t*>(output_ptr), data_count);
+                    calculate<bfp16_t, ElementOpType::Mul>(static_cast<bfp16_t*>(output_ptr), static_cast<bfp16_t*>(input_ptr), data_count);
                     break;
                 case ElementOpType::Div:
-                    calculate<bfp16_t, ElementOpType::Div>(static_cast<bfp16_t*>(input_ptr), static_cast<bfp16_t*>(output_ptr), data_count);
+                    calculate<bfp16_t, ElementOpType::Div>(static_cast<bfp16_t*>(output_ptr), static_cast<bfp16_t*>(input_ptr), data_count);
                     break;
                 case ElementOpType::Log:
-                    calculate<bfp16_t, ElementOpType::Log>(static_cast<bfp16_t*>(input_ptr), static_cast<bfp16_t*>(output_ptr), data_count);
+                    calculate<bfp16_t, ElementOpType::Log>(static_cast<bfp16_t*>(output_ptr), static_cast<bfp16_t*>(input_ptr), data_count);
                     break;
                 case ElementOpType::Neg:
-                    calculate<bfp16_t, ElementOpType::Neg>(static_cast<bfp16_t*>(input_ptr), static_cast<bfp16_t*>(output_ptr), data_count);
+                    calculate<bfp16_t, ElementOpType::Neg>(static_cast<bfp16_t*>(output_ptr), static_cast<bfp16_t*>(input_ptr), data_count);
+                    break;
+                case ElementOpType::RSign:
+                    calculate<bfp16_t, ElementOpType::RSign>(static_cast<bfp16_t*>(output_ptr), static_cast<bfp16_t*>(input_ptr), data_count);
                     break;
                 default:
                     return Status(TNN_OP_ERROR, "Unsupport ElementOpType");
@@ -393,6 +414,7 @@ Status ElementOp::Exec(ParamWrappers& inputs, ParamWrappers& outputs, ParamWrapp
     return Status(TNN_OK);
 
 }
+REGISTER_OP(Element, OP_ElEMENT, 10);
 
 } //namespace train         
 } //namspace TNN_NS

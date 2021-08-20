@@ -22,7 +22,7 @@ namespace train {
 void LayerGrad::UpdateGradValue(Blob* blob, std::shared_ptr<RawBuffer> raw_buff,TrainContext& context) {
     auto iter = context.backward_grads_blob.find(blob);
     if(iter == context.backward_grads_blob.end()) {
-        iter->second = std::move(raw_buff);
+        context.backward_grads_blob[blob] = std::move(raw_buff);
     } else {
         //TODO: need _ADD in place
         iter->second = _Add(ParamWrapper(iter->second), ParamWrapper(raw_buff), context).GetRawbufferSharedPtr();
@@ -31,7 +31,7 @@ void LayerGrad::UpdateGradValue(Blob* blob, std::shared_ptr<RawBuffer> raw_buff,
 void LayerGrad::UpdateGradValue(RawBuffer* resource, std::shared_ptr<RawBuffer> raw_buff,TrainContext& context) {
     auto iter = context.backward_grads_resource.find(resource);
     if(iter == context.backward_grads_resource.end()) {
-        iter->second = std::move(raw_buff);
+        context.backward_grads_resource[resource] = std::move(raw_buff);
     } else {
         //TODO: need _ADD in place
         iter->second = _Add(ParamWrapper(resource), ParamWrapper(raw_buff), context).GetRawbufferSharedPtr();

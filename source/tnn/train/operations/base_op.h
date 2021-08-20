@@ -72,7 +72,7 @@ public:
     };
 
     static std::shared_ptr<BaseOp> GetSupportedOp(OpType type, ParamWrappers& inputs, ParamWrappers& outputs, TrainContext& context) {
-        auto priority_op_type_map = GetPriorityOpTypeMap();
+        auto& priority_op_type_map = GetPriorityOpTypeMap();
         auto iter = priority_op_type_map.find(type);
         if( iter == priority_op_type_map.end())
             return nullptr;
@@ -90,7 +90,7 @@ public:
     //     return GetOpByOpType(layer_2_op_map[type]);
     // };
     static void RegisterOp(OpType type, int priority, std::shared_ptr<BaseOp> op){
-        auto priority_op_type_map = BaseOp::GetPriorityOpTypeMap();
+        auto& priority_op_type_map = BaseOp::GetPriorityOpTypeMap();
         auto iter = priority_op_type_map.find(type);
         std::pair<int, std::shared_ptr<BaseOp> > tmp_priority_op = std::make_pair(priority, op);
         if(iter == priority_op_type_map.end()) {

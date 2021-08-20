@@ -29,7 +29,7 @@ namespace train {
 class BaseSolver{
 public:
     BaseSolver(AbstractNetwork* network, NetworkConfig* config) {
-        auto context = grad_manager_.GetContext();
+        auto& context = grad_manager_.GetContext();
         context.network = network;
         context.config = config;
     };

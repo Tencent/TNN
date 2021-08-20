@@ -52,7 +52,7 @@ Status GradManager::CalcuteGrads() {
     loss_raw_buffer->force_to<float *>()[0] = 1.f;
     loss_raw_buffer->SetTrainable(false);
     loss_raw_buffer->SetDataFormat(loss->GetBlobDesc().data_format);
-    auto layers = network->GetLayers();
+    auto& layers = network->GetLayers();
     for(auto iter = layers.rbegin(); iter != layers.rend(); iter++) {
         if(need_grad_layers_.find((*iter)->layer_name_) == need_grad_layers_.end())
             continue;

@@ -107,7 +107,15 @@ public:
         // ~ParamValue(){};
     };
     ParamWrapper(): type_(ParamType::default_type_enum){};
-    ParamWrapper(const ParamWrapper& other) = default;
+    ParamWrapper(const ParamWrapper& other) {
+        if(this != &other) {
+            type_ = other.type_;
+            value_ = other.value_;
+            blob_shared_ptr_ = other.blob_shared_ptr_;
+            raw_buffer_shared_ptr_ = other.raw_buffer_shared_ptr_;
+            bfp16_value_ = other.bfp16_value_;
+        }
+    };
     ParamWrapper(const ParamWrapper&& other){
         if(this != &other) {
             type_ = other.type_;
@@ -123,6 +131,16 @@ public:
             value_ = other.value_;
             blob_shared_ptr_ = other.blob_shared_ptr_;
             raw_buffer_shared_ptr_ = other.raw_buffer_shared_ptr_;
+            bfp16_value_ = other.bfp16_value_;
+        }
+        return *this;
+    };
+    ParamWrapper& operator= (const ParamWrapper&& other){
+        if(this != &other) {
+            type_ = other.type_;
+            value_ = other.value_;
+            blob_shared_ptr_ = std::move(other.blob_shared_ptr_);
+            raw_buffer_shared_ptr_ = std::move(other.raw_buffer_shared_ptr_);
             bfp16_value_ = other.bfp16_value_;
         }
         return *this;
@@ -272,7 +290,7 @@ public:
             case blob_shared_ptr_value_enum:
                 return static_cast<void*>(static_cast<char*>(blob_shared_ptr_->GetHandle().base) + blob_shared_ptr_->GetHandle().bytes_offset);
             case blob_pvalue_enum:
-                return static_cast<void*>(static_cast<char*>(blob_shared_ptr_->GetHandle().base) + blob_shared_ptr_->GetHandle().bytes_offset);
+                return static_cast<void*>(static_cast<char*>(value_.blob_pvalue->GetHandle().base) + value_.blob_pvalue->GetHandle().bytes_offset);
             case rawbuffer_shared_ptr_value_enum:
                 return raw_buffer_shared_ptr_->force_to<void *>();
             case raw_buffer_pvalue_enum:

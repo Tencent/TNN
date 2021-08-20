@@ -76,7 +76,7 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
 }
 
 #ifdef TRAIN
-Status SetTrainLayers(DefaultModelInterpreter* interpreter, std::set<std::string>& need_grad_layers, const TrainConfig train_config) {
+Status SetTrainLayers(DefaultModelInterpreter* interpreter, std::set<std::string>& need_grad_layers, const TrainConfig& train_config) {
     if(train_config.run_mode != TRAIN_MODE)
         return TNN_OK;
     if(!interpreter || !interpreter->GetNetStructure())
@@ -262,8 +262,8 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
  
         const_folder_ = const_folder;
     }
-#ifdef Train
     network_ = NetworkImplManager::GetNetworkImpl(network_type);
+#ifdef TRAIN
     ret = CreateSolver(network_.get(), &net_config_, need_grad_string);
     RETURN_ON_NEQ(ret, TNN_OK);
 #endif

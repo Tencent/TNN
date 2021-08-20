@@ -27,7 +27,7 @@ ParamWrapper BinaryOpHelper(ParamWrapper& input1,  ParamWrapper& input2, TrainCo
     output->SetDataType(input1.GetBlobOrRawbufferDatatype());
     output->SetDataFormat(input1.GetBlobOrRawbufferDataformat());
     ParamWrappers outputs = {ParamWrapper(output)};
-    Status status = BaseOp::RunOp(OpType::ElementOp, {input1, input2}, {ParamWrapper(output)}, {ParamWrapper(element_op_type)}, context);
+    Status status = BaseOp::RunOp(OpType::OP_ElEMENT, {input1, input2}, {ParamWrapper(output)}, {ParamWrapper(element_op_type)}, context);
     if(status != TNN_OK)
         return {};
     return outputs[0];
@@ -40,7 +40,7 @@ ParamWrapper UnaryOpHelper(ParamWrapper& input1, TrainContext& context, ElementO
     std::shared_ptr<RawBuffer> output = std::make_shared<RawBuffer>(input1.GetBlobOrRawbufferSize(), input1.GetBlobOrRawbufferDims());
     output->SetDataType(input1.GetBlobOrRawbufferDatatype());
     ParamWrappers outputs = {ParamWrapper(output)};
-    Status status = BaseOp::RunOp(OpType::ElementOp, {input1}, {ParamWrapper(output)}, {ParamWrapper(element_op_type)}, context);
+    Status status = BaseOp::RunOp(OpType::OP_ElEMENT, {input1}, {ParamWrapper(output)}, {ParamWrapper(element_op_type)}, context);
     if(status != TNN_OK)
         return {};
     return outputs[0];
@@ -67,6 +67,10 @@ ParamWrapper _Neg(ParamWrapper input1, TrainContext& context) {
 
 ParamWrapper _Log(ParamWrapper input1, TrainContext& context) {
     return UnaryOpHelper(input1, context, ElementOpType::Log);
+}
+
+ParamWrapper _RSign(ParamWrapper input1, TrainContext& context) {
+    return UnaryOpHelper(input1, context, ElementOpType::RSign);
 }
 
 ParamWrapper _Const(ParamWrapper input1, DimsVector dims, DataFormat data_format) {

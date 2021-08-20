@@ -40,7 +40,7 @@ Status BinaryCrossEntropyLayerGrad::OnGrad(const BaseLayer* layer, TrainContext&
     if( input0_data_type != input1_data_type || input1_data_type != output_data_type) {
        return Status(TNN_TRAIN_ERROR, "BinaryCrossEntropyLayerGrad input datatype and output datatype not match in BinaryCrossEntropyLayerGrad"); 
     }
-    if( output_data_type != DATA_TYPE_BFP16 || output_data_type != DATA_TYPE_FLOAT) {
+    if( output_data_type != DATA_TYPE_BFP16 && output_data_type != DATA_TYPE_FLOAT) {
        return Status(TNN_TRAIN_ERROR, "BinaryCrossEntropyLayerGrad output datatype not match in BinaryCrossEntropyLayerGrad"); 
     }
     auto data_format = outputs[0]->GetBlobDesc().data_format;
@@ -60,7 +60,7 @@ Status BinaryCrossEntropyLayerGrad::OnGrad(const BaseLayer* layer, TrainContext&
     ParamWrapper grad0 = _Neg(_Add(_Div(pw1, pw0, context), _Div(_Sub(_Const(pw_const_1, input1_dims, data_format), pw1, context),
                                             _Sub(_Const(pw_const_1, input0_dims, data_format), pw0, context)
                                             ,context), context), context);
-    ParamWrapper grad1 = _Sub(_Log(_Sub(_Const(ParamWrapper(1.0f), input0_dims, data_format), pw0, context), context),
+    ParamWrapper grad1 = _Sub(_Log(_Sub(_Const(pw_const_1, input0_dims, data_format), pw0, context), context),
                               _Log(pw0, context), context);
     auto iter_output = context.backward_grads_blob.find(outputs[0]);
     if(iter_output == context.backward_grads_blob.end()) {
@@ -72,7 +72,7 @@ Status BinaryCrossEntropyLayerGrad::OnGrad(const BaseLayer* layer, TrainContext&
         return Status(TNN_TRAIN_ERROR, "Calcute BinaryCrossEntropyLayerGrad error");
     }
     UpdateGradValue(inputs[0], grad0.GetRawbufferSharedPtr(), context);
-    UpdateGradValue(inputs[1], grad0.GetRawbufferSharedPtr(), context);
+    UpdateGradValue(inputs[1], grad1.GetRawbufferSharedPtr(), context);
     return Status(TNN_OK); 
 }
 REGISTER_LAYER_GRAD(BinaryCrossEntropy, LAYER_BINARY_CROSSENTROPY);

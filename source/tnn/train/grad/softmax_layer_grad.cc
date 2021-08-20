@@ -34,7 +34,7 @@ Status SoftMaxLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context){
     auto output_data_type = output_desc.data_type;
     auto input0_dims = input0_desc.dims;
     auto output_dims = output_desc.dims;
-    if( output_data_type != DATA_TYPE_BFP16 || output_data_type != DATA_TYPE_FLOAT || input0_data_type != output_data_type) {
+    if((output_data_type != DATA_TYPE_BFP16 && output_data_type != DATA_TYPE_FLOAT) || input0_data_type != output_data_type) {
        return Status(TNN_TRAIN_ERROR, "output datatype not match in SoftMaxLayerGrad"); 
     }
     if(DimsVectorUtils::Equal(input0_dims, output_dims)) {

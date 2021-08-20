@@ -22,8 +22,7 @@ namespace train {
 
 // @brief all op types, used in train module, but may be used in predict modules;  
 enum OpType {
-    BinaryCrossEntryopyLayerGradOp = 1000,
-    ElementOp = 1001
+    OP_ElEMENT = 1000,
 }; 
 
 enum ElementOpType {
@@ -33,7 +32,8 @@ enum ElementOpType {
     Mul = 3,
     Div = 4,
     Log = 5,
-    Neg = 6
+    Neg = 6,
+    RSign = 7
 
 }; 
 

@@ -46,7 +46,7 @@ Status BaseSolver::ComputeUpdateValue(RawBuffer* resource_param, std::shared_ptr
 }
 
 void BaseSolver::SetNeedGradLayers(const std::set<std::string>& need_grad_layers) {
-    //grad_manager_.SetNeedGradLayers(need_grad_layers);
+    grad_manager_.SetNeedGradLayers(need_grad_layers);
     return;
 }
 

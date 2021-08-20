@@ -29,6 +29,7 @@ void ConvertToNCHW(void*& src_ptr, RawBuffer& dst, RawBuffer* input_rawbuffer) {
 }
 
 //src_ptr must be nchw format
+//TODO: error return for judging status
 void ConvertToNCHW(void*& src_ptr, RawBuffer& dst, const DataType& dtype, const DataFormat& dformat, const DimsVector& dims) {
     if(dformat == DATA_FORMAT_NC4HW4) {
         int total_count = DimsVectorUtils::Count(dims);

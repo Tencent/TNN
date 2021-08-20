@@ -41,7 +41,7 @@ Status ReduceMeanLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context
     auto inputs = layer->input_blobs_;
     auto outputs = layer->output_blobs_;
     if(inputs.size() != 1 || outputs.size() != 1) {
-        return Status(TNN_TRAIN_ERROR, "input size or output size not match in BinaryCrossEntropyLayerGrad");
+        return Status(TNN_TRAIN_ERROR, "input size or output size not match in ReduceMeanLayerGrad");
     }
     auto input0_desc = inputs[0]->GetBlobDesc();
     auto output_desc = outputs[0]->GetBlobDesc();
@@ -49,8 +49,8 @@ Status ReduceMeanLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context
     auto output_data_type = output_desc.data_type;
     auto input0_dims = input0_desc.dims;
     auto output_dims = output_desc.dims;
-    if( output_data_type != DATA_TYPE_BFP16 || output_data_type != DATA_TYPE_FLOAT || input0_data_type != output_data_type) {
-       return Status(TNN_TRAIN_ERROR, "output datatype not match in BinaryCrossEntropyLayerGrad"); 
+    if((output_data_type != DATA_TYPE_BFP16 && output_data_type != DATA_TYPE_FLOAT) || input0_data_type != output_data_type) {
+       return Status(TNN_TRAIN_ERROR, "output datatype not match in ReduceMeanLayerGrad"); 
     }
     auto layer_param = dynamic_cast<ReduceLayerParam *>(layer->param_);
     if(layer_param == nullptr || layer_param->axis.size() <= 0 )
@@ -63,8 +63,8 @@ Status ReduceMeanLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context
     int batch = input0_dims[0];
     int channel = input0_dims[1];
     int hw = DimsVectorUtils::Count(input0_dims, 2);
-    int output_count = batch * channel * hw;
-    int input_count = DimsVectorUtils::Count(output_dims);
+    int input_count = batch * channel * hw;
+    int output_count = DimsVectorUtils::Count(output_dims);
     void* input_ptr = static_cast<void*>(static_cast<char*>(inputs[0]->GetHandle().base) + inputs[0]->GetHandle().bytes_offset);
     //void* output_ptr = outputs[0]->GetHandle().base + outputs[0]->GetHandle().bytes_offset;
     RawBuffer input_buffer(input_count* DataTypeUtils::GetBytesSize(input0_data_type));
@@ -99,7 +99,6 @@ Status ReduceMeanLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context
     std::shared_ptr<RawBuffer> buffer1 = std::make_shared<RawBuffer>(DimsVectorUtils::Count(input0_dims) * DataTypeUtils::GetBytesSize(input0_data_type));
     std::shared_ptr<RawBuffer> buffer2 = std::make_shared<RawBuffer>(DimsVectorUtils::Count(input0_dims) * DataTypeUtils::GetBytesSize(input0_data_type));
     std::shared_ptr<RawBuffer> last_grad_res;
-    auto output_grad = context.backward_grads_blob[outputs[0]];
     memcpy(buffer1->force_to<void*>(), iter_output_grad->second->force_to<void*>(), output_count* DataTypeUtils::GetBytesSize(output_data_type));
     if(input0_data_type == DATA_TYPE_FLOAT) {
         float* input_buffer_ptr = buffer1->force_to<float*>();
