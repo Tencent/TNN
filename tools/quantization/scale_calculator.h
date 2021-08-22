@@ -69,8 +69,10 @@ public:
     int CalculateScale(std::vector<float>& val, std::vector<int8_t>& bias);
 
 private:
+    // @brief: statistical-based methods
     int CalculateScalePerDis(std::vector<float>& distribute, float interval, float& output);
-    int CalculateScalePerRange(std::pair<float, float> range, float& blob_scale, int8_t& bias);
+    // @brief: analytical-based methods
+    int CalculateScaleAnalysis(std::pair<float, float> range, float& blob_scale, int8_t& bias);
 
     Blob* origin_blob_;
     bool merge_channel_;

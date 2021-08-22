@@ -732,7 +732,6 @@ int Calibration::CalQuantizedWeights(const float* weights, const int size, const
                 return -1;
             }
             int8_t bias = 127 - static_cast<int>(std::round(weight_max * scale_float2int8));
-            int8_t bias2 = -127 - static_cast<int>(std::round(weight_min * scale_float2int8));
             weight_scale_bias[s_idx] = bias;
             // quantize weights
             for (int i = 0; i < s_size; ++i) {
