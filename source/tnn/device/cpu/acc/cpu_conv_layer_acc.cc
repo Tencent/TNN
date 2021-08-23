@@ -31,9 +31,7 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
 
     auto conv_param = dynamic_cast<ConvLayerParam *>(param);
     CHECK_PARAM_NULL(conv_param);
-    resource_ = resource;
     ConvLayerResource* conv_res = dynamic_cast<ConvLayerResource *>(resource_);
-
     CHECK_PARAM_NULL(conv_res);
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         if (!buffer_scale_.GetBytesSize()) {

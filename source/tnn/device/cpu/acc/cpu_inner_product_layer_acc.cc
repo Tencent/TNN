@@ -43,7 +43,6 @@ Status CpuInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerR
         return TNN_OK;
     }
 
-    resource_ = resource;
     auto layer_param = dynamic_cast<InnerProductLayerParam *>(param);
     CHECK_PARAM_NULL(layer_param);
     auto layer_res = dynamic_cast<InnerProductLayerResource *>(resource_);
