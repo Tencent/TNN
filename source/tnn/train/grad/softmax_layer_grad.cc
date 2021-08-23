@@ -37,7 +37,7 @@ Status SoftMaxLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context){
     if((output_data_type != DATA_TYPE_BFP16 && output_data_type != DATA_TYPE_FLOAT) || input0_data_type != output_data_type) {
        return Status(TNN_TRAIN_ERROR, "output datatype not match in SoftMaxLayerGrad"); 
     }
-    if(DimsVectorUtils::Equal(input0_dims, output_dims)) {
+    if(!DimsVectorUtils::Equal(input0_dims, output_dims)) {
         return Status(TNN_TRAIN_ERROR, "output datatype not match in SoftMaxLayerGrad"); 
     }
     auto layer_param = dynamic_cast<SoftmaxLayerParam *>(layer->param_);
@@ -108,21 +108,18 @@ Status SoftMaxLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context){
     std::shared_ptr<RawBuffer> input_grad = std::make_shared<RawBuffer>(total_count * DataTypeUtils::GetBytesSize(input0_data_type), input0_dims);
     if(input0_data_type == DATA_TYPE_FLOAT) {
         for (int n = 0; n < batch; n++) {
-            //float* input_batch  = static_cast<float*>(input_ptr) + n * channel * count;
             float* output_batch = static_cast<float*>(output_ptr) + n * channel * count;
             float* output_grad_batch = static_cast<float*>(output_grad_ptr) + n * channel * count;
             float* input_grad_batch = input_grad->force_to<float*>() + n * channel * count;
-            for (int c = 1; c < channel; c++) {
-                float *output_channel = output_batch + c * count;
-                float *output_grad_channel = output_grad_batch + c * count;
-                //float *input_channel = input_batch + c * count;
-                float *input_grad_channel = input_grad_batch + c * count;
-                for (int i = 0; i < count; ++i) {
-                    for(int j = 0; j<count; ++j)
+            for (int i = 0; i < channel; ++i) {
+                for(int k = 0; k < count; ++k) {
+                    for(int j=0; j<channel; ++j) {
                         if(i == j)
-                            input_grad_channel[i] += output_grad_channel[j] * output_channel[i] * (1.0-output_channel[j]);
+                            input_grad_batch[i*count + k] += output_grad_batch[j*count + k] * (1.0 - output_batch[j*count + k]);
                         else
-                            input_grad_channel[i] += output_grad_channel[j] * output_channel[i] * (-output_channel[j]);
+                            input_grad_batch[i*count + k] -= output_grad_batch[j*count + k] * output_batch[j*count + k];
+                    }
+                    input_grad_batch[i*count + k] *= output_batch[i*count + k];
                 }
             }
         }

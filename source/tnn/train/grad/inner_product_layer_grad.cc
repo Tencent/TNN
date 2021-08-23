@@ -34,11 +34,8 @@ Status InnerProductLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& conte
     auto output_data_type = output_desc.data_type;
     auto input0_dims = input0_desc.dims;
     auto output_dims = output_desc.dims;
-    if( output_data_type != DATA_TYPE_BFP16 || output_data_type != DATA_TYPE_FLOAT || input0_data_type != output_data_type) {
+    if((output_data_type != DATA_TYPE_BFP16 && output_data_type != DATA_TYPE_FLOAT) || input0_data_type != output_data_type) {
        return Status(TNN_TRAIN_ERROR, "output datatype not match in InnerProductLayerGrad"); 
-    }
-    if(DimsVectorUtils::Equal(input0_dims, output_dims)) {
-        return Status(TNN_TRAIN_ERROR, "output and input dims not match in InnerProductLayerGrad"); 
     }
     auto layer_param    = dynamic_cast<InnerProductLayerParam *>(layer->param_);
     auto resource = dynamic_cast<InnerProductLayerResource *>(layer->resource_);
@@ -48,15 +45,23 @@ Status InnerProductLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& conte
     if(iter_output_grad == context.backward_grads_blob.end()) {
         return Status(TNN_TRAIN_ERROR, "InnerProductLayerGrad output grad not found");
     }
-    auto weight_dims = resource->weight_handle.GetBufferDims();
+    auto input_batch = input0_dims[0];
+    auto input_count = DimsVectorUtils::Count(input0_dims, 1);
+    auto output_count = layer_param->num_output;
     auto weight_data_type = resource->weight_handle.GetDataType();
     if(weight_data_type != DATA_TYPE_FLOAT) {
         return Status(TNN_TRAIN_ERROR, "InnerProductLayerGrad resource don't support ");
     }
-
+    //converter bugs don't set weight_handle dims
+    //auto weight_dims = resource->weight_handle.GetBufferDims();
+    DimsVector weight_dims = {output_count, input_count};
+    if(output_count * input_count *  DataTypeUtils::GetBytesSize(weight_data_type) != resource->weight_handle.GetBytesSize()) {
+        return Status(TNN_TRAIN_ERROR, "InnerProductLayerGrad weight dims error");
+    }
+    
     std::shared_ptr<RawBuffer> input_grad = std::make_shared<RawBuffer>(DimsVectorUtils::Count(input0_dims) * DataTypeUtils::GetBytesSize(input0_data_type), input0_dims);
     std::shared_ptr<RawBuffer> output_grad = iter_output_grad->second;
-    std::shared_ptr<RawBuffer> weight_grad = std::make_shared<RawBuffer>(DimsVectorUtils::Count(weight_dims) * DataTypeUtils::GetBytesSize(weight_data_type), weight_dims);
+    std::shared_ptr<RawBuffer> weight_grad = std::make_shared<RawBuffer>(resource->weight_handle.GetBytesSize(), weight_dims);
     std::shared_ptr<RawBuffer> bias_grad;
 
     void* input_ptr = static_cast<void*>(static_cast<char*>(inputs[0]->GetHandle().base) + inputs[0]->GetHandle().bytes_offset);
@@ -79,9 +84,6 @@ Status InnerProductLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& conte
         bias_grad = std::make_shared<RawBuffer>(DimsVectorUtils::Count(resource->bias_handle.GetBufferDims()) * DataTypeUtils::GetBytesSize(resource->bias_handle.GetDataType()), 
                                                 resource->bias_handle.GetBufferDims());
     }
-    auto input_batch = input0_dims[0];
-    auto input_count = DimsVectorUtils::Count(input0_dims, 1);
-    auto output_count = weight_dims[1];
     //TODO: 如下改造成模板可以处理bft16和float
     //already init with 0.0; see all params as 2 dims;
     //weigt: output_count * input_count
@@ -100,10 +102,10 @@ Status InnerProductLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& conte
         for (int j = 0; j < output_count; ++j) {
             for(int k=0; k< input_count; ++k) {
                 for(int i=0; i<input_batch; ++i) {
-                    weight_grad_ptr_float[j*output_count + k] += output_grad_ptr_float[i*input_batch + j] * input_ptr_float[i*input_batch + k];
-                    input_grad_ptr_float[i*input_batch + k] += output_grad_ptr_float[i*input_batch + j] * weight_ptr_float[j*output_count + k];
+                    weight_grad_ptr_float[j*output_count + k] += output_grad_ptr_float[i*output_count + j] * input_ptr_float[i*input_count + k];
+                    input_grad_ptr_float[i*input_count + k] += output_grad_ptr_float[i*output_count + j] * weight_ptr_float[j*output_count + k];
                     if(layer_param->has_bias && k==0) {
-                        bias_grad_ptr_float[j] += output_grad_ptr_float[i*input_batch + j];
+                        bias_grad_ptr_float[j] += output_grad_ptr_float[i*output_count + j];
                     }
                 }
             }
