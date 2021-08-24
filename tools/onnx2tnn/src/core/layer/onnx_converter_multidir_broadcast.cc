@@ -85,7 +85,7 @@ int OnnxOpConverterMultiBrodcast::WriteTNNModel(Serializer *net_writer, NodeProt
 
     //写数据
     const onnx::TensorProto &weight = net_info.weights_map[weight_name];
-    WriteTensorData(weight, net_writer, DATA_TYPE_AUTO);
+    WriteTensorData(weight, net_writer, net_info.data_type);
     
     //有权值写入的返回1， 没有的返回0
     return 1;

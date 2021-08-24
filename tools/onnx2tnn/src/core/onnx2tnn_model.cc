@@ -113,7 +113,7 @@ int Onnx2TNN::TNNWriteModel() {
             for (auto id : const_id_set) {
                 auto const_tensor = onnx_net_info_.weights_map[id];
                 net_writer.PutString(id);
-                OnnxOpConverter::WriteTensorData(const_tensor, &net_writer, DATA_TYPE_AUTO);
+                OnnxOpConverter::WriteTensorData(const_tensor, &net_writer, onnx_net_info_.data_type);
                 
             }
         }
