@@ -804,7 +804,6 @@ void ModelChecker::DumpBlobData(void* blob_data, DimsVector blob_dims, std::stri
         f_out.close();
     } else {
         LOGE("DumpBlobData does not support dump data type: %d\n", data_type);
-        assert(-1);
     }
 }
 
