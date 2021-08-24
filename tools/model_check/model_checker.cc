@@ -789,24 +789,21 @@ void ModelChecker::DumpBlobData(void* blob_data, DimsVector blob_dims, std::stri
         for (int index = 0; index < count; ++index) {
             f_out << data_ptr[index] << std::endl;
         }
-        f_out.close();
     } else if (data_type == DATA_TYPE_INT32) {
         auto data_ptr = reinterpret_cast<int32_t*>(blob_data);
         for (int index = 0; index < count; ++index) {
             f_out << data_ptr[index] << std::endl;
         }
-        f_out.close();
     } else if (data_type == DATA_TYPE_INT8) {
         auto data_ptr = reinterpret_cast<int8_t*>(blob_data);
         for (int index = 0; index < count; ++index) {
             f_out << data_ptr[index] << std::endl;
         }
-        f_out.close();
     } else {
         LOGE("DumpBlobData does not support dump data type: %d\n", data_type);
         f_out << "DumpBlobData does not support data type " << data_type << std::endl;
-        f_out.close();
     }
+    f_out.close();
 }
 
 }  // namespace TNN_NS
