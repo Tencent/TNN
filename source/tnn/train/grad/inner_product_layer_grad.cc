@@ -81,17 +81,18 @@ Status InnerProductLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& conte
 
 
     if(layer_param->has_bias) {
-        bias_grad = std::make_shared<RawBuffer>(DimsVectorUtils::Count(resource->bias_handle.GetBufferDims()) * DataTypeUtils::GetBytesSize(resource->bias_handle.GetDataType()), 
-                                                resource->bias_handle.GetBufferDims());
+        DimsVector bias_dims = {output_count};
+        bias_grad = std::make_shared<RawBuffer>(DimsVectorUtils::Count(bias_dims) * DataTypeUtils::GetBytesSize(resource->bias_handle.GetDataType()), bias_dims);
     }
     //TODO: 如下改造成模板可以处理bft16和float
     //already init with 0.0; see all params as 2 dims;
     //weigt: output_count * input_count
     //input: input_batch * input_count
+    //output: input_batch * output_count
     //bias: output_count
-    //weight_grad[j, k] = E(i<=0<input_batch) output_grad[i, j] * input[i, k]
-    //bias_grad[j] = E(j<=0<output_count) output_grad[i, j] * weight[j, k]
-    //input_grad[i,k] = E(i<=0<input_batch) output_grad[i, j] * weight[j, k]
+    //weight_grad[j, k] = E(0<=j<input_batch) output_grad[i, j] * input[i, k]
+    //bias_grad[j] = E(j<=0<output_count) output_grad[i, j] 
+    //input_grad[i,k] = E(0<=j<output_count) output_grad[i, j] * weight[j, k]
     if(input0_data_type == DATA_TYPE_FLOAT) {
         float* weight_grad_ptr_float = weight_grad->force_to<float*>();
         float* output_grad_ptr_float = static_cast<float*>(output_grad_ptr);
@@ -102,8 +103,8 @@ Status InnerProductLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& conte
         for (int j = 0; j < output_count; ++j) {
             for(int k=0; k< input_count; ++k) {
                 for(int i=0; i<input_batch; ++i) {
-                    weight_grad_ptr_float[j*output_count + k] += output_grad_ptr_float[i*output_count + j] * input_ptr_float[i*input_count + k];
-                    input_grad_ptr_float[i*input_count + k] += output_grad_ptr_float[i*output_count + j] * weight_ptr_float[j*output_count + k];
+                    weight_grad_ptr_float[j*input_count + k] += output_grad_ptr_float[i*output_count + j] * input_ptr_float[i*input_count + k];
+                    input_grad_ptr_float[i*input_count + k] += output_grad_ptr_float[i*output_count + j] * weight_ptr_float[j*input_count + k];
                     if(layer_param->has_bias && k==0) {
                         bias_grad_ptr_float[j] += output_grad_ptr_float[i*output_count + j];
                     }
@@ -121,11 +122,11 @@ Status InnerProductLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& conte
     UpdateGradValue(inputs[0], input_grad, context);
     weight_grad->SetDataType(weight_data_type);
     weight_grad->SetDataFormat(resource->weight_handle.GetDataFormat());
-    UpdateGradValue(&resource->weight_handle, input_grad, context);
+    UpdateGradValue(&resource->weight_handle, weight_grad, context);
     if(layer_param->has_bias) {
         bias_grad->SetDataType(resource->bias_handle.GetDataType());
         bias_grad->SetDataFormat(resource->bias_handle.GetDataFormat());
-        UpdateGradValue(&resource->bias_handle, input_grad, context);
+        UpdateGradValue(&resource->bias_handle, bias_grad, context);
     }
     return Status(TNN_OK); 
 }

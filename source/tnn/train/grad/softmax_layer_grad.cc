@@ -127,7 +127,7 @@ Status SoftMaxLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context){
 
     }
     if( input0_desc.data_format == DATA_FORMAT_NC4HW4) {
-        std::shared_ptr<RawBuffer> tmpbuffer = std::make_shared<RawBuffer>(Calculate1DMemorySize(input0_desc).dims[0]* DataTypeUtils::GetBytesSize(output_data_type));
+        std::shared_ptr<RawBuffer> tmpbuffer = std::make_shared<RawBuffer>(CalculateElementCount(input0_desc) * DataTypeUtils::GetBytesSize(output_data_type));
         if(output_data_type == DATA_TYPE_BFP16) {
             PackFloatBlob(tmpbuffer->force_to<bfp16_t*>(), input_grad->force_to<bfp16_t*>(), batch_for_pack, channel_for_pack, hw_for_pack);
         }

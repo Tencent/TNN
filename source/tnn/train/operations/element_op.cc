@@ -335,7 +335,7 @@ Status ElementOp::Exec(ParamWrappers& inputs, ParamWrappers& outputs, ParamWrapp
     if(buffers.size() > 1) {
         memcpy(output_ptr, buffers[1].GetBlobOrRawbufferDataPointer(), outputs[0].GetBlobOrRawbufferSize());
     }
-    if(dst_dformat == DATA_FORMAT_NHC4W4 && op_type == ElementOpType::Div) {
+    if(dst_dformat == DATA_FORMAT_NC4HW4 && op_type == ElementOpType::Div) {
         //special deal
         switch (dst_dtype)
         {

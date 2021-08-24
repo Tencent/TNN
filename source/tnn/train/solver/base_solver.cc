@@ -70,7 +70,9 @@ Status BaseSolver::step() {
     auto& resource_grads = grad_manager_.GetContext().backward_grads_resource;
     for(auto iter: resource_grads){
         if(iter.first->GetTrainable()) {
-            Status status = UpdateTrainableVariable(iter.first, iter.second);
+            Status status = ComputeUpdateValue(iter.first, iter.second);
+            RETURN_ON_NEQ(status, TNN_OK);
+            status = UpdateTrainableVariable(iter.first, iter.second);
             RETURN_ON_NEQ(status, TNN_OK);
         }
     }

@@ -66,17 +66,14 @@ Status ReduceMeanLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context
     int input_count = batch * channel * hw;
     int output_count = DimsVectorUtils::Count(output_dims);
     void* input_ptr = static_cast<void*>(static_cast<char*>(inputs[0]->GetHandle().base) + inputs[0]->GetHandle().bytes_offset);
+    void* output_grad_ptr = iter_output_grad->second->force_to<void *>();
     //void* output_ptr = outputs[0]->GetHandle().base + outputs[0]->GetHandle().bytes_offset;
-    RawBuffer input_buffer(input_count* DataTypeUtils::GetBytesSize(input0_data_type));
-    if(input0_desc.data_format == DATA_FORMAT_NC4HW4) {
-        if(input0_data_type== DATA_TYPE_BFP16) {
-            UnpackFloatBlob(input_buffer.force_to<bfp16_t*>(), static_cast<bfp16_t*>(input_ptr), batch, channel, hw);
-            input_ptr = input_buffer.force_to<void*>();
-        }
-        else if(input0_data_type == DATA_TYPE_FLOAT)
-            UnpackFloatBlob(input_buffer.force_to<float*>(), static_cast<float*>(input_ptr), batch, channel, hw);    
-            input_ptr = input_buffer.force_to<void*>();
-    }
+    RawBuffer input_buffer;
+    ConvertToNCHW(input_ptr, input_buffer, input0_desc);
+
+    RawBuffer output_grad_buffer;
+    ConvertToNCHW(output_grad_ptr, output_grad_buffer, iter_output_grad->second.get());
+
     // batch = output_dims[0];
     // channel = output_dims[1];
     // hw = DimsVectorUtils::Count(output_dims, 2);
@@ -99,7 +96,7 @@ Status ReduceMeanLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context
     std::shared_ptr<RawBuffer> buffer1 = std::make_shared<RawBuffer>(DimsVectorUtils::Count(input0_dims) * DataTypeUtils::GetBytesSize(input0_data_type));
     std::shared_ptr<RawBuffer> buffer2 = std::make_shared<RawBuffer>(DimsVectorUtils::Count(input0_dims) * DataTypeUtils::GetBytesSize(input0_data_type));
     std::shared_ptr<RawBuffer> last_grad_res;
-    memcpy(buffer1->force_to<void*>(), iter_output_grad->second->force_to<void*>(), output_count* DataTypeUtils::GetBytesSize(output_data_type));
+    memcpy(buffer1->force_to<void*>(), output_grad_ptr, output_count* DataTypeUtils::GetBytesSize(output_data_type));
     if(input0_data_type == DATA_TYPE_FLOAT) {
         float* input_buffer_ptr = buffer1->force_to<float*>();
         float* output_buffer_ptr = buffer2->force_to<float*>();
@@ -132,7 +129,7 @@ Status ReduceMeanLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context
 
     }
     if( input0_desc.data_format == DATA_FORMAT_NC4HW4) {
-        std::shared_ptr<RawBuffer> tmpbuffer = std::make_shared<RawBuffer>(Calculate1DMemorySize(input0_desc).dims[0]* DataTypeUtils::GetBytesSize(output_data_type));
+        std::shared_ptr<RawBuffer> tmpbuffer = std::make_shared<RawBuffer>(CalculateElementCount(input0_desc) * DataTypeUtils::GetBytesSize(output_data_type));
         if(output_data_type == DATA_TYPE_BFP16) {
             PackFloatBlob(tmpbuffer->force_to<bfp16_t*>(), last_grad_res->force_to<bfp16_t*>(), batch, channel, hw);
         }

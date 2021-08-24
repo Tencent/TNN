@@ -16,6 +16,7 @@
 
 #include "tnn/train/grad/utils.h"
 #include "tnn/device/arm/arm_util.h"
+#include "tnn/core/macro.h"
 
 
 namespace TNN_NS {
@@ -53,7 +54,7 @@ void ConvertToNC4HW4(std::shared_ptr<RawBuffer>& src, BlobDesc& input_desc) {
         int batch_for_pack = input_desc.dims[0];
         int channel_for_pack = input_desc.dims[1];
         int hw_for_pack = DimsVectorUtils::Count(input_desc.dims, 2);
-        std::shared_ptr<RawBuffer> tmpbuffer = std::make_shared<RawBuffer>(Calculate1DMemorySize(input_desc).dims[0]* DataTypeUtils::GetBytesSize(input_desc.data_type), input_desc.dims);
+        std::shared_ptr<RawBuffer> tmpbuffer = std::make_shared<RawBuffer>(CalculateElementCount(input_desc) * DataTypeUtils::GetBytesSize(input_desc.data_type), input_desc.dims);
         if(input_desc.data_type == DATA_TYPE_BFP16) {
             PackFloatBlob(tmpbuffer->force_to<bfp16_t*>(), src->force_to<bfp16_t*>(), batch_for_pack, channel_for_pack, hw_for_pack);
         }
@@ -80,6 +81,26 @@ int ConvertFromFloatToBFP16(float *fp32, void *fp16, int count) {
     }
 
     return 0;
+}
+
+int GetDim(const DimsVector dims, const int index) {
+    return dims.size() > index ? dims[index] : 1;
+}; 
+
+int CalculateElementCount(BlobDesc &desc) {
+    int count      = 1;
+    if (desc.data_format == DATA_FORMAT_NCHW || desc.data_format == DATA_FORMAT_AUTO) {
+        for (auto d : desc.dims)
+            count *= d;
+    } else {
+        // packed format
+        if (desc.data_type == DATA_TYPE_HALF) {
+            count = GetDim(desc.dims, 0) * ROUND_UP(GetDim(desc.dims, 1), 8) * DimsVectorUtils::Count(desc.dims, 2);
+        } else {
+            count = GetDim(desc.dims, 0) * ROUND_UP(GetDim(desc.dims, 1), 4) * DimsVectorUtils::Count(desc.dims, 2);
+        }
+    }
+    return count;
 }
 
 }

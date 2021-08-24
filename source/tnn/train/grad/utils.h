@@ -56,6 +56,13 @@ namespace train {
         return type_ == ParamType::ValueName##_enum;  \
     }; 
 
+int ConvertFromFloatToBFP16(float *fp32, void *fp16, int count);
+int ConvertFromBFP16ToFloat(void *fp16, float *fp32, int count);
+void ConvertToNCHW(void*& src_ptr, RawBuffer& dst, RawBuffer* input_rawbuffer);
+void ConvertToNCHW(void*& data_ptr, RawBuffer& dst, const BlobDesc& input_desc);
+void ConvertToNCHW(void*& src_ptr, RawBuffer& dst, const DataType& dtype, const DataFormat& dformat, const DimsVector& dims);
+void ConvertToNC4HW4(std::shared_ptr<RawBuffer>& src, BlobDesc& input_desc); 
+int CalculateElementCount(BlobDesc &desc);
 
 class ParamWrapper
 {
@@ -215,10 +222,10 @@ public:
         {
             case blob_shared_ptr_value_enum:
                 desc = blob_shared_ptr_->GetBlobDesc(); 
-                return (desc.dims.size() >  0 ? Calculate1DMemorySize(desc).dims[0] : 0) * DataTypeUtils::GetBytesSize(desc.data_type) ;
+                return (desc.dims.size() >  0 ? CalculateElementCount(desc) : 0) * DataTypeUtils::GetBytesSize(desc.data_type) ;
             case blob_pvalue_enum:
                 desc = value_.blob_pvalue->GetBlobDesc();
-                return (desc.dims.size() >  0 ? Calculate1DMemorySize(desc).dims[0] : 0) * DataTypeUtils::GetBytesSize(desc.data_type) ;
+                return (desc.dims.size() >  0 ? CalculateElementCount(desc) : 0) * DataTypeUtils::GetBytesSize(desc.data_type) ;
             case rawbuffer_shared_ptr_value_enum:
                 return raw_buffer_shared_ptr_->GetBytesSize();
             case raw_buffer_pvalue_enum:
@@ -314,12 +321,6 @@ private:
 };
 typedef std::vector<ParamWrapper> ParamWrappers;
 
-int ConvertFromFloatToBFP16(float *fp32, void *fp16, int count);
-int ConvertFromBFP16ToFloat(void *fp16, float *fp32, int count);
-void ConvertToNCHW(void*& src_ptr, RawBuffer& dst, RawBuffer* input_rawbuffer);
-void ConvertToNCHW(void*& data_ptr, RawBuffer& dst, const BlobDesc& input_desc);
-void ConvertToNCHW(void*& src_ptr, RawBuffer& dst, const DataType& dtype, const DataFormat& dformat, const DimsVector& dims);
-void ConvertToNC4HW4(std::shared_ptr<RawBuffer>& src, BlobDesc& input_desc); 
 } //namspace train
 } //namespace TNN_NS
 
