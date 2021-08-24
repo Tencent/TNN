@@ -94,7 +94,7 @@ private:
     // @brief compare raw
     bool CompareData(void* device_data, void* cpu_data, DataType data_type, DimsVector blob_dims, CompareType type = DEFAULT);
     // @brief dump blob data
-    void DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name);
+    void DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name, DataType data_type);
 
     ModelCheckerParam model_checker_params_;
     std::shared_ptr<TNN> tnn_                  = nullptr;

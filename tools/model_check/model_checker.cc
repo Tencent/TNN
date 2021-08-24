@@ -233,7 +233,7 @@ Status ModelChecker::RunModelCheckerFromDumpFile() {
                 check_results.push_back(std::make_pair(info, check_pass));
 
                 const auto dump_path = model_checker_params_.dump_dir_path + "tnn-" + replace_name + ".txt";
-                DumpBlobData(tnn_data_ptr, data_dims, dump_path);
+                DumpBlobData(tnn_data_ptr, data_dims, dump_path, data_type);
                 printf("TNN model and src model not aligned at %s\n", blob_name.c_str());
                 printf("You can find the output of %s of TNN at %s\n", blob_name.c_str(), dump_path.c_str());
                 printf("You can find the output of %s of source model at %s\n", blob_name.c_str(),
@@ -368,8 +368,8 @@ Status ModelChecker::RunModelCheckerOutput() {
 
         if (model_checker_params_.dump_output) {
             printf("\ndump blob (%s) data\n", blob_name.c_str());
-            DumpBlobData(output_ref_mat_map_[blob_name]->GetData(), cpu_blob_dims, "cpu_" + blob_name + ".txt");
-            DumpBlobData(device_output_mat_map[blob_name]->GetData(), device_blob_dims, "device_" + blob_name + ".txt");
+            DumpBlobData(output_ref_mat_map_[blob_name]->GetData(), cpu_blob_dims, "cpu_" + blob_name + ".txt", data_type);
+            DumpBlobData(device_output_mat_map[blob_name]->GetData(), device_blob_dims, "device_" + blob_name + ".txt", data_type);
         }
     }
     if (check_pass) {
@@ -688,8 +688,8 @@ Status ModelChecker::CompareDeviceAndCpu() {
             if (model_checker_params_.dump_output) {
                 if (output_blobs_device.find(blob_name) != output_blobs_device.end()) {
                     LOGE("dump blob (%s) data\n", blob_name.c_str());
-                    DumpBlobData(cpu_blobdata_map[blob_name].get(), blob_desc.dims, "cpu_" + blob_name + ".txt");
-                    DumpBlobData(output_data_ptr, blob_desc.dims, "device_" + blob_name + ".txt");
+                    DumpBlobData(cpu_blobdata_map[blob_name].get(), blob_desc.dims, "cpu_" + blob_name + ".txt", data_type);
+                    DumpBlobData(output_data_ptr, blob_desc.dims, "device_" + blob_name + ".txt", data_type);
                 }
             }
         }
@@ -780,15 +780,29 @@ bool ModelChecker::CompareData(void* device_data, void* cpu_data, DataType data_
     return true;
 }
 
-void ModelChecker::DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name) {
+void ModelChecker::DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name, DataType data_type) {
     std::ofstream f_out(output_name.c_str());
 
-    int count       = DimsVectorUtils::Count(blob_dims);
-    float* data_ptr = reinterpret_cast<float*>(blob_data);
-    for (int index = 0; index < count; ++index) {
-        f_out << data_ptr[index] << std::endl;
+    int count = DimsVectorUtils::Count(blob_dims);
+    if (data_type == DATA_TYPE_FLOAT) {
+        auto data_ptr = reinterpret_cast<float*>(blob_data);
+        for (int index = 0; index < count; ++index) {
+            f_out << data_ptr[index] << std::endl;
+        }
+    } else if (data_type == DATA_TYPE_INT32) {
+        auto data_ptr = reinterpret_cast<int32_t*>(blob_data);
+        for (int index = 0; index < count; ++index) {
+            f_out << data_ptr[index] << std::endl;
+        }
+    } else if (data_type == DATA_TYPE_INT8) {
+        auto data_ptr = reinterpret_cast<int8_t*>(blob_data);
+        for (int index = 0; index < count; ++index) {
+            f_out << data_ptr[index] << std::endl;
+        }
+    } else {
+        LOGE("DumpBlobData does not support dump data type: %d\n", data_type);
+        f_out << "DumpBlobData does not support data type " << data_type << std::endl;
     }
-
     f_out.close();
 }
 
