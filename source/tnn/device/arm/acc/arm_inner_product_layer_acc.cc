@@ -225,7 +225,7 @@ Status ArmInnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
 }
 #ifdef TRAIN
 Status ArmInnerProductLayerAcc::RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs){
-    if(context_->IsTraining())
+    if(!context_->IsTraining())
         return TNN_OK;
     auto input_data_type = inputs[0]->GetBlobDesc().data_type;
     InnerProductLayerParam *fc_param = dynamic_cast<InnerProductLayerParam *>(param_);

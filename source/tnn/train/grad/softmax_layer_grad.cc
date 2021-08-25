@@ -63,45 +63,15 @@ Status SoftMaxLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context){
     void* output_ptr = static_cast<void*>(static_cast<char*>(outputs[0]->GetHandle().base) + outputs[0]->GetHandle().bytes_offset);
     void* output_grad_ptr = iter_output_grad->second->force_to<void*>();
 
-    // TODO: abstract three code blocks below to an util function
-    RawBuffer input_buffer; 
-    if(input0_desc.data_format == DATA_FORMAT_NC4HW4) {
-        input_buffer = RawBuffer(total_count* DataTypeUtils::GetBytesSize(input0_data_type));
-        if(input0_data_type== DATA_TYPE_BFP16) {
-            UnpackFloatBlob(input_buffer.force_to<bfp16_t*>(), static_cast<bfp16_t*>(input_ptr), batch_for_pack, channel_for_pack, hw_for_pack);
-            input_ptr = input_buffer.force_to<void*>();
-        }
-        else if(input0_data_type == DATA_TYPE_FLOAT) {
-            UnpackFloatBlob(input_buffer.force_to<float*>(), static_cast<float*>(input_ptr), batch_for_pack, channel_for_pack, hw_for_pack);    
-            input_ptr = input_buffer.force_to<void*>();
-        }
-    }
+    RawBuffer input_buffer;
+    ConvertToNCHW(input_ptr, input_buffer, input0_desc);
 
     RawBuffer output_buffer;
-    if(output_desc.data_format == DATA_FORMAT_NC4HW4) {
-        output_buffer = RawBuffer(total_count* DataTypeUtils::GetBytesSize(output_data_type));
-        if(output_data_type == DATA_TYPE_BFP16) {
-            UnpackFloatBlob(output_buffer.force_to<bfp16_t*>(), static_cast<bfp16_t*>(output_ptr), batch_for_pack, channel_for_pack, hw_for_pack);
-            output_ptr = output_buffer.force_to<void*>();
-        }
-        else if(output_data_type == DATA_TYPE_FLOAT) {
-            UnpackFloatBlob(output_buffer.force_to<float*>(), static_cast<float*>(output_ptr), batch_for_pack, channel_for_pack, hw_for_pack);    
-            output_ptr = output_buffer.force_to<void*>();
-        }
-    }
+    ConvertToNCHW(output_ptr, output_buffer, output_desc);
 
     RawBuffer output_grad_buffer;
-    if(iter_output_grad->second->GetDataFormat() == DATA_FORMAT_NC4HW4) {
-        output_grad_buffer = RawBuffer(total_count* DataTypeUtils::GetBytesSize(output_data_type));
-        if(output_data_type == DATA_TYPE_BFP16) {
-            UnpackFloatBlob(output_grad_buffer.force_to<bfp16_t*>(), static_cast<bfp16_t*>(output_grad_ptr), batch_for_pack, channel_for_pack, hw_for_pack);
-            output_grad_ptr = output_grad_buffer.force_to<void*>();
-        }
-        else if(output_data_type == DATA_TYPE_FLOAT) {
-            UnpackFloatBlob(output_grad_buffer.force_to<float*>(), static_cast<float*>(output_grad_ptr), batch_for_pack, channel_for_pack, hw_for_pack);    
-            output_grad_ptr = output_grad_buffer.force_to<void*>();
-        }
-    }
+    ConvertToNCHW(output_grad_ptr, output_grad_buffer, iter_output_grad->second.get());
+
     //already init with 0.0
     //input_grad[i] = E(0<=j<N)(grad[j]*output[i](1-ouput[j])) when i = j
     //input_grad[i] = E(0<=j<N)(grad[j]*output[i]*-ouput[j]) when i != j
@@ -124,18 +94,9 @@ Status SoftMaxLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context){
             }
         }
     } else/* TODO bfp16*/ {
-
+        return Status(TNN_TRAIN_ERROR, "SoftMaxLayerGrad don't support bft16 for now");
     }
-    if( input0_desc.data_format == DATA_FORMAT_NC4HW4) {
-        std::shared_ptr<RawBuffer> tmpbuffer = std::make_shared<RawBuffer>(CalculateElementCount(input0_desc) * DataTypeUtils::GetBytesSize(output_data_type));
-        if(output_data_type == DATA_TYPE_BFP16) {
-            PackFloatBlob(tmpbuffer->force_to<bfp16_t*>(), input_grad->force_to<bfp16_t*>(), batch_for_pack, channel_for_pack, hw_for_pack);
-        }
-        else if(output_data_type == DATA_TYPE_FLOAT) {
-            PackFloatBlob(tmpbuffer->force_to<float*>(), input_grad->force_to<float*>(), batch_for_pack, channel_for_pack, hw_for_pack);    
-        }
-        input_grad = tmpbuffer;
-    }
+    ConvertToNC4HW4(input_grad, input0_desc);
     input_grad->SetDataType(input0_data_type);
     input_grad->SetDataFormat(input0_desc.data_format);
     UpdateGradValue(inputs[0], input_grad, context);

@@ -29,6 +29,7 @@ public:
     GradManager(AbstractNetwork* network, NetworkConfig* config);
     ~GradManager() = default;
     Status CalcuteGrads();
+    Status IsSupport();
     inline TrainContext& GetContext() {
         return context_;
     };

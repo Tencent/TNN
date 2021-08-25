@@ -61,6 +61,8 @@ void ConvertToNC4HW4(std::shared_ptr<RawBuffer>& src, BlobDesc& input_desc) {
         else if(input_desc.data_type == DATA_TYPE_FLOAT) {
             PackFloatBlob(tmpbuffer->force_to<float*>(), src->force_to<float*>(), batch_for_pack, channel_for_pack, hw_for_pack);    
         }
+        tmpbuffer->SetDataFormat(input_desc.data_format);
+        tmpbuffer->SetDataType(input_desc.data_type);
         src = tmpbuffer;
     }
 }

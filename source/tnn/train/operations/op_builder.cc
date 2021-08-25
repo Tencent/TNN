@@ -39,6 +39,7 @@ ParamWrapper UnaryOpHelper(ParamWrapper& input1, TrainContext& context, ElementO
         return {};
     std::shared_ptr<RawBuffer> output = std::make_shared<RawBuffer>(input1.GetBlobOrRawbufferSize(), input1.GetBlobOrRawbufferDims());
     output->SetDataType(input1.GetBlobOrRawbufferDatatype());
+    output->SetDataFormat(input1.GetBlobOrRawbufferDataformat());
     ParamWrappers outputs = {ParamWrapper(output)};
     Status status = BaseOp::RunOp(OpType::OP_ElEMENT, {input1}, {ParamWrapper(output)}, {ParamWrapper(element_op_type)}, context);
     if(status != TNN_OK)

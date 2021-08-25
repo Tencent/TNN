@@ -73,10 +73,10 @@ Status InnerProductLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& conte
     ConvertToNCHW(input_ptr, input_buffer, input0_desc);
 
     RawBuffer output_buffer;
-    ConvertToNCHW(output_ptr, input_buffer, output_desc);
+    ConvertToNCHW(output_ptr, output_buffer, output_desc);
 
     RawBuffer output_grad_buffer;
-    ConvertToNCHW(output_grad_ptr, input_buffer, output_grad.get());
+    ConvertToNCHW(output_grad_ptr, output_grad_buffer, output_grad.get());
 
 
 

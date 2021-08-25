@@ -66,6 +66,7 @@ Status BaseSolver::UpdateTrainableVariable(RawBuffer* resource_param, const std:
     return Status(TNN_OK);
 }
 Status BaseSolver::step() {
+    RETURN_ON_NEQ(grad_manager_.IsSupport(), TNN_OK);
     RETURN_ON_NEQ(grad_manager_.CalcuteGrads(), TNN_OK);
     auto& resource_grads = grad_manager_.GetContext().backward_grads_resource;
     for(auto iter: resource_grads){

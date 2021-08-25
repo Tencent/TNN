@@ -93,8 +93,9 @@ Status ReduceMeanLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context
     // <outer count, reduce count, inner count>
     std::vector<std::tuple<int, int, int>> reduce_dims;
     CalculateReduceDims(inputs[0], layer_param, reduce_dims);
-    std::shared_ptr<RawBuffer> buffer1 = std::make_shared<RawBuffer>(DimsVectorUtils::Count(input0_dims) * DataTypeUtils::GetBytesSize(input0_data_type));
-    std::shared_ptr<RawBuffer> buffer2 = std::make_shared<RawBuffer>(DimsVectorUtils::Count(input0_dims) * DataTypeUtils::GetBytesSize(input0_data_type));
+    //nchw format
+    std::shared_ptr<RawBuffer> buffer1 = std::make_shared<RawBuffer>(DimsVectorUtils::Count(input0_dims) * DataTypeUtils::GetBytesSize(input0_data_type), input0_dims);
+    std::shared_ptr<RawBuffer> buffer2 = std::make_shared<RawBuffer>(DimsVectorUtils::Count(input0_dims) * DataTypeUtils::GetBytesSize(input0_data_type), input0_dims);
     std::shared_ptr<RawBuffer> last_grad_res;
     memcpy(buffer1->force_to<void*>(), output_grad_ptr, output_count* DataTypeUtils::GetBytesSize(output_data_type));
     if(input0_data_type == DATA_TYPE_FLOAT) {
@@ -126,20 +127,11 @@ Status ReduceMeanLayerGrad::OnGrad(const BaseLayer* layer, TrainContext& context
             last_grad_res = buffer2;
         }
     } else/* TODO bfp16*/ {
-
+        return Status(TNN_TRAIN_ERROR, "ReduceMeanLayerGrad don't support bft16 for now");
     }
-    if( input0_desc.data_format == DATA_FORMAT_NC4HW4) {
-        std::shared_ptr<RawBuffer> tmpbuffer = std::make_shared<RawBuffer>(CalculateElementCount(input0_desc) * DataTypeUtils::GetBytesSize(output_data_type));
-        if(output_data_type == DATA_TYPE_BFP16) {
-            PackFloatBlob(tmpbuffer->force_to<bfp16_t*>(), last_grad_res->force_to<bfp16_t*>(), batch, channel, hw);
-        }
-        else if(output_data_type == DATA_TYPE_FLOAT) {
-            PackFloatBlob(tmpbuffer->force_to<float*>(), last_grad_res->force_to<float*>(), batch, channel, hw);    
-        }
-        last_grad_res = tmpbuffer;
-    }
+    //if needed trans to nc4hw4
+    ConvertToNC4HW4(last_grad_res, input0_desc);
     last_grad_res->SetDataType(input0_data_type);
-    last_grad_res->SetBufferDims(input0_dims);
     last_grad_res->SetDataFormat(input0_desc.data_format);
     UpdateGradValue(inputs[0], last_grad_res, context);
     return Status(TNN_OK); 

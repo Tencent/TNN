@@ -152,7 +152,7 @@ void calculate_div_nc4hw4(bfp16_t* out, bfp16_t* in, int batch, int channel, int
     int cur = 0;
     for (int n = 0; n < batch; ++n) {
         auto out_ptr_n = out + n * ROUND_UP(channel, 4) * hw;
-        auto in_ptr_n = out + n * ROUND_UP(channel, 4) * hw;
+        auto in_ptr_n = in + n * ROUND_UP(channel, 4) * hw;
         cur = 0;
         for (c = 0; c < channel; ++c) {
             int plane      = c / 4;
@@ -176,7 +176,7 @@ void calculate_div_nc4hw4(float* out, float* in, int batch, int channel, int hw)
     // skip empty element in nc4hw4 format, other wise zero may be dived
     for (int n = 0; n < batch; ++n) {
         auto out_ptr_n = out + n * ROUND_UP(channel, 4) * hw;
-        auto in_ptr_n = out + n * ROUND_UP(channel, 4) * hw;
+        auto in_ptr_n = in + n * ROUND_UP(channel, 4) * hw;
         int c, cur_hw;
         int idx = 0;
         int cur = 0;
