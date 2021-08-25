@@ -39,7 +39,7 @@ docker pull ccr.ccs.tencentyun.com/qcloud/tnn-convert
 同样的，等待一会之后，你可以通过 `docker images` 来查看是否构建成功，如果构建成功之后，会有类似下面的输出信息：
 ``` text
 REPOSITORY                TAG                 IMAGE ID            CREATED             SIZE
-turandotkay/tnn-convert   latest              28c93a738b08        15 minutes ago      2.81GB
+qcloud/tnn-convert        latest              28c93a738b08        15 minutes ago      2.81GB
 ```
 我们发现pull 下来的 docker 镜像的 REPOSIOTY 的名称太长了，我们可以通过下面的命令进行重命名：
 ```
