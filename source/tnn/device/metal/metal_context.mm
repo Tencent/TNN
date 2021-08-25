@@ -121,6 +121,8 @@ Status MetalContext::Synchronize() {
             _device       = [TNNMetalDeviceImpl sharedDevice];
             _commandQueue = [[TNNMetalCommandQueueImpl alloc] initWithCommandQueue:[_device newCommandQueue]];
             _commandQueue.metalContextImpl = self;
+            _commandBuffer = [_commandQueue commandBuffer];
+            [_commandBuffer enqueue];
             _pipeLineCaches                = [[NSMutableDictionary alloc] init];
             _waitingCommandBufferes        = [[NSMutableArray alloc] init];
             _commitCount                   = 0;
@@ -159,6 +161,10 @@ Status MetalContext::Synchronize() {
 }
 
 - (id<MTLComputeCommandEncoder>)encoder {
+    if (!_commandBuffer) {
+        LOGE("Error: _commandBuffer in TNNMMetalContextImpl is nil\n");
+        return nil;
+    }
     auto result = [_commandBuffer computeCommandEncoder];
 #if TNN_METAL_DEBUG || TNN_PROFILE
     result.label = nil;
@@ -196,11 +202,17 @@ Status MetalContext::Synchronize() {
         encoder.label = [components componentsJoinedByString:@","];
     }
 #endif
-    bandwidth = {pipeline.threadExecutionWidth, pipeline.maxTotalThreadsPerThreadgroup, NO};
+    
+    bandwidth.thread_execution_width = pipeline.threadExecutionWidth;
+    bandwidth.max_threads_per_group = pipeline.maxTotalThreadsPerThreadgroup;
+    bandwidth.z_axis_protected = NO;
     return TNN_OK;
 }
 
 - (id<MTLComputePipelineState>)pipelineWithName:(NSString *)name {
+    if (!name)
+        return nil;
+    
     id<MTLComputePipelineState> result = _pipeLineCaches[name];
     if (result)
         return result;
@@ -369,6 +381,8 @@ Status MetalContext::Synchronize() {
         }
         // create a new command buffer
         _commandBuffer = [_commandQueue commandBuffer];
+        //for safety, dont enqueue
+        //[_commandBuffer enqueue];
     }
 }
 

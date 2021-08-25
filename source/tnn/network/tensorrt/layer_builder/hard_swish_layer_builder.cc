@@ -19,8 +19,8 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(HardSwish, LAYER_HARDSWISH);
 
 bool HardSwishTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kNCHW
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
         && inOut[pos].type == inOut[0].type);
 }
 
@@ -28,25 +28,25 @@ Status HardSwishTRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* HardSwishTRTPluginLayerBuilder::getPluginType() const {
+const char* HardSwishTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "HardSwish";
 }
 
 nvinfer1::DataType HardSwishTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* HardSwishTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* HardSwishTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs HardSwishTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputDims, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputDims, exprBuilder);
 }
 
-const char* HardSwishPluginCreator::getPluginName() const {
+const char* HardSwishPluginCreator::getPluginName() const noexcept {
     return "HardSwish";
 }
 

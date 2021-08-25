@@ -21,6 +21,10 @@ namespace TNN_NS {
 
 DECLARE_ARM_ACC(GridSample, LAYER_GRIDSAMPLE);
 
+static inline bool within_bounds_2d(int32_t h, int32_t w, int32_t H, int32_t W) {
+    return h >= 0 && h < H && w >= 0 && w < W;
+}
+
 static void ComputeNCHW(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input_blob          = inputs[0];
     auto grid_blob           = inputs[1];
@@ -38,48 +42,56 @@ static void ComputeNCHW(const std::vector<Blob *> &inputs, const std::vector<Blo
     auto input_base_ptr      = reinterpret_cast<float *>(GetBlobHandlePtr(input_blob->GetHandle()));
     auto grid_base_ptr       = reinterpret_cast<float *>(GetBlobHandlePtr(grid_blob->GetHandle()));
     auto output_base_ptr     = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
+
     for (int n = 0; n < batch; n++) {
-        auto input_data  = input_base_ptr + n * channel * input_channel_area;
-        auto grid_data   = grid_base_ptr + n * grid_area;
-        auto output_data = output_base_ptr + n * channel * output_channel_area;
+        auto input_data_b  = input_base_ptr + n * channel * input_channel_area;
+        auto grid_data_b   = grid_base_ptr + n * grid_area;
+        auto output_data_b = output_base_ptr + n * channel * output_channel_area;
         OMP_PARALLEL_FOR_
         for (int i = 0; i < output_channel_area; ++i) {
-            auto grid_position = grid_data + 2 * i;
-            float grid_x       = (grid_position[0] + 1) * input_width * 0.5 - 0.5;
-            float grid_y       = (grid_position[1] + 1) * input_height * 0.5 - 0.5;
-            // w0lambda: (1-x) ; w1lambda: x
-            const int w0   = std::floor(grid_x);
-            const int w1p  = (w0 < input_width - 1) ? 1 : 0;
-            float w1lambda = grid_x - w0;
-            float w0lambda = (float)1. - w1lambda;
-            if (w0 < 0 || w0 > input_width - 1) {
-                w0lambda = 0;
-            }
-            if (w0 + 1 < 0 || w0 + 1 > input_width - 1) {
-                w1lambda = 0;
-            }
-            // h0lambda: (1-y) ; h1lambda: y
-            const int h0   = std::floor(grid_y);
-            const int h1p  = (h0 < input_height - 1) ? 1 : 0;
-            float h1lambda = grid_y - h0;
-            float h0lambda = (float)1. - h1lambda;
-            if (h0 < 0 || h0 > input_height - 1) {
-                h0lambda = 0;
-            }
-            if (h0 + 1 < 0 || h0 + 1 > input_height - 1) {
-                h1lambda = 0;
-            }
-            // Note: read outside valid roi will raise
-            const float *x_data_ptr = input_data + h0 * input_width + w0;
-            float *y_data_ptr       = output_data + i;
-            for (int c = 0; c < channel; c++) {
-                // reference: https://zh.wikipedia.org/wiki/%E5%8F%8C%E7%BA%BF%E6%80%A7%E6%8F%92%E5%80%BC
-                // f(x,y) = (1-x) * (1-y) * f(0,0) + (1-x) * (y) * f(0,1) + (x) *(1-y) * f(1,0) + (x) * (y) * f(1,1)
-                y_data_ptr[0] = h0lambda * w0lambda * x_data_ptr[0] + h0lambda * w1lambda * x_data_ptr[w1p] +
-                                h1lambda * w0lambda * x_data_ptr[h1p * input_width] +
-                                h1lambda * w1lambda * x_data_ptr[h1p * input_width + w1p];
-                x_data_ptr += input_channel_area;
-                y_data_ptr += output_channel_area;
+            auto grid_position = grid_data_b + i * 2;
+            float x            = grid_position[0];
+            float y            = grid_position[1];
+            // unnormalize
+            float ix = (x + 1) * input_width * 0.5 - 0.5;
+            float iy = (y + 1) * input_height * 0.5 - 0.5;
+            // get corner pixel values from (x, y)
+            // for 4d, we use north-east-south-west
+            int ix_nw = static_cast<int>(std::floor(ix));
+            int iy_nw = static_cast<int>(std::floor(iy));
+
+            int ix_ne = ix_nw + 1;
+            int iy_ne = iy_nw;
+
+            int ix_sw = ix_nw;
+            int iy_sw = iy_nw + 1;
+
+            int ix_se = ix_nw + 1;
+            int iy_se = iy_nw + 1;
+            // get surfaces to each neighbor:
+            bool nw_within_bound = within_bounds_2d(iy_nw, ix_nw, input_height, input_width);
+            bool ne_within_bound = within_bounds_2d(iy_ne, ix_ne, input_height, input_width);
+            bool sw_within_bound = within_bounds_2d(iy_sw, ix_sw, input_height, input_width);
+            bool se_within_bound = within_bounds_2d(iy_se, ix_se, input_height, input_width);
+            float nw             = nw_within_bound ? (ix_se - ix) * (iy_se - iy) : 0;
+            float ne             = ne_within_bound ? (ix - ix_sw) * (iy_sw - iy) : 0;
+            float sw             = sw_within_bound ? (ix_ne - ix) * (iy - iy_ne) : 0;
+            float se             = se_within_bound ? (ix - ix_nw) * (iy - iy_nw) : 0;
+            int nw_index         = nw_within_bound ? iy_nw * input_width + ix_nw : 0;
+            int ne_index         = ne_within_bound ? iy_ne * input_width + ix_ne : 0;
+            int sw_index         = sw_within_bound ? iy_sw * input_width + ix_sw : 0;
+            int se_index         = se_within_bound ? iy_se * input_width + ix_se : 0;
+
+            // calculate bilinear weighted pixel value and set output pixel
+            float *input_data  = input_data_b;
+            float *output_data = output_data_b + i;
+            for (int c = 0; c < channel; ++c, output_data += output_channel_area, input_data += input_channel_area) {
+                auto res = static_cast<float>(0);
+                res += input_data[nw_index] * nw;
+                res += input_data[ne_index] * ne;
+                res += input_data[sw_index] * sw;
+                res += input_data[se_index] * se;
+                *output_data = res;
             }
         }
     }
@@ -107,14 +119,14 @@ static void ComputeNC4HW4(const std::vector<Blob *> &inputs, const std::vector<B
     auto output_base_ptr     = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
     bool grid_packed         = grid_blob->GetBlobDesc().data_format == DATA_FORMAT_NC4HW4;
     for (int n = 0; n < batch; n++) {
-        auto input_data    = input_base_ptr + n * channel_ud4 * input_channel_area * 4;
-        auto grid_data     = grid_base_ptr + n * grid_channel_ud4 * grid_hw * 4;
-        auto output_data   = output_base_ptr + n * channel_ud4 * output_channel_area * 4;
+        auto input_data_b  = input_base_ptr + n * channel_ud4 * input_channel_area * 4;
+        auto grid_data_b   = grid_base_ptr + n * grid_channel_ud4 * grid_hw * 4;
+        auto output_data_b = output_base_ptr + n * channel_ud4 * output_channel_area * 4;
         RawBuffer reorder_grid_buffer;
         float *grid_buffer = nullptr;
         if (grid_packed) {
             reorder_grid_buffer = RawBuffer(grid_area * sizeof(float));
-            UnpackC4(reorder_grid_buffer.force_to<float *>(), grid_data, DimsVectorUtils::Count(grid_dims, 2),
+            UnpackC4(reorder_grid_buffer.force_to<float *>(), grid_data_b, DimsVectorUtils::Count(grid_dims, 2),
                      grid_dims[1]);
             grid_buffer = reorder_grid_buffer.force_to<float *>();
         }
@@ -122,44 +134,53 @@ static void ComputeNC4HW4(const std::vector<Blob *> &inputs, const std::vector<B
             OMP_PARALLEL_FOR_
             for (int i = 0; i < output_channel_area; ++i) {
                 auto grid_position = grid_buffer + 2 * i;
-                float grid_x       = (grid_position[0] + 1) * input_width * 0.5 - 0.5;
-                float grid_y       = (grid_position[1] + 1) * input_height * 0.5 - 0.5;
-                // w0lambda: (1-x) ; w1lambda: x
-                const int w0   = std::floor(grid_x);
-                const int w1p  = (w0 < input_width - 1) ? 1 : 0;
-                float w1lambda = grid_x - w0;
-                float w0lambda = (float)1. - w1lambda;
-                if (w0 < 0 || w0 > input_width - 1) {
-                    w0lambda = 0;
+                float x            = grid_position[0];
+                float y            = grid_position[1];
+                // unnormalize
+                float ix = (x + 1) * input_width * 0.5 - 0.5;
+                float iy = (y + 1) * input_height * 0.5 - 0.5;
+                // get corner pixel values from (x, y)
+                // for 4d, we use north-east-south-west
+                int ix_nw = static_cast<int>(std::floor(ix));
+                int iy_nw = static_cast<int>(std::floor(iy));
+
+                int ix_ne = ix_nw + 1;
+                int iy_ne = iy_nw;
+
+                int ix_sw = ix_nw;
+                int iy_sw = iy_nw + 1;
+
+                int ix_se = ix_nw + 1;
+                int iy_se = iy_nw + 1;
+
+                // get surfaces to each neighbor:
+                float nw = (ix_se - ix) * (iy_se - iy);
+                float ne = (ix - ix_sw) * (iy_sw - iy);
+                float sw = (ix_ne - ix) * (iy - iy_ne);
+                float se = (ix - ix_nw) * (iy - iy_nw);
+
+                Float4 nw_v = Float4(nw);
+                Float4 ne_v = Float4(ne);
+                Float4 sw_v = Float4(sw);
+                Float4 se_v = Float4(se);
+
+                // calculate bilinear weighted pixel value and set output pixel
+                float *input_data  = input_data_b + c * input_channel_area * 4;
+                float *output_data = output_data_b + c * output_channel_area * 4 + i * 4;
+                Float4 res_v       = Float4(0.0f);
+                if (within_bounds_2d(iy_nw, ix_nw, input_height, input_width)) {
+                    res_v = res_v + Float4::load(input_data + iy_nw * input_width * 4 + ix_nw * 4) * nw_v;
                 }
-                if (w0 + 1 < 0 || w0 + 1 > input_width - 1) {
-                    w1lambda = 0;
+                if (within_bounds_2d(iy_ne, ix_ne, input_height, input_width)) {
+                    res_v = res_v + Float4::load(input_data + iy_ne * input_width * 4 + ix_ne * 4) * ne_v;
                 }
-                // h0lambda: (1-y) ; h1lambda: y
-                const int h0   = std::floor(grid_y);
-                const int h1p  = (h0 < input_height - 1) ? 1 : 0;
-                float h1lambda = grid_y - h0;
-                float h0lambda = (float)1. - h1lambda;
-                if (h0 < 0 || h0 > input_height - 1) {
-                    h0lambda = 0;
+                if (within_bounds_2d(iy_sw, ix_sw, input_height, input_width)) {
+                    res_v = res_v + Float4::load(input_data + iy_sw * input_width * 4 + ix_sw * 4) * sw_v;
                 }
-                if (h0 + 1 < 0 || h0 + 1 > input_height - 1) {
-                    h1lambda = 0;
+                if (within_bounds_2d(iy_se, ix_se, input_height, input_width)) {
+                    res_v = res_v + Float4::load(input_data + iy_se * input_width * 4 + ix_se * 4) * se_v;
                 }
-                // Note: read outside valid roi will raise
-                auto x_data_ptr   = input_data + c * input_channel_area * 4 + h0 * input_width * 4 + w0 * 4;
-                auto y_data_ptr   = output_data + c * output_channel_area * 4 + i * 4;
-                Float4 w0lambda_v = Float4(w0lambda);
-                Float4 w1lambda_v = Float4(w1lambda);
-                Float4 h0lambda_v = Float4(h0lambda);
-                Float4 h1lambda_v = Float4(h1lambda);
-                Float4 f00_v      = Float4::load(x_data_ptr);
-                Float4 f01_v      = Float4::load(x_data_ptr + w1p * 4);
-                Float4 f10_v      = Float4::load(x_data_ptr + h1p * input_width * 4);
-                Float4 f11_v      = Float4::load(x_data_ptr + h1p * input_width * 4 + w1p * 4);
-                Float4 dst_v      = h0lambda_v * w0lambda_v * f00_v + h0lambda_v * w1lambda_v * f01_v +
-                               h1lambda_v * w0lambda_v * f10_v + h1lambda_v * w1lambda_v * f11_v;
-                Float4::save(y_data_ptr, dst_v);
+                Float4::save(output_data, res_v);
             }
         }
     }

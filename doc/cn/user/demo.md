@@ -174,11 +174,11 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 
    模型来源：https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB
 
-   效果示例：华为P30, ARM 单线程 32.2359ms
+   效果示例：华为P40, ARM 单线程 32.2359ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_image.jpg" width = "25%" height = "25%"/>
     
-    效果示例： 华为P30, 华为NPU rom 100.320.010.022 9.04ms
+    效果示例： 华为P40, 华为NPU rom 100.320.010.022 9.04ms
     
     <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detecor_image_npu.jpg" width = "25%" height = "25%"/>
     
@@ -186,11 +186,11 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 2. 人脸检测-视频
    模型来源：https://github.com/Linzaer/Ultra-Light-Fast-Generic-Face-Detector-1MB
 
-   效果示例：华为P30, ARM 单线程 122.296ms
+   效果示例：华为P40, ARM 单线程 122.296ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_face_detector_stream.jpg" width = "25%" height = "25%"/>
     
-    效果示例： 华为P30, 华为NPU rom 100.320.010.022 28ms
+    效果示例： 华为P40, 华为NPU rom 100.320.010.022 28ms
     
     <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_face_detector_stream_npu.jpg" width = "25%" height = "25%"/>
 
@@ -198,11 +198,11 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 
    模型来源：https://github.com/forresti/SqueezeNet
 
-   效果示例：华为P30, ARM 单线程 81.4047ms
+   效果示例：华为P40, ARM 单线程 81.4047ms
 
    <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/android_image_classify.jpg" width = "25%" height = "25%"/>
     
-   效果示例： 华为P30, NPU rom 100.320.010.022 2.48ms
+   效果示例： 华为P40, NPU rom 100.320.010.022 2.48ms
     
    <div align=left ><img src="https://github.com/darrenyao87/tnn-models/blob/master/doc/cn/user/resource/android_image_classify_npu.jpg" width = "25%" height = "25%"/>
     

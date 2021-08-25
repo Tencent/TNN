@@ -161,6 +161,7 @@ DimsVector DimsFunctionUtils::StrideSlice(const DimsVector input_dims,
                                         const DimsVector axes, Status *status) {
     if (axes.size() != begins.size() || axes.size() != ends.size() || axes.size() != strides.size()) {
         if (status) {
+            LOGE("StrideSliceV2Layer param of axes, ends, strides size is invalid\n");
             *status = Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param of axes, ends, strides size is invalid");
             return DimsVector();
         }
@@ -171,13 +172,16 @@ DimsVector DimsFunctionUtils::StrideSlice(const DimsVector input_dims,
     //前闭后开区间
     for (int i = 0; i < axes.size(); i++) {
         int index = axes[i];
+        if (index < 0) {
+            index = input_dims.size() + index;
+        }
         if (input_dims.size() <= index || output_dims.size() <= index)
             continue;
         if (begins[i] < 0) {
             begins[i] += input_dims[index];
         }
 
-        if (ends[i] == INT_MAX) {
+        if (ends[i] == INT_MAX || ends[i] > input_dims[index]) {
             ends[i] = input_dims[index];
         } else if (ends[i] == INT_MIN) {
             ends[i] = -1;
@@ -194,6 +198,7 @@ DimsVector DimsFunctionUtils::StrideSlice(const DimsVector input_dims,
 
         if (output_dims[index] <= 0) {
             if (status) {
+                LOGE("StrideSliceV2Layer param is invalid\n");
                 *status = Status(TNNERR_PARAM_ERR, "StrideSliceV2Layer param is invalid");
             }
         }

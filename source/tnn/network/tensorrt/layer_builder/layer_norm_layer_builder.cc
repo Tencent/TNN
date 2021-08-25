@@ -19,8 +19,8 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(LayerNorm, LAYER_LAYER_NORM);
 
 bool LayerNormTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
-    bool layout_check = inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
+    bool layout_check = inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
 
     bool datatype_check = true;
     if (pos == 0) {
@@ -36,25 +36,25 @@ Status LayerNormTRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* LayerNormTRTPluginLayerBuilder::getPluginType() const {
+const char* LayerNormTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "LayerNorm";
 }
 
 nvinfer1::DataType LayerNormTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     return inputTypes[0];
 }
 
-ILayer* LayerNormTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* LayerNormTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
 DimsExprs LayerNormTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
 }
 
-const char* LayerNormPluginCreator::getPluginName() const {
+const char* LayerNormPluginCreator::getPluginName() const noexcept {
     return "LayerNorm";
 }
 

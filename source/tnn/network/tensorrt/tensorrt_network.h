@@ -30,7 +30,7 @@ namespace TNN_NS {
 
 class TRTLogger : public nvinfer1::ILogger {
 public:
-    void log(nvinfer1::ILogger::Severity severity, const char* msg) override {
+    void log(nvinfer1::ILogger::Severity severity, const char* msg) noexcept override {
         // suppress info-level messages
 #ifndef DEBUG
         if (severity == Severity::kINFO || severity == Severity::kVERBOSE) return;
@@ -38,11 +38,13 @@ public:
         const char * skips[] = {
             "INVALID_ARGUMENT: Cannot find binding of given name",
             "Unused Input:",
+            "Detected invalid timing cache",
+            "unused or used only at compile-time",
         };
 
         std::string msg_str = std::string(msg);
         for(auto skip : skips) {
-            if (msg_str.rfind(skip, 0) == 0) {
+            if (msg_str.find(skip) != std::string::npos) {
                 return;
             }
         }
@@ -91,11 +93,17 @@ public:
     // @brief OnSharedForwardMemoryChanged for share memory change observer
     virtual void OnSharedForwardMemoryChanged(void *memory);
 
+    // @brief get network forward for all blob memory size
+    virtual Status GetForwardMemorySize(int &memory_size);
+
+    // @brief set forward memory when share memory mode is set from external
+    virtual Status SetForwardMemory(void *memory);
+
     static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> GetPluginLayerNameMap();
 
     std::string GetCacheFileName(std::vector<std::string> params_md5, BlobMap input_map,
         BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, int batchsize,
-        bool int8_mode, bool use_fp16);
+        bool int8_mode, bool use_fp16, bool enable_const_folder);
 
     std::set<std::string> m_concat_blob_names;
 
@@ -127,6 +135,7 @@ private:
     void* m_context_memory;
     NetResource *net_resource_;
     int device_id_;
+    size_t context_memory_size_;
 
     std::thread::id init_thread_id_;
 

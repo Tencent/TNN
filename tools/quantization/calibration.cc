@@ -218,11 +218,12 @@ int Calibration::CalBlobScale(DataSet& dataset) {
     // Compute Scale of Feature map and save to resource map
     for (auto& item : feature_map_) {
         std::vector<float> scale_vec;
-        int ret = item.second->CalculateScale(scale_vec);
+        std::string input_scale_name = item.first->GetBlobDesc().name + BLOB_SCALE_SUFFIX;
+        int ret                      = item.second->CalculateScale(scale_vec);
         if (ret != 0) {
+            LOGE("CalculateScale (%s) failed\n", input_scale_name.c_str());
             return ret;
         }
-        std::string input_scale_name                 = item.first->GetBlobDesc().name + BLOB_SCALE_SUFFIX;
         LayerResource* blob_scale_res                = CreateIntScale(scale_vec);
         net_resource->resource_map[input_scale_name] = std::shared_ptr<LayerResource>(blob_scale_res);
         printf("\t====> Calculate (%s) done!\n", input_scale_name.c_str());
@@ -377,6 +378,13 @@ int Calibration::QuantizeParams() {
 
     for (auto& item : net_struct->layers) {
         LayerType layer_type = item->type;
+
+        // skip constant layer
+        auto const_layers = net_resource->constant_layers;
+        if (const_layers.find(item->name) != const_layers.end()) {
+            continue;
+        }
+
         if (kQuantizedLayerTypeStr.find(layer_type) != kQuantizedLayerTypeStr.end()) {
             // assign NetStructure
             item->param->quantized = true;
@@ -435,6 +443,15 @@ int Calibration::QuantizeParams() {
                     return -1;
                 }
                 printf("\t====> done!\n");
+            } else if (layer_type == LAYER_ADD) {
+                // if one of the input of add layer is in layer resource, then this layer will not be quantized
+                if (net_resource->resource_map.find(item->name) != net_resource->resource_map.end()) {
+                    auto layer_resource = net_resource->resource_map[item->name].get();
+                    auto layer_res      = dynamic_cast<EltwiseLayerResource*>(layer_resource);
+                    if (layer_res != nullptr) {
+                        item->param->quantized = false;
+                    }
+                }
             }
         }
     }
@@ -464,11 +481,16 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
     if (input_scale->scale_handle.GetDataCount() == 1)
         merge_channel = true;
 
-    bool is_depthwise = group == output_channel;
+    bool is_depthwise = (output_channel_per_group == 1 && input_channel_per_group == 1);
 
     // multi weights by input_scale
     float* input_scale_data = input_scale->scale_handle.force_to<float*>();
-    float* weight_data      = resource->filter_handle.force_to<float*>();
+    auto filter_handle      = resource->filter_handle;
+    if (resource->filter_handle.GetDataType() == DATA_TYPE_HALF) {
+        LOGI("Fp16 model is used to quantize, precision may be lower than fp32 model!");
+        filter_handle = ConvertHalfHandle(filter_handle);
+    }
+    float* weight_data = filter_handle.force_to<float*>();
     for (int group_idx = 0; group_idx < group; group_idx++) {
         for (int oc = 0; oc < output_channel_per_group; ++oc) {
             for (int ic = 0; ic < input_channel_per_group; ++ic) {
@@ -519,7 +541,8 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
 
     // quantize bias
     if (param->bias) {
-        float* bias_data = resource->bias_handle.force_to<float*>();
+        auto fp32_bias_handle = ConvertHalfHandle(resource->bias_handle);
+        float* bias_data      = fp32_bias_handle.force_to<float*>();
         RawBuffer bias_quantized(output_channel * sizeof(int32_t));
         bias_quantized.SetDataType(DATA_TYPE_INT32);
         int32_t* bias_quantized_data = bias_quantized.force_to<int32_t*>();
@@ -559,7 +582,12 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource, InnerProd
 
     // multi weights by input_scale
     float* input_scale_data = input_scale->scale_handle.force_to<float*>();
-    float* weight_data      = resource->weight_handle.force_to<float*>();
+    auto weight_handle      = resource->weight_handle;
+    if (resource->weight_handle.GetDataType() == DATA_TYPE_HALF) {
+        LOGI("Fp16 model is used to quantize, precision may be lower than fp32 model!");
+        weight_handle = ConvertHalfHandle(weight_handle);
+    }
+    float* weight_data = weight_handle.force_to<float*>();
     for (int i = 0; i < size; ++i) {
         weight_multiby_inputscale[i] = weight_data[i] * input_scale_data[0];
     }
@@ -586,7 +614,8 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource, InnerProd
 
     // quantize bias
     if (param->has_bias) {
-        float* bias_data = resource->bias_handle.force_to<float*>();
+        auto fp32_bias_handle = ConvertHalfHandle(resource->bias_handle);
+        float* bias_data      = fp32_bias_handle.force_to<float*>();
         RawBuffer bias_quantized(output_channel * sizeof(int32_t));
         bias_quantized.SetDataType(DATA_TYPE_INT32);
         int32_t* bias_quantized_data = bias_quantized.force_to<int32_t*>();
@@ -685,7 +714,7 @@ void Calibration::MergeBlobScaleRecursion(LayerInfo* layer_info, NetStructure* n
     LayerType layer_type = layer_info->type;
     // Skip average pooling
     if (layer_type == LAYER_POOLING) {
-        auto param = dynamic_cast<PoolingLayerParam *>(layer_info->param.get());
+        auto param = dynamic_cast<PoolingLayerParam*>(layer_info->param.get());
         if (param->pool_type == 1) {
             return;
         }

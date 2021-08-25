@@ -29,7 +29,6 @@ public:
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 private:
-    cudnnHandle_t m_cudnn_handle;
     cudnnTensorFormat_t m_tensor_format;
     cudnnDataType_t m_data_type;
     cudnnPoolingMode_t m_pooling_mode;

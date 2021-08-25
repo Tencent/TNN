@@ -12,10 +12,17 @@ MODEL_DIR=$WORK_DIR/models
 DUMP_DIR=$WORK_DIR/dump_data
 INPUT_FILE_NAME=rpn_in_0_n1_c3_h320_w320.txt
 #INPUT_FILE_NAME=rpn_in_input_array_n1_c3_h256_w192.txt
+TEST_PROTO_PATH=
+INPUT_PATH=
 
 function usage() {
-    echo "-c\tClean up build folders."
-    echo "-f\tbuild profiling targets "
+    echo "usage: ./test_x86_ocl.sh  [-c] [-b] [-f] -m <tnnproto file path> -i <input file path>"
+    echo "options:"
+    echo "        -c    Clean up build folders."
+    echo "        -b    Build only."
+    echo "        -f    build profiling targets "
+    echo "        -m    tnnproto"
+    echo "        -i    input file"
 }
 function die() {
     echo $1
@@ -49,6 +56,10 @@ function build_x86() {
 
 function run_x86() {
     build_x86
+    if [ "" != "$BUILD_ONLY" ]; then
+        echo "build done!"
+        exit 0
+    fi
 
     if [ "ON" == $PROFILING ]; then
         WARM_UP_COUNT=0
@@ -56,7 +67,15 @@ function run_x86() {
     fi
 
     mkdir -p $DUMP_DIR
-    ./test/TNNTest -dt=OPENCL -mp=$MODEL_DIR/test.tnnproto -ip=$MODEL_DIR/$INPUT_FILE_NAME -op=$DUMP_DIR/dump_data.txt -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT
+    if [ -z "$TEST_PROTO_PATH" ]
+    then
+        TEST_PROTO_PATH=$MODEL_DIR/test.tnnproto
+    fi
+    if [ -n "$INPUT_PATH" ]
+    then
+        INPUT_PATH=$MODEL_DIR/$INPUT_FILE_NAME
+    fi
+    ./test/TNNTest -dt=OPENCL -mp=$TEST_PROTO_PATH -ip=$INPUT_PATH -op=$DUMP_DIR/dump_data.txt -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT
 }
 
 while [ "$1" != "" ]; do
@@ -68,6 +87,20 @@ while [ "$1" != "" ]; do
         -f)
             shift
             PROFILING="ON"
+            ;;
+        -b)
+            shift
+            BUILD_ONLY="-b"
+            ;;
+        -m)
+            shift
+            TEST_PROTO_PATH="$1"
+            shift
+            ;;
+        -i)
+            shift
+            INPUT_PATH="$1"
+            shift
             ;;
         *)
             usage
