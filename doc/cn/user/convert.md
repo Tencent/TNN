@@ -34,7 +34,7 @@
 目前 TNN 已经在 docker hub 上准备好了构建好的 docker image，我们建议直接从 docker hub 上拉取镜像。
 
 ```shell script
-docker pull turandotkay/tnn-convert
+docker pull ccr.ccs.tencentyun.com/qcloud/tnn-convert
 ```
 同样的，等待一会之后，你可以通过 `docker images` 来查看是否构建成功，如果构建成功之后，会有类似下面的输出信息：
 ``` text
