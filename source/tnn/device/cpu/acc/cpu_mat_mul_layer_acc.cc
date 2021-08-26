@@ -43,9 +43,18 @@ Status CpuMatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
             matrix_a = static_cast<float *>(inputs[0]->GetHandle().base);
             matrix_b = static_cast<float *>(inputs[1]->GetHandle().base);
         } else {
-            auto weight = resource->weight.force_to<float *>();
-            matrix_a    = param->weight_position == 0 ? weight : static_cast<float *>(inputs[0]->GetHandle().base);
-            matrix_b    = param->weight_position == 1 ? weight : static_cast<float *>(inputs[0]->GetHandle().base);
+            const int weight_count = resource->weight.GetDataCount();
+            std::shared_ptr<float> weight(new float[weight_count], [](float *p) { delete[] p; });
+            if (resource->weight.GetDataType() == DATA_TYPE_FLOAT) {
+                memcpy(weight.get(), resource->weight.force_to<float *>(), weight_count * sizeof(float));
+            } else if (resource->weight.GetDataType() == DATA_TYPE_HALF) {
+                ConvertFromHalfToFloat(resource->weight.force_to<void *>(), weight.get(), weight_count);
+            } else {
+                return Status(TNNERR_PARAM_ERR, "MatMul has invalid direction param");
+            }
+
+            matrix_a = param->weight_position == 0 ? weight.get() : static_cast<float *>(inputs[0]->GetHandle().base);
+            matrix_b = param->weight_position == 1 ? weight.get() : static_cast<float *>(inputs[0]->GetHandle().base);
         }
         auto matrix_c = static_cast<float *>(outputs[0]->GetHandle().base);
         int M         = matrix_a_dims[matrix_a_dims.size() - 2];

@@ -20,6 +20,22 @@ namespace TNN_NS {
 
 DECLARE_CPU_ACC(LSTMONNX, LAYER_LSTMONNX);
 
+inline Status Get_Data_From_Blob(Blob *blob, float *data) {
+    DataType blob_data_type = blob->GetBlobDesc().data_type;
+    const int data_size     = DimsVectorUtils::Count(blob->GetBlobDesc().dims);
+    if (blob_data_type == DATA_TYPE_FLOAT) {
+        float *src_ptr = (float *)((char *)(blob->GetHandle().base) + blob->GetHandle().bytes_offset);
+        memcpy(data, src_ptr, data_size * sizeof(float));
+    } else if (blob_data_type == DATA_TYPE_HALF) {
+        fp16_t *src_ptr = (fp16_t *)((char *)(blob->GetHandle().base) + blob->GetHandle().bytes_offset);
+        ConvertFromHalfToFloat(src_ptr, data, data_size);
+    } else {
+        return Status(TNNERR_LAYER_ERR, "data type not support in LSTM");
+    }
+
+    return TNN_OK;
+}
+
 static Status LSTM_Single(const float *x, float *y, const float *w, const float *r, const float *b,
                           float *h_t, float *c_t,
                           const int T, const int batch_size, const int input_size, const int hidden_size, int reverse) {
@@ -172,16 +188,19 @@ Status CpuLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     
     //Y shape [sequence batch_size num_directions *hidden_size]
     float *y = (float *)((char*)(outputs[0]->GetHandle().base) + outputs[0]->GetHandle().bytes_offset);
-    
+
     //W[iofc], weight tensor for the gates, shape [num_directions, 4*hidden_size, input_size]
-    float *w = (float *)((char*)(blob_W->GetHandle().base) + blob_W->GetHandle().bytes_offset);
-    
+    float *w = new float[DimsVectorUtils::Count(blob_W->GetBlobDesc().dims)];
+    Get_Data_From_Blob(blob_W, w);
+
     //R[iofc], recurrence weight tensor, shape [num_directions, 4*hidden_size, hidden_size]
-    float *r = (float *)((char*)(blob_R->GetHandle().base) + blob_R->GetHandle().bytes_offset);
-    
+    float *r = new float[DimsVectorUtils::Count(blob_R->GetBlobDesc().dims)];
+    Get_Data_From_Blob(blob_R, r);
+
     //B[iofc] Concatenation of [Wb[iofc], Rb[iofc]], [num_directions, 8*hidden_size]
-    float *b = (float *)((char*)(blob_B->GetHandle().base) + blob_B->GetHandle().bytes_offset);
-    
+    float *b = new float[DimsVectorUtils::Count(blob_B->GetBlobDesc().dims)];
+    Get_Data_From_Blob(blob_B, b);
+
     //initial_h, initial value of the hidden, If not specified - assumed to be 0. shape [num_directions, batch_size, hidden_size]
     auto h_t = (float *)((char*)(outputs[1]->GetHandle().base) + outputs[1]->GetHandle().bytes_offset);
     if (blob_h0 != nullptr){
@@ -233,7 +252,10 @@ Status CpuLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         return Status(TNNERR_PARAM_ERR, "LSTMONNX has invalid direction param");
     }
 
-  
+    delete[] w;
+    delete[] r;
+    delete[] b;
+
     return TNN_OK;
 }
 
