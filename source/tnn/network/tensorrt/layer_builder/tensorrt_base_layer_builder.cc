@@ -145,6 +145,8 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8OutputQDQLayers(nvinfer1::INetworkDefin
     output_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
     output_dequant_layer->setName(output_dequant_layer_name.c_str());
     std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetQuantized();
+
+    return output_dequant_layer;
 }
 
 ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefinition* network,
