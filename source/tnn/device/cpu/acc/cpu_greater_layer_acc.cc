@@ -34,8 +34,14 @@ Status CpuGreaterLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, con
     } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         void *output_data       = output->GetHandle().base;
         const auto &output_dims = output->GetBlobDesc().dims;
-        CPU_ELEMENT_WISE<char, char>(input_ptrs, input_shapes, output_data, output_dims,
-                                     [](char a, char b) -> char { return a > b ? 1 : 0; });
+
+        if (input_blobs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+            CPU_ELEMENT_WISE<float, char>(input_ptrs, input_shapes, output_data, output_dims,
+                                         [](char a, char b) -> char { return a > b ? 1 : 0; });
+        } else {
+            CPU_ELEMENT_WISE<char, char>(input_ptrs, input_shapes, output_data, output_dims,
+                                         [](char a, char b) -> char { return a > b ? 1 : 0; });
+        }
     } else {
         LOGE("Error: CpuGreaterLayerAcc don't support data type: %d\n", output->GetBlobDesc().data_type);
         return Status(TNNERR_MODEL_ERR, "Error: CpuGreaterLayerAcc don't support data type");
