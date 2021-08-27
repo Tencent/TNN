@@ -696,7 +696,7 @@ void BGRAToBlobImpl(const uint8_t *src, fp16_t *dst, const float *scale, const f
         vst4q_f16(dst + i * 8 + 32, vf16_dump);
     }
 #elif defined(TNN_ARM82_A32)
-    Half4 scale_half4 = Half4(scale_half);
+    Half4 scale_half4 = Half4::load(scale_half);
     Half8 bias_neon_b = Half8(bias_half[0]);
     Half8 bias_neon_g = Half8(bias_half[1]);
     Half8 bias_neon_r = Half8(bias_half[2]);
@@ -792,7 +792,7 @@ void BGRToBlobImpl(const uint8_t *src, fp16_t *dst, const float *scale, const fl
         vst4q_f16(dst + i * 8 + 32, vf16_dump);
     }
 #elif defined(TNN_ARM82_A32)
-    Half4 scale_half4 = Half4(scale_half);
+    Half4 scale_half4 = Half4::load(scale_half);
     Half8 bias_neon_b = Half8(bias_half[0]);
     Half8 bias_neon_g = Half8(bias_half[1]);
     Half8 bias_neon_r = Half8(bias_half[2]);
