@@ -510,10 +510,10 @@ struct Half4 {
         value = std::move(v);
     }
     Half4(fp16_t* v) {
-        value[0] = *(int16_t*)(v);
-        value[1] = *(int16_t*)(v + 1);
-        value[2] = *(int16_t*)(v + 2);
-        value[3] = *(int16_t*)(v + 3);
+        value = vset_lane_s16(*((int16_t*)(&v)), value, 0);
+        value = vset_lane_s16(*((int16_t*)(&v + 1)), value, 1);
+        value = vset_lane_s16(*((int16_t*)(&v + 2)), value, 2);
+        value = vset_lane_s16(*((int16_t*)(&v + 3)), value, 3);
     }
     Half4(const Half4& lr) {
         value = lr.value;
