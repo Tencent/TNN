@@ -76,7 +76,7 @@ Status Blob2RawBuffer(Blob *blob, std::shared_ptr<RawBuffer> &buffer) {
     if (!blob) {
         return Status(TNNERR_PARAM_ERR, "blob is null");
     }
-    if (blob->GetBlobDesc().device_type != DEVICE_NAIVE && blob->GetBlobDesc().device_type != DEVICE_ARM) {
+    if (blob->GetBlobDesc().device_type != DEVICE_NAIVE) {
         LOGE("Blob2RawBuffer dont support device type: %d", blob->GetBlobDesc().device_type);
         return Status(TNNERR_PARAM_ERR, "Blob2RawBuffer dont support device type");
     }
