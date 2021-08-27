@@ -19,24 +19,24 @@
 
 namespace TNN_NS {
 namespace train {
-void LayerGrad::UpdateGradValue(Blob* blob, std::shared_ptr<RawBuffer> raw_buff,TrainContext& context) {
+void LayerGrad::UpdateGradValue(Blob *blob, std::shared_ptr<RawBuffer> raw_buff, TrainContext &context) {
     auto iter = context.backward_grads_blob.find(blob);
-    if(iter == context.backward_grads_blob.end()) {
+    if (iter == context.backward_grads_blob.end()) {
         context.backward_grads_blob[blob] = std::move(raw_buff);
     } else {
-        //TODO: need _ADD in place
+        // TODO: need _ADD in place
         iter->second = _Add(ParamWrapper(iter->second), ParamWrapper(raw_buff), context).GetRawbufferSharedPtr();
     }
 }
-void LayerGrad::UpdateGradValue(RawBuffer* resource, std::shared_ptr<RawBuffer> raw_buff,TrainContext& context) {
+void LayerGrad::UpdateGradValue(RawBuffer *resource, std::shared_ptr<RawBuffer> raw_buff, TrainContext &context) {
     auto iter = context.backward_grads_resource.find(resource);
-    if(iter == context.backward_grads_resource.end()) {
+    if (iter == context.backward_grads_resource.end()) {
         context.backward_grads_resource[resource] = std::move(raw_buff);
     } else {
-        //TODO: need _ADD in place
+        // TODO: need _ADD in place
         iter->second = _Add(ParamWrapper(resource), ParamWrapper(raw_buff), context).GetRawbufferSharedPtr();
     }
 }
 
-}
-}
+} // namespace train
+} // namespace TNN_NS

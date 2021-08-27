@@ -21,23 +21,23 @@
 namespace TNN_NS {
 namespace train {
 
-ParamWrapper _Add(ParamWrapper input1,  ParamWrapper input2, TrainContext& context);
-ParamWrapper _Div(ParamWrapper input1,  ParamWrapper input2, TrainContext& context);
+ParamWrapper _Add(ParamWrapper input1, ParamWrapper input2, TrainContext &context);
+ParamWrapper _Div(ParamWrapper input1, ParamWrapper input2, TrainContext &context);
 
-ParamWrapper _Mul(ParamWrapper input1,  ParamWrapper input2, TrainContext& context);
+ParamWrapper _Mul(ParamWrapper input1, ParamWrapper input2, TrainContext &context);
 
-ParamWrapper _Sub(ParamWrapper input1,  ParamWrapper input2, TrainContext& context); 
+ParamWrapper _Sub(ParamWrapper input1, ParamWrapper input2, TrainContext &context);
 
-ParamWrapper _Neg(ParamWrapper input1, TrainContext& context);
+ParamWrapper _Neg(ParamWrapper input1, TrainContext &context);
 
-ParamWrapper _Log(ParamWrapper input1, TrainContext& context);
+ParamWrapper _Log(ParamWrapper input1, TrainContext &context);
 
 ParamWrapper _Const(ParamWrapper input1, DimsVector dims, DataFormat data_format);
 
 // for relu, x > 0 return 1, x <=0 return 0;
-ParamWrapper _RSign(ParamWrapper input1, TrainContext& context);
+ParamWrapper _RSign(ParamWrapper input1, TrainContext &context);
 
-} // train
-} //TNN_NS
+} // namespace train
+} // namespace TNN_NS
 
-#endif //TNN_SOURCE_TNN_TRAIN_OPERATIONS_OP_BUILDER_H
+#endif // TNN_SOURCE_TNN_TRAIN_OPERATIONS_OP_BUILDER_H

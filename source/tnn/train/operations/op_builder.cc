@@ -18,79 +18,84 @@
 
 namespace TNN_NS {
 namespace train {
-ParamWrapper BinaryOpHelper(ParamWrapper& input1,  ParamWrapper& input2, TrainContext& context, ElementOpType element_op_type) {
-    if(input1.IsEmpty() || input2.IsEmpty()) 
+ParamWrapper BinaryOpHelper(ParamWrapper &input1, ParamWrapper &input2, TrainContext &context,
+                            ElementOpType element_op_type) {
+    if (input1.IsEmpty() || input2.IsEmpty())
         return {};
-    if(!input1.IsBlobOrRawbuffer() || !input2.IsBlobOrRawbuffer())
+    if (!input1.IsBlobOrRawbuffer() || !input2.IsBlobOrRawbuffer())
         return {};
-    std::shared_ptr<RawBuffer> output = std::make_shared<RawBuffer>(input1.GetBlobOrRawbufferSize(), input1.GetBlobOrRawbufferDims());
+    std::shared_ptr<RawBuffer> output =
+        std::make_shared<RawBuffer>(input1.GetBlobOrRawbufferSize(), input1.GetBlobOrRawbufferDims());
     output->SetDataType(input1.GetBlobOrRawbufferDatatype());
     output->SetDataFormat(input1.GetBlobOrRawbufferDataformat());
     ParamWrappers outputs = {ParamWrapper(output)};
-    Status status = BaseOp::RunOp(OpType::OP_ElEMENT, {input1, input2}, {ParamWrapper(output)}, {ParamWrapper(element_op_type)}, context);
-    if(status != TNN_OK)
+    Status status         = BaseOp::RunOp(OpType::OP_ElEMENT, {input1, input2}, {ParamWrapper(output)},
+                                  {ParamWrapper(element_op_type)}, context);
+    if (status != TNN_OK)
         return {};
     return outputs[0];
 };
-ParamWrapper UnaryOpHelper(ParamWrapper& input1, TrainContext& context, ElementOpType element_op_type) {
-    if(input1.IsEmpty()) 
+ParamWrapper UnaryOpHelper(ParamWrapper &input1, TrainContext &context, ElementOpType element_op_type) {
+    if (input1.IsEmpty())
         return {};
-    if(!input1.IsBlobOrRawbuffer())
+    if (!input1.IsBlobOrRawbuffer())
         return {};
-    std::shared_ptr<RawBuffer> output = std::make_shared<RawBuffer>(input1.GetBlobOrRawbufferSize(), input1.GetBlobOrRawbufferDims());
+    std::shared_ptr<RawBuffer> output =
+        std::make_shared<RawBuffer>(input1.GetBlobOrRawbufferSize(), input1.GetBlobOrRawbufferDims());
     output->SetDataType(input1.GetBlobOrRawbufferDatatype());
     output->SetDataFormat(input1.GetBlobOrRawbufferDataformat());
     ParamWrappers outputs = {ParamWrapper(output)};
-    Status status = BaseOp::RunOp(OpType::OP_ElEMENT, {input1}, {ParamWrapper(output)}, {ParamWrapper(element_op_type)}, context);
-    if(status != TNN_OK)
+    Status status =
+        BaseOp::RunOp(OpType::OP_ElEMENT, {input1}, {ParamWrapper(output)}, {ParamWrapper(element_op_type)}, context);
+    if (status != TNN_OK)
         return {};
     return outputs[0];
 };
-ParamWrapper _Add(ParamWrapper input1,  ParamWrapper input2, TrainContext& context) {
+ParamWrapper _Add(ParamWrapper input1, ParamWrapper input2, TrainContext &context) {
     return BinaryOpHelper(input1, input2, context, ElementOpType::Add);
 }
 
-ParamWrapper _Div(ParamWrapper input1,  ParamWrapper input2, TrainContext& context) {
+ParamWrapper _Div(ParamWrapper input1, ParamWrapper input2, TrainContext &context) {
     return BinaryOpHelper(input1, input2, context, ElementOpType::Div);
 }
 
-ParamWrapper _Mul(ParamWrapper input1,  ParamWrapper input2, TrainContext& context) {
+ParamWrapper _Mul(ParamWrapper input1, ParamWrapper input2, TrainContext &context) {
     return BinaryOpHelper(input1, input2, context, ElementOpType::Mul);
 }
 
-ParamWrapper _Sub(ParamWrapper input1,  ParamWrapper input2, TrainContext& context) {
+ParamWrapper _Sub(ParamWrapper input1, ParamWrapper input2, TrainContext &context) {
     return BinaryOpHelper(input1, input2, context, ElementOpType::Sub);
 }
 
-ParamWrapper _Neg(ParamWrapper input1, TrainContext& context) {
+ParamWrapper _Neg(ParamWrapper input1, TrainContext &context) {
     return UnaryOpHelper(input1, context, ElementOpType::Neg);
 }
 
-ParamWrapper _Log(ParamWrapper input1, TrainContext& context) {
+ParamWrapper _Log(ParamWrapper input1, TrainContext &context) {
     return UnaryOpHelper(input1, context, ElementOpType::Log);
 }
 
-ParamWrapper _RSign(ParamWrapper input1, TrainContext& context) {
+ParamWrapper _RSign(ParamWrapper input1, TrainContext &context) {
     return UnaryOpHelper(input1, context, ElementOpType::RSign);
 }
 
 ParamWrapper _Const(ParamWrapper input1, DimsVector dims, DataFormat data_format) {
     std::shared_ptr<RawBuffer> output;
-    if(input1.Isint()) {
+    if (input1.Isint()) {
         output = std::make_shared<RawBuffer>(sizeof(int) * DimsVectorUtils::Count(dims), dims);
         output->SetDataType(DATA_TYPE_INT32);
-        output->SetDataFormat(data_format);      
-    } else if (input1.Isfloat()){
+        output->SetDataFormat(data_format);
+    } else if (input1.Isfloat()) {
         output = std::make_shared<RawBuffer>(sizeof(float) * DimsVectorUtils::Count(dims), dims);
-        output->SetDataType(DATA_TYPE_FLOAT); 
+        output->SetDataType(DATA_TYPE_FLOAT);
         output->SetDataFormat(data_format);
     } else if (input1.IsBfp16()) {
         output = std::make_shared<RawBuffer>(sizeof(bfp16_t) * DimsVectorUtils::Count(dims), dims);
-        output->SetDataType(DATA_TYPE_BFP16); 
-        output->SetDataFormat(data_format);       
+        output->SetDataType(DATA_TYPE_BFP16);
+        output->SetDataFormat(data_format);
     }
     return {};
 }
 
-} // train
-} //TNN_NS
+} // namespace train
+} // namespace TNN_NS

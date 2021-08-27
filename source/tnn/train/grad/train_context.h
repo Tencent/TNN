@@ -17,11 +17,11 @@
 #ifndef TNN_SOURCE_TNN_TRAIN_GRAD_TRAIN_CONTEXT_H
 #define TNN_SOURCE_TNN_TRAIN_GRAD_TRAIN_CONTEXT_H
 
-#include <string>
 #include <set>
+#include <string>
 
-#include "tnn/core/status.h"
 #include "tnn/core/blob.h"
+#include "tnn/core/status.h"
 #include "tnn/interpreter/raw_buffer.h"
 //#include "tnn/core/abstract_network.h"
 
@@ -29,12 +29,12 @@ namespace TNN_NS {
 class AbstractNetwork;
 namespace train {
 struct TrainContext {
-    AbstractNetwork* network;
-    NetworkConfig* config;
-    std::map<Blob*, std::shared_ptr<RawBuffer> > backward_grads_blob;
-    std::map<RawBuffer*, std::shared_ptr<RawBuffer>> backward_grads_resource;
+    AbstractNetwork *network;
+    NetworkConfig *config;
+    std::map<Blob *, std::shared_ptr<RawBuffer>> backward_grads_blob;
+    std::map<RawBuffer *, std::shared_ptr<RawBuffer>> backward_grads_resource;
 };
 
 } // namespace train
 } // namespace TNN_NS
-#endif  // TNN_SOURCE_TNN_TRAIN_GRAD_TRAIN_CONTEXT_H
+#endif // TNN_SOURCE_TNN_TRAIN_GRAD_TRAIN_CONTEXT_H

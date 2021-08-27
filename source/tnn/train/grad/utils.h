@@ -19,56 +19,56 @@
 
 #include <vector>
 
-#include "tnn/core/status.h"
 #include "tnn/core/blob.h"
+#include "tnn/core/status.h"
 #include "tnn/layer/base_layer.h"
 #include "tnn/train/operations/op_type.h"
-#include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/blob_memory_size_utils.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 class AbstractNetwork;
 namespace train {
-#define DECLARE_PARAMWRAPPER_FUNCS(TypeName, ValueName) \
-    ParamWrapper(TypeName v) { \
-        value_.ValueName = v; \
-        type_ = ParamType::ValueName##_enum; \
-    }; \
-    inline TypeName Get##TypeName() { \
-        assert(type_ == ParamType::ValueName##_enum);  \
-        return value_.ValueName; \
-    }; \
-    inline bool Is##TypeName() { \
-        return type_ == ParamType::ValueName##_enum;  \
-    }; 
+#define DECLARE_PARAMWRAPPER_FUNCS(TypeName, ValueName)                                                                \
+    ParamWrapper(TypeName v) {                                                                                         \
+        value_.ValueName = v;                                                                                          \
+        type_            = ParamType::ValueName##_enum;                                                                \
+    };                                                                                                                 \
+    inline TypeName Get##TypeName() {                                                                                  \
+        assert(type_ == ParamType::ValueName##_enum);                                                                  \
+        return value_.ValueName;                                                                                       \
+    };                                                                                                                 \
+    inline bool Is##TypeName() {                                                                                       \
+        return type_ == ParamType::ValueName##_enum;                                                                   \
+    };
 
-#define DECLARE_PARAMWRAPPER_POINTER_FUNCS(TypeName, ValueName) \
-    ParamWrapper(TypeName* v) { \
-        value_.ValueName = v; \
-        type_ = ParamType::ValueName##_enum; \
-    }; \
-    inline TypeName* Get##TypeName##Pointer() { \
-        assert(type_ == ParamType::ValueName##_enum);  \
-        return value_.ValueName; \
-    }; \
-    inline bool Is##TypeName##Pointer() { \
-        return type_ == ParamType::ValueName##_enum;  \
-    }; 
+#define DECLARE_PARAMWRAPPER_POINTER_FUNCS(TypeName, ValueName)                                                        \
+    ParamWrapper(TypeName *v) {                                                                                        \
+        value_.ValueName = v;                                                                                          \
+        type_            = ParamType::ValueName##_enum;                                                                \
+    };                                                                                                                 \
+    inline TypeName *Get##TypeName##Pointer() {                                                                        \
+        assert(type_ == ParamType::ValueName##_enum);                                                                  \
+        return value_.ValueName;                                                                                       \
+    };                                                                                                                 \
+    inline bool Is##TypeName##Pointer() {                                                                              \
+        return type_ == ParamType::ValueName##_enum;                                                                   \
+    };
 
 int ConvertFromFloatToBFP16(float *fp32, void *fp16, int count);
 int ConvertFromBFP16ToFloat(void *fp16, float *fp32, int count);
-void ConvertToNCHW(void*& src_ptr, RawBuffer& dst, RawBuffer* input_rawbuffer);
-void ConvertToNCHW(void*& data_ptr, RawBuffer& dst, const BlobDesc& input_desc);
-void ConvertToNCHW(void*& src_ptr, RawBuffer& dst, const DataType& dtype, const DataFormat& dformat, const DimsVector& dims);
-void ConvertToNC4HW4(std::shared_ptr<RawBuffer>& src, BlobDesc& input_desc); 
+void ConvertToNCHW(void *&src_ptr, RawBuffer &dst, RawBuffer *input_rawbuffer);
+void ConvertToNCHW(void *&data_ptr, RawBuffer &dst, const BlobDesc &input_desc);
+void ConvertToNCHW(void *&src_ptr, RawBuffer &dst, const DataType &dtype, const DataFormat &dformat,
+                   const DimsVector &dims);
+void ConvertToNC4HW4(std::shared_ptr<RawBuffer> &src, BlobDesc &input_desc);
 int CalculateElementCount(BlobDesc &desc);
 
-class ParamWrapper
-{
+class ParamWrapper {
 public:
-    typedef std::map<Blob*, std::shared_ptr<RawBuffer> > Blob2RawBufferMap;
-    typedef std::map<Blob*, std::shared_ptr<Blob> > Blob2BlobMap; 
+    typedef std::map<Blob *, std::shared_ptr<RawBuffer>> Blob2RawBufferMap;
+    typedef std::map<Blob *, std::shared_ptr<Blob>> Blob2BlobMap;
     // typedef std::shared_ptr<Blob> BlobSharedPtr;
     // typedef std::shared_ptr<RawBuffer> RawBufferSharedPtr;
     // @brief ParamType is used for safe, put type must same with get type
@@ -89,73 +89,72 @@ public:
         layer_param_pvalue_enum,
         blob_2_blob_pvalue_enum,
         blob_raw_buffer_pvalue_enum,
-        raw_buffer_pvalue_enum, 
+        raw_buffer_pvalue_enum,
         void_pvalue_enum
     };
-    union ParamValue
-    {
+    union ParamValue {
         int int_value;
         bool bool_value;
         long long_value;
         float float_value;
         ElementOpType element_op_value;
-        Blob* blob_pvalue;
-        BaseLayer* base_layer_pvalue;
-        LayerResource* layer_resource_pvalue;
-        AbstractNetwork* network_pvalue;
-        LayerParam* layer_param_pvalue;
-        Blob2BlobMap* blob_2_blob_pvalue;
-        Blob2RawBufferMap* blob_raw_buffer_pvalue;
-        RawBuffer* raw_buffer_pvalue;
-        void* void_pvalue;
+        Blob *blob_pvalue;
+        BaseLayer *base_layer_pvalue;
+        LayerResource *layer_resource_pvalue;
+        AbstractNetwork *network_pvalue;
+        LayerParam *layer_param_pvalue;
+        Blob2BlobMap *blob_2_blob_pvalue;
+        Blob2RawBufferMap *blob_raw_buffer_pvalue;
+        RawBuffer *raw_buffer_pvalue;
+        void *void_pvalue;
         // BlobSharedPtr blob_shared_ptr_value;
         // RawBufferSharedPtr rawbuffer_shared_ptr_value;
         // ParamValue(){};
         // ~ParamValue(){};
     };
-    ParamWrapper(): type_(ParamType::default_type_enum){};
-    ParamWrapper(const ParamWrapper& other) {
-        if(this != &other) {
-            type_ = other.type_;
-            value_ = other.value_;
-            blob_shared_ptr_ = other.blob_shared_ptr_;
+    ParamWrapper() : type_(ParamType::default_type_enum){};
+    ParamWrapper(const ParamWrapper &other) {
+        if (this != &other) {
+            type_                  = other.type_;
+            value_                 = other.value_;
+            blob_shared_ptr_       = other.blob_shared_ptr_;
             raw_buffer_shared_ptr_ = other.raw_buffer_shared_ptr_;
-            bfp16_value_ = other.bfp16_value_;
+            bfp16_value_           = other.bfp16_value_;
         }
     };
-    ParamWrapper(const ParamWrapper&& other){
-        if(this != &other) {
-            type_ = other.type_;
-            value_ = other.value_;
-            blob_shared_ptr_ = std::move(other.blob_shared_ptr_);
+    ParamWrapper(const ParamWrapper &&other) {
+        if (this != &other) {
+            type_                  = other.type_;
+            value_                 = other.value_;
+            blob_shared_ptr_       = std::move(other.blob_shared_ptr_);
             raw_buffer_shared_ptr_ = std::move(other.raw_buffer_shared_ptr_);
-            bfp16_value_ = other.bfp16_value_;
+            bfp16_value_           = other.bfp16_value_;
         }
     };
-    ParamWrapper& operator= (const ParamWrapper& other){
-        if(this != &other) {
-            type_ = other.type_;
-            value_ = other.value_;
-            blob_shared_ptr_ = other.blob_shared_ptr_;
+    ParamWrapper &operator=(const ParamWrapper &other) {
+        if (this != &other) {
+            type_                  = other.type_;
+            value_                 = other.value_;
+            blob_shared_ptr_       = other.blob_shared_ptr_;
             raw_buffer_shared_ptr_ = other.raw_buffer_shared_ptr_;
-            bfp16_value_ = other.bfp16_value_;
+            bfp16_value_           = other.bfp16_value_;
         }
         return *this;
     };
-    ParamWrapper& operator= (const ParamWrapper&& other){
-        if(this != &other) {
-            type_ = other.type_;
-            value_ = other.value_;
-            blob_shared_ptr_ = std::move(other.blob_shared_ptr_);
+    ParamWrapper &operator=(const ParamWrapper &&other) {
+        if (this != &other) {
+            type_                  = other.type_;
+            value_                 = other.value_;
+            blob_shared_ptr_       = std::move(other.blob_shared_ptr_);
             raw_buffer_shared_ptr_ = std::move(other.raw_buffer_shared_ptr_);
-            bfp16_value_ = other.bfp16_value_;
+            bfp16_value_           = other.bfp16_value_;
         }
         return *this;
     };
     ~ParamWrapper(){
         // if(type_ == ParamType::blob_shared_ptr_value_enum) {
         //     //TODO: 测试shared_ptr内存引用技术是否已经减1
-        //     value_.blob_shared_ptr_value = nullptr; 
+        //     value_.blob_shared_ptr_value = nullptr;
         // } else if(type_ == ParamType::rawbuffer_shared_ptr_value_enum) {
         //     value_.rawbuffer_shared_ptr_value = nullptr;
         // }
@@ -163,7 +162,7 @@ public:
     inline bool IsEmpty() {
         return type_ == ParamType::default_type_enum;
     };
-    DECLARE_PARAMWRAPPER_FUNCS(int, int_value); 
+    DECLARE_PARAMWRAPPER_FUNCS(int, int_value);
     DECLARE_PARAMWRAPPER_FUNCS(bool, bool_value);
     DECLARE_PARAMWRAPPER_FUNCS(long, long_value);
     DECLARE_PARAMWRAPPER_FUNCS(float, float_value);
@@ -177,39 +176,39 @@ public:
     DECLARE_PARAMWRAPPER_POINTER_FUNCS(Blob2RawBufferMap, blob_raw_buffer_pvalue);
     DECLARE_PARAMWRAPPER_POINTER_FUNCS(RawBuffer, raw_buffer_pvalue);
     DECLARE_PARAMWRAPPER_POINTER_FUNCS(void, void_pvalue);
-    ParamWrapper(bfp16_t bfp16_value){
+    ParamWrapper(bfp16_t bfp16_value) {
         bfp16_value_ = bfp16_value;
-        type_ = ParamType::bfp16_value_enum;
+        type_        = ParamType::bfp16_value_enum;
     };
 
-    inline bfp16_t GetBfp16() {  
+    inline bfp16_t GetBfp16() {
         assert(type_ == ParamType::bfp16_value_enum);
-        return bfp16_value_; 
+        return bfp16_value_;
     };
 
     inline bool IsBfp16() {
         return type_ == ParamType::bfp16_value_enum;
     };
 
-    ParamWrapper(std::shared_ptr<RawBuffer> raw_buffer_shared_ptr){
+    ParamWrapper(std::shared_ptr<RawBuffer> raw_buffer_shared_ptr) {
         raw_buffer_shared_ptr_ = raw_buffer_shared_ptr;
-        type_ = ParamType::rawbuffer_shared_ptr_value_enum;
+        type_                  = ParamType::rawbuffer_shared_ptr_value_enum;
     };
-    inline std::shared_ptr<RawBuffer> GetRawbufferSharedPtr() { 
-        assert(type_ == ParamType::rawbuffer_shared_ptr_value_enum);  
-        return raw_buffer_shared_ptr_; 
+    inline std::shared_ptr<RawBuffer> GetRawbufferSharedPtr() {
+        assert(type_ == ParamType::rawbuffer_shared_ptr_value_enum);
+        return raw_buffer_shared_ptr_;
     };
     inline bool IsRawbufferSharedPtr() {
         return type_ == ParamType::rawbuffer_shared_ptr_value_enum;
     };
 
-    ParamWrapper(std::shared_ptr<Blob> blob_shared_ptr){
+    ParamWrapper(std::shared_ptr<Blob> blob_shared_ptr) {
         blob_shared_ptr_ = blob_shared_ptr;
-        type_ = ParamType::blob_shared_ptr_value_enum;
+        type_            = ParamType::blob_shared_ptr_value_enum;
     };
-    inline std::shared_ptr<Blob> GetBlobSharedPtr() { 
-        assert(type_ == ParamType::blob_shared_ptr_value_enum);  
-        return blob_shared_ptr_; 
+    inline std::shared_ptr<Blob> GetBlobSharedPtr() {
+        assert(type_ == ParamType::blob_shared_ptr_value_enum);
+        return blob_shared_ptr_;
     };
     inline bool IsBlobSharedPtr() {
         return type_ == ParamType::blob_shared_ptr_value_enum;
@@ -218,110 +217,110 @@ public:
     int GetBlobOrRawbufferSize() {
         assert(IsBlobOrRawbuffer());
         BlobDesc desc;
-        switch (type_)
-        {
-            case blob_shared_ptr_value_enum:
-                desc = blob_shared_ptr_->GetBlobDesc(); 
-                return (desc.dims.size() >  0 ? CalculateElementCount(desc) : 0) * DataTypeUtils::GetBytesSize(desc.data_type) ;
-            case blob_pvalue_enum:
-                desc = value_.blob_pvalue->GetBlobDesc();
-                return (desc.dims.size() >  0 ? CalculateElementCount(desc) : 0) * DataTypeUtils::GetBytesSize(desc.data_type) ;
-            case rawbuffer_shared_ptr_value_enum:
-                return raw_buffer_shared_ptr_->GetBytesSize();
-            case raw_buffer_pvalue_enum:
-                return value_.raw_buffer_pvalue->GetBytesSize();       
-            default:
-                break;
+        switch (type_) {
+        case blob_shared_ptr_value_enum:
+            desc = blob_shared_ptr_->GetBlobDesc();
+            return (desc.dims.size() > 0 ? CalculateElementCount(desc) : 0) *
+                   DataTypeUtils::GetBytesSize(desc.data_type);
+        case blob_pvalue_enum:
+            desc = value_.blob_pvalue->GetBlobDesc();
+            return (desc.dims.size() > 0 ? CalculateElementCount(desc) : 0) *
+                   DataTypeUtils::GetBytesSize(desc.data_type);
+        case rawbuffer_shared_ptr_value_enum:
+            return raw_buffer_shared_ptr_->GetBytesSize();
+        case raw_buffer_pvalue_enum:
+            return value_.raw_buffer_pvalue->GetBytesSize();
+        default:
+            break;
         }
         return 0;
     };
 
     DimsVector GetBlobOrRawbufferDims() {
         assert(IsBlobOrRawbuffer());
-        switch (type_)
-        {
-            case blob_shared_ptr_value_enum:
-                return blob_shared_ptr_->GetBlobDesc().dims;
-            case blob_pvalue_enum:
-                return value_.blob_pvalue->GetBlobDesc().dims;
-            case rawbuffer_shared_ptr_value_enum:
-                return raw_buffer_shared_ptr_->GetBufferDims();
-            case raw_buffer_pvalue_enum:
-                return value_.raw_buffer_pvalue->GetBufferDims();       
-            default:
-                break;
+        switch (type_) {
+        case blob_shared_ptr_value_enum:
+            return blob_shared_ptr_->GetBlobDesc().dims;
+        case blob_pvalue_enum:
+            return value_.blob_pvalue->GetBlobDesc().dims;
+        case rawbuffer_shared_ptr_value_enum:
+            return raw_buffer_shared_ptr_->GetBufferDims();
+        case raw_buffer_pvalue_enum:
+            return value_.raw_buffer_pvalue->GetBufferDims();
+        default:
+            break;
         }
         return {};
     };
 
     DataType GetBlobOrRawbufferDatatype() {
         assert(IsBlobOrRawbuffer());
-        switch (type_)
-        {
-            case blob_shared_ptr_value_enum:
-                return blob_shared_ptr_->GetBlobDesc().data_type;
-            case blob_pvalue_enum:
-                return value_.blob_pvalue->GetBlobDesc().data_type;
-            case rawbuffer_shared_ptr_value_enum:
-                return raw_buffer_shared_ptr_->GetDataType();
-            case raw_buffer_pvalue_enum:
-                return value_.raw_buffer_pvalue->GetDataType();       
-            default:
-                break;
+        switch (type_) {
+        case blob_shared_ptr_value_enum:
+            return blob_shared_ptr_->GetBlobDesc().data_type;
+        case blob_pvalue_enum:
+            return value_.blob_pvalue->GetBlobDesc().data_type;
+        case rawbuffer_shared_ptr_value_enum:
+            return raw_buffer_shared_ptr_->GetDataType();
+        case raw_buffer_pvalue_enum:
+            return value_.raw_buffer_pvalue->GetDataType();
+        default:
+            break;
         }
         return DataType::DATA_TYPE_AUTO;
     };
 
     DataFormat GetBlobOrRawbufferDataformat() {
         assert(IsBlobOrRawbuffer());
-        switch (type_)
-        {
-            case blob_shared_ptr_value_enum:
-                return blob_shared_ptr_->GetBlobDesc().data_format;
-            case blob_pvalue_enum:
-                return value_.blob_pvalue->GetBlobDesc().data_format;
-            case rawbuffer_shared_ptr_value_enum:
-                return raw_buffer_shared_ptr_->GetDataFormat();
-            case raw_buffer_pvalue_enum:
-                return value_.raw_buffer_pvalue->GetDataFormat();       
-            default:
-                break;
+        switch (type_) {
+        case blob_shared_ptr_value_enum:
+            return blob_shared_ptr_->GetBlobDesc().data_format;
+        case blob_pvalue_enum:
+            return value_.blob_pvalue->GetBlobDesc().data_format;
+        case rawbuffer_shared_ptr_value_enum:
+            return raw_buffer_shared_ptr_->GetDataFormat();
+        case raw_buffer_pvalue_enum:
+            return value_.raw_buffer_pvalue->GetDataFormat();
+        default:
+            break;
         }
         return DataFormat::DATA_FORMAT_AUTO;
     };
 
-    void* GetBlobOrRawbufferDataPointer() {
+    void *GetBlobOrRawbufferDataPointer() {
         assert(IsBlobOrRawbuffer());
-        switch (type_)
-        {
-            case blob_shared_ptr_value_enum:
-                return static_cast<void*>(static_cast<char*>(blob_shared_ptr_->GetHandle().base) + blob_shared_ptr_->GetHandle().bytes_offset);
-            case blob_pvalue_enum:
-                return static_cast<void*>(static_cast<char*>(value_.blob_pvalue->GetHandle().base) + value_.blob_pvalue->GetHandle().bytes_offset);
-            case rawbuffer_shared_ptr_value_enum:
-                return raw_buffer_shared_ptr_->force_to<void *>();
-            case raw_buffer_pvalue_enum:
-                return value_.raw_buffer_pvalue->force_to<void *>();       
-            default:
-                break;
+        switch (type_) {
+        case blob_shared_ptr_value_enum:
+            return static_cast<void *>(static_cast<char *>(blob_shared_ptr_->GetHandle().base) +
+                                       blob_shared_ptr_->GetHandle().bytes_offset);
+        case blob_pvalue_enum:
+            return static_cast<void *>(static_cast<char *>(value_.blob_pvalue->GetHandle().base) +
+                                       value_.blob_pvalue->GetHandle().bytes_offset);
+        case rawbuffer_shared_ptr_value_enum:
+            return raw_buffer_shared_ptr_->force_to<void *>();
+        case raw_buffer_pvalue_enum:
+            return value_.raw_buffer_pvalue->force_to<void *>();
+        default:
+            break;
         }
-        return nullptr;       
+        return nullptr;
     };
 
     inline bool IsBlobOrRawbuffer() {
-        return type_ == ParamType::blob_shared_ptr_value_enum || type_ == ParamType::blob_pvalue_enum \
-        || type_ == ParamType::rawbuffer_shared_ptr_value_enum ||  type_ == ParamType::raw_buffer_pvalue_enum;
+        return type_ == ParamType::blob_shared_ptr_value_enum || type_ == ParamType::blob_pvalue_enum ||
+               type_ == ParamType::rawbuffer_shared_ptr_value_enum || type_ == ParamType::raw_buffer_pvalue_enum;
     };
+
 private:
     ParamValue value_;
     ParamType type_;
-    std::shared_ptr<Blob> blob_shared_ptr_; //shared_ptr 有默认的构造函数  最好不要放在union里会有未知的行为
-    std::shared_ptr<RawBuffer> raw_buffer_shared_ptr_; 
+    std::shared_ptr<Blob> blob_shared_ptr_; // shared_ptr 有默认的构造函数  最好不要放在union里会有未知的行为
+    std::shared_ptr<RawBuffer> raw_buffer_shared_ptr_;
     bfp16_t bfp16_value_;
 };
 typedef std::vector<ParamWrapper> ParamWrappers;
 
-} //namspace train
-} //namespace TNN_NS
+} // namespace train
+} // namespace TNN_NS
 
-#endif //TNN_SOURCE_TNN_TRAIN_GRAD_UTILS_H
+#endif // TNN_SOURCE_TNN_TRAIN_GRAD_UTILS_H

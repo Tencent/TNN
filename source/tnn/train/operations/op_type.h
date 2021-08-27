@@ -20,23 +20,23 @@
 namespace TNN_NS {
 namespace train {
 
-// @brief all op types, used in train module, but may be used in predict modules;  
+// @brief all op types, used in train module, but may be used in predict modules;
 enum OpType {
     OP_ElEMENT = 1000,
-}; 
+};
 
 enum ElementOpType {
     Unkown = 0,
-    Add = 1,
-    Sub = 2,
-    Mul = 3,
-    Div = 4,
-    Log = 5,
-    Neg = 6,
-    RSign = 7
+    Add    = 1,
+    Sub    = 2,
+    Mul    = 3,
+    Div    = 4,
+    Log    = 5,
+    Neg    = 6,
+    RSign  = 7
 
-}; 
+};
 
 } // namespace train
 } // namespace TNN_NS
-#endif  //TNN_SOURCE_TNN_TRAIN_OPERATIONS_OP_TYPE_H 
+#endif // TNN_SOURCE_TNN_TRAIN_OPERATIONS_OP_TYPE_H

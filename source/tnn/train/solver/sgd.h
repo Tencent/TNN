@@ -16,23 +16,26 @@
 
 #ifndef TNN_SOURCE_TNN_TRAIN_SOVERL_SGD_H
 #define TNN_SOURCE_TNN_TRAIN_SOVERL_SGD_H
-#include <map>
 #include "tnn/train/solver/base_solver.h"
+#include <map>
 namespace TNN_NS {
 namespace train {
 
-class SGD: public BaseSolver{
+class SGD : public BaseSolver {
 public:
-    //BaseSolver(network, config), 
-    SGD(AbstractNetwork* network, NetworkConfig* config, float learningrate):BaseSolver(network, config), learningrate_(learningrate) {};
-    virtual ~SGD() {};
-    virtual Status UpdateTrainableVariable(RawBuffer* resource_param, const std::shared_ptr<RawBuffer>& resource_param_grad);
-    virtual Status ComputeUpdateValue(RawBuffer* resource_param, std::shared_ptr<RawBuffer>& resource_param_grad);
+    // BaseSolver(network, config),
+    SGD(AbstractNetwork *network, NetworkConfig *config, float learningrate)
+        : BaseSolver(network, config), learningrate_(learningrate){};
+    virtual ~SGD(){};
+    virtual Status UpdateTrainableVariable(RawBuffer *resource_param,
+                                           const std::shared_ptr<RawBuffer> &resource_param_grad);
+    virtual Status ComputeUpdateValue(RawBuffer *resource_param, std::shared_ptr<RawBuffer> &resource_param_grad);
     virtual Status step();
+
 private:
     float learningrate_;
 };
 
 } // namespace train
 } // namespace TNN_NS
-#endif  // TNN_SOURCE_TNN_TRAIN_SOVERL_SGD_H
+#endif // TNN_SOURCE_TNN_TRAIN_SOVERL_SGD_H
