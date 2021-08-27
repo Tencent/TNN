@@ -21,6 +21,19 @@ DECLARE_CPU_BINARY_OP_ACC(Greater, LAYER_GREATER);
 
 Status CpuGreaterLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, const std::vector<void *> &input_ptrs,
                                      const std::vector<DimsVector> &input_shapes, Blob *output) {
+
+    if (input_blobs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT && output->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+        const int data_size = DimsVectorUtils::Count(input_blobs[0]->GetBlobDesc().dims);
+        float* in0 = reinterpret_cast<float *>(input_blobs[0]->GetHandle().base);
+        float* in1 = reinterpret_cast<float *>(input_blobs[1]->GetHandle().base);
+        int8_t* out = reinterpret_cast<int8_t *>(output->GetHandle().base);
+        for (int i = 0; i < data_size; i++) {
+            out[i] = static_cast<int8_t>(in0[i] > in1[i]);
+        }
+
+        return TNN_OK;
+    }
+
     if (output->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         void *output_data       = output->GetHandle().base;
         const auto &output_dims = output->GetBlobDesc().dims;
