@@ -53,9 +53,25 @@ struct Float4 {
         value[i] = v;
     }
 
+#ifdef __aarch64__
     const float operator[](const int i) const {
         return value[i];
     }
+#else
+    const float operator[](const int i) const {
+        float tmp_v;
+        if (i == 0) {
+            tmp_v = vgetq_lane_f32(value, 0);
+        } else if (i == 1) {
+            tmp_v = vgetq_lane_f32(value, 1);
+        } else if (i == 2) {
+            tmp_v = vgetq_lane_f32(value, 2);
+        } else if (i == 3) {
+            tmp_v = vgetq_lane_f32(value, 3);
+        }
+        return tmp_v;
+    }
+#endif
 
     static Float4 load(const float* addr) {
         Float4 v;
