@@ -27,8 +27,10 @@ std::string MetalReduceSumLayerAcc::KernelName(const std::vector<Blob *> &inputs
         return "reduce_sum_axis_1_common";
     } else if (axis_ == 2) {
         return "reduce_sum_axis_2_common";
-    } else {
+    } else if (axis_ == 3) {
         return "reduce_sum_axis_3_common";
+    } else {
+        return "reduce_sum_axis_4_common";
     }
 }
 

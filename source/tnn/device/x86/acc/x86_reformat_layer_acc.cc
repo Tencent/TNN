@@ -14,10 +14,10 @@
 
 #include "tnn/device/x86/acc/x86_reformat_layer_acc.h"
 
+#include "tnn/device/x86/acc/compute/x86_compute_int8.h"
 #include "tnn/device/x86/x86_common.h"
 #include "tnn/device/x86/x86_context.h"
 #include "tnn/utils/dims_vector_utils.h"
-#include "tnn/device/x86/acc/compute/x86_compute_int8.h"
 
 namespace TNN_NS {
 
@@ -28,6 +28,7 @@ Status X86ReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     auto reformat_param = dynamic_cast<ReformatLayerParam *>(param);
     CHECK_PARAM_NULL(reformat_param);
 
+    scale_buffer_.resize(inputs.size());
     if (reformat_param->src_type == DATA_TYPE_INT8 && reformat_param->dst_type == DATA_TYPE_FLOAT) {
         reformat_param->type = DEQUANT_ONLY;
         for (auto blob : outputs) {
@@ -50,27 +51,29 @@ Status X86ReformatLayerAcc::allocateBufferParam(const std::vector<Blob *> &input
     auto param = dynamic_cast<ReformatLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
 
-    if (param->src_type != param->dst_type && !scale_buffer_.GetBytesSize()) {
-        auto dims_output    = outputs[0]->GetBlobDesc().dims;
-        int total_byte_size = ROUND_UP(dims_output[1], 4) * sizeof(float);
-        IntScaleResource *reformat_scale;
-        if (param->src_type == DATA_TYPE_INT8) {
-            reformat_scale = reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource();
-        } else {
-            reformat_scale = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource();
+    for (int idx = 0; idx < inputs.size(); ++idx) {
+        if (param->src_type != param->dst_type && !scale_buffer_[idx].GetBytesSize()) {
+            auto dims_output    = outputs[idx]->GetBlobDesc().dims;
+            int total_byte_size = ROUND_UP(dims_output[1], 4) * sizeof(float);
+            IntScaleResource *reformat_scale;
+            if (param->src_type == DATA_TYPE_INT8) {
+                reformat_scale = reinterpret_cast<BlobInt8 *>(inputs[idx])->GetIntResource();
+            } else {
+                reformat_scale = reinterpret_cast<BlobInt8 *>(outputs[idx])->GetIntResource();
+            }
+            const float *scale = reformat_scale->scale_handle.force_to<float *>();
+            int scale_cnt      = reformat_scale->scale_handle.GetDataCount();
+            RawBuffer temp_buffer(total_byte_size);
+            float *temp_ptr = temp_buffer.force_to<float *>();
+            for (int i = 0; i < dims_output[1]; i++) {
+                int scale_idx = scale_cnt == 1 ? 0 : i;
+                if (param->type == QUANT_ONLY)
+                    temp_ptr[i] = 1.0 / scale[scale_idx];
+                if (param->type == DEQUANT_ONLY)
+                    temp_ptr[i] = scale[scale_idx];
+            }
+            scale_buffer_[idx] = temp_buffer;
         }
-        const float *scale = reformat_scale->scale_handle.force_to<float *>();
-        int scale_cnt      = reformat_scale->scale_handle.GetDataCount();
-        RawBuffer temp_buffer(total_byte_size);
-        float *temp_ptr = temp_buffer.force_to<float *>();
-        for (int i = 0; i < dims_output[1]; i++) {
-            int scale_idx = scale_cnt == 1 ? 0 : i;
-            if (param->type == QUANT_ONLY)
-                temp_ptr[i] = 1.0 / scale[scale_idx];
-            if (param->type == DEQUANT_ONLY)
-                temp_ptr[i] = scale[scale_idx];
-        }
-        scale_buffer_ = temp_buffer;
     }
 
     return TNN_OK;
@@ -88,11 +91,11 @@ Status X86ReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         if (param->type == DEQUANT_ONLY) {
             X86Int8ToFloat(reinterpret_cast<float *>(outputs[i]->GetHandle().base),
                            reinterpret_cast<int8_t *>(inputs[i]->GetHandle().base),
-                           scale_buffer_.force_to<float *>(), batch, channel, hw);
+                           scale_buffer_[i].force_to<float *>(), batch, channel, hw);
         } else if (param->type == QUANT_ONLY) {
             X86FloatToInt8(reinterpret_cast<int8_t *>(outputs[i]->GetHandle().base),
-                           reinterpret_cast<float *>(inputs[i]->GetHandle().base),
-                           scale_buffer_.force_to<float *>(), batch, channel, hw);
+                           reinterpret_cast<float *>(inputs[i]->GetHandle().base), scale_buffer_[i].force_to<float *>(),
+                           batch, channel, hw);
         }
     }
     return TNN_OK;

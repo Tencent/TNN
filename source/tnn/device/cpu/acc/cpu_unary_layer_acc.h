@@ -48,7 +48,6 @@ public:
         return in;
     }
 
-
 protected:
     LayerParam *param_ = NULL;
 } UNARY_OP;

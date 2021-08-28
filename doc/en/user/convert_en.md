@@ -38,20 +38,26 @@ In order to simplify the installation and compilation steps of the convert2tnn c
 At present, TNN has prepared a built Docker image on Docker Hub. We suggest pulling the Docker image directly from Docker Hub. 
 
 ```shell script
-docker pull turandotkay/tnn-convert
+docker pull ccr.ccs.tencentyun.com/qcloud/tnn-convert
 ```
  After waiting for a while, you can check through `docker images` command. If successful, there will be output similar to the following:
 
-``` text
-REPOSITORY                TAG                 IMAGE ID            CREATED             SIZE
-turandotkay/tnn-convert   latest              28c93a738b08        15 minutes ago      2.81GB
+```text
+REPOSITORY                                  TAG                 IMAGE ID            CREATED             SIZE
+ccr.ccs.tencentyun.com/qcloud/tnn-convert   latest              66605e128277        2 hours ago         3.54GB
 ```
 
 If the REPOSITORY name is too long, rename it with the following command:
+```text
+docker tag ccr.ccs.tencentyun.com/qcloud/tnn-convert tnn-convert:latest
+docker rmi ccr.ccs.tencentyun.com/qcloud/tnn-convert
 ```
-docker tag turandotkay/tnn-convert:latest tnn-convert:latest
-docker rmi turandotkay/tnn-convert:latest
+After renaming the docker image, you can check through the `docker images` command. If successful, there will be output similar to the following:
+```text
+REPOSITORY                           TAG                 IMAGE ID            CREATED             SIZE
+tnn-convert                          latest              66605e128277        2 hours ago         3.54GB
 ```
+
 #### Build Docker image (If the image is pulled through previous step, skip this part)
 
 ``` shell script

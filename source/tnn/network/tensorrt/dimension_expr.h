@@ -26,9 +26,9 @@ namespace TNN_NS {
 // @brief Dimension builder helper class of tensorrt IDimensionExpr
 class DimensionExpr {
 public:
-    explicit DimensionExpr(const nvinfer1::IDimensionExpr * idimexpr, nvinfer1::IExprBuilder &builder);
+    explicit DimensionExpr(const nvinfer1::IDimensionExpr * idimexpr, nvinfer1::IExprBuilder *builder);
 
-    explicit DimensionExpr(const int v, nvinfer1::IExprBuilder &builder);
+    explicit DimensionExpr(const int v, nvinfer1::IExprBuilder *builder);
 
     // @brief virtual destructor
     virtual ~DimensionExpr();
@@ -48,100 +48,100 @@ public:
     // DimensionExpr with DimensionExpr
     friend DimensionExpr operator+(const DimensionExpr &lhs, const DimensionExpr& rhs)
     {
-        nvinfer1::IExprBuilder& builder = lhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kSUM, *lhs.expr_, *rhs.expr_), builder);
+        nvinfer1::IExprBuilder* builder = lhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kSUM, *lhs.expr_, *rhs.expr_), builder);
     }
 
     friend DimensionExpr operator-(const DimensionExpr &lhs, const DimensionExpr& rhs)
     {
-        nvinfer1::IExprBuilder& builder = lhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kSUB, *lhs.expr_, *rhs.expr_), builder);
+        nvinfer1::IExprBuilder* builder = lhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kSUB, *lhs.expr_, *rhs.expr_), builder);
     }
 
     friend DimensionExpr operator*(const DimensionExpr &lhs, const DimensionExpr& rhs)
     {
-        nvinfer1::IExprBuilder& builder = lhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kPROD, *lhs.expr_, *rhs.expr_), builder);
+        nvinfer1::IExprBuilder* builder = lhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kPROD, *lhs.expr_, *rhs.expr_), builder);
     }
 
     friend DimensionExpr operator/(const DimensionExpr &lhs, const DimensionExpr& rhs)
     {
-        nvinfer1::IExprBuilder& builder = lhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kFLOOR_DIV, *lhs.expr_, *rhs.expr_), builder);
+        nvinfer1::IExprBuilder* builder = lhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kFLOOR_DIV, *lhs.expr_, *rhs.expr_), builder);
     }
 
     friend DimensionExpr ceil_div(const DimensionExpr &lhs, const DimensionExpr& rhs)
     {
-        nvinfer1::IExprBuilder& builder = lhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kCEIL_DIV, *lhs.expr_, *rhs.expr_), builder);
+        nvinfer1::IExprBuilder* builder = lhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kCEIL_DIV, *lhs.expr_, *rhs.expr_), builder);
     }
 
     // DimensionExpr with integer
     friend DimensionExpr operator+(const DimensionExpr &lhs, const int& rhs)
     {
-        nvinfer1::IExprBuilder& builder = lhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kSUM, *lhs.expr_, *builder.constant(rhs)), builder);
+        nvinfer1::IExprBuilder* builder = lhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kSUM, *lhs.expr_, *builder->constant(rhs)), builder);
     }
 
     friend DimensionExpr operator-(const DimensionExpr &lhs, const int& rhs)
     {
-        nvinfer1::IExprBuilder& builder = lhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kSUB, *lhs.expr_, *builder.constant(rhs)), builder);
+        nvinfer1::IExprBuilder* builder = lhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kSUB, *lhs.expr_, *builder->constant(rhs)), builder);
     }
 
     friend DimensionExpr operator*(const DimensionExpr &lhs, const int& rhs)
     {
-        nvinfer1::IExprBuilder& builder = lhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kPROD, *lhs.expr_, *builder.constant(rhs)), builder);
+        nvinfer1::IExprBuilder* builder = lhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kPROD, *lhs.expr_, *builder->constant(rhs)), builder);
     }
 
     friend DimensionExpr operator/(const DimensionExpr &lhs, const int& rhs)
     {
-        nvinfer1::IExprBuilder& builder = lhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kFLOOR_DIV, *lhs.expr_, *builder.constant(rhs)), builder);
+        nvinfer1::IExprBuilder* builder = lhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kFLOOR_DIV, *lhs.expr_, *builder->constant(rhs)), builder);
     }
 
     friend DimensionExpr ceil_div(const DimensionExpr &lhs, const int& rhs)
     {
-        nvinfer1::IExprBuilder& builder = lhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kCEIL_DIV, *lhs.expr_, *builder.constant(rhs)), builder);
+        nvinfer1::IExprBuilder* builder = lhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kCEIL_DIV, *lhs.expr_, *builder->constant(rhs)), builder);
     }
 
     // integer with DimensionExpr
     friend DimensionExpr operator+( const int& lhs, const DimensionExpr &rhs)
     {
-        nvinfer1::IExprBuilder& builder = rhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kSUM, *builder.constant(lhs), *rhs.expr_), builder);
+        nvinfer1::IExprBuilder* builder = rhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kSUM, *builder->constant(lhs), *rhs.expr_), builder);
     }
 
     friend DimensionExpr operator-( const int& lhs, const DimensionExpr &rhs)
     {
-        nvinfer1::IExprBuilder& builder = rhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kSUB,  *builder.constant(lhs), *rhs.expr_), builder);
+        nvinfer1::IExprBuilder* builder = rhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kSUB, *builder->constant(lhs), *rhs.expr_), builder);
     }
 
     friend DimensionExpr operator*( const int& lhs, const DimensionExpr &rhs)
     {
-        nvinfer1::IExprBuilder& builder = rhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kPROD,  *builder.constant(lhs), *rhs.expr_), builder);
+        nvinfer1::IExprBuilder* builder = rhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kPROD, *builder->constant(lhs), *rhs.expr_), builder);
     }
 
     friend DimensionExpr operator/( const int& lhs, const DimensionExpr &rhs)
     {
-        nvinfer1::IExprBuilder& builder = rhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kFLOOR_DIV,  *builder.constant(lhs), *rhs.expr_), builder);
+        nvinfer1::IExprBuilder* builder = rhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kFLOOR_DIV, *builder->constant(lhs), *rhs.expr_), builder);
     }
 
     friend DimensionExpr ceil_div( const int& lhs, const DimensionExpr &rhs)
     {
-        nvinfer1::IExprBuilder& builder = rhs.builder_;
-        return DimensionExpr(builder.operation(nvinfer1::DimensionOperation::kCEIL_DIV,  *builder.constant(lhs), *rhs.expr_), builder);
+        nvinfer1::IExprBuilder* builder = rhs.builder_;
+        return DimensionExpr(builder->operation(nvinfer1::DimensionOperation::kCEIL_DIV, *builder->constant(lhs), *rhs.expr_), builder);
     }
 
 
 private:
     const nvinfer1::IDimensionExpr * expr_ = nullptr;
-    nvinfer1::IExprBuilder& builder_;
+    nvinfer1::IExprBuilder * builder_ = nullptr;
 };
 
 }  //  namespace TNN_NS

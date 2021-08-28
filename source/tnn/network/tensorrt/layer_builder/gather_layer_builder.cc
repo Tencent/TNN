@@ -20,18 +20,18 @@ namespace TNN_NS {
 DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(Gather, LAYER_GATHER);
 
 bool GatherTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) {
+        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
 
     auto support_fp32_i32 = (inOut[pos].type == nvinfer1::DataType::kFLOAT ||
                              inOut[pos].type == nvinfer1::DataType::kINT32) &&
-                             inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+                             inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
     auto support_i32 = inOut[pos].type == nvinfer1::DataType::kINT32 &&
-                       inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+                       inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
     auto support_f32_f16_i32 = (inOut[pos].type == nvinfer1::DataType::kFLOAT ||
                                 inOut[pos].type == nvinfer1::DataType::kINT32 ||
                                 inOut[pos].type == nvinfer1::DataType::kHALF) &&
-                                inOut[pos].format == nvinfer1::TensorFormat::kNCHW;
+                                inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
 
     if (layer_param->data_in_resource) {
         // if data in resource, output dtype only support fp32 & int32
@@ -82,12 +82,12 @@ Status GatherTRTPluginLayerBuilder::Reshape() {
     return TNN_OK;
 }
 
-const char* GatherTRTPluginLayerBuilder::getPluginType() const {
+const char* GatherTRTPluginLayerBuilder::getPluginType() const noexcept {
     return "Gather";
 }
 
 nvinfer1::DataType GatherTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const {
+        int nbInputs) const noexcept {
     auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
     auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);
 
@@ -103,7 +103,7 @@ nvinfer1::DataType GatherTRTPluginLayerBuilder::getOutputDataType(int index, con
 // trt gather performs slow in some cases, and may not support indices_data < 0
 // if shape tensor, we keep trt IGatherLayer
 // if not shape tensor, we use customized gather implementation
-ILayer* GatherTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* GatherTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     // if shape tensor
     if (GetInputITensors()[0]->getDimensions().nbDims == 0 ||
         GetInputITensors()[0]->getDimensions().nbDims == 1) {
@@ -154,7 +154,7 @@ ILayer* GatherTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 }
 
 DimsExprs GatherTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) {
+        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
     auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);
 
@@ -216,7 +216,7 @@ DimsExprs GatherTRTPluginLayerBuilder::getOutputDimensions(int index, const nvin
     return output;
 }
 
-const char* GatherPluginCreator::getPluginName() const {
+const char* GatherPluginCreator::getPluginName() const noexcept {
     return "Gather";
 }
 

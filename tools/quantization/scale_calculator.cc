@@ -13,6 +13,10 @@
 // specific language governing permissions and limitations under the License.
 
 #include "scale_calculator.h"
+
+#include "tnn/utils/dims_function_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -54,9 +58,9 @@ int ScaleCalculator::Init(Blob* blob, bool merge_channel, CalibrationMethod meth
     // TO-DO: support different data_type and device_type
     if (blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT && blob->GetBlobDesc().device_type == DEVICE_NAIVE) {
         // TO-DO: support different data format, now only NCHW
-        int channel = blob->GetBlobDesc().dims[1];
-        int height  = blob->GetBlobDesc().dims[2];
-        int width   = blob->GetBlobDesc().dims[3];
+        int channel = DimsFunctionUtils::GetDim(blob->GetBlobDesc().dims, 1);
+        int height  = DimsFunctionUtils::GetDim(blob->GetBlobDesc().dims, 2);
+        int width   = DimsFunctionUtils::GetDim(blob->GetBlobDesc().dims, 3);
 
         range_per_channel_.resize(channel);
         for (auto& item : range_per_channel_) {
@@ -112,9 +116,7 @@ int ScaleCalculator::UpdateRange() {
 
     int batch       = origin_blob_->GetBlobDesc().dims[0];
     int channel     = origin_blob_->GetBlobDesc().dims[1];
-    int height      = origin_blob_->GetBlobDesc().dims[2];
-    int width       = origin_blob_->GetBlobDesc().dims[3];
-    int hxw         = height * width;
+    int hxw         = DimsVectorUtils::Count(origin_blob_->GetBlobDesc().dims, 2);
     float* data_ptr = reinterpret_cast<float*>(static_cast<char*>(origin_blob_->GetHandle().base) +
                                                origin_blob_->GetHandle().bytes_offset);
 
@@ -169,9 +171,7 @@ int ScaleCalculator::UpdateDistribute() {
 
     int batch       = origin_blob_->GetBlobDesc().dims[0];
     int channel     = origin_blob_->GetBlobDesc().dims[1];
-    int height      = origin_blob_->GetBlobDesc().dims[2];
-    int width       = origin_blob_->GetBlobDesc().dims[3];
-    int hxw         = height * width;
+    int hxw         = DimsVectorUtils::Count(origin_blob_->GetBlobDesc().dims, 2);
     float* data_ptr = reinterpret_cast<float*>(static_cast<char*>(origin_blob_->GetHandle().base) +
                                                origin_blob_->GetHandle().bytes_offset);
 
@@ -210,11 +210,14 @@ int ScaleCalculator::CalculateScale(std::vector<float>& val) {
     if (merge_channel_) {
         val.push_back(0.0f);
         if (!valid_channel_[0]) {
+            LOGE("blob val is invalid in this merge channel mode (all zero)\n");
             return -1;
         }
         int ret = CalculateScalePerDis(distribute_per_channel_[0], interval_per_channel_[0], val[0]);
-        if (ret != 0)
+        if (ret != 0) {
+            LOGE("CalculateScalePerDis() failed\n");
             return -1;
+        }
     } else {
         val.resize(valid_channel_.size());
         std::fill(val.begin(), val.end(), 0.0f);
@@ -224,8 +227,10 @@ int ScaleCalculator::CalculateScale(std::vector<float>& val) {
                 continue;
             }
             int ret = CalculateScalePerDis(distribute_per_channel_[c], interval_per_channel_[c], val[c]);
-            if (ret != 0)
+            if (ret != 0) {
+                LOGE("CalculateScalePerDis() failed\n");
                 return -1;
+            }
         }
     }
 

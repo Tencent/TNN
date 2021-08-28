@@ -17,15 +17,15 @@ std::string TNNFPSCounter::RetifiedTag(std::string tag) {
 void TNNFPSCounter::Begin(std::string tag) {
     tag = RetifiedTag(tag);
     
-    map_timer["tag"] = std::make_shared<TNN_NS::SampleTimer>();
-    map_timer["tag"]->Start(); 
+    map_timer[tag] = std::make_shared<TNN_NS::SampleTimer>();
+    map_timer[tag]->Start(); 
 }
 
 void TNNFPSCounter::End(std::string tag) {
     tag = RetifiedTag(tag);
     
-    map_timer["tag"]->Stop();
-    double time = map_timer["tag"]->GetTime();
+    map_timer[tag]->Stop();
+    double time = map_timer[tag]->GetTime();
     
     if (time > 0.1) {
         double fps = GetFPS(tag);

@@ -376,10 +376,13 @@ void GemmInt8(int8_t* dst, const int8_t* src, const int8_t* weight, const int32_
               const float* scale, int hw_tile, int src_depth_d8, int src_w_step, int dst_depth, int relu,
               const int8_t* add_input, const float* add_scale, const int8_t* relu6_max, x86_isa_t arch) {
     const int src_depth_d16 = UP_DIV(src_depth_d8, 2);
-    auto gemm_kernel = X86AVXGemmInt8Unit4x4;
-    if (arch == sse42) {
-        gemm_kernel = X86SSEGemmInt8Unit4x4;
+
+    auto gemm_kernel = X86SSEGemmInt8Unit4x4;
+#ifdef __AVX2__
+    if (arch == avx2) {
+        gemm_kernel = X86AVXGemmInt8Unit4x4;
     }
+#endif
 
     for (int j = 0; j < dst_depth; j += 4) {
         int hw = 0;

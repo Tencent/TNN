@@ -59,6 +59,9 @@ Status MetalReduceLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
             MetalReduceParams metal_params;
             SetDefaultMetalParams(metal_params, dims_input, dims_output);
             FixDefaultMetalParams(metal_params, dims_input, dims_output);
+            if(dims_input.size()==5) {
+                metal_params.input_dim4 = dims_input[4];
+            }
             metal_params.input_batch = dims_input[0];
             metal_params.input_channel = dims_input[1];
             metal_params.output_batch = dims_output[0];

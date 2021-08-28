@@ -40,7 +40,19 @@ string OnnxOpConverterTopK::TNNLayerParam(NodeProto& node, OnnxNetInfo& net_info
     if (node_has_attr(node, "sorted")) {
         sorted = get_node_attr_i(node, "sorted");
     }
-    int k = get_node_attr_i(node, "k");
+    int k = 0;
+    if (net_info.opset < 10) {
+        k = get_node_attr_i(node, "k");
+    } else {
+        auto k_name = node.input(1);
+        if (net_info.weights_map.find(k_name) == net_info.weights_map.end()) {
+            LOGE("TopK just support constant K right now!\n");
+            assert(0);
+        }
+
+        auto tp = net_info.weights_map[k_name];
+        k = ((int64_t*)get_tensor_proto_data(tp))[0];
+    }
 
     layer_param << axis << " " << largest << " " << sorted << " " << k << " ";
 

@@ -66,16 +66,16 @@ Status CpuUnaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
             output_data[index] = (*op_)(input_data[index]);
         }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+        auto dims = input_blob->GetBlobDesc().dims;
+        int8_t *input_data  = static_cast<int8_t *>(input_blob->GetHandle().base);
+        int8_t *output_data = static_cast<int8_t *>(output_blob->GetHandle().base);
         if (param_->quantized) {
-            auto dims = input_blob->GetBlobDesc().dims;
-            int8_t *input_data  = static_cast<int8_t *>(input_blob->GetHandle().base);
-            int8_t *output_data = static_cast<int8_t *>(output_blob->GetHandle().base);
             auto input_scale_handle  = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->scale_handle;
             auto output_scale_handle = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->scale_handle;
-            const float *i_scale = input_scale_handle.force_to<float *>();
-            const float *o_scale = output_scale_handle.force_to<float *>();
-            int scale_len_i = input_scale_handle.GetDataCount();
-            int scale_len_o = output_scale_handle.GetDataCount();
+            const float *i_scale     = input_scale_handle.force_to<float *>();
+            const float *o_scale     = output_scale_handle.force_to<float *>();
+            int scale_len_i          = input_scale_handle.GetDataCount();
+            int scale_len_o          = output_scale_handle.GetDataCount();
             for (int n = 0; n < dims[0]; ++n) {
                 auto input_data_n  = input_data + n * dims[1] * dims[2] * dims[3];
                 auto output_data_n = output_data + n * dims[1] * dims[2] * dims[3];
@@ -92,8 +92,6 @@ Status CpuUnaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
                 }
             }
         } else {
-            auto input_data  = static_cast<int8_t *>(input_blob->GetHandle().base);
-            auto output_data = static_cast<int8_t *>(output_blob->GetHandle().base);
             for (int index = 0; index < count; ++index) {
                 output_data[index] = (*op_)(input_data[index]);
             }

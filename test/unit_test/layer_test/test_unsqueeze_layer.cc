@@ -26,6 +26,9 @@ static bool TestFilter(DeviceType device_type, DataType data_type) {
     
     if (device_type == DEVICE_METAL && data_type == DATA_TYPE_FLOAT)
         return true;
+
+    if (device_type == DEVICE_OPENCL && data_type == DATA_TYPE_FLOAT)
+        return true;
     
     return false;
 }
@@ -75,6 +78,11 @@ TEST_P(UnsqueezeLayerTest, UnsqueezeLayer) {
             GTEST_SKIP();
         }
     }
+
+    if (axes.size() + input_dims.size() > 6) {
+        GTEST_SKIP();
+    }
+
     auto interpreter            = GenerateInterpreter("Unsqueeze", {input_dims}, param);
 
     Precision precision = PRECISION_AUTO;

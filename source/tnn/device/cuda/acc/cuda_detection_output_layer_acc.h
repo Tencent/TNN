@@ -28,6 +28,8 @@ public:
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 private:
+    void AllocTempBuf();
+    int max_num;
     int num_priors;
     int num_loc_classes;
     int top_k;

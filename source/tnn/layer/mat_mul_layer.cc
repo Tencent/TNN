@@ -38,7 +38,7 @@ Status MatMulLayer::InferOutputDataType() {
 //
 //    If the first argument is 2-dimensional and the second argument is 1-dimensional, the matrix-vector product is returned.
 //
-//    If both arguments are at least 1-dimensional and at least one argument is N-dimensional (where N > 2), then a batched matrix multiply is returned. If the first argument is 1-dimensional, a 1 is prepended to its dimension for the purpose of the batched matrix multiply and removed after. If the second argument is 1-dimensional, a 1 is appended to its dimension for the purpose of the batched matrix multiple and removed after. The non-matrix (i.e. batch) dimensions are broadcasted (and thus must be broadcastable). For example, if input is a (j \times 1 \times n \times m)(j×1×n×m) tensor and other is a (k \times m \times p)(k×m×p) tensor, out will be an (j \times k \times n \times p)(j×k×n×p) tensor.
+//    If both arguments are at least 1-dimensional and at least one argument is N-dimensional (where N > 2), then a batched matrix multiply is returned. If the first argument is 1-dimensional, a 1 is prepended to its dimension for the purpose of the batched matrix multiply and removed after. If the second argument is 1-dimensional, a 1 is appended to its dimension for the purpose of the batched matrix multiple and removed after. The non-matrix (i.e. batch) dimensions are broadcasted (and thus must be broadcastable). For example, if input is a (j,1,n,m) tensor and other is a (k,m,p) tensor, out will be an (j,k,n,p) tensor.
 DimsVector CalculateOutputDim(DimsVector matrix_a_dims, DimsVector matrix_b_dims, Status *status) {
     DimsVector output_dims;
     bool squeeze_matrix_a = false;
@@ -89,15 +89,17 @@ DimsVector CalculateOutputDim(DimsVector matrix_a_dims, DimsVector matrix_b_dims
         output_dims[output_dims.size() - 1] = matrix_b_dims[matrix_b_dims.size() - 1];
 
         int count = matrix_a_dims.size() <= matrix_b_dims.size() ? matrix_a_dims.size() : matrix_b_dims.size();
-        for (int i = count - 1 - 2; i >= 0; --i) {
-            if (matrix_a_dims[i] != 1 && matrix_b_dims[i] != 1 && matrix_a_dims[i] != matrix_b_dims[i]) {
-                LOGE("MatMul get wrong matrix_a or matrix_b\n");
+        for (int i = 0; i < count - 2; ++i) {
+            int matrix_a_dim = matrix_a_dims[matrix_a_dims.size() - 3 - i];
+            int matrix_b_dim = matrix_b_dims[matrix_b_dims.size() - 3 - i];
+            if (matrix_a_dim != 1 && matrix_b_dim != 1 && matrix_a_dim != matrix_b_dim) {
+                LOGE("MatMul get wrong matrix_a or matrix_b (matrix_a_dim=%d, matrix_b_dim=%d)\n", matrix_a_dim, matrix_b_dim);
                 if (status) {
                     *status = Status(TNNERR_PARAM_ERR, "MatMul has wrong shape of matrix_a or matrix_b");
                 }
                 return output_dims;
             } else {
-                output_dims[i] = matrix_a_dims[i] >= matrix_b_dims[i] ? matrix_a_dims[i] : matrix_b_dims[i];
+                output_dims[output_dims.size() - 3 - i] = matrix_a_dim >= matrix_b_dim ? matrix_a_dim : matrix_b_dim;
             }
         }
     }
@@ -107,6 +109,7 @@ DimsVector CalculateOutputDim(DimsVector matrix_a_dims, DimsVector matrix_b_dims
     if (squeeze_matrix_b && output_dims[output_dims.size() - 1] == 1) {
         output_dims.erase(output_dims.end() - 1);
     }
+
     return output_dims;
 }
 
@@ -140,7 +143,8 @@ Status MatMulLayer::InferOutputShape(bool ignore_error) {
     auto output_dims = CalculateOutputDim(matrix_a_dims, matrix_b_dims, &status);
     LOGE_IF(!ignore_error && status != TNN_OK, "MatMulLayer: %s\n", status.description().c_str());
     output_blobs_[0]->GetBlobDesc().dims = output_dims;
-    return TNN_OK;
+
+    return status;
 }
 
 REGISTER_LAYER(MatMul, LAYER_MATMUL);
