@@ -43,7 +43,7 @@ Status CpuEqualLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
     } else if(data_type == DATA_TYPE_INT32) {  
         CPU_ELEMENT_WISE_COMPARE<int, char>(input_ptrs, input_shapes, output_data, output_dims,
                                   [](int a, int b) -> char { return a == b; });
-    } else if(data_type == DTAT_TYPE_INT8) {
+    } else if(data_type == DATA_TYPE_INT8) {
         CPU_ELEMENT_WISE_COMPARE<char, char>(input_ptrs, input_shapes, output_data, output_dims,
                                   [](char a, char b) -> char { return a == b; });
     } else {
