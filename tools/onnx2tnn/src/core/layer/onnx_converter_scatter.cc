@@ -104,4 +104,3 @@ int OnnxOpConverterScatter::WriteTNNModel(Serializer* net_writer, NodeProto& nod
 }
 
 REGISTER_OP_CONVERTER(Scatter, Scatter);
-REGISTER_OP_CONVERTER(Scatter, ScatterElements);
