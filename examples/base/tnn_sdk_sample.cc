@@ -595,6 +595,8 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 #endif
     } else if (option->compute_units == TNNComputeUnitsTensorRT) {
         device_type_ = TNN_NS::DEVICE_CUDA;
+    } else if (option->compute_units == TNNComputeUnitsNaive) {
+        device_type_ = TNN_NS::DEVICE_NAIVE;
     }
     
     //创建实例instance

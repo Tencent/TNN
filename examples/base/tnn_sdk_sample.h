@@ -119,6 +119,8 @@ typedef enum {
     TNNComputeUnitsOpenvino = 3,
     // run on TensorRT
     TNNComputeUnitsTensorRT = 4,
+    // run on cpu Naive
+    TNNComputeUnitsNaive = 5,
 } TNNComputeUnits;
 
 struct RGBA{
