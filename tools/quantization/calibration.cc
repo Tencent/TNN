@@ -272,7 +272,6 @@ int Calibration::InitFeatureMap() {
     }
     for (auto item : input_blobs) {
         if (feature_map_.find(item.second) != feature_map_.end()) {
-            //LOGE("?????\n");
             feature_map_[item.second]->SetQuantizeMethod(MIN_MAX);
         }
     }
@@ -528,7 +527,6 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
     if (cali_params_.merge_weights_channel)
         weight_scale_size = 1;
     RawBuffer weight_scale(weight_scale_size * sizeof(float));
-    //LOGE("why sizeof(char) for int8???????");
     RawBuffer weight_scale_bias(weight_scale_size * sizeof(char));
     weight_scale_bias.SetDataType(DATA_TYPE_INT8);
 

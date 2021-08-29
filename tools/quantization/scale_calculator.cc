@@ -68,6 +68,12 @@ int ScaleCalculator::Init(Blob* blob, bool merge_channel, CalibrationMethod meth
             item.second = -1e6;  // init max
         }
 
+        index_image_per_channel_.resize(channel);
+        for (auto& item : index_image_per_channel_) {
+            item  = 0;
+        }
+        mean_per_channel_.resize(channel);
+        mean_abs_per_channel_.resize(channel);
         interval_per_channel_.resize(channel);
         valid_channel_.resize(channel);
         distribute_per_channel_.resize(channel);
@@ -75,7 +81,7 @@ int ScaleCalculator::Init(Blob* blob, bool merge_channel, CalibrationMethod meth
             item.resize(bin_nums_);
         }
 
-        if (height * width < 100 && cali_method_ != ASY_MIN_MAX) {
+        if (height * width < 100 && cali_method_ == KL_DIVERGENCE) {
             // the data num is too small, use minmax
             cali_method_ = MIN_MAX;
         }
@@ -88,7 +94,8 @@ int ScaleCalculator::Init(Blob* blob, bool merge_channel, CalibrationMethod meth
 }
 
 int ScaleCalculator::SetQuantizeMethod(CalibrationMethod method) {
-    if (method != MIN_MAX && method != KL_DIVERGENCE && method != ASY_MIN_MAX && method != ACIQ) {
+    if (method != MIN_MAX && method != KL_DIVERGENCE && method != ASY_MIN_MAX && method != ACIQ_GAUS &&
+        method != ACIQ_LAPLACE) {
         LOGE("invalid method (%d) for blob quantization!\n", method);
         return -1;
     }
@@ -128,6 +135,17 @@ int ScaleCalculator::UpdateRange() {
             }
 
             float* p = data_ptr + b * channel * hxw + c * hxw;
+
+            float sum = 0;
+            float sum_abs = 0;
+            std::for_each(p, p+hxw, [&](float n) { sum += n; sum_abs += abs(n);});
+            float mean = mean_per_channel_[channel_idx];
+            float abs_mean = mean_abs_per_channel_[channel_idx];
+            int index = index_image_per_channel_[channel_idx];
+            mean_per_channel_[channel_idx] = (mean * index + sum /hxw)/(index+1);
+            mean_abs_per_channel_[channel_idx] = (abs_mean * index + sum_abs /hxw)/(index+1);
+            index_image_per_channel_[channel_idx] = index+1;
+
             for (int i = 0; i < hxw; ++i) {
                 float val = p[i];
 
@@ -214,9 +232,9 @@ int ScaleCalculator::CalculateScale(std::vector<float>& val, std::vector<int8_t>
             return -1;
         }
         int ret = -1;
-        if(cali_method_ == ASY_MIN_MAX || cali_method_ == ACIQ){
-            ret = CalculateScaleAnalysis(range_per_channel_[0], val[0], bias[0]);
-        }  else{
+        if (cali_method_ == ASY_MIN_MAX || cali_method_ == ACIQ_GAUS || cali_method_ == ACIQ_LAPLACE) {
+            ret = CalculateScaleAnalysis(0, val[0], bias[0]);
+        } else {
             ret = CalculateScalePerDis(distribute_per_channel_[0], interval_per_channel_[0], val[0]);
         }
         if (ret != 0)
@@ -226,15 +244,14 @@ int ScaleCalculator::CalculateScale(std::vector<float>& val, std::vector<int8_t>
         bias.resize(valid_channel_.size());
         std::fill(val.begin(), val.end(), 0.0f);
         std::fill(bias.begin(), bias.end(), (int8_t)0);
-        // std::fill(bias.begin(), bias.end(), 0);
 
         for (unsigned int c = 0; c < range_per_channel_.size(); ++c) {
             if (!valid_channel_[c]) {
                 continue;
             }
             int ret = -1;
-            if(cali_method_ == ASY_MIN_MAX || cali_method_ == ACIQ){
-                ret = CalculateScaleAnalysis(range_per_channel_[c], val[c], bias[c]);
+            if (cali_method_ == ASY_MIN_MAX || cali_method_ == ACIQ_GAUS || cali_method_ == ACIQ_LAPLACE) {
+                ret = CalculateScaleAnalysis(c, val[c], bias[c]);
             } else{
                 ret = CalculateScalePerDis(distribute_per_channel_[c], interval_per_channel_[c], val[c]);
             }
@@ -243,6 +260,13 @@ int ScaleCalculator::CalculateScale(std::vector<float>& val, std::vector<int8_t>
         }
     }
 return 0;
+}
+
+static float CalculateAlphaLaplace(float mean_val_abs, int num_bits = 8) {
+    const float alpha_laplace[8] = {0,          2.83068299, 3.89722946, 5.02864014,
+                                     6.20476633, 7.41312622, 8.64561995, 9.89675982};
+    float alpha_lap              = static_cast<float>(alpha_laplace[num_bits - 1] * mean_val_abs);
+    return alpha_lap;
 }
 
 static float CalculateAlphaGaus(float max_val_abs, int N, int num_bits = 8) {
@@ -254,10 +278,10 @@ static float CalculateAlphaGaus(float max_val_abs, int N, int num_bits = 8) {
     return alpha_gaus;
 }
 
-int ScaleCalculator::CalculateScaleAnalysis(std::pair<float, float> range, float& blob_scale, int8_t& bias) {
+int ScaleCalculator::CalculateScaleAnalysis(int channel_index, float& blob_scale, int8_t& bias) {
     if (cali_method_ == ASY_MIN_MAX) {
-        float min_val          = std::min(.0f, range.first);
-        float max_val          = std::max(.0f, range.second);
+        float min_val          = std::min(.0f, range_per_channel_[channel_index].first);
+        float max_val          = std::max(.0f, range_per_channel_[channel_index].second);
         blob_scale             = (max_val - min_val) / 254.0f;
         float scale_float2int8 = 1.0f;
         if (max_val != min_val) {
@@ -267,12 +291,16 @@ int ScaleCalculator::CalculateScaleAnalysis(std::pair<float, float> range, float
             return -1;
         }
         bias = 127 - static_cast<int>(std::round(max_val * scale_float2int8));
-    } else if (cali_method_ == ACIQ) {
-        float max_val_abs = std::max(std::abs(range.first), std::abs(range.second));
-        int elem_num      = merge_channel_ ? DimsVectorUtils::Count(origin_blob_->GetBlobDesc().dims, 1)
-                                           : DimsVectorUtils::Count(origin_blob_->GetBlobDesc().dims, 2);
-        float threshold   = CalculateAlphaGaus(max_val_abs, elem_num, 8);
-        blob_scale        = threshold / 127.0f;
+    } else if (cali_method_ == ACIQ_GAUS) {
+        float max_val_abs       = std::max(std::abs(range_per_channel_[channel_index].first),
+                                     std::abs(range_per_channel_[channel_index].second));
+        int elem_num            = merge_channel_ ? DimsVectorUtils::Count(origin_blob_->GetBlobDesc().dims, 1)
+                                                 : DimsVectorUtils::Count(origin_blob_->GetBlobDesc().dims, 2);
+        float threshold_gaus   = CalculateAlphaGaus(max_val_abs, elem_num * index_image_per_channel_[channel_index], 8);
+        blob_scale              = threshold_gaus / 127.0f;
+    } else if (cali_method_ == ACIQ_LAPLACE) {
+        float threshold_laplace = CalculateAlphaLaplace(mean_abs_per_channel_[channel_index], 8);
+        blob_scale              = threshold_laplace / 127.0f;
     } else {
         LOGE("invalid calibration method! (type: %d)\n", cali_method_);
         return -1;
