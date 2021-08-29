@@ -21,20 +21,17 @@ DECLARE_CPU_BINARY_OP_ACC(Less, LAYER_LESS);
 
 Status CpuLessLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, const std::vector<void *> &input_ptrs,
                                   const std::vector<DimsVector> &input_shapes, Blob *output) {
-    if (output->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        void *output_data       = output->GetHandle().base;
-        const auto &output_dims = output->GetBlobDesc().dims;
-        CPU_ELEMENT_WISE<float, char>(input_ptrs, input_shapes, output_data, output_dims,
+    auto data_type = input_blobs[0]->GetBlobDesc().data_type;
+    void *output_data       = output->GetHandle().base;
+    const auto &output_dims = output->GetBlobDesc().dims;
+    if (data_type == DATA_TYPE_FLOAT) {
+        CPU_ELEMENT_WISE_COMPARE<float, char>(input_ptrs, input_shapes, output_data, output_dims,
                                       [](float a, float b) -> char { return a < b ? 1 : 0; });
-    } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT32) {
-        void *output_data       = output->GetHandle().base;
-        const auto &output_dims = output->GetBlobDesc().dims;
-        CPU_ELEMENT_WISE<int, char>(input_ptrs, input_shapes, output_data, output_dims,
+    } else if (data_type == DATA_TYPE_INT32) {
+        CPU_ELEMENT_WISE_COMPARE<int, char>(input_ptrs, input_shapes, output_data, output_dims,
                                     [](int a, int b) -> char { return a < b ? 1 : 0; });
-    } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        void *output_data       = output->GetHandle().base;
-        const auto &output_dims = output->GetBlobDesc().dims;
-        CPU_ELEMENT_WISE<char, char>(input_ptrs, input_shapes, output_data, output_dims,
+    } else if (data_type == DATA_TYPE_INT8) {
+        CPU_ELEMENT_WISE_COMPARE<char, char>(input_ptrs, input_shapes, output_data, output_dims,
                                      [](char a, char b) -> char { return a < b ? 1 : 0; });
     } else {
         LOGE("Error: CpuLessLayerAcc don't support data type: %d\n", output->GetBlobDesc().data_type);
