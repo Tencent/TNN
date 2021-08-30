@@ -47,7 +47,7 @@ Status UpsampleOVLayerBuilder::Build() {
     if (paramlist->align_corners) {
         attrs.coordinate_transformation_mode = ngraph::op::v4::Interpolate::CoordinateTransformMode::align_corners;
     } else {
-        attrs.coordinate_transformation_mode = ngraph::op::v4::Interpolate::CoordinateTransformMode::asymmetric;
+        attrs.coordinate_transformation_mode = ngraph::op::v4::Interpolate::CoordinateTransformMode::half_pixel;
     }
     attrs.nearest_mode = ngraph::op::v4::Interpolate::NearestMode::floor;
     // attrs.align_corners = paramlist->align_corners;
@@ -58,7 +58,7 @@ Status UpsampleOVLayerBuilder::Build() {
         axes.push_back(axis);
     }
     auto axesConst = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::i64, ngraph::Shape{2}, axes);
+        ngraph::element::Type_t::i64, ngraph::Shape{input_node->get_output_shape(0).size() - 2}, axes);
 
     if (paramlist->mode == 1) {
         attrs.mode = ngraph::op::v4::Interpolate::InterpolateMode::nearest; //"nearest";
@@ -90,9 +90,9 @@ Status UpsampleOVLayerBuilder::Build() {
         upsampleScaleShape[1] = paramlist->scales.at(0);
     }
     auto upsampleConst = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::i64, ngraph::Shape{2}, upsampleShape);
+        ngraph::element::Type_t::i64, ngraph::Shape{input_node->get_output_shape(0).size() - 2}, upsampleShape);
     auto upsampleScaleConst = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, ngraph::Shape{2}, upsampleScaleShape);
+        ngraph::element::Type_t::f32, ngraph::Shape{input_node->get_output_shape(0).size() - 2}, upsampleScaleShape);
 
     auto upsampleNode = std::make_shared<ngraph::op::v4::Interpolate>(
         input_node->output(0), upsampleConst, upsampleScaleConst, axesConst, attrs);

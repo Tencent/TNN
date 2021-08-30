@@ -42,16 +42,29 @@ public:
         constructor_validate_and_infer_types();
     };
 
-    virtual void validate_and_infer_types() {
-    for (size_t i = 0; i < output_blobs_.size(); i++) {
-        auto dims0 = output_blobs_[i]->GetBlobDesc().dims;
-        ngraph::Shape output_shape(dims0.size());
-        for (size_t j = 0; j < dims0.size(); j++) {
-            output_shape[j] = dims0[j];
+    void validate_and_infer_types() override {
+        for (size_t i = 0; i < input_blobs_.size(); i++) {
+            auto input_desc = input_blobs_[i]->GetBlobDesc();
+            auto dims0 = input_desc.dims;
+            auto input_shape = get_input_shape(i);
+            
+            dims0.resize(input_shape.size());
+            for (size_t j = 0; j < input_shape.size(); j++) {
+                dims0[j] = input_shape[j];
+            }
+            input_desc.dims = dims0;
+            input_blobs_[i]->SetBlobDesc(input_desc);
         }
-        set_output_type(i, get_input_element_type(0), ngraph::PartialShape(output_shape));
-    }
-};
+        base_layer_->Reshape();
+        for (size_t i = 0; i < output_blobs_.size(); i++) {
+            auto dims0 = output_blobs_[i]->GetBlobDesc().dims;
+            ngraph::Shape output_shape(dims0.size());       
+            for (size_t j = 0; j < dims0.size(); j++) {
+                output_shape[j] = dims0[j];
+            }
+            set_output_type(i, get_input_element_type(0), ngraph::PartialShape(output_shape));
+        }
+    };
 
     bool visit_attributes(ngraph::AttributeVisitor& visitor) override {
         return true;
@@ -313,7 +326,6 @@ public:
         std::shared_ptr<ngraph::Node> clone_with_new_inputs(const ngraph::OutputVector& new_args) const override {     \
             return std::make_shared<Custom##type##Op>(new_args, base_layer_, input_blobs_, output_blobs_);             \
         }                                                                                                              \
-        void validate_and_infer_types() override;                                                                      \
     }
 
 #endif

@@ -20,16 +20,6 @@
 namespace TNN_NS {
     
 DECLARE_CUSTOM_OP(Softsign);
-void CustomSoftsignOp::validate_and_infer_types()  {
-    for (size_t i = 0; i < output_blobs_.size(); i++) {
-        auto dims0 = output_blobs_[i]->GetBlobDesc().dims;
-        ngraph::Shape output_shape(dims0.size());
-        for (size_t j = 0; j < dims0.size(); j++) {
-            output_shape[j] = dims0[j];
-        }
-        set_output_type(i, get_input_element_type(0), ngraph::PartialShape(output_shape));
-    }
-}
 REGISTER_CUSTOM_OP(Softsign);
 
 DECLARE_CUSTOM_IMPLEMENTATION(Softsign);
