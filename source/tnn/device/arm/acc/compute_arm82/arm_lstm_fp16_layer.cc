@@ -138,10 +138,10 @@ Status ArmLSTMONNXLayerAcc::LstmSingleDirection(const fp16_t *x, fp16_t *y, cons
 
 // [4, hidden_size, input_size] -> transpose -> [input_size, hidden_size, 4]
 // [input_size, hidden_size * 4] -> PackB_16 -> [hidden_size * 4 / 16, input_size, 16]
-static void TransposeAndPackWeight(const float *src, fp16_t *dst, int input_size, int hidden_size) {
+static void TransposeAndPackWeight(const fp16_t *src, fp16_t *dst, int input_size, int hidden_size) {
     RawBuffer tmp_transpose = RawBuffer(input_size * hidden_size * 4 * sizeof(fp16_t));
     fp16_t *src_transpose   = tmp_transpose.force_to<fp16_t *>();
-    const float *vsrc[4];
+    const fp16_t *vsrc[4];
     vsrc[0]   = src;
     vsrc[1]   = vsrc[0] + input_size * hidden_size;
     vsrc[2]   = vsrc[1] + input_size * hidden_size;
@@ -160,7 +160,7 @@ static void TransposeAndPackWeight(const float *src, fp16_t *dst, int input_size
 
 Status ArmLSTMONNXLayerAcc::AllocateBufferWeightInputHalf(Blob *weight_i) {
     // W[iofc], weight tensor for the gates, shape [num_directions, 4*hidden_size, input_size]
-    float *weight_i_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(weight_i->GetHandle()));
+    fp16_t *weight_i_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(weight_i->GetHandle()));
 
     int weight_page       = input_size_ * ROUND_UP(4 * hidden_size_, 16);
     int weight_byte_count = num_directions_ * weight_page * sizeof(fp16_t);
@@ -176,7 +176,7 @@ Status ArmLSTMONNXLayerAcc::AllocateBufferWeightInputHalf(Blob *weight_i) {
 
 Status ArmLSTMONNXLayerAcc::AllocateBufferWeightRecurrentHalf(Blob *weight_r) {
     // R[iofc], recurrence weight tensor, shape [num_directions, 4*hidden_size, hidden_size]
-    float *weight_r_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(weight_r->GetHandle()));
+    fp16_t *weight_r_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(weight_r->GetHandle()));
 
     int weight_page          = hidden_size_ * ROUND_UP(4 * hidden_size_, 16);
     int weight_byte_count    = num_directions_ * weight_page * sizeof(fp16_t);
@@ -192,7 +192,7 @@ Status ArmLSTMONNXLayerAcc::AllocateBufferWeightRecurrentHalf(Blob *weight_r) {
 
 Status ArmLSTMONNXLayerAcc::AllocateBufferBiasHalf(Blob *bias) {
     // B[iofc] Concatenation of [Wb[iofc], Rb[iofc]], [num_directions, 8*hidden_size]
-    float *bias_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(bias->GetHandle()));
+    fp16_t *bias_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(bias->GetHandle()));
 
     int bias_count       = num_directions_ * 4 * hidden_size_;
     int bias_byte_count  = bias_count * sizeof(fp16_t);
