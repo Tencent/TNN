@@ -134,10 +134,6 @@ static void TransposeAndPackWeight(const float *src, float *dst, int input_size,
     PackB_8(input_size, hidden_size * 4, src_transpose, hidden_size * 4, dst);
 }
 
-bool ArmLSTMONNXLayerAcc::UseNaiveConstantBlobs() {
-    return true;
-}
-
 ArmLSTMONNXLayerAcc::~ArmLSTMONNXLayerAcc() {}
 
 Status ArmLSTMONNXLayerAcc::AllocateBufferWeightInput(Blob *weight_i) {
