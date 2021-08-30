@@ -207,7 +207,7 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool 
             blob = const_blob_map[name];
         }
         Status status;
-        // convert to fp32 resource before converting from buffer to blob
+        // convert fp16 to fp32 resource before converting from buffer to blob
         auto buffer_cvt = RawBuffer();
         if (buffer->GetDataType() == DATA_TYPE_HALF) {
             buffer_cvt = ConvertHalfHandle(*(buffer.get()));
@@ -216,7 +216,7 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool 
             buffer_cvt = *(buffer.get());
         }
         if (UseNaiveConstantBlobs()) {
-            // the const blob has fp32 dtype and nchw format
+            // the const blob has fp32 or integer dtype and nchw format
             status = RawBuffer2Blob(&buffer_cvt, blob);
         } else {
             // the const blob has the same dtype and format as other input blob of the layer
