@@ -136,13 +136,13 @@ int PackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
     }
 
     auto cc = (channel>>2<<2);
-    float32x4_t v;
+    Float4 v;
     for (int c = 0; c < cc; c += 4) {
         auto src_c = src + c;
         auto dst_c = dst + c * hw;
         for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
-            v = vld1q_f32(src_c);
-            vst1q_f32(dst_c, v);
+            v = Float4::load(src_c);
+            Float4::save(dst_c, v);
             src_c += channel;
             dst_c += 4;
         }
@@ -153,10 +153,10 @@ int PackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
         auto src_c = src + cc;
         auto dst_c = dst + cc * hw;
         for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
-            v = vdupq_n_f32(0);
+            v = Float4(0.0f);
             for (int r = 0; r < remain; ++r)
-                v[r] = *(src_c + r);
-            vst1q_f32(dst_c, v);
+                v.set_lane(*(src_c + r), r);
+            Float4::save(dst_c, v);
             src_c += channel;
             dst_c += 4;
         }
@@ -206,10 +206,10 @@ int UnpackNeonC1(float *dst, const float *src, size_t hw, size_t channel) {
     int cur_hw = 0;
     float32x4_t v;
     for (; cur_hw + 3 < hw; cur_hw += 4) {
-        v[0] = src[cur_hw * 4];
-        v[1] = src[cur_hw * 4 + 4];
-        v[2] = src[cur_hw * 4 + 4 * 2];
-        v[3] = src[cur_hw * 4 + 4 * 3];
+        v = vsetq_lane_f32(src[cur_hw * 4], v, 0);
+        v = vsetq_lane_f32(src[cur_hw * 4 + 4], v, 1);
+        v = vsetq_lane_f32(src[cur_hw * 4 + 4 * 2], v, 2);
+        v = vsetq_lane_f32(src[cur_hw * 4 + 4 * 3], v, 3);
         vst1q_f32(dst0 + cur_hw, v);
     }
     for (; cur_hw < hw; cur_hw++) {
@@ -262,13 +262,13 @@ int UnpackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
     }
 
     auto cc = (channel>>2<<2);
-    float32x4_t v;
+    Float4 v;
     for (int c = 0; c < cc; c += 4) {
         auto dst_c = dst + c;
         auto src_c = src + c * hw;
         for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
-            v = vld1q_f32(src_c);
-            vst1q_f32(dst_c, v);
+            v = Float4::load(src_c);
+            Float4::save(dst_c, v);
             src_c += 4;
             dst_c += channel;
         }
@@ -279,7 +279,7 @@ int UnpackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
         auto dst_c = dst + cc;
         auto src_c = src + cc * hw;
         for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
-            v = vld1q_f32(src_c);
+            v = Float4::load(src_c);
             for (int r = 0; r < remain; ++r)
                 *(dst_c + r) = v[r];
             src_c += 4;
