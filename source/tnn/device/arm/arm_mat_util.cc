@@ -1040,7 +1040,7 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
         int simd_loop          = 0;
         for (; x <= end_x - 3; x += 4) {
             int32x4_t _src_loc = vld1q_s32(buf_loc_p);
-            uint8x8_t _src01   = uint8x8_t();
+            uint8x8_t _src01;
             _src01 = vld1_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0), _src01, 0);
             _src01 = vld1_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0) + 1, _src01, 1);
             _src01 = vld1_lane_u8(src2 + vgetq_lane_s32(_src_loc, 0), _src01, 2);
@@ -1050,7 +1050,7 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             _src01 = vld1_lane_u8(src2 + vgetq_lane_s32(_src_loc, 1), _src01, 6);
             _src01 = vld1_lane_u8(src2 + vgetq_lane_s32(_src_loc, 1) + 1, _src01, 7);
             int16x8_t _src16_0 = vreinterpretq_s16_u16(vmovl_u8(_src01));
-            uint8x8_t _src23   = uint8x8_t();
+            uint8x8_t _src23;
             _src23 = vld1_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2), _src23, 0);
             _src23 = vld1_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2) + 1, _src23, 1);
             _src23 = vld1_lane_u8(src2 + vgetq_lane_s32(_src_loc, 2), _src23, 2);
@@ -1109,7 +1109,7 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
         int simd_loop          = 0;
         for (; x <= end_x - 3; x += 4) {
             int32x4_t _src_loc = vld1q_s32(buf_loc_p);
-            uint8x8x2_t _src01 = uint8x8x2_t();
+            uint8x8x2_t _src01;
             _src01 = vld2_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0), _src01, 0);
             _src01 = vld2_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0) + 2, _src01, 1);
             _src01 = vld2_lane_u8(src2 + vgetq_lane_s32(_src_loc, 0), _src01, 2);
@@ -1120,7 +1120,7 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             _src01 = vld2_lane_u8(src2 + vgetq_lane_s32(_src_loc, 1) + 2, _src01, 7);
             int16x8_t _src16_00 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[0]));
             int16x8_t _src16_01 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[1]));
-            uint8x8x2_t _src23  = uint8x8x2_t();
+            uint8x8x2_t _src23;
             _src23 = vld2_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2), _src23, 0);
             _src23 = vld2_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2) + 2, _src23, 1);
             _src23 = vld2_lane_u8(src2 + vgetq_lane_s32(_src_loc, 2), _src23, 2);
@@ -1183,7 +1183,7 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
         int simd_loop          = 0;
         for (; x <= end_x - 3; x += 4) {
             int32x4_t _src_loc = vld1q_s32(buf_loc_p);
-            uint8x8x3_t _src01 = uint8x8x3_t();
+            uint8x8x3_t _src01;
             _src01 = vld3_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0), _src01, 0);
             _src01 = vld3_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0) + 3, _src01, 1);
             _src01 = vld3_lane_u8(src2 + vgetq_lane_s32(_src_loc, 0), _src01, 2);
@@ -1195,7 +1195,7 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             int16x8_t _src16_00 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[0]));
             int16x8_t _src16_01 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[1]));
             int16x8_t _src16_02 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[2]));
-            uint8x8x3_t _src23  = uint8x8x3_t();
+            uint8x8x3_t _src23;
             _src23 = vld3_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2), _src23, 0);
             _src23 = vld3_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2) + 3, _src23, 1);
             _src23 = vld3_lane_u8(src2 + vgetq_lane_s32(_src_loc, 2), _src23, 2);
@@ -1266,7 +1266,7 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
         int simd_loop          = 0;
         for (; x <= end_x - 3; x += 4) {
             int32x4_t _src_loc = vld1q_s32(buf_loc_p);
-            uint8x8x4_t _src01 = uint8x8x4_t();
+            uint8x8x4_t _src01;
             _src01 = vld4_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0), _src01, 0);
             _src01 = vld4_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0) + 4, _src01, 1);
             _src01 = vld4_lane_u8(src2 + vgetq_lane_s32(_src_loc, 0), _src01, 2);
@@ -1279,7 +1279,7 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
             int16x8_t _src16_01 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[1]));
             int16x8_t _src16_02 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[2]));
             int16x8_t _src16_03 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[3]));
-            uint8x8x4_t _src23  = uint8x8x4_t();
+            uint8x8x4_t _src23;
             _src23 = vld4_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2), _src23, 0);
             _src23 = vld4_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2) + 4, _src23, 1);
             _src23 = vld4_lane_u8(src2 + vgetq_lane_s32(_src_loc, 2), _src23, 2);
