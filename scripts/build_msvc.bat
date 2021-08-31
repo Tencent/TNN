@@ -31,7 +31,7 @@ if not %return% == 0 (
 
 echo Building TNN ...
 cd %BUILD_DIR%
-cmake -G "Ninja" ^
+cmake ^
 -DCMAKE_BUILD_TYPE=Release ^
 -DCMAKE_SYSTEM_NAME=Windows ^
 -DTNN_CPU_ENABLE=ON ^
@@ -63,9 +63,9 @@ goto :eof
         mkdir %TNN_INSTALL_DIR%\include
     )
 
-    copy %BUILD_DIR%\test\TNNTest.exe %TNN_INSTALL_DIR%\bin\
-    copy %BUILD_DIR%\TNN.dll %TNN_INSTALL_DIR%\bin\
-    copy %BUILD_DIR%\TNN.lib %TNN_INSTALL_DIR%\lib\
+    copy %BUILD_DIR%\test\Release\TNNTest.exe %TNN_INSTALL_DIR%\bin\
+    copy %BUILD_DIR%\Release\TNN.dll %TNN_INSTALL_DIR%\bin\
+    copy %BUILD_DIR%\Release\TNN.lib %TNN_INSTALL_DIR%\lib\
 
     xcopy /s/e/y %TNN_DIR%\include %TNN_INSTALL_DIR%\include
     copy %OPENVINO_INSTALL_DIR%\deployment_tools\inference_engine\bin\intel64\Release\MKLDNNPlugin.dll %TNN_INSTALL_DIR%\bin\
@@ -96,7 +96,7 @@ goto :eof
     cd %OPENVINO_DIR%/build
     echo Configuring Openvino ...
 
-    cmake -G "Ninja" ^
+    cmake ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_SYSTEM_NAME=Windows ^
     -DCMAKE_SYSTEM_PROCESSOR=AMD64 ^

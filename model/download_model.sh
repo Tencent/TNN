@@ -89,7 +89,7 @@ download_model \
 
 # download yolov5 tnn model
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/yolov5/yolov5s-permute.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/yolov5/yolov5s.tnnproto" \
     "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/yolov5/yolov5s.tnnmodel" \
     "yolov5"
 

@@ -15,6 +15,8 @@
 #include <algorithm>
 #include <cassert>
 #include <climits>
+#include <functional>
+#include <numeric>
 #include <set>
 
 #include "tnn/network/tensorrt/shape_tensor.h"
