@@ -16,7 +16,8 @@
 #include <string>
 #include <vector>
 
-#include "ultra_face_detector.h"
+#include "blazepose_detector.h"
+#include "skeleton_detector.h"
 #include "tnn_sdk_sample.h"
 #include "macro.h"
 #include "utils/utils.h"
@@ -35,10 +36,10 @@
 #endif
 using namespace TNN_NS;
 
-// model: face
 int main(int argc, char** argv) {
-    if (!ParseAndCheckCommandLine(argc, argv, false)) {
+        if (!ParseAndCheckCommandLine(argc, argv, false)) {
         ShowUsage(argv[0]);
+        printf("The default proto and model file could be found at ../../../../model/sklenton/\n");
         return -1;
     }
 
@@ -75,16 +76,16 @@ int main(int argc, char** argv) {
         std::cin.getline(img_buff, 256);
         std::cin.getline(img_buff, 256);
         if (strlen(img_buff) == 0) {
-            strncpy(input_imgfn, "../../../assets/test_face.jpg", 256);
+            strncpy(input_imgfn, "../../../assets/skeleton_test.jpg", 256);
         } else {
             strncpy(input_imgfn, img_buff, 256);
         }
-        printf("Face-detector is about to start, and the picrture is %s\n", input_imgfn);
         data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
         if (!data) {
             std::cerr << "Image open failed.\n";
             return -1;
         }
+        printf("Pose-detector is about to start, and the picrture is %s\n", input_imgfn);
     } else if (detect_type == 2) {
 #ifdef _OPENCV_
         printf("Please enter the video path you want to detect:\n");
@@ -110,24 +111,31 @@ int main(int argc, char** argv) {
     // 创建tnn实例
     auto proto_content = fdLoadFile(FLAGS_p.c_str());
     auto model_content = fdLoadFile(FLAGS_m.c_str());
-   // int h = 240, w = 320;
-
-    auto option = std::make_shared<UltraFaceDetectorOption>();
+    int h = 128, w = 128;
+    if(argc >= 5) {
+        h = std::atoi(argv[3]);
+        w = std::atoi(argv[4]);
+    }
+    auto option = std::make_shared<SkeletonDetectorOption>();
     {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = "";
+        // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
             option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         #endif
     
-        option->score_threshold = 0.95;
-        option->iou_threshold = 0.15;
+        option->input_width = w;
+        option->input_height = h;
+        // option->score_threshold = 0.95;
+        // option->iou_threshold = 0.15;
     }
     
-    auto predictor = std::make_shared<UltraFaceDetector>();
+    auto predictor = std::make_shared<SkeletonDetector>();
+    std::vector<int> nchw = {1, 3, h, w};
 
     // Init
     std::shared_ptr<TNNSDKOutput> sdk_output = predictor->CreateSDKOutput();
@@ -147,23 +155,23 @@ int main(int argc, char** argv) {
             data = frame.ptr();
         }
 #endif
-        DimsVector orig_dims = {1, 3, image_height, image_width};
+        DimsVector orig_dims = {1, image_channel, image_height, image_width};
 
         //Predict
         auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, orig_dims, data);
-        auto resize_mat = predictor->ProcessSDKInputMat(image_mat, "data_input");
-        CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(resize_mat), sdk_output));
-        std::vector<FaceInfo> face_info;
-        if (sdk_output && dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get())) {
-            auto face_output = dynamic_cast<UltraFaceDetectorOutput *>(sdk_output.get());
-            face_info = face_output->face_list;
+        auto resize_mat = predictor->ProcessSDKInputMat(image_mat, "input");
+        CHECK_TNN_STATUS(predictor->Predict(std::make_shared<SkeletonDetectorInput>(resize_mat), sdk_output));
+        SkeletonInfo pose_info;
+        if (sdk_output && dynamic_cast<SkeletonDetectorOutput *>(sdk_output.get())) {
+            auto pose_output = dynamic_cast<SkeletonDetectorOutput *>(sdk_output.get());
+            pose_info = pose_output->keypoints;
         }
 
         const int image_orig_height = int(image_height);
         const int image_orig_width  = int(image_width);
-        const auto& target_dims     = predictor->GetInputShape();
-        const int target_height     = target_dims[2];
-        const int target_width      = target_dims[3];
+        const DimsVector target_dims = predictor->GetInputShape();
+        const int target_height = target_dims[2];
+        const int target_width = target_dims[3];
         float scale_x               = image_orig_width / (float)target_width;
         float scale_y               = image_orig_height / (float)target_height;
 
@@ -175,16 +183,25 @@ int main(int argc, char** argv) {
             ifm_buf[i*4+2] = data[i*3+2];
             ifm_buf[i*4+3] = 255;
         }
-        for (int i = 0; i < face_info.size(); i++) {
-            auto face = face_info[i];
-            TNN_NS::Rectangle((void *)ifm_buf, image_orig_height, image_orig_width, face.x1, face.y1, face.x2,
-                    face.y2, scale_x, scale_y);
+
+        pose_info = pose_info.AdjustToImageSize(image_orig_height, image_orig_width);
+        for (int i = 0; i < pose_info.lines.size(); i++) {
+            auto pose = pose_info.lines[i];
+            if (pose.first <= 4 || pose.second <= 4) continue;
+            auto x1 = pose_info.key_points[pose.first].first;
+            auto y1 = pose_info.key_points[pose.first].second;
+            auto x2 = pose_info.key_points[pose.second].first;
+            auto y2 = pose_info.key_points[pose.second].second;
+            TNN_NS::Line((void *)ifm_buf, image_orig_height, image_orig_width, x1, y1, x2, y2);
+        }
+        for (auto point : pose_info.key_points) {
+            TNN_NS::Point(ifm_buf, image_height, image_width, point.first, point.second, 0.f);
         }
 
 #ifdef _OPENCV_
         if (detect_type != 1) {
-            cv::Mat face_frame(image_height, image_width, CV_8UC4, ifm_buf);
-            cv::imshow("face_dectecting" ,face_frame);
+            cv::Mat pose_frame(image_height, image_width, CV_8UC4, ifm_buf);
+            cv::imshow("pose_dectecting" ,pose_frame);
 
             delete [] ifm_buf;
             auto key_num = cv::waitKey(30);
@@ -196,8 +213,8 @@ int main(int argc, char** argv) {
             int success = stbi_write_bmp(buff, image_orig_width, image_orig_height, 4, ifm_buf);
             if(!success) 
                 return -1;
+            printf("Pose Detect done. The result was saved in %s.png\n", "predictions");
             delete [] ifm_buf;
-            fprintf(stdout, "Face-detector done.\nNumber of faces: %d\n",int(face_info.size()));
             free(data);
 #ifdef _OPENCV_
             break;

@@ -583,7 +583,11 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 #if defined(__APPLE__) && TARGET_OS_IPHONE
         device_type_ = TNN_NS::DEVICE_METAL;
 #else
+#if defined(_CUDA_)
+        device_type_ = TNN_NS::DEVICE_CUDA;
+#else
         device_type_ = TNN_NS::DEVICE_OPENCL;
+#endif
 #endif
     }
     else if (option->compute_units == TNNComputeUnitsHuaweiNPU) {
@@ -593,8 +597,6 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 #else
         device_type_      = TNN_NS::DEVICE_HUAWEI_NPU;
 #endif
-    } else if (option->compute_units == TNNComputeUnitsTensorRT) {
-        device_type_ = TNN_NS::DEVICE_CUDA;
     }
     
     //创建实例instance
@@ -606,12 +608,18 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         network_config.cache_path = "/sdcard/";
         if(device_type_ == TNN_NS::DEVICE_HUAWEI_NPU){
             network_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
-        } else if (option->compute_units == TNNComputeUnitsOpenvino) {
+        } else if (option->compute_units == TNNComputeUnitsCPU) {
+#if defined(_OPENVINO_)
             network_config.network_type = NETWORK_TYPE_OPENVINO;
+#endif
         } else if (device_type_ == TNN_NS::DEVICE_CUDA) {
             network_config.network_type = NETWORK_TYPE_TENSORRT;
         }
-        auto instance               = net_->CreateInst(network_config, status, option->input_shapes);
+        std::shared_ptr<TNN_NS::Instance> instance;
+        if (device_type_ == TNN_NS::DEVICE_CUDA && !(option->max_input_shapes.empty()))
+            instance = net_->CreateInst(network_config, status, option->input_shapes, option->max_input_shapes);
+        else
+            instance = net_->CreateInst(network_config, status, option->input_shapes);
 
         if (!check_npu_ && (status != TNN_NS::TNN_OK || !instance)) {
             // try device_arm
@@ -1077,6 +1085,31 @@ void Rectangle(void *data_rgba, int image_height, int image_width,
                 image_rgba[offset - 1] = {0, 255, 0, 0};
             }
         }
+    }
+}
+
+/*
+ * Line
+ */
+void Line(void *data_rgba, int image_height, int image_width,
+          int x0, int y0, int x1, int y1, float scale_x, float scale_y)
+{
+    RGBA *image_rgba = (RGBA *)data_rgba;
+
+    int y_start = (x0 < x1 ? y0 : y1) * scale_y;
+    int y_end   = (x0 < x1 ? y1 : y0) * scale_y;
+    int x_start = (x0 < x1 ? x0 : x1) * scale_x;
+    int x_end   = (x0 < x1 ? x1 : x0) * scale_x;
+
+    x_start = std::min(std::max(x_start, 0), image_width - 1);
+    x_end   = std::min(std::max(x_end, 0), image_width - 1);
+    y_start = std::min(std::max(y_start, 0), image_height - 1);
+    y_end   = std::min(std::max(y_end, 0), image_height - 1);
+
+    for (int x = x_start; x <= x_end; x++) {
+        int y = (float)(y_end - y_start) / (float)(x_end - x_start) * (float)(x - x_start) + y_start;
+        int offset = y * image_width + x;
+        image_rgba[offset] = {0, 255, 0, 255};
     }
 }
 
