@@ -134,7 +134,7 @@ static RawBuffer getValue(const torch::jit::Value* value) {
 class TorchOpConverter {
 public:
     virtual bool IsSupported(const torch::jit::Node *node) {return true;};
-    virtual Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) = 0;
+    virtual Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) = 0;
 };
 
 std::map<std::string, std::shared_ptr<TorchOpConverter>>& GetGlobalTorchConvertMap();

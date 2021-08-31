@@ -14,10 +14,19 @@ std::map<std::string, std::shared_ptr<TorchOpConverter>>& GetGlobalTorchConvertM
     return *creators;
 }
 
+#define ADD_INPUTS_AND_OUTPUTS                                                                                         \
+    for (auto input : layer_info->inputs) {                                                                            \
+        net_structure->blobs.insert(input);                                                                            \
+    }                                                                                                                  \
+    for (auto output : layer_info->outputs) {                                                                          \
+        net_structure->blobs.insert(output);                                                                           \
+    }
+
 // func: conv2d(Tensor input, Tensor weight, Tensor? bias=None, int[2] stride=1, int[2] padding=0, int[2] dilation=1, int groups=1) -> Tensor
 class Conv2DTorchConverter : public TorchOpConverter {
 public:
-    Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
         layer_info->type = LAYER_CONVOLUTION;
         layer_info->type_str = "Convolution";
         layer_info->name = node->output(0)->debugName();
@@ -58,7 +67,11 @@ public:
         }
 
         layer_info->param = layer_param;
-        *layer_resouce = conv_res;
+
+        net_structure->layers.push_back(layer_info);
+        net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(conv_res);
+
+        ADD_INPUTS_AND_OUTPUTS;
 
         return TNN_OK;
     }
@@ -74,7 +87,8 @@ public:
         return !transposed; 
     }
 
-    Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
         layer_info->type = LAYER_CONVOLUTION;
         layer_info->type_str = "Convolution";
         layer_info->name = node->output(0)->debugName();
@@ -122,16 +136,23 @@ public:
         }
 
         layer_info->param = layer_param;
-        *layer_resouce = conv_res;
+
+        net_structure->layers.push_back(layer_info);
+        net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(conv_res);
+
+        ADD_INPUTS_AND_OUTPUTS;
 
         return TNN_OK;
     }
 };
 
 // func: max_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, int[2] dilation=1, bool ceil_mode=False) -> Tensor
+// func: avg_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, bool ceil_mode=False, bool count_include_pad=True, int? divisor_override=None) -> Tensor
+// func: adaptive_avg_pool2d(Tensor self, int[2] output_size) -> Tensor
 class PoolTorchConverter : public TorchOpConverter {
 public:
-    Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
         layer_info->type = LAYER_POOLING;
         layer_info->type_str = "Pooling";
         layer_info->name = node->output(0)->debugName();
@@ -165,8 +186,11 @@ public:
         }
 
         layer_info->param = pool_param;
-        *layer_resouce = nullptr;
-        
+
+        net_structure->layers.push_back(layer_info);
+
+        ADD_INPUTS_AND_OUTPUTS;
+
         return TNN_OK;
     }
 };
@@ -174,16 +198,21 @@ public:
 // func: relu_(Tensor(a!) self) -> Tensor(a!)
 class ReluTorchConverter : public TorchOpConverter {
 public:
-    Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
         layer_info->type = LAYER_RELU;
         layer_info->type_str = "Relu";
         layer_info->name = node->output(0)->debugName();
 
         layer_info->inputs.push_back(node->inputs()[0]->debugName());
         layer_info->outputs.push_back(node->outputs()[0]->debugName());
-        
+
         layer_info->param = std::make_shared<LayerParam>();
-        *layer_resouce = nullptr;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
         return TNN_OK;
     }
 };
@@ -191,7 +220,8 @@ public:
 // func: add_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
 class AddTorchConverter : public TorchOpConverter {
 public:
-    Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
         layer_info->type = LAYER_ADD;
         layer_info->type_str = "Add";
         layer_info->name = node->output(0)->debugName();
@@ -205,7 +235,10 @@ public:
         }
 
         layer_info->param = std::make_shared<MultidirBroadcastLayerParam>();
-        *layer_resouce = nullptr;
+
+        net_structure->layers.push_back(layer_info);
+
+        ADD_INPUTS_AND_OUTPUTS;
 
         return TNN_OK;
     }

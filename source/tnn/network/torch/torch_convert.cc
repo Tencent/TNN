@@ -7,11 +7,11 @@ namespace conversion {
 using namespace partitioning;
 
 
-void ConvertNodeToLayer(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_res) {
+void ConvertNodeToLayer(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
     const auto& op_type = node->kind().toQualString();
 
     auto& converter = GetGlobalTorchConvertMap()[op_type];
-    converter->Convert(node, layer_info, layer_res);
+    converter->Convert(node, net_structure, net_resource);
     
     // Todo need register convert table
 
@@ -52,21 +52,7 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
             continue;
         }
 
-        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-        LayerResource *layer_res = nullptr;
-        ConvertNodeToLayer(node, layer_info.get(), &layer_res);
-        net_structure->layers.push_back(layer_info);
-        if (layer_res) {
-            net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
-        }
-
-        for (auto input : layer_info->inputs) {
-            net_structure->blobs.insert(input);
-        }
-
-        for (auto output: layer_info->outputs) {
-            net_structure->blobs.insert(output);
-        }
+        ConvertNodeToLayer(node, net_structure, net_resource);
     }
     
     for (auto &output : g->outputs()) {
