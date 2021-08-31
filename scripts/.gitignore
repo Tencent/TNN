@@ -13,3 +13,4 @@ build_cuda_linux
 cuda_linux_release
 build_cuda_msvc
 cuda_msvc_release
+build_linux_native
