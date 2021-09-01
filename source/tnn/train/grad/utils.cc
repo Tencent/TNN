@@ -89,12 +89,13 @@ int ConvertFromFloatToBFP16(float *fp32, void *fp16, int count) {
     return 0;
 }
 
-int GetDim(const DimsVector& dims, const int index) {
+int GetDim(const DimsVector &dims, const int index) {
     return dims.size() > index ? dims[index] : 1;
 };
 
 int CalculateElementCount(const BlobDesc &desc) {
-    if(desc.dims.size() <= 0) return 0;
+    if (desc.dims.size() <= 0)
+        return 0;
     int count = 1;
     if (desc.data_format == DATA_FORMAT_NCHW || desc.data_format == DATA_FORMAT_AUTO) {
         for (auto d : desc.dims)
@@ -110,8 +111,9 @@ int CalculateElementCount(const BlobDesc &desc) {
     return count;
 }
 
-int CalculateElementCount(const DataFormat data_format, const DimsVector& dims, const DataType data_type) {
-    if(dims.size() <= 0) return 0;
+int CalculateElementCount(const DataFormat data_format, const DimsVector &dims, const DataType data_type) {
+    if (dims.size() <= 0)
+        return 0;
     int count = 1;
     if (data_format == DATA_FORMAT_NCHW || data_format == DATA_FORMAT_AUTO) {
         for (auto d : dims)

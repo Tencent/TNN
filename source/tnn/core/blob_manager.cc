@@ -29,7 +29,7 @@
 namespace TNN_NS {
 
 BlobManager::BlobManager(AbstractDevice *device) {
-    device_            = device;
+    device_ = device;
     // create 1d memory pool
     blob_memory_pool_map_[1] = BlobMemoryPoolFactory::CreateBlobMemoryPool(device);
     if (device->GetDeviceType() == DEVICE_OPENCL) {
@@ -83,10 +83,10 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
         }
     }
 
-    config_            = config;
-    init_thread_id_    = std::this_thread::get_id();
+    config_                  = config;
+    init_thread_id_          = std::this_thread::get_id();
     shared_memory_allocated_ = false;
-    memory_mode_state_ = MemoryModeStateFactory::CreateMemoryModeState(config.share_memory_mode);
+    memory_mode_state_       = MemoryModeStateFactory::CreateMemoryModeState(config.share_memory_mode);
 
     // get the maximum dimension of all inputs
     int input_dims = 0;
@@ -114,7 +114,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
     }
 
     // input blobs
-    const auto& input_data_type_map = net_structure->input_data_type_map;
+    const auto &input_data_type_map = net_structure->input_data_type_map;
     for (auto iter : instance_input_shapes_map) {
         auto current_blob_name = iter.first;
         if (blobs_.find(current_blob_name) == blobs_.end()) {
@@ -127,7 +127,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
             current_blob->GetBlobDesc().data_type = input_data_type;
         }
         UpdateDeviceInputDataFormat(config, current_blob, device_->GetDeviceType());
-        input_blobs_[current_blob_name]         = current_blob;
+        input_blobs_[current_blob_name] = current_blob;
     }
 
     // output blobs
@@ -148,7 +148,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
  */
 Status BlobManager::AllocateBlobMemory(int flag) {
     const auto &input_shapes_map = net_structure_->inputs_shape_map;
-    bool is_training = config_.train_config.run_mode == TRAIN_MODE;
+    bool is_training             = config_.train_config.run_mode == TRAIN_MODE;
     for (auto iter : input_shapes_map) {
         std::string current_blob_name = iter.first;
         Blob *current_blob            = blobs_[current_blob_name];
@@ -180,7 +180,7 @@ Status BlobManager::AllocateBlobMemory(int flag) {
                 DataFlagUtils::ChangeStatus(current_blob->GetFlag()) != DataFlagUtils::ChangeStatus(flag)) {
                 continue;
             }
-            
+
             // ASSERT(current_blob->count() > 0);
             if (DimsVectorUtils::Count(current_blob->GetBlobDesc().dims) < 0) {
                 LOGE("Got empty blob, name:%s\n", current_blob_name.c_str());
@@ -194,20 +194,21 @@ Status BlobManager::AllocateBlobMemory(int flag) {
                 BlobMemorySizeInfo info = device_->Calculate(current_blob->GetBlobDesc());
                 // find an available BlobMemory
 
-                BlobMemory *blob_memory = blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, is_training);
+                BlobMemory *blob_memory =
+                    blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, is_training);
                 blob_memory_mapping_.insert(std::make_pair(current_blob, blob_memory));
             }
         }
 
         // refund the input blob memory, train mode cannot reuse blob memory
-        if(!is_training) {
+        if (!is_training) {
             for (auto current_blob_name : layer_info->inputs) {
                 Blob *current_blob = blobs_[current_blob_name];
                 if (current_blob->NeedAllocateInForward() ||
                     DataFlagUtils::ChangeStatus(current_blob->GetFlag()) != DataFlagUtils::ChangeStatus(flag)) {
                     continue;
                 }
-                
+
                 if (input_shapes_map.count(current_blob_name) == 0) {
                     std::map<Blob *, BlobMemory *>::const_iterator blob_memory_iter =
                         blob_memory_mapping_.find(current_blob);
@@ -221,7 +222,6 @@ Status BlobManager::AllocateBlobMemory(int flag) {
             }
         }
     }
-
 
     Status status = TNN_OK;
 
@@ -241,10 +241,9 @@ Status BlobManager::AllocateBlobMemory(int flag) {
             for (auto blob_memory_pool_iter : blob_memory_pool_map_) {
                 int forward_memory_size   = blob_memory_pool_iter.second->GetAllBlobMemorySize();
                 SharedMemory share_memory = SharedMemoryManager::GetSharedMemory(
-                        forward_memory_size, init_thread_id_, device_,
-                        config_.device_id, this, status);
+                    forward_memory_size, init_thread_id_, device_, config_.device_id, this, status);
                 BREAK_IF(status != TNN_OK);
-		shared_memory_allocated_ = true;
+                shared_memory_allocated_ = true;
                 MemoryUnifyAssignStrategy strategy(share_memory.shared_memory_data);
                 status = blob_memory_pool_iter.second->AssignAllBlobMemory(strategy);
                 BREAK_IF(status != TNN_OK);
@@ -281,8 +280,8 @@ int BlobManager::GetBlobUseCount(int layer_index, std::string current_blob_name)
 }
 
 Status BlobManager::DeInit() {
-    if(shared_memory_allocated_) {
-    	SharedMemoryManager::ReleaseSharedMemory(init_thread_id_, device_, config_.device_id, this);
+    if (shared_memory_allocated_) {
+        SharedMemoryManager::ReleaseSharedMemory(init_thread_id_, device_, config_.device_id, this);
     }
 
     for (auto blob : blobs_) {
@@ -329,9 +328,8 @@ void BlobManager::BindBlobMemory() {
     for (auto iter : blob_memory_mapping_) {
         iter.first->SetHandle(iter.second->GetHandle());
         // set blob data format to nchw when blob memory is 1d on opencl
-        if (device_->GetDeviceType() == DEVICE_OPENCL &&
-            iter.second->GetBlobMemorySizeInfo().dims.size() == 1) {
-            auto desc = iter.first->GetBlobDesc();
+        if (device_->GetDeviceType() == DEVICE_OPENCL && iter.second->GetBlobMemorySizeInfo().dims.size() == 1) {
+            auto desc        = iter.first->GetBlobDesc();
             desc.data_format = DATA_FORMAT_NCHW;
             iter.first->SetBlobDesc(desc);
         }
