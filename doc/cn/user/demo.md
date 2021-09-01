@@ -529,7 +529,7 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
    ./demo_cuda_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
 
    姿势检测 demo (blazepose)
-   ./demo_x86_blazepose
+   ./demo_cuda_blazepose
 
    文本识别 demo
    ./demo_cuda_ocrdetecor

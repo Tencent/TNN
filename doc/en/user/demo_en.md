@@ -534,7 +534,7 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
    ./demo_cuda_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
 
    pose-detector demo (blazepose)
-   ./demo_x86_blazepose
+   ./demo_cuda_blazepose
 
    ocr-detector demo
    ./demo_cuda_ocrdetecor
