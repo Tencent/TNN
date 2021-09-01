@@ -78,7 +78,7 @@ JNIEXPORT JNICALL jstring TNN_READING_COMPREHENSION(ask)(JNIEnv *env, jobject th
     int ret = -1;
 
     TNN_NS::BenchOption bench_option;
-    bench_option.forward_count = 1;
+    bench_option.forward_count = 10;
     gResponder->SetBenchOption(bench_option);
 
     std::string vocabPath;
