@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include <cassert>
+#include <numeric>
 #include <stdlib.h>
 #include <unordered_set>
 

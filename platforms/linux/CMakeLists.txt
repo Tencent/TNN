@@ -15,7 +15,7 @@ set(COMMON_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/platforms/linux/src/memory_usage.cc
     )
 
-target_link_libraries(TNN dl)
+target_link_libraries(TNN dl rt)
 
 if(TNN_X86_ENABLE)
 endif()

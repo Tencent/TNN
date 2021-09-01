@@ -68,6 +68,7 @@ goto :eof
     copy %TENSORRT_ROOT_DIR%\lib\nvinfer_plugin.dll %TNN_INSTALL_DIR%\bin\
     copy %TENSORRT_ROOT_DIR%\lib\myelin64_1.dll %TNN_INSTALL_DIR%\bin\
     copy %CUDNN_ROOT_DIR%\bin\cudnn64_8.dll %TNN_INSTALL_DIR%\bin\
+    copy %CUDNN_ROOT_DIR%\bin\cudnn_adv_infer64_8.dll %TNN_INSTALL_DIR%\bin\
     copy %CUDNN_ROOT_DIR%\bin\cudnn_ops_infer64_8.dll %TNN_INSTALL_DIR%\bin\
     copy %CUDNN_ROOT_DIR%\bin\cudnn_cnn_infer64_8.dll %TNN_INSTALL_DIR%\bin\
 
