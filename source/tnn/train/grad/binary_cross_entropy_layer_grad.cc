@@ -57,13 +57,11 @@ Status BinaryCrossEntropyLayerGrad::OnGrad(const BaseLayer *layer, TrainContext 
 
     // x0 is logits, x1 is true labels
     // y = -x1*log(x0) - (1-x1)*log(1-x0)
-    // dy/dx0 = -(x1/x0 + (1-x1)/(1-x0))
+    // dy/dx0 = (1-x1)/(1-x0) -x1/x0 
     // dy/dx1 = log(1-x0) - log(x0)
-    ParamWrapper grad0 = _Neg(_Add(_Div(pw1, pw0, context),
-                                   _Div(_Sub(_Const(pw_const_1, input1_dims, data_format), pw1, context),
+    ParamWrapper grad0 = _Sub(_Div(_Sub(_Const(pw_const_1, input1_dims, data_format), pw1, context),
                                         _Sub(_Const(pw_const_1, input0_dims, data_format), pw0, context), context),
-                                   context),
-                              context);
+                                   _Div(pw1, pw0, context), context);
     ParamWrapper grad1 = _Sub(_Log(_Sub(_Const(pw_const_1, input0_dims, data_format), pw0, context), context),
                               _Log(pw0, context), context);
     auto iter_output   = context.backward_grads_blob.find(outputs[0]);

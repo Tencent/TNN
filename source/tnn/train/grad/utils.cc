@@ -89,11 +89,12 @@ int ConvertFromFloatToBFP16(float *fp32, void *fp16, int count) {
     return 0;
 }
 
-int GetDim(const DimsVector dims, const int index) {
+int GetDim(const DimsVector& dims, const int index) {
     return dims.size() > index ? dims[index] : 1;
 };
 
-int CalculateElementCount(BlobDesc &desc) {
+int CalculateElementCount(const BlobDesc &desc) {
+    if(desc.dims.size() <= 0) return 0;
     int count = 1;
     if (desc.data_format == DATA_FORMAT_NCHW || desc.data_format == DATA_FORMAT_AUTO) {
         for (auto d : desc.dims)
@@ -104,6 +105,23 @@ int CalculateElementCount(BlobDesc &desc) {
             count = GetDim(desc.dims, 0) * ROUND_UP(GetDim(desc.dims, 1), 8) * DimsVectorUtils::Count(desc.dims, 2);
         } else {
             count = GetDim(desc.dims, 0) * ROUND_UP(GetDim(desc.dims, 1), 4) * DimsVectorUtils::Count(desc.dims, 2);
+        }
+    }
+    return count;
+}
+
+int CalculateElementCount(const DataFormat data_format, const DimsVector& dims, const DataType data_type) {
+    if(dims.size() <= 0) return 0;
+    int count = 1;
+    if (data_format == DATA_FORMAT_NCHW || data_format == DATA_FORMAT_AUTO) {
+        for (auto d : dims)
+            count *= d;
+    } else {
+        // packed format
+        if (data_type == DATA_TYPE_HALF) {
+            count = GetDim(dims, 0) * ROUND_UP(GetDim(dims, 1), 8) * DimsVectorUtils::Count(dims, 2);
+        } else {
+            count = GetDim(dims, 0) * ROUND_UP(GetDim(dims, 1), 4) * DimsVectorUtils::Count(dims, 2);
         }
     }
     return count;

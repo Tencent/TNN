@@ -50,7 +50,8 @@ Status SigmoidLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &context) {
 
     // y = sigmoid(x)
     // dy/dx = y(1-y)
-    ParamWrapper grad0 = _Mul(pw0, _Sub(pw_const_1, pw0, context), context);
+    DataFormat output_format = outputs[0]->GetBlobDesc().data_format;
+    ParamWrapper grad0 = _Mul(pw0, _Sub(_Const(pw_const_1, output_dims, output_format), pw0, context), context);
     auto iter_output   = context.backward_grads_blob.find(outputs[0]);
     if (iter_output == context.backward_grads_blob.end()) {
         return Status(TNN_TRAIN_ERROR, "SigmoidLayerGrad output grad not find");

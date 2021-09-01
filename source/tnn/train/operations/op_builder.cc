@@ -78,23 +78,36 @@ ParamWrapper _Log(ParamWrapper input1, TrainContext &context) {
 ParamWrapper _RSign(ParamWrapper input1, TrainContext &context) {
     return UnaryOpHelper(input1, context, ElementOpType::RSign);
 }
-
-ParamWrapper _Const(ParamWrapper input1, DimsVector dims, DataFormat data_format) {
+template<typename T>
+void assign_value(T *data, const T value, int ele_count) {
+    for(int i=0; i<ele_count; ++i)
+        data[i] = value;
+}
+ParamWrapper _Const(ParamWrapper input1,const DimsVector dims, const DataFormat data_format) {
     std::shared_ptr<RawBuffer> output;
     if (input1.Isint()) {
-        output = std::make_shared<RawBuffer>(sizeof(int) * DimsVectorUtils::Count(dims), dims);
+        int ele_count = CalculateElementCount(data_format, dims, DATA_TYPE_INT32);
+        output = std::make_shared<RawBuffer>(sizeof(int) * ele_count, dims);
         output->SetDataType(DATA_TYPE_INT32);
-        output->SetDataFormat(data_format);
+        int *data = output->force_to<int *>();
+        assign_value<int>(data, input1.Getint(), ele_count);
     } else if (input1.Isfloat()) {
-        output = std::make_shared<RawBuffer>(sizeof(float) * DimsVectorUtils::Count(dims), dims);
+        int ele_count = CalculateElementCount(data_format, dims, DATA_TYPE_FLOAT);
+        output = std::make_shared<RawBuffer>(sizeof(float) * ele_count, dims);
         output->SetDataType(DATA_TYPE_FLOAT);
-        output->SetDataFormat(data_format);
+        float *data = output->force_to<float *>();
+        assign_value<float>(data, input1.Getfloat(), ele_count);
     } else if (input1.IsBfp16()) {
-        output = std::make_shared<RawBuffer>(sizeof(bfp16_t) * DimsVectorUtils::Count(dims), dims);
+        int ele_count = CalculateElementCount(data_format, dims, DATA_TYPE_BFP16);
+        output = std::make_shared<RawBuffer>(sizeof(bfp16_t) * ele_count, dims);
         output->SetDataType(DATA_TYPE_BFP16);
-        output->SetDataFormat(data_format);
+        bfp16_t *data = output->force_to<bfp16_t *>();
+        assign_value<bfp16_t>(data, input1.GetBfp16(), ele_count);
+    } else {
+        return {};
     }
-    return {};
+    output->SetDataFormat(data_format);
+    return ParamWrapper(output);
 }
 
 } // namespace train

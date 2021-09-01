@@ -44,6 +44,11 @@ Instance::Instance(NetworkConfig &net_config, ModelConfig &model_config) {
 Instance::~Instance() {
     DeInit();
 }
+
+Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape) {
+    return Init(interpreter, inputs_shape, inputs_shape);
+}
+
 #ifdef TRAIN
 /*
  * @brief deep vist the compute DAG graph, to find which layers need to be calcualted grads
@@ -70,12 +75,25 @@ bool DeepVisit(const LayerInfo* layer, const std::set<std::string>& trainable_la
         need_grad_layers.insert(layer->name);
     return need_grad;
 }
-#endif
-Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape) {
-    return Init(interpreter, inputs_shape, inputs_shape);
+void BuildLayer(const std::string type_str, std::shared_ptr<LayerInfo>& layer, const std::shared_ptr<LayerInfo>& last_layer, 
+                std::set<std::string>& blobs, LayerParam* param, const std::string layer_name = "") {
+    layer->type = GlobalConvertLayerType(type_str);
+    layer->type_str = type_str;
+    layer->inputs.clear();
+    layer->outputs.clear();
+    layer->name = layer_name != "" ? layer_name : last_layer->name + "/" + type_str;
+    layer->inputs.push_back(last_layer->outputs[0]);
+    layer->outputs.push_back(layer->name); //use layer name as output blob name
+    blobs.insert(last_layer->outputs[0]);
+    blobs.insert(layer->name);
+
+    param->quantized = false;
+    param->type = layer->type_str;
+    param->trainable = false;
+    param->name = layer->name;
+    layer->param = std::shared_ptr<LayerParam>(param);
 }
 
-#ifdef TRAIN
 Status SetTrainLayers(DefaultModelInterpreter* interpreter, std::set<std::string>& need_grad_layers, const TrainConfig& train_config) {
     if(train_config.run_mode != TRAIN_MODE)
         return TNN_OK;
@@ -84,72 +102,65 @@ Status SetTrainLayers(DefaultModelInterpreter* interpreter, std::set<std::string
     if(train_config.trainable_layers.empty())
         return Status(TNNERR_NET_ERR, "train mode but trainable_layers is empty");
     auto structure = interpreter->GetNetStructure();
-    // set func
+    // set loss func layers
     if(train_config.loss_func != DEFAULT_FUNC) {
         if(train_config.target_name.empty() || train_config.output_layer_name.empty() || train_config.target_shape.empty() || train_config.loss_layer_name.empty())
             return Status(TNNERR_NET_ERR, "loss_func set but target_name or output_layer_name is empty");
         
         structure->inputs_shape_map[train_config.target_name] = train_config.target_shape;
-        auto cur_layer = std::make_shared<LayerInfo>();
         LayerParam* param = nullptr;
+        std::shared_ptr<LayerInfo> last_layer;
+        std::shared_ptr<LayerInfo> cur_layer ;
+        for(auto& tl: structure->layers) {
+            if(tl->name == train_config.output_layer_name)
+                last_layer = tl;
+        }
+        if(last_layer == nullptr || last_layer->outputs.size() <= 0)
+            return Status(TNNERR_NET_ERR, "find output layer error");
         if(train_config.loss_func == BINARY_CROSS_ENTROPY_FUNC) { // the output_layer is sigmoid usually
-            cur_layer->type = LAYER_BINARY_CROSSENTROPY;
-            cur_layer->type_str = "BinaryCrossEntropy";
-            cur_layer->inputs.clear();
-            cur_layer->outputs.clear();
-            cur_layer->name = train_config.output_layer_name + "/BinaryCrossEntropy";
+            if(train_config.auto_add_prob_layer && last_layer->type != LAYER_SIGMOID) {
+                cur_layer = std::make_shared<LayerInfo>();
+                param = new LayerParam();
+                BuildLayer("Sigmoid", cur_layer, last_layer, structure->blobs, param);
+                structure->layers.push_back(cur_layer);
+                last_layer = cur_layer;
+            }
+            cur_layer = std::make_shared<LayerInfo>();
+            param = new MultidirBroadcastLayerParam();
+            BuildLayer("BinaryCrossEntropy", cur_layer, last_layer, structure->blobs, param);
+            cur_layer->inputs.push_back(train_config.target_name);
+            structure->blobs.insert(train_config.target_name);
+            structure->layers.push_back(cur_layer);
+            last_layer = cur_layer;
         } else if(train_config.loss_func == CATEGORICAL_CROSS_ENTROPY_FUNC) {
-            
-            cur_layer->type = LAYER_CATEGORICAL_CROSSENTROPY;
-            cur_layer->type_str = "CategoricalCrossEntropy";
-            cur_layer->inputs.clear();
-            cur_layer->outputs.clear();
-            cur_layer->name = train_config.output_layer_name + "/CategoricalCrossEntropy";  
+            if(train_config.auto_add_prob_layer && last_layer->type != LAYER_SOFTMAX) {
+                cur_layer = std::make_shared<LayerInfo>();
+                param = new SoftmaxLayerParam();
+                static_cast<SoftmaxLayerParam*>(param)->axis = 1; //defualt value is 1 in tflite converter 
+                BuildLayer("Softmax", cur_layer, last_layer, structure->blobs, param);
+                structure->layers.push_back(cur_layer);
+                last_layer = cur_layer;
+            }
+            cur_layer = std::make_shared<LayerInfo>();
+            param = new MultidirBroadcastLayerParam();
+            BuildLayer("CategoricalCrossEntropy", cur_layer, last_layer, structure->blobs, param);
+            cur_layer->inputs.push_back(train_config.target_name);
+            structure->blobs.insert(train_config.target_name);
+            structure->layers.push_back(cur_layer);
+            last_layer = cur_layer;
         } else {
             return Status(TNNERR_NET_ERR, "NOT SUPPORT LOSS FUNC");
         }
-        std::string output_blob_name;
-        for(auto layer: structure->layers) {
-            if(layer->name == train_config.output_layer_name)
-                output_blob_name = layer->outputs[0];
-        }
-        if(output_blob_name.empty())
-            return Status(TNNERR_NET_ERR, "find output blob error");
-        cur_layer->inputs.push_back(output_blob_name);
-        cur_layer->inputs.push_back(train_config.target_name);
-        cur_layer->outputs.push_back(cur_layer->name); //use layer name as output blob name
 
-        structure->blobs.insert(train_config.output_layer_name);
-        structure->blobs.insert(train_config.target_name);
-        structure->blobs.insert(cur_layer->name);
-
-        param = new MultidirBroadcastLayerParam();
-        param->quantized = false;
-        param->type = cur_layer->type_str;
-        param->trainable = false;
-        cur_layer->param = std::shared_ptr<LayerParam>(param);      
-        structure->layers.push_back(cur_layer);
-        //loss reduce mean layer
-        auto loss_layer = std::make_shared<LayerInfo>();
-        loss_layer->type = LAYER_REDUCE_MEAN;
-        loss_layer->type_str = "ReduceMean";
-        loss_layer->inputs.clear();
-        loss_layer->outputs.clear();
-        loss_layer->name = train_config.loss_layer_name;
-        loss_layer->inputs.push_back(cur_layer->outputs[0]);
-        loss_layer->outputs.push_back(loss_layer->name);
-        structure->blobs.insert(loss_layer->name);
+        //build loss reduce mean layer
+        cur_layer = std::make_shared<LayerInfo>();
         param = new ReduceLayerParam();
-        param->quantized = false;
-        param->type = loss_layer->type_str;
-        param->trainable = false;
-        train_config.target_shape.size();
         auto& axis = static_cast<ReduceLayerParam*>(param)->axis;
         for(int i=0; i<train_config.target_shape.size(); ++i)
             axis.push_back(i);
-        loss_layer->param = std::shared_ptr<LayerParam>(param);
-        structure->layers.push_back(loss_layer);
-        structure->outputs.insert(loss_layer->name);      
+        BuildLayer("ReduceMean", cur_layer, last_layer, structure->blobs, param, train_config.loss_layer_name);
+        structure->layers.push_back(cur_layer);
+        structure->outputs.insert(cur_layer->name);      
     }
     std::map<std::string, LayerInfo*> blob_to_layer;
     for(auto& layer: structure->layers) {

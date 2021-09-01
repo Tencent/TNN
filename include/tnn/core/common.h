@@ -163,11 +163,12 @@ struct PUBLIC TrainConfig {
     SolverType solver_type;
     LossFunc loss_func;
     std::string output_layer_name;
-    std::string target_name;
-    std::string loss_layer_name;
+    std::string target_name = "target";
+    std::string loss_layer_name = "loss";
     DimsVector target_shape;
     std::set<std::string> trainable_layers;
     SGDParams sgd_params;
+    bool auto_add_prob_layer = true;
     
 };
 // for train end

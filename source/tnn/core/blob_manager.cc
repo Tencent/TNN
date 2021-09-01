@@ -148,7 +148,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
  */
 Status BlobManager::AllocateBlobMemory(int flag) {
     const auto &input_shapes_map = net_structure_->inputs_shape_map;
-
+    bool is_training = config_.train_config.run_mode == TRAIN_MODE;
     for (auto iter : input_shapes_map) {
         std::string current_blob_name = iter.first;
         Blob *current_blob            = blobs_[current_blob_name];
@@ -193,35 +193,33 @@ Status BlobManager::AllocateBlobMemory(int flag) {
 
                 BlobMemorySizeInfo info = device_->Calculate(current_blob->GetBlobDesc());
                 // find an available BlobMemory
-#ifdef TRAIN
-                BlobMemory *blob_memory = blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, true);
-#else
-                BlobMemory *blob_memory = blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, false);
-#endif
+
+                BlobMemory *blob_memory = blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, is_training);
                 blob_memory_mapping_.insert(std::make_pair(current_blob, blob_memory));
             }
         }
-#ifdef TRAIN
+
         // refund the input blob memory, train mode cannot reuse blob memory
-        for (auto current_blob_name : layer_info->inputs) {
-            Blob *current_blob = blobs_[current_blob_name];
-            if (current_blob->NeedAllocateInForward() ||
-                DataFlagUtils::ChangeStatus(current_blob->GetFlag()) != DataFlagUtils::ChangeStatus(flag)) {
-                continue;
-            }
-            
-            if (input_shapes_map.count(current_blob_name) == 0) {
-                std::map<Blob *, BlobMemory *>::const_iterator blob_memory_iter =
-                    blob_memory_mapping_.find(current_blob);
-                ASSERT(blob_memory_iter->second->GetUseCount() > 0);
-                blob_memory_iter->second->DecrementUseCount();
-                if (blob_memory_iter->second->GetUseCount() == 0) {
-                    int dimensions = blob_memory_iter->second->GetBlobMemorySizeInfo().dims.size();
-                    blob_memory_pool_map_[dimensions]->RefundBlobMemory(blob_memory_iter->second);
+        if(!is_training) {
+            for (auto current_blob_name : layer_info->inputs) {
+                Blob *current_blob = blobs_[current_blob_name];
+                if (current_blob->NeedAllocateInForward() ||
+                    DataFlagUtils::ChangeStatus(current_blob->GetFlag()) != DataFlagUtils::ChangeStatus(flag)) {
+                    continue;
+                }
+                
+                if (input_shapes_map.count(current_blob_name) == 0) {
+                    std::map<Blob *, BlobMemory *>::const_iterator blob_memory_iter =
+                        blob_memory_mapping_.find(current_blob);
+                    ASSERT(blob_memory_iter->second->GetUseCount() > 0);
+                    blob_memory_iter->second->DecrementUseCount();
+                    if (blob_memory_iter->second->GetUseCount() == 0) {
+                        int dimensions = blob_memory_iter->second->GetBlobMemorySizeInfo().dims.size();
+                        blob_memory_pool_map_[dimensions]->RefundBlobMemory(blob_memory_iter->second);
+                    }
                 }
             }
         }
-#endif
     }
 
 
