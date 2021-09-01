@@ -89,7 +89,7 @@ protected:
         std::shared_ptr<ForeignTensor> foreign_tensor, float quant_scale, float dequant_scale);
 
     ILayer* AddInt8WeightQDQLayers(nvinfer1::INetworkDefinition* network, RawBuffer* weight,
-        nvinfer1::Weights kernelWeights, RawBuffer* bias, nvinfer1::Weights biasWeights,
+        nvinfer1::Weights &kernelWeights, RawBuffer* bias, nvinfer1::Weights &biasWeights,
         float scale, std::vector<int> dims);
 
     std::vector<ITensor*> GetInputITensors();

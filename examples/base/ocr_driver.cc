@@ -167,8 +167,8 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
             text_boxes = output->text_boxes;
         }
         if(text_boxes.size() <= 0) {
-            LOGE("Error no text boxes found!");
-            return status;
+            printf("Error no text boxes found!\n");
+            return -1;
         }
     }
     std::vector<cv::Mat> part_images = getPartImages(predictor_textbox_detector_cast->GetPaddedInput(), text_boxes);
@@ -210,10 +210,19 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
             auto tnn_mat = std::make_shared<Mat>(input_mat->GetDeviceType(), input_mat->GetMatType(), dims, nullptr);
             status = MatToTNNMat(cv_mat, tnn_mat, true);
             RETURN_ON_NEQ(status, TNN_OK);
-            auto input   = std::make_shared<TNNSDKInput>(tnn_mat);
+            #ifdef _CUDA_
+                DimsVector resized_dim = dims;
+                resized_dim[2] = 32;
+                resized_dim[3] = 48;
+                auto resized_mat = std::make_shared<Mat>(tnn_mat->GetDeviceType(), tnn_mat->GetMatType(), resized_dim);
+                Resize(tnn_mat, resized_mat, TNNInterpNearest);
+                auto input = std::make_shared<TNNSDKInput>(resized_mat);
+            #else
+                auto input   = std::make_shared<TNNSDKInput>(tnn_mat);
+            #endif
             
             std::shared_ptr<TNNSDKOutput> text;
-            predictor_text_recognizer_cast->Predict(input, text);
+            RETURN_ON_NEQ(predictor_text_recognizer_cast->Predict(input, text), TNN_OK);
             if (text && dynamic_cast<OCRTextRecognizerOutput *>(text.get())) {
                 texts.push_back(text);
             }
