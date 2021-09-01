@@ -250,7 +250,6 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"CbamFusedReduce", LAYER_CBAM_FUSED_REDUCE},
     {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING},
     {"Softsign", LAYER_SOFTSIGN},
-    {"TopK", LAYER_TOPK},
     {"LogSoftmax", LAYER_LOGSOFTMAX},
 };
 
