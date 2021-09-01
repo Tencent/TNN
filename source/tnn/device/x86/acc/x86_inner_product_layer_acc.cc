@@ -103,7 +103,7 @@ Status X86InnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
                 size_t weight_count = ROUND_UP(output_dims[1], oc_rup) * input_stride;
                 int data_byte_size = DataTypeUtils::GetBytesSize(res->weight_handle.GetDataType());
 
-                RawBuffer temp_buffer(weight_count * data_byte_size);
+                RawBuffer temp_buffer(weight_count * data_byte_size, 32);
                 float *dst = temp_buffer.force_to<float *>();
 
                 if (arch_ == avx2) {

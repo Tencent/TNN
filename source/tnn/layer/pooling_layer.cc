@@ -75,6 +75,10 @@ Status PoolingLayer::InferOutputShape(bool ignore_error) {
         for (int i = 0; i < output_blobs_size; i++) {
             output_blobs_[i]->GetBlobDesc().dims = {num, channels, output_shape[1], output_shape[0]};
         }
+        pool_param->pads = {0, 0, 0, 0};
+        pool_param->kernels = {width, height};
+        pool_param->strides = {1, 1};
+        pool_param->pool_type = 1;
 
         return TNN_OK;
     }
