@@ -119,6 +119,13 @@ int Onnx2TNN::FuseLSTM(onnx::GraphProto* mutable_graph,
                     break;
                 }
 
+                const auto& R_name = node->input(2);
+                if (weights.find(R_name) == weights.end()) {
+                    break;
+                }
+                const auto R          = weights[R_name];
+                const int hidden_size = R.dims(2);
+
                 std::vector<int> previous_indexs = GetPreviousIndexNode(index_nodes, i);
                 std::vector<int> next_indexes    = GetNextIndexNode(index_nodes, i);
 
@@ -170,7 +177,7 @@ int Onnx2TNN::FuseLSTM(onnx::GraphProto* mutable_graph,
                 // check reshape is valid
                 auto check_reshape = [&](onnx::NodeProto* node, std::vector<IndexNode>& index_nodes,
                                          std::map<std::string, onnx::TensorProto>& weights, int index,
-                                         int target_shape_dims) -> bool {
+                                         int target_shape_dims, int hidden_size) -> bool {
                     if (node->op_type() != "Reshape") {
                         return false;
                     }
@@ -183,13 +190,19 @@ int Onnx2TNN::FuseLSTM(onnx::GraphProto* mutable_graph,
                         return false;
                     }
 
+                    if (shape.back() != hidden_size) {
+                        return false;
+                    }
+
                     return true;
                 };
 
                 onnx::NodeProto* node_reshape0 = index_nodes[unsqueeze0_previous_indexs[0]].node;
                 onnx::NodeProto* node_reshape1 = index_nodes[unsqueeze1_previous_indexs[0]].node;
-                if (!check_reshape(node_reshape0, index_nodes, weights, unsqueeze0_previous_indexs[0], 2) ||
-                    !check_reshape(node_reshape1, index_nodes, weights, unsqueeze1_previous_indexs[0], 2)) {
+                if (!check_reshape(node_reshape0, index_nodes, weights, unsqueeze0_previous_indexs[0], 2,
+                                   hidden_size) ||
+                    !check_reshape(node_reshape1, index_nodes, weights, unsqueeze1_previous_indexs[0], 2,
+                                   hidden_size)) {
                     break;
                 }
 
@@ -229,8 +242,8 @@ int Onnx2TNN::FuseLSTM(onnx::GraphProto* mutable_graph,
 
                 onnx::NodeProto* node_reshape2 = index_nodes[squeeze1_next_index[0]].node;
                 onnx::NodeProto* node_reshape3 = index_nodes[squeeze2_next_index[0]].node;
-                if (!check_reshape(node_reshape2, index_nodes, weights, squeeze1_next_index[0], 3) ||
-                    !check_reshape(node_reshape3, index_nodes, weights, squeeze2_next_index[0], 3)) {
+                if (!check_reshape(node_reshape2, index_nodes, weights, squeeze1_next_index[0], 3, hidden_size) ||
+                    !check_reshape(node_reshape3, index_nodes, weights, squeeze2_next_index[0], 3, hidden_size)) {
                     break;
                 }
 
