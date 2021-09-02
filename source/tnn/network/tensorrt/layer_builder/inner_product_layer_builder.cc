@@ -42,7 +42,7 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         dims.push_back(input_blobs_[0]->GetBlobDesc().dims[1]);
         dims.push_back(1);
         dims.push_back(1);
-        weight_layer = AddInt8WeightQDQLayers(network, &(resource->scale_handle), kernelWeights,
+        weight_layer = AddInt8WeightQDQLayers(network, &(resource->weight_handle), kernelWeights,
             paramlist->has_bias ? &(resource->bias_handle) : nullptr,
             biasWeights, output_scale_value / (weight_scale_value / input_scale_value), dims);
 
@@ -137,6 +137,13 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         input_tensor = layer->getOutput(0);
     }
 
+    if (int8) {
+        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
+            output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
+        auto output_dequant_layer =  AddInt8OutputQDQLayers(network, layer->getOutput(0), output_foreign_tensor, 1, 1 / output_scale_value);
+        input_tensor = output_dequant_layer->getOutput(0);
+    }
+
     Dims out_dims;
     out_dims.nbDims = paramlist->axis + 1;
     for (int i = 0; i < out_dims.nbDims; i++) {
@@ -144,14 +151,7 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     }
     IShuffleLayer* out_reshape_layer = network->addShuffle(*input_tensor);
     out_reshape_layer->setReshapeDimensions(out_dims);
-    input_tensor = out_reshape_layer->getOutput(0);
     layer = out_reshape_layer;
-
-    if (int8) {
-        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
-            output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        return AddInt8OutputQDQLayers(network, layer->getOutput(0), output_foreign_tensor, 1, 1 / output_scale_value);
-    }
 
     return layer;
 }
