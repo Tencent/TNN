@@ -69,10 +69,6 @@ TEST_P(Conv1DLayerTest, Conv1DLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_ARM == dev) {
-        GTEST_SKIP();
-    }
-
     if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_CUDA == dev) {
         GTEST_SKIP();
     }
