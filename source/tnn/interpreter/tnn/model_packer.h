@@ -32,10 +32,12 @@ public:
     // @brief set the model version to pack
     void SetVersion(int version);
 
+    // @brief pack model, mainly used in train mode
+    Status PackModel(std::string file_path);
+
 private:
     std::shared_ptr<LayerInfo> FindLayerInfo(std::string layer_name);
     Status PackProto(std::string file_path);
-    Status PackModel(std::string file_path);
     Status PackLayers(std::shared_ptr<Serializer> &serializer, bool save_resource, int &resource_count);
     Status PackResource(std::map<std::string, std::shared_ptr<LayerResource>> &resource_map, std::string &layer_name,
                         std::shared_ptr<Serializer> &serializer);

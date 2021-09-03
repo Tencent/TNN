@@ -72,7 +72,8 @@ public:
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
                                                  InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) = 0;
 
-
+    // for save trained model
+    virtual Status SaveModel(const std::string& proto_path, const std::string& model_path) = 0;
 protected:
     ModelConfig model_config_;
 };

@@ -246,11 +246,10 @@ Status ElementOp::Exec(ParamWrappers &inputs, ParamWrappers &outputs, ParamWrapp
     buffers.resize(inputs.size());
     for (size_t i = 0; i < inputs.size(); i++) {
         auto src_dtype   = inputs[i].GetBlobOrRawbufferDatatype();
-        auto src_dformat = outputs[0].GetBlobOrRawbufferDataformat();
+        auto src_dformat = inputs[i].GetBlobOrRawbufferDataformat();
         if (src_dtype != dst_dtype) {
-            auto data_count = inputs[i].GetBlobOrRawbufferSize() /
-                              DataTypeUtils::GetBytesSize(inputs[i].GetBlobOrRawbufferDatatype());
             if (src_dtype == DATA_TYPE_FLOAT && dst_dtype == DATA_TYPE_BFP16) {
+                int data_count = CalculateElementCount(src_dformat, inputs[i].GetBlobOrRawbufferDims(), src_dtype);
                 std::shared_ptr<RawBuffer> buffer =
                     std::make_shared<RawBuffer>(data_count * sizeof(bfp16_t), inputs[i].GetBlobOrRawbufferDims());
                 buffer->SetDataType(DATA_TYPE_BFP16);
@@ -259,6 +258,7 @@ Status ElementOp::Exec(ParamWrappers &inputs, ParamWrappers &outputs, ParamWrapp
                                         buffer->force_to<void *>(), data_count);
                 buffers[i] = ParamWrapper(buffer);
             } else if (src_dtype == DATA_TYPE_BFP16 && dst_dtype == DATA_TYPE_FLOAT) {
+                int data_count = CalculateElementCount(src_dformat, inputs[i].GetBlobOrRawbufferDims(), dst_dtype);
                 std::shared_ptr<RawBuffer> buffer =
                     std::make_shared<RawBuffer>(data_count * sizeof(float), inputs[i].GetBlobOrRawbufferDims());
                 buffer->SetDataType(DATA_TYPE_FLOAT);
@@ -284,38 +284,43 @@ Status ElementOp::Exec(ParamWrappers &inputs, ParamWrappers &outputs, ParamWrapp
             int batch   = dims[0];
             int channel = dims[1];
             int hw      = DimsVectorUtils::Count(dims, 2);
-            std::shared_ptr<RawBuffer> buffer =
-                std::make_shared<RawBuffer>(buffers[i].GetBlobOrRawbufferSize(), buffers[i].GetBlobOrRawbufferDims());
-            buffer->SetDataType(buffers[i].GetBlobOrRawbufferDatatype());
+            std::shared_ptr<RawBuffer> buffer;
+
             if (src_dformat == DATA_FORMAT_NCHW && dst_dformat == DATA_FORMAT_NC4HW4) {
-                buffer->SetDataFormat(DATA_FORMAT_NC4HW4);
-                if (dst_dtype == DATA_TYPE_BFP16)
+                if (dst_dtype == DATA_TYPE_BFP16) {
+                    buffer = std::make_shared<RawBuffer>(
+                        CalculateElementCount(DATA_FORMAT_NC4HW4, dims, DATA_TYPE_BFP16) * sizeof(bfp16_t), dims);
                     PackFloatBlob(buffer->force_to<bfp16_t *>(),
                                   static_cast<bfp16_t *>(buffers[i].GetBlobOrRawbufferDataPointer()), batch, channel,
                                   hw);
-                else if (dst_dtype == DATA_TYPE_FLOAT)
+                } else if (dst_dtype == DATA_TYPE_FLOAT) {
+                    buffer = std::make_shared<RawBuffer>(
+                        CalculateElementCount(DATA_FORMAT_NC4HW4, dims, DATA_TYPE_FLOAT) * sizeof(float), dims);
                     PackFloatBlob(buffer->force_to<float *>(),
                                   static_cast<float *>(buffers[i].GetBlobOrRawbufferDataPointer()), batch, channel, hw);
-                else
+                } else
                     return Status(TNN_OP_ERROR, "data format transfer error, unkown data type");
-            } else if (src_dformat == DATA_FORMAT_NC4HW4 && dst_dformat == DATA_FORMAT_NCHW) {
-                std::shared_ptr<RawBuffer> buffer = std::make_shared<RawBuffer>(buffers[i].GetBlobOrRawbufferSize(),
-                                                                                buffers[i].GetBlobOrRawbufferDims());
-                buffer->SetDataType(buffers[i].GetBlobOrRawbufferDatatype());
                 buffer->SetDataFormat(DATA_FORMAT_NC4HW4);
-                if (dst_dtype == DATA_TYPE_BFP16)
+            } else if (src_dformat == DATA_FORMAT_NC4HW4 && dst_dformat == DATA_FORMAT_NCHW) {
+                if (dst_dtype == DATA_TYPE_BFP16) {
+                    buffer = std::make_shared<RawBuffer>(
+                        CalculateElementCount(DATA_FORMAT_NCHW, dims, DATA_TYPE_BFP16) * sizeof(bfp16_t), dims);
                     UnpackFloatBlob(buffer->force_to<bfp16_t *>(),
                                     static_cast<bfp16_t *>(buffers[i].GetBlobOrRawbufferDataPointer()), batch, channel,
                                     hw);
-                else if (dst_dtype == DATA_TYPE_FLOAT)
+                } else if (dst_dtype == DATA_TYPE_FLOAT) {
+                    buffer = std::make_shared<RawBuffer>(
+                        CalculateElementCount(DATA_FORMAT_NCHW, dims, DATA_TYPE_FLOAT) * sizeof(float), dims);
                     UnpackFloatBlob(buffer->force_to<float *>(),
                                     static_cast<float *>(buffers[i].GetBlobOrRawbufferDataPointer()), batch, channel,
                                     hw);
-                else
+                } else
                     return Status(TNN_OP_ERROR, "data format transfer error, unkown data type2");
+                buffer->SetDataFormat(DATA_FORMAT_NCHW);
             } else {
                 return Status(TNN_OP_ERROR, "data format transfer error, unsupport data format");
             }
+            buffer->SetDataType(buffers[i].GetBlobOrRawbufferDatatype());
             buffers[i] = buffer;
         } else {
             // do nothing

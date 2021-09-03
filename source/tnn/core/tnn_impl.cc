@@ -28,6 +28,11 @@ Status TNNImpl::DeInit() {
 
 Status TNNImpl::Init(ModelConfig &config) {
     model_config_.model_type = config.model_type;
+#ifdef TRAIN
+    //not used in predict module, so don't save model config params for saving memory
+    //train mode only use proto content for save checkpoint, so only save proto content for saving memory
+    model_config_.params = {config.params.size() > 0 ? config.params[0] : "" };  
+#endif
     return TNN_OK;
 }
 
