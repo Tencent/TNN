@@ -576,7 +576,6 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
     // network init
 #if defined(TNN_USE_NEON)
     device_type_ = TNN_NS::DEVICE_ARM;
-//    device_type_ = TNN_NS::DEVICE_NAIVE;
 #else
     device_type_ = TNN_NS::DEVICE_X86;
 #endif
@@ -816,7 +815,6 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
         
         // step 2. Forward
         status = instance_->ForwardAsync(nullptr);
-        // status = instance_->Forward();
         if (status != TNN_NS::TNN_OK) {
             LOGE("instance.Forward Error: %s\n", status.description().c_str());
             return status;

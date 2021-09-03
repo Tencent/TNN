@@ -36,7 +36,7 @@ namespace optimizer {
 
     static const std::set<LayerType> kLayerOutputNonFloat = {LAYER_ARG_MAX_OR_MIN};
     static const std::set<LayerType> kLayerOutputMaybeNonFloat = {LAYER_UNSQUEEZE, LAYER_GATHER};
-    std::set<std::string> writelist_i32;
+    std::set<std::string> whitelist_i32;
 
     static const std::set<LayerType> kLayerNeedSpecialTreat = {LAYER_GATHER};
 
@@ -53,31 +53,31 @@ namespace optimizer {
         }
 
         if (layer->type == LAYER_UNSQUEEZE) {
-            return writelist_i32.find(layer->name) == writelist_i32.end();
+            return whitelist_i32.find(layer->name) == whitelist_i32.end();
         }
 
         if (layer->type == LAYER_GATHER) {
-            return writelist_i32.find(layer->name) == writelist_i32.end();
+            return whitelist_i32.find(layer->name) == whitelist_i32.end();
         }
 
         return true;
     }
 
-    void OutputSameAsInput(std::shared_ptr<LayerInfo> cur_layer, std::set<std::string> &writelist_i32, std::set<std::string> &blob_i32) {
+    void OutputSameAsInput(std::shared_ptr<LayerInfo> cur_layer, std::set<std::string> &whitelist_i32, std::set<std::string> &blob_i32) {
         // if input is int32, output is view as i32
         std::vector<std::string> intersection;
         std::set<std::string> cur_input(cur_layer->inputs.begin(), cur_layer->inputs.end());
         std::set_intersection(cur_input.begin(), cur_input.end(), 
                             blob_i32.begin(), blob_i32.end(), std::back_inserter(intersection));
         if (intersection.size() > 0){
-            writelist_i32.insert(cur_layer->name);
+            whitelist_i32.insert(cur_layer->name);
             for (auto cur_output: cur_layer->outputs){
                 blob_i32.insert(cur_output);
             }
         }
     }
 
-    bool GenWriterList_i32(NetStructure *structure, NetResource *resource, std::set<std::string> &writelist_i32){
+    bool GenWhiteList_i32(NetStructure *structure, NetResource *resource, std::set<std::string> &whitelist_i32){
         // If input is int32, some layers will propagate int32 (such as unsqueeze, gather), 
         // these layers will view as special case which don't output fp16
 
@@ -109,21 +109,21 @@ namespace optimizer {
                         auto resource_ = resource->resource_map.find(cur_layer->name)->second.get();
                         auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);
                         if (layer_resource->data.GetDataType() == DATA_TYPE_INT32){
-                            writelist_i32.insert(cur_layer->name);
+                            whitelist_i32.insert(cur_layer->name);
                             for (auto cur_output: cur_layer->outputs){
                                 blob_i32.insert(cur_output);
                             }
                         }
                     } else {
                         // else indice in reource, output type in the same as input
-                        OutputSameAsInput(cur_layer, writelist_i32, blob_i32);
+                        OutputSameAsInput(cur_layer, whitelist_i32, blob_i32);
                     }
                 }
 
                 // process Unsqueeze
                 if (cur_layer->type == LAYER_UNSQUEEZE){
                     // output type is the same as input
-                    OutputSameAsInput(cur_layer, writelist_i32, blob_i32);
+                    OutputSameAsInput(cur_layer, whitelist_i32, blob_i32);
                 }
 
                 // other cases ...
@@ -255,8 +255,8 @@ namespace optimizer {
             }
         }
 
-        if (!GenWriterList_i32(structure, resource, writelist_i32)){
-            return Status(TNNERR_CONVERT_OPTIMIZE_ERROR, "Can not generate writelist_i32");
+        if (!GenWhiteList_i32(structure, resource, whitelist_i32)){
+            return Status(TNNERR_CONVERT_OPTIMIZE_ERROR, "Can not generate whitelist_i32");
         }
 
         for (int index = 0; index < count; index++) {

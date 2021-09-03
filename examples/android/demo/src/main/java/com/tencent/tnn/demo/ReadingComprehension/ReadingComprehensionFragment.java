@@ -24,6 +24,7 @@ public class ReadingComprehensionFragment extends BaseFragment {
 
     private final static String TAG = ReadingComprehensionFragment.class.getSimpleName();
     private ReadingComprehensionTinyBert mReadingComprehensionTinyBert = new ReadingComprehensionTinyBert();
+    private boolean isOk = false;
 
     private ToggleButton mGPUSwitch;
 
@@ -66,9 +67,29 @@ public class ReadingComprehensionFragment extends BaseFragment {
         return targetDir;
     }
 
-    private void onSwichGPU(boolean b)
-    {
+    private void checkInitStatus(int result) {
+        if(result != 0){
+            isOk = false;
+            answer.setText("failed to init model " + result);
+            Log.e(TAG, "failed to init model " + result);
+        } else {
+            isOk = true;
+        }
+    }
+
+    private void onSwichGPU(boolean b) {
         mUseGPU = b;
+        String modelPath = initModel();
+        int result;
+
+        if (mUseGPU) {
+            // result = mReadingComprehensionTinyBert.init(modelPath, 1); //use gpu
+            Log.e(TAG, "tiny-bert on GPU is under development");
+            result = -1;
+        }else {
+            result = mReadingComprehensionTinyBert.init(modelPath, 0); // use cpu
+        }
+        checkInitStatus(result);
     }
 
     @Override
@@ -77,6 +98,9 @@ public class ReadingComprehensionFragment extends BaseFragment {
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
         String modelPath = initModel();
+
+        int result = mReadingComprehensionTinyBert.init(modelPath, 0); // default use cpu
+        checkInitStatus(result);
     }
 
     @Override
@@ -138,22 +162,14 @@ public class ReadingComprehensionFragment extends BaseFragment {
 
     }
 
-
     private void ask(){
-        String  modelPath = initModel();
-        int device;
-        if (mUseGPU == true){
-            device = 1; // gpu
-        }else{
-            device = 0; // cpu
-        }
-        int result = mReadingComprehensionTinyBert.init(modelPath, device);
-        if(result == 0) {
+        if(isOk){
+            String  modelPath = initModel();
             String answer_text = mReadingComprehensionTinyBert.ask(modelPath, material.getText().toString(), question.getText().toString());
             answer.setText(answer_text);
-            mReadingComprehensionTinyBert.deinit();
         } else {
-            Log.e(TAG, "failed to init model " + result);
+            Log.e(TAG, "tnn has not been initialized");
+            answer.setText("failed to init model maybe you are using GPU");
         }
     }
 

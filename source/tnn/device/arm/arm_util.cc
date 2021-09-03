@@ -487,7 +487,7 @@ bool HalfBlobCanIgnorePack(size_t channel, size_t hw) {
     return (hw == 1) && (channel % 8 == 0);
 }
 
-int PackFloatBlob(int32_t *dst, int32_t *src, size_t batch, size_t channel, size_t hw) {
+int PackInt32Blob(int32_t *dst, int32_t *src, size_t batch, size_t channel, size_t hw) {
     OMP_PARALLEL_FOR_
     for (int n = 0; n < batch; ++n) {
         auto dst_ptr_n = dst + n * ROUND_UP(channel, 4) * hw;
@@ -497,7 +497,7 @@ int PackFloatBlob(int32_t *dst, int32_t *src, size_t batch, size_t channel, size
     return 0;
 }
 
-int UnpackFloatBlob(int32_t *dst, int32_t *src, size_t batch, size_t channel, size_t hw) {
+int UnpackInt32Blob(int32_t *dst, int32_t *src, size_t batch, size_t channel, size_t hw) {
     OMP_PARALLEL_FOR_
     for (int n = 0; n < batch; ++n) {
         auto dst_ptr_n = dst + n * channel * hw;

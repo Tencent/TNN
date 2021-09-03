@@ -74,9 +74,6 @@ JNIEXPORT JNICALL jint TNN_READING_COMPREHENSION(deinit)(JNIEnv *env, jobject th
 
 JNIEXPORT JNICALL jstring TNN_READING_COMPREHENSION(ask)(JNIEnv *env, jobject thiz, jstring modelPath, jstring material, jstring question){
 
-    jintArray resultArray;
-    int ret = -1;
-
     TNN_NS::BenchOption bench_option;
     bench_option.forward_count = 10;
     gResponder->SetBenchOption(bench_option);
@@ -96,7 +93,7 @@ JNIEXPORT JNICALL jstring TNN_READING_COMPREHENSION(ask)(JNIEnv *env, jobject th
     LOGE("%s", jstring2string(env, question));
 
     TNN_NS::DeviceType dt = TNN_NS::DEVICE_ARM;
-//    TNN_NS::DeviceType dt = TNN_NS::DEVICE_NAIVE;
+
     auto bertInput = std::make_shared<TNN_NS::BertTokenizerInput>(dt, "input_ids", "attention_mask", "token_type_ids");
     auto bertOutput = gResponder->CreateSDKOutput();
 
