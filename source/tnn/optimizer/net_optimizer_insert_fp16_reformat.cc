@@ -32,7 +32,23 @@ namespace optimizer {
 
     // Plast priority: reformat after all fuse
     NetOptimizerRegister<NetOptimizerInsertFp16Reformat> g_net_optimizer_insert_fp16_reformat(OptPriority::P2);
-    static const std::string reformat_name_suffix = "_fp16_reformat";
+    static const std::string reformat_name_suffix         = "_fp16_reformat";
+    static const std::set<LayerType> kLayerOutputNonFloat = {LAYER_ARG_MAX_OR_MIN};
+
+    // skip fp16 reformat if output of the layer is not float type
+    bool IsLayerOutputFloat(std::shared_ptr<LayerInfo> layer) {
+        if (kLayerOutputNonFloat.find(layer->type) != kLayerOutputNonFloat.end()) {
+            return false;
+        }
+
+        if (layer->type == LAYER_CAST) {
+            auto layer_param = dynamic_cast<CastLayerParam *>(layer->param.get());
+            CHECK_PARAM_NULL(layer_param);
+            return (layer_param->to == DATA_TYPE_FLOAT || layer_param->to == DATA_TYPE_HALF);
+        }
+
+        return true;
+    }
 
     std::string NetOptimizerInsertFp16Reformat::Strategy() {
         return kNetOptimizerInsertFp16Reformat;
@@ -134,7 +150,7 @@ namespace optimizer {
         for (int index = 0; index < count; index++) {
             auto cur_layer = layers_orig[index];
             layers_fused.push_back(cur_layer);
-            if (constant_layers.count(cur_layer->name) > 0) {
+            if (constant_layers.count(cur_layer->name) > 0 || !IsLayerOutputFloat(cur_layer)) {
                 continue;
             }
             // find blobs need reformat

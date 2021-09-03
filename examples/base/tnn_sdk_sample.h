@@ -14,7 +14,9 @@
 
 #ifndef TNN_EXAMPLES_BASE_TNN_SDK_SAMPLE_H_
 #define TNN_EXAMPLES_BASE_TNN_SDK_SAMPLE_H_
-
+#ifdef _WIN32
+    #define NOMINMAX
+#endif
 #include <cmath>
 #include <fstream>
 #include <sstream>
@@ -29,7 +31,11 @@
 #define TNN_SDK_USE_NCNN_MODEL 0
 
 #ifndef HAS_OPENCV
-#define HAS_OPENCV 0
+    #ifdef _OPENCV_
+        #define HAS_OPENCV 1
+    #else 
+        #define HAS_OPENCV 0
+    #endif
 #endif
 
 namespace TNN_NS {
@@ -115,12 +121,8 @@ typedef enum {
     TNNComputeUnitsGPU = 1,
     // run on huawei_npu, if failed run on cpu
     TNNComputeUnitsHuaweiNPU = 2,
-    // run on openvino
-    TNNComputeUnitsOpenvino = 3,
-    // run on TensorRT
-    TNNComputeUnitsTensorRT = 4,
     // run on cpu Naive
-    TNNComputeUnitsNaive = 5,
+    TNNComputeUnitsNaive = 3,
 } TNNComputeUnits;
 
 struct RGBA{
@@ -164,6 +166,7 @@ public:
     TNNComputeUnits compute_units = TNNComputeUnitsCPU;
     Precision precision = PRECISION_AUTO;
     InputShapesMap input_shapes = {};
+    InputShapesMap max_input_shapes = {};
 };
 
 typedef enum {
@@ -190,7 +193,7 @@ public:
     void SetBenchOption(BenchOption option);
     BenchResult GetBenchResult();
     virtual DimsVector GetInputShape(std::string name = kTNNSDKDefaultName);
-
+    virtual MatType GetOutputMatType(std::string name = "");
 
     virtual Status Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output);
 
@@ -261,6 +264,9 @@ void NMS(std::vector<ObjectInfo> &input, std::vector<ObjectInfo> &output, float 
 
 void Rectangle(void *data_rgba, int image_height, int image_width,
                int x0, int y0, int x1, int y1, float scale_x = 1.0, float scale_y = 1.0);
+
+void Line(void *data_rgba, int image_height, int image_width,
+          int x0, int y0, int x1, int y1, float scale_x = 1.0, float scale_y = 1.0);
 
 void Point(void *data_rgba, int image_height, int image_width,
            int x, int y, float z, float scale_x = 1.0, float scale_y = 1.0);

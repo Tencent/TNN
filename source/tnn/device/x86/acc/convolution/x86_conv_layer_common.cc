@@ -117,10 +117,15 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
     void *output_ptr    = output_blob->GetHandle().base;
     auto param = dynamic_cast<ConvLayerParam *>(param_);
 
-    int conv_in_offset_ = input_dims[2] * input_dims[3] * input_dims[1];
-    int conv_out_spatial_dim_ = output_dims[2] * output_dims[3];
+    auto ih = DimsFunctionUtils::GetDim(input_dims, 2);
+    auto iw = DimsFunctionUtils::GetDim(input_dims, 3);
+    auto oh = DimsFunctionUtils::GetDim(output_dims, 2);
+    auto ow = DimsFunctionUtils::GetDim(output_dims, 3);
+
+    int conv_in_offset_ = ih * iw * input_dims[1];
+    int conv_out_spatial_dim_ = oh * ow;
     int output_offset_ = output_dims[1] * conv_out_spatial_dim_ / param->group;
-    size_t col_offset_ = param->kernels[0] * param->kernels[1] * output_dims[2] * output_dims[3] * (input_dims[1] / param->group);
+    size_t col_offset_ = param->kernels[0] * param->kernels[1] * oh * ow * (input_dims[1] / param->group);
 
     int max_num_threads = OMP_MAX_THREADS_NUM_;
     conv_ajust_m_blk_size(max_num_threads, conv_out_spatial_dim_, conv_gemm_conf_.M_c_);
@@ -149,7 +154,7 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
         float *bias_data  = buffer_bias_.force_to<float*>();
         for (size_t b = 0; b < outputs[0]->GetBlobDesc().dims[0]; b++) {
             X86_IM2COL(input_data + b * conv_in_offset_, input_dims[1],
-                        input_dims[2], input_dims[3],
+                        ih, iw,
                         param->kernels[1], param->kernels[0],
                         param->pads[0], param->pads[1],
                         param->pads[2], param->pads[3],

@@ -42,7 +42,7 @@ TEST_P(LayerNormLayerTest, LayerNormLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_OPENCL == dev || DEVICE_METAL == dev || DEVICE_ARM == dev || DEVICE_HUAWEI_NPU == dev) {
+    if (DEVICE_OPENCL == dev || DEVICE_METAL == dev || DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
 

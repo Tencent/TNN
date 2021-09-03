@@ -34,7 +34,12 @@ namespace TNN_NS {
 OCRTextRecognizerOutput::~OCRTextRecognizerOutput() {}
 
 Status OCRTextRecognizer::Init(std::shared_ptr<TNNSDKOption> option) {
-    option->input_shapes.insert( {"input", DimsVector({1, 3, dst_height_, max_width_})} );
+    if (option->compute_units == TNNComputeUnitsGPU) {
+        option->max_input_shapes.insert( {"input", DimsVector({1, 3, dst_height_, max_width_})} );
+        option->input_shapes.insert({"input", DimsVector({1, 3, 8, 8})});
+    } else {
+        option->input_shapes.insert({"input", DimsVector({1, 3, dst_height_, max_width_})});
+    }
     // load vocabulary
     const auto& vocab_file_path = dynamic_cast<OCRTextRecognizerOption *>(option.get())->vocab_path;
     std::ifstream in(vocab_file_path.c_str());
@@ -68,7 +73,7 @@ std::shared_ptr<Mat> OCRTextRecognizer::ProcessSDKInputMat(std::shared_ptr<Mat> 
     // 0) copy if necessary
     bool need_copy = false;
     DeviceType origin_dev = input_mat->GetDeviceType();
-    if (input_mat->GetDeviceType() != DEVICE_ARM) {
+    if (input_mat->GetDeviceType() != DEVICE_ARM && device_type_ == DEVICE_ARM) {
         need_copy = true;
         auto input_arm_mat = std::make_shared<Mat>(DEVICE_ARM, input_mat->GetMatType(),
                                                    input_mat->GetDims());

@@ -69,6 +69,8 @@ Status DeconvOVLayerBuilder::Build() {
         pad_type = ngraph::op::PadType::EXPLICIT;
     } else if (paramlist->pad_type == 0) {
         pad_type = ngraph::op::PadType::SAME_UPPER;
+    } else if (paramlist->pad_type == 3) {
+        pad_type = ngraph::op::PadType::EXPLICIT;
     } else {
         pad_type = ngraph::op::PadType::VALID;
     }
@@ -96,7 +98,7 @@ Status DeconvOVLayerBuilder::Build() {
 
     // assume that channels == weights input channels
     auto deConvNode = std::make_shared<ngraph::op::v1::GroupConvolutionBackpropData>(
-        input_node->output(0), weightsNode, output_shape, strides, pads_begin, pads_end, dilations, pad_type);
+            input_node->output(0), weightsNode, strides, pads_begin, pads_end, dilations, pad_type);
 
     deConvNode->validate_and_infer_types();
 

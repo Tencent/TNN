@@ -89,7 +89,8 @@ int main(int argc, char** argv) {
         // option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         option->compute_units = TNN_NS::TNNComputeUnitsNaive;
 #ifdef _CUDA_
-        option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+        // option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+        option->compute_units = TNN_NS::TNNComputeUnitsGPU;
 #endif
     }
 

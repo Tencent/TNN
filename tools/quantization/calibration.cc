@@ -405,6 +405,13 @@ int Calibration::QuantizeParams() {
 
     for (auto& item : net_struct->layers) {
         LayerType layer_type = item->type;
+
+        // skip constant layer
+        auto const_layers = net_resource->constant_layers;
+        if (const_layers.find(item->name) != const_layers.end()) {
+            continue;
+        }
+
         if (kQuantizedLayerTypeStr.find(layer_type) != kQuantizedLayerTypeStr.end()) {
             // assign NetStructure
             item->param->quantized = true;
@@ -463,6 +470,15 @@ int Calibration::QuantizeParams() {
                     return -1;
                 }
                 printf("\t====> done!\n");
+            } else if (layer_type == LAYER_ADD) {
+                // if one of the input of add layer is in layer resource, then this layer will not be quantized
+                if (net_resource->resource_map.find(item->name) != net_resource->resource_map.end()) {
+                    auto layer_resource = net_resource->resource_map[item->name].get();
+                    auto layer_res      = dynamic_cast<EltwiseLayerResource*>(layer_resource);
+                    if (layer_res != nullptr) {
+                        item->param->quantized = false;
+                    }
+                }
             }
         }
     }

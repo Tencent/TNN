@@ -44,7 +44,10 @@ Status MetalConvLayerCommon::AllocateBufferWeight(const std::vector<Blob *> &inp
     Status status = TNN_OK;
     if (!buffer_weight_) {
         int kw = layer_param->kernels[0];
-        int kh = layer_param->kernels[1];
+        int kh = 1;
+        if(layer_param->kernels.size() != 1){
+            kh = layer_param->kernels[1];
+        }
 
         if (is_channel_4x_) {
             buffer_weight_ = AllocatePackedGOIHW16MetalBufferFormRawBuffer(
@@ -81,6 +84,7 @@ Status MetalConvLayerCommon::AllocateBufferParam(const std::vector<Blob *> &inpu
                                                  const std::vector<Blob *> &outputs) {
     id<MTLDevice> device       = [TNNMetalDeviceImpl sharedDevice];
     auto conv_param = dynamic_cast<ConvLayerParam *>(param_);
+    ConvLayerParam *layer_param  = dynamic_cast<ConvLayerParam *>(param_);
 
     const int group  = conv_param->group;
     auto dims_input  = inputs[0]->GetBlobDesc().dims;
@@ -91,7 +95,11 @@ Status MetalConvLayerCommon::AllocateBufferParam(const std::vector<Blob *> &inpu
     {
         MetalConvParams metal_params;
         SetDefaultMetalParams(metal_params, dims_input, dims_output);
-        SetDefaultMetalConvParams(metal_params, conv_param);
+        if(layer_param->kernels.size() == 1){
+            SetDefaultMetalConv1DParams(metal_params, conv_param);
+        }else{
+            SetDefaultMetalConvParams(metal_params, conv_param);
+        }
         
         if (is_channel_4x_) {
             metal_params.input_slice            = UP_DIV(dims_input[1], 4) / group;
@@ -152,7 +160,11 @@ Status MetalConvLayerCommon::ComputeThreadSize(const std::vector<Blob *> &inputs
         auto goc = dims_output[1] / layer_param->group;
         output_slice_per_group = UP_DIV(goc, 4);
     }
-    size = MTLSizeMake(dims_output[3], dims_output[2], output_slice_per_group);
+    if(layer_param->kernels.size() == 1){
+        size = MTLSizeMake(1, dims_output[2], output_slice_per_group);
+    } else {
+        size = MTLSizeMake(dims_output[3], dims_output[2], output_slice_per_group);
+    }
     return TNN_OK;
 }
 

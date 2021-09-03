@@ -131,6 +131,59 @@ class DeconvolutionLayerResourceGenerator : public ConvolutionLayerResourceGener
 class Convolution3DLayerResourceGenerator : public ConvolutionLayerResourceGenerator {};
 
 /*
+ * Generate conv1d resource
+ */
+class Convolution1DLayerResourceGenerator : public LayerResourceGenerator {
+    virtual Status GenLayerResource(LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs) {
+        LOGD("ConvolutionLayerResourceGenerator\n");
+        auto layer_param = dynamic_cast<ConvLayerParam*>(param);
+        CHECK_PARAM_NULL(layer_param);
+        auto layer_res = new ConvLayerResource();
+
+        auto dims              = inputs[0]->GetBlobDesc().dims;
+        int filter_handle_size = dims[1] * layer_param->output_channel * layer_param->kernels[0] / layer_param->group;
+        if (layer_param->quantized) {
+            layer_res->filter_handle = RawBuffer(filter_handle_size * sizeof(int8_t));
+            layer_res->bias_handle   = RawBuffer(layer_param->output_channel * sizeof(int32_t));
+            layer_res->scale_handle  = RawBuffer(layer_param->output_channel * sizeof(float));
+
+            layer_res->filter_handle.SetDataType(DATA_TYPE_INT8);
+            InitRandom(layer_res->filter_handle.force_to<int8_t*>(), filter_handle_size, (int8_t)8);
+            layer_res->bias_handle.SetDataType(DATA_TYPE_INT32);
+            InitRandom(layer_res->bias_handle.force_to<int32_t*>(), layer_param->output_channel, (int32_t)8);
+            layer_res->scale_handle.SetDataType(DATA_TYPE_FLOAT);
+            InitRandom(layer_res->scale_handle.force_to<float*>(), layer_param->output_channel, 0.0f, 1.0f);
+
+        } else {
+            layer_res->filter_handle = RawBuffer(filter_handle_size * sizeof(float));
+            InitRandom(layer_res->filter_handle.force_to<float*>(), filter_handle_size, 1.0f);
+
+            if (layer_param->bias) {
+                layer_res->bias_handle = RawBuffer(layer_param->output_channel * sizeof(float));
+                InitRandom(layer_res->bias_handle.force_to<float*>(), layer_param->output_channel, 1.0f);
+            }
+        }
+
+        *resource = layer_res;
+        return TNN_OK;
+    }
+
+    virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
+        auto src_res = dynamic_cast<ConvLayerResource*>(fp16_res);
+        CHECK_PARAM_NULL(src_res);
+
+        auto dst_res = new ConvLayerResource();
+
+        dst_res->filter_handle = ConvertHalfHandle(src_res->filter_handle);
+        dst_res->scale_handle  = ConvertHalfHandle(src_res->scale_handle);
+        dst_res->bias_handle   = ConvertHalfHandle(src_res->bias_handle);
+
+        *fp32_res = dst_res;
+        return TNN_OK;
+    }
+};
+
+/*
  * Generate weights for innerproduct layer
  */
 class InnerProductLayerResourceGenerator : public LayerResourceGenerator {
@@ -337,9 +390,10 @@ class BlobScaleLayerResourceGenerator : public LayerResourceGenerator {
  */
 class BinaryLayerResourceGenerator : public LayerResourceGenerator {
     virtual Status GenLayerResource(LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs) {
-        LOGD("BinaryLayerResourceGenerator\n");
 
         if (inputs.size() == 1) {
+            LOGD("BinaryLayerResourceGenerator, input size is 1\n");
+
             LOGE(
                 "[WARNNING] can't infer resource shape from binary param in benchmark mode, random generator may not "
                 "be exactly same with the real resource!\n");
@@ -471,6 +525,7 @@ class LSTMONNXLayerResourceGenerator : public LayerResourceGenerator {
 
 REGISTER_LAYER_RESOURCE(Convolution, LAYER_CONVOLUTION);
 REGISTER_LAYER_RESOURCE(Deconvolution, LAYER_DECONVOLUTION);
+REGISTER_LAYER_RESOURCE(Convolution1D, LAYER_CONVOLUTION_1D);
 REGISTER_LAYER_RESOURCE(Convolution3D, LAYER_CONVOLUTION_3D);
 REGISTER_LAYER_RESOURCE(InnerProduct, LAYER_INNER_PRODUCT);
 REGISTER_LAYER_RESOURCE(Batchnorm, LAYER_BATCH_NORM);
