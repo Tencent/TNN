@@ -997,5 +997,6 @@ Status ArmUpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
 
 REGISTER_ARM_ACC(Upsample, LAYER_UPSAMPLE)
 REGISTER_ARM_LAYOUT(LAYER_UPSAMPLE, DATA_FORMAT_NC4HW4)
+REGISTER_ARM_LAYOUT(LAYER_UPSAMPLE, DATA_FORMAT_NHWC4)
 
 }  // namespace TNN_NS

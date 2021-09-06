@@ -63,5 +63,6 @@ Status ArmTileLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 
 REGISTER_ARM_ACC(Tile, LAYER_REPEAT);
 REGISTER_ARM_LAYOUT(LAYER_REPEAT, DATA_FORMAT_NCHW);
+REGISTER_ARM_LAYOUT(LAYER_REPEAT, DATA_FORMAT_NHWC4);
 
 }  // namespace TNN_NS

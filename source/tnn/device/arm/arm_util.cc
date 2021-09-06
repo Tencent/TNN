@@ -218,6 +218,7 @@ int UnpackNeonC1(float *dst, const float *src, size_t hw, size_t channel) {
 
     return 0;
 }
+// NC4HW4 -> NCHW
 int UnpackNeon(float *dst, const float *src, size_t hw, size_t channel) {
     float32x4x4_t v;
     for (int c = 0; c + 3 < channel; c += 4) {
@@ -255,6 +256,7 @@ int UnpackNeon(float *dst, const float *src, size_t hw, size_t channel) {
 
     return 0;
 }
+// NC4HW4 -> NHWC
 int UnpackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
     if ((hw == 1) && (channel % 4 == 0)) {
         memcpy(dst, src, hw * channel * sizeof(float));
@@ -322,6 +324,38 @@ template int PackC4(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int PackC4(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int PackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int PackC4(float *dst, const fp16_t *src, size_t hw, size_t channel);
+
+
+template <typename Tin, typename Tout>
+int PackNHWC4(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    int c, cur_hw;
+    int idx = 0;
+    int c_rc4 = ROUND_UP(channel, 4);
+    memset(dst, 0, hw * c_rc4 * sizeof(Tout));
+    for (c = 0; c < channel; ++c) {
+        for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            dst[cur_hw * c_rc4 + c] = src[idx++];
+        }
+    }
+    return 0;
+}
+template int PackNHWC4(int8_t *dst, const int8_t *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int PackNHWC4FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    int c, cur_hw;
+    int idx   = 0;
+    int c_rc4 = ROUND_UP(channel, 4);
+    memset(dst, 0, hw * channel * sizeof(Tout));
+    for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        for (c = 0; c < channel; ++c) {
+            dst[cur_hw * c_rc4 + c] = src[idx++];
+        }
+    }
+    return 0;
+}
+
+template int PackNHWC4FromNHWC(int8_t *dst, const int8_t *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
 int PackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
@@ -475,6 +509,37 @@ template int UnpackC4(float *dst, const bfp16_t *src, size_t hw, size_t channel)
 template int UnpackC4(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
 
+template <typename Tin, typename Tout>
+int UnpackNHWC4(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    int cur_hw;
+    int c;
+    int idx = 0;
+    int c_rc4 = ROUND_UP(channel, 4);
+    for (c = 0; c < channel; ++c) {
+        for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            dst[idx++] = src[cur_hw * c_rc4 + c];
+        }
+    }
+    return 0;
+}
+
+template int UnpackNHWC4(int8_t *dst, const int8_t *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int UnpackNHWC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    int cur_hw;
+    int c;
+    int idx = 0;
+    int c_rc4 = ROUND_UP(channel, 4);
+    for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        for (c = 0; c < channel; ++c) {
+            dst[idx++] = src[cur_hw * c_rc4 + c];
+        }
+    }
+    return 0;
+}
+
+template int UnpackNHWC4ToNHWC(int8_t *dst, const int8_t *src, size_t hw, size_t channel);
 
 bool FloatBlobCanIgnorePack(size_t channel, size_t hw) {
     return (hw == 1) && (channel % 4 == 0);
