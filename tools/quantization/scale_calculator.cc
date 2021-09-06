@@ -81,7 +81,7 @@ int ScaleCalculator::Init(Blob* blob, bool merge_channel, CalibrationMethod meth
             item.resize(bin_nums_);
         }
 
-        if (height * width < 100 && cali_method_ == KL_DIVERGENCE) {
+        if (height * width < 100 && cali_method_ != ASY_MIN_MAX) {
             // the data num is too small, use minmax
             cali_method_ = MIN_MAX;
         }
@@ -135,16 +135,21 @@ int ScaleCalculator::UpdateRange() {
             }
 
             float* p = data_ptr + b * channel * hxw + c * hxw;
-
-            float sum = 0;
-            float sum_abs = 0;
-            std::for_each(p, p+hxw, [&](float n) { sum += n; sum_abs += abs(n);});
-            float mean = mean_per_channel_[channel_idx];
-            float abs_mean = mean_abs_per_channel_[channel_idx];
-            int index = index_image_per_channel_[channel_idx];
-            mean_per_channel_[channel_idx] = (mean * index + sum /hxw)/(index+1);
-            mean_abs_per_channel_[channel_idx] = (abs_mean * index + sum_abs /hxw)/(index+1);
-            index_image_per_channel_[channel_idx] = index+1;
+            // TODO: deal with batch_size
+            if ((cali_method_ == ACIQ_GAUS || cali_method_ == ACIQ_LAPLACE) && b ==0) {
+                float sum     = 0;
+                float sum_abs = 0;
+                std::for_each(p, p + hxw, [&](float n) {
+                    sum += n;
+                    sum_abs += abs(n);
+                });
+                float mean                            = mean_per_channel_[channel_idx];
+                float abs_mean                        = mean_abs_per_channel_[channel_idx];
+                int index                             = index_image_per_channel_[channel_idx];
+                mean_per_channel_[channel_idx]        = (mean * index + sum / hxw) / (index + 1);
+                mean_abs_per_channel_[channel_idx]    = (abs_mean * index + sum_abs / hxw) / (index + 1);
+                index_image_per_channel_[channel_idx] = index + 1;
+            }
 
             for (int i = 0; i < hxw; ++i) {
                 float val = p[i];
@@ -158,7 +163,7 @@ int ScaleCalculator::UpdateRange() {
             }
         }
     }
-
+    
     range_done_flag_ = true;
     return 0;
 }
@@ -296,7 +301,7 @@ int ScaleCalculator::CalculateScaleAnalysis(int channel_index, float& blob_scale
                                      std::abs(range_per_channel_[channel_index].second));
         int elem_num            = merge_channel_ ? DimsVectorUtils::Count(origin_blob_->GetBlobDesc().dims, 1)
                                                  : DimsVectorUtils::Count(origin_blob_->GetBlobDesc().dims, 2);
-        float threshold_gaus   = CalculateAlphaGaus(max_val_abs, elem_num * index_image_per_channel_[channel_index], 8);
+        float threshold_gaus   = CalculateAlphaGaus(max_val_abs, elem_num, 8);
         blob_scale              = threshold_gaus / 127.0f;
     } else if (cali_method_ == ACIQ_LAPLACE) {
         float threshold_laplace = CalculateAlphaLaplace(mean_abs_per_channel_[channel_index], 8);

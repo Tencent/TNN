@@ -31,11 +31,15 @@ python generate_validation_labels.py \
 | -i, --input_path   |  &radic;  |  &radic;   | Specify the path of the image input folder.  |
 | -g, --ground_truth |  &radic;  |  &radic;   | Specify the validation ground truth ID file. |
 ### 4. Result
-SqueezeNet model result from `${TNN_ROOT_PATH}/model/SqueezeNet/squeezenet_v1.1.tnnproto`
-| blob_method | weight_method |   merge_type    | Top-1 Accuracy |
-| :---------: | :-----------: | :-------------: | :------------: |
-|    FP32     |     FP32      |      FP32       |     53.01%     |
-| 0-(Min-Max) |  0-(Min-Max)  | 0-(Per-Channel) |                |
+SqueezeNet model from `${TNN_ROOT_PATH}/model/SqueezeNet/squeezenet_v1.1.tnnproto`. 500 pictures with id ending in `00` (`ILSVRC2012_val_*00.JPEG`) are chosen for calibration.
+|   blob_method   |  weight_method  |   merge_type    | Top-1 Accuracy |
+| :-------------: | :-------------: | :-------------: | :------------: |
+|      FP32       |      FP32       |      FP32       |     53.01%     |
+|   0-(Min-Max)   |   0-(Min-Max)   | 0-(Per-Channel) |     52.71%     |
+| 3-(ASY_MIN_MAX) | 3-(ASY_MIN_MAX) | 0-(Per-Channel) |     52.78%     |
+|    ACIQ_GAUS    |   0-(Min-Max)   | 0-(Per-Channel) |     52.76%     |
+|  ACIQ_LAPLACE   |   0-(Min-Max)   | 0-(Per-Channel) |                |
+
 ### 5. Note
 - defaut input scale/bias `mean = [0.485, 0.456, 0.406]` and `std = [0.229, 0.224, 0.225]`
 ```
@@ -46,4 +50,7 @@ MatConvertParam ImageClassifier::GetConvertParamForInput(std::string tag) {
     return input_cvt_param;
 }
 ```
+- quantization_cmd mean `-n 123.675,116.28,103.53` and scale `-s 0.01712475383,0.0175070028,0.01742919389`
+
+
 

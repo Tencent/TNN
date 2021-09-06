@@ -374,7 +374,7 @@ void NaiveConv1D(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias
     int output_channels_per_group = output_channel / group;
     int input_channels_per_group  = input_channel / group;
 
-    #pragma omp parallel for
+    OMP_PARALLEL_FOR_
     for (int n = 0; n < number; ++n) {
         for (int g = 0; g < group; ++g) {
             int output_c_start = g * output_channels_per_group;
@@ -461,7 +461,7 @@ void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, 
     int output_channels_per_group = output_channel / group;
     int input_channels_per_group  = input_channel / group;
 
-    #pragma omp parallel for
+    OMP_PARALLEL_FOR_
     for (int n = 0; n < number; ++n) {
         for (int g = 0; g < group; ++g) {
             int output_c_start = g * output_channels_per_group;
@@ -561,7 +561,7 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
     Tacc *buffer_weight_x_bias    = static_cast<Tacc *>(weight_x_bias_ptr);
     Tin *add_bias_i               = static_cast<Tin *>(add_bias_input);
 
-    #pragma omp parallel for
+    OMP_PARALLEL_FOR_
     for (int n = 0; n < number; ++n) {
         for (int g = 0; g < group; ++g) {
             int output_c_start = g * output_channels_per_group;
@@ -668,7 +668,7 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
     Tout *scale_bias_handle_o     = static_cast<Tout *>(scale_bias_o_ptr);
     Tin *add_bias_i               = static_cast<Tin *>(add_bias_input);
 
-    #pragma omp parallel for
+    OMP_PARALLEL_FOR_
     for (int n = 0; n < number; ++n) {
         for (int g = 0; g < group; ++g) {
             int output_c_start = g * output_channels_per_group;
@@ -817,7 +817,7 @@ void NaiveConv3D(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias
     int output_channels_per_group = output_channel / group;
     int input_channels_per_group  = input_channel / group;
 
-    #pragma omp parallel for
+    OMP_PARALLEL_FOR_
     for (int n = 0; n < number; ++n) {
         for (int g = 0; g < group; ++g) {
             int output_c_start = g * output_channels_per_group;
