@@ -45,6 +45,9 @@ option(TNN_PYBIND_ENABLE  "Enable Pybind" OFF)
 
 set(TNN_USE_GFLAGS OFF)
 
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set(CMAKE_SKIP_BUILD_RPATH TRUE)
+
 message(${CMAKE_SOURCE_DIR})
 message(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -335,6 +338,7 @@ endif()
 if(TNN_BUILD_SHARED)
     add_library(TNN SHARED ${SRC} ${TARGET_OBJECTS})
     set_target_properties(TNN PROPERTIES VERSION ${TNN_VERSION} SOVERSION ${TNN_MAJOR_VERSION})
+    set_target_properties(TNN PROPERTIES LINK_FLAGS "-Wl,-rpath,$ORIGIN")
     if(SHARING_MEM_WITH_OPENGL)
         target_link_libraries(TNN -lEGL -lGLESv2)
     endif()
@@ -370,6 +374,7 @@ if(TNN_PYBIND_ENABLE)
     target_link_libraries(_pytnn pybind11::module)
     set_target_properties(_pytnn PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                          SUFFIX "${PYTHON_MODULE_EXTENSION}")
+    set_target_properties(_pytnn PROPERTIES LINK_FLAGS "-Wl,-rpath,\$ORIGIN")
     target_link_libraries(_pytnn TNN)
 endif()
 
