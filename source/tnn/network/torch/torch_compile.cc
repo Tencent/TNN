@@ -14,10 +14,13 @@
 
 #include "tnn/network/torch/torch_compile.h"
 
+#include <torch/csrc/jit/passes/dead_code_elimination.h>
+#include <torch/csrc/jit/passes/fold_conv_bn.h>
 #include <torch/csrc/jit/passes/inliner.h>
 #include <torch/csrc/jit/passes/lower_graph.h>
+#include <torch/csrc/jit/passes/remove_dropout.h>
+#include <torch/csrc/jit/passes/remove_inplace_ops.h>
 #include <torch/csrc/jit/passes/subgraph_rewrite.h>
-#include <torch/csrc/jit/passes/dead_code_elimination.h>
 
 #include "tnn/network/torch/jit_util.h"
 #include "tnn/network/torch/torch_convert.h"
@@ -85,50 +88,40 @@ void RemoveException(torch::jit::Block *block) {
         auto block0_start = block0->nodes().begin();
         auto block1_start = block1->nodes().begin();
 
-        // Make sure that there is one block which contains exception node 
-        if (block0_start->kind() != prim::RaiseException && block1_start->kind() != prim::RaiseException) {
+        // Make sure that there is at least one empty block  
+        if (block0_start->kind() != prim::Return && block1_start->kind() != prim::Return) {
             return false;
         }
 
-        /// Check if this Node hosts a pattern like so:
-        ///  = prim::If(%5958)
-        ///   block0():
-        ///     = prim::RaiseException(%45)
-        ///    -> ()
-        ///   block1():
-        ///    -> ()
-        if ((*block0_start)->kind() == prim::RaiseException) {
-            if ((*(++block0_start))->kind() != prim::Return) {
-                // Make sure that block0 is solely just the exception and the return
-                return false;
-            }
-
-            if ((*(block1_start))->kind() != prim::Return) {
-                // Make sure that block1 is solely the return
-                return false;
+        if ((*block1_start)->kind() == prim::Return) {
+            if ((*block0_start)->kind() == prim::RaiseException) {
+                if ((*(++block0_start))->kind() == prim::Return) {
+                    // Make sure that block0 is solely just the exception and the return
+                    return true;
+                }
+            } else if ((*block0_start)->kind() == aten::format && (*(++block0_start))->kind() == prim::RaiseException) {
+                if ((*(++block0_start))->kind() == prim::Return) {
+                    // Make sure that block0 is solely just the exception and the return
+                    return true;
+                }
             }
         }
 
-        /// Check if this Node hosts a pattern like so:
-        ///  = prim::If(%5958)
-        ///   block0():
-        ///    -> ()
-        ///   block1():
-        ///     = prim::RaiseException(%45)
-        ///    -> ()
-        if ((*block1_start)->kind() == prim::RaiseException) {
-            if ((*(++block1_start))->kind() != prim::Return) {
-                // Make sure that block1 is solely just the exception and the return
-                return false;
-            }
-
-            if ((*(block0_start))->kind() != prim::Return) {
-                // Make sure that block0 is solely the return
-                return false;
+        if ((*block0_start)->kind() == prim::Return) {
+            if ((*block1_start)->kind() == prim::RaiseException) {
+                if ((*(++block1_start))->kind() == prim::Return) {
+                    // Make sure that block0 is solely just the exception and the return
+                    return true;
+                }
+            } else if ((*block1_start)->kind() == aten::format && (*(++block1_start))->kind() == prim::RaiseException) {
+                if ((*(++block1_start))->kind() == prim::Return) {
+                    // Make sure that block0 is solely just the exception and the return
+                    return true;
+                }
             }
         }
 
-        return true;
+        return false;
     };
 
     for (auto it = block->nodes().begin(), end = block->nodes().end(); it != end; ++it) {
@@ -267,6 +260,8 @@ void CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap &input
 
     // remove useless nodes for partition&conversion
     // RemoveUselessOps(g->block());
+    removeDropout(*mod);
+    RemoveInplaceOps(g);
     RemoveException(g->block());
     torch::jit::EliminateDeadCode(g);
 
