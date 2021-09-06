@@ -79,7 +79,7 @@ public class ReadingComprehensionFragment extends BaseFragment {
 
     private void onSwichGPU(boolean b) {
         mUseGPU = b;
-        String modelPath = initModel();
+        String modelPath = getActivity().getFilesDir().getAbsolutePath();
         int result;
 
         if (mUseGPU) {
@@ -164,7 +164,7 @@ public class ReadingComprehensionFragment extends BaseFragment {
 
     private void ask(){
         if(isOk){
-            String  modelPath = initModel();
+            String modelPath = getActivity().getFilesDir().getAbsolutePath();
             String answer_text = mReadingComprehensionTinyBert.ask(modelPath, material.getText().toString(), question.getText().toString());
             answer.setText(answer_text);
         } else {
