@@ -411,7 +411,7 @@ typedef enum {
     // broadcast channel x height
     BroadcastTypeChannelHeight = 7,
     // broadcast channel x width
-    BroadcastTypeChannelWidth = 8
+    BroadcastTypeChannelWidth = 8,
 } BroadcastType;
 
 struct MultidirBroadcastLayerParam : public ElementWiseLayerParam {
@@ -657,6 +657,20 @@ struct TopKLayerParam : public LayerParam {
     int k;
 
     PARAM_COPY(TopKLayerParam)
+};
+
+struct ScatterElementsLayerParam : public LayerParam {
+    int axis = 0;
+    // 0: eq, 1: add
+    int op = 0;
+
+    PARAM_COPY(ScatterElementsLayerParam);
+};
+
+struct LogSoftmaxLayerParam : public LayerParam {
+    int axis = 1;
+
+    PARAM_COPY(LogSoftmaxLayerParam)
 };
 
 };  // namespace TNN_NS

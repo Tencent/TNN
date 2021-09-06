@@ -22,23 +22,19 @@ kernel void matmul_common(const device ftype *mat_a                             
                                         device ftype *mat_c                                [[buffer(2)]],
                                         constant MetalMatMulParams & params  [[buffer(3)]],
                                         uint3 gid                                                             [[thread_position_in_grid]]) {
-    if ((int)gid.x >= params.N || (int)gid.y >= params.M || (int)gid.z >= params.batch_c) return;
+    if ((int)gid.x >= params.K || (int)gid.y >= params.M || (int)gid.z >= params.batch_c) return;
+        int batch_a = (int)gid.z % params.batch_a;
+        int batch_b = (int)gid.z % params.batch_b;
 
-    int batch_a = (int)gid.z >= params.batch_a ? 0 : (int)gid.z;
-    int batch_b = (int)gid.z >= params.batch_b ? 0 : (int)gid.z;
+        auto ptr_a = mat_a + (batch_a * params.M + (int)gid.y) * params.N;
+        auto ptr_b = mat_b + (batch_b * params.K * params.N) + (int)gid.x;
 
-    auto ptr_a = mat_a + (batch_a * params.M + (int)gid.y) * params.K;
-    auto ptr_b = mat_b + (batch_b * params.K * params.N) + (int)gid.x;
-    auto ptr_c = mat_c + ((int)gid.z * params.M + (int)gid.y) * params.N + (int)gid.x;
-    const int step_a = 1;
-    const int step_b = params.N;
+        ftype result = 0;
+        for(int i = 0; i < params.N; i++){
+            auto a_t =  ptr_a + i;
+            auto b_t =  ptr_b + i * params.K;
+            result += ftype(*a_t) * ftype(*b_t);
+        }
 
-    float result = 0;
-    for (auto z = 0; z < params.K; z++) {
-        result += float(*ptr_a) * float(*ptr_b);
-        ptr_a += step_a;
-        ptr_b += step_b;
-    }
-    
-    *ptr_c = ftype(result);
+        mat_c[((int)gid.z*params.M + (int)gid.y) * params.K + (int)gid.x] = ftype(result);
 }

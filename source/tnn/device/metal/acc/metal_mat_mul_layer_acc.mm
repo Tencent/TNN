@@ -46,16 +46,16 @@ Status MetalMatMulLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
     }
     auto matrix_c_dims       = outputs[0]->GetBlobDesc().dims;
 
-    const int N = matrix_b_dims[matrix_b_dims.size() - 1];
-    const int K = matrix_a_dims[matrix_a_dims.size() - 1];
+    const int K = matrix_b_dims[matrix_b_dims.size() - 1];
+    const int N = matrix_a_dims[matrix_a_dims.size() - 1];
     const int M = matrix_a_dims[matrix_a_dims.size() - 2];
 
     int count_a     = DimsVectorUtils::Count(matrix_a_dims);
     int count_b     = DimsVectorUtils::Count(matrix_b_dims);
     int count_c     = DimsVectorUtils::Count(matrix_c_dims);
-    int batch_a   = count_a / (M * K);
-    int batch_b   = count_b / (K * N);
-    int batch_c   = count_c / (M * N);
+    int batch_a   = count_a / (M * N);
+    int batch_b   = count_b / (N * K);
+    int batch_c   = count_c / (M * K);
     // buffer_param_
     {
         MetalMatMulParams metal_params;
@@ -76,12 +76,20 @@ Status MetalMatMulLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
 
 Status MetalMatMulLayerAcc::AllocateBufferWeight(const std::vector<Blob *> &inputs,
                                              const std::vector<Blob *> &outputs) {
+    if (inputs.size() == 2) {
+        //no const weight input
+        return TNN_OK;
+    }
+    
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
     if (inputs.size() >= 2) {
         //  both inputs are blobs, no layer_resource
         return TNN_OK;
     }
     auto layer_res = dynamic_cast<MatMulLayerResource *>(resource_);
+    if (layer_res == nullptr) {
+        return TNN_OK;
+    }
     auto& weight   = layer_res->weight;
 
     const auto data_type = weight.GetDataType();
@@ -193,14 +201,14 @@ Status MetalMatMulLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
         matrix_b_dims.push_back(1);
     }
     auto matrix_c_dims       = outputs[0]->GetBlobDesc().dims;
-    const int N = matrix_b_dims[matrix_b_dims.size() - 1];
-    const int K = matrix_a_dims[matrix_a_dims.size() - 1];
+    const int K = matrix_b_dims[matrix_b_dims.size() - 1];
+    const int N = matrix_a_dims[matrix_a_dims.size() - 1];
     const int M = matrix_a_dims[matrix_a_dims.size() - 2];
 
     int count_c = DimsVectorUtils::Count(matrix_c_dims);
-    int batch_c = count_c / (M * N);
+    int batch_c = count_c / (M * K);
 
-    size = MTLSizeMake(N, M, batch_c);
+    size = MTLSizeMake(K, M, batch_c);
     return TNN_OK;
 }
 

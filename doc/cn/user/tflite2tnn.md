@@ -41,15 +41,17 @@ yum install  python3 python3-devel
 - 安装 python 依赖库  
 numpy>=1.17.0  
 protobuf>=3.4.0
+onnxruntime>=1.1.0
+onnx>=1.2.0
 ```shell script
-pip3 install numpy  protobuf
+pip3 install numpy protobuf onnxruntime onnx
 ```
 
 - cmake （version >= 3.0）
 从的官网下载最新版本的 cmake，然后按照文档安装即可。建议使用最新版本的 cmake。
 
 ### 编译
-tflite2tnn 工具在 Mac 以及 Linux 上有自动编译脚本直接运行既可以。
+tflite2tnn 工具在 Mac 以及 Linux 上有自动编译脚本直接运行即可以。
  ```shell script
 cd <path-to-tnn>/tools/convert2tnn
 ./build.sh 

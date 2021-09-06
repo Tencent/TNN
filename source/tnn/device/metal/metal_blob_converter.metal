@@ -224,7 +224,7 @@ static inline void data_converter_nc4hw4_2_nchw_v2(device DstType *dst,
     int channel_out = gid.y*4;
     int index_out = ((int)gid.z*params.channel + channel_out)*params.size + (int)gid.x;
 
-    float4 scale_c = float4(Zero4);
+    float4 scale_c = float4(One4);
     float4 bias_c  = float4(Zero4);
     if (DoScale) {
         scale_c = float4(scale[channel_out], 0, 0, 0);
@@ -370,7 +370,7 @@ static inline void data_converter_nchw_2_nc4hw4_v2(device DstType4 *dst,
     const int index_out =  (int)gid.z*params.slice*params.size + (int)gid.y * params.size + (int)gid.x;
 
     ftype4 in_data  = ftype4(Zero4);
-    float4 scale_c  = float4(Zero4);
+    float4 scale_c  = float4(One4);
     float4 bias_c   = float4(Zero4);
 
     in_data.x = src[index_in];

@@ -152,6 +152,7 @@ AbstractLayerAcc *MetalDevice::CreateLayerAcc(LayerType type) {
     if (layer_creator_map.count(type) > 0) {
         return layer_creator_map[type]->CreateLayerAcc(type);
     } else {
+        LOGD("There is no metal layer acc with type %d, now we will try MetalCpuAdapterAcc to forword it on cpu\n", type);
         return new MetalCpuAdapterAcc(type);
     }
     return NULL;
