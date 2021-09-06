@@ -12,17 +12,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn/device/arm/acc/arm_layer_norm_layer_acc.h"
+
 #include <cmath>
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
-
-DECLARE_ARM_ACC(LayerNorm, LAYER_LAYER_NORM);
 
 Status ArmLayerNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     // https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html
@@ -42,6 +41,7 @@ Status ArmLayerNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
     const int channels         = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, 0, channel_dim_size);
     const int channel_area     = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, channel_dim_size);
 
+    const int fake_channel_area = DimsVectorUtils::Count(dims_input, channel_dim_size);
     const int f4_round_down     = channel_area / 4;
     const int f4_remainder      = channel_area % 4;
 
@@ -56,6 +56,8 @@ Status ArmLayerNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
 
         auto dst = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
         auto src = reinterpret_cast<float *>(GetBlobHandlePtr(input_blob->GetHandle()));
+
+        float *input_data = (float *)((char *)input_blob->GetHandle().base + input_blob->GetHandle().bytes_offset);
 
         for (int c = 0; c < channels; c += 1) {
             Float4 sum_x_f4(0.f);
@@ -97,8 +99,8 @@ Status ArmLayerNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
             float variance = mean_x2 - mean_x * mean_x;
             variance       = 1 / (sqrt(variance + epsilon));
 
-            Float4 mean_x_f4(mean_x);
-            Float4 variance_f4(variance);
+            Float4 mean_x_f4(mean_x);      // [mean_x, ...]
+            Float4 variance_f4(variance);  // [1/(sqrt(+)), ...]
 
             for (int hw = 0; hw < f4_round_down * 4; hw += 4) {
                 auto k    = Float4::load(k_data + hw);
@@ -115,9 +117,8 @@ Status ArmLayerNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
                 auto bias = b_data[hw];
                 bias      = bias - ((mean_x * variance) * k);
 
-                auto x   = src[c * channel_area + hw];
-                auto tmp = ((x * variance) * k) + bias;
-
+                auto x                     = src[c * channel_area + hw];
+                auto tmp                   = ((x * variance) * k) + bias;
                 dst[c * channel_area + hw] = tmp;
             }
         }
