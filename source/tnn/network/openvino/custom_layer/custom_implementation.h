@@ -24,6 +24,7 @@
 #include <ie_layouts.h>
 
 #include <tnn/core/status.h>
+#include <tnn/network/openvino/openvino_network.h>
 #include <ngraph/ngraph.hpp>
 #include <ngraph/opsets/opset.hpp>
 
@@ -42,15 +43,28 @@ public:
     };
 
     void validate_and_infer_types() override {
+        for (size_t i = 0; i < input_blobs_.size(); i++) {
+            auto input_desc = input_blobs_[i]->GetBlobDesc();
+            auto dims0 = input_desc.dims;
+            auto input_shape = get_input_shape(i);
+            
+            dims0.resize(input_shape.size());
+            for (size_t j = 0; j < input_shape.size(); j++) {
+                dims0[j] = input_shape[j];
+            }
+            input_desc.dims = dims0;
+            input_blobs_[i]->SetBlobDesc(input_desc);
+        }
+        base_layer_->Reshape();
         for (size_t i = 0; i < output_blobs_.size(); i++) {
             auto dims0 = output_blobs_[i]->GetBlobDesc().dims;
-            ngraph::Shape output_shape(dims0.size());
+            ngraph::Shape output_shape(dims0.size());       
             for (size_t j = 0; j < dims0.size(); j++) {
                 output_shape[j] = dims0[j];
             }
             set_output_type(i, get_input_element_type(0), ngraph::PartialShape(output_shape));
         }
-    }
+    };
 
     bool visit_attributes(ngraph::AttributeVisitor& visitor) override {
         return true;

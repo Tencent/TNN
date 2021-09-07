@@ -16,7 +16,7 @@ INPUT_PATH=
 WORK_DIR=`pwd`
 
 function usage() {
-    echo "usage: ./test_android.sh  [-32] [-c] [-b] [-f] [-d] <device-id> [-t] <CPU/GPU>"
+    echo "usage: ./test_android.sh  [-32] [-c] [-d] <device-id> [-t] <CPU/GPU> -m <tnnproto file path> -i <input file path>"
     echo "options:"
     echo "        -32   Build 32 bit."
     echo "        -c    Clean up build folders."

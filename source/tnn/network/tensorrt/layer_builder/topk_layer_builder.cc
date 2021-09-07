@@ -28,6 +28,9 @@ ILayer* TopKTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         topk_largest = nvinfer1::TopKOperation::kMIN;
     }
 
+    if (param->axis < 0) {
+        param->axis += tensor->getDimensions().nbDims;
+    }
     uint32_t reduceAxis = 0x1 << param->axis;
 
     ITopKLayer* layer = network->addTopK(*tensor, topk_largest, param->k, reduceAxis);

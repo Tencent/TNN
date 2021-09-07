@@ -52,7 +52,7 @@ Status ReshapeOVLayerBuilder::Build() {
     auto patternNode = std::make_shared<ngraph::op::Constant>(ngraph::element::Type_t::i32, output_shape, shapePattern);
 
     std::shared_ptr<ngraph::Node> reshapeNode = nullptr;
-    if (paramlist->reshape_type != 1) {
+    if (paramlist->reshape_type != 1 && input_blobs_.size() == 1) {
         reshapeNode = std::make_shared<ngraph::op::v1::Reshape>(input_node->output(0), patternNode, true);
         reshapeNode->set_friendly_name(paramlist->name);
         reshapeNode->validate_and_infer_types();

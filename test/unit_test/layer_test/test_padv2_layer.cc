@@ -64,7 +64,7 @@ TEST_P(PadV2LayerTest, PadV2Layer) {
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
     // only cuda, arm, opencl implements padv2 now
-    if (!(DEVICE_CUDA == dev || DEVICE_ARM == dev || DEVICE_OPENCL == dev)) {
+    if (!(DEVICE_CUDA == dev || DEVICE_ARM == dev || DEVICE_OPENCL == dev || DEVICE_METAL == dev)) {
         GTEST_SKIP();
     }
     // arm only support dims size 4
@@ -73,6 +73,11 @@ TEST_P(PadV2LayerTest, PadV2Layer) {
     }
     // opnecl only support dims size 4
     if (DEVICE_OPENCL == dev && dim_count != 4) {
+        GTEST_SKIP();
+    }
+
+    // metal only support dims size 4
+    if (DEVICE_METAL == dev && dim_count != 4) {
         GTEST_SKIP();
     }
 

@@ -46,13 +46,13 @@ Status ObjectDetectorYolo::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output
     RETURN_VALUE_ON_NEQ(!output, false,
                         Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
     
-    auto output_mat_0 = output->GetMat("428");
+    auto output_mat_0 = output->GetMat("output");
     RETURN_VALUE_ON_NEQ(!output_mat_0, false,
                         Status(TNNERR_PARAM_ERR, "GetMat is invalid"));
-    auto output_mat_1 = output->GetMat("427");
+    auto output_mat_1 = output->GetMat("463");
     RETURN_VALUE_ON_NEQ(!output_mat_1, false,
                         Status(TNNERR_PARAM_ERR, "GetMat is invalid"));
-    auto output_mat_2 = output->GetMat("426");
+    auto output_mat_2 = output->GetMat("482");
     RETURN_VALUE_ON_NEQ(!output_mat_2, false,
                         Status(TNNERR_PARAM_ERR, "GetMat is invalid"));
     
@@ -72,12 +72,41 @@ void ObjectDetectorYolo::NMS(std::vector<ObjectInfo>& objs, std::vector<ObjectIn
 
 ObjectDetectorYolo::~ObjectDetectorYolo() {}
 
+void ObjectDetectorYolo::PostProcessMat(std::vector<std::shared_ptr<Mat> >outputs, std::vector<std::shared_ptr<Mat> >& post_mats) {
+    for (auto &output : outputs) {
+        auto dims = output->GetDims();
+        auto h_stride = DimsVectorUtils::Count(dims, 2);
+        auto w_stride = DimsVectorUtils::Count(dims, 3);
+        DimsVector permute_dims = {dims[0], dims[2], dims[3], dims[1] * dims[4]}; // batch, height, width, anchor*detect_dim
+        auto mat = std::make_shared<Mat>(output->GetDeviceType(), output->GetMatType(), permute_dims);
+        float *src_data = reinterpret_cast<float *>(output->GetData());
+        float *dst_data = reinterpret_cast<float *>(mat->GetData());
+        int out_idx = 0;
+        for (int h = 0; h < permute_dims[1]; h++) {
+            for (int w = 0; w < permute_dims[2]; w++) {
+                for (int s = 0; s < permute_dims[3]; s++) {
+                    int anchor_idx = s / dims[4];
+                    int detect_idx = s % dims[4];
+                    int in_idx = anchor_idx * h_stride + h * w_stride + w * dims[4] + detect_idx;
+                    dst_data[out_idx++] = 1.0f / (1.0f + exp(-src_data[in_idx]));
+                }
+            }
+        }
+
+        post_mats.emplace_back(mat);
+    }
+}
+
 void ObjectDetectorYolo::GenerateDetectResult(std::vector<std::shared_ptr<Mat> >outputs,
                                               std::vector<ObjectInfo>& detecs, int image_width, int image_height) {
     std::vector<ObjectInfo> extracted_objs;
     int blob_index = 0;
-    
-    for(auto& output:outputs){
+
+    std::vector<std::shared_ptr<Mat>> post_mats;
+    PostProcessMat(outputs, post_mats);
+    auto output_mats = post_mats;
+
+    for(auto& output:output_mats){
         auto dim = output->GetDims();
   
         if(dim[3] != num_anchor_ * detect_dim_) {

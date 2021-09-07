@@ -82,6 +82,10 @@ struct MetalCastParams {
 #define kBroadcastTypeElement 0x0003
 #define kBroadcastTypeHeightWidth 0x0004
 #define kBroadcastTypeWidth 0x0005
+#define kBroadcastTypeGeneral 0x0006
+
+#define kBroadcastTypeChannelWidth 0x0008
+#define kBroadcastType5DimsHeightWidth 0x0009
 
 /** Broadcast Param Struct **/
 struct MetalBroadcastParams {
@@ -101,6 +105,16 @@ struct MetalBroadcastParams {
 
     int input0_size;
     int input1_size;
+
+    int real_input0_1;
+    int real_input0_2;
+    int real_input0_3;
+    int real_input0_4;
+
+    int real_input1_1;
+    int real_input1_2;
+    int real_input1_3;
+    int real_input1_4;
 };
 
 /**Pow Param Struct **/
@@ -445,6 +459,7 @@ struct MetalReduceParams {
     int axis;
     int input_channel;
     int input_channel_mode_4;
+    int input_dim4;
 };
 
 /** Multi-axis Reduce Param Struct **/
@@ -505,14 +520,14 @@ struct MetalImageConverterParams {
     int channel;
     int slice;
     int batch = 1;
-    float scale_x;
-    float scale_y;
-    float scale_z;
-    float scale_w;
-    float bias_x;
-    float bias_y;
-    float bias_z;
-    float bias_w;
+    float scale_x = 1.0f;
+    float scale_y = 1.0f;
+    float scale_z = 1.0f;
+    float scale_w = 1.0f;
+    float bias_x = 0.0f;
+    float bias_y =  0.0f;
+    float bias_z = 0.0f;
+    float bias_w = 0.0f;
     int bgra_to_rgba;
 };
 
@@ -760,6 +775,10 @@ struct MetalTileParams {
     int input_size;
     int input_slice;
     int input_channel;
+    int input_dim1_size;
+    int input_dim0_size;
+    int output_dim1_size;
+    int output_dim0_size;
 
     int output_width;
     int output_height;
@@ -771,6 +790,8 @@ struct MetalTileParams {
     int extend_width_times;
     int extend_channel_times;
     int extend_batch_times;
+    int extend_dim1_times;
+    int extend_dim0_times;
 };
 
 #define SetDefaultMetalParams(metal_params, dims_input, dims_output)                                                   \
@@ -807,6 +828,22 @@ struct MetalTileParams {
         metal_params.pad_y       = conv_param->pads[2];                                                                \
         metal_params.dilation_x  = conv_param->dialations[0];                                                          \
         metal_params.dilation_y  = conv_param->dialations[1];                                                          \
+        metal_params.group       = conv_param->group;                                                                  \
+    } while (0)
+
+#define SetDefaultMetalConv1DParams(metal_params, conv_param)                                                            \
+    do {                                                                                                               \
+        metal_params.activation  = conv_param->activation_type;                                                        \
+        metal_params.has_bias    = conv_param->bias;                                                                   \
+        metal_params.kernel_x    = 1;                                                             \
+        metal_params.kernel_y    = conv_param->kernels[0];                                                             \
+        metal_params.kernel_size = metal_params.kernel_x * metal_params.kernel_y;                                      \
+        metal_params.stride_x    = 1;                                                             \
+        metal_params.stride_y    = conv_param->strides[0];                                                             \
+        metal_params.pad_x       = conv_param->pads[0];                                                                \
+        metal_params.pad_y       = 0;                                                                \
+        metal_params.dilation_x  = conv_param->dialations[0];                                                          \
+        metal_params.dilation_y  = 1;                                                          \
         metal_params.group       = conv_param->group;                                                                  \
     } while (0)
 

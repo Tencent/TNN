@@ -15,9 +15,9 @@
 #import <Metal/Metal.h>
 
 #import "tnn/core/macro.h"
-#import "tnn/device//metal/acc/metal_common.h"
-#import "tnn/device//metal/metal_command_queue.h"
-#import "tnn/device//metal/metal_context.h"
+#import "tnn/device/metal/acc/metal_common.h"
+#import "tnn/device/metal/metal_command_queue.h"
+#import "tnn/device/metal/metal_context.h"
 #import "tnn/utils/blob_converter_internal.h"
 #import "tnn/utils/data_type_utils.h"
 #import "tnn/utils/dims_utils.h"
@@ -37,8 +37,9 @@ public:
 protected:
     MatConvertParam param_;
     id<MTLDevice> device_                         = nil;
-    id<MTLBuffer> buffer_param_                   = nil;
-    id<MTLComputePipelineState> pipeline_process_ = nil;
+    id<MTLBuffer> buffer_param_                = nil;
+    NSString *pipeline_func_name_             = nil;
+    
     // buffer for scale and bias used in nchw_float mat transformation
     id<MTLBuffer> buffer_scale_;
     id<MTLBuffer> buffer_bias_;
@@ -139,10 +140,10 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
             metal_param.bias_z = 0.0f;
             metal_param.bias_w = 0.0f;
         }
+        LOGD("metal_param scale: %.6f %.6f %.6f\n", metal_param.scale_x, metal_param.scale_y, metal_param.scale_z);
+        LOGD("metal_param size: %d %d %d\n", metal_param.size, metal_param.slice, metal_param.batch);
     }
 
-    LOGD("metal_param scale: %.6f %.6f %.6f\n", metal_param.scale_x, metal_param.scale_y, metal_param.scale_z);
-    LOGD("metal_param size: %d %d %d\n", metal_param.size, metal_param.slice, metal_param.batch);
 
     buffer_param_ = [device_ newBufferWithBytes:&metal_param
                                          length:sizeof(MetalImageConverterParams)
@@ -171,30 +172,30 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
     auto blob_data_type   = blob->GetBlobDesc().data_type;
     auto blob_data_format = blob->GetBlobDesc().data_format;
 
-    id<MTLFunction> func_process = nil;
+    NSString *func_name = nil;
 
     // texture <-> blob
     if (mat_type == N8UC4) {
         if (is_mat_to_blob) {
             if (blob_data_format == DATA_FORMAT_NC4HW4) {
-                func_process = [library newFunctionWithName:@"image_converter_texture_bgra8888_2_buffer_nc4hw4"];
+                func_name = @"image_converter_texture_bgra8888_2_buffer_nc4hw4";
                 LOGD("image_converter_texture_bgra8888_2_buffer_nc4hw4\n");
             } else if (blob_data_format == DATA_FORMAT_NCHW) {
                 if (blob_data_type == DATA_TYPE_FLOAT) {
-                    func_process = [library newFunctionWithName:@"image_converter_texture_bgra8888_2_buffer_nchw_f"];
+                    func_name = @"image_converter_texture_bgra8888_2_buffer_nchw_f";
                     LOGD("image_converter_texture_bgra8888_2_buffer_nchw_f\n");
                 }
             }
         } else {
             if (mat_device_type != DEVICE_METAL && blob_data_format == DATA_FORMAT_NC4HW4) {
-                func_process = [library newFunctionWithName:@"image_converter_buffer_nc4hw4_2_buffer_bgra"];
+                func_name = @"image_converter_buffer_nc4hw4_2_buffer_bgra";
                 LOGD("image_converter_buffer_nc4hw4_2_buffer_bgra\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
-                func_process = [library newFunctionWithName:@"image_converter_buffer_nc4hw4_2_texture_bgra8888"];
+                func_name = @"image_converter_buffer_nc4hw4_2_texture_bgra8888";
                 LOGD("image_converter_buffer_nc4hw4_2_texture_bgra8888\n");
             } else if (blob_data_format == DATA_FORMAT_NCHW) {
                 if (blob_data_type == DATA_TYPE_FLOAT) {
-                    func_process = [library newFunctionWithName:@"image_converter_buffer_nchw_f_2_texture_bgra8888"];
+                    func_name = @"image_converter_buffer_nchw_f_2_texture_bgra8888";
                     LOGD("image_converter_buffer_nchw_f_2_texture_bgra8888\n");
                 }
             }
@@ -202,87 +203,72 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
     } else if (mat_type == N8UC3) {
         if (is_mat_to_blob) {
             if (blob_data_format == DATA_FORMAT_NC4HW4) {
-                func_process = [library newFunctionWithName:@"image_converter_buffer_bgr_2_buffer_nc4hw4"];
+                func_name = @"image_converter_buffer_bgr_2_buffer_nc4hw4";
                 LOGD("image_converter_buffer_bgr_2_buffer_nc4hw4\n");
 
             }
         } else {
             if (blob_data_format == DATA_FORMAT_NC4HW4) {
-                func_process = [library newFunctionWithName:@"image_converter_buffer_nc4hw4_2_buffer_bgr"];
+                func_name = @"image_converter_buffer_nc4hw4_2_buffer_bgr";
                 LOGD("image_converter_buffer_nc4hw4_2_buffer_bgr\n");
             }
         }
     } else if (mat_type == NCHW_FLOAT) {
         if (is_mat_to_blob) {
             if (blob_data_format == DATA_FORMAT_NCHW) {
-                func_process = [library newFunctionWithName:@"data_converter_nchw_float2ftype"];
-                LOGD("data_converter_nchw_float2ftype\n");
+                func_name = @"data_converter_nchw_float2ftype";
+                LOGD("data_converter_nchw_2_nchw\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
-                func_process = [library newFunctionWithName:@"data_converter_nchw_2_nc4hw4_float_v2"];
+                func_name = @"data_converter_nchw_2_nc4hw4_float_v2";
                 LOGD("data_converter_nchw_2_nc4hw4_float_v2\n");
             }
         } else {
             if (blob_data_type == DATA_TYPE_INT32) {
                 // int32 blob to float mat
-                func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_int322float_v2"];
-                LOGD("data_converter_nc4hw4_2_nchw_int322float_v2\n");
+                func_name = @"data_converter_nc4hw4_2_nchw_int322float_v2";
+                LOGD("data_converter_nc4hw4_2_nchw_int32_v2\n");
             } else if (blob_data_format == DATA_FORMAT_NCHW) {
-                func_process = [library newFunctionWithName:@"data_converter_nchw_ftype2float"];
-                LOGD("data_converter_nchw_ftype2float\n");
+                func_name = @"data_converter_nchw_ftype2float";
+                LOGD("data_converter_nchw_2_nchw\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
-                func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_float_v2"];
+                func_name = @"data_converter_nc4hw4_2_nchw_float_v2";
                 LOGD("data_converter_nc4hw4_2_nchw_float_v2\n");
             }
         }
     } else if (mat_type == RESERVED_BFP16_TEST) {
         if (is_mat_to_blob) {
             if (blob_data_format == DATA_FORMAT_NCHW) {
-                func_process = [library newFunctionWithName:@"data_converter_nchw_half2ftype"];
-                LOGD("data_converter_nchw_half2ftype\n");
+                func_name = @"data_converter_nchw_half2ftype";
+                LOGD("data_converter_nchw_2_nchw\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
-                func_process = [library newFunctionWithName:@"data_converter_nchw_2_nc4hw4_half_v2"];
-                LOGD("data_converter_nchw_2_nc4hw4_half_v2\n");
+                func_name = @"data_converter_nchw_2_nc4hw4_half_v2";
+                LOGD("data_converter_nchw_2_nc4hw4_float_v2\n");
             }
         } else {
             if (blob_data_format == DATA_FORMAT_NCHW) {
-                func_process = [library newFunctionWithName:@"data_converter_nchw_ftype2half"];
-                LOGD("data_converter_nchw_ftype2half\n");
+                func_name = @"data_converter_nchw_ftype2half";
+                LOGD("data_converter_nchw_2_nchw\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
-                func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_half_v2"];
-                LOGD("data_converter_nc4hw4_2_nchw_half_v2\n");
+                func_name = @"data_converter_nc4hw4_2_nchw_half_v2";
+                LOGD("data_converter_nc4hw4_2_nchw_float_v2\n");
             }
         }
     } else if (mat_type == NC_INT32) {
         if (blob_data_type == DATA_TYPE_INT32) {
             if (is_mat_to_blob) {
-                if (blob_data_format == DATA_FORMAT_NC4HW4) {
-                    func_process = [library newFunctionWithName:@"data_converter_nchw_2_nc4hw4_int32_v2"];
-                    LOGD("data_converter_nchw_2_nc4hw4_int32_v2\n");
-                } else if (blob_data_format == DATA_FORMAT_NCHW) {
-                    func_process = [library newFunctionWithName:@"data_converter_nchw_int"];
-                    LOGD("data_converter_nchw_int\n");
-                }
+                func_name = @"data_converter_nchw_2_nc4hw4_int32_v2";
+                LOGD("data_converter_nchw_2_nc4hw4_int32_v2\n");
             } else {
-                if (blob_data_format == DATA_FORMAT_NC4HW4) {
-                    func_process = [library newFunctionWithName:@"data_converter_nc4hw4_2_nchw_int32_v2"];
-                    LOGD("data_converter_nc4hw4_2_nchw_int32_v2\n");
-                } else if (blob_data_format == DATA_FORMAT_NCHW) {
-                    func_process = [library newFunctionWithName:@"data_converter_nchw_int"];
-                    LOGD("data_converter_nchw_int\n");
-                }
+                func_name = @"data_converter_nc4hw4_2_nchw_int32_v2";
+                LOGD("data_converter_nc4hw4_2_nchw_int32_v2\n");
             }
         }
     }
 
-    if (!func_process) {
+    if (!func_name) {
         return Status(TNNERR_INVALID_INPUT, "mat converter func not found");
     }
-
-    auto pipeline_process = [device_ newComputePipelineStateWithFunction:func_process error:nil];
-    if (!pipeline_process) {
-        return Status(TNNERR_INVALID_INPUT, "mat converter pipeline is nil");
-    }
-    pipeline_process_ = pipeline_process;
+    pipeline_func_name_ = func_name;
 
     return TNN_OK;
 }
@@ -337,11 +323,6 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
     auto output_mat_device              = output_mat.GetDeviceType();
     id<MTLCommandBuffer> command_buffer = nil;
     if (mat_type == N8UC4 && output_mat_device == DEVICE_METAL) {
-        MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
-        MTLSize groups = {(NSUInteger)((DimsFunctionUtils::GetDim(dims, 3) + group_threads.width - 1) / group_threads.width),
-                          (NSUInteger)DimsFunctionUtils::GetDim(dims, 2),
-                          (NSUInteger)1};
-
         auto output_texture       = (__bridge id<MTLTexture>)(output_mat.GetData());
         Blob *input_buffer_blob = (Blob *)(input_blob);
         if (output_texture.height != DimsFunctionUtils::GetDim(dims, 2) || output_texture.width != DimsFunctionUtils::GetDim(dims, 3) ||
@@ -350,10 +331,22 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
             return Status(TNNERR_INST_ERR, "output mat's texture is invalid, wrong size or pixel format");
         }
 
-        command_buffer = [command_queue_impl commandBuffer];
-        [command_buffer enqueue];
-        auto encoder = [command_buffer computeCommandEncoder];
-        [encoder setComputePipelineState:pipeline_process_];
+        auto encoder = [context_impl encoder];
+        if (!encoder) {
+            LOGE("ERROR: ConvertToMatCommon cannot allocate new encoder\n");
+            return Status(TNNERR_PARAM_ERR, "ConvertToMatCommon cannot allocate new encoder");
+        }
+        
+        MetalBandwidth bandwidth;
+        status = [context_impl load:pipeline_func_name_
+                            encoder:encoder
+                            bandwidth:bandwidth];
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        MTLSize group_threads = {(NSUInteger)bandwidth.thread_execution_width, (NSUInteger)1, (NSUInteger)1};
+        MTLSize groups = {(NSUInteger)((DimsFunctionUtils::GetDim(dims, 3) + group_threads.width - 1) / group_threads.width),
+                          (NSUInteger)DimsFunctionUtils::GetDim(dims, 2),
+                          (NSUInteger)1};
 
         [encoder setTexture:output_texture atIndex:0];
         [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input_buffer_blob->GetHandle().base
@@ -378,15 +371,22 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         id<MTLBuffer> output_mtl_buffer = [command_queue_impl.device newBufferWithLength:count * bytes_size
                                                                        options:MTLResourceCPUCacheModeDefaultCache];
 
-        MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
+        auto encoder = [context_impl encoder];
+        if (!encoder) {
+            LOGE("ERROR: ConvertToMatCommon cannot allocate new encoder\n");
+            return Status(TNNERR_PARAM_ERR, "ConvertToMatCommon cannot allocate new encoder");
+        }
+        
+        MetalBandwidth bandwidth;
+        status = [context_impl load:pipeline_func_name_
+                            encoder:encoder
+                            bandwidth:bandwidth];
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        MTLSize group_threads = {(NSUInteger)bandwidth.thread_execution_width, (NSUInteger)1, (NSUInteger)1};
         MTLSize groups = {(NSUInteger)((DimsFunctionUtils::GetDim(dims, 3) + group_threads.width - 1) / group_threads.width),
                           (NSUInteger)DimsFunctionUtils::GetDim(dims, 2),
                           (NSUInteger)1};
-
-        command_buffer = [command_queue_impl commandBuffer];
-        [command_buffer enqueue];
-        auto encoder = [command_buffer computeCommandEncoder];
-        [encoder setComputePipelineState:pipeline_process_];
 
         [encoder setBuffer:output_mtl_buffer offset:0 atIndex:0];
         [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input_blob->GetHandle().base
@@ -418,7 +418,19 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         NSUInteger image_slice = UP_DIV(dims[1], 4);
         bool is_blob_nchw = input_buffer_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
 
-        auto group_threads = MTLSizeMake(pipeline_process_.threadExecutionWidth, 1, 1);
+        auto encoder = [context_impl encoder];
+        if (!encoder) {
+            LOGE("ERROR: ConvertToMatCommon cannot allocate new encoder\n");
+            return Status(TNNERR_PARAM_ERR, "ConvertToMatCommon cannot allocate new encoder");
+        }
+        
+        MetalBandwidth bandwidth;
+        status = [context_impl load:pipeline_func_name_
+                            encoder:encoder
+                            bandwidth:bandwidth];
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        auto group_threads = MTLSizeMake(bandwidth.thread_execution_width, 1, 1);
         auto groups = MTLSizeMake((image_size + group_threads.width - 1) / group_threads.width,
                                   image_slice, dims[0]);
         if (is_blob_nchw) {
@@ -427,7 +439,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         }
 
         if (image_size <= image_slice) {
-            group_threads = MTLSizeMake(1, pipeline_process_.threadExecutionWidth, 1);
+            group_threads = MTLSizeMake(1, bandwidth.thread_execution_width, 1);
             groups = MTLSizeMake(image_size,
                                  (image_slice + group_threads.height - 1) / group_threads.height,
                                  dims[0]);
@@ -437,11 +449,6 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
                                      dims[0]);
             }
         }
-
-        command_buffer = [command_queue_impl commandBuffer];
-        [command_buffer enqueue];
-        auto encoder = [command_buffer computeCommandEncoder];
-        [encoder setComputePipelineState:pipeline_process_];
 
         [encoder setBuffer:output_mtl_buffer offset:0 atIndex:0];
         [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input_buffer_blob->GetHandle().base
@@ -455,7 +462,8 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
 
-        [command_buffer commit];
+        auto command_buffer = context_impl.commandBuffer;
+        [context_impl commit:YES];
 
         if (output_mat_device == DEVICE_METAL) {
             if (waitState == 1) {
@@ -482,9 +490,20 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
 
         NSUInteger image_size  = DimsFunctionUtils::GetDimProduct(dims, 2);
         NSUInteger image_slice = UP_DIV(dims[1], 4);
-        bool is_blob_nchw = input_buffer_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
-
-        auto group_threads = MTLSizeMake(pipeline_process_.threadExecutionWidth, 1, 1);
+        
+        auto encoder = [context_impl encoder];
+        if (!encoder) {
+            LOGE("ERROR: ConvertToMatCommon cannot allocate new encoder\n");
+            return Status(TNNERR_PARAM_ERR, "ConvertToMatCommon cannot allocate new encoder");
+        }
+        
+        MetalBandwidth bandwidth;
+        status = [context_impl load:pipeline_func_name_
+                            encoder:encoder
+                            bandwidth:bandwidth];
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        auto group_threads = MTLSizeMake(bandwidth.thread_execution_width, 1, 1);
         auto groups = MTLSizeMake((image_size + group_threads.width - 1) / group_threads.width,
                                   image_slice, dims[0]);
         if (is_blob_nchw) {
@@ -493,7 +512,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         }
 
         if (image_size <= image_slice) {
-            group_threads = MTLSizeMake(1, pipeline_process_.threadExecutionWidth, 1);
+            group_threads = MTLSizeMake(1, bandwidth.thread_execution_width, 1);
             groups = MTLSizeMake(image_size,
                                  (image_slice + group_threads.height - 1) / group_threads.height,
                                  dims[0]);
@@ -503,11 +522,6 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
                                      dims[0]);
             }
         }
-
-        command_buffer = [command_queue_impl commandBuffer];
-        [command_buffer enqueue];
-        auto encoder = [command_buffer computeCommandEncoder];
-        [encoder setComputePipelineState:pipeline_process_];
 
         [encoder setBuffer:output_mtl_buffer offset:0 atIndex:0];
         [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input_buffer_blob->GetHandle().base
@@ -588,10 +602,7 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
     do {
         if (mat_type == N8UC4) {
             // For Texture input
-            MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
-            MTLSize groups        = {(NSUInteger)((DimsFunctionUtils::GetDim(dims, 3) + group_threads.width - 1) / group_threads.width),
-                              (NSUInteger)DimsFunctionUtils::GetDim(dims, 2), (NSUInteger)1};
-
+            
             id<MTLTexture> input_texture = nil;
             if (mat_device_type == DEVICE_METAL) {
                 input_texture = (__bridge id<MTLTexture>)(input_mat.GetData());
@@ -618,11 +629,22 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                 return Status(TNNERR_INST_ERR, "input mat's texture is invalid, wrong size or pixel format");
             }
 
-            auto command_buffer = [command_queue_impl commandBuffer];
-            [command_buffer enqueue];
-            auto encoder = [command_buffer computeCommandEncoder];
-            [encoder setComputePipelineState:pipeline_process_];
-
+            auto encoder = [context_impl encoder];
+            if (!encoder) {
+                LOGE("ERROR: ConvertFromMatCommon cannot allocate new encoder\n");
+                return Status(TNNERR_PARAM_ERR, "ConvertFromMatCommon cannot allocate new encoder");
+            }
+            
+            MetalBandwidth bandwidth;
+            status = [context_impl load:pipeline_func_name_
+                                encoder:encoder
+                                bandwidth:bandwidth];
+            RETURN_ON_NEQ(status, TNN_OK);
+            
+            MTLSize group_threads = {(NSUInteger)bandwidth.thread_execution_width, (NSUInteger)1, (NSUInteger)1};
+            MTLSize groups        = {(NSUInteger)((DimsFunctionUtils::GetDim(dims, 3) + group_threads.width - 1) / group_threads.width),
+                              (NSUInteger)DimsFunctionUtils::GetDim(dims, 2), (NSUInteger)1};
+            
             [encoder setTexture:input_texture atIndex:0];
             [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output_buffer_blob->GetHandle().base
                         offset:(NSUInteger)output_buffer_blob->GetHandle().bytes_offset
@@ -631,8 +653,10 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
 
             [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
             [encoder endEncoding];
-
-            [command_buffer commit];
+            
+            auto command_buffer = context_impl.commandBuffer;
+            [context_impl commit:YES];
+            
             if (waitState == 1) {
                 [command_buffer waitUntilCompleted];
             } else if (waitState == 2) {
@@ -640,20 +664,27 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             }
             return TNN_OK;
         } else if (mat_type == N8UC3 && mat_device_type != DEVICE_METAL) {
-            MTLSize group_threads = {(NSUInteger)pipeline_process_.threadExecutionWidth, (NSUInteger)1, (NSUInteger)1};
-            MTLSize groups        = {(NSUInteger)((DimsFunctionUtils::GetDim(dims, 3) + group_threads.width - 1) / group_threads.width),
-                              (NSUInteger)DimsFunctionUtils::GetDim(dims, 2), (NSUInteger)1};
-
             const auto bytes_size = sizeof(unsigned char);
             auto count = DimsVectorUtils::Count(dims);
             id<MTLBuffer> input_tmp_buffer = [command_queue_impl.device newBufferWithBytes:input_mat.GetData()
                                                                       length:count * bytes_size
                                                                      options:MTLCPUCacheModeDefaultCache];
 
-            auto command_buffer = [command_queue_impl commandBuffer];
-            [command_buffer enqueue];
-            auto encoder = [command_buffer computeCommandEncoder];
-            [encoder setComputePipelineState:pipeline_process_];
+            auto encoder = [context_impl encoder];
+            if (!encoder) {
+                LOGE("ERROR: ConvertFromMatCommon cannot allocate new encoder\n");
+                return Status(TNNERR_PARAM_ERR, "ConvertFromMatCommon cannot allocate new encoder");
+            }
+            
+            MetalBandwidth bandwidth;
+            status = [context_impl load:pipeline_func_name_
+                                encoder:encoder
+                                bandwidth:bandwidth];
+            RETURN_ON_NEQ(status, TNN_OK);
+            
+            MTLSize group_threads = {(NSUInteger)bandwidth.thread_execution_width, (NSUInteger)1, (NSUInteger)1};
+            MTLSize groups        = {(NSUInteger)((DimsFunctionUtils::GetDim(dims, 3) + group_threads.width - 1) / group_threads.width),
+                              (NSUInteger)DimsFunctionUtils::GetDim(dims, 2), (NSUInteger)1};
 
             [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output_blob->GetHandle().base
                         offset:(NSUInteger)output_blob->GetHandle().bytes_offset
@@ -664,7 +695,9 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
             [encoder endEncoding];
 
-            [command_buffer commit];
+            auto command_buffer = context_impl.commandBuffer;
+            [context_impl commit:YES];
+            
             if (waitState == 1) {
                 [command_buffer waitUntilCompleted];
             } else if (waitState == 2) {
@@ -686,32 +719,38 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             } else {
                 break;
             }
-
+            
             NSUInteger image_size  = DimsFunctionUtils::GetDimProduct(dims, 2);
             NSUInteger image_slice = UP_DIV(dims[1], 4);
             bool is_blob_nchw = output_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
+            Blob *output_buffer_blob = (Blob *)(output_blob);
 
-            auto group_threads = MTLSizeMake(pipeline_process_.threadExecutionWidth, 1, 1);
+            auto encoder = [context_impl encoder];
+            if (!encoder) {
+                LOGE("ERROR: ConvertFromMatCommon cannot allocate new encoder\n");
+                return Status(TNNERR_PARAM_ERR, "ConvertFromMatCommon cannot allocate new encoder");
+            }
+            
+            MetalBandwidth bandwidth;
+            status = [context_impl load:pipeline_func_name_
+                                encoder:encoder
+                                bandwidth:bandwidth];
+            BREAK_IF(status != TNN_OK);
+            
+            auto group_threads = MTLSizeMake(bandwidth.thread_execution_width, 1, 1);
             auto groups = MTLSizeMake((image_size + group_threads.width - 1) / group_threads.width,
                                       image_slice, dims[0]);
             if (is_blob_nchw)
                 groups.height = dims[1];
 
             if (image_size <= image_slice) {
-                group_threads = MTLSizeMake(1, pipeline_process_.threadExecutionWidth, 1);
+                group_threads = MTLSizeMake(1, bandwidth.thread_execution_width, 1);
                 groups = MTLSizeMake(image_size,
                                      (image_slice + group_threads.height - 1) / group_threads.height,
                                      dims[0]);
                 if (is_blob_nchw)
                     groups.height = (dims[1] + group_threads.height - 1) / group_threads.height;
             }
-
-            Blob *output_buffer_blob = (Blob *)(output_blob);
-
-            auto command_buffer = [command_queue_impl commandBuffer];
-            [command_buffer enqueue];
-            auto encoder = [command_buffer computeCommandEncoder];
-            [encoder setComputePipelineState:pipeline_process_];
 
             [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)output_buffer_blob->GetHandle().base
                         offset:(NSUInteger)output_buffer_blob->GetHandle().bytes_offset
@@ -724,8 +763,9 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
 
             [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
             [encoder endEncoding];
-
-            [command_buffer commit];
+            
+            auto command_buffer = context_impl.commandBuffer;
+            [context_impl commit:YES];
             if (waitState == 1) {
                 [command_buffer waitUntilCompleted];
             } else if (waitState == 2) {

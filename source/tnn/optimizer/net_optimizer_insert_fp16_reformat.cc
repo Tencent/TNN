@@ -32,8 +32,7 @@ namespace optimizer {
 
     // Plast priority: reformat after all fuse
     NetOptimizerRegister<NetOptimizerInsertFp16Reformat> g_net_optimizer_insert_fp16_reformat(OptPriority::P2);
-    static const std::string reformat_name_suffix = "_fp16_reformat";
-
+    static const std::string reformat_name_suffix         = "_fp16_reformat";
     static const std::set<LayerType> kLayerOutputNonFloat = {LAYER_ARG_MAX_OR_MIN};
     static const std::set<LayerType> kLayerOutputMaybeNonFloat = {LAYER_UNSQUEEZE, LAYER_GATHER};
     std::set<std::string> whitelist_i32;
