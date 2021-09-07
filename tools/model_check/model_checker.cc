@@ -214,6 +214,7 @@ Status ModelChecker::RunModelCheckerFromDumpFile() {
             auto replace_name    = blob_name;
 
             std::replace(replace_name.begin(), replace_name.end(), '/', '_');
+            std::replace(replace_name.begin(), replace_name.end(), ':', '_');
             const auto dump_data_path = model_checker_params_.dump_dir_path + replace_name + ".txt";
 
             FileReader file_reader;
