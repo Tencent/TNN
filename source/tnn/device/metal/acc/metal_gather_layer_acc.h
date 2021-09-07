@@ -29,9 +29,6 @@ public:
 
     Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
-    virtual Status UpdateBlobDataType(const std::vector<Blob *> &inputs,
-                                   const std::vector<Blob *> &outputs);
-
     Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
     Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder,

@@ -23,18 +23,6 @@ const static auto isFloat = [](DataType data_type) {
         return data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_FLOAT;
 };
 
-Status MetalCastLayerAcc::UpdateBlobDataType(const std::vector<Blob *> &inputs,
-                                   const std::vector<Blob *> &outputs) {
-    auto layer_param = dynamic_cast<CastLayerParam *>(param_);
-    DataType to_datatype = static_cast<DataType>(layer_param->to);
-#if TNN_METAL_FULL_PRECISION
-    outputs[0]->GetBlobDesc().data_type = isFloat(to_datatype)? DATA_TYPE_FLOAT : to_datatype;
-#else
-    outputs[0]->GetBlobDesc().data_type = isFloat(to_datatype)? DATA_TYPE_HALF  : to_datatype;
-#endif
-    return TNN_OK;
-}
-
 Status MetalCastLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Reshape(inputs, outputs);
 }

@@ -43,13 +43,6 @@ Status MetalReformatLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     return AllocateBufferParam(inputs, outputs);
 }
 
-Status MetalReformatLayerAcc::UpdateBlobDataType(const std::vector<Blob *> &inputs,
-                                   const std::vector<Blob *> &outputs) {
-    // TODO: check how to set datatype for reformat
-    outputs[0]->GetBlobDesc().data_type = inputs[0]->GetBlobDesc().data_type;
-    return TNN_OK;
-}
-
 std::vector<DataFormat> MetalReformatLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list{DATA_FORMAT_NC4HW4, DATA_FORMAT_NCHW};
     return support_list;

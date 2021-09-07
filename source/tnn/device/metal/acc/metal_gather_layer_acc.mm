@@ -21,32 +21,6 @@
 
 namespace TNN_NS {
 
-Status MetalGatherLayerAcc::UpdateBlobDataType(const std::vector<Blob *> &inputs,
-                                   const std::vector<Blob *> &outputs) {
-    int blob_idx = 0;
-    auto layer_param = dynamic_cast<GatherLayerParam *>(param_);
-
-    if (!layer_param->data_in_resource) {
-#if TNN_METAL_FULL_PRECISION
-        inputs[blob_idx++]->GetBlobDesc().data_type  = DATA_TYPE_FLOAT;
-#else
-        inputs[blob_idx++]->GetBlobDesc().data_type  = DATA_TYPE_HALF;
-#endif
-    }
-
-    if (!layer_param->indices_in_resource) {
-        inputs[blob_idx++]->GetBlobDesc().data_type = DATA_TYPE_INT32;
-    }
-
-#if TNN_METAL_FULL_PRECISION
-    outputs[0]->GetBlobDesc().data_type  = DATA_TYPE_FLOAT;
-#else
-    outputs[0]->GetBlobDesc().data_type  = DATA_TYPE_HALF;
-#endif
-
-    return TNN_OK;
-}
-
 Status MetalGatherLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Reshape(inputs, outputs);
 }

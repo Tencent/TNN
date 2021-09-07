@@ -32,8 +32,15 @@ Status MetalLayerAcc::Init(Context *context, LayerParam *param, LayerResource *r
     param_    = param;
     resource_ = resource;
 
-    status = UpdateBlobDataType(inputs, outputs);
-    RETURN_ON_NEQ(status, TNN_OK);
+    //修正BlobManager::Init中设置的data_type
+    // metal 运行时只支持half，debug模式支持fp32
+#if TNN_METAL_FULL_PRECISION
+    inputs[0]->GetBlobDesc().data_type  = DATA_TYPE_FLOAT;
+    outputs[0]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
+#else
+    inputs[0]->GetBlobDesc().data_type  = DATA_TYPE_HALF;
+    outputs[0]->GetBlobDesc().data_type = DATA_TYPE_HALF;
+#endif
 
     status = ReloadConstantBlobs(inputs, false);
     RETURN_ON_NEQ(status, TNN_OK);
@@ -44,20 +51,6 @@ Status MetalLayerAcc::Init(Context *context, LayerParam *param, LayerResource *r
 
 MetalLayerAcc::~MetalLayerAcc() {
     buffer_param_ = nil;
-}
-
-Status MetalLayerAcc::UpdateBlobDataType(const std::vector<Blob *> &inputs,
-                                   const std::vector<Blob *> &outputs) {
-    //修正BlobManager::Init中设置的data_type
-    // metal 运行时只支持half，debug模式支持fp32
-#if TNN_METAL_FULL_PRECISION
-    inputs[0]->GetBlobDesc().data_type  = DATA_TYPE_FLOAT;
-    outputs[0]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
-#else
-    inputs[0]->GetBlobDesc().data_type  = DATA_TYPE_HALF;
-    outputs[0]->GetBlobDesc().data_type = DATA_TYPE_HALF;
-#endif
-    return TNN_OK;
 }
 
 Status MetalLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -198,8 +191,8 @@ Status MetalLayerAcc::RawBuffer2MetalBlob(RawBuffer *buffer, std::shared_ptr<Blo
     params.slice   = UP_DIV(params.channel, 4);
 
     id<MTLBuffer> buffer_param = [device newBufferWithBytes:(const void *)(&params)
-                                        length:sizeof(params)
-                                       options:MTLResourceCPUCacheModeWriteCombined];
+                                                     length:sizeof(params)
+                                                    options:MTLResourceCPUCacheModeWriteCombined];
 
     MTLSize threads;
     std::string kernel_name;
@@ -213,16 +206,16 @@ Status MetalLayerAcc::RawBuffer2MetalBlob(RawBuffer *buffer, std::shared_ptr<Blo
         LOGE("RawBuffer2MetalBlob: unsupported data_format: %d\n", desc.data_format);
         return Status(TNNERR_PARAM_ERR, "RawBuffer2MetalBlob: unsupported data_format");
     }
-    
+
     MetalBandwidth bandwidth;
     status = [context_impl load:[NSString stringWithUTF8String:kernel_name.c_str()]
                         encoder:encoder
-                        bandwidth:bandwidth];
+                      bandwidth:bandwidth];
     RETURN_ON_NEQ(status, TNN_OK);
 
     [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)blob->GetHandle().base
                 offset:(NSUInteger)blob->GetHandle().bytes_offset
-                atIndex:0];
+               atIndex:0];
     [encoder setBuffer:tmp_buffer offset:0 atIndex:1];
     [encoder setBuffer:buffer_param offset:0 atIndex:2];
 
@@ -251,8 +244,8 @@ Status MetalLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, con
     {
         auto metal_params = GetDefaultMetalParams(dims_input, dims_output);
         buffer_param_     = [device newBufferWithBytes:(const void *)(&metal_params)
-                                            length:sizeof(metal_params)
-                                           options:MTLResourceCPUCacheModeWriteCombined];
+                                                length:sizeof(metal_params)
+                                               options:MTLResourceCPUCacheModeWriteCombined];
     }
     return TNN_OK;
 }
@@ -279,19 +272,19 @@ Status MetalLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs,
   Use this implementaion means dispatching kernels without caring about the threadGroup config.
 */
 Status MetalLayerAcc::ComputeThreadgroupSize(const std::vector<Blob *> &inputs,
-                                     const std::vector<Blob *> &outputs,
-                                     MTLSize &size) {
+                                             const std::vector<Blob *> &outputs,
+                                             MTLSize &size) {
     size = MTLSizeMake(0, 0, 0);
     return TNN_OK;
 }
 
 Status MetalLayerAcc::SetKernelEncoderParam(
-                                            id<MTLComputeCommandEncoder> encoder,
-                                            const std::vector<Blob *> &inputs,
-                                            const std::vector<Blob *> &outputs) {
+    id<MTLComputeCommandEncoder> encoder,
+    const std::vector<Blob *> &inputs,
+    const std::vector<Blob *> &outputs) {
     auto input  = inputs[0];
     auto output = outputs[0];
-    
+
     [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)input->GetHandle().base
                 offset:(NSUInteger)input->GetHandle().bytes_offset
                atIndex:0];
@@ -299,7 +292,7 @@ Status MetalLayerAcc::SetKernelEncoderParam(
                 offset:(NSUInteger)output->GetHandle().bytes_offset
                atIndex:1];
     [encoder setBuffer:buffer_param_ offset:0 atIndex:2];
-    
+
     return TNN_OK;
 }
 
@@ -320,12 +313,12 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
         return Status(TNNERR_LAYER_ERR, "MetalLayerAcc: DataType must be float or half");
     }
 
-    
+
     //
     auto context_impl = context_->getMetalContextImpl();
     auto encoder = [context_impl encoder];
     encoder.label = GetKernelLabel();
-    
+
     MTLSize threads;
     auto status = ComputeThreadSize(inputs, outputs, threads);
     if (status != TNN_OK) {
@@ -338,20 +331,20 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
     if (status != TNN_OK) {
         return status;
     }
-    
+
     do {
         auto kernel_name = KernelName(inputs, outputs);
         if (kernel_name.length() <= 0) {
             status = Status(TNNERR_LAYER_ERR, "empty kernel name");
             break;
         }
-        
+
         MetalBandwidth bandwidth;
         status = [context_impl load:[NSString stringWithUTF8String:kernel_name.c_str()]
                             encoder:encoder
                           bandwidth:bandwidth];
         BREAK_IF(status != TNN_OK);
-        
+
         status = SetKernelEncoderParam(encoder, inputs, outputs);
         BREAK_IF(status != TNN_OK);
         if (preferDispatchingWithGroups) {
@@ -363,7 +356,7 @@ Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vect
     } while (0);
 
     [encoder endEncoding];
-    
+
     if (status == TNN_OK) {
         [context_impl commit];
         TNN_PRINT_ENCODER(context_, encoder, this);
@@ -387,7 +380,7 @@ MTLSize GetDefaultThreadSize(DimsVector dims, bool combineHeightWidth) {
     auto output_size  = output_width * output_height;
     auto output_slice = UP_DIV(dims[1], 4);
     auto output_batch = dims[0];
-    
+
     if (combineHeightWidth) {
         return MTLSizeMake(output_size, output_slice, output_batch);
     } else {
@@ -401,7 +394,7 @@ MTLSize GetDefaultThreadSizeFusedLast(DimsVector dims, bool combineHeightWidth) 
     auto output_size  = output_width * output_height;
     auto output_slice = UP_DIV(dims[1], 4);
     auto output_batch = dims[0];
-    
+
     if (combineHeightWidth) {
         return MTLSizeMake(output_size, output_slice, output_batch);
     } else {
@@ -414,8 +407,8 @@ void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, boo
     auto dims_copy = dims;
     dims_copy[1] = UP_DIV(dims[1], 4);
     size = MTLSizeMake(DimsVectorUtils::Count(dims_copy, axis+1),
-                        reduce_on_axis? 1 : (axis == 1? UP_DIV(axis_size, 4) : axis_size),
-                        DimsVectorUtils::Count(dims_copy, 0, axis));
+                       reduce_on_axis? 1 : (axis == 1? UP_DIV(axis_size, 4) : axis_size),
+                       DimsVectorUtils::Count(dims_copy, 0, axis));
 }
 
 struct MetalParams GetDefaultMetalParams(DimsVector dims_input, DimsVector dims_output) {
@@ -539,7 +532,7 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
 }
 
 id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
-                                                            Status &status, bool transpose) {
+                                                           Status &status, bool transpose) {
     id<MTLDevice> device     = [TNNMetalDeviceImpl sharedDevice];
     id<MTLBuffer> mtl_buffer = nil;
 
@@ -615,7 +608,7 @@ id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         memset((void *)weight_pack_fp16_data, 0, weight_count_pack * sizeof(uint16_t));
 
         DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)weight_fp16_data, (short *)weight_pack_fp16_data,
-                                                           group, goc, gic, kh*kw, transpose);
+                                                        group, goc, gic, kh*kw, transpose);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)weight_pack_fp16_data
                                          length:weight_count_pack * sizeof(uint16_t)
@@ -631,7 +624,7 @@ id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         memset((void *)weight_pack_fp16_data, 0, weight_count_pack * sizeof(uint16_t));
 
         DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)weight_fp16_data, (short *)weight_pack_fp16_data,
-                                                           group, goc, gic, kh*kw, transpose);
+                                                        group, goc, gic, kh*kw, transpose);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)weight_pack_fp16_data
                                          length:weight_count_pack * sizeof(uint16_t)
@@ -754,8 +747,8 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
 
     const int channel4 = UP_DIV(channel, 4) * 4;
 
-    int data_count_nopack  = batch * channel * kh * kw;
-    int data_count_pack    = batch * channel4 * kh * kw;
+    int data_count_nopack  = channel * kh * kw;
+    int data_count_pack    = channel4 * kh * kw;
     const DataType data_type = buffer.GetDataType();
 
     if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
@@ -773,7 +766,7 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         float *data_pack_fp32_data = new float[data_count_pack];
         memset((void *)data_pack_fp32_data, 0, data_count_pack * sizeof(float));
 
-        DataFormatConverter::ConvertFromNCHWToNCHW4Float(data_fp32_data, data_pack_fp32_data, batch, channel, kh, kw);
+        DataFormatConverter::ConvertFromNCHWToNCHW4Float(data_fp32_data, data_pack_fp32_data, 1, channel, kh, kw);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)data_pack_fp32_data
                                          length:data_count_pack * sizeof(float)
@@ -790,7 +783,7 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         float *data_pack_fp32_data = new float[data_count_pack];
         memset((void *)data_pack_fp32_data, 0, data_count_pack * sizeof(float));
 
-        DataFormatConverter::ConvertFromNCHWToNCHW4Float(data_fp32_data, data_pack_fp32_data, batch, channel, kh, kw);
+        DataFormatConverter::ConvertFromNCHWToNCHW4Float(data_fp32_data, data_pack_fp32_data, 1, channel, kh, kw);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)data_pack_fp32_data
                                          length:data_count_pack * sizeof(float)
@@ -810,7 +803,7 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         uint16_t *data_pack_fp16_data = new uint16_t[data_count_pack];
         memset((void *)data_pack_fp16_data, 0, data_count_pack * sizeof(uint16_t));
 
-        DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)data_fp16_data, (short *)data_pack_fp16_data, batch,
+        DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)data_fp16_data, (short *)data_pack_fp16_data, 1,
                                                         channel, kh, kw);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)data_pack_fp16_data
@@ -826,7 +819,7 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         uint16_t *data_pack_fp16_data = new uint16_t[data_count_pack];
         memset((void *)data_pack_fp16_data, 0, data_count_pack * sizeof(uint16_t));
 
-        DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)data_fp16_data, (short *)data_pack_fp16_data, batch,
+        DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)data_fp16_data, (short *)data_pack_fp16_data, 1,
                                                         channel, kh, kw);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)data_pack_fp16_data

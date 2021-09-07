@@ -28,9 +28,6 @@ public:
     Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
     Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    
-    virtual Status UpdateBlobDataType(const std::vector<Blob *> &inputs,
-                                   const std::vector<Blob *> &outputs);
 
     Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 

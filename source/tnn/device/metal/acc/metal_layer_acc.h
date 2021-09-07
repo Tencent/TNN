@@ -30,8 +30,8 @@ class MetalContext;
 class MetalLayerAcc : public AbstractLayerAcc {
 public:
     virtual Status Init(Context *context, LayerParam *param, LayerResource *resource,
-                const std::vector<Blob *> &inputs,
-                const std::vector<Blob *> &outputs);
+                        const std::vector<Blob *> &inputs,
+                        const std::vector<Blob *> &outputs);
 
     virtual ~MetalLayerAcc();
 
@@ -52,19 +52,17 @@ public:
 public:
     virtual std::string KernelName(const std::vector<Blob *> &inputs,
                                    const std::vector<Blob *> &outputs);
-    
+
     virtual Status ComputeThreadSize(const std::vector<Blob *> &inputs,
                                      const std::vector<Blob *> &outputs,
                                      MTLSize &size);
     virtual Status ComputeThreadgroupSize(const std::vector<Blob *> &inputs,
-                                     const std::vector<Blob *> &outputs,
-                                     MTLSize &size);
+                                          const std::vector<Blob *> &outputs,
+                                          MTLSize &size);
     virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder,
                                          const std::vector<Blob *> &inputs,
                                          const std::vector<Blob *> &outputs);
 
-    virtual Status UpdateBlobDataType(const std::vector<Blob *> &inputs,
-                                   const std::vector<Blob *> &outputs);
 
 protected:
     LayerParam *param_       = nullptr;
@@ -73,7 +71,7 @@ protected:
     MetalContext *context_ = nullptr;
 
     id<MTLBuffer> buffer_param_ = nil;
-    
+
     NSString *kernel_label_ = nil;
     NSString * GetKernelLabel();
 
@@ -109,7 +107,7 @@ id<MTLBuffer> AllocateMetalBufferFormRawBuffer1D(RawBuffer buffer, int count, St
 // @param status   output status
 // @param status   transpose transpose weght for deconv
 id<MTLBuffer> AllocatePackedGOIHW4MetalBufferFormRawBuffer(RawBuffer buffer, DimsVector buffer_shape, int group,
-                                                            Status &status, bool transpose = false);
+                                                           Status &status, bool transpose = false);
 
 // @brief allocate packed metal buffer with format GOIHW16 form RawBuffer, like conv weight
 // @context tnn instance device context
