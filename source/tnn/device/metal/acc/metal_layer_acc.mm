@@ -754,8 +754,8 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
 
     const int channel4 = UP_DIV(channel, 4) * 4;
 
-    int data_count_nopack  = batch * channel * kh * kw;
-    int data_count_pack    = batch * channel4 * kh * kw;
+    int data_count_nopack  = channel * kh * kw;
+    int data_count_pack    = channel4 * kh * kw;
     const DataType data_type = buffer.GetDataType();
 
     if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
@@ -773,7 +773,7 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         float *data_pack_fp32_data = new float[data_count_pack];
         memset((void *)data_pack_fp32_data, 0, data_count_pack * sizeof(float));
 
-        DataFormatConverter::ConvertFromNCHWToNCHW4Float(data_fp32_data, data_pack_fp32_data, batch, channel, kh, kw);
+        DataFormatConverter::ConvertFromNCHWToNCHW4Float(data_fp32_data, data_pack_fp32_data, 1, channel, kh, kw);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)data_pack_fp32_data
                                          length:data_count_pack * sizeof(float)
@@ -790,7 +790,7 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         float *data_pack_fp32_data = new float[data_count_pack];
         memset((void *)data_pack_fp32_data, 0, data_count_pack * sizeof(float));
 
-        DataFormatConverter::ConvertFromNCHWToNCHW4Float(data_fp32_data, data_pack_fp32_data, batch, channel, kh, kw);
+        DataFormatConverter::ConvertFromNCHWToNCHW4Float(data_fp32_data, data_pack_fp32_data, 1, channel, kh, kw);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)data_pack_fp32_data
                                          length:data_count_pack * sizeof(float)
@@ -810,7 +810,7 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         uint16_t *data_pack_fp16_data = new uint16_t[data_count_pack];
         memset((void *)data_pack_fp16_data, 0, data_count_pack * sizeof(uint16_t));
 
-        DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)data_fp16_data, (short *)data_pack_fp16_data, batch,
+        DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)data_fp16_data, (short *)data_pack_fp16_data, 1,
                                                         channel, kh, kw);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)data_pack_fp16_data
@@ -826,7 +826,7 @@ id<MTLBuffer> AllocatePackedNC4HW4MetalBufferFormRawBuffer(RawBuffer buffer, Dim
         uint16_t *data_pack_fp16_data = new uint16_t[data_count_pack];
         memset((void *)data_pack_fp16_data, 0, data_count_pack * sizeof(uint16_t));
 
-        DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)data_fp16_data, (short *)data_pack_fp16_data, batch,
+        DataFormatConverter::ConvertFromNCHWToNCHW4Half((short *)data_fp16_data, (short *)data_pack_fp16_data, 1,
                                                         channel, kh, kw);
 
         mtl_buffer = [device newBufferWithBytes:(const void *)data_pack_fp16_data
