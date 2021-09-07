@@ -695,7 +695,7 @@ Status ModelChecker::CompareDeviceAndCpu() {
                 }
             }
 
-            if (!model_checker_params_.dump_unaligned_layer_path.empty()) {
+            if (!model_checker_params_.dump_unaligned_layer_path.empty() && !is_pass) {
                 if (output_blobs_device.find(blob_name) != output_blobs_device.end()) {
                     LOGE("dump blob (%s) data to %s\n", blob_name.c_str(),
                          model_checker_params_.dump_unaligned_layer_path.c_str());
