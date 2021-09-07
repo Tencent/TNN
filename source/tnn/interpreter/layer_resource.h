@@ -57,7 +57,6 @@ struct ConvLayerResource : public LayerResource {
 struct BatchNormLayerResource : public LayerResource {
     // bn k buffer
     RawBuffer scale_handle;
-    RawBuffer scale_bias_handle;
 
     // bn b buffer
     RawBuffer bias_handle;

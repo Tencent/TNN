@@ -742,7 +742,7 @@ int Calibration::CalQuantizedWeights(const float* weights, const int size, const
             if (weight_max != weight_min){
                 scale_float2int8 = 1 / weight_scale[s_idx];
             }else{
-                LOGE("Not support yet");
+                LOGE("Single constant input is not supported\n");
                 return -1;
             }
             int8_t bias = 127 - static_cast<int>(std::round(weight_max * scale_float2int8));

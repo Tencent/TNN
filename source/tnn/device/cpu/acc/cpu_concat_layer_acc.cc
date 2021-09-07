@@ -46,7 +46,6 @@ Status CpuConcatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         int8_per_tensor_flag = true;
         // if one blob is per channel quant, concat with the normal way
         for (auto &blob : inputs) {
-            int test = reinterpret_cast<BlobInt8 *>(blob)->GetIntResource()->scale_handle.GetDataCount();
             if (reinterpret_cast<BlobInt8 *>(blob)->GetIntResource()->scale_handle.GetDataCount() > 1) {
                 int8_per_tensor_flag = false;
                 break;

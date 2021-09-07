@@ -292,7 +292,7 @@ int ScaleCalculator::CalculateScaleAnalysis(int channel_index, float& blob_scale
         if (max_val != min_val) {
             scale_float2int8 = 1 / blob_scale;
         } else {
-            LOGE("Not support yet\n");
+            LOGE("Single constant input is not supported\n");
             return -1;
         }
         bias = 127 - static_cast<int>(std::round(max_val * scale_float2int8));
