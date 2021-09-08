@@ -164,6 +164,39 @@ int PackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
 
     return 0;
 }
+// NHWC -> NHWC4
+int PackNeonNHWC4FromNHWC(int8_t *dst, const int8_t *src, int hw, int channel) {
+    if ((hw == 1) && (channel % 4 == 0)) {
+        memcpy(dst, src, hw * channel * sizeof(int8_t));
+        return 0;
+    }
+    int c_r4 = ROUND_UP(channel, 4);
+    memset(dst, (int8_t)0, hw * c_r4 * sizeof(int8_t));
+    for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        int c      = 0;
+        auto src_c = src + cur_hw * channel;
+        auto dst_c = dst + cur_hw * c_r4;
+        for (; c < channel - 7; c += 8) {
+            int8x8_t v = vld1_s8(src_c);
+            vst1_s8(dst_c, v);
+            src_c += 8;
+            dst_c += 8;
+        }
+
+        for (; c < channel - 3; c += 4) {
+            *(int32_t *)dst_c = *(int32_t *)src_c;
+            src_c += 4;
+            dst_c += 4;
+        }
+        for (; c < channel; c++) {
+            *dst_c = *src_c;
+            src_c++;
+            dst_c++;
+        }
+    }
+    return 0;
+}
+
 int UnpackNeonC3(float *dst, const float *src, size_t hw, size_t channel) {
     auto dst0 = dst;
     auto dst1 = dst + hw;
@@ -292,7 +325,7 @@ int UnpackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
     return 0;
 }
 // NHWC4 -> NHWC
-int UnpackNeonNHWC4ToNHWC(int8_t *dst, const int8_t *src, size_t hw, size_t channel) {
+int UnpackNeonNHWC4ToNHWC(int8_t *dst, const int8_t *src, int hw, int channel) {
     if ((hw == 1) && (channel % 4 == 0)) {
         memcpy(dst, src, hw * channel * sizeof(int8_t));
         return 0;
@@ -373,6 +406,11 @@ template int PackNHWC4(int8_t *dst, const int8_t *src, size_t hw, size_t channel
 
 template <typename Tin, typename Tout>
 int PackNHWC4FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+#ifdef TNN_USE_NEON
+    if (std::is_same<Tin, int8_t>::value && std::is_same<Tout, int8_t>::value) {
+        return PackNeonNHWC4FromNHWC((int8_t *)dst, (const int8_t *)src, hw, channel);
+    }
+#endif
     int c, cur_hw;
     int idx   = 0;
     int c_rc4 = ROUND_UP(channel, 4);
