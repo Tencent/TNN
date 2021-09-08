@@ -291,6 +291,36 @@ int UnpackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
 
     return 0;
 }
+// NHWC4 -> NHWC
+int UnpackNeonNHWC4ToNHWC(int8_t *dst, const int8_t *src, size_t hw, size_t channel) {
+    if ((hw == 1) && (channel % 4 == 0)) {
+        memcpy(dst, src, hw * channel * sizeof(int8_t));
+        return 0;
+    }
+    int c_r4  = ROUND_UP(channel, 4);
+    for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        int c      = 0;
+        auto src_c = src + cur_hw * c_r4;
+        auto dst_c = dst + cur_hw * channel;
+        for (;c < c_r4 - 8; c += 8) {
+            int8x8_t v = vld1_s8(src_c);
+            vst1_s8(dst_c, v);
+            src_c += 8;
+            dst_c += 8;
+        }
+        for (; c < c_r4 - 4; c += 4) {
+            *(int32_t *)dst_c = *(int32_t *)src_c;
+            src_c += 4;
+            dst_c += 4;
+        }
+        for (; c < channel; ++c) {
+            *dst_c = *src_c;
+            src_c++;
+            dst_c++;
+        }
+    }
+    return 0;
+}
 #endif
 
 char* GetBlobHandlePtr(BlobHandle handle) {
@@ -527,6 +557,11 @@ template int UnpackNHWC4(int8_t *dst, const int8_t *src, size_t hw, size_t chann
 
 template <typename Tin, typename Tout>
 int UnpackNHWC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+#ifdef TNN_USE_NEON
+    if (std::is_same<Tin, int8_t>::value && std::is_same<Tout, int8_t>::value) {
+        return UnpackNeonNHWC4ToNHWC((int8_t *)dst, (const int8_t *)src, hw, channel);
+    }
+#endif
     int cur_hw;
     int c;
     int idx = 0;
