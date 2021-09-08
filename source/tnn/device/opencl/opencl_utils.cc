@@ -517,6 +517,10 @@ Status CreateExecuteUnit(OpenCLExecuteUnit &unit, const std::string &program_nam
     unit.program_name = program_name;
     unit.kernel_name = kernel_name;
 
+    if (opencl_runtime == NULL) {
+        LOGE("CreateExecuteUnit Get OpenCLRuntime failed!");
+        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "CreateExecuteUnit Get OpenCLRuntime failed!");
+    }
     Status ret = opencl_runtime->BuildKernel(unit.ocl_kernel, program_name, kernel_name, build_opt);
     if (ret != TNN_OK) {
         LOGE("kernel (%s) build failed!\n", kernel_name.c_str());
