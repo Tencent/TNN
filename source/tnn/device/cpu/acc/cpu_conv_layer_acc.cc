@@ -191,16 +191,17 @@ Status CpuConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
                 input_ptr, output_ptr, weight_ptr, bias_ptr, input_dims, output_dims, param->strides[1],
                 param->strides[0], param->kernels[1], param->kernels[0], param->pads[2], param->pads[0], param->group,
                 param->dialations[1], param->activation_type, weight_scale, buffer_scale_.GetDataCount(),
-                scale_bias_w_ptr, scale_bias_len_w, scale_bias_i_ptr, scale_bias_len_i, scale_bias_o_ptr, scale_bias_len_o, buffer_weight_x_bias.force_to<int32_t *>(),
-                relu6_max, relu6_max_.GetDataCount(), param->fusion_type, add_input,
-                buffer_add_scale_.force_to<float *>(), add_bias_input);
+                scale_bias_w_ptr, scale_bias_len_w, scale_bias_i_ptr, scale_bias_len_i, scale_bias_o_ptr,
+                scale_bias_len_o, buffer_weight_x_bias.force_to<int32_t *>(), relu6_max, relu6_max_.GetDataCount(),
+                param->fusion_type, add_input, buffer_add_scale_.force_to<float *>(), add_bias_input);
         } else {
             NaiveConvBias<int8_t, int8_t, int32_t, int8_t>(
                 input_ptr, output_ptr, weight_ptr, bias_ptr, input_dims, output_dims, param->strides[1],
                 param->strides[0], param->kernels[1], param->kernels[0], param->pads[2], param->pads[0], param->group,
                 param->dialations[1], param->activation_type, weight_scale, buffer_scale_.GetDataCount(),
-                scale_bias_w_ptr, scale_bias_len_w, scale_bias_i_ptr, scale_bias_len_i, scale_bias_o_ptr, scale_bias_len_o, relu6_max, relu6_max_.GetDataCount(),
-                param->fusion_type, add_input, buffer_add_scale_.force_to<float *>(), add_bias_input);
+                scale_bias_w_ptr, scale_bias_len_w, scale_bias_i_ptr, scale_bias_len_i, scale_bias_o_ptr,
+                scale_bias_len_o, relu6_max, relu6_max_.GetDataCount(), param->fusion_type, add_input,
+                buffer_add_scale_.force_to<float *>(), add_bias_input);
         }
     } else {
         return Status(TNNERR_LAYER_ERR, "data type not support in conv");
