@@ -147,16 +147,6 @@ static inline bool IsLayoutReformatLayer(std::shared_ptr<LayerInfo> layer) {
     return false;
 }
 
-static inline bool IsChangeDataFormatOrDataType(std::shared_ptr<LayerInfo> layer) {
-    if (layer->type == LAYER_REFORMAT) {
-        auto param = dynamic_cast<ReformatLayerParam *>(layer->param.get());
-        if (param->src_format != param->dst_format || param->src_type != param->dst_type) {
-            return true;
-        }
-    }
-    return false;
-}
-
 /*
  * InitLayer function does the following things:
  *  1. Set Blob type accordingly.
@@ -210,7 +200,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         }
 
         // output layout equals to input layout except for layout_reformat layer
-        DataFormat output_fmt = IsChangeDataFormatOrDataType(layer_info) ?
+        DataFormat output_fmt = layer_info->type == LAYER_REFORMAT ?
             dynamic_cast<ReformatLayerParam *>(layer_info->param.get())->dst_format : input_fmt;
 
 #ifdef GENERATE_RESOURCE
