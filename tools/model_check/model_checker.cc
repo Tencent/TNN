@@ -698,14 +698,14 @@ Status ModelChecker::CompareDeviceAndCpu() {
             if (!model_checker_params_.dump_output_path.empty()) {
                 if (output_blobs_device.find(blob_name) != output_blobs_device.end()) {
                     LOGE("dump blob (%s) data to %s\n", blob_name.c_str(),
-                         model_checker_params_.dump_unaligned_layer_path.c_str());
+                         model_checker_params_.dump_output_path.c_str());
                     auto replace_name = blob_name;
                     std::replace(replace_name.begin(), replace_name.end(), '/', '_');
                     DumpBlobData(cpu_blobdata_map[blob_name].get(), blob_desc.dims,
-                                 model_checker_params_.dump_unaligned_layer_path + "/cpu_" + blob_name + ".txt",
+                                 model_checker_params_.dump_output_path + "/cpu_" + blob_name + ".txt",
                                  data_type);
                     DumpBlobData(output_data_ptr, blob_desc.dims,
-                                 model_checker_params_.dump_unaligned_layer_path + "/device_" + blob_name + ".txt",
+                                 model_checker_params_.dump_output_path + "/device_" + blob_name + ".txt",
                                  data_type);
                 }
             }
