@@ -567,23 +567,23 @@ void ResizeBilinearC4(const uint8_t* src, int batch, int src_w, int src_h, uint8
 
 #define MAKE_LOAD(n)                                                    \
     _sx = vld1q_s32(xofs_p);                                            \
-    _S0 = vld##n##_lane_u8(Sp + _sx[0], _S0, 0);                        \
-    _S0 = vld##n##_lane_u8(Sp + _sx[1], _S0, 1);                        \
-    _S0 = vld##n##_lane_u8(Sp + _sx[2], _S0, 2);                        \
-    _S0 = vld##n##_lane_u8(Sp + _sx[3], _S0, 3);                        \
-    _S1 = vld##n##_lane_u8(Sp + _sx[0] + n, _S1, 0);                    \
-    _S1 = vld##n##_lane_u8(Sp + _sx[1] + n, _S1, 1);                    \
-    _S1 = vld##n##_lane_u8(Sp + _sx[2] + n, _S1, 2);                    \
-    _S1 = vld##n##_lane_u8(Sp + _sx[3] + n, _S1, 3);                    \
+    _S0 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 0), _S0, 0);        \
+    _S0 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 1), _S0, 1);        \
+    _S0 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 2), _S0, 2);        \
+    _S0 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 3), _S0, 3);        \
+    _S1 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 0) + n, _S1, 0);    \
+    _S1 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 1) + n, _S1, 1);    \
+    _S1 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 2) + n, _S1, 2);    \
+    _S1 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 3) + n, _S1, 3);    \
     _sx = vld1q_s32(xofs_p + 4);                                        \
-    _S0 = vld##n##_lane_u8(Sp + _sx[0], _S0, 4);                        \
-    _S0 = vld##n##_lane_u8(Sp + _sx[1], _S0, 5);                        \
-    _S0 = vld##n##_lane_u8(Sp + _sx[2], _S0, 6);                        \
-    _S0 = vld##n##_lane_u8(Sp + _sx[3], _S0, 7);                        \
-    _S1 = vld##n##_lane_u8(Sp + _sx[0] + n, _S1, 4);                    \
-    _S1 = vld##n##_lane_u8(Sp + _sx[1] + n, _S1, 5);                    \
-    _S1 = vld##n##_lane_u8(Sp + _sx[2] + n, _S1, 6);                    \
-    _S1 = vld##n##_lane_u8(Sp + _sx[3] + n, _S1, 7);                    \
+    _S0 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 0), _S0, 4);        \
+    _S0 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 1), _S0, 5);        \
+    _S0 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 2), _S0, 6);        \
+    _S0 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 3), _S0, 7);        \
+    _S1 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 0) + n, _S1, 4);    \
+    _S1 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 1) + n, _S1, 5);    \
+    _S1 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 2) + n, _S1, 6);    \
+    _S1 = vld##n##_lane_u8(Sp + vgetq_lane_s32(_sx, 3) + n, _S1, 7);    \
     uint8x8_t _mask = vld1_u8(ialpha_p);                                \
 
 #define LOAD_C1() MAKE_LOAD(1)
@@ -1040,32 +1040,32 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
         int simd_loop          = 0;
         for (; x <= end_x - 3; x += 4) {
             int32x4_t _src_loc = vld1q_s32(buf_loc_p);
-            uint8x8_t _src01   = uint8x8_t();
-            _src01 = vld1_lane_u8(src1 + _src_loc[0], _src01, 0);
-            _src01 = vld1_lane_u8(src1 + _src_loc[0] + 1, _src01, 1);
-            _src01 = vld1_lane_u8(src2 + _src_loc[0], _src01, 2);
-            _src01 = vld1_lane_u8(src2 + _src_loc[0] + 1, _src01, 3);
-            _src01 = vld1_lane_u8(src1 + _src_loc[1], _src01, 4);
-            _src01 = vld1_lane_u8(src1 + _src_loc[1] + 1, _src01, 5);
-            _src01 = vld1_lane_u8(src2 + _src_loc[1], _src01, 6);
-            _src01 = vld1_lane_u8(src2 + _src_loc[1] + 1, _src01, 7);
+            uint8x8_t _src01;
+            _src01 = vld1_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0), _src01, 0);
+            _src01 = vld1_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0) + 1, _src01, 1);
+            _src01 = vld1_lane_u8(src2 + vgetq_lane_s32(_src_loc, 0), _src01, 2);
+            _src01 = vld1_lane_u8(src2 + vgetq_lane_s32(_src_loc, 0) + 1, _src01, 3);
+            _src01 = vld1_lane_u8(src1 + vgetq_lane_s32(_src_loc, 1), _src01, 4);
+            _src01 = vld1_lane_u8(src1 + vgetq_lane_s32(_src_loc, 1) + 1, _src01, 5);
+            _src01 = vld1_lane_u8(src2 + vgetq_lane_s32(_src_loc, 1), _src01, 6);
+            _src01 = vld1_lane_u8(src2 + vgetq_lane_s32(_src_loc, 1) + 1, _src01, 7);
             int16x8_t _src16_0 = vreinterpretq_s16_u16(vmovl_u8(_src01));
-            uint8x8_t _src23   = uint8x8_t();
-            _src23 = vld1_lane_u8(src1 + _src_loc[2], _src23, 0);
-            _src23 = vld1_lane_u8(src1 + _src_loc[2] + 1, _src23, 1);
-            _src23 = vld1_lane_u8(src2 + _src_loc[2], _src23, 2);
-            _src23 = vld1_lane_u8(src2 + _src_loc[2] + 1, _src23, 3);
-            _src23 = vld1_lane_u8(src1 + _src_loc[3], _src23, 4);
-            _src23 = vld1_lane_u8(src1 + _src_loc[3] + 1, _src23, 5);
-            _src23 = vld1_lane_u8(src2 + _src_loc[3], _src23, 6);
-            _src23 = vld1_lane_u8(src2 + _src_loc[3] + 1, _src23, 7);
+            uint8x8_t _src23;
+            _src23 = vld1_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2), _src23, 0);
+            _src23 = vld1_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2) + 1, _src23, 1);
+            _src23 = vld1_lane_u8(src2 + vgetq_lane_s32(_src_loc, 2), _src23, 2);
+            _src23 = vld1_lane_u8(src2 + vgetq_lane_s32(_src_loc, 2) + 1, _src23, 3);
+            _src23 = vld1_lane_u8(src1 + vgetq_lane_s32(_src_loc, 3), _src23, 4);
+            _src23 = vld1_lane_u8(src1 + vgetq_lane_s32(_src_loc, 3) + 1, _src23, 5);
+            _src23 = vld1_lane_u8(src2 + vgetq_lane_s32(_src_loc, 3), _src23, 6);
+            _src23 = vld1_lane_u8(src2 + vgetq_lane_s32(_src_loc, 3) + 1, _src23, 7);
             int16x8_t _src16_1 = vreinterpretq_s16_u16(vmovl_u8(_src23));
 
             int16x4_t _tab_loc = vld1_s16(tab_loc_p);
-            int16x4_t _tab0    = vld1_s16(tab_p + _tab_loc[0] * 4);
-            int16x4_t _tab1    = vld1_s16(tab_p + _tab_loc[1] * 4);
-            int16x4_t _tab2    = vld1_s16(tab_p + _tab_loc[2] * 4);
-            int16x4_t _tab3    = vld1_s16(tab_p + _tab_loc[3] * 4);
+            int16x4_t _tab0    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 0) * 4);
+            int16x4_t _tab1    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 1) * 4);
+            int16x4_t _tab2    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 2) * 4);
+            int16x4_t _tab3    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 3) * 4);
 
             int32x4_t _val0    = vmull_s16(_tab0, vget_low_s16(_src16_0));
             int32x4_t _val1    = vmull_s16(_tab1, vget_high_s16(_src16_0));
@@ -1109,34 +1109,34 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
         int simd_loop          = 0;
         for (; x <= end_x - 3; x += 4) {
             int32x4_t _src_loc = vld1q_s32(buf_loc_p);
-            uint8x8x2_t _src01 = uint8x8x2_t();
-            _src01 = vld2_lane_u8(src1 + _src_loc[0], _src01, 0);
-            _src01 = vld2_lane_u8(src1 + _src_loc[0] + 2, _src01, 1);
-            _src01 = vld2_lane_u8(src2 + _src_loc[0], _src01, 2);
-            _src01 = vld2_lane_u8(src2 + _src_loc[0] + 2, _src01, 3);
-            _src01 = vld2_lane_u8(src1 + _src_loc[1], _src01, 4);
-            _src01 = vld2_lane_u8(src1 + _src_loc[1] + 2, _src01, 5);
-            _src01 = vld2_lane_u8(src2 + _src_loc[1], _src01, 6);
-            _src01 = vld2_lane_u8(src2 + _src_loc[1] + 2, _src01, 7);
+            uint8x8x2_t _src01;
+            _src01 = vld2_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0), _src01, 0);
+            _src01 = vld2_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0) + 2, _src01, 1);
+            _src01 = vld2_lane_u8(src2 + vgetq_lane_s32(_src_loc, 0), _src01, 2);
+            _src01 = vld2_lane_u8(src2 + vgetq_lane_s32(_src_loc, 0) + 2, _src01, 3);
+            _src01 = vld2_lane_u8(src1 + vgetq_lane_s32(_src_loc, 1), _src01, 4);
+            _src01 = vld2_lane_u8(src1 + vgetq_lane_s32(_src_loc, 1) + 2, _src01, 5);
+            _src01 = vld2_lane_u8(src2 + vgetq_lane_s32(_src_loc, 1), _src01, 6);
+            _src01 = vld2_lane_u8(src2 + vgetq_lane_s32(_src_loc, 1) + 2, _src01, 7);
             int16x8_t _src16_00 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[0]));
             int16x8_t _src16_01 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[1]));
-            uint8x8x2_t _src23  = uint8x8x2_t();
-            _src23 = vld2_lane_u8(src1 + _src_loc[2], _src23, 0);
-            _src23 = vld2_lane_u8(src1 + _src_loc[2] + 2, _src23, 1);
-            _src23 = vld2_lane_u8(src2 + _src_loc[2], _src23, 2);
-            _src23 = vld2_lane_u8(src2 + _src_loc[2] + 2, _src23, 3);
-            _src23 = vld2_lane_u8(src1 + _src_loc[3], _src23, 4);
-            _src23 = vld2_lane_u8(src1 + _src_loc[3] + 2, _src23, 5);
-            _src23 = vld2_lane_u8(src2 + _src_loc[3], _src23, 6);
-            _src23 = vld2_lane_u8(src2 + _src_loc[3] + 2, _src23, 7);
+            uint8x8x2_t _src23;
+            _src23 = vld2_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2), _src23, 0);
+            _src23 = vld2_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2) + 2, _src23, 1);
+            _src23 = vld2_lane_u8(src2 + vgetq_lane_s32(_src_loc, 2), _src23, 2);
+            _src23 = vld2_lane_u8(src2 + vgetq_lane_s32(_src_loc, 2) + 2, _src23, 3);
+            _src23 = vld2_lane_u8(src1 + vgetq_lane_s32(_src_loc, 3), _src23, 4);
+            _src23 = vld2_lane_u8(src1 + vgetq_lane_s32(_src_loc, 3) + 2, _src23, 5);
+            _src23 = vld2_lane_u8(src2 + vgetq_lane_s32(_src_loc, 3), _src23, 6);
+            _src23 = vld2_lane_u8(src2 + vgetq_lane_s32(_src_loc, 3) + 2, _src23, 7);
             int16x8_t _src16_10 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[0]));
             int16x8_t _src16_11 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[1]));
 
             int16x4_t _tab_loc = vld1_s16(tab_loc_p);
-            int16x4_t _tab0    = vld1_s16(tab_p + _tab_loc[0] * 4);
-            int16x4_t _tab1    = vld1_s16(tab_p + _tab_loc[1] * 4);
-            int16x4_t _tab2    = vld1_s16(tab_p + _tab_loc[2] * 4);
-            int16x4_t _tab3    = vld1_s16(tab_p + _tab_loc[3] * 4);
+            int16x4_t _tab0    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 0) * 4);
+            int16x4_t _tab1    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 1) * 4);
+            int16x4_t _tab2    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 2) * 4);
+            int16x4_t _tab3    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 3) * 4);
 
             int32x4_t _val0, _val1, _val2, _val3, _res0123;
             int16x4_t _res16;
@@ -1183,36 +1183,36 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
         int simd_loop          = 0;
         for (; x <= end_x - 3; x += 4) {
             int32x4_t _src_loc = vld1q_s32(buf_loc_p);
-            uint8x8x3_t _src01 = uint8x8x3_t();
-            _src01 = vld3_lane_u8(src1 + _src_loc[0], _src01, 0);
-            _src01 = vld3_lane_u8(src1 + _src_loc[0] + 3, _src01, 1);
-            _src01 = vld3_lane_u8(src2 + _src_loc[0], _src01, 2);
-            _src01 = vld3_lane_u8(src2 + _src_loc[0] + 3, _src01, 3);
-            _src01 = vld3_lane_u8(src1 + _src_loc[1], _src01, 4);
-            _src01 = vld3_lane_u8(src1 + _src_loc[1] + 3, _src01, 5);
-            _src01 = vld3_lane_u8(src2 + _src_loc[1], _src01, 6);
-            _src01 = vld3_lane_u8(src2 + _src_loc[1] + 3, _src01, 7);
+            uint8x8x3_t _src01;
+            _src01 = vld3_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0), _src01, 0);
+            _src01 = vld3_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0) + 3, _src01, 1);
+            _src01 = vld3_lane_u8(src2 + vgetq_lane_s32(_src_loc, 0), _src01, 2);
+            _src01 = vld3_lane_u8(src2 + vgetq_lane_s32(_src_loc, 0) + 3, _src01, 3);
+            _src01 = vld3_lane_u8(src1 + vgetq_lane_s32(_src_loc, 1), _src01, 4);
+            _src01 = vld3_lane_u8(src1 + vgetq_lane_s32(_src_loc, 1) + 3, _src01, 5);
+            _src01 = vld3_lane_u8(src2 + vgetq_lane_s32(_src_loc, 1), _src01, 6);
+            _src01 = vld3_lane_u8(src2 + vgetq_lane_s32(_src_loc, 1) + 3, _src01, 7);
             int16x8_t _src16_00 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[0]));
             int16x8_t _src16_01 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[1]));
             int16x8_t _src16_02 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[2]));
-            uint8x8x3_t _src23  = uint8x8x3_t();
-            _src23 = vld3_lane_u8(src1 + _src_loc[2], _src23, 0);
-            _src23 = vld3_lane_u8(src1 + _src_loc[2] + 3, _src23, 1);
-            _src23 = vld3_lane_u8(src2 + _src_loc[2], _src23, 2);
-            _src23 = vld3_lane_u8(src2 + _src_loc[2] + 3, _src23, 3);
-            _src23 = vld3_lane_u8(src1 + _src_loc[3], _src23, 4);
-            _src23 = vld3_lane_u8(src1 + _src_loc[3] + 3, _src23, 5);
-            _src23 = vld3_lane_u8(src2 + _src_loc[3], _src23, 6);
-            _src23 = vld3_lane_u8(src2 + _src_loc[3] + 3, _src23, 7);
+            uint8x8x3_t _src23;
+            _src23 = vld3_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2), _src23, 0);
+            _src23 = vld3_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2) + 3, _src23, 1);
+            _src23 = vld3_lane_u8(src2 + vgetq_lane_s32(_src_loc, 2), _src23, 2);
+            _src23 = vld3_lane_u8(src2 + vgetq_lane_s32(_src_loc, 2) + 3, _src23, 3);
+            _src23 = vld3_lane_u8(src1 + vgetq_lane_s32(_src_loc, 3), _src23, 4);
+            _src23 = vld3_lane_u8(src1 + vgetq_lane_s32(_src_loc, 3) + 3, _src23, 5);
+            _src23 = vld3_lane_u8(src2 + vgetq_lane_s32(_src_loc, 3), _src23, 6);
+            _src23 = vld3_lane_u8(src2 + vgetq_lane_s32(_src_loc, 3) + 3, _src23, 7);
             int16x8_t _src16_10 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[0]));
             int16x8_t _src16_11 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[1]));
             int16x8_t _src16_12 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[2]));
 
             int16x4_t _tab_loc = vld1_s16(tab_loc_p);
-            int16x4_t _tab0    = vld1_s16(tab_p + _tab_loc[0] * 4);
-            int16x4_t _tab1    = vld1_s16(tab_p + _tab_loc[1] * 4);
-            int16x4_t _tab2    = vld1_s16(tab_p + _tab_loc[2] * 4);
-            int16x4_t _tab3    = vld1_s16(tab_p + _tab_loc[3] * 4);
+            int16x4_t _tab0    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 0) * 4);
+            int16x4_t _tab1    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 1) * 4);
+            int16x4_t _tab2    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 2) * 4);
+            int16x4_t _tab3    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 3) * 4);
 
             int32x4_t _val0, _val1, _val2, _val3, _res0123;
             int16x4_t _res16;
@@ -1266,38 +1266,38 @@ static void WarpAffineCalculateOneRow(int begin_x, int end_x, int channel, int d
         int simd_loop          = 0;
         for (; x <= end_x - 3; x += 4) {
             int32x4_t _src_loc = vld1q_s32(buf_loc_p);
-            uint8x8x4_t _src01 = uint8x8x4_t();
-            _src01 = vld4_lane_u8(src1 + _src_loc[0], _src01, 0);
-            _src01 = vld4_lane_u8(src1 + _src_loc[0] + 4, _src01, 1);
-            _src01 = vld4_lane_u8(src2 + _src_loc[0], _src01, 2);
-            _src01 = vld4_lane_u8(src2 + _src_loc[0] + 4, _src01, 3);
-            _src01 = vld4_lane_u8(src1 + _src_loc[1], _src01, 4);
-            _src01 = vld4_lane_u8(src1 + _src_loc[1] + 4, _src01, 5);
-            _src01 = vld4_lane_u8(src2 + _src_loc[1], _src01, 6);
-            _src01 = vld4_lane_u8(src2 + _src_loc[1] + 4, _src01, 7);
+            uint8x8x4_t _src01;
+            _src01 = vld4_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0), _src01, 0);
+            _src01 = vld4_lane_u8(src1 + vgetq_lane_s32(_src_loc, 0) + 4, _src01, 1);
+            _src01 = vld4_lane_u8(src2 + vgetq_lane_s32(_src_loc, 0), _src01, 2);
+            _src01 = vld4_lane_u8(src2 + vgetq_lane_s32(_src_loc, 0) + 4, _src01, 3);
+            _src01 = vld4_lane_u8(src1 + vgetq_lane_s32(_src_loc, 1), _src01, 4);
+            _src01 = vld4_lane_u8(src1 + vgetq_lane_s32(_src_loc, 1) + 4, _src01, 5);
+            _src01 = vld4_lane_u8(src2 + vgetq_lane_s32(_src_loc, 1), _src01, 6);
+            _src01 = vld4_lane_u8(src2 + vgetq_lane_s32(_src_loc, 1) + 4, _src01, 7);
             int16x8_t _src16_00 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[0]));
             int16x8_t _src16_01 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[1]));
             int16x8_t _src16_02 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[2]));
             int16x8_t _src16_03 = vreinterpretq_s16_u16(vmovl_u8(_src01.val[3]));
-            uint8x8x4_t _src23  = uint8x8x4_t();
-            _src23 = vld4_lane_u8(src1 + _src_loc[2], _src23, 0);
-            _src23 = vld4_lane_u8(src1 + _src_loc[2] + 4, _src23, 1);
-            _src23 = vld4_lane_u8(src2 + _src_loc[2], _src23, 2);
-            _src23 = vld4_lane_u8(src2 + _src_loc[2] + 4, _src23, 3);
-            _src23 = vld4_lane_u8(src1 + _src_loc[3], _src23, 4);
-            _src23 = vld4_lane_u8(src1 + _src_loc[3] + 4, _src23, 5);
-            _src23 = vld4_lane_u8(src2 + _src_loc[3], _src23, 6);
-            _src23 = vld4_lane_u8(src2 + _src_loc[3] + 4, _src23, 7);
+            uint8x8x4_t _src23;
+            _src23 = vld4_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2), _src23, 0);
+            _src23 = vld4_lane_u8(src1 + vgetq_lane_s32(_src_loc, 2) + 4, _src23, 1);
+            _src23 = vld4_lane_u8(src2 + vgetq_lane_s32(_src_loc, 2), _src23, 2);
+            _src23 = vld4_lane_u8(src2 + vgetq_lane_s32(_src_loc, 2) + 4, _src23, 3);
+            _src23 = vld4_lane_u8(src1 + vgetq_lane_s32(_src_loc, 3), _src23, 4);
+            _src23 = vld4_lane_u8(src1 + vgetq_lane_s32(_src_loc, 3) + 4, _src23, 5);
+            _src23 = vld4_lane_u8(src2 + vgetq_lane_s32(_src_loc, 3), _src23, 6);
+            _src23 = vld4_lane_u8(src2 + vgetq_lane_s32(_src_loc, 3) + 4, _src23, 7);
             int16x8_t _src16_10 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[0]));
             int16x8_t _src16_11 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[1]));
             int16x8_t _src16_12 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[2]));
             int16x8_t _src16_13 = vreinterpretq_s16_u16(vmovl_u8(_src23.val[3]));
 
             int16x4_t _tab_loc = vld1_s16(tab_loc_p);
-            int16x4_t _tab0    = vld1_s16(tab_p + _tab_loc[0] * 4);
-            int16x4_t _tab1    = vld1_s16(tab_p + _tab_loc[1] * 4);
-            int16x4_t _tab2    = vld1_s16(tab_p + _tab_loc[2] * 4);
-            int16x4_t _tab3    = vld1_s16(tab_p + _tab_loc[3] * 4);
+            int16x4_t _tab0    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 0) * 4);
+            int16x4_t _tab1    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 1) * 4);
+            int16x4_t _tab2    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 2) * 4);
+            int16x4_t _tab3    = vld1_s16(tab_p + vget_lane_s16(_tab_loc, 3) * 4);
 
             int32x4_t _val0, _val1, _val2, _val3, _res0123;
             int16x4_t _res16;
