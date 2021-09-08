@@ -509,12 +509,6 @@ struct Half4 {
     Half4(const int16x4_t&& v) {
         value = std::move(v);
     }
-    Half4(fp16_t* v) {
-        value[0] = *(int16_t*)(v);
-        value[1] = *(int16_t*)(v + 1);
-        value[2] = *(int16_t*)(v + 2);
-        value[3] = *(int16_t*)(v + 3);
-    }
     Half4(const Half4& lr) {
         value = lr.value;
     }
