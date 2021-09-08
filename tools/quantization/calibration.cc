@@ -128,8 +128,9 @@ int Calibration::SetCalibrationParams(CalibrationParam params) {
         return -1;
     }
 
-    if (cali_params_.weights_quantize_method == KL_DIVERGENCE) {
-        LOGE("Not support KL_DIVERGENCE in quantizing weights!\n");
+    if (cali_params_.weights_quantize_method == KL_DIVERGENCE || cali_params_.weights_quantize_method == ACIQ_GAUS ||
+        cali_params_.weights_quantize_method == ACIQ_LAPLACE) {
+        LOGE("Not support KL_DIVERGENCE or ACIQ methond in quantizing weights!\n");
         cali_params_.weights_quantize_method = MIN_MAX;
         return -1;
     }
