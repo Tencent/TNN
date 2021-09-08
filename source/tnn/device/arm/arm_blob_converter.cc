@@ -179,7 +179,12 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam para
                 fused_int8_bias[i]  = param.bias[i];
             }
         } else {
-            auto scale_handle = reinterpret_cast<BlobInt8*>(blob_)->GetIntResource()->scale_handle;
+            auto int8_blob = dynamic_cast<BlobInt8*>(blob_);
+            if (int8_blob == nullptr) {
+                LOGE("TNN does not support the mat type: %d, please check you mat type\n", image.GetMatType());
+                return Status(TNNERR_PARAM_ERR,  "TNN does not support the mat type, please check you mat type");
+            }
+            auto scale_handle = int8_blob->GetIntResource()->scale_handle;
             auto scale_data   = scale_handle.force_to<float*>();
             auto scale_count  = scale_handle.GetDataCount();
             for (int i = 0; i < channel; i++) {
