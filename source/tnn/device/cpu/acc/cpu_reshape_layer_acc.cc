@@ -98,6 +98,7 @@ Status CpuReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
     auto param   = (ReshapeLayerParam *)param_;
     ASSERT(param != nullptr);
     if (param->reshape_type == 0) {
+        // handle float and int8
         if (output->GetHandle().base != input->GetHandle().base) {
             auto dims_input    = input->GetBlobDesc().dims;
             int data_byte_size = DataTypeUtils::GetBytesSize(output->GetBlobDesc().data_type);
@@ -108,8 +109,23 @@ Status CpuReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
         const auto dims_output = output->GetBlobDesc().dims;
         if (dims_output.size() <= 4) {
             // tensorflow reshape
-            DataFormatConverter::ConvertFromNCHWToNHWC<float>(input, output);
-            DataFormatConverter::ConvertFromNHWCToNCHW<float>(output, nullptr);
+            auto data_type = output->GetBlobDesc().data_type;
+            if (data_type == DATA_TYPE_FLOAT) {
+                DataFormatConverter::ConvertFromNCHWToNHWC<float>(input, output);
+                DataFormatConverter::ConvertFromNHWCToNCHW<float>(output, nullptr);
+            } else if (data_type == DATA_TYPE_HALF) {
+                DataFormatConverter::ConvertFromNCHWToNHWC<fp16_t>(input, output);
+                DataFormatConverter::ConvertFromNHWCToNCHW<fp16_t>(output, nullptr);
+            } else if (data_type == DATA_TYPE_INT8) {
+                DataFormatConverter::ConvertFromNCHWToNHWC<int8_t>(input, output);
+                DataFormatConverter::ConvertFromNHWCToNCHW<int8_t>(output, nullptr);
+            } else if (data_type == DATA_TYPE_INT32) {
+                DataFormatConverter::ConvertFromNCHWToNHWC<int32_t>(input, output);
+                DataFormatConverter::ConvertFromNHWCToNCHW<int32_t>(output, nullptr);
+            } else {
+                LOGE("Error: Reshape does not support data type (%d)\n", data_type);
+                return Status(TNNERR_MODEL_ERR, "Error: CpuReshapeLayerAcc failed!\n");
+            }
         } else {
             // tensorflow reshape does not support dims>4
             LOGE("Error: Unsupported dim size(%d) for reshape type(%d)", (int)dims_output.size(), param->reshape_type);

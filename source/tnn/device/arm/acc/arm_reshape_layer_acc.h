@@ -37,6 +37,9 @@ private:
     template <typename T>
     Status ExecNchw(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+    template <typename T>
+    Status ExecNHWC4(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
     void *workspace_ = nullptr;
     int reshape_type_ = -1;
 };

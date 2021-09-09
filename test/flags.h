@@ -53,7 +53,7 @@ static const char unit_test_benchmark_message[] = "enable unit benchmark(default
 
 static const char cpu_thread_num_message[] = "cpu thread num(eg: 0,1,2,3, default 1)";
 
-static const char input_format_message[] = "input format(0: nchw float, 1:bgr u8, 2, gray u8, 3, int32)";
+static const char input_format_message[] = "input format(0: nchw float; 1: bgr u8; 2: gray u8; 3: int32; 4: int8;), default nchw float";
 
 static const char precision_message[] = "compute precision(HIGH, NORMAL, LOW)";
 
