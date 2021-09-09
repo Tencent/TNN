@@ -18,6 +18,7 @@ Pose Estimation<br>(from Tencent Guangliu)   |   Pose Estimation<br>(blazepose) 
 <small>Chinese OCR demo is the TNN implementation of [chineseocr_lite](https://github.com/DayBreak-u/chineseocr_lite) project. It is lightweight and supports tilted, rotated and vertical text recognition.</small>
 
 The support for each demo is shown in the following table. You can click the ✅ and find the entrance code for each demo.
+
 demo                                                                                      |   ARM    |  OpenCL  |   Metal  |    NPU   |    X86   |    CUDA   
 :---------------------------------------------------------------------------------------: | :------: | :------: | :------: | :------: | :------: | :------:
 [Face Detection](https://github.com/Tencent/TNN/blob/master/examples/base/blazeface_detector.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceDetector) | [✅ ](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNBlazeFaceDetectorViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceDetector) | [✅](https://github.com/Tencent/TNN/tree/master/examples/linux/src/TNNFaceDetector/TNNFaceDetector.cc) | [✅](https://github.com/Tencent/TNN/tree/master/examples/linux/src/TNNFaceDetector/TNNFaceDetector.cc)

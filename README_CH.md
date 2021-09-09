@@ -19,6 +19,7 @@ TNN：由腾讯优图实验室开源的高性能、轻量级神经网络推理�
 <small>中文字符识别demo是[chineseocr_lite](https://github.com/DayBreak-u/chineseocr_lite)的TNN实现，是一个超轻量级的中文ocr，支持倾斜、旋转和竖排文字识别。</small>
 
 各个平台对demo的支持情况如下表所示，单击✅标记，便可以跳转至对应demo的入口代码。
+
 demo                                                                                      |   ARM    |  OpenCL  |   Metal  |    NPU   |    X86   |    CUDA   
 :---------------------------------------------------------------------------------------: | :------: | :------: | :------: | :------: | :------: | :------: 
 [人脸检测](https://github.com/Tencent/TNN/blob/master/examples/base/blazeface_detector.cc)   | ✅ | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceDetector) | [✅ ](https://github.com/Tencent/TNN/blob/master/examples/ios/TNNExamples/TNNCameraPreviewController/TNNViewModel/TNNBlazeFaceDetectorViewModel.mm) | [✅](https://github.com/Tencent/TNN/tree/master/examples/android/demo/src/main/java/com/tencent/tnn/demo/StreamBlazeFaceDetector) | [✅](https://github.com/Tencent/TNN/tree/master/examples/linux/src/TNNFaceDetector/TNNFaceDetector.cc) | [✅](https://github.com/Tencent/TNN/tree/master/examples/linux/src/TNNFaceDetector/TNNFaceDetector.cc)
