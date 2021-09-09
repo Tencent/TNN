@@ -36,6 +36,8 @@ Status CpuMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     auto status = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
 
     auto layer_res = dynamic_cast<MatMulLayerResource *>(resource);
+    if(layer_res == NULL) return TNN_OK;
+
     const int data_size = layer_res->weight.GetDataCount();
     std::shared_ptr<float> weight(new float[data_size], [](float *p) { delete[] p; });
 
