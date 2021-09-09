@@ -19,14 +19,17 @@
 
 namespace TNN_NS {
 
-class ReshapeLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int, int>> {};
+class ReshapeLayerTest : public LayerTest,
+                         public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, ReshapeLayerTest,
                          ::testing::Combine(BASIC_BATCH_CHANNEL_SIZE,
-                         //dimensions
-                         testing::Values(2, 3, 4, 5, 6),
-                         // reshape type
-                         testing::Values(0, 1)));
+                                            // dimensions
+                                            testing::Values(2, 3, 4, 5, 6),
+                                            // reshape type
+                                            testing::Values(0, 1),
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_BFP16,
+                                                            DATA_TYPE_INT8)));
 
 TEST_P(ReshapeLayerTest, ReshapeLayer) {
     // get param
@@ -35,6 +38,7 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
     int input_size   = std::get<2>(GetParam());
     int dim_size     = std::get<3>(GetParam());
     int reshape_type = std::get<4>(GetParam());
+    auto data_type   = std::get<5>(GetParam());
     DeviceType dev   = ConvertDeviceType(FLAGS_dt);
 
     if (0 != reshape_type && DEVICE_HUAWEI_NPU == dev) {
@@ -44,13 +48,19 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
         GTEST_SKIP();
     }
 
+    if (DATA_TYPE_INT8 == data_type && (dev != DEVICE_ARM && dev != DEVICE_NAIVE)) {
+        GTEST_SKIP();
+    }
+
     // reshape_type 1 does not support dims>4
     if (reshape_type == 1 && dim_size > 4) {
         GTEST_SKIP();
     }
 
     std::vector<int> input_dims = {batch, channel};
-    while(input_dims.size() < dim_size) input_dims.push_back(input_size);
+    while (input_dims.size() < dim_size) {
+        input_dims.push_back(input_size);
+    }
 
     // param
     std::shared_ptr<ReshapeLayerParam> param(new ReshapeLayerParam());
@@ -59,11 +69,17 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
     param->axis         = 0;
     param->num_axes     = dim_size;
     param->shape        = {0, -1};
-    while(param->shape.size() < dim_size) param->shape.push_back(1);
- 
+    while (param->shape.size() < dim_size) {
+        param->shape.push_back(1);
+    }
+    if (DATA_TYPE_INT8 == data_type) {
+        param->quantized = true;
+    }
+    Precision precision = SetPrecision(dev, data_type);
+
     // generate interpreter
-    auto interpreter    = GenerateInterpreter("Reshape", {input_dims}, param);
-    Run(interpreter);
+    auto interpreter = GenerateInterpreter("Reshape", {input_dims}, param);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

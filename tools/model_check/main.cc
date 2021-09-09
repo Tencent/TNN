@@ -158,8 +158,9 @@ void ShowUsage() {
     printf("\t-n, <bias>     \t%s\n", bias_message);
     printf("\t-s, <scale>    \t%s\n", scale_message);
     printf("\t\tformula: y = (x - bias) * scale\n");
-    printf("\t-o, <output>   \t%s\n", output_dump_message);
     printf("\t-b, <batch>    \t%s\n", check_batch_message);
+    printf("\t-do, <dir path>   \t%s\n", dump_output_path_message);
+    printf("\t-du, <dir path>   \t%s\n", dump_unaligned_layer_path_message);
     printf("\t-sp, <set precision>\t%s\n", set_precision_message);
 }
 
@@ -197,10 +198,11 @@ int main(int argc, char* argv[]) {
     model_checker_param.input_bias        = {0, 0, 0, 0};
     model_checker_param.input_scale       = {1.0f, 1.0f, 1.0f, 1.0f};
     model_checker_param.ref_file          = std::make_pair("", NOTSUPPORT);
-    model_checker_param.dump_output       = FLAGS_o;
+    model_checker_param.dump_output_path  = FLAGS_do;
     model_checker_param.dump_dir_path     = FLAGS_a;
     model_checker_param.only_check_output = FLAGS_e;
     model_checker_param.check_batch       = FLAGS_b;
+    model_checker_param.dump_unaligned_layer_path = FLAGS_du;
 
     printf("proto: %s\n", proto_file_name.c_str());
     printf("model: %s\n", model_file_name.c_str());
@@ -235,7 +237,7 @@ int main(int argc, char* argv[]) {
     if(FLAGS_e) {
         printf("compare output only\n");
     }
-    if(FLAGS_o) {
+    if(!FLAGS_do.empty()) {
         printf("dump output\n");
     }
     if(FLAGS_b) {
