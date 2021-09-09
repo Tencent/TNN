@@ -124,3 +124,35 @@ P.S. 华为npu不支持每层分析。
 ### 5. 特殊说明
 * 对于OpenCL平台，逐层性能分析的目的是分析kernel的耗时分布，其中为了打印每层耗时，有额外开销，只有kernel时间具有参考意义。如果要看整体实际性能，需要参考全网络性能分析。
 * Android系统相比shell执行可执行文件耗时测试，app耗时测试的性能更贴近真实安卓app执行的性能。受安卓调度策略的影响，两种方式的性能可能有明显差异。综上所述，安卓app耗时测试更为推荐。
+
+## 三、Linux X86平台耗时测试
+### 1. 环境搭建  
+参考[TNN编译文档](../user/compile.md) 中LINUX X86库编译，检查环境是否满足要求。  
+
+### 2. 执行脚本
+```
+cd benchmakr/benchmakr_x86_linux
+./benchmark_models.sh  [-b] [-dl] [-mp] <model dir> [-th] <thread num>
+参数说明：
+   -th      thread num, defalut 1
+   -b       build only
+   -dl      download model from github
+   -mp      model dir path
+   -native  bench with native optimization, default openvino
+```
+注意：dl和mp，只需要设置一个，X86的benchmark测试需要model文件，不能只放proto
+
+## 四、Linux CUDA平台耗时测试
+### 1. 环境搭建  
+参考[TNN编译文档](../user/compile.md) 中LINUX CUDA库编译，检查环境是否满足要求。  
+
+### 2. 执行脚本
+```
+cd benchmark/benchmark_cuda_linux
+./benchmark_models.sh  [-b] [-dl] [-mp] <model dir>
+参数说明：
+   -b       build only
+   -dl      download model from github
+   -mp      model dir path
+```
+注意：dl和mp，只需要设置一个，CUDA的benchmark测试需要model文件，不能只放proto
