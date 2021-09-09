@@ -52,7 +52,8 @@ struct IndexNode {
     }
 };
 
-std::vector<int> GetNextIndexNode(std::vector<IndexNode> &index_nodes, int index);
+std::vector<int> GetNextIndexNode(std::vector<IndexNode>& index_nodes, int index);
+std::vector<int> GetPreviousIndexNode(std::vector<IndexNode>& index_nodes, int index);
 int RemoveIndexNode(std::vector<IndexNode> &index_nodes, int index);
 
 class Onnx2TNN {
