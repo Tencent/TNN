@@ -132,9 +132,11 @@ Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &
             auto src_ptr = buffer->force_to<float *>();
             if (blob_dtype == DATA_TYPE_FLOAT) {
                 if (blob_fmt == DATA_FORMAT_NCHW) {
-                    memcpy(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr, buff_count * sizeof(float));
+                    memcpy(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr,
+                           buff_count * sizeof(float));
                 } else {
-                    PackFloatBlob(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr, batch, channel, hw);
+                    PackFloatBlob(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr, batch,
+                                  channel, hw);
                 }
             } else if (blob_dtype == DATA_TYPE_HALF) {
                 RawBuffer tmp_fp16_buff = RawBuffer(buff_count * sizeof(fp16_t));
@@ -144,7 +146,8 @@ Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &
                     memcpy(reinterpret_cast<fp16_t *>(GetBlobHandlePtr(blob->GetHandle())), tmp_buff_ptr,
                            buff_count * sizeof(fp16_t));
                 } else {
-                    PackHalfBlob(reinterpret_cast<fp16_t *>(GetBlobHandlePtr(blob->GetHandle())), tmp_buff_ptr, batch, channel, hw);
+                    PackHalfBlob(reinterpret_cast<fp16_t *>(GetBlobHandlePtr(blob->GetHandle())), tmp_buff_ptr, batch,
+                                 channel, hw);
                 }
             } else {
                 LOGE("RawBuffer2ArmBlob:: unsupported blob data type: %d\n", blob_dtype);
@@ -165,7 +168,7 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool 
         return TNN_OK;
     }
     auto const_resource_flag = const_resource_flag_;
-    auto const_blob_map = const_blob_map_;
+    auto const_blob_map      = const_blob_map_;
 
     // The default blob desc has the same data type and data format with non-constant input blob
     BlobDesc arm_default_desc;
@@ -204,10 +207,20 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool 
             blob = const_blob_map[name];
         }
         Status status;
-        if (UseNaiveConstantBlobs()) {
-            status = RawBuffer2Blob(buffer.get(), blob);
+        // convert fp16 to fp32 resource before converting from buffer to blob
+        auto buffer_cvt = RawBuffer();
+        if (buffer->GetDataType() == DATA_TYPE_HALF) {
+            buffer_cvt = ConvertHalfHandle(*(buffer.get()));
+            buffer_cvt.SetBufferDims(buffer->GetBufferDims());
         } else {
-            status = RawBuffer2ArmBlob(buffer.get(), blob, arm_default_desc);
+            buffer_cvt = *(buffer.get());
+        }
+        if (UseNaiveConstantBlobs()) {
+            // the const blob has fp32 or integer dtype and nchw format
+            status = RawBuffer2Blob(&buffer_cvt, blob);
+        } else {
+            // the const blob has the same dtype and format as other input blob of the layer
+            status = RawBuffer2ArmBlob(&buffer_cvt, blob, arm_default_desc);
         }
         RETURN_ON_NEQ(status, TNN_OK);
 

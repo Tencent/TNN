@@ -113,8 +113,12 @@ int Onnx2TNN::TNNWriteModel() {
             for (auto id : const_id_set) {
                 auto const_tensor = onnx_net_info_.weights_map[id];
                 net_writer.PutString(id);
-                OnnxOpConverter::WriteTensorData(const_tensor, &net_writer, DATA_TYPE_AUTO);
-                
+                if (const_tensor.data_type() == TensorProto_DataType_FLOAT ||
+                    const_tensor.data_type() == TensorProto_DataType_DOUBLE) {
+                    OnnxOpConverter::WriteTensorData(const_tensor, &net_writer, onnx_net_info_.data_type);
+                } else {
+                    OnnxOpConverter::WriteTensorData(const_tensor, &net_writer, DATA_TYPE_AUTO);
+                }
             }
         }
     } while (0);
