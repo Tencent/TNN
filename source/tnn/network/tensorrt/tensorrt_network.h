@@ -102,7 +102,7 @@ public:
     static std::unordered_map<std::string, TensorRTPluginLayerBuilder*> GetPluginLayerNameMap();
 
     std::string GetCacheFileName(std::vector<std::string> params_md5, BlobMap input_map,
-        BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, int batchsize,
+        BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id,
         bool int8_mode, bool use_fp16, bool enable_const_folder);
 
     std::set<std::string> m_concat_blob_names;

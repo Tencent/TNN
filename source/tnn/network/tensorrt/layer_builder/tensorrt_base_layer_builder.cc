@@ -20,7 +20,7 @@
 
 namespace TNN_NS {
 
-TensorRTBaseLayerBuilder::TensorRTBaseLayerBuilder(LayerType type) : BaseLayerBuilder(type), trt_batchsize(0) {
+TensorRTBaseLayerBuilder::TensorRTBaseLayerBuilder(LayerType type) : BaseLayerBuilder(type) {
     m_layer = std::shared_ptr<BaseLayer>(CreateLayer(type));
 }
 
@@ -46,10 +46,6 @@ Status TensorRTBaseLayerBuilder::Build() {
 
 bool TensorRTBaseLayerBuilder::IsPluginLayer() {
     return this->is_plugin;
-}
-
-void TensorRTBaseLayerBuilder::SetBatchSize(int value) {
-    this->trt_batchsize = value;
 }
 
 void TensorRTBaseLayerBuilder::SetConstantResource(ConstantResource* consts) {
