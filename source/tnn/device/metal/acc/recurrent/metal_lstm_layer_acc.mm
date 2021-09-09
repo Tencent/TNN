@@ -107,8 +107,8 @@ Status MetalLSTMLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
         metal_params.input_width = DimsVectorUtils::Count(dims_input, 2);
         metal_params.reverse = lstm_param->direction==1;
         metal_params.direction = num_direction;
-        metal_params.has_init_h = inputs.size() > 4;
-        metal_params.has_init_c = inputs.size() > 5;
+        metal_params.has_init_h = inputs.size() > 4 && (!!(inputs[4]->GetHandle().base));
+        metal_params.has_init_c = inputs.size() > 5 && (!!(inputs[5]->GetHandle().base));
         
         buffer_param_ = [device newBufferWithBytes:(const void *)(&metal_params)
                                             length:sizeof(MetalRecurrentParams)
@@ -216,6 +216,7 @@ Status MetalLSTMLayerAcc::AllocateBufferStates(const std::vector<Blob *> &inputs
         auto data_type = c0->GetBlobDesc().data_type;
         void *ptr = static_cast<char *>(c0->GetHandle().base) + c0->GetHandle().bytes_offset;
         std::shared_ptr<char> buffer_type = nullptr;
+        if (ptr) {
 #if TNN_METAL_FULL_PRECISION
         if (data_type == DATA_TYPE_HALF) {
             buffer_type.reset(new char [metal_state_buffer_bytes], [](char *p){delete [] p;});
@@ -236,12 +237,15 @@ Status MetalLSTMLayerAcc::AllocateBufferStates(const std::vector<Blob *> &inputs
         buffer_c0_ = [device newBufferWithBytes:ptr
                                          length:metal_state_buffer_bytes
                                         options:MTLResourceOptionCPUCacheModeWriteCombined];
+        }
     }
+    
     if (inputs.size() > 4 && (!buffer_h0_ || buffer_h0_.length != metal_state_buffer_bytes)) {
         Blob *h0 = inputs[4];
         auto data_type = h0->GetBlobDesc().data_type;
         void *ptr = static_cast<char *>(h0->GetHandle().base) + h0->GetHandle().bytes_offset;
         std::shared_ptr<char> buffer_type = nullptr;
+        if (ptr) {
 #if TNN_METAL_FULL_PRECISION
         if (data_type == DATA_TYPE_HALF) {
             buffer_type.reset( new char [metal_state_buffer_bytes], [](char *p){delete [] p;});
@@ -262,9 +266,17 @@ Status MetalLSTMLayerAcc::AllocateBufferStates(const std::vector<Blob *> &inputs
         buffer_h0_ = [device newBufferWithBytes:ptr
                                          length:metal_state_buffer_bytes
                                         options:MTLResourceOptionCPUCacheModeWriteCombined];
-    } else if (buffer_h0_ == nil || buffer_c0_ == nil) {
+        }
+
+    }
+    
+    if (!buffer_h0_) {
         // no initial states, set them to a valid potision to avoid error when binded with kernels
         buffer_h0_ = buffer_gates_;
+    }
+    
+    if (!buffer_c0_) {
+        // no initial states, set them to a valid potision to avoid error when binded with kernels
         buffer_c0_ = buffer_gates_;
     }
     
