@@ -376,7 +376,8 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
         // non-reformat layer
         if (is_quantized_net) {
             // update blob of quantized network by layer info
-            if (layer_info->param->quantized && desc.data_type != DATA_TYPE_INT8) {
+            auto int8_blob = dynamic_cast<BlobInt8*>(*blob);
+            if (layer_info->param->quantized && int8_blob == nullptr) {
                 RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
             }
         } else {
