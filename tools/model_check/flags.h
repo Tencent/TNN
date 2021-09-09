@@ -38,13 +38,15 @@ static const char bias_message[] = "(optional) bias val when preprocess image in
 
 static const char scale_message[] = "(optional) scale val when preprocess image input, ie, 1.0,1.0,1.0";
 
-static const char output_dump_message[] = "(optional) dump output";
+static const char dump_output_path_message[] = "(optional) specify the path for dump output";
 
 static const char check_batch_message[] = "(optional) check result of multi batch";
 
 static const char align_all_message[] = "(optional) dump folder path to compare the all model";
 
 static const char set_precision_message[] = "(optional) specify tnn precision type(default HIGH): AUTO, NORMAL, HIGH, LOW";
+
+static const char dump_unaligned_layer_path_message[] = "(optional) specify the path for dump unaligned layer";
 
 DECLARE_bool(h);
 
@@ -64,13 +66,15 @@ DECLARE_string(n);
 
 DECLARE_string(s);
 
-DECLARE_bool(o);
-
 DECLARE_bool(b);
 
 DECLARE_string(a);
 
 DECLARE_string(sp);
+
+DECLARE_string(do);
+
+DECLARE_string(du);
 }  // namespace TNN_NS
 
 #endif  // TNN_TOOLS_MODEL_CHECK_FLAGS_H_

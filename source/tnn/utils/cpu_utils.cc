@@ -29,7 +29,9 @@
 #endif
 
 #if defined(__ANDROID__) || defined(__linux__)
+#ifdef __aarch64__
 #include <sys/auxv.h>
+#endif
 #define AT_HWCAP 16
 #define AT_HWCAP2 26
 // from arch/arm64/include/uapi/asm/hwcap.h

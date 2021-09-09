@@ -38,8 +38,6 @@ protected:
     Status AllocateBufferBiasHalf(Blob *bias);
 #endif  // TNN_ARM82
 
-    virtual bool UseNaiveConstantBlobs() override;
-
     RawBuffer buffer_weight_input_;
     RawBuffer buffer_weight_recurrent_;
     RawBuffer buffer_bias_;

@@ -280,6 +280,7 @@ Precision OpenCLRuntime::GetPrecision() {
 
 Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program_name, const std::string &kernel_name,
                                   const std::set<std::string> &build_options) {
+    std::unique_lock<std::mutex> lck(g_mtx);
     std::string build_options_str;
     bool force_fp32 = false;
     auto it         = build_options.find("-DFORCE_FP32");
@@ -329,7 +330,7 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
             LOGE("%s build failed!\n", program_name.c_str());
             return Status(TNNERR_OPENCL_KERNELBUILD_ERROR, "build program failed");
         }
-        program_map_.emplace(build_program_key, program);
+        program_map_[build_program_key] = program;
     }
 
     LOGD("build kernel: %s\n", kernel_name.c_str());
@@ -351,7 +352,7 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
     } else {
         std::vector<std::string> kernel_name_list = {kernel_name};
         is_program_cache_changed_ = true;
-        kernel_name_map_.emplace(build_program_key, kernel_name_list);
+        kernel_name_map_[build_program_key] = kernel_name_list;
     }
     return TNN_OK;
 }
