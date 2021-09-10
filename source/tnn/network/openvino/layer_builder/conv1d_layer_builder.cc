@@ -50,8 +50,8 @@ Status Conv1DOVLayerBuilder::Build() {
 
     // set pads
     ngraph::CoordinateDiff pad_begin, pad_end;
-    pad_begin.push_back(paramlist->pads.at(1));
-    pad_end.push_back(paramlist->pads.at(0));
+    pad_begin.push_back(paramlist->pads.at(0));
+    pad_end.push_back(paramlist->pads.at(1));
     convNode->set_pads_begin(pad_begin);
     convNode->set_adding_above(pad_end);
 
