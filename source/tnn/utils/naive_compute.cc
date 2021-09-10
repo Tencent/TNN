@@ -572,6 +572,8 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
                 g * output_channels_per_group * input_channels_per_group * kernel_size_x * kernel_size_y;
             for (int output_c = output_c_start; output_c < output_c_end; ++output_c) {
                 int scale_idx = weight_scale_len == 1 ? 0 : output_c;
+                int weight_bias_idx = scale_bias_len_w == 1 ? 0 : output_c;
+                int output_bias_idx = scale_bias_len_o == 1 ? 0 : output_c;
                 for (int h = 0; h < output_height; ++h) {
                     int input_h_start = h * stride_y - pad_y;
                     for (int w = 0; w < output_width; ++w) {
@@ -580,18 +582,17 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
                         int output_position = ((n * output_channel + output_c) * output_height + h) * output_width + w;
                         for (int kernel_h = 0; kernel_h < kernel_size_y; ++kernel_h) {
                             int input_h = input_h_start + kernel_h * dilation;
+                            bool pad_flag_h = false;
                             if (input_h < 0 || input_h >= input_height) {
-                                continue;
+                                pad_flag_h = true;
                             }
                             for (int kernel_w = 0; kernel_w < kernel_size_x; ++kernel_w) {
                                 int input_w = input_w_start + kernel_w * dilation;
+                                bool pad_flag_w = false;
                                 if (input_w < 0 || input_w >= input_width) {
-                                    continue;
+                                    pad_flag_w = true;
                                 }
                                 for (int input_c = input_c_start; input_c < input_c_end; ++input_c) {
-                                    int input_position =
-                                        ((n * input_channel + input_c) * input_height + input_h) * input_width +
-                                        input_w;
                                     int weight_position = weights_start +
                                                           (((output_c - output_c_start) * input_channels_per_group +
                                                             input_c - input_c_start) *
@@ -599,17 +600,24 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
                                                            kernel_h) *
                                                               kernel_size_x +
                                                           kernel_w;
-                                    int weight_x_bias_position = input_c + weight_position * input_channel;
-                                                                                           
-                                    result +=
-                                        input_data[input_position] * weight_data[weight_position] -
-                                    static_cast<Tacc>(input_data[input_position] * scale_bias_handle_w[scale_idx]) +
-                                    buffer_weight_x_bias[weight_x_bias_position];  
-
+                                    if (pad_flag_h || pad_flag_w) {
+                                        int input_bias_idx = scale_bias_len_i == 1 ? 0 : input_c;
+                                        result += static_cast<Tacc>(scale_bias_handle_i[input_bias_idx] *
+                                                                    weight_data[weight_position]) -
+                                                  static_cast<Tacc>(scale_bias_handle_i[input_bias_idx] *
+                                                                    scale_bias_handle_w[weight_bias_idx]);
+                                    } else {
+                                        int input_position =
+                                            ((n * input_channel + input_c) * input_height + input_h) * input_width +
+                                            input_w;
+                                        result += input_data[input_position] * weight_data[weight_position] -
+                                                  static_cast<Tacc>(input_data[input_position] *
+                                                                    scale_bias_handle_w[weight_bias_idx]);
+                                    }
                                 }
                             }
                         }
-
+                        result += buffer_weight_x_bias[output_c];
                         if (bias_data) {
                             result += bias_data[output_c];
                         }
@@ -620,7 +628,7 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
                             float val = result * weight_scale[scale_idx];
                             if (fusion_type == FusionType_Conv_Add_Activation) {
                                 val += static_cast<Tin *>(add_input)[output_position] * add_scale[output_c] -
-                                       add_bias_i[output_c] * add_scale[output_c];
+                                       add_bias_i[output_bias_idx] * add_scale[output_c];
                             }
                             if (activation_type == ActivationType_ReLU) {
                                 val = std::max(0.0f, val);
@@ -633,9 +641,9 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
                             }
                             if (fusion_type == FusionType_Conv_Activation_Add) {
                                 val += static_cast<Tin *>(add_input)[output_position] * add_scale[output_c] -
-                                       add_bias_i[output_c] * add_scale[output_c];
+                                       add_bias_i[output_bias_idx] * add_scale[output_c];
                             }
-                            val += static_cast<Tacc>(scale_bias_handle_o[scale_idx]);
+                            val += static_cast<Tacc>(scale_bias_handle_o[output_bias_idx]);
                             output_data[output_position] = float2int8(val);
                         }
                     }
