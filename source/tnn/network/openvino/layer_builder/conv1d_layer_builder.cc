@@ -33,7 +33,6 @@ namespace TNN_NS {
 DECLARE_OPENVINO_LAYER_BUILDER(Conv1D, LAYER_CONVOLUTION_1D);
 
 Status Conv1DOVLayerBuilder::Build() {
-    printf("build conv1d\n");
     auto paramlist = dynamic_cast<ConvLayerParam*>(param_);
 
     if (GetInputNodes().size() <= 0) {
