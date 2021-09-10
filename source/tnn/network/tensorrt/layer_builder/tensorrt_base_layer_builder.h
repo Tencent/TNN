@@ -72,9 +72,6 @@ public:
     // @brief check whether is a plugin layer
     bool IsPluginLayer();
 
-    // @brief set tensorRT batchsize
-    void SetBatchSize(int value);
-
     // @brief set constant resource
     virtual void SetConstantResource(ConstantResource* consts);
 
@@ -99,7 +96,6 @@ protected:
     std::shared_ptr<BaseLayer> m_layer;
     std::vector<float*> int8_weight_data;
     bool is_plugin;
-    int trt_batchsize;
 
     TensorRTNetwork_* m_network;
 };

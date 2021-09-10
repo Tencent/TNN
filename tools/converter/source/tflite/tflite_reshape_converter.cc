@@ -76,6 +76,16 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
         cur_layer->inputs.resize(1);
         cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
     }
+    if (quantized_model) {
+        // handle input blob scale
+        auto input_index = tf_lite_operator->inputs[0];
+        auto status      = CreateBlobScaleResource(net_resource, tf_lite_tensors, input_index);
+        ASSERT(status == TNN_NS::TNN_CONVERT_OK);
+        // handle output blob scale
+        auto output_index = tf_lite_operator->outputs[0];
+        status            = CreateBlobScaleResource(net_resource, tf_lite_tensors, output_index);
+        ASSERT(status == TNN_NS::TNN_CONVERT_OK);
+    }
     return TNN_NS::TNN_CONVERT_OK;
 }
 

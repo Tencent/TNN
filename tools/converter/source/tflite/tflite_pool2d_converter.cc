@@ -88,13 +88,13 @@ TNN_NS::Status TFLitePool2DConverter::exec(TNN_NS::NetStructure& net_structure, 
     if (quantized_model)  {
         // create IntScaleResource for input
         int input_tensor_index = tf_lite_operator->inputs[0];
-        TNN_NS::Status status = CreateIntScaleResource(net_resource, tf_lite_tensors, input_tensor_index);
+        TNN_NS::Status status = CreateBlobScaleResource(net_resource, tf_lite_tensors, input_tensor_index);
         if (status != TNN_NS::TNN_CONVERT_OK) {
             return status;
         }
         // create IntScaleResource for output
         int output_tensor_index = tf_lite_operator->outputs[0];
-        status = CreateIntScaleResource(net_resource, tf_lite_tensors, output_tensor_index);
+        status = CreateBlobScaleResource(net_resource, tf_lite_tensors, output_tensor_index);
         if (status != TNN_NS::TNN_CONVERT_OK) {
             return status;
         }

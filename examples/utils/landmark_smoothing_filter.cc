@@ -92,7 +92,7 @@ bool VelocityFilter::isValidLandMark(const NormalizedLandmark& m) {
     return valid;
 }
 
-bool VelocityFilter::isValidLandMark(const Normalized2DLandmark& m) {
+bool VelocityFilter::isValid2DLandMark(const Normalized2DLandmark& m) {
     bool valid = (m.first >= 0) && (m.second >= 0);
     return valid;
 }
@@ -110,10 +110,7 @@ TNN_NS::Status VelocityFilter::Apply(const NormalizedLandmarkList& in_landmarks,
     // If value is too small smoothing will be disabled and landmarks will be
     // returned as is.
     NormalizedLandmarkList filterd;
-    auto filter = [](const NormalizedLandmark&m){
-        return isValidLandMark(m);
-    };
-    std::copy_if(in_landmarks.begin(), in_landmarks.end(), std::back_inserter(filterd), filter);
+    std::copy_if(in_landmarks.begin(), in_landmarks.end(), std::back_inserter(filterd), isValidLandMark);
     const float object_scale = GetObjectScale(filterd, image_width, image_height);
     if (object_scale < min_allowed_object_scale_) {
         *out_landmarks = in_landmarks;
@@ -161,10 +158,7 @@ TNN_NS::Status VelocityFilter::Apply2D(const Normalized2DLandmarkList& in_landma
     // If value is too small smoothing will be disabled and landmarks will be
     // returned as is.
     Normalized2DLandmarkList filterd;
-    auto filter = [](const Normalized2DLandmark&m){
-        return isValidLandMark(m);
-    };
-    std::copy_if(in_landmarks.begin(), in_landmarks.end(), std::back_inserter(filterd), filter);
+    std::copy_if(in_landmarks.begin(), in_landmarks.end(), std::back_inserter(filterd), isValid2DLandMark);
     const float object_scale = GetObjectScale(filterd, image_width, image_height);
     if (object_scale < min_allowed_object_scale_) {
         *out_landmarks = in_landmarks;
@@ -180,7 +174,7 @@ TNN_NS::Status VelocityFilter::Apply2D(const Normalized2DLandmarkList& in_landma
     for (int i = 0; i < in_landmarks.size(); ++i) {
         const Normalized2DLandmark& in_landmark = in_landmarks[i];
         
-        if (!isValidLandMark(in_landmark)) {
+        if (!isValid2DLandMark(in_landmark)) {
             out_landmarks->push_back(in_landmark);
             continue;
         }

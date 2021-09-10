@@ -161,7 +161,7 @@ class BaseRunner:
                 shape = tnn_info['shape']
                 logging.info("Using tnn shape:{} for input:{}".format(shape,name))
             data_type = info['data_type']
-            data_file.write(name + ' ' + str(len(shape)) + ' ' + ' '.join([str(dim) for dim in shape]) + ' ' + str(
+            data_file.write(tnn_name + ' ' + str(len(shape)) + ' ' + ' '.join([str(dim) for dim in shape]) + ' ' + str(
                 data_type) + '\n')
             if data_type == 0:
                 self.input_data[name] = np.random.rand(*shape).astype(np.float32)

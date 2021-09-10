@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "tnn/core/abstract_device.h"
 #include "tnn/core/common.h"
 #include "tnn/core/status.h"
 #include "tnn/interpreter/net_resource.h"
@@ -38,6 +39,11 @@ namespace optimizer {
                          std::shared_ptr<LayerInfo>& cur_layer, std::shared_ptr<LayerInfo>& new_layer,
                          std::vector<std::string>& reformat_outs, const std::string& reformat_name_suffix,
                          const int index, const int count);
+        std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_quantized);
+
+    private:
+        AbstractDevice* device_;
+
     };
 
 }  // namespace optimizer
