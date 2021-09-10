@@ -35,7 +35,10 @@ Status CpuMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
             const std::vector<Blob *> &outputs){
     auto status = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
 
+    if (inputs.size() == 2)
+        return TNN_OK;
     auto layer_res = dynamic_cast<MatMulLayerResource *>(resource);
+
     const int data_size = layer_res->weight.GetDataCount();
     std::shared_ptr<float> weight(new float[data_size], [](float *p) { delete[] p; });
 
