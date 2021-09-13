@@ -78,7 +78,7 @@ Status DeconvOVLayerBuilder::Build() {
     // set weights
     ngraph::Shape weights_shape;
     weights_shape.push_back(paramlist->group);
-    weights_shape.push_back(paramlist->input_channel);
+    weights_shape.push_back(paramlist->input_channel / paramlist->group);
     weights_shape.push_back(paramlist->output_channel / paramlist->group);
     auto kernels = std::vector<int>{paramlist->kernels};
     std::reverse(kernels.begin(), kernels.end());
@@ -101,6 +101,7 @@ Status DeconvOVLayerBuilder::Build() {
             input_node->output(0), weightsNode, strides, pads_begin, pads_end, dilations, pad_type);
 
     deConvNode->validate_and_infer_types();
+    std::shared_ptr<ngraph::Node> outputNode;
 
     // has bias
     if (paramlist->bias) {
@@ -116,19 +117,21 @@ Status DeconvOVLayerBuilder::Build() {
             DataTransfer(resource->bias_handle.GetDataType()), biasShape, resource->bias_handle.force_to<float*>());
         auto addNode = std::make_shared<ngraph::op::v1::Add>(
             deConvNode->output(0), biasNode);
-        addNode->validate_and_infer_types();
-
-        addNode->set_friendly_name(paramlist->name);
-        ngraph::NodeVector outputNodes;
-        outputNodes.push_back(addNode);
-        SetOutputTensors(outputNodes);
-
+        
+        outputNode = addNode;
     } else {
-        deConvNode->set_friendly_name(paramlist->name);
-        ngraph::NodeVector outputNodes;
-        outputNodes.push_back(deConvNode);
-        SetOutputTensors(outputNodes);
+        outputNode = deConvNode;
     }
+
+    if (paramlist->activation_type == ActivationType_ReLU) {
+        outputNode = std::make_shared<ngraph::op::Relu>(outputNode);
+    } else if (paramlist->activation_type == ActivationType_ReLU6) {
+        outputNode = std::make_shared<ngraph::op::Clamp>(outputNode, 0, 6);
+    }
+
+    outputNode->set_friendly_name(param_->name);
+    ngraph::NodeVector outputNodes = {outputNode};
+    SetOutputTensors(outputNodes);
 
     return TNN_OK;
 }

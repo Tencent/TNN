@@ -28,15 +28,14 @@
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/network/openvino/openvino_types.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/network/openvino/custom_layer/custom_batch_norm.h"
 
 namespace TNN_NS {
 
-DECLARE_OPENVINO_LAYER_BUILDER(BatchNorm, LAYER_BATCH_NORM);
+DECLARE_OPENVINO_LAYER_BUILDER(Scale, LAYER_SCALE);
 
-Status BatchNormOVLayerBuilder::Build() {
+Status ScaleOVLayerBuilder::Build() {
 
-    auto paramlist = dynamic_cast<BatchNormLayerParam*>(param_);
+    auto paramlist = dynamic_cast<ScaleLayerParam*>(param_);
 
     if (GetInputNodes().size() <=0) {
         LOGE("Error: 0 input nodes\n");
@@ -57,35 +56,27 @@ Status BatchNormOVLayerBuilder::Build() {
     }
     auto scaleConstNode = std::make_shared<ngraph::op::Constant>(
         ngraph::element::Type_t::f32, batchNromShape, scale_data);
+    auto scaleNode = std::make_shared<ngraph::op::v1::Multiply>(
+        input_node->output(0), scaleConstNode);
 
-    if (0) { // choose custom or origin node
-        auto scaleNode = std::make_shared<ngraph::op::v1::Multiply>(
-            input_node->output(0), scaleConstNode);
-        bool has_bias = resource->bias_handle.GetBytesSize() > 0;
-        if (has_bias) {
-            auto biasConstNode = std::make_shared<ngraph::op::Constant>(
-                ngraph::element::Type_t::f32, batchNromShape, bias_data);
-            auto biasNode = std::make_shared<ngraph::op::v1::Add>(
-                scaleNode->output(0), biasConstNode, ngraph::op::AutoBroadcastType::NUMPY);
-            biasNode->set_friendly_name(param_->name);
-            ngraph::NodeVector outputNodes = {biasNode};
-            SetOutputTensors(outputNodes);
-        } else {
-            scaleNode->set_friendly_name(param_->name);
-            ngraph::NodeVector outputNodes = {scaleNode};
-            SetOutputTensors(outputNodes);
-        }
+    bool has_bias = resource->bias_handle.GetBytesSize() > 0;
+    if (has_bias) {
+        auto biasConstNode = std::make_shared<ngraph::op::Constant>(
+            ngraph::element::Type_t::f32, batchNromShape, bias_data);
+        auto biasNode = std::make_shared<ngraph::op::v1::Add>(
+            scaleNode->output(0), biasConstNode, ngraph::op::AutoBroadcastType::NUMPY);
+        biasNode->set_friendly_name(param_->name);
+        ngraph::NodeVector outputNodes = {biasNode};
+        SetOutputTensors(outputNodes);
     } else {
-        ngraph::OutputVector outputs;
-        auto batchNormNode = std::make_shared<CustomBatchNormOp>(input_node->outputs(), base_layer_, GetInputBlobs(), GetOutputBlobs());
-        batchNormNode->set_friendly_name(param_->name);
-        ngraph::NodeVector outputNodes;
-        outputNodes.push_back(batchNormNode);
-        SetOutputTensors(outputNodes);   
+        scaleNode->set_friendly_name(param_->name);
+        ngraph::NodeVector outputNodes = {scaleNode};
+        SetOutputTensors(outputNodes);
     }
+    
     return TNN_OK;
 }
 
-REGISTER_OPENVINO_LAYER_BUILDER(BatchNorm, LAYER_BATCH_NORM);
+REGISTER_OPENVINO_LAYER_BUILDER(Scale, LAYER_SCALE);
 
 }

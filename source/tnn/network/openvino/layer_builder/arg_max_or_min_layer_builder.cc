@@ -46,13 +46,20 @@ Status ArgMaxOrMinOVLayerBuilder::Build() {
     auto param = dynamic_cast<ArgMaxOrMinLayerParam*>(param_);
     CHECK_PARAM_NULL(param);
 
-    auto topk_mode = param->mode == 0 ? opset::TopK::Mode::MAX : opset::TopK::Mode::MIN ;
+    auto topk_mode = param->mode == 0 ? opset::TopK::Mode::MIN : opset::TopK::Mode::MAX ;
     auto input_node = GetInputNodes()[0];
     auto k_node = opset::Constant::create(ngraph::element::i64, ngraph::Shape{}, {1});
     auto topk = std::make_shared<opset::TopK>(
         input_node, k_node, param->axis, topk_mode, opset::TopK::SortType::NONE);
 
-    auto cur_node = std::make_shared<opset::Convert>(topk->output(1), ngraph::element::i64);
+    std::shared_ptr<ngraph::Node> cur_node;
+    if (param->keep_dims == 0) {
+        auto axis_to_remove = opset::Constant::create(ngraph::element::i32, ngraph::Shape{}, {param->axis});
+        auto reshaped_indices = std::make_shared<opset::Squeeze>(topk->output(1), axis_to_remove);
+        cur_node = std::make_shared<opset::Convert>(reshaped_indices, ngraph::element::i64);
+    } else {
+        cur_node = std::make_shared<opset::Convert>(topk->output(1), ngraph::element::i64);
+    }
 
     cur_node->set_friendly_name(param_->name);
     cur_node->validate_and_infer_types();
