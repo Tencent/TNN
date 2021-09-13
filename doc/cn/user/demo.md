@@ -282,8 +282,11 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
    阅读理解 demo
    ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
 
-   姿势检测 demo
+   姿势检测 demo (腾讯光流)
    ./demo_x86_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
+
+   姿势检测 demo (blazepose)
+   ./demo_x86_blazepose
 
    文本识别 demo
    ./demo_x86_ocrdetecor
@@ -353,8 +356,11 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
    阅读理解 demo
    ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
 
-   姿势检测 demo
+   姿势检测 demo (腾讯光流)
    ./demo_x86_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
+
+   姿势检测 demo (blazepose)
+   ./demo_x86_blazepose
 
    文本识别 demo
    ./demo_x86_ocrdetecor
@@ -406,8 +412,11 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
    阅读理解 demo
    .\demo_x86_readingcomprehension -p ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnproto -m ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnmodel -v ..\..\..\..\..\model\bertsquad10\vocab.txt
 
-   姿势检测 demo
+   姿势检测 demo (腾讯光流)
    .\demo_x86_posedetector -p ..\..\..\..\model\skeleton\skeleton_big.tnnproto -m ..\..\..\..\model\skeleton\skeleton.tnnmodel -i ..\..\..\assets\skeleton_test.jpg
+
+   姿势检测 demo (blazepose)
+   .\demo_x86_blazepose
 
    文本识别 demo
    .\demo_x86_ocrdetecor
@@ -516,8 +525,11 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
    阅读理解 demo
    ./demo_cuda_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
 
-   姿势检测 demo
+   姿势检测 demo (腾讯光流)
    ./demo_cuda_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
+
+   姿势检测 demo (blazepose)
+   ./demo_cuda_blazepose
 
    文本识别 demo
    ./demo_cuda_ocrdetecor
