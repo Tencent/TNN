@@ -34,6 +34,7 @@
 int main(int argc, char **argv) {
     if (!ParseAndCheckCommandLine(argc, argv)) {
         ShowUsage(argv[0]);
+        printf("The default proto and model file could be found at ../../../../model/nanodet/\n");
         return -1;
     }
 
@@ -47,9 +48,7 @@ int main(int argc, char **argv) {
         option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
-            option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
-        #elif _OPENVINO_
-            option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+            option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         #endif
         option->model_cfg = "m";
     }
