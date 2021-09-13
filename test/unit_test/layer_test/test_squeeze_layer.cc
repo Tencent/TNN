@@ -21,7 +21,7 @@
 namespace TNN_NS {
 
 static bool TestFilter(DeviceType device_type, DataType data_type) {
-    if (device_type == DEVICE_NAIVE || device_type == DEVICE_METAL)
+    if (device_type == DEVICE_NAIVE || device_type == DEVICE_METAL || device_type == DEVICE_OPENCL)
         return true;
     return false;
 }

@@ -1,3 +1,4 @@
 x86/build_msvc
 x86/build_msvc_native
 x86/build_msvc_openvino
+cuda/build_msvc_cuda

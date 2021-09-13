@@ -18,6 +18,11 @@ set(CMAKE_CXX_STANDARD 11)
 set(TNN_CUDA_ENABLE ON)
 set(TNN_TENSORRT_ENABLE ON)
 
+if (TNN_DEMO_WITH_OPENCV)
+    find_package(OpenCV 4 REQUIRED)
+    include_directories(${OpenCV_INCLUDE_DIRS})
+endif()
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -std=c++11 -fPIC")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11 -pthread -fPIC")
 
@@ -42,15 +47,38 @@ include_directories(BEFORE "${GFLAGS_INCLUDE_DIRS}")
 link_libraries(gflags)
 
 file(GLOB FLAG_SRC "${CMAKE_SOURCE_DIR}/../src/*.cc")
+
 file(GLOB_RECURSE BASE_SRC
-    "${CMAKE_SOURCE_DIR}/../../base/*.cc"
-    "${CMAKE_SOURCE_DIR}/../../utils/*.cc")
+                    "${CMAKE_SOURCE_DIR}/../../base/*.cc")
+
+file(GLOB_RECURSE UTIL_SRC
+                   "${CMAKE_SOURCE_DIR}/../../utils/*.cc")
+
 file(GLOB_RECURSE WEBCAM_SRC "${CMAKE_SOURCE_DIR}/../../base/ocr*.cc")
 list(REMOVE_ITEM BASE_SRC ${WEBCAM_SRC})
 
 add_definitions(-D_CUDA_)
-add_executable(demo_cuda_imageclassify ../src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC} ${FLAG_SRC})
-add_executable(demo_cuda_facedetector ../src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC} ${FLAG_SRC})
-add_executable(demo_cuda_readingcomprehension ../src/BertReadingComprehension/BertReadingComprehension.cc ${BASE_SRC} ${FLAG_SRC})
-add_executable(demo_cuda_objectdetector ../src/TNNObjectDetector/TNNObjectDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+if (TNN_DEMO_WITH_OPENCV)
+    add_definitions(-D_OPENCV_)
+endif()
 
+add_executable(demo_cuda_imageclassify ../../linux/src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_cuda_facedetector ../../linux/src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_cuda_readingcomprehension ../../linux/src/BertReadingComprehension/BertReadingComprehension.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_cuda_objectdetector ../../linux/src/TNNObjectDetector/TNNObjectDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_cuda_posedetector ../../linux/src/TNNSkeletonDetector/TNNSkeletonDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_cuda_facealignment ../../linux/src/TNNFaceAligner/TNNFaceAligner.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_cuda_blazepose ../../linux/src/TNNBlazePose/TNNBlazePose.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+
+if (TNN_DEMO_WITH_OPENCV) 
+    file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/../../linux/src/TNNWebCamBasedDemo/*.cc")
+    add_executable(demo_cuda_webcam ${SRC} ${BASE_SRC} ${UTIL_SRC} ${WEBCAM_SRC})
+    add_executable(demo_cuda_ocrdetector ../../linux/src/TNNOcrDetector/TNNOcrDetector.cc ${BASE_SRC} ${UTIL_SRC} ${WEBCAM_SRC} ${FLAG_SRC})
+    target_link_libraries(demo_cuda_webcam ${OpenCV_LIBS})
+    target_link_libraries(demo_cuda_facedetector ${OpenCV_LIBS})
+    target_link_libraries(demo_cuda_objectdetector ${OpenCV_LIBS})
+    target_link_libraries(demo_cuda_posedetector ${OpenCV_LIBS})
+    target_link_libraries(demo_cuda_facealignment ${OpenCV_LIBS})
+    target_link_libraries(demo_cuda_ocrdetector ${OpenCV_LIBS})
+    target_link_libraries(demo_cuda_blazepose ${OpenCV_LIBS})
+endif()

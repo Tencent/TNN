@@ -59,10 +59,10 @@ void ArmReduceLayerAcc::ReduceChannel(float *input_data, float *output_data, Dim
                     if (post_cal)
                         r = op_->PostCalculate(r, axis_n);
                 }
-                *(output_data + p)      = r.value[0];
-                *(output_data + p + 4)  = r.value[1];
-                *(output_data + p + 8)  = r.value[2];
-                *(output_data + p + 12) = r.value[3];
+                *(output_data + p)      = r[0];
+                *(output_data + p + 4)  = r[1];
+                *(output_data + p + 8)  = r[2];
+                *(output_data + p + 12) = r[3];
             }
 
             for (int i = 0; i < hw_r; i++) {

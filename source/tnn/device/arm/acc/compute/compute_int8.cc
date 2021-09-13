@@ -196,7 +196,7 @@ convert float data to s8, pack four int8 values to one int32 value
 inline int32_t Float4ScaleTos8(const float32x4_t v, const float32x4_t s) {
     float32x4_t mul = vmulq_f32(v, s);
     int8x8_t s8     = vqmovn_s16(vcombine_s16(vqmovn_s32(VCVTAQ_S32_F32(mul)), vdup_n_s16(0)));
-    return vreinterpret_s32_s8(s8)[0];
+    return vget_lane_s32(vreinterpret_s32_s8(s8), 0);
 }
 
 /*

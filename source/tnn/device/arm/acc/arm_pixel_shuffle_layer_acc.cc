@@ -95,10 +95,10 @@ static void UnfoldPlane2x2(int oh, int ow, T *workspace_data_c, T *input_data_c)
             Float2 temp0, temp1;
             Float4::get_low(c0, temp0);
             Float4::get_high(c0, temp1);
-            workspace_data_w0[0] = temp0.value[0];
-            workspace_data_w0[1] = temp0.value[1];
-            workspace_data_w1[0] = temp1.value[0];
-            workspace_data_w1[1] = temp1.value[1];
+            workspace_data_w0[0] = temp0[0];
+            workspace_data_w0[1] = temp0[1];
+            workspace_data_w1[0] = temp1[0];
+            workspace_data_w1[1] = temp1[1];
         }
     }
 }

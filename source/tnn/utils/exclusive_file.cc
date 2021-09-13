@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/exclusive_file.h"
+#include "tnn/utils/exclusive_file.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -33,7 +33,7 @@ namespace TNN_NS {
 
 static std::mutex static_mutex;
 
-#if defined _WIN32 
+#if defined(_WIN32)
 
 shared_mutex_t shared_mutex_init(const char* iname) {
     shared_mutex_t mutex = {NULL, 0, NULL, 1};
@@ -115,7 +115,82 @@ static void create_file(const char * fname) {
     }
 }
 
-#else // _WIN32
+#elif defined(__ANDROID__) // Android
+
+shared_mutex_t shared_mutex_init(const char* iname) {
+    shared_mutex_t mutex = {NULL, 0, NULL, 1};
+    std::string iname_str = std::string(iname);
+    std::string iname_md5 = md5(iname_str);
+    
+    size_t pos = iname_str.find_last_of("\\/");
+    std::string idir = (std::string::npos == pos) ? "" : iname_str.substr(0, pos);
+
+    mutex.name = (char*)malloc(TNN_NAME_MAX + 1);
+    sprintf(mutex.name, "%s/.%u.%s.tnnmutex", idir.c_str(), getuid(), iname_md5.c_str());
+
+    // @brief open existing lock file, or create one.
+    mutex.shm_fd = open(mutex.name, O_RDWR | O_CREAT, 0660);
+    if (mutex.shm_fd < 0) {
+        perror("lock file of mutex open failed");
+        return mutex;
+    }
+
+    mutex.ptr = (struct flock*)malloc(sizeof(struct flock));
+    mutex.ptr->l_whence = SEEK_SET;
+    mutex.ptr->l_start = 0;
+    mutex.ptr->l_len = 0;
+    mutex.ptr->l_pid = 0;
+
+    return mutex;
+}
+
+int shared_mutex_close(shared_mutex_t mutex) {
+    if (mutex.ptr != NULL) {
+        free(mutex.ptr);
+        mutex.ptr = NULL;
+    }
+    if (mutex.shm_fd >= 0 && close(mutex.shm_fd)) {
+        perror("lock file of mutex close failed");
+        return -1;
+    }
+    mutex.shm_fd = -1;
+    free(mutex.name);
+    return 0;
+}
+
+void shared_mutex_lock(shared_mutex_t * mutex) {
+    if (mutex->ptr == NULL) {
+        perror("mutex is empty, lock file failed");
+        return;
+    }
+    mutex->ptr->l_type = F_WRLCK;
+    fcntl(mutex->shm_fd, F_SETLKW, mutex->ptr);
+}
+
+void shared_mutex_unlock(shared_mutex_t * mutex) {
+    if (mutex->ptr == NULL) {
+        perror("mutex is empty, unlock file failed");
+        return;
+    }
+    mutex->ptr->l_type = F_UNLCK;
+    fcntl(mutex->shm_fd, F_SETLKW, mutex->ptr);
+}
+
+static bool file_exists(const char * fname) {
+    int fd = open(fname, O_RDWR | O_EXCL, 0666);
+    if (fd < 0) {
+        return false; 
+    }
+    close(fd);
+    return true;
+}
+
+static void create_file(const char * fname) {
+    int fd = open(fname, O_RDWR | O_CREAT, 0666);
+    close(fd);
+}
+
+#elif defined(__linux__)  || defined(LINUX) // Linux
 
 shared_mutex_t shared_mutex_init(const char* iname) {
     shared_mutex_t mutex = {NULL, 0, NULL, 1};
@@ -210,7 +285,43 @@ static void create_file(const char * fname) {
     close(fd);
 }
 
-#endif // _WIN32
+#else
+
+shared_mutex_t shared_mutex_init(const char* iname) {
+    shared_mutex_t mutex = {NULL, 0, NULL, 1};
+    // not support set robust
+    // ExclFile need to resolve deadlock problem before used
+    throw std::runtime_error("Shared mutex is not supported on current system");
+
+    return mutex;
+}
+
+int shared_mutex_close(shared_mutex_t mutex) {
+    return 0;
+}
+
+void shared_mutex_lock(shared_mutex_t * mutex) {
+    // not support make mutex consistent
+    // ExclFile need to fix when last owner was crashed before used
+}
+
+void shared_mutex_unlock(shared_mutex_t * mutex) {
+}
+
+static bool file_exists(const char * fname) {
+    int fd = open(fname, O_RDWR | O_EXCL, 0666);
+    if (fd < 0) {
+        return false;
+    }
+    close(fd);
+    return true;
+}
+
+static void create_file(const char * fname) {
+    int fd = open(fname, O_RDWR | O_CREAT, 0666);
+    close(fd);
+}
+#endif
 
 ExclFile::ExclFile(std::string fname) : m_fname(fname) {
     static_mutex.lock();

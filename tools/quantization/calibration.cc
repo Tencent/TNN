@@ -218,11 +218,12 @@ int Calibration::CalBlobScale(DataSet& dataset) {
     // Compute Scale of Feature map and save to resource map
     for (auto& item : feature_map_) {
         std::vector<float> scale_vec;
-        int ret = item.second->CalculateScale(scale_vec);
+        std::string input_scale_name = item.first->GetBlobDesc().name + BLOB_SCALE_SUFFIX;
+        int ret                      = item.second->CalculateScale(scale_vec);
         if (ret != 0) {
+            LOGE("CalculateScale (%s) failed\n", input_scale_name.c_str());
             return ret;
         }
-        std::string input_scale_name                 = item.first->GetBlobDesc().name + BLOB_SCALE_SUFFIX;
         LayerResource* blob_scale_res                = CreateIntScale(scale_vec);
         net_resource->resource_map[input_scale_name] = std::shared_ptr<LayerResource>(blob_scale_res);
         printf("\t====> Calculate (%s) done!\n", input_scale_name.c_str());
@@ -377,6 +378,13 @@ int Calibration::QuantizeParams() {
 
     for (auto& item : net_struct->layers) {
         LayerType layer_type = item->type;
+
+        // skip constant layer
+        auto const_layers = net_resource->constant_layers;
+        if (const_layers.find(item->name) != const_layers.end()) {
+            continue;
+        }
+
         if (kQuantizedLayerTypeStr.find(layer_type) != kQuantizedLayerTypeStr.end()) {
             // assign NetStructure
             item->param->quantized = true;
@@ -435,6 +443,15 @@ int Calibration::QuantizeParams() {
                     return -1;
                 }
                 printf("\t====> done!\n");
+            } else if (layer_type == LAYER_ADD) {
+                // if one of the input of add layer is in layer resource, then this layer will not be quantized
+                if (net_resource->resource_map.find(item->name) != net_resource->resource_map.end()) {
+                    auto layer_resource = net_resource->resource_map[item->name].get();
+                    auto layer_res      = dynamic_cast<EltwiseLayerResource*>(layer_resource);
+                    if (layer_res != nullptr) {
+                        item->param->quantized = false;
+                    }
+                }
             }
         }
     }
@@ -464,7 +481,7 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
     if (input_scale->scale_handle.GetDataCount() == 1)
         merge_channel = true;
 
-    bool is_depthwise = group == output_channel;
+    bool is_depthwise = (output_channel_per_group == 1 && input_channel_per_group == 1);
 
     // multi weights by input_scale
     float* input_scale_data = input_scale->scale_handle.force_to<float*>();
@@ -697,7 +714,7 @@ void Calibration::MergeBlobScaleRecursion(LayerInfo* layer_info, NetStructure* n
     LayerType layer_type = layer_info->type;
     // Skip average pooling
     if (layer_type == LAYER_POOLING) {
-        auto param = dynamic_cast<PoolingLayerParam *>(layer_info->param.get());
+        auto param = dynamic_cast<PoolingLayerParam*>(layer_info->param.get());
         if (param->pool_type == 1) {
             return;
         }

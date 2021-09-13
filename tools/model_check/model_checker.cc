@@ -39,7 +39,6 @@ ModelChecker::ModelChecker() {
     model_checker_params_.input_file  = std::make_pair("", NOTSUPPORT);
     model_checker_params_.input_bias  = {0, 0, 0, 0};
     model_checker_params_.input_scale = {1.0f, 1.0f, 1.0f, 1.0f};
-    model_checker_params_.dump_output = false;
     output_ref_mat_map_.clear();
     cpu_blobdata_map.clear();
     check_results.clear();
@@ -113,13 +112,13 @@ Status ModelChecker::RunModelChecker() {
     Status ret = TNN_OK;
 
     if (model_checker_params_.only_check_output) {
+        ret = RunModelCheckerOutput();
+    } else {
         if (!model_checker_params_.dump_dir_path.empty()) {
             ret = RunModelCheckerFromDumpFile();
         } else {
-            ret = RunModelCheckerOutput();
+            ret = RunModelCheckerPerLayer();
         }
-    } else {
-        ret = RunModelCheckerPerLayer();
     }
 
     return ret;
@@ -215,6 +214,7 @@ Status ModelChecker::RunModelCheckerFromDumpFile() {
             auto replace_name    = blob_name;
 
             std::replace(replace_name.begin(), replace_name.end(), '/', '_');
+            std::replace(replace_name.begin(), replace_name.end(), ':', '_');
             const auto dump_data_path = model_checker_params_.dump_dir_path + replace_name + ".txt";
 
             FileReader file_reader;
@@ -233,7 +233,7 @@ Status ModelChecker::RunModelCheckerFromDumpFile() {
                 check_results.push_back(std::make_pair(info, check_pass));
 
                 const auto dump_path = model_checker_params_.dump_dir_path + "tnn-" + replace_name + ".txt";
-                DumpBlobData(tnn_data_ptr, data_dims, dump_path);
+                DumpBlobData(tnn_data_ptr, data_dims, dump_path, data_type);
                 printf("TNN model and src model not aligned at %s\n", blob_name.c_str());
                 printf("You can find the output of %s of TNN at %s\n", blob_name.c_str(), dump_path.c_str());
                 printf("You can find the output of %s of source model at %s\n", blob_name.c_str(),
@@ -366,10 +366,14 @@ Status ModelChecker::RunModelCheckerOutput() {
             check_pass &= check_result;
         }
 
-        if (model_checker_params_.dump_output) {
-            printf("\ndump blob (%s) data\n", blob_name.c_str());
-            DumpBlobData(output_ref_mat_map_[blob_name]->GetData(), cpu_blob_dims, "cpu_" + blob_name + ".txt");
-            DumpBlobData(device_output_mat_map[blob_name]->GetData(), device_blob_dims, "device_" + blob_name + ".txt");
+        if (!model_checker_params_.dump_output_path.empty()) {
+            printf("\ndump blob (%s) data to %s\n", blob_name.c_str(), model_checker_params_.dump_output_path.c_str());
+            auto replace_name = blob_name;
+            std::replace(replace_name.begin(), replace_name.end(), '/', '_');
+            DumpBlobData(output_ref_mat_map_[blob_name]->GetData(), cpu_blob_dims,
+                         model_checker_params_.dump_output_path + "/cpu_" + replace_name + ".txt", data_type);
+            DumpBlobData(device_output_mat_map[blob_name]->GetData(), device_blob_dims,
+                         model_checker_params_.dump_output_path + "/device_" + replace_name + ".txt", data_type);
         }
     }
     if (check_pass) {
@@ -417,8 +421,20 @@ Status ModelChecker::ExtendMatMap(const BlobMap& blobs_map, std::map<std::string
             continue;
         }
 
-        printf("Warning: mat map (name: %s) will try to be extended due to dims not match\n", blob_name.c_str());
+        LOGE("Warning: mat map (name: %s) will try to be extended due to dims not match\n", blob_name.c_str());
         if (!IsDimsCanBeExtend(src_dims, dst_dims)) {
+            std::string message = "src_dims(from input): [";
+            for (const auto& dim : src_dims) {
+                message.append(std::to_string(dim) + ",");
+            }
+            message.append("] vs ");
+            message.append("dst_dims(from forward): [");
+            for (const auto& dim : dst_dims) {
+                message.append(std::to_string(dim) + ",");
+            }
+            message.append("]");
+            LOGE("%s\n", message.c_str());
+
             return Status(TNNERR_COMMON_ERROR, "extend failed: dims can't be extend");
         }
 
@@ -470,7 +486,7 @@ Status ModelChecker::FeedInputData() {
             auto data_type = item.second->GetBlobDesc().data_type;
             int data_count = DimsVectorUtils::Count(dims);
             std::shared_ptr<Mat> mat;
-            if (DATA_TYPE_FLOAT == data_type) {
+            if (DATA_TYPE_FLOAT == data_type ) {
                 mat             = std::shared_ptr<Mat>(new Mat(DEVICE_NAIVE, NCHW_FLOAT, dims));
                 float* data_ptr = reinterpret_cast<float*>(mat->GetData());
                 for (int i = 0; i < data_count; i++) {
@@ -482,6 +498,12 @@ Status ModelChecker::FeedInputData() {
                 int* data_ptr = reinterpret_cast<int*>(mat->GetData());
                 for (int i = 0; i < data_count; i++) {
                     data_ptr[i] = rand() % 2;
+                }
+            } else if (DATA_TYPE_INT8 == data_type ) {
+                mat             = std::shared_ptr<Mat>(new Mat(DEVICE_NAIVE, RESERVED_INT8_TEST, dims));
+                auto data_ptr = reinterpret_cast<int8_t *>(mat->GetData());
+                for (int i = 0; i < data_count; i++) {
+                    data_ptr[i] = (int8_t)(rand() % 256 - 128);
                 }
             } else {
                 return Status(TNNERR_COMMON_ERROR, "generate input data failed");
@@ -673,12 +695,31 @@ Status ModelChecker::CompareDeviceAndCpu() {
                 }
             }
 
-            if (model_checker_params_.dump_output) {
+            if (!model_checker_params_.dump_output_path.empty()) {
                 if (output_blobs_device.find(blob_name) != output_blobs_device.end()) {
-                    LOGE("dump blob (%s) data\n", blob_name.c_str());
-                    DumpBlobData(cpu_blobdata_map[blob_name].get(), blob_desc.dims, "cpu_" + blob_name + ".txt");
-                    DumpBlobData(output_data_ptr, blob_desc.dims, "device_" + blob_name + ".txt");
+                    LOGE("dump blob (%s) data to %s\n", blob_name.c_str(),
+                         model_checker_params_.dump_output_path.c_str());
+                    auto replace_name = blob_name;
+                    std::replace(replace_name.begin(), replace_name.end(), '/', '_');
+                    DumpBlobData(cpu_blobdata_map[blob_name].get(), blob_desc.dims,
+                                 model_checker_params_.dump_output_path + "/cpu_" + blob_name + ".txt",
+                                 data_type);
+                    DumpBlobData(output_data_ptr, blob_desc.dims,
+                                 model_checker_params_.dump_output_path + "/device_" + blob_name + ".txt",
+                                 data_type);
                 }
+            }
+
+            if (!model_checker_params_.dump_unaligned_layer_path.empty() && !is_pass) {
+                LOGE("dump unaligned blob (%s) data to %s\n", blob_name.c_str(),
+                     model_checker_params_.dump_unaligned_layer_path.c_str());
+                auto replace_name = blob_name;
+                std::replace(replace_name.begin(), replace_name.end(), '/', '_');
+                DumpBlobData(cpu_blobdata_map[blob_name].get(), blob_desc.dims,
+                             model_checker_params_.dump_unaligned_layer_path + "/cpu_" + blob_name + ".txt", data_type);
+                DumpBlobData(output_data_ptr, blob_desc.dims,
+                             model_checker_params_.dump_unaligned_layer_path + "/device_" + blob_name + ".txt",
+                             data_type);
             }
         }
         check_results.push_back(std::make_pair(info, is_pass));
@@ -768,15 +809,33 @@ bool ModelChecker::CompareData(void* device_data, void* cpu_data, DataType data_
     return true;
 }
 
-void ModelChecker::DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name) {
+void ModelChecker::DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name, DataType data_type) {
     std::ofstream f_out(output_name.c_str());
-
-    int count       = DimsVectorUtils::Count(blob_dims);
-    float* data_ptr = reinterpret_cast<float*>(blob_data);
-    for (int index = 0; index < count; ++index) {
-        f_out << data_ptr[index] << std::endl;
+    if (!f_out.is_open()) {
+        LOGE("DumpBlobData create %s failed\n", output_name.c_str());
+        return;
     }
 
+    int count = DimsVectorUtils::Count(blob_dims);
+    if (data_type == DATA_TYPE_FLOAT) {
+        auto data_ptr = reinterpret_cast<float*>(blob_data);
+        for (int index = 0; index < count; ++index) {
+            f_out << data_ptr[index] << std::endl;
+        }
+    } else if (data_type == DATA_TYPE_INT32) {
+        auto data_ptr = reinterpret_cast<int32_t*>(blob_data);
+        for (int index = 0; index < count; ++index) {
+            f_out << data_ptr[index] << std::endl;
+        }
+    } else if (data_type == DATA_TYPE_INT8) {
+        auto data_ptr = reinterpret_cast<int8_t*>(blob_data);
+        for (int index = 0; index < count; ++index) {
+            f_out << data_ptr[index] << std::endl;
+        }
+    } else {
+        LOGE("DumpBlobData does not support dump data type: %d\n", data_type);
+        f_out << "DumpBlobData does not support data type " << data_type << std::endl;
+    }
     f_out.close();
 }
 

@@ -262,6 +262,11 @@ if(TNN_CPU_ENABLE)
 endif()
 
 if(TNN_ARM_ENABLE)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+        add_definitions( -mfpu=neon )
+    endif()
     add_subdirectory(source/tnn/device/arm)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNArm>")
     if(TNN_ARM82_ENABLE)

@@ -136,13 +136,13 @@ int PackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
     }
 
     auto cc = (channel>>2<<2);
-    float32x4_t v;
+    Float4 v;
     for (int c = 0; c < cc; c += 4) {
         auto src_c = src + c;
         auto dst_c = dst + c * hw;
         for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
-            v = vld1q_f32(src_c);
-            vst1q_f32(dst_c, v);
+            v = Float4::load(src_c);
+            Float4::save(dst_c, v);
             src_c += channel;
             dst_c += 4;
         }
@@ -153,10 +153,10 @@ int PackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
         auto src_c = src + cc;
         auto dst_c = dst + cc * hw;
         for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
-            v = vdupq_n_f32(0);
+            v = Float4(0.0f);
             for (int r = 0; r < remain; ++r)
-                v[r] = *(src_c + r);
-            vst1q_f32(dst_c, v);
+                v.set_lane(*(src_c + r), r);
+            Float4::save(dst_c, v);
             src_c += channel;
             dst_c += 4;
         }
@@ -164,6 +164,39 @@ int PackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
 
     return 0;
 }
+// NHWC -> NHWC4
+int PackNeonNHWC4FromNHWC(int8_t *dst, const int8_t *src, int hw, int channel) {
+    if ((hw == 1) && (channel % 4 == 0)) {
+        memcpy(dst, src, hw * channel * sizeof(int8_t));
+        return 0;
+    }
+    int c_r4 = ROUND_UP(channel, 4);
+    memset(dst, (int8_t)0, hw * c_r4 * sizeof(int8_t));
+    for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        int c      = 0;
+        auto src_c = src + cur_hw * channel;
+        auto dst_c = dst + cur_hw * c_r4;
+        for (; c < channel - 7; c += 8) {
+            int8x8_t v = vld1_s8(src_c);
+            vst1_s8(dst_c, v);
+            src_c += 8;
+            dst_c += 8;
+        }
+
+        for (; c < channel - 3; c += 4) {
+            *(int32_t *)dst_c = *(int32_t *)src_c;
+            src_c += 4;
+            dst_c += 4;
+        }
+        for (; c < channel; c++) {
+            *dst_c = *src_c;
+            src_c++;
+            dst_c++;
+        }
+    }
+    return 0;
+}
+
 int UnpackNeonC3(float *dst, const float *src, size_t hw, size_t channel) {
     auto dst0 = dst;
     auto dst1 = dst + hw;
@@ -206,10 +239,10 @@ int UnpackNeonC1(float *dst, const float *src, size_t hw, size_t channel) {
     int cur_hw = 0;
     float32x4_t v;
     for (; cur_hw + 3 < hw; cur_hw += 4) {
-        v[0] = src[cur_hw * 4];
-        v[1] = src[cur_hw * 4 + 4];
-        v[2] = src[cur_hw * 4 + 4 * 2];
-        v[3] = src[cur_hw * 4 + 4 * 3];
+        v = vsetq_lane_f32(src[cur_hw * 4], v, 0);
+        v = vsetq_lane_f32(src[cur_hw * 4 + 4], v, 1);
+        v = vsetq_lane_f32(src[cur_hw * 4 + 4 * 2], v, 2);
+        v = vsetq_lane_f32(src[cur_hw * 4 + 4 * 3], v, 3);
         vst1q_f32(dst0 + cur_hw, v);
     }
     for (; cur_hw < hw; cur_hw++) {
@@ -218,6 +251,7 @@ int UnpackNeonC1(float *dst, const float *src, size_t hw, size_t channel) {
 
     return 0;
 }
+// NC4HW4 -> NCHW
 int UnpackNeon(float *dst, const float *src, size_t hw, size_t channel) {
     float32x4x4_t v;
     for (int c = 0; c + 3 < channel; c += 4) {
@@ -255,6 +289,7 @@ int UnpackNeon(float *dst, const float *src, size_t hw, size_t channel) {
 
     return 0;
 }
+// NC4HW4 -> NHWC
 int UnpackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
     if ((hw == 1) && (channel % 4 == 0)) {
         memcpy(dst, src, hw * channel * sizeof(float));
@@ -262,13 +297,13 @@ int UnpackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
     }
 
     auto cc = (channel>>2<<2);
-    float32x4_t v;
+    Float4 v;
     for (int c = 0; c < cc; c += 4) {
         auto dst_c = dst + c;
         auto src_c = src + c * hw;
         for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
-            v = vld1q_f32(src_c);
-            vst1q_f32(dst_c, v);
+            v = Float4::load(src_c);
+            Float4::save(dst_c, v);
             src_c += 4;
             dst_c += channel;
         }
@@ -279,7 +314,7 @@ int UnpackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
         auto dst_c = dst + cc;
         auto src_c = src + cc * hw;
         for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
-            v = vld1q_f32(src_c);
+            v = Float4::load(src_c);
             for (int r = 0; r < remain; ++r)
                 *(dst_c + r) = v[r];
             src_c += 4;
@@ -287,6 +322,36 @@ int UnpackNeonNHWC(float *dst, const float *src, size_t hw, size_t channel) {
         }
     }
 
+    return 0;
+}
+// NHWC4 -> NHWC
+int UnpackNeonNHWC4ToNHWC(int8_t *dst, const int8_t *src, int hw, int channel) {
+    if ((hw == 1) && (channel % 4 == 0)) {
+        memcpy(dst, src, hw * channel * sizeof(int8_t));
+        return 0;
+    }
+    int c_r4  = ROUND_UP(channel, 4);
+    for (int cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        int c      = 0;
+        auto src_c = src + cur_hw * c_r4;
+        auto dst_c = dst + cur_hw * channel;
+        for (;c < c_r4 - 8; c += 8) {
+            int8x8_t v = vld1_s8(src_c);
+            vst1_s8(dst_c, v);
+            src_c += 8;
+            dst_c += 8;
+        }
+        for (; c < c_r4 - 4; c += 4) {
+            *(int32_t *)dst_c = *(int32_t *)src_c;
+            src_c += 4;
+            dst_c += 4;
+        }
+        for (; c < channel; ++c) {
+            *dst_c = *src_c;
+            src_c++;
+            dst_c++;
+        }
+    }
     return 0;
 }
 #endif
@@ -322,6 +387,43 @@ template int PackC4(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int PackC4(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int PackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int PackC4(float *dst, const fp16_t *src, size_t hw, size_t channel);
+
+
+template <typename Tin, typename Tout>
+int PackNHWC4(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    int c, cur_hw;
+    int idx = 0;
+    int c_rc4 = ROUND_UP(channel, 4);
+    memset(dst, 0, hw * c_rc4 * sizeof(Tout));
+    for (c = 0; c < channel; ++c) {
+        for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            dst[cur_hw * c_rc4 + c] = src[idx++];
+        }
+    }
+    return 0;
+}
+template int PackNHWC4(int8_t *dst, const int8_t *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int PackNHWC4FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+#ifdef TNN_USE_NEON
+    if (std::is_same<Tin, int8_t>::value && std::is_same<Tout, int8_t>::value) {
+        return PackNeonNHWC4FromNHWC((int8_t *)dst, (const int8_t *)src, hw, channel);
+    }
+#endif
+    int c, cur_hw;
+    int idx   = 0;
+    int c_rc4 = ROUND_UP(channel, 4);
+    memset(dst, 0, hw * channel * sizeof(Tout));
+    for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        for (c = 0; c < channel; ++c) {
+            dst[cur_hw * c_rc4 + c] = src[idx++];
+        }
+    }
+    return 0;
+}
+
+template int PackNHWC4FromNHWC(int8_t *dst, const int8_t *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
 int PackC8(Tout *dst, const Tin *src, size_t hw, size_t channel) {
@@ -475,6 +577,42 @@ template int UnpackC4(float *dst, const bfp16_t *src, size_t hw, size_t channel)
 template int UnpackC4(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
 
+template <typename Tin, typename Tout>
+int UnpackNHWC4(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+    int cur_hw;
+    int c;
+    int idx = 0;
+    int c_rc4 = ROUND_UP(channel, 4);
+    for (c = 0; c < channel; ++c) {
+        for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+            dst[idx++] = src[cur_hw * c_rc4 + c];
+        }
+    }
+    return 0;
+}
+
+template int UnpackNHWC4(int8_t *dst, const int8_t *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int UnpackNHWC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel) {
+#ifdef TNN_USE_NEON
+    if (std::is_same<Tin, int8_t>::value && std::is_same<Tout, int8_t>::value) {
+        return UnpackNeonNHWC4ToNHWC((int8_t *)dst, (const int8_t *)src, hw, channel);
+    }
+#endif
+    int cur_hw;
+    int c;
+    int idx = 0;
+    int c_rc4 = ROUND_UP(channel, 4);
+    for (cur_hw = 0; cur_hw < hw; ++cur_hw) {
+        for (c = 0; c < channel; ++c) {
+            dst[idx++] = src[cur_hw * c_rc4 + c];
+        }
+    }
+    return 0;
+}
+
+template int UnpackNHWC4ToNHWC(int8_t *dst, const int8_t *src, size_t hw, size_t channel);
 
 bool FloatBlobCanIgnorePack(size_t channel, size_t hw) {
     return (hw == 1) && (channel % 4 == 0);

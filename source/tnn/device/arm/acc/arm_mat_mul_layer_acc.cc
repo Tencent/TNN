@@ -28,8 +28,8 @@ namespace TNN_NS {
 
 ArmMatMulLayerAcc::~ArmMatMulLayerAcc() {}
 
-Status ArmMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-            const std::vector<Blob *> &outputs) {
+Status ArmMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                               const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
     auto res = dynamic_cast<MatMulLayerResource *>(resource);
 
@@ -49,7 +49,8 @@ Status ArmMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
         CHECK_PARAM_NULL(weight_handle.force_to<void *>());
         if (weight_handle.GetDataType() == DATA_TYPE_FLOAT) {
             buffer_weight_ = RawBuffer(weight_handle.GetDataCount() * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
-            ConvertFromFloatToHalf(weight_handle.force_to<float *>(), buffer_weight_.force_to<fp16_t *>(), weight_handle.GetDataCount());
+            ConvertFromFloatToHalf(weight_handle.force_to<float *>(), buffer_weight_.force_to<fp16_t *>(),
+                                   weight_handle.GetDataCount());
             buffer_weight_.SetDataType(DATA_TYPE_HALF);
         }
     }
@@ -69,8 +70,8 @@ Status ArmMatMulLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
     if (matrix_b_dims.size() == 1) {
         matrix_b_dims.push_back(1);
     }
-    DataType data_type       = inputs[0]->GetBlobDesc().data_type;
-    auto matrix_c_dims       = outputs[0]->GetBlobDesc().dims;
+    DataType data_type = inputs[0]->GetBlobDesc().data_type;
+    auto matrix_c_dims = outputs[0]->GetBlobDesc().dims;
 
     T *matrix_a;
     T *matrix_b;
@@ -83,8 +84,10 @@ Status ArmMatMulLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
         if (buffer_weight_.force_to<T *>()) {
             weight = buffer_weight_.force_to<T *>();
         }
-        matrix_a    = param->weight_position == 0 ? weight : reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
-        matrix_b    = param->weight_position == 1 ? weight : reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+        matrix_a =
+            param->weight_position == 0 ? weight : reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+        matrix_b =
+            param->weight_position == 1 ? weight : reinterpret_cast<T *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
     }
     auto matrix_c = reinterpret_cast<T *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
 
@@ -92,28 +95,28 @@ Status ArmMatMulLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
     int K = matrix_a_dims[matrix_a_dims.size() - 1];
     int M = matrix_a_dims[matrix_a_dims.size() - 2];
 
-    auto data_byte_size   = DataTypeUtils::GetBytesSize(data_type);
-    size_t pack_a_size = M * K * data_byte_size + NEON_KERNEL_EXTRA_LOAD;
-    int n_pack = 8;
+    auto data_byte_size = DataTypeUtils::GetBytesSize(data_type);
+    size_t pack_a_size  = M * K * data_byte_size + NEON_KERNEL_EXTRA_LOAD;
+    int n_pack          = 8;
     if (data_type == DATA_TYPE_HALF) {
         n_pack = 16;
     }
-    size_t pack_b_size = K * ROUND_UP(N, n_pack) * data_byte_size + NEON_KERNEL_EXTRA_LOAD;
+    size_t pack_b_size    = K * ROUND_UP(N, n_pack) * data_byte_size + NEON_KERNEL_EXTRA_LOAD;
     size_t workspace_size = pack_a_size + pack_b_size;
-    char *workspace = reinterpret_cast<char *>(context_->GetSharedWorkSpace(workspace_size));
-    T *pack_a_ptr = reinterpret_cast<T *>(workspace);
-    T *pack_b_ptr = reinterpret_cast<T *>(workspace + pack_a_size);
+    char *workspace       = reinterpret_cast<char *>(context_->GetSharedWorkSpace(workspace_size));
+    T *pack_a_ptr         = reinterpret_cast<T *>(workspace);
+    T *pack_b_ptr         = reinterpret_cast<T *>(workspace + pack_a_size);
 
-    int count_a     = DimsVectorUtils::Count(matrix_a_dims);
-    int count_b     = DimsVectorUtils::Count(matrix_b_dims);
-    int count_c     = DimsVectorUtils::Count(matrix_c_dims);
-    int batch_a   = count_a / (M * K);
-    int batch_b   = count_b / (K * N);
-    int batch_c   = count_c / (M * N);
+    int count_a = DimsVectorUtils::Count(matrix_a_dims);
+    int count_b = DimsVectorUtils::Count(matrix_b_dims);
+    int count_c = DimsVectorUtils::Count(matrix_c_dims);
+    int batch_a = count_a / (M * K);
+    int batch_b = count_b / (K * N);
+    int batch_c = count_c / (M * N);
 
     for (int bc = 0; bc < batch_c; ++bc) {
-        int ba = bc < batch_a ? bc : 0;
-        int bb = bc < batch_b ? bc : 0;
+        int ba     = bc < batch_a ? bc : 0;
+        int bb     = bc < batch_b ? bc : 0;
         auto a_ptr = matrix_a + ba * M * K;
         auto b_ptr = matrix_b + bb * K * N;
         auto c_ptr = matrix_c + bc * M * N;
@@ -137,8 +140,8 @@ Status ArmMatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     }
 #endif  // TNN_ARM82
     else {
-        LOGE("ARM LSTM not support data type: %d\n", input_data_type);
-        return Status(TNNERR_LAYER_ERR, "ARM LSTM not support data type");
+        LOGE("ARM MatMul not support data type: %d\n", input_data_type);
+        return Status(TNNERR_LAYER_ERR, "ARM MatMul not support data type");
     }
     return TNN_OK;
 }

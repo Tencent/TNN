@@ -13,10 +13,10 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/core/blob_int8.h"
-#include "tnn/utils/naive_compute.h"
 #include "tnn/device/cpu/acc/cpu_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
 
@@ -86,24 +86,29 @@ Status CpuReformatLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std
 Status CpuReformatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<ReformatLayerParam *>(param_);
     CHECK_PARAM_NULL(param);
-    auto dims       = outputs[0]->GetBlobDesc().dims;
-    size_t datasize = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
 
-    IntScaleResource *re;
-    if (param->src_type == DATA_TYPE_INT8) {
-        re = reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource();
-    } else if (param->dst_type == DATA_TYPE_INT8) {
-        re = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource();
-    } else {
-        return Status(TNNERR_LAYER_ERR, "Error: cpu layer acc got unsupported data type.");
-    }
+    for (int idx = 0; idx < inputs.size(); ++idx) {
+        auto dims       = outputs[idx]->GetBlobDesc().dims;
+        size_t datasize = DataTypeUtils::GetBytesSize(outputs[idx]->GetBlobDesc().data_type);
 
-    if (param->type == DEQUANT_ONLY) {
-        NaiveDequant(reinterpret_cast<int8_t *>(inputs[0]->GetHandle().base), re->scale_handle.force_to<float *>(),
-                    re->scale_handle.GetDataCount(), reinterpret_cast<float *>(outputs[0]->GetHandle().base), dims);
-    } else if (param->type == QUANT_ONLY) {
-        NaiveQuant(reinterpret_cast<float *>(inputs[0]->GetHandle().base), re->scale_handle.force_to<float *>(),
-                  re->scale_handle.GetDataCount(), reinterpret_cast<int8_t *>(outputs[0]->GetHandle().base), dims);
+        IntScaleResource *re;
+        if (param->src_type == DATA_TYPE_INT8) {
+            re = reinterpret_cast<BlobInt8 *>(inputs[idx])->GetIntResource();
+        } else if (param->dst_type == DATA_TYPE_INT8) {
+            re = reinterpret_cast<BlobInt8 *>(outputs[idx])->GetIntResource();
+        } else {
+            return Status(TNNERR_LAYER_ERR, "Error: cpu layer acc got unsupported data type.");
+        }
+
+        if (param->type == DEQUANT_ONLY) {
+            NaiveDequant(reinterpret_cast<int8_t *>(inputs[idx]->GetHandle().base),
+                         re->scale_handle.force_to<float *>(), re->scale_handle.GetDataCount(),
+                         reinterpret_cast<float *>(outputs[idx]->GetHandle().base), dims);
+        } else if (param->type == QUANT_ONLY) {
+            NaiveQuant(reinterpret_cast<float *>(inputs[idx]->GetHandle().base), re->scale_handle.force_to<float *>(),
+                       re->scale_handle.GetDataCount(), reinterpret_cast<int8_t *>(outputs[idx]->GetHandle().base),
+                       dims);
+        }
     }
     return TNN_OK;
 }

@@ -39,10 +39,11 @@ namespace optimizer {
 
     bool NetOptimizerInsertInt8Reformat::IsSupported(const NetworkConfig &net_config) {
         auto device = net_config.device_type;
+        device_ = GetDevice(device);
         return device == DEVICE_ARM || device == DEVICE_NAIVE || device == DEVICE_X86;
     }
 
-    static std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_quantized) {
+    std::shared_ptr<LayerInfo> NetOptimizerInsertInt8Reformat::CreateReformat(std::string name, bool src_quantized) {
         std::shared_ptr<LayerInfo> new_layer = std::shared_ptr<LayerInfo>(new LayerInfo());
         new_layer->type                      = LAYER_REFORMAT;
         new_layer->type_str                  = "Reformat";
@@ -54,6 +55,10 @@ namespace optimizer {
         // only define quant/dequant here, layout after layer init
         param->src_type = src_quantized ? DATA_TYPE_INT8 : DATA_TYPE_FLOAT;
         param->dst_type = src_quantized ? DATA_TYPE_FLOAT : DATA_TYPE_INT8;
+        if (device_->GetDeviceType() == DEVICE_ARM) {
+            param->src_format = src_quantized ? DATA_FORMAT_NHWC4 : DATA_FORMAT_NC4HW4;
+            param->dst_format = src_quantized ? DATA_FORMAT_NC4HW4 : DATA_FORMAT_NHWC4;
+        }
         return new_layer;
     }
 
@@ -88,6 +93,7 @@ namespace optimizer {
             // support multi inputs/outputs
             // only quant & dequant now
             std::vector<std::string> reformat_outs;
+            reformat_outs.clear();
             for (auto cur_out : cur_layer->outputs) {
                 bool need_reformat = false;
                 for (int next_id = index + 1; next_id < count; next_id++) {
@@ -101,8 +107,9 @@ namespace optimizer {
                         }
                     }
                 }
-                if (need_reformat)
+                if (need_reformat) {
                     reformat_outs.push_back(cur_out);
+                }
             }
             if (!reformat_outs.size()) {
                 continue;
@@ -157,7 +164,8 @@ namespace optimizer {
                 new_layer->inputs.push_back(new_out);
                 structure->blobs.insert(new_out);
                 for (auto &cur_layer_out : cur_layer->outputs) {
-                    cur_layer_out = new_out;
+                    if (cur_layer_out == cur_out)
+                        cur_layer_out = new_out;
                 }
                 // change the inputs of successed float layers
                 for (int next_id = index + 1; next_id < count; next_id++) {
