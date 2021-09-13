@@ -190,8 +190,8 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             auto blob = blob_manager_->GetBlob(name);
             // skip const blobs
             if (const_blobs.count(name) == 0) {
-                auto ret  = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
                 input_fmt = blob->GetBlobDesc().data_format;
+                auto ret  = UpdateBlobPrecision(layer_info, true, is_quantized_net, name, net_resource, &blob);
                 RETURN_ON_NEQ(ret, TNN_OK);
             }
         }
@@ -337,9 +337,6 @@ Status DefaultNetwork::AllocateBlobMemory() {
 Status DefaultNetwork::GenerateInt8Blob(const std::string &name, NetResource *net_resource, Blob **blob) {
     auto new_blob = new BlobInt8((*blob)->GetBlobDesc(), (*blob)->GetHandle());
     CHECK_PARAM_NULL(new_blob);
-    if (device_->GetDeviceType() == DEVICE_ARM) {
-        new_blob->GetBlobDesc().data_format = DATA_FORMAT_NHWC4;
-    }
 
     std::string blob_scale_name = name + "_scale_data_";
 #ifdef GENERATE_RESOURCE

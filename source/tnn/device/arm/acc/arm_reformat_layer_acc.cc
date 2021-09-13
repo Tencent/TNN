@@ -35,6 +35,10 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
             reformat_param->type = NC4HW4FP32_2_NC8HW8FP16;
         } else if (reformat_param->src_type == DATA_TYPE_HALF && reformat_param->dst_type == DATA_TYPE_FLOAT) {
             reformat_param->type = NC8HW8FP16_2_NC4HW4FP32;
+        } else if (reformat_param->src_type == DATA_TYPE_INT8 && reformat_param->dst_type == DATA_TYPE_FLOAT) {
+            reformat_param->type = DEQUANT_ONLY;
+        } else if (reformat_param->src_type == DATA_TYPE_FLOAT && reformat_param->dst_type == DATA_TYPE_INT8) {
+            reformat_param->type = QUANT_ONLY;
         } else {
             if (reformat_param->src_type == DATA_TYPE_BFP16 || reformat_param->dst_type == DATA_TYPE_BFP16) {
                 LOGE("unsupport precision mode, please dont use precision = low for int8");
