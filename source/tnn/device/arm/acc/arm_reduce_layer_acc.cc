@@ -152,7 +152,7 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             auto tmp_data = tmp_out[0].force_to<float *>();
             auto c_src    = dims_in[1];
             auto hw_src   = DimsVectorUtils::Count(dims_in, 2);
-            auto c_dst    = output->GetBlobDesc().dims[1] ? output->GetBlobDesc().dims.size() > 1 : 1;
+            auto c_dst    = output->GetBlobDesc().dims.size() > 1 ? output->GetBlobDesc().dims[1] : 1;
             auto hw_dst   = DimsVectorUtils::Count(output->GetBlobDesc().dims, 2);
             for (int b = 0; b < dims_in[0]; ++b) {
                 UnpackC4(tmp_data, output_data_a + b * ROUND_UP(c_src, 4) * hw_src, hw_src, c_src);

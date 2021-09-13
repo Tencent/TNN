@@ -196,7 +196,7 @@ Status CreateSolver(AbstractNetwork* network, NetworkConfig* config, const std::
         std::shared_ptr<train::BaseSolver> solver(new train::SGD(network, config, learning_rate));
         // std::shared_ptr<train::BaseSolver> solver(new train::BaseSolver(network, config));
         solver->SetNeedGradLayers(need_grad_layers);
-        network->SetSolver(solver);  //小心智能指针的循环引用
+        network->SetSolver(solver);  
     } else {
         return Status(TNNERR_NET_ERR, "not support slover type in train mode");
     }

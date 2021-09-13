@@ -64,10 +64,27 @@ Status BinaryCrossEntropyLayerGrad::OnGrad(const BaseLayer *layer, TrainContext 
                               _Div(pw1, pw0, context), context);
     ParamWrapper grad1 = _Sub(_Log(_Sub(_Const(pw_const_1, input0_dims, data_format), pw0, context), context),
                               _Log(pw0, context), context);
+    //for debug
+    // ParamWrapper t1 = _Const(pw_const_1, input1_dims, data_format);
+    // ParamWrapper t2 = _Sub(t1, pw1, context);
+    // ParamWrapper t3 = _Const(pw_const_1, input0_dims, data_format);
+    // ParamWrapper t4 = _Sub(t3, pw0, context);
+    // ParamWrapper t5 = _Div(t2, t4, context);
+    // ParamWrapper t6 = _Div(pw1, pw0, context);
+    // ParamWrapper t7 = _Sub(t5, t6, context);
+    // if(!t7.IsBlobOrRawbuffer()){
+    //     LOGE("NOT IS RAWBUFFER");
+    // }
+
+    
     auto iter_output   = context.backward_grads_blob.find(outputs[0]);
     if (iter_output == context.backward_grads_blob.end()) {
         return Status(TNN_TRAIN_ERROR, "BinaryCrossEntropyLayerGrad output grad not find");
     }
+    // for debug
+    // if (!t7.IsRawbufferSharedPtr() || !grad0.IsRawbufferSharedPtr() || !grad1.IsRawbufferSharedPtr()) {
+    //     return Status(TNN_TRAIN_ERROR, "Calcute2 BinaryCrossEntropyLayerGrad error");
+    // }
     grad0 = _Mul(grad0, ParamWrapper(iter_output->second), context);
     grad1 = _Mul(grad1, ParamWrapper(iter_output->second), context);
     if (!grad0.IsRawbufferSharedPtr() || !grad1.IsRawbufferSharedPtr()) {

@@ -69,6 +69,7 @@ Status GradManager::CalcuteGrads() {
     for (auto iter = layers.rbegin(); iter != layers.rend(); iter++) {
         if (need_grad_layers_.find((*iter)->layer_name_) == need_grad_layers_.end())
             continue;
+        //LOGI("calcute layer grad: %s, layer_type: %d", (*iter)->layer_name_.c_str(), (*iter)->type_);
         status = LayerGrad::GetLayerGradMap()[(*iter)->GetLayerType()]->OnGrad(*iter, context_);
         RETURN_ON_NEQ(status, TNN_OK);
     }
