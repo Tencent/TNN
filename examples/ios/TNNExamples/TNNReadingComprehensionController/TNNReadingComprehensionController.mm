@@ -72,11 +72,7 @@ using namespace TNN_NS;
     self.labelResult.text = [NSString stringWithFormat:@"Q:%s", [self.question UTF8String]];
 }
 - (IBAction)onSwitchChanged:(id)sender {
-    if (!self.switchGPU.isOn) {
-        // only metal supports this model
-        self.labelResult.text = [NSString stringWithFormat:@"Error:%s", "Only GPU mode is supported for now!"];
-        self.switchGPU.on = YES;
-    }
+    self.labelResult.text = nil;
 }
 
 - (IBAction)onBtnTNNExamples:(id)sender {
