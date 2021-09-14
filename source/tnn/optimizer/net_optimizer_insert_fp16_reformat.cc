@@ -182,7 +182,7 @@ namespace optimizer {
         param->dst_type                      = src_fp16 ? DATA_TYPE_FLOAT : DATA_TYPE_HALF;
         if (device_->GetDeviceType() == DEVICE_ARM) {
             param->src_format = DATA_FORMAT_NC4HW4;
-            param->src_format = DATA_FORMAT_NC4HW4;
+            param->dst_format = DATA_FORMAT_NC4HW4;
         }
         return new_layer;
     }
