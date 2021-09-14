@@ -72,7 +72,7 @@ Status DeconvOVLayerBuilder::Build() {
     } else if (paramlist->pad_type == 3) {
         pad_type = ngraph::op::PadType::EXPLICIT;
     } else {
-        pad_type = ngraph::op::PadType::VALID;
+        pad_type = ngraph::op::PadType::EXPLICIT;
     }
 
     // set weights
