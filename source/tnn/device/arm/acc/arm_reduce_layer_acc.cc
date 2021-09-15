@@ -87,6 +87,10 @@ void ArmReduceLayerAcc::ReduceChannel(float *input_data, float *output_data, Dim
 }
 
 static bool NeedRepack(const DimsVector &src_dims, const DimsVector &dst_dims) {
+    if (dst_dims.size() < 2) {
+        // skip repack for one-dimensional tensor
+        return false;
+    }
     return ((src_dims.size() != dst_dims.size()) && (src_dims[1] != dst_dims[1]));
 }
 
