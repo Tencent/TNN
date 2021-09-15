@@ -4,7 +4,7 @@ CLEAN=""
 BUILD_ONLY=""
 
 WORK_DIR=`pwd`
-BUILD_DIR=build
+BUILD_DIR=build_ut
 FILTER=""
 DUMP_DIR=$WORK_DIR/dump_data
 
