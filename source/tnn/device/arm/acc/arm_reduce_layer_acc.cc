@@ -101,6 +101,10 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     auto input   = inputs[0];
     auto output  = outputs[0];
     auto dims_in = input->GetBlobDesc().dims;
+    if (dims_in.size() == 1) {
+        // treat 1D blob with nc4hw4 format as 2D blob
+        dims_in.push_back(1);
+    }
 
     int data_byte_size = DataTypeUtils::GetBytesSize(input->GetBlobDesc().data_type);
 
@@ -123,7 +127,7 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         RawBuffer tmp_out[2];
         for (int i = 0; i < param->axis.size(); ++i) {
             int axis = param->axis[i];
-            axis     = axis >= 0 ? axis : axis + (int)dims_in.size();
+            axis     = axis >= 0 ? axis : axis + (int)input->GetBlobDesc().dims.size();
 
             auto dims_out  = dims_in;
             dims_out[axis] = 1;
