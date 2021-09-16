@@ -210,6 +210,18 @@ RawBuffer ConvertHalfToBFP16(RawBuffer &buf) {
     }
 }
 
+RawBuffer ConvertFloatToHalf(RawBuffer &buf) {
+    if (buf.GetBytesSize() > 0 && buf.GetDataType() == DATA_TYPE_FLOAT) {
+        auto data_count = buf.GetDataCount();
+        RawBuffer buf_fp16(data_count * sizeof(fp16_t));
+        ConvertFromFloatToHalf(buf.force_to<float *>(), buf_fp16.force_to<void *>(), data_count);
+        buf_fp16.SetDataType(DATA_TYPE_HALF);
+        return buf_fp16;
+    } else {
+        return buf;
+    }
+}
+
 std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer) {
     int element_size = 0;
     DataType type    = raw_buffer.GetDataType();

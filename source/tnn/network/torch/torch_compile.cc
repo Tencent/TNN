@@ -24,6 +24,7 @@
 
 #include "tnn/network/torch/jit_util.h"
 #include "tnn/network/torch/torch_convert.h"
+#include "tnn/network/torch/torch_optimize.h"
 
 #include "tnn/utils/blob_dump_utils.h"
 
@@ -263,6 +264,9 @@ void CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap &input
     removeDropout(*mod);
     RemoveInplaceOps(g);
     RemoveException(g->block());
+
+    TorchOptPass(g);
+
     torch::jit::EliminateDeadCode(g);
 
     auto seg_blocks = partitioning::Partition(g, input_shape);
