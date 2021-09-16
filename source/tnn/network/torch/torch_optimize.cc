@@ -15,14 +15,8 @@
 #include "torch_optimize.h"
 
 #include <torch/csrc/jit/passes/constant_pooling.h>
-#include <torch/csrc/jit/passes/constant_propagation.h>
 #include <torch/csrc/jit/passes/dead_code_elimination.h>
 #include <torch/csrc/jit/passes/fold_conv_bn.h>
-#include <torch/csrc/jit/passes/freeze_module.h>
-#include <torch/csrc/jit/passes/graph_fuser.h>
-#include <torch/csrc/jit/passes/inliner.h>
-#include <torch/csrc/jit/passes/normalize_ops.h>
-#include <torch/csrc/jit/passes/peephole.h>
 #include <torch/csrc/jit/passes/remove_dropout.h>
 #include <torch/csrc/jit/passes/remove_inplace_ops.h>
 #include <torch/csrc/jit/passes/remove_mutation.h>
@@ -106,10 +100,80 @@ namespace jit {
         }
     }
 
-    void TorchOptPass(std::shared_ptr<Graph>& graph) {
+    void RemoveException(torch::jit::Block* block) {
+        auto check_node = [](torch::jit::Node* n) -> bool {
+            if (n->blocks().size() != 2) {
+                return false;
+            }
+            auto block0 = n->blocks()[0];
+            auto block1 = n->blocks()[1];
+            if (block0->outputs().size() != 0 || block1->outputs().size() != 0) {
+                // Make sure that the node doesn't actually produce any Value that are
+                // used by other nodes
+                return false;
+            }
+
+            auto block0_start = block0->nodes().begin();
+            auto block1_start = block1->nodes().begin();
+
+            // Make sure that there is at least one empty block
+            if (block0_start->kind() != prim::Return && block1_start->kind() != prim::Return) {
+                return false;
+            }
+
+            if ((*block1_start)->kind() == prim::Return) {
+                if ((*block0_start)->kind() == prim::RaiseException) {
+                    if ((*(++block0_start))->kind() == prim::Return) {
+                        // Make sure that block0 is solely just the exception and the return
+                        return true;
+                    }
+                } else if ((*block0_start)->kind() == aten::format &&
+                           (*(++block0_start))->kind() == prim::RaiseException) {
+                    if ((*(++block0_start))->kind() == prim::Return) {
+                        // Make sure that block0 is solely just the exception and the return
+                        return true;
+                    }
+                }
+            }
+
+            if ((*block0_start)->kind() == prim::Return) {
+                if ((*block1_start)->kind() == prim::RaiseException) {
+                    if ((*(++block1_start))->kind() == prim::Return) {
+                        // Make sure that block0 is solely just the exception and the return
+                        return true;
+                    }
+                } else if ((*block1_start)->kind() == aten::format &&
+                           (*(++block1_start))->kind() == prim::RaiseException) {
+                    if ((*(++block1_start))->kind() == prim::Return) {
+                        // Make sure that block0 is solely just the exception and the return
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        };
+
+        for (auto it = block->nodes().begin(), end = block->nodes().end(); it != end; ++it) {
+            for (auto b : it->blocks()) {
+                RemoveException(b);
+            }
+
+            if (it->kind() == prim::If && check_node(*it)) {
+                it.destroyCurrent();
+            }
+        }
+    }
+
+    void TorchOptPass(script::Module& module, std::shared_ptr<Graph>& graph) {
+        removeDropout(module);
+        RemoveInplaceOps(graph);
+        RemoveException(graph->block());
         RemoveListAppend(graph.get(), graph->block());
         RemoveConcat(graph->block());
         RemoveNoneTypeFromTuple(graph->block());
+
+        torch::jit::EliminateDeadCode(graph);
     }
 }  // namespace jit
 }  // namespace torch
