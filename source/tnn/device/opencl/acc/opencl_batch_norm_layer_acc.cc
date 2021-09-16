@@ -43,6 +43,7 @@ Status OpenCLBatchNormLayerAcc::Init(Context *context, LayerParam *param, LayerR
                                      const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init BatchNorm Acc\n");
     Status ret = OpenCLLayerAcc::Init(context, param, resource, inputs, outputs);
+    printf("inputs.size(): %d\n", inputs.size());
     CHECK_TNN_OK(ret)
 
     run_3d_ndrange_ = true;

@@ -24,7 +24,6 @@ Status OpenCLSubLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     LOGD("Init Sub Acc\n");
     Status ret = OpenCLBinaryLayerAcc::Init(context, param, resource, inputs, outputs);
     CHECK_TNN_OK(ret)
-
     op_name_ = "Sub";
 
     // create kernel
@@ -41,7 +40,6 @@ Status OpenCLSubLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
         LOGE("create execute unit failed!\n");
         return ret;
     }
-
     return TNN_OK;
 }
 

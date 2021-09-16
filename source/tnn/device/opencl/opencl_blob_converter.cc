@@ -587,15 +587,6 @@ Status OpenCLBlobConverterAcc::CopyMatToBufferData(Mat &mat, cl::CommandQueue *c
 
 Status OpenCLBlobConverterAcc::CopyScaleBiasToBuffer(MatConvertParam param, cl::CommandQueue *cl_command_queue) {
     cl_int cl_ret;
-    if (nullptr == scale_buffer_ || nullptr == bias_buffer_) {
-        LOGE("scale buffer or bias buffer is null\n");
-        return Status(TNNERR_OUTOFMEMORY, "scale buffer or bias buffer is null");
-    }
-    if (nullptr == param.scale.data() || nullptr == param.bias.data()) {
-        LOGE("scale or bias is invalid\n");
-        return Status(TNNERR_NULL_PARAM, "scale or bias is invalid");
-    }
-
     if (param.scale != host_scale_buffer_) {
         // Copy scale to buffer
         cl_ret = cl_command_queue->enqueueWriteBuffer(*scale_buffer_, CL_TRUE, 0, scale_bias_buffer_size_, param.scale.data());

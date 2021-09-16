@@ -289,7 +289,6 @@ Status OpenCLLSTMONNXLayerAcc::ConvertWeights(std::shared_ptr<RawBuffer> buffer,
     }
 
     float *weights_data_ptr;
-    std::shared_ptr<float> float_data_ptr;
     if (buffer->GetDataType() == DATA_TYPE_FLOAT) {
         // get float pointer from raw buffer
         weights_data_ptr = buffer->force_to<float *>();
@@ -298,7 +297,7 @@ Status OpenCLLSTMONNXLayerAcc::ConvertWeights(std::shared_ptr<RawBuffer> buffer,
         }
     } else {
         // if handle is half, need convert to float first.
-        float_data_ptr = GetFloatFromRawBuffer(*buffer);
+        auto float_data_ptr = GetFloatFromRawBuffer(*buffer);
         if (float_data_ptr == nullptr) {
             return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
@@ -360,7 +359,6 @@ Status OpenCLLSTMONNXLayerAcc::ConvertBias(std::shared_ptr<RawBuffer> buffer, st
     }
 
     float *bias_data_ptr;
-    std::shared_ptr<float> float_data_ptr;
     if (buffer->GetDataType() == DATA_TYPE_FLOAT) {
         // get float pointer from raw buffer
         bias_data_ptr = buffer->force_to<float *>();
@@ -369,7 +367,7 @@ Status OpenCLLSTMONNXLayerAcc::ConvertBias(std::shared_ptr<RawBuffer> buffer, st
         }
     } else {
         // if handle is half, need convert to float first.
-        float_data_ptr = GetFloatFromRawBuffer(*buffer);
+        auto float_data_ptr = GetFloatFromRawBuffer(*buffer);
         if (float_data_ptr == nullptr) {
             return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }

@@ -22,7 +22,6 @@
 #include <string>
 #include "tnn/core/status.h"
 #include "tnn/core/common.h"
-#include "tnn/utils/exclusive_file.h"
 #include "tnn/device/opencl/opencl_wrapper.h"
 
 namespace TNN_NS {

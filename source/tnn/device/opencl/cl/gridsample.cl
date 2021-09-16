@@ -14,8 +14,8 @@ __kernel void BilinearGridSample(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     FLOAT4 x = RI_F(grid, SAMPLER, (int2)(output_h_idx * 2, output_b_idx * out_width + output_w_idx));
     FLOAT4 y = RI_F(grid, SAMPLER, (int2)(output_h_idx * 2 + 1, output_b_idx * out_width + output_w_idx));
 
-    FLOAT4 ix = (x + ((FLOAT)1.0f)) * input_width * ((FLOAT)0.5f) - ((FLOAT)0.5f);
-    FLOAT4 iy = (y + ((FLOAT)1.0f)) * input_height * ((FLOAT)0.5f) - ((FLOAT)0.5f);
+    FLOAT4 ix = (x + ((FLOAT)1.0)) * input_width * ((FLOAT)0.5) - ((FLOAT)0.5);
+    FLOAT4 iy = (y + ((FLOAT)1.0)) * input_height * ((FLOAT)0.5) - ((FLOAT)0.5);
 
     FLOAT4 ix_nw = floor(ix);
     FLOAT4 iy_nw = floor(iy);
@@ -30,13 +30,11 @@ __kernel void BilinearGridSample(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     FLOAT4 iy_se = iy_nw + 1;
 
     // get nw_within_bound
-    int4 low_ix_nw = (int4)(ix_nw.x >= 0 ? -1 : 0, ix_nw.y >= 0 ? -1 : 0, ix_nw.z >= 0 ? -1 : 0, ix_nw.w >= 0 ? -1 : 0);
-    int4 low_iy_nw = (int4)(iy_nw.x >= 0 ? -1 : 0, iy_nw.y >= 0 ? -1 : 0, iy_nw.z >= 0 ? -1 : 0, iy_nw.w >= 0 ? -1 : 0);
+    int4 low_ix_nw = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_nw >= (int)0);
+    int4 low_iy_nw = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_nw >= (int)0);
 
-    int4 up_ix_nw = (int4)(ix_nw.x < input_width ? -1 : 0, ix_nw.y < input_width ? -1 : 0,
-                           ix_nw.z < input_width ? -1 : 0, ix_nw.w < input_width ? -1 : 0);
-    int4 up_iy_nw = (int4)(iy_nw.x < input_height ? -1 : 0, iy_nw.y < input_height ? -1 : 0,
-                           iy_nw.z < input_height ? -1 : 0, iy_nw.w < input_height ? -1 : 0);
+    int4 up_ix_nw = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_nw < input_width);
+    int4 up_iy_nw = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_nw < input_height);
 
     int4 nw_within_bound = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), low_ix_nw);
     nw_within_bound      = select((int4)(0, 0, 0, 0), nw_within_bound, low_iy_nw);
@@ -44,57 +42,39 @@ __kernel void BilinearGridSample(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     nw_within_bound      = select((int4)(0, 0, 0, 0), nw_within_bound, up_iy_nw);
 
     // get ne_within_bound
-    low_ix_nw = (int4)(ix_ne.x >= 0 ? -1 : 0, ix_ne.y >= 0 ? -1 : 0, ix_ne.z >= 0 ? -1 : 0, ix_ne.w >= 0 ? -1 : 0);
-    low_iy_nw = (int4)(iy_ne.x >= 0 ? -1 : 0, iy_ne.y >= 0 ? -1 : 0, iy_ne.z >= 0 ? -1 : 0, iy_ne.w >= 0 ? -1 : 0);
-    up_ix_nw  = (int4)(ix_ne.x < input_width ? -1 : 0, ix_ne.y < input_width ? -1 : 0, ix_ne.z < input_width ? -1 : 0,
-                      ix_ne.w < input_width ? -1 : 0);
-    up_iy_nw = (int4)(iy_ne.x < input_height ? -1 : 0, iy_ne.y < input_height ? -1 : 0, iy_ne.z < input_height ? -1 : 0,
-                      iy_ne.w < input_height ? -1 : 0);
+    low_ix_nw            = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_ne >= 0);
+    low_iy_nw            = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_ne >= 0);
+    up_ix_nw             = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_ne < input_width);
+    up_iy_nw             = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_ne < input_height);
     int4 ne_within_bound = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), low_ix_nw);
     ne_within_bound      = select((int4)(0, 0, 0, 0), ne_within_bound, low_iy_nw);
     ne_within_bound      = select((int4)(0, 0, 0, 0), ne_within_bound, up_ix_nw);
     ne_within_bound      = select((int4)(0, 0, 0, 0), ne_within_bound, up_iy_nw);
 
     // get sw_within_bound
-    low_ix_nw = (int4)(ix_sw.x >= 0 ? -1 : 0, ix_sw.y >= 0 ? -1 : 0, ix_sw.z >= 0 ? -1 : 0, ix_sw.w >= 0 ? -1 : 0);
-    low_iy_nw = (int4)(iy_sw.x >= 0 ? -1 : 0, iy_sw.y >= 0 ? -1 : 0, iy_sw.z >= 0 ? -1 : 0, iy_sw.w >= 0 ? -1 : 0);
-    up_ix_nw  = (int4)(ix_sw.x < input_width ? -1 : 0, ix_sw.y < input_width ? -1 : 0, ix_sw.z < input_width ? -1 : 0,
-                      ix_sw.w < input_width ? -1 : 0);
-    up_iy_nw = (int4)(iy_sw.x < input_height ? -1 : 0, iy_sw.y < input_height ? -1 : 0, iy_sw.z < input_height ? -1 : 0,
-                      iy_sw.w < input_height ? -1 : 0);
+    low_ix_nw            = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_sw >= 0);
+    low_iy_nw            = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_sw >= 0);
+    up_ix_nw             = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_sw < input_width);
+    up_iy_nw             = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_sw < input_height);
     int4 sw_within_bound = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), low_ix_nw);
     sw_within_bound      = select((int4)(0, 0, 0, 0), sw_within_bound, low_iy_nw);
     sw_within_bound      = select((int4)(0, 0, 0, 0), sw_within_bound, up_ix_nw);
     sw_within_bound      = select((int4)(0, 0, 0, 0), sw_within_bound, up_iy_nw);
 
     // get se_within_bound
-    low_ix_nw = (int4)(ix_se.x >= 0 ? -1 : 0, ix_se.y >= 0 ? -1 : 0, ix_se.z >= 0 ? -1 : 0, ix_se.w >= 0 ? -1 : 0);
-    low_iy_nw = (int4)(iy_se.x >= 0 ? -1 : 0, iy_se.y >= 0 ? -1 : 0, iy_se.z >= 0 ? -1 : 0, iy_se.w >= 0 ? -1 : 0);
-    up_ix_nw  = (int4)(ix_se.x < input_width ? -1 : 0, ix_se.y < input_width ? -1 : 0, ix_se.z < input_width ? -1 : 0,
-                      ix_se.w < input_width ? -1 : 0);
-    up_iy_nw = (int4)(iy_se.x < input_height ? -1 : 0, iy_se.y < input_height ? -1 : 0, iy_se.z < input_height ? -1 : 0,
-                      iy_se.w < input_height ? -1 : 0);
+    low_ix_nw            = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_se >= 0);
+    low_iy_nw            = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_se >= 0);
+    up_ix_nw             = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), ix_se < input_width);
+    up_iy_nw             = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), iy_se < input_height);
     int4 se_within_bound = select((int4)(0, 0, 0, 0), (int4)(-1, -1, -1, -1), low_ix_nw);
     se_within_bound      = select((int4)(0, 0, 0, 0), se_within_bound, low_iy_nw);
     se_within_bound      = select((int4)(0, 0, 0, 0), se_within_bound, up_ix_nw);
     se_within_bound      = select((int4)(0, 0, 0, 0), se_within_bound, up_iy_nw);
 
-    FLOAT4 nw = (ix_se - ix) * (iy_se - iy);
-    FLOAT4 ne = (ix - ix_sw) * (iy_sw - iy);
-    FLOAT4 sw = (ix_ne - ix) * (iy - iy_ne);
-    FLOAT4 se = (ix - ix_nw) * (iy - iy_nw);
-
-    nw = (FLOAT4)(nw_within_bound.x ? nw.x : 0, nw_within_bound.y ? nw.y : 0, nw_within_bound.z ? nw.z : 0,
-                  nw_within_bound.w ? nw.w : 0);
-    ne = (FLOAT4)(ne_within_bound.x ? ne.x : 0, ne_within_bound.y ? ne.y : 0, ne_within_bound.z ? ne.z : 0,
-                  ne_within_bound.w ? ne.w : 0);
-    sw = (FLOAT4)(sw_within_bound.x ? sw.x : 0, sw_within_bound.y ? sw.y : 0, sw_within_bound.z ? sw.z : 0,
-                  sw_within_bound.w ? sw.w : 0);
-    se = (FLOAT4)(se_within_bound.x ? se.x : 0, se_within_bound.y ? se.y : 0, se_within_bound.z ? se.z : 0,
-                  se_within_bound.w ? se.w : 0);
-    //    FLOAT4 ne = select((FLOAT)0, (ix - ix_sw) * (iy_sw - iy), ne_within_bound);
-    //    FLOAT4 sw = select((FLOAT)0, (ix_ne - ix) * (iy - iy_ne), sw_within_bound);
-    //    FLOAT4 se = select((FLOAT)0, (ix - ix_nw) * (iy - iy_nw), se_within_bound);
+    FLOAT4 nw = select((FLOAT)0, (ix_se - ix) * (iy_se - iy), nw_within_bound);
+    FLOAT4 ne = select((FLOAT)0, (ix - ix_sw) * (iy_sw - iy), ne_within_bound);
+    FLOAT4 sw = select((FLOAT)0, (ix_ne - ix) * (iy - iy_ne), sw_within_bound);
+    FLOAT4 se = select((FLOAT)0, (ix - ix_nw) * (iy - iy_nw), se_within_bound);
 
     int nw_index_x = select(0, (int)(ix_nw.x), nw_within_bound.x);
     int nw_index_y = select(0, (int)(iy_nw.x), nw_within_bound.x);

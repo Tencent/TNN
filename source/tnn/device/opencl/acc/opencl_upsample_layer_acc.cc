@@ -97,8 +97,7 @@ Status OpenCLUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerRe
 
 Status OpenCLUpsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Upsample Acc Reshape\n");
-    std::vector<Blob *> reshape_inputs(inputs.begin(), inputs.begin() + 1);
-    Status ret = OpenCLLayerAcc::Reshape(reshape_inputs, outputs);
+    Status ret = OpenCLLayerAcc::Reshape(inputs, outputs);
     CHECK_TNN_OK(ret)
 
     UpsampleLayerParam *upsample_param = dynamic_cast<UpsampleLayerParam *>(param_);
