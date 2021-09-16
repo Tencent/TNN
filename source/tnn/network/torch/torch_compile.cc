@@ -199,7 +199,7 @@ void CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap &input
     // remove useless nodes for partition&conversion
     // RemoveUselessOps(g->block());
 
-    TorchOptPass(*mod, g);
+    TorchOptPass(*mod);
 
     auto seg_blocks = partitioning::Partition(g, input_shape);
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)

@@ -165,9 +165,10 @@ namespace jit {
         }
     }
 
-    void TorchOptPass(script::Module& module, std::shared_ptr<Graph>& graph) {
+    void TorchOptPass(script::Module& module) {
+        auto graph = module.get_method("forward").graph();
+
         removeDropout(module);
-        RemoveInplaceOps(graph);
         RemoveException(graph->block());
         RemoveListAppend(graph.get(), graph->block());
         RemoveConcat(graph->block());

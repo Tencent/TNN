@@ -18,7 +18,7 @@
 #include <torch/script.h>
 namespace torch {
 namespace jit {
-    void TorchOptPass(script::Module& module, std::shared_ptr<Graph>& graph);
+    void TorchOptPass(script::Module& module);
 }
 }  // namespace torch
 
