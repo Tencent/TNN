@@ -54,7 +54,7 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
             blob->GetBlobDesc().data_type = blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ? DATA_TYPE_INT32 : DATA_TYPE_FLOAT;
         }
     }
-    
+
     input_dims_  = inputs[0]->GetBlobDesc().dims;
     output_dims_ = outputs[0]->GetBlobDesc().dims;
 
@@ -62,7 +62,7 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 
     status = ReloadConstantBlobs(inputs, false);
     RETURN_ON_NEQ(status, TNN_OK);
-  
+
     return TNN_OK;
 }
 
@@ -339,7 +339,7 @@ Status OpenCLLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bo
 }
 
 Status OpenCLLayerAcc::RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, DataFormat format) {
-    if (!buffer || buffer->GetBufferDims().size() > 4) {
+    if (!buffer || buffer->GetBufferDims().size() > 5) {
         return Status(TNNERR_PARAM_ERR, "raw buffer for opencl blob is invalid");
     }
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
@@ -370,6 +370,11 @@ Status OpenCLLayerAcc::RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<B
         int blob_buffer_size = DimsFunctionUtils::GetDim(dims, 0) *
                             ALIGN_UP4(DimsFunctionUtils::GetDim(dims, 1)) *
                             DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
+        if (dims.size() > 4) {
+            for (int idx_dim = 4; idx_dim < dims.size(); idx_dim++) {
+                blob_buffer_size *= DimsFunctionUtils::GetDim(dims, idx_dim);
+            }
+        }
         cl_int ret      = CL_SUCCESS;
         cl::Buffer cl_buffer(*opencl_runtime->Context(), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
                             blob_buffer_size * sizeof(float), nullptr, &ret);
@@ -479,10 +484,6 @@ Status OpenCLLayerAcc::ResolveBlobDataType(Blob *blob, BlobType blob_type) {
         if (iter != support_list.end()) {
             return TNN_OK;
         } else {
-            printf("support_list: ");
-            for(auto it = support_list.begin(); it <= support_list.end(); ++it)
-                printf("%d ", *it);
-            printf("\n");
             return Status(TNNERR_DEVICE_ACC_DATA_FORMAT_NOT_SUPPORT, "unsupported data type for device acc");
         }
     }

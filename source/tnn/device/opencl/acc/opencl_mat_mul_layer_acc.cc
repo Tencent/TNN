@@ -90,7 +90,10 @@ Status OpenCLMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 
     // create kernel
     std::string kernel_name = "MatMul";
-    ret                     = CreateExecuteUnit(execute_units_[0], "matmul", kernel_name);
+    if (outputs[0]->GetBlobDesc().dims.size() == 6) {
+        kernel_name = "MatMul6D";
+    }
+    ret = CreateExecuteUnit(execute_units_[0], "matmul", kernel_name);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
@@ -108,6 +111,39 @@ Status OpenCLMatMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
 
     auto input0_dims    = inputs[0]->GetBlobDesc().dims;
     auto output_dims    = outputs[0]->GetBlobDesc().dims;
+
+    if (output_dims.size() == 6) {
+        need_reshape_ = {false, false, false};
+
+        DimsVector input1_dims;
+        auto idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], output_dims);
+        if (inputs.size() == 2) {
+            input1_dims = inputs[1]->GetBlobDesc().dims;
+            execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
+            execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[1]->GetHandle().base));
+        } else {
+            if (weight_position_ == 1) {
+                input1_dims = reshape_outputs_[1][0]->GetBlobDesc().dims;
+                execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
+                execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reshape_outputs_[1][0]->GetHandle().base));
+            } else {
+                input0_dims = reshape_outputs_[0][0]->GetBlobDesc().dims;
+                input1_dims = inputs[0]->GetBlobDesc().dims;
+                execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)reshape_outputs_[0][0]->GetHandle().base));
+                execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
+            }
+        }
+
+        execute_units_[0].ocl_kernel.setArg(idx++, input0_dims.size() * sizeof(int), input0_dims.data());
+        execute_units_[0].ocl_kernel.setArg(idx++, input1_dims.size() * sizeof(int), input1_dims.data());
+        execute_units_[0].ocl_kernel.setArg(idx++, output_dims.size() * sizeof(int), output_dims.data());
+        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(input0_dims[1], 4));
+        execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(input1_dims[1], 4));
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
+
+        return TNN_OK;
+    }
+
     if (inputs.size() == 2) {
         bool need_reshape = false;
         ret = InitReshapeLayer(inputs[0], reshape_layer_acc_[0], need_reshape, reshape_inputs_[0],
@@ -309,21 +345,23 @@ Status OpenCLMatMulLayerAcc::InitReshapeLayer(
     }    
 
     // Init LayerAcc
+    std::shared_ptr<ReshapeLayerParam> reshape_param = std::make_shared<ReshapeLayerParam>();
     if (position != 2) {
-        reshape_param_.name         = "MatMul_Reshape";
-        reshape_param_.reshape_type = 0;
-        reshape_param_.axis         = 0;
-        reshape_param_.num_axes     = 4;
-        reshape_param_.shape        = output_desc.dims;
-        layer->Init(ocl_context_, &reshape_param_, nullptr, reshape_layer_inputs, reshape_layer_outputs);
+        reshape_param->name         = "MatMul_Reshape";
+        reshape_param->reshape_type = 0;
+        reshape_param->axis         = 0;
+        reshape_param->num_axes     = 4;
+        reshape_param->shape        = output_desc.dims;
+        layer->Init(ocl_context_, reshape_param.get(), nullptr, reshape_layer_inputs, reshape_layer_outputs);
     } else {
-        reshape_param_.name         = "MatMul_Reshape";
-        reshape_param_.reshape_type = 0;
-        reshape_param_.axis         = 0;
-        reshape_param_.num_axes     = blob->GetBlobDesc().dims.size();
-        reshape_param_.shape        = blob->GetBlobDesc().dims;
-        layer->Init(ocl_context_, &reshape_param_, nullptr, reshape_layer_inputs, reshape_layer_outputs);
+        reshape_param->name         = "MatMul_Reshape";
+        reshape_param->reshape_type = 0;
+        reshape_param->axis         = 0;
+        reshape_param->num_axes     = blob->GetBlobDesc().dims.size();
+        reshape_param->shape        = blob->GetBlobDesc().dims;
+        layer->Init(ocl_context_, reshape_param.get(), nullptr, reshape_layer_inputs, reshape_layer_outputs);
     }
+    reshape_param_vec_.emplace_back(reshape_param);
 
     return ret;
 }
