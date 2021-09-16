@@ -34,10 +34,15 @@ python generate_validation_labels.py \
 SqueezeNet model from `${TNN_ROOT_PATH}/model/SqueezeNet/squeezenet_v1.1.tnnproto`. 500 pictures with id ending in `00` (`ILSVRC2012_val_*00.JPEG`) are chosen for calibration.
 |   blob_method    |  weight_method  |   merge_type    | Top-1 Accuracy |
 | :--------------: | :-------------: | :-------------: | :------------: |
-|       FP32       |      FP32       |      FP32       |     53.01%     |
+|       FP32       |      FP32       |        -        |     53.01%     |
 |   0-(Min-Max)    |   0-(Min-Max)   | 0-(Per-Channel) |     52.71%     |
+|   0-(Min-Max)    |   0-(Min-Max)   |     1-(Mix)     |     52.56%     |
+|   0-(Min-Max)    |   0-(Min-Max)   | 2-(Per-Tensor)  |     47.29%     |
 | 3-(ASY_MIN_MAX)  | 3-(ASY_MIN_MAX) | 0-(Per-Channel) |     52.78%     |
+| 3-(ASY_MIN_MAX)  | 3-(ASY_MIN_MAX) |     1-(Mix)     |     52.94%     |
+| 3-(ASY_MIN_MAX)  | 3-(ASY_MIN_MAX) | 2-(Per-Tensor)  |     47.93%     |
 |  4-(ACIQ_GAUS)   |   0-(Min-Max)   | 0-(Per-Channel) |     52.76%     |
+|  4-(ACIQ_GAUS)   |   0-(Min-Max)   |     1-(Mix)     |     52.63%     |
 | 5-(ACIQ_LAPLACE) |   0-(Min-Max)   | 0-(Per-Channel) |     40.25%     |
 
 ### 5. Note
