@@ -286,8 +286,11 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
    reading-comprehension demo
    ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
 
-   pose-detector demo
+   pose-detector demo (Tencent Guangliu)
    ./demo_x86_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
+
+   pose-detector demo (blazepose)
+   ./demo_x86_blazepose
 
    ocr-detector demo
    ./demo_x86_ocrdetecor
@@ -358,8 +361,11 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
    reading-comprehension demo
    ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
 
-   pose-detector demo
+   pose-detector demo (Tencent Guangliu)
    ./demo_x86_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
+
+   pose-detector demo (blazepose)
+   ./demo_x86_blazepose
 
    ocr-detector demo
    ./demo_x86_ocrdetecor
@@ -411,8 +417,11 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
    reading-comprehension demo
    .\demo_x86_readingcomprehension -p ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnproto -m ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnmodel -v ..\..\..\..\..\model\bertsquad10\vocab.txt
 
-   pose-detector demo
+   pose-detector demo (Tencent Guangliu)
    .\demo_x86_posedetector -p ..\..\..\..\model\skeleton\skeleton_big.tnnproto -m ..\..\..\..\model\skeleton\skeleton.tnnmodel -i ..\..\..\assets\skeleton_test.jpg
+
+   pose-detector demo (blazepose)
+   .\demo_x86_blazepose
 
    ocr-detector demo
    .\demo_x86_ocrdetecor
@@ -521,8 +530,11 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
    reading-comprehension demo
    ./demo_cuda_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
 
-   pose-detector demo
+   pose-detector demo (Tencent Guangliu)
    ./demo_cuda_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
+
+   pose-detector demo (blazepose)
+   ./demo_cuda_blazepose
 
    ocr-detector demo
    ./demo_cuda_ocrdetecor

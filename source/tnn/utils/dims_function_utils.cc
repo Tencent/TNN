@@ -114,7 +114,7 @@ DimsVector DimsFunctionUtils::Reshape(const DimsVector input_dims, const DimsVec
 
     int infer_dim_count = 0;
     int infer_dim_pos   = -1;
-    for (int i = axis, j = 0; i < num_axes; i++, j++) {
+    for (int i = axis, j = 0; j < num_axes; i++, j++) {
         if (shape[j] == -1) {
             infer_dim_count += 1;
             infer_dim_pos  = i;
