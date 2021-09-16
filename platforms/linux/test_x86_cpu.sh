@@ -3,7 +3,7 @@ DEBUG=0
 CLEAN=""
 
 WORK_DIR=`pwd`
-BUILD_DIR=build
+BUILD_DIR=build_cpu
 MODEL_DIR=$WORK_DIR/models
 DUMP_DIR=$WORK_DIR/dump_data
 #INPUT_FILE_NAME=hdr_test.jpg
@@ -60,7 +60,8 @@ function run_x86() {
     then
         TEST_PROTO_PATH=$MODEL_DIR/test.tnnproto
     fi
-    if [ -n "$INPUT_PATH" ]
+    echo "param input path: $INPUT_PATH"
+    if [ "" == "$INPUT_PATH" ]
     then
         INPUT_PATH=$MODEL_DIR/$INPUT_FILE_NAME
     fi

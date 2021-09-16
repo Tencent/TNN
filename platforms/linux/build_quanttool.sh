@@ -2,7 +2,7 @@
 
 CLEAN=""
 
-BUILD_DIR=build
+BUILD_DIR=build_quantize
 
 function usage() {
     echo "-c\tClean up build folders."
