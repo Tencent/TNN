@@ -60,10 +60,9 @@ public:
         layer_res->name = layer_info->name;
         layer_res->filter_handle = weight_buf;
 
-        auto bias_buf = getValue(bias);
-        if (bias_buf.GetBytesSize() != 0) {
-            layer_param->bias = 1;
-            layer_res->bias_handle = bias_buf;
+        if (toIValue(bias)->isTensor()) {
+            layer_param->bias      = 1;
+            layer_res->bias_handle = getValue(bias);
         }
 
         layer_info->param = layer_param;
@@ -147,7 +146,6 @@ public:
 };
 
 // func: max_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, int[2] dilation=1, bool ceil_mode=False) -> Tensor
-// func: avg_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, bool ceil_mode=False, bool count_include_pad=True, int? divisor_override=None) -> Tensor
 // func: adaptive_avg_pool2d(Tensor self, int[2] output_size) -> Tensor
 class PoolTorchConverter : public TorchOpConverter {
 public:
@@ -186,6 +184,49 @@ public:
             layer_param->is_adaptive_pool = 1;
             layer_param->output_shape = {(int)output_shape[0], (int)output_shape[1]};
         }
+
+        layer_info->param = layer_param;
+
+        net_structure->layers.push_back(layer_info);
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        return TNN_OK;
+    }
+};
+
+// func: avg_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, bool ceil_mode=False, bool count_include_pad=True, int? divisor_override=None) -> Tensor
+class AvgPoolTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = LAYER_POOLING;
+        layer_info->type_str = "Pooling";
+        layer_info->name = node->output(0)->debugName();
+
+        const auto& inputs = node->inputs();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<PoolingLayerParam>();
+        layer_param->name = layer_info->name;
+        std::string op_type = node->kind().toUnqualString();
+
+        const auto kernel_size = getValue<std::vector<int64_t>>(inputs[1]);
+        const auto stride = getValue<std::vector<int64_t>>(inputs[2]);
+        const auto padding = getValue<std::vector<int64_t>>(inputs[3]);
+        const auto ceil_mode = getValue<bool>(inputs[4]);
+
+        layer_param->pool_type      = 1;
+        layer_param->pad_type       = 3;
+        layer_param->kernels_params = {(int)kernel_size[0], (int)kernel_size[1]};
+        layer_param->strides        = {(int)stride[0], (int)stride[1]};
+        layer_param->pads           = {(int)padding[0], (int)padding[0], (int)padding[1], (int)padding[1]};
+        layer_param->kernel_indexs  = {-1, -1};
+        layer_param->kernels        = {-1, -1};
+        layer_param->output_shape   = {-1, -1};
+        layer_param->ceil_mode      = ceil_mode;
 
         layer_info->param = layer_param;
 
@@ -403,6 +444,122 @@ public:
     }
 };
 
+class BatchNormTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_BATCH_NORM;
+        layer_info->type_str                  = "BatchNormCxx";
+        layer_info->name                      = node->output(0)->debugName();
+
+        const auto &inputs = node->inputs();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        const auto weight       = inputs[1];
+        const auto bias         = inputs[2];
+        const auto running_mean = inputs[3];
+        const auto running_var  = inputs[4];
+        const auto eps          = getValue<float>(inputs[7]);
+
+        auto layer_param = std::make_shared<BatchNormLayerParam>();
+        auto layer_res   = new BatchNormLayerResource();
+
+        layer_param->eps = eps;
+
+        {
+            auto weight_buf = getValue(weight);
+            auto bias_buf   = getValue(bias);
+            auto mean_buf   = getValue(running_mean);
+            auto var_buf    = getValue(running_var);
+
+            auto fuseResource = [&](RawBuffer &gamma, RawBuffer &beta, RawBuffer &mean, RawBuffer &var,
+                                    float eps) -> std::pair<RawBuffer, RawBuffer> {
+                const int size       = gamma.GetDataCount();
+                const auto data_type = gamma.GetDataType();
+                auto gamma_fp32      = ConvertHalfHandle(gamma);
+                auto beta_fp32       = ConvertHalfHandle(beta);
+                auto mean_fp32       = ConvertHalfHandle(mean);
+                auto var_fp32        = ConvertHalfHandle(var);
+                auto *gamma_ptr      = gamma_fp32.force_to<float *>();
+                auto *beta_ptr       = beta_fp32.force_to<float *>();
+                auto *mean_ptr       = mean_fp32.force_to<float *>();
+                auto *var_ptr        = var_fp32.force_to<float *>();
+
+                auto scale      = std::shared_ptr<float>(new float[size], [](float *p) { delete[] p; });
+                auto bias       = std::shared_ptr<float>(new float[size], [](float *p) { delete[] p; });
+                auto *scale_ptr = scale.get();
+                auto *bias_ptr  = bias.get();
+
+                for (int i = 0; i < size; i++) {
+                    double sqrt_var = 1.0 / std::sqrt(static_cast<double>(var_ptr[i] + eps));
+                    bias_ptr[i]     = beta_ptr[i] - static_cast<float>(static_cast<double>(gamma_ptr[i]) *
+                                                                   static_cast<double>(mean_ptr[i]) * sqrt_var);
+                    scale_ptr[i]    = static_cast<float>(static_cast<double>(gamma_ptr[i]) * sqrt_var);
+                }
+
+                const int byte_size = gamma.GetBytesSize();
+                auto scale_buf_fp32 = RawBuffer(byte_size, reinterpret_cast<char *>(scale_ptr), gamma.GetBufferDims());
+                auto bias_buf_fp32  = RawBuffer(byte_size, reinterpret_cast<char *>(bias_ptr), beta.GetBufferDims());
+                auto scale_buf      = data_type == DATA_TYPE_HALF ? ConvertFloatToHalf(scale_buf_fp32) : scale_buf_fp32;
+                auto bias_buf       = data_type == DATA_TYPE_HALF ? ConvertFloatToHalf(bias_buf_fp32) : bias_buf_fp32;
+
+                return std::make_pair(scale_buf, bias_buf);
+            };
+
+            auto scaleAndBias = fuseResource(weight_buf, bias_buf, mean_buf, var_buf, eps);
+
+            layer_res->name         = layer_info->name;
+            layer_res->scale_handle = scaleAndBias.first;
+            layer_res->bias_handle  = scaleAndBias.second;
+        }
+
+        layer_info->param = layer_param;
+
+        net_structure->layers.push_back(layer_info);
+        net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        return TNN_OK;
+    }
+};
+
+class ConcatTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_CONCAT;
+        layer_info->type_str                  = "Concat";
+        layer_info->name                      = node->output(0)->debugName();
+
+        const auto inputs      = node->inputs();
+        const auto tensor_list = inputs[0];
+        for (const auto input : tensor_list->node()->inputs()) {
+            layer_info->inputs.push_back(input->debugName());
+        }
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param  = std::make_shared<ConcatLayerParam>();
+        layer_param->axis = static_cast<int>(getValue<int64_t>(inputs[1]));
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
+class ListTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        return TNN_OK;
+    }
+};
+
 // class QuantConv2DTorchConverter : public TorchOpConverter {
 // public:
 //     Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
@@ -428,6 +585,7 @@ REGISTER_TORCH_OP_CONVERTER(Conv2D, aten, conv2d)
 REGISTER_TORCH_OP_CONVERTER(_Conv, aten, _convolution)
 REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
+REGISTER_TORCH_OP_CONVERTER(AvgPool, aten, avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, adaptive_avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Add, aten, add_)
 REGISTER_TORCH_OP_CONVERTER(Add, aten, add)
@@ -436,6 +594,10 @@ REGISTER_TORCH_OP_CONVERTER(Linear, aten, linear)
 REGISTER_TORCH_OP_CONVERTER(HardTanh, aten, hardtanh_)
 REGISTER_TORCH_OP_CONVERTER(HardSigmoid, aten, hardsigmoid_)
 REGISTER_TORCH_OP_CONVERTER(HardSwish, aten, hardswish_)
+REGISTER_TORCH_OP_CONVERTER(BatchNorm, aten, batch_norm)
+REGISTER_TORCH_OP_CONVERTER(Concat, aten, cat)
+
+REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
 
 // REGISTER_TORCH_OP_CONVERTER(QuantConv2D, quantized, conv2d)
 

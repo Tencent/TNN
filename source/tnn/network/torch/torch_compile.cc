@@ -24,6 +24,7 @@
 
 #include "tnn/network/torch/jit_util.h"
 #include "tnn/network/torch/torch_convert.h"
+#include "tnn/network/torch/torch_optimize.h"
 
 #include "tnn/utils/blob_dump_utils.h"
 
@@ -67,69 +68,6 @@ void RemoveUselessOps(torch::jit::Block *block) {
             for (int i = it->inputs().size() - 1; i >= 0; i--) {
                 it->removeInput(i);
             }
-            it.destroyCurrent();
-        }
-    }
-}
-
-void RemoveException(torch::jit::Block *block) {
-    auto check_node = [](torch::jit::Node *n) -> bool {
-        if (n->blocks().size() != 2) {
-            return false;
-        }
-        auto block0 = n->blocks()[0];
-        auto block1 = n->blocks()[1];
-        if (block0->outputs().size() != 0 || block1->outputs().size() != 0) {
-            // Make sure that the node doesn't actually produce any Value that are
-            // used by other nodes
-            return false;
-        }
-
-        auto block0_start = block0->nodes().begin();
-        auto block1_start = block1->nodes().begin();
-
-        // Make sure that there is at least one empty block  
-        if (block0_start->kind() != prim::Return && block1_start->kind() != prim::Return) {
-            return false;
-        }
-
-        if ((*block1_start)->kind() == prim::Return) {
-            if ((*block0_start)->kind() == prim::RaiseException) {
-                if ((*(++block0_start))->kind() == prim::Return) {
-                    // Make sure that block0 is solely just the exception and the return
-                    return true;
-                }
-            } else if ((*block0_start)->kind() == aten::format && (*(++block0_start))->kind() == prim::RaiseException) {
-                if ((*(++block0_start))->kind() == prim::Return) {
-                    // Make sure that block0 is solely just the exception and the return
-                    return true;
-                }
-            }
-        }
-
-        if ((*block0_start)->kind() == prim::Return) {
-            if ((*block1_start)->kind() == prim::RaiseException) {
-                if ((*(++block1_start))->kind() == prim::Return) {
-                    // Make sure that block0 is solely just the exception and the return
-                    return true;
-                }
-            } else if ((*block1_start)->kind() == aten::format && (*(++block1_start))->kind() == prim::RaiseException) {
-                if ((*(++block1_start))->kind() == prim::Return) {
-                    // Make sure that block0 is solely just the exception and the return
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    };
-
-    for (auto it = block->nodes().begin(), end = block->nodes().end(); it != end; ++it) {
-        for (auto b : it->blocks()) {
-            RemoveException(b);
-        }
-
-        if (it->kind() == prim::If && check_node(*it)) {
             it.destroyCurrent();
         }
     }
@@ -260,10 +198,8 @@ void CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap &input
 
     // remove useless nodes for partition&conversion
     // RemoveUselessOps(g->block());
-    removeDropout(*mod);
-    RemoveInplaceOps(g);
-    RemoveException(g->block());
-    torch::jit::EliminateDeadCode(g);
+
+    TorchOptPass(*mod);
 
     auto seg_blocks = partitioning::Partition(g, input_shape);
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
