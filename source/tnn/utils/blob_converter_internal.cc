@@ -17,6 +17,7 @@
 #include "tnn/utils/blob_converter.h"
 
 #include "tnn/utils/blob_converter_internal.h"
+#include "tnn/utils/dims_function_utils.h"
 
 namespace TNN_NS {
 
@@ -78,7 +79,13 @@ Status BlobConverter::ConvertFromMatAsync(Mat& image, MatConvertParam param, voi
 }
 
 Status BlobConverter::CheckScaleBiasInParam(Mat& image, MatConvertParam& param, bool convert_to_mat) {
-    int channel = convert_to_mat ? blob_->GetBlobDesc().dims[1] : image.GetChannel();
+    int channel = 0;
+    if (convert_to_mat) {
+        CHECK_PARAM_NULL(blob_);
+        channel = DimsFunctionUtils::GetDim(blob_->GetBlobDesc().dims, 1);
+    } else {
+        channel = image.GetChannel();
+    }
     // 非图像类的Mat channel和scale/bias长度与不匹配时，如果scale全1，bias全0，会默认调整，否则报错
     if ((image.GetMatType() == NCHW_FLOAT || image.GetMatType() == RESERVED_BFP16_TEST ||
          image.GetMatType() == RESERVED_FP16_TEST || image.GetMatType() == RESERVED_INT8_TEST ||
