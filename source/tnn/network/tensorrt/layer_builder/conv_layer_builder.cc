@@ -116,7 +116,11 @@ ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
 
     auto pads = paramlist->pads;
     bool symmetric = (pads[0] == pads[1]) && (pads[2] == pads[3]);
-    if (symmetric && paramlist->kernels[0] == 7 && paramlist->kernels[1] == 7 && following_a_concat_layer) {
+    if ((symmetric && paramlist->kernels[0] == 7 && paramlist->kernels[1] == 7 && following_a_concat_layer) ||
+        (symmetric && paramlist->kernels[0] == 41 && paramlist->kernels[1] == 1) ||
+        (symmetric && paramlist->kernels[0] == 1 && paramlist->kernels[1] == 41) ||
+        (symmetric && paramlist->kernels[0] == 5 && paramlist->kernels[1] == 1) ||
+        (symmetric && paramlist->kernels[0] == 1 && paramlist->kernels[1] == 5)) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
 
