@@ -40,12 +40,7 @@ JNIEXPORT JNICALL jint TNN_READING_COMPREHENSION(init)(JNIEnv *env, jobject thiz
 //    option->precision = TNN_NS::PRECISION_HIGH;
     option->precision = TNN_NS::PRECISION_NORMAL;
 
-    if (gComputeUnitType == 1) {
-        option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-
-        LOGE("tiny bert does not support GPU");
-        return -1;
-    } else if (gComputeUnitType == 2) {
+    if (gComputeUnitType == 2) {
         LOGI("the device type  %d device huawei_npu" ,gComputeUnitType);
         gResponder->setNpuModelPath(modelPathStr + "/");
         gResponder->setCheckNpuSwitch(false);
