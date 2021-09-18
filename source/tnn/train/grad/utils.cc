@@ -16,6 +16,8 @@
 
 #include "tnn/train/grad/utils.h"
 #include "tnn/core/macro.h"
+
+//TODO: 去掉arm依赖，改成设备无关的，否则后续加入其他设备支持时，编译不过
 #include "tnn/device/arm/arm_util.h"
 
 namespace TNN_NS {

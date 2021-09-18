@@ -9,13 +9,27 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#ifndef TNN_INCLUDE_TNN_VERSION_H_
-#define TNN_INCLUDE_TNN_VERSION_H_
 
-static char *branch_name_tnn = "dev";
-static char *commit_date_tnn = "2021-09-13";
-static char *commit_hash_tnn = "ccc74c63";
+// author: sanerzheng@tencent.com
 
-#endif //TNN_INCLUDE_TNN_VERSION_H_
+#include "tnn/train/test_grad/test_layer_grad.h"
+
+namespace TNN_NS {
+namespace train {
+DECLARE_LAYER_GRAD_TEST_BEGIN(Concat, LAYER_CONCAT);
+virtual Status TestArmConcatChannelC4();
+virtual Status TestArmConcatChannel();
+virtual Status TestArmConcatCommon();
+virtual Status TestNaiveNchw();
+DECLARE_LAYER_GRAD_TEST_END
+Status ConcatLayerGradTest::TestArmConcatCommon() {
+
+}
+Status ConcatLayerGradTest::TestGrad() {
+    
+}
+REGISTER_LAYER_GRAD_TEST(Concat, LAYER_CONCAT);
+}
+}
