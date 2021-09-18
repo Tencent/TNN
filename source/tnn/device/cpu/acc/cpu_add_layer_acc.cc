@@ -30,16 +30,20 @@ Status CpuAddLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, const s
                                   [](int a, int b) -> int { return a + b; });
     } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         std::vector<float *> scale_ptrs;
+        std::vector<int8_t *> scale_bias_ptrs;
 
         for (size_t inid = 0; inid < input_blobs.size(); inid++) {
             scale_ptrs.push_back(
-                reinterpret_cast<BlobInt8 *>(input_blobs[inid])->GetIntResource()->scale_handle.force_to<float *>());
+                reinterpret_cast<BlobInt8 *>(input_blobs[inid])->GetIntResource()->scale_handle.force_to<float *>());            
+            scale_bias_ptrs.push_back(
+                reinterpret_cast<BlobInt8 *>(input_blobs[inid])->GetIntResource()->scale_bias_handle.force_to<int8_t *>());
         }
-        CPU_ADD(input_ptrs, scale_ptrs,
+        CPU_ADD_BIAS(input_ptrs, scale_ptrs, scale_bias_ptrs,
                 reinterpret_cast<BlobInt8 *>(input_blobs[0])->GetIntResource()->scale_handle.GetDataCount(),
                 output->GetHandle().base,
                 reinterpret_cast<BlobInt8 *>(output)->GetIntResource()->scale_handle.force_to<float *>(),
-                output->GetBlobDesc().dims);
+                reinterpret_cast<BlobInt8 *>(output)->GetIntResource()->scale_bias_handle.force_to<int8_t *>(),
+                output->GetBlobDesc().dims);        
     } else {
         LOGE("Error: CpuAddLayerAcc don't support data type: %d\n", output->GetBlobDesc().data_type);
         return Status(TNNERR_MODEL_ERR, "Error: CpuAddLayerAcc don't support data type");

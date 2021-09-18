@@ -37,6 +37,11 @@ class CpuConvLayerAcc : public CpuLayerAcc {
 
 private:
     RawBuffer buffer_scale_;
+
+    // @brief buffer_weight_x_bias_ = - scale_bias_i * weight + scale_bias_i * scale_bias_w
+    bool do_bias_preprocess_ = false;
+    RawBuffer buffer_weight_x_bias_;
+
     // @brief for conv add fusion
     RawBuffer buffer_add_scale_;
     std::shared_ptr<LayerResource> fp32_resource_ = nullptr;

@@ -59,6 +59,22 @@ void NaiveConv(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, 
                int pad_x, int group, int dilation, int activation_type, float *weight_scale, int weight_scale_len,
                int8_t *relu6_max, int relu6_max_len, int fusion_type = FusionType_None, void *add_input = nullptr,
                float *add_scale = nullptr);
+template <typename Tin, typename Tw, typename Tacc, typename Tout>
+void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
+                   DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
+                   int pad_x, int group, int dilation, int activation_type, float *weight_scale, int weight_scale_len,
+                   void *scale_bias_w_ptr, int scale_bias_len_w, void *scale_bias_i_ptr, int scale_bias_len_i,
+                   void *scale_bias_o_ptr, int scale_bias_len_o, int8_t *relu6_max, int relu6_max_len,
+                   int fusion_type = FusionType_None, void *add_input = nullptr, float *add_scale = nullptr,
+                   void *add_bias_input = nullptr);
+template <typename Tin, typename Tw, typename Tacc, typename Tout>
+void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
+                   DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
+                   int pad_x, int group, int dilation, int activation_type, float *weight_scale, int weight_scale_len,
+                   void *scale_bias_w_ptr, int scale_bias_len_w, void *scale_bias_i_ptr, int scale_bias_len_i,
+                   void *scale_bias_o_ptr, int scale_bias_len_o, void *weight_x_bias_ptr, int8_t *relu6_max,
+                   int relu6_max_len, int fusion_type = FusionType_None, void *add_input = nullptr,
+                   float *add_scale = nullptr, void *add_bias_input = nullptr);
 
 template <typename Tin, typename Tw, typename Tacc, typename Tout>
 void NaiveConv3D(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
@@ -76,7 +92,9 @@ void NaiveFC(T *input_ptr, T *output_ptr, T *weight_data, float *bias, DimsVecto
 // int8 fc: reload by scale and scale_len
 void NaiveFC(void *input_ptr, void *output_ptr, void *weight_data, float *scale, int scale_len, void *bias,
             DimsVector dims_input, DimsVector dims_output);
-
+void NaiveFCBias(void *input_ptr, void *output_ptr, void *weight_data, float *scale, int scale_len, void *bias,
+                 void *scale_bias_w_ptr, void *scale_bias_i_ptr, void *scale_bias_o_ptr, int scale_bias_len_i, int scale_bias_len_o, DimsVector dims_input,
+                 DimsVector dims_output);
 /**
  * @brief Permute the input blob by changing the memory order of the data.
  **/
@@ -110,8 +128,12 @@ void NaiveYUVToBGROrBGRALoop(const unsigned char *yptr0, const unsigned char *yp
 void NaiveYUVToBGROrBGRA(const unsigned char* yuv, unsigned char* bgr, const int channel, const int h, const int w, bool is_nv12);
 
 void NaiveDequant(const int8_t *input_ptr, const float *scale_ptr, int scale_len, float *output, DimsVector dims);
+void NaiveDequantBias(const int8_t *input_ptr, const float *scale_ptr, const int8_t *scale_bias_ptr, int scale_len,
+                      float *output, DimsVector dims);
 
 void NaiveQuant(const float *input_ptr, const float *scale_ptr, int scale_len, int8_t *output, DimsVector dims);
+void NaiveQuantBias(const float *input_ptr, const float *scale_ptr, const int8_t *scale_bias_ptr, int scale_len,
+                    int8_t *output, DimsVector dims);
 
 }  // namespace TNN_NS
 
