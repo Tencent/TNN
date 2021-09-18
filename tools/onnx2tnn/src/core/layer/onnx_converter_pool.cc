@@ -33,8 +33,7 @@ string OnnxOpConverterPool::TNNOpType(NodeProto &node,
         case 3:
             return "Pooling3D";
         default:
-            DLog("Pooling%D is unsuported \n", kernel_shape_size);
-            assert(0);
+            return "Pooling";
     }
 }
 
