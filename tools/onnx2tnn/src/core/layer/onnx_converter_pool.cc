@@ -24,7 +24,18 @@ DECLARE_OP_CONVERTER(Pool);
 string OnnxOpConverterPool::TNNOpType(NodeProto &node,
                                            OnnxNetInfo &net_info) {
     std::vector<int64_t> kernel_shape = get_node_attr_ai(node, "kernel_shape");
-    return kernel_shape.size() == 3 ? "Pooling3D" : "Pooling";
+    const int kernel_shape_size       = kernel_shape.size();
+    switch (kernel_shape_size) {
+        case 1:
+            return "Pooling1D";
+        case 2:
+            return "Pooling";
+        case 3:
+            return "Pooling3D";
+        default:
+            DLog("Pooling%D is unsuported \n", kernel_shape_size);
+            assert(0);
+    }
 }
 
 // NOTE: 由于 Caffe 的 Average Pool 的计算很特殊，与 Pytorch 的 Average Pool 计算不同，
@@ -63,7 +74,7 @@ string OnnxOpConverterPool::TNNLayerParam(NodeProto &node,
 
         bool is3d = false;
         if (kernel_shape.size() == 1) {
-            layer_param << kernel_shape[0] << " " << kernel_shape[0] << " ";
+            layer_param << kernel_shape[0] << " ";
         } else if (kernel_shape.size() == 2) {
             layer_param << kernel_shape[0] << " " << kernel_shape[1] << " ";
         } else if (kernel_shape.size() == 3) {
@@ -73,7 +84,7 @@ string OnnxOpConverterPool::TNNLayerParam(NodeProto &node,
         }
 
         if (strides.size() == 1) {
-            layer_param << strides[0] << " " << strides[0] << " ";
+            layer_param << strides[0] << " ";
         } else if (strides.size() == 2) {
             layer_param << strides[0] << " " << strides[1] << " ";
         } else if (strides.size() == 3) {
