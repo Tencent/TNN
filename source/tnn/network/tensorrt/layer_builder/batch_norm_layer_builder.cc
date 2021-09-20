@@ -31,16 +31,17 @@ ILayer* BatchNormTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     int channel            = input_dims[1];
     int count              = DimsVectorUtils::Count(input_dims);
 
-    Weights power { nvinfer1::DataType::kFLOAT, nullptr, 0 };
     Weights shift;
-    shift.type = nvinfer1::DataType::kFLOAT;
+    shift.type = ConvertToTRTDataType(resource->bias_handle.GetDataType());
     shift.count = resource->bias_handle.GetDataCount();
     shift.values = resource->bias_handle.force_to<void *>();
 
     Weights scale;
-    scale.type = nvinfer1::DataType::kFLOAT;
+    scale.type = ConvertToTRTDataType(resource->scale_handle.GetDataType());
     scale.count = resource->scale_handle.GetDataCount();
     scale.values = resource->scale_handle.force_to<void *>();
+
+    Weights power { scale.type, nullptr, 0 };
 
     int dims_size = tensor->getDimensions().nbDims;
     // unsqueeze 
