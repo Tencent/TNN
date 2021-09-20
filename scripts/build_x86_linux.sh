@@ -7,6 +7,11 @@ fi
 
 set -euo pipefail
 
+TNN_VERSION_PATH=$TNN_ROOT_PATH/scripts/version
+cd $TNN_VERSION_PATH
+source $TNN_VERSION_PATH/version.sh
+source $TNN_VERSION_PATH/add_version_attr.sh
+
 BUILD_DIR=${TNN_ROOT_PATH}/scripts/build_x86_linux
 TNN_INSTALL_DIR=${TNN_ROOT_PATH}/scripts/x86_linux_release
 OPENVINO_BUILD_SHARED="ON"

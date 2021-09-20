@@ -24,8 +24,6 @@ jobs:
     needs: [setup]
     if: ${{ needs.setup.outputs.CONDITION != '11' }}
     runs-on: ubuntu-18.04
-    container:
-      image: nvcr.io/nvidia/tensorrt:20.03-py3
     steps:
     - uses: actions/checkout@v2
     - name: build
