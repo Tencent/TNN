@@ -62,7 +62,6 @@ nvinfer1::DataType PadTRTPluginLayerBuilder::getOutputDataType(int index, const 
 ILayer* PadTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     auto paramlist = dynamic_cast<PadLayerParam*>(param_);
 
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
     if (!UseTRTPaddingND(paramlist)) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
