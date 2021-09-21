@@ -106,28 +106,40 @@ static std::vector<T> getValue(const at::Tensor &tensor, std::vector<int>& shape
 }
 
 static RawBuffer getValue(const torch::jit::Value* value) {
-    const auto tensor = getValue<at::Tensor>(value).to(at::kCPU);
-    int size = tensor.numel();
-    if (!size) {
-        return RawBuffer();
-    }
-    DataType data_type;
-    auto torch_type = tensor.scalar_type();
-    ConvertToDataType(data_type, torch_type);
-    DimsVector dims;
-    if (data_type == DATA_TYPE_HALF) {
-        auto vec = getValue<at::Half>(tensor, dims);
-        auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF);
-        auto buffer = RawBuffer(bytes_size, reinterpret_cast<char *>(vec.data()), dims);
-        buffer.SetDataType(DATA_TYPE_HALF);
-        return buffer;
-    } else if (data_type == DATA_TYPE_FLOAT) {
-        auto vec = getValue<float>(value, dims);
-        auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
-        return RawBuffer(bytes_size, reinterpret_cast<char *>(vec.data()), dims);
+    const auto& value_kind = value->type()->kind();
+    if (value_kind != c10::TypeKind::TensorType) {
+        if (value_kind == c10::TypeKind::FloatType) {
+            const auto data = getValue<float>(value);
+            return RawBuffer(4, (char*)(&data), {});
+        } else {
+            LOGE("getValue:wrong scalar type\n");
+            return RawBuffer();
+        }
     } else {
-        LOGE("getValue:wrong scalar type\n");
+        const auto tensor = getValue<at::Tensor>(value).to(at::kCPU);
+        int size          = tensor.numel();
+        if (!size) {
+            return RawBuffer();
+        }
+        DataType data_type;
+        auto torch_type = tensor.scalar_type();
+        ConvertToDataType(data_type, torch_type);
+        DimsVector dims;
+        if (data_type == DATA_TYPE_HALF) {
+            auto vec        = getValue<at::Half>(tensor, dims);
+            auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF);
+            auto buffer     = RawBuffer(bytes_size, reinterpret_cast<char*>(vec.data()), dims);
+            buffer.SetDataType(DATA_TYPE_HALF);
+            return buffer;
+        } else if (data_type == DATA_TYPE_FLOAT) {
+            auto vec        = getValue<float>(value, dims);
+            auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
+            return RawBuffer(bytes_size, reinterpret_cast<char*>(vec.data()), dims);
+        } else {
+            LOGE("getValue:wrong scalar type\n");
+        }
     }
+
     return RawBuffer();
 }
 

@@ -165,6 +165,39 @@ namespace jit {
         }
     }
 
+    void RemoveSlice(Block* block) {
+        std::vector<Node*> deleted_nodes;
+
+        for (auto it = block->nodes().rbegin(); it != block->nodes().rend(); it++) {
+            Node* node = *it;
+            for (auto sub_block : node->blocks()) {
+                RemoveSlice(sub_block);
+            }
+
+            if (node->kind() != at::aten::slice) {
+                continue;
+            }
+
+            const auto& inputs = node->inputs();
+            const auto dim     = TNN_NS::conversion::getValue<int64_t>(inputs[1]);
+            const auto start   = TNN_NS::conversion::getValue<int64_t>(inputs[2]);
+            const auto end     = TNN_NS::conversion::getValue<int64_t>(inputs[3]);
+            const auto step    = TNN_NS::conversion::getValue<int64_t>(inputs[4]);
+            if (dim != 0 || start != 0 || step != 1 || end != LONG_LONG_MAX) {
+                continue;
+            }
+
+            Value* input_value  = node->inputs()[0];
+            Value* output_value = node->outputs()[0];
+            output_value->replaceAllUsesWith(input_value);
+            deleted_nodes.push_back(node);
+        }
+
+        for (auto del_node : deleted_nodes) {
+            del_node->destroy();
+        }
+    }
+
     void TorchOptPass(script::Module& module) {
         auto graph = module.get_method("forward").graph();
 
@@ -173,6 +206,7 @@ namespace jit {
         RemoveListAppend(graph.get(), graph->block());
         RemoveConcat(graph->block());
         RemoveNoneTypeFromTuple(graph->block());
+        RemoveSlice(graph->block());
 
         torch::jit::EliminateDeadCode(graph);
     }

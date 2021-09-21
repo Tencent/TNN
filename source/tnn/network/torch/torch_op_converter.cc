@@ -52,11 +52,12 @@ public:
         layer_param->pad_type = 3;
         layer_param->output_channel = shape[0];
         layer_param->input_channel = shape[1];
-        layer_param->kernels = {shape[2], shape[3]};
-        layer_param->dialations = {(int)dialation[0], (int)dialation[1]};
-        layer_param->strides = {(int)stride[0], (int)stride[1]};
+        // order [w, h]
+        layer_param->kernels = {shape[3], shape[2]};
+        layer_param->dialations = {(int)dialation[1], (int)dialation[0]};
+        layer_param->strides = {(int)stride[1], (int)stride[0]};
         layer_param->group = group;
-        layer_param->pads = {(int)padding[0], (int)padding[0], (int)padding[1], (int)padding[1]};
+        layer_param->pads = {(int)padding[1], (int)padding[1], (int)padding[0], (int)padding[0]};
         layer_res->name = layer_info->name;
         layer_res->filter_handle = weight_buf;
 
@@ -120,10 +121,10 @@ public:
         layer_param->pad_type = 3;
         layer_param->output_channel = shape[0];
         layer_param->input_channel = shape[1];
-        layer_param->kernels = {shape[2], shape[3]};
-        layer_param->dialations = {(int)dialation[0], (int)dialation[1]};
-        layer_param->strides = {(int)stride[0], (int)stride[1]};
-        layer_param->pads = {(int)padding[0], (int)padding[0], (int)padding[1], (int)padding[1]};
+        layer_param->kernels = {shape[3], shape[2]};
+        layer_param->dialations = {(int)dialation[1], (int)dialation[0]};
+        layer_param->strides = {(int)stride[1], (int)stride[0]};
+        layer_param->pads = {(int)padding[1], (int)padding[1], (int)padding[0], (int)padding[0]};
         layer_param->group = group;
         layer_res->name = layer_info->name;
         layer_res->filter_handle = weight_buf;
@@ -200,29 +201,60 @@ class AvgPoolTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-        layer_info->type = LAYER_POOLING;
-        layer_info->type_str = "Pooling";
-        layer_info->name = node->output(0)->debugName();
+        layer_info->type                      = LAYER_POOLING;
+        layer_info->type_str                  = "Pooling";
+        layer_info->name                      = node->output(0)->debugName();
 
-        const auto& inputs = node->inputs();
+        const auto &inputs = node->inputs();
 
         layer_info->inputs.push_back(node->inputs()[0]->debugName());
         layer_info->outputs.push_back(node->outputs()[0]->debugName());
 
-        auto layer_param = std::make_shared<PoolingLayerParam>();
+        auto layer_param  = std::make_shared<PoolingLayerParam>();
         layer_param->name = layer_info->name;
-        std::string op_type = node->kind().toUnqualString();
 
-        const auto kernel_size = getValue<std::vector<int64_t>>(inputs[1]);
-        const auto stride = getValue<std::vector<int64_t>>(inputs[2]);
-        const auto padding = getValue<std::vector<int64_t>>(inputs[3]);
-        const auto ceil_mode = getValue<bool>(inputs[4]);
+        auto kernel_size = getValue<std::vector<int64_t>>(inputs[1]);
+        auto stride      = getValue<std::vector<int64_t>>(inputs[2]);
+        auto padding     = getValue<std::vector<int64_t>>(inputs[3]);
+        auto ceil_mode   = getValue<bool>(inputs[4]);
+
+        bool need_insert_pad = false;
+        for (const auto &pad : padding) {
+            need_insert_pad = (pad != 0);
+        }
+
+        if (need_insert_pad) {
+            std::shared_ptr<LayerInfo> pad_layer_info = std::make_shared<LayerInfo>();
+            pad_layer_info->type                      = LAYER_PAD;
+            pad_layer_info->type_str                  = "Pad";
+            pad_layer_info->name                      = layer_info->name + "_pad";
+
+            pad_layer_info->inputs.push_back(layer_info->inputs[0]);
+            pad_layer_info->outputs.push_back(pad_layer_info->name);
+            layer_info->inputs[0] = pad_layer_info->outputs[0];
+
+            auto pad_layer_param  = std::make_shared<PadLayerParam>();
+            const int pad_h       = static_cast<int>(padding[0]);
+            const int pad_w       = static_cast<int>(padding[1]);
+            pad_layer_param->pads = {pad_w, pad_w, pad_h, pad_h, 0, 0, 0, 0};
+
+            pad_layer_info->param = pad_layer_param;
+
+            net_structure->layers.push_back(pad_layer_info);
+
+            for (const auto &pad_input : pad_layer_info->inputs) {
+                net_structure->blobs.insert(pad_input);
+            }
+            for (const auto &pad_output : pad_layer_info->outputs) {
+                net_structure->blobs.insert(pad_output);
+            }
+        }
 
         layer_param->pool_type      = 1;
         layer_param->pad_type       = 3;
-        layer_param->kernels_params = {(int)kernel_size[0], (int)kernel_size[1]};
-        layer_param->strides        = {(int)stride[0], (int)stride[1]};
-        layer_param->pads           = {(int)padding[0], (int)padding[0], (int)padding[1], (int)padding[1]};
+        layer_param->kernels_params = {(int)kernel_size[1], (int)kernel_size[0]};
+        layer_param->strides        = {(int)stride[1], (int)stride[0]};
+        layer_param->pads           = {0, 0, 0, 0};
         layer_param->kernel_indexs  = {-1, -1};
         layer_param->kernels        = {-1, -1};
         layer_param->output_shape   = {-1, -1};
@@ -261,23 +293,58 @@ public:
 };
 
 // func: add_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
-class AddTorchConverter : public TorchOpConverter {
+class BinaryTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-        layer_info->type = LAYER_ADD;
-        layer_info->type_str = "Add";
+        switch (node->kind()) {
+            case at::aten::add:
+            case at::aten::add_:
+                layer_info->type     = LAYER_ADD;
+                layer_info->type_str = "Add";
+                break;
+            case at::aten::mul:
+                layer_info->type     = LAYER_MUL;
+                layer_info->type_str = "Mul";
+                break;
+            default:
+                LOGE("Unsupport layer type %s\n", node->kind().toUnqualString());
+                ASSERT(0);
+        }
         layer_info->name = node->output(0)->debugName();
-        for (auto &input : node->inputs()) {
-            layer_info->inputs.push_back(input->debugName());
-            if (layer_info->inputs.size() == 2) break;
+
+        auto layer_param = std::make_shared<MultidirBroadcastLayerParam>();
+
+        const auto &inputs     = node->inputs();
+        const auto input0_kind = inputs[0]->node()->kind();
+        const auto input1_kind = inputs[1]->node()->kind();
+        if (input0_kind == at::prim::Constant || input1_kind == at::prim::Constant) {
+            const int weight_input_index    = input0_kind == at::prim::Constant ? 0 : 1;
+            const int input_index           = input0_kind == at::prim::Constant ? 1 : 0;
+            layer_param->weight_input_index = weight_input_index;
+            layer_info->inputs.push_back(inputs[input_index]->debugName());
+
+            auto layer_res            = new EltwiseLayerResource();
+            auto element_buf          = getValue(inputs[weight_input_index]);
+            layer_res->element_handle = element_buf;
+            layer_res->element_shape  = element_buf.GetBufferDims();
+
+            net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
+        } else {
+            layer_param->weight_input_index = -1;
+            for (auto &input : node->inputs()) {
+                layer_info->inputs.push_back(input->debugName());
+                if (layer_info->inputs.size() == 2) {
+                    break;
+                }
+            }
         }
 
         for (auto &output : node->outputs()) {
             layer_info->outputs.push_back(output->debugName());
         }
 
-        layer_info->param = std::make_shared<MultidirBroadcastLayerParam>();
+        layer_info->param = layer_param;
 
         net_structure->layers.push_back(layer_info);
 
@@ -553,6 +620,105 @@ public:
     }
 };
 
+class UnsqueezeTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_UNSQUEEZE;
+        layer_info->type_str                  = "Unsqueeze";
+        layer_info->name                      = node->output(0)->debugName();
+
+        const auto &inputs = node->inputs();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<UnsqueezeLayerParam>();
+
+        layer_param->axes = {static_cast<int>(getValue<int64_t>(inputs[1]))};
+
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
+class GatherTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_GATHER;
+        layer_info->type_str                  = "Gather";
+        layer_info->name                      = node->output(0)->debugName();
+
+        const auto &inputs = node->inputs();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<GatherLayerParam>();
+        auto layer_res   = new GatherLayerResource();
+
+        layer_param->axis                = static_cast<int>(getValue<int64_t>(inputs[1]));
+        layer_param->data_in_resource    = false;
+        layer_param->indices_in_resource = true;
+
+        int index        = getValue<int64_t>(inputs[2]);
+        auto indices_buf = RawBuffer(4, reinterpret_cast<char *>(&index), {});
+        indices_buf.SetDataType(DATA_TYPE_INT32);
+        layer_res->indices = indices_buf;
+
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+        net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
+
+        return TNN_OK;
+    }
+};
+
+class StridedSliceTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_STRIDED_SLICE_V2;
+        layer_info->type_str                  = "StridedSliceV2";
+        layer_info->name                      = node->output(0)->debugName();
+
+        const auto &inputs = node->inputs();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<StrideSliceV2LayerParam>();
+
+        layer_param->axes   = {static_cast<int>(getValue<int64_t>(inputs[1]))};
+        layer_param->begins = {static_cast<int>(getValue<int64_t>(inputs[2]))};
+        const auto end      = getValue<int64_t>(inputs[3]);
+        if (end == INT64_MAX) {
+            layer_param->ends = {INT_MAX};
+        } else {
+            layer_param->ends = {static_cast<int>(end)};
+        }
+        //        layer_param->ends    = {static_cast<int>(getValue<int64_t>(inputs[3]))};
+        layer_param->strides = {static_cast<int>(getValue<int64_t>(inputs[4]))};
+
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
 class ListTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
@@ -587,8 +753,9 @@ REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
 REGISTER_TORCH_OP_CONVERTER(AvgPool, aten, avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, adaptive_avg_pool2d)
-REGISTER_TORCH_OP_CONVERTER(Add, aten, add_)
-REGISTER_TORCH_OP_CONVERTER(Add, aten, add)
+REGISTER_TORCH_OP_CONVERTER(Binary, aten, add_)
+REGISTER_TORCH_OP_CONVERTER(Binary, aten, add)
+REGISTER_TORCH_OP_CONVERTER(Binary, aten, mul)
 REGISTER_TORCH_OP_CONVERTER(Flatten, aten, flatten)
 REGISTER_TORCH_OP_CONVERTER(Linear, aten, linear)
 REGISTER_TORCH_OP_CONVERTER(HardTanh, aten, hardtanh_)
@@ -596,6 +763,9 @@ REGISTER_TORCH_OP_CONVERTER(HardSigmoid, aten, hardsigmoid_)
 REGISTER_TORCH_OP_CONVERTER(HardSwish, aten, hardswish_)
 REGISTER_TORCH_OP_CONVERTER(BatchNorm, aten, batch_norm)
 REGISTER_TORCH_OP_CONVERTER(Concat, aten, cat)
+REGISTER_TORCH_OP_CONVERTER(Unsqueeze, aten, unsqueeze)
+REGISTER_TORCH_OP_CONVERTER(Gather, aten, select)
+REGISTER_TORCH_OP_CONVERTER(StridedSlice, aten, slice)
 
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
 
