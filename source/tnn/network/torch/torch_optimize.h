@@ -16,6 +16,9 @@
 #define TNN_SOURCE_TNN_NETWORK_TORCH_OPTIMIZE_H
 
 #include <torch/script.h>
+
+#include "tnn/network/torch/torch_op_converter.h"
+
 namespace torch {
 namespace jit {
     void TorchOptPass(script::Module& module);
