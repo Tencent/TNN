@@ -29,6 +29,13 @@ get_target_property(GFLAGS_INCLUDE_DIRS gflags INTERFACE_INCLUDE_DIRECTORIES)
 include_directories(BEFORE "${GFLAGS_INCLUDE_DIRS}")
 link_libraries(gflags)
 
+if(TNN_OPENMP_ENABLE)
+    FIND_PACKAGE(OpenMP REQUIRED)
+    if(OPENMP_FOUND)
+        link_libraries(${OpenMP_C_LIBRARIES} ${OpenMP_CXX_LIBRARIES})
+    endif()
+endif()
+
 file(GLOB FLAG_SRC "${CMAKE_SOURCE_DIR}/../src/*.cc")
 
 file(GLOB_RECURSE BASE_SRC "${CMAKE_SOURCE_DIR}/../../base/*.cc")

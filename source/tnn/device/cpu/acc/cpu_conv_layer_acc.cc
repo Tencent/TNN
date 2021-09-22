@@ -41,9 +41,6 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
             const float *w_scale = conv_res->scale_handle.force_to<float *>();
             CHECK_PARAM_NULL(w_scale);
 
-            const float *i_scale =
-                reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource()->scale_handle.force_to<float *>();
-
             const float *o_scale =
                 reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource()->scale_handle.force_to<float *>();
             int scale_len_w = conv_res->scale_handle.GetDataCount();

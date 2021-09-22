@@ -140,7 +140,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 static inline bool IsLayoutReformatLayer(std::shared_ptr<LayerInfo> layer) {
     if (layer->type == LAYER_REFORMAT) {
         auto param = dynamic_cast<ReformatLayerParam *>(layer->param.get());
-        if (param->src_format != param->dst_format) {
+        if (param->src_format != param->dst_format && param->src_type == param->dst_type) {
             return true;
         }
     }
@@ -175,7 +175,6 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
     
 
     auto const_layers = net_resource->constant_layers;
-
     // update blob precision, alloc new blob required
     for (auto layer_info : net_structure->layers) {
         if (runtime_model_ == RUNTIME_MODE_NORMAL && const_layers.find(layer_info->name) != const_layers.end()) {
@@ -198,7 +197,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         }
 
         // output layout equals to input layout except for layout_reformat layer
-        DataFormat output_fmt = IsLayoutReformatLayer(layer_info) ?
+        DataFormat output_fmt = layer_info->type == LAYER_REFORMAT ?
             dynamic_cast<ReformatLayerParam *>(layer_info->param.get())->dst_format : input_fmt;
 
 #ifdef GENERATE_RESOURCE
@@ -371,7 +370,8 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
         // non-reformat layer
         if (is_quantized_net) {
             // update blob of quantized network by layer info
-            if (layer_info->param->quantized && desc.data_type != DATA_TYPE_INT8) {
+            auto int8_blob = dynamic_cast<BlobInt8*>(*blob);
+            if (layer_info->param->quantized && int8_blob == nullptr) {
                 RETURN_ON_NEQ(GenerateInt8Blob(name, net_resource, blob), TNN_OK);
             }
         } else {

@@ -18,7 +18,19 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(LSTMONNX, LAYER_LSTMONNX);
+class CpuLSTMONNXLayerAcc : public CpuLayerAcc {
+public:
+    virtual ~CpuLSTMONNXLayerAcc(){};
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                        const std::vector<Blob *> &outputs);
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+private:
+    std::shared_ptr<float> w_ = nullptr;
+    std::shared_ptr<float> r_ = nullptr;
+    std::shared_ptr<float> b_ = nullptr;
+};
 
 static Status LSTM_Single(const float *x, float *y, const float *w, const float *r, const float *b,
                           float *h_t, float *c_t,
@@ -137,6 +149,47 @@ static Status LSTM_Single(const float *x, float *y, const float *w, const float 
     return TNN_OK;
 }
 
+Status CpuLSTMONNXLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto status = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
+
+    Blob *blob_W                = inputs[1];
+    Blob *blob_R                = inputs[2];
+    Blob *blob_B                = inputs[3];
+    const int blob_W_dims_count = DimsVectorUtils::Count(blob_W->GetBlobDesc().dims);
+    const int blob_R_dims_count = DimsVectorUtils::Count(blob_R->GetBlobDesc().dims);
+    const int blob_B_dims_count = DimsVectorUtils::Count(blob_B->GetBlobDesc().dims);
+
+    auto get_blob_data = [&](Blob *blob, float *result) -> Status {
+        const int data_size = DimsVectorUtils::Count(blob->GetBlobDesc().dims);
+        if (blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+            float *src_ptr = (float *)((char *)(blob->GetHandle().base) + blob->GetHandle().bytes_offset);
+            memcpy(result, src_ptr, data_size * sizeof(float));
+        } else if (blob_W->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+            fp16_t *src_ptr = (fp16_t *)((char *)(blob->GetHandle().base) + blob->GetHandle().bytes_offset);
+            ConvertFromHalfToFloat(src_ptr, result, data_size);
+        } else {
+            return Status(TNNERR_LAYER_ERR, "data type not support in LSTM");
+        }
+
+        return TNN_OK;
+    };
+
+    std::shared_ptr<float> w(new float[blob_W_dims_count], [](float *p) { delete[] p; });
+    std::shared_ptr<float> r(new float[blob_R_dims_count], [](float *p) { delete[] p; });
+    std::shared_ptr<float> b(new float[blob_B_dims_count], [](float *p) { delete[] p; });
+
+    RETURN_ON_NEQ(get_blob_data(blob_W, w.get()), TNN_OK);
+    RETURN_ON_NEQ(get_blob_data(blob_R, r.get()), TNN_OK);
+    RETURN_ON_NEQ(get_blob_data(blob_B, b.get()), TNN_OK);
+
+    w_ = w;
+    r_ = r;
+    b_ = b;
+
+    return TNN_OK;
+}
+
 Status CpuLSTMONNXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
@@ -149,9 +202,6 @@ Status CpuLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     if (inputs.size() < 4) {
         return Status(TNNERR_LAYER_ERR, "LSTM has invalid inputs");
     }
-    Blob * blob_W = inputs[1];
-    Blob * blob_R = inputs[2];
-    Blob * blob_B = inputs[3];
     Blob * blob_h0 = nullptr;
     Blob * blob_c0 = nullptr;
     
@@ -174,13 +224,13 @@ Status CpuLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     float *y = (float *)((char*)(outputs[0]->GetHandle().base) + outputs[0]->GetHandle().bytes_offset);
     
     //W[iofc], weight tensor for the gates, shape [num_directions, 4*hidden_size, input_size]
-    float *w = (float *)((char*)(blob_W->GetHandle().base) + blob_W->GetHandle().bytes_offset);
+    float *w = w_.get();
     
     //R[iofc], recurrence weight tensor, shape [num_directions, 4*hidden_size, hidden_size]
-    float *r = (float *)((char*)(blob_R->GetHandle().base) + blob_R->GetHandle().bytes_offset);
+    float *r = r_.get();
     
     //B[iofc] Concatenation of [Wb[iofc], Rb[iofc]], [num_directions, 8*hidden_size]
-    float *b = (float *)((char*)(blob_B->GetHandle().base) + blob_B->GetHandle().bytes_offset);
+    float *b = b_.get();
     
     //initial_h, initial value of the hidden, If not specified - assumed to be 0. shape [num_directions, batch_size, hidden_size]
     auto h_t = (float *)((char*)(outputs[1]->GetHandle().base) + outputs[1]->GetHandle().bytes_offset);
