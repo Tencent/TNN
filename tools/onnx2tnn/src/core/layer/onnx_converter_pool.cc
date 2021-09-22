@@ -94,7 +94,12 @@ string OnnxOpConverterPool::TNNLayerParam(NodeProto &node,
         if (pads.size() == 1) {
             layer_param << pads[0] << " ";
         } else if (pads.size() == 2) {
-            layer_param << pads[0] << " " << pads[1] << " ";
+            layer_param << pads[0] << " ";
+            pad_type = pads[0] < pads[1] ? 0 : pad_type;
+            if (pads[0] > pads[1]) {
+                DLog("SAME_LOWER is unsuported, change toSAME_UPPER \n");
+                assert(0);
+            }
         } else if (pads.size() == 4) {
             if (pads[0] == pads[2] && pads[1] == pads[3]) {
                 layer_param << pads[0] << " " << pads[1] << " ";
