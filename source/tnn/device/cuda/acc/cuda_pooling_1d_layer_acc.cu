@@ -18,13 +18,6 @@
 
 namespace TNN_NS {
 
-// __global__ void pooling_1d_kernel(const float* input, float* output, int channels, int input_width, 
-//                                     int output_width, int stride, int pad, int pool_type) {
-//     extern __shared__ float ps[];
-//     int tid = blockIdx.x * input_width + threadIdx.x;
-    
-// }
-
 CudaPooling1DLayerAcc::~CudaPooling1DLayerAcc() {
     cudnnDestroyPoolingDescriptor(this->m_pooling_desc);
     cudnnDestroyTensorDescriptor(this->m_input_desc);
@@ -79,11 +72,6 @@ Status CudaPooling1DLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
 
     auto input_dims = input_blob->GetBlobDesc().dims;
     auto output_dims = output_blob->GetBlobDesc().dims;
-
-    int input_dim[3] = {input_dims[0], input_dims[1], input_dims[2]};
-    int output_dim[3] = {output_dims[0], output_dims[1], output_dims[2]};
-    int stride_input[3] = {input_dims[1] * input_dims[2], input_dims[2], 1};
-    int stride_output[3] = {output_dims[1] * output_dims[2], output_dims[2], 1};
 
     cudnnSetTensor4dDescriptor(this->m_input_desc, this->m_tensor_format, this->m_data_type,
         input_dims[0], input_dims[1], input_dims[2], 1);
