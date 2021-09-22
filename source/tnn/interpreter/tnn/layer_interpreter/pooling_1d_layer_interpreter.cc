@@ -30,10 +30,10 @@ Status Pooling1DLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int inde
 
     GET_INT_N_INTO_VEC_REVERSE(p->strides, 1);
 
-    int pad_w = 0, pad_h = 0;
-    GET_INT_2(pad_h, pad_w);
-    p->pads.push_back(pad_w);
-    p->pads.push_back(pad_h);
+    int pad = 0;
+    GET_INT_1(pad);
+    p->pads.push_back(pad);
+    p->pads.push_back(pad);
 
     GET_INT_N_INTO_VEC_REVERSE_DEFAULT(p->kernel_indexs, 2, -1);
 
@@ -58,7 +58,6 @@ Status Pooling1DLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerP
     output_stream << layer_param->strides[0] << " ";
 
     ASSERT(layer_param->pads.size() == 2);
-    output_stream << layer_param->pads[1] << " ";
     output_stream << layer_param->pads[0] << " ";
 
     ASSERT(layer_param->kernel_indexs.size() == 2);

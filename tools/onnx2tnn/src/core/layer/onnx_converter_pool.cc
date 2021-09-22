@@ -92,7 +92,7 @@ string OnnxOpConverterPool::TNNLayerParam(NodeProto &node,
         }
 
         if (pads.size() == 1) {
-            layer_param << pads[0] << " " << pads[0] << " ";
+            layer_param << pads[0] << " ";
         } else if (pads.size() == 2) {
             layer_param << pads[0] << " " << pads[1] << " ";
         } else if (pads.size() == 4) {
