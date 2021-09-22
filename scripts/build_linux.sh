@@ -7,6 +7,11 @@ fi
 
 set -euo pipefail
 
+TNN_VERSION_PATH=$TNN_ROOT_PATH/scripts/version
+cd $TNN_VERSION_PATH
+source $TNN_VERSION_PATH/version.sh
+source $TNN_VERSION_PATH/add_version_attr.sh
+
 BUILD_DIR=${TNN_ROOT_PATH}/scripts/build_linux
 TNN_INSTALL_DIR=${TNN_ROOT_PATH}/scripts/linux_release
 OPENVINO_BUILD_SHARED="ON"
@@ -47,7 +52,7 @@ clone_openvino() {
         git clone --recursive https://github.com/openvinotoolkit/openvino.git
     fi
     cd openvino
-    git reset --hard 4795391
+    git reset --hard 18e83a2
     git submodule update --init --recursive
     #sed -i '152 i /*' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
     #sed -i '157 i */' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
@@ -89,7 +94,7 @@ build_openvino() {
         -DTREAT_WARNING_AS_ERROR=OFF \
 
         echo "Building Openvino ..."
-        make -j4
+        make -j7
         make install
     fi
 }
@@ -110,11 +115,11 @@ copy_openvino_libraries() {
         cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib64/libngraph${LIB_EXT} ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib/
     fi
 
-    if [ -d ${OPENVINO_INSTALL_PATH}/lib64/ ]
-    then
-        mkdir -p ${OPENVINO_INSTALL_PATH}/lib
-        cp ${OPENVINO_INSTALL_PATH}/lib64/libpugixml.a ${OPENVINO_INSTALL_PATH}/lib/
-    fi
+    # if [ -d ${OPENVINO_INSTALL_PATH}/lib64/ ]
+    # then
+    #     mkdir -p ${OPENVINO_INSTALL_PATH}/lib
+    #     cp ${OPENVINO_INSTALL_PATH}/lib64/libpugixml.a ${OPENVINO_INSTALL_PATH}/lib/
+    # fi
 
     if [ ! -d ${TNN_INSTALL_DIR} ] 
     then
@@ -188,7 +193,7 @@ cmake ${TNN_ROOT_PATH} \
     -DTNN_CONVERTER_ENABLE=OFF
 
 echo "Building TNN ..."
-make -j4
+make -j7
 
 if [ 0 -ne $? ]
 then
