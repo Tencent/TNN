@@ -197,7 +197,7 @@ Status ConcatLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &context) {
     }
 
     for(int i=0; i<inputs_grad.size(); ++i) {
-        UpdateGradValue(inputs[0], inputs_grad[i], context);
+        UpdateGradValue(inputs[i], inputs_grad[i], context);
     }
     return Status(TNN_OK);
 }

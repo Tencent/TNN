@@ -23,17 +23,14 @@ class LayerGradTest {
 public:
     LayerGradTest(){};
     virtual ~LayerGradTest() = default;
-    virtual Status GenerateContext() = 0;
+    //virtual Status GenerateContext() = 0;
     virtual Status TestGrad() = 0;
-protected:
-    std::shared_ptr<BaseLayer> layer = nullptr;
-    TrainContext context;
 };
 class LayerGradTestManager {
 public:
     LayerGradTestManager(){};
     virtual ~LayerGradTestManager() = default;
-    Status RunTestGrad();
+    static Status RunTestGrad();
     static void RegisterLayerGradTest(LayerType type, std::shared_ptr<LayerGradTest> layer_grad_test_p) {
         GetLayerGradTestMap()[type] = layer_grad_test_p;
     };
@@ -41,14 +38,12 @@ public:
         static std::map<LayerType, std::shared_ptr<LayerGradTest>> layer_2_grad_test_map;
         return layer_2_grad_test_map;
     };
-private:
-    
 };
 
-template <typename T> class LayerGradRegister {
+template <typename T> class LayerGradTestRegister {
 public:
-    explicit LayerGradRegister(LayerType type) {
-        LayerGrad::RegisterLayerGrad(type, std::make_shared<T>());
+    explicit LayerGradTestRegister(LayerType type) {
+        LayerGradTestManager::RegisterLayerGradTest(type, std::make_shared<T>());
     }
 };
 
@@ -57,12 +52,20 @@ public:
     public:                                               \
         virtual ~type_string##LayerGradTest(){};  \
         virtual Status TestGrad();  \
-        virtual Status GenerateContext(); \
 
 #define DECLARE_LAYER_GRAD_TEST_END };  
 
 #define REGISTER_LAYER_GRAD_TEST(type_string, layer_type)                                                                   \
-    LayerGradRegister<type_string##LayerGradTest> g_##layer_type##_layer_grad_test_register(layer_type);
+    LayerGradTestRegister<type_string##LayerGradTest> g_##layer_type##_layer_grad_test_register(layer_type);
+
+using NameShapes = std::vector<std::pair<std::string, DimsVector>>;
+using BlobShapes = std::vector<std::pair<Blob*, DimsVector>>;
+Status generate_raw_buffer(std::map<Blob *, std::shared_ptr<RawBuffer>>& buffers, const BlobShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data);
+Status generate_blob(std::vector<Blob*>& blobs, const NameShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data);
+void free_blobs(std::vector<Blob*>& blobs);
+void output_buffer(RawBuffer* buffer, const std::string name = "");
+void output_blob(Blob* blob, const std::string name = "");
+void ouput_data(void* data, const DimsVector dims, const std::string name);
 
 } // namespace train
 } // namespace TNN_NS

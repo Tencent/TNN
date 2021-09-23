@@ -57,6 +57,28 @@ void ConvertToNCHW(void *&src_ptr, RawBuffer &dst, const DataType &dtype, const 
     }
 }
 
+void ConvertToNCHW(std::shared_ptr<RawBuffer> src, std::shared_ptr<RawBuffer>& dst) {
+    auto src_format = src->GetDataFormat();
+    if (src_format == DATA_FORMAT_NC4HW4) {
+        auto dims = src->GetBufferDims();
+        auto data_type = src->GetDataType();
+        int total_count      = DimsVectorUtils::Count(dims);
+        int batch_for_pack   = GetDim(dims, 0);
+        int channel_for_pack = GetDim(dims, 1);
+        int hw_for_pack      = DimsVectorUtils::Count(dims, 2);
+        dst                  = std::make_shared<RawBuffer>(total_count * DataTypeUtils::GetBytesSize(data_type), dims);
+        if (data_type == DATA_TYPE_BFP16) {
+            bfp16_t * src_ptr = src->force_to<bfp16_t *>();
+            UnpackFloatBlob(dst->force_to<bfp16_t *>(), src_ptr, batch_for_pack, channel_for_pack, hw_for_pack);
+        } else if (data_type == DATA_TYPE_FLOAT) {
+            float * src_ptr = src->force_to<float *>();
+            UnpackFloatBlob(dst->force_to<float *>(), src_ptr, batch_for_pack, channel_for_pack, hw_for_pack);
+        }
+    } else {
+        dst = src;
+    }
+}
+
 void ConvertToNC4HW4(std::shared_ptr<RawBuffer> &src, BlobDesc &input_desc) {
     if (input_desc.data_format == DATA_FORMAT_NC4HW4) {
         int batch_for_pack                   = GetDim(input_desc.dims, 0);
