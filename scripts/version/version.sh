@@ -53,7 +53,7 @@ source $TNN_VERSION_BUILD_PATH/get_git_version.sh
 VERSION_INFO_TNN=($(GetGitVersion $TNN_VERSION_BUILD_PATH tnn))
 
 # 写入version.h文件
-rm $TNN_VERSION_FILE_PATH
+rm $TNN_VERSION_FILE_PATH -f
 echo "// Tencent is pleased to support the open source community by making TNN available.
 //
 // Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
@@ -79,4 +79,4 @@ echo "#endif //TNN_INCLUDE_TNN_VERSION_H_" >> version.h
 cp version.h $TNN_VERSION_BUILD_PATH/../../include/tnn/
 
 # 删除临时文件
-rm version.h
+rm version.h -f

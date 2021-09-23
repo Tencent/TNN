@@ -397,6 +397,8 @@ bool CpuUtils::CpuSupportFp16() {
         case UINT32_C(0x4100D060): /* Cortex-A65 */
         case UINT32_C(0x4100D0B0): /* Cortex-A76 */
         case UINT32_C(0x4100D0C0): /* Neoverse N1 */
+        case UINT32_C(0x4100D440): /* Cortex-X1 */
+        case UINT32_C(0x4100D410): /* Cortex-A78 */
         case UINT32_C(0x4100D0D0): /* Cortex-A77 */
         case UINT32_C(0x4100D0E0): /* Cortex-A76AE */
         case UINT32_C(0x4800D400): /* Cortex-A76 (HiSilicon) */
@@ -494,6 +496,8 @@ bool CpuUtils::CpuSupportInt8Dot() {
         case UINT32_C(0x4100D060): /* Cortex-A65 */
         case UINT32_C(0x4100D0B0): /* Cortex-A76 */
         case UINT32_C(0x4100D0C0): /* Neoverse N1 */
+        case UINT32_C(0x4100D440): /* Cortex-X1 */
+        case UINT32_C(0x4100D410): /* Cortex-A78 */
         case UINT32_C(0x4100D0D0): /* Cortex-A77 */
         case UINT32_C(0x4100D0E0): /* Cortex-A76AE */
         case UINT32_C(0x4100D4A0): /* Neoverse E1 */
@@ -541,6 +545,8 @@ bool CpuUtils::CpuSupportInt8Dot() {
         case UINT32_C(0x4100D060): /* Cortex-A65 */
         case UINT32_C(0x4100D0B0): /* Cortex-A76 */
         case UINT32_C(0x4100D0C0): /* Neoverse N1 */
+        case UINT32_C(0x4100D440): /* Cortex-X1 */
+        case UINT32_C(0x4100D410): /* Cortex-A78 */
         case UINT32_C(0x4100D0D0): /* Cortex-A77 */
         case UINT32_C(0x4100D0E0): /* Cortex-A76AE */
         case UINT32_C(0x4100D4A0): /* Neoverse E1 */
