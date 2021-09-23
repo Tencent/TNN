@@ -24,7 +24,17 @@ DECLARE_OP_CONVERTER(Pool);
 string OnnxOpConverterPool::TNNOpType(NodeProto &node,
                                            OnnxNetInfo &net_info) {
     std::vector<int64_t> kernel_shape = get_node_attr_ai(node, "kernel_shape");
-    return kernel_shape.size() == 3 ? "Pooling3D" : "Pooling";
+    const int kernel_shape_size       = kernel_shape.size();
+    switch (kernel_shape_size) {
+        case 1:
+            return "Pooling1D";
+        case 2:
+            return "Pooling";
+        case 3:
+            return "Pooling3D";
+        default:
+            return "Pooling";
+    }
 }
 
 // NOTE: 由于 Caffe 的 Average Pool 的计算很特殊，与 Pytorch 的 Average Pool 计算不同，
@@ -63,7 +73,7 @@ string OnnxOpConverterPool::TNNLayerParam(NodeProto &node,
 
         bool is3d = false;
         if (kernel_shape.size() == 1) {
-            layer_param << kernel_shape[0] << " " << kernel_shape[0] << " ";
+            layer_param << kernel_shape[0] << " ";
         } else if (kernel_shape.size() == 2) {
             layer_param << kernel_shape[0] << " " << kernel_shape[1] << " ";
         } else if (kernel_shape.size() == 3) {
@@ -73,7 +83,7 @@ string OnnxOpConverterPool::TNNLayerParam(NodeProto &node,
         }
 
         if (strides.size() == 1) {
-            layer_param << strides[0] << " " << strides[0] << " ";
+            layer_param << strides[0] << " ";
         } else if (strides.size() == 2) {
             layer_param << strides[0] << " " << strides[1] << " ";
         } else if (strides.size() == 3) {
@@ -82,9 +92,14 @@ string OnnxOpConverterPool::TNNLayerParam(NodeProto &node,
         }
 
         if (pads.size() == 1) {
-            layer_param << pads[0] << " " << pads[0] << " ";
+            layer_param << pads[0] << " ";
         } else if (pads.size() == 2) {
-            layer_param << pads[0] << " " << pads[1] << " ";
+            layer_param << pads[0] << " ";
+            pad_type = pads[0] < pads[1] ? 0 : pad_type;
+            if (pads[0] > pads[1]) {
+                DLog("SAME_LOWER is unsuported, change toSAME_UPPER \n");
+                assert(0);
+            }
         } else if (pads.size() == 4) {
             if (pads[0] == pads[2] && pads[1] == pads[3]) {
                 layer_param << pads[0] << " " << pads[1] << " ";
