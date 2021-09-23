@@ -16,6 +16,7 @@
 
 #include "tnn/train/solver/base_solver.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/train/test_grad/test_layer_grad.h"
 
 namespace TNN_NS {
 namespace train {
@@ -66,12 +67,17 @@ Status BaseSolver::UpdateTrainableVariable(RawBuffer *resource_param,
     return Status(TNN_OK);
 }
 Status BaseSolver::step() {
+    Status status;
+    // //TODO: temp code, need move into unit test main fuc
+    // status = LayerGradTestManager::RunTestGrad();
+    // RETURN_ON_NEQ(status, TNN_OK);
+
     RETURN_ON_NEQ(grad_manager_.IsSupport(), TNN_OK);
     RETURN_ON_NEQ(grad_manager_.CalcuteGrads(), TNN_OK);
     auto &resource_grads = grad_manager_.GetContext().backward_grads_resource;
     for (auto iter : resource_grads) {
         if (iter.first->GetTrainable()) {
-            Status status = ComputeUpdateValue(iter.first, iter.second);
+            status = ComputeUpdateValue(iter.first, iter.second);
             RETURN_ON_NEQ(status, TNN_OK);
             status = UpdateTrainableVariable(iter.first, iter.second);
             RETURN_ON_NEQ(status, TNN_OK);

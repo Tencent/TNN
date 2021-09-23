@@ -16,6 +16,8 @@
 
 #include "tnn/train/grad/utils.h"
 #include "tnn/core/macro.h"
+
+//TODO: 去掉arm依赖，改成设备无关的，否则后续加入其他设备支持时，编译不过
 #include "tnn/device/arm/arm_util.h"
 
 namespace TNN_NS {
@@ -52,6 +54,28 @@ void ConvertToNCHW(void *&src_ptr, RawBuffer &dst, const DataType &dtype, const 
                             hw_for_pack);
             src_ptr = dst.force_to<void *>();
         }
+    }
+}
+
+void ConvertToNCHW(std::shared_ptr<RawBuffer> src, std::shared_ptr<RawBuffer>& dst) {
+    auto src_format = src->GetDataFormat();
+    if (src_format == DATA_FORMAT_NC4HW4) {
+        auto dims = src->GetBufferDims();
+        auto data_type = src->GetDataType();
+        int total_count      = DimsVectorUtils::Count(dims);
+        int batch_for_pack   = GetDim(dims, 0);
+        int channel_for_pack = GetDim(dims, 1);
+        int hw_for_pack      = DimsVectorUtils::Count(dims, 2);
+        dst                  = std::make_shared<RawBuffer>(total_count * DataTypeUtils::GetBytesSize(data_type), dims);
+        if (data_type == DATA_TYPE_BFP16) {
+            bfp16_t * src_ptr = src->force_to<bfp16_t *>();
+            UnpackFloatBlob(dst->force_to<bfp16_t *>(), src_ptr, batch_for_pack, channel_for_pack, hw_for_pack);
+        } else if (data_type == DATA_TYPE_FLOAT) {
+            float * src_ptr = src->force_to<float *>();
+            UnpackFloatBlob(dst->force_to<float *>(), src_ptr, batch_for_pack, channel_for_pack, hw_for_pack);
+        }
+    } else {
+        dst = src;
     }
 }
 
