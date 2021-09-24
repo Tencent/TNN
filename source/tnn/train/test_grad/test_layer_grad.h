@@ -60,8 +60,12 @@ public:
 
 using NameShapes = std::vector<std::pair<std::string, DimsVector>>;
 using BlobShapes = std::vector<std::pair<Blob*, DimsVector>>;
-Status generate_raw_buffer(std::map<Blob *, std::shared_ptr<RawBuffer>>& buffers, const BlobShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data);
-Status generate_blob(std::vector<Blob*>& blobs, const NameShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data);
+using NameBuffers = std::vector<std::pair<std::string, RawBuffer>>;
+
+template<typename T>
+int InitRandom(T* host_data, size_t n, T range_min, T range_max, bool except_zero);
+Status generate_raw_buffer(std::map<Blob *, std::shared_ptr<RawBuffer>>& buffers, const BlobShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data, bool except_zero=false);
+Status generate_blob(std::vector<Blob*>& blobs, const NameShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data, bool except_zero=false);
 void free_blobs(std::vector<Blob*>& blobs);
 void output_buffer(RawBuffer* buffer, const std::string name = "");
 void output_blob(Blob* blob, const std::string name = "");

@@ -14,8 +14,12 @@
 
 // author: sanerzheng@tencent.com
 
+#include <chrono>
+#include <random>
+#include <string>
+#include <vector>
+
 #include "tnn/train/test_grad/test_layer_grad.h"
-#include "tnn/utils/random_data_utils.h"
 #include "tnn/train/grad/utils.h"
 
 namespace TNN_NS {
@@ -23,7 +27,21 @@ namespace train {
 
 using NameShapes = std::vector<std::pair<std::string, DimsVector>>;
 using BlobShapes = std::vector<std::pair<Blob*, DimsVector>>;
-Status generate_raw_buffer(std::map<Blob *, std::shared_ptr<RawBuffer>>& buffers, const BlobShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data) {
+template<typename T>
+int InitRandom(T* host_data, size_t n, T range_min, T range_max, bool except_zero) {
+    static std::mt19937 g(42);
+    std::uniform_real_distribution<> rnd(range_min, range_max);
+
+    for (unsigned long long i = 0; i < n; i++) {
+        T val = static_cast<T>(rnd(g));
+        while(except_zero && (float)val == 0.0f) val = static_cast<T>(rnd(g));
+        host_data[i] = val;
+    }
+
+    return 0;
+}
+
+Status generate_raw_buffer(std::map<Blob *, std::shared_ptr<RawBuffer>>& buffers, const BlobShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data, bool except_zero) {
     for(auto iter=shapes.begin(); iter != shapes.end(); ++iter) {
         std::shared_ptr<RawBuffer> buffer = std::make_shared<RawBuffer>(CalculateElementCount(data_format, iter->second, data_type) * DataTypeUtils::GetBytesSize(data_type), iter->second);
         buffer->SetDataFormat(data_format);
@@ -33,14 +51,14 @@ Status generate_raw_buffer(std::map<Blob *, std::shared_ptr<RawBuffer>>& buffers
         }
         if(generate_data) {
             float* data_ptr = buffer->force_to<float *>();
-            InitRandom(static_cast<float *>(data_ptr), buffer->GetDataCount(), -1.0f, 1.0f);
+            InitRandom(static_cast<float *>(data_ptr), buffer->GetDataCount(), -1.0f, 1.0f, except_zero);
         }
         buffers[iter->first] = buffer;
     }
     return TNN_OK;
 }
 
-Status generate_blob(std::vector<Blob*>& blobs, const NameShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data) {
+Status generate_blob(std::vector<Blob*>& blobs, const NameShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data, bool except_zero) {
     for(auto iter=shapes.begin(); iter != shapes.end(); ++iter) {
         BlobDesc desc;
         desc.device_type = device_type;
@@ -54,7 +72,7 @@ Status generate_blob(std::vector<Blob*>& blobs, const NameShapes& shapes, Device
         }
         if(generate_data) {
             void* data_ptr = static_cast<void *>(static_cast<char *>(blob->GetHandle().base) + blob->GetHandle().bytes_offset);
-            InitRandom(static_cast<float *>(data_ptr), CalculateElementCount(desc), -1.0f, 1.0f);
+            InitRandom(static_cast<float *>(data_ptr), CalculateElementCount(desc), -1.0f, 1.0f, except_zero);
         }
         
         blobs.push_back(blob);
@@ -100,6 +118,7 @@ void output_blob(Blob* blob, const std::string name) {
     std::string print_name = name.empty() ? blob->GetBlobDesc().name : name;
     ouput_data(data, dims, print_name);
 }
+
 
 Status LayerGradTestManager::RunTestGrad() {
     auto& grad_test_map = GetLayerGradTestMap();

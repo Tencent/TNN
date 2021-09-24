@@ -66,6 +66,9 @@ void ConvertToNC4HW4(std::shared_ptr<RawBuffer> &src, BlobDesc &input_desc);
 int CalculateElementCount(const BlobDesc &desc);
 int CalculateElementCount(const DataFormat data_format, const DimsVector &dims, const DataType data_type);
 void ConvertToNCHW(std::shared_ptr<RawBuffer> src, std::shared_ptr<RawBuffer>& dst);
+inline void* GetBlobHandle(Blob *blob) {
+    return static_cast<void *>(static_cast<char *>(blob->GetHandle().base) + blob->GetHandle().bytes_offset);
+}
 
 class ParamWrapper {
 public:
