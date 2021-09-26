@@ -293,7 +293,19 @@ std::vector<SegmentedBlock> segment_graph(std::shared_ptr<torch::jit::Graph> g) 
             forced_fallback = true;
         }
 
-        if (OpSupported(n) && !forced_fallback) {
+        // This code is a special support for YOLO V5 and needs to be optimized in the future.
+        auto check_list_construct = [](torch::jit::Node* node) -> bool {
+            if (node->kind() != at::prim::ListConstruct) {
+                return false;
+            }
+            if (node->next()->kind() != at::aten::view) {
+                return false;
+            }
+
+            return true;
+        };
+
+        if (OpSupported(n) && !forced_fallback && !check_list_construct(n)) {
             tnn_nodes.push_back(n);
             if (tnn_nodes.size() >= min_block_size && !pytorch_nodes.empty()) {
                 segmented_blocks.emplace_back(SegmentedBlock::kTorch, pytorch_nodes);
