@@ -29,6 +29,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"BatchNormalization", LAYER_BATCH_NORM},
     {"BatchNormCxx", LAYER_BATCH_NORM},
     {"Softmax", LAYER_SOFTMAX},
+    {"Pooling1D", LAYER_POOLING_1D},
     {"Pooling", LAYER_POOLING},
     {"Pooling3D", LAYER_POOLING_3D},
     {"Pooling_split_CC", LAYER_POOLING},
