@@ -24,6 +24,17 @@
 namespace torch {
 namespace jit {
     void RemoveListAppend(Graph* graph, Block* block) {
+        auto check_node = [](torch::jit::Node* node) -> bool {
+            if (!(node->kind() == aten::append && node->inputs().at(0)->node()->kind() == prim::ListConstruct)) {
+                return false;
+            }
+            if (node->owningBlock() != node->inputs().at(0)->node()->owningBlock()) {
+                return false;
+            }
+
+            return true;
+        };
+
         for (auto it = block->nodes().begin(); it != block->nodes().end();) {
             auto* node = *it;
             it++;
@@ -32,9 +43,10 @@ namespace jit {
                 RemoveListAppend(graph, sub_block);
             }
 
-            if (!(node->kind() == aten::append && node->inputs().at(0)->node()->kind() == prim::ListConstruct)) {
+            if (!check_node(node)) {
                 continue;
             }
+
             Value* mutated_value = node->inputs().at(0);
             Node* list_node      = mutated_value->node();
             Node* new_list_node  = graph->create(prim::ListConstruct, 1);
@@ -51,6 +63,17 @@ namespace jit {
     }
 
     void RemoveConcat(Block* block) {
+        auto check_node = [](torch::jit::Node* node) -> bool {
+            if (node->kind() != at::aten::cat) {
+                return false;
+            }
+            if (node->inputs()[0]->node()->inputs().size() != 1) {
+                return false;
+            }
+
+            return true;
+        };
+
         std::vector<Node*> deleted_nodes;
 
         for (auto it = block->nodes().rbegin(); it != block->nodes().rend(); it++) {
@@ -59,11 +82,7 @@ namespace jit {
                 RemoveConcat(sub_block);
             }
 
-            if (node->kind() != at::aten::cat) {
-                continue;
-            }
-            const int concat_input_size = node->inputs()[0]->node()->inputs().size();
-            if (concat_input_size > 1) {
+            if (!check_node(node)) {
                 continue;
             }
 
@@ -205,8 +224,8 @@ namespace jit {
         RemoveException(graph->block());
         RemoveListAppend(graph.get(), graph->block());
         RemoveConcat(graph->block());
-        RemoveNoneTypeFromTuple(graph->block());
-        RemoveSlice(graph->block());
+//        RemoveNoneTypeFromTuple(graph->block());
+//        RemoveSlice(graph->block());
 
         torch::jit::EliminateDeadCode(graph);
     }
