@@ -71,7 +71,6 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
     BlobMap input_blobs;
     BlobMap output_blobs;
     compiled_engine->instance_->GetAllInputBlobs(input_blobs);
-    compiled_engine->instance_->GetAllOutputBlobs(output_blobs);
 
     // void *cmd_queue;
     // compiled_engine->instance_->GetCommandQueue(&cmd_queue);
@@ -101,17 +100,18 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
 
     compiled_engine->instance_->Forward();
 
+    compiled_engine->instance_->GetAllOutputBlobs(output_blobs);
     std::vector<at::Tensor> outputs(output_names.size());
     for (int i = 0; i < output_names.size(); i++) {
         // output blob data type is consistent with the input tensor, no need to convert tensor type
         std::shared_ptr<at::Tensor> tensor_ptr;
         CreateTensorByBlob(tensor_ptr, output_blobs[output_names[i]]);
-        outputs[i] = std::move(*tensor_ptr);
-        // if (scalar_type == at::ScalarType::Half) {
-        //     outputs[i] = std::move(tensor_ptr->to(at::ScalarType::Half));
-        // } else {
-        //     outputs[i] = std::move(*tensor_ptr);
-        // }
+        // outputs[i] = std::move(*tensor_ptr);
+        if (scalar_type == at::ScalarType::Half && tensor_ptr->scalar_type() != at::ScalarType::Half) {
+            outputs[i] = std::move(tensor_ptr->to(at::ScalarType::Half));
+        } else {
+            outputs[i] = std::move(*tensor_ptr);
+        }
 
         // DumpDeviceBlob(output_blobs[output_names[i]], cmd_queue, "tnn-output-"+output_names[i]);
     }

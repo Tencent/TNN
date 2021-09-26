@@ -522,7 +522,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         auto nv_dims = ConvertToTRTDynamicDims(max_dims, min_dims);
         nvinfer1::ITensor* in_tensor = m_trt_network->addInput(desc.name.c_str(),
             ConvertToTRTDataType(desc.data_type), nv_dims);
-	is_input_fp16 |= desc.data_type == DATA_TYPE_HALF;
+	    is_input_fp16 |= desc.data_type == DATA_TYPE_HALF;
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMIN, min_dims);
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kOPT, opt_dims);
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMAX, max_dims);
@@ -687,15 +687,15 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     }
 
     for (auto output : outputs) {
-        auto foreign_tensor = dynamic_cast<ForeignBlob*>(output.second)->GetForeignTensor();
-        auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-        //Do not delete, may cause trt bug
+        auto foreign_tensor = dynamic_cast<ForeignBlob *>(output.second)->GetForeignTensor();
+        auto tensor         = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+        // Do not delete, may cause trt bug
         for (int i = 0; i < tensor->getDimensions().nbDims; i++) {
             LOGD("shape: %d\n", tensor->getDimensions().d[i]);
         }
-	if (config_.precision == PRECISION_LOW && is_input_fp16) {
+        if (config_.precision == PRECISION_LOW && is_input_fp16) {
             tensor->setType(nvinfer1::DataType::kHALF);
-	}
+        }
         m_trt_network->markOutput(*tensor);
     }
 
