@@ -23,7 +23,7 @@ class LayerGradTest {
 public:
     LayerGradTest(){};
     virtual ~LayerGradTest() = default;
-    //virtual Status GenerateContext() = 0;
+    // virtual Status GenerateContext() = 0;
     virtual Status TestGrad() = 0;
 };
 class LayerGradTestManager {
@@ -47,32 +47,38 @@ public:
     }
 };
 
-#define DECLARE_LAYER_GRAD_TEST_BEGIN(type_string, layer_type)  \
-    class type_string##LayerGradTest : public LayerGradTest {  \
-    public:                                               \
-        virtual ~type_string##LayerGradTest(){};  \
-        virtual Status TestGrad();  \
+#define DECLARE_LAYER_GRAD_TEST_BEGIN(type_string, layer_type)                                                         \
+    class type_string##LayerGradTest : public LayerGradTest {                                                          \
+    public:                                                                                                            \
+        virtual ~type_string##LayerGradTest(){};                                                                       \
+        virtual Status TestGrad();
 
-#define DECLARE_LAYER_GRAD_TEST_END };  
+#define DECLARE_LAYER_GRAD_TEST_END                                                                                    \
+    }                                                                                                                  \
+    ;
 
-#define REGISTER_LAYER_GRAD_TEST(type_string, layer_type)                                                                   \
+#define REGISTER_LAYER_GRAD_TEST(type_string, layer_type)                                                              \
     LayerGradTestRegister<type_string##LayerGradTest> g_##layer_type##_layer_grad_test_register(layer_type);
 
-using NameShapes = std::vector<std::pair<std::string, DimsVector>>;
-using BlobShapes = std::vector<std::pair<Blob*, DimsVector>>;
-using NameBuffers = std::vector<std::pair<std::string, RawBuffer>>;
-using BufferShapes = std::vector<std::pair<RawBuffer*, DimsVector>>;
+using NameShapes   = std::vector<std::pair<std::string, DimsVector>>;
+using BlobShapes   = std::vector<std::pair<Blob *, DimsVector>>;
+using NameBuffers  = std::vector<std::pair<std::string, RawBuffer>>;
+using BufferShapes = std::vector<std::pair<RawBuffer *, DimsVector>>;
 
-template<typename T>
-int InitRandom(T* host_data, size_t n, T range_min, T range_max, bool except_zero);
-Status generate_raw_buffer(std::map<Blob *, std::shared_ptr<RawBuffer>>& buffers, const BlobShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data, bool except_zero=false);
-Status generate_raw_buffer(std::shared_ptr<RawBuffer>& buffer, RawBuffer& src_buffer, DeviceType device_type, DataFormat data_format, DataType data_type);
-Status generate_blob(std::vector<Blob*>& blobs, const NameShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data, bool except_zero=false);
-Status generate_blob(std::vector<Blob*>& blobs, NameBuffers& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data, bool except_zero);
-void free_blobs(std::vector<Blob*>& blobs);
-void output_buffer(RawBuffer* buffer, const std::string name = "");
-void output_blob(Blob* blob, const std::string name = "");
-void ouput_data(void* data, const DimsVector dims, const std::string name);
+template <typename T> int InitRandom(T *host_data, size_t n, T range_min, T range_max, bool except_zero);
+Status generate_raw_buffer(std::map<Blob *, std::shared_ptr<RawBuffer>> &buffers, const BlobShapes &shapes,
+                           DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data,
+                           bool except_zero = false);
+Status generate_raw_buffer(std::shared_ptr<RawBuffer> &buffer, RawBuffer &src_buffer, DeviceType device_type,
+                           DataFormat data_format, DataType data_type);
+Status generate_blob(std::vector<Blob *> &blobs, const NameShapes &shapes, DeviceType device_type,
+                     DataFormat data_format, DataType data_type, bool generate_data, bool except_zero = false);
+Status generate_blob(std::vector<Blob *> &blobs, NameBuffers &shapes, DeviceType device_type, DataFormat data_format,
+                     DataType data_type, bool generate_data, bool except_zero);
+void free_blobs(std::vector<Blob *> &blobs);
+void output_buffer(RawBuffer *buffer, const std::string name = "");
+void output_blob(Blob *blob, const std::string name = "");
+void ouput_data(void *data, const DimsVector dims, const std::string name);
 
 } // namespace train
 } // namespace TNN_NS

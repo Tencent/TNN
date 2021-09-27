@@ -16,7 +16,7 @@
 
 #include "tnn/train/grad/layer_grad.h"
 #include "tnn/train/operations/op_builder.h"
-//TODO: 去掉arm依赖，改成设备无关的，否则后续加入其他设备支持时，编译不过
+// TODO: 去掉arm依赖，改成设备无关的，否则后续加入其他设备支持时，编译不过
 #include "tnn/device/arm/arm_util.h"
 
 namespace TNN_NS {
@@ -50,43 +50,44 @@ DimsVector GetCXRoundDims(DimsVector &dims, const int round) {
     round_dims.push_back(round);
     return round_dims;
 }
-inline char* GetBlobPtr(BlobHandle handle) {
-    return static_cast<char *>(handle.base) + handle.bytes_offset; 
+inline char *GetBlobPtr(BlobHandle handle) {
+    return static_cast<char *>(handle.base) + handle.bytes_offset;
 }
 template <typename T>
-int split(RawBuffer *output_grad, std::vector<std::shared_ptr<RawBuffer>>& inputs_grad, int axis) {
+int split(RawBuffer *output_grad, std::vector<std::shared_ptr<RawBuffer>> &inputs_grad, int axis) {
     auto output_dims             = output_grad->GetBufferDims();
-    auto output_format = output_grad->GetDataFormat(); //nc4hw4 or nchw
+    auto output_format           = output_grad->GetDataFormat(); // nc4hw4 or nchw
     DimsVector round_output_dims = output_format == DATA_FORMAT_NC4HW4 ? GetCXRoundDims(output_dims, 4) : output_dims;
     auto slice_count             = DimsVectorUtils::Count(round_output_dims, 0, axis);
     auto output_stride           = DimsVectorUtils::Count(round_output_dims, axis);
-    auto *output_origin          = output_grad->force_to<T*>();
+    auto *output_origin          = output_grad->force_to<T *>();
 
     for (int n = 0; n < slice_count; n++) {
         auto output_ptr = output_origin + n * output_stride;
         for (int b = 0; b < inputs_grad.size(); b++) {
-            auto input                  = inputs_grad[b];
-            auto input_dims             = input->GetBufferDims();
-            DimsVector round_input_dims = input->GetDataFormat() == DATA_FORMAT_NC4HW4 ? GetCXRoundDims(input_dims, 4) : input_dims;;
-            auto input_stride           = DimsVectorUtils::Count(round_input_dims, axis);
-            auto input_ptr = input.get()->force_to<T*>() + n * input_stride;
+            auto input      = inputs_grad[b];
+            auto input_dims = input->GetBufferDims();
+            DimsVector round_input_dims =
+                input->GetDataFormat() == DATA_FORMAT_NC4HW4 ? GetCXRoundDims(input_dims, 4) : input_dims;
+            ;
+            auto input_stride = DimsVectorUtils::Count(round_input_dims, axis);
+            auto input_ptr    = input.get()->force_to<T *>() + n * input_stride;
             memcpy(input_ptr, output_ptr, input_stride * sizeof(T));
             output_ptr += input_stride;
         }
     }
-    
+
     return 0;
 }
 
 // only use in nc4hw4 and axis is 1
-template <typename T>
-int split_channel(RawBuffer *output_grad, std::vector<std::shared_ptr<RawBuffer>>& inputs_grad) {
+template <typename T> int split_channel(RawBuffer *output_grad, std::vector<std::shared_ptr<RawBuffer>> &inputs_grad) {
     auto dims_output    = output_grad->GetBufferDims();
     auto output_stride  = DimsVectorUtils::Count(dims_output, 2) * ROUND_UP(dims_output[1], 4);
-    auto *output_origin = output_grad->force_to<T*>();
+    auto *output_origin = output_grad->force_to<T *>();
     RawBuffer buffer(dims_output[1] * DimsVectorUtils::Count(dims_output, 2));
-    T* unpack_buf = buffer.force_to<T *>();
-    int area         = DimsVectorUtils::Count(dims_output, 2);
+    T *unpack_buf = buffer.force_to<T *>();
+    int area      = DimsVectorUtils::Count(dims_output, 2);
     for (int n = 0; n < dims_output[0]; n++) {
         auto *output_ptr = output_origin + n * output_stride;
         auto *unpack_ptr = unpack_buf;
@@ -104,7 +105,6 @@ int split_channel(RawBuffer *output_grad, std::vector<std::shared_ptr<RawBuffer>
     return 0;
 }
 
-
 Status ConcatLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &context) {
     auto inputs  = layer->input_blobs_;
     auto outputs = layer->output_blobs_;
@@ -120,7 +120,8 @@ Status ConcatLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &context) {
     if (input0_data_type != output_data_type) {
         return Status(TNN_TRAIN_ERROR, "input datatype and output datatype not match in ConcatLayerGrad");
     }
-    if ((input0_desc.data_format != DATA_FORMAT_NC4HW4 && input0_desc.data_format != DATA_FORMAT_NCHW) || input0_desc.data_format != output_desc.data_format) {
+    if ((input0_desc.data_format != DATA_FORMAT_NC4HW4 && input0_desc.data_format != DATA_FORMAT_NCHW) ||
+        input0_desc.data_format != output_desc.data_format) {
         return Status(TNN_TRAIN_ERROR, "output dataformat not match in ConcatLayerGrad");
     }
     if (output_data_type != DATA_TYPE_BFP16 && output_data_type != DATA_TYPE_FLOAT) {
@@ -156,10 +157,10 @@ Status ConcatLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &context) {
     }
     std::vector<std::shared_ptr<RawBuffer>> inputs_grad;
     inputs_grad.resize(inputs.size());
-    for(int i=0; i<inputs.size(); ++i) {
+    for (int i = 0; i < inputs.size(); ++i) {
         auto input_desc = inputs[i]->GetBlobDesc();
-        int bytes_size = CalculateElementCount(input_desc) * DataTypeUtils::GetBytesSize(input_desc.data_type);
-        inputs_grad[i] = std::make_shared<RawBuffer>(bytes_size, input_desc.dims);
+        int bytes_size  = CalculateElementCount(input_desc) * DataTypeUtils::GetBytesSize(input_desc.data_type);
+        inputs_grad[i]  = std::make_shared<RawBuffer>(bytes_size, input_desc.dims);
         inputs_grad[i]->SetDataFormat(input_desc.data_format);
         inputs_grad[i]->SetDataType(input_desc.data_type);
     }
@@ -171,32 +172,31 @@ Status ConcatLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &context) {
             break;
         }
     }
-    if(input0_desc.data_format == DATA_FORMAT_NC4HW4 && axis == 1 && !concat_c4) {
-        switch(output_data_type) {
-            case DATA_TYPE_FLOAT:
-                split_channel<float>(iter_output_grad->second.get(), inputs_grad);
-                break;
-            case DATA_TYPE_BFP16:
-                split_channel<bfp16_t>(iter_output_grad->second.get(), inputs_grad);
-                break;
-            default:
-                return Status(TNN_TRAIN_ERROR, "ConcatLayerGrad not support datatype error");               
+    if (input0_desc.data_format == DATA_FORMAT_NC4HW4 && axis == 1 && !concat_c4) {
+        switch (output_data_type) {
+        case DATA_TYPE_FLOAT:
+            split_channel<float>(iter_output_grad->second.get(), inputs_grad);
+            break;
+        case DATA_TYPE_BFP16:
+            split_channel<bfp16_t>(iter_output_grad->second.get(), inputs_grad);
+            break;
+        default:
+            return Status(TNN_TRAIN_ERROR, "ConcatLayerGrad not support datatype error");
         }
-    } 
-    else {
-        switch(output_data_type) {
-            case DATA_TYPE_FLOAT:
-                split<float>(iter_output_grad->second.get(), inputs_grad, axis);
-                break;
-            case DATA_TYPE_BFP16:
-                split<bfp16_t>(iter_output_grad->second.get(), inputs_grad, axis);
-                break;
-            default:
-                return Status(TNN_TRAIN_ERROR, "Calcute ConcatLayerGrad error");               
+    } else {
+        switch (output_data_type) {
+        case DATA_TYPE_FLOAT:
+            split<float>(iter_output_grad->second.get(), inputs_grad, axis);
+            break;
+        case DATA_TYPE_BFP16:
+            split<bfp16_t>(iter_output_grad->second.get(), inputs_grad, axis);
+            break;
+        default:
+            return Status(TNN_TRAIN_ERROR, "Calcute ConcatLayerGrad error");
         }
     }
 
-    for(int i=0; i<inputs_grad.size(); ++i) {
+    for (int i = 0; i < inputs_grad.size(); ++i) {
         UpdateGradValue(inputs[i], inputs_grad[i], context);
     }
     return Status(TNN_OK);

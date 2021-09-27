@@ -21,20 +21,19 @@
 
 namespace TNN_NS {
 namespace train {
-class BinaryLayerGrad : public LayerGrad {                                                                  
-public:                                                                                                            
-    virtual ~BinaryLayerGrad(){};                                                                           
-    virtual Status OnGrad(const BaseLayer *layer, TrainContext &context);                                          
+class BinaryLayerGrad : public LayerGrad {
+public:
+    virtual ~BinaryLayerGrad(){};
+    virtual Status OnGrad(const BaseLayer *layer, TrainContext &context);
 };
 
-
-#define DECLARE_BINARY_LAYER_GRAD(type_string, layer_type)     \
-    class type_string##LayerGrad : public BinaryLayerGrad {   \
-    public:                                                     \
-        virtual ~type_string##LayerGrad(){};       \
+#define DECLARE_BINARY_LAYER_GRAD(type_string, layer_type)                                                             \
+    class type_string##LayerGrad : public BinaryLayerGrad {                                                            \
+    public:                                                                                                            \
+        virtual ~type_string##LayerGrad(){};                                                                           \
     };
 
-#define REGISTER_BINARY_LAYER_GRAD(type_string, layer_type)  REGISTER_LAYER_GRAD(type_string, layer_type)                          
+#define REGISTER_BINARY_LAYER_GRAD(type_string, layer_type) REGISTER_LAYER_GRAD(type_string, layer_type)
 } // namespace train
 } // namespace TNN_NS
 #endif // TNN_SOURCE_TNN_TRAIN_BINARY_LAYER_GRAD_H

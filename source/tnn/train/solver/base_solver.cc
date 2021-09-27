@@ -15,8 +15,8 @@
 // author: sanerzheng@tencent.com
 
 #include "tnn/train/solver/base_solver.h"
-#include "tnn/utils/bfp16.h"
 #include "tnn/train/test_grad/test_layer_grad.h"
+#include "tnn/utils/bfp16.h"
 
 namespace TNN_NS {
 namespace train {
