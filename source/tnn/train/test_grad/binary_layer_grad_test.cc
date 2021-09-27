@@ -24,56 +24,36 @@
 namespace TNN_NS {
 namespace train {
 DECLARE_LAYER_GRAD_TEST_BEGIN(Binary, LAYER_ADD); 
-virtual Status TestArmAdd();
-virtual Status TestArmSub();
-virtual Status TestArmMul();
-virtual Status TestNaiveMul();
+virtual Status TestAdd();
+virtual Status TestSub();
+virtual Status TestMul();
+virtual Status TestDiv();
+virtual Status TestBroadcast();
 DECLARE_LAYER_GRAD_TEST_END
 
-int get_out_pos(int offset, DimsVector& in_dims, DimsVector& out_dims, int axis, int axis_offset) {
-    DimsVector pos;
-    pos.resize(in_dims.size(), 0);
-    for(int i=in_dims.size()-1;i>=0;--i) {
-        pos[i] = offset % in_dims[i];
-        offset = offset / in_dims[i];
-    }
-    pos[axis] += axis_offset;
-    int res = 0;
-    for(int i=out_dims.size()-1;i>=0;--i) {
-        res += pos[i] * DimsVectorUtils::Count(out_dims, i+1);
-    }
-    return res;
-}
-
-Status check_result(std::shared_ptr<RawBuffer> output_grad, std::shared_ptr<RawBuffer> input_grad, int axis, LayerType layer_type) {
-    std::shared_ptr<RawBuffer> out_nchw;
-    std::shared_ptr<RawBuffer> in_nchw;
-    ConvertToNCHW(output_grad, out_nchw);
-    ConvertToNCHW(input_grad, in_nchw);
-    float* in_ptr = in_nchw->force_to<float *>();
-    float* out_ptr = out_nchw->force_to<float *>();
-    auto out_dims = out_nchw->GetBufferDims();
-    auto in_dims = in_nchw->GetBufferDims();
-
-    if(out_dims.size() != in_dims.size()) {
+Status check_result(std::shared_ptr<RawBuffer> input_grad, std::shared_ptr<RawBuffer> expect_grad, float e = 2e-4) {
+    auto expect_total = DimsVectorUtils::Count(expect_grad->GetBufferDims());
+    auto input_total = DimsVectorUtils::Count(input_grad->GetBufferDims());
+    if(expect_total != input_total) {
         LOGE("in and out dims's size not math");
         return Status(TNN_TRAIN_TEST_ERROR, "in and out dims's size not math");        
     }
-    DimsVector cur_in_pos, cur_out_pos;
-    cur_in_pos.resize(in_dims.size(), 0);
-    cur_out_pos.resize(in_dims.size(), 0);
-    int total_in = DimsVectorUtils::Count(in_dims);
-    for(int i=0; i<total_in; ++i) {
-        int out_pos = get_out_pos(i, in_dims, out_dims, axis, axis_offset);
-        if(in_ptr[i] != out_ptr[out_pos]) {
-            LOGE("input %d item value not math with output %d", i, out_pos);
-            return Status(TNN_TRAIN_TEST_ERROR, "input item value not math with output");              
+    std::shared_ptr<RawBuffer> in_nchw;
+    std::shared_ptr<RawBuffer> expect_nchw;
+    ConvertToNCHW(input_grad, in_nchw);
+    ConvertToNCHW(expect_grad, expect_nchw);
+    float* input_ptr = in_nchw->force_to<float *>();
+    float* expect_ptr = expect_nchw->force_to<float *>();
+    for(int i=0; i<input_total; ++i) {
+        if(std::abs(input_ptr[i] - expect_ptr[i]) > e) {
+            LOGE("%d item error, input %f expect %f", i, input_ptr[i], expect_ptr[i]);
+            return Status(TNN_TRAIN_TEST_ERROR, "binary test error");
         }
     }
     return TNN_OK;
 }
 
-Status test_concat_base(NameBuffers& input_buffer, NameBuffers& outputs_blobs_shapes, DimsVector& weight_shape, DeviceType device_type,int weight_input_index, LayerType layer_type) {
+Status test_binary_base(NameBuffers& inputs_buffer, NameBuffers& outputs_grad_buffer, std::vector<std::shared_ptr<RawBuffer>> expect_grad_buffer, RawBuffer& weight_buffer, DeviceType device_type,int weight_input_index, LayerType layer_type) {
     TrainContext context;
     context.network = new DefaultNetwork();
     NetworkConfig* config = new NetworkConfig();
@@ -87,7 +67,6 @@ Status test_concat_base(NameBuffers& input_buffer, NameBuffers& outputs_blobs_sh
         data_format = DATA_FORMAT_NCHW;
     else 
         return Status(TNN_TRAIN_TEST_ERROR, "not support device in test_concat_base");
-
     BaseLayer* cur_layer = new MultidirBroadcastLayer(layer_type); //fake for add/sub/mul/div layer
     cur_layer->layer_name_ = "test_binary";
 
@@ -97,38 +76,45 @@ Status test_concat_base(NameBuffers& input_buffer, NameBuffers& outputs_blobs_sh
     cur_layer->param_ = layer_param;
 
     LayerResource* layer_res = new EltwiseLayerResource();
-    int weight_count = DimsVectorUtils::Count(weight_shape);
-    if( weight_count> 0) {
-        EltwiseLayerResource* res = dynamic_cast<EltwiseLayerResource *>(layer_res);
-        res->element_shape = weight_shape;
-        res->element_handle = RawBuffer(weight_count * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT));
-        float* data = res->element_handle.force_to<float *>();
-        InitRandom(static_cast<float *>(data), weight_count, -1.0f, 1.0f, true);
+    if(weight_buffer.GetDataCount() > 0) {
+        dynamic_cast<EltwiseLayerResource *>(layer_res)->element_handle = weight_buffer;
+        cur_layer->resource_ = layer_res;
     }
-
     Status status; 
-    generate_blob(cur_layer->input_blobs_, input_blobs_shapes, device_type, data_format, DATA_TYPE_FLOAT, true, true);
-    generate_blob(cur_layer->output_blobs_, outputs_blobs_shapes, device_type, data_format, DATA_TYPE_FLOAT, false, false);
-    BlobShapes buffer_shapes = {
-        {cur_layer->output_blobs_[0], outputs_blobs_shapes[0].second}
+    NameShapes buffer_shapes = {
+        {outputs_grad_buffer[0].first, outputs_grad_buffer[0].second.GetBufferDims()}
     };
-    generate_raw_buffer(context.backward_grads_blob, buffer_shapes, device_type, data_format, DATA_TYPE_FLOAT, true);
+    generate_blob(cur_layer->input_blobs_, inputs_buffer, device_type, data_format, DATA_TYPE_FLOAT, true, true);
+    generate_blob(cur_layer->output_blobs_, buffer_shapes, device_type, data_format, DATA_TYPE_FLOAT, false, false);
+    cur_layer->InferOutputShape();
+    outputs_grad_buffer[0].second.SetBufferDims(cur_layer->output_blobs_[0]->GetBlobDesc().dims);
+    status = generate_raw_buffer(context.backward_grads_blob[cur_layer->output_blobs_[0]], outputs_grad_buffer[0].second, device_type, data_format, DATA_TYPE_FLOAT);
+    RETURN_ON_NEQ(status, TNN_OK);
+    
     status = LayerGrad::GetLayerGradMap()[layer_type]->OnGrad(cur_layer, context);
     RETURN_ON_NEQ(status, TNN_OK);
     auto output_grad0 = context.backward_grads_blob[cur_layer->output_blobs_[0]];
-    output_buffer(output_grad0.get(), "output_grad");
-    int axis_offset = 0;
+    output_buffer(output_grad0.get(), "binary output_grad");
     for(int i=0; i<cur_layer->input_blobs_.size(); ++i) {
         auto desc = cur_layer->input_blobs_[i]->GetBlobDesc();
-        output_buffer(context.backward_grads_blob[cur_layer->input_blobs_[i]].get(), desc.name + "_grad");
-        LOGD("test %d %s", i, desc.name.c_str());
-        status = check_result(output_grad0, context.backward_grads_blob[cur_layer->input_blobs_[i]], axis, axis_offset);
+        output_buffer(context.backward_grads_blob[cur_layer->input_blobs_[i]].get(), "binary " + desc.name + "_grad");
+        LOGD("binary test %d %s", i, desc.name.c_str());
+        if(weight_input_index == 0 && weight_buffer.GetDataCount() > 0)
+            status = check_result(context.backward_grads_blob[cur_layer->input_blobs_[i]], expect_grad_buffer[1]);
+        else
+            status = check_result(context.backward_grads_blob[cur_layer->input_blobs_[i]], expect_grad_buffer[i]);
         RETURN_ON_NEQ(status, TNN_OK);
-        axis_offset += desc.dims[axis];
     }
-
+    if(weight_buffer.GetDataCount() > 0){
+        RawBuffer* weight_buffer = &(dynamic_cast<EltwiseLayerResource *>(layer_res)->element_handle);
+        output_buffer(context.backward_grads_resource[weight_buffer].get(), "binary weight grad");
+        LOGD("binary test weight grad");
+        status = check_result(context.backward_grads_resource[weight_buffer], expect_grad_buffer[weight_input_index]);
+        RETURN_ON_NEQ(status, TNN_OK);       
+    }
     delete config;
     delete layer_param;
+    delete layer_res;
     delete cur_layer;
     delete context.network;
     free_blobs(cur_layer->output_blobs_);
@@ -136,67 +122,220 @@ Status test_concat_base(NameBuffers& input_buffer, NameBuffers& outputs_blobs_sh
     return TNN_OK; 
 }
 
-Status ConcatLayerGradTest::TestArmConcatCommon() {
-    NameShapes input_blobs_shapes = {
-        {"input0", {2, 3, 2}},
-        {"input1", {2, 3, 4}},
-        {"input2", {2, 3, 1}}
-    };
-    NameShapes outputs_blobs_shapes = {
-        {"output", {2, 3, 7}},
-    };
-    LOGD("TestArmConcatCommon start ");
-    return test_concat_base(input_blobs_shapes, outputs_blobs_shapes, DEVICE_ARM, 2);
+Status BinaryLayerGradTest::TestAdd() {
+    RawBuffer input0(6 * sizeof(float), {2, 3});
+    float input0_data[6] = {-0.0534f,  1.6219f,  0.3643f, -0.0289f, -1.4486f, -1.8167f};
+    input0.buffer(reinterpret_cast<char *>(input0_data), 6 * sizeof(float));
+    RawBuffer input1(2 * sizeof(float), {2,1});
+    float input1_data[2] = {-1.3643, 1.0631};
+    input1.buffer(reinterpret_cast<char *>(input1_data), 2 * sizeof(float));
+    NameBuffers inputs_buffer = {{"input0", input0}, {"input1", input1}};
+
+    RawBuffer output0_grad(6 * sizeof(float), {6,1});
+    float output0_grad_data[6] = {0.0262, 0.0410, 0.0328, 0.0322, 0.0402, 0.0363};
+    output0_grad.buffer(reinterpret_cast<char *>(output0_grad_data), 6 * sizeof(float));
+    NameBuffers output0_grad_buffer = {{"output0", output0_grad}};
+
+    std::shared_ptr<RawBuffer> expect0(new RawBuffer(6 * sizeof(float), {2, 3}));
+    float expect0_data[6] = {0.0262, 0.0410, 0.0328, 0.0322, 0.0402, 0.0363};
+    expect0->buffer(reinterpret_cast<char *>(expect0_data), 6 * sizeof(float));
+    std::shared_ptr<RawBuffer> expect1(new RawBuffer(2* sizeof(float), {2,1}));
+    float expect1_data[2] = {0.0999, 0.1087};
+    expect1->buffer(reinterpret_cast<char *>(expect1_data), 2 * sizeof(float));
+    std::vector<std::shared_ptr<RawBuffer>> expect_grad_buffers = {expect0, expect1};
+
+    RawBuffer weight_buffer;
+    LOGD("TestAdd 1 start ");
+    
+    Status status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_ARM, 0, LAYER_ADD);
+    RETURN_ON_NEQ(status, TNN_OK);
+    LOGD("TestAdd 2 start ");
+    status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_NAIVE, 0, LAYER_ADD);
+    
+    weight_buffer = RawBuffer(2 * sizeof(float), {2,1});
+    weight_buffer.buffer(reinterpret_cast<char *>(input1_data), 2 * sizeof(float));
+    inputs_buffer = {{"input0", input0}};
+    LOGD("TestAdd 3 start ");
+    status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect1, expect0}, weight_buffer, DEVICE_ARM, 0, LAYER_ADD);
+    RETURN_ON_NEQ(status, TNN_OK);
+    LOGD("TestAdd 4 start ");
+    status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_ARM, 1, LAYER_ADD);
+    RETURN_ON_NEQ(status, TNN_OK);
+    return TNN_OK;    
 }
 
-Status ConcatLayerGradTest::TestArmConcatChannel() {
-    NameShapes input_blobs_shapes = {
-        {"input0", {2, 2, 3}},
-        {"input1", {2, 4, 3}},
-        {"input2", {2, 1, 3}}
-    };
-    NameShapes outputs_blobs_shapes = {
-        {"output", {2, 7, 3}},
-    };
-    LOGD("TestArmConcatChannel start ");
-    return test_concat_base(input_blobs_shapes, outputs_blobs_shapes, DEVICE_ARM, 1);
+Status BinaryLayerGradTest::TestSub() {
+    RawBuffer input0(6 * sizeof(float), {2, 3});
+    float input0_data[6] = {-0.0534,  1.6219,  0.3643, -0.0289, -1.4486, -1.8167};
+    input0.buffer(reinterpret_cast<char *>(input0_data), 6 * sizeof(float));
+    RawBuffer input1(2 * sizeof(float), {2,1});
+    float input1_data[2] = {-1.3643, 1.0631};
+    input1.buffer(reinterpret_cast<char *>(input1_data), 2 * sizeof(float));
+    NameBuffers inputs_buffer = {{"input0", input0}, {"input1", input1}};
+
+    RawBuffer output0_grad(6 * sizeof(float), {6,1});
+    float output0_grad_data[6] = {0.0262, 0.0410, 0.0328, 0.0322, 0.0402, 0.0363};
+    output0_grad.buffer(reinterpret_cast<char *>(output0_grad_data), 6 * sizeof(float));
+    NameBuffers output0_grad_buffer = {{"output0", output0_grad}};
+
+    std::shared_ptr<RawBuffer> expect0(new RawBuffer(6 * sizeof(float), {2, 3}));
+    float expect0_data[6] = {0.0262, 0.0410, 0.0328, 0.0322, 0.0402, 0.0363};
+    expect0->buffer(reinterpret_cast<char *>(expect0_data), 6 * sizeof(float));
+    std::shared_ptr<RawBuffer> expect1(new RawBuffer(2 * sizeof(float), {2,1}));
+    float expect1_data[2] = {-0.0999, -0.1087};
+    expect1->buffer(reinterpret_cast<char *>(expect1_data), 2 * sizeof(float));
+    std::vector<std::shared_ptr<RawBuffer>> expect_grad_buffers = {expect0, expect1};
+
+    RawBuffer weight_buffer;
+    LOGD("TestSub 1 start ");
+    
+    Status status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_ARM, 0, LAYER_SUB);
+    RETURN_ON_NEQ(status, TNN_OK);
+    LOGD("TestSub 2 start ");
+    status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_NAIVE, 0, LAYER_SUB);
+    
+    weight_buffer = RawBuffer(2 * sizeof(float), {2,1});
+    weight_buffer.buffer(reinterpret_cast<char *>(input1_data), 2 * sizeof(float));
+    inputs_buffer = {{"input0", input0}};
+    LOGD("TestSub 3 start ");
+    status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_ARM, 1, LAYER_SUB);
+    RETURN_ON_NEQ(status, TNN_OK);  
+    return TNN_OK;
 }
 
-Status ConcatLayerGradTest::TestArmConcatChannelC4() {
-    NameShapes input_blobs_shapes = {
-        {"input0", {2, 4, 3}},
-        {"input1", {2, 4, 3}},
-        {"input2", {2, 4, 3}}
-    };
-    NameShapes outputs_blobs_shapes = {
-        {"output", {2, 12, 3}},
-    };
-    LOGD("TestArmConcatChannelC4 start ");
-    return test_concat_base(input_blobs_shapes, outputs_blobs_shapes, DEVICE_ARM, 1);
+Status BinaryLayerGradTest::TestMul() {
+    RawBuffer input0(6 * sizeof(float), {2, 3});
+    float input0_data[6] = {-0.0534,  1.6219,  0.3643, -0.0289, -1.4486, -1.8167};
+    input0.buffer(reinterpret_cast<char *>(input0_data), 6 * sizeof(float));
+    RawBuffer input1(2 * sizeof(float), {2,1});
+    float input1_data[2] = {-1.3643, 1.0631};
+    input1.buffer(reinterpret_cast<char *>(input1_data), 2 * sizeof(float));
+    NameBuffers inputs_buffer = {{"input0", input0}, {"input1", input1}};
+
+    RawBuffer output0_grad(6 * sizeof(float), {6,1});
+    float output0_grad_data[6] = {0.0416, 0.0148, 0.0392, 0.0417, 0.0242, 0.0184};
+    output0_grad.buffer(reinterpret_cast<char *>(output0_grad_data), 6 * sizeof(float));
+    NameBuffers output0_grad_buffer = {{"output0", output0_grad}};
+
+    std::shared_ptr<RawBuffer> expect0(new RawBuffer(6 * sizeof(float), {2, 3}));
+    float expect0_data[6] = {-0.0568, -0.0202, -0.0535, 0.0443,  0.0258,  0.0196};
+    expect0->buffer(reinterpret_cast<char *>(expect0_data), 6 * sizeof(float));
+    std::shared_ptr<RawBuffer> expect1(new RawBuffer(2 * sizeof(float), {2,1}));
+    float expect1_data[2] = {0.0361, -0.0698};
+    expect1->buffer(reinterpret_cast<char *>(expect1_data), 2 * sizeof(float));
+    std::vector<std::shared_ptr<RawBuffer>> expect_grad_buffers = {expect0, expect1};
+
+    RawBuffer weight_buffer;
+    LOGD("TestMul 1 start ");
+    
+    Status status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_ARM, 0, LAYER_MUL);
+    RETURN_ON_NEQ(status, TNN_OK);
+    LOGD("TestMul 2 start ");
+    status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_NAIVE, 0, LAYER_MUL);
+    
+    weight_buffer = RawBuffer(2 * sizeof(float), {2,1});
+    weight_buffer.buffer(reinterpret_cast<char *>(input1_data), 2 * sizeof(float));
+    inputs_buffer = {{"input0", input0}};
+    LOGD("TestMul 3 start ");
+    status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect1, expect0}, weight_buffer, DEVICE_ARM, 0, LAYER_MUL);
+    RETURN_ON_NEQ(status, TNN_OK);
+    LOGD("TestMul 4 start ");
+    status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_ARM, 1, LAYER_MUL);
+    RETURN_ON_NEQ(status, TNN_OK);
+    return TNN_OK;
 }
 
-Status ConcatLayerGradTest::TestNaiveNchw() {
-    NameShapes input_blobs_shapes = {
-        {"input0", {2, 2, 3}},
-        {"input1", {2, 4, 3}},
-        {"input2", {2, 1, 3}}
-    };
-    NameShapes outputs_blobs_shapes = {
-        {"output", {2, 7, 3}},
-    };
-    LOGD("TestNaiveNchw start ");
-    return test_concat_base(input_blobs_shapes, outputs_blobs_shapes, DEVICE_NAIVE, 1);
+Status BinaryLayerGradTest::TestDiv() {
+    RawBuffer input0(6 * sizeof(float), {2, 3});
+    float input0_data[6] = {-0.0534,  1.6219,  0.3643, -0.0289, -1.4486, -1.8167};
+    input0.buffer(reinterpret_cast<char *>(input0_data), 6 * sizeof(float));
+    RawBuffer input1(2 * sizeof(float), {2,1});
+    float input1_data[2] = {-1.3643, 1.0631};
+    input1.buffer(reinterpret_cast<char *>(input1_data), 2 * sizeof(float));
+    NameBuffers inputs_buffer = {{"input0", input0}, {"input1", input1}};
+
+    RawBuffer output0_grad(6 * sizeof(float), {6,1});
+    float output0_grad_data[6] = {0.0417, 0.0298, 0.0409, 0.0417, 0.0270, 0.0216};
+    output0_grad.buffer(reinterpret_cast<char *>(output0_grad_data), 6 * sizeof(float));
+    NameBuffers output0_grad_buffer = {{"output0", output0_grad}};
+
+    std::shared_ptr<RawBuffer> expect0(new RawBuffer(6 * sizeof(float), {2, 3}));
+    float expect0_data[6] = {-0.0305, -0.0219, -0.0300, 0.0392,  0.0254,  0.0204};
+    expect0->buffer(reinterpret_cast<char *>(expect0_data), 6 * sizeof(float));
+    std::shared_ptr<RawBuffer> expect1(new RawBuffer(2 * sizeof(float), {2,1}));
+    float expect1_data[2] = {-0.0328, 0.0705};
+    expect1->buffer(reinterpret_cast<char *>(expect1_data), 2 * sizeof(float));
+    std::vector<std::shared_ptr<RawBuffer>> expect_grad_buffers = {expect0, expect1};
+
+    RawBuffer weight_buffer;
+    LOGD("TestDiv 1 start ");
+    
+    Status status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_ARM, 0, LAYER_DIV);
+    RETURN_ON_NEQ(status, TNN_OK);
+    LOGD("TestDiv 2 start ");
+    status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_NAIVE, 0, LAYER_DIV);
+    
+    weight_buffer = RawBuffer(2 * sizeof(float), {2,1});
+    weight_buffer.buffer(reinterpret_cast<char *>(input1_data), 2 * sizeof(float));
+    inputs_buffer = {{"input0", input0}};
+    LOGD("TestDiv 3 start ");
+    status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_ARM, 1, LAYER_DIV);
+    RETURN_ON_NEQ(status, TNN_OK);  
+    return TNN_OK;
 }
 
-Status ConcatLayerGradTest::TestGrad() {
+Status BinaryLayerGradTest::TestBroadcast() {
+    RawBuffer input0(6 * sizeof(float), {2, 3});
+    float input0_data[6] = {-0.0534,  1.6219,  0.3643, -0.0289, -1.4486, -1.8167};
+    input0.buffer(reinterpret_cast<char *>(input0_data), 6 * sizeof(float));
+    RawBuffer input1(3 * sizeof(float), {1,3});
+    float input1_data[3] = {-1.3643,1.0631, 0.9836};
+    input1.buffer(reinterpret_cast<char *>(input1_data), 3 * sizeof(float));
+    NameBuffers inputs_buffer = {{"input0", input0}, {"input1", input1}};
+
+    RawBuffer output0_grad(6 * sizeof(float), {6,1});
+    float output0_grad_data[6] = {0.0416, 0.0214, 0.0404, 0.0417, 0.0242, 0.0205};
+    output0_grad.buffer(reinterpret_cast<char *>(output0_grad_data), 6 * sizeof(float));
+    NameBuffers output0_grad_buffer = {{"output0", output0_grad}};
+
+    std::shared_ptr<RawBuffer> expect0(new RawBuffer(6 * sizeof(float), {2, 3}));
+    float expect0_data[6] = {-0.0568,  0.0228,  0.0397, -0.0568,  0.0258,  0.0201};
+    expect0->buffer(reinterpret_cast<char *>(expect0_data), 6 * sizeof(float));
+    std::shared_ptr<RawBuffer> expect1(new RawBuffer(3 * sizeof(float), {1,3}));
+    float expect1_data[3] = {-0.0034, -0.0004, -0.0225};
+    expect1->buffer(reinterpret_cast<char *>(expect1_data), 3 * sizeof(float));
+
+    RawBuffer weight_buffer;
+    LOGD("TestBroadcast 1 start ");
+    
+    Status status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_ARM, 0, LAYER_MUL);
+    RETURN_ON_NEQ(status, TNN_OK);
+    LOGD("TestBroadcast 2 start ");
+    status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_NAIVE, 0, LAYER_MUL);
+    
+    weight_buffer = RawBuffer(3 * sizeof(float), {1,3});
+    weight_buffer.buffer(reinterpret_cast<char *>(input1_data), 3 * sizeof(float));
+    inputs_buffer = {{"input0", input0}};
+    LOGD("TestBroadcast 3 start ");
+    status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect1, expect0}, weight_buffer, DEVICE_ARM, 0, LAYER_MUL);
+    RETURN_ON_NEQ(status, TNN_OK);
+    LOGD("TestBroadcast 4 start ");
+    status = test_binary_base(inputs_buffer, output0_grad_buffer, {expect0, expect1}, weight_buffer, DEVICE_ARM, 1, LAYER_MUL);
+    RETURN_ON_NEQ(status, TNN_OK);  
+    return TNN_OK;
+}
+
+Status BinaryLayerGradTest::TestGrad() {
     Status status;
-    status = TestNaiveNchw();
+    status = TestAdd();
     RETURN_ON_NEQ(status, TNN_OK);
-    status = TestArmConcatCommon();
+    status = TestSub();
     RETURN_ON_NEQ(status, TNN_OK);
-    status = TestArmConcatChannel();
+    status = TestMul();
     RETURN_ON_NEQ(status, TNN_OK);
-    status = TestArmConcatChannelC4();
+    status = TestDiv();
+    RETURN_ON_NEQ(status, TNN_OK);
+    status = TestBroadcast();
     RETURN_ON_NEQ(status, TNN_OK);
     return TNN_OK;
 }

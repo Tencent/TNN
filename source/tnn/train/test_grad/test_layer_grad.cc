@@ -22,11 +22,12 @@
 #include "tnn/train/test_grad/test_layer_grad.h"
 #include "tnn/train/grad/utils.h"
 
+//TODO: 去掉arm依赖，改成设备无关的，否则后续加入其他设备支持时，编译不过
+#include "tnn/device/arm/arm_util.h"
+
 namespace TNN_NS {
 namespace train {
 
-using NameShapes = std::vector<std::pair<std::string, DimsVector>>;
-using BlobShapes = std::vector<std::pair<Blob*, DimsVector>>;
 template<typename T>
 int InitRandom(T* host_data, size_t n, T range_min, T range_max, bool except_zero) {
     static std::mt19937 g(42);
@@ -39,6 +40,28 @@ int InitRandom(T* host_data, size_t n, T range_min, T range_max, bool except_zer
     }
 
     return 0;
+}
+
+Status generate_raw_buffer(std::shared_ptr<RawBuffer>& buffer, RawBuffer& src_buffer, DeviceType device_type, DataFormat data_format, DataType data_type) {
+    if(src_buffer.GetDataFormat() != DATA_FORMAT_NCHW || (data_format != DATA_FORMAT_NC4HW4 && data_format != DATA_FORMAT_NCHW)) {
+        return Status(TNN_TRAIN_TEST_ERROR, "unsupport data format in generate_raw_buffer");
+    }
+    auto dims = src_buffer.GetBufferDims();
+    auto total_size = CalculateElementCount(data_format, dims, data_type) * DataTypeUtils::GetBytesSize(data_type);
+    buffer = std::make_shared<RawBuffer>(total_size, dims);
+    buffer->SetDataFormat(data_format);
+    buffer->SetDataType(data_type);
+    if(!buffer->force_to<void *>()) {
+        return Status(TNN_TRAIN_TEST_ERROR, "buffer is null, may be allocate error!");
+    }
+    if(data_format == DATA_FORMAT_NCHW)
+        memcpy(buffer->force_to<void *>(), src_buffer.force_to<void *>(), total_size);
+    else {
+        PackFloatBlob(buffer->force_to<float *>(), src_buffer.force_to<float *>(), GetDim(dims, 0),
+                    GetDim(dims, 1), DimsVectorUtils::Count(dims, 2));     
+    }
+
+    return TNN_OK;
 }
 
 Status generate_raw_buffer(std::map<Blob *, std::shared_ptr<RawBuffer>>& buffers, const BlobShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data, bool except_zero) {
@@ -58,6 +81,43 @@ Status generate_raw_buffer(std::map<Blob *, std::shared_ptr<RawBuffer>>& buffers
     return TNN_OK;
 }
 
+Status generate_blob(std::vector<Blob*>& blobs, NameBuffers& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data, bool except_zero) {
+    for(auto iter=shapes.begin(); iter != shapes.end(); ++iter) {
+        if(iter->second.GetDataFormat() != DATA_FORMAT_NCHW || (data_format != DATA_FORMAT_NC4HW4 && data_format != DATA_FORMAT_NCHW)) {
+            return Status(TNN_TRAIN_TEST_ERROR, "unsupport data format in generate_blob");
+        }
+        BlobDesc desc;
+        desc.device_type = device_type;
+        desc.data_type   = DATA_TYPE_FLOAT;
+        desc.name        = iter->first;
+        desc.data_format = data_format;
+        desc.dims = iter->second.GetBufferDims();
+        BlobHandle handle;
+        Blob* blob = nullptr;
+        if(generate_data) {
+            auto device = GetDevice(desc.device_type);
+            if(device == nullptr) {
+                return Status(TNN_TRAIN_TEST_ERROR, "get device error");
+            }
+            BlobMemorySizeInfo size_info = device->Calculate(desc);
+            
+            device->Allocate(&handle, size_info);
+            blob = new Blob(desc, handle);
+            
+            if(data_format == DATA_FORMAT_NC4HW4 ) {
+                PackFloatBlob(static_cast<float*>(GetBlobHandle(blob)), iter->second.force_to<float *>(), GetDim(desc.dims, 0),
+                            GetDim(desc.dims, 1), DimsVectorUtils::Count(desc.dims, 2));
+            } else {
+                memcpy(GetBlobHandle(blob), iter->second.force_to<float *>(), CalculateElementCount(desc) * DataTypeUtils::GetBytesSize(desc.data_type));
+            }
+        }  else {
+            blob = new Blob(desc, handle);
+        }   
+        blobs.push_back(blob);
+    }
+    return TNN_OK;
+}
+
 Status generate_blob(std::vector<Blob*>& blobs, const NameShapes& shapes, DeviceType device_type, DataFormat data_format, DataType data_type, bool generate_data, bool except_zero) {
     for(auto iter=shapes.begin(); iter != shapes.end(); ++iter) {
         BlobDesc desc;
@@ -66,15 +126,26 @@ Status generate_blob(std::vector<Blob*>& blobs, const NameShapes& shapes, Device
         desc.name        = iter->first;
         desc.data_format = data_format;
         desc.dims = iter->second;
-        Blob* blob = new Blob(desc, generate_data);
-        if(generate_data && blob->GetHandle().base == nullptr) {
-            return Status(TNN_TRAIN_TEST_ERROR, "handle is null, may be allocate error!");
-        }
+        BlobHandle handle;
+        Blob* blob;
         if(generate_data) {
-            void* data_ptr = static_cast<void *>(static_cast<char *>(blob->GetHandle().base) + blob->GetHandle().bytes_offset);
-            InitRandom(static_cast<float *>(data_ptr), CalculateElementCount(desc), -1.0f, 1.0f, except_zero);
-        }
+            auto device = GetDevice(desc.device_type);
+            if(device == nullptr) {
+                return Status(TNN_TRAIN_TEST_ERROR, "get device error");
+            }
+            BlobMemorySizeInfo size_info = device->Calculate(desc);
+            device->Allocate(&handle, size_info);
         
+
+            blob = new Blob(desc, handle);
+            if(blob->GetHandle().base == nullptr) {
+                return Status(TNN_TRAIN_TEST_ERROR, "handle is null, may be allocate error!");
+            }
+            void* data_ptr = GetBlobHandle(blob);
+            InitRandom(static_cast<float *>(data_ptr), CalculateElementCount(desc), -1.0f, 1.0f, except_zero);
+        } else {
+           blob = new Blob(desc, handle); 
+        }
         blobs.push_back(blob);
     }
     return TNN_OK;

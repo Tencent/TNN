@@ -55,7 +55,7 @@ namespace train {
     inline bool Is##TypeName##Pointer() {                                                                              \
         return type_ == ParamType::ValueName##_enum;                                                                   \
     };
-
+int GetDim(const DimsVector &dims, const int index);
 int ConvertFromFloatToBFP16(float *fp32, void *fp16, int count);
 int ConvertFromBFP16ToFloat(void *fp16, float *fp32, int count);
 void ConvertToNCHW(void *&src_ptr, RawBuffer &dst, RawBuffer *input_rawbuffer);

@@ -223,14 +223,27 @@ Status ArmBinaryLayerAcc::ConfigBuffer2ArmBlobDesc(BlobDesc &desc) {
 }
 
 ArmBinaryLayerAcc::~ArmBinaryLayerAcc() {}
-
+#ifdef TRAIN
+Status ArmBinaryLayerAcc::RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if(!context_->IsTraining())
+        return TNN_OK;
+    auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
+    if(!layer_res)
+        return TNN_OK;
+    auto input_data_type = inputs[0]->GetBlobDesc().data_type;
+    // train module don't support other data type, so skip;
+    if (input_data_type == DATA_TYPE_FLOAT || input_data_type == DATA_TYPE_BFP16 ) {
+        RETURN_ON_NEQ(allocateBufferParam(inputs, outputs), TNN_OK);
+    }
+    return TNN_OK;
+}
+#endif
 Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
 
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
-
-    if (layer_res && broadcast_.GetBytesSize() == 0) {
+    if (layer_res && (broadcast_.GetBytesSize() == 0 || context_->IsTraining())) {
         RawBuffer element_handle = layer_res->element_handle;
         auto dims                = layer_res->element_shape;
         auto output_dims         = outputs[0]->GetBlobDesc().dims;

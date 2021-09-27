@@ -23,7 +23,8 @@ namespace train {
 DECLARE_BINARY_LAYER_GRAD(Add, LAYER_ADD);
 DECLARE_BINARY_LAYER_GRAD(Sub, LAYER_SUB);
 DECLARE_BINARY_LAYER_GRAD(Mul, LAYER_MUL);
-//TODO: DIV MAX MIN
+DECLARE_BINARY_LAYER_GRAD(DIV, LAYER_DIV);
+//TODO: MAX MIN LAYER
 typedef std::function<float(float, float)> ELEWISE_OP;
 
 /*
@@ -77,7 +78,7 @@ Status cal_binary_grad(std::vector<float *> &input_grad_ptrs, const std::vector<
                 // dy/dx1 = 1.0/x2
                 // dy/dx2 = x1 / x2^2
                 input0_grad_ptr[input0_offset] += output_grad_ptr[offset] / input1_ptr[input1_offset];
-                input1_grad_ptr[input1_offset] += output_grad_ptr[offset] * input0_ptr[input0_offset] / (input1_ptr[offset] * input1_ptr[offset]);
+                input1_grad_ptr[input1_offset] -= output_grad_ptr[offset] * input0_ptr[input0_offset] / (input1_ptr[input1_offset] * input1_ptr[input1_offset]);
                 break;         
             default:
                 return Status(TNN_TRAIN_ERROR, "BinaryLayerGrad not support layer type");
@@ -96,7 +97,7 @@ Status BinaryLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &context) {
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     auto output_data_type = outputs[0]->GetBlobDesc().data_type;
     bool need_broadcast = false;
-    for(int i=1; i<inputs.size(); ++i) {
+    for(int i=0; i<inputs.size(); ++i) {
         auto input_data_type = inputs[i]->GetBlobDesc().data_type; 
         if (input_data_type != output_data_type) {
             return Status(TNN_TRAIN_ERROR, "input datatype and output datatype not match in BinaryLayerGrad");
@@ -122,6 +123,9 @@ Status BinaryLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &context) {
     }
 
     LayerType layer_type = layer->type_;
+    auto output_grad = iter_output->second;
+    std::shared_ptr<RawBuffer> output_grad_ptr;
+    ConvertToNCHW(iter_output->second, output_grad_ptr);
     std::vector<std::shared_ptr<RawBuffer>> input_grads;
     std::vector<RawBuffer> input_tmp_buffers; //just for cache; may be host transfered data;
     std::vector<DimsVector> input_shapes;
@@ -131,7 +135,6 @@ Status BinaryLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &context) {
 
     //so ugly code blob!!!
     if (inputs.size() >= 2) {
-        input_ptrs.resize(inputs.size());
         for (size_t inid = 0; inid < inputs.size(); inid++) {
             auto dims = inputs[inid]->GetBlobDesc().dims;
             void *data = GetBlobHandle(inputs[inid]);
@@ -195,9 +198,9 @@ Status BinaryLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &context) {
     } else {
         return Status(TNNERR_LAYER_ERR, "BinaryLayerGrad input size error");
     }
-    cal_binary_grad(input_grad_ptrs, input_ptrs, input_shapes, iter_output->second->force_to<float*>(), iter_output->second->GetBufferDims(), layer_type);
+    cal_binary_grad(input_grad_ptrs, input_ptrs, input_shapes, output_grad_ptr->force_to<float*>(), output_grad_ptr->GetBufferDims(), layer_type);
     for(int i=0; i<grad_keys.size(); ++i) {
-        if(!grad_keys[i].IsBlobPointer() && !grad_keys[i].IsRawbufferSharedPtr()) 
+        if(!grad_keys[i].IsBlobPointer() && !grad_keys[i].IsRawBufferPointer()) 
             return Status(TNNERR_LAYER_ERR, "BinaryLayerGrad calcute error");
         auto data_format = grad_keys[i].GetBlobOrRawbufferDataformat();
         auto cur_grad = input_grads[i];
@@ -212,13 +215,14 @@ Status BinaryLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &context) {
         if(grad_keys[i].IsBlobPointer())
             UpdateGradValue(grad_keys[i].GetBlobPointer(), cur_grad, context);
         else 
-            UpdateGradValue(grad_keys[i].GetBlobPointer(), cur_grad, context);
+            UpdateGradValue(grad_keys[i].GetRawBufferPointer(), cur_grad, context);
     }
     return Status(TNN_OK);
 }
 REGISTER_BINARY_LAYER_GRAD(Add, LAYER_ADD);
 REGISTER_BINARY_LAYER_GRAD(Sub, LAYER_SUB);
 REGISTER_BINARY_LAYER_GRAD(Mul, LAYER_MUL);
+REGISTER_BINARY_LAYER_GRAD(DIV, LAYER_DIV);
 
 } // namespace train
 } // namespace TNN_NS
