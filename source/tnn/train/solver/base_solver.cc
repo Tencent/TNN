@@ -70,7 +70,10 @@ Status BaseSolver::step() {
     Status status;
     // //TODO: temp code, need move into unit test main fuc
     // status = LayerGradTestManager::RunTestGrad();
-    // RETURN_ON_NEQ(status, TNN_OK);
+    // if(status != TNN_OK) {
+    //     LOGE("train test error: %s", status.description().c_str());
+    //     return status;
+    // }
 
     RETURN_ON_NEQ(grad_manager_.IsSupport(), TNN_OK);
     RETURN_ON_NEQ(grad_manager_.CalcuteGrads(), TNN_OK);

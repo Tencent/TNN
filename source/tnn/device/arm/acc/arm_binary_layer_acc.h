@@ -56,6 +56,9 @@ public:
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+#ifdef TRAIN
+    virtual Status RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+#endif
 protected:
     virtual bool DataTypeSupported(DataType data_type) override;
     virtual Status ConfigBuffer2ArmBlobDesc(BlobDesc &desc) override;
