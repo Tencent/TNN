@@ -75,14 +75,22 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
     // void *cmd_queue;
     // compiled_engine->instance_->GetCommandQueue(&cmd_queue);
 
+    // tnn needs contingous torch tensor
+    std::vector<at::Tensor> contig_inputs{};
+    contig_inputs.reserve(inputs.size());
+
     for (int i = 0; i < input_names.size(); i++) {
         // set blob handle directly
         DeviceType device_type;
         BlobDesc blob_desc;
         ConvertToDeviceType(device_type, inputs[i].device());
         GetBlobDescFromTensor(blob_desc, inputs[i]);
+        auto contig_input = inputs[i].contiguous();
+        // extend the lifetime of contig tensors
+        contig_inputs.emplace_back(contig_input);
+
         BlobHandle handle;
-        handle.base = inputs[i].data_ptr();
+        handle.base = contig_input.data_ptr();
         input_blobs[input_names[i]]->SetHandle(handle);
         input_blobs[input_names[i]]->SetBlobDesc(blob_desc);
 
