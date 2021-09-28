@@ -23,6 +23,19 @@
 
 namespace torch {
 namespace jit {
+    int GetMaxBlockSize(Block* block) {
+        int max_block_size = 0;
+        for (auto it = block->nodes().begin(); it != block->nodes().end();) {
+            auto* node = *it;
+            it++;
+            for (Block* sub_block : node->blocks()) {
+                max_block_size = std::max(GetMaxBlockSize(sub_block) + 1, max_block_size);
+            }
+        }
+
+        return max_block_size;
+    }
+
     void RemoveListAppend(Graph* graph, Block* block) {
         auto check_node = [](torch::jit::Node* node) -> bool {
             if (!(node->kind() == aten::append && node->inputs().at(0)->node()->kind() == prim::ListConstruct)) {
@@ -34,6 +47,12 @@ namespace jit {
 
             return true;
         };
+
+        int max_block_size = GetMaxBlockSize(block);
+
+        if (max_block_size > 1) {
+            return;
+        }
 
         for (auto it = block->nodes().begin(); it != block->nodes().end();) {
             auto* node = *it;
