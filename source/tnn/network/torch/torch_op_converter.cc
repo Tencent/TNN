@@ -719,6 +719,27 @@ public:
     }
 };
 
+class SigmoidTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = LAYER_SIGMOID;
+        layer_info->type_str = "Sigmoid";
+        layer_info->name = node->output(0)->debugName();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        layer_info->param = std::make_shared<LayerParam>();
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
 class ListTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
@@ -747,6 +768,7 @@ public:
 //     }
 // };
 
+
 REGISTER_TORCH_OP_CONVERTER(Conv2D, aten, conv2d)
 REGISTER_TORCH_OP_CONVERTER(_Conv, aten, _convolution)
 REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
@@ -766,6 +788,7 @@ REGISTER_TORCH_OP_CONVERTER(Concat, aten, cat)
 REGISTER_TORCH_OP_CONVERTER(Unsqueeze, aten, unsqueeze)
 REGISTER_TORCH_OP_CONVERTER(Gather, aten, select)
 REGISTER_TORCH_OP_CONVERTER(StridedSlice, aten, slice)
+REGISTER_TORCH_OP_CONVERTER(Sigmoid, aten, sigmoid)
 
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
 

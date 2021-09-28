@@ -71,10 +71,13 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
     BlobMap input_blobs;
     BlobMap output_blobs;
     compiled_engine->instance_->GetAllInputBlobs(input_blobs);
-    compiled_engine->instance_->GetAllOutputBlobs(output_blobs);
 
     // void *cmd_queue;
     // compiled_engine->instance_->GetCommandQueue(&cmd_queue);
+
+    // tnn needs contingous torch tensor
+    std::vector<at::Tensor> contig_inputs{};
+    contig_inputs.reserve(inputs.size());
 
     for (int i = 0; i < input_names.size(); i++) {
         // set blob handle directly
@@ -82,8 +85,12 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         BlobDesc blob_desc;
         ConvertToDeviceType(device_type, inputs[i].device());
         GetBlobDescFromTensor(blob_desc, inputs[i]);
+        auto contig_input = inputs[i].contiguous();
+        // extend the lifetime of contig tensors
+        contig_inputs.emplace_back(contig_input);
+
         BlobHandle handle;
-        handle.base = inputs[i].data_ptr();
+        handle.base = contig_input.data_ptr();
         input_blobs[input_names[i]]->SetHandle(handle);
         input_blobs[input_names[i]]->SetBlobDesc(blob_desc);
 
@@ -101,17 +108,18 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
 
     compiled_engine->instance_->Forward();
 
+    compiled_engine->instance_->GetAllOutputBlobs(output_blobs);
     std::vector<at::Tensor> outputs(output_names.size());
     for (int i = 0; i < output_names.size(); i++) {
         // output blob data type is consistent with the input tensor, no need to convert tensor type
         std::shared_ptr<at::Tensor> tensor_ptr;
         CreateTensorByBlob(tensor_ptr, output_blobs[output_names[i]]);
-        outputs[i] = std::move(*tensor_ptr);
-        // if (scalar_type == at::ScalarType::Half) {
-        //     outputs[i] = std::move(tensor_ptr->to(at::ScalarType::Half));
-        // } else {
-        //     outputs[i] = std::move(*tensor_ptr);
-        // }
+        // outputs[i] = std::move(*tensor_ptr);
+        if (scalar_type == at::ScalarType::Half && tensor_ptr->scalar_type() != at::ScalarType::Half) {
+            outputs[i] = std::move(tensor_ptr->to(at::ScalarType::Half));
+        } else {
+            outputs[i] = std::move(*tensor_ptr);
+        }
 
         // DumpDeviceBlob(output_blobs[output_names[i]], cmd_queue, "tnn-output-"+output_names[i]);
     }
