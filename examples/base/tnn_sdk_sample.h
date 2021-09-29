@@ -180,6 +180,7 @@ typedef enum {
     TNNBorderReplicate = 3,
     TNNBorderReflect101 = 4,
     TNNBorderWrap = 5,
+    TNNBorderTransparent = 6,
     
 } TNNBorderType;
 
