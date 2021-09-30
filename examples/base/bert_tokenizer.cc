@@ -410,8 +410,7 @@ Status BertTokenizer::CalProbs(std::vector<std::shared_ptr<prelim_prediction>> p
 }
 
 Status BertTokenizer::ConvertResult(std::shared_ptr<TNNSDKOutput> output, const std::string& start_logits_name,
-    const std::string& end_logits_name, std::string& ans,
-    TNNComputeUnits units) {
+    const std::string& end_logits_name, std::string& ans) {
     std::vector<size_t> start_index, end_index;
     float *start_logits, *end_logits;
     start_logits = reinterpret_cast<float*>(output->GetMat(start_logits_name.c_str())->GetData());
@@ -436,7 +435,6 @@ Status BertTokenizer::ConvertResult(std::shared_ptr<TNNSDKOutput> output, const 
     size_t nums = 0;
 
     // calc probabilities
-    std::string tok_;
     CalProbs(prelim_predictions);
     for (auto item : prelim_predictions) {
         if (nums >= maxAns) break;
@@ -451,11 +449,9 @@ Status BertTokenizer::ConvertResult(std::shared_ptr<TNNSDKOutput> output, const 
             }
         }
         printf("ans%d[probability=%f]: %s\n", static_cast<int>(nums + 1), item->prob, tok.c_str());
-        if (nums == 0) ans = tok;
-        if (nums == 2) tok_ = tok;
+        if (nums == 2) ans = tok;
         nums++;
     }
-    if(units == TNNComputeUnitsGPU) ans = tok_;
     
     return TNN_OK;
 }
