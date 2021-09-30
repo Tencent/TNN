@@ -28,30 +28,57 @@ float binary_op<ArmBinaryOpType::kADD, float>(const float &a, const float &b, fl
     return a + b;
 }
 template <>
+bfp16_t binary_op<ArmBinaryOpType::kADD, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<bfp16_t>(static_cast<float>(a) + static_cast<float>(b));
+}
+template <>
 float binary_op<ArmBinaryOpType::kSUB, float>(const float &a, const float &b, float alpha, float beta) {
     return a - b;
+}
+template <>
+bfp16_t binary_op<ArmBinaryOpType::kSUB, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<bfp16_t>(static_cast<float>(a) - static_cast<float>(b));
 }
 template <>
 float binary_op<ArmBinaryOpType::kMUL, float>(const float &a, const float &b, float alpha, float beta) {
     return a * b;
 }
 template <>
+bfp16_t binary_op<ArmBinaryOpType::kMUL, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<bfp16_t>(static_cast<float>(a) * static_cast<float>(b));
+}
+template <>
 float binary_op<ArmBinaryOpType::kDIV, float>(const float &a, const float &b, float alpha, float beta) {
     return a / b;
+}
+template <>
+bfp16_t binary_op<ArmBinaryOpType::kDIV, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<bfp16_t>(static_cast<float>(a) / static_cast<float>(b));
 }
 template <>
 float binary_op<ArmBinaryOpType::kMAX, float>(const float &a, const float &b, float alpha, float beta) {
     return a > b ? a : b;
 }
 template <>
+bfp16_t binary_op<ArmBinaryOpType::kMAX, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<float>(a) > static_cast<float>(b) ? a : b;
+}
+template <>
 float binary_op<ArmBinaryOpType::kMIN, float>(const float &a, const float &b, float alpha, float beta) {
     return a < b ? a : b;
+}
+template <>
+bfp16_t binary_op<ArmBinaryOpType::kMIN, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<float>(a) < static_cast<float>(b) ? a : b;
 }
 template <>
 float binary_op<ArmBinaryOpType::kHARDSWISH, float>(const float &a, const float &b, float alpha, float beta) {
     return a * MAX(MIN(b * alpha + beta, 1.0f), 0.f);
 }
-
+template <>
+bfp16_t binary_op<ArmBinaryOpType::kHARDSWISH, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<bfp16_t>(static_cast<float>(a) * MAX(MIN(static_cast<float>(b) * alpha + beta, 1.0f), 0.f));
+}
 template <>
 Float4 binary_op<ArmBinaryOpType::kADD, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return a + b;
