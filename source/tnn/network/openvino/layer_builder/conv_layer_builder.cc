@@ -30,7 +30,20 @@
 
 namespace TNN_NS {
 
-DECLARE_OPENVINO_LAYER_BUILDER(Conv, LAYER_CONVOLUTION);
+class ConvOVLayerBuilder : public OpenVINOLayerBuilder {
+public:
+    ConvOVLayerBuilder(LayerType ignore = LAYER_CONVOLUTION) : OpenVINOLayerBuilder(ignore){};
+    virtual ~ConvOVLayerBuilder(){};
+protected:
+    virtual Status InferOutputShape() {return TNN_OK;};
+    virtual Status InferOutputDataType() {return TNN_OK;};
+    virtual Status Build();
+};
+
+class Conv1DOVLayerBuilder : public ConvOVLayerBuilder {
+public:
+    Conv1DOVLayerBuilder(LayerType ignore = LAYER_CONVOLUTION_1D) : ConvOVLayerBuilder(ignore){};
+};
 
 Status ConvOVLayerBuilder::Build() {
     auto paramlist = dynamic_cast<ConvLayerParam*>(param_);
@@ -53,10 +66,15 @@ Status ConvOVLayerBuilder::Build() {
 
     // set pads
     ngraph::CoordinateDiff pad_begin, pad_end;
-    pad_begin.push_back(paramlist->pads.at(2));
-    pad_begin.push_back(paramlist->pads.at(0));
-    pad_end.push_back(paramlist->pads.at(3));
-    pad_end.push_back(paramlist->pads.at(1));
+    if (paramlist->pads.size() == 2) {
+        pad_begin.push_back(paramlist->pads.at(0));
+        pad_end.push_back(paramlist->pads.at(1));
+    } else if (paramlist->pads.size() == 4) {
+        pad_begin.push_back(paramlist->pads.at(2));
+        pad_begin.push_back(paramlist->pads.at(0));
+        pad_end.push_back(paramlist->pads.at(3));
+        pad_end.push_back(paramlist->pads.at(1));
+    }
     convNode->set_pads_begin(pad_begin);
     convNode->set_adding_above(pad_end);
 
@@ -158,5 +176,6 @@ Status ConvOVLayerBuilder::Build() {
 }
 
 REGISTER_OPENVINO_LAYER_BUILDER(Conv, LAYER_CONVOLUTION);
+REGISTER_OPENVINO_LAYER_BUILDER(Conv1D, LAYER_CONVOLUTION_1D);
 
 }  // namespace TNN_NS
