@@ -145,7 +145,7 @@ using namespace TNN_NS;
     }
 
     std::string ans;
-    tokenizer->ConvertResult(bertOutput, "output_0", "output_1", ans);
+    tokenizer->ConvertResult(bertOutput, "output_0", "output_1", ans, units);
 
     auto bench_result     = predictor->GetBenchResult();
     self.labelResult.text = [NSString stringWithFormat:@"Q:%s\nA: %s\ndevice: %@     time:\n%s",

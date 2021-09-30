@@ -83,7 +83,7 @@ public:
 
     // @brief tokenize BertOutput to text result and probalities
     Status ConvertResult(std::shared_ptr<TNNSDKOutput> output, const std::string& start_logits_name, 
-            const std::string& end_logits_name, std::string& ans);
+            const std::string& end_logits_name, std::string& ans, TNNComputeUnits units);
 
     // @brief calculate probabilities for result
     Status CalProbs(std::vector<std::shared_ptr<prelim_prediction>> scores);

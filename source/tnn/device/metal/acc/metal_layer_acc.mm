@@ -315,9 +315,9 @@ NSString * MetalLayerAcc::GetKernelLabel() {
 Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto data_type = outputs[0]->GetBlobDesc().data_type;
     auto data_type_str = DataTypeUtils::GetDataTypeString(data_type);
-    if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
-        LOGE("MetalLayerAcc: DataType must be float or half\n");
-        return Status(TNNERR_LAYER_ERR, "MetalLayerAcc: DataType must be float or half");
+    if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF && data_type != DATA_TYPE_INT32) {
+        LOGE("MetalLayerAcc: DataType must be float or half or int32\n");
+        return Status(TNNERR_LAYER_ERR, "MetalLayerAcc: DataType must be float or half or int32");
     }
 
     
