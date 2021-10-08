@@ -96,7 +96,7 @@ Status InnerProductLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &conte
     // input: input_batch * input_count
     // output: input_batch * output_count
     // bias: output_count
-    // weight_grad[j, k] = E(0<=j<input_batch) output_grad[i, j] * input[i, k]
+    // weight_grad[j, k] = E(0<=i<input_batch) output_grad[i, j] * input[i, k]
     // bias_grad[j] = E(j<=0<output_count) output_grad[i, j]
     // input_grad[i,k] = E(0<=j<output_count) output_grad[i, j] * weight[j, k]
     if (input0_data_type == DATA_TYPE_FLOAT) {

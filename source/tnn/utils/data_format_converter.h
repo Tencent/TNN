@@ -99,8 +99,11 @@ public:
         const int channel = src_dims.size() > 1 ? src_dims[1] : 1;
         const int height  = src_dims.size() > 2 ? src_dims[2] : 1;
         const int width   = src_dims.size() > 3 ? src_dims[3] : 1;
-        T *src_data_ptr   = (T *)src->GetHandle().base;
-        T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
+        auto src_handle = src->GetHandle();
+        BlobHandle dst_handle;
+        if(dst != nullptr) dst_handle = dst->GetHandle();
+        T *src_data_ptr   = reinterpret_cast<T *>(reinterpret_cast<char *>(src_handle.base) + src_handle.bytes_offset);
+        T *dst_data_ptr   = dst == nullptr ? nullptr : reinterpret_cast<T *>(reinterpret_cast<char *>(dst_handle.base) + dst_handle.bytes_offset);
 
         auto status = ConvertBetweenNHWCAndNCHW<T>(src_data_ptr, dst_data_ptr, num, channel, height, width, NCHW2NHWC);
         return status;
@@ -115,8 +118,11 @@ public:
         const int channel = src_dims.size() > 1 ? src_dims[1] : 1;
         const int height  = src_dims.size() > 2 ? src_dims[2] : 1;
         const int width   = src_dims.size() > 3 ? src_dims[3] : 1;
-        T *src_data_ptr   = (T *)src->GetHandle().base;
-        T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
+        auto src_handle = src->GetHandle();
+        BlobHandle dst_handle;
+        if(dst != nullptr) dst_handle = dst->GetHandle();
+        T *src_data_ptr   = reinterpret_cast<T *>(reinterpret_cast<char *>(src_handle.base) + src_handle.bytes_offset);
+        T *dst_data_ptr   = dst == nullptr ? nullptr : reinterpret_cast<T *>(reinterpret_cast<char *>(dst->GetHandle().base) + dst->GetHandle().bytes_offset);
 
         auto status = ConvertBetweenNHWCAndNCHW<T>(src_data_ptr, dst_data_ptr, num, channel, height, width, NHWC2NCHW);
         return status;
