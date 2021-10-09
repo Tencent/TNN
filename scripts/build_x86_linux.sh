@@ -49,10 +49,11 @@ clone_openvino() {
 
     if [ ! -d openvino ]
     then
-        git clone --recursive https://github.com/openvinotoolkit/openvino.git
+        # git clone --recursive https://github.com/openvinotoolkit/openvino.git
+        git clone --recursive https://github.com/dmitry-gorokhov/openvino.git
     fi
     cd openvino
-    git reset --hard 18e83a2
+    git reset --hard 61ed7a99
     git submodule update --init --recursive
     #sed -i '152 i /*' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
     #sed -i '157 i */' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
@@ -136,19 +137,19 @@ copy_openvino_libraries() {
         mkdir -p ${TNN_INSTALL_DIR}/lib
     fi
 
-    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${TNN_INSTALL_DIR}/lib
-    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${BUILD_DIR}/
-    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libMKLDNNPlugin.so ${TNN_INSTALL_DIR}/lib/
-    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/external/tbb/lib/* ${TNN_INSTALL_DIR}/lib/
+    cp ${OPENVINO_INSTALL_PATH}/runtime/lib/intel64/plugins.xml ${TNN_INSTALL_DIR}/lib
+    cp ${OPENVINO_INSTALL_PATH}/runtime/lib/intel64/plugins.xml ${BUILD_DIR}/
+    cp ${OPENVINO_INSTALL_PATH}/runtime/lib/intel64/libMKLDNNPlugin.so ${TNN_INSTALL_DIR}/lib/
+    cp ${OPENVINO_INSTALL_PATH}/runtime/3rdparty/tbb/lib/* ${TNN_INSTALL_DIR}/lib/
 
 
     if [ "${OPENVINO_BUILD_SHARED}" = "ON" ]
     then
-        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
-        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_legacy${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
-        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
-        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_lp_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
-        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib/libngraph${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/runtime/lib/intel64/libinference_engine${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/runtime/lib/intel64/libinference_engine_legacy${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/runtime/lib/intel64/libinference_engine_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/runtime/lib/intel64/libinference_engine_lp_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/runtime/lib/intel64/libngraph${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
     fi
 }
 
