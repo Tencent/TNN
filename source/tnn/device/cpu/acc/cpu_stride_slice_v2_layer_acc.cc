@@ -80,6 +80,31 @@ Status CpuStrideSliceV2LayerAcc::InferRuntimeOutputShape(const std::vector<Blob 
     return TNN_OK;
 }
 
+template <typename T>
+void StrideSlice(Blob *input_blob, Blob *output_blob, const DimsVector &begins, const DimsVector &axes,
+                 const DimsVector &strides) {
+    DimsVector input_dims  = input_blob->GetBlobDesc().dims;
+    DimsVector output_dims = output_blob->GetBlobDesc().dims;
+    const int output_count = DimsVectorUtils::Count(output_dims);
+
+    T *input_data  = static_cast<T *>(input_blob->GetHandle().base);
+    T *output_data = static_cast<T *>(output_blob->GetHandle().base);
+    for (int offset = 0; offset < output_count; ++offset) {
+        DimsVector output_index = DimsOffsetUtils::ConvertOffsetToIndex(output_dims, offset);
+        DimsVector input_index;
+        int axes_index = 0;
+        for (int i = 0; i < output_index.size(); ++i) {
+            if (axes_index < axes.size() && i == axes[axes_index]) {
+                input_index.push_back(begins[axes_index] + output_index[i] * strides[axes_index]);
+                ++axes_index;
+            } else {
+                input_index.push_back(output_index[i]);
+            }
+        }
+        int in_offset       = DimsOffsetUtils::ConvertIndexToOffset(input_dims, input_index);
+        output_data[offset] = input_data[in_offset];
+    }
+}
 
 Status CpuStrideSliceV2LayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<StrideSliceV2LayerParam *>(param_);
@@ -116,22 +141,10 @@ Status CpuStrideSliceV2LayerAcc::Forward(const std::vector<Blob *> &inputs, cons
     }
 
     if (output_blob->GetBlobDesc().data_type != DATA_TYPE_INT8) {
-        float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-        float *output_data = static_cast<float *>(output_blob->GetHandle().base);
-        for(int offset = 0; offset < output_count; ++offset) {
-            DimsVector output_index = DimsOffsetUtils::ConvertOffsetToIndex(output_dims, offset);
-            DimsVector input_index;
-            int axes_index = 0;
-            for(int i = 0; i < output_index.size(); ++i) {
-                if(axes_index < axes.size() && i == axes[axes_index]) {
-                    input_index.push_back(begins[axes_index] + output_index[i] * strides[axes_index]);
-                    ++axes_index;
-                } else {
-                    input_index.push_back(output_index[i]);
-                }
-            }
-            int in_offset = DimsOffsetUtils::ConvertIndexToOffset(input_dims, input_index);
-            output_data[offset] = input_data[in_offset];
+        if (output_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+            StrideSlice<fp16_t>(input_blob, output_blob, begins, axes, strides);
+        } else {
+            StrideSlice<float>(input_blob, output_blob, begins, axes, strides);
         }
     } else {
         ASSERT(0);
