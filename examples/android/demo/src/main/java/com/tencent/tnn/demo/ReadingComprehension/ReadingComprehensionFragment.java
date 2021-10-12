@@ -83,9 +83,7 @@ public class ReadingComprehensionFragment extends BaseFragment {
         int result;
 
         if (mUseGPU) {
-            // result = mReadingComprehensionTinyBert.init(modelPath, 1); //use gpu
-            Log.e(TAG, "tiny-bert on GPU is under development");
-            result = -1;
+            result = mReadingComprehensionTinyBert.init(modelPath, 1); //use gpu
         }else {
             result = mReadingComprehensionTinyBert.init(modelPath, 0); // use cpu
         }
