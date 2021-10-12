@@ -19,9 +19,9 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Reshape);
 
 std::string TFLiteReshapeConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
-    if (quantized_model) {
-        return "QuantizedReshape";
-    }
+//    if (quantized_model) {
+//        return "QuantizedReshape";
+//    }
     return "Reshape";
 }
 tflite::ActivationFunctionType TFLiteReshapeConverter::ActivationType(
@@ -40,7 +40,7 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
     cur_layer->param                 = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->name                      = cur_layer->name;
     param->type                      = cur_layer->type_str;
-    param->quantized                 = quantized_model;
+    param->quantized                 = false;
     param->reshape_type              = 1;
     param->axis                      = 0;
     // tensorflow reshape (n,h,w,c);
@@ -76,16 +76,16 @@ TNN_NS::Status TFLiteReshapeConverter::exec(TNN_NS::NetStructure& net_structure,
         cur_layer->inputs.resize(1);
         cur_layer->inputs[0] = tf_lite_tensors[tf_lite_operator->inputs[0]]->name;
     }
-    if (quantized_model) {
-        // handle input blob scale
-        auto input_index = tf_lite_operator->inputs[0];
-        auto status      = CreateBlobScaleResource(net_resource, tf_lite_tensors, input_index);
-        ASSERT(status == TNN_NS::TNN_CONVERT_OK);
-        // handle output blob scale
-        auto output_index = tf_lite_operator->outputs[0];
-        status            = CreateBlobScaleResource(net_resource, tf_lite_tensors, output_index);
-        ASSERT(status == TNN_NS::TNN_CONVERT_OK);
-    }
+//    if (quantized_model) {
+//        // handle input blob scale
+//        auto input_index = tf_lite_operator->inputs[0];
+//        auto status      = CreateBlobScaleResource(net_resource, tf_lite_tensors, input_index);
+//        ASSERT(status == TNN_NS::TNN_CONVERT_OK);
+//        // handle output blob scale
+//        auto output_index = tf_lite_operator->outputs[0];
+//        status            = CreateBlobScaleResource(net_resource, tf_lite_tensors, output_index);
+//        ASSERT(status == TNN_NS::TNN_CONVERT_OK);
+//    }
     return TNN_NS::TNN_CONVERT_OK;
 }
 

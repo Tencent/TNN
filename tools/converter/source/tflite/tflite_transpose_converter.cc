@@ -42,9 +42,6 @@ TNN_NS::Status TFLiteTransposeConverter::exec(TNN_NS::NetStructure& net_structur
     param->type                      = cur_layer->type_str;
     param->quantized                 = false;
 
-    if (quantized_model) {
-        // TODO
-    } else {
         std::vector<int> perm;
         if (tf_lite_operator->inputs.size() == 2) {
             const auto& shape_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
@@ -67,7 +64,6 @@ TNN_NS::Status TFLiteTransposeConverter::exec(TNN_NS::NetStructure& net_structur
             return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
         }
         param->orders = perm;
-    }
 
     // set input output index
     cur_layer->inputs.resize(1);
