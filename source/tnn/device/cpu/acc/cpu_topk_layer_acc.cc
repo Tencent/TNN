@@ -19,7 +19,9 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(TopK, LAYER_TOPK);
+DECLARE_CPU_ACC_WITH_FUNC(TopK, LAYER_TOPK,
+                          virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                                 const std::vector<Blob *> &outputs););
 
 template <typename T>
 struct topk_record {
@@ -123,6 +125,42 @@ Status CpuTopKLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
     return TNN_OK;
 }
 
+Status CpuTopKLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto *layer_param = dynamic_cast<TopKLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+
+    Status status = TNN_OK;
+    auto input_dims = inputs[0]->GetBlobDesc().dims;
+    if (inputs.size() >= 2) {
+        if (inputs[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
+            return Status(TNNERR_PARAM_ERR, "TopK input(shape) has invalid data type");
+        }
+
+        auto dim_count = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
+        auto dim_data = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
+        ASSERT(dim_count == 1);
+
+        layer_param->k = dim_data[0];
+    }
+
+    auto k = layer_param->k;
+    auto output_dims = input_dims;
+    int axis = layer_param->axis;
+
+    if (layer_param->k > 0) {
+        output_dims[layer_param->axis] = std::min(layer_param->k, input_dims[layer_param->axis]);
+    }
+
+    if (outputs.size() != 2) {
+        return Status(TNNERR_PARAM_ERR, "TopKLayer output blobs size != 2");
+    }
+
+    outputs[0]->GetBlobDesc().dims = output_dims;
+    outputs[1]->GetBlobDesc().dims = output_dims;
+
+    return TNN_OK;
+}
+
 Status CpuTopKLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<TopKLayerParam *>(param_);
     if (!param) {
@@ -133,11 +171,6 @@ Status CpuTopKLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
     if (outputs.size() != 2) {
         LOGE("Error: TopKLayer must have 2 output blobs\n");
         return Status(TNNERR_PARAM_ERR, "Error: TopKLayer must have 2 output blobs");
-    }
-
-    if (inputs.size() > 1) {
-        LOGE("Error: TopKLayer only support 1 input blob, not support k as a input blob\n");
-        return Status(TNNERR_PARAM_ERR, "Error: TopKLayer only support 1 input blob, not support k as a input blob");
     }
 
     auto input_dims = inputs[0]->GetBlobDesc().dims;

@@ -34,12 +34,19 @@ Status CpuEqualLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
     }
     
     auto data_type = inputs[0]->GetBlobDesc().data_type;
-    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_INT32) {
-        void *output_data = output_blob->GetHandle().base;
-        const auto &output_dims = output_blob->GetBlobDesc().dims;
-        CPU_ELEMENT_WISE<int, char>(input_ptrs, input_shapes, output_data, output_dims,
+    void *output_data = output_blob->GetHandle().base;
+    const auto &output_dims = output_blob->GetBlobDesc().dims;
+ 
+    if (data_type == DATA_TYPE_FLOAT) {
+        CPU_ELEMENT_WISE_COMPARE<float, char>(input_ptrs, input_shapes, output_data, output_dims,
+                                  [](float a, float b) -> char { return a == b; });
+    } else if(data_type == DATA_TYPE_INT32) {  
+        CPU_ELEMENT_WISE_COMPARE<int, char>(input_ptrs, input_shapes, output_data, output_dims,
                                   [](int a, int b) -> char { return a == b; });
-    }  else {
+    } else if(data_type == DATA_TYPE_INT8) {
+        CPU_ELEMENT_WISE_COMPARE<char, char>(input_ptrs, input_shapes, output_data, output_dims,
+                                  [](char a, char b) -> char { return a == b; });
+    } else {
         LOGE("Error: CpuEqualLayerAcc don't support data type: %d\n", data_type);
         return Status(TNNERR_MODEL_ERR, "Error: CpuEqualLayerAcc don't support data type");
     }

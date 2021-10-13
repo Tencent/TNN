@@ -82,7 +82,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                                                             std::vector<int>({1, -1}), std::vector<int>({3, -2}),
                                                             std::vector<int>({1, -2, -1})),
                                             // dtype
-                                            testing::Values(DATA_TYPE_FLOAT)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT32)));
 
 TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     // get param

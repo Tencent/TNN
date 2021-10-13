@@ -28,7 +28,28 @@ Status CpuReduceSumSquareLayerAcc::PreCalculateReduce(float* dst, float* src, in
     return TNN_OK;
 }
 
+Status CpuReduceSumSquareLayerAcc::PreCalculateReduce(int32_t* dst, int32_t* src, int count) {
+    for (int i = 0; i < count; ++i) {
+        dst[i] = std::pow(src[i], 2);
+    }
+    return TNN_OK;
+}
+
 Status CpuReduceSumSquareLayerAcc::CalculateReduce(float* output_data, float* input_data, int outer_dim, int channels,
+                                                   int inner_dim) {
+    for (int oc = 0; oc < outer_dim; oc++) {
+        for (int c = 0; c < channels; c++) {
+            for (int ic = 0; ic < inner_dim; ic++) {
+                output_data[ic] += input_data[ic];
+            }
+            input_data += inner_dim;
+        }
+        output_data += inner_dim;
+    }
+    return TNN_OK;
+}
+
+Status CpuReduceSumSquareLayerAcc::CalculateReduce(int32_t* output_data, int32_t* input_data, int outer_dim, int channels,
                                                    int inner_dim) {
     for (int oc = 0; oc < outer_dim; oc++) {
         for (int c = 0; c < channels; c++) {
@@ -44,6 +65,11 @@ Status CpuReduceSumSquareLayerAcc::CalculateReduce(float* output_data, float* in
 
 Status CpuReduceSumSquareLayerAcc::PostCalculateReduce(float* dst, float* src, int count) {
     ::memcpy(dst, src, count * sizeof(float));
+    return TNN_OK;
+}
+
+Status CpuReduceSumSquareLayerAcc::PostCalculateReduce(int32_t* dst, int32_t* src, int count) {
+    ::memcpy(dst, src, count * sizeof(int32_t));
     return TNN_OK;
 }
 
