@@ -56,11 +56,11 @@ Status ArmReshapeLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
     char *input_origin  = GetBlobHandlePtr(inputs[0]->GetHandle());
     char *output_origin = GetBlobHandlePtr(outputs[0]->GetHandle());
 
-    auto ic    = dims_input[1];
-    auto ic_r4 = ROUND_UP(dims_input[1], 4);
+    auto ic    = DimsFunctionUtils::GetDim(dims_input, 1);;
+    auto ic_r4 = ROUND_UP(ic, 4);
     auto ihw   = DimsVectorUtils::Count(dims_input, 2);
-    auto oc    = dims_output[1];
-    auto oc_r4 = ROUND_UP(dims_output[1], 4);
+    auto oc    = DimsFunctionUtils::GetDim(dims_output, 1);
+    auto oc_r4 = ROUND_UP(oc, 4);
     auto ohw   = DimsVectorUtils::Count(dims_output, 2);
 
     auto input_plane     = ic * ihw;
@@ -101,11 +101,11 @@ Status ArmReshapeLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const
     char *input_origin  = GetBlobHandlePtr(inputs[0]->GetHandle());
     char *output_origin = GetBlobHandlePtr(outputs[0]->GetHandle());
 
-    auto ic    = dims_input[1];
-    auto ic_r8 = ROUND_UP(dims_input[1], 8);
+    auto ic    = DimsFunctionUtils::GetDim(dims_input, 1);
+    auto ic_r8 = ROUND_UP(ic, 8);
     auto ihw   = DimsVectorUtils::Count(dims_input, 2);
-    auto oc    = dims_output[1];
-    auto oc_r8 = ROUND_UP(dims_output[1], 8);
+    auto oc    = DimsFunctionUtils::GetDim(dims_output, 1);
+    auto oc_r8 = ROUND_UP(oc, 8);
     auto ohw   = DimsVectorUtils::Count(dims_output, 2);
 
     auto input_plane     = ic * ihw;
@@ -189,11 +189,11 @@ Status ArmReshapeLayerAcc::ExecNHWC4(const std::vector<Blob *> &inputs, const st
     char *input_origin  = GetBlobHandlePtr(inputs[0]->GetHandle());
     char *output_origin = GetBlobHandlePtr(outputs[0]->GetHandle());
 
-    auto ic    = dims_input[1];
-    auto ic_r4 = ROUND_UP(dims_input[1], 4);
+    auto ic    = DimsFunctionUtils::GetDim(dims_input, 1);
+    auto ic_r4 = ROUND_UP(ic, 4);
     auto ihw   = DimsVectorUtils::Count(dims_input, 2);
-    auto oc    = dims_output[1];
-    auto oc_r4 = ROUND_UP(dims_output[1], 4);
+    auto oc    = DimsFunctionUtils::GetDim(dims_output, 1);
+    auto oc_r4 = ROUND_UP(oc, 4);
     auto ohw   = DimsVectorUtils::Count(dims_output, 2);
 
     auto input_plane     = ic * ihw;
