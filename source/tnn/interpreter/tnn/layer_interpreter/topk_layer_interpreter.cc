@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <stdlib.h>
 #include "tnn/interpreter/tnn/layer_interpreter/abstract_layer_interpreter.h"
 
 namespace TNN_NS {
@@ -19,11 +20,14 @@ namespace TNN_NS {
 DECLARE_LAYER_INTERPRETER(TopK, LAYER_TOPK);
 
 Status TopKLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam** param) {
-    int index = start_index;
-    auto p    = CreateLayerParam<TopKLayerParam>(param);
+    auto* layer_param = new TopKLayerParam();
+    *param            = layer_param;
+    int index         = start_index;
 
-    GET_INT_3(p->axis, p->largest, p->sorted);
-    GET_INT_1(p->k);
+    GET_INT_1_OR_DEFAULT(layer_param->axis, -1);
+    GET_INT_1_OR_DEFAULT(layer_param->largest, 1);
+    GET_INT_1_OR_DEFAULT(layer_param->sorted, 1);
+    GET_INT_1_OR_DEFAULT(layer_param->k, -1);
 
     return TNN_OK;
 }
@@ -33,6 +37,7 @@ Status TopKLayerInterpreter::InterpretResource(Deserializer& deserializer, Layer
 }
 
 Status TopKLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+
     CAST_OR_RET_ERROR(layer_param, TopKLayerParam, "invalid topk param to save", param);
     output_stream << layer_param->axis << " " << layer_param->largest << " " << 
                      layer_param->sorted << " " << layer_param->k << " ";
