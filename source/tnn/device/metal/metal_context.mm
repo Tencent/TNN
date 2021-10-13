@@ -122,7 +122,6 @@ Status MetalContext::Synchronize() {
             _commandQueue = [[TNNMetalCommandQueueImpl alloc] initWithCommandQueue:[_device newCommandQueue]];
             _commandQueue.metalContextImpl = self;
             _commandBuffer = [_commandQueue commandBuffer];
-            [_commandBuffer enqueue];
             _pipeLineCaches                = [[NSMutableDictionary alloc] init];
             _waitingCommandBufferes        = [[NSMutableArray alloc] init];
             _commitCount                   = 0;

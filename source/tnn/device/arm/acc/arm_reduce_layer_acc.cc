@@ -59,10 +59,10 @@ void ArmReduceLayerAcc::ReduceChannel(float *input_data, float *output_data, Dim
                     if (post_cal)
                         r = op_->PostCalculate(r, axis_n);
                 }
-                *(output_data + p)      = r.value[0];
-                *(output_data + p + 4)  = r.value[1];
-                *(output_data + p + 8)  = r.value[2];
-                *(output_data + p + 12) = r.value[3];
+                *(output_data + p)      = r[0];
+                *(output_data + p + 4)  = r[1];
+                *(output_data + p + 8)  = r[2];
+                *(output_data + p + 12) = r[3];
             }
 
             for (int i = 0; i < hw_r; i++) {
@@ -87,6 +87,10 @@ void ArmReduceLayerAcc::ReduceChannel(float *input_data, float *output_data, Dim
 }
 
 static bool NeedRepack(const DimsVector &src_dims, const DimsVector &dst_dims) {
+    if (dst_dims.size() < 2) {
+        // skip repack for one-dimensional tensor
+        return false;
+    }
     return ((src_dims.size() != dst_dims.size()) && (src_dims[1] != dst_dims[1]));
 }
 
@@ -97,6 +101,10 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     auto input   = inputs[0];
     auto output  = outputs[0];
     auto dims_in = input->GetBlobDesc().dims;
+    if (dims_in.size() == 1) {
+        // treat 1D blob with nc4hw4 format as 2D blob
+        dims_in.push_back(1);
+    }
 
     int data_byte_size = DataTypeUtils::GetBytesSize(input->GetBlobDesc().data_type);
 
@@ -119,7 +127,7 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         RawBuffer tmp_out[2];
         for (int i = 0; i < param->axis.size(); ++i) {
             int axis = param->axis[i];
-            axis     = axis >= 0 ? axis : axis + (int)dims_in.size();
+            axis     = axis >= 0 ? axis : axis + (int)input->GetBlobDesc().dims.size();
 
             auto dims_out  = dims_in;
             dims_out[axis] = 1;

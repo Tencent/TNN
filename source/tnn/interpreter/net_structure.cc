@@ -53,4 +53,14 @@ bool NeedDoConstantFolding(NetStructure* net_struct) {
     return false;
 }
 
+bool IsQuantizedLayerFromInputName(NetStructure* net_structure, const std::string& input_name) {
+    for (const auto& layer_info : net_structure->layers) {
+        const auto& inputs = layer_info->inputs;
+        if (std::find(inputs.begin(), inputs.end(), input_name) != inputs.end()) {
+            return layer_info->param->quantized;
+        }
+    }
+    return false;
+}
+
 }  // namespace TNN_NS

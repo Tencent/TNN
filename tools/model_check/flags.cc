@@ -34,12 +34,14 @@ DEFINE_string(n, "", bias_message);
 
 DEFINE_string(s, "", scale_message);
 
-DEFINE_bool(o, false, output_dump_message);
+DEFINE_string(do, "", dump_output_path_message);
 
 DEFINE_bool(b, false, check_batch_message);
 
 DEFINE_string(a, "", align_all_message);
 
 DEFINE_string(sp, "", set_precision_message);
+
+DEFINE_string(du, "", dump_unaligned_layer_path_message);
 
 }  // namespace TNN_NS

@@ -25,6 +25,29 @@
 
 using namespace std;
 
+std::vector<int> GetPreviousIndexNode(std::vector<IndexNode>& index_nodes, int index) {
+    auto node = index_nodes[index].node;
+    std::vector<int> next_indexes;
+
+    for (int ii = 0; ii < index; ii++) {
+        auto item        = index_nodes[ii].node;
+        bool is_previous = false;
+        for (const auto& input : node->input()) {
+            for (const auto& output : item->output()) {
+                if (output == input) {
+                    next_indexes.push_back(ii);
+                    is_previous = true;
+                    break;
+                }
+            }
+            if (is_previous) {
+                break;
+            }
+        }
+    }
+    return next_indexes;
+}
+
 std::vector<int> GetNextIndexNode(std::vector<IndexNode>& index_nodes, int index) {
     auto node = index_nodes[index].node;
     std::vector<int> next_indexes;

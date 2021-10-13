@@ -62,7 +62,7 @@ namespace optimizer {
                (precision == PRECISION_NORMAL || precision == PRECISION_AUTO) && CpuUtils::CpuSupportFp16();
     }
 
-    static std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_fp16) {
+    std::shared_ptr<LayerInfo> NetOptimizerInsertFp16Reformat::CreateReformat(std::string name, bool src_fp16) {
         std::shared_ptr<LayerInfo> new_layer = std::shared_ptr<LayerInfo>(new LayerInfo());
         new_layer->type                      = LAYER_REFORMAT;
         new_layer->type_str                  = "Reformat";
@@ -73,6 +73,10 @@ namespace optimizer {
         new_layer->param->name               = new_layer->name;
         param->src_type                      = src_fp16 ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
         param->dst_type                      = src_fp16 ? DATA_TYPE_FLOAT : DATA_TYPE_HALF;
+        if (device_->GetDeviceType() == DEVICE_ARM) {
+            param->src_format = DATA_FORMAT_NC4HW4;
+            param->dst_format = DATA_FORMAT_NC4HW4;
+        }
         return new_layer;
     }
 

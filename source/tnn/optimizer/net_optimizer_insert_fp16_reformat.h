@@ -39,6 +39,7 @@ namespace optimizer {
                          const std::set<std::string>& constant_layers, bool is_cur_layer_fp16,
                          std::shared_ptr<LayerInfo>& new_layer, std::vector<std::string>& reformat_outs,
                          const std::string& reformat_name_suffix, const int index, const int count);
+        std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_fp16);
 
     private:
         AbstractDevice* device_;

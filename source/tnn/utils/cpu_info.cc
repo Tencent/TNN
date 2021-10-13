@@ -353,20 +353,20 @@ static bool match_samsung_exynos(const char *start, const char *end, struct cpui
      * Blocks of 4 characters are loaded and compared as little-endian 32-bit word.
      * Case-insensitive characters are binary ORed with 0x20 to convert them to lowercase.
      */
-    const uint32_t expected_sams = UINT32_C(0x20202000) | load_u32le(start);
-    if (expected_sams != UINT32_C(0x736D6153) /* "smaS" = reverse("Sams") */) {
+    const uint32_t expected_sams = uint32_t(0x20202000) | load_u32le(start);
+    if (expected_sams != uint32_t(0x736D6153) /* "smaS" = reverse("Sams") */) {
         return false;
     }
-    const uint32_t expected_ung = UINT32_C(0x00202020) | load_u32le(start + 4);
-    if (expected_ung != UINT32_C(0x20676E75) /* " ung" = reverse("ung ") */) {
+    const uint32_t expected_ung = uint32_t(0x00202020) | load_u32le(start + 4);
+    if (expected_ung != uint32_t(0x20676E75) /* " ung" = reverse("ung ") */) {
         return false;
     }
-    const uint32_t expected_exyn = UINT32_C(0x20202000) | load_u32le(start + 8);
-    if (expected_exyn != UINT32_C(0x6E797845) /* "nyxE" = reverse("Exyn") */) {
+    const uint32_t expected_exyn = uint32_t(0x20202000) | load_u32le(start + 8);
+    if (expected_exyn != uint32_t(0x6E797845) /* "nyxE" = reverse("Exyn") */) {
         return false;
     }
-    const uint16_t expected_os = UINT16_C(0x2020) | load_u16le(start + 12);
-    if (expected_os != UINT16_C(0x736F) /* "so" = reverse("os") */) {
+    const uint16_t expected_os = uint16_t(0x2020) | load_u16le(start + 12);
+    if (expected_os != uint16_t(0x736F) /* "so" = reverse("os") */) {
         return false;
     }
 
@@ -420,13 +420,13 @@ static bool match_exynos(const char *start, const char *end, struct cpuinfo_arm_
 
     /* Load first 4 bytes as little endian 32-bit word */
     const uint32_t expected_exyn = load_u32le(start);
-    if (expected_exyn != UINT32_C(0x6E797865) /* "nyxe" = reverse("exyn") */) {
+    if (expected_exyn != uint32_t(0x6E797865) /* "nyxe" = reverse("exyn") */) {
         return false;
     }
 
     /* Load next 2 bytes as little endian 16-bit word */
     const uint16_t expected_os = load_u16le(start + 4);
-    if (expected_os != UINT16_C(0x736F) /* "so" = reverse("os") */) {
+    if (expected_os != uint16_t(0x736F) /* "so" = reverse("os") */) {
         return false;
     }
 
@@ -473,16 +473,16 @@ static bool match_universal(const char *start, const char *end, struct cpuinfo_a
      * Blocks of 4 characters are loaded and compared as little-endian 32-bit word.
      * Case-insensitive characters are binary ORed with 0x20 to convert them to lowercase.
      */
-    const uint8_t expected_u = UINT8_C(0x20) | (uint8_t)start[0];
-    if (expected_u != UINT8_C(0x75) /* "u" */) {
+    const uint8_t expected_u = uint8_t(0x20) | (uint8_t)start[0];
+    if (expected_u != uint8_t(0x75) /* "u" */) {
         return false;
     }
-    const uint32_t expected_nive = UINT32_C(0x20202020) | load_u32le(start + 1);
-    if (expected_nive != UINT32_C(0x6576696E) /* "evin" = reverse("nive") */) {
+    const uint32_t expected_nive = uint32_t(0x20202020) | load_u32le(start + 1);
+    if (expected_nive != uint32_t(0x6576696E) /* "evin" = reverse("nive") */) {
         return false;
     }
-    const uint32_t expected_ersa = UINT32_C(0x20202020) | load_u32le(start + 5);
-    if (expected_ersa != UINT32_C(0x6C617372) /* "lasr" = reverse("rsal") */) {
+    const uint32_t expected_ersa = uint32_t(0x20202020) | load_u32le(start + 5);
+    if (expected_ersa != uint32_t(0x6C617372) /* "lasr" = reverse("rsal") */) {
         return false;
     }
 

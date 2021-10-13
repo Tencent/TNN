@@ -124,18 +124,11 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         return ret;
     }
 
-    this->m_max_batchsize = 1;
     BlobMap inputs;
     ret = blob_manager_->GetAllInputBlobs(inputs);
     if (ret != TNN_OK) {
         LOGE("ERROR: get input blobs failed");
         return ret;
-    }
-
-    for (auto iter : inputs) {
-        if (iter.second->GetBlobDesc().dims[0] > this->m_max_batchsize) {
-            this->m_max_batchsize = iter.second->GetBlobDesc().dims[0];
-        }
     }
 
     ret = InitLayers(net_structure, net_resource, enable_const_folder);
@@ -153,7 +146,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     std::string cache_file_name = GetCacheFileName(params_md5, inputs, outputs, min_inputs_shape,
-        net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW,
+        net_config.device_id, this->int8_mode, config_.precision == PRECISION_LOW,
         enable_const_folder);
 
     std::unique_ptr<ExclFile> file_lock(new ExclFile(cache_file_name));
@@ -459,7 +452,6 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         if (cur_layer->IsPluginLayer()) {
             m_plugin_layer_name_map[layer_info->name] = dynamic_cast<TensorRTPluginLayerBuilder*>(cur_layer);
         }
-        cur_layer->SetBatchSize(m_max_batchsize);
     }
     return ret;
 }
@@ -736,8 +728,8 @@ bool TensorRTNetwork_::IsBlobUsed(Blob* blob) {
 }
 
 std::string TensorRTNetwork_::GetCacheFileName(std::vector<std::string> params_md5, BlobMap input_map,
-        BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, int batchsize,
-        bool int8_mode, bool use_fp16, bool enable_const_folder) {
+        BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, bool int8_mode,
+        bool use_fp16, bool enable_const_folder) {
     std::string md5_source = "";
 
     for (auto iter : params_md5) {
@@ -775,8 +767,8 @@ std::string TensorRTNetwork_::GetCacheFileName(std::vector<std::string> params_m
     std::string const_folder = enable_const_folder ? "const_folder_on" : "const_folder_off";
 
     std::string cache_file_name = "." +  md5(md5_source) + precision
-        + TENSORRT_SERIALIZE_VERSION + "-b-" + std::to_string(batchsize)
-        + "-" + GetGpuType(device_id) + "-" + GetTrtVersion() + GetCudaVersion()
+        + TENSORRT_SERIALIZE_VERSION + "-" + GetGpuType(device_id)
+        + "-" + GetTrtVersion() + GetCudaVersion()
         + "-" + const_folder + ".cache";
     return cache_file_name;
 }
