@@ -40,6 +40,25 @@ Status CpuReduceMinLayerAcc::CalculateReduce(float* output_data, float* input_da
     return TNN_OK;
 }
 
+Status CpuReduceMinLayerAcc::CalculateReduce(int32_t* output_data, int32_t* input_data, int outer_dim, int channels,
+                                             int inner_dim) {
+    int output_size = outer_dim * inner_dim;
+    for (int i = 0; i < output_size; ++i) {
+        output_data[i] = INT32_MAX;
+    }
+
+    for (int oc = 0; oc < outer_dim; oc++) {
+        for (int c = 0; c < channels; c++) {
+            for (int ic = 0; ic < inner_dim; ic++) {
+                output_data[ic] = std::min(input_data[ic], output_data[ic]);
+            }
+            input_data += inner_dim;
+        }
+        output_data += inner_dim;
+    }
+    return TNN_OK;
+}
+
 REGISTER_CPU_REDUCE_ACC(ReduceMin, LAYER_REDUCE_MIN);
 
 }  // namespace TNN_NS

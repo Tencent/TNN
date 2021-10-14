@@ -37,7 +37,7 @@ const static std::string engine_encode_key = std::string("(8Xo@8Z9^@x7<1$x~-1l$=
       24faBDE1Ce0edB7d0a53b4b40");
 
 #define MAX_SCRATCH_MEMORY (1<<31 - 1)
-#define TENSORRT_SERIALIZE_VERSION "v1.4"
+#define TENSORRT_SERIALIZE_VERSION "v1.5"
 
 NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
     g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
