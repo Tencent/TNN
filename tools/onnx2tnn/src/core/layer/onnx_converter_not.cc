@@ -16,5 +16,3 @@
 #include "onnx_utility.h"
 
 REGISTER_OP_CONVERTER_NoParamNoWeight(Neg, Not);
-
-

@@ -124,6 +124,11 @@ struct ScatterNDLayerResource : public LayerResource {
     RawBuffer updates;
 };
 
+struct ScatterLayerResource : public LayerResource {
+    RawBuffer indices;
+    RawBuffer updates;
+};
+
 struct ScatterElementsLayerResource : public LayerResource {
     RawBuffer data;
 };

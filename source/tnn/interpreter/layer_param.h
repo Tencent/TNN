@@ -659,6 +659,21 @@ struct TopKLayerParam : public LayerParam {
     PARAM_COPY(TopKLayerParam)
 };
 
+struct NonMaxSuppressionLayerParam : public LayerParam {
+    int center_point_box               = 0;
+    int64_t max_output_boxes_per_class = 0;
+    float iou_threshold                = 0.0f;
+    float score_threshold              = 0.0f;
+
+    PARAM_COPY(NonMaxSuppressionLayerParam)
+};
+
+struct ScatterLayerParam : public LayerParam {
+    int axis = 0;
+
+    PARAM_COPY(ScatterLayerParam)
+};
+
 struct ScatterElementsLayerParam : public LayerParam {
     int axis = 0;
     // 0: eq, 1: add
