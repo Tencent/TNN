@@ -19,6 +19,11 @@ namespace TNN_NS {
 
 DECLARE_CUDA_ACC(GridSample, LAYER_GRIDSAMPLE);
 
+static __forceinline__ __device__
+bool within_bounds_2d(int h, int w, int H, int W) {
+    return h >= 0 && h < H && w >= 0 && w < W;
+}
+
 __global__ void gridsample_kernel(const float* input_data, const float* grid_data, float* output_data,
         int output_channel_area, int input_channel_area, int grid_area, int channel, int input_height,
         int input_width) {
@@ -27,40 +32,47 @@ __global__ void gridsample_kernel(const float* input_data, const float* grid_dat
     float* output_ptr = output_data + blockIdx.y * output_channel_area * channel;
 
     CUDA_KERNEL_LOOP(index, output_channel_area) {
-        float grid_x = (grid_ptr[2*index] + 1) * input_width * 0.5 -0.5;
-        float grid_y = (grid_ptr[2*index+1] + 1) * input_height * 0.5 - 0.5;
+        float ix = (grid_ptr[2*index] + 1) * input_width * 0.5 -0.5;
+        float iy = (grid_ptr[2*index+1] + 1) * input_height * 0.5 - 0.5;
+        // get corner pixel values from (x, y)
+        // for 4d, we use north-east-south-west
+        int ix_nw = static_cast<int>(std::floor(ix));
+        int iy_nw = static_cast<int>(std::floor(iy));
 
-        const int w0 = floorf(grid_x);
-        const int w1p = (w0 < input_width - 1) ? 1 : 0;
-        float w1lambda = grid_x - w0;
-        float w0lambda = (float)1. - w1lambda;
-        if (w0 < 0 || w0 > input_width - 1) {
-            w0lambda = 0;
-        }
-        if (w0 + 1 < 0 || w0 + 1 > input_width - 1) {
-            w1lambda = 0;
-        }
+        int ix_ne = ix_nw + 1;
+        int iy_ne = iy_nw;
 
-        const int h0  = floorf(grid_y);
-        const int h1p = (h0 < input_height - 1) ? 1 : 0;
-        float h1lambda = grid_y - h0;
-        float h0lambda = (float)1. - h1lambda;
-        if (h0 < 0 || h0 > input_height - 1) {
-            h0lambda = 0;
-        }
-        if (h0 + 1 < 0 || h0 + 1 > input_height - 1) {
-            h1lambda = 0;
-        }
+        int ix_sw = ix_nw;
+        int iy_sw = iy_nw + 1;
 
-        const float *x_data_ptr = input_ptr + h0 * input_width + w0;
-        float *y_data_ptr = output_ptr + index;
-        for (int c=0; c<channel; c++) {
-            y_data_ptr[0] = h0lambda * (w0lambda * x_data_ptr[0] + w1lambda * x_data_ptr[w1p]) +
-                            h1lambda * (w0lambda * x_data_ptr[h1p * input_width] +
-                                        w1lambda * x_data_ptr[h1p * input_width + w1p]);
+        int ix_se = ix_nw + 1;
+        int iy_se = iy_nw + 1;
 
-            x_data_ptr += input_channel_area;
-            y_data_ptr += output_channel_area;
+        // get surfaces to each neighbor:
+        bool nw_within_bound = within_bounds_2d(iy_nw, ix_nw, input_height, input_width);
+        bool ne_within_bound = within_bounds_2d(iy_ne, ix_ne, input_height, input_width);
+        bool sw_within_bound = within_bounds_2d(iy_sw, ix_sw, input_height, input_width);
+        bool se_within_bound = within_bounds_2d(iy_se, ix_se, input_height, input_width);
+        float nw             = nw_within_bound ? (ix_se - ix) * (iy_se - iy) : 0;
+        float ne             = ne_within_bound ? (ix - ix_sw) * (iy_sw - iy) : 0;
+        float sw             = sw_within_bound ? (ix_ne - ix) * (iy - iy_ne) : 0;
+        float se             = se_within_bound ? (ix - ix_nw) * (iy - iy_nw) : 0;
+        int nw_index         = nw_within_bound ? iy_nw * input_width + ix_nw : 0;
+        int ne_index         = ne_within_bound ? iy_ne * input_width + ix_ne : 0;
+        int sw_index         = sw_within_bound ? iy_sw * input_width + ix_sw : 0;
+        int se_index         = se_within_bound ? iy_se * input_width + ix_se : 0;
+
+        // calculate bilinear weighted pixel value and set output pixel
+        const float *input_c = input_ptr;
+        float *output_c = output_ptr + index;
+        for (int c = 0; c < channel;
+                ++c, output_c += output_channel_area, input_c += input_channel_area) {
+            auto res = static_cast<float>(0);
+            res += input_c[nw_index] * nw;
+            res += input_c[ne_index] * ne;
+            res += input_c[sw_index] * sw;
+            res += input_c[se_index] * se;
+            *output_c = res;
         }
     }
 }
