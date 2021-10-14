@@ -229,7 +229,11 @@ bool ArmLayerAcc::DataTypeSupported(DataType data_type) {
         return false;
     }
 }
-
+#ifdef TRAIN
+Status ArmLayerAcc::RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return Status(TNN_OK);
+}
+#endif
 Status ArmLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     Status status;
 #if TNN_PROFILE
@@ -240,6 +244,9 @@ Status ArmLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector
 
     auto in_data_type = inputs[0]->GetBlobDesc().data_type;
     if (DataTypeSupported(in_data_type)) {
+#ifdef TRAIN
+        RETURN_ON_NEQ(RefreshBuffers(inputs, outputs), TNN_OK);
+#endif
         status = this->DoForward(inputs, outputs);
     } else {
         LOGE("Error : arm layer acc got unsupported data type %d\n", in_data_type);

@@ -52,6 +52,9 @@ public:
     //@brief get layer name
     std::string GetLayerName();
 
+    //@brief get layer type
+    LayerType GetLayerType();
+
     //@brief set laye name
     void SetLayerName(std::string layer_name);
 
@@ -83,7 +86,7 @@ public:
     // @brief set runtime mode
     void SetRuntimeMode(RuntimeMode mode);
 
-protected:
+public:
     LayerType type_;
 
     std::string layer_name_;
@@ -97,6 +100,7 @@ protected:
     ConstantResourceFlag* const_resource_flag_ = nullptr;
     RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;
     bool enable_const_folder_ = true;
+    
 
     //@brief calculate the output tensor dims
     virtual Status InferOutputShape(bool ignore_error = false);
@@ -104,6 +108,9 @@ protected:
     virtual Status InferOutputDataType();
     //@brief fill layer param with constant resource
     virtual Status FillLayerParamWithConstantResource();
+
+    //
+    
 };
 
 //@brief LayerCreator define the create layer interface

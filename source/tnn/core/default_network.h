@@ -32,6 +32,11 @@
 #include "tnn/interpreter/net_structure.h"
 #include "tnn/layer/base_layer.h"
 
+#ifdef TRAIN
+#include "tnn/train/solver/base_solver.h"
+#endif
+
+
 namespace TNN_NS {
 
 class DefaultNetwork : public AbstractNetwork {
@@ -92,6 +97,18 @@ public:
     // @brief set threads run on device
     virtual Status SetCpuNumThreads(int num_threads);
 
+
+    // @brief get layers
+    virtual std::vector<BaseLayer *>& GetLayers(); 
+
+#ifdef TRAIN
+    virtual Status TrainStep();
+
+    virtual Status SetSolver(std::shared_ptr<train::BaseSolver> solver);
+    virtual std::shared_ptr<train::BaseSolver> GetSolver();  
+#endif
+    virtual Blob* GetBlob(std::string blob_name);   
+
 #if TNN_PROFILE
 public:
     virtual void StartProfile();
@@ -122,13 +139,14 @@ protected:
     NetResource *net_resource_ = nullptr;
 
     NetworkConfig config_;
-
+#ifdef TRAIN
+    std::shared_ptr<train::BaseSolver> solver_;
+#endif
     static std::mutex optimize_mtx_;
 
 private:
 
    Status ReshapeLayers();
-
 };
 
 }  // namespace TNN_NS

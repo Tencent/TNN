@@ -100,6 +100,11 @@ public:
     // set threads run on cpu
     Status SetCpuNumThreads(int num_threads);
 
+    // run backward step in train module
+#ifdef TRAIN
+    Status TrainStep();
+#endif
+
 #if TNN_PROFILE
 public:
     /**start to profile each layer, dont call this func if you only want to profile the whole mode*/
@@ -129,6 +134,10 @@ public:
                         MatConvertParam param = MatConvertParam(),
                         std::string output_name = "",
                         DeviceType device = DEVICE_ARM, MatType mat_type = NCHW_FLOAT);
+
+    // get output data point for debug  
+    Status GetOutputDataPoint(void** data_ptr, const std::string output_name, 
+                                        DimsVector& dims, int& data_type, int& data_format);
     
 private:
     // input converter
@@ -141,6 +150,8 @@ private:
     std::map<std::string, std::shared_ptr<Mat>> output_mats_ = {};
     // output mat convert status
     std::map<std::string, int> output_mats_convert_status_ = {};
+
+
 };
 
 }  // namespace TNN_NS
