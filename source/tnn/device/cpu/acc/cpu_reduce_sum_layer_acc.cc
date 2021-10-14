@@ -35,6 +35,20 @@ Status CpuReduceSumLayerAcc::CalculateReduce(float* output_data, float* input_da
     return TNN_OK;
 }
 
+Status CpuReduceSumLayerAcc::CalculateReduce(int32_t* output_data, int32_t* input_data, int outer_dim, int channels,
+                                             int inner_dim) {
+    for (int oc = 0; oc < outer_dim; oc++) {
+        for (int c = 0; c < channels; c++) {
+            for (int ic = 0; ic < inner_dim; ic++) {
+                output_data[ic] += input_data[ic];
+            }
+            input_data += inner_dim;
+        }
+        output_data += inner_dim;
+    }
+    return TNN_OK;
+}
+
 REGISTER_CPU_REDUCE_ACC(ReduceSum, LAYER_REDUCE_SUM);
 
 }  // namespace TNN_NS

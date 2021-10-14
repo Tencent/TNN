@@ -16,6 +16,7 @@
 
 #include <cstring>
 #include <type_traits>
+#include <queue>
 
 #include "math.h"
 #include "tnn/core/macro.h"
@@ -1049,6 +1050,198 @@ void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<B
     }
 
     DealOutput(output_blob, num_kept, num, all_conf_scores, all_decode_bboxes, all_indices, param);
+}
+
+inline void MaxMin(float lhs, float rhs, float& min, float& max) {
+  if (lhs >= rhs) {
+    min = rhs;
+    max = lhs;
+  } else {
+    min = lhs;
+    max = rhs;
+  }
+}
+
+inline bool SuppressByIOU(const float* boxes_data, int64_t box_index1, int64_t box_index2,
+                          int64_t center_point_box, float iou_threshold) {
+  float x1_min{};
+  float y1_min{};
+  float x1_max{};
+  float y1_max{};
+  float x2_min{};
+  float y2_min{};
+  float x2_max{};
+  float y2_max{};
+  float intersection_x_min{};
+  float intersection_x_max{};
+  float intersection_y_min{};
+  float intersection_y_max{};
+
+  const float* box1 = boxes_data + 4 * box_index1;
+  const float* box2 = boxes_data + 4 * box_index2;
+  // center_point_box_ only support 0 or 1
+  if (0 == center_point_box) {
+    // boxes data format [y1, x1, y2, x2],
+    MaxMin(box1[1], box1[3], x1_min, x1_max);
+    MaxMin(box2[1], box2[3], x2_min, x2_max);
+
+    intersection_x_min = std::max(x1_min, x2_min);
+    intersection_x_max = std::min(x1_max, x2_max);
+    if (intersection_x_max <= intersection_x_min)
+      return false;
+
+    MaxMin(box1[0], box1[2], y1_min, y1_max);
+    MaxMin(box2[0], box2[2], y2_min, y2_max);
+    intersection_y_min = std::max(y1_min, y2_min);
+    intersection_y_max = std::min(y1_max, y2_max);
+    if (intersection_y_max <= intersection_y_min)
+      return false;
+  } else {
+    // 1 == center_point_box_ => boxes data format [x_center, y_center, width, height]
+    float box1_width_half = box1[2] / 2;
+    float box1_height_half = box1[3] / 2;
+    float box2_width_half = box2[2] / 2;
+    float box2_height_half = box2[3] / 2;
+
+    x1_min = box1[0] - box1_width_half;
+    x1_max = box1[0] + box1_width_half;
+    x2_min = box2[0] - box2_width_half;
+    x2_max = box2[0] + box2_width_half;
+
+    intersection_x_min = std::max(x1_min, x2_min);
+    intersection_x_max = std::min(x1_max, x2_max);
+    if (intersection_x_max <= intersection_x_min)
+      return false;
+
+    y1_min = box1[1] - box1_height_half;
+    y1_max = box1[1] + box1_height_half;
+    y2_min = box2[1] - box2_height_half;
+    y2_max = box2[1] + box2_height_half;
+
+    intersection_y_min = std::max(y1_min, y2_min);
+    intersection_y_max = std::min(y1_max, y2_max);
+    if (intersection_y_max <= intersection_y_min)
+      return false;
+  }
+
+  const float intersection_area = (intersection_x_max - intersection_x_min) *
+                                  (intersection_y_max - intersection_y_min);
+
+  if (intersection_area <= .0f) {
+    return false;
+  }
+
+  const float area1 = (x1_max - x1_min) * (y1_max - y1_min);
+  const float area2 = (x2_max - x2_min) * (y2_max - y2_min);
+  const float union_area = area1 + area2 - intersection_area;
+
+  if (area1 <= .0f || area2 <= .0f || union_area <= .0f) {
+    return false;
+  }
+
+  const float intersection_over_union = intersection_area / union_area;
+
+  return intersection_over_union > iou_threshold;
+}
+
+void NaiveNonMaxSuppression(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                            NonMaxSuppressionLayerParam *param) {
+    ASSERT(inputs.size() >= 2);
+    int center_point_box = param->center_point_box;
+    int64_t max_output_boxes_per_class = param->max_output_boxes_per_class;
+    float iou_threshold = param->iou_threshold;
+    float score_threshold = param->score_threshold;
+
+    Blob *boxes_blob = inputs[0];
+    Blob *scores_blob = inputs[1];
+    Blob *output_blob = outputs[0];
+    auto boxes_dims = boxes_blob->GetBlobDesc().dims;
+    auto scores_dims = scores_blob->GetBlobDesc().dims;
+
+    if (0 == max_output_boxes_per_class) {
+        output_blob->GetBlobDesc().dims = {0, 3};
+        return;
+    }
+
+    const float *boxes_data   = static_cast<const float *>(boxes_blob->GetHandle().base);
+    const float *scores_data  = static_cast<const float *>(scores_blob->GetHandle().base);
+
+    struct BoxInfoPtr {
+        float score_{};
+        int index_{};
+
+        BoxInfoPtr() = default;
+        explicit BoxInfoPtr(float score, int idx) : score_(score), index_(idx) {}
+        inline bool operator<(const BoxInfoPtr& rhs) const {
+        return score_ < rhs.score_ || (score_ == rhs.score_ && index_ > rhs.index_);
+        }
+    };
+
+    struct SelectedIndex {
+        SelectedIndex(int batch_index, int class_index, int box_index)
+            : batch_index_(batch_index), class_index_(class_index), box_index_(box_index) {}
+        SelectedIndex() = default;
+        int batch_index_ = 0;
+        int class_index_ = 0;
+        int box_index_ = 0;
+    };
+
+    int num_batches = boxes_dims[0];
+    int num_boxes = boxes_dims[1];
+    int num_classes = scores_dims[1];
+    std::vector<SelectedIndex> selected_indices;
+    std::vector<BoxInfoPtr> selected_boxes_inside_class;
+    selected_boxes_inside_class.reserve(std::min<size_t>(static_cast<size_t>(max_output_boxes_per_class), num_boxes));
+
+    for (int batch_index = 0; batch_index < num_batches; ++batch_index) {
+        for (int class_index = 0; class_index < num_classes; ++class_index) {
+            int box_score_offset = (batch_index * num_classes + class_index) * num_boxes;
+            const float* batch_boxes = boxes_data + (batch_index * num_boxes * 4);
+            std::vector<BoxInfoPtr> candidate_boxes;
+            candidate_boxes.reserve(num_boxes);
+
+            // Filter by score_threshold_
+            const auto* class_scores = scores_data + box_score_offset;
+            for (int box_index = 0; box_index < num_boxes; ++box_index, ++class_scores) {
+                if (*class_scores > score_threshold) {
+                    candidate_boxes.emplace_back(*class_scores, box_index);
+                }
+            }
+            std::priority_queue<BoxInfoPtr, std::vector<BoxInfoPtr>> sorted_boxes(
+                std::less<BoxInfoPtr>(), std::move(candidate_boxes));
+
+            selected_boxes_inside_class.clear();
+            // Get the next box with top score, filter by iou_threshold
+            while (!sorted_boxes.empty() && static_cast<int>(selected_boxes_inside_class.size())
+                    < max_output_boxes_per_class) {
+                const BoxInfoPtr& next_top_score = sorted_boxes.top();
+
+                bool selected = true;
+                // Check with existing selected boxes for this class, suppress if exceed the IOU (Intersection Over Union) threshold
+                for (const auto& selected_index : selected_boxes_inside_class) {
+                    if (SuppressByIOU(batch_boxes, next_top_score.index_, selected_index.index_,
+                                      center_point_box, iou_threshold)) {
+                        selected = false;
+                        break;
+                    }
+                }
+
+                if (selected) {
+                    selected_boxes_inside_class.push_back(next_top_score);
+                    selected_indices.emplace_back(batch_index, class_index, next_top_score.index_);
+                }
+                sorted_boxes.pop();
+            }
+        }
+    }
+
+    const auto last_dim = 3;
+    const auto num_selected = selected_indices.size();
+    int *output_blob_data = static_cast<int *>(output_blob->GetHandle().base);
+    output_blob->GetBlobDesc().dims = {static_cast<int>(num_selected), last_dim};
+
+    ASSERT(last_dim * sizeof(int) == sizeof(SelectedIndex));
+    memcpy(output_blob_data, selected_indices.data(), num_selected * sizeof(SelectedIndex));
 }
 
 void NaiveColorToGray(const uint8_t *src, uint8_t *dst, int h, int w, int channel, bool bgr_order) {
