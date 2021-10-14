@@ -29,6 +29,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"BatchNormalization", LAYER_BATCH_NORM},
     {"BatchNormCxx", LAYER_BATCH_NORM},
     {"Softmax", LAYER_SOFTMAX},
+    {"Pooling1D", LAYER_POOLING_1D},
     {"Pooling", LAYER_POOLING},
     {"Pooling3D", LAYER_POOLING_3D},
     {"Pooling_split_CC", LAYER_POOLING},
@@ -216,6 +217,13 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"Where", LAYER_WHERE},
     {"LayerNorm", LAYER_LAYER_NORM},
     {"GELU", LAYER_GELU},
+    {"And", LAYER_AND},
+    {"Greater", LAYER_GREATER},
+    {"Less", LAYER_LESS},
+    {"Not", LAYER_NOT},
+    {"NonMaxSuppression", LAYER_NON_MAX_SUPPRESSION},
+    {"TopK", LAYER_TOPK},
+    {"Scatter", LAYER_SCATTER},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 
@@ -243,7 +251,6 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"CbamFusedReduce", LAYER_CBAM_FUSED_REDUCE},
     {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING},
     {"Softsign", LAYER_SOFTSIGN},
-    {"TopK", LAYER_TOPK},
     {"LogSoftmax", LAYER_LOGSOFTMAX},
     {"QuantizedReshape", LAYER_RESHAPE}
 };

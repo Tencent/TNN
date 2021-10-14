@@ -100,6 +100,14 @@ def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
             input_data_dict[name] = input_data_dict[tnn_name]
             del input_data_dict[tnn_name]
 
+    for item in input_info_list:
+        data_type = np.float32
+        if item.type == "tensor(int64)":
+            data_type = np.int64
+        elif item.type == "tensor(int32)":
+            data_type = np.int32
+        input_data_dict[item.name] = input_data_dict[item.name].astype(data_type)
+
     output_info = session.get_outputs()
     pred = session.run([], input_data_dict)
     with open(output_path, "w") as f:

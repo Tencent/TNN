@@ -26,6 +26,11 @@ Status CpuReduceLogSumExpLayerAcc::PreCalculateReduce(float* dst, float* src, in
     return TNN_OK;
 }
 
+Status CpuReduceLogSumExpLayerAcc::PreCalculateReduce(int32_t* dst, int32_t* src, int count) {
+    ::memcpy(dst, src, count * sizeof(int32_t));
+    return TNN_OK;
+}
+
 Status CpuReduceLogSumExpLayerAcc::CalculateReduce(float* output_data, float* input_data, int outer_dim, int channels,
                                                    int inner_dim) {
     for (int oc = 0; oc < outer_dim; oc++) {
@@ -53,8 +58,42 @@ Status CpuReduceLogSumExpLayerAcc::CalculateReduce(float* output_data, float* in
     }
     return TNN_OK;
 }
+
+Status CpuReduceLogSumExpLayerAcc::CalculateReduce(int32_t* output_data, int32_t* input_data, int outer_dim, int channels,
+                                                   int inner_dim) {
+    for (int oc = 0; oc < outer_dim; oc++) {
+        // Standardize to prevent overflow.
+        // log(sum(exp xi)) = c + log(sum(exp(xi-c)))
+        std::vector<int32_t> max_values(inner_dim, INT32_MIN);
+        for (int c = 0; c < channels; c++) {
+            const int offset = c * inner_dim;
+            for (int ic = 0; ic < inner_dim; ic++) {
+                max_values[ic] = std::max(max_values[ic], input_data[ic + offset]);
+            }
+        }
+
+        for (int c = 0; c < channels; c++) {
+            for (int ic = 0; ic < inner_dim; ic++) {
+                output_data[ic] += std::exp(input_data[ic] - max_values[ic]);
+            }
+            input_data += inner_dim;
+        }
+
+        for (int ic = 0; ic < inner_dim; ic++) {
+            output_data[ic] = std::log(output_data[ic]) + max_values[ic];
+        }
+        output_data += inner_dim;
+    }
+    return TNN_OK;
+}
+
 Status CpuReduceLogSumExpLayerAcc::PostCalculateReduce(float* dst, float* src, int count) {
     ::memcpy(dst, src, count * sizeof(float));
+    return TNN_OK;
+}
+
+Status CpuReduceLogSumExpLayerAcc::PostCalculateReduce(int32_t* dst, int32_t* src, int count) {
+    ::memcpy(dst, src, count * sizeof(int32_t));
     return TNN_OK;
 }
 
