@@ -130,7 +130,7 @@ Status CudaMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param
             uint8_t* src_ptr = (uint8_t*)src.GetData();
             uint8_t* dst_ptr = (uint8_t*)dst.GetData();
             WarpAffineBilinear(src_ptr, src.GetBatch(), channel, src.GetWidth(), src.GetHeight(), dst_ptr, dst.GetWidth(),
-                dst.GetHeight(), param.transform, param.border_val, param.border_type);
+                dst.GetHeight(), param.transform, param.border_val, param.border_type, command_queue);
         } else {
             return Status(TNNERR_PARAM_ERR, "convert type not support yet");
         }

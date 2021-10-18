@@ -20,6 +20,7 @@
 #include "tnn/utils/mat_converter_utils.h"
 #include "tnn/device/cuda/cuda_macro.h"
 #include "tnn/device/cuda/cuda_mat_util.cuh"
+#include "cuda_runtime.h"
 
 namespace TNN_NS {
 
@@ -508,7 +509,7 @@ static void initInterTab2D(short* input_table) {
 }
 
 void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-        const float (*transform)[3], const float border_val, BorderType border_type) {
+        const float (*transform)[3], const float border_val, BorderType border_type, void* stream) {
     double m[6];
     WarpAffineMatrixInverse(transform, m);
     double *tm_gpu;
@@ -527,10 +528,10 @@ void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, i
     griddim.x = (size_dst + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
     griddim.y = batch;
     if (border_type == BORDER_TYPE_CONSTANT) {
-        warp_affine_bilinear_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_CONSTANT><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
+        warp_affine_bilinear_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_CONSTANT><<<griddim, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, src_h, src_w,
             channel, dst_h, dst_w, table_gpu, tm_gpu, border_val);
     } else if (border_type == BORDER_TYPE_TRANSPARENT) {
-        warp_affine_bilinear_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_TRANSPARENT><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
+        warp_affine_bilinear_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_TRANSPARENT><<<griddim, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, src_h, src_w,
             channel, dst_h, dst_w, table_gpu, tm_gpu, border_val);
     }
     CUDA_CHECK(cudaFree(tm_gpu));
