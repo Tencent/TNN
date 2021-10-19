@@ -50,6 +50,13 @@ static std::vector<T> getValue(const torch::jit::Value* value, std::vector<int>&
     if (!size) {
         return data;
     }
+    if (size == 1) {
+        data.resize(1);
+        shape.resize(1);
+        data[0] = tensor.data_ptr<T>()[0];
+        shape[0] = 1;
+        return data;
+    }
     const auto shapes = tensor.sizes().vec();
     const auto strides = tensor.strides().vec();
     shape.resize(shapes.size());
@@ -123,18 +130,22 @@ static RawBuffer getValue(const torch::jit::Value* value) {
         }
         DataType data_type;
         auto torch_type = tensor.scalar_type();
-        ConvertToDataType(data_type, torch_type);
         DimsVector dims;
-        if (data_type == DATA_TYPE_HALF) {
+        if (torch_type == at::ScalarType::Half) {
             auto vec        = getValue<at::Half>(tensor, dims);
             auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF);
             auto buffer     = RawBuffer(bytes_size, reinterpret_cast<char*>(vec.data()), dims);
             buffer.SetDataType(DATA_TYPE_HALF);
             return buffer;
-        } else if (data_type == DATA_TYPE_FLOAT) {
+        } else if (torch_type == at::ScalarType::Float) {
             auto vec        = getValue<float>(value, dims);
             auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
             return RawBuffer(bytes_size, reinterpret_cast<char*>(vec.data()), dims);
+        } else if (torch_type == at::ScalarType::Double) {
+            auto vec        = getValue<double>(value, dims);
+            auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
+            auto float_vec  = std::vector<float>(vec.begin(), vec.end());
+            return RawBuffer(bytes_size, reinterpret_cast<char*>(float_vec.data()), dims);
         } else {
             LOGE("getValue:wrong scalar type\n");
         }
