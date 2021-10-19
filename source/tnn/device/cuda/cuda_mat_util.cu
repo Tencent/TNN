@@ -305,7 +305,7 @@ __device__ __forceinline__ int imin(int a, int b) {
     return min(a,b);
 }
 
-template<int THREAD_PER_BLOCK, int ELE_PER_THREAD, BorderType border_type>
+template<int ELE_PER_THREAD, int THREAD_PER_BLOCK, BorderType border_type>
 __global__ void warp_affine_bilinear_kernel(const uint8_t* src, uint8_t* dst, const int H, const int W, const int C,
         const int OH, const int OW, const short* table, double* tm, const uint8_t border_value) {
     src += blockIdx.y * H * W * C;
@@ -374,7 +374,7 @@ __global__ void warp_affine_bilinear_kernel(const uint8_t* src, uint8_t* dst, co
     }
 }
 
-template<int THREAD_PER_BLOCK, int ELE_PER_THREAD, BorderType border_type>
+template<int ELE_PER_THREAD, int THREAD_PER_BLOCK, BorderType border_type>
 __global__ void warp_affine_nearest_kernel(const uint8_t* src, uint8_t* dst, const int H, const int W, const int C,
         const int OH, const int OW, double* tm, const uint8_t border_value) {
     src += blockIdx.y * H * W * C;
@@ -522,7 +522,7 @@ void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, i
     initInterTab2D(table_cpu);
     cudaMemcpy(table_gpu, table_cpu, table_size * sizeof(short), cudaMemcpyHostToDevice);
     const int THREAD_PER_BLOCK = 128;
-    const int ELE_PER_THREAD = 8;
+    const int ELE_PER_THREAD = 32;
     int size_dst = dst_h * dst_w * channel;
     dim3 griddim;
     griddim.x = (size_dst + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
