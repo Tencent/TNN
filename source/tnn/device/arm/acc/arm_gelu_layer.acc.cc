@@ -69,6 +69,7 @@ Status ArmGeluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
         } else {
             // https://arxiv.org/abs/1606.08415
             // precision is auto, use approximate calculation
+            // Note the approximation has big error if input is -2.281006575
             float F0 = 0.7978845834732056f;
             float F1 = 0.0447149984538f;
             Float4 vone(1.0f);
