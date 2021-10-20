@@ -94,6 +94,9 @@ void priorbox_set_value(const int N, const float alpha, float *Y);
 void NaiveDetectionOutput(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                           DetectionOutputLayerParam *param);
 
+void NaiveNonMaxSuppression(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                            NonMaxSuppressionLayerParam *param);
+
 void NaiveColorToGray(const uint8_t *src, uint8_t *dst, int h, int w, int channel, bool bgr_order);
 
 void NaiveBGROrBGRAToGray(const uint8_t* src, uint8_t* dst, int h, int w, int channel);

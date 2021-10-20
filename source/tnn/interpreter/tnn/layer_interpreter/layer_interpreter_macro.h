@@ -32,6 +32,15 @@
 #define DEFAULT_ARR_VAR layer_cfg_arr
 #define DEFAULT_INDEX_VAR index
 
+#define GET_LONG_1_OR_DEFAULT(var, default_value)                                                                      \
+    do {                                                                                                               \
+        if (DEFAULT_INDEX_VAR < DEFAULT_ARR_VAR.size()) {                                                              \
+            var = atol(DEFAULT_ARR_VAR[DEFAULT_INDEX_VAR++].c_str());                                                  \
+        } else {                                                                                                       \
+            var = default_value;                                                                                       \
+        }                                                                                                              \
+    } while (0)
+
 #define GET_INT_1_OR_DEFAULT(var, default_value)                                                                       \
     do {                                                                                                               \
         if (DEFAULT_INDEX_VAR < DEFAULT_ARR_VAR.size()) {                                                              \
@@ -76,7 +85,7 @@
 #define GET_INT_N_INTO_VEC_REVERSE_DEFAULT(vec, n, default_value)                                                      \
     do {                                                                                                               \
         vec.resize(n);                                                                                                 \
-        for (int _ii = n-1; _ii >= 0; _ii--) {                                                                         \
+        for (int _ii = n - 1; _ii >= 0; _ii--) {                                                                       \
             int var = default_value;                                                                                   \
             GET_INT_1_OR_DEFAULT(var, default_value);                                                                  \
             vec[_ii] = var;                                                                                            \
