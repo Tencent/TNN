@@ -153,19 +153,16 @@ Status CpuLSTMONNXLayerAcc::Init(Context *context, LayerParam *param, LayerResou
                                  const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto status = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
 
-    Blob *blob_W                = inputs[1];
-    Blob *blob_R                = inputs[2];
-    Blob *blob_B                = inputs[3];
-    const int blob_W_dims_count = DimsVectorUtils::Count(blob_W->GetBlobDesc().dims);
-    const int blob_R_dims_count = DimsVectorUtils::Count(blob_R->GetBlobDesc().dims);
-    const int blob_B_dims_count = DimsVectorUtils::Count(blob_B->GetBlobDesc().dims);
+    if (runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
+        return TNN_OK;
+    }
 
     auto get_blob_data = [&](Blob *blob, float *result) -> Status {
         const int data_size = DimsVectorUtils::Count(blob->GetBlobDesc().dims);
         if (blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
             float *src_ptr = (float *)((char *)(blob->GetHandle().base) + blob->GetHandle().bytes_offset);
             memcpy(result, src_ptr, data_size * sizeof(float));
-        } else if (blob_W->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        } else if (blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
             fp16_t *src_ptr = (fp16_t *)((char *)(blob->GetHandle().base) + blob->GetHandle().bytes_offset);
             ConvertFromHalfToFloat(src_ptr, result, data_size);
         } else {
@@ -175,17 +172,29 @@ Status CpuLSTMONNXLayerAcc::Init(Context *context, LayerParam *param, LayerResou
         return TNN_OK;
     };
 
-    std::shared_ptr<float> w(new float[blob_W_dims_count], [](float *p) { delete[] p; });
-    std::shared_ptr<float> r(new float[blob_R_dims_count], [](float *p) { delete[] p; });
-    std::shared_ptr<float> b(new float[blob_B_dims_count], [](float *p) { delete[] p; });
+    Blob *blob_W = inputs[1];
+    if (blob_W->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        const int blob_W_dims_count = DimsVectorUtils::Count(blob_W->GetBlobDesc().dims);
+        std::shared_ptr<float> w(new float[blob_W_dims_count], [](float *p) { delete[] p; });
+        RETURN_ON_NEQ(get_blob_data(blob_W, w.get()), TNN_OK);
+        w_ = w;
+    }
 
-    RETURN_ON_NEQ(get_blob_data(blob_W, w.get()), TNN_OK);
-    RETURN_ON_NEQ(get_blob_data(blob_R, r.get()), TNN_OK);
-    RETURN_ON_NEQ(get_blob_data(blob_B, b.get()), TNN_OK);
+    Blob *blob_R = inputs[2];
+    if (blob_R->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        const int blob_R_dims_count = DimsVectorUtils::Count(blob_R->GetBlobDesc().dims);
+        std::shared_ptr<float> r(new float[blob_R_dims_count], [](float *p) { delete[] p; });
+        RETURN_ON_NEQ(get_blob_data(blob_R, r.get()), TNN_OK);
+        r_ = r;
+    }
 
-    w_ = w;
-    r_ = r;
-    b_ = b;
+    Blob *blob_B = inputs[3];
+    if (blob_B->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        const int blob_B_dims_count = DimsVectorUtils::Count(blob_B->GetBlobDesc().dims);
+        std::shared_ptr<float> b(new float[blob_B_dims_count], [](float *p) { delete[] p; });
+        RETURN_ON_NEQ(get_blob_data(blob_B, b.get()), TNN_OK);
+        b_ = b;
+    }
 
     return TNN_OK;
 }
@@ -224,14 +233,20 @@ Status CpuLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     float *y = (float *)((char*)(outputs[0]->GetHandle().base) + outputs[0]->GetHandle().bytes_offset);
     
     //W[iofc], weight tensor for the gates, shape [num_directions, 4*hidden_size, input_size]
-    float *w = w_.get();
-    
+    float *w = inputs[1]->GetBlobDesc().data_type != DATA_TYPE_HALF
+                   ? (float *)((char *)(inputs[1]->GetHandle().base) + inputs[1]->GetHandle().bytes_offset)
+                   : w_.get();
+
     //R[iofc], recurrence weight tensor, shape [num_directions, 4*hidden_size, hidden_size]
-    float *r = r_.get();
-    
+    float *r = inputs[2]->GetBlobDesc().data_type != DATA_TYPE_HALF
+                   ? (float *)((char *)(inputs[2]->GetHandle().base) + inputs[2]->GetHandle().bytes_offset)
+                   : r_.get();
+
     //B[iofc] Concatenation of [Wb[iofc], Rb[iofc]], [num_directions, 8*hidden_size]
-    float *b = b_.get();
-    
+    float *b = inputs[3]->GetBlobDesc().data_type != DATA_TYPE_HALF
+                   ? (float *)((char *)(inputs[3]->GetHandle().base) + inputs[3]->GetHandle().bytes_offset)
+                   : b_.get();
+
     //initial_h, initial value of the hidden, If not specified - assumed to be 0. shape [num_directions, batch_size, hidden_size]
     auto h_t = (float *)((char*)(outputs[1]->GetHandle().base) + outputs[1]->GetHandle().bytes_offset);
     if (blob_h0 != nullptr){
