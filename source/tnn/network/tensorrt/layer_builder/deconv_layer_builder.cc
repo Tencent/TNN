@@ -27,19 +27,12 @@ ILayer* DeconvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         return nullptr;
     }
     auto resource = dynamic_cast<ConvLayerResource*>(resource_);
-    Weights kernelWeights;
-    kernelWeights.type = nvinfer1::DataType::kFLOAT;
-    kernelWeights.values = resource->filter_handle.force_to<void*>();
-    kernelWeights.count = resource->filter_handle.GetDataCount();
-
-    Weights biasWeights;
-    biasWeights.type = nvinfer1::DataType::kFLOAT;
+    Weights kernelWeights, biasWeights;
+    kernelWeights = ConvertToWeights(&(resource->filter_handle));
     if (paramlist->bias) {
-        biasWeights.values = resource->bias_handle.force_to<void*>();
-        biasWeights.count = resource->bias_handle.GetDataCount();
+        biasWeights = ConvertToWeights(&(resource->bias_handle));
     } else {
-        biasWeights.values = nullptr;
-        biasWeights.count = 0;
+        biasWeights = ConvertToWeights(nullptr, true, resource->filter_handle.GetDataType());
     }
 
     ILayer* last_layer;

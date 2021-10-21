@@ -148,17 +148,11 @@ ILayer* Convolution3DTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* net
             paramlist->bias ? &(resource->bias_handle) : nullptr, biasWeights,
             1 / (weight_scale_value / input_scale_value), dims);
     } else {
-        kernelWeights.type = nvinfer1::DataType::kFLOAT;
-        kernelWeights.values = resource->filter_handle.force_to<void*>();
-        kernelWeights.count = resource->filter_handle.GetDataCount();
+        kernelWeights = ConvertToWeights(&(resource->filter_handle));
         if (paramlist->bias) {
-            biasWeights.type = nvinfer1::DataType::kFLOAT;
-            biasWeights.values = resource->bias_handle.force_to<void*>();
-            biasWeights.count = resource->bias_handle.GetDataCount();
+            biasWeights = ConvertToWeights(&(resource->bias_handle));
         } else {
-            biasWeights.type = nvinfer1::DataType::kFLOAT;
-            biasWeights.values = nullptr;
-            biasWeights.count = 0;
+            biasWeights = ConvertToWeights(nullptr, true, resource->filter_handle.GetDataType());
         }
     }
 
