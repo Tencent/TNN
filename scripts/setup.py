@@ -58,6 +58,6 @@ setup(name='pytnn',
       },
       zip_safe=False,
       packages=['pytnn'],
-      package_dir={'pytnn': 'build_tnntorch_linux'},
+      package_dir={'pytnn': 'tnntorch_linux_release/lib'},
       package_data={'pytnn': ['*.so*', '*.py']}
       )

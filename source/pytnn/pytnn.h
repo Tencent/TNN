@@ -49,9 +49,6 @@ void InitHalfUtilsPy(py::module &m);
 void InitMatUtilsPy(py::module& m);
 void InitStringUtilsPy(py::module& m);
 
-py::array_t<float> ConvertMatToNumpy(std::shared_ptr<Mat>);
-std::shared_ptr<Mat> ConvertNumpyToMat(py::array_t<float>);
-
 }  // namespace TNN_NS
 
 #pragma warning(pop)
