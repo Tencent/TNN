@@ -10,7 +10,6 @@ get_filename_component(TNN_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..  ABSOLUTE)
 include_directories(${TNN_ROOT})
 
 add_executable(TNNTest ${TEST_SRCS})
-set_target_properties(TNNTest PROPERTIES LINK_FLAGS "-Wl,-rpath,$ORIGIN")
 
 if(TNN_BUILD_SHARED)
     target_link_libraries(TNNTest
