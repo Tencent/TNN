@@ -182,7 +182,7 @@ JitTypeMatcherPtr JitTypeMatcher::next() {
 
 int JitTypeMatcher::idFromName(std::string full_name) {
 
-    auto matcher = JitTypeMatcher::create(c10::AnyType::create(), full_name);
+    auto matcher = JitTypeMatcher::create(c10::AnyType::get(), full_name);
     auto name = matcher->value_name_.str();
 
     std::lock_guard<std::mutex> guard(g_map_mutex);
