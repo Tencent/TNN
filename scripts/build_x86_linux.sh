@@ -50,7 +50,7 @@ clone_openvino() {
     if [ ! -d openvino ]
     then
         # git clone --recursive https://github.com/openvinotoolkit/openvino.git
-        git clone --recursive https://github.com/dmitry-gorokhov/openvino.git
+        git clone --recursive https://github.com/dmitry-gorokhov/openvino.git -b feature/spr_beta_support
     fi
     cd openvino
     git reset --hard 61ed7a99
@@ -81,7 +81,7 @@ build_openvino() {
         -DENABLE_OPENCV=OFF \
         -DCMAKE_INSTALL_PREFIX=${OPENVINO_INSTALL_PATH} \
         -DENABLE_TBB_RELEASE_ONLY=OFF \
-        -DTHREADING=TBB_AUTO \
+        -DTHREADING=TBB \
         -DNGRAPH_COMPONENT_PREFIX="deployment_tools/ngraph/" \
         -DENABLE_MYRIAD=OFF \
         -DENABLE_CLDNN=OFF \
