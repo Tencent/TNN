@@ -25,6 +25,34 @@ __kernel void SoftmaxHeight(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __wr
     }
 }
 
+__kernel void SoftMaxWidth(GLOBAL_SIZE_2_DIMS
+                           __read_only image2d_t input, 
+                           __write_only image2d_t output,
+                           __private const int4 shape // HCNW
+                           ) {
+    int b = get_global_id(0);
+    int nh = get_global_id(1);
+    DEAL_NON_UNIFORM_DIM2(b, nh);
+    
+    // const int width = shape.z;
+    const int base = b * shape.z;
+    /*Compute Max */
+    FLOAT4 maxValue = RI_F(input, SAMPLER, (int2)(base, nh));
+    for(int i = 1; i < shape.z; ++i) {
+        maxValue = fmax(maxValue, RI_F(input, SAMPLER, (int2)(base + i, nh)));
+    }
+    /*Compute Exp Sum */
+    FLOAT4 sumValue = (FLOAT4)0;
+    for(int i = 0; i < shape.z; ++i) {
+        sumValue += exp(RI_F(input, SAMPLER, (int2)(base + i, nh)) - maxValue);
+    }
+    /*Compute Result */
+    for(int i = 0; i < shape.z; ++i) {
+        FLOAT4 value = exp(RI_F(input, SAMPLER, (int2)(base + i, nh)) - maxValue) / sumValue;
+        WI_F(output, (int2)(base + i, nh), value);
+    }
+}
+
 __kernel void SoftmaxChannel(GLOBAL_SIZE_3_DIMS __read_only image2d_t input, __write_only image2d_t output, __private const int output_channels,
                               __private const int remain_channels) {
 
@@ -110,6 +138,7 @@ __kernel void SoftmaxChannel(GLOBAL_SIZE_3_DIMS __read_only image2d_t input, __w
 
     WI_F(output, (int2)(cur_out_width_pos, batch_height_idx), input_data);
 }
+
 
 __kernel void SoftmaxHeightLocal(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_only image2d_t output,
                                  __private const int4 shape,

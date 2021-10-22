@@ -61,6 +61,7 @@ add_definitions(-D_CUDA_)
 if (TNN_DEMO_WITH_OPENCV)
     add_definitions(-D_OPENCV_)
 endif()
+add_executable(demo_cuda_nanodet ${CMAKE_SOURCE_DIR}/../../linux/src/TNNNanodetDetector/TNNNanodetDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 
 add_executable(demo_cuda_imageclassify ../../linux/src/TNNImageClassify/TNNImageClassify.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 add_executable(demo_cuda_facedetector ../../linux/src/TNNFaceDetector/TNNFaceDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})

@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_binary_layer_acc.h"
+
 #include "tnn/device/arm/acc/compute/binary_function.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
@@ -22,47 +23,88 @@
 
 namespace TNN_NS {
 
-template<> float binary_op<ArmBinaryOpType::kADD, float>(const float &a, const float &b, float alpha, float beta) {
+template <>
+float binary_op<ArmBinaryOpType::kADD, float>(const float &a, const float &b, float alpha, float beta) {
     return a + b;
 }
-template<> float binary_op<ArmBinaryOpType::kSUB, float>(const float &a, const float &b, float alpha, float beta) {
+template <>
+bfp16_t binary_op<ArmBinaryOpType::kADD, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<bfp16_t>(static_cast<float>(a) + static_cast<float>(b));
+}
+template <>
+float binary_op<ArmBinaryOpType::kSUB, float>(const float &a, const float &b, float alpha, float beta) {
     return a - b;
 }
-template<> float binary_op<ArmBinaryOpType::kMUL, float>(const float &a, const float &b, float alpha, float beta) {
+template <>
+bfp16_t binary_op<ArmBinaryOpType::kSUB, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<bfp16_t>(static_cast<float>(a) - static_cast<float>(b));
+}
+template <>
+float binary_op<ArmBinaryOpType::kMUL, float>(const float &a, const float &b, float alpha, float beta) {
     return a * b;
 }
-template<> float binary_op<ArmBinaryOpType::kDIV, float>(const float &a, const float &b, float alpha, float beta) {
+template <>
+bfp16_t binary_op<ArmBinaryOpType::kMUL, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<bfp16_t>(static_cast<float>(a) * static_cast<float>(b));
+}
+template <>
+float binary_op<ArmBinaryOpType::kDIV, float>(const float &a, const float &b, float alpha, float beta) {
     return a / b;
 }
-template<> float binary_op<ArmBinaryOpType::kMAX, float>(const float &a, const float &b, float alpha, float beta) {
+template <>
+bfp16_t binary_op<ArmBinaryOpType::kDIV, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<bfp16_t>(static_cast<float>(a) / static_cast<float>(b));
+}
+template <>
+float binary_op<ArmBinaryOpType::kMAX, float>(const float &a, const float &b, float alpha, float beta) {
     return a > b ? a : b;
 }
-template<> float binary_op<ArmBinaryOpType::kMIN, float>(const float &a, const float &b, float alpha, float beta) {
+template <>
+bfp16_t binary_op<ArmBinaryOpType::kMAX, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<float>(a) > static_cast<float>(b) ? a : b;
+}
+template <>
+float binary_op<ArmBinaryOpType::kMIN, float>(const float &a, const float &b, float alpha, float beta) {
     return a < b ? a : b;
 }
-template<> float binary_op<ArmBinaryOpType::kHARDSWISH, float>(const float &a, const float &b, float alpha, float beta) {
+template <>
+bfp16_t binary_op<ArmBinaryOpType::kMIN, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<float>(a) < static_cast<float>(b) ? a : b;
+}
+template <>
+float binary_op<ArmBinaryOpType::kHARDSWISH, float>(const float &a, const float &b, float alpha, float beta) {
     return a * MAX(MIN(b * alpha + beta, 1.0f), 0.f);
 }
-
-template<> Float4 binary_op<ArmBinaryOpType::kADD, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
+template <>
+bfp16_t binary_op<ArmBinaryOpType::kHARDSWISH, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<bfp16_t>(static_cast<float>(a) * MAX(MIN(static_cast<float>(b) * alpha + beta, 1.0f), 0.f));
+}
+template <>
+Float4 binary_op<ArmBinaryOpType::kADD, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return a + b;
 }
-template<> Float4 binary_op<ArmBinaryOpType::kSUB, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
+template <>
+Float4 binary_op<ArmBinaryOpType::kSUB, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return a - b;
 }
-template<> Float4 binary_op<ArmBinaryOpType::kMUL, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
+template <>
+Float4 binary_op<ArmBinaryOpType::kMUL, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return a * b;
 }
-template<> Float4 binary_op<ArmBinaryOpType::kDIV, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
+template <>
+Float4 binary_op<ArmBinaryOpType::kDIV, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return Float4::div(a, b);
 }
-template<> Float4 binary_op<ArmBinaryOpType::kMAX, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
+template <>
+Float4 binary_op<ArmBinaryOpType::kMAX, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return Float4::max(a, b);
 }
-template<> Float4 binary_op<ArmBinaryOpType::kMIN, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
+template <>
+Float4 binary_op<ArmBinaryOpType::kMIN, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return Float4::min(a, b);
 }
-template<> Float4 binary_op<ArmBinaryOpType::kHARDSWISH, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
+template <>
+Float4 binary_op<ArmBinaryOpType::kHARDSWISH, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return a * Float4::max(Float4::min(b * alpha + beta, 1.0f), 0.f);
 }
 
@@ -86,7 +128,7 @@ Status ArmBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     // prepare input shapes
     input_shapes_.clear();
     input_shapes_.reserve(4);
-    auto output = outputs[0];
+    auto output      = outputs[0];
     auto output_dims = output->GetBlobDesc().dims;
 
     if (broadcast_.GetBytesSize() > 0) {
@@ -136,7 +178,7 @@ Status ArmBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     // prepare input shapes
     input_shapes_.clear();
     input_shapes_.reserve(4);
-    auto output = outputs[0];
+    auto output      = outputs[0];
     auto output_dims = output->GetBlobDesc().dims;
 
     if (broadcast_.GetBytesSize() > 0) {
@@ -179,14 +221,14 @@ Status ArmBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
 
 // SUPPORTED DATATYPES
 bool ArmBinaryLayerAcc::DataTypeSupported(DataType data_type) {
-    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF)
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_BFP16)
         return true;
     else
         return false;
 }
 
 Status ArmBinaryLayerAcc::ConfigBuffer2ArmBlobDesc(BlobDesc &desc) {
-    DimsVector config_dims = desc_for_config_const_blob_.dims;
+    DimsVector config_dims   = desc_for_config_const_blob_.dims;
     DimsVector original_dims = desc.dims;
     DimsVector pad_dims;
     if (config_dims.size() > 0) {
@@ -197,9 +239,9 @@ Status ArmBinaryLayerAcc::ConfigBuffer2ArmBlobDesc(BlobDesc &desc) {
         pad_dims = original_dims;
     }
 
-    desc.dims = pad_dims;
+    desc.dims        = pad_dims;
     desc.device_type = desc_for_config_const_blob_.device_type;
-    desc.data_type = desc_for_config_const_blob_.data_type;
+    desc.data_type   = desc_for_config_const_blob_.data_type;
     desc.data_format = desc_for_config_const_blob_.data_format;
     return TNN_OK;
 }
@@ -274,16 +316,16 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
 
 template <typename T, ArmBinaryOpType op_type>
 Status ArmBinaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto output = outputs[0];
+    auto output      = outputs[0];
     auto output_dims = output->GetBlobDesc().dims;
 
     if (btype_ == BroadcastTypeUnknown) {
         LOGE("Error: unknown broadcast type\n");
         return Status(TNNERR_LAYER_ERR, "Error: Binary layer's unknown broadcast type");
     } else if (btype_ == BroadcastTypeGeneral) {
-        auto output_ptr = GetBlobHandlePtr(output->GetHandle());
+        auto output_ptr    = GetBlobHandlePtr(output->GetHandle());
         size_t output_size = DimsVectorUtils::Count(output_dims);
-        void *workspace = context_->GetSharedWorkSpace(output_size * 2 * sizeof(T));
+        void *workspace    = context_->GetSharedWorkSpace(output_size * 2 * sizeof(T));
         BinaryGeneralFunc<T, op_type>(output_ptr, input_ptrs_, output_dims, input_shapes_, workspace, alpha_, beta_);
     } else {
         auto output_ptr = GetBlobHandlePtr(output->GetHandle());
@@ -294,24 +336,28 @@ Status ArmBinaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
         if (!DimsVectorUtils::Equal(output_dims, input_shapes_[0]) &&
             !DimsVectorUtils::Equal(output_dims, input_shapes_[1])) {
             std::vector<DimsVector> shapes_tmp = {input_shapes_[0], input_shapes_[1]};
-            std::vector<void *> ptrs_tmp = {input0_ptr, input1_ptr};
-            size_t output_size = DimsVectorUtils::Count(output_dims);
-            void *workspace = context_->GetSharedWorkSpace(output_size * 2 * sizeof(T));
+            std::vector<void *> ptrs_tmp       = {input0_ptr, input1_ptr};
+            size_t output_size                 = DimsVectorUtils::Count(output_dims);
+            void *workspace                    = context_->GetSharedWorkSpace(output_size * 2 * sizeof(T));
             BinaryGeneralFunc<T, op_type>(output_ptr, ptrs_tmp, output_dims, shapes_tmp, workspace, alpha_, beta_);
         } else {
             DimsVector input0_pad_shape, input1_pad_shape;
             input0_pad_shape.resize(output_dims.size());
             input1_pad_shape.resize(output_dims.size());
-            PadShape(output_dims.size() - input_shapes_[0].size(), output_dims.size(), input0_pad_shape, input_shapes_[0]);
-            PadShape(output_dims.size() - input_shapes_[1].size(), output_dims.size(), input1_pad_shape, input_shapes_[1]);
+            PadShape(output_dims.size() - input_shapes_[0].size(), output_dims.size(), input0_pad_shape,
+                     input_shapes_[0]);
+            PadShape(output_dims.size() - input_shapes_[1].size(), output_dims.size(), input1_pad_shape,
+                     input_shapes_[1]);
 
-            BinaryFunc<T, op_type>(output_ptr, input0_ptr, input1_ptr, input0_pad_shape, input1_pad_shape, alpha_, beta_);
+            BinaryFunc<T, op_type>(output_ptr, input0_ptr, input1_ptr, input0_pad_shape, input1_pad_shape, alpha_,
+                                   beta_);
         }
 
         for (int i = 2; i < input_ptrs_.size(); i++) {
             auto input_ptr = input_ptrs_[i];
             DimsVector input0_pad_shape;
-            PadShape(output_dims.size() - input_shapes_[i].size(), output_dims.size(), input0_pad_shape, input_shapes_[i]);
+            PadShape(output_dims.size() - input_shapes_[i].size(), output_dims.size(), input0_pad_shape,
+                     input_shapes_[i]);
             BinaryFunc<T, op_type>(output_ptr, output_ptr, input_ptr, output_dims, input0_pad_shape, alpha_, beta_);
         }
     }
@@ -351,44 +397,44 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     auto data_type = outputs[0]->GetBlobDesc().data_type;
     if (data_type == DATA_TYPE_FLOAT) {
         // return Exec<float>(inputs, outputs);
-        switch(op_type_) {
-            case ArmBinaryOpType::kADD :
+        switch (op_type_) {
+            case ArmBinaryOpType::kADD:
                 return Exec<float, ArmBinaryOpType::kADD>(inputs, outputs);
-            case ArmBinaryOpType::kSUB :
+            case ArmBinaryOpType::kSUB:
                 return Exec<float, ArmBinaryOpType::kSUB>(inputs, outputs);
-            case ArmBinaryOpType::kMUL :
+            case ArmBinaryOpType::kMUL:
                 return Exec<float, ArmBinaryOpType::kMUL>(inputs, outputs);
-            case ArmBinaryOpType::kDIV :
+            case ArmBinaryOpType::kDIV:
                 return Exec<float, ArmBinaryOpType::kDIV>(inputs, outputs);
-            case ArmBinaryOpType::kMAX :
+            case ArmBinaryOpType::kMAX:
                 return Exec<float, ArmBinaryOpType::kMAX>(inputs, outputs);
-            case ArmBinaryOpType::kMIN :
+            case ArmBinaryOpType::kMIN:
                 return Exec<float, ArmBinaryOpType::kMIN>(inputs, outputs);
-            case ArmBinaryOpType::kHARDSWISH :
+            case ArmBinaryOpType::kHARDSWISH:
                 return Exec<float, ArmBinaryOpType::kHARDSWISH>(inputs, outputs);
 
-            default :
+            default:
                 LOGE("Error, unknown binary op_type\n");
                 return TNNERR_LAYER_ERR;
         }
     } else if (data_type == DATA_TYPE_BFP16) {
-        switch(op_type_) {
-            case ArmBinaryOpType::kADD :
+        switch (op_type_) {
+            case ArmBinaryOpType::kADD:
                 return Exec<bfp16_t, ArmBinaryOpType::kADD>(inputs, outputs);
-            case ArmBinaryOpType::kSUB :
+            case ArmBinaryOpType::kSUB:
                 return Exec<bfp16_t, ArmBinaryOpType::kSUB>(inputs, outputs);
-            case ArmBinaryOpType::kMUL :
+            case ArmBinaryOpType::kMUL:
                 return Exec<bfp16_t, ArmBinaryOpType::kMUL>(inputs, outputs);
-            case ArmBinaryOpType::kDIV :
+            case ArmBinaryOpType::kDIV:
                 return Exec<bfp16_t, ArmBinaryOpType::kDIV>(inputs, outputs);
-            case ArmBinaryOpType::kMAX :
+            case ArmBinaryOpType::kMAX:
                 return Exec<bfp16_t, ArmBinaryOpType::kMAX>(inputs, outputs);
-            case ArmBinaryOpType::kMIN :
+            case ArmBinaryOpType::kMIN:
                 return Exec<bfp16_t, ArmBinaryOpType::kMIN>(inputs, outputs);
-            case ArmBinaryOpType::kHARDSWISH :
+            case ArmBinaryOpType::kHARDSWISH:
                 return Exec<bfp16_t, ArmBinaryOpType::kHARDSWISH>(inputs, outputs);
 
-            default :
+            default:
                 LOGE("Error, unknown binary op_type\n");
                 return TNNERR_LAYER_ERR;
         }
@@ -402,22 +448,22 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     }
 #if TNN_ARM82
     else if (data_type == DATA_TYPE_HALF) {
-        switch(op_type_) {
-            case ArmBinaryOpType::kADD :
+        switch (op_type_) {
+            case ArmBinaryOpType::kADD:
                 return ExecFp16<ArmBinaryOpType::kADD>(inputs, outputs);
-            case ArmBinaryOpType::kSUB :
+            case ArmBinaryOpType::kSUB:
                 return ExecFp16<ArmBinaryOpType::kSUB>(inputs, outputs);
-            case ArmBinaryOpType::kMUL :
+            case ArmBinaryOpType::kMUL:
                 return ExecFp16<ArmBinaryOpType::kMUL>(inputs, outputs);
-            case ArmBinaryOpType::kDIV :
+            case ArmBinaryOpType::kDIV:
                 return ExecFp16<ArmBinaryOpType::kDIV>(inputs, outputs);
-            case ArmBinaryOpType::kMAX :
+            case ArmBinaryOpType::kMAX:
                 return ExecFp16<ArmBinaryOpType::kMAX>(inputs, outputs);
-            case ArmBinaryOpType::kMIN :
+            case ArmBinaryOpType::kMIN:
                 return ExecFp16<ArmBinaryOpType::kMIN>(inputs, outputs);
                 break;
 
-            default :
+            default:
                 LOGE("Error, unknown binary op_type\n");
                 return TNNERR_LAYER_ERR;
         }

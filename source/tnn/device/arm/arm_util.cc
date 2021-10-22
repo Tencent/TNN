@@ -383,6 +383,8 @@ int PackC4(Tout *dst, const Tin *src, size_t hw, size_t channel) {
 }
 
 template int PackC4(float *dst, const float *src, size_t hw, size_t channel);
+template int PackC4(float *dst, const int32_t *src, size_t hw, size_t channel);
+template int PackC4(int32_t *dst, const int32_t *src, size_t hw, size_t channel);
 template int PackC4(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int PackC4(float *dst, const bfp16_t *src, size_t hw, size_t channel);
 template int PackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
@@ -574,6 +576,7 @@ int UnpackC4(Tout *dst, const Tin *src, size_t hw, size_t channel) {
 
 template int UnpackC4(float *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4(float *dst, const bfp16_t *src, size_t hw, size_t channel);
+template int UnpackC4(int32_t *dst, const int32_t *src, size_t hw, size_t channel);
 template int UnpackC4(bfp16_t *dst, const float *src, size_t hw, size_t channel);
 template int UnpackC4(bfp16_t *dst, const bfp16_t *src, size_t hw, size_t channel);
 
@@ -620,6 +623,26 @@ bool FloatBlobCanIgnorePack(size_t channel, size_t hw) {
 
 bool HalfBlobCanIgnorePack(size_t channel, size_t hw) {
     return (hw == 1) && (channel % 8 == 0);
+}
+
+int PackInt32Blob(int32_t *dst, int32_t *src, size_t batch, size_t channel, size_t hw) {
+    OMP_PARALLEL_FOR_
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * ROUND_UP(channel, 4) * hw;
+        auto src_ptr_n = src + n * channel * hw;
+        PackC4(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
+int UnpackInt32Blob(int32_t *dst, int32_t *src, size_t batch, size_t channel, size_t hw) {
+    OMP_PARALLEL_FOR_
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * channel * hw;
+        auto src_ptr_n = src + n * ROUND_UP(channel, 4) * hw;
+        UnpackC4(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
 }
 
 int PackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw) {

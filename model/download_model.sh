@@ -89,7 +89,7 @@ download_model \
 
 # download yolov5 tnn model
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/yolov5/yolov5s.tnnproto" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/yolov5/yolov5s-permute.tnnproto" \
     "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/yolov5/yolov5s.tnnmodel" \
     "yolov5"
 
@@ -185,3 +185,30 @@ download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/keys.txt" \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/keys.txt" \
     "chinese-ocr"
+
+# download nanodet model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/nanodet/nanodet_m.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/nanodet/nanodet_m.tnnmodel" \
+    "nanodet"
+  
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/nanodet/nanodet_t.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/nanodet/nanodet_t.tnnmodel" \
+    "nanodet"
+  
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/nanodet/nanodet_e1.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/nanodet/nanodet_e1.tnnmodel" \
+    "nanodet"
+
+# download tiny-bert model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/tiny-bert/tiny-bert-squad.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/tiny-bert/tiny-bert-squad.tnnmodel" \
+    "tiny-bert"
+  
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/tiny-bert/vocab.txt" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/tiny-bert/vocab.txt" \
+    "tiny-bert"

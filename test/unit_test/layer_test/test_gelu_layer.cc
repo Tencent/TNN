@@ -48,7 +48,7 @@ TEST_P(GeluLayerTest, GeluLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_OPENCL == dev || DEVICE_METAL == dev || DEVICE_ARM == dev) {
+    if (DEVICE_OPENCL == dev) {
         GTEST_SKIP();
     }
     if (dim_count > 4 && DEVICE_HUAWEI_NPU == dev) {

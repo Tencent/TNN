@@ -64,6 +64,7 @@ add_executable(demo_x86_objectdetector ../src/TNNObjectDetector/TNNObjectDetecto
 add_executable(demo_x86_posedetector ../src/TNNSkeletonDetector/TNNSkeletonDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 add_executable(demo_x86_blazepose ../src/TNNBlazePose/TNNBlazePose.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 add_executable(demo_x86_facealignment ../src/TNNFaceAligner/TNNFaceAligner.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_x86_nanodet ${CMAKE_SOURCE_DIR}/../../linux/src/TNNNanodetDetector/TNNNanodetDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 
 if (TNN_DEMO_WITH_OPENCV) 
     file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/../src/TNNWebCamBasedDemo/*.cc")

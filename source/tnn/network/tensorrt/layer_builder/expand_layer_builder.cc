@@ -34,8 +34,23 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         inputRank = 0;
     }
 
-    auto shape = input_tensors[1];
-    auto shapeLength = input_tensors[1]->getDimensions().d[0];
+    nvinfer1::ITensor* shape;
+    int shapeLength;
+    if (input_tensors.size() == 2) {
+        shape = input_tensors[1];
+        shapeLength = input_tensors[1]->getDimensions().d[0];
+    } else if (input_tensors.size() == 1) {
+        nvinfer1::Dims shapeDims;
+        shapeDims.nbDims = 1;
+        shapeDims.d[0] = layer_param->shape.size();
+        Weights shapeWeight;
+        shapeWeight.type = nvinfer1::DataType::kINT32;
+        shapeWeight.values = layer_param->shape.data();
+        shapeWeight.count = layer_param->shape.size();
+        auto shapeLayer = network->addConstant(shapeDims, shapeWeight);
+        shape = shapeLayer->getOutput(0);
+        shapeLength = layer_param->shape.size();
+    }
     int newRank = std::max(shapeLength, inputRank);
 
     ITensor* newDims;
