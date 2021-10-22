@@ -30,7 +30,7 @@ BlobMemorySizeInfo MetalDevice::Calculate1DMemorySize(BlobDesc &desc) {
     info.data_type = desc.data_type;
     int count      = 0;
     if (desc.data_format == DATA_FORMAT_NC4HW4) {
-        count = desc.dims[0] * ROUND_UP(desc.dims[1], 4) * DimsVectorUtils::Count(desc.dims, 2);
+        count = desc.dims[0] * ROUND_UP(DimsFunctionUtils::GetDim(desc.dims, 1), 4) * DimsVectorUtils::Count(desc.dims, 2);
     } else {
         count = DimsVectorUtils::Count(desc.dims);
     }
