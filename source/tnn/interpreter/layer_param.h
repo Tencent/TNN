@@ -452,6 +452,9 @@ typedef enum {
     // nchw <-> nc8hw8 fp16
     NC8HW8FP16_2_NCHWFP16 = 8,
     NCHWFP16_2_NC8HW8FP16 = 9,
+    // nchw <-> nc4hw4 int32
+    NC4HW4INT32_2_NCHWINT32 = 10,
+    NCHWINT32_2_NC4HW4INT32 = 11,
     // to be continued
 } ReformatType;
 
@@ -657,6 +660,21 @@ struct TopKLayerParam : public LayerParam {
     int k;
 
     PARAM_COPY(TopKLayerParam)
+};
+
+struct NonMaxSuppressionLayerParam : public LayerParam {
+    int center_point_box               = 0;
+    int64_t max_output_boxes_per_class = 0;
+    float iou_threshold                = 0.0f;
+    float score_threshold              = 0.0f;
+
+    PARAM_COPY(NonMaxSuppressionLayerParam)
+};
+
+struct ScatterLayerParam : public LayerParam {
+    int axis = 0;
+
+    PARAM_COPY(ScatterLayerParam)
 };
 
 struct ScatterElementsLayerParam : public LayerParam {

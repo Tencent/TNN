@@ -16,34 +16,11 @@
 #define TNN_EXAMPLES_BASE_OBJECT_DETECTOR_SSD_H_
 
 #include "tnn_sdk_sample.h"
+#include "detector_utils.h"
 #include <memory>
 #include <string>
 
 namespace TNN_NS {
-
-constexpr const char* voc_classes[] = {
-    "background",
-    "aeroplane",
-    "bicycle",
-    "bird",
-    "boat",
-    "bottle",
-    "bus",
-    "car",
-    "cat",
-    "chair",
-    "cow",
-    "diningtable",
-    "dog",
-    "horse",
-    "motorbike",
-    "person",
-    "pottedplant",
-    "sheep",
-    "sofa",
-    "train",
-    "tvmonitor"
-};
 
 class ObjectDetectorSSDOutput : public TNNSDKOutput {
 public:

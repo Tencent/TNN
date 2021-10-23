@@ -29,6 +29,38 @@
 namespace TNN_NS {
 
 /*
+ * Output[i] = input0[i] op input1[i]
+ * CPU_ELEMENT_WISE supports broadcast on all dimensions
+ */
+template <typename T_IN, typename T_OUT>
+void CPU_ELEMENT_WISE_COMPARE(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
+                      const DimsVector& shape_output, std::function<T_OUT(T_IN, T_IN)> op) {
+    const int count = DimsVectorUtils::Count(shape_output);
+    T_OUT *output_data  = static_cast<T_OUT *>(output);
+    ASSERT(input_ptrs.size() == 2);
+
+    OMP_PARALLEL_FOR_
+    for (int offset = 0; offset < count; ++offset) {
+        DimsVector output_index = DimsOffsetUtils::ConvertOffsetToIndex(shape_output, offset);
+        T_OUT result;
+        T_IN inputs[2];
+        for (int i = 0; i < input_ptrs.size(); i++) {
+            T_IN *input_data = static_cast<T_IN *>(input_ptrs[i]);
+            auto input_shape  = input_shapes[i];
+            DimsVector input_index;
+            auto diff = shape_output.size() - input_shape.size();
+            for (int i = 0; i < input_shape.size(); ++i) {
+                input_index.push_back(std::min(output_index[i + diff], input_shape[i] - 1));
+            }
+            int input_offset = DimsOffsetUtils::ConvertIndexToOffset(input_shape, input_index);
+            inputs[i] = input_data[input_offset];
+        }
+        output_data[offset] = op(inputs[0], inputs[1]);
+    }
+}
+
+
+/*
  * Output[i] = input0[i] op input1[i] op ... op  input..n[i]
  * CPU_ELEMENT_WISE supports broadcast on all dimensions
  */

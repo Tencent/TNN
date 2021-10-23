@@ -32,15 +32,8 @@ Status MetalLayerAcc::Init(Context *context, LayerParam *param, LayerResource *r
     param_    = param;
     resource_ = resource;
 
-    //修正BlobManager::Init中设置的data_type
-    // metal 运行时只支持half，debug模式支持fp32
-#if TNN_METAL_FULL_PRECISION
-    inputs[0]->GetBlobDesc().data_type  = DATA_TYPE_FLOAT;
-    outputs[0]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
-#else
-    inputs[0]->GetBlobDesc().data_type  = DATA_TYPE_HALF;
-    outputs[0]->GetBlobDesc().data_type = DATA_TYPE_HALF;
-#endif
+    status = UpdateBlobDataType(inputs, outputs);
+    RETURN_ON_NEQ(status, TNN_OK);
 
     status = ReloadConstantBlobs(inputs, false);
     RETURN_ON_NEQ(status, TNN_OK);
@@ -51,6 +44,20 @@ Status MetalLayerAcc::Init(Context *context, LayerParam *param, LayerResource *r
 
 MetalLayerAcc::~MetalLayerAcc() {
     buffer_param_ = nil;
+}
+
+Status MetalLayerAcc::UpdateBlobDataType(const std::vector<Blob *> &inputs,
+                                   const std::vector<Blob *> &outputs) {
+    //修正BlobManager::Init中设置的data_type
+    // metal 运行时只支持half，debug模式支持fp32
+#if TNN_METAL_FULL_PRECISION
+    inputs[0]->GetBlobDesc().data_type  = DATA_TYPE_FLOAT;
+    outputs[0]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
+#else
+    inputs[0]->GetBlobDesc().data_type  = DATA_TYPE_HALF;
+    outputs[0]->GetBlobDesc().data_type = DATA_TYPE_HALF;
+#endif
+    return TNN_OK;
 }
 
 Status MetalLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -308,9 +315,9 @@ NSString * MetalLayerAcc::GetKernelLabel() {
 Status MetalLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto data_type = outputs[0]->GetBlobDesc().data_type;
     auto data_type_str = DataTypeUtils::GetDataTypeString(data_type);
-    if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF) {
-        LOGE("MetalLayerAcc: DataType must be float or half\n");
-        return Status(TNNERR_LAYER_ERR, "MetalLayerAcc: DataType must be float or half");
+    if (data_type != DATA_TYPE_FLOAT && data_type != DATA_TYPE_HALF && data_type != DATA_TYPE_INT32) {
+        LOGE("MetalLayerAcc: DataType must be float or half or int32\n");
+        return Status(TNNERR_LAYER_ERR, "MetalLayerAcc: DataType must be float or half or int32");
     }
 
     
