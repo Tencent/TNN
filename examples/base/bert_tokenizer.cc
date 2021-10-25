@@ -48,6 +48,7 @@ bool BertTokenizer::is_punct_char(char cp) {
   if (cp == ' ') {
     return false;
   }
+  return false;
 }
 
 std::string BertTokenizer::toLower(std::string s) {
@@ -339,16 +340,18 @@ Status BertTokenizer::buildInput(std::string paragraph, std::string question, st
     return TNN_OK;
 }
 
-BertTokenizerInput::BertTokenizerInput(DeviceType device_type) {
+BertTokenizerInput::BertTokenizerInput(DeviceType device_type, const std::string& input_id_name,
+    const std::string& mask_name, const std::string& segment_name) {
     inputIds = (void*)malloc(sizeof(float) * MaxSeqCount);
     inputMasks = (void*)malloc(sizeof(float) * MaxSeqCount);
     segments = (void*)malloc(sizeof(float) * MaxSeqCount);
     DimsVector nchw = {1, MaxSeqCount};
-    mat_map_.insert(std::pair<std::string, std::shared_ptr<Mat>>("input_ids_0", 
+
+    mat_map_.insert(std::pair<std::string, std::shared_ptr<Mat>>(input_id_name.c_str(), 
         std::make_shared<TNN_NS::Mat>(device_type, NC_INT32, nchw, inputIds)));
-    mat_map_.insert(std::pair<std::string, std::shared_ptr<Mat>>("input_mask_0", 
+    mat_map_.insert(std::pair<std::string, std::shared_ptr<Mat>>(mask_name.c_str(), 
         std::make_shared<TNN_NS::Mat>(device_type, NC_INT32, nchw, inputMasks)));
-    mat_map_.insert(std::pair<std::string, std::shared_ptr<Mat>>("segment_ids_0", 
+    mat_map_.insert(std::pair<std::string, std::shared_ptr<Mat>>(segment_name.c_str(), 
         std::make_shared<TNN_NS::Mat>(device_type, NC_INT32, nchw, segments)));
 }
 
@@ -406,11 +409,12 @@ Status BertTokenizer::CalProbs(std::vector<std::shared_ptr<prelim_prediction>> p
     return TNN_OK;
 }
 
-Status BertTokenizer::ConvertResult(std::shared_ptr<TNNSDKOutput> output, std::string& ans) {
+Status BertTokenizer::ConvertResult(std::shared_ptr<TNNSDKOutput> output, const std::string& start_logits_name,
+    const std::string& end_logits_name, std::string& ans) {
     std::vector<size_t> start_index, end_index;
     float *start_logits, *end_logits;
-    start_logits = reinterpret_cast<float*>(output->GetMat("unstack:0")->GetData());
-    end_logits   = reinterpret_cast<float*>(output->GetMat("unstack:1")->GetData());
+    start_logits = reinterpret_cast<float*>(output->GetMat(start_logits_name.c_str())->GetData());
+    end_logits   = reinterpret_cast<float*>(output->GetMat(end_logits_name.c_str())->GetData());
     start_index = _get_best_indexes(start_logits, MaxSeqCount, 20);
     end_index   = _get_best_indexes(end_logits, MaxSeqCount, 20);
 
@@ -432,11 +436,10 @@ Status BertTokenizer::ConvertResult(std::shared_ptr<TNNSDKOutput> output, std::s
 
     // calc probabilities
     CalProbs(prelim_predictions);
-    
     for (auto item : prelim_predictions) {
         if (nums >= maxAns) break;
         std::string tok;
-        for (size_t i = item->start; i <= item->end; i++) { 
+        for (size_t i = item->start; i <= item->end; i++) {
             if (features_[i].find("##") != std::string::npos) {
                 auto s = features_[i].substr(features_[i].find("##") + 2); // ## represent connections between tokens(no white-space)
                 tok += s;
@@ -445,11 +448,11 @@ Status BertTokenizer::ConvertResult(std::shared_ptr<TNNSDKOutput> output, std::s
                 else tok += " " + features_[i];
             }
         }
-        printf("ans%d[probability=%f]: %s\n", nums + 1, item->prob, tok.c_str());
+        printf("ans%d[probability=%f]: %s\n", static_cast<int>(nums + 1), item->prob, tok.c_str());
+        if (nums == 2) ans = tok;
         nums++;
     }
     
-
     return TNN_OK;
 }
 
