@@ -1,5 +1,15 @@
 cmake_minimum_required(VERSION 3.1)
 
+# https://cmake.org/cmake/help/latest/policy/CMP0068.html
+if(POLICY CMP0068)
+    cmake_policy(SET CMP0068 NEW)
+endif()
+
+# https://cmake.org/cmake/help/latest/policy/CMP0077.html
+if (POLICY CMP0077)
+    cmake_policy(SET CMP0077 NEW)
+endif ()
+
 project(TNN)
 
 ENABLE_LANGUAGE(ASM)
@@ -349,6 +359,7 @@ else()
         target_link_libraries(TNN -lEGL -lGLESv2)
     endif()
 endif()
+target_include_directories(TNN PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 if(TNN_QUANTIZATION_ENABLE)
     add_subdirectory(tools/quantization)
