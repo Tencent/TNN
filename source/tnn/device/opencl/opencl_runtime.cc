@@ -176,10 +176,16 @@ Status OpenCLRuntime::Init() {
         auto success  = device_->getInfo(CL_DEVICE_HALF_FP_CONFIG, &fp_config);
         support_fp16_ = CL_SUCCESS == success && fp_config > 0;
 
+        std::string system;
+#ifdef __arm__
+        system = "arm";
+#elif defined(__aarch64__)
+        system = "aarch64";
+#endif
         if (!cache_path_.empty()) {
             program_cache_file_path_ =
                 cache_path_ + "/" + CACHE_TAG + "_" + md5(device_name) + "_" +
-                md5(device_version + "_" + opencl_version);
+                md5(device_version + "_" + opencl_version) + "_" + system;
         }
 
         Status ret = LoadProgramCache();

@@ -523,3 +523,13 @@ kernel void data_converter_nchw(device ftype *dst      [[buffer(0)]],
 {
     data_converter_nchw_copy_type<ftype, ftype>(dst, src, params, gid);
 }
+
+kernel void data_converter_nchw_int(device int *dst      [[buffer(0)]],
+                                         const device int *src  [[buffer(1)]],
+                                         constant MetalImageConverterParams& params      [[buffer(2)]],
+                                         const device float *scale                  [[buffer(3)]],
+                                         const device float *bias                   [[buffer(4)]],
+                                         uint3 gid [[thread_position_in_grid]])
+{
+    data_converter_nchw_copy_type<int, int>(dst, src, params, gid);
+}

@@ -19,6 +19,9 @@ namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Concat);
 
 std::string TFLiteConcatConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
+    if (quantized_model) {
+        return "QuantizedConcat";
+    }
     return "Concat";
 }
 
@@ -40,10 +43,20 @@ TNN_NS::Status TFLiteConcatConverter::exec(TNN_NS::NetStructure &net_structure, 
     const auto &reshape_option = tf_lite_operator->builtin_options.AsReshapeOptions();
     param->name                = cur_layer->name;
     param->type                = cur_layer->type_str;
-    param->quantized           = false;
+    param->quantized           = quantized_model;
     auto option                = tf_lite_operator->builtin_options.AsConcatenationOptions();
     auto &input_tensor         = tf_lite_tensors[tf_lite_operator->inputs[0]];
     param->axis                = ConvertAxisFormatTFLite(option->axis, input_tensor->shape.size());
+    if (quantized_model) {
+        for (const auto &input_index : tf_lite_operator->inputs) {
+            // create input blob scale
+            auto status = CreateBlobScaleResource(net_resource, tf_lite_tensors, input_index);
+            ASSERT(status);
+        }
+        auto output_index = tf_lite_operator->outputs[0];
+        auto status       = CreateBlobScaleResource(net_resource, tf_lite_tensors, output_index);
+        ASSERT(status);
+    }
     return TNN_NS::TNN_CONVERT_OK;
 }
 
