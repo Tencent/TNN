@@ -29,9 +29,7 @@ ILayer* ConstantOfShapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network
     std::fill(strides.d, strides.d + strides.nbDims, 0);
 
     Weights const_weight;
-    const_weight.type = ConvertToTRTDataType(layer_resource->value.GetDataType());
-    const_weight.values = layer_resource->value.force_to<char *>();
-    const_weight.count = layer_resource->value.GetDataCount();
+    const_weight = ConvertToWeights(&(layer_resource->value));
 
     auto weightDims = ConvertToTRTDims(layer_resource->value.GetBufferDims());
     ILayer* constant_layer = network->addConstant(weightDims, const_weight);
