@@ -127,7 +127,15 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
     return outputs;
 }
 
-static auto TNNEngineTSRegistrtion = torch::class_<TNNEngine>("tnn", "Engine");
+static auto TNNEngineTSRegistrtion = 
+    torch::class_<TNNEngine>("tnn", "Engine")
+        .def_pickle(
+        [](const c10::intrusive_ptr<TNNEngine>& self) -> std::string {
+            return "not implement";
+        },
+        [](std::string seralized_engine) -> c10::intrusive_ptr<TNNEngine> {
+            return c10::make_intrusive<TNNEngine>(seralized_engine);
+        });
 
 TORCH_LIBRARY(tnn, m) {
     // auto type_ptr = c10::detail::getTypePtr_<c10::intrusive_ptr<TNNEngine>>::call();

@@ -80,6 +80,9 @@ TNNEngine::TNNEngine(NetworkConfig& network_config, ModelConfig& model_config) {
 TNNEngine::TNNEngine(std::shared_ptr<Instance> &instance) {
     instance_ = instance;
 }
+TNNEngine::TNNEngine(std::string serialize) {
+    std::cout << serialize << std::endl;
+}
 
 TNNEngine& TNNEngine::operator=(const TNNEngine& other) {
     instance_ = other.instance_;

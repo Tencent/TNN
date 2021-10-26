@@ -46,6 +46,7 @@ private:
 struct TNNEngine : torch::CustomClassHolder {
     TNNEngine(NetworkConfig &network_config, ModelConfig &model_config);
     TNNEngine(std::shared_ptr<Instance> &instance);
+    TNNEngine(std::string serialize);
     std::shared_ptr<Instance> instance_;
 
     std::vector<std::string> input_names;
