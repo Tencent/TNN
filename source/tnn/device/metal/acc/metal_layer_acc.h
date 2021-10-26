@@ -62,7 +62,9 @@ public:
     virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder,
                                          const std::vector<Blob *> &inputs,
                                          const std::vector<Blob *> &outputs);
-    
+
+    virtual Status UpdateBlobDataType(const std::vector<Blob *> &inputs,
+                                   const std::vector<Blob *> &outputs);
 
 protected:
     LayerParam *param_       = nullptr;

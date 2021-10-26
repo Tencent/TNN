@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#D8D8D8"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="237dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/textView6"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#8BC34A"
+            android:text="Reading Material"
+            android:textColor="#000000"
+            android:textSize="34sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/reading_comprehension_material_text"
+                android:layout_width="290dp"
+                android:layout_height="178dp"
+                android:background="@color/white"
+                android:ems="10"
+                android:gravity="start|top"
+                android:hint="Please input reading material"
+                android:inputType="textMultiLine" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="178dp"
+                android:orientation="vertical">
+
+                <Button
+                    android:id="@+id/reading_comprehension_demo_1_btn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/purple_radio_button_selected_style"
+                    android:text="Demo1" />
+
+                <Button
+                    android:id="@+id/reading_comprehension_demo_2_btn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/red_radio_button_selected_style"
+                    android:text="Demo2" />
+
+                <Button
+                    android:id="@+id/reading_comprehension_demo_3_btn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/green_radio_button_selected_style"
+                    android:text="Demo3" />
+            </LinearLayout>
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="217dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/textView7"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#00BCD4"
+            android:text="Question"
+            android:textColor="#000000"
+            android:textSize="34sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="173dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/reading_comprehension_question_text"
+                android:layout_width="549dp"
+                android:layout_height="151dp"
+                android:layout_weight="1"
+                android:background="@color/white"
+                android:ems="10"
+                android:gravity="start|top"
+                android:hint="Please input your quenstion and press Ask!"
+                android:inputType="textMultiLine" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="153dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <Button
+                    android:id="@+id/reading_comprehension_ask_btn"
+                    android:layout_width="match_parent"
+                    android:layout_height="3dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/cyan_radio_button_bg"
+                    android:text="Ask!" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="12dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/textView"
+                        android:layout_width="88dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="GPU"
+                        android:textColor="#000000" />
+
+                    <ToggleButton
+                        android:id="@+id/gpu_switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="10dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/toggle_selector"
+                        android:checked="false"
+                        android:text=""
+                        android:textOff=""
+                        android:textOn="" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="224dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/textView8"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#FF9800"
+            android:text="Answer"
+            android:textColor="#000000"
+            android:textSize="34sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/reading_comprehension_answer_text"
+            android:layout_width="match_parent"
+            android:layout_height="174dp"
+            android:background="@color/white"
+            android:ems="10"
+            android:gravity="start|top"
+            android:hint="Press Ask!  buttom to get answer"
+            android:inputType="textMultiLine" />
+
+    </LinearLayout>
+</LinearLayout>

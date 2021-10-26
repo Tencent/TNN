@@ -279,7 +279,10 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             if (IsLayoutReformatLayer(layer_info)) {
                 // only need to update model's input blob datatype
                 // others are already updated in UpdateBlobPrecision method
-                if (net_structure->inputs_shape_map.find(name) != net_structure->inputs_shape_map.end()) {
+                const auto src_data_type = blob->GetBlobDesc().data_type;
+                bool update_precision = (src_data_type == DATA_TYPE_FLOAT || src_data_type == DATA_TYPE_HALF || 
+                    src_data_type == DATA_TYPE_BFP16);
+                if (net_structure->inputs_shape_map.find(name) != net_structure->inputs_shape_map.end() && update_precision) {
                     auto dtype = blob_manager_->GetBlob(layer_info->outputs[0])->GetBlobDesc().data_type;
                     LOGD("DefaultNetwork::InitLayers LayoutReformat set input: %s datatype as: %d\n",
                          name.c_str(), dtype);
