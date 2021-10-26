@@ -25,6 +25,8 @@ public:
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 private:
+    virtual std::vector<DataType> SupportDataType(int dims_size, BlobType blob_type) override;
+
     std::shared_ptr<cl::Buffer> inter_buffer_ = nullptr;
 };
 
@@ -37,19 +39,10 @@ Status OpenCLSqueezeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     run_3d_ndrange_ = false;
     op_name_        = "Squeeze";
 
-    const int input_dims_size  = inputs[0]->GetBlobDesc().dims.size();
-    const int output_dims_size = outputs[0]->GetBlobDesc().dims.size();
-
     execute_units_.resize(2);
     // image->buffer
     {
-        std::string program_name = input_dims_size == 6   ? "image_6d_to_buffer"
-                                   : input_dims_size == 5 ? "image_5d_to_buffer"
-                                                          : "image_to_buffer";
-        std::string kernel_name  = input_dims_size == 6   ? "Image6DToNCHWBuffer"
-                                   : input_dims_size == 5 ? "Image5DToNCHWBuffer"
-                                                          : "ImageToNCHWBuffer";
-        ret                      = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);
+        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", "ImageToNCHWBuffer");
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -58,13 +51,7 @@ Status OpenCLSqueezeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
     // buffer->image
     {
-        std::string program_name = output_dims_size == 6   ? "buffer_to_image_6d"
-                                   : output_dims_size == 5 ? "buffer_to_image_5d"
-                                                           : "buffer_to_image";
-        std::string kernel_name  = output_dims_size == 6   ? "NCHWBufferToImage6D"
-                                   : output_dims_size == 5 ? "NCHWBufferToImage5D"
-                                                           : "NCHWBufferToImage";
-        ret                      = CreateExecuteUnit(execute_units_[1], program_name, kernel_name);
+        ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", "NCHWBufferToImage");
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -84,43 +71,26 @@ Status OpenCLSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     auto input  = inputs[0];
     auto output = outputs[0];
 
-    auto input_dims             = input->GetBlobDesc().dims;
-    auto output_dims            = output->GetBlobDesc().dims;
-    const auto input_dims_size  = input_dims.size();
-    const auto output_dims_size = output_dims.size();
+    auto input_dims  = input->GetBlobDesc().dims;
+    auto output_dims = output->GetBlobDesc().dims;
 
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
 
-    int size0 = UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(output_dims, 0);
-    for (int i = 2; i < output_dims_size; i++) {
-        size0 *= DimsFunctionUtils::GetDim(output_dims, i);
-    }
-    int size1 = UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(input_dims, 0);
-    for (int i = 2; i < input_dims_size; i++) {
-        size1 *= DimsFunctionUtils::GetDim(input_dims, i);
-    }
-    int blob_size = std::max(size0, size1) * sizeof(float);
+    int size0          = UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(output_dims, 0) *
+                                DimsFunctionUtils::GetDim(output_dims, 2) * DimsFunctionUtils::GetDim(output_dims, 3);
+    int size1          = UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(input_dims, 0) *
+                                DimsFunctionUtils::GetDim(input_dims, 2) * DimsFunctionUtils::GetDim(input_dims, 3);
+    int blob_size      = std::max(size0, size1) * sizeof(float);
 
-    inter_buffer_ = std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, blob_size);
+    inter_buffer_      = std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, blob_size);
 
     // image->buffer
     {
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], input_dims);
         execute_units_[0].ocl_kernel.setArg(idx++, *inter_buffer_.get());
-        if (input_dims_size > 4) {
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 4)));
-            if (input_dims_size == 6) {
-                execute_units_[0].ocl_kernel.setArg(idx++,
-                                                    static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 5)));
-            }
-        } else {
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
-            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
-        }
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
+        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
         execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
     }
 
@@ -128,37 +98,23 @@ Status OpenCLSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     {
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[1], output_dims);
         execute_units_[1].ocl_kernel.setArg(idx++, *inter_buffer_.get());
-        if (output_dims_size > 4) {
-            execute_units_[1].ocl_kernel.setArg(idx++,
-                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
-            execute_units_[1].ocl_kernel.setArg(idx++,
-                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
-            execute_units_[1].ocl_kernel.setArg(idx++,
-                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
-            execute_units_[1].ocl_kernel.setArg(idx++,
-                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 4)));
-            if (output_dims_size == 6) {
-                execute_units_[1].ocl_kernel.setArg(idx++,
-                                                    static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 5)));
-            }
-        } else {
-            execute_units_[1].ocl_kernel.setArg(idx++,
-                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
-            execute_units_[1].ocl_kernel.setArg(idx++,
-                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
-            execute_units_[1].ocl_kernel.setArg(idx++,
-                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
-        }
+        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
+        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
+        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
         execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
     }
 
     return TNN_OK;
 }
 
-REGISTER_OPENCL_ACC(Squeeze, LAYER_SQUEEZE)
-REGISTER_OPENCL_ACC(Squeeze, LAYER_UNSQUEEZE)
+std::vector<DataType> OpenCLSqueezeLayerAcc::SupportDataType(int dims_size, BlobType blob_type) {
+    return {DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_INT32};
+}
 
+REGISTER_OPENCL_ACC(Squeeze, LAYER_SQUEEZE)
 REGISTER_OPENCL_LAYOUT(LAYER_SQUEEZE, DATA_FORMAT_NHC4W4);
+
+REGISTER_OPENCL_ACC(Squeeze, LAYER_UNSQUEEZE)
 REGISTER_OPENCL_LAYOUT(LAYER_UNSQUEEZE, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

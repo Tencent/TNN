@@ -52,6 +52,9 @@ kernel void max_broadcast(const device ftype4 *src0                             
         data0 = ftype4(src0[batch_offset0 + gid.x].x);
     } else if (params.broadcast_input0 == kBroadcastTypeElement) {
         data0 = ftype4(src0[index_size]);
+    } else if (params.broadcast_input0 == kBroadcastTypeWidth) {
+        const int w = gid.x % params.input_width;
+        data0 = ftype4(src0[batch_offset0 + w].x);
     } else {
         data0 = src0[index];
     }
@@ -65,6 +68,9 @@ kernel void max_broadcast(const device ftype4 *src0                             
         data1 = ftype4(src1[batch_offset1 + gid.x].x);
     } else if (params.broadcast_input1 == kBroadcastTypeElement) {
         data1 = ftype4(src1[index_size]);
+    } else if (params.broadcast_input1 == kBroadcastTypeWidth) {
+        const int w = gid.x % params.input_width;
+        data1 = ftype4(src1[batch_offset1 + w].x);
     } else {
         data1 = src1[index];
     }

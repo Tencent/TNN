@@ -35,7 +35,8 @@ public:
 
 class BertTokenizerInput : public TNNSDKInput {
 public:
-    BertTokenizerInput(DeviceType device_type);
+    BertTokenizerInput(DeviceType device_type, const std::string& input_id_name,
+            const std::string& mask_name, const std::string& segment_name);
     virtual ~BertTokenizerInput();
     void* inputIds;
     void* inputMasks;
@@ -81,7 +82,8 @@ public:
     std::string toLower(std::string s);
 
     // @brief tokenize BertOutput to text result and probalities
-    Status ConvertResult(std::shared_ptr<TNNSDKOutput> output, std::string& ans);
+    Status ConvertResult(std::shared_ptr<TNNSDKOutput> output, const std::string& start_logits_name, 
+            const std::string& end_logits_name, std::string& ans);
 
     // @brief calculate probabilities for result
     Status CalProbs(std::vector<std::shared_ptr<prelim_prediction>> scores);

@@ -35,6 +35,7 @@ public:
                                       const std::vector<Blob *> &outputs);
     Status AllocateBufferWeight(const std::vector<Blob *> &inputs,
                                              const std::vector<Blob *> &outputs);
+    virtual Status ConfigBuffer2MetalBlobDesc(BlobDesc &desc);
 
     virtual Status SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder,
                                             const std::vector<Blob *> &inputs,
