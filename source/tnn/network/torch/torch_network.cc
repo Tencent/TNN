@@ -40,7 +40,9 @@
 #include <torch/csrc/jit/passes/frozen_graph_optimizations.h>
 #include "torch/csrc/jit/passes/lower_tuples.h"
 
+#ifdef TNN_TORCHVISION
 #include <torchvision/vision.h>
+#endif
 
 #include "tnn/utils/blob_dump_utils.h"
 
@@ -157,7 +159,7 @@ Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
 }
 
 Status TNNTorchNetwork::CompileModule() {
-    CompileTorch(module_, max_inputs_shape_, config_);
+    CompileTorch(module_.get(), max_inputs_shape_, config_);
 
     return TNN_OK;
 }

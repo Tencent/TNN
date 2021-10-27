@@ -73,7 +73,7 @@ void RemoveUselessOps(torch::jit::Block *block) {
     }
 }
 
-void AddEngineToGraph(std::shared_ptr<torch::jit::script::Module> mod, std::shared_ptr<torch::jit::Graph> &g,
+void AddEngineToGraph(torch::jit::script::Module* mod, std::shared_ptr<torch::jit::Graph> &g,
                       c10::intrusive_ptr<runtime::TNNEngine> engine_ptr, std::string engine_id = "",
                       bool fallback = false) {
     // Get required metadata about the engine out
@@ -181,7 +181,8 @@ void RegisterNodeToOutput(std::shared_ptr<torch::jit::Module> &mod, const std::v
     cur_method.setSchema(schema);
 }
 
-void CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap &input_shape, NetworkConfig &config) {
+torch::jit::Module* CompileTorch(torch::jit::Module* mod, InputShapesMap &input_shape, NetworkConfig &config) {
+    printf("CompileTorch mod: %p \n", mod);
     std::cout << c10::toString(mod->get_method("forward").function().getSchema()) << std::endl;
     auto low_g = mod->get_method("forward").graph();
     std::cout << low_g->toString(false) << std::endl;
@@ -274,7 +275,7 @@ void CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap &input
     std::cout << "============================= the final graph ===========================" << std::endl;
     std::cout << low_g->toString() << std::endl;
 
-    return;
+    return mod;
 }
 
 }  // namespace TNN_NS

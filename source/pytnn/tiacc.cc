@@ -9,18 +9,22 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_NETWORK_TNNTORCH_TNNTORCH_COMPILE_H
-#define TNN_SOURCE_NETWORK_TNNTORCH_TNNTORCH_COMPILE_H
+#include "torch/csrc/jit/python/pybind_utils.h"
+#include "torch/custom_class.h"
+#include "torch/script.h"
+#include "torch/torch.h"
 
-#include "tnn/network/torch/partitioning.h"
+#include "tnn/network/torch/torch_compile.h"
+
+namespace py = pybind11; 
 
 namespace TNN_NS {
 
-PUBLIC torch::jit::Module* CompileTorch(torch::jit::Module* mod, InputShapesMap& input_shape, NetworkConfig& config);
-
+void InitTIACCPy(py::module &m) {
+    m.def("CompileTorch", &CompileTorch); 
 }
 
-#endif
+} // TNN_NS

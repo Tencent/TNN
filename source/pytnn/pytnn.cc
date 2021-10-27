@@ -15,6 +15,7 @@
 #include <tnn/core/tnn.h>
 #include <tnn/core/mat.h>
 #include <pytnn/pytnn.h>
+#include <pytnn/tiacc.h>
 
 namespace py = pybind11; 
 
@@ -40,6 +41,9 @@ PYBIND11_MODULE(_pytnn, m) {
     InitHalfUtilsPy(m);
     InitMatUtilsPy(m);
     InitStringUtilsPy(m);
+
+    //tiacc
+    InitTIACCPy(m);
 }
 
 } // TNN_NS
