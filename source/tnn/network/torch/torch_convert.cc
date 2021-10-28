@@ -26,6 +26,7 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
     network_config.device_type = config.device_type;
     network_config.device_id = config.device_id;
     network_config.precision = (config.device_type == DEVICE_CUDA && config.precision == PRECISION_AUTO)? PRECISION_LOW : config.precision;
+    network_config.share_memory_mode = (config.device_type == DEVICE_CUDA)? SHARE_MEMORY_MODE_SHARE_ONE_THREAD : SHARE_MEMORY_MODE_DEFAULT;
     auto instance_ptr = c10::make_intrusive<runtime::TNNEngine>(network_config, model_config);
 
     auto interpreter = dynamic_cast<IRModelInterpreter *>(ctx->get_interpreter().get());

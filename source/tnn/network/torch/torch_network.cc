@@ -145,8 +145,8 @@ Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
     // graph_ = module_->get_method(forward_func_name_).graph();
 
     mod.eval();
-    module_ = std::make_shared<torch::jit::Module>(torch::jit::freeze_module(mod));
-    graph_ = module_->get_method(forward_func_name_).graph();
+    module_ = torch::jit::freeze_module(mod);
+    graph_ = module_.get_method(forward_func_name_).graph();
     OptimizeFrozenGraph(graph_);
     LowerSimpleTuples(graph_);
 
@@ -263,7 +263,7 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
         }
     }
 
-    auto out = module_->forward(cur_inputs);
+    auto out = module_.forward(cur_inputs);
 
     // Convert to float here because blobConverter does not support half precision currently
     if (precision_ == DATA_TYPE_HALF) {
@@ -323,7 +323,7 @@ Status TNNTorchNetwork::Forward() {
         }
     }
 
-    auto out = module_->forward(cur_inputs);
+    auto out = module_.forward(cur_inputs);
 
     // Convert to float here because blobConverter does not support half precision currently
     if (precision_ == DATA_TYPE_HALF) {

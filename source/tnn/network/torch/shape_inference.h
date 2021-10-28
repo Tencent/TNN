@@ -9,11 +9,11 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_NETWORK_TNNTORCH_TNNTORCH_PARTITIONING_H
-#define TNN_SOURCE_NETWORK_TNNTORCH_TNNTORCH_PARTITIONING_H
+#ifndef TNN_SOURCE_NETWORK_TNNTORCH_SHAPE_INFERENCE_H
+#define TNN_SOURCE_NETWORK_TNNTORCH_SHAPE_INFERENCE_H
 
 #include <vector>
 
@@ -24,12 +24,8 @@
 namespace TNN_NS {
 namespace partitioning {
 
-typedef std::vector<SegmentedBlock> PartitionedGraph;
-
-PartitionedGraph segment_graph(std::shared_ptr<torch::jit::Graph> g);
-
-std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<torch::jit::Graph>,
-                                      InputShapesMap& input_shape, NetworkConfig& config, bool b_infer_shape = false);
+void runShapeInfer(torch::jit::Module& mod, std::vector<SegmentedBlock>& segmented_blocks,
+                   InputShapesMap& input_shape, NetworkConfig& config);
 
 }  // namespace partitioning
 }  // namespace TNN_NS

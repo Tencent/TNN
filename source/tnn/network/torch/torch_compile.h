@@ -19,7 +19,7 @@
 
 namespace TNN_NS {
 
-void CompileTorch(std::shared_ptr<torch::jit::Module> mod, InputShapesMap& input_shape, NetworkConfig& config);
+void CompileTorch(torch::jit::Module& mod, InputShapesMap& input_shape, NetworkConfig& config);
 
 }
 

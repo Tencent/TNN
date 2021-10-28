@@ -61,7 +61,7 @@ public:
     virtual Status ShareNetResource(AbstractNetwork *network);
 
     // @brief get torch network module
-    std::shared_ptr<torch::jit::Module> GetModule() { return module_; }
+    torch::jit::Module GetModule() { return module_; }
 
     // @brief get torch network graph
     std::shared_ptr<torch::jit::Graph> GetGraph() { return graph_; }
@@ -79,7 +79,7 @@ private:
 
     Status DumpAllOutputBlob();
 
-    std::shared_ptr<torch::jit::Module> module_;
+    torch::jit::Module module_;
     std::shared_ptr<torch::jit::Graph> graph_;
 
     std::string forward_func_name_ = "forward";

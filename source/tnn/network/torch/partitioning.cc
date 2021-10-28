@@ -18,6 +18,7 @@
 
 #include "tnn/network/torch/jit_util.h"
 #include "tnn/network/torch/torch_op_converter.h"
+#include "tnn/network/torch/shape_inference.h"
 #include "torch/csrc/jit/passes/dead_code_elimination.h"
 
 namespace TNN_NS {
@@ -334,7 +335,8 @@ std::vector<SegmentedBlock> segment_graph(std::shared_ptr<torch::jit::Graph> g) 
     return std::move(segmented_blocks);
 }
 
-std::vector<SegmentedBlock> Partition(std::shared_ptr<torch::jit::Graph> g, InputShapesMap& input_shape) {
+std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<torch::jit::Graph> g,
+                                      InputShapesMap& input_shape, NetworkConfig& config, bool b_infer_shape) {
     // LOG_DEBUG(partition_info);
     // segment lowering global graph into blocks
     std::vector<SegmentedBlock> segmented_blocks = segment_graph(g);
@@ -355,7 +357,9 @@ std::vector<SegmentedBlock> Partition(std::shared_ptr<torch::jit::Graph> g, Inpu
     // }
 
     // run shape analysis on each segmented block
-    // runShapeAnalysis(segmented_blocks, input_shape, g);
+    if (b_infer_shape) {
+        runShapeInfer(mod, segmented_blocks, input_shape, config);
+    }
 
     return segmented_blocks;
 }
