@@ -24,7 +24,7 @@ namespace py = pybind11;
 namespace TNN_NS {
 
 void InitTIACCPy(py::module &m) {
-    m.def("CompileTorch", &CompileTorch); 
+    m.def("CompileTorch", &CompileTorch, py::arg("mod"), py::arg("input_shape"), py::arg("config"), py::arg("forward_func_name") = "forward"); 
 }
 
 } // TNN_NS

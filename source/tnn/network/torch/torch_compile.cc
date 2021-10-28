@@ -21,6 +21,9 @@
 #include <torch/csrc/jit/passes/remove_dropout.h>
 #include <torch/csrc/jit/passes/remove_inplace_ops.h>
 #include <torch/csrc/jit/passes/subgraph_rewrite.h>
+#include <torch/csrc/jit/passes/freeze_module.h>
+#include <torch/csrc/jit/passes/frozen_graph_optimizations.h>
+#include "torch/csrc/jit/passes/lower_tuples.h"
 
 #include "tnn/network/torch/jit_util.h"
 #include "tnn/network/torch/torch_convert.h"
@@ -141,7 +144,17 @@ void RegisterNodeToOutput(std::shared_ptr<torch::jit::Module> &mod, const std::v
     cur_method.setSchema(schema);
 }
 
-torch::jit::Module CompileTorch(torch::jit::Module& mod, InputShapesMap &input_shape, NetworkConfig &config) {
+torch::jit::Module CompileTorch(torch::jit::Module& mod, InputShapesMap &input_shape, NetworkConfig &config, std::string forward_func_name) {
+
+    if (config.precision == PRECISION_LOW ) {
+        mod.to(torch::kHalf);
+    }
+    mod.eval();
+    mod = torch::jit::freeze_module(mod);
+    auto graph = mod.get_method(forward_func_name).graph();
+    OptimizeFrozenGraph(graph);
+    LowerSimpleTuples(graph);
+
     std::cout << c10::toString(mod.get_method("forward").function().getSchema()) << std::endl;
     auto g = mod.get_method("forward").graph();
     std::cout << g->toString(false) << std::endl;

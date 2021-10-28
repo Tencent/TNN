@@ -67,10 +67,6 @@ public:
     std::shared_ptr<torch::jit::Graph> GetGraph() { return graph_; }
 private:
 
-    virtual Status LoadModule(std::istream& in, NetworkConfig &config);
-
-    virtual Status CompileModule();
-
     virtual Status CreateIOBinding(InputShapesMap  min_shape, InputShapesMap max_shape);
   
     virtual Status ClearOutputs();
@@ -83,7 +79,6 @@ private:
     std::shared_ptr<torch::jit::Graph> graph_;
 
     std::string forward_func_name_ = "forward";
-
 
     BlobMap input_blob_map_;
     BlobMap output_blob_map_;

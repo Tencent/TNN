@@ -89,19 +89,15 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
             if (model_config.params.size() > 1) {
                 forward_func_name_ = model_config.params[1];
             }
-            RETURN_ON_FAIL(LoadModule(model_stream, net_config));
+            
+            c10::Device device(c10::kCPU);
+            RETURN_ON_NEQ(ConvertToTorchDevice(device, config_.device_type, config_.device_id), TNN_OK);
+            auto mod = torch::jit::load(model_stream, device);
+            module_ = CompileTorch(mod, max_inputs_shape_, config_, forward_func_name_);
+            graph_ = module_.get_method(forward_func_name_).graph();
         } else {
             return Status(TNNERR_PARAM_ERR, "Unsupported model type for TNNTorchNetwork");
         }
-
-        #if 1
-        // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
-        // auto new_mod = CompileTorch(module_, max_inputs_shape, net_config);
-        // module_ = new_mod;
-        // graph_ = module_->get_method(forward_func_name_).graph();
-        CompileModule();
-
-        #endif
 
         #if 0
         at::ArrayRef<torch::jit::Value*> inputs = graph_->block()->inputs();
@@ -125,41 +121,6 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
         RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape, max_inputs_shape));
         init_done_ = true;
     }
-
-    return TNN_OK;
-}
-
-Status TNNTorchNetwork::LoadModule(std::istream& in, NetworkConfig &config) {
-    c10::Device device(c10::kCPU);
-    RETURN_ON_NEQ(ConvertToTorchDevice(device, config.device_type, config.device_id), TNN_OK);
-    auto mod = torch::jit::load(in, device);
-
-    if (config.precision == PRECISION_LOW ) {
-        mod.to(torch::kHalf);
-    }
-
-    // freeze function requires module_ in training mode [libtorch 1.8.1]
-    // if (!mod.is_training()) {
-    //     mod.train(true);
-    // }
-    // module_ = std::make_shared<torch::jit::Module>(torch::jit::freeze(mod));
-    // module_->train(false);
-    // graph_ = module_->get_method(forward_func_name_).graph();
-
-    mod.eval();
-    module_ = torch::jit::freeze_module(mod);
-    graph_ = module_.get_method(forward_func_name_).graph();
-    OptimizeFrozenGraph(graph_);
-    LowerSimpleTuples(graph_);
-
-    // auto graph_and_ivalues = torch::jit::LowerGraph(*graph_, module_->_ivalue());
-    // graph_ = graph_and_ivalues.first;
-
-    return TNN_OK;
-}
-
-Status TNNTorchNetwork::CompileModule() {
-    CompileTorch(module_, max_inputs_shape_, config_);
 
     return TNN_OK;
 }
