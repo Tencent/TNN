@@ -141,7 +141,7 @@ void RegisterNodeToOutput(std::shared_ptr<torch::jit::Module> &mod, const std::v
     cur_method.setSchema(schema);
 }
 
-void CompileTorch(torch::jit::Module& mod, InputShapesMap &input_shape, NetworkConfig &config) {
+torch::jit::Module CompileTorch(torch::jit::Module& mod, InputShapesMap &input_shape, NetworkConfig &config) {
     std::cout << c10::toString(mod.get_method("forward").function().getSchema()) << std::endl;
     auto g = mod.get_method("forward").graph();
     std::cout << g->toString(false) << std::endl;
@@ -154,8 +154,8 @@ void CompileTorch(torch::jit::Module& mod, InputShapesMap &input_shape, NetworkC
 
     TorchOptPass(mod);
 
-    // auto tmp_mod = mod.clone(true);
-    // auto tmp_seg = partitioning::Partition(tmp_mod, tmp_mod.get_method("forward").graph(), input_shape, config, true);
+    auto tmp_mod = mod.clone();
+    auto tmp_seg = partitioning::Partition(tmp_mod, tmp_mod.get_method("forward").graph(), input_shape, config, true);
 
     auto seg_blocks = partitioning::Partition(mod, g, input_shape, config);
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
@@ -230,7 +230,7 @@ void CompileTorch(torch::jit::Module& mod, InputShapesMap &input_shape, NetworkC
     std::cout << "============================= the final graph ===========================" << std::endl;
     std::cout << g->toString() << std::endl;
 
-    return;
+    return mod;
 }
 
 }  // namespace TNN_NS

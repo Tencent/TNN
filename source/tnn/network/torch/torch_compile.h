@@ -19,7 +19,7 @@
 
 namespace TNN_NS {
 
-void CompileTorch(torch::jit::Module& mod, InputShapesMap& input_shape, NetworkConfig& config);
+PUBLIC torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap& input_shape, NetworkConfig& config);
 
 }
 

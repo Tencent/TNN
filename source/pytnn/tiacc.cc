@@ -12,38 +12,19 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <tnn/core/tnn.h>
-#include <tnn/core/mat.h>
-#include <pytnn/pytnn.h>
-#include <pytnn/tiacc.h>
+#include "torch/csrc/jit/python/pybind_utils.h"
+#include "torch/custom_class.h"
+#include "torch/script.h"
+#include "torch/torch.h"
+
+#include "tnn/network/torch/torch_compile.h"
 
 namespace py = pybind11; 
 
 namespace TNN_NS {
 
-PYBIND11_MODULE(_pytnn, m) {
-    m.doc() = "pybind11 tnn torch plugin"; // optional module docstring
-
-    InitStatusPy(m);
-    InitCommonPy(m);
-    InitMatPy(m);
-    InitBlobPy(m);
-    InitBlobConverterPy(m);
-
-    InitTNNPy(m);
-    InitInstancePy(m);
-
-    InitBFP16UtilsPy(m);
-    InitCpuUtilsPy(m);
-    InitDataTypeUtilsPy(m);
-    InitDeviceUtilsPy(m);
-    InitDimsVectorUtilsPy(m);
-    InitHalfUtilsPy(m);
-    InitMatUtilsPy(m);
-    InitStringUtilsPy(m);
-
-    //tiacc
-    InitTIACCPy(m);
+void InitTIACCPy(py::module &m) {
+    m.def("CompileTorch", &CompileTorch); 
 }
 
 } // TNN_NS

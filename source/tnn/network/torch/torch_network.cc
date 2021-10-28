@@ -40,7 +40,9 @@
 #include <torch/csrc/jit/passes/frozen_graph_optimizations.h>
 #include "torch/csrc/jit/passes/lower_tuples.h"
 
+#ifdef TNN_TORCHVISION
 #include <torchvision/vision.h>
+#endif
 
 #include "tnn/utils/blob_dump_utils.h"
 

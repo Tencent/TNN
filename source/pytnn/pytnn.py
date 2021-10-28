@@ -1,5 +1,6 @@
 from pytnn._pytnn import *
 from typing import List, Dict, Any
+import numpy
 
 def _supported_input_size_type(input_size) -> bool:
     if isinstance(input_size, tuple):
@@ -251,16 +252,16 @@ class Module:
     def forward(self, *inputs, rtype="list"):
         if len(inputs) > 1:
             for index, value in enumerate(inputs):
-                self.instance.SetInputMat(convert_numpy_to_mat(value), MatConvertParam(), self.input_names[index])
+                self.instance.SetInputMat(Mat(value), MatConvertParam(), self.input_names[index])
         else:
             if isinstance(inputs[0], tuple) or isinstance(inputs[0], list):
                 for index, value in enumerate(inputs[0]):
-                    self.instance.SetInputMat(convert_numpy_to_mat(value), MatConvertParam(), self.input_names[index])
+                    self.instance.SetInputMat(Mat(value), MatConvertParam(), self.input_names[index])
             elif isinstance(inputs[0], dict):
                 for key, value in inputs[0].items():
-                    self.instance.SetInputMat(convert_numpy_to_mat(value), MatConvertParam(), key)
+                    self.instance.SetInputMat(Mat(value), MatConvertParam(), key)
             else:
-                self.instance.SetInputMat(convert_numpy_to_mat(inputs[0]), MatConvertParam()) 
+                self.instance.SetInputMat(Mat(inputs[0]), MatConvertParam()) 
         self.instance.Forward()
         output_blobs = self.instance.GetAllOutputBlobs()
         output = []
@@ -272,7 +273,7 @@ class Module:
             self.output_names = list(self.instance.GetAllOutputBlobs().keys())
         for output_name in self.output_names:
             output_mat=self.instance.GetOutputMat(MatConvertParam(), output_name, DEVICE_NAIVE, NCHW_FLOAT)
-            output_mat_numpy=convert_mat_to_numpy(output_mat)
+            output_mat_numpy=numpy.array(output_mat, copy=False)
             if is_dict:
                 output[key] = output_mat_numpy
             else:
