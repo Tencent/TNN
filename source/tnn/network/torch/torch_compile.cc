@@ -26,6 +26,7 @@
 #include "torch/csrc/jit/passes/lower_tuples.h"
 
 #include "tnn/network/torch/jit_util.h"
+#include "tnn/network/torch/partitioning.h"
 #include "tnn/network/torch/torch_convert.h"
 #include "tnn/network/torch/torch_optimize.h"
 

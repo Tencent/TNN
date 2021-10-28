@@ -15,11 +15,14 @@
 #ifndef TNN_SOURCE_NETWORK_TNNTORCH_TNNTORCH_COMPILE_H
 #define TNN_SOURCE_NETWORK_TNNTORCH_TNNTORCH_COMPILE_H
 
-#include "tnn/network/torch/partitioning.h"
+#include "tnn/core/blob.h"
+#include "tnn/core/common.h"
+
+#include "torch/csrc/jit/ir/ir.h"
 
 namespace TNN_NS {
 
-PUBLIC torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap& input_shape, NetworkConfig& config, std::string forward_func_name = "forward");
+torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap& input_shape, NetworkConfig& config, std::string forward_func_name = "forward");
 
 }
 
