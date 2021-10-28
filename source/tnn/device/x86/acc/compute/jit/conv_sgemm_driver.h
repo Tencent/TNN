@@ -81,6 +81,10 @@ void conv_ajust_m_blk_size(
     dim_t m_all,
     dim_t &m_blk);
 
+void set_block_size(int l2_size, const int N, const int M,
+                    const int K, int byte_size,
+                    conv_gemm_config<float, float, float> &conv_gemm_conf);
+
 }   // namespace TNN_NS
 
 #endif

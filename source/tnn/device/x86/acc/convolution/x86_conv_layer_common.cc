@@ -45,10 +45,11 @@ Status X86ConvLayerCommon::allocateBufferWeight(const std::vector<Blob *> &input
     auto dims_output = output->GetBlobDesc().dims;
 
     if (!buffer_weight_.GetBytesSize()) {
-        int k_c = conv_gemm_conf_.K_c_;
+        // int k_c = conv_gemm_conf_.K_c_;
         int m_c = conv_gemm_conf_.M_c_;
         int n_block = conv_gemm_conf_.n_block_;
         int K = dims_input[1] * param->kernels[0] * param->kernels[1] / param->group;
+        int k_c = K;
         int M = dims_output[1] / param->group;
         size_t weight_pack_per_group = ROUND_UP(K, k_c) * ROUND_UP(M, n_block);
 
@@ -128,23 +129,24 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
     size_t col_offset_ = param->kernels[0] * param->kernels[1] * oh * ow * (input_dims[1] / param->group);
 
     int max_num_threads = OMP_MAX_THREADS_NUM_;
-    conv_ajust_m_blk_size(max_num_threads, conv_out_spatial_dim_, conv_gemm_conf_.M_c_);
+    int K = input_dims[1] * param->kernels[0] * param->kernels[1] / param->group;
+    int M = output_dims[1] / param->group;
+    int N = conv_out_spatial_dim_;
+    int num_threads_buf = N > M ? max_num_threads : 1;
+    set_block_size(512 * 1024 / sizeof(float), N, M, K, sizeof(float), conv_gemm_conf_);
 
     int m_c = conv_gemm_conf_.M_c_;
-    int k_c = conv_gemm_conf_.K_c_;
+    int k_c = K;
     int n_block = conv_gemm_conf_.n_block_;
     size_t src_trans_size = m_c * k_c;
 
     size_t im2col_size = ROUND_UP(col_offset_ * param->group * sizeof(float), 32);
-    size_t workspace_size = (im2col_size + ROUND_UP(src_trans_size * max_num_threads * sizeof(float), 32));
+    size_t workspace_size = (im2col_size + ROUND_UP(src_trans_size * num_threads_buf * sizeof(float), 32));
     float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(workspace_size));
 
     float *im2col_workspace = workspace;
     float *src_trans_workspace = workspace + im2col_size / sizeof(float);
 
-    int K = input_dims[1] * param->kernels[0] * param->kernels[1] / param->group;
-    int M = output_dims[1] / param->group;
-    int N = conv_out_spatial_dim_;
     size_t weight_offset_per_group = ROUND_UP(K, k_c) * ROUND_UP(M, n_block);
 
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {

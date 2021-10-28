@@ -72,11 +72,12 @@ public:
 
         abi_prolog();
 
-        stack_var K         = get_arguement_to_stack(0);
+        // stack_var K         = get_arguement_to_stack(0);
+        reg_var K           = get_arguement(0);
         reg_var src_a       = get_arguement(1);
         reg_var lda         = get_arguement(2);
         reg_var src_b       = get_arguement(3);
-        reg_var ldb         = get_arguement(4);
+        reg_var N           = get_arguement(4);
         reg_var dst         = get_arguement(5);
         reg_var ldc         = get_arguement(6);
         reg_var bias        = get_arguement(7);
@@ -91,101 +92,225 @@ public:
         vreg_var b_data[2] = {VREG_VAR_ARRAY_2};
         
         ldc.restore();
-        mov(c[0].aquire(), dst.restore());
-        lea(c[1].aquire(), byte[dst + (ldc * 8)]);
-        lea(c[2].aquire(), byte[c[1]+ (ldc * 8)]);
-        dst.release();
 
-        Xbyak::RegExp c_addr[6] = {
-            Xbyak::RegExp(c[0]),
-            Xbyak::RegExp(c[0] + (ldc * 4)),
-            Xbyak::RegExp(c[1]),
-            Xbyak::RegExp(c[1] + (ldc * 4)),
-            Xbyak::RegExp(c[2]),
-            Xbyak::RegExp(c[2] + (ldc * 4)),
-        };
+        if (I == 6 && N_BLOCK_SIZE == 6) {
+            N.restore();
+            dst.restore();
+            bias.restore();
+            src_b.restore();
 
-        first.restore();
-        cmp(first, 0);
-        jne("L_init");
-        bias.restore();
-        for(int i=0;i<N_r;i++) {
-            vbroadcastss(c_data[0][i].aquire(), dword[bias + i * 4]);
-            vbroadcastss(c_data[1][i].aquire(), dword[bias + i * 4]);
-        }
-        bias.release();
-        jmp("L_init_end");
-        L("L_init");
-        for(int i=0;i<N_r;i++) {
-            vmovups(c_data[0][i], yword[c_addr[i]]);
-            vmovups(c_data[1][i], yword[c_addr[i] + 8 * 4]);
-        }
-        L("L_init_end");
-        first.release();
+            LOOP(N, LoopN)
+            {
+                // dst n0
+                mov(c[0].aquire(), dst);
+                lea(c[1].aquire(), byte[dst + (ldc * 8)]);
+                lea(c[2].aquire(), byte[c[1] + (ldc * 8)]);
 
-        src_a.restore();
-        src_b.restore();
+                Xbyak::RegExp c_addr[6] = {
+                    Xbyak::RegExp(c[0]),
+                    Xbyak::RegExp(c[0] + (ldc * 4)),
+                    Xbyak::RegExp(c[1]),
+                    Xbyak::RegExp(c[1] + (ldc * 4)),
+                    Xbyak::RegExp(c[2]),
+                    Xbyak::RegExp(c[2] + (ldc * 4)),
+                };
 
-        LOOP_STACK_VAR(K, SGEMM_AVX_8X6_K) 
-        {
-            vmovaps(a_data[0].aquire(), yword[src_a]);
-            vmovaps(a_data[1].aquire(), yword[src_a + 8 * 4]);
-
-            for(int i=0;i<N_r;i+=2) {
-                vbroadcastss(b_data[0].aquire(), yword[src_b + i * 4]);
-                vfmadd231ps(c_data[0][i],   a_data[0], b_data[0]);
-                vfmadd231ps(c_data[1][i],   a_data[1], b_data[0].release());
-
-                if (i + 1 < N_r) {
-                    vbroadcastss(b_data[1].aquire(), yword[src_b + i * 4 + 4]);
-                    vfmadd231ps(c_data[0][i+1], a_data[0], b_data[1]);
-                    vfmadd231ps(c_data[1][i+1], a_data[1], b_data[1].release());
+                // first.restore();
+                cmp(bias, 0);
+                jne("L_init");
+                for(int i=0;i<N_r;i++) {
+                    c_data[0][i].aquire();
+                    c_data[1][i].aquire();
+                    vxorps(c_data[0][i], c_data[0][i], c_data[0][i]);
+                    vxorps(c_data[1][i], c_data[1][i], c_data[1][i]);
                 }
+                jmp("L_init_end");
+                L("L_init");
+                for(int i=0;i<N_r;i++) {
+                    vbroadcastss(c_data[0][i], dword[bias + i * 4]);
+                    vbroadcastss(c_data[1][i], dword[bias + i * 4]);
+                }
+                // bias += 6 * sizeof(float)
+                lea(bias, byte[bias + 24]);
+                L("L_init_end");
+                // first.release();
+
+                src_a.restore();
+                K.restore();
+
+                LOOP(K, SGEMM_AVX_8X6_K) 
+                {
+                    vmovaps(a_data[0].aquire(), yword[src_a]);
+                    vmovaps(a_data[1].aquire(), yword[src_a + 8 * 4]);
+                    prefetcht0(yword[src_a + 256]);
+
+                    for(int i=0;i<N_r;i+=2) {
+                        vbroadcastss(b_data[0].aquire(), yword[src_b + i * 4]);
+                        vfmadd231ps(c_data[0][i],   a_data[0], b_data[0]);
+                        vfmadd231ps(c_data[1][i],   a_data[1], b_data[0].release());
+
+                        if (i + 1 < N_r) {
+                            vbroadcastss(b_data[1].aquire(), yword[src_b + i * 4 + 4]);
+                            vfmadd231ps(c_data[0][i+1], a_data[0], b_data[1]);
+                            vfmadd231ps(c_data[1][i+1], a_data[1], b_data[1].release());
+                        }
+                    }
+
+                    a_data[0].release();
+                    a_data[1].release();
+
+                    lea(src_a, byte[src_a + M_BLOCK_SIZE * 4]);
+                    lea(src_b, byte[src_b + N_BLOCK_SIZE * 4]);
+                }
+
+                src_a.release();
+                K.release();
+
+                // only support fuse relu, relu6
+                act_type.restore();
+                cmp(act_type, 0);
+                je("L_post_end_1");
+                    v_const.aquire();
+                    vxorps(v_const, v_const, v_const);
+                    for(int i=0;i<N_r;i++) {
+                        vmaxps(c_data[0][i], c_data[0][i], v_const);
+                        vmaxps(c_data[1][i], c_data[1][i], v_const);
+                    }
+                    v_const.release();
+                L("L_post_end_1");
+
+                cmp(act_type, 2);
+                jne("L_post_end_2");
+                    op_6f.restore();
+                    v_const.aquire();
+                    // 6.f
+                    mov(op_6f.cvt32(), 0x40C00000);
+                    movd(v_const.xmm(), op_6f.cvt32());
+                    vbroadcastss(v_const, v_const.xmm());
+                    for(int i=0;i<N_r;i++) {
+                        vminps(c_data[0][i], c_data[0][i], v_const);
+                        vminps(c_data[1][i], c_data[1][i], v_const);
+                    }
+                    v_const.release();
+                    op_6f.release();
+                L("L_post_end_2");
+                act_type.release();
+
+                for(int i=0;i<N_r;i++) {
+                    vmovups(yword[c_addr[i]],         c_data[0][i]);
+                    vmovups(yword[c_addr[i] + 8 * 4], c_data[1][i]);
+                }
+
+                // dst = c[2] + 2 x ldc x sizeof(float)
+                lea(dst, byte[c[2] + (ldc * 8)]);
             }
-
-            a_data[0].release();
-            a_data[1].release();
-
-            lea(src_a, byte[src_a + M_BLOCK_SIZE * 4]);
-            lea(src_b, byte[src_b + N_BLOCK_SIZE * 4]);
+            N.release();
+            dst.release();
+            bias.release();
+            src_b.release();
         }
+        else
+        {
+            mov(c[0].aquire(), dst.restore());
+            lea(c[1].aquire(), byte[dst + (ldc * 8)]);
+            lea(c[2].aquire(), byte[c[1]+ (ldc * 8)]);
+            dst.release();
 
-        src_a.release();
-        src_b.release();
+            Xbyak::RegExp c_addr[6] = {
+                Xbyak::RegExp(c[0]),
+                Xbyak::RegExp(c[0] + (ldc * 4)),
+                Xbyak::RegExp(c[1]),
+                Xbyak::RegExp(c[1] + (ldc * 4)),
+                Xbyak::RegExp(c[2]),
+                Xbyak::RegExp(c[2] + (ldc * 4)),
+            };
 
-        // only support fuse relu, relu6
-        act_type.restore();
-        cmp(act_type, 0);
-        je("L_post_end_1");
-            v_const.aquire();
-            vxorps(v_const, v_const, v_const);
+            // first.restore();
+            bias.restore();
+            cmp(bias, 0);
+            jne("L_init");
             for(int i=0;i<N_r;i++) {
-                vmaxps(c_data[0][i], c_data[0][i], v_const);
-                vmaxps(c_data[1][i], c_data[1][i], v_const);
+                c_data[0][i].aquire();
+                c_data[1][i].aquire();
+                vxorps(c_data[0][i], c_data[0][i], c_data[0][i]);
+                vxorps(c_data[1][i], c_data[1][i], c_data[1][i]);
             }
-            v_const.release();
-        L("L_post_end_1");
-
-        cmp(act_type, 2);
-        jne("L_post_end_2");
-            op_6f.restore();
-            v_const.aquire();
-            // 6.f
-            mov(op_6f.cvt32(), 0x40C00000);
-            movd(v_const.xmm(), op_6f.cvt32());
-            vbroadcastss(v_const, v_const.xmm());
+            jmp("L_init_end");
+            L("L_init");
             for(int i=0;i<N_r;i++) {
-                vminps(c_data[0][i], c_data[0][i], v_const);
-                vminps(c_data[1][i], c_data[1][i], v_const);
+                vbroadcastss(c_data[0][i], dword[bias + i * 4]);
+                vbroadcastss(c_data[1][i], dword[bias + i * 4]);
             }
-            v_const.release();
-            op_6f.release();
-        L("L_post_end_2");
-        act_type.release();
+            L("L_init_end");
+            bias.release();
+            // first.release();
 
-        for(int i=0;i<N_r;i++) {
-            vmovups(yword[c_addr[i]],         c_data[0][i]);
-            vmovups(yword[c_addr[i] + 8 * 4], c_data[1][i]);
+            src_a.restore();
+            src_b.restore();
+            K.restore();
+
+            LOOP(K, SGEMM_AVX_8X6_K) 
+            {
+                vmovaps(a_data[0].aquire(), yword[src_a]);
+                vmovaps(a_data[1].aquire(), yword[src_a + 8 * 4]);
+
+                for(int i=0;i<N_r;i+=2) {
+                    vbroadcastss(b_data[0].aquire(), yword[src_b + i * 4]);
+                    vfmadd231ps(c_data[0][i],   a_data[0], b_data[0]);
+                    vfmadd231ps(c_data[1][i],   a_data[1], b_data[0].release());
+
+                    if (i + 1 < N_r) {
+                        vbroadcastss(b_data[1].aquire(), yword[src_b + i * 4 + 4]);
+                        vfmadd231ps(c_data[0][i+1], a_data[0], b_data[1]);
+                        vfmadd231ps(c_data[1][i+1], a_data[1], b_data[1].release());
+                    }
+                }
+
+                a_data[0].release();
+                a_data[1].release();
+
+                lea(src_a, byte[src_a + M_BLOCK_SIZE * 4]);
+                lea(src_b, byte[src_b + N_BLOCK_SIZE * 4]);
+            }
+
+            src_a.release();
+            src_b.release();
+            K.release();
+
+            // only support fuse relu, relu6
+            act_type.restore();
+            cmp(act_type, 0);
+            je("L_post_end_1");
+                v_const.aquire();
+                vxorps(v_const, v_const, v_const);
+                for(int i=0;i<N_r;i++) {
+                    vmaxps(c_data[0][i], c_data[0][i], v_const);
+                    vmaxps(c_data[1][i], c_data[1][i], v_const);
+                }
+                v_const.release();
+            L("L_post_end_1");
+
+            cmp(act_type, 2);
+            jne("L_post_end_2");
+                op_6f.restore();
+                v_const.aquire();
+                // 6.f
+                mov(op_6f.cvt32(), 0x40C00000);
+                movd(v_const.xmm(), op_6f.cvt32());
+                vbroadcastss(v_const, v_const.xmm());
+                for(int i=0;i<N_r;i++) {
+                    vminps(c_data[0][i], c_data[0][i], v_const);
+                    vminps(c_data[1][i], c_data[1][i], v_const);
+                }
+                v_const.release();
+                op_6f.release();
+            L("L_post_end_2");
+            act_type.release();
+
+            for(int i=0;i<N_r;i++) {
+                vmovups(yword[c_addr[i]],         c_data[0][i]);
+                vmovups(yword[c_addr[i] + 8 * 4], c_data[1][i]);
+            }
         }
 
         abi_epilog();

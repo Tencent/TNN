@@ -43,6 +43,7 @@ typedef void (*conv_sgemm_ker_func_t)(const dim_t K,
     // block size for matrix spliting
     dim_t M_c_;
     dim_t K_c_;
+    dim_t N_c_;
 
     constexpr static int nb_kernels_m = 16;
     constexpr static int nb_kernels_n = 6;
