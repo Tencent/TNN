@@ -416,6 +416,14 @@ public:
         }
     }
 
+    inline void vxorps_sse(Xbyak::Xmm v) {
+        if (cpu_with_isa(avx2)) {
+            vxorps(v, v, v);
+        } else if (cpu_with_isa(sse42)) {
+            xorps(v, v);
+        }
+    }
+
 protected:
     size_t abi_nb_argment = 0;
     size_t abi_bp_offset_ = 0;

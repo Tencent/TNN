@@ -21,16 +21,6 @@
 
 namespace TNN_NS {
 
-// sgemm col_major a no_trans, b no_trans
-void conv_sgemm_nn_col_major(
-        dim_t M, dim_t N, dim_t K,
-        const float * src_a, dim_t lda,
-        const float * src_b, dim_t ldb,
-        float * dst, dim_t ldc,
-        const float * bias, dim_t act_type,
-        float *pack_buf,
-        conv_gemm_config<float, float, float> &conv_gemm_conf);
-
 // sgemm col_major a no_trans, b no_trans prepacked
 void conv_sgemm_nn_col_major_prepack_b(
         dim_t M, dim_t N, dim_t K,
@@ -70,20 +60,21 @@ void conv_pack_col_b_n(
 
 // sgemm col_major pack a trans
 void conv_pack_col_a_t(
-    dim_t M, dim_t K,
-    const float * src, dim_t lda,
-    float * dst,
-    conv_gemm_config<float, float, float> &conv_gemm_conf);
+        dim_t M, dim_t K,
+        const float * src, dim_t lda,
+        float * dst,
+        conv_gemm_config<float, float, float> &conv_gemm_conf);
 
 // adjust M block size (M_c_) for mutil-thread
 void conv_ajust_m_blk_size(
-    int max_num_threads,
-    dim_t m_all,
-    dim_t &m_blk);
+        int max_num_threads,
+        dim_t m_all,
+        dim_t &m_blk);
 
-void set_block_size(int l2_size, const int N, const int M,
-                    const int K, int byte_size,
-                    conv_gemm_config<float, float, float> &conv_gemm_conf);
+void set_block_size(
+        int l2_size, const int N, const int M,
+        const int K, int byte_size,
+        conv_gemm_config<float, float, float> &conv_gemm_conf);
 
 }   // namespace TNN_NS
 

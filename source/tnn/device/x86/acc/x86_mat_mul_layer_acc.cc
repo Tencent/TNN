@@ -15,6 +15,7 @@
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/device/x86/acc/x86_mat_mul_layer_acc.h"
+#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
@@ -47,21 +48,23 @@ Status X86MatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         }
         auto matrix_c = static_cast<float *>(outputs[0]->GetHandle().base);
 
-        int k_c = conv_gemm_conf_.K_c_;
-        int m_c = conv_gemm_conf_.M_c_;
-        int n_block = conv_gemm_conf_.n_block_;
-
         int M = matrix_b_dims[matrix_b_dims.size() - 1];
         int K = matrix_a_dims[matrix_a_dims.size() - 1];
         int N = matrix_a_dims[matrix_a_dims.size() - 2];
+        set_block_size(512 * 1024 / sizeof(float), M, N, K, sizeof(float), conv_gemm_conf_);
 
-        size_t pack_a_size = ROUND_UP(m_c * k_c * sizeof(float), 32);
-        size_t pack_b_size = k_c * ROUND_UP(N, n_block) * sizeof(float);
+        int m_c = conv_gemm_conf_.M_c_;
+        int n_block = conv_gemm_conf_.n_block_;
+
+        int max_num_threads = OMP_MAX_THREADS_NUM_;
+        int num_threads_buf = M > N ? max_num_threads : 1;
+        size_t pack_a_size = m_c * K * num_threads_buf * sizeof(float);
+        size_t pack_b_size = ROUND_UP(K * ROUND_UP(N, n_block) * sizeof(float), 32);
         size_t workspace_size = pack_a_size + pack_b_size;
         float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(workspace_size));
 
-        RawBuffer fake_bias(N * sizeof(float));
-        float *fake_bias_ptr = fake_bias.force_to<float *>();
+        auto pack_b_buf = workspace;
+        auto pack_a_buf = workspace + pack_b_size / sizeof(float);
 
         int count_a     = DimsVectorUtils::Count(matrix_a_dims);
         int count_b     = DimsVectorUtils::Count(matrix_b_dims);
@@ -79,8 +82,9 @@ Status X86MatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             // row major A[N * K] * B[K * M] = C[N * M]
             // equals to
             // col major B[M * K] * A[K * N] = C[M * N]
-            conv_sgemm_nn_col_major(M, N, K, b_ptr, M, a_ptr, K, c_ptr, M,
-                fake_bias_ptr, ActivationType_None, workspace, conv_gemm_conf_);
+            conv_pack_col_b_n(N, K, a_ptr, K, pack_b_buf, conv_gemm_conf_);
+            conv_sgemm_nn_col_major_prepack_b(M, N, K, b_ptr, M, pack_b_buf, K, c_ptr, M,
+                nullptr, ActivationType_None, pack_a_buf, conv_gemm_conf_);
         }
     }
 

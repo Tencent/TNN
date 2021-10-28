@@ -102,21 +102,20 @@ public:
             Xbyak::RegExp(c[2] + (ldc * 4)),
         };
 
-        first.restore();
-        cmp(first, 0);
-        jne("L_init");
         bias.restore();
+        cmp(bias, 0);
+        jne("L_init");
         for(int i=0;i<N_r;i++) {
-            vbroadcastss(c_data[i].aquire(), dword[bias + i * 4]);
+            c_data[i].aquire();
+            vxorps(c_data[i], c_data[i], c_data[i]);
         }
-        bias.release();
         jmp("L_init_end");
         L("L_init");
         for(int i=0;i<N_r;i++) {
-            vmovups(c_data[i], yword[c_addr[i]]);
+            vbroadcastss(c_data[i], dword[bias + i * 4]);
         }
         L("L_init_end");
-        first.release();
+        bias.release();
 
         src_a.restore();
         src_b.restore();
