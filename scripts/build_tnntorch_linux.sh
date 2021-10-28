@@ -80,9 +80,9 @@ cp ${LIBTORCH_ROOT_DIR}/lib/libnvToolsExt*.so* ${TNN_INSTALL_DIR}/lib/
 cp ${LIBTORCH_ROOT_DIR}/lib/libcudart-*.so* ${TNN_INSTALL_DIR}/lib/
 
 # torchvision libs
-# if [ "$TORCHVISION_ENABLE" != "ON" ]; then
-#     cp ${LIBTORCHVISION_ROOT_DIR}/lib/libtorchvision.so ${TNN_INSTALL_DIR}/lib/libtorchvision.so
-# fi
+if [ "$TORCHVISION_ENABLE" = "ON" ]; then
+    cp ${LIBTORCHVISION_ROOT_DIR}/lib/libtorchvision.so ${TNN_INSTALL_DIR}/lib/libtorchvision.so
+fi
 
 cp ${TNN_ROOT_PATH}/source/pytnn/*.py ${TNN_INSTALL_DIR}/lib/
 
