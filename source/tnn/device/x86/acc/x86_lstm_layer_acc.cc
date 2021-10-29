@@ -64,7 +64,6 @@ static void X86LSTMActivate(const float *gates, float *h_t, float *c_t, float *y
 Status X86LSTMONNXLayerAcc::LSTMOneDirection(const float *x, float *y, const float *w, const float *r,
                               const float *b, float *h_t, float *c_t, int seq_len, int batch_size,
                               int input_size, int hidden_size, int reverse) {
-    int k_c = conv_gemm_conf_.K_c_;
     int n_block = conv_gemm_conf_.n_block_;
 
     // sgemm for weight tensor
@@ -73,19 +72,21 @@ Status X86LSTMONNXLayerAcc::LSTMOneDirection(const float *x, float *y, const flo
     int K = input_size;
     int N = seq_len * batch_size;
     int M = 4 * hidden_size;
+    set_block_size(512 * 1024 / sizeof(float),
+        MIN(N, batch_size), M, MIN(K, hidden_size),
+        sizeof(float), conv_gemm_conf_);
 
     // two temp buf: gemm_buf and gates_buf
-    size_t gemm_buf_size = ROUND_UP(k_c * ROUND_UP(N, n_block) * sizeof(float), 32);
+    size_t gemm_buf_size = ROUND_UP(MAX(input_size, hidden_size) * \
+                            ROUND_UP(N, n_block) * sizeof(float), 32);
     size_t gates_buf_size = ROUND_UP(N * M * sizeof(float), 32);
     size_t workspace_size = gemm_buf_size + gates_buf_size;
     float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(workspace_size));
     float *gemm_buf = workspace;
     float *gates_buf = workspace + gemm_buf_size / sizeof(float);
 
-    RawBuffer fake_bias(N * sizeof(float));
-    float *fake_bias_ptr = fake_bias.force_to<float *>();
     conv_sgemm_tn_col_major_prepack_a(M, N, K, w, K, x, K, gates_buf, M,
-            fake_bias_ptr, ActivationType_None, gemm_buf, conv_gemm_conf_);
+            nullptr, ActivationType_None, gemm_buf, conv_gemm_conf_);
     
     for (int t = 0; t < seq_len; t++) {
         int ti = reverse ? seq_len - 1 - t : t;
@@ -109,7 +110,7 @@ Status X86LSTMONNXLayerAcc::LSTMOneDirection(const float *x, float *y, const flo
         K = hidden_size;
         N = batch_size;
         M = 4 * hidden_size;
-        conv_sgemm_tn_col_major_prepack_a(M, N, K, r, K, h_t, K, gates_t, M,
+        conv_sgemm_tn_col_major_prepack_a_acc(M, N, K, r, K, h_t, K, gates_t, M,
                 nullptr, ActivationType_None, gemm_buf, conv_gemm_conf_);
 
         // activation for h_t, c_t, output
@@ -146,12 +147,11 @@ Status X86LSTMONNXLayerAcc::allocateBufferWeight(const std::vector<Blob *> &inpu
     int r_direction_size = DimsVectorUtils::Count(r_dims, 1);
     float *r_ptr = (float *)((char*)(inputs[2]->GetHandle().base) + inputs[2]->GetHandle().bytes_offset);
 
-    int k_c = conv_gemm_conf_.K_c_;
     int m_block = conv_gemm_conf_.m_block_;
     // gate weights
     int K = w_dims[2];
     int M = w_dims[1];
-    size_t w_pack_size = ROUND_UP(K, k_c) * ROUND_UP(M, m_block);
+    size_t w_pack_size = K * ROUND_UP(M, m_block);
     // align pointer of packed weights, since gemm use aligned load for input A
     RawBuffer w_temp_buffer(w_dims[0] * w_pack_size * sizeof(float), 32);
     
@@ -180,7 +180,7 @@ Status X86LSTMONNXLayerAcc::allocateBufferWeight(const std::vector<Blob *> &inpu
     // recurrence weights
     K = r_dims[2];
     M = r_dims[1];
-    size_t r_pack_size = ROUND_UP(K, k_c) * ROUND_UP(M, m_block);
+    size_t r_pack_size = K * ROUND_UP(M, m_block);
     RawBuffer r_temp_buffer(r_dims[0] * r_pack_size * sizeof(float), 32);
     for (int d = 0; d < r_dims[0]; d++) {
         float *r_src = r_ptr + d * r_direction_size;
@@ -258,7 +258,6 @@ Status X86LSTMONNXLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     const auto output_dims = outputs[0]->GetBlobDesc().dims;
     const auto hidden_size = layer_param->hidden_size; // output dimension
     // block size for gemm
-    int k_c = conv_gemm_conf_.K_c_;
     int m_block = conv_gemm_conf_.m_block_;
     
     //X shape [sequence batch_size input_size]
@@ -270,12 +269,12 @@ Status X86LSTMONNXLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     //W[iofc], weight tensor for the gates, shape [num_directions, 4*hidden_size, input_size]
     float *w = (float *)buffer_w_.force_to<float *>();
     auto w_dims = inputs[1]->GetBlobDesc().dims;
-    size_t w_pack_size = ROUND_UP(w_dims[2], k_c) * ROUND_UP(w_dims[1], m_block);
+    size_t w_pack_size = w_dims[2] * ROUND_UP(w_dims[1], m_block);
 
     //R[iofc], recurrence weight tensor, shape [num_directions, 4*hidden_size, hidden_size]
     float *r = (float *)buffer_r_.force_to<float *>();
     auto r_dims = inputs[2]->GetBlobDesc().dims;
-    size_t r_pack_size = ROUND_UP(r_dims[2], k_c) * ROUND_UP(r_dims[1], m_block);
+    size_t r_pack_size = r_dims[2] * ROUND_UP(r_dims[1], m_block);
     
     //B[iofc] Concatenation of [Wb[iofc], Rb[iofc]], [num_directions, 8*hidden_size]
     float *b = (float *)buffer_b_.force_to<float *>();

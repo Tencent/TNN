@@ -115,11 +115,10 @@ Status X86InnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
                 temp_buffer.SetDataType(DATA_TYPE_FLOAT);
                 buffer_weight_ = temp_buffer;
             } else {
-                int k_c = conv_gemm_conf_.K_c_;
                 int m_block = conv_gemm_conf_.m_block_;
                 int K = DimsVectorUtils::Count(input_dims, 1);
                 int M = DimsVectorUtils::Count(output_dims, 1);
-                size_t weight_pack_size = ROUND_UP(K, k_c) * ROUND_UP(M, m_block);
+                size_t weight_pack_size = K * ROUND_UP(M, m_block);
                 const float *src = res->weight_handle.force_to<float *>();
 
                 // align pointer of packed weights, since gemm use aligned load for input A
@@ -249,21 +248,19 @@ Status X86InnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
         if (impl_ == InnerProductSgemv) {
             X86SgemvFunc(output_data, input_data, weight_data, bias_data, input_dims, output_dims);
         } else {
-            int k_c = conv_gemm_conf_.K_c_;
             int n_block = conv_gemm_conf_.n_block_;
             int K = DimsVectorUtils::Count(input_dims, 1);
             int N = input_dims[0];
             int M = DimsVectorUtils::Count(output_dims, 1);
+            set_block_size(512 * 1024 / sizeof(float), N, M, K, sizeof(float), conv_gemm_conf_);
+            int N_c = conv_gemm_conf_.N_c_;
 
-            size_t workspace_size = k_c * ROUND_UP(N, n_block) * sizeof(float);
+            size_t workspace_size = K * ROUND_UP(N, n_block) * sizeof(float);
             float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(workspace_size));
-
-            RawBuffer fake_bias(N * sizeof(float));
-            float *fake_bias_ptr = fake_bias.force_to<float *>();
 
             conv_sgemm_tn_col_major_prepack_a(M, N, K, weight_data, K,
                                 input_data, K, output_data, M,
-                                fake_bias_ptr, ActivationType_None,
+                                nullptr, ActivationType_None,
                                 workspace, conv_gemm_conf_);
             for (int i = 0; i < N; i++) {
                 auto dst = output_data + i * M;

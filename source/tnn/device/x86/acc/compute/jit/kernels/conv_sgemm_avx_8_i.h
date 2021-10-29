@@ -117,6 +117,16 @@ public:
         L("L_init_end");
         bias.release();
 
+        // for lstm gemm, need to accumulate based on dst data
+        first.restore();
+        cmp(first, 0);
+        je("L_fromC");
+        for(int i=0;i<N_r;i++) {
+            vmovups(c_data[i], yword[c_addr[i]]);
+        }
+        L("L_fromC");
+        first.release();
+
         src_a.restore();
         src_b.restore();
 

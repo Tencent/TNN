@@ -31,16 +31,6 @@ void conv_sgemm_nn_col_major_prepack_b(
         float * src_buf,
         conv_gemm_config<float, float, float> &conv_gemm_conf);
 
-// sgemm col_major a trans, b no_trans prepacked
-void conv_sgemm_tn_col_major_prepack_b(
-        dim_t M, dim_t N, dim_t K,
-        const float * src_a, dim_t lda,
-        const float * src_b, dim_t ldb,
-        float * dst, dim_t ldc,
-        const float * bias, dim_t act_type,
-        float *src_trans_buf,
-        conv_gemm_config<float, float, float> &conv_gemm_conf);
-
 // sgemm col_major a trans prepacked, b no_trans
 void conv_sgemm_tn_col_major_prepack_a(
         dim_t M, dim_t N, dim_t K,
@@ -49,6 +39,15 @@ void conv_sgemm_tn_col_major_prepack_a(
         float * dst, dim_t ldc,
         const float * bias, dim_t act_type,
         float *src_trans_buf,
+        conv_gemm_config<float, float, float> &conv_gemm_conf);
+// for lstm accumulate on dst
+void conv_sgemm_tn_col_major_prepack_a_acc(
+        dim_t M, dim_t N, dim_t K,
+        const float * src_a, dim_t lda,
+        const float * src_b, dim_t ldb,
+        float * dst, dim_t ldc,
+        const float * bias, dim_t act_type,
+        float *pack_b_buf,
         conv_gemm_config<float, float, float> &conv_gemm_conf);
 
 // sgemm col_major pack b no_trans

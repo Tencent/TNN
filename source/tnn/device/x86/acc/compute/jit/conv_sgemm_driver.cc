@@ -27,181 +27,6 @@
 
 namespace TNN_NS {
 
-void conv_sgemm_block_n(
-        dim_t M, dim_t N, dim_t K,
-        const float * src_a, dim_t lda,
-        const float * src_b, dim_t ldb,
-        float * dst, dim_t ldc,
-        const float * bias, dim_t first, dim_t act_type,
-        conv_gemm_config<float, float, float> &conv_gemm_conf) 
-{
-
-    dim_t K_c = conv_gemm_conf.K_c_;
-    dim_t m_block = conv_gemm_conf.m_block_;
-
-    for(dim_t i=0;i<M;)  {
-        dim_t cur_m = MIN(M - i, conv_gemm_conf.kernel_m_r_);
-
-        const float * cur_a = src_a + divDown(i, m_block) * K_c + i % m_block;
-        const float * cur_b = src_b;
-        float * cur_c = dst + i;
-
-        switch(cur_m) {
-            case 1:
-                conv_gemm_conf.kernels_[1][N](K, cur_a, lda, cur_b, ldb, cur_c, ldc, bias, first, act_type);
-                i+=1;
-                break;
-            case 2:
-            case 3:
-                conv_gemm_conf.kernels_[2][N](K, cur_a, lda, cur_b, ldb, cur_c, ldc, bias, first, act_type);
-                i+=2;
-                break;
-            case 4:
-            case 5:
-            case 6:
-            case 7:
-                conv_gemm_conf.kernels_[4][N](K, cur_a, lda, cur_b, ldb, cur_c, ldc, bias, first, act_type);
-                i+=4;
-                break;
-            case 8:
-            case 9:
-            case 10:
-            case 11:
-            case 12:
-            case 13:
-            case 14:
-            case 15:
-                conv_gemm_conf.kernels_[8][N](K, cur_a, lda, cur_b, ldb, cur_c, ldc, bias, first, act_type);
-                i+=8;
-                break;
-            default:
-                conv_gemm_conf.kernels_[16][N](K, cur_a, lda, cur_b, N / 6, cur_c, ldc, bias, first, act_type);
-                i+=16;
-                break;
-        }
-    }
-}
-
-// sgemm col_major a trans, b no_trans
-// src_a: K * M, lda = K
-// src_b: K * N, ldb = K, prepacked
-// dst  : M * N, ldc = M
-void conv_sgemm_tn_col_major_prepack_b(
-        dim_t M, dim_t N, dim_t K,
-        const float * src_a, dim_t lda,
-        const float * src_b, dim_t ldb,
-        float * dst, dim_t ldc,
-        const float * bias, dim_t act_type,
-        float *src_trans_buf,
-        conv_gemm_config<float, float, float> &conv_gemm_conf)
-{
-    dim_t M_c = conv_gemm_conf.M_c_;
-    dim_t K_c = conv_gemm_conf.K_c_;
-    dim_t m_block = conv_gemm_conf.m_block_;
-    dim_t n_block = conv_gemm_conf.n_block_;
-
-    dim_t i, j, k;
-    i = j = k = 0;
-
-    dim_t first = 0;
-    dim_t post_type;
-
-    // if no bias, first set to 1, load c from dst
-    if (bias == nullptr) {
-        first = 1;
-    }
-
-    for (k = 0; k < K; k += K_c)  {
-        if (k + K_c >= K) {
-            post_type = act_type;
-        } else {
-            post_type = 0;
-        }
-
-        dim_t cur_k = MIN(K - k, K_c);
-
-        // pack b -> K_c * N;
-        const float *pack_b_k = src_b + k * divUp(N, n_block);
-
-        for (i = 0; i < M; i += M_c)  {
-            dim_t cur_m = MIN(M - i, M_c);
-            // pack a -> M_c * K_c;
-            pack_col_a_t(src_a + k + i * lda, lda, src_trans_buf, K_c, cur_k, cur_m, conv_gemm_conf);
-
-            for (j = 0; j < N;)  {
-                dim_t cur_n = MIN(N - j, conv_gemm_conf.kernel_n_r_);
-                float * cur_c = dst + i + j * ldc;
-
-                const float * packed_cur_b = pack_b_k + divDown(j, n_block) * K_c + j % n_block;
-                const float * cur_bias = bias + j;
-                conv_sgemm_block_n(cur_m, cur_n, cur_k, src_trans_buf, lda, packed_cur_b, ldb, cur_c, ldc, cur_bias, first, post_type, conv_gemm_conf);
-                j += cur_n;
-            }
-        }
-        // if k != 0, first = 1
-        first = 1;
-    }
-}
-
-// sgemm col_major a trans, b no_trans
-// src_a: K * M, lda = K, prepacked
-// src_b: K * N, ldb = K
-// dst  : M * N, ldc = M
-void conv_sgemm_tn_col_major_prepack_a(
-        dim_t M, dim_t N, dim_t K,
-        const float * src_a, dim_t lda,
-        const float * src_b, dim_t ldb,
-        float * dst, dim_t ldc,
-        const float * bias, dim_t act_type,
-        float *pack_b_buf,
-        conv_gemm_config<float, float, float> &conv_gemm_conf)
-{
-    dim_t M_c = conv_gemm_conf.M_c_;
-    dim_t K_c = conv_gemm_conf.K_c_;
-    dim_t m_block = conv_gemm_conf.m_block_;
-    dim_t n_block = conv_gemm_conf.n_block_;
-
-    dim_t first = 0;
-    dim_t post_type;
-
-    // if no bias, first set to 1, load c from dst
-    if (bias == nullptr) {
-        first = 1;
-    }
-
-    for (dim_t k = 0; k < K; k += K_c)  {
-        if (k + K_c >= K) {
-            post_type = act_type;
-        } else {
-            post_type = 0;
-        }
-
-        dim_t cur_k = MIN(K - k, K_c);
-
-        // pack b -> K_c * N;
-        pack_col_b_n(src_b + k, ldb, pack_b_buf, K_c, cur_k, N, conv_gemm_conf);
-
-        OMP_PARALLEL_FOR_DYNAMIC_
-        for (dim_t i = 0; i < M; i += M_c)  {
-            dim_t cur_m = MIN(M - i, M_c);
-            // pack a -> M_c * K_c;
-            auto src_a_i = src_a + k * divUp(M, m_block) + i * K_c;
-
-            for (dim_t j = 0; j < N;)  {
-                dim_t cur_n = MIN(N - j, conv_gemm_conf.kernel_n_r_);
-                float * cur_c = dst + i + j * ldc;
-
-                const float * packed_cur_b = pack_b_buf + divDown(j, n_block) * K_c + j % n_block;
-                const float * cur_bias = bias + j;
-                conv_sgemm_block_n(cur_m, cur_n, cur_k, src_a_i, lda, packed_cur_b, ldb, cur_c, ldc, cur_bias, first, post_type, conv_gemm_conf);
-                j += cur_n;
-            }
-        }
-        // if k != 0, first = 1
-        first = 1;
-    }
-}
-
 // pack col major B no_trans [K x N]
 void conv_pack_col_b_n(
         dim_t N, dim_t K,
@@ -295,6 +120,8 @@ void set_block_size(int l2_size, const int N, const int M, const int K, int byte
         }
         conv_gemm_conf.N_c_ = tile_n;
     }
+    conv_gemm_conf.N_c_ = MAX(1, conv_gemm_conf.N_c_);
+    conv_gemm_conf.M_c_ = MAX(1, conv_gemm_conf.M_c_);
     conv_gemm_conf.N_c_ = ROUND_UP(conv_gemm_conf.N_c_, tile_n);
     conv_gemm_conf.M_c_ = ROUND_UP(conv_gemm_conf.M_c_, tile_m);
 }
@@ -375,7 +202,7 @@ void gemm_unit_kernel_<16>(dim_t K, const float *src_a, dim_t lda, const float *
 // weight[n, k] x src[m, k]
 void gemm_compute_unit(float *dst, const float *src, const float *weight,
                        int k, int m, int n_blk, int x_loop, const float *bias, int act_type,
-                       conv_gemm_config<float, float, float> &conv_gemm_conf) {
+                       int first, conv_gemm_config<float, float, float> &conv_gemm_conf) {
     int n_blk_unit = n_blk / SGEMM_TILE_N * SGEMM_TILE_N;
     int n_blk_left = n_blk - n_blk_unit;
     int tile_m     = conv_gemm_conf.m_block_;
@@ -392,19 +219,19 @@ void gemm_compute_unit(float *dst, const float *src, const float *weight,
         auto dst_x = dst + x_i * tile_m;
         auto src_x = src + x_i * tile_m * k;
 
-        gemm_unit_kernel(k, src_x, m, weight, n_blk_unit / SGEMM_TILE_N, dst_x, m, bias, 0, act_type, conv_gemm_conf);
+        gemm_unit_kernel(k, src_x, m, weight, n_blk_unit / SGEMM_TILE_N, dst_x, m, bias, first, act_type, conv_gemm_conf);
         if (n_blk_left > 0) {
             auto dst_n = dst_x + n_blk_unit * m;
             auto weight_n = weight + n_blk_unit * k;
             auto bias_n = bias ? bias + n_blk_unit : nullptr;
-            gemm_left_kernel(k, src_x, m, weight_n, k, dst_n, m, bias_n, 0, act_type);
+            gemm_left_kernel(k, src_x, m, weight_n, k, dst_n, m, bias_n, first, act_type);
         }
     }
 }
 
 void gemm_compute_left(float *dst, const float *src, const float *weight,
                        int k, int m, int n_blk, int m_blk, const float *bias, int act_type,
-                       conv_gemm_config<float, float, float> &conv_gemm_conf) {
+                       int first, conv_gemm_config<float, float, float> &conv_gemm_conf) {
     int n_blk_unit = n_blk / SGEMM_TILE_N * SGEMM_TILE_N;
     int n_blk_left = n_blk - n_blk_unit;
 
@@ -426,16 +253,16 @@ void gemm_compute_left(float *dst, const float *src, const float *weight,
             auto dst_x = dst_n + x_i;
             auto src_x = src + x_i;
             if (cur_x >= 8) {
-                gemm_m8_unit_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, 0, act_type);
+                gemm_m8_unit_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, first, act_type);
                 x_i += 8;
             } else if (cur_x >= 4) {
-                gemm_m4_unit_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, 0, act_type);
+                gemm_m4_unit_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, first, act_type);
                 x_i += 4;
             } else if (cur_x >= 2) {
-                gemm_m2_unit_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, 0, act_type);
+                gemm_m2_unit_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, first, act_type);
                 x_i += 2;
             } else {
-                gemm_m1_unit_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, 0, act_type);
+                gemm_m1_unit_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, first, act_type);
                 x_i += 1;
             }
         }
@@ -449,16 +276,16 @@ void gemm_compute_left(float *dst, const float *src, const float *weight,
             auto dst_x = dst_n + x_i;
             auto src_x = src + x_i;
             if (cur_x >= 8) {
-                gemm_m8_left_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, 0, act_type);
+                gemm_m8_left_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, first, act_type);
                 x_i += 8;
             } else if (cur_x >= 4) {
-                gemm_m4_left_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, 0, act_type);
+                gemm_m4_left_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, first, act_type);
                 x_i += 4;
             } else if (cur_x >= 2) {
-                gemm_m2_left_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, 0, act_type);
+                gemm_m2_left_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, first, act_type);
                 x_i += 2;
             } else {
-                gemm_m1_left_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, 0, act_type);
+                gemm_m1_left_kernel(k, src_x, m, weight_n, k, dst_x, m, bias_n, first, act_type);
                 x_i += 1;
             }
         }
@@ -507,13 +334,13 @@ void conv_sgemm_nn_col_major_prepack_b_lhs(
                 gemm_compute_unit(dst_n,
                                   src_a_repack,
                                   src_b_n, K, M, n_eff,
-                                  x_loop, bias_n, act_type, conv_gemm_conf);
+                                  x_loop, bias_n, act_type, 0, conv_gemm_conf);
             }
             if (x_remain > 0) {
                 gemm_compute_left(dst_n + x_loop * m_block,
                                   src_a_repack + x_loop * m_block * K,
                                   src_b_n, K, M, n_eff,
-                                  x_remain, bias_n, act_type, conv_gemm_conf);
+                                  x_remain, bias_n, act_type, 0, conv_gemm_conf);
             }
         }
     }
@@ -560,13 +387,13 @@ void conv_sgemm_nn_col_major_prepack_b_rhs(
                 gemm_compute_unit(dst_n,
                                   src_a_repack,
                                   src_b_n, K, M, n_eff,
-                                  x_loop, bias_n, act_type, conv_gemm_conf);
+                                  x_loop, bias_n, act_type, 0, conv_gemm_conf);
             }
             if (x_remain > 0) {
                 gemm_compute_left(dst_n + x_loop * m_block,
                                   src_a_repack + x_loop * m_block * K,
                                   src_b_n, K, M, n_eff,
-                                  x_remain, bias_n, act_type, conv_gemm_conf);
+                                  x_remain, bias_n, act_type, 0, conv_gemm_conf);
             }
         }
     }
@@ -595,5 +422,105 @@ void conv_sgemm_nn_col_major_prepack_b(
             src_trans_buf, conv_gemm_conf);
     }
 }
+
+// sgemm col_major a trans, b no_trans
+// src_a: K * M, lda = K, prepacked
+// src_b: K * N, ldb = K
+// dst  : M * N, ldc = M
+void conv_sgemm_tn_col_major_prepack_a(
+        dim_t M, dim_t N, dim_t K,
+        const float * src_a, dim_t lda,
+        const float * src_b, dim_t ldb,
+        float * dst, dim_t ldc,
+        const float * bias, dim_t act_type,
+        float *pack_b_buf,
+        conv_gemm_config<float, float, float> &conv_gemm_conf)
+{
+    dim_t M_c = conv_gemm_conf.M_c_;
+    dim_t N_c = conv_gemm_conf.N_c_;
+    dim_t m_block = conv_gemm_conf.m_block_;
+    dim_t n_block = conv_gemm_conf.n_block_;
+
+    dim_t m_loop   = M / M_c;
+    dim_t m_remain = M % M_c;
+
+    pack_col_b_n(src_b, ldb, pack_b_buf, K, K, N, conv_gemm_conf);
+
+    for (dim_t m_i = 0; m_i <= m_loop; m_i++) {
+        auto src_a_m = src_a + m_i * M_c * K;
+        auto m_eff = (m_i < m_loop) ? M_c : m_remain;
+        auto x_loop = m_eff / m_block;
+        auto x_remain = m_eff % m_block;
+
+        OMP_PARALLEL_FOR_
+        for (dim_t n_i = 0; n_i < N; n_i += N_c) {
+            auto n_eff = MIN(N_c, N - n_i);
+            auto src_b_n = pack_b_buf + n_i * K;
+            auto dst_n = dst + n_i * M + m_i * M_c;
+            auto bias_n = bias ? bias + n_i : nullptr;
+            {
+                gemm_compute_unit(dst_n,
+                                  src_a_m,
+                                  src_b_n, K, M, n_eff,
+                                  x_loop, bias_n, act_type, 0, conv_gemm_conf);
+            }
+            if (x_remain > 0) {
+                gemm_compute_left(dst_n + x_loop * m_block,
+                                  src_a_m + x_loop * m_block * K,
+                                  src_b_n, K, M, n_eff,
+                                  x_remain, bias_n, act_type, 0, conv_gemm_conf);
+            }
+        }
+    }
+}
+
+// for lstm accumulate on dst
+void conv_sgemm_tn_col_major_prepack_a_acc(
+        dim_t M, dim_t N, dim_t K,
+        const float * src_a, dim_t lda,
+        const float * src_b, dim_t ldb,
+        float * dst, dim_t ldc,
+        const float * bias, dim_t act_type,
+        float *pack_b_buf,
+        conv_gemm_config<float, float, float> &conv_gemm_conf)
+{
+    dim_t M_c = conv_gemm_conf.M_c_;
+    dim_t N_c = conv_gemm_conf.N_c_;
+    dim_t m_block = conv_gemm_conf.m_block_;
+    dim_t n_block = conv_gemm_conf.n_block_;
+
+    dim_t m_loop   = M / M_c;
+    dim_t m_remain = M % M_c;
+
+    pack_col_b_n(src_b, ldb, pack_b_buf, K, K, N, conv_gemm_conf);
+
+    for (dim_t m_i = 0; m_i <= m_loop; m_i++) {
+        auto src_a_m = src_a + m_i * M_c * K;
+        auto m_eff = (m_i < m_loop) ? M_c : m_remain;
+        auto x_loop = m_eff / m_block;
+        auto x_remain = m_eff % m_block;
+
+        OMP_PARALLEL_FOR_
+        for (dim_t n_i = 0; n_i < N; n_i += N_c) {
+            auto n_eff = MIN(N_c, N - n_i);
+            auto src_b_n = pack_b_buf + n_i * K;
+            auto dst_n = dst + n_i * M + m_i * M_c;
+            auto bias_n = bias ? bias + n_i : nullptr;
+            {
+                gemm_compute_unit(dst_n,
+                                  src_a_m,
+                                  src_b_n, K, M, n_eff,
+                                  x_loop, bias_n, act_type, 1, conv_gemm_conf);
+            }
+            if (x_remain > 0) {
+                gemm_compute_left(dst_n + x_loop * m_block,
+                                  src_a_m + x_loop * m_block * K,
+                                  src_b_n, K, M, n_eff,
+                                  x_remain, bias_n, act_type, 1, conv_gemm_conf);
+            }
+        }
+    }
+}
+
 
 } // namespace tnn

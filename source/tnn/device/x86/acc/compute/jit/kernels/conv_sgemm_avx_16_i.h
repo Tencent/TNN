@@ -98,6 +98,7 @@ public:
             dst.restore();
             bias.restore();
             src_b.restore();
+            first.restore();
 
             LOOP(N, LoopN)
             {
@@ -115,7 +116,6 @@ public:
                     Xbyak::RegExp(c[2] + (ldc * 4)),
                 };
 
-                // first.restore();
                 cmp(bias, 0);
                 jne("L_init");
                 for(int i=0;i<N_r;i++) {
@@ -133,7 +133,15 @@ public:
                 // bias += 6 * sizeof(float)
                 lea(bias, byte[bias + 24]);
                 L("L_init_end");
-                // first.release();
+
+                // for lstm gemm, need to accumulate based on dst data
+                cmp(first, 0);
+                je("L_fromC");
+                for(int i=0;i<N_r;i++) {
+                    vmovups(c_data[0][i], yword[c_addr[i]]);
+                    vmovups(c_data[1][i], yword[c_addr[i] + 8 * 4]);
+                }
+                L("L_fromC");
 
                 src_a.restore();
                 K.restore();
@@ -208,6 +216,7 @@ public:
             dst.release();
             bias.release();
             src_b.release();
+            first.release();
         }
         else
         {
@@ -225,7 +234,6 @@ public:
                 Xbyak::RegExp(c[2] + (ldc * 4)),
             };
 
-            // first.restore();
             bias.restore();
             cmp(bias, 0);
             jne("L_init");
@@ -243,7 +251,17 @@ public:
             }
             L("L_init_end");
             bias.release();
-            // first.release();
+
+            // for lstm gemm, need to accumulate based on dst data
+            first.restore();
+            cmp(first, 0);
+            je("L_fromC");
+            for(int i=0;i<N_r;i++) {
+                vmovups(c_data[0][i], yword[c_addr[i]]);
+                vmovups(c_data[1][i], yword[c_addr[i] + 8 * 4]);
+            }
+            L("L_fromC");
+            first.release();
 
             src_a.restore();
             src_b.restore();
