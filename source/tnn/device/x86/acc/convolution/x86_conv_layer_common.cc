@@ -45,13 +45,10 @@ Status X86ConvLayerCommon::allocateBufferWeight(const std::vector<Blob *> &input
     auto dims_output = output->GetBlobDesc().dims;
 
     if (!buffer_weight_.GetBytesSize()) {
-        // int k_c = conv_gemm_conf_.K_c_;
-        int m_c = conv_gemm_conf_.M_c_;
         int n_block = conv_gemm_conf_.n_block_;
         int K = dims_input[1] * param->kernels[0] * param->kernels[1] / param->group;
-        int k_c = K;
         int M = dims_output[1] / param->group;
-        size_t weight_pack_per_group = ROUND_UP(K, k_c) * ROUND_UP(M, n_block);
+        size_t weight_pack_per_group = K * ROUND_UP(M, n_block);
 
         const float *src = conv_res->filter_handle.force_to<float *>();
 

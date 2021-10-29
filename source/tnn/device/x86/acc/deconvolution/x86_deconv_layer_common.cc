@@ -46,14 +46,12 @@ Status X86DeconvLayerCommon::allocateBufferWeight(const std::vector<Blob *> &inp
     auto dims_output = output->GetBlobDesc().dims;
 
     if (!buffer_weight_.GetBytesSize()) {
-        int k_c     = conv_gemm_conf_.K_c_;
-        int m_c     = conv_gemm_conf_.M_c_;
         int n_block = conv_gemm_conf_.n_block_;
 
         int K = dims_input[1] / param->group;
         int M = dims_output[1] * param->kernels[0] * param->kernels[1] / param->group;
 
-        size_t weight_pack_per_group = ROUND_UP(K, k_c) * ROUND_UP(M, n_block);
+        size_t weight_pack_per_group = K * ROUND_UP(M, n_block);
 
         RawBuffer transpose_buffer(conv_res->filter_handle.GetBytesSize() / param->group);
         const float *src = conv_res->filter_handle.force_to<float *>();
@@ -150,13 +148,17 @@ Status X86DeconvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const 
     size_t col_offset_ =
         param->kernels[0] * param->kernels[1] * input_dims[2] * input_dims[3] * (output_dims[1] / param->group);
 
+    int K = input_dims[1] / param->group;
+    int M = output_dims[1] * param->kernels[0] * param->kernels[1] / param->group;
+    int N = conv_in_spatial_dim_;
+
     int max_num_threads = OMP_MAX_THREADS_NUM_;
-    conv_ajust_m_blk_size(max_num_threads, conv_in_spatial_dim_, conv_gemm_conf_.M_c_);
+    int num_threads_buf = N > M ? max_num_threads : 1;
+    set_block_size(512 * 1024 / sizeof(float), N, M, K, sizeof(float), conv_gemm_conf_);
 
     int m_c               = conv_gemm_conf_.M_c_;
-    int k_c               = conv_gemm_conf_.K_c_;
     int n_block           = conv_gemm_conf_.n_block_;
-    size_t src_trans_size = m_c * k_c;
+    size_t src_trans_size = m_c * K;
 
     size_t im2col_size    = ROUND_UP(col_offset_ * param->group * sizeof(float), 32);
     size_t workspace_size = (im2col_size + ROUND_UP(src_trans_size * max_num_threads * sizeof(float), 32));
@@ -165,11 +167,7 @@ Status X86DeconvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const 
     float *im2col_workspace    = workspace;
     float *src_trans_workspace = workspace + im2col_size / sizeof(float);
 
-    int K = input_dims[1] / param->group;
-    int M = output_dims[1] * param->kernels[0] * param->kernels[1] / param->group;
-    int N = conv_in_spatial_dim_;
-
-    size_t weight_offset_per_group = ROUND_UP(K, k_c) * ROUND_UP(M, n_block);
+    size_t weight_offset_per_group = K * ROUND_UP(M, n_block);
 
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         auto input_data   = static_cast<float *>(input_ptr);
