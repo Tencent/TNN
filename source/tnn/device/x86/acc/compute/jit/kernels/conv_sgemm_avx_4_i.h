@@ -167,7 +167,7 @@ public:
         act_type.release();
 
         for(int i=0;i<N_r;i++) {
-            vmovups_sse(xword[c_addr[i]], c_data[i].xmm());
+            movups(xword[c_addr[i]], c_data[i].xmm());
         }
 
         abi_epilog();
