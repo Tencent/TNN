@@ -51,6 +51,8 @@ nvinfer1::DataType ConvertToTRTDataType(DataType type);
 nvinfer1::ILayer* AddReshapeToNetwork(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor* input_tensor,
     DimsVector reshape_dims, const char* layer_name);
 
+nvinfer1::Weights ConvertToWeights(RawBuffer *buf, bool zero_weight = false, DataType recommend_type = DATA_TYPE_FLOAT);
+
 nvinfer1::ILayer* ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* network, RawBuffer *buf,
     DimsVector recommend_dims=DimsVector(), int expand_dims = 0);
 
