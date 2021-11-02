@@ -19,6 +19,7 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/network/torch/segment.h"
+#include "tnn/network/torch/shape_inference.h"
 #include "torch/csrc/jit/ir/ir.h"
 
 namespace TNN_NS {
@@ -28,8 +29,7 @@ typedef std::vector<SegmentedBlock> PartitionedGraph;
 
 PartitionedGraph segment_graph(std::shared_ptr<torch::jit::Graph> g);
 
-std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<torch::jit::Graph>,
-                                      InputShapesMap& input_shape, NetworkConfig& config, bool b_infer_shape = false);
+std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<torch::jit::Graph>, NetworkConfig& config);
 
 }  // namespace partitioning
 }  // namespace TNN_NS

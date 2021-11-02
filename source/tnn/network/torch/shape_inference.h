@@ -24,8 +24,10 @@
 namespace TNN_NS {
 namespace partitioning {
 
+using InputShapesList = std::vector<std::pair<std::string, std::vector<int>>>;
+
 void runShapeInfer(torch::jit::Module& mod, std::vector<SegmentedBlock>& segmented_blocks,
-                   InputShapesMap& input_shape, NetworkConfig& config);
+                   InputShapesMap& input_shape, NetworkConfig& config, InputShapesList& subgraph_input_shapes);
 
 }  // namespace partitioning
 }  // namespace TNN_NS

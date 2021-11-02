@@ -76,11 +76,17 @@ public:
     bool contain_raw_value(torch::jit::Value* input) {
         return old_to_new_.count(input);
     }
-    void register_inshape(std::vector<DimsVector>& in_shape) {
-        in_shape_ = in_shape;
+    void register_min_inshape(std::vector<DimsVector>& in_shape) {
+        min_in_shape_ = in_shape;
     }
-    const std::vector<DimsVector>& in_shape() const {
-        return in_shape_;
+    void register_max_inshape(std::vector<DimsVector>& in_shape) {
+        max_in_shape_ = in_shape;
+    }
+    const std::vector<DimsVector>& min_in_shape() const {
+        return min_in_shape_;
+    }
+    const std::vector<DimsVector>& max_in_shape() const {
+        return max_in_shape_;
     }
     void update_target(SegmentedBlockTarget new_target) {
         target_ = new_target;
@@ -91,7 +97,8 @@ public:
 
 private:
     SegmentedBlockTarget target_;
-    std::vector<DimsVector> in_shape_;
+    std::vector<DimsVector> min_in_shape_;
+    std::vector<DimsVector> max_in_shape_;
     std::vector<torch::jit::Value*> inputs_;
     std::vector<torch::jit::Value*> outputs_;
     std::vector<torch::jit::Node*> nodes_;

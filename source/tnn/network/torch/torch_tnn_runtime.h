@@ -51,6 +51,8 @@ struct TNNEngine : torch::CustomClassHolder {
 
     std::vector<std::string> input_names;
     std::vector<std::string> output_names;
+    std::vector<DimsVector> min_inputs_shape;
+    std::vector<DimsVector> max_inputs_shape;
 
     std::shared_ptr<TorchConvertCtx> ctx_;
     bool is_init_ = false;

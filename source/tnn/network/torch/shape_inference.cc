@@ -69,12 +69,13 @@ void genRandomInputs(std::shared_ptr<torch::jit::Graph> graph, InputShapesMap &i
 }
 
 void runShapeInfer(torch::jit::Module& mod, std::vector<SegmentedBlock> &segmented_blocks,
-                   InputShapesMap &input_shape, NetworkConfig& config) {
+                   InputShapesMap &input_shape, NetworkConfig& config, InputShapesList& subgraph_input_shapes) {
     auto graph = mod.get_method("forward").graph();
     std::vector<torch::jit::Value *> new_vec;
     for (auto &block : segmented_blocks) {
         if (block.target() == partitioning::SegmentedBlock::kTNN) {
             for (auto &input : block.raw_inputs()) {
+                // std::cout << input->debugName() << std::endl;
                 new_vec.push_back(input);
             }
         }
@@ -106,24 +107,27 @@ void runShapeInfer(torch::jit::Module& mod, std::vector<SegmentedBlock> &segment
     genRandomInputs(graph, input_shape, blobs, jit_inputs_ivalues, config);
     torch::jit::IValue jit_results_ivalues = mod.forward(jit_inputs_ivalues);
 
-    auto print_output_shape = [&](torch::jit::IValue &output) {
+    auto get_output_shape = [&](torch::jit::IValue &output) {
         // get result tensor shape
         if (output.isTuple()) {
             auto results = output.toTuple()->elements();
+            int i = 0;
             for (auto &r : results) {
                 auto shape = r.toTensor().sizes();
                 auto dims = util::toDims(shape);
-                std::cout << dims << std::endl;
+                // std::cout << new_vec[i]->debugName() << ":" << dims << std::endl;
+                subgraph_input_shapes.push_back(std::make_pair(new_vec[i++]->debugName(), dims));
             }
         } else {
             auto result = output.toTensor();
             auto shape = result.sizes();
             auto dims = util::toDims(shape);
-            std::cout << dims << std::endl;
+            // std::cout << new_vec[0]->debugName() << ":" << dims << std::endl;
+            subgraph_input_shapes.push_back(std::make_pair(new_vec[0]->debugName(), dims));
         }
     };
 
-    print_output_shape(jit_results_ivalues);
+    get_output_shape(jit_results_ivalues);
 
     // restore old graph output
     graph->eraseOutput(0);

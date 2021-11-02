@@ -43,6 +43,11 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
         // inputs_shape_map[input->debugName()] = block.in_shape()[input_idx++];
         net_structure->blobs.insert(input->debugName());
         instance_ptr->input_names.push_back(input->debugName());
+        if (block.max_in_shape().size()) {
+            instance_ptr->min_inputs_shape.push_back(block.min_in_shape()[input_idx]);
+            instance_ptr->max_inputs_shape.push_back(block.max_in_shape()[input_idx]);
+            input_idx++;
+        }
         // std::cout << "[ConvertBlockToInstance:input ] " << input->debugName() << std::endl;
     }
     net_structure->inputs_shape_map = inputs_shape_map;

@@ -335,8 +335,7 @@ std::vector<SegmentedBlock> segment_graph(std::shared_ptr<torch::jit::Graph> g) 
     return std::move(segmented_blocks);
 }
 
-std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<torch::jit::Graph> g,
-                                      InputShapesMap& input_shape, NetworkConfig& config, bool b_infer_shape) {
+std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<torch::jit::Graph> g, NetworkConfig& config) {
     // LOG_DEBUG(partition_info);
     // segment lowering global graph into blocks
     std::vector<SegmentedBlock> segmented_blocks = segment_graph(g);
@@ -355,11 +354,6 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
     //     }
     //     printf("====================== subgraph end   %d ======================\n", block.target());
     // }
-
-    // run shape analysis on each segmented block
-    if (b_infer_shape) {
-        runShapeInfer(mod, segmented_blocks, input_shape, config);
-    }
 
     return segmented_blocks;
 }

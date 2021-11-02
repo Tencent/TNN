@@ -145,8 +145,8 @@ void RegisterNodeToOutput(std::shared_ptr<torch::jit::Module> &mod, const std::v
     cur_method.setSchema(schema);
 }
 
-torch::jit::Module CompileTorch(torch::jit::Module& mod, InputShapesMap &input_shape, NetworkConfig &config, std::string forward_func_name) {
-
+torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_input_shape,
+                                InputShapesMap &max_input_shape, NetworkConfig &config, std::string forward_func_name) {
     if (config.precision == PRECISION_LOW ) {
         mod.to(torch::kHalf);
     }
@@ -168,10 +168,32 @@ torch::jit::Module CompileTorch(torch::jit::Module& mod, InputShapesMap &input_s
 
     TorchOptPass(mod);
 
-    auto tmp_mod = mod.clone();
-    auto tmp_seg = partitioning::Partition(tmp_mod, tmp_mod.get_method("forward").graph(), input_shape, config, true);
+    auto seg_blocks = partitioning::Partition(mod, g, config);
 
-    auto seg_blocks = partitioning::Partition(mod, g, input_shape, config);
+    // run shape infer and combine to blocks
+    if (min_input_shape.size() && max_input_shape.size() && min_input_shape.size() == max_input_shape.size()) {
+        auto shape_mod = mod.clone();
+        auto shape_seg = partitioning::Partition(shape_mod, shape_mod.get_method("forward").graph(), config);
+        partitioning::InputShapesList subgraph_min_shapes;
+        partitioning::InputShapesList subgraph_max_shapes;
+        partitioning::runShapeInfer(shape_mod, shape_seg, min_input_shape, config, subgraph_min_shapes);
+        partitioning::runShapeInfer(shape_mod, shape_seg, max_input_shape, config, subgraph_max_shapes);
+
+        int input_idx = 0;
+        for (auto &block : seg_blocks) {
+            if (block.target() == partitioning::SegmentedBlock::kTNN) {
+                std::vector<DimsVector> min_shape;
+                std::vector<DimsVector> max_shape;
+                for (auto &input : block.raw_inputs()) {
+                    min_shape.push_back(subgraph_min_shapes[input_idx].second);
+                    max_shape.push_back(subgraph_max_shapes[input_idx].second);
+                    input_idx++;
+                }
+                block.register_min_inshape(min_shape);
+                block.register_max_inshape(max_shape);
+            }
+        }
+    }
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
     {
         std::vector<torch::jit::Node *> reg_outputs;
@@ -206,22 +228,15 @@ torch::jit::Module CompileTorch(torch::jit::Module& mod, InputShapesMap &input_s
                     block_real_inputs.push_back(old_to_new_g[input]);
                 }
             }
-            // for (auto input : block_real_inputs) {
-            //     std::cout << input->debugName() << " | " << input->owningGraph() << std::endl;
-            // }
 
             WithInsertPoint insert_point(block.raw_outputs()[0]->node());
             auto new_outputs = torch::jit::insertGraph(*g, *temp_g, block_real_inputs);
 
             int out_idx = 0;
             for (auto output : block.raw_outputs()) {
-                // std::cout << "[out] " << output->debugName() << " | " << new_outputs[out_idx]->debugName() <<
-                // std::endl;
                 output->replaceAllUsesWith(new_outputs[out_idx]);
                 old_to_new_g[output] = new_outputs[out_idx++];
             }
-
-            // std::cout << low_g->toString() << std::endl;
 
             block.update_graph(temp_g);
         }

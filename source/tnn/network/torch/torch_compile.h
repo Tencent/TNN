@@ -22,7 +22,11 @@
 
 namespace TNN_NS {
 
-PUBLIC torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap& input_shape, NetworkConfig& config, std::string forward_func_name = "forward");
+PUBLIC torch::jit::Module CompileTorch(torch::jit::Module &mod,
+                                       InputShapesMap& min_input_shape,
+                                       InputShapesMap& max_input_shape,
+                                       NetworkConfig& config,
+                                       std::string forward_func_name = "forward");
 
 }
 

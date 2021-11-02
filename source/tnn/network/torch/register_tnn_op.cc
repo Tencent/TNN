@@ -48,7 +48,20 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         auto interpreter = dynamic_cast<DefaultModelInterpreter *>(compiled_engine->ctx_->get_interpreter().get());
         interpreter->GetNetStructure()->inputs_shape_map = inputs_shape_map;
         interpreter->GetNetStructure()->input_data_type_map = inputs_data_type_map;
-        compiled_engine->instance_->Init(compiled_engine->ctx_->get_interpreter(), inputs_shape_map);
+        InputShapesMap min_shape;
+        InputShapesMap max_shape;
+        if (compiled_engine->max_inputs_shape.size()) {
+            int input_idx = 0;
+            for (auto &input : inputs) {
+                min_shape[input_names[input_idx]] = compiled_engine->min_inputs_shape[input_idx];
+                max_shape[input_names[input_idx]] = compiled_engine->max_inputs_shape[input_idx];
+                input_idx++;
+            }
+        } else {
+            min_shape = inputs_shape_map;
+            max_shape = inputs_shape_map;
+        }
+        compiled_engine->instance_->Init(compiled_engine->ctx_->get_interpreter(), min_shape, max_shape);
         compiled_engine->is_init_ = true;
 
         if (inputs[0].is_cuda()) {
@@ -58,14 +71,6 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
 
         // ModelPacker package(interpreter->GetNetStructure(), interpreter->GetNetResource());
         // package.Pack("torch.tnnproto", "torch.tnnmodel");
-    } else {
-        auto interpreter = dynamic_cast<DefaultModelInterpreter *>(compiled_engine->ctx_->get_interpreter().get());
-        for (auto input : inputs_shape_map) {
-            if (input.second != interpreter->GetNetStructure()->inputs_shape_map[input.first]) {
-                compiled_engine->instance_->Init(compiled_engine->ctx_->get_interpreter(), inputs_shape_map);
-                break;
-            }
-        }
     }
 
     BlobMap input_blobs;
