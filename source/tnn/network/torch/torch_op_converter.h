@@ -146,6 +146,11 @@ static RawBuffer getValue(const torch::jit::Value* value) {
             auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
             auto float_vec  = std::vector<float>(vec.begin(), vec.end());
             return RawBuffer(bytes_size, reinterpret_cast<char*>(float_vec.data()), dims);
+        } else if (torch_type == at::ScalarType::Long) {
+            auto vec        = getValue<int64_t>(value, dims);
+            auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
+            auto float_vec  = std::vector<float>(vec.begin(), vec.end());
+            return RawBuffer(bytes_size, reinterpret_cast<char*>(float_vec.data()), dims);
         } else {
             LOGE("getValue:wrong scalar type\n");
         }
