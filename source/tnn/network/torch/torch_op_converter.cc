@@ -683,6 +683,7 @@ public:
     }
 };
 
+// func: slice.Tensor(Tensor(a) self, int dim=0, int? start=None, int? end=None, int step=1) -> Tensor(a)
 class StridedSliceTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
@@ -698,16 +699,22 @@ public:
 
         auto layer_param = std::make_shared<StrideSliceV2LayerParam>();
 
-        layer_param->axes   = {static_cast<int>(getValue<int64_t>(inputs[1]))};
-        layer_param->begins = {static_cast<int>(getValue<int64_t>(inputs[2]))};
-        const auto end      = getValue<int64_t>(inputs[3]);
-        if (end == INT64_MAX) {
-            layer_param->ends = {INT_MAX};
-        } else {
-            layer_param->ends = {static_cast<int>(end)};
-        }
-        //        layer_param->ends    = {static_cast<int>(getValue<int64_t>(inputs[3]))};
+        // Rule to set default values for param: start, end of aten::slice
+        // is defined in pytorch/aten/src/ATen/TensorIndexing.h
+        layer_param->axes    = {static_cast<int>(getValue<int64_t>(inputs[1]))};
         layer_param->strides = {static_cast<int>(getValue<int64_t>(inputs[4]))};
+        auto start_buf = getValue(inputs[2]);
+        auto end_buf   = getValue(inputs[3]);
+        if (start_buf.GetBytesSize()==0) {
+            layer_param->begins = {layer_param->strides[0]<0 ? INT_MAX : 0};
+        } else {
+            layer_param->begins = {static_cast<int>(getValue<int64_t>(inputs[2]))};
+        }
+        if (end_buf.GetBytesSize()==0) {
+            layer_param->ends = {layer_param->strides[0]<0 ? INT_MIN : INT_MAX};
+        } else {
+            layer_param->ends = {static_cast<int>(getValue<int64_t>(inputs[3]))};
+        }
 
         layer_info->param = layer_param;
 
