@@ -408,6 +408,14 @@ public:
         }
     }
 
+    inline void vmovups_sse(Xbyak::Xmm v, Xbyak::Address addr) {
+        if (cpu_with_isa(avx2)) {
+            vmovups(v, addr);
+        } else if (cpu_with_isa(sse42)) {
+            movups(v, addr);
+        }
+    }
+
 protected:
     size_t abi_nb_argment = 0;
     size_t abi_bp_offset_ = 0;
