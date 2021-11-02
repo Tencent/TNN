@@ -34,10 +34,10 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
         {
             layer_param->data_type = inputs[0]->GetBlobDesc().data_type;
             
-            auto start_data = (int *)((char *)inputs[0]->GetHandle().base + inputs[0]->GetHandle().bytes_offset);
+            auto start_data = (void *)((char *)inputs[0]->GetHandle().base + inputs[0]->GetHandle().bytes_offset);
             auto start = layer_param->start;
             if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-                start.f = *start_data;
+                start.f = *((float *)start_data);
             } else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
                 start.i = *((int *)start_data);
             } else {
@@ -48,10 +48,10 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
 
         //limit
         {
-            auto limit_data = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
+            auto limit_data = (void *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
             auto limit = layer_param->limit;
             if (inputs[1]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-                limit.f = *limit_data;
+                limit.f = *((float *)limit_data);
             } else if (inputs[1]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
                 limit.i = *((int *)limit_data);
             } else {
@@ -62,10 +62,10 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
         
         //delta
         {
-            auto delta_data = (int *)((char *)inputs[2]->GetHandle().base + inputs[2]->GetHandle().bytes_offset);
+            auto delta_data = (void *)((char *)inputs[2]->GetHandle().base + inputs[2]->GetHandle().bytes_offset);
             auto delta = layer_param->delta;
             if (inputs[2]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-                delta.f = *delta_data;
+                delta.f = *((float *)delta_data);
             } else if (inputs[2]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
                 delta.i = *((int *)delta_data);
             } else {
@@ -89,14 +89,19 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
 Status CpuRagneLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto *layer_param = dynamic_cast<RangeLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
-    
-    const auto& output_blob = outputs[0];
-    const auto& data_type = output_blob->GetBlobDesc().data_type;
-    int count = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
+
+    const auto &output_blob = outputs[0];
+    const auto &data_type   = output_blob->GetBlobDesc().data_type;
+    int count               = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
     if (data_type == DATA_TYPE_INT32) {
-        auto output_data = static_cast<int32_t*>(output_blob->GetHandle().base);
+        auto output_data = static_cast<int32_t *>(output_blob->GetHandle().base);
         for (int i = 0; i < count; ++i) {
             output_data[i] = layer_param->start.i + i * layer_param->delta.i;
+        }
+    } else if (data_type == DATA_TYPE_FLOAT) {
+        auto output_data = static_cast<float *>(output_blob->GetHandle().base);
+        for (int i = 0; i < count; ++i) {
+            output_data[i] = layer_param->start.f + i * layer_param->delta.f;
         }
     } else {
         LOGE("output blob of Shape Layer has wrong data type \n");

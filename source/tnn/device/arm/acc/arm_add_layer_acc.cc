@@ -35,7 +35,8 @@ Status ArmAddLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
 
 // SUPPORTED DATATYPES
 bool ArmAddLayerAcc::DataTypeSupported(DataType data_type) {
-    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_INT8)
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_BFP16 ||
+        data_type == DATA_TYPE_INT8)
         return true;
     else
         return false;

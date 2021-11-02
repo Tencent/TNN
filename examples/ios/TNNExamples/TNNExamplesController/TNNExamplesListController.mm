@@ -18,6 +18,7 @@
 #import "TNNBlazeFaceDetectorViewModel.h"
 #import "TNNSSDObjectDetectorViewModel.h"
 #import "TNNYoloObjectDetectorViewModel.h"
+#import "TNNNanodetObjectDetectorViewModel.h"
 #import "TNNFaceDetectAlignerViewModel.h"
 #import "TNNFaceDetectMeshViewModel.h"
 #import "TNNHairSegmentationViewModel.h"
@@ -94,6 +95,15 @@ using namespace std;
         [examples addObject:data];
     }
     
+    //阅读理解 - TinyBert
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"阅读理解 - TinyBert";
+        data.desc = @"自然语言类 - 单输入多输出";
+        data.viewControllerID = @"TNNReadingComprehensionController";
+        [examples addObject:data];
+    }
+
     //人脸检测 - Blazeface
     {
         auto data = [TNNExampleData new];
@@ -131,6 +141,20 @@ using namespace std;
             data.viewModel = [TNNYoloObjectDetectorViewModel new];
             data.viewModel.title = data.title;
             data.viewModel.preferGPU = true;
+        }
+        [examples addObject:data];
+    }
+
+    //物体检测 - nanodet
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"物体检测 - nanodet";
+        data.desc = @"摄像头 - 单输入多输出";
+        data.viewControllerID = @"TNNCameraPreviewController";
+        {
+            data.viewModel = [TNNNanodetObjectDetectorViewModel new];
+            data.viewModel.title = data.title;
+            data.viewModel.preferGPU = false;
         }
         [examples addObject:data];
     }

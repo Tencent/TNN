@@ -36,7 +36,7 @@ Status CpuSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     const int bath  = DimsVectorUtils::Count(input_dims, 0, axis);
     int slice_size  = DimsVectorUtils::Count(input_dims, axis + 1);
     if (slice_size == 0) {
-        //support split empty blob such as blob with shape[12, 2, 128], axis = 0
+        // support split empty blob such as blob with shape[12, 2, 128], axis = 0
         return TNN_OK;
     }
     const int slice_input = input_dims[axis];
@@ -54,6 +54,21 @@ Status CpuSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
                 auto output_data_ptr = output_data + b * slice * slice_size;
 
                 memcpy(output_data_ptr, input_data_ptr, slice * slice_size * sizeof(float));
+                slice_input_offset += slice;
+            }
+        }
+    } else if (input_blob->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        for (size_t b = 0; b < bath; b++) {
+            int slice_input_offset = 0;
+            for (size_t i = 0; i < outputs.size(); i++) {
+                auto output_blob = outputs[i];
+                auto output_data = static_cast<int *>(output_blob->GetHandle().base);
+                const int slice  = output_blob->GetBlobDesc().dims[axis];
+
+                auto input_data_ptr  = input_data + b * slice_input * slice_size + slice_input_offset * slice_size;
+                auto output_data_ptr = output_data + b * slice * slice_size;
+
+                memcpy(output_data_ptr, input_data_ptr, slice * slice_size * sizeof(int));
                 slice_input_offset += slice;
             }
         }

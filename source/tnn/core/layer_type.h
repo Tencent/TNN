@@ -220,6 +220,11 @@ enum LayerType {
     LAYER_NOT                                               = 329,
     LAYER_LOGSOFTMAX                                        = 330,
     LAYER_SCATTER_ELEMENTS                                  = 331,
+    LAYER_AND                                               = 332,
+    LAYER_GREATER                                           = 333,
+    LAYER_LESS                                              = 334,
+    LAYER_NON_MAX_SUPPRESSION                               = 335,
+    LAYER_SCATTER                                           = 336,
 
     LAYER_BLOB_SCALE                                        = 600,
 

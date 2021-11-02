@@ -217,6 +217,13 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"Where", LAYER_WHERE},
     {"LayerNorm", LAYER_LAYER_NORM},
     {"GELU", LAYER_GELU},
+    {"And", LAYER_AND},
+    {"Greater", LAYER_GREATER},
+    {"Less", LAYER_LESS},
+    {"Not", LAYER_NOT},
+    {"NonMaxSuppression", LAYER_NON_MAX_SUPPRESSION},
+    {"TopK", LAYER_TOPK},
+    {"Scatter", LAYER_SCATTER},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 
@@ -244,9 +251,9 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"CbamFusedReduce", LAYER_CBAM_FUSED_REDUCE},
     {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING},
     {"Softsign", LAYER_SOFTSIGN},
-    {"TopK", LAYER_TOPK},
     {"LogSoftmax", LAYER_LOGSOFTMAX},
-    {"QuantizedReshape", LAYER_RESHAPE}
+    {"QuantizedReshape", LAYER_RESHAPE},
+    {"QuantizedPermute", LAYER_PERMUTE}
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

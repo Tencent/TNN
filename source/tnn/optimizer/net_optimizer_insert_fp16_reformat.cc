@@ -34,6 +34,10 @@ namespace optimizer {
     NetOptimizerRegister<NetOptimizerInsertFp16Reformat> g_net_optimizer_insert_fp16_reformat(OptPriority::P2);
     static const std::string reformat_name_suffix         = "_fp16_reformat";
     static const std::set<LayerType> kLayerOutputNonFloat = {LAYER_ARG_MAX_OR_MIN};
+    static const std::set<LayerType> kLayerOutputMaybeNonFloat = {LAYER_UNSQUEEZE, LAYER_GATHER};
+    std::set<std::string> whitelist_i32;
+
+    static const std::set<LayerType> kLayerNeedSpecialTreat = {LAYER_GATHER};
 
     // skip fp16 reformat if output of the layer is not float type
     bool IsLayerOutputFloat(std::shared_ptr<LayerInfo> layer) {
@@ -47,7 +51,110 @@ namespace optimizer {
             return (layer_param->to == DATA_TYPE_FLOAT || layer_param->to == DATA_TYPE_HALF);
         }
 
+        if (layer->type == LAYER_UNSQUEEZE) {
+            return whitelist_i32.find(layer->name) == whitelist_i32.end();
+        }
+
+        if (layer->type == LAYER_GATHER) {
+            return whitelist_i32.find(layer->name) == whitelist_i32.end();
+        }
+
         return true;
+    }
+
+    void OutputSameAsInput(std::shared_ptr<LayerInfo> cur_layer, std::set<std::string> &whitelist_i32, std::set<std::string> &blob_i32) {
+        // if input is int32, output is view as i32
+        std::vector<std::string> intersection;
+        std::set<std::string> cur_input(cur_layer->inputs.begin(), cur_layer->inputs.end());
+        std::set_intersection(cur_input.begin(), cur_input.end(), 
+                            blob_i32.begin(), blob_i32.end(), std::back_inserter(intersection));
+        if (intersection.size() > 0){
+            whitelist_i32.insert(cur_layer->name);
+            for (auto cur_output: cur_layer->outputs){
+                blob_i32.insert(cur_output);
+            }
+        }
+    }
+
+    bool GenWhiteList_i32(NetStructure *structure, NetResource *resource, std::set<std::string> &whitelist_i32){
+        // If input is int32, some layers will propagate int32 (such as unsqueeze, gather), 
+        // these layers will view as special case which don't output fp16
+
+        std::set<std::string> blob_i32;
+
+        std::vector<std::shared_ptr<LayerInfo>> layers_orig = structure->layers;
+        const int count                                     = (const int)layers_orig.size();
+
+        // get input type
+        for (const auto &iter : structure->input_data_type_map) {
+            const auto &name = iter.first;
+            const auto type = iter.second;
+            if (type == DATA_TYPE_INT32){
+                blob_i32.insert(name);
+            }
+        }
+
+        for (int index = 0; index < count; index++) {
+            auto cur_layer = layers_orig[index];
+
+            if (kLayerOutputMaybeNonFloat.find(cur_layer->type) != kLayerOutputMaybeNonFloat.end()){
+
+                // process Gather
+                if (cur_layer->type == LAYER_GATHER){
+                    auto layer_param = dynamic_cast<GatherLayerParam *>(cur_layer->param.get());
+                    CHECK_PARAM_NULL(layer_param);
+                    if (layer_param->data_in_resource == true) {
+                        // if data in resource, must return type is decided by resource
+                        auto resource_ = resource->resource_map.find(cur_layer->name)->second.get();
+                        auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);
+                        if (layer_resource->data.GetDataType() == DATA_TYPE_INT32){
+                            whitelist_i32.insert(cur_layer->name);
+                            for (auto cur_output: cur_layer->outputs){
+                                blob_i32.insert(cur_output);
+                            }
+                        }
+                    } else {
+                        // else indice in reource, output type in the same as input
+                        OutputSameAsInput(cur_layer, whitelist_i32, blob_i32);
+                    }
+                }
+
+                // process Unsqueeze
+                if (cur_layer->type == LAYER_UNSQUEEZE){
+                    // output type is the same as input
+                    OutputSameAsInput(cur_layer, whitelist_i32, blob_i32);
+                }
+
+                // other cases ...
+
+            }
+        }
+        return true;
+    }
+
+    // skip some special cases which must output fp32 instead of fp16, such as gather (data in resource)
+    bool IsSpecialCase_fp32(NetResource* resource, std::shared_ptr<LayerInfo> cur_layer){
+        if (kLayerNeedSpecialTreat.find(cur_layer->type) != kLayerNeedSpecialTreat.end()) {
+            
+            // handle gather layer. When resource type if fp32, the layer will return fp32
+            if (cur_layer->type == LAYER_GATHER) {
+                auto layer_param = dynamic_cast<GatherLayerParam *>(cur_layer->param.get());
+                CHECK_PARAM_NULL(layer_param);
+                if (layer_param->data_in_resource == true) {
+                    // if data in resource, must return type is decided by resource
+                    auto resource_ = resource->resource_map.find(cur_layer->name)->second.get();
+                    auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);
+                    if (layer_resource->data.GetDataType() == DATA_TYPE_FLOAT){
+                        return true;
+                    }
+                }
+            }
+
+            // other cases ...
+
+        }
+
+        return false;
     }
 
     std::string NetOptimizerInsertFp16Reformat::Strategy() {
@@ -151,6 +258,10 @@ namespace optimizer {
             }
         }
 
+        if (!GenWhiteList_i32(structure, resource, whitelist_i32)){
+            return Status(TNNERR_CONVERT_OPTIMIZE_ERROR, "Can not generate whitelist_i32");
+        }
+
         for (int index = 0; index < count; index++) {
             auto cur_layer = layers_orig[index];
             layers_fused.push_back(cur_layer);
@@ -160,7 +271,7 @@ namespace optimizer {
             // find blobs need reformat
             // support multi inputs/outputs
             std::vector<std::string> reformat_outs;
-            bool is_cur_layer_fp16 = device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented;
+            bool is_cur_layer_fp16 = device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented & !IsSpecialCase_fp32(resource, cur_layer);
             for (auto cur_out : cur_layer->outputs) {
                 if (constant_blobs.count(cur_out) > 0) {
                     continue;
@@ -171,7 +282,7 @@ namespace optimizer {
                     if (constant_layers.count(next_layer->name) > 0) {
                         continue;
                     }
-                    bool is_next_layer_fp16 = device_->GetImplementedPrecision(next_layer->type)->fp16_implemented;
+                    bool is_next_layer_fp16 = device_->GetImplementedPrecision(next_layer->type)->fp16_implemented & !IsSpecialCase_fp32(resource, next_layer);
                     for (auto next_in : next_layer->inputs) {
                         if (next_in == cur_out && is_next_layer_fp16 != is_cur_layer_fp16) {
                             need_reformat = true;
