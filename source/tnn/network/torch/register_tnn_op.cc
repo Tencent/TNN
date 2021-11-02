@@ -73,6 +73,8 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         // package.Pack("torch.tnnproto", "torch.tnnmodel");
     }
 
+    compiled_engine->instance_->Reshape(inputs_shape_map);
+
     BlobMap input_blobs;
     BlobMap output_blobs;
     compiled_engine->instance_->GetAllInputBlobs(input_blobs);
