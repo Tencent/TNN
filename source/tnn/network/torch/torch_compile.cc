@@ -181,17 +181,15 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
 
         int input_idx = 0;
         for (auto &block : seg_blocks) {
-            if (block.target() == partitioning::SegmentedBlock::kTNN) {
-                std::vector<DimsVector> min_shape;
-                std::vector<DimsVector> max_shape;
-                for (auto &input : block.raw_inputs()) {
-                    min_shape.push_back(subgraph_min_shapes[input_idx].second);
-                    max_shape.push_back(subgraph_max_shapes[input_idx].second);
-                    input_idx++;
-                }
-                block.register_min_inshape(min_shape);
-                block.register_max_inshape(max_shape);
+            std::vector<DimsVector> min_shape;
+            std::vector<DimsVector> max_shape;
+            for (auto &input : block.raw_inputs()) {
+                min_shape.push_back(subgraph_min_shapes[input_idx].second);
+                max_shape.push_back(subgraph_max_shapes[input_idx].second);
+                input_idx++;
             }
+            block.register_min_inshape(min_shape);
+            block.register_max_inshape(max_shape);
         }
     }
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
@@ -210,49 +208,45 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
 #endif
 
     for (auto &block : seg_blocks) {
-        if (block.target() == partitioning::SegmentedBlock::kTNN) {
-            std::ostringstream tnn_engine_id;
-            tnn_engine_id << reinterpret_cast<const int *>(&block);
-            auto engine_ptr = conversion::ConvertBlockToInstance(block, config);
-            auto temp_g     = std::make_shared<torch::jit::Graph>();
-            AddEngineToGraph(mod, temp_g, engine_ptr, tnn_engine_id.str(), true);
-            // std::cout << block.g()->toString() << std::endl;
-            // std::cout << temp_g->toString() << std::endl;
+        std::ostringstream tnn_engine_id;
+        tnn_engine_id << reinterpret_cast<const int *>(&block);
+        auto engine_ptr = conversion::ConvertBlockToInstance(block, config);
+        auto temp_g     = std::make_shared<torch::jit::Graph>();
+        AddEngineToGraph(mod, temp_g, engine_ptr, tnn_engine_id.str(), true);
+        // std::cout << block.g()->toString() << std::endl;
+        // std::cout << temp_g->toString() << std::endl;
 
-            std::vector<torch::jit::Value *> block_real_inputs;
-            block_real_inputs.push_back(g->inputs()[0]);
-            for (auto input : block.raw_inputs()) {
-                if (old_to_new_g.count(input) == 0) {
-                    block_real_inputs.push_back(input);
-                } else {
-                    block_real_inputs.push_back(old_to_new_g[input]);
-                }
+        std::vector<torch::jit::Value *> block_real_inputs;
+        block_real_inputs.push_back(g->inputs()[0]);
+        for (auto input : block.raw_inputs()) {
+            if (old_to_new_g.count(input) == 0) {
+                block_real_inputs.push_back(input);
+            } else {
+                block_real_inputs.push_back(old_to_new_g[input]);
             }
-
-            WithInsertPoint insert_point(block.raw_outputs()[0]->node());
-            auto new_outputs = torch::jit::insertGraph(*g, *temp_g, block_real_inputs);
-
-            int out_idx = 0;
-            for (auto output : block.raw_outputs()) {
-                output->replaceAllUsesWith(new_outputs[out_idx]);
-                old_to_new_g[output] = new_outputs[out_idx++];
-            }
-
-            block.update_graph(temp_g);
         }
+
+        WithInsertPoint insert_point(block.raw_outputs()[0]->node());
+        auto new_outputs = torch::jit::insertGraph(*g, *temp_g, block_real_inputs);
+
+        int out_idx = 0;
+        for (auto output : block.raw_outputs()) {
+            output->replaceAllUsesWith(new_outputs[out_idx]);
+            old_to_new_g[output] = new_outputs[out_idx++];
+        }
+
+        block.update_graph(temp_g);
     }
 
     for (auto &block : seg_blocks) {
-        if (block.target() == partitioning::SegmentedBlock::kTNN) {
-            for (auto n : block.raw_nodes()) {
-                n->removeAllInputs();
-            }
-            for (auto n : block.raw_nodes()) {
-                n->destroy();
-            }
+        for (auto n : block.raw_nodes()) {
+            n->removeAllInputs();
+        }
+        for (auto n : block.raw_nodes()) {
+            n->destroy();
         }
     }
-    
+
     // remove constant nodes which has been convert to tnn netresource
     torch::jit::EliminateDeadCode(g);
 
