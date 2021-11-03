@@ -21,7 +21,12 @@ DECLARE_LAYER_WITH_FUNC(Tile, LAYER_REPEAT,
                         virtual Status FillLayerParamWithConstantResource(););
 
 Status TileLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    auto status = BaseLayer::InferOutputDataType();
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    output_blobs_[0]->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;
+
+    return TNN_OK;
 }
 
 Status TileLayer::InferOutputShape(bool ignore_error) {
