@@ -178,13 +178,13 @@ int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
             }
             WriteRawData(temp, item_size, writer, dst_data_type, dims);
         } else if (tensor.data_type() == 7) {
-            int64_t *raw_data = (int64_t *)tensor.int64_data().data();
-            float *temp = new float[item_size];
-            for (int i=0; i<item_size; i++) {
-                temp[i] = raw_data[i];
+            auto int64_data = (int64_t *)tensor.int64_data().data();
+            auto int32_data = new int32_t[item_size];
+            for (int ii = 0; ii < item_size; ii++) {
+                int32_data[ii] = DataTypeUtils::SaturateCast(int64_data[ii]);
             }
-            WriteRawData(temp, item_size, writer, dst_data_type, dims);
-            delete [] temp;
+            writer->PutRaw(item_size * sizeof(int32_t), (char *)int32_data, dims, DATA_TYPE_INT32);
+            delete[] int32_data;
         } else {
             DLog("invalid tensor type\n");
             assert(0);
