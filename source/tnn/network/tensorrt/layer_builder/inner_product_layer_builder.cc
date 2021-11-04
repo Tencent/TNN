@@ -98,17 +98,11 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
             input_tensor = input_dequant_layer->getOutput(0);
         }
     } else {
-        kernelWeights.type = nvinfer1::DataType::kFLOAT;
-        kernelWeights.values = resource->weight_handle.force_to<void*>();
-        kernelWeights.count = resource->weight_handle.GetDataCount();
+        kernelWeights = ConvertToWeights(&(resource->weight_handle));
         if (paramlist->has_bias) {
-            biasWeights.type = nvinfer1::DataType::kFLOAT;
-            biasWeights.values = resource->bias_handle.force_to<void*>();
-            biasWeights.count = resource->bias_handle.GetDataCount();
+            biasWeights = ConvertToWeights(&(resource->bias_handle));
         } else {
-            biasWeights.type = nvinfer1::DataType::kFLOAT;
-            biasWeights.values = nullptr;
-            biasWeights.count = 0;
+            biasWeights = ConvertToWeights(nullptr, true, resource->weight_handle.GetDataType());
         }
     }
 
