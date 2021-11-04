@@ -118,6 +118,9 @@ static RawBuffer getValue(const torch::jit::Value* value) {
         if (value_kind == c10::TypeKind::FloatType) {
             const auto data = getValue<float>(value);
             return RawBuffer(4, (char*)(&data), {});
+        } else if (value_kind == c10::TypeKind::IntType) {
+            const auto data = getValue<int>(value);
+            return RawBuffer(4, (char*)(&data), {});
         } else {
             LOGE("getValue:wrong scalar type\n");
             return RawBuffer();

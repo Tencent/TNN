@@ -703,17 +703,17 @@ public:
         // is defined in pytorch/aten/src/ATen/TensorIndexing.h
         layer_param->axes    = {static_cast<int>(getValue<int64_t>(inputs[1]))};
         layer_param->strides = {static_cast<int>(getValue<int64_t>(inputs[4]))};
-        auto start_buf = getValue(inputs[2]);
-        auto end_buf   = getValue(inputs[3]);
-        if (start_buf.GetBytesSize()==0) {
+
+        if (inputs[2]->type()->kind() != c10::TypeKind::NoneType) {
             layer_param->begins = {layer_param->strides[0]<0 ? INT_MAX : 0};
         } else {
             layer_param->begins = {static_cast<int>(getValue<int64_t>(inputs[2]))};
         }
-        if (end_buf.GetBytesSize()==0) {
+        if (inputs[2]->type()->kind() != c10::TypeKind::NoneType) {
             layer_param->ends = {layer_param->strides[0]<0 ? INT_MIN : INT_MAX};
         } else {
-            layer_param->ends = {static_cast<int>(getValue<int64_t>(inputs[3]))};
+            auto end = getValue<int64_t>(inputs[3]);
+            layer_param->ends = {end == INT64_MAX? INT_MAX : static_cast<int>(end)};
         }
 
         layer_info->param = layer_param;
