@@ -15,15 +15,7 @@
 #include "tnn/network/torch/torch_compile.h"
 
 #include <torch/csrc/jit/passes/dead_code_elimination.h>
-#include <torch/csrc/jit/passes/fold_conv_bn.h>
-#include <torch/csrc/jit/passes/inliner.h>
-#include <torch/csrc/jit/passes/lower_graph.h>
-#include <torch/csrc/jit/passes/remove_dropout.h>
-#include <torch/csrc/jit/passes/remove_inplace_ops.h>
 #include <torch/csrc/jit/passes/subgraph_rewrite.h>
-#include <torch/csrc/jit/passes/freeze_module.h>
-#include <torch/csrc/jit/passes/frozen_graph_optimizations.h>
-#include "torch/csrc/jit/passes/lower_tuples.h"
 
 #include "tnn/network/torch/jit_util.h"
 #include "tnn/network/torch/partitioning.h"
@@ -150,15 +142,12 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
     if (config.precision == PRECISION_LOW ) {
         mod.to(torch::kHalf);
     }
-    mod.eval();
-    mod = torch::jit::freeze_module(mod);
-    auto graph = mod.get_method(forward_func_name).graph();
-    OptimizeFrozenGraph(graph);
-    LowerSimpleTuples(graph);
 
-    std::cout << c10::toString(mod.get_method("forward").function().getSchema()) << std::endl;
-    auto g = mod.get_method("forward").graph();
-    std::cout << g->toString(false) << std::endl;
+    TorchOptPass(mod);
+
+    // std::cout << c10::toString(mod.get_method("forward").function().getSchema()) << std::endl;
+    auto g = mod.get_method(forward_func_name).graph();
+    // std::cout << g->toString(false) << std::endl;
 
     std::unordered_map<torch::jit::Value *, torch::jit::Value *> old_to_new_g;
 
@@ -166,14 +155,12 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
     //     std::cout << input->debugName() << " | " << input->type()->repr_str() << std::endl;
     // }
 
-    TorchOptPass(mod);
-
     auto seg_blocks = partitioning::Partition(mod, g, config);
 
     // run shape infer and combine to blocks
     if (min_input_shape.size() && max_input_shape.size() && min_input_shape.size() == max_input_shape.size()) {
         auto shape_mod = mod.clone();
-        auto shape_seg = partitioning::Partition(shape_mod, shape_mod.get_method("forward").graph(), config);
+        auto shape_seg = partitioning::Partition(shape_mod, shape_mod.get_method(forward_func_name).graph(), config);
         partitioning::InputShapesList subgraph_min_shapes;
         partitioning::InputShapesList subgraph_max_shapes;
         partitioning::runShapeInfer(shape_mod, shape_seg, min_input_shape, config, subgraph_min_shapes);
@@ -250,8 +237,8 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
     // remove constant nodes which has been convert to tnn netresource
     torch::jit::EliminateDeadCode(g);
 
-    std::cout << "============================= the final graph ===========================" << std::endl;
-    std::cout << g->toString() << std::endl;
+    // std::cout << "============================= the final graph ===========================" << std::endl;
+    // std::cout << g->toString() << std::endl;
 
     return mod;
 }

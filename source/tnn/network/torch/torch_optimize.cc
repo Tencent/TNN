@@ -20,6 +20,9 @@
 #include <torch/csrc/jit/passes/remove_dropout.h>
 #include <torch/csrc/jit/passes/remove_inplace_ops.h>
 #include <torch/csrc/jit/passes/remove_mutation.h>
+#include <torch/csrc/jit/passes/freeze_module.h>
+#include <torch/csrc/jit/passes/frozen_graph_optimizations.h>
+#include "torch/csrc/jit/passes/lower_tuples.h"
 
 namespace torch {
 namespace jit {
@@ -237,7 +240,12 @@ namespace jit {
     }
 
     void TorchOptPass(script::Module& module) {
+
+        module.eval();
+        module = torch::jit::freeze_module(module);
         auto graph = module.get_method("forward").graph();
+        OptimizeFrozenGraph(graph);
+        LowerSimpleTuples(graph);
 
         removeDropout(module);
         RemoveException(graph->block());
