@@ -20,9 +20,6 @@
 #include <torch/csrc/jit/passes/remove_dropout.h>
 #include <torch/csrc/jit/passes/remove_inplace_ops.h>
 #include <torch/csrc/jit/passes/remove_mutation.h>
-#include <torch/csrc/jit/passes/freeze_module.h>
-#include <torch/csrc/jit/passes/frozen_graph_optimizations.h>
-#include "torch/csrc/jit/passes/lower_tuples.h"
 
 namespace torch {
 namespace jit {
@@ -239,18 +236,35 @@ namespace jit {
         }
     }
 
-    void TorchOptPass(script::Module& module) {
+    void RemoveClone(Block* block) {
+        std::vector<Node*> deleted_nodes;
 
-        module.eval();
-        module = torch::jit::freeze_module(module);
+        for (auto it = block->nodes().rbegin(); it != block->nodes().rend(); it++) {
+            Node* node = *it;
+            for (auto block : node->blocks()) {
+                RemoveClone(block);
+            }
+            if ((node->kind() == c10::Symbol::fromQualString("aten::clone"))) {
+                Value* input_value = node->inputs()[0];
+                Value* output_value = node->outputs()[0];
+                output_value->replaceAllUsesWith(input_value);
+                deleted_nodes.push_back(node);
+            }
+        }
+        for (auto del_node : deleted_nodes) {
+            del_node->destroy();
+        }
+    }
+
+    void TorchOptPass(script::Module& module) {
         auto graph = module.get_method("forward").graph();
-        OptimizeFrozenGraph(graph);
-        LowerSimpleTuples(graph);
 
         removeDropout(module);
         RemoveException(graph->block());
         RemoveListAppend(graph.get(), graph->block());
         RemoveConcat(graph->block());
+
+        RemoveClone(graph->block());
 //        RemoveNoneTypeFromTuple(graph->block());
 //        RemoveSlice(graph->block());
 

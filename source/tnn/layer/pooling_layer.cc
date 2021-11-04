@@ -144,23 +144,6 @@ Status PoolingLayer::InferOutputShape(bool ignore_error) {
 
         pool_param->pads[1] = pad_right;
         pool_param->pads[3] = pad_down;
-    } else if (pool_param->pad_type == 3){
-        // torchscript pad type
-        const auto pad_h = pool_param->pads[2];
-        const auto pad_w = pool_param->pads[0];
-        if (pool_param->ceil_mode) {
-            height_out = static_cast<int>(std::ceil(float(height + 2 * pad_h  - 1 * (kernel_h - 1) - 1) / float(stride_h) + 1));
-            width_out = static_cast<int>(std::ceil(float(width + 2 * pad_w  - 1 * (kernel_w - 1) - 1) / float(stride_w) + 1));
-        } else {
-            height_out = static_cast<int>(std::floor(float(height + 2 * pad_h  - 1 * (kernel_h - 1) - 1) / float(stride_h) + 1));
-            width_out = static_cast<int>(std::floor(float(width + 2 * pad_w  - 1 * (kernel_w - 1) - 1) / float(stride_w) + 1));
-        }
-        int pad_along_height = ((height_out - 1) * stride_h + kernel_h - height);
-        int pad_along_width  = ((width_out - 1) * stride_w + kernel_w - width);
-        pool_param->pads[0] = pad_w;
-        pool_param->pads[1] = pad_along_width - pad_w;
-        pool_param->pads[2] = pad_h;
-        pool_param->pads[3] = pad_along_height - pad_h;
     } else {
         // The code below is based on the logic from
         // https://www.tensorflow.org/api_docs/python/nn/convolution

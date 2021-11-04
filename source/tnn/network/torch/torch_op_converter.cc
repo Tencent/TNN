@@ -49,7 +49,7 @@ public:
 
         // set param accroding to real value, just test here
         layer_param->name = layer_info->name;
-        layer_param->pad_type = 3;
+        layer_param->pad_type = -1;
         layer_param->output_channel = shape[0];
         layer_param->input_channel = shape[1];
         // order [w, h]
@@ -81,19 +81,20 @@ public:
 //                    int[] output_padding, int groups, bool benchmark, bool deterministic, bool cudnn_enabled, bool allow_tf32) -> Tensor
 class _ConvTorchConverter : public TorchOpConverter {
 public:
-    bool IsSupported(const torch::jit::Node *node) {
-        const auto& inputs = node->inputs();
-        const auto transposed = getValue<bool>(inputs[6]);
-        return !transposed; 
-    }
+//    bool IsSupported(const torch::jit::Node *node) {
+//        const auto& inputs = node->inputs();
+//        const auto transposed = getValue<bool>(inputs[6]);
+//        return !transposed;
+//    }
 
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
-        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-        layer_info->type = LAYER_CONVOLUTION;
-        layer_info->type_str = "Convolution";
-        layer_info->name = node->output(0)->debugName();
-
         const auto& inputs = node->inputs();
+        const auto transposed = getValue<bool>(inputs[6]);
+
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = transposed ? LAYER_DECONVOLUTION : LAYER_CONVOLUTION;
+        layer_info->type_str = transposed ? "Deconvolution" : "Convolution";
+        layer_info->name = node->output(0)->debugName();
 
         layer_info->inputs.push_back(node->inputs()[0]->debugName());
         layer_info->outputs.push_back(node->outputs()[0]->debugName());
@@ -118,7 +119,7 @@ public:
 
         // set param accroding to real value, just test here
         layer_param->name = layer_info->name;
-        layer_param->pad_type = 3;
+        layer_param->pad_type = -1;
         layer_param->output_channel = shape[0];
         layer_param->input_channel = shape[1];
         layer_param->kernels = {shape[3], shape[2]};
@@ -172,10 +173,10 @@ public:
             const auto dialation = getValue<std::vector<int64_t>>(inputs[4]);
             const auto ceil_mode = getValue<bool>(inputs[5]);
             
-            layer_param->pad_type = 3;
-            layer_param->kernels_params = {(int)kernel_size[0], (int)kernel_size[1]};
-            layer_param->strides = {(int)stride[0], (int)stride[1]};
-            layer_param->pads = {(int)padding[0], (int)padding[0], (int)padding[1], (int)padding[1]};
+            layer_param->pad_type = -1;
+            layer_param->kernels_params = {(int)kernel_size[1], (int)kernel_size[0]};
+            layer_param->strides = {(int)stride[1], (int)stride[0]};
+            layer_param->pads = {(int)padding[1], (int)padding[1], (int)padding[0], (int)padding[0]};
             layer_param->kernel_indexs = {-1, -1};
             layer_param->kernels = {-1, -1};
             layer_param->output_shape = {-1, -1};
@@ -183,7 +184,7 @@ public:
         } else {
             const auto output_shape = getValue<std::vector<int64_t>>(inputs[1]);
             layer_param->is_adaptive_pool = 1;
-            layer_param->output_shape = {(int)output_shape[0], (int)output_shape[1]};
+            layer_param->output_shape = {(int)output_shape[1], (int)output_shape[0]};
         }
 
         layer_info->param = layer_param;
@@ -218,43 +219,14 @@ public:
         auto padding     = getValue<std::vector<int64_t>>(inputs[3]);
         auto ceil_mode   = getValue<bool>(inputs[4]);
 
-        bool need_insert_pad = false;
-        for (const auto &pad : padding) {
-            need_insert_pad = (pad != 0);
-        }
-
-        if (need_insert_pad) {
-            std::shared_ptr<LayerInfo> pad_layer_info = std::make_shared<LayerInfo>();
-            pad_layer_info->type                      = LAYER_PAD;
-            pad_layer_info->type_str                  = "Pad";
-            pad_layer_info->name                      = layer_info->name + "_pad";
-
-            pad_layer_info->inputs.push_back(layer_info->inputs[0]);
-            pad_layer_info->outputs.push_back(pad_layer_info->name);
-            layer_info->inputs[0] = pad_layer_info->outputs[0];
-
-            auto pad_layer_param  = std::make_shared<PadLayerParam>();
-            const int pad_h       = static_cast<int>(padding[0]);
-            const int pad_w       = static_cast<int>(padding[1]);
-            pad_layer_param->pads = {pad_w, pad_w, pad_h, pad_h, 0, 0, 0, 0};
-
-            pad_layer_info->param = pad_layer_param;
-
-            net_structure->layers.push_back(pad_layer_info);
-
-            for (const auto &pad_input : pad_layer_info->inputs) {
-                net_structure->blobs.insert(pad_input);
-            }
-            for (const auto &pad_output : pad_layer_info->outputs) {
-                net_structure->blobs.insert(pad_output);
-            }
-        }
+        const int pad_h       = static_cast<int>(padding[0]);
+        const int pad_w       = static_cast<int>(padding[1]);
 
         layer_param->pool_type      = 1;
-        layer_param->pad_type       = 3;
+        layer_param->pad_type       = -1;
         layer_param->kernels_params = {(int)kernel_size[1], (int)kernel_size[0]};
         layer_param->strides        = {(int)stride[1], (int)stride[0]};
-        layer_param->pads           = {0, 0, 0, 0};
+        layer_param->pads           = {pad_w, pad_w, pad_h, pad_h};
         layer_param->kernel_indexs  = {-1, -1};
         layer_param->kernels        = {-1, -1};
         layer_param->output_shape   = {-1, -1};
@@ -703,17 +675,17 @@ public:
         // is defined in pytorch/aten/src/ATen/TensorIndexing.h
         layer_param->axes    = {static_cast<int>(getValue<int64_t>(inputs[1]))};
         layer_param->strides = {static_cast<int>(getValue<int64_t>(inputs[4]))};
-
-        if (inputs[2]->type()->kind() != c10::TypeKind::NoneType) {
+        auto start_buf = getValue(inputs[2]);
+        auto end_buf   = getValue(inputs[3]);
+        if (start_buf.GetBytesSize()==0) {
             layer_param->begins = {layer_param->strides[0]<0 ? INT_MAX : 0};
         } else {
             layer_param->begins = {static_cast<int>(getValue<int64_t>(inputs[2]))};
         }
-        if (inputs[2]->type()->kind() != c10::TypeKind::NoneType) {
+        if (end_buf.GetBytesSize()==0) {
             layer_param->ends = {layer_param->strides[0]<0 ? INT_MIN : INT_MAX};
         } else {
-            auto end = getValue<int64_t>(inputs[3]);
-            layer_param->ends = {end == INT64_MAX? INT_MAX : static_cast<int>(end)};
+            layer_param->ends = {static_cast<int>(getValue<int64_t>(inputs[3]))};
         }
 
         layer_info->param = layer_param;
@@ -778,13 +750,14 @@ public:
 
 REGISTER_TORCH_OP_CONVERTER(Conv2D, aten, conv2d)
 REGISTER_TORCH_OP_CONVERTER(_Conv, aten, _convolution)
+REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu)
 REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
 REGISTER_TORCH_OP_CONVERTER(AvgPool, aten, avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, adaptive_avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, add_)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, add)
-REGISTER_TORCH_OP_CONVERTER(Binary, aten, mul)
+//REGISTER_TORCH_OP_CONVERTER(Binary, aten, mul)
 REGISTER_TORCH_OP_CONVERTER(Flatten, aten, flatten)
 REGISTER_TORCH_OP_CONVERTER(Linear, aten, linear)
 REGISTER_TORCH_OP_CONVERTER(HardTanh, aten, hardtanh_)
