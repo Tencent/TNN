@@ -9,6 +9,9 @@ MODEL_CHECK="OFF"
 PROFILE="OFF"
 TARGET_ARCH=aarch64
 
+CC=`which clang`
+CXX=`which clang++`
+
 if [ -z $TNN_ROOT_PATH ]
 then
     TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
@@ -19,6 +22,8 @@ mkdir build_aarch64_macos
 cd build_aarch64_macos
 
 cmake ${TNN_ROOT_PATH} \
+    -DCMAKE_C_COMPILER=$CC \
+    -DCMAKE_CXX_COMPILER=$CXX \
     -DTNN_TEST_ENABLE=ON \
     -DTNN_UNIT_TEST_ENABLE=ON \
     -DDEBUG:BOOL=$DEBUG \
