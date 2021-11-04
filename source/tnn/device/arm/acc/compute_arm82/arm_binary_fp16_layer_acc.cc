@@ -41,6 +41,14 @@ template<> fp16_t binary_op<ArmBinaryOpType::kMAX, fp16_t>(const fp16_t &a, cons
 template<> fp16_t binary_op<ArmBinaryOpType::kMIN, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a < b ? a : b;
 }
+//a: logits b:target
+template<> float binary_op<ArmBinaryOpType::kCategoricalCrossEntropy, float>(const float &a, const float &b, float alpha, float beta) {
+    return -std::log(a) * b;
+}
+
+template<> float binary_op<ArmBinaryOpType::kBinaryCrossEntropy, float>(const float &a, const float &b, float alpha, float beta) {
+    return -std::log(a) * b - std::log(1.0f - a) * (1.0f - b);
+}
 
 template<> Half8 binary_op<ArmBinaryOpType::kADD, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return a + b;

@@ -75,6 +75,10 @@ public:
 
     std::string GetCacheFilePath();
 
+    void SetTraining(bool is_training);
+
+    bool IsTraining();
+
 #if TNN_PROFILE
 public:
     virtual void StartProfile();
@@ -92,6 +96,7 @@ protected:
     bool enable_tune_kernel_ = true;
     std::string cache_path_ = ""; // dir to save cache files
     std::string cache_file_path_ = "";
+    bool is_training_ = false;
 };
 
 }  // namespace TNN_NS

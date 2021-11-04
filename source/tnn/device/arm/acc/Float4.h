@@ -360,6 +360,7 @@ struct Float4 {
         dst.value = -value;
         return dst;
     }
+    static const Float4 float4_const_one;
 };
 
 struct Float4x4 {
@@ -549,6 +550,7 @@ struct Float4 : TNNVector<float, 4> {
             addr[i] = static_cast<bfp16_t>(v.value[i]);
         }
     }
+    static const Float4 float4_const_one;
 };
 
 struct Short4 {

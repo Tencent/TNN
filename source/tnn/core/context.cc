@@ -78,6 +78,13 @@ std::string Context::GetCacheFilePath() {
     return cache_file_path_;
 }
 
+void Context::SetTraining(bool is_training){
+    is_training_ = is_training;
+}
+
+bool Context::IsTraining(){
+    return is_training_;
+}
 #if TNN_PROFILE
 void Context::StartProfile() {
     profile_layer     = true;

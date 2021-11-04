@@ -79,6 +79,13 @@ template <>
 bfp16_t binary_op<ArmBinaryOpType::kHARDSWISH, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
     return static_cast<bfp16_t>(static_cast<float>(a) * MAX(MIN(static_cast<float>(b) * alpha + beta, 1.0f), 0.f));
 }
+//a: logits b:target
+template<> float binary_op<ArmBinaryOpType::kCategoricalCrossEntropy, float>(const float &a, const float &b, float alpha, float beta) {
+    return -std::log(a) * b;
+}
+template<> float binary_op<ArmBinaryOpType::kBinaryCrossEntropy, float>(const float &a, const float &b, float alpha, float beta) {
+    return -std::log(a) * b - std::log(1.0f - a) * (1.0f - b);
+}
 template <>
 Float4 binary_op<ArmBinaryOpType::kADD, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return a + b;
@@ -106,6 +113,15 @@ Float4 binary_op<ArmBinaryOpType::kMIN, Float4>(const Float4 &a, const Float4 &b
 template <>
 Float4 binary_op<ArmBinaryOpType::kHARDSWISH, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return a * Float4::max(Float4::min(b * alpha + beta, 1.0f), 0.f);
+}
+//a: logits b:target
+template<> Float4 binary_op<ArmBinaryOpType::kCategoricalCrossEntropy, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
+    return Float4::neg(Float4::log(a) * b);
+}
+const Float4 Float4::float4_const_one(1.0);
+//a: logits b:target
+template<> Float4 binary_op<ArmBinaryOpType::kBinaryCrossEntropy, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
+    return Float4::neg(Float4::log(a) * b + Float4::log(Float4::float4_const_one - a) * (Float4::float4_const_one - b));
 }
 
 Status ArmBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -247,14 +263,27 @@ Status ArmBinaryLayerAcc::ConfigBuffer2ArmBlobDesc(BlobDesc &desc) {
 }
 
 ArmBinaryLayerAcc::~ArmBinaryLayerAcc() {}
-
+#ifdef TRAIN
+Status ArmBinaryLayerAcc::RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if(!context_->IsTraining())
+        return TNN_OK;
+    auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
+    if(!layer_res)
+        return TNN_OK;
+    auto input_data_type = inputs[0]->GetBlobDesc().data_type;
+    // train module don't support other data type, so skip;
+    if (input_data_type == DATA_TYPE_FLOAT || input_data_type == DATA_TYPE_BFP16 ) {
+        RETURN_ON_NEQ(allocateBufferParam(inputs, outputs), TNN_OK);
+    }
+    return TNN_OK;
+}
+#endif
 Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
 
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
-
-    if (layer_res && broadcast_.GetBytesSize() == 0) {
+    if (layer_res && (broadcast_.GetBytesSize() == 0 || context_->IsTraining())) {
         RawBuffer element_handle = layer_res->element_handle;
         auto dims                = layer_res->element_shape;
         auto output_dims         = outputs[0]->GetBlobDesc().dims;
@@ -412,8 +441,11 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 return Exec<float, ArmBinaryOpType::kMIN>(inputs, outputs);
             case ArmBinaryOpType::kHARDSWISH:
                 return Exec<float, ArmBinaryOpType::kHARDSWISH>(inputs, outputs);
-
-            default:
+            case ArmBinaryOpType::kBinaryCrossEntropy :
+                return Exec<float, ArmBinaryOpType::kBinaryCrossEntropy>(inputs, outputs);
+            case ArmBinaryOpType::kCategoricalCrossEntropy :
+                return Exec<float, ArmBinaryOpType::kCategoricalCrossEntropy>(inputs, outputs);
+            default :
                 LOGE("Error, unknown binary op_type\n");
                 return TNNERR_LAYER_ERR;
         }
@@ -433,8 +465,11 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 return Exec<bfp16_t, ArmBinaryOpType::kMIN>(inputs, outputs);
             case ArmBinaryOpType::kHARDSWISH:
                 return Exec<bfp16_t, ArmBinaryOpType::kHARDSWISH>(inputs, outputs);
-
-            default:
+            case ArmBinaryOpType::kBinaryCrossEntropy :
+                return Exec<float, ArmBinaryOpType::kBinaryCrossEntropy>(inputs, outputs);
+            case ArmBinaryOpType::kCategoricalCrossEntropy :
+                return Exec<float, ArmBinaryOpType::kCategoricalCrossEntropy>(inputs, outputs);
+            default :
                 LOGE("Error, unknown binary op_type\n");
                 return TNNERR_LAYER_ERR;
         }

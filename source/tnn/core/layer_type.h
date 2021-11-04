@@ -226,6 +226,10 @@ enum LayerType {
     LAYER_NON_MAX_SUPPRESSION                               = 335,
     LAYER_SCATTER                                           = 336,
 
+    //for train
+    LAYER_CATEGORICAL_CROSSENTROPY                          = 500,
+    LAYER_BINARY_CROSSENTROPY                               = 501,
+
     LAYER_BLOB_SCALE                                        = 600,
 
     LAYER_INT8_RANGE                                        = 700,

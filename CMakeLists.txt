@@ -40,6 +40,7 @@ option(TNN_ONNX2TNN_ENABLE "Enable ONNX2TNN Converter" OFF)
 option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
 option(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE "Enable Build Benchmark Test Lib" OFF)
 option(TNN_GLIBCXX_USE_CXX11_ABI_ENABLE "Enable Use CXX11 ABI" ON)
+option(TNN_TRAIN_ENABLE "Enable train module" OFF)
 
 set(TNN_USE_GFLAGS OFF)
 
@@ -232,6 +233,7 @@ message(STATUS "\tBENCHMARK Test Lib:\t${TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE}")
 include_directories(include)
 include_directories(source)
 
+
 file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/core/*.cc"
                       "source/tnn/layer/*.h"
@@ -249,6 +251,12 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
 
 if(TNN_SYMBOL_HIDE AND UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+endif()
+
+if(TNN_TRAIN_ENABLE)
+    add_definitions(-DTRAIN=1)
+    add_subdirectory(source/tnn/train)
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNTrain>")
 endif()
 
 if(TNN_X86_ENABLE)
@@ -353,6 +361,7 @@ endif()
 if(TNN_QUANTIZATION_ENABLE)
     add_subdirectory(tools/quantization)
 endif()
+
 
 if(SYSTEM.Linux)
     include(platforms/linux/CMakeLists.txt)

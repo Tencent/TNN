@@ -131,6 +131,12 @@ enum StatusCode {
 
     // Quantize
     TNNERR_QUANTIZE_ERROR = 0x20001,
+
+    //TNN TRAIN ERROR
+    TNN_TRAIN_ERROR = 0x70001,
+    TNN_OP_ERROR = 0x70002,
+    TNN_OP_NOT_FOUND = 0x70003,
+    TNN_TRAIN_TEST_ERROR = 0x70004,
 };
 
 class PUBLIC Status {
