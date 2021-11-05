@@ -33,7 +33,7 @@ Status ArmMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
     auto res = dynamic_cast<MatMulLayerResource *>(resource);
 
-    if (!res) {
+    if (!res || !res->weight.force_to<void *>()) {
         if (inputs.size() == 2) {
             // weights are get from inputs
             return TNN_OK;
@@ -43,10 +43,18 @@ Status ArmMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
         }
     }
 
+    RawBuffer weight_handle = res->weight;
+    CHECK_PARAM_NULL(weight_handle.force_to<void *>());
+    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        if (weight_handle.GetDataType() == DATA_TYPE_HALF) {
+            buffer_weight_ = RawBuffer(weight_handle.GetDataCount() * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT));
+            ConvertFromHalfToFloat(weight_handle.force_to<fp16_t *>(), buffer_weight_.force_to<float *>(),
+                                   weight_handle.GetDataCount());
+            buffer_weight_.SetDataType(DATA_TYPE_FLOAT);
+        }
+    }
 #if TNN_ARM82
-    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        RawBuffer weight_handle = res->weight;
-        CHECK_PARAM_NULL(weight_handle.force_to<void *>());
+    else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_HALF) {
         if (weight_handle.GetDataType() == DATA_TYPE_FLOAT) {
             buffer_weight_ = RawBuffer(weight_handle.GetDataCount() * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
             ConvertFromFloatToHalf(weight_handle.force_to<float *>(), buffer_weight_.force_to<fp16_t *>(),
@@ -55,6 +63,11 @@ Status ArmMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
         }
     }
 #endif
+    else {
+        LOGE("ARM MatMul not support data type: %d\n", inputs[0]->GetBlobDesc().data_type);
+        return Status(TNNERR_LAYER_ERR, "ARM MatMul not support data type");
+    }
+
     return TNN_OK;
 }
 
