@@ -30,31 +30,29 @@
 
 namespace TNN_NS {
 
-DECLARE_OPENVINO_LAYER_BUILDER(Softmax, LAYER_SOFTMAX);
+DECLARE_OPENVINO_LAYER_BUILDER(PixelShuffle, LAYER_PIXEL_SHUFFLE);
 
-Status SoftmaxOVLayerBuilder::Build() {
+Status PixelShuffleOVLayerBuilder::Build() {
+    
+    auto paramlist = dynamic_cast<PixelShuffleLayerParam*>(param_);
 
-    auto paramlist = dynamic_cast<SoftmaxLayerParam*>(param_);
-    if (GetInputNodes().size() <=0) {
-        LOGE("Error: 0 input nodes\n");
+    auto inputNodes = GetInputNodes();
+    if (inputNodes.size() != 1) {
+        LOGE("Error: pixel shuffle layer input counts mismatch\n");
         return TNNERR_INIT_LAYER;
     }
-    auto input_node = GetInputNodes()[0];
 
-    auto axis = paramlist->axis;
-    if (axis < 0) axis += input_node->get_output_shape(0).size();
-    auto softmaxNode = std::make_shared<ngraph::op::v1::Softmax>(
-        input_node->output(0), axis);
-    softmaxNode->set_friendly_name(paramlist->name);
-    softmaxNode->validate_and_infer_types();
+    auto mode = ngraph::op::DepthToSpace::DepthToSpaceMode::DEPTH_FIRST;
 
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(softmaxNode);
+    auto pixelShuffleNode = std::make_shared<ngraph::op::DepthToSpace>(inputNodes[0], mode, paramlist->upscale_factor);
+    pixelShuffleNode->set_friendly_name(paramlist->name);
+
+    ngraph::NodeVector outputNodes = {pixelShuffleNode};
     SetOutputTensors(outputNodes);
 
     return TNN_OK;
 }
 
-REGISTER_OPENVINO_LAYER_BUILDER(Softmax, LAYER_SOFTMAX);
+REGISTER_OPENVINO_LAYER_BUILDER(PixelShuffle, LAYER_PIXEL_SHUFFLE);
 
 }
