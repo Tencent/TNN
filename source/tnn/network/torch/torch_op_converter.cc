@@ -675,12 +675,12 @@ public:
         layer_param->axes    = {static_cast<int>(getValue<int64_t>(inputs[1]))};
         layer_param->strides = {static_cast<int>(getValue<int64_t>(inputs[4]))};
 
-        if (inputs[2]->type()->kind() != c10::TypeKind::NoneType) {
+        if (inputs[2]->type()->kind() == c10::TypeKind::NoneType) {
             layer_param->begins = {layer_param->strides[0]<0 ? INT_MAX : 0};
         } else {
             layer_param->begins = {static_cast<int>(getValue<int64_t>(inputs[2]))};
         }
-        if (inputs[2]->type()->kind() != c10::TypeKind::NoneType) {
+        if (inputs[2]->type()->kind() == c10::TypeKind::NoneType) {
             layer_param->ends = {layer_param->strides[0]<0 ? INT_MIN : INT_MAX};
         } else {
             auto end = getValue<int64_t>(inputs[3]);
