@@ -184,6 +184,11 @@ public:
             const auto output_shape = getValue<std::vector<int64_t>>(inputs[1]);
             layer_param->is_adaptive_pool = 1;
             layer_param->output_shape = {(int)output_shape[1], (int)output_shape[0]};
+            layer_param->kernels_params = {-1, -1};
+            layer_param->strides = {1, 1};
+            layer_param->pads = {0, 0, 0, 0};
+            layer_param->kernel_indexs = {-1, -1};
+            layer_param->kernels = {-1, -1};
         }
 
         layer_info->param = layer_param;
@@ -353,7 +358,7 @@ public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
         layer_info->type = LAYER_INNER_PRODUCT;
-        layer_info->type_str = "Innerproduct";
+        layer_info->type_str = "InnerProduct";
         layer_info->name = node->output(0)->debugName();
 
         const auto& inputs = node->inputs();
