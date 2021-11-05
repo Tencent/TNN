@@ -81,7 +81,7 @@ struct Float8 {
         v1.value = _mm256_fmadd_ps(v1.value, v2.value, v3.value);
     }
     static void mls(Float8& v1, const Float8& v2, const Float8& v3) {
-        v1.value = _mm256_fmsub_ps(v2.value, v3.value, v1.value);
+        v1.value = _mm256_fnmadd_ps(v2.value, v3.value, v1.value);
     }
     static Float8 bsl_cle(const Float8& c1, const Float8& c2, const Float8& v1, const Float8& v2) {
         Float8 dst;
