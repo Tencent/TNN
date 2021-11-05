@@ -49,7 +49,7 @@ public:
 
         // set param accroding to real value, just test here
         layer_param->name = layer_info->name;
-        layer_param->pad_type = 3;
+        layer_param->pad_type = -1;
         layer_param->output_channel = shape[0];
         layer_param->input_channel = shape[1];
         // order [w, h]
@@ -118,7 +118,7 @@ public:
 
         // set param accroding to real value, just test here
         layer_param->name = layer_info->name;
-        layer_param->pad_type = 3;
+        layer_param->pad_type = -1;
         layer_param->output_channel = shape[0];
         layer_param->input_channel = shape[1];
         layer_param->kernels = {shape[3], shape[2]};
@@ -172,10 +172,10 @@ public:
             const auto dialation = getValue<std::vector<int64_t>>(inputs[4]);
             const auto ceil_mode = getValue<bool>(inputs[5]);
             
-            layer_param->pad_type = 3;
-            layer_param->kernels_params = {(int)kernel_size[0], (int)kernel_size[1]};
-            layer_param->strides = {(int)stride[0], (int)stride[1]};
-            layer_param->pads = {(int)padding[0], (int)padding[0], (int)padding[1], (int)padding[1]};
+            layer_param->pad_type = -1;
+            layer_param->kernels_params = {(int)kernel_size[1], (int)kernel_size[0]};
+            layer_param->strides = {(int)stride[1], (int)stride[0]};
+            layer_param->pads = {(int)padding[1], (int)padding[1], (int)padding[0], (int)padding[0]};
             layer_param->kernel_indexs = {-1, -1};
             layer_param->kernels = {-1, -1};
             layer_param->output_shape = {-1, -1};
@@ -183,7 +183,7 @@ public:
         } else {
             const auto output_shape = getValue<std::vector<int64_t>>(inputs[1]);
             layer_param->is_adaptive_pool = 1;
-            layer_param->output_shape = {(int)output_shape[0], (int)output_shape[1]};
+            layer_param->output_shape = {(int)output_shape[1], (int)output_shape[0]};
         }
 
         layer_info->param = layer_param;
@@ -218,43 +218,11 @@ public:
         auto padding     = getValue<std::vector<int64_t>>(inputs[3]);
         auto ceil_mode   = getValue<bool>(inputs[4]);
 
-        bool need_insert_pad = false;
-        for (const auto &pad : padding) {
-            need_insert_pad = (pad != 0);
-        }
-
-        if (need_insert_pad) {
-            std::shared_ptr<LayerInfo> pad_layer_info = std::make_shared<LayerInfo>();
-            pad_layer_info->type                      = LAYER_PAD;
-            pad_layer_info->type_str                  = "Pad";
-            pad_layer_info->name                      = layer_info->name + "_pad";
-
-            pad_layer_info->inputs.push_back(layer_info->inputs[0]);
-            pad_layer_info->outputs.push_back(pad_layer_info->name);
-            layer_info->inputs[0] = pad_layer_info->outputs[0];
-
-            auto pad_layer_param  = std::make_shared<PadLayerParam>();
-            const int pad_h       = static_cast<int>(padding[0]);
-            const int pad_w       = static_cast<int>(padding[1]);
-            pad_layer_param->pads = {pad_w, pad_w, pad_h, pad_h, 0, 0, 0, 0};
-
-            pad_layer_info->param = pad_layer_param;
-
-            net_structure->layers.push_back(pad_layer_info);
-
-            for (const auto &pad_input : pad_layer_info->inputs) {
-                net_structure->blobs.insert(pad_input);
-            }
-            for (const auto &pad_output : pad_layer_info->outputs) {
-                net_structure->blobs.insert(pad_output);
-            }
-        }
-
         layer_param->pool_type      = 1;
-        layer_param->pad_type       = 3;
+        layer_param->pad_type       = -1;
         layer_param->kernels_params = {(int)kernel_size[1], (int)kernel_size[0]};
         layer_param->strides        = {(int)stride[1], (int)stride[0]};
-        layer_param->pads           = {0, 0, 0, 0};
+        layer_param->pads           = {(int)(padding[1]), (int)(padding[1]), (int)(padding[0]), (int)(padding[0])};
         layer_param->kernel_indexs  = {-1, -1};
         layer_param->kernels        = {-1, -1};
         layer_param->output_shape   = {-1, -1};
