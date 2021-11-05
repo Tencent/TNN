@@ -17,6 +17,7 @@
 
 #include "tnn/device/arm/acc/Half8.h"
 #include "tnn/device/arm/acc/arm_unary_layer_acc.h"
+#include "tnn/utils/dims_function_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
@@ -29,7 +30,9 @@ namespace TNN_NS {
         auto input      = inputs[0];                                                                                   \
         auto output     = outputs[0];                                                                                  \
         auto dims       = output->GetBlobDesc().dims;                                                                  \
-        int count       = dims[0] * ROUND_UP(dims[1], 8) * DimsVectorUtils::Count(dims, 2);                            \
+        auto dim0       = DimsFunctionUtils::GetDim(dims, 0);                                                          \
+        auto dim1       = DimsFunctionUtils::GetDim(dims, 1);                                                          \
+        int count       = dim0 * ROUND_UP(dim1, 8) * DimsVectorUtils::Count(dims, 2);                                  \
         int count_div8  = UP_DIV(count, 8);                                                                            \
         auto input_ptr  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(input->GetHandle()));                            \
         auto output_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));                           \

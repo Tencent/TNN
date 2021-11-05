@@ -33,14 +33,10 @@ ILayer* BatchNormTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
     Weights power { nvinfer1::DataType::kFLOAT, nullptr, 0 };
     Weights shift;
-    shift.type = nvinfer1::DataType::kFLOAT;
-    shift.count = resource->bias_handle.GetDataCount();
-    shift.values = resource->bias_handle.force_to<void *>();
+    shift = ConvertToWeights(&(resource->bias_handle));
 
     Weights scale;
-    scale.type = nvinfer1::DataType::kFLOAT;
-    scale.count = resource->scale_handle.GetDataCount();
-    scale.values = resource->scale_handle.force_to<void *>();
+    scale = ConvertToWeights(&(resource->scale_handle));
 
     int dims_size = tensor->getDimensions().nbDims;
     // unsqueeze 
