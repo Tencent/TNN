@@ -597,6 +597,8 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 #else
         device_type_      = TNN_NS::DEVICE_HUAWEI_NPU;
 #endif
+    } else if (option->compute_units == TNNComputeUnitsNaive) {
+        device_type_ = TNN_NS::DEVICE_NAIVE;
     }
     
     //创建实例instance
