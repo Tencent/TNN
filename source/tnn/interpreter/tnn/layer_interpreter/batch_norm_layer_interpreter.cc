@@ -36,7 +36,7 @@ Status BatchNormLayerInterpreter::InterpretResource(Deserializer& deserializer, 
     return TNN_OK;
 }
 
-Status BatchNormLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status BatchNormLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     return TNN_OK;
 }
 

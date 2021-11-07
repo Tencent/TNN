@@ -31,7 +31,7 @@ Status BlobScaleLayerInterpreter::InterpretResource(Deserializer& deserializer, 
     return TNN_OK;
 }
 
-Status BlobScaleLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status BlobScaleLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     return TNN_OK;
 }
 

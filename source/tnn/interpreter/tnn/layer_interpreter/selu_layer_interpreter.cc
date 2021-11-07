@@ -37,7 +37,7 @@ Status SeluLayerInterpreter::InterpretResource(Deserializer& deserializer, Layer
     return TNN_OK;
 }
 
-Status SeluLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status SeluLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<SeluLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

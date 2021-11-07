@@ -46,7 +46,7 @@ Status DivLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerR
     return TNN_OK;
 }
 
-Status DivLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status DivLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam*>(param);
     if (layer_param && layer_param->weight_input_index >= 0) {
         output_stream << layer_param->weight_input_index << " ";

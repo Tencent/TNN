@@ -27,7 +27,7 @@ Status RangeLayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
     return TNN_OK;
 }
 
-Status RangeLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status RangeLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     return TNN_OK;
 }
 

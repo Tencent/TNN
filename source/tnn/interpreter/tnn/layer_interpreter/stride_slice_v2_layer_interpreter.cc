@@ -80,7 +80,7 @@ Status StrideSliceV2LayerInterpreter::InterpretResource(Deserializer& deserializ
     return TNN_OK;
 }
 
-Status StrideSliceV2LayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status StrideSliceV2LayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<StrideSliceV2LayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

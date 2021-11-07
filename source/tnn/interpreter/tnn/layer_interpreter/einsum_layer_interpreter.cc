@@ -34,7 +34,7 @@ Status EinsumLayerInterpreter::InterpretResource(Deserializer& deserializer, Lay
     return TNN_OK;
 }
 
-Status EinsumLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status EinsumLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<EinsumLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
