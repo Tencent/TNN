@@ -18,7 +18,7 @@
 #include "tnn/network/torch/torch_tnn_runtime.h"
 #include "tnn/network/torch/torch_utils.h"
 #include "torch/csrc/jit/runtime/custom_operator.h"
-// #include "tnn/interpreter/tnn/model_packer.h"
+#include "tnn/interpreter/tnn/model_packer.h"
 #include <cuda_runtime.h>
 
 #include "c10/cuda/CUDAStream.h"
@@ -137,10 +137,45 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
 static auto TNNEngineTSRegistrtion = 
     torch::class_<TNNEngine>("tnn", "Engine")
         .def_pickle(
-        [](const c10::intrusive_ptr<TNNEngine>& self) -> std::string {
-            return "not implement";
+        [](const c10::intrusive_ptr<TNNEngine>& self) -> std::vector<std::string> {
+            auto interpreter = dynamic_cast<DefaultModelInterpreter *>(self->ctx_->get_interpreter().get());
+            ModelPacker packer(interpreter->GetNetStructure(), interpreter->GetNetResource());
+            std::string proto_s;
+            std::string model_s;
+            std::string input_names = Serialize(self->input_names);
+            std::string output_names = Serialize(self->output_names);
+
+            std::vector<std::string> input_shapes_vec;
+            for (auto &shape : self->min_inputs_shape) {
+                input_shapes_vec.emplace_back(Serialize(shape, TORCH_INT_DELIM));
+            }
+            std::string min_input_shapes = Serialize(input_shapes_vec);
+            input_shapes_vec.clear();
+            for (auto &shape : self->max_inputs_shape) {
+                input_shapes_vec.emplace_back(Serialize(shape, TORCH_INT_DELIM));
+            }
+            std::string max_input_shapes = Serialize(input_shapes_vec);
+
+            packer.GetSerialization(proto_s, model_s);
+
+            std::vector<int> config_vec = {self->network_config_.device_type,
+                                           self->network_config_.device_id,
+                                           self->network_config_.precision,
+                                           self->network_config_.share_memory_mode};
+            std::string config_s = Serialize(config_vec);
+
+            std::vector<std::string> contents;
+            contents.emplace_back(proto_s);
+            contents.emplace_back(model_s);
+            contents.emplace_back(input_names);
+            contents.emplace_back(output_names);
+            contents.emplace_back(min_input_shapes);
+            contents.emplace_back(max_input_shapes);
+            contents.emplace_back(config_s);
+
+            return contents;
         },
-        [](std::string seralized_engine) -> c10::intrusive_ptr<TNNEngine> {
+        [](std::vector<std::string> seralized_engine) -> c10::intrusive_ptr<TNNEngine> {
             return c10::make_intrusive<TNNEngine>(seralized_engine);
         });
 
