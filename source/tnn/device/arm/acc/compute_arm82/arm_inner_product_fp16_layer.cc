@@ -69,7 +69,13 @@ Status ArmInnerProductLayerAcc::allocateBufferBiasHalf(const std::vector<Blob *>
 
     if (!buffer_bias_.GetBytesSize()) {
         if (fc_param->has_bias) {
-            auto bias_handle = fc_res->bias_handle;
+            auto bias_handle          = fc_res->bias_handle;
+            const int bias_data_count = bias_handle.GetDataCount();
+            if (bias_data_count != dims_output[1]) {
+                LOGE("Error: Invalid model, bias has wrong data count: %d, required: %d\n", bias_data_count,
+                     dims_output[1]);
+                return Status(TNNERR_MODEL_ERR, "Error: Invalid model, bias has wrong data count");
+            }
 
             if (bias_handle.GetDataType() == DATA_TYPE_HALF)
                 bias_handle = ConvertHalfHandle(bias_handle);
@@ -156,8 +162,8 @@ Status ArmInnerProductLayerAcc::ExecNchwFp16(const std::vector<Blob *> &inputs, 
     const int bias_size   = oc * data_byte_size;
     const int output_size = batch * oc * data_byte_size;
 
-    fp16_t *input_ptr  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
-    fp16_t *output_ptr = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    fp16_t *input_ptr      = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    fp16_t *output_ptr     = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
     fp16_t *tmp_output_ptr = output_ptr;
 
     if (fc_param->has_bias) {
