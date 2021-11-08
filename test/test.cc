@@ -37,6 +37,7 @@
 #include "tnn/utils/blob_transfer_utils.h"
 #include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_function_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
 #include "tnn/utils/string_utils_inner.h"
@@ -137,6 +138,14 @@ namespace test {
 #else
                 ret = instance->ForwardAsync(nullptr);
 #endif
+
+#if TRAIN
+                ret = instance->TrainStep();
+                if (!CheckResult("Train", ret)) {
+                    return ret;
+                }
+#endif
+
                 if (!CheckResult("Forward", ret)) {
                     return ret;
                 }
@@ -330,6 +339,24 @@ namespace test {
         if (FLAGS_lp.length() > 0) {
             config.library_path = {FLAGS_lp};
         }
+
+#if TRAIN
+        TrainConfig &train_config = config.train_config;
+        // TODO: avoid hard code
+        train_config.run_mode = TRAIN_MODE;
+        // loss
+        train_config.loss_func = BINARY_CROSS_ENTROPY_FUNC;
+        train_config.loss_layer_name = "loss";
+        train_config.output_layer_name = "deep_network/output_layer/BiasAdd";
+        // label
+        train_config.target_name = "label";
+        train_config.target_shape = {1, 8};
+        // solver
+        train_config.solver_type = SOLVER_SGD;
+        train_config.sgd_params = {0.01};
+        train_config.trainable_layers = {"deep_network/output_layer/BiasAdd", "deep_network/mlp2/Relu"};
+#endif
+
         return config;
     }
 
@@ -506,6 +533,7 @@ namespace test {
             auto mat = iter.second;
             auto mat_type = mat->GetMatType();
             auto dims = mat->GetDims();
+            auto channel = DimsFunctionUtils::GetDim(dims, 1);
             // scale
             if(is_input && !FLAGS_sc.empty()) {
                 SetScaleOrBias(param.scale, FLAGS_sc);
@@ -514,8 +542,8 @@ namespace test {
                     std::fill(param.scale.begin(), param.scale.end(), 1.0f);
                 } else if(IsImageMat(mat_type)) {
                     std::fill(param.scale.begin(), param.scale.end(), 1.0f / 255.0f);
-                } else if(dims[1] > 4) {
-                    param.scale = std::vector<float>(dims[1], 1);
+                } else if(channel > 4) {
+                    param.scale = std::vector<float>(channel, 1);
                 }
             }
 
@@ -527,8 +555,8 @@ namespace test {
                     std::fill(param.bias.begin(), param.bias.end(), 0);
                 } else if(IsImageMat(mat_type)) {
                     std::fill(param.bias.begin(), param.bias.end(), 0);
-                } else if(dims[1] > 4) {
-                    param.bias  = std::vector<float>(dims[1], 0);
+                } else if(channel > 4) {
+                    param.bias  = std::vector<float>(channel, 0);
                 }
             }
 
