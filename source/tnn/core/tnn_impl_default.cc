@@ -13,11 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/core/tnn_impl_default.h"
-#include <fstream>
 
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/utils/blob_dump_utils.h"
-#include "tnn/interpreter/tnn/model_packer.h"
 
 namespace TNN_NS {
 
@@ -58,29 +56,6 @@ Status TNNImplDefault::AddOutput(const std::string& layer_name, int output_index
 
     default_interpreter->GetNetStructure()->outputs.insert(layer_name);
     return TNN_OK;
-}
-
-Status TNNImplDefault::SaveModel(const std::string& proto_path, const std::string& model_path) {
-    if(model_config_.model_type != MODEL_TYPE_TNN )
-        return Status(TNNERR_NET_ERR, "save trained model only support tnn model for now");
-    if(model_config_.params.size() < 0 )
-        return Status(TNNERR_NET_ERR, "model config params is empty");
-    std::ofstream write_stream;
-    write_stream.open(proto_path, std::ios::binary);
-    if (!write_stream || !write_stream.is_open() || !write_stream.good()) {
-        write_stream.close();
-        return Status(TNNERR_PACK_MODEL, "proto file cannot be written");
-    }
-    write_stream << model_config_.params[0];
-    if(!write_stream.good())
-        return Status(TNN_TRAIN_ERROR, "write proto error");
-    write_stream.close();
-    DefaultModelInterpreter* default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
-    if(!default_interpreter)
-        return Status(TNNERR_NET_ERR, "only support default interpreter or the interpreter is null");
-    ModelPacker packer(default_interpreter->GetNetStructure(), default_interpreter->GetNetResource());
-    return packer.PackModel(model_path);
-
 }
 
 Status TNNImplDefault::GetModelInputShapesMap(InputShapesMap& shapes_map) {

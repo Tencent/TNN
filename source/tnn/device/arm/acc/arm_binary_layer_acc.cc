@@ -118,10 +118,8 @@ Float4 binary_op<ArmBinaryOpType::kHARDSWISH, Float4>(const Float4 &a, const Flo
 template<> Float4 binary_op<ArmBinaryOpType::kCategoricalCrossEntropy, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
     return Float4::neg(Float4::log(a) * b);
 }
-const Float4 Float4::float4_const_one(1.0);
-//a: logits b:target
 template<> Float4 binary_op<ArmBinaryOpType::kBinaryCrossEntropy, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
-    return Float4::neg(Float4::log(a) * b + Float4::log(Float4::float4_const_one - a) * (Float4::float4_const_one - b));
+    return Float4::neg(Float4::log(a) * b + Float4::log(Float4(1.0) - a) * (Float4(1.0) - b));
 }
 
 Status ArmBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,

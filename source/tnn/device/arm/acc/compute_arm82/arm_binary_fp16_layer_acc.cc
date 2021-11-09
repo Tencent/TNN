@@ -41,6 +41,7 @@ template<> fp16_t binary_op<ArmBinaryOpType::kMAX, fp16_t>(const fp16_t &a, cons
 template<> fp16_t binary_op<ArmBinaryOpType::kMIN, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a < b ? a : b;
 }
+
 template<> Half8 binary_op<ArmBinaryOpType::kADD, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return a + b;
 }

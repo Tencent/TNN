@@ -234,7 +234,6 @@ message(STATUS "\tBENCHMARK Test Lib:\t${TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE}")
 include_directories(include)
 include_directories(source)
 
-
 file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/core/*.cc"
                       "source/tnn/layer/*.h"

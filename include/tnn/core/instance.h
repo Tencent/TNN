@@ -100,9 +100,11 @@ public:
     // set threads run on cpu
     Status SetCpuNumThreads(int num_threads);
 
-    // run backward step in train module
 #ifdef TRAIN
+    // run backward step in train module
     Status TrainStep();
+    // save the trained tnnmodel to disk
+    Status SaveModel(const std::string& model_path);
 #endif
 
 #if TNN_PROFILE
@@ -122,7 +124,6 @@ private:
     
     AbstractNetwork *GetNetwork();
     Status GetNetworkType(NetworkType &network_type);
-
     //Mat interface for simple use
 public:
     // set input Mat, if input_name is not set, take the first input as default
@@ -136,10 +137,6 @@ public:
                         std::string output_name = "",
                         DeviceType device = DEVICE_ARM, MatType mat_type = NCHW_FLOAT);
 
-    // get output data point for debug  
-    Status GetOutputDataPoint(void** data_ptr, const std::string output_name, 
-                                        DimsVector& dims, int& data_type, int& data_format);
-    
 private:
     // input converter
     std::map<std::string, std::shared_ptr<BlobConverter>> input_converters_ = {};

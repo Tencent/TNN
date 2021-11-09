@@ -24,11 +24,8 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/abstract_model_interpreter.h"
 #include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/interpreter/tnn/model_packer.h"
 #include "tnn/utils/dims_utils.h"
-
-#ifdef TRAIN
-#include "tnn/train/solver/sgd.h"
-#endif
 
 namespace TNN_NS {
 
@@ -52,10 +49,17 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
 #if TRAIN
 Status Instance::TrainStep() {
     return network_->TrainStep();
-};
-#endif  // TRAIN
+}
 
-Status Instance::GetNetworkType(NetworkType &network_type) {
+Status Instance::SaveModel(const std::string& model_path) {
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
+    CHECK_PARAM_NULL(default_interpreter);
+    ModelPacker packer(default_interpreter->GetNetStructure(), default_interpreter->GetNetResource());
+    return packer.PackModel(model_path);
+}
+#endif
+
+Status Instance::GetNetworkType(NetworkType& network_type) {
     network_type = net_config_.network_type;
     if (network_type == NETWORK_TYPE_AUTO) {
         auto device = GetDevice(net_config_.device_type);
@@ -128,7 +132,7 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
             // shape may be determined at rumtime
             status = const_folder->Reshape(max_inputs_shape);
             RETURN_ON_NEQ(status, TNN_OK);
-            
+
             default_interpreter->GetNetResource()->min_blob_shapes_map = min_blob_shapes_map;
         } else {
             auto max_constant_map = default_interpreter->GetNetResource()->blob_shapes_map;
@@ -161,7 +165,7 @@ Status Instance::Reshape(const InputShapesMap& inputs) {
     Status status = TNN_OK;
     if (const_folder_) {
         auto folder = dynamic_cast<ConstFolder*>(const_folder_.get());
-        status = folder->Reshape(inputs);
+        status      = folder->Reshape(inputs);
         RETURN_ON_NEQ(status, TNN_OK);
     }
     status = network_->Reshape(inputs);
@@ -261,27 +265,6 @@ Status Instance::SetInputMat(std::shared_ptr<Mat> mat, MatConvertParam param, st
         return status;
     }
 
-    return TNN_OK;
-}
-
-Status Instance::GetOutputDataPoint(void** data_ptr, const std::string output_name, DimsVector& dims, int& data_type,
-                                    int& data_format) {
-    BlobMap output_blobs;
-    auto status = network_->GetAllOutputBlobs(output_blobs);
-    if (status != TNN_OK || output_blobs.size() <= 0) {
-        LOGE("instance.GetOutputDataPoint Error: %s\n", status.description().c_str());
-        return status;
-    }
-    auto iter = output_blobs.find(output_name);
-    if (iter == output_blobs.end()) {
-        LOGE("instance dont have the output with name: %s\n", output_name.c_str());
-        return Status(TNNERR_MODEL_ERR, "instance dont have the output with name");
-    }
-    Blob* blob  = iter->second;
-    *data_ptr   = static_cast<void*>(static_cast<char*>(blob->GetHandle().base) + blob->GetHandle().bytes_offset);
-    dims        = blob->GetBlobDesc().dims;
-    data_type   = static_cast<int>(blob->GetBlobDesc().data_type);
-    data_format = static_cast<int>(blob->GetBlobDesc().data_format);
     return TNN_OK;
 }
 

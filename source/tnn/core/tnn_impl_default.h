@@ -77,9 +77,6 @@ public:
     virtual std::shared_ptr<Instance> CreateInst(
         NetworkConfig& config, Status& status,
         InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
-    
-    // @brief for save trained model
-    virtual Status SaveModel(const std::string& proto_path, const std::string& model_path);        
 private:
     Status AddAllLayersOutput();
     std::shared_ptr<AbstractModelInterpreter> interpreter_;

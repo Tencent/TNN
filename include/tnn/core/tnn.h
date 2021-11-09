@@ -62,8 +62,6 @@ public:
         NetworkConfig& config, Status& status,
         InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
 
-    // save trained model to disk 
-    Status SaveModel(const std::string proto_path, const std::string model_path);
 private:
     std::shared_ptr<TNNImpl> impl_ = nullptr;
 };
