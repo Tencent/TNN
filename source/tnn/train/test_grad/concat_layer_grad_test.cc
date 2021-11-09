@@ -14,7 +14,10 @@
 
 // author: sanerzheng@tencent.com
 
+#if TRAIN
+
 #include "tnn/core/default_network.h"
+#include "tnn/train/default_train_network.h"
 #include "tnn/train/grad/utils.h"
 #include "tnn/train/test_grad/test_layer_grad.h"
 
@@ -75,7 +78,7 @@ Status check_result(std::shared_ptr<RawBuffer> output_grad, std::shared_ptr<RawB
 Status test_concat_base(NameShapes &input_blobs_shapes, NameShapes &outputs_blobs_shapes, DeviceType device_type,
                         int axis) {
     TrainContext context;
-    context.network                                      = new DefaultNetwork();
+    context.network                                      = new DefaultTrainNetwork();
     NetworkConfig *config                                = new NetworkConfig();
     context.config                                       = config;
     config->device_type                                  = device_type;
@@ -171,3 +174,5 @@ Status ConcatLayerGradTest::TestGrad() {
 REGISTER_LAYER_GRAD_TEST(Concat, LAYER_CONCAT);
 } // namespace train
 } // namespace TNN_NS
+
+#endif

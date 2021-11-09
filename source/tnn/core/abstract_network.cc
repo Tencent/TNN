@@ -36,16 +36,6 @@ Status AbstractNetwork::SetCpuNumThreads(int num_threads) {
 Status AbstractNetwork::TrainStep() {
     return Status(TNN_TRAIN_ERROR, "Subclass of AbstractNetwork doesn't implement TrainStep func");
 }
-
-Status AbstractNetwork::SetSolver(std::shared_ptr<train::BaseSolver> solver){
-    LOGE("Subclass of AbstractNetwork doesn't implement train func");
-    return Status(TNN_TRAIN_ERROR, "Subclass of AbstractNetwork doesn't implement SetSolver func");
-};
-
-std::shared_ptr<train::BaseSolver> AbstractNetwork::GetSolver(){
-    LOGE("Subclass of AbstractNetwork doesn't implement train func");
-    return nullptr;
-};
 #endif
 
 #if TNN_PROFILE

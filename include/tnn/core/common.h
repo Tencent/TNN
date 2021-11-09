@@ -91,6 +91,7 @@ typedef enum {
 typedef enum {
     NETWORK_TYPE_AUTO       = -1,
     NETWORK_TYPE_DEFAULT    = 0,
+    NETWORK_TYPE_DEFAULT_TRAIN = 1,
     NETWORK_TYPE_OPENVINO   = 0x1000,
     NETWORK_TYPE_COREML     = 0x2000,
     NETWORK_TYPE_SNPE       = 0x3000,

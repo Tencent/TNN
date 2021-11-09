@@ -27,10 +27,6 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/abstract_model_interpreter.h"
 
-#ifdef TRAIN
-#include "tnn/train/solver/base_solver.h"
-#endif
-
 namespace TNN_NS {
 
 class AbstractNetwork {
@@ -100,9 +96,6 @@ public:
 #ifdef TRAIN
     // @brief run one step in train mode
     virtual Status TrainStep();
-    // @breif for train
-    virtual Status SetSolver(std::shared_ptr<train::BaseSolver> solver);
-    virtual std::shared_ptr<train::BaseSolver> GetSolver(); 
 #endif
 
 #if TNN_PROFILE
