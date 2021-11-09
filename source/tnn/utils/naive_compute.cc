@@ -769,15 +769,13 @@ template void NaiveConvBias<int8_t, int8_t, int32_t, int8_t>(
     int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y, int pad_x, int group, int dilation,
     int activation_type, float *weight_scale, int weight_scale_len, void *scale_bias_w_ptr, int scale_bias_len_w,
     void *scale_bias_i_ptr, int scale_bias_len_i, void *scale_bias_o_ptr, int scale_bias_len_o, int8_t *relu6_max,
-    int relu6_max_len, int fusion_type = FusionType_None, void *add_input = nullptr, float *add_scale = nullptr,
-    void *add_bias_input = nullptr);
+    int relu6_max_len, int fusion_type, void *add_input, float *add_scale, void *add_bias_input);
 template void NaiveConvBias<int8_t, int8_t, int32_t, int8_t>(
     void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input, DimsVector dims_output,
     int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y, int pad_x, int group, int dilation,
     int activation_type, float *weight_scale, int weight_scale_len, void *scale_bias_w_ptr, int scale_bias_len_w,
     void *scale_bias_i_ptr, int scale_bias_len_i, void *scale_bias_o_ptr, int scale_bias_len_o, void *weight_x_bias_ptr,
-    int8_t *relu6_max, int relu6_max_len, int fusion_type = FusionType_None, void *add_input = nullptr,
-    float *add_scale = nullptr, void *add_bias_input = nullptr);
+    int8_t *relu6_max, int relu6_max_len, int fusion_type, void *add_input, float *add_scale, void *add_bias_input);
 
 template void NaiveConv<float, float, float, float>(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias,
                                                     DimsVector dims_input, DimsVector dims_output, int stride_y,
