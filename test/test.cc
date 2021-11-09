@@ -164,6 +164,9 @@ namespace test {
 #endif
             if (!FLAGS_op.empty()) {
                 WriteOutput(output_mat_map);
+#if TRAIN
+                instance->SaveModel(FLAGS_op + ".trained.tnnmodel");
+#endif
             }
 
             timer.Print();

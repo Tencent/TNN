@@ -124,6 +124,7 @@ private:
     
     AbstractNetwork *GetNetwork();
     Status GetNetworkType(NetworkType &network_type);
+
     //Mat interface for simple use
 public:
     // set input Mat, if input_name is not set, take the first input as default

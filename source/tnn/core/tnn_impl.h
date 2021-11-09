@@ -72,6 +72,7 @@ public:
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
                                                  InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) = 0;
 
+
 protected:
     ModelConfig model_config_;
 };

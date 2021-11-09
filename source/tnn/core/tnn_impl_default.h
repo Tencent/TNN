@@ -77,6 +77,8 @@ public:
     virtual std::shared_ptr<Instance> CreateInst(
         NetworkConfig& config, Status& status,
         InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
+
+
 private:
     Status AddAllLayersOutput();
     std::shared_ptr<AbstractModelInterpreter> interpreter_;
