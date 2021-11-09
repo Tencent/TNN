@@ -128,8 +128,9 @@ int Calibration::SetCalibrationParams(CalibrationParam params) {
         return -1;
     }
 
-    if (cali_params_.weights_quantize_method == KL_DIVERGENCE) {
-        LOGE("Not support KL_DIVERGENCE in quantizing weights!\n");
+    if (cali_params_.weights_quantize_method == KL_DIVERGENCE || cali_params_.weights_quantize_method == ACIQ_GAUS ||
+        cali_params_.weights_quantize_method == ACIQ_LAPLACE) {
+        LOGE("Not support KL_DIVERGENCE or ACIQ methond in quantizing weights!\n");
         cali_params_.weights_quantize_method = MIN_MAX;
         return -1;
     }
@@ -218,13 +219,16 @@ int Calibration::CalBlobScale(DataSet& dataset) {
     // Compute Scale of Feature map and save to resource map
     for (auto& item : feature_map_) {
         std::vector<float> scale_vec;
+        std::vector<int8_t> scale_bias_vec;
+
         std::string input_scale_name = item.first->GetBlobDesc().name + BLOB_SCALE_SUFFIX;
-        int ret                      = item.second->CalculateScale(scale_vec);
+        int ret = item.second->CalculateScale(scale_vec, scale_bias_vec);
         if (ret != 0) {
             LOGE("CalculateScale (%s) failed\n", input_scale_name.c_str());
             return ret;
         }
-        LayerResource* blob_scale_res                = CreateIntScale(scale_vec);
+        LayerResource* blob_scale_res;
+        blob_scale_res = CreateIntScale(scale_vec, scale_bias_vec);
         net_resource->resource_map[input_scale_name] = std::shared_ptr<LayerResource>(blob_scale_res);
         printf("\t====> Calculate (%s) done!\n", input_scale_name.c_str());
     }
@@ -352,6 +356,30 @@ int Calibration::UpdateBlobDistribute(DataSet& dataset) {
     }
 
     return 0;
+}
+
+IntScaleResource* Calibration::CreateIntScale(std::vector<float> scale_vec, std::vector<int8_t> scale_bias_vec) {
+    IntScaleResource* int8scale = new IntScaleResource();
+    // scale
+    RawBuffer scale(scale_vec.size() * sizeof(float));
+    float* k_data = scale.force_to<float*>();
+    memcpy(k_data, scale_vec.data(), scale_vec.size() * sizeof(float));
+    int8scale->scale_handle = scale;
+
+    // scale_bias
+    RawBuffer scale_bias(scale_bias_vec.size() * sizeof(char));
+    scale_bias.SetDataType(DATA_TYPE_INT8);
+    int8_t* sb_data = scale_bias.force_to<int8_t*>();
+    memcpy(sb_data, scale_bias_vec.data(), scale_bias_vec.size() * sizeof(char));
+    int8scale->scale_bias_handle = scale_bias;
+
+    // bias
+    RawBuffer bias(scale_vec.size() * sizeof(int32_t));
+    bias.SetDataType(DATA_TYPE_INT32);
+    int32_t* b_data = bias.force_to<int32_t*>();
+    memset(b_data, 0, scale_vec.size() * sizeof(int32_t));
+    int8scale->bias_handle = bias;
+    return int8scale;
 }
 
 IntScaleResource* Calibration::CreateIntScale(std::vector<float> scale_vec) {
@@ -516,11 +544,15 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
     if (cali_params_.merge_weights_channel)
         weight_scale_size = 1;
     RawBuffer weight_scale(weight_scale_size * sizeof(float));
+    RawBuffer weight_scale_bias(weight_scale_size * sizeof(char));
+    weight_scale_bias.SetDataType(DATA_TYPE_INT8);
 
     float* weight_scale_data      = weight_scale.force_to<float*>();
+    int8_t* weight_scale_bias_data = weight_scale_bias.force_to<int8_t*>();
     int8_t* weight_quantized_data = weight_quantized.force_to<int8_t*>();
+
     int ret                       = CalQuantizedWeights(weight_multiby_inputscale.data(), size, output_channel,
-                                  cali_params_.merge_weights_channel, weight_quantized_data, weight_scale_data);
+                                  cali_params_.merge_weights_channel, weight_quantized_data, weight_scale_data, weight_scale_bias_data);
     if (ret != 0) {
         LOGE("Calculate quantized weights failed!\n");
         return ret;
@@ -538,6 +570,7 @@ int Calibration::QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam*
 
     resource->filter_handle = weight_quantized;
     resource->scale_handle  = weight_scale;
+    resource->scale_bias_handle  = weight_scale_bias;
 
     // quantize bias
     if (param->bias) {
@@ -599,11 +632,14 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource, InnerProd
     if (cali_params_.merge_weights_channel)
         weight_scale_size = 1;
     RawBuffer weight_scale(weight_scale_size * sizeof(float));
+    RawBuffer weight_scale_bias(weight_scale_size * sizeof(char));
+    weight_scale_bias.SetDataType(DATA_TYPE_INT8);
 
     float* weight_scale_data      = weight_scale.force_to<float*>();
+    int8_t* weight_scale_bias_data = weight_scale_bias.force_to<int8_t*>();
     int8_t* weight_quantized_data = weight_quantized.force_to<int8_t*>();
     int ret                       = CalQuantizedWeights(weight_multiby_inputscale.data(), size, output_channel,
-                                  cali_params_.merge_weights_channel, weight_quantized_data, weight_scale_data);
+                                  cali_params_.merge_weights_channel, weight_quantized_data, weight_scale_data, weight_scale_bias_data);
     if (ret != 0) {
         LOGE("Calculate quantized weights failed!\n");
         return ret;
@@ -611,6 +647,7 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource, InnerProd
 
     resource->weight_handle = weight_quantized;
     resource->scale_handle  = weight_scale;
+    resource->scale_bias_handle  = weight_scale_bias;
 
     // quantize bias
     if (param->has_bias) {
@@ -638,7 +675,7 @@ int Calibration::QuantizeFcParams(InnerProductLayerResource* resource, InnerProd
 }
 
 int Calibration::CalQuantizedWeights(const float* weights, const int size, const int output_channel, bool merge_channel,
-                                     int8_t* quantized_weights, float* weight_scale) {
+                                     int8_t* quantized_weights, float* weight_scale, int8_t* weight_scale_bias) {
     ASSERT(size % output_channel == 0);
 
     if (cali_params_.weights_quantize_method == MIN_MAX) {
@@ -690,7 +727,35 @@ int Calibration::CalQuantizedWeights(const float* weights, const int size, const
             cur_sum += std::fabs(quantized_weights[i] * weight_scale[i / s_size]);
         }
         // LOGD("iter: %d  with diff %f\n", iter, pre_sum - cur_sum);
-    } else {
+    } else if (cali_params_.weights_quantize_method == ASY_MIN_MAX) {
+        // ASY_MIN_MAX
+        int weight_scale_count  = merge_channel ? 1 : output_channel;
+        int s_size              = size / weight_scale_count;
+        for (int s_idx = 0; s_idx < weight_scale_count; ++s_idx) {
+            const float* weight_start = weights + s_idx * s_size;
+            int8_t* weight_q_start    = quantized_weights + s_idx * s_size;
+            auto minmax               = std::minmax_element(weight_start, weight_start + s_size);
+            float weight_min = std::min(.0f, *minmax.first);
+            float weight_max = std::max(.0f, *minmax.second);
+
+            weight_scale[s_idx] = (weight_max - weight_min) / 254.0f;
+            float scale_float2int8 = 1.0f;
+            if (weight_max != weight_min){
+                scale_float2int8 = 1 / weight_scale[s_idx];
+            }else{
+                LOGE("Single constant input is not supported\n");
+                return -1;
+            }
+            int8_t bias = 127 - static_cast<int>(std::round(weight_max * scale_float2int8));
+            weight_scale_bias[s_idx] = bias;
+            // quantize weights
+            for (int i = 0; i < s_size; ++i) {
+                int value        = static_cast<int>(std::round(weight_start[i] * scale_float2int8)) + bias;
+                weight_q_start[i] = std::min(127, std::max(-127, value));
+            }
+        }
+    }
+    else {
         LOGE("Not support yet (method: %d) for quantize weights", cali_params_.weights_quantize_method);
         return -1;
     }

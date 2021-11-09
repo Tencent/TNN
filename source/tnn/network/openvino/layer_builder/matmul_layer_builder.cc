@@ -52,7 +52,7 @@ Status MatMulOVLayerBuilder::Build() {
     } else {
         auto weight_dims = paramlist->weight_position == 0 ? paramlist->matrix_a_dims : paramlist->matrix_b_dims;
         auto reshape_const_node =
-            std::make_shared<ngraph::op::Constant>(ngraph::element::Type_t::i32, ngraph::Shape({2}), weight_dims);
+            std::make_shared<ngraph::op::Constant>(ngraph::element::Type_t::i32, ngraph::Shape({weight_dims.size()}), weight_dims);
 
         auto weight_node = std::make_shared<ngraph::op::Constant>(
             ngraph::element::Type_t::f32,

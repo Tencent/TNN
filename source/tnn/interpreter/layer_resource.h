@@ -53,6 +53,7 @@ struct ConvLayerResource : public LayerResource {
 
     // extra scale handle for different precision
     RawBuffer scale_handle;
+    RawBuffer scale_bias_handle;
 
     virtual void SetTrainable(bool trainable){
         bias_handle.SetTrainable(trainable);
@@ -94,12 +95,12 @@ struct InnerProductLayerResource : public LayerResource {
 
     // extra scale handle for different precision
     RawBuffer scale_handle;
+    RawBuffer scale_bias_handle;
 
     virtual void SetTrainable(bool trainable){
         bias_handle.SetTrainable(trainable);
         weight_handle.SetTrainable(trainable);
     };
-    
 };
 
 struct PReluLayerResource : public LayerResource {
@@ -114,6 +115,8 @@ struct PReluLayerResource : public LayerResource {
 struct IntScaleResource : public LayerResource {
     // scale buffer
     RawBuffer scale_handle;
+    RawBuffer scale_bias_handle;
+
     // bias buffer
     RawBuffer bias_handle;
 
