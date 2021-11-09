@@ -93,7 +93,7 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
     auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
 
     NetworkType network_type;
-    RETURN_ON_NEQ(Status(TNN_OK), GetNetworkType(network_type));
+    RETURN_ON_NEQ(GetNetworkType(network_type), TNN_OK);
     // NetworkImpl is register by each Impl.
     // TNN model runs with the default_network.
     network_ = NetworkImplManager::GetNetworkImpl(network_type);

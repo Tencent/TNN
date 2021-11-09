@@ -374,7 +374,6 @@ if(TNN_QUANTIZATION_ENABLE)
     add_subdirectory(tools/quantization)
 endif()
 
-
 if(SYSTEM.Linux)
     include(platforms/linux/CMakeLists.txt)
 elseif(SYSTEM.Android)
