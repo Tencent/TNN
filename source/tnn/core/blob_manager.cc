@@ -155,7 +155,7 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
  */
 Status BlobManager::AllocateBlobMemory(int flag) {
     const auto &input_shapes_map = net_structure_->inputs_shape_map;
-    bool is_training             = config_.train_config.run_mode == TRAIN_MODE;
+    bool is_training             = config_.train_config.run_mode == TRAIN_MODE_TRAIN;
     for (auto iter : input_shapes_map) {
         std::string current_blob_name = iter.first;
         Blob *current_blob            = blobs_[current_blob_name];

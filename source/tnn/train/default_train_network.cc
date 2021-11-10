@@ -37,7 +37,7 @@ Status DefaultTrainNetwork::Init(NetworkConfig &net_config, ModelConfig &model_c
                                enable_const_folder);
     RETURN_ON_NEQ(ret, TNN_OK);
 
-    context_->SetTraining(config_.train_config.run_mode == TRAIN_MODE);
+    context_->SetTraining(config_.train_config.run_mode == TRAIN_MODE_TRAIN);
     return TNN_OK;
 }
 
@@ -55,11 +55,11 @@ Status DefaultTrainNetwork::TrainStep() {
 };
 
 Status DefaultTrainNetwork::CreateSolver(const std::set<std::string> &need_grad_layers) {
-    if (config_.train_config.run_mode != TRAIN_MODE)
+    if (config_.train_config.run_mode != TRAIN_MODE_TRAIN)
         return TNN_OK;
 
-    if (config_.train_config.solver_type == SOLVER_SGD) {
-        float learning_rate = config_.train_config.sgd_params.learning_rate;
+    if (config_.train_config.solver_type == SOLVER_TYPE_SGD) {
+        float learning_rate = config_.train_config.solver_params.learning_rate;
         solver_             = std::make_shared<train::SGD>(this, &config_, learning_rate);
         solver_->SetNeedGradLayers(need_grad_layers);
     } else {

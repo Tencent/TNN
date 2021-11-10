@@ -32,7 +32,23 @@ namespace optimizer {
 
     // P2 priority: reformat after all fuse, remove
     NetOptimizerRegister<NetOptimizerInsertLossAndGradient> g_net_optimizer_insert_loss_and_gradient(OptPriority::P2);
-    static const std::string loss_name_suffix = "_tnn__loss";
+    static const std::string GetProbSuffixByLossFunc(LossFunc loss_func) {
+        if (loss_func == LOSS_FUNC_BINARY_CROSS_ENTROPY) {
+            return "_tnn_sigmoid";
+        } else if (loss_func == LOSS_FUNC_CATEGORICAL_CROSS_ENTROPY) {
+            return "_tnn_softmax";
+        }
+        return "_tnn_prob";
+    }
+    static const std::string GetEntropySuffixByLossFunc(LossFunc loss_func) {
+        if (loss_func == LOSS_FUNC_BINARY_CROSS_ENTROPY) {
+            return "_tnn_binary_ce";
+        } else if (loss_func == LOSS_FUNC_CATEGORICAL_CROSS_ENTROPY) {
+            return "_tnn_categorical_ce";
+        }
+        return "_tnn_ce";
+    }
+    static const std::string reduce_mean_suffix = "_tnn_reduce_mean";
 
     std::string NetOptimizerInsertLossAndGradient::Strategy() {
         return kNetOptimizerInsertLossAndGradient;
@@ -42,7 +58,7 @@ namespace optimizer {
         bool is_support = false;
 #if TRAIN
         train_config = net_config.train_config;
-        if (train_config.run_mode == TRAIN_MODE) {
+        if (train_config.run_mode == TRAIN_MODE_TRAIN) {
             auto device = net_config.device_type;
             if (device == DEVICE_ARM || device == DEVICE_NAIVE) {
                 is_support = true;
@@ -52,156 +68,17 @@ namespace optimizer {
         return is_support;
     }
 
-    /*
-     * @brief deep vist the compute DAG graph, to find which layers need to be calcualted grads
-     * @return if cur layer need to be calculated grad
-     */
-    static bool DeepVisit(const LayerInfo *layer, const std::set<std::string> &trainable_layers,
-                          const std::map<std::string, LayerInfo *> &blob_to_layer,
-                          std::set<std::string> &need_grad_layers, const InputShapesMap &inputs_shape_map) {
-        bool need_grad = false;
-        for (auto &input : layer->inputs) {
-            if (inputs_shape_map.find(input) != inputs_shape_map.end()) {
-                // need_grad |= false;
-                continue;
-            }
-            auto iter = blob_to_layer.find(input);
-            if (iter == blob_to_layer.end()) {
-                LOGE("cann't find the layer of the blob");
-                continue;
-            }
-            // one node may be repeatedly visited
-            need_grad |= DeepVisit(iter->second, trainable_layers, blob_to_layer, need_grad_layers, inputs_shape_map);
-        }
-        if (trainable_layers.find(layer->name) != trainable_layers.end())
-            need_grad |= true;
-        if (need_grad)
-            need_grad_layers.insert(layer->name);
-        return need_grad;
-    }
-
-    static void BuildLayer(const std::string type_str, std::shared_ptr<LayerInfo> &layer,
-                           const std::shared_ptr<LayerInfo> &last_layer, std::set<std::string> &blobs,
-                           LayerParam *param, const std::string layer_name = "") {
-        LOGD("Optimize, build: %s\n", type_str.c_str());
-        layer->type     = GlobalConvertLayerType(type_str);
-        layer->type_str = type_str;
-        layer->inputs.clear();
-        layer->outputs.clear();
-        layer->name = layer_name != "" ? layer_name : last_layer->name + "/" + type_str;
-        layer->inputs.push_back(last_layer->outputs[0]);
-        layer->outputs.push_back(layer->name);  // use layer name as output blob name
-        blobs.insert(last_layer->outputs[0]);
-        blobs.insert(layer->name);
-
-        param->quantized = false;
-        param->type      = layer->type_str;
-        param->trainable = false;
-        param->name      = layer->name;
-        layer->param     = std::shared_ptr<LayerParam>(param);
-    }
-
-    Status NetOptimizerInsertLossAndGradient::SetTrainLayers(NetStructure *structure, NetResource *resource,
-                                                             std::set<std::string> &need_grad_layers) {
-        if (train_config.trainable_layers.empty())
-            return Status(TNNERR_NET_ERR, "train mode but trainable_layers is empty");
-
-        // set loss func layers
-        if (train_config.loss_func != DEFAULT_FUNC) {
-            if (train_config.target_name.empty() || train_config.output_layer_name.empty() ||
-                train_config.target_shape.empty() || train_config.loss_layer_name.empty())
-                return Status(TNNERR_NET_ERR, "loss_func set but target_name or output_layer_name is empty");
-
-            structure->inputs_shape_map[train_config.target_name] = train_config.target_shape;
-            LayerParam *param                                     = nullptr;
-            std::shared_ptr<LayerInfo> last_layer;
-            std::shared_ptr<LayerInfo> cur_layer;
-            for (auto &tl : structure->layers) {
-                if (tl->name == train_config.output_layer_name)
-                    last_layer = tl;
-            }
-            if (last_layer == nullptr || last_layer->outputs.size() <= 0)
-                return Status(TNNERR_NET_ERR, "find output layer error");
-            if (train_config.loss_func == BINARY_CROSS_ENTROPY_FUNC) {  // the output_layer is sigmoid usually
-                if (train_config.auto_add_prob_layer && last_layer->type != LAYER_SIGMOID) {
-                    cur_layer = std::make_shared<LayerInfo>();
-                    param     = new LayerParam();
-                    BuildLayer("Sigmoid", cur_layer, last_layer, structure->blobs, param);
-                    structure->layers.push_back(cur_layer);
-                    last_layer = cur_layer;
-                }
-                cur_layer = std::make_shared<LayerInfo>();
-                param     = new MultidirBroadcastLayerParam();
-                BuildLayer("BinaryCrossEntropy", cur_layer, last_layer, structure->blobs, param);
-                cur_layer->inputs.push_back(train_config.target_name);
-                structure->blobs.insert(train_config.target_name);
-                structure->layers.push_back(cur_layer);
-                last_layer = cur_layer;
-            } else if (train_config.loss_func == CATEGORICAL_CROSS_ENTROPY_FUNC) {
-                if (train_config.auto_add_prob_layer && last_layer->type != LAYER_SOFTMAX) {
-                    cur_layer                                     = std::make_shared<LayerInfo>();
-                    param                                         = new SoftmaxLayerParam();
-                    static_cast<SoftmaxLayerParam *>(param)->axis = 1;  // defualt value is 1 in tflite converter
-                    BuildLayer("Softmax", cur_layer, last_layer, structure->blobs, param);
-                    structure->layers.push_back(cur_layer);
-                    last_layer = cur_layer;
-                }
-                cur_layer = std::make_shared<LayerInfo>();
-                param     = new MultidirBroadcastLayerParam();
-                BuildLayer("CategoricalCrossEntropy", cur_layer, last_layer, structure->blobs, param);
-                cur_layer->inputs.push_back(train_config.target_name);
-                structure->blobs.insert(train_config.target_name);
-                structure->layers.push_back(cur_layer);
-                last_layer = cur_layer;
-            } else {
-                return Status(TNNERR_NET_ERR, "NOT SUPPORT LOSS FUNC");
-            }
-
-            // build loss reduce mean layer
-            cur_layer  = std::make_shared<LayerInfo>();
-            param      = new ReduceLayerParam();
-            auto &axis = static_cast<ReduceLayerParam *>(param)->axis;
-            for (int i = 0; i < train_config.target_shape.size(); ++i)
-                axis.push_back(i);
-            BuildLayer("ReduceMean", cur_layer, last_layer, structure->blobs, param, train_config.loss_layer_name);
-            structure->layers.push_back(cur_layer);
-            structure->outputs.insert(cur_layer->name);
-        }
-        std::map<std::string, LayerInfo *> blob_to_layer;
-        for (auto &layer : structure->layers) {
-            for (auto &name : layer->outputs) {
-                blob_to_layer[name] = layer.get();
-            }
-        }
-
-        for (auto &layer : structure->layers) {
-            DeepVisit(layer.get(), train_config.trainable_layers, blob_to_layer, need_grad_layers,
-                      structure->inputs_shape_map);
-        }
-        // set net resource trainable
-        for (auto &iter : resource->resource_map) {
-            if (train_config.trainable_layers.find(iter.first) != train_config.trainable_layers.end()) {
-                if (iter.second)
-                    iter.second->SetTrainable(true);
-            }
-        }
-        return TNN_OK;
-    }
-
     Status NetOptimizerInsertLossAndGradient::Optimize(NetStructure *structure, NetResource *resource) {
         if (!structure) {
             LOGE("Error: empty NetStructure\n");
             return Status(TNNERR_NET_ERR, "Error: empty NetStructure");
         }
+        if (structure->layers.empty()) {
+            return TNN_OK;
+        }
         if (!resource) {
             LOGE("Error: empty NetResource\n");
             return Status(TNNERR_NET_ERR, "Error: empty NetResource");
-        }
-
-        std::vector<std::shared_ptr<LayerInfo>> layers_orig = structure->layers;
-        const int count                                     = (const int)layers_orig.size();
-        if (count <= 0) {
-            return TNN_OK;
         }
 
         // skip if network is quantized
@@ -210,15 +87,179 @@ namespace optimizer {
             return TNN_OK;
         }
 
-        // std::vector<std::shared_ptr<LayerInfo>> layers_fused = layers_orig;
+        // TODO: maybe default to train the whole model
+        if (train_config.trainable_layers.empty()) {
+            return Status(TNNERR_NET_ERR, "train mode but trainable_layers is empty");
+        }
 
-        std::set<std::string> need_grad_string;
-        Status ret = SetTrainLayers(structure, resource, need_grad_string);
-        RETURN_ON_NEQ(ret, TNN_OK);
-
-        // structure->layers = layers_fused;
+        RETURN_ON_NEQ(InsertLossLayer(structure), TNN_OK);
 
         return TNN_OK;
+    }
+
+    Status NetOptimizerInsertLossAndGradient::InsertLossLayer(NetStructure *net_structure) {
+        if (train_config.loss_func == LOSS_FUNC_DEFAULT) {
+            return TNN_OK;
+        }
+
+        // target blob
+        if (train_config.target_name.empty() || train_config.target_shape.empty()) {
+            return Status(TNNERR_NET_ERR, "loss_func is not default, but target name and shape is empty");
+        }
+        net_structure->inputs_shape_map[train_config.target_name] = train_config.target_shape;
+        net_structure->blobs.insert(train_config.target_name);
+
+        // target layer
+        std::shared_ptr<LayerInfo> target_layer = GetTargetLayer(net_structure);
+        if (target_layer == nullptr || target_layer->outputs.size() <= 0) {
+            return Status(TNNERR_NET_ERR, "get target layer error");
+        }
+
+        // probability layer
+        std::shared_ptr<LayerInfo> prob_layer = GetOrCreateProbability(target_layer);
+        if (prob_layer == nullptr) {
+            return Status(TNNERR_NET_ERR, "get or create prob layer error");
+        }
+        if (prob_layer != target_layer) {
+            auto prob_input = target_layer->outputs[0];
+            prob_layer->inputs.push_back(prob_input);
+            auto prob_output = prob_input + GetProbSuffixByLossFunc(train_config.loss_func);
+            prob_layer->outputs.push_back(prob_output);
+            net_structure->layers.push_back(prob_layer);
+            net_structure->blobs.insert(prob_output);
+        }
+
+        // cross entropy
+        std::shared_ptr<LayerInfo> entropy_layer =
+            CreateCrossEntropy(prob_layer->name + GetEntropySuffixByLossFunc(train_config.loss_func));
+        if (entropy_layer == nullptr) {
+            return Status(TNNERR_NET_ERR, "create entropy layer error");
+        } else {
+            auto entropy_input = prob_layer->outputs[0];
+            entropy_layer->inputs.push_back(entropy_input);
+            entropy_layer->inputs.push_back(train_config.target_name);
+            auto entropy_output = entropy_input + GetEntropySuffixByLossFunc(train_config.loss_func);
+            entropy_layer->outputs.push_back(entropy_output);
+            net_structure->layers.push_back(entropy_layer);
+            net_structure->blobs.insert(entropy_output);
+        }
+
+        // reduce mean
+        std::shared_ptr<LayerInfo> reduce_layer = CreateReduceMean(entropy_layer->name + reduce_mean_suffix);
+        if (reduce_layer == nullptr) {
+            return Status(TNNERR_NET_ERR, "create reduce mean layer error");
+        } else {
+            auto reduce_input = entropy_layer->outputs[0];
+            reduce_layer->inputs.push_back(reduce_input);
+            auto reduce_output = train_config.loss_name;
+            if (reduce_output.empty()) {
+                reduce_output = reduce_input + reduce_mean_suffix;
+                LOGD("NetOptimizerInsertLossAndGradient::InsertLossLayer, loss name is empty, auto generate: %s\n",
+                     reduce_output.c_str());
+            }
+            reduce_layer->outputs.push_back(reduce_output);
+            net_structure->layers.push_back(reduce_layer);
+            net_structure->blobs.insert(reduce_output);
+            net_structure->outputs.insert(reduce_output);
+        }
+
+        return TNN_OK;
+    }
+
+    std::shared_ptr<LayerInfo> NetOptimizerInsertLossAndGradient::GetTargetLayer(NetStructure *net_structure) {
+        std::shared_ptr<LayerInfo> last_layer;
+        if (train_config.target_layer.empty()) {
+            LOGD("NetOptimizerInsertLossAndGradient::InsertLossLayer, target layer is empty, use the last layer\n");
+            last_layer = net_structure->layers.back();
+        } else {
+            for (auto layer : net_structure->layers) {
+                if (layer->name == train_config.target_layer) {
+                    last_layer = layer;
+                }
+            }
+        }
+        return last_layer;
+    }
+
+    std::shared_ptr<LayerInfo> NetOptimizerInsertLossAndGradient::GetOrCreateProbability(
+        std::shared_ptr<LayerInfo> target_layer) {
+        if (train_config.loss_func == LOSS_FUNC_BINARY_CROSS_ENTROPY) {
+            if (train_config.auto_add_prob_layer && target_layer->type != LAYER_SIGMOID) {
+                std::shared_ptr<LayerInfo> new_layer = std::shared_ptr<LayerInfo>(new LayerInfo());
+                new_layer->type                      = LAYER_SIGMOID;
+                new_layer->type_str                  = "Sigmoid";
+                new_layer->name        = target_layer->name + GetProbSuffixByLossFunc(train_config.loss_func);
+                LayerParam *param      = new LayerParam();
+                new_layer->param       = std::shared_ptr<LayerParam>(param);
+                new_layer->param->type = new_layer->type_str;
+                new_layer->param->name = new_layer->name;
+                return new_layer;
+            } else {
+                LOGD(
+                    "NetOptimizerInsertLossAndGradient::GetOrCreateProbability, use the target layer as probability "
+                    "layer: %s\n",
+                    target_layer->name.c_str());
+                return target_layer;
+            }
+        } else if (train_config.loss_func == LOSS_FUNC_CATEGORICAL_CROSS_ENTROPY) {
+            if (train_config.auto_add_prob_layer && target_layer->type != LAYER_SOFTMAX) {
+                std::shared_ptr<LayerInfo> new_layer = std::shared_ptr<LayerInfo>(new LayerInfo());
+                new_layer->type                      = LAYER_SOFTMAX;
+                new_layer->type_str                  = "Softmax";
+                new_layer->name          = target_layer->name + GetProbSuffixByLossFunc(train_config.loss_func);
+                SoftmaxLayerParam *param = new SoftmaxLayerParam();
+                new_layer->param         = std::shared_ptr<LayerParam>(param);
+                new_layer->param->type   = new_layer->type_str;
+                new_layer->param->name   = new_layer->name;
+                // defualt value is 1 in tflite converter
+                param->axis = 1;
+                return new_layer;
+            } else {
+                LOGD(
+                    "NetOptimizerInsertLossAndGradient::GetOrCreateProbability, use the target layer as probability "
+                    "layer: %s\n",
+                    target_layer->name.c_str());
+                return target_layer;
+            }
+        } else {
+            LOGE("NetOptimizerInsertLossAndGradient::GetOrCreateProbability, not support loss func");
+            return nullptr;
+        }
+    }
+
+    std::shared_ptr<LayerInfo> NetOptimizerInsertLossAndGradient::CreateCrossEntropy(std::string name) {
+        std::shared_ptr<LayerInfo> new_layer = std::shared_ptr<LayerInfo>(new LayerInfo());
+        if (train_config.loss_func == LOSS_FUNC_BINARY_CROSS_ENTROPY) {
+            new_layer->type     = LAYER_BINARY_CROSSENTROPY;
+            new_layer->type_str = "BinaryCrossEntropy";
+        } else if (train_config.loss_func == LOSS_FUNC_CATEGORICAL_CROSS_ENTROPY) {
+            new_layer->type     = LAYER_CATEGORICAL_CROSSENTROPY;
+            new_layer->type_str = "CategoricalCrossEntropy";
+        } else {
+            LOGE("NetOptimizerInsertLossAndGradient::CreateCrossEntropy, not support loss func");
+            return nullptr;
+        }
+        new_layer->name                    = name;
+        MultidirBroadcastLayerParam *param = new MultidirBroadcastLayerParam();
+        new_layer->param                   = std::shared_ptr<LayerParam>(param);
+        new_layer->param->type             = new_layer->type_str;
+        new_layer->param->name             = new_layer->name;
+        return new_layer;
+    }
+
+    std::shared_ptr<LayerInfo> NetOptimizerInsertLossAndGradient::CreateReduceMean(std::string name) {
+        std::shared_ptr<LayerInfo> new_layer = std::shared_ptr<LayerInfo>(new LayerInfo());
+        new_layer->type                      = LAYER_REDUCE_MEAN;
+        new_layer->type_str                  = "ReduceMean";
+        new_layer->name                      = name;
+        ReduceLayerParam *param              = new ReduceLayerParam();
+        new_layer->param                     = std::shared_ptr<LayerParam>(param);
+        new_layer->param->type               = new_layer->type_str;
+        new_layer->param->name               = new_layer->name;
+        for (int i = 0; i < train_config.target_shape.size(); ++i) {
+            param->axis.push_back(i);
+        }
+        return new_layer;
     }
 
 }  // namespace optimizer

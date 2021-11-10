@@ -33,7 +33,7 @@ void GradManager::SetNeedGradLayers(const std::set<std::string> &need_grad_layer
 Status GradManager::IsSupport() {
     if (context_.config->device_type != DEVICE_ARM && context_.config->device_type != DEVICE_NAIVE)
         return Status(TNN_TRAIN_ERROR, "only support device arm or device naive for now");
-    if (context_.config->train_config.run_mode != TRAIN_MODE)
+    if (context_.config->train_config.run_mode != TRAIN_MODE_TRAIN)
         return Status(TNN_TRAIN_ERROR, "not in train mode");
     if (context_.config->precision != PRECISION_HIGH)
         return Status(TNN_TRAIN_ERROR, "only support high precision in train mode");
@@ -46,7 +46,7 @@ Status GradManager::CalcuteGrads() {
     if (network == nullptr) {
         return Status(TNNERR_UNSUPPORT_NET, "grad module only support default net work");
     }
-    Blob *loss = network->GetBlob(context_.config->train_config.loss_layer_name);
+    Blob *loss = network->GetBlob(context_.config->train_config.loss_name);
     if (!loss) {
         return Status(TNN_TRAIN_ERROR, "can't find loss blob");
     }

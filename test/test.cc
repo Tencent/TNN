@@ -346,17 +346,16 @@ namespace test {
 #if TRAIN
         TrainConfig &train_config = config.train_config;
         // TODO: avoid hard code
-        train_config.run_mode = TRAIN_MODE;
+        train_config.run_mode = TRAIN_MODE_TRAIN;
+        // solver
+        train_config.solver_type = SOLVER_TYPE_SGD;
+        train_config.solver_params.learning_rate = 0.01;
         // loss
-        train_config.loss_func = BINARY_CROSS_ENTROPY_FUNC;
-        train_config.loss_layer_name = "loss";
-        train_config.output_layer_name = "deep_network/output_layer/BiasAdd";
+        train_config.loss_func = LOSS_FUNC_BINARY_CROSS_ENTROPY;
         // label
         train_config.target_name = "label";
         train_config.target_shape = {1, 8};
-        // solver
-        train_config.solver_type = SOLVER_SGD;
-        train_config.sgd_params = {0.01};
+        // fine tune layers
         train_config.trainable_layers = {"deep_network/output_layer/BiasAdd", "deep_network/mlp2/Relu"};
 #endif
 

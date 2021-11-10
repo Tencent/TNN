@@ -138,41 +138,52 @@ typedef enum {
 
 using DimsVector = std::vector<int>;
 
-//* for train
 typedef enum {
-    SOLVER_SGD   = 0, //0x00000000
+    // default, do inference
+    TRAIN_MODE_PREDICT = 0,
+    // do train
+    TRAIN_MODE_TRAIN   = 1
+} TrainMode;
+
+// only support SGD now
+typedef enum {
+    SOLVER_TYPE_SGD   = 0, //0x00000000
 } SolverType;
 
-typedef enum {
-    DEFAULT_FUNC   = 0, //will not add loss func automatically, use the model's output_layer as loss directly
-    BINARY_CROSS_ENTROPY_FUNC = 1,
-    CATEGORICAL_CROSS_ENTROPY_FUNC = 2
-
-} LossFunc;
-
-typedef enum {
-    PREDICT_MODE = 0,
-    TRAIN_MODE = 1
-} RunMode;
-
-struct PUBLIC SGDParams {
+struct PUBLIC SolverParams {
     float learning_rate;
 };
 
+typedef enum {
+    // default, do not add loss layer, will use the last layer as loss layer
+    LOSS_FUNC_DEFAULT                   = 0,
+    // add binary-cross-entropy loss layer atomatically
+    LOSS_FUNC_BINARY_CROSS_ENTROPY      = 1,
+    // add categorical-cross-entropy loss layer atomatically
+    LOSS_FUNC_CATEGORICAL_CROSS_ENTROPY = 2
+} LossFunc;
+
 struct PUBLIC TrainConfig {
-    RunMode run_mode = PREDICT_MODE;//
-    SolverType solver_type;
-    LossFunc loss_func;
-    std::string output_layer_name;
-    std::string target_name = "target";
-    std::string loss_layer_name = "loss";
-    DimsVector target_shape;
+    // run mode
+    TrainMode run_mode     = TRAIN_MODE_PREDICT;
+
+    // solver
+    SolverType solver_type = SOLVER_TYPE_SGD;
+    SolverParams solver_params;
+
+    // loss 
+    LossFunc loss_func     = LOSS_FUNC_DEFAULT;
+    // if loss_func is not default, the following informations are used to create loss layer
+    std::string target_layer = "";      // the layer whose output is used to calculate loss, default is the last layer
+    std::string target_name  = "";      // the ground truth, provide by model inputs
+    DimsVector target_shape  = {};      // the shape of the ground truth
+    std::string loss_name    = "";      // the name of the output loss
+    bool auto_add_prob_layer = true;    // add softmax or sigmoid layer before loss layer
+
+    // fine tune part of the network
+    // only trainable layers' parameters will be updated
     std::set<std::string> trainable_layers;
-    SGDParams sgd_params;
-    bool auto_add_prob_layer = true;
-    
 };
-// for train end
 
 //@brief Config used to create tnn instance, config
 // device type, network type and share memory mode.
@@ -206,7 +217,6 @@ struct PUBLIC NetworkConfig {
     bool enable_tune_kernel = false;
 
     TrainConfig train_config;
-
 };
 
 struct PUBLIC ModelConfig {

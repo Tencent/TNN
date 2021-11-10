@@ -36,8 +36,11 @@ namespace optimizer {
         virtual Status Optimize(NetStructure* structure, NetResource* resource);
 
     private:
-        Status SetTrainLayers(NetStructure* net_structure, NetResource* net_resource,
-                              std::set<std::string>& need_grad_layers);
+        Status InsertLossLayer(NetStructure* net_structure);
+        std::shared_ptr<LayerInfo> GetTargetLayer(NetStructure* net_structure);
+        std::shared_ptr<LayerInfo> GetOrCreateProbability(std::shared_ptr<LayerInfo> last_layer);
+        std::shared_ptr<LayerInfo> CreateCrossEntropy(std::string name);
+        std::shared_ptr<LayerInfo> CreateReduceMean(std::string name);
 
         TrainConfig train_config;
     };

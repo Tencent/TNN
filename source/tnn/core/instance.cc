@@ -67,7 +67,7 @@ Status Instance::GetNetworkType(NetworkType& network_type) {
         network_type = device->ConvertAutoNetworkType();
     }
 #if TRAIN
-    if (net_config_.train_config.run_mode == TRAIN_MODE) {
+    if (net_config_.train_config.run_mode == TRAIN_MODE_TRAIN) {
         if (network_type == NETWORK_TYPE_DEFAULT) {
             network_type = NETWORK_TYPE_DEFAULT_TRAIN;
         } else {
