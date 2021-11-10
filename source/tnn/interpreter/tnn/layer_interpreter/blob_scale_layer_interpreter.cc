@@ -25,7 +25,26 @@ Status BlobScaleLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int star
 Status BlobScaleLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
     auto layer_res = CreateLayerRes<IntScaleResource>(resource);
 
-    GET_BUFFER_FOR_ATTR(layer_res, scale_handle, deserializer);
+    // Use the DataType of first RawBuffer to distinguish the old and new versions
+    // old version: scale_handle(float)
+    // new version: scale_bias_handle(int8), scale_handle(float)
+    RawBuffer first_buffer;
+    deserializer.GetRaw(first_buffer);
+    if (first_buffer.GetDataType() == DATA_TYPE_INT8) {
+        layer_res->scale_bias_handle = first_buffer;
+        GET_BUFFER_FOR_ATTR(layer_res, scale_handle, deserializer);
+    } else if (first_buffer.GetDataType() == DATA_TYPE_FLOAT) {
+        layer_res->scale_handle = first_buffer;
+        int total_byte_size     = first_buffer.GetDataCount() * sizeof(char);
+        RawBuffer scale_bias_buffer(total_byte_size);
+        scale_bias_buffer.SetDataType(DATA_TYPE_INT8);
+        memset(scale_bias_buffer.force_to<int8_t*>(), 0, total_byte_size);
+        layer_res->scale_bias_handle = scale_bias_buffer;
+    } else {
+        LOGE("invalid quantized layer Resource\n");
+        return -1;
+    }
+
     GET_BUFFER_FOR_ATTR(layer_res, bias_handle, deserializer);
 
     return TNN_OK;
@@ -38,6 +57,8 @@ Status BlobScaleLayerInterpreter::SaveProto(std::ostream& output_stream, LayerPa
 Status BlobScaleLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
     CAST_OR_RET_ERROR(layer_res, IntScaleResource, "invalid blob_scale to save", resource);
 
+    // put scale_bias_handle in front of scale_handle to distinguish the old and new versions
+    serializer.PutRaw(layer_res->scale_bias_handle);
     serializer.PutRaw(layer_res->scale_handle);
     serializer.PutRaw(layer_res->bias_handle);
 

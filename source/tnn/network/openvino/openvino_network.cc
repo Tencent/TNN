@@ -323,7 +323,7 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         if (net_resource->resource_map.count(layer_name) == 0) {
             LayerParam *layer_param  = layer_info->param.get();
             LayerResource *layer_res = nullptr;
-            GenerateRandomResource(type, layer_param, &layer_res, inputs);
+            GenerateRandomResource(type, layer_param, &layer_res, inputs, &net_resource->constant_map);
             net_resource->resource_map[layer_name] = std::shared_ptr<LayerResource>(layer_res);
         }
 
@@ -352,6 +352,7 @@ Status OpenVINONetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
 
         cur_layer->SetRuntimeMode(runtime_model_);
         cur_layer->SetConstantResource(&net_resource->constant_map);
+        cur_layer->SetConstantResourceFlag(&net_resource->constant_blob_flags);
         // init node
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {

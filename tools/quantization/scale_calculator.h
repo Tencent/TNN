@@ -66,9 +66,13 @@ public:
 
     // @brief: get the per-channel scale of the given blob
     int CalculateScale(std::vector<float>& val);
+    int CalculateScale(std::vector<float>& val, std::vector<int8_t>& bias);
 
 private:
+    // @brief: statistical-based methods
     int CalculateScalePerDis(std::vector<float>& distribute, float interval, float& output);
+    // @brief: analytical-based methods
+    int CalculateScaleAnalysis(int channel_index, float& blob_scale, int8_t& bias);
 
     Blob* origin_blob_;
     bool merge_channel_;
@@ -78,6 +82,9 @@ private:
     bool distribute_done_flag_;
     std::vector<std::pair<float, float>> range_per_channel_;
     std::vector<float> interval_per_channel_;
+    std::vector<float> mean_per_channel_;
+    std::vector<float> mean_abs_per_channel_;
+    std::vector<int> index_image_per_channel_;
     std::vector<bool> valid_channel_;
     std::vector<std::vector<float>> distribute_per_channel_;
 };

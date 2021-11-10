@@ -116,6 +116,18 @@
             android:textSize="16sp"
             android:text="@string/tnn_odssd_stream_btn_name"
             android:textColor="@color/white"/>
+
+        <TextView
+            android:id="@+id/stream_object_detect_nanodet_btn"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/button_bg"
+            android:gravity="center"
+            android:textSize="16sp"
+            android:text="@string/tnn_odnanodet_stream_btn_name"
+            android:textColor="@color/white"/>
         <TextView
             android:id="@+id/image_facedetect_blaze_btn"
             android:layout_width="160dp"
@@ -198,5 +210,17 @@
             android:textSize="16sp"
             android:text="@string/tnn_ocrdet_stream_btn_name"
             android:textColor="@color/white"/>
+
+        <TextView
+            android:id="@+id/reading_comprehension_btn"
+            android:layout_width="161dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="48dp"
+            android:background="@drawable/button_bg"
+            android:gravity="center"
+            android:text="@string/tnn_reading_comprehension_btn_name"
+            android:textColor="@color/white"
+            android:textSize="16sp" />
     </LinearLayout>
 </ScrollView>

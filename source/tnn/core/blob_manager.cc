@@ -51,10 +51,13 @@ BlobManager::~BlobManager() {
     }
 }
 
-static void UpdateDeviceInputDataFormat(NetworkConfig &config, Blob *input, const DeviceType &type) {
+static void UpdateDeviceInputDataFormat(NetworkConfig &config, Blob *input, const DeviceType &type,
+                                        bool is_quantized_layer) {
     if (config.data_format != DATA_FORMAT_AUTO)
         return;
-    if (type == DEVICE_ARM || type == DEVICE_METAL) {
+    if (type == DEVICE_ARM && is_quantized_layer) {
+        input->GetBlobDesc().data_format = DATA_FORMAT_NHWC4;
+    } else if (type == DEVICE_ARM || type == DEVICE_METAL) {
         input->GetBlobDesc().data_format = DATA_FORMAT_NC4HW4;
     } else if (type == DEVICE_OPENCL) {
         input->GetBlobDesc().data_format = DATA_FORMAT_NHC4W4;
@@ -112,9 +115,9 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
         BlobHandle handle;
         blobs_[node_name] = new Blob(desc, handle);
     }
-
+    bool is_quantized_net = GetQuantizedInfoFromNetStructure(net_structure);
     // input blobs
-    const auto& input_data_type_map = net_structure->input_data_type_map;
+    const auto &input_data_type_map = net_structure->input_data_type_map;
     for (auto iter : instance_input_shapes_map) {
         auto current_blob_name = iter.first;
         if (blobs_.find(current_blob_name) == blobs_.end()) {
@@ -126,8 +129,12 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
         } else {
             current_blob->GetBlobDesc().data_type = input_data_type;
         }
-        UpdateDeviceInputDataFormat(config, current_blob, device_->GetDeviceType());
-        input_blobs_[current_blob_name]         = current_blob;
+        bool is_quantized_layer = false;
+        if (is_quantized_net) {
+            is_quantized_layer = IsQuantizedLayerFromInputName(net_structure, current_blob->GetBlobDesc().name);
+        }
+        UpdateDeviceInputDataFormat(config, current_blob, device_->GetDeviceType(), is_quantized_layer);
+        input_blobs_[current_blob_name] = current_blob;
     }
 
     // output blobs

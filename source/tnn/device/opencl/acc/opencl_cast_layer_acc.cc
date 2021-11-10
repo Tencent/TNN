@@ -17,7 +17,17 @@
 
 namespace TNN_NS {
 
-DECLARE_OPENCL_ACC(Cast);
+// DECLARE_OPENCL_ACC(Cast);
+class OpenCLCastLayerAcc : public OpenCLLayerAcc {
+public:
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                        const std::vector<Blob *> &outputs) override;
+
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+private:
+    virtual std::vector<DataType> SupportDataType(int dims_size, BlobType blob_type) override;
+};
 
 Status OpenCLCastLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -28,9 +38,23 @@ Status OpenCLCastLayerAcc::Init(Context *context, LayerParam *param, LayerResour
     auto input_data_type  = inputs[0]->GetBlobDesc().data_type;
     auto output_data_type = outputs[0]->GetBlobDesc().data_type;
     execute_units_.resize(1);
+    
+    
+
     if(input_data_type == output_data_type) {
         ret         = CreateExecuteUnit(execute_units_[0], "copy", "CopyImage");
         if (ret != TNN_OK) {
+            return ret;
+        }
+    } else if(input_data_type == DATA_TYPE_INT32 && (output_data_type == DATA_TYPE_FLOAT || output_data_type == DATA_TYPE_HALF)) {
+        std::set<std::string> build_options;
+        if(context->GetPrecision() != PRECISION_HIGH) {
+            build_options.emplace(std::string(" -DCONVERT=") + "convert_half4");
+        } else {
+            build_options.emplace(std::string(" -DCONVERT=") + "convert_float4");
+        }
+        ret         = CreateExecuteUnit(execute_units_[0], "cast_int32_to_float", "CastIntToFloat", build_options);
+        if(ret != TNN_OK) {
             return ret;
         }
     } else {
@@ -74,6 +98,9 @@ Status OpenCLCastLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
     return TNN_OK;
 }
 
+std::vector<DataType> OpenCLCastLayerAcc::SupportDataType(int dims_size, BlobType blob_type) {
+    return {DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_INT32};
+}
 
 
 REGISTER_OPENCL_ACC(Cast, LAYER_CAST)

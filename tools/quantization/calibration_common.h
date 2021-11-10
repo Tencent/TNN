@@ -30,6 +30,12 @@ typedef enum {
     ADMM = 1,
     /* kl divergence method */
     KL_DIVERGENCE = 2,
+    /* Asymmetric min max method */
+    ASY_MIN_MAX = 3,
+    /* ACIQ gaus */
+    ACIQ_GAUS = 4,
+    /* ACIQ laplace */
+    ACIQ_LAPLACE = 5,
 } CalibrationMethod;
 
 struct DataSet {

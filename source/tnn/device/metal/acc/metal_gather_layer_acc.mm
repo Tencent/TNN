@@ -21,6 +21,32 @@
 
 namespace TNN_NS {
 
+Status MetalGatherLayerAcc::UpdateBlobDataType(const std::vector<Blob *> &inputs,
+                                   const std::vector<Blob *> &outputs) {
+    int blob_idx = 0;
+    auto layer_param = dynamic_cast<GatherLayerParam *>(param_);
+
+    if (!layer_param->data_in_resource) {
+#if TNN_METAL_FULL_PRECISION
+        inputs[blob_idx++]->GetBlobDesc().data_type  = DATA_TYPE_FLOAT;
+#else
+        inputs[blob_idx++]->GetBlobDesc().data_type  = DATA_TYPE_HALF;
+#endif
+    }
+
+    if (!layer_param->indices_in_resource) {
+        inputs[blob_idx++]->GetBlobDesc().data_type = DATA_TYPE_INT32;
+    }
+
+#if TNN_METAL_FULL_PRECISION
+    outputs[0]->GetBlobDesc().data_type  = DATA_TYPE_FLOAT;
+#else
+    outputs[0]->GetBlobDesc().data_type  = DATA_TYPE_HALF;
+#endif
+
+    return TNN_OK;
+}
+
 Status MetalGatherLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Reshape(inputs, outputs);
 }
@@ -63,7 +89,7 @@ Status MetalGatherLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
     const int inner_size = DimsFunctionUtils::GetDimProduct(input_data_dims, axis+1);
     const int outer_size = DimsFunctionUtils::GetDimProduct(input_data_dims, 0, axis);
     int input_axis_size  = DimsFunctionUtils::GetDim(input_data_dims, axis);
-    int output_axis_size = DimsFunctionUtils::GetDim(dims_output, axis);
+    int output_axis_size = DimsVectorUtils::Count(indices_dims);
     if (DimsVectorUtils::Count(indices_dims) == 1 && dims_output.size() < input_data_dims.size()) {
         dims_output.insert(dims_output.begin()+axis, 1);
         output_axis_size = DimsFunctionUtils::GetDim(dims_output, axis);
@@ -101,7 +127,7 @@ Status MetalGatherLayerAcc::AllocateBufferParam(const std::vector<Blob *> &input
 #else
         if (data_type == DATA_TYPE_FLOAT) {
             data_cast_type.reset(new uint16_t[data_count], [](uint16_t *p){delete[] p;});
-            if (ConvertFromFloatToHalf((float *)data_cast_type.get(), (float *)input_data, data_count) != 0) {
+            if (ConvertFromFloatToHalf((float *)input_data, data_cast_type.get(), data_count) != 0) {
                 LOGE("Error: DataType %d not support\n", data_type);
                 return Status(TNNERR_MODEL_ERR, "Convert Data in LayerRerouece from float to half failed!");
             }
@@ -137,15 +163,17 @@ std::string MetalGatherLayerAcc::KernelName(const std::vector<Blob *> &inputs, c
 Status MetalGatherLayerAcc::SetKernelEncoderParam(id<MTLComputeCommandEncoder> encoder,
                                             const std::vector<Blob *> &inputs,
                                             const std::vector<Blob *> &outputs) {
+    int blob_idx = 0;
     auto layer_param     = dynamic_cast<GatherLayerParam *>(param_);
     if (layer_param->data_in_resource) {
         [encoder setBuffer:buffer_data_
                     offset:(NSUInteger)0
                    atIndex:0];
     } else {
-        [encoder setBuffer:(__bridge id<MTLBuffer>)inputs[0]->GetHandle().base
-                    offset:(NSUInteger)inputs[0]->GetHandle().bytes_offset
+        [encoder setBuffer:(__bridge id<MTLBuffer>)inputs[blob_idx]->GetHandle().base
+                    offset:(NSUInteger)inputs[blob_idx]->GetHandle().bytes_offset
                    atIndex:0];
+        blob_idx += 1;
     }
 
     if (layer_param->indices_in_resource) {
@@ -153,9 +181,10 @@ Status MetalGatherLayerAcc::SetKernelEncoderParam(id<MTLComputeCommandEncoder> e
                     offset:(NSUInteger)0
                    atIndex:1];
     } else {
-        [encoder setBuffer:(__bridge id<MTLBuffer>)inputs[1]->GetHandle().base
-                    offset:(NSUInteger)inputs[1]->GetHandle().bytes_offset
+        [encoder setBuffer:(__bridge id<MTLBuffer>)inputs[blob_idx]->GetHandle().base
+                    offset:(NSUInteger)inputs[blob_idx]->GetHandle().bytes_offset
                    atIndex:1];
+        blob_idx += 1;
     }
     [encoder setBuffer:(__bridge id<MTLBuffer>)(void *)outputs[0]->GetHandle().base
                         offset:(NSUInteger)outputs[0]->GetHandle().bytes_offset

@@ -114,7 +114,7 @@ DimsVector DimsFunctionUtils::Reshape(const DimsVector input_dims, const DimsVec
 
     int infer_dim_count = 0;
     int infer_dim_pos   = -1;
-    for (int i = axis, j = 0; i < num_axes; i++, j++) {
+    for (int i = axis, j = 0; j < num_axes; i++, j++) {
         if (shape[j] == -1) {
             infer_dim_count += 1;
             infer_dim_pos  = i;
@@ -172,6 +172,9 @@ DimsVector DimsFunctionUtils::StrideSlice(const DimsVector input_dims,
     //前闭后开区间
     for (int i = 0; i < axes.size(); i++) {
         int index = axes[i];
+        if (index < 0) {
+            index = input_dims.size() + index;
+        }
         if (input_dims.size() <= index || output_dims.size() <= index)
             continue;
         if (begins[i] < 0) {

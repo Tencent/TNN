@@ -32,14 +32,10 @@ ILayer* BatchNormTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     int count              = DimsVectorUtils::Count(input_dims);
 
     Weights shift;
-    shift.type = ConvertToTRTDataType(resource->bias_handle.GetDataType());
-    shift.count = resource->bias_handle.GetDataCount();
-    shift.values = resource->bias_handle.force_to<void *>();
+    shift = ConvertToWeights(&(resource->bias_handle));
 
     Weights scale;
-    scale.type = ConvertToTRTDataType(resource->scale_handle.GetDataType());
-    scale.count = resource->scale_handle.GetDataCount();
-    scale.values = resource->scale_handle.force_to<void *>();
+    scale = ConvertToWeights(&(resource->scale_handle));
 
     Weights power { scale.type, nullptr, 0 };
 

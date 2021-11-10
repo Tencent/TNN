@@ -216,6 +216,21 @@ nvinfer1::ILayer* AddReshapeToNetwork(nvinfer1::INetworkDefinition* network, nvi
     return shuffle_layer;
 }
 
+nvinfer1::Weights ConvertToWeights(RawBuffer *buf, bool zero_weight, DataType recommend_type) {
+    Weights weights;
+    if (!zero_weight) {
+        weights.type = ConvertToTRTDataType(buf->GetDataType());
+        weights.values = buf->force_to<void*>();
+        weights.count = buf->GetDataCount();
+    } else {
+        weights.type = ConvertToTRTDataType(recommend_type);
+        weights.values = nullptr;
+        weights.count = 0;
+    }
+
+    return weights;
+}
+
 nvinfer1::Dims ConvertPaddingToTRTDims(DimsVector dims) {
     nvinfer1::Dims trt_dims;
     if (dims.size() == 6) {

@@ -188,6 +188,7 @@ enum LayerType {
     LAYER_CONVOLUTION_3D                                    = 201,
     LAYER_POOLING_3D                                        = 202,
     LAYER_CONVOLUTION_1D                                    = 203,
+    LAYER_POOLING_1D                                        = 204,
 
     LAYER_HDRGUIDE                                          = 302,
     LAYER_PIXEL_SHUFFLE                                     = 303,
@@ -217,6 +218,13 @@ enum LayerType {
     LAYER_GELU                                              = 327,
     LAYER_TOPK                                              = 328,
     LAYER_NOT                                               = 329,
+    LAYER_LOGSOFTMAX                                        = 330,
+    LAYER_SCATTER_ELEMENTS                                  = 331,
+    LAYER_AND                                               = 332,
+    LAYER_GREATER                                           = 333,
+    LAYER_LESS                                              = 334,
+    LAYER_NON_MAX_SUPPRESSION                               = 335,
+    LAYER_SCATTER                                           = 336,
 
     LAYER_BLOB_SCALE                                        = 600,
 

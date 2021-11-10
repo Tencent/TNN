@@ -82,6 +82,7 @@ Status ScaleLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* p
     serializer.PutString(layer_param->name);
     serializer.PutInt(layer_param->bias_term);
     serializer.PutRaw(layer_res->scale_handle);
+
     if (layer_param->bias_term) {
         serializer.PutRaw(layer_res->bias_handle);
     }

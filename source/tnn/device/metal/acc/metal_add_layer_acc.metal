@@ -58,6 +58,9 @@ kernel void add_broadcast(const device ftype4 *src0                             
         data0 = ftype4(src0[(int)(gid.x % params.output_width) + (int)(gid.y * params.input0_size)]);
     } else if (params.broadcast_input0 == kBroadcastType5DimsHeightWidth) {
         data0 = ftype4(src0[(int)(gid.x % params.real_input0_4) + (int)(gid.y * params.real_input0_4 * params.real_input0_3)]);
+    } else if (params.broadcast_input0 == kBroadcastTypeWidth) {  //kBroadcastTypeChannelHeight
+        const int w = gid.x % params.input_width;
+        data0 = ftype4(src0[batch_offset0 + w].x);
     } else {
         data0 = src0[index];
     }
@@ -77,6 +80,9 @@ kernel void add_broadcast(const device ftype4 *src0                             
         data1 = ftype4(src1[(int)(gid.x % params.output_width) + (int)(gid.y * params.input1_size)]);
     } else if (params.broadcast_input1 == kBroadcastType5DimsHeightWidth) {
         data1 = ftype4(src1[(int)(gid.x % params.real_input1_4) + (int)(gid.y * params.real_input1_4 * params.real_input1_3)]);
+    } else if (params.broadcast_input1 == kBroadcastTypeWidth) {   //kBroadcastTypeChannelHeight
+        const int w = gid.x % params.input_width;
+        data1 = ftype4(src1[batch_offset1 + w].x);
     } else {
         data1 = src1[index];
     }

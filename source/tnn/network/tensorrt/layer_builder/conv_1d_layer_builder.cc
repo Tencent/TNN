@@ -31,17 +31,11 @@ ILayer* Convolution1DTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     Weights kernelWeights;
     Weights biasWeights;
     ILayer* last_layer;
-    kernelWeights.type = ConvertToTRTDataType(resource->filter_handle.GetDataType());
-    kernelWeights.values = resource->filter_handle.force_to<void*>();
-    kernelWeights.count = resource->filter_handle.GetDataCount();
+    kernelWeights = ConvertToWeights(&(resource->filter_handle));
     if (paramlist->bias) {
-        biasWeights.type = ConvertToTRTDataType(resource->bias_handle.GetDataType());
-        biasWeights.values = resource->bias_handle.force_to<void*>();
-        biasWeights.count = resource->bias_handle.GetDataCount();
+        biasWeights = ConvertToWeights(&(resource->bias_handle));
     } else {
-        biasWeights.type = ConvertToTRTDataType(resource->bias_handle.GetDataType());
-        biasWeights.values = nullptr;
-        biasWeights.count = 0;
+        biasWeights = ConvertToWeights(nullptr, true, resource->filter_handle.GetDataType());
     }
 
     Dims kernelSize;
