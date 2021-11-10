@@ -30,7 +30,8 @@ namespace optimizer {
         return s_net_optimizer_seq;
     }
 
-    Status NetOptimizerManager::Optimize(NetStructure *structure, NetResource *resource, const NetworkConfig &net_config) {
+    Status NetOptimizerManager::Optimize(NetStructure *structure, NetResource *resource,
+                                         const NetworkConfig &net_config) {
         auto &optimizer_map = NetOptimizerManager::GetNetOptimizerMap();
         std::sort(NetOptimizerManager::GetNetOptimizerSeq().begin(), NetOptimizerManager::GetNetOptimizerSeq().end());
 
@@ -49,7 +50,13 @@ namespace optimizer {
 
     void NetOptimizerManager::RegisterNetOptimizer(NetOptimizer *optimizer, OptPriority prior) {
         if (optimizer && optimizer->Strategy().length() > 0) {
-            auto &optimizer_map                  = NetOptimizerManager::GetNetOptimizerMap();
+            auto &optimizer_map = NetOptimizerManager::GetNetOptimizerMap();
+            if (optimizer_map.find(optimizer->Strategy()) != optimizer_map.end()) {
+                LOGI(
+                    "NetOptimizerManager::RegisterNetOptimizer, register more than once, check if the stategy key is "
+                    "duplicated: %s\n",
+                    optimizer->Strategy().c_str());
+            }
             optimizer_map[optimizer->Strategy()] = std::shared_ptr<NetOptimizer>(optimizer);
             NetOptimizerManager::GetNetOptimizerSeq().push_back(std::make_pair(prior, optimizer->Strategy()));
         }

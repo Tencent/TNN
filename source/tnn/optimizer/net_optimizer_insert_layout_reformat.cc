@@ -31,7 +31,7 @@ namespace TNN_NS {
 
 namespace optimizer {
 
-    // Plast priority: reformat after all fuse and data type reformat
+    // PLAST priority: reformat last
     NetOptimizerRegister<NetOptimizerInsertLayoutReformat> g_net_optimizer_insert_layout_reformat(OptPriority::PLAST);
     static const std::string reformat_name_suffix(DataFormat layout) {
         return std::string("_") + ToString(layout) + "_layout_reformat";

@@ -29,8 +29,8 @@ namespace TNN_NS {
 
 namespace optimizer {
 
-    // Plast priority: reformat after all fuse
-    NetOptimizerRegister<NetOptimizerInsertInt8Reformat> g_net_optimizer_insert_int8_reformat(OptPriority::P2);
+    // P3 priority: reformat before layout reformat
+    NetOptimizerRegister<NetOptimizerInsertInt8Reformat> g_net_optimizer_insert_int8_reformat(OptPriority::P3);
     static const std::string reformat_name_suffix = "_int8_reformat";
 
     std::string NetOptimizerInsertInt8Reformat::Strategy() {

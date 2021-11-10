@@ -40,6 +40,9 @@ static const std::string kNetOptimizerInsertFp16Reformat =
 static const std::string kNetOptimizerInsertLayoutReformat =
     "net_optimizer_insert_layout_reformat";
 
+static const std::string kNetOptimizerInsertLossAndGradient =
+    "net_optimizer_insert_loss_and_gradient";
+
 static const std::string kNetOptimizerRemoveLayers =
     "net_optimizer_remove_layers";
 

@@ -34,11 +34,13 @@ namespace optimizer {
     typedef enum {
         // TOP
         P0 = 0,
-        // MIDDLE
+        // fuse, remove
         P1 = 1,
-        //
+        // loss, gradient
         P2 = 2,
-        // LAST
+        // data type reformat
+        P3 = 3,
+        // data layout reformat
         PLAST = 1000
     } OptPriority;
 

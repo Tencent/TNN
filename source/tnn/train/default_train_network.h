@@ -42,15 +42,13 @@ public:
     virtual Status TrainStep() override;
 
 protected:
-    virtual Status SetTrainLayers(DefaultModelInterpreter *interpreter, std::set<std::string> &need_grad_layers);
-
     virtual Status CreateSolver(const std::set<std::string> &need_grad_layers);
 
     std::shared_ptr<train::BaseSolver> solver_;
 };
 
-} // namespace TNN_NS
+}  // namespace TNN_NS
 
-#endif // TNN_SOURCE_TNN_TRAIN_DEFAULT_TRAIN_NETWORK_H_
+#endif  // TNN_SOURCE_TNN_TRAIN_DEFAULT_TRAIN_NETWORK_H_
 
-#endif // TRAIN
+#endif  // TRAIN
