@@ -51,7 +51,7 @@ Status DefaultTrainNetwork::Init(NetworkConfig &net_config, ModelConfig &model_c
 
 Status DefaultTrainNetwork::TrainStep() {
     if (context_->IsTraining())
-        return solver_->step();
+        return solver_->Step();
     else
         return Status(TNN_TRAIN_ERROR, "not in train mode");
 };

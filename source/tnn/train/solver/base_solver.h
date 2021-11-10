@@ -12,10 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-// author: sanerzheng@tencent.com
+#ifndef TNN_SOURCE_TNN_TRAIN_SOLVER_BASE_SOLVER_H
+#define TNN_SOURCE_TNN_TRAIN_SOLVER_BASE_SOLVER_H
 
-#ifndef TNN_SOURCE_TNN_TRAIN_BASE_SOLVER_SOLVER_H
-#define TNN_SOURCE_TNN_TRAIN_BASE_SOLVER_SOLVER_H
 #include <set>
 #include <string>
 
@@ -24,37 +23,32 @@
 #include "tnn/interpreter/raw_buffer.h"
 #include "tnn/train/grad/grad_manager.h"
 #include "tnn/train/grad/train_context.h"
+
 namespace TNN_NS {
 namespace train {
-class BaseSolver {
-public:
-    BaseSolver(AbstractNetwork *network, NetworkConfig *config) {
-        auto &context   = grad_manager_.GetContext();
-        context.network = network;
-        context.config  = config;
+
+    class BaseSolver {
+    public:
+        BaseSolver(AbstractNetwork *network, NetworkConfig *config);
+
+        ~BaseSolver();
+
+        virtual Status Step();
+
+        void SetNeedGradLayers(const std::set<std::string> &need_grad_layers);
+
+    private:
+        // @brief Update the gradient by learning rate, etc. support different strategies
+        virtual Status ComputeUpdateValue(RawBuffer *param, std::shared_ptr<RawBuffer> &grad) = 0;
+
+        // @brief Update the param by update_value
+        virtual Status UpdateTrainableVariable(RawBuffer *param, const std::shared_ptr<RawBuffer> &update_value);
+
+    private:
+        GradManager grad_manager_;
     };
-    ~BaseSolver(){};
-    Status step();
-    // int CurrentStep() {
-    //     return step_;
-    // };
-    // void SetCurrentStep(int step) {
-    //     step_ = step;
-    // };
-    void SetNeedGradLayers(const std::set<std::string> &need_grad_layers);
 
-public:
-    // @brief 更新参数的梯度值，按现在的框架只有resource里的资源需要做变量的更新
-    virtual Status UpdateTrainableVariable(RawBuffer *resource_param,
-                                           const std::shared_ptr<RawBuffer> &resource_param_grad);
-    virtual Status ComputeUpdateValue(RawBuffer *resource_param, std::shared_ptr<RawBuffer> &resource_param_grad);
+}  // namespace train
+}  // namespace TNN_NS
 
-    GradManager grad_manager_;
-
-private:
-    int step_ = 0;
-};
-
-} // namespace train
-} // namespace TNN_NS
-#endif // TNN_SOURCE_TNN_TRAIN_BASE_SOLVER_SOLVER_H
+#endif  // TNN_SOURCE_TNN_TRAIN_SOLVER_BASE_SOLVER_H
