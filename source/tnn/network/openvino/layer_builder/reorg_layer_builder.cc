@@ -29,6 +29,8 @@
 #include "tnn/extern_wrapper/foreign_blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/network/openvino/openvino_types.h"
+#include "tnn/network/openvino/utils.h"
+#include "tnn/network/openvino/custom_layer/custom_reorg.h"
 
 namespace TNN_NS {
 
@@ -42,25 +44,14 @@ Status ReorgOVLayerBuilder::Build() {
         LOGE("Error: 0 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
-    auto input_node = GetInputNodes()[0];
 
-    ngraph::Strides strides;
-    for (size_t i = 2; i < input_node->get_output_shape(0).size(); i++) {
-        strides.push_back(paramlist->stride);
-    }
-    
-    auto reorgNode = std::make_shared<ngraph::op::ReorgYolo>(
-        input_node->output(0), strides);
-    reorgNode->validate_and_infer_types();
-
-    reorgNode->set_friendly_name(paramlist->name);
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(reorgNode);
-    SetOutputTensors(outputNodes);
+    // custom x86 reorg layer
+    ADD_CUSTOM_NODE(Reorg, paramlist->name);
 
     return TNN_OK;
 }
 
 REGISTER_OPENVINO_LAYER_BUILDER(Reorg, LAYER_REORG);
+REGISTER_CUSTOM_TYPE(LAYER_REORG);
 
 }

@@ -20,7 +20,7 @@ DECLARE_OP_CONVERTER(Transpose);
 
 std::string TFLiteTransposeConverter::TNNOpType(tflite::BuiltinOperator op_code, bool quantized_model) {
     if (quantized_model) {
-        // TODO
+        return "QuantizedPermute";
     }
     return "Permute";
 }
@@ -40,33 +40,39 @@ TNN_NS::Status TFLiteTransposeConverter::exec(TNN_NS::NetStructure& net_structur
     cur_layer->param                 = std::shared_ptr<TNN_NS::LayerParam>(param);
     param->name                      = cur_layer->name;
     param->type                      = cur_layer->type_str;
-    param->quantized                 = false;
+    param->quantized                 = quantized_model;
 
-    if (quantized_model) {
-        // TODO
+    std::vector<int> perm;
+    if (tf_lite_operator->inputs.size() == 2) {
+        const auto& shape_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
+        assert(shape_tensor->type == tflite::TensorType_INT32);
+        int shape_size = 1;
+        for (int i = 0; i < shape_tensor->shape.size(); ++i) {
+            shape_size *= shape_tensor->shape[i];
+        }
+        const auto& shape_data = tf_lite_model_buffer[shape_tensor->buffer]->data;
+        ASSERT(shape_size == shape_data.size() / 4);
+
+        auto shape_data_ptr = reinterpret_cast<const int32_t*>(shape_data.data());
+        perm.assign(shape_data_ptr, shape_data_ptr + shape_size);
     } else {
-        std::vector<int> perm;
-        if (tf_lite_operator->inputs.size() == 2) {
-            const auto& shape_tensor = tf_lite_tensors[tf_lite_operator->inputs[1]];
-            assert(shape_tensor->type == tflite::TensorType_INT32);
-            int shape_size = 1;
-            for (int i = 0; i < shape_tensor->shape.size(); ++i) {
-                shape_size *= shape_tensor->shape[i];
-            }
-            const auto& shape_data = tf_lite_model_buffer[shape_tensor->buffer]->data;
-            ASSERT(shape_size == shape_data.size() / 4);
-
-            auto shape_data_ptr = reinterpret_cast<const int32_t*>(shape_data.data());
-            perm.assign(shape_data_ptr, shape_data_ptr + shape_size);
-        } else {
-            LOGE("TNN Transpose do not support type\n");
-            return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
-        }
-        auto status = ConvertPermFormatTFLite(perm);
-        if (!status) {
-            return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
-        }
-        param->orders = perm;
+        LOGE("TNN Transpose do not support type\n");
+        return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
+    }
+    auto status = ConvertPermFormatTFLite(perm);
+    if (!status) {
+        return TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER;
+    }
+    param->orders = perm;
+    if (quantized_model) {
+       // create input blob scale
+       auto input_index = tf_lite_operator->inputs[0];
+       auto status      = CreateBlobScaleResource(net_resource, tf_lite_tensors, input_index);
+       ASSERT(status == TNN_NS::TNN_CONVERT_OK);
+       // creat output blob scale
+       auto output_index = tf_lite_operator->outputs[0];
+       status            = CreateBlobScaleResource(net_resource, tf_lite_tensors, output_index);
+       ASSERT(status == TNN_NS::TNN_CONVERT_OK);
     }
 
     // set input output index
