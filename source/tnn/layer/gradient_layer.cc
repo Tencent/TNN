@@ -41,7 +41,7 @@ Status GradientLayer::InferOutputShape(bool ignore_error) {
         return Status(TNNERR_LAYER_ERR, "input blob less than output blob");
     }
 
-    for (int i = 0; i < output_blobs_.size(); ++i) {
+    for (int i = 0; i < blob_grad_count; ++i) {
         Blob* forward_input_blob             = input_blobs_[i + grad_index];
         output_blobs_[i]->GetBlobDesc().dims = forward_input_blob->GetBlobDesc().dims;
     }

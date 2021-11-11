@@ -42,8 +42,10 @@ public:
     virtual Status TrainStep() override;
 
 protected:
-    virtual Status CreateSolver(const std::set<std::string> &need_grad_layers);
+    virtual Status UpdateNeedGradLayers();
+    virtual Status UpdateSolver();
 
+    std::set<std::string> need_grad_layers_;
     std::shared_ptr<train::BaseSolver> solver_;
 
     std::map<Blob *, Blob *> forward_blob_to_grad_map;

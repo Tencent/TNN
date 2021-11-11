@@ -37,34 +37,62 @@ Status DefaultTrainNetwork::Init(NetworkConfig &net_config, ModelConfig &model_c
                                enable_const_folder);
     RETURN_ON_NEQ(ret, TNN_OK);
 
+    RETURN_ON_NEQ(UpdateNeedGradLayers(), TNN_OK);
+
+    RETURN_ON_NEQ(UpdateSolver(), TNN_OK);
+
     context_->SetTraining(config_.train_config.run_mode == TRAIN_MODE_TRAIN);
     return TNN_OK;
 }
 
 Status DefaultTrainNetwork::TrainStep() {
-    if (context_->IsTraining()) {
-        if (solver_) {
-            return solver_->Step();
-        } else {
-            LOGE("ERROR: DefaultTrainNetwork::TrainStep, solver is empty\n");
-            return Status(TNN_TRAIN_ERROR, "solver is empty");
-        }
+    if (solver_) {
+        return solver_->Step();
     } else {
-        return Status(TNN_TRAIN_ERROR, "not in train mode");
+        LOGE("ERROR: DefaultTrainNetwork::TrainStep, solver is empty\n");
+        return Status(TNN_TRAIN_ERROR, "solver is empty");
     }
 };
 
-Status DefaultTrainNetwork::CreateSolver(const std::set<std::string> &need_grad_layers) {
-    if (config_.train_config.run_mode != TRAIN_MODE_TRAIN)
-        return TNN_OK;
+Status DefaultTrainNetwork::UpdateNeedGradLayers() {
+    need_grad_layers_.clear();
+    CHECK_PARAM_NULL(net_structure_);
 
+    for (auto layer : net_structure_->layers) {
+        if (layer->type == LAYER_GRADIENT) {
+            GradientParam *param = dynamic_cast<GradientParam *>(layer->param.get());
+            CHECK_PARAM_NULL(param);
+            need_grad_layers_.insert(param->forward_layer_name);
+        }
+    }
+
+    return TNN_OK;
+}
+
+static std::string GetLossBlobName(const NetStructure *structure) {
+    LayerInfo *loss_layer = nullptr;
+    for (auto layer : structure->layers) {
+        if (layer->type == LAYER_GRADIENT) {
+            break;
+        } else {
+            loss_layer = layer.get();
+        }
+    }
+    return loss_layer->outputs[0];
+}
+
+Status DefaultTrainNetwork::UpdateSolver() {
     if (config_.train_config.solver_type == SOLVER_TYPE_SGD) {
         float learning_rate = config_.train_config.solver_params.learning_rate;
+        if (config_.train_config.loss_name.empty()) {
+            config_.train_config.loss_name = GetLossBlobName(net_structure_);
+        }
         solver_             = std::make_shared<train::SGD>(this, &config_, learning_rate);
-        solver_->SetNeedGradLayers(need_grad_layers);
+        solver_->SetNeedGradLayers(need_grad_layers_);
     } else {
         return Status(TNNERR_NET_ERR, "not support slover type in train mode");
     }
+
     return TNN_OK;
 }
 
