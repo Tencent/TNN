@@ -70,8 +70,16 @@ Status PadOVLayerBuilder::Build() {
         padMode = ngraph::op::PadMode::EDGE;
     }
 
-    auto padNode = std::make_shared<ngraph::op::v1::Pad>(
-        input_node->output(0), pad_begin, pad_end, padMode);
+    std::shared_ptr<ngraph::Node> padNode;
+    if (padMode == ngraph::op::PadMode::CONSTANT) {
+        auto valueNode = ngraph::op::Constant::create(
+            ngraph::element::Type_t::f32, ngraph::Shape(), {paramlist->value});
+        padNode = std::make_shared<ngraph::op::v1::Pad>(
+            input_node->output(0), pad_begin, pad_end, valueNode, padMode);
+    } else {
+        padNode = std::make_shared<ngraph::op::v1::Pad>(
+            input_node->output(0), pad_begin, pad_end, padMode);
+    }
 
     padNode->validate_and_infer_types();
     padNode->set_friendly_name(paramlist->name);
