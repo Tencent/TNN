@@ -85,15 +85,15 @@ TNNEngine::TNNEngine(std::vector<std::string> &serialize) {
     ModelConfig model_config;
     Status status;
 
-    model_config.params.emplace_back(serialize[0]);
-    model_config.params.emplace_back(serialize[1]);
+    model_config.params.emplace_back(serialize[PROTO_IDX]);
+    model_config.params.emplace_back(serialize[MODEL_IDX]);
 
-    input_names = Deserialize(serialize[2]);
-    output_names = Deserialize(serialize[3]);
+    input_names = Deserialize(serialize[INPUT_NAME_IDX]);
+    output_names = Deserialize(serialize[OUTPUT_NAME_IDX]);
 
     auto get_input_shape = [&](const std::string shape_str) {
         InputShapesMap input_shape;
-        std::vector<std::string> input_shapes_vec = Deserialize(serialize[4]);
+        std::vector<std::string> input_shapes_vec = Deserialize(shape_str);
         for (size_t i = 0; i < input_names.size(); i++) {
             DimsVector dims;
             auto input_shape_s = Deserialize(input_shapes_vec[i], TORCH_INT_DELIM);
@@ -105,30 +105,31 @@ TNNEngine::TNNEngine(std::vector<std::string> &serialize) {
         return input_shape;
     };
 
-    InputShapesMap min_input_shape = get_input_shape(serialize[4]);
-    InputShapesMap max_input_shape = get_input_shape(serialize[5]);
+    InputShapesMap min_input_shape = get_input_shape(serialize[MIN_SHAPE_IDX]);
+    InputShapesMap max_input_shape = get_input_shape(serialize[MAX_SHAPE_IDX]);
 
-    auto config_vec = Deserialize(serialize[6]);
+    auto config_vec = Deserialize(serialize[CONFIG_IDX]);
     network_config.device_type = static_cast<DeviceType>(std::stoi(config_vec[0]));
     network_config.device_id = std::stoi(config_vec[1]);
     network_config.precision = static_cast<Precision>(std::stoi(config_vec[2]));
     network_config.share_memory_mode = static_cast<ShareMemoryMode>(std::stoi(config_vec[3]));
 
-    model_config.params.emplace_back(serialize[7]);
     auto interpreter = CreateModelInterpreter(MODEL_TYPE_TNN);
     auto interpreter_ptr = std::shared_ptr<AbstractModelInterpreter>(interpreter);
     interpreter_ptr->Interpret(model_config.params);
-    dynamic_cast<ModelInterpreter *>(interpreter_ptr.get())->SetCache(serialize[7]);
+    dynamic_cast<ModelInterpreter *>(interpreter_ptr.get())->SetCache(serialize[CACHE_IDX]);
     model_config.params.clear();
 
     instance_ = std::make_shared<Instance>(network_config, model_config);
 
-    instance_->Init(interpreter_ptr, min_input_shape, max_input_shape);
-    // TNN net;
-    // net.Init(model_config);
-    // instance_ = net.CreateInst(network_config, status, min_input_shape, max_input_shape);
-
-    is_init_ = true;
+    if (min_input_shape.size() == 0 && max_input_shape.size() == 0) {
+        ctx_->set_interpreter(interpreter_ptr);
+    } else {
+        dynamic_cast<ModelInterpreter *>(interpreter)->GetNetStructure()->inputs_shape_map = max_input_shape;
+        instance_->Init(interpreter_ptr, min_input_shape, max_input_shape);
+        is_init_ = true;
+    }
+    network_config_ = network_config;
 
 }
 

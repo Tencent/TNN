@@ -175,7 +175,8 @@ static auto TNNEngineTSRegistrtion =
             contents.emplace_back(config_s);
 
             std::string cache_str;
-            dynamic_cast<ModelInterpreter *>(self->instance_->GetInterpreter().get())->GetCache(cache_str);
+            if (self->is_init_)
+                dynamic_cast<ModelInterpreter *>(self->instance_->GetInterpreter().get())->GetCache(cache_str);
             contents.emplace_back(cache_str);
 
             return contents;

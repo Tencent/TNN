@@ -21,8 +21,20 @@
 namespace TNN_NS{
 namespace runtime {
 
-const std::string TORCH_DELIM = "%";
+const std::string TORCH_DELIM     = "%";
 const std::string TORCH_INT_DELIM = ",";
+
+typedef enum { 
+    PROTO_IDX = 0,
+    MODEL_IDX,
+    INPUT_NAME_IDX,
+    OUTPUT_NAME_IDX,
+    MIN_SHAPE_IDX,
+    MAX_SHAPE_IDX,
+    CONFIG_IDX,
+    CACHE_IDX,
+    ENDING_IDX
+} SerializedInfoIndex;
 
 template <typename T>
 inline std::string Serialize(std::vector<T> contents, const std::string delim = TORCH_DELIM) {
@@ -64,6 +76,9 @@ public:
     const torch::jit::Node* lookupVar(std::string name) const;
     std::shared_ptr<AbstractModelInterpreter> get_interpreter() {
         return interpreter_;
+    };
+    void set_interpreter(std::shared_ptr<AbstractModelInterpreter> interpreter) {
+        interpreter_ = interpreter;
     };
 private:
     std::map<std::string, const torch::jit::Node*> varTable;
