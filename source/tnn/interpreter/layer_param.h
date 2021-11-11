@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "tnn/core/common.h"
+#include "tnn/core/layer_type.h"
 
 namespace TNN_NS {
 
@@ -49,7 +50,7 @@ struct LayerParam {
     bool quantized = false;
     // weight data size for ncnn param
     size_t weight_data_size = 0;
-    bool trainable = false;
+    bool trainable          = false;
 
     PARAM_COPY(LayerParam)
 };
@@ -392,7 +393,6 @@ struct ElementWiseLayerParam : public LayerParam {
     PARAM_COPY(ElementWiseLayerParam)
 };
 
-
 typedef enum {
     // unknown or decided by runtime
     BroadcastTypeUnknown = -1,
@@ -691,6 +691,14 @@ struct LogSoftmaxLayerParam : public LayerParam {
     int axis = 1;
 
     PARAM_COPY(LogSoftmaxLayerParam)
+};
+
+struct GradientParam : public LayerParam {
+    LayerType forward_type;
+    std::string forward_layer_name;
+    LayerParam* forward_param;
+
+    PARAM_COPY(GradientParam)
 };
 
 };  // namespace TNN_NS

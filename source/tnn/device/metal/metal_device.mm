@@ -166,7 +166,7 @@ Context *MetalDevice::CreateContext(int device_id) {
     return new MetalContext();
 }
 
-std::shared_ptr<const ImplementedLayout> MetalDevice::GetImplementedLayout(LayerType type) {
+std::shared_ptr<const ImplementedLayout> MetalDevice::GetImplementedLayout(LayerType type, LayerType) {
     auto &layer_layout_map = GetLayerLayoutMap();
     if (layer_layout_map.count(type) > 0) {
         return layer_layout_map[type];

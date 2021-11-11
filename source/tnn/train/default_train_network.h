@@ -45,6 +45,9 @@ protected:
     virtual Status CreateSolver(const std::set<std::string> &need_grad_layers);
 
     std::shared_ptr<train::BaseSolver> solver_;
+
+    std::map<Blob *, Blob *> forward_blob_to_grad_map;
+    std::map<RawBuffer *, Blob *> resource_to_grad_map;
 };
 
 }  // namespace TNN_NS

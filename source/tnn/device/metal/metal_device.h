@@ -42,7 +42,7 @@ public:
     virtual Context* CreateContext(int device_id);
     
     // @brief get implemented layouts on the device by layer type
-    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type);
+    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type, LayerType);
 
     virtual NetworkType ConvertAutoNetworkType();
 

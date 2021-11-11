@@ -44,7 +44,7 @@ std::shared_ptr<const ImplementedPrecision> AbstractDevice::GetImplementedPrecis
     return std::make_shared<ImplementedPrecision>();
 }
 
-std::shared_ptr<const ImplementedLayout> AbstractDevice::GetImplementedLayout(LayerType type) {
+std::shared_ptr<const ImplementedLayout> AbstractDevice::GetImplementedLayout(LayerType type, LayerType) {
     return std::make_shared<ImplementedLayout>();
 }
 

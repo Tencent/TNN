@@ -25,19 +25,39 @@
 namespace TNN_NS {
 
 typedef std::map<std::string, DimsVector> BlobShapesMap;
-typedef std::map<std::string, std::shared_ptr<RawBuffer> > ConstantResource;
-typedef std::map<std::string, int > ConstantResourceFlag;
+typedef std::map<std::string, std::shared_ptr<RawBuffer>> ConstantResource;
+typedef std::map<std::string, int> ConstantResourceFlag;
 
 struct LayerResource {
     std::string name = "";
     // default virtual destructor
     virtual ~LayerResource(){};
 
-    virtual void SetTrainable(bool trainable) {};
+    virtual std::vector<DimsVector> GetTrainableDims() {
+        return {};
+    }
+    virtual void SetTrainable(bool trainable) {}
 };
 
 // @brief conv layer filter format
 typedef enum { OIHW = 0, IHWO = 1, OIDHW = 2 } ConvLayerFilterFormat;
+
+#define TRAINABLE_BUFFER_1(buf1)                                                                                       \
+    virtual std::vector<DimsVector> GetTrainableDims() {                                                               \
+        return std::vector<DimsVector>{buf1.GetBufferDims()};                                                          \
+    }                                                                                                                  \
+    virtual void SetTrainable(bool trainable) {                                                                        \
+        buf1.SetTrainable(trainable);                                                                                  \
+    }
+
+#define TRAINABLE_BUFFER_2(buf1, buf2)                                                                                 \
+    virtual std::vector<DimsVector> GetTrainableDims() {                                                               \
+        return std::vector<DimsVector>{buf1.GetBufferDims(), buf2.GetBufferDims()};                                    \
+    }                                                                                                                  \
+    virtual void SetTrainable(bool trainable) {                                                                        \
+        buf1.SetTrainable(trainable);                                                                                  \
+        buf2.SetTrainable(trainable);                                                                                  \
+    }
 
 // @brief ConvLayerResource different device holds different handle
 struct ConvLayerResource : public LayerResource {
@@ -55,10 +75,7 @@ struct ConvLayerResource : public LayerResource {
     RawBuffer scale_handle;
     RawBuffer scale_bias_handle;
 
-    virtual void SetTrainable(bool trainable){
-        bias_handle.SetTrainable(trainable);
-        filter_handle.SetTrainable(trainable);
-    };
+    TRAINABLE_BUFFER_2(filter_handle, bias_handle)
 };
 
 struct BatchNormLayerResource : public LayerResource {
@@ -68,9 +85,7 @@ struct BatchNormLayerResource : public LayerResource {
     // bn b buffer
     RawBuffer bias_handle;
 
-    virtual void SetTrainable(bool trainable){
-        bias_handle.SetTrainable(trainable); 
-    };
+    TRAINABLE_BUFFER_1(bias_handle)
 };
 
 struct InstanceNormLayerResource : public BatchNormLayerResource {};
@@ -81,9 +96,7 @@ struct EltwiseLayerResource : public LayerResource {
 
     std::vector<int> element_shape;
 
-    virtual void SetTrainable(bool trainable){
-        element_handle.SetTrainable(trainable);
-    };
+    TRAINABLE_BUFFER_1(element_handle)
 };
 
 struct InnerProductLayerResource : public LayerResource {
@@ -97,19 +110,14 @@ struct InnerProductLayerResource : public LayerResource {
     RawBuffer scale_handle;
     RawBuffer scale_bias_handle;
 
-    virtual void SetTrainable(bool trainable){
-        bias_handle.SetTrainable(trainable);
-        weight_handle.SetTrainable(trainable);
-    };
+    TRAINABLE_BUFFER_2(weight_handle, bias_handle)
 };
 
 struct PReluLayerResource : public LayerResource {
     // slope
     RawBuffer slope_handle;
 
-    virtual void SetTrainable(bool trainable){
-        slope_handle.SetTrainable(trainable);
-    };
+    TRAINABLE_BUFFER_1(slope_handle)
 };
 
 struct IntScaleResource : public LayerResource {
@@ -120,10 +128,7 @@ struct IntScaleResource : public LayerResource {
     // bias buffer
     RawBuffer bias_handle;
 
-    virtual void SetTrainable(bool trainable){
-        bias_handle.SetTrainable(trainable);
-        scale_handle.SetTrainable(trainable);
-    };
+    TRAINABLE_BUFFER_2(scale_handle, bias_handle)
 };
 
 // @brief HdrGuideLayerResource different device holds different handle
@@ -140,24 +145,13 @@ struct HdrGuideLayerResource : public LayerResource {
     RawBuffer projection_weight_handle;
     // projection bias
     RawBuffer projection_bias_handle;
-
-    virtual void SetTrainable(bool trainable){
-        ccm_weight_handle.SetTrainable(trainable);
-        ccm_bias_handle.SetTrainable(trainable);
-        shifts_handle.SetTrainable(trainable);
-        slopes_handle.SetTrainable(trainable);
-        projection_weight_handle.SetTrainable(trainable);
-        projection_bias_handle.SetTrainable(trainable);
-    };
 };
 
 struct ConstLayerResource : public LayerResource {
     // const weights
     RawBuffer weight_handle;
 
-    virtual void SetTrainable(bool trainable){
-        weight_handle.SetTrainable(trainable);
-    }
+    TRAINABLE_BUFFER_1(weight_handle)
 };
 
 struct DetectionPostProcessLayerResource : public LayerResource {
@@ -180,40 +174,39 @@ struct ScatterElementsLayerResource : public LayerResource {
 };
 
 struct GatherLayerResource : public LayerResource {
-    //RawBuffer has dims
+    // RawBuffer has dims
     RawBuffer data;
     RawBuffer indices;
 };
 
 struct ConstantOfShapeLayerResource : public LayerResource {
-    //RawBuffer has dims
+    // RawBuffer has dims
     RawBuffer value;
 };
 
 struct SqueezeLayerResource : public LayerResource {
     std::vector<int> data_dims;
     RawBuffer data;
-    virtual void SetTrainable(bool trainable){
-        data.SetTrainable(trainable);
-    }
+
+    TRAINABLE_BUFFER_1(data)
 };
 
 struct UnsqueezeLayerResource : public SqueezeLayerResource {};
 
 struct MatMulLayerResource : public LayerResource {
     RawBuffer weight;
-    virtual void SetTrainable(bool trainable){
-        weight.SetTrainable(trainable);
-    }
+
+    TRAINABLE_BUFFER_1(weight)
 };
 
 struct BiasAddLayerResource : public LayerResource {
     RawBuffer bias_handle;
-    virtual void SetTrainable(bool trainable){
-        bias_handle.SetTrainable(trainable);
-    }
+
+    TRAINABLE_BUFFER_1(bias_handle)
 };
 
+#undef TRAINABLE_BUFFER_1
+#undef TRAINABLE_BUFFER_2
 
 }  // namespace TNN_NS
 

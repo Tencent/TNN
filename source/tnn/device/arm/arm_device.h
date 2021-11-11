@@ -49,7 +49,7 @@ public:
 
     virtual NetworkType ConvertAutoNetworkType();
 
-    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type);
+    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type, LayerType forward_type);
 
     static Status RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator);
 
@@ -57,11 +57,14 @@ public:
 
     static Status RegisterLayerLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout);
 
+    static Status RegisterGradLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout);
+
 private:
     BlobMemorySizeInfo Calculate1DMemorySize(BlobDesc& desc);
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>>& GetLayerCreatorMap();
     static std::map<LayerType, std::shared_ptr<ImplementedPrecision>>& GetLayerPrecisionMap();
     static std::map<LayerType, std::shared_ptr<ImplementedLayout>>& GetLayerLayoutMap();
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>>& GetGradLayoutMap();
 };
 
 //@brief ArmTypeLayerAccRegister register ArmTypeLayerAccCreator
@@ -84,6 +87,13 @@ class ArmTypeLayerLayoutRegister {
 public:
     explicit ArmTypeLayerLayoutRegister(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
         ArmDevice::RegisterLayerLayout(type, layout);
+    }
+};
+
+class ArmGradLayerLayoutRegister {
+public:
+    explicit ArmGradLayerLayoutRegister(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+        ArmDevice::RegisterGradLayout(type, layout);
     }
 };
 

@@ -51,9 +51,11 @@ BlobMemorySizeInfo ArmDevice::Calculate1DMemorySize(BlobDesc &desc) {
     } else {
         // packed format
         if (desc.data_type == DATA_TYPE_HALF) {
-            count = DimsFunctionUtils::GetDim(desc.dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(desc.dims, 1), 8) * DimsVectorUtils::Count(desc.dims, 2);
+            count = DimsFunctionUtils::GetDim(desc.dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(desc.dims, 1), 8) *
+                    DimsVectorUtils::Count(desc.dims, 2);
         } else {
-            count = DimsFunctionUtils::GetDim(desc.dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(desc.dims, 1), 4) * DimsVectorUtils::Count(desc.dims, 2);
+            count = DimsFunctionUtils::GetDim(desc.dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(desc.dims, 1), 4) *
+                    DimsVectorUtils::Count(desc.dims, 2);
         }
     }
     info.dims.push_back(count);
@@ -96,7 +98,7 @@ Status ArmDevice::Allocate(void **handle, BlobMemorySizeInfo &size_info) {
 }
 
 Status ArmDevice::Allocate(BlobHandle *handle, BlobMemorySizeInfo &size_info) {
-    void* data = nullptr;
+    void *data = nullptr;
 
     // arm alloc extra 64 bypes for load(see NEON_KERNEL_EXTRA_LOAD)
     auto status = Allocate(&data, size_info);
@@ -154,7 +156,15 @@ NetworkType ArmDevice::ConvertAutoNetworkType() {
     return NETWORK_TYPE_DEFAULT;
 }
 
-std::shared_ptr<const ImplementedLayout> ArmDevice::GetImplementedLayout(LayerType type) {
+std::shared_ptr<const ImplementedLayout> ArmDevice::GetImplementedLayout(LayerType type, LayerType forward_type) {
+    if (type == LAYER_GRADIENT) {
+        auto &grad_layout_map = GetGradLayoutMap();
+        if (grad_layout_map.count(forward_type) > 0) {
+            return grad_layout_map[forward_type];
+        } else {
+            LOGD("ArmDevice::GetImplementedLayout, empty gradient layouts of %d\n", forward_type);
+        }
+    }
     auto &layer_layout_map = GetLayerLayoutMap();
     if (layer_layout_map.count(type) > 0) {
         return layer_layout_map[type];
@@ -186,6 +196,11 @@ Status ArmDevice::RegisterLayerLayout(LayerType type, std::shared_ptr<Implemente
     return TNN_OK;
 }
 
+Status ArmDevice::RegisterGradLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+    GetGradLayoutMap()[type] = layout;
+    return TNN_OK;
+}
+
 std::map<LayerType, std::shared_ptr<ImplementedPrecision>> &ArmDevice::GetLayerPrecisionMap() {
     static std::map<LayerType, std::shared_ptr<ImplementedPrecision>> layer_precision_map;
     return layer_precision_map;
@@ -194,6 +209,11 @@ std::map<LayerType, std::shared_ptr<ImplementedPrecision>> &ArmDevice::GetLayerP
 std::map<LayerType, std::shared_ptr<ImplementedLayout>> &ArmDevice::GetLayerLayoutMap() {
     static std::map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
     return layer_layout_map;
+}
+
+std::map<LayerType, std::shared_ptr<ImplementedLayout>> &ArmDevice::GetGradLayoutMap() {
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>> grad_layout_map;
+    return grad_layout_map;
 }
 
 TypeDeviceRegister<ArmDevice> g_arm_device_register(DEVICE_ARM);

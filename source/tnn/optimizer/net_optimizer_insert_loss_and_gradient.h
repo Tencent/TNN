@@ -39,8 +39,12 @@ namespace optimizer {
         Status InsertLossLayer(NetStructure* net_structure);
         std::shared_ptr<LayerInfo> GetTargetLayer(NetStructure* net_structure);
         std::shared_ptr<LayerInfo> GetOrCreateProbability(std::shared_ptr<LayerInfo> last_layer);
-        std::shared_ptr<LayerInfo> CreateCrossEntropy(std::string name);
-        std::shared_ptr<LayerInfo> CreateReduceMean(std::string name);
+        std::shared_ptr<LayerInfo> CreateCrossEntropy(const std::string& name);
+        std::shared_ptr<LayerInfo> CreateReduceMean(const std::string& name);
+
+        Status InsertGradientLayers(NetStructure* net_structure, NetResource* net_resource);
+        Status GetNeedGradLayers(NetStructure* net_structure, std::set<std::string>& need_grad_layers);
+        std::shared_ptr<LayerInfo> CreateGradient(LayerInfo* forward_layer);
 
         TrainConfig train_config;
     };

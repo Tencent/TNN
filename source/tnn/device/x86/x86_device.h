@@ -42,7 +42,7 @@ public:
 
     virtual Status Free(void* handle);
 
-    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type);
+    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type, LayerType);
 
     virtual Status CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobDesc& desc,
                                 void* command_queue);

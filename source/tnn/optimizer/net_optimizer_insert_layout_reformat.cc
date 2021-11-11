@@ -119,12 +119,21 @@ namespace optimizer {
     }
 
     // metal and opencl may use adaptor layer to fall back computing on arm
-    std::shared_ptr<const ImplementedLayout> NetOptimizerInsertLayoutReformat::GetLayoutsByLayerType(LayerType type) {
-        auto device_layouts = device_->GetImplementedLayout(type);
+    std::shared_ptr<const ImplementedLayout> NetOptimizerInsertLayoutReformat::GetLayoutsByLayerType(LayerInfo *layer) {
+        LayerType forward_type = layer->type;
+        if (layer->type == LAYER_GRADIENT) {
+            auto param = dynamic_cast<GradientParam *>(layer->param.get());
+            if (!param) {
+                LOGE("NetOptimizerInsertLayoutReformat Error: empty param of gradient layer\n");
+                return nullptr;
+            }
+            forward_type = param->forward_type;
+        }
+        auto device_layouts = device_->GetImplementedLayout(layer->type, forward_type);
         if (!device_layouts || device_layouts->layouts.size() < 1) {
-            auto adaptor_device_layouts = adaptor_device_->GetImplementedLayout(type);
+            auto adaptor_device_layouts = adaptor_device_->GetImplementedLayout(layer->type, forward_type);
             if (!adaptor_device_layouts || adaptor_device_layouts->layouts.size() < 1) {
-                LOGE("NetOptimizerInsertLayoutReformat Error: empty adaptor device layouts of %d\n", type);
+                LOGE("NetOptimizerInsertLayoutReformat Error: empty adaptor device layouts of %d\n", layer->type);
                 return std::make_shared<ImplementedLayout>();
             } else {
                 return GetAdaptorLayouts(device_->GetDeviceType());
@@ -171,7 +180,7 @@ namespace optimizer {
                 for (const auto &layer_input : cur_layer->inputs) {
                     if (layer_input == model_input) {
                         // get implemented layouts
-                        auto implemented_layouts = GetLayoutsByLayerType(cur_layer->type);
+                        auto implemented_layouts = GetLayoutsByLayerType(cur_layer.get());
                         if (!implemented_layouts || implemented_layouts->layouts.size() < 1) {
                             LOGE("NetOptimizerInsertLayoutReformat Error: empty implemented_layouts of layer %d\n",
                                  cur_layer->type);
@@ -241,7 +250,7 @@ namespace optimizer {
                     if (constant_layers.count(next_layer->name) > 0) {
                         continue;
                     }
-                    auto next_layer_layouts = GetLayoutsByLayerType(next_layer->type);
+                    auto next_layer_layouts = GetLayoutsByLayerType(next_layer.get());
                     if (!next_layer_layouts || next_layer_layouts->layouts.size() < 1) {
                         LOGE("NetOptimizerInsertLayoutReformat Error: empty implemented_layouts of layer %d\n",
                              next_layer->type);
@@ -358,7 +367,7 @@ namespace optimizer {
                 auto next_layer = layers_orig[next_id];
                 if (constant_layers.count(next_layer->name) > 0)
                     continue;
-                auto next_layer_layouts = GetLayoutsByLayerType(next_layer->type);
+                auto next_layer_layouts = GetLayoutsByLayerType(next_layer.get());
                 for (auto &next_in : next_layer->inputs) {
                     // only use reformat out when cur_layer_layout not supported
                     if (next_in == cur_out &&

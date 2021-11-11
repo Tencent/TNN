@@ -42,7 +42,7 @@ namespace optimizer {
                            const int index, const int count);
 
     private:
-        std::shared_ptr<const ImplementedLayout> GetLayoutsByLayerType(LayerType type);
+        std::shared_ptr<const ImplementedLayout> GetLayoutsByLayerType(LayerInfo* layer);
 
         AbstractDevice* device_;
         AbstractDevice* adaptor_device_;

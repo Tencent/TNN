@@ -211,7 +211,7 @@ AbstractLayerAcc* OpenCLDevice::CreateLayerAcc(LayerType type) {
     }
 }
 
-std::shared_ptr<const ImplementedLayout> OpenCLDevice::GetImplementedLayout(LayerType type) {
+std::shared_ptr<const ImplementedLayout> OpenCLDevice::GetImplementedLayout(LayerType type, LayerType) {
     auto &layer_layout_map = GetLayerLayoutMap();
     if (layer_layout_map.count(type) > 0) {
         return layer_layout_map[type];

@@ -90,7 +90,8 @@ public:
     virtual std::shared_ptr<const ImplementedPrecision> GetImplementedPrecision(LayerType type);
 
     // @brief get implemented layouts on the device by layer type
-    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type);
+    // if type is gradient layer, check its forward type
+    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type, LayerType forward_type);
 
     // @brief get factory device type
     DeviceType GetDeviceType();

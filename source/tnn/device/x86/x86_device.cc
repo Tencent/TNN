@@ -75,7 +75,7 @@ Status X86Device::Free(void* handle) {
     return TNN_OK;
 }
 
-std::shared_ptr<const ImplementedLayout> X86Device::GetImplementedLayout(LayerType type) {
+std::shared_ptr<const ImplementedLayout> X86Device::GetImplementedLayout(LayerType type, LayerType) {
     auto layouts = new ImplementedLayout();
     layouts->layouts.push_back(DATA_FORMAT_NCHW);
     return std::shared_ptr<ImplementedLayout>(layouts);

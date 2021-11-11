@@ -151,6 +151,16 @@ static inline bool IsLayoutReformatLayer(std::shared_ptr<LayerInfo> layer) {
     return false;
 }
 
+static inline std::string GetResourceKey(const std::string &layer_name, LayerInfo *info) {
+    if (info->type == LAYER_GRADIENT) {
+        GradientParam* grad_param = dynamic_cast<GradientParam*>(info->param.get());
+        if (grad_param) {
+            return grad_param->forward_layer_name;
+        }
+    }
+    return layer_name;
+}
+
 /*
  * InitLayer function does the following things:
  *  1. Set Blob type accordingly.
@@ -236,8 +246,10 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
                 net_resource->resource_map[layer_name] = std::shared_ptr<LayerResource>(layer_res);
             }
 
-            cur_layer->InferShapeAhead(inputs, outputs_for_shape, layer_info->param.get(),
-                                       net_resource->resource_map[layer_name].get());
+            if (type != LAYER_GRADIENT) {
+                cur_layer->InferShapeAhead(inputs, outputs_for_shape, layer_info->param.get(),
+                                        net_resource->resource_map[layer_name].get());
+            }
 
             delete cur_layer;
         }
@@ -313,8 +325,9 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         }
 
         LayerResource *layer_resource = nullptr;
-        if (net_resource->resource_map.count(layer_name) != 0) {
-            layer_resource = net_resource->resource_map[layer_name].get();
+        auto resource_key = GetResourceKey(layer_name, layer_info.get());
+        if (net_resource->resource_map.count(resource_key) != 0) {
+            layer_resource = net_resource->resource_map[resource_key].get();
         }
         
         cur_layer->SetRuntimeMode(runtime_model_);

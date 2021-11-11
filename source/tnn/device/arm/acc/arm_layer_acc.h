@@ -148,12 +148,13 @@ public:
 #define REGISTER_ARM_PRECISION_FP16(layer_type)
 #endif  // TNN_ARM82
 
-class ArmTypeLayerLayoutCreator {
+class ArmLayerLayoutCreator {
 public:
-    static std::shared_ptr<ImplementedLayout> UpdateImplementedLayout(LayerType layer_type, DataFormat layout) {
+    static std::shared_ptr<ImplementedLayout> UpdateImplementedLayout(LayerType layer_type, LayerType forward_type,
+                                                                      DataFormat layout) {
         // make sure arm device has been registered
         TypeDeviceRegister<ArmDevice> arm_device_register(DEVICE_ARM);
-        auto implemented_layout = GetDevice(DEVICE_ARM)->GetImplementedLayout(layer_type);
+        auto implemented_layout = GetDevice(DEVICE_ARM)->GetImplementedLayout(layer_type, forward_type);
         auto updated_layout     = std::make_shared<ImplementedLayout>(*implemented_layout);
         updated_layout->layouts.push_back(layout);
         return updated_layout;
@@ -163,7 +164,11 @@ public:
 // DATA_FORMAT_NC4HW4 represents packed layouts for both fp32 and fp16
 #define REGISTER_ARM_LAYOUT(layer_type, layout)                                                                        \
     ArmTypeLayerLayoutRegister g_arm_##layer_type##_##layout##_layout_register(                                        \
-        layer_type, ArmTypeLayerLayoutCreator::UpdateImplementedLayout(layer_type, layout));
+        layer_type, ArmLayerLayoutCreator::UpdateImplementedLayout(layer_type, layer_type, layout));
+
+#define REGISTER_ARM_GRAD_LAYOUT(layer_type, layout)                                                                   \
+    ArmGradLayerLayoutRegister g_arm_##layer_type##_##layout##_grad_layout_register(                                   \
+        layer_type, ArmLayerLayoutCreator::UpdateImplementedLayout(LAYER_GRADIENT, layer_type, layout));
 
 }  // namespace TNN_NS
 

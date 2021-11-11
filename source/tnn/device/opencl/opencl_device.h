@@ -46,7 +46,7 @@ public:
     virtual NetworkType ConvertAutoNetworkType();
     
     // @brief get implemented layouts on the device by layer type
-    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type);
+    virtual std::shared_ptr<const ImplementedLayout> GetImplementedLayout(LayerType type, LayerType);
 
     static Status RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator);
 
