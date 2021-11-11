@@ -34,7 +34,9 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
     auto net_resource  = interpreter->GetNetResource();
 
     auto g = block.g();
+#ifdef SAVE_CACHE_FILE
     interpreter->InterpretMd5(g->toString(false));
+#endif
 
     // set input shape
     InputShapesMap inputs_shape_map;

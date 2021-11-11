@@ -1,6 +1,7 @@
 #include "tnn/network/torch/torch_tnn_runtime.h"
 #include "torch/custom_class.h"
 #include "tnn/core/tnn.h"
+#include "tnn/interpreter/tnn/model_interpreter.h"
 
 namespace TNN_NS {
 namespace runtime {
@@ -113,9 +114,19 @@ TNNEngine::TNNEngine(std::vector<std::string> &serialize) {
     network_config.precision = static_cast<Precision>(std::stoi(config_vec[2]));
     network_config.share_memory_mode = static_cast<ShareMemoryMode>(std::stoi(config_vec[3]));
 
-    TNN net;
-    net.Init(model_config);
-    instance_ = net.CreateInst(network_config, status, min_input_shape, max_input_shape);
+    model_config.params.emplace_back(serialize[7]);
+    auto interpreter = CreateModelInterpreter(MODEL_TYPE_TNN);
+    auto interpreter_ptr = std::shared_ptr<AbstractModelInterpreter>(interpreter);
+    interpreter_ptr->Interpret(model_config.params);
+    dynamic_cast<ModelInterpreter *>(interpreter_ptr.get())->SetCache(serialize[7]);
+    model_config.params.clear();
+
+    instance_ = std::make_shared<Instance>(network_config, model_config);
+
+    instance_->Init(interpreter_ptr, min_input_shape, max_input_shape);
+    // TNN net;
+    // net.Init(model_config);
+    // instance_ = net.CreateInst(network_config, status, min_input_shape, max_input_shape);
 
     is_init_ = true;
 

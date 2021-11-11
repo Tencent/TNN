@@ -49,7 +49,7 @@ std::shared_ptr<Deserializer> ModelInterpreter::GetDeserializer(std::istream &is
 ModelInterpreter::ModelInterpreter() {}
 
 ModelInterpreter::ModelInterpreter(const ModelInterpreter &interp) {
-    this->version_magic_number = interp.version_magic_number;
+    this->version_magic_number_ = interp.version_magic_number_;
 
     if (nullptr != this->net_structure_) {
         delete this->net_structure_;
@@ -64,6 +64,8 @@ ModelInterpreter::ModelInterpreter(const ModelInterpreter &interp) {
     *(this->net_resource_) = *interp.net_resource_;
 
     this->params_md5_ = interp.params_md5_;
+
+    this->cache_buf_ = interp.cache_buf_;
 }
 
 ModelInterpreter &ModelInterpreter::operator=(ModelInterpreter interp) {
@@ -71,7 +73,7 @@ ModelInterpreter &ModelInterpreter::operator=(ModelInterpreter interp) {
         return *this;
     }
 
-    this->version_magic_number = interp.version_magic_number;
+    this->version_magic_number_ = interp.version_magic_number_;
 
     if (nullptr != this->net_structure_) {
         delete this->net_structure_;
@@ -85,6 +87,8 @@ ModelInterpreter &ModelInterpreter::operator=(ModelInterpreter interp) {
     *(this->net_resource_) = *interp.net_resource_;
 
     this->params_md5_ = interp.params_md5_;
+
+    this->cache_buf_ = interp.cache_buf_;
 
     return *this;
 }
@@ -161,7 +165,7 @@ Status ModelInterpreter::InterpretProto(std::string &content) {
             return ret;
         }
         if (cfg_line0.size() >= 4) {
-            this->version_magic_number = atoll(cfg_line0[3].c_str());
+            this->version_magic_number_ = atoll(cfg_line0[3].c_str());
         }
     }
 
@@ -197,7 +201,7 @@ Status ModelInterpreter::InterpretInput(const std::string &inputs_content) {
     if (ret != TNN_OK) {
         return Status(TNNERR_INVALID_NETCFG, "split input line error");
     }
-    if (this->version_magic_number == g_version_magic_number) {
+    if (this->version_magic_number_ == g_version_magic_number) {
         /*
          * input list is separated by : symbol
          * eg:
@@ -216,7 +220,7 @@ Status ModelInterpreter::InterpretInput(const std::string &inputs_content) {
                 input_shape.push_back(atoi(input_cfg_vec[dim_i].c_str()));
             }
         }
-    } else if (this->version_magic_number == g_version_magic_number_v2) {
+    } else if (this->version_magic_number_ == g_version_magic_number_v2) {
         /* new tnn input format
          * input list is separated by : symbol
          * eg:
@@ -416,6 +420,16 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
     }
     net_resource->constant_map = const_map;
 
+    return TNN_OK;
+}
+
+Status ModelInterpreter::SetCache(std::string &cache) {
+    cache_buf_ = cache;
+    return TNN_OK;
+}
+
+Status ModelInterpreter::GetCache(std::string &cache) {
+    cache = cache_buf_;
     return TNN_OK;
 }
 

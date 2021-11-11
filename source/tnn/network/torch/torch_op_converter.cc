@@ -752,6 +752,7 @@ public:
 REGISTER_TORCH_OP_CONVERTER(Conv2D, aten, conv2d)
 REGISTER_TORCH_OP_CONVERTER(_Conv, aten, _convolution)
 REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
+REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
 REGISTER_TORCH_OP_CONVERTER(AvgPool, aten, avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, adaptive_avg_pool2d)

@@ -119,6 +119,9 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
         #endif
 
         RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape, max_inputs_shape));
+
+        // module_.save("opt.ts");
+        // auto tmp_mod = torch::jit::load("opt.ts");
         init_done_ = true;
     }
 

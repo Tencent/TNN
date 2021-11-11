@@ -23,6 +23,7 @@
 
 #include "c10/cuda/CUDAStream.h"
 #include "tnn/utils/blob_dump_utils.h"
+#include "tnn/interpreter/tnn/model_interpreter.h"
 
 namespace TNN_NS {
 namespace runtime {
@@ -45,7 +46,7 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
     }
 
     if (!compiled_engine->is_init_) {
-        auto interpreter = dynamic_cast<DefaultModelInterpreter *>(compiled_engine->ctx_->get_interpreter().get());
+        auto interpreter = dynamic_cast<ModelInterpreter *>(compiled_engine->ctx_->get_interpreter().get());
         interpreter->GetNetStructure()->inputs_shape_map = inputs_shape_map;
         interpreter->GetNetStructure()->input_data_type_map = inputs_data_type_map;
         InputShapesMap min_shape;
@@ -138,7 +139,7 @@ static auto TNNEngineTSRegistrtion =
     torch::class_<TNNEngine>("tnn", "Engine")
         .def_pickle(
         [](const c10::intrusive_ptr<TNNEngine>& self) -> std::vector<std::string> {
-            auto interpreter = dynamic_cast<DefaultModelInterpreter *>(self->ctx_->get_interpreter().get());
+            auto interpreter = dynamic_cast<ModelInterpreter *>(self->ctx_->get_interpreter().get());
             ModelPacker packer(interpreter->GetNetStructure(), interpreter->GetNetResource());
             std::string proto_s;
             std::string model_s;
@@ -172,6 +173,10 @@ static auto TNNEngineTSRegistrtion =
             contents.emplace_back(min_input_shapes);
             contents.emplace_back(max_input_shapes);
             contents.emplace_back(config_s);
+
+            std::string cache_str;
+            dynamic_cast<ModelInterpreter *>(self->instance_->GetInterpreter().get())->GetCache(cache_str);
+            contents.emplace_back(cache_str);
 
             return contents;
         },

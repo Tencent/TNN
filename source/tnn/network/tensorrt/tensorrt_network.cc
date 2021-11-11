@@ -17,7 +17,7 @@
 #include <mutex>
 
 #include "tnn/device/cuda/cuda_context.h"
-#include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/interpreter/tnn/model_interpreter.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/network/tensorrt/tensorrt_network.h"
 #include "tnn/network/tensorrt/utils.h"
@@ -80,7 +80,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     device_id_ = net_config.device_id;
     CUDA_CHECK(cudaSetDevice(net_config.device_id));
     config_ = net_config;
-    DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
+    ModelInterpreter *default_interpreter = dynamic_cast<ModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
 
     auto params_md5 = default_interpreter->GetParamsMd5();
@@ -145,36 +145,68 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         return ret;
     }
 
+    std::string cache_buf;
+    default_interpreter->GetCache(cache_buf);
+
     std::string cache_file_name = GetCacheFileName(params_md5, inputs, outputs, min_inputs_shape,
         net_config.device_id, this->int8_mode, config_.precision == PRECISION_LOW,
         enable_const_folder);
 
-    std::unique_ptr<ExclFile> file_lock(new ExclFile(cache_file_name));
+    if (cache_buf.size() == 0) {
+        std::unique_ptr<ExclFile> file_lock(new ExclFile(cache_file_name));
 
-    if (test_mode || false == file_lock->Ready()) {
-        ret = InitWithoutCache(inputs, outputs, cache_file_name, net_resource, min_inputs_shape);
-        if (ret != TNN_OK) {
-            return ret;
+        if ((test_mode || false == file_lock->Ready()) && cache_buf.size() == 0) {
+            ret = InitWithoutCache(inputs, outputs, cache_file_name, net_resource, min_inputs_shape);
+            if (ret != TNN_OK) {
+                return ret;
+            }
+
+            IHostMemory *model_stream = nullptr;
+            model_stream = m_trt_engine->serialize();
+            char *model_stream_ptr = reinterpret_cast<char*>(model_stream->data());
+            if (!test_mode) {
+                std::ofstream deploy_output(cache_file_name, std::ofstream::binary);
+                deploy_output.write(model_stream_ptr, model_stream->size());
+                deploy_output.close();
+
+            } else {
+                auto model_interpreter = dynamic_cast<ModelInterpreter *>(interpreter);
+                std::string cache_str(model_stream_ptr, model_stream->size());
+                model_interpreter->SetCache(cache_str);
+            }
+            delete model_stream_ptr;
         }
     }
 
     if (!test_mode) {
-        size_t size = 0;
-        std::ifstream deploy_input(cache_file_name, std::ios::binary);
-        deploy_input.seekg(0, deploy_input.end);
-        size = deploy_input.tellg();
-        deploy_input.seekg(0, deploy_input.beg);
-        char *model_stream = new char[size + 1];
-        deploy_input.read(model_stream, size);
-        IRuntime* runtime = createInferRuntime(m_trt_logger);
-        m_trt_engine = runtime->deserializeCudaEngine(model_stream, size);
-        delete[] model_stream;
-        ret = CreateExecuteContext();
-        if (ret != TNN_OK)
-            return ret;
+        if (cache_buf.size() == 0) {
+            // deserialize cuda engine with cache file
+            size_t size = 0;
+            std::ifstream deploy_input(cache_file_name, std::ios::binary);
+            deploy_input.seekg(0, deploy_input.end);
+            size = deploy_input.tellg();
+            deploy_input.seekg(0, deploy_input.beg);
+            char *model_stream = new char[size + 1];
+            deploy_input.read(model_stream, size);
+            IRuntime* runtime = createInferRuntime(m_trt_logger);
+            m_trt_engine = runtime->deserializeCudaEngine(model_stream, size);
+            delete[] model_stream;
+            ret = CreateExecuteContext();
+            if (ret != TNN_OK)
+                return ret;
 
-        runtime->destroy();
-        deploy_input.close();
+            runtime->destroy();
+            deploy_input.close();
+        } else {
+            // deserialize cuda engine with cache buf
+            IRuntime* runtime = createInferRuntime(m_trt_logger);
+            m_trt_engine = runtime->deserializeCudaEngine(cache_buf.data(), cache_buf.size());
+            ret = CreateExecuteContext();
+            if (ret != TNN_OK)
+                return ret;
+
+            runtime->destroy();
+        }
     } else {
         ret = CreateExecuteContext();
         if (ret != TNN_OK)
@@ -709,16 +741,6 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     m_trt_builder->destroy();
     m_trt_config->destroy();
     m_trt_network->destroy();
-
-    if (!test_mode) {
-        IHostMemory *model_stream = nullptr;
-        model_stream = m_trt_engine->serialize();
-        std::ofstream deploy_output(cache_file_name, std::ofstream::binary);
-        char *model_stream_ptr = reinterpret_cast<char*>(model_stream->data());
-        deploy_output.write(model_stream_ptr, model_stream->size());
-        deploy_output.close();
-        delete model_stream_ptr;
-    }
 
     return TNN_OK;
 }
