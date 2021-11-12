@@ -12,21 +12,30 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/train/gradient/layer_grad.h"
 
 namespace TNN_NS {
 
-DECLARE_ARM_LAYER_GRAD(ReduceMean, LAYER_REDUCE_MEAN);
+LayerGrad::LayerGrad() {}
 
-Status ArmReduceMeanLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                      LayerResource *resource, LayerParam *param, Context *context) {
-    LOGD("ArmReduceMeanLayerGrad::OnGrad\n");
+LayerGrad::~LayerGrad() {}
 
+Status LayerGrad::RegisterLayerGrad(DeviceType device, LayerType type, std::shared_ptr<LayerGrad> layer_grad) {
+    GetLayerGradMap()[{device, type}] = layer_grad;
     return TNN_OK;
+};
+
+LayerGrad *LayerGrad::GetLayerGrad(DeviceType device, LayerType type) {
+    auto &layer_grad_map = GetLayerGradMap();
+    if (layer_grad_map.count({device, type}) > 0) {
+        return layer_grad_map[{device, type}].get();
+    }
+    return nullptr;
 }
 
-REGISTER_ARM_LAYER_GRAD(ReduceMean, LAYER_REDUCE_MEAN)
-REGISTER_ARM_GRAD_LAYOUT(LAYER_REDUCE_MEAN, DATA_FORMAT_NC4HW4)
+std::map<std::pair<DeviceType, LayerType>, std::shared_ptr<LayerGrad>> &LayerGrad::GetLayerGradMap() {
+    static std::map<std::pair<DeviceType, LayerType>, std::shared_ptr<LayerGrad>> layer_grad_map;
+    return layer_grad_map;
+}
 
 }  // namespace TNN_NS

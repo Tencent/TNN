@@ -17,16 +17,16 @@
 
 namespace TNN_NS {
 
-DECLARE_ARM_LAYER_GRAD(ReduceMean, LAYER_REDUCE_MEAN);
+DECLARE_ARM_LAYER_GRAD(Sigmoid, LAYER_SIGMOID);
 
-Status ArmReduceMeanLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                      LayerResource *resource, LayerParam *param, Context *context) {
-    LOGD("ArmReduceMeanLayerGrad::OnGrad\n");
+Status ArmSigmoidLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                                   LayerResource *resource, LayerParam *param, Context *context) {
+    LOGD("ArmSigmoidLayerGrad::OnGrad\n");
 
     return TNN_OK;
 }
 
-REGISTER_ARM_LAYER_GRAD(ReduceMean, LAYER_REDUCE_MEAN)
-REGISTER_ARM_GRAD_LAYOUT(LAYER_REDUCE_MEAN, DATA_FORMAT_NC4HW4)
+REGISTER_ARM_LAYER_GRAD(Sigmoid, LAYER_SIGMOID)
+REGISTER_ARM_GRAD_LAYOUT(LAYER_SIGMOID, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

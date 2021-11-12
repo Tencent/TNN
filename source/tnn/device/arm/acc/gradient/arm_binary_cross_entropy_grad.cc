@@ -17,16 +17,16 @@
 
 namespace TNN_NS {
 
-DECLARE_ARM_LAYER_GRAD(ReduceMean, LAYER_REDUCE_MEAN);
+DECLARE_ARM_LAYER_GRAD(BinaryCrossEntropy, LAYER_BINARY_CROSSENTROPY);
 
-Status ArmReduceMeanLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                      LayerResource *resource, LayerParam *param, Context *context) {
-    LOGD("ArmReduceMeanLayerGrad::OnGrad\n");
+Status ArmBinaryCrossEntropyLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                                              LayerResource *resource, LayerParam *param, Context *context) {
+    LOGD("ArmBinaryCrossEntropyLayerGrad::OnGrad\n");
 
     return TNN_OK;
 }
 
-REGISTER_ARM_LAYER_GRAD(ReduceMean, LAYER_REDUCE_MEAN)
-REGISTER_ARM_GRAD_LAYOUT(LAYER_REDUCE_MEAN, DATA_FORMAT_NC4HW4)
+REGISTER_ARM_LAYER_GRAD(BinaryCrossEntropy, LAYER_BINARY_CROSSENTROPY)
+REGISTER_ARM_GRAD_LAYOUT(LAYER_BINARY_CROSSENTROPY, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

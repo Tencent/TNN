@@ -16,13 +16,21 @@
 #define TNN_SOURCE_TNN_DEVICE_ARM_ARM_GRADIENT_LAYER_ACC_H_
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/train/gradient/layer_grad.h"
 
 namespace TNN_NS {
 
 class ArmGradientLayerAcc : public ArmLayerAcc {
 public:
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                        const std::vector<Blob *> &outputs);
+
     virtual ~ArmGradientLayerAcc();
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+private:
+    LayerGrad *impl_;
+    LayerParam *forward_param_;
 };
 
 }  // namespace TNN_NS

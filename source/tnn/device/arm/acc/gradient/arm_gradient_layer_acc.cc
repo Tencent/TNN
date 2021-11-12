@@ -16,10 +16,27 @@
 
 namespace TNN_NS {
 
+Status ArmGradientLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    GradientParam *grad_param = dynamic_cast<GradientParam *>(param);
+    CHECK_PARAM_NULL(grad_param);
+
+    forward_param_ = grad_param->forward_param;
+
+    impl_ = LayerGrad::GetLayerGrad(DEVICE_ARM, grad_param->forward_type);
+    if (!impl_) {
+        LOGE("ArmGradientLayerAcc::Init ERROR, layer grad not implemented: %d\n", grad_param->forward_type);
+        return Status(TNN_TRAIN_ERROR, "layer grad not implemented");
+    }
+
+    return ArmLayerAcc::Init(context, param, resource, inputs, outputs);
+}
+
 ArmGradientLayerAcc::~ArmGradientLayerAcc() {}
 
 Status ArmGradientLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return TNN_OK;
+    CHECK_PARAM_NULL(impl_);
+    return impl_->OnGrad(inputs, outputs, resource_, forward_param_, context_);
 }
 
 REGISTER_ARM_ACC(Gradient, LAYER_GRADIENT)
