@@ -37,7 +37,6 @@
 
 #include <torch/torch.h>
 #include <torch/csrc/jit/passes/freeze_module.h>
-#include <torch/csrc/jit/passes/frozen_graph_optimizations.h>
 #include "torch/csrc/jit/passes/lower_tuples.h"
 
 #ifdef TNN_TORCHVISION
