@@ -88,11 +88,25 @@ Status DefaultTrainNetwork::UpdateGradMap() {
         if (!grad_layer) {
             continue;
         }
+        int index = 0;
         for (auto pair : grad_layer->GetBlobGradPairs()) {
+            // if blob appears more than once, set accumulate flag
+            if (forward_blob_to_grad_map_.find(pair.first) != forward_blob_to_grad_map_.end()) {
+                grad_layer->SetAccumulateBlobGradFlag(index, true);
+                LOGD("layer %s accumulate %d's blob grad\n", layer->GetLayerName().c_str(), index);
+            }
             forward_blob_to_grad_map_.insert(pair);
+            ++index;
         }
+        index = 0;
         for (auto pair : grad_layer->GetResourceGradPairs()) {
+            // if resource appears more than once, set accumulate flag
+            if (resource_to_grad_map_.find(pair.first) != resource_to_grad_map_.end()) {
+                grad_layer->SetAccumulateResourceGradFlag(index, true);
+                LOGD("layer %s accumulate %d's resource grad\n", layer->GetLayerName().c_str(), index);
+            }
             resource_to_grad_map_.insert(pair);
+            ++index;
         }
     }
 

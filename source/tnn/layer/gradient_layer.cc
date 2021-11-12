@@ -33,6 +33,26 @@ const std::vector<std::pair<RawBuffer*, Blob*>>& GradientLayer::GetResourceGradP
     return resource_to_grad_;
 }
 
+Status GradientLayer::SetAccumulateBlobGradFlag(int index, bool cond) {
+    if (index >= accumulate_blob_grad_.size()) {
+        LOGE("Error, blob index exceeds %d\n", index);
+        return Status(TNNERR_LAYER_ERR, "set blob accumulate flag error");
+    }
+    accumulate_blob_grad_[index] = cond;
+
+    return TNN_OK;
+}
+
+Status GradientLayer::SetAccumulateResourceGradFlag(int index, bool cond) {
+    if (index >= accumulate_resource_grad_.size()) {
+        LOGE("Error, resource index exceeds %d\n", index);
+        return Status(TNNERR_LAYER_ERR, "set resource accumulate flag error");
+    }
+    accumulate_resource_grad_[index] = cond;
+
+    return TNN_OK;
+}
+
 Status GradientLayer::InferOutputShape(bool ignore_error) {
     BaseLayer::InferOutputShape(ignore_error);
 
@@ -57,6 +77,7 @@ Status GradientLayer::InferOutputShape(bool ignore_error) {
         Blob* forward_input_blob             = input_blobs_[i + grad_index];
         output_blobs_[i]->GetBlobDesc().dims = forward_input_blob->GetBlobDesc().dims;
         forward_blob_to_grad_.push_back({forward_input_blob, output_blobs_[i]});
+        accumulate_blob_grad_.push_back(false);
     }
 
     for (int i = blob_grad_count; i < output_blobs_.size(); ++i) {
@@ -64,6 +85,7 @@ Status GradientLayer::InferOutputShape(bool ignore_error) {
         // resouce buffer dims is empty, use data count
         output_blobs_[i]->GetBlobDesc().dims = {1, trainable_buffer->GetDataCount()};
         resource_to_grad_.push_back({trainable_buffer, output_blobs_[i]});
+        accumulate_resource_grad_.push_back(false);
     }
 
     return TNN_OK;

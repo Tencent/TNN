@@ -28,12 +28,19 @@ public:
     const std::vector<std::pair<Blob *, Blob *>> &GetBlobGradPairs();
     const std::vector<std::pair<RawBuffer *, Blob *>> &GetResourceGradPairs();
 
+    Status SetAccumulateBlobGradFlag(int index, bool cond);
+    Status SetAccumulateResourceGradFlag(int index, bool cond);
+
 protected:
     virtual Status InferOutputShape(bool ignore_error = false);
 
 private:
     std::vector<std::pair<Blob *, Blob *>> forward_blob_to_grad_;
     std::vector<std::pair<RawBuffer *, Blob *>> resource_to_grad_;
+
+    // if multipy layers update the same gradient, the results will be accumulated
+    std::vector<bool> accumulate_blob_grad_;
+    std::vector<bool> accumulate_resource_grad_;
 };
 
 }  // namespace TNN_NS
