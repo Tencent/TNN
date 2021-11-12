@@ -25,8 +25,15 @@ public:
 
     virtual ~GradientLayer();
 
+    const std::vector<std::pair<Blob *, Blob *>> &GetBlobGradPairs();
+    const std::vector<std::pair<RawBuffer *, Blob *>> &GetResourceGradPairs();
+
 protected:
     virtual Status InferOutputShape(bool ignore_error = false);
+
+private:
+    std::vector<std::pair<Blob *, Blob *>> forward_blob_to_grad_;
+    std::vector<std::pair<RawBuffer *, Blob *>> resource_to_grad_;
 };
 
 }  // namespace TNN_NS

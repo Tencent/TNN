@@ -16,6 +16,8 @@
 
 #include "tnn/train/default_train_network.h"
 
+#include "tnn/interpreter/tnn/model_packer.h"
+#include "tnn/layer/gradient_layer.h"
 #include "tnn/train/solver/sgd.h"
 
 namespace TNN_NS {
@@ -37,9 +39,17 @@ Status DefaultTrainNetwork::Init(NetworkConfig &net_config, ModelConfig &model_c
                                enable_const_folder);
     RETURN_ON_NEQ(ret, TNN_OK);
 
+    RETURN_ON_NEQ(UpdateGradMap(), TNN_OK);
+
     RETURN_ON_NEQ(UpdateNeedGradLayers(), TNN_OK);
 
     RETURN_ON_NEQ(UpdateSolver(), TNN_OK);
+
+    // auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter);
+    // CHECK_PARAM_NULL(default_interpreter);
+    // ModelPacker packer(default_interpreter->GetNetStructure(), default_interpreter->GetNetResource());
+    // packer.Pack("pack.tnnproto", "pack.tnnmodel");
+    // printf("pack done\n");
 
     context_->SetTraining(config_.train_config.run_mode == TRAIN_MODE_TRAIN);
     return TNN_OK;
@@ -69,6 +79,37 @@ Status DefaultTrainNetwork::UpdateNeedGradLayers() {
     return TNN_OK;
 }
 
+Status DefaultTrainNetwork::UpdateGradMap() {
+    forward_blob_to_grad_map_.clear();
+    resource_to_grad_map_.clear();
+
+    for (auto layer : layers_) {
+        auto grad_layer = dynamic_cast<GradientLayer *>(layer);
+        if (!grad_layer) {
+            continue;
+        }
+        for (auto pair : grad_layer->GetBlobGradPairs()) {
+            forward_blob_to_grad_map_.insert(pair);
+        }
+        for (auto pair : grad_layer->GetResourceGradPairs()) {
+            resource_to_grad_map_.insert(pair);
+        }
+    }
+
+    LOGD("Blob to grad map:\n");
+    for (auto iter : forward_blob_to_grad_map_) {
+        LOGD("%s -> %s\n", iter.first->GetBlobDesc().description().c_str(),
+             iter.second->GetBlobDesc().description().c_str());
+    }
+
+    LOGD("Resource to grad map:\n");
+    for (auto iter : resource_to_grad_map_) {
+        LOGD("%d -> %s\n", iter.first->GetDataCount(), iter.second->GetBlobDesc().description().c_str());
+    }
+
+    return TNN_OK;
+}
+
 static std::string GetLossBlobName(const NetStructure *structure) {
     LayerInfo *loss_layer = nullptr;
     for (auto layer : structure->layers) {
@@ -87,7 +128,7 @@ Status DefaultTrainNetwork::UpdateSolver() {
         if (config_.train_config.loss_name.empty()) {
             config_.train_config.loss_name = GetLossBlobName(net_structure_);
         }
-        solver_             = std::make_shared<train::SGD>(this, &config_, learning_rate);
+        solver_ = std::make_shared<train::SGD>(this, &config_, learning_rate);
         solver_->SetNeedGradLayers(need_grad_layers_);
     } else {
         return Status(TNNERR_NET_ERR, "not support slover type in train mode");

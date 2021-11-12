@@ -182,6 +182,7 @@ namespace optimizer {
             if (need_grad_layers.find(forward_layer->name) != need_grad_layers.end()) {
                 std::shared_ptr<LayerInfo> grad_layer = CreateGradient(forward_layer.get());
 
+                // forward blob gradients
                 grad_layer->inputs = forward_layer->outputs;
                 for (auto forward_input : forward_layer->inputs) {
                     grad_layer->inputs.push_back(forward_input);
@@ -190,10 +191,15 @@ namespace optimizer {
                     net_structure->blobs.insert(blob_grad);
                 }
 
+                // resource buffer gradients
+                // TODO: open this to skip non-trainable layers
+                // if (train_config.trainable_layers.find(forward_layer->name) == train_config.trainable_layers.end()) {
+                //     continue;
+                // }
                 const auto &resource_map = net_resource->resource_map;
                 if (resource_map.find(forward_layer->name) != resource_map.end()) {
                     auto layer_resource = resource_map.at(forward_layer->name);
-                    for (int i = 0; i < layer_resource->GetTrainableDataCount().size(); ++i) {
+                    for (int i = 0; i < layer_resource->GetTrainable().size(); ++i) {
                         auto resource_grad = forward_layer->name + resource_grad_suffix + std::to_string(i);
                         grad_layer->outputs.push_back(resource_grad);
                         net_structure->blobs.insert(resource_grad);

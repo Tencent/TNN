@@ -25,13 +25,21 @@ GradientLayer::GradientLayer(LayerType ignore) : BaseLayer(LAYER_GRADIENT) {}
 
 GradientLayer::~GradientLayer() {}
 
+const std::vector<std::pair<Blob*, Blob*>>& GradientLayer::GetBlobGradPairs() {
+    return forward_blob_to_grad_;
+}
+
+const std::vector<std::pair<RawBuffer*, Blob*>>& GradientLayer::GetResourceGradPairs() {
+    return resource_to_grad_;
+}
+
 Status GradientLayer::InferOutputShape(bool ignore_error) {
     BaseLayer::InferOutputShape(ignore_error);
 
     GradientParam* grad_param = dynamic_cast<GradientParam*>(param_);
     CHECK_PARAM_NULL(grad_param);
 
-    int resource_grad_count = resource_ ? resource_->GetTrainableDataCount().size() : 0;
+    int resource_grad_count = resource_ ? resource_->GetTrainable().size() : 0;
 
     int blob_grad_count = output_blobs_.size() - resource_grad_count;
     if (blob_grad_count < 0) {
@@ -48,11 +56,14 @@ Status GradientLayer::InferOutputShape(bool ignore_error) {
     for (int i = 0; i < blob_grad_count; ++i) {
         Blob* forward_input_blob             = input_blobs_[i + grad_index];
         output_blobs_[i]->GetBlobDesc().dims = forward_input_blob->GetBlobDesc().dims;
+        forward_blob_to_grad_.push_back({forward_input_blob, output_blobs_[i]});
     }
 
     for (int i = blob_grad_count; i < output_blobs_.size(); ++i) {
-        // dims is empty, use data count
-        output_blobs_[i]->GetBlobDesc().dims = {1, resource_->GetTrainableDataCount()[i - blob_grad_count]};
+        auto trainable_buffer = resource_->GetTrainable()[i - blob_grad_count];
+        // resouce buffer dims is empty, use data count
+        output_blobs_[i]->GetBlobDesc().dims = {1, trainable_buffer->GetDataCount()};
+        resource_to_grad_.push_back({trainable_buffer, output_blobs_[i]});
     }
 
     return TNN_OK;

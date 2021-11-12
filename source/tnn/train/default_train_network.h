@@ -45,11 +45,13 @@ protected:
     virtual Status UpdateNeedGradLayers();
     virtual Status UpdateSolver();
 
+    virtual Status UpdateGradMap();
+
     std::set<std::string> need_grad_layers_;
     std::shared_ptr<train::BaseSolver> solver_;
 
-    std::map<Blob *, Blob *> forward_blob_to_grad_map;
-    std::map<RawBuffer *, Blob *> resource_to_grad_map;
+    std::map<Blob *, Blob *> forward_blob_to_grad_map_;
+    std::map<RawBuffer *, Blob *> resource_to_grad_map_;
 };
 
 }  // namespace TNN_NS
