@@ -12,11 +12,11 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/acc/gradient/arm_gradient_layer_acc.h"
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(Gradient, LAYER_GRADIENT);
+ArmGradientLayerAcc::~ArmGradientLayerAcc() {}
 
 Status ArmGradientLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;

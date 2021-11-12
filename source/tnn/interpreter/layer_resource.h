@@ -33,7 +33,7 @@ struct LayerResource {
     // default virtual destructor
     virtual ~LayerResource(){};
 
-    virtual std::vector<DimsVector> GetTrainableDims() {
+    virtual std::vector<int> GetTrainableDataCount() {
         return {};
     }
     virtual void SetTrainable(bool trainable) {}
@@ -43,16 +43,16 @@ struct LayerResource {
 typedef enum { OIHW = 0, IHWO = 1, OIDHW = 2 } ConvLayerFilterFormat;
 
 #define TRAINABLE_BUFFER_1(buf1)                                                                                       \
-    virtual std::vector<DimsVector> GetTrainableDims() {                                                               \
-        return std::vector<DimsVector>{buf1.GetBufferDims()};                                                          \
+    virtual std::vector<int> GetTrainableDataCount() {                                                                 \
+        return std::vector<int>{buf1.GetDataCount()};                                                                  \
     }                                                                                                                  \
     virtual void SetTrainable(bool trainable) {                                                                        \
         buf1.SetTrainable(trainable);                                                                                  \
     }
 
 #define TRAINABLE_BUFFER_2(buf1, buf2)                                                                                 \
-    virtual std::vector<DimsVector> GetTrainableDims() {                                                               \
-        return std::vector<DimsVector>{buf1.GetBufferDims(), buf2.GetBufferDims()};                                    \
+    virtual std::vector<int> GetTrainableDataCount() {                                                                 \
+        return std::vector<int>{buf1.GetDataCount(), buf2.GetDataCount()};                                             \
     }                                                                                                                  \
     virtual void SetTrainable(bool trainable) {                                                                        \
         buf1.SetTrainable(trainable);                                                                                  \

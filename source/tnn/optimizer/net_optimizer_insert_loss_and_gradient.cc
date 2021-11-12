@@ -193,7 +193,7 @@ namespace optimizer {
                 const auto &resource_map = net_resource->resource_map;
                 if (resource_map.find(forward_layer->name) != resource_map.end()) {
                     auto layer_resource = resource_map.at(forward_layer->name);
-                    for (int i = 0; i < layer_resource->GetTrainableDims().size(); ++i) {
+                    for (int i = 0; i < layer_resource->GetTrainableDataCount().size(); ++i) {
                         auto resource_grad = forward_layer->name + resource_grad_suffix + std::to_string(i);
                         grad_layer->outputs.push_back(resource_grad);
                         net_structure->blobs.insert(resource_grad);

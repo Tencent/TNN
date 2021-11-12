@@ -21,13 +21,17 @@
 
 namespace TNN_NS {
 
+GradientLayer::GradientLayer(LayerType ignore) : BaseLayer(LAYER_GRADIENT) {}
+
+GradientLayer::~GradientLayer() {}
+
 Status GradientLayer::InferOutputShape(bool ignore_error) {
     BaseLayer::InferOutputShape(ignore_error);
 
     GradientParam* grad_param = dynamic_cast<GradientParam*>(param_);
     CHECK_PARAM_NULL(grad_param);
 
-    int resource_grad_count = resource_ ? resource_->GetTrainableDims().size() : 0;
+    int resource_grad_count = resource_ ? resource_->GetTrainableDataCount().size() : 0;
 
     int blob_grad_count = output_blobs_.size() - resource_grad_count;
     if (blob_grad_count < 0) {
@@ -44,6 +48,11 @@ Status GradientLayer::InferOutputShape(bool ignore_error) {
     for (int i = 0; i < blob_grad_count; ++i) {
         Blob* forward_input_blob             = input_blobs_[i + grad_index];
         output_blobs_[i]->GetBlobDesc().dims = forward_input_blob->GetBlobDesc().dims;
+    }
+
+    for (int i = blob_grad_count; i < output_blobs_.size(); ++i) {
+        // dims is empty, use data count
+        output_blobs_[i]->GetBlobDesc().dims = {1, resource_->GetTrainableDataCount()[i - blob_grad_count]};
     }
 
     return TNN_OK;

@@ -12,23 +12,19 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_LAYER_GRADIENT_LAYER_H_
-#define TNN_SOURCE_TNN_LAYER_GRADIENT_LAYER_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_GRADIENT_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_GRADIENT_LAYER_ACC_H_
 
-#include "tnn/layer/base_layer.h"
+#include "tnn/device/arm/acc/arm_layer_acc.h"
 
 namespace TNN_NS {
 
-class GradientLayer : public BaseLayer {
+class ArmGradientLayerAcc : public ArmLayerAcc {
 public:
-    explicit GradientLayer(LayerType ignore);
-
-    virtual ~GradientLayer();
-
-protected:
-    virtual Status InferOutputShape(bool ignore_error = false);
+    virtual ~ArmGradientLayerAcc();
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_LAYER_GRADIENT_LAYER_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_GRADIENT_LAYER_ACC_H_
