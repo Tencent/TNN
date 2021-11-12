@@ -4,6 +4,7 @@
 namespace TNN_NS {
 
 // the function schema is defined in aten/src/ATen/native/native_functions.ymal
+// Todo: tnn tensorrt plugin not fully support fp16, resource rawbuffer should be convert to fp32 to avoid init error
 
 namespace conversion
 {
@@ -59,11 +60,12 @@ public:
         layer_param->group = group;
         layer_param->pads = {(int)padding[1], (int)padding[1], (int)padding[0], (int)padding[0]};
         layer_res->name = layer_info->name;
-        layer_res->filter_handle = weight_buf;
+        layer_res->filter_handle = ConvertHalfHandle(weight_buf);
 
         if (toIValue(bias)->isTensor()) {
             layer_param->bias      = 1;
             layer_res->bias_handle = getValue(bias);
+            layer_res->bias_handle = ConvertHalfHandle(layer_res->bias_handle);
         }
 
         layer_info->param = layer_param;
@@ -127,12 +129,12 @@ public:
         layer_param->pads = {(int)padding[1], (int)padding[1], (int)padding[0], (int)padding[0]};
         layer_param->group = group;
         layer_res->name = layer_info->name;
-        layer_res->filter_handle = weight_buf;
+        layer_res->filter_handle = ConvertHalfHandle(weight_buf);
 
         auto bias_buf = getValue(bias);
         if (bias_buf.GetBytesSize() != 0) {
             layer_param->bias = 1;
-            layer_res->bias_handle = bias_buf;
+            layer_res->bias_handle = ConvertHalfHandle(bias_buf);
         }
 
         layer_info->param = layer_param;
@@ -299,7 +301,7 @@ public:
 
             auto layer_res            = new EltwiseLayerResource();
             auto element_buf          = getValue(inputs[weight_input_index]);
-            layer_res->element_handle = element_buf;
+            layer_res->element_handle = ConvertHalfHandle(element_buf);
             layer_res->element_shape  = element_buf.GetBufferDims();
 
             net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
@@ -380,12 +382,12 @@ public:
         layer_param->axis = 1;
 
         layer_res->name = layer_info->name;
-        layer_res->weight_handle = weight_buf;
+        layer_res->weight_handle = ConvertHalfHandle(weight_buf);
 
         auto bias_buf = getValue(bias);
         if (bias_buf.GetBytesSize() != 0) {
             layer_param->has_bias = 1;
-            layer_res->bias_handle = bias_buf;
+            layer_res->bias_handle = ConvertHalfHandle(bias_buf);
         }
 
         layer_info->param = layer_param;
@@ -542,10 +544,10 @@ public:
                 const int byte_size = size * sizeof(float);
                 auto scale_buf_fp32 = RawBuffer(byte_size, reinterpret_cast<char *>(scale_ptr), gamma.GetBufferDims());
                 auto bias_buf_fp32  = RawBuffer(byte_size, reinterpret_cast<char *>(bias_ptr), beta.GetBufferDims());
-                auto scale_buf      = data_type == DATA_TYPE_HALF ? ConvertFloatToHalf(scale_buf_fp32) : scale_buf_fp32;
-                auto bias_buf       = data_type == DATA_TYPE_HALF ? ConvertFloatToHalf(bias_buf_fp32) : bias_buf_fp32;
+                // auto scale_buf      = data_type == DATA_TYPE_HALF ? ConvertFloatToHalf(scale_buf_fp32) : scale_buf_fp32;
+                // auto bias_buf       = data_type == DATA_TYPE_HALF ? ConvertFloatToHalf(bias_buf_fp32) : bias_buf_fp32;
 
-                return std::make_pair(scale_buf, bias_buf);
+                return std::make_pair(scale_buf_fp32, bias_buf_fp32);
             };
 
             auto scaleAndBias = fuseResource(weight_buf, bias_buf, mean_buf, var_buf, eps);
