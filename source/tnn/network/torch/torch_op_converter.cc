@@ -225,6 +225,59 @@ public:
         auto padding     = getValue<std::vector<int64_t>>(inputs[3]);
         auto ceil_mode   = getValue<bool>(inputs[4]);
 
+        /*
+         * When padding in AvgPool is not 0, the inference results of Pytorch and TNN are inconsistent.
+         * Therefore, when converting, insert the Pad operator before AvgPool,
+         * and set padding of AvgPool to 0 at the same time.
+
+         * E.g.，
+         * In AvgPool，kernel_size = 3, stride=1, padding=1
+         * Input，
+         * 1.0, 1.0, 1.0
+         * 1.0, 1.0, 1.0
+         * 1.0, 1.0, 1.0
+         * the output of Pytorch，
+         * 0.444, 0.667, 0.444
+         * 0.667, 1.000, 0.667
+         * 0.444, 0.667, 0.444
+         * the output of TNN (Pad operator is not inserted)
+         * 1.0, 1.0, 1.0
+         * 1.0, 1.0, 1.0
+         * 1.0, 1.0, 1.0
+         */
+
+        bool need_insert_pad = false;
+        for (const auto &pad : padding) {
+            need_insert_pad = (pad != 0);
+        }
+
+        if (need_insert_pad) {
+            std::shared_ptr<LayerInfo> pad_layer_info = std::make_shared<LayerInfo>();
+            pad_layer_info->type                      = LAYER_PAD;
+            pad_layer_info->type_str                  = "Pad";
+            pad_layer_info->name                      = layer_info->name + "_pad";
+
+            pad_layer_info->inputs.push_back(layer_info->inputs[0]);
+            pad_layer_info->outputs.push_back(pad_layer_info->name);
+            layer_info->inputs[0] = pad_layer_info->outputs[0];
+
+            auto pad_layer_param  = std::make_shared<PadLayerParam>();
+            const int pad_h       = static_cast<int>(padding[0]);
+            const int pad_w       = static_cast<int>(padding[1]);
+            pad_layer_param->pads = {pad_w, pad_w, pad_h, pad_h, 0, 0, 0, 0};
+
+            pad_layer_info->param = pad_layer_param;
+
+            net_structure->layers.push_back(pad_layer_info);
+
+            for (const auto &pad_input : pad_layer_info->inputs) {
+                net_structure->blobs.insert(pad_input);
+            }
+            for (const auto &pad_output : pad_layer_info->outputs) {
+                net_structure->blobs.insert(pad_output);
+            }
+        }
+
         layer_param->pool_type      = 1;
         layer_param->pad_type       = -1;
         layer_param->kernels_params = {(int)kernel_size[1], (int)kernel_size[0]};
