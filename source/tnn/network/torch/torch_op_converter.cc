@@ -282,7 +282,7 @@ public:
         layer_param->pad_type       = -1;
         layer_param->kernels_params = {(int)kernel_size[1], (int)kernel_size[0]};
         layer_param->strides        = {(int)stride[1], (int)stride[0]};
-        layer_param->pads           = {(int)(padding[1]), (int)(padding[1]), (int)(padding[0]), (int)(padding[0])};
+        layer_param->pads           = {0, 0, 0, 0};
         layer_param->kernel_indexs  = {-1, -1};
         layer_param->kernels        = {-1, -1};
         layer_param->output_shape   = {-1, -1};
