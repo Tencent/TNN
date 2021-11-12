@@ -688,7 +688,7 @@ public:
             layer_param->ends = {layer_param->strides[0]<0 ? INT_MIN : INT_MAX};
         } else {
             auto end = getValue<int64_t>(inputs[3]);
-            layer_param->ends = {end == INT64_MAX? INT_MAX : static_cast<int>(end)};
+            layer_param->ends = {end > INT_MAX? INT_MAX : static_cast<int>(end)};
         }
 
         layer_info->param = layer_param;

@@ -121,6 +121,8 @@ static RawBuffer getValue(const torch::jit::Value* value) {
         } else if (value_kind == c10::TypeKind::IntType) {
             const auto data = getValue<int>(value);
             return RawBuffer(4, (char*)(&data), {});
+        } else if (value_kind == c10::TypeKind::NoneType) {
+            return RawBuffer();
         } else {
             LOGE("getValue:wrong scalar type\n");
             return RawBuffer();
