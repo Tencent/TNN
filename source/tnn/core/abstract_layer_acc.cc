@@ -99,6 +99,10 @@ void AbstractLayerAcc::SetRuntimeMode(RuntimeMode mode) {
     runtime_model_ = mode;
 }
 
+void AbstractLayerAcc::SetLayerGradInfo(LayerGradInfo *info) {
+    grad_info_ = info;
+}
+
 #if TNN_PROFILE
 void AbstractLayerAcc::UpdateProfilingData(ProfilingData *pdata, LayerParam *param, DimsVector input_dim,
                                            DimsVector output_dim) {

@@ -25,6 +25,7 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
+#include "tnn/train/gradient/layer_grad_info.h"
 //#include "tnn/memory_manager/blob_memory_pool.h"
 
 namespace TNN_NS {
@@ -106,6 +107,9 @@ public:
     // @brief set runtime mode
     void SetRuntimeMode(RuntimeMode mode);
     
+    // @brief set grad info
+    void SetLayerGradInfo(LayerGradInfo* info);
+
 #if TNN_PROFILE
     virtual void UpdateProfilingData(ProfilingData *pdata, LayerParam *param, DimsVector input_dim,
                                      DimsVector output_dim);
@@ -121,6 +125,7 @@ protected:
     BlobMemoryPool *runtime_blob_pool_ = nullptr;
     ConstantResource* const_resource_ = nullptr;
     ConstantResourceFlag *const_resource_flag_ = nullptr;
+    LayerGradInfo *grad_info_ = nullptr;
     
     std::map<std::string, std::shared_ptr<Blob> > const_blob_map_ = {};
     RuntimeMode runtime_model_ = RUNTIME_MODE_NORMAL;

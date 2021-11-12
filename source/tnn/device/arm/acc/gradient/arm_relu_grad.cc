@@ -20,7 +20,8 @@ namespace TNN_NS {
 DECLARE_ARM_LAYER_GRAD(Relu, LAYER_RELU);
 
 Status ArmReluLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                LayerResource *resource, LayerParam *param, Context *context) {
+                                LayerResource *resource, LayerParam *param, Context *context,
+                                LayerGradInfo *grad_info) {
     LOGD("ArmReluLayerGrad::OnGrad\n");
 
     return TNN_OK;

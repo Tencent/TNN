@@ -20,7 +20,8 @@ namespace TNN_NS {
 DECLARE_ARM_LAYER_GRAD(ReduceMean, LAYER_REDUCE_MEAN);
 
 Status ArmReduceMeanLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                      LayerResource *resource, LayerParam *param, Context *context) {
+                                      LayerResource *resource, LayerParam *param, Context *context,
+                                      LayerGradInfo *grad_info) {
     LOGD("ArmReduceMeanLayerGrad::OnGrad\n");
 
     return TNN_OK;

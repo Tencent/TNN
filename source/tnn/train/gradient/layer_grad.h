@@ -21,6 +21,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
 #include "tnn/layer/base_layer.h"
+#include "tnn/train/gradient/layer_grad_info.h"
 
 namespace TNN_NS {
 
@@ -31,7 +32,7 @@ public:
     virtual ~LayerGrad();
 
     virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                          LayerResource *resource, LayerParam *param, Context *context) = 0;
+                          LayerResource *resource, LayerParam *param, Context *context, LayerGradInfo *grad_info) = 0;
 
     static Status RegisterLayerGrad(DeviceType device, LayerType type, std::shared_ptr<LayerGrad> layer_grad);
 
@@ -54,7 +55,7 @@ public:
     public:                                                                                                            \
         virtual ~device_string##type_string##LayerGrad(){};                                                            \
         virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,                   \
-                              LayerResource *resource, LayerParam *param, Context *context);                           \
+                              LayerResource *resource, LayerParam *param, Context *context, LayerGradInfo *grad_info); \
     };
 
 #define DECLARE_ARM_LAYER_GRAD(type_string, layer_type) DECLARE_LAYER_GRAD(Arm, DEVICE_ARM, type_string, layer_type)

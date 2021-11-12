@@ -25,6 +25,24 @@ GradientLayer::GradientLayer(LayerType ignore) : BaseLayer(LAYER_GRADIENT) {}
 
 GradientLayer::~GradientLayer() {}
 
+Status GradientLayer::Init(Context* context, LayerParam* param, LayerResource* resource,
+                           std::vector<Blob*>& input_blobs, std::vector<Blob*>& output_blobs, AbstractDevice* device,
+                           bool enable_const_folder) {
+    RETURN_ON_NEQ(BaseLayer::Init(context, param, resource, input_blobs, output_blobs, device, enable_const_folder),
+                  TNN_OK);
+
+    RETURN_ON_NEQ(InitGradInfo(), TNN_OK);
+
+    if (!layer_acc_) {
+        LOGE("GradientLayer::Init ERROR, layer acc is nil\n");
+        return Status(TNNERR_LAYER_ERR, "layer acc is nil");
+    }
+
+    layer_acc_->SetLayerGradInfo(&grad_info_);
+
+    return TNN_OK;
+}
+
 const std::vector<std::pair<Blob*, Blob*>>& GradientLayer::GetBlobGradPairs() {
     return forward_blob_to_grad_;
 }
@@ -34,21 +52,21 @@ const std::vector<std::pair<RawBuffer*, Blob*>>& GradientLayer::GetResourceGradP
 }
 
 Status GradientLayer::SetAccumulateBlobGradFlag(int index, bool cond) {
-    if (index >= accumulate_blob_grad_.size()) {
+    if (index >= grad_info_.accumulate_blob_grad.size()) {
         LOGE("Error, blob index exceeds %d\n", index);
         return Status(TNNERR_LAYER_ERR, "set blob accumulate flag error");
     }
-    accumulate_blob_grad_[index] = cond;
+    grad_info_.accumulate_blob_grad[index] = cond;
 
     return TNN_OK;
 }
 
 Status GradientLayer::SetAccumulateResourceGradFlag(int index, bool cond) {
-    if (index >= accumulate_resource_grad_.size()) {
+    if (index >= grad_info_.accumulate_resource_grad.size()) {
         LOGE("Error, resource index exceeds %d\n", index);
         return Status(TNNERR_LAYER_ERR, "set resource accumulate flag error");
     }
-    accumulate_resource_grad_[index] = cond;
+    grad_info_.accumulate_resource_grad[index] = cond;
 
     return TNN_OK;
 }
@@ -56,36 +74,50 @@ Status GradientLayer::SetAccumulateResourceGradFlag(int index, bool cond) {
 Status GradientLayer::InferOutputShape(bool ignore_error) {
     BaseLayer::InferOutputShape(ignore_error);
 
-    GradientParam* grad_param = dynamic_cast<GradientParam*>(param_);
-    CHECK_PARAM_NULL(grad_param);
+    resource_grad_count_ = resource_ ? resource_->GetTrainable().size() : 0;
 
-    int resource_grad_count = resource_ ? resource_->GetTrainable().size() : 0;
-
-    int blob_grad_count = output_blobs_.size() - resource_grad_count;
-    if (blob_grad_count < 0) {
+    blob_grad_count_ = output_blobs_.size() - resource_grad_count_;
+    if (blob_grad_count_ < 0) {
         LOGE("GradientLayer::InferOutputShape, output blob should not be less than resource grad\n");
         return Status(TNNERR_LAYER_ERR, "output blob less than resource grad");
     }
 
-    int grad_index = input_blobs_.size() - blob_grad_count;
-    if (grad_index < 0) {
+    grad_index_ = input_blobs_.size() - blob_grad_count_;
+    if (grad_index_ < 0) {
         LOGE("GradientLayer::InferOutputShape, input blob should not be less than blob grad\n");
         return Status(TNNERR_LAYER_ERR, "input blob less than output blob");
     }
 
-    for (int i = 0; i < blob_grad_count; ++i) {
-        Blob* forward_input_blob             = input_blobs_[i + grad_index];
+    for (int i = 0; i < blob_grad_count_; ++i) {
+        Blob* forward_input_blob             = input_blobs_[i + grad_index_];
         output_blobs_[i]->GetBlobDesc().dims = forward_input_blob->GetBlobDesc().dims;
-        forward_blob_to_grad_.push_back({forward_input_blob, output_blobs_[i]});
-        accumulate_blob_grad_.push_back(false);
     }
 
-    for (int i = blob_grad_count; i < output_blobs_.size(); ++i) {
-        auto trainable_buffer = resource_->GetTrainable()[i - blob_grad_count];
+    for (int i = blob_grad_count_; i < blob_grad_count_ + resource_grad_count_; ++i) {
+        auto trainable_buffer = resource_->GetTrainable()[i - blob_grad_count_];
         // resouce buffer dims is empty, use data count
         output_blobs_[i]->GetBlobDesc().dims = {1, trainable_buffer->GetDataCount()};
+    }
+
+    return TNN_OK;
+}
+
+Status GradientLayer::InitGradInfo() {
+    forward_blob_to_grad_.clear();
+    grad_info_.accumulate_blob_grad.clear();
+
+    for (int i = 0; i < blob_grad_count_; ++i) {
+        Blob* forward_input_blob = input_blobs_[i + grad_index_];
+        forward_blob_to_grad_.push_back({forward_input_blob, output_blobs_[i]});
+        grad_info_.accumulate_blob_grad.push_back(false);
+    }
+
+    resource_to_grad_.clear();
+    grad_info_.accumulate_resource_grad.clear();
+    for (int i = blob_grad_count_; i < blob_grad_count_ + resource_grad_count_; ++i) {
+        auto trainable_buffer = resource_->GetTrainable()[i - blob_grad_count_];
         resource_to_grad_.push_back({trainable_buffer, output_blobs_[i]});
-        accumulate_resource_grad_.push_back(false);
+        grad_info_.accumulate_resource_grad.push_back(false);
     }
 
     return TNN_OK;

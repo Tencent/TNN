@@ -20,7 +20,8 @@ namespace TNN_NS {
 DECLARE_ARM_LAYER_GRAD(BinaryCrossEntropy, LAYER_BINARY_CROSSENTROPY);
 
 Status ArmBinaryCrossEntropyLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                              LayerResource *resource, LayerParam *param, Context *context) {
+                                              LayerResource *resource, LayerParam *param, Context *context,
+                                              LayerGradInfo *grad_info) {
     LOGD("ArmBinaryCrossEntropyLayerGrad::OnGrad\n");
 
     return TNN_OK;

@@ -20,7 +20,8 @@ namespace TNN_NS {
 DECLARE_ARM_LAYER_GRAD(Sigmoid, LAYER_SIGMOID);
 
 Status ArmSigmoidLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                   LayerResource *resource, LayerParam *param, Context *context) {
+                                   LayerResource *resource, LayerParam *param, Context *context,
+                                   LayerGradInfo *grad_info) {
     LOGD("ArmSigmoidLayerGrad::OnGrad\n");
 
     return TNN_OK;

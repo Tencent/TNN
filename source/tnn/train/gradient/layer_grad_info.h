@@ -12,22 +12,19 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
-#include "tnn/train/gradient/layer_grad.h"
+#ifndef TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_GRAD_INFO_H
+#define TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_GRAD_INFO_H
+
+#include <vector>
 
 namespace TNN_NS {
 
-DECLARE_ARM_LAYER_GRAD(InnerProduct, LAYER_INNER_PRODUCT);
-
-Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                        LayerResource *resource, LayerParam *param, Context *context,
-                                        LayerGradInfo *grad_info) {
-    LOGD("ArmInnerProductLayerGrad::OnGrad\n");
-
-    return TNN_OK;
-}
-
-REGISTER_ARM_LAYER_GRAD(InnerProduct, LAYER_INNER_PRODUCT)
-REGISTER_ARM_GRAD_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NC4HW4)
+struct LayerGradInfo {
+    // if multipy layers update the same gradient, the results will be accumulated
+    std::vector<bool> accumulate_blob_grad;
+    std::vector<bool> accumulate_resource_grad;
+};
 
 }  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_GRAD_INFO_H

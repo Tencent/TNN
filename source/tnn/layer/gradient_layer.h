@@ -16,6 +16,7 @@
 #define TNN_SOURCE_TNN_LAYER_GRADIENT_LAYER_H_
 
 #include "tnn/layer/base_layer.h"
+#include "tnn/train/gradient/layer_grad_info.h"
 
 namespace TNN_NS {
 
@@ -24,6 +25,9 @@ public:
     explicit GradientLayer(LayerType ignore);
 
     virtual ~GradientLayer();
+
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, std::vector<Blob *> &inputs,
+                        std::vector<Blob *> &outputs, AbstractDevice *device, bool enable_const_folder = true);
 
     const std::vector<std::pair<Blob *, Blob *>> &GetBlobGradPairs();
     const std::vector<std::pair<RawBuffer *, Blob *>> &GetResourceGradPairs();
@@ -34,13 +38,17 @@ public:
 protected:
     virtual Status InferOutputShape(bool ignore_error = false);
 
+    virtual Status InitGradInfo();
+
 private:
+    int blob_grad_count_     = 0;
+    int resource_grad_count_ = 0;
+    int grad_index_          = 0;
+
     std::vector<std::pair<Blob *, Blob *>> forward_blob_to_grad_;
     std::vector<std::pair<RawBuffer *, Blob *>> resource_to_grad_;
 
-    // if multipy layers update the same gradient, the results will be accumulated
-    std::vector<bool> accumulate_blob_grad_;
-    std::vector<bool> accumulate_resource_grad_;
+    LayerGradInfo grad_info_;
 };
 
 }  // namespace TNN_NS
