@@ -79,6 +79,7 @@ class ConvolutionLayerResourceGenerator : public LayerResourceGenerator {
             layer_res->filter_handle = RawBuffer(filter_handle_size * sizeof(int8_t));
             layer_res->bias_handle   = RawBuffer(layer_param->output_channel * sizeof(int32_t));
             layer_res->scale_handle  = RawBuffer(layer_param->output_channel * sizeof(float));
+            layer_res->scale_bias_handle = RawBuffer(layer_param->output_channel * sizeof(int8_t));
 
             layer_res->filter_handle.SetDataType(DATA_TYPE_INT8);
             InitRandom(layer_res->filter_handle.force_to<int8_t*>(), filter_handle_size, (int8_t)8);
@@ -86,6 +87,8 @@ class ConvolutionLayerResourceGenerator : public LayerResourceGenerator {
             InitRandom(layer_res->bias_handle.force_to<int32_t*>(), layer_param->output_channel, (int32_t)8);
             layer_res->scale_handle.SetDataType(DATA_TYPE_FLOAT);
             InitRandom(layer_res->scale_handle.force_to<float*>(), layer_param->output_channel, 0.0f, 1.0f);
+            layer_res->scale_bias_handle.SetDataType(DATA_TYPE_INT8);
+            InitRandom(layer_res->scale_bias_handle.force_to<int8_t*>(), layer_param->output_channel, (int8_t)8);
 
         } else {
             layer_res->filter_handle = RawBuffer(filter_handle_size * sizeof(float));
@@ -109,6 +112,7 @@ class ConvolutionLayerResourceGenerator : public LayerResourceGenerator {
 
         dst_res->filter_handle = ConvertHalfHandle(src_res->filter_handle);
         dst_res->scale_handle  = ConvertHalfHandle(src_res->scale_handle);
+        dst_res->scale_bias_handle  = ConvertHalfHandle(src_res->scale_bias_handle);
         dst_res->bias_handle   = ConvertHalfHandle(src_res->bias_handle);
 
         *fp32_res = dst_res;
@@ -196,6 +200,7 @@ class InnerProductLayerResourceGenerator : public LayerResourceGenerator {
             layer_res->weight_handle = RawBuffer(weight_handle_size * sizeof(int8_t));
             layer_res->bias_handle   = RawBuffer(layer_param->num_output * sizeof(int32_t));
             layer_res->scale_handle  = RawBuffer(layer_param->num_output * sizeof(float));
+            layer_res->scale_bias_handle = RawBuffer(layer_param->num_output * sizeof(int8_t));
 
             layer_res->weight_handle.SetDataType(DATA_TYPE_INT8);
             InitRandom(layer_res->weight_handle.force_to<int8_t*>(), weight_handle_size, (int8_t)4);
@@ -203,6 +208,9 @@ class InnerProductLayerResourceGenerator : public LayerResourceGenerator {
             InitRandom(layer_res->bias_handle.force_to<int32_t*>(), layer_param->num_output, (int32_t)8);
             layer_res->scale_handle.SetDataType(DATA_TYPE_FLOAT);
             InitRandom(layer_res->scale_handle.force_to<float*>(), layer_param->num_output, 0.0f, 1.0f);
+            layer_res->scale_bias_handle.SetDataType(DATA_TYPE_INT8);
+            InitRandom(layer_res->scale_bias_handle.force_to<int8_t*>(), layer_param->num_output, (int8_t)8);
+
         } else {
             layer_res->weight_handle = RawBuffer(weight_handle_size * sizeof(float));
             InitRandom(layer_res->weight_handle.force_to<float*>(), weight_handle_size, 1.0f);
@@ -225,6 +233,7 @@ class InnerProductLayerResourceGenerator : public LayerResourceGenerator {
 
         dst_res->weight_handle = ConvertHalfHandle(src_res->weight_handle);
         dst_res->scale_handle  = ConvertHalfHandle(src_res->scale_handle);
+        dst_res->scale_bias_handle  = ConvertHalfHandle(src_res->scale_bias_handle);
         dst_res->bias_handle   = ConvertHalfHandle(src_res->bias_handle);
 
         *fp32_res = dst_res;
@@ -344,9 +353,12 @@ class BlobScaleLayerResourceGenerator : public LayerResourceGenerator {
         auto dims = inputs[0]->GetBlobDesc().dims;
 
         layer_res->scale_handle = RawBuffer(dims[1] * sizeof(float));
+        layer_res->scale_bias_handle = RawBuffer(dims[1] * sizeof(int8_t));        
         layer_res->bias_handle  = RawBuffer(dims[1] * sizeof(int32_t));
         layer_res->scale_handle.SetDataType(DATA_TYPE_FLOAT);
+        layer_res->scale_bias_handle.SetDataType(DATA_TYPE_INT8);
         InitRandom(layer_res->scale_handle.force_to<float*>(), dims[1], 0.f, 1.0f);
+        InitRandom(layer_res->scale_bias_handle.force_to<int8_t*>(), dims[1], (int8_t)8);
         float* k_data = layer_res->scale_handle.force_to<float*>();
         for (int k = 0; k < dims[1]; k++) {
             k_data[k] = std::fabs(k_data[k] - 0.f) < FLT_EPSILON ? 1.f : k_data[k];
@@ -365,6 +377,7 @@ class BlobScaleLayerResourceGenerator : public LayerResourceGenerator {
         auto dst_res = new IntScaleResource();
 
         dst_res->scale_handle = ConvertHalfHandle(src_res->scale_handle);
+        dst_res->scale_bias_handle  = ConvertHalfHandle(src_res->scale_bias_handle);
         dst_res->bias_handle  = ConvertHalfHandle(src_res->bias_handle);
 
         *fp32_res = dst_res;
@@ -418,6 +431,10 @@ class MaxLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class MinLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class DivLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class MulLayerResourceGenerator : public BinaryLayerResourceGenerator {};
+class LessLayerResourceGenerator : public BinaryLayerResourceGenerator {};
+class GreaterLayerResourceGenerator : public BinaryLayerResourceGenerator {};
+class AndLayerResourceGenerator : public BinaryLayerResourceGenerator {};
+class NotLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class SquaredDifferenceLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 
 /*
@@ -526,6 +543,10 @@ REGISTER_LAYER_RESOURCE(Max, LAYER_MAXIMUM);
 REGISTER_LAYER_RESOURCE(Min, LAYER_MINIMUM);
 REGISTER_LAYER_RESOURCE(Div, LAYER_DIV);
 REGISTER_LAYER_RESOURCE(Mul, LAYER_MUL);
+REGISTER_LAYER_RESOURCE(Less, LAYER_LESS);
+REGISTER_LAYER_RESOURCE(Greater, LAYER_GREATER);
+REGISTER_LAYER_RESOURCE(And, LAYER_AND);
+REGISTER_LAYER_RESOURCE(Not, LAYER_NOT);
 REGISTER_LAYER_RESOURCE(SquaredDifference, LAYER_SQUARED_DIFFERENCE);
 REGISTER_LAYER_RESOURCE(HdrGuide, LAYER_HDRGUIDE);
 

@@ -26,6 +26,11 @@ Status MetalMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResou
 
 MetalMatMulLayerAcc::~MetalMatMulLayerAcc() {}
 
+Status MetalMatMulLayerAcc::ConfigBuffer2MetalBlobDesc(BlobDesc &desc) {
+    desc.data_format = DATA_FORMAT_NCHW;
+    return TNN_OK;
+}
+
 Status MetalMatMulLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     
     id<MTLDevice> device       = [TNNMetalDeviceImpl sharedDevice];
@@ -77,6 +82,10 @@ Status MetalMatMulLayerAcc::AllocateBufferWeight(const std::vector<Blob *> &inpu
     }
     
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
+    if (inputs.size() >= 2) {
+        //  both inputs are blobs, no layer_resource
+        return TNN_OK;
+    }
     auto layer_res = dynamic_cast<MatMulLayerResource *>(resource_);
     if (layer_res == nullptr) {
         return TNN_OK;

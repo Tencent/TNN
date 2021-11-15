@@ -17,6 +17,7 @@
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/dims_utils.h"
 #include "tnn/utils/half_utils_inner.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
@@ -40,6 +41,13 @@ Status MetalReformatLayerAcc::Init(Context *context, LayerParam *param, LayerRes
         return Status(TNNERR_MODEL_ERR, "MetalReformatLayerAcc::Init unsupport reformat type");
     }
     return AllocateBufferParam(inputs, outputs);
+}
+
+Status MetalReformatLayerAcc::UpdateBlobDataType(const std::vector<Blob *> &inputs,
+                                   const std::vector<Blob *> &outputs) {
+    // TODO: check how to set datatype for reformat
+    outputs[0]->GetBlobDesc().data_type = inputs[0]->GetBlobDesc().data_type;
+    return TNN_OK;
 }
 
 std::vector<DataFormat> MetalReformatLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
@@ -77,10 +85,11 @@ Status MetalReformatLayerAcc::ComputeThreadSize(const std::vector<Blob *> &input
     
 std::string MetalReformatLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto reformat_param = dynamic_cast<ReformatLayerParam *>(param_);
+    const auto data_type = inputs[0]->GetBlobDesc().data_type;
     if (reformat_param->src_format == DATA_FORMAT_NCHW) {
-        return "nchw_buffer_nc4hw4_buffer";
+        return data_type == DATA_TYPE_INT32? "nchw_buffer_nc4hw4_buffer_int32" : "nchw_buffer_nc4hw4_buffer";
     }
-    return "nc4hw4_buffer_nchw_buffer";
+    return data_type == DATA_TYPE_INT32? "nc4hw4_buffer_nchw_buffer_int32" : "nc4hw4_buffer_nchw_buffer";
 }
     
 Status MetalReformatLayerAcc::Forward(const std::vector<Blob *> &inputs,

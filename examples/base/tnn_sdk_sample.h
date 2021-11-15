@@ -121,6 +121,8 @@ typedef enum {
     TNNComputeUnitsGPU = 1,
     // run on huawei_npu, if failed run on cpu
     TNNComputeUnitsHuaweiNPU = 2,
+    // run on cpu Naive
+    TNNComputeUnitsNaive = 3,
 } TNNComputeUnits;
 
 struct RGBA{

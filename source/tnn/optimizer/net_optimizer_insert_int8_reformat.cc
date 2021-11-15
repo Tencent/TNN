@@ -39,7 +39,7 @@ namespace optimizer {
 
     bool NetOptimizerInsertInt8Reformat::IsSupported(const NetworkConfig &net_config) {
         auto device = net_config.device_type;
-        device_ = GetDevice(device);
+        device_     = GetDevice(device);
         return device == DEVICE_ARM || device == DEVICE_NAIVE || device == DEVICE_X86;
     }
 
@@ -81,6 +81,45 @@ namespace optimizer {
         }
 
         std::vector<std::shared_ptr<LayerInfo>> layers_fused;
+
+        // if model input is used for multiple layers with different data types,
+        // reformat layers are inserted at beginning.
+        // support multi inputs/outputs.
+        for (const auto &iter : structure->inputs_shape_map) {
+            const auto &model_input = iter.first;
+            LOGD("NetOptimizerInsertInt8Reformat::Optimize, process model input: %s\n", model_input.c_str());
+            int need_int8_input = 0;
+            int need_fp32_input = 0;
+            for (const auto &cur_layer : layers_orig) {
+                for (const auto &layer_input : cur_layer->inputs) {
+                    if (layer_input == model_input) {
+                        if (cur_layer->param->quantized) {
+                            ++need_int8_input;
+                        } else {
+                            ++need_fp32_input;
+                        }
+                        break;
+                    }
+                }
+            }
+            if (need_int8_input > 0 && need_fp32_input > 0) {
+                std::vector<std::string> reformat_outs = {model_input};
+                // fake input layer act as a quantized layer
+                std::shared_ptr<LayerInfo> fake_input_layer = std::make_shared<LayerInfo>();
+                fake_input_layer->param                     = std::make_shared<LayerParam>();
+                fake_input_layer->param->quantized          = true;
+                // create int8 -> fp32 reformat layer
+                std::shared_ptr<LayerInfo> new_layer =
+                    CreateReformat(model_input + reformat_name_suffix + "__from_model_input__", true);
+
+                AdjustLayer(layers_orig, structure, fake_input_layer, new_layer, reformat_outs, reformat_name_suffix,
+                            -1, count);
+
+                LOGD("Insert int8 refomat layer : src %s dst %s\n", new_layer->inputs[0].c_str(),
+                     new_layer->outputs[0].c_str());
+                layers_fused.push_back(new_layer);
+            }
+        }
 
         for (int index = 0; index < count; index++) {
             auto cur_layer = layers_orig[index];

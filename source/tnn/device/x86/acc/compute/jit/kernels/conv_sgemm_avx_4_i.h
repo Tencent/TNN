@@ -114,7 +114,7 @@ public:
         jmp("L_init_end");
         L("L_init");
         for(int i=0;i<N_r;i++) {
-            movups(c_data[i].xmm(), xword[c_addr[i]]);
+            vmovups_sse(c_data[i].xmm(), xword[c_addr[i]]);
         }
         L("L_init_end");
         first.release();
@@ -125,7 +125,7 @@ public:
         LOOP_STACK_VAR(K, SGEMM_AVX_8X6_K) 
         {
             a_data.aquire();
-            movups(a_data.xmm(), xword[src_a]);
+            vmovups_sse(a_data.xmm(), xword[src_a]);
             for(int i=0;i<N_r;i++) {
                 b_data.aquire();
                 vbroadcastss_sse(b_data.xmm(), xword[src_b + i * 4]);

@@ -40,7 +40,7 @@ function build_model_check_and_tnn_converter_and_onnx2tnn() {
         -DTNN_ONNX2TNN_ENABLE:BOOL="ON" \
         -DTNN_BUILD_SHARED="OFF"
 
-    make -j8
+    make -j4
 
     if [ -f "model_check" ]; then
         cp model_check ../${BIN_DIR}/
