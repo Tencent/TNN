@@ -89,6 +89,8 @@ Status BinaryCrossEntropyLayerGrad::OnGrad(const BaseLayer *layer, TrainContext 
     if (!grad0.IsRawbufferSharedPtr() || !grad1.IsRawbufferSharedPtr()) {
         return Status(TNN_TRAIN_ERROR, "Calcute BinaryCrossEntropyLayerGrad error");
     }
+    // PrintFloatBuffer(grad0.GetRawbufferSharedPtr().get(), "grad0");
+    // PrintFloatBuffer(grad1.GetRawbufferSharedPtr().get(), "grad1");
     UpdateGradValue(inputs[0], grad0.GetRawbufferSharedPtr(), context);
     UpdateGradValue(inputs[1], grad1.GetRawbufferSharedPtr(), context);
     return Status(TNN_OK);

@@ -38,5 +38,14 @@ void LayerGrad::UpdateGradValue(RawBuffer *resource, std::shared_ptr<RawBuffer> 
     }
 }
 
+void PrintFloatBuffer(RawBuffer *buffer, const std::string &name) {
+    auto ptr = buffer->force_to<float *>();
+    printf(">> %s:\n", name.c_str());
+    for (int i = 0; i < buffer->GetDataCount(); ++i) {
+        printf("%f ", ptr[i]);
+    }
+    printf("\n");
+}
+
 } // namespace train
 } // namespace TNN_NS

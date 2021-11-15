@@ -61,6 +61,9 @@ public:
 #define REGISTER_LAYER_GRAD(type_string, layer_type)                                                                   \
     LayerGradRegister<type_string##LayerGrad> g_##layer_type##_layer_grad_register(layer_type);
 
+
+void PrintFloatBuffer(RawBuffer *buffer, const std::string &name = "");
+
 } // namespace train
 } // namespace TNN_NS
 #endif // TNN_SOURCE_TNN_TRAIN_GRAD_LAYER_GRAD_H
