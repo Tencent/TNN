@@ -31,7 +31,7 @@ public:
 
     const std::vector<std::pair<Blob *, Blob *>> &GetBlobGradPairs();
     const std::vector<std::pair<RawBuffer *, Blob *>> &GetResourceGradPairs();
-    int GetGradIndex();
+    int GetUpstreamGradCount();
 
     Status SetUpstreamGrad(int index, Blob *blob);
     Status SetAccumulateBlobGradFlag(int index, bool cond);
@@ -45,7 +45,7 @@ protected:
 private:
     int blob_grad_count_     = 0;
     int resource_grad_count_ = 0;
-    int grad_index_          = 0;
+    int upstream_grad_count_ = 0;
 
     std::vector<std::pair<Blob *, Blob *>> forward_blob_to_grad_;
     std::vector<std::pair<RawBuffer *, Blob *>> resource_to_grad_;

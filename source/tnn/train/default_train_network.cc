@@ -106,8 +106,9 @@ Status DefaultTrainNetwork::UpdateGradMap() {
             resource_to_grad_map_.insert(pair);
             ++index;
         }
-        for (index = 0; index < grad_layer->GetGradIndex(); ++index) {
-            auto forward_output = grad_layer->GetInputBlobs().at(index);
+        for (index = 0; index < grad_layer->GetUpstreamGradCount(); ++index) {
+            auto offset         = grad_layer->GetInputBlobs().size() - grad_layer->GetUpstreamGradCount();
+            auto forward_output = grad_layer->GetInputBlobs().at(index + offset);
             if (forward_blob_to_grad_map_.find(forward_output) != forward_blob_to_grad_map_.end()) {
                 RETURN_ON_NEQ(grad_layer->SetUpstreamGrad(index, forward_blob_to_grad_map_.at(forward_output)), TNN_OK);
             } else {

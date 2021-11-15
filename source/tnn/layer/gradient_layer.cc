@@ -51,8 +51,8 @@ const std::vector<std::pair<RawBuffer*, Blob*>>& GradientLayer::GetResourceGradP
     return resource_to_grad_;
 }
 
-int GradientLayer::GetGradIndex() {
-    return grad_index_;
+int GradientLayer::GetUpstreamGradCount() {
+    return upstream_grad_count_;
 }
 
 Status GradientLayer::SetUpstreamGrad(int index, Blob* grad) {
@@ -92,22 +92,22 @@ Status GradientLayer::InferOutputShape(bool ignore_error) {
 
     blob_grad_count_ = output_blobs_.size() - resource_grad_count_;
     if (blob_grad_count_ < 0) {
-        LOGE("GradientLayer::InferOutputShape, output blob should not be less than resource grad\n");
-        return Status(TNNERR_LAYER_ERR, "output blob less than resource grad");
+        LOGE("GradientLayer::InferOutputShape, empty blob grad to calculate\n");
+        return Status(TNNERR_LAYER_ERR, "empty blob grad to calculate");
     }
 
-    grad_index_ = input_blobs_.size() - blob_grad_count_;
-    if (grad_index_ < 0) {
-        LOGE("GradientLayer::InferOutputShape, input blob should not be less than blob grad\n");
-        return Status(TNNERR_LAYER_ERR, "input blob less than output blob");
+    upstream_grad_count_ = input_blobs_.size() - blob_grad_count_;
+    if (upstream_grad_count_ < 0) {
+        LOGE("GradientLayer::InferOutputShape, empty upstream grad to use\n");
+        return Status(TNNERR_LAYER_ERR, "empty upstream grad to use");
     }
 
     for (int i = 0; i < blob_grad_count_; ++i) {
-        Blob* forward_input_blob             = input_blobs_[i + grad_index_];
+        Blob* forward_input_blob             = input_blobs_[i];
         output_blobs_[i]->GetBlobDesc().dims = forward_input_blob->GetBlobDesc().dims;
     }
 
-    for (int i = blob_grad_count_; i < blob_grad_count_ + resource_grad_count_; ++i) {
+    for (int i = blob_grad_count_; i < output_blobs_.size(); ++i) {
         auto trainable_buffer = resource_->GetTrainable()[i - blob_grad_count_];
         // resouce buffer dims is empty, use data count
         output_blobs_[i]->GetBlobDesc().dims = {1, trainable_buffer->GetDataCount()};
@@ -118,7 +118,7 @@ Status GradientLayer::InferOutputShape(bool ignore_error) {
 
 Status GradientLayer::InitGradInfo() {
     grad_info_.upstream_grads.clear();
-    for (int i = 0; i < grad_index_; ++i) {
+    for (int i = 0; i < upstream_grad_count_; ++i) {
         grad_info_.upstream_grads.push_back(nullptr);
     }
 
@@ -126,7 +126,7 @@ Status GradientLayer::InitGradInfo() {
     grad_info_.accumulate_blob_grad.clear();
 
     for (int i = 0; i < blob_grad_count_; ++i) {
-        Blob* forward_input_blob = input_blobs_[i + grad_index_];
+        Blob* forward_input_blob = input_blobs_[i];
         forward_blob_to_grad_.push_back({forward_input_blob, output_blobs_[i]});
         grad_info_.accumulate_blob_grad.push_back(false);
     }

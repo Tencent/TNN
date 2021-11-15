@@ -183,12 +183,16 @@ namespace optimizer {
                 std::shared_ptr<LayerInfo> grad_layer = CreateGradient(forward_layer.get());
 
                 // forward blob gradients
-                grad_layer->inputs = forward_layer->outputs;
+                grad_layer->inputs.clear();
                 for (auto forward_input : forward_layer->inputs) {
                     grad_layer->inputs.push_back(forward_input);
                     auto blob_grad = forward_input + gradient_suffix;
                     grad_layer->outputs.push_back(blob_grad);
                     net_structure->blobs.insert(blob_grad);
+                }
+
+                for (auto forward_output : forward_layer->outputs) {
+                    grad_layer->inputs.push_back(forward_output);
                 }
 
                 // resource buffer gradients
