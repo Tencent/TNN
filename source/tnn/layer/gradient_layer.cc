@@ -51,6 +51,20 @@ const std::vector<std::pair<RawBuffer*, Blob*>>& GradientLayer::GetResourceGradP
     return resource_to_grad_;
 }
 
+int GradientLayer::GetGradIndex() {
+    return grad_index_;
+}
+
+Status GradientLayer::SetUpstreamGrad(int index, Blob* grad) {
+    if (index >= grad_info_.upstream_grads.size()) {
+        LOGE("Error, grad index exceeds %d\n", index);
+        return Status(TNNERR_LAYER_ERR, "set upstream grads error");
+    }
+    grad_info_.upstream_grads[index] = grad;
+
+    return TNN_OK;
+}
+
 Status GradientLayer::SetAccumulateBlobGradFlag(int index, bool cond) {
     if (index >= grad_info_.accumulate_blob_grad.size()) {
         LOGE("Error, blob index exceeds %d\n", index);
@@ -103,6 +117,11 @@ Status GradientLayer::InferOutputShape(bool ignore_error) {
 }
 
 Status GradientLayer::InitGradInfo() {
+    grad_info_.upstream_grads.clear();
+    for (int i = 0; i < grad_index_; ++i) {
+        grad_info_.upstream_grads.push_back(nullptr);
+    }
+
     forward_blob_to_grad_.clear();
     grad_info_.accumulate_blob_grad.clear();
 

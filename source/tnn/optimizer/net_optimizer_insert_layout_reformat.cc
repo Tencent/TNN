@@ -133,7 +133,8 @@ namespace optimizer {
         if (!device_layouts || device_layouts->layouts.size() < 1) {
             auto adaptor_device_layouts = adaptor_device_->GetImplementedLayout(layer->type, forward_type);
             if (!adaptor_device_layouts || adaptor_device_layouts->layouts.size() < 1) {
-                LOGE("NetOptimizerInsertLayoutReformat Error: empty adaptor device layouts of %d\n", layer->type);
+                LOGE("NetOptimizerInsertLayoutReformat Error: empty adaptor device layouts of %d, %d\n", layer->type,
+                     forward_type);
                 return std::make_shared<ImplementedLayout>();
             } else {
                 return GetAdaptorLayouts(device_->GetDeviceType());

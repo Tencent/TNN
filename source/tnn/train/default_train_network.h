@@ -12,8 +12,6 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#if TRAIN
-
 #ifndef TNN_SOURCE_TNN_TRAIN_DEFAULT_TRAIN_NETWORK_H_
 #define TNN_SOURCE_TNN_TRAIN_DEFAULT_TRAIN_NETWORK_H_
 
@@ -46,6 +44,7 @@ protected:
     virtual Status UpdateSolver();
 
     virtual Status UpdateGradMap();
+    virtual std::string GetLossBlobName();
 
     std::set<std::string> need_grad_layers_;
     std::shared_ptr<train::BaseSolver> solver_;
@@ -57,5 +56,3 @@ protected:
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_TRAIN_DEFAULT_TRAIN_NETWORK_H_
-
-#endif  // TRAIN

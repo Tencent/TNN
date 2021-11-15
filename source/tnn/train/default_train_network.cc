@@ -12,8 +12,6 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#if TRAIN
-
 #include "tnn/train/default_train_network.h"
 
 #include "tnn/interpreter/tnn/model_packer.h"
@@ -92,7 +90,7 @@ Status DefaultTrainNetwork::UpdateGradMap() {
         for (auto pair : grad_layer->GetBlobGradPairs()) {
             // if blob appears more than once, set accumulate flag
             if (forward_blob_to_grad_map_.find(pair.first) != forward_blob_to_grad_map_.end()) {
-                grad_layer->SetAccumulateBlobGradFlag(index, true);
+                RETURN_ON_NEQ(grad_layer->SetAccumulateBlobGradFlag(index, true), TNN_OK);
                 LOGD("layer %s accumulate %d's blob grad\n", layer->GetLayerName().c_str(), index);
             }
             forward_blob_to_grad_map_.insert(pair);
@@ -102,11 +100,19 @@ Status DefaultTrainNetwork::UpdateGradMap() {
         for (auto pair : grad_layer->GetResourceGradPairs()) {
             // if resource appears more than once, set accumulate flag
             if (resource_to_grad_map_.find(pair.first) != resource_to_grad_map_.end()) {
-                grad_layer->SetAccumulateResourceGradFlag(index, true);
+                RETURN_ON_NEQ(grad_layer->SetAccumulateResourceGradFlag(index, true), TNN_OK);
                 LOGD("layer %s accumulate %d's resource grad\n", layer->GetLayerName().c_str(), index);
             }
             resource_to_grad_map_.insert(pair);
             ++index;
+        }
+        for (index = 0; index < grad_layer->GetGradIndex(); ++index) {
+            auto forward_output = grad_layer->GetInputBlobs().at(index);
+            if (forward_blob_to_grad_map_.find(forward_output) != forward_blob_to_grad_map_.end()) {
+                RETURN_ON_NEQ(grad_layer->SetUpstreamGrad(index, forward_blob_to_grad_map_.at(forward_output)), TNN_OK);
+            } else {
+                LOGD("Dont get %d's upstream grad of layer %s, assume all 1s\n", index, layer->GetLayerName().c_str());
+            }
         }
     }
 
@@ -124,9 +130,9 @@ Status DefaultTrainNetwork::UpdateGradMap() {
     return TNN_OK;
 }
 
-static std::string GetLossBlobName(const NetStructure *structure) {
+std::string DefaultTrainNetwork::GetLossBlobName() {
     LayerInfo *loss_layer = nullptr;
-    for (auto layer : structure->layers) {
+    for (auto layer : net_structure_->layers) {
         if (layer->type == LAYER_GRADIENT) {
             break;
         } else {
@@ -140,7 +146,7 @@ Status DefaultTrainNetwork::UpdateSolver() {
     if (config_.train_config.solver_type == SOLVER_TYPE_SGD) {
         float learning_rate = config_.train_config.solver_params.learning_rate;
         if (config_.train_config.loss_name.empty()) {
-            config_.train_config.loss_name = GetLossBlobName(net_structure_);
+            config_.train_config.loss_name = GetLossBlobName();
         }
         solver_ = std::make_shared<train::SGD>(this, &config_, learning_rate);
         solver_->SetNeedGradLayers(need_grad_layers_);
@@ -152,5 +158,3 @@ Status DefaultTrainNetwork::UpdateSolver() {
 }
 
 }  // namespace TNN_NS
-
-#endif  // TRAIN

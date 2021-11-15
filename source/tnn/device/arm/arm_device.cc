@@ -157,17 +157,16 @@ NetworkType ArmDevice::ConvertAutoNetworkType() {
 }
 
 std::shared_ptr<const ImplementedLayout> ArmDevice::GetImplementedLayout(LayerType type, LayerType forward_type) {
-    if (type == LAYER_GRADIENT) {
+    if (type != LAYER_GRADIENT) {
+        auto &layer_layout_map = GetLayerLayoutMap();
+        if (layer_layout_map.count(type) > 0) {
+            return layer_layout_map[type];
+        }
+    } else {
         auto &grad_layout_map = GetGradLayoutMap();
         if (grad_layout_map.count(forward_type) > 0) {
             return grad_layout_map[forward_type];
-        } else {
-            LOGD("ArmDevice::GetImplementedLayout, empty gradient layouts of %d\n", forward_type);
         }
-    }
-    auto &layer_layout_map = GetLayerLayoutMap();
-    if (layer_layout_map.count(type) > 0) {
-        return layer_layout_map[type];
     }
     return std::make_shared<ImplementedLayout>();
 }
