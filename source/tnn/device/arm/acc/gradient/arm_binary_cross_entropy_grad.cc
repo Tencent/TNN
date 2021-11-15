@@ -25,7 +25,7 @@ DECLARE_ARM_LAYER_GRAD(BinaryCrossEntropy, LAYER_BINARY_CROSSENTROPY);
 // y = -x1*log(x0) - (1-x1)*log(1-x0)
 // dy/dx0 = (1-x1)/(1-x0) -x1/x0
 // dy/dx1 = log(1-x0) - log(x0)
-template <bool acc_g0, bool acc_g1>
+template <int acc_g0, int acc_g1>
 static void ExecBCEGrad(int count_quad, float *input_ptr0, float *input_ptr1, float *grad_ptr0, float *grad_ptr1,
                         float *up_grad) {
     Float4 x0, x1, g0, g1, ug;
