@@ -49,6 +49,7 @@ Status ReluLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &context) {
     if (!grad0.IsRawbufferSharedPtr()) {
         return Status(TNN_TRAIN_ERROR, "Calcute ReluLayerGrad error");
     }
+    // PrintFloatBuffer(grad0.GetRawbufferSharedPtr().get());
     UpdateGradValue(inputs[0], grad0.GetRawbufferSharedPtr(), context);
     return Status(TNN_OK);
 }
