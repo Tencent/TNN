@@ -38,21 +38,22 @@ public:
                         bool enable_const_folder = true) override;
 
     virtual Status TrainStep() override;
+    virtual Status GetTrainingFeedback(TrainingFeedback &feed_back) override;
 
 protected:
-    virtual Status UpdateNeedGradLayers();
-    virtual Status UpdateSolver();
-
     virtual Status UpdateGradMap();
     virtual std::string GetLossBlobName();
-
-    std::set<std::string> need_grad_layers_;
-    std::shared_ptr<train::BaseSolver> solver_;
+    virtual std::string GetGlobalStepBlobName();
 
     std::map<Blob *, Blob *> forward_blob_to_grad_map_;
     std::map<Blob *, RawBuffer *> grad_to_resource_map_;
 
     TrainMode run_mode_ = TRAIN_MODE_TRAIN;
+
+    virtual Status UpdateNeedGradLayers();
+    virtual Status UpdateSolver();
+    std::set<std::string> need_grad_layers_;
+    std::shared_ptr<train::BaseSolver> solver_;
 };
 
 }  // namespace TNN_NS

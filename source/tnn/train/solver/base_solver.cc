@@ -39,6 +39,11 @@ namespace train {
         return;
     }
 
+    void BaseSolver::SetLossName(const std::string &loss_name) {
+        grad_manager_.SetLossName(loss_name);
+        return;
+    }
+
     Status BaseSolver::UpdateTrainableVariable(RawBuffer *resource_param,
                                                const std::shared_ptr<RawBuffer> &resource_param_grad) {
         if (resource_param->GetDataType() != resource_param_grad->GetDataType() ||

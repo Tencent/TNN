@@ -177,12 +177,18 @@ struct PUBLIC TrainConfig {
     std::string target_layer = "";      // the layer whose output is used to calculate loss, default is the last layer
     std::string target_name  = "";      // the ground truth, provide by model inputs
     DimsVector target_shape  = {};      // the shape of the ground truth
-    std::string loss_name    = "";      // the name of the output loss
     bool auto_add_prob_layer = true;    // add softmax or sigmoid layer before loss layer
 
     // fine tune part of the network
     // only trainable layers' parameters will be updated
     std::set<std::string> trainable_layers;
+};
+
+struct PUBLIC TrainingFeedback {
+    std::string loss_name        = "";
+    float loss_value             = 0.0;
+    std::string global_step_name = "";
+    int global_step_value        = 0;
 };
 
 //@brief Config used to create tnn instance, config

@@ -34,11 +34,13 @@ public:
         return context_;
     };
     void SetNeedGradLayers(const std::set<std::string> &trainable_layers);
+    void SetLossName(const std::string &loss_name);
 
 private:
     // static std::set<RawBuffer* > trainables_;
     TrainContext context_;
     std::set<std::string> need_grad_layers_;
+    std::string loss_name_;
 };
 
 } // namespace train

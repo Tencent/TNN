@@ -37,6 +37,8 @@ namespace train {
 
         void SetNeedGradLayers(const std::set<std::string> &need_grad_layers);
 
+        void SetLossName(const std::string& loss_name);
+
     private:
         // @brief Update the gradient by learning rate, etc. support different strategies
         virtual Status ComputeUpdateValue(RawBuffer *param, std::shared_ptr<RawBuffer> &grad) = 0;

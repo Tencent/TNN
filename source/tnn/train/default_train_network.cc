@@ -41,7 +41,6 @@ Status DefaultTrainNetwork::Init(NetworkConfig &net_config, ModelConfig &model_c
     RETURN_ON_NEQ(UpdateGradMap(), TNN_OK);
 
     RETURN_ON_NEQ(UpdateNeedGradLayers(), TNN_OK);
-
     RETURN_ON_NEQ(UpdateSolver(), TNN_OK);
 
     return TNN_OK;
@@ -51,41 +50,23 @@ Status DefaultTrainNetwork::TrainStep() {
     if (run_mode_ != TRAIN_MODE_TRAIN) {
         return TNN_OK;
     }
+    // solver_->Step();
 
-    if (solver_) {
-        Status ret = TNN_OK;
-
-        // ret = solver_->Step();
-        RETURN_ON_NEQ(ret, TNN_OK);
-
-        for (auto layer : layers_) {
-            ret = layer->RefreshBuffers();
-            if (ret != TNN_OK) {
-                LOGE("%s layer RefreshBuffers error %s, exit\n", layer->GetLayerName().c_str(),
-                     ret.description().c_str());
-                return ret;
-            }
-        }
-
-        return ret;
-    } else {
-        LOGE("ERROR: DefaultTrainNetwork::TrainStep, solver is empty\n");
-        return Status(TNN_TRAIN_ERROR, "solver is empty");
-    }
-};
-
-Status DefaultTrainNetwork::UpdateNeedGradLayers() {
-    need_grad_layers_.clear();
-    CHECK_PARAM_NULL(net_structure_);
-
-    for (auto layer : net_structure_->layers) {
-        if (layer->type == LAYER_GRADIENT) {
-            GradientParam *param = dynamic_cast<GradientParam *>(layer->param.get());
-            CHECK_PARAM_NULL(param);
-            need_grad_layers_.insert(param->forward_layer_name);
+    Status ret = TNN_OK;
+    for (auto layer : layers_) {
+        ret = layer->RefreshBuffers();
+        if (ret != TNN_OK) {
+            LOGE("%s layer RefreshBuffers error %s, exit\n", layer->GetLayerName().c_str(), ret.description().c_str());
+            return ret;
         }
     }
 
+    return ret;
+}
+
+Status DefaultTrainNetwork::GetTrainingFeedback(TrainingFeedback &feed_back) {
+    feed_back.loss_name        = GetLossBlobName();
+    feed_back.global_step_name = GetGlobalStepBlobName();
     return TNN_OK;
 }
 
@@ -166,17 +147,43 @@ std::string DefaultTrainNetwork::GetLossBlobName() {
             loss_layer = layer.get();
         }
     }
+    if (!loss_layer) {
+        LOGE("DefaultTrainNetwork::GetLossBlobName ERROR, cannot get loss name\n");
+        return "";
+    }
     return loss_layer->outputs[0];
+}
+
+std::string DefaultTrainNetwork::GetGlobalStepBlobName() {
+    LayerInfo *solver_layer = net_structure_->layers.back().get();
+    if (!solver_layer) {
+        LOGE("DefaultTrainNetwork::GetGlobalStepBlobName ERROR, cannot get global_step name\n");
+        return "";
+    }
+    return solver_layer->outputs[0];
+}
+
+Status DefaultTrainNetwork::UpdateNeedGradLayers() {
+    need_grad_layers_.clear();
+    CHECK_PARAM_NULL(net_structure_);
+
+    for (auto layer : net_structure_->layers) {
+        if (layer->type == LAYER_GRADIENT) {
+            GradientParam *param = dynamic_cast<GradientParam *>(layer->param.get());
+            CHECK_PARAM_NULL(param);
+            need_grad_layers_.insert(param->forward_layer_name);
+        }
+    }
+
+    return TNN_OK;
 }
 
 Status DefaultTrainNetwork::UpdateSolver() {
     if (config_.train_config.solver_type == SOLVER_TYPE_SGD) {
         float learning_rate = config_.train_config.solver_params.learning_rate;
-        if (config_.train_config.loss_name.empty()) {
-            config_.train_config.loss_name = GetLossBlobName();
-        }
-        solver_ = std::make_shared<train::SGD>(this, &config_, learning_rate);
+        solver_             = std::make_shared<train::SGD>(this, &config_, learning_rate);
         solver_->SetNeedGradLayers(need_grad_layers_);
+        solver_->SetLossName(GetLossBlobName());
     } else {
         return Status(TNNERR_NET_ERR, "not support slover type in train mode");
     }

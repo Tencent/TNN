@@ -57,6 +57,16 @@ Status Instance::SaveModel(const std::string& model_path) {
     ModelPacker packer(default_interpreter->GetNetStructure(), default_interpreter->GetNetResource());
     return packer.PackModel(model_path);
 }
+
+Status Instance::GetTrainingFeedback(TrainingFeedback& feed_back) {
+    RETURN_ON_NEQ(network_->GetTrainingFeedback(feed_back), TNN_OK);
+    std::shared_ptr<Mat> mat;
+    GetOutputMat(mat, MatConvertParam(), feed_back.loss_name);
+    feed_back.loss_value = *(reinterpret_cast<float*>(mat->GetData()));
+    GetOutputMat(mat, MatConvertParam(), feed_back.global_step_name);
+    feed_back.global_step_value = *(reinterpret_cast<float*>(mat->GetData()));
+    return TNN_OK;
+}
 #endif
 
 Status Instance::GetNetworkType(NetworkType& network_type) {

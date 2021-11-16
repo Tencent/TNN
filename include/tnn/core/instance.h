@@ -105,6 +105,8 @@ public:
     Status TrainStep();
     // save the trained tnnmodel to disk
     Status SaveModel(const std::string& model_path);
+    // get training feedback
+    Status GetTrainingFeedback(TrainingFeedback& feed_back);
 #endif
 
 #if TNN_PROFILE

@@ -29,6 +29,9 @@ GradManager::GradManager(AbstractNetwork *network, NetworkConfig *config) {
 void GradManager::SetNeedGradLayers(const std::set<std::string> &need_grad_layers) {
     need_grad_layers_ = need_grad_layers;
 }
+void GradManager::SetLossName(const std::string &loss_name) {
+    loss_name_ = loss_name;
+}
 
 Status GradManager::IsSupport() {
     if (context_.config->device_type != DEVICE_ARM && context_.config->device_type != DEVICE_NAIVE)
@@ -46,7 +49,7 @@ Status GradManager::CalcuteGrads() {
     if (network == nullptr) {
         return Status(TNNERR_UNSUPPORT_NET, "grad module only support default net work");
     }
-    Blob *loss = network->GetBlob(context_.config->train_config.loss_name);
+    Blob *loss = network->GetBlob(loss_name_);
     if (!loss) {
         return Status(TNN_TRAIN_ERROR, "can't find loss blob");
     }

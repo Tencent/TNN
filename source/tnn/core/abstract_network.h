@@ -38,7 +38,8 @@ public:
     // @param net_cfg
     // @param net_res
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder=true) = 0;
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape,
+                        bool enable_const_folder = true) = 0;
 
     // @brief deinit release init create resource
     virtual Status DeInit() = 0;
@@ -70,7 +71,7 @@ public:
 
     // @brief share tnn command queue to another network。
     virtual Status ShareCommandQueue(AbstractNetwork *network);
-    
+
     // @brief network infer, it will sync to wait result
     virtual Status Forward() = 0;
 
@@ -96,6 +97,8 @@ public:
 #ifdef TRAIN
     // @brief run one step in train mode
     virtual Status TrainStep();
+    // @brief get training feedback
+    virtual Status GetTrainingFeedback(TrainingFeedback &feed_back);
 #endif
 
 #if TNN_PROFILE

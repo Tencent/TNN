@@ -151,12 +151,7 @@ namespace optimizer {
         } else {
             auto reduce_input = entropy_layer->outputs[0];
             reduce_layer->inputs.push_back(reduce_input);
-            auto reduce_output = train_config.loss_name;
-            if (reduce_output.empty()) {
-                reduce_output = reduce_input + loss_suffix;
-                LOGD("NetOptimizerInsertLossAndGradient::InsertLossLayer, loss name is empty, auto generate: %s\n",
-                     reduce_output.c_str());
-            }
+            auto reduce_output = reduce_input + loss_suffix;
             reduce_layer->outputs.push_back(reduce_output);
             net_structure->layers.push_back(reduce_layer);
             net_structure->blobs.insert(reduce_output);

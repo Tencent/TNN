@@ -144,6 +144,9 @@ namespace test {
                 if (!CheckResult("Train", ret)) {
                     return ret;
                 }
+                TrainingFeedback feed_back;
+                ret = instance->GetTrainingFeedback(feed_back);
+                LOGI("Training step: %d, loss: %f\n", feed_back.global_step_value, feed_back.loss_value);
 #endif
 
                 if (!CheckResult("Forward", ret)) {

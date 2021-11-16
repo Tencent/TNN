@@ -36,6 +36,9 @@ Status AbstractNetwork::SetCpuNumThreads(int num_threads) {
 Status AbstractNetwork::TrainStep() {
     return Status(TNN_TRAIN_ERROR, "Subclass of AbstractNetwork doesn't implement TrainStep func");
 }
+Status AbstractNetwork::GetTrainingFeedback(TrainingFeedback& feed_back) {
+    return Status(TNN_TRAIN_ERROR, "Subclass of AbstractNetwork doesn't implement GetTrainingFeedback func");
+}
 #endif
 
 #if TNN_PROFILE
