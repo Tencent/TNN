@@ -74,6 +74,17 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
     instance_ptr->network_config_ = network_config;
     // instance_ptr->instance_->Init(ctx->get_interpreter(), inputs_shape_map);
     // set output blob names
+    if (block.min_in_shape().size() != 0 && block.max_in_shape().size() != 0 && block.min_in_shape().size() == block.max_in_shape().size()) {
+        InputShapesMap min_inputs_shape_map;
+        InputShapesMap max_inputs_shape_map;
+        for (int i = 0; i < instance_ptr->input_names.size(); i++) {
+            min_inputs_shape_map[instance_ptr->input_names[i]] = block.min_in_shape()[i];
+            max_inputs_shape_map[instance_ptr->input_names[i]] = block.max_in_shape()[i];
+        }
+        net_structure->inputs_shape_map = max_inputs_shape_map;
+        instance_ptr->instance_->Init(ctx->get_interpreter(), min_inputs_shape_map, max_inputs_shape_map);
+        instance_ptr->is_init_ = true;
+    }
 
     return instance_ptr;
 }

@@ -62,16 +62,16 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
             min_shape = inputs_shape_map;
             max_shape = inputs_shape_map;
         }
-        compiled_engine->instance_->Init(compiled_engine->ctx_->get_interpreter(), min_shape, max_shape);
-        compiled_engine->is_init_ = true;
-
-        if (inputs[0].is_cuda()) {
-            c10::cuda::CUDAStream stream = c10::cuda::getCurrentCUDAStream(inputs[0].device().index());
-            compiled_engine->instance_->SetCommandQueue(stream.stream());
-        }
 
         // ModelPacker package(interpreter->GetNetStructure(), interpreter->GetNetResource());
         // package.Pack("torch.tnnproto", "torch.tnnmodel");
+        compiled_engine->instance_->Init(compiled_engine->ctx_->get_interpreter(), min_shape, max_shape);
+        compiled_engine->is_init_ = true;
+    }
+
+    if (inputs[0].is_cuda()) {
+        c10::cuda::CUDAStream stream = c10::cuda::getCurrentCUDAStream(inputs[0].device().index());
+        compiled_engine->instance_->SetCommandQueue(stream.stream());
     }
 
     compiled_engine->instance_->Reshape(inputs_shape_map);
