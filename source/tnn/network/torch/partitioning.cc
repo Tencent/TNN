@@ -77,9 +77,18 @@ bool containTargetInputs(torch::jit::Node* n, const std::unordered_set<torch::ji
     return false;
 }
 
-bool containNonTensorOutputs(torch::jit::Node* n) {
+void findAllNonTensorOutputs(torch::jit::Node* n, std::vector<std::string>& non_tensor_outputs) {
     for (auto output : n->outputs()) {
         if (!util::isTensorOrTensorList(output)) {
+            non_tensor_outputs.push_back(output->debugName());
+        }
+    }
+}
+
+bool nodeInputContainsNonTensorOutput(torch::jit::Node* n, std::vector<std::string> non_tensor_outputs) {
+    for (auto input : n->inputs()) {
+        if (std::find(non_tensor_outputs.begin(), non_tensor_outputs.end(), input->debugName()) \
+            != non_tensor_outputs.end()) {
             return true;
         }
     }
@@ -130,17 +139,17 @@ std::vector<SegmentedBlock> injectNodesForNonTensorInputs(SegmentedBlock& seg_bl
         std::unordered_set<torch::jit::Value*> nontensor_inputs_set(nontensor_inputs.begin(),
                                                                     nontensor_inputs.end());
         std::vector<torch::jit::Node*> tnn_nodes, pytorch_nodes;
-        bool prev_non_tensor_outputs = false;
+        std::vector<std::string> nontensor_outputs;
         for (auto n : seg_block.raw_nodes()) {
             // it's a kTorch block if it uses the nonTensor input and the nonTensor input is produced in kTorch
             // block
-            if (containTargetInputs(n, nontensor_inputs_set) || prev_non_tensor_outputs) {
+            if (containTargetInputs(n, nontensor_inputs_set) || nodeInputContainsNonTensorOutput(n, nontensor_outputs)) {
                 if (!tnn_nodes.empty()) {
                     new_seg_blocks.emplace_back(SegmentedBlock::kTNN, tnn_nodes);
                     tnn_nodes.clear();
                 }
                 pytorch_nodes.push_back(n);
-                prev_non_tensor_outputs = containNonTensorOutputs(n);
+                findAllNonTensorOutputs(n, nontensor_outputs);
             } else {
                 if (!pytorch_nodes.empty()) {
                     new_seg_blocks.emplace_back(SegmentedBlock::kTorch, pytorch_nodes);
@@ -175,7 +184,12 @@ void resolveNonTensorInputs(PartitionedGraph& segmented_blocks, std::shared_ptr<
             }
         }
     }
-    std::unordered_set<int> updated_segments;
+
+    std::unordered_set<int> updated_old_segment_ids;
+    std::map<int, int> old_to_new_segment_ids;
+    for (int i=0; i<segmented_blocks.size(); i++) {
+        old_to_new_segment_ids[i] = i;
+    }
     for (auto& use : usage_counts) {
         auto use_info = use.second;
         // if the segment that produce this nonTensor value is kTNN but consumed in kTorch, inject nodes in the
@@ -185,22 +199,33 @@ void resolveNonTensorInputs(PartitionedGraph& segmented_blocks, std::shared_ptr<
             int first_torch_id = use_info.torch_use_id.front();
             auto tnn_nodes     = segmented_blocks[use_info.produce_id].raw_nodes();
 
-            if (!updated_segments.count(first_torch_id)) {
-                auto old_block_nodes = segmented_blocks[first_torch_id].raw_nodes();
-                auto new_torch_block = injectNodesForNonTensorInputs(segmented_blocks[first_torch_id]).front();
+            if (!updated_old_segment_ids.count(first_torch_id)) {
+                int new_id = old_to_new_segment_ids[first_torch_id];
+                auto old_block_nodes = segmented_blocks[new_id].raw_nodes();
+                auto new_torch_block = injectNodesForNonTensorInputs(segmented_blocks[new_id]).front();
                 auto new_block_nodes = new_torch_block.raw_nodes();
-                segmented_blocks[first_torch_id] = new_torch_block;
-                updated_segments.insert(first_torch_id);
+                segmented_blocks[new_id] = new_torch_block;
+                updated_old_segment_ids.insert(first_torch_id);
             }
         } else {
             // KTNN segments always need to inject nodes for the nonTensor inputs
-            for (int i : use_info.tnn_use_id) {
-                if (!updated_segments.count(i)) {
-                    auto to_inject_blocks = injectNodesForNonTensorInputs(segmented_blocks[i]);
-                    segmented_blocks.erase(segmented_blocks.begin() + i);
-                    segmented_blocks.insert(segmented_blocks.begin() + i, to_inject_blocks.begin(),
+            for (int id : use_info.tnn_use_id) {
+                if (!updated_old_segment_ids.count(id)) {
+                    int new_id = old_to_new_segment_ids[id];
+                    auto to_inject_blocks = injectNodesForNonTensorInputs(segmented_blocks[new_id]);
+                    segmented_blocks.erase(segmented_blocks.begin() + new_id);
+                    segmented_blocks.insert(segmented_blocks.begin() + new_id, to_inject_blocks.begin(),
                                             to_inject_blocks.end());
-                    updated_segments.insert(i);
+                    updated_old_segment_ids.insert(id);
+
+                    if (to_inject_blocks.size()>1) {
+                        int offset = to_inject_blocks.size()-1;
+                        for (auto it=old_to_new_segment_ids.begin(); it!=old_to_new_segment_ids.end(); it++) {
+                            if (it->first > id) {
+                                it->second += offset;
+                            }
+                        }
+                    }
                 }
             }
         }
