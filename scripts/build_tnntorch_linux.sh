@@ -6,6 +6,7 @@ then
 fi
 
 TORCHVISION_ENABLE="OFF"
+PYBIND_ENABLE="OFF"
 
 export CUDNN_ROOT_DIR=/usr/local/cudnn-8.1.1
 export TENSORRT_ROOT_DIR=/usr/local/TensorRT-7.2.3.4
@@ -35,7 +36,7 @@ cmake ${TNN_ROOT_PATH} \
     -DTNN_CUDA_ENABLE=ON \
     -DTNN_TNNTORCH_ENABLE=ON \
     -DTNN_TORCHVISION_ENABLE=${TORCHVISION_ENABLE} \
-    -DTNN_PYBIND_ENABLE=OFF \
+    -DTNN_PYBIND_ENABLE=${PYBIND_ENABLE} \
     -DTNN_GLIBCXX_USE_CXX11_ABI_ENABLE=OFF \
     -DTNN_TENSORRT_ENABLE=ON \
     -DTNN_BENCHMARK_MODE=OFF \
@@ -58,7 +59,6 @@ echo $CUDA_TOOLKIT_ROOT_DIR
 
 cp -r ${TNN_ROOT_PATH}/include ${TNN_INSTALL_DIR}/
 cp -d libTNN.so* ${TNN_INSTALL_DIR}/lib/
-cp -d _pytnn.*.so ${TNN_INSTALL_DIR}/lib/ 
 
 # deps
 cp -d /usr/local/cuda/lib64/libcudart.so* ${TNN_INSTALL_DIR}/lib/
@@ -88,6 +88,9 @@ if [ "$TORCHVISION_ENABLE" = "ON" ]; then
     cp -d ${LIBTORCHVISION_ROOT_DIR}/lib/libtorchvision.so ${TNN_INSTALL_DIR}/lib/libtorchvision.so
 fi
 
-cp ${TNN_ROOT_PATH}/source/pytnn/*.py ${TNN_INSTALL_DIR}/lib/
+if [ "$PYBIND_ENABLE" = "ON" ]; then
+    cp -d _pytnn.*.so ${TNN_INSTALL_DIR}/lib/
+    cp ${TNN_ROOT_PATH}/source/pytnn/*.py ${TNN_INSTALL_DIR}/lib/
+fi
 
 echo Done
