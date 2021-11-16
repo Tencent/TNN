@@ -47,8 +47,8 @@ const std::vector<std::pair<Blob*, Blob*>>& GradientLayer::GetBlobGradPairs() {
     return forward_blob_to_grad_;
 }
 
-const std::vector<std::pair<RawBuffer*, Blob*>>& GradientLayer::GetResourceGradPairs() {
-    return resource_to_grad_;
+const std::vector<std::pair<Blob*, RawBuffer*>>& GradientLayer::GetGradResourcePairs() {
+    return grad_to_resource_;
 }
 
 int GradientLayer::GetUpstreamGradCount() {
@@ -131,11 +131,11 @@ Status GradientLayer::InitGradInfo() {
         grad_info_.accumulate_blob_grad.push_back(false);
     }
 
-    resource_to_grad_.clear();
+    grad_to_resource_.clear();
     grad_info_.accumulate_resource_grad.clear();
     for (int i = blob_grad_count_; i < blob_grad_count_ + resource_grad_count_; ++i) {
         auto trainable_buffer = resource_->GetTrainable()[i - blob_grad_count_];
-        resource_to_grad_.push_back({trainable_buffer, output_blobs_[i]});
+        grad_to_resource_.push_back({output_blobs_[i], trainable_buffer});
         grad_info_.accumulate_resource_grad.push_back(false);
     }
 

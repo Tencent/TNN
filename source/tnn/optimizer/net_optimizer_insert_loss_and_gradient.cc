@@ -40,6 +40,8 @@ namespace optimizer {
     static const std::string loss_suffix          = "_tnn_loss";
     static const std::string gradient_suffix      = "_tnn_grad";
     static const std::string resource_grad_suffix = "_tnn_resource_grad_";
+    static const std::string grad_update_name     = "__tnn_grad_update__";
+    static const std::string global_step_name     = "__tnn_global_step__";
 
     std::string NetOptimizerInsertLossAndGradient::Strategy() {
         return kNetOptimizerInsertLossAndGradient;
@@ -87,14 +89,7 @@ namespace optimizer {
 
         RETURN_ON_NEQ(InsertGradientLayers(structure, resource), TNN_OK);
 
-        // set net resource trainable
-        for (auto &iter : resource->resource_map) {
-            if (train_config.trainable_layers.find(iter.first) != train_config.trainable_layers.end()) {
-                if (iter.second) {
-                    iter.second->SetTrainable(true);
-                }
-            }
-        }
+        RETURN_ON_NEQ(InsertGradientUpdateLayer(structure), TNN_OK);
 
         // ModelPacker packer(structure, resource);
         // packer.Pack("pack.tnnproto", "pack.tnnmodel");
@@ -196,22 +191,45 @@ namespace optimizer {
                 }
 
                 // resource buffer gradients
-                // TODO: open this to skip non-trainable layers
-                // if (train_config.trainable_layers.find(forward_layer->name) == train_config.trainable_layers.end()) {
-                //     continue;
-                // }
-                const auto &resource_map = net_resource->resource_map;
-                if (resource_map.find(forward_layer->name) != resource_map.end()) {
-                    auto layer_resource = resource_map.at(forward_layer->name);
-                    for (int i = 0; i < layer_resource->GetTrainable().size(); ++i) {
-                        auto resource_grad = forward_layer->name + resource_grad_suffix + std::to_string(i);
-                        grad_layer->outputs.push_back(resource_grad);
-                        net_structure->blobs.insert(resource_grad);
+                if (train_config.trainable_layers.find(forward_layer->name) != train_config.trainable_layers.end()) {
+                    const auto &resource_map = net_resource->resource_map;
+                    if (resource_map.find(forward_layer->name) != resource_map.end()) {
+                        auto layer_resource = resource_map.at(forward_layer->name);
+                        for (int i = 0; i < layer_resource->GetTrainable().size(); ++i) {
+                            auto resource_grad = forward_layer->name + resource_grad_suffix + std::to_string(i);
+                            grad_layer->outputs.push_back(resource_grad);
+                            net_structure->blobs.insert(resource_grad);
+                            resource_grads_.push_back(resource_grad);
+                        }
                     }
                 }
 
                 net_structure->layers.push_back(grad_layer);
             }
+        }
+
+        return TNN_OK;
+    }
+
+    Status NetOptimizerInsertLossAndGradient::InsertGradientUpdateLayer(NetStructure *net_structure) {
+        if (train_config.solver_type != SOLVER_TYPE_SGD) {
+            LOGE("NetOptimizerInsertLossAndGradient::CreateUpdateLayer, Error, not supported solver type %d\n",
+                 train_config.solver_type);
+            return Status(TNNERR_NET_ERR, "solver type not supported");
+        }
+
+        // sgd
+        std::shared_ptr<LayerInfo> sgd_layer = CreateSGD(grad_update_name);
+        if (sgd_layer == nullptr) {
+            return Status(TNNERR_NET_ERR, "create sgd layer error");
+        } else {
+            auto sgd_inputs   = resource_grads_;
+            sgd_layer->inputs = sgd_inputs;
+            auto sgd_output   = global_step_name;
+            sgd_layer->outputs.push_back(sgd_output);
+            net_structure->layers.push_back(sgd_layer);
+            net_structure->blobs.insert(sgd_output);
+            net_structure->outputs.insert(sgd_output);
         }
 
         return TNN_OK;
@@ -325,6 +343,19 @@ namespace optimizer {
         param->forward_type                  = forward_layer->type;
         param->forward_layer_name            = forward_layer->name;
         param->forward_param                 = forward_layer->param.get();
+        return new_layer;
+    }
+
+    std::shared_ptr<LayerInfo> NetOptimizerInsertLossAndGradient::CreateSGD(const std::string &name) {
+        std::shared_ptr<LayerInfo> new_layer = std::shared_ptr<LayerInfo>(new LayerInfo());
+        new_layer->type                      = LAYER_SGD;
+        new_layer->type_str                  = "SGD";
+        new_layer->name                      = name;
+        SGDParam *param                      = new SGDParam();
+        new_layer->param                     = std::shared_ptr<LayerParam>(param);
+        new_layer->param->type               = new_layer->type_str;
+        new_layer->param->name               = new_layer->name;
+        param->learning_rate                 = train_config.solver_params.learning_rate;
         return new_layer;
     }
 

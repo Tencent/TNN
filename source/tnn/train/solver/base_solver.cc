@@ -69,12 +69,12 @@ namespace train {
         RETURN_ON_NEQ(grad_manager_.CalcuteGrads(), TNN_OK);
         auto &resource_grads = grad_manager_.GetContext().backward_grads_resource;
         for (auto iter : resource_grads) {
-            if (iter.first->GetTrainable()) {
+            // if (iter.first->GetTrainable()) {
                 status = ComputeUpdateValue(iter.first, iter.second);
                 RETURN_ON_NEQ(status, TNN_OK);
                 status = UpdateTrainableVariable(iter.first, iter.second);
                 RETURN_ON_NEQ(status, TNN_OK);
-            }
+            // }
         }
         return TNN_OK;
     }

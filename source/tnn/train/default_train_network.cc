@@ -15,6 +15,7 @@
 #include "tnn/train/default_train_network.h"
 
 #include "tnn/layer/gradient_layer.h"
+#include "tnn/layer/sgd_layer.h"
 #include "tnn/train/solver/sgd.h"
 
 namespace TNN_NS {
@@ -54,7 +55,7 @@ Status DefaultTrainNetwork::TrainStep() {
     if (solver_) {
         Status ret = TNN_OK;
 
-        ret = solver_->Step();
+        // ret = solver_->Step();
         RETURN_ON_NEQ(ret, TNN_OK);
 
         for (auto layer : layers_) {
@@ -90,9 +91,23 @@ Status DefaultTrainNetwork::UpdateNeedGradLayers() {
 
 Status DefaultTrainNetwork::UpdateGradMap() {
     forward_blob_to_grad_map_.clear();
-    resource_to_grad_map_.clear();
+    grad_to_resource_map_.clear();
 
     for (auto layer : layers_) {
+        auto sgd_layer = dynamic_cast<SGDLayer *>(layer);
+        if (sgd_layer) {
+            std::vector<RawBuffer *> trainable_resources;
+            for (auto input : sgd_layer->GetInputBlobs()) {
+                if (grad_to_resource_map_.find(input) == grad_to_resource_map_.end()) {
+                    LOGD("DefaultTrainNetwork::UpdateGradMap, sgd layer find update resource error\n");
+                    return Status(TNNERR_NET_ERR, "sgd layer find update resource error");
+                }
+                trainable_resources.push_back(grad_to_resource_map_.at(input));
+            }
+            sgd_layer->SetTrainableResources(trainable_resources);
+            continue;
+        }
+
         auto grad_layer = dynamic_cast<GradientLayer *>(layer);
         if (!grad_layer) {
             continue;
@@ -108,13 +123,13 @@ Status DefaultTrainNetwork::UpdateGradMap() {
             ++index;
         }
         index = 0;
-        for (auto pair : grad_layer->GetResourceGradPairs()) {
+        for (auto pair : grad_layer->GetGradResourcePairs()) {
             // if resource appears more than once, set accumulate flag
-            if (resource_to_grad_map_.find(pair.first) != resource_to_grad_map_.end()) {
+            if (grad_to_resource_map_.find(pair.first) != grad_to_resource_map_.end()) {
                 RETURN_ON_NEQ(grad_layer->SetAccumulateResourceGradFlag(index, true), TNN_OK);
                 LOGD("layer %s accumulate %d's resource grad\n", layer->GetLayerName().c_str(), index);
             }
-            resource_to_grad_map_.insert(pair);
+            grad_to_resource_map_.insert(pair);
             ++index;
         }
         for (index = 0; index < grad_layer->GetUpstreamGradCount(); ++index) {
@@ -134,9 +149,9 @@ Status DefaultTrainNetwork::UpdateGradMap() {
              iter.second->GetBlobDesc().description().c_str());
     }
 
-    LOGD("Resource to grad map:\n");
-    for (auto iter : resource_to_grad_map_) {
-        LOGD("%d -> %s\n", iter.first->GetDataCount(), iter.second->GetBlobDesc().description().c_str());
+    LOGD("Grad to resource map:\n");
+    for (auto iter : grad_to_resource_map_) {
+        LOGD("%s -> %d\n", iter.first->GetBlobDesc().description().c_str(), iter.second->GetDataCount());
     }
 
     return TNN_OK;

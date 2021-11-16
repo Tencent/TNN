@@ -46,7 +46,12 @@ namespace optimizer {
         Status GetNeedGradLayers(NetStructure* net_structure, std::set<std::string>& need_grad_layers);
         std::shared_ptr<LayerInfo> CreateGradient(LayerInfo* forward_layer);
 
+        Status InsertGradientUpdateLayer(NetStructure* net_structure);
+        std::shared_ptr<LayerInfo> CreateSGD(const std::string& name);
+
         TrainConfig train_config;
+
+        std::vector<std::string> resource_grads_;
     };
 
 }  // namespace optimizer

@@ -50,7 +50,7 @@ protected:
     std::shared_ptr<train::BaseSolver> solver_;
 
     std::map<Blob *, Blob *> forward_blob_to_grad_map_;
-    std::map<RawBuffer *, Blob *> resource_to_grad_map_;
+    std::map<Blob *, RawBuffer *> grad_to_resource_map_;
 
     TrainMode run_mode_ = TRAIN_MODE_TRAIN;
 };

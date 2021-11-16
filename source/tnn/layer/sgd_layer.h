@@ -12,47 +12,31 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_LAYER_GRADIENT_LAYER_H_
-#define TNN_SOURCE_TNN_LAYER_GRADIENT_LAYER_H_
+#ifndef TNN_SOURCE_TNN_LAYER_SGD_LAYER_H_
+#define TNN_SOURCE_TNN_LAYER_SGD_LAYER_H_
 
 #include "tnn/layer/base_layer.h"
-#include "tnn/train/gradient/layer_grad_info.h"
 
 namespace TNN_NS {
 
-class GradientLayer : public BaseLayer {
+class SGDLayer : public BaseLayer {
 public:
-    explicit GradientLayer(LayerType ignore);
+    explicit SGDLayer(LayerType ignore);
 
-    virtual ~GradientLayer();
+    virtual ~SGDLayer();
 
     virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, std::vector<Blob *> &inputs,
                         std::vector<Blob *> &outputs, AbstractDevice *device, bool enable_const_folder = true);
 
-    const std::vector<std::pair<Blob *, Blob *>> &GetBlobGradPairs();
-    const std::vector<std::pair<Blob *, RawBuffer *>> &GetGradResourcePairs();
-    int GetUpstreamGradCount();
-
-    Status SetUpstreamGrad(int index, Blob *blob);
-    Status SetAccumulateBlobGradFlag(int index, bool cond);
-    Status SetAccumulateResourceGradFlag(int index, bool cond);
+    Status SetTrainableResources(std::vector<RawBuffer *> trainable);
 
 protected:
     virtual Status InferOutputShape(bool ignore_error = false);
 
-    virtual Status InitGradInfo();
-
 private:
-    int blob_grad_count_     = 0;
-    int resource_grad_count_ = 0;
-    int upstream_grad_count_ = 0;
-
-    std::vector<std::pair<Blob *, Blob *>> forward_blob_to_grad_;
-    std::vector<std::pair<Blob *, RawBuffer *>> grad_to_resource_;
-
     LayerGradInfo grad_info_;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_LAYER_GRADIENT_LAYER_H_
+#endif  // TNN_SOURCE_TNN_LAYER_SGD_LAYER_H_

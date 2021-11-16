@@ -12,26 +12,26 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_GRAD_INFO_H
-#define TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_GRAD_INFO_H
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_SGD_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_SGD_LAYER_ACC_H_
 
-#include <vector>
-
-#include "tnn/core/blob.h"
-#include "tnn/interpreter/raw_buffer.h"
+#include "tnn/device/arm/acc/arm_layer_acc.h"
 
 namespace TNN_NS {
 
-struct LayerGradInfo {
-    // upstream grads correspond to outputs of the forward layer
-    std::vector<Blob *> upstream_grads;
-    // if multipy layers update the same gradient, the results will be accumulated
-    std::vector<bool> accumulate_blob_grad;
-    std::vector<bool> accumulate_resource_grad;
-    // resource to be updated
-    std::vector<RawBuffer *> trainable_resources;
+class ArmSGDLayerAcc : public ArmLayerAcc {
+public:
+    virtual ~ArmSGDLayerAcc();
+
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+protected:
+    virtual Status ExecUpdate(Blob *grad, RawBuffer *param);
+
+    float learning_rate_;
+    int global_step_ = 0;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_GRAD_INFO_H
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_SGD_LAYER_ACC_H_

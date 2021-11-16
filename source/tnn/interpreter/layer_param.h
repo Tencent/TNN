@@ -701,6 +701,12 @@ struct GradientParam : public LayerParam {
     PARAM_COPY(GradientParam)
 };
 
+struct SGDParam : public LayerParam {
+    float learning_rate;
+
+    PARAM_COPY(SGDParam)
+};
+
 };  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H

@@ -36,27 +36,14 @@ struct LayerResource {
     virtual std::vector<RawBuffer *> GetTrainable() {
         return {};
     }
-    virtual void SetTrainable(bool trainable) {}
 };
 
 // @brief conv layer filter format
 typedef enum { OIHW = 0, IHWO = 1, OIDHW = 2 } ConvLayerFilterFormat;
 
-#define TRAINABLE_BUFFER_1(buf1)                                                                                       \
+#define TRAINABLE_BUFFER(buf...)                                                                                       \
     virtual std::vector<RawBuffer *> GetTrainable() {                                                                  \
-        return std::vector<RawBuffer *>{&buf1};                                                                        \
-    }                                                                                                                  \
-    virtual void SetTrainable(bool trainable) {                                                                        \
-        buf1.SetTrainable(trainable);                                                                                  \
-    }
-
-#define TRAINABLE_BUFFER_2(buf1, buf2)                                                                                 \
-    virtual std::vector<RawBuffer *> GetTrainable() {                                                                  \
-        return std::vector<RawBuffer *>{&buf1, &buf2};                                                                 \
-    }                                                                                                                  \
-    virtual void SetTrainable(bool trainable) {                                                                        \
-        buf1.SetTrainable(trainable);                                                                                  \
-        buf2.SetTrainable(trainable);                                                                                  \
+        return std::vector<RawBuffer *>{buf};                                                                          \
     }
 
 // @brief ConvLayerResource different device holds different handle
@@ -75,7 +62,7 @@ struct ConvLayerResource : public LayerResource {
     RawBuffer scale_handle;
     RawBuffer scale_bias_handle;
 
-    TRAINABLE_BUFFER_2(filter_handle, bias_handle)
+    TRAINABLE_BUFFER(&filter_handle, &bias_handle)
 };
 
 struct BatchNormLayerResource : public LayerResource {
@@ -85,7 +72,7 @@ struct BatchNormLayerResource : public LayerResource {
     // bn b buffer
     RawBuffer bias_handle;
 
-    TRAINABLE_BUFFER_1(bias_handle)
+    TRAINABLE_BUFFER(&bias_handle)
 };
 
 struct InstanceNormLayerResource : public BatchNormLayerResource {};
@@ -96,7 +83,7 @@ struct EltwiseLayerResource : public LayerResource {
 
     std::vector<int> element_shape;
 
-    TRAINABLE_BUFFER_1(element_handle)
+    TRAINABLE_BUFFER(&element_handle)
 };
 
 struct InnerProductLayerResource : public LayerResource {
@@ -110,14 +97,14 @@ struct InnerProductLayerResource : public LayerResource {
     RawBuffer scale_handle;
     RawBuffer scale_bias_handle;
 
-    TRAINABLE_BUFFER_2(weight_handle, bias_handle)
+    TRAINABLE_BUFFER(&weight_handle, &bias_handle)
 };
 
 struct PReluLayerResource : public LayerResource {
     // slope
     RawBuffer slope_handle;
 
-    TRAINABLE_BUFFER_1(slope_handle)
+    TRAINABLE_BUFFER(&slope_handle)
 };
 
 struct IntScaleResource : public LayerResource {
@@ -128,7 +115,7 @@ struct IntScaleResource : public LayerResource {
     // bias buffer
     RawBuffer bias_handle;
 
-    TRAINABLE_BUFFER_2(scale_handle, bias_handle)
+    TRAINABLE_BUFFER(&scale_handle, &bias_handle)
 };
 
 // @brief HdrGuideLayerResource different device holds different handle
@@ -151,7 +138,7 @@ struct ConstLayerResource : public LayerResource {
     // const weights
     RawBuffer weight_handle;
 
-    TRAINABLE_BUFFER_1(weight_handle)
+    TRAINABLE_BUFFER(&weight_handle)
 };
 
 struct DetectionPostProcessLayerResource : public LayerResource {
@@ -188,7 +175,7 @@ struct SqueezeLayerResource : public LayerResource {
     std::vector<int> data_dims;
     RawBuffer data;
 
-    TRAINABLE_BUFFER_1(data)
+    TRAINABLE_BUFFER(&data)
 };
 
 struct UnsqueezeLayerResource : public SqueezeLayerResource {};
@@ -196,13 +183,13 @@ struct UnsqueezeLayerResource : public SqueezeLayerResource {};
 struct MatMulLayerResource : public LayerResource {
     RawBuffer weight;
 
-    TRAINABLE_BUFFER_1(weight)
+    TRAINABLE_BUFFER(&weight)
 };
 
 struct BiasAddLayerResource : public LayerResource {
     RawBuffer bias_handle;
 
-    TRAINABLE_BUFFER_1(bias_handle)
+    TRAINABLE_BUFFER(&bias_handle)
 };
 
 #undef TRAINABLE_BUFFER_1
