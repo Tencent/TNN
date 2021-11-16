@@ -103,6 +103,10 @@ void AbstractLayerAcc::SetLayerGradInfo(LayerGradInfo *info) {
     grad_info_ = info;
 }
 
+Status AbstractLayerAcc::RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
 #if TNN_PROFILE
 void AbstractLayerAcc::UpdateProfilingData(ProfilingData *pdata, LayerParam *param, DimsVector input_dim,
                                            DimsVector output_dim) {

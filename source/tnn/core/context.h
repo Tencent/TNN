@@ -19,10 +19,10 @@
 #include <string>
 #include <vector>
 
-#include "tnn/core/macro.h"
-#include "tnn/core/status.h"
-#include "tnn/core/profile.h"
 #include "tnn/core/common.h"
+#include "tnn/core/macro.h"
+#include "tnn/core/profile.h"
+#include "tnn/core/status.h"
 
 namespace TNN_NS {
 
@@ -40,7 +40,7 @@ public:
 
     // @brief share tnn command queue to another context
     virtual Status ShareCommandQueue(Context* context);
-    
+
     // @brief before instance forward
     virtual Status OnInstanceForwardBegin();
 
@@ -75,10 +75,6 @@ public:
 
     std::string GetCacheFilePath();
 
-    void SetTraining(bool is_training);
-
-    bool IsTraining();
-
 #if TNN_PROFILE
 public:
     virtual void StartProfile();
@@ -92,11 +88,10 @@ protected:
 #endif
 
 protected:
-    Precision precision_ = PRECISION_AUTO;
-    bool enable_tune_kernel_ = true;
-    std::string cache_path_ = ""; // dir to save cache files
+    Precision precision_         = PRECISION_AUTO;
+    bool enable_tune_kernel_     = true;
+    std::string cache_path_      = "";  // dir to save cache files
     std::string cache_file_path_ = "";
-    bool is_training_ = false;
 };
 
 }  // namespace TNN_NS

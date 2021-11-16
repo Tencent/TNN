@@ -29,24 +29,27 @@ public:
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
     // alloc for fc weights and pack GOIHW16
-    virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status allocateBufferWeight(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                                        bool force = false);
 
     // alloc for fc bias and pack c4
-    virtual Status allocateBufferBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status allocateBufferBias(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                                      bool force = false);
 
     template <typename T>
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
     template <typename T>
     Status ExecNchw(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-#ifdef TRAIN
+
     // @brief only for train module; update layer resource to layer buffer
     virtual Status RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-#endif
 
 #if TNN_ARM82
-    virtual Status allocateBufferWeightHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-    virtual Status allocateBufferBiasHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status allocateBufferWeightHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                                            bool force = false);
+    virtual Status allocateBufferBiasHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                                          bool force = false);
     Status ExecFp16(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     Status ExecNchwFp16(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 #endif  // TNN_ARM82
@@ -56,8 +59,8 @@ protected:
     RawBuffer buffer_bias_;
     RawBuffer buffer_scale_;
 
-    std::function<void(int8_t *, const int8_t *, const int8_t*, const int32_t*,
-                       const float*, long, long)> gemv_func_;
+    std::function<void(int8_t *, const int8_t *, const int8_t *, const int32_t *, const float *, long, long)>
+        gemv_func_;
     bool support_int8_sdot_ = false;
 };
 

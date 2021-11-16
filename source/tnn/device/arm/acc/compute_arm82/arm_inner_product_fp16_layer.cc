@@ -24,13 +24,13 @@ namespace TNN_NS {
 #if TNN_ARM82
 
 Status ArmInnerProductLayerAcc::allocateBufferWeightHalf(const std::vector<Blob *> &inputs,
-                                                         const std::vector<Blob *> &outputs) {
+                                                         const std::vector<Blob *> &outputs, bool force) {
     InnerProductLayerParam *fc_param = dynamic_cast<InnerProductLayerParam *>(param_);
     CHECK_PARAM_NULL(fc_param);
     InnerProductLayerResource *fc_res = dynamic_cast<InnerProductLayerResource *>(resource_);
     CHECK_PARAM_NULL(fc_res);
 
-    if (!buffer_weight_.GetBytesSize()) {
+    if (!buffer_weight_.GetBytesSize() || force) {
         DimsVector dims_input  = inputs[0]->GetBlobDesc().dims;
         DimsVector dims_output = outputs[0]->GetBlobDesc().dims;
 
@@ -60,14 +60,14 @@ Status ArmInnerProductLayerAcc::allocateBufferWeightHalf(const std::vector<Blob 
 }
 
 Status ArmInnerProductLayerAcc::allocateBufferBiasHalf(const std::vector<Blob *> &inputs,
-                                                       const std::vector<Blob *> &outputs) {
+                                                       const std::vector<Blob *> &outputs, bool force) {
     InnerProductLayerParam *fc_param = dynamic_cast<InnerProductLayerParam *>(param_);
     CHECK_PARAM_NULL(fc_param);
     InnerProductLayerResource *fc_res = dynamic_cast<InnerProductLayerResource *>(resource_);
     CHECK_PARAM_NULL(fc_res);
     auto dims_output = outputs[0]->GetBlobDesc().dims;
 
-    if (!buffer_bias_.GetBytesSize()) {
+    if (!buffer_bias_.GetBytesSize() || force) {
         if (fc_param->has_bias) {
             auto bias_handle          = fc_res->bias_handle;
             const int bias_data_count = bias_handle.GetDataCount();

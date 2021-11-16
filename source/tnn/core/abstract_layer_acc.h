@@ -110,6 +110,9 @@ public:
     // @brief set grad info
     void SetLayerGradInfo(LayerGradInfo* info);
 
+    // @brief only for train module; update layer resource to layer buffer
+    virtual Status RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
 #if TNN_PROFILE
     virtual void UpdateProfilingData(ProfilingData *pdata, LayerParam *param, DimsVector input_dim,
                                      DimsVector output_dim);

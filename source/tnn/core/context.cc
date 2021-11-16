@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/core/context.h"
+
 #include "tnn/core/profile.h"
 #include "tnn/utils/string_format.h"
 
@@ -78,13 +79,6 @@ std::string Context::GetCacheFilePath() {
     return cache_file_path_;
 }
 
-void Context::SetTraining(bool is_training){
-    is_training_ = is_training;
-}
-
-bool Context::IsTraining(){
-    return is_training_;
-}
 #if TNN_PROFILE
 void Context::StartProfile() {
     profile_layer     = true;

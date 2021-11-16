@@ -20,14 +20,14 @@
 
 namespace TNN_NS {
 enum class ArmBinaryOpType : int {
-    kADD = 0,
-    kSUB = 1,
-    kMUL = 2,
-    kDIV = 3,
-    kMAX = 4,
-    kMIN = 5,
-    kHARDSWISH = 6,
-    kBinaryCrossEntropy = 7,
+    kADD                     = 0,
+    kSUB                     = 1,
+    kMUL                     = 2,
+    kDIV                     = 3,
+    kMAX                     = 4,
+    kMIN                     = 5,
+    kHARDSWISH               = 6,
+    kBinaryCrossEntropy      = 7,
     kCategoricalCrossEntropy = 8
 };
 
@@ -38,7 +38,8 @@ public:
 
     virtual ~ArmBinaryLayerAcc();
 
-    Status allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    Status allocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                               bool force = false);
 
     template <typename T, ArmBinaryOpType op_type>
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
@@ -47,7 +48,8 @@ public:
     virtual Status ExecInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 #if TNN_ARM82
-    virtual Status allocateBufferParamHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status allocateBufferParamHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                                           bool force = false);
     template <ArmBinaryOpType op_type>
     Status ExecFp16(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 #endif
@@ -56,9 +58,8 @@ public:
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
-#ifdef TRAIN
     virtual Status RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
-#endif
+
 protected:
     virtual bool DataTypeSupported(DataType data_type) override;
     virtual Status ConfigBuffer2ArmBlobDesc(BlobDesc &desc) override;
@@ -66,7 +67,8 @@ protected:
     ArmBinaryOpType op_type_;
     // used for hardswish
     float alpha_ = 0.f;
-    float beta_ = 0.f;
+    float beta_  = 0.f;
+
 private:
     RawBuffer broadcast_;
 

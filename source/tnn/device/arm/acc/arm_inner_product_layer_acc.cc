@@ -19,11 +19,11 @@
 #include "tnn/device/arm/acc/compute/gemm_function.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
+#include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
-#include "tnn/utils/cpu_utils.h"
 #ifdef TNN_ARM82_USE_NEON
 #include "tnn/device/arm/acc/compute_arm82/compute_sdot_int8.h"
 #endif
@@ -90,13 +90,13 @@ static void SGEMV(T *dst, const T *src, T *weight, const int oc_r4, const int ic
 }
 
 Status ArmInnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &inputs,
-                                                     const std::vector<Blob *> &outputs) {
+                                                     const std::vector<Blob *> &outputs, bool force) {
     InnerProductLayerParam *fc_param = dynamic_cast<InnerProductLayerParam *>(param_);
     CHECK_PARAM_NULL(fc_param);
     InnerProductLayerResource *fc_res = dynamic_cast<InnerProductLayerResource *>(resource_);
     CHECK_PARAM_NULL(fc_res);
 
-    if (!buffer_weight_.GetBytesSize() || context_->IsTraining()) {
+    if (!buffer_weight_.GetBytesSize() || force) {
         DimsVector dims_input  = inputs[0]->GetBlobDesc().dims;
         DimsVector dims_output = outputs[0]->GetBlobDesc().dims;
 
@@ -150,14 +150,16 @@ Status ArmInnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
                 PackB_8(ic, oc, transpose_ptr, oc, buffer_weight_.force_to<float *>());
             }
         } else {
-            auto hw = DimsVectorUtils::Count(dims_input, 2);
+            auto hw           = DimsVectorUtils::Count(dims_input, 2);
             auto weight_count = ROUND_UP(oc, 4) * ROUND_UP(dims_input[1], 4) * hw;
             buffer_weight_    = RawBuffer(weight_count * data_byte_size + NEON_KERNEL_EXTRA_LOAD);
 #ifdef TNN_ARM82_USE_NEON
             if (support_int8_sdot_) {
-                PackSDOTINT8WeightGemv(w_handle.force_to<int8_t *>(), buffer_weight_.force_to<int8_t *>(), oc, dims_input[1], hw);
+                PackSDOTINT8WeightGemv(w_handle.force_to<int8_t *>(), buffer_weight_.force_to<int8_t *>(), oc,
+                                       dims_input[1], hw);
             } else {
-                packweight_i8(w_handle.force_to<int8_t *>(), buffer_weight_.force_to<int8_t *>(), oc, dims_input[1], hw);
+                packweight_i8(w_handle.force_to<int8_t *>(), buffer_weight_.force_to<int8_t *>(), oc, dims_input[1],
+                              hw);
             }
 #else
             packweight_i8(w_handle.force_to<int8_t *>(), buffer_weight_.force_to<int8_t *>(), oc, dims_input[1], hw);
@@ -169,14 +171,14 @@ Status ArmInnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
 }
 
 Status ArmInnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &inputs,
-                                                   const std::vector<Blob *> &outputs) {
+                                                   const std::vector<Blob *> &outputs, bool force) {
     InnerProductLayerParam *fc_param = dynamic_cast<InnerProductLayerParam *>(param_);
     CHECK_PARAM_NULL(fc_param);
     InnerProductLayerResource *fc_res = dynamic_cast<InnerProductLayerResource *>(resource_);
     CHECK_PARAM_NULL(fc_res);
     auto dims_output = outputs[0]->GetBlobDesc().dims;
 
-    if (!buffer_bias_.GetBytesSize() || context_->IsTraining()) {
+    if (!buffer_bias_.GetBytesSize() || force) {
         if (fc_param->has_bias) {
             auto bias_handle = fc_res->bias_handle;
 
@@ -223,23 +225,25 @@ Status ArmInnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
     }
     return TNN_OK;
 }
-#ifdef TRAIN
-Status ArmInnerProductLayerAcc::RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs){
-    if(!context_->IsTraining())
-        return TNN_OK;
+
+Status ArmInnerProductLayerAcc::RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto input_data_type = inputs[0]->GetBlobDesc().data_type;
-    InnerProductLayerParam *fc_param = dynamic_cast<InnerProductLayerParam *>(param_);
-    CHECK_PARAM_NULL(fc_param);
-    InnerProductLayerResource *fc_res = dynamic_cast<InnerProductLayerResource *>(resource_);
-    CHECK_PARAM_NULL(fc_res);
-    // train module don't support other data type, so skip;
-    if (input_data_type == DATA_TYPE_FLOAT || input_data_type == DATA_TYPE_BFP16 ) {
-        RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs), TNN_OK);
-        RETURN_ON_NEQ(allocateBufferBias(inputs, outputs), TNN_OK);       
+    if (input_data_type == DATA_TYPE_FLOAT || input_data_type == DATA_TYPE_BFP16 || input_data_type == DATA_TYPE_INT8) {
+        RETURN_ON_NEQ(allocateBufferWeight(inputs, outputs, true), TNN_OK);
+        RETURN_ON_NEQ(allocateBufferBias(inputs, outputs, true), TNN_OK);
+    }
+#if TNN_ARM82
+    else if (input_data_type == DATA_TYPE_HALF) {
+        RETURN_ON_NEQ(allocateBufferWeightHalf(inputs, outputs, true), TNN_OK);
+        RETURN_ON_NEQ(allocateBufferBiasHalf(inputs, outputs, true), TNN_OK);
+    }
+#endif  // TNN_ARM82
+    else {
+        LOGE("ARM InnerProduct RefreshBuffers not support data type: %d\n", input_data_type);
+        return Status(TNNERR_LAYER_ERR, "ARM InnerProduct RefreshBuffers not support data type");
     }
     return TNN_OK;
 }
-#endif
 
 Status ArmInnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                      const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -373,8 +377,8 @@ Status ArmInnerProductLayerAcc::Exec<int8_t>(const std::vector<Blob *> &inputs, 
     InnerProductLayerParam *fc_param = dynamic_cast<InnerProductLayerParam *>(param_);
     auto dims_input                  = inputs[0]->GetBlobDesc().dims;
     auto dims_output                 = outputs[0]->GetBlobDesc().dims;
-    auto input_origin  = reinterpret_cast<int8_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
-    auto output_origin = reinterpret_cast<int8_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    auto input_origin                = reinterpret_cast<int8_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    auto output_origin               = reinterpret_cast<int8_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
 
     auto ic    = dims_input[1];
     auto ic_r4 = ROUND_UP(ic, 4);
@@ -387,7 +391,7 @@ Status ArmInnerProductLayerAcc::Exec<int8_t>(const std::vector<Blob *> &inputs, 
         auto output_ptr = output_origin + n * oc_r4;
 
         gemv_func_(output_ptr, input_ptr, buffer_weight_.force_to<int8_t *>(), buffer_bias_.force_to<int32_t *>(),
-                 buffer_scale_.force_to<float *>(), ik_r4, oc_r4);
+                   buffer_scale_.force_to<float *>(), ik_r4, oc_r4);
     }
 
     return TNN_OK;
@@ -413,7 +417,7 @@ Status ArmInnerProductLayerAcc::ExecNchw(const std::vector<Blob *> &inputs, cons
     auto oc_r4       = ROUND_UP(dims_output[1], 4);
 
     auto data_byte_size = DataTypeUtils::GetBytesSize(inputs[0]->GetBlobDesc().data_type);
-    auto *work_space = reinterpret_cast<T *>(context_->GetSharedWorkSpace((ic_r4 + oc_r4) * data_byte_size));
+    auto *work_space    = reinterpret_cast<T *>(context_->GetSharedWorkSpace((ic_r4 + oc_r4) * data_byte_size));
 
     auto input_origin  = reinterpret_cast<T *>(GetBlobHandlePtr(input->GetHandle()));
     auto output_origin = reinterpret_cast<T *>(GetBlobHandlePtr(output->GetHandle()));
@@ -453,8 +457,8 @@ Status ArmInnerProductLayerAcc::ExecNchw<float>(const std::vector<Blob *> &input
     const int bias_size   = oc * data_byte_size;
     const int output_size = batch * oc * data_byte_size;
 
-    float *input_ptr  = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
-    float *output_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    float *input_ptr      = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    float *output_ptr     = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
     float *tmp_output_ptr = output_ptr;
 
     if (fc_param->has_bias) {

@@ -13,13 +13,13 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/layer/base_layer.h"
-#include "tnn/utils/data_flag_utils.h"
-#include "tnn/utils/string_utils_inner.h"
 
 #include <mutex>
 #include <sstream>
 
 #include "tnn/core/macro.h"
+#include "tnn/utils/data_flag_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 BaseLayer::BaseLayer(LayerType type) {
@@ -41,8 +41,8 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
     input_blobs_  = input_blobs;
     output_blobs_ = output_blobs;
 
-    param_    = param;
-    resource_ = resource;
+    param_               = param;
+    resource_            = resource;
     enable_const_folder_ = enable_const_folder;
 
     auto status = InferOutputDataType();
@@ -50,15 +50,15 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
         LOGE("InferOutputDataType failed\n");
         return status;
     }
-    
-    if (!output_blobs_[0]->NeedAllocateInForward()){
+
+    if (!output_blobs_[0]->NeedAllocateInForward()) {
         status = InferOutputShape();
         if (status != TNN_OK) {
             LOGE("InferOutputShape failed\n");
             return status;
         }
     }
-    
+
     if (runtime_model_ == RUNTIME_MODE_NORMAL) {
         for (auto& output_blob : output_blobs) {
             LOGD("InferOutputShape: %s\n", output_blob->GetBlobDesc().description().c_str());
@@ -73,7 +73,7 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
     }
 
     if (device->GetDeviceType() == DEVICE_NAIVE || !IsOutputConstant() ||
-            (device->GetDeviceType() == DEVICE_CUDA && !enable_const_folder)) {
+        (device->GetDeviceType() == DEVICE_CUDA && !enable_const_folder)) {
         layer_acc_ = device->CreateLayerAcc(type_);
         if (layer_acc_ != NULL) {
             layer_acc_->SetRuntimeMode(runtime_model_);
@@ -93,7 +93,7 @@ Status BaseLayer::FillLayerParamWithConstantResource() {
 }
 
 Status BaseLayer::InferOutputShape(bool ignore_error) {
-    //get dims from const for input
+    // get dims from const for input
     auto const_resource = const_resource_;
     for (auto iter : input_blobs_) {
         auto name = iter->GetBlobDesc().name;
@@ -101,14 +101,14 @@ Status BaseLayer::InferOutputShape(bool ignore_error) {
             continue;
         }
         iter->GetBlobDesc().data_type = (*const_resource)[name]->GetDataType();
-        
-        //only DATA_FLAG_CHANGE_NEVER read dims and type from const resource
-        //blob with flag DATA_FLAG_CHANGE_IF_SHAPE_DIFFER may change dims in runtime
+
+        // only DATA_FLAG_CHANGE_NEVER read dims and type from const resource
+        // blob with flag DATA_FLAG_CHANGE_IF_SHAPE_DIFFER may change dims in runtime
         if (DataFlagUtils::ChangeStatus(iter->GetFlag()) == DATA_FLAG_CHANGE_NEVER) {
             iter->GetBlobDesc().dims = (*const_resource)[name]->GetBufferDims();
         }
     }
-    
+
     //
     if (runtime_model_ == RUNTIME_MODE_NORMAL || GetLayerChangeFlag() == DATA_FLAG_CHANGE_NEVER) {
         return FillLayerParamWithConstantResource();
@@ -118,42 +118,43 @@ Status BaseLayer::InferOutputShape(bool ignore_error) {
 
 Status BaseLayer::InferOutputDataType() {
     auto const_resource = const_resource_;
-    
+
     // Init base type, will re write in different device acc
     // output data_type = input_data_tyep as default.
-    
+
     int flag = DATA_FLAG_CHANGE_NEVER;
     for (auto iter : input_blobs_) {
         if (const_resource) {
             auto res = const_resource->find(iter->GetBlobDesc().name);
-            if (res!= const_resource->end()) {
+            if (res != const_resource->end()) {
                 iter->SetFlag(iter->GetFlag() | DATA_FLAG_CHANGE_NEVER);
                 iter->GetBlobDesc().data_type = res->second->GetDataType();
             }
         }
         flag = DataFlagUtils::MinChangeStatus(flag, iter->GetFlag());
     }
-    
-    //find first blob which is not const
+
+    // find first blob which is not const
     auto input_blob_not_const = input_blobs_[0];
     for (auto input_blob : input_blobs_) {
-        if (const_resource == nullptr || const_resource->find(input_blob->GetBlobDesc().name) == const_resource->end()) {
+        if (const_resource == nullptr ||
+            const_resource->find(input_blob->GetBlobDesc().name) == const_resource->end()) {
             input_blob_not_const = input_blob;
             break;
         }
     }
-    
+
     for (auto output_blob : output_blobs_) {
         output_blob->GetBlobDesc().data_type = input_blob_not_const->GetBlobDesc().data_type;
     }
-    
+
     for (auto iter : output_blobs_) {
         if (runtime_model_ == RUNTIME_MODE_NORMAL) {
             if (const_resource != nullptr && const_resource->find(iter->GetBlobDesc().name) != const_resource->end()) {
                 flag = flag & 0x0000FFFF;
             }
         } else {
-            //allocate output blob of const layer in const folding
+            // allocate output blob of const layer in const folding
             if (DataFlagUtils::ChangeStatus(flag) != DATA_FLAG_CHANGE_ALWAYS) {
                 flag = flag | DATA_FLAG_ALLOCATE_IN_FORWARD;
             }
@@ -194,18 +195,18 @@ Status BaseLayer::Forward() {
             RETURN_ON_NEQ(status, TNN_OK);
 
             if (!IsOutputConstant() ||
-                    (input_blobs_[0]->GetBlobDesc().device_type == DEVICE_CUDA && !enable_const_folder_)) {
+                (input_blobs_[0]->GetBlobDesc().device_type == DEVICE_CUDA && !enable_const_folder_)) {
                 status = layer_acc_->Forward(input_blobs_, output_blobs_);
                 RETURN_ON_NEQ(status, TNN_OK);
             }
         } else {
-            //dont check the status of InferOutputShape in constant folding
+            // dont check the status of InferOutputShape in constant folding
             auto status = InferOutputShape(true);
-            
-            //fill layer param and infer runtime output shape in BeforeForward
+
+            // fill layer param and infer runtime output shape in BeforeForward
             status = layer_acc_->BeforeForward(input_blobs_, output_blobs_);
             RETURN_ON_NEQ(status, TNN_OK);
-            
+
             if (IsOutputConstant()) {
                 status = layer_acc_->AllocateRuntimeOutputBlob(input_blobs_, output_blobs_);
                 RETURN_ON_NEQ(status, TNN_OK);
@@ -216,7 +217,7 @@ Status BaseLayer::Forward() {
                 RETURN_ON_NEQ(status, TNN_OK);
             }
         }
-        
+
         return layer_acc_->AfterForward(input_blobs_, output_blobs_);
     } else {
         LOGE("layer acc is nil\n");
@@ -261,7 +262,7 @@ Status BaseLayer::InferShapeAhead(std::vector<Blob*>& input_blobs, std::vector<B
     return TNN_OK;
 }
 
-void BaseLayer::SetRuntimeBlobMemoryPool(BlobMemoryPool *runtime_blob_pool) {
+void BaseLayer::SetRuntimeBlobMemoryPool(BlobMemoryPool* runtime_blob_pool) {
     if (layer_acc_) {
         layer_acc_->SetRuntimeBlobMemoryPool(runtime_blob_pool);
     }
@@ -288,13 +289,20 @@ void BaseLayer::SetConstantResource(ConstantResource* consts) {
     const_resource_ = consts;
 }
 
-void BaseLayer::SetConstantResourceFlag(ConstantResourceFlag *flags) {
+void BaseLayer::SetConstantResourceFlag(ConstantResourceFlag* flags) {
     const_resource_flag_ = flags;
 }
 
 // @brief set runtime mode
 void BaseLayer::SetRuntimeMode(RuntimeMode mode) {
     runtime_model_ = mode;
+}
+
+Status BaseLayer::RefreshBuffers() {
+    if (layer_acc_) {
+        RETURN_ON_NEQ(layer_acc_->RefreshBuffers(input_blobs_, output_blobs_), TNN_OK);
+    }
+    return TNN_OK;
 }
 
 std::map<LayerType, std::shared_ptr<LayerCreator>>& GetGlobalLayerCreatorMap() {

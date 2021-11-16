@@ -51,6 +51,8 @@ protected:
 
     std::map<Blob *, Blob *> forward_blob_to_grad_map_;
     std::map<RawBuffer *, Blob *> resource_to_grad_map_;
+
+    TrainMode run_mode_ = TRAIN_MODE_TRAIN;
 };
 
 }  // namespace TNN_NS

@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 #if TNN_ARM82
+#include "tnn/device/arm/acc/Half8.h"
 #include "tnn/device/arm/acc/arm_binary_layer_acc.h"
 #include "tnn/device/arm/acc/compute/binary_function.h"
 #include "tnn/device/arm/arm_common.h"
@@ -19,69 +20,80 @@
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
-#include "tnn/device/arm/acc/Half8.h"
 
 namespace TNN_NS {
 
-template<> fp16_t binary_op<ArmBinaryOpType::kADD, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
+template <>
+fp16_t binary_op<ArmBinaryOpType::kADD, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a + b;
 }
-template<> fp16_t binary_op<ArmBinaryOpType::kSUB, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
+template <>
+fp16_t binary_op<ArmBinaryOpType::kSUB, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a - b;
 }
-template<> fp16_t binary_op<ArmBinaryOpType::kMUL, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
+template <>
+fp16_t binary_op<ArmBinaryOpType::kMUL, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a * b;
 }
-template<> fp16_t binary_op<ArmBinaryOpType::kDIV, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
+template <>
+fp16_t binary_op<ArmBinaryOpType::kDIV, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a / b;
 }
-template<> fp16_t binary_op<ArmBinaryOpType::kMAX, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
+template <>
+fp16_t binary_op<ArmBinaryOpType::kMAX, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a > b ? a : b;
 }
-template<> fp16_t binary_op<ArmBinaryOpType::kMIN, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
+template <>
+fp16_t binary_op<ArmBinaryOpType::kMIN, fp16_t>(const fp16_t &a, const fp16_t &b, float alpha, float beta) {
     return a < b ? a : b;
 }
 
-template<> Half8 binary_op<ArmBinaryOpType::kADD, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
+template <>
+Half8 binary_op<ArmBinaryOpType::kADD, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return a + b;
 }
-template<> Half8 binary_op<ArmBinaryOpType::kSUB, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
+template <>
+Half8 binary_op<ArmBinaryOpType::kSUB, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return a - b;
 }
-template<> Half8 binary_op<ArmBinaryOpType::kMUL, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
+template <>
+Half8 binary_op<ArmBinaryOpType::kMUL, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return a * b;
 }
-template<> Half8 binary_op<ArmBinaryOpType::kDIV, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
+template <>
+Half8 binary_op<ArmBinaryOpType::kDIV, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return Half8::div(a, b);
 }
-template<> Half8 binary_op<ArmBinaryOpType::kMAX, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
+template <>
+Half8 binary_op<ArmBinaryOpType::kMAX, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return Half8::max(a, b);
 }
-template<> Half8 binary_op<ArmBinaryOpType::kMIN, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
+template <>
+Half8 binary_op<ArmBinaryOpType::kMIN, Half8>(const Half8 &a, const Half8 &b, float alpha, float beta) {
     return Half8::min(a, b);
 }
 
 template <ArmBinaryOpType op_type>
 Status BinaryGeneralFp16Func(void *output_ptr, std::vector<void *> &input_ptrs, DimsVector output_shape,
                              std::vector<DimsVector> &input_shapes, void *workspace) {
-    size_t output_size = DimsVectorUtils::Count(output_shape);
+    size_t output_size  = DimsVectorUtils::Count(output_shape);
     fp16_t *output_nchw = reinterpret_cast<fp16_t *>(workspace);
-    fp16_t *input_nchw = output_nchw + output_size;
-    fp16_t *out_ptr = reinterpret_cast<fp16_t *>(output_ptr);
+    fp16_t *input_nchw  = output_nchw + output_size;
+    fp16_t *out_ptr     = reinterpret_cast<fp16_t *>(output_ptr);
 
     DimsVector output_offset;
     BinaryComputeOffset(output_offset, output_shape, output_shape);
     for (int i = 0; i < input_shapes.size(); i++) {
-        auto input_shape = input_shapes[i];
+        auto input_shape   = input_shapes[i];
         fp16_t *input_data = reinterpret_cast<fp16_t *>(input_ptrs[i]);
 
         DimsVector input_shape_pad;
         input_shape_pad.resize(output_shape.size());
         PadShape(output_shape.size() - input_shape.size(), output_shape.size(), input_shape_pad, input_shape);
 
-        int input_batch = input_shape_pad[0];
+        int input_batch   = input_shape_pad[0];
         int input_channel = input_shape_pad[1];
-        int input_hw = DimsVectorUtils::Count(input_shape_pad, 2);
+        int input_hw      = DimsVectorUtils::Count(input_shape_pad, 2);
         // nc8hw8 to nchw
         UnpackHalfBlob(input_nchw, input_data, input_batch, input_channel, input_hw);
 
@@ -94,21 +106,22 @@ Status BinaryGeneralFp16Func(void *output_ptr, std::vector<void *> &input_ptrs, 
         }
     }
 
-    int output_batch = output_shape[0];
+    int output_batch   = output_shape[0];
     int output_channel = output_shape[1];
-    int output_hw = DimsVectorUtils::Count(output_shape, 2);
+    int output_hw      = DimsVectorUtils::Count(output_shape, 2);
     PackHalfBlob(out_ptr, output_nchw, output_batch, output_channel, output_hw);
 
     return TNN_OK;
 }
 
-Status ArmBinaryLayerAcc::allocateBufferParamHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status ArmBinaryLayerAcc::allocateBufferParamHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                                                  bool force) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
 
     auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
 
-    if (layer_res && broadcast_.GetBytesSize() == 0) {
+    if (layer_res && (broadcast_.GetBytesSize() == 0 || force)) {
         RawBuffer element_handle = layer_res->element_handle;
         auto dims                = layer_res->element_shape;
         auto output_dims         = outputs[0]->GetBlobDesc().dims;
@@ -119,15 +132,14 @@ Status ArmBinaryLayerAcc::allocateBufferParamHalf(const std::vector<Blob *> &inp
         auto layer_res_size = element_handle.GetDataCount();
         auto data_byte_size = DataTypeUtils::GetBytesSize(DATA_TYPE_HALF);
         auto layer_data     = element_handle.force_to<void *>();
-        if (element_handle.GetDataType() == DATA_TYPE_FLOAT ||
-            element_handle.GetDataType() == DATA_TYPE_HALF) {
-
+        if (element_handle.GetDataType() == DATA_TYPE_FLOAT || element_handle.GetDataType() == DATA_TYPE_HALF) {
             fp16_t *filter_half_ptr = nullptr;
             RawBuffer filter_half(layer_res_size * data_byte_size);
             if (element_handle.GetDataType() == DATA_TYPE_HALF) {
                 filter_half_ptr = reinterpret_cast<fp16_t *>(layer_data);
             } else {
-                Float2Half(filter_half.force_to<fp16_t *>(), reinterpret_cast<const float *>(layer_data), layer_res_size);
+                Float2Half(filter_half.force_to<fp16_t *>(), reinterpret_cast<const float *>(layer_data),
+                           layer_res_size);
                 filter_half_ptr = filter_half.force_to<fp16_t *>();
             }
 
@@ -168,16 +180,16 @@ Status ArmBinaryLayerAcc::allocateBufferParamHalf(const std::vector<Blob *> &inp
 
 template <ArmBinaryOpType op_type>
 Status ArmBinaryLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto output = outputs[0];
+    auto output      = outputs[0];
     auto output_dims = output->GetBlobDesc().dims;
 
     if (btype_ == BroadcastTypeUnknown) {
         LOGE("Error: unknown broadcast type\n");
         return Status(TNNERR_LAYER_ERR, "Error: Binary layer's unknown broadcast type");
     } else if (btype_ == BroadcastTypeGeneral) {
-        auto output_ptr = GetBlobHandlePtr(output->GetHandle());
+        auto output_ptr    = GetBlobHandlePtr(output->GetHandle());
         size_t output_size = DimsVectorUtils::Count(output_dims);
-        void *workspace = context_->GetSharedWorkSpace(output_size * 2 * sizeof(fp16_t));
+        void *workspace    = context_->GetSharedWorkSpace(output_size * 2 * sizeof(fp16_t));
         BinaryGeneralFp16Func<op_type>(output_ptr, input_ptrs_, output_dims, input_shapes_, workspace);
     } else {
         auto output_ptr = GetBlobHandlePtr(output->GetHandle());
@@ -194,19 +206,26 @@ Status ArmBinaryLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std:
 
         for (int i = 2; i < input_ptrs_.size(); i++) {
             auto input_ptr = input_ptrs_[i];
-            PadShape(output_dims.size() - input_shapes_[i].size(), output_dims.size(), input0_pad_shape, input_shapes_[i]);
+            PadShape(output_dims.size() - input_shapes_[i].size(), output_dims.size(), input0_pad_shape,
+                     input_shapes_[i]);
             BinaryFunc<fp16_t, op_type, Half8, 8>(output_ptr, output_ptr, input_ptr, output_dims, input0_pad_shape);
         }
     }
 
     return TNN_OK;
 }
-template Status ArmBinaryLayerAcc::ExecFp16<ArmBinaryOpType::kADD>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-template Status ArmBinaryLayerAcc::ExecFp16<ArmBinaryOpType::kSUB>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-template Status ArmBinaryLayerAcc::ExecFp16<ArmBinaryOpType::kMUL>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-template Status ArmBinaryLayerAcc::ExecFp16<ArmBinaryOpType::kMAX>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-template Status ArmBinaryLayerAcc::ExecFp16<ArmBinaryOpType::kMIN>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-template Status ArmBinaryLayerAcc::ExecFp16<ArmBinaryOpType::kDIV>(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+template Status ArmBinaryLayerAcc::ExecFp16<ArmBinaryOpType::kADD>(const std::vector<Blob *> &inputs,
+                                                                   const std::vector<Blob *> &outputs);
+template Status ArmBinaryLayerAcc::ExecFp16<ArmBinaryOpType::kSUB>(const std::vector<Blob *> &inputs,
+                                                                   const std::vector<Blob *> &outputs);
+template Status ArmBinaryLayerAcc::ExecFp16<ArmBinaryOpType::kMUL>(const std::vector<Blob *> &inputs,
+                                                                   const std::vector<Blob *> &outputs);
+template Status ArmBinaryLayerAcc::ExecFp16<ArmBinaryOpType::kMAX>(const std::vector<Blob *> &inputs,
+                                                                   const std::vector<Blob *> &outputs);
+template Status ArmBinaryLayerAcc::ExecFp16<ArmBinaryOpType::kMIN>(const std::vector<Blob *> &inputs,
+                                                                   const std::vector<Blob *> &outputs);
+template Status ArmBinaryLayerAcc::ExecFp16<ArmBinaryOpType::kDIV>(const std::vector<Blob *> &inputs,
+                                                                   const std::vector<Blob *> &outputs);
 
 }  // namespace TNN_NS
 #endif

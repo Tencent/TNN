@@ -14,7 +14,6 @@
 
 #include "tnn/train/default_train_network.h"
 
-#include "tnn/interpreter/tnn/model_packer.h"
 #include "tnn/layer/gradient_layer.h"
 #include "tnn/train/solver/sgd.h"
 
@@ -31,6 +30,7 @@ Status DefaultTrainNetwork::Init(NetworkConfig &net_config, ModelConfig &model_c
                                  AbstractModelInterpreter *interpreter, InputShapesMap min_inputs_shape,
                                  InputShapesMap max_inputs_shape, bool enable_const_folder) {
     config_    = net_config;
+    run_mode_  = config_.train_config.run_mode;
     Status ret = TNN_OK;
 
     ret = DefaultNetwork::Init(net_config, model_config, interpreter, min_inputs_shape, max_inputs_shape,
@@ -43,19 +43,30 @@ Status DefaultTrainNetwork::Init(NetworkConfig &net_config, ModelConfig &model_c
 
     RETURN_ON_NEQ(UpdateSolver(), TNN_OK);
 
-    // auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter);
-    // CHECK_PARAM_NULL(default_interpreter);
-    // ModelPacker packer(default_interpreter->GetNetStructure(), default_interpreter->GetNetResource());
-    // packer.Pack("pack.tnnproto", "pack.tnnmodel");
-    // printf("pack done\n");
-
-    context_->SetTraining(config_.train_config.run_mode == TRAIN_MODE_TRAIN);
     return TNN_OK;
 }
 
 Status DefaultTrainNetwork::TrainStep() {
+    if (run_mode_ != TRAIN_MODE_TRAIN) {
+        return TNN_OK;
+    }
+
     if (solver_) {
-        return solver_->Step();
+        Status ret = TNN_OK;
+
+        ret = solver_->Step();
+        RETURN_ON_NEQ(ret, TNN_OK);
+
+        for (auto layer : layers_) {
+            ret = layer->RefreshBuffers();
+            if (ret != TNN_OK) {
+                LOGE("%s layer RefreshBuffers error %s, exit\n", layer->GetLayerName().c_str(),
+                     ret.description().c_str());
+                return ret;
+            }
+        }
+
+        return ret;
     } else {
         LOGE("ERROR: DefaultTrainNetwork::TrainStep, solver is empty\n");
         return Status(TNN_TRAIN_ERROR, "solver is empty");
