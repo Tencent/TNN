@@ -124,16 +124,19 @@ Status InnerProductLayerGrad::OnGrad(const BaseLayer *layer, TrainContext &conte
     }
 
     // input grad convert back to nc4hw4; weight in resource must be NCHW, don't need to transform
+    // PrintFloatBuffer(input_grad.get(), "input");
     ConvertToNC4HW4(input_grad, input0_desc);
     input_grad->SetDataType(input0_data_type);
     input_grad->SetDataFormat(input0_desc.data_format);
     UpdateGradValue(inputs[0], input_grad, context);
+    // PrintFloatBuffer(weight_grad.get(), "weight");
     weight_grad->SetDataType(weight_data_type);
     weight_grad->SetDataFormat(resource->weight_handle.GetDataFormat());
     UpdateGradValue(&resource->weight_handle, weight_grad, context);
     if (layer_param->has_bias) {
         bias_grad->SetDataType(resource->bias_handle.GetDataType());
         bias_grad->SetDataFormat(resource->bias_handle.GetDataFormat());
+        // PrintFloatBuffer(bias_grad.get(), "bias");
         UpdateGradValue(&resource->bias_handle, bias_grad, context);
     }
     return Status(TNN_OK);
