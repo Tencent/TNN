@@ -29,11 +29,12 @@ struct ModelCheckerParam {
     std::pair<std::string, FileFormat> input_file;
     std::vector<float> input_bias;
     std::vector<float> input_scale;
-    bool dump_output       = false;
     bool only_check_output = false;
     bool check_batch       = false;
     std::pair<std::string, FileFormat> ref_file;
     std::string dump_dir_path;
+    std::string dump_output_path;
+    std::string dump_unaligned_layer_path;
 };
 
 enum CompareType { DEFAULT = 0, COSINE = 1 };
@@ -94,7 +95,7 @@ private:
     // @brief compare raw
     bool CompareData(void* device_data, void* cpu_data, DataType data_type, DimsVector blob_dims, CompareType type = DEFAULT);
     // @brief dump blob data
-    void DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name);
+    void DumpBlobData(void* blob_data, DimsVector blob_dims, std::string output_name, DataType data_type);
 
     ModelCheckerParam model_checker_params_;
     std::shared_ptr<TNN> tnn_                  = nullptr;

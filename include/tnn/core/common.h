@@ -66,12 +66,12 @@ typedef enum {
 
 typedef enum {
     // auto precision, each device choose default precision.
-    // ARM: prefer fp16
+    // ARM: prefer fp16, enable approximate calculation
     // OPENCL: prefer fp16
     // METAL: prefer fp16
     PRECISION_AUTO = -1,
     // Normal precision
-    // ARM: run fp16 if device support fp16, else run fp32.
+    // ARM: prefer fp16, disable approximate calculation
     // OPNECL: run with mixed pricision
     // METAL: run with fp16
     PRECISION_NORMAL = 0,

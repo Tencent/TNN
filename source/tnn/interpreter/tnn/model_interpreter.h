@@ -106,6 +106,12 @@ public:
     // @brief copy interpreter
     virtual std::shared_ptr<AbstractModelInterpreter> Copy();
 
+    // @brief set cache if there is one
+    virtual Status SetCache(std::string &cache);
+
+    // &brief get cache if there is one
+    virtual Status GetCache(std::string &cache);
+
 protected:
     virtual Status InterpretProto(std::string& content);
     virtual Status InterpretModel(std::string& model_content);
@@ -120,7 +126,8 @@ protected:
     ;
 
 protected:
-    uint32_t version_magic_number = 0;
+    uint32_t version_magic_number_ = 0;
+    std::string cache_buf_;
 };
 
 class IRModelInterpreter : public ModelInterpreter {

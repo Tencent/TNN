@@ -53,7 +53,7 @@ Status ScaleLayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
     return TNN_OK;
 }
 
-Status ScaleLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status ScaleLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     ScaleLayerParam* layer_param = dynamic_cast<ScaleLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
@@ -82,6 +82,7 @@ Status ScaleLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* p
     serializer.PutString(layer_param->name);
     serializer.PutInt(layer_param->bias_term);
     serializer.PutRaw(layer_res->scale_handle);
+
     if (layer_param->bias_term) {
         serializer.PutRaw(layer_res->bias_handle);
     }

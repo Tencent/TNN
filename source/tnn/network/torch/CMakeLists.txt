@@ -19,6 +19,10 @@ if(TNN_TORCHVISION_ENABLE)
     include_directories(${TorchVision_INCLUDE_DIR})
 endif()
 
+if (NOT TNN_TIACC_MODE)
+    add_definitions(-DSAVE_CACHE_FILE)
+endif()
+
 enable_language(CUDA)
 include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 

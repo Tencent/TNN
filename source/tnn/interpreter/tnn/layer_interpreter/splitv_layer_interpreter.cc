@@ -36,7 +36,7 @@ Status SplitVLayerInterpreter::InterpretResource(Deserializer& deserializer, Lay
     return TNN_OK;
 }
 
-Status SplitVLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status SplitVLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(splitv_param, SplitVLayerParam, "invalid layer param to save", param);
 
     output_stream << splitv_param->axis << " ";

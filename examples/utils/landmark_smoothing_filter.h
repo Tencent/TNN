@@ -61,7 +61,7 @@ private:
     TNN_NS::Status InitializeFiltersIfEmpty(const size_t n_landmarks);
     // Check if a Landmark is valid
     static bool isValidLandMark(const NormalizedLandmark& m);
-    static bool isValidLandMark(const Normalized2DLandmark& m);
+    static bool isValid2DLandMark(const Normalized2DLandmark& m);
     
     // desired fps
     int target_fps_;

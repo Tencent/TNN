@@ -18,11 +18,12 @@
 #include "tnn/network/torch/torch_tnn_runtime.h"
 #include "tnn/network/torch/torch_utils.h"
 #include "torch/csrc/jit/runtime/custom_operator.h"
-// #include "tnn/interpreter/tnn/model_packer.h"
+#include "tnn/interpreter/tnn/model_packer.h"
 #include <cuda_runtime.h>
 
 #include "c10/cuda/CUDAStream.h"
 #include "tnn/utils/blob_dump_utils.h"
+#include "tnn/interpreter/tnn/model_interpreter.h"
 
 namespace TNN_NS {
 namespace runtime {
@@ -45,7 +46,7 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
     }
 
     if (!compiled_engine->is_init_) {
-        auto interpreter = dynamic_cast<DefaultModelInterpreter *>(compiled_engine->ctx_->get_interpreter().get());
+        auto interpreter = dynamic_cast<ModelInterpreter *>(compiled_engine->ctx_->get_interpreter().get());
         interpreter->GetNetStructure()->inputs_shape_map = inputs_shape_map;
         interpreter->GetNetStructure()->input_data_type_map = inputs_data_type_map;
         InputShapesMap min_shape;
@@ -61,16 +62,16 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
             min_shape = inputs_shape_map;
             max_shape = inputs_shape_map;
         }
-        compiled_engine->instance_->Init(compiled_engine->ctx_->get_interpreter(), min_shape, max_shape);
-        compiled_engine->is_init_ = true;
-
-        if (inputs[0].is_cuda()) {
-            c10::cuda::CUDAStream stream = c10::cuda::getCurrentCUDAStream(inputs[0].device().index());
-            compiled_engine->instance_->SetCommandQueue(stream.stream());
-        }
 
         // ModelPacker package(interpreter->GetNetStructure(), interpreter->GetNetResource());
         // package.Pack("torch.tnnproto", "torch.tnnmodel");
+        compiled_engine->instance_->Init(compiled_engine->ctx_->get_interpreter(), min_shape, max_shape);
+        compiled_engine->is_init_ = true;
+    }
+
+    if (inputs[0].is_cuda()) {
+        c10::cuda::CUDAStream stream = c10::cuda::getCurrentCUDAStream(inputs[0].device().index());
+        compiled_engine->instance_->SetCommandQueue(stream.stream());
     }
 
     compiled_engine->instance_->Reshape(inputs_shape_map);
@@ -137,10 +138,50 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
 static auto TNNEngineTSRegistrtion = 
     torch::class_<TNNEngine>("tnn", "Engine")
         .def_pickle(
-        [](const c10::intrusive_ptr<TNNEngine>& self) -> std::string {
-            return "not implement";
+        [](const c10::intrusive_ptr<TNNEngine>& self) -> std::vector<std::string> {
+            auto interpreter = dynamic_cast<ModelInterpreter *>(self->ctx_->get_interpreter().get());
+            ModelPacker packer(interpreter->GetNetStructure(), interpreter->GetNetResource());
+            std::string proto_s;
+            std::string model_s;
+            std::string input_names = Serialize(self->input_names);
+            std::string output_names = Serialize(self->output_names);
+
+            std::vector<std::string> input_shapes_vec;
+            for (auto &shape : self->min_inputs_shape) {
+                input_shapes_vec.emplace_back(Serialize(shape, TORCH_INT_DELIM));
+            }
+            std::string min_input_shapes = Serialize(input_shapes_vec);
+            input_shapes_vec.clear();
+            for (auto &shape : self->max_inputs_shape) {
+                input_shapes_vec.emplace_back(Serialize(shape, TORCH_INT_DELIM));
+            }
+            std::string max_input_shapes = Serialize(input_shapes_vec);
+
+            packer.GetSerialization(proto_s, model_s);
+
+            std::vector<int> config_vec = {self->network_config_.device_type,
+                                           self->network_config_.device_id,
+                                           self->network_config_.precision,
+                                           self->network_config_.share_memory_mode};
+            std::string config_s = Serialize(config_vec);
+
+            std::vector<std::string> contents;
+            contents.emplace_back(proto_s);
+            contents.emplace_back(model_s);
+            contents.emplace_back(input_names);
+            contents.emplace_back(output_names);
+            contents.emplace_back(min_input_shapes);
+            contents.emplace_back(max_input_shapes);
+            contents.emplace_back(config_s);
+
+            std::string cache_str;
+            if (self->is_init_)
+                dynamic_cast<ModelInterpreter *>(self->instance_->GetInterpreter().get())->GetCache(cache_str);
+            contents.emplace_back(cache_str);
+
+            return contents;
         },
-        [](std::string seralized_engine) -> c10::intrusive_ptr<TNNEngine> {
+        [](std::vector<std::string> seralized_engine) -> c10::intrusive_ptr<TNNEngine> {
             return c10::make_intrusive<TNNEngine>(seralized_engine);
         });
 

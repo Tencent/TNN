@@ -51,6 +51,12 @@ template <typename Tin, typename Tout>
 int PackC4(Tout *dst, const Tin *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
+int PackNHWC4(Tout *dst, const Tin *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int PackNHWC4FromNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
 int PackC8(Tout *dst, const Tin *src, size_t hw, size_t channel);
 
 template <typename Tin, typename Tout>
@@ -67,10 +73,18 @@ int PackCAndQuant(int8_t *dst, const float *src, size_t hw, size_t channel, floa
 template <typename Tin, typename Tout>
 int UnpackC4(Tout *dst, const Tin *src, size_t hw, size_t channel);
 
+template <typename Tin, typename Tout>
+int UnpackNHWC4(Tout *dst, const Tin *src, size_t hw, size_t channel);
+
+template <typename Tin, typename Tout>
+int UnpackNHWC4ToNHWC(Tout *dst, const Tin *src, size_t hw, size_t channel);
+
 bool FloatBlobCanIgnorePack(size_t channel, size_t hw);
 bool HalfBlobCanIgnorePack(size_t channel, size_t hw);
 int PackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw);
 int UnpackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw);
+int PackInt32Blob(int32_t *dst, int32_t *src, size_t batch, size_t channel, size_t hw);
+int UnpackInt32Blob(int32_t *dst, int32_t *src, size_t batch, size_t channel, size_t hw);
 int PackFloatBlob(bfp16_t *dst, bfp16_t *src, size_t batch, size_t channel, size_t hw);
 int UnpackFloatBlob(bfp16_t *dst, bfp16_t *src, size_t batch, size_t channel, size_t hw);
 int PackHalfBlob(fp16_t *dst, fp16_t *src, size_t batch, size_t channel, size_t hw);

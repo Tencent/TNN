@@ -22,7 +22,7 @@ namespace TNN_NS {
 
 Status ReduceLayer::InferOutputShape(bool ignore_error) {
     BaseLayer::InferOutputShape(ignore_error);
-    
+
     auto layer_param = dynamic_cast<ReduceLayerParam*>(param_);
     if (!layer_param) {
         LOGE_IF(!ignore_error, "Error: Reduce may not support axes != 1, depend on device\n");
@@ -31,7 +31,18 @@ Status ReduceLayer::InferOutputShape(bool ignore_error) {
 
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
-    auto dims  = input_blob->GetBlobDesc().dims;
+    auto dims         = input_blob->GetBlobDesc().dims;
+
+    if (layer_param->axis.size() == 0) {
+        layer_param->all_reduce = 1;
+    }
+
+    if (layer_param->all_reduce) {
+        layer_param->axis.clear();
+        for (int i = 0; i < dims.size(); ++i) {
+            layer_param->axis.push_back(i);
+        }
+    }
 
     std::set<int> axis_filter;
     for (auto& axis : layer_param->axis) {
@@ -43,19 +54,18 @@ Status ReduceLayer::InferOutputShape(bool ignore_error) {
         dims[axis] = 1;
         axis_filter.insert(axis);
     }
-    
-  
+
     DimsVector output_dims;
     if (layer_param->keep_dims == 0) {
-        for(int i = 0; i < dims.size(); ++i) {
-            if(axis_filter.count(i) == 0) {
-                output_dims.push_back(dims[i]);           
+        for (int i = 0; i < dims.size(); ++i) {
+            if (axis_filter.count(i) == 0) {
+                output_dims.push_back(dims[i]);
             }
         }
     } else {
         output_dims = dims;
     }
-    
+
     output_blob->GetBlobDesc().dims = output_dims;
 
     return TNN_OK;

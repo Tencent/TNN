@@ -17,11 +17,11 @@
 #include <mutex>
 
 #include "tnn/device/cuda/cuda_context.h"
-#include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/interpreter/tnn/model_interpreter.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
-#include "tnn/network/tensorrt/exclusive_file.h"
 #include "tnn/network/tensorrt/tensorrt_network.h"
 #include "tnn/network/tensorrt/utils.h"
+#include "tnn/utils/exclusive_file.h"
 #include "tnn/utils/dims_utils.h"
 #include "tnn/utils/md5.h"
 #include "tnn/device/cuda/cuda_macro.h"
@@ -31,7 +31,7 @@
 namespace TNN_NS {
 
 #define MAX_SCRATCH_MEMORY (1<<31 - 1)
-#define TENSORRT_SERIALIZE_VERSION "v1.4"
+#define TENSORRT_SERIALIZE_VERSION "v1.5"
 
 NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
     g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
@@ -80,7 +80,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     device_id_ = net_config.device_id;
     CUDA_CHECK(cudaSetDevice(net_config.device_id));
     config_ = net_config;
-    DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
+    ModelInterpreter *default_interpreter = dynamic_cast<ModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
 
     auto params_md5 = default_interpreter->GetParamsMd5();
@@ -124,18 +124,11 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         return ret;
     }
 
-    this->m_max_batchsize = 1;
     BlobMap inputs;
     ret = blob_manager_->GetAllInputBlobs(inputs);
     if (ret != TNN_OK) {
         LOGE("ERROR: get input blobs failed");
         return ret;
-    }
-
-    for (auto iter : inputs) {
-        if (iter.second->GetBlobDesc().dims[0] > this->m_max_batchsize) {
-            this->m_max_batchsize = iter.second->GetBlobDesc().dims[0];
-        }
     }
 
     ret = InitLayers(net_structure, net_resource, enable_const_folder);
@@ -152,36 +145,68 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         return ret;
     }
 
+    std::string cache_buf;
+    default_interpreter->GetCache(cache_buf);
+
     std::string cache_file_name = GetCacheFileName(params_md5, inputs, outputs, min_inputs_shape,
-        net_config.device_id, this->m_max_batchsize, this->int8_mode, config_.precision == PRECISION_LOW,
+        net_config.device_id, this->int8_mode, config_.precision == PRECISION_LOW,
         enable_const_folder);
 
-    std::unique_ptr<ExclFile> file_lock(new ExclFile(cache_file_name));
+    if (cache_buf.size() == 0) {
+        std::unique_ptr<ExclFile> file_lock(new ExclFile(cache_file_name));
 
-    if (test_mode || false == file_lock->Ready()) {
-        ret = InitWithoutCache(inputs, outputs, cache_file_name, net_resource, min_inputs_shape);
-        if (ret != TNN_OK) {
-            return ret;
+        if ((test_mode || false == file_lock->Ready()) && cache_buf.size() == 0) {
+            ret = InitWithoutCache(inputs, outputs, cache_file_name, net_resource, min_inputs_shape);
+            if (ret != TNN_OK) {
+                return ret;
+            }
+
+            IHostMemory *model_stream = nullptr;
+            model_stream = m_trt_engine->serialize();
+            char *model_stream_ptr = reinterpret_cast<char*>(model_stream->data());
+            if (!test_mode) {
+                std::ofstream deploy_output(cache_file_name, std::ofstream::binary);
+                deploy_output.write(model_stream_ptr, model_stream->size());
+                deploy_output.close();
+
+            } else {
+                auto model_interpreter = dynamic_cast<ModelInterpreter *>(interpreter);
+                std::string cache_str(model_stream_ptr, model_stream->size());
+                model_interpreter->SetCache(cache_str);
+            }
+            delete model_stream_ptr;
         }
     }
 
     if (!test_mode) {
-        size_t size = 0;
-        std::ifstream deploy_input(cache_file_name, std::ios::binary);
-        deploy_input.seekg(0, deploy_input.end);
-        size = deploy_input.tellg();
-        deploy_input.seekg(0, deploy_input.beg);
-        char *model_stream = new char[size + 1];
-        deploy_input.read(model_stream, size);
-        IRuntime* runtime = createInferRuntime(m_trt_logger);
-        m_trt_engine = runtime->deserializeCudaEngine(model_stream, size);
-        delete[] model_stream;
-        ret = CreateExecuteContext();
-        if (ret != TNN_OK)
-            return ret;
+        if (cache_buf.size() == 0) {
+            // deserialize cuda engine with cache file
+            size_t size = 0;
+            std::ifstream deploy_input(cache_file_name, std::ios::binary);
+            deploy_input.seekg(0, deploy_input.end);
+            size = deploy_input.tellg();
+            deploy_input.seekg(0, deploy_input.beg);
+            char *model_stream = new char[size + 1];
+            deploy_input.read(model_stream, size);
+            IRuntime* runtime = createInferRuntime(m_trt_logger);
+            m_trt_engine = runtime->deserializeCudaEngine(model_stream, size);
+            delete[] model_stream;
+            ret = CreateExecuteContext();
+            if (ret != TNN_OK)
+                return ret;
 
-        runtime->destroy();
-        deploy_input.close();
+            runtime->destroy();
+            deploy_input.close();
+        } else {
+            // deserialize cuda engine with cache buf
+            IRuntime* runtime = createInferRuntime(m_trt_logger);
+            m_trt_engine = runtime->deserializeCudaEngine(cache_buf.data(), cache_buf.size());
+            ret = CreateExecuteContext();
+            if (ret != TNN_OK)
+                return ret;
+
+            runtime->destroy();
+        }
     } else {
         ret = CreateExecuteContext();
         if (ret != TNN_OK)
@@ -459,7 +484,6 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         if (cur_layer->IsPluginLayer()) {
             m_plugin_layer_name_map[layer_info->name] = dynamic_cast<TensorRTPluginLayerBuilder*>(cur_layer);
         }
-        cur_layer->SetBatchSize(m_max_batchsize);
     }
     return ret;
 }
@@ -718,16 +742,6 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     m_trt_config->destroy();
     m_trt_network->destroy();
 
-    if (!test_mode) {
-        IHostMemory *model_stream = nullptr;
-        model_stream = m_trt_engine->serialize();
-        std::ofstream deploy_output(cache_file_name, std::ofstream::binary);
-        char *model_stream_ptr = reinterpret_cast<char*>(model_stream->data());
-        deploy_output.write(model_stream_ptr, model_stream->size());
-        deploy_output.close();
-        delete model_stream_ptr;
-    }
-
     return TNN_OK;
 }
 
@@ -742,8 +756,8 @@ bool TensorRTNetwork_::IsBlobUsed(Blob* blob) {
 }
 
 std::string TensorRTNetwork_::GetCacheFileName(std::vector<std::string> params_md5, BlobMap input_map,
-        BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, int batchsize,
-        bool int8_mode, bool use_fp16, bool enable_const_folder) {
+        BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id, bool int8_mode,
+        bool use_fp16, bool enable_const_folder) {
     std::string md5_source = "";
 
     for (auto iter : params_md5) {
@@ -781,8 +795,8 @@ std::string TensorRTNetwork_::GetCacheFileName(std::vector<std::string> params_m
     std::string const_folder = enable_const_folder ? "const_folder_on" : "const_folder_off";
 
     std::string cache_file_name = "." +  md5(md5_source) + precision
-        + TENSORRT_SERIALIZE_VERSION + "-b-" + std::to_string(batchsize)
-        + "-" + GetGpuType(device_id) + "-" + GetTrtVersion() + GetCudaVersion()
+        + TENSORRT_SERIALIZE_VERSION + "-" + GetGpuType(device_id)
+        + "-" + GetTrtVersion() + GetCudaVersion()
         + "-" + const_folder + ".cache";
     return cache_file_name;
 }

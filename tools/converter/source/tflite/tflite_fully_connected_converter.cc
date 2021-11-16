@@ -131,14 +131,14 @@ TNN_NS::Status TFLiteFullyConnectedConverter::exec(
     if (quantized_model) {
         // create IntScaleResource for input
         int input_tensor_index = tf_lite_operator->inputs[0];
-        auto status            = CreateIntScaleResource(net_resource, tf_lite_tensors, input_tensor_index);
+        auto status            = CreateBlobScaleResource(net_resource, tf_lite_tensors, input_tensor_index);
         ASSERT(status == TNN_NS::TNN_CONVERT_OK);
         // crate InnerProduct layer resource
         status = CreateResource(net_resource, tf_lite_operator, tf_lite_tensors, tf_lite_model_buffer, cur_layer->name);
         ASSERT(status == TNN_NS::TNN_CONVERT_OK);
         // create IntScaleResource for output
         int output_tensor_index = tf_lite_operator->outputs[0];
-        status                  = CreateIntScaleResource(net_resource, tf_lite_tensors, output_tensor_index);
+        status                  = CreateBlobScaleResource(net_resource, tf_lite_tensors, output_tensor_index);
         ASSERT(status == TNN_NS::TNN_CONVERT_OK);
     } else {
 

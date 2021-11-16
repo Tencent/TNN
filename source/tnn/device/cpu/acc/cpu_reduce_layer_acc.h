@@ -36,11 +36,18 @@ public:
 
 protected:
     virtual Status PreCalculateReduce(float *dst, float *src, int count);
+    virtual Status PreCalculateReduce(int32_t *dst, int32_t *src, int count);
     virtual Status PostCalculateReduce(float *dst, float *src, int count);
+    virtual Status PostCalculateReduce(int32_t *dst, int32_t *src, int count);
 
 private:
     virtual Status CalculateReduce(float *output_data, float *input_data, int outer_dim, int channels,
                                    int inner_dim) = 0;
+    virtual Status CalculateReduce(int32_t *output_data, int32_t *input_data, int outer_dim, int channels,
+                                   int inner_dim) = 0;
+    template <typename T>
+    Status ProcessReduce(Blob *input_blob, Blob *output_blob,
+                         const std::vector<std::tuple<int, int, int>> &reduce_dims);
 };
 
 #define DECLARE_CPU_REDUCE_ACC(type_string, layer_type)                                                                \
@@ -51,6 +58,8 @@ private:
     private:                                                                                                           \
         virtual Status CalculateReduce(float *output_data, float *input_data, int outer_dim, int channels,             \
                                        int inner_dim);                                                                 \
+        virtual Status CalculateReduce(int32_t *output_data, int32_t *input_data, int outer_dim, int channels,             \
+                                       int inner_dim);                                                                 \
     }
 
 #define DECLARE_CPU_PRE_REDUCE_POST_ACC(type_string, layer_type)                                                       \
@@ -60,10 +69,14 @@ private:
                                                                                                                        \
     protected:                                                                                                         \
         virtual Status PreCalculateReduce(float *dst, float *src, int count);                                          \
+        virtual Status PreCalculateReduce(int32_t *dst, int32_t *src, int count);                                          \
         virtual Status PostCalculateReduce(float *dst, float *src, int count);                                         \
+        virtual Status PostCalculateReduce(int32_t *dst, int32_t *src, int count);                                         \
                                                                                                                        \
     private:                                                                                                           \
         virtual Status CalculateReduce(float *output_data, float *input_data, int outer_dim, int channels,             \
+                                       int inner_dim);                                                                 \
+        virtual Status CalculateReduce(int32_t *output_data, int32_t *input_data, int outer_dim, int channels,             \
                                        int inner_dim);                                                                 \
     }
 

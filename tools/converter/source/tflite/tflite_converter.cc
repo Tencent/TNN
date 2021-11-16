@@ -180,7 +180,7 @@ bool TFLite2Tnn::IsQuantized() {
                 opcode == tflite::BuiltinOperator_FULLY_CONNECTED) {
                 const int weight_index    = operators[j]->inputs[1];
                 const auto& weight_tensor = tensors[weight_index];
-                quantized_mode            = weight_tensor->type == tflite::TensorType_UINT8;
+                quantized_mode            = weight_tensor->type == tflite::TensorType_UINT8 || weight_tensor->type == tflite::TensorType_INT8;
                 if (!quantized_mode) {
                     return quantized_mode;
                 }

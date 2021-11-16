@@ -70,14 +70,30 @@ Status ConvLayerInterpreter::InterpretResource(Deserializer& deserializer, Layer
     }
 
     if (layer_res->filter_handle.GetDataType() == DATA_TYPE_INT8) {
-        // quantized
-        GET_BUFFER_FOR_ATTR(layer_res, scale_handle, deserializer);
+        // Use the DataType of first_buffer to distinguish the old and new versions
+        // old version: scale_handle(float)
+        // new version: scale_bias_handle(int8), scale_handle(float)
+        RawBuffer first_buffer;
+        deserializer.GetRaw(first_buffer);
+        if (first_buffer.GetDataType() == DATA_TYPE_INT8) {
+            layer_res->scale_bias_handle = first_buffer;
+            GET_BUFFER_FOR_ATTR(layer_res, scale_handle, deserializer);
+        } else if (first_buffer.GetDataType() == DATA_TYPE_FLOAT) {
+            layer_res->scale_handle = first_buffer;
+            int total_byte_size     = first_buffer.GetDataCount() * sizeof(char);
+            RawBuffer scale_bias_buffer(total_byte_size);
+            scale_bias_buffer.SetDataType(DATA_TYPE_INT8);
+            memset(scale_bias_buffer.force_to<int8_t*>(), 0, total_byte_size);
+            layer_res->scale_bias_handle = scale_bias_buffer;
+        } else {
+            LOGE("invalid quantized layer Resource\n");
+            return -1;
+        }
     }
-
     return TNN_OK;
 }
 
-Status ConvLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status ConvLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, ConvLayerParam, "invalid layer param to save", param);
 
     output_stream << layer_param->group << " ";
@@ -119,6 +135,8 @@ Status ConvLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* pa
         serializer.PutRaw(layer_res->bias_handle);
     }
     if (layer_param->quantized) {
+        // put scale_bias_handle in front of scale_handle to distinguish the old and new versions
+        serializer.PutRaw(layer_res->scale_bias_handle);
         serializer.PutRaw(layer_res->scale_handle);
     }
 

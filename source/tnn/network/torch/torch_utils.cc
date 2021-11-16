@@ -43,7 +43,7 @@ Status GetBlobDescFromTensor(BlobDesc &desc, const torch::Tensor &tensor) {
     RETURN_ON_FAIL(ConvertToDeviceType(desc.device_type, device));
     desc.dims = std::vector<int>(tensor.sizes().begin(), tensor.sizes().end());
 
-    auto scalar_type = tensor.dtype().toScalarType();
+    auto scalar_type = c10::typeMetaToScalarType(tensor.dtype());
     RETURN_ON_FAIL(ConvertToDataType(desc.data_type, scalar_type));
 
     return TNN_OK; 
@@ -58,9 +58,11 @@ Status CreateTensorByBlobDesc(std::shared_ptr<torch::Tensor> &tensor, BlobDesc d
     at::ScalarType scalar_type;
     RETURN_ON_FAIL(ConvertToTorchDataType(scalar_type, desc.data_type));
 
-    tensor = std::make_shared<torch::Tensor>(at::zeros(
-                    ConvertDimsToIntArrayRef(desc.dims), scalar_type, c10::Layout::Strided, device, false));
-
+    at::TensorOptions options;
+    options = options.dtype(scalar_type);                                                                          
+    options = options.device(device);                                                                              
+    options = options.layout(c10::Layout::Strided);                                                                
+    tensor = std::make_shared<torch::Tensor>(at::zeros(ConvertDimsToIntArrayRef(desc.dims), options));   
     return TNN_OK;
 }
 
@@ -122,7 +124,11 @@ Status CreateIValueFromTypePtr(c10::IValue &ivalue, c10::TypePtr type) {
             {
                 auto scalar_type = type->expect<c10::TensorType>()->scalarType();
                 auto device = type->expect<c10::TensorType>()->device();
-                ivalue = at::zeros(std::vector<int64_t>({1}), scalar_type, c10::Layout::Strided, device, false);
+                at::TensorOptions options;
+                options = options.dtype(scalar_type);
+                options = options.device(device);
+                options = options.layout(c10::Layout::Strided);
+		ivalue = at::zeros(std::vector<int64_t>({1}), options);
             }
             break;
         default:

@@ -137,7 +137,10 @@ Status ArmConvLayerDepthwise::Exec(const std::vector<Blob *> &inputs, const std:
 
     auto *src_origin = reinterpret_cast<T *>(GetBlobHandlePtr(input->GetHandle()));
     auto *dst_origin = reinterpret_cast<T *>(GetBlobHandlePtr(output->GetHandle()));
-    auto dw_full     = DepthwiseConv<T>;
+
+    typedef void DWFunc(T *dst, const T *src, const float *weight, long width, long src_w_setup, long fw, long fh,
+                        long dilateX_step, long dilateY_step, long height, long srcHStep, long dstHStep);
+    DWFunc *dw_full = DepthwiseConv<T>;
     /*
     convdw3x3 stride >= 2 here
     convdw3x3s1 has separate kernel in convdws1 acc

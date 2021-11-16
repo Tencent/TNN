@@ -89,10 +89,8 @@ public:
     Status ForwardWithCallback(BlobStatisticCallback before, BlobStatisticCallback after);
 #endif  // end of FORWARD_CALLBACK_ENABLE
 
-#ifdef GET_INTERP_ENABLE
     // get model interpreter
     std::shared_ptr<AbstractModelInterpreter> GetInterpreter();
-#endif  // end of GET_INTERP_ENABLE
 
     // tnn instance network infer async.
     // device gpu, all layer infer complete will call Callback.

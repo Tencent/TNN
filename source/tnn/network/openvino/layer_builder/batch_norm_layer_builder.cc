@@ -44,45 +44,13 @@ Status BatchNormOVLayerBuilder::Build() {
     }
     auto input_node = GetInputNodes()[0];
 
-    auto resource = dynamic_cast<BatchNormLayerResource*>(GetResource());
-    bool share_channel = resource->scale_handle.GetBytesSize() == DataTypeUtils::GetBytesSize(resource->scale_handle.GetDataType());
-    auto *scale_data = resource->scale_handle.force_to<float*>();
-    auto *bias_data = resource->bias_handle.force_to<float*>();
+    // use custom x86 batch norm layer
+    auto batchNormNode = std::make_shared<CustomBatchNormOp>(input_node->outputs(), base_layer_, GetInputBlobs(), GetOutputBlobs());
+    batchNormNode->set_friendly_name(param_->name);
+    ngraph::NodeVector outputNodes;
+    outputNodes.push_back(batchNormNode);
+    SetOutputTensors(outputNodes);   
 
-    auto input_shape = input_node->get_output_shape(0);
-    ngraph::Shape batchNromShape;
-    for (size_t i = 0; i < input_shape.size(); i++) {
-        if (i == 1 && !share_channel) batchNromShape.push_back(input_shape.at(1));
-        else batchNromShape.push_back(1); 
-    }
-
-    auto scaleConstNode = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, batchNromShape, scale_data);
-    auto biasConstNode = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::f32, batchNromShape, bias_data);
-
-    if (1) { // choose custom or origin node
-        auto scaleNode = std::make_shared<ngraph::op::v1::Multiply>(
-            input_node->output(0), scaleConstNode);
-
-        scaleNode->validate_and_infer_types();
-
-        auto biasNode = std::make_shared<ngraph::op::v1::Add>(
-            scaleNode->output(0), biasConstNode, ngraph::op::AutoBroadcastType::NUMPY);
-
-        biasNode->set_friendly_name(param_->name);
-        biasNode->validate_and_infer_types();
-        ngraph::NodeVector outputNodes;
-        outputNodes.push_back(biasNode);
-        SetOutputTensors(outputNodes);
-    } else {
-        ngraph::OutputVector outputs;
-        auto batchNormNode = std::make_shared<CustomBatchNormOp>(input_node->outputs(), base_layer_, GetInputBlobs(), GetOutputBlobs());
-        batchNormNode->set_friendly_name(param_->name);
-        ngraph::NodeVector outputNodes;
-        outputNodes.push_back(batchNormNode);
-        SetOutputTensors(outputNodes);   
-    }
     return TNN_OK;
 }
 

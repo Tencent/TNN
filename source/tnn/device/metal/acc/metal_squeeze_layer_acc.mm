@@ -20,10 +20,18 @@
 
 namespace TNN_NS {
 
-DECLARE_METAL_ACC_WITH_EXTRA(Squeeze, LAYER_SQUEEZE, private: bool need_reformat_ = false);
+DECLARE_METAL_ACC_WITH_EXTRA(Squeeze, LAYER_SQUEEZE,
+    public:  virtual Status UpdateBlobDataType(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    private: bool need_reformat_ = false);
 
 Status MetalSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return MetalLayerAcc::Reshape(inputs, outputs);
+}
+
+Status MetalSqueezeLayerAcc::UpdateBlobDataType(const std::vector<Blob *> &inputs,
+                                   const std::vector<Blob *> &outputs) {
+    outputs[0]->GetBlobDesc().data_type = inputs[0]->GetBlobDesc().data_type;
+    return TNN_OK;
 }
     
 Status MetalSqueezeLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
@@ -72,9 +80,10 @@ Status MetalSqueezeLayerAcc::ComputeThreadSize(const std::vector<Blob *> &inputs
 }
 
 std::string MetalSqueezeLayerAcc::KernelName(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    const auto data_type = outputs[0]->GetBlobDesc().data_type;
     if (need_reformat_)
-        return "squeeze_common";
-    return "permute_copy";
+        return DataTypeUtils::GetBytesSize(data_type)==4? "squeeze_common_int4" : "squeeze_common";
+    return DataTypeUtils::GetBytesSize(data_type)==4? "permute_copy_int4" : "permute_copy";
 }
 
 Status MetalSqueezeLayerAcc::Forward(const std::vector<Blob *> &inputs,

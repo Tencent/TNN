@@ -29,7 +29,7 @@ Status ExpandLayerInterpreter::InterpretResource(Deserializer &deserializer, Lay
     return TNN_OK;
 }
 
-Status ExpandLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+Status ExpandLayerInterpreter::SaveProto(std::ostream &output_stream, LayerParam *param) {
     CAST_OR_RET_ERROR(layer_param, ExpandLayerParam, "invalid expand param to save", param);
     output_stream << layer_param->shape.size() << " ";
     for (const auto &item : layer_param->shape) {

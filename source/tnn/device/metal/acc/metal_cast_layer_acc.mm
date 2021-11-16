@@ -23,21 +23,15 @@ const static auto isFloat = [](DataType data_type) {
         return data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_FLOAT;
 };
 
-Status MetalCastLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-                           const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto status = MetalLayerAcc::Init(context, param, resource, inputs, outputs);
-    RETURN_ON_NEQ(status, TNN_OK);
-
+Status MetalCastLayerAcc::UpdateBlobDataType(const std::vector<Blob *> &inputs,
+                                   const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<CastLayerParam *>(param_);
-    const auto input_data_type  = inputs[0]->GetBlobDesc().data_type;
-    const auto output_data_type = outputs[0]->GetBlobDesc().data_type;
-    if (!isFloat(input_data_type)) {
-        inputs[0]->GetBlobDesc().data_type = input_data_type;
-    }
-    if (!isFloat(output_data_type)) {
-        outputs[0]->GetBlobDesc().data_type = output_data_type;
-    }
-
+    DataType to_datatype = static_cast<DataType>(layer_param->to);
+#if TNN_METAL_FULL_PRECISION
+    outputs[0]->GetBlobDesc().data_type = isFloat(to_datatype)? DATA_TYPE_FLOAT : to_datatype;
+#else
+    outputs[0]->GetBlobDesc().data_type = isFloat(to_datatype)? DATA_TYPE_HALF  : to_datatype;
+#endif
     return TNN_OK;
 }
 
@@ -48,7 +42,7 @@ Status MetalCastLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
 Status MetalCastLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inputs,
                                                    const std::vector<Blob *> &outputs) {
     id<MTLDevice> device = [TNNMetalDeviceImpl sharedDevice];
-    auto layer_param     = dynamic_cast<GatherLayerParam *>(param_);
+    auto layer_param     = dynamic_cast<CastLayerParam *>(param_);
     const auto dims_input = inputs[0]->GetBlobDesc().dims;
     // buffer_param_
     {
@@ -123,7 +117,8 @@ Status MetalCastLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         BREAK_IF(status != TNN_OK);
         
         status = SetKernelEncoderParam(encoder, inputs, outputs);
-        BREAK_IF(status != TNN_OK);status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
+        BREAK_IF(status != TNN_OK);
+        status = [context_impl dispatchEncoder:encoder threads:threads bandwidth:bandwidth];
         BREAK_IF(status != TNN_OK);
     } while (0);
 

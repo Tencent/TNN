@@ -39,7 +39,7 @@ Status ConstLayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
     return TNN_OK;
 }
 
-Status ConstLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status ConstLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<ConstLayerParam*>(param);
     output_stream << layer_param->dims.size() << " ";
     for (const auto& dim : layer_param->dims) {

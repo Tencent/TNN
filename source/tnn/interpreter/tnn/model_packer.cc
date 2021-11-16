@@ -14,6 +14,9 @@
 
 #include "tnn/interpreter/tnn/model_packer.h"
 
+#include <sstream>
+#include <streambuf>
+
 #include "tnn/interpreter/tnn/layer_interpreter/abstract_layer_interpreter.h"
 #include "tnn/interpreter/tnn/model_interpreter.h"
 #include "tnn/interpreter/tnn/objseri.h"
@@ -79,103 +82,13 @@ Status ModelPacker::PackProto(std::string file_path) {
         return Status(TNNERR_PACK_MODEL, "proto file cannot be written");
     }
 
-    // 1st line: "1 <blob_size> 1 <magic_num> ,"
-    auto magic_number = GetMagicNumber();
-    if (magic_number > 0) {
-        write_stream << "\"1 " << net_struc->blobs.size() << " 1 " << magic_number << " ,\"" << std::endl;
-    } else {
-        write_stream << "\"1 " << net_struc->blobs.size() << " 1 "
-                     << ",\"" << std::endl;
+    std::string proto_s;
+    ret = GetProtoSeriString(proto_s);
+    if (ret != TNN_OK) {
+        return Status(TNNERR_PACK_MODEL, "get proto serialized string failed");
     }
 
-    // 2nd line: "input_name size n c h w date_type : input_name size n c h w data_type ... ,"
-    write_stream << "\"";
-    int input_count = net_struc->inputs_shape_map.size();
-    int idx         = 0;
-    for (auto input_shape : net_struc->inputs_shape_map) {
-        write_stream << input_shape.first << " ";
-        const auto& input_dims = input_shape.second;
-        if (magic_number == g_version_magic_number_v2){
-            write_stream << input_dims.size() << " ";
-        }
-        for (auto item : input_shape.second) {
-            write_stream << item << " ";
-        }
-        if (magic_number == g_version_magic_number_v2) {
-            const auto& input_data_type_map = net_struc->input_data_type_map;
-            if (input_data_type_map.find(input_shape.first) != input_data_type_map.end()) {
-                write_stream << input_data_type_map.find(input_shape.first)->second << " ";
-            } else {
-                // default data type: float
-                write_stream << "0" << " ";
-            }
-        }
-        if (input_count > 1 && idx < (input_count - 1)) {
-            write_stream << ": ";
-        }
-        idx++;
-    }
-    write_stream << ",\"" << std::endl;
-
-    // 3rd line: all blobs  " <blob1> <blob2> ... ,"
-    write_stream << "\" ";
-    for (auto item : net_struc->blobs) {
-        write_stream << item << " ";
-    }
-    write_stream << ",\"" << std::endl;
-
-    // 4th line: "<output_blob1> <output_blob2> .., ,"
-    write_stream << "\"";
-    for (auto item : net_struc->outputs) {
-        write_stream << item << " ";
-    }
-    write_stream << ",\"" << std::endl;
-
-    // 5th line: " <layer_count> ,"
-    write_stream << "\" " << net_struc->layers.size() << " ,\"" << std::endl;
-
-    // each layer info
-    auto &layer_interpreter_map = ModelInterpreter::GetLayerInterpreterMap();
-    for (auto item : net_struc->layers) {
-        write_stream << "\"";
-        // layer type
-        std::string layer_type_str = item->type_str;
-        if (item->param->quantized) {
-            if (layer_type_str.compare(0, 9, "Quantized") != 0) {
-                layer_type_str = "Quantized" + layer_type_str;
-            }
-        }
-        layer_type_str = Transfer(layer_type_str);
-        write_stream << layer_type_str << " ";
-
-        // layer name
-        std::string layer_name = item->name;
-        layer_name             = Transfer(layer_name);
-        write_stream << layer_name << " ";
-
-        // input/output size
-        write_stream << item->inputs.size() << " " << item->outputs.size() << " ";
-        // input name
-        for (auto name : item->inputs) {
-            std::string input_name = name;
-            input_name             = Transfer(input_name);
-            write_stream << input_name << " ";
-        }
-
-        // output name
-        for (auto name : item->outputs) {
-            std::string output_name = name;
-            output_name             = Transfer(output_name);
-            write_stream << output_name << " ";
-        }
-
-        auto layer_interpreter = layer_interpreter_map[item->type];
-        if (layer_interpreter != nullptr) {
-            layer_interpreter->SaveProto(write_stream, item->param.get());
-        }
-
-        write_stream << ",\"" << std::endl;
-    }
+    write_stream << proto_s;
 
     write_stream.close();
 
@@ -183,6 +96,7 @@ Status ModelPacker::PackProto(std::string file_path) {
 }
 
 Status ModelPacker::PackModel(std::string file_path) {
+    Status ret                = TNN_OK;
     NetResource *net_resource = GetNetResource();
     NetStructure *net_struct  = GetNetStructure();
     std::ofstream write_stream;
@@ -192,50 +106,30 @@ Status ModelPacker::PackModel(std::string file_path) {
         LOGE("invalid model file name! (%s)\n", file_path.c_str());
         return Status(TNNERR_PACK_MODEL, "model file cannot be written");
     }
-    auto magic_number = GetMagicNumber();
-    if (magic_number > 0) {
-        write_stream.write(reinterpret_cast<char *>(&magic_number), sizeof(uint32_t));
-    }
 
-    res_header header;
-    header.layer_cnt_ = 0;
-
-    int resource_count = 0;
-    auto serializer    = GetSerializer(write_stream);
-    auto ret           = PackLayers(serializer, false, resource_count);
+    std::string model_s;
+    ret = GetModelSeriString(model_s);
     if (ret != TNN_OK) {
-        write_stream.close();
-        return ret;
+        return Status(TNNERR_PACK_MODEL, "get model serialized string failed");
     }
 
-    header.layer_cnt_ = resource_count;
-    if (header.layer_cnt_ < 0) {
-        return Status(TNNERR_INVALID_MODEL, "invalid model: layer count is less than 1");
-    }
-    header.serialize(*serializer);
+    write_stream << model_s;
 
-    ret = PackLayers(serializer, true, resource_count);
-    if (ret != TNN_OK) {
-        write_stream.close();
-        return ret;
-    }
-    
-    // save const_map
-    auto const_map = net_resource->constant_map;
-    if (const_map.size() > 0) {
-        // write magic num
-        serializer->PutInt(magic_number);
-        // write const map size
-        serializer->PutInt((int)const_map.size());
-        for (const auto& iter : const_map) {
-            serializer->PutString(iter.first);
-            serializer->PutRaw(*(iter.second.get()));
-        }
-    }
-    
     write_stream.close();
+
+    return TNN_OK;
+}
+
+Status ModelPacker::GetSerialization(std::string &seri_proto, std::string &seri_model) {
+    Status ret = TNN_OK;
+    ret = GetProtoSeriString(seri_proto);
     if (ret != TNN_OK) {
-        return ret;
+        return Status(TNNERR_PACK_MODEL, "get proto serialized string failed");
+    }
+
+    ret = GetModelSeriString(seri_model);
+    if (ret != TNN_OK) {
+        return Status(TNNERR_PACK_MODEL, "get model serialized string failed");
     }
 
     return TNN_OK;
@@ -341,6 +235,172 @@ Status ModelPacker::PackResource(std::map<std::string, std::shared_ptr<LayerReso
             ly_header.name_.c_str(), ly_header.type_str_.c_str(), ly_header.type_);
         return Status(TNNERR_PACK_MODEL, "unsupport layer resource type");
     }
+    return TNN_OK;
+}
+
+Status ModelPacker::GetProtoSeriString(std::string &seri_proto) {
+    Status ret              = TNN_OK;
+    NetStructure *net_struc = GetNetStructure();
+
+    std::stringbuf s_buf;
+    std::ostream write_stream(&s_buf);
+    if (!write_stream || !write_stream.good()) {
+        return Status(TNNERR_PACK_MODEL, "proto stream cannot be written");
+    }
+
+    // 1st line: "1 <blob_size> 1 <magic_num> ,"
+    auto magic_number = GetMagicNumber();
+    if (magic_number > 0) {
+        write_stream << "\"1 " << net_struc->blobs.size() << " 1 " << magic_number << " ,\"" << std::endl;
+    } else {
+        write_stream << "\"1 " << net_struc->blobs.size() << " 1 "
+                     << ",\"" << std::endl;
+    }
+
+    // 2nd line: "input_name size n c h w date_type : input_name size n c h w data_type ... ,"
+    write_stream << "\"";
+    int input_count = net_struc->inputs_shape_map.size();
+    int idx         = 0;
+    for (auto input_shape : net_struc->inputs_shape_map) {
+        write_stream << input_shape.first << " ";
+        const auto& input_dims = input_shape.second;
+        if (magic_number == g_version_magic_number_v2){
+            write_stream << input_dims.size() << " ";
+        }
+        for (auto item : input_shape.second) {
+            write_stream << item << " ";
+        }
+        if (magic_number == g_version_magic_number_v2) {
+            const auto& input_data_type_map = net_struc->input_data_type_map;
+            if (input_data_type_map.find(input_shape.first) != input_data_type_map.end()) {
+                write_stream << input_data_type_map.find(input_shape.first)->second << " ";
+            } else {
+                // default data type: float
+                write_stream << "0" << " ";
+            }
+        }
+        if (input_count > 1 && idx < (input_count - 1)) {
+            write_stream << ": ";
+        }
+        idx++;
+    }
+    write_stream << ",\"" << std::endl;
+
+    // 3rd line: all blobs  " <blob1> <blob2> ... ,"
+    write_stream << "\" ";
+    for (auto item : net_struc->blobs) {
+        write_stream << item << " ";
+    }
+    write_stream << ",\"" << std::endl;
+
+    // 4th line: "<output_blob1> <output_blob2> .., ,"
+    write_stream << "\"";
+    for (auto item : net_struc->outputs) {
+        write_stream << item << " ";
+    }
+    write_stream << ",\"" << std::endl;
+
+    // 5th line: " <layer_count> ,"
+    write_stream << "\" " << net_struc->layers.size() << " ,\"" << std::endl;
+
+    // each layer info
+    auto &layer_interpreter_map = ModelInterpreter::GetLayerInterpreterMap();
+    for (auto item : net_struc->layers) {
+        write_stream << "\"";
+        // layer type
+        std::string layer_type_str = item->type_str;
+        if (item->param->quantized) {
+            if (layer_type_str.compare(0, 9, "Quantized") != 0) {
+                layer_type_str = "Quantized" + layer_type_str;
+            }
+        }
+        layer_type_str = Transfer(layer_type_str);
+        write_stream << layer_type_str << " ";
+
+        // layer name
+        std::string layer_name = item->name;
+        layer_name             = Transfer(layer_name);
+        write_stream << layer_name << " ";
+
+        // input/output size
+        write_stream << item->inputs.size() << " " << item->outputs.size() << " ";
+        // input name
+        for (auto name : item->inputs) {
+            std::string input_name = name;
+            input_name             = Transfer(input_name);
+            write_stream << input_name << " ";
+        }
+
+        // output name
+        for (auto name : item->outputs) {
+            std::string output_name = name;
+            output_name             = Transfer(output_name);
+            write_stream << output_name << " ";
+        }
+
+        auto layer_interpreter = layer_interpreter_map[item->type];
+        if (layer_interpreter != nullptr) {
+            layer_interpreter->SaveProto(write_stream, item->param.get());
+        }
+
+        write_stream << ",\"" << std::endl;
+    }
+
+    seri_proto = s_buf.str();
+
+    return TNN_OK;
+}
+
+Status ModelPacker::GetModelSeriString(std::string &seri_model) {
+    NetResource *net_resource = GetNetResource();
+    NetStructure *net_struct  = GetNetStructure();
+
+    std::stringbuf s_buf;
+    std::ostream write_stream(&s_buf);
+    if (!write_stream || !write_stream.good()) {
+        return Status(TNNERR_PACK_MODEL, "model stream cannot be written");
+    }
+    auto magic_number = GetMagicNumber();
+    if (magic_number > 0) {
+        write_stream.write(reinterpret_cast<char *>(&magic_number), sizeof(uint32_t));
+    }
+
+    res_header header;
+    header.layer_cnt_ = 0;
+
+    int resource_count = 0;
+    auto serializer    = GetSerializer(write_stream);
+    auto ret           = PackLayers(serializer, false, resource_count);
+    if (ret != TNN_OK) {
+        return ret;
+    }
+
+    header.layer_cnt_ = resource_count;
+    if (header.layer_cnt_ < 0) {
+        return Status(TNNERR_INVALID_MODEL, "invalid model: layer count is less than 1");
+    }
+    header.serialize(*serializer);
+
+    ret = PackLayers(serializer, true, resource_count);
+    if (ret != TNN_OK) {
+        return ret;
+    }
+    
+    // save const_map
+    auto const_map = net_resource->constant_map;
+    if (const_map.size() > 0) {
+        // write magic num
+        serializer->PutInt(magic_number);
+        // write const map size
+        serializer->PutInt((int)const_map.size());
+        for (const auto& iter : const_map) {
+            serializer->PutString(iter.first);
+            serializer->PutRaw(*(iter.second.get()));
+        }
+    }
+    
+    seri_model = s_buf.str();
+
     return TNN_OK;
 }
 

@@ -32,7 +32,9 @@ static const char demo_guide[] = "If you don't know how to use this demo or got 
     "       TNN: A high-performance, lightweight neural network inference framework open sourced by Tencent Youtu Lab. It also has many outstanding advantages such as cross-platform, high performance, model compression, and code tailoring. The TNN framework further strengthens the support and performance optimization of mobile devices on the basis of the original Rapidnet and ncnn frameworks. At the same time, it refers to the high performance and good scalability characteristics of the industry's mainstream open source frameworks, and expands the support for X86 and NV GPUs. On the mobile phone, TNN has been used by many applications such as mobile QQ, weishi, and Pitu. As a basic acceleration framework for Tencent Cloud AI, TNN has provided acceleration support for the implementation of many businesses. Everyone is welcome to participate in the collaborative construction to promote the further improvement of the TNN reasoning framework.\n"
     "step3. Enter a question about the paragraph\n"
     "       what is TNN?\n"
-    "       where TNN has been used?\n";
+    "       where TNN has been used?\n"
+    "Quote: If you want to use tiny-bert model. Switch model in <path_to_TNN>/model/tiny-bert/, and change the input and output name\n"
+    "       in <path_to_TNN>/examples/linux/src/BertRreadingComprehension/BertReadingComprehension.cc with line 86 and 110";
 
 static const char vocab_path_message[] = "(required) vocab file path";
 DEFINE_string(v, "", vocab_path_message);
@@ -57,6 +59,7 @@ int main(int argc, char **argv) {
     std::cout << "Initializing Vocabularies..." << std::endl;
     tokenizer->Init(FLAGS_v.c_str());
     
+    printf("%s\n%s\n%s\n", FLAGS_v.c_str(), FLAGS_p.c_str(), FLAGS_m.c_str());
     // 创建tnn实例
     std::cout << "Initializing TNN Instance..." << std::endl;
     auto proto_content = fdLoadFile(FLAGS_p.c_str());
@@ -73,18 +76,15 @@ int main(int argc, char **argv) {
         option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #ifdef _CUDA_
-            option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
-        #elif _OPENVINO_
-            option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
+            option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         #endif
         
-        option->input_shapes.insert(std::pair<std::string, DimsVector>("input_ids_0", nchw));
-        option->input_shapes.insert(std::pair<std::string, DimsVector>("input_mask_0", nchw));
-        option->input_shapes.insert(std::pair<std::string, DimsVector>("segment_ids_0", nchw));
     }
 
+    // choose bertsquad or tiny-bert
+    auto bertInput = std::make_shared<BertTokenizerInput>(DEVICE_NAIVE, "input_ids_0", "input_mask_0", "segment_ids_0");  
+    // auto bertInput = std::make_shared<BertTokenizerInput>(DEVICE_NAIVE, "input_ids", "attention_mask", "token_type_ids");  
     
-    auto bertInput = std::make_shared<BertTokenizerInput>(DEVICE_NAIVE);  
     auto predictor = std::make_shared<TNNSDKSample>();
 
     auto bertOutput = predictor->CreateSDKOutput();
@@ -104,7 +104,10 @@ int main(int argc, char **argv) {
         tokenizer->buildInput(paragraph, question, bertInput);
         CHECK_TNN_STATUS(predictor->Predict(bertInput, bertOutput));
         std::string ans;
-        tokenizer->ConvertResult(bertOutput, ans);
+
+        //choose bertsquad or tiny-bert
+        tokenizer->ConvertResult(bertOutput, "unstack:0", "unstack:1", ans);
+        // tokenizer->ConvertResult(bertOutput, "output_0", "output_1", ans);
 
         std::cout << "Please Enter the question: (Enter exit to quit)" << std::endl;
         std::cin.getline(question, LETTER_MAX_COUNT);

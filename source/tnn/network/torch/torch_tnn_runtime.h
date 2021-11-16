@@ -21,6 +21,46 @@
 namespace TNN_NS{
 namespace runtime {
 
+const std::string TORCH_DELIM     = "%";
+const std::string TORCH_INT_DELIM = ",";
+
+typedef enum { 
+    PROTO_IDX = 0,
+    MODEL_IDX,
+    INPUT_NAME_IDX,
+    OUTPUT_NAME_IDX,
+    MIN_SHAPE_IDX,
+    MAX_SHAPE_IDX,
+    CONFIG_IDX,
+    CACHE_IDX,
+    ENDING_IDX
+} SerializedInfoIndex;
+
+template <typename T>
+inline std::string Serialize(std::vector<T> contents, const std::string delim = TORCH_DELIM) {
+    std::stringstream ss;
+    for (size_t i = 0; i < contents.size() - 1; i++) {
+        ss << contents[i] << delim;
+    }
+    ss << contents[contents.size() - 1];
+    return ss.str(); 
+}
+
+inline std::vector<std::string> Deserialize(std::string content, const std::string delim = TORCH_DELIM) {
+    std::vector<std::string> tokens;
+    int64_t start = 0;
+    int64_t end = content.find(delim);
+
+    while (end != -1) {
+        tokens.push_back(content.substr(start, end - start));
+        start = end + delim.size();
+        end = content.find(delim, start);
+    }
+    tokens.push_back(content.substr(start, end - start));
+
+    return tokens;
+}
+
 class TorchConvertCtx {
 public:
     TorchConvertCtx() {
@@ -37,6 +77,9 @@ public:
     std::shared_ptr<AbstractModelInterpreter> get_interpreter() {
         return interpreter_;
     };
+    void set_interpreter(std::shared_ptr<AbstractModelInterpreter> interpreter) {
+        interpreter_ = interpreter;
+    };
 private:
     std::map<std::string, const torch::jit::Node*> varTable;
     std::map<std::string, int> tensorIdx;
@@ -45,14 +88,15 @@ private:
 
 struct TNNEngine : torch::CustomClassHolder {
     TNNEngine(NetworkConfig &network_config, ModelConfig &model_config);
-    TNNEngine(std::shared_ptr<Instance> &instance);
-    TNNEngine(std::string serialize);
+    TNNEngine(std::vector<std::string> &serialize);
     std::shared_ptr<Instance> instance_;
 
     std::vector<std::string> input_names;
     std::vector<std::string> output_names;
     std::vector<DimsVector> min_inputs_shape;
     std::vector<DimsVector> max_inputs_shape;
+
+    NetworkConfig network_config_;
 
     std::shared_ptr<TorchConvertCtx> ctx_;
     bool is_init_ = false;

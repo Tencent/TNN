@@ -16,7 +16,19 @@
         protobuf >= 3.0  
 
 ### ARMv8.2编译报错
-若要支持ARMv8.2编译，ndk版本版本至少为r18b  
+若要支持ARMv8.2编译，ndk版本版本至少为r18b
+
+### Windows CUDA 编译
+#### CUDA 版本
+  - cuda 10.2 可能存在与 Visual Studio 安装不完整的问题，如出现 cuda_toolset not found ，请重新安装或升级 CUDA 及 Visual Studio。
+  - 如安装多版本cuda，可以在使用 cmake -T 选项指定 cuda 版本，如 `cmake -Tcuda=10.2`
+
+#### Windows CUDA 报错
+  -  windows CUDA 10.2 报错：C:\source\rtSafe\cublas\cublasLtWrapper.cpp (279) - Assertion Error in nvinfer1::CublasLtWrapper::getCublasLtHeuristic: 0 (cublasStatus == CUBLAS_STATUS_SUCCESS)
+     解决方案：在 NVIDIA [官网]("https://developer.nvidia.com/cuda-10.2-download-archive?target_os=Windows&target_arch=x86_64&target_version=10&target_type=exelocal")下载 patch 并安装
+     
+
+
         
 ## 二、模型转换问题
 

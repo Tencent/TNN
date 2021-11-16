@@ -37,7 +37,6 @@
 
 #include <torch/torch.h>
 #include <torch/csrc/jit/passes/freeze_module.h>
-#include <torch/csrc/jit/passes/frozen_graph_optimizations.h>
 #include "torch/csrc/jit/passes/lower_tuples.h"
 
 #ifdef TNN_TORCHVISION
@@ -119,6 +118,9 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
         #endif
 
         RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape, max_inputs_shape));
+
+        // module_.save("opt.ts");
+        // auto tmp_mod = torch::jit::load("opt.ts");
         init_done_ = true;
     }
 

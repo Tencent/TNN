@@ -29,7 +29,9 @@
 #endif
 
 #if defined(__ANDROID__) || defined(__linux__)
+#ifdef __aarch64__
 #include <sys/auxv.h>
+#endif
 #define AT_HWCAP 16
 #define AT_HWCAP2 26
 // from arch/arm64/include/uapi/asm/hwcap.h
@@ -59,6 +61,10 @@
 // A14
 #ifndef CPUFAMILY_ARM_FIRESTORM_ICESTORM
 #define CPUFAMILY_ARM_FIRESTORM_ICESTORM 0x1B588BB3
+#endif
+// A15
+#ifndef CPUFAMILY_ARM_AVALANCHE_BLIZZARD
+#define CPUFAMILY_ARM_AVALANCHE_BLIZZARD 0xda33d83d
 #endif
 #elif TARGET_OS_OSX
 #define __OSX__ 1
@@ -363,7 +369,8 @@ bool CpuUtils::CpuSupportFp16() {
     size_t len              = sizeof(cpu_family);
     sysctlbyname("hw.cpufamily", &cpu_family, &len, NULL, 0);
     fp16arith = cpu_family == CPUFAMILY_ARM_MONSOON_MISTRAL || cpu_family == CPUFAMILY_ARM_VORTEX_TEMPEST ||
-                cpu_family == CPUFAMILY_ARM_LIGHTNING_THUNDER || cpu_family == CPUFAMILY_ARM_FIRESTORM_ICESTORM;
+                cpu_family == CPUFAMILY_ARM_LIGHTNING_THUNDER || cpu_family == CPUFAMILY_ARM_FIRESTORM_ICESTORM ||
+                cpu_family == CPUFAMILY_ARM_AVALANCHE_BLIZZARD;
     LOGD("CpuUtils::CpuSupportFp16, IOS and arm64, hw.cpufamily = %x, fp16arith = %d.\n", cpu_family, fp16arith);
     return fp16arith;
 #else
@@ -395,6 +402,8 @@ bool CpuUtils::CpuSupportFp16() {
         case UINT32_C(0x4100D060): /* Cortex-A65 */
         case UINT32_C(0x4100D0B0): /* Cortex-A76 */
         case UINT32_C(0x4100D0C0): /* Neoverse N1 */
+        case UINT32_C(0x4100D440): /* Cortex-X1 */
+        case UINT32_C(0x4100D410): /* Cortex-A78 */
         case UINT32_C(0x4100D0D0): /* Cortex-A77 */
         case UINT32_C(0x4100D0E0): /* Cortex-A76AE */
         case UINT32_C(0x4800D400): /* Cortex-A76 (HiSilicon) */
@@ -460,7 +469,8 @@ bool CpuUtils::CpuSupportInt8Dot() {
     unsigned int cpu_family = 0;
     size_t len              = sizeof(cpu_family);
     sysctlbyname("hw.cpufamily", &cpu_family, &len, NULL, 0);
-    int8dot = cpu_family == CPUFAMILY_ARM_LIGHTNING_THUNDER || cpu_family == CPUFAMILY_ARM_FIRESTORM_ICESTORM;
+    int8dot = cpu_family == CPUFAMILY_ARM_LIGHTNING_THUNDER || cpu_family == CPUFAMILY_ARM_FIRESTORM_ICESTORM ||
+              cpu_family == CPUFAMILY_ARM_AVALANCHE_BLIZZARD;
     LOGD("CpuUtils::CpuSupportInt8Dot, IOS and arm64, hw.cpufamily = %x, int8dot = %d.\n", cpu_family, int8dot);
     return int8dot;
 #else
@@ -492,6 +502,8 @@ bool CpuUtils::CpuSupportInt8Dot() {
         case UINT32_C(0x4100D060): /* Cortex-A65 */
         case UINT32_C(0x4100D0B0): /* Cortex-A76 */
         case UINT32_C(0x4100D0C0): /* Neoverse N1 */
+        case UINT32_C(0x4100D440): /* Cortex-X1 */
+        case UINT32_C(0x4100D410): /* Cortex-A78 */
         case UINT32_C(0x4100D0D0): /* Cortex-A77 */
         case UINT32_C(0x4100D0E0): /* Cortex-A76AE */
         case UINT32_C(0x4100D4A0): /* Neoverse E1 */
@@ -539,6 +551,8 @@ bool CpuUtils::CpuSupportInt8Dot() {
         case UINT32_C(0x4100D060): /* Cortex-A65 */
         case UINT32_C(0x4100D0B0): /* Cortex-A76 */
         case UINT32_C(0x4100D0C0): /* Neoverse N1 */
+        case UINT32_C(0x4100D440): /* Cortex-X1 */
+        case UINT32_C(0x4100D410): /* Cortex-A78 */
         case UINT32_C(0x4100D0D0): /* Cortex-A77 */
         case UINT32_C(0x4100D0E0): /* Cortex-A76AE */
         case UINT32_C(0x4100D4A0): /* Neoverse E1 */

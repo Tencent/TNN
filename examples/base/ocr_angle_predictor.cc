@@ -48,7 +48,7 @@ std::shared_ptr<Mat> OCRAnglePredictor::ProcessSDKInputMat(std::shared_ptr<Mat> 
     // 0) copy if necessary
     bool need_copy = false;
     DeviceType origin_dev = input_mat->GetDeviceType();
-    if (input_mat->GetDeviceType() != DEVICE_ARM) {
+    if (input_mat->GetDeviceType() != DEVICE_ARM && device_type_ == DEVICE_ARM) {
         need_copy = true;
         auto input_arm_mat = std::make_shared<Mat>(DEVICE_ARM, input_mat->GetMatType(),
                                                    input_mat->GetDims());

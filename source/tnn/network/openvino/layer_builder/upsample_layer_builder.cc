@@ -43,41 +43,59 @@ Status UpsampleOVLayerBuilder::Build() {
     }
     auto input_node = GetInputNodes()[0];
 
-    ngraph::op::v0::InterpolateAttrs attrs;
-    attrs.align_corners = paramlist->align_corners;
+    ngraph::op::v4::Interpolate::InterpolateAttrs attrs;
+    if (paramlist->align_corners) {
+        attrs.coordinate_transformation_mode = ngraph::op::v4::Interpolate::CoordinateTransformMode::align_corners;
+    } else {
+        attrs.coordinate_transformation_mode = ngraph::op::v4::Interpolate::CoordinateTransformMode::half_pixel;
+    }
+    attrs.nearest_mode = ngraph::op::v4::Interpolate::NearestMode::floor;
+    // attrs.align_corners = paramlist->align_corners;
     // if (paramlist->align_corners) 
     //     attrs.coordinate_transformation_mode = ngraph::op::v3::Interpolate::CoordinateTransformMode::align_corners;
+    std::vector<int64_t> axes;
     for (size_t axis = 2; axis < input_node->get_output_shape(0).size(); axis++) {
-        attrs.axes.insert(axis);
+        axes.push_back(axis);
     }
+    auto axesConst = std::make_shared<ngraph::op::Constant>(
+        ngraph::element::Type_t::i64, ngraph::Shape{input_node->get_output_shape(0).size() - 2}, axes);
 
     if (paramlist->mode == 1) {
-        attrs.mode = "nearest";
+        attrs.mode = ngraph::op::v4::Interpolate::InterpolateMode::nearest; //"nearest";
     } else if (paramlist->mode == 2) {
-        attrs.mode = "linear";
+        attrs.mode = ngraph::op::v4::Interpolate::InterpolateMode::linear;  //"linear";
     } else if (paramlist->mode == 3){
-        attrs.mode = "cubic";
+        attrs.mode = ngraph::op::v4::Interpolate::InterpolateMode::cubic;   //"cubic";
     } else {
         return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize type");
     }
 
     std::vector<int64_t> upsampleShape;
+    std::vector<float> upsampleScaleShape;
+    upsampleShape.push_back(input_node->get_output_shape(0)[2]);
+    upsampleShape.push_back(input_node->get_output_shape(0)[3]);
+    upsampleScaleShape.push_back(1.0);
+    upsampleScaleShape.push_back(1.0);
     if (paramlist->dims.size() != 0) {
+        attrs.shape_calculation_mode = ngraph::op::v4::Interpolate::ShapeCalcMode::sizes;
         if (paramlist->dims[0] != 0 && paramlist->dims[1] != 0) {
-            upsampleShape.push_back(paramlist->dims[1]);
-            upsampleShape.push_back(paramlist->dims[0]);
+            upsampleShape[0] = paramlist->dims[1];
+            upsampleShape[1] = paramlist->dims[0];
         } else {
             return Status(TNNERR_MODEL_ERR, "Error: Upsample size error");
         }
     } else {
-        upsampleShape.push_back(input_node->get_output_shape(0).at(2) * paramlist->scales.at(1));
-        upsampleShape.push_back(input_node->get_output_shape(0).at(3) * paramlist->scales.at(0));
+        attrs.shape_calculation_mode = ngraph::op::v4::Interpolate::ShapeCalcMode::scales;
+        upsampleScaleShape[0] = paramlist->scales.at(1);
+        upsampleScaleShape[1] = paramlist->scales.at(0);
     }
     auto upsampleConst = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::i64, ngraph::Shape{2}, upsampleShape);
+        ngraph::element::Type_t::i64, ngraph::Shape{input_node->get_output_shape(0).size() - 2}, upsampleShape);
+    auto upsampleScaleConst = std::make_shared<ngraph::op::Constant>(
+        ngraph::element::Type_t::f32, ngraph::Shape{input_node->get_output_shape(0).size() - 2}, upsampleScaleShape);
 
-    auto upsampleNode = std::make_shared<ngraph::op::v0::Interpolate>(
-        input_node->output(0), upsampleConst, attrs);
+    auto upsampleNode = std::make_shared<ngraph::op::v4::Interpolate>(
+        input_node->output(0), upsampleConst, upsampleScaleConst, axesConst, attrs);
     upsampleNode->validate_and_infer_types();
 
     upsampleNode->set_friendly_name(paramlist->name);

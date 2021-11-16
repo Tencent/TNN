@@ -41,7 +41,7 @@ Status PowLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerR
     return TNN_OK;
 }
 
-Status PowLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status PowLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<PowLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

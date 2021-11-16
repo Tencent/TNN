@@ -178,13 +178,13 @@ int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
             }
             WriteRawData(temp, item_size, writer, dst_data_type, dims);
         } else if (tensor.data_type() == 7) {
-            int64_t *raw_data = (int64_t *)tensor.int64_data().data();
-            float *temp = new float[item_size];
-            for (int i=0; i<item_size; i++) {
-                temp[i] = raw_data[i];
+            auto int64_data = (int64_t *)tensor.int64_data().data();
+            auto int32_data = new int32_t[item_size];
+            for (int ii = 0; ii < item_size; ii++) {
+                int32_data[ii] = DataTypeUtils::SaturateCast(int64_data[ii]);
             }
-            WriteRawData(temp, item_size, writer, dst_data_type, dims);
-            delete [] temp;
+            writer->PutRaw(item_size * sizeof(int32_t), (char *)int32_data, dims, DATA_TYPE_INT32);
+            delete[] int32_data;
         } else {
             DLog("invalid tensor type\n");
             assert(0);
@@ -296,6 +296,23 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                     writer->PutRaw(data_count * sizeof(int32_t), (char *)NULL, dims, DATA_TYPE_INT32);
                 }
             } else{
+                DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
+                assert(0);
+            }
+        } else if (src_data_type == onnx::TensorProto_DataType_BOOL) {
+            if (dst_data_type == DATA_TYPE_AUTO || dst_data_type == DATA_TYPE_INT8) {
+                if (data_count > 0) {
+                    auto bool_data = (bool *)raw_data;
+                    auto int8_data = new int8_t[data_count];
+                    for (int ii = 0; ii < data_count; ii++) {
+                        int8_data[ii] = static_cast<int8_t>(bool_data[ii]);
+                    }
+                    writer->PutRaw(data_count * sizeof(int8_t), (char *)int8_data, dims, DATA_TYPE_INT8);
+                    delete[] int8_data;
+                } else {
+                    writer->PutRaw(data_count * sizeof(int8_t), (char *)NULL, dims, DATA_TYPE_INT8);
+                }
+            } else {
                 DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
                 assert(0);
             }

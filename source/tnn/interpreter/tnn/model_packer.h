@@ -32,6 +32,9 @@ public:
     // @brief set the model version to pack
     void SetVersion(int version);
 
+    // @brief get serialized proto and model
+    Status GetSerialization(std::string &seri_proto, std::string &seri_model);
+
 private:
     std::shared_ptr<LayerInfo> FindLayerInfo(std::string layer_name);
     Status PackProto(std::string file_path);
@@ -39,6 +42,8 @@ private:
     Status PackLayers(std::shared_ptr<Serializer> &serializer, bool save_resource, int &resource_count);
     Status PackResource(std::map<std::string, std::shared_ptr<LayerResource>> &resource_map, std::string &layer_name,
                         std::shared_ptr<Serializer> &serializer);
+    Status GetProtoSeriString(std::string &seri_proto);
+    Status GetModelSeriString(std::string &seri_model);
 
 protected:
     int model_version_ = 1;
