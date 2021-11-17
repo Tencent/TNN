@@ -224,8 +224,10 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"NonMaxSuppression", LAYER_NON_MAX_SUPPRESSION},
     {"TopK", LAYER_TOPK},
     {"Scatter", LAYER_SCATTER},
+    {"Gradient", LAYER_GRADIENT},
     {"CategoricalCrossEntropy", LAYER_CATEGORICAL_CROSSENTROPY},
     {"BinaryCrossEntropy", LAYER_BINARY_CROSSENTROPY},
+    {"SGD", LAYER_SGD},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 

@@ -131,6 +131,7 @@ protected:
 private:
 
    Status ReshapeLayers();
+
 };
 
 }  // namespace TNN_NS

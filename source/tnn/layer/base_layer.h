@@ -52,9 +52,6 @@ public:
     //@brief get layer name
     std::string GetLayerName();
 
-    //@brief get layer type
-    LayerType GetLayerType();
-
     //@brief set laye name
     void SetLayerName(std::string layer_name);
 

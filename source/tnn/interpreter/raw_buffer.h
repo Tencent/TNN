@@ -62,7 +62,6 @@ private:
     int bytes_size_        = 0;
     DataType data_type_    = DATA_TYPE_FLOAT;
     DimsVector dims_ = {};
-    bool trainable_ = false;
 };
 
 RawBuffer ConvertHalfHandle(RawBuffer &buf);
