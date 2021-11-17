@@ -186,6 +186,8 @@ def load(model_path, config_dict = {}):
     input_names = module.parsed_input_names()
     min_input_shapes = None
     max_input_shapes = None
+    if "input_names" in config_dict:
+        input_names = config_dict["input_names"]
     if "input_shapes" in config_dict:
         min_input_shapes, max_input_shapes = _parse_input_ranges(config_dict["input_shapes"], input_names)
     network_config = _parse_network_config(config_dict)
