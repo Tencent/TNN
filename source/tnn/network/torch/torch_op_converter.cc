@@ -83,19 +83,22 @@ public:
 //                    int[] output_padding, int groups, bool benchmark, bool deterministic, bool cudnn_enabled, bool allow_tf32) -> Tensor
 class _ConvTorchConverter : public TorchOpConverter {
 public:
+  /*
     bool IsSupported(const torch::jit::Node *node) {
         const auto& inputs = node->inputs();
         const auto transposed = getValue<bool>(inputs[6]);
         return !transposed; 
     }
+  */
 
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
-        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-        layer_info->type = LAYER_CONVOLUTION;
-        layer_info->type_str = "Convolution";
-        layer_info->name = node->output(0)->debugName();
-
         const auto& inputs = node->inputs();
+        const auto transposed = getValue<bool>(inputs[6]);
+        
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = transposed ? LAYER_DECONVOLUTION : LAYER_CONVOLUTION;;
+        layer_info->type_str = transposed ? "Deconvolution" : "Convolution";
+        layer_info->name = node->output(0)->debugName();
 
         layer_info->inputs.push_back(node->inputs()[0]->debugName());
         layer_info->outputs.push_back(node->outputs()[0]->debugName());
@@ -334,6 +337,10 @@ public:
             case at::aten::mul:
                 layer_info->type     = LAYER_MUL;
                 layer_info->type_str = "Mul";
+                break;
+            case at::aten::gt:
+                layer_info->type     = LAYER_GREATER;
+                layer_info->type_str = "Greater";
                 break;
             default:
                 LOGE("Unsupport layer type %s\n", node->kind().toUnqualString());
@@ -775,6 +782,37 @@ public:
     }
 };
 
+class ToTorchConverter : public TorchOpConverter {
+public:
+    // Currently, casting data to float is not supported.
+    bool IsSupported(const torch::jit::Node *node) {
+        const auto& inputs = node->inputs();
+        const auto dtype = getValue<int>(inputs[1]);
+        // "6" means float data
+        return dtype == 6;
+    }
+
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = LAYER_CAST;
+        layer_info->type_str = "Cast";
+        layer_info->name = node->output(0)->debugName();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<CastLayerParam>();
+        layer_param->to = DATA_TYPE_FLOAT;
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
 class ListTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
@@ -806,14 +844,15 @@ public:
 
 REGISTER_TORCH_OP_CONVERTER(Conv2D, aten, conv2d)
 REGISTER_TORCH_OP_CONVERTER(_Conv, aten, _convolution)
-REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
 REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu)
+REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
 REGISTER_TORCH_OP_CONVERTER(AvgPool, aten, avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, adaptive_avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, add_)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, add)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, mul)
+REGISTER_TORCH_OP_CONVERTER(Binary, aten, gt)
 REGISTER_TORCH_OP_CONVERTER(Flatten, aten, flatten)
 REGISTER_TORCH_OP_CONVERTER(Linear, aten, linear)
 REGISTER_TORCH_OP_CONVERTER(HardTanh, aten, hardtanh_)
@@ -825,6 +864,7 @@ REGISTER_TORCH_OP_CONVERTER(Unsqueeze, aten, unsqueeze)
 REGISTER_TORCH_OP_CONVERTER(Gather, aten, select)
 REGISTER_TORCH_OP_CONVERTER(StridedSlice, aten, slice)
 REGISTER_TORCH_OP_CONVERTER(Sigmoid, aten, sigmoid)
+REGISTER_TORCH_OP_CONVERTER(To, aten, to)
 
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
 
