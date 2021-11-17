@@ -21,6 +21,9 @@ namespace TNN_NS {
 
 class ArmSGDLayerAcc : public ArmLayerAcc {
 public:
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                        const std::vector<Blob *> &outputs);
+
     virtual ~ArmSGDLayerAcc();
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);

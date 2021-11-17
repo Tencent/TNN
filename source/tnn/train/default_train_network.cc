@@ -82,6 +82,7 @@ Status DefaultTrainNetwork::GetTrainingFeedback(TrainingFeedback &feed_back) {
 Status DefaultTrainNetwork::UpdateGradMap() {
     forward_blob_to_grad_map_.clear();
     grad_to_resource_map_.clear();
+    std::set<RawBuffer *> resource_visited;
 
     for (auto layer : layers_) {
         auto grad_layer = dynamic_cast<GradientLayer *>(layer);
@@ -101,25 +102,28 @@ Status DefaultTrainNetwork::UpdateGradMap() {
         index = 0;
         for (auto pair : grad_layer->GetGradResourcePairs()) {
             // if resource appears more than once, set accumulate flag
-            if (grad_to_resource_map_.find(pair.first) != grad_to_resource_map_.end()) {
+            if (resource_visited.find(pair.second) != resource_visited.end()) {
                 RETURN_ON_NEQ(grad_layer->SetAccumulateResourceGradFlag(index, true), TNN_OK);
                 LOGD("layer %s accumulate %d's resource grad\n", layer->GetLayerName().c_str(), index);
             }
             grad_to_resource_map_.insert(pair);
+            resource_visited.insert(pair.second);
             ++index;
         }
     }
 
-    LOGD("Blob to grad map:\n");
-    for (auto iter : forward_blob_to_grad_map_) {
-        LOGD("%s -> %s\n", iter.first->GetBlobDesc().description().c_str(),
-             iter.second->GetBlobDesc().description().c_str());
-    }
+    /*
+        LOGD("Blob to grad map:\n");
+        for (auto iter : forward_blob_to_grad_map_) {
+            LOGD("%s -> %s\n", iter.first->GetBlobDesc().description().c_str(),
+                 iter.second->GetBlobDesc().description().c_str());
+        }
 
-    LOGD("Grad to resource map:\n");
-    for (auto iter : grad_to_resource_map_) {
-        LOGD("%s -> %d\n", iter.first->GetBlobDesc().description().c_str(), iter.second->GetDataCount());
-    }
+        LOGD("Grad to resource map:\n");
+        for (auto iter : grad_to_resource_map_) {
+            LOGD("%s -> %d\n", iter.first->GetBlobDesc().description().c_str(), iter.second->GetDataCount());
+        }
+    */
 
     return TNN_OK;
 }

@@ -16,30 +16,37 @@
 
 namespace TNN_NS {
 
-ArmSGDLayerAcc::~ArmSGDLayerAcc() {}
+Status ArmSGDLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                            const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
 
-Status ArmSGDLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     SGDParam *grad_param = dynamic_cast<SGDParam *>(param_);
     CHECK_PARAM_NULL(grad_param);
     learning_rate_ = grad_param->learning_rate;
 
-    float *global_step_ptr_ = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
-    if (!global_step_ptr_) {
-        LOGE("ArmSGDLayerAcc::Init, ERROR, global_step is nil\n");
-        return Status(TNNERR_NET_ERR, "global_step is nil");
-    }
-    *global_step_ptr_ = ++global_step_;
+    return TNN_OK;
+}
 
-    LOGD("ArmSGDLayerAcc::DoForward, step: %d, lr: %f\n", global_step_, learning_rate_);
+ArmSGDLayerAcc::~ArmSGDLayerAcc() {}
 
+Status ArmSGDLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     CHECK_PARAM_NULL(grad_info_);
-    std::vector<RawBuffer *> trainables = grad_info_->trainable_resources;
+    auto &trainables = grad_info_->trainable_resources;
     if (trainables.size() != inputs.size()) {
         LOGE("ArmSGDLayerAcc::DoForward, ERROR, grad and resource count not equal\n");
         return Status(TNNERR_NET_ERR, "grad and resource count not equal");
     }
 
-    LOGD("Grad to resource:\n");
+    float *global_step_ptr_ = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    if (!global_step_ptr_) {
+        LOGE("ArmSGDLayerAcc::DoForward, ERROR, global_step is nil\n");
+        return Status(TNNERR_NET_ERR, "global_step is nil");
+    }
+
+    *global_step_ptr_ = ++global_step_;
+
+    LOGD("ArmSGDLayerAcc::DoForward, step: %d, lr: %f\n", int(*global_step_ptr_), learning_rate_);
+
     for (int i = 0; i < inputs.size(); ++i) {
         CHECK_PARAM_NULL(inputs[i]);
         CHECK_PARAM_NULL(trainables[i]);
