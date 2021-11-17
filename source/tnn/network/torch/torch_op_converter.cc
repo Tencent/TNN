@@ -787,9 +787,13 @@ public:
     // Currently, casting data to float is not supported.
     bool IsSupported(const torch::jit::Node *node) {
         const auto& inputs = node->inputs();
-        const auto dtype = getValue<int>(inputs[1]);
-        // "6" means float data
-        return dtype == 6;
+        if (inputs[1]->type()->kind() == c10::TypeKind::ScalarTypeType) {
+            const auto dtype = getValue<int>(inputs[1]);
+            // "6" means float data
+            return dtype == 6;
+        } else {
+            return false;
+        }
     }
 
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
