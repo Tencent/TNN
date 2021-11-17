@@ -95,7 +95,7 @@ Status Blob2RawBuffer(Blob *blob, std::shared_ptr<RawBuffer> &buffer) {
     }
     buffer->SetDataType(blob->GetBlobDesc().data_type);
     buffer->SetBufferDims(blob->GetBlobDesc().dims);
-
+    
     if (count > 0) {
         memcpy(buffer->force_to<void *>(), blob->GetHandle().base, count*ele_size);
     }

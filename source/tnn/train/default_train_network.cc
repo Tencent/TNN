@@ -48,6 +48,16 @@ Status DefaultTrainNetwork::TrainStep() {
     }
 
     Status ret = TNN_OK;
+
+    RuntimeMode prev_mode = runtime_model_;
+    runtime_model_ = RUNTIME_MODE_BACKWARD;
+    ret = Forward();
+    if (ret != TNN_OK) {
+        LOGE("DefaultTrainNetwork::TrainStep, backward pass failed\n");
+        return ret;
+    }
+    runtime_model_ = prev_mode;
+
     for (auto layer : layers_) {
         ret = layer->RefreshBuffers();
         if (ret != TNN_OK) {

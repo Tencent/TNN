@@ -247,6 +247,8 @@ typedef enum {
     RUNTIME_MODE_NORMAL = 0,
     //normal runtime forward, only layers with constant output (eg. ShapeLayer) will be executed to do constant folding
     RUNTIME_MODE_CONST_FOLD = 1,
+    //backward mode, skip forward pass
+    RUNTIME_MODE_BACKWARD = 2,
 } RuntimeMode;
 
 typedef enum {

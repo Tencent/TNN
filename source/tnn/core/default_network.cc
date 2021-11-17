@@ -570,6 +570,12 @@ Context* DefaultNetwork::GetContext() {
     return context_;
 }
 
+bool DefaultNetwork::IsLayerSkipCalculation(BaseLayer *layer) {
+    auto layer_type        = layer->GetLayerType();
+    bool is_backward_layer = (layer_type == LAYER_GRADIENT || layer_type == LAYER_SGD);
+    return (runtime_model_ != RUNTIME_MODE_BACKWARD) ? is_backward_layer : !is_backward_layer;
+}
+
 Status DefaultNetwork::Forward() {
     auto status = blob_manager_->CheckBlobMemoryState();
     RETURN_ON_NEQ(status, TNN_OK);
@@ -582,24 +588,29 @@ Status DefaultNetwork::Forward() {
     status = context_->OnInstanceForwardBegin();
     RETURN_ON_NEQ(status, TNN_OK);
     
-    int cnt = 0;
+    if (runtime_model_ != RUNTIME_MODE_BACKWARD) {
+        cnt_ = 0;
+    }
     for (auto layer : layers_) {
+        if (IsLayerSkipCalculation(layer)) {
+            continue;
+        }
         std::vector<Blob *> inputs  = layer->GetInputBlobs();
         std::vector<Blob *> outputs = layer->GetOutputBlobs();
 
         {
             
 #if DUMP_INPUT_BLOB
-            if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+            if (runtime_model_ == RUNTIME_MODE_NORMAL || runtime_model_ == RUNTIME_MODE_BACKWARD) {
                 // InputBlob data in dumped into files in NCHW_FLOAT format as default
                 std::string filename = layer->GetLayerName();
                 std::replace(filename.begin(), filename.end(), '/', '_');
                 for (int i = 0; i < inputs.size(); i++) {
                     char ss[1000];
                     if (g_tnn_dump_directory.length() > 0) {
-                        snprintf(ss, 1000, "%s/%05d-%s-in-%d", g_tnn_dump_directory.c_str(), cnt, filename.c_str(), i);
+                        snprintf(ss, 1000, "%s/%05d-%s-in-%d", g_tnn_dump_directory.c_str(), cnt_, filename.c_str(), i);
                     } else {
-                        snprintf(ss, 1000, "%05d-%s-in-%d", cnt, filename.c_str(), i);
+                        snprintf(ss, 1000, "%05d-%s-in-%d", cnt_, filename.c_str(), i);
                     }
 
                     auto ret = DumpDeviceBlob(inputs[i], context_, std::string(ss));
@@ -620,16 +631,16 @@ Status DefaultNetwork::Forward() {
             }
 
 #if DUMP_OUTPUT_BLOB
-            if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+            if (runtime_model_ == RUNTIME_MODE_NORMAL || runtime_model_ == RUNTIME_MODE_BACKWARD) {
                 // OutBlob data in dumped into files in NCHW_FLOAT format as default
                 std::string out_file_name = layer->GetLayerName();
                 std::replace(out_file_name.begin(), out_file_name.end(), '/', '_');
                 for (int i = 0; i < outputs.size(); i++) {
                     char ss[1000];
                     if (g_tnn_dump_directory.length() > 0) {
-                        snprintf(ss, 1000, "%s/%05d-%s-out-%d", g_tnn_dump_directory.c_str(), cnt, out_file_name.c_str(), i);
+                        snprintf(ss, 1000, "%s/%05d-%s-out-%d", g_tnn_dump_directory.c_str(), cnt_, out_file_name.c_str(), i);
                     } else {
-                        snprintf(ss, 1000, "%05d-%s-out-%d", cnt, out_file_name.c_str(), i);
+                        snprintf(ss, 1000, "%05d-%s-out-%d", cnt_, out_file_name.c_str(), i);
                     }
 
                     auto ret = DumpDeviceBlob(outputs[i], context_, std::string(ss));
@@ -642,7 +653,10 @@ Status DefaultNetwork::Forward() {
 #endif  // DUMP_OUTPUT_BLOB
         }
         
-        cnt++;
+        cnt_++;
+    }
+    if (runtime_model_ == RUNTIME_MODE_BACKWARD) {
+        cnt_ = 0;
     }
     context_->OnInstanceForwardEnd();
     context_->Synchronize();
@@ -695,6 +709,9 @@ Status DefaultNetwork::ForwardAsync(Callback call_back) {
 
     context_->OnInstanceForwardBegin();
     for (auto layer : layers_) {
+        if (IsLayerSkipCalculation(layer)) {
+            continue;
+        }
         result = layer->Forward();
         RETURN_ON_NEQ(result, TNN_OK);
     }

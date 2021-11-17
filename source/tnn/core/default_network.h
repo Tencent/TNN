@@ -129,9 +129,11 @@ protected:
     static std::mutex optimize_mtx_;
 
 private:
-
    Status ReshapeLayers();
 
+   bool IsLayerSkipCalculation(BaseLayer *layer);
+
+   int cnt_ = 0;
 };
 
 }  // namespace TNN_NS
