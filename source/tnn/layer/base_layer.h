@@ -89,7 +89,7 @@ public:
     // @brief only for train module; update layer resource to layer buffer
     virtual Status RefreshBuffers();
 
-public:
+protected:
     LayerType type_;
 
     std::string layer_name_;
@@ -106,13 +106,11 @@ public:
 
     //@brief calculate the output tensor dims
     virtual Status InferOutputShape(bool ignore_error = false);
-    //@brief infer the output data type, by default it is the same as input. Meanwhile, it will updata the daat flag of
+    //@brief infer the output data type, by default it is the same as input. Meanwhile, it will update the data flag of
     //output blobs
     virtual Status InferOutputDataType();
     //@brief fill layer param with constant resource
     virtual Status FillLayerParamWithConstantResource();
-
-    //
 };
 
 //@brief LayerCreator define the create layer interface

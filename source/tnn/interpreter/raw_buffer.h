@@ -42,8 +42,6 @@ public:
     void buffer(char *buf, int bytes_size);
     void SetDataType(DataType data_type);
     void SetBufferDims(DimsVector shape);
-    void SetTrainable(bool trainable);
-    void SetDataFormat(DataFormat data_format);
 
 
 
@@ -51,8 +49,6 @@ public:
     int GetBytesSize();
     int GetDataCount();
     DimsVector GetBufferDims();
-    bool GetTrainable();
-    DataFormat GetDataFormat();
 
     void Permute(size_t outter, size_t inner);
 
@@ -65,8 +61,6 @@ private:
     shared_ptr<char> buff_ = nullptr;
     int bytes_size_        = 0;
     DataType data_type_    = DATA_TYPE_FLOAT;
-    // only use in some train module so far, it's all NCHW Format in predict.
-    DataFormat data_format_ = DATA_FORMAT_NCHW;
     DimsVector dims_ = {};
     bool trainable_ = false;
 };

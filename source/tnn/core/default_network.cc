@@ -55,10 +55,6 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
         return Status(TNNERR_CONTEXT_ERR, "context is nil");
 }
 
-std::vector<BaseLayer *>& DefaultNetwork::GetLayers(){
-    return layers_;
-}
-
 /*
  * The Network holds blob, blobmanager, layers etc.
  * Those object is initialized in this function.
@@ -151,6 +147,7 @@ static inline bool IsLayoutReformatLayer(std::shared_ptr<LayerInfo> layer) {
     return false;
 }
 
+// gradient layer share resource with its forward layer
 static inline std::string GetResourceKey(const std::string &layer_name, LayerInfo *info) {
     if (info->type == LAYER_GRADIENT) {
         GradientParam* grad_param = dynamic_cast<GradientParam*>(info->param.get());
@@ -247,8 +244,9 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             }
 
             if (type != LAYER_GRADIENT) {
+                // skip for gradient layer
                 cur_layer->InferShapeAhead(inputs, outputs_for_shape, layer_info->param.get(),
-                                        net_resource->resource_map[layer_name].get());
+                                           net_resource->resource_map[layer_name].get());
             }
 
             delete cur_layer;
@@ -345,10 +343,6 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         layers_.push_back(cur_layer);
     }
     return ret;
-}
-
-Blob* DefaultNetwork::GetBlob(std::string blob_name){
-    return blob_manager_->GetBlob(blob_name);
 }
 
 Status DefaultNetwork::AllocateBlobMemory() {

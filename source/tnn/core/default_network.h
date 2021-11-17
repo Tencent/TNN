@@ -92,12 +92,6 @@ public:
     // @brief set threads run on device
     virtual Status SetCpuNumThreads(int num_threads);
 
-
-    // @brief get layers
-    virtual std::vector<BaseLayer *>& GetLayers(); 
-
-    virtual Blob* GetBlob(std::string blob_name);   
-
 #if TNN_PROFILE
 public:
     virtual void StartProfile();

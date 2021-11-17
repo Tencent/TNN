@@ -152,14 +152,6 @@ void RawBuffer::SetDataType(DataType data_type) {
     data_type_ = data_type;
 }
 
-void RawBuffer::SetDataFormat(DataFormat data_format) {
-    data_format_ = data_format;
-}
-
-void RawBuffer::SetTrainable(bool trainable) {
-    trainable_ = trainable;
-};
-
 DataType RawBuffer::GetDataType() {
     return data_type_;
 }
@@ -168,20 +160,12 @@ int RawBuffer::GetBytesSize() {
     return bytes_size_;
 }
 
-bool RawBuffer::GetTrainable() {
-    return trainable_ ;
-}
-
-DataFormat RawBuffer::GetDataFormat() {
-    return data_format_;
-}
-
 int RawBuffer::GetDataCount() {
     int elem_size = DataTypeUtils::GetBytesSize(data_type_);
     return elem_size > 0 ? bytes_size_ / elem_size : 0;
 }
 
-/* 
+/*
  * Convert the data handle form half to Float32
  */
 RawBuffer ConvertHalfHandle(RawBuffer &buf) {
