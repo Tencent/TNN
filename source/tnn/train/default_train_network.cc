@@ -50,8 +50,8 @@ Status DefaultTrainNetwork::TrainStep() {
     Status ret = TNN_OK;
 
     RuntimeMode prev_mode = runtime_model_;
-    runtime_model_ = RUNTIME_MODE_BACKWARD;
-    ret = Forward();
+    runtime_model_        = RUNTIME_MODE_BACKWARD;
+    ret                   = Forward();
     if (ret != TNN_OK) {
         LOGE("DefaultTrainNetwork::TrainStep, backward pass failed\n");
         return ret;
@@ -118,15 +118,6 @@ Status DefaultTrainNetwork::UpdateGradMap() {
             grad_to_resource_map_.insert(pair);
             ++index;
         }
-        for (index = 0; index < grad_layer->GetUpstreamGradCount(); ++index) {
-            auto offset         = grad_layer->GetInputBlobs().size() - grad_layer->GetUpstreamGradCount();
-            auto forward_output = grad_layer->GetInputBlobs().at(index + offset);
-            if (forward_blob_to_grad_map_.find(forward_output) != forward_blob_to_grad_map_.end()) {
-                RETURN_ON_NEQ(grad_layer->SetUpstreamGrad(index, forward_blob_to_grad_map_.at(forward_output)), TNN_OK);
-            } else {
-                LOGD("Dont get %d's upstream grad of layer %s, assume all 1s\n", index, layer->GetLayerName().c_str());
-            }
-        }
     }
 
     LOGD("Blob to grad map:\n");
@@ -141,6 +132,21 @@ Status DefaultTrainNetwork::UpdateGradMap() {
     }
 
     return TNN_OK;
+}
+
+std::string DefaultTrainNetwork::GetLossGradLayerName() {
+    LayerInfo *loss_grad_layer = nullptr;
+    for (auto layer : net_structure_->layers) {
+        if (layer->type == LAYER_GRADIENT) {
+            loss_grad_layer = layer.get();
+            break;
+        }
+    }
+    if (!loss_grad_layer) {
+        LOGE("DefaultTrainNetwork::GetLossGradName ERROR, cannot get loss grad name\n");
+        return "";
+    }
+    return loss_grad_layer->name;
 }
 
 std::string DefaultTrainNetwork::GetLossBlobName() {

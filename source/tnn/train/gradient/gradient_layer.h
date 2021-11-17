@@ -31,9 +31,7 @@ public:
 
     const std::vector<std::pair<Blob *, Blob *>> &GetBlobGradPairs();
     const std::vector<std::pair<Blob *, RawBuffer *>> &GetGradResourcePairs();
-    int GetUpstreamGradCount();
 
-    Status SetUpstreamGrad(int index, Blob *blob);
     Status SetAccumulateBlobGradFlag(int index, bool cond);
     Status SetAccumulateResourceGradFlag(int index, bool cond);
 

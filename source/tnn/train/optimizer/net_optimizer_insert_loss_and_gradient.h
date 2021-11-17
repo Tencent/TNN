@@ -51,6 +51,7 @@ namespace optimizer {
 
         TrainConfig train_config;
 
+        std::string loss_blob_;
         std::vector<std::string> resource_grads_;
     };
 

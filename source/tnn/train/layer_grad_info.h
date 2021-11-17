@@ -23,8 +23,6 @@
 namespace TNN_NS {
 
 struct LayerGradInfo {
-    // upstream grads correspond to outputs of the forward layer
-    std::vector<Blob *> upstream_grads;
     // if multipy layers update the same gradient, the results will be accumulated
     std::vector<bool> accumulate_blob_grad;
     std::vector<bool> accumulate_resource_grad;

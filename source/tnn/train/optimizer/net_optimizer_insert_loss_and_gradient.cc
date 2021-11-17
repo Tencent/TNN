@@ -49,7 +49,7 @@ namespace optimizer {
 
     bool NetOptimizerInsertLossAndGradient::IsSupported(const NetworkConfig &net_config) {
         bool is_support = false;
-        train_config = net_config.train_config;
+        train_config    = net_config.train_config;
         if (train_config.run_mode == TRAIN_MODE_TRAIN) {
             auto device = net_config.device_type;
             if (device == DEVICE_ARM || device == DEVICE_NAIVE) {
@@ -154,6 +154,7 @@ namespace optimizer {
             net_structure->layers.push_back(reduce_layer);
             net_structure->blobs.insert(reduce_output);
             net_structure->outputs.insert(reduce_output);
+            loss_blob_ = reduce_output;
         }
 
         return TNN_OK;
@@ -164,6 +165,7 @@ namespace optimizer {
         std::set<std::string> need_grad_layers;
         RETURN_ON_NEQ(GetNeedGradLayers(net_structure, need_grad_layers), TNN_OK);
 
+        std::map<std::string, std::string> blob_to_grad_map;
         auto ori_layers = net_structure->layers;
         for (auto iter = ori_layers.rbegin(); iter != ori_layers.rend(); ++iter) {
             auto forward_layer = *iter;
@@ -177,10 +179,21 @@ namespace optimizer {
                     auto blob_grad = forward_input + gradient_suffix;
                     grad_layer->outputs.push_back(blob_grad);
                     net_structure->blobs.insert(blob_grad);
+                    blob_to_grad_map[forward_input] = blob_grad;
                 }
 
                 for (auto forward_output : forward_layer->outputs) {
                     grad_layer->inputs.push_back(forward_output);
+                    if (forward_output != loss_blob_) {
+                        if (blob_to_grad_map.find(forward_output) != blob_to_grad_map.end()) {
+                            grad_layer->inputs.push_back(blob_to_grad_map[forward_output]);
+                        } else {
+                            LOGE(
+                                "NetOptimizerInsertLossAndGradient::InsertGradientLayers ERROR, can not find blob "
+                                "grad\n");
+                            return Status(TNNERR_TRAIN_ERROR, "can not find blob grad");
+                        }
+                    }
                 }
 
                 // resource buffer gradients

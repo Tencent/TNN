@@ -41,6 +41,7 @@ public:
 
 protected:
     virtual Status UpdateGradMap();
+    virtual std::string GetLossGradLayerName();
     virtual std::string GetLossBlobName();
     virtual std::string GetGlobalStepBlobName();
 

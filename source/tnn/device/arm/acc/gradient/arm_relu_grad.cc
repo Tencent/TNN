@@ -44,19 +44,14 @@ Status ArmReluLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::ve
         return Status(TNNERR_LAYER_ERR, "accumulate_blob_grad size error");
     }
     bool accumulate_blob_grad0 = grad_info->accumulate_blob_grad[0];
-    if (grad_info->upstream_grads.size() < 1) {
-        LOGD("ArmReluLayerGrad::OnGrad, upstream_grads error\n");
-        return Status(TNNERR_LAYER_ERR, "upstream_grads size error");
-    }
-    Blob *upstream_grad = grad_info->upstream_grads[0];
-    CHECK_PARAM_NULL(upstream_grad);
 
-    if (inputs.size() != 2 || outputs.size() != 1) {
+    if (inputs.size() != 3 || outputs.size() != 1) {
         return Status(TNNERR_LAYER_ERR, "input size or output size not match in ArmReluLayerGrad");
     }
 
-    auto fw_input0 = inputs[0];
-    auto fw_output = inputs[1];
+    auto fw_input0     = inputs[0];
+    auto fw_output     = inputs[1];
+    auto upstream_grad = inputs[2];
 
     auto input0_dims = fw_input0->GetBlobDesc().dims;
     auto output_dims = fw_output->GetBlobDesc().dims;

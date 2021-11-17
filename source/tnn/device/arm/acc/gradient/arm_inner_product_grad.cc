@@ -113,12 +113,6 @@ Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const
     }
     bool accumulate_resource_grad0 = grad_info->accumulate_resource_grad[0];
     bool accumulate_resource_grad1 = grad_info->accumulate_resource_grad[1];
-    if (grad_info->upstream_grads.size() < 1) {
-        LOGD("ArmInnerProductLayerGrad::OnGrad, accumulate_resource_grad error\n");
-        return Status(TNNERR_LAYER_ERR, "accumulate_resource_grad size error");
-    }
-    Blob *upstream_grad = grad_info->upstream_grads[0];
-    CHECK_PARAM_NULL(upstream_grad);
 
     auto fc_param = dynamic_cast<InnerProductLayerParam *>(param);
     CHECK_PARAM_NULL(param);
@@ -126,15 +120,16 @@ Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const
     auto arm_context = dynamic_cast<ArmContext *>(context);
     CHECK_PARAM_NULL(arm_context);
 
-    if (inputs.size() != 2 || outputs.size() != 3) {
+    if (inputs.size() != 3 || outputs.size() != 3) {
         return Status(TNNERR_LAYER_ERR, "input size or output size not match in ArmInnerProductLayerGrad");
     }
 
-    auto fw_input    = inputs[0];
-    auto fw_output   = inputs[1];
-    auto input_grad  = outputs[0];
-    auto weight_grad = outputs[1];
-    auto bias_grad   = outputs[2];
+    auto fw_input      = inputs[0];
+    auto fw_output     = inputs[1];
+    auto upstream_grad = inputs[2];
+    auto input_grad    = outputs[0];
+    auto weight_grad   = outputs[1];
+    auto bias_grad     = outputs[2];
 
     auto input_dims  = fw_input->GetBlobDesc().dims;
     auto output_dims = fw_output->GetBlobDesc().dims;

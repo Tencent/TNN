@@ -30,11 +30,6 @@ Status ArmReduceMeanLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const s
         return Status(TNNERR_LAYER_ERR, "accumulate_blob_grad size error");
     }
     bool accumulate_blob_grad = grad_info->accumulate_blob_grad[0];
-    if (grad_info->upstream_grads.size() < 1) {
-        LOGD("ArmReduceMeanLayerGrad::OnGrad, upstream_grads error\n");
-        return Status(TNNERR_LAYER_ERR, "upstream_grads size error");
-    }
-    Blob *upstream_grad = grad_info->upstream_grads[0];
 
     auto fw_input  = inputs[0];
     auto fw_output = inputs[1];
@@ -58,8 +53,8 @@ Status ArmReduceMeanLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const s
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         Float4 grad = Float4(float(output_count) / float(input_count));
 
-        if (upstream_grad) {
-            float *ptr = (float *)GetBlobHandlePtr(upstream_grad->GetHandle());
+        if (inputs.size() > 2 && inputs[2]) {
+            float *ptr = (float *)GetBlobHandlePtr(inputs[2]->GetHandle());
             grad       = grad * ptr[0];
         }
 

@@ -58,6 +58,10 @@ Status ArmSGDLayerAcc::ExecUpdate(Blob *grad, RawBuffer *param) {
     }
 
     auto dims = grad->GetBlobDesc().dims;
+    if (dims.size() != 2 || dims[0] != 1) {
+        LOGE("ArmSGDLayerAcc::ExecUpdate ERROR, resource grad dims can not ignore data format\n");
+        return Status(TNNERR_LAYER_ERR, "resource grad dims can not ignore data format");
+    }
     if (DimsVectorUtils::Count(dims) != param->GetDataCount()) {
         LOGE("ArmSGDLayerAcc::ExecUpdate ERROR, grad and param data count not equal\n");
         return Status(TNNERR_LAYER_ERR, "grad and param data count not equal");
@@ -84,6 +88,7 @@ Status ArmSGDLayerAcc::ExecUpdate(Blob *grad, RawBuffer *param) {
 }
 
 REGISTER_ARM_ACC(SGD, LAYER_SGD)
+REGISTER_ARM_LAYOUT(LAYER_SGD, DATA_FORMAT_NCHW)
 REGISTER_ARM_LAYOUT(LAYER_SGD, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS
