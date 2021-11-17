@@ -94,12 +94,12 @@ public:
     // @brief set threads run on device
     virtual Status SetCpuNumThreads(int num_threads);
 
-#ifdef TRAIN
+#if TNN_TRAIN
     // @brief run one step in train mode
     virtual Status TrainStep();
     // @brief get training feedback
     virtual Status GetTrainingFeedback(TrainingFeedback &feed_back);
-#endif
+#endif  // TNN_TRAIN
 
 #if TNN_PROFILE
 public:

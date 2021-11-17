@@ -192,8 +192,7 @@ struct BiasAddLayerResource : public LayerResource {
     TRAINABLE_BUFFER(&bias_handle)
 };
 
-#undef TRAINABLE_BUFFER_1
-#undef TRAINABLE_BUFFER_2
+#undef TRAINABLE_BUFFER
 
 }  // namespace TNN_NS
 

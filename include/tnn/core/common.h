@@ -138,6 +138,7 @@ typedef enum {
 
 using DimsVector = std::vector<int>;
 
+#if TNN_TRAIN
 typedef enum {
     // default, do inference
     TRAIN_MODE_PREDICT = 0,
@@ -190,6 +191,7 @@ struct PUBLIC TrainingFeedback {
     std::string global_step_name = "";
     int global_step_value        = 0;
 };
+#endif  // TNN_TRAIN
 
 //@brief Config used to create tnn instance, config
 // device type, network type and share memory mode.
@@ -222,7 +224,9 @@ struct PUBLIC NetworkConfig {
     // cache_path can set to store tune kernel info.
     bool enable_tune_kernel = false;
 
+#if TNN_TRAIN
     TrainConfig train_config;
+#endif
 };
 
 struct PUBLIC ModelConfig {

@@ -99,9 +99,11 @@ void AbstractLayerAcc::SetRuntimeMode(RuntimeMode mode) {
     runtime_model_ = mode;
 }
 
+#if TNN_TRAIN
 void AbstractLayerAcc::SetLayerGradInfo(LayerGradInfo *info) {
     grad_info_ = info;
 }
+#endif  // TNN_TRAIN
 
 Status AbstractLayerAcc::RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;

@@ -12,11 +12,11 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_LAYER_GRADIENT_LAYER_H_
-#define TNN_SOURCE_TNN_LAYER_GRADIENT_LAYER_H_
+#ifndef TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_GRADIENT_LAYER_H_
+#define TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_GRADIENT_LAYER_H_
 
 #include "tnn/layer/base_layer.h"
-#include "tnn/train/gradient/layer_grad_info.h"
+#include "tnn/train/layer_grad_info.h"
 
 namespace TNN_NS {
 
@@ -55,4 +55,4 @@ private:
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_LAYER_GRADIENT_LAYER_H_
+#endif  // TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_GRADIENT_LAYER_H_

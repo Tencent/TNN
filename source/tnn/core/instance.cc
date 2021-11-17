@@ -46,12 +46,12 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
     return Init(interpreter, inputs_shape, inputs_shape);
 }
 
-#if TRAIN
+#if TNN_TRAIN
 Status Instance::TrainStep() {
     return network_->TrainStep();
 }
 
-Status Instance::SaveModel(const std::string& model_path) {
+Status Instance::SaveTrainedModel(const std::string& model_path) {
     auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
     CHECK_PARAM_NULL(default_interpreter);
     ModelPacker packer(default_interpreter->GetNetStructure(), default_interpreter->GetNetResource());
@@ -67,7 +67,7 @@ Status Instance::GetTrainingFeedback(TrainingFeedback& feed_back) {
     feed_back.global_step_value = *(reinterpret_cast<float*>(mat->GetData()));
     return TNN_OK;
 }
-#endif
+#endif  // TNN_TRAIN
 
 Status Instance::GetNetworkType(NetworkType& network_type) {
     network_type = net_config_.network_type;
@@ -76,16 +76,16 @@ Status Instance::GetNetworkType(NetworkType& network_type) {
         RETURN_VALUE_ON_NEQ(device != NULL, true, TNNERR_DEVICE_NOT_SUPPORT);
         network_type = device->ConvertAutoNetworkType();
     }
-#if TRAIN
+#if TNN_TRAIN
     if (net_config_.train_config.run_mode == TRAIN_MODE_TRAIN) {
         if (network_type == NETWORK_TYPE_DEFAULT) {
             network_type = NETWORK_TYPE_DEFAULT_TRAIN;
         } else {
             LOGE("ERROR: the network do not support train mode\n");
-            return Status(TNNERR_NET_ERR, "the network do not support train mode");
+            return Status(TNNERR_TRAIN_ERROR, "the network do not support train mode");
         }
     }
-#endif
+#endif  // TNN_TRAIN
     return TNN_OK;
 }
 

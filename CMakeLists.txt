@@ -260,14 +260,15 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/memory_manager/*.h"
                       "source/tnn/memory_manager/*.cc")
 
-if(TNN_SYMBOL_HIDE AND UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+if(TNN_TRAIN_ENABLE)
+    add_definitions(-DTNN_TRAIN=1)
+    file(GLOB_RECURSE SRC_TRAIN "source/tnn/train/*.h"
+                                "source/tnn/train/*.cc")
+    list(APPEND SRC ${SRC_TRAIN})
 endif()
 
-if(TNN_TRAIN_ENABLE)
-    add_definitions(-DTRAIN=1)
-    add_subdirectory(source/tnn/train)
-    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNTrain>")
+if(TNN_SYMBOL_HIDE AND UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
 endif()
 
 if(TNN_X86_ENABLE)

@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/optimizer/net_optimizer_insert_loss_and_gradient.h"
+#include "tnn/train/optimizer/net_optimizer_insert_loss_and_gradient.h"
 
 #include <algorithm>
 #include <map>
@@ -49,7 +49,6 @@ namespace optimizer {
 
     bool NetOptimizerInsertLossAndGradient::IsSupported(const NetworkConfig &net_config) {
         bool is_support = false;
-#if TRAIN
         train_config = net_config.train_config;
         if (train_config.run_mode == TRAIN_MODE_TRAIN) {
             auto device = net_config.device_type;
@@ -57,7 +56,6 @@ namespace optimizer {
                 is_support = true;
             }
         }
-#endif
         return is_support;
     }
 

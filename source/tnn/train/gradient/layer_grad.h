@@ -21,7 +21,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
 #include "tnn/layer/base_layer.h"
-#include "tnn/train/gradient/layer_grad_info.h"
+#include "tnn/train/layer_grad_info.h"
 
 namespace TNN_NS {
 

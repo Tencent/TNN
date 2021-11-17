@@ -12,29 +12,31 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-// author: sanerzheng@tencent.com
+#ifndef TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_SGD_LAYER_H_
+#define TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_SGD_LAYER_H_
 
-#ifndef TNN_SOURCE_TNN_TRAIN_SOVERL_SGD_H
-#define TNN_SOURCE_TNN_TRAIN_SOVERL_SGD_H
-
-#include "tnn/train/solver/base_solver.h"
+#include "tnn/layer/base_layer.h"
 
 namespace TNN_NS {
-namespace train {
 
-    class SGD : public BaseSolver {
-    public:
-        SGD(AbstractNetwork *network, NetworkConfig *config, float learningrate);
+class SGDLayer : public BaseLayer {
+public:
+    explicit SGDLayer(LayerType ignore);
 
-        virtual ~SGD();
+    virtual ~SGDLayer();
 
-        virtual Status ComputeUpdateValue(RawBuffer *param, std::shared_ptr<RawBuffer> &grad) override;
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, std::vector<Blob *> &inputs,
+                        std::vector<Blob *> &outputs, AbstractDevice *device, bool enable_const_folder = true);
 
-    private:
-        float learningrate_;
-    };
+    Status SetTrainableResources(std::vector<RawBuffer *> trainable);
 
-}  // namespace train
+protected:
+    virtual Status InferOutputShape(bool ignore_error = false);
+
+private:
+    LayerGradInfo grad_info_;
+};
+
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_TRAIN_SOVERL_SGD_H
+#endif  // TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_SGD_LAYER_H_

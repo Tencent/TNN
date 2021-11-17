@@ -32,14 +32,14 @@ Status AbstractNetwork::ShareCommandQueue(AbstractNetwork *network) {
 Status AbstractNetwork::SetCpuNumThreads(int num_threads) {
     return TNN_OK;
 }
-#ifdef TRAIN
+#if TNN_TRAIN
 Status AbstractNetwork::TrainStep() {
-    return Status(TNN_TRAIN_ERROR, "Subclass of AbstractNetwork doesn't implement TrainStep func");
+    return Status(TNNERR_TRAIN_ERROR, "Subclass of AbstractNetwork doesn't implement TrainStep func");
 }
 Status AbstractNetwork::GetTrainingFeedback(TrainingFeedback& feed_back) {
-    return Status(TNN_TRAIN_ERROR, "Subclass of AbstractNetwork doesn't implement GetTrainingFeedback func");
+    return Status(TNNERR_TRAIN_ERROR, "Subclass of AbstractNetwork doesn't implement GetTrainingFeedback func");
 }
-#endif
+#endif  // TNN_TRAIN
 
 #if TNN_PROFILE
 void AbstractNetwork::StartProfile() {

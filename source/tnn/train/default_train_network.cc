@@ -14,9 +14,8 @@
 
 #include "tnn/train/default_train_network.h"
 
-#include "tnn/layer/gradient_layer.h"
-#include "tnn/layer/sgd_layer.h"
-#include "tnn/train/solver/sgd.h"
+#include "tnn/train/gradient/gradient_layer.h"
+#include "tnn/train/solver/sgd_layer.h"
 
 namespace TNN_NS {
 
@@ -40,9 +39,6 @@ Status DefaultTrainNetwork::Init(NetworkConfig &net_config, ModelConfig &model_c
 
     RETURN_ON_NEQ(UpdateGradMap(), TNN_OK);
 
-    RETURN_ON_NEQ(UpdateNeedGradLayers(), TNN_OK);
-    RETURN_ON_NEQ(UpdateSolver(), TNN_OK);
-
     return TNN_OK;
 }
 
@@ -50,7 +46,6 @@ Status DefaultTrainNetwork::TrainStep() {
     if (run_mode_ != TRAIN_MODE_TRAIN) {
         return TNN_OK;
     }
-    // solver_->Step();
 
     Status ret = TNN_OK;
     for (auto layer : layers_) {
@@ -161,34 +156,6 @@ std::string DefaultTrainNetwork::GetGlobalStepBlobName() {
         return "";
     }
     return solver_layer->outputs[0];
-}
-
-Status DefaultTrainNetwork::UpdateNeedGradLayers() {
-    need_grad_layers_.clear();
-    CHECK_PARAM_NULL(net_structure_);
-
-    for (auto layer : net_structure_->layers) {
-        if (layer->type == LAYER_GRADIENT) {
-            GradientParam *param = dynamic_cast<GradientParam *>(layer->param.get());
-            CHECK_PARAM_NULL(param);
-            need_grad_layers_.insert(param->forward_layer_name);
-        }
-    }
-
-    return TNN_OK;
-}
-
-Status DefaultTrainNetwork::UpdateSolver() {
-    if (config_.train_config.solver_type == SOLVER_TYPE_SGD) {
-        float learning_rate = config_.train_config.solver_params.learning_rate;
-        solver_             = std::make_shared<train::SGD>(this, &config_, learning_rate);
-        solver_->SetNeedGradLayers(need_grad_layers_);
-        solver_->SetLossName(GetLossBlobName());
-    } else {
-        return Status(TNNERR_NET_ERR, "not support slover type in train mode");
-    }
-
-    return TNN_OK;
 }
 
 }  // namespace TNN_NS

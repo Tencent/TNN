@@ -19,7 +19,6 @@
 #include "tnn/core/default_network.h"
 #include "tnn/core/macro.h"
 #include "tnn/interpreter/default_model_interpreter.h"
-#include "tnn/train/solver/base_solver.h"
 
 namespace TNN_NS {
 
@@ -49,11 +48,6 @@ protected:
     std::map<Blob *, RawBuffer *> grad_to_resource_map_;
 
     TrainMode run_mode_ = TRAIN_MODE_TRAIN;
-
-    virtual Status UpdateNeedGradLayers();
-    virtual Status UpdateSolver();
-    std::set<std::string> need_grad_layers_;
-    std::shared_ptr<train::BaseSolver> solver_;
 };
 
 }  // namespace TNN_NS

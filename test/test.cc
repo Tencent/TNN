@@ -139,7 +139,7 @@ namespace test {
                 ret = instance->ForwardAsync(nullptr);
 #endif
 
-#if TRAIN
+#if TNN_TRAIN
                 ret = instance->TrainStep();
                 if (!CheckResult("Train", ret)) {
                     return ret;
@@ -167,8 +167,8 @@ namespace test {
 #endif
             if (!FLAGS_op.empty()) {
                 WriteOutput(output_mat_map);
-#if TRAIN
-                instance->SaveModel(FLAGS_op + ".trained.tnnmodel");
+#if TNN_TRAIN
+                instance->SaveTrainedModel(FLAGS_op + ".trained.tnnmodel");
 #endif
             }
 
@@ -346,7 +346,7 @@ namespace test {
             config.library_path = {FLAGS_lp};
         }
 
-#if TRAIN
+#if TNN_TRAIN
         TrainConfig &train_config = config.train_config;
         // TODO: avoid hard code
         train_config.run_mode = TRAIN_MODE_TRAIN;
@@ -360,7 +360,7 @@ namespace test {
         train_config.target_shape = {1, 8};
         // fine tune layers
         train_config.trainable_layers = {"deep_network/output_layer/BiasAdd", "deep_network/mlp2/Relu"};
-#endif
+#endif  // TNN_TRAIN
 
         return config;
     }

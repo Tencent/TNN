@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_LOSS_AND_GRADIENT_H_
-#define TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_LOSS_AND_GRADIENT_H_
+#ifndef TNN_SOURCE_TNN_TRAIN_NET_OPTIMIZER_INSERT_LOSS_AND_GRADIENT_H_
+#define TNN_SOURCE_TNN_TRAIN_NET_OPTIMIZER_INSERT_LOSS_AND_GRADIENT_H_
 
 #include <string>
 
@@ -58,4 +58,4 @@ namespace optimizer {
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_OPTIMIZER_NET_OPTIMIZER_INSERT_LOSS_AND_GRADIENT_H_
+#endif  // TNN_SOURCE_TNN_TRAIN_NET_OPTIMIZER_INSERT_LOSS_AND_GRADIENT_H_
