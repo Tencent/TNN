@@ -128,12 +128,12 @@ protected:
 
     static std::mutex optimize_mtx_;
 
+    int forward_layer_count_ = 0;
+
 private:
-   Status ReshapeLayers();
+    Status ReshapeLayers();
 
-   bool IsLayerSkipCalculation(BaseLayer *layer);
-
-   int cnt_ = 0;
+    std::pair<int, int> GetLayersExecuteRange();
 };
 
 }  // namespace TNN_NS

@@ -342,6 +342,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
         layers_.push_back(cur_layer);
     }
+    forward_layer_count_ = layers_.size();
     return ret;
 }
 
@@ -570,10 +571,10 @@ Context* DefaultNetwork::GetContext() {
     return context_;
 }
 
-bool DefaultNetwork::IsLayerSkipCalculation(BaseLayer *layer) {
-    auto layer_type        = layer->GetLayerType();
-    bool is_backward_layer = (layer_type == LAYER_GRADIENT || layer_type == LAYER_SGD);
-    return (runtime_model_ != RUNTIME_MODE_BACKWARD) ? is_backward_layer : !is_backward_layer;
+std::pair<int, int> DefaultNetwork::GetLayersExecuteRange() {
+    int start = (runtime_model_ == RUNTIME_MODE_BACKWARD) ? forward_layer_count_ : 0;
+    int end   = (runtime_model_ == RUNTIME_MODE_BACKWARD) ? layers_.size() : forward_layer_count_;
+    return {start, end};
 }
 
 Status DefaultNetwork::Forward() {
@@ -587,14 +588,10 @@ Status DefaultNetwork::Forward() {
     
     status = context_->OnInstanceForwardBegin();
     RETURN_ON_NEQ(status, TNN_OK);
-    
-    if (runtime_model_ != RUNTIME_MODE_BACKWARD) {
-        cnt_ = 0;
-    }
-    for (auto layer : layers_) {
-        if (IsLayerSkipCalculation(layer)) {
-            continue;
-        }
+
+    auto range = GetLayersExecuteRange();
+    for (int cnt = range.first; cnt < range.second; ++cnt) {
+        auto layer = layers_[cnt];
         std::vector<Blob *> inputs  = layer->GetInputBlobs();
         std::vector<Blob *> outputs = layer->GetOutputBlobs();
 
@@ -608,9 +605,9 @@ Status DefaultNetwork::Forward() {
                 for (int i = 0; i < inputs.size(); i++) {
                     char ss[1000];
                     if (g_tnn_dump_directory.length() > 0) {
-                        snprintf(ss, 1000, "%s/%05d-%s-in-%d", g_tnn_dump_directory.c_str(), cnt_, filename.c_str(), i);
+                        snprintf(ss, 1000, "%s/%05d-%s-in-%d", g_tnn_dump_directory.c_str(), cnt, filename.c_str(), i);
                     } else {
-                        snprintf(ss, 1000, "%05d-%s-in-%d", cnt_, filename.c_str(), i);
+                        snprintf(ss, 1000, "%05d-%s-in-%d", cnt, filename.c_str(), i);
                     }
 
                     auto ret = DumpDeviceBlob(inputs[i], context_, std::string(ss));
@@ -638,9 +635,9 @@ Status DefaultNetwork::Forward() {
                 for (int i = 0; i < outputs.size(); i++) {
                     char ss[1000];
                     if (g_tnn_dump_directory.length() > 0) {
-                        snprintf(ss, 1000, "%s/%05d-%s-out-%d", g_tnn_dump_directory.c_str(), cnt_, out_file_name.c_str(), i);
+                        snprintf(ss, 1000, "%s/%05d-%s-out-%d", g_tnn_dump_directory.c_str(), cnt, out_file_name.c_str(), i);
                     } else {
-                        snprintf(ss, 1000, "%05d-%s-out-%d", cnt_, out_file_name.c_str(), i);
+                        snprintf(ss, 1000, "%05d-%s-out-%d", cnt, out_file_name.c_str(), i);
                     }
 
                     auto ret = DumpDeviceBlob(outputs[i], context_, std::string(ss));
@@ -652,11 +649,6 @@ Status DefaultNetwork::Forward() {
             }
 #endif  // DUMP_OUTPUT_BLOB
         }
-        
-        cnt_++;
-    }
-    if (runtime_model_ == RUNTIME_MODE_BACKWARD) {
-        cnt_ = 0;
     }
     context_->OnInstanceForwardEnd();
     context_->Synchronize();
@@ -708,10 +700,9 @@ Status DefaultNetwork::ForwardAsync(Callback call_back) {
     }
 
     context_->OnInstanceForwardBegin();
-    for (auto layer : layers_) {
-        if (IsLayerSkipCalculation(layer)) {
-            continue;
-        }
+    auto range = GetLayersExecuteRange();
+    for (int cnt = range.first; cnt < range.second; ++cnt) {
+        auto layer = layers_[cnt];
         result = layer->Forward();
         RETURN_ON_NEQ(result, TNN_OK);
     }

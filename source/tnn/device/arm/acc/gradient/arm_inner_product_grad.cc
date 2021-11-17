@@ -153,44 +153,15 @@ Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         auto upstream_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(upstream_grad->GetHandle()));
 
-        // nc4hw4 -> nchw if needed
-        RawBuffer upstream_grad_reordered;
-        if (!FloatBlobCanIgnorePack(oc, 1)) {
-            upstream_grad_reordered = RawBuffer(batch * oc);
-            float *reordered_ptr    = upstream_grad_reordered.force_to<float *>();
-            UnpackFloatBlob(reordered_ptr, upstream_grad_ptr, batch, oc, 1);
-            upstream_grad_ptr = reordered_ptr;
-        }
-
+        auto weight_ptr     = weight.force_to<float *>();
         auto input_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(input_grad->GetHandle()));
-        RawBuffer input_grad_reordered;
-        if (!FloatBlobCanIgnorePack(channel, hw)) {
-            input_grad_reordered = RawBuffer(batch * channel * hw);
-            float *reordered_ptr = input_grad_reordered.force_to<float *>();
-            input_grad_ptr       = reordered_ptr;
-        }
-
-        auto weight_ptr = weight.force_to<float *>();
-
         if (accumulate_blob_grad0) {
             ExecInputGrad<1>(batch, oc, ic, input_grad_ptr, upstream_grad_ptr, weight_ptr, arm_context);
         } else {
             ExecInputGrad<0>(batch, oc, ic, input_grad_ptr, upstream_grad_ptr, weight_ptr, arm_context);
         }
 
-        if (!FloatBlobCanIgnorePack(channel, hw)) {
-            PackFloatBlob(reinterpret_cast<float *>(GetBlobHandlePtr(input_grad->GetHandle())), input_grad_ptr, batch,
-                          channel, hw);
-        }
-
-        auto input_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(fw_input->GetHandle()));
-        RawBuffer input_reordered;
-        if (!FloatBlobCanIgnorePack(channel, hw)) {
-            input_reordered      = RawBuffer(batch * channel * hw);
-            float *reordered_ptr = input_reordered.force_to<float *>();
-            input_ptr            = reordered_ptr;
-        }
-
+        auto input_ptr       = reinterpret_cast<float *>(GetBlobHandlePtr(fw_input->GetHandle()));
         auto weight_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(weight_grad->GetHandle()));
         if (accumulate_resource_grad0) {
             ExecWeightGrad<1>(batch, oc, ic, weight_grad_ptr, upstream_grad_ptr, input_ptr);
@@ -215,6 +186,6 @@ Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const
 }
 
 REGISTER_ARM_LAYER_GRAD(InnerProduct, LAYER_INNER_PRODUCT)
-REGISTER_ARM_GRAD_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NC4HW4)
+REGISTER_ARM_GRAD_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NCHW)
 
 }  // namespace TNN_NS

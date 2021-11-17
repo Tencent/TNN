@@ -39,6 +39,10 @@ Status DefaultTrainNetwork::Init(NetworkConfig &net_config, ModelConfig &model_c
 
     RETURN_ON_NEQ(UpdateGradMap(), TNN_OK);
 
+    RETURN_ON_NEQ(UpdateForwardLayerCount(), TNN_OK);
+
+    RETURN_ON_NEQ(UpdateSolver(), TNN_OK);
+
     return TNN_OK;
 }
 
@@ -70,8 +74,8 @@ Status DefaultTrainNetwork::TrainStep() {
 }
 
 Status DefaultTrainNetwork::GetTrainingFeedback(TrainingFeedback &feed_back) {
-    feed_back.loss_name        = GetLossBlobName();
-    feed_back.global_step_name = GetGlobalStepBlobName();
+    feed_back.loss_name        = loss_name_;
+    feed_back.global_step_name = global_step_name_;
     return TNN_OK;
 }
 
@@ -80,20 +84,6 @@ Status DefaultTrainNetwork::UpdateGradMap() {
     grad_to_resource_map_.clear();
 
     for (auto layer : layers_) {
-        auto sgd_layer = dynamic_cast<SGDLayer *>(layer);
-        if (sgd_layer) {
-            std::vector<RawBuffer *> trainable_resources;
-            for (auto input : sgd_layer->GetInputBlobs()) {
-                if (grad_to_resource_map_.find(input) == grad_to_resource_map_.end()) {
-                    LOGD("DefaultTrainNetwork::UpdateGradMap, sgd layer find update resource error\n");
-                    return Status(TNNERR_NET_ERR, "sgd layer find update resource error");
-                }
-                trainable_resources.push_back(grad_to_resource_map_.at(input));
-            }
-            sgd_layer->SetTrainableResources(trainable_resources);
-            continue;
-        }
-
         auto grad_layer = dynamic_cast<GradientLayer *>(layer);
         if (!grad_layer) {
             continue;
@@ -134,44 +124,50 @@ Status DefaultTrainNetwork::UpdateGradMap() {
     return TNN_OK;
 }
 
-std::string DefaultTrainNetwork::GetLossGradLayerName() {
-    LayerInfo *loss_grad_layer = nullptr;
-    for (auto layer : net_structure_->layers) {
-        if (layer->type == LAYER_GRADIENT) {
-            loss_grad_layer = layer.get();
-            break;
-        }
-    }
-    if (!loss_grad_layer) {
-        LOGE("DefaultTrainNetwork::GetLossGradName ERROR, cannot get loss grad name\n");
-        return "";
-    }
-    return loss_grad_layer->name;
-}
-
-std::string DefaultTrainNetwork::GetLossBlobName() {
+Status DefaultTrainNetwork::UpdateForwardLayerCount() {
     LayerInfo *loss_layer = nullptr;
+    int cnt               = 0;
     for (auto layer : net_structure_->layers) {
         if (layer->type == LAYER_GRADIENT) {
             break;
-        } else {
-            loss_layer = layer.get();
         }
+        loss_layer = layer.get();
+        cnt++;
     }
     if (!loss_layer) {
-        LOGE("DefaultTrainNetwork::GetLossBlobName ERROR, cannot get loss name\n");
-        return "";
+        LOGE("DefaultTrainNetwork::UpdateForwardLayerCount ERROR, cannot get loss layer\n");
+        return Status(TNNERR_TRAIN_ERROR, "cannot get loss layer");
     }
-    return loss_layer->outputs[0];
+    loss_name_           = loss_layer->outputs[0];
+    forward_layer_count_ = cnt;
+
+    return TNN_OK;
 }
 
-std::string DefaultTrainNetwork::GetGlobalStepBlobName() {
+Status DefaultTrainNetwork::UpdateSolver() {
     LayerInfo *solver_layer = net_structure_->layers.back().get();
     if (!solver_layer) {
-        LOGE("DefaultTrainNetwork::GetGlobalStepBlobName ERROR, cannot get global_step name\n");
-        return "";
+        LOGE("DefaultTrainNetwork::UpdateSolver ERROR, layers is empty\n");
+        return Status(TNNERR_TRAIN_ERROR, "layers is empty");
     }
-    return solver_layer->outputs[0];
+    global_step_name_ = solver_layer->outputs[0];
+
+    // only support sgd now
+    auto sgd_layer = dynamic_cast<SGDLayer *>(layers_.back());
+    if (!sgd_layer) {
+        LOGE("DefaultTrainNetwork::UpdateSolver ERROR, sgd_layer is empty\n");
+        return Status(TNNERR_TRAIN_ERROR, "sgd_layer is empty");
+    }
+
+    std::vector<RawBuffer *> trainable_resources;
+    for (auto input : sgd_layer->GetInputBlobs()) {
+        if (grad_to_resource_map_.find(input) == grad_to_resource_map_.end()) {
+            LOGD("DefaultTrainNetwork::UpdateSolver, sgd layer find resource error\n");
+            return Status(TNNERR_NET_ERR, "sgd layer find resource error");
+        }
+        trainable_resources.push_back(grad_to_resource_map_.at(input));
+    }
+    return sgd_layer->SetTrainableResources(trainable_resources);
 }
 
 }  // namespace TNN_NS
