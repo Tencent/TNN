@@ -14,8 +14,6 @@
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/train/gradient/layer_grad.h"
-#include "tnn/utils/dims_function_utils.h"
-#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
@@ -24,51 +22,40 @@ DECLARE_ARM_LAYER_GRAD(ReduceMean, LAYER_REDUCE_MEAN);
 Status ArmReduceMeanLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                                       LayerResource *resource, LayerParam *param, Context *context,
                                       LayerGradInfo *grad_info) {
-    CHECK_PARAM_NULL(grad_info);
-    if (grad_info->accumulate_blob_grad.size() < 1) {
-        LOGD("ArmReduceMeanLayerGrad::OnGrad, accumulate_blob_grad error\n");
-        return Status(TNNERR_LAYER_ERR, "accumulate_blob_grad size error");
-    }
-    bool accumulate_blob_grad = grad_info->accumulate_blob_grad[0];
+    ON_GRAD_PREPARATION_IOR(1, 1, 0);
 
-    auto fw_input  = inputs[0];
-    auto fw_output = inputs[1];
-
-    int input_count  = DimsVectorUtils::Count(fw_input->GetBlobDesc().dims);
-    int output_count = DimsVectorUtils::Count(fw_output->GetBlobDesc().dims);
+    int input_count  = DimsVectorUtils::Count(input_0_dims);
+    int output_count = DimsVectorUtils::Count(output_0_dims);
+    float ratio      = float(output_count) / float(input_count);
 
     if (output_count != 1) {
-        LOGE("ArmReduceMeanLayerGrad::OnGrad, only all reduce supported yet, output count is %d\n", output_count);
+        LOGE("ArmReduceMeanLayerGrad::OnGrad, only all reduce supported yet, but output count is %d\n", output_count);
         return Status(TNNERR_LAYER_ERR, "only all reduce supported yet");
     }
 
-    auto output = outputs[0];
-    auto dims   = output->GetBlobDesc().dims;
-
-    int batch      = DimsFunctionUtils::GetDim(dims, 0);
-    int channel    = DimsFunctionUtils::GetDim(dims, 1);
-    int count      = batch * ROUND_UP(channel, 4) * DimsVectorUtils::Count(dims, 2);
-    int count_quad = UP_DIV(count, 4);
+    int batch   = DimsFunctionUtils::GetDim(input_0_dims, 0);
+    int channel = DimsFunctionUtils::GetDim(input_0_dims, 1);
+    int hw      = DimsVectorUtils::Count(input_0_dims, 2);
 
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        Float4 grad = Float4(float(output_count) / float(input_count));
+        int count_quad = batch * UP_DIV(channel, 4) * hw;
 
-        if (inputs.size() > 2 && inputs[2]) {
-            float *ptr = (float *)GetBlobHandlePtr(inputs[2]->GetHandle());
-            grad       = grad * ptr[0];
-        }
+        Float4 grad = Float4(ratio);
 
-        auto output_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
+        float *output_grad_ptr = (float *)GetBlobHandlePtr(output_grad_0->GetHandle());
+        grad                   = grad * (*output_grad_ptr);
 
-        if (!accumulate_blob_grad) {
+        auto input_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(input_grad_0->GetHandle()));
+
+        if (!acc_input_grad_0) {
             OMP_PARALLEL_FOR_
             for (int n = 0; n < count_quad; n++) {
-                Float4::save(output_ptr + n * 4, grad);
+                Float4::save(input_grad_ptr + n * 4, grad);
             }
         } else {
             OMP_PARALLEL_FOR_
             for (int n = 0; n < count_quad; n++) {
-                Float4::save(output_ptr + n * 4, grad + Float4::load(output_ptr + n * 4));
+                Float4::save(input_grad_ptr + n * 4, grad + Float4::load(input_grad_ptr + n * 4));
             }
         }
     } else {

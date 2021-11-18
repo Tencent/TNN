@@ -41,8 +41,17 @@ Status DefaultTrainNetwork::Init(NetworkConfig &net_config, ModelConfig &model_c
 
     RETURN_ON_NEQ(UpdateForwardLayerCount(), TNN_OK);
 
+    RETURN_ON_NEQ(InitLossGrad(), TNN_OK);
+
     RETURN_ON_NEQ(UpdateSolver(), TNN_OK);
 
+    return TNN_OK;
+}
+
+Status DefaultTrainNetwork::GetAllInputBlobs(BlobMap &blobs) {
+    blob_manager_->GetAllInputBlobs(blobs);
+    // loss grad is assumed to be one
+    blobs.erase(loss_grad_name_);
     return TNN_OK;
 }
 
@@ -80,7 +89,7 @@ Status DefaultTrainNetwork::GetTrainingFeedback(TrainingFeedback &feed_back) {
 }
 
 Status DefaultTrainNetwork::UpdateGradMap() {
-    forward_blob_to_grad_map_.clear();
+    input_to_grad_map_.clear();
     grad_to_resource_map_.clear();
     std::set<RawBuffer *> resource_visited;
 
@@ -90,13 +99,13 @@ Status DefaultTrainNetwork::UpdateGradMap() {
             continue;
         }
         int index = 0;
-        for (auto pair : grad_layer->GetBlobGradPairs()) {
+        for (auto pair : grad_layer->GetInputGradPairs()) {
             // if blob appears more than once, set accumulate flag
-            if (forward_blob_to_grad_map_.find(pair.first) != forward_blob_to_grad_map_.end()) {
-                RETURN_ON_NEQ(grad_layer->SetAccumulateBlobGradFlag(index, true), TNN_OK);
-                LOGD("layer %s accumulate %d's blob grad\n", layer->GetLayerName().c_str(), index);
+            if (input_to_grad_map_.find(pair.first) != input_to_grad_map_.end()) {
+                RETURN_ON_NEQ(grad_layer->SetAccumulateInputGradFlag(index, true), TNN_OK);
+                LOGD("layer %s accumulate %d's input grad\n", layer->GetLayerName().c_str(), index);
             }
-            forward_blob_to_grad_map_.insert(pair);
+            input_to_grad_map_.insert(pair);
             ++index;
         }
         index = 0;
@@ -129,10 +138,12 @@ Status DefaultTrainNetwork::UpdateGradMap() {
 }
 
 Status DefaultTrainNetwork::UpdateForwardLayerCount() {
-    LayerInfo *loss_layer = nullptr;
-    int cnt               = 0;
+    LayerInfo *loss_layer      = nullptr;
+    LayerInfo *loss_grad_layer = nullptr;
+    int cnt                    = 0;
     for (auto layer : net_structure_->layers) {
         if (layer->type == LAYER_GRADIENT) {
+            loss_grad_layer = layer.get();
             break;
         }
         loss_layer = layer.get();
@@ -142,8 +153,48 @@ Status DefaultTrainNetwork::UpdateForwardLayerCount() {
         LOGE("DefaultTrainNetwork::UpdateForwardLayerCount ERROR, cannot get loss layer\n");
         return Status(TNNERR_TRAIN_ERROR, "cannot get loss layer");
     }
+    if (!loss_grad_layer) {
+        LOGE("DefaultTrainNetwork::UpdateForwardLayerCount ERROR, cannot get loss grad layer\n");
+        return Status(TNNERR_TRAIN_ERROR, "cannot get loss grad layer");
+    }
     loss_name_           = loss_layer->outputs[0];
+    loss_grad_name_      = loss_grad_layer->inputs.back();
     forward_layer_count_ = cnt;
+
+    return TNN_OK;
+}
+
+Status DefaultTrainNetwork::InitLossGrad() {
+    std::shared_ptr<Mat> mat(new Mat(DEVICE_ARM, NCHW_FLOAT, {1}));
+    if (!mat || !mat->GetData()) {
+        LOGE("DefaultTrainNetwork::InitLossGrad create mat failed\n");
+        return Status(TNNERR_TRAIN_ERROR, "create mat failed");
+    }
+
+    // init loss grad as one
+    auto ptr = reinterpret_cast<float *>(mat->GetData());
+    *ptr     = 1.0;
+
+    Blob *loss_grad = blob_manager_->GetBlob(loss_grad_name_);
+    if (!loss_grad) {
+        LOGE("DefaultTrainNetwork::InitLossGrad get loss_grad failed\n");
+        return Status(TNNERR_TRAIN_ERROR, "get loss_grad failed!");
+    }
+
+    // create blob convert
+    std::shared_ptr<BlobConverter> blob_converter = std::make_shared<BlobConverter>(loss_grad);
+
+    // get command queue
+    void *command_queue = nullptr;
+    RETURN_ON_NEQ(GetCommandQueue(&command_queue), TNN_OK);
+
+    Status status = blob_converter->ConvertFromMatAsync(*(mat.get()), MatConvertParam(), command_queue);
+    if (status != TNN_OK) {
+        LOGE("DefaultTrainNetwork::InitLossGrad, ConvertFromMatAsync Error: %s\n", status.description().c_str());
+        return status;
+    }
+
+    LOGD("DefaultTrainNetwork::InitLossGrad init loss grad blob %s as ones\n", loss_grad_name_.c_str());
 
     return TNN_OK;
 }

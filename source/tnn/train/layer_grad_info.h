@@ -24,7 +24,7 @@ namespace TNN_NS {
 
 struct LayerGradInfo {
     // if multipy layers update the same gradient, the results will be accumulated
-    std::vector<bool> accumulate_blob_grad;
+    std::vector<bool> accumulate_input_grad;
     std::vector<bool> accumulate_resource_grad;
     // resource to be updated
     std::vector<RawBuffer *> trainable_resources;

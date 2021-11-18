@@ -193,6 +193,11 @@ namespace optimizer {
                                 "grad\n");
                             return Status(TNNERR_TRAIN_ERROR, "can not find blob grad");
                         }
+                    } else {
+                        auto loss_grad = forward_output + gradient_suffix;
+                        grad_layer->inputs.push_back(loss_grad);
+                        net_structure->blobs.insert(loss_grad);
+                        net_structure->inputs_shape_map.insert({loss_grad, {1}});
                     }
                 }
 

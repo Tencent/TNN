@@ -14,8 +14,6 @@
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/train/gradient/layer_grad.h"
-#include "tnn/utils/dims_function_utils.h"
-#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
@@ -101,85 +99,57 @@ static void ExecBiasGrad(int batch, int oc, float *bias_grad, float *output_grad
 Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                                         LayerResource *resource, LayerParam *param, Context *context,
                                         LayerGradInfo *grad_info) {
-    CHECK_PARAM_NULL(grad_info);
-    if (grad_info->accumulate_blob_grad.size() < 1) {
-        LOGD("ArmInnerProductLayerGrad::OnGrad, accumulate_blob_grad error\n");
-        return Status(TNNERR_LAYER_ERR, "accumulate_blob_grad size error");
-    }
-    bool accumulate_blob_grad0 = grad_info->accumulate_blob_grad[0];
-    if (grad_info->accumulate_resource_grad.size() < 2) {
-        LOGD("ArmInnerProductLayerGrad::OnGrad, accumulate_resource_grad error\n");
-        return Status(TNNERR_LAYER_ERR, "accumulate_resource_grad size error");
-    }
-    bool accumulate_resource_grad0 = grad_info->accumulate_resource_grad[0];
-    bool accumulate_resource_grad1 = grad_info->accumulate_resource_grad[1];
-
-    auto fc_param = dynamic_cast<InnerProductLayerParam *>(param);
-    CHECK_PARAM_NULL(param);
+    ON_GRAD_PREPARATION_IOR(1, 1, 2);
 
     auto arm_context = dynamic_cast<ArmContext *>(context);
     CHECK_PARAM_NULL(arm_context);
 
-    if (inputs.size() != 3 || outputs.size() != 3) {
-        return Status(TNNERR_LAYER_ERR, "input size or output size not match in ArmInnerProductLayerGrad");
+    auto inner_product_param = dynamic_cast<InnerProductLayerParam *>(param);
+    CHECK_PARAM_NULL(inner_product_param);
+    bool has_bias = inner_product_param->has_bias;
+
+    auto inner_product_res = dynamic_cast<InnerProductLayerResource *>(resource);
+    CHECK_PARAM_NULL(inner_product_res);
+    auto weight = inner_product_res->weight_handle;
+
+    int batch = DimsFunctionUtils::GetDim(input_0_dims, 0);
+    int ic    = DimsVectorUtils::Count(input_0_dims, 1);
+    int oc    = DimsFunctionUtils::GetDim(output_0_dims, 1);
+    if (weight.GetDataCount() != oc * ic) {
+        LOGD("ArmInnerProductLayerGrad::OnGrad ERROR, weight data count error\n");
+        return Status(TNNERR_TRAIN_ERROR, "weight data count error");
     }
-
-    auto fw_input      = inputs[0];
-    auto fw_output     = inputs[1];
-    auto upstream_grad = inputs[2];
-    auto input_grad    = outputs[0];
-    auto weight_grad   = outputs[1];
-    auto bias_grad     = outputs[2];
-
-    auto input_dims  = fw_input->GetBlobDesc().dims;
-    auto output_dims = fw_output->GetBlobDesc().dims;
-    auto grad_dims   = input_grad->GetBlobDesc().dims;
-
-    if (!DimsVectorUtils::Equal(input_dims, grad_dims)) {
-        return Status(TNNERR_LAYER_ERR, "ArmInnerProductLayerGrad input dims and grad dims not match");
-    }
-
-    int batch   = DimsFunctionUtils::GetDim(input_dims, 0);
-    int channel = DimsFunctionUtils::GetDim(input_dims, 1);
-    int hw      = DimsVectorUtils::Count(input_dims, 2);
-    int ic      = channel * hw;
-    int oc      = DimsFunctionUtils::GetDim(output_dims, 1);
-
-    auto fc_res = dynamic_cast<InnerProductLayerResource *>(resource);
-    CHECK_PARAM_NULL(fc_res);
-    auto weight = fc_res->weight_handle;
-    ASSERT(weight.GetDataCount() == oc * ic);
 
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        auto upstream_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(upstream_grad->GetHandle()));
+        auto input_ptr       = reinterpret_cast<float *>(GetBlobHandlePtr(input_0->GetHandle()));
+        auto weight_ptr      = weight.force_to<float *>();
+        auto output_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(output_grad_0->GetHandle()));
+        auto input_grad_ptr  = reinterpret_cast<float *>(GetBlobHandlePtr(input_grad_0->GetHandle()));
+        auto weight_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grad_0->GetHandle()));
+        auto bias_grad_ptr   = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grad_1->GetHandle()));
 
-        auto weight_ptr     = weight.force_to<float *>();
-        auto input_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(input_grad->GetHandle()));
-        if (accumulate_blob_grad0) {
-            ExecInputGrad<1>(batch, oc, ic, input_grad_ptr, upstream_grad_ptr, weight_ptr, arm_context);
+        if (acc_input_grad_0) {
+            ExecInputGrad<1>(batch, oc, ic, input_grad_ptr, output_grad_ptr, weight_ptr, arm_context);
         } else {
-            ExecInputGrad<0>(batch, oc, ic, input_grad_ptr, upstream_grad_ptr, weight_ptr, arm_context);
+            ExecInputGrad<0>(batch, oc, ic, input_grad_ptr, output_grad_ptr, weight_ptr, arm_context);
         }
 
-        auto input_ptr       = reinterpret_cast<float *>(GetBlobHandlePtr(fw_input->GetHandle()));
-        auto weight_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(weight_grad->GetHandle()));
-        if (accumulate_resource_grad0) {
-            ExecWeightGrad<1>(batch, oc, ic, weight_grad_ptr, upstream_grad_ptr, input_ptr);
+        if (acc_resource_grad_0) {
+            ExecWeightGrad<1>(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
         } else {
-            ExecWeightGrad<0>(batch, oc, ic, weight_grad_ptr, upstream_grad_ptr, input_ptr);
+            ExecWeightGrad<0>(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
         }
 
-        if (fc_param->has_bias) {
-            auto bias_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(bias_grad->GetHandle()));
-            if (accumulate_resource_grad1) {
-                ExecBiasGrad<1>(batch, oc, bias_grad_ptr, upstream_grad_ptr);
+        if (has_bias) {
+            if (acc_resource_grad_1) {
+                ExecBiasGrad<1>(batch, oc, bias_grad_ptr, output_grad_ptr);
             } else {
-                ExecBiasGrad<0>(batch, oc, bias_grad_ptr, upstream_grad_ptr);
+                ExecBiasGrad<0>(batch, oc, bias_grad_ptr, output_grad_ptr);
             }
         }
     } else {
         LOGE("ArmInnerProductLayerGrad::OnGrad, dtype not supported\n");
-        return Status(TNNERR_LAYER_ERR, "dtype not supported");
+        return Status(TNNERR_TRAIN_ERROR, "dtype not supported");
     }
 
     return TNN_OK;

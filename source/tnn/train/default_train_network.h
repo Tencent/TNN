@@ -36,18 +36,23 @@ public:
                         InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape,
                         bool enable_const_folder = true) override;
 
+    // @brief get all input blobs, exclude loss grad
+    virtual Status GetAllInputBlobs(BlobMap &blobs) override;
+
     virtual Status TrainStep() override;
     virtual Status GetTrainingFeedback(TrainingFeedback &feed_back) override;
 
 protected:
     virtual Status UpdateGradMap();
     virtual Status UpdateForwardLayerCount();
+    virtual Status InitLossGrad();
     virtual Status UpdateSolver();
 
-    std::map<Blob *, Blob *> forward_blob_to_grad_map_;
+    std::map<Blob *, Blob *> input_to_grad_map_;
     std::map<Blob *, RawBuffer *> grad_to_resource_map_;
 
     std::string loss_name_;
+    std::string loss_grad_name_;
     std::string global_step_name_;
 
     TrainMode run_mode_ = TRAIN_MODE_TRAIN;

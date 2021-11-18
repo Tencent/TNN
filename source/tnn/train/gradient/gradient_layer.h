@@ -29,10 +29,10 @@ public:
     virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, std::vector<Blob *> &inputs,
                         std::vector<Blob *> &outputs, AbstractDevice *device, bool enable_const_folder = true);
 
-    const std::vector<std::pair<Blob *, Blob *>> &GetBlobGradPairs();
+    const std::vector<std::pair<Blob *, Blob *>> &GetInputGradPairs();
     const std::vector<std::pair<Blob *, RawBuffer *>> &GetGradResourcePairs();
 
-    Status SetAccumulateBlobGradFlag(int index, bool cond);
+    Status SetAccumulateInputGradFlag(int index, bool cond);
     Status SetAccumulateResourceGradFlag(int index, bool cond);
 
 protected:
@@ -41,11 +41,10 @@ protected:
     virtual Status InitGradInfo();
 
 private:
-    int blob_grad_count_     = 0;
+    int input_grad_count_    = 0;
     int resource_grad_count_ = 0;
-    int upstream_grad_count_ = 0;
 
-    std::vector<std::pair<Blob *, Blob *>> forward_blob_to_grad_;
+    std::vector<std::pair<Blob *, Blob *>> input_to_grad_;
     std::vector<std::pair<Blob *, RawBuffer *>> grad_to_resource_;
 
     LayerGradInfo grad_info_;
