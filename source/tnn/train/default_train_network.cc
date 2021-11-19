@@ -69,7 +69,7 @@ Status DefaultTrainNetwork::TrainStep() {
     }
     runtime_model_ = prev_mode;
 
-    for (auto layer : layers_) {
+    for (auto layer : need_refresh_layers_) {
         ret = layer->RefreshBuffers();
         if (ret != TNN_OK) {
             LOGE("%s layer RefreshBuffers error %s, exit\n", layer->GetLayerName().c_str(), ret.description().c_str());
@@ -199,9 +199,14 @@ Status DefaultTrainNetwork::SetGlobalStep() {
 Status DefaultTrainNetwork::SetGradientLayerRuntimeInfo() {
     input_to_grad_map_.clear();
     grad_to_resource_map_.clear();
+    need_refresh_layers_.clear();
     std::set<RawBuffer *> resource_visited;
 
+    auto &trainable_layers = config_.train_config.trainable_layers;
     for (auto layer : layers_) {
+        if (trainable_layers.find(layer->GetLayerName()) != trainable_layers.end()) {
+            need_refresh_layers_.push_back(layer);
+        }
         auto grad_layer = dynamic_cast<GradientLayer *>(layer);
         if (!grad_layer) {
             continue;

@@ -54,6 +54,8 @@ protected:
     std::map<Blob *, Blob *> input_to_grad_map_;
     std::map<Blob *, RawBuffer *> grad_to_resource_map_;
 
+    std::vector<BaseLayer *> need_refresh_layers_;
+
     std::string loss_name_;
     std::string loss_grad_name_;
     std::string global_step_name_;
