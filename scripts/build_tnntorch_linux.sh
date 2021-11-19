@@ -64,7 +64,6 @@ cp -d libTNN.so* ${TNN_INSTALL_DIR}/lib/
 cp -d /usr/local/cuda/lib64/libcudart.so* ${TNN_INSTALL_DIR}/lib/
 cp -d /usr/local/cuda/targets/x86_64-linux/lib/libnvrtc.so* ${TNN_INSTALL_DIR}/lib/
 cp -d /usr/local/cuda/targets/x86_64-linux/lib/libnvToolsExt*.so* ${TNN_INSTALL_DIR}/lib/
-cp -d /usr/lib/x86_64-linux-gnu/libcuda.so.* ${TNN_INSTALL_DIR}/lib/
 cp -d /usr/lib/x86_64-linux-gnu/libcublas*.so* ${TNN_INSTALL_DIR}/lib/
 cp -d $TENSORRT_ROOT_DIR/lib/libnvinfer.so* ${TNN_INSTALL_DIR}/lib/
 cp -d $TENSORRT_ROOT_DIR/lib/libnvinfer_plugin.so* ${TNN_INSTALL_DIR}/lib/
