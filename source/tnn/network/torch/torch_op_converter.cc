@@ -338,6 +338,10 @@ public:
                 layer_info->type     = LAYER_MUL;
                 layer_info->type_str = "Mul";
                 break;
+            case at::aten::div:
+                layer_info->type     = LAYER_DIV;
+                layer_info->type_str = "Div";
+                break;
             case at::aten::gt:
                 layer_info->type     = LAYER_GREATER;
                 layer_info->type_str = "Greater";
@@ -414,6 +418,63 @@ public:
     }
 };
 
+// func: gelu(const at::Tensor & self)
+class GeluTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_GELU;
+        layer_info->type_str                  = "GELU";
+        layer_info->name                      = node->output(0)->debugName();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+        layer_info->param = std::make_shared<LayerParam>();
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
+// func: layer_norm(const at::Tensor & input, at::IntArrayRef normalized_shape, const c10::optional<at::Tensor> & weight={}, const c10::optional<at::Tensor> & bias={}, double eps=1e-05, bool cudnn_enable=true);
+class LayerNormTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_LAYER_NORM;
+        layer_info->type_str                  = "LayerNorm";
+        layer_info->name                      = node->output(0)->debugName();
+
+        const auto &inputs = node->inputs();
+
+        // https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html?highlight=layernorm#torch.nn.LayerNorm
+        // Assume TorchScript is well-formed, weight, bias are present,
+        // weight.shape, bias.shape = normalized_shape
+        layer_info->inputs.push_back(inputs[0]->debugName()); // input
+        layer_info->inputs.push_back(inputs[2]->debugName()); // weight
+        layer_info->inputs.push_back(inputs[3]->debugName()); // bias
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        const auto normalized_shape = getValue<std::vector<int64_t>>(inputs[1]);
+        const auto eps              = getValue<float>(inputs[4]);
+        auto layer_param = std::make_shared<LayerNormLayerParam>();
+        layer_param->reduce_dims_size = normalized_shape.size();
+        layer_param->eps = eps;
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+        net_resource->constant_map[inputs[2]->debugName()] = std::make_shared<RawBuffer>(getValue(inputs[2])); // weight
+        net_resource->constant_map[inputs[3]->debugName()] = std::make_shared<RawBuffer>(getValue(inputs[3])); // bias
+
+        return TNN_OK;
+    }
+};
+
 // func: linear(Tensor input, Tensor weight, Tensor? bias=None) -> Tensor
 class LinearTorchConverter : public TorchOpConverter {
 public:
@@ -457,6 +518,62 @@ public:
 
         ADD_INPUTS_AND_OUTPUTS;
 
+        return TNN_OK;
+    }
+};
+
+// func: matmul(Tensor self, Tensor other) -> Tensor
+class MatmulTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = LAYER_MATMUL;
+        layer_info->type_str = "Matmul";
+        layer_info->name = node->output(0)->debugName();
+
+        // https://pytorch.org/docs/stable/generated/torch.matmul.html?highlight=matmul#torch.matmul
+        // Torch matmul has two inputs, no weight resource.
+        // param.weight_position == 1 by default. axis == 0 by default.
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->inputs.push_back(node->inputs()[1]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<MatMulLayerParam>();
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+        net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(new(MatMulLayerResource));
+
+        return TNN_OK;
+    }
+};
+
+// func: aten::permute(Tensor(a) self, int[] dims) -> Tensor(a)
+class PermuteTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = LAYER_PERMUTE;
+        layer_info->type_str = "Permute";
+        layer_info->name = node->output(0)->debugName();
+
+        // https://pytorch.org/docs/stable/generated/torch.permute.html?highlight=permute#torch.permute
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<PermuteLayerParam>();
+        std::vector<int> permute_orders;
+        for (auto dim : getValue<std::vector<int64_t>>(node->inputs()[1])) {
+            permute_orders.emplace_back(static_cast<int>(dim));
+        }
+        layer_param->orders = permute_orders;
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
         return TNN_OK;
     }
 };
@@ -782,6 +899,33 @@ public:
     }
 };
 
+// func: aten::softmax.int(Tensor self, int dim, ScalarType? dtype=None) -> Tensor
+//       aten::softmax.Dimname(Tensor self, Dimname dim, *, ScalarType? dtype=None) -> Tensor, NOT SUPPORTED NOW
+//       dtype NOT SUPPORTED NOW.
+class SoftmaxTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = LAYER_SOFTMAX;
+        layer_info->type_str = "Softmax";
+        layer_info->name = node->output(0)->debugName();
+
+        // https://pytorch.org/docs/stable/generated/torch.nn.Softmax.html?highlight=softmax#torch.nn.Softmax
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<SoftmaxLayerParam>();
+        layer_param->axis = static_cast<int>(getValue<int64_t>(node->inputs()[1]));
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
 class ToTorchConverter : public TorchOpConverter {
 public:
     // Currently, casting data to float is not supported.
@@ -846,29 +990,35 @@ public:
 // };
 
 
-REGISTER_TORCH_OP_CONVERTER(Conv2D, aten, conv2d)
-REGISTER_TORCH_OP_CONVERTER(_Conv, aten, _convolution)
-REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu)
-REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
-REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
 REGISTER_TORCH_OP_CONVERTER(AvgPool, aten, avg_pool2d)
-REGISTER_TORCH_OP_CONVERTER(Pool, aten, adaptive_avg_pool2d)
+REGISTER_TORCH_OP_CONVERTER(BatchNorm, aten, batch_norm)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, add_)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, add)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, mul)
+REGISTER_TORCH_OP_CONVERTER(Binary, aten, div)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, gt)
+REGISTER_TORCH_OP_CONVERTER(Concat, aten, cat)
+REGISTER_TORCH_OP_CONVERTER(Conv2D, aten, conv2d)
+REGISTER_TORCH_OP_CONVERTER(_Conv, aten, _convolution)
 REGISTER_TORCH_OP_CONVERTER(Flatten, aten, flatten)
-REGISTER_TORCH_OP_CONVERTER(Linear, aten, linear)
+REGISTER_TORCH_OP_CONVERTER(Gather, aten, select)
+REGISTER_TORCH_OP_CONVERTER(Gelu, aten, gelu)
 REGISTER_TORCH_OP_CONVERTER(HardTanh, aten, hardtanh_)
 REGISTER_TORCH_OP_CONVERTER(HardSigmoid, aten, hardsigmoid_)
 REGISTER_TORCH_OP_CONVERTER(HardSwish, aten, hardswish_)
-REGISTER_TORCH_OP_CONVERTER(BatchNorm, aten, batch_norm)
-REGISTER_TORCH_OP_CONVERTER(Concat, aten, cat)
-REGISTER_TORCH_OP_CONVERTER(Unsqueeze, aten, unsqueeze)
-REGISTER_TORCH_OP_CONVERTER(Gather, aten, select)
-REGISTER_TORCH_OP_CONVERTER(StridedSlice, aten, slice)
+REGISTER_TORCH_OP_CONVERTER(LayerNorm, aten, layer_norm)
+REGISTER_TORCH_OP_CONVERTER(Linear, aten, linear)
+REGISTER_TORCH_OP_CONVERTER(Matmul, aten, matmul)
+REGISTER_TORCH_OP_CONVERTER(Permute, aten, permute)
+REGISTER_TORCH_OP_CONVERTER(Pool, aten, adaptive_avg_pool2d)
+REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
+REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu)
+REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
 REGISTER_TORCH_OP_CONVERTER(Sigmoid, aten, sigmoid)
+REGISTER_TORCH_OP_CONVERTER(Softmax, aten, softmax)
+REGISTER_TORCH_OP_CONVERTER(StridedSlice, aten, slice)
 REGISTER_TORCH_OP_CONVERTER(To, aten, to)
+REGISTER_TORCH_OP_CONVERTER(Unsqueeze, aten, unsqueeze)
 
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
 
