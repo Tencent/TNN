@@ -168,22 +168,23 @@ struct PUBLIC TrainConfig {
     // run mode
     TrainMode run_mode     = TRAIN_MODE_PREDICT;
 
-    // solver
-    SolverType solver_type = SOLVER_TYPE_SGD;
-    SolverParams solver_params;
-
     // loss 
     LossFunc loss_func     = LOSS_FUNC_DEFAULT;
     // if loss_func is not default, the following informations are used to create loss layer
     std::string target_layer = "";      // the layer whose output is used to calculate loss, default is the last layer
+    bool auto_add_prob_layer = true;    // add softmax or sigmoid layer before loss layer
+    // target used to calculate loss
     std::string target_name  = "";      // the ground truth, provide by model inputs
     DimsVector target_shape  = {};      // the shape of the ground truth
-    bool auto_add_prob_layer = true;    // add softmax or sigmoid layer before loss layer
+
+    // solver
+    SolverType solver_type = SOLVER_TYPE_SGD;
+    SolverParams solver_params;
 
     // fine tune part of the network
     // only trainable layers' parameters will be updated
     std::set<std::string> trainable_layers;
-    bool train_the_whole_model = false;
+    bool train_the_whole_model = false; // if true, treat all layers as trainable
 };
 
 struct PUBLIC TrainingFeedback {

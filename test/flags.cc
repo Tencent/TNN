@@ -60,4 +60,16 @@ DEFINE_string(sc, "", scale_message);
 
 DEFINE_string(bi, "", bias_message);
 
+#if TNN_TRAIN
+DEFINE_string(tm, "PREDICT", train_mode_message);
+DEFINE_string(lf, "", loss_function_message);
+DEFINE_string(tl, "", target_layer_message);
+DEFINE_bool(ap, true, auto_add_probability_layer);
+DEFINE_string(ts, "", target_shape_message);
+DEFINE_string(st, "SGD", solver_type_message);
+DEFINE_double(lr, 0.01, learning_rate_message);
+DEFINE_bool(tw, false, train_whole_model_message);
+DEFINE_string(nd, "", trainable_nodes_message);
+#endif  // TNN_TRAIN
+
 }  // namespace TNN_NS

@@ -48,6 +48,10 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
 
 #if TNN_TRAIN
 Status Instance::TrainStep() {
+    if (net_config_.train_config.run_mode != TRAIN_MODE_TRAIN) {
+        LOGE("Instance::TrainStep ERROR, please set train mode in train_config to enable TrainStep\n");
+        return Status(TNNERR_TRAIN_ERROR, "TrainStep can only be used in train mode");
+    }
     return network_->TrainStep();
 }
 

@@ -63,14 +63,14 @@ namespace optimizer {
     Status NetOptimizerInsertLossAndGradient::Optimize(NetStructure *structure, NetResource *resource) {
         if (!structure) {
             LOGE("Error: empty NetStructure\n");
-            return Status(TNNERR_NET_ERR, "Error: empty NetStructure");
+            return Status(TNNERR_TRAIN_ERROR, "Error: empty NetStructure");
         }
         if (structure->layers.empty()) {
             return TNN_OK;
         }
         if (!resource) {
             LOGE("Error: empty NetResource\n");
-            return Status(TNNERR_NET_ERR, "Error: empty NetResource");
+            return Status(TNNERR_TRAIN_ERROR, "Error: empty NetResource");
         }
 
         // skip if network is quantized
@@ -80,7 +80,7 @@ namespace optimizer {
         }
 
         if (train_config.trainable_layers.empty() && !train_config.train_the_whole_model) {
-            return Status(TNNERR_NET_ERR, "train mode but trainable_layers is empty");
+            return Status(TNNERR_TRAIN_ERROR, "train mode but trainable_layers is empty");
         }
 
         RETURN_ON_NEQ(InsertLossLayer(structure), TNN_OK);
@@ -102,7 +102,7 @@ namespace optimizer {
 
         // target blob
         if (train_config.target_name.empty() || train_config.target_shape.empty()) {
-            return Status(TNNERR_NET_ERR, "loss_func is not default, but target name and shape is empty");
+            return Status(TNNERR_TRAIN_ERROR, "loss_func is not default, but target name and shape is empty");
         }
         net_structure->inputs_shape_map[train_config.target_name] = train_config.target_shape;
         net_structure->blobs.insert(train_config.target_name);
@@ -110,13 +110,13 @@ namespace optimizer {
         // target layer
         std::shared_ptr<LayerInfo> target_layer = GetTargetLayer(net_structure);
         if (target_layer == nullptr || target_layer->outputs.size() <= 0) {
-            return Status(TNNERR_NET_ERR, "get target layer error");
+            return Status(TNNERR_TRAIN_ERROR, "get target layer error");
         }
 
         // probability layer
         std::shared_ptr<LayerInfo> prob_layer = GetOrCreateProbability(target_layer);
         if (prob_layer == nullptr) {
-            return Status(TNNERR_NET_ERR, "get or create prob layer error");
+            return Status(TNNERR_TRAIN_ERROR, "get or create prob layer error");
         }
         if (prob_layer != target_layer) {
             auto prob_input = target_layer->outputs[0];
@@ -131,7 +131,7 @@ namespace optimizer {
         std::shared_ptr<LayerInfo> entropy_layer =
             CreateCrossEntropy(prob_layer->name + kEntropySuffix.at(train_config.loss_func));
         if (entropy_layer == nullptr) {
-            return Status(TNNERR_NET_ERR, "create entropy layer error");
+            return Status(TNNERR_TRAIN_ERROR, "create entropy layer error");
         } else {
             auto entropy_input = prob_layer->outputs[0];
             entropy_layer->inputs.push_back(entropy_input);
@@ -145,7 +145,7 @@ namespace optimizer {
         // reduce mean
         std::shared_ptr<LayerInfo> reduce_layer = CreateReduceMean(entropy_layer->name + loss_suffix);
         if (reduce_layer == nullptr) {
-            return Status(TNNERR_NET_ERR, "create reduce mean layer error");
+            return Status(TNNERR_TRAIN_ERROR, "create reduce mean layer error");
         } else {
             auto reduce_input = entropy_layer->outputs[0];
             reduce_layer->inputs.push_back(reduce_input);
@@ -190,7 +190,8 @@ namespace optimizer {
                         } else {
                             LOGE(
                                 "NetOptimizerInsertLossAndGradient::InsertGradientLayers ERROR, can not find blob "
-                                "grad\n");
+                                "grad: %s\n",
+                                forward_output.c_str());
                             return Status(TNNERR_TRAIN_ERROR, "can not find blob grad");
                         }
                     } else {
@@ -229,7 +230,7 @@ namespace optimizer {
         // solver
         std::shared_ptr<LayerInfo> solver_layer = CreateSolver(grad_update_name);
         if (solver_layer == nullptr) {
-            return Status(TNNERR_NET_ERR, "create solver layer error");
+            return Status(TNNERR_TRAIN_ERROR, "create solver layer error");
         } else {
             solver_layer->inputs = resource_grads_;
             solver_layer->inputs.push_back(global_step_init_name);
@@ -393,7 +394,7 @@ namespace optimizer {
                     LayerInfo *prev_layer = blob_to_layer[input];
                     if (prev_layer == nullptr) {
                         LOGE("NetOptimizerInsertLossAndGradient::GetNeedGradLayers, find layer by blob failed\n");
-                        return Status(TNNERR_NET_ERR, "find layer by blob failed");
+                        return Status(TNNERR_TRAIN_ERROR, "find layer by blob failed");
                     }
                     if (need_grad_layers.find(prev_layer->name) != need_grad_layers.end()) {
                         need_grad = true;

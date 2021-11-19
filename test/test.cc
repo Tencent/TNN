@@ -140,13 +140,15 @@ namespace test {
 #endif
 
 #if TNN_TRAIN
-                ret = instance->TrainStep();
-                if (!CheckResult("Train", ret)) {
-                    return ret;
+                if (network_config.train_config.run_mode == TRAIN_MODE_TRAIN) {
+                    ret = instance->TrainStep();
+                    if (!CheckResult("Train", ret)) {
+                        return ret;
+                    }
+                    TrainingFeedback feed_back;
+                    ret = instance->GetTrainingFeedback(feed_back);
+                    LOGI("Training step: %d, loss: %f\n", feed_back.global_step_value, feed_back.loss_value);
                 }
-                TrainingFeedback feed_back;
-                ret = instance->GetTrainingFeedback(feed_back);
-                LOGI("Training step: %d, loss: %f\n", feed_back.global_step_value, feed_back.loss_value);
 #endif
 
                 if (!CheckResult("Forward", ret)) {
@@ -168,7 +170,9 @@ namespace test {
             if (!FLAGS_op.empty()) {
                 WriteOutput(output_mat_map);
 #if TNN_TRAIN
-                instance->SaveTrainedModel(FLAGS_op + ".trained.tnnmodel");
+                if (network_config.train_config.run_mode == TRAIN_MODE_TRAIN) {
+                    instance->SaveTrainedModel(FLAGS_op + ".trained.tnnmodel");
+                }
 #endif
             }
 
@@ -205,25 +209,45 @@ namespace test {
     }
 
     void ShowUsage() {
-        printf("    -h                      \t%s \n", help_message);
-        printf("    -mt \"<model type>\"    \t%s \n", model_type_message);
-        printf("    -mp \"<model path>\"    \t%s \n", model_path_message);
-        printf("    -dt \"<device type>\"   \t%s \n", device_type_message);
-        printf("    -lp \"<library path>\"  \t%s \n", library_path_message);
-        printf("    -ic \"<number>\"        \t%s \n", iterations_count_message);
-        printf("    -wc \"<number>\"        \t%s \n", warm_up_count_message);
-        printf("    -ip \"<path>\"          \t%s \n", input_path_message);
-        printf("    -op \"<path>\"          \t%s \n", output_path_message);
-        printf("    -dl \"<device list>\"   \t%s \n", device_list_message);
-        printf("    -th \"<thread umber>\"  \t%s \n", cpu_thread_num_message);
-        printf("    -it \"<input type>\"    \t%s \n", input_format_message);
-        printf("    -pr \"<precision >\"    \t%s \n", precision_message);
-        printf("    -is \"<input shape>\"   \t%s \n", input_shape_message);
-        printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
-        printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
-        printf("    -et \"<enable tune>\t%s \n", enable_tune_message);
-        printf("    -sc \"<input scale>\t%s \n", scale_message);
-        printf("    -bi \"<input bias>\t%s \n", bias_message);
+        printf("    -h                              \t%s \n", help_message);
+        printf("    -mt \"<model type>\"            \t%s \n", model_type_message);
+        printf("    -mp \"<model path>\"            \t%s \n", model_path_message);
+        printf("    -dt \"<device type>\"           \t%s \n", device_type_message);
+        printf("    -lp \"<library path>\"          \t%s \n", library_path_message);
+        printf("    -ic \"<number>\"                \t%s \n", iterations_count_message);
+        printf("    -wc \"<number>\"                \t%s \n", warm_up_count_message);
+        printf("    -ip \"<path>\"                  \t%s \n", input_path_message);
+        printf("    -op \"<path>\"                  \t%s \n", output_path_message);
+        printf("    -dl \"<device list>\"           \t%s \n", device_list_message);
+        printf("    -th \"<thread umber>\"          \t%s \n", cpu_thread_num_message);
+        printf("    -it \"<input type>\"            \t%s \n", input_format_message);
+        printf("    -pr \"<precision >\"            \t%s \n", precision_message);
+        printf("    -is \"<input shape>\"           \t%s \n", input_shape_message);
+        printf("    -fc \"<format for compare>\"    \t%s \n", output_format_cmp_message);
+        printf("    -nt \"<network type>\"          \t%s \n", output_format_cmp_message);
+        printf("    -et \"<enable tune>\"           \t%s \n", enable_tune_message);
+        printf("    -sc \"<input scale>\"           \t%s \n", scale_message);
+        printf("    -bi \"<input bias>\"            \t%s \n", bias_message);
+#if TNN_TRAIN
+        printf("\n");
+        printf("    Train options:\n");
+        printf("    -tm \"<train mode>\"                \t\t%s \n", train_mode_message);
+        printf("        If tm is TRAIN, specify following options:\n");
+        printf("\n");
+        printf("        -lf \"<loss function>\"         \t\t%s \n", loss_function_message);
+        printf("            If lf is not default, specify following options:\n");
+        printf("            -tl \"<target layer>\"      \t\t%s \n", target_layer_message);
+        printf("            -ap \"<auto probability>\"  \t\t%s \n", auto_add_probability_layer);
+        printf("            -ts \"<target shape>\"      \t\t%s \n", target_shape_message);
+        printf("\n");
+        printf("        -st \"<solver type>\"           \t\t%s \n", solver_type_message);
+        printf("            If st is SGD, specify following options:\n");
+        printf("            -lr \"<learning rate>\"     \t\t%s \n", learning_rate_message);
+        printf("\n");
+        printf("        -tw \"<train whole model>\"     \t\t%s \n", train_whole_model_message);
+        printf("            If tw is false, specify following options:\n");
+        printf("            -nd \"<trainable nodes\"    \t\t%s \n", trainable_nodes_message);
+#endif  // TNN_TRAIN
     }
 
     void SetCpuAffinity() {
@@ -246,28 +270,34 @@ namespace test {
         }
     }
 
-    InputShapesMap GetInputShapesMap() {
-        InputShapesMap input_shape;
-        if(!FLAGS_is.empty()) {
-            std::string input_shape_message(FLAGS_is);
+    static std::pair<std::string, std::vector<int>> GetInputShape(const std::string message) {
+        std::string name;
+        std::vector<int> dims;
+        if(!message.empty()) {
             std::string delimiter = "[";
-            std::vector<int> input_dim;
             std::ptrdiff_t p1 = 0, p2;
-            p2 = input_shape_message.find(delimiter, p1);
-            std::string input_name = input_shape_message.substr(p1, p2 -p1);
+            p2 = message.find(delimiter, p1);
+            name = message.substr(p1, p2 -p1);
             p1 = p2 + 1;
             delimiter = ",";
             while (true) {
-                p2 = input_shape_message.find(delimiter, p1);
+                p2 = message.find(delimiter, p1);
                 if (p2 != std::string::npos) {
-                    input_dim.push_back(atoi(input_shape_message.substr(p1, p2 - p1).c_str()));
+                    dims.push_back(atoi(message.substr(p1, p2 - p1).c_str()));
                     p1 = p2 + 1;
                 } else {
-                    input_dim.push_back(atoi(input_shape_message.substr(p1, input_shape_message.length() - 1 - p1).c_str()));
+                    dims.push_back(atoi(message.substr(p1, message.length() - 1 - p1).c_str()));
                     break;
                 }
             }
-            input_shape[input_name] = input_dim;
+        }
+        return {name, dims};
+    }
+
+    InputShapesMap GetInputShapesMap() {
+        InputShapesMap input_shape;
+        if(!FLAGS_is.empty()) {
+            input_shape.insert(GetInputShape(FLAGS_is));
         }
         return input_shape;
     }
@@ -348,18 +378,69 @@ namespace test {
 
 #if TNN_TRAIN
         TrainConfig &train_config = config.train_config;
-        // TODO: avoid hard code
-        train_config.run_mode = TRAIN_MODE_TRAIN;
-        // solver
-        train_config.solver_type = SOLVER_TYPE_SGD;
-        train_config.solver_params.learning_rate = 0.01;
-        // loss
-        train_config.loss_func = LOSS_FUNC_BINARY_CROSS_ENTROPY;
-        // label
-        train_config.target_name = "label";
-        train_config.target_shape = {1, 8};
-        // fine tune layers
-        train_config.trainable_layers = {"deep_network/output_layer/BiasAdd", "deep_network/mlp2/Relu"};
+        train_config.run_mode = TRAIN_MODE_PREDICT;
+        if (FLAGS_tm == "TRAIN") {
+            train_config.run_mode = TRAIN_MODE_TRAIN;
+
+            train_config.loss_func = LOSS_FUNC_DEFAULT;
+            if (FLAGS_lf == "BCE") {
+                train_config.loss_func = LOSS_FUNC_BINARY_CROSS_ENTROPY;
+            } else if (FLAGS_lf == "CCE") {
+                train_config.loss_func = LOSS_FUNC_CATEGORICAL_CROSS_ENTROPY;
+            }
+
+            if (train_config.loss_func != LOSS_FUNC_DEFAULT) {
+                if (!FLAGS_tl.empty()) {
+                    train_config.target_layer = FLAGS_tl;
+                }
+                train_config.auto_add_prob_layer = FLAGS_ap;
+                if (!FLAGS_ts.empty()) {
+                    auto target_and_shape = GetInputShape(FLAGS_ts);
+                    train_config.target_name  = target_and_shape.first;
+                    train_config.target_shape = target_and_shape.second;
+                } else {
+                    LOGE("Loss layer will be created, please provide target for calculating loss!\n");
+                }
+            } else {
+                if (!FLAGS_tl.empty()) {
+                    LOGI("No loss layer will be created, target layer will be ignored!\n");
+                }
+                if (!FLAGS_ts.empty()) {
+                    LOGI("No loss layer will be created, target will be ignored!\n");
+                }
+            }
+
+            train_config.solver_type = SOLVER_TYPE_SGD;
+            if (FLAGS_st != "SGD") {
+                LOGI("Only sgd solver is supported now, will use sgd!\n");
+            }
+            train_config.solver_params.learning_rate = FLAGS_lr;
+
+            train_config.train_the_whole_model = FLAGS_tw;
+            if (!train_config.train_the_whole_model) {
+                if (!FLAGS_nd.empty()) {
+                    std::string message(FLAGS_nd);
+                    std::string delimiter = ";";
+
+                    size_t pos = 0;
+                    std::string token;
+                    while ((pos = message.find(delimiter)) != std::string::npos) {
+                        token = message.substr(0, pos);
+                        train_config.trainable_layers.insert(token);
+                        message.erase(0, pos + delimiter.length());
+                    }
+                    if (message.length() != 0) {
+                        train_config.trainable_layers.insert(message);
+                    }
+                } else {
+                    LOGE("Not training the whole model, please specify traineble nodes!");
+                }
+            } else {
+                if (!FLAGS_nd.empty()) {
+                    LOGI("Training the whole model, trainable nodes are ignored\n");
+                }
+            }
+        }
 #endif  // TNN_TRAIN
 
         return config;

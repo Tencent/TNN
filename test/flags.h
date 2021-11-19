@@ -113,6 +113,27 @@ DECLARE_string(sc);
 
 DECLARE_string(bi);
 
+#if TNN_TRAIN
+DECLARE_string(tm);
+static const char train_mode_message[] = "train mode: PREDICT, TRAIN, default PREDICT";
+DECLARE_string(lf);
+static const char loss_function_message[] = "loss function: BCE, CCE, default treat last layer as loss layer";
+DECLARE_string(tl);
+static const char target_layer_message[] = "target layer to calculate loss: default use the last layer";
+DECLARE_bool(ap);
+static const char auto_add_probability_layer[] = "add sigmoid or softmax before calculating loss: default true";
+DECLARE_string(ts);
+static const char target_shape_message[] = "ground truth and its shape: name[n,c,h,w]";
+DECLARE_string(st);
+static const char solver_type_message[] = "solver type: SGD, default SGD";
+DECLARE_double(lr);
+static const char learning_rate_message[] = "learning rate: default 0.01";
+DECLARE_bool(tw);
+static const char train_whole_model_message[] = "train the whole model: default false";
+DECLARE_string(nd);
+static const char trainable_nodes_message[] = "trainable nodes";
+#endif  // TNN_TRAIN
+
 }  // namespace TNN_NS
 
 #endif  // TNN_TEST_FLAGS_H_
