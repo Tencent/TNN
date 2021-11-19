@@ -97,6 +97,9 @@ namespace optimizer {
 
     Status NetOptimizerInsertLossAndGradient::InsertLossLayer(NetStructure *net_structure) {
         if (train_config.loss_func == LOSS_FUNC_DEFAULT) {
+            // the last layer should output loss
+            auto loss_layer = net_structure->layers.back();
+            loss_blob_      = loss_layer->outputs[0];
             return TNN_OK;
         }
 

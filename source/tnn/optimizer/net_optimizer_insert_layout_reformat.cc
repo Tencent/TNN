@@ -373,6 +373,12 @@ namespace optimizer {
                 if (constant_layers.count(next_layer->name) > 0 || kSkipRefomatLayer.count(next_layer->type) > 0)
                     continue;
                 auto next_layer_layouts = GetLayoutsByLayerType(next_layer.get());
+                if (!next_layer_layouts || next_layer_layouts->layouts.size() < 1) {
+                    LOGE("NetOptimizerInsertLayoutReformat::AdjustLayer Error: empty implemented_layouts of layer %d\n",
+                         next_layer->type);
+                    return Status(TNNERR_LAYER_ERR,
+                                  "NetOptimizerInsertLayoutReformat::AdjustLayer Error: empty implemented_layouts");
+                }
                 for (auto &next_in : next_layer->inputs) {
                     // only use reformat out when cur_layer_layout not supported
                     if (next_in == cur_out &&
