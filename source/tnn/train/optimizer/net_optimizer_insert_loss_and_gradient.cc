@@ -211,7 +211,9 @@ namespace optimizer {
                             auto resource_grad = forward_layer->name + resource_grad_suffix + std::to_string(i);
                             grad_layer->outputs.push_back(resource_grad);
                             net_structure->blobs.insert(resource_grad);
-                            resource_grads_.push_back(resource_grad);
+                            if (layer_resource->GetTrainable()[i]->GetDataCount() > 0) {
+                                resource_grads_.push_back(resource_grad);
+                            }
                         }
                     }
                 }

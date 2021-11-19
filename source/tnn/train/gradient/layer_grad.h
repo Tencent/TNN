@@ -86,7 +86,7 @@ public:
     bool acc_resource_grad_##I    = grad_info.accumulate_resource_grad[I];                                             \
     auto resource_##I##_count     = resource_##I->GetDataCount();                                                      \
     auto resource_grad_##I##_dims = resource_grad_##I->GetBlobDesc().dims;                                             \
-    if (DimsVectorUtils::Count(resource_grad_##I##_dims) != resource_##I##_count) {                                    \
+    if (resource_##I##_count > 0 && DimsVectorUtils::Count(resource_grad_##I##_dims) != resource_##I##_count) {        \
         return Status(TNNERR_LAYER_ERR, "LayerGrad::OnGrad resource and resource_grad data count not match");          \
     }
 #define PREPARE_RESOURCE_AND_GRAD0(I)

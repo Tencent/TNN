@@ -110,6 +110,7 @@ Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const
     auto inner_product_res = dynamic_cast<InnerProductLayerResource *>(resource);
     CHECK_PARAM_NULL(inner_product_res);
     auto weight = inner_product_res->weight_handle;
+    auto bias   = inner_product_res->bias_handle;
 
     int batch = DimsFunctionUtils::GetDim(input_0_dims, 0);
     int ic    = DimsVectorUtils::Count(input_0_dims, 1);
@@ -139,7 +140,7 @@ Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const
             ExecWeightGrad<0>(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
         }
 
-        if (has_bias) {
+        if (has_bias && bias.GetDataCount() > 0) {
             if (acc_resource_grad_1) {
                 ExecBiasGrad<1>(batch, oc, bias_grad_ptr, output_grad_ptr);
             } else {

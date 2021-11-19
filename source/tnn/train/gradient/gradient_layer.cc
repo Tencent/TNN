@@ -94,7 +94,8 @@ Status GradientLayer::InferOutputShape(bool ignore_error) {
     for (int i = input_grad_count_; i < output_blobs_.size(); ++i) {
         auto trainable_buffer = resource_->GetTrainable()[i - input_grad_count_];
         // resouce buffer dims is empty, use data count
-        output_blobs_[i]->GetBlobDesc().dims = {1, trainable_buffer->GetDataCount()};
+        output_blobs_[i]->GetBlobDesc().dims = {
+            1, trainable_buffer->GetDataCount() > 0 ? trainable_buffer->GetDataCount() : 1};
     }
 
     return TNN_OK;
