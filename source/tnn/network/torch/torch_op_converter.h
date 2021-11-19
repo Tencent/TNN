@@ -125,6 +125,7 @@ static RawBuffer getValue(const torch::jit::Value* value) {
             int data = static_cast<int>(data_int64);
             RawBuffer buf = RawBuffer(4, (char*)(&data), {});
             buf.SetDataType(DATA_TYPE_INT32);
+            return buf;
         } else if (value_kind == c10::TypeKind::NoneType) {
             return RawBuffer();
         } else {
