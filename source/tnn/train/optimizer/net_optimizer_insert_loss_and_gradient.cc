@@ -105,7 +105,12 @@ namespace optimizer {
 
         // target blob
         if (train_config.target_name.empty() || train_config.target_shape.empty()) {
-            return Status(TNNERR_TRAIN_ERROR, "loss_func is not default, but target name and shape is empty");
+            LOGE(
+                "NetOptimizerInsertLossAndGradient::InsertLossLayer, loss func is %d, please set target name and shape "
+                "to calculate loss\n",
+                train_config.loss_func);
+            return Status(TNNERR_TRAIN_ERROR,
+                          "loss layer will be added, but target(ground truth) name and shape is empty!");
         }
         net_structure->inputs_shape_map[train_config.target_name] = train_config.target_shape;
         net_structure->blobs.insert(train_config.target_name);

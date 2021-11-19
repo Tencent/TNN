@@ -106,6 +106,17 @@ namespace test {
                     blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
                 }
                 ret = instance->ForwardAsync(nullptr);
+#if TNN_TRAIN
+                if (network_config.train_config.run_mode == TRAIN_MODE_TRAIN) {
+                    ret = instance->TrainStep();
+                    if (!CheckResult("Train", ret)) {
+                        return ret;
+                    }
+                    TrainingFeedback feed_back;
+                    ret = instance->GetTrainingFeedback(feed_back);
+                    LOGI("Training step: %d, loss: %f\n", feed_back.global_step_value, feed_back.loss_value);
+                }
+#endif  // TNN_TRAIN
                 for(auto element : output_converters_map) {
                     auto name = element.first;
                     auto blob_converter = element.second;
@@ -149,7 +160,7 @@ namespace test {
                     ret = instance->GetTrainingFeedback(feed_back);
                     LOGI("Training step: %d, loss: %f\n", feed_back.global_step_value, feed_back.loss_value);
                 }
-#endif
+#endif  // TNN_TRAIN
 
                 if (!CheckResult("Forward", ret)) {
                     return ret;
@@ -246,7 +257,7 @@ namespace test {
         printf("\n");
         printf("        -tw \"<train whole model>\"     \t\t%s \n", train_whole_model_message);
         printf("            If tw is false, specify following options:\n");
-        printf("            -nd \"<trainable nodes\"    \t\t%s \n", trainable_nodes_message);
+        printf("            -nd \"<trainable nodes>\"   \t\t%s \n", trainable_nodes_message);
 #endif  // TNN_TRAIN
     }
 

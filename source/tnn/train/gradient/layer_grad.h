@@ -73,6 +73,8 @@ public:
     auto input_##I##_dims      = input_##I->GetBlobDesc().dims;                                                        \
     auto input_grad_##I##_dims = input_grad_##I->GetBlobDesc().dims;                                                   \
     if (!DimsVectorUtils::Equal(input_##I##_dims, input_grad_##I##_dims)) {                                            \
+        LOGE("LayerGrad::OnGrad %s vs %s: , dims not match\n", input_##I->GetBlobDesc().description().c_str(),         \
+             input_grad_##I->GetBlobDesc().description().c_str());                                                     \
         return Status(TNNERR_LAYER_ERR, "LayerGrad::OnGrad input and input_grad dims not match");                      \
     }
 #define PREPARE_INPUT_AND_GRAD1 PREPARE_INPUT_AND_GRAD(0)
@@ -87,6 +89,8 @@ public:
     auto resource_##I##_count     = resource_##I->GetDataCount();                                                      \
     auto resource_grad_##I##_dims = resource_grad_##I->GetBlobDesc().dims;                                             \
     if (resource_##I##_count > 0 && DimsVectorUtils::Count(resource_grad_##I##_dims) != resource_##I##_count) {        \
+        LOGE("LayerGrad::OnGrad %d vs %s: , dims not match\n", resource_##I##_count,                                   \
+             resource_grad_##I->GetBlobDesc().description().c_str());                                                  \
         return Status(TNNERR_LAYER_ERR, "LayerGrad::OnGrad resource and resource_grad data count not match");          \
     }
 #define PREPARE_RESOURCE_AND_GRAD0(I)
@@ -101,6 +105,8 @@ public:
     auto output_##I##_dims      = output_##I->GetBlobDesc().dims;                                                      \
     auto output_grad_##I##_dims = output_grad_##I->GetBlobDesc().dims;                                                 \
     if (!DimsVectorUtils::Equal(output_##I##_dims, output_grad_##I##_dims)) {                                          \
+        LOGE("LayerGrad::OnGrad %s vs %s: , dims not match\n", output_##I->GetBlobDesc().description().c_str(),        \
+             output_grad_##I->GetBlobDesc().description().c_str());                                                    \
         return Status(TNNERR_LAYER_ERR, "LayerGrad::OnGrad output and output_grad dims not match");                    \
     }
 #define PREPARE_OUTPUT_AND_GRAD1(I) PREPARE_OUTPUT_AND_GRAD(0, I)

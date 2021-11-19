@@ -131,7 +131,22 @@ Status DefaultTrainNetwork::InitRuntimeInfo() {
 }
 
 Status DefaultTrainNetwork::SetLossGrad() {
-    std::shared_ptr<Mat> mat(new Mat(DEVICE_ARM, NCHW_FLOAT, {1}));
+    Blob *loss_blob = blob_manager_->GetBlob(loss_name_);
+    if (!loss_blob) {
+        LOGE("DefaultTrainNetwork::SetLossGrad get loss_blob failed\n");
+        return Status(TNNERR_TRAIN_ERROR, "get loss_blob failed!");
+    }
+    auto loss_data_count = DimsVectorUtils::Count(loss_blob->GetBlobDesc().dims);
+    if (loss_data_count != 1) {
+        LOGE(
+            "DefaultTrainNetwork::SetLossGrad only support loss data count = 1 now, got %d. Try to change loss "
+            "function type or loss target layer!\n",
+            loss_data_count);
+        return Status(TNNERR_TRAIN_ERROR,
+                      "loss data count not supported, try to change loss function type or loss target layer!");
+    }
+
+    std::shared_ptr<Mat> mat(new Mat(DEVICE_ARM, NCHW_FLOAT, {loss_data_count}));
     if (!mat || !mat->GetData()) {
         LOGE("DefaultTrainNetwork::SetLossGrad create mat failed\n");
         return Status(TNNERR_TRAIN_ERROR, "create mat failed");
@@ -139,7 +154,9 @@ Status DefaultTrainNetwork::SetLossGrad() {
 
     // init loss grad as one
     auto ptr = reinterpret_cast<float *>(mat->GetData());
-    *ptr     = 1.0;
+    for (int i = 0; i < loss_data_count; ++i) {
+        ptr[i] = 1.0;
+    }
 
     Blob *loss_grad = blob_manager_->GetBlob(loss_grad_name_);
     if (!loss_grad) {
