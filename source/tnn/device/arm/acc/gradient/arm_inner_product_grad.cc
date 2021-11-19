@@ -12,8 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
-#include "tnn/train/gradient/layer_grad.h"
+#include "tnn/device/arm/acc/gradient/arm_gradient_layer_acc.h"
 
 namespace TNN_NS {
 
@@ -98,7 +97,7 @@ static void ExecBiasGrad(int batch, int oc, float *bias_grad, float *output_grad
 
 Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                                         LayerResource *resource, LayerParam *param, Context *context,
-                                        LayerGradInfo *grad_info) {
+                                        const LayerGradInfo &grad_info) {
     ON_GRAD_PREPARATION_IOR(1, 1, 2);
 
     auto arm_context = dynamic_cast<ArmContext *>(context);

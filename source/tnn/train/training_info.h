@@ -12,29 +12,31 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_SGD_LAYER_ACC_H_
-#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_SGD_LAYER_ACC_H_
+#ifndef TNN_SOURCE_TNN_TRAIN_TRAINING_INFO_H
+#define TNN_SOURCE_TNN_TRAIN_TRAINING_INFO_H
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include <vector>
+
+#include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
 
-class ArmSGDLayerAcc : public ArmLayerAcc {
-public:
-    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
-                        const std::vector<Blob *> &outputs);
+struct LayerGradInfo {
+    // if multipy layers update the same gradient, the results will be accumulated
+    std::vector<bool> accumulate_input_grad;
+    std::vector<bool> accumulate_resource_grad;
+};
 
-    virtual ~ArmSGDLayerAcc();
+struct SolverStrategyInfo {
+    // resource to be updated
+    std::vector<RawBuffer *> trainable_resources;
+};
 
-    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
-
-protected:
-    virtual Status ExecUpdate(Blob *grad, RawBuffer *param);
-
-    float learning_rate_;
-    int global_step_ = 0;
+struct RuntimeTrainingInfo {
+    LayerGradInfo grad_info;
+    SolverStrategyInfo solver_info;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_SGD_LAYER_ACC_H_
+#endif  // TNN_SOURCE_TNN_TRAIN_TRAINING_INFO_H

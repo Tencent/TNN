@@ -225,9 +225,9 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"TopK", LAYER_TOPK},
     {"Scatter", LAYER_SCATTER},
     {"Gradient", LAYER_GRADIENT},
+    {"Solver", LAYER_SOLVER},
     {"CategoricalCrossEntropy", LAYER_CATEGORICAL_CROSSENTROPY},
     {"BinaryCrossEntropy", LAYER_BINARY_CROSSENTROPY},
-    {"SGD", LAYER_SGD},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 

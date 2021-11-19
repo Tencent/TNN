@@ -15,8 +15,7 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_ARM_GRADIENT_ARM_BINARY_LAYER_ACC_H_
 #define TNN_SOURCE_TNN_DEVICE_ARM_GRADIENT_ARM_BINARY_LAYER_ACC_H_
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
-#include "tnn/train/gradient/layer_grad.h"
+#include "tnn/device/arm/acc/gradient/arm_gradient_layer_acc.h"
 
 namespace TNN_NS {
 
@@ -56,7 +55,7 @@ public:
         virtual ~Arm##type_string##LayerGrad(){};                                                                      \
         virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,                   \
                               LayerResource *resource, LayerParam *param, Context *context,                            \
-                              LayerGradInfo *grad_info) {                                                              \
+                              const LayerGradInfo &grad_info) {                                                        \
             ON_GRAD_PREPARATION_IOR(2, 1, 0);                                                                          \
             if (!DimsVectorUtils::Equal(input_0_dims, input_1_dims)) {                                                 \
                 return Status(TNNERR_TRAIN_ERROR, "Arm" #type_string "LayerGrad input0 and input1 dims not match");    \

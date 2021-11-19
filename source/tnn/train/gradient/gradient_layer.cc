@@ -38,7 +38,7 @@ Status GradientLayer::Init(Context* context, LayerParam* param, LayerResource* r
         return Status(TNNERR_LAYER_ERR, "layer acc is nil");
     }
 
-    layer_acc_->SetLayerGradInfo(&grad_info_);
+    layer_acc_->SetRuntimeTrainingInfo(&training_info_);
 
     return TNN_OK;
 }
@@ -52,21 +52,21 @@ const std::vector<std::pair<Blob*, RawBuffer*>>& GradientLayer::GetGradResourceP
 }
 
 Status GradientLayer::SetAccumulateInputGradFlag(int index, bool cond) {
-    if (index >= grad_info_.accumulate_input_grad.size()) {
+    if (index >= training_info_.grad_info.accumulate_input_grad.size()) {
         LOGE("Error, input index exceeds %d\n", index);
         return Status(TNNERR_LAYER_ERR, "set input accumulate flag error");
     }
-    grad_info_.accumulate_input_grad[index] = cond;
+    training_info_.grad_info.accumulate_input_grad[index] = cond;
 
     return TNN_OK;
 }
 
 Status GradientLayer::SetAccumulateResourceGradFlag(int index, bool cond) {
-    if (index >= grad_info_.accumulate_resource_grad.size()) {
+    if (index >= training_info_.grad_info.accumulate_resource_grad.size()) {
         LOGE("Error, resource index exceeds %d\n", index);
         return Status(TNNERR_LAYER_ERR, "set resource accumulate flag error");
     }
-    grad_info_.accumulate_resource_grad[index] = cond;
+    training_info_.grad_info.accumulate_resource_grad[index] = cond;
 
     return TNN_OK;
 }
@@ -102,19 +102,19 @@ Status GradientLayer::InferOutputShape(bool ignore_error) {
 
 Status GradientLayer::InitGradInfo() {
     input_to_grad_.clear();
-    grad_info_.accumulate_input_grad.clear();
+    training_info_.grad_info.accumulate_input_grad.clear();
 
     for (int i = 0; i < input_grad_count_; ++i) {
         input_to_grad_.push_back({input_blobs_[i], output_blobs_[i]});
-        grad_info_.accumulate_input_grad.push_back(false);
+        training_info_.grad_info.accumulate_input_grad.push_back(false);
     }
 
     grad_to_resource_.clear();
-    grad_info_.accumulate_resource_grad.clear();
+    training_info_.grad_info.accumulate_resource_grad.clear();
     for (int i = input_grad_count_; i < output_blobs_.size(); ++i) {
         auto trainable_buffer = resource_->GetTrainable()[i - input_grad_count_];
         grad_to_resource_.push_back({output_blobs_[i], trainable_buffer});
-        grad_info_.accumulate_resource_grad.push_back(false);
+        training_info_.grad_info.accumulate_resource_grad.push_back(false);
     }
 
     return TNN_OK;

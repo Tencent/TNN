@@ -15,7 +15,7 @@
 #include "tnn/train/default_train_network.h"
 
 #include "tnn/train/gradient/gradient_layer.h"
-#include "tnn/train/solver/sgd_layer.h"
+#include "tnn/train/solver/solver_layer.h"
 
 namespace TNN_NS {
 
@@ -37,13 +37,9 @@ Status DefaultTrainNetwork::Init(NetworkConfig &net_config, ModelConfig &model_c
                                enable_const_folder);
     RETURN_ON_NEQ(ret, TNN_OK);
 
-    RETURN_ON_NEQ(UpdateGradMap(), TNN_OK);
+    RETURN_ON_NEQ(InitTrainingStatus(), TNN_OK);
 
-    RETURN_ON_NEQ(UpdateForwardLayerCount(), TNN_OK);
-
-    RETURN_ON_NEQ(InitLossGrad(), TNN_OK);
-
-    RETURN_ON_NEQ(UpdateSolver(), TNN_OK);
+    RETURN_ON_NEQ(InitRuntimeInfo(), TNN_OK);
 
     return TNN_OK;
 }
@@ -52,6 +48,8 @@ Status DefaultTrainNetwork::GetAllInputBlobs(BlobMap &blobs) {
     blob_manager_->GetAllInputBlobs(blobs);
     // loss grad is assumed to be one
     blobs.erase(loss_grad_name_);
+    // global step init value is assumed to be zero
+    blobs.erase(global_step_init_name_);
     return TNN_OK;
 }
 
@@ -88,7 +86,117 @@ Status DefaultTrainNetwork::GetTrainingFeedback(TrainingFeedback &feed_back) {
     return TNN_OK;
 }
 
-Status DefaultTrainNetwork::UpdateGradMap() {
+Status DefaultTrainNetwork::InitTrainingStatus() {
+    LayerInfo *loss_layer      = nullptr;
+    LayerInfo *loss_grad_layer = nullptr;
+    int cnt                    = 0;
+    for (auto layer : net_structure_->layers) {
+        if (layer->type == LAYER_GRADIENT) {
+            loss_grad_layer = layer.get();
+            break;
+        }
+        loss_layer = layer.get();
+        cnt++;
+    }
+    forward_layer_count_ = cnt;
+    if (!loss_layer) {
+        LOGE("DefaultTrainNetwork::InitTrainingStatus ERROR, cannot get loss layer\n");
+        return Status(TNNERR_TRAIN_ERROR, "cannot get loss layer");
+    }
+    if (!loss_grad_layer) {
+        LOGE("DefaultTrainNetwork::InitTrainingStatus ERROR, cannot get loss grad layer\n");
+        return Status(TNNERR_TRAIN_ERROR, "cannot get loss grad layer");
+    }
+    loss_name_      = loss_layer->outputs[0];
+    loss_grad_name_ = loss_grad_layer->inputs.back();
+
+    LayerInfo *solver_layer_info = net_structure_->layers.back().get();
+    if (!solver_layer_info) {
+        LOGE("DefaultTrainNetwork::InitTrainingStatus ERROR, solver layer is empty\n");
+        return Status(TNNERR_TRAIN_ERROR, "solver layer is empty");
+    }
+    global_step_name_      = solver_layer_info->outputs[0];
+    global_step_init_name_ = solver_layer_info->inputs.back();
+
+    RETURN_ON_NEQ(SetLossGrad(), TNN_OK);
+    RETURN_ON_NEQ(SetGlobalStep(), TNN_OK);
+
+    return TNN_OK;
+}
+
+Status DefaultTrainNetwork::InitRuntimeInfo() {
+    RETURN_ON_NEQ(SetGradientLayerRuntimeInfo(), TNN_OK);
+    RETURN_ON_NEQ(SetSolverLayerRuntimeInfo(), TNN_OK);
+    return TNN_OK;
+}
+
+Status DefaultTrainNetwork::SetLossGrad() {
+    std::shared_ptr<Mat> mat(new Mat(DEVICE_ARM, NCHW_FLOAT, {1}));
+    if (!mat || !mat->GetData()) {
+        LOGE("DefaultTrainNetwork::SetLossGrad create mat failed\n");
+        return Status(TNNERR_TRAIN_ERROR, "create mat failed");
+    }
+
+    // init loss grad as one
+    auto ptr = reinterpret_cast<float *>(mat->GetData());
+    *ptr     = 1.0;
+
+    Blob *loss_grad = blob_manager_->GetBlob(loss_grad_name_);
+    if (!loss_grad) {
+        LOGE("DefaultTrainNetwork::SetLossGrad get loss_grad failed\n");
+        return Status(TNNERR_TRAIN_ERROR, "get loss_grad failed!");
+    }
+
+    // create blob convert
+    std::shared_ptr<BlobConverter> blob_converter = std::make_shared<BlobConverter>(loss_grad);
+
+    // get command queue
+    void *command_queue = nullptr;
+    RETURN_ON_NEQ(GetCommandQueue(&command_queue), TNN_OK);
+
+    Status status = blob_converter->ConvertFromMatAsync(*(mat.get()), MatConvertParam(), command_queue);
+    if (status != TNN_OK) {
+        LOGE("DefaultTrainNetwork::SetLossGrad, ConvertFromMatAsync Error: %s\n", status.description().c_str());
+        return status;
+    }
+
+    return TNN_OK;
+}
+
+Status DefaultTrainNetwork::SetGlobalStep() {
+    std::shared_ptr<Mat> mat(new Mat(DEVICE_ARM, NCHW_FLOAT, {1}));
+    if (!mat || !mat->GetData()) {
+        LOGE("DefaultTrainNetwork::SetGlobalStep create mat failed\n");
+        return Status(TNNERR_TRAIN_ERROR, "create mat failed");
+    }
+
+    // init global step as zero
+    auto ptr = reinterpret_cast<float *>(mat->GetData());
+    *ptr     = 0.0;
+
+    Blob *global_step_init = blob_manager_->GetBlob(global_step_init_name_);
+    if (!global_step_init) {
+        LOGE("DefaultTrainNetwork::SetGlobalStep get global_step_init failed\n");
+        return Status(TNNERR_TRAIN_ERROR, "get global_step_init failed!");
+    }
+
+    // create blob convert
+    std::shared_ptr<BlobConverter> blob_converter = std::make_shared<BlobConverter>(global_step_init);
+
+    // get command queue
+    void *command_queue = nullptr;
+    RETURN_ON_NEQ(GetCommandQueue(&command_queue), TNN_OK);
+
+    Status status = blob_converter->ConvertFromMatAsync(*(mat.get()), MatConvertParam(), command_queue);
+    if (status != TNN_OK) {
+        LOGE("DefaultTrainNetwork::SetGlobalStep, ConvertFromMatAsync Error: %s\n", status.description().c_str());
+        return status;
+    }
+
+    return TNN_OK;
+}
+
+Status DefaultTrainNetwork::SetGradientLayerRuntimeInfo() {
     input_to_grad_map_.clear();
     grad_to_resource_map_.clear();
     std::set<RawBuffer *> resource_visited;
@@ -137,92 +245,27 @@ Status DefaultTrainNetwork::UpdateGradMap() {
     return TNN_OK;
 }
 
-Status DefaultTrainNetwork::UpdateForwardLayerCount() {
-    LayerInfo *loss_layer      = nullptr;
-    LayerInfo *loss_grad_layer = nullptr;
-    int cnt                    = 0;
-    for (auto layer : net_structure_->layers) {
-        if (layer->type == LAYER_GRADIENT) {
-            loss_grad_layer = layer.get();
-            break;
-        }
-        loss_layer = layer.get();
-        cnt++;
-    }
-    if (!loss_layer) {
-        LOGE("DefaultTrainNetwork::UpdateForwardLayerCount ERROR, cannot get loss layer\n");
-        return Status(TNNERR_TRAIN_ERROR, "cannot get loss layer");
-    }
-    if (!loss_grad_layer) {
-        LOGE("DefaultTrainNetwork::UpdateForwardLayerCount ERROR, cannot get loss grad layer\n");
-        return Status(TNNERR_TRAIN_ERROR, "cannot get loss grad layer");
-    }
-    loss_name_           = loss_layer->outputs[0];
-    loss_grad_name_      = loss_grad_layer->inputs.back();
-    forward_layer_count_ = cnt;
-
-    return TNN_OK;
-}
-
-Status DefaultTrainNetwork::InitLossGrad() {
-    std::shared_ptr<Mat> mat(new Mat(DEVICE_ARM, NCHW_FLOAT, {1}));
-    if (!mat || !mat->GetData()) {
-        LOGE("DefaultTrainNetwork::InitLossGrad create mat failed\n");
-        return Status(TNNERR_TRAIN_ERROR, "create mat failed");
-    }
-
-    // init loss grad as one
-    auto ptr = reinterpret_cast<float *>(mat->GetData());
-    *ptr     = 1.0;
-
-    Blob *loss_grad = blob_manager_->GetBlob(loss_grad_name_);
-    if (!loss_grad) {
-        LOGE("DefaultTrainNetwork::InitLossGrad get loss_grad failed\n");
-        return Status(TNNERR_TRAIN_ERROR, "get loss_grad failed!");
-    }
-
-    // create blob convert
-    std::shared_ptr<BlobConverter> blob_converter = std::make_shared<BlobConverter>(loss_grad);
-
-    // get command queue
-    void *command_queue = nullptr;
-    RETURN_ON_NEQ(GetCommandQueue(&command_queue), TNN_OK);
-
-    Status status = blob_converter->ConvertFromMatAsync(*(mat.get()), MatConvertParam(), command_queue);
-    if (status != TNN_OK) {
-        LOGE("DefaultTrainNetwork::InitLossGrad, ConvertFromMatAsync Error: %s\n", status.description().c_str());
-        return status;
-    }
-
-    LOGD("DefaultTrainNetwork::InitLossGrad init loss grad blob %s as ones\n", loss_grad_name_.c_str());
-
-    return TNN_OK;
-}
-
-Status DefaultTrainNetwork::UpdateSolver() {
-    LayerInfo *solver_layer = net_structure_->layers.back().get();
+Status DefaultTrainNetwork::SetSolverLayerRuntimeInfo() {
+    auto solver_layer = dynamic_cast<SolverLayer *>(layers_.back());
     if (!solver_layer) {
-        LOGE("DefaultTrainNetwork::UpdateSolver ERROR, layers is empty\n");
-        return Status(TNNERR_TRAIN_ERROR, "layers is empty");
-    }
-    global_step_name_ = solver_layer->outputs[0];
-
-    // only support sgd now
-    auto sgd_layer = dynamic_cast<SGDLayer *>(layers_.back());
-    if (!sgd_layer) {
-        LOGE("DefaultTrainNetwork::UpdateSolver ERROR, sgd_layer is empty\n");
-        return Status(TNNERR_TRAIN_ERROR, "sgd_layer is empty");
+        LOGE("DefaultTrainNetwork::SetSolverLayerRuntimeInfo ERROR, solver_layer is empty\n");
+        return Status(TNNERR_TRAIN_ERROR, "solver_layer is empty");
     }
 
     std::vector<RawBuffer *> trainable_resources;
-    for (auto input : sgd_layer->GetInputBlobs()) {
+    for (auto input : solver_layer->GetInputBlobs()) {
+        if (input == solver_layer->GetInputBlobs().back()) {
+            // global step init value
+            break;
+        }
         if (grad_to_resource_map_.find(input) == grad_to_resource_map_.end()) {
-            LOGD("DefaultTrainNetwork::UpdateSolver, sgd layer find resource error\n");
-            return Status(TNNERR_NET_ERR, "sgd layer find resource error");
+            LOGE("DefaultTrainNetwork::SetSolverLayerRuntimeInfo, solver layer find resource error, %s\n",
+                 input->GetBlobDesc().description().c_str());
+            return Status(TNNERR_TRAIN_ERROR, "solver layer find resource error");
         }
         trainable_resources.push_back(grad_to_resource_map_.at(input));
     }
-    return sgd_layer->SetTrainableResources(trainable_resources);
+    return solver_layer->SetTrainableResources(trainable_resources);
 }
 
 }  // namespace TNN_NS

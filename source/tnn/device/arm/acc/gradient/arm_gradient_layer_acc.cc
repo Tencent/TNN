@@ -36,8 +36,12 @@ ArmGradientLayerAcc::~ArmGradientLayerAcc() {}
 
 Status ArmGradientLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     CHECK_PARAM_NULL(impl_);
+    if (!runtime_training_info_) {
+        LOGE("ArmGradientLayerAcc::DoForward ERROR, runtime training info is nil\n");
+        return Status(TNNERR_TRAIN_ERROR, "runtime training info is nil");
+    }
 
-    return impl_->OnGrad(inputs, outputs, resource_, forward_param_, context_, grad_info_);
+    return impl_->OnGrad(inputs, outputs, resource_, forward_param_, context_, runtime_training_info_->grad_info);
 }
 
 REGISTER_ARM_ACC(Gradient, LAYER_GRADIENT)

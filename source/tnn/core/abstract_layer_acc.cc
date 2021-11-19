@@ -100,8 +100,8 @@ void AbstractLayerAcc::SetRuntimeMode(RuntimeMode mode) {
 }
 
 #if TNN_TRAIN
-void AbstractLayerAcc::SetLayerGradInfo(LayerGradInfo *info) {
-    grad_info_ = info;
+void AbstractLayerAcc::SetRuntimeTrainingInfo(RuntimeTrainingInfo *info) {
+    runtime_training_info_ = info;
 }
 #endif  // TNN_TRAIN
 

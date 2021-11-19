@@ -228,9 +228,9 @@ enum LayerType {
 
     //for train
     LAYER_GRADIENT                                          = 500,
-    LAYER_CATEGORICAL_CROSSENTROPY                          = 501,
-    LAYER_BINARY_CROSSENTROPY                               = 502,
-    LAYER_SGD                                               = 503,
+    LAYER_SOLVER                                            = 501,
+    LAYER_CATEGORICAL_CROSSENTROPY                          = 502,
+    LAYER_BINARY_CROSSENTROPY                               = 503,
 
     LAYER_BLOB_SCALE                                        = 600,
 

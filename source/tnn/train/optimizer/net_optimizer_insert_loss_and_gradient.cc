@@ -37,11 +37,12 @@ namespace optimizer {
     static const std::map<LossFunc, std::string> kEntropySuffix{
         {LOSS_FUNC_BINARY_CROSS_ENTROPY, "_tnn_binary_ce"},
         {LOSS_FUNC_CATEGORICAL_CROSS_ENTROPY, "_tnn_categorical_ce"}};
-    static const std::string loss_suffix          = "_tnn_loss";
-    static const std::string gradient_suffix      = "_tnn_grad";
-    static const std::string resource_grad_suffix = "_tnn_resource_grad_";
-    static const std::string grad_update_name     = "__tnn_grad_update__";
-    static const std::string global_step_name     = "__tnn_global_step__";
+    static const std::string loss_suffix           = "_tnn_loss";
+    static const std::string gradient_suffix       = "_tnn_grad";
+    static const std::string resource_grad_suffix  = "_tnn_resource_grad_";
+    static const std::string grad_update_name      = "__tnn_grad_update__";
+    static const std::string global_step_name      = "__tnn_global_step__";
+    static const std::string global_step_init_name = "__tnn_global_step_init__";
 
     std::string NetOptimizerInsertLossAndGradient::Strategy() {
         return kNetOptimizerInsertLossAndGradient;
@@ -223,24 +224,19 @@ namespace optimizer {
     }
 
     Status NetOptimizerInsertLossAndGradient::InsertGradientUpdateLayer(NetStructure *net_structure) {
-        if (train_config.solver_type != SOLVER_TYPE_SGD) {
-            LOGE("NetOptimizerInsertLossAndGradient::CreateUpdateLayer, Error, not supported solver type %d\n",
-                 train_config.solver_type);
-            return Status(TNNERR_NET_ERR, "solver type not supported");
-        }
-
-        // sgd
-        std::shared_ptr<LayerInfo> sgd_layer = CreateSGD(grad_update_name);
-        if (sgd_layer == nullptr) {
-            return Status(TNNERR_NET_ERR, "create sgd layer error");
+        // solver
+        std::shared_ptr<LayerInfo> solver_layer = CreateSolver(grad_update_name);
+        if (solver_layer == nullptr) {
+            return Status(TNNERR_NET_ERR, "create solver layer error");
         } else {
-            auto sgd_inputs   = resource_grads_;
-            sgd_layer->inputs = sgd_inputs;
-            auto sgd_output   = global_step_name;
-            sgd_layer->outputs.push_back(sgd_output);
-            net_structure->layers.push_back(sgd_layer);
-            net_structure->blobs.insert(sgd_output);
-            net_structure->outputs.insert(sgd_output);
+            solver_layer->inputs = resource_grads_;
+            solver_layer->inputs.push_back(global_step_init_name);
+            solver_layer->outputs.push_back(global_step_name);
+            net_structure->layers.push_back(solver_layer);
+            net_structure->blobs.insert(global_step_init_name);
+            net_structure->blobs.insert(global_step_name);
+            net_structure->inputs_shape_map.insert({global_step_init_name, {1}});
+            net_structure->outputs.insert(global_step_name);
         }
 
         return TNN_OK;
@@ -357,15 +353,16 @@ namespace optimizer {
         return new_layer;
     }
 
-    std::shared_ptr<LayerInfo> NetOptimizerInsertLossAndGradient::CreateSGD(const std::string &name) {
+    std::shared_ptr<LayerInfo> NetOptimizerInsertLossAndGradient::CreateSolver(const std::string &name) {
         std::shared_ptr<LayerInfo> new_layer = std::shared_ptr<LayerInfo>(new LayerInfo());
-        new_layer->type                      = LAYER_SGD;
-        new_layer->type_str                  = "SGD";
+        new_layer->type                      = LAYER_SOLVER;
+        new_layer->type_str                  = "Solver";
         new_layer->name                      = name;
-        SGDParam *param                      = new SGDParam();
+        SolverParam *param                   = new SolverParam();
         new_layer->param                     = std::shared_ptr<LayerParam>(param);
         new_layer->param->type               = new_layer->type_str;
         new_layer->param->name               = new_layer->name;
+        param->type                          = train_config.solver_type;
         param->learning_rate                 = train_config.solver_params.learning_rate;
         return new_layer;
     }

@@ -36,6 +36,8 @@ namespace optimizer {
     static const std::string reformat_name_suffix(DataFormat layout) {
         return std::string("_") + ToString(layout) + "_layout_reformat";
     }
+    // solver layer should handle data format itself
+    static const std::set<LayerType> kSkipRefomatLayer = {LAYER_SOLVER};
 
     std::string NetOptimizerInsertLayoutReformat::Strategy() {
         return kNetOptimizerInsertLayoutReformat;
@@ -175,7 +177,7 @@ namespace optimizer {
             std::vector<DataFormat> reformat_layouts;
             DataFormat input_layout = GetInputLayout(net_config_, device_->GetDeviceType());
             for (const auto &cur_layer : layers_orig) {
-                if (constant_layers.count(cur_layer->name) > 0) {
+                if (constant_layers.count(cur_layer->name) > 0 || kSkipRefomatLayer.count(cur_layer->type) > 0) {
                     continue;
                 }
                 for (const auto &layer_input : cur_layer->inputs) {
@@ -227,7 +229,7 @@ namespace optimizer {
         for (int index = 0; index < count; index++) {
             auto cur_layer = layers_orig[index];
             layers_modified.push_back(cur_layer);
-            if (constant_layers.count(cur_layer->name) > 0) {
+            if (constant_layers.count(cur_layer->name) > 0 || kSkipRefomatLayer.count(cur_layer->type) > 0) {
                 continue;
             }
             if (layer_choosed_layout.find(cur_layer->name) == layer_choosed_layout.end()) {
@@ -248,7 +250,7 @@ namespace optimizer {
                 }
                 for (int next_id = index + 1; next_id < count; next_id++) {
                     auto next_layer = layers_orig[next_id];
-                    if (constant_layers.count(next_layer->name) > 0) {
+                    if (constant_layers.count(next_layer->name) > 0 || kSkipRefomatLayer.count(next_layer->type) > 0) {
                         continue;
                     }
                     auto next_layer_layouts = GetLayoutsByLayerType(next_layer.get());
@@ -366,7 +368,7 @@ namespace optimizer {
             // change the inputs of successed layers
             for (int next_id = index + 1; next_id < count; next_id++) {
                 auto next_layer = layers_orig[next_id];
-                if (constant_layers.count(next_layer->name) > 0)
+                if (constant_layers.count(next_layer->name) > 0 || kSkipRefomatLayer.count(next_layer->type) > 0)
                     continue;
                 auto next_layer_layouts = GetLayoutsByLayerType(next_layer.get());
                 for (auto &next_in : next_layer->inputs) {

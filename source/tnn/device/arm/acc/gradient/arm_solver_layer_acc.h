@@ -12,31 +12,34 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_GRADIENT_LAYER_ACC_H_
-#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_GRADIENT_LAYER_ACC_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_SOLVER_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_SOLVER_LAYER_ACC_H_
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
-#include "tnn/train/gradient/layer_grad.h"
+#include "tnn/train/solver/solver_strategy.h"
 
 namespace TNN_NS {
 
-class ArmGradientLayerAcc : public ArmLayerAcc {
+class ArmSolverLayerAcc : public ArmLayerAcc {
 public:
     virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
                         const std::vector<Blob *> &outputs);
 
-    virtual ~ArmGradientLayerAcc();
+    virtual ~ArmSolverLayerAcc();
+
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
-private:
-    LayerGrad *impl_;
-    LayerParam *forward_param_;
+protected:
+    SolverStrategy *impl_;
+    SolverParam *solver_param_;
 };
 
-#define DECLARE_ARM_LAYER_GRAD(type_string, layer_type) DECLARE_LAYER_GRAD(Arm, DEVICE_ARM, type_string, layer_type)
+#define DECLARE_ARM_SOLVER_STRATEGY(type_string, solver_type)                                                          \
+    DECLARE_SOLVER_STRATEGY(Arm, DEVICE_ARM, type_string, solver_type)
 
-#define REGISTER_ARM_LAYER_GRAD(type_string, layer_type) REGISTER_LAYER_GRAD(Arm, DEVICE_ARM, type_string, layer_type)
+#define REGISTER_ARM_SOLVER_STRATEGY(type_string, solver_type)                                                         \
+    REGISTER_SOLVER_STRATEGY(Arm, DEVICE_ARM, type_string, solver_type)
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_GRADIENT_LAYER_ACC_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_SOLVER_LAYER_ACC_H_

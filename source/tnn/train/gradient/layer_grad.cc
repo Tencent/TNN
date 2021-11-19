@@ -23,7 +23,7 @@ LayerGrad::~LayerGrad() {}
 Status LayerGrad::RegisterLayerGrad(DeviceType device, LayerType type, std::shared_ptr<LayerGrad> layer_grad) {
     GetLayerGradMap()[{device, type}] = layer_grad;
     return TNN_OK;
-};
+}
 
 LayerGrad *LayerGrad::GetLayerGrad(DeviceType device, LayerType type) {
     auto &layer_grad_map = GetLayerGradMap();

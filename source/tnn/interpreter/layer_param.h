@@ -692,6 +692,7 @@ struct LogSoftmaxLayerParam : public LayerParam {
     PARAM_COPY(LogSoftmaxLayerParam)
 };
 
+#if TNN_TRAIN
 struct GradientParam : public LayerParam {
     LayerType forward_type;
     std::string forward_layer_name;
@@ -700,11 +701,13 @@ struct GradientParam : public LayerParam {
     PARAM_COPY(GradientParam)
 };
 
-struct SGDParam : public LayerParam {
+struct SolverParam : public LayerParam {
+    SolverType type;
     float learning_rate;
 
-    PARAM_COPY(SGDParam)
+    PARAM_COPY(SolverParam)
 };
+#endif // TNN_TRAIN
 
 };  // namespace TNN_NS
 

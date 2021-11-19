@@ -43,10 +43,13 @@ public:
     virtual Status GetTrainingFeedback(TrainingFeedback &feed_back) override;
 
 protected:
-    virtual Status UpdateGradMap();
-    virtual Status UpdateForwardLayerCount();
-    virtual Status InitLossGrad();
-    virtual Status UpdateSolver();
+    virtual Status InitTrainingStatus();
+    virtual Status InitRuntimeInfo();
+
+    virtual Status SetLossGrad();
+    virtual Status SetGlobalStep();
+    virtual Status SetGradientLayerRuntimeInfo();
+    virtual Status SetSolverLayerRuntimeInfo();
 
     std::map<Blob *, Blob *> input_to_grad_map_;
     std::map<Blob *, RawBuffer *> grad_to_resource_map_;
@@ -54,6 +57,7 @@ protected:
     std::string loss_name_;
     std::string loss_grad_name_;
     std::string global_step_name_;
+    std::string global_step_init_name_;
 
     TrainMode run_mode_ = TRAIN_MODE_TRAIN;
 };

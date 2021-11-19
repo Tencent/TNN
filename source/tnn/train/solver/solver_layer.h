@@ -12,18 +12,19 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_SGD_LAYER_H_
-#define TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_SGD_LAYER_H_
+#ifndef TNN_SOURCE_TNN_TRAIN_SOLVER_SOLVER_LAYER_H_
+#define TNN_SOURCE_TNN_TRAIN_SOLVER_SOLVER_LAYER_H_
 
 #include "tnn/layer/base_layer.h"
+#include "tnn/train/training_info.h"
 
 namespace TNN_NS {
 
-class SGDLayer : public BaseLayer {
+class SolverLayer : public BaseLayer {
 public:
-    explicit SGDLayer(LayerType ignore);
+    explicit SolverLayer(LayerType ignore);
 
-    virtual ~SGDLayer();
+    virtual ~SolverLayer();
 
     virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, std::vector<Blob *> &inputs,
                         std::vector<Blob *> &outputs, AbstractDevice *device, bool enable_const_folder = true);
@@ -34,9 +35,9 @@ protected:
     virtual Status InferOutputShape(bool ignore_error = false);
 
 private:
-    LayerGradInfo grad_info_;
+    RuntimeTrainingInfo training_info_;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_SGD_LAYER_H_
+#endif  // TNN_SOURCE_TNN_TRAIN_SOLVER_SOLVER_LAYER_H_

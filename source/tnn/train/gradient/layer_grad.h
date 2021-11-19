@@ -15,13 +15,13 @@
 #ifndef TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_GRAD_H
 #define TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_GRAD_H
 
-#include <set>
+#include <map>
 #include <string>
 
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
 #include "tnn/layer/base_layer.h"
-#include "tnn/train/layer_grad_info.h"
+#include "tnn/train/training_info.h"
 #include "tnn/utils/dims_function_utils.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -34,7 +34,8 @@ public:
     virtual ~LayerGrad();
 
     virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                          LayerResource *resource, LayerParam *param, Context *context, LayerGradInfo *grad_info) = 0;
+                          LayerResource *resource, LayerParam *param, Context *context,
+                          const LayerGradInfo &grad_info) = 0;
 
     static Status RegisterLayerGrad(DeviceType device, LayerType type, std::shared_ptr<LayerGrad> layer_grad);
 
@@ -57,21 +58,18 @@ public:
     public:                                                                                                            \
         virtual ~device_string##type_string##LayerGrad(){};                                                            \
         virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,                   \
-                              LayerResource *resource, LayerParam *param, Context *context, LayerGradInfo *grad_info); \
+                              LayerResource *resource, LayerParam *param, Context *context,                            \
+                              const LayerGradInfo &grad_info);                                                         \
     };
-
-#define DECLARE_ARM_LAYER_GRAD(type_string, layer_type) DECLARE_LAYER_GRAD(Arm, DEVICE_ARM, type_string, layer_type)
 
 #define REGISTER_LAYER_GRAD(device_string, device, type_string, layer_type)                                            \
     LayerGradRegister<device_string##type_string##LayerGrad> g_##device##_##layer_type##_layer_grad_register(          \
         device, layer_type);
 
-#define REGISTER_ARM_LAYER_GRAD(type_string, layer_type) REGISTER_LAYER_GRAD(Arm, DEVICE_ARM, type_string, layer_type)
-
 #define PREPARE_INPUT_AND_GRAD(I)                                                                                      \
     auto input_##I             = inputs[I];                                                                            \
     auto input_grad_##I        = outputs[I];                                                                           \
-    bool acc_input_grad_##I    = grad_info->accumulate_input_grad[I];                                                  \
+    bool acc_input_grad_##I    = grad_info.accumulate_input_grad[I];                                                   \
     auto input_##I##_dims      = input_##I->GetBlobDesc().dims;                                                        \
     auto input_grad_##I##_dims = input_grad_##I->GetBlobDesc().dims;                                                   \
     if (!DimsVectorUtils::Equal(input_##I##_dims, input_grad_##I##_dims)) {                                            \
@@ -85,7 +83,7 @@ public:
 #define PREPARE_RESOURCE_AND_GRAD(I, J)                                                                                \
     auto resource_##I             = resource->GetTrainable()[I];                                                       \
     auto resource_grad_##I        = outputs[J];                                                                        \
-    bool acc_resource_grad_##I    = grad_info->accumulate_resource_grad[I];                                            \
+    bool acc_resource_grad_##I    = grad_info.accumulate_resource_grad[I];                                             \
     auto resource_##I##_count     = resource_##I->GetDataCount();                                                      \
     auto resource_grad_##I##_dims = resource_grad_##I->GetBlobDesc().dims;                                             \
     if (DimsVectorUtils::Count(resource_grad_##I##_dims) != resource_##I##_count) {                                    \
@@ -112,7 +110,6 @@ public:
 
 // IOR: input, output and resource counts
 #define ON_GRAD_PREPARATION_IOR(I, O, R)                                                                               \
-    CHECK_PARAM_NULL(grad_info);                                                                                       \
     if (inputs.size() != (I + O * 2) || outputs.size() != I + R) {                                                     \
         LOGE(                                                                                                          \
             "LayerGrad::OnGrad, input or output size error, input %d vs expected %d + %d, output %d vs expected %d + " \
@@ -124,11 +121,11 @@ public:
         LOGE("LayerGrad::OnGrad, trainable size error\n");                                                             \
         return Status(TNNERR_TRAIN_ERROR, "trainable size error");                                                     \
     }                                                                                                                  \
-    if (grad_info->accumulate_input_grad.size() != I) {                                                                \
+    if (grad_info.accumulate_input_grad.size() != I) {                                                                 \
         LOGE("LayerGrad::OnGrad, accumulate_input_grad size error\n");                                                 \
         return Status(TNNERR_TRAIN_ERROR, "accumulate_input_grad size error");                                         \
     }                                                                                                                  \
-    if (grad_info->accumulate_resource_grad.size() != R) {                                                             \
+    if (grad_info.accumulate_resource_grad.size() != R) {                                                              \
         LOGE("LayerGrad::OnGrad, accumulate_resource_grad size error\n");                                              \
         return Status(TNNERR_TRAIN_ERROR, "accumulate_resource_grad size error");                                      \
     }                                                                                                                  \

@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/train/solver/sgd_layer.h"
+#include "tnn/train/solver/solver_layer.h"
 
 #include <cmath>
 
@@ -21,36 +21,36 @@
 
 namespace TNN_NS {
 
-SGDLayer::SGDLayer(LayerType ignore) : BaseLayer(LAYER_SGD) {}
+SolverLayer::SolverLayer(LayerType ignore) : BaseLayer(LAYER_SOLVER) {}
 
-SGDLayer::~SGDLayer() {}
+SolverLayer::~SolverLayer() {}
 
-Status SGDLayer::Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& input_blobs,
-                      std::vector<Blob*>& output_blobs, AbstractDevice* device, bool enable_const_folder) {
+Status SolverLayer::Init(Context* context, LayerParam* param, LayerResource* resource, std::vector<Blob*>& input_blobs,
+                         std::vector<Blob*>& output_blobs, AbstractDevice* device, bool enable_const_folder) {
     RETURN_ON_NEQ(BaseLayer::Init(context, param, resource, input_blobs, output_blobs, device, enable_const_folder),
                   TNN_OK);
 
     if (!layer_acc_) {
-        LOGE("SGDLayer::Init ERROR, layer acc is nil\n");
+        LOGE("SolverLayer::Init ERROR, layer acc is nil\n");
         return Status(TNNERR_LAYER_ERR, "layer acc is nil");
     }
 
-    layer_acc_->SetLayerGradInfo(&grad_info_);
+    layer_acc_->SetRuntimeTrainingInfo(&training_info_);
 
     return TNN_OK;
 }
 
-Status SGDLayer::SetTrainableResources(std::vector<RawBuffer*> trainable) {
-    grad_info_.trainable_resources = trainable;
+Status SolverLayer::SetTrainableResources(std::vector<RawBuffer*> trainable) {
+    training_info_.solver_info.trainable_resources = trainable;
 
     return TNN_OK;
 }
 
-Status SGDLayer::InferOutputShape(bool ignore_error) {
+Status SolverLayer::InferOutputShape(bool ignore_error) {
     BaseLayer::InferOutputShape(ignore_error);
 
     if (output_blobs_.size() != 1) {
-        LOGE("SGDLayer::InferOutputShape, output_blobs size error\n");
+        LOGE("SolverLayer::InferOutputShape, output_blobs size error\n");
         return Status(TNNERR_LAYER_ERR, "output_blobs size error");
     }
 
@@ -60,6 +60,6 @@ Status SGDLayer::InferOutputShape(bool ignore_error) {
     return TNN_OK;
 }
 
-REGISTER_LAYER(SGD, LAYER_SGD);
+REGISTER_LAYER(Solver, LAYER_SOLVER);
 
 }  // namespace TNN_NS

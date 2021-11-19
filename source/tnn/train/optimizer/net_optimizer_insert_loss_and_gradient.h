@@ -47,7 +47,7 @@ namespace optimizer {
         std::shared_ptr<LayerInfo> CreateGradient(LayerInfo* forward_layer);
 
         Status InsertGradientUpdateLayer(NetStructure* net_structure);
-        std::shared_ptr<LayerInfo> CreateSGD(const std::string& name);
+        std::shared_ptr<LayerInfo> CreateSolver(const std::string& name);
 
         TrainConfig train_config;
 

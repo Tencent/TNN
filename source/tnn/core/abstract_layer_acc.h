@@ -26,7 +26,7 @@
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
 #if TNN_TRAIN
-#include "tnn/train/layer_grad_info.h"
+#include "tnn/train/training_info.h"
 #endif  // TNN_TRAIN
 //#include "tnn/memory_manager/blob_memory_pool.h"
 
@@ -111,7 +111,7 @@ public:
 
 #if TNN_TRAIN
     // @brief set grad info
-    void SetLayerGradInfo(LayerGradInfo* info);
+    void SetRuntimeTrainingInfo(RuntimeTrainingInfo* info);
 #endif  // TNN_TRAIN
 
     // @brief only for train module; update layer resource to layer buffer
@@ -133,7 +133,7 @@ protected:
     ConstantResource* const_resource_ = nullptr;
     ConstantResourceFlag *const_resource_flag_ = nullptr;
 #if TNN_TRAIN
-    LayerGradInfo *grad_info_ = nullptr;
+    RuntimeTrainingInfo *runtime_training_info_ = nullptr;
 #endif  // TNN_TRAIN
     
     std::map<std::string, std::shared_ptr<Blob> > const_blob_map_ = {};

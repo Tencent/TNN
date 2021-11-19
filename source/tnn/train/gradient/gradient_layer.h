@@ -16,7 +16,7 @@
 #define TNN_SOURCE_TNN_TRAIN_GRADIENT_LAYER_GRADIENT_LAYER_H_
 
 #include "tnn/layer/base_layer.h"
-#include "tnn/train/layer_grad_info.h"
+#include "tnn/train/training_info.h"
 
 namespace TNN_NS {
 
@@ -47,7 +47,7 @@ private:
     std::vector<std::pair<Blob *, Blob *>> input_to_grad_;
     std::vector<std::pair<Blob *, RawBuffer *>> grad_to_resource_;
 
-    LayerGradInfo grad_info_;
+    RuntimeTrainingInfo training_info_;
 };
 
 }  // namespace TNN_NS
