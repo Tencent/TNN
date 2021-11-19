@@ -149,12 +149,14 @@ static inline bool IsLayoutReformatLayer(std::shared_ptr<LayerInfo> layer) {
 
 // gradient layer share resource with its forward layer
 static inline std::string GetResourceKey(const std::string &layer_name, LayerInfo *info) {
+#if TNN_TRAIN
     if (info->type == LAYER_GRADIENT) {
         GradientParam* grad_param = dynamic_cast<GradientParam*>(info->param.get());
         if (grad_param) {
             return grad_param->forward_layer_name;
         }
     }
+#endif  // TNN_TRAIN
     return layer_name;
 }
 

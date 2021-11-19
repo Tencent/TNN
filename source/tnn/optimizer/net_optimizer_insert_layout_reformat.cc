@@ -123,6 +123,7 @@ namespace optimizer {
     // metal and opencl may use adaptor layer to fall back computing on arm
     std::shared_ptr<const ImplementedLayout> NetOptimizerInsertLayoutReformat::GetLayoutsByLayerType(LayerInfo *layer) {
         LayerType forward_type = layer->type;
+#if TNN_TRAIN
         if (layer->type == LAYER_GRADIENT) {
             auto param = dynamic_cast<GradientParam *>(layer->param.get());
             if (!param) {
@@ -131,6 +132,7 @@ namespace optimizer {
             }
             forward_type = param->forward_type;
         }
+#endif  // TNN_TRAIN
         auto device_layouts = device_->GetImplementedLayout(layer->type, forward_type);
         if (!device_layouts || device_layouts->layouts.size() < 1) {
             auto adaptor_device_layouts = adaptor_device_->GetImplementedLayout(layer->type, forward_type);

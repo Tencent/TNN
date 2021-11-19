@@ -71,7 +71,7 @@ Status ArmInnerProductLayerAcc::allocateBufferBiasHalf(const std::vector<Blob *>
         if (fc_param->has_bias) {
             auto bias_handle          = fc_res->bias_handle;
             const int bias_data_count = bias_handle.GetDataCount();
-            if (bias_data_count != dims_output[1]) {
+            if (bias_data_count > 0 && (bias_data_count != dims_output[1])) {
                 LOGE("Error: Invalid model, bias has wrong data count: %d, required: %d\n", bias_data_count,
                      dims_output[1]);
                 return Status(TNNERR_MODEL_ERR, "Error: Invalid model, bias has wrong data count");
@@ -82,7 +82,10 @@ Status ArmInnerProductLayerAcc::allocateBufferBiasHalf(const std::vector<Blob *>
 
             int total_byte_size = ROUND_UP(dims_output[1], 8) * sizeof(fp16_t);
             buffer_bias_        = RawBuffer(total_byte_size);
-            ConvertFromFloatToHalf(bias_handle.force_to<float *>(), buffer_bias_.force_to<fp16_t *>(), dims_output[1]);
+            if (bias_data_count > 0) {
+                ConvertFromFloatToHalf(bias_handle.force_to<float *>(), buffer_bias_.force_to<fp16_t *>(),
+                                       dims_output[1]);
+            }
         }
     }
     return TNN_OK;
