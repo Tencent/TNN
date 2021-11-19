@@ -204,7 +204,8 @@ Status DefaultTrainNetwork::SetGradientLayerRuntimeInfo() {
 
     auto &trainable_layers = config_.train_config.trainable_layers;
     for (auto layer : layers_) {
-        if (trainable_layers.find(layer->GetLayerName()) != trainable_layers.end()) {
+        if (config_.train_config.train_the_whole_model ||
+            (trainable_layers.find(layer->GetLayerName()) != trainable_layers.end())) {
             need_refresh_layers_.push_back(layer);
         }
         auto grad_layer = dynamic_cast<GradientLayer *>(layer);

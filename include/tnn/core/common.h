@@ -183,6 +183,7 @@ struct PUBLIC TrainConfig {
     // fine tune part of the network
     // only trainable layers' parameters will be updated
     std::set<std::string> trainable_layers;
+    bool train_the_whole_model = false;
 };
 
 struct PUBLIC TrainingFeedback {

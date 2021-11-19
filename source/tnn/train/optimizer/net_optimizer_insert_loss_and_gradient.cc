@@ -79,8 +79,7 @@ namespace optimizer {
             return TNN_OK;
         }
 
-        // TODO: maybe default to train the whole model
-        if (train_config.trainable_layers.empty()) {
+        if (train_config.trainable_layers.empty() && !train_config.train_the_whole_model) {
             return Status(TNNERR_NET_ERR, "train mode but trainable_layers is empty");
         }
 
@@ -203,7 +202,8 @@ namespace optimizer {
                 }
 
                 // resource buffer gradients
-                if (train_config.trainable_layers.find(forward_layer->name) != train_config.trainable_layers.end()) {
+                if (train_config.train_the_whole_model ||
+                    (train_config.trainable_layers.find(forward_layer->name) != train_config.trainable_layers.end())) {
                     const auto &resource_map = net_resource->resource_map;
                     if (resource_map.find(forward_layer->name) != resource_map.end()) {
                         auto layer_resource = resource_map.at(forward_layer->name);
@@ -377,7 +377,8 @@ namespace optimizer {
         }
 
         for (auto &layer : structure->layers) {
-            if (train_config.trainable_layers.find(layer->name) != train_config.trainable_layers.end()) {
+            if (train_config.train_the_whole_model ||
+                (train_config.trainable_layers.find(layer->name) != train_config.trainable_layers.end())) {
                 need_grad_layers.insert(layer->name);
                 continue;
             }
