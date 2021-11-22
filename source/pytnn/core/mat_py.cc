@@ -44,10 +44,10 @@ namespace TNN_NS {
             void *input_ptr = static_cast<void *>(input_info.ptr);
             auto format = input_info.format;
             auto shape = input_info.shape;
-            if(shape.size() != 4) {
-                return TNN_NS::Mat(DEVICE_NAIVE, INVALID);
-            }
             if(format == py::format_descriptor<unsigned char>::format()) {
+                if(shape.size() != 4) {
+                    return TNN_NS::Mat(DEVICE_NAIVE, INVALID);
+                }
                 DimsVector input_dims = {(int)shape[0], (int)shape[3], (int)shape[1], (int)shape[2]};
                 if(shape[3] == 1) {
                     return TNN_NS::Mat(DEVICE_NAIVE, NGRAY, input_dims, input_ptr);
@@ -57,22 +57,22 @@ namespace TNN_NS {
                     return TNN_NS::Mat(DEVICE_NAIVE, N8UC4, input_dims, input_ptr);
                 } else {
                     return TNN_NS::Mat(DEVICE_NAIVE, INVALID); 
-		}
+                }
             } else {
                 DimsVector input_dims;
                 for(auto dim : input_info.shape) {
                     input_dims.push_back(dim);
                 }
-		if(format == py::format_descriptor<float>::format()) {
+                if(format == py::format_descriptor<float>::format()) {
                     return TNN_NS::Mat(DEVICE_NAIVE, NCHW_FLOAT, input_dims, input_ptr);
                 } else if(format == py::format_descriptor<int>::format()) {
                     return TNN_NS::Mat(DEVICE_NAIVE, NC_INT32, input_dims, input_ptr);
                 } else if(format == py::format_descriptor<long long>::format()) {
                     return TNN_NS::Mat(DEVICE_NAIVE, NC_INT64, input_dims, input_ptr);
-		} else {
+                } else {
                     return TNN_NS::Mat(DEVICE_NAIVE, INVALID);
                 }
-	    }
+            }
         }))
 	.def("GetDeviceType", &Mat::GetDeviceType)
         .def("GetMatType", &Mat::GetMatType)
