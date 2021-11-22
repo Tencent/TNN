@@ -23,6 +23,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/dims_function_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -621,6 +622,12 @@ bool FloatBlobCanIgnorePack(size_t channel, size_t hw) {
     return (hw == 1) && (channel % 4 == 0);
 }
 
+bool FloatBlobCanIgnorePack(const DimsVector &dims) {
+    auto channel = DimsFunctionUtils::GetDim(dims, 1);
+    auto hw      = DimsVectorUtils::Count(dims, 2);
+    return FloatBlobCanIgnorePack(channel, hw);
+}
+
 bool HalfBlobCanIgnorePack(size_t channel, size_t hw) {
     return (hw == 1) && (channel % 8 == 0);
 }
@@ -655,6 +662,13 @@ int PackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t h
     return 0;
 }
 
+int PackFloatBlob(float *dst, float *src, const DimsVector &dims) {
+    auto batch   = DimsFunctionUtils::GetDim(dims, 0);
+    auto channel = DimsFunctionUtils::GetDim(dims, 1);
+    auto hw      = DimsVectorUtils::Count(dims, 2);
+    return PackFloatBlob(dst, src, batch, channel, hw);
+}
+
 int UnpackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw) {
     OMP_PARALLEL_FOR_
     for (int n = 0; n < batch; ++n) {
@@ -663,6 +677,13 @@ int UnpackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t
         UnpackC4(dst_ptr_n, src_ptr_n, hw, channel);
     }
     return 0;
+}
+
+int UnpackFloatBlob(float *dst, float *src, const DimsVector &dims) {
+    auto batch   = DimsFunctionUtils::GetDim(dims, 0);
+    auto channel = DimsFunctionUtils::GetDim(dims, 1);
+    auto hw      = DimsVectorUtils::Count(dims, 2);
+    return UnpackFloatBlob(dst, src, batch, channel, hw);
 }
 
 int PackFloatBlob(bfp16_t *dst, bfp16_t *src, size_t batch, size_t channel, size_t hw) {
