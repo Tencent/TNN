@@ -52,8 +52,8 @@ function build_android() {
         cp $ANDROID_NDK/sources/cxx-stl/llvm-libc++/libs/armeabi-v7a/libc++_shared.so  ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/armeabi-v7a/
         cp $ANDROID_NDK/sources/cxx-stl/llvm-libc++/libs/arm64-v8a/libc++_shared.so ${WORK_DIR}/../../third_party/huawei_npu/cpp_lib/arm64-v8a/
     fi
-    mkdir -p build
-    cd $BUILD_DIR
+    mkdir -p $BUILD_DIR
+    cd $BUILD_DIR || exit
     cmake ../../../ \
           -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
           -DCMAKE_BUILD_TYPE=Release \
