@@ -431,7 +431,7 @@ namespace test {
             if (!train_config.train_the_whole_model) {
                 if (!FLAGS_nd.empty()) {
                     std::string message(FLAGS_nd);
-                    std::string delimiter = ";";
+                    std::string delimiter = " ";
 
                     size_t pos = 0;
                     std::string token;
@@ -509,7 +509,7 @@ namespace test {
         if(!FLAGS_im.empty()) {
             std::string input_map_message(FLAGS_im);
             std::vector<std::string> input_map_strs;
-            std::string delimiter = ";";
+            std::string delimiter = " ";
 
             size_t pos = 0;
             std::string token;

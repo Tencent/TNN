@@ -217,7 +217,15 @@ namespace optimizer {
                     (train_config.trainable_layers.find(forward_layer->name) != train_config.trainable_layers.end())) {
                     const auto &resource_map = net_resource->resource_map;
                     if (resource_map.find(forward_layer->name) != resource_map.end()) {
-                        auto layer_resource = resource_map.at(forward_layer->name);
+                        auto grad_param = dynamic_cast<GradientParam *>(grad_layer->param.get());
+                        if (!grad_param) {
+                            LOGE(
+                                "NetOptimizerInsertLossAndGradient::InsertGradientLayers ERROR, get grad param "
+                                "failed\n");
+                            return Status(TNNERR_TRAIN_ERROR, "get grad param failed");
+                        }
+                        grad_param->need_train = true;
+                        auto layer_resource    = resource_map.at(forward_layer->name);
                         for (int i = 0; i < layer_resource->GetTrainable().size(); ++i) {
                             auto resource_grad = forward_layer->name + resource_grad_suffix + std::to_string(i);
                             grad_layer->outputs.push_back(resource_grad);
@@ -393,6 +401,7 @@ namespace optimizer {
             if (train_config.train_the_whole_model ||
                 (train_config.trainable_layers.find(layer->name) != train_config.trainable_layers.end())) {
                 need_grad_layers.insert(layer->name);
+                LOGD("Layer need to calculate grad: %s\n", layer->name.c_str());
                 continue;
             }
 
@@ -414,6 +423,7 @@ namespace optimizer {
             }
             if (need_grad) {
                 need_grad_layers.insert(layer->name);
+                LOGD("Layer need to calculate grad: %s\n", layer->name.c_str());
             }
         }
 

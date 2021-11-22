@@ -697,6 +697,7 @@ struct GradientParam : public LayerParam {
     LayerType forward_type;
     std::string forward_layer_name;
     LayerParam* forward_param;
+    bool need_train = false;
 
     PARAM_COPY(GradientParam)
 };

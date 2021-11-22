@@ -47,6 +47,7 @@ private:
     std::vector<std::pair<Blob *, Blob *>> input_to_grad_;
     std::vector<std::pair<Blob *, RawBuffer *>> grad_to_resource_;
 
+    const GradientParam *grad_param_ = nullptr;
     RuntimeTrainingInfo training_info_;
 };
 

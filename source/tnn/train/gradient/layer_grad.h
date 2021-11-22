@@ -115,14 +115,22 @@ public:
 
 // IOR: input, output and resource counts
 #define ON_GRAD_PREPARATION_IOR(I, O, R)                                                                               \
-    if (inputs.size() != ((I) + (O)*2) || outputs.size() != (I) + (R)) {                                               \
-        LOGE(                                                                                                          \
-            "LayerGrad::OnGrad, input or output size error, input %d vs expected %d + %d, output %d vs expected %d + " \
-            "%d\n",                                                                                                    \
-            int(inputs.size()), (I), (O)*2, int(outputs.size()), (I), (R));                                            \
-        return Status(TNNERR_TRAIN_ERROR, "input or output size error");                                               \
+    if (inputs.size() != ((I) + (O)*2)) {                                                                              \
+        LOGE("LayerGrad::OnGrad, input size error, input %d vs expected %d + %d\n", int(inputs.size()), (I), (O)*2);   \
+        return Status(TNNERR_TRAIN_ERROR, "input size error");                                                         \
     }                                                                                                                  \
-    if ((R) > 0 && resource->GetTrainable().size() != (R)) {                                                           \
+    int resource_need_train = 0;                                                                                       \
+    if (outputs.size() == (I)) {                                                                                       \
+        LOGD("LayerGrad::OnGrad, resource do not need to train, skip calculating resource grads\n");                   \
+    } else {                                                                                                           \
+        resource_need_train = (R);                                                                                     \
+        if (outputs.size() != (I) + resource_need_train) {                                                             \
+            LOGE("LayerGrad::OnGrad, output size error, output %d vs expected %d + %d\n", int(outputs.size()), (I),    \
+                 resource_need_train);                                                                                 \
+            return Status(TNNERR_TRAIN_ERROR, "output size error");                                                    \
+        }                                                                                                              \
+    }                                                                                                                  \
+    if (resource_need_train > 0 && resource->GetTrainable().size() != resource_need_train) {                           \
         LOGE("LayerGrad::OnGrad, trainable size error\n");                                                             \
         return Status(TNNERR_TRAIN_ERROR, "trainable size error");                                                     \
     }                                                                                                                  \
@@ -130,13 +138,13 @@ public:
         LOGE("LayerGrad::OnGrad, accumulate_input_grad size error\n");                                                 \
         return Status(TNNERR_TRAIN_ERROR, "accumulate_input_grad size error");                                         \
     }                                                                                                                  \
-    if (grad_info.accumulate_resource_grad.size() != (R)) {                                                            \
+    if (grad_info.accumulate_resource_grad.size() != resource_need_train) {                                            \
         LOGE("LayerGrad::OnGrad, accumulate_resource_grad size error\n");                                              \
         return Status(TNNERR_TRAIN_ERROR, "accumulate_resource_grad size error");                                      \
     }                                                                                                                  \
     PREPARE_INPUT_AND_GRAD((I));                                                                                       \
     PREPARE_OUTPUT_AND_GRAD((I), (O));                                                                                 \
-    PREPARE_RESOURCE_AND_GRAD((I), (R));
+    PREPARE_RESOURCE_AND_GRAD((I), resource_need_train);
 
 }  // namespace TNN_NS
 

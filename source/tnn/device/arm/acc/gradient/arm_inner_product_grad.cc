@@ -125,8 +125,6 @@ Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const
         auto weight_ptr      = weight.force_to<float *>();
         auto output_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(output_grads[0]->GetHandle()));
         auto input_grad_ptr  = reinterpret_cast<float *>(GetBlobHandlePtr(input_grads[0]->GetHandle()));
-        auto weight_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grads[0]->GetHandle()));
-        auto bias_grad_ptr   = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grads[1]->GetHandle()));
 
         if (acc_input_grads[0]) {
             ExecInputGrad<1>(batch, oc, ic, input_grad_ptr, output_grad_ptr, weight_ptr, arm_context);
@@ -134,17 +132,22 @@ Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const
             ExecInputGrad<0>(batch, oc, ic, input_grad_ptr, output_grad_ptr, weight_ptr, arm_context);
         }
 
-        if (acc_resource_grads[0]) {
-            ExecWeightGrad<1>(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
-        } else {
-            ExecWeightGrad<0>(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
-        }
+        if (resource_need_train) {
+            auto weight_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grads[0]->GetHandle()));
+            auto bias_grad_ptr   = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grads[1]->GetHandle()));
 
-        if (has_bias && bias.GetDataCount() > 0) {
-            if (acc_resource_grads[1]) {
-                ExecBiasGrad<1>(batch, oc, bias_grad_ptr, output_grad_ptr);
+            if (acc_resource_grads[0]) {
+                ExecWeightGrad<1>(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
             } else {
-                ExecBiasGrad<0>(batch, oc, bias_grad_ptr, output_grad_ptr);
+                ExecWeightGrad<0>(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
+            }
+
+            if (has_bias && bias.GetDataCount() > 0) {
+                if (acc_resource_grads[1]) {
+                    ExecBiasGrad<1>(batch, oc, bias_grad_ptr, output_grad_ptr);
+                } else {
+                    ExecBiasGrad<0>(batch, oc, bias_grad_ptr, output_grad_ptr);
+                }
             }
         }
     } else {

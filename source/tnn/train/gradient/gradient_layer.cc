@@ -28,6 +28,12 @@ GradientLayer::~GradientLayer() {}
 Status GradientLayer::Init(Context* context, LayerParam* param, LayerResource* resource,
                            std::vector<Blob*>& input_blobs, std::vector<Blob*>& output_blobs, AbstractDevice* device,
                            bool enable_const_folder) {
+    grad_param_ = dynamic_cast<GradientParam*>(param);
+    if (!grad_param_) {
+        LOGE("GradientLayer::Init ERROR, grad param is nil\n");
+        return Status(TNNERR_LAYER_ERR, "grad param is nil");
+    }
+
     RETURN_ON_NEQ(BaseLayer::Init(context, param, resource, input_blobs, output_blobs, device, enable_const_folder),
                   TNN_OK);
 
@@ -78,7 +84,7 @@ output_blobs_: [input_grads, resource_grads]
 Status GradientLayer::InferOutputShape(bool ignore_error) {
     BaseLayer::InferOutputShape(ignore_error);
 
-    resource_grad_count_ = resource_ ? resource_->GetTrainable().size() : 0;
+    resource_grad_count_ = grad_param_->need_train ? resource_->GetTrainable().size() : 0;
 
     input_grad_count_ = output_blobs_.size() - resource_grad_count_;
     if (input_grad_count_ < 0) {
