@@ -51,19 +51,19 @@ public:
                               LayerResource *resource, LayerParam *param, Context *context,                            \
                               const LayerGradInfo &grad_info) {                                                        \
             ON_GRAD_PREPARATION_IOR(1, 1, 0);                                                                          \
-            if (!DimsVectorUtils::Equal(input_0_dims, output_0_dims)) {                                                \
+            if (!DimsVectorUtils::Equal(input_dims[0], output_dims[0])) {                                              \
                 return Status(TNNERR_TRAIN_ERROR, "Arm" #type_string "LayerGrad input and output dims not match");     \
             }                                                                                                          \
-            int batch   = DimsFunctionUtils::GetDim(input_0_dims, 0);                                                  \
-            int channel = DimsFunctionUtils::GetDim(input_0_dims, 1);                                                  \
-            int hw      = DimsVectorUtils::Count(input_0_dims, 2);                                                     \
-            if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {                                               \
+            int batch   = DimsFunctionUtils::GetDim(input_dims[0], 0);                                                 \
+            int channel = DimsFunctionUtils::GetDim(input_dims[0], 1);                                                 \
+            int hw      = DimsVectorUtils::Count(input_dims[0], 2);                                                    \
+            if (fw_inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {                                            \
                 int count_quad       = batch * UP_DIV(channel, 4) * hw;                                                \
-                auto input_ptr       = reinterpret_cast<float *>(GetBlobHandlePtr(input_0->GetHandle()));              \
-                auto output_ptr      = reinterpret_cast<float *>(GetBlobHandlePtr(output_0->GetHandle()));             \
-                auto input_grad_ptr  = reinterpret_cast<float *>(GetBlobHandlePtr(input_grad_0->GetHandle()));         \
-                auto output_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(output_grad_0->GetHandle()));        \
-                if (acc_input_grad_0) {                                                                                \
+                auto input_ptr       = reinterpret_cast<float *>(GetBlobHandlePtr(fw_inputs[0]->GetHandle()));         \
+                auto output_ptr      = reinterpret_cast<float *>(GetBlobHandlePtr(fw_outputs[0]->GetHandle()));        \
+                auto input_grad_ptr  = reinterpret_cast<float *>(GetBlobHandlePtr(input_grads[0]->GetHandle()));       \
+                auto output_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(output_grads[0]->GetHandle()));      \
+                if (acc_input_grads[0]) {                                                                              \
                     ExecGrad<1>(count_quad, input_grad_ptr, input_ptr, output_ptr, output_grad_ptr);                   \
                 } else {                                                                                               \
                     ExecGrad<0>(count_quad, input_grad_ptr, input_ptr, output_ptr, output_grad_ptr);                   \

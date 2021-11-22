@@ -190,11 +190,12 @@ namespace optimizer {
                     blob_to_grad_map[forward_input] = blob_grad;
                 }
 
+                std::vector<std::string> output_grads;
                 for (auto forward_output : forward_layer->outputs) {
                     grad_layer->inputs.push_back(forward_output);
                     if (forward_output != loss_blob_) {
                         if (blob_to_grad_map.find(forward_output) != blob_to_grad_map.end()) {
-                            grad_layer->inputs.push_back(blob_to_grad_map[forward_output]);
+                            output_grads.push_back(blob_to_grad_map[forward_output]);
                         } else {
                             LOGE(
                                 "NetOptimizerInsertLossAndGradient::InsertGradientLayers ERROR, can not find blob "
@@ -204,11 +205,12 @@ namespace optimizer {
                         }
                     } else {
                         auto loss_grad = forward_output + gradient_suffix;
-                        grad_layer->inputs.push_back(loss_grad);
+                        output_grads.push_back(loss_grad);
                         net_structure->blobs.insert(loss_grad);
                         net_structure->inputs_shape_map.insert({loss_grad, {1}});
                     }
                 }
+                grad_layer->inputs.insert(grad_layer->inputs.end(), output_grads.begin(), output_grads.end());
 
                 // resource buffer gradients
                 if (train_config.train_the_whole_model ||

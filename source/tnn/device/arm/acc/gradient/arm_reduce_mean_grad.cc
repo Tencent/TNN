@@ -23,8 +23,8 @@ Status ArmReduceMeanLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const s
                                       const LayerGradInfo &grad_info) {
     ON_GRAD_PREPARATION_IOR(1, 1, 0);
 
-    int input_count  = DimsVectorUtils::Count(input_0_dims);
-    int output_count = DimsVectorUtils::Count(output_0_dims);
+    int input_count  = DimsVectorUtils::Count(input_dims[0]);
+    int output_count = DimsVectorUtils::Count(output_dims[0]);
     float ratio      = float(output_count) / float(input_count);
 
     if (output_count != 1) {
@@ -32,21 +32,21 @@ Status ArmReduceMeanLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const s
         return Status(TNNERR_LAYER_ERR, "only all reduce supported yet");
     }
 
-    int batch   = DimsFunctionUtils::GetDim(input_0_dims, 0);
-    int channel = DimsFunctionUtils::GetDim(input_0_dims, 1);
-    int hw      = DimsVectorUtils::Count(input_0_dims, 2);
+    int batch   = DimsFunctionUtils::GetDim(input_dims[0], 0);
+    int channel = DimsFunctionUtils::GetDim(input_dims[0], 1);
+    int hw      = DimsVectorUtils::Count(input_dims[0], 2);
 
-    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+    if (fw_inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         int count_quad = batch * UP_DIV(channel, 4) * hw;
 
         Float4 grad = Float4(ratio);
 
-        float *output_grad_ptr = (float *)GetBlobHandlePtr(output_grad_0->GetHandle());
+        float *output_grad_ptr = (float *)GetBlobHandlePtr(output_grads[0]->GetHandle());
         grad                   = grad * (*output_grad_ptr);
 
-        auto input_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(input_grad_0->GetHandle()));
+        auto input_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(input_grads[0]->GetHandle()));
 
-        if (!acc_input_grad_0) {
+        if (!acc_input_grads[0]) {
             OMP_PARALLEL_FOR_
             for (int n = 0; n < count_quad; n++) {
                 Float4::save(input_grad_ptr + n * 4, grad);

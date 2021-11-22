@@ -112,36 +112,36 @@ Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const
     auto weight = inner_product_res->weight_handle;
     auto bias   = inner_product_res->bias_handle;
 
-    int batch = DimsFunctionUtils::GetDim(input_0_dims, 0);
-    int ic    = DimsVectorUtils::Count(input_0_dims, 1);
-    int oc    = DimsFunctionUtils::GetDim(output_0_dims, 1);
+    int batch = DimsFunctionUtils::GetDim(input_dims[0], 0);
+    int ic    = DimsVectorUtils::Count(input_dims[0], 1);
+    int oc    = DimsFunctionUtils::GetDim(output_dims[0], 1);
     if (weight.GetDataCount() != oc * ic) {
         LOGD("ArmInnerProductLayerGrad::OnGrad ERROR, weight data count error\n");
         return Status(TNNERR_TRAIN_ERROR, "weight data count error");
     }
 
-    if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        auto input_ptr       = reinterpret_cast<float *>(GetBlobHandlePtr(input_0->GetHandle()));
+    if (fw_inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        auto input_ptr       = reinterpret_cast<float *>(GetBlobHandlePtr(fw_inputs[0]->GetHandle()));
         auto weight_ptr      = weight.force_to<float *>();
-        auto output_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(output_grad_0->GetHandle()));
-        auto input_grad_ptr  = reinterpret_cast<float *>(GetBlobHandlePtr(input_grad_0->GetHandle()));
-        auto weight_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grad_0->GetHandle()));
-        auto bias_grad_ptr   = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grad_1->GetHandle()));
+        auto output_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(output_grads[0]->GetHandle()));
+        auto input_grad_ptr  = reinterpret_cast<float *>(GetBlobHandlePtr(input_grads[0]->GetHandle()));
+        auto weight_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grads[0]->GetHandle()));
+        auto bias_grad_ptr   = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grads[1]->GetHandle()));
 
-        if (acc_input_grad_0) {
+        if (acc_input_grads[0]) {
             ExecInputGrad<1>(batch, oc, ic, input_grad_ptr, output_grad_ptr, weight_ptr, arm_context);
         } else {
             ExecInputGrad<0>(batch, oc, ic, input_grad_ptr, output_grad_ptr, weight_ptr, arm_context);
         }
 
-        if (acc_resource_grad_0) {
+        if (acc_resource_grads[0]) {
             ExecWeightGrad<1>(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
         } else {
             ExecWeightGrad<0>(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
         }
 
         if (has_bias && bias.GetDataCount() > 0) {
-            if (acc_resource_grad_1) {
+            if (acc_resource_grads[1]) {
                 ExecBiasGrad<1>(batch, oc, bias_grad_ptr, output_grad_ptr);
             } else {
                 ExecBiasGrad<0>(batch, oc, bias_grad_ptr, output_grad_ptr);
