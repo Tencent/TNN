@@ -77,7 +77,7 @@ NetworkType ConvertNetworkType(std::string network_type) {
     } else if ("TORCH" == network_type) {
         return NETWORK_TYPE_TNNTORCH;
     } else {
-        return NETWORK_TYPE_DEFAULT;
+        return NETWORK_TYPE_AUTO;
     }
 }
 
