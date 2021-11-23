@@ -82,11 +82,17 @@ public:
     void register_max_inshape(std::vector<DimsVector>& in_shape) {
         max_in_shape_ = in_shape;
     }
+    void register_intype(std::vector<DataType>& in_type) {
+        in_type_ = in_type;
+    }
     const std::vector<DimsVector>& min_in_shape() const {
         return min_in_shape_;
     }
     const std::vector<DimsVector>& max_in_shape() const {
         return max_in_shape_;
+    }
+    const std::vector<DataType>& in_type() const {
+        return in_type_;
     }
     void update_target(SegmentedBlockTarget new_target) {
         target_ = new_target;
@@ -99,6 +105,7 @@ private:
     SegmentedBlockTarget target_;
     std::vector<DimsVector> min_in_shape_;
     std::vector<DimsVector> max_in_shape_;
+    std::vector<DataType> in_type_;
     std::vector<torch::jit::Value*> inputs_;
     std::vector<torch::jit::Value*> outputs_;
     std::vector<torch::jit::Node*> nodes_;

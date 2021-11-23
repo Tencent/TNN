@@ -162,22 +162,27 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
         if (min_input_shape.size() && max_input_shape.size() && min_input_shape.size() == max_input_shape.size()) {
             auto shape_mod = mod.clone();
             auto shape_seg = partitioning::Partition(shape_mod, shape_mod.get_method(forward_func_name).graph(), config);
-            partitioning::InputShapesList subgraph_min_shapes;
-            partitioning::InputShapesList subgraph_max_shapes;
-            partitioning::runShapeInfer(shape_mod, shape_seg, min_input_shape, config, subgraph_min_shapes);
-            partitioning::runShapeInfer(shape_mod, shape_seg, max_input_shape, config, subgraph_max_shapes);
+            std::vector<BlobDesc> subgraph_min_input_info;
+            std::vector<BlobDesc> subgraph_max_input_info;
+            //// input type & shape will be used for random input generation, then subgraph input info can be infered out
+            InputDataTypeMap input_type;
+            partitioning::runShapeInfer(shape_mod, shape_seg, min_input_shape, input_type, config, subgraph_min_input_info);
+            partitioning::runShapeInfer(shape_mod, shape_seg, max_input_shape, input_type, config, subgraph_max_input_info);
 
             int input_idx = 0;
             for (auto &block : seg_blocks) {
                 std::vector<DimsVector> min_shape;
                 std::vector<DimsVector> max_shape;
+                std::vector<DataType> in_type;
                 for (auto &input : block.raw_inputs()) {
-                    min_shape.push_back(subgraph_min_shapes[input_idx].second);
-                    max_shape.push_back(subgraph_max_shapes[input_idx].second);
+                    min_shape.push_back(subgraph_min_input_info[input_idx].dims);
+                    max_shape.push_back(subgraph_max_input_info[input_idx].dims);
+                    in_type.push_back(subgraph_max_input_info[input_idx].data_type);
                     input_idx++;
                 }
                 block.register_min_inshape(min_shape);
                 block.register_max_inshape(max_shape);
+                block.register_intype(in_type);
             }
         }
     #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)

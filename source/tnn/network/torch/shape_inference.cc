@@ -25,7 +25,7 @@
 namespace TNN_NS {
 namespace partitioning {
 
-void genRandomInputs(std::shared_ptr<torch::jit::Graph> graph, InputShapesMap &input_shape,
+void genRandomInputs(std::shared_ptr<torch::jit::Graph> graph, InputShapesMap &input_shape, InputDataTypeMap &input_type,
                         std::vector<std::shared_ptr<Blob>> &blobs,
                         std::vector<torch::jit::IValue> &jit_inputs_ivalues, NetworkConfig& config) {
     std::set<c10::TypeKind> supported_kinds = {
@@ -71,7 +71,8 @@ void genRandomInputs(std::shared_ptr<torch::jit::Graph> graph, InputShapesMap &i
 }
 
 void runShapeInfer(torch::jit::Module& mod, std::vector<SegmentedBlock> &segmented_blocks,
-                   InputShapesMap &input_shape, NetworkConfig& config, InputShapesList& subgraph_input_shapes) {
+                   InputShapesMap &input_shape, InputDataTypeMap &input_type, NetworkConfig& config,
+                   std::vector<BlobDesc>& subgraph_input_info) {
     auto graph = mod.get_method("forward").graph();
     std::vector<torch::jit::Value *> new_vec;
     for (auto &block : segmented_blocks) {
@@ -91,20 +92,10 @@ void runShapeInfer(torch::jit::Module& mod, std::vector<SegmentedBlock> &segment
     graph->eraseOutput(0);
     graph->registerOutput(new_return_node->outputs()[0]);
 
-    // construct a ts module
-    // auto copy_g = graph->copy();
-    // torch::jit::script::Module cur_mod(c10::QualifiedName("module"));
-    // auto self = copy_g->insertInput(0, "self_1");
-    // self->setType(cur_mod.type());
-    // auto cur_method = cur_mod._ivalue()->compilation_unit()->create_function(c10::QualifiedName("forward"), copy_g);
-    // auto schema     = util::GenerateGraphSchema(cur_method->name(), copy_g);
-    // cur_mod.type()->addMethod(cur_method);
-    // cur_method->setSchema(schema);
-
     // forward with random inputs
     std::vector<torch::jit::IValue> jit_inputs_ivalues;
     std::vector<std::shared_ptr<Blob>> blobs;
-    genRandomInputs(graph, input_shape, blobs, jit_inputs_ivalues, config);
+    genRandomInputs(graph, input_shape, input_type, blobs, jit_inputs_ivalues, config);
     torch::jit::IValue jit_results_ivalues = mod.forward(jit_inputs_ivalues);
 
     auto get_output_shape = [&](torch::jit::IValue &output) {
@@ -113,17 +104,18 @@ void runShapeInfer(torch::jit::Module& mod, std::vector<SegmentedBlock> &segment
             auto results = output.toTuple()->elements();
             int i = 0;
             for (auto &r : results) {
-                auto shape = r.toTensor().sizes();
-                auto dims = util::toDims(shape);
-                // std::cout << new_vec[i]->debugName() << ":" << dims << std::endl;
-                subgraph_input_shapes.push_back(std::make_pair(new_vec[i++]->debugName(), dims));
+                auto result = r.toTensor();
+                BlobDesc blob_desc;
+                GetBlobDescFromTensor(blob_desc, result);
+                blob_desc.name = new_vec[i++]->debugName();
+                subgraph_input_info.push_back(blob_desc);
             }
         } else {
             auto result = output.toTensor();
-            auto shape = result.sizes();
-            auto dims = util::toDims(shape);
-            // std::cout << new_vec[0]->debugName() << ":" << dims << std::endl;
-            subgraph_input_shapes.push_back(std::make_pair(new_vec[0]->debugName(), dims));
+            BlobDesc blob_desc;
+            GetBlobDescFromTensor(blob_desc, result);
+            blob_desc.name = new_vec[0]->debugName();
+            subgraph_input_info.push_back(blob_desc);
         }
     };
 
