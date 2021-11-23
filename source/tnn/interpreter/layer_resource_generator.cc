@@ -88,7 +88,7 @@ class ConvolutionLayerResourceGenerator : public LayerResourceGenerator {
             layer_res->scale_handle.SetDataType(DATA_TYPE_FLOAT);
             InitRandom(layer_res->scale_handle.force_to<float*>(), layer_param->output_channel, 0.0f, 1.0f);
             layer_res->scale_bias_handle.SetDataType(DATA_TYPE_INT8);
-            InitRandom(layer_res->scale_bias_handle.force_to<int8_t*>(), layer_param->output_channel, (int8_t)8);
+            InitRandom(layer_res->scale_bias_handle.force_to<int8_t*>(), layer_param->output_channel, (int8_t)0);
 
         } else {
             layer_res->filter_handle = RawBuffer(filter_handle_size * sizeof(float));
@@ -209,7 +209,7 @@ class InnerProductLayerResourceGenerator : public LayerResourceGenerator {
             layer_res->scale_handle.SetDataType(DATA_TYPE_FLOAT);
             InitRandom(layer_res->scale_handle.force_to<float*>(), layer_param->num_output, 0.0f, 1.0f);
             layer_res->scale_bias_handle.SetDataType(DATA_TYPE_INT8);
-            InitRandom(layer_res->scale_bias_handle.force_to<int8_t*>(), layer_param->num_output, (int8_t)8);
+            InitRandom(layer_res->scale_bias_handle.force_to<int8_t*>(), layer_param->num_output, (int8_t)0);
 
         } else {
             layer_res->weight_handle = RawBuffer(weight_handle_size * sizeof(float));
