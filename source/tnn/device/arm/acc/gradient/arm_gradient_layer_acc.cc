@@ -23,7 +23,7 @@ Status ArmGradientLayerAcc::Init(Context *context, LayerParam *param, LayerResou
 
     forward_param_ = grad_param->forward_param;
 
-    impl_ = LayerGrad::GetLayerGrad(DEVICE_ARM, grad_param->forward_type);
+    impl_ = GradOp::GetGradOp(DEVICE_ARM, grad_param->forward_type);
     if (!impl_) {
         LOGE("ArmGradientLayerAcc::Init ERROR, layer grad not implemented: %d\n", grad_param->forward_type);
         return Status(TNNERR_TRAIN_ERROR, "layer grad not implemented");

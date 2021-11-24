@@ -18,18 +18,18 @@ namespace TNN_NS {
 
 // y = sigmoid(x)
 // dy/dx = y(1-y)
-typedef struct arm_sigmoid_grad_operator : arm_unary_grad_operator {
+typedef struct arm_sigmoid_grad_function : arm_unary_grad_function {
     virtual float operator()(const float &i, const float &o, const float &og) {
         return o * (1.0 - o) * og;
     }
     virtual Float4 operator()(const Float4 &i, const Float4 &o, const Float4 &og) {
         return o * (Float4(1.0) - o) * og;
     }
-} ARM_SIGMOID_GRAD_OP;
+} ARM_SIGMOID_GRAD_FUNC;
 
-DEFINE_ARM_UNARY_LAYER_GRAD(Sigmoid, ARM_SIGMOID_GRAD_OP)
+DEFINE_ARM_UNARY_GRAD_OP(Sigmoid, ARM_SIGMOID_GRAD_FUNC)
 
-REGISTER_ARM_LAYER_GRAD(Sigmoid, LAYER_SIGMOID)
+REGISTER_ARM_GRAD_OP(Sigmoid, LAYER_SIGMOID)
 REGISTER_ARM_GRAD_LAYOUT(LAYER_SIGMOID, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

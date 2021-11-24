@@ -12,29 +12,29 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/train/gradient/layer_grad.h"
+#include "tnn/train/gradient/grad_op.h"
 
 namespace TNN_NS {
 
-LayerGrad::LayerGrad() {}
+GradOp::GradOp() {}
 
-LayerGrad::~LayerGrad() {}
+GradOp::~GradOp() {}
 
-Status LayerGrad::RegisterLayerGrad(DeviceType device, LayerType type, std::shared_ptr<LayerGrad> layer_grad) {
-    GetLayerGradMap()[{device, type}] = layer_grad;
+Status GradOp::RegisterGradOp(DeviceType device, LayerType type, std::shared_ptr<GradOp> layer_grad) {
+    GetGradOpMap()[{device, type}] = layer_grad;
     return TNN_OK;
 }
 
-LayerGrad *LayerGrad::GetLayerGrad(DeviceType device, LayerType type) {
-    auto &layer_grad_map = GetLayerGradMap();
+GradOp *GradOp::GetGradOp(DeviceType device, LayerType type) {
+    auto &layer_grad_map = GetGradOpMap();
     if (layer_grad_map.count({device, type}) > 0) {
         return layer_grad_map[{device, type}].get();
     }
     return nullptr;
 }
 
-std::map<std::pair<DeviceType, LayerType>, std::shared_ptr<LayerGrad>> &LayerGrad::GetLayerGradMap() {
-    static std::map<std::pair<DeviceType, LayerType>, std::shared_ptr<LayerGrad>> layer_grad_map;
+std::map<std::pair<DeviceType, LayerType>, std::shared_ptr<GradOp>> &GradOp::GetGradOpMap() {
+    static std::map<std::pair<DeviceType, LayerType>, std::shared_ptr<GradOp>> layer_grad_map;
     return layer_grad_map;
 }
 

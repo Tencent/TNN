@@ -16,11 +16,11 @@
 
 namespace TNN_NS {
 
-DECLARE_ARM_LAYER_GRAD(ReduceMean, LAYER_REDUCE_MEAN);
+DECLARE_ARM_GRAD_OP(ReduceMean, LAYER_REDUCE_MEAN);
 
-Status ArmReduceMeanLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+Status ArmReduceMeanGradOp::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                                       LayerResource *resource, LayerParam *param, Context *context,
-                                      const LayerGradInfo &grad_info) {
+                                      const GradOpInfo &grad_info) {
     ON_GRAD_PREPARATION_IOR(1, 1, 0);
 
     int input_count  = DimsVectorUtils::Count(input_dims[0]);
@@ -28,7 +28,7 @@ Status ArmReduceMeanLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const s
     float ratio      = float(output_count) / float(input_count);
 
     if (output_count != 1) {
-        LOGE("ArmReduceMeanLayerGrad::OnGrad, only all reduce supported yet, but output count is %d\n", output_count);
+        LOGE("ArmReduceMeanGradOp::OnGrad, only all reduce supported yet, but output count is %d\n", output_count);
         return Status(TNNERR_LAYER_ERR, "only all reduce supported yet");
     }
 
@@ -58,14 +58,14 @@ Status ArmReduceMeanLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const s
             }
         }
     } else {
-        LOGE("ArmReduceMeanLayerGrad::OnGrad, dtype not supported\n");
+        LOGE("ArmReduceMeanGradOp::OnGrad, dtype not supported\n");
         return Status(TNNERR_LAYER_ERR, "dtype not supported");
     }
 
     return TNN_OK;
 }
 
-REGISTER_ARM_LAYER_GRAD(ReduceMean, LAYER_REDUCE_MEAN)
+REGISTER_ARM_GRAD_OP(ReduceMean, LAYER_REDUCE_MEAN)
 REGISTER_ARM_GRAD_LAYOUT(LAYER_REDUCE_MEAN, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

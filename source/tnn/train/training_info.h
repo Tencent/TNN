@@ -21,7 +21,7 @@
 
 namespace TNN_NS {
 
-struct LayerGradInfo {
+struct GradOpInfo {
     // if multipy layers update the same gradient, the results will be accumulated
     std::vector<bool> accumulate_input_grad;
     std::vector<bool> accumulate_resource_grad;
@@ -33,7 +33,7 @@ struct SolverStrategyInfo {
 };
 
 struct RuntimeTrainingInfo {
-    LayerGradInfo grad_info;
+    GradOpInfo grad_info;
     SolverStrategyInfo solver_info;
 };
 

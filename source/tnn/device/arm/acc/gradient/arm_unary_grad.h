@@ -19,7 +19,7 @@
 
 namespace TNN_NS {
 
-typedef struct arm_unary_grad_operator {
+typedef struct arm_unary_grad_function {
 public:
     virtual float operator()(const float &i, const float &o, const float &og) {
         return og;
@@ -27,9 +27,9 @@ public:
     virtual Float4 operator()(const Float4 &i, const Float4 &o, const Float4 &og) {
         return og;
     }
-} ARM_UNARY_GRAD_OP;
+} ARM_UNARY_GRAD_FUNC;
 
-#define DEFINE_ARM_UNARY_LAYER_GRAD_FUNC(grad_class, op_type)                                                          \
+#define DEFINE_ARM_UNARY_LAYER_GRAD_FUNC(grad_class, func_type)                                                        \
     template <int acc>                                                                                                 \
     void ExecGrad(int count_quad, float *input_grad, float *input, float *output, float *output_grad) {                \
         Float4 in, in_grad, out, out_grad;                                                                             \
@@ -38,21 +38,21 @@ public:
             in       = Float4::load(input + n * 4);                                                                    \
             out      = Float4::load(output + n * 4);                                                                   \
             out_grad = Float4::load(output_grad + n * 4);                                                              \
-            in_grad  = op_type()(in, out, out_grad);                                                                   \
+            in_grad  = func_type()(in, out, out_grad);                                                                 \
             Float4::save(input_grad + n * 4, acc ? (in_grad + Float4::load(input_grad + n * 4)) : in_grad);            \
         }                                                                                                              \
     }
 
-#define DEFINE_ARM_UNARY_LAYER_GRAD(type_string, op_type)                                                              \
-    class Arm##type_string##LayerGrad : public LayerGrad {                                                             \
+#define DEFINE_ARM_UNARY_GRAD_OP(type_string, func_type)                                                               \
+    class Arm##type_string##GradOp : public GradOp {                                                                   \
     public:                                                                                                            \
-        virtual ~Arm##type_string##LayerGrad(){};                                                                      \
+        virtual ~Arm##type_string##GradOp(){};                                                                         \
         virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,                   \
                               LayerResource *resource, LayerParam *param, Context *context,                            \
-                              const LayerGradInfo &grad_info) {                                                        \
+                              const GradOpInfo &grad_info) {                                                           \
             ON_GRAD_PREPARATION_IOR(1, 1, 0);                                                                          \
             if (!DimsVectorUtils::Equal(input_dims[0], output_dims[0])) {                                              \
-                return Status(TNNERR_TRAIN_ERROR, "Arm" #type_string "LayerGrad input and output dims not match");     \
+                return Status(TNNERR_TRAIN_ERROR, "Arm" #type_string "GradOp input and output dims not match");        \
             }                                                                                                          \
             int batch   = DimsFunctionUtils::GetDim(input_dims[0], 0);                                                 \
             int channel = DimsFunctionUtils::GetDim(input_dims[0], 1);                                                 \
@@ -69,14 +69,14 @@ public:
                     ExecGrad<0>(count_quad, input_grad_ptr, input_ptr, output_ptr, output_grad_ptr);                   \
                 }                                                                                                      \
             } else {                                                                                                   \
-                LOGE("Arm" #type_string "LayerGrad::OnGrad, dtype not supported\n");                                   \
+                LOGE("Arm" #type_string "GradOp::OnGrad, dtype not supported\n");                                      \
                 return Status(TNNERR_TRAIN_ERROR, "dtype not supported");                                              \
             }                                                                                                          \
             return TNN_OK;                                                                                             \
         }                                                                                                              \
                                                                                                                        \
     private:                                                                                                           \
-        DEFINE_ARM_UNARY_LAYER_GRAD_FUNC(Arm##type_string##LayerGrad, op_type)                                         \
+        DEFINE_ARM_UNARY_LAYER_GRAD_FUNC(Arm##type_string##GradOp, func_type)                                          \
     };
 
 }  // namespace TNN_NS

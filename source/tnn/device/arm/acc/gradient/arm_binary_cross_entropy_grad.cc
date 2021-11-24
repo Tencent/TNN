@@ -20,7 +20,7 @@ namespace TNN_NS {
 // y = -x1*log(x0) - (1-x1)*log(1-x0)
 // dy/dx0 = (1-x1)/(1-x0) -x1/x0
 // dy/dx1 = log(1-x0) - log(x0)
-typedef struct arm_bce_grad_operator : arm_binary_grad_operator {
+typedef struct arm_bce_grad_function: arm_binary_grad_function {
     virtual std::pair<float, float> operator()(const float &i_0, const float &i_1, const float &o, const float &og) {
         return {((1.0 - i_1) / (1.0 - i_0) - i_1 / i_0) * og, (std::log(1.0 - i_0) - std::log(i_0)) * og};
     }
@@ -30,11 +30,11 @@ typedef struct arm_bce_grad_operator : arm_binary_grad_operator {
         Float4 g1 = Float4::log(Float4(1.0) - i_0) - Float4::log(i_0);
         return {g0 * og, g1 * og};
     }
-} ARM_BCE_GRAD_OP;
+} ARM_BCE_GRAD_FUNC;
 
-DEFINE_ARM_BINARY_LAYER_GRAD(BinaryCrossEntropy, ARM_BCE_GRAD_OP)
+DEFINE_ARM_BINARY_GRAD_OP(BinaryCrossEntropy, ARM_BCE_GRAD_FUNC)
 
-REGISTER_ARM_LAYER_GRAD(BinaryCrossEntropy, LAYER_BINARY_CROSSENTROPY)
+REGISTER_ARM_GRAD_OP(BinaryCrossEntropy, LAYER_BINARY_CROSSENTROPY)
 REGISTER_ARM_GRAD_LAYOUT(LAYER_BINARY_CROSSENTROPY, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

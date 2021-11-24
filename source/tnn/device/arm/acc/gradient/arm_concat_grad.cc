@@ -17,11 +17,11 @@
 
 namespace TNN_NS {
 
-DECLARE_ARM_LAYER_GRAD(Concat, LAYER_CONCAT);
+DECLARE_ARM_GRAD_OP(Concat, LAYER_CONCAT);
 
-Status ArmConcatLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+Status ArmConcatGradOp::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                                   LayerResource *resource, LayerParam *param, Context *context,
-                                  const LayerGradInfo &grad_info) {
+                                  const GradOpInfo &grad_info) {
     int inputs_count = inputs.size() - 2;
     ON_GRAD_PREPARATION_IOR(inputs_count, 1, 0);
 
@@ -51,14 +51,14 @@ Status ArmConcatLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::
             SplitvCommon(output_grads[0], input_grads, axis);
         }
     } else {
-        LOGE("ArmConcatLayerGrad::OnGrad, dtype not supported\n");
+        LOGE("ArmConcatGradOp::OnGrad, dtype not supported\n");
         return Status(TNNERR_TRAIN_ERROR, "dtype not supported");
     }
 
     return TNN_OK;
 }
 
-REGISTER_ARM_LAYER_GRAD(Concat, LAYER_CONCAT);
+REGISTER_ARM_GRAD_OP(Concat, LAYER_CONCAT);
 REGISTER_ARM_GRAD_LAYOUT(LAYER_CONCAT, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS

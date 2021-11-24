@@ -27,43 +27,43 @@
 
 namespace TNN_NS {
 
-class LayerGrad {
+class GradOp {
 public:
-    LayerGrad();
+    GradOp();
 
-    virtual ~LayerGrad();
+    virtual ~GradOp();
 
     virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                           LayerResource *resource, LayerParam *param, Context *context,
-                          const LayerGradInfo &grad_info) = 0;
+                          const GradOpInfo &grad_info) = 0;
 
-    static Status RegisterLayerGrad(DeviceType device, LayerType type, std::shared_ptr<LayerGrad> layer_grad);
+    static Status RegisterGradOp(DeviceType device, LayerType type, std::shared_ptr<GradOp> layer_grad);
 
-    static LayerGrad *GetLayerGrad(DeviceType device, LayerType type);
+    static GradOp *GetGradOp(DeviceType device, LayerType type);
 
 private:
-    static std::map<std::pair<DeviceType, LayerType>, std::shared_ptr<LayerGrad>> &GetLayerGradMap();
+    static std::map<std::pair<DeviceType, LayerType>, std::shared_ptr<GradOp>> &GetGradOpMap();
 };
 
 template <typename T>
-class LayerGradRegister {
+class GradOpRegister {
 public:
-    explicit LayerGradRegister(DeviceType device, LayerType type) {
-        LayerGrad::RegisterLayerGrad(device, type, std::make_shared<T>());
+    explicit GradOpRegister(DeviceType device, LayerType type) {
+        GradOp::RegisterGradOp(device, type, std::make_shared<T>());
     }
 };
 
-#define DECLARE_LAYER_GRAD(device_string, device, type_string, layer_type)                                             \
-    class device_string##type_string##LayerGrad : public LayerGrad {                                                   \
+#define DECLARE_GRAD_OP(device_string, device, type_string, layer_type)                                             \
+    class device_string##type_string##GradOp : public GradOp {                                                   \
     public:                                                                                                            \
-        virtual ~device_string##type_string##LayerGrad(){};                                                            \
+        virtual ~device_string##type_string##GradOp(){};                                                            \
         virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,                   \
                               LayerResource *resource, LayerParam *param, Context *context,                            \
-                              const LayerGradInfo &grad_info);                                                         \
+                              const GradOpInfo &grad_info);                                                         \
     };
 
-#define REGISTER_LAYER_GRAD(device_string, device, type_string, layer_type)                                            \
-    LayerGradRegister<device_string##type_string##LayerGrad> g_##device##_##layer_type##_layer_grad_register(          \
+#define REGISTER_GRAD_OP(device_string, device, type_string, layer_type)                                            \
+    GradOpRegister<device_string##type_string##GradOp> g_##device##_##layer_type##_layer_grad_register(          \
         device, layer_type);
 
 #define PREPARE_INPUT_AND_GRAD(I)                                                                                      \
@@ -75,9 +75,9 @@ public:
         input_dims.push_back(fw_inputs[i]->GetBlobDesc().dims);                                                        \
         auto input_grad_dims = input_grads[i]->GetBlobDesc().dims;                                                     \
         if (!DimsVectorUtils::Equal(input_dims[i], input_grad_dims)) {                                                 \
-            LOGE("LayerGrad::OnGrad %s vs %s: , dims not match\n", fw_inputs[i]->GetBlobDesc().description().c_str(),  \
+            LOGE("GradOp::OnGrad %s vs %s: , dims not match\n", fw_inputs[i]->GetBlobDesc().description().c_str(),  \
                  input_grads[i]->GetBlobDesc().description().c_str());                                                 \
-            return Status(TNNERR_LAYER_ERR, "LayerGrad::OnGrad input and input_grad dims not match");                  \
+            return Status(TNNERR_LAYER_ERR, "GradOp::OnGrad input and input_grad dims not match");                  \
         }                                                                                                              \
     }
 
@@ -89,9 +89,9 @@ public:
         output_dims.push_back(fw_outputs[i]->GetBlobDesc().dims);                                                      \
         auto output_grad_dims = output_grads[i]->GetBlobDesc().dims;                                                   \
         if (!DimsVectorUtils::Equal(output_dims[i], output_grad_dims)) {                                               \
-            LOGE("LayerGrad::OnGrad %s vs %s: , dims not match\n", fw_outputs[i]->GetBlobDesc().description().c_str(), \
+            LOGE("GradOp::OnGrad %s vs %s: , dims not match\n", fw_outputs[i]->GetBlobDesc().description().c_str(), \
                  output_grads[i]->GetBlobDesc().description().c_str());                                                \
-            return Status(TNNERR_LAYER_ERR, "LayerGrad::OnGrad output and output_grad dims not match");                \
+            return Status(TNNERR_LAYER_ERR, "GradOp::OnGrad output and output_grad dims not match");                \
         }                                                                                                              \
     }
 
@@ -107,39 +107,39 @@ public:
         resource_dims.push_back(resource_grads[i]->GetBlobDesc().dims);                                                \
         auto resource_count = fw_resources[i]->GetDataCount();                                                         \
         if (resource_count > 0 && DimsVectorUtils::Count(resource_dims[i]) != resource_count) {                        \
-            LOGE("LayerGrad::OnGrad %d vs %s: , dims not match\n", resource_count,                                     \
+            LOGE("GradOp::OnGrad %d vs %s: , dims not match\n", resource_count,                                     \
                  resource_grads[i]->GetBlobDesc().description().c_str());                                              \
-            return Status(TNNERR_LAYER_ERR, "LayerGrad::OnGrad resource and resource_grad data count not match");      \
+            return Status(TNNERR_LAYER_ERR, "GradOp::OnGrad resource and resource_grad data count not match");      \
         }                                                                                                              \
     }
 
 // IOR: input, output and resource counts
 #define ON_GRAD_PREPARATION_IOR(I, O, R)                                                                               \
     if (inputs.size() != ((I) + (O)*2)) {                                                                              \
-        LOGE("LayerGrad::OnGrad, input size error, input %d vs expected %d + %d\n", int(inputs.size()), (I), (O)*2);   \
+        LOGE("GradOp::OnGrad, input size error, input %d vs expected %d + %d\n", int(inputs.size()), (I), (O)*2);   \
         return Status(TNNERR_TRAIN_ERROR, "input size error");                                                         \
     }                                                                                                                  \
     int resource_need_train = 0;                                                                                       \
     if (outputs.size() == (I)) {                                                                                       \
-        LOGD("LayerGrad::OnGrad, resource do not need to train, skip calculating resource grads\n");                   \
+        LOGD("GradOp::OnGrad, resource do not need to train, skip calculating resource grads\n");                   \
     } else {                                                                                                           \
         resource_need_train = (R);                                                                                     \
         if (outputs.size() != (I) + resource_need_train) {                                                             \
-            LOGE("LayerGrad::OnGrad, output size error, output %d vs expected %d + %d\n", int(outputs.size()), (I),    \
+            LOGE("GradOp::OnGrad, output size error, output %d vs expected %d + %d\n", int(outputs.size()), (I),    \
                  resource_need_train);                                                                                 \
             return Status(TNNERR_TRAIN_ERROR, "output size error");                                                    \
         }                                                                                                              \
     }                                                                                                                  \
     if (resource_need_train > 0 && resource->GetTrainable().size() != resource_need_train) {                           \
-        LOGE("LayerGrad::OnGrad, trainable size error\n");                                                             \
+        LOGE("GradOp::OnGrad, trainable size error\n");                                                             \
         return Status(TNNERR_TRAIN_ERROR, "trainable size error");                                                     \
     }                                                                                                                  \
     if (grad_info.accumulate_input_grad.size() != (I)) {                                                               \
-        LOGE("LayerGrad::OnGrad, accumulate_input_grad size error\n");                                                 \
+        LOGE("GradOp::OnGrad, accumulate_input_grad size error\n");                                                 \
         return Status(TNNERR_TRAIN_ERROR, "accumulate_input_grad size error");                                         \
     }                                                                                                                  \
     if (grad_info.accumulate_resource_grad.size() != resource_need_train) {                                            \
-        LOGE("LayerGrad::OnGrad, accumulate_resource_grad size error\n");                                              \
+        LOGE("GradOp::OnGrad, accumulate_resource_grad size error\n");                                              \
         return Status(TNNERR_TRAIN_ERROR, "accumulate_resource_grad size error");                                      \
     }                                                                                                                  \
     PREPARE_INPUT_AND_GRAD((I));                                                                                       \

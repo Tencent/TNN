@@ -16,7 +16,7 @@
 
 namespace TNN_NS {
 
-DECLARE_ARM_LAYER_GRAD(InnerProduct, LAYER_INNER_PRODUCT);
+DECLARE_ARM_GRAD_OP(InnerProduct, LAYER_INNER_PRODUCT);
 
 // weigt: oc * ic
 // input: batch * ic
@@ -95,9 +95,9 @@ static void ExecBiasGrad(int batch, int oc, float *bias_grad, float *output_grad
     }
 }
 
-Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+Status ArmInnerProductGradOp::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                                         LayerResource *resource, LayerParam *param, Context *context,
-                                        const LayerGradInfo &grad_info) {
+                                        const GradOpInfo &grad_info) {
     ON_GRAD_PREPARATION_IOR(1, 1, 2);
 
     auto arm_context = dynamic_cast<ArmContext *>(context);
@@ -116,7 +116,7 @@ Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const
     int ic    = DimsVectorUtils::Count(input_dims[0], 1);
     int oc    = DimsFunctionUtils::GetDim(output_dims[0], 1);
     if (weight.GetDataCount() != oc * ic) {
-        LOGD("ArmInnerProductLayerGrad::OnGrad ERROR, weight data count error\n");
+        LOGD("ArmInnerProductGradOp::OnGrad ERROR, weight data count error\n");
         return Status(TNNERR_TRAIN_ERROR, "weight data count error");
     }
 
@@ -183,14 +183,14 @@ Status ArmInnerProductLayerGrad::OnGrad(const std::vector<Blob *> &inputs, const
             }
         }
     } else {
-        LOGE("ArmInnerProductLayerGrad::OnGrad, dtype not supported\n");
+        LOGE("ArmInnerProductGradOp::OnGrad, dtype not supported\n");
         return Status(TNNERR_TRAIN_ERROR, "dtype not supported");
     }
 
     return TNN_OK;
 }
 
-REGISTER_ARM_LAYER_GRAD(InnerProduct, LAYER_INNER_PRODUCT)
+REGISTER_ARM_GRAD_OP(InnerProduct, LAYER_INNER_PRODUCT)
 REGISTER_ARM_GRAD_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NCHW)
 REGISTER_ARM_GRAD_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NC4HW4)
 

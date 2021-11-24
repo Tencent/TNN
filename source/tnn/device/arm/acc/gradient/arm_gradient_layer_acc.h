@@ -16,7 +16,7 @@
 #define TNN_SOURCE_TNN_DEVICE_ARM_ARM_GRADIENT_LAYER_ACC_H_
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
-#include "tnn/train/gradient/layer_grad.h"
+#include "tnn/train/gradient/grad_op.h"
 
 namespace TNN_NS {
 
@@ -29,13 +29,13 @@ public:
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 private:
-    LayerGrad *impl_;
+    GradOp *impl_;
     LayerParam *forward_param_;
 };
 
-#define DECLARE_ARM_LAYER_GRAD(type_string, layer_type) DECLARE_LAYER_GRAD(Arm, DEVICE_ARM, type_string, layer_type)
+#define DECLARE_ARM_GRAD_OP(type_string, layer_type) DECLARE_GRAD_OP(Arm, DEVICE_ARM, type_string, layer_type)
 
-#define REGISTER_ARM_LAYER_GRAD(type_string, layer_type) REGISTER_LAYER_GRAD(Arm, DEVICE_ARM, type_string, layer_type)
+#define REGISTER_ARM_GRAD_OP(type_string, layer_type) REGISTER_GRAD_OP(Arm, DEVICE_ARM, type_string, layer_type)
 
 }  // namespace TNN_NS
 
