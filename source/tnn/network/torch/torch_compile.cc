@@ -23,6 +23,7 @@
 #include "tnn/network/torch/torch_optimize.h"
 
 #include "tnn/utils/blob_dump_utils.h"
+#include <c10/cuda/CUDACachingAllocator.h>
 
 namespace TNN_NS {
 
@@ -184,6 +185,10 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
                 block.register_max_inshape(max_shape);
                 block.register_intype(in_type);
             }
+        }
+        if (config.device_type == DEVICE_CUDA) {
+            // release cached cuda memory
+            c10::cuda::CUDACachingAllocator::emptyCache();
         }
     #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
         {
