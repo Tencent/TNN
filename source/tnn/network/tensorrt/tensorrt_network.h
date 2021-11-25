@@ -132,11 +132,10 @@ private:
     std::unordered_map<std::string, std::shared_ptr<nvinfer1::ITensor>> m_blob_tensor_map;
     std::unordered_set<nvinfer1::ITensor *> m_tensor_set;
     void** m_trt_bindings;
-    void* m_forward_memory;
+    void* m_context_memory;
     NetResource *net_resource_;
     int device_id_;
     size_t context_memory_size_;
-    size_t forward_memory_size_;
 
     std::thread::id init_thread_id_;
 

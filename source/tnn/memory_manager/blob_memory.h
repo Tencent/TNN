@@ -27,7 +27,6 @@ public:
 
     virtual void UpdateBlobMemorySizeInfo(BlobMemorySizeInfo info) = 0;
     BlobMemorySizeInfo GetBlobMemorySizeInfo() const;
-    AbstractDevice* GetDevice() const;
 
     void SetUseCount(int use_count);
     int GetUseCount() const;

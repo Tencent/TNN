@@ -50,7 +50,7 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
 
     config_            = config;
     init_thread_id_    = std::this_thread::get_id();
-    memory_mode_state_ = MemoryModeStateFactory::CreateMemoryModeState(config.share_memory_mode);
+    memory_mode_state_ = MemoryModeStateFactory::CreateMemoryModeState(SHARE_MEMORY_MODE_DEFAULT);
 
     // get the maximum dimension of all inputs
     int input_dims = 0;
@@ -111,7 +111,7 @@ Status TensorRTBlobManager::Init(NetworkConfig &config, NetStructure *net_struct
 }
 
 Status TensorRTBlobManager::AllocateBlobMemory(int flag) {
-    //refactor later, may remove all tensorrt blob manager.
+    // input
     for (auto iter : input_blobs_) {
         Blob *current_blob = iter.second;
         BlobMemorySizeInfo info = device_->Calculate(current_blob->GetBlobDesc());
@@ -122,6 +122,7 @@ Status TensorRTBlobManager::AllocateBlobMemory(int flag) {
         blob_memory_mapping_.insert(std::make_pair(current_blob, blob_memory));
     }
 
+    // output
     for (auto iter : output_blobs_) {
         Blob *current_blob = iter.second;
         BlobMemorySizeInfo info = device_->Calculate(current_blob->GetBlobDesc());
@@ -131,9 +132,22 @@ Status TensorRTBlobManager::AllocateBlobMemory(int flag) {
         blob_memory = blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, true);
         blob_memory_mapping_.insert(std::make_pair(current_blob, blob_memory));
     }
-    return TNN_OK;
-}
 
+    Status status = TNN_OK;
+
+    do {
+            // ignore share memory mode, allocated the blob memory seperately.
+            MemorySeperateAssignStrategy strategy;
+            for (auto blob_memory_pool_iter : blob_memory_pool_map_) {
+                status = blob_memory_pool_iter.second->AssignAllBlobMemory(strategy);
+                BREAK_IF(status != TNN_OK);
+            }
+            BREAK_IF(status != TNN_OK);
+            BindBlobMemory();
+    } while (0);
+
+    return status;
+}
 
 Status TensorRTBlobManager::MemAlloc(void **ptr, size_t size) {
     Status ret = dynamic_cast<CudaDevice*>(device_)->Allocate(ptr, size);
