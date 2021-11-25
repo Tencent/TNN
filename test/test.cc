@@ -461,7 +461,6 @@ namespace test {
             void* mat_data = mat->GetData();
             int data_count     = DimsVectorUtils::Count(mat->GetDims());
             auto mat_type = mat->GetMatType();
-            srand (time(NULL));
             std::string input_file = "";
             if (input_file_map.find(name) != input_file_map.end()) {
                 input_file = input_file_map[name];

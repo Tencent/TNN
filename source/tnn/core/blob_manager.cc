@@ -313,9 +313,6 @@ void BlobManager::OnSharedForwardMemoryChanged(void *memory) {
  * The total size required is given by GetAllBlobMemorySize().
  */
 Status BlobManager::SetForwardMemory(void *memory) {
-    if (config_.share_memory_mode != SHARE_MEMORY_MODE_SET_FROM_EXTERNAL) {
-        return Status(TNNERR_NOT_SUPPORT_SET_FORWARD_MEM, "set memory from external is unsupported");
-    }
     MemoryUnifyAssignStrategy strategy(memory);
     Status status = TNN_OK;
     for (auto blob_memory_pool_iter : blob_memory_pool_map_) {
@@ -331,6 +328,7 @@ void BlobManager::BindBlobMemory() {
     memory_mode_state_->SetMemoryAllocatedFlag();
     // bind every blob_memory's data_ into every blob's data
     for (auto iter : blob_memory_mapping_) {
+        LOGD("name: %s , iter.second->GetHandle().base: %p \n", iter.first->GetBlobDesc().name.c_str(), iter.second->GetHandle().base);
         iter.first->SetHandle(iter.second->GetHandle());
         // set blob data format to nchw when blob memory is 1d on opencl
         if (device_->GetDeviceType() == DEVICE_OPENCL &&
