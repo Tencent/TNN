@@ -59,7 +59,7 @@ Status OpenCLExpandLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     {
         std::set<std::string> build_options;
         std::ostringstream oss;
-        oss << "-DINNER_SIZE" << output_dims.size();
+        oss << "-DINNER_DIMS=" << output_dims.size();
         build_options.emplace(oss.str());
         ret = CreateExecuteUnit(execute_units_[0], "expand", "Expand", build_options);
         if (ret != TNN_OK) {
