@@ -92,7 +92,8 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
             c10::Device device(c10::kCPU);
             RETURN_ON_NEQ(ConvertToTorchDevice(device, config_.device_type, config_.device_id), TNN_OK);
             auto mod = torch::jit::load(model_stream, device);
-            module_ = CompileTorch(mod, min_inputs_shape_, max_inputs_shape_, config_, forward_func_name_);
+            InputDataTypeMap input_type;
+            module_ = CompileTorch(mod, min_inputs_shape_, max_inputs_shape_, input_type, config_, forward_func_name_);
             graph_ = module_.get_method(forward_func_name_).graph();
         } else {
             return Status(TNNERR_PARAM_ERR, "Unsupported model type for TNNTorchNetwork");

@@ -25,6 +25,7 @@ namespace TNN_NS {
 PUBLIC torch::jit::Module CompileTorch(torch::jit::Module &mod,
                                        InputShapesMap& min_input_shape,
                                        InputShapesMap& max_input_shape,
+                                       InputDataTypeMap& input_type,
                                        NetworkConfig& config,
                                        std::string forward_func_name = "forward");
 

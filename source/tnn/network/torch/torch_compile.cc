@@ -139,7 +139,8 @@ void RegisterNodeToOutput(std::shared_ptr<torch::jit::Module> &mod, const std::v
 }
 
 torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_input_shape,
-                                InputShapesMap &max_input_shape, NetworkConfig &config, std::string forward_func_name) {
+                                InputShapesMap &max_input_shape, InputDataTypeMap &input_type,
+                                NetworkConfig &config, std::string forward_func_name) {
     if (config.precision == PRECISION_LOW ) {
         mod.to(torch::kHalf);
     }
@@ -166,7 +167,7 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
             std::vector<BlobDesc> subgraph_min_input_info;
             std::vector<BlobDesc> subgraph_max_input_info;
             //// input type & shape will be used for random input generation, then subgraph input info can be infered out
-            InputDataTypeMap input_type;
+            // InputDataTypeMap input_type;
             partitioning::runShapeInfer(shape_mod, shape_seg, min_input_shape, input_type, config, subgraph_min_input_info);
             partitioning::runShapeInfer(shape_mod, shape_seg, max_input_shape, input_type, config, subgraph_max_input_info);
 
