@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TNNTORCH="ON"
+TNNTORCH="OFF"
 
 if [ -z $TNN_ROOT_PATH ]
 then
@@ -28,7 +28,7 @@ cmake ${TNN_ROOT_PATH} \
     -DTNN_BENCHMARK_MODE=OFF \
     -DTNN_BUILD_SHARED=ON \
     -DTNN_CONVERTER_ENABLE=OFF \
-    -DTNN_PYBIND_ENABLE=ON 
+    -DTNN_PYBIND_ENABLE=OFF
 
 echo "Building TNN ..."
 make -j32
