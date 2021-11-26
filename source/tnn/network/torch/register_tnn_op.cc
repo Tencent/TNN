@@ -79,6 +79,7 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
     BlobMap input_blobs;
     BlobMap output_blobs;
     compiled_engine->instance_->GetAllInputBlobs(input_blobs);
+    compiled_engine->instance_->GetAllOutputBlobs(output_blobs);
 
     // void *cmd_queue;
     // compiled_engine->instance_->GetCommandQueue(&cmd_queue);
@@ -102,35 +103,27 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         input_blobs[input_names[i]]->SetHandle(handle);
         input_blobs[input_names[i]]->SetBlobDesc(blob_desc);
 
-        // if (scalar_type == at::ScalarType::Half) {
-        //     auto new_tensor = inputs[i].to(at::ScalarType::Float);
-        //     auto input_mat = std::make_shared<Mat>(device_type, NCHW_FLOAT, blob_desc.dims, new_tensor.data_ptr());
-        //     compiled_engine->instance_->SetInputMat(input_mat, MatConvertParam(), input_names[i]);
-        // } else {
-        //     auto input_mat = std::make_shared<Mat>(device_type, NCHW_FLOAT, blob_desc.dims, inputs[i].data_ptr());
-        //     compiled_engine->instance_->SetInputMat(input_mat, MatConvertParam(), input_names[i]);
-        // }
-
         // DumpDeviceBlob(input_blobs[input_names[i]], cmd_queue, "tnn-input-"+input_names[i]);
     }
 
-    compiled_engine->instance_->Forward();
-
-    compiled_engine->instance_->GetAllOutputBlobs(output_blobs);
     std::vector<at::Tensor> outputs(output_names.size());
     for (int i = 0; i < output_names.size(); i++) {
         // output blob data type is consistent with the input tensor, no need to convert tensor type
-        std::shared_ptr<at::Tensor> tensor_ptr;
-        CreateTensorByBlob(tensor_ptr, output_blobs[output_names[i]]);
-        // outputs[i] = std::move(*tensor_ptr);
-        if (scalar_type == at::ScalarType::Half && tensor_ptr->scalar_type() != at::ScalarType::Half) {
-            outputs[i] = std::move(tensor_ptr->to(at::ScalarType::Half));
-        } else {
-            outputs[i] = std::move(*tensor_ptr);
-        }
+        auto desc = output_blobs[output_names[i]]->GetBlobDesc();
+        c10::Device device(c10::kCPU);
+        ConvertToTorchDevice(device, desc.device_type);
+        at::ScalarType scalar_type;
+        ConvertToTorchDataType(scalar_type, desc.data_type);
+        outputs[i] = std::move(at::empty(ConvertDimsToIntArrayRef(desc.dims), {device.type()}).to(scalar_type).contiguous());
 
+        BlobHandle handle;
+        handle.base = outputs[i].data_ptr();;
+        output_blobs[output_names[i]]->SetHandle(handle);
         // DumpDeviceBlob(output_blobs[output_names[i]], cmd_queue, "tnn-output-"+output_names[i]);
     }
+
+    // use torch memory management
+    compiled_engine->instance_->Forward();
 
     return outputs;
 }

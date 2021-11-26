@@ -32,6 +32,7 @@ namespace TNN_NS {
 
 #define MAX_SCRATCH_MEMORY (1<<31 - 1)
 #define TENSORRT_SERIALIZE_VERSION "v1.5"
+#define CACHE_MEMORY_TAG "%memory*"
 
 NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
     g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
@@ -222,9 +223,11 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         return ret;
     }
 
-    ret = blob_manager_->AllocateBlobMemory();
-    if (ret != TNN_OK) {
-       return ret;
+    if (net_config.cache_path.compare(CACHE_MEMORY_TAG) != 0) {
+        ret = blob_manager_->AllocateBlobMemory();
+        if (ret != TNN_OK) {
+            return ret;
+        }
     }
 
     for (auto iter : outputs) {
@@ -244,7 +247,20 @@ Status TensorRTNetwork_::Forward() {
         return ret;
     }
 
+    BlobMap outputs;
+    ret = blob_manager_->GetAllOutputBlobs(outputs);
+    if (ret != TNN_OK) {
+        LOGE("ERROR: get output blobs failed");
+        return ret;
+    }
+
     for (auto iter : inputs) {
+        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
+        if (index < 0) continue;
+        this->m_trt_bindings[index] = iter.second->GetHandle().base;
+    }
+
+    for (auto iter : outputs) {
         int index = m_trt_engine->getBindingIndex(iter.first.c_str());
         if (index < 0) continue;
         this->m_trt_bindings[index] = iter.second->GetHandle().base;

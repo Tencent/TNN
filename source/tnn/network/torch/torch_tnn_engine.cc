@@ -113,6 +113,7 @@ TNNEngine::TNNEngine(std::vector<std::string> &serialize) {
     network_config.device_id = std::stoi(config_vec[1]);
     network_config.precision = static_cast<Precision>(std::stoi(config_vec[2]));
     network_config.share_memory_mode = static_cast<ShareMemoryMode>(std::stoi(config_vec[3]));
+    network_config.cache_path = "%memory*";
 
     auto interpreter = CreateModelInterpreter(MODEL_TYPE_TNN);
     auto interpreter_ptr = std::shared_ptr<AbstractModelInterpreter>(interpreter);
