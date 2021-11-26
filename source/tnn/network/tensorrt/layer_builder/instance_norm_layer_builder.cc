@@ -20,7 +20,7 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(InstanceNorm, LAYER_INST_BATCH_NORM);
 
 bool InstanceNormTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
-    return ((inOut[pos].type == nvinfer1::DataType::kHALF || inOut[pos].type == nvinfer1::DataType::kFLOAT) &&
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) &&
         inOut[pos].format == nvinfer1::TensorFormat::kLINEAR);
 }
 
