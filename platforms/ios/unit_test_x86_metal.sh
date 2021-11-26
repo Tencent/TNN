@@ -29,7 +29,7 @@ function build_unit_test() {
     if [ "-c" == "$CLEAN" ]; then
         clean_build $BUILD_DIR
     fi
-    mkdir -p build
+    mkdir -p $BUILD_DIR
     cd $BUILD_DIR
     cmake ../../.. \
           -DCMAKE_BUILD_TYPE=DEBUG \

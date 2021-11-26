@@ -114,7 +114,7 @@ Status ArmSoftmaxLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::ve
             input_ptr          = output_ptr;
             reorder_buffer_ptr = reorder_buffer.force_to<float *>();
         }
-        if (inside == 1) {
+        if (inside == 1 && channel > 3) {
             for (int y = 0; y < outside; ++y) {
                 auto src_y = input_ptr + y * step_y;
                 auto dst_y = reorder_buffer_ptr + y * step_y;

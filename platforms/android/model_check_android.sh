@@ -75,8 +75,8 @@ function build_android() {
         HUAWEI_NPU="OFF"
     fi
 
-    mkdir -p build
-    cd $BUILD_DIR
+    mkdir -p $BUILD_DIR
+    cd $BUILD_DIR || exit
     cmake ../../../ \
           -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
           -DCMAKE_BUILD_TYPE=Release \
