@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cpu/cpu_context.h"
+#include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
 
@@ -29,7 +30,18 @@ Status CpuContext::ShareCommandQueue(Context* context) {
 }
 
 Status CpuContext::OnInstanceForwardBegin() {
+    Context::OnInstanceForwardBegin();
+    OMP_SET_THREADS_(GetNumThreads());
     return TNN_OK;
+}
+
+Status CpuContext::SetNumThreads(int num_threads) {
+    num_threads_ = MIN(MAX(num_threads, 1), OMP_CORES_);
+    return TNN_OK;
+}
+
+int CpuContext::GetNumThreads() {
+    return num_threads_;
 }
 
 Status CpuContext::OnInstanceForwardEnd() {

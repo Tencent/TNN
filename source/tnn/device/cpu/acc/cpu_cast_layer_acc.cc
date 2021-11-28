@@ -50,11 +50,29 @@ Status CpuCastLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
         for (int i = 0; i < count; ++i) {
             output_data_ptr[i] = static_cast<float>(input_data_ptr[i]);
         }
+    } else if (input_data_type == DATA_TYPE_FLOAT && output_data_type == DATA_TYPE_INT8) {
+        auto *input_data_ptr  = (float *)input_data;
+        auto *output_data_ptr = (int8_t *)output_data;
+        for (int i = 0; i < count; ++i) {
+            output_data_ptr[i] = static_cast<int8_t>(input_data_ptr[i]);
+        }
     } else if (input_data_type == DATA_TYPE_INT8 && output_data_type == DATA_TYPE_FLOAT) {
         auto *input_data_ptr  = (int8_t *)input_data;
         auto *output_data_ptr = (float *)output_data;
         for (int i = 0; i < count; ++i) {
             output_data_ptr[i] = static_cast<float>(input_data_ptr[i]);
+        }
+    } else if (input_data_type == DATA_TYPE_INT8 && output_data_type == DATA_TYPE_INT32) {
+        auto *input_data_ptr  = (int8_t *)input_data;
+        auto *output_data_ptr = (int *)output_data;
+        for (int i = 0; i < count; ++i) {
+            output_data_ptr[i] = static_cast<int>(input_data_ptr[i]);
+        }
+    } else if (input_data_type == DATA_TYPE_INT32 && output_data_type == DATA_TYPE_INT8) {
+        auto *input_data_ptr  = (int *)input_data;
+        auto *output_data_ptr = (int8_t *)output_data;
+        for (int i = 0; i < count; ++i) {
+            output_data_ptr[i] = static_cast<int8_t>(input_data_ptr[i]);
         }
     } else if (input_data_type == DATA_TYPE_INT32 && output_data_type == DATA_TYPE_UINT32) {
         auto *input_data_ptr  = (int *)input_data;

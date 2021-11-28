@@ -20,7 +20,7 @@
 namespace TNN_NS {
 
 static bool TestFilter(DeviceType device_type, int input_dim_size, int axis_size) {
-    if (device_type == DEVICE_NAIVE)
+    if (device_type == DEVICE_NAIVE || device_type == DEVICE_ARM)
         return true;
 
     if (device_type == DEVICE_OPENCL && input_dim_size <= 4)
@@ -75,14 +75,14 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                                             // keep_dim
                                             testing::Values(0, 1),
                                             // dim count
-                                            testing::Values(2, 3, 4, 5),
+                                            testing::Values(1, 2, 3, 4, 5),
                                             // axis
-                                            testing::Values(std::vector<int>({1}), std::vector<int>({2}),
+                                            testing::Values(std::vector<int>({0}), std::vector<int>({1}), std::vector<int>({2}),
                                                             std::vector<int>({3}), std::vector<int>({1, 2}),
                                                             std::vector<int>({1, -1}), std::vector<int>({3, -2}),
                                                             std::vector<int>({1, -2, -1})),
                                             // dtype
-                                            testing::Values(DATA_TYPE_FLOAT)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_INT32)));
 
 TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     // get param
@@ -95,6 +95,19 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     auto& axis         = std::get<6>(GetParam());
     DataType data_type = std::get<7>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+
+    // input is 1-dimensional
+    if (dim_count == 1 || axis[0] == 0) {
+        if (dev == DEVICE_ARM) {
+            if (dim_count == 1 && axis[0] == 0) {
+                // reduce on the first dimensional
+            } else {
+                GTEST_SKIP();
+            }
+        } else {
+            GTEST_SKIP();
+        }
+    }
 
     // only test one case for large inputs
     if ((channel == 128 && (input_height > 9 || input_width > 9)) ||
@@ -109,7 +122,11 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
 
     // blobconverter cannot handle 1-dimensional blob, skip it for now
     if (dim_count <= axis.size()+1 && keep_dims == 0) {
-        GTEST_SKIP();
+        if (dev == DEVICE_ARM && (dim_count == axis.size()+1 && keep_dims == 0)) {
+            // arm can support reduce to 1-dimensional blob
+        } else {
+            GTEST_SKIP();
+        }
     }
 
     for(const auto& d: axis) {
@@ -140,6 +157,11 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         for (int i = 4; i < dim_count; i++) {
             input_dims[i] = std::min(input_height, input_width);
         }
+    }
+
+    // input is 1-dimensional
+    if (dim_count == 1) {
+        input_dims = {channel};
     }
 
     if (DEVICE_HUAWEI_NPU != dev) {

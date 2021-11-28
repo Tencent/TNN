@@ -204,7 +204,7 @@ void Mask(std::vector<int> shape, int mask, int upper, std::vector<int>& v) {
     }
 }
 
-TNN_NS::Status CreateIntScaleResource(TNN_NS::NetResource& net_resource,
+TNN_NS::Status CreateBlobScaleResource(TNN_NS::NetResource& net_resource,
                                       const std::vector<std::unique_ptr<tflite::TensorT>>& tf_lite_tensors, int tensor_index) {
     const auto& tensor    = tf_lite_tensors[tensor_index];
     const auto scale_name = tensor->name + BLOB_SCALE_SUFFIX;

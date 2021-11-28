@@ -43,13 +43,17 @@ Status ReshapeLayer::InferOutputShape(bool ignore_error) {
     
     auto layer_param = dynamic_cast<ReshapeLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);
-    
+
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
     if (!layer_param->shape.empty()) {
 
         auto input_dims = input_blob->GetBlobDesc().dims;
-        
+
+        if (layer_param->num_axes == -1) {
+            layer_param->num_axes = layer_param->shape.size();
+        }
+
         Status status = TNN_OK;
         auto output_dims = DimsFunctionUtils::Reshape(input_dims, layer_param->shape, layer_param->axis, layer_param->num_axes, &status);
         RETURN_ON_NEQ(status, TNN_OK);

@@ -72,9 +72,6 @@ public:
     // @brief check whether is a plugin layer
     bool IsPluginLayer();
 
-    // @brief set tensorRT batchsize
-    void SetBatchSize(int value);
-
     // @brief set constant resource
     virtual void SetConstantResource(ConstantResource* consts);
 
@@ -89,7 +86,7 @@ protected:
         std::shared_ptr<ForeignTensor> foreign_tensor, float quant_scale, float dequant_scale);
 
     ILayer* AddInt8WeightQDQLayers(nvinfer1::INetworkDefinition* network, RawBuffer* weight,
-        nvinfer1::Weights kernelWeights, RawBuffer* bias, nvinfer1::Weights biasWeights,
+        nvinfer1::Weights &kernelWeights, RawBuffer* bias, nvinfer1::Weights &biasWeights,
         float scale, std::vector<int> dims);
 
     std::vector<ITensor*> GetInputITensors();
@@ -99,7 +96,6 @@ protected:
     std::shared_ptr<BaseLayer> m_layer;
     std::vector<float*> int8_weight_data;
     bool is_plugin;
-    int trt_batchsize;
 
     TensorRTNetwork_* m_network;
 };

@@ -20,7 +20,7 @@
 
 namespace TNN_NS {
 
-TensorRTBaseLayerBuilder::TensorRTBaseLayerBuilder(LayerType type) : BaseLayerBuilder(type), trt_batchsize(0) {
+TensorRTBaseLayerBuilder::TensorRTBaseLayerBuilder(LayerType type) : BaseLayerBuilder(type) {
     m_layer = std::shared_ptr<BaseLayer>(CreateLayer(type));
 }
 
@@ -46,10 +46,6 @@ Status TensorRTBaseLayerBuilder::Build() {
 
 bool TensorRTBaseLayerBuilder::IsPluginLayer() {
     return this->is_plugin;
-}
-
-void TensorRTBaseLayerBuilder::SetBatchSize(int value) {
-    this->trt_batchsize = value;
 }
 
 void TensorRTBaseLayerBuilder::SetConstantResource(ConstantResource* consts) {
@@ -141,10 +137,12 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8OutputQDQLayers(nvinfer1::INetworkDefin
     output_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
     output_dequant_layer->setName(output_dequant_layer_name.c_str());
     std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetQuantized();
+
+    return output_dequant_layer;
 }
 
 ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefinition* network,
-        RawBuffer* weight, nvinfer1::Weights kernelWeights, RawBuffer* bias, nvinfer1::Weights biasWeights,
+        RawBuffer* weight, nvinfer1::Weights &kernelWeights, RawBuffer* bias, nvinfer1::Weights &biasWeights,
         float scale, std::vector<int> dims) {
     kernelWeights.type = nvinfer1::DataType::kFLOAT;
     kernelWeights.values = nullptr;
@@ -176,10 +174,10 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
 
     Dims weightDims;
     weightDims.nbDims = dims.size();
-    weightDims.d[0] = dims[0];
-    weightDims.d[1] = dims[1];
-    weightDims.d[2] = dims[2];
-    weightDims.d[3] = dims[3];
+    for (size_t i = 0; i < dims.size(); i++) {
+        weightDims.d[i] = dims[i];
+    }
+
     ILayer* constant_layer = network->addConstant(weightDims, int8Weights);
 
     Weights weight_quant_shift;

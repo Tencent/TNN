@@ -1,3 +1,3 @@
-x86/build_x86_linux
-x86/build_x86_macos
+x86/build_linux_openvino
+x86/build_linux_native
 cuda/build_cuda_linux

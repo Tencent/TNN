@@ -208,7 +208,8 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
     
 ## 三、Linux/Mac/Windows/ArmLinux/CudaLinux Demo 介绍
 ### 功能
-* 快速在 Linux/Mac/Windows/ArmLinux/CudaLinux 环境下运行模型，展示 TNN 接口的使用方法。
+* 快速在 Linux/Mac/Windows/ArmLinux/CudaLinux 环境下运行模型，展示 TNN 接口的使用方法。<br>
+**注意：demo sdk 请使用推荐模型，如需使用其他模型需要修改 sdk 预处理及后处理功能适应不同模型的输入输出差异**
 
 ### 使用步骤
 #### 1. 下载 Demo 模型
@@ -276,10 +277,19 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
    ./demo_x86_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
 
    物体检测 demo
-   ./demo_x86_objectdetector -p ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto -m ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel -i ../../../assets/004545.jpg
+   ./demo_x86_objectdetector -p ../../../../model/yolov5/yolov5s.tnnproto -m ../../../../model/yolov5/yolov5s.tnnmodel -i ../../../assets/004545.jpg
 
    阅读理解 demo
    ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
+
+   姿势检测 demo (腾讯光流)
+   ./demo_x86_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
+
+   姿势检测 demo (blazepose)
+   ./demo_x86_blazepose
+
+   文本识别 demo
+   ./demo_x86_ocrdetecor
 
    摄像头人脸配准 demo
    ./demo_x86_webcam
@@ -341,10 +351,19 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
    ./demo_x86_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
 
    物体检测 demo
-   ./demo_x86_objectdetector -p ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto -m ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel -i ../../../assets/004545.jpg
+   ./demo_x86_objectdetector -p ../../../../model/yolov5/yolov5s.tnnproto -m ../../../../model/yolov5/yolov5s.tnnmodel -i ../../../assets/004545.jpg
 
    阅读理解 demo
    ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
+
+   姿势检测 demo (腾讯光流)
+   ./demo_x86_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
+
+   姿势检测 demo (blazepose)
+   ./demo_x86_blazepose
+
+   文本识别 demo
+   ./demo_x86_ocrdetecor
 
    摄像头人脸配准 demo
    ./demo_x86_webcam
@@ -392,6 +411,15 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 
    阅读理解 demo
    .\demo_x86_readingcomprehension -p ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnproto -m ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnmodel -v ..\..\..\..\..\model\bertsquad10\vocab.txt
+
+   姿势检测 demo (腾讯光流)
+   .\demo_x86_posedetector -p ..\..\..\..\model\skeleton\skeleton_big.tnnproto -m ..\..\..\..\model\skeleton\skeleton.tnnmodel -i ..\..\..\assets\skeleton_test.jpg
+
+   姿势检测 demo (blazepose)
+   .\demo_x86_blazepose
+
+   文本识别 demo
+   .\demo_x86_ocrdetecor
    
    摄像头人脸检测配准 demo
    .\demo_x86_webcam
@@ -492,10 +520,19 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
    ./demo_cuda_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
 
    物体检测 demo
-   ./demo_cuda_objectdetector -p ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto -m ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel -i ../../../assets/004545.jpg
+   ./demo_cuda_objectdetector -p ../../../../model/yolov5/yolov5s.tnnproto -m ../../../../model/yolov5/yolov5s.tnnmodel -i ../../../assets/004545.jpg
 
    阅读理解 demo
    ./demo_cuda_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
+
+   姿势检测 demo (腾讯光流)
+   ./demo_cuda_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
+
+   姿势检测 demo (blazepose)
+   ./demo_cuda_blazepose
+
+   文本识别 demo
+   ./demo_cuda_ocrdetecor
    ```
 
 ### 常见问题
@@ -523,14 +560,12 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 * 初始化predictor  
    ```cpp
    CHECK_TNN_STATUS(predictor->Init(option));
-   // 对 Linux/Window(OpenVINO)
-   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
-   // 对 Linux/Window(X86 native)
+   // 对 Linux/Window(X86 native / OPENVINO)
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // 对 ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // 对 CUDA
-   option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+   option->compute_units = TNN_NS::TNNComputeUnitsGPU;
    ```
 * 创建输入mat  
    ```cpp
@@ -555,14 +590,12 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 * 初始化predictor  
    ```cpp
    CHECK_TNN_STATUS(predictor->Init(option));
-   // 对 Linux/Window(OpenVINO)
-   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
-   // 对 Linux/Window(X86 native)
+   // 对 Linux/Window(X86 native / OPENVINO)
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // 对 ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // 对 CUDA
-   option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+   option->compute_units = TNN_NS::TNNComputeUnitsGPU;
    ```
 * 创建输入mat  
    ```cpp

@@ -393,6 +393,8 @@ namespace test {
                         reinterpret_cast<float*>(mat_data)[i] = (float)(rand() % 256) / 128.0f;
                     } else if (mat_type == NC_INT32) {
                         reinterpret_cast<int32_t*>(mat_data)[i] = rand() % 2;
+                    } else if (mat_type == RESERVED_INT8_TEST) {
+                        reinterpret_cast<int8_t*>(mat_data)[i] = (rand() % 256) - 128;
                     } else {
                         reinterpret_cast<uint8_t*>(mat_data)[i] = (rand() % 256);
                     }
@@ -405,6 +407,10 @@ namespace test {
                         input_stream >> reinterpret_cast<float*>(mat_data)[i];
                     } else if (mat_type == NC_INT32) {
                         input_stream >> reinterpret_cast<int32_t*>(mat_data)[i];
+                    } else if (mat_type == RESERVED_INT8_TEST) {
+                        int val;
+                        input_stream >> val;
+                        reinterpret_cast<int8_t*>(mat_data)[i] = (int8_t)val;
                     } else {
                         int val;
                         input_stream >> val;

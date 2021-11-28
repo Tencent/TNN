@@ -192,8 +192,10 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
             auto count = DimsVectorUtils::Count(dims);
             auto real_blob_data = new float[count];
             auto blob_scale = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.force_to<float *>();
+            auto blob_scale_bias = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
             auto scale_len  = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.GetDataCount();
-            NaiveDequant(reinterpret_cast<int8_t *>(blob_->GetHandle().base), blob_scale, scale_len, real_blob_data, dims);
+            NaiveDequantBias(reinterpret_cast<int8_t *>(blob_->GetHandle().base), blob_scale, blob_scale_bias, scale_len, real_blob_data, dims);
+
             blob_data = real_blob_data;
         }
     } else if (desc.data_type == DATA_TYPE_BFP16) {
@@ -404,9 +406,10 @@ Status DefaultBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertPa
 
     if (desc.data_type == DATA_TYPE_INT8) {
         auto blob_scale     = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.force_to<float *>();
+        auto blob_scale_bias = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
         auto scale_len      = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.GetDataCount();
         auto real_blob_data = reinterpret_cast<int8_t *>(blob_->GetHandle().base);
-        NaiveQuant(blob_data, blob_scale, scale_len, real_blob_data, dims);
+        NaiveQuantBias(blob_data, blob_scale, blob_scale_bias, scale_len, real_blob_data, dims);
         delete[] blob_data;
     }
     return TNN_OK;

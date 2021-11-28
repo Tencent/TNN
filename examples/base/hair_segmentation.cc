@@ -76,7 +76,7 @@ std::shared_ptr<Mat> HairSegmentation::ProcessSDKInputMat(std::shared_ptr<Mat> i
     // save input image mat for merging
     auto dims = input_image->GetDims();
     //dims[1] = 4;
-    this->input_image = std::make_shared<Mat>(DEVICE_ARM, N8UC4, dims);
+    this->input_image = std::make_shared<Mat>(DEVICE_NAIVE, N8UC4, dims);
     auto status = Copy(input_image, this->input_image);
     RETURN_VALUE_ON_NEQ(status, TNN_OK, nullptr);
 

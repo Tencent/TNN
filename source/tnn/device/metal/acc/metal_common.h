@@ -290,6 +290,25 @@ struct MetalInnerProductParams {
     int activation = -1;
 };
 
+/** LayerNorm Param Struct **/
+struct MetalLayerNormParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int share_channel = 0;
+    int batch;
+
+    int channel_area;
+    int channels;
+    float eps;
+};
+
 /** Conv Param Struct **/
 struct MetalConvParams {
     int input_width;

@@ -96,7 +96,7 @@ Status ArmSoftmaxLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std
             input_ptr          = output_ptr;
             reorder_buffer_ptr = work_space;
         }
-        if (1 == inside) {
+        if (1 == inside && channel > 7) {
             for (int y = 0; y < outside; ++y) {
                 auto src_y = input_ptr + y * step_y;
                 auto dst_y = reorder_buffer_ptr + y * step_y;

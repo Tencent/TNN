@@ -32,7 +32,7 @@ string OnnxOpConverterUnsqueeze::TNNLayerParam(NodeProto &node,
     const std::string &onnx_op = node.op_type();
     ostringstream layer_param;
 
-    auto axes          = get_node_attr_ai(node, "axes");
+    auto axes = get_node_attr_ai(node, "axes", net_info, 1);
     layer_param << axes.size() << " ";
     for (auto item : axes) {
         layer_param << item << " ";

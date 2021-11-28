@@ -13,7 +13,7 @@ DUMP_DIR=$WORK_DIR/dump_data_model_check
 ADB=adb
 
 DEVICE="ARM"
-ARMV82="OFF"
+ARMV82="ON"
 TEST_PROTO_PATH=
 INPUT_PATH=
 OPTION_DUMP_OUTPUT=
@@ -75,8 +75,8 @@ function build_android() {
         HUAWEI_NPU="OFF"
     fi
 
-    mkdir -p build
-    cd $BUILD_DIR
+    mkdir -p $BUILD_DIR
+    cd $BUILD_DIR || exit
     cmake ../../../ \
           -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
           -DCMAKE_BUILD_TYPE=Release \

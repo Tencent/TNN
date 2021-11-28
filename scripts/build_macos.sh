@@ -5,7 +5,7 @@ set -euo pipefail
 TNN_DIR=$(cd `dirname $0`; pwd)/..
 BUILD_DIR=${TNN_DIR}/scripts/build_macos
 TNN_INSTALL_DIR=${TNN_DIR}/scripts/macos_release
-OPENVINO_BUILD_SHARED="OFF"
+OPENVINO_BUILD_SHARED="ON"
 
 OPENVINO_INSTALL_PATH=${BUILD_DIR}/openvinoInstallShared
 if [ "${OPENVINO_BUILD_SHARED}" = "OFF" ]
@@ -43,8 +43,8 @@ clone_openvino() {
         git clone --recursive https://github.com/openvinotoolkit/openvino.git
     fi
     cd openvino
-    git reset --hard 9df6a8f
-    git submodule update
+    git reset --hard 4795391
+    git submodule update --init --recursive
 
     # 编译静态库
     if [ "${OPENVINO_BUILD_SHARED}" = "OFF" ]
@@ -53,14 +53,14 @@ clone_openvino() {
         sed -i .bak 's/SHARED/STATIC/g' inference-engine/src/legacy_api/CMakeLists.txt
         sed -i .bak 's/SHARED/STATIC/g' inference-engine/src/transformations/CMakeLists.txt
         sed -i .bak 's/SHARED/STATIC/g' inference-engine/src/low_precision_transformations/CMakeLists.txt
-        sed -i .bak 's/SHARED/STATIC/g' ngraph/src/ngraph/CMakeLists.txt
+        # sed -i .bak 's/SHARED/STATIC/g' ngraph/src/ngraph/CMakeLists.txt
     fi
 }
 
 build_openvino() {
 
-    if [ ! -d ${OPENVINO_INSTALL_PATH} ]
-    then
+    # if [ ! -d ${OPENVINO_INSTALL_PATH} ]
+    # then
         cd ${BUILD_DIR}/openvino
         mkdir -p build && cd build
         echo "Configuring Openvino ..."
@@ -69,6 +69,7 @@ build_openvino() {
         -DENABLE_OPENCV=OFF \
         -DCMAKE_INSTALL_PREFIX=${OPENVINO_INSTALL_PATH} \
         -DENABLE_TBB_RELEASE_ONLY=OFF \
+        -DTHREADING=TBB_AUTO \
         -DTHREADING=SEQ \
         -DNGRAPH_COMPONENT_PREFIX="deployment_tools/ngraph/" \
         -DENABLE_MYRIAD=OFF \
@@ -85,7 +86,7 @@ build_openvino() {
         echo "Building Openvino ..."
         make -j4
         make install
-    fi
+    # fi
 }
 
 copy_openvino_libraries() {
@@ -128,6 +129,7 @@ copy_openvino_libraries() {
     cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${TNN_INSTALL_DIR}/lib/
     cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${BUILD_DIR}/
     cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libMKLDNNPlugin.dylib ${TNN_INSTALL_DIR}/lib/
+    # cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/external/tbb/lib/* ${TNN_INSTALL_DIR}/lib/
 
 
     if [ "${OPENVINO_BUILD_SHARED}" = "ON" ]
@@ -176,6 +178,7 @@ cmake ${TNN_DIR} \
 -DTNN_CPU_ENABLE=ON \
 -DTNN_METAL_ENABLE=OFF \
 -DTNN_OPENVINO_BUILD_SHARED=${OPENVINO_BUILD_SHARED} \
+-DDEBUG=OFF
 
 echo "Building TNN ..."
 make -j4

@@ -1,12 +1,12 @@
-file(GLOB COMMON_SRCS ${CMAKE_SOURCE_DIR}/tools/common/*.cc)
+file(GLOB COMMON_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../common/*.cc)
 file(GLOB MODEL_CHECK_SRCS *.cc)
 
 message(${MODEL_CHECK_SRCS})
 
-include_directories(${CMAKE_SOURCE_DIR}/tools/common)
-include_directories(${CMAKE_SOURCE_DIR}/tools/model_check)
-include_directories(${CMAKE_SOURCE_DIR}/source/tnn/interpreter/tnn)
-include_directories(${CMAKE_SOURCE_DIR}/third_party/stb)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../common)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../model_check)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../source/tnn/interpreter/tnn)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/stb)
 
 add_executable(model_check ${MODEL_CHECK_SRCS} ${COMMON_SRCS})
 

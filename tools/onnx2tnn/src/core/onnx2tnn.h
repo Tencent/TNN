@@ -52,7 +52,8 @@ struct IndexNode {
     }
 };
 
-std::vector<int> GetNextIndexNode(std::vector<IndexNode> &index_nodes, int index);
+std::vector<int> GetNextIndexNode(std::vector<IndexNode>& index_nodes, int index);
+std::vector<int> GetPreviousIndexNode(std::vector<IndexNode>& index_nodes, int index);
 int RemoveIndexNode(std::vector<IndexNode> &index_nodes, int index);
 
 class Onnx2TNN {
@@ -300,6 +301,10 @@ protected:
                     std::set<std::string>& blob_names);
 
     int FuseClip(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
+                 std::map<std::string, onnx::TensorProto>& weights, std::map<std::string, int>& node_reference,
+                 std::set<std::string>& blob_names);
+
+    int FuseScatterElements(onnx::GraphProto* mutable_graph, std::vector<IndexNode>& index_nodes,
                  std::map<std::string, onnx::TensorProto>& weights, std::map<std::string, int>& node_reference,
                  std::set<std::string>& blob_names);
 

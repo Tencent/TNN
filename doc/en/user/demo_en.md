@@ -212,7 +212,8 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
 ## III. Introduction to Linux/Mac/Windows/Armlinux/CudaLinux Demo
 
 ### Ability
-* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux/Mac/Windows/ArmLinux/CudaLinux environment.
+* Demonstrate the calling method of TNN basic interface, quickly run the model in Linux/Mac/Windows/ArmLinux/CudaLinux environment.<br>
+**Attention：demo sdk need to use the model recommended. Preprosess and Postprocesss may need to be modified with different model for type of different input and output.**
 
 ### Running Steps
 #### 1. Downloand demo models
@@ -280,10 +281,19 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
    ./demo_x86_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
 
    object-detector demo
-   ./demo_x86_objectdetector -p ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto -m ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel -i ../../../assets/004545.jpg
+   ./demo_x86_objectdetector -p ../../../../model/yolov5/yolov5s.tnnproto -m ../../../../model/yolov5/yolov5s.tnnmodel -i ../../../assets/004545.jpg
 
    reading-comprehension demo
    ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
+
+   pose-detector demo (Tencent Guangliu)
+   ./demo_x86_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
+
+   pose-detector demo (blazepose)
+   ./demo_x86_blazepose
+
+   ocr-detector demo
+   ./demo_x86_ocrdetecor
 
    face-alignment camera demo
    ./demo_x86_webcam
@@ -346,10 +356,19 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
    ./demo_x86_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
 
    object-detector demo
-   ./demo_x86_objectdetector -p ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto -m ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel -i ../../../assets/004545.jpg
+   ./demo_x86_objectdetector -p ../../../../model/yolov5/yolov5s.tnnproto -m ../../../../model/yolov5/yolov5s.tnnmodel -i ../../../assets/004545.jpg
 
    reading-comprehension demo
    ./demo_x86_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
+
+   pose-detector demo (Tencent Guangliu)
+   ./demo_x86_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
+
+   pose-detector demo (blazepose)
+   ./demo_x86_blazepose
+
+   ocr-detector demo
+   ./demo_x86_ocrdetecor
 
    face-alignment camera demo
    ./demo_x86_webcam
@@ -397,6 +416,15 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
 
    reading-comprehension demo
    .\demo_x86_readingcomprehension -p ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnproto -m ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnmodel -v ..\..\..\..\..\model\bertsquad10\vocab.txt
+
+   pose-detector demo (Tencent Guangliu)
+   .\demo_x86_posedetector -p ..\..\..\..\model\skeleton\skeleton_big.tnnproto -m ..\..\..\..\model\skeleton\skeleton.tnnmodel -i ..\..\..\assets\skeleton_test.jpg
+
+   pose-detector demo (blazepose)
+   .\demo_x86_blazepose
+
+   ocr-detector demo
+   .\demo_x86_ocrdetecor
 
    webcam base face alignment demo
    .\demo_x86_webcam
@@ -497,10 +525,19 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
    ./demo_cuda_facedetector -p ../../../../model/face_detector/version-slim-320_simplified.tnnproto -m ../../../../model/face_detector/version-slim-320_simplified.tnnmodel -i ../../../assets/test_face.jpg
 
    object-detector demo
-   ./demo_cuda_objectdetector -p ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto -m ../../../../model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel -i ../../../assets/004545.jpg
+   ./demo_cuda_objectdetector -p ../../../../model/yolov5/yolov5s.tnnproto -m ../../../../model/yolov5/yolov5s.tnnmodel -i ../../../assets/004545.jpg
 
    reading-comprehension demo
    ./demo_cuda_readingcomprehension -p ../../../../model/bertsquad10/bertsquad10_clean.tnnproto -m ../../../../model/bertsquad10/bertsquad10_clean.tnnmodel -v ../../../../model/bertsquad10/vocab.txt
+
+   pose-detector demo (Tencent Guangliu)
+   ./demo_cuda_posedetector -p ../../../../model/skeleton/skeleton_big.tnnproto -m ../../../../model/skeleton/skeleton.tnnmodel -i ../../../assets/skeleton_test.jpg
+
+   pose-detector demo (blazepose)
+   ./demo_cuda_blazepose
+
+   ocr-detector demo
+   ./demo_cuda_ocrdetecor
    ```
 ### FAQ
 
@@ -526,14 +563,12 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
 * Init predictor:  
    ```cpp
    CHECK_TNN_STATUS(predictor->Init(option));
-   // for Linux/Windows(OpenVINO)
-   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
-   // for Linux/Windows(X86 native)
+   // for Linux/Windows(X86 native / OPENVINO)
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // for ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // for CUDA
-   option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+   option->compute_units = TNN_NS::TNNComputeUnitsGPU;
    ```
 * Create image_mat:  
    ```cpp
@@ -558,14 +593,12 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
 * Init predictor:  
    ```cpp
    CHECK_TNN_STATUS(predictor->Init(option));
-   // for Linux/Windows(OpenVINO)
-   option->compute_units = TNN_NS::TNNComputeUnitsOpenvino;
-   // for Linux/Windows(X86 native)
+   // for Linux/Windows(X86 native / OPENVINO)
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // for ArmLinux
    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
    // for CUDA
-   option->compute_units = TNN_NS::TNNComputeUnitsTensorRT;
+   option->compute_units = TNN_NS::TNNComputeUnitsGPU;
    ```
 * Create image_mat:  
    ```cpp

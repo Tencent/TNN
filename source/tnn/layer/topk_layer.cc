@@ -20,8 +20,8 @@
 namespace TNN_NS {
 
 //different implementation may generate different order, cause unalign [onnx vs cpu vs other devices]  
-
-DECLARE_LAYER(TopK, LAYER_TOPK);
+DECLARE_LAYER_WITH_FUNC(TopK, LAYER_TOPK,
+                        virtual Status FillLayerParamWithConstantResource(););
 
 Status TopKLayer::InferOutputDataType() {
     Status status = BaseLayer::InferOutputDataType();
@@ -54,16 +54,31 @@ Status TopKLayer::InferOutputShape(bool ignore_error) {
         return Status(TNNERR_PARAM_ERR, "TopKLayer output blobs size != 2");
     }
 
-    if (input_blobs_.size() > 1) {
-        return Status(TNNERR_PARAM_ERR, "TopKLayer only support one input blob, not support k as a input blob");
-    }
-
     if (layer_param->k > 0) {
         output_dims[layer_param->axis] = std::min(layer_param->k, input_dims[layer_param->axis]);
     }
     output_blobs_[0]->GetBlobDesc().dims = output_dims;
     output_blobs_[1]->GetBlobDesc().dims = output_dims;
     return TNN_OK;
+}
+
+Status TopKLayer::FillLayerParamWithConstantResource() {
+    Status status = TNN_OK;
+    auto layer_param = dynamic_cast<TopKLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+
+    //根据const resource更新维度信息
+    if (input_blobs_.size() >= 2) {
+        auto shape_blob_name = input_blobs_[1]->GetBlobDesc().name;
+        if (const_resource_ != nullptr && const_resource_->find(shape_blob_name) != const_resource_->end()) {
+            auto k_buffer = (*const_resource_)[shape_blob_name];
+            auto dim_count = k_buffer->GetDataCount();
+            auto dim_data = (int *)k_buffer->force_to<int *>();
+            ASSERT(dim_count == 1);
+            layer_param->k = dim_data[0];
+        }
+    }
+    return status;
 }
 
 REGISTER_LAYER(TopK, LAYER_TOPK);

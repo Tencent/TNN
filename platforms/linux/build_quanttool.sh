@@ -2,7 +2,7 @@
 
 CLEAN=""
 
-BUILD_DIR=build
+BUILD_DIR=build_quantize
 
 function usage() {
     echo "-c\tClean up build folders."
@@ -21,8 +21,8 @@ function build() {
     if [ "-c" == "$CLEAN" ]; then
         clean_build $BUILD_DIR
     fi
-    mkdir -p build
-    cd $BUILD_DIR
+    mkdir -p $BUILD_DIR
+    cd $BUILD_DIR || exit
     cmake ../../.. \
           -DCMAKE_BUILD_TYPE=Release \
           -DTNN_CPU_ENABLE:BOOL="ON"  \

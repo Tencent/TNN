@@ -91,7 +91,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model, default v1.0
-  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause wrong result
   -half                 save model using half
   -align                align the onnx model with tnn model
   -input_file INPUT_FILE_PATH

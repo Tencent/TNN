@@ -676,10 +676,10 @@ void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc
                 b0    = vld1q_f32(b);
                 b1    = vld1q_f32(b + 4);
                 av    = vld1q_f32(a);
-                a0    = vdupq_n_f32(av[0]);
-                a1    = vdupq_n_f32(av[1]);
-                a2    = vdupq_n_f32(av[2]);
-                a3    = vdupq_n_f32(av[3]);
+                a0    = vdupq_n_f32(vgetq_lane_f32(av, 0));
+                a1    = vdupq_n_f32(vgetq_lane_f32(av, 1));
+                a2    = vdupq_n_f32(vgetq_lane_f32(av, 2));
+                a3    = vdupq_n_f32(vgetq_lane_f32(av, 3));
                 c0[0] = vmlaq_f32(c0[0], a0, b0);
                 c1[0] = vmlaq_f32(c1[0], a0, b1);
                 c0[1] = vmlaq_f32(c0[1], a1, b0);
@@ -692,8 +692,10 @@ void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc
                 a += 4;
             }
             for (int ms = 0; ms < 4; ++ms) {
+                Float4 c0_ms(c0[ms]);
+                Float4 c1_ms(c1[ms]);
                 for (int rr = 0; rr < remain; ++rr) {
-                    c[rr] += rr < 4 ? c0[ms][rr] : c1[ms][rr - 4];
+                    c[rr] += rr < 4 ? c0_ms[rr] : c1_ms[rr - 4];
                 }
                 c += ldc;
             }
@@ -857,8 +859,10 @@ void Kernel_1x8(int m, int n, int k, const float *sa, const float *sb, float *sc
                 c1             = vmlaq_f32(c1, a0, b1);
                 b += 8;
             }
+            Float4 c0_w(c0);
+            Float4 c1_w(c1);
             for (int rr = 0; rr < remain; ++rr) {
-                c[rr] += rr < 4 ? c0[rr] : c1[rr - 4];
+                c[rr] += rr < 4 ? c0_w[rr] : c1_w[rr - 4];
             }
         }
     }

@@ -4,7 +4,7 @@ CLEAN=""
 BUILD_ONLY=""
 
 WORK_DIR=`pwd`
-BUILD_DIR=build
+BUILD_DIR=build_ut
 FILTER=""
 DUMP_DIR=$WORK_DIR/dump_data
 
@@ -31,8 +31,8 @@ function build_x86() {
     if [ "-c" == "$CLEAN" ]; then
         clean_build $BUILD_DIR
     fi
-    mkdir -p build
-    cd $BUILD_DIR
+    mkdir -p $BUILD_DIR
+    cd $BUILD_DIR || exit
     cmake ../../.. \
           -DCMAKE_BUILD_TYPE=Release \
           -DTNN_TEST_ENABLE:BOOL="ON"  \

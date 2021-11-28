@@ -36,8 +36,8 @@ Status PriorBoxOVLayerBuilder::Build() {
     
     auto paramlist = dynamic_cast<PriorBoxLayerParam*>(param_);
 
-    if (GetInputNodes().size() <=1) {
-        LOGE("Error: Prior box requires more than 1 input nodes\n");
+    if (GetInputNodes().size() > 2) {
+        LOGE("Error: Prior box requires 1 or 2 input nodes\n");
         return TNNERR_INIT_LAYER;
     }
     auto input_node = GetInputNodes();
@@ -51,7 +51,7 @@ Status PriorBoxOVLayerBuilder::Build() {
     attrs.fixed_ratio;                              // miss
     attrs.fixed_size;                               // miss
     attrs.clip          = paramlist->clip;
-    attrs.flip          = 0; //paramlist->flip;
+    attrs.flip          = false; // paramlist->flip; flip keep false
     attrs.step          = paramlist->step_h;        // step_w
     attrs.offset        = paramlist->offset;
     attrs.variance      = paramlist->variances;
@@ -60,9 +60,18 @@ Status PriorBoxOVLayerBuilder::Build() {
     auto size_shape = input_node[0]->get_output_shape(0);
     auto sizeNode = std::make_shared<ngraph::op::Constant>(
         ngraph::element::Type_t::i64, ngraph::Shape({2}), std::vector<size_t>({size_shape.at(2), size_shape.at(3)}));
-    auto image_shape = input_node[1]->get_output_shape(0);
+    
+    std::vector<size_t> image_shape;
+    if (paramlist->img_h == 0 || paramlist->img_w == 0) {
+        image_shape.push_back(input_node[1]->get_output_shape(0)[2]);
+        image_shape.push_back(input_node[1]->get_output_shape(0)[3]);
+    } else {
+        image_shape.push_back(paramlist->img_h);
+        image_shape.push_back(paramlist->img_w);
+    }
     auto imageNode = std::make_shared<ngraph::op::Constant>(
-        ngraph::element::Type_t::i64, ngraph::Shape({2}), std::vector<size_t>({image_shape.at(2), image_shape.at(3)}));
+        ngraph::element::Type_t::i64, ngraph::Shape({2}), image_shape);
+
     auto priorBoxNode = std::make_shared<ngraph::op::PriorBox>(
         sizeNode->output(0), imageNode->output(0), attrs);
     

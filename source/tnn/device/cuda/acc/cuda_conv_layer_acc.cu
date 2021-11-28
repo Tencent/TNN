@@ -36,13 +36,20 @@ Status CudaConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource
     DimsVector input_dims  = inputs[0]->GetBlobDesc().dims;
     DimsVector output_dims = outputs[0]->GetBlobDesc().dims;
 
+    if (input_dims.size() == 0 || output_dims.size() == 0) {
+        return TNNERR_LAYER_ERR;
+    }
+
     Blob *input = inputs[0];
 
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param);
 
     // only some 7x7 conv case need run with cudnn because trt fp16 bug
     bool symmetric = (conv_param->pads[0] == conv_param->pads[1]) && (conv_param->pads[2] == conv_param->pads[3]);
-    if (!symmetric || conv_param->kernels[1] != 7 || conv_param->kernels[0] != 7) return TNN_OK;
+    if (!symmetric ||
+        !((conv_param->kernels[1] == 7 && conv_param->kernels[0] == 7) ||
+          (conv_param->kernels[1] == 41 && conv_param->kernels[0] == 1) ||
+          (conv_param->kernels[1] == 5 && conv_param->kernels[0] == 1))) return TNN_OK;
 
     CUDNN_CHECK(cudnnCreateTensorDescriptor(&bottom_desc_));
     CUDNN_CHECK(cudnnCreateTensorDescriptor(&top_desc_));
@@ -116,7 +123,10 @@ Status CudaConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::v
 
     // only some 7x7 conv case need run with cudnn because trt fp16 bug
     bool symmetric = (conv_param->pads[0] == conv_param->pads[1]) && (conv_param->pads[2] == conv_param->pads[3]);
-    if (!symmetric || conv_param->kernels[1] != 7 || conv_param->kernels[0] != 7) return TNN_OK;
+    if (!symmetric ||
+        !((conv_param->kernels[1] == 7 && conv_param->kernels[0] == 7) ||
+          (conv_param->kernels[1] == 41 && conv_param->kernels[0] == 1) ||
+          (conv_param->kernels[1] == 5 && conv_param->kernels[0] == 1))) return TNN_OK;
 
     DimsVector input_dims  = inputs[0]->GetBlobDesc().dims;
     DimsVector output_dims = outputs[0]->GetBlobDesc().dims;

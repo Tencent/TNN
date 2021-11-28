@@ -31,14 +31,14 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     scale_buffer_.resize(inputs.size());
 
     if (reformat_param->src_format == reformat_param->dst_format) {
-        if (reformat_param->src_type == DATA_TYPE_INT8 && reformat_param->dst_type == DATA_TYPE_FLOAT) {
-            reformat_param->type = DEQUANT_ONLY;
-        } else if (reformat_param->src_type == DATA_TYPE_FLOAT && reformat_param->dst_type == DATA_TYPE_INT8) {
-            reformat_param->type = QUANT_ONLY;
-        } else if (reformat_param->src_type == DATA_TYPE_FLOAT && reformat_param->dst_type == DATA_TYPE_HALF) {
+        if (reformat_param->src_type == DATA_TYPE_FLOAT && reformat_param->dst_type == DATA_TYPE_HALF) {
             reformat_param->type = NC4HW4FP32_2_NC8HW8FP16;
         } else if (reformat_param->src_type == DATA_TYPE_HALF && reformat_param->dst_type == DATA_TYPE_FLOAT) {
             reformat_param->type = NC8HW8FP16_2_NC4HW4FP32;
+        } else if (reformat_param->src_type == DATA_TYPE_INT8 && reformat_param->dst_type == DATA_TYPE_FLOAT) {
+            reformat_param->type = DEQUANT_ONLY;
+        } else if (reformat_param->src_type == DATA_TYPE_FLOAT && reformat_param->dst_type == DATA_TYPE_INT8) {
+            reformat_param->type = QUANT_ONLY;
         } else {
             if (reformat_param->src_type == DATA_TYPE_BFP16 || reformat_param->dst_type == DATA_TYPE_BFP16) {
                 LOGE("unsupport precision mode, please dont use precision = low for int8");
@@ -50,6 +50,8 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
             reformat_param->type = NC4HW4FP32_2_NCHWFP32;
         } else if (reformat_param->src_type == DATA_TYPE_HALF && reformat_param->dst_type == DATA_TYPE_HALF) {
             reformat_param->type = NC8HW8FP16_2_NCHWFP16;
+        } else if (reformat_param->src_type == DATA_TYPE_INT32 && reformat_param->dst_type == DATA_TYPE_INT32) {
+            reformat_param->type = NC4HW4INT32_2_NCHWINT32;
         } else {
             LOGE("ArmReformatLayerAcc::Init Error: src_fmt: %d, dst_fmt: %d, src_type: %d, dst_type: %d\n",
                  reformat_param->src_format, reformat_param->dst_format, reformat_param->src_type,
@@ -61,6 +63,20 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
             reformat_param->type = NCHWFP32_2_NC4HW4FP32;
         } else if (reformat_param->src_type == DATA_TYPE_HALF && reformat_param->dst_type == DATA_TYPE_HALF) {
             reformat_param->type = NCHWFP16_2_NC8HW8FP16;
+        } else if (reformat_param->src_type == DATA_TYPE_INT32 && reformat_param->dst_type == DATA_TYPE_INT32) {
+            reformat_param->type = NCHWINT32_2_NC4HW4INT32;
+        } else {
+            LOGE("ArmReformatLayerAcc::Init Error: src_fmt: %d, dst_fmt: %d, src_type: %d, dst_type: %d\n",
+                 reformat_param->src_format, reformat_param->dst_format, reformat_param->src_type,
+                 reformat_param->dst_type);
+            return Status(TNNERR_MODEL_ERR, "ArmReformatLayerAcc::Init unsupport reformat type");
+        }
+    } else if ((reformat_param->src_format == DATA_FORMAT_NC4HW4 && reformat_param->dst_format == DATA_FORMAT_NHWC4) ||
+               (reformat_param->src_format == DATA_FORMAT_NHWC4 && reformat_param->dst_format == DATA_FORMAT_NC4HW4)) {
+        if (reformat_param->src_type == DATA_TYPE_INT8 && reformat_param->dst_type == DATA_TYPE_FLOAT) {
+            reformat_param->type = DEQUANT_ONLY;
+        } else if (reformat_param->src_type == DATA_TYPE_FLOAT && reformat_param->dst_type == DATA_TYPE_INT8) {
+            reformat_param->type = QUANT_ONLY;
         } else {
             LOGE("ArmReformatLayerAcc::Init Error: src_fmt: %d, dst_fmt: %d, src_type: %d, dst_type: %d\n",
                  reformat_param->src_format, reformat_param->dst_format, reformat_param->src_type,
@@ -138,6 +154,14 @@ Status ArmReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
             auto dst_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[i]->GetHandle()));
             auto src_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[i]->GetHandle()));
             PackFloatBlob(dst_ptr, src_ptr, batch, channel, hw);
+        } else if (param->type == NC4HW4INT32_2_NCHWINT32) {
+            auto dst_ptr = reinterpret_cast<int32_t *>(GetBlobHandlePtr(outputs[i]->GetHandle()));
+            auto src_ptr = reinterpret_cast<int32_t *>(GetBlobHandlePtr(inputs[i]->GetHandle()));
+            UnpackInt32Blob(dst_ptr, src_ptr, batch, channel, hw);
+        } else if (param->type == NCHWINT32_2_NC4HW4INT32) {
+            auto dst_ptr = reinterpret_cast<int32_t *>(GetBlobHandlePtr(outputs[i]->GetHandle()));
+            auto src_ptr = reinterpret_cast<int32_t *>(GetBlobHandlePtr(inputs[i]->GetHandle()));
+            PackInt32Blob(dst_ptr, src_ptr, batch, channel, hw);
         }
 #if TNN_ARM82
         else if (param->type == NC4HW4FP32_2_NC8HW8FP16) {
@@ -156,6 +180,9 @@ Status ArmReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
             PackHalfBlob(dst_ptr, src_ptr, batch, channel, hw);
         }
 #endif  // TNN_ARM82
+        else {
+            return Status(TNNERR_MODEL_ERR, "ArmReformatLayerAcc::DoForward unsupport reformat type");
+        }
     }
     return TNN_OK;
 }

@@ -31,7 +31,7 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
 
     auto conv_param = dynamic_cast<ConvLayerParam *>(param);
     CHECK_PARAM_NULL(conv_param);
-    auto conv_res = dynamic_cast<ConvLayerResource *>(resource_);
+    ConvLayerResource* conv_res = dynamic_cast<ConvLayerResource *>(resource_);
     CHECK_PARAM_NULL(conv_res);
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         if (!buffer_scale_.GetBytesSize()) {
@@ -41,16 +41,12 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
             const float *w_scale = conv_res->scale_handle.force_to<float *>();
             CHECK_PARAM_NULL(w_scale);
 
-            const float *i_scale =
-                reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource()->scale_handle.force_to<float *>();
-
             const float *o_scale =
                 reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource()->scale_handle.force_to<float *>();
             int scale_len_w = conv_res->scale_handle.GetDataCount();
             int scale_len_o = reinterpret_cast<BlobInt8 *>(outputs[0])->GetIntResource()->scale_handle.GetDataCount();
             RawBuffer temp_buffer(total_byte_size);
             float *temp_ptr = temp_buffer.force_to<float *>();
-
             int32_t *bias_ptr = conv_res->bias_handle.force_to<int32_t *>();
             for (int i = 0; i < dims_output[1]; i++) {
                 int w_scale_idx = scale_len_w == 1 ? 0 : i;
@@ -62,7 +58,49 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
             }
             buffer_scale_ = temp_buffer;
         }
+        if (!buffer_weight_x_bias_.GetBytesSize()) {
+            do_bias_preprocess_  = true;
+            auto dims_output     = outputs[0]->GetBlobDesc().dims;
+            auto dims_input      = inputs[0]->GetBlobDesc().dims;
+            int scale_bias_len_w = conv_res->scale_bias_handle.GetDataCount();
+            int data_len_w       = conv_res->filter_handle.GetDataCount();
+            int scale_bias_len_i =
+                reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource()->scale_bias_handle.GetDataCount();
+            int8_t *scale_bias_i_ptr =
+                reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
+            int8_t *scale_bias_w_ptr = conv_res->scale_bias_handle.force_to<int8_t *>();
+            int8_t *weight_ptr       = conv_res->filter_handle.force_to<int8_t *>();
+            RawBuffer temp_buffer_weight_x_bias(dims_output[1] * sizeof(int32_t));
+            int32_t *weight_x_bias_ptr    = temp_buffer_weight_x_bias.force_to<int32_t *>();
+            int kernel_len                = conv_param->kernels[1] * conv_param->kernels[0];
+            int group                     = conv_param->group;
+            int input_channels_per_group  = dims_input[1] / group;
+            int output_channels_per_group = dims_output[1] / group;
 
+            for (int g = 0; g < group; ++g) {
+                int weights_start  = g * data_len_w / group;
+                int output_c_start = g * output_channels_per_group;
+                int output_c_end   = (g + 1) * output_channels_per_group;
+                int input_c_start  = g * input_channels_per_group;
+                int input_c_end    = (g + 1) * input_channels_per_group;
+                for (int output_c = output_c_start; output_c < output_c_end; output_c++) {
+                    int w_scale_bias_idx = scale_bias_len_w == 1 ? 0 : output_c;
+                    int32_t val          = 0;
+                    for (int input_c = input_c_start; input_c < input_c_end; input_c++) {
+                        int i_scale_bias_idx = scale_bias_len_i == 1 ? 0 : input_c;
+                        int kernel_sum       = 0;
+                        int8_t *kernel_ptr   = weight_ptr + weights_start +
+                                             kernel_len * (((output_c - output_c_start) * input_channels_per_group) +
+                                                           input_c - input_c_start);
+                        std::for_each(kernel_ptr, kernel_ptr + kernel_len, [&](int8_t n) { kernel_sum += n; });
+                        val += scale_bias_i_ptr[i_scale_bias_idx] *
+                               (scale_bias_w_ptr[w_scale_bias_idx] * kernel_len - kernel_sum);
+                    }
+                    weight_x_bias_ptr[output_c] = val;
+                }
+            }
+            buffer_weight_x_bias_ = temp_buffer_weight_x_bias;
+        }
         if (conv_param->fusion_type != FusionType_None && !buffer_add_scale_.GetBytesSize()) {
             auto dims_output    = outputs[0]->GetBlobDesc().dims;
             int total_byte_size = dims_output[1] * sizeof(float);
@@ -114,7 +152,8 @@ Status CpuConvLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
 
 Status CpuConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param    = dynamic_cast<ConvLayerParam *>(param_);
-    auto resource = dynamic_cast<ConvLayerResource *>(resource_);
+    ConvLayerResource* resource = dynamic_cast<ConvLayerResource *>(resource_);
+
     if (!param || !resource) {
         return Status(TNNERR_MODEL_ERR, "Error: ConvLayerParam or ConvLayerResource is empty");
     }
@@ -144,13 +183,33 @@ Status CpuConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
                                                   param->dialations[1], param->activation_type, NULL, 0, NULL, 0);
     } else if (data_type == DATA_TYPE_INT8) {
         auto weight_scale = buffer_scale_.force_to<float *>();
+        int scale_bias_len_w = resource->scale_bias_handle.GetDataCount();
+        int scale_bias_len_i = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->scale_bias_handle.GetDataCount();
+        int scale_bias_len_o = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->scale_bias_handle.GetDataCount();
+        int8_t* scale_bias_w_ptr = resource->scale_bias_handle.force_to<int8_t *>();
+        int8_t* scale_bias_i_ptr = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
+        int8_t* scale_bias_o_ptr = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
         auto relu6_max    = relu6_max_.force_to<int8_t *>();
         void *add_input   = (param->fusion_type == FusionType_None) ? nullptr : inputs[1]->GetHandle().base;
-        NaiveConv<int8_t, int8_t, int32_t, int8_t>(
-            input_ptr, output_ptr, weight_ptr, bias_ptr, input_dims, output_dims, param->strides[1], param->strides[0],
-            param->kernels[1], param->kernels[0], param->pads[2], param->pads[0], param->group, param->dialations[1],
-            param->activation_type, weight_scale, buffer_scale_.GetDataCount(), relu6_max, relu6_max_.GetDataCount(),
-            param->fusion_type, add_input, buffer_add_scale_.force_to<float *>());
+        int8_t *add_bias_input = (param->fusion_type == FusionType_None) ? nullptr
+                : reinterpret_cast<BlobInt8 *>(inputs[1])->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
+        if (do_bias_preprocess_) {
+            NaiveConvBias<int8_t, int8_t, int32_t, int8_t>(
+                input_ptr, output_ptr, weight_ptr, bias_ptr, input_dims, output_dims, param->strides[1],
+                param->strides[0], param->kernels[1], param->kernels[0], param->pads[2], param->pads[0], param->group,
+                param->dialations[1], param->activation_type, weight_scale, buffer_scale_.GetDataCount(),
+                scale_bias_w_ptr, scale_bias_len_w, scale_bias_i_ptr, scale_bias_len_i, scale_bias_o_ptr,
+                scale_bias_len_o, buffer_weight_x_bias_.force_to<int32_t *>(), relu6_max, relu6_max_.GetDataCount(),
+                param->fusion_type, add_input, buffer_add_scale_.force_to<float *>(), add_bias_input);
+        } else {
+            NaiveConvBias<int8_t, int8_t, int32_t, int8_t>(
+                input_ptr, output_ptr, weight_ptr, bias_ptr, input_dims, output_dims, param->strides[1],
+                param->strides[0], param->kernels[1], param->kernels[0], param->pads[2], param->pads[0], param->group,
+                param->dialations[1], param->activation_type, weight_scale, buffer_scale_.GetDataCount(),
+                scale_bias_w_ptr, scale_bias_len_w, scale_bias_i_ptr, scale_bias_len_i, scale_bias_o_ptr,
+                scale_bias_len_o, relu6_max, relu6_max_.GetDataCount(), param->fusion_type, add_input,
+                buffer_add_scale_.force_to<float *>(), add_bias_input);
+        }
     } else {
         return Status(TNNERR_LAYER_ERR, "data type not support in conv");
     }

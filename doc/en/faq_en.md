@@ -17,7 +17,12 @@
  
 ### ARMv8.2 compilation error
 To support ARMv8.2 compilation, the ndk version must be at least r18b
-        
+
+### Windows CUDA Compilation
+#### CUDA Version
+  - CUDA 10.2 may produce the error not compatible with Visual Studio. If there is an error `cuda_toolset not found`, please reinstall CUDA and Visual Studio.
+  - If there are multiple versions of CUDA installed, use `cmake -T` to choose the version you want to build. For example `cmake -Tcuda=10.2`
+
 ## II. Model conversion questions
 
 ### How to support tensorflow, caffe, mxnet models?
@@ -46,6 +51,10 @@ DimsVector dims = {1, cv_mat.channels(), cv_mat.rows, cv_mat.cols};
 auto tnn_mat = new TNN::Mat(DeviceType, mat_type, dims, (void *)cv_mat.ptr);
 ```
 
+### Windows CUDA Error
+  - Windows CUDA 10.2 error: `C:\source\rtSafe\cublas\cublasLtWrapper.cpp (279) - Assertion Error in nvinfer1::CublasLtWrapper::getCublasLtHeuristic: 0 (cublasStatus == CUBLAS_STATUS_SUCCESS)`
+    Solution: Download [Patch]("https://developer.nvidia.com/cuda-10.2-download-archive?target_os=Windows&target_arch=x86_64&target_version=10&target_type=exelocal") on NVIDIA and install.
+    
 ### Introduction to common error codes.
 Status call the description() interface to get more error information description.  
 
