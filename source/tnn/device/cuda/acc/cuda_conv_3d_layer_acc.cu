@@ -177,7 +177,7 @@ Status CudaConv3DLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
     std::unique_ptr<perf_t[]> perf_results(new perf_t[num_algos]);
 
     CUDNN_CHECK(cudnnGetConvolutionForwardAlgorithm_v7(
-        context_->cudnn_handle_, bottom_desc_, filter_desc_, conv_desc_,
+        context_->GetCudnnHandle(), bottom_desc_, filter_desc_, conv_desc_,
         top_desc_, num_algos, &perf_count, perf_results.get()));
 
     auto valid_algos = getValidAlgorithms(perf_results.get(), perf_count);
@@ -192,7 +192,7 @@ Status CudaConv3DLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
     // workspace
     size_t needed_workspace_size;
     CUDNN_CHECK(cudnnGetConvolutionForwardWorkspaceSize(
-        context_->cudnn_handle_, bottom_desc_, filter_desc_, conv_desc_,
+        context_->GetCudnnHandle(), bottom_desc_, filter_desc_, conv_desc_,
         top_desc_, conv_algo_, &needed_workspace_size));
 
     // LOGD("Workspace size: %ld\n", workspace_size_);
@@ -208,7 +208,7 @@ Status CudaConv3DLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
 
 Status CudaConv3DLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     CUDNN_CHECK(cudnnConvolutionForward(
-        context_->cudnn_handle_, &alpha_, bottom_desc_,
+        context_->GetCudnnHandle(), &alpha_, bottom_desc_,
         inputs[0]->GetHandle().base, filter_desc_, weights_, conv_desc_,
         conv_algo_, workspace_data_, workspace_size_, &beta_, top_desc_,
         outputs[0]->GetHandle().base));
@@ -216,7 +216,7 @@ Status CudaConv3DLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
     if (bias_term_) {
         float alpha = 1.0f;
         float beta  = 1.0f;
-        CUDNN_CHECK(cudnnAddTensor(context_->cudnn_handle_, &alpha, bias_desc_,
+        CUDNN_CHECK(cudnnAddTensor(context_->GetCudnnHandle(), &alpha, bias_desc_,
                                    bias_, &beta, top_desc_,
                                    outputs[0]->GetHandle().base));
     }

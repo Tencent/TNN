@@ -128,10 +128,10 @@ Status CudaLSTMONNXLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     float dropout = 0;
     size_t stateSize;
 
-    CUDNN_CHECK(cudnnDropoutGetStatesSize(context_->cudnn_handle_, &stateSize));
+    CUDNN_CHECK(cudnnDropoutGetStatesSize(context_->GetCudnnHandle(), &stateSize));
     RETURN_ON_NEQ(device_->Allocate(&dropout_state_, stateSize), TNN_OK);
     CUDNN_CHECK(cudnnSetDropoutDescriptor(dropout_desc_, 
-                               context_->cudnn_handle_,
+                               context_->GetCudnnHandle(),
                                dropout, 
                                dropout_state_, 
                                stateSize, 
@@ -228,7 +228,7 @@ Status CudaLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
         seq_length_ = input_dims[0];
         int batch_size = input_dims[1];
 
-        CUDNN_CHECK(cudnnSetRNNDescriptor_v6(context_->cudnn_handle_,
+        CUDNN_CHECK(cudnnSetRNNDescriptor_v6(context_->GetCudnnHandle(),
                                         rnn_desc_,
                                         hidden_size_, 
                                         num_layers_, 
@@ -309,7 +309,7 @@ Status CudaLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     
         // weight initialize
         size_t weightsSize;
-        CUDNN_CHECK(cudnnGetRNNParamsSize(context_->cudnn_handle_, rnn_desc_, x_desc_[0], &weightsSize, CUDNN_DATA_FLOAT));
+        CUDNN_CHECK(cudnnGetRNNParamsSize(context_->GetCudnnHandle(), rnn_desc_, x_desc_[0], &weightsSize, CUDNN_DATA_FLOAT));
 
         int dimW[3];   
         dimW[0] =  weightsSize / sizeof(float);
@@ -324,7 +324,7 @@ Status CudaLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
                                                 (float*)weights_), 
                     TNN_OK);
 
-        CUDNN_CHECK(cudnnGetRNNWorkspaceSize(context_->cudnn_handle_, rnn_desc_, seq_length_, x_desc_, &workspace_size_));
+        CUDNN_CHECK(cudnnGetRNNWorkspaceSize(context_->GetCudnnHandle(), rnn_desc_, seq_length_, x_desc_, &workspace_size_));
 
         if (workspace_size_ > 0) {
             RETURN_ON_NEQ(device_->ReAllocate(&workspace_, workspace_size_), TNN_OK);
@@ -341,7 +341,7 @@ Status CudaLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
 
     float * bottom_data = (float*)(((char*)inputs[0]->GetHandle().base) + inputs[0]->GetHandle().bytes_offset);
     float * top_data    = (float*)(((char*)outputs[0]->GetHandle().base) + outputs[0]->GetHandle().bytes_offset);
-    CUDNN_CHECK(cudnnRNNForwardInference(context_->cudnn_handle_,
+    CUDNN_CHECK(cudnnRNNForwardInference(context_->GetCudnnHandle(),
                                          rnn_desc_, 
                                          seq_length_,
                                          x_desc_, 
