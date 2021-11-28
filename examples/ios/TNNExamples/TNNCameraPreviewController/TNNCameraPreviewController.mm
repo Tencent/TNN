@@ -23,7 +23,6 @@ typedef void(^CommonCallback)(Status);
 @property (nonatomic, weak) IBOutlet UIImageView *cameraPreview;
 @property (nonatomic, weak) IBOutlet UILabel *labelResult;
 @property (nonatomic, weak) IBOutlet UILabel *labelFPS;
-@property (nonatomic, weak) IBOutlet UISwitch *switchGPU;
 @property (nonatomic, weak) IBOutlet UIButton *rotateCamera;
 
 @property (nonatomic, strong) TNNCameraVideoDevice *cameraDevice;
@@ -82,8 +81,8 @@ typedef void(^CommonCallback)(Status);
     }];
     
     //init network
-    [self.switchGPU setOn:self.viewModel.preferGPU];
-    auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    [self.switchDevice setSelectedSegmentIndex:self.viewModel.preferGPU ? 1 : 0];
+    auto units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
             //刷新界面
@@ -146,10 +145,10 @@ typedef void(^CommonCallback)(Status);
 
 #pragma mark - IBAction Interfaces
 
-- (IBAction)onSwitchGPU:(id)sender
+- (IBAction)onswitchDevice:(id)sender
 {
     //init network
-    auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
             //刷新界面
@@ -374,7 +373,7 @@ typedef void(^CommonCallback)(Status);
 
 - (void)showFPS:(std::map<std::string, double>) map_fps {
     NSMutableString *fps = [NSMutableString stringWithFormat:@"device: %@",
-                            self.switchGPU.isOn ? @"metal\n" : @"arm\n"];
+                            self.switchDevice.selectedSegmentIndex ? @"metal\n" : @"arm\n"];
     int index = 0;
     for (auto item : map_fps) {
         [fps appendFormat:@"%@fps %s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
@@ -385,7 +384,7 @@ typedef void(^CommonCallback)(Status);
 
 - (void)showTime:(std::map<std::string, double>) map_time {
     NSMutableString *fps = [NSMutableString stringWithFormat:@"device: %@",
-                            self.switchGPU.isOn ? @"metal\n" : @"arm\n"];
+                            self.switchDevice.selectedSegmentIndex ? @"metal\n" : @"arm\n"];
     int index = 0;
     for (auto item : map_time) {
         [fps appendFormat:@"%@time %s: %.4f ms", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];

@@ -29,7 +29,6 @@ using namespace TNN_NS;
 @property (weak, nonatomic) IBOutlet UIButton *btnExample;
 @property (weak, nonatomic) IBOutlet UILabel *labelResult;
 @property (weak, nonatomic) IBOutlet UILabel *labelGPU;
-@property (weak, nonatomic) IBOutlet UISwitch *switchGPU;
 @property (weak, nonatomic) IBOutlet UIImageView *imageView;
 
 @property(nonatomic, strong) UIImage* image_orig;
@@ -105,7 +104,7 @@ using namespace TNN_NS;
 
     auto image_data = utility::UIImageGetData(self.image_orig, 128, 128, 1);
 
-    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    TNNComputeUnits units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
     auto option = std::make_shared<BlazeFaceDetectorOption>();
     {
         option->proto_content = proto_content;

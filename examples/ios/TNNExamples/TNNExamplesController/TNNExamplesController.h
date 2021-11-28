@@ -14,9 +14,13 @@
 
 #import <UIKit/UIKit.h>
 #import "TNNViewModel.h"
+#import "TOSegmentedControl.h"
 
 @interface TNNExamplesController : UIViewController
+@property(nonatomic, weak) IBOutlet TOSegmentedControl *switchDevice;
 @property (nonatomic, weak) IBOutlet UIView *customOptionView;
 @property (nonatomic, weak) IBOutlet NSLayoutConstraint *customOptionViewHeight;
 @property (nonatomic, strong) TNNViewModel *viewModel;
+
+- (void)onSwitchChanged:(id)sender;
 @end

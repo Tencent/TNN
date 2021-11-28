@@ -28,9 +28,7 @@ using namespace TNN_NS;
 
 @property (weak, nonatomic) IBOutlet UIButton *btnExample;
 @property (weak, nonatomic) IBOutlet UILabel *labelResult;
-@property (weak, nonatomic) IBOutlet UILabel *labelGPU;
 @property (weak, nonatomic) IBOutlet UILabel *labelContext;
-@property (weak, nonatomic) IBOutlet UISwitch *switchGPU;
 
 @property (strong, nonatomic) NSString *context;
 @property (strong, nonatomic) NSString *question;
@@ -71,8 +69,8 @@ using namespace TNN_NS;
     self.labelContext.text = [NSString stringWithFormat:@"Context:\n%s", [self.context UTF8String]];
     self.labelResult.text = [NSString stringWithFormat:@"Q:%s", [self.question UTF8String]];
 }
-- (IBAction)onSwitchChanged:(id)sender {
-    self.labelResult.text = nil;
+- (void)onSwitchChanged:(id)sender {
+    self.labelResult.text = [NSString stringWithFormat:@"Q:%s", [self.question UTF8String]];
 }
 
 - (IBAction)onBtnTNNExamples:(id)sender {
@@ -106,7 +104,7 @@ using namespace TNN_NS;
         return;
     }
 
-    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    TNNComputeUnits units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
     auto option = std::make_shared<TNNSDKOption>();
     {
         option->proto_content = proto_content;

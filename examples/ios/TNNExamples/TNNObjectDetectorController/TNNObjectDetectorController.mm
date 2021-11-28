@@ -28,7 +28,6 @@ using namespace TNN_NS;
 @property(nonatomic, weak) IBOutlet UIButton *btnTNNExamples;
 @property(nonatomic, weak) IBOutlet UIImageView *imageView;
 @property(nonatomic, weak) IBOutlet UILabel *labelResult;
-@property(nonatomic, weak) IBOutlet UISwitch *switchGPU;
 
 @property(nonatomic, strong) UIImage *image_orig;
 
@@ -66,7 +65,7 @@ using namespace TNN_NS;
     [view addSubview:self.labelResult];
 }
 
-- (IBAction)onSwichChanged:(id)sender {
+- (void)onSwitchChanged:(id)sender {
     self.imageView.image  = self.image_orig;
     self.labelResult.text = nil;
 }
@@ -107,7 +106,7 @@ using namespace TNN_NS;
 
     auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
 
-    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    TNNComputeUnits units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
     auto option = std::make_shared<TNNSDKOption>();
     {
         option->proto_content = proto_content;

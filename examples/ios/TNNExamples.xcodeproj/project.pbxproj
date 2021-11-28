@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9D0409A4275332D400F04A98 /* TOSegmentedControlSegment.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D0409A1275332D400F04A98 /* TOSegmentedControlSegment.m */; };
+		9D0409A5275332D400F04A98 /* TOSegmentedControl.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D0409A3275332D400F04A98 /* TOSegmentedControl.m */; };
 		9D449865241D2D56003FBAA2 /* UIImage+Utility.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D449864241D2D56003FBAA2 /* UIImage+Utility.mm */; };
 		9D49E7A12504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D49E79F2504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm */; };
 		9D49E7A42504BB5D00DD81D7 /* face_detect_aligner.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D49E7A22504BB5D00DD81D7 /* face_detect_aligner.cc */; };
@@ -111,6 +113,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		9D04099F275332D400F04A98 /* TOSegmentedControl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TOSegmentedControl.h; sourceTree = "<group>"; };
+		9D0409A1275332D400F04A98 /* TOSegmentedControlSegment.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TOSegmentedControlSegment.m; sourceTree = "<group>"; };
+		9D0409A2275332D400F04A98 /* TOSegmentedControlSegment.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TOSegmentedControlSegment.h; sourceTree = "<group>"; };
+		9D0409A3275332D400F04A98 /* TOSegmentedControl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TOSegmentedControl.m; sourceTree = "<group>"; };
 		9D449863241D2D3A003FBAA2 /* UIImage+Utility.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UIImage+Utility.h"; sourceTree = "<group>"; };
 		9D449864241D2D56003FBAA2 /* UIImage+Utility.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "UIImage+Utility.mm"; sourceTree = "<group>"; };
 		9D49E79F2504BA1D00DD81D7 /* TNNFaceDetectAlignerViewModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TNNFaceDetectAlignerViewModel.mm; sourceTree = "<group>"; };
@@ -281,6 +287,25 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		9D04099E275332D400F04A98 /* TOSegmentedControl */ = {
+			isa = PBXGroup;
+			children = (
+				9D04099F275332D400F04A98 /* TOSegmentedControl.h */,
+				9D0409A3275332D400F04A98 /* TOSegmentedControl.m */,
+				9D0409A0275332D400F04A98 /* Private */,
+			);
+			path = TOSegmentedControl;
+			sourceTree = "<group>";
+		};
+		9D0409A0275332D400F04A98 /* Private */ = {
+			isa = PBXGroup;
+			children = (
+				9D0409A1275332D400F04A98 /* TOSegmentedControlSegment.m */,
+				9D0409A2275332D400F04A98 /* TOSegmentedControlSegment.h */,
+			);
+			path = Private;
+			sourceTree = "<group>";
+		};
 		9D71E79724C4E92A00074C1A /* TNNImageClassifyController */ = {
 			isa = PBXGroup;
 			children = (
@@ -584,6 +609,7 @@
 		ECD946632559295A00BF9214 /* Component */ = {
 			isa = PBXGroup;
 			children = (
+				9D04099E275332D400F04A98 /* TOSegmentedControl */,
 				ECD946642559295A00BF9214 /* DYFlatButton.m */,
 				ECD946652559295A00BF9214 /* UIColor+Utility.h */,
 				ECD946662559295A00BF9214 /* UIColor+Utility.m */,
@@ -723,6 +749,7 @@
 				9DD579EF23B5A20500A96E63 /* AppDelegate.mm in Sources */,
 				ECB077E425FA0ABD007B1498 /* ocr_text_recognizer.cc in Sources */,
 				EC2CF731250797C800EE3899 /* image_classifier.cc in Sources */,
+				9D0409A5275332D400F04A98 /* TOSegmentedControl.m in Sources */,
 				9D8493C52510B4A400869EEF /* TNNExamplesListController.mm in Sources */,
 				ECD9465B2559266D00BF9214 /* hair_segmentation.cc in Sources */,
 				ECD946682559295A00BF9214 /* DYFlatButton.m in Sources */,
@@ -753,6 +780,7 @@
 				9D49E7A42504BB5D00DD81D7 /* face_detect_aligner.cc in Sources */,
 				ECAD84F924D7F01E0074EA95 /* TNNFacemeshController.mm in Sources */,
 				EC4B9739264D05640015F32A /* TNNReadingComprehensionController.mm in Sources */,
+				9D0409A4275332D400F04A98 /* TOSegmentedControlSegment.m in Sources */,
 				9D9187E4242C30D600DF2B79 /* TNNFaceDetectorController.mm in Sources */,
 				ECF121D02574E391006F79AC /* TNNSkeletonDetectorViewModel.mm in Sources */,
 				EC4E1B5424C97A5E00B88179 /* blazeface_detector.cc in Sources */,

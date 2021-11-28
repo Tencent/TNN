@@ -32,7 +32,6 @@ using namespace TNN_NS;
 @property (weak, nonatomic) IBOutlet UIButton *btnExample;
 @property (weak, nonatomic) IBOutlet UILabel *labelResult;
 @property (weak, nonatomic) IBOutlet UILabel *labelGPU;
-@property (weak, nonatomic) IBOutlet UISwitch *switchGPU;
 @property (weak, nonatomic) IBOutlet UIImageView *imageView;
 
 @property NSMutableArray *result;
@@ -129,7 +128,7 @@ using namespace TNN_NS;
 
     auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
 
-    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    TNNComputeUnits units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
     auto option = std::make_shared<BlazeFaceDetectorOption>();
     {
         option->proto_content = proto_content;
@@ -187,7 +186,7 @@ using namespace TNN_NS;
         return predictor;
     }
 
-    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    TNNComputeUnits units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
     auto option = std::make_shared<FacemeshOption>();
     {
         option->proto_content = proto_content;
@@ -218,7 +217,7 @@ using namespace TNN_NS;
     //clear result
     self.labelResult.text = nil;
 
-    TNNComputeUnits compute_units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    TNNComputeUnits compute_units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
 
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
@@ -386,7 +385,7 @@ using namespace TNN_NS;
     DimsVector target_face_detector_dims = predictor_face_detector->GetInputShape();
     DimsVector target_face_mesh_dims = predictor_face_mesh->GetInputShape();
 
-    auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
 
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);

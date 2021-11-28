@@ -24,8 +24,19 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    __weak typeof(self) weakSelf = self;
+    self.switchDevice.backgroundColor = [UIColor systemGrayColor];
+    self.switchDevice.thumbColor = [UIColor systemGreenColor];
+    self.switchDevice.items = @[@"CPU", @"GPU", @"NPU"];
+    self.switchDevice.segmentTappedHandler = ^(NSInteger index, BOOL reversed) {
+        [weakSelf onSwitchChanged:weakSelf.switchDevice];
+    };
+    
     [self.viewModel setupCustomView:self.customOptionView
                        layoutHeight:self.customOptionViewHeight];
+}
+
+- (void)onSwitchChanged:(id)sender {
 }
 
 @end
