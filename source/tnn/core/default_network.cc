@@ -89,7 +89,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
 
-    if(!net_config.cache_path.empty()) {
+    if(!net_config.cache_path.empty() && net_config.cache_path.compare(CACHE_MEMORY_TAG) != 0) {
         auto params_md5 = default_interpreter->GetParamsMd5();
         if (params_md5.size() < 1) {
             return Status(TNNERR_PARAM_ERR, "model params md5 missing");

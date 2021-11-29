@@ -239,4 +239,6 @@
         }                                                       \
     } while(0)
 
+#define CACHE_MEMORY_TAG "%memory*"
+
 #endif  // TNN_INCLUDE_TNN_CORE_MACRO_H_
