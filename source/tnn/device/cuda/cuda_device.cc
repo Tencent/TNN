@@ -54,10 +54,10 @@ Status CudaDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
 
 Status CudaDevice::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
     void* ptr;
-    int bytes_size = GetBlobMemoryBytesSize(size_info);
+    size_t bytes_size = GetBlobMemoryBytesSize(size_info);
     cudaError_t status = cudaMalloc(&ptr, bytes_size);
     if (cudaSuccess != status) {
-        LOGE("cuda alloc failed with size %d for %p status:%d\n", bytes_size, ptr, status);
+        LOGE("cuda alloc failed with size %lu for %p status:%d\n", bytes_size, ptr, status);
         return TNNERR_OUTOFMEMORY;
     }
 
