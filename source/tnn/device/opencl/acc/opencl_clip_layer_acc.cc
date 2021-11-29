@@ -14,6 +14,7 @@
 
 #include "tnn/device/opencl/acc/opencl_unary_layer_acc.h"
 #include "tnn/utils/string_utils_inner.h"
+#include <math.h>
 
 namespace TNN_NS {
 
