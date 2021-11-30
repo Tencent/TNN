@@ -39,6 +39,8 @@
 #include <torch/csrc/jit/passes/freeze_module.h>
 #include "torch/csrc/jit/passes/lower_tuples.h"
 
+#include <c10/cuda/CUDAStream.h>
+
 #ifdef TNN_TORCHVISION
 #include <torchvision/vision.h>
 #endif
@@ -55,6 +57,10 @@ TNNTorchNetwork::~TNNTorchNetwork() {
     if (blob_manager_) {
         delete blob_manager_;
         blob_manager_ = nullptr;
+    }
+    if(stream_guard_) {
+        delete stream_guard_;
+        stream_guard_ = nullptr;
     }
 }
 
@@ -77,6 +83,12 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
     context_ = device_->CreateContext(net_config.device_id);
     if (context_ == nullptr) {
         return TNNERR_DEVICE_CONTEXT_CREATE;
+    }
+
+    if(net_config.device_type == DEVICE_CUDA) {
+        auto cuda_stream = c10::cuda::getStreamFromPool(true, net_config.device_id);
+        context_->SetCommandQueue(cuda_stream.stream());
+        stream_guard_ = new c10::cuda::CUDAStreamGuard(cuda_stream);  
     }
 
     min_inputs_shape_ = min_inputs_shape;
@@ -267,9 +279,34 @@ Status TNNTorchNetwork::Reshape(const InputShapesMap &inputs) {
 
 
 Status TNNTorchNetwork::Forward() {
-    // Blob converter may issue async converting, we need to wait for data ready.
+    RETURN_ON_FAIL(ForwardAsync(nullptr));
     RETURN_ON_FAIL(context_->Synchronize());
+    return TNN_OK;
+}
 
+Status TNNTorchNetwork::ClearOutputs() {
+    auto it = output_blob_map_.begin();
+    while(it != output_blob_map_.end()) {
+        delete it->second;
+        it = output_blob_map_.erase(it);
+    }
+    return TNN_OK;
+}
+
+
+Status TNNTorchNetwork::ReleaseTorchOutputTensors() {
+    auto it = output_blob_map_.begin();
+    while(it != output_blob_map_.end()) {
+        auto blob = it->second;
+        std::shared_ptr<at::Tensor> empty_tensor;
+        RETURN_ON_FAIL(SetTensorToBlob(blob, empty_tensor));
+        it++;
+    }
+
+    return TNN_OK;
+}
+
+Status TNNTorchNetwork::ForwardAsync(Callback call_back) {
     // TNN blob holds torch's output Tensor of previous forward round, so we can access it's data.
     // at this point, we don't need it, so release it to save memory.
     RETURN_ON_FAIL(ReleaseTorchOutputTensors());
@@ -347,37 +384,9 @@ Status TNNTorchNetwork::Forward() {
         }
     }
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
-    RETURN_ON_FAIL(context_->Synchronize());
     DumpAllOutputBlob();
 #endif
-
     return TNN_OK;
-}
-
-Status TNNTorchNetwork::ClearOutputs() {
-    auto it = output_blob_map_.begin();
-    while(it != output_blob_map_.end()) {
-        delete it->second;
-        it = output_blob_map_.erase(it);
-    }
-    return TNN_OK;
-}
-
-
-Status TNNTorchNetwork::ReleaseTorchOutputTensors() {
-    auto it = output_blob_map_.begin();
-    while(it != output_blob_map_.end()) {
-        auto blob = it->second;
-        std::shared_ptr<at::Tensor> empty_tensor;
-        RETURN_ON_FAIL(SetTensorToBlob(blob, empty_tensor));
-        it++;
-    }
-
-    return TNN_OK;
-}
-
-Status TNNTorchNetwork::ForwardAsync(Callback call_back) {
-    return Forward();
 }
 
 Status TNNTorchNetwork::GetAllInputBlobs(BlobMap &blobs) {
