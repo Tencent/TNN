@@ -43,6 +43,8 @@ public:
 
     // @brief NHWC dims vector to NCHW
     static DimsVector NHWC2NCHW(const DimsVector &dims);
+
+    static void set_dims(DimsVector& dst,const DimsVector& src);
 };
 
 }  // namespace TNN_NS
