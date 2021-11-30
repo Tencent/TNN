@@ -69,6 +69,8 @@ static const char scale_message[] = "input scale: s0,s1,s2,...)";
 
 static const char bias_message[] = "input bias: b0,b1,b2,...)";
 
+static const char test_thread_num_message[] = "set test thread num, default is 1";
+
 DECLARE_bool(h);
 
 DECLARE_string(mt);
@@ -112,6 +114,8 @@ DECLARE_bool(et);
 DECLARE_string(sc);
 
 DECLARE_string(bi);
+
+DECLARE_int32(tt);
 
 }  // namespace TNN_NS
 

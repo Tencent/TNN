@@ -60,4 +60,6 @@ DEFINE_string(sc, "", scale_message);
 
 DEFINE_string(bi, "", bias_message);
 
+DEFINE_int32(tt, 1, test_thread_num_message);
+
 }  // namespace TNN_NS

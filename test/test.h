@@ -26,7 +26,7 @@ namespace TNN_NS {
 
 namespace test {
 
-    int Run(int argc, char* argv[]);
+    int Run();
 
     bool ParseAndCheckCommandLine(int argc, char* argv[]);
 

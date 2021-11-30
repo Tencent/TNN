@@ -25,6 +25,7 @@
 #include <sstream>
 #include <iostream>
 #include <string>
+#include <thread>
 
 #include "test/flags.h"
 #include "test/test_utils.h"
@@ -44,17 +45,32 @@
 #include "tnn/utils/string_utils_inner.h"
 
 int main(int argc, char* argv[]) {
-    return TNN_NS::test::Run(argc, argv);
+    if (!TNN_NS::test::ParseAndCheckCommandLine(argc, argv))
+        return -1;
+
+    int test_thread_num = TNN_NS::FLAGS_tt;
+
+    std::thread** threads = new std::thread*[test_thread_num];
+    for (int i = 0; i < test_thread_num; ++i)
+    {
+        threads[i] = new std::thread(TNN_NS::test::Run);
+    }
+    for (int i = 0; i < test_thread_num; ++i) {
+        threads[i]->join();
+    }
+    for (int i = 0; i < test_thread_num; ++i) {
+        delete threads[i];
+    }
+    delete[] threads;
+
+    return TNN_NS::TNN_OK;
 }
 
 namespace TNN_NS {
 
 namespace test {
 
-    int Run(int argc, char* argv[]) {
-        // parse command line params
-        if (!ParseAndCheckCommandLine(argc, argv))
-            return -1;
+    int Run() {
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
         g_tnn_dump_directory = FLAGS_op;
 #endif
@@ -225,6 +241,7 @@ namespace test {
         printf("    -et \"<enable tune>\t%s \n", enable_tune_message);
         printf("    -sc \"<input scale>\t%s \n", scale_message);
         printf("    -bi \"<input bias>\t%s \n", bias_message);
+	printf("    -tt \"<number>\"        \t%s \n", test_thread_num_message);
     }
 
     void SetCpuAffinity() {
