@@ -124,11 +124,10 @@ DimsVector DimsVectorUtils::NHWC2NCHW(const DimsVector &dims) {
     return nhwc;
 }
 
-void DimsVectorUtils::set_dims(DimsVector& dst,const DimsVector& src)
-{
+void DimsVectorUtils::set_dims(DimsVector &dst, const DimsVector &src) {
+    dst.clear();
     int size = src.size();
-    for(int i=0;i<size;i++)
-    {
+    for (int i = 0; i < size; i++) {
         dst.push_back(src[i]);
     }
 }
