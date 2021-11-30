@@ -63,9 +63,9 @@ Status X86NormalizeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
 
         float *denominator = reinterpret_cast<float *>(context_->GetSharedWorkSpace(channel_size * sizeof(float)));
-        memset(denominator, 0, channel_size * sizeof(float));
 
         for (int b = 0; b < batch; b++) {
+            memset(denominator, 0, channel_size * sizeof(float));
             float *input_data_b  = input_data + b * channel * channel_size;
             float *output_data_b = output_data + b * channel * channel_size;
             int start_channel    = 0;

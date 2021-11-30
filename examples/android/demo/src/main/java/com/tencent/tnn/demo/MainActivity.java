@@ -13,6 +13,7 @@ import com.tencent.tnn.demo.ImageClassifyDetector.ImageClassifyDetectActivity;
 import com.tencent.tnn.demo.ImageFaceDetector.ImageFaceDetectActivity;
 import com.tencent.tnn.demo.ImageObjectDetectorSSD.ImageObjectDetectSSDActivity;
 import com.tencent.tnn.demo.ImageOCRDetector.ImageOCRDetectActivity;
+import com.tencent.tnn.demo.ReadingComprehension.ReadingComprehensionActivity;
 import com.tencent.tnn.demo.StreamBlazeFaceAlign.StreamBlazeFaceAlignActivity;
 import com.tencent.tnn.demo.StreamBlazeFaceDetector.StreamBlazeFaceDetectActivity;
 import com.tencent.tnn.demo.StreamFaceDetector.StreamFaceDetectActivity;
@@ -20,6 +21,7 @@ import com.tencent.tnn.demo.ImageObjectDetector.ImageObjectDetectActivity;
 import com.tencent.tnn.demo.StreamHairSegmentation.StreamHairSegmentationActivity;
 import com.tencent.tnn.demo.StreamObjectDetector.StreamObjectDetectActivity;
 import com.tencent.tnn.demo.StreamObjectDetectorSSD.StreamObjectDetectSSDActivity;
+import com.tencent.tnn.demo.StreamObjectDetectorNanodet.StreamObjectDetectNanodetActivity;
 import com.tencent.tnn.demo.StreamPoseDetectLandmark.StreamPoseDetectLandmarkActivity;
 import com.tencent.tnn.demo.StreamSkeletonDetector.StreamSkeletonDetectActivity;
 import com.tencent.tnn.demo.StreamOCRDetector.StreamOCRDetectActivity;
@@ -146,6 +148,18 @@ public class MainActivity extends Activity {
                 }
             }
         });
+        findViewById(R.id.stream_object_detect_nanodet_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!isShowedActivity) {
+                    isShowedActivity = true;
+                    Intent intent = new Intent();
+                    Activity activity = MainActivity.this;
+                    intent.setClass(activity, StreamObjectDetectNanodetActivity.class);
+                    activity.startActivity(intent);
+                }
+            }
+        });
         findViewById(R.id.image_facedetect_blaze_btn).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -232,6 +246,19 @@ public class MainActivity extends Activity {
                     Intent intent = new Intent();
                     Activity activity = MainActivity.this;
                     intent.setClass(activity, StreamOCRDetectActivity.class);
+                    activity.startActivity(intent);
+                }
+            }
+        });
+
+        findViewById(R.id.reading_comprehension_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!isShowedActivity) {
+                    isShowedActivity = true;
+                    Intent intent = new Intent();
+                    Activity activity = MainActivity.this;
+                    intent.setClass(activity, ReadingComprehensionActivity.class);
                     activity.startActivity(intent);
                 }
             }

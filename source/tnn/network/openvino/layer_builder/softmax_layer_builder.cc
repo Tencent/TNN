@@ -41,8 +41,10 @@ Status SoftmaxOVLayerBuilder::Build() {
     }
     auto input_node = GetInputNodes()[0];
 
+    auto axis = paramlist->axis;
+    if (axis < 0) axis += input_node->get_output_shape(0).size();
     auto softmaxNode = std::make_shared<ngraph::op::v1::Softmax>(
-        input_node->output(0), paramlist->axis);
+        input_node->output(0), axis);
     softmaxNode->set_friendly_name(paramlist->name);
     softmaxNode->validate_and_infer_types();
 

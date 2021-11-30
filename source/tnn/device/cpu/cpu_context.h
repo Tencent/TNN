@@ -42,6 +42,15 @@ public:
 
     // @brief wait for jobs in the current context to complete
     virtual Status Synchronize() override;
+
+    // @brief set threads run on device
+    virtual Status SetNumThreads(int num_threads) override;
+    
+    // @brief get threads run on device
+    virtual int GetNumThreads();
+
+private:
+    int num_threads_ = 1;
 };
 
 }  // namespace TNN_NS

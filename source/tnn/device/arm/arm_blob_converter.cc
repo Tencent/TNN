@@ -168,12 +168,17 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam para
     auto hw         = DimsVectorUtils::Count(dims, 2);
     auto handle_ptr = GetBlobHandlePtr(blob_->GetHandle());
     auto c_r4       = ROUND_UP(channel, 4);
-    if (desc.data_type == DATA_TYPE_INT8) {
+    if (desc.data_type == DATA_TYPE_INT8 && image.GetMatType() != RESERVED_INT8_TEST) {
         if (fused_int8_scale.size() < c_r4) {
             fused_int8_scale.resize(c_r4);
             fused_int8_bias.resize(c_r4);
         }
-        auto scale_handle = reinterpret_cast<BlobInt8*>(blob_)->GetIntResource()->scale_handle;
+        auto int8_blob = dynamic_cast<BlobInt8*>(blob_);
+        if (int8_blob == nullptr) {
+            LOGE("TNN does not support the mat type: %d, please check you mat type\n", image.GetMatType());
+            return Status(TNNERR_PARAM_ERR, "TNN does not support the mat type, please check you mat type");
+        }
+        auto scale_handle = int8_blob->GetIntResource()->scale_handle;
         auto scale_data   = scale_handle.force_to<float*>();
         auto scale_count  = scale_handle.GetDataCount();
         for (int i = 0; i < channel; i++) {
@@ -1133,6 +1138,18 @@ static Status ConvertFloatMatToFloatBlob(Mat& image, char* handle_ptr, const Mat
     return TNN_OK;
 }
 
+static Status ConvertInt32MatToInt32Blob(Mat& image, char* handle_ptr, const MatConvertParam& param,
+                                         const DimsVector& dims, const int hw, const int c_r4,
+                                         std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
+    auto batch   = DimsFunctionUtils::GetDim(dims, 0);
+    auto channel = DimsFunctionUtils::GetDim(dims, 1);
+    for (int n = 0; n < batch; n++) {
+        NCHWToBlob(reinterpret_cast<int32_t*>(image.GetData()) + n * channel * hw,
+                    reinterpret_cast<int32_t*>(handle_ptr) + n * c_r4 * hw, channel, hw, nullptr);
+    }
+    return TNN_OK;
+}
+
 static Status ConvertInt8MatToInt8Blob(Mat& image, char* handle_ptr, const MatConvertParam& param,
                                        const DimsVector& dims, const int hw, const int c_r4,
                                        std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
@@ -1155,6 +1172,7 @@ REGISTER_ARM_BLOB_CONVERT_FUNC(NNV21,               DATA_TYPE_INT8,  CVT_DIR_MAT
 REGISTER_ARM_BLOB_CONVERT_FUNC(NNV21,               DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, ConvertNNV21ToFloatBlob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertNCHWFloatToInt8Blob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, (ConvertFloatMatToFloatBlob<float,float>))
+REGISTER_ARM_BLOB_CONVERT_FUNC(NC_INT32,            DATA_TYPE_INT32, CVT_DIR_MAT2BLOB, ConvertInt32MatToInt32Blob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_BFP16, CVT_DIR_MAT2BLOB, (ConvertFloatMatToFloatBlob<float, bfp16_t>))
 REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_BFP16_TEST, DATA_TYPE_BFP16, CVT_DIR_MAT2BLOB, (ConvertFloatMatToFloatBlob<bfp16_t, bfp16_t>))
 REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_FP16_TEST,  DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, (ConvertFloatMatToFloatBlob<fp16_t,float>))

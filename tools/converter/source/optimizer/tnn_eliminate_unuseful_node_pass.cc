@@ -27,7 +27,7 @@ std::string TnnOptimizeEliminateUnusefulNodePass::PassName() {
 
 TNN_NS::Status TnnOptimizeEliminateUnusefulNodePass::exec(TNN_NS::NetStructure& net_structure,
                                                           TNN_NS::NetResource& net_resource) {
-    std::set<std::string> black_list = {"QuantizedPermute", "Int8Quantized", "Int8Dequantized"};
+    std::set<std::string> black_list = {"Int8Quantized", "Int8Dequantized"};
     auto& layers                     = net_structure.layers;
     for (auto iter = layers.begin(); iter != layers.end();) {
         auto& layer = *iter;

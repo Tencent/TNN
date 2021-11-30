@@ -478,6 +478,8 @@ Status TNNSDKSample::WarpAffine(std::shared_ptr<TNN_NS::Mat> src, std::shared_pt
         btype = BORDER_TYPE_REFLECT;
     } else if(border_type == TNNBorderEdge) {
         btype = BORDER_TYPE_EDGE;
+    } else if(border_type == TNNBorderTransparent) {
+        btype = BORDER_TYPE_TRANSPARENT;
     }
     WarpAffineParam param;
     param.interp_type = itype;
@@ -597,6 +599,8 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 #else
         device_type_      = TNN_NS::DEVICE_HUAWEI_NPU;
 #endif
+    } else if (option->compute_units == TNNComputeUnitsNaive) {
+        device_type_ = TNN_NS::DEVICE_NAIVE;
     }
     
     //创建实例instance

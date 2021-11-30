@@ -27,19 +27,12 @@ ILayer* DeconvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         return nullptr;
     }
     auto resource = dynamic_cast<ConvLayerResource*>(resource_);
-    Weights kernelWeights;
-    kernelWeights.type = nvinfer1::DataType::kFLOAT;
-    kernelWeights.values = resource->filter_handle.force_to<void*>();
-    kernelWeights.count = resource->filter_handle.GetDataCount();
-
-    Weights biasWeights;
-    biasWeights.type = nvinfer1::DataType::kFLOAT;
+    Weights kernelWeights, biasWeights;
+    kernelWeights = ConvertToWeights(&(resource->filter_handle));
     if (paramlist->bias) {
-        biasWeights.values = resource->bias_handle.force_to<void*>();
-        biasWeights.count = resource->bias_handle.GetDataCount();
+        biasWeights = ConvertToWeights(&(resource->bias_handle));
     } else {
-        biasWeights.values = nullptr;
-        biasWeights.count = 0;
+        biasWeights = ConvertToWeights(nullptr, true, resource->filter_handle.GetDataType());
     }
 
     ILayer* last_layer;
@@ -62,15 +55,13 @@ ILayer* DeconvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     } else {
         DimsVector postPadding{pads[3], pads[1]};
         DimsVector  prePadding{pads[2], pads[0]};
-        IPaddingLayer* padding_layer = network->addPaddingNd(*tensor, 
-                                                    ConvertToTRTDims(prePadding), 
-                                                    ConvertToTRTDims(postPadding));
-        ITensor* pad_tensor = padding_layer->getOutput(0);
-        deconv_layer = network->addDeconvolution(*pad_tensor, paramlist->output_channel, kernelSize,
+        deconv_layer = network->addDeconvolution(*tensor, paramlist->output_channel, kernelSize,
             kernelWeights, biasWeights);
         if(deconv_layer != NULL) {
             deconv_layer->setName(layer_name_.c_str());
             deconv_layer->setStrideNd(ConvertToTRTDimsReverse(paramlist->strides));
+            deconv_layer->setPrePadding(ConvertToTRTDims(prePadding));
+            deconv_layer->setPostPadding(ConvertToTRTDims(postPadding));
 #if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 71
             deconv_layer->setDilationNd(ConvertToTRTDimsReverse(paramlist->dialations));
 #endif

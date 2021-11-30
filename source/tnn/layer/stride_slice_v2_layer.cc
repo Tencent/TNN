@@ -23,7 +23,12 @@ DECLARE_LAYER_WITH_FUNC(StrideSliceV2, LAYER_STRIDED_SLICE_V2,
                         virtual Status FillLayerParamWithConstantResource(););
 
 Status StrideSliceV2Layer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    auto status = BaseLayer::InferOutputDataType();
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    output_blobs_[0]->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;
+
+    return TNN_OK;
 }
 
 Status StrideSliceV2Layer::InferOutputShape(bool ignore_error) {

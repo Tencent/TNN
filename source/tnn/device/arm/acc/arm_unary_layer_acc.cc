@@ -17,6 +17,7 @@
 #include "tnn/device/arm/arm_common.h"
 #include "tnn/device/arm/arm_context.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/dims_function_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
@@ -44,7 +45,9 @@ Status ArmUnaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vect
 
     auto dims = output->GetBlobDesc().dims;
 
-    int count      = dims[0] * ROUND_UP(dims[1], 4) * DimsVectorUtils::Count(dims, 2);
+    int dim0 = DimsFunctionUtils::GetDim(dims, 0);
+    int dim1 = DimsFunctionUtils::GetDim(dims, 1);
+    int count = dim0 * ROUND_UP(dim1, 4) * DimsVectorUtils::Count(dims, 2);
     int count_quad = UP_DIV(count, 4);
 
     auto input_ptr  = reinterpret_cast<T *>(GetBlobHandlePtr(input->GetHandle()));

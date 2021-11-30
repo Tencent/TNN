@@ -7,7 +7,7 @@ WARM_UP_COUNT=10
 ITERATOR_COUNT=100
 
 WORK_DIR=`pwd`
-BUILD_DIR=build
+BUILD_DIR=build_ocl
 MODEL_DIR=$WORK_DIR/models
 DUMP_DIR=$WORK_DIR/dump_data
 INPUT_FILE_NAME=rpn_in_0_n1_c3_h320_w320.txt
@@ -42,8 +42,8 @@ function build_x86() {
     if [ "-c" == "$CLEAN" ]; then
         clean_build $BUILD_DIR
     fi
-    mkdir -p build
-    cd $BUILD_DIR
+    mkdir -p $BUILD_DIR
+    cd $BUILD_DIR || exit
     cmake ../../.. \
           -DCMAKE_BUILD_TYPE=Debug \
           -DDEBUG=$DEBUG \

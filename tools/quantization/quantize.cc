@@ -157,7 +157,7 @@ bool CheckNumberString(std::string num_str) {
     const char* num_char = num_str.c_str();
 
     for (int i = 0; i < num_str.length(); ++i) {
-        if (!(num_char[i] >= '0' && num_char[i] <= '9') && num_char[i] != '.') {
+        if (!(num_char[i] >= '0' && num_char[i] <= '9') && num_char[i] != '.' && num_char[i] != '-') {
             return false;
         }
     }
@@ -186,9 +186,13 @@ void PrintConfig() {
         "\t-b, --blob_method \t(optional) the method to quantize blob\n"
         "\t\t0: MIN_MAX  (default)\n"
         "\t\t2: KL_DIVERGENCE\n"
+        "\t\t3: ASY_MIN_MAX\n"
+        "\t\t4: ACIQ_GAUS\n"
+        "\t\t5: ACIQ_LAPLACE\n"        
         "\t-w, --weight_method\t(optional) the method to quantize weights\n"
         "\t\t0: MIN_MAX  (default)\n"
         "\t\t1: ADMM\n"
+        "\t\t3: ASY_MIN_MAX\n"
         "\t-r, --reverse_channel\t(optional) reverse B and R channel when preprocess image\n"
         "\t\t0: the network uses rgb order  (default)\n"
         "\t\t1: the network uses bgr order\n"
@@ -337,7 +341,7 @@ int main(int argc, char* argv[]) {
         return -1;
 
     NetworkConfig net_config;
-    net_config.device_type = DEVICE_NAIVE;
+    net_config.device_type = DEVICE_NAIVE;    
     DataSet dataset;
     ret = ImportDataSet(dataset, input_path);
     if (CheckResult("import data set", ret) != true)

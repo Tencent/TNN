@@ -22,14 +22,15 @@ namespace TNN_NS {
 // @brief conv layer metal acc
 class MetalCastLayerAcc : public MetalLayerAcc {
 public:
-    Status Init(Context *context, LayerParam *param, LayerResource *resource,
-                           const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     // @brief virtual destrcutor
     virtual ~MetalCastLayerAcc() {}
 
     Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
     Status AllocateBufferParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    
+    virtual Status UpdateBlobDataType(const std::vector<Blob *> &inputs,
+                                   const std::vector<Blob *> &outputs);
 
     Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
