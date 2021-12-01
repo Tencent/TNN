@@ -372,20 +372,31 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
     registerSegmentsOutputs(segmented_blocks, g);
 
     // only return TNN subgraph
+    
+     for (auto block : segmented_blocks) {
+         printf("====================== subgraph start %d ======================\n", block.target());
+         // if (block.target() == SegmentedBlock::kTNN) {
+         if (1) {
+             std::cout << block.g()->toString(false);
+         }
+         printf("====================== subgraph end   %d ======================\n", block.target());
+     }
+
     segmented_blocks.erase(
         std::remove_if(segmented_blocks.begin(), segmented_blocks.end(),
                        [](SegmentedBlock& seg_block) { return seg_block.target() == SegmentedBlock::kTorch; }),
         segmented_blocks.end());
 
-    // for (auto block : segmented_blocks) {
-    //     printf("====================== subgraph start %d ======================\n", block.target());
-    //     // if (block.target() == SegmentedBlock::kTNN) {
-    //     if (1) {
-    //         std::cout << block.g()->toString(false);
-    //     }
-    //     printf("====================== subgraph end   %d ======================\n", block.target());
-    // }
-
+    /*
+     for (auto block : segmented_blocks) {
+         printf("====================== subgraph start %d ======================\n", block.target());
+         // if (block.target() == SegmentedBlock::kTNN) {
+         if (1) {
+             std::cout << block.g()->toString(false);
+         }
+         printf("====================== subgraph end   %d ======================\n", block.target());
+     }
+*/
     return segmented_blocks;
 }
 

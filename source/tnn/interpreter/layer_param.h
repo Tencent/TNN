@@ -691,6 +691,12 @@ struct LogSoftmaxLayerParam : public LayerParam {
     PARAM_COPY(LogSoftmaxLayerParam)
 };
 
+struct SplitTorchLayerParam : public SplitVLayerParam {
+    int split_size          = 0;
+
+    PARAM_COPY(SplitTorchLayerParam)
+};
+
 };  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H

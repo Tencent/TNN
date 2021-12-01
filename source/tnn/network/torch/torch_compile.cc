@@ -159,6 +159,7 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
 
     try {
         auto seg_blocks = partitioning::Partition(mod, g, config);
+	std::cout << "partition is ok" << std::endl;
 
         // run shape infer and combine to blocks
         if (min_input_shape.size() && max_input_shape.size() && min_input_shape.size() == max_input_shape.size()) {
@@ -168,15 +169,17 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
             std::vector<BlobDesc> subgraph_max_input_info;
             //// input type & shape will be used for random input generation, then subgraph input info can be infered out
             // InputDataTypeMap input_type;
+
+	    std::cout << "start run shape infer" << std::endl;
             partitioning::runShapeInfer(shape_mod, shape_seg, min_input_shape, input_type, config, subgraph_min_input_info);
             partitioning::runShapeInfer(shape_mod, shape_seg, max_input_shape, input_type, config, subgraph_max_input_info);
-
+	    
             int input_idx = 0;
             for (auto &block : seg_blocks) {
                 std::vector<DimsVector> min_shape;
                 std::vector<DimsVector> max_shape;
                 std::vector<DataType> in_type;
-                for (auto &input : block.raw_inputs()) {
+		for (auto &input : block.raw_inputs()) {
                     min_shape.push_back(subgraph_min_input_info[input_idx].dims);
                     max_shape.push_back(subgraph_max_input_info[input_idx].dims);
                     in_type.push_back(subgraph_max_input_info[input_idx].data_type);
@@ -205,7 +208,8 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
             return;
         }
     #endif
-
+	
+	std::cout << "start seg_blocks" << std::endl;
         int block_idx = 0;
         int block_stop_idx = INT_MAX;
         for (auto &block : seg_blocks) {
@@ -246,6 +250,7 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
             }
             block_idx++;
         }
+	std::cout << "seg block is end" << std::endl;
 
         block_idx = 0;
         for (auto &block : seg_blocks) {
@@ -269,8 +274,8 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
     // remove constant nodes which has been convert to tnn netresource
     torch::jit::EliminateDeadCode(g);
 
-    // std::cout << "============================= the final graph ===========================" << std::endl;
-    // std::cout << g->toString() << std::endl;
+     std::cout << "============================= the final graph ===========================" << std::endl;
+     std::cout << g->toString() << std::endl;
 
     return mod;
 }
