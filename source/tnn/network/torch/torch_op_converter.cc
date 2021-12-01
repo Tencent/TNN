@@ -899,6 +899,81 @@ public:
     }
 };
 
+class SizeTorchConverter : public TorchOpConverter {
+public:
+    bool IsSupported(const torch::jit::Node *node) {
+        return true;
+    }
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+	std::cout << "enter size c" << std::endl;
+	// generate shape layer
+        {
+            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+            layer_info->type = LAYER_SHAPE;
+            layer_info->type_str = "Shape";
+            layer_info->name = node->output(0)->debugName() + "_shape";
+
+            layer_info->inputs.push_back(node->inputs()[0]->debugName());
+            layer_info->outputs.push_back(node->outputs()[0]->debugName() + "_shape");
+
+            layer_info->param = std::make_shared<LayerParam>();
+
+            ADD_INPUTS_AND_OUTPUTS;
+
+            net_structure->layers.push_back(layer_info);
+        }
+
+        // generate gather layer
+        {
+            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+            layer_info->type = LAYER_GATHER;
+            layer_info->type_str = "Gather";
+            layer_info->name = node->output(0)->debugName() + "_gather";
+
+            layer_info->inputs.push_back(node->inputs()[0]->debugName() + "_shape");
+            layer_info->outputs.push_back(node->outputs()[0]->debugName() + "_gather");
+
+            auto layer_param = std::make_shared<GatherLayerParam>();
+            layer_param->axis = 0;
+            layer_param->indices_in_resource = true;
+
+            layer_info->param = layer_param;
+
+            const auto indices = getValue(node->inputs()[1]);
+            auto layer_res = std::make_shared<GatherLayerResource>();
+            layer_res->indices = indices;
+
+            ADD_INPUTS_AND_OUTPUTS;
+
+            net_structure->layers.push_back(layer_info);
+            net_resource->resource_map[layer_info->name] = layer_res;
+        }
+
+        // generate unsqueeze layer
+        {
+            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+            layer_info->type = LAYER_UNSQUEEZE;
+            layer_info->type_str = "Unsqueeze";
+            layer_info->name = node->output(0)->debugName();
+
+            layer_info->inputs.push_back(node->inputs()[0]->debugName() + "_gather");
+            layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+            auto layer_param = std::make_shared<UnsqueezeLayerParam>();
+            layer_param->axes = {0};
+
+            layer_info->param = layer_param;
+
+            ADD_INPUTS_AND_OUTPUTS;
+
+            net_structure->layers.push_back(layer_info);
+        }
+
+	std::cout << "enter size is ok" << std::endl;
+        return TNN_OK;
+    }
+};
+
 // func: aten::softmax.int(Tensor self, int dim, ScalarType? dtype=None) -> Tensor
 //       aten::softmax.Dimname(Tensor self, Dimname dim, *, ScalarType? dtype=None) -> Tensor, NOT SUPPORTED NOW
 //       dtype NOT SUPPORTED NOW.
@@ -916,6 +991,42 @@ public:
 
         auto layer_param = std::make_shared<SoftmaxLayerParam>();
         layer_param->axis = static_cast<int>(getValue<int64_t>(node->inputs()[1]));
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
+// func: split.Tensor(Tensor(a -> *) self, int split_size, int dim=0) -> Tensor(a)[]
+class SplitTorchConverter : public TorchOpConverter {
+public:
+    bool IsSupported(const torch::jit::Node *node) {
+        if (node->outputs().at(0)->node()->kind() == c10::prim::ListUnpack) {
+            return true;
+        }
+        return true;
+    }
+
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = LAYER_SPLITTORCH;
+        layer_info->type_str = "SplitTorch";
+        layer_info->name = node->output(0)->debugName();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        // auto unpack_node = node->output()->uses()[0].user;
+        auto unpack_node = node->next();
+	for (const auto output : unpack_node->outputs()) {
+            layer_info->outputs.push_back(output->debugName());
+        }
+
+        auto layer_param = std::make_shared<SplitTorchLayerParam>();
+        layer_param->split_size = static_cast<int>(getValue<int64_t>(node->inputs()[1]));
+        layer_param->axis = static_cast<int>(getValue<int64_t>(node->inputs()[2]));
         layer_info->param = layer_param;
 
         ADD_INPUTS_AND_OUTPUTS;
@@ -963,6 +1074,63 @@ public:
 
 class ListTorchConverter : public TorchOpConverter {
 public:
+    bool IsSupported(const torch::jit::Node *node) {
+        after_size_layer_ = false;
+        for (const auto& input: node->inputs()) {
+            if (input->node()->kind() == c10::aten::size) {
+                after_size_layer_ = true;
+                break;
+            }
+        }
+	// std::cout << "after_size_layer_ = " << after_size_layer_ << std::endl;
+        return after_size_layer_;
+    }
+
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+	std::cout << "xxx before list if " << std::endl;
+	std::cout << "after_size_layer_ = " << after_size_layer_ << std::endl << std::endl;
+        if (after_size_layer_) {
+            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+            layer_info->type                      = LAYER_CONCAT;
+            layer_info->type_str                  = "Concat";
+            layer_info->name                      = node->output(0)->debugName();
+	
+	    std::cout << "enter if" << std::endl;
+            const auto inputs      = node->inputs();
+            const auto tensor_list = inputs[0];
+            for (const auto input : inputs) {
+                layer_info->inputs.push_back(input->debugName());
+            }
+            layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+            auto layer_param  = std::make_shared<ConcatLayerParam>();
+            layer_param->axis = 0;
+            layer_info->param = layer_param;
+
+	    std::cout << std::endl << std::endl << std::endl;
+	    for (const auto& input: inputs) {
+                std::cout << "xxxxxx "  << input->type()->repr_str() << std::endl;
+            }
+
+            ADD_INPUTS_AND_OUTPUTS;
+
+            net_structure->layers.push_back(layer_info);
+        }
+
+        return TNN_OK;
+    }
+
+private:
+    bool after_size_layer_ = false;
+};
+
+class ListUnpackTorchConverter : public TorchOpConverter {
+public:
+    bool IsSupported(const torch::jit::Node *node) {
+        return true;
+	return node->inputs().at(0)->node()->kind() == c10::aten::split;
+    }
+
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         return TNN_OK;
     }
@@ -1015,14 +1183,18 @@ REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu)
 REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
 REGISTER_TORCH_OP_CONVERTER(Sigmoid, aten, sigmoid)
+REGISTER_TORCH_OP_CONVERTER(Size, aten, size)
 REGISTER_TORCH_OP_CONVERTER(Softmax, aten, softmax)
+// REGISTER_TORCH_OP_CONVERTER(Split, aten, split)
 REGISTER_TORCH_OP_CONVERTER(StridedSlice, aten, slice)
 REGISTER_TORCH_OP_CONVERTER(To, aten, to)
 REGISTER_TORCH_OP_CONVERTER(Unsqueeze, aten, unsqueeze)
 
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
+// REGISTER_TORCH_OP_CONVERTER(ListUnpack, prim, ListUnpack)
 
 // REGISTER_TORCH_OP_CONVERTER(QuantConv2D, quantized, conv2d)
 
 } // namespace conversion
 }
+

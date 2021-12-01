@@ -59,5 +59,6 @@ const char* SplitVPluginCreator::getPluginName() const noexcept {
 }
 
 REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(SplitV, LAYER_SPLITV);
+REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(SplitV, LAYER_SPLITTORCH);
 
 }  //  namespace TNN_NS

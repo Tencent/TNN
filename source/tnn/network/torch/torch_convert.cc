@@ -1,6 +1,9 @@
 #include "tnn/network/torch/torch_convert.h"
 #include "tnn/network/torch/torch_op_converter.h"
 #include "tnn/interpreter/tnn/model_interpreter.h"
+
+#include <tnn/interpreter/tnn/model_packer.h>
+
 namespace TNN_NS {
 namespace conversion {
 
@@ -89,6 +92,14 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
         instance_ptr->instance_->Init(ctx->get_interpreter(), min_inputs_shape_map, max_inputs_shape_map);
         instance_ptr->is_init_ = true;
     }
+
+    static int __cnt = 0;
+    const std::string root = "/home/ealinli/workspace/model/splt_at_conv/debug/";
+    const std::string model_name = "splt-" + std::to_string(__cnt++);
+    const std::string proto_path = root + model_name + ".tnnproto";
+    const std::string model_path = root + model_name + ".tnnmodel";
+    TNN_NS::ModelPacker model_packer(net_structure, net_resource);
+    Status status = model_packer.Pack(proto_path, model_path);
 
     return instance_ptr;
 }

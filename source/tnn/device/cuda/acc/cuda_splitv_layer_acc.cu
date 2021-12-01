@@ -93,5 +93,6 @@ Status CudaSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 }
 
 REGISTER_CUDA_ACC(SplitV, LAYER_SPLITV);
+REGISTER_CUDA_ACC(SplitV, LAYER_SPLITTORCH);
 
 }  // namespace TNN_NS

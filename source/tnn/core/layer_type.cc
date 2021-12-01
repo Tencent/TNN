@@ -252,6 +252,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING},
     {"Softsign", LAYER_SOFTSIGN},
     {"LogSoftmax", LAYER_LOGSOFTMAX},
+    {"SplitTorch", LAYER_SPLITTORCH},
     {"QuantizedReshape", LAYER_RESHAPE},
     {"QuantizedPermute", LAYER_PERMUTE}
 };
