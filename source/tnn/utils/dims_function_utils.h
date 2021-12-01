@@ -90,6 +90,9 @@ public:
     // @brief step[i]: DimsVectorUtils::Count(dims, i + 1)
     static DimsVector GetDimsStep(const DimsVector& dims);
 
+    // @brief set dst dim equal src dim
+    static void SetDims(DimsVector &dst, const DimsVector &src);
+
 };
 
 }  // namespace TNN_NS

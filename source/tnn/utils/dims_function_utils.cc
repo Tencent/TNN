@@ -314,4 +314,12 @@ DimsVector DimsFunctionUtils::GetDimsStep(const DimsVector& dims) {
     return step_dims;
 }
 
+void DimsFunctionUtils::SetDims(DimsVector &dst, const DimsVector &src) {
+    dst.clear();
+    int size = src.size();
+    for (int i = 0; i < size; i++) {
+        dst.push_back(src[i]);
+    }
+}
+
 }  // namespace TNN_NS
