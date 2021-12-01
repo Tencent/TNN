@@ -146,20 +146,20 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
 }
 
 Status MetalMultidirBroadcastLayerAcc::SetKernelEncoderParam(
-    id<MTLComputeCommandEncoder> encoder,
-    const std::vector<Blob *> &inputs,
-    const std::vector<Blob *> &outputs) {
+                                                             id<MTLComputeCommandEncoder> encoder,
+                                                             const std::vector<Blob *> &inputs,
+                                                             const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
-
+    
     auto input0 = inputs[0];
     auto output = outputs[0];
-
+    
     auto input_buffer0 = (__bridge id<MTLBuffer>)(void *)input0->GetHandle().base;
     auto input_buffer0_bytes_offset = (NSUInteger)input0->GetHandle().bytes_offset;
 
     auto input_buffer1 = buffer_weight_;
     auto input_buffer1_bytes_offset = (NSUInteger)0;
-
+    
     if (buffer_weight_) {
         if (layer_param->weight_input_index == 0) {
             std::swap(input_buffer0, input_buffer1);
@@ -174,7 +174,7 @@ Status MetalMultidirBroadcastLayerAcc::SetKernelEncoderParam(
             input_buffer1_bytes_offset = (NSUInteger)inputs[1]->GetHandle().bytes_offset;
         }
     }
-
+    
     [encoder setBuffer:input_buffer0 offset:input_buffer0_bytes_offset atIndex:0];
     [encoder setBuffer:input_buffer1 offset:input_buffer1_bytes_offset atIndex:1];
 
@@ -197,7 +197,7 @@ Status MetalMultidirBroadcastLayerAcc::Forward(const std::vector<Blob *> &inputs
         LOGE("Error: MetalMultidirBroadcastLayerAcc invalid inputs count\n");
         return Status(TNNERR_LAYER_ERR, "MetalMultidirBroadcastLayerAcc invalid inputs count");
     }
-
+    
     return MetalLayerAcc::Forward(inputs, outputs);
 }
 } // namespace TNN_NS
