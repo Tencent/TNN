@@ -10,10 +10,10 @@ __kernel void Expand(GLOBAL_SIZE_1_DIMS
     int inner_idx = index;
     int input_idx = 0;
     for(int i=INNER_DIMS;i>0;i--) {
-        int pos = inner_idx % output_dims[i];
-        inner_idx /= output_dims[i];
-        input_idx += pos * input_step[i];
+        int pos = inner_idx % output_dims.data[i];
+        inner_idx /= output_dims.data[i];
+        input_idx += pos * input_step.data[i];
     }
 
-    output[index] = input[output_idx];    
+    output[index] = input[input_idx];
 }

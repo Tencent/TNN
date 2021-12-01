@@ -14,6 +14,7 @@
 
 #include "tnn/device/opencl/acc/opencl_unary_layer_acc.h"
 #include "tnn/utils/string_utils_inner.h"
+#include <math.h>
 
 namespace TNN_NS {
 
@@ -30,6 +31,16 @@ Status OpenCLClipLayerAcc::Init(Context *context, LayerParam *param, LayerResour
     return TNN_OK;
 }
 
+float ConvertInfNum(float num) {
+    bool is_inf = isinf(num);
+    if (is_inf) {
+        if (num > 0) return FLT_MAX;
+        if (num < 0) return -FLT_MAX;
+    } else {
+        return num;
+    }
+}
+
 std::set<std::string> OpenCLClipLayerAcc::CreateBuildOptions() {
     std::set<std::string> build_options;
     ClipLayerParam *clip_param = dynamic_cast<ClipLayerParam *>(param_);
@@ -38,7 +49,11 @@ std::set<std::string> OpenCLClipLayerAcc::CreateBuildOptions() {
         return build_options;
     }
 
-    std::string compute = "clamp(in,(FLOAT4)(" + ToString(clip_param->min) + "f),(FLOAT4)(" + ToString(clip_param->max) + "f))";
+    // declare to float type
+    std::string min_clip_str = ToString(ConvertInfNum(clip_param->min)) + "f";
+    std::string max_clip_str = ToString(ConvertInfNum(clip_param->max)) + "f";
+
+    std::string compute = "clamp(in,(FLOAT4)(" + min_clip_str + "),(FLOAT4)(" + max_clip_str + "))";
     build_options.emplace(" -DOPERATOR=" + compute);
     return build_options;
 }
