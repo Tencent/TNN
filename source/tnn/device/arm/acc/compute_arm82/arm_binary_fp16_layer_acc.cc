@@ -133,7 +133,7 @@ Status ArmBinaryLayerAcc::allocateBufferParamHalf(const std::vector<Blob *> &inp
 
             if (layer_res_size == 1) {
                 // broadcast single, just memcpy
-                RawBuffer temp(layer_res_size * data_byte_size);
+                RawBuffer temp(8 * layer_res_size * data_byte_size);
                 memcpy(temp.force_to<void *>(), filter_half_ptr, layer_res_size * data_byte_size);
                 broadcast_ = temp;
             } else {
