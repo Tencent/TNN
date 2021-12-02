@@ -69,5 +69,6 @@ Status CpuPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 }
 
 CpuTypeLayerAccRegister<TypeLayerAccCreator<CpuPermuteLayerAcc>> g_cpu_permute_layer_acc_register(LAYER_PERMUTE);
+CpuTypeLayerAccRegister<TypeLayerAccCreator<CpuPermuteLayerAcc>> g_cpu_permutev2_layer_acc_register(LAYER_PERMUTEV2);
 
 }  // namespace TNN_NS
