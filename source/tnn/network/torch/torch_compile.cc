@@ -245,7 +245,7 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
             } catch (std::exception& e) {
                 block_stop_idx = block_idx;
                 // std::cout << "exception block " << block_stop_idx << std::endl;
-                // std::cout << e.what() << std::endl;
+                std::cout << e.what() << std::endl;
                 break;
             }
             block_idx++;

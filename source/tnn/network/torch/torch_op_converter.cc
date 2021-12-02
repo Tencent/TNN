@@ -930,7 +930,7 @@ public:
             layer_info->type_str = "Gather";
             layer_info->name = node->output(0)->debugName() + "_gather";
 
-            layer_info->inputs.push_back(node->inputs()[0]->debugName() + "_shape");
+            layer_info->inputs.push_back(node->outputs()[0]->debugName() + "_shape");
             layer_info->outputs.push_back(node->outputs()[0]->debugName() + "_gather");
 
             auto layer_param = std::make_shared<GatherLayerParam>();
@@ -956,7 +956,7 @@ public:
             layer_info->type_str = "Unsqueeze";
             layer_info->name = node->output(0)->debugName();
 
-            layer_info->inputs.push_back(node->inputs()[0]->debugName() + "_gather");
+            layer_info->inputs.push_back(node->outputs()[0]->debugName() + "_gather");
             layer_info->outputs.push_back(node->outputs()[0]->debugName());
 
             auto layer_param = std::make_shared<UnsqueezeLayerParam>();
@@ -1106,6 +1106,31 @@ public:
     }
 };
 
+class TransposeTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = LAYER_PERMUTEV2;
+        layer_info->type_str = "PermuteV2";
+        layer_info->name = node->output(0)->debugName();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<PermuteV2LayerParam>();
+        layer_param->dim0 = static_cast<int>(getValue<int64_t>(node->inputs()[1]));
+        layer_param->dim1 = static_cast<int>(getValue<int64_t>(node->inputs()[2]));
+
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
 class ListTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
@@ -1142,8 +1167,15 @@ public:
             layer_info->param = layer_param;
 
 	    std::cout << std::endl << std::endl << std::endl;
-	    for (const auto& input: inputs) {
+	        for (const auto& input: inputs) {
                 std::cout << "xxxxxx "  << input->type()->repr_str() << std::endl;
+                auto const_buf = getValue(input);
+                if (const_buf.GetBytesSize() > 0) {
+                    if (*(const_buf.force_to<int *>()) != INT_MAX) {
+                        std::cout << input->debugName() << std::endl;
+                        net_resource->constant_map[input->debugName()] = std::make_shared<RawBuffer>(const_buf);
+                    }
+                }
             }
 
             ADD_INPUTS_AND_OUTPUTS;
@@ -1225,6 +1257,7 @@ REGISTER_TORCH_OP_CONVERTER(Split, aten, split)
 REGISTER_TORCH_OP_CONVERTER(StridedSlice, aten, slice)
 REGISTER_TORCH_OP_CONVERTER(To, aten, to)
 REGISTER_TORCH_OP_CONVERTER(Unsqueeze, aten, unsqueeze)
+REGISTER_TORCH_OP_CONVERTER(Transpose, aten, transpose)
 
 
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
