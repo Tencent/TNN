@@ -117,13 +117,13 @@ static RawBuffer getValue(const torch::jit::Value* value) {
     if (value_kind != c10::TypeKind::TensorType) {
         if (value_kind == c10::TypeKind::FloatType) {
             const auto data = getValue<float>(value);
-            return RawBuffer(4, (char*)(&data), {1});
+            return RawBuffer(4, (char*)(&data), {});
         } else if (value_kind == c10::TypeKind::IntType) {
             int64_t data_int64 = getValue<int64_t>(value);
             data_int64 = std::max(data_int64, static_cast<int64_t>(INT_MIN));
             data_int64 = std::min(data_int64, static_cast<int64_t>(INT_MAX));
             int data = static_cast<int>(data_int64);
-            RawBuffer buf = RawBuffer(4, (char*)(&data), {1});
+            RawBuffer buf = RawBuffer(4, (char*)(&data), {});
             buf.SetDataType(DATA_TYPE_INT32);
             return buf;
         } else if (value_kind == c10::TypeKind::NoneType) {
