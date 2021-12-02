@@ -366,7 +366,7 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
     std::vector<SegmentedBlock> segmented_blocks = segment_graph(g);
 
     // resolve nonTensor inputs/outputs
-    resolveNonTensorInputs(segmented_blocks, g);
+    // resolveNonTensorInputs(segmented_blocks, g);
 
     // register input/output torch::jit::Value for segmented graphs
     registerSegmentsOutputs(segmented_blocks, g);
