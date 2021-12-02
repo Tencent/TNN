@@ -902,6 +902,11 @@ public:
 class SizeTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
+        for (int i = 0; i < node->output()->uses().size(); i++) {
+            if (node->output()->uses()[i].user->kind() != at::prim::ListConstruct) {
+                return false;
+            }
+        }
         return true;
     }
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
