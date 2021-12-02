@@ -18,7 +18,6 @@ public class StreamBlazeFaceDetectActivity extends DemoBaseActivity {
 
         setContentView(R.layout.base_activity_layout);
 
-
         if (Build.VERSION.SDK_INT >= 23) {
             Log.d(TAG, "begin askForPermission the sdk version is" + Build.VERSION.SDK_INT);
             askForPermission();
@@ -44,7 +43,6 @@ public class StreamBlazeFaceDetectActivity extends DemoBaseActivity {
     protected void onPause() {
         Log.d(TAG, "Activity onPause");
         super.onPause();
-
     }
 
     @Override

@@ -53,9 +53,7 @@ public class ImageOCRDetectFragment extends BaseFragment {
         NpuEnable = mOCRDetector.checkNpu(modelPath);
     }
 
-    private String initModel()
-    {
-
+    private String initModel() {
         String targetDir =  getActivity().getFilesDir().getAbsolutePath();
 
         // copy ocr related models to sdcard
@@ -85,8 +83,7 @@ public class ImageOCRDetectFragment extends BaseFragment {
         }
     }
 
-    private void onSwichGPU(boolean b)
-    {
+    private void onSwitchGPU(boolean b) {
         if(b && mHuaweiNPUswitch.isChecked()){
             mHuaweiNPUswitch.setChecked(false);
             mUseHuaweiNpu = false;
@@ -96,8 +93,7 @@ public class ImageOCRDetectFragment extends BaseFragment {
         result_view.setText("");
     }
 
-    private void onSwichNPU(boolean b)
-    {
+    private void onSwitchNPU(boolean b) {
         if(b && mGPUSwitch.isChecked()){
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
@@ -124,7 +120,7 @@ public class ImageOCRDetectFragment extends BaseFragment {
         mGPUSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichGPU(b);
+                onSwitchGPU(b);
             }
         });
 
@@ -133,7 +129,7 @@ public class ImageOCRDetectFragment extends BaseFragment {
         mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichNPU(b);
+                onSwitchNPU(b);
             }
         });
 
@@ -172,9 +168,7 @@ public class ImageOCRDetectFragment extends BaseFragment {
 
     }
 
-
     private void startDetect() {
-
         Bitmap originBitmap = FileUtils.readBitmapFromFile(getActivity().getAssets(), IMAGE);
         Bitmap scaleBitmap = Bitmap.createScaledBitmap(originBitmap, originBitmap.getWidth(), originBitmap.getHeight(), false);
         ImageView source = (ImageView)$(R.id.origin);
@@ -182,14 +176,14 @@ public class ImageOCRDetectFragment extends BaseFragment {
         String modelPath = initModel();
         Log.d(TAG, "Init classify " + modelPath);
         int device = 0;
-        if(mUseHuaweiNpu) {
+        if (mUseHuaweiNpu) {
             device = 2;
-        }else if(mUseGPU) {
+        } else if(mUseGPU) {
             device = 1;
         }
         int result = mOCRDetector.init(modelPath, originBitmap.getWidth(), originBitmap.getHeight(), device);
         String txt_result = "text result:\n";
-        if(result == 0) {
+        if (result == 0) {
             Log.d(TAG, "detect from image");
             ObjectInfo[] objectInfoList = mOCRDetector.detectFromImage(scaleBitmap, originBitmap.getWidth(), originBitmap.getHeight());
             Log.d(TAG, "detect from image result " + objectInfoList);
@@ -210,8 +204,7 @@ public class ImageOCRDetectFragment extends BaseFragment {
                 Canvas canvas = new Canvas(scaleBitmap2);
                 ArrayList<float[]> point_lines_list = new ArrayList<float[]>();
                 ArrayList<String> labels = new ArrayList<String>();
-                for (int i = 0; i < objectInfoList.length; i++)
-                {
+                for (int i = 0; i < objectInfoList.length; i++) {
                     float[] point_lines = new float[4 * 4];
                     point_lines[0] = objectInfoList[i].key_points[0][0];
                     point_lines[1] = objectInfoList[i].key_points[0][1];
@@ -280,7 +273,6 @@ public class ImageOCRDetectFragment extends BaseFragment {
         super.onStop();
     }
 
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -289,7 +281,6 @@ public class ImageOCRDetectFragment extends BaseFragment {
 
     private void preview() {
         Log.i(TAG, "preview");
-
     }
 
     private void getFocus() {
@@ -298,13 +289,12 @@ public class ImageOCRDetectFragment extends BaseFragment {
         getView().setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-            if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-                clickBack();
-                return true;
-            }
-            return false;
+                if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
+                    clickBack();
+                    return true;
+                }
+                return false;
             }
         });
     }
-
 }
