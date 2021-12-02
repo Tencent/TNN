@@ -1109,7 +1109,7 @@ public:
 class ListTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
-	after_size_layer_ = false;
+        after_size_layer_ = false;
         for (const auto& input: node->inputs()) {
             if (input->node()->kind() == c10::aten::size) {
                 after_size_layer_ = true;

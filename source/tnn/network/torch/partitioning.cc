@@ -372,9 +372,8 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
     registerSegmentsOutputs(segmented_blocks, g);
 
     // only return TNN subgraph
-     
-    /*
-    for (auto block : segmented_blocks) {
+    
+     for (auto block : segmented_blocks) {
          printf("====================== subgraph start %d ======================\n", block.target());
          // if (block.target() == SegmentedBlock::kTNN) {
          if (1) {
@@ -382,7 +381,6 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
          }
          printf("====================== subgraph end   %d ======================\n", block.target());
      }
-    */
 
     segmented_blocks.erase(
         std::remove_if(segmented_blocks.begin(), segmented_blocks.end(),
