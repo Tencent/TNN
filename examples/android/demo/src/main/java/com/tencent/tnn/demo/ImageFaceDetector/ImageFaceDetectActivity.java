@@ -21,7 +21,6 @@ public class ImageFaceDetectActivity extends DemoBaseActivity {
 
         setContentView(R.layout.base_activity_layout);
 
-
         if (Build.VERSION.SDK_INT >= 23) {
             Log.d(TAG, "begin askForPermission the sdk version is" + Build.VERSION.SDK_INT);
             askForPermission();
@@ -36,19 +35,16 @@ public class ImageFaceDetectActivity extends DemoBaseActivity {
         getFragmentManager().beginTransaction().add(R.id.fragment_container, fragment).commit();
     }
 
-
     @Override
     protected void onResume() {
         Log.d(TAG, "Activity onResume");
         super.onResume();
-
     }
 
     @Override
     protected void onPause() {
         Log.d(TAG, "Activity onPause");
         super.onPause();
-
     }
 
     @Override
