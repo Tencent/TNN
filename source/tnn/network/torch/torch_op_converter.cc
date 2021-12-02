@@ -1172,7 +1172,7 @@ public:
                 auto const_buf = getValue(input);
                 if (const_buf.GetBytesSize() > 0) {
                     if (*(const_buf.force_to<int *>()) != INT_MAX) {
-                        std::cout << input->debugName() << std::endl;
+                        const_buf.SetBufferDims({1});
                         net_resource->constant_map[input->debugName()] = std::make_shared<RawBuffer>(const_buf);
                     }
                 }
