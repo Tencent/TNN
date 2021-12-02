@@ -35,9 +35,6 @@ Status Conv1DLayer::InferOutputShape(bool ignore_error) {
     int num    = input_blob->GetBlobDesc().dims[0];
     int height = input_blob->GetBlobDesc().dims[2];
 
-    const int pad_w_begin = conv_param->pads[0];
-    const int pad_h_begin = conv_param->pads[2];
-
     const int kernel = conv_param->kernels[0];
 
     const int stride = conv_param->strides[0];
