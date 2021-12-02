@@ -68,15 +68,15 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
 
     if (has_resource) {
         if (layer_param->weight_input_index == 0) {
-            DimsFunctionUtils::SetDims(dims_input0, layer_res->element_shape);
-            DimsFunctionUtils::SetDims(dims_input1, inputs[0]->GetBlobDesc().dims);
+            dims_input0 = layer_res->element_shape;
+            dims_input1 = inputs[0]->GetBlobDesc().dims;
         } else {
-            DimsFunctionUtils::SetDims(dims_input0, inputs[0]->GetBlobDesc().dims);
-            DimsFunctionUtils::SetDims(dims_input1, layer_res->element_shape);
+            dims_input0 = inputs[0]->GetBlobDesc().dims;
+            dims_input1 = layer_res->element_shape;
         }
     } else {
-        DimsFunctionUtils::SetDims(dims_input0, inputs[0]->GetBlobDesc().dims);
-        DimsFunctionUtils::SetDims(dims_input1, inputs[1]->GetBlobDesc().dims);
+        dims_input0 = inputs[0]->GetBlobDesc().dims;
+        dims_input1 = inputs[1]->GetBlobDesc().dims;
     }
 
     // buffer_param_
