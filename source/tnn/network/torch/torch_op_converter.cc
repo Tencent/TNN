@@ -1072,10 +1072,44 @@ public:
     }
 };
 
+// func: view(Tensor(a) self, int[] size) -> Tensor(a)
+class ReshapeTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+	std::cout << "enter reshape" << std::endl;
+	std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = LAYER_RESHAPE;
+        layer_info->type_str = "Reshape";
+        layer_info->name = node->output(0)->debugName();
+
+        for (const auto& input : node->inputs()) {
+            layer_info->inputs.push_back(input->debugName());
+        }
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<ReshapeLayerParam>();
+	std::cout << "reshape input 1 type = " << node->inputs().at(0)->type()->repr_str() << std::endl;
+        const auto shapes = getValue<std::vector<int64_t>>(node->inputs()[1]);
+        layer_param->num_axes = static_cast<int>(shapes.size());
+        for (const auto &shape : shapes) {
+            layer_param->shape.emplace_back((int) shape);
+        }
+	std::cout << "reshape shapes size = " << shapes.size() << std::endl;
+
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
 class ListTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
-        after_size_layer_ = false;
+	after_size_layer_ = false;
         for (const auto& input: node->inputs()) {
             if (input->node()->kind() == c10::aten::size) {
                 after_size_layer_ = true;
@@ -1182,16 +1216,19 @@ REGISTER_TORCH_OP_CONVERTER(Pool, aten, adaptive_avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu)
 REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
+REGISTER_TORCH_OP_CONVERTER(Reshape, aten, reshape)
+REGISTER_TORCH_OP_CONVERTER(Reshape, aten, view)
 REGISTER_TORCH_OP_CONVERTER(Sigmoid, aten, sigmoid)
 REGISTER_TORCH_OP_CONVERTER(Size, aten, size)
 REGISTER_TORCH_OP_CONVERTER(Softmax, aten, softmax)
-// REGISTER_TORCH_OP_CONVERTER(Split, aten, split)
+REGISTER_TORCH_OP_CONVERTER(Split, aten, split)
 REGISTER_TORCH_OP_CONVERTER(StridedSlice, aten, slice)
 REGISTER_TORCH_OP_CONVERTER(To, aten, to)
 REGISTER_TORCH_OP_CONVERTER(Unsqueeze, aten, unsqueeze)
 
+
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
-// REGISTER_TORCH_OP_CONVERTER(ListUnpack, prim, ListUnpack)
+REGISTER_TORCH_OP_CONVERTER(ListUnpack, prim, ListUnpack)
 
 // REGISTER_TORCH_OP_CONVERTER(QuantConv2D, quantized, conv2d)
 
