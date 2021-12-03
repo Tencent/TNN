@@ -149,7 +149,7 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
 
     // std::cout << c10::toString(mod.get_method("forward").function().getSchema()) << std::endl;
     auto g = mod.get_method(forward_func_name).graph();
-    // std::cout << g->toString(false) << std::endl;
+    std::cout << g->toString(false) << std::endl;
 
     std::unordered_map<torch::jit::Value *, torch::jit::Value *> old_to_new_g;
 
@@ -259,6 +259,13 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
                     n->removeAllInputs();
                 }
                 for (auto n : block.raw_nodes()) {
+                    // node may be used in different block, destory in the last used block
+                    if (std::find_if(n->outputs().begin(), n->outputs().end(), [](auto output) {
+                            return output->uses().size() > 0;
+                        }) != n->outputs().end()) {
+                        continue;
+                    }
+
                     n->destroy();
                 }
             } else {
