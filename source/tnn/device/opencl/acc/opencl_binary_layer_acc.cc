@@ -115,15 +115,8 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)inputs[input_idx_]->GetHandle().base));
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)inputs[param_idx_]->GetHandle().base));
     } else {
-        if (kernel_name_ == "BinaryElementWise") {
-            if (broadcast_param_.weight_input_index == 0) {
-                execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)binary_params_->GetData()));
-                execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)inputs[0]->GetHandle().base));
-            } else {
-                execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)inputs[0]->GetHandle().base));
-                execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)binary_params_->GetData()));
-            }
-        } else if (kernel_name_ == "BinaryBroadcast" || kernel_name_ == "BinaryBroadcast5D") {  // only in0 - in1
+        if (kernel_name_ == "BinaryBroadcast" || kernel_name_ == "BinaryBroadcast5D" ||
+            kernel_name_ == "BinaryElementWise") {  // only in0 - in1
             if (broadcast_param_.weight_input_index == 0) {
                 execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)binary_params_->GetData()));
                 execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)inputs[0]->GetHandle().base));
@@ -133,12 +126,7 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
             }
         } else if (kernel_name_ == "BinaryChannel" || kernel_name_ == "BinaryCHW" || kernel_name_ == "BinaryHW" ||
                    kernel_name_ == "BinaryWidth" || kernel_name_ == "BinarySingle") {  // maybe in0-in1 or in1-in0
-            if ((broadcast_param_.input0_broadcast_type == BroadcastTypeNormal &&
-                 broadcast_param_.input1_broadcast_type == BroadcastTypeNormal) ||
-                broadcast_param_.input1_broadcast_type == BroadcastTypeSingle ||
-                broadcast_param_.input1_broadcast_type == BroadcastTypeChannel ||
-                broadcast_param_.input1_broadcast_type == BroadcastTypeHeightWidth ||
-                broadcast_param_.input1_broadcast_type == BroadcastTypeWidth) {
+            if (broadcast_param_.input0_broadcast_type == BroadcastTypeNormal) {
                 if (broadcast_param_.weight_input_index == 0) {  // weight is input0, input is input1
                     execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)binary_params_->GetData()));
                     execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)inputs[0]->GetHandle().base));
@@ -146,12 +134,7 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
                     execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)inputs[0]->GetHandle().base));
                     execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)binary_params_->GetData()));
                 }
-            } else if ((broadcast_param_.input1_broadcast_type == BroadcastTypeNormal &&
-                        broadcast_param_.input0_broadcast_type == BroadcastTypeNormal) ||
-                       broadcast_param_.input0_broadcast_type == BroadcastTypeSingle ||
-                       broadcast_param_.input0_broadcast_type == BroadcastTypeChannel ||
-                       broadcast_param_.input0_broadcast_type == BroadcastTypeHeightWidth ||
-                       broadcast_param_.input0_broadcast_type == BroadcastTypeWidth) {  // input1 is normal
+            } else if (broadcast_param_.input1_broadcast_type == BroadcastTypeNormal) {  // input1 is normal
                 if (broadcast_param_.weight_input_index == 0) {  // weight is input0, input is input1, in1 - in0
                     execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)inputs[0]->GetHandle().base));
                     execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)binary_params_->GetData()));
@@ -162,6 +145,7 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
             }
         }
     }
+
     // set optional param
     if (kernel_name_ == "BinaryChannel" || kernel_name_ == "BinaryCHW" || kernel_name_ == "BinaryHW" ||
         kernel_name_ == "BinaryWidth") {

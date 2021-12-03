@@ -40,21 +40,11 @@ Status OpenCLSubLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     } else if (inputs.size() == 1) {
         if (kernel_name_ != "BinaryElementWise" && kernel_name_ != "BinaryBroadcast5D" &&
             kernel_name_ != "BinaryBroadcast") {
-            if ((broadcast_param_.input0_broadcast_type == BroadcastTypeNormal &&
-                 broadcast_param_.input1_broadcast_type == BroadcastTypeNormal) ||
-                broadcast_param_.input1_broadcast_type == BroadcastTypeSingle ||
-                broadcast_param_.input1_broadcast_type == BroadcastTypeChannel ||
-                broadcast_param_.input1_broadcast_type == BroadcastTypeHeightWidth ||
-                broadcast_param_.input1_broadcast_type == BroadcastTypeWidth) {
+            if (broadcast_param_.input0_broadcast_type == BroadcastTypeNormal) {
                 if (broadcast_param_.weight_input_index == 0) {
                     compute = "in1-in0";
                 }
-            } else if ((broadcast_param_.input1_broadcast_type == BroadcastTypeNormal &&
-                        broadcast_param_.input0_broadcast_type != BroadcastTypeNormal) ||
-                       broadcast_param_.input0_broadcast_type == BroadcastTypeSingle ||
-                       broadcast_param_.input0_broadcast_type == BroadcastTypeChannel ||
-                       broadcast_param_.input0_broadcast_type == BroadcastTypeHeightWidth ||
-                       broadcast_param_.input0_broadcast_type == BroadcastTypeWidth) {
+            } else if (broadcast_param_.input1_broadcast_type == BroadcastTypeNormal) {
                 if (broadcast_param_.weight_input_index == 0) {
                     compute = "in1-in0";
                 }
