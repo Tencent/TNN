@@ -1202,7 +1202,6 @@ public:
             }
         }
 	// std::cout << "after_size_layer_ = " << after_size_layer_ << std::endl;
-        return true;
         return after_size_layer_;
     }
 
@@ -1313,7 +1312,7 @@ REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
 REGISTER_TORCH_OP_CONVERTER(Reshape, aten, reshape)
 REGISTER_TORCH_OP_CONVERTER(Reshape, aten, view)
 REGISTER_TORCH_OP_CONVERTER(Sigmoid, aten, sigmoid)
-//REGISTER_TORCH_OP_CONVERTER(Size, aten, size)
+REGISTER_TORCH_OP_CONVERTER(Size, aten, size)
 REGISTER_TORCH_OP_CONVERTER(Softmax, aten, softmax)
 REGISTER_TORCH_OP_CONVERTER(Split, aten, split)
 REGISTER_TORCH_OP_CONVERTER(StridedSlice, aten, slice)
