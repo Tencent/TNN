@@ -987,7 +987,7 @@ public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
         layer_info->type = LAYER_SOFTMAX;
-        layer_info->type_str = "Softmax";
+        layer_info->type_str = "SoftmaxCaffe";
         layer_info->name = node->output(0)->debugName();
 
         // https://pytorch.org/docs/stable/generated/torch.nn.Softmax.html?highlight=softmax#torch.nn.Softmax
@@ -1111,6 +1111,66 @@ public:
     }
 };
 
+// func: addmm(Tensor self, Tensor mat1, Tensor mat2, *, Scalar beta=1, Scalar alpha=1) -> Tensor
+class AddmmTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_INNER_PRODUCT;
+        layer_info->type_str                  = "InnerProduct";
+        layer_info->name                      = node->output(0)->debugName();
+
+        const auto &inputs = node->inputs();
+
+        std::cout << "addmm input = ";
+        for (const auto &item : inputs) {
+            std::cout << item->debugName() << " ";
+        }
+        std::cout << std::endl;
+
+        layer_info->inputs.push_back(node->inputs()[1]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param  = std::make_shared<InnerProductLayerParam>();
+        auto layer_res    = new (InnerProductLayerResource);
+        const auto weight = inputs[2];
+        const auto bias   = inputs[0];
+
+        auto weight_buf = getValue(weight);
+        auto shape      = weight_buf.GetBufferDims();
+        weight_buf.Permute(shape[0], shape[1]);
+
+        std::cout << "addmm shape = ";
+        for (const auto item : shape) {
+            std::cout << item << " ";
+        }
+        std::cout << std::endl;
+
+        // set param accroding to real value, just test here
+        layer_param->name       = layer_info->name;
+        layer_param->num_output = shape[1];
+        layer_param->axis       = 1;
+
+        layer_res->name          = layer_info->name;
+        layer_res->weight_handle = weight_buf;
+
+        auto bias_buf = getValue(bias);
+        if (bias_buf.GetBytesSize() != 0) {
+            layer_param->has_bias  = 1;
+            layer_res->bias_handle = bias_buf;
+        }
+
+        layer_info->param = layer_param;
+
+        net_structure->layers.push_back(layer_info);
+        net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        return TNN_OK;
+    }
+};
+
 class TransposeTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
@@ -1229,6 +1289,7 @@ public:
 // };
 
 
+REGISTER_TORCH_OP_CONVERTER(Addmm, aten, addmm)
 REGISTER_TORCH_OP_CONVERTER(AvgPool, aten, avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(BatchNorm, aten, batch_norm)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, add_)
