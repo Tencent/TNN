@@ -1020,7 +1020,7 @@ public:
         layer_info->inputs.push_back(node->inputs()[0]->debugName());
         // auto unpack_node = node->output()->uses()[0].user;
         auto unpack_node = node->next();
-        for (const auto output : unpack_node->outputs()) {
+	for (const auto output : unpack_node->outputs()) {
             layer_info->outputs.push_back(output->debugName());
         }
 
@@ -1255,7 +1255,7 @@ class ListUnpackTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
         return true;
-        return node->inputs().at(0)->node()->kind() == c10::aten::split;
+	return node->inputs().at(0)->node()->kind() == c10::aten::split;
     }
 
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
