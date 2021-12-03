@@ -1207,7 +1207,6 @@ public:
     }
 
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
-        return TNN_OK;
 	std::cout << "xxx before list if " << std::endl;
 	std::cout << "after_size_layer_ = " << after_size_layer_ << std::endl << std::endl;
         if (after_size_layer_) {
