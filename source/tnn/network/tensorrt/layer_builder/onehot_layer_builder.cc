@@ -20,7 +20,7 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(OneHot, LAYER_ONEHOT);
 
 bool OneHotTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
-    return (inOut[pos].type == nvinfer1::DataType::kINT32 || inOut[pos].type == nvinfer1::DataType::kFLOAT);
+    return ((pos == 0 && inOut[pos].type == nvinfer1::DataType::kINT32) || (pos == 1 && inOut[pos].type == nvinfer1::DataType::kFLOAT));
 }
 
 Status OneHotTRTPluginLayerBuilder::Reshape() {
