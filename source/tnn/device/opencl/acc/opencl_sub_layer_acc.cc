@@ -30,10 +30,36 @@ Status OpenCLSubLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     // create kernel
     std::set<std::string> build_options;
     std::string compute;
-    if (broadcast_param_.input0_broadcast_type == BroadcastTypeNormal) {
-        compute = "in0-in1";
-    } else {
-        compute = "in1-in0";
+    compute = "in0-in1";
+    if (inputs.size() == 2) {
+        if (broadcast_param_.input0_broadcast_type == BroadcastTypeNormal) {
+            compute = "in0-in1";
+        } else {
+            compute = "in1-in0";
+        }
+    } else if (inputs.size() == 1) {
+        if (kernel_name_ != "BinaryElementWise" && kernel_name_ != "BinaryBroadcast5D" &&
+            kernel_name_ != "BinaryBroadcast") {
+            if ((broadcast_param_.input0_broadcast_type == BroadcastTypeNormal &&
+                 broadcast_param_.input1_broadcast_type == BroadcastTypeNormal) ||
+                broadcast_param_.input1_broadcast_type == BroadcastTypeSingle ||
+                broadcast_param_.input1_broadcast_type == BroadcastTypeChannel ||
+                broadcast_param_.input1_broadcast_type == BroadcastTypeHeightWidth ||
+                broadcast_param_.input1_broadcast_type == BroadcastTypeWidth) {
+                if (broadcast_param_.weight_input_index == 0) {
+                    compute = "in1-in0";
+                }
+            } else if ((broadcast_param_.input1_broadcast_type == BroadcastTypeNormal &&
+                        broadcast_param_.input0_broadcast_type != BroadcastTypeNormal) ||
+                       broadcast_param_.input0_broadcast_type == BroadcastTypeSingle ||
+                       broadcast_param_.input0_broadcast_type == BroadcastTypeChannel ||
+                       broadcast_param_.input0_broadcast_type == BroadcastTypeHeightWidth ||
+                       broadcast_param_.input0_broadcast_type == BroadcastTypeWidth) {
+                if (broadcast_param_.weight_input_index == 0) {
+                    compute = "in1-in0";
+                }
+            }
+        }
     }
     build_options.emplace(" -DOPERATOR=" + compute);
     ret = CreateExecuteUnit(execute_units_[0], "binary", kernel_name_, build_options);
