@@ -94,10 +94,11 @@ Status CoreMLConvLayer::BuildLayerParam() {
     }
     
     if (pad_type == -1) { // default padding following the proto setting
-        auto pad_top = conv_param->pads[0];
-        auto pad_left = conv_param->pads[1];
-        auto pad_bottom = conv_param->pads[2];
-        auto pad_right = conv_param->pads[3];
+        //[w_begin w_end h_begin h_end d_begin d_end]
+        auto pad_left = conv_param->pads[0];
+        auto pad_right = conv_param->pads[1];
+        auto pad_top = conv_param->pads[2];
+        auto pad_bottom = conv_param->pads[3];
 
         coreml_layer_->convolution->convolution_padding_type_case = CORE_ML__SPECIFICATION__CONVOLUTION_LAYER_PARAMS__CONVOLUTION_PADDING_TYPE_VALID;
         valid_ = std::shared_ptr<CoreML__Specification__ValidPadding>(new CoreML__Specification__ValidPadding);

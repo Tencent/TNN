@@ -374,7 +374,7 @@ Status CoreMLNetwork::GetAllInputBlobs(BlobMap &blobs) {
             desc.dims        = input_dims;
             desc.name        = input_name;
         };
-        const int data_count = DimsFunctionUtils::GetDim(input_dims, 0) * (((DimsFunctionUtils::GetDim(input_dims, 1) + 3) / 4 * 4)) *                      DimsFunctionUtils::GetDim(input_dims, 2) * DimsFunctionUtils::GetDim(input_dims, 3) *                                        DimsFunctionUtils::GetDim(input_dims, 4);
+        const int data_count = DimsFunctionUtils::GetDim(input_dims, 0) * (((DimsFunctionUtils::GetDim(input_dims, 1) + 3) / 4 * 4)) * DimsFunctionUtils::GetDim(input_dims, 2) * DimsFunctionUtils::GetDim(input_dims, 3) * DimsFunctionUtils::GetDim(input_dims, 4);
 
         int bytes_count      = data_count * DataTypeUtils::GetBytesSize(desc.data_type);
         id<MTLBuffer> buffer = [context_impl.device newBufferWithLength:bytes_count
@@ -441,7 +441,7 @@ Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
             desc.dims        = output_dims;
             desc.name        = output_name.UTF8String;
         };
-        const int data_count = DimsFunctionUtils::GetDim(output_dims, 0) * (((DimsFunctionUtils::GetDim(output_dims, 1) + 3) / 4 * 4)) *                    DimsFunctionUtils::GetDim(output_dims, 2) * DimsFunctionUtils::GetDim(output_dims, 3) *                                      DimsFunctionUtils::GetDim(output_dims, 4);
+        const int data_count = DimsFunctionUtils::GetDim(output_dims, 0) * (((DimsFunctionUtils::GetDim(output_dims, 1) + 3) / 4 * 4)) * DimsFunctionUtils::GetDim(output_dims, 2) * DimsFunctionUtils::GetDim(output_dims, 3) * DimsFunctionUtils::GetDim(output_dims, 4);
         int bytes_count      = data_count * DataTypeUtils::GetBytesSize(desc.data_type);
         id<MTLBuffer> buffer = [context_impl.device newBufferWithLength:bytes_count
                                                                 options:MTLResourceCPUCacheModeDefaultCache];
