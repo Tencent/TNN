@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_CORE_TNN_IMPL_COREML_H_
-#define TNN_CORE_TNN_IMPL_COREML_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_COREML_TNN_IMPL_COREML_H_
+#define TNN_SOURCE_TNN_DEVICE_COREML_TNN_IMPL_COREML_H_
 
 #include "tnn/core/tnn_impl.h"
 
@@ -72,4 +72,4 @@ public:
 
 }  // namespace TNN_NS
 
-#endif  // TNN_CORE_TNN_IMPL_COREML_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_COREML_TNN_IMPL_COREML_H_

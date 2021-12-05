@@ -46,65 +46,65 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
 }
 
 Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+    
     auto device = GetDevice(net_config_.device_type);
     RETURN_VALUE_ON_NEQ(device != NULL, true, TNNERR_DEVICE_NOT_SUPPORT);
-    interpreter_ = interpreter->Copy();
-    if (nullptr == interpreter_) {
-        // The ModelInterpreter not implement Copy API, just use interpreter
-        LOGI("Interpreter Copy failed, use interpreter in params instead\n");
-        interpreter_ = interpreter;
-    }
-
-    auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter_.get());
-
     auto network_type = net_config_.network_type;
-    if(network_type == NETWORK_TYPE_AUTO) {
-        network_type = device->ConvertAutoNetworkType();
-    }
-    //NetworkImpl is register by each Impl.
-    //TNN model runs with the default_network.
-    network_ = NetworkImplManager::GetNetworkImpl(network_type);
-    if (!network_) {
-        LOGE("ERROR: network_ is nil, network_type may not support\n");
-        return Status(TNNERR_NET_ERR, "network_ is nil, network_type may not support");
-    }
-    if (net_config_.device_type == DEVICE_CUDA) {
-        auto ret = network_->Init(net_config_, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape, false);
-        if (ret == TNN_OK) {
-            return ret;
+    if(network_type != NETWORK_TYPE_COREML){
+        interpreter_ = interpreter->Copy();
+        if (nullptr == interpreter_) {
+            // The ModelInterpreter not implement Copy API, just use interpreter
+            LOGI("Interpreter Copy failed, use interpreter in params instead\n");
+            interpreter_ = interpreter;
         }
-
-        LOGI("Init network failed. Try to re-init it with const folder, and if succeed all of error info above can be ignored.\n");
-        network_.reset();
-    }
-
-    if (default_interpreter && default_interpreter->GetNetStructure() &&
-        (NeedDoConstantFolding(default_interpreter->GetNetStructure()) || net_config_.device_type == DEVICE_CUDA)) {
-        auto const_folder = std::make_shared<ConstFolder>();
-        auto folder_net_config = net_config_;
-	folder_net_config.share_memory_mode = SHARE_MEMORY_MODE_DEFAULT;
-	auto status = const_folder->Init(folder_net_config, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape);
-        RETURN_ON_NEQ(status, TNN_OK);
-
-        if (min_inputs_shape.size() != 0) {
-            status = const_folder->Reshape(min_inputs_shape);
-            RETURN_ON_NEQ(status, TNN_OK);
-            auto min_blob_shapes_map = default_interpreter->GetNetResource()->blob_shapes_map;
-            
-            //Note output shape may not change after reshape for const folder, but will do change after forward because shape may be determined at rumtime
-            status = const_folder->Reshape(max_inputs_shape);
-            RETURN_ON_NEQ(status, TNN_OK);
-            
-            default_interpreter->GetNetResource()->min_blob_shapes_map = min_blob_shapes_map;
-        } else {
-            auto max_constant_map = default_interpreter->GetNetResource()->blob_shapes_map;
-            default_interpreter->GetNetResource()->min_blob_shapes_map = max_constant_map;
+        auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter_.get());
+//      auto network_type = net_config_.network_type;
+        if(network_type == NETWORK_TYPE_AUTO) {
+            network_type = device->ConvertAutoNetworkType();
         }
- 
-        const_folder_ = const_folder;
+        //NetworkImpl is register by each Impl.
+        //TNN model runs with the default_network.
+        network_ = NetworkImplManager::GetNetworkImpl(network_type);
+        if (!network_) {
+            LOGE("ERROR: network_ is nil, network_type may not support\n");
+            return Status(TNNERR_NET_ERR, "network_ is nil, network_type may not support");
+        }
+        if (net_config_.device_type == DEVICE_CUDA) {
+            auto ret = network_->Init(net_config_, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape, false);
+            if (ret == TNN_OK) {
+                return ret;
+            }
+            LOGI("Init network failed. Try to re-init it with const folder, and if succeed all of error info above can be ignored.\n");
+            network_.reset();
+        }
+    
+        if (default_interpreter && default_interpreter->GetNetStructure() &&
+            (NeedDoConstantFolding(default_interpreter->GetNetStructure()) || net_config_.device_type == DEVICE_CUDA)) {
+            auto const_folder = std::make_shared<ConstFolder>();
+            auto folder_net_config = net_config_;
+                folder_net_config.share_memory_mode = SHARE_MEMORY_MODE_DEFAULT;
+            auto status = const_folder->Init(folder_net_config, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape);
+            RETURN_ON_NEQ(status, TNN_OK);
+            if (min_inputs_shape.size() != 0) {
+                status = const_folder->Reshape(min_inputs_shape);
+                RETURN_ON_NEQ(status, TNN_OK);
+                auto min_blob_shapes_map = default_interpreter->GetNetResource()->blob_shapes_map;
+        
+                //Note output shape may not change after reshape for const folder, but will do change after forward because shape may be determined at rumtime
+                status = const_folder->Reshape(max_inputs_shape);
+                RETURN_ON_NEQ(status, TNN_OK);
+                default_interpreter->GetNetResource()->min_blob_shapes_map = min_blob_shapes_map;
+            } else {
+                auto max_constant_map = default_interpreter->GetNetResource()->blob_shapes_map;
+                default_interpreter->GetNetResource()->min_blob_shapes_map = max_constant_map;
+            }
+        
+            const_folder_ = const_folder;
+        }
     }
 
     network_ = NetworkImplManager::GetNetworkImpl(network_type);
+    interpreter_ = interpreter->Copy();
     auto ret = network_->Init(net_config_, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape, true);
     RETURN_ON_NEQ(ret, TNN_OK);
 
@@ -323,3 +323,4 @@ std::string Instance::FinishProfile(bool do_print) {
 #endif
 
 }  // namespace TNN_NS
+
