@@ -9,7 +9,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
 #import "BenchmarkController.h"
@@ -19,6 +19,7 @@
 #include <sys/time.h>
 #include <float.h>
 #include <sstream>
+
 
 using namespace std;
 using namespace TNN_NS;
@@ -174,20 +175,19 @@ struct BenchResult {
     for (auto model : allModels) {
         NSLog(@"model: %s", model.name.c_str());
         allResult = [allResult stringByAppendingFormat:@"model: %s\n", model.name.c_str()];
-        
-        //benchmark on arm cpu
-        auto result_arm = [self benchmarkWithProtoContent:model.tnn_proto_content
+    
+        //benchmark on cpu
+        auto result_cpu = [self benchmarkWithProtoContent:model.tnn_proto_content
                                                 model:model.tnn_model_content
                                                coreml:model.coreml
                                               library:pathLibrary.UTF8String
                                               netType:NETWORK_TYPE_DEFAULT
                                               deviceType:DEVICE_ARM
                                                option:option];
-        NSLog(@"arm: \ntime: %s", result_arm.description().c_str());
-        allResult = [allResult stringByAppendingFormat:@"arm: \ntime: %s",
-                     result_arm.description().c_str()];
-        
-        
+        NSLog(@"cpu: \ntime: %s", result_cpu.description().c_str());
+        allResult = [allResult stringByAppendingFormat:@"cpu: \ntime: %s\n",
+                     result_cpu.description().c_str()];
+
         //benchmark on gpu
         auto result_gpu = [self benchmarkWithProtoContent:model.tnn_proto_content
                                                 model:model.tnn_model_content
@@ -199,6 +199,31 @@ struct BenchResult {
         NSLog(@"gpu: \ntime: %s", result_gpu.description().c_str());
         allResult = [allResult stringByAppendingFormat:@"gpu: \ntime: %s\n",
                      result_gpu.description().c_str()];
+        
+        //benchmark on coreml gpu
+        auto result_tnn_gpu = [self benchmarkWithProtoContent:model.tnn_proto_content
+                                                model:model.tnn_model_content
+                                               coreml:model.coreml
+                                              library:pathLibrary.UTF8String
+                                              netType:NETWORK_TYPE_COREML
+                                              deviceType:DEVICE_METAL
+                                               option:option];
+        NSLog(@"coreml gpu: \ntime: %s", result_tnn_gpu.description().c_str());
+        allResult = [allResult stringByAppendingFormat:@"coreml gpu: \ntime: %s\n",
+                     result_tnn_gpu.description().c_str()];
+        
+        //benchmark on npu
+        auto result_npu = [self benchmarkWithProtoContent:model.tnn_proto_content
+                                                model:model.tnn_model_content
+                                               coreml:model.coreml
+                                              library:pathLibrary.UTF8String
+                                              netType:NETWORK_TYPE_COREML
+                                              deviceType:DEVICE_APPLE_NPU
+                                               option:option];
+        NSLog(@"coreml npu: \ntime: %s", result_npu.description().c_str());
+        allResult = [allResult stringByAppendingFormat:@"coreml npu: \ntime: %s\n",
+                     result_npu.description().c_str()];
+        
     }
     
     self.textViewResult.text = allResult;
@@ -220,17 +245,8 @@ struct BenchResult {
     TNN net;
     {
         ModelConfig config;
-        if (net_type == NETWORK_TYPE_COREML) {
-            config.model_type = MODEL_TYPE_COREML;
-            config.params = {coremlDir};
-        } else {
-            config.model_type = MODEL_TYPE_TNN;
-            config.params = {protoContent, modelPathOrContent};
-        }
-        
-        if (net_type == NETWORK_TYPE_COREML) {
-            config.model_type = MODEL_TYPE_COREML;
-        }
+        config.model_type = MODEL_TYPE_TNN;
+        config.params = {protoContent, modelPathOrContent};
         
         result.status = net.Init(config);
         if (result.status != TNN_OK) {
@@ -252,6 +268,7 @@ struct BenchResult {
             NSLog(@"net.CreateInst Error: %s", result.status.description().c_str());
             return result;
         }
+        
     }
     
     //warm cpu, only used when benchmark
@@ -291,4 +308,5 @@ struct BenchResult {
 }
 
 @end
+
 
