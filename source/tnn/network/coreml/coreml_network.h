@@ -86,12 +86,12 @@ public:
 
     Status CompileModel(CoreML__Specification__Model* model);
     
-private:
+protected:
     AbstractDevice *device_              = nullptr;
     Context *context_                    = nullptr;
     NSDictionary *mlmodel_net_   = nil;
-    __strong NSDictionary *mlmodel_shape_ = nil;
-    __strong NSObject *mlmodel_     = nil;
+    NSDictionary *mlmodel_shape_ = nil;
+    NSObject *mlmodel_     = nil;
     BlobMap blob_input_map_;
     BlobMap blob_output_map_;
     DimsVector coreml_input_dims_;
@@ -123,7 +123,7 @@ private:
     std::vector<std::shared_ptr<int64_t> >coreml_output_shape_;
     std::vector<std::shared_ptr<char> > output_name_;
     
-    CoreMLExecutor* mCoreMLExecutorPtr = nullptr;
+    CoreMLExecutor* coreml_executor_ = nil;
     NSString* compiled_model_file_path = nil;
     
 };
