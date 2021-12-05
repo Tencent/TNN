@@ -748,6 +748,7 @@
 		DE14B5A3275C87C700379D4F /* tnn_impl_coreml.mm in Sources */ = {isa = PBXBuildFile; fileRef = DE14B489275C87C700379D4F /* tnn_impl_coreml.mm */; };
 		DE14B626275CB94F00379D4F /* coreml_upsample_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE14B625275CB94F00379D4F /* coreml_upsample_layer.cc */; };
 		DE14B628275CC6F400379D4F /* coreml_deconv_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE14B627275CC6F400379D4F /* coreml_deconv_layer.cc */; };
+		DE14B62A275CE60900379D4F /* coreml_innerproduct_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE14B629275CE60900379D4F /* coreml_innerproduct_layer.cc */; };
 		DEE9445B269031EE008E6C36 /* metal_conv1d_layer_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = DEE94456269031EE008E6C36 /* metal_conv1d_layer_acc.mm */; };
 		DEE9445C269031EE008E6C36 /* metal_conv1d_layer_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = DEE94457269031EE008E6C36 /* metal_conv1d_layer_acc.h */; };
 		E43D68B525C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S in Sources */ = {isa = PBXBuildFile; fileRef = E43D68B425C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S */; };
@@ -1810,6 +1811,7 @@
 		DE14B489275C87C700379D4F /* tnn_impl_coreml.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = tnn_impl_coreml.mm; sourceTree = "<group>"; };
 		DE14B625275CB94F00379D4F /* coreml_upsample_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_upsample_layer.cc; sourceTree = "<group>"; };
 		DE14B627275CC6F400379D4F /* coreml_deconv_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_deconv_layer.cc; sourceTree = "<group>"; };
+		DE14B629275CE60900379D4F /* coreml_innerproduct_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_innerproduct_layer.cc; sourceTree = "<group>"; };
 		DEE94456269031EE008E6C36 /* metal_conv1d_layer_acc.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_conv1d_layer_acc.mm; sourceTree = "<group>"; };
 		DEE94457269031EE008E6C36 /* metal_conv1d_layer_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = metal_conv1d_layer_acc.h; sourceTree = "<group>"; };
 		E43D68B425C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = CONV_DW_3X3_INT8_SLIDEW.S; sourceTree = "<group>"; };
@@ -3309,6 +3311,7 @@
 		DE14B473275C87C700379D4F /* layer_convert */ = {
 			isa = PBXGroup;
 			children = (
+				DE14B629275CE60900379D4F /* coreml_innerproduct_layer.cc */,
 				DE14B627275CC6F400379D4F /* coreml_deconv_layer.cc */,
 				DE14B625275CB94F00379D4F /* coreml_upsample_layer.cc */,
 				DE14B474275C87C700379D4F /* coreml_const_layer.cc */,
@@ -4663,6 +4666,7 @@
 				9D32FCE324557EEC002DCDAB /* softmax_layer.cc in Sources */,
 				9DF543EC258B1366006CEC97 /* CONV_DW_3X3_FLOAT_SLIDEW.S in Sources */,
 				3623EFAE2695996E00932B9F /* metal_inverse_layer_acc.metal in Sources */,
+				DE14B62A275CE60900379D4F /* coreml_innerproduct_layer.cc in Sources */,
 				9D32FF5824557EED002DCDAB /* hard_sigmoid_layer_interpreter.cc in Sources */,
 				9D32FF2A24557EED002DCDAB /* reduce_op_interpreter.cc in Sources */,
 				ECCDCEDA25DF536000D7D297 /* cpu_pow_layer_acc.cc in Sources */,
