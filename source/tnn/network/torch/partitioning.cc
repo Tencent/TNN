@@ -385,6 +385,7 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
     registerSegmentsOutputs(segmented_blocks, g);
     print_seg_nodes("after register");
 
+    // only return TNN subgraph
     segmented_blocks.erase(
         std::remove_if(segmented_blocks.begin(), segmented_blocks.end(),
                        [](SegmentedBlock& seg_block) { return seg_block.target() == SegmentedBlock::kTorch; }),
