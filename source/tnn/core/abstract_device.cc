@@ -49,9 +49,6 @@ std::shared_ptr<const ImplementedLayout> AbstractDevice::GetImplementedLayout(La
 }
 
 AbstractDevice* GetDevice(DeviceType type) {
-    if(type == DEVICE_APPLE_NPU){
-        type = DEVICE_METAL;
-    }
     return GetGlobalDeviceMap()[type].get();
 }
 

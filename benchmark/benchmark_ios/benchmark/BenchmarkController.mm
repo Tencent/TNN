@@ -199,19 +199,7 @@ struct BenchResult {
         NSLog(@"gpu: \ntime: %s", result_gpu.description().c_str());
         allResult = [allResult stringByAppendingFormat:@"gpu: \ntime: %s\n",
                      result_gpu.description().c_str()];
-        
-        //benchmark on coreml gpu
-        auto result_tnn_gpu = [self benchmarkWithProtoContent:model.tnn_proto_content
-                                                model:model.tnn_model_content
-                                               coreml:model.coreml
-                                              library:pathLibrary.UTF8String
-                                              netType:NETWORK_TYPE_COREML
-                                              deviceType:DEVICE_METAL
-                                               option:option];
-        NSLog(@"coreml gpu: \ntime: %s", result_tnn_gpu.description().c_str());
-        allResult = [allResult stringByAppendingFormat:@"coreml gpu: \ntime: %s\n",
-                     result_tnn_gpu.description().c_str()];
-        
+
         //benchmark on npu
         auto result_npu = [self benchmarkWithProtoContent:model.tnn_proto_content
                                                 model:model.tnn_model_content
@@ -220,8 +208,8 @@ struct BenchResult {
                                               netType:NETWORK_TYPE_COREML
                                               deviceType:DEVICE_APPLE_NPU
                                                option:option];
-        NSLog(@"coreml npu: \ntime: %s", result_npu.description().c_str());
-        allResult = [allResult stringByAppendingFormat:@"coreml npu: \ntime: %s\n",
+        NSLog(@"npu: \ntime: %s", result_npu.description().c_str());
+        allResult = [allResult stringByAppendingFormat:@"npu: \ntime: %s\n",
                      result_npu.description().c_str()];
         
     }

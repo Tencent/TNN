@@ -59,7 +59,6 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
     if (@available(iOS 12.0, macOS 10.13, *)) {
         Status ret = TNN_OK;
 
-        // RETURN_ON_NEQ(DefaultNetwork::Init(net_config, model_config, interpreter, inputs_shape), TNN_OK);
         DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
         CHECK_PARAM_NULL(default_interpreter);
 
@@ -70,7 +69,11 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
             return Status(TNNERR_NULL_PARAM, "network_ is nil, network_type may not support");
         }
         
-        device_ = GetDevice(net_config.device_type);
+        auto type = net_config.device_type;
+        if(type == DEVICE_APPLE_NPU){  // DEVICE_APPLE_NPU reuse DEVICE_METAL
+            type = DEVICE_METAL;
+        }
+        device_ = GetDevice(type);
 
         if (device_ == NULL) {
             return TNNERR_DEVICE_NOT_SUPPORT;
