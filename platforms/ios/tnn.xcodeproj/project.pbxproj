@@ -746,6 +746,8 @@
 		DE14B5A1275C87C700379D4F /* coreml_executor.h in Headers */ = {isa = PBXBuildFile; fileRef = DE14B487275C87C700379D4F /* coreml_executor.h */; };
 		DE14B5A2275C87C700379D4F /* coreml_executor.mm in Sources */ = {isa = PBXBuildFile; fileRef = DE14B488275C87C700379D4F /* coreml_executor.mm */; };
 		DE14B5A3275C87C700379D4F /* tnn_impl_coreml.mm in Sources */ = {isa = PBXBuildFile; fileRef = DE14B489275C87C700379D4F /* tnn_impl_coreml.mm */; };
+		DE14B626275CB94F00379D4F /* coreml_upsample_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE14B625275CB94F00379D4F /* coreml_upsample_layer.cc */; };
+		DE14B628275CC6F400379D4F /* coreml_deconv_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE14B627275CC6F400379D4F /* coreml_deconv_layer.cc */; };
 		DEE9445B269031EE008E6C36 /* metal_conv1d_layer_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = DEE94456269031EE008E6C36 /* metal_conv1d_layer_acc.mm */; };
 		DEE9445C269031EE008E6C36 /* metal_conv1d_layer_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = DEE94457269031EE008E6C36 /* metal_conv1d_layer_acc.h */; };
 		E43D68B525C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S in Sources */ = {isa = PBXBuildFile; fileRef = E43D68B425C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S */; };
@@ -1806,6 +1808,8 @@
 		DE14B487275C87C700379D4F /* coreml_executor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coreml_executor.h; sourceTree = "<group>"; };
 		DE14B488275C87C700379D4F /* coreml_executor.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = coreml_executor.mm; sourceTree = "<group>"; };
 		DE14B489275C87C700379D4F /* tnn_impl_coreml.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = tnn_impl_coreml.mm; sourceTree = "<group>"; };
+		DE14B625275CB94F00379D4F /* coreml_upsample_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_upsample_layer.cc; sourceTree = "<group>"; };
+		DE14B627275CC6F400379D4F /* coreml_deconv_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_deconv_layer.cc; sourceTree = "<group>"; };
 		DEE94456269031EE008E6C36 /* metal_conv1d_layer_acc.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_conv1d_layer_acc.mm; sourceTree = "<group>"; };
 		DEE94457269031EE008E6C36 /* metal_conv1d_layer_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = metal_conv1d_layer_acc.h; sourceTree = "<group>"; };
 		E43D68B425C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = CONV_DW_3X3_INT8_SLIDEW.S; sourceTree = "<group>"; };
@@ -3305,6 +3309,8 @@
 		DE14B473275C87C700379D4F /* layer_convert */ = {
 			isa = PBXGroup;
 			children = (
+				DE14B627275CC6F400379D4F /* coreml_deconv_layer.cc */,
+				DE14B625275CB94F00379D4F /* coreml_upsample_layer.cc */,
 				DE14B474275C87C700379D4F /* coreml_const_layer.cc */,
 				DE14B475275C87C700379D4F /* coreml_reshape_layer.cc */,
 				DE14B476275C87C700379D4F /* coreml_prelu_layer.cc */,
@@ -3967,6 +3973,7 @@
 				9D32FF1124557EED002DCDAB /* reorg_layer_interpreter.cc in Sources */,
 				ECCDCEA325DF536000D7D297 /* cpu_reformat_layer_acc.cc in Sources */,
 				EC12EC8425E67549007ADDE4 /* net_optimizer_fuse_conv_add.cc in Sources */,
+				DE14B628275CC6F400379D4F /* coreml_deconv_layer.cc in Sources */,
 				9DD1FB74247CE9BE00800139 /* metal_deconv_layer_common.metal in Sources */,
 				E4D05BED259F15C700921502 /* arm_batch_norm_layer_acc.cc in Sources */,
 				9D32FCEF24557EEC002DCDAB /* concat_layer.cc in Sources */,
@@ -4479,6 +4486,7 @@
 				4E187D00267202BF00804FDF /* group_norm_layer_interpreter.cc in Sources */,
 				EC0BE17525144C10009BD69A /* prior_box_layer_interpreter.cc in Sources */,
 				EC0BE15325144BB8009BD69A /* detection_post_process_layer.cc in Sources */,
+				DE14B626275CB94F00379D4F /* coreml_upsample_layer.cc in Sources */,
 				9DD1FB9C247CE9BE00800139 /* metal_sigmoid_layer_acc.metal in Sources */,
 				ECCDCE9C25DF536000D7D297 /* cpu_squared_difference_layer_acc.cc in Sources */,
 				9DF543CF258B1366006CEC97 /* CONV_BFP16_O4.S in Sources */,
