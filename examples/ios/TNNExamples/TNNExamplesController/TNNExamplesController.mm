@@ -39,4 +39,24 @@
 - (void)onSwitchChanged:(id)sender {
 }
 
+-(TNNComputeUnits)getComputeUnitsForIndex:(NSInteger)index {
+    if (index == 0) {
+        return TNNComputeUnitsCPU;
+    } else if (index == 1) {
+        return TNNComputeUnitsGPU;
+    } else {
+        return TNNComputeUnitsAppleNPU;
+    }
+}
+
+-(NSString *)getNSSTringForComputeUnits:(TNNComputeUnits)units {
+    if (units == TNNComputeUnitsCPU) {
+        return @"cpu";
+    } else if (units == TNNComputeUnitsGPU) {
+        return @"gpu";
+    } else {
+        return  @"npu";
+    }
+}
+
 @end

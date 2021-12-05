@@ -94,7 +94,7 @@ using namespace TNN_NS;
         return;
     }
     
-    TNNComputeUnits units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     
     auto option = std::make_shared<UltraFaceDetectorOption>();
     {
@@ -170,7 +170,7 @@ using namespace TNN_NS;
     
     auto bench_result     = predictor->GetBenchResult();
     self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s",
-                                                       units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
+                                                       [self getNSSTringForComputeUnits:units],
                                                        (int)face_info.size(), bench_result.Description().c_str()];
 
     auto target_width  = target_dims[3];
