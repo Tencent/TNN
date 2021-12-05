@@ -33,5 +33,6 @@ Status CudaPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
 }
 
 REGISTER_CUDA_ACC(Permute, LAYER_PERMUTE);
+REGISTER_CUDA_ACC(Permute, LAYER_PERMUTEV2);
 
 }  // namespace TNN_NS
