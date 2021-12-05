@@ -280,10 +280,10 @@ Status CoreMLNetwork::ConvertCoreMLModel(NetStructure *net_structure, NetResourc
 Status CoreMLNetwork::InitCoreMLExecutor() {
     Status ret = TNN_OK;
     
-    if (mCoreMLExecutorPtr == nullptr) {
-        mCoreMLExecutorPtr = [[CoreMLExecutor alloc] init];
+    if (coreml_executor_ == nullptr) {
+        coreml_executor_ = [[CoreMLExecutor alloc] init];
     }
-    if(mCoreMLExecutorPtr == nullptr) {
+    if(coreml_executor_ == nullptr) {
         LOGE("Error: Failed to Init CoreML Executor.\n");
         return Status(TNNERR_INST_ERR, "Failed to Init CoreML Executor.");
     }
@@ -297,7 +297,7 @@ Status CoreMLNetwork::CompileModel(CoreML__Specification__Model* model) {
     RETURN_ON_NEQ(InitCoreMLExecutor(), TNN_OK);
     
     if (@available(iOS 12.0, *)) {
-        auto executor = mCoreMLExecutorPtr;
+        auto executor = coreml_executor_;
         NSURL* model_url = [executor saveModel:model];
         if (![executor build:model_url]) {
             printf("Failed to Compile and save Model.");
@@ -468,9 +468,9 @@ Status CoreMLNetwork::DeInit() {
     mlmodel_ = nil;
     mlmodel_net_   = nil;
     mlmodel_shape_ = nil;
-    mCoreMLExecutorPtr = nullptr;
     context_ = nullptr;
     device_ = nullptr;
+    coreml_executor_ = nil;
     
     return TNN_OK;
 }
