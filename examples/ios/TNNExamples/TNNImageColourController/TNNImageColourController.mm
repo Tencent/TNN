@@ -99,7 +99,7 @@ using namespace TNN_NS;
 
     auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
 
-    TNNComputeUnits units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     auto option = std::make_shared<TNNSDKOption>();
     {
         option->proto_content = proto_content;
@@ -171,7 +171,7 @@ using namespace TNN_NS;
 
     auto bench_result   = predictor->GetBenchResult();
     self.labelResult.text = [NSString stringWithFormat:@"device: %@\ntime:\n%s",
-                             compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
+                             [self getNSSTringForComputeUnits:compute_units],
                              bench_result.Description().c_str()];
 }
 

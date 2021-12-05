@@ -116,13 +116,15 @@ struct BenchResult {
 
 typedef enum {
     // run on cpu
-    TNNComputeUnitsCPU = 0,
+    TNNComputeUnitsCPU              = 0x0000,
     // run on gpu, if failed run on cpu
-    TNNComputeUnitsGPU = 1,
+    TNNComputeUnitsGPU              = 0x0100,
     // run on huawei_npu, if failed run on cpu
-    TNNComputeUnitsHuaweiNPU = 2,
+    TNNComputeUnitsHuaweiNPU  = 0x0300,
+    // run on huawei_npu, if failed run on cpu
+    TNNComputeUnitsAppleNPU     = 0x0301,
     // run on cpu Naive
-    TNNComputeUnitsNaive = 3,
+    TNNComputeUnitsNaive             = 0x0400,
 } TNNComputeUnits;
 
 struct RGBA{

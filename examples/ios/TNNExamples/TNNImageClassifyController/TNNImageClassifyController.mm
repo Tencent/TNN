@@ -112,7 +112,7 @@ using namespace TNN_NS;
         return;
     }
 
-    TNNComputeUnits units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     auto option = std::make_shared<TNNSDKOption>();
     {
         option->proto_content = proto_content;
@@ -185,7 +185,7 @@ using namespace TNN_NS;
 
     auto bench_result     = predictor->GetBenchResult();
     self.labelResult.text = [NSString stringWithFormat:@"device: %@\nclass:%s\ntime:\n%s",
-                                                       units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
+                                                       [self getNSSTringForComputeUnits:units],
                                                        class_result.c_str(), bench_result.Description().c_str()];
 }
 
