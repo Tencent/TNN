@@ -1199,21 +1199,31 @@ public:
 class ListTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
-        after_size_layer_ = false;
-        for (const auto& input: node->inputs()) {
-            if (input->node()->kind() == c10::aten::size) {
-                after_size_layer_ = true;
-                break;
+        // only support size + listconstruct, listconstruct + cat
+        auto type = node->inputs().at(0)->type();
+
+        if (type->kind() == c10::TypeKind::IntType) {
+            if (node->inputs().at(0)->node()->kind() == c10::aten::size) {
+                return true;
+            }
+        } else if (type->kind() == c10::TypeKind::TensorType) {
+            if (node->next()->kind() == c10::aten::cat) {
+                return true;
             }
         }
-	// std::cout << "after_size_layer_ = " << after_size_layer_ << std::endl;
-        return after_size_layer_;
+
+        return false;
     }
 
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
 	std::cout << "xxx before list if " << std::endl;
-	std::cout << "after_size_layer_ = " << after_size_layer_ << std::endl << std::endl;
-        if (after_size_layer_) {
+	// std::cout << "after_size_layer_ = " << after_size_layer_ << std::endl << std::endl;
+        auto input_type = node->input(0)->type();
+        if (input_type->kind() == c10::TypeKind::TensorType) {
+            return TNN_OK;
+        }
+
+        if (input_type->kind() == c10::TypeKind::IntType) {
             std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
             layer_info->type                      = LAYER_CONCAT;
             layer_info->type_str                  = "Concat";
@@ -1250,16 +1260,12 @@ public:
 
         return TNN_OK;
     }
-
-private:
-    bool after_size_layer_ = false;
 };
 
 class ListUnpackTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
-        return true;
-	return node->inputs().at(0)->node()->kind() == c10::aten::split;
+	    return node->inputs().at(0)->node()->kind() == c10::aten::split;
     }
 
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
