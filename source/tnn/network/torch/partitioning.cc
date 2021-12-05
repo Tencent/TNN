@@ -376,14 +376,14 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
             std::cout << "++++++++++++++++++++++++ " << block.target() << " +++++++++++++++++++++++++" << std::endl;
         }
     };
-    print_seg_nodes("after seg");
+    // print_seg_nodes("after seg");
     // resolve nonTensor inputs/outputs
     resolveNonTensorInputs(segmented_blocks, g);
-    print_seg_nodes("after resolve");
+    // print_seg_nodes("after resolve");
 
     // register input/output torch::jit::Value for segmented graphs
     registerSegmentsOutputs(segmented_blocks, g);
-    print_seg_nodes("after register");
+    // print_seg_nodes("after register");
 
     // only return TNN subgraph
     segmented_blocks.erase(

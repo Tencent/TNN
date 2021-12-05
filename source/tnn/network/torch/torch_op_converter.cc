@@ -909,14 +909,14 @@ public:
         }
         return true;
     }
+
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
-	std::cout << "enter size c" << std::endl;
-	// generate shape layer
+        // generate shape layer
         {
             std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-            layer_info->type = LAYER_SHAPE;
-            layer_info->type_str = "Shape";
-            layer_info->name = node->output(0)->debugName() + "_shape";
+            layer_info->type                      = LAYER_SHAPE;
+            layer_info->type_str                  = "Shape";
+            layer_info->name                      = node->output(0)->debugName() + "_shape";
 
             layer_info->inputs.push_back(node->inputs()[0]->debugName());
             layer_info->outputs.push_back(node->outputs()[0]->debugName() + "_shape");
@@ -931,21 +931,21 @@ public:
         // generate gather layer
         {
             std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-            layer_info->type = LAYER_GATHER;
-            layer_info->type_str = "Gather";
-            layer_info->name = node->output(0)->debugName() + "_gather";
+            layer_info->type                      = LAYER_GATHER;
+            layer_info->type_str                  = "Gather";
+            layer_info->name                      = node->output(0)->debugName() + "_gather";
 
             layer_info->inputs.push_back(node->outputs()[0]->debugName() + "_shape");
             layer_info->outputs.push_back(node->outputs()[0]->debugName() + "_gather");
 
-            auto layer_param = std::make_shared<GatherLayerParam>();
-            layer_param->axis = 0;
+            auto layer_param                 = std::make_shared<GatherLayerParam>();
+            layer_param->axis                = 0;
             layer_param->indices_in_resource = true;
 
             layer_info->param = layer_param;
 
             const auto indices = getValue(node->inputs()[1]);
-            auto layer_res = std::make_shared<GatherLayerResource>();
+            auto layer_res     = std::make_shared<GatherLayerResource>();
             layer_res->indices = indices;
 
             ADD_INPUTS_AND_OUTPUTS;
@@ -957,14 +957,14 @@ public:
         // generate unsqueeze layer
         {
             std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-            layer_info->type = LAYER_UNSQUEEZE;
-            layer_info->type_str = "Unsqueeze";
-            layer_info->name = node->output(0)->debugName();
+            layer_info->type                      = LAYER_UNSQUEEZE;
+            layer_info->type_str                  = "Unsqueeze";
+            layer_info->name                      = node->output(0)->debugName();
 
             layer_info->inputs.push_back(node->outputs()[0]->debugName() + "_gather");
             layer_info->outputs.push_back(node->outputs()[0]->debugName());
 
-            auto layer_param = std::make_shared<UnsqueezeLayerParam>();
+            auto layer_param  = std::make_shared<UnsqueezeLayerParam>();
             layer_param->axes = {0};
 
             layer_info->param = layer_param;
@@ -974,7 +974,6 @@ public:
             net_structure->layers.push_back(layer_info);
         }
 
-	std::cout << "enter size is ok" << std::endl;
         return TNN_OK;
     }
 };
@@ -1081,25 +1080,22 @@ public:
 class ReshapeTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
-	std::cout << "enter reshape" << std::endl;
-	std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-        layer_info->type = LAYER_RESHAPE;
-        layer_info->type_str = "Reshape";
-        layer_info->name = node->output(0)->debugName();
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_RESHAPE;
+        layer_info->type_str                  = "Reshape";
+        layer_info->name                      = node->output(0)->debugName();
 
-        for (const auto& input : node->inputs()) {
+        for (const auto &input : node->inputs()) {
             layer_info->inputs.push_back(input->debugName());
         }
         layer_info->outputs.push_back(node->outputs()[0]->debugName());
 
-        auto layer_param = std::make_shared<ReshapeLayerParam>();
-	std::cout << "reshape input 1 type = " << node->inputs().at(0)->type()->repr_str() << std::endl;
-        const auto shapes = getValue<std::vector<int64_t>>(node->inputs()[1]);
+        auto layer_param      = std::make_shared<ReshapeLayerParam>();
+        const auto shapes     = getValue<std::vector<int64_t>>(node->inputs()[1]);
         layer_param->num_axes = static_cast<int>(shapes.size());
         for (const auto &shape : shapes) {
-            layer_param->shape.emplace_back((int) shape);
+            layer_param->shape.emplace_back((int)shape);
         }
-	std::cout << "reshape shapes size = " << shapes.size() << std::endl;
 
         layer_info->param = layer_param;
 
@@ -1122,12 +1118,6 @@ public:
 
         const auto &inputs = node->inputs();
 
-        std::cout << "addmm input = ";
-        for (const auto &item : inputs) {
-            std::cout << item->debugName() << " ";
-        }
-        std::cout << std::endl;
-
         layer_info->inputs.push_back(node->inputs()[1]->debugName());
         layer_info->outputs.push_back(node->outputs()[0]->debugName());
 
@@ -1139,12 +1129,6 @@ public:
         auto weight_buf = getValue(weight);
         auto shape      = weight_buf.GetBufferDims();
         weight_buf.Permute(shape[0], shape[1]);
-
-        std::cout << "addmm shape = ";
-        for (const auto item : shape) {
-            std::cout << item << " ";
-        }
-        std::cout << std::endl;
 
         // set param accroding to real value, just test here
         layer_param->name       = layer_info->name;
@@ -1216,8 +1200,6 @@ public:
     }
 
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
-	std::cout << "xxx before list if " << std::endl;
-	// std::cout << "after_size_layer_ = " << after_size_layer_ << std::endl << std::endl;
         auto input_type = node->input(0)->type();
         if (input_type->kind() == c10::TypeKind::TensorType) {
             return TNN_OK;
@@ -1228,8 +1210,7 @@ public:
             layer_info->type                      = LAYER_CONCAT;
             layer_info->type_str                  = "Concat";
             layer_info->name                      = node->output(0)->debugName();
-	
-	    std::cout << "enter if" << std::endl;
+
             const auto inputs      = node->inputs();
             const auto tensor_list = inputs[0];
             for (const auto input : inputs) {
@@ -1241,9 +1222,7 @@ public:
             layer_param->axis = 0;
             layer_info->param = layer_param;
 
-	    std::cout << std::endl << std::endl << std::endl;
-	        for (const auto& input: inputs) {
-                std::cout << "xxxxxx "  << input->type()->repr_str() << std::endl;
+            for (const auto &input : inputs) {
                 auto const_buf = getValue(input);
                 if (const_buf.GetBytesSize() > 0) {
                     if (*(const_buf.force_to<int *>()) != INT_MAX) {
