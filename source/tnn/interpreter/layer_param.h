@@ -249,6 +249,13 @@ struct PermuteLayerParam : public LayerParam {
     PARAM_COPY(PermuteLayerParam)
 };
 
+struct PermuteV2LayerParam : public PermuteLayerParam {
+    int dim0 = 0;
+    int dim1 = 0;
+
+    PARAM_COPY(PermuteV2LayerParam)
+};
+
 struct CastLayerParam : public LayerParam {
     int to   = 0;
     int from = 0;  // used for HUAWEI_NPU
@@ -689,6 +696,12 @@ struct LogSoftmaxLayerParam : public LayerParam {
     int axis = 1;
 
     PARAM_COPY(LogSoftmaxLayerParam)
+};
+
+struct SplitTorchLayerParam : public SplitVLayerParam {
+    int split_size          = 0;
+
+    PARAM_COPY(SplitTorchLayerParam)
 };
 
 };  // namespace TNN_NS

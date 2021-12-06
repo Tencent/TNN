@@ -21,7 +21,8 @@
 #include <torch/csrc/jit/passes/remove_inplace_ops.h>
 #include <torch/csrc/jit/passes/remove_mutation.h>
 #include <torch/csrc/jit/passes/freeze_module.h>
-#include "torch/csrc/jit/passes/lower_tuples.h"
+#include <torch/csrc/jit/passes/lower_tuples.h>
+#include <torch/csrc/jit/passes/subgraph_rewrite.h>
 
 namespace torch {
 namespace jit {
@@ -258,6 +259,21 @@ namespace jit {
         }
     }
 
+    void RemoveContiguous(std::shared_ptr<Graph> graph) {
+        std::string contiguous_pattern    = R"IR(
+        graph(%input, %1):
+            %2 = aten::contiguous(%input, %1)
+            return (%2))IR";
+        std::string no_contiguous_pattern = R"IR(
+        graph(%input, %1):
+            return (%input))IR";
+
+        // remove contiguous
+        torch::jit::SubgraphRewriter remove_contiguous;
+        remove_contiguous.RegisterRewritePattern(contiguous_pattern, no_contiguous_pattern);
+        remove_contiguous.runOnGraph(graph);
+    }
+
     void TorchOptPass(script::Module& module) {
 
         module.eval();
@@ -269,6 +285,7 @@ namespace jit {
         RemoveException(graph->block());
         RemoveListAppend(graph.get(), graph->block());
         RemoveConcat(graph->block());
+        RemoveContiguous(graph);
 //        RemoveClone(graph->block());
 //        RemoveNoneTypeFromTuple(graph->block());
 //        RemoveSlice(graph->block());

@@ -44,6 +44,7 @@ ILayer* PermuteTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Permute, LAYER_PERMUTE);
+REGISTER_TENSORRT_LAYER_BUILDER(Permute, LAYER_PERMUTEV2);
 
 }  //  namespace TNN_NS
 

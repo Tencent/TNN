@@ -1,6 +1,9 @@
 #include "tnn/network/torch/torch_convert.h"
 #include "tnn/network/torch/torch_op_converter.h"
 #include "tnn/interpreter/tnn/model_interpreter.h"
+
+#include <tnn/interpreter/tnn/model_packer.h>
+
 namespace TNN_NS {
 namespace conversion {
 
@@ -60,6 +63,7 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
         if (kind.is_prim() && ctx->dealPrime(node)) {
             continue;
         }
+        // std::cout << kind.toQualString() << std::endl;
 
         ConvertNodeToLayer(node, net_structure, net_resource);
     }
@@ -86,6 +90,14 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
         }
         net_structure->inputs_shape_map = max_inputs_shape_map;
         net_structure->input_data_type_map = inputs_type_map;
+
+        // static int __cnt = 0;
+        // const std::string root = "./";
+        // const std::string model_name = "splt-" + std::to_string(__cnt++);
+        // const std::string proto_path = root + model_name + ".tnnproto";
+        // const std::string model_path = root + model_name + ".tnnmodel";
+        // TNN_NS::ModelPacker model_packer(net_structure, net_resource);
+        // Status status = model_packer.Pack(proto_path, model_path);
         instance_ptr->instance_->Init(ctx->get_interpreter(), min_inputs_shape_map, max_inputs_shape_map);
         instance_ptr->is_init_ = true;
     }

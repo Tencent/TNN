@@ -15,7 +15,7 @@ bool TorchConvertCtx::dealPrime(const torch::jit::Node *node) {
     std::string opType = node->kind().toUnqualString();
     switch (node->kind()) {
         case at::prim::Constant:
-        case at::prim::ListConstruct:
+        // case at::prim::ListConstruct:
         case at::prim::ListUnpack:
             for (const auto output : node->outputs()) {
                 declareVar(output->debugName(), node);
@@ -33,7 +33,7 @@ bool TorchConvertCtx::dealPrime(const torch::jit::Node *node) {
     if (opType == "Loop") {
         return true;
     }
-    return true;
+    return false;
 }
 
 int TorchConvertCtx::declareTensor(std::string name) {
