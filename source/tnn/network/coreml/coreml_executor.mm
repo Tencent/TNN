@@ -18,19 +18,19 @@ NSURL* createTemporaryFile() {
 
 @implementation CoreMLExecutor
 
-- (bool)cleanup {
+- (TNN_NS::Status)cleanup {
     NSError* error = nil;
     [[NSFileManager defaultManager] removeItemAtPath:_mlModelFilePath error:&error];
     if (error != nil) {
-        NSLog(@"Failed cleaning up model: %@", [error localizedDescription]);
-        return NO;
+        LOGE("Failed cleaning up model: %@.\n", [error localizedDescription]);
+        return TNN_NS::Status(TNN_NS::TNNERR_ANE_CLEAN_ERROR, "Error: Failed cleaning up model.");
     }
     [[NSFileManager defaultManager] removeItemAtPath:_compiledModelFilePath error:&error];
     if (error != nil) {
-        NSLog(@"Failed cleaning up compiled model: %@", [error localizedDescription]);
-        return NO;
+        LOGE("Failed cleaning up compiled model: %@.\n", [error localizedDescription]);
+        return TNN_NS::Status(TNN_NS::TNNERR_ANE_CLEAN_ERROR, "Error: Failed cleaning up compiled model.");
     }
-    return YES;
+    return TNN_NS::TNN_OK;
 }
 
 - (NSURL*)saveModel:(CoreML__Specification__Model*)model {
@@ -42,25 +42,33 @@ NSURL* createTemporaryFile() {
     } else if (model->specificationversion == 4) {
         _coreMlVersion = 3;
     } else {
-        NSLog(@"Only Core ML models with specification version 3 or 4 are supported");
+        LOGE("Only Core ML models with specification version 3 or 4 are supported.\n");
         return nil;
     }
     size_t modelSize = core_ml__specification__model__get_packed_size(model);
     std::unique_ptr<uint8_t> writeBuffer(new uint8_t[modelSize]);
     core_ml__specification__model__pack(model, writeBuffer.get());
-    // TODO: Can we mmap this instead of actual writing it to phone ?
     std::ofstream file_stream([modelPath UTF8String], std::ios::out | std::ios::binary);
+    if (!file_stream || !file_stream.is_open() || !file_stream.good()) {
+        file_stream.close();
+        LOGE("CoreML models file can not be written.\n");
+    }
     const char* ptr = reinterpret_cast<const char*>(writeBuffer.get());
-    file_stream.write(ptr, modelSize);
+    if (ptr) {
+        file_stream.write(ptr, modelSize);
+    } else {
+        LOGE("CoreML models file is empty.\n");
+    }
+    file_stream.close();
     return modelUrl;
 }
 
-- (bool)build:(NSURL*)modelUrl {
+- (TNN_NS::Status)build:(NSURL*)modelUrl {
     NSError* error = nil;
     NSURL* compileUrl = [MLModel compileModelAtURL:modelUrl error:&error];
     if (error != nil) {
-        NSLog(@"Error compiling model %@", [error localizedDescription]);
-        return NO;
+        LOGE("Error compiling model %@.\n", [error localizedDescription]);
+        return TNN_NS::Status(TNN_NS::TNNERR_ANE_COMPILE_MODEL_ERROR, "Error: Failed compiling model.");
     }
     _mlModelFilePath = [modelUrl path];
     _compiledModelFilePath = [compileUrl path];
@@ -73,10 +81,10 @@ NSURL* createTemporaryFile() {
         _model = [MLModel modelWithContentsOfURL:compileUrl error:&error];
     }
     if (error != NULL) {
-        NSLog(@"Error Creating MLModel %@", [error localizedDescription]);
-        return NO;
+        LOGE("Error Creating MLModel %@.\n", [error localizedDescription]);
+        return TNN_NS::Status(TNN_NS::TNNERR_ANE_COMPILE_MODEL_ERROR, "Error: Failed Creating MLModel.");
     }
-    return YES;
+    return TNN_NS::TNN_OK;
 }
 
 - (NSString*) getMLModelFilePath{

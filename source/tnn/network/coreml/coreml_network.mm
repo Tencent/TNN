@@ -159,7 +159,7 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
         return GetAllOutputBlobs(blobs);
         
     } else {
-        return Status(TNNERR_INST_ERR, "CoreML only support iOS 12+");
+        return Status(TNNERR_IOS_VERSION_ERROR, "CoreML only support iOS 12+");
     }
 }
 
@@ -207,46 +207,44 @@ Status CoreMLNetwork::InitCoreMLModel(NetStructure *net_structure, NetResource *
 }
 
 void CoreMLNetwork::SetInput(CoreML__Specification__FeatureDescription** describe, std::string name, std::vector<int> shape) {
-    auto idx = coreml_input_feature_description_.size();
     coreml_input_feature_description_.push_back(std::shared_ptr<CoreML__Specification__FeatureDescription>(new CoreML__Specification__FeatureDescription));
-    (*describe) = (CoreML__Specification__FeatureDescription *)coreml_input_feature_description_[idx].get();
+    (*describe) = (CoreML__Specification__FeatureDescription *)coreml_input_feature_description_.back().get();
     core_ml__specification__feature_description__init(*describe);
     input_name_.push_back(NullTerminatedCString(name));
-    (*describe)->name = input_name_[idx].get();
+    (*describe)->name = input_name_.back().get();
     coreml_input_feature_type_.push_back(std::shared_ptr<CoreML__Specification__FeatureType>(new CoreML__Specification__FeatureType));
-    (*describe)->type = coreml_input_feature_type_[idx].get();
+    (*describe)->type = coreml_input_feature_type_.back().get();
     core_ml__specification__feature_type__init((*describe)->type);
     (*describe)->type->type_case = CORE_ML__SPECIFICATION__FEATURE_TYPE__TYPE_MULTI_ARRAY_TYPE;
     coreml_input_array_feature_type_.push_back(std::shared_ptr<CoreML__Specification__ArrayFeatureType>(new CoreML__Specification__ArrayFeatureType));
-    (*describe)->type->multiarraytype = coreml_input_array_feature_type_[idx].get();
+    (*describe)->type->multiarraytype = coreml_input_array_feature_type_.back().get();
     core_ml__specification__array_feature_type__init((*describe)->type->multiarraytype);
     (*describe)->type->multiarraytype->datatype = CORE_ML__SPECIFICATION__ARRAY_FEATURE_TYPE__ARRAY_DATA_TYPE__FLOAT32;
     (*describe)->type->multiarraytype->n_shape = shape.size();
     coreml_input_shape_.push_back(std::shared_ptr<int64_t>(new int64_t [shape.size()], [](int64_t* p) { delete[] p; }));
-    (*describe)->type->multiarraytype->shape = coreml_input_shape_[idx].get();
+    (*describe)->type->multiarraytype->shape = coreml_input_shape_.back().get();
     for (int i = 0; i < shape.size(); i++) {
         (*describe)->type->multiarraytype->shape[i] = shape[i];
     }
 }
 
 void CoreMLNetwork::SetOutput(CoreML__Specification__FeatureDescription** describe, std::string name, std::vector<int> shape) {
-    auto idx = coreml_output_feature_description_.size();
     coreml_output_feature_description_.push_back(std::shared_ptr<CoreML__Specification__FeatureDescription>(new CoreML__Specification__FeatureDescription));
-    (*describe) = (CoreML__Specification__FeatureDescription *)coreml_output_feature_description_[idx].get();
+    (*describe) = (CoreML__Specification__FeatureDescription *)coreml_output_feature_description_.back().get();
     core_ml__specification__feature_description__init(*describe);
     output_name_.push_back(NullTerminatedCString(name));
-    (*describe)->name = output_name_[idx].get();
+    (*describe)->name = output_name_.back().get();
     coreml_output_feature_type_.push_back(std::shared_ptr<CoreML__Specification__FeatureType>(new CoreML__Specification__FeatureType));
-    (*describe)->type = coreml_output_feature_type_[idx].get();
+    (*describe)->type = coreml_output_feature_type_.back().get();
     core_ml__specification__feature_type__init((*describe)->type);
     (*describe)->type->type_case = CORE_ML__SPECIFICATION__FEATURE_TYPE__TYPE_MULTI_ARRAY_TYPE;
     coreml_output_array_feature_type_.push_back(std::shared_ptr<CoreML__Specification__ArrayFeatureType>(new CoreML__Specification__ArrayFeatureType));
-    (*describe)->type->multiarraytype = coreml_output_array_feature_type_[idx].get();
+    (*describe)->type->multiarraytype = coreml_output_array_feature_type_.back().get();
     core_ml__specification__array_feature_type__init((*describe)->type->multiarraytype);
     (*describe)->type->multiarraytype->datatype = CORE_ML__SPECIFICATION__ARRAY_FEATURE_TYPE__ARRAY_DATA_TYPE__FLOAT32;
     (*describe)->type->multiarraytype->n_shape = shape.size();
     coreml_output_shape_.push_back(std::shared_ptr<int64_t>(new int64_t [shape.size()], [](int64_t* p) { delete[] p; }));
-    (*describe)->type->multiarraytype->shape = coreml_output_shape_[idx].get();
+    (*describe)->type->multiarraytype->shape = coreml_output_shape_.back().get();
     for (int i = 0; i < shape.size(); i++) {
         (*describe)->type->multiarraytype->shape[i] = shape[i];
     }
@@ -295,7 +293,7 @@ Status CoreMLNetwork::InitCoreMLExecutor() {
     }
     if(coreml_executor_ == nullptr) {
         LOGE("Error: Failed to Init CoreML Executor.\n");
-        return Status(TNNERR_INST_ERR, "Failed to Init CoreML Executor.");
+        return Status(TNNERR_ANE_EXECUTOR_ERROR, "Failed to Init CoreML Executor.");
     }
     
     return ret;
@@ -310,8 +308,8 @@ Status CoreMLNetwork::CompileModel(CoreML__Specification__Model* model) {
         auto executor = coreml_executor_;
         NSURL* model_url = [executor saveModel:model];
         if (![executor build:model_url]) {
-            printf("Failed to Compile and save Model.");
-            return false;
+            LOGE("Failed to Compile and save Model.\n");
+            return Status(TNNERR_ANE_COMPILE_MODEL_ERROR, "Failed to Compile and save Model.");
         }
         
         compiled_model_file_path = [executor getMLModelFilePath];
@@ -320,8 +318,8 @@ Status CoreMLNetwork::CompileModel(CoreML__Specification__Model* model) {
         
         return ret;
     } else {
-        LOGE("Error: Failed to Compile and save Model.\n");
-        return Status(TNNERR_INST_ERR, "Failed to Compile and save Model.");
+        LOGE("Error: CoreML only support iOS 12+.\n");
+        return Status(TNNERR_IOS_VERSION_ERROR, "CoreML only support iOS 12+.");
     }
 }
 
@@ -396,9 +394,8 @@ Status CoreMLNetwork::GetAllInputBlobs(BlobMap &blobs) {
             handle.bytes_offset = 0;
         };
         
-        auto idx = blob_input_.size();
         blob_input_.push_back(std::make_shared<Blob>(desc, handle));
-        blob_input_map_[desc.name] = blob_input_[idx].get();
+        blob_input_map_[desc.name] = blob_input_.back().get();
     }
 
     blobs = blob_input_map_;

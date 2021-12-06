@@ -15,16 +15,19 @@
 #import <CoreML/CoreML.h>
 #import <Metal/Metal.h>
 #import <Foundation/Foundation.h>
+#import "../../../../include/tnn/core/macro.h"
+#import "../../../../include/tnn/core/status.h"
 
 #include <string>
 #include <vector>
 #include "Model.pb-c.h"
 
+
 @interface CoreMLExecutor : NSObject
 
 - (NSURL*)saveModel:(CoreML__Specification__Model*)model API_AVAILABLE(ios(12.0));
-- (bool)build:(NSURL*)modelUrl API_AVAILABLE(ios(12.0));
-- (bool)cleanup;
+- (TNN_NS::Status)build:(NSURL*)modelUrl API_AVAILABLE(ios(12.0));
+- (TNN_NS::Status)cleanup;
 - (NSString*) getMLModelFilePath;
 
 @property MLModel* model API_AVAILABLE(ios(12.0));
