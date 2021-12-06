@@ -305,7 +305,7 @@ int BenchResult::AddTime(float time) {
 
 std::string BenchResult::Description() {
     std::ostringstream ostr;
-    ostr << "min = " << min << "  max = " << max << "  avg = " << avg;
+    ostr << std::fixed << std::setprecision(2) << "min = " << min << "  max = " << max << "  avg = " << avg;
 
     if (status != TNN_NS::TNN_OK) {
         ostr << "\nerror = " << status.description();
@@ -594,12 +594,11 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
     }
     else if (option->compute_units == TNNComputeUnitsHuaweiNPU) {
         device_type_      = TNN_NS::DEVICE_HUAWEI_NPU;
-#if defined(__APPLE__) && TARGET_OS_IPHONE
-        device_type_ = TNN_NS::DEVICE_METAL;
-#else
-        device_type_      = TNN_NS::DEVICE_HUAWEI_NPU;
-#endif
-    } else if (option->compute_units == TNNComputeUnitsNaive) {
+    }
+    else if (option->compute_units == TNNComputeUnitsAppleNPU) {
+        device_type_      = TNN_NS::DEVICE_APPLE_NPU;
+    }
+    else if (option->compute_units == TNNComputeUnitsNaive) {
         device_type_ = TNN_NS::DEVICE_NAIVE;
     }
     
@@ -612,11 +611,16 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         network_config.cache_path = "/sdcard/";
         if(device_type_ == TNN_NS::DEVICE_HUAWEI_NPU){
             network_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
-        } else if (option->compute_units == TNNComputeUnitsCPU) {
+        }
+        else if (option->compute_units == TNNComputeUnitsAppleNPU) {
+            network_config.network_type = NETWORK_TYPE_COREML;
+        }
+        else if (option->compute_units == TNNComputeUnitsCPU) {
 #if defined(_OPENVINO_)
             network_config.network_type = NETWORK_TYPE_OPENVINO;
 #endif
-        } else if (device_type_ == TNN_NS::DEVICE_CUDA) {
+        }
+        else if (device_type_ == TNN_NS::DEVICE_CUDA) {
             network_config.network_type = NETWORK_TYPE_TENSORRT;
         }
         std::shared_ptr<TNN_NS::Instance> instance;
@@ -642,7 +646,13 @@ TNNComputeUnits TNNSDKSample::GetComputeUnits() {
     switch (device_type_) {
         case DEVICE_HUAWEI_NPU:
             return TNNComputeUnitsHuaweiNPU;
-        case DEVICE_METAL:
+        case DEVICE_METAL: {
+            if (option_->compute_units == TNNComputeUnitsAppleNPU) {
+                return TNNComputeUnitsAppleNPU;
+            } else {
+                return TNNComputeUnitsGPU;
+            }
+        }
         case DEVICE_OPENCL:
             return TNNComputeUnitsGPU;
         default:

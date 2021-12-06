@@ -52,6 +52,16 @@ CoreMLNetwork::~CoreMLNetwork() {
         }
     }
     blob_output_map_ = {};
+    
+    if (blob_manager_ != NULL) {
+        delete blob_manager_;
+        blob_manager_ = NULL;
+    }
+    
+    if (context_ != nullptr) {
+        delete context_;
+        context_ = nullptr;
+    }
 }
 
 Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
@@ -91,7 +101,7 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
         
         blob_manager_ = new BlobManager(device_);
         ret = blob_manager_->Init(net_config, net_structure, max_inputs_shape, GetNetResourceDataType(net_resource));
-
+        
         RETURN_ON_NEQ(InitCoreMLModel(net_structure, net_resource), TNN_OK);
 
         RETURN_ON_NEQ(ConvertCoreMLModel(net_structure, net_resource), TNN_OK);
@@ -468,8 +478,6 @@ Status CoreMLNetwork::DeInit() {
     mlmodel_ = nil;
     mlmodel_net_   = nil;
     mlmodel_shape_ = nil;
-    context_ = nullptr;
-    device_ = nullptr;
     coreml_executor_ = nil;
     
     return TNN_OK;

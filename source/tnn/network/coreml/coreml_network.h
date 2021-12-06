@@ -27,7 +27,7 @@
 
 namespace TNN_NS {
 
-class CoreMLNetwork : public DefaultNetwork {
+class CoreMLNetwork : public AbstractNetwork {
 public:
     // @brief CoreMLNetwork Constructor
     CoreMLNetwork();
@@ -89,6 +89,8 @@ public:
 protected:
     AbstractDevice *device_              = nullptr;
     Context *context_                    = nullptr;
+    BlobManager *blob_manager_ = nullptr;
+    
     NSDictionary *mlmodel_net_   = nil;
     NSDictionary *mlmodel_shape_ = nil;
     NSObject *mlmodel_     = nil;

@@ -178,15 +178,19 @@ using namespace TNN_NS;
         class_id = classfy_output->class_id;
     }
     
-    string class_result = "";
+    NSString *class_result = @"";
     if (class_id < _allClasses.count) {
-        class_result = _allClasses[class_id].UTF8String;
+        class_result = _allClasses[class_id];
+        auto results = [class_result componentsSeparatedByString:@","];
+        if (results.count > 0) {
+            class_result = results[0];
+        }
     }
-
+    
     auto bench_result     = predictor->GetBenchResult();
-    self.labelResult.text = [NSString stringWithFormat:@"device: %@\nclass:%s\ntime:\n%s",
+    self.labelResult.text = [NSString stringWithFormat:@"device: %@\nclass:%@\ntime:\n%s",
                                                        [self getNSSTringForComputeUnits:units],
-                                                       class_result.c_str(), bench_result.Description().c_str()];
+                                                       class_result, bench_result.Description().c_str()];
 }
 
 @end
