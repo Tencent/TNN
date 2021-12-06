@@ -91,11 +91,11 @@ std::vector<std::string> CoreMLBaseLayer::BuildLayerOutputs() {
     }
 }
 
-Status CoreMLBaseLayer::Init(LayerInfo* layer_info ,LayerResource* resource) {
+Status CoreMLBaseLayer::Init(LayerInfo* layer_info ,LayerResource* layer_resource) {
     coreml_layer_.reset(new CoreML__Specification__NeuralNetworkLayer);
     core_ml__specification__neural_network_layer__init(coreml_layer_.get());
     
-    resource_ = resource;
+    layer_resource_ = layer_resource;
     layer_info_ = layer_info;
     
     if (layer_info) {
@@ -103,6 +103,10 @@ Status CoreMLBaseLayer::Init(LayerInfo* layer_info ,LayerResource* resource) {
     }
     
     return Convert();
+}
+
+void CoreMLBaseLayer::SetNetResource(NetResource *net_resource) {
+    net_resource_ = net_resource;
 }
 
 void CoreMLBaseLayer::SetLayerName(std::string& name) {

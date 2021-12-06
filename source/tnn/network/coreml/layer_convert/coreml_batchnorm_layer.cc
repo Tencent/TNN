@@ -38,7 +38,7 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
 //    CHECK_PARAM_NULL(layer_param);
 //    auto channels = layer_param->channels;
     
-    auto layer_res = dynamic_cast<BatchNormLayerResource *>(resource_);
+    auto layer_res = dynamic_cast<BatchNormLayerResource *>(layer_resource_);
     CHECK_PARAM_NULL(layer_res);
     auto scale_count = layer_res->scale_handle.GetDataCount();
     auto scale_ptr = layer_res->scale_handle.force_to<float *>();

@@ -263,6 +263,7 @@ Status CoreMLNetwork::ConvertCoreMLModel(NetStructure *net_structure, NetResourc
             LOGE("Error: CreateCoreMLBaseLayer failed, dont support type:%d\n", type);
             return Status(TNNERR_PARAM_ERR, "CreateCoreMLBaseLayer failed, dont support op");
         }
+        cur_layer->SetNetResource(net_resource);
         
         auto resource = net_resource->resource_map[layer_info->name];
         // cur_layer->convert

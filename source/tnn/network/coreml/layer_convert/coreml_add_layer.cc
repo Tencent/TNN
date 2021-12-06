@@ -34,7 +34,7 @@ Status CoreMLAddLayer::BuildLayerParam() {
 }
 
 Status CoreMLAddLayer::BuildConstantWeightsLayer() {
-    auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
+    auto layer_res = dynamic_cast<EltwiseLayerResource *>(layer_resource_);
     if (layer_res && layer_res->element_handle.GetDataCount() > 0) {
         auto blob_name = GetLayerName();
         blob_name += "-weight-input";
@@ -53,7 +53,7 @@ std::vector<std::string> CoreMLAddLayer::BuildLayerInputs() {
     }
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(layer_info_->param.get());
     auto inputs = layer_info_->inputs;
-    auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
+    auto layer_res = dynamic_cast<EltwiseLayerResource *>(layer_resource_);
     if (layer_res && coreml_layer_constant_weights_.size() > 0) {
         auto weight_name = coreml_layer_constant_weights_[0]->GetLayerName();
         

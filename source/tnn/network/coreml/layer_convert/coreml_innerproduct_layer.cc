@@ -36,7 +36,7 @@ Status CoreMLInnerproductLayer::BuildLayerParam() {
     auto transpose = layer_param->transpose;
     auto axis = layer_param->axis;
     
-    auto layer_res = dynamic_cast<InnerProductLayerResource *>(resource_);
+    auto layer_res = dynamic_cast<InnerProductLayerResource *>(layer_resource_);
     CHECK_PARAM_NULL(layer_res);
     auto weight_size = layer_res->weight_handle.GetDataCount();
     auto weight_ptr = layer_res->weight_handle.force_to<float *>();

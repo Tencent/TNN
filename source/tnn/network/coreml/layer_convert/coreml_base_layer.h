@@ -32,6 +32,8 @@
 
 namespace TNN_NS {
 
+std::shared_ptr<char> NullTerminatedCString(std::string & name);
+
 class CoreMLConstLayer;
 
 //@brief BaseLaye define the layer interface
@@ -41,7 +43,8 @@ public:
 
     // @brief virtual destructor
     virtual ~CoreMLBaseLayer();
-    Status Init(LayerInfo* layer_info ,LayerResource *resource);
+    Status Init(LayerInfo* layer_info ,LayerResource *layer_resource);
+    void SetNetResource(NetResource *net_resource);
     
     // @brief layer init
     // @param ...
@@ -82,7 +85,8 @@ protected:
 protected:
     LayerType type_;
     LayerInfo* layer_info_ = nullptr;
-    LayerResource *resource_  = nullptr;
+    LayerResource *layer_resource_  = nullptr;
+    NetResource *net_resource_ = nullptr;
     
     std::unique_ptr<CoreML__Specification__NeuralNetworkLayer> coreml_layer_;
     std::shared_ptr<char> coreml_layer_name_;

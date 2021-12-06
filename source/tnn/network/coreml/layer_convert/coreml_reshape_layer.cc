@@ -30,6 +30,20 @@ Status CoreMLReshapeLayer::BuildLayerType() {
 }
 
 Status CoreMLReshapeLayer::BuildLayerParam() {
+    int input_shape_size = 0;
+    int output_shape_size = 0;
+    if (net_resource_ && layer_info_->inputs.size()>0 && layer_info_->outputs.size()>0) {
+        if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
+            auto input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
+            input_shape_size = (int)input_shape.size();
+        }
+        
+        if (net_resource_->blob_shapes_map.find(layer_info_->outputs[0]) != net_resource_->blob_shapes_map.end()) {
+            auto output_shape = net_resource_->blob_shapes_map[layer_info_->outputs[0]];
+            output_shape_size = (int)output_shape.size();
+        }
+    }
+    
     //layer param
     auto param = layer_info_->param.get();
     auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
@@ -37,14 +51,17 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
     auto input_size = layer_info_->inputs.size();
     auto output_size = layer_info_->outputs.size();
     auto shape_size = reshape_param->shape.size();
+    if (input_shape_size <= 0 || output_shape_size <= 0 || shape_size != output_shape_size) {
+        return Status(TNNERR_MODEL_ERR, "CoreMLReshapeLayer has invalid input shape, output shape, or ReshapeLayerParam");
+    }
     
     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__RankPreservingReshapeLayerParams>(new CoreML__Specification__RankPreservingReshapeLayerParams);
     coreml_layer_->rankpreservingreshape = (CoreML__Specification__RankPreservingReshapeLayerParams *)coreml_layer_param_.get();
     core_ml__specification__rank_preserving_reshape_layer_params__init(coreml_layer_->rankpreservingreshape);
-    coreml_layer_->rankpreservingreshape->n_targetshape = shape_size;
+    coreml_layer_->rankpreservingreshape->n_targetshape = output_shape_size;
     coreml_layer_shape_ = std::shared_ptr<int64_t>(new int64_t [coreml_layer_->rankpreservingreshape->n_targetshape], [](int64_t* p) { delete[] p; });
     coreml_layer_->rankpreservingreshape->targetshape = (int64_t *)coreml_layer_shape_.get();
-    for(int i = 0; i < shape_size; i++){
+    for(int i = 0; i < output_shape_size; i++){
         coreml_layer_->rankpreservingreshape->targetshape[i] = reshape_param->shape[i];
     }
     
@@ -57,7 +74,7 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
         coreml_layer_inputtensor_.push_back(std::shared_ptr<CoreML__Specification__Tensor>(new CoreML__Specification__Tensor));
         coreml_layer_->inputtensor[i] = coreml_layer_inputtensor_[i].get();
         core_ml__specification__tensor__init(coreml_layer_->inputtensor[i]);
-        coreml_layer_->inputtensor[i]->rank = (uint32_t)shape_size;
+        coreml_layer_->inputtensor[i]->rank = (uint32_t)input_shape_size;
     }
     
     //set outputtensor rank
@@ -68,7 +85,7 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
         coreml_layer_outputtensor_.push_back(std::shared_ptr<CoreML__Specification__Tensor>(new CoreML__Specification__Tensor));
         coreml_layer_->outputtensor[i] = coreml_layer_outputtensor_[i].get();
         core_ml__specification__tensor__init(coreml_layer_->outputtensor[i]);
-        coreml_layer_->outputtensor[i]->rank = (uint32_t)shape_size;
+        coreml_layer_->outputtensor[i]->rank = (uint32_t)output_shape_size;
     }
     
     return TNN_OK;

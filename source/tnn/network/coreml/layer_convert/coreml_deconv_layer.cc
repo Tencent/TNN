@@ -50,7 +50,7 @@ Status CoreMLDeconvLayer::BuildLayerParam() {
     auto output_channels = conv_param->output_channel;
     auto n_group = conv_param->group;
     auto pad_type = conv_param->pad_type;
-    auto conv_res = dynamic_cast<ConvLayerResource *>(resource_);
+    auto conv_res = dynamic_cast<ConvLayerResource *>(layer_resource_);
     CHECK_PARAM_NULL(conv_res);
 //    auto weight_ptr = conv_res->filter_handle.force_to<float *>();
     auto weight_size = conv_res->filter_handle.GetDataCount();

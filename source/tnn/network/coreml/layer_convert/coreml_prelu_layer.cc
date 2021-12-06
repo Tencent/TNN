@@ -34,7 +34,7 @@ Status CoreMLPReluLayer::BuildLayerParam() {
     auto channel_share = layer_param->channel_shared;
     auto has_filter = layer_param->has_filler;
     
-    auto layer_res = dynamic_cast<PReluLayerResource *>(resource_);
+    auto layer_res = dynamic_cast<PReluLayerResource *>(layer_resource_);
     CHECK_PARAM_NULL(layer_res);
     auto slope_count = layer_res->slope_handle.GetDataCount();
     auto slope_ptr = layer_res->slope_handle.force_to<float *>();
