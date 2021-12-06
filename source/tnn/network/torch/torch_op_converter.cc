@@ -905,7 +905,11 @@ public:
         for (int i = 0; i < node->output()->uses().size(); i++) {
             if (node->output()->uses()[i].user->kind() != at::prim::ListConstruct) {
                 return false;
-            }
+            } else {
+                auto& converter = GetGlobalTorchConvertMap()["prim::ListConstruct"];
+                if (!converter->IsSupported(node->output()->uses()[i].user))
+                    return false;
+                }
         }
         return true;
     }
@@ -1091,10 +1095,16 @@ public:
         layer_info->outputs.push_back(node->outputs()[0]->debugName());
 
         auto layer_param      = std::make_shared<ReshapeLayerParam>();
-        const auto shapes     = getValue<std::vector<int64_t>>(node->inputs()[1]);
-        layer_param->num_axes = static_cast<int>(shapes.size());
-        for (const auto &shape : shapes) {
-            layer_param->shape.emplace_back((int)shape);
+
+        if (!toIValue(node->inputs()[1])) {
+            // reshpae param need to be calc in runtime
+            layer_param->num_axes = 0;
+        } else {
+            const auto shapes     = getValue<std::vector<int64_t>>(node->inputs()[1]);
+            layer_param->num_axes = static_cast<int>(shapes.size());
+            for (const auto &shape : shapes) {
+                layer_param->shape.emplace_back((int)shape);
+            }
         }
 
         layer_info->param = layer_param;
@@ -1184,11 +1194,14 @@ class ListTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
         // only support size + listconstruct, listconstruct + cat
+        if (node->inputs().size() == 0) return false;
         auto type = node->inputs().at(0)->type();
 
         if (type->kind() == c10::TypeKind::IntType) {
             if (node->inputs().at(0)->node()->kind() == c10::aten::size) {
-                return true;
+                if (GetGlobalTorchConvertMap().count(node->next()->kind().toQualString()) > 0) {
+                    return true;
+                }
             }
         } else if (type->kind() == c10::TypeKind::TensorType) {
             if (node->next()->kind() == c10::aten::cat) {
@@ -1223,6 +1236,7 @@ public:
             layer_info->param = layer_param;
 
             for (const auto &input : inputs) {
+                if (!toIValue(input)) continue;
                 auto const_buf = getValue(input);
                 if (const_buf.GetBytesSize() > 0) {
                     if (*(const_buf.force_to<int *>()) != INT_MAX) {

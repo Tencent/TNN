@@ -177,7 +177,7 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
                 std::vector<DimsVector> min_shape;
                 std::vector<DimsVector> max_shape;
                 std::vector<DataType> in_type;
-		for (auto &input : block.raw_inputs()) {
+                for (auto &input : block.raw_inputs()) {
                     min_shape.push_back(subgraph_min_input_info[input_idx].dims);
                     max_shape.push_back(subgraph_max_input_info[input_idx].dims);
                     in_type.push_back(subgraph_max_input_info[input_idx].data_type);
@@ -277,8 +277,8 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
     // remove constant nodes which has been convert to tnn netresource
     torch::jit::EliminateDeadCode(g);
 
-     // std::cout << "============================= the final graph ===========================" << std::endl;
-     // std::cout << g->toString() << std::endl;
+    //  std::cout << "============================= the final graph ===========================" << std::endl;
+    //  std::cout << g->toString() << std::endl;
 
     return mod;
 }

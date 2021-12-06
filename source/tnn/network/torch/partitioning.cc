@@ -366,16 +366,16 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
     // segment lowering global graph into blocks
     std::vector<SegmentedBlock> segmented_blocks = segment_graph(g);
 
-    auto print_seg_nodes = [&](std::string msg) {
-        std::cout << "+++++++++++++++++++ " << msg << " +++++++++++++++++++" << std::endl;
-        for (auto block : segmented_blocks) {
-            std::cout << block.g()->toString(false);
-            for (auto node : block.raw_nodes()) {
-                std::cout << node->kind().toQualString() << std::endl;
-            }
-            std::cout << "++++++++++++++++++++++++ " << block.target() << " +++++++++++++++++++++++++" << std::endl;
-        }
-    };
+    // auto print_seg_nodes = [&](std::string msg) {
+    //     std::cout << "+++++++++++++++++++ " << msg << " +++++++++++++++++++" << std::endl;
+    //     for (auto block : segmented_blocks) {
+    //         std::cout << block.g()->toString(false);
+    //         for (auto node : block.raw_nodes()) {
+    //             std::cout << node->kind().toQualString() << std::endl;
+    //         }
+    //         std::cout << "++++++++++++++++++++++++ " << block.target() << " +++++++++++++++++++++++++" << std::endl;
+    //     }
+    // };
     // print_seg_nodes("after seg");
     // resolve nonTensor inputs/outputs
     resolveNonTensorInputs(segmented_blocks, g);
@@ -390,6 +390,19 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
         std::remove_if(segmented_blocks.begin(), segmented_blocks.end(),
                        [](SegmentedBlock& seg_block) { return seg_block.target() == SegmentedBlock::kTorch; }),
         segmented_blocks.end());
+
+    // remove block without compute node(conv, matmul, linear, admm)
+    std::set<std::string> compute_node_set = {"aten::conv2d", "aten::_convolution", "aten::matmul", "aten::linear", "aten::admm"};
+    auto filter_nocompute_block = [&](SegmentedBlock& seg_block) {
+        for (auto &node : seg_block.raw_nodes()) {
+            if (compute_node_set.count(node->kind().toQualString())) {
+                return false;
+            }
+        }
+        return true;
+    };
+    segmented_blocks.erase(std::remove_if(segmented_blocks.begin(), segmented_blocks.end(), filter_nocompute_block),
+                           segmented_blocks.end());
 
     // for (auto block : segmented_blocks) {
     //     printf("====================== subgraph start %d ======================\n", block.target());
