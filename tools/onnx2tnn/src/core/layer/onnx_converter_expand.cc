@@ -33,7 +33,7 @@ string OnnxOpConverterExpand::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_in
     const std::string &onnx_op = node.op_type();
     ostringstream layer_param;
     const auto &shape_name = node.input(1);
-    if (net_info.weights_shape_map.find(shape_name) != net_info.weights_shape_map.end()) {
+    if (net_info.weights_map.find(shape_name) != net_info.weights_map.end()) {
         const onnx::TensorProto &shape_tp = net_info.weights_map[node.input(1)];
         auto shape_data                   = (const int64_t *)get_tensor_proto_data(shape_tp);
         int shape_dim_size                = get_tensor_proto_data_size(shape_tp);
