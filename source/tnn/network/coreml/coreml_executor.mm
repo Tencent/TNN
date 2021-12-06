@@ -75,12 +75,10 @@ NSURL* createTemporaryFile() {
     _mlModelFilePath = [modelUrl path];
     _compiledModelFilePath = [compileUrl path];
 
-    if (@available(iOS 12.0, *)) {
+    if (@available(iOS 12.0, macOS 10.14, *)) {
         MLModelConfiguration* config = [MLModelConfiguration alloc];
         config.computeUnits = MLComputeUnitsAll;
         _model = [MLModel modelWithContentsOfURL:compileUrl configuration:config error:&error];
-    } else {
-        _model = [MLModel modelWithContentsOfURL:compileUrl error:&error];
     }
     if (error != NULL) {
         LOGE("Error Creating MLModel %@.\n", [error localizedDescription]);

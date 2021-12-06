@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <sys/utsname.h>
 #include "coreml_network.h"
 #include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
@@ -20,18 +21,46 @@
 
 namespace TNN_NS {
 
+// utsname.machine has device identifier. For example, identifier for iPhone Xs is "iPhone11,2".
+// Since Neural Engine is only available for use on A12 and later, major device version in the
+// identifier is checked for these models:
+// A12: iPhone XS (11,2), iPad Mini - 5th Gen (11,1)
+// A12X: iPad Pro - 3rd Gen (8,1)
+// For more information, see https://www.theiphonewiki.com/wiki/Models
+bool HasAppleNPU() {
+    //check hardware
+    struct utsname system_info;
+    uname(&system_info);
+
+    if (strncmp("iPad", system_info.machine, 4) == 0) {
+    const int major_version = atoi(system_info.machine + 4);
+    return major_version >= 8;  // There are no device between iPad 8 and 11.
+    }
+    else if (strncmp("iPhone", system_info.machine, 6) == 0) {
+    const int major_version = atoi(system_info.machine + 6);
+    return major_version >= 11;
+    }
+    else if (strncmp("MacBookPro", system_info.machine, 10) == 0) {
+      const int major_version = atoi(system_info.machine + 10);
+      return major_version >= 17;
+    }
+    else if (strncmp("MacBookAir", system_info.machine, 10) == 0) {
+      const int major_version = atoi(system_info.machine + 10);
+      return major_version >= 10;
+    }
+    else if (strncmp("iMac", system_info.machine, 4) == 0) {
+      const int major_version = atoi(system_info.machine + 4);
+      return major_version >= 21;
+    }
+    else if (strncmp("Macmini", system_info.machine, 7) == 0) {
+      const int major_version = atoi(system_info.machine + 7);
+      return major_version >= 9;
+    }
+    return false;
+}
+
 NetworkImplFactoryRegister<NetworkImplFactory<CoreMLNetwork>>
     g_network_impl_coreml_factory_register(NETWORK_TYPE_COREML);
-
-inline std::shared_ptr<char> NullTerminatedCString(std::string & name) {
-    auto cstring = std::shared_ptr<char>(new char[name.size() + 1], [](char* p) { delete[] p; });
-    char *ptr = cstring.get();
-    for (int i = 0; i < name.size(); i++) {
-        ptr[i] = name[i];
-    }
-    ptr[name.size()] = '\0';
-    return cstring;
-}
 
 CoreMLNetwork::CoreMLNetwork() {}
 
@@ -66,7 +95,11 @@ CoreMLNetwork::~CoreMLNetwork() {
 
 Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder) {
-    if (@available(iOS 12.0, macOS 10.13, *)) {
+    if (!HasAppleNPU()) {
+        return Status(TNNERR_COMMON_ERROR, "Apple device dont have NeuralEngine");
+    }
+    
+    if (@available(iOS 12.0, macOS 10.14, *)) {
         Status ret = TNN_OK;
 
         DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
@@ -159,7 +192,7 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
         return GetAllOutputBlobs(blobs);
         
     } else {
-        return Status(TNNERR_IOS_VERSION_ERROR, "CoreML only support iOS 12+");
+        return Status(TNNERR_IOS_VERSION_ERROR, "The operate system is not iOS 12+ or macOS 10.14+");
     }
 }
 
@@ -303,7 +336,7 @@ Status CoreMLNetwork::InitCoreMLExecutor() {
 Status CoreMLNetwork::CompileModel(CoreML__Specification__Model* model) {
     RETURN_ON_NEQ(InitCoreMLExecutor(), TNN_OK);
     
-    if (@available(iOS 12.0, *)) {
+    if (@available(iOS 12.0, macOS 10.14, *)) {
         auto executor = coreml_executor_;
         RETURN_ON_NEQ([executor saveModel:model], TNN_OK);
         NSURL* model_url = [executor getMLModelUrl];
@@ -484,7 +517,11 @@ Status CoreMLNetwork::GetCommandQueue(void **command_queue) {
 }
 
 Status CoreMLNetwork::Forward() {
-    if (@available(iOS 12.0, macOS 10.13, *)) {
+    if (!HasAppleNPU()) {
+        return Status(TNNERR_COMMON_ERROR, "Apple device dont have NeuralEngine");
+    }
+    
+    if (@available(iOS 12.0, macOS 10.14, *)) {
         BlobMap blob_output_map;
         auto status = GetAllOutputBlobs(blob_output_map);
         if (status != TNN_OK) {
