@@ -55,15 +55,13 @@ ILayer* DeconvolutionTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     } else {
         DimsVector postPadding{pads[3], pads[1]};
         DimsVector  prePadding{pads[2], pads[0]};
-        IPaddingLayer* padding_layer = network->addPaddingNd(*tensor, 
-                                                    ConvertToTRTDims(prePadding), 
-                                                    ConvertToTRTDims(postPadding));
-        ITensor* pad_tensor = padding_layer->getOutput(0);
-        deconv_layer = network->addDeconvolution(*pad_tensor, paramlist->output_channel, kernelSize,
+        deconv_layer = network->addDeconvolution(*tensor, paramlist->output_channel, kernelSize,
             kernelWeights, biasWeights);
         if(deconv_layer != NULL) {
             deconv_layer->setName(layer_name_.c_str());
             deconv_layer->setStrideNd(ConvertToTRTDimsReverse(paramlist->strides));
+            deconv_layer->setPrePadding(ConvertToTRTDims(prePadding));
+            deconv_layer->setPostPadding(ConvertToTRTDims(postPadding));
 #if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 71
             deconv_layer->setDilationNd(ConvertToTRTDimsReverse(paramlist->dialations));
 #endif

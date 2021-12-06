@@ -320,6 +320,7 @@ void NaiveFCBias(void *input_ptr, void *output_ptr, void *weight_data, float *sc
     int8_t *scale_bias_handle_w = static_cast<int8_t *>(scale_bias_w_ptr);
     int8_t *scale_bias_handle_o = static_cast<int8_t *>(scale_bias_o_ptr);
     int ip_dim_in               = DimsVectorUtils::Count(dims_input, 1);
+    int ip_dim_hw               = DimsVectorUtils::Count(dims_input, 2);
     for (int n = 0; n < dims_output[0]; ++n) {
         int8_t *in_current_batch = static_cast<int8_t *>(input_ptr) + n * ip_dim_in;
         int8_t *ou_current_batch = static_cast<int8_t *>(output_ptr) + n * dims_output[1];
@@ -330,7 +331,8 @@ void NaiveFCBias(void *input_ptr, void *output_ptr, void *weight_data, float *sc
             int8_t cur_scale_bias_w = scale_len == 1 ? scale_bias_handle_w[0] : scale_bias_handle_w[oc];
             int32_t acc             = 0;
             for (int ic = 0; ic < ip_dim_in; ++ic) {
-                int8_t cur_scale_bias_i = scale_bias_len_i == 1 ? scale_bias_handle_i[0] : scale_bias_handle_i[ic];
+                int ichannel = ic / ip_dim_hw;
+                int8_t cur_scale_bias_i = scale_bias_len_i == 1 ? scale_bias_handle_i[0] : scale_bias_handle_i[ichannel];
                 acc +=
                     static_cast<int8_t *>(weight_data)[oc * ip_dim_in + ic] * in_current_batch[ic] -
                     static_cast<int32_t>(in_current_batch[ic] * cur_scale_bias_w) -

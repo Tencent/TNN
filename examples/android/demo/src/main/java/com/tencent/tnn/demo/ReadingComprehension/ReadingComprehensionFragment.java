@@ -77,7 +77,7 @@ public class ReadingComprehensionFragment extends BaseFragment {
         }
     }
 
-    private void onSwichGPU(boolean b) {
+    private void onSwitchGPU(boolean b) {
         mUseGPU = b;
         String modelPath = getActivity().getFilesDir().getAbsolutePath();
         int result;
@@ -111,7 +111,7 @@ public class ReadingComprehensionFragment extends BaseFragment {
         mGPUSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichGPU(b);
+                onSwitchGPU(b);
             }
         });
 
@@ -171,7 +171,6 @@ public class ReadingComprehensionFragment extends BaseFragment {
         }
     }
 
-
     @Override
     public void openCamera() {
 
@@ -212,7 +211,6 @@ public class ReadingComprehensionFragment extends BaseFragment {
         Log.i(TAG, "onStop");
         super.onStop();
     }
-
 
     @Override
     public void onDestroy() {
