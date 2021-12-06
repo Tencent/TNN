@@ -590,7 +590,7 @@ Status CoreMLNetwork::Forward() {
         memcpy(output_mtl_buffer.contents, output_array.dataPointer, bytes_count);
         return TNN_OK;
     } else {
-        return Status(TNNERR_INST_ERR, "CoreML only support iOS 12+");
+        return Status(TNNERR_IOS_VERSION_ERROR, "The operate system is not iOS 12+ or macOS 10.14+");
     }
 }
 
