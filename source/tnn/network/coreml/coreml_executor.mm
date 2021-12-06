@@ -33,9 +33,9 @@ NSURL* createTemporaryFile() {
     return TNN_NS::TNN_OK;
 }
 
-- (NSURL*)saveModel:(CoreML__Specification__Model*)model {
-    NSURL* modelUrl = createTemporaryFile();
-    NSString* modelPath = [modelUrl path];
+- (TNN_NS::Status)saveModel:(CoreML__Specification__Model*)model {
+    _modelUrl = createTemporaryFile();
+    NSString* modelPath = [_modelUrl path];
     
     if (model->specificationversion == 3) {
         _coreMlVersion = 2;
@@ -43,7 +43,7 @@ NSURL* createTemporaryFile() {
         _coreMlVersion = 3;
     } else {
         LOGE("Only Core ML models with specification version 3 or 4 are supported.\n");
-        return nil;
+        return TNN_NS::Status(TNN_NS::TNNERR_COREML_VERSION_ERROR, "Error: Only Core ML models with specification version 3 or 4 are supported.");
     }
     size_t modelSize = core_ml__specification__model__get_packed_size(model);
     std::unique_ptr<uint8_t> writeBuffer(new uint8_t[modelSize]);
@@ -52,15 +52,17 @@ NSURL* createTemporaryFile() {
     if (!file_stream || !file_stream.is_open() || !file_stream.good()) {
         file_stream.close();
         LOGE("CoreML models file can not be written.\n");
+        return TNN_NS::Status(TNN_NS::TNNERR_ANE_SAVE_MODEL_ERROR, "Error: CoreML models file can not be written.");
     }
     const char* ptr = reinterpret_cast<const char*>(writeBuffer.get());
     if (ptr) {
         file_stream.write(ptr, modelSize);
     } else {
         LOGE("CoreML models file is empty.\n");
+        return TNN_NS::Status(TNN_NS::TNNERR_ANE_SAVE_MODEL_ERROR, "Error: CoreML models file is empty.");
     }
     file_stream.close();
-    return modelUrl;
+    return TNN_NS::TNN_OK;
 }
 
 - (TNN_NS::Status)build:(NSURL*)modelUrl {
@@ -87,8 +89,12 @@ NSURL* createTemporaryFile() {
     return TNN_NS::TNN_OK;
 }
 
-- (NSString*) getMLModelFilePath{
+- (NSString*) getMLModelFilePath {
     return _compiledModelFilePath;
+}
+
+- (NSURL*) getMLModelUrl {
+    return _modelUrl;
 }
 
 @end

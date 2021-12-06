@@ -300,23 +300,18 @@ Status CoreMLNetwork::InitCoreMLExecutor() {
 }
 
 Status CoreMLNetwork::CompileModel(CoreML__Specification__Model* model) {
-    Status ret = TNN_OK;
-    
     RETURN_ON_NEQ(InitCoreMLExecutor(), TNN_OK);
     
     if (@available(iOS 12.0, *)) {
         auto executor = coreml_executor_;
-        NSURL* model_url = [executor saveModel:model];
-        if (![executor build:model_url]) {
-            LOGE("Failed to Compile and save Model.\n");
-            return Status(TNNERR_ANE_COMPILE_MODEL_ERROR, "Failed to Compile and save Model.");
-        }
-        
+        RETURN_ON_NEQ([executor saveModel:model], TNN_OK);
+        NSURL* model_url = [executor getMLModelUrl];
+        RETURN_ON_NEQ([executor build:model_url], TNN_OK);
         compiled_model_file_path = [executor getMLModelFilePath];
 
 //        [executor cleanup];
         
-        return ret;
+        return TNN_OK;
     } else {
         LOGE("Error: CoreML only support iOS 12+.\n");
         return Status(TNNERR_IOS_VERSION_ERROR, "CoreML only support iOS 12+.");

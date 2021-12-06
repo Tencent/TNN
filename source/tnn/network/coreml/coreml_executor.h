@@ -25,12 +25,14 @@
 
 @interface CoreMLExecutor : NSObject
 
-- (NSURL*)saveModel:(CoreML__Specification__Model*)model API_AVAILABLE(ios(12.0));
+- (TNN_NS::Status)saveModel:(CoreML__Specification__Model*)model API_AVAILABLE(ios(12.0));
 - (TNN_NS::Status)build:(NSURL*)modelUrl API_AVAILABLE(ios(12.0));
 - (TNN_NS::Status)cleanup;
 - (NSString*) getMLModelFilePath;
+- (NSURL*) getMLModelUrl;
 
 @property MLModel* model API_AVAILABLE(ios(12.0));
+@property NSURL* modelUrl;
 @property NSString* mlModelFilePath;
 @property NSString* compiledModelFilePath;
 @property(nonatomic, readonly) int coreMlVersion;
