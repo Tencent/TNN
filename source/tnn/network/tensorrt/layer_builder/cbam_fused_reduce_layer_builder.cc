@@ -22,7 +22,7 @@ bool CbamFusedReduceTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     return nbInputs == 1 && nbOutputs == 1 && pos < nbInputs + nbOutputs &&
         inOut[pos].format == nvinfer1::TensorFormat::kLINEAR &&
-        (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF);
+        (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF) && (pos == 0 || inOut[pos].type == inOut[0].type);
 }
 
 Status CbamFusedReduceTRTPluginLayerBuilder::Reshape() {
