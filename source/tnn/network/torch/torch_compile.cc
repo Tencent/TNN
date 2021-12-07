@@ -188,10 +188,6 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
                 block.register_intype(in_type);
             }
         }
-        if (config.device_type == DEVICE_CUDA) {
-            // release cached cuda memory
-            c10::cuda::CUDACachingAllocator::emptyCache();
-        }
     #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
         {
             std::vector<torch::jit::Node *> reg_outputs;
@@ -279,6 +275,11 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
 
     //  std::cout << "============================= the final graph ===========================" << std::endl;
     //  std::cout << g->toString() << std::endl;
+
+    if (config.device_type == DEVICE_CUDA) {
+        // release cached cuda memory
+        c10::cuda::CUDACachingAllocator::emptyCache();
+    }
 
     return mod;
 }
