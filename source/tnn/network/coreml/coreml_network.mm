@@ -534,23 +534,46 @@ Status CoreMLNetwork::Forward() {
         }
         NSArray *layeres      = mlmodel_net_[@"layers"];
         
-        NSString *input_name  = layeres[0][@"bottom"];
         NSString *output_name = layeres[layeres.count - 1][@"top"];
-        Blob *input_blob          = blob_input_map_[string(input_name.UTF8String)];
-        auto input_mtl_buffer     = (__bridge id<MTLBuffer>)(void *)input_blob->GetHandle().base;
-        auto input_dims           = input_blob->GetBlobDesc().dims;
-        DimsVector input_stridess = {input_dims[1] * input_dims[2] * input_dims[3], input_dims[2] * input_dims[3],
-                                     input_dims[3], 1};
-        NSError *error            = nil;
-        MLMultiArray *input_array = [[MLMultiArray alloc]
-        initWithDataPointer:input_mtl_buffer.contents
-                      shape:@[ @(1), @(input_dims[1]), @(input_dims[2]), @(input_dims[3]) ]
-                   dataType:MLMultiArrayDataTypeFloat32
-                    strides:@[ @(1), @(input_stridess[1]), @(input_stridess[2]), @(input_stridess[3]) ]
-                deallocator:^(void *_Nonnull bytes) {}
-                      error:&error];
-        MLFeatureValue *input_feat_value = [MLFeatureValue featureValueWithMultiArray:input_array];
-        auto input  = [[MLDictionaryFeatureProvider alloc] initWithDictionary:@{input_name : input_feat_value}
+      
+        NSMutableDictionary *input_dict = [NSMutableDictionary dictionary];
+        NSError *error = nil;
+
+        for (auto iter = blob_input_map_.begin(); iter != blob_input_map_.end(); ++iter) {
+
+            NSString *input_name = [NSString stringWithCString:iter->first.c_str() encoding:[NSString defaultCStringEncoding]];
+
+            Blob *input_blob          = blob_input_map_[string(input_name.UTF8String)];
+            auto input_mtl_buffer     = (__bridge id<MTLBuffer>)(void *)input_blob->GetHandle().base;
+            auto input_dims           = input_blob->GetBlobDesc().dims;
+
+            DimsVector input_stridess;
+            for(int i=0; i<input_dims.size(); i++){
+                int strides = 1;
+                for(int j=i+1; j<input_dims.size(); j++){
+                    strides = strides*DimsFunctionUtils::GetDim(input_dims, j);
+                }
+                input_stridess.push_back(strides);
+            }
+
+            NSMutableArray * shape_ = [[NSMutableArray alloc] init];
+            NSMutableArray * strides_ = [[NSMutableArray alloc] init];
+            for(int i=0; i<input_dims.size(); i++){
+                [shape_ addObject:@(input_dims[i])];
+                [strides_ addObject:@(input_stridess[i])];
+            }
+            MLMultiArray * input_array = [[MLMultiArray alloc]
+            initWithDataPointer:input_mtl_buffer.contents
+                          shape:shape_
+                       dataType:MLMultiArrayDataTypeFloat32
+                        strides:strides_
+                    deallocator:^(void *_Nonnull bytes) {}
+                          error:&error];
+            MLFeatureValue *input_feat_value = [MLFeatureValue featureValueWithMultiArray:input_array];
+            [input_dict setObject:input_feat_value forKey:input_name];
+        }
+
+        auto input  = [[MLDictionaryFeatureProvider alloc] initWithDictionary:input_dict
                                                                         error:&error];
         
         auto output = (MLDictionaryFeatureProvider *)[(MLModel *)mlmodel_ predictionFromFeatures:input
