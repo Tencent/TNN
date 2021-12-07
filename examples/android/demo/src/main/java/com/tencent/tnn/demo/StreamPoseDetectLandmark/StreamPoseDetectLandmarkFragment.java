@@ -65,7 +65,7 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
     private boolean mUseHuaweiNpu = false;
     private TextView HuaweiNpuTextView;
 
-    private boolean mDeviceSwiched = false;
+    private boolean mDeviceSwitched = false;
     private int detector_type = 0; // 0 : big, 1 : middle, 2 : small
 
     /**********************************     Get Preview Advised    **********************************/
@@ -81,9 +81,7 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
         NpuEnable = mPoseDetectLandmark.checkNpu(modelPath);
     }
 
-    private String initModel()
-    {
-
+    private String initModel() {
         String targetDir =  getActivity().getFilesDir().getAbsolutePath();
 
         //copy detect model to sdcard
@@ -111,14 +109,14 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
             clickBack();
         }
     }
-    private void restartCamera()
-    {
+
+    private void restartCamera() {
         closeCamera();
         openCamera(mCameraFacing);
         startPreview(mSurfaceHolder);
     }
-    private void onSwichGPU(boolean b)
-    {
+
+    private void onSwitchGPU(boolean b) {
         if (b && mHuaweiNPUswitch.isChecked()) {
             mHuaweiNPUswitch.setChecked(false);
             mUseHuaweiNpu = false;
@@ -126,11 +124,10 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
         mUseGPU = b;
         TextView result_view = (TextView)$(R.id.result);
         result_view.setText("");
-        mDeviceSwiched = true;
+        mDeviceSwitched = true;
     }
 
-    private void onSwichNPU(boolean b)
-    {
+    private void onSwitchNPU(boolean b) {
         if (b && mGPUSwitch.isChecked()) {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
@@ -138,7 +135,7 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
         mUseHuaweiNpu = b;
         TextView result_view = (TextView)$(R.id.result);
         result_view.setText("");
-        mDeviceSwiched = true;
+        mDeviceSwitched = true;
     }
 
     private void clickBack() {
@@ -158,7 +155,7 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
         mGPUSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichGPU(b);
+                onSwitchGPU(b);
             }
         });
 
@@ -167,7 +164,7 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
         mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichNPU(b);
+                onSwitchNPU(b);
             }
         });
         HuaweiNpuTextView = $(R.id.npu_text);
@@ -201,18 +198,14 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
                 closeCamera();
                 if (mCameraFacing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
                     openCamera(Camera.CameraInfo.CAMERA_FACING_BACK);
-                }
-                else {
+                } else {
                     openCamera(Camera.CameraInfo.CAMERA_FACING_FRONT);
                 }
                 startPreview(mSurfaceHolder);
             }
         });
 
-
         mDrawView = (DrawView) $(R.id.drawView);
-
-
     }
 
     @Override
@@ -247,7 +240,6 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
         super.onStop();
     }
 
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -256,7 +248,6 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
 
     private void preview() {
         Log.i(TAG, "preview");
-
     }
 
     private void getFocus() {
@@ -265,11 +256,11 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
         getView().setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-            if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-                clickBack();
-                return true;
-            }
-            return false;
+                if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
+                    clickBack();
+                    return true;
+                }
+                return false;
             }
         });
     }
@@ -305,9 +296,7 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
             if (mOpenedCamera == null) {
 //                popTip("can't find camera","");
                 Log.e(TAG, "can't find camera");
-            }
-            else {
-
+            } else {
                 int r = CameraSetting.initCamera(getActivity().getApplicationContext(),mOpenedCamera,mOpenedCameraId);
                 if (r == 0) {
                     //设置摄像头朝向
@@ -343,8 +332,7 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
                     Log.e(TAG, "Failed to init camera");
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Log.e(TAG, "open camera failed:" + e.getLocalizedMessage());
         }
     }
@@ -360,7 +348,7 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
                             Camera.Parameters mCameraParameters = camera.getParameters();
                             ObjectInfo[] objectInfoList;
                             // reinit
-                            if (mDeviceSwiched) {
+                            if (mDeviceSwitched) {
                                 String modelPath = getActivity().getFilesDir().getAbsolutePath();
                                 int device = 0;
                                 if (mUseHuaweiNpu) {
@@ -376,7 +364,7 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
                                     mIsDetectingObject = false;
                                     Log.e(TAG, "Face detector init failed " + ret);
                                 }
-                                mDeviceSwiched = false;
+                                mDeviceSwitched = false;
                             }
                             if (mIsCountFps) {
                                 mFpsCounter.begin("PoseDetectLandmark");
@@ -399,9 +387,8 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
                             }
                             Log.i(TAG, "detect from stream ret " + objectInfoList);
                             mDrawView.addObjectRect(objectInfoList);
-                        }
-                        else {
-                            Log.i(TAG,"No object");
+                        } else {
+                            Log.i(TAG, "No object");
                         }
                     }
                 });
@@ -440,5 +427,4 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
         }
         mPoseDetectLandmark.deinit();
     }
-
 }

@@ -48,9 +48,7 @@ public class ImageClassifyDetectFragment extends BaseFragment {
         NpuEnable = mImageClassify.checkNpu(modelPath);
     }
 
-    private String initModel()
-    {
-
+    private String initModel() {
         String targetDir =  getActivity().getFilesDir().getAbsolutePath();
 
         //copy detect model to sdcard
@@ -75,8 +73,7 @@ public class ImageClassifyDetectFragment extends BaseFragment {
         }
     }
 
-    private void onSwichGPU(boolean b)
-    {
+    private void onSwitchGPU(boolean b) {
         if (b && mHuaweiNPUswitch.isChecked()) {
             mHuaweiNPUswitch.setChecked(false);
             mUseHuaweiNpu = false;
@@ -86,8 +83,7 @@ public class ImageClassifyDetectFragment extends BaseFragment {
         result_view.setText("");
     }
 
-    private void onSwichNPU(boolean b)
-    {
+    private void onSwitchNPU(boolean b) {
         if (b && mGPUSwitch.isChecked()) {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
@@ -114,7 +110,7 @@ public class ImageClassifyDetectFragment extends BaseFragment {
         mGPUSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichGPU(b);
+                onSwitchGPU(b);
             }
         });
         $$(R.id.npu_switch);
@@ -122,7 +118,7 @@ public class ImageClassifyDetectFragment extends BaseFragment {
         mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichNPU(b);
+                onSwitchNPU(b);
             }
         });
 
@@ -160,9 +156,7 @@ public class ImageClassifyDetectFragment extends BaseFragment {
 
     }
 
-
     private void startDetect() {
-
         ArrayList<String> result_list = FileUtils.ReadListFromFile(getActivity().getAssets(), RESULT_LIST);
         final Bitmap originBitmap = FileUtils.readBitmapFromFile(getActivity().getAssets(), IMAGE);
 
@@ -178,11 +172,11 @@ public class ImageClassifyDetectFragment extends BaseFragment {
             device = 1;
         }
         int result = mImageClassify.init(modelPath, NET_INPUT, NET_INPUT, device);
-        if(result == 0) {
+        if (result == 0) {
             Log.d(TAG, "detect from image");
             int [] indexArray= mImageClassify.detectFromImage(scaleBitmap, NET_INPUT, NET_INPUT);
             Log.d(TAG, "detect from image result " + result + " index :" + indexArray);
-            if(indexArray != null && indexArray.length > 0) {
+            if (indexArray != null && indexArray.length > 0) {
                 Log.d(TAG, "detect index " + indexArray[0]);
                 String resultText = "result: " + result_list.get(indexArray[0]) + " " + Helper.getBenchResult();
                 TextView result_view = (TextView)$(R.id.result);
@@ -220,7 +214,6 @@ public class ImageClassifyDetectFragment extends BaseFragment {
         super.onStop();
     }
 
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -229,7 +222,6 @@ public class ImageClassifyDetectFragment extends BaseFragment {
 
     private void preview() {
         Log.i(TAG, "preview");
-
     }
 
     private void getFocus() {
@@ -246,5 +238,4 @@ public class ImageClassifyDetectFragment extends BaseFragment {
             }
         });
     }
-
 }

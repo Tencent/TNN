@@ -37,14 +37,12 @@ public class ReadingComprehensionActivity extends DemoBaseActivity {
     protected void onResume() {
         Log.d(TAG, "Activity onResume");
         super.onResume();
-
     }
 
     @Override
     protected void onPause() {
         Log.d(TAG, "Activity onPause");
         super.onPause();
-
     }
 
     @Override
