@@ -42,8 +42,8 @@ bool PadTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     int channels = inOut[0].dims.d[1];
     bool is_pad_8 = (channels % 8 == 0);
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT)
-                && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR);
+    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR) ||
+        (inOut[pos].type == nvinfer1::DataType::kHALF && inOut[pos].format == nvinfer1::TensorFormat::kHWC8 && is_pad_8)) && (pos == 0 || inOut[pos].type == inOut[0].type);
 }
 
 Status PadTRTPluginLayerBuilder::Reshape() {
