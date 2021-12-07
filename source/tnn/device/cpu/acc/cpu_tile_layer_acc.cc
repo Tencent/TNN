@@ -56,38 +56,43 @@ Status CpuTileLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &input
     return TNN_OK;
 }
 
+template <typename T>
+Status Exec(Blob *input_blob, Blob *output_blob, const DimsVector &input_dims, const DimsVector &output_dims) {
+    T *input_data  = static_cast<T *>(input_blob->GetHandle().base);
+    T *output_data = static_cast<T *>(output_blob->GetHandle().base);
+    int count      = DimsVectorUtils::Count(output_dims);
+    DimsVector output_index(output_dims.size(), 0);
+    for (int i = 0; i < count; i++) {
+        auto input_index = DimsFunctionUtils::ModIndex(output_index, input_dims);
+        int input_offset = DimsOffsetUtils::ConvertIndexToOffset(input_dims, input_index);
+        output_data[i]   = input_data[input_offset];
+        output_index     = DimsFunctionUtils::IncreaseIndex(output_index, output_dims);
+    }
+    return TNN_OK;
+}
+
 Status CpuTileLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<TileLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
 
-    Blob *input_blob  = inputs[0];
-    Blob *output_blob = outputs[0];
-    
-    auto input_dims = input_blob->GetBlobDesc().dims;
+    Blob *input_blob       = inputs[0];
+    Blob *output_blob      = outputs[0];
+    auto input_dims        = input_blob->GetBlobDesc().dims;
     const auto output_dims = output_blob->GetBlobDesc().dims;
     while (input_dims.size() < output_dims.size()) {
         input_dims.insert(input_dims.begin(), 1);
     }
-    
-    int count = DimsVectorUtils::Count(output_dims);
+
     auto data_type = output_blob->GetBlobDesc().data_type;
-    if (data_type == DATA_TYPE_INT32 || data_type == DATA_TYPE_FLOAT) {
-        float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-        float *output_data = static_cast<float *>(output_blob->GetHandle().base);
-        DimsVector output_index(output_dims.size(), 0);
-        for (int i=0; i<count; i++) {
-            auto input_index = DimsFunctionUtils::ModIndex(output_index, input_dims);
-            int input_offset = DimsOffsetUtils::ConvertIndexToOffset(input_dims, input_index);
-            
-            output_data[i] = input_data[input_offset];
-            
-            output_index = DimsFunctionUtils::IncreaseIndex(output_index, output_dims);
-        }
+    if (data_type == DATA_TYPE_FLOAT) {
+        return Exec<float>(input_blob, output_blob, input_dims, output_dims);
+    } else if (data_type == DATA_TYPE_HALF) {
+        return Exec<fp16_t>(input_blob, output_blob, input_dims, output_dims);
+    } else if (data_type == DATA_TYPE_INT32) {
+        return Exec<int32_t>(input_blob, output_blob, input_dims, output_dims);
     } else {
         return Status(Status(TNNERR_MODEL_ERR, "CpuTileLayerAcc input has invalid data type"));
     }
-    
-    return TNN_OK;
 }
 
 REGISTER_CPU_ACC(Tile, LAYER_REPEAT);
