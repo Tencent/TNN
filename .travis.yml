@@ -1,9 +1,5 @@
 sudo: false
 
-git:
-  depth: 3
-  quiet: true
-  
 addons:
   apt:
     package:
