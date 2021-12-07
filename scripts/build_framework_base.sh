@@ -6,14 +6,18 @@ then
   TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
 fi
 
+DEVICE_PLATFORM=$1
+if [[ $DEVICE_PLATFORM == iPhone* ]]; then
 TNN_BUILD_PATH=$TNN_ROOT_PATH/platforms/ios
+elif [ $DEVICE_PLATFORM == "Mac" ]; then
+TNN_BUILD_PATH=$TNN_ROOT_PATH/platforms/mac
+fi
+
 #设置文件
 PLIST_PATH=$TNN_BUILD_PATH/tnn/Info.plist
 TNN_VERSION_PATH=$TNN_ROOT_PATH/scripts/version
 
-# iPhone、iPhone+Simulator、 Mac
-DEVICE_PLATFORM="iPhone+Simulator"
-# DEVICE_PLATFORM="Mac"
+
 
 SDK_VERSION=0.2.0
 TARGET_NAME="tnn"
@@ -30,7 +34,7 @@ source $TNN_VERSION_PATH/add_version_attr.sh
 cd $TNN_BUILD_PATH
 
 echo ' '
-echo '******************** step 2: start build rpn ********************'
+echo '******************** step 2: start build tnn ********************'
 #删除旧SDK文件
 #rm -r ./${TARGET_NAME}.bundle
 rm -r ./${TARGET_NAME}.framework
@@ -57,8 +61,12 @@ if [[ $DEVICE_PLATFORM == iPhone* ]]; then
 elif [ $DEVICE_PLATFORM == "Mac" ]; then
   echo ' '
   echo '******************** Build Mac SDK ********************'
-  xcodebuild -quiet -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk macosx -arch x86_64 build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  xcodebuild -quiet -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk macosx -arch x86_64 OTHER_CFLAGS="-march=x86-64 -mavx2 -mavx -mfma -ffast-math" build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
   cp -r build/$CONFIGURATION/$TARGET_NAME.framework build
+
+  # copy metallib
+  cp -r "build/$TARGET_NAME.framework/Resources/default.metallib" "build/$TARGET_NAME.framework/default.metallib"
+  rm build/$TARGET_NAME.framework/Resources/default.metallib
 fi
 
 
