@@ -82,11 +82,6 @@ CoreMLNetwork::~CoreMLNetwork() {
     }
     blob_output_map_ = {};
     
-    if (blob_manager_ != NULL) {
-        delete blob_manager_;
-        blob_manager_ = NULL;
-    }
-    
     if (context_ != nullptr) {
         delete context_;
         context_ = nullptr;
@@ -137,9 +132,6 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
             return ret;
         }
         
-        blob_manager_ = new BlobManager(device_);
-        ret = blob_manager_->Init(net_config, net_structure_, max_inputs_shape, GetNetResourceDataType(net_resource_));
-        
         //init coreml model
         coreml_executor_ = [[CoreMLExecutor alloc] initWithCachePath:net_config.cache_path ID:md5];
         
@@ -177,8 +169,9 @@ Status CoreMLNetwork::InitCoreMLModel(NetStructure *net_structure, NetResource *
     //  Set CoreML Model Input&Output
     BlobMap input_blobs;
     BlobMap output_blobs;
-    blob_manager_->GetAllInputBlobs(input_blobs);
-    blob_manager_->GetAllOutputBlobs(output_blobs);
+    RETURN_ON_NEQ(GetAllInputBlobs(input_blobs),  TNN_OK);
+    RETURN_ON_NEQ(GetAllOutputBlobs(output_blobs),  TNN_OK);
+    
     coreml_model_description_ = std::shared_ptr<CoreML__Specification__ModelDescription>(new CoreML__Specification__ModelDescription);
     coreml_model_->description = (CoreML__Specification__ModelDescription *)coreml_model_description_.get();
     core_ml__specification__model_description__init(coreml_model_->description);

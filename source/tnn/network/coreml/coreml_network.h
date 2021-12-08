@@ -91,7 +91,6 @@ protected:
     Context *context_                       = nullptr;
     NetStructure *net_structure_      = nullptr;
     NetResource *net_resource_     = nullptr;
-    BlobManager *blob_manager_   = nullptr;
     
     BlobMap blob_input_map_;
     BlobMap blob_output_map_;
@@ -123,7 +122,6 @@ protected:
     std::vector<std::shared_ptr<char> > output_name_;
     
     CoreMLExecutor* coreml_executor_ = nil;
-    NSString* compiled_model_file_path = nil;
     
 };
 
