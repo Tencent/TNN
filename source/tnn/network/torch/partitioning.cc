@@ -392,7 +392,7 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
         segmented_blocks.end());
 
     // remove block without compute node(conv, matmul, linear, admm)
-    std::set<std::string> compute_node_set = {"aten::conv2d", "aten::_convolution", "aten::matmul", "aten::linear", "aten::admm"};
+    std::set<std::string> compute_node_set = {"aten::conv2d", "aten::_convolution", "aten::matmul", "aten::linear", "aten::admm", "aten::mul",};
     auto filter_nocompute_block = [&](SegmentedBlock& seg_block) {
         for (auto &node : seg_block.raw_nodes()) {
             if (compute_node_set.count(node->kind().toQualString())) {
