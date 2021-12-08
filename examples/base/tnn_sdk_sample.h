@@ -165,6 +165,8 @@ public:
     std::string proto_content = "";
     std::string model_content = "";
     std::string library_path = "";
+    // cache path to store possible cache models or opt kernel. if the cached model exists, it will cost less time to do init process
+    std::string cache_path = "";
     TNNComputeUnits compute_units = TNNComputeUnitsCPU;
     Precision precision = PRECISION_AUTO;
     InputShapesMap input_shapes = {};

@@ -24,17 +24,16 @@
 
 
 @interface CoreMLExecutor : NSObject
+@property(nonatomic, strong, readonly) NSString *cachePath;
+@property(nonatomic, strong, readonly) NSString *ID;
+- (instancetype)initWithCachePath:(std::string)path ID:(std::string) ID;
 
-- (TNN_NS::Status)saveModel:(CoreML__Specification__Model*)model API_AVAILABLE(ios(12.0));
-- (TNN_NS::Status)build:(NSURL*)modelUrl API_AVAILABLE(ios(12.0));
+- (TNN_NS::Status)buildFromCache;
+- (TNN_NS::Status)buildFromProtoBuf:(CoreML__Specification__Model*)model;
+
 - (TNN_NS::Status)cleanup;
-- (NSString*) getMLModelFilePath;
-- (NSURL*) getMLModelUrl;
 
-@property MLModel* model API_AVAILABLE(ios(12.0));
-@property NSURL* modelUrl;
-@property NSString* mlModelFilePath;
-@property NSString* compiledModelFilePath;
+@property(nonatomic, strong, readonly) MLModel* model API_AVAILABLE(ios(12.0), macosx(10.14));
 @property(nonatomic, readonly) int coreMlVersion;
 @end
 

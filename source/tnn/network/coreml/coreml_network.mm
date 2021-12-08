@@ -104,10 +104,15 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
 
         DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
         CHECK_PARAM_NULL(default_interpreter);
+        auto md5s = default_interpreter->GetParamsMd5();
+        std::string md5 = md5s.size() > 0 ? md5s[0]: "";
+        if (md5s.size() >= 2) {
+            md5 = md5 + "-" + md5s[1];
+        }
 
-        NetStructure *net_structure = default_interpreter->GetNetStructure();
-        NetResource *net_resource   = default_interpreter->GetNetResource();
-        if (net_structure == NULL || net_resource == NULL) {
+        net_structure_ = default_interpreter->GetNetStructure();
+        net_resource_   = default_interpreter->GetNetResource();
+        if (net_structure_ == NULL || net_resource_ == NULL) {
             LOGE("ERROR: network_ is nil, network_type may not support\n");
             return Status(TNNERR_NULL_PARAM, "network_ is nil, network_type may not support");
         }
@@ -133,57 +138,26 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
         }
         
         blob_manager_ = new BlobManager(device_);
-        ret = blob_manager_->Init(net_config, net_structure, max_inputs_shape, GetNetResourceDataType(net_resource));
+        ret = blob_manager_->Init(net_config, net_structure_, max_inputs_shape, GetNetResourceDataType(net_resource_));
         
-        RETURN_ON_NEQ(InitCoreMLModel(net_structure, net_resource), TNN_OK);
-
-        RETURN_ON_NEQ(ConvertCoreMLModel(net_structure, net_resource), TNN_OK);
-
-        RETURN_ON_NEQ(CompileModel(coreml_model_.get()), TNN_OK);
+        //init coreml model
+        coreml_executor_ = [[CoreMLExecutor alloc] initWithCachePath:net_config.cache_path ID:md5];
         
-        NSError *error = nil;
-        NSString *model_dir = compiled_model_file_path;
-        NSData *data_net =
-            [NSData dataWithContentsOfFile:[model_dir stringByAppendingPathComponent:@"model.espresso.net"]];
-        NSData *data_shape =
-            [NSData dataWithContentsOfFile:[model_dir stringByAppendingPathComponent:@"model.espresso.shape"]];
-        if (!data_net || !data_shape) {
-            LOGE("Error: CoreML net or shape file is invalid\n");
-            return Status(TNNERR_INST_ERR, "CoreML net or shape file is invalid");
-        }
-        
-        mlmodel_net_ = [NSJSONSerialization JSONObjectWithData:data_net
-                                                      options:NSJSONReadingAllowFragments
-                                                        error:&error];
-        if (error || !mlmodel_net_ || [mlmodel_net_[@"layers"] count] <= 0) {
-            LOGE("Error: MLModel modelWithContentsOfURL failed: invalid net file\n");
-            return Status(TNNERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid net file");
-        }
-        mlmodel_shape_ = [NSJSONSerialization JSONObjectWithData:data_shape
-                                                        options:NSJSONReadingAllowFragments
-                                                          error:&error];
-        if (error || !mlmodel_shape_ || [mlmodel_shape_[@"layer_shapes"] count] <= 0) {
-            LOGE("Error: MLModel modelWithContentsOfURL failed: invalid shape file\n");
-            return Status(TNNERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid shape file");
-        }
-        
-        //  Configure ComputeUnits
-        MLModelConfiguration* config = [[MLModelConfiguration alloc] init];
-        if(net_config.device_type == DEVICE_ARM){
-            config.computeUnits = MLComputeUnitsCPUOnly;
-        } else if(net_config.device_type == DEVICE_METAL){
-            config.computeUnits = MLComputeUnitsCPUAndGPU;
-        } else if(net_config.device_type == DEVICE_APPLE_NPU){
-            config.computeUnits = MLComputeUnitsAll;
-        }
-
-        mlmodel_ = [MLModel modelWithContentsOfURL:[NSURL fileURLWithPath:model_dir]
-                                           configuration:config
-                                                   error:&error];
-        
-        if (error || !mlmodel_) {
-            LOGE("Error: MLModel modelWithContentsOfURL failed\n");
-            return Status(TNNERR_INST_ERR, "MLModel modelWithContentsOfURL failed");
+        if ([coreml_executor_ buildFromCache] != TNN_OK) {
+            auto time_start = CFAbsoluteTimeGetCurrent();
+            RETURN_ON_NEQ(InitCoreMLModel(net_structure_, net_resource_), TNN_OK);
+            auto time_final = CFAbsoluteTimeGetCurrent();
+            LOGE("InitCoreMLModel time: %f ms\n", (time_final - time_start) * 1000.0);
+            
+            time_start = CFAbsoluteTimeGetCurrent();
+            RETURN_ON_NEQ(ConvertCoreMLModel(net_structure_, net_resource_), TNN_OK);
+            time_final = CFAbsoluteTimeGetCurrent();
+            LOGE("ConvertCoreMLModel time: %f ms\n", (time_final - time_start) * 1000.0);
+            
+            time_start = CFAbsoluteTimeGetCurrent();
+            RETURN_ON_NEQ(CompileModel(coreml_model_.get()), TNN_OK);
+            time_final = CFAbsoluteTimeGetCurrent();
+            LOGE("CompileModel time: %f ms\n", (time_final - time_start) * 1000.0);
         }
 
 //        return ret;
@@ -321,15 +295,6 @@ Status CoreMLNetwork::ConvertCoreMLModel(NetStructure *net_structure, NetResourc
 
 Status CoreMLNetwork::InitCoreMLExecutor() {
     Status ret = TNN_OK;
-    
-    if (coreml_executor_ == nullptr) {
-        coreml_executor_ = [[CoreMLExecutor alloc] init];
-    }
-    if(coreml_executor_ == nullptr) {
-        LOGE("Error: Failed to Init CoreML Executor.\n");
-        return Status(TNNERR_ANE_EXECUTOR_ERROR, "Failed to Init CoreML Executor.");
-    }
-    
     return ret;
 }
 
@@ -337,13 +302,7 @@ Status CoreMLNetwork::CompileModel(CoreML__Specification__Model* model) {
     RETURN_ON_NEQ(InitCoreMLExecutor(), TNN_OK);
     
     if (@available(iOS 12.0, macOS 10.14, *)) {
-        auto executor = coreml_executor_;
-        RETURN_ON_NEQ([executor saveModel:model], TNN_OK);
-        NSURL* model_url = [executor getMLModelUrl];
-        RETURN_ON_NEQ([executor build:model_url], TNN_OK);
-        compiled_model_file_path = [executor getMLModelFilePath];
-
-//        [executor cleanup];
+        RETURN_ON_NEQ([coreml_executor_ buildFromProtoBuf:model], TNN_OK);
         
         return TNN_OK;
     } else {
@@ -362,15 +321,6 @@ Status CoreMLNetwork::SetForwardMemory(void *memory) {
 }
 
 Status CoreMLNetwork::CheckCoreMLStatus() {
-    if (!mlmodel_net_ || [mlmodel_net_[@"layers"] count] <= 0) {
-        LOGE("Error: MLModel modelWithContentsOfURL failed: invalid net file\n");
-        return Status(TNNERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid net file");
-    }
-    
-    if (!mlmodel_shape_ || [mlmodel_shape_[@"layer_shapes"] count] <= 0) {
-        LOGE("Error: MLModel modelWithContentsOfURL failed: invalid shape file\n");
-        return Status(TNNERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid shape file");
-    }
     return TNN_OK;
 }
 
@@ -388,28 +338,22 @@ Status CoreMLNetwork::GetAllInputBlobs(BlobMap &blobs) {
     MetalContext *context              = dynamic_cast<MetalContext *>(context_);
     TNNMMetalContextImpl *context_impl = context->getMetalContextImpl();
     BlobMap input_blobs;
-    blob_manager_->GetAllInputBlobs(input_blobs);
     
-    for (auto iter = input_blobs.begin(); iter != input_blobs.end(); ++iter) {
-        
-        auto input_name = iter->first.c_str();
-        auto input_shape = iter->second->GetBlobDesc().dims;
-
-        DimsVector input_dims;
-        for(int i=0; i<input_shape.size(); i++){
-            input_dims.push_back(input_shape[i]);
-        }
-        
-        coreml_input_dims_    = input_dims;
+    const auto & inputs_shape_map = net_structure_->inputs_shape_map;
+    auto & inputs_type_map = net_structure_->input_data_type_map;
+    for (const auto & iter : inputs_shape_map) {
+        const auto & input_name = iter.first;
+        const auto & input_dims = iter.second;
+        const auto data_type = inputs_type_map[input_name];
 
         BlobDesc desc;
         {
             desc.device_type = DEVICE_METAL;
-            desc.data_type   = DATA_TYPE_FLOAT;
+            desc.data_type   = data_type;
             // data_format describes data order nchw, nhwc, ...
             desc.data_format = DATA_FORMAT_NCHW;
             desc.dims        = input_dims;
-            desc.name        = input_name;
+            desc.name       = input_name;
         };
         const int data_count = DimsFunctionUtils::GetDim(input_dims, 0) * (((DimsFunctionUtils::GetDim(input_dims, 1) + 3) / 4 * 4)) * DimsFunctionUtils::GetDim(input_dims, 2) * DimsFunctionUtils::GetDim(input_dims, 3) * DimsFunctionUtils::GetDim(input_dims, 4);
 
@@ -445,28 +389,10 @@ Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
     MetalContext *context              = dynamic_cast<MetalContext *>(context_);
     TNNMMetalContextImpl *context_impl = context->getMetalContextImpl();
     
-    NSDictionary *layer_shapes = mlmodel_shape_[@"layer_shapes"];
-    NSArray *layeres = mlmodel_net_[@"layers"];
-    
-    {
-        NSString *output_name      = layeres[layeres.count - 1][@"top"];
-        NSDictionary *output_shape = layer_shapes[output_name];
-
-        DimsVector output_dims;
-        if([output_shape[@"seq"] intValue]){
-            output_dims = {[output_shape[@"seq"] intValue],
-                           [output_shape[@"n"] intValue],
-                           [output_shape[@"k"] intValue],
-                           [output_shape[@"h"] intValue],
-                           [output_shape[@"w"] intValue]};
-        } else {
-            output_dims = {[output_shape[@"n"] intValue],
-                           [output_shape[@"k"] intValue],
-                           [output_shape[@"h"] intValue],
-                           [output_shape[@"w"] intValue]};
-        }
-        
-        coreml_output_dims_    = output_dims;
+    const auto & output_names = net_structure_->outputs;
+    auto & blob_shapes_map = net_resource_->blob_shapes_map;
+    for (const auto &output_name : output_names) {
+        auto output_dims = blob_shapes_map[output_name];
 
         BlobDesc desc;
         {
@@ -475,7 +401,7 @@ Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
             // data_format describes data order nchw, nhwc, ...
             desc.data_format = DATA_FORMAT_NCHW;
             desc.dims        = output_dims;
-            desc.name        = output_name.UTF8String;
+            desc.name       = output_name;
         };
         const int data_count = DimsFunctionUtils::GetDim(output_dims, 0) * (((DimsFunctionUtils::GetDim(output_dims, 1) + 3) / 4 * 4)) * DimsFunctionUtils::GetDim(output_dims, 2) * DimsFunctionUtils::GetDim(output_dims, 3) * DimsFunctionUtils::GetDim(output_dims, 4);
         int bytes_count      = data_count * DataTypeUtils::GetBytesSize(desc.data_type);
@@ -501,9 +427,6 @@ Status CoreMLNetwork::Reshape(const InputShapesMap &inputs) {
 }
 
 Status CoreMLNetwork::DeInit() {
-    mlmodel_ = nil;
-    mlmodel_net_   = nil;
-    mlmodel_shape_ = nil;
     coreml_executor_ = nil;
     
     return TNN_OK;
@@ -527,18 +450,11 @@ Status CoreMLNetwork::Forward() {
         if (status != TNN_OK) {
             return status;
         }
-
-        if (!mlmodel_net_ || [mlmodel_net_[@"layers"] count] <= 0) {
-            LOGE("Error: MLModel modelWithContentsOfURL failed: invalid net file\n");
-            return Status(TNNERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid net file");
-        }
-        NSArray *layeres      = mlmodel_net_[@"layers"];
-        
-        NSString *output_name = layeres[layeres.count - 1][@"top"];
-      
-        NSMutableDictionary *input_dict = [NSMutableDictionary dictionary];
         NSError *error = nil;
-
+        
+        //construct coreml inputs
+        NSMutableDictionary *input_dict = [NSMutableDictionary dictionary];
+        
         for (auto iter = blob_input_map_.begin(); iter != blob_input_map_.end(); ++iter) {
 
             NSString *input_name = [NSString stringWithCString:iter->first.c_str() encoding:[NSString defaultCStringEncoding]];
@@ -576,18 +492,26 @@ Status CoreMLNetwork::Forward() {
         auto input  = [[MLDictionaryFeatureProvider alloc] initWithDictionary:input_dict
                                                                         error:&error];
         
-        auto output = (MLDictionaryFeatureProvider *)[(MLModel *)mlmodel_ predictionFromFeatures:input
+        //coreml forword
+        auto output = (MLDictionaryFeatureProvider *)[coreml_executor_.model predictionFromFeatures:input
                                                                                                 error:&error];
         
-        MLMultiArray *output_array = [output objectForKeyedSubscript:output_name].multiArrayValue;
-        int out_data_count         = DimsVectorUtils::Count(coreml_output_dims_);
+        //construct output map
+        for (auto iter = blob_output_map_.begin(); iter != blob_output_map_.end(); ++iter) {
+            auto output_name = [NSString stringWithCString:iter->first.c_str()
+                                                  encoding:[NSString defaultCStringEncoding]];
 
-        Blob *output_blob      = blob_output_map[string(output_name.UTF8String)];
-        auto output_mtl_buffer = (__bridge id<MTLBuffer>)(void *)output_blob->GetHandle().base;
-        auto output_dims       = output_blob->GetBlobDesc().dims;
-        int bytes_count        = out_data_count * DataTypeUtils::GetBytesSize(output_blob->GetBlobDesc().data_type);
+            MLMultiArray *output_array = [output objectForKeyedSubscript:output_name].multiArrayValue;
+            int out_data_count         = DimsVectorUtils::Count(iter->second->GetBlobDesc().dims);
 
-        memcpy(output_mtl_buffer.contents, output_array.dataPointer, bytes_count);
+            Blob *output_blob      = blob_output_map[string(output_name.UTF8String)];
+            auto output_mtl_buffer = (__bridge id<MTLBuffer>)(void *)output_blob->GetHandle().base;
+            auto output_dims       = output_blob->GetBlobDesc().dims;
+            int bytes_count        = out_data_count * DataTypeUtils::GetBytesSize(output_blob->GetBlobDesc().data_type);
+
+            memcpy(output_mtl_buffer.contents, output_array.dataPointer, bytes_count);
+
+        }
         return TNN_OK;
     } else {
         return Status(TNNERR_IOS_VERSION_ERROR, "The operate system is not iOS 12+ or macOS 10.14+");

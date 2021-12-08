@@ -88,16 +88,13 @@ public:
     
 protected:
     AbstractDevice *device_              = nullptr;
-    Context *context_                    = nullptr;
-    BlobManager *blob_manager_ = nullptr;
+    Context *context_                       = nullptr;
+    NetStructure *net_structure_      = nullptr;
+    NetResource *net_resource_     = nullptr;
+    BlobManager *blob_manager_   = nullptr;
     
-    NSDictionary *mlmodel_net_   = nil;
-    NSDictionary *mlmodel_shape_ = nil;
-    NSObject *mlmodel_     = nil;
     BlobMap blob_input_map_;
     BlobMap blob_output_map_;
-    DimsVector coreml_input_dims_;
-    DimsVector coreml_output_dims_;
     
     std::vector<std::shared_ptr<Blob> > blob_input_;
     std::shared_ptr<Blob> blob_output_;
