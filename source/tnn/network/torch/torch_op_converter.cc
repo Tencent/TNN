@@ -523,12 +523,12 @@ public:
 };
 
 // func: matmul(Tensor self, Tensor other) -> Tensor
-class MatmulTorchConverter : public TorchOpConverter {
+class MatMulTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
         layer_info->type = LAYER_MATMUL;
-        layer_info->type_str = "Matmul";
+        layer_info->type_str = "MatMul";
         layer_info->name = node->output(0)->debugName();
 
         // https://pytorch.org/docs/stable/generated/torch.matmul.html?highlight=matmul#torch.matmul
@@ -1190,6 +1190,61 @@ public:
     }
 };
 
+class UpsampleTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = LAYER_UPSAMPLE;
+        layer_info->type_str = "Upsample";
+        layer_info->name = node->output(0)->debugName();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<UpsampleLayerParam>();
+        switch (node->kind()) {
+            case at::aten::upsample_nearest2d:
+                layer_param->mode = 1;
+                if (node->inputs().size() == 3) {
+                    auto scales = getValue<std::vector<double>>(node->input(2));
+                    layer_param->scales = {(float)scales[1], (float)scales[0]};
+                } else if (node->inputs().size() == 4) {
+                    layer_param->scales.push_back(getValue<float>(node->input(3)));
+                    layer_param->scales.push_back(getValue<float>(node->input(2)));
+                }
+
+                break;
+            case at::aten::upsample_bilinear2d:
+                layer_param->mode = 2;
+                if (!toIValue(node->input(1))) {
+                    // calc in runtime
+                    layer_info->inputs.push_back(node->input(1)->debugName());
+                } else {
+                    auto output_size = getValue<std::vector<int64_t>>(node->input(1));
+                    layer_param->dims = {(int)output_size[0], (int)output_size[1]};
+                }
+                layer_param->align_corners = getValue<bool>(node->input(2));
+                layer_param->scales = {0.f, 0.f};
+                if (node->inputs().size() == 5) {
+                    layer_param->scales.push_back(getValue<float>(node->input(4)));
+                    layer_param->scales.push_back(getValue<float>(node->input(3)));
+                }
+
+                break;
+            default:
+                break;
+        } 
+
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
 class ListTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
@@ -1307,7 +1362,7 @@ REGISTER_TORCH_OP_CONVERTER(HardSigmoid, aten, hardsigmoid_)
 REGISTER_TORCH_OP_CONVERTER(HardSwish, aten, hardswish_)
 REGISTER_TORCH_OP_CONVERTER(LayerNorm, aten, layer_norm)
 REGISTER_TORCH_OP_CONVERTER(Linear, aten, linear)
-REGISTER_TORCH_OP_CONVERTER(Matmul, aten, matmul)
+REGISTER_TORCH_OP_CONVERTER(MatMul, aten, matmul)
 REGISTER_TORCH_OP_CONVERTER(Permute, aten, permute)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, adaptive_avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
@@ -1321,8 +1376,10 @@ REGISTER_TORCH_OP_CONVERTER(Softmax, aten, softmax)
 REGISTER_TORCH_OP_CONVERTER(Split, aten, split)
 REGISTER_TORCH_OP_CONVERTER(StridedSlice, aten, slice)
 REGISTER_TORCH_OP_CONVERTER(To, aten, to)
-REGISTER_TORCH_OP_CONVERTER(Unsqueeze, aten, unsqueeze)
 REGISTER_TORCH_OP_CONVERTER(Transpose, aten, transpose)
+// REGISTER_TORCH_OP_CONVERTER(Upsample, aten, upsample_bilinear2d)
+REGISTER_TORCH_OP_CONVERTER(Upsample, aten, upsample_nearest2d)
+REGISTER_TORCH_OP_CONVERTER(Unsqueeze, aten, unsqueeze)
 
 
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
