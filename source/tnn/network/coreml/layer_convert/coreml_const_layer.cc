@@ -51,10 +51,15 @@ Status CoreMLConstLayer::BuildLayerParam() {
     
     //shape
     shape_ = std::shared_ptr<uint64_t>(new uint64_t [element_dims.size()], [](uint64_t* p) { delete[] p; });
-    coreml_layer_->loadconstant->n_shape = element_dims.size();
     coreml_layer_->loadconstantnd->shape = shape_.get();
-    for (int i = 0; i < element_dims.size(); i++) {
-        coreml_layer_->loadconstant->shape[i] = element_dims[i];
+    if (element_dims.size() != 0) {
+        coreml_layer_->loadconstant->n_shape = element_dims.size();
+        for (int i = 0; i < element_dims.size(); i++) {
+            coreml_layer_->loadconstant->shape[i] = element_dims[i];
+        }
+    } else {
+        coreml_layer_->loadconstant->n_shape = element_size;
+        coreml_layer_->loadconstant->shape[0] = 1;
     }
     
     //weight value
