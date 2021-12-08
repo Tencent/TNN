@@ -23,7 +23,7 @@
 #include "Model.pb-c.h"
 
 
-@interface CoreMLExecutor : NSObject
+@interface CoreMLModel : NSObject
 @property(nonatomic, strong, readonly) NSString *cachePath;
 @property(nonatomic, strong, readonly) NSString *ID;
 @property(nonatomic, strong, readonly) MLModel* model API_AVAILABLE(ios(12.0), macosx(10.14));

@@ -133,7 +133,7 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
         }
         
         //init coreml model
-        coreml_executor_ = [[CoreMLExecutor alloc] initWithCachePath:net_config.cache_path ID:md5];
+        coreml_executor_ = [[CoreMLModel alloc] initWithCachePath:net_config.cache_path ID:md5];
         
         if ([coreml_executor_ buildFromCache] != TNN_OK) {
             RETURN_ON_NEQ(InitCoreMLModel(net_structure_, net_resource_), TNN_OK);

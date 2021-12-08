@@ -1,12 +1,12 @@
 #import <CoreML/CoreML.h>
 #import <Metal/Metal.h>
 #import <Foundation/Foundation.h>
-#import "coreml_executor.h"
+#import "coreml_model.h"
 
 #include <fstream>
 #include <iostream>
 
-@interface CoreMLExecutor()
+@interface CoreMLModel()
 @property(nonatomic, strong) NSString *cachePath;
 @property(nonatomic, strong) NSString *ID;
 @property(nonatomic, strong) MLModel* model API_AVAILABLE(ios(12.0), macosx(10.14));
@@ -18,7 +18,7 @@
 - (TNN_NS::Status)build:(NSURL*)modelUrl;
 @end
 
-@implementation CoreMLExecutor
+@implementation CoreMLModel
 - (instancetype)initWithCachePath:(std::string)path ID:(std::string) ID {
     if (self = [super init]) {
         _cachePath = [NSString stringWithUTF8String:path.c_str()];

@@ -743,8 +743,8 @@
 		DE14B59E275C87C700379D4F /* coreml_const_layer.h in Headers */ = {isa = PBXBuildFile; fileRef = DE14B484275C87C700379D4F /* coreml_const_layer.h */; };
 		DE14B59F275C87C700379D4F /* coreml_base_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE14B485275C87C700379D4F /* coreml_base_layer.cc */; };
 		DE14B5A0275C87C700379D4F /* coreml_softmax_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE14B486275C87C700379D4F /* coreml_softmax_layer.cc */; };
-		DE14B5A1275C87C700379D4F /* coreml_executor.h in Headers */ = {isa = PBXBuildFile; fileRef = DE14B487275C87C700379D4F /* coreml_executor.h */; };
-		DE14B5A2275C87C700379D4F /* coreml_executor.mm in Sources */ = {isa = PBXBuildFile; fileRef = DE14B488275C87C700379D4F /* coreml_executor.mm */; };
+		DE14B5A1275C87C700379D4F /* coreml_model.h in Headers */ = {isa = PBXBuildFile; fileRef = DE14B487275C87C700379D4F /* coreml_model.h */; };
+		DE14B5A2275C87C700379D4F /* coreml_model.mm in Sources */ = {isa = PBXBuildFile; fileRef = DE14B488275C87C700379D4F /* coreml_model.mm */; };
 		DE14B5A3275C87C700379D4F /* tnn_impl_coreml.mm in Sources */ = {isa = PBXBuildFile; fileRef = DE14B489275C87C700379D4F /* tnn_impl_coreml.mm */; };
 		DE14B626275CB94F00379D4F /* coreml_upsample_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE14B625275CB94F00379D4F /* coreml_upsample_layer.cc */; };
 		DE14B628275CC6F400379D4F /* coreml_deconv_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE14B627275CC6F400379D4F /* coreml_deconv_layer.cc */; };
@@ -1806,8 +1806,8 @@
 		DE14B484275C87C700379D4F /* coreml_const_layer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coreml_const_layer.h; sourceTree = "<group>"; };
 		DE14B485275C87C700379D4F /* coreml_base_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_base_layer.cc; sourceTree = "<group>"; };
 		DE14B486275C87C700379D4F /* coreml_softmax_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_softmax_layer.cc; sourceTree = "<group>"; };
-		DE14B487275C87C700379D4F /* coreml_executor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coreml_executor.h; sourceTree = "<group>"; };
-		DE14B488275C87C700379D4F /* coreml_executor.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = coreml_executor.mm; sourceTree = "<group>"; };
+		DE14B487275C87C700379D4F /* coreml_model.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coreml_model.h; sourceTree = "<group>"; };
+		DE14B488275C87C700379D4F /* coreml_model.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = coreml_model.mm; sourceTree = "<group>"; };
 		DE14B489275C87C700379D4F /* tnn_impl_coreml.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = tnn_impl_coreml.mm; sourceTree = "<group>"; };
 		DE14B625275CB94F00379D4F /* coreml_upsample_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_upsample_layer.cc; sourceTree = "<group>"; };
 		DE14B627275CC6F400379D4F /* coreml_deconv_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_deconv_layer.cc; sourceTree = "<group>"; };
@@ -3243,8 +3243,8 @@
 				DE14B45A275C87C700379D4F /* coreml_network.mm */,
 				DE14B45B275C87C700379D4F /* coreml_network.h */,
 				DE14B472275C87C700379D4F /* tnn_impl_coreml.h */,
-				DE14B487275C87C700379D4F /* coreml_executor.h */,
-				DE14B488275C87C700379D4F /* coreml_executor.mm */,
+				DE14B487275C87C700379D4F /* coreml_model.h */,
+				DE14B488275C87C700379D4F /* coreml_model.mm */,
 				DE14B489275C87C700379D4F /* tnn_impl_coreml.mm */,
 				DE14B473275C87C700379D4F /* layer_convert */,
 				DE14B45C275C87C700379D4F /* mlmodel */,
@@ -3758,7 +3758,7 @@
 				9DF543E5258B1366006CEC97 /* winograd_function.h in Headers */,
 				E44D947C26048C32003FE4A3 /* data_flag_utils.h in Headers */,
 				9DF54425258B1367006CEC97 /* arm_conv_layer_group.h in Headers */,
-				DE14B5A1275C87C700379D4F /* coreml_executor.h in Headers */,
+				DE14B5A1275C87C700379D4F /* coreml_model.h in Headers */,
 				9DF54438258B1367006CEC97 /* arm_upsample_layer_acc.h in Headers */,
 				E4D05BB3259DCB2E00921502 /* arm_unary_fp16_layer.h in Headers */,
 				EC12EC8025E67549007ADDE4 /* net_optimizer_cbam_fused_pooling.h in Headers */,
@@ -4479,7 +4479,7 @@
 				9DD1FBC1247CE9BE00800139 /* metal_inner_product_layer_acc.metal in Sources */,
 				EC4B9723264A77FE0015F32A /* layer_norm_layer_interpreter.cc in Sources */,
 				ECCDCEC625DF536000D7D297 /* compute_int8.cc in Sources */,
-				DE14B5A2275C87C700379D4F /* coreml_executor.mm in Sources */,
+				DE14B5A2275C87C700379D4F /* coreml_model.mm in Sources */,
 				9DD1FB57247CE9BE00800139 /* metal_reduce_sum_layer_acc.mm in Sources */,
 				9D32FCED24557EEC002DCDAB /* sin_layer.cc in Sources */,
 				9DF543BC258B1366006CEC97 /* arm_deconv_layer_stride.cc in Sources */,

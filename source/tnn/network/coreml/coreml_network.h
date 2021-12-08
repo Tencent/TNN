@@ -23,7 +23,7 @@
 #include "tnn/core/default_network.h"
 #include "mlmodel/include/Model.pb-c.h"
 #include "tnn/network/coreml/layer_convert/coreml_base_layer.h"
-#import "coreml_executor.h"
+#import "coreml_model.h"
 
 namespace TNN_NS {
 
@@ -121,7 +121,7 @@ protected:
     std::vector<std::shared_ptr<int64_t> >coreml_output_shape_;
     std::vector<std::shared_ptr<char> > output_name_;
     
-    CoreMLExecutor* coreml_executor_ = nil;
+    CoreMLModel* coreml_executor_ = nil;
     
 };
 
