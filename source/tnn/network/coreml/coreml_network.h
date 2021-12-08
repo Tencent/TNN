@@ -96,8 +96,8 @@ protected:
     BlobMap blob_input_map_;
     BlobMap blob_output_map_;
     
-    std::vector<std::shared_ptr<Blob> > blob_input_;
-    std::shared_ptr<Blob> blob_output_;
+    std::vector<std::shared_ptr<Blob> > blob_input_ = {};
+    std::vector<std::shared_ptr<Blob> > blob_output_ = {};
     
     Status CheckCoreMLStatus();
     

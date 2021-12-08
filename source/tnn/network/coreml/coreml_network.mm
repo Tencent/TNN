@@ -358,8 +358,9 @@ Status CoreMLNetwork::GetAllInputBlobs(BlobMap &blobs) {
             handle.bytes_offset = 0;
         };
         
-        blob_input_.push_back(std::make_shared<Blob>(desc, handle));
-        blob_input_map_[desc.name] = blob_input_.back().get();
+        auto blob = std::make_shared<Blob>(desc, handle);
+        blob_input_.push_back(blob);
+        blob_input_map_[desc.name] = blob.get();
     }
 
     blobs = blob_input_map_;
@@ -405,8 +406,9 @@ Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
             handle.bytes_offset = 0;
         };
 
-        blob_output_ = std::make_shared<Blob>(desc, handle);
-        blob_output_map_[desc.name] = blob_output_.get();
+        auto blob = std::make_shared<Blob>(desc, handle);
+        blob_output_.push_back(blob);
+        blob_output_map_[desc.name] = blob.get();
     }
 
     blobs = blob_output_map_;
@@ -487,7 +489,7 @@ Status CoreMLNetwork::Forward() {
         auto output = (MLDictionaryFeatureProvider *)[coreml_executor_.model predictionFromFeatures:input
                                                                                                 error:&error];
         
-        //construct output map
+        //copy output map
         for (auto iter = blob_output_map_.begin(); iter != blob_output_map_.end(); ++iter) {
             auto output_name = [NSString stringWithCString:iter->first.c_str()
                                                   encoding:[NSString defaultCStringEncoding]];
