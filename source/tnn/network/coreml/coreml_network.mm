@@ -400,7 +400,7 @@ Status CoreMLNetwork::GetAllInputBlobs(BlobMap &blobs) {
             input_dims.push_back(input_shape[i]);
         }
         
-        coreml_input_dims_    = input_dims;
+//        coreml_input_dims_    = input_dims;
 
         BlobDesc desc;
         {
@@ -445,13 +445,16 @@ Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
     MetalContext *context              = dynamic_cast<MetalContext *>(context_);
     TNNMMetalContextImpl *context_impl = context->getMetalContextImpl();
     
-    NSDictionary *layer_shapes = mlmodel_shape_[@"layer_shapes"];
-    NSArray *layeres = mlmodel_net_[@"layers"];
+    BlobMap output_blobs;
+    blob_manager_->GetAllOutputBlobs(output_blobs);
     
-    {
-        NSString *output_name      = layeres[layeres.count - 1][@"top"];
-        NSDictionary *output_shape = layer_shapes[output_name];
-
+    NSDictionary *layer_shapes = mlmodel_shape_[@"layer_shapes"];
+    
+    for (auto iter = output_blobs.begin(); iter != output_blobs.end(); ++iter) {
+        
+        auto output_name = iter->first.c_str();
+        NSDictionary *output_shape = layer_shapes[@(output_name)];
+        
         DimsVector output_dims;
         if([output_shape[@"seq"] intValue]){
             output_dims = {[output_shape[@"seq"] intValue],
@@ -465,8 +468,7 @@ Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
                            [output_shape[@"h"] intValue],
                            [output_shape[@"w"] intValue]};
         }
-        
-        coreml_output_dims_    = output_dims;
+        coreml_output_dims_[output_name]    = output_dims;
 
         BlobDesc desc;
         {
@@ -475,7 +477,7 @@ Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
             // data_format describes data order nchw, nhwc, ...
             desc.data_format = DATA_FORMAT_NCHW;
             desc.dims        = output_dims;
-            desc.name        = output_name.UTF8String;
+            desc.name        = output_name;
         };
         const int data_count = DimsFunctionUtils::GetDim(output_dims, 0) * (((DimsFunctionUtils::GetDim(output_dims, 1) + 3) / 4 * 4)) * DimsFunctionUtils::GetDim(output_dims, 2) * DimsFunctionUtils::GetDim(output_dims, 3) * DimsFunctionUtils::GetDim(output_dims, 4);
         int bytes_count      = data_count * DataTypeUtils::GetBytesSize(desc.data_type);
@@ -487,9 +489,9 @@ Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
             handle.base         = (void *)CFBridgingRetain(buffer);
             handle.bytes_offset = 0;
         };
-
-        blob_output_ = std::make_shared<Blob>(desc, handle);
-        blob_output_map_[desc.name] = blob_output_.get();
+        
+        blob_output_.push_back(std::make_shared<Blob>(desc, handle));
+        blob_output_map_[desc.name] = blob_output_.back().get();
     }
 
     blobs = blob_output_map_;
@@ -527,14 +529,6 @@ Status CoreMLNetwork::Forward() {
         if (status != TNN_OK) {
             return status;
         }
-
-        if (!mlmodel_net_ || [mlmodel_net_[@"layers"] count] <= 0) {
-            LOGE("Error: MLModel modelWithContentsOfURL failed: invalid net file\n");
-            return Status(TNNERR_INST_ERR, "MLModel modelWithContentsOfURL failed: invalid net file");
-        }
-        NSArray *layeres      = mlmodel_net_[@"layers"];
-        
-        NSString *output_name = layeres[layeres.count - 1][@"top"];
       
         NSMutableDictionary *input_dict = [NSMutableDictionary dictionary];
         NSError *error = nil;
@@ -542,7 +536,6 @@ Status CoreMLNetwork::Forward() {
         for (auto iter = blob_input_map_.begin(); iter != blob_input_map_.end(); ++iter) {
 
             NSString *input_name = [NSString stringWithCString:iter->first.c_str() encoding:[NSString defaultCStringEncoding]];
-
             Blob *input_blob          = blob_input_map_[string(input_name.UTF8String)];
             auto input_mtl_buffer     = (__bridge id<MTLBuffer>)(void *)input_blob->GetHandle().base;
             auto input_dims           = input_blob->GetBlobDesc().dims;
@@ -575,19 +568,19 @@ Status CoreMLNetwork::Forward() {
 
         auto input  = [[MLDictionaryFeatureProvider alloc] initWithDictionary:input_dict
                                                                         error:&error];
-        
         auto output = (MLDictionaryFeatureProvider *)[(MLModel *)mlmodel_ predictionFromFeatures:input
                                                                                                 error:&error];
-        
-        MLMultiArray *output_array = [output objectForKeyedSubscript:output_name].multiArrayValue;
-        int out_data_count         = DimsVectorUtils::Count(coreml_output_dims_);
-
-        Blob *output_blob      = blob_output_map[string(output_name.UTF8String)];
-        auto output_mtl_buffer = (__bridge id<MTLBuffer>)(void *)output_blob->GetHandle().base;
-        auto output_dims       = output_blob->GetBlobDesc().dims;
-        int bytes_count        = out_data_count * DataTypeUtils::GetBytesSize(output_blob->GetBlobDesc().data_type);
-
-        memcpy(output_mtl_buffer.contents, output_array.dataPointer, bytes_count);
+  
+        for (auto iter = blob_output_map_.begin(); iter != blob_output_map_.end(); ++iter) {
+            auto output_name = iter->first.c_str();
+            MLMultiArray *output_array = [output objectForKeyedSubscript:@(output_name)].multiArrayValue;
+            int out_data_count         = DimsVectorUtils::Count(coreml_output_dims_[output_name]);
+            Blob *output_blob      = blob_output_map[output_name];
+            auto output_mtl_buffer = (__bridge id<MTLBuffer>)(void *)output_blob->GetHandle().base;
+            auto output_dims       = output_blob->GetBlobDesc().dims;
+            int bytes_count        = out_data_count * DataTypeUtils::GetBytesSize(output_blob->GetBlobDesc().data_type);
+            memcpy(output_mtl_buffer.contents, output_array.dataPointer, bytes_count);
+        }
         return TNN_OK;
     } else {
         return Status(TNNERR_IOS_VERSION_ERROR, "The operate system is not iOS 12+ or macOS 10.14+");

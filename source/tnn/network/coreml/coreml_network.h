@@ -97,10 +97,10 @@ protected:
     BlobMap blob_input_map_;
     BlobMap blob_output_map_;
     DimsVector coreml_input_dims_;
-    DimsVector coreml_output_dims_;
+    std::map<std::string,DimsVector> coreml_output_dims_;
     
     std::vector<std::shared_ptr<Blob> > blob_input_;
-    std::shared_ptr<Blob> blob_output_;
+    std::vector<std::shared_ptr<Blob> > blob_output_;
     
     Status CheckCoreMLStatus();
     
