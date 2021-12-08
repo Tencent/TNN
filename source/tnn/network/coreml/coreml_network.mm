@@ -434,7 +434,8 @@ Status CoreMLNetwork::Forward() {
         
         //construct coreml inputs
         NSMutableDictionary *input_dict = [NSMutableDictionary dictionary];
-        
+        auto & inputs_type_map = net_structure_->input_data_type_map;
+
         for (auto iter = blob_input_map_.begin(); iter != blob_input_map_.end(); ++iter) {
 
             NSString *input_name = [NSString stringWithCString:iter->first.c_str() encoding:[NSString defaultCStringEncoding]];
@@ -442,7 +443,8 @@ Status CoreMLNetwork::Forward() {
             Blob *input_blob          = blob_input_map_[string(input_name.UTF8String)];
             auto input_mtl_buffer     = (__bridge id<MTLBuffer>)(void *)input_blob->GetHandle().base;
             auto input_dims           = input_blob->GetBlobDesc().dims;
-
+            const auto data_type = inputs_type_map[string(input_name.UTF8String)];
+            
             DimsVector input_stridess;
             for(int i=0; i<input_dims.size(); i++){
                 int strides = 1;
@@ -458,10 +460,24 @@ Status CoreMLNetwork::Forward() {
                 [shape_ addObject:@(input_dims[i])];
                 [strides_ addObject:@(input_stridess[i])];
             }
+            
+            MLMultiArrayDataType data_type_;
+            switch (data_type) {
+                case DATA_TYPE_FLOAT:
+                    data_type_ = MLMultiArrayDataTypeFloat32;
+                    break;
+                case DATA_TYPE_INT32:
+                    data_type_ = MLMultiArrayDataTypeInt32;
+                    break;
+                default:
+                    return Status(TNNERR_PARAM_ERR, "CoreML can not support this input data type.");
+                    break;
+            }
+            
             MLMultiArray * input_array = [[MLMultiArray alloc]
             initWithDataPointer:input_mtl_buffer.contents
                           shape:shape_
-                       dataType:MLMultiArrayDataTypeFloat32
+                       dataType:data_type_
                         strides:strides_
                     deallocator:^(void *_Nonnull bytes) {}
                           error:&error];
