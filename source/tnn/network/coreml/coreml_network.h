@@ -82,8 +82,6 @@ public:
     
     Status ConvertCoreMLModel(NetStructure *net_structure, NetResource *net_resource);
         
-    Status InitCoreMLExecutor();
-
     Status CompileModel(CoreML__Specification__Model* model);
     
 protected:

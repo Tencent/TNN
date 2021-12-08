@@ -277,13 +277,7 @@ Status CoreMLNetwork::ConvertCoreMLModel(NetStructure *net_structure, NetResourc
     return ret;
 }
 
-Status CoreMLNetwork::InitCoreMLExecutor() {
-    Status ret = TNN_OK;
-    return ret;
-}
-
 Status CoreMLNetwork::CompileModel(CoreML__Specification__Model* model) {
-    RETURN_ON_NEQ(InitCoreMLExecutor(), TNN_OK);
     
     if (@available(iOS 12.0, macOS 10.14, *)) {
         RETURN_ON_NEQ([coreml_executor_ buildFromProtoBuf:model], TNN_OK);
