@@ -22,6 +22,10 @@
 - (instancetype)initWithCachePath:(std::string)path ID:(std::string) ID {
     if (self = [super init]) {
         _cachePath = [NSString stringWithUTF8String:path.c_str()];
+        if (![[NSFileManager defaultManager] fileExistsAtPath:_cachePath]) {
+            LOGE("The input cache path (%s) is invalid, automatically try NSTemporaryDirectory\n", path.c_str());
+            _cachePath = NSTemporaryDirectory();
+        }
         _ID = [NSString stringWithUTF8String:ID.c_str()];
     }
     return self;
