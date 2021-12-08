@@ -523,12 +523,12 @@ public:
 };
 
 // func: matmul(Tensor self, Tensor other) -> Tensor
-class MatmulTorchConverter : public TorchOpConverter {
+class MatMulTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
         layer_info->type = LAYER_MATMUL;
-        layer_info->type_str = "Matmul";
+        layer_info->type_str = "MatMul";
         layer_info->name = node->output(0)->debugName();
 
         // https://pytorch.org/docs/stable/generated/torch.matmul.html?highlight=matmul#torch.matmul
@@ -1307,7 +1307,7 @@ REGISTER_TORCH_OP_CONVERTER(HardSigmoid, aten, hardsigmoid_)
 REGISTER_TORCH_OP_CONVERTER(HardSwish, aten, hardswish_)
 REGISTER_TORCH_OP_CONVERTER(LayerNorm, aten, layer_norm)
 REGISTER_TORCH_OP_CONVERTER(Linear, aten, linear)
-REGISTER_TORCH_OP_CONVERTER(Matmul, aten, matmul)
+REGISTER_TORCH_OP_CONVERTER(MatMul, aten, matmul)
 REGISTER_TORCH_OP_CONVERTER(Permute, aten, permute)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, adaptive_avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
