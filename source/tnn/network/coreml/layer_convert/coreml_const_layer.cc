@@ -57,9 +57,12 @@ Status CoreMLConstLayer::BuildLayerParam() {
         for (int i = 0; i < element_dims.size(); i++) {
             coreml_layer_->loadconstant->shape[i] = element_dims[i];
         }
-    } else {
+    } else if (element_size != 0) {
         coreml_layer_->loadconstant->n_shape = element_size;
         coreml_layer_->loadconstant->shape[0] = 1;
+    } else {
+        LOGE("CoreMLConstLayer weight shape is error\n");
+        return Status(TNNERR_PARAM_ERR, "CoreMLConstLayer weight shape is error");
     }
     
     //weight value
