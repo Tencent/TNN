@@ -29,49 +29,47 @@ DeviceType GetConcreteDeviceType(DeviceType type) {
     std::mutex g_map_mutex;
     std::lock_guard<std::mutex> guard(g_map_mutex);
 
-    auto device_map = GetGlobalDeviceMap();
-
     switch(type) {
         case DEVICE_GROUP_CPU:
             {
-                if (device_map.find(DEVICE_X86) != device_map.end()) {
+                if (GetDevice(DEVICE_X86) != nullptr) {
                     return DEVICE_X86;
-                } else if (device_map.find(DEVICE_ARM) != device_map.end()) {
+                } else if (GetDevice(DEVICE_ARM) != nullptr) {
                     return DEVICE_ARM;
-                } else if (device_map.find(DEVICE_NAIVE) != device_map.end()) {
+                } else if (GetDevice(DEVICE_NAIVE) != nullptr) {
                     return DEVICE_NAIVE;
-                } 
+                }
                 break;
             }
         case DEVICE_GROUP_GPU:
             {
-                if (device_map.find(DEVICE_CUDA) != device_map.end()) {
+                if (GetDevice(DEVICE_CUDA) != nullptr) {
                     return DEVICE_CUDA;
-                } else if (device_map.find(DEVICE_OPENCL) != device_map.end()) {
+                } else if (GetDevice(DEVICE_OPENCL) != nullptr) {
                     return DEVICE_OPENCL;
-                } else if (device_map.find(DEVICE_METAL) != device_map.end()) {
+                } else if (GetDevice(DEVICE_METAL) != nullptr) {
                     return DEVICE_METAL;
-                } 
+                }
                 break;
             }
         case DEVICE_GROUP_NPU:
             {
-                if (device_map.find(DEVICE_DSP) != device_map.end()) {
+                if (GetDevice(DEVICE_DSP) != nullptr) {
                     return DEVICE_DSP;
-                } else if (device_map.find(DEVICE_ATLAS) != device_map.end()) {
+                } else if (GetDevice(DEVICE_ATLAS) != nullptr) {
                     return DEVICE_ATLAS;
-                } else if (device_map.find(DEVICE_HUAWEI_NPU) != device_map.end()) {
+                } else if (GetDevice(DEVICE_HUAWEI_NPU) != nullptr) {
                     return DEVICE_HUAWEI_NPU;
-                } else if (device_map.find(DEVICE_RK_NPU) != device_map.end()) {
+                } else if (GetDevice(DEVICE_RK_NPU) != nullptr) {
                     return DEVICE_RK_NPU;
-                } 
+                }
                 break;
             }
         default:
             break;
     }
 
-    LOGE("No concrete device available.\n");
+    LOGI("No concrete device available.\n");
     return DEVICE_NAIVE;
 }
 

@@ -53,7 +53,12 @@ std::shared_ptr<const ImplementedLayout> AbstractDevice::GetImplementedLayout(La
 }
 
 AbstractDevice* GetDevice(DeviceType type) {
-    return GetGlobalDeviceMap()[type].get();
+    auto device_map = GetGlobalDeviceMap();
+    if (device_map.find(type) != device_map.end()) {
+        return GetGlobalDeviceMap()[type].get();
+    } else {
+        return nullptr;
+    }
 }
 
 /*
