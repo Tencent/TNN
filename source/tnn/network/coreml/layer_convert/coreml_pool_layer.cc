@@ -69,10 +69,11 @@ Status CoreMLPoolLayer::BuildLayerParam() {
     }
     
     if (pad_type == -1) { // default padding following the proto setting
-        auto pad_top = pool_param->pads[0];
-        auto pad_left = pool_param->pads[1];
-        auto pad_bottom = pool_param->pads[2];
-        auto pad_right = pool_param->pads[3];
+        //[w_begin w_end h_begin h_end d_begin d_end]
+        auto pad_left = pool_param->pads[0];
+        auto pad_right = pool_param->pads[1];
+        auto pad_top = pool_param->pads[2];
+        auto pad_bottom = pool_param->pads[3];
     
         coreml_layer_->pooling->pooling_padding_type_case = CORE_ML__SPECIFICATION__POOLING_LAYER_PARAMS__POOLING_PADDING_TYPE_VALID;
         valid_ = std::shared_ptr<CoreML__Specification__ValidPadding>(new CoreML__Specification__ValidPadding);
