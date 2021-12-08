@@ -144,20 +144,11 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
         coreml_executor_ = [[CoreMLExecutor alloc] initWithCachePath:net_config.cache_path ID:md5];
         
         if ([coreml_executor_ buildFromCache] != TNN_OK) {
-            auto time_start = CFAbsoluteTimeGetCurrent();
             RETURN_ON_NEQ(InitCoreMLModel(net_structure_, net_resource_), TNN_OK);
-            auto time_final = CFAbsoluteTimeGetCurrent();
-            LOGE("InitCoreMLModel time: %f ms\n", (time_final - time_start) * 1000.0);
             
-            time_start = CFAbsoluteTimeGetCurrent();
             RETURN_ON_NEQ(ConvertCoreMLModel(net_structure_, net_resource_), TNN_OK);
-            time_final = CFAbsoluteTimeGetCurrent();
-            LOGE("ConvertCoreMLModel time: %f ms\n", (time_final - time_start) * 1000.0);
             
-            time_start = CFAbsoluteTimeGetCurrent();
             RETURN_ON_NEQ(CompileModel(coreml_model_.get()), TNN_OK);
-            time_final = CFAbsoluteTimeGetCurrent();
-            LOGE("CompileModel time: %f ms\n", (time_final - time_start) * 1000.0);
         }
 
 //        return ret;

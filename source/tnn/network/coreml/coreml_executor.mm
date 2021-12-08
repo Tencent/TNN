@@ -10,9 +10,9 @@
 @property(nonatomic, strong) NSString *cachePath;
 @property(nonatomic, strong) NSString *ID;
 @property(nonatomic, strong) MLModel* model API_AVAILABLE(ios(12.0), macosx(10.14));
+@property(nonatomic, strong) NSURL *mlmodelcPath;
 
 - (NSURL *)mlmodelPath;
-- (NSURL *)mlmodelcPath;
 
 - (TNN_NS::Status)saveModel:(CoreML__Specification__Model*)model;
 - (TNN_NS::Status)build:(NSURL*)modelUrl;
@@ -32,8 +32,12 @@
     return [tempURL URLByAppendingPathComponent:_ID];
 }
 - (NSURL *)mlmodelcPath {
+    if ([[_mlmodelcPath path] length] >0) {
+        return _mlmodelcPath;
+    }
     auto tempURL = [NSURL fileURLWithPath:_cachePath isDirectory:YES];
-    return [tempURL URLByAppendingPathComponent:[_ID stringByAppendingString:@".mlmodelc"]];
+    _mlmodelcPath=  [tempURL URLByAppendingPathComponent:[_ID stringByAppendingString:@".mlmodelc"]];
+    return _mlmodelcPath;
 }
 
 - (TNN_NS::Status)buildFromCache {
@@ -41,6 +45,10 @@
     auto mlmodelcURL = [self mlmodelcPath];
     
     if (@available(iOS 12.0, macOS 10.14, *)) {
+#ifdef DEBUG
+    auto time_start = CFAbsoluteTimeGetCurrent();
+#endif
+        
         NSError* error = nil;
         MLModelConfiguration* config = [MLModelConfiguration alloc];
         config.computeUnits = MLComputeUnitsAll;
@@ -50,6 +58,10 @@
             LOGE("Error Creating MLModel %s.\n", [error localizedDescription].UTF8String);
             return TNN_NS::Status(TNN_NS::TNNERR_ANE_COMPILE_MODEL_ERROR, "Error: Failed Creating MLModel.");
         }
+        
+#ifdef DEBUG
+    LOGD("TNN buildFromCache time: %f ms\n", (CFAbsoluteTimeGetCurrent() - time_start) * 1000.0);
+#endif
         return TNN_NS::TNN_OK;
     } else {
         LOGE("Error: CoreML only support iOS 12+.\n");
@@ -58,32 +70,6 @@
 }
 
 - (TNN_NS::Status)buildFromProtoBuf:(CoreML__Specification__Model*)model {
-    //mlmodel path
-    auto mlmodelURL = [self mlmodelPath];
-    
-    auto status = [self saveModel:model];
-    RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
-    
-    status = [self build:mlmodelURL];
-    return status;
-}
-
-- (TNN_NS::Status)cleanup {
-//    NSError* error = nil;
-//    [[NSFileManager defaultManager] removeItemAtPath:_mlModelFilePath error:&error];
-//    if (error != nil) {
-//        LOGE("Failed cleaning up model: %s.\n", [error localizedDescription].UTF8String);
-//        return TNN_NS::Status(TNN_NS::TNNERR_ANE_CLEAN_ERROR, "Error: Failed cleaning up model.");
-//    }
-//    [[NSFileManager defaultManager] removeItemAtPath:_compiledModelFilePath error:&error];
-//    if (error != nil) {
-//        LOGE("Failed cleaning up compiled model: %s.\n", [error localizedDescription].UTF8String);
-//        return TNN_NS::Status(TNN_NS::TNNERR_ANE_CLEAN_ERROR, "Error: Failed cleaning up compiled model.");
-//    }
-    return TNN_NS::TNN_OK;
-}
-
-- (TNN_NS::Status)saveModel:(CoreML__Specification__Model*)model {
 #ifdef DEBUG
     auto time_start = CFAbsoluteTimeGetCurrent();
 #endif
@@ -91,14 +77,45 @@
     //mlmodel path
     auto mlmodelURL = [self mlmodelPath];
     
-    if (model->specificationversion == 3) {
-        _coreMlVersion = 2;
-    } else if (model->specificationversion == 4) {
-        _coreMlVersion = 3;
-    } else {
+    //save mlmodel
+    auto status = [self saveModel:model];
+    RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
+    
+    //build mlmodelc
+    status = [self build:mlmodelURL];
+    
+    //remove mlmodel, no need to check error
+    NSError* error = nil;
+    [[NSFileManager defaultManager] removeItemAtURL:mlmodelURL error:&error];
+    
+#ifdef DEBUG
+    LOGD("TNN buildFromProtoBuf time: %f ms\n", (CFAbsoluteTimeGetCurrent() - time_start) * 1000.0);
+#endif
+    return status;
+}
+
+- (TNN_NS::Status)cleanup {
+    NSError* error = nil;
+    
+    //remove mlmodel, no need to check error
+    auto mlmodelURL = [self mlmodelPath];
+    [[NSFileManager defaultManager] removeItemAtURL:mlmodelURL error:&error];
+    
+    //remove mlmodelc, no need to check error
+    auto mlmodelcURL = [self mlmodelPath];
+    [[NSFileManager defaultManager] removeItemAtURL:mlmodelcURL error:&error];
+    return TNN_NS::TNN_OK;
+}
+
+- (TNN_NS::Status)saveModel:(CoreML__Specification__Model*)model {
+    //mlmodel path
+    auto mlmodelURL = [self mlmodelPath];
+    
+    if (!(model->specificationversion == 3 || model->specificationversion == 4)) {
         LOGE("Only Core ML models with specification version 3 or 4 are supported.\n");
         return TNN_NS::Status(TNN_NS::TNNERR_COREML_VERSION_ERROR, "Error: Only Core ML models with specification version 3 or 4 are supported.");
     }
+    
     size_t modelSize = core_ml__specification__model__get_packed_size(model);
     std::unique_ptr<uint8_t> writeBuffer(new uint8_t[modelSize]);
     core_ml__specification__model__pack(model, writeBuffer.get());
@@ -111,30 +128,26 @@
     const char* ptr = reinterpret_cast<const char*>(writeBuffer.get());
     if (ptr) {
         file_stream.write(ptr, modelSize);
+        file_stream.close();
     } else {
+        file_stream.close();
         LOGE("CoreML models file is empty.\n");
         return TNN_NS::Status(TNN_NS::TNNERR_ANE_SAVE_MODEL_ERROR, "Error: CoreML models file is empty.");
     }
-    file_stream.close();
-    
-#ifdef DEBUG
-    LOGD("MLModel save time: %f ms\n", (CFAbsoluteTimeGetCurrent() - time_start) * 1000.0);
-#endif
     
     return TNN_NS::TNN_OK;
 }
 
 - (TNN_NS::Status)build:(NSURL*)mlmodelURL {
-    auto time_start = CFAbsoluteTimeGetCurrent();
-    
     if (@available(iOS 12.0, macOS 10.14, *)) {
-        
         NSError* error = nil;
         NSURL* mlmodelcURL = [MLModel compileModelAtURL:mlmodelURL error:&error];
         if (error != nil) {
             LOGE("Error compiling model %s.\n", [error localizedDescription].UTF8String);
             return TNN_NS::Status(TNN_NS::TNNERR_ANE_COMPILE_MODEL_ERROR, "Error: Failed compiling model.");
         }
+        //To update modelcURL, it may differ from the default value
+        self.mlmodelcPath = mlmodelcURL;
     
         MLModelConfiguration* config = [MLModelConfiguration alloc];
         config.computeUnits = MLComputeUnitsAll;
@@ -145,7 +158,6 @@
             return TNN_NS::Status(TNN_NS::TNNERR_ANE_COMPILE_MODEL_ERROR, "Error: Failed Creating MLModel.");
         }
         
-        NSLog(@"MLModel build time: %f ms", (CFAbsoluteTimeGetCurrent() - time_start) * 1000.0);
         return TNN_NS::TNN_OK;
     } else {
         LOGE("Error: CoreML only support iOS 12+.\n");

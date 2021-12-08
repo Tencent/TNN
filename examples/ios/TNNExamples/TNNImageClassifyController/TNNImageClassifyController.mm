@@ -119,6 +119,7 @@ using namespace TNN_NS;
         option->model_content = model_content;
         option->library_path = path_library.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
     }
     auto predictor = std::make_shared<ImageClassifier>();
     auto status = predictor->Init(option);
