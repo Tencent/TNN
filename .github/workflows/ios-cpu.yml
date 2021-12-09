@@ -27,4 +27,4 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: build
-      run: ./scripts/build_ios.sh
+      run: ./scripts/build_framework_ios.sh
