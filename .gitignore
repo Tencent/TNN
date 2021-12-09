@@ -496,3 +496,5 @@ opencl_program.cc
 
 # opencl generated code
 opencl_program.cc
+platforms/mac/tnn.xcodeproj/project.xcworkspace/xcuserdata/darrenyao.xcuserdatad/UserInterfaceState.xcuserstate
+platforms/mac/tnn.xcodeproj/xcuserdata/darrenyao.xcuserdatad/xcschemes/xcschememanagement.plist

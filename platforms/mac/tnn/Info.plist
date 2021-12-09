@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BuildMachineOSBuild</key>
+	<string>19E287</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>tnn</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.tencent.youtu.tnn.tnn</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>tnn</string>
+	<key>CFBundlePackageType</key>
+	<string>FMWK</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.2.0</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>iPhoneOS</string>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>103</string>
+	<key>DTCompiler</key>
+	<string>com.apple.compilers.llvm.clang.1_0</string>
+	<key>DTPlatformBuild</key>
+	<string>17E8258</string>
+	<key>DTPlatformName</key>
+	<string>iphoneos</string>
+	<key>DTPlatformVersion</key>
+	<string>13.4</string>
+	<key>DTSDKBuild</key>
+	<string>17E8258</string>
+	<key>DTSDKName</key>
+	<string>iphoneos13.4</string>
+	<key>DTXcode</key>
+	<string>1141</string>
+	<key>DTXcodeBuild</key>
+	<string>11E503a</string>
+	<key>MinimumOSVersion</key>
+	<string>9.0</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.</string>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+	</array>
+	<key>YTSDKInfo</key>
+	<dict>
+		<key>tnn_commit_branch</key>
+		<string>master</string>
+		<key>tnn_commit_date</key>
+		<string>2021-12-07</string>
+		<key>tnn_commit_hash</key>
+		<string>7f2804dbb</string>
+	</dict>
+</dict>
+</plist>
