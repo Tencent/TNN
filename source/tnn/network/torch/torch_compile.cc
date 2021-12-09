@@ -187,6 +187,11 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
                 block.register_max_inshape(max_shape);
                 block.register_intype(in_type);
             }
+
+            if (config.device_type == DEVICE_CUDA) {
+                // release cached cuda memory
+                c10::cuda::CUDACachingAllocator::emptyCache();
+            }
         }
     #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
         {
@@ -273,8 +278,8 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
     // remove constant nodes which has been convert to tnn netresource
     torch::jit::EliminateDeadCode(g);
 
-    //  std::cout << "============================= the final graph ===========================" << std::endl;
-    //  std::cout << g->toString() << std::endl;
+    // std::cout << "============================= the final graph ===========================" << std::endl;
+    // std::cout << g->toString() << std::endl;
 
     if (config.device_type == DEVICE_CUDA) {
         // release cached cuda memory

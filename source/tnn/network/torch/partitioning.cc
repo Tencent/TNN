@@ -361,6 +361,84 @@ std::vector<SegmentedBlock> segment_graph(std::shared_ptr<torch::jit::Graph> g) 
     return std::move(segmented_blocks);
 }
 
+std::vector<SegmentedBlock> RemoveUnnessaryBlocks(std::vector<SegmentedBlock> &segmented_blocks) {
+    auto is_intersect = [&](int i, int j) {
+        std::unordered_set<torch::jit::Node*> set0(segmented_blocks[i].raw_nodes().begin(), segmented_blocks[i].raw_nodes().end());
+        std::unordered_set<torch::jit::Node*> set1(segmented_blocks[j].raw_nodes().begin(), segmented_blocks[j].raw_nodes().end());
+        for (auto node : set0) {
+            if (set1.count(node)) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    std::set<std::string> compute_node_set = {"aten::conv2d", "aten::_convolution", "aten::matmul", "aten::linear", "aten::admm"};
+    auto is_compute_block = [&](SegmentedBlock& seg_block) {
+        for (auto &node : seg_block.raw_nodes()) {
+            if (compute_node_set.count(node->kind().toQualString())) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto get_compute_ids = [&]() {
+        std::set<int> compute_block_ids;
+        for (int i = 0; i < segmented_blocks.size(); i++) {
+            if (is_compute_block(segmented_blocks[i])) {
+                compute_block_ids.insert(i);
+            }
+        }
+        return compute_block_ids;
+    };
+
+    auto get_diff_ids = [&](std::set<int> &ids0, std::set<int> &ids1) {
+        std::set<int> diff_ids;
+        std::set_difference(ids0.begin(), ids0.end(), ids1.begin(), ids1.end(), std::insert_iterator<std::set<int>>(diff_ids, diff_ids.begin()));
+        return diff_ids;
+    };
+
+    auto get_delete_ids = [&]() {
+        std::set<int> keep_ids = get_compute_ids();
+        std::set<int> delete_ids;
+        for (int i = 0; i < segmented_blocks.size(); i++) {
+            if (!keep_ids.count(i)) {
+                delete_ids.insert(i);
+            }
+        }
+        std::set<int> intersect_ids;
+        do {
+            intersect_ids.clear();
+            for (auto i : delete_ids) {
+                for (auto j : keep_ids) {
+                    if (is_intersect(i, j)) {
+                        intersect_ids.insert(i);
+                        break;
+                    }
+                }
+            }
+
+            keep_ids = intersect_ids;
+            delete_ids = get_diff_ids(delete_ids, intersect_ids);
+        } while(intersect_ids.size());
+
+        return delete_ids;
+    };
+
+    auto delete_ids = get_delete_ids();
+    std::cout << "delete ids " << delete_ids << std::endl;
+
+    std::vector<SegmentedBlock> final_blocks;
+    for (int i = 0; i < segmented_blocks.size(); i++) {
+        if (!delete_ids.count(i)) {
+            final_blocks.emplace_back(segmented_blocks[i]);
+        }
+    }
+    return final_blocks;
+}
+
 std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<torch::jit::Graph> g, NetworkConfig& config) {
     // LOG_DEBUG(partition_info);
     // segment lowering global graph into blocks
@@ -391,19 +469,6 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
                        [](SegmentedBlock& seg_block) { return seg_block.target() == SegmentedBlock::kTorch; }),
         segmented_blocks.end());
 
-    // remove block without compute node(conv, matmul, linear, admm)
-    std::set<std::string> compute_node_set = {"aten::conv2d", "aten::_convolution", "aten::matmul", "aten::linear", "aten::admm", "aten::mul",};
-    auto filter_nocompute_block = [&](SegmentedBlock& seg_block) {
-        for (auto &node : seg_block.raw_nodes()) {
-            if (compute_node_set.count(node->kind().toQualString())) {
-                return false;
-            }
-        }
-        return true;
-    };
-    segmented_blocks.erase(std::remove_if(segmented_blocks.begin(), segmented_blocks.end(), filter_nocompute_block),
-                           segmented_blocks.end());
-
     // for (auto block : segmented_blocks) {
     //     printf("====================== subgraph start %d ======================\n", block.target());
     //     // if (block.target() == SegmentedBlock::kTNN) {
@@ -413,7 +478,7 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
     //     printf("====================== subgraph end   %d ======================\n", block.target());
     // }
 
-    return segmented_blocks;
+    return RemoveUnnessaryBlocks(segmented_blocks);
 }
 
 }  // namespace partitioning
