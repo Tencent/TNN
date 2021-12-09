@@ -61,7 +61,7 @@ private:
     int UpdateBlobRange(DataSet& dataset);
     int UpdateBlobDistribute(DataSet& dataset);
     IntScaleResource* CreateIntScale(std::vector<float> scale_vec);
-    IntScaleResource* CreateIntScale(std::vector<float> scale_vec, std::vector<int8_t> scale_bias_vec);
+    IntScaleResource* CreateIntScale(std::vector<float> scale_vec, std::vector<int8_t> zero_point_vec);
 
     int QuantizeParams();
     int QuantizeConvParams(ConvLayerResource* resource, ConvLayerParam* param, IntScaleResource* input_scale);
@@ -70,7 +70,7 @@ private:
     // int CalQuantizedWeights(const float* weights, const int size, const int output_channel, bool merge_channel,
     //                         int8_t* quantized_weight, float* weight_scale);
     int CalQuantizedWeights(const float* weights, const int size, const int output_channel, bool merge_channel,
-                            int8_t* quantized_weight, float* weight_scale,  int8_t* weight_scale_bias);
+                            int8_t* quantized_weight, float* weight_scale,  int8_t* weight_zero_point);
 
     int MergeBlobScale();
     void MergeBlobScaleRecursion(LayerInfo* layer_info, NetStructure* net_struct, NetResource* net_resource);

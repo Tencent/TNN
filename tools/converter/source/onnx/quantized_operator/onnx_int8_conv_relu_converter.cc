@@ -112,10 +112,13 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structu
         input_blob_scale->name               = input_blob_scale_name;
         TNN_NS::RawBuffer input_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&input_scale);
         input_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
-        input_blob_scale->scale_handle      = input_scale_handle;
-        TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&input_zero_point);
-        zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
-        input_blob_scale->bias_handle                    = zero_point_handle;
+        input_blob_scale->scale_handle = input_scale_handle;
+        TNN_NS::RawBuffer bias_handle  = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&input_zero_point);
+        bias_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        input_blob_scale->bias_handle = bias_handle;
+        TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int8_t));
+        zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+        input_blob_scale->zero_point_handle = zero_point_handle;
         net_resource.resource_map[input_blob_scale_name] = std::shared_ptr<TNN_NS::LayerResource>(input_blob_scale);
     }
 
@@ -136,7 +139,10 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structu
     auto cal_weight_scale          = input_scale * weight_scale;
     TNN_NS::RawBuffer scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&cal_weight_scale);
     scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
-    layer_resource->scale_handle = scale_handle;
+    layer_resource->scale_handle        = scale_handle;
+    TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int8_t));
+    zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+    layer_resource->zero_point_handle = zero_point_handle;
 
     if (input_size > 2) {
         // Get Bias
@@ -172,10 +178,13 @@ TNN_NS::Status OnnxInt8ConvReluConverter::exec(TNN_NS::NetStructure &net_structu
         output_blob_scale->name               = output_blob_cale_name;
         TNN_NS::RawBuffer output_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&output_scale);
         output_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
-        output_blob_scale->scale_handle     = output_scale_handle;
-        TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&output_zero_point);
-        zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
-        output_blob_scale->bias_handle                   = zero_point_handle;
+        output_blob_scale->scale_handle = output_scale_handle;
+        TNN_NS::RawBuffer bias_handle   = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&output_zero_point);
+        bias_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        output_blob_scale->bias_handle      = bias_handle;
+        TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int8_t));
+        zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+        output_blob_scale->zero_point_handle             = zero_point_handle;
         net_resource.resource_map[output_blob_cale_name] = std::shared_ptr<TNN_NS::LayerResource>(output_blob_scale);
     }
     cur_layer->inputs.resize(1);

@@ -62,13 +62,13 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
             do_bias_preprocess_  = true;
             auto dims_output     = outputs[0]->GetBlobDesc().dims;
             auto dims_input      = inputs[0]->GetBlobDesc().dims;
-            int scale_bias_len_w = conv_res->scale_bias_handle.GetDataCount();
+            int zero_point_len_w = conv_res->zero_point_handle.GetDataCount();
             int data_len_w       = conv_res->filter_handle.GetDataCount();
-            int scale_bias_len_i =
-                reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource()->scale_bias_handle.GetDataCount();
-            int8_t *scale_bias_i_ptr =
-                reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
-            int8_t *scale_bias_w_ptr = conv_res->scale_bias_handle.force_to<int8_t *>();
+            int zero_point_len_i =
+                reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource()->zero_point_handle.GetDataCount();
+            int8_t *zero_point_i_ptr =
+                reinterpret_cast<BlobInt8 *>(inputs[0])->GetIntResource()->zero_point_handle.force_to<int8_t *>();
+            int8_t *zero_point_w_ptr = conv_res->zero_point_handle.force_to<int8_t *>();
             int8_t *weight_ptr       = conv_res->filter_handle.force_to<int8_t *>();
             RawBuffer temp_buffer_weight_x_bias(dims_output[1] * sizeof(int32_t));
             int32_t *weight_x_bias_ptr    = temp_buffer_weight_x_bias.force_to<int32_t *>();
@@ -84,17 +84,17 @@ Status CpuConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
                 int input_c_start  = g * input_channels_per_group;
                 int input_c_end    = (g + 1) * input_channels_per_group;
                 for (int output_c = output_c_start; output_c < output_c_end; output_c++) {
-                    int w_scale_bias_idx = scale_bias_len_w == 1 ? 0 : output_c;
+                    int w_zero_point_idx = zero_point_len_w == 1 ? 0 : output_c;
                     int32_t val          = 0;
                     for (int input_c = input_c_start; input_c < input_c_end; input_c++) {
-                        int i_scale_bias_idx = scale_bias_len_i == 1 ? 0 : input_c;
+                        int i_zero_point_idx = zero_point_len_i == 1 ? 0 : input_c;
                         int kernel_sum       = 0;
                         int8_t *kernel_ptr   = weight_ptr + weights_start +
                                              kernel_len * (((output_c - output_c_start) * input_channels_per_group) +
                                                            input_c - input_c_start);
                         std::for_each(kernel_ptr, kernel_ptr + kernel_len, [&](int8_t n) { kernel_sum += n; });
-                        val += scale_bias_i_ptr[i_scale_bias_idx] *
-                               (scale_bias_w_ptr[w_scale_bias_idx] * kernel_len - kernel_sum);
+                        val += zero_point_i_ptr[i_zero_point_idx] *
+                               (zero_point_w_ptr[w_zero_point_idx] * kernel_len - kernel_sum);
                     }
                     weight_x_bias_ptr[output_c] = val;
                 }
@@ -183,31 +183,31 @@ Status CpuConvLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
                                                   param->dialations[1], param->activation_type, NULL, 0, NULL, 0);
     } else if (data_type == DATA_TYPE_INT8) {
         auto weight_scale = buffer_scale_.force_to<float *>();
-        int scale_bias_len_w = resource->scale_bias_handle.GetDataCount();
-        int scale_bias_len_i = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->scale_bias_handle.GetDataCount();
-        int scale_bias_len_o = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->scale_bias_handle.GetDataCount();
-        int8_t* scale_bias_w_ptr = resource->scale_bias_handle.force_to<int8_t *>();
-        int8_t* scale_bias_i_ptr = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
-        int8_t* scale_bias_o_ptr = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
+        int zero_point_len_w = resource->zero_point_handle.GetDataCount();
+        int zero_point_len_i = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->zero_point_handle.GetDataCount();
+        int zero_point_len_o = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->zero_point_handle.GetDataCount();
+        int8_t* zero_point_w_ptr = resource->zero_point_handle.force_to<int8_t *>();
+        int8_t* zero_point_i_ptr = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource()->zero_point_handle.force_to<int8_t *>();
+        int8_t* zero_point_o_ptr = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource()->zero_point_handle.force_to<int8_t *>();
         auto relu6_max    = relu6_max_.force_to<int8_t *>();
         void *add_input   = (param->fusion_type == FusionType_None) ? nullptr : inputs[1]->GetHandle().base;
         int8_t *add_bias_input = (param->fusion_type == FusionType_None) ? nullptr
-                : reinterpret_cast<BlobInt8 *>(inputs[1])->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
+                : reinterpret_cast<BlobInt8 *>(inputs[1])->GetIntResource()->zero_point_handle.force_to<int8_t *>();
         if (do_bias_preprocess_) {
             NaiveConvBias<int8_t, int8_t, int32_t, int8_t>(
                 input_ptr, output_ptr, weight_ptr, bias_ptr, input_dims, output_dims, param->strides[1],
                 param->strides[0], param->kernels[1], param->kernels[0], param->pads[2], param->pads[0], param->group,
                 param->dialations[1], param->activation_type, weight_scale, buffer_scale_.GetDataCount(),
-                scale_bias_w_ptr, scale_bias_len_w, scale_bias_i_ptr, scale_bias_len_i, scale_bias_o_ptr,
-                scale_bias_len_o, buffer_weight_x_bias_.force_to<int32_t *>(), relu6_max, relu6_max_.GetDataCount(),
+                zero_point_w_ptr, zero_point_len_w, zero_point_i_ptr, zero_point_len_i, zero_point_o_ptr,
+                zero_point_len_o, buffer_weight_x_bias_.force_to<int32_t *>(), relu6_max, relu6_max_.GetDataCount(),
                 param->fusion_type, add_input, buffer_add_scale_.force_to<float *>(), add_bias_input);
         } else {
             NaiveConvBias<int8_t, int8_t, int32_t, int8_t>(
                 input_ptr, output_ptr, weight_ptr, bias_ptr, input_dims, output_dims, param->strides[1],
                 param->strides[0], param->kernels[1], param->kernels[0], param->pads[2], param->pads[0], param->group,
                 param->dialations[1], param->activation_type, weight_scale, buffer_scale_.GetDataCount(),
-                scale_bias_w_ptr, scale_bias_len_w, scale_bias_i_ptr, scale_bias_len_i, scale_bias_o_ptr,
-                scale_bias_len_o, relu6_max, relu6_max_.GetDataCount(), param->fusion_type, add_input,
+                zero_point_w_ptr, zero_point_len_w, zero_point_i_ptr, zero_point_len_i, zero_point_o_ptr,
+                zero_point_len_o, relu6_max, relu6_max_.GetDataCount(), param->fusion_type, add_input,
                 buffer_add_scale_.force_to<float *>(), add_bias_input);
         }
     } else {
