@@ -48,8 +48,14 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
 Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
     
     auto type = net_config_.device_type;
-    if(type == DEVICE_APPLE_NPU){   // DEVICE_APPLE_NPU reuse DEVICE_METAL
-        type = DEVICE_METAL;
+    if(type == DEVICE_APPLE_NPU) {
+        //use DEVICE_ARM OR DEVICE_X86 according to hardware
+#if defined(__arm__) || defined(__arm64__)
+        type = DEVICE_ARM;
+#else
+        type = DEVICE_X86;
+#endif
+        
     }
     auto device = GetDevice(type);
     RETURN_VALUE_ON_NEQ(device != NULL, true, TNNERR_DEVICE_NOT_SUPPORT);

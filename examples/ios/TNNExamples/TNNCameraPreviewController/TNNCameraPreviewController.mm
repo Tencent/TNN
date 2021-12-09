@@ -82,7 +82,7 @@ typedef void(^CommonCallback)(Status);
     
     //init network
     [self.switchDevice setSelectedSegmentIndex:self.viewModel.preferGPU ? 1 : 0];
-    auto units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
             //刷新界面
@@ -148,7 +148,7 @@ typedef void(^CommonCallback)(Status);
 - (IBAction)onswitchDevice:(id)sender
 {
     //init network
-    auto units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
             //刷新界面
@@ -207,7 +207,7 @@ typedef void(^CommonCallback)(Status);
         std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
         // devan: to support generate UIImage, set channel to 4
         auto origin_dims = {1, 4, origin_height, origin_width};
-        if (compute_units == TNNComputeUnitsCPU) {
+        if (compute_units == TNNComputeUnitsCPU || compute_units == TNNComputeUnitsAppleNPU) {
             image_data = utility::CVImageBuffRefGetData(image_buffer);
             image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, origin_dims, image_data.get());
         } else {
@@ -372,22 +372,24 @@ typedef void(^CommonCallback)(Status);
 }
 
 - (void)showFPS:(std::map<std::string, double>) map_fps {
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     NSMutableString *fps = [NSMutableString stringWithFormat:@"device: %@",
-                            self.switchDevice.selectedSegmentIndex ? @"metal\n" : @"arm\n"];
+                            [self getNSSTringForComputeUnits:units]];
     int index = 0;
     for (auto item : map_fps) {
-        [fps appendFormat:@"%@fps %s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
+        [fps appendFormat:@" %@fps %s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
         NSLog(@"%@fps %s: %.2f",  index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second);
     }
     self.labelFPS.text = fps;
 }
 
 - (void)showTime:(std::map<std::string, double>) map_time {
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     NSMutableString *fps = [NSMutableString stringWithFormat:@"device: %@",
-                            self.switchDevice.selectedSegmentIndex ? @"metal\n" : @"arm\n"];
+                            [self getNSSTringForComputeUnits:units]];
     int index = 0;
     for (auto item : map_time) {
-        [fps appendFormat:@"%@time %s: %.4f ms", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
+        [fps appendFormat:@" %@time %s: %.4f ms", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
         //LOGE("=== %s: %.4f\n", item.first.c_str(), item.second);
     }
     self.labelFPS.text = fps;

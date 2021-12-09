@@ -136,7 +136,7 @@ using namespace TNN_NS;
                           withBytes:image_data.get()
                         bytesPerRow:target_width * 4];
         status = predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
-    } else if (compute_units == TNNComputeUnitsCPU) {
+    } else if (compute_units == TNNComputeUnitsCPU || units == TNNComputeUnitsAppleNPU) {
         auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
         status = predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
     }

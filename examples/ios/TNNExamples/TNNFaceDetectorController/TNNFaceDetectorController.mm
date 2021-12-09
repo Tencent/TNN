@@ -102,6 +102,7 @@ using namespace TNN_NS;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
         
         option->score_threshold = 0.95;
         option->iou_threshold = 0.15;
@@ -125,7 +126,7 @@ using namespace TNN_NS;
     const int origin_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
     DimsVector image_dims = {1, 3, origin_height, origin_width};
     std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
-    if(units == TNNComputeUnitsCPU) {
+    if(units == TNNComputeUnitsCPU || units == TNNComputeUnitsAppleNPU) {
         image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, image_dims, image_data.get());
     } else {
         image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, image_dims);

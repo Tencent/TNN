@@ -216,8 +216,8 @@ using namespace TNN_NS;
 - (void) predictOnImageList:(std::shared_ptr<TNNSDKSample>)face_detector: (std::shared_ptr<TNNSDKSample>)face_mesh {
     //clear result
     self.labelResult.text = nil;
-
-    TNNComputeUnits compute_units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    
+    auto compute_units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
 
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
@@ -263,7 +263,7 @@ using namespace TNN_NS;
                                     mipmapLevel:0
                                       withBytes:image_data.get()
                                     bytesPerRow:orig_image_dims[3] * 4];
-                } else if (compute_units == TNNComputeUnitsCPU) {
+                } else if (compute_units == TNNComputeUnitsCPU || compute_units == TNNComputeUnitsAppleNPU) {
                     image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, orig_image_dims, image_data.get());
                 }
                 // preprocess
@@ -384,8 +384,8 @@ using namespace TNN_NS;
     
     DimsVector target_face_detector_dims = predictor_face_detector->GetInputShape();
     DimsVector target_face_mesh_dims = predictor_face_mesh->GetInputShape();
-
-    auto units = self.switchDevice.selectedSegmentIndex ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
 
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
@@ -393,7 +393,7 @@ using namespace TNN_NS;
     
     auto image_data_for_detector = utility::UIImageGetData(self.image_orig);
     std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
-    if (units == TNNComputeUnitsCPU) {
+    if (units == TNNComputeUnitsCPU || units == TNNComputeUnitsAppleNPU) {
         image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, image_dims, image_data_for_detector.get());
     } else {
         image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, image_dims);

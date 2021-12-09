@@ -634,6 +634,7 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
             if (option->compute_units >= TNNComputeUnitsGPU) {
                 device_type_               = TNN_NS::DEVICE_ARM;
                 network_config.device_type = TNN_NS::DEVICE_ARM;
+                network_config.network_type = TNN_NS::NETWORK_TYPE_DEFAULT;
                 instance                   = net_->CreateInst(network_config, status,  option->input_shapes);
             }
         }

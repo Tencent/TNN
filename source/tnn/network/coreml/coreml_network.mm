@@ -14,7 +14,6 @@
 
 #include <sys/utsname.h>
 #include "coreml_network.h"
-#include "tnn/device/metal/metal_context.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
 #include "tnn/interpreter/default_model_interpreter.h"
@@ -66,20 +65,8 @@ CoreMLNetwork::CoreMLNetwork() {}
 
 CoreMLNetwork::~CoreMLNetwork() {
     DeInit();
-    for (auto iter : blob_input_map_) {
-        if (iter.second && iter.second->GetHandle().base) {
-            CFBridgingRelease(iter.second->GetHandle().base);
-            iter.second->SetHandle(BlobHandle());
-        }
-    }
+    
     blob_input_map_ = {};
-
-    for (auto iter : blob_output_map_) {
-        if (iter.second && iter.second->GetHandle().base) {
-            CFBridgingRelease(iter.second->GetHandle().base);
-            iter.second->SetHandle(BlobHandle());
-        }
-    }
     blob_output_map_ = {};
     
     if (context_ != nullptr) {
@@ -113,8 +100,13 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
         }
         
         auto type = net_config.device_type;
-        if(type == DEVICE_APPLE_NPU){  // DEVICE_APPLE_NPU reuse DEVICE_METAL
-            type = DEVICE_METAL;
+        if(type == DEVICE_APPLE_NPU) {
+            //use DEVICE_ARM OR DEVICE_X86 according to hardware
+#if defined(__arm__) || defined(__arm64__)
+            type = DEVICE_ARM;
+#else
+            type = DEVICE_X86;
+#endif
         }
         device_ = GetDevice(type);
 
@@ -313,8 +305,6 @@ Status CoreMLNetwork::GetAllInputBlobs(BlobMap &blobs) {
         return status;
     }
 
-    MetalContext *context              = dynamic_cast<MetalContext *>(context_);
-    TNNMMetalContextImpl *context_impl = context->getMetalContextImpl();
     BlobMap input_blobs;
     
     const auto & inputs_shape_map = net_structure_->inputs_shape_map;
@@ -326,26 +316,21 @@ Status CoreMLNetwork::GetAllInputBlobs(BlobMap &blobs) {
 
         BlobDesc desc;
         {
-            desc.device_type = DEVICE_METAL;
+            //use DEVICE_ARM OR DEVICE_X86 according to hardware
+#if defined(__arm__) || defined(__arm64__)
+            desc.device_type = DEVICE_ARM;
+#else
+            desc.device_type = DEVICE_X86;
+#endif
+            
             desc.data_type   = data_type;
             // data_format describes data order nchw, nhwc, ...
             desc.data_format = DATA_FORMAT_NCHW;
             desc.dims        = input_dims;
             desc.name       = input_name;
         };
-        const int data_count = DimsFunctionUtils::GetDim(input_dims, 0) * (((DimsFunctionUtils::GetDim(input_dims, 1) + 3) / 4 * 4)) * DimsFunctionUtils::GetDim(input_dims, 2) * DimsFunctionUtils::GetDim(input_dims, 3) * DimsFunctionUtils::GetDim(input_dims, 4);
-
-        int bytes_count      = data_count * DataTypeUtils::GetBytesSize(desc.data_type);
-        id<MTLBuffer> buffer = [context_impl.device newBufferWithLength:bytes_count
-                                                                options:MTLResourceCPUCacheModeDefaultCache];
-
-        BlobHandle handle;
-        {
-            handle.base         = (void *)CFBridgingRetain(buffer);
-            handle.bytes_offset = 0;
-        };
         
-        auto blob = std::make_shared<Blob>(desc, handle);
+        auto blob = std::make_shared<Blob>(desc, true);
         blob_input_.push_back(blob);
         blob_input_map_[desc.name] = blob.get();
     }
@@ -364,9 +349,6 @@ Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
     if (status != TNN_OK) {
         return status;
     }
-
-    MetalContext *context              = dynamic_cast<MetalContext *>(context_);
-    TNNMMetalContextImpl *context_impl = context->getMetalContextImpl();
     
     const auto & output_names = net_structure_->outputs;
     auto & blob_shapes_map = net_resource_->blob_shapes_map;
@@ -375,25 +357,20 @@ Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
 
         BlobDesc desc;
         {
-            desc.device_type = DEVICE_METAL;
+            //use DEVICE_ARM OR DEVICE_X86 according to hardware
+#if defined(__arm__) || defined(__arm64__)
+            desc.device_type = DEVICE_ARM;
+#else
+            desc.device_type = DEVICE_X86;
+#endif
             desc.data_type   = DATA_TYPE_FLOAT;
             // data_format describes data order nchw, nhwc, ...
             desc.data_format = DATA_FORMAT_NCHW;
             desc.dims        = output_dims;
             desc.name       = output_name;
         };
-        const int data_count = DimsFunctionUtils::GetDim(output_dims, 0) * (((DimsFunctionUtils::GetDim(output_dims, 1) + 3) / 4 * 4)) * DimsFunctionUtils::GetDim(output_dims, 2) * DimsFunctionUtils::GetDim(output_dims, 3) * DimsFunctionUtils::GetDim(output_dims, 4);
-        int bytes_count      = data_count * DataTypeUtils::GetBytesSize(desc.data_type);
-        id<MTLBuffer> buffer = [context_impl.device newBufferWithLength:bytes_count
-                                                                options:MTLResourceCPUCacheModeDefaultCache];
 
-        BlobHandle handle;
-        {
-            handle.base         = (void *)CFBridgingRetain(buffer);
-            handle.bytes_offset = 0;
-        };
-
-        auto blob = std::make_shared<Blob>(desc, handle);
+        auto blob = std::make_shared<Blob>(desc, true);
         blob_output_.push_back(blob);
         blob_output_map_[desc.name] = blob.get();
     }
@@ -437,13 +414,14 @@ Status CoreMLNetwork::Forward() {
         auto & inputs_type_map = net_structure_->input_data_type_map;
 
         for (auto iter = blob_input_map_.begin(); iter != blob_input_map_.end(); ++iter) {
+            const auto data_type = inputs_type_map[iter->first];
+            auto input_blob = blob_input_map_[iter->first];
+            
+            auto input_name = [NSString stringWithCString:iter->first.c_str()
+                                                 encoding:[NSString defaultCStringEncoding]];
 
-            NSString *input_name = [NSString stringWithCString:iter->first.c_str() encoding:[NSString defaultCStringEncoding]];
-
-            Blob *input_blob          = blob_input_map_[string(input_name.UTF8String)];
-            auto input_mtl_buffer     = (__bridge id<MTLBuffer>)(void *)input_blob->GetHandle().base;
-            auto input_dims           = input_blob->GetBlobDesc().dims;
-            const auto data_type = inputs_type_map[string(input_name.UTF8String)];
+            auto input_data =  (void *)input_blob->GetHandle().base;
+            auto input_dims = input_blob->GetBlobDesc().dims;
             
             DimsVector input_stridess;
             for(int i=0; i<input_dims.size(); i++){
@@ -474,14 +452,13 @@ Status CoreMLNetwork::Forward() {
                     break;
             }
             
-            MLMultiArray * input_array = [[MLMultiArray alloc]
-            initWithDataPointer:input_mtl_buffer.contents
-                          shape:shape_
-                       dataType:data_type_
-                        strides:strides_
-                    deallocator:^(void *_Nonnull bytes) {}
-                          error:&error];
-            MLFeatureValue *input_feat_value = [MLFeatureValue featureValueWithMultiArray:input_array];
+            auto input_array = [[MLMultiArray alloc]  initWithDataPointer:input_data
+                                                                    shape:shape_
+                                                                 dataType:data_type_
+                                                                  strides:strides_
+                                                              deallocator:^(void *_Nonnull bytes) {}
+                                                                    error:&error];
+            auto input_feat_value = [MLFeatureValue featureValueWithMultiArray:input_array];
             [input_dict setObject:input_feat_value forKey:input_name];
         }
 
@@ -494,18 +471,20 @@ Status CoreMLNetwork::Forward() {
         
         //copy output map
         for (auto iter = blob_output_map_.begin(); iter != blob_output_map_.end(); ++iter) {
+            auto output_blob = blob_output_map[iter->first];
+            
             auto output_name = [NSString stringWithCString:iter->first.c_str()
                                                   encoding:[NSString defaultCStringEncoding]];
 
-            MLMultiArray *output_array = [output objectForKeyedSubscript:output_name].multiArrayValue;
-            int out_data_count         = DimsVectorUtils::Count(iter->second->GetBlobDesc().dims);
+            auto output_array = [output objectForKeyedSubscript:output_name].multiArrayValue;
+            int out_data_count = DimsVectorUtils::Count(iter->second->GetBlobDesc().dims);
 
-            Blob *output_blob      = blob_output_map[string(output_name.UTF8String)];
-            auto output_mtl_buffer = (__bridge id<MTLBuffer>)(void *)output_blob->GetHandle().base;
-            auto output_dims       = output_blob->GetBlobDesc().dims;
-            int bytes_count        = out_data_count * DataTypeUtils::GetBytesSize(output_blob->GetBlobDesc().data_type);
+            
+            auto output_data = (void *)output_blob->GetHandle().base;
+            auto output_dims = output_blob->GetBlobDesc().dims;
+            int bytes_count = out_data_count * DataTypeUtils::GetBytesSize(output_blob->GetBlobDesc().data_type);
 
-            memcpy(output_mtl_buffer.contents, output_array.dataPointer, bytes_count);
+            memcpy(output_data, output_array.dataPointer, bytes_count);
 
         }
         return TNN_OK;
