@@ -14,6 +14,8 @@
 
 #include "coreml_base_layer.h"
 #include "coreml_const_layer.h"
+#include "coreml_unsqueeze_layer.h"
+#include "coreml_squeeze_layer.h"
 
 namespace TNN_NS {
 
@@ -59,7 +61,17 @@ std::vector<CoreML__Specification__NeuralNetworkLayer*> CoreMLBaseLayer::GetCore
         auto const_ptr = iter->GetCoreMLLayerPtrs();
         layer_ptrs.insert(layer_ptrs.end(), const_ptr.begin(), const_ptr.end());
     }
+    if (coreml_layer_unsqueeze_) {
+        auto unsqueeze = (CoreMLUnsqueezeLayer*) coreml_layer_unsqueeze_.get();
+        auto unsqueeze_ptr = unsqueeze->GetCoreMLLayerPtrs();
+        layer_ptrs.insert(layer_ptrs.end(), unsqueeze_ptr.begin(), unsqueeze_ptr.end());
+    }
     layer_ptrs.push_back(coreml_layer_.get());
+    if (coreml_layer_squeeze_) {
+        auto squeeze = (CoreMLSqueezeLayer*) coreml_layer_squeeze_.get();
+        auto squeeze_ptr = squeeze->GetCoreMLLayerPtrs();
+        layer_ptrs.insert(layer_ptrs.end(), squeeze_ptr.begin(), squeeze_ptr.end());
+    }
     return layer_ptrs;
 }
 

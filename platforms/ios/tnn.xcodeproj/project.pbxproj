@@ -751,6 +751,8 @@
 		DE14B62A275CE60900379D4F /* coreml_innerproduct_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE14B629275CE60900379D4F /* coreml_innerproduct_layer.cc */; };
 		DE2272202760CF3800659840 /* coreml_pad_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE22721F2760CF3800659840 /* coreml_pad_layer.cc */; };
 		DE2272222760CF3F00659840 /* coreml_split_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE2272212760CF3F00659840 /* coreml_split_layer.cc */; };
+		DE2272292761C1B300659840 /* coreml_unsqueeze_layer.h in Headers */ = {isa = PBXBuildFile; fileRef = DE2272282761C1B300659840 /* coreml_unsqueeze_layer.h */; };
+		DE22722E2761F14400659840 /* coreml_squeeze_layer.h in Headers */ = {isa = PBXBuildFile; fileRef = DE22722D2761F14400659840 /* coreml_squeeze_layer.h */; };
 		DEE9445B269031EE008E6C36 /* metal_conv1d_layer_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = DEE94456269031EE008E6C36 /* metal_conv1d_layer_acc.mm */; };
 		DEE9445C269031EE008E6C36 /* metal_conv1d_layer_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = DEE94457269031EE008E6C36 /* metal_conv1d_layer_acc.h */; };
 		E43D68B525C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S in Sources */ = {isa = PBXBuildFile; fileRef = E43D68B425C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S */; };
@@ -1816,6 +1818,8 @@
 		DE14B629275CE60900379D4F /* coreml_innerproduct_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_innerproduct_layer.cc; sourceTree = "<group>"; };
 		DE22721F2760CF3800659840 /* coreml_pad_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_pad_layer.cc; sourceTree = "<group>"; };
 		DE2272212760CF3F00659840 /* coreml_split_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_split_layer.cc; sourceTree = "<group>"; };
+		DE2272282761C1B300659840 /* coreml_unsqueeze_layer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coreml_unsqueeze_layer.h; sourceTree = "<group>"; };
+		DE22722D2761F14400659840 /* coreml_squeeze_layer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coreml_squeeze_layer.h; sourceTree = "<group>"; };
 		DEE94456269031EE008E6C36 /* metal_conv1d_layer_acc.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_conv1d_layer_acc.mm; sourceTree = "<group>"; };
 		DEE94457269031EE008E6C36 /* metal_conv1d_layer_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = metal_conv1d_layer_acc.h; sourceTree = "<group>"; };
 		E43D68B425C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = CONV_DW_3X3_INT8_SLIDEW.S; sourceTree = "<group>"; };
@@ -3315,6 +3319,8 @@
 		DE14B473275C87C700379D4F /* layer_convert */ = {
 			isa = PBXGroup;
 			children = (
+				DE2272282761C1B300659840 /* coreml_unsqueeze_layer.h */,
+				DE14B47B275C87C700379D4F /* coreml_unsqueeze_layer.cc */,
 				DE2272212760CF3F00659840 /* coreml_split_layer.cc */,
 				DE22721F2760CF3800659840 /* coreml_pad_layer.cc */,
 				DE14B629275CE60900379D4F /* coreml_innerproduct_layer.cc */,
@@ -3325,20 +3331,20 @@
 				DE14B476275C87C700379D4F /* coreml_prelu_layer.cc */,
 				DE14B477275C87C700379D4F /* coreml_conv_layer.cc */,
 				DE14B478275C87C700379D4F /* coreml_add_layer.cc */,
-				DE14B479275C87C700379D4F /* coreml_base_layer.h */,
 				DE14B47A275C87C700379D4F /* coreml_tanh_layer.cc */,
-				DE14B47B275C87C700379D4F /* coreml_unsqueeze_layer.cc */,
 				DE14B47C275C87C700379D4F /* coreml_sigmoid_layer.cc */,
 				DE14B47D275C87C700379D4F /* coreml_batchnorm_layer.cc */,
 				DE14B47E275C87C700379D4F /* coreml_mul_layer.cc */,
 				DE14B47F275C87C700379D4F /* coreml_permute_layer.cc */,
 				DE14B480275C87C700379D4F /* coreml_relu_layer.cc */,
+				DE22722D2761F14400659840 /* coreml_squeeze_layer.h */,
 				DE14B481275C87C700379D4F /* coreml_squeeze_layer.cc */,
 				DE14B482275C87C700379D4F /* coreml_pool_layer.cc */,
 				DE14B483275C87C700379D4F /* coreml_concat_layer.cc */,
 				DE14B484275C87C700379D4F /* coreml_const_layer.h */,
-				DE14B485275C87C700379D4F /* coreml_base_layer.cc */,
 				DE14B486275C87C700379D4F /* coreml_softmax_layer.cc */,
+				DE14B485275C87C700379D4F /* coreml_base_layer.cc */,
+				DE14B479275C87C700379D4F /* coreml_base_layer.h */,
 			);
 			path = layer_convert;
 			sourceTree = "<group>";
@@ -3650,6 +3656,7 @@
 				9D32FC8A24557EEC002DCDAB /* shared_memory_manager.h in Headers */,
 				EC88054A255FE59D00BC4EDD /* net_optimizer_fuse_conv_post.h in Headers */,
 				ECEC5D6524FCDBA50044DDF1 /* arm_mat_util.h in Headers */,
+				DE2272292761C1B300659840 /* coreml_unsqueeze_layer.h in Headers */,
 				9DF543AF258B1366006CEC97 /* arm_reformat_layer_acc.h in Headers */,
 				9D852BCC24584E6A003F4E41 /* bfp16.h in Headers */,
 				9DF543B5258B1366006CEC97 /* arm_deconv_fp16_layer_common.h in Headers */,
@@ -3671,6 +3678,7 @@
 				9DD1FC66247CEA1400800139 /* arm_util.h in Headers */,
 				9DD1FBB9247CE9BE00800139 /* metal_conv_layer_depthwise.h in Headers */,
 				9D32FF3D24557EED002DCDAB /* abstract_model_interpreter.h in Headers */,
+				DE22722E2761F14400659840 /* coreml_squeeze_layer.h in Headers */,
 				9DF5441B258B1367006CEC97 /* arm_conv_fp16_layer_depthwise_s1.h in Headers */,
 				9DF54422258B1367006CEC97 /* arm_conv_int8_layer_1x1.h in Headers */,
 				9DDA7090241F99E700F17A1C /* version.h in Headers */,

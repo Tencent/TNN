@@ -98,6 +98,10 @@ protected:
 
     //for some op such as add, conv, weight value is stored in layer resource, so constant coreml layer is needed for every layer
     std::vector<std::shared_ptr<CoreMLConstLayer> > coreml_layer_constant_weights_;
+    //for reshape op to expand dims
+    std::shared_ptr<void> coreml_layer_unsqueeze_;
+    //for reshape op to reduce dims
+    std::shared_ptr<void> coreml_layer_squeeze_;
     
 };
 
