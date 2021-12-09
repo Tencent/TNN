@@ -224,6 +224,14 @@ TNN_NS::Status CreateBlobScaleResource(TNN_NS::NetResource& net_resource,
             scale_handle_data[i] = scales[i];
         }
         scale_resource->scale_handle = scale_handle;
+        // for symmetric quantization zero point always is 0
+        auto zero_point_handle = TNN_NS::RawBuffer(scales.size() * sizeof(int8_t));
+        zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+        scale_resource->zero_point_handle = zero_point_handle;
+
+        auto bias_handle = TNN_NS::RawBuffer(scales.size() * sizeof(int32_t));
+        bias_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        scale_resource->bias_handle = bias_handle;
     }
     return TNN_NS::TNN_CONVERT_OK;
 }
