@@ -39,13 +39,22 @@ Status CoreMLUpsampleLayer::BuildLayerParam() {
     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__UpsampleLayerParams>(new CoreML__Specification__UpsampleLayerParams);
     coreml_layer_->upsample = (CoreML__Specification__UpsampleLayerParams *)coreml_layer_param_.get();
     core_ml__specification__upsample_layer_params__init(coreml_layer_->upsample);
-    coreml_layer_->upsample->n_fractionalscalingfactor = scales.size();
     // Only one of scalingFactor and fractionalScalingFactor can be set, and if set, must be of size 2.
     // scales = fractionalscalingfactor
-    fractionalscalingfactor_ = std::shared_ptr<float>(new float [scales.size()], [](float* p) { delete[] p; });
-    coreml_layer_->upsample->fractionalscalingfactor = (float *) fractionalscalingfactor_.get();
-    for(int i=0; i<scales.size(); i++ ) {
-        coreml_layer_->upsample->fractionalscalingfactor[i] = scales[i];
+    if (scales.front() == 0 && dims.front() != 0) {
+        coreml_layer_->upsample->n_scalingfactor = dims.size();
+        scalingfactor_ = std::shared_ptr<uint64_t>(new uint64_t [scales.size()], [](uint64_t* p) { delete[] p; });
+        coreml_layer_->upsample->scalingfactor = (uint64_t *) scalingfactor_.get();
+        for(int i=0; i<dims.size(); i++ ) {
+            coreml_layer_->upsample->scalingfactor[i] = dims[dims.size() - i - 1];
+        }
+    } else {
+        coreml_layer_->upsample->n_fractionalscalingfactor = scales.size();
+        fractionalscalingfactor_ = std::shared_ptr<float>(new float [scales.size()], [](float* p) { delete[] p; });
+        coreml_layer_->upsample->fractionalscalingfactor = (float *) fractionalscalingfactor_.get();
+        for(int i=0; i<scales.size(); i++ ) {
+            coreml_layer_->upsample->fractionalscalingfactor[i] = scales[scales.size() - i - 1];
+        }
     }
     
     if(mode == 1) {  // nearest
