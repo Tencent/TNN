@@ -46,9 +46,9 @@ Status CoreMLConvLayer::BuildLayerParam() {
     auto dilate_x = conv_param->dialations[0];
     auto dilate_y = conv_param->dialations[1];
     auto has_bias = conv_param->bias;
-    auto kernel_channels = conv_param->input_channel;
-    auto output_channels = conv_param->output_channel;
     auto n_group = conv_param->group;
+    auto kernel_channels = (conv_param->input_channel / n_group) ? conv_param->input_channel / n_group : 1;
+    auto output_channels = conv_param->output_channel;
     auto pad_type = conv_param->pad_type;
     auto conv_res = dynamic_cast<ConvLayerResource *>(layer_resource_);
     CHECK_PARAM_NULL(conv_res);
