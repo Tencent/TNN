@@ -93,8 +93,8 @@ void NaiveFC(T *input_ptr, T *output_ptr, T *weight_data, float *bias, DimsVecto
 void NaiveFC(void *input_ptr, void *output_ptr, void *weight_data, float *scale, int scale_len, void *bias,
             DimsVector dims_input, DimsVector dims_output);
 void NaiveFCBias(void *input_ptr, void *output_ptr, void *weight_data, float *scale, int scale_len, void *bias,
-                 void *zero_point_w_ptr, void *zero_point_i_ptr, void *zero_point_o_ptr, int zero_point_len_i, int zero_point_len_o, DimsVector dims_input,
-                 DimsVector dims_output);
+                 void *zero_point_w_ptr, void *zero_point_i_ptr, void *zero_point_o_ptr, int zero_point_len_w,
+                 int zero_point_len_i, int zero_point_len_o, DimsVector dims_input, DimsVector dims_output);
 /**
  * @brief Permute the input blob by changing the memory order of the data.
  **/

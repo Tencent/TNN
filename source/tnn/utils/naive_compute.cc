@@ -314,8 +314,8 @@ void NaiveFC(void *input_ptr, void *output_ptr, void *weight_data, float *scale,
     }
 }
 void NaiveFCBias(void *input_ptr, void *output_ptr, void *weight_data, float *scale, int scale_len, void *bias,
-                 void *zero_point_w_ptr, void *zero_point_i_ptr, void *zero_point_o_ptr, int zero_point_len_i,
-                 int zero_point_len_o, DimsVector dims_input, DimsVector dims_output) {
+                 void *zero_point_w_ptr, void *zero_point_i_ptr, void *zero_point_o_ptr, int zero_point_len_w,
+                 int zero_point_len_i, int zero_point_len_o, DimsVector dims_input, DimsVector dims_output) {
     int8_t *zero_point_handle_i = static_cast<int8_t *>(zero_point_i_ptr);
     int8_t *zero_point_handle_w = static_cast<int8_t *>(zero_point_w_ptr);
     int8_t *zero_point_handle_o = static_cast<int8_t *>(zero_point_o_ptr);
@@ -328,7 +328,7 @@ void NaiveFCBias(void *input_ptr, void *output_ptr, void *weight_data, float *sc
         for (int oc = 0; oc < dims_output[1]; ++oc) {
             float cur_scale         = scale_len == 1 ? scale[0] : scale[oc];
             float cur_bias_output   = zero_point_len_o == 1 ? zero_point_handle_o[0] : zero_point_handle_o[oc];
-            int8_t cur_zero_point_w = scale_len == 1 ? zero_point_handle_w[0] : zero_point_handle_w[oc];
+            int8_t cur_zero_point_w = zero_point_len_w == 1 ? zero_point_handle_w[0] : zero_point_handle_w[oc];
             int32_t acc             = 0;
             for (int ic = 0; ic < ip_dim_in; ++ic) {
                 int ichannel = ic / ip_dim_hw;

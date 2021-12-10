@@ -112,16 +112,16 @@ Status CpuInnerProductLayerAcc::Forward(const std::vector<Blob *> &inputs, const
                 dims_output);
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         int8_t *zero_point_w_ptr               = resource->zero_point_handle.force_to<int8_t *>();
+        int zero_point_len_w                   = resource->zero_point_handle.GetDataCount();
         IntScaleResource *input_blob_resource  = reinterpret_cast<BlobInt8 *>(input_blob)->GetIntResource();
         IntScaleResource *output_blob_resource = reinterpret_cast<BlobInt8 *>(output_blob)->GetIntResource();
         int8_t *zero_point_i_ptr               = input_blob_resource->zero_point_handle.force_to<int8_t *>();
         int8_t *zero_point_o_ptr               = output_blob_resource->zero_point_handle.force_to<int8_t *>();
         int zero_point_len_i                   = input_blob_resource->zero_point_handle.GetDataCount();
         int zero_point_len_o                   = output_blob_resource->zero_point_handle.GetDataCount();
-        int scale_len_i                        = input_blob_resource->scale_handle.GetDataCount();
-        NaiveFCBias(input_data, output_data, weight_data, buffer_scale_.force_to<float *>(), scale_len_i, bias_data,
-                    zero_point_w_ptr, zero_point_i_ptr, zero_point_o_ptr, zero_point_len_i, zero_point_len_o,
-                    dims_input, dims_output);
+        NaiveFCBias(input_data, output_data, weight_data, buffer_scale_.force_to<float *>(), dims_output[1], bias_data,
+                    zero_point_w_ptr, zero_point_i_ptr, zero_point_o_ptr, zero_point_len_w, zero_point_len_i,
+                    zero_point_len_o, dims_input, dims_output);
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
         RawBuffer weight_bf16 = RawBuffer(resource->weight_handle.GetDataCount() * sizeof(bfp16_t));
         ConvertFromFloatToBFP16((float *)weight_data, weight_bf16.force_to<void *>(),
