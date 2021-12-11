@@ -38,9 +38,6 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
     auto net_resource  = interpreter->GetNetResource();
 
     auto g = block.g();
-#ifdef SAVE_CACHE_FILE
-    interpreter->InterpretMd5(g->toString(false));
-#endif
 
     // set input shape
     InputShapesMap inputs_shape_map;
@@ -91,6 +88,14 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
         net_structure->inputs_shape_map = max_inputs_shape_map;
         net_structure->input_data_type_map = inputs_type_map;
 
+#ifdef SAVE_CACHE_FILE
+        std::string block_proto_str, block_model_str;
+        TNN_NS::ModelPacker model_packer(net_structure, net_resource);
+        model_packer.GetSerialization(block_proto_str, block_model_str);
+        interpreter->InterpretMd5(g->toString(false));
+        interpreter->InterpretMd5(block_proto_str);
+        interpreter->InterpretMd5(block_model_str);
+#endif
         // static int __cnt = 0;
         // const std::string root = "./";
         // const std::string model_name = "splt-" + std::to_string(__cnt++);
