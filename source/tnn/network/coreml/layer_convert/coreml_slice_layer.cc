@@ -35,6 +35,13 @@ Status CoreMLSliceLayer::BuildLayerParam() {
     auto axes = layer_param->axes;
     auto strides = layer_param->strides;
     
+    std::vector<int> input_shape;
+    if (net_resource_ && layer_info_->inputs.size()>0 && layer_info_->outputs.size()>0) {
+        if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
+            input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
+        }
+    }
+    
     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__SliceLayerParams>(new CoreML__Specification__SliceLayerParams);
     coreml_layer_->slice = (CoreML__Specification__SliceLayerParams *)coreml_layer_param_.get();
     core_ml__specification__slice_layer_params__init(coreml_layer_->slice);
@@ -54,7 +61,7 @@ Status CoreMLSliceLayer::BuildLayerParam() {
             break;
     }
     coreml_layer_->slice->startindex = begins.front();
-    coreml_layer_->slice->endindex = ends.front();
+    coreml_layer_->slice->endindex = ends.front() > input_shape[axes.front()] ? input_shape[axes.front()] : ends.front();
     coreml_layer_->slice->stride = strides.front();
     
     return TNN_OK;
