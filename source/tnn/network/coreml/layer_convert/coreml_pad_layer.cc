@@ -45,12 +45,36 @@ Status CoreMLPadLayer::BuildLayerParam() {
     auto type = layer_param->type;
     auto value = layer_param->value;
     
-    coreml_layer_param_ = std::shared_ptr<CoreML__Specification__PaddingLayerParams>(new CoreML__Specification__PaddingLayerParams);
-    coreml_layer_->padding = (CoreML__Specification__PaddingLayerParams *)coreml_layer_param_.get();
-    core_ml__specification__padding_layer_params__init(coreml_layer_->padding);
+    int input_shape_size = 0;
+    if (net_resource_ && layer_info_->inputs.size()>0 && layer_info_->outputs.size()>0) {
+        if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
+            auto input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
+            input_shape_size = (int)input_shape.size();
+        }
+    }
     
-    // only allowed for H and W dimensions
-    if ((c_begin == 0) && (c_end == 0)) {
+    if ((c_begin || c_end) && (type == 0)){ // constant padding, allowed for C , H and W dimensions
+        coreml_layer_->layer_case = CORE_ML__SPECIFICATION__NEURAL_NETWORK_LAYER__LAYER_CONSTANT_PAD;
+        coreml_layer_param_ = std::shared_ptr<CoreML__Specification__ConstantPaddingLayerParams>(new CoreML__Specification__ConstantPaddingLayerParams);
+        coreml_layer_->constantpad = (CoreML__Specification__ConstantPaddingLayerParams *)coreml_layer_param_.get();
+        core_ml__specification__constant_padding_layer_params__init(coreml_layer_->constantpad);
+        coreml_layer_->constantpad->value = value;
+        coreml_layer_->constantpad->n_padamounts = input_shape_size*2;
+        paddingamounts_ = std::shared_ptr<uint64_t*>(new uint64_t* [input_shape_size*2], [](uint64_t** p) { delete[] p; });
+        coreml_layer_->constantpad->padamounts = (uint64_t *) paddingamounts_.get();
+        
+        for(int i=0;i<2;i++){ // add N dim pad n1 n2 (=0)
+            pads.push_back(0);
+        }
+        for(int i=0; i<input_shape_size*2; i+=2){
+            coreml_layer_->constantpad->padamounts[i] = pads[input_shape_size*2-i-2];
+            coreml_layer_->constantpad->padamounts[i+1] = pads[input_shape_size*2-i-1];
+        }
+    } else if ((c_begin == 0) && (c_end == 0)) { // three types of padding, only allowed for H and W dimensions
+        coreml_layer_param_ = std::shared_ptr<CoreML__Specification__PaddingLayerParams>(new CoreML__Specification__PaddingLayerParams);
+        coreml_layer_->padding = (CoreML__Specification__PaddingLayerParams *)coreml_layer_param_.get();
+        core_ml__specification__padding_layer_params__init(coreml_layer_->padding);
+        
         paddingamounts_ = std::shared_ptr<CoreML__Specification__BorderAmounts>(new CoreML__Specification__BorderAmounts);
         coreml_layer_->padding->paddingamounts = (CoreML__Specification__BorderAmounts *)paddingamounts_.get();
         core_ml__specification__border_amounts__init(coreml_layer_->padding->paddingamounts);
@@ -68,32 +92,32 @@ Status CoreMLPadLayer::BuildLayerParam() {
         core_ml__specification__border_amounts__edge_sizes__init(coreml_layer_->padding->paddingamounts->borderamounts[1]);
         coreml_layer_->padding->paddingamounts->borderamounts[1]->startedgesize = w_begin;
         coreml_layer_->padding->paddingamounts->borderamounts[1]->endedgesize = w_end;
+        
+        /* There are three types of padding:
+        * - ``PaddingConstant``, which fills a constant value at the border.
+        * - ``PaddingReflection``, which reflects the values at the border.
+        * - ``PaddingReplication``, which replicates the values at the border. */
+        if (type == 0) {
+            coreml_layer_->padding->padding_type_case = CORE_ML__SPECIFICATION__PADDING_LAYER_PARAMS__PADDING_TYPE_CONSTANT;
+            pad_type_ = std::shared_ptr<CoreML__Specification__PaddingLayerParams__PaddingConstant>(new CoreML__Specification__PaddingLayerParams__PaddingConstant);
+            coreml_layer_->padding->constant = (CoreML__Specification__PaddingLayerParams__PaddingConstant *) pad_type_.get();
+            core_ml__specification__padding_layer_params__padding_constant__init(coreml_layer_->padding->constant);
+            coreml_layer_->padding->constant->value = value;
+        } else if (type == 1) {
+            coreml_layer_->padding->padding_type_case = CORE_ML__SPECIFICATION__PADDING_LAYER_PARAMS__PADDING_TYPE_REFLECTION;
+            pad_type_ = std::shared_ptr<CoreML__Specification__PaddingLayerParams__PaddingReflection>(new CoreML__Specification__PaddingLayerParams__PaddingReflection);
+            coreml_layer_->padding->reflection = (CoreML__Specification__PaddingLayerParams__PaddingReflection *) pad_type_.get();
+            core_ml__specification__padding_layer_params__padding_reflection__init(coreml_layer_->padding->reflection);
+        } else if (type == 2) {
+            coreml_layer_->padding->padding_type_case = CORE_ML__SPECIFICATION__PADDING_LAYER_PARAMS__PADDING_TYPE_REPLICATION;
+            pad_type_ = std::shared_ptr<CoreML__Specification__PaddingLayerParams__PaddingReplication>(new CoreML__Specification__PaddingLayerParams__PaddingReplication);
+            coreml_layer_->padding->replication = (CoreML__Specification__PaddingLayerParams__PaddingReplication *) pad_type_.get();
+            core_ml__specification__padding_layer_params__padding_replication__init(coreml_layer_->padding->replication);
+        }
     } else {
-        return Status(TNNERR_MODEL_ERR, "CoreMLPadLayer only allowed padding for H and W dimensions");
+        return Status(TNNERR_MODEL_ERR, "CoreMLPadLayer only allowed constant padding for C, H and W dimensions & three types of padding for H and W dimensions");
     }
     
-    /* There are three types of padding:
-    * - ``PaddingConstant``, which fills a constant value at the border.
-    * - ``PaddingReflection``, which reflects the values at the border.
-    * - ``PaddingReplication``, which replicates the values at the border. */
-    if (type == 0) {
-        coreml_layer_->padding->padding_type_case = CORE_ML__SPECIFICATION__PADDING_LAYER_PARAMS__PADDING_TYPE_CONSTANT;
-        pad_type_ = std::shared_ptr<CoreML__Specification__PaddingLayerParams__PaddingConstant>(new CoreML__Specification__PaddingLayerParams__PaddingConstant);
-        coreml_layer_->padding->constant = (CoreML__Specification__PaddingLayerParams__PaddingConstant *) pad_type_.get();
-        core_ml__specification__padding_layer_params__padding_constant__init(coreml_layer_->padding->constant);
-        coreml_layer_->padding->constant->value = value;
-    } else if (type == 1) {
-        coreml_layer_->padding->padding_type_case = CORE_ML__SPECIFICATION__PADDING_LAYER_PARAMS__PADDING_TYPE_REFLECTION;
-        pad_type_ = std::shared_ptr<CoreML__Specification__PaddingLayerParams__PaddingReflection>(new CoreML__Specification__PaddingLayerParams__PaddingReflection);
-        coreml_layer_->padding->reflection = (CoreML__Specification__PaddingLayerParams__PaddingReflection *) pad_type_.get();
-        core_ml__specification__padding_layer_params__padding_reflection__init(coreml_layer_->padding->reflection);
-    } else if (type == 2) {
-        coreml_layer_->padding->padding_type_case = CORE_ML__SPECIFICATION__PADDING_LAYER_PARAMS__PADDING_TYPE_REPLICATION;
-        pad_type_ = std::shared_ptr<CoreML__Specification__PaddingLayerParams__PaddingReplication>(new CoreML__Specification__PaddingLayerParams__PaddingReplication);
-        coreml_layer_->padding->replication = (CoreML__Specification__PaddingLayerParams__PaddingReplication *) pad_type_.get();
-        core_ml__specification__padding_layer_params__padding_replication__init(coreml_layer_->padding->replication);
-    }
-
     return TNN_OK;
 }
 
