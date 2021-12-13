@@ -649,13 +649,10 @@ TNNComputeUnits TNNSDKSample::GetComputeUnits() {
     switch (device_type_) {
         case DEVICE_HUAWEI_NPU:
             return TNNComputeUnitsHuaweiNPU;
-        case DEVICE_METAL: {
-            if (option_->compute_units == TNNComputeUnitsAppleNPU) {
-                return TNNComputeUnitsAppleNPU;
-            } else {
-                return TNNComputeUnitsGPU;
-            }
-        }
+        case DEVICE_METAL:
+            return TNNComputeUnitsGPU;
+        case DEVICE_APPLE_NPU:
+            return TNNComputeUnitsAppleNPU;
         case DEVICE_OPENCL:
             return TNNComputeUnitsGPU;
         default:
