@@ -15,7 +15,7 @@ else
     export LIBTORCH_ROOT_DIR=$1
 fi
 
-export LIBTORCHVISION_ROOT_DIR=/usr/local/libtorchvision-cxx11-abi-0.9.1+cu102/
+export LIBTORCHVISION_ROOT_DIR=`find /usr/local/ -name "libtorchvision*-0.9.1+*"`
 
 BUILD_DIR=${TNN_ROOT_PATH}/scripts/build_tnntorch_linux
 TNN_INSTALL_DIR=${TNN_ROOT_PATH}/scripts/tnntorch_linux_release

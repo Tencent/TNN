@@ -284,7 +284,8 @@ namespace jit {
         removeDropout(module);
         RemoveException(graph->block());
         RemoveListAppend(graph.get(), graph->block());
-        RemoveConcat(graph->block());
+//      Remove Concat cause cascade rcnn crash        
+//        RemoveConcat(graph->block());
         RemoveContiguous(graph);
 //        RemoveClone(graph->block());
 //        RemoveNoneTypeFromTuple(graph->block());
