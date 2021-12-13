@@ -361,10 +361,13 @@ std::vector<SegmentedBlock> segment_graph(std::shared_ptr<torch::jit::Graph> g) 
     return std::move(segmented_blocks);
 }
 
-std::vector<SegmentedBlock> RemoveUnnessaryBlocks(std::vector<SegmentedBlock> &segmented_blocks) {
+// there maybe intersections in differenet blocks
+std::vector<SegmentedBlock> RemoveUnnessaryBlocks(std::vector<SegmentedBlock>& segmented_blocks) {
     auto is_intersect = [&](int i, int j) {
-        std::unordered_set<torch::jit::Node*> set0(segmented_blocks[i].raw_nodes().begin(), segmented_blocks[i].raw_nodes().end());
-        std::unordered_set<torch::jit::Node*> set1(segmented_blocks[j].raw_nodes().begin(), segmented_blocks[j].raw_nodes().end());
+        std::unordered_set<torch::jit::Node*> set0(segmented_blocks[i].raw_nodes().begin(),
+                                                   segmented_blocks[i].raw_nodes().end());
+        std::unordered_set<torch::jit::Node*> set1(segmented_blocks[j].raw_nodes().begin(),
+                                                   segmented_blocks[j].raw_nodes().end());
         for (auto node : set0) {
             if (set1.count(node)) {
                 return true;
@@ -374,9 +377,10 @@ std::vector<SegmentedBlock> RemoveUnnessaryBlocks(std::vector<SegmentedBlock> &s
         return false;
     };
 
-    std::set<std::string> compute_node_set = {"aten::conv2d", "aten::_convolution", "aten::matmul", "aten::linear", "aten::admm"};
-    auto is_compute_block = [&](SegmentedBlock& seg_block) {
-        for (auto &node : seg_block.raw_nodes()) {
+    std::set<std::string> compute_node_set = {"aten::conv2d", "aten::_convolution", "aten::matmul", "aten::linear",
+                                              "aten::admm"};
+    auto is_compute_block                  = [&](SegmentedBlock& seg_block) {
+        for (auto& node : seg_block.raw_nodes()) {
             if (compute_node_set.count(node->kind().toQualString())) {
                 return true;
             }
@@ -394,9 +398,10 @@ std::vector<SegmentedBlock> RemoveUnnessaryBlocks(std::vector<SegmentedBlock> &s
         return compute_block_ids;
     };
 
-    auto get_diff_ids = [&](std::set<int> &ids0, std::set<int> &ids1) {
+    auto get_diff_ids = [&](std::set<int>& ids0, std::set<int>& ids1) {
         std::set<int> diff_ids;
-        std::set_difference(ids0.begin(), ids0.end(), ids1.begin(), ids1.end(), std::insert_iterator<std::set<int>>(diff_ids, diff_ids.begin()));
+        std::set_difference(ids0.begin(), ids0.end(), ids1.begin(), ids1.end(),
+                            std::insert_iterator<std::set<int>>(diff_ids, diff_ids.begin()));
         return diff_ids;
     };
 
@@ -420,15 +425,15 @@ std::vector<SegmentedBlock> RemoveUnnessaryBlocks(std::vector<SegmentedBlock> &s
                 }
             }
 
-            keep_ids = intersect_ids;
+            keep_ids   = intersect_ids;
             delete_ids = get_diff_ids(delete_ids, intersect_ids);
-        } while(intersect_ids.size());
+        } while (intersect_ids.size());
 
         return delete_ids;
     };
 
     auto delete_ids = get_delete_ids();
-    std::cout << "delete ids " << delete_ids << std::endl;
+    // std::cout << "delete ids " << delete_ids << std::endl;
 
     std::vector<SegmentedBlock> final_blocks;
     for (int i = 0; i < segmented_blocks.size(); i++) {
@@ -437,6 +442,52 @@ std::vector<SegmentedBlock> RemoveUnnessaryBlocks(std::vector<SegmentedBlock> &s
         }
     }
     return final_blocks;
+}
+
+// eg: [1,2,3],[3,4,5],[5,6,7],[8,9] -> [1,2,3,4,5,6,7],[8,9]
+std::vector<std::set<int>> find_unions(std::vector<SegmentedBlock>& segmented_blocks) {
+    auto is_intersect = [&](int i, int j) {
+        std::unordered_set<torch::jit::Node*> set0(segmented_blocks[i].raw_nodes().begin(),
+                                                   segmented_blocks[i].raw_nodes().end());
+        std::unordered_set<torch::jit::Node*> set1(segmented_blocks[j].raw_nodes().begin(),
+                                                   segmented_blocks[j].raw_nodes().end());
+        for (auto node : set0) {
+            if (set1.count(node)) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    std::set<int> visited;
+    std::vector<std::set<int>> unions;
+
+    std::function<void(int, std::set<int>&)> dfs = [&](int i, std::set<int>& uni) {
+        if (visited.count(i))
+            return;
+        uni.insert(i);
+        visited.insert(i);
+        for (int j = i + 1; j < segmented_blocks.size(); j++) {
+            if (is_intersect(i, j)) {
+                dfs(j, uni);
+            }
+        }
+    };
+
+    for (int i = 0; i < segmented_blocks.size(); i++) {
+        std::set<int> union_ids;
+        dfs(i, union_ids);
+
+        if (union_ids.size())
+            unions.push_back(union_ids);
+    }
+
+    for (auto iter : unions) {
+        std::cout << "blocks union : " << iter << std::endl;
+    }
+
+    return unions;
 }
 
 std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<torch::jit::Graph> g, NetworkConfig& config) {
@@ -477,6 +528,7 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
     //     }
     //     printf("====================== subgraph end   %d ======================\n", block.target());
     // }
+    // find_unions(segmented_blocks);
 
     return RemoveUnnessaryBlocks(segmented_blocks);
 }

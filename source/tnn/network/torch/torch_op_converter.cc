@@ -1190,8 +1190,21 @@ public:
     }
 };
 
+// func: upsample_nearest2d.vec(Tensor input, int[]? output_size, float[]? scale_factors) -> Tensor
+// func: upsample_nearest2d(Tensor self, int[2] output_size, float? scales_h=None, float? scales_w=None) -> Tensor
+// func: upsample_bilinear2d.vec(Tensor input, int[]? output_size, bool align_corners, float[]? scale_factors) -> Tensor
+// func: upsample_bilinear2d(Tensor self, int[2] output_size, bool align_corners, float? scales_h=None, float? scales_w=None) -> Tensor
 class UpsampleTorchConverter : public TorchOpConverter {
 public:
+    bool IsSupported(const torch::jit::Node *node) {
+        // in this mode, upsample param dims will be calc runtime
+        // Todo: trt shape tensor should expand hw tensor to nchw tensor
+        if (!toIValue(node->input(1))) {
+            return false;
+        }
+        return true;
+    }
+
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
         layer_info->type = LAYER_UPSAMPLE;
@@ -1209,8 +1222,18 @@ public:
                     auto scales = getValue<std::vector<double>>(node->input(2));
                     layer_param->scales = {(float)scales[1], (float)scales[0]};
                 } else if (node->inputs().size() == 4) {
-                    layer_param->scales.push_back(getValue<float>(node->input(3)));
-                    layer_param->scales.push_back(getValue<float>(node->input(2)));
+                    if (!toIValue(node->input(1))) {
+                        layer_info->inputs.push_back(node->input(1)->debugName() + "_roi");
+                        layer_info->inputs.push_back(node->input(1)->debugName() + "_scale");
+                        layer_info->inputs.push_back(node->input(1)->debugName());
+                        layer_param->scales = {0.f, 0.f};
+                        // empty raw buffer just makes tnn not crash
+                        net_resource->constant_map[layer_info->inputs[1]] = std::make_shared<RawBuffer>();
+                        net_resource->constant_map[layer_info->inputs[2]] = std::make_shared<RawBuffer>();
+                    } else {
+                        layer_param->scales.push_back(getValue<float>(node->input(3)));
+                        layer_param->scales.push_back(getValue<float>(node->input(2)));
+                    }
                 }
 
                 break;
@@ -1218,7 +1241,13 @@ public:
                 layer_param->mode = 2;
                 if (!toIValue(node->input(1))) {
                     // calc in runtime
+                    layer_info->inputs.push_back(node->input(1)->debugName() + "_roi");
+                    layer_info->inputs.push_back(node->input(1)->debugName() + "_scale");
                     layer_info->inputs.push_back(node->input(1)->debugName());
+                    layer_param->scales = {0.f, 0.f};
+                    // empty raw buffer just makes tnn not crash
+                    net_resource->constant_map[layer_info->inputs[1]] = std::make_shared<RawBuffer>();
+                    net_resource->constant_map[layer_info->inputs[2]] = std::make_shared<RawBuffer>();
                 } else {
                     auto output_size = getValue<std::vector<int64_t>>(node->input(1));
                     layer_param->dims = {(int)output_size[0], (int)output_size[1]};
@@ -1289,7 +1318,10 @@ public:
 
         if (type->kind() == c10::TypeKind::IntType) {
             if (node->inputs().at(0)->node()->kind() == c10::aten::size) {
-                if (GetGlobalTorchConvertMap().count(node->next()->kind().toQualString()) > 0) {
+                auto next_type_str = node->next()->kind().toQualString();
+                if (GetGlobalTorchConvertMap().count(next_type_str)) {
+                auto& converter = GetGlobalTorchConvertMap()[next_type_str];
+                if (converter->IsSupported(node->next()))
                     return true;
                 }
             }
