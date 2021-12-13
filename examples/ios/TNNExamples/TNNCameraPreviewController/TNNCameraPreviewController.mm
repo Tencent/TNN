@@ -132,7 +132,7 @@ typedef void(^CommonCallback)(Status);
 
 - (void)loadNeuralNetwork:(TNNComputeUnits)units
                  callback:(CommonCallback)callback {
-    //异步加载模型
+    //load model async
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         Status status = [self.viewModel loadNeuralNetworkModel:units];
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -145,13 +145,13 @@ typedef void(^CommonCallback)(Status);
 
 #pragma mark - IBAction Interfaces
 
-- (IBAction)onswitchDevice:(id)sender
+- (void)onSwitchChanged:(id)sender
 {
     //init network
     auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
-            //刷新界面
+            //update UI
             [self showSDKOutput:nullptr withOriginImageSize:CGSizeZero withStatus:status];
         }
     }];
@@ -195,14 +195,14 @@ typedef void(^CommonCallback)(Status);
     }
     //NSLog(@"==== (%d, %d)", origin_height, origin_width);
     
-    //异步运行模型
+    //run model async
     CVBufferRetain(image_buffer);
     auto image_texture_ref = CFBridgingRetain(image_texture);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         Status status = TNN_OK;
         std::map<std::string, double> map_fps;
-
-        //Note：智能指针必须在resize后才能释放
+        
+        //Note：smart point must be reed after the op resize
         std::shared_ptr<char> image_data = nullptr;
         std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
         // devan: to support generate UIImage, set channel to 4
