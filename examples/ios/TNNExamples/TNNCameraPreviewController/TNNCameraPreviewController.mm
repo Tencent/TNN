@@ -182,7 +182,7 @@ typedef void(^CommonCallback)(Status);
     //for muti-thread safety, increase ref count, to insure predictor is not released while detecting object
     auto fps_counter_async_thread = _fps_counter;
     auto predictor_async_thread = self.viewModel.predictor;
-    auto compute_units = self.viewModel.predictor->GetComputeUnits();
+    auto actual_units = self.viewModel.predictor->GetComputeUnits();
     
     CVImageBufferRef image_buffer = CMSampleBufferGetImageBuffer(video_buffer);
     int origin_width = (int)CVPixelBufferGetWidth(image_buffer);
@@ -190,7 +190,7 @@ typedef void(^CommonCallback)(Status);
     CGSize origin_image_size = CGSizeMake(origin_width, origin_height);
     
     id<MTLTexture> image_texture = nil;
-    if (compute_units == TNNComputeUnitsGPU) {
+    if (actual_units == TNNComputeUnitsGPU) {
         image_texture = [camera getMTLTextureFromImageBuffer:image_buffer];
     }
     //NSLog(@"==== (%d, %d)", origin_height, origin_width);
@@ -207,7 +207,7 @@ typedef void(^CommonCallback)(Status);
         std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
         // devan: to support generate UIImage, set channel to 4
         auto origin_dims = {1, 4, origin_height, origin_width};
-        if (compute_units == TNNComputeUnitsCPU || compute_units == TNNComputeUnitsAppleNPU) {
+        if (actual_units == TNNComputeUnitsCPU || actual_units == TNNComputeUnitsAppleNPU) {
             image_data = utility::CVImageBuffRefGetData(image_buffer);
             image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, origin_dims, image_data.get());
         } else {
@@ -372,9 +372,8 @@ typedef void(^CommonCallback)(Status);
 }
 
 - (void)showFPS:(std::map<std::string, double>) map_fps {
-    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
-    NSMutableString *fps = [NSMutableString stringWithFormat:@"device: %@",
-                            [self getNSSTringForComputeUnits:units]];
+    auto actual_units = self.viewModel.predictor->GetComputeUnits();
+    auto fps = [NSMutableString stringWithFormat:@"device: %@",  [self getNSSTringForComputeUnits:actual_units]];
     int index = 0;
     for (auto item : map_fps) {
         [fps appendFormat:@" %@fps %s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];

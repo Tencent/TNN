@@ -135,8 +135,8 @@ using namespace TNN_NS;
 
     DimsVector image_dims = {1, 3, 128, 128};
     std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
-
-    if(units == TNNComputeUnitsCPU || units == TNNComputeUnitsAppleNPU) {
+    auto actual_units = predictor->GetComputeUnits();
+    if(actual_units == TNNComputeUnitsCPU || actual_units == TNNComputeUnitsAppleNPU) {
         image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, image_dims, image_data.get());
     } else {
         image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, image_dims);
@@ -179,7 +179,7 @@ using namespace TNN_NS;
     }
     
     auto bench_result     = predictor->GetBenchResult();
-    self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s", [self getNSSTringForComputeUnits:units], (int)face_info.size(), bench_result.Description().c_str()];
+    self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s", [self getNSSTringForComputeUnits:actual_units], (int)face_info.size(), bench_result.Description().c_str()];
 
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);

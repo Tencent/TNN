@@ -131,7 +131,8 @@ using namespace TNN_NS;
     BenchOption bench_option;
     bench_option.forward_count = 10;
     predictor->SetBenchOption(bench_option);
-
+    
+    auto actual_units = predictor->GetComputeUnits();
     auto bertInput = std::make_shared<BertTokenizerInput>(DEVICE_ARM, "input_ids", "attention_mask", "token_type_ids");
     auto bertOutput = predictor->CreateSDKOutput();
     tokenizer->buildInput([self.context UTF8String], [self.question UTF8String], bertInput);
@@ -149,7 +150,7 @@ using namespace TNN_NS;
     self.labelResult.text = [NSString stringWithFormat:@"Q:%s\nA: %s\ndevice: %@     time:\n%s",
                              [self.question UTF8String],
                              ans.c_str(),
-                             [self getNSSTringForComputeUnits:units],
+                             [self getNSSTringForComputeUnits:actual_units],
                              bench_result.Description().c_str()];
 }
 
