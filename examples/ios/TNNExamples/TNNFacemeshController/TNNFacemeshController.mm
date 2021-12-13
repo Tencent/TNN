@@ -135,6 +135,7 @@ using namespace TNN_NS;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
 
         //min_score_thresh
         option->min_score_threshold = 0.75;
@@ -193,6 +194,7 @@ using namespace TNN_NS;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
 
         //TODO: set parameters
         option->face_presence_threshold = 0.1;

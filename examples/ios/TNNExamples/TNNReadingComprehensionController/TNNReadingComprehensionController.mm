@@ -111,6 +111,7 @@ using namespace TNN_NS;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
     }
 
     auto predictor = std::make_shared<TNNSDKSample>();

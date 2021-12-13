@@ -58,6 +58,7 @@ using namespace std;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
 
         option->padding = 10;
         option->box_score_threshold = 0.6f;
@@ -102,6 +103,7 @@ using namespace std;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
     }
         
     predictor = std::make_shared<OCRAnglePredictor>();
@@ -148,6 +150,8 @@ using namespace std;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
+        
         option->vocab_path = vocab_path.UTF8String;
     }
         
