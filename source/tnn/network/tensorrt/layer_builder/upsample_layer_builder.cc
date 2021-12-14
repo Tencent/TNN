@@ -74,7 +74,9 @@ ILayer* UpsampleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network)
             layer->setResizeMode(paramlist->mode == 1 ? ResizeMode::kNEAREST : ResizeMode::kLINEAR);
             layer->setAlignCorners(paramlist->align_corners);
         }
+        return layer;
     }
+
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
