@@ -76,6 +76,8 @@ cp ${tensorrt_dep_list} ${TNN_INSTALL_DIR}/lib/
 #cudnn
 cudnn_dep_list=$( ldd libTNN.so | awk '{if (match($3, "cudnn")){ print $3}}' )
 cp $cudnn_dep_list ${TNN_INSTALL_DIR}/lib/
+cp ${CUDNN_ROOT_DIR}/lib64/libcudnn_cnn_infer.so.8 ${TNN_INSTALL_DIR}/lib/
+cp ${CUDNN_ROOT_DIR}/lib64/libcudnn_ops_infer.so.8 ${TNN_INSTALL_DIR}/lib/
 
 # torch
 torch_dep_list=$( ldd libTNN.so | awk '{if (match($3,"libtorch-shared")){ print $3}}' )
