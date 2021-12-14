@@ -321,6 +321,7 @@ DeviceType TNNSDKUtils::GetFallBackDeviceType(DeviceType dev) {
             return DEVICE_NAIVE;
         case DEVICE_RK_NPU:
         case DEVICE_HUAWEI_NPU:
+        case DEVICE_APPLE_NPU:
         case DEVICE_METAL:
         case DEVICE_OPENCL:
         case DEVICE_ATLAS:
@@ -649,10 +650,10 @@ TNNComputeUnits TNNSDKSample::GetComputeUnits() {
     switch (device_type_) {
         case DEVICE_HUAWEI_NPU:
             return TNNComputeUnitsHuaweiNPU;
-        case DEVICE_METAL:
-            return TNNComputeUnitsGPU;
         case DEVICE_APPLE_NPU:
             return TNNComputeUnitsAppleNPU;
+        case DEVICE_METAL:
+            return TNNComputeUnitsGPU;
         case DEVICE_OPENCL:
             return TNNComputeUnitsGPU;
         default:

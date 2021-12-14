@@ -106,7 +106,7 @@
     [[NSFileManager defaultManager] removeItemAtURL:mlmodelURL error:&error];
     
     //remove mlmodelc, no need to check error
-    auto mlmodelcURL = [self mlmodelPath];
+    auto mlmodelcURL = [self mlmodelcPath];
     [[NSFileManager defaultManager] removeItemAtURL:mlmodelcURL error:&error];
     return TNN_NS::TNN_OK;
 }

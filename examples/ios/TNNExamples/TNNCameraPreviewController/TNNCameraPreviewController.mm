@@ -245,7 +245,6 @@ typedef void(^CommonCallback)(Status);
              hideTextFrame:hideTextbox
                      withStatus:status];
             [self showFPS:map_fps];
-            //[self showTime: time];
         });
         
         dispatch_semaphore_signal(self.inflightSemaphore);
@@ -378,18 +377,6 @@ typedef void(^CommonCallback)(Status);
     for (auto item : map_fps) {
         [fps appendFormat:@" %@fps %s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
         NSLog(@"%@fps %s: %.2f",  index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second);
-    }
-    self.labelFPS.text = fps;
-}
-
-- (void)showTime:(std::map<std::string, double>) map_time {
-    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
-    NSMutableString *fps = [NSMutableString stringWithFormat:@"device: %@",
-                            [self getNSSTringForComputeUnits:units]];
-    int index = 0;
-    for (auto item : map_time) {
-        [fps appendFormat:@" %@time %s: %.4f ms", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
-        //LOGE("=== %s: %.4f\n", item.first.c_str(), item.second);
     }
     self.labelFPS.text = fps;
 }
