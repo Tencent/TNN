@@ -62,10 +62,10 @@ Status CoreMLUpsampleLayer::BuildLayerParam() {
     } else if(mode == 2) {  // bilinear/linear
         coreml_layer_->upsample->mode = CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__INTERPOLATION_MODE__BILINEAR;
         // align corners option from pytorch
-        if(align_corners == 0) {  // ALIGN_CORNERS_TRUE: spacing = (Xin-1) / (Xout-1) grid_point[i] = min(Xin-1, max(0, i * spacing)), for i = 0,1,2,….,Xout-1
+        if(align_corners == 0) {// DEFAULT: spacing = (Xin-Xin/Xout) / (Xout-1) grid_point[i] = min(Xin-1, max(0, i * spacing)), for i = 0,1,2,….,Xout-1
+            coreml_layer_->upsample->linearupsamplemode = CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__DEFAULT;
+        } else if(align_corners == 1) {// ALIGN_CORNERS_TRUE: spacing = (Xin-1) / (Xout-1) grid_point[i] = min(Xin-1, max(0, i * spacing)), for i = 0,1,2,….,Xout-1
             coreml_layer_->upsample->linearupsamplemode=   CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__ALIGN_CORNERS_TRUE;
-        } else if(align_corners == 1) {  // ALIGN_CORNERS_FALSE: spacing = Xin / Xout grid_point[i] = min(Xin-1, max(0, i * spacing + 0.5 * spacing - 0.5)), for i = 0,1,2,….,Xout-1
-            coreml_layer_->upsample->linearupsamplemode= CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__ALIGN_CORNERS_FALSE;
         }
     } else { // cubic ...
         LOGE("Error: Upsample dont support resize type\n");
