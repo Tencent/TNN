@@ -52,8 +52,8 @@ void CPU_INT8_CALCULATE(const std::vector<void *> &input_ptrs, const std::vector
     }
 }
 void CPU_INT8_BIAS_CALCULATE(const std::vector<void *> &input_ptrs, const std::vector<float *> &scale_ptrs,
-                             const std::vector<int8_t *> &scale_bias_ptrs, int scale_len, void *output,
-                             float *scale_out, int8_t *scale_bias_out, DimsVector dims, INT8_OP op) {
+                             const std::vector<int8_t *> &zero_point_ptrs, int scale_len, void *output,
+                             float *scale_out, int8_t *zero_point_out, DimsVector dims, INT8_OP op) {
     int batch   = dims[0];
     int channel = dims[1];
     int count   = DimsVectorUtils::Count(dims, 2, 4);
@@ -68,16 +68,16 @@ void CPU_INT8_BIAS_CALCULATE(const std::vector<void *> &input_ptrs, const std::v
                     if (inid == 0) {
                         acc = scale_ptrs[inid][scale_idx] *
                               (static_cast<float>(static_cast<int8_t *>(input_ptrs[inid])[hw + offset]) -
-                               static_cast<float>(static_cast<int8_t *>(scale_bias_ptrs[inid])[scale_idx]));
+                               static_cast<float>(static_cast<int8_t *>(zero_point_ptrs[inid])[scale_idx]));
                     } else {
                         acc = op(acc,
                                  scale_ptrs[inid][scale_idx] *
                                      (static_cast<float>(static_cast<int8_t *>(input_ptrs[inid])[hw + offset]) -
-                                      static_cast<float>(static_cast<int8_t *>(scale_bias_ptrs[inid])[scale_idx])));
+                                      static_cast<float>(static_cast<int8_t *>(zero_point_ptrs[inid])[scale_idx])));
                     }
                 }
                 static_cast<int8_t *>(output)[hw + offset] =
-                    float2int8(acc / scale_out[scale_idx] + static_cast<float>(scale_bias_out[scale_idx]));
+                    float2int8(acc / scale_out[scale_idx] + static_cast<float>(zero_point_out[scale_idx]));
             }
         }
     }
@@ -94,17 +94,17 @@ void CPU_SUB(const std::vector<void *> &input_ptrs, const std::vector<float *> &
     CPU_INT8_CALCULATE(input_ptrs, scale_ptrs, scale_len, output, scale_out, dims, sub_op);
 }
 void CPU_ADD_BIAS(const std::vector<void *> &input_ptrs, const std::vector<float *> &scale_ptrs,
-                  const std::vector<int8_t *> &scale_bias_ptrs, int scale_len, void *output, float *scale_out,
-                  int8_t *scale_bias_out, DimsVector dims) {
+                  const std::vector<int8_t *> &zero_point_ptrs, int scale_len, void *output, float *scale_out,
+                  int8_t *zero_point_out, DimsVector dims) {
     INT8_OP add_op = [](float a, float b) -> float { return a + b; };
-    CPU_INT8_BIAS_CALCULATE(input_ptrs, scale_ptrs, scale_bias_ptrs, scale_len, output, scale_out, scale_bias_out, dims,
+    CPU_INT8_BIAS_CALCULATE(input_ptrs, scale_ptrs, zero_point_ptrs, scale_len, output, scale_out, zero_point_out, dims,
                             add_op);
 }
 void CPU_SUB_BIAS(const std::vector<void *> &input_ptrs, const std::vector<float *> &scale_ptrs,
-                  const std::vector<int8_t *> &scale_bias_ptrs, int scale_len, void *output, float *scale_out,
-                  int8_t *scale_bias_out, DimsVector dims) {
+                  const std::vector<int8_t *> &zero_point_ptrs, int scale_len, void *output, float *scale_out,
+                  int8_t *zero_point_out, DimsVector dims) {
     INT8_OP sub_op = [](float a, float b) -> float { return a - b; };
-    CPU_INT8_BIAS_CALCULATE(input_ptrs, scale_ptrs, scale_bias_ptrs, scale_len, output, scale_out, scale_bias_out, dims,
+    CPU_INT8_BIAS_CALCULATE(input_ptrs, scale_ptrs, zero_point_ptrs, scale_len, output, scale_out, zero_point_out, dims,
                             sub_op);
 }
 }  // namespace TNN_NS
