@@ -16,6 +16,7 @@
 #include "tnn/layer/base_layer.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/naive_compute.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -110,12 +111,12 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
 
             case '.':
                 if (found_ell) {
-                    const std::string message = "Error: einsum() found \'.\' for operand " + std::to_string(curr_op) +
+                    const std::string message = "Error: einsum() found \'.\' for operand " + ToString(curr_op) +
                                                 " for which an ellipsis was already found";
                     return Status(TNNERR_MODEL_ERR, message);
                 }
                 if (!(i + 2 < lhs.length() && lhs[++i] == '.' && lhs[++i] == '.')) {
-                    const std::string message = "einsum() found \'.\' for operand " + std::to_string(curr_op) +
+                    const std::string message = "einsum() found \'.\' for operand " + ToString(curr_op) +
                                                 " that is not part of any ellipsis";
                     return Status(TNNERR_MODEL_ERR, message);
                 }
@@ -137,7 +138,7 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
                 // Parse label
                 if (lhs[i] < 'a' && lhs[i] > 'z') {
                     const std::string message = "einsum() operand subscript must be in range [a, z] but found " +
-                                                std::to_string(lhs[i]) + " for operand " + std::to_string(curr_op);
+                                                ToString(lhs[i]) + " for operand " + ToString(curr_op);
                     return Status(TNNERR_MODEL_ERR, message);
                 }
                 // Convert label to index in [0, 25] and store
@@ -179,10 +180,10 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
 
         if (!(has_ellipsis ? nlabels <= ndims : nlabels == ndims)) {
             const std::string message = "einsum() the number of subscripts in the equation (" +
-                                        std::to_string(nlabels) +
+                                        ToString(nlabels) +
                                         (has_ellipsis ? ") is more than the number of dimensions ("
                                                       : ") does not match the number of dimensions (") +
-                                        std::to_string(ndims) + ") for operand " + std::to_string(i) +
+                                        ToString(ndims) + ") for operand " + ToString(i) +
                                         (has_ellipsis ? "" : " and no ellipsis was given");
 
             return Status(TNNERR_MODEL_ERR, message);
@@ -236,13 +237,13 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
                 default:
                     if (rhs[i] < 'a' && rhs[i] > 'z') {
                         const std::string message = "einsum() subscripts must be in range [a, z] but found " +
-                                                    std::to_string(rhs[i]) + " for the output";
+                                                    ToString(rhs[i]) + " for the output";
                         return Status(TNNERR_MODEL_ERR, message);
                     }
                     const auto label = rhs[i] - 'a';
                     if (!(label_count[label] > 0 && label_perm_index[label] == -1)) {
                         const std::string message =
-                            "einsum() output subscript " + std::to_string(rhs[i]) +
+                            "einsum() output subscript " + ToString(rhs[i]) +
                             (label_perm_index[label] > -1 ? " appears more than once in the output"
                                                           : " does not appear in the equation for any input operand");
                         return Status(TNNERR_MODEL_ERR, message);
@@ -297,10 +298,10 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
                 // Repeated label, take diagonal
                 const auto dim = label_dim[label];
                 if (operand_dims[j] != operand_dims[dim]) {
-                    const std::string message = "einsum() subscript " + std::to_string(char(label + 'a')) +
-                                                " is repeated for operand " + std::to_string(i) +
-                                                " but the sizes don't match, " + std::to_string(operand_dims[j]) +
-                                                " != " + std::to_string(operand_dims[dim]);
+                    const std::string message = "einsum() subscript " + ToString(char(label + 'a')) +
+                                                " is repeated for operand " + ToString(i) +
+                                                " but the sizes don't match, " + ToString(operand_dims[j]) +
+                                                " != " + ToString(operand_dims[dim]);
                     return Status(TNNERR_MODEL_ERR, message);
                 }
                 // diagonal is not supported
