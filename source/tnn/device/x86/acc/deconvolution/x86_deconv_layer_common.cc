@@ -141,7 +141,6 @@ Status X86DeconvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const 
     void *input_ptr   = input_blob->GetHandle().base;
     void *output_ptr  = output_blob->GetHandle().base;
     auto param        = dynamic_cast<ConvLayerParam *>(param_);
-    auto resource     = dynamic_cast<ConvLayerResource *>(resource_);
 
     int conv_out_offset_      = output_dims[2] * output_dims[3] * output_dims[1];
     int conv_in_spatial_dim_  = input_dims[2] * input_dims[3];
