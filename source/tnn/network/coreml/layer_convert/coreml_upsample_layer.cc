@@ -33,27 +33,69 @@ Status CoreMLUpsampleLayer::BuildLayerParam() {
     CHECK_PARAM_NULL(layer_param);
     auto mode = layer_param->mode;
     auto align_corners = layer_param->align_corners;
-    auto scales = layer_param->scales;
-    auto dims = layer_param->dims;
+    auto scales = layer_param->scales;    // order [w h d]
+    auto dims = layer_param->dims;    // order [w h d]
+    
+    std::vector<int> input_shape;
+    int input_shape_size = 0;
+    if (net_resource_ && layer_info_->inputs.size()>0 && layer_info_->outputs.size()>0) {
+        if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
+            input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
+            input_shape_size = input_shape.size();
+        }
+    }
     
     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__UpsampleLayerParams>(new CoreML__Specification__UpsampleLayerParams);
     coreml_layer_->upsample = (CoreML__Specification__UpsampleLayerParams *)coreml_layer_param_.get();
     core_ml__specification__upsample_layer_params__init(coreml_layer_->upsample);
     // Only one of scalingFactor and fractionalScalingFactor can be set, and if set, must be of size 2.
     // scales = fractionalscalingfactor
-    if (scales.front() == 0 && dims.front() != 0) {
-        coreml_layer_->upsample->n_scalingfactor = dims.size();
-        scalingfactor_ = std::shared_ptr<uint64_t>(new uint64_t [scales.size()], [](uint64_t* p) { delete[] p; });
-        coreml_layer_->upsample->scalingfactor = (uint64_t *) scalingfactor_.get();
-        for(int i=0; i<dims.size(); i++ ) {
-            coreml_layer_->upsample->scalingfactor[i] = dims[dims.size() - i - 1];
+    bool isFractional = false;
+    if (scales.front() <= 1 && dims.front() != 0) {
+        std::vector<float> scales_ = {};
+        for(int i=0; i<dims.size(); i++){
+            scales_.push_back(dims[i] / input_shape[input_shape_size - dims.size() + i]);
+        }
+        for(int i=0;i<scales_.size();i++){
+            if((scales_[i]-((int)scales_[i])) > 0.000001){
+                isFractional = true;
+            }
+        }
+        if(isFractional){
+            coreml_layer_->upsample->n_fractionalscalingfactor = dims.size();
+            fractionalscalingfactor_ = std::shared_ptr<float>(new float [dims.size()], [](float* p) { delete[] p; });
+            coreml_layer_->upsample->fractionalscalingfactor = (float *) fractionalscalingfactor_.get();
+            for(int i=0; i<dims.size(); i++){
+                coreml_layer_->upsample->fractionalscalingfactor[i] = scales_[i];
+            }
+        } else {
+            coreml_layer_->upsample->n_scalingfactor = dims.size();
+            scalingfactor_ = std::shared_ptr<uint64_t>(new uint64_t [dims.size()], [](uint64_t* p) { delete[] p; });
+            coreml_layer_->upsample->scalingfactor = (uint64_t *) scalingfactor_.get();
+            for(int i=0; i<dims.size(); i++){
+                coreml_layer_->upsample->scalingfactor[i] = scales_[i];
+            }
         }
     } else {
-        coreml_layer_->upsample->n_fractionalscalingfactor = scales.size();
-        fractionalscalingfactor_ = std::shared_ptr<float>(new float [scales.size()], [](float* p) { delete[] p; });
-        coreml_layer_->upsample->fractionalscalingfactor = (float *) fractionalscalingfactor_.get();
-        for(int i=0; i<scales.size(); i++ ) {
-            coreml_layer_->upsample->fractionalscalingfactor[i] = scales[scales.size() - i - 1];
+        for(int i=0;i<scales.size();i++){
+            if((scales[i]-((int)scales[i])) > 0.000001){
+                isFractional = true;
+            }
+        }
+        if(isFractional) {
+            coreml_layer_->upsample->n_fractionalscalingfactor = scales.size();
+            fractionalscalingfactor_ = std::shared_ptr<float>(new float [scales.size()], [](float* p) { delete[] p; });
+            coreml_layer_->upsample->fractionalscalingfactor = (float *) fractionalscalingfactor_.get();
+            for(int i=0; i<scales.size(); i++ ) {
+                coreml_layer_->upsample->fractionalscalingfactor[i] = scales[scales.size() - i - 1];
+            }
+        } else {
+            coreml_layer_->upsample->n_scalingfactor = scales.size();
+            scalingfactor_ = std::shared_ptr<uint64_t>(new uint64_t [scales.size()], [](uint64_t* p) { delete[] p; });
+            coreml_layer_->upsample->scalingfactor = (uint64_t *) scalingfactor_.get();
+            for(int i=0; i<scales.size(); i++){
+                coreml_layer_->upsample->scalingfactor[i] = scales[scales.size() - i - 1];
+            }
         }
     }
     
@@ -62,10 +104,18 @@ Status CoreMLUpsampleLayer::BuildLayerParam() {
     } else if(mode == 2) {  // bilinear/linear
         coreml_layer_->upsample->mode = CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__INTERPOLATION_MODE__BILINEAR;
         // align corners option from pytorch
-        if(align_corners == 0) {// DEFAULT: spacing = (Xin-Xin/Xout) / (Xout-1) grid_point[i] = min(Xin-1, max(0, i * spacing)), for i = 0,1,2,….,Xout-1
-            coreml_layer_->upsample->linearupsamplemode = CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__DEFAULT;
-        } else if(align_corners == 1) {// ALIGN_CORNERS_TRUE: spacing = (Xin-1) / (Xout-1) grid_point[i] = min(Xin-1, max(0, i * spacing)), for i = 0,1,2,….,Xout-1
-            coreml_layer_->upsample->linearupsamplemode=   CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__ALIGN_CORNERS_TRUE;
+        if(isFractional) { // Fractional upsample only compatible with align_corners=true or align_corners=false
+            if(align_corners == 0) {// ALIGN_CORNERS_FALSE: spacing = Xin / Xout , grid_point[i] = min(Xin-1, max(0, i * spacing + 0.5 * spacing - 0.5)), for i = 0,1,2,….,Xout-1
+                coreml_layer_->upsample->linearupsamplemode = CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__ALIGN_CORNERS_FALSE;
+            } else if(align_corners == 1) {// ALIGN_CORNERS_TRUE: spacing = (Xin-1) / (Xout-1) , grid_point[i] = min(Xin-1, max(0, i * spacing)), for i = 0,1,2,….,Xout-1
+                coreml_layer_->upsample->linearupsamplemode=   CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__ALIGN_CORNERS_TRUE;
+            }
+        } else {
+            if(align_corners == 0) {// DEFAULT: spacing = (Xin-Xin/Xout) / (Xout-1) , grid_point[i] = min(Xin-1, max(0, i * spacing)), for i = 0,1,2,….,Xout-1
+                coreml_layer_->upsample->linearupsamplemode = CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__DEFAULT;
+            } else if(align_corners == 1) {// ALIGN_CORNERS_TRUE: spacing = (Xin-1) / (Xout-1) , grid_point[i] = min(Xin-1, max(0, i * spacing)), for i = 0,1,2,….,Xout-1
+                coreml_layer_->upsample->linearupsamplemode=   CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__ALIGN_CORNERS_TRUE;
+            }
         }
     } else { // cubic ...
         LOGE("Error: Upsample dont support resize type\n");
