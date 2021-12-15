@@ -54,7 +54,7 @@ Status CoreMLUpsampleLayer::BuildLayerParam() {
     if (scales.front() <= 1 && dims.front() != 0) {
         std::vector<float> scales_ = {};
         for(int i=0; i<dims.size(); i++){
-            scales_.push_back(float(dims[i]) / input_shape[input_shape_size - dims.size() + i]);
+            scales_.push_back(float(dims[dims.size() - i - 1]) / input_shape[input_shape_size - dims.size() + i]);
         }
         for(int i=0;i<scales_.size();i++){
             if((scales_[i]-((int)scales_[i])) > 0.000001){
