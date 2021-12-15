@@ -45,6 +45,10 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
     auto bias_count = layer_res->bias_handle.GetDataCount();
     auto bias_ptr = layer_res->bias_handle.force_to<float *>();
     
+    // TNN BatchNorm: scale*x + bias
+    // CoreML BatchNorm: gamma*(x - mean) / sqrt(var^2) + beta  ->
+    //                   gamma* (x/ sqrt(var^2)) - gamma* (mean/ sqrt(var^2)) + beta
+    // --> gamma=scale, beta=bias, mean=0, var=1
     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__BatchnormLayerParams>(new CoreML__Specification__BatchnormLayerParams);
     coreml_layer_->batchnorm = (CoreML__Specification__BatchnormLayerParams *)coreml_layer_param_.get();
     core_ml__specification__batchnorm_layer_params__init(coreml_layer_->batchnorm);
@@ -68,7 +72,7 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
     mean_ = std::shared_ptr<float>(new float[scale_count], [](float* p) { delete[] p; });
     coreml_layer_->batchnorm->mean->floatvalue = (float*) mean_.get();
     for(int i=0; i<scale_count; i++){
-        coreml_layer_->batchnorm->mean->floatvalue[i] = -1;
+        coreml_layer_->batchnorm->mean->floatvalue[i] = 0;
     }
     coreml_layer_variance_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
     coreml_layer_->batchnorm->variance = (CoreML__Specification__WeightParams*) coreml_layer_variance_.get();
