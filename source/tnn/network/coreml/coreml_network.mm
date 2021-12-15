@@ -477,6 +477,10 @@ Status CoreMLNetwork::Forward() {
                                                   encoding:[NSString defaultCStringEncoding]];
 
             auto output_array = [output objectForKeyedSubscript:output_name].multiArrayValue;
+            if (!output_array) {
+                LOGE("The compiled CoreML model is invalid, you should try other devices\n");
+                return Status(TNNERR_MODEL_ERR, "The compiled CoreML model is invalid, you should try other devices");
+            }
             int out_data_count = DimsVectorUtils::Count(iter->second->GetBlobDesc().dims);
 
             

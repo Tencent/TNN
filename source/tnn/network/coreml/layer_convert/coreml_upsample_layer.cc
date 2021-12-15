@@ -54,7 +54,7 @@ Status CoreMLUpsampleLayer::BuildLayerParam() {
     if (scales.front() <= 1 && dims.front() != 0) {
         std::vector<float> scales_ = {};
         for(int i=0; i<dims.size(); i++){
-            scales_.push_back(dims[i] / input_shape[input_shape_size - dims.size() + i]);
+            scales_.push_back(float(dims[i]) / input_shape[input_shape_size - dims.size() + i]);
         }
         for(int i=0;i<scales_.size();i++){
             if((scales_[i]-((int)scales_[i])) > 0.000001){
@@ -97,6 +97,11 @@ Status CoreMLUpsampleLayer::BuildLayerParam() {
                 coreml_layer_->upsample->scalingfactor[i] = scales[scales.size() - i - 1];
             }
         }
+    }
+    
+    //CoreML only support integer scale for mode nn
+    if (isFractional && mode == 1) {
+        mode = 2;
     }
     
     if(mode == 1) {  // nearest
