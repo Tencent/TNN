@@ -46,9 +46,9 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
     auto bias_ptr = layer_res->bias_handle.force_to<float *>();
     
     // TNN BatchNorm: scale*x + bias
-    // CoreML BatchNorm: gamma*(x - mean) / sqrt(var^2) + beta  ->
-    //                   gamma* (x/ sqrt(var^2)) - gamma* (mean/ sqrt(var^2)) + beta
-    // --> gamma=scale, beta=bias, mean=0, var=1
+    // CoreML BatchNorm: gamma*(x - mean) / sqrt(var^2 +epsilon) + beta  ->
+    //                   gamma* (x/ sqrt(var^2 +epsilon)) - gamma* (mean/ sqrt(var^2 +epsilon)) + beta
+    // --> gamma=scale, beta=bias, mean=0, var=1， epsilon=default
     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__BatchnormLayerParams>(new CoreML__Specification__BatchnormLayerParams);
     coreml_layer_->batchnorm = (CoreML__Specification__BatchnormLayerParams *)coreml_layer_param_.get();
     core_ml__specification__batchnorm_layer_params__init(coreml_layer_->batchnorm);
