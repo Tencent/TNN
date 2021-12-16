@@ -274,6 +274,34 @@ namespace jit {
         remove_contiguous.runOnGraph(graph);
     }
 
+    void removeUselessOps(Block* block) {
+        for (auto it = block->nodes().begin(), end = block->nodes().end(); it != end; ++it) {
+            for (auto b : it->blocks()) {
+                removeUselessOps(b);
+            }
+            std::set<NodeKind> uselessKind = {
+                // prime
+                prim::Print,
+                // aten
+                aten::warn,
+            };
+            // useless op
+            if (uselessKind.count(it->kind())) {
+                for (size_t i = 0; i < it->inputs().size();) {
+                    auto input = it->inputs().at(i);
+                    // only handling constants bc of potential side effects
+                    if (input->uses().size() == 1 && input->node()->kind() == prim::Constant) {
+                        it->removeInput(i);
+                        input->node()->destroy();
+                    } else {
+                        ++i;
+                    }
+                }
+                it.destroyCurrent();
+            }
+        }
+    }
+
     void TorchOptPass(script::Module& module) {
 
         module.eval();
@@ -290,6 +318,8 @@ namespace jit {
 //        RemoveClone(graph->block());
 //        RemoveNoneTypeFromTuple(graph->block());
 //        RemoveSlice(graph->block());
+
+        removeUselessOps(graph->block());
 
         torch::jit::EliminateDeadCode(graph);
     }
