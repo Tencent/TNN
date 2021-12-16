@@ -51,7 +51,7 @@ Status CoreMLUpsampleLayer::BuildLayerParam() {
     // Only one of scalingFactor and fractionalScalingFactor can be set, and if set, must be of size 2.
     // scales = fractionalscalingfactor
     bool isFractional = false;
-    if (scales.front() <= 1 && dims.front() != 0) {
+    if (dims.size() > 0) {
         std::vector<float> scales_ = {};
         for(int i=0; i<dims.size(); i++){
             scales_.push_back(float(dims[dims.size() - i - 1]) / input_shape[input_shape_size - dims.size() + i]);

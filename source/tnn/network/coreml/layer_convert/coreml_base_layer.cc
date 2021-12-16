@@ -61,12 +61,17 @@ std::vector<CoreML__Specification__NeuralNetworkLayer*> CoreMLBaseLayer::GetCore
         auto const_ptr = iter->GetCoreMLLayerPtrs();
         layer_ptrs.insert(layer_ptrs.end(), const_ptr.begin(), const_ptr.end());
     }
+    
     if (coreml_layer_unsqueeze_) {
         auto unsqueeze = (CoreMLUnsqueezeLayer*) coreml_layer_unsqueeze_.get();
         auto unsqueeze_ptr = unsqueeze->GetCoreMLLayerPtrs();
         layer_ptrs.insert(layer_ptrs.end(), unsqueeze_ptr.begin(), unsqueeze_ptr.end());
     }
-    layer_ptrs.push_back(coreml_layer_.get());
+    
+    if (coreml_layer_) {
+        layer_ptrs.push_back(coreml_layer_.get());
+    }
+    
     if (coreml_layer_squeeze_) {
         auto squeeze = (CoreMLSqueezeLayer*) coreml_layer_squeeze_.get();
         auto squeeze_ptr = squeeze->GetCoreMLLayerPtrs();
@@ -123,7 +128,9 @@ void CoreMLBaseLayer::SetNetResource(NetResource *net_resource) {
 
 void CoreMLBaseLayer::SetLayerName(std::string& name) {
     coreml_layer_name_ = NullTerminatedCString(name);
-    coreml_layer_->name = coreml_layer_name_.get();
+    if (coreml_layer_) {
+        coreml_layer_->name = coreml_layer_name_.get();
+    }
  }
 
 std::string CoreMLBaseLayer::GetLayerName() {
@@ -131,6 +138,10 @@ std::string CoreMLBaseLayer::GetLayerName() {
 }
 
 void CoreMLBaseLayer::SetLayerInputs(std::vector<std::string>& inputs) {
+    if (!coreml_layer_) {
+        return;
+    }
+    
     coreml_layer_->n_input = inputs.size();
     if (inputs.size() > 0) {
         coreml_layer_inputs_arr_ = std::shared_ptr<char*>(new char* [inputs.size()], [](char** p) { delete[] p; });
@@ -149,6 +160,10 @@ void CoreMLBaseLayer::SetLayerInputs(std::vector<std::string>& inputs) {
 }
 
 void CoreMLBaseLayer::SetLayerOutputs(std::vector<std::string>& outputs) {
+    if (!coreml_layer_) {
+        return;
+    }
+    
     coreml_layer_->n_output = outputs.size();
     if (outputs.size() > 0) {
         coreml_layer_outputs_arr_ = std::shared_ptr<char*>(new char* [outputs.size()], [](char** p) { delete[] p; });

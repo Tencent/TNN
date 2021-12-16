@@ -52,7 +52,7 @@ public:
     virtual std::string GetLayerName();
     
     // @brief get internal coreml layers, include const weight input layer
-    std::vector<CoreML__Specification__NeuralNetworkLayer*> GetCoreMLLayerPtrs();
+    virtual std::vector<CoreML__Specification__NeuralNetworkLayer*> GetCoreMLLayerPtrs();
     
     // @brief convert to coreml layer
     Status Convert();
