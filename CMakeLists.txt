@@ -282,7 +282,7 @@ if(TNN_ARM_ENABLE)
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
 
     elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
-        if(SYSTEM.Linux AND ANDROID_API_LEVAL)
+        if(SYSTEM.Linux)
             add_definitions( -mfloat-abi=softfp )
         endif()
         add_definitions( -mfpu=neon )
