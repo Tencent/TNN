@@ -1342,6 +1342,133 @@ public:
 //     }
 // };
 
+class FakeQuantizePerTensorAffineTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        //add quantize layer
+        {
+            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+            layer_info->type                      = LAYER_QUANTIZE;
+            layer_info->type_str                  = "Quantize";
+            layer_info->name                      = node->output(0)->debugName();
+    
+            const auto input      = node->inputs()[0];
+            auto scale_buf = getValue(node->inputs()[1]);
+            
+            auto layer_res = new(QuantizeLayerResource);
+    
+            layer_res->scale_handle = ConvertHalfHandle(scale_buf);
+            layer_info->inputs.push_back(input->debugName());
+    
+            layer_info->outputs.push_back(node->outputs()[0]->debugName());
+    
+            auto layer_param  = std::make_shared<QuantizeLayerParam>();
+            layer_param->axis = 0;
+            layer_info->param = layer_param;
+    
+            net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
+    
+            ADD_INPUTS_AND_OUTPUTS;
+    
+            net_structure->layers.push_back(layer_info);
+        }
+
+        //add dequantize layer
+        {
+            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+            layer_info->type                      = LAYER_DEQUANTIZE;
+            layer_info->type_str                  = "Dequantize";
+            layer_info->name                      = node->output(0)->debugName() + "DQ";
+    
+            const auto input      = node->outputs()[0];
+            auto scale_buf = getValue(node->inputs()[1]);
+            
+            auto layer_res = new(QuantizeLayerResource);
+    
+            layer_res->scale_handle = ConvertHalfHandle(scale_buf);
+            
+            layer_info->inputs.push_back(input->debugName());
+    
+            layer_info->outputs.push_back(node->outputs()[0]->debugName() + "DQ");
+    
+            auto layer_param  = std::make_shared<QuantizeLayerParam>();
+            layer_param->axis = 0;
+            layer_info->param = layer_param;
+    
+            net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
+    
+            ADD_INPUTS_AND_OUTPUTS;
+    
+            net_structure->layers.push_back(layer_info);
+        }
+        return TNN_OK;
+    }
+};
+
+
+class FakeQuantizePerChannelAffineTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        //add quantize layer
+        {
+            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+            layer_info->type                      = LAYER_QUANTIZE;
+            layer_info->type_str                  = "Quantize";
+            layer_info->name                      = node->output(0)->debugName();
+    
+            const auto input      = node->inputs()[0];
+            auto scale_buf = getValue(node->inputs()[1]);
+            
+            auto layer_res = new(QuantizeLayerResource);
+    
+            layer_res->scale_handle = ConvertHalfHandle(scale_buf);
+            layer_info->inputs.push_back(input->debugName());
+    
+            layer_info->outputs.push_back(node->outputs()[0]->debugName());
+    
+            auto layer_param  = std::make_shared<QuantizeLayerParam>();
+            layer_param->axis = static_cast<int>(getValue<int64_t>(node->inputs()[3]));
+            layer_info->param = layer_param;
+    
+            net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
+    
+            ADD_INPUTS_AND_OUTPUTS;
+    
+            net_structure->layers.push_back(layer_info);
+        }
+
+        //add dequantize layer
+        {
+            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+            layer_info->type                      = LAYER_DEQUANTIZE;
+            layer_info->type_str                  = "Dequantize";
+            layer_info->name                      = node->output(0)->debugName() + "DQ";
+    
+            const auto input      = node->outputs()[0];
+            auto scale_buf = getValue(node->inputs()[1]);
+            
+            auto layer_res = new(QuantizeLayerResource);
+    
+            layer_res->scale_handle = ConvertHalfHandle(scale_buf);
+            
+            layer_info->inputs.push_back(input->debugName());
+    
+            layer_info->outputs.push_back(node->outputs()[0]->debugName() + "DQ");
+    
+            auto layer_param  = std::make_shared<QuantizeLayerParam>();
+            layer_param->axis = static_cast<int>(getValue<int64_t>(node->inputs()[3]));
+            layer_info->param = layer_param;
+    
+            net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
+    
+            ADD_INPUTS_AND_OUTPUTS;
+    
+            net_structure->layers.push_back(layer_info);
+        }
+        return TNN_OK;
+    }
+};
+
 
 REGISTER_TORCH_OP_CONVERTER(Addmm, aten, addmm)
 REGISTER_TORCH_OP_CONVERTER(AvgPool, aten, avg_pool2d)
@@ -1384,6 +1511,8 @@ REGISTER_TORCH_OP_CONVERTER(Unsqueeze, aten, unsqueeze)
 
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
 REGISTER_TORCH_OP_CONVERTER(ListUnpack, prim, ListUnpack)
+REGISTER_TORCH_OP_CONVERTER(FakeQuantizePerChannelAffine, aten, fake_quantize_per_channel_affine)
+REGISTER_TORCH_OP_CONVERTER(FakeQuantizePerTensorAffine, aten, fake_quantize_per_tensor_affine)
 
 // REGISTER_TORCH_OP_CONVERTER(QuantConv2D, quantized, conv2d)
 

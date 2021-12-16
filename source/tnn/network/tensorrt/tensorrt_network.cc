@@ -745,6 +745,9 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     if (this->int8_mode) {
         m_trt_config->setFlag(BuilderFlag::kINT8);
     }
+    if (this->qat_mode) {
+        m_trt_config->setFlag(BuilderFlag::kINT8);
+    }
     m_trt_engine = m_trt_builder->buildEngineWithConfig(*m_trt_network, *m_trt_config);
     if (!m_trt_engine) {
         LOGE("create tensorrt engine failed\n");

@@ -64,6 +64,7 @@ enum LayerType {
     LAYER_QUANTIZEV2       = 46,
     LAYER_LSTM             = 47,
     // Quantization related layers
+    LAYER_QUANTIZE                                          = 48,
     LAYER_QUANTIZEDPOOLING                                  = 49,
     LAYER_DEQUANTIZE                                        = 50,
     LAYER_QUANTIZEDRESHAPE                                  = 51,

@@ -81,6 +81,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"QuantizedPooling", LAYER_POOLING},
     // 50
     {"Dequantize", LAYER_DEQUANTIZE},
+    {"Quantize", LAYER_QUANTIZE},
     {"QuantizedReshapeTensorflow", LAYER_RESHAPE},
     {"ConvolutionDepthwise", LAYER_CONVOLUTION_DEPTHWISE},
     {"QuantizedBiasAdd", LAYER_BIAS_ADD},

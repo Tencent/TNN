@@ -164,6 +164,10 @@ struct BiasAddLayerResource : public LayerResource {
     RawBuffer bias_handle;
 };
 
+struct QuantizeLayerResource : public LayerResource {
+    RawBuffer scale_handle;
+};
+
 
 }  // namespace TNN_NS
 

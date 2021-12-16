@@ -704,6 +704,12 @@ struct SplitTorchLayerParam : public SplitVLayerParam {
     PARAM_COPY(SplitTorchLayerParam)
 };
 
+struct QuantizeLayerParam : public LayerParam {
+    int64_t axis            = 0;
+
+    PARAM_COPY(QuantizeLayerParam)
+};
+
 };  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H

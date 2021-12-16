@@ -124,6 +124,7 @@ private:
     Status CheckConstBlobs();
 
     bool int8_mode;
+    bool qat_mode;
     bool test_mode;
     int m_max_batchsize;
     nvinfer1::ICudaEngine* m_trt_engine;

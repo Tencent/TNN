@@ -205,6 +205,7 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
 
         int block_idx = 0;
         int block_stop_idx = INT_MAX;
+	std::cout<<seg_blocks.size()<<std::endl;
         for (auto &block : seg_blocks) {
             try {
                 std::ostringstream tnn_engine_id;
