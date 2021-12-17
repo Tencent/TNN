@@ -112,6 +112,26 @@ static std::vector<T> getValue(const at::Tensor &tensor, std::vector<int>& shape
     return data;
 }
 
+static RawBuffer getValue(const at::Tensor &tensor) {
+    auto torch_type = tensor.scalar_type();
+    auto size = tensor.numel();
+    DimsVector shape;
+    if (torch_type == at::ScalarType::QInt8) {
+        auto vec        = getValue<c10::qint8>(tensor, shape);
+        auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_INT8);
+        auto buffer     = RawBuffer(bytes_size, reinterpret_cast<char*>(vec.data()), shape);
+        buffer.SetDataType(DATA_TYPE_INT8);
+        return buffer;
+    } else if (torch_type == at::ScalarType::Double) {
+        auto vec        = getValue<double>(tensor, shape);
+        auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
+        auto float_vec  = std::vector<float>(vec.begin(), vec.end());
+        return RawBuffer(bytes_size, reinterpret_cast<char*>(float_vec.data()), shape);
+    }
+
+    return RawBuffer();
+}
+
 static RawBuffer getValue(const torch::jit::Value* value) {
     const auto& value_kind = value->type()->kind();
     if (value_kind != c10::TypeKind::TensorType) {

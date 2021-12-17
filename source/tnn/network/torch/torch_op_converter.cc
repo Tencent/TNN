@@ -1,5 +1,5 @@
 #include "tnn/network/torch/torch_op_converter.h"
-// #include <ATen/native/quantized/cpu/conv_packed_params.h>
+#include <ATen/native/quantized/cpu/conv_packed_params.h>
 
 namespace TNN_NS {
 
@@ -1388,27 +1388,99 @@ public:
     }
 };
 
-// class QuantConv2DTorchConverter : public TorchOpConverter {
-// public:
-//     Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
-//         const auto& inputs = node->inputs();
-//         auto weight = toIValue(inputs[1]).value();
-//         std::cout << weight.isTuple() << std::endl;
-//         std::cout << weight.isTensor() << std::endl;
-//         std::cout << weight.isObject() << std::endl;
-//         auto object = weight.toObject().get();
-//         auto slots = object->slots();
-//         for (auto &slot : slots) {
-//             std::cout << slot.isCapsule() << std::endl;
-//             auto conv_param = reinterpret_cast<ConvPackedParamsBase<2> *>(slot.toCapsule().get());
-//             // c10::intrusive_ptr<ConvPackedParamsBase<2>> conv_param = slot.toCapsule();
-//             std::cout << "get" << std::endl;
-//         }
+// func: quantize_per_tensor(Tensor self, float scale, int zero_point, ScalarType dtype) -> Tensor
+class QuantTensorTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        auto scale_buf = getValue(node->inputs().at(1));
+        auto layer_res = new(IntScaleResource); 
+        layer_res->scale_handle = scale_buf;
 
-//         return TNN_OK;
-//     }
-// };
+        net_resource->resource_map[node->input(0)->debugName()+"_scale"] = std::shared_ptr<LayerResource>(layer_res);
 
+        return TNN_OK;
+    };
+};
+
+//
+class QuantConv2DTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_CONVOLUTION;
+        layer_info->type_str                  = "QuantizedConvolution";
+        layer_info->name                      = node->output(0)->debugName();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        // get conv packed param
+        const auto conv_value        = toIValue(node->input(1)).value();
+        const auto slots             = conv_value.toObject().get()->slots();
+        const auto conv_packed_param = reinterpret_cast<ConvPackedParamsBase<2> *>(slots[0].toCapsule().get());
+
+        // unpack conv packed param
+        const auto stride    = conv_packed_param->stride();
+        const auto padding   = conv_packed_param->padding();
+        const auto dialation = conv_packed_param->dilation();
+        const auto group     = conv_packed_param->groups();
+        const auto transpose = conv_packed_param->transpose();
+
+        const auto weight_and_bias = conv_packed_param->unpack();
+        const auto weight          = std::get<0>(weight_and_bias);
+        const auto bias            = std::get<1>(weight_and_bias);
+
+        auto layer_param = std::make_shared<ConvLayerParam>();
+        auto layer_res   = new (ConvLayerResource);
+
+        // convert to tnn param&res
+        layer_res->filter_handle = getValue(weight);
+
+        if (weight.qscheme() == c10::kPerChannelAffine || weight.qscheme() == c10::kPerChannelSymmetric) {
+            const auto q_scale      = weight.q_per_channel_scales();
+            layer_res->scale_handle = getValue(q_scale);
+        } else if (weight.qscheme() == c10::kPerTensorAffine || weight.qscheme() == c10::kPerTensorSymmetric) {
+            const auto q_scale             = (float)weight.q_scale();
+            auto scale_buf                 = RawBuffer(4);
+            *scale_buf.force_to<float *>() = q_scale;
+        }
+
+        auto shape                  = layer_res->filter_handle.GetBufferDims();
+        layer_param->pad_type       = -1;
+        layer_param->output_channel = shape[0];
+        layer_param->input_channel  = shape[1];
+        layer_param->kernels        = {shape[3], shape[2]};
+        layer_param->dialations     = {(int)dialation[1], (int)dialation[0]};
+        layer_param->strides        = {(int)stride[1], (int)stride[0]};
+        layer_param->pads           = {(int)padding[1], (int)padding[1], (int)padding[0], (int)padding[0]};
+        layer_param->group          = group;
+        std::string type_str        = node->kind().toQualString();
+        if (type_str.find("relu") != std::string::npos) {
+            layer_param->activation_type = ActivationType_ReLU;
+        }
+
+        if (bias.has_value()) {
+            layer_param->bias      = 1;
+            layer_res->bias_handle = getValue(bias.value());
+        }
+        layer_info->param = layer_param;
+
+        net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
+
+        // set output scale res
+        auto o_scale_buf                = getValue(node->inputs().at(2));
+        auto o_scale_layer_res          = new (IntScaleResource);
+        o_scale_layer_res->scale_handle = o_scale_buf;
+
+        net_structure->layers.push_back(layer_info);
+        net_resource->resource_map[node->output(0)->debugName() + "_scale"] =
+            std::shared_ptr<LayerResource>(o_scale_layer_res);
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        return TNN_OK;
+    }
+};
 
 REGISTER_TORCH_OP_CONVERTER(Addmm, aten, addmm)
 REGISTER_TORCH_OP_CONVERTER(AvgPool, aten, avg_pool2d)
@@ -1452,7 +1524,8 @@ REGISTER_TORCH_OP_CONVERTER(Reduce, aten, mean)
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
 REGISTER_TORCH_OP_CONVERTER(ListUnpack, prim, ListUnpack)
 
-// REGISTER_TORCH_OP_CONVERTER(QuantConv2D, quantized, conv2d)
+REGISTER_TORCH_OP_CONVERTER(QuantTensor, aten, quantize_per_tensor)
+REGISTER_TORCH_OP_CONVERTER(QuantConv2D, quantized, conv2d_relu)
 
 } // namespace conversion
 }
