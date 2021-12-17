@@ -1309,6 +1309,33 @@ public:
     }
 };
 
+class SqueezeTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_SQUEEZE;
+        layer_info->type_str                  = "Squeeze";
+        layer_info->name                      = node->output(0)->debugName();
+
+        const auto &inputs = node->inputs();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<SqueezeLayerParam>();
+
+        layer_param->axes = {static_cast<int>(getValue<int64_t>(inputs[1]))};
+
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
 class ListTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
@@ -1448,6 +1475,7 @@ REGISTER_TORCH_OP_CONVERTER(Transpose, aten, transpose)
 REGISTER_TORCH_OP_CONVERTER(Upsample, aten, upsample_nearest2d)
 REGISTER_TORCH_OP_CONVERTER(Unsqueeze, aten, unsqueeze)
 REGISTER_TORCH_OP_CONVERTER(Reduce, aten, mean)
+REGISTER_TORCH_OP_CONVERTER(Squeeze, aten, squeeze)
 
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
 REGISTER_TORCH_OP_CONVERTER(ListUnpack, prim, ListUnpack)

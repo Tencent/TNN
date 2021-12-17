@@ -159,6 +159,10 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
 
     try {
         auto seg_blocks = partitioning::Partition(mod, g, config);
+	
+	c10::Device device(c10::kCPU);
+        ConvertToTorchDevice(device, config.device_type, config.device_id);
+        mod.to(device);
 
         // run shape infer and combine to blocks
         if (min_input_shape.size() && max_input_shape.size() && min_input_shape.size() == max_input_shape.size()) {
