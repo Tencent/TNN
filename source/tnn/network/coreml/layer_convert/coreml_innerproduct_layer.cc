@@ -44,10 +44,35 @@ Status CoreMLInnerproductLayer::BuildLayerParam() {
     auto bias_size = layer_res->bias_handle.GetDataCount();
     auto bias_ptr = layer_res->bias_handle.force_to<float *>();
     
+    std::vector<int> input_shape;
+    std::vector<int> output_shape;
+    if (net_resource_ && layer_info_->inputs.size()>0 && layer_info_->outputs.size()>0) {
+        if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
+            input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
+        }
+        
+        if (net_resource_->blob_shapes_map.find(layer_info_->outputs[0]) != net_resource_->blob_shapes_map.end()) {
+            output_shape = net_resource_->blob_shapes_map[layer_info_->outputs[0]];
+        }
+        if(input_shape.size() != output_shape.size()) {
+            return Status(TNNERR_MODEL_ERR, "CoreMLInnerproductLayer input ranks and output ranks are not equal");
+        }
+    }
+    
+    int input_dims;
+    if(weight_dims.size() == 0){
+        if (input_shape.size() <= 0) {
+            return Status(TNNERR_MODEL_ERR, "CoreMLInnerproductLayer has invalid input shape");
+        }
+        input_dims = input_shape.back();
+    } else {
+        input_dims = weight_dims.back();
+    }
+   
     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__InnerProductLayerParams>(new CoreML__Specification__InnerProductLayerParams);
     coreml_layer_->innerproduct = (CoreML__Specification__InnerProductLayerParams *)coreml_layer_param_.get();
     core_ml__specification__inner_product_layer_params__init(coreml_layer_->innerproduct);
-    coreml_layer_->innerproduct->inputchannels = weight_dims.back();
+    coreml_layer_->innerproduct->inputchannels = input_dims;
     coreml_layer_->innerproduct->outputchannels = num_output;
     
     weight_param_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
