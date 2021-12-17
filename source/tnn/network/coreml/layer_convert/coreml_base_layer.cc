@@ -60,20 +60,20 @@ std::vector<CoreML__Specification__NeuralNetworkLayer*> CoreMLBaseLayer::GetCore
         layer_ptrs.insert(layer_ptrs.end(), const_ptr.begin(), const_ptr.end());
     }
     
-    if (coreml_layer_unsqueeze_) {
-        auto unsqueeze = coreml_layer_unsqueeze_.get();
-        auto unsqueeze_ptr = unsqueeze->GetCoreMLLayerPtrs();
-        layer_ptrs.insert(layer_ptrs.end(), unsqueeze_ptr.begin(), unsqueeze_ptr.end());
+    if (coreml_layer_before_) {
+        auto before_layer = coreml_layer_before_.get();
+        auto before_layer_ptr = before_layer->GetCoreMLLayerPtrs();
+        layer_ptrs.insert(layer_ptrs.end(), before_layer_ptr.begin(), before_layer_ptr.end());
     }
     
     if (coreml_layer_) {
         layer_ptrs.push_back(coreml_layer_.get());
     }
     
-    if (coreml_layer_squeeze_) {
-        auto squeeze = coreml_layer_squeeze_.get();
-        auto squeeze_ptr = squeeze->GetCoreMLLayerPtrs();
-        layer_ptrs.insert(layer_ptrs.end(), squeeze_ptr.begin(), squeeze_ptr.end());
+    if (coreml_layer_after_) {
+        auto after_layer = coreml_layer_after_.get();
+        auto after_layer_ptr = after_layer->GetCoreMLLayerPtrs();
+        layer_ptrs.insert(layer_ptrs.end(), after_layer_ptr.begin(), after_layer_ptr.end());
     }
     return layer_ptrs;
 }

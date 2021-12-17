@@ -118,7 +118,7 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
 Status CoreMLReshapeLayer::BuildSqueezeLayer() {
     auto param = layer_info_->param.get();
     auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
-    coreml_layer_squeeze_ = CreateCoreMLBaseLayer(LAYER_SQUEEZE);
+    auto squeeze_layer = CreateCoreMLBaseLayer(LAYER_SQUEEZE);
     squeeze_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
     {
         squeeze_layer_info_->type = LAYER_SQUEEZE;
@@ -136,7 +136,8 @@ Status CoreMLReshapeLayer::BuildSqueezeLayer() {
             squeeze_param->axes = axes;
         }
     }
-    RETURN_ON_NEQ(coreml_layer_squeeze_->Init(squeeze_layer_info_.get(), nullptr), TNN_OK);
+    RETURN_ON_NEQ(squeeze_layer->Init(squeeze_layer_info_.get(), nullptr), TNN_OK);
+    coreml_layer_after_ = squeeze_layer;
     
     return TNN_OK;
 }
@@ -144,7 +145,7 @@ Status CoreMLReshapeLayer::BuildSqueezeLayer() {
 Status CoreMLReshapeLayer::BuildUnsqueezeLayer() {
     auto param = layer_info_->param.get();
     auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
-    coreml_layer_unsqueeze_ = CreateCoreMLBaseLayer(LAYER_UNSQUEEZE);
+    auto unsqueeze_layer = CreateCoreMLBaseLayer(LAYER_UNSQUEEZE);
     unsqueeze_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
     {
         unsqueeze_layer_info_->type = LAYER_UNSQUEEZE;
@@ -162,7 +163,8 @@ Status CoreMLReshapeLayer::BuildUnsqueezeLayer() {
             unsqueeze_param->axes = axes;
         }
     }
-    RETURN_ON_NEQ(coreml_layer_unsqueeze_->Init(unsqueeze_layer_info_.get(), nullptr), TNN_OK);
+    RETURN_ON_NEQ(unsqueeze_layer->Init(unsqueeze_layer_info_.get(), nullptr), TNN_OK);
+    coreml_layer_before_ = unsqueeze_layer;
 
     return TNN_OK;
 }

@@ -16,9 +16,13 @@
 
 namespace TNN_NS {
 
-DECLARE_COREML_LAYER_WITH_DATA(Innerproduct, LAYER_INNER_PRODUCT,
-                                std::shared_ptr<CoreML__Specification__WeightParams> bias_param_;
-                                std::shared_ptr<CoreML__Specification__WeightParams> weight_param_;);
+DECLARE_COREML_LAYER_WITH_FUNC_DATA(Innerproduct, LAYER_INNER_PRODUCT,
+                                    virtual Status BuildSqueezeLayer();,
+                                    std::shared_ptr<CoreML__Specification__WeightParams> bias_param_;
+                                    std::shared_ptr<CoreML__Specification__WeightParams> weight_param_;
+                                    std::shared_ptr<LayerInfo> squeeze_layer_info_;
+                                    int input_shape_size = 0;
+                                    int output_shape_size = 0;);
 
 Status CoreMLInnerproductLayer::BuildLayerType() {
     //layer type
@@ -49,14 +53,18 @@ Status CoreMLInnerproductLayer::BuildLayerParam() {
     if (net_resource_ && layer_info_->inputs.size()>0 && layer_info_->outputs.size()>0) {
         if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
             input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
+            input_shape_size = (int)input_shape.size();
         }
         
         if (net_resource_->blob_shapes_map.find(layer_info_->outputs[0]) != net_resource_->blob_shapes_map.end()) {
             output_shape = net_resource_->blob_shapes_map[layer_info_->outputs[0]];
+            output_shape_size = (int)output_shape.size();
         }
-        if(input_shape.size() != output_shape.size()) {
-            return Status(TNNERR_MODEL_ERR, "CoreMLInnerproductLayer input ranks and output ranks are not equal");
-        }
+    }
+    
+    // in order to match old TNN model, add squeeze to reduce dims
+    if(input_shape_size > output_shape_size) {
+        RETURN_ON_NEQ(BuildSqueezeLayer(), TNN_OK);
     }
     
     int input_dims;
@@ -64,7 +72,12 @@ Status CoreMLInnerproductLayer::BuildLayerParam() {
         if (input_shape.size() <= 0) {
             return Status(TNNERR_MODEL_ERR, "CoreMLInnerproductLayer has invalid input shape");
         }
-        input_dims = input_shape.back();
+        if(input_shape_size > output_shape_size) {
+            auto reduce_dims = input_shape_size - output_shape_size;
+            input_dims = input_shape[input_shape_size - 1 - reduce_dims];
+        } else {
+            input_dims = input_shape.back();
+        }
     } else {
         input_dims = weight_dims.back();
     }
@@ -92,12 +105,48 @@ Status CoreMLInnerproductLayer::BuildLayerParam() {
     return TNN_OK;
 }
 
+Status CoreMLInnerproductLayer::BuildSqueezeLayer() {
+    auto param = layer_info_->param.get();
+    auto innerproduct_param = dynamic_cast<InnerProductLayerParam *>(param);
+    auto squeeze_layer = CreateCoreMLBaseLayer(LAYER_SQUEEZE);
+    squeeze_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
+    {
+        squeeze_layer_info_->type = LAYER_SQUEEZE;
+        squeeze_layer_info_->name = innerproduct_param->name + "-squeeze";
+        squeeze_layer_info_->inputs = layer_info_->inputs;
+        squeeze_layer_info_->outputs = {innerproduct_param->name + "-squeeze-out"};
+        auto squeeze_param = std::shared_ptr<SqueezeLayerParam>(new SqueezeLayerParam);
+        squeeze_layer_info_->param = squeeze_param;
+        {
+            std::vector<int> axes = {};
+            auto  reduce_dims = input_shape_size - output_shape_size;
+            for(int i=0;i<reduce_dims;i++){
+                axes.push_back(i-reduce_dims);
+            }
+            squeeze_param->axes = axes;
+        }
+    }
+    RETURN_ON_NEQ(squeeze_layer->Init(squeeze_layer_info_.get(), nullptr), TNN_OK);
+    coreml_layer_before_ = squeeze_layer;
+    
+    return TNN_OK;
+}
+
 Status CoreMLInnerproductLayer::BuildConstantWeightsLayer() {
     return CoreMLBaseLayer::BuildConstantWeightsLayer();
 }
 
 std::vector<std::string> CoreMLInnerproductLayer::BuildLayerInputs() {
-    return CoreMLBaseLayer::BuildLayerInputs();
+    if (!layer_info_) {
+        return std::vector<std::string>();
+    } else {
+        if(input_shape_size > output_shape_size) {
+            auto param = layer_info_->param.get();
+            auto innerproduct_param = dynamic_cast<InnerProductLayerParam *>(param);
+            return {innerproduct_param->name + "-squeeze-out"};
+        }
+        return layer_info_->inputs;
+    }
 }
 
 std::vector<std::string> CoreMLInnerproductLayer::BuildLayerOutputs() {
