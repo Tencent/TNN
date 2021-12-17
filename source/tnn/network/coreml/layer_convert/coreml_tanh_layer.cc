@@ -14,6 +14,7 @@
 
 #include "coreml_base_layer.h"
 
+// Use Activation Tanh
 namespace TNN_NS {
 
 DECLARE_COREML_LAYER_WITH_DATA(Tanh, LAYER_TANH,
@@ -53,3 +54,43 @@ std::vector<std::string> CoreMLTanhLayer::BuildLayerOutputs() {
 REGISTER_COREML_LAYER(Tanh, LAYER_TANH);
 
 }  // namespace TNN_NS
+
+
+// Use Tanh
+/*
+ namespace TNN_NS {
+
+ DECLARE_COREML_LAYER_WITH_DATA(Tanh, LAYER_TANH,
+                                 std::shared_ptr<void> coreml_layer_type_;);
+
+ Status CoreMLTanhLayer::BuildLayerType() {
+     //layer type
+     coreml_layer_->layer_case = CORE_ML__SPECIFICATION__NEURAL_NETWORK_LAYER__LAYER_TANH;
+     return TNN_OK;
+ }
+
+ Status CoreMLTanhLayer::BuildLayerParam() {
+     //layer param
+     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__TanhLayerParams>(new CoreML__Specification__TanhLayerParams);
+     coreml_layer_->tanh = (CoreML__Specification__TanhLayerParams *)coreml_layer_param_.get();
+     core_ml__specification__tanh_layer_params__init(coreml_layer_->tanh);
+    
+     return TNN_OK;
+ }
+
+ Status CoreMLTanhLayer::BuildConstantWeightsLayer() {
+     return CoreMLBaseLayer::BuildConstantWeightsLayer();
+ }
+
+ std::vector<std::string> CoreMLTanhLayer::BuildLayerInputs() {
+     return CoreMLBaseLayer::BuildLayerInputs();
+ }
+
+ std::vector<std::string> CoreMLTanhLayer::BuildLayerOutputs() {
+     return CoreMLBaseLayer::BuildLayerOutputs();
+ }
+
+ REGISTER_COREML_LAYER(Tanh, LAYER_TANH);
+
+ }  // namespace TNN_NS
+*/
