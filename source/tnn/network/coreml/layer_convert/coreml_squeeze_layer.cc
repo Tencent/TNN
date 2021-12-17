@@ -12,9 +12,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "coreml_squeeze_layer.h"
+#include "coreml_base_layer.h"
 
 namespace TNN_NS {
+
+DECLARE_COREML_LAYER_WITH_DATA(Squeeze, LAYER_SQUEEZE,
+                               std::shared_ptr<void> coreml_layer_axes_;);
 
 Status CoreMLSqueezeLayer::BuildLayerType() {
     //layer type
