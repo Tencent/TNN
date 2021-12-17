@@ -11,7 +11,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src)
 
 set(COMMON_SRC ${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src/test_common.cc)
 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm" and ANDROID_API_LEVAL)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm" AND ANDROID_API_LEVAL)
     target_link_libraries(TNN dl log)
 else()
     target_link_libraries(TNN dl rt)
