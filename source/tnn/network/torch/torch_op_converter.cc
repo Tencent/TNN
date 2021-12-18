@@ -1309,6 +1309,97 @@ public:
     }
 };
 
+// func: reflection_pad2d(Tensor self, int[4] padding) -> Tensor
+class ReflectionPadTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_PAD;
+        layer_info->type_str                  = "Pad";
+        layer_info->name                      = node->output(0)->debugName();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param  = std::make_shared<PadLayerParam>();
+        layer_param->type = 1;
+        const auto pads   = getValue<std::vector<int64_t>>(node->input(1));
+        layer_param->pads = {(int)(pads[2]), (int)(pads[3]), (int)(pads[0]), (int)(pads[1]), 0, 0};
+
+        auto t            = layer_param->pads;
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
+// func: clamp(Tensor self, Scalar? min=None, Scalar? max=None) -> Tensor
+class ClipTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_CLIP;
+        layer_info->type_str                  = "Clip";
+        layer_info->name                      = node->output(0)->debugName();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param       = std::make_shared<ClipLayerParam>();
+        bool min_value_is_none = node->input(1)->type()->kind() == c10::TypeKind::NoneType;
+        layer_param->min       = min_value_is_none ? -FLT_MAX : getValue<float>(node->input(1));
+
+        bool max_value_is_none = node->input(2)->type()->kind() == c10::TypeKind::NoneType;
+        layer_param->max       = max_value_is_none ? FLT_MAX : getValue<float>(node->input(2));
+
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
+// func: clamp(Tensor self, Scalar? min=None, Scalar? max=None) -> Tensor
+class PowerTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_POWER;
+        layer_info->type_str                  = "Power";
+        layer_info->name                      = node->output(0)->debugName();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param         = std::make_shared<PowLayerParam>();
+        const auto exponent_type = node->input(1)->type()->kind();
+        switch (exponent_type) {
+            case c10::TypeKind::IntType:
+                layer_param->exponent = static_cast<float>(getValue<int>(node->input(1)));
+                break;
+            case c10::TypeKind::FloatType:
+                layer_param->exponent = getValue<float>(node->input(1));
+                break;
+            default:
+                break;
+        }
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
 class ListTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
@@ -1445,6 +1536,7 @@ REGISTER_TORCH_OP_CONVERTER(Binary, aten, add)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, mul)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, div)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, gt)
+REGISTER_TORCH_OP_CONVERTER(Clip, aten, clamp)
 REGISTER_TORCH_OP_CONVERTER(Concat, aten, cat)
 REGISTER_TORCH_OP_CONVERTER(Conv2D, aten, conv2d)
 REGISTER_TORCH_OP_CONVERTER(_Conv, aten, _convolution)
@@ -1460,6 +1552,8 @@ REGISTER_TORCH_OP_CONVERTER(MatMul, aten, matmul)
 REGISTER_TORCH_OP_CONVERTER(Permute, aten, permute)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, adaptive_avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
+REGISTER_TORCH_OP_CONVERTER(Power, aten, pow)
+REGISTER_TORCH_OP_CONVERTER(ReflectionPad, aten, reflection_pad2d)
 REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu)
 REGISTER_TORCH_OP_CONVERTER(Relu, aten, relu_)
 REGISTER_TORCH_OP_CONVERTER(Reshape, aten, reshape)
