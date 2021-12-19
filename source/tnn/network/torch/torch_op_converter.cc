@@ -1389,18 +1389,88 @@ public:
     }
 };
 
+std::string find_propagate_scale(const torch::jit::Node *node) {
+    std::string name                            = node->kind().toQualString();
+    std::unordered_set<std::string> noscale_ops = {
+        "aten::adaptive_avg_pool2d",
+        "aten::flatten",
+        "aten::max_pool2d"};
+
+    std::unordered_set<std::string> scale_ops = {
+        "aten::quantize_per_tensor",
+        "quantized::linear",
+        "quantized::conv2d",
+        "quantized::conv2d_relu",
+        "quantized::add_relu"};
+
+    if (scale_ops.find(name) != scale_ops.end()) {
+        return node->outputs()[0]->debugName();
+    } else if (noscale_ops.find(name) != noscale_ops.end()) {
+        return find_propagate_scale(node->inputs()[0]->node());
+    }
+
+    return "";
+}
+
 // func: quantize_per_tensor(Tensor self, float scale, int zero_point, ScalarType dtype) -> Tensor
 class QuantTensorTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
-        auto scale_buf = getValue(node->inputs().at(1));
-        auto layer_res = new(IntScaleResource); 
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_REFORMAT;
+        layer_info->type_str                  = "Reformat";
+        layer_info->name                      = node->output(0)->debugName();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param      = std::make_shared<ReformatLayerParam>();
+        layer_param->src_type = DATA_TYPE_FLOAT;
+        layer_param->dst_type = DATA_TYPE_INT8;
+
+        layer_info->param = layer_param;
+
+        auto scale_buf          = getValue(node->inputs().at(1));
+        auto layer_res          = new (IntScaleResource);
         layer_res->scale_handle = scale_buf;
 
-        net_resource->resource_map[node->input(0)->debugName()+"_scale"] = std::shared_ptr<LayerResource>(layer_res);
+        net_structure->layers.push_back(layer_info);
+        net_resource->resource_map[node->output(0)->debugName() + "_scale_data_"] =
+            std::shared_ptr<LayerResource>(layer_res);
+
+        ADD_INPUTS_AND_OUTPUTS;
 
         return TNN_OK;
-    };
+    }
+};
+
+class DequantTensorTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_REFORMAT;
+        layer_info->type_str                  = "Reformat";
+        layer_info->name                      = node->output(0)->debugName();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param      = std::make_shared<ReformatLayerParam>();
+        layer_param->src_type = DATA_TYPE_INT8;
+        layer_param->dst_type = DATA_TYPE_FLOAT;
+
+        layer_info->param = layer_param;
+        net_structure->layers.push_back(layer_info);
+
+        if (net_resource->resource_map.find(node->input(0)->debugName() + "_scale_data_") ==
+            net_resource->resource_map.end()) {
+            // dequant op always have input scale
+        }
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        return TNN_OK;
+    }
 };
 
 //
@@ -1433,6 +1503,8 @@ public:
 
         auto layer_param = std::make_shared<ConvLayerParam>();
         auto layer_res   = new (ConvLayerResource);
+
+        layer_param->quantized = true;
 
         // convert to tnn param&res
         layer_res->filter_handle = getValue(weight);
@@ -1468,13 +1540,21 @@ public:
 
         net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
 
+        // set input scale res
+        if (net_resource->resource_map.find(node->input(0)->debugName() + "_scale_data_") ==
+            net_resource->resource_map.end()) {
+            auto propagate_input = find_propagate_scale(node->inputs()[0]->node());
+            net_resource->resource_map[node->input(0)->debugName() + "_scale_data_"] =
+                net_resource->resource_map[propagate_input + "_scale_data_"];
+        }
+
         // set output scale res
         auto o_scale_buf                = getValue(node->inputs().at(2));
         auto o_scale_layer_res          = new (IntScaleResource);
         o_scale_layer_res->scale_handle = o_scale_buf;
 
         net_structure->layers.push_back(layer_info);
-        net_resource->resource_map[node->output(0)->debugName() + "_scale"] =
+        net_resource->resource_map[node->output(0)->debugName() + "_scale_data_"] =
             std::shared_ptr<LayerResource>(o_scale_layer_res);
 
         ADD_INPUTS_AND_OUTPUTS;
@@ -1486,43 +1566,52 @@ public:
 class QuantLinearTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
-        std::string op_type = node->kind().toQualString();
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-        layer_info->type = LAYER_INNER_PRODUCT;
-        layer_info->type_str = "QuantizedInnerProduct";
-        layer_info->name = node->output(0)->debugName();
+        layer_info->type                      = LAYER_INNER_PRODUCT;
+        layer_info->type_str                  = "QuantizedInnerProduct";
+        layer_info->name                      = node->output(0)->debugName();
 
-        const auto& inputs = node->inputs();
+        const auto &inputs = node->inputs();
 
         layer_info->inputs.push_back(node->inputs()[0]->debugName());
         layer_info->outputs.push_back(node->outputs()[0]->debugName());
 
         auto layer_param = std::make_shared<InnerProductLayerParam>();
-        auto layer_res = new(InnerProductLayerResource);
+        auto layer_res   = new (InnerProductLayerResource);
+
+        layer_param->quantized = true;
+
         const auto weight_value        = toIValue(node->input(1)).value();
-        const auto slots             = weight_value.toObject().get()->slots();
+        const auto slots               = weight_value.toObject().get()->slots();
         const auto weight_packed_param = reinterpret_cast<LinearPackedParamsBase *>(slots[0].toCapsule().get());
 
         const auto weight_unpack = weight_packed_param->unpack();
-        const auto weight          = std::get<0>(weight_unpack);
-
-        const auto bias = inputs[2];
+        const auto weight        = std::get<0>(weight_unpack);
+        const auto bias          = std::get<1>(weight_unpack);
 
         auto weight_buf = getValue(weight);
-        auto shape = weight_buf.GetBufferDims();
+        auto shape      = weight_buf.GetBufferDims();
+
+        if (weight.qscheme() == c10::kPerChannelAffine || weight.qscheme() == c10::kPerChannelSymmetric) {
+            const auto q_scale      = weight.q_per_channel_scales();
+            layer_res->scale_handle = getValue(q_scale);
+        } else if (weight.qscheme() == c10::kPerTensorAffine || weight.qscheme() == c10::kPerTensorSymmetric) {
+            const auto q_scale             = (float)weight.q_scale();
+            auto scale_buf                 = RawBuffer(4);
+            *scale_buf.force_to<float *>() = q_scale;
+        }
 
         // set param accroding to real value, just test here
-        layer_param->name = layer_info->name;
+        layer_param->name       = layer_info->name;
         layer_param->num_output = shape[0];
-        layer_param->axis = 1;
+        layer_param->axis       = 1;
 
-        layer_res->name = layer_info->name;
+        layer_res->name          = layer_info->name;
         layer_res->weight_handle = weight_buf;
 
-        auto bias_buf = getValue(bias);
-        if (bias_buf.GetBytesSize() != 0) {
-            layer_param->has_bias = 1;
-            layer_res->bias_handle = ConvertHalfHandle(bias_buf);
+        if (bias.has_value()) {
+            layer_param->has_bias  = 1;
+            layer_res->bias_handle = getValue(bias.value());
         }
 
         layer_info->param = layer_param;
@@ -1530,17 +1619,96 @@ public:
         net_structure->layers.push_back(layer_info);
         net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
 
+        // set input scale res
+        if (net_resource->resource_map.find(node->input(0)->debugName() + "_scale_data_") ==
+            net_resource->resource_map.end()) {
+            auto propagate_input = find_propagate_scale(node->inputs()[0]->node());
+            net_resource->resource_map[node->input(0)->debugName() + "_scale_data_"] =
+                net_resource->resource_map[propagate_input + "_scale_data_"];
+        }
+
         // set output scale res
         auto o_scale_buf                = getValue(node->inputs().at(2));
-        float* o_scale_value = o_scale_buf.force_to<float*>();
+        float *o_scale_value            = o_scale_buf.force_to<float *>();
         auto o_scale_layer_res          = new (IntScaleResource);
         o_scale_layer_res->scale_handle = o_scale_buf;
 
-        net_structure->layers.push_back(layer_info);
-        net_resource->resource_map[node->output(0)->debugName() + "_scale"] =
+        net_resource->resource_map[node->output(0)->debugName() + "_scale_data_"] =
             std::shared_ptr<LayerResource>(o_scale_layer_res);
 
         ADD_INPUTS_AND_OUTPUTS;
+
+        return TNN_OK;
+    }
+};
+
+class QuantAddReluTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        // get output scale
+        auto o_scale_buf                = getValue(node->inputs().at(2));
+        float *o_scale_value            = o_scale_buf.force_to<float *>();
+        auto o_scale_layer_res          = new (IntScaleResource);
+        o_scale_layer_res->scale_handle = o_scale_buf;
+
+        // generate quant add layer
+        {
+            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+            layer_info->type                      = LAYER_ADD;
+            layer_info->type_str                  = "QuantizedAdd";
+            layer_info->name                      = node->output(0)->debugName() + "_add";
+
+            layer_info->inputs.push_back(node->inputs()[0]->debugName());
+            layer_info->inputs.push_back(node->inputs()[1]->debugName());
+            layer_info->outputs.push_back(node->outputs()[0]->debugName() + "_add");
+
+            auto layer_param                = std::make_shared<MultidirBroadcastLayerParam>();
+            layer_param->quantized          = true;
+            layer_param->weight_input_index = -1;
+            layer_info->param               = layer_param;
+            net_structure->layers.push_back(layer_info);
+
+            // set input scale
+            if (net_resource->resource_map.find(node->input(0)->debugName() + "_scale_data_") ==
+                net_resource->resource_map.end()) {
+                auto propagate_input = find_propagate_scale(node->inputs()[0]->node());
+                net_resource->resource_map[node->input(0)->debugName() + "_scale_data_"] =
+                    net_resource->resource_map[propagate_input + "_scale_data_"];
+            }
+            if (net_resource->resource_map.find(node->input(1)->debugName() + "_scale_data_") ==
+                net_resource->resource_map.end()) {
+                auto propagate_input = find_propagate_scale(node->inputs()[0]->node());
+                net_resource->resource_map[node->input(1)->debugName() + "_scale_data_"] =
+                    net_resource->resource_map[propagate_input + "_scale_data_"];
+            }
+
+            // set output scale
+            net_resource->resource_map[node->outputs()[0]->debugName() + "_add_scale_data_"] =
+                std::shared_ptr<LayerResource>(o_scale_layer_res);
+
+            ADD_INPUTS_AND_OUTPUTS;
+        }
+
+        // generate quant relu layer
+        {
+            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+            layer_info->type                      = LAYER_RELU;
+            layer_info->type_str                  = "QuantizedReLU";
+            layer_info->name                      = node->output(0)->debugName();
+
+            layer_info->inputs.push_back(node->outputs()[0]->debugName() + "_add");
+            layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+            layer_info->param            = std::make_shared<LayerParam>();
+            layer_info->param->quantized = true;
+            net_structure->layers.push_back(layer_info);
+
+            // set output scale
+            net_resource->resource_map[node->outputs()[0]->debugName() + "_scale_data_"] =
+                net_resource->resource_map[node->outputs()[0]->debugName() + "_add_scale_data_"];
+
+            ADD_INPUTS_AND_OUTPUTS;
+        }
 
         return TNN_OK;
     }
@@ -1588,7 +1756,10 @@ REGISTER_TORCH_OP_CONVERTER(Reduce, aten, mean)
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
 REGISTER_TORCH_OP_CONVERTER(ListUnpack, prim, ListUnpack)
 
+REGISTER_TORCH_OP_CONVERTER(DequantTensor, aten, dequantize)
 REGISTER_TORCH_OP_CONVERTER(QuantTensor, aten, quantize_per_tensor)
+REGISTER_TORCH_OP_CONVERTER(QuantAddRelu, quantized, add_relu)
+REGISTER_TORCH_OP_CONVERTER(QuantConv2D, quantized, conv2d)
 REGISTER_TORCH_OP_CONVERTER(QuantConv2D, quantized, conv2d_relu)
 REGISTER_TORCH_OP_CONVERTER(QuantLinear, quantized, linear)
 

@@ -377,8 +377,11 @@ std::vector<SegmentedBlock> RemoveUnnessaryBlocks(std::vector<SegmentedBlock>& s
         return false;
     };
 
-    std::set<std::string> compute_node_set = {"aten::conv2d", "aten::_convolution", "aten::matmul", "aten::linear",
-                                              "aten::admm"};
+    std::set<std::string> compute_node_set = {
+        "aten::conv2d",      "aten::_convolution",        "aten::matmul",     "aten::linear",
+        "aten::admm",        "aten::quantize_per_tensor", "aten::dequantize", "quantized::add_relu",
+        "quantized::conv2d", "quantized::conv2d_relu",    "quantized::linear"};
+
     auto is_compute_block                  = [&](SegmentedBlock& seg_block) {
         for (auto& node : seg_block.raw_nodes()) {
             if (compute_node_set.count(node->kind().toQualString())) {
