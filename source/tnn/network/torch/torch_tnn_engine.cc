@@ -15,11 +15,6 @@ bool TorchConvertCtx::dealPrime(const torch::jit::Node *node) {
     std::string opType = node->kind().toUnqualString();
     switch (node->kind()) {
         case at::prim::Constant:
-        // case at::prim::ListConstruct:
-        case at::prim::ListUnpack:
-            for (const auto output : node->outputs()) {
-                declareVar(output->debugName(), node);
-            }
             return true;
         default:
             break;
