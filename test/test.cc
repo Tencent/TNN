@@ -600,7 +600,16 @@ namespace test {
 
 
     void WriteOutput(MatMap& outputs) {
-        std::ofstream f(FLAGS_op);
+	std::stringstream thread_id_stream;
+        thread_id_stream << std::this_thread::get_id();
+	std::string thread_id = thread_id_stream.str();
+        std::string output_file_name;
+	if(FLAGS_tt > 1) {
+            output_file_name = FLAGS_op + thread_id; 
+	} else {
+	    output_file_name = FLAGS_op;
+	}
+	std::ofstream f(output_file_name);
         LOGD("the output path: %s\n", FLAGS_op.c_str());
         if (!FLAGS_fc) {
             LOGD("output path: %s\n", FLAGS_op.c_str());
