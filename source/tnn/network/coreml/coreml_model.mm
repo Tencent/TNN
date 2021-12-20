@@ -55,7 +55,11 @@
         
         NSError* error = nil;
         MLModelConfiguration* config = [MLModelConfiguration alloc];
+#if TNN_COREML_TEST
+        config.computeUnits = MLComputeUnitsCPUOnly;
+#else
         config.computeUnits = MLComputeUnitsAll;
+#endif
         _model = [MLModel modelWithContentsOfURL:mlmodelcURL configuration:config error:&error];
         
         if (error != nil) {
@@ -154,7 +158,11 @@
         self.mlmodelcPath = mlmodelcURL;
     
         MLModelConfiguration* config = [MLModelConfiguration alloc];
+#if TNN_COREML_TEST
+        config.computeUnits = MLComputeUnitsCPUOnly;
+#else
         config.computeUnits = MLComputeUnitsAll;
+#endif
         _model = [MLModel modelWithContentsOfURL:mlmodelcURL configuration:config error:&error];
         
         if (error != nil) {

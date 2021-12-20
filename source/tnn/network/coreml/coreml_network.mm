@@ -27,6 +27,10 @@ namespace TNN_NS {
 // A12X: iPad Pro - 3rd Gen (8,1)
 // For more information, see https://www.theiphonewiki.com/wiki/Models
 bool HasAppleNPU() {
+#if TNN_COREML_TEST
+    return true;
+#else
+    return true;
     //check hardware
     struct utsname system_info;
     uname(&system_info);
@@ -56,6 +60,7 @@ bool HasAppleNPU() {
       return major_version >= 9;
     }
     return false;
+#endif
 }
 
 NetworkImplFactoryRegister<NetworkImplFactory<CoreMLNetwork>>

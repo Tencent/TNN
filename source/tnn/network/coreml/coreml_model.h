@@ -22,6 +22,9 @@
 #include <vector>
 #include "Model.pb-c.h"
 
+#ifndef TNN_COREML_TEST
+#define TNN_COREML_TEST 0
+#endif
 
 @interface CoreMLModel : NSObject
 @property(nonatomic, strong, readonly) NSString *cachePath;
