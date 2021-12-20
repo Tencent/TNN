@@ -339,6 +339,7 @@ public:
                 layer_info->type_str = "Mul";
                 break;
             case at::aten::div:
+            case at::aten::floordiv:
                 layer_info->type     = LAYER_DIV;
                 layer_info->type_str = "Div";
                 break;
@@ -483,44 +484,98 @@ public:
 class LinearTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
-        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-        layer_info->type = LAYER_INNER_PRODUCT;
-        layer_info->type_str = "InnerProduct";
-        layer_info->name = node->output(0)->debugName();
-
+        // aten::linear include batched cases, which is not supported by Inn
+        // Convert aten::linear to matmul + add (with bias), matmul only (without bias)
         const auto& inputs = node->inputs();
-
-        layer_info->inputs.push_back(node->inputs()[0]->debugName());
-        layer_info->outputs.push_back(node->outputs()[0]->debugName());
-
-        auto layer_param = std::make_shared<InnerProductLayerParam>();
-        auto layer_res = new(InnerProductLayerResource);
         const auto weight = inputs[1];
         const auto bias = inputs[2];
-
         auto weight_buf = getValue(weight);
-        auto shape = weight_buf.GetBufferDims();
-
-        // set param accroding to real value, just test here
-        layer_param->name = layer_info->name;
-        layer_param->num_output = shape[0];
-        layer_param->axis = 1;
-
-        layer_res->name = layer_info->name;
-        layer_res->weight_handle = ConvertHalfHandle(weight_buf);
-
         auto bias_buf = getValue(bias);
-        if (bias_buf.GetBytesSize() != 0) {
-            layer_param->has_bias = 1;
-            layer_res->bias_handle = ConvertHalfHandle(bias_buf);
+        const auto data_type = weight_buf.GetDataType();
+        const bool with_bias = bias_buf.GetBytesSize()!=0;
+        std::string matmul_out_name = with_bias ? node->output(0)->debugName()+"_matmul" : node->output(0)->debugName();
+
+        // Matmul layer
+        {
+            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+            layer_info->type = LAYER_MATMUL;
+            layer_info->type_str = "Matmul";
+            layer_info->name = matmul_out_name;
+
+            layer_info->inputs.push_back(node->inputs()[0]->debugName());
+            layer_info->outputs.push_back(matmul_out_name);
+
+            const int dim0 = weight_buf.GetBufferDims()[0];
+            const int dim1 = weight_buf.GetBufferDims()[1];
+            RawBuffer transposed_weight_buf;
+            // TODO: Naive 2D weight Transpose here, replace this one with a new faster one in the future.
+            if (data_type==DATA_TYPE_HALF) {
+                auto *weight_ptr = weight_buf.force_to<fp16_t *>();
+                const int weight_byte_size = sizeof(fp16_t)*dim0*dim1;
+                fp16_t *temp_weight_ptr = (fp16_t*)std::malloc(weight_byte_size);
+                for (int i=0; i<dim0; i++) {
+                    for (int j=0; j<dim1; j++) {
+                        temp_weight_ptr[j*dim0+i] = weight_ptr[i*dim1+j];
+                    }
+                }
+                std::memcpy(weight_ptr, temp_weight_ptr, weight_byte_size);
+                transposed_weight_buf = RawBuffer(weight_byte_size, (char*)(weight_ptr), {dim1, dim0});
+                transposed_weight_buf.SetDataType(DATA_TYPE_HALF);
+                std::free(temp_weight_ptr);
+            } else {
+                // FLOAT
+                auto *weight_ptr = weight_buf.force_to<float *>();
+                const int weight_byte_size = sizeof(float)*dim0*dim1;
+                float *temp_weight_ptr = (float*)std::malloc(weight_byte_size);
+                for (int i=0; i<dim0; i++) {
+                    for (int j=0; j<dim1; j++) {
+                        temp_weight_ptr[j*dim0+i] = weight_ptr[i*dim1+j];
+                    }
+                }
+                std::memcpy(weight_ptr, temp_weight_ptr, weight_byte_size);
+                transposed_weight_buf = RawBuffer(weight_byte_size, (char*)(weight_ptr), {dim1, dim0});
+                std::free(temp_weight_ptr);
+            }
+
+            auto layer_res = new MatMulLayerResource();
+            layer_res->weight = transposed_weight_buf;
+
+            auto layer_param = std::make_shared<MatMulLayerParam>();
+            layer_param->weight_position = 1;
+            layer_param->matrix_b_dims = transposed_weight_buf.GetBufferDims();
+            layer_info->param = layer_param;
+
+            ADD_INPUTS_AND_OUTPUTS;
+
+            net_structure->layers.push_back(layer_info);
+            net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
+        } // Matmul
+
+        // add bias if needed.
+        if (with_bias) {
+            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+            layer_info->type = LAYER_ADD;
+            layer_info->type_str = "Add";
+            layer_info->name = node->output(0)->debugName();
+
+            // bias->node()->kind() == at::prim::Constant, weight here refers to "bias" of linear.
+            auto layer_param = std::make_shared<MultidirBroadcastLayerParam>();
+            layer_param->weight_input_index = 1;
+            layer_info->param = layer_param;
+            layer_info->inputs.push_back(matmul_out_name);
+            layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+            auto layer_res = new EltwiseLayerResource();
+            net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
+
+            auto bias_buf = getValue(bias);
+            layer_res->element_handle = bias_buf;
+            layer_res->element_shape  = bias_buf.GetBufferDims();
+
+            net_structure->layers.push_back(layer_info);
+
+            ADD_INPUTS_AND_OUTPUTS;
         }
-
-        layer_info->param = layer_param;
-
-        net_structure->layers.push_back(layer_info);
-        net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
-
-        ADD_INPUTS_AND_OUTPUTS;
 
         return TNN_OK;
     }
@@ -906,14 +961,18 @@ public:
 class SizeTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
-        for (int i = 0; i < node->output()->uses().size(); i++) {
-            if (node->output()->uses()[i].user->kind() != at::prim::ListConstruct) {
-                return false;
-            } else {
-                auto& converter = GetGlobalTorchConvertMap()["prim::ListConstruct"];
-                if (!converter->IsSupported(node->output()->uses()[i].user))
+        if (node->inputs().size() == 2) {
+            // aten::size(%in_tensor, %dim)
+            for (int i = 0; i < node->output()->uses().size(); i++) {
+                if (node->output()->uses()[i].user->kind() != at::prim::ListConstruct) {
                     return false;
+                } else {
+                    auto& converter = GetGlobalTorchConvertMap()["prim::ListConstruct"];
+                    if (!converter->IsSupported(node->output()->uses()[i].user)) {
+                        return false;
+                    }
                 }
+            }
         }
         return true;
     }
@@ -921,13 +980,15 @@ public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         // generate shape layer
         {
+            std::string shape_out_name = node->inputs().size() == 2 ? node->output(0)->debugName() + "_shape" : node->output(0)->debugName();
+
             std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
             layer_info->type                      = LAYER_SHAPE;
             layer_info->type_str                  = "Shape";
-            layer_info->name                      = node->output(0)->debugName() + "_shape";
+            layer_info->name                      = shape_out_name;
 
             layer_info->inputs.push_back(node->inputs()[0]->debugName());
-            layer_info->outputs.push_back(node->outputs()[0]->debugName() + "_shape");
+            layer_info->outputs.push_back(shape_out_name);
 
             layer_info->param = std::make_shared<LayerParam>();
 
@@ -936,50 +997,52 @@ public:
             net_structure->layers.push_back(layer_info);
         }
 
-        // generate gather layer
-        {
-            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-            layer_info->type                      = LAYER_GATHER;
-            layer_info->type_str                  = "Gather";
-            layer_info->name                      = node->output(0)->debugName() + "_gather";
+        if (node->inputs().size() == 2) {
+            // generate gather layer
+            {
+                std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+                layer_info->type                      = LAYER_GATHER;
+                layer_info->type_str                  = "Gather";
+                layer_info->name                      = node->output(0)->debugName() + "_gather";
 
-            layer_info->inputs.push_back(node->outputs()[0]->debugName() + "_shape");
-            layer_info->outputs.push_back(node->outputs()[0]->debugName() + "_gather");
+                layer_info->inputs.push_back(node->outputs()[0]->debugName() + "_shape");
+                layer_info->outputs.push_back(node->outputs()[0]->debugName() + "_gather");
 
-            auto layer_param                 = std::make_shared<GatherLayerParam>();
-            layer_param->axis                = 0;
-            layer_param->indices_in_resource = true;
+                auto layer_param                 = std::make_shared<GatherLayerParam>();
+                layer_param->axis                = 0;
+                layer_param->indices_in_resource = true;
 
-            layer_info->param = layer_param;
+                layer_info->param = layer_param;
 
-            const auto indices = getValue(node->inputs()[1]);
-            auto layer_res     = std::make_shared<GatherLayerResource>();
-            layer_res->indices = indices;
+                const auto indices = getValue(node->inputs()[1]);
+                auto layer_res     = std::make_shared<GatherLayerResource>();
+                layer_res->indices = indices;
 
-            ADD_INPUTS_AND_OUTPUTS;
+                ADD_INPUTS_AND_OUTPUTS;
 
-            net_structure->layers.push_back(layer_info);
-            net_resource->resource_map[layer_info->name] = layer_res;
-        }
+                net_structure->layers.push_back(layer_info);
+                net_resource->resource_map[layer_info->name] = layer_res;
+            }
 
-        // generate unsqueeze layer
-        {
-            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-            layer_info->type                      = LAYER_UNSQUEEZE;
-            layer_info->type_str                  = "Unsqueeze";
-            layer_info->name                      = node->output(0)->debugName();
+            // generate unsqueeze layer
+            {
+                std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+                layer_info->type                      = LAYER_UNSQUEEZE;
+                layer_info->type_str                  = "Unsqueeze";
+                layer_info->name                      = node->output(0)->debugName();
 
-            layer_info->inputs.push_back(node->outputs()[0]->debugName() + "_gather");
-            layer_info->outputs.push_back(node->outputs()[0]->debugName());
+                layer_info->inputs.push_back(node->outputs()[0]->debugName() + "_gather");
+                layer_info->outputs.push_back(node->outputs()[0]->debugName());
 
-            auto layer_param  = std::make_shared<UnsqueezeLayerParam>();
-            layer_param->axes = {0};
+                auto layer_param  = std::make_shared<UnsqueezeLayerParam>();
+                layer_param->axes = {0};
 
-            layer_info->param = layer_param;
+                layer_info->param = layer_param;
 
-            ADD_INPUTS_AND_OUTPUTS;
+                ADD_INPUTS_AND_OUTPUTS;
 
-            net_structure->layers.push_back(layer_info);
+                net_structure->layers.push_back(layer_info);
+            }
         }
 
         return TNN_OK;
@@ -1030,8 +1093,7 @@ public:
         layer_info->name = node->output(0)->debugName();
 
         layer_info->inputs.push_back(node->inputs()[0]->debugName());
-        // auto unpack_node = node->output()->uses()[0].user;
-        auto unpack_node = node->next();
+        auto unpack_node = node->output(0)->uses()[0].user;
 	for (const auto output : unpack_node->outputs()) {
             layer_info->outputs.push_back(output->debugName());
         }
@@ -1445,16 +1507,9 @@ public:
         auto type = node->inputs().at(0)->type();
 
         if (type->kind() == c10::TypeKind::IntType) {
-            if (node->inputs().at(0)->node()->kind() == c10::aten::size) {
-                auto next_type_str = node->next()->kind().toQualString();
-                if (GetGlobalTorchConvertMap().count(next_type_str)) {
-                auto& converter = GetGlobalTorchConvertMap()[next_type_str];
-                if (converter->IsSupported(node->next()))
-                    return true;
-                }
-            }
+            return true;
         } else if (type->kind() == c10::TypeKind::TensorType) {
-            if (node->next()->kind() == c10::aten::cat) {
+            if (node->output(0)->uses()[0].user->kind() == c10::aten::cat) {
                 return true;
             }
         }
@@ -1508,10 +1563,55 @@ public:
 class ListUnpackTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
-	    return node->inputs().at(0)->node()->kind() == c10::aten::split;
+
+        torch::jit::Node* in0_node = node->input(0)->node();
+        if (in0_node->kind() == c10::aten::split) {
+            return true;
+        } else if (in0_node->kind() == c10::aten::size) {
+            if (in0_node->inputs().size() == 1) {
+                // aten::size(%in_tensor), return a list representing shape of the Tensor.
+                return true;
+            }
+        }
+        return false;
     }
 
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        torch::jit::Node* in0_node = node->input(0)->node();
+
+        if (in0_node->kind() == c10::aten::size && in0_node->inputs().size() == 1) {
+            const auto input = node->outputs();
+            const auto outputs = node->outputs();
+            const int num_dims = outputs.size();
+            
+            for (int dim=0; dim<num_dims; dim++) {
+                std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+                layer_info->type                 = LAYER_GATHER;
+                layer_info->type_str             = "Gather";
+                layer_info->name                 = outputs[dim]->debugName();
+
+                layer_info->inputs.push_back(node->input(0)->debugName());
+                layer_info->outputs.push_back(outputs[dim]->debugName());
+
+                auto layer_param                 = std::make_shared<GatherLayerParam>();
+                layer_param->axis                = 0;
+                layer_param->indices_in_resource = true;
+
+                layer_info->param  = layer_param;
+
+                int indices        = dim;
+                auto layer_res     = std::make_shared<GatherLayerResource>();
+                auto indices_buf   = RawBuffer(sizeof(int), reinterpret_cast<char *>(&indices), {1});
+                indices_buf.SetDataType(DATA_TYPE_INT32);
+                layer_res->indices = indices_buf;
+
+                ADD_INPUTS_AND_OUTPUTS;
+
+                net_structure->layers.push_back(layer_info);
+                net_resource->resource_map[layer_info->name] = layer_res;
+            }
+        }
+        
         return TNN_OK;
     }
 };
@@ -1572,6 +1672,7 @@ REGISTER_TORCH_OP_CONVERTER(Binary, aten, add_)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, add)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, mul)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, div)
+REGISTER_TORCH_OP_CONVERTER(Binary, aten, floordiv)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, eq)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, gt)
 REGISTER_TORCH_OP_CONVERTER(Clip, aten, clamp)
