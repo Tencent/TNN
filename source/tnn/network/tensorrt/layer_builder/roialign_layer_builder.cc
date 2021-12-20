@@ -23,8 +23,8 @@ bool RoiAlignTRTPluginLayerBuilder::supportsFormatCombination(
     if (!(nbInputs == 3 && nbOutputs == 1 && pos < nbInputs + nbOutputs)) return false;
     switch (pos) {
         case 0: return inOut[pos].type == nvinfer1::DataType::kFLOAT;
-        case 1: return inOut[pos].type == nvinfer1::DataType::kINT32;
-        case 2: return inOut[pos].type == nvinfer1::DataType::kFLOAT;
+        case 1: return inOut[pos].type == nvinfer1::DataType::kFLOAT;
+        case 2: return inOut[pos].type == nvinfer1::DataType::kINT32;
         case 3: return inOut[pos].type == nvinfer1::DataType::kFLOAT;
         default: return false;
     }
