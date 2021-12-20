@@ -36,6 +36,9 @@ protected:
    RawBuffer raw_buffer_;
    shared_ptr<uint64_t> shape_;
    shared_ptr<CoreML__Specification__WeightParams> weight_param_;
+    
+private:
+    RawBuffer cvt_raw_buffer_;
 };
 
 }  // namespace TNN_NS
