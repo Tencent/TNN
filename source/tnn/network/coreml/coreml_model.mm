@@ -45,6 +45,9 @@
 }
 
 - (TNN_NS::Status)buildFromCache {
+#if TNN_COREML_TEST
+    return TNN_NS::Status(TNN_NS::TNNERR_ANE_COMPILE_MODEL_ERROR, "buildFromCache is disabled when TNN_COREML_TEST is ON");
+#else
     //mlmodelc path
     auto mlmodelcURL = [self mlmodelcPath];
     
@@ -75,6 +78,7 @@
         LOGE("Error: CoreML only support iOS 12+.\n");
         return TNN_NS::Status(TNN_NS::TNNERR_ANE_COMPILE_MODEL_ERROR, "CoreML only support iOS 12+.");
     }
+#endif
 }
 
 - (TNN_NS::Status)buildFromProtoBuf:(CoreML__Specification__Model*)model {
