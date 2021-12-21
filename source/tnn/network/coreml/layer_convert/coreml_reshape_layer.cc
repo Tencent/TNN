@@ -254,15 +254,19 @@ std::vector<std::string> CoreMLReshapeLayer::BuildLayerInputs() {
     if (!layer_info_) {
         return std::vector<std::string>();
     } else {
-        auto param = layer_info_->param.get();
-        auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
-        if(output_shape_size  > input_shape_size) {
-            return {reshape_param->name + "-unsqueeze-out"};
+        if (layer_info_->inputs.size() >= 2) {
+            return CoreMLBaseLayer::BuildLayerInputs();
+        } else {
+            auto param = layer_info_->param.get();
+            auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
+            if(output_shape_size  > input_shape_size) {
+                return {reshape_param->name + "-unsqueeze-out"};
+            }
+            if(reshape_param->reshape_type == 1) {
+                return {reshape_param->name + "-permute0-out"};
+            }
+            return layer_info_->inputs;
         }
-        if(reshape_param->reshape_type == 1) {
-            return {reshape_param->name + "-permute0-out"};
-        }
-        return layer_info_->inputs;
     }
 }
 
@@ -270,15 +274,19 @@ std::vector<std::string> CoreMLReshapeLayer::BuildLayerOutputs() {
     if (!layer_info_) {
         return std::vector<std::string>();
     } else {
-        auto param = layer_info_->param.get();
-        auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
-        if(output_shape_size  < input_shape_size) {
-            return {reshape_param->name + "-squeeze-in"};
+        if (layer_info_->inputs.size() >= 2) {
+            return CoreMLBaseLayer::BuildLayerOutputs();
+        } else {
+            auto param = layer_info_->param.get();
+            auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
+            if(output_shape_size  < input_shape_size) {
+                return {reshape_param->name + "-squeeze-in"};
+            }
+            if(reshape_param->reshape_type == 1) {
+                return {reshape_param->name + "-permute1-in"};
+            }
+            return layer_info_->outputs;
         }
-        if(reshape_param->reshape_type == 1) {
-            return {reshape_param->name + "-permute1-in"};
-        }
-        return layer_info_->outputs;
     }
 }
 
