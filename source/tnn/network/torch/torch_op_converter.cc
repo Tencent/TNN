@@ -1507,7 +1507,13 @@ public:
         auto type = node->inputs().at(0)->type();
 
         if (type->kind() == c10::TypeKind::IntType) {
-            return true;
+            auto user_type_str = node->output(0)->uses()[0].user->kind().toQualString();
+            if (GetGlobalTorchConvertMap().count(user_type_str)) {
+                auto& converter = GetGlobalTorchConvertMap()[user_type_str];
+                if (converter->IsSupported(node->output(0)->uses()[0].user)) {
+                    return true;
+                }
+            }
         } else if (type->kind() == c10::TypeKind::TensorType) {
             if (node->output(0)->uses()[0].user->kind() == c10::aten::cat) {
                 return true;
