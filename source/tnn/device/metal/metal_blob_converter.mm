@@ -367,6 +367,8 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
 
+        command_buffer = context_impl.commandBuffer;
+
         [command_buffer commit];
         if (waitState == 1) {
             [command_buffer waitUntilCompleted];
@@ -406,6 +408,8 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
 
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
+
+        command_buffer = context_impl.commandBuffer;
 
         [command_buffer commit];
 
@@ -472,7 +476,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
 
-        auto command_buffer = context_impl.commandBuffer;
+        command_buffer = context_impl.commandBuffer;
         [context_impl commit:YES];
 
         if (output_mat_device == DEVICE_METAL) {
@@ -536,6 +540,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
 
+        command_buffer = context_impl.commandBuffer;
         [command_buffer commit];
 
         if (output_mat_device == DEVICE_METAL) {
