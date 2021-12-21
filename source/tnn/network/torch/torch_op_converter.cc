@@ -1505,8 +1505,10 @@ public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         auto &layer_info = net_structure->layers.back();
         auto &outputs    = layer_info->outputs;
-        if (outputs.size() == 1) {
-            outputs[0] = node->output(0)->debugName();
+        for (auto &output : outputs) {
+            if (output == node->input(0)->debugName()) {
+                output = node->output(0)->debugName();
+            }
         }
 
         return TNN_OK;
