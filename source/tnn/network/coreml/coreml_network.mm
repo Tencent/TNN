@@ -179,7 +179,8 @@ Status CoreMLNetwork::InitCoreMLModel(NetStructure *net_structure, NetResource *
     for(const auto& iter : input_blobs) {
         auto name = iter.first.c_str();
         auto shape = iter.second->GetBlobDesc().dims;
-        SetInput(coreml_model_->description->input + idx++, name, shape);
+        auto type = iter.second->GetBlobDesc().data_type;
+        RETURN_ON_NEQ(SetInput(coreml_model_->description->input + idx++, name, shape, type), TNN_OK);
     }
     coreml_model_->description->n_output = output_blobs.size();
     coreml_output_arr_ = std::shared_ptr<CoreML__Specification__FeatureDescription*>(new CoreML__Specification__FeatureDescription* [output_blobs.size()], [](CoreML__Specification__FeatureDescription** p) { delete[] p; });
@@ -188,13 +189,15 @@ Status CoreMLNetwork::InitCoreMLModel(NetStructure *net_structure, NetResource *
     for(const auto& iter : output_blobs) {
         auto name = iter.first.c_str();
         auto shape = iter.second->GetBlobDesc().dims;
-        SetOutput(coreml_model_->description->output + idx++, name, shape);
+        auto type = iter.second->GetBlobDesc().data_type;
+        RETURN_ON_NEQ(SetOutput(coreml_model_->description->output + idx++, name, shape, type), TNN_OK);
     }
     
     return ret;
 }
 
-void CoreMLNetwork::SetInput(CoreML__Specification__FeatureDescription** describe, std::string name, std::vector<int> shape) {
+Status CoreMLNetwork::SetInput(CoreML__Specification__FeatureDescription** describe, std::string name, std::vector<int> shape, DataType type) {
+    Status ret = TNN_OK;
     coreml_input_feature_description_.push_back(std::shared_ptr<CoreML__Specification__FeatureDescription>(new CoreML__Specification__FeatureDescription));
     (*describe) = (CoreML__Specification__FeatureDescription *)coreml_input_feature_description_.back().get();
     core_ml__specification__feature_description__init(*describe);
@@ -207,16 +210,28 @@ void CoreMLNetwork::SetInput(CoreML__Specification__FeatureDescription** describ
     coreml_input_array_feature_type_.push_back(std::shared_ptr<CoreML__Specification__ArrayFeatureType>(new CoreML__Specification__ArrayFeatureType));
     (*describe)->type->multiarraytype = coreml_input_array_feature_type_.back().get();
     core_ml__specification__array_feature_type__init((*describe)->type->multiarraytype);
-    (*describe)->type->multiarraytype->datatype = CORE_ML__SPECIFICATION__ARRAY_FEATURE_TYPE__ARRAY_DATA_TYPE__FLOAT32;
+    switch (type) {
+        case DATA_TYPE_FLOAT:
+            (*describe)->type->multiarraytype->datatype = CORE_ML__SPECIFICATION__ARRAY_FEATURE_TYPE__ARRAY_DATA_TYPE__FLOAT32;
+            break;
+        case DATA_TYPE_INT32:
+            (*describe)->type->multiarraytype->datatype = CORE_ML__SPECIFICATION__ARRAY_FEATURE_TYPE__ARRAY_DATA_TYPE__INT32;
+            break;
+        default:
+            return Status(TNNERR_MODEL_ERR, "CoreML dont support this input array data type");
+            break;
+    }
     (*describe)->type->multiarraytype->n_shape = shape.size();
     coreml_input_shape_.push_back(std::shared_ptr<int64_t>(new int64_t [shape.size()], [](int64_t* p) { delete[] p; }));
     (*describe)->type->multiarraytype->shape = coreml_input_shape_.back().get();
     for (int i = 0; i < shape.size(); i++) {
         (*describe)->type->multiarraytype->shape[i] = shape[i];
     }
+    return ret;
 }
 
-void CoreMLNetwork::SetOutput(CoreML__Specification__FeatureDescription** describe, std::string name, std::vector<int> shape) {
+Status CoreMLNetwork::SetOutput(CoreML__Specification__FeatureDescription** describe, std::string name, std::vector<int> shape, DataType type) {
+    Status ret = TNN_OK;
     coreml_output_feature_description_.push_back(std::shared_ptr<CoreML__Specification__FeatureDescription>(new CoreML__Specification__FeatureDescription));
     (*describe) = (CoreML__Specification__FeatureDescription *)coreml_output_feature_description_.back().get();
     core_ml__specification__feature_description__init(*describe);
@@ -229,13 +244,24 @@ void CoreMLNetwork::SetOutput(CoreML__Specification__FeatureDescription** descri
     coreml_output_array_feature_type_.push_back(std::shared_ptr<CoreML__Specification__ArrayFeatureType>(new CoreML__Specification__ArrayFeatureType));
     (*describe)->type->multiarraytype = coreml_output_array_feature_type_.back().get();
     core_ml__specification__array_feature_type__init((*describe)->type->multiarraytype);
-    (*describe)->type->multiarraytype->datatype = CORE_ML__SPECIFICATION__ARRAY_FEATURE_TYPE__ARRAY_DATA_TYPE__FLOAT32;
+    switch (type) {
+        case DATA_TYPE_FLOAT:
+            (*describe)->type->multiarraytype->datatype = CORE_ML__SPECIFICATION__ARRAY_FEATURE_TYPE__ARRAY_DATA_TYPE__FLOAT32;
+            break;
+        case DATA_TYPE_INT32:
+            (*describe)->type->multiarraytype->datatype = CORE_ML__SPECIFICATION__ARRAY_FEATURE_TYPE__ARRAY_DATA_TYPE__INT32;
+            break;
+        default:
+            return Status(TNNERR_MODEL_ERR, "CoreML dont support this output array data type");
+            break;
+    }
     (*describe)->type->multiarraytype->n_shape = shape.size();
     coreml_output_shape_.push_back(std::shared_ptr<int64_t>(new int64_t [shape.size()], [](int64_t* p) { delete[] p; }));
     (*describe)->type->multiarraytype->shape = coreml_output_shape_.back().get();
     for (int i = 0; i < shape.size(); i++) {
         (*describe)->type->multiarraytype->shape[i] = shape[i];
     }
+    return ret;
 }
 
 Status CoreMLNetwork::ConvertCoreMLModel(NetStructure *net_structure, NetResource *net_resource) {

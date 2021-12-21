@@ -74,9 +74,9 @@ public:
     // @brief get all output blobs
     virtual Status GetAllOutputBlobs(BlobMap &blobs);
             
-    void SetInput(CoreML__Specification__FeatureDescription** describe, std::string name, std::vector<int> shape);
+    Status SetInput(CoreML__Specification__FeatureDescription** describe, std::string name, std::vector<int> shape, DataType type);
     
-    void SetOutput(CoreML__Specification__FeatureDescription** describe, std::string name, std::vector<int> shape);
+    Status SetOutput(CoreML__Specification__FeatureDescription** describe, std::string name, std::vector<int> shape, DataType type);
         
     Status InitCoreMLModel(NetStructure *net_structure, NetResource *net_resource);
     
