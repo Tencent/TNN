@@ -85,6 +85,7 @@ public:
     Status CompileModel(CoreML__Specification__Model* model);
     
 protected:
+    ModelConfig model_config_;
     AbstractDevice *device_              = nullptr;
     Context *context_                       = nullptr;
     NetStructure *net_structure_      = nullptr;

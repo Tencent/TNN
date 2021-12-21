@@ -86,23 +86,10 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
         return Status(TNNERR_COMMON_ERROR, "Apple device dont have NeuralEngine");
     }
     
+    model_config_ = model_config;
+    
     if (@available(iOS 12.0, macOS 10.14, *)) {
         Status ret = TNN_OK;
-
-        DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
-        CHECK_PARAM_NULL(default_interpreter);
-        auto md5s = default_interpreter->GetParamsMd5();
-        std::string md5 = md5s.size() > 0 ? md5s[0]: "";
-        if (md5s.size() >= 2) {
-            md5 = md5 + "-" + md5s[1];
-        }
-
-        net_structure_ = default_interpreter->GetNetStructure();
-        net_resource_   = default_interpreter->GetNetResource();
-        if (net_structure_ == NULL || net_resource_ == NULL) {
-            LOGE("ERROR: network_ is nil, network_type may not support\n");
-            return Status(TNNERR_NULL_PARAM, "network_ is nil, network_type may not support");
-        }
         
         auto type = net_config.device_type;
         if(type == DEVICE_APPLE_NPU) {
@@ -129,18 +116,40 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
             return ret;
         }
         
-        //init coreml model
-        coreml_executor_ = [[CoreMLModel alloc] initWithCachePath:net_config.cache_path ID:md5];
-        
-        if ([coreml_executor_ buildFromCache] != TNN_OK) {
-            RETURN_ON_NEQ(InitCoreMLModel(net_structure_, net_resource_), TNN_OK);
+        if (model_config.model_type == MODEL_TYPE_TNN) {
+            auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
+            CHECK_PARAM_NULL(default_interpreter);
+            auto md5s = default_interpreter->GetParamsMd5();
+            std::string md5 = md5s.size() > 0 ? md5s[0]: "";
+            if (md5s.size() >= 2) {
+                md5 = md5 + "-" + md5s[1];
+            }
+
+            net_structure_ = default_interpreter->GetNetStructure();
+            net_resource_   = default_interpreter->GetNetResource();
+            if (net_structure_ == NULL || net_resource_ == NULL) {
+                LOGE("ERROR: network_ is nil, network_type may not support\n");
+                return Status(TNNERR_NULL_PARAM, "network_ is nil, network_type may not support");
+            }
             
-            RETURN_ON_NEQ(ConvertCoreMLModel(net_structure_, net_resource_), TNN_OK);
+            //init coreml model
+            coreml_executor_ = [[CoreMLModel alloc] initWithCachePath:net_config.cache_path ID:md5];
             
-            RETURN_ON_NEQ(CompileModel(coreml_model_.get()), TNN_OK);
+            if ([coreml_executor_ buildFromCache] != TNN_OK) {
+                RETURN_ON_NEQ(InitCoreMLModel(net_structure_, net_resource_), TNN_OK);
+                
+                RETURN_ON_NEQ(ConvertCoreMLModel(net_structure_, net_resource_), TNN_OK);
+                
+                RETURN_ON_NEQ(CompileModel(coreml_model_.get()), TNN_OK);
+            }
+        } else if (model_config.model_type == MODEL_TYPE_COREML) {
+            //init coreml model
+            coreml_executor_ = [[CoreMLModel alloc] initWithModelPath:model_config.params[0]];
+            RETURN_ON_NEQ([coreml_executor_ buildFromModelPath], TNN_OK);
+        } else {
+            return Status(TNNERR_MODEL_ERR, "CoreMLNetwork dont support the mode type in model_config");
         }
 
-//        return ret;
         BlobMap blobs;
         RETURN_ON_NEQ(GetAllInputBlobs(blobs), TNN_OK);
         return GetAllOutputBlobs(blobs);
@@ -309,11 +318,19 @@ Status CoreMLNetwork::GetAllInputBlobs(BlobMap &blobs) {
     if (status != TNN_OK) {
         return status;
     }
-
-    BlobMap input_blobs;
     
-    const auto & inputs_shape_map = net_structure_->inputs_shape_map;
-    auto & inputs_type_map = net_structure_->input_data_type_map;
+    BlobShapesMap inputs_shape_map;
+    BlobDataTypeMap inputs_type_map;
+    if (model_config_.model_type == MODEL_TYPE_TNN) {
+        inputs_shape_map = net_structure_->inputs_shape_map;
+        inputs_type_map = net_structure_->input_data_type_map;
+    } else if (model_config_.model_type == MODEL_TYPE_COREML) {
+        RETURN_ON_NEQ([coreml_executor_ getInputShapesMap:inputs_shape_map
+                                             dataTypesMap:inputs_type_map], TNN_OK);
+    } else {
+        return Status(TNNERR_MODEL_ERR, "CoreMLNetwork dont support the mode type in model_config");
+    }
+    
     for (const auto & iter : inputs_shape_map) {
         const auto & input_name = iter.first;
         const auto & input_dims = iter.second;
@@ -355,11 +372,29 @@ Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
         return status;
     }
     
-    const auto & output_names = net_structure_->outputs;
-    auto & blob_shapes_map = net_resource_->blob_shapes_map;
+    BlobShapesMap outputs_shape_map;
+    BlobDataTypeMap outputs_type_map;
+    std::set<std::string> output_names;
+    
+    if (model_config_.model_type == MODEL_TYPE_TNN) {
+        output_names = net_structure_->outputs;
+        outputs_shape_map = net_resource_->blob_shapes_map;
+        outputs_type_map = net_resource_->blob_datatype_map;
+    } else if (model_config_.model_type == MODEL_TYPE_COREML) {
+        RETURN_ON_NEQ([coreml_executor_ getOutputShapesMap:outputs_shape_map
+                                             dataTypesMap:outputs_type_map], TNN_OK);
+        output_names.clear();
+        for (auto const& element : outputs_shape_map) {
+            output_names.insert(element.first);
+        }
+    } else {
+        return Status(TNNERR_MODEL_ERR, "CoreMLNetwork dont support the mode type in model_config");
+    }
+    
     for (const auto &output_name : output_names) {
-        auto output_dims = blob_shapes_map[output_name];
-
+        auto output_dims = outputs_shape_map[output_name];
+        const auto data_type = outputs_type_map[output_name];
+        
         BlobDesc desc;
         {
             //use DEVICE_ARM OR DEVICE_X86 according to hardware
@@ -368,7 +403,8 @@ Status CoreMLNetwork::GetAllOutputBlobs(BlobMap &blobs) {
 #else
             desc.device_type = DEVICE_X86;
 #endif
-            desc.data_type   = DATA_TYPE_FLOAT;
+            
+            desc.data_type   = data_type;
             // data_format describes data order nchw, nhwc, ...
             desc.data_format = DATA_FORMAT_NCHW;
             desc.dims        = output_dims;
@@ -416,11 +452,10 @@ Status CoreMLNetwork::Forward() {
         
         //construct coreml inputs
         NSMutableDictionary *input_dict = [NSMutableDictionary dictionary];
-        auto & inputs_type_map = net_structure_->input_data_type_map;
 
         for (auto iter = blob_input_map_.begin(); iter != blob_input_map_.end(); ++iter) {
-            const auto data_type = inputs_type_map[iter->first];
             auto input_blob = blob_input_map_[iter->first];
+            const auto data_type = input_blob->GetBlobDesc().data_type;
             
             auto input_name = [NSString stringWithCString:iter->first.c_str()
                                                  encoding:[NSString defaultCStringEncoding]];

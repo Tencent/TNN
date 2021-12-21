@@ -59,13 +59,16 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
     }
     auto device = GetDevice(type);
     RETURN_VALUE_ON_NEQ(device != NULL, true, TNNERR_DEVICE_NOT_SUPPORT);
-    interpreter_ = interpreter->Copy();
-    if (nullptr == interpreter_) {
-        // The ModelInterpreter not implement Copy API, just use interpreter
-        LOGI("Interpreter Copy failed, use interpreter in params instead\n");
-        interpreter_ = interpreter;
+    
+    if (interpreter) {
+        interpreter_ = interpreter->Copy();
+        if (nullptr == interpreter_) {
+            // The ModelInterpreter not implement Copy API, just use interpreter
+            LOGI("Interpreter Copy failed, use interpreter in params instead\n");
+            interpreter_ = interpreter;
+        }
     }
-
+    
     auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter_.get());
 
     auto network_type = net_config_.network_type;

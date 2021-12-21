@@ -104,7 +104,8 @@ struct BenchResult {
     
     NSPredicate *predicateProto = [NSPredicate predicateWithFormat:@"self ENDSWITH 'proto'"];
     NSPredicate *predicateModel = [NSPredicate predicateWithFormat:@"self ENDSWITH 'model'"];
-    NSPredicate *predicateCoreML = [NSPredicate predicateWithFormat:@"self ENDSWITH 'mlmodelc'"];
+    NSPredicate *predicateCoreML = [NSPredicate predicateWithFormat:@"self ENDSWITH 'mlmodel'"];
+    NSPredicate *predicateCoreMLC = [NSPredicate predicateWithFormat:@"self ENDSWITH 'mlmodelc'"];
     
     vector<BenchModel> netmodels;
     
@@ -135,14 +136,22 @@ struct BenchResult {
                    model.tnn_proto_content = proto.UTF8String;
                }
            }
-           NSArray<NSString *> *models = [modelFiles filteredArrayUsingPredicate:predicateModel];
-           if (models.count > 0) {
-//               model.tnn_model_content = [modelDirPath stringByAppendingPathComponent:models[0]].UTF8String;
-               NSData *data = [NSData dataWithContentsOfFile:[modelDirPath
-                                                              stringByAppendingPathComponent:models[0]]];
-               model.tnn_model_content = string((const char *)[data bytes], [data length]);
+           
+           if (model.tnn_proto_content.length() > 0) {
+               NSArray<NSString *> *models = [modelFiles filteredArrayUsingPredicate:predicateModel];
+               if (models.count > 0) {
+    //               model.tnn_model_content = [modelDirPath stringByAppendingPathComponent:models[0]].UTF8String;
+                   NSData *data = [NSData dataWithContentsOfFile:[modelDirPath
+                                                                  stringByAppendingPathComponent:models[0]]];
+                   model.tnn_model_content = string((const char *)[data bytes], [data length]);
+               }
            }
+
            NSArray<NSString *> *coremls = [modelFiles filteredArrayUsingPredicate:predicateCoreML];
+           if (coremls.count > 0) {
+               model.coreml = [modelDirPath stringByAppendingPathComponent:coremls[0]].UTF8String;
+           }
+           coremls = [modelFiles filteredArrayUsingPredicate:predicateCoreMLC];
            if (coremls.count > 0) {
                model.coreml = [modelDirPath stringByAppendingPathComponent:coremls[0]].UTF8String;
            }
@@ -233,8 +242,13 @@ struct BenchResult {
     TNN net;
     {
         ModelConfig config;
-        config.model_type = MODEL_TYPE_TNN;
-        config.params = {protoContent, modelPathOrContent};
+        if (protoContent.length() > 0 && modelPathOrContent.length() > 0) {
+            config.model_type = MODEL_TYPE_TNN;
+            config.params = {protoContent, modelPathOrContent};
+        } else if (coremlDir.length() > 0) {
+            config.model_type = MODEL_TYPE_COREML;
+            config.params = {coremlDir};
+        }
         
         result.status = net.Init(config);
         if (result.status != TNN_OK) {
