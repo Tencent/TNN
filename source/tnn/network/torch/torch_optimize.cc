@@ -239,26 +239,6 @@ namespace jit {
         }
     }
 
-    void RemoveClone(Block* block) {
-        std::vector<Node*> deleted_nodes;
-
-        for (auto it = block->nodes().rbegin(); it != block->nodes().rend(); it++) {
-            Node* node = *it;
-            for (auto block : node->blocks()) {
-                RemoveClone(block);
-            }
-            if ((node->kind() == c10::Symbol::fromQualString("aten::clone"))) {
-                Value* input_value = node->inputs()[0];
-                Value* output_value = node->outputs()[0];
-                output_value->replaceAllUsesWith(input_value);
-                deleted_nodes.push_back(node);
-            }
-        }
-        for (auto del_node : deleted_nodes) {
-            del_node->destroy();
-        }
-    }
-
     void RemoveContiguous(std::shared_ptr<Graph> graph) {
         std::string contiguous_pattern    = R"IR(
         graph(%input, %1):
@@ -287,7 +267,6 @@ namespace jit {
 //      Remove Concat cause cascade rcnn crash        
 //        RemoveConcat(graph->block());
         RemoveContiguous(graph);
-//        RemoveClone(graph->block());
 //        RemoveNoneTypeFromTuple(graph->block());
 //        RemoveSlice(graph->block());
 
