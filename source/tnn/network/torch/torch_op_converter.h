@@ -122,6 +122,10 @@ static RawBuffer getValue(const at::Tensor &tensor) {
         auto buffer     = RawBuffer(bytes_size, reinterpret_cast<char*>(vec.data()), shape);
         buffer.SetDataType(DATA_TYPE_INT8);
         return buffer;
+    } else if (torch_type == at::ScalarType::Float) {
+        auto vec        = getValue<float>(tensor, shape);
+        auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
+        return RawBuffer(bytes_size, reinterpret_cast<char*>(vec.data()), shape);
     } else if (torch_type == at::ScalarType::Double) {
         auto vec        = getValue<double>(tensor, shape);
         auto bytes_size = size * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT);
