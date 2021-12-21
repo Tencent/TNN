@@ -1499,6 +1499,20 @@ public:
     }
 };
 
+// func: clone(Tensor self, *, MemoryFormat? memory_format=None)
+class CloneTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        auto &layer_info = net_structure->layers.back();
+        auto &outputs    = layer_info->outputs;
+        if (outputs.size() == 1) {
+            outputs[0] = node->output(0)->debugName();
+        }
+
+        return TNN_OK;
+    }
+};
+
 class ListTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
@@ -1682,6 +1696,7 @@ REGISTER_TORCH_OP_CONVERTER(Binary, aten, floordiv)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, eq)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, gt)
 REGISTER_TORCH_OP_CONVERTER(Clip, aten, clamp)
+REGISTER_TORCH_OP_CONVERTER(Clone, aten, clone)
 REGISTER_TORCH_OP_CONVERTER(Concat, aten, cat)
 REGISTER_TORCH_OP_CONVERTER(Conv2D, aten, conv2d)
 REGISTER_TORCH_OP_CONVERTER(_Conv, aten, _convolution)
