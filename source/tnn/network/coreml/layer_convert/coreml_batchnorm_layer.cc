@@ -23,7 +23,9 @@ DECLARE_COREML_LAYER_WITH_DATA(Batchnorm, LAYER_BATCH_NORM,
                                 std::shared_ptr<void> coreml_layer_mean_;
                                 std::shared_ptr<void> coreml_layer_variance_;
                                 std::shared_ptr<void> mean_;
-                                std::shared_ptr<void> variance_;);
+                                std::shared_ptr<void> variance_;
+                                std::shared_ptr<float> scale_fp32_ptr_;
+                                std::shared_ptr<float> bias_fp32_ptr_;);
 
 Status CoreMLBatchnormLayer::BuildLayerType() {
     //layer type
@@ -41,9 +43,9 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
     auto layer_res = dynamic_cast<BatchNormLayerResource *>(layer_resource_);
     CHECK_PARAM_NULL(layer_res);
     auto scale_count = layer_res->scale_handle.GetDataCount();
-    auto scale_ptr = layer_res->scale_handle.force_to<float *>();
+    auto scale_data_type = layer_res->scale_handle.GetDataType();
     auto bias_count = layer_res->bias_handle.GetDataCount();
-    auto bias_ptr = layer_res->bias_handle.force_to<float *>();
+    auto bias_data_type = layer_res->bias_handle.GetDataType();
     
     // TNN BatchNorm: scale*x + bias
     // CoreML BatchNorm: gamma*(x - mean) / sqrt(var^2 +epsilon) + beta  ->
@@ -59,12 +61,50 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
     coreml_layer_->batchnorm->gamma = (CoreML__Specification__WeightParams*) coreml_layer_gamma_.get();
     core_ml__specification__weight_params__init(coreml_layer_->batchnorm->gamma);
     coreml_layer_->batchnorm->gamma->n_floatvalue = scale_count;
-    coreml_layer_->batchnorm->gamma->floatvalue = scale_ptr;
+    void *scale_data_ptr = layer_res->scale_handle.force_to<void *>();
+    switch (scale_data_type) {
+        case DATA_TYPE_FLOAT:
+            coreml_layer_->batchnorm->gamma->floatvalue = layer_res->scale_handle.force_to<float *>();
+            break;
+        case DATA_TYPE_HALF:
+            {
+                scale_fp32_ptr_ = std::shared_ptr<float>(new float [scale_count], [](float* p) { delete[] p; });
+                auto scale_fp32_ptr = scale_fp32_ptr_.get();
+                RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)scale_data_ptr, (float *)scale_fp32_ptr, scale_count),TNN_OK);
+                coreml_layer_->batchnorm->gamma->floatvalue = scale_fp32_ptr;
+            }
+            break;
+        default:
+            {
+                LOGE("CoreMLBatchnormLayer dont support data type (%d)\n", scale_data_type);
+                return Status(TNNERR_PARAM_ERR, "CoreMLBatchnormLayer dont support data type");
+            }
+            break;
+    }
     coreml_layer_beta_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
     coreml_layer_->batchnorm->beta = (CoreML__Specification__WeightParams*) coreml_layer_beta_.get();
     core_ml__specification__weight_params__init(coreml_layer_->batchnorm->beta);
     coreml_layer_->batchnorm->beta->n_floatvalue = bias_count;
-    coreml_layer_->batchnorm->beta->floatvalue = bias_ptr;
+    void *bias_data_ptr = layer_res->bias_handle.force_to<void *>();
+    switch (bias_data_type) {
+        case DATA_TYPE_FLOAT:
+            coreml_layer_->batchnorm->beta->floatvalue = layer_res->bias_handle.force_to<float *>();
+            break;
+        case DATA_TYPE_HALF:
+            {
+                bias_fp32_ptr_ = std::shared_ptr<float>(new float [bias_count], [](float* p) { delete[] p; });
+                auto bias_fp32_ptr = bias_fp32_ptr_.get();
+                RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)bias_data_ptr, (float *)bias_fp32_ptr, bias_count),TNN_OK);
+                coreml_layer_->batchnorm->beta->floatvalue = bias_fp32_ptr;
+            }
+            break;
+        default:
+            {
+                LOGE("CoreMLBatchnormLayer dont support data type (%d)\n", bias_data_type);
+                return Status(TNNERR_PARAM_ERR, "CoreMLBatchnormLayer dont support data type");
+            }
+            break;
+    }
     coreml_layer_mean_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
     coreml_layer_->batchnorm->mean = (CoreML__Specification__WeightParams*) coreml_layer_mean_.get();
     core_ml__specification__weight_params__init(coreml_layer_->batchnorm->mean);
