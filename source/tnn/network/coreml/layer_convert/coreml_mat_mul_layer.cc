@@ -19,8 +19,7 @@ namespace TNN_NS {
 
 DECLARE_COREML_LAYER_WITH_DATA(MatMul, LAYER_MATMUL,
                                     std::shared_ptr<CoreML__Specification__WeightParams> weight_param_;
-                                    RawBuffer matrix_b_column_;
-                                    std::shared_ptr<float> matrix_b_fp32_ptr_;);
+                                    RawBuffer matrix_b_column_;);
 
 Status CoreMLMatMulLayer::BuildLayerType() {
     //layer type
@@ -80,7 +79,7 @@ Status CoreMLMatMulLayer::BuildLayerParam() {
                     {
                         auto matrix_b_fp16_ptr = resource->weight.force_to<void *>();
                         int element_size = resource->weight.GetDataCount();
-                        matrix_b_fp32_ptr_ = std::shared_ptr<float>(new float [element_size], [](float* p) { delete[] p; });
+                        auto matrix_b_fp32_ptr_ = std::shared_ptr<float>(new float [element_size], [](float* p) { delete[] p; });
                         auto matrix_b_fp32_ptr = matrix_b_fp32_ptr_.get();
                         RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)matrix_b_fp16_ptr, (float *)matrix_b_fp32_ptr, element_size),TNN_OK);
                         auto matrix_b_column_ptr = matrix_b_column_.force_to<float *>();
