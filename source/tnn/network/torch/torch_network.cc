@@ -66,7 +66,7 @@ TNNTorchNetwork::~TNNTorchNetwork() {
 
 Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
                              AbstractModelInterpreter *interpreter, InputShapesMap min_inputs_shape,
-                             InputShapesMap max_inputs_shape, bool enable_const_folder) {
+                             InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type, bool enable_const_folder) {
     config_    = net_config;
     Status ret = TNN_OK;
 

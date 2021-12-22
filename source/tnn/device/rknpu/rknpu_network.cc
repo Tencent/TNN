@@ -40,7 +40,7 @@ RknpuNetwork::~RknpuNetwork() {
 }
 
 Status RknpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                          InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder) {
+                          InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type, bool enable_const_folder) {
     if (net_config.device_type != DEVICE_RK_NPU ||
         (model_config.model_type != MODEL_TYPE_TNN && model_config.model_type != MODEL_TYPE_RKCACHE)) {
         return Status(TNNERR_NULL_PARAM, "Rknpu not support device_type or model type");

@@ -75,7 +75,7 @@ TensorRTNetwork_::~TensorRTNetwork_() {
 
 Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
         AbstractModelInterpreter* interpreter, InputShapesMap min_inputs_shape,
-        InputShapesMap max_inputs_shape, bool enable_const_folder) {
+        InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type, bool enable_const_folder) {
     std::unique_lock<std::mutex> lck(network_mutex);
     device_id_ = net_config.device_id;
     CUDA_CHECK(cudaSetDevice(net_config.device_id));

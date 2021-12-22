@@ -34,7 +34,8 @@ OpenVINONetwork_::~OpenVINONetwork_() {
 
 Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
                             AbstractModelInterpreter* interpreter,
-                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder) {
+                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, 
+                            InputDataTypeMap inputs_data_type, bool enable_const_folder) {
 
     Status ret  = TNN_OK;
 

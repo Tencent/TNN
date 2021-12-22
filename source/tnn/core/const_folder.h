@@ -56,7 +56,7 @@ public:
     // @param inputs_shape_map modify input shape, if empty, it will use the
     // shape in proto
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type);
 
     // fold for new inputs shape
     Status Reshape(const InputShapesMap& inputs_shape);
