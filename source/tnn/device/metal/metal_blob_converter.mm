@@ -369,7 +369,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
 
         command_buffer = context_impl.commandBuffer;
 
-        [command_buffer commit];
+        [context_impl commit:YES];
         if (waitState == 1) {
             [command_buffer waitUntilCompleted];
         } else if (waitState == 2) {
@@ -411,7 +411,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
 
         command_buffer = context_impl.commandBuffer;
 
-        [command_buffer commit];
+        [context_impl commit:YES];
 
         [command_buffer waitUntilCompleted];
         memcpy(output_mat.GetData(), output_mtl_buffer.contents, count * bytes_size);
@@ -541,7 +541,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         [encoder endEncoding];
 
         command_buffer = context_impl.commandBuffer;
-        [command_buffer commit];
+        [context_impl commit:YES];
 
         if (output_mat_device == DEVICE_METAL) {
             if (waitState == 1) {
