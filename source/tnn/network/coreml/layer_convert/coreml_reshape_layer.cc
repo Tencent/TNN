@@ -85,7 +85,7 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
         
         // add permute to convert nchw to nhwc, when reshape_type = 1
         if (reshape_type == 1) {
-            if (input_shape_size != output_shape_size) {
+            if ((input_shape_size!=4) || (output_shape_size!=4)) {
                 return Status(TNNERR_MODEL_ERR, "CoreMLReshapeLayer input rank must be equal to output rank, when reshape_type = 1");
             }
             RETURN_ON_NEQ(BuildPermute0Layer(), TNN_OK);
