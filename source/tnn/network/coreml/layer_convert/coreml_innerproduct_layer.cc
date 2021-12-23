@@ -93,18 +93,24 @@ Status CoreMLInnerproductLayer::BuildLayerParam() {
     weight_param_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
     coreml_layer_->innerproduct->weights = weight_param_.get();
         core_ml__specification__weight_params__init(coreml_layer_->innerproduct->weights);
-    coreml_layer_->innerproduct->weights->n_floatvalue = weight_size;
-    void *weight_data_ptr = layer_res->weight_handle.force_to<void *>();
     switch (weight_type) {
         case DATA_TYPE_FLOAT:
+            coreml_layer_->innerproduct->weights->n_floatvalue = weight_size;
             coreml_layer_->innerproduct->weights->floatvalue = layer_res->weight_handle.force_to<float *>();
             break;
         case DATA_TYPE_HALF:
             {
+#if TNN_COREML_FULL_PRECISION
+                coreml_layer_->innerproduct->weights->n_floatvalue = weight_size;
+                void *weight_data_ptr = layer_res->weight_handle.force_to<void *>();
                 weight_fp32_ptr_ = std::shared_ptr<float>(new float [weight_size], [](float* p) { delete[] p; });
                 auto weight_fp32_ptr = weight_fp32_ptr_.get();
                 RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)weight_data_ptr, (float *)weight_fp32_ptr, weight_size),TNN_OK);
                 coreml_layer_->innerproduct->weights->floatvalue = weight_fp32_ptr;
+#else
+                coreml_layer_->innerproduct->weights->float16value.len = layer_res->weight_handle.GetBytesSize();
+                coreml_layer_->innerproduct->weights->float16value.data = layer_res->weight_handle.force_to<uint8_t *>();
+#endif
             }
             break;
         default:
@@ -117,18 +123,24 @@ Status CoreMLInnerproductLayer::BuildLayerParam() {
         bias_param_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
         coreml_layer_->innerproduct->bias = bias_param_.get();
         core_ml__specification__weight_params__init(coreml_layer_->innerproduct->bias);
-        coreml_layer_->innerproduct->bias->n_floatvalue = bias_size;
-        void *bias_data_ptr = layer_res->bias_handle.force_to<void *>();
         switch (bias_type) {
             case DATA_TYPE_FLOAT:
+                coreml_layer_->innerproduct->bias->n_floatvalue = bias_size;
                 coreml_layer_->innerproduct->bias->floatvalue = layer_res->bias_handle.force_to<float *>();
                 break;
             case DATA_TYPE_HALF:
                 {
+#if TNN_COREML_FULL_PRECISION
+                    coreml_layer_->innerproduct->bias->n_floatvalue = bias_size;
+                    void *bias_data_ptr = layer_res->bias_handle.force_to<void *>();
                     bias_fp32_ptr_ = std::shared_ptr<float>(new float [bias_size], [](float* p) { delete[] p; });
                     auto bias_fp32_ptr = bias_fp32_ptr_.get();
                     RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)bias_data_ptr, (float *)bias_fp32_ptr, bias_size),TNN_OK);
                     coreml_layer_->innerproduct->bias->floatvalue = bias_fp32_ptr;
+#else
+                    coreml_layer_->innerproduct->bias->float16value.len = layer_res->bias_handle.GetBytesSize();
+                    coreml_layer_->innerproduct->bias->float16value.data = layer_res->bias_handle.force_to<uint8_t *>();
+#endif
                 }
                 break;
             default:

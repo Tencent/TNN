@@ -95,6 +95,7 @@ Status CoreMLConstLayer::BuildLayerParam() {
             break;
         case DATA_TYPE_HALF:
             {
+#if TNN_COREML_FULL_PRECISION
                 cvt_raw_buffer_ = RawBuffer(4*element_size, element_dims);
                 cvt_raw_buffer_.SetDataType(DATA_TYPE_FLOAT);
                 auto fp16_data = raw_buffer_.force_to<void*>();
@@ -102,6 +103,10 @@ Status CoreMLConstLayer::BuildLayerParam() {
                 RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)fp16_data, (float *)float_data, element_size),TNN_OK);
                 coreml_layer_->loadconstantnd->data->n_floatvalue = element_size;
                 coreml_layer_->loadconstantnd->data->floatvalue = cvt_raw_buffer_.force_to<float *>();
+#else
+                coreml_layer_->loadconstantnd->data->float16value.len = raw_buffer_.GetBytesSize();
+                coreml_layer_->loadconstantnd->data->float16value.data = raw_buffer_.force_to<uint8_t *>();
+#endif
             }
             break;
         default:

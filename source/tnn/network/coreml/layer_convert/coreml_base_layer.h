@@ -30,6 +30,10 @@
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "../mlmodel/include/Model.pb-c.h"
 
+#ifndef TNN_COREML_FULL_PRECISION
+#define TNN_COREML_FULL_PRECISION 0
+#endif
+
 namespace TNN_NS {
 
 std::shared_ptr<char> NullTerminatedCString(std::string & name);
