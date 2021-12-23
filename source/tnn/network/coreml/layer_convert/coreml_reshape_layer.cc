@@ -21,7 +21,8 @@ DECLARE_COREML_LAYER_WITH_FUNC_DATA(Reshape, LAYER_RESHAPE,
                                      virtual Status BuildPermute0Layer();
                                      virtual Status BuildPermute1Layer();
                                      virtual Status BuildSqueezeLayer();
-                                     virtual Status BuildUnsqueezeLayer();,
+                                     virtual Status BuildUnsqueezeLayer();
+                                     bool IsDynamic();,
                                      std::shared_ptr<void> coreml_layer_shape_;
                                      std::shared_ptr<CoreML__Specification__Tensor*> coreml_layer_inputtensor_arr_;
                                      std::vector<std::shared_ptr<CoreML__Specification__Tensor> > coreml_layer_inputtensor_;
@@ -32,11 +33,19 @@ DECLARE_COREML_LAYER_WITH_FUNC_DATA(Reshape, LAYER_RESHAPE,
                                      std::shared_ptr<LayerInfo> permute0_layer_info_;
                                      std::shared_ptr<LayerInfo> permute1_layer_info_;
                                      std::shared_ptr<LayerInfo> unsqueeze_layer_info_;
-                                     std::shared_ptr<LayerInfo> squeeze_layer_info_;);
+                                    std::shared_ptr<LayerInfo> squeeze_layer_info_;);
+
+bool CoreMLReshapeLayer::IsDynamic() {
+    if (layer_info_ && layer_info_->inputs.size() >= 2 && net_resource_ &&
+        net_resource_->constant_map.find(layer_info_->inputs[1]) == net_resource_->constant_map.end()) {
+        return true;
+    }
+    return false;
+}
 
 Status CoreMLReshapeLayer::BuildLayerType() {
     //layer type
-    if (layer_info_ && layer_info_->inputs.size() >= 2) {
+    if (IsDynamic()) {
         coreml_layer_->layer_case = CORE_ML__SPECIFICATION__NEURAL_NETWORK_LAYER__LAYER_RESHAPE_DYNAMIC;
     } else {
         coreml_layer_->layer_case = CORE_ML__SPECIFICATION__NEURAL_NETWORK_LAYER__LAYER_RANK_PRESERVING_RESHAPE;
@@ -46,7 +55,6 @@ Status CoreMLReshapeLayer::BuildLayerType() {
 }
 
 Status CoreMLReshapeLayer::BuildLayerParam() {
-   
     if (net_resource_ && layer_info_->inputs.size()>0 && layer_info_->outputs.size()>0) {
         if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
             auto input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
@@ -60,7 +68,7 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
     }
     
     //reshape mode dynamic
-    if (layer_info_ && layer_info_->inputs.size() >= 2) {
+    if (IsDynamic()) {
         coreml_layer_param_ = std::shared_ptr<CoreML__Specification__ReshapeDynamicLayerParams>(new CoreML__Specification__ReshapeDynamicLayerParams);
         coreml_layer_->reshapedynamic = (CoreML__Specification__ReshapeDynamicLayerParams *)coreml_layer_param_.get();
         core_ml__specification__reshape_dynamic_layer_params__init(coreml_layer_->reshapedynamic);
@@ -70,8 +78,8 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
         auto param = layer_info_->param.get();
         auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
         CHECK_PARAM_NULL(reshape_param);
-        auto input_size = layer_info_->inputs.size();
-        auto output_size = layer_info_->outputs.size();
+        auto input_size = 1;
+        auto output_size = 1;
         auto shape_size = reshape_param->shape.size();
         auto shape = reshape_param->shape;
         // reshape_type:
@@ -254,7 +262,7 @@ std::vector<std::string> CoreMLReshapeLayer::BuildLayerInputs() {
     if (!layer_info_) {
         return std::vector<std::string>();
     } else {
-        if (layer_info_->inputs.size() >= 2) {
+        if (IsDynamic()) {
             return CoreMLBaseLayer::BuildLayerInputs();
         } else {
             auto param = layer_info_->param.get();
@@ -265,7 +273,7 @@ std::vector<std::string> CoreMLReshapeLayer::BuildLayerInputs() {
             if(reshape_param->reshape_type == 1) {
                 return {reshape_param->name + "-permute0-out"};
             }
-            return layer_info_->inputs;
+            return {layer_info_->inputs[0]};
         }
     }
 }
@@ -274,7 +282,7 @@ std::vector<std::string> CoreMLReshapeLayer::BuildLayerOutputs() {
     if (!layer_info_) {
         return std::vector<std::string>();
     } else {
-        if (layer_info_->inputs.size() >= 2) {
+        if (IsDynamic()) {
             return CoreMLBaseLayer::BuildLayerOutputs();
         } else {
             auto param = layer_info_->param.get();
