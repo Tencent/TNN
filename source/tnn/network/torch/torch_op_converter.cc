@@ -4,6 +4,8 @@
 
 namespace TNN_NS {
 
+#define BLOB_SCALE_SUFFIX "_scale_data_"
+
 // the function schema is defined in aten/src/ATen/native/native_functions.ymal
 // Todo: tnn tensorrt plugin not fully support fp16, resource rawbuffer should be convert to fp32 to avoid init error
 
@@ -1415,6 +1417,37 @@ std::string find_propagate_scale(const torch::jit::Node *node) {
     return "";
 }
 
+RawBuffer merge_weight_scale(RawBuffer &i_scale_buf, RawBuffer &w_scale_buf) {
+    const auto i_scale_len    = i_scale_buf.GetDataCount();
+    const auto w_scale_len    = w_scale_buf.GetDataCount();
+    const auto i_scale        = i_scale_buf.force_to<float *>();
+    const auto w_scale        = w_scale_buf.force_to<float *>();
+    auto merge_scale_len      = MAX(i_scale_len, w_scale_len);
+    RawBuffer merge_scale_buf = RawBuffer(merge_scale_len * sizeof(float));
+    for (int i = 0; i < merge_scale_len; i++) {
+        int i_scale_idx = i_scale_len == 1 ? 0 : i;
+        int w_scale_idx = w_scale_len == 1 ? 0 : i;
+        merge_scale_buf.force_to<float *>()[i] = i_scale[i_scale_idx] * w_scale[w_scale_idx];
+    }
+    return merge_scale_buf;
+}
+
+RawBuffer quant_bias(RawBuffer &bias, RawBuffer &scale) {
+    RawBuffer bias_quant = RawBuffer(bias.GetDataCount() * sizeof(int32_t));
+    bias_quant.SetDataType(DATA_TYPE_INT32);
+    const auto bias_len  = bias.GetDataCount();
+    const auto scale_len = scale.GetDataCount();
+    const auto bias_ptr  = bias.force_to<float *>();
+    const auto scale_ptr = scale.force_to<float *>();
+
+    for (int i = 0; i < bias_len; i++) {
+        int scale_idx = scale_len == 1 ? 0 : i;
+        bias_quant.force_to<int32_t *>()[i] = static_cast<int32_t>(std::nearbyint(bias_ptr[i] / scale_ptr[scale_idx]));
+    }
+
+    return bias_quant;
+}
+
 // func: quantize_per_tensor(Tensor self, float scale, int zero_point, ScalarType dtype) -> Tensor
 class QuantTensorTorchConverter : public TorchOpConverter {
 public:
@@ -1438,7 +1471,7 @@ public:
         layer_res->scale_handle = scale_buf;
 
         net_structure->layers.push_back(layer_info);
-        net_resource->resource_map[node->output(0)->debugName() + "_scale_data_"] =
+        net_resource->resource_map[node->output(0)->debugName() + BLOB_SCALE_SUFFIX] =
             std::shared_ptr<LayerResource>(layer_res);
 
         ADD_INPUTS_AND_OUTPUTS;
@@ -1465,7 +1498,7 @@ public:
         layer_info->param = layer_param;
         net_structure->layers.push_back(layer_info);
 
-        if (net_resource->resource_map.find(node->input(0)->debugName() + "_scale_data_") ==
+        if (net_resource->resource_map.find(node->input(0)->debugName() + BLOB_SCALE_SUFFIX) ==
             net_resource->resource_map.end()) {
             // dequant op always have input scale
         }
@@ -1509,17 +1542,30 @@ public:
 
         layer_param->quantized = true;
 
+        // set input scale res
+        if (net_resource->resource_map.find(node->input(0)->debugName() + BLOB_SCALE_SUFFIX) ==
+            net_resource->resource_map.end()) {
+            auto propagate_input = find_propagate_scale(node->inputs()[0]->node());
+            net_resource->resource_map[node->input(0)->debugName() + BLOB_SCALE_SUFFIX] =
+                net_resource->resource_map[propagate_input + BLOB_SCALE_SUFFIX];
+        }
+        auto i_scale_buf = dynamic_cast<IntScaleResource *>(
+                               net_resource->resource_map[node->input(0)->debugName() + BLOB_SCALE_SUFFIX].get())
+                               ->scale_handle;
+
         // convert to tnn param&res
         layer_res->filter_handle = getValue(weight);
 
+        RawBuffer w_scale_buf;
         if (weight.qscheme() == c10::kPerChannelAffine || weight.qscheme() == c10::kPerChannelSymmetric) {
-            const auto q_scale      = weight.q_per_channel_scales();
-            layer_res->scale_handle = getValue(q_scale);
+            const auto q_scale = weight.q_per_channel_scales();
+            w_scale_buf        = getValue(q_scale);
         } else if (weight.qscheme() == c10::kPerTensorAffine || weight.qscheme() == c10::kPerTensorSymmetric) {
-            const auto q_scale             = (float)weight.q_scale();
-            auto scale_buf                 = RawBuffer(4);
-            *scale_buf.force_to<float *>() = q_scale;
+            const auto q_scale               = (float)weight.q_scale();
+            w_scale_buf                      = RawBuffer(4);
+            *w_scale_buf.force_to<float *>() = q_scale;
         }
+        layer_res->scale_handle = merge_weight_scale(i_scale_buf, w_scale_buf);
 
         auto shape                  = layer_res->filter_handle.GetBufferDims();
         layer_param->name           = layer_info->name;
@@ -1538,19 +1584,12 @@ public:
 
         if (bias.has_value()) {
             layer_param->bias      = 1;
-            layer_res->bias_handle = getValue(bias.value());
+            auto bias_buf_float    = getValue(bias.value());
+            layer_res->bias_handle = quant_bias(bias_buf_float, layer_res->scale_handle);
         }
         layer_info->param = layer_param;
 
         net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
-
-        // set input scale res
-        if (net_resource->resource_map.find(node->input(0)->debugName() + "_scale_data_") ==
-            net_resource->resource_map.end()) {
-            auto propagate_input = find_propagate_scale(node->inputs()[0]->node());
-            net_resource->resource_map[node->input(0)->debugName() + "_scale_data_"] =
-                net_resource->resource_map[propagate_input + "_scale_data_"];
-        }
 
         // set output scale res
         auto o_scale_buf                = getValue(node->inputs().at(2));
@@ -1558,7 +1597,7 @@ public:
         o_scale_layer_res->scale_handle = o_scale_buf;
 
         net_structure->layers.push_back(layer_info);
-        net_resource->resource_map[node->output(0)->debugName() + "_scale_data_"] =
+        net_resource->resource_map[node->output(0)->debugName() + BLOB_SCALE_SUFFIX] =
             std::shared_ptr<LayerResource>(o_scale_layer_res);
 
         ADD_INPUTS_AND_OUTPUTS;
@@ -1585,6 +1624,17 @@ public:
 
         layer_param->quantized = true;
 
+        // set input scale res
+        if (net_resource->resource_map.find(node->input(0)->debugName() + BLOB_SCALE_SUFFIX) ==
+            net_resource->resource_map.end()) {
+            auto propagate_input = find_propagate_scale(node->inputs()[0]->node());
+            net_resource->resource_map[node->input(0)->debugName() + BLOB_SCALE_SUFFIX] =
+                net_resource->resource_map[propagate_input + BLOB_SCALE_SUFFIX];
+        }
+        auto i_scale_buf = dynamic_cast<IntScaleResource *>(
+                               net_resource->resource_map[node->input(0)->debugName() + BLOB_SCALE_SUFFIX].get())
+                               ->scale_handle;
+
         const auto weight_value        = toIValue(node->input(1)).value();
         const auto slots               = weight_value.toObject().get()->slots();
         const auto weight_packed_param = reinterpret_cast<LinearPackedParamsBase *>(slots[0].toCapsule().get());
@@ -1596,14 +1646,16 @@ public:
         auto weight_buf = getValue(weight);
         auto shape      = weight_buf.GetBufferDims();
 
+        RawBuffer w_scale_buf;
         if (weight.qscheme() == c10::kPerChannelAffine || weight.qscheme() == c10::kPerChannelSymmetric) {
-            const auto q_scale      = weight.q_per_channel_scales();
-            layer_res->scale_handle = getValue(q_scale);
+            const auto q_scale = weight.q_per_channel_scales();
+            w_scale_buf        = getValue(q_scale);
         } else if (weight.qscheme() == c10::kPerTensorAffine || weight.qscheme() == c10::kPerTensorSymmetric) {
-            const auto q_scale             = (float)weight.q_scale();
-            auto scale_buf                 = RawBuffer(4);
-            *scale_buf.force_to<float *>() = q_scale;
+            const auto q_scale               = (float)weight.q_scale();
+            w_scale_buf                      = RawBuffer(4);
+            *w_scale_buf.force_to<float *>() = q_scale;
         }
+        layer_res->scale_handle = merge_weight_scale(i_scale_buf, w_scale_buf);
 
         // set param accroding to real value, just test here
         layer_param->name       = layer_info->name;
@@ -1615,7 +1667,8 @@ public:
 
         if (bias.has_value()) {
             layer_param->has_bias  = 1;
-            layer_res->bias_handle = getValue(bias.value());
+            auto bias_buf_float    = getValue(bias.value());
+            layer_res->bias_handle = quant_bias(bias_buf_float, layer_res->scale_handle);
         }
 
         layer_info->param = layer_param;
@@ -1623,21 +1676,13 @@ public:
         net_structure->layers.push_back(layer_info);
         net_resource->resource_map[layer_info->name] = std::shared_ptr<LayerResource>(layer_res);
 
-        // set input scale res
-        if (net_resource->resource_map.find(node->input(0)->debugName() + "_scale_data_") ==
-            net_resource->resource_map.end()) {
-            auto propagate_input = find_propagate_scale(node->inputs()[0]->node());
-            net_resource->resource_map[node->input(0)->debugName() + "_scale_data_"] =
-                net_resource->resource_map[propagate_input + "_scale_data_"];
-        }
-
         // set output scale res
         auto o_scale_buf                = getValue(node->inputs().at(2));
         float *o_scale_value            = o_scale_buf.force_to<float *>();
         auto o_scale_layer_res          = new (IntScaleResource);
         o_scale_layer_res->scale_handle = o_scale_buf;
 
-        net_resource->resource_map[node->output(0)->debugName() + "_scale_data_"] =
+        net_resource->resource_map[node->output(0)->debugName() + BLOB_SCALE_SUFFIX] =
             std::shared_ptr<LayerResource>(o_scale_layer_res);
 
         ADD_INPUTS_AND_OUTPUTS;
@@ -1673,21 +1718,21 @@ public:
             net_structure->layers.push_back(layer_info);
 
             // set input scale
-            if (net_resource->resource_map.find(node->input(0)->debugName() + "_scale_data_") ==
+            if (net_resource->resource_map.find(node->input(0)->debugName() + BLOB_SCALE_SUFFIX) ==
                 net_resource->resource_map.end()) {
                 auto propagate_input = find_propagate_scale(node->inputs()[0]->node());
-                net_resource->resource_map[node->input(0)->debugName() + "_scale_data_"] =
-                    net_resource->resource_map[propagate_input + "_scale_data_"];
+                net_resource->resource_map[node->input(0)->debugName() + BLOB_SCALE_SUFFIX] =
+                    net_resource->resource_map[propagate_input + BLOB_SCALE_SUFFIX];
             }
-            if (net_resource->resource_map.find(node->input(1)->debugName() + "_scale_data_") ==
+            if (net_resource->resource_map.find(node->input(1)->debugName() + BLOB_SCALE_SUFFIX) ==
                 net_resource->resource_map.end()) {
                 auto propagate_input = find_propagate_scale(node->inputs()[0]->node());
-                net_resource->resource_map[node->input(1)->debugName() + "_scale_data_"] =
-                    net_resource->resource_map[propagate_input + "_scale_data_"];
+                net_resource->resource_map[node->input(1)->debugName() + BLOB_SCALE_SUFFIX] =
+                    net_resource->resource_map[propagate_input + BLOB_SCALE_SUFFIX];
             }
 
             // set output scale
-            net_resource->resource_map[node->outputs()[0]->debugName() + "_add_scale_data_"] =
+            net_resource->resource_map[node->outputs()[0]->debugName() + "_add" + BLOB_SCALE_SUFFIX] =
                 std::shared_ptr<LayerResource>(o_scale_layer_res);
 
             ADD_INPUTS_AND_OUTPUTS;
@@ -1708,8 +1753,8 @@ public:
             net_structure->layers.push_back(layer_info);
 
             // set output scale
-            net_resource->resource_map[node->outputs()[0]->debugName() + "_scale_data_"] =
-                net_resource->resource_map[node->outputs()[0]->debugName() + "_add_scale_data_"];
+            net_resource->resource_map[node->outputs()[0]->debugName() + BLOB_SCALE_SUFFIX] =
+                net_resource->resource_map[node->outputs()[0]->debugName() + "_add" + BLOB_SCALE_SUFFIX];
 
             ADD_INPUTS_AND_OUTPUTS;
         }
