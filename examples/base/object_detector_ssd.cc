@@ -59,7 +59,7 @@ Status ObjectDetectorSSD::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_
     
     std::vector<ObjectInfo> object_list;
     GenerateObjects(object_list, output_mat_scores, output_mat_boxes,
-                    0.55, input_shape[3], input_shape[2]);
+                    0.75, input_shape[3], input_shape[2]);
     
     std::vector<ObjectInfo> object_list_nms;
     TNN_NS::NMS(object_list, object_list_nms, 0.25, TNNHardNMS);
