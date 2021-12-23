@@ -26,7 +26,9 @@ DECLARE_COREML_LAYER_WITH_DATA(Deconv, LAYER_DECONVOLUTION,
                                 std::shared_ptr<CoreML__Specification__BorderAmounts__EdgeSizes*> borderamounts_;
                                 std::vector<std::shared_ptr<CoreML__Specification__BorderAmounts__EdgeSizes> > borderamounts_arr_;
                                 std::shared_ptr<CoreML__Specification__WeightParams> weight_param_;
-                                std::shared_ptr<CoreML__Specification__WeightParams> bias_param_;);
+                                std::shared_ptr<CoreML__Specification__WeightParams> bias_param_;
+                                std::shared_ptr<float> weight_fp32_ptr_;
+                                std::shared_ptr<float> bias_fp32_ptr_;);
 
 Status CoreMLDeconvLayer::BuildLayerType() {
     //layer type
@@ -52,10 +54,10 @@ Status CoreMLDeconvLayer::BuildLayerParam() {
     auto pad_type = conv_param->pad_type;
     auto conv_res = dynamic_cast<ConvLayerResource *>(layer_resource_);
     CHECK_PARAM_NULL(conv_res);
-//    auto weight_ptr = conv_res->filter_handle.force_to<float *>();
     auto weight_size = conv_res->filter_handle.GetDataCount();
-    auto bias_ptr = conv_res->bias_handle.force_to<float *>();
+    auto weight_type = conv_res->filter_handle.GetDataType();
     auto bias_size = conv_res->bias_handle.GetDataCount();
+    auto bias_type = conv_res->bias_handle.GetDataType();
     
     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__ConvolutionLayerParams>(new CoreML__Specification__ConvolutionLayerParams);
     coreml_layer_->convolution = (CoreML__Specification__ConvolutionLayerParams *)coreml_layer_param_.get();
@@ -85,14 +87,48 @@ Status CoreMLDeconvLayer::BuildLayerParam() {
     coreml_layer_->convolution->weights = weight_param_.get();
         core_ml__specification__weight_params__init(coreml_layer_->convolution->weights);
     coreml_layer_->convolution->weights->n_floatvalue = weight_size;
-    coreml_layer_->convolution->weights->floatvalue = conv_res->filter_handle.force_to<float *>();
-    if (bias_ptr) {
+    void *weight_data_ptr = conv_res->filter_handle.force_to<void *>();
+    switch (weight_type) {
+        case DATA_TYPE_FLOAT:
+            coreml_layer_->convolution->weights->floatvalue = conv_res->filter_handle.force_to<float *>();
+            break;
+        case DATA_TYPE_HALF:
+            {
+                weight_fp32_ptr_ = std::shared_ptr<float>(new float [weight_size], [](float* p) { delete[] p; });
+                auto weight_fp32_ptr = weight_fp32_ptr_.get();
+                RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)weight_data_ptr, (float *)weight_fp32_ptr, weight_size),TNN_OK);
+                coreml_layer_->convolution->weights->floatvalue = weight_fp32_ptr;
+            }
+            break;
+        default:
+            LOGE("CoreMLDeconvLayer dont support data type (%d)\n", weight_type);
+            return Status(TNNERR_MODEL_ERR, "CoreMLDeconvLayer dont support this weight data type");
+            break;
+    }
+    if (bias_size) {
         coreml_layer_->convolution->hasbias = true;
         bias_param_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
         coreml_layer_->convolution->bias = bias_param_.get();
         core_ml__specification__weight_params__init(coreml_layer_->convolution->bias);
         coreml_layer_->convolution->bias->n_floatvalue = bias_size;
-        coreml_layer_->convolution->bias->floatvalue = conv_res->bias_handle.force_to<float *>();
+        void *bias_data_ptr = conv_res->bias_handle.force_to<void *>();
+        switch (bias_type) {
+            case DATA_TYPE_FLOAT:
+                coreml_layer_->convolution->bias->floatvalue = conv_res->bias_handle.force_to<float *>();
+                break;
+            case DATA_TYPE_HALF:
+                {
+                    bias_fp32_ptr_ = std::shared_ptr<float>(new float [bias_size], [](float* p) { delete[] p; });
+                    auto bias_fp32_ptr = bias_fp32_ptr_.get();
+                    RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)bias_data_ptr, (float *)bias_fp32_ptr, bias_size),TNN_OK);
+                    coreml_layer_->convolution->bias->floatvalue = bias_fp32_ptr;
+                }
+                break;
+            default:
+                LOGE("CoreMLDeconvLayer dont support data type (%d)\n", bias_type);
+                return Status(TNNERR_MODEL_ERR, "CoreMLDeconvLayer dont support this bias data type");
+                break;
+        }
     }
     
     if (pad_type == -1) { // default padding following the proto setting

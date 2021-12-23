@@ -19,7 +19,9 @@ namespace TNN_NS {
 DECLARE_COREML_LAYER_WITH_DATA(LayerNorm, LAYER_LAYER_NORM,
                                 std::shared_ptr<void> coreml_layer_gamma_;
                                 std::shared_ptr<void> coreml_layer_beta_;
-                               std::shared_ptr<int64_t> normalizedshape_;);
+                                std::shared_ptr<int64_t> normalizedshape_;
+                                std::shared_ptr<float> scale_fp32_ptr_;
+                                std::shared_ptr<float> bias_fp32_ptr_;);
 
 Status CoreMLLayerNormLayer::BuildLayerType() {
     //layer type
@@ -47,13 +49,11 @@ Status CoreMLLayerNormLayer::BuildLayerParam() {
     auto scale_buffer = net_resource_->constant_map[scale_name];
     auto bias_buffer = net_resource_->constant_map[bias_name];
     
-    /******Warning*******/
-    /*TODO to support fp16 model*/
     auto scale_count = scale_buffer->GetDataCount();
     auto scale_dims = scale_buffer->GetBufferDims();
-    auto scale_ptr = scale_buffer->force_to<float *>();
+    auto scale_type = scale_buffer->GetDataType();
     auto bias_count = bias_buffer->GetDataCount();
-    auto bias_ptr = bias_buffer->force_to<float *>();
+    auto bias_type = bias_buffer->GetDataType();
     
     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__LayerNormalizationLayerParams>(new CoreML__Specification__LayerNormalizationLayerParams);
     coreml_layer_->layernormalization = (CoreML__Specification__LayerNormalizationLayerParams *)coreml_layer_param_.get();
@@ -64,13 +64,50 @@ Status CoreMLLayerNormLayer::BuildLayerParam() {
     coreml_layer_->layernormalization->gamma = (CoreML__Specification__WeightParams*) coreml_layer_gamma_.get();
     core_ml__specification__weight_params__init(coreml_layer_->layernormalization->gamma);
     coreml_layer_->layernormalization->gamma->n_floatvalue = scale_count;
-    coreml_layer_->layernormalization->gamma->floatvalue = scale_ptr;
+    void *scale_data_ptr = scale_buffer->force_to<void *>();
+    switch (scale_type) {
+        case DATA_TYPE_FLOAT:
+            coreml_layer_->layernormalization->gamma->floatvalue = scale_buffer->force_to<float *>();
+            break;
+        case DATA_TYPE_HALF:
+            {
+                scale_fp32_ptr_ = std::shared_ptr<float>(new float [scale_count], [](float* p) { delete[] p; });
+                auto scale_fp32_ptr = scale_fp32_ptr_.get();
+                RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)scale_data_ptr, (float *)scale_fp32_ptr, scale_count),TNN_OK);
+                coreml_layer_->layernormalization->gamma->floatvalue = scale_fp32_ptr;
+            }
+            break;
+        default:
+            {
+                LOGE("CoreMLLayerNormLayer dont support data type (%d)\n", scale_type);
+                return Status(TNNERR_PARAM_ERR, "CoreMLLayerNormLayer dont support data type");
+            }
+            break;
+    }
     coreml_layer_beta_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
     coreml_layer_->layernormalization->beta = (CoreML__Specification__WeightParams*) coreml_layer_beta_.get();
     core_ml__specification__weight_params__init(coreml_layer_->layernormalization->beta);
     coreml_layer_->layernormalization->beta->n_floatvalue = bias_count;
-    coreml_layer_->layernormalization->beta->floatvalue = bias_ptr;
-    
+        void *bias_data_ptr = bias_buffer->force_to<void *>();
+    switch (bias_type) {
+        case DATA_TYPE_FLOAT:
+            coreml_layer_->layernormalization->beta->floatvalue = bias_buffer->force_to<float *>();
+            break;
+        case DATA_TYPE_HALF:
+            {
+                bias_fp32_ptr_ = std::shared_ptr<float>(new float [bias_count], [](float* p) { delete[] p; });
+                auto bias_fp32_ptr = bias_fp32_ptr_.get();
+                RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)bias_data_ptr, (float *)bias_fp32_ptr, bias_count),TNN_OK);
+                coreml_layer_->layernormalization->beta->floatvalue = bias_fp32_ptr;
+            }
+            break;
+        default:
+            {
+                LOGE("CoreMLLayerNormLayer dont support data type (%d)\n", bias_type);
+                return Status(TNNERR_PARAM_ERR, "CoreMLLayerNormLayer dont support data type");
+            }
+            break;
+    }
     normalizedshape_ = std::shared_ptr<int64_t>(new int64_t [scale_dims.size()], [](int64_t* p) { delete[] p; });
     coreml_layer_->layernormalization->n_normalizedshape = scale_dims.size();
     coreml_layer_->layernormalization->normalizedshape = normalizedshape_.get();

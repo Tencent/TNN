@@ -58,16 +58,44 @@ Status CoreMLMatMulLayer::BuildLayerParam() {
             coreml_layer_->batchedmatmul->weights = weight_param_.get();
             core_ml__specification__weight_params__init(coreml_layer_->batchedmatmul->weights);
             
-            int bytes_size = resource->weight.GetBytesSize();
-            matrix_b_column_ = RawBuffer(bytes_size, {matrix_b_dims[1], matrix_b_dims[0]});
+            int weight_count = resource->weight.GetDataCount();
+            matrix_b_column_ = RawBuffer(weight_count*4, {matrix_b_dims[1], matrix_b_dims[0]});
             matrix_b_column_.SetDataType(DATA_TYPE_FLOAT);
             
-            auto matrix_b_ptr = resource->weight.force_to<float *>();
-            auto matrix_b_column_ptr = matrix_b_column_.force_to<float *>();
-            for (int i=0; i<matrix_b_dims[1]; i++) {
-                for (int j=0; j<matrix_b_dims[0]; j++) {
-                    *(matrix_b_column_ptr++) = matrix_b_ptr[j*matrix_b_dims[1] + i];
-                }
+            auto matrix_b_data_type = resource->weight.GetDataType();
+            switch (matrix_b_data_type) {
+                case DATA_TYPE_FLOAT:
+                    {
+                        auto matrix_b_ptr = resource->weight.force_to<float *>();
+                        auto matrix_b_column_ptr = matrix_b_column_.force_to<float *>();
+                        for (int i=0; i<matrix_b_dims[1]; i++) {
+                            for (int j=0; j<matrix_b_dims[0]; j++) {
+                                *(matrix_b_column_ptr++) = matrix_b_ptr[j*matrix_b_dims[1] + i];
+                            }
+                        }
+                    }
+                    break;
+                case DATA_TYPE_HALF:
+                    {
+                        auto matrix_b_fp16_ptr = resource->weight.force_to<void *>();
+                        int element_size = resource->weight.GetDataCount();
+                        auto matrix_b_fp32_ptr_ = std::shared_ptr<float>(new float [element_size], [](float* p) { delete[] p; });
+                        auto matrix_b_fp32_ptr = matrix_b_fp32_ptr_.get();
+                        RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)matrix_b_fp16_ptr, (float *)matrix_b_fp32_ptr, element_size),TNN_OK);
+                        auto matrix_b_column_ptr = matrix_b_column_.force_to<float *>();
+                        for (int i=0; i<matrix_b_dims[1]; i++) {
+                            for (int j=0; j<matrix_b_dims[0]; j++) {
+                                *(matrix_b_column_ptr++) = matrix_b_fp32_ptr[j*matrix_b_dims[1] + i];
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    {
+                        LOGE("CoreMLMatMulLayer dont support data type (%d)\n", matrix_b_data_type);
+                        return Status(TNNERR_PARAM_ERR, "CoreMLMatMulLayer dont support data type");
+                    }
+                    break;
             }
             
             coreml_layer_->batchedmatmul->weights->n_floatvalue = matrix_b_column_.GetDataCount();
