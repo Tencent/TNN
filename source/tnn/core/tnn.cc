@@ -54,6 +54,14 @@ Status TNN::GetModelInputShapesMap(InputShapesMap& shapes_map) {
     return impl_->GetModelInputShapesMap(shapes_map);
 }
 
+Status TNN::GetModelInputDataTypeMap(InputDataTypeMap& data_type_map) {
+     if (!impl_) {
+        LOGE("Error: impl_ is nil\n");
+        return Status(TNNERR_NET_ERR, "tnn impl_ is nil");
+    }
+    return impl_->GetModelInputDataTypeMap(data_type_map);
+}
+
 Status TNN::GetModelInputNames(std::vector<std::string>& input_names) {
      if (!impl_) {
         LOGE("Error: impl_ is nil\n");
@@ -70,22 +78,22 @@ Status TNN::GetModelOutputNames(std::vector<std::string>& output_names) {
     return impl_->GetModelOutputNames(output_names);
 }
 
-std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status, InputShapesMap inputs_shape) {
+std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status, InputShapesMap inputs_shape, InputDataTypeMap inputs_data_type) {
     if (!impl_) {
         status = Status(TNNERR_NET_ERR, "tnn impl_ is nil");
         return nullptr;
     }
 
-    return impl_->CreateInst(config, status, inputs_shape);
+    return impl_->CreateInst(config, status, inputs_shape, inputs_data_type);
 }
 
-std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type) {
     if (!impl_) {
         status = Status(TNNERR_NET_ERR, "tnn impl_ is nil");
         return nullptr;
     }
 
-    return impl_->CreateInst(config, status, min_inputs_shape, max_inputs_shape);
+    return impl_->CreateInst(config, status, min_inputs_shape, max_inputs_shape, inputs_data_type);
 }
 
 }  // namespace TNN_NS

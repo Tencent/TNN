@@ -84,6 +84,7 @@ namespace test {
         NetworkConfig network_config = GetNetworkConfig();
 
         InputShapesMap input_shape = GetInputShapesMap();
+        InputDataTypeMap input_data_type = GetInputDataTypeMap();
 
         srand(102);
 
@@ -91,7 +92,7 @@ namespace test {
         Status ret = net.Init(model_config);
         model_config.params.clear();
         if (CheckResult("init tnn", ret)) {
-            auto instance = net.CreateInst(network_config, ret, input_shape);
+            auto instance = net.CreateInst(network_config, ret, input_shape, input_data_type);
             if (!CheckResult("create instance", ret)) {
                 return ret;
             }
@@ -107,7 +108,8 @@ namespace test {
 
             //create mat and converter
             MatMap input_mat_map;
-            CreateBlobMatMap(input_blob_map, FLAGS_it, input_mat_map);
+            //CreateBlobMatMap(input_blob_map, FLAGS_it, input_mat_map);
+            CreateBlobMatMap(input_blob_map, FLAGS_if, input_mat_map);
             InitInputMatMap(input_mat_map);
             auto input_converters_map = CreateBlobConverterMap(input_blob_map);
             auto input_params_map = CreateConvertParamMap(input_mat_map, true);
@@ -233,9 +235,11 @@ namespace test {
         printf("    -op \"<path>\"          \t%s \n", output_path_message);
         printf("    -dl \"<device list>\"   \t%s \n", device_list_message);
         printf("    -th \"<thread umber>\"  \t%s \n", cpu_thread_num_message);
-        printf("    -it \"<input type>\"    \t%s \n", input_format_message);
+        //printf("    -it \"<input type>\"    \t%s \n", input_format_message);
+        printf("    -if \"<input type>\"    \t%s \n", input_format_message);
         printf("    -pr \"<precision >\"    \t%s \n", precision_message);
         printf("    -is \"<input shape>\"   \t%s \n", input_shape_message);
+        printf("    -it \"<input data_type>\"   \t%s \n", input_data_type_message);
         printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
         printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
         printf("    -et \"<enable tune>\t%s \n", enable_tune_message);
@@ -305,6 +309,42 @@ namespace test {
             }
         }
         return input_shape;
+    }
+
+    InputDataTypeMap GetInputDataTypeMap() {
+        InputDataTypeMap input_data_type;
+        if(!FLAGS_it.empty()) {
+            std::string input_data_type_message(FLAGS_it);
+            std::vector<std::string> input_data_type_strs;
+            std::string delimiter = ";";
+
+            size_t pos = 0;
+            std::string token;
+            while ((pos = input_data_type_message.find(delimiter)) != std::string::npos) {
+                token = input_data_type_message.substr(0, pos);
+                input_data_type_strs.push_back(token);
+                input_data_type_message.erase(0, pos + delimiter.length());
+            }
+            if (input_data_type_message.length() != 0) {
+                input_data_type_strs.push_back(input_data_type_message);
+            }
+
+            for (auto input_data_type_str : input_data_type_strs) {
+                std::string delimiter = ":";
+                std::ptrdiff_t p1 = 0, p2;
+                p2 = input_data_type_str.find(delimiter, p1);
+                std::string input_name = input_data_type_str.substr(p1, p2-p1);
+                p1 = p2 + 1;
+                
+                delimiter = ";";
+                p2 = input_data_type_str.find(delimiter, p1);
+                input_data_type[input_name] = static_cast<DataType>(std::stoi(input_data_type_str.substr(p1, p2-p1)));
+                /////////////////////////
+                std::cout << "==== DEBUG, test.data_type = " << input_data_type_str.substr(p1, p2-p1) << " ===" << ", int.data_type = " << input_data_type[input_name] << " ===" << std::endl;
+                /////////////////////////
+            }
+        }
+        return input_data_type;
     }
 
     ModelConfig GetModelConfig() {

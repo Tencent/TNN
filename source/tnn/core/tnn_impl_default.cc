@@ -69,6 +69,17 @@ Status TNNImplDefault::GetModelInputShapesMap(InputShapesMap& shapes_map) {
     return TNN_OK;
 } 
 
+Status TNNImplDefault::GetModelInputDataTypeMap(InputDataTypeMap& data_type_map) {
+    if (!interpreter_) {
+        return Status(TNNERR_NET_ERR, "interpreter is nil");
+    }
+
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
+    CHECK_PARAM_NULL(default_interpreter);
+    data_type_map = default_interpreter->GetNetStructure()->input_data_type_map;
+    return TNN_OK;
+} 
+
 Status TNNImplDefault::GetModelInputNames(std::vector<std::string>& input_names) {
     if (!interpreter_) {
         return Status(TNNERR_NET_ERR, "interpreter is nil");
@@ -93,7 +104,8 @@ Status TNNImplDefault::GetModelOutputNames(std::vector<std::string>& output_name
 
 
 std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, Status& status,
-                                                     InputShapesMap inputs_shape) {
+                                                     InputShapesMap inputs_shape,
+                                                     InputDataTypeMap inputs_data_type) {
     if (!interpreter_) {
         status = Status(TNNERR_NET_ERR, "interpreter is nil");
         return nullptr;
@@ -109,7 +121,7 @@ std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, 
 #endif
 
     auto instance = std::make_shared<Instance>(net_config, model_config_);
-    status        = instance->Init(interpreter_, inputs_shape);
+    status        = instance->Init(interpreter_, inputs_shape, inputs_data_type);
 
     if (status != TNN_OK) {
         return nullptr;
@@ -118,7 +130,8 @@ std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, 
 }
 
 std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, Status& status,
-                                                     InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+                                                     InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape,
+                                                     InputDataTypeMap inputs_data_type) {
     if (!interpreter_) {
         status = Status(TNNERR_NET_ERR, "interpreter is nil");
         return nullptr;
@@ -134,7 +147,7 @@ std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, 
 #endif
 
     auto instance = std::make_shared<Instance>(net_config, model_config_);
-    status        = instance->Init(interpreter_, min_inputs_shape, max_inputs_shape);
+    status        = instance->Init(interpreter_, min_inputs_shape, max_inputs_shape, inputs_data_type);
 
     if (status != TNN_OK) {
         return nullptr;

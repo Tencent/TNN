@@ -35,6 +35,8 @@ namespace test {
     void SetCpuAffinity();
 
     InputShapesMap GetInputShapesMap();
+    
+    InputDataTypeMap GetInputDataTypeMap();
 
     ModelConfig GetModelConfig();
 

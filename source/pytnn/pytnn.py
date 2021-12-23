@@ -39,6 +39,48 @@ def _parse_input_ranges(input_sizes, input_names):
             max_input_shapes[key] = max_value
     return (min_input_shapes, max_input_shapes)
 
+def _parse_data_type(input_data_type) -> int:
+    if isinstance(input_data_type, int):
+        return input_data_type
+    elif isinstance(input_data_type, str):
+        if input_data_type in ['AUTO', 'Auto', 'auto']:
+            return -1
+        elif input_data_type in ['FLOAT', 'Float', 'float', 'float32', 'fp32', 'FP']:
+            return 0
+        elif input_data_type in ['HALF', 'Half', 'half', 'float16', 'fp16', 'HF']:
+            return 1
+        elif input_data_type in ['INT8', 'Int8', 'int8', 'I8']:
+            return 2
+        elif input_data_type in ['INT32', 'Int32', 'int32', 'I32', 'INT', 'Int', 'int']:
+            return 3
+        elif input_data_type in ['BFP16', 'Bfp16', 'bfp16', 'B16', 'BF16', 'Bf16', 'bf16']:
+            return 4
+        elif input_data_type in ['INT64', 'Int64', 'int64', 'I64', 'LONG', 'Long', 'long']:
+            return 5
+        elif input_data_type in ['UINT32', 'Uint32', 'uint32', 'U32', 'UNSIGNED', 'Unsigned', 'unsigned']:
+            return 6
+        else:
+            raise KeyError("Unrecognized str Data Type, found type: ", str(input_data_type))
+    else:
+        raise TypeError("input data type need to be a str or an int, found type: ", str(type(input_data_type)));        
+
+def _parse_input_data_types(input_data_types, input_names):
+    if not isinstance(input_data_types, list) and not isinstance(input_data_types, dict):
+        raise KeyError("input data types need to be a List or Dict, found type: " + str(type(input_data_types)))
+    input_data_types = {}
+    if isinstance(input_data_types, list):
+        for index, value in enumerate(input_sizes):
+            input_name = "input_" + str(index)
+            if len(input_names) > index:
+                input_name = input_names[index]
+            input_data_type = _parse_data_type(value)
+            input_data_types[input_name] = input_data_type
+    if isinstance(input_data_types, dict):
+        for key, value in input_sizes.items():
+            input_data_type = _parse_data_type(value)
+            input_data_types[key] = input_data_type
+    return input_data_types
+
 def _parse_min_max_value(value):
     if isinstance(value, dict):
         if all(k in value for k in ["min", "max"]):
@@ -186,21 +228,24 @@ def load(model_path, config_dict = {}):
     input_names = module.parsed_input_names()
     min_input_shapes = None
     max_input_shapes = None
+    input_data_types = None
     if "input_names" in config_dict:
         input_names = config_dict["input_names"]
     if "input_shapes" in config_dict:
         min_input_shapes, max_input_shapes = _parse_input_ranges(config_dict["input_shapes"], input_names)
+    if "input_data_types" in config_dict:
+        input_data_types = _parse_input_data_types(config_dict["input_data_types"], input_names)
     network_config = _parse_network_config(config_dict)
-    module.create_inst(network_config, min_input_shapes, max_input_shapes)
+    module.create_inst(network_config, min_input_shapes, max_input_shapes, input_data_types)
     return module
 
-def load_raw(model_path, network_config, input_shapes=None):
+def load_raw(model_path, network_config, input_shapes=None, input_data_types=None):
     module = Module(model_path)
-    module.create_inst(network_config, input_shapes, input_shapes)
+    module.create_inst(network_config, input_shapes, input_shapes, input_data_types)
     return module
-def load_raw_range(model_path, network_config, min_input_shapes, max_input_shapes):
+def load_raw_range(model_path, network_config, min_input_shapes, max_input_shapes, input_data_types=None):
     module = Module(model_path)
-    module.create_inst(network_config, min_input_shapes, max_input_shapes)
+    module.create_inst(network_config, min_input_shapes, max_input_shapes, input_data_types)
     return module
 
 class Module:
@@ -228,7 +273,7 @@ class Module:
     def parsed_output_names(self):
         return self.tnn.GetModelOutputNames()
 
-    def create_inst(self, network_config, min_input_shapes, max_input_shapes):
+    def create_inst(self, network_config, min_input_shapes, max_input_shapes, input_data_types=None):
         ret=Status()
         if network_config is None:
             network_config=NetworkConfig()
@@ -241,9 +286,9 @@ class Module:
         if min_input_shapes is None:
             self.instance=self.tnn.CreateInst(network_config, ret)
         elif max_input_shapes is None:
-            self.instance=self.tnn.CreateInst(network_config, ret, min_input_shapes)
+            self.instance=self.tnn.CreateInst(network_config, ret, min_input_shapes, input_data_types)
         else:
-            self.instance=self.tnn.CreateInst(network_config, ret, min_input_shapes, max_input_shapes)
+            self.instance=self.tnn.CreateInst(network_config, ret, min_input_shapes, max_input_shapes, input_data_types)
 
         self.input_names = self.parsed_input_names()
         self.output_names = self.parsed_output_names()

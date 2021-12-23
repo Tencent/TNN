@@ -48,11 +48,14 @@ DEFINE_bool(ub, false, unit_test_benchmark_message);
 
 DEFINE_int32(th, 1, cpu_thread_num_message);
 
-DEFINE_int32(it, 0, input_format_message);
+//DEFINE_int32(it, 0, input_format_message);
+DEFINE_int32(if, 0, input_format_message);
 
 DEFINE_string(pr, "AUTO", precision_message);
 
 DEFINE_string(is, "", input_shape_message);
+
+DEFINE_string(it, "", input_data_type_message);
 
 DEFINE_bool(et, false, enable_tune_message);
 

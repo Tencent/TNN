@@ -46,11 +46,10 @@ public:
     ~Instance();
 
     // init with model interpeter and inputs shape.
-    Status Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape);
+    Status Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape, InputDataTypeMap inputs_data_type = InputDataTypeMap());
 
     // init with model interpeter, min inputs shape and max inputs shape.
-    //Status Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
-    Status Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type = {});
+    Status Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type = InputDataTypeMap());
 
     // deinit, release network
     Status DeInit();

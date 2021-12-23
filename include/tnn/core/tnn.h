@@ -50,6 +50,9 @@ public:
     // return input shapes map from model
     Status GetModelInputShapesMap(InputShapesMap& shapes_map);
 
+    // return input data types map from model
+    Status GetModelInputDataTypeMap(InputDataTypeMap& data_type_map);
+
     // return input names from model
     Status GetModelInputNames(std::vector<std::string>& input_names);
 
@@ -60,13 +63,15 @@ public:
     // if inputs shape not set, use default from model.
     std::shared_ptr<Instance> CreateInst(
         NetworkConfig& config, Status& status,
-        InputShapesMap inputs_shape = InputShapesMap());
+        InputShapesMap inputs_shape = InputShapesMap(),
+        InputDataTypeMap inputs_data_type = InputDataTypeMap());
 
     // create tnn network instance with network config and min max inputs shape,
     // instance reshape can support range from min inputs shape to max inputs shape.
     std::shared_ptr<Instance> CreateInst(
         NetworkConfig& config, Status& status,
-        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
+        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape,
+        InputDataTypeMap inputs_data_type = InputDataTypeMap());
 
 private:
     std::shared_ptr<TNNImpl> impl_ = nullptr;

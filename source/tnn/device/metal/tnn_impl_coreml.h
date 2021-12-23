@@ -47,6 +47,9 @@ public:
 
     // return input shapes map from model
     virtual Status GetModelInputShapesMap(InputShapesMap& shapes_map);
+    
+    // return input data types map from model
+    virtual Status GetModelInputDataTypeMap(InputDataTypeMap& data_type_map);
 
     // return input names from model
     virtual Status GetModelInputNames(std::vector<std::string>& input_names);
@@ -58,6 +61,7 @@ public:
     // @param instance: The instance to be created.
     // @param inputs_shape: modify input shape, or it will use the shape in the
     // proto
+    // @param inputs_data_type: modify input data type
     // @param status code: If successful, returns zero. Otherwise, returns
     // error code.
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
@@ -68,6 +72,7 @@ public:
     // @param instance: The instance to be created.
     // @param min_inputs_shape: support min shape
     // @param max_inputs_shape: support max shape
+    // @param inputs_data_type: modify input data type
     // @param status code: If successful, returns zero. Otherwise, returns
     // error code.
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,

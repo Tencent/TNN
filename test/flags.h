@@ -61,6 +61,8 @@ static const char precision_message[] = "compute precision(HIGH, NORMAL, LOW)";
 
 static const char input_shape_message[] = "input shape: name[n,c,h,w]";
 
+static const char input_data_type_message[] = "input data type: name[data_type (in int)], 0:float; 1:half; 2: int8; 3: int32; 4:bfp16; 5:int64; 6:uint32.";
+
 static const char network_type_message[] = "network type: NAIVE, NPU, COREML, SNPE, OPENVINO, default NAIVE";
 
 static const char enable_tune_message[] = "enable tune kernel(default false)";
@@ -103,11 +105,14 @@ DECLARE_bool(ub);
 
 DECLARE_int32(th);
 
-DECLARE_int32(it);
+//DECLARE_int32(it);
+DECLARE_int32(if);
 
 DECLARE_string(pr);
 
 DECLARE_string(is);
+
+DECLARE_string(it);
 
 DECLARE_bool(et);
 
