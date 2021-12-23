@@ -83,8 +83,8 @@ download_model \
 
 # download mobilenet_v2-ssd tnn model
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto" \
-    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd_tf.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd_tf.tnnmodel" \
     "mobilenet_v2-ssd"
 
 # download yolov5 tnn model

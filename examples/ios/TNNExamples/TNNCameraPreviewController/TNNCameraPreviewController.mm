@@ -262,6 +262,12 @@ typedef void(^CommonCallback)(Status);
     [self showMask:mask_data withOriginImageSize:size withStatus:status];
 }
 
+- (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
+  withOriginImageSize:(CGSize)size
+           withStatus:(Status)status {
+    [self showSDKOutput:output withOriginImageSize:size hideTextFrame:true withStatus:status];
+}
+
 - (void)showObjectInfo:(std::vector<std::shared_ptr<ObjectInfo> >)object_list
             withOriginImageSize:(CGSize)origin_size
             hideTextFrame:(bool) hideTextFrame

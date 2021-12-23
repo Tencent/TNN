@@ -412,7 +412,7 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
    .\demo_x86_facedetector -p ..\..\..\..\..\model\face_detector\version-slim-320_simplified.tnnproto -m ..\..\..\..\..\model\face_detector\version-slim-320_simplified.tnnmodel -i ..\..\..\..\assets\test_face.jpg
 
    object-detector demo
-   .\demo_x86_objectdetector -p ..\..\..\..\model\mobilenet_v2-ssd\mobilenetv2_ssd.tnnproto -m ..\..\..\..\model\mobilenet_v2-ssd\mobilenetv2_ssd.tnnmodel -i ..\..\..\assets\004545.jpg
+   .\demo_x86_objectdetector -p ..\..\..\..\model\mobilenet_v2-ssd\mobilenetv2_ssd_tf.tnnproto -m ..\..\..\..\model\mobilenet_v2-ssd\mobilenetv2_ssd_tf.tnnmodel -i ..\..\..\assets\004545.jpg
 
    reading-comprehension demo
    .\demo_x86_readingcomprehension -p ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnproto -m ..\..\..\..\..\model\bertsquad10\bertsquad10_clean.tnnmodel -v ..\..\..\..\..\model\bertsquad10\vocab.txt
