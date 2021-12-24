@@ -31,7 +31,7 @@
 #include "../mlmodel/include/Model.pb-c.h"
 
 #ifndef TNN_COREML_FULL_PRECISION
-#define TNN_COREML_FULL_PRECISION 0
+#define TNN_COREML_FULL_PRECISION 1
 #endif
 
 namespace TNN_NS {
