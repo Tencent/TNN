@@ -123,7 +123,7 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         kernelWeights, biasWeights);
     if (int8) {
         layer->setInput(1, *(weight_layer->getOutput(0)));
-        layer->setPrecision(nvinfer1::DataType::kINT8);
+        // layer->setPrecision(nvinfer1::DataType::kINT8);
     }
 
     if (layer != nullptr) {

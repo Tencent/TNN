@@ -185,7 +185,7 @@ ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
     last_layer = conv_layer;
 
     if (int8) {
-        conv_layer->setPrecision(nvinfer1::DataType::kINT8);
+        // conv_layer->setPrecision(nvinfer1::DataType::kINT8);
     }
 
     IActivationLayer* activation_layer;
