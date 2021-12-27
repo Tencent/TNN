@@ -40,10 +40,10 @@ Status ArmLayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
     // init base k_param_
     auto input_dim  = inputs[0]->GetBlobDesc().dims;
     auto output_dim = outputs[0]->GetBlobDesc().dims;
-    int ic          = input_dim[1];
+    int ic          = input_dim.size() > 1 ? input_dim[1] : 1;
     int ih          = input_dim.size() > 2 ? input_dim[2] : 1;
     int iw          = input_dim.size() > 3 ? input_dim[3] : 1;
-    int oc          = output_dim[1];
+    int oc          = output_dim.size() > 1 ? output_dim[1] : 1;
     int oh          = output_dim.size() > 2 ? output_dim[2] : 1;
     int ow          = output_dim.size() > 3 ? output_dim[3] : 1;
     k_param_->set_dims(ROUND_UP(ic, 4), ROUND_UP(ic, 8), ih, iw, ROUND_UP(oc, 4), ROUND_UP(oc, 8), oh, ow);
@@ -77,10 +77,10 @@ Status ArmLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector
     // reinit k_param_ h,w
     auto input_dim  = inputs[0]->GetBlobDesc().dims;
     auto output_dim = outputs[0]->GetBlobDesc().dims;
-    int ic          = input_dim[1];
+    int ic          = input_dim.size() > 1 ? input_dim[1] : 1;
     int ih          = input_dim.size() > 2 ? input_dim[2] : 1;
     int iw          = input_dim.size() > 3 ? input_dim[3] : 1;
-    int oc          = output_dim[1];
+    int oc          = output_dim.size() > 1 ? output_dim[1] : 1;
     int oh          = output_dim.size() > 2 ? output_dim[2] : 1;
     int ow          = output_dim.size() > 3 ? output_dim[3] : 1;
     k_param_->set_dims(ROUND_UP(ic, 4), ROUND_UP(ic, 8), ih, iw, ROUND_UP(oc, 4), ROUND_UP(oc, 8), oh, ow);
