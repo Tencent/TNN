@@ -21,6 +21,7 @@ using namespace::TNN_NS;
 @property (nonatomic, assign) std::shared_ptr<TNNSDKSample> predictor;
 
 @property (nonatomic, strong) NSString *title;
+@property (nonatomic, assign) UIDeviceOrientation preferDeviceOrientation;
 @property (nonatomic, assign) bool preferFrontCamera;
 @property (nonatomic, assign) bool preferGPU;
 -(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;

@@ -36,6 +36,14 @@
                        layoutHeight:self.customOptionViewHeight];
 }
 
+- (BOOL)shouldAutorotate {
+    return YES;
+}
+
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    return UIInterfaceOrientationMaskPortrait;
+}
+
 - (void)onSwitchChanged:(id)sender {
 }
 
@@ -59,4 +67,20 @@
     }
 }
 
+@end
+
+
+@implementation UIViewController (UIDeviceOrientation)
+- (void)forceToOrientation:(UIDeviceOrientation)orientation {
+    NSNumber *orientationUnknown = [NSNumber numberWithInt:0];
+    [[UIDevice currentDevice] setValue:orientationUnknown forKey:@"orientation"];
+    NSNumber *orientationTarget = [NSNumber numberWithInteger:orientation];
+    [[UIDevice currentDevice] setValue:orientationTarget forKey:@"orientation"];
+}
+
+- (void)clearNavigationBarLeft {
+    self.navigationItem.leftBarButtonItem = nil;
+    self.navigationItem.leftBarButtonItems = nil;
+    self.navigationItem.hidesBackButton = YES;
+}
 @end

@@ -22,6 +22,7 @@
 #import "TNNFaceDetectAlignerViewModel.h"
 #import "TNNFaceDetectMeshViewModel.h"
 #import "TNNHairSegmentationViewModel.h"
+#import "TNNMonoDepthViewModel.h"
 #import "TNNPoseDetectLandmarkViewModel.h"
 #import "TNNSkeletonDetectorViewModel.h"
 #import "TNNOCRViewModel.h"
@@ -52,8 +53,17 @@ using namespace std;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    [self clearNavigationBarLeft];
     
     [self setupTNNExampleDataSource];
+}
+
+- (BOOL)shouldAutorotate {
+    return YES;
+}
+
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    return UIInterfaceOrientationMaskPortrait;
 }
 
 - (void)setupTNNExampleDataSource {
@@ -80,7 +90,7 @@ using namespace std;
     //灰度图上色
     {
         auto data = [TNNExampleData new];
-        data.title = @"灰度图上色";
+        data.title = @"灰度图上色 Recolor";
         data.desc = @"图像类 - 单输入（图）多输出（图）";
         data.viewControllerID = @"TNNImageColourController";
         [examples addObject:data];

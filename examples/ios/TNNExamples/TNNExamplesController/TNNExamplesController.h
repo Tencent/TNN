@@ -27,4 +27,13 @@
 
 -(TNNComputeUnits)getComputeUnitsForIndex:(NSInteger)index;
 -(NSString *)getNSSTringForComputeUnits:(TNNComputeUnits)unit;
+
+- (BOOL)shouldAutorotate;
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations;
+@end
+
+
+@interface UIViewController (UIDeviceOrientation)
+- (void)forceToOrientation:(UIDeviceOrientation)orientation;
+- (void)clearNavigationBarLeft;
 @end

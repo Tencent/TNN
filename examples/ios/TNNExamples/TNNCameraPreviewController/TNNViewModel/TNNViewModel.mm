@@ -15,6 +15,14 @@
 #import "TNNViewModel.h"
 
 @implementation TNNViewModel
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        _preferDeviceOrientation = UIDeviceOrientationPortrait;
+    }
+    return self;
+}
+
 - (NSString *)title {
     if (_title.length <= 0) {
         return NSStringFromClass(self.class);
