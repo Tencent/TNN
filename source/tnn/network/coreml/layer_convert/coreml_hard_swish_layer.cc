@@ -109,7 +109,7 @@ Status CoreMLHardSwishLayer::BuildLayerParam() {
                 
             }
         }
-        //put HardSigmoid output shape to net resource
+        //put Mul output shape to net resource
         net_resource_->blob_shapes_map[mul_layer_info_->outputs[0]] = output_shape;
         
         RETURN_ON_NEQ(coreml_layer_mul_->Init(mul_layer_info_.get(), nullptr),  TNN_OK);
