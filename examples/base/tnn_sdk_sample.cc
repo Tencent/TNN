@@ -811,6 +811,9 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
         LOGE("input image is empty ,please check!\n");
         return status;
     }
+    if (!instance_) {
+        return Status(TNNERR_INST_ERR, "TNN instance is null");
+    }
     
 #if TNN_SDK_ENABLE_BENCHMARK
     bench_result_.Reset();

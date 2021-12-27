@@ -212,3 +212,9 @@ download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/tiny-bert/vocab.txt" \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/tiny-bert/vocab.txt" \
     "tiny-bert"
+
+# download monodepth pydnet model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/monodepth_pydnet/monodepth_pydnet.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/monodepth_pydnet/monodepth_pydnet.tnnmodel" \
+    "monodepth_pydnet"

@@ -120,6 +120,12 @@ call:download_model ^
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/bertsquad10/vocab.txt" ^
     "bertsquad10"
 
+@REM download monodepth pydnet model
+call:download_model ^
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/monodepth_pydnet/monodepth_pydnet.tnnproto" ^
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/monodepth_pydnet/monodepth_pydnet.tnnproto" ^
+    "monodepth_pydnet"
+
 @REM download ocr model
 call:download_model ^
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/chinese-ocr/angle_net.tnnproto" ^

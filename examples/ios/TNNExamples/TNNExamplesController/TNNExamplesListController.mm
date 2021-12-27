@@ -212,6 +212,20 @@ using namespace std;
         [examples addObject:data];
     }
     
+    //深度图 - mono depth pydnet
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"深度图 - mono depth - pydnet";
+        data.desc = @"摄像头 - 单输入单输出";
+        data.viewControllerID = @"TNNCameraPreviewController";
+        {
+            data.viewModel = [TNNMonoDepthViewModel new];
+            data.viewModel.title = @"深度图 - monodepth - pydnet";
+            data.viewModel.preferDeviceOrientation = UIDeviceOrientationLandscapeRight;
+        }
+        [examples addObject:data];
+    }
+    
     //人体姿势关键点 - BlazePose
     {
         auto data = [TNNExampleData new];
