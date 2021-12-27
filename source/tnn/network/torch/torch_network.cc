@@ -88,12 +88,13 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
     if(net_config.device_type == DEVICE_CUDA) {
         cuda_stream_ = new c10::cuda::CUDAStream(c10::cuda::getStreamFromPool(true, net_config.device_id));
         context_->SetCommandQueue(cuda_stream_->stream());
+        auto stream_guard = new c10::cuda::CUDAStreamGuard(*cuda_stream_);  
     }
 
-    auto stream_guard = new c10::cuda::CUDAStreamGuard(*cuda_stream_);  
 
     min_inputs_shape_ = min_inputs_shape;
     max_inputs_shape_ = max_inputs_shape;
+    inputs_data_type_ = inputs_data_type;
     // if share net resource with another net, create io binding later when sharing
     if (net_config.share_memory_mode != SHARE_MEMORY_MODE_SHARE_NET_RESOURCE) {
         if (model_config.model_type == MODEL_TYPE_TORCHSCRIPT) {
@@ -105,7 +106,7 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
             c10::Device device(c10::kCPU);
             RETURN_ON_NEQ(ConvertToTorchDevice(device, config_.device_type, config_.device_id), TNN_OK);
             auto mod = torch::jit::load(model_stream, device);
-            module_ = CompileTorch(mod, min_inputs_shape_, max_inputs_shape_, inputs_data_type, config_, forward_func_name_);
+            module_ = CompileTorch(mod, min_inputs_shape_, max_inputs_shape_, inputs_data_type_, config_, forward_func_name_);
             graph_ = module_.get_method(forward_func_name_).graph();
         } else {
             return Status(TNNERR_PARAM_ERR, "Unsupported model type for TNNTorchNetwork");
@@ -130,7 +131,7 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
         }
         #endif
 
-        RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape, max_inputs_shape));
+        RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape, max_inputs_shape, inputs_data_type));
 
         // module_.save("opt.ts");
         // auto tmp_mod = torch::jit::load("opt.ts");
@@ -149,12 +150,13 @@ Status TNNTorchNetwork::ShareNetResource(AbstractNetwork* network) {
     module_ = network_target->GetModule();
     graph_ = network_target->GetGraph();
 
-    RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape_, max_inputs_shape_));
+    RETURN_ON_FAIL(CreateIOBinding(min_inputs_shape_, max_inputs_shape_, inputs_data_type_));
     init_done_ = true;
     return TNN_OK;
 }
 
-Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMap max_shape) {
+Status TNNTorchNetwork::CreateIOBinding(InputShapesMap min_shape, InputShapesMap max_shape, InputDataTypeMap inputs_data_type) {
+    std::cout << "=== DEBUG, CreateIOBinding 0 ===" << std::endl;
 
     std::set<c10::TypeKind> supported_kinds = {
         c10::TypeKind::TensorType,
@@ -176,6 +178,7 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
 
     NetStructure fake_netstructure;
     fake_netstructure.inputs_shape_map = max_shape;
+    fake_netstructure.input_data_type_map = inputs_data_type;
 
     // regardless of those blobs only show once
     for(auto p : min_shape) fake_netstructure.blobs.insert(p.first);
@@ -198,7 +201,7 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
 
     // Create Ivalues from types
     for(int i=0;i<inputs.size();i++) {
-        // printf("[%d] create ivalue from type:%s kind:%s\n", i, inputs[i]->type()->annotation_str().c_str(), c10::typeKindToString(inputs[i]->type()->kind()));
+        //printf("[%d] create ivalue from type:%s kind:%s\n", i, inputs[i]->type()->annotation_str().c_str(), c10::typeKindToString(inputs[i]->type()->kind()));
         RETURN_ON_FAIL(CreateIValueFromTypePtr(in_ivalues_[i], inputs[i]->type()));  
     }
 
@@ -206,6 +209,17 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
     for(auto input : fake_netstructure.blobs) {
         auto blob  = blob_manager_->GetBlob(input);
         auto foreign_blob = new ForeignBlob(blob->GetBlobDesc(), blob->GetHandle());
+        
+        // NOTE: Some type other than Float, like int, When used as Input,
+        //       Should have All-ZEROs value, otherwise OPs like embedding 
+        //       may trigger "out of range" ERROR in libtorch fwd process.
+        if (blob->GetBlobDesc().data_type==DATA_TYPE_INT32) {
+            int count = sizeof(int);
+            for (const auto& dim : blob->GetBlobDesc().dims) {
+                count *= dim;
+            }
+            std::memset(blob->GetHandle().base, 0, count);
+        }
 
         blob_manager_->ReplaceBlob(input, foreign_blob);
         input_blob_map_[input] = foreign_blob;
@@ -240,8 +254,33 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
             cur_inputs[i] = ivalue;
         }
     }
+    std::cout << "=== DEBUG, CreateIOBinding 1 ===" << std::endl;
+    ////////////////////////////////
+    /*
+    for (int i=0;i<cur_inputs.size();i++) {
+        auto ivalue = cur_inputs[i];
+        auto tensor = ivalue.toTensor();
+        //if (tensor.scalar_type() == at::ScalarType::Float) {
+        //    std::cout << "=== input_i=" << i << ", tensor type = Float ===" << std::endl;
+        //}
+        //if (tensor.scalar_type() == at::ScalarType::Long) {
+        //    std::cout << "=== input_i=" << i << ", tensor type = Long ===" << std::endl;
+        //}
+        //if (tensor.scalar_type() == at::ScalarType::Int) {
+        //    std::cout << "=== input_i=" << i << ", tensor type = Int ===" << std::endl;
+        //}
+        for (int j=0; j<7; j++) {
+            std::cout << "=== input_i=" << i << ", tensor[" << j << "]=";
+            //reinterpret_cast<int*>(tensor.data_ptr())[j] = 0; 
+            std::cout << reinterpret_cast<int*>(tensor.data_ptr())[j] << " ===" << std::endl; 
+            reinterpret_cast<int*>(tensor.data_ptr())[j] = 0; 
+        }
+    }
+    */
+    ////////////////////////////////
 
     auto out = module_.forward(cur_inputs);
+    std::cout << "=== DEBUG, CreateIOBinding 2 ===" << std::endl;
 
     // Convert to float here because blobConverter does not support half precision currently
     if (precision_ == DATA_TYPE_HALF) {
@@ -269,6 +308,7 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap  min_shape, InputShapesMa
         RETURN_ON_FAIL(foreign_blob->SetForeignTensor(std::make_shared<TorchTensor>(tensor, router)));
         output_blob_map_[name] = foreign_blob;    
     }
+    std::cout << "=== DEBUG, CreateIOBinding 3 ===" << std::endl;
 
     return TNN_OK;
 }
@@ -279,7 +319,9 @@ Status TNNTorchNetwork::Reshape(const InputShapesMap &inputs) {
 
 
 Status TNNTorchNetwork::Forward() {
-    auto stream_guard = new c10::cuda::CUDAStreamGuard(*cuda_stream_);  
+    if (config_.device_type == DEVICE_CUDA) {
+        auto stream_guard = new c10::cuda::CUDAStreamGuard(*cuda_stream_);  
+    }
     RETURN_ON_FAIL(ForwardAsync(nullptr));
     RETURN_ON_FAIL(context_->Synchronize());
     return TNN_OK;
@@ -308,7 +350,9 @@ Status TNNTorchNetwork::ReleaseTorchOutputTensors() {
 }
 
 Status TNNTorchNetwork::ForwardAsync(Callback call_back) {
-    auto stream_guard = new c10::cuda::CUDAStreamGuard(*cuda_stream_);  
+    if (config_.device_type == DEVICE_CUDA) {
+        auto stream_guard = new c10::cuda::CUDAStreamGuard(*cuda_stream_);  
+    }
     // TNN blob holds torch's output Tensor of previous forward round, so we can access it's data.
     // at this point, we don't need it, so release it to save memory.
     RETURN_ON_FAIL(ReleaseTorchOutputTensors());
@@ -328,7 +372,17 @@ Status TNNTorchNetwork::ForwardAsync(Callback call_back) {
         }
     }
 
+    //std::cout << "=== DEBUG, fwd 0 ===" << std::endl;
+    //for (int i=0;i<cur_inputs.size();i++) {
+    //    auto ivalue = cur_inputs[i];
+    //    auto tensor = ivalue.toTensor();
+    //    for (int j=0; j<7; j++) {
+    //        std::cout << "=== input_i=" << i << ", tensor[" << j << "]=";
+    //        std::cout << reinterpret_cast<int*>(tensor.data_ptr())[j] << " ===" << std::endl; 
+    //    }
+    //}
     auto out = module_.forward(cur_inputs);
+    //std::cout << "=== DEBUG, fwd 1 ===" << std::endl;
 
     // Convert to float here because blobConverter does not support half precision currently
     if (precision_ == DATA_TYPE_HALF) {

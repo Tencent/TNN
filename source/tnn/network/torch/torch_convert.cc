@@ -52,6 +52,7 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
             input_idx++;
         }
         // std::cout << "[ConvertBlockToInstance:input ] " << input->debugName() << std::endl;
+        std::cout << "=== DEBUG, [ConvertBlockToInstance:input ] " << input->debugName() << std::endl;
     }
     net_structure->inputs_shape_map = inputs_shape_map;
 

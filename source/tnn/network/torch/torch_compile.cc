@@ -175,6 +175,9 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
             std::vector<BlobDesc> subgraph_max_input_info;
             //// input type & shape will be used for random input generation, then subgraph input info can be infered out
             // InputDataTypeMap input_type;
+            ///////////////////////////////////
+            std::cout << "==== DEBUG, CompileTorch, input_type.size=" << input_type.size() << " ===" << std::endl;
+            ///////////////////////////////////
 
             partitioning::runShapeInfer(shape_mod, shape_seg, min_input_shape, input_type, config, subgraph_min_input_info);
             partitioning::runShapeInfer(shape_mod, shape_seg, max_input_shape, input_type, config, subgraph_max_input_info);

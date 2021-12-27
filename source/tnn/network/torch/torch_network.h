@@ -68,7 +68,7 @@ public:
     std::shared_ptr<torch::jit::Graph> GetGraph() { return graph_; }
 private:
 
-    virtual Status CreateIOBinding(InputShapesMap  min_shape, InputShapesMap max_shape);
+    virtual Status CreateIOBinding(InputShapesMap min_shape, InputShapesMap max_shape, InputDataTypeMap inputs_data_type);
   
     virtual Status ClearOutputs();
 
@@ -89,6 +89,7 @@ private:
 
     InputShapesMap min_inputs_shape_;
     InputShapesMap max_inputs_shape_;
+    InputDataTypeMap inputs_data_type_;
 
     std::vector<torch::IValue> in_ivalues_;
     c10::cuda::CUDAStream* cuda_stream_;

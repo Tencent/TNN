@@ -55,7 +55,7 @@ void genRandomInputs(std::shared_ptr<torch::jit::Graph> graph, InputShapesMap &i
         BlobDesc blob_desc;
         if (input_type.find(input.first) != input_type.end()) {
             ////////////////////////////////
-            std::cout << "=== DEBUG, blob_desc.name = " << input.first << ", .data_type = " << input_type[input.first] << " ===" << std::endl;
+            std::cout << "=== DEBUG, genRandomInputs, blob_desc.name = " << input.first << ", .data_type = " << input_type[input.first] << " ===" << std::endl;
             ////////////////////////////////
             blob_desc.data_type = input_type[input.first];
         } else {
@@ -64,6 +64,18 @@ void genRandomInputs(std::shared_ptr<torch::jit::Graph> graph, InputShapesMap &i
         blob_desc.device_type = config.device_type;
         blob_desc.dims        = input.second;
         auto blob             = std::make_shared<Blob>(blob_desc, true);
+
+        // NOTE: Some type other than Float, like int, When used as Input,
+        //       Should have All-ZEROs value, otherwise OPs like embedding 
+        //       may trigger "out of range" ERROR in libtorch fwd process.
+        if (blob->GetBlobDesc().data_type==DATA_TYPE_INT32) {
+            int count = sizeof(int);
+            for (const auto& dim : blob->GetBlobDesc().dims) {
+                count *= dim;
+            }
+            std::memset(blob->GetHandle().base, 0, count);
+        }
+        
         // extend lifetime util shape infer ends
         blobs.push_back(blob);
 
@@ -102,7 +114,13 @@ void runShapeInfer(torch::jit::Module& mod, std::vector<SegmentedBlock> &segment
     std::vector<torch::jit::IValue> jit_inputs_ivalues;
     std::vector<std::shared_ptr<Blob>> blobs;
     genRandomInputs(graph, input_shape, input_type, blobs, jit_inputs_ivalues, config);
+    ////////////////////////////
+    std::cout << "=== DEBUG, runShapeInfer.forward 0 ===" << std::endl;
+    ////////////////////////////
     torch::jit::IValue jit_results_ivalues = mod.forward(jit_inputs_ivalues);
+    ////////////////////////////
+    std::cout << "=== DEBUG, runShapeInfer.forward 1 ===" << std::endl;
+    ////////////////////////////
 
     auto get_output_shape = [&](torch::jit::IValue &output) {
         // get result tensor shape

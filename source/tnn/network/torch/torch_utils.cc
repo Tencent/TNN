@@ -123,12 +123,22 @@ Status CreateIValueFromTypePtr(c10::IValue &ivalue, c10::TypePtr type) {
         case c10::TypeKind::TensorType:
             {
                 auto scalar_type = type->expect<c10::TensorType>()->scalarType();
+                ///////////////////////////////////////
+                if (scalar_type == at::ScalarType::Float || 
+                    scalar_type == at::ScalarType::Half) {
+                    std::cout << "=== DEBUG, CreateIValueFromTypePtr, scalar_type = Float " << std::endl; 
+                } else if (scalar_type == at::ScalarType::Long) {
+                    std::cout << "=== DEBUG, CreateIValueFromTypePtr, scalar_type = Long " << std::endl; 
+                } else if (scalar_type == at::ScalarType::Int) {
+                    std::cout << "=== DEBUG, CreateIValueFromTypePtr, scalar_type = Int " << std::endl; 
+                }
+                ///////////////////////////////////////
                 auto device = type->expect<c10::TensorType>()->device();
                 at::TensorOptions options;
                 options = options.dtype(scalar_type);
                 options = options.device(device);
                 options = options.layout(c10::Layout::Strided);
-		ivalue = at::zeros(std::vector<int64_t>({1}), options);
+                ivalue = at::zeros(std::vector<int64_t>({1}), options);
             }
             break;
         default:
