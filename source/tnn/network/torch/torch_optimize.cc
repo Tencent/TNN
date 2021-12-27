@@ -13,6 +13,9 @@
 // specific language governing permissions and limitations under the License.
 
 #include "torch_optimize.h"
+#include "lower_graph.h"
+#include "attribute_propagator.h"
+#include "constant_propagation.h"
 
 #include <torch/csrc/jit/passes/constant_pooling.h>
 #include <torch/csrc/jit/passes/dead_code_elimination.h>
@@ -23,6 +26,17 @@
 #include <torch/csrc/jit/passes/freeze_module.h>
 #include <torch/csrc/jit/passes/lower_tuples.h>
 #include <torch/csrc/jit/passes/subgraph_rewrite.h>
+//#include "torch/csrc/jit/passes/lower_graph.h"
+#include "torch/csrc/jit/passes/inliner.h"
+
+#include "torch/csrc/jit/passes/common_subexpression_elimination.h"
+#include "torch/csrc/jit/passes/create_functional_graphs.h"
+#include "torch/csrc/jit/passes/dead_code_elimination.h"
+#include "torch/csrc/jit/passes/fuse_linear.h"
+#include "torch/csrc/jit/passes/guard_elimination.h"
+#include "torch/csrc/jit/passes/loop_unrolling.h"
+#include "torch/csrc/jit/passes/peephole.h"
+
 
 namespace torch {
 namespace jit {
@@ -277,15 +291,52 @@ namespace jit {
     void TorchOptPass(script::Module& module) {
 
         module.eval();
-        module = torch::jit::freeze_module(module);
+        // ******** freeze_model start
+        //module = torch::jit::freeze_module(module);
+        // ******** freeze_model end
+        
         auto graph = module.get_method("forward").graph();
-        LowerSimpleTuples(graph);
+        // ******** To replace freeze_module start
+        
+        torch::jit::Inline(*graph);
+        //auto graph_and_ivalues = LowerGraph(graph, module._ivalue());
+        //graph = graph_and_ivalues.first;
+        
 
+        
+
+
+        ConstantPropagationImmutableTypes(graph);
+        std::cout<<"Graph after ConstantPropagation"<<std::endl;
+        
+       AttributePropagator propagator(module);
+        propagator.propagateAttributes(graph);
+        std::cout<<"Graph after AttributePropagator"<<std::endl;
+        std::cout << graph->toString(false) << std::endl;
+        //std::cout << graph->toString(false) << std::endl;
+        // ********* To replace freeze)_module end!
+        
+        /*
+        torch::jit::EliminateRedundantGuards(graph);
+        torch::jit::RemoveListMutation(graph);
+        torch::jit::RemoveTensorMutation(graph);
+        torch::jit::CreateFunctionalGraphs(graph);
+        torch::jit::InlineFunctionalGraphs(graph);
+        torch::jit::PeepholeOptimize(graph, false);
+        torch::jit::FuseLinear(graph);
+        torch::jit::LowerAllTuples(graph);
+        torch::jit::EliminateDeadCode(graph);
+        */ 
+        std::cout << graph->toString(false) << std::endl;
+        
+        LowerSimpleTuples(graph);
+        
         removeDropout(module);
         RemoveException(graph->block());
         RemoveListAppend(graph.get(), graph->block());
         RemoveConcat(graph->block());
         RemoveContiguous(graph);
+        
 //        RemoveClone(graph->block());
 //        RemoveNoneTypeFromTuple(graph->block());
 //        RemoveSlice(graph->block());

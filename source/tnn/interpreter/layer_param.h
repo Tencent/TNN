@@ -128,7 +128,7 @@ struct ConvLayerParam : public LayerParam {
     int bias            = 0;
     int activation_type = ActivationType_None;
     int fusion_type     = FusionType_None;
-
+    bool qat_mode       = false;
     PARAM_COPY(ConvLayerParam)
 };
 

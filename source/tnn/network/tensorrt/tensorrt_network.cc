@@ -82,7 +82,6 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     config_ = net_config;
     ModelInterpreter *default_interpreter = dynamic_cast<ModelInterpreter *>(interpreter);
     CHECK_PARAM_NULL(default_interpreter);
-
     auto params_md5 = default_interpreter->GetParamsMd5();
     if (params_md5.size() == 0) {
         test_mode = true;
@@ -485,7 +484,6 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         if (net_resource->resource_map.count(layer_name) != 0 ) {
             layer_resource = net_resource->resource_map[layer_name].get();
         }
-
         cur_layer->SetRuntimeMode(runtime_model_);
         cur_layer->SetConstantResource(&net_resource->constant_map);
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs,
@@ -547,7 +545,8 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     auto m_trt_network = m_trt_builder->createNetworkV2(networkFlags);
     auto m_trt_config = m_trt_builder->createBuilderConfig();
     auto profile = m_trt_builder->createOptimizationProfile();
-
+    // TODO: design the method to set qat_mode
+    this->qat_mode = true;
     bool is_input_fp16 = false;
     for (auto input : inputs) {
         auto foreign_blob = dynamic_cast<ForeignBlob*>(input.second);

@@ -14,6 +14,7 @@
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 #include "tnn/network/tensorrt/utils.h"
+#include "NvInfer.h"
 
 namespace TNN_NS {
 
@@ -27,6 +28,18 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
     bool int8 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetInt8Mode();
+
+    nvinfer1::ITensor* weight_tensor = nullptr;
+    bool qat_mode = (input_blobs_.size() == 2);
+    int weight_count = 1;
+    if (qat_mode) {
+        auto weight_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
+        weight_tensor = std::dynamic_pointer_cast<TensorRTTensor>(weight_foreign_tensor)->GetTensor();
+        auto dims = weight_tensor->getDimensions();
+        paramlist->num_output = dims.d[0];
+        for (int i = 0; i < dims.nbDims; i ++)
+            weight_count *= dims.d[i];
+    }
 
     Weights kernelWeights;
     Weights biasWeights;
@@ -98,7 +111,11 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
             input_tensor = input_dequant_layer->getOutput(0);
         }
     } else {
-        kernelWeights = ConvertToWeights(&(resource->weight_handle));
+        if (qat_mode) {
+            kernelWeights = nvinfer1::Weights{nvinfer1::DataType::kFLOAT, nullptr, 0};
+        } else {
+            kernelWeights = ConvertToWeights(&(resource->weight_handle));
+        }
         if (paramlist->has_bias) {
             biasWeights = ConvertToWeights(&(resource->bias_handle));
         } else {
@@ -111,7 +128,11 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     Dims in_dims;
     in_dims.nbDims = 4;
     in_dims.d[0] = -1;
-    in_dims.d[1] = kernelWeights.count / paramlist->num_output;
+    if (qat_mode) {
+        in_dims.d[1] = weight_count / paramlist->num_output;
+    } else {
+        in_dims.d[1] = kernelWeights.count / paramlist->num_output;
+    }
     in_dims.d[2] = 1;
     in_dims.d[3] = 1;
     IShuffleLayer* in_reshape_layer = network->addShuffle(*input_tensor);
@@ -124,6 +145,9 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     if (int8) {
         layer->setInput(1, *(weight_layer->getOutput(0)));
         layer->setPrecision(nvinfer1::DataType::kINT8);
+    }
+    if (qat_mode) {
+        layer->setInput(1, *weight_tensor);
     }
 
     if (layer != nullptr) {

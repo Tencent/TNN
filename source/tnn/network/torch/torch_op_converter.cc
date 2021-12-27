@@ -102,7 +102,6 @@ public:
 
         layer_info->inputs.push_back(node->inputs()[0]->debugName());
         layer_info->outputs.push_back(node->outputs()[0]->debugName());
-
         auto layer_param = std::make_shared<ConvLayerParam>();
         auto layer_res = new(ConvLayerResource);
         const auto weight = inputs[1];
@@ -118,21 +117,29 @@ public:
         //     std::cout << "deconv" << std::endl;
         // }
 
-        auto weight_buf = getValue(weight);
-        auto shape = weight_buf.GetBufferDims();
+        auto optional_ivalue = toIValue(weight);
+        if (!optional_ivalue) {
+            layer_param->qat_mode = true;
+            layer_info->inputs.push_back(node->inputs()[1]->debugName());
+            // For Test only
+            layer_param->kernels = {0, 0};
+        } else {
+            auto weight_buf = getValue(weight);
+            auto shape = weight_buf.GetBufferDims();
+            layer_param->output_channel = shape[0];
+            layer_param->input_channel = shape[1];
+            layer_param->kernels = {shape[3], shape[2]};
+            layer_res->filter_handle = ConvertHalfHandle(weight_buf);
+        }
 
         // set param accroding to real value, just test here
         layer_param->name = layer_info->name;
         layer_param->pad_type = -1;
-        layer_param->output_channel = shape[0];
-        layer_param->input_channel = shape[1];
-        layer_param->kernels = {shape[3], shape[2]};
         layer_param->dialations = {(int)dialation[1], (int)dialation[0]};
         layer_param->strides = {(int)stride[1], (int)stride[0]};
         layer_param->pads = {(int)padding[1], (int)padding[1], (int)padding[0], (int)padding[0]};
         layer_param->group = group;
         layer_res->name = layer_info->name;
-        layer_res->filter_handle = ConvertHalfHandle(weight_buf);
 
         auto bias_buf = getValue(bias);
         if (bias_buf.GetBytesSize() != 0) {
@@ -494,16 +501,21 @@ public:
         const auto weight = inputs[1];
         const auto bias = inputs[2];
 
-        auto weight_buf = getValue(weight);
-        auto shape = weight_buf.GetBufferDims();
+        auto optional_ivalue = toIValue(weight);
+        if (!optional_ivalue) {
+            layer_info->inputs.push_back(node->inputs()[1]->debugName());
+        } else {
+            auto weight_buf = getValue(weight);
+            auto shape = weight_buf.GetBufferDims();
+            layer_param->num_output = shape[0];
+            layer_res->weight_handle = ConvertHalfHandle(weight_buf);
+        }
 
         // set param accroding to real value, just test here
         layer_param->name = layer_info->name;
-        layer_param->num_output = shape[0];
         layer_param->axis = 1;
 
         layer_res->name = layer_info->name;
-        layer_res->weight_handle = ConvertHalfHandle(weight_buf);
 
         auto bias_buf = getValue(bias);
         if (bias_buf.GetBytesSize() != 0) {
@@ -1347,20 +1359,25 @@ public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         //add quantize layer
         {
+            std::cout<<"In Per Tensor, call getValue"<<std::endl;
             std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
             layer_info->type                      = LAYER_QUANTIZE;
             layer_info->type_str                  = "Quantize";
-            layer_info->name                      = node->output(0)->debugName();
-    
-            const auto input      = node->inputs()[0];
+            layer_info->name                      = node->output(0)->debugName() + "TensorQ";
             auto scale_buf = getValue(node->inputs()[1]);
+            if (scale_buf.GetBytesSize() != 0) {
+                std::cout<<"scale_buf size:"<<scale_buf.GetBytesSize()<<" DataCount:"<<scale_buf.GetDataCount()<<std::endl;
+            } else {
+                std::cout<<"scale_buf size is zero"<<std::endl;
+            }
             
+            const auto input      = node->inputs()[0];
             auto layer_res = new(QuantizeLayerResource);
     
             layer_res->scale_handle = ConvertHalfHandle(scale_buf);
             layer_info->inputs.push_back(input->debugName());
     
-            layer_info->outputs.push_back(node->outputs()[0]->debugName());
+            layer_info->outputs.push_back(node->outputs()[0]->debugName() + "TensorQ");
     
             auto layer_param  = std::make_shared<QuantizeLayerParam>();
             layer_param->axis = 0;
@@ -1378,18 +1395,23 @@ public:
             std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
             layer_info->type                      = LAYER_DEQUANTIZE;
             layer_info->type_str                  = "Dequantize";
-            layer_info->name                      = node->output(0)->debugName() + "DQ";
+            layer_info->name                      = node->output(0)->debugName();
     
-            const auto input      = node->outputs()[0];
             auto scale_buf = getValue(node->inputs()[1]);
+            if (scale_buf.GetBytesSize() != 0) {
+                std::cout<<"scale_buf size:"<<scale_buf.GetBytesSize()<<std::endl;
+            } else {
+                std::cout<<"scale_buf size is zero"<<std::endl;
+            }
             
             auto layer_res = new(QuantizeLayerResource);
     
             layer_res->scale_handle = ConvertHalfHandle(scale_buf);
             
-            layer_info->inputs.push_back(input->debugName());
+            const auto input      = node->outputs()[0];
+            layer_info->inputs.push_back(input->debugName() + "TensorQ");
     
-            layer_info->outputs.push_back(node->outputs()[0]->debugName() + "DQ");
+            layer_info->outputs.push_back(node->outputs()[0]->debugName());
     
             auto layer_param  = std::make_shared<QuantizeLayerParam>();
             layer_param->axis = 0;
@@ -1411,20 +1433,30 @@ public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         //add quantize layer
         {
+            std::cout<<"In Per Channel, call getValue"<<std::endl;
             std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
             layer_info->type                      = LAYER_QUANTIZE;
             layer_info->type_str                  = "Quantize";
-            layer_info->name                      = node->output(0)->debugName();
-    
+            layer_info->name                      = node->output(0)->debugName() + "ChannelQ";
+            //auto scale_buf =getValue<std::vector<float>>(node->inputs()[1]);
+            auto scale_buf =getValue(node->inputs()[1]);
+            //if (scale_buf.size() != 0) {
+            //    std::cout<<"Per Channel scale_buf size:"<<scale_buf.size()<<std::endl;
+            if (scale_buf.GetBytesSize() != 0) {
+                std::cout<<"Per Channel scale_buf size:"<<scale_buf.GetBytesSize()<<" DataCount:"<<scale_buf.GetDataCount()<<std::endl;
+            } else {
+                std::cout<<"Per Channel scale_buf size is zero"<<std::endl;
+            }
+            
             const auto input      = node->inputs()[0];
-            auto scale_buf = getValue(node->inputs()[1]);
+            RawBuffer rb = getValue(input);
+            std::cout<<"PengQuantize map->dims:"<<node->outputs()[0]->debugName()<<": "<<rb.GetBufferDims()<<std::endl;
+            net_resource->constant_map[input->debugName()] = std::make_shared<RawBuffer>(getValue(input)); 
             
             auto layer_res = new(QuantizeLayerResource);
-    
             layer_res->scale_handle = ConvertHalfHandle(scale_buf);
             layer_info->inputs.push_back(input->debugName());
-    
-            layer_info->outputs.push_back(node->outputs()[0]->debugName());
+            layer_info->outputs.push_back(node->outputs()[0]->debugName() + "ChannelQ");
     
             auto layer_param  = std::make_shared<QuantizeLayerParam>();
             layer_param->axis = static_cast<int>(getValue<int64_t>(node->inputs()[3]));
@@ -1442,18 +1474,23 @@ public:
             std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
             layer_info->type                      = LAYER_DEQUANTIZE;
             layer_info->type_str                  = "Dequantize";
-            layer_info->name                      = node->output(0)->debugName() + "DQ";
+            layer_info->name                      = node->output(0)->debugName();
     
             const auto input      = node->outputs()[0];
             auto scale_buf = getValue(node->inputs()[1]);
+            if (scale_buf.GetBytesSize() != 0) {
+                std::cout<<"Per Channel scale_buf size:"<<scale_buf.GetBytesSize()<<std::endl;
+            } else {
+                std::cout<<"Per Channel scale_buf size is zero"<<std::endl;
+            }
             
             auto layer_res = new(QuantizeLayerResource);
     
             layer_res->scale_handle = ConvertHalfHandle(scale_buf);
             
-            layer_info->inputs.push_back(input->debugName());
+            layer_info->inputs.push_back(input->debugName() + "ChannelQ");
     
-            layer_info->outputs.push_back(node->outputs()[0]->debugName() + "DQ");
+            layer_info->outputs.push_back(node->outputs()[0]->debugName());
     
             auto layer_param  = std::make_shared<QuantizeLayerParam>();
             layer_param->axis = static_cast<int>(getValue<int64_t>(node->inputs()[3]));

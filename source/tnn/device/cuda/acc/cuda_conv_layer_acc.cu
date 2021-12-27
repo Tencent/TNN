@@ -74,9 +74,9 @@ Status CudaConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource
 
     size_t weights_size = sizeof(float) * input_dims[1] * output_dims[1] *
         conv_param->kernels[1] * conv_param->kernels[0];
-
     CUDA_CHECK(cudaMalloc((void **)&weights_, weights_size));
-    CUDA_CHECK(cudaMemcpy(weights_, weights, weights_size, cudaMemcpyHostToDevice));
+    if (!conv_param->qat_mode)
+        CUDA_CHECK(cudaMemcpy(weights_, weights, weights_size, cudaMemcpyHostToDevice));
 
     if (conv_param->bias) {
         bias_term_ = true;

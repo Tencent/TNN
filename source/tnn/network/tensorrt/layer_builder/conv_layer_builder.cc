@@ -16,6 +16,7 @@
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 #include "tnn/network/tensorrt/dimension_expr.h"
 #include "tnn/network/tensorrt/utils.h"
+#include "NvInfer.h"
 
 namespace TNN_NS {
 
@@ -110,6 +111,16 @@ ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
     auto paramlist = dynamic_cast<ConvLayerParam*>(param_);
     auto resource = dynamic_cast<ConvLayerResource*>(resource_);
 
+    nvinfer1::ITensor* weight_tensor = nullptr;
+    if (paramlist->qat_mode) {
+	auto weight_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
+	weight_tensor = std::dynamic_pointer_cast<TensorRTTensor>(weight_foreign_tensor)->GetTensor();
+	auto dims = weight_tensor->getDimensions();
+	paramlist->kernels[0] = dims.d[3];
+	paramlist->kernels[1] = dims.d[2];
+	paramlist->input_channel = dims.d[1];
+	paramlist->output_channel = dims.d[0];
+    }
     auto in_blob_name = input_blobs_[0]->GetBlobDesc().name;
     bool following_a_concat_layer =
         m_network->m_concat_blob_names.find(in_blob_name) != m_network->m_concat_blob_names.end();
@@ -182,6 +193,9 @@ ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
         }
     }
 
+    if (paramlist->qat_mode) {
+	conv_layer->setInput(1, *weight_tensor);
+    }
     last_layer = conv_layer;
 
     if (int8) {

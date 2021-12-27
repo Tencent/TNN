@@ -30,6 +30,13 @@ Status ConvLayer::InferOutputShape(bool ignore_error) {
     Blob* input_blob           = input_blobs_[0];
     Blob* output_blob          = output_blobs_[0];
     ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param_);
+    if(conv_param->qat_mode) {
+        auto dims = input_blobs_[1]->GetBlobDesc().dims;
+        conv_param->kernels[0] = dims[3];
+        conv_param->kernels[1] = dims[2];
+        conv_param->output_channel = dims[0];
+        conv_param->input_channel = dims[1];
+    }
     CHECK_PARAM_NULL(conv_param);
 
     int num    = input_blob->GetBlobDesc().dims[0];

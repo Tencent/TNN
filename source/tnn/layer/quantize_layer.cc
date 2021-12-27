@@ -9,13 +9,27 @@
 //
 // Unless required by applicable law or agreed to in writing, software distributed
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#ifndef TNN_INCLUDE_TNN_VERSION_H_
-#define TNN_INCLUDE_TNN_VERSION_H_
 
-static char *branch_name_tnn = "tnn-torch-subgraph-int8";
-static char *commit_date_tnn = "2021-12-16";
-static char *commit_hash_tnn = "89780774";
+#include "tnn/layer/base_layer.h"
 
-#endif //TNN_INCLUDE_TNN_VERSION_H_
+namespace TNN_NS {
+DECLARE_LAYER(Quantize, LAYER_QUANTIZE);
+
+Status QuantizeLayer::InferOutputDataType() {
+    return BaseLayer::InferOutputDataType();
+}
+
+Status QuantizeLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+    
+    Blob* input_blob = input_blobs_[0];
+
+    output_blobs_[0]->GetBlobDesc().dims = input_blob->GetBlobDesc().dims;
+    return TNN_OK;
+}
+
+REGISTER_LAYER(Quantize, LAYER_QUANTIZE);
+
+}  // namespace TNN_NS
