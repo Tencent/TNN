@@ -62,29 +62,6 @@ class AttributePropagator {
     }
   }
 
-  void optimizeSubGraphs(
-      std::shared_ptr<Graph>& graph,
-      const std::function<void(std::shared_ptr<Graph>&)>& func) {
-    func(graph);
-    std::stack<Block*> blocks({graph->block()});
-    while (!blocks.empty()) {
-      Block* block = blocks.top();
-      blocks.pop();
-      for (auto n : block->nodes()) {
-        for (Block* sub_block : n->blocks()) {
-          blocks.push(sub_block);
-        }
-        if (n->kind() == prim::fork) {
-          auto subgraph = n->g(attr::Subgraph);
-          optimizeSubGraphs(subgraph, func);
-        }
-      }
-    }
-  }
-
-  void run() {
-  }
-
  private:
   // findConstantAttr function locates the sub Module where attributes are
   // defined. The algorithm chases getAttr chains to locate the submodules.
@@ -187,6 +164,7 @@ class AttributePropagator {
     */
   }
 public:
+#ifdef false  
   void recordMutableAttrs(std::shared_ptr<Graph>& graph) {
     std::stack<Block*> blocks({graph->block()});
     std::unique_ptr<AliasDb> aliasDb =
@@ -268,7 +246,7 @@ public:
       seen.insert(subValues.begin(), subValues.end());
     }
   }
-
+#endif
   IValue overrideGradient(IValue attr) {
     if (attr.isTensor()) {
       auto& t = attr.toTensor();
@@ -315,6 +293,7 @@ public:
   // This method is invoked only when 'freezeInterfaces' parameter is on.
   // The module associated with Interface is retrieved and the invoked method
   // is inlined.
+#ifdef false
   bool inlineInterfaceCall(Node* n, const IValue& attr) {
     auto class_type = attr.type()->expect<ClassType>();
     bool inlined = false;
@@ -379,6 +358,7 @@ public:
       }
     }
   }
+#endif
 public:
   void propagateAttributes(std::shared_ptr<Graph>& graph) {
     std::unordered_map<ModulePtr, std::unordered_map<std::string, Value*>>
@@ -504,7 +484,7 @@ public:
     func(subgraph);
     module_ = attrModule;
   }
-
+#ifdef false
   bool moduleEscapes(Module& subModule, std::shared_ptr<Graph>& graph) {
     for (auto& output : graph->outputs()) {
       if (subModule.type()->isSubtypeOf(output->type())) {
@@ -603,13 +583,14 @@ public:
       }
     }
   }
-
+#endif
   // This function recursively iterates over submodules to identify
   // for each class type the attribute slots that need to be preserved.
   //
   // Note 'attrsToKeep[type].insert(type->numAttributes())' means all
   // attribute slots of 'type' and its methods are preserved. A submodule is
   // preserved when it escapes (meaning it is returned).
+#ifdef false
   void handleSharedClassType(Module& module, std::shared_ptr<Graph>& graph) {
     auto type = module.type();
     size_t N = type->numAttributes();
@@ -699,7 +680,7 @@ public:
       funcsToRemove.clear();
     }
   }
-
+#endif
   // Contains attributes that can't be folded or user directs to keep them.
   IValue::HashAliasedIValues preservedAttrs_;
   // Tracked immutable types (Scalars) by their attribute names not
@@ -734,7 +715,7 @@ public:
   // Contains the attributes names (e.g. {"self", "subModule", "a"}
   std::deque<std::string> names_;
 }; // class AttributePropagator
-
+/*
 void checkModuleDoesNotReturnSelf(const Module& module) {
   if (module.find_method("forward")) {
     Method method = module.get_method("forward");
@@ -746,7 +727,7 @@ void checkModuleDoesNotReturnSelf(const Module& module) {
     }
   }
 }
-
+*/
 }
 
 }

@@ -16,6 +16,7 @@
 #include "lower_graph.h"
 #include "attribute_propagator.h"
 #include "constant_propagation.h"
+#include "check_qat_mode.h"
 
 #include <torch/csrc/jit/passes/constant_pooling.h>
 #include <torch/csrc/jit/passes/dead_code_elimination.h>
@@ -26,7 +27,6 @@
 #include <torch/csrc/jit/passes/freeze_module.h>
 #include <torch/csrc/jit/passes/lower_tuples.h>
 #include <torch/csrc/jit/passes/subgraph_rewrite.h>
-//#include "torch/csrc/jit/passes/lower_graph.h"
 #include "torch/csrc/jit/passes/inliner.h"
 
 #include "torch/csrc/jit/passes/common_subexpression_elimination.h"
@@ -291,31 +291,23 @@ namespace jit {
     void TorchOptPass(script::Module& module) {
 
         module.eval();
-        // ******** freeze_model start
-        //module = torch::jit::freeze_module(module);
-        // ******** freeze_model end
-        
         auto graph = module.get_method("forward").graph();
-        // ******** To replace freeze_module start
-        
-        torch::jit::Inline(*graph);
-        //auto graph_and_ivalues = LowerGraph(graph, module._ivalue());
-        //graph = graph_and_ivalues.first;
-        
+        if (CheckQatMode(*graph)) {
+            // QAT cannot use freeze_module, because freeze_module will remove fake_quantize op
+            torch::jit::Inline(*graph);
+            ConstantPropagationImmutableTypes(graph);
+            std::cout<<"Graph after ConstantPropagation"<<std::endl;
+            std::cout << graph->toString(false) << std::endl;
 
-        
+            AttributePropagator propagator(module);
+            propagator.propagateAttributes(graph);
+            std::cout<<"Graph after AttributePropagator"<<std::endl;
+            std::cout << graph->toString(false) << std::endl;
+        } else {
+            module = torch::jit::freeze_module(module);
+            std::cout << graph->toString(false) << std::endl;
+        }
 
-
-        ConstantPropagationImmutableTypes(graph);
-        std::cout<<"Graph after ConstantPropagation"<<std::endl;
-        
-       AttributePropagator propagator(module);
-        propagator.propagateAttributes(graph);
-        std::cout<<"Graph after AttributePropagator"<<std::endl;
-        std::cout << graph->toString(false) << std::endl;
-        //std::cout << graph->toString(false) << std::endl;
-        // ********* To replace freeze)_module end!
-        
         /*
         torch::jit::EliminateRedundantGuards(graph);
         torch::jit::RemoveListMutation(graph);
@@ -327,7 +319,6 @@ namespace jit {
         torch::jit::LowerAllTuples(graph);
         torch::jit::EliminateDeadCode(graph);
         */ 
-        std::cout << graph->toString(false) << std::endl;
         
         LowerSimpleTuples(graph);
         
