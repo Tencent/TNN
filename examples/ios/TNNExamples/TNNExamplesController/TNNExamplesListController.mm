@@ -54,6 +54,7 @@ using namespace std;
 - (void)viewDidLoad {
     [super viewDidLoad];
     [self clearNavigationBarLeft];
+    [self forceToOrientation:UIDeviceOrientationPortrait];
     
     [self setupTNNExampleDataSource];
 }

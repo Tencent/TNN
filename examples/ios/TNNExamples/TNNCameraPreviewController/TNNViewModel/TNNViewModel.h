@@ -32,6 +32,11 @@ using namespace::TNN_NS;
 -(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object;
 
 //Custom UI control
+- (BOOL)showImageAtMinorPreview;
+
 - (void)setupCustomView:(UIView *)view
            layoutHeight:(NSLayoutConstraint *)viewLayoutHeight;
+
+//Custom UI control
+- (void)adajustStackPrevieView:(UIStackView *)stackView;
 @end

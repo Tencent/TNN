@@ -51,9 +51,16 @@
     return nil;
 }
 
+- (BOOL)showImageAtMinorPreview {
+    return NO;
+}
+
 - (void)setupCustomView:(UIView *)view layoutHeight:(NSLayoutConstraint *)viewLayoutHeight {
     if (view && viewLayoutHeight) {
         viewLayoutHeight.constant = 0;
     }
+}
+
+- (void)adajustStackPrevieView:(UIStackView *)stackView {
 }
 @end

@@ -20,7 +20,9 @@ typedef void(^CommonCallback)(Status);
 @interface TNNCameraPreviewController () <TNNCameraVideoDeviceDelegate> {
     std::vector<std::shared_ptr<ObjectInfo> > _object_list_last;
 }
-@property (nonatomic, weak) IBOutlet UIImageView *cameraPreview;
+@property (nonatomic, weak) IBOutlet UIStackView *stackPreview;
+@property (nonatomic, strong) IBOutlet UIImageView *cameraPreview;
+@property (nonatomic, strong) IBOutlet UIImageView *minorPreview;
 @property (nonatomic, weak) IBOutlet UILabel *labelResult;
 @property (nonatomic, weak) IBOutlet UILabel *labelFPS;
 @property (nonatomic, weak) IBOutlet UIButton *rotateCamera;
@@ -30,7 +32,8 @@ typedef void(^CommonCallback)(Status);
 
 @property (nonatomic, strong) dispatch_semaphore_t inflightSemaphore;
 
-@property (nonatomic, strong) TNNMaskImage *maskImage;
+@property (nonatomic, strong) TNNMaskImage *cameraMaskImage;
+@property (nonatomic, strong) TNNMaskImage *minorMaskImage;
 @property (nonatomic, strong) NSArray<TNNBoundingBox *> *boundingBoxes;
 @property (nonatomic, strong) NSArray<UIColor *> *colors;
 @end
@@ -39,7 +42,11 @@ typedef void(^CommonCallback)(Status);
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    [self.viewModel adajustStackPrevieView:self.stackPreview];
+    
+    [self clearNavigationBarLeft];
     self.navigationItem.title = self.viewModel.title;
+    [self forceToOrientation:self.viewModel.preferDeviceOrientation];
     
     //colors for each class
     auto colors = [NSMutableArray array];
@@ -60,11 +67,17 @@ typedef void(^CommonCallback)(Status);
     
     _boundingBoxes = [NSArray array];
     // maskimage layer
-    _maskImage = [[TNNMaskImage alloc] init];
+    _cameraMaskImage = [[TNNMaskImage alloc] init];
+    _minorMaskImage = [[TNNMaskImage alloc] init];
     _inflightSemaphore = dispatch_semaphore_create(kMaxBuffersInFlight);
     
     self.cameraDevice = [[TNNCameraVideoDevice alloc] init];
     self.cameraDevice.delegate = self;
+    if (self.viewModel.preferDeviceOrientation == UIDeviceOrientationLandscapeRight) {
+        self.cameraDevice.videoOrientation = AVCaptureVideoOrientationLandscapeLeft;
+    } else {
+        self.cameraDevice.videoOrientation = AVCaptureVideoOrientationPortrait;
+    }
     if (self.cameraDevice.videoPreviewLayer) {
         [self.cameraPreview.layer addSublayer:self.cameraDevice.videoPreviewLayer];
         [self resizePreviewLayer];
@@ -105,6 +118,14 @@ typedef void(^CommonCallback)(Status);
     [self.cameraDevice stopSession];
 }
 
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    if (self.viewModel.preferDeviceOrientation == UIDeviceOrientationLandscapeRight) {
+        return UIInterfaceOrientationMaskLandscapeLeft;
+    } else {
+        return UIInterfaceOrientationMaskPortrait;
+    }
+}
+
 - (void)setupBoundingBox:(NSUInteger)maxNumber {
     // Set up the bounding boxes.
     auto boundingBoxes = [NSMutableArray arrayWithArray:_boundingBoxes];
@@ -118,9 +139,12 @@ typedef void(^CommonCallback)(Status);
         
         [iter addToLayer:_cameraPreview.layer];
     }
-    [_maskImage hide];
-    [_maskImage removeFromSuperLayer];
-    [_maskImage addToLayer:_cameraPreview.layer];
+    [_cameraMaskImage hide];
+    [_cameraMaskImage removeFromSuperLayer];
+    [_cameraMaskImage addToLayer:_cameraPreview.layer];
+    [_minorMaskImage hide];
+    [_minorMaskImage removeFromSuperLayer];
+    [_minorMaskImage addToLayer:_minorPreview.layer];
     self.boundingBoxes = boundingBoxes;
 }
 
@@ -259,7 +283,11 @@ typedef void(^CommonCallback)(Status);
     auto object_list = [self.viewModel getObjectList:output];
     [self showObjectInfo:object_list withOriginImageSize:size hideTextFrame:hideTextFrame withStatus:status];
     auto mask_data   = [self.viewModel getImage:output];
-    [self showMask:mask_data withOriginImageSize:size withStatus:status];
+    if (![self.viewModel showImageAtMinorPreview]) {
+        [self showImage:mask_data atImageLayer:_cameraMaskImage withOriginImageSize:size withStatus:status];
+    } else {
+        [self showImage:mask_data atImageLayer:_minorMaskImage withOriginImageSize:size withStatus:status];
+    }
 }
 
 - (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
@@ -323,7 +351,8 @@ typedef void(^CommonCallback)(Status);
     }
 }
 
-- (void)showMask:(ImageInfo)image_info
+- (void)showImage:(ImageInfo)image_info
+            atImageLayer:(TNNMaskImage *)image_layer
             withOriginImageSize:(CGSize)origin_size
             withStatus:(Status)status {
     if (!image_info.data)
@@ -334,7 +363,7 @@ typedef void(^CommonCallback)(Status);
     }
     // devan: method to support RGB data?
     UIImage* image = utility::UIImageWithDataRGBA(image_info.data.get(), image_info.image_height, image_info.image_width);
-    [_maskImage showImage:image atFrame:_cameraPreview.bounds];
+    [image_layer showImage:image atFrame:_cameraPreview.bounds];
 }
 
 
