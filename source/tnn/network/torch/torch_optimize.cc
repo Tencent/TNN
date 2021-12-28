@@ -13,7 +13,6 @@
 // specific language governing permissions and limitations under the License.
 
 #include "torch_optimize.h"
-#include "lower_graph.h"
 #include "attribute_propagator.h"
 #include "constant_propagation.h"
 #include "check_qat_mode.h"

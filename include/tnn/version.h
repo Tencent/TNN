@@ -16,6 +16,6 @@
 
 static char *branch_name_tnn = "tnn-torch-subgraph-int8";
 static char *commit_date_tnn = "2021-12-27";
-static char *commit_hash_tnn = "8521655a";
+static char *commit_hash_tnn = "6908dd18";
 
 #endif //TNN_INCLUDE_TNN_VERSION_H_

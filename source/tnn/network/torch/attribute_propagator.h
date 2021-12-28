@@ -1,3 +1,20 @@
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+
+#ifndef TNN_SOURCE_TNN_NETWORK_TNNTORCH_ATTRIBUTE_PROPAGATOR_H_
+#define TNN_SOURCE_TNN_NETWORK_TNNTORCH_ATTRIBUTE_PROPAGATOR_H_
+
 #include <torch/csrc/jit/passes/freeze_module.h>
 
 #include <torch/csrc/jit/jit_log.h>
@@ -164,89 +181,6 @@ class AttributePropagator {
     */
   }
 public:
-#ifdef false  
-  void recordMutableAttrs(std::shared_ptr<Graph>& graph) {
-    std::stack<Block*> blocks({graph->block()});
-    std::unique_ptr<AliasDb> aliasDb =
-        torch::make_unique<AliasDb>(graph, /* isFrozen */ true);
-    while (!blocks.empty()) {
-      Block* block = blocks.top();
-      blocks.pop();
-      for (auto n : block->nodes()) {
-        for (Block* sub_block : n->blocks()) {
-          blocks.push(sub_block);
-        }
-
-        // Modules with prim::ModuleContainerIndex cannot be frozen because they
-        // return InterfaceTypes.
-        TORCH_CHECK(
-            n->kind() != prim::ModuleContainerIndex,
-            "Freezing modules containing prim::ModuleContainerIndex is not supported");
-
-        if (n->kind() == prim::SetAttr || n->kind() == prim::GetAttr) {
-          // By default if interface attributes are present then fail freezing.
-          // If freezingInterfaces is on then Interfaces are folded similarly
-          // to other attributes.
-          TORCH_CHECK(
-              freezeInterfaces_ ||
-                  !(n->kind() == prim::GetAttr &&
-                    n->output()->type()->cast<InterfaceType>()),
-              "attempted to freeze a module that uses interface attributes");
-          auto name = n->s(attr::name);
-          auto attrModule = module_;
-          if (!findConstantAttr(n->inputs()[0], name, attrModule, graph)) {
-            continue;
-          }
-
-          auto attr = attrModule.attr(name);
-          if (n->kind() == prim::GetAttr) {
-            auto type = n->output()->type();
-            // Do not record submodules. Their attributes are tracked
-            // individually.
-            /*
-            if (attr.isObject() || !AliasDb::isMutableType(attr.type())) {
-              continue;
-            }*/
-            usedAttrs_.insert(attr);
-          }
-
-          if (n->kind() == prim::SetAttr || aliasDb->hasOutputWriters(n)) {
-            GRAPH_DEBUG(
-                n->kind() == prim::GetAttr ? "attribute: " + name + " in %" +
-                        n->output()->debugName() + " has inplace writer"
-                                           : "attribute: " + name + " is set");
-            auto mptr = attrModule._ivalue();
-            insertMutableAttr(name, attr, mptr);
-          }
-        } else if (n->kind() == prim::fork) {
-          applyToForkSubgraph(
-              n,
-              graph,
-              // NOLINTNEXTLINE(modernize-avoid-bind)
-              std::bind(
-                  &AttributePropagator::recordMutableAttrs,
-                  *this,
-                  std::placeholders::_1));
-        }
-      }
-    }
-    // FIXME: Current Alias analysis fails to track subvalues.
-    // This is not a common scenario, for freezing, detect and error out.
-    IValue::HashAliasedIValues seen;
-    for (auto& val : usedAttrs_) {
-      IValue::HashAliasedIValues subValues;
-      val.getSubValues(subValues);
-      TORCH_CHECK(
-          std::all_of(
-              subValues.begin(),
-              subValues.end(),
-              [&seen](const IValue& v) { return seen.count(v) == 0; }),
-          "module contains attributes values that overlaps ",
-          val);
-      seen.insert(subValues.begin(), subValues.end());
-    }
-  }
-#endif
   IValue overrideGradient(IValue attr) {
     if (attr.isTensor()) {
       auto& t = attr.toTensor();
@@ -293,72 +227,6 @@ public:
   // This method is invoked only when 'freezeInterfaces' parameter is on.
   // The module associated with Interface is retrieved and the invoked method
   // is inlined.
-#ifdef false
-  bool inlineInterfaceCall(Node* n, const IValue& attr) {
-    auto class_type = attr.type()->expect<ClassType>();
-    bool inlined = false;
-    for (auto use : n->output()->uses()) {
-      auto user_node = use.user;
-      if (user_node->kind() == prim::CallMethod) {
-        const std::string& methodName = user_node->s(attr::name);
-        Function& function = class_type->getMethod(methodName);
-        if (!function.isGraphFunction()) {
-          continue;
-        }
-        GRAPH_UPDATE(
-            "Inlining interface method '",
-            function.name(),
-            "' to ",
-            *user_node);
-
-        GRAPH_UPDATE("Function body: ", *function.optimized_graph());
-        inlineCallTo(user_node, &function);
-        inlined = true;
-      }
-    }
-    return inlined;
-  }
-
-  void inlineInterfaceCalls(std::shared_ptr<Graph>& graph) {
-    auto block = graph->block();
-    std::stack<Block*> blocks({block});
-
-    while (!blocks.empty()) {
-      Block* block = blocks.top();
-      blocks.pop();
-      for (auto n : block->nodes()) {
-        for (Block* sub_block : n->blocks()) {
-          blocks.push(sub_block);
-        }
-        if (n->kind() == prim::GetAttr) {
-          if (!n->output()->type()->cast<InterfaceType>()) {
-            continue;
-          }
-          auto name = n->s(attr::name);
-          auto attrModule = module_;
-          auto input = n->inputs()[0];
-          TORCH_CHECK(
-              findConstantAttr(input, name, attrModule, graph),
-              "failed to freeze interface attribute '" + name + "'");
-          TORCH_INTERNAL_ASSERT(attrModule.hasattr(name));
-          auto attr = attrModule.attr(name);
-          inlineInterfaceCall(n, attr);
-          // Reset the GetAttr to concrete module type.
-          n->output()->setType(attr.type());
-        } else if (n->kind() == prim::fork) {
-          applyToForkSubgraph(
-              n,
-              graph,
-              // NOLINTNEXTLINE(modernize-avoid-bind)
-              std::bind(
-                  &AttributePropagator::inlineInterfaceCalls,
-                  *this,
-                  std::placeholders::_1));
-        }
-      }
-    }
-  }
-#endif
 public:
   void propagateAttributes(std::shared_ptr<Graph>& graph) {
     std::unordered_map<ModulePtr, std::unordered_map<std::string, Value*>>
@@ -484,203 +352,6 @@ public:
     func(subgraph);
     module_ = attrModule;
   }
-#ifdef false
-  bool moduleEscapes(Module& subModule, std::shared_ptr<Graph>& graph) {
-    for (auto& output : graph->outputs()) {
-      if (subModule.type()->isSubtypeOf(output->type())) {
-        return true;
-      }
-    }
-    return preservedSubModule_.count(subModule._ivalue());
-  }
-
-  void removeExtraWaitCalls(Block* b) {
-    auto nodes = b->nodes();
-    for (auto it = nodes.begin(); it != nodes.end(); it++) {
-      auto node = *it;
-      if (node->kind() != aten::wait) {
-        continue;
-      }
-      TORCH_INTERNAL_ASSERT(node->inputs().size() == 1);
-      TORCH_INTERNAL_ASSERT(node->outputs().size() == 1);
-      // If input type is not a from aten::fork call then the
-      // aten::wait operator can be deleted.
-      if (node->input()->type()->kind() != TypeKind::FutureType) {
-        node->output()->replaceAllUsesWith(node->input());
-        it.destroyCurrent();
-      }
-    }
-    // For the remaining nodes, recurse.
-    for (auto it = nodes.begin(); it != nodes.end(); it++) {
-      auto node = *it;
-      for (auto sub_b : node->blocks()) {
-        removeExtraWaitCalls(sub_b);
-      }
-    }
-  }
-
-  // cleanupFrozenModule function cleans up the Frozen module. It performs the
-  // following:
-  // 1) Remove unused attributes.
-  // 2) Remove unreferenced submodules
-  // 3) Remove non public unreferenced methods.
-  void cleanupFrozenModule() {
-    for (auto function : preservedMethods_) {
-      auto graph = function->graph();
-      recordReferencedAttrs(graph);
-      handleSharedClassType(module_, graph);
-      removeExtraWaitCalls(graph->block());
-    }
-    removeUnusedAttrs();
-  }
-
-  // Prepraring for clean up phase. At this point, record all subModules that
-  // contains mutable attributes.
-  void recordReferencedAttrs(std::shared_ptr<Graph>& graph) {
-    std::stack<Block*> blocks({graph->block()});
-    std::set<ModulePtr> modules({module_._ivalue()});
-    while (!blocks.empty()) {
-      Block* block = blocks.top();
-      blocks.pop();
-      for (auto n : block->nodes()) {
-        for (Block* subBlock : n->blocks()) {
-          blocks.push(subBlock);
-        }
-        if (n->kind() == prim::GetAttr) {
-          auto& name = n->s(attr::name);
-          // For now, use all module ivalues which are the same type
-          // and could be the module that this GetAttr resolves to
-          // TODO: we could attempt to follow the GetAttr chain and
-          // find the exact ivalue, we would have to be careful
-          // that the chain does not contain any attributes which
-          // get written to (setAttr calls)
-          for (auto& mptr : modules) {
-            auto module = Module(mptr);
-            if (module.type() == n->inputs()[0]->type()) {
-              TORCH_INTERNAL_ASSERT(module.hasattr(name));
-              auto module = Module(mptr);
-              auto attr = module.attr(name);
-              // TODO: this could be insertReferencedAttr to be more clear,
-              // these are attributes we could not inline, which include
-              // other reasons besides mutation (unsupported constant,
-              // getAttr resolving to non-getAttr node, etc)
-              insertMutableAttr(name, attr, mptr);
-              if (attr.isModule()) {
-                modules.insert(attr.toModule()._ivalue());
-              }
-            }
-          }
-        } else if (n->kind() == prim::fork) {
-          applyToForkSubgraph(
-              n,
-              graph,
-              // NOLINTNEXTLINE(modernize-avoid-bind)
-              std::bind(
-                  &AttributePropagator::recordReferencedAttrs,
-                  *this,
-                  std::placeholders::_1));
-        }
-      }
-    }
-  }
-#endif
-  // This function recursively iterates over submodules to identify
-  // for each class type the attribute slots that need to be preserved.
-  //
-  // Note 'attrsToKeep[type].insert(type->numAttributes())' means all
-  // attribute slots of 'type' and its methods are preserved. A submodule is
-  // preserved when it escapes (meaning it is returned).
-#ifdef false
-  void handleSharedClassType(Module& module, std::shared_ptr<Graph>& graph) {
-    auto type = module.type();
-    size_t N = type->numAttributes();
-    if (moduleEscapes(module, graph)) {
-      // Perserve all its attributes and methods.
-      attrsToKeep_[type].insert(N);
-      return;
-    }
-    auto it2 = preservedScalarAttrs_.find(module._ivalue());
-    SharedTypeSubModules_[type].insert(module._ivalue());
-    attrsToKeep_[type].insert({});
-    for (const auto i : c10::irange(N)) {
-      auto name = type->getAttributeName(i);
-      auto attr = module.attr(name);
-      auto attrTy = attr.type();
-
-      // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-      bool isMutable;
-      /*
-      if (AliasDb::isMutableType(attrTy)) {
-        isMutable = preservedAttrs_.count(attr);
-      } else {
-        isMutable =
-            it2 != preservedScalarAttrs_.end() && it2->second.count(name);
-      }
-      */ 
-      if (isMutable) {
-        attrsToKeep_[type].insert(i);
-        if (attr.isModule()) {
-          // FIXME: This error is conservative. Detected an interface module
-          // that cannot be fully inlined away because of side effects.
-          // TODO: We could allow freezing in this case but we would need to
-          // 1) Change the module type to use the concrete type (attrTy).
-          // Probably first unsafe remove attribute and add it using concrete
-          // type.
-          // 2) Fail if there is any setattr to an interface attribute bc
-          // everything is inlined based on old value of this attribute.
-          TORCH_CHECK(
-              !type->getAttribute(i)->cast<InterfaceType>(),
-              "failed to freeze interface attribute '" + name + "'");
-
-          auto attrModule = attr.toModule();
-          handleSharedClassType(attrModule, graph);
-        }
-      }
-    }
-  }
-
-  // Remove unused attributes and methods for each sub module of the frozen
-  // module. This function iterates over the Calsstypes of its submodule
-  // attributes including its own type.
-  void removeUnusedAttrs() {
-    std::vector<std::string> attrsToRemove;
-    std::vector<Function*> funcsToRemove;
-    for (auto& it : attrsToKeep_) {
-      auto& type = it.first;
-      size_t N = type->numAttributes();
-      if (it.second.count(N)) {
-        continue;
-      }
-      for (const auto i : c10::irange(N)) {
-        if (it.second.count(i) == 0) {
-          attrsToRemove.push_back(type->getAttributeName(i));
-        }
-      }
-      for (auto& fn : type->methods()) {
-        if (preservedMethods_.count(fn) && *type == *module_.type()) {
-          continue;
-        }
-        funcsToRemove.push_back(fn);
-      }
-
-      for (auto& name : attrsToRemove) {
-        for (auto& val : SharedTypeSubModules_[type]) {
-          auto mod = val.toModule();
-          mod._ivalue()->unsafeRemoveAttr(name);
-        }
-        type->unsafeRemoveAttribute(name);
-      }
-      for (auto fn : funcsToRemove) {
-        type->unsafeRemoveMethod(fn->name());
-        auto mod = SharedTypeSubModules_[type].begin()->toModule();
-        mod._ivalue()->compilation_unit()->unsafeRemoveMethod(fn->qualname());
-      }
-
-      attrsToRemove.clear();
-      funcsToRemove.clear();
-    }
-  }
-#endif
   // Contains attributes that can't be folded or user directs to keep them.
   IValue::HashAliasedIValues preservedAttrs_;
   // Tracked immutable types (Scalars) by their attribute names not
@@ -715,21 +386,11 @@ public:
   // Contains the attributes names (e.g. {"self", "subModule", "a"}
   std::deque<std::string> names_;
 }; // class AttributePropagator
-/*
-void checkModuleDoesNotReturnSelf(const Module& module) {
-  if (module.find_method("forward")) {
-    Method method = module.get_method("forward");
-    // Check that module does not return itself.
-    for (auto& output : method.graph()->outputs()) {
-      TORCH_CHECK(
-          output->type() != module.type(),
-          "attempted to freeze a module that return itself");
-    }
-  }
-}
-*/
+
 }
 
 }
 
 } //jit
+
+#endif
