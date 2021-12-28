@@ -69,7 +69,7 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
                              InputShapesMap max_inputs_shape, bool enable_const_folder) {
     config_    = net_config;
     Status ret = TNN_OK;
-    std::cout<<"TNNTorchNetwork::Init"<<std::endl;
+
     if (config_.precision == PRECISION_LOW) {
         precision_ = DATA_TYPE_HALF;
     } else {
