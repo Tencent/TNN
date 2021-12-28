@@ -64,17 +64,6 @@ void genRandomInputs(std::shared_ptr<torch::jit::Graph> graph, InputShapesMap &i
         blob_desc.device_type = config.device_type;
         blob_desc.dims        = input.second;
         auto blob             = std::make_shared<Blob>(blob_desc, true);
-
-        // NOTE: Some type other than Float, like int, When used as Input,
-        //       Should have All-ZEROs value, otherwise OPs like embedding 
-        //       may trigger "out of range" ERROR in libtorch fwd process.
-        if (blob->GetBlobDesc().data_type==DATA_TYPE_INT32) {
-            int count = sizeof(int);
-            for (const auto& dim : blob->GetBlobDesc().dims) {
-                count *= dim;
-            }
-            std::memset(blob->GetHandle().base, 0, count);
-        }
         
         // extend lifetime util shape infer ends
         blobs.push_back(blob);

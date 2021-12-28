@@ -14,6 +14,7 @@
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 #include "tnn/network/tensorrt/utils.h"
+#include <numeric>
 
 namespace TNN_NS {
 
@@ -22,8 +23,27 @@ DECLARE_TENSORRT_LAYER_BUILDER(Permute, LAYER_PERMUTE);
 ILayer* PermuteTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto paramlist = dynamic_cast<PermuteLayerParam*>(param_);
     Permutation permute;
-    for (int i = 0; i < paramlist->orders.size(); ++i) {
-        permute.order[i] = paramlist->orders[i];
+    if (paramlist->orders.size()==0) {
+        // Maybe PermuteV2 from TNN-Torch
+        auto paramlist_v2 = dynamic_cast<PermuteV2LayerParam*>(param_);
+        if (paramlist_v2==nullptr) {
+            LOGE("Error: Unsupported Permute Param, missing param.orders.");
+        }
+        
+        int nb_dims = GetInputITensors()[0]->getDimensions().nbDims;
+        if (paramlist_v2->dim0 < 0) paramlist_v2->dim0 += nb_dims;
+        if (paramlist_v2->dim1 < 0) paramlist_v2->dim1 += nb_dims;
+        
+        paramlist_v2->orders.resize(nb_dims);
+        std::iota(paramlist_v2->orders.begin(), paramlist_v2->orders.end(), 0);
+        std::swap(paramlist_v2->orders[paramlist_v2->dim0], paramlist_v2->orders[paramlist_v2->dim1]);
+        for (int i = 0; i < paramlist_v2->orders.size(); ++i) {
+            permute.order[i] = paramlist_v2->orders[i];
+        }
+    } else { 
+        for (int i = 0; i < paramlist->orders.size(); ++i) {
+            permute.order[i] = paramlist->orders[i];
+        }
     }
 
     Blob* input_blob  = input_blobs_[0];

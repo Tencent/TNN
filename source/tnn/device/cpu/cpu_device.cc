@@ -65,7 +65,8 @@ Status CpuDevice::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
     if (handle) {
         auto size = GetBlobMemoryBytesSize(size_info);
         if (size > 0) {
-            *handle = malloc(size);
+            //*handle = malloc(size);
+            *handle = calloc(size, 1);
         } else if (size == 0) {
             //support empty blob for yolov5 Slice_507, only in device cpu
             *handle = NULL;

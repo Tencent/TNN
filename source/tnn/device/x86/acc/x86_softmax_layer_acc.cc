@@ -186,6 +186,6 @@ Status X86SoftMaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     return TNN_OK;
 }
 
-//REGISTER_X86_ACC(SoftMax, LAYER_SOFTMAX);
+REGISTER_X86_ACC(SoftMax, LAYER_SOFTMAX);
 
 }  // namespace TNN_NS

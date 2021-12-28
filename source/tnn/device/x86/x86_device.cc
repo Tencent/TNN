@@ -70,7 +70,8 @@ Status X86Device::Allocate(void** handle, MatType mat_type, DimsVector dims) {
 
 Status X86Device::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
     if (handle) {
-        *handle = malloc(GetBlobMemoryBytesSize(size_info));
+        //*handle = malloc(GetBlobMemoryBytesSize(size_info));
+        *handle = calloc(GetBlobMemoryBytesSize(size_info), 1);
     }
     return TNN_OK;
 }

@@ -52,7 +52,7 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
             input_idx++;
         }
         // std::cout << "[ConvertBlockToInstance:input ] " << input->debugName() << std::endl;
-        std::cout << "=== DEBUG, [ConvertBlockToInstance:input ] " << input->debugName() << std::endl;
+        //std::cout << "=== DEBUG, [ConvertBlockToInstance:input ] " << input->debugName() << std::endl;
     }
     net_structure->inputs_shape_map = inputs_shape_map;
 
@@ -104,7 +104,13 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
         // const std::string model_path = root + model_name + ".tnnmodel";
         // TNN_NS::ModelPacker model_packer(net_structure, net_resource);
         // Status status = model_packer.Pack(proto_path, model_path);
+        ///////////////////////////
+        std::cout << "=== DEBUG, TORCH CVTBlocToInst, Init 0 ===" << std::endl;
+        ///////////////////////////
         instance_ptr->instance_->Init(ctx->get_interpreter(), min_inputs_shape_map, max_inputs_shape_map);
+        ///////////////////////////
+        std::cout << "=== DEBUG, TORCH CVTBlocToInst, Init 1 ===" << std::endl;
+        ///////////////////////////
         instance_ptr->is_init_ = true;
     }
 

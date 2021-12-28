@@ -91,7 +91,6 @@ Status TNNTorchNetwork::Init(NetworkConfig &net_config, ModelConfig &model_confi
         auto stream_guard = new c10::cuda::CUDAStreamGuard(*cuda_stream_);  
     }
 
-
     min_inputs_shape_ = min_inputs_shape;
     max_inputs_shape_ = max_inputs_shape;
     inputs_data_type_ = inputs_data_type;
@@ -210,17 +209,6 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap min_shape, InputShapesMap
         auto blob  = blob_manager_->GetBlob(input);
         auto foreign_blob = new ForeignBlob(blob->GetBlobDesc(), blob->GetHandle());
         
-        // NOTE: Some type other than Float, like int, When used as Input,
-        //       Should have All-ZEROs value, otherwise OPs like embedding 
-        //       may trigger "out of range" ERROR in libtorch fwd process.
-        if (blob->GetBlobDesc().data_type==DATA_TYPE_INT32) {
-            int count = sizeof(int);
-            for (const auto& dim : blob->GetBlobDesc().dims) {
-                count *= dim;
-            }
-            std::memset(blob->GetHandle().base, 0, count);
-        }
-
         blob_manager_->ReplaceBlob(input, foreign_blob);
         input_blob_map_[input] = foreign_blob;
 

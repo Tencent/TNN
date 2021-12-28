@@ -60,6 +60,11 @@ Status CudaDevice::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
         LOGE("cuda alloc failed with size %lu for %p status:%d\n", bytes_size, ptr, status);
         return TNNERR_OUTOFMEMORY;
     }
+    status = cudaMemset(ptr, 0, bytes_size);
+    if (cudaSuccess != status) {
+        LOGE("cuda alloc::memset failed with size %lu for %p status:%d\n", bytes_size, ptr, status);
+        return TNNERR_OUTOFMEMORY;
+    }
 
     *handle = ptr;
     return TNN_OK;
@@ -74,6 +79,11 @@ Status CudaDevice::Allocate(void** handle, size_t size) {
     }
     if (ptr == nullptr) {
         LOGE("cuda alloc got nullptr\n");
+        return TNNERR_OUTOFMEMORY;
+    }
+    status = cudaMemset(ptr, 0, size);
+    if (cudaSuccess != status) {
+        LOGE("cuda alloc::memset failed with size %lu for %p status:%d\n", size, ptr, status);
         return TNNERR_OUTOFMEMORY;
     }
     *handle = ptr;
