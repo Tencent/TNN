@@ -334,6 +334,10 @@ public:
                 layer_info->type     = LAYER_ADD;
                 layer_info->type_str = "Add";
                 break;
+            case at::aten::sub:
+                layer_info->type     = LAYER_SUB;
+                layer_info->type_str = "Sub";
+                break;
             case at::aten::mul:
                 layer_info->type     = LAYER_MUL;
                 layer_info->type_str = "Mul";
@@ -1720,7 +1724,7 @@ REGISTER_TORCH_OP_CONVERTER(Reduce, aten, mean)
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
 REGISTER_TORCH_OP_CONVERTER(ListUnpack, prim, ListUnpack)
 REGISTER_TORCH_OP_CONVERTER(Squeeze, aten, squeeze)
-
+REGISTER_TORCH_OP_CONVERTER(Binary, aten, sub)
 // REGISTER_TORCH_OP_CONVERTER(QuantConv2D, quantized, conv2d)
 
 } // namespace conversion
