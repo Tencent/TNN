@@ -91,8 +91,7 @@ private:
     InputShapesMap max_inputs_shape_;
 
     std::vector<torch::IValue> in_ivalues_;
-    c10::cuda::CUDAStreamGuard * stream_guard_;
-
+    c10::cuda::CUDAStream* cuda_stream_;
 };
 
 }  // namespace TNN_NS

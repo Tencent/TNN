@@ -16,6 +16,7 @@
 
 #include <torch/csrc/jit/passes/dead_code_elimination.h>
 #include <torch/csrc/jit/passes/subgraph_rewrite.h>
+#include <torch/torch.h>
 
 #include "tnn/network/torch/jit_util.h"
 #include "tnn/network/torch/partitioning.h"
@@ -162,7 +163,13 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
 
         // run shape infer and combine to blocks
         if (min_input_shape.size() && max_input_shape.size() && min_input_shape.size() == max_input_shape.size()) {
-            auto shape_mod = mod.clone();
+	    //fix clone memory leak
+	    std::stringstream save_stream(std::ios_base::binary | std::ios_base::in | std::ios_base::out);
+	    mod.save(save_stream);
+	    save_stream.seekg(0);
+	    c10::Device device(c10::kCPU);
+            ConvertToTorchDevice(device, config.device_type, config.device_id);
+	    auto shape_mod = torch::jit::freeze(torch::jit::load(save_stream, device));
             auto shape_seg = partitioning::Partition(shape_mod, shape_mod.get_method(forward_func_name).graph(), config);
             std::vector<BlobDesc> subgraph_min_input_info;
             std::vector<BlobDesc> subgraph_max_input_info;

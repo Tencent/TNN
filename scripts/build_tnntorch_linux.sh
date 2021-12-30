@@ -61,9 +61,8 @@ cp -r ${TNN_ROOT_PATH}/include ${TNN_INSTALL_DIR}/
 cp -d libTNN.so* ${TNN_INSTALL_DIR}/lib/
 
 # deps
-cp -d /usr/local/cuda/lib64/libcudart.so* ${TNN_INSTALL_DIR}/lib/
-cp -d /usr/local/cuda/targets/x86_64-linux/lib/libnvrtc.so* ${TNN_INSTALL_DIR}/lib/
-cp -d /usr/local/cuda/targets/x86_64-linux/lib/libnvToolsExt*.so* ${TNN_INSTALL_DIR}/lib/
+cuda_dep_list=$( ldd libTNN.so | awk '{if (match($3, "/usr/local/cuda")){ print $3}}' )
+cp $cuda_dep_list ${TNN_INSTALL_DIR}/lib/
 
 #cublas
 cublas_dep_list=$( ldd libTNN.so | awk '{if (match($3, "cublas")){ print $3}}' )
