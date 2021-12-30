@@ -89,7 +89,7 @@ TensorRTBaseLayerBuilder* CreateTensorRTBaseLayerBuilder(LayerType type) {
 
 ILayer* TensorRTBaseLayerBuilder::AddInt8OutputQDQLayers(nvinfer1::INetworkDefinition* network, ITensor* tensor,
         std::shared_ptr<ForeignTensor> foreign_tensor, float quant_scale, float dequant_scale) {
-    if (NV_TENSORRT_VERSION < 8000) {
+#if NV_TENSORRT_VERSION < 8000
         Weights output_quant_shift;
         output_quant_shift.type = nvinfer1::DataType::kFLOAT;
         output_quant_shift.values = nullptr;
@@ -140,7 +140,7 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8OutputQDQLayers(nvinfer1::INetworkDefin
         std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetQuantized();
 
         return output_dequant_layer;
-    } else {
+#else
         Weights output_quant_scale;
         float* output_quant_scale_data = (float*)malloc(sizeof(float));
         *output_quant_scale_data = quant_scale;
@@ -170,7 +170,7 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8OutputQDQLayers(nvinfer1::INetworkDefin
         output_dequant_layer->setAxis(0);
 
         return output_dequant_layer;
-    }
+#endif
 }
 
 ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefinition* network,
@@ -211,7 +211,7 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
     }
 
     ILayer* constant_layer = network->addConstant(weightDims, int8Weights);
-    if (NV_TENSORRT_VERSION < 8000) {
+#if NV_TENSORRT_VERSION < 8000
         Weights weight_quant_shift;
         weight_quant_shift.type = nvinfer1::DataType::kFLOAT;
         weight_quant_shift.values = nullptr;
@@ -261,7 +261,7 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
         weight_dequant_layer->setName(weight_dequant_layer_name.c_str());
         printf("dequant count: %d\n", weight_dequant_layer->getOutput(0)->getDimensions().d[2]);
         return weight_dequant_layer;
-    } else {
+#else
         Weights weight_quant_scale;
         float* weight_quant_scale_data = (float*)malloc(sizeof(float));
         *weight_quant_scale_data = 1.f;
@@ -290,8 +290,7 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
         weight_dequant_layer->setAxis(0);
         
         return weight_dequant_layer;
-
-    }
+#endif
 }
 
 std::vector<ITensor*> TensorRTBaseLayerBuilder::GetInputITensors() {
