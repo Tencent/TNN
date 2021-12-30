@@ -120,7 +120,7 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
             auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
             CHECK_PARAM_NULL(default_interpreter);
             auto md5s = default_interpreter->GetParamsMd5();
-            std::string md5 = md5s.size() > 0 ? md5s[0]: "0000";  // default md5 for unit_test
+            std::string md5 = md5s.size() > 0 ? md5s[0]: "unit_test_default_md5";  // default md5 for unit_test
             if (md5s.size() >= 2) {
                 md5 = md5 + "-" + md5s[1];
             }
