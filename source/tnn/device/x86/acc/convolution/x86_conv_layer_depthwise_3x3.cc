@@ -915,7 +915,7 @@ void conv_dw_3x3s2_sse(const float *din, float *dout, int num, int ch_out, int h
     right = true;
   }
   int ri = (w_in - (1 - pad)) % 8;
-  if (ri > 0 && (ro > 0 || pad == 1)) {
+  if (ri > 0 && (ro > 0 || (w_out - 1) * 2 + 3 - pad > w_in)) {
     for (int i = 0; i < 12; i++) {
       if (i <= ri) {
         rmaskr[i] = -1.f;
@@ -1140,7 +1140,6 @@ void conv_dw_3x3s2_sse(const float *din, float *dout, int num, int ch_out, int h
 
 bool X86ConvLayerDepthwise3x3::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                           const std::vector<Blob *> &outputs) {
-                                            return false;
     if (!param) {
         return false;
     }
@@ -1201,11 +1200,6 @@ Status X86ConvLayerDepthwise3x3::DoForward(const std::vector<Blob *> &inputs, co
     auto output      = outputs[0];
     auto dims_input  = input->GetBlobDesc().dims;
     auto dims_output = output->GetBlobDesc().dims;
-
-    int c_pack = 8;
-    if (arch_ == sse42) {
-        c_pack = 4;
-    }
 
     const int batch = dims_output[0];
 
