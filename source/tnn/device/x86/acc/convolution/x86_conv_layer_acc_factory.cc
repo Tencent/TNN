@@ -15,6 +15,7 @@
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_acc_factory.h"
 
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_depthwise.h"
+#include "tnn/device/x86/acc/convolution/x86_conv_layer_depthwise_3x3.h"
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_1x1.h"
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_3x3.h"
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_common.h"
@@ -29,8 +30,12 @@ X86ConvLayerCommon always as the last solution
 */
 void X86ConvLayerAccFactory::CreateImpFP(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                                          LayerParam *param, std::shared_ptr<X86LayerAcc> &conv_acc_impl) {
-    if (X86ConvLayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
-        if (!dynamic_cast<X86ConvLayerDepthwise *>(conv_acc_impl.get())) {
+    if (X86ConvLayerDepthwise3x3::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<X86ConvLayerDepthwise3x3 *>(conv_acc_impl.get())) {
+            conv_acc_impl = std::make_shared<X86ConvLayerDepthwise3x3>();
+        }
+    } else if (X86ConvLayerDepthwise::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
+        if (!dynamic_cast<X86ConvLayerDepthwise*>(conv_acc_impl.get())) {
             conv_acc_impl = std::make_shared<X86ConvLayerDepthwise>();
         }
     } else if (X86ConvLayer1x1::isPrefered(dynamic_cast<ConvLayerParam *>(param), inputs, outputs)) {
