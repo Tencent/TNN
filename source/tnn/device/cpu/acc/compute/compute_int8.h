@@ -37,13 +37,13 @@ void CPU_SUB(const std::vector<void *> &input_ptrs, const std::vector<float *> &
 
 // asy int8 add, reload by scale and bias
 void CPU_ADD_BIAS(const std::vector<void *> &input_ptrs, const std::vector<float *> &scale_ptrs,
-             const std::vector<int8_t *> &scale_bias_ptrs, int scale_len, void *output, float *scale_out,
-             int8_t *scale_bias_out, DimsVector dims);
+             const std::vector<int8_t *> &zero_point_ptrs, int scale_len, void *output, float *scale_out,
+             int8_t *zero_point_out, DimsVector dims);
 
 // asy int8 sub, reload by scale and bias
 void CPU_SUB_BIAS(const std::vector<void *> &input_ptrs, const std::vector<float *> &scale_ptrs,
-             const std::vector<int8_t *> &scale_bias_ptrs, int scale_len, void *output, float *scale_out,
-             int8_t *scale_bias_out, DimsVector dims);
+             const std::vector<int8_t *> &zero_point_ptrs, int scale_len, void *output, float *scale_out,
+             int8_t *zero_point_out, DimsVector dims);
 
 }  // namespace TNN_NS
 

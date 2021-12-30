@@ -38,7 +38,7 @@ IntScaleResource* CreateIntScale(int channel) {
     // scale zero point
     RawBuffer zero_point(channel * sizeof(int8_t));
     zero_point.SetDataType(DATA_TYPE_INT8);
-    int8scale->scale_bias_handle = zero_point;
+    int8scale->zero_point_handle = zero_point;
 
     // bias
     RawBuffer bias(channel * sizeof(int32_t));
