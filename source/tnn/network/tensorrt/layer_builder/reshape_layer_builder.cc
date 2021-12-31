@@ -26,6 +26,12 @@ ILayer* ReshapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     Blob* output_blob  = output_blobs_[0];
     auto output_dims = output_blob->GetBlobDesc().dims;
     Dims reshape_dims = ConvertToTRTDims(paramlist->shape);
+    //////////////////////////
+    //std::cout << "=== DEBUG, TRT reshape, shape = [";
+    //for (const auto& dim : paramlist->shape)
+    //    std::cout << dim << ",";
+    //std::cout << "] ===" << std::endl;
+    //////////////////////////
     auto input_tensors = GetInputITensors();
     auto output_tensors = GetOutputITensors();
     IShuffleLayer* layer = network->addShuffle(*input_tensors[0]);

@@ -33,7 +33,8 @@ nvinfer1::Dims unsqueeze_trt_dims(const nvinfer1::Dims &input_dims, int unsqueez
 
 bool MatMulTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
-    if (pos == 1) {
+    if (pos == 1 && inOut[pos].dims.d[inOut[pos].dims.nbDims-1]==1) {
+        // GEMV + reduce sum case, input 1 should be fp32 to keep precision.
         return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
     } else {
         return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF) &&
@@ -62,6 +63,9 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
     ITensor * matrix_a = nullptr;
     ITensor * matrix_b = nullptr;
     
+    /////////////////////////////////
+    //std::cout << "=== DEBUG, matmul TRT AddToNetwork, output.name = " << output_blobs_[0]->GetBlobDesc().name << " ===" << std::endl; 
+    /////////////////////////////////
     if (input_tensors.size() == 2) {
         matrix_a = input_tensors[0];
         matrix_b = input_tensors[1];
@@ -86,6 +90,19 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
     // TRT Restrict that : dimsA.nbDims == dimsB.nbDims , when nbDims >= 2
     auto dims_a = matrix_a->getDimensions();
     auto dims_b = matrix_b->getDimensions();
+    /////////////////////////////////
+    /*
+    std::cout << "=== DEBUG, matmul TRT, dims_a = [";
+    for (int i=0; i<dims_a.nbDims; i++)
+        std::cout << dims_a.d[i] << ",";
+    std::cout << "] ===" << std::endl;
+    
+    std::cout << "=== DEBUG, matmul TRT, dims_b = [";
+    for (int i=0; i<dims_b.nbDims; i++)
+        std::cout << dims_b.d[i] << ",";
+    std::cout << "] ===" << std::endl;
+    */
+    /////////////////////////////////
     int nbDimsDiff = std::abs(dims_a.nbDims - dims_b.nbDims);
     if (dims_a.nbDims > dims_b.nbDims)
     {
@@ -113,11 +130,34 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
     MatrixOperation opA = getMatrixOp(matrix_a);
     MatrixOperation opB = getMatrixOp(matrix_b);
 
+    /*
     if (opA == MatrixOperation::kNONE && opB == MatrixOperation::kNONE && dims_b.d[dims_b.nbDims - 1] == 1 &&
             input_tensors.size() == 2 &&
             input_tensors[0]->getDimensions().nbDims == input_tensors[1]->getDimensions().nbDims) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
+    */
+    //////////////////////////////////
+    // Custom Plugin OP CASES:
+    // case 1: N=1, TRT GEMV, especially batched-gemv is slow.
+    // csse 2: Batched-GEMM, without unsqueeze, TRT 7,8 may trigger "Unable to find CUBLAS algo" ERROR.
+    if (opA == MatrixOperation::kNONE && opB == MatrixOperation::kNONE &&
+            input_tensors.size() == 2 &&
+            input_tensors[0]->getDimensions().nbDims == input_tensors[1]->getDimensions().nbDims) {
+        bool batch_eq = true;
+        int in0_batch = 1;
+        for (int i=0; i<input_tensors[0]->getDimensions().nbDims-2; i++) {
+            // dim==-1 would be treated as dim>1 here.
+            batch_eq &= (input_tensors[0]->getDimensions().d[i]==input_tensors[1]->getDimensions().d[i]); 
+            in0_batch *= input_tensors[0]->getDimensions().d[i]==-1 ? 2 : input_tensors[0]->getDimensions().d[1];
+        }
+        if (dims_b.d[dims_b.nbDims - 1] == 1 ||
+            (batch_eq && in0_batch>1)) {
+            std::cout << "=== DEBUG, TRT Matmul 3, layername = " << layer_name_.c_str() << " ===" << std::endl;
+            return TensorRTPluginLayerBuilder::AddToNetwork(network); 
+        }
+    }
+    //////////////////////////////////
 
     IMatrixMultiplyLayer* layer = network->addMatrixMultiply(*matrix_a, opA, *matrix_b, opB);
 

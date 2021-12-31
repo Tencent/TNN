@@ -745,6 +745,14 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     if (this->int8_mode) {
         m_trt_config->setFlag(BuilderFlag::kINT8);
     }
+
+    /////////////////////////
+    //if (std::stoi(GetCudaVersion())<11) {
+        m_trt_config->setTacticSources(1U << static_cast<uint32_t>(TacticSource::kCUBLAS) | \
+                                       1U << static_cast<uint32_t>(TacticSource::kCUDNN));
+    //}
+    /////////////////////////
+
     m_trt_engine = m_trt_builder->buildEngineWithConfig(*m_trt_network, *m_trt_config);
     if (!m_trt_engine) {
         LOGE("create tensorrt engine failed\n");
