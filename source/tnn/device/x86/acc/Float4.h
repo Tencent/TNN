@@ -136,22 +136,22 @@ struct Float4 {
     }
     static Float4 bsl_cle(const Float4& c1, const Float4& c2, const Float4& v1, const Float4& v2) {
         Float4 dst;
-        dst.value = _mm_blendv_ps(v1.value, v2.value, _mm_cmpge_ps(c2.value, c1.value));
+        dst.value = _mm_blendv_ps(v2.value, v1.value, _mm_cmpge_ps(c2.value, c1.value));
         return dst;
     }
     static Float4 bsl_clt(const Float4& c1, const Float4& c2, const Float4& v1, const Float4& v2) {
         Float4 dst;
-        dst.value = _mm_blendv_ps(v1.value, v2.value, _mm_cmpgt_ps(c2.value, c1.value));
+        dst.value = _mm_blendv_ps(v2.value, v1.value, _mm_cmpgt_ps(c2.value, c1.value));
         return dst;
     }
     static Float4 bsl_cge(const Float4& c1, const Float4& c2, const Float4& v1, const Float4& v2) {
         Float4 dst;
-        dst.value = _mm_blendv_ps(v1.value, v2.value, _mm_cmpge_ps(c1.value, c2.value));
+        dst.value = _mm_blendv_ps(v2.value, v1.value, _mm_cmpge_ps(c1.value, c2.value));
         return dst;
     }
     static Float4 bsl_cgt(const Float4& c1, const Float4& c2, const Float4& v1, const Float4& v2) {
         Float4 dst;
-        dst.value = _mm_blendv_ps(v1.value, v2.value, _mm_cmpgt_ps(c1.value, c2.value));
+        dst.value = _mm_blendv_ps(v2.value, v1.value, _mm_cmpgt_ps(c1.value, c2.value));
         return dst;
     }
     static Float4 max(const Float4& v1, const Float4& v2) {
