@@ -121,9 +121,6 @@ Status MatMulLayer::InferOutputShape(bool ignore_error) {
     auto resource = dynamic_cast<MatMulLayerResource*>(resource_);
     DimsVector matrix_a_dims;
     DimsVector matrix_b_dims;
-    /////////////////////////////
-    //std::cout << "=== DEBUG, matmul InputOutputShape 0 ===" << std::endl;
-    /////////////////////////////
     if (input_blobs_.size() == 1) {
         if (param->weight_position == 0) {
             matrix_a_dims = resource->weight.GetBufferDims();
@@ -134,36 +131,9 @@ Status MatMulLayer::InferOutputShape(bool ignore_error) {
         } else {
             return Status(TNNERR_INVALID_MODEL, "MatMul input size is error");
         }
-        /////////////////////////////
-        /*
-        std::cout << "=== DEBUG, matmul InputOutputShape, input0.name = "<< input_blobs_[0]->GetBlobDesc().name << ", input_blobs.size = 1 ===" << std::endl;
-        std::cout << "=== DEBUG, matmul InputOutputShape, weight_position = " << param->weight_position << std::endl;
-        std::cout << "=== DEBUG, matmul InputOutputShape, matrix_a_dims = [";
-        for (const auto& dim : matrix_a_dims)
-            std::cout << dim << ",";
-        std::cout << "] ===" << std::endl;
-        std::cout << "=== DEBUG, matmul InputOutputShape, matrix_b_dims = [";
-        for (const auto& dim : matrix_b_dims)
-            std::cout << dim << ",";
-        std::cout << "] ===" << std::endl;
-        */
-        /////////////////////////////
     } else if (input_blobs_.size() == 2) {
         matrix_a_dims = input_blobs_[0]->GetBlobDesc().dims;
         matrix_b_dims = input_blobs_[1]->GetBlobDesc().dims;
-        /////////////////////////////
-        /*
-        std::cout << "=== DEBUG, matmul InputOutputShape, input0.name = "<< input_blobs_[0]->GetBlobDesc().name << ", input_blobs.size = 2 ===" << std::endl;
-        std::cout << "=== DEBUG, matmul InputOutputShape, matrix_a_dims = [";
-        for (const auto& dim : matrix_a_dims)
-            std::cout << dim << ",";
-        std::cout << "] ===" << std::endl;
-        std::cout << "=== DEBUG, matmul InputOutputShape, matrix_b_dims = [";
-        for (const auto& dim : matrix_b_dims)
-            std::cout << dim << ",";
-        std::cout << "] ===" << std::endl;
-        */
-        /////////////////////////////
     } else {
         return Status(TNNERR_INVALID_MODEL, "MatMul input size is error");
     }

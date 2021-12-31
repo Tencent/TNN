@@ -36,16 +36,6 @@ ILayer* SoftmaxTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         input_tensor = softmax_layer->getOutput(0);
         layer = softmax_layer;
     }
-    /////////////////////////////////
-    /*
-    std::cout << "=== DEBUG, softmax TRT, name = " << layer_name_ << ", tensor.size() = [";
-    for (int i=0; i<tensor->getDimensions().nbDims; i++)
-        std::cout << tensor->getDimensions().d[i] << ",";
-    std::cout << "] ===" << std::endl;
-    
-    std::cout << "=== DEBUG, matmul TRT, axis = " << axis << " ===" << std::endl;
-    */
-    /////////////////////////////////
 
     return layer;
 }

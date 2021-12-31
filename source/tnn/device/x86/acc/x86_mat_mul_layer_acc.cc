@@ -82,48 +82,7 @@ Status X86MatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             conv_sgemm_nn_col_major(M, N, K, b_ptr, M, a_ptr, K, c_ptr, M,
                 fake_bias_ptr, ActivationType_None, workspace, conv_gemm_conf_);
         }
-        ///////////////////////////////////
-        if (outputs[0]->GetBlobDesc().name.length()>=13 &&
-            outputs[0]->GetBlobDesc().name.substr(0,13)=="context_layer") {
-            std::cout << "=== DEBUT, Matmul FWD X86, name = " << outputs[0]->GetBlobDesc().name << std::endl; 
-            std::cout << "=== M = " << M << ", N = " << N << ", K = " << K << std::endl;
-            int a_size = 1*12*7*7;
-            int b_size = 1*12*7*64;
-            int c_size = 1*12*7*64;
-            
-            std::cout << "=== DEBUG, Matmul FWD X86, a[0:10] = [";
-            for (int i=0; i<10; i++)
-                std::cout << matrix_a[i] << ",";
-            std::cout << "] ===" << std::endl;
-            std::cout << "=== DEBUG, Matmul FWD X86, a[-10:-1] = [";
-            for (int i=a_size-10; i<a_size; i++)
-                std::cout << matrix_a[i] << ",";
-            std::cout << "] ===" << std::endl;
-
-            std::cout << "=== DEBUG, Matmul FWD X86, b[0:10] = [";
-            for (int i=0; i<10; i++)
-                std::cout << matrix_b[i] << ",";
-            std::cout << "] ===" << std::endl;
-            std::cout << "=== DEBUG, Matmul FWD X86, b[-10:-1] = [";
-            for (int i=b_size-10; i<b_size; i++)
-                std::cout << matrix_b[i] << ",";
-            std::cout << "] ===" << std::endl;
-
-            std::cout << "=== DEBUG, Matmul FWD X86, c[0:10] = [";
-            for (int i=0; i<10; i++)
-                std::cout << matrix_c[i] << ",";
-            std::cout << "] ===" << std::endl;
-            std::cout << "=== DEBUG, Matmul FWD X86, c[-10:-1] = [";
-            for (int i=c_size-10; i<c_size; i++)
-                std::cout << matrix_c[i] << ",";
-            std::cout << "] ===" << std::endl;
-
-        }
-        ///////////////////////////////////
     }
-
-
-
 
     return TNN_OK;
 }
