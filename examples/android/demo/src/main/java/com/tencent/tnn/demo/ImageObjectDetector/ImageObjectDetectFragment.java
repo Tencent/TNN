@@ -55,9 +55,7 @@ public class ImageObjectDetectFragment extends BaseFragment {
         NpuEnable = mObjectDetector.checkNpu(modelPath);
     }
 
-    private String initModel()
-    {
-
+    private String initModel() {
         String targetDir =  getActivity().getFilesDir().getAbsolutePath();
 
         //copy detect model to sdcard
@@ -82,9 +80,8 @@ public class ImageObjectDetectFragment extends BaseFragment {
         }
     }
 
-    private void onSwichGPU(boolean b)
-    {
-        if(b && mHuaweiNPUswitch.isChecked()){
+    private void onSwitchGPU(boolean b) {
+        if (b && mHuaweiNPUswitch.isChecked()) {
             mHuaweiNPUswitch.setChecked(false);
             mUseHuaweiNpu = false;
         }
@@ -93,9 +90,8 @@ public class ImageObjectDetectFragment extends BaseFragment {
         result_view.setText("");
     }
 
-    private void onSwichNPU(boolean b)
-    {
-        if(b && mGPUSwitch.isChecked()){
+    private void onSwitchNPU(boolean b) {
+        if (b && mGPUSwitch.isChecked()) {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
         }
@@ -121,7 +117,7 @@ public class ImageObjectDetectFragment extends BaseFragment {
         mGPUSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichGPU(b);
+                onSwitchGPU(b);
             }
         });
 
@@ -130,7 +126,7 @@ public class ImageObjectDetectFragment extends BaseFragment {
         mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichNPU(b);
+                onSwitchNPU(b);
             }
         });
 
@@ -169,22 +165,20 @@ public class ImageObjectDetectFragment extends BaseFragment {
 
     }
 
-
     private void startDetect() {
-
         Bitmap originBitmap = FileUtils.readBitmapFromFile(getActivity().getAssets(), IMAGE);
         ImageView source = (ImageView)$(R.id.origin);
         source.setImageBitmap(originBitmap);
         String modelPath = initModel();
         Log.d(TAG, "Init classify " + modelPath);
         int device = 0;
-        if(mUseHuaweiNpu) {
+        if (mUseHuaweiNpu) {
             device = 2;
-        }else if(mUseGPU) {
+        } else if(mUseGPU) {
             device = 1;
         }
         int result = mObjectDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
-        if(result == 0) {
+        if (result == 0) {
             Log.d(TAG, "detect from image");
             ObjectInfo[] objectInfoList = mObjectDetector.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
             Log.d(TAG, "detect from image result " + objectInfoList);
@@ -192,7 +186,7 @@ public class ImageObjectDetectFragment extends BaseFragment {
             if (objectInfoList != null) {
                 objectCount = objectInfoList.length;
             }
-            if(objectInfoList != null && objectInfoList.length > 0) {
+            if (objectInfoList != null && objectInfoList.length > 0) {
                 Log.d(TAG, "detect object size " + objectInfoList.length);
 
                 mPaint.setARGB(255, 0, 255, 0);
@@ -201,8 +195,7 @@ public class ImageObjectDetectFragment extends BaseFragment {
                 Bitmap scaleBitmap2 = originBitmap.copy(Bitmap.Config.ARGB_8888, true);
                 Canvas canvas = new Canvas(scaleBitmap2);
                 ArrayList<Rect> rects = new ArrayList<Rect>();
-                for (int i=0; i<objectInfoList.length; i++)
-                {
+                for (int i=0; i<objectInfoList.length; i++) {
                     rects.add(new Rect((int)(objectInfoList[i].x1), (int)(objectInfoList[i].y1), (int)(objectInfoList[i].x2), (int)(objectInfoList[i].y2)));
                 }
                 for (int i=0; i<rects.size(); i++) {
@@ -211,15 +204,13 @@ public class ImageObjectDetectFragment extends BaseFragment {
                     mPaint.setARGB(255, 0, 255, 0);
                     canvas.drawRect(rect, mPaint);
                     ObjectInfo info = objectInfoList[i];
-                    if(info.class_id < ObjectDetector.label_list.length) {
+                    if (info.class_id < ObjectDetector.label_list.length) {
                         canvas.drawText(String.format("%s : %f", ObjectDetector.label_list[info.class_id], info.score), rect.left, rect.top - 5, mPaint);
                     }
                 }
                 source.setImageBitmap(scaleBitmap2);
 
                 source.draw(canvas);
-
-
             }
             String benchResult = "object count: " + objectCount + " " + Helper.getBenchResult();
             TextView result_view = (TextView)$(R.id.result);
@@ -255,7 +246,6 @@ public class ImageObjectDetectFragment extends BaseFragment {
         super.onStop();
     }
 
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -264,7 +254,6 @@ public class ImageObjectDetectFragment extends BaseFragment {
 
     private void preview() {
         Log.i(TAG, "preview");
-
     }
 
     private void getFocus() {
@@ -273,13 +262,12 @@ public class ImageObjectDetectFragment extends BaseFragment {
         getView().setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-            if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-                clickBack();
-                return true;
-            }
-            return false;
+                if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
+                    clickBack();
+                    return true;
+                }
+                return false;
             }
         });
     }
-
 }

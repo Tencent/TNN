@@ -84,6 +84,10 @@ static TNN_NS::Status CreateResource(TNN_NS::NetResource &net_resource,
             scale_data[i] = input_scale[i] * weight_scale[i];
         }
         resource->scale_handle = scale_handle;
+        // for symmetric quantization zero point always is 0
+        auto zero_point_handle = TNN_NS::RawBuffer(weight_scale.size() * sizeof(int8_t));
+        zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+        resource->zero_point_handle = zero_point_handle;
     } else {
         return TNN_NS::Status(TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER, "Quantized TFLite Converter do not support\n");
     }

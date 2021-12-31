@@ -14,7 +14,7 @@ cd <path_to_tnn>/scripts
 ```
 2）execute the build script
 ```
-./build_ios.sh
+./build_framework_ios.sh
 ```
 If the `xcrun`, `metal` or `metallib` commands cannot be found during the compilation, try the following commands.
 ```

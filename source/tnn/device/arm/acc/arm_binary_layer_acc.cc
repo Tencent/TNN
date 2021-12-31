@@ -271,7 +271,7 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
         if (element_handle.GetDataType() == DATA_TYPE_FLOAT) {
             if (layer_res_size == 1) {
                 // broadcast single, just memcpy
-                RawBuffer temp(layer_res_size * data_byte_size);
+                RawBuffer temp(4 * layer_res_size * data_byte_size);
                 memcpy(temp.force_to<void *>(), layer_data, layer_res_size * data_byte_size);
                 broadcast_ = temp;
             } else {
