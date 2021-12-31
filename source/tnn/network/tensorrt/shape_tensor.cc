@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <limits>
 #include <climits>
 #include <functional>
 #include <numeric>
