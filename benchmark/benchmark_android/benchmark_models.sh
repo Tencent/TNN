@@ -87,7 +87,9 @@ function build_android_bench() {
           -DANDROID_STL=${STL}\
           -DANDROID_NATIVE_API_LEVEL=android-14  \
           -DANDROID_TOOLCHAIN=clang \
+          -DTNN_CPU_ENABLE:BOOL=ON \
           -DTNN_ARM_ENABLE:BOOL=ON \
+          -DTNN_ARM82_ENABLE:BOOL=ON \
           -DTNN_OPENCL_ENABLE:BOOL=ON \
           -DTNN_HUAWEI_NPU_ENABLE:BOOL=${HUAWEI_NPU_ENABLE} \
           -DTNN_OPENMP_ENABLE:BOOL=ON \

@@ -29,6 +29,7 @@ typedef enum {
     BORDER_TYPE_CONSTANT = 0x00,
     BORDER_TYPE_REFLECT  = 0x01,
     BORDER_TYPE_EDGE     = 0x02,
+    BORDER_TYPE_TRANSPARENT=0x03,
 } PUBLIC BorderType;
 
 typedef enum {

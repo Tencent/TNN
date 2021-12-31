@@ -36,6 +36,10 @@ Status CudaConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource
     DimsVector input_dims  = inputs[0]->GetBlobDesc().dims;
     DimsVector output_dims = outputs[0]->GetBlobDesc().dims;
 
+    if (input_dims.size() == 0 || output_dims.size() == 0) {
+        return TNNERR_LAYER_ERR;
+    }
+
     Blob *input = inputs[0];
 
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param);

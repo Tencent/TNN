@@ -54,6 +54,7 @@ option(TNN_TNN2MEM_ENABLE "Enable tnn2mem" OFF)
 option(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE "Enable Build Benchmark Test Lib" OFF)
 option(TNN_GLIBCXX_USE_CXX11_ABI_ENABLE "Enable Use CXX11 ABI" ON)
 option(TNN_PYBIND_ENABLE  "Enable Pybind" OFF)
+option(TNN_METAL_FLOAT32 "Enable Metal Float32" OFF)
 
 set(TNN_USE_GFLAGS OFF)
 
@@ -121,7 +122,7 @@ else()
 endif()
 
 if(TNN_TEST_ENABLE)
-    option(TNN_METAL_FLOAT32 "Enable Metal Float32" ON)
+    set(TNN_METAL_FLOAT32 ON)
 else()
     set(TNN_UNIT_TEST_ENABLE OFF)
 endif()
@@ -149,7 +150,7 @@ if(TNN_QUANTIZATION_ENABLE OR TNN_UNIT_TEST_ENABLE)
 endif()
 
 if(TNN_MODEL_CHECK_ENABLE)
-    option(TNN_METAL_FLOAT32 "Enable Metal Float32" ON)
+    set(TNN_METAL_FLOAT32 ON)
 endif()
 
 if(TNN_ARM82_ENABLE)

@@ -59,7 +59,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
     private boolean mUseHuaweiNpu = false;
     private TextView HuaweiNpuTextView;
 
-    private boolean mDeviceSwiched = false;
+    private boolean mDeviceSwitched = false;
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -75,7 +75,6 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
     }
 
     private String initModel() {
-
         String targetDir = getActivity().getFilesDir().getAbsolutePath();
 
         //copy detect model to sdcard
@@ -92,6 +91,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         FileUtils.copyAsset(getActivity().getAssets(),"blazeface_anchors.txt", targetDir + "/blazeface_anchors.txt");
         return targetDir;
     }
+
     @Override
     public void onClick(View view) {
         int i = view.getId();
@@ -99,14 +99,14 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
             clickBack();
         }
     }
-    private void restartCamera()
-    {
+
+    private void restartCamera() {
         closeCamera();
         openCamera(mCameraFacing);
         startPreview(mSurfaceHolder);
     }
-    private void onSwichGPU(boolean b)
-    {
+
+    private void onSwitchGPU(boolean b) {
         if (b && mHuaweiNPUswitch.isChecked()) {
             mHuaweiNPUswitch.setChecked(false);
             mUseHuaweiNpu = false;
@@ -114,11 +114,10 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         mUseGPU = b;
         TextView result_view = (TextView)$(R.id.result);
         result_view.setText("");
-        mDeviceSwiched = true;
+        mDeviceSwitched = true;
     }
 
-    private void onSwichNPU(boolean b)
-    {
+    private void onSwitchNPU(boolean b) {
         if (b && mGPUSwitch.isChecked()) {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
@@ -126,7 +125,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         mUseHuaweiNpu = b;
         TextView result_view = (TextView)$(R.id.result);
         result_view.setText("");
-        mDeviceSwiched = true;
+        mDeviceSwitched = true;
     }
 
     private void clickBack() {
@@ -146,7 +145,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         mGPUSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichGPU(b);
+                onSwitchGPU(b);
             }
         });
 
@@ -155,7 +154,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichNPU(b);
+                onSwitchNPU(b);
             }
         });
         HuaweiNpuTextView = $(R.id.npu_text);
@@ -165,7 +164,6 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         }
         init();
     }
-
 
     private void init() {
         mPreview = $(R.id.live_detection_preview);
@@ -185,9 +183,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
             }
         });
 
-
         mDrawView = (DrawView) $(R.id.drawView);
-
     }
 
     @Override
@@ -222,7 +218,6 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         super.onStop();
     }
 
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -231,7 +226,6 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
 
     private void preview() {
         Log.i(TAG, "preview");
-
     }
 
     private void getFocus() {
@@ -240,11 +234,11 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         getView().setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-            if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-                clickBack();
-                return true;
-            }
-            return false;
+                if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
+                    clickBack();
+                    return true;
+                }
+                return false;
             }
         });
     }
@@ -279,9 +273,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
             }
             if (mOpenedCamera == null) {
                 Log.e(TAG, "can't find camera");
-            }
-            else {
-
+            } else {
                 int r = CameraSetting.initCamera(getActivity().getApplicationContext(),mOpenedCamera,mOpenedCameraId);
                 if (r == 0) {
                     //设置摄像头朝向
@@ -317,8 +309,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                     Log.e(TAG, "Failed to init camera");
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Log.e(TAG, "open camera failed:" + e.getLocalizedMessage());
         }
     }
@@ -334,7 +325,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                             Camera.Parameters mCameraParameters = camera.getParameters();
                             FaceInfo[] faceInfoList;
                             // reinit
-                            if (mDeviceSwiched) {
+                            if (mDeviceSwitched) {
                                 String modelPath = getActivity().getFilesDir().getAbsolutePath();
                                 int device = 0;
                                 if (mUseHuaweiNpu) {
@@ -350,7 +341,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                                     mIsDetectingFace = false;
                                     Log.e(TAG, "Face detector init failed " + ret);
                                 }
-                                mDeviceSwiched = false;
+                                mDeviceSwitched = false;
                             }
                             if (mIsCountFps) {
                                 mFpsCounter.begin("BlazeFaceDetect");
@@ -377,8 +368,7 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
                                 faceCount = faceInfoList.length;
                             }
                             mDrawView.addFaceRect(faceInfoList);
-                        }
-                        else {
+                        } else {
                             Log.i(TAG,"No face");
                         }
                     }
@@ -418,5 +408,4 @@ public class StreamBlazeFaceDetectFragment extends BaseFragment {
         }
         mFaceDetector.deinit();
     }
-
 }

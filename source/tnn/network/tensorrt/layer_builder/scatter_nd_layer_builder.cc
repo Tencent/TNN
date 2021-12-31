@@ -20,7 +20,17 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(ScatterND, LAYER_SCATTERND);
 
 bool ScatterNDTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
-    return (inOut[pos].type == nvinfer1::DataType::kINT32 || inOut[pos].type == nvinfer1::DataType::kFLOAT);
+    if (nbInputs == 3) {
+        switch (pos) {
+            case 0: return inOut[pos].type == nvinfer1::DataType::kFLOAT;
+            case 1: return inOut[pos].type == nvinfer1::DataType::kINT32;
+            case 2: return inOut[pos].type == nvinfer1::DataType::kFLOAT;
+            case 3: return inOut[pos].type == nvinfer1::DataType::kFLOAT;
+            default: return false;
+        }
+    } else {
+        return inOut[pos].type == nvinfer1::DataType::kFLOAT;
+    }
 }
 
 Status ScatterNDTRTPluginLayerBuilder::Reshape() {
