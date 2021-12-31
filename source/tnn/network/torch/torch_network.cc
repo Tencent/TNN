@@ -155,7 +155,6 @@ Status TNNTorchNetwork::ShareNetResource(AbstractNetwork* network) {
 }
 
 Status TNNTorchNetwork::CreateIOBinding(InputShapesMap min_shape, InputShapesMap max_shape, InputDataTypeMap inputs_data_type) {
-    std::cout << "=== DEBUG, CreateIOBinding 0 ===" << std::endl;
 
     std::set<c10::TypeKind> supported_kinds = {
         c10::TypeKind::TensorType,
@@ -242,33 +241,8 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap min_shape, InputShapesMap
             cur_inputs[i] = ivalue;
         }
     }
-    std::cout << "=== DEBUG, CreateIOBinding 1 ===" << std::endl;
-    ////////////////////////////////
-    /*
-    for (int i=0;i<cur_inputs.size();i++) {
-        auto ivalue = cur_inputs[i];
-        auto tensor = ivalue.toTensor();
-        //if (tensor.scalar_type() == at::ScalarType::Float) {
-        //    std::cout << "=== input_i=" << i << ", tensor type = Float ===" << std::endl;
-        //}
-        //if (tensor.scalar_type() == at::ScalarType::Long) {
-        //    std::cout << "=== input_i=" << i << ", tensor type = Long ===" << std::endl;
-        //}
-        //if (tensor.scalar_type() == at::ScalarType::Int) {
-        //    std::cout << "=== input_i=" << i << ", tensor type = Int ===" << std::endl;
-        //}
-        for (int j=0; j<7; j++) {
-            std::cout << "=== input_i=" << i << ", tensor[" << j << "]=";
-            //reinterpret_cast<int*>(tensor.data_ptr())[j] = 0; 
-            std::cout << reinterpret_cast<int*>(tensor.data_ptr())[j] << " ===" << std::endl; 
-            reinterpret_cast<int*>(tensor.data_ptr())[j] = 0; 
-        }
-    }
-    */
-    ////////////////////////////////
 
     auto out = module_.forward(cur_inputs);
-    std::cout << "=== DEBUG, CreateIOBinding 2 ===" << std::endl;
 
     // Convert to float here because blobConverter does not support half precision currently
     if (precision_ == DATA_TYPE_HALF) {
@@ -296,7 +270,6 @@ Status TNNTorchNetwork::CreateIOBinding(InputShapesMap min_shape, InputShapesMap
         RETURN_ON_FAIL(foreign_blob->SetForeignTensor(std::make_shared<TorchTensor>(tensor, router)));
         output_blob_map_[name] = foreign_blob;    
     }
-    std::cout << "=== DEBUG, CreateIOBinding 3 ===" << std::endl;
 
     return TNN_OK;
 }
@@ -360,17 +333,7 @@ Status TNNTorchNetwork::ForwardAsync(Callback call_back) {
         }
     }
 
-    //std::cout << "=== DEBUG, fwd 0 ===" << std::endl;
-    //for (int i=0;i<cur_inputs.size();i++) {
-    //    auto ivalue = cur_inputs[i];
-    //    auto tensor = ivalue.toTensor();
-    //    for (int j=0; j<7; j++) {
-    //        std::cout << "=== input_i=" << i << ", tensor[" << j << "]=";
-    //        std::cout << reinterpret_cast<int*>(tensor.data_ptr())[j] << " ===" << std::endl; 
-    //    }
-    //}
     auto out = module_.forward(cur_inputs);
-    //std::cout << "=== DEBUG, fwd 1 ===" << std::endl;
 
     // Convert to float here because blobConverter does not support half precision currently
     if (precision_ == DATA_TYPE_HALF) {

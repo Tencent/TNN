@@ -54,9 +54,6 @@ void genRandomInputs(std::shared_ptr<torch::jit::Graph> graph, InputShapesMap &i
         // create blob from input_shape
         BlobDesc blob_desc;
         if (input_type.find(input.first) != input_type.end()) {
-            ////////////////////////////////
-            std::cout << "=== DEBUG, genRandomInputs, blob_desc.name = " << input.first << ", .data_type = " << input_type[input.first] << " ===" << std::endl;
-            ////////////////////////////////
             blob_desc.data_type = input_type[input.first];
         } else {
             blob_desc.data_type = (config.precision == PRECISION_LOW && config.device_type == DEVICE_CUDA) ? DATA_TYPE_HALF : DATA_TYPE_FLOAT;
@@ -103,13 +100,7 @@ void runShapeInfer(torch::jit::Module& mod, std::vector<SegmentedBlock> &segment
     std::vector<torch::jit::IValue> jit_inputs_ivalues;
     std::vector<std::shared_ptr<Blob>> blobs;
     genRandomInputs(graph, input_shape, input_type, blobs, jit_inputs_ivalues, config);
-    ////////////////////////////
-    std::cout << "=== DEBUG, runShapeInfer.forward 0 ===" << std::endl;
-    ////////////////////////////
     torch::jit::IValue jit_results_ivalues = mod.forward(jit_inputs_ivalues);
-    ////////////////////////////
-    std::cout << "=== DEBUG, runShapeInfer.forward 1 ===" << std::endl;
-    ////////////////////////////
 
     auto get_output_shape = [&](torch::jit::IValue &output) {
         // get result tensor shape

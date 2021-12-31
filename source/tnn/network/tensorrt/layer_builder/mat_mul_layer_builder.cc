@@ -63,9 +63,6 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
     ITensor * matrix_a = nullptr;
     ITensor * matrix_b = nullptr;
     
-    /////////////////////////////////
-    //std::cout << "=== DEBUG, matmul TRT AddToNetwork, output.name = " << output_blobs_[0]->GetBlobDesc().name << " ===" << std::endl; 
-    /////////////////////////////////
     if (input_tensors.size() == 2) {
         matrix_a = input_tensors[0];
         matrix_b = input_tensors[1];
@@ -90,19 +87,6 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
     // TRT Restrict that : dimsA.nbDims == dimsB.nbDims , when nbDims >= 2
     auto dims_a = matrix_a->getDimensions();
     auto dims_b = matrix_b->getDimensions();
-    /////////////////////////////////
-    /*
-    std::cout << "=== DEBUG, matmul TRT, dims_a = [";
-    for (int i=0; i<dims_a.nbDims; i++)
-        std::cout << dims_a.d[i] << ",";
-    std::cout << "] ===" << std::endl;
-    
-    std::cout << "=== DEBUG, matmul TRT, dims_b = [";
-    for (int i=0; i<dims_b.nbDims; i++)
-        std::cout << dims_b.d[i] << ",";
-    std::cout << "] ===" << std::endl;
-    */
-    /////////////////////////////////
     int nbDimsDiff = std::abs(dims_a.nbDims - dims_b.nbDims);
     if (dims_a.nbDims > dims_b.nbDims)
     {
@@ -130,34 +114,33 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
     MatrixOperation opA = getMatrixOp(matrix_a);
     MatrixOperation opB = getMatrixOp(matrix_b);
 
-    /*
-    if (opA == MatrixOperation::kNONE && opB == MatrixOperation::kNONE && dims_b.d[dims_b.nbDims - 1] == 1 &&
-            input_tensors.size() == 2 &&
-            input_tensors[0]->getDimensions().nbDims == input_tensors[1]->getDimensions().nbDims) {
-        return TensorRTPluginLayerBuilder::AddToNetwork(network);
-    }
-    */
-    //////////////////////////////////
-    // Custom Plugin OP CASES:
-    // case 1: N=1, TRT GEMV, especially batched-gemv is slow.
-    // csse 2: Batched-GEMM, without unsqueeze, TRT 7,8 may trigger "Unable to find CUBLAS algo" ERROR.
+    // CASEs when Custom Plugin MatMul OP is prefered:
+    // case 1: N=1, TRT GEMV with reduce sum, TRT default batched-gemv is slow,
+    //         besides, fp16 GEMV has reduce sum OP, reduce should be calculated under fp32.
+    // case 2: Batched-GEMM, without unsqueeze, TRT 7,8 may trigger "Unable to find CUBLAS algo" ERROR,
+    //         in some corner cases.
+    //         Calling Plugin CUBLAS GEMM may hurt performace, so we put a very strict prerequisite.
+    //         Ideally, Batched-GEMM plugin should only be called by Models with Transformer Kernels.
     if (opA == MatrixOperation::kNONE && opB == MatrixOperation::kNONE &&
             input_tensors.size() == 2 &&
             input_tensors[0]->getDimensions().nbDims == input_tensors[1]->getDimensions().nbDims) {
         bool batch_eq = true;
+        bool mnk_unknown = true;
         int in0_batch = 1;
         for (int i=0; i<input_tensors[0]->getDimensions().nbDims-2; i++) {
             // dim==-1 would be treated as dim>1 here.
             batch_eq &= (input_tensors[0]->getDimensions().d[i]==input_tensors[1]->getDimensions().d[i]); 
             in0_batch *= input_tensors[0]->getDimensions().d[i]==-1 ? 2 : input_tensors[0]->getDimensions().d[1];
         }
+        for (int i=input_tensors[0]->getDimensions().nbDims-2; i<input_tensors[0]->getDimensions().nbDims; i++) {
+            mnk_unknown &= input_tensors[0]->getDimensions().d[i]==-1;
+            mnk_unknown &= input_tensors[1]->getDimensions().d[i]==-1;
+        }
         if (dims_b.d[dims_b.nbDims - 1] == 1 ||
-            (batch_eq && in0_batch>1)) {
-            std::cout << "=== DEBUG, TRT Matmul 3, layername = " << layer_name_.c_str() << " ===" << std::endl;
+            (batch_eq && in0_batch>1 && mnk_unknown)) {
             return TensorRTPluginLayerBuilder::AddToNetwork(network); 
         }
     }
-    //////////////////////////////////
 
     IMatrixMultiplyLayer* layer = network->addMatrixMultiply(*matrix_a, opA, *matrix_b, opB);
 

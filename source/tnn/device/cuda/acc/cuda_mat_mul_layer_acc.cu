@@ -264,20 +264,9 @@ Status CudaMatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
             return Status(TNNERR_MODEL_ERR, "Error: CUDA MatMul acc with Unsupported Data Type.");
         }
     } else if (in1_batch==in2_batch) {
-        std::cout << "==== DEBUG, cuda batched-Matmul ACC, name = " << output_blob->GetBlobDesc().name << " ===" << std::endl;
-        // input_0.batch == input_1.batch, Batch GEMM without unsqueeze, expand etc. 
-        
+        // input_0.batch == input_1.batch, 
+        // Batched-GEMM without unsqueeze, expand etc. 
         if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_FLOAT) {
-            /////////////////////////////
-            if (input_blob2->GetBlobDesc().data_type==DataType::DATA_TYPE_FLOAT)
-                std::cout << "=== float.in2.type = float ===" << std::endl;
-            if (input_blob2->GetBlobDesc().data_type==DataType::DATA_TYPE_HALF)
-                std::cout << "=== float.in2.type = half ===" << std::endl;
-            if (output_blob->GetBlobDesc().data_type==DataType::DATA_TYPE_FLOAT)
-                std::cout << "=== float.out.type = float ===" << std::endl;
-            if (output_blob->GetBlobDesc().data_type==DataType::DATA_TYPE_HALF)
-                std::cout << "=== float.out.type = half ===" << std::endl;
-            /////////////////////////////
             float alpha = 1.0;
             float beta  = 0.0;
             if (in1_batch==1) {
@@ -292,16 +281,6 @@ Status CudaMatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
                              &beta, (float*)output_data, M, N*M, in1_batch));
             }
         } else if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_HALF) {
-            ////////////////////////////////////////
-            if (input_blob2->GetBlobDesc().data_type==DataType::DATA_TYPE_FLOAT)
-                std::cout << "=== in2.type = float ===" << std::endl;
-            if (input_blob2->GetBlobDesc().data_type==DataType::DATA_TYPE_HALF)
-                std::cout << "=== in2.type = half ===" << std::endl;
-            if (output_blob->GetBlobDesc().data_type==DataType::DATA_TYPE_FLOAT)
-                std::cout << "=== out.type = float ===" << std::endl;
-            if (output_blob->GetBlobDesc().data_type==DataType::DATA_TYPE_HALF)
-                std::cout << "=== out.type = half ===" << std::endl;
-            ////////////////////////////////////////
             __half alpha = __half(1.f);
             __half beta  = __half(0.f);
             if (in1_batch==1) {

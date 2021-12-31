@@ -338,10 +338,6 @@ namespace test {
                 
                 delimiter = ";";
                 p2 = input_data_type_str.find(delimiter, p1);
-                /////////////////////////
-                //std::cout << "==== DEBUG, test.data_type = " << input_data_type_str.substr(p1, p2-p1) << " ===" << ", int.data_type = " << input_data_type[input_name] << " ===" << std::endl;
-                std::cout << "==== DEBUG, test.data_type = " << input_data_type_str.substr(p1, p2-p1) << " ===" << std::endl;
-                /////////////////////////
                 input_data_type[input_name] = static_cast<DataType>(std::stoi(input_data_type_str.substr(p1, p2-p1)));
             }
         }

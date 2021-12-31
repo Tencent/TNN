@@ -124,9 +124,6 @@ Status BlobManager::Init(NetworkConfig &config, NetStructure *net_structure, Inp
             continue;
         }
         auto current_blob = blobs_[current_blob_name];
-        ////////////////////////////////////
-        std::cout << "=== DEBUG, blob_manager.cc, name=" << current_blob_name << ", input_data_type_map.size() = " << input_data_type_map.size() << " ===" << std::endl;
-        ////////////////////////////////////
         if (input_data_type_map.find(current_blob_name) != input_data_type_map.end()) {
             current_blob->GetBlobDesc().data_type = input_data_type_map.find(current_blob_name)->second;
         } else {
