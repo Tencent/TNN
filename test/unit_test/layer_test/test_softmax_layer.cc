@@ -53,8 +53,8 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_OPENCL == dev && (dim_count > 4 || (axis != 1 && axis != 2))) {
-        // opencl only support axis = 1 or 2 for now
+    if (DEVICE_OPENCL == dev && (dim_count > 4 || (axis != 1 && axis != 2 && axis != 3))) {
+        // opencl only support axis = 1, 2 or 3 for now
         GTEST_SKIP();
     }
 
