@@ -55,9 +55,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
         NpuEnable = mFaceDetector.checkNpu(modelPath);
     }
 
-    private String initModel()
-    {
-
+    private String initModel() {
         String targetDir =  getActivity().getFilesDir().getAbsolutePath();
 
         //copy detect model to sdcard
@@ -82,9 +80,8 @@ public class ImageFaceDetectFragment extends BaseFragment {
         }
     }
 
-    private void onSwichGPU(boolean b)
-    {
-        if(b && mHuaweiNPUswitch.isChecked()){
+    private void onSwitchGPU(boolean b) {
+        if (b && mHuaweiNPUswitch.isChecked()) {
             mHuaweiNPUswitch.setChecked(false);
             mUseHuaweiNpu = false;
         }
@@ -93,9 +90,8 @@ public class ImageFaceDetectFragment extends BaseFragment {
         result_view.setText("");
     }
 
-    private void onSwichNPU(boolean b)
-    {
-        if(b && mGPUSwitch.isChecked()){
+    private void onSwitchNPU(boolean b) {
+        if (b && mGPUSwitch.isChecked()) {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
         }
@@ -121,7 +117,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
         mGPUSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichGPU(b);
+                onSwitchGPU(b);
             }
         });
 
@@ -130,7 +126,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
         mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichNPU(b);
+                onSwitchNPU(b);
             }
         });
 
@@ -169,9 +165,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
 
     }
 
-
     private void startDetect() {
-
         Bitmap originBitmap = FileUtils.readBitmapFromFile(getActivity().getAssets(), IMAGE);
         float scalew = originBitmap.getWidth()/(float)NET_W_INPUT;
         float scaleh = originBitmap.getHeight()/(float)NET_H_INPUT;
@@ -181,13 +175,13 @@ public class ImageFaceDetectFragment extends BaseFragment {
         String modelPath = initModel();
         Log.d(TAG, "Init classify " + modelPath);
         int device = 0;
-        if(mUseHuaweiNpu) {
+        if (mUseHuaweiNpu) {
             device = 2;
-        }else if(mUseGPU) {
+        } else if(mUseGPU) {
             device = 1;
         }
         int result = mFaceDetector.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
-        if(result == 0) {
+        if (result == 0) {
             Log.d(TAG, "detect from image");
             FaceInfo[] faceInfoList = mFaceDetector.detectFromImage(scaleBitmap, NET_W_INPUT, NET_H_INPUT);
             Log.d(TAG, "detect from image result " + faceInfoList);
@@ -195,7 +189,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
             if (faceInfoList != null) {
                 faceCount = faceInfoList.length;
             }
-            if(faceInfoList != null && faceInfoList.length > 0) {
+            if (faceInfoList != null && faceInfoList.length > 0) {
                 Log.d(TAG, "detect face size " + faceInfoList.length);
 
                 mPaint.setARGB(255, 0, 255, 0);
@@ -205,8 +199,7 @@ public class ImageFaceDetectFragment extends BaseFragment {
                 Bitmap scaleBitmap2 = originBitmap.copy(Bitmap.Config.ARGB_8888, true);
                 Canvas canvas = new Canvas(scaleBitmap2);
                 ArrayList<Rect> rects = new ArrayList<Rect>();
-                for (int i=0; i<faceInfoList.length; i++)
-                {
+                for (int i=0; i<faceInfoList.length; i++) {
                     rects.add(new Rect((int)(faceInfoList[i].x1 * scalew), (int)(faceInfoList[i].y1 * scaleh), (int)(faceInfoList[i].x2 * scalew), (int)(faceInfoList[i].y2*scaleh)));
                 }
                 for (int i=0; i<rects.size(); i++) {
@@ -217,8 +210,6 @@ public class ImageFaceDetectFragment extends BaseFragment {
                 source.setImageBitmap(scaleBitmap2);
 
                 source.draw(canvas);
-
-
             }
             String benchResult = "face count: " + faceCount + " " + Helper.getBenchResult();
             TextView result_view = (TextView)$(R.id.result);
@@ -254,7 +245,6 @@ public class ImageFaceDetectFragment extends BaseFragment {
         super.onStop();
     }
 
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -263,7 +253,6 @@ public class ImageFaceDetectFragment extends BaseFragment {
 
     private void preview() {
         Log.i(TAG, "preview");
-
     }
 
     private void getFocus() {
@@ -272,13 +261,12 @@ public class ImageFaceDetectFragment extends BaseFragment {
         getView().setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-            if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-                clickBack();
-                return true;
-            }
-            return false;
+                if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
+                    clickBack();
+                    return true;
+                }
+                return false;
             }
         });
     }
-
 }

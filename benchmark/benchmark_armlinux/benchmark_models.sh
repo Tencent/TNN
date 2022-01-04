@@ -66,6 +66,7 @@ function build_armlinux_bench() {
         -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
         -DCMAKE_BUILD_TYPE=Debug \
+        -DTNN_CPU_ENABLE:BOOL=ON \
         -DTNN_ARM_ENABLE:BOOL=$ARM \
         -DTNN_OPENMP_ENABLE:BOOL=$OPENMP \
         -DTNN_OPENCL_ENABLE:BOOL=$OPENCL \

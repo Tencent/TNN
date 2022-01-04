@@ -164,7 +164,7 @@ Status CudaRoiAlignLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     int pooled_width = param->output_width;
     float spatial_scale = param->spatial_scale;
     int sampling_ratio = param->sampling_ratio;
-    int roi_cols = batch_indices_blob->GetBlobDesc().dims[0];
+    int roi_cols = rois_blob->GetBlobDesc().dims[1];
     float *input_data = static_cast<float *>(input_blob->GetHandle().base);
     float *input_rois = static_cast<float *>(rois_blob->GetHandle().base);
     int *batch_indices_ptr = static_cast<int *>(batch_indices_blob->GetHandle().base);

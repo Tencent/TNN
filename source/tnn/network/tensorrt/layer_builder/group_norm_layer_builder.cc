@@ -27,7 +27,7 @@ bool GroupNormTRTPluginLayerBuilder::supportsFormatCombination(
     case 0:
         return common_cond 
             && (desc.type == nvinfer1::DataType::kFLOAT || desc.type == nvinfer1::DataType::kHALF)
-            && desc.format == nvinfer1::TensorFormat::kLINEAR;
+            && desc.format == nvinfer1::TensorFormat::kLINEAR && (pos == 0 || inOut[pos].type == inOut[0].type);
     case 1:
     case 2:
         return common_cond && desc.type == nvinfer1::DataType::kFLOAT;

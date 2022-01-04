@@ -18,6 +18,7 @@
 
 #include "tnn/core/blob.h"
 #include "tnn/core/macro.h"
+#include "tnn/utils/mat_utils.h"
 
 namespace TNN_NS {
 
@@ -32,9 +33,9 @@ void BGRAToGRAY(const uint8_t* src, uint8_t* dst, int batch, int h, int w, int c
 void CudaCopyMakeBorder(const uint8_t* src, uint8_t* dst, int batch, int src_width, int src_height, int dst_width,
         int dst_height, int channel, int top, int bottom, int left, int right, uint8_t pad_val);
 void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-        const float (*transform)[3], const float border_val);
+        const float (*transform)[3], const float border_val, BorderType border_type = BORDER_TYPE_CONSTANT, void* stream = nullptr);
 void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-        const float (*transform)[3], const float border_val);
+        const float (*transform)[3], const float border_val, BorderType border_type = BORDER_TYPE_CONSTANT);
 
 }  // namespace TNN_NS
 
