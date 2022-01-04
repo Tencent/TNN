@@ -15,7 +15,11 @@ set(COMMON_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/platforms/linux/src/memory_usage.cc
     )
 
-target_link_libraries(TNN dl rt)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm" AND ANDROID_API_LEVAL)
+    target_link_libraries(TNN dl log)
+else()
+    target_link_libraries(TNN dl rt)
+endif()
 
 if(TNN_X86_ENABLE)
 endif()
