@@ -76,5 +76,21 @@ torch::jit::Node* SegmentedBlock::cloneNode(torch::jit::Node* node) {
     return new_node;
 }
 
+void SegmentedBlock::check_raw_nodes() {
+    std::unordered_set<torch::jit::Node*> node_set(nodes_.begin(), nodes_.end());
+    nodes_.erase(std::remove_if(nodes_.begin(), nodes_.end(),
+                                [&](torch::jit::Node* node) {
+                                    if (node->kind() == at::aten::size) {
+                                        for (auto& use : node->output()->uses()) {
+                                            if (node_set.count(use.user))
+                                                return false;
+                                        }
+                                        return true;
+                                    }
+                                    return false;
+                                }),
+                 nodes_.end());
+}
+
 }  // namespace partitioning
 }  // namespace TNN_NS
